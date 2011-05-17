@@ -1,0 +1,264 @@
+<html>
+<head>
+<style>
+.debug {
+/**/
+	height: 0; visibility: hidden;
+/**/
+}
+</style>
+<script>
+var defName
+var def
+var output
+var code
+var debug
+var result
+var exprs = {}
+var order = []
+var funcCount = 1
+
+function loaded() {
+	defName = document.getElementById("defName")
+	def = document.getElementById("def")
+	output = document.getElementById("output")
+	code = document.getElementById("code")
+	debug = document.getElementById("debug")
+	result = document.getElementById("result")
+	var defs = [
+		"Example", '(\\l.l \\a b.a) ((\\x y f.f x y) 1 2)',
+		"true", '\\x y.x',
+		"false", '\\x y.y',
+	]
+	for (var i = 0; i < defs.length; i += 2) {
+		addExpr(defs[i], defs[i + 1])
+	}
+}
+function input() {
+	addExpr(defName.value, def.value)
+	defName.value = ''
+}
+function addExpr(name, txt) {
+	var expr = new Entry(name || (funcCount++ + ''), parse(txt.trim(), {})[0])
+
+	if (exprs[expr.name]) {
+		var newOutput = ''
+
+		for (var i = 0; i < order.length; i++) {
+			if (order[i].name == expr.name) {
+				order.splice(i, 1)
+			}
+			if (i < order.length) {
+				newOutput += outputDivFor(order[i])
+			}
+		}
+		output.innerHTML = newOutput
+	}
+	output.innerHTML += outputDivFor(expr)
+	exprs[expr.name] = expr
+	order.push(expr)
+}
+function outputDivFor(expr) {
+	return "<div><button onclick='editFunc(\"" + expr.name + "\")'>Edit</button><button onclick='runFunc(\"" + expr.name + "\")'>Run</button>" + expr.name + ': ' + expr + "</div>"
+}
+function editFunc(index) {
+	defName.value = exprs[index].name
+	def.value = exprs[index].formatSlash()
+}
+function runFunc(index) {
+	var expr = '(function(){' + constructEnv() + '\nreturn _' + exprs[index].name + '()})()'
+	var res
+
+	debug.innerHTML = "<pre>" + expr + "</pre>"
+	try {
+		res = eval(expr)
+	} catch (err) {
+		res = "Error: " + err
+	}
+	result.innerHTML += "<div>" + exprs[index] + ": " + res + "</div>"
+}
+function constructEnv() {
+	var env = []
+
+	for (var i = 0; i < order.length; i++) {
+		env.push("var _" + order[i].name + ' = (function(){return ' + order[i].func + '})')
+	}
+	return env.join("\n")
+}
+function parse(txt, vars) {
+	var expr = null
+	var cur
+	var newVars = {}
+
+	while (txt.length > 0 && txt[0] != ')') {
+		if (txt[0] == '\\' || txt[0] == '&lambda;') {
+			var lmb = parseLambda(txt.substring(1).trim(), vars)
+
+			cur = lmb[0]
+			txt = lmb[1]
+		} else {
+			if (txt[0] == '(') {
+				var p = parse(txt.substring(1).trim(), vars)
+
+				cur = p[0]
+				if (p[1][0] != ')') {
+					throw new Error('expected ")"')
+				}
+				txt = p[1].substring(1).trim()
+			} else {
+				var name = txt.match('^[^ \t\n.()]+')[0]
+
+				cur = vars[name]
+				if (!cur) {
+					cur = new Variable(name, !exprs[name])
+					newVars[name] = cur
+					vars[name] = cur
+				}
+				txt = txt.substring(name.length).trim()
+			}
+		}
+		expr = expr ? new Apply(expr, cur) : cur
+	}
+	for (i in newVars) {
+		vars[i] = null
+	}
+	return [expr, txt]
+}
+function parseLambda(txt, vars) {
+	var space = txt.indexOf(' ')
+	var dot = txt.indexOf('.')
+	var name, old, body, lvar
+
+	if (dot < space || space == -1 || txt.substring(space + 1).trim()[0] == '.') {
+		space = dot
+		name = txt.substring(0, dot).trim()
+		old = vars[name]
+		lvar = vars[name] = new Variable(name, false)
+		body = parse(txt.substring(dot + 1).trim(), vars)
+	} else {
+		name = txt.substring(0, space)
+		old = vars[name]
+		lvar = vars[name] = new Variable(name, false)
+		body = parseLambda(txt.substring(space + 1).trim(), vars)
+	}
+	vars[name] = old
+	return [new Lambda(lvar, body[0]), body[1]]
+}
+function Entry(name, expr) {
+	this.name = name
+	this.expr = expr
+	this.func = expr.ret([]).join("")
+}
+Entry.prototype.toString = function() {return this.expr.format({}, {}, false)}
+Entry.prototype.formatSlash = function() {return this.expr.format({}, {}, true)}
+function Lambda(arg, body) {
+	this.lvar = arg
+	this.body = body
+}
+Lambda.prototype = {
+	toString: function() {return "&lambda;(" + this.lvar.name + " . " + this.body + ")"},
+	ret: function(stream) {
+		stream.push("function(_", this.lvar.name, ") {", "return ")
+		this.body.ret(stream)
+		stream.push("}")
+		return stream
+	},
+	pass: function(stream) {
+		stream.push("function(){return ")
+		this.ret(stream)
+		stream.push("}")
+		return stream
+	},
+	apply: function(stream) {
+		stream.push("(")
+		this.ret(stream)
+		stream.push(")")
+		return stream
+	},
+	format: function(vars, varmap, slash) {return (slash ? '\\' : '&lambda;') + this.formatRest(vars, varmap, slash)},
+	formatRest: function(vars, varmap, slash) {return this.lvar.format(vars, varmap) + (this.body instanceof Lambda ? ' ' + this.body.formatRest(vars, varmap, slash) : '.' + this.body.format(vars, varmap, slash))},
+}
+function Variable(txt, free) {
+	this.name = txt
+	this.num = Variable.varnum++
+	this.free = free
+}
+Variable.varnum = 0
+Variable.prototype = {
+	toString: function() {return "Variable(" + this.name + ")"},
+	pass: function(stream) {
+		stream.push(!this.free ? '_' + this.name
+			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
+		return stream
+	},
+	ret: function(stream) {
+		if (this.free) {
+			stream.push("'", this.name, "'")
+		} else {
+			this.pass(stream)
+			stream.push("()")
+		}
+		return stream
+	},
+	apply: function(stream) {return this.ret(stream)},
+	format: function(vars, varmap) {
+		var mine = varmap[this.name + '-' + this.num]
+
+		if (!mine) {
+			var count = (vars[this.name] || 0) + 1
+
+			vars[this.name] = count
+			mine = this.name + (count == 1 ? '' : "_" + count)
+			varmap[this.name + '-' + this.num] = mine
+		}
+		return mine
+	},
+}
+function Apply(func, arg) {
+	this.func = func
+	this.arg = arg
+}
+Apply.prototype = {
+	apply: function(stream) {
+		this.func.apply(stream)
+		stream.push("(")
+		this.arg.pass(stream)
+		stream.push(")")
+		return stream
+	},
+	ret: function(stream) {return this.apply(stream)},
+	pass: function(stream) {
+		stream.push("function(){return ")
+		this.apply(stream)
+		stream.push("}")
+		return stream
+	},
+	toString: function() {
+		return "Apply(" + this.func + " " + this.arg + ")"
+	},
+	format: function(vars, varmap, slash) {
+		var func = this.func.format(vars, varmap, slash)
+		var arg = this.arg.format(vars, varmap, slash)
+
+		return (this.func instanceof Lambda ? '(' + func + ')' : func) + ' ' + (this.arg instanceof Apply ? '(' + arg + ')' : arg)
+	},
+}
+function wrap(x) {
+    return function() {return x}
+}
+</script>
+</head>
+<body onload="loaded()">
+<table style="width: 100%"><tr><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr></table>
+Output
+<div id="output" style="border: solid black 1px"></div>
+Results
+<div id="result" style="border: solid black 1px"></div>
+<div class="debug">
+Debug
+<div id="debug" style="border: solid black 1px"></div>
+</div>
+<pre id="definitions" style="width: 0; height: 0; visibilty: hidden">
+</pre>
+</body>
+</html>
