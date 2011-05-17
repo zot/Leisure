@@ -59,7 +59,7 @@ function addExpr(name, txt) {
 	order.push(expr)
 }
 function outputDivFor(expr) {
-	return "<div><button onclick='editFunc(\"" + expr.name + "\")'>Edit</button><button onclick='runFunc(\"" + expr.name + "\")'>Run</button>" + expr.name + ': ' + expr + "</div>"
+	return "<div><button onclick='editFunc(\"" + expr.name + "\")'>Edit</button> <button onclick='runFunc(\"" + expr.name + "\")'>Run</button> <b>" + expr.name + ':</b>&nbsp;&nbsp;' + expr + "</div>"
 }
 function editFunc(index) {
 	defName.value = exprs[index].name
@@ -75,7 +75,7 @@ function runFunc(index) {
 	} catch (err) {
 		res = "Error: " + err
 	}
-	result.innerHTML += "<div>" + exprs[index] + ": " + res + "</div>"
+	result.innerHTML += "<div>" + exprs[index] + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 }
 function constructEnv() {
 	var env = []
@@ -176,7 +176,7 @@ Lambda.prototype = {
 		return stream
 	},
 	format: function(vars, varmap, slash) {return (slash ? '\\' : '&lambda;') + this.formatRest(vars, varmap, slash)},
-	formatRest: function(vars, varmap, slash) {return this.lvar.format(vars, varmap) + (this.body instanceof Lambda ? ' ' + this.body.formatRest(vars, varmap, slash) : '.' + this.body.format(vars, varmap, slash))},
+	formatRest: function(vars, varmap, slash) {return this.lvar.format(vars, varmap) + (this.body instanceof Lambda ? ' ' + this.body.formatRest(vars, varmap, slash) : '&nbsp;&nbsp;.&nbsp;&nbsp;' + this.body.format(vars, varmap, slash))},
 }
 function Variable(txt, free) {
 	this.name = txt
@@ -250,12 +250,12 @@ function wrap(x) {
 </head>
 <body onload="loaded()">
 <table style="width: 100%"><tr><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr></table>
-Output
-<div id="output" style="border: solid black 1px"></div>
-Results
-<div id="result" style="border: solid black 1px"></div>
+<h2>Output</h2>
+<div id="output"></div>
+<h2>Results</h2>
+<div id="result"></div>
 <div class="debug">
-Debug
+<h2>Debug</h2>
 <div id="debug" style="border: solid black 1px"></div>
 </div>
 <pre id="definitions" style="width: 0; height: 0; visibilty: hidden">
