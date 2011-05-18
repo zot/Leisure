@@ -176,7 +176,7 @@ Lambda.prototype = {
 		return stream
 	},
 	format: function(vars, varmap, slash) {return (slash ? '\\' : '&lambda;') + this.formatRest(vars, varmap, slash)},
-	formatRest: function(vars, varmap, slash) {return this.lvar.format(vars, varmap) + (this.body instanceof Lambda ? ' ' + this.body.formatRest(vars, varmap, slash) : '&nbsp;&nbsp;.&nbsp;&nbsp;' + this.body.format(vars, varmap, slash))},
+	formatRest: function(vars, varmap, slash) {return this.lvar.format(vars, varmap) + (this.body instanceof Lambda ? ' ' + this.body.formatRest(vars, varmap, slash) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(vars, varmap, slash))},
 }
 function Variable(txt, free) {
 	this.name = txt
