@@ -29,9 +29,11 @@ function loaded() {
 	debug = document.getElementById("debug")
 	result = document.getElementById("result")
 	var defs = [
-		"Example", '(\\l.l \\a b.a) ((\\x y f.f x y) 1 2)',
 		"true", '\\x y.x',
 		"false", '\\x y.y',
+		"cons", '\\x y f  .  f x y',
+		"first", '\\l  .  l \\a b  .  a',
+		"Example", 'first (cons 1 2)',
 	]
 	for (var i = 0; i < defs.length; i += 2) {
 		addExpr(defs[i], defs[i + 1])
