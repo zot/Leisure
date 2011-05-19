@@ -59,7 +59,19 @@ function addExpr(name, txt) {
 	order.push(expr)
 }
 function outputDivFor(expr) {
-	return "<div><button onclick='editFunc(\"" + expr.name + "\")'>Edit</button> <button onclick='runFunc(\"" + expr.name + "\")'>Run</button> <b>" + expr.name + ':</b>&nbsp;&nbsp;' + expr + "</div>"
+	var ac = expr.alphaConvert()
+
+	return "<div><button onclick='editFunc(\"" + expr.name + "\")'>Edit</button> <button onclick='runFunc(\"" + expr.name + "\")'>Run</button> <b>" + expr.name + ':</b>&nbsp;&nbsp;' + expr
+		+ "<br>" + props(expr.names(), props(exprs)).join(", ")
+		+ "<br>" + expr.alphaConvert()
+		+ "</div>"
+}
+function props(obj, p) {
+	var p = p || []
+
+	for (i in obj) p.push(i)
+	p.sort()
+	return p
 }
 function editFunc(index) {
 	defName.value = exprs[index].name
@@ -149,13 +161,79 @@ function Entry(name, expr) {
 	this.expr = expr
 	this.func = expr.ret([]).join("")
 }
-Entry.prototype.toString = function() {return this.expr.format({}, {}, false)}
-Entry.prototype.formatSlash = function() {return this.expr.format({}, {}, true)}
+Entry.prototype = {
+	toString: function() {return this.expr.format(false)},
+	formatSlash: function() {return this.expr.format(true)},
+	names: function() {this.expr.names()},
+	alphaConvert: function() {return new Entry(this.name, this.expr.alphaConvert())},
+	betaReduce: function() {return this},
+	etaConvert: function() {return this},
+}
+
+function pre(type, func) {
+	return {install: function(trans) {trans.pre[type.name] = func}}
+}
+
+function post(type, func) {
+	return {install: function(trans) {trans.post[type.name] = func}}
+}
+
+function prune(value) {return new Prune(value)}
+
+function Prune(value) {this.value = value}
+
+function identity() {return this}
+
+function Transformer(funcs) {
+	this.pre = {Lambda: identity, Variable: identity, Apply: identity}
+	this.post = {Lambda: identity, Variable: identity, Apply: identity}
+	for (var i = 0; i < funcs.length; i++) {
+		funcs[i].install(this)
+	}
+	this.trail = {}
+}
+Transformer.prototype = {
+	map: function(oldEnt, newEnt) {return this.trail[oldEnt.id] = newEnt},
+	getTransform: function(entity) {return this.trail[entity.id]},
+}
+var entityCounter = 0
+function Entity(obj) {
+	for (i in obj) {
+		this[i] = obj[i]
+	}
+}
+Entity.prototype.__proto__ = {
+	transform: function() {return this.doTransform(new Transformer(arguments))},
+	startTransform: function(transformer) {return transformer.getTransform(this) || this.doTransform(transformer)},
+	doTransform: function(transformer) {
+		if (transformer.getTransform[this]) return transformer.getTransform[this]
+		var pre = transformer.pre[this.constructor.name].call(this, transformer)
+
+		if (pre instanceof Prune) return transformer.map(this, pre.value)
+		return transformer.map(this, pre.propagateTransform(transformer))
+	},
+	alphaConvert: function() {return this},
+	isApply: function() {return false},
+	names: function() {
+		var names = {}
+
+		this.transform(pre(Lambda, function(){names[this.lvar.name] = 1; return this}))
+		return names
+	},
+	uniquify: function(names) {
+		return this.transform(
+			pre(Lambda, function(transformer){transformer.map(this.lvar, this.lvar.rename(names)); return this}),
+			post(Lambda, function(newVar, newBod) {return this.same(newVar, newBod) || new Lambda(newVar, newBod)})
+		)
+	},
+}
+
 function Lambda(arg, body) {
 	this.lvar = arg
 	this.body = body
+	this.id = entityCounter++
 }
-Lambda.prototype = {
+Lambda.prototype.__proto__ = new Entity({
 	toString: function() {return "&lambda;(" + this.lvar.name + " . " + this.body + ")"},
 	ret: function(stream) {
 		stream.push("function(_", this.lvar.name, ") {", "return ")
@@ -175,16 +253,31 @@ Lambda.prototype = {
 		stream.push(")")
 		return stream
 	},
-	format: function(vars, varmap, slash) {return (slash ? '\\' : '&lambda;') + this.formatRest(vars, varmap, slash)},
-	formatRest: function(vars, varmap, slash) {return this.lvar.format(vars, varmap) + (this.body instanceof Lambda ? ' ' + this.body.formatRest(vars, varmap, slash) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(vars, varmap, slash))},
+	format: function(slash) {return (slash ? '\\' : '&lambda;') + this.formatRest(slash)},
+	formatRest: function(slash) {return this.lvar.format(slash) + (this.body instanceof Lambda ? ' ' + this.body.formatRest(slash) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(slash))},
+	propagateTransform: function(transformer) {
+		var newVar = this.lvar.startTransform(transformer)
+		var newBod = this.body.startTransform(transformer)
+
+		return transformer.post.Lambda.call(this, newVar, newBod, transformer)
+	},
+	same: function(newVar, newBody) {return this.lvar == newVar && this.body == newBody && this},
+})
+function numberFor(name, names) {
+	var i = 0
+
+	while (!names[name + '-' + ++i]) {}
+	return i
 }
-function Variable(txt, free) {
+
+function Variable(txt, free, num, value) {
 	this.name = txt
-	this.num = Variable.varnum++
+	this.num = num
 	this.free = free
+	this.value = value
+	this.id = entityCounter++
 }
-Variable.varnum = 0
-Variable.prototype = {
+Variable.prototype.__proto__ = new Entity({
 	toString: function() {return "Variable(" + this.name + ")"},
 	pass: function(stream) {
 		stream.push(!this.free ? '_' + this.name
@@ -201,24 +294,28 @@ Variable.prototype = {
 		return stream
 	},
 	apply: function(stream) {return this.ret(stream)},
-	format: function(vars, varmap) {
-		var mine = varmap[this.name + '-' + this.num]
-
-		if (!mine) {
-			var count = (vars[this.name] || 0) + 1
-
-			vars[this.name] = count
-			mine = this.name + (count == 1 ? '' : "_" + count)
-			varmap[this.name + '-' + this.num] = mine
-		}
-		return mine
+	fname: function() {return this.num ? this.name + '-' + this.num : this.name},
+	format: function() {return this.name},
+	doTransform: function(transformer) {
+		if (this.value) return this.value.transform(transformer)
+		return Entity.prototype.doTransform.call(this, transformer)
 	},
-}
+	propagateTransform: function(transformer) {return transformer.post.Variable.call(this, transformer)},
+	rename: function(names) {
+		if (!names[this.name]) return this
+		var i = 0
+
+		while (names[this.name + '-' + ++i]) {}
+		return new Variable(this.name + '-' + i, this.free, i, this.value)
+	},
+})
+
 function Apply(func, arg) {
 	this.func = func
 	this.arg = arg
+	this.id = entityCounter++
 }
-Apply.prototype = {
+Apply.prototype.__proto__ = new Entity({
 	apply: function(stream) {
 		this.func.apply(stream)
 		stream.push("(")
@@ -236,13 +333,28 @@ Apply.prototype = {
 	toString: function() {
 		return "Apply(" + this.func + " " + this.arg + ")"
 	},
-	format: function(vars, varmap, slash) {
-		var func = this.func.format(vars, varmap, slash)
-		var arg = this.arg.format(vars, varmap, slash)
+	format: function(slash) {
+		var func = this.func.format(slash)
+		var arg = this.arg.format(slash)
 
 		return (this.func instanceof Lambda ? '(' + func + ')' : func) + ' ' + (this.arg instanceof Apply ? '(' + arg + ')' : arg)
 	},
-}
+	propagateTransform: function(transformer) {
+		var newFunc = this.func.startTransform(transformer)
+		var newArg = this.arg.startTransform(transformer)
+
+		return transformer.post.Apply.call(this, newFunc, newArg, transformer)
+	},
+	innermost: function(func) {
+		return this.transform(
+			pre(Apply, function(){return this.func.isApply() ? this : prune(func.call(this))}),
+			post(Apply, function(func, arg) {return this.same(func, arg) ? this : new Apply(func, arg)})
+		)
+	},
+	same: function(newFunc, newArg) {return newFunc == this.func && newArg == this.arg && this},
+	isApply: function() {return true},
+	alphaConvert: function() {return this.innermost(function() {return new Apply(this.func, this.arg.uniquify(this.func.names()))})},
+})
 function wrap(x) {
     return function() {return x}
 }
