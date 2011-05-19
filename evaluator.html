@@ -222,6 +222,7 @@ Entity.prototype.__proto__ = {
 	},
 	alphaConvert: function() {return this},
 	isApply: function() {return false},
+	isLambda: function() {return false},
 	names: function() {
 		var names = {}
 
@@ -270,6 +271,7 @@ Lambda.prototype.__proto__ = new Entity({
 		return transformer.post.Lambda.call(this, newVar, newBod, transformer)
 	},
 	same: function(newVar, newBody) {return this.lvar == newVar && this.body == newBody && this},
+	isLambda: function() {return true},
 })
 function numberFor(name, names) {
 	var i = 0
@@ -316,6 +318,8 @@ Variable.prototype.__proto__ = new Entity({
 		while (names[this.name + '-' + ++i]) {}
 		return new Variable(this.name + '-' + i, this.free, i, this.value)
 	},
+	isLambda: function() {return this.value ? this.value.isLambda() : false},
+	isApply: function() {return this.value ? this.value.isApply() : false},
 })
 
 function Apply(func, arg) {
@@ -341,11 +345,11 @@ Apply.prototype.__proto__ = new Entity({
 	toString: function() {
 		return "Apply(" + this.func + " " + this.arg + ")"
 	},
-	format: function(slash) {
-		var func = this.func.format(slash)
-		var arg = this.arg.format(slash)
+	format: function(slash, inner) {
+		var func = this.func.format(slash, true)
+		var arg = this.arg.format(slash, true)
 
-		return (this.func instanceof Lambda ? '(' + func + ')' : func) + ' ' + (this.func instanceof Lambda || this.arg instanceof Apply ? '(' + arg + ')' : arg)
+		return (this.func instanceof Lambda ? '(' + func + ')' : func) + ' ' + ((inner && this.arg.isLambda()) || this.arg instanceof Apply ? '(' + arg + ')' : arg)
 	},
 	propagateTransform: function(transformer) {
 		var newFunc = this.func.startTransform(transformer)
