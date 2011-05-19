@@ -3,7 +3,10 @@
 <style>
 .debug {
 /**/
-	height: 0; visibility: hidden;
+	height: 0;
+	width: 0;
+	visibility: hidden;
+	display: none;
 /**/
 }
 </style>
@@ -37,9 +40,10 @@ function loaded() {
 function input() {
 	addExpr(defName.value, def.value)
 	defName.value = ''
+	def.value = ''
 }
 function addExpr(name, txt) {
-	var expr = new Entry(name || (funcCount++ + ''), parse(txt.trim(), {})[0])
+	var expr = new Entry(name, parse(txt.trim(), {})[0])
 
 	if (exprs[expr.name]) {
 		var newOutput = ''
@@ -49,19 +53,21 @@ function addExpr(name, txt) {
 				order.splice(i, 1)
 			}
 			if (i < order.length) {
-				newOutput += outputDivFor(order[i])
+				newOutput += outputDivFor(i)
 			}
 		}
 		output.innerHTML = newOutput
 	}
-	output.innerHTML += outputDivFor(expr)
-	exprs[expr.name] = expr
 	order.push(expr)
+	if (expr.name) exprs[expr.name] = expr
+	output.innerHTML += outputDivFor(order.length - 1)
+	output.lastChild.scrollIntoView()
 }
-function outputDivFor(expr) {
+function outputDivFor(index) {
+	var expr = order[index]
 	var ac = expr.alphaConvert()
 
-	return "<div><button onclick='editFunc(\"" + expr.name + "\")'>Edit</button> <button onclick='runFunc(\"" + expr.name + "\")'>Run</button> <b>" + expr.name + ':</b>&nbsp;&nbsp;' + expr
+	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr
 		+ "<br><ul><li><b>Names:</b> " + props(expr.names(), props(exprs)).join(", ")
 		+ "<br><li><b>Alpha conversion:</b> " + expr.alphaConvert()
 		+ "</ul>"
@@ -75,11 +81,11 @@ function props(obj, p) {
 	return p
 }
 function editFunc(index) {
-	defName.value = exprs[index].name
-	def.value = exprs[index].formatSlash()
+	defName.value = order[index].name
+	def.value = order[index].formatSlash()
 }
 function runFunc(index) {
-	var expr = '(function(){' + constructEnv() + '\nreturn _' + exprs[index].name + '()})()'
+	var expr = '(function(){' + constructEnv() + '\nreturn _' + order[index].name + '()})()'
 	var res
 
 	debug.innerHTML = "<pre>" + expr + "</pre>"
@@ -88,7 +94,8 @@ function runFunc(index) {
 	} catch (err) {
 		res = "Error: " + err
 	}
-	result.innerHTML += "<div>" + exprs[index] + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	result.innerHTML += "<div>" + order[index] + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	result.lastChild.scrollIntoView()
 }
 function constructEnv() {
 	var env = []
@@ -361,17 +368,20 @@ function wrap(x) {
 }
 </script>
 </head>
-<body onload="loaded()">
-<table style="width: 100%"><tr><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr></table>
-<h2>Output</h2>
-<div id="output"></div>
-<h2>Results</h2>
-<div id="result"></div>
-<div class="debug">
+<body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
+<div style="position: relative; width: 100%; height: 100%">
+<table style="position: absolute; height: 100%; width: 100%; border: 0">
+<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
+<tr style="height: 0"><td colspan="4"><h2>Definitions</h2></td></tr>
+<tr style="height: auto; vertical-align: top"><td colspan="4"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="output"></div></div></td></tr>
+<tr style="height: 0"><td colspan="4"><h2>Results</h2></td></tr>
+<tr style="height: auto; vertical-align: top"><td colspan="4"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="result"></div></div></td></tr>
+<tr style="height: 0"><td colspan="4" style="padding: 0"><div class="debug">
 <h2>Debug</h2>
 <div id="debug" style="border: solid black 1px"></div>
+<pre id="definitions" style="width: 0; height: 0; visibilty: hidden"></pre>
+</div></td></tr>
+</table>
 </div>
-<pre id="definitions" style="width: 0; height: 0; visibilty: hidden">
-</pre>
 </body>
 </html>
