@@ -37,7 +37,11 @@ function loaded() {
 		"false", '\\x y.y',
 		"cons", '\\x y f  .  f x y',
 		"first", '\\l  .  l \\a b  .  a',
-		"Example", 'first (cons 1 2)',
+		"rest", '\\l  .  l \\a b  .  b',
+		"nil", '\\x . true',
+		"null", '\\p.p (\\x y.false)',
+		"Example", 'first (cons 1 nil)',
+		"Example2", 'rest (cons 1 nil)',
 	]
 	for (var i = 0; i < defs.length; i += 2) {
 		addExpr(defs[i], defs[i + 1])
