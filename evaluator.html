@@ -62,8 +62,9 @@ function outputDivFor(expr) {
 	var ac = expr.alphaConvert()
 
 	return "<div><button onclick='editFunc(\"" + expr.name + "\")'>Edit</button> <button onclick='runFunc(\"" + expr.name + "\")'>Run</button> <b>" + expr.name + ':</b>&nbsp;&nbsp;' + expr
-		+ "<br>" + props(expr.names(), props(exprs)).join(", ")
-		+ "<br>" + expr.alphaConvert()
+		+ "<br><ul><li><b>Names:</b> " + props(expr.names(), props(exprs)).join(", ")
+		+ "<br><li><b>Alpha conversion:</b> " + expr.alphaConvert()
+		+ "</ul>"
 		+ "</div>"
 }
 function props(obj, p) {
