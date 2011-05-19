@@ -338,7 +338,7 @@ Apply.prototype.__proto__ = new Entity({
 		var func = this.func.format(slash)
 		var arg = this.arg.format(slash)
 
-		return (this.func instanceof Lambda ? '(' + func + ')' : func) + ' ' + (this.arg instanceof Apply ? '(' + arg + ')' : arg)
+		return (this.func instanceof Lambda ? '(' + func + ')' : func) + ' ' + (this.func instanceof Lambda || this.arg instanceof Apply ? '(' + arg + ')' : arg)
 	},
 	propagateTransform: function(transformer) {
 		var newFunc = this.func.startTransform(transformer)
