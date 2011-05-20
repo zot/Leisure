@@ -31,35 +31,26 @@ distribution.
 	visibility: hidden;
 	display: none;
 }
-/*
-.showdebug .debug, .shownosubs .nosubs, .showsubs .subs {
-	height: auto;
-	width: auto;
-	visibility: visible;
-	display: inherit;
-}
-*/
 </style>
 <script>
 var defName
 var def
 var output
 var code
-var debug
 var result
 var exprs = {}
 var order = []
+var funcs = {}
 var funcCount = 1
 var hashed = {}
 var showDebug = false
-var showSubs = false
+var showSubs = true
 
 function loaded() {
 	defName = document.getElementById("defName")
 	def = document.getElementById("def")
 	output = document.getElementById("output")
 	code = document.getElementById("code")
-	debug = document.getElementById("debug")
 	result = document.getElementById("result")
 	var defs = [
 		"true", '\\x y.x',
@@ -105,13 +96,15 @@ function addExpr(name, txt) {
 }
 function outputDivFor(index) {
 	var expr = order[index]
-	var ac = expr.alphaConvert()
+	var gl = expr.globalSub()
+	var ac = gl.alphaConvert()
+	var br = ac.betaReduce()
 
 	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
 		+ "<div class='debug'><ul>"
-		+ "<li><b>Names:</b> " + props(expr.names(), props(exprs)).join(", ")
-		+ "<li><b>Alpha conversion:</b> " + expr.alphaConvert()
-		+ "<li><b>Normalized:</b> " + expr.normalize()
+		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
+		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
+		+ "<li><b>Beta reduction:</b> <span class='subs'>" + br + "</span><span class='nosubs'>" + br.expr.format(false, true) + "</span>"
 		+ "</ul></div>"
 		+ "</div>"
 }
@@ -130,11 +123,14 @@ function runFunc(index) {
 	var expr = '(function(){' + constructEnv() + '\nreturn _' + order[index].name + '()})()'
 	var res
 
-	debug.innerHTML = "<pre>" + expr + "</pre>"
 	try {
 		res = eval(expr)
 	} catch (err) {
 		res = "Error: " + err
+	}
+	var lam = funcs[res]
+	if (lam) {
+		res = "<span class='subs'>" + lam.format(false, false) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>"
 	}
 	result.innerHTML += "<div>" + order[index] + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
@@ -210,43 +206,45 @@ function parseLambda(txt, vars) {
 function Entry(name, expr) {
 	this.name = name
 	this.expr = expr
-	this.func = expr.ret([]).join("")
+	try {
+		this.func = expr && expr.ret([]).join("")
+	} catch (err) {
+		this.func = function() {return "Error compiling: " + err.toString()}
+	}
 }
 Entry.prototype = {
-	toString: function() {return this.expr.format(false)},
+	toString: function() {return this.expr && this.expr.format(false)},
 	formatSlash: function() {return this.expr.format(true)},
 	names: function() {this.expr.names()},
 	alphaConvert: function() {return new Entry(this.name, this.expr.alphaConvert())},
-	betaReduce: function() {return this},
+	betaReduce: function() {return new Entry(this.name, this.expr.betaReduce())},
 	etaConvert: function() {return this},
 	normalize: function() {return new Entry(this.name, this.expr.normalize())},
+	globalSub: function() {return new Entry(this.name, this.expr.globalSub())},
 }
 
 function pre(type, func) {
-	return {install: function(trans) {trans.pre[type.name] = func}}
+	return function(trans) {trans.pre[type.name] = func}
 }
 
 function post(type, func) {
-	return {install: function(trans) {trans.post[type.name] = func}}
+	return function(trans) {trans.post[type.name] = func}
 }
 
 function identity() {return this}
 
 function Transformer(funcs) {
 	this.pre = {Lambda: identity, Variable: identity, Apply: identity}
-	this.post = {
-		Lambda: function(newV, newB) {return this.same(newV, newB) || new Lambda(newV, newB)},
-		Variable: identity,
-		Apply: function(newF, newA) {return this.same(newF, newA) || new Apply(newF, newA)},
-	}
+	this.post = {Lambda: identity, Variable: identity, Apply: identity}
 	for (var i = 0; i < funcs.length; i++) {
-		funcs[i].install(this)
+		funcs[i](this)
 	}
 	this.trail = {}
 }
 Transformer.prototype = {
 	prune: function(oldEnt, newEnt) {return this.trail[oldEnt.id] = newEnt},
 	getTransform: function(entity) {return this.trail[entity.id]},
+	transform: function(entity) {return entity.doTransform(this)},
 }
 var entityCounter = 0
 function Entity(obj) {
@@ -261,35 +259,27 @@ Entity.prototype.__proto__ = {
 		if (transformer.getTransform[this]) return transformer.getTransform[this]
 		var pre = transformer.pre[this.constructor.name].call(this, transformer)
 
-		return transformer.getTransform(this) || transformer.prune(this, pre.propagateTransform(transformer))
+		return pre && (transformer.getTransform(this) || transformer.prune(this, transformer.post[pre.constructor.name].call(pre.propagateTransform(transformer))))
 	},
 	alphaConvert: function() {return this},
+	betaReduce: function() {return this},
 	isApply: function() {return false},
-	isLambda: function() {return false},
 	names: function() {
 		var names = {}
 
 		this.transform(pre(Lambda, function(){names[this.lvar.name] = 1; return this}))
 		return names
 	},
-	uniquify: function(names) {
-		return this.transform(
-			pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}),
-			post(Lambda, function(newVar, newBod) {return this.same(newVar, newBod) || new Lambda(newVar, newBod)})
-		)
-	},
+	uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
 	hashKey: function() {return this.normalize().format(true, true)},
+	globalSub: function() {return this.uniquify(props(exprs)).transform(pre(Variable, function() {return exprs[this.name] ? exprs[this.name].expr : this}))},
 	normalize: function() {
 		var id = 0
 
-		return this.transform(
+		return this.globalSub().transform(
 			pre(Lambda, function(transformer) {
-				transformer.prune(this.lvar, new Variable(id++, this.free))
+				transformer.prune(this.lvar, new Variable(id++, this.lvar.free))
 				return this
-			}),
-			post(Variable, function(transformer) {
-				if (!this.free || !exprs[this.name]) return this
-				return exprs[this.name].expr.startTransform(transformer)
 			})
 		)
 	},
@@ -303,9 +293,12 @@ function Lambda(arg, body) {
 Lambda.prototype.__proto__ = new Entity({
 	toString: function() {return "&lambda;(" + this.lvar.name + " . " + this.body + ")"},
 	ret: function(stream) {
+		var index = stream.length
+
 		stream.push("function(_", this.lvar.name, ") {", "return ")
 		this.body.ret(stream)
 		stream.push("}")
+		funcs[eval("(" + stream.slice(index, stream.length).join("") + ")")] = this
 		return stream
 	},
 	pass: function(stream) {
@@ -321,9 +314,7 @@ Lambda.prototype.__proto__ = new Entity({
 		return stream
 	},
 	getHashedName: function() {var d = hashed[this.hashKey()]; return d && d.name},
-	format: function(slash, nosubs) {
-		return (!nosubs && this.getHashedName()) || ((slash ? '\\' : '&lambda;') + this.formatRest(slash, nosubs))
-	},
+	format: function(slash, nosubs, func, arg) {return (!nosubs && this.getHashedName()) || ((func ? '(' : '') + (slash ? '\\' : '&lambda;') + this.formatRest(slash, nosubs)) + (func ? ')' : '')},
 	formatRest: function(slash, nosubs) {
 		var n = !nosubs && this.body instanceof Lambda && this.body.getHashedName()
 
@@ -333,10 +324,15 @@ Lambda.prototype.__proto__ = new Entity({
 		var newVar = this.lvar.startTransform(transformer)
 		var newBod = this.body.startTransform(transformer)
 
-		return transformer.post.Lambda.call(this, newVar, newBod, transformer)
+		return this.same(newVar, newBod) || new Lambda(newVar, newBod)
 	},
 	same: function(newVar, newBody) {return this.lvar == newVar && this.body == newBody && this},
-	isLambda: function() {return true},
+	substitute: function(value) {
+		var trans = new Transformer([])
+
+		trans.prune(this.lvar, value)
+		return trans.transform(this.body)
+	},
 })
 function numberFor(name, names) {
 	var i = 0
@@ -345,46 +341,41 @@ function numberFor(name, names) {
 	return i
 }
 
-function Variable(txt, free, num, value) {
+function Variable(txt, free, num) {
 	this.name = txt
 	this.num = num
 	this.free = free
-	this.value = value
 	this.id = entityCounter++
 }
 Variable.prototype.__proto__ = new Entity({
 	toString: function() {return "Variable(" + this.name + ")"},
 	pass: function(stream) {
-		stream.push(!this.free ? '_' + this.name
+		stream.push(!this.free || exprs[this.name] ? '_' + this.name
 			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
 		return stream
 	},
 	ret: function(stream) {
-		if (this.free) {
-			stream.push("'", this.name, "'")
-		} else {
+		if (!this.free || exprs[this.name]) {
 			this.pass(stream)
 			stream.push("()")
+		} else {
+			stream.push("'", this.name, "'")
 		}
 		return stream
 	},
 	apply: function(stream) {return this.ret(stream)},
 	fname: function() {return this.num ? this.name + '-' + this.num : this.name},
 	format: function() {return this.name},
-	doTransform: function(transformer) {
-		if (this.value) return this.value.transform(transformer)
-		return Entity.prototype.doTransform.call(this, transformer)
-	},
-	propagateTransform: function(transformer) {return transformer.post.Variable.call(this, transformer)},
+	propagateTransform: function(transformer) {return this},
 	rename: function(names) {
 		if (!names[this.name]) return this
 		var i = 0
 
 		while (names[this.name + '-' + ++i]) {}
-		return new Variable(this.name + '-' + i, this.free, i, this.value)
+		return new Variable(this.name + '-' + i, this.free, i)
 	},
-	isLambda: function() {return this.value ? this.value.isLambda() : false},
 	isApply: function() {return this.value ? this.value.isApply() : false},
+	substitute: function(value) {return this.value && this.value.substitute(value)},
 })
 
 function Apply(func, arg) {
@@ -407,37 +398,22 @@ Apply.prototype.__proto__ = new Entity({
 		stream.push("}")
 		return stream
 	},
-	toString: function() {
-		return "Apply(" + this.func + " " + this.arg + ")"
-	},
-	format: function(slash, nosubs, inner) {
-		var func = this.func.format(slash, nosubs, true)
-		var arg = this.arg.format(slash, nosubs, true)
-
-		return (this.func instanceof Lambda ? '(' + func + ')' : func) + ' ' + ((inner && this.arg.isLambda()) || this.arg instanceof Apply ? '(' + arg + ')' : arg)
-	},
+	toString: function() {return "Apply(" + this.func + " " + this.arg + ")"},
+	format: function(slash, nosubs, func, arg) {return (arg ? '(' : '') + this.func.format(slash, nosubs, true, false) + ' ' + this.arg.format(slash, nosubs, func, true) + (arg ? ')' : '')},
 	propagateTransform: function(transformer) {
 		var newFunc = this.func.startTransform(transformer)
 		var newArg = this.arg.startTransform(transformer)
 
-		return transformer.post.Apply.call(this, newFunc, newArg, transformer)
+		return this.same(newFunc, newArg) || new Apply(newFunc, newArg)
 	},
-	innermost: function(func) {
-		return this.transform(
-			pre(Apply, function(transformer){return this.func.isApply() ? this : transformer.prune(this, func.call(this))}),
-			post(Apply, function(func, arg) {return this.same(func, arg) ? this : new Apply(func, arg)})
-		)
-	},
+	innermost: function(func) {return this.transform(pre(Apply, function(transformer){return this.func.isApply() ? this : transformer.prune(this, func.call(this))}))},
 	same: function(newFunc, newArg) {return newFunc == this.func && newArg == this.arg && this},
 	isApply: function() {return true},
 	alphaConvert: function() {return this.innermost(function() {return new Apply(this.func, this.arg.uniquify(this.func.names()))})},
+	betaReduce: function() {return this.innermost(function() {return this.func.substitute(this.arg)})},
 })
-function wrap(x) {
-    return function() {return x}
-}
-function show() {
-	document.getElementById("output").setAttribute("class", (showDebug ? "" : "hidedebug ") + (showSubs ? "showsubs" : "shownosubs"))
-}
+function wrap(x) {return function() {return x}}
+function show() {document.getElementById("control").setAttribute("class", (showDebug ? "" : "hidedebug ") + (showSubs ? "showsubs" : "shownosubs"))}
 function setShowDebug(state) {
 	showDebug = state
 	show()
@@ -450,17 +426,13 @@ function setShowSubs(state) {
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
 <div style="position: relative; width: 100%; height: 100%">
-<table style="position: absolute; height: 100%; width: 100%; border: 0">
-<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
-<tr style="height: 0"><td colspan="4"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td></tr>
-<tr style="height: auto; vertical-align: top"><td colspan="4"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="output" class="hidedebug showsubs"></div></div></td></tr>
-<tr style="height: 0"><td colspan="4"><h2>Results</h2></td></tr>
-<tr style="height: auto; vertical-align: top"><td colspan="4"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="result"></div></div></td></tr>
-<tr style="height: 0"><td colspan="4" style="padding: 0"><div class="debug">
-<h2>Debug</h2>
-<div id="debug" style="border: solid black 1px"></div>
-<pre id="definitions" style="width: 0; height: 0; visibilty: hidden"></pre>
-</div></td></tr>
+<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
+	<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
+	<tr style="height: auto"><td colspan="4">
+		<table style="width: 100%; height: 100%">
+			<tr style="height: 0"><td style="width: 50%"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="output"></div></td><td style="width: 50%"><h2>Results</h2><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="result"></div></div></td></tr>
+		</table>
+	</td></tr>
 </table>
 </div>
 </body>
