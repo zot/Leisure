@@ -58,8 +58,8 @@ function loaded() {
 		"cons", '\\x y f  .  f x y',
 		"first", '\\l  .  l \\a b  .  a',
 		"rest", '\\l  .  l \\a b  .  b',
-		"nil", '\\x . true',
-		"null", '\\p.p (\\x y.false)',
+		"nil", '\\l x y . x',
+		"null", '\\p.p (\\a b x y.y)',
 		"Example", 'first (cons 1 nil)',
 		"Example2", 'rest (cons 1 nil)',
 	]
@@ -100,7 +100,7 @@ function outputDivFor(index) {
 	var ac = gl.alphaConvert()
 	var br = ac.betaReduce()
 
-	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
+	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='substitutions(" + index + ")'>Substitutions</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
 		+ "<div class='debug'><ul>"
 		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
 		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
@@ -132,10 +132,12 @@ function runFunc(index) {
 	if (lam) {
 		res = "<span class='subs'>" + lam.format(false, false) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>"
 	}
-	result.innerHTML += "<div>" + order[index] + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	result.innerHTML += "<div><span class='subs'>" + order[index] + "</span><span class='nosubs'>" + order[index].expr.format(false, true) + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
 }
-
+function substitutions(index) {
+	result.innerHTML += "Substitutions not implemented, yet"
+}
 function constructEnv() {
 	var env = []
 
@@ -275,12 +277,14 @@ Entity.prototype.__proto__ = {
 	globalSub: function() {return this.uniquify(props(exprs)).transform(pre(Variable, function() {return exprs[this.name] ? exprs[this.name].expr : this}))},
 	normalize: function() {
 		var id = 0
+		var fid = 0
 
 		return this.globalSub().transform(
 			pre(Lambda, function(transformer) {
 				transformer.prune(this.lvar, new Variable(id++, this.lvar.free))
 				return this
-			})
+			}),
+			pre(Variable, function(transformer) {return this.free ? new Variable("F" + fid++, true) : this})
 		)
 	},
 }
@@ -337,7 +341,7 @@ Lambda.prototype.__proto__ = new Entity({
 function numberFor(name, names) {
 	var i = 0
 
-	while (!names[name + '-' + ++i]) {}
+	while (!names[name + '_' + ++i]) {}
 	return i
 }
 
@@ -364,15 +368,15 @@ Variable.prototype.__proto__ = new Entity({
 		return stream
 	},
 	apply: function(stream) {return this.ret(stream)},
-	fname: function() {return this.num ? this.name + '-' + this.num : this.name},
+	fname: function() {return this.num ? this.name + '_' + this.num : this.name},
 	format: function() {return this.name},
 	propagateTransform: function(transformer) {return this},
 	rename: function(names) {
 		if (!names[this.name]) return this
 		var i = 0
 
-		while (names[this.name + '-' + ++i]) {}
-		return new Variable(this.name + '-' + i, this.free, i)
+		while (names[this.name + '_' + ++i]) {}
+		return new Variable(this.name + '_' + i, this.free, i)
 	},
 	isApply: function() {return this.value ? this.value.isApply() : false},
 	substitute: function(value) {return this.value && this.value.substitute(value)},
@@ -425,15 +429,18 @@ function setShowSubs(state) {
 </script>
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
-<div style="position: relative; width: 100%; height: 100%">
-<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
-	<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
-	<tr style="height: auto"><td colspan="4">
-		<table style="width: 100%; height: 100%">
-			<tr style="height: 0"><td style="width: 50%"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="output"></div></td><td style="width: 50%"><h2>Results</h2><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="result"></div></div></td></tr>
+	<div style="position: relative; width: 100%; height: 100%">
+		<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
+			<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
+			<tr style="height: auto"><td colspan="4">
+				<div style="position: relative; width: 100%; height: 100%">
+					<table style="position: absolute; width: 100%; height: 100%">
+						<tr style="height: 0"><td style="width: 50%"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results</h2></td></tr>
+						<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="result"></div></div></td></tr>
+					</table>
+				</div>
+			</td></tr>
 		</table>
-	</td></tr>
-</table>
-</div>
+	</div>
 </body>
 </html>
