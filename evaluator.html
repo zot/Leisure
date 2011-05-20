@@ -25,18 +25,20 @@ distribution.
 -->
 <head>
 <style>
-.debug {
+.hidedebug .debug, .shownosubs .subs, .showsubs .nosubs {
 	height: 0;
 	width: 0;
 	visibility: hidden;
 	display: none;
 }
-.show .debug {
+/*
+.showdebug .debug, .shownosubs .nosubs, .showsubs .subs {
 	height: auto;
 	width: auto;
 	visibility: visible;
 	display: inherit;
 }
+*/
 </style>
 <script>
 var defName
@@ -48,6 +50,9 @@ var result
 var exprs = {}
 var order = []
 var funcCount = 1
+var hashed = {}
+var showDebug = false
+var showSubs = false
 
 function loaded() {
 	defName = document.getElementById("defName")
@@ -95,15 +100,18 @@ function addExpr(name, txt) {
 	order.push(expr)
 	if (expr.name) exprs[expr.name] = expr
 	output.innerHTML += outputDivFor(order.length - 1)
+	hashed[expr.expr.hashKey()] = expr
 	output.lastChild.scrollIntoView()
 }
 function outputDivFor(index) {
 	var expr = order[index]
 	var ac = expr.alphaConvert()
 
-	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr
-		+ "<div class='debug'><ul><li><b>Names:</b> " + props(expr.names(), props(exprs)).join(", ")
-		+ "<br><li><b>Alpha conversion:</b> " + expr.alphaConvert()
+	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
+		+ "<div class='debug'><ul>"
+		+ "<li><b>Names:</b> " + props(expr.names(), props(exprs)).join(", ")
+		+ "<li><b>Alpha conversion:</b> " + expr.alphaConvert()
+		+ "<li><b>Normalized:</b> " + expr.normalize()
 		+ "</ul></div>"
 		+ "</div>"
 }
@@ -131,6 +139,7 @@ function runFunc(index) {
 	result.innerHTML += "<div>" + order[index] + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
 }
+
 function constructEnv() {
 	var env = []
 
@@ -164,7 +173,7 @@ function parse(txt, vars) {
 
 				cur = vars[name]
 				if (!cur) {
-					cur = new Variable(name, !exprs[name])
+					cur = new Variable(name, true)
 					newVars[name] = cur
 					vars[name] = cur
 				}
@@ -210,6 +219,7 @@ Entry.prototype = {
 	alphaConvert: function() {return new Entry(this.name, this.expr.alphaConvert())},
 	betaReduce: function() {return this},
 	etaConvert: function() {return this},
+	normalize: function() {return new Entry(this.name, this.expr.normalize())},
 }
 
 function pre(type, func) {
@@ -220,22 +230,22 @@ function post(type, func) {
 	return {install: function(trans) {trans.post[type.name] = func}}
 }
 
-function prune(value) {return new Prune(value)}
-
-function Prune(value) {this.value = value}
-
 function identity() {return this}
 
 function Transformer(funcs) {
 	this.pre = {Lambda: identity, Variable: identity, Apply: identity}
-	this.post = {Lambda: identity, Variable: identity, Apply: identity}
+	this.post = {
+		Lambda: function(newV, newB) {return this.same(newV, newB) || new Lambda(newV, newB)},
+		Variable: identity,
+		Apply: function(newF, newA) {return this.same(newF, newA) || new Apply(newF, newA)},
+	}
 	for (var i = 0; i < funcs.length; i++) {
 		funcs[i].install(this)
 	}
 	this.trail = {}
 }
 Transformer.prototype = {
-	map: function(oldEnt, newEnt) {return this.trail[oldEnt.id] = newEnt},
+	prune: function(oldEnt, newEnt) {return this.trail[oldEnt.id] = newEnt},
 	getTransform: function(entity) {return this.trail[entity.id]},
 }
 var entityCounter = 0
@@ -251,8 +261,7 @@ Entity.prototype.__proto__ = {
 		if (transformer.getTransform[this]) return transformer.getTransform[this]
 		var pre = transformer.pre[this.constructor.name].call(this, transformer)
 
-		if (pre instanceof Prune) return transformer.map(this, pre.value)
-		return transformer.map(this, pre.propagateTransform(transformer))
+		return transformer.getTransform(this) || transformer.prune(this, pre.propagateTransform(transformer))
 	},
 	alphaConvert: function() {return this},
 	isApply: function() {return false},
@@ -265,8 +274,23 @@ Entity.prototype.__proto__ = {
 	},
 	uniquify: function(names) {
 		return this.transform(
-			pre(Lambda, function(transformer){transformer.map(this.lvar, this.lvar.rename(names)); return this}),
+			pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}),
 			post(Lambda, function(newVar, newBod) {return this.same(newVar, newBod) || new Lambda(newVar, newBod)})
+		)
+	},
+	hashKey: function() {return this.normalize().format(true, true)},
+	normalize: function() {
+		var id = 0
+
+		return this.transform(
+			pre(Lambda, function(transformer) {
+				transformer.prune(this.lvar, new Variable(id++, this.free))
+				return this
+			}),
+			post(Variable, function(transformer) {
+				if (!this.free || !exprs[this.name]) return this
+				return exprs[this.name].expr.startTransform(transformer)
+			})
 		)
 	},
 }
@@ -296,8 +320,15 @@ Lambda.prototype.__proto__ = new Entity({
 		stream.push(")")
 		return stream
 	},
-	format: function(slash) {return (slash ? '\\' : '&lambda;') + this.formatRest(slash)},
-	formatRest: function(slash) {return this.lvar.format(slash) + (this.body instanceof Lambda ? ' ' + this.body.formatRest(slash) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(slash))},
+	getHashedName: function() {var d = hashed[this.hashKey()]; return d && d.name},
+	format: function(slash, nosubs) {
+		return (!nosubs && this.getHashedName()) || ((slash ? '\\' : '&lambda;') + this.formatRest(slash, nosubs))
+	},
+	formatRest: function(slash, nosubs) {
+		var n = !nosubs && this.body instanceof Lambda && this.body.getHashedName()
+
+		return this.lvar.format(slash, nosubs) + (n ? (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + n : this.body instanceof Lambda ? ' ' + this.body.formatRest(slash, nosubs) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(slash, nosubs))
+	},
 	propagateTransform: function(transformer) {
 		var newVar = this.lvar.startTransform(transformer)
 		var newBod = this.body.startTransform(transformer)
@@ -379,9 +410,9 @@ Apply.prototype.__proto__ = new Entity({
 	toString: function() {
 		return "Apply(" + this.func + " " + this.arg + ")"
 	},
-	format: function(slash, inner) {
-		var func = this.func.format(slash, true)
-		var arg = this.arg.format(slash, true)
+	format: function(slash, nosubs, inner) {
+		var func = this.func.format(slash, nosubs, true)
+		var arg = this.arg.format(slash, nosubs, true)
 
 		return (this.func instanceof Lambda ? '(' + func + ')' : func) + ' ' + ((inner && this.arg.isLambda()) || this.arg instanceof Apply ? '(' + arg + ')' : arg)
 	},
@@ -393,7 +424,7 @@ Apply.prototype.__proto__ = new Entity({
 	},
 	innermost: function(func) {
 		return this.transform(
-			pre(Apply, function(){return this.func.isApply() ? this : prune(func.call(this))}),
+			pre(Apply, function(transformer){return this.func.isApply() ? this : transformer.prune(this, func.call(this))}),
 			post(Apply, function(func, arg) {return this.same(func, arg) ? this : new Apply(func, arg)})
 		)
 	},
@@ -404,8 +435,16 @@ Apply.prototype.__proto__ = new Entity({
 function wrap(x) {
     return function() {return x}
 }
-function show(state) {
-	document.getElementById("output").setAttribute("class", state ? "show" : "")
+function show() {
+	document.getElementById("output").setAttribute("class", (showDebug ? "" : "hidedebug ") + (showSubs ? "showsubs" : "shownosubs"))
+}
+function setShowDebug(state) {
+	showDebug = state
+	show()
+}
+function setShowSubs(state) {
+	showSubs = state
+	show()
 }
 </script>
 </head>
@@ -413,8 +452,8 @@ function show(state) {
 <div style="position: relative; width: 100%; height: 100%">
 <table style="position: absolute; height: 100%; width: 100%; border: 0">
 <tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
-<tr style="height: 0"><td colspan="4"><h2>Definitions (show debug <input type="checkbox" onclick="show(this.checked)">)</h2></td></tr>
-<tr style="height: auto; vertical-align: top"><td colspan="4"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="output"></div></div></td></tr>
+<tr style="height: 0"><td colspan="4"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td></tr>
+<tr style="height: auto; vertical-align: top"><td colspan="4"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="output" class="hidedebug showsubs"></div></div></td></tr>
 <tr style="height: 0"><td colspan="4"><h2>Results</h2></td></tr>
 <tr style="height: auto; vertical-align: top"><td colspan="4"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="result"></div></div></td></tr>
 <tr style="height: 0"><td colspan="4" style="padding: 0"><div class="debug">
