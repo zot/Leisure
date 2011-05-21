@@ -62,6 +62,8 @@ function loaded() {
 		"null", '\\p.p (\\a b x y.y)',
 		"Example", 'first (cons 1 nil)',
 		"Example2", 'rest (cons 1 nil)',
+		"Example3", 'rest (cons 1 (cons 2 nil))',
+		"Example4", '(\\x y . (\\z . z x) y) 1',
 	]
 	for (var i = 0; i < defs.length; i += 2) {
 		addExpr(defs[i], defs[i + 1])
@@ -99,12 +101,14 @@ function outputDivFor(index) {
 	var gl = expr.globalSub()
 	var ac = gl.alphaConvert()
 	var br = ac.betaReduce()
+	var ec = br.etaConvert()
 
-	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='substitutions(" + index + ")'>Substitutions</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
+	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(" + index + ")'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
 		+ "<div class='debug'><ul>"
 		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
 		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
 		+ "<li><b>Beta reduction:</b> <span class='subs'>" + br + "</span><span class='nosubs'>" + br.expr.format(false, true) + "</span>"
+		+ "<li><b>Eta conversion:</b> <span class='subs'>" + ec + "</span><span class='nosubs'>" + ec.expr.format(false, true) + "</span>"
 		+ "</ul></div>"
 		+ "</div>"
 }
@@ -135,8 +139,32 @@ function runFunc(index) {
 	result.innerHTML += "<div><span class='subs'>" + order[index] + "</span><span class='nosubs'>" + order[index].expr.format(false, true) + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
 }
-function substitutions(index) {
-	result.innerHTML += "Substitutions not implemented, yet"
+function formatExpr(label, expr, prev, array) {
+//	if (expr.equals(prev)) {
+//		array.push('<div><b>', label, ':</b> &quot;</div>')
+//	} else {
+	if (!expr.equals(prev)) {
+		array.push("<div><b>", label, ":</b> <span class='subs'>", expr.format(false, false), "</span><span class='nosubs'>", expr.format(false, true), "</span></div>")
+	}
+}
+function runReduce(index) {
+	var reduction = reduce(order[index].expr)
+	var h = reduction.history
+	var results = []
+
+	formatExpr("Start", h[0], null, results)
+	for (var i = 1; i < reduction.history.length; i += 3) {
+		formatExpr("Alpha", h[i], h[i - 1], results)
+		formatExpr("Beta", h[i + 1], h[i], results)
+		formatExpr("Eta", h[i + 2], h[i + 1], results)
+	}
+	if (reduction.good) {
+		formatExpr("RESULT", h[h.length - 1], null, results)
+	} else {
+		results.push('<br><b>...</b>')
+	}
+	results.push("<br>")
+	result.innerHTML += results.join("")
 }
 function constructEnv() {
 	var env = []
@@ -220,9 +248,21 @@ Entry.prototype = {
 	names: function() {this.expr.names()},
 	alphaConvert: function() {return new Entry(this.name, this.expr.alphaConvert())},
 	betaReduce: function() {return new Entry(this.name, this.expr.betaReduce())},
-	etaConvert: function() {return this},
+	etaConvert: function() {return new Entry(this.name, this.expr.etaConvert())},
 	normalize: function() {return new Entry(this.name, this.expr.normalize())},
 	globalSub: function() {return new Entry(this.name, this.expr.globalSub())},
+}
+
+function reduce(expr) {
+	var history = [expr.globalSub()]
+
+	do {
+		var ac = history[history.length - 1].alphaConvert()
+		var bc = ac.betaReduce()
+		history.push(ac, bc, bc.etaConvert())
+		if (history.length > 100) return {good: false, history: history}
+	} while (!history[history.length - 1].equals(history[history.length - 4]))
+	return {good: true, history: history[history.length - 1] == history[history.length - 3] ? history.slice(0, history.length - 3) : history}
 }
 
 function pre(type, func) {
@@ -265,6 +305,9 @@ Entity.prototype.__proto__ = {
 	},
 	alphaConvert: function() {return this},
 	betaReduce: function() {return this},
+	etaConvert: function() {return this.transform(post(Lambda, function(transformer) {
+		return this.body instanceof Apply && this.body.arg == this.lvar && !this.body.func.containsVar(this.lvar) ? this.body.func : this
+	}))},
 	isApply: function() {return false},
 	names: function() {
 		var names = {}
@@ -287,6 +330,12 @@ Entity.prototype.__proto__ = {
 			pre(Variable, function(transformer) {return this.free ? new Variable("F" + fid++, true) : this})
 		)
 	},
+	containsVar: function(targetVar) {
+		var contains = false
+
+		this.transform(pre(Variable, function() {contains = contains || this == targetVar; return this}))
+		return contains
+	},
 }
 
 function Lambda(arg, body) {
@@ -295,6 +344,7 @@ function Lambda(arg, body) {
 	this.id = entityCounter++
 }
 Lambda.prototype.__proto__ = new Entity({
+	equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
 	toString: function() {return "&lambda;(" + this.lvar.name + " . " + this.body + ")"},
 	ret: function(stream) {
 		var index = stream.length
@@ -352,6 +402,7 @@ function Variable(txt, free, num) {
 	this.id = entityCounter++
 }
 Variable.prototype.__proto__ = new Entity({
+	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
 	pass: function(stream) {
 		stream.push(!this.free || exprs[this.name] ? '_' + this.name
@@ -388,6 +439,7 @@ function Apply(func, arg) {
 	this.id = entityCounter++
 }
 Apply.prototype.__proto__ = new Entity({
+	equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
 	apply: function(stream) {
 		this.func.apply(stream)
 		stream.push("(")
@@ -436,7 +488,7 @@ function setShowSubs(state) {
 				<div style="position: relative; width: 100%; height: 100%">
 					<table style="position: absolute; width: 100%; height: 100%">
 						<tr style="height: 0"><td style="width: 50%"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results</h2></td></tr>
-						<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px"><div id="result"></div></div></td></tr>
+						<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="result"></div></td></tr>
 					</table>
 				</div>
 			</td></tr>
