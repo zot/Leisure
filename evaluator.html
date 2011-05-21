@@ -20,12 +20,11 @@ appreciated but is not required.
 2. Altered source versions must be plainly marked as such, and must not be
 misrepresented as being the original software.
 
-3. This notice may not be removed or altered from any source
-distribution.
+3. This notice may not be removed or altered from any source distribution.
 -->
 <head>
 <style>
-.hidedebug .debug, .shownosubs .subs, .showsubs .nosubs {
+.hidden, .hidedebug .debug, .shownosubs .subs, .showsubs .nosubs {
 	height: 0;
 	width: 0;
 	visibility: hidden;
@@ -52,26 +51,26 @@ function loaded() {
 	output = document.getElementById("output")
 	code = document.getElementById("code")
 	result = document.getElementById("result")
-	var defs = [
-		"true", '\\x y.x',
-		"false", '\\x y.y',
-		"cons", '\\x y f  .  f x y',
-		"first", '\\l  .  l \\a b  .  a',
-		"rest", '\\l  .  l \\a b  .  b',
-		"nil", '\\l x y . x',
-		"null", '\\p.p (\\a b x y.y)',
-		"Y", '\\g  .  (\\x  .  g (x x)) \\x  .  g (x x)',
-		"_last", '\\flast list . (null (rest list)) (first list) (flast (rest list))',
-		"last", '\\l._last (Y _last) l',
-		"Example", 'first (cons 1 nil)',
-		"Example2", 'rest (cons 1 nil)',
-		"Example3", 'rest (cons 1 (cons 2 nil))',
-		"Example4", '(\\x y . (\\z . z x) y) 1',
-		"Example5", 'last (cons 1 nil)',
-		"Example6", 'last (cons 1 (cons 2 nil))',
-	]
-	for (var i = 0; i < defs.length; i += 2) {
-		addExpr(defs[i], defs[i + 1])
+	loadDefs(document.getElementById("initialDefs").innerHTML)
+}
+function loadDefs(defs) {
+	var d = defs.split('\n')
+
+	exprs = {}
+	funcs = {}
+	order = []
+	funcCount = 1
+	hashed = {}
+	output.innerHTML = ''
+	result.innerHTML = ''
+	for (var index in d) {
+		var line = d[index].trim()
+
+		if (line != "" && line[0] != '#') {
+			var name = line.indexOf('=')
+
+			addExpr(line.substring(0, name).trim(), line.substring(name + 1).trim())
+		}
 	}
 }
 function input() {
@@ -483,21 +482,49 @@ function setShowSubs(state) {
 	showSubs = state
 	show()
 }
+function handleFiles(files) {
+	var reader = new FileReader()
+
+	reader.onerror = function(e1, e2, e3, e4) {
+		alert('error' + exception.getMessage())
+	}
+	reader.onload = function() {
+		loadDefs(reader.result)
+	}
+	reader.readAsText(files[0])
+}
 </script>
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
-	<div style="position: relative; width: 100%; height: 100%">
-		<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
-			<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
-			<tr style="height: auto"><td colspan="4">
-				<div style="position: relative; width: 100%; height: 100%">
-					<table style="position: absolute; width: 100%; height: 100%">
-						<tr style="height: 0"><td style="width: 50%"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results</h2></td></tr>
-						<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="result"></div></td></tr>
-					</table>
-				</div>
-			</td></tr>
-		</table>
-	</div>
+	<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
+		<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
+		<tr style="height: 0"><td colspan="4">Load file: <input type="file" id="input" onchange="handleFiles(this.files)"></input></td></tr>
+		<tr style="height: auto"><td colspan="4">
+			<div style="position: relative; width: 100%; height: 100%">
+				<table style="position: absolute; width: 100%; height: 100%">
+					<tr style="height: 0"><td style="width: 50%"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results</h2></td></tr>
+					<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="result"></div></td></tr>
+				</table>
+			</div>
+		</td></tr>
+	</table>
+	<pre class="hidden" id="initialDefs">
+true = \x y.x
+false = \x y.y
+cons = \x y f  .  f x y
+first = \l  .  l \a b  .  a
+rest = \l  .  l \a b  .  b
+nil = \l x y . x
+null = \p.p (\a b x y.y)
+Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+_last = \flast list . (null (rest list)) (first list) (flast (rest list))
+last = \l._last (Y _last) l
+Example = first (cons 1 nil)
+Example2 = rest (cons 1 nil)
+Example3 = rest (cons 1 (cons 2 nil))
+Example4 = (\x y . (\z . z x) y) 1
+Example5 = last (cons 1 nil)
+Example6 = last (cons 1 (cons 2 nil))
+	</pre>
 </body>
 </html>
