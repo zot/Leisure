@@ -60,10 +60,15 @@ function loaded() {
 		"rest", '\\l  .  l \\a b  .  b',
 		"nil", '\\l x y . x',
 		"null", '\\p.p (\\a b x y.y)',
+		"Y", '\\g  .  (\\x  .  g (x x)) \\x  .  g (x x)',
+		"_last", '\\flast list . (null (rest list)) (first list) (flast (rest list))',
+		"last", '\\l._last (Y _last) l',
 		"Example", 'first (cons 1 nil)',
 		"Example2", 'rest (cons 1 nil)',
 		"Example3", 'rest (cons 1 (cons 2 nil))',
 		"Example4", '(\\x y . (\\z . z x) y) 1',
+		"Example5", 'last (cons 1 nil)',
+		"Example6", 'last (cons 1 (cons 2 nil))',
 	]
 	for (var i = 0; i < defs.length; i += 2) {
 		addExpr(defs[i], defs[i + 1])
