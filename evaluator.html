@@ -170,11 +170,13 @@ function runReduce(index) {
 	results.push("<br>")
 	result.innerHTML += results.join("")
 }
-function constructEnv() {
+function constructEnv(index) {
 	var env = []
 
 	for (var i = 0; i < order.length; i++) {
-		env.push("var _" + order[i].name + ' = (function(){return ' + order[i].func + '})')
+		if (order[i].name != "_" || i == index) {
+			env.push("var _" + order[i].name + ' = (function(){return ' + order[i].func + '})')
+		}
 	}
 	return env.join("\n")
 }
@@ -508,7 +510,7 @@ function handleFiles(files) {
 			</div>
 		</td></tr>
 	</table>
-	<pre class="hidden" id="initialDefs">
+	<pre class="hidden" id="initialDefs-old">
 true = \x y.x
 false = \x y.y
 cons = \x y f  .  f x y
@@ -525,6 +527,63 @@ Example3 = rest (cons 1 (cons 2 nil))
 Example4 = (\x y . (\z . z x) y) 1
 Example5 = last (cons 1 nil)
 Example6 = last (cons 1 (cons 2 nil))
+	</pre>
+	<pre class="hidden" id="initialDefs">
+# Booleans
+true = \x y.x
+false = \x y.y
+not = \b . b false true
+and = \a b . a b false
+or = \a b . a true b
+eq = \a b . a b (not b)
+xor = \a b . a (not b) b
+	</pre>
+	<pre class="hidden" id="initialDefsX">
+# Booleans
+true = \x y.x
+false = \x y.y
+not = \b . b false true
+and = \a b . a b false
+or = \a b . a true b
+eq = \a b . a b (not b)
+xor = \a b . a (not b) b
+
+# Y combinator
+Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+
+# simple list representation
+pair = \a b f . f a b
+first = \p . p(\a b . a)
+second = \p . p(\a b . b)
+
+# compound list, to allow storing arbitrary data in lists
+empty = \f x . x
+append = \a l f x . f a (l f x)
+head = \l . l (\a b . a) Z
+isempty = \l . l (\a b.true)false
+tail = \l . first (l (\a b.pair(second b) (append a (second b))) (pair empty empty))
+
+# Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
+# Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
+# This works on a list of booleans, using this formula for the next step:
+#	x1 = old ^ (old << a)
+#	x2 = x1 ^ (x1 >> b)
+#	x3 = x2 ^ (x2 << c)
+#
+#	Small numbers that work are: 1,7,9
+#
+# so:	x1 = \old . xor old (append false old)
+#	x2 = \x1 . xor x1 (tail7 x1)
+#	x3 = \x2 . xor x2 (false9 x1)
+#	rand = \x . x3 (x2 (x1 x))
+
+tail7 = \l . tail (tail (tail (tail (tail (tail (tail l))))))
+false3 = \l . append false (append false (append false l))
+false9 = \l . false3 (false3 (false3 l))
+rand_x1 = \old . xor_l old (append false old)
+rand_x2 = \x1 . xor x1 (7tail x1)
+rand_x3 = \x2 . xor x2 (9false x1)
+rand = \x . x3 (x2 (x1 x))
 	</pre>
 </body>
 </html>
