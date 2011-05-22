@@ -128,7 +128,7 @@ function editFunc(index) {
 	def.value = order[index].formatSlash()
 }
 function runFunc(index) {
-	var expr = '(function(){' + constructEnv() + '\nreturn _' + order[index].name + '()})()'
+	var expr = '(function(){' + constructEnv(index) + '\nreturn _' + order[index].name + '()})()'
 	var res
 
 	try {
@@ -144,9 +144,6 @@ function runFunc(index) {
 	result.lastChild.scrollIntoView()
 }
 function formatExpr(label, expr, prev, array) {
-//	if (expr.equals(prev)) {
-//		array.push('<div><b>', label, ':</b> &quot;</div>')
-//	} else {
 	if (!expr.equals(prev)) {
 		array.push("<div><b>", label, ":</b> <span class='subs'>", expr.format(false, false), "</span><span class='nosubs'>", expr.format(false, true), "</span></div>")
 	}
@@ -174,7 +171,7 @@ function constructEnv(index) {
 	var env = []
 
 	for (var i = 0; i < order.length; i++) {
-		if (order[i].name != "_" || i == index) {
+		if (order[i].name != "" || i == index) {
 			env.push("var _" + order[i].name + ' = (function(){return ' + order[i].func + '})')
 		}
 	}
@@ -510,7 +507,7 @@ function handleFiles(files) {
 			</div>
 		</td></tr>
 	</table>
-	<pre class="hidden" id="initialDefs-old">
+	<pre class="hidden" id="initialDefs1">
 true = \x y.x
 false = \x y.y
 cons = \x y f  .  f x y
@@ -528,7 +525,7 @@ Example4 = (\x y . (\z . z x) y) 1
 Example5 = last (cons 1 nil)
 Example6 = last (cons 1 (cons 2 nil))
 	</pre>
-	<pre class="hidden" id="initialDefs">
+	<pre class="hidden" id="initialDefs2">
 # Booleans
 true = \x y.x
 false = \x y.y
@@ -538,7 +535,7 @@ or = \a b . a true b
 eq = \a b . a b (not b)
 xor = \a b . a (not b) b
 	</pre>
-	<pre class="hidden" id="initialDefsX">
+	<pre class="hidden" id="initialDefs3">
 # Booleans
 true = \x y.x
 false = \x y.y
