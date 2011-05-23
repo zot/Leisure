@@ -44,6 +44,7 @@ var funcCount = 1
 var hashed = {}
 var showDebug = false
 var showSubs = true
+var L = null
 
 function loaded() {
 	defName = document.getElementById("defName")
@@ -52,6 +53,7 @@ function loaded() {
 	code = document.getElementById("code")
 	result = document.getElementById("result")
 	loadDefs(document.getElementById("initialDefs").innerHTML)
+//	alert(funcs[Lhead(Lappend(L._true, Lappend(L._false, L._empty)))].format(true, false))
 }
 function loadDefs(defs) {
 	var d = defs.split('\n')
@@ -61,6 +63,7 @@ function loadDefs(defs) {
 	order = []
 	funcCount = 1
 	hashed = {}
+	L = null
 	output.innerHTML = ''
 	result.innerHTML = ''
 	for (var index in d) {
@@ -72,6 +75,7 @@ function loadDefs(defs) {
 			addExpr(line.substring(0, name).trim(), line.substring(name + 1).trim())
 		}
 	}
+	constructEnv()
 }
 function input() {
 	addExpr(defName.value, def.value)
@@ -94,6 +98,7 @@ function addExpr(name, txt) {
 		}
 		output.innerHTML = newOutput
 	}
+	L = null
 	order.push(expr)
 	if (expr.name) exprs[expr.name] = expr
 	output.innerHTML += outputDivFor(order.length - 1)
@@ -128,11 +133,11 @@ function editFunc(index) {
 	def.value = order[index].formatSlash()
 }
 function runFunc(index) {
-	var expr = '(function(){' + constructEnv(index) + '\nreturn _' + order[index].name + '()})()'
 	var res
 
 	try {
-		res = eval(expr)
+		constructEnv()
+		res = order[index].code()
 	} catch (err) {
 		res = "Error: " + err
 	}
@@ -167,15 +172,21 @@ function runReduce(index) {
 	results.push("<br>")
 	result.innerHTML += results.join("")
 }
-function constructEnv(index) {
-	var env = []
-
-	for (var i = 0; i < order.length; i++) {
-		if (order[i].name != "" || i == index) {
-			env.push("var _" + order[i].name + ' = (function(){return ' + order[i].func + '})')
+function constructEnv() {
+	if (!L) {
+		var env = ['(function(){']
+	
+		for (var i = 0; i < order.length; i++) {
+			env.push('order[' + i + '].code = ' + order[i].src)
+			if (order[i].name != "") {
+				env.push("var _" + order[i].name + ' = ' + 'order[' + i + '].code')
+				env.push("L._" + order[i].name + " = _" + order[i].name + '()')
+			}
 		}
+		env.push('})()')
+		L = {}
+		return eval(env.join("\n"))
 	}
-	return env.join("\n")
 }
 function parse(txt, vars) {
 	var expr = null
@@ -239,10 +250,12 @@ function parseLambda(txt, vars) {
 function Entry(name, expr) {
 	this.name = name
 	this.expr = expr
-	try {
-		this.func = expr && expr.ret([]).join("")
-	} catch (err) {
-		this.func = function() {return "Error compiling: " + err.toString()}
+	if (expr) {
+		try {
+			this.src = 'function() {return ' + expr.ret([]).join("") + '}'
+		} catch (err) {
+			this.src = function() {return "Error compiling: " + expr}
+		}
 	}
 }
 Entry.prototype = {
@@ -292,6 +305,18 @@ Transformer.prototype = {
 	transform: function(entity) {return entity.doTransform(this)},
 }
 var entityCounter = 0
+function lCode(name) {
+	return eval('(function(){return runLCode(L._' + name + ', arguments)})')
+}
+function runLCode(func, args) {
+	for (var i = 0; i < args.length; i++) {
+		func = func.call(null, wrap(args[i]))
+	}
+//	if (funcs[func]) {
+//		func = funcs[func]
+//	}
+	return func
+}
 function Entity(obj) {
 	for (i in obj) {
 		this[i] = obj[i]
@@ -341,6 +366,8 @@ Entity.prototype.__proto__ = {
 	},
 }
 
+function pfx(prefix) {return prefix == null ? '_' : prefix}
+
 function Lambda(arg, body) {
 	this.lvar = arg
 	this.body = body
@@ -349,24 +376,24 @@ function Lambda(arg, body) {
 Lambda.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
 	toString: function() {return "&lambda;(" + this.lvar.name + " . " + this.body + ")"},
-	ret: function(stream) {
+	ret: function(stream, prefix) {
 		var index = stream.length
 
-		stream.push("function(_", this.lvar.name, ") {", "return ")
-		this.body.ret(stream)
+		stream.push("function(", pfx(prefix), this.lvar.name, ") {", "return ")
+		this.body.ret(stream, prefix)
 		stream.push("}")
 		funcs[eval("(" + stream.slice(index, stream.length).join("") + ")")] = this
 		return stream
 	},
-	pass: function(stream) {
+	pass: function(stream, prefix) {
 		stream.push("function(){return ")
-		this.ret(stream)
+		this.ret(stream, prefix)
 		stream.push("}")
 		return stream
 	},
-	apply: function(stream) {
+	apply: function(stream, prefix) {
 		stream.push("(")
-		this.ret(stream)
+		this.ret(stream, prefix)
 		stream.push(")")
 		return stream
 	},
@@ -407,21 +434,21 @@ function Variable(txt, free, num) {
 Variable.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
-	pass: function(stream) {
-		stream.push(!this.free || exprs[this.name] ? '_' + this.name
+	pass: function(stream, prefix) {
+		stream.push(!this.free || exprs[this.name] ? pfx(prefix) + this.name
 			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
 		return stream
 	},
-	ret: function(stream) {
+	ret: function(stream, prefix) {
 		if (!this.free || exprs[this.name]) {
-			this.pass(stream)
+			this.pass(stream, prefix)
 			stream.push("()")
 		} else {
 			stream.push("'", this.name, "'")
 		}
 		return stream
 	},
-	apply: function(stream) {return this.ret(stream)},
+	apply: function(stream, prefix) {return this.ret(stream, prefix)},
 	fname: function() {return this.num ? this.name + '_' + this.num : this.name},
 	format: function() {return this.name},
 	propagateTransform: function(transformer) {return this},
@@ -443,17 +470,17 @@ function Apply(func, arg) {
 }
 Apply.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
-	apply: function(stream) {
-		this.func.apply(stream)
+	apply: function(stream, prefix) {
+		this.func.apply(stream, prefix)
 		stream.push("(")
-		this.arg.pass(stream)
+		this.arg.pass(stream, prefix)
 		stream.push(")")
 		return stream
 	},
-	ret: function(stream) {return this.apply(stream)},
-	pass: function(stream) {
+	ret: function(stream, prefix) {return this.apply(stream, prefix)},
+	pass: function(stream, prefix) {
 		stream.push("function(){return ")
-		this.apply(stream)
+		this.apply(stream, prefix)
 		stream.push("}")
 		return stream
 	},
@@ -492,6 +519,21 @@ function handleFiles(files) {
 	}
 	reader.readAsText(files[0])
 }
+var Ltrue = lCode('true')
+var Lfalse = lCode('false')
+var Land = lCode('and')
+var Lor = lCode('or')
+var Leq = lCode('eq')
+var Lxor = lCode('xor')
+var Lnot = lCode('not')
+var Lpair = lCode('pair')
+var Lfirst = lCode('first')
+var Lsecond = lCode('second')
+var Lempty = lCode('empty')
+var Lappend = lCode('append')
+var Lhead = lCode('head')
+var Lisempty = lCode('isempty')
+var Ltail = lCode('tail')
 </script>
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
@@ -535,7 +577,7 @@ or = \a b . a true b
 eq = \a b . a b (not b)
 xor = \a b . a (not b) b
 	</pre>
-	<pre class="hidden" id="initialDefs3">
+	<pre class="hidden" id="initialDefs">
 # Booleans
 true = \x y.x
 false = \x y.y
@@ -544,6 +586,8 @@ and = \a b . a b false
 or = \a b . a true b
 eq = \a b . a b (not b)
 xor = \a b . a (not b) b
+
+test = and true true
 
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
@@ -557,8 +601,8 @@ second = \p . p(\a b . b)
 empty = \f x . x
 append = \a l f x . f a (l f x)
 head = \l . l (\a b . a) Z
-isempty = \l . l (\a b.true)false
-tail = \l . first (l (\a b.pair(second b) (append a (second b))) (pair empty empty))
+isempty = \l . l (\a b . true) false
+tail = \l . first (l (\a b . pair (second b) (append a (second b))) (pair empty empty))
 
 # Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
 # Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
@@ -570,13 +614,13 @@ tail = \l . first (l (\a b.pair(second b) (append a (second b))) (pair empty emp
 #	Small numbers that work are: 1,7,9
 #
 # so:	x1 = \old . xor old (append false old)
-#	x2 = \x1 . xor x1 (tail7 x1)
-#	x3 = \x2 . xor x2 (false9 x1)
+#	x2 = \x1 . xor x1 (7tail x1)
+#	x3 = \x2 . xor x2 (9false x1)
 #	rand = \x . x3 (x2 (x1 x))
 
-tail7 = \l . tail (tail (tail (tail (tail (tail (tail l))))))
-false3 = \l . append false (append false (append false l))
-false9 = \l . false3 (false3 (false3 l))
+7tail = \l . tail (tail (tail (tail (tail (tail (tail l))))))
+3false = \l . append false (append false (append false l))
+9false = \l . 3false (3false (3false l))
 rand_x1 = \old . xor_l old (append false old)
 rand_x2 = \x1 . xor x1 (7tail x1)
 rand_x3 = \x2 . xor x2 (9false x1)
