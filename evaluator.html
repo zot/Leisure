@@ -121,13 +121,6 @@ function outputDivFor(index) {
 		+ "</ul></div>"
 		+ "</div>"
 }
-function props(obj, p) {
-	var p = p || []
-
-	for (i in obj) p.push(i)
-	p.sort()
-	return p
-}
 function editFunc(index) {
 	defName.value = order[index].name
 	def.value = order[index].formatSlash()
@@ -304,7 +297,6 @@ Transformer.prototype = {
 	getTransform: function(entity) {return this.trail[entity.id]},
 	transform: function(entity) {return entity.doTransform(this)},
 }
-var entityCounter = 0
 function lCode(name) {
 	return eval('(function(){return runLCode(L._' + name + ', arguments)})')
 }
@@ -317,6 +309,7 @@ function runLCode(func, args) {
 //	}
 	return func
 }
+var entityCounter = 0
 function Entity(obj) {
 	for (i in obj) {
 		this[i] = obj[i]
@@ -329,7 +322,7 @@ Entity.prototype.__proto__ = {
 		if (transformer.getTransform[this]) return transformer.getTransform[this]
 		var pre = transformer.pre[this.constructor.name].call(this, transformer)
 
-		return pre && (transformer.getTransform(this) || transformer.prune(this, transformer.post[pre.constructor.name].call(pre.propagateTransform(transformer))))
+		return pre && (transformer.getTransform(this) || transformer.prune(this, transformer.post[pre.constructor.name].call(pre.propagateTransform(transformer), transformer)))
 	},
 	alphaConvert: function() {return this},
 	betaReduce: function() {return this},
@@ -345,7 +338,23 @@ Entity.prototype.__proto__ = {
 	},
 	uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
 	hashKey: function() {return this.normalize().format(true, true)},
-	globalSub: function() {return this.uniquify(props(exprs)).transform(pre(Variable, function() {return exprs[this.name] ? exprs[this.name].expr : this}))},
+	globalSub: function() {
+//		return this.uniquify(exprs).transform(pre(Variable, function() {return exprs[this.name] ? exprs[this.name].expr : this}))
+		var v = this.uniquify(exprs).transform(pre(Variable, function() {
+			return exprs[this.name] ? exprs[this.name].expr.globalSub() : this
+		}))
+		var bad = false
+
+		v.transform(pre(Lambda, function() {
+			if (!(this.lvar instanceof Variable)) {
+				bad = true; return this
+			}
+		}))
+		if (bad) {
+			alert("Error in globalSub for " + this.format(true, true))
+		}
+		return v
+	},
 	normalize: function() {
 		var id = 0
 		var fid = 0
@@ -408,9 +417,9 @@ Lambda.prototype.__proto__ = new Entity({
 		var newVar = this.lvar.startTransform(transformer)
 		var newBod = this.body.startTransform(transformer)
 
-		return this.same(newVar, newBod) || new Lambda(newVar, newBod)
+		return this.make(newVar, newBod)
 	},
-	same: function(newVar, newBody) {return this.lvar == newVar && this.body == newBody && this},
+	make: function(newVar, newBody) {return (this.lvar == newVar && this.body == newBody && this) || new Lambda(newVar, newBody)},
 	substitute: function(value) {
 		var trans = new Transformer([])
 
@@ -490,10 +499,10 @@ Apply.prototype.__proto__ = new Entity({
 		var newFunc = this.func.startTransform(transformer)
 		var newArg = this.arg.startTransform(transformer)
 
-		return this.same(newFunc, newArg) || new Apply(newFunc, newArg)
+		return this.make(newFunc, newArg)
 	},
+	make: function(newFunc, newArg) {return (newFunc == this.func && newArg == this.arg && this) || new Apply(newFunc, newArg)},
 	innermost: function(func) {return this.transform(pre(Apply, function(transformer){return this.func.isApply() ? this : transformer.prune(this, func.call(this))}))},
-	same: function(newFunc, newArg) {return newFunc == this.func && newArg == this.arg && this},
 	isApply: function() {return true},
 	alphaConvert: function() {return this.innermost(function() {return new Apply(this.func, this.arg.uniquify(this.func.names()))})},
 	betaReduce: function() {return this.innermost(function() {return this.func.substitute(this.arg)})},
@@ -587,22 +596,18 @@ or = \a b . a true b
 eq = \a b . a b (not b)
 xor = \a b . a (not b) b
 
-test = and true true
-
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
 
-# simple list representation
-pair = \a b f . f a b
-first = \p . p(\a b . a)
-second = \p . p(\a b . b)
-
-# compound list, to allow storing arbitrary data in lists
-empty = \f x . x
-append = \a l f x . f a (l f x)
-head = \l . l (\a b . a) Z
-isempty = \l . l (\a b . true) false
-tail = \l . first (l (\a b . pair (second b) (append a (second b))) (pair empty empty))
+# lists
+# using false as "nil" in lists, so you use a list like this:
+# DUMMY can be anything, but it needs to be there
+# alist (\head tail DUMMY . {list case}) ({empty case})
+cons = \a b f.f a b
+head = \p.p true
+tail = \p.p false
+ylast = \flast l . (tail l) (\head t dummy . flast (tail l)) (head l)
+last = \l . ylast (Y ylast) l
 
 # Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
 # Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
@@ -613,18 +618,20 @@ tail = \l . first (l (\a b . pair (second b) (append a (second b))) (pair empty 
 #
 #	Small numbers that work are: 1,7,9
 #
-# so:	x1 = \old . xor old (append false old)
+# so:	x1 = \old . xor old (cons false old)
 #	x2 = \x1 . xor x1 (7tail x1)
 #	x3 = \x2 . xor x2 (9false x1)
 #	rand = \x . x3 (x2 (x1 x))
-
+ymap2 = \fmap op l1 l2 . l1 (\h1 t1 X . l2 (\h2 t2 X . cons (op h1 h2) (fmap op t1 t2)) t1) t2
+map2 = \op l1 l2 . ymap2 (Y ymap2) op l1 l2
+lxor = \l1 l2 . map2 xor l1 l2
 7tail = \l . tail (tail (tail (tail (tail (tail (tail l))))))
-3false = \l . append false (append false (append false l))
+3false = \l . cons false (cons false (cons false l))
 9false = \l . 3false (3false (3false l))
-rand_x1 = \old . xor_l old (append false old)
-rand_x2 = \x1 . xor x1 (7tail x1)
-rand_x3 = \x2 . xor x2 (9false x1)
-rand = \x . x3 (x2 (x1 x))
+rand_x1 = \old . lxor old (cons false old)
+rand_x2 = \x1 . lxor x1 (7tail x1)
+rand_x3 = \x2 . lxor x2 (9false x1)
+rand = \current . x3 (x2 (x1 current))
 	</pre>
 </body>
 </html>
