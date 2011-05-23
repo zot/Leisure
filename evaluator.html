@@ -53,7 +53,7 @@ function loaded() {
 	code = document.getElementById("code")
 	result = document.getElementById("result")
 	loadDefs(document.getElementById("initialDefs").innerHTML)
-//	alert(funcs[Lhead(Lappend(L._true, Lappend(L._false, L._empty)))].format(true, false))
+//	alert(Lhead(Lappend(L._true, Lappend(L._false, L._empty))) == L._true)
 }
 function loadDefs(defs) {
 	var d = defs.split('\n')
