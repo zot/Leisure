@@ -88,6 +88,7 @@ function addExpr(name, txt) {
 	if (exprs[expr.name]) {
 		var newOutput = ''
 
+		hashed = {}
 		for (var i = 0; i < order.length; i++) {
 			if (order[i].name == expr.name) {
 				order.splice(i, 1)
@@ -468,8 +469,6 @@ Variable.prototype.__proto__ = new Entity({
 		while (names[this.name + '_' + ++i]) {}
 		return new Variable(this.name + '_' + i, this.free, i)
 	},
-	isApply: function() {return this.value ? this.value.isApply() : false},
-	substitute: function(value) {return this.value && this.value.substitute(value)},
 })
 
 function Apply(func, arg) {
@@ -502,7 +501,7 @@ Apply.prototype.__proto__ = new Entity({
 		return this.make(newFunc, newArg)
 	},
 	make: function(newFunc, newArg) {return (newFunc == this.func && newArg == this.arg && this) || new Apply(newFunc, newArg)},
-	innermost: function(func) {return this.transform(pre(Apply, function(transformer){return this.func.isApply() ? this : transformer.prune(this, func.call(this))}))},
+	innermost: function(func) {return this.func.isApply() ? new Apply(this.func.innermost(func), this.arg) : func.call(this)},
 	isApply: function() {return true},
 	alphaConvert: function() {return this.innermost(function() {return new Apply(this.func, this.arg.uniquify(this.func.names()))})},
 	betaReduce: function() {return this.innermost(function() {return this.func.substitute(this.arg)})},
@@ -552,7 +551,7 @@ var Ltail = lCode('tail')
 		<tr style="height: auto"><td colspan="4">
 			<div style="position: relative; width: 100%; height: 100%">
 				<table style="position: absolute; width: 100%; height: 100%">
-					<tr style="height: 0"><td style="width: 50%"><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results</h2></td></tr>
+					<tr style="height: 0"><td style="width: 50%"><span style="color: red">CURRENT ERROR: reduce on test</span><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results</h2></td></tr>
 					<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="result"></div></td></tr>
 				</table>
 			</div>
@@ -622,7 +621,9 @@ last = \l . ylast (Y ylast) l
 #	x2 = \x1 . xor x1 (7tail x1)
 #	x3 = \x2 . xor x2 (9false x1)
 #	rand = \x . x3 (x2 (x1 x))
-ymap2 = \fmap op l1 l2 . l1 (\h1 t1 X . l2 (\h2 t2 X . cons (op h1 h2) (fmap op t1 t2)) t1) t2
+ymap = \fmap op l . l (\h t X . cons (op h) (fmap op t)) false
+map = \op l . ymap (Y ymap) op l
+ymap2 = \fmap2 op l1 l2 . l1 (\h1 t1 X . l2 (\h2 t2 X . cons (op h1 h2) (fmap2 op t1 t2)) t1) t2
 map2 = \op l1 l2 . ymap2 (Y ymap2) op l1 l2
 lxor = \l1 l2 . map2 xor l1 l2
 7tail = \l . tail (tail (tail (tail (tail (tail (tail l))))))
@@ -632,6 +633,8 @@ rand_x1 = \old . lxor old (cons false old)
 rand_x2 = \x1 . lxor x1 (7tail x1)
 rand_x3 = \x2 . lxor x2 (9false x1)
 rand = \current . x3 (x2 (x1 current))
+
+test = map2 true (cons 1 false) (cons 2 false)
 	</pre>
 </body>
 </html>
