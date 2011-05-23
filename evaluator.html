@@ -114,12 +114,12 @@ function outputDivFor(index) {
 	var ec = br.etaConvert()
 
 	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(" + index + ")'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
-		+ "<div class='debug'><ul>"
-		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
-		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
-		+ "<li><b>Beta reduction:</b> <span class='subs'>" + br + "</span><span class='nosubs'>" + br.expr.format(false, true) + "</span>"
-		+ "<li><b>Eta conversion:</b> <span class='subs'>" + ec + "</span><span class='nosubs'>" + ec.expr.format(false, true) + "</span>"
-		+ "</ul></div>"
+//		+ "<div class='debug'><ul>"
+//		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
+//		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
+//		+ "<li><b>Beta reduction:</b> <span class='subs'>" + br + "</span><span class='nosubs'>" + br.expr.format(false, true) + "</span>"
+//		+ "<li><b>Eta conversion:</b> <span class='subs'>" + ec + "</span><span class='nosubs'>" + ec.expr.format(false, true) + "</span>"
+//		+ "</ul></div>"
 		+ "</div>"
 }
 function editFunc(index) {
@@ -154,9 +154,9 @@ function runReduce(index) {
 
 	formatExpr("Start", h[0], null, results)
 	for (var i = 1; i < reduction.history.length; i += 3) {
-		formatExpr("Alpha", h[i], h[i - 1], results)
-		formatExpr("Beta", h[i + 1], h[i], results)
-		formatExpr("Eta", h[i + 2], h[i + 1], results)
+		formatExpr("Eta", h[i], h[i - 1], results)
+		formatExpr("Alpha", h[i + 1], h[i], results)
+		formatExpr("Beta", h[i + 2], h[i + 1], results)
 	}
 	if (reduction.good) {
 		formatExpr("RESULT", h[h.length - 1], null, results)
@@ -267,9 +267,10 @@ function reduce(expr) {
 	var history = [expr.globalSub()]
 
 	do {
-		var ac = history[history.length - 1].alphaConvert()
-		var bc = ac.betaReduce()
-		history.push(ac, bc, bc.etaConvert())
+		var ec = history[history.length - 1].etaConvert()
+		var ac = ec.alphaConvert()
+
+		history.push(ec, ac, ac.betaReduce())
 		if (history.length > 100) return {good: false, history: history}
 	} while (!history[history.length - 1].equals(history[history.length - 4]))
 	return {good: true, history: history[history.length - 1] == history[history.length - 3] ? history.slice(0, history.length - 3) : history}
@@ -505,6 +506,7 @@ Apply.prototype.__proto__ = new Entity({
 	isApply: function() {return true},
 	alphaConvert: function() {return this.innermost(function() {return new Apply(this.func, this.arg.uniquify(this.func.names()))})},
 	betaReduce: function() {return this.innermost(function() {return this.func.substitute(this.arg)})},
+	etaConvert: function() {return this.innermost(function() {return new Apply(this.func.etaConvert(), this.arg)})},
 })
 function wrap(x) {return function() {return x}}
 function show() {document.getElementById("control").setAttribute("class", (showDebug ? "" : "hidedebug ") + (showSubs ? "showsubs" : "shownosubs"))}
@@ -551,7 +553,7 @@ var Ltail = lCode('tail')
 		<tr style="height: auto"><td colspan="4">
 			<div style="position: relative; width: 100%; height: 100%">
 				<table style="position: absolute; width: 100%; height: 100%">
-					<tr style="height: 0"><td style="width: 50%"><span style="color: red">CURRENT ERROR: reduce on test</span><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results</h2></td></tr>
+					<tr style="height: 0"><td style="width: 50%"><span class='hidden' style="color: red">CURRENT ERROR: reduce on test</span><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results</h2></td></tr>
 					<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="result"></div></td></tr>
 				</table>
 			</div>
