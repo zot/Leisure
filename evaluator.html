@@ -152,7 +152,7 @@ function findCons() {
 	}
 }
 function runFunc(index) {
-	runCode(order[index].code(), order[index], order[index].expr.format(false, true))
+	runCode(order[index].code, order[index].toString(), order[index].expr.format(false, true))
 }
 function runExpr(str) {
 	var expr = parse(str.trim(), {})[0]
@@ -165,7 +165,6 @@ function runCode(code, subs, nosubs) {
 	try {
 		constructEnv()
 		history[historyCount] = res = code()
-		L = null
 	} catch (err) {
 		res = "Error: " + err
 	}
@@ -175,6 +174,7 @@ function runCode(code, subs, nosubs) {
 	}
 	result.innerHTML += "<div><b><span class='dollar'>$: </span>_" + historyCount++ + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
+	L = null
 }
 function editResult(str) {
 	defName.value = ''
