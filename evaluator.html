@@ -172,7 +172,7 @@ function runCode(code, subs, nosubs) {
 	if (lam) {
 		res = lam == lcons ? listString(res) : "<span class='subs'>" + lam.format(false, false) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
-	result.innerHTML += "<div><b><span class='dollar'>$: </span>_" + historyCount++ + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + historyCount++ + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
 	L = null
 }
@@ -225,9 +225,9 @@ function constructEnv(src) {
 			}
 		}
 		for (var i = 0; i < history.length; i++) {
-			env.push("var __" + i + " = function(){return history[" + i + "]}")
+			env.push("var _$" + i + " = function(){return history[" + i + "]}")
 		}
-		if (history.length > 1) {
+		if (history.length > 0) {
 			env.push("var _$ = function(){return history[" + (history.length - 1) + "]}")
 		}
 		if (src) {
@@ -502,12 +502,12 @@ Variable.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
 	pass: function(stream, prefix) {
-		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^_[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.name
+		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.name
 			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
 		return stream
 	},
 	ret: function(stream, prefix) {
-		if (!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^_[0-9]+$') && Number(this.name.substring(1)) < history.length)) {
+		if (!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length)) {
 			this.pass(stream, prefix)
 			stream.push("()")
 		} else {
@@ -697,15 +697,17 @@ rand_x2 = \x1 . lxor x1 (7tail x1)
 rand_x3 = \x2 . lxor x2 (9false x1)
 rand = \current . x3 (x2 (x1 current))
 
-test = map2 true (cons 1 false) (cons 2 false)
-list1 = cons 1 false
-
 fwd = \a b c d f . f b c d a
 rev = \a b c d f . f d a b c
 f1 = \a b c d . a
-two = \a b f. f a b
+#two = \a b f. f a b
 #pick = \pair . pair (
 #testtwo = (two (fwd 1 2 3 4) (rev 1 2 3 4))
+
+test = map2 true (cons 1 false) (cons 2 false)
+list1 = cons 1 false
+list2 = cons 2 (cons 1 false)
+list3 = cons 3 (cons 2 (cons 1 false))
 	</pre>
 </body>
 </html>
