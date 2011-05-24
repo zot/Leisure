@@ -67,6 +67,7 @@ function loaded() {
 	result = document.getElementById("result")
 	loadDefs(document.getElementById("initialDefs").innerHTML)
 //	alert(Lhead(Lappend(L._true, Lappend(L._false, L._empty))) == L._true)
+	def.select()
 }
 function loadDefs(defs) {
 	var d = defs.split('\n')
@@ -157,7 +158,7 @@ function runFunc(index) {
 function runExpr(str) {
 	var expr = parse(str.trim(), {})[0]
 
-	runCode(constructEnv('function() {return ' + expr.ret([]).join("") + '}'), expr.format(), expr.format(false, true))
+	runCode(constructEnv('function() {\nreturn ' + expr.ret([]).join("") + '\n}'), expr.format(), expr.format(false, true))
 }
 function runCode(code, subs, nosubs) {
 	var res
@@ -170,7 +171,7 @@ function runCode(code, subs, nosubs) {
 	}
 	var lam = funcs[res]
 	if (lam) {
-		res = lam == lcons ? listString(res) : "<span class='subs'>" + lam.format(false, false) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
+		res = "<span class='subs'>" + pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
 	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + historyCount++ + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
@@ -183,11 +184,13 @@ function editResult(str) {
 }
 function isCons(l) {return funcs[l] == lcons}
 function isFalse(l) {return funcs[l] == lfalse}
-function listString(l) {
-	return isCons(l) ? '(' + elements(l, true) + ')' : l
+function pretty(l) {
+	var lam = funcs[l]
+
+	return lam && lam == lcons ? '(' + elements(l, true) + ')' : lam ? lam.format() : l
 }
 function elements(l, first) {
-	return isFalse(l) ? '' : ((first ? '' : ' ') + listString(Lhead(l)) + elements(Ltail(l), false))
+	return isFalse(l) ? '' : ((first ? '' : ' ') + pretty(Lhead(l)) + elements(Ltail(l), false))
 }
 function formatExpr(label, expr, prev, array) {
 	if (!expr.equals(prev)) {
@@ -215,7 +218,7 @@ function runReduce(index) {
 }
 function constructEnv(src) {
 	if (!L || src) {
-		var env = ['(function(){']
+		var env = ['(function(){\n']
 	
 		for (var i = 0; i < order.length; i++) {
 			env.push('order[' + i + '].code = ' + order[i].src)
@@ -233,7 +236,7 @@ function constructEnv(src) {
 		if (src) {
 			env.push('return (' + src + ')')
 		}
-		env.push('})()')
+		env.push('\n})()')
 		L = {}
 		return eval(env.join("\n"))
 	}
@@ -302,7 +305,7 @@ function Entry(name, expr) {
 	this.expr = expr
 	if (expr) {
 		try {
-			this.src = 'function() {return ' + expr.ret([]).join("") + '}'
+			this.src = 'function() {\nreturn ' + expr.ret([]).join("") + '\n}'
 		} catch (err) {
 			this.src = function() {return "Error compiling: " + expr}
 		}
@@ -327,7 +330,7 @@ function reduce(expr) {
 		var ac = ec.alphaConvert()
 
 		history.push(ec, ac, ac.betaReduce())
-		if (history.length > 100) return {good: false, history: history}
+		if (history.length > 1000) return {good: false, history: history}
 	} while (!history[history.length - 1].equals(history[history.length - 4]))
 	return {good: true, history: history[history.length - 1] == history[history.length - 3] ? history.slice(0, history.length - 3) : history}
 }
@@ -446,16 +449,16 @@ Lambda.prototype.__proto__ = new Entity({
 	ret: function(stream, prefix) {
 		var index = stream.length
 
-		stream.push("function(", pfx(prefix), this.lvar.name, ") {", "return ")
+		stream.push("function(", pfx(prefix), this.lvar.name, ") {\n", "return ")
 		this.body.ret(stream, prefix)
-		stream.push("}")
+		stream.push("\n}")
 		funcs[eval("(" + stream.slice(index, stream.length).join("") + ")")] = this
 		return stream
 	},
 	pass: function(stream, prefix) {
-		stream.push("function(){return ")
+		stream.push("function(){\nreturn ")
 		this.ret(stream, prefix)
-		stream.push("}")
+		stream.push("\n}")
 		return stream
 	},
 	apply: function(stream, prefix) {
@@ -544,9 +547,9 @@ Apply.prototype.__proto__ = new Entity({
 	},
 	ret: function(stream, prefix) {return this.apply(stream, prefix)},
 	pass: function(stream, prefix) {
-		stream.push("function(){return ")
+		stream.push("function(){\nreturn ")
 		this.apply(stream, prefix)
-		stream.push("}")
+		stream.push("\n}")
 		return stream
 	},
 	toString: function() {return "Apply(" + this.func + " " + this.arg + ")"},
@@ -623,9 +626,10 @@ first = \l  .  l \a b  .  a
 rest = \l  .  l \a b  .  b
 nil = \l x y . x
 null = \p.p (\a b x y.y)
+# Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
-_last = \flast list . (null (rest list)) (first list) (flast (rest list))
-last = \l._last (Y _last) l
+rec = \f . f (Y f)
+last = rec \flast list . (null (rest list)) (first list) (flast (rest list))
 Example = first (cons 1 nil)
 Example2 = rest (cons 1 nil)
 Example3 = rest (cons 1 (cons 2 nil))
@@ -644,6 +648,15 @@ eq = \a b . a b (not b)
 xor = \a b . a (not b) b
 	</pre>
 	<pre class="hidden" id="initialDefs">
+#rotation
+rot2 = \a b f . f b a
+f2 = \a b . a
+rot3 = \a b c f . f b c a
+r3 = rot3 1 2 3
+f3 = \a b c . a
+rot4 = \a b c d f . f b c d a
+f4 = \a b c d . a
+
 # Booleans
 true = \x y.x
 false = \x y.y
@@ -655,6 +668,7 @@ xor = \a b . a (not b) b
 
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+rec = \f . f (Y f)
 
 # lists
 # using false as "nil" in lists, so you use a list like this:
@@ -664,12 +678,11 @@ Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
 # If the list is not empty, h and t are the head and tail of the list and it returns list-case.  DUMMY is not used, but needs to be there
 # If the list is empty, it returns empty-case
 cons = \a b f.f a b
-head = \p.p true
-tail = \p.p false
-ylast = \flast l . (tail l) (\head t D . flast (tail l)) (head l)
-last = \l . ylast (Y ylast) l
-yappend = \fappend l1 l2 . l1 (\h t D . cons h (fappend t l2)) l2
-append = \l1 l2 . yappend (Y yappend) l1 l2
+head = \l . l (\h t D . h) false
+tail = \l . l (\h t D . t) false
+null = \l . l (\h t D . false) true
+last = rec \flast l2  . l2 (\h t D . null t h (flast t)) false
+append = rec \fappend l1 l2 . l1 (\h t D . cons h (fappend t l2)) l2
 
 # Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
 # Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
@@ -684,10 +697,8 @@ append = \l1 l2 . yappend (Y yappend) l1 l2
 #	x2 = \x1 . xor x1 (7tail x1)
 #	x3 = \x2 . xor x2 (9false x1)
 #	rand = \x . x3 (x2 (x1 x))
-ymap = \fmap op l . l (\h t X . cons (op h) (fmap op t)) false
-map = \op l . ymap (Y ymap) op l
-ymap2 = \fmap2 op l1 l2 . l1 (\h1 t1 X . l2 (\h2 t2 X . cons (op h1 h2) (fmap2 op t1 t2)) t1) t2
-map2 = \op l1 l2 . ymap2 (Y ymap2) op l1 l2
+map = rec \fmap op l . l (\h t D . cons (op h) (fmap op t)) false
+map2 = rec \fmap2 op l1 l2 . l1 (\h1 t1 D . l2 (\h2 t2 D . cons (op h1 h2) (fmap2 op t1 t2)) t1) l2
 lxor = \l1 l2 . map2 xor l1 l2
 7tail = \l . tail (tail (tail (tail (tail (tail (tail l))))))
 3false = \l . cons false (cons false (cons false l))
@@ -697,17 +708,8 @@ rand_x2 = \x1 . lxor x1 (7tail x1)
 rand_x3 = \x2 . lxor x2 (9false x1)
 rand = \current . x3 (x2 (x1 current))
 
-fwd = \a b c d f . f b c d a
-rev = \a b c d f . f d a b c
-f1 = \a b c d . a
-#two = \a b f. f a b
-#pick = \pair . pair (
-#testtwo = (two (fwd 1 2 3 4) (rev 1 2 3 4))
-
-test = map2 true (cons 1 false) (cons 2 false)
-list1 = cons 1 false
-list2 = cons 2 (cons 1 false)
-list3 = cons 3 (cons 2 (cons 1 false))
+l = append (cons 0 false) (cons 1 (cons 2 (cons 3 false)))
+t = last l
 	</pre>
 </body>
 </html>
