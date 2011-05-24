@@ -24,6 +24,14 @@ misrepresented as being the original software.
 -->
 <head>
 <style>
+#result div .dollar {
+	visibility: hidden;
+	display: none;
+}
+#result div:last-child .dollar {
+	visibility: inherit;
+	display: inherit;
+}
 .hidden, .hidedebug .debug, .shownosubs .subs, .showsubs .nosubs {
 	height: 0;
 	width: 0;
@@ -48,6 +56,8 @@ var hashed = {}
 var showDebug = false
 var showSubs = true
 var L = null
+var historyCount = 0
+var history = []
 
 function loaded() {
 	defName = document.getElementById("defName")
@@ -87,28 +97,32 @@ function input() {
 	def.value = ''
 }
 function addExpr(name, txt) {
-	var expr = new Entry(name, parse(txt.trim(), {})[0])
+	if (name) {
+		var expr = new Entry(name, parse(txt.trim(), {})[0])
 
-	if (exprs[expr.name]) {
-		var newOutput = ''
-
-		hashed = {}
-		for (var i = 0; i < order.length; i++) {
-			if (order[i].name == expr.name) {
-				order.splice(i, 1)
+		if (exprs[expr.name]) {
+			var newOutput = ''
+	
+			hashed = {}
+			for (var i = 0; i < order.length; i++) {
+				if (order[i].name == expr.name) {
+					order.splice(i, 1)
+				}
+				if (i < order.length) {
+					newOutput += outputDivFor(i)
+				}
 			}
-			if (i < order.length) {
-				newOutput += outputDivFor(i)
-			}
+			output.innerHTML = newOutput
+			L = null
 		}
-		output.innerHTML = newOutput
+		order.push(expr)
+		if (expr.name) exprs[expr.name] = expr
+		output.innerHTML += outputDivFor(order.length - 1)
+		hashed[expr.expr.hashKey()] = expr
+		output.lastChild.scrollIntoView()
+	} else {
+		runExpr(txt.trim())
 	}
-	L = null
-	order.push(expr)
-	if (expr.name) exprs[expr.name] = expr
-	output.innerHTML += outputDivFor(order.length - 1)
-	hashed[expr.expr.hashKey()] = expr
-	output.lastChild.scrollIntoView()
 }
 function outputDivFor(index) {
 	var expr = order[index]
@@ -129,6 +143,7 @@ function outputDivFor(index) {
 function editFunc(index) {
 	defName.value = order[index].name
 	def.value = order[index].formatSlash()
+	def.select()
 }
 function findCons() {
 	if (L._cons) {
@@ -137,11 +152,20 @@ function findCons() {
 	}
 }
 function runFunc(index) {
+	runCode(order[index].code(), order[index], order[index].expr.format(false, true))
+}
+function runExpr(str) {
+	var expr = parse(str.trim(), {})[0]
+
+	runCode(constructEnv('function() {return ' + expr.ret([]).join("") + '}'), expr.format(), expr.format(false, true))
+}
+function runCode(code, subs, nosubs) {
 	var res
 
 	try {
 		constructEnv()
-		res = order[index].code()
+		history[historyCount] = res = code()
+		L = null
 	} catch (err) {
 		res = "Error: " + err
 	}
@@ -149,8 +173,13 @@ function runFunc(index) {
 	if (lam) {
 		res = lam == lcons ? listString(res) : "<span class='subs'>" + lam.format(false, false) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
-	result.innerHTML += "<div><span class='subs'>" + order[index] + "</span><span class='nosubs'>" + order[index].expr.format(false, true) + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	result.innerHTML += "<div><b><span class='dollar'>$: </span>_" + historyCount++ + ":</b> <button onclick='editResult(\"" + subs + "\")'>Edit</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
+}
+function editResult(str) {
+	defName.value = ''
+	def.value = str
+	def.select()
 }
 function isCons(l) {return funcs[l] == lcons}
 function isFalse(l) {return funcs[l] == lfalse}
@@ -184,8 +213,8 @@ function runReduce(index) {
 	results.push("<br>")
 	result.innerHTML += results.join("")
 }
-function constructEnv() {
-	if (!L) {
+function constructEnv(src) {
+	if (!L || src) {
 		var env = ['(function(){']
 	
 		for (var i = 0; i < order.length; i++) {
@@ -194,6 +223,15 @@ function constructEnv() {
 				env.push("var _" + order[i].name + ' = ' + 'order[' + i + '].code')
 				env.push("L._" + order[i].name + " = _" + order[i].name + '()')
 			}
+		}
+		for (var i = 0; i < history.length; i++) {
+			env.push("var __" + i + " = function(){return history[" + i + "]}")
+		}
+		if (history.length > 1) {
+			env.push("var _$ = function(){return history[" + (history.length - 1) + "]}")
+		}
+		if (src) {
+			env.push('return (' + src + ')')
 		}
 		env.push('})()')
 		L = {}
@@ -464,12 +502,12 @@ Variable.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
 	pass: function(stream, prefix) {
-		stream.push(!this.free || exprs[this.name] ? pfx(prefix) + this.name
+		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^_[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.name
 			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
 		return stream
 	},
 	ret: function(stream, prefix) {
-		if (!this.free || exprs[this.name]) {
+		if (!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^_[0-9]+$') && Number(this.name.substring(1)) < history.length)) {
 			this.pass(stream, prefix)
 			stream.push("()")
 		} else {
@@ -566,7 +604,6 @@ var Ltail = lCode('tail')
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
 	<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
-		<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
 		<tr style="height: 0"><td colspan="4">Load file: <input type="file" id="input" onchange="handleFiles(this.files)"></input></td></tr>
 		<tr style="height: auto"><td colspan="4">
 			<div style="position: relative; width: 100%; height: 100%">
@@ -576,6 +613,7 @@ var Ltail = lCode('tail')
 				</table>
 			</div>
 		</td></tr>
+		<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
 	</table>
 	<pre class="hidden" id="initialDefs1">
 true = \x y.x
@@ -661,6 +699,13 @@ rand = \current . x3 (x2 (x1 current))
 
 test = map2 true (cons 1 false) (cons 2 false)
 list1 = cons 1 false
+
+fwd = \a b c d f . f b c d a
+rev = \a b c d f . f d a b c
+f1 = \a b c d . a
+two = \a b f. f a b
+#pick = \pair . pair (
+#testtwo = (two (fwd 1 2 3 4) (rev 1 2 3 4))
 	</pre>
 </body>
 </html>
