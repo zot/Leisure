@@ -173,7 +173,7 @@ function runCode(code, subs, nosubs) {
 	if (lam) {
 		res = lam == lcons ? listString(res) : "<span class='subs'>" + lam.format(false, false) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
-	result.innerHTML += "<div><b><span class='dollar'>$: </span>_" + historyCount++ + ":</b> <button onclick='editResult(\"" + subs + "\")'>Edit</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	result.innerHTML += "<div><b><span class='dollar'>$: </span>_" + historyCount++ + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
 }
 function editResult(str) {
