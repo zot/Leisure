@@ -58,6 +58,7 @@ var showSubs = true
 var L = null
 var historyCount = 0
 var history = []
+var historyExprs = []
 
 function loaded() {
 	defName = document.getElementById("defName")
@@ -132,7 +133,7 @@ function outputDivFor(index) {
 	var br = ac.betaReduce()
 	var ec = br.etaConvert()
 
-	return "<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash().replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(" + index + ")'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
+	return "<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash().replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
 //		+ "<div class='debug'><ul>"
 //		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
 //		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
@@ -153,16 +154,17 @@ function findCons() {
 	}
 }
 function runFunc(index) {
-	runCode(order[index].code, order[index].toString(), order[index].expr.format(false, true))
+	runCode(order[index].expr, order[index].code, order[index].toString(), order[index].expr.format(false, true))
 }
 function runExpr(str) {
 	var expr = parse(str.trim(), {})[0]
 
-	runCode(constructEnv('function() {\nreturn ' + expr.ret([]).join("") + '\n}'), expr.format(), expr.format(false, true))
+	runCode(expr, constructEnv('function() {\nreturn ' + expr.ret([]).join("") + '\n}'), expr.format(), expr.format(false, true))
 }
-function runCode(code, subs, nosubs) {
+function runCode(expr, code, subs, nosubs) {
 	var res
 
+	historyExprs[historyCount] = expr
 	try {
 		constructEnv()
 		history[historyCount] = res = code()
@@ -173,7 +175,8 @@ function runCode(code, subs, nosubs) {
 	if (lam) {
 		res = "<span class='subs'>" + pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
-	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + historyCount++ + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + historyCount + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(historyExprs[" + historyCount + "])'>Reduce</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	historyCount++
 	result.lastChild.scrollIntoView()
 	L = null
 }
@@ -197,8 +200,8 @@ function formatExpr(label, expr, prev, array) {
 		array.push("<div><b>", label, ":</b> <span class='subs'>", expr.format(false, false), "</span><span class='nosubs'>", expr.format(false, true), "</span></div>")
 	}
 }
-function runReduce(index) {
-	var reduction = reduce(order[index].expr)
+function runReduce(expr) {
+	var reduction = reduce(expr)
 	var h = reduction.history
 	var results = []
 
@@ -629,7 +632,7 @@ null = \p.p (\a b x y.y)
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
 rec = \f . f (Y f)
-last = rec \flast list . (null (rest list)) (first list) (flast (rest list))
+last = rec \last list . (null (rest list)) (first list) (last (rest list))
 Example = first (cons 1 nil)
 Example2 = rest (cons 1 nil)
 Example3 = rest (cons 1 (cons 2 nil))
@@ -681,8 +684,8 @@ cons = \a b f.f a b
 head = \l . l (\h t D . h) false
 tail = \l . l (\h t D . t) false
 null = \l . l (\h t D . false) true
-last = rec \flast l2  . l2 (\h t D . null t h (flast t)) false
-append = rec \fappend l1 l2 . l1 (\h t D . cons h (fappend t l2)) l2
+last = rec \last l2  . l2 (\h t D . null t h (last t)) false
+append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
 
 # Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
 # Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
@@ -697,8 +700,8 @@ append = rec \fappend l1 l2 . l1 (\h t D . cons h (fappend t l2)) l2
 #	x2 = \x1 . xor x1 (7tail x1)
 #	x3 = \x2 . xor x2 (9false x1)
 #	rand = \x . x3 (x2 (x1 x))
-map = rec \fmap op l . l (\h t D . cons (op h) (fmap op t)) false
-map2 = rec \fmap2 op l1 l2 . l1 (\h1 t1 D . l2 (\h2 t2 D . cons (op h1 h2) (fmap2 op t1 t2)) t1) l2
+map = rec \map op l . l (\h t D . cons (op h) (map op t)) false
+map2 = rec \map2 op l1 l2 . l1 (\h1 t1 D . l2 (\h2 t2 D . cons (op h1 h2) (map2 op t1 t2)) t1) l2
 lxor = \l1 l2 . map2 xor l1 l2
 7tail = \l . tail (tail (tail (tail (tail (tail (tail l))))))
 3false = \l . cons false (cons false (cons false l))
