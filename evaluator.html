@@ -131,7 +131,7 @@ function outputDivFor(index) {
 	var br = ac.betaReduce()
 	var ec = br.etaConvert()
 
-	return "<div><button onclick='editFunc(\"" + index + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(" + index + ")'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
+	return "<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash().replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(" + index + ")'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
 //		+ "<div class='debug'><ul>"
 //		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
 //		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
@@ -140,9 +140,9 @@ function outputDivFor(index) {
 //		+ "</ul></div>"
 		+ "</div>"
 }
-function editFunc(index) {
-	defName.value = order[index].name
-	def.value = order[index].formatSlash()
+function editFunc(name, expr) {
+	defName.value = name
+	def.value = expr
 	def.select()
 }
 function findCons() {
