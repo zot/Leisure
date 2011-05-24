@@ -36,7 +36,10 @@ var defName
 var def
 var output
 var code
+var lcons
+var lfalse
 var result
+var results = []
 var exprs = {}
 var order = []
 var funcs = {}
@@ -76,6 +79,7 @@ function loadDefs(defs) {
 		}
 	}
 	constructEnv()
+	findCons();
 }
 function input() {
 	addExpr(defName.value, def.value)
@@ -126,6 +130,12 @@ function editFunc(index) {
 	defName.value = order[index].name
 	def.value = order[index].formatSlash()
 }
+function findCons() {
+	if (L._cons) {
+		lcons = funcs[L._cons].body.body
+		lfalse = funcs[L._false]
+	}
+}
 function runFunc(index) {
 	var res
 
@@ -137,10 +147,18 @@ function runFunc(index) {
 	}
 	var lam = funcs[res]
 	if (lam) {
-		res = "<span class='subs'>" + lam.format(false, false) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>"
+		res = lam == lcons ? listString(res) : "<span class='subs'>" + lam.format(false, false) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
 	result.innerHTML += "<div><span class='subs'>" + order[index] + "</span><span class='nosubs'>" + order[index].expr.format(false, true) + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
 	result.lastChild.scrollIntoView()
+}
+function isCons(l) {return funcs[l] == lcons}
+function isFalse(l) {return funcs[l] == lfalse}
+function listString(l) {
+	return isCons(l) ? '(' + elements(l, true) + ')' : l
+}
+function elements(l, first) {
+	return isFalse(l) ? '' : ((first ? '' : ' ') + listString(Lhead(l)) + elements(Ltail(l), false))
 }
 function formatExpr(label, expr, prev, array) {
 	if (!expr.equals(prev)) {
@@ -537,8 +555,8 @@ var Leq = lCode('eq')
 var Lxor = lCode('xor')
 var Lnot = lCode('not')
 var Lpair = lCode('pair')
-var Lfirst = lCode('first')
-var Lsecond = lCode('second')
+var Lhead = lCode('head')
+var Ltail = lCode('tail')
 var Lempty = lCode('empty')
 var Lappend = lCode('append')
 var Lhead = lCode('head')
@@ -603,12 +621,17 @@ Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
 # lists
 # using false as "nil" in lists, so you use a list like this:
 # DUMMY can be anything, but it needs to be there
-# alist (\head tail DUMMY . {list case}) ({empty case})
+# here's how you use a list:
+# alist (\h t DUMMY . {list-case}) {empty-case}
+# If the list is not empty, h and t are the head and tail of the list and it returns list-case.  DUMMY is not used, but needs to be there
+# If the list is empty, it returns empty-case
 cons = \a b f.f a b
 head = \p.p true
 tail = \p.p false
-ylast = \flast l . (tail l) (\head t dummy . flast (tail l)) (head l)
+ylast = \flast l . (tail l) (\head t D . flast (tail l)) (head l)
 last = \l . ylast (Y ylast) l
+yappend = \fappend l1 l2 . l1 (\h t D . cons h (fappend t l2)) l2
+append = \l1 l2 . yappend (Y yappend) l1 l2
 
 # Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
 # Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
@@ -637,6 +660,7 @@ rand_x3 = \x2 . lxor x2 (9false x1)
 rand = \current . x3 (x2 (x1 current))
 
 test = map2 true (cons 1 false) (cons 2 false)
+list1 = cons 1 false
 	</pre>
 </body>
 </html>
