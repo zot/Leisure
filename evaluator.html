@@ -67,7 +67,6 @@ function loaded() {
 	code = document.getElementById("code")
 	result = document.getElementById("result")
 	loadDefs(document.getElementById("initialDefs").innerHTML)
-//	alert(Lhead(Lappend(L._true, Lappend(L._false, L._empty))) == L._true)
 	def.select()
 }
 function loadDefs(defs) {
@@ -175,7 +174,7 @@ function runCode(expr, code, subs, nosubs) {
 	if (lam) {
 		res = "<span class='subs'>" + pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
-	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + historyCount + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(historyExprs[" + historyCount + "])'>Reduce</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div>"
+	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + historyCount + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(historyExprs[" + historyCount + "])'>Reduce</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div><br>"
 	historyCount++
 	result.lastChild.scrollIntoView()
 	L = null
@@ -185,19 +184,33 @@ function editResult(str) {
 	def.value = str
 	def.select()
 }
-function isCons(l) {return funcs[l] == lcons}
-function isFalse(l) {return funcs[l] == lfalse}
+function isCons(l) {return funcs[l].id == lcons.id}
+function isFalse(l) {return funcs[l].id == lfalse.id}
 function pretty(l) {
 	var lam = funcs[l]
 
-	return lam && lam == lcons ? '(' + elements(l, true) + ')' : lam ? lam.format() : l
+	return lam && lam.id == lcons.id ? '(' + elements(l, true) + ')' : lam ? lam.format() : l
 }
 function elements(l, first) {
 	return isFalse(l) ? '' : ((first ? '' : ' ') + pretty(Lhead(l)) + elements(Ltail(l), false))
 }
+function lpretty(lam) {
+	return lam.id == lcons.id ? pretty(constructEnv(lam.ret([]).join(""))) : lam.format()
+}
 function formatExpr(label, expr, prev, array) {
 	if (!expr.equals(prev)) {
-		array.push("<div><b>", label, ":</b> <span class='subs'>", expr.format(false, false), "</span><span class='nosubs'>", expr.format(false, true), "</span></div>")
+		array.push("<div><b>", label, ":</b> <span class='subs'>", lpretty(expr), "</span><span class='nosubs'>", expr.format(false, true), "</span></div>")
+	}
+}
+function toggleSteps(link) {
+	var div = link.parentElement.parentElement.nextElementSibling
+
+	if (div.className) {
+		div.className = ''
+		link.innerHTML = '+'
+	} else {
+		div.className = 'hidden'
+		link.innerHTML = '-'
 	}
 }
 function runReduce(expr) {
@@ -205,24 +218,28 @@ function runReduce(expr) {
 	var h = reduction.history
 	var results = []
 
-	formatExpr("Start", h[0], null, results)
+	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>-</a> Reduce", h[0], null, results)
+	result.innerHTML += results.join('')
+	results = []
+	results.push("<div class='hidden'>")
 	for (var i = 1; i < reduction.history.length; i += 3) {
 		formatExpr("Eta", h[i], h[i - 1], results)
 		formatExpr("Alpha", h[i + 1], h[i], results)
 		formatExpr("Beta", h[i + 2], h[i + 1], results)
 	}
+	results.push("</div>")
 	if (reduction.good) {
 		formatExpr("RESULT", h[h.length - 1], null, results)
 	} else {
 		results.push('<br><b>...</b>')
 	}
-	results.push("<br>")
+	results.push('<br>')
 	result.innerHTML += results.join("")
 }
 function constructEnv(src) {
 	if (!L || src) {
 		var env = ['(function(){\n']
-	
+
 		for (var i = 0; i < order.length; i++) {
 			env.push('order[' + i + '].code = ' + order[i].src)
 			if (order[i].name != "") {
@@ -368,9 +385,6 @@ function runLCode(func, args) {
 	for (var i = 0; i < args.length; i++) {
 		func = func.call(null, wrap(args[i]))
 	}
-//	if (funcs[func]) {
-//		func = funcs[func]
-//	}
 	return func
 }
 var entityCounter = 0
@@ -403,7 +417,6 @@ Entity.prototype.__proto__ = {
 	uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
 	hashKey: function() {return this.normalize().format(true, true)},
 	globalSub: function() {
-//		return this.uniquify(exprs).transform(pre(Variable, function() {return exprs[this.name] ? exprs[this.name].expr : this}))
 		var v = this.uniquify(exprs).transform(pre(Variable, function() {
 			return exprs[this.name] ? exprs[this.name].expr.globalSub() : this
 		}))
@@ -441,10 +454,10 @@ Entity.prototype.__proto__ = {
 
 function pfx(prefix) {return prefix == null ? '_' : prefix}
 
-function Lambda(arg, body) {
+function Lambda(arg, body, id) {
 	this.lvar = arg
 	this.body = body
-	this.id = entityCounter++
+	this.id = id || entityCounter++
 }
 Lambda.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
@@ -483,7 +496,7 @@ Lambda.prototype.__proto__ = new Entity({
 
 		return this.make(newVar, newBod)
 	},
-	make: function(newVar, newBody) {return (this.lvar == newVar && this.body == newBody && this) || new Lambda(newVar, newBody)},
+	make: function(newVar, newBody) {return (this.lvar == newVar && this.body == newBody && this) || new Lambda(newVar, newBody, this.id)},
 	substitute: function(value) {
 		var trans = new Transformer([])
 
