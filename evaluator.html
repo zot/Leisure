@@ -47,7 +47,6 @@ var code
 var lcons
 var lfalse
 var result
-var results = []
 var exprs = {}
 var order = []
 var funcs = {}
@@ -198,10 +197,11 @@ function elements(l, first) {
 function lpretty(lam) {
 	return lam.id == lcons.id ? pretty(constructEnv(lam.ret([]).join(""))) : lam.format()
 }
-function formatExpr(label, expr, prev, array) {
-	if (!expr.equals(prev)) {
-		array.push("<div><b>", label, ":</b> <span class='subs'>", lpretty(expr), "</span><span class='nosubs'>", expr.format(false, true), "</span></div>")
-	}
+function formatExpr(label, expr, el) {
+	el.innerHTML += "<div><b>" + label + ":</b> " + formatSubexpr(expr) + "</div>"
+}
+function formatSubexpr(expr) {
+	return "<span class='subs'>" + lpretty(expr) + "</span><span class='nosubs'>" + expr.format(false, true) + "</span>"
 }
 function toggleSteps(link) {
 	var div = link.parentElement.parentElement.nextElementSibling
@@ -215,27 +215,25 @@ function toggleSteps(link) {
 	}
 }
 function runReduce(expr) {
-	var reduction = reduce(expr)
-	var h = reduction.history
-	var results = []
+	var last
 
-	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>-</a> Reduce", h[0], null, results)
-	result.innerHTML += results.join('')
-	results = []
-	results.push("<div class='hidden'>")
-	for (var i = 1; i < reduction.history.length; i += 3) {
-		formatExpr("Eta", h[i], h[i - 1], results)
-		formatExpr("Alpha", h[i + 1], h[i], results)
-		formatExpr("Beta", h[i + 2], h[i + 1], results)
+	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>-</a> Reduce", expr, result)
+	result.innerHTML += "<div class='hidden'></div>"
+	expr = expr.globalSub()
+	var trace = result.lastElementChild
+	formatExpr("Globals", expr, trace)
+	try {
+		var success = reduce(expr,
+			function(exp) {formatExpr("Eta", last = exp, trace)},
+			function(exp) {formatExpr("Alpha", last = exp, trace)},
+			function(exp) {formatExpr("Beta", last = exp, trace)}
+		)
+		result.lastElementChild.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + (success ? formatSubexpr(last) : '<br><b>...</b>')
+	} catch (err) {
+		result.lastElementChild.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + '<b>' + err + '</b>'
 	}
-	results.push("</div>")
-	if (reduction.good) {
-		formatExpr("RESULT", h[h.length - 1], null, results)
-	} else {
-		results.push('<br><b>...</b>')
-	}
-	results.push('<br>')
-	result.innerHTML += results.join("")
+	result.innerHTML += '<br>'
+	result.lastElementChild.scrollIntoView()
 }
 function constructEnv(src) {
 	if (!L || src) {
@@ -350,17 +348,21 @@ Entry.prototype = {
 	globalSub: function() {return new Entry(this.name, this.expr.globalSub())},
 }
 
-function reduce(expr) {
-	var history = [expr.globalSub()]
+function reduce(expr, ecallback, acallback, bcallback) {
+	var prev = expr
 
-	do {
-		var ec = history[history.length - 1].etaConvert()
+	for (var count = 0; count < 1000; count++) {
+		var ec = prev.etaConvert()
 		var ac = ec.alphaConvert()
+		var bc = ac.betaReduce()
 
-		history.push(ec, ac, ac.betaReduce())
-		if (history.length > 1000) return {good: false, history: history}
-	} while (!history[history.length - 1].equals(history[history.length - 4]))
-	return {good: true, history: history[history.length - 1] == history[history.length - 3] ? history.slice(0, history.length - 3) : history}
+		if (!ec.equals(prev)) ecallback(ec)
+		if (!ac.equals(ec)) acallback(ac)
+		if (!bc.equals(ac)) bcallback(bc)
+		if (bc.equals(prev)) return true
+		prev = bc
+	}
+	return false
 }
 
 function pre(type, func) {
@@ -572,13 +574,15 @@ function nameUnsub(name) {
 	return s || name
 }
 
-function Variable(txt, free, num) {
+function Variable(txt, free, base, num) {
 	this.name = txt
+	this.base = base || txt
 	this.cname = nameSub(txt)
-	this.num = num
+	this.num = num || 0
 	this.free = free
 	this.id = entityCounter++
 }
+var vcount = 0
 Variable.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
@@ -601,10 +605,12 @@ Variable.prototype.__proto__ = new Entity({
 	propagateTransform: function(transformer) {return this},
 	rename: function(names) {
 		if (!names[this.name]) return this
-		var i = 0
+		var i = this.num
 
-		while (names[this.name + '_' + ++i]) {}
-		return new Variable(this.name + '_' + i, this.free, i)
+		while (names[this.base + '_' + ++i]) {}
+		return new Variable(this.base + '_' + i, this.free, this.base, i)
+//		while (names[this.base + '_' + ++vcount]) {}
+//		return new Variable(this.base + '_' + vcount, this.free, this.base, vcount)
 	},
 })
 
@@ -695,39 +701,10 @@ var Ltail = lCode('tail')
 		</td></tr>
 		<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
 	</table>
-	<pre class="hidden" id="initialDefs1">
-true = \x y.x
-false = \x y.y
-cons = \x y f  .  f x y
-first = \l  .  l \a b  .  a
-rest = \l  .  l \a b  .  b
-nil = \l x y . x
-null = \p.p (\a b x y.y)
-# Y combinator
-Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
-rec = \f . f (Y f)
-last = rec \last list . (null (rest list)) (first list) (last (rest list))
-Example = first (cons 1 nil)
-Example2 = rest (cons 1 nil)
-Example3 = rest (cons 1 (cons 2 nil))
-Example4 = (\x y . (\z . z x) y) 1
-Example5 = last (cons 1 nil)
-Example6 = last (cons 1 (cons 2 nil))
-	</pre>
-	<pre class="hidden" id="initialDefs2">
-# Booleans
-true = \x y.x
-false = \x y.y
-not = \b . b false true
-and = \a b . a b false
-or = \a b . a true b
-eq = \a b . a b (not b)
-xor = \a b . a (not b) b
-	</pre>
 	<pre class="hidden" id="initialDefs">
 # Booleans
-true = \x y.x
-false = \x y.y
+true = \x y . x
+false = \x y . y
 not = \b . b false true
 and = \a b . a b false
 or = \a b . a true b
@@ -755,43 +732,49 @@ rec = \f . f (Y f)
 # If the list is not empty, h and t are the head and tail of the list and it returns list-case.  DUMMY is not used, but needs to be there
 # If the list is empty, it returns empty-case
 cons = \a b f.f a b
-head = \l . l (\h t D . h) false
-tail = \l . l (\h t D . t) false
+nil = false
+head = \l . l (\h t D . h) nil
+tail = \l . l (\h t D . t) nil
 null = \l . l (\h t D . false) true
-last = rec \last l2  . l2 (\h t D . null t h (last t)) false
+last = rec \last l2  . l2 (\h t D . null t h (last t)) nil
 append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
-reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l false
+reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 # list constructor: list 1 , 2 , 3 end
-list = (rec \list rest item eat . eat (list (cons item rest)) (reverse (cons item rest))) false
+list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
 , = true
 end = false
+identity = \x . x
+
+compose = (rec \compose rest func if-continue . if-continue (compose (\x . rest (func x))) \x . rest (func x)) identity
 
 # Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
 # Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
 # This works on a list of booleans, using this formula for the next step:
-#	x1 = old ^ (old << a)
-#	x2 = x1 ^ (x1 >> b)
-#	x3 = x2 ^ (x2 << c)
+#	x ^= x << a
+#	x ^= x >> b
+#	x ^= x << c
 #
-#	Small numbers that work are: 1,7,9
+#	Some small numbers that work are: a = 1, b = 7, c = 9
 #
-# so:	x1 = \old . xor old (cons false old)
-#	x2 = \x1 . xor x1 (7tail x1)
-#	x3 = \x2 . xor x2 (9false x1)
-#	rand = \x . x3 (x2 (x1 x))
+# so:	if we say xorF = \x f . lxor x (f x), that's kind of like x ^= f(x)
+#	rand = xorF (xorF (xorF x 1rshift) 7lshift) 9rshift
+
 map = rec \map op l . l (\h t D . cons (op h) (map op t)) false
 map2 = rec \map2 op l1 l2 . l1 (\h1 t1 D . l2 (\h2 t2 D . cons (op h1 h2) (map2 op t1 t2)) t1) l2
 lxor = \l1 l2 . map2 xor l1 l2
-7tail = \l . tail (tail (tail (tail (tail (tail (tail l))))))
-3false = \l . cons false (cons false (cons false l))
-9false = \l . 3false (3false (3false l))
-rand_x1 = \old . lxor old (cons false old)
-rand_x2 = \x1 . lxor x1 (7tail x1)
-rand_x3 = \x2 . lxor x2 (9false x1)
-rand = \current . x3 (x2 (x1 current))
+1rshift = \l . cons false l
+7lshift = \l . tail (tail (tail (tail (tail (tail (tail l))))))
+3rshift = \l . cons false (cons false (cons false l))
+9rshift = \l . 3rshift (3rshift (3rshift l))
+xorF = \x f . lxor x (f x)
+rand = \x . xorF (xorF (xorF x 1rshift) 7lshift) 9rshift
 
 l = append (list 0 end) (list 1 , 2 , 3 end)
 t = last l
+tt = f3 1 2 3
+cons1 = \x . cons 1 x
+cons2 = \x . cons 2 x
+c = compose cons1 end nil
 	</pre>
 </body>
 </html>
