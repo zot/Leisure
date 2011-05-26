@@ -28,7 +28,7 @@ misrepresented as being the original software.
 	visibility: hidden;
 	display: none;
 }
-#result div:last-child .dollar {
+#result :last-child .dollar {
 	visibility: inherit;
 	display: inherit;
 }
@@ -119,7 +119,8 @@ function addExpr(name, txt) {
 		order.push(expr)
 		if (expr.name) exprs[expr.name] = expr
 		output.innerHTML += outputDivFor(order.length - 1)
-		hashed[expr.expr.hashKey()] = expr
+		var hk = expr.expr.hashKey()
+		if (!hashed[hk]) hashed[hk] = expr
 		output.lastChild.scrollIntoView()
 	} else {
 		runExpr(txt.trim())
@@ -132,7 +133,7 @@ function outputDivFor(index) {
 	var br = ac.betaReduce()
 	var ec = br.etaConvert()
 
-	return "<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash().replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;<span class="subs">' + expr + "</span><span class='nosubs'>" + expr.expr.format(false, true) + "</span>"
+	return "<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash().replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
 //		+ "<div class='debug'><ul>"
 //		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
 //		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
@@ -168,13 +169,13 @@ function runCode(expr, code, subs, nosubs) {
 		constructEnv()
 		history[historyCount] = res = code()
 	} catch (err) {
-		res = "Error: " + err
+		res = "Error: " + err.message
 	}
 	var lam = funcs[res]
 	if (lam) {
 		res = "<span class='subs'>" + pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
-	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + historyCount + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(historyExprs[" + historyCount + "])'>Reduce</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "</div><br>"
+	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + historyCount + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(historyExprs[" + historyCount + "])'>Reduce</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "<br><br></div>"
 	historyCount++
 	result.lastChild.scrollIntoView()
 	L = null
@@ -243,22 +244,28 @@ function constructEnv(src) {
 		for (var i = 0; i < order.length; i++) {
 			env.push('order[' + i + '].code = ' + order[i].src)
 			if (order[i].name != "") {
-				env.push("var _" + order[i].name + ' = ' + 'order[' + i + '].code')
-				env.push("L._" + order[i].name + " = _" + order[i].name + '()')
+				env.push("var _" + order[i].cname + ' = ' + 'order[' + i + '].code')
+				env.push("L._" + order[i].cname + " = _" + order[i].cname + '()')
 			}
 		}
 		for (var i = 0; i < history.length; i++) {
-			env.push("var _$" + i + " = function(){return history[" + i + "]}")
+			env.push("var _" + charCodes['$'] + i + " = function(){return history[" + i + "]}")
 		}
 		if (history.length > 0) {
-			env.push("var _$ = function(){return history[" + (history.length - 1) + "]}")
+			env.push("var _" + charCodes['$'] + " = function(){return history[" + (history.length - 1) + "]}")
 		}
 		if (src) {
 			env.push('return (' + src + ')')
 		}
 		env.push('\n})()')
 		L = {}
-		return eval(env.join("\n"))
+		var res
+		try {
+			res = eval(env.join("\n"))
+		} catch (err) {
+			res = "ERROR: " + err.message
+		}
+		return res
 	}
 }
 function parse(txt, vars) {
@@ -322,6 +329,7 @@ function parseLambda(txt, vars) {
 }
 function Entry(name, expr) {
 	this.name = name
+	this.cname = nameSub(name)
 	this.expr = expr
 	if (expr) {
 		try {
@@ -397,7 +405,7 @@ Entity.prototype.__proto__ = {
 	transform: function() {return this.doTransform(new Transformer(arguments))},
 	startTransform: function(transformer) {return transformer.getTransform(this) || this.doTransform(transformer)},
 	doTransform: function(transformer) {
-		if (transformer.getTransform[this]) return transformer.getTransform[this]
+		if (transformer.getTransform(this)) return transformer.getTransform(this)
 		var pre = transformer.pre[this.constructor.name].call(this, transformer)
 
 		return pre && (transformer.getTransform(this) || transformer.prune(this, transformer.post[pre.constructor.name].call(pre.propagateTransform(transformer), transformer)))
@@ -461,11 +469,11 @@ function Lambda(arg, body, id) {
 }
 Lambda.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
-	toString: function() {return "&lambda;(" + this.lvar.name + " . " + this.body + ")"},
+	toString: function() {return this.format()},
 	ret: function(stream, prefix) {
 		var index = stream.length
 
-		stream.push("function(", pfx(prefix), this.lvar.name, ") {\n", "return ")
+		stream.push("function(", pfx(prefix), this.lvar.cname, ") {\n", "return ")
 		this.body.ret(stream, prefix)
 		stream.push("\n}")
 		funcs[eval("(" + stream.slice(index, stream.length).join("") + ")")] = this
@@ -511,8 +519,62 @@ function numberFor(name, names) {
 	return i
 }
 
+var charCodes = {
+	"'": '$a',
+	',': '$b',
+	'$': '$c',
+	'@': '$d',
+	'?': '$e',
+	'/': '$f',
+	'\\': '$g',
+	'&': '$h',
+	'^': '$i',
+	'#': '$j',
+	'!': '$k',
+	'`': '$l',
+	'~': '$m',
+	'-': '$n',
+	'+': '$o',
+	'=': '$p',
+}
+var codeChars = {}
+
+for (i in charCodes) {
+	codeChars[charCodes[i].substring(1)] = i
+}
+
+function nameSub(name) {
+	var s = ''
+
+	for (var i = 0; i < name.length; i++) {
+		var code = charCodes[name[i]]
+
+		if (code) {
+			if (!s) s = name.substring(0, i)
+			s += code
+		} else if (s) {
+			s += name[i]
+		}
+	}
+	return s || name
+}
+function nameUnsub(name) {
+	var s = ''
+
+	for (var i = 0; i < name.length; i++) {
+		if (name[i] == '$') {
+			if (!s) s = name.substring(0, i)
+			s += codeChars[name[++i]]
+		} else {
+			if (s) s += name[i]
+		}
+	}
+	return s || name
+}
+
 function Variable(txt, free, num) {
 	this.name = txt
+	this.cname = nameSub(txt)
 	this.num = num
 	this.free = free
 	this.id = entityCounter++
@@ -521,7 +583,7 @@ Variable.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
 	pass: function(stream, prefix) {
-		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.name
+		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.cname
 			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
 		return stream
 	},
@@ -530,12 +592,11 @@ Variable.prototype.__proto__ = new Entity({
 			this.pass(stream, prefix)
 			stream.push("()")
 		} else {
-			stream.push("'", this.name, "'")
+			stream.push(this.name.match('^[0-9]+(.[0-9]*)?$') ? this.name : "'" + this.name + "'")
 		}
 		return stream
 	},
 	apply: function(stream, prefix) {return this.ret(stream, prefix)},
-	fname: function() {return this.num ? this.name + '_' + this.num : this.name},
 	format: function() {return this.name},
 	propagateTransform: function(transformer) {return this},
 	rename: function(names) {
@@ -664,15 +725,6 @@ eq = \a b . a b (not b)
 xor = \a b . a (not b) b
 	</pre>
 	<pre class="hidden" id="initialDefs">
-#rotation
-rot2 = \a b f . f b a
-f2 = \a b . a
-rot3 = \a b c f . f b c a
-r3 = rot3 1 2 3
-f3 = \a b c . a
-rot4 = \a b c d f . f b c d a
-f4 = \a b c d . a
-
 # Booleans
 true = \x y.x
 false = \x y.y
@@ -681,6 +733,15 @@ and = \a b . a b false
 or = \a b . a true b
 eq = \a b . a b (not b)
 xor = \a b . a (not b) b
+
+#rotation
+rot2 = \a b f . f b a
+f2 = \a b . a
+rot3 = \a b c f . f b c a
+r3 = rot3 1 2 3
+f3 = \a b c . a
+rot4 = \a b c d f . f b c d a
+f4 = \a b c d . a
 
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
@@ -699,6 +760,11 @@ tail = \l . l (\h t D . t) false
 null = \l . l (\h t D . false) true
 last = rec \last l2  . l2 (\h t D . null t h (last t)) false
 append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
+reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l false
+# list constructor: list 1 , 2 , 3 end
+list = (rec \list rest item eat . eat (list (cons item rest)) (reverse (cons item rest))) false
+, = true
+end = false
 
 # Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
 # Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
@@ -724,7 +790,7 @@ rand_x2 = \x1 . lxor x1 (7tail x1)
 rand_x3 = \x2 . lxor x2 (9false x1)
 rand = \current . x3 (x2 (x1 current))
 
-l = append (cons 0 false) (cons 1 (cons 2 (cons 3 false)))
+l = append (list 0 end) (list 1 , 2 , 3 end)
 t = last l
 	</pre>
 </body>
