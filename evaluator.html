@@ -40,7 +40,6 @@ misrepresented as being the original software.
 }
 </style>
 <script>
-var defName
 var def
 var output
 var code
@@ -58,15 +57,36 @@ var L = null
 var historyCount = 0
 var history = []
 var historyExprs = []
+var tokenTypes = {}
+var tokenPat = null
 
 function loaded() {
-	defName = document.getElementById("defName")
 	def = document.getElementById("def")
 	output = document.getElementById("output")
 	code = document.getElementById("code")
 	result = document.getElementById("result")
 	loadDefs(document.getElementById("initialDefs").innerHTML)
 	def.select()
+}
+function addToken(tok, group) {
+	var pat = ''
+
+	tokenTypes[tok] = group
+	tokenPat = null
+}
+function createTokenPat() {
+	if (!tokenPat) {
+		var types = []
+
+		for (var i in tokenTypes) {
+			types.push(i)
+		}
+		if (types.length) {
+			types.sort(function(a, b) {b.length - a.length})
+		}
+		types.push('=.=|=\\(|=\\)|[().\\\\=]|&lambda;| +')
+		tokenPat = new RegExp(types.join('|'))
+	}
 }
 function loadDefs(defs) {
 	var d = defs.split('\n')
@@ -80,20 +100,21 @@ function loadDefs(defs) {
 	output.innerHTML = ''
 	result.innerHTML = ''
 	for (var index in d) {
-		var line = d[index].trim()
-
-		if (line != "" && line[0] != '#') {
-			var name = line.indexOf('=')
-
-			addExpr(line.substring(0, name).trim(), line.substring(name + 1).trim())
-		}
+		processLine(d[index].trim())
 	}
 	constructEnv()
 	findCons();
 }
+function processLine(line) {
+	if (line != "" && line[0] != '#') {
+		var name = line.indexOf('=')
+
+		addExpr(line.substring(0, name).trim(), line.substring(name + 1).trim())
+	}
+}
 function input() {
-	addExpr(defName.value, def.value)
-	defName.value = ''
+//	result.innerHTML += '<b>Tokens:</b> ' + tokenize(def.value.trim()).join(', ') + "<br>"
+	processLine(def.value)
 	def.value = ''
 }
 function addExpr(name, txt) {
@@ -132,7 +153,7 @@ function outputDivFor(index) {
 	var br = ac.betaReduce()
 	var ec = br.etaConvert()
 
-	return "<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash().replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
+	return "<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
 //		+ "<div class='debug'><ul>"
 //		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
 //		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
@@ -142,14 +163,13 @@ function outputDivFor(index) {
 		+ "</div>"
 }
 function editFunc(name, expr) {
-	defName.value = name
-	def.value = expr
+	def.value = name + ' = ' + expr
 	def.select()
 }
 function findCons() {
 	if (L._cons) {
-		lcons = funcs[L._cons].body.body
-		lfalse = funcs[L._false]
+		lcons = funcs[L._cons()].body.body
+		lfalse = funcs[L._false()]
 	}
 }
 function runFunc(index) {
@@ -159,6 +179,26 @@ function runExpr(str) {
 	var expr = parse(str.trim(), {})[0]
 
 	runCode(expr, constructEnv('function() {\nreturn ' + expr.ret([]).join("") + '\n}'), expr.format(), expr.format(false, true))
+}
+function tokenize(str) {
+	var pos = 0
+	var toks = []
+
+	createTokenPat()
+	while (str.length && (pos = str.search(tokenPat)) > -1) {
+		if (pos > 0) {
+			toks.push(str.substring(0, pos))
+		}
+		var tok = tokenPat.exec(str.substring(pos))[0]
+		if (tok.trim()) {
+			toks.push(tok)
+		}
+		str = str.substring(pos + tok.length)
+	}
+	if (str.length) {
+		toks.push(str)
+	}
+	return toks
 }
 function runCode(expr, code, subs, nosubs) {
 	var res
@@ -180,7 +220,6 @@ function runCode(expr, code, subs, nosubs) {
 	L = null
 }
 function editResult(str) {
-	defName.value = ''
 	def.value = str
 	def.select()
 }
@@ -242,8 +281,9 @@ function constructEnv(src) {
 		for (var i = 0; i < order.length; i++) {
 			env.push('order[' + i + '].code = ' + order[i].src)
 			if (order[i].name != "") {
+				env.push('\n// ' + order[i].name + ' = ' + order[i].expr.format(true, true))
 				env.push("var _" + order[i].cname + ' = ' + 'order[' + i + '].code')
-				env.push("L._" + order[i].cname + " = _" + order[i].cname + '()')
+				env.push("L._" + order[i].cname + " = _" + order[i].cname)
 			}
 		}
 		for (var i = 0; i < history.length; i++) {
@@ -339,7 +379,7 @@ function Entry(name, expr) {
 }
 Entry.prototype = {
 	toString: function() {return this.expr && this.expr.format(false)},
-	formatSlash: function() {return this.expr.format(true)},
+	formatSlash: function(nosubs) {return this.expr.format(true, nosubs)},
 	names: function() {this.expr.names()},
 	alphaConvert: function() {return new Entry(this.name, this.expr.alphaConvert())},
 	betaReduce: function() {return new Entry(this.name, this.expr.betaReduce())},
@@ -389,7 +429,7 @@ Transformer.prototype = {
 	transform: function(entity) {return entity.doTransform(this)},
 }
 function lCode(name) {
-	return eval('(function(){return runLCode(L._' + name + ', arguments)})')
+	return eval('(function(){return runLCode(L._' + name + '(), arguments)})')
 }
 function runLCode(func, args) {
 	for (var i = 0; i < args.length; i++) {
@@ -478,7 +518,8 @@ Lambda.prototype.__proto__ = new Entity({
 		stream.push("function(", pfx(prefix), this.lvar.cname, ") {\n", "return ")
 		this.body.ret(stream, prefix)
 		stream.push("\n}")
-		funcs[eval("(" + stream.slice(index, stream.length).join("") + ")")] = this
+		var str  = eval("(" + stream.slice(index, stream.length).join("") + ")").toString()
+		if (!funcs[str]) funcs[str] = this
 		return stream
 	},
 	pass: function(stream, prefix) {
@@ -528,7 +569,7 @@ var charCodes = {
 	'@': '$d',
 	'?': '$e',
 	'/': '$f',
-	'\\': '$g',
+	'*': '$g',
 	'&': '$h',
 	'^': '$i',
 	'#': '$j',
@@ -538,6 +579,17 @@ var charCodes = {
 	'-': '$n',
 	'+': '$o',
 	'=': '$p',
+	'|': '$q',
+	'[': '$r',
+	']': '$s',
+	'{': '$t',
+	'}': '$u',
+	'"': '$v',
+	':': '$w',
+	';': '$x',
+	'<': '$y',
+	'>': '$z',
+	'%': '$A',
 }
 var codeChars = {}
 
@@ -690,8 +742,8 @@ var Ltail = lCode('tail')
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
 	<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
-		<tr style="height: 0"><td colspan="4">Load file: <input type="file" id="input" onchange="handleFiles(this.files)"></input></td></tr>
-		<tr style="height: auto"><td colspan="4">
+		<tr style="height: 0"><td>Load file: <input type="file" id="input" onchange="handleFiles(this.files)"></input></td></tr>
+		<tr style="height: auto"><td>
 			<div style="position: relative; width: 100%; height: 100%">
 				<table style="position: absolute; width: 100%; height: 100%">
 					<tr style="height: 0"><td style="width: 50%"><span class='hidden' style="color: red">CURRENT ERROR: reduce on test</span><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results <button onclick="result.innerHTML = ''">Clear</button></h2></td></tr>
@@ -699,7 +751,7 @@ var Ltail = lCode('tail')
 				</table>
 			</div>
 		</td></tr>
-		<tr style="height: 0"><td style="width: 1px">Name:</td><td style="width: 10em"><input id="defName" style="width: 100%"></input></td><td style="width: 1px">Def:</td><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
+		<tr style="height: 0"><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
 	</table>
 	<pre class="hidden" id="initialDefs">
 # Booleans
@@ -736,16 +788,18 @@ nil = false
 head = \l . l (\h t D . h) nil
 tail = \l . l (\h t D . t) nil
 null = \l . l (\h t D . false) true
-last = rec \last l2  . l2 (\h t D . null t h (last t)) nil
+last = rec \last l  . l (\h t D . null t h (last t)) nil
 append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
 reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 # list constructor: list 1 , 2 , 3 end
-list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
-, = true
-end = false
-identity = \x . x
+#list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
+#, = true
+#end = false
+[ = \item f  .  f (cons item nil)
+, = \l item f . f (cons item l)
+] = reverse
 
-compose = (rec \compose rest func if-continue . if-continue (compose (\x . rest (func x))) \x . rest (func x)) identity
+# compose = (rec \compose rest func if-continue . if-continue (compose (\x . rest (func x))) \x . rest (func x)) identity
 
 # Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
 # Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
@@ -769,12 +823,11 @@ lxor = \l1 l2 . map2 xor l1 l2
 xorF = \x f . lxor x (f x)
 rand = \x . xorF (xorF (xorF x 1rshift) 7lshift) 9rshift
 
-l = append (list 0 end) (list 1 , 2 , 3 end)
+l = append ([ 0 ]) ([ 1 , 2 , 3 ])
 t = last l
 tt = f3 1 2 3
 cons1 = \x . cons 1 x
 cons2 = \x . cons 2 x
-c = compose cons1 end nil
 	</pre>
 </body>
 </html>
