@@ -337,50 +337,55 @@ function tokenize(str) {
 	return toks
 }
 function parse(str) {return tparse(tokenize(str).reverse(), {})}
-function tparse(toks, vars, ignoreGroup) {
-	var expr = null
+function tparse(toks, vars, expr) {
 	var cur
 	var oldVars = {}
 
-	while (toks.length && !groupCloses[toks[toks.length - 1]]) {
+	while (toks.length) {
 		var tok = toks.pop()
 
+		if (tok == ')') {
+			toks.push(tok)
+			return expr
+		}
 		if (tok == '\\') {
 			cur = tparseLambda(toks, vars)
 		} else {
-			var expectedClose = !ignoreGroup && groupOpens[tok]
+			var expectedClose = groupOpens[tok]
 			var skip = false
 
 			if (expectedClose) {
-				if (tok != '(') toks.push(tok)
-				cur = tparse(toks, vars, tok != '(')
+				cur = tparse(toks, vars, tok != '(' ? tparseVariable(tok, vars, oldVars) : null)
 				var last = toks[toks.length - 1]
 				if (!toks.length || last != expectedClose) {
 					throw new Error('unbalanced group, expected "' + expectedClose + '", but got "' + last + '"')
 				}
-				if (last == ')') {
-					toks.pop()
-					skip = true
-				} else {
-					expr = expr ? new Apply(expr, cur) : cur
-					tok = toks.pop()
-				}
+				toks.pop()
+				skip = true
 			}
 			if (!skip) {
-				cur = vars[tok]
-				if (!cur) {
-					cur = new Variable(tok, true)
-					if (vars[tok]) oldVars[tok] = vars[tok]
-					vars[tok] = cur
-				}
+				cur = tparseVariable(tok, vars, oldVars)
 			}
 		}
 		expr = expr ? new Apply(expr, cur) : cur
+		if (groupCloses[tok]) {
+			toks.push(tok)
+			return expr
+		}
 	}
 	for (i in oldVars) {
 		vars[i] = oldVars[i]
 	}
 	return expr
+}
+function tparseVariable(tok, vars, oldVars) {
+	var cur = vars[tok]
+	if (!cur) {
+		cur = new Variable(tok, true)
+		if (vars[tok]) oldVars[tok] = vars[tok]
+		vars[tok] = cur
+	}
+	return cur
 }
 function tparseLambda(toks, vars) {
 	var name, old, body, lvar
