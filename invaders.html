@@ -49,6 +49,7 @@ misrepresented as being the original software.
 	<script>
 var grid
 var icons = ' sV^*'
+var state
 
 function icon(cell) {
 	return icons[num(cell)]
@@ -71,19 +72,34 @@ function updateShip(row) {
 		row = row(LC.code.left)
 	}
 }
+function left() {
+	state = state(LC.code.moveLeft)
+	display()
+}
+function stay() {
+	state = state(LC.code.stay)
+	display()
+}
+function right() {
+	state = state(LC.code.moveRight)
+	display()
+}
+function fire() {
+	state = state(LC.code.fire)
+	display()
+}
+function display() {
+	updateGrid(state(LC.code['1of3']))
+	updateShip(state(LC.code['2of3']))
+}
 function loaded() {
 	wrap = LC.wrap
 	output = document.getElementById('output')
 	grid = document.getElementById('grid')
 	LC.loadDefs(document.getElementById("code").innerHTML)
-	var result = LC.code.start()
+	state = LC.code.start()
 	num = LC.lcode('num')
-	output.innerHTML += 'result: ' + LC.pretty(result) + "<br>"
-	output.innerHTML += 'grid: ' + LC.pretty(result(LC.code.true)) + "<br>"
-	output.innerHTML += 'ship: ' + LC.pretty(result(LC.code.false)) + "<br>"
-	output.innerHTML += 'row: ' + LC.exprs.row.expr.format() + "<br>"
-	updateGrid(result(LC.code.true))
-	updateShip(result(LC.code.false))
+	display()
 }
 	</script>
 </head>
@@ -101,6 +117,7 @@ function loaded() {
 <tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
 </table>
 <br>
+<button onclick='left()'>&lt;</button><button onclick='stay()'> </button><button onclick='right()'>&gt;</button><button onclick='fire()'>*</button>
 <div id='output'></div>
 <pre class="hidden" id='code'>
 # Booleans
@@ -196,9 +213,22 @@ arow1  = row e a1 e a2 e a1 e a2 e
 arow2  = row e a2 e a1 e a2 e a1 e
 gridStart = row arow1 arow2 arow1 arow2 empty empty empty empty empty
 shipStart = row e e e e s e e e e
-start = \statef . statef gridStart shipStart
+start = \statef . statef gridStart shipStart dir
 sub = \func 1 2 3 4 5 6 7 8 9 . row (func 1) 2 3 4 5 6 7 8 9
 test = shipStart (sub \x . florp) get1
+next = \grid ship dir statef . statef grid ship dir
+ifFirstEmpty = \row func . row get1 func same same same same
+
+#events
+moveLeft  = \grid ship dir . next grid (ship (ifFirstEmpty ship left)) dir
+moveRight = \grid ship dir . next grid (ship (ifFirstEmpty (ship right) right)) dir
+stay      = \grid ship dir . next grid ship dir
+fire      = \grid ship dir . next (missile grid ship) ship dir
+
+# accessors
+1of3 = \a b c . a
+2of3 = \a b c . b
+3of3 = \a b c . c
 </pre>
 </body>
 </html>
