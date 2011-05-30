@@ -46,6 +46,8 @@ var output
 var result
 var showDebug = false
 var showSubs = true
+var outputs = []
+var results = []
 
 function setShowDebug(state) {
 	showDebug = state
@@ -64,6 +66,7 @@ function handleFiles(files) {
 	}
 	reader.onload = function() {
 		LC.loadDefs(reader.result)
+		display()
 		result.innerHTML = ''
 	}
 	reader.readAsText(files[0])
@@ -75,7 +78,7 @@ function outputExpr(index) {
 	var br = ac.betaReduce()
 	var ec = br.etaConvert()
 
-	output.innerHTML += "<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='LC.runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
+	outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
 //		+ "<div class='debug'><ul>"
 //		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
 //		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
@@ -83,7 +86,11 @@ function outputExpr(index) {
 //		+ "<li><b>Eta conversion:</b> <span class='subs'>" + ec + "</span><span class='nosubs'>" + ec.expr.format(false, true) + "</span>"
 //		+ "</ul></div>"
 		+ "</div>"
-	output.lastChild.scrollIntoView()
+	)
+}
+function runFunc(index) {
+	LC.runFunc(index)
+	display();
 }
 function resultCode(expr, res, index) {
 	var subs = expr.format()
@@ -92,8 +99,8 @@ function resultCode(expr, res, index) {
 	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + index + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(LC.historyExprs[" + index + "])'>Reduce</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "<br><br></div>"
 	result.lastChild.scrollIntoView()
 }
-function formatExpr(label, expr, el) {
-	el.innerHTML += "<div><b>" + label + ":</b> " + formatSubexpr(expr) + "</div>"
+function formatExpr(label, expr) {
+	results.push("<div><b>" + label + ":</b> " + formatSubexpr(expr) + "</div>")
 }
 function formatSubexpr(expr) {
 	return "<span class='subs'>" + expr.pretty() + "</span><span class='nosubs'>" + expr.format(false, true) + "</span>"
@@ -102,21 +109,23 @@ function runReduce(expr) {
 	var last
 
 	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>-</a> Reduce", expr, result)
-	result.innerHTML += "<div class='hidden'></div>"
+	results.push("<div class='hidden'></div><br>")
+	display()
 	expr = expr.globalSub()
 	var trace = result.lastElementChild
-	formatExpr("Globals", expr, trace)
+	formatExpr("Globals", expr)
 	try {
 		var success = LC.reduce(expr,
-			function(exp) {formatExpr("Eta", last = exp, trace)},
-			function(exp) {formatExpr("Alpha", last = exp, trace)},
-			function(exp) {formatExpr("Beta", last = exp, trace)}
+			function(exp) {formatExpr("Eta", last = exp)},
+			function(exp) {formatExpr("Alpha", last = exp)},
+			function(exp) {formatExpr("Beta", last = exp)}
 		)
-		result.lastElementChild.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + (success ? formatSubexpr(last) : '<br><b>...</b>')
+		trace.innerHTML += results.join('')
+		results = []
+		trace.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + (success ? formatSubexpr(last) : '<br><b>...</b>')
 	} catch (err) {
-		result.lastElementChild.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + '<b>' + err + '</b>'
+		trace.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + '<b>' + err + '</b>'
 	}
-	result.innerHTML += '<br>'
 	result.lastElementChild.scrollIntoView()
 }
 function toggleSteps(link) {
@@ -138,10 +147,24 @@ function loaded() {
 	code = document.getElementById("code")
 	result = document.getElementById("result")
 	LC.loadDefs(document.getElementById("initialDefs").innerHTML)
+	display()
 	def.select()
+}
+function display() {
+	if (outputs.length) {
+		output.innerHTML += outputs.join('')
+		output.lastChild.scrollIntoView()
+		outputs = []
+	}
+	if (results.length) {
+		result.innerHTML += results.join('')
+		result.lastChild.scrollIntoView()
+		results = []
+	}
 }
 function input() {
 	LC.evalLine(def.value)
+	display();
 	def.value = ''
 }
 function editFunc(name, expr) {

@@ -440,6 +440,14 @@ Entity.prototype.__proto__ = {
 
 function pfx(prefix) {return prefix == null ? '' : prefix}
 
+function memoize(func) {
+    var res
+
+    return function() {
+	return res || (res = func())
+    }
+}
+
 function Lambda(arg, body, id) {
 	this.lvar = arg
 	this.body = body
@@ -459,9 +467,9 @@ Lambda.prototype.__proto__ = new Entity({
 		return stream
 	},
 	pass: function(stream, prefix) {
-		stream.push("function(){\nreturn ")
+		stream.push("memoize(function(){return ")
 		this.ret(stream, prefix)
-		stream.push("\n}")
+		stream.push("\n})")
 		return stream
 	},
 	apply: function(stream, prefix) {
@@ -618,9 +626,9 @@ Apply.prototype.__proto__ = new Entity({
 	},
 	ret: function(stream, prefix) {return this.apply(stream, prefix)},
 	pass: function(stream, prefix) {
-		stream.push("function(){\nreturn ")
+		stream.push("memoize(function(){return ")
 		this.apply(stream, prefix)
-		stream.push("\n}")
+		stream.push("\n})")
 		return stream
 	},
 	toString: function() {return "Apply(" + this.func + " " + this.arg + ")"},
