@@ -1,0 +1,204 @@
+<html>
+<!--
+Copyright (C) 2011, Bill Burdick, Tiny Concepts: http://tinyconcepts.com/fs.pl/lambda.fsl
+
+(licensed with ZLIB license)
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+claim that you wrote the original software. If you use this software
+in a product, an acknowledgment in the product documentation would be
+appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source distribution.
+-->
+<head>
+	<style>
+		#grid td {
+			position: relative;
+			width: 24px;
+			height: 24px;
+		}
+		#grid div {
+			position: absolute;
+			text-align: center;
+			vertical-align: middle;
+			width: 100%;
+			height: 100%;
+			outline: solid black 1px;
+			overflow: clipped;
+		}
+		.hidden {
+			height: 0;
+			width: 0;
+			visibility: hidden;
+			display: none;
+		}
+	</style>
+	<script src="lc.js"></script>
+	<script>
+var grid
+var icons = ' sV^*'
+
+function icon(cell) {
+	return icons[num(cell)]
+}
+
+function updateGrid(rows) {
+	for (var r = 0; r < 9; r++) {
+		var row = rows(LC.code.get1)
+
+		for (var c = 0; c < 9; c++) {
+			grid.rows[r].cells[c].firstElementChild.innerHTML = icon(row(LC.code.get1))
+			row = row(LC.code.left)
+		}
+		rows = rows(LC.code.left)
+	}
+}
+function updateShip(row) {
+	for (var i = 0; i < 9; i++) {
+		grid.rows[9].cells[i].firstElementChild.innerHTML = icon(row(LC.code.get1))
+		row = row(LC.code.left)
+	}
+}
+function loaded() {
+	wrap = LC.wrap
+	output = document.getElementById('output')
+	grid = document.getElementById('grid')
+	LC.loadDefs(document.getElementById("code").innerHTML)
+	var result = LC.code.start()
+	num = LC.lcode('num')
+	output.innerHTML += 'result: ' + LC.pretty(result) + "<br>"
+	output.innerHTML += 'grid: ' + LC.pretty(result(LC.code.true)) + "<br>"
+	output.innerHTML += 'ship: ' + LC.pretty(result(LC.code.false)) + "<br>"
+	output.innerHTML += 'row: ' + LC.exprs.row.expr.format() + "<br>"
+	updateGrid(result(LC.code.true))
+	updateShip(result(LC.code.false))
+}
+	</script>
+</head>
+<body onload="loaded()">
+<table id="grid">
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+<tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
+</table>
+<br>
+<div id='output'></div>
+<pre class="hidden" id='code'>
+# Booleans
+true = \x y . x
+false = \x y . y
+not = \b . b false true
+and = \a b . a b false
+or = \a b . a true b
+eq = \a b . a b (not b)
+xor = \a b . a (not b) b
+
+#rotation
+rot2 = \a b f . f b a
+f2 = \a b . a
+rot3 = \a b c f . f b c a
+r3 = rot3 1 2 3
+f3 = \a b c . a
+rot4 = \a b c d f . f b c d a
+f4 = \a b c d . a
+
+# Y combinator
+Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+rec = \f . f (Y f)
+
+# lists
+# using false as "nil" in lists, so you use a list like this:
+# DUMMY can be anything, but it needs to be there
+# here's how you use a list:
+# aList (\h t DUMMY . {list-case}) {empty-case}
+# If the list is not empty, h and t are the head and tail of the list and it returns list-case.  DUMMY is not used, but needs to be there
+# If the list is empty, it returns empty-case
+cons = \a b f.f a b
+nil = false
+head = \l . l (\h t D . h) nil
+tail = \l . l (\h t D . t) nil
+null = \l . l (\h t D . false) true
+last = rec \last l  . l (\h t D . null t h (last t)) nil
+append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
+reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
+# list constructor: list 1 , 2 , 3 end
+#list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
+#, = true
+#end = false
+[ =(]= \item f  .  f (cons item nil)
+, =.= \l item f . f (cons item l)
+] =)= reverse
+
+# compose = (rec \compose rest func if-continue . if-continue (compose (\x . rest (func x))) \x . rest (func x)) identity
+
+# Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
+# Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
+# This works on a list of booleans, using this formula for the next step:
+#	x ^= x << a
+#	x ^= x >> b
+#	x ^= x << c
+#
+#	Some small numbers that work are: a = 1, b = 7, c = 9
+#
+# so:	if we say xorF = \x f . lxor x (f x), that's kind of like x ^= f(x)
+#	rand = xorF (xorF (xorF x 1rshift) 7lshift) 9rshift
+
+map = rec \map op l . l (\h t D . cons (op h) (map op t)) false
+map2 = rec \map2 op l1 l2 . l1 (\h1 t1 D . l2 (\h2 t2 D . cons (op h1 h2) (map2 op t1 t2)) t1) l2
+lxor = \l1 l2 . map2 xor l1 l2
+1rshift = \l . cons false l
+7lshift = \l . tail (tail (tail (tail (tail (tail (tail l))))))
+3rshift = \l . cons false (cons false (cons false l))
+9rshift = \l . 3rshift (3rshift (3rshift l))
+xorF = \x f . lxor x (f x)
+rand = \x . xorF (xorF (xorF x 1rshift) 7lshift) 9rshift
+
+# 10 x 9 grid (a 9x9 grid for missiles and aliens and a 9x1 row for the ship)
+# a grid row applies a function of 9 arguments to its values
+# a grid value is a number from 0 to 4 (empty, ship, alien1, alien2, missile)
+#   higher values 'beat' lower values
+#   values are functions of 4 arguments and they return the nth argument (like booleans)
+
+e  = \1 2 3 4 5 . 1
+s  = \1 2 3 4 5 . 2
+a1 = \1 2 3 4 5 . 3
+a2 = \1 2 3 4 5 . 4
+m  = \1 2 3 4 5 . 5
+num = \n . n 0 1 2 3 4
+cmp = \fn1 fn2 . fn1 fn2 (fn2 fn1 fn1 fn2 fn2 fn2) (fn2 fn1 fn1 fn1 fn2 fn2) (fn2 fn1 fn2 fn1 fn1 fn2) fn1
+row    = \1 2 3 4 5 6 7 8 9 g . g 1 2 3 4 5 6 7 8 9
+get1  = \1 2 3 4 5 6 7 8 9 . 1
+same   = \1 2 3 4 5 6 7 8 9 . row 1 2 3 4 5 6 7 8 9
+left   = \1 2 3 4 5 6 7 8 9 . row 2 3 4 5 6 7 8 9 1
+right  = \1 2 3 4 5 6 7 8 9 . row 9 1 2 3 4 5 6 7 8
+set    = \x 1 2 3 4 5 6 7 8 9 . row x 2 3 4 5 6 7 8 9
+empty  = row e e e e e e e e e
+arow1  = row e a1 e a2 e a1 e a2 e
+arow2  = row e a2 e a1 e a2 e a1 e
+gridStart = row arow1 arow2 arow1 arow2 empty empty empty empty empty
+shipStart = row e e e e s e e e e
+start = \statef . statef gridStart shipStart
+sub = \func 1 2 3 4 5 6 7 8 9 . row (func 1) 2 3 4 5 6 7 8 9
+test = shipStart (sub \x . florp) get1
+</pre>
+</body>
+</html>
