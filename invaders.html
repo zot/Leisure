@@ -72,32 +72,29 @@ function updateShip(row) {
 		row = row(LC.code.left)
 	}
 }
-var continueButton = 0
+var buttonCounter = 0
 var buttonOp = null
-var operation = null
-function off() {
-	window.setTimeout(function() {}, 250)
-}
+var continueButton = false
 function setOperation(op) {
-	continueButton = 2
-	if (!operation) next()
-	buttonOp = operation = op
+	var old = buttonOp
+
+	continueButton = true
+	buttonOp = op
+	if (!old) doOp()
 }
 function next() {
 	window.setTimeout(function(){
-		if (operation) {
-			operation()
-			if (continueButton == 2) {
-				continueButton =1
-				operation = stay
-			} else if (continueButton == 1) {
-				continueButton = 2
-				operation = buttonOp
-			} else {
-				operation = stay
-			}
-		}
+		if (buttonOp) doOp()
 	}, 250)
+}
+function doOp() {
+	if (buttonCounter % 2 == 0) {
+		buttonOp()
+		if (!continueButton) buttonOp = stay
+	} else {
+		stay()
+	}
+	buttonCounter++
 }
 function left() {
 	state = state(LC.code.moveLeft)
@@ -118,20 +115,6 @@ function fire() {
 	state = state(LC.code.fire)
 	display()
 	next()
-}
-function pressButton(button, func) {
-	button.autoPress = true
-	doButtonFunc(button, func)
-}
-function doButtonFunc(button, func) {
-	if (button.autoPress) {
-		func()
-		window.setTimeout(function(){doButtonFunc(button, func)}, 500)
-	}
-}
-function fire() {
-	state = state(LC.code.fire)
-	display()
 }
 function display() {
 	updateGrid(state(LC.code['1of3']))
@@ -262,11 +245,15 @@ start = \statef . statef gridStart shipStart dir
 sub = \func 1 2 3 4 5 6 7 8 9 . row (func 1) 2 3 4 5 6 7 8 9
 test = shipStart (sub \x . florp) get1
 next = \grid ship dir statef . statef grid ship dir
-ifFirstEmpty = \row func . row get1 func same same same same
+ignore = \x . same
+identity = \x . x
+onlyIfFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 identity ignore ignore ignore ignore
+ifFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 true false false false false
+ifAllFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 ifirstEmpty (2 ifFirstEmpty (3 ifFirstEmpty (4 ifFirstEmpty (5 ifFirstEmpty (6 ifFirstEmpty (7 ifFirstEmpty (8 ifFirstEmpty (9 ifFirstEmpty) false) false) false) false) false) false) false) false
 
 #events
-moveLeft  = \grid ship dir . next grid (ship (ifFirstEmpty ship left)) dir
-moveRight = \grid ship dir . next grid (ship (ifFirstEmpty (ship right) right)) dir
+moveLeft  = \grid ship dir . next grid (ship (ship onlyIfFirstEmpty left)) dir
+moveRight = \grid ship dir . next grid (ship (ship right onlyIfFirstEmpty right)) dir
 stay      = \grid ship dir . next grid ship dir
 fire      = \grid ship dir . next (missile grid ship) ship dir
 

@@ -27,7 +27,7 @@ var lcons
 var lfalse
 var exprs = {}
 var order = []
-var funcs = {}
+var lambdas = {}
 var funcCount = 1
 var hashed = {}
 var L = null
@@ -45,7 +45,8 @@ function loadDefs(defs) {
 
 	LC.exprs = exprs = {}
 	LC.code = {}
-	funcs = {}
+	lambdas = {}
+	hashed = {}
 	LC.order = order = []
 	funcCount = 1
 	hashed = {}
@@ -84,7 +85,6 @@ function addExpr(name, txt) {
 		var expr = new Entry(name, parse(txt))
 		var newOutput = ''
 
-		hashed = {}
 		for (var i = 0; i < order.length; i++) {
 			if (order[i].name == name) {
 				order.splice(i, 1)
@@ -105,8 +105,8 @@ function addExpr(name, txt) {
 }
 function findCons() {
 	if (L._cons) {
-		lcons = funcs[L._cons()].body.body
-		lfalse = funcs[L._false()]
+		lcons = L._cons().lambda.body.body
+		lfalse = L._false().lambda
 	}
 }
 function runFunc(index) {
@@ -127,7 +127,7 @@ function runCode(expr, code) {
 	} catch (err) {
 		res = "Error: " + err.message
 	}
-	var lam = funcs[res]
+	var lam = res.lambda
 	if (lam) {
 		res = "<span class='subs'>" + pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
@@ -135,10 +135,10 @@ function runCode(expr, code) {
 	historyCount++
 	LC.L = L = null
 }
-function isCons(l) {return funcs[l].id == lcons.id}
-function isFalse(l) {return funcs[l].id == lfalse.id}
+function isCons(l) {return l.lambda.id == lcons.id}
+function isFalse(l) {return l.lambda.id == lfalse.id}
 function pretty(l) {
-	var lam = funcs[l]
+	var lam = l.lambda
 
 	return lam && lam.id == lcons.id ? '[' + elements(l, true) + ']' : lam ? lam.format() : l
 }
@@ -442,16 +442,24 @@ function pfx(prefix) {return prefix == null ? '' : prefix}
 
 function memoize(func) {
     var res
-
-    return function() {
+    var out = function() {
 	return res || (res = func())
     }
+
+    out.lambda = func.lambda
+    return out
+}
+
+function setLambda(func, id) {
+	func.lambda = lambdas[id]
+	return func
 }
 
 function Lambda(arg, body, id) {
 	this.lvar = arg
 	this.body = body
 	this.id = id || entityCounter++
+	if (!lambdas[this.id]) lambdas[this.id] = this
 }
 Lambda.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
@@ -459,11 +467,9 @@ Lambda.prototype.__proto__ = new Entity({
 	ret: function(stream, prefix) {
 		var index = stream.length
 
-		stream.push("function(", pfx(prefix), this.lvar.cname, ") {\n", "return ")
+		stream.push("setLambda(function(", pfx(prefix), this.lvar.cname, ") {\n", "return ")
 		this.body.ret(stream, prefix)
-		stream.push("\n}")
-		var str  = eval("(" + stream.slice(index, stream.length).join("") + ")").toString()
-		if (!funcs[str]) funcs[str] = this
+		stream.push("\n}, " + this.id + ")")
 		return stream
 	},
 	pass: function(stream, prefix) {
@@ -605,8 +611,6 @@ Variable.prototype.__proto__ = new Entity({
 
 		while (names[this.base + '_' + ++i]) {}
 		return new Variable(this.base + '_' + i, this.free, this.base, i)
-//		while (names[this.base + '_' + ++vcount]) {}
-//		return new Variable(this.base + '_' + vcount, this.free, this.base, vcount)
 	},
 })
 
