@@ -72,17 +72,62 @@ function updateShip(row) {
 		row = row(LC.code.left)
 	}
 }
+var continueButton = 0
+var buttonOp = null
+var operation = null
+function off() {
+	window.setTimeout(function() {}, 250)
+}
+function setOperation(op) {
+	continueButton = 2
+	if (!operation) next()
+	buttonOp = operation = op
+}
+function next() {
+	window.setTimeout(function(){
+		if (operation) {
+			operation()
+			if (continueButton == 2) {
+				continueButton =1
+				operation = stay
+			} else if (continueButton == 1) {
+				continueButton = 2
+				operation = buttonOp
+			} else {
+				operation = stay
+			}
+		}
+	}, 250)
+}
 function left() {
 	state = state(LC.code.moveLeft)
 	display()
+	next()
 }
 function stay() {
 	state = state(LC.code.stay)
 	display()
+	next()
 }
 function right() {
 	state = state(LC.code.moveRight)
 	display()
+	next()
+}
+function fire() {
+	state = state(LC.code.fire)
+	display()
+	next()
+}
+function pressButton(button, func) {
+	button.autoPress = true
+	doButtonFunc(button, func)
+}
+function doButtonFunc(button, func) {
+	if (button.autoPress) {
+		func()
+		window.setTimeout(function(){doButtonFunc(button, func)}, 500)
+	}
 }
 function fire() {
 	state = state(LC.code.fire)
@@ -117,7 +162,7 @@ function loaded() {
 <tr><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td><td><div></div></td></tr>
 </table>
 <br>
-<button onclick='left()'>&lt;</button><button onclick='stay()'> </button><button onclick='right()'>&gt;</button><button onclick='fire()'>*</button>
+<button onmousedown='setOperation(left)' onmouseup='continueButton = false'>&lt;</button><button onmousedown='setOperation(fire)' onmouseup='continueButton = false'>*</button><button onmousedown='setOperation(right)' onmouseup='continueButton = false'>&gt;</button>
 <div id='output'></div>
 <pre class="hidden" id='code'>
 # Booleans
