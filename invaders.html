@@ -51,8 +51,8 @@ var grid
 var icons = ' sV^*'
 var state
 
-function icon(cell) {
-	return icons[num(cell)]
+function icon(c) {
+	return icons[num(c, 0, 1, 2, 3, 4)]
 }
 
 function updateGrid(rows) {
@@ -85,7 +85,7 @@ function setOperation(op) {
 function next() {
 	window.setTimeout(function(){
 		if (buttonOp) doOp()
-	}, 250)
+	}, 125)
 }
 function doOp() {
 	if (buttonCounter % 2 == 0) {
@@ -151,20 +151,6 @@ function loaded() {
 # Booleans
 true = \x y . x
 false = \x y . y
-not = \b . b false true
-and = \a b . a b false
-or = \a b . a true b
-eq = \a b . a b (not b)
-xor = \a b . a (not b) b
-
-#rotation
-rot2 = \a b f . f b a
-f2 = \a b . a
-rot3 = \a b c f . f b c a
-r3 = rot3 1 2 3
-f3 = \a b c . a
-rot4 = \a b c d f . f b c d a
-f4 = \a b c d . a
 
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
@@ -185,75 +171,57 @@ null = \l . l (\h t D . false) true
 last = rec \last l  . l (\h t D . null t h (last t)) nil
 append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
 reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
-# list constructor: list 1 , 2 , 3 end
-#list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
-#, = true
-#end = false
+# list constructor: [1,2,3]
+# this uses some parsing rules: =(]=, =.=, and =)=
 [ =(]= \item f  .  f (cons item nil)
 , =.= \l item f . f (cons item l)
 ] =)= reverse
 
-# compose = (rec \compose rest func if-continue . if-continue (compose (\x . rest (func x))) \x . rest (func x)) identity
-
-# Random number generator taken from "Xorshift RNGs", by George Marsaglia, Florida State University
-# Here's where I found it: http://www.jstatsoft.org/v08/i14/paper
-# This works on a list of booleans, using this formula for the next step:
-#	x ^= x << a
-#	x ^= x >> b
-#	x ^= x << c
-#
-#	Some small numbers that work are: a = 1, b = 7, c = 9
-#
-# so:	if we say xorF = \x f . lxor x (f x), that's kind of like x ^= f(x)
-#	rand = xorF (xorF (xorF x 1rshift) 7lshift) 9rshift
-
-map = rec \map op l . l (\h t D . cons (op h) (map op t)) false
-map2 = rec \map2 op l1 l2 . l1 (\h1 t1 D . l2 (\h2 t2 D . cons (op h1 h2) (map2 op t1 t2)) t1) l2
-lxor = \l1 l2 . map2 xor l1 l2
-1rshift = \l . cons false l
-7lshift = \l . tail (tail (tail (tail (tail (tail (tail l))))))
-3rshift = \l . cons false (cons false (cons false l))
-9rshift = \l . 3rshift (3rshift (3rshift l))
-xorF = \x f . lxor x (f x)
-rand = \x . xorF (xorF (xorF x 1rshift) 7lshift) 9rshift
-
 # 10 x 9 grid (a 9x9 grid for missiles and aliens and a 9x1 row for the ship)
 # a grid row applies a function of 9 arguments to its values
-# a grid value is a number from 0 to 4 (empty, ship, alien1, alien2, missile)
+# a grid cell represents a value from 0 to 4 (empty, ship, alien1, alien2, missile)
 #   higher values 'beat' lower values
-#   values are functions of 4 arguments and they return the nth argument (like booleans)
+#   cells are functions of 5 arguments and they indicate their value by returning the nth argument (like booleans)
 
-e  = \1 2 3 4 5 . 1
-s  = \1 2 3 4 5 . 2
-a1 = \1 2 3 4 5 . 3
-a2 = \1 2 3 4 5 . 4
-m  = \1 2 3 4 5 . 5
-num = \n . n 0 1 2 3 4
-cmp = \fn1 fn2 . fn1 fn2 (fn2 fn1 fn1 fn2 fn2 fn2) (fn2 fn1 fn1 fn1 fn2 fn2) (fn2 fn1 fn2 fn1 fn1 fn2) fn1
-row    = \1 2 3 4 5 6 7 8 9 g . g 1 2 3 4 5 6 7 8 9
+# cell functions
+e     = \1 2 3 4 5 . 1
+s     = \1 2 3 4 5 . 2
+a1    = \1 2 3 4 5 . 3
+a2    = \1 2 3 4 5 . 4
+m     = \1 2 3 4 5 . 5
+num   = \n 0 1 2 3 4 . n 0 1 2 3 4
+cellId = \n . n identity
+cell  = \n f . f n
+isE   = \n . n true false false false false
+cmp   = \n1 n2 . n1 n2 (n2 n1 n1 n2 n2 n2) (n2 n1 n1 n1 n2 n2) (n2 n1 n1 n1 n1 n2) n1
+
+# row functions
+row   = \1 2 3 4 5 6 7 8 9 g . g 1 2 3 4 5 6 7 8 9
+cell1  = \1 2 3 4 5 6 7 8 9 . cell 1
 get1  = \1 2 3 4 5 6 7 8 9 . 1
-same   = \1 2 3 4 5 6 7 8 9 . row 1 2 3 4 5 6 7 8 9
-left   = \1 2 3 4 5 6 7 8 9 . row 2 3 4 5 6 7 8 9 1
-right  = \1 2 3 4 5 6 7 8 9 . row 9 1 2 3 4 5 6 7 8
-set    = \x 1 2 3 4 5 6 7 8 9 . row x 2 3 4 5 6 7 8 9
-empty  = row e e e e e e e e e
-arow1  = row e a1 e a2 e a1 e a2 e
-arow2  = row e a2 e a1 e a2 e a1 e
+left  = \1 2 3 4 5 6 7 8 9 . row 2 3 4 5 6 7 8 9 1
+right = \1 2 3 4 5 6 7 8 9 . row 9 1 2 3 4 5 6 7 8
+empty     = row e e e e e e e e e
+arow1     = row e a1 e a2 e a1 e a2 e
+arow2     = row e a2 e a1 e a2 e a1 e
 gridStart = row arow1 arow2 arow1 arow2 empty empty empty empty empty
 shipStart = row e e e e s e e e e
-start = \statef . statef gridStart shipStart dir
-sub = \func 1 2 3 4 5 6 7 8 9 . row (func 1) 2 3 4 5 6 7 8 9
-test = shipStart (sub \x . florp) get1
-next = \grid ship dir statef . statef grid ship dir
-ignore = \x . same
-identity = \x . x
-onlyIfFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 identity ignore ignore ignore ignore
-ifFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 true false false false false
-ifAllFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 ifirstEmpty (2 ifFirstEmpty (3 ifFirstEmpty (4 ifFirstEmpty (5 ifFirstEmpty (6 ifFirstEmpty (7 ifFirstEmpty (8 ifFirstEmpty (9 ifFirstEmpty) false) false) false) false) false) false) false) false
+
+# grid functions
+identity  = \x . x
+ignore    = \x . row
+onFirstEmpty    = \1 2 3 4 5 6 7 8 9 . 1 identity ignore ignore ignore ignore
+# compare a cell with the first row element.  If they're both e, return e otherwise return one of the nonE values
+check1      = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 . cell (n m1 n n n n)
+ifAllFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 cell1 check1 2 check1 3 check1 4 check1 5 check1 6 check1 7 check1 8 check1 9 isE
+
+# game functions
+start     = \statef . statef gridStart shipStart dir
+next      = \grid ship dir statef . statef grid ship dir
 
 #events
-moveLeft  = \grid ship dir . next grid (ship (ship onlyIfFirstEmpty left)) dir
-moveRight = \grid ship dir . next grid (ship (ship right onlyIfFirstEmpty right)) dir
+moveLeft  = \grid ship dir . next grid (ship (ship onFirstEmpty left)) dir
+moveRight = \grid ship dir . next grid (ship (ship right onFirstEmpty right)) dir
 stay      = \grid ship dir . next grid ship dir
 fire      = \grid ship dir . next (missile grid ship) ship dir
 
