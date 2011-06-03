@@ -73,10 +73,10 @@ function handleFiles(files) {
 }
 function outputExpr(index) {
 	var expr = LC.order[index]
-	var gl = expr.globalSub()
-	var ac = gl.alphaConvert()
-	var br = ac.betaReduce()
-	var ec = br.etaConvert()
+//	var gl = expr.globalSub()
+//	var ac = gl.alphaConvert()
+//	var br = ac.betaReduce()
+//	var ec = br.etaConvert()
 
 	outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
 //		+ "<div class='debug'><ul>"
@@ -115,7 +115,7 @@ function runReduce(expr) {
 	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>-</a> Reduce", expr, result)
 	results.push("<div class='hidden'></div>")
 	display()
-	expr = expr.globalSub()
+	last = expr = expr.globalSub()
 	var trace = result.lastElementChild
 	formatExpr("Globals", expr)
 	try {
@@ -221,7 +221,7 @@ save button
 		</td></tr>
 		<tr style="height: 0"><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
 	</table>
-	<pre class="hidden" id="initialDefs2">
+	<pre class="hidden" id="initialDefs">
 true = \x y . x
 false = \x y . y
 
@@ -242,7 +242,7 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 ] =)= reverse
 
 	</pre>
-	<pre class="hidden" id="initialDefs">
+	<pre class="hidden" id="initialDefs2">
 # Booleans
 true = \x y . x
 false = \x y . y

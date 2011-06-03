@@ -77,20 +77,22 @@ function evalLine(line) {
 			defineToken(name, def[2])
 			line = line.substring(def[0].length).trim()
 		}
-		addExpr(name, line)
+		addExpr(name, line, true)
 	}
 }
-function addExpr(name, txt) {
+function addExpr(name, txt, noRebuild) {
 	if (name) {
 		var expr = new Entry(name, parse(txt))
 		var newOutput = ''
 
-		for (var i = 0; i < order.length; i++) {
-			if (order[i].name == name) {
-				order.splice(i, 1)
-			}
-			if (i < order.length) {
-				LC.output(i)
+		if (!noRebuild) {
+			for (var i = 0; i < order.length; i++) {
+				if (order[i].name == name) {
+					order.splice(i, 1)
+				}
+				if (i < order.length) {
+					LC.output(i)
+				}
 			}
 		}
 		LC.L = L = null
