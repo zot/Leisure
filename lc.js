@@ -649,19 +649,17 @@ Apply.prototype.__proto__ = new Entity({
 function wrap(x) {return function() {return x}}
 var Ltrue = lcode('true')
 var Lfalse = lcode('false')
-var Land = lcode('and')
-var Lor = lcode('or')
-var Leq = lcode('eq')
-var Lxor = lcode('xor')
-var Lnot = lcode('not')
-var Lpair = lcode('pair')
+//var Land = lcode('and')
+//var Lor = lcode('or')
+//var Leq = lcode('eq')
+//var Lxor = lcode('xor')
+//var Lnot = lcode('not')
+//var Lpair = lcode('pair')
 var Lhead = lcode('head')
 var Ltail = lcode('tail')
-var Lempty = lcode('empty')
-var Lappend = lcode('append')
-var Lhead = lcode('head')
-var Lisempty = lcode('isempty')
-var Ltail = lcode('tail')
+//var Lempty = lcode('empty')
+//var Lappend = lcode('append')
+//var Lisempty = lcode('isempty')
 var LC = {
     loadDefs: loadDefs,
     runFunc: runFunc,

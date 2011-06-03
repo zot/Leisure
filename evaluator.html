@@ -221,15 +221,34 @@ save button
 		</td></tr>
 		<tr style="height: 0"><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
 	</table>
-	<pre class="hidden" id="initialDefs">
-	</pre>
 	<pre class="hidden" id="initialDefs2">
+true = \x y . x
+false = \x y . y
+
+cons = \a b f . f a b
+nil = false
+head = \l . l (\h t D . h) nil
+tail = \l . l (\h t D . t) nil
+null = \l . l (\h t D . false) true
+last = rec \last l  . l (\h t D . null t h (last t)) nil
+append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
+reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
+# list constructor: list 1 , 2 , 3 end
+#list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
+#, = true
+#end = false
+[ =(]= \item f  .  f (cons item nil)
+, =.= \l item f . f (cons item l)
+] =)= reverse
+
+	</pre>
+	<pre class="hidden" id="initialDefs">
 # Booleans
 true = \x y . x
 false = \x y . y
 not = \b . b false true
-and = \a b . a b false
-or = \a b . a true b
+and = \a b . a b a
+or = \a b . a a b
 eq = \a b . a b (not b)
 xor = \a b . a (not b) b
 
