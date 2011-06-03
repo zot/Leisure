@@ -46,7 +46,6 @@ var output
 var result
 var showDebug = false
 var showSubs = true
-var outputs = []
 var results = []
 
 function setShowDebug(state) {
@@ -66,31 +65,38 @@ function handleFiles(files) {
 	}
 	reader.onload = function() {
 		LC.loadDefs(reader.result)
-		display()
+		displayOutput()
+		displayResults()
 		result.innerHTML = ''
 	}
 	reader.readAsText(files[0])
 }
-function outputExpr(index) {
-	var expr = LC.order[index]
-//	var gl = expr.globalSub()
-//	var ac = gl.alphaConvert()
-//	var br = ac.betaReduce()
-//	var ec = br.etaConvert()
+function displayOutput() {
+	var outputs = []
 
-	outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
-//		+ "<div class='debug'><ul>"
-//		+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
-//		+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
-//		+ "<li><b>Beta reduction:</b> <span class='subs'>" + br + "</span><span class='nosubs'>" + br.expr.format(false, true) + "</span>"
-//		+ "<li><b>Eta conversion:</b> <span class='subs'>" + ec + "</span><span class='nosubs'>" + ec.expr.format(false, true) + "</span>"
-//		+ "</ul></div>"
-		+ "</div>"
-	)
+	for (var index = 0; index < LC.order.length; index++) {
+		var expr = LC.order[index]
+//		var gl = expr.globalSub()
+//		var ac = gl.alphaConvert()
+//		var br = ac.betaReduce()
+//		var ec = br.etaConvert()
+
+		outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
+//			+ "<div class='debug'><ul>"
+//			+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
+//			+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
+//			+ "<li><b>Beta reduction:</b> <span class='subs'>" + br + "</span><span class='nosubs'>" + br.expr.format(false, true) + "</span>"
+//			+ "<li><b>Eta conversion:</b> <span class='subs'>" + ec + "</span><span class='nosubs'>" + ec.expr.format(false, true) + "</span>"
+//			+ "</ul></div>"
+			+ "</div>"
+		)
+	}
+	output.innerHTML = outputs.join('')
+	output.lastChild.scrollIntoView()
 }
 function runFunc(index) {
 	LC.runFunc(index)
-	display();
+	displayResults();
 }
 function resultCode(expr, res, index) {
 	var subs = expr.format()
@@ -114,7 +120,7 @@ function runReduce(expr) {
 
 	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>-</a> Reduce", expr, result)
 	results.push("<div class='hidden'></div>")
-	display()
+	displayResults()
 	last = expr = expr.globalSub()
 	var trace = result.lastElementChild
 	formatExpr("Globals", expr)
@@ -145,22 +151,17 @@ function toggleSteps(link) {
 	}
 }
 function loaded() {
-	LC.output = outputExpr
 	LC.resultCode = resultCode
 	def = document.getElementById("def")
 	output = document.getElementById("output")
 	code = document.getElementById("code")
 	result = document.getElementById("result")
 	LC.loadDefs(document.getElementById("initialDefs").innerHTML)
-	display()
+	displayOutput()
+	displayResults()
 	def.select()
 }
-function display() {
-	if (outputs.length) {
-		output.innerHTML += outputs.join('')
-		output.lastChild.scrollIntoView()
-		outputs = []
-	}
+function displayResults() {
 	if (results.length) {
 		result.innerHTML += results.join('')
 		result.lastChild.scrollIntoView()
@@ -168,8 +169,10 @@ function display() {
 	}
 }
 function input() {
-	LC.evalLine(def.value)
-	display();
+	if (LC.evalLine(def.value)) {
+		displayOutput()
+	}
+	displayResults();
 	def.value = ''
 }
 function editFunc(name, expr) {

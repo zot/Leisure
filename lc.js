@@ -52,7 +52,7 @@ function loadDefs(defs) {
 	hashed = {}
 	LC.L = L = null
 	for (var index in d) {
-		evalLine(d[index].trim())
+	    evalLine(d[index].trim(), true)
 	}
 	constructEnv()
 	findCons();
@@ -68,7 +68,7 @@ function defineToken(name, def) {
 		}
 	}
 }
-function evalLine(line) {
+function evalLine(line, noRebuild) {
 	if (line != "" && line[0] != '#') {
 		var def = line.match(tokenDefPat)
 		var name = def ? def[1].trim() : null
@@ -77,8 +77,9 @@ function evalLine(line) {
 			defineToken(name, def[2])
 			line = line.substring(def[0].length).trim()
 		}
-		addExpr(name, line, true)
+		return addExpr(name, line, noRebuild)
 	}
+	return false
 }
 function addExpr(name, txt, noRebuild) {
 	if (name) {
@@ -90,19 +91,17 @@ function addExpr(name, txt, noRebuild) {
 				if (order[i].name == name) {
 					order.splice(i, 1)
 				}
-				if (i < order.length) {
-					LC.output(i)
-				}
 			}
 		}
 		LC.L = L = null
 		order.push(expr)
 		exprs[name] = expr
-		LC.output(order.length - 1)
 		var hk = expr.expr.hashKey()
 		if (!hashed[hk]) hashed[hk] = expr
+		return true
 	} else {
 		runExpr(txt.trim())
+		return false
 	}
 }
 function findCons() {
