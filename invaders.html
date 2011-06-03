@@ -219,6 +219,9 @@ ifAllFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 cell1 check1 2 check1 3 check1 4 check1
 start     = \statef . statef gridStart shipStart dir
 next      = \grid ship dir statef . statef grid ship dir
 
+# in progress
+# moveThem = (\moveLeft moveRight . pair moveLeft moveRight) rec \moveThem 
+
 #events
 moveLeft  = \grid ship dir . next grid (ship (ship onFirstEmpty left)) dir
 moveRight = \grid ship dir . next grid (ship (ship right onFirstEmpty right)) dir

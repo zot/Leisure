@@ -127,10 +127,6 @@ function runCode(expr, code) {
 	} catch (err) {
 		res = "Error: " + err.message
 	}
-	var lam = res.lambda
-	if (lam) {
-		res = "<span class='subs'>" + pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
-	}
 	LC.resultCode(expr, res, historyCount)
 	historyCount++
 	LC.L = L = null

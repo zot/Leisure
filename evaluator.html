@@ -95,7 +95,11 @@ function runFunc(index) {
 function resultCode(expr, res, index) {
 	var subs = expr.format()
 	var nosubs = expr.format(false, true)
+	var lam = res.lambda
 
+	if (lam) {
+		res = "<span class='subs'>" + LC.pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
+	}
 	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + index + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(LC.historyExprs[" + index + "])'>Reduce</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "<br><br></div>"
 	result.lastChild.scrollIntoView()
 }
@@ -218,6 +222,8 @@ save button
 		<tr style="height: 0"><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
 	</table>
 	<pre class="hidden" id="initialDefs">
+	</pre>
+	<pre class="hidden" id="initialDefs2">
 # Booleans
 true = \x y . x
 false = \x y . y
