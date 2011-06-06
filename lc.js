@@ -147,9 +147,11 @@ function constructEnv(src) {
 		var env = ['(function(){\n']
 
 		for (var i = 0; i < order.length; i++) {
-			env.push('LC.code[order[' + i + '].name] = order[' + i + '].code = ' + order[i].src)
 			if (order[i].name != "") {
 				env.push('\n// ' + order[i].name + ' = ' + order[i].expr.format(true, true))
+			}
+			env.push('LC.code[order[' + i + '].name] = order[' + i + '].code = ' + order[i].src)
+			if (order[i].name != "") {
 				env.push("var " + order[i].cname + ' = ' + 'order[' + i + '].code')
 				env.push("L." + order[i].cname + " = " + order[i].cname)
 			}

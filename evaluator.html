@@ -118,8 +118,8 @@ function formatSubexpr(expr) {
 function runReduce(expr) {
 	var last
 
-	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>-</a> Reduce", expr, result)
-	results.push("<div class='hidden'></div>")
+	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>+</a> Reduce", expr, result)
+	results.push("<div></div>")
 	displayResults()
 	last = expr = expr.globalSub()
 	var trace = result.lastElementChild

@@ -117,8 +117,8 @@ function fire() {
 	next()
 }
 function display() {
-	updateGrid(state(LC.code['1of3']))
-	updateShip(state(LC.code['2of3']))
+	updateGrid(state(LC.code['first']))
+	updateShip(state(LC.code['second']))
 }
 function loaded() {
 	wrap = LC.wrap
@@ -151,6 +151,7 @@ function loaded() {
 # Booleans
 true = \x y . x
 false = \x y . y
+not = \a . a false true
 
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
@@ -198,12 +199,13 @@ cmp   = \n1 n2 . n1 n2 (n2 n1 n1 n2 n2 n2) (n2 n1 n1 n1 n2 n2) (n2 n1 n1 n1 n1 n
 # row functions
 row   = \1 2 3 4 5 6 7 8 9 g . g 1 2 3 4 5 6 7 8 9
 cell1  = \1 2 3 4 5 6 7 8 9 . cell 1
+cell9  = \1 2 3 4 5 6 7 8 9 . cell 9
 get1  = \1 2 3 4 5 6 7 8 9 . 1
 left  = \1 2 3 4 5 6 7 8 9 . row 2 3 4 5 6 7 8 9 1
 right = \1 2 3 4 5 6 7 8 9 . row 9 1 2 3 4 5 6 7 8
 empty     = row e e e e e e e e e
-arow1     = row e a1 e a2 e a1 e a2 e
-arow2     = row e a2 e a1 e a2 e a1 e
+arow1     = row e e a1 e a2 e a1 e e
+arow2     = row e e a2 e a1 e a2 e e
 gridStart = row arow1 arow2 arow1 arow2 empty empty empty empty empty
 shipStart = row e e e e s e e e e
 
@@ -212,26 +214,30 @@ identity  = \x . x
 ignore    = \x . row
 onFirstEmpty    = \1 2 3 4 5 6 7 8 9 . 1 identity ignore ignore ignore ignore
 # compare a cell with the first row element.  If they're both e, return e otherwise return one of the nonE values
-check1      = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 . cell (n m1 n n n n)
-ifAllFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 cell1 check1 2 check1 3 check1 4 check1 5 check1 6 check1 7 check1 8 check1 9 isE
+check1    = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 . cell (n m1 n n n n)
+check9    = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 . cell (n m9 n n n n)
+isAllFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 cell1 check1 2 check1 3 check1 4 check1 5 check1 6 check1 7 check1 8 check1 9 isE
+isAllLastEmpty  = \1 2 3 4 5 6 7 8 9 . 1 cell9 check9 2 check9 3 check9 4 check9 5 check9 6 check9 7 check9 8 check9 9 isE
+allLeft   = \1 2 3 4 5 6 7 8 9 . row (1 left) (2 left) (3 left) (4 left) (5 left) (6 left) (7 left) (8 left) (9 left)
+allRight  = \1 2 3 4 5 6 7 8 9 . row (1 right) (2 right) (3 right) (4 right) (5 right) (6 right) (7 right) (8 right) (9 right)
 
 # game functions
-start     = \statef . statef gridStart shipStart dir
-next      = \grid ship dir statef . statef grid ship dir
+start     = \statef . statef gridStart shipStart true (row true false false false false false false false false)
+checkDir  = \grid left? . left? (grid isAllFirstEmpty) (not (grid isAllLastEmpty))
+next      = \grid ship left? counter statef . (\dir . statef (counter get1 (grid (dir allLeft allRight)) grid) ship dir (counter left)) (checkDir grid left?)
 
 # in progress
 # moveThem = (\moveLeft moveRight . pair moveLeft moveRight) rec \moveThem 
 
 #events
-moveLeft  = \grid ship dir . next grid (ship (ship onFirstEmpty left)) dir
-moveRight = \grid ship dir . next grid (ship (ship right onFirstEmpty right)) dir
-stay      = \grid ship dir . next grid ship dir
-fire      = \grid ship dir . next (missile grid ship) ship dir
+moveLeft  = \grid ship left? counter . next grid (ship (ship onFirstEmpty left)) left? counter
+moveRight = \grid ship left? counter . next grid (ship (ship right onFirstEmpty right)) left? counter
+stay      = \grid ship left? counter . next grid ship left? counter
+fire      = \grid ship left? counter . next (missile grid ship) ship left? counter
 
 # accessors
-1of3 = \a b c . a
-2of3 = \a b c . b
-3of3 = \a b c . c
+first = \a b c d . a
+second = \a b c d . b
 </pre>
 </body>
 </html>
