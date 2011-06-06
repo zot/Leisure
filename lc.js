@@ -211,6 +211,7 @@ function tokenize(str) {
 	var pos = 0
 	var toks = []
 
+	str = str.replace(/\u03BB/g, '\\')
 	createTokenPat()
 	while (str.length && (pos = str.search(tokenPat)) > -1) {
 		if (pos > 0) {
