@@ -146,7 +146,10 @@ function loaded() {
 <br>
 <button onmousedown='setOperation(left)' onmouseup='continueButton = false'>&lt;</button><button onmousedown='setOperation(fire)' onmouseup='continueButton = false'>*</button><button onmousedown='setOperation(right)' onmouseup='continueButton = false'>&gt;</button>
 </td></tr>
-<tr style="height: 1px"><td><br><b>Code</b></td></tr>
+<tr style="height: 1px"><td>
+Here's my simplistic version of "space invaders".  It's not as deluxe as the real one, but the point is to show how you might make a video game with Lambda Calculus.  Below is all of the Lambda Calulus code.  JavaScript provides the key event (or an empty key event) and the game state to a Lambda Calculus function to calculate the next state of the game.  Then, it uses other Lambda Calculus functions to inspect the current state so it can display it.
+<br>
+<br><b>Code</b></td></tr>
 <tr><td>
 <div style="height: 100%; position: relative">
 <pre class="hidden" id='preamble'>
