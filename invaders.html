@@ -85,7 +85,7 @@ function setOperation(op) {
 function next() {
 	window.setTimeout(function(){
 		if (buttonOp) doOp()
-	}, 125)
+	}, 200)
 }
 function doOp() {
 	if (buttonCounter % 2 == 0) {
@@ -150,7 +150,9 @@ function loaded() {
 <pre class="hidden" id='code'>
 # Booleans
 true = \x y . x
+t = true
 false = \x y . y
+f = false
 not = \a . a false true
 
 # Y combinator
@@ -198,11 +200,11 @@ cmp   = \n1 n2 . n1 n2 (n2 n1 n1 n2 n2 n2) (n2 n1 n1 n1 n2 n2) (n2 n1 n1 n1 n1 n
 
 # row functions
 row   = \1 2 3 4 5 6 7 8 9 g . g 1 2 3 4 5 6 7 8 9
+left  = \1 2 3 4 5 6 7 8 9 g . g 2 3 4 5 6 7 8 9 1
+right = \1 2 3 4 5 6 7 8 9 g . g 9 1 2 3 4 5 6 7 8
 cell1  = \1 2 3 4 5 6 7 8 9 . cell 1
 cell9  = \1 2 3 4 5 6 7 8 9 . cell 9
 get1  = \1 2 3 4 5 6 7 8 9 . 1
-left  = \1 2 3 4 5 6 7 8 9 . row 2 3 4 5 6 7 8 9 1
-right = \1 2 3 4 5 6 7 8 9 . row 9 1 2 3 4 5 6 7 8
 empty     = row e e e e e e e e e
 arow1     = row e e a1 e a2 e a1 e e
 arow2     = row e e a2 e a1 e a2 e e
@@ -221,10 +223,22 @@ isAllLastEmpty  = \1 2 3 4 5 6 7 8 9 . 1 cell9 check9 2 check9 3 check9 4 check9
 allLeft   = \1 2 3 4 5 6 7 8 9 . row (1 left) (2 left) (3 left) (4 left) (5 left) (6 left) (7 left) (8 left) (9 left)
 allRight  = \1 2 3 4 5 6 7 8 9 . row (1 right) (2 right) (3 right) (4 right) (5 right) (6 right) (7 right) (8 right) (9 right)
 
+# counter
+counter = \1 2 3 4 5 6 7 8 9 10 11 12 c . c 1 2 3 4 5 6 7 8 9 10 11 12
+cNext   = \1 2 3 4 5 6 7 8 9 10 11 12 c . c 2 3 4 5 6 7 8 9 10 11 12 1
+cTrue   = \1 2 3 4 5 6 7 8 9 10 11 12 . 1
+slowest = counter t f f f f f f f f f f f
+slower  = counter t f f f f f t f f f f f
+slow    = counter t f f f t f f f t f f f
+fast    = counter t f f t f f t f f t f f
+faster  = counter t f t f t f t f t f t f
+fastest = counter t t t t t t t t t t t t
+
+
 # game functions
-start     = \statef . statef gridStart shipStart true (row true false false false false false false false false)
+start     = \statef . statef gridStart shipStart true slow
 checkDir  = \grid left? . left? (grid isAllFirstEmpty) (not (grid isAllLastEmpty))
-next      = \grid ship left? counter statef . (\dir . statef (counter get1 (grid (dir allLeft allRight)) grid) ship dir (counter left)) (checkDir grid left?)
+next      = \grid ship left? counter statef . (\dir . statef (counter cTrue (grid (dir allLeft allRight)) grid) ship dir (counter cNext)) (checkDir grid left?)
 
 # in progress
 # moveThem = (\moveLeft moveRight . pair moveLeft moveRight) rec \moveThem 
