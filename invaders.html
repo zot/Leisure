@@ -84,10 +84,16 @@ function setOperation(op) {
 	if (!old) doOp()
 }
 function keypress(event) {
-	setOperation((event.keyCode & 63) == LEFT ? left
+	var transition = (event.keyCode & 63) == LEFT ? left
 		: (event.keyCode & 63) == RIGHT ? right
-		: event.charCode == ' ' ? fire
-		: stay)
+		: (event.keyCode == 32) ? fire
+		: stay
+
+	if (transition != stay) {
+		setOperation(transition)
+		event.stopPropagation()
+		event.preventDefault()
+	}
 }
 function next() {
 	window.setTimeout(function(){
