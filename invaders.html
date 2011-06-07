@@ -148,7 +148,7 @@ function loaded() {
 </head>
 <body onload="loaded()" onkeydown="keypress(event)" onkeyup="continueButton = false">
 <table style="width: 100%; height: 100%; border: 0">
-<tr style="height: 1px"><td><table style='padding-right: 12px; padding-bottom: 24px; outline: solid black 1px'><tr><td>
+<tr style="height: 1px"><td style="width: 25%; vertical-align: top"><table style='padding-right: 12px; padding-bottom: 24px; outline: solid black 1px'><tr><td>
 <table id="grid">
 <tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
 <tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
@@ -170,9 +170,7 @@ function loaded() {
 <tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
 <tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
 <tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
-</table></td></tr></table>
-</td></tr>
-<tr style="height: 1px"><td>
+</table></td></tr><tr><td></table><br>
 Here's my simplistic version of "space invaders".  It's not as deluxe as the real one, but the point is to show how you might make a video game with Lambda Calculus.<br><br>
 
 The only thing that works right now is the left and right arrow keys :).<br><br>
@@ -183,9 +181,10 @@ To advance the state, JavaScript calls (state eventFunc).  State starts out equa
 
 The screen is a grid of values, with a row of values underneath.  A row has 19 values in it, so it's a function which applies its argument to its 19 values.  The grid is really a "row of rows".  You can use (left) and (right) to rotate the values and (get1) to get the first value.  The base values are numbers from 0 to 4, represented with 5 argument functions that return the Nth argument, depending on which number the function represents.<br><br>
 
-<b>Code</b></td></tr>
-<tr><td>
-<div style="height: 100%; position: relative">
+</td>
+<td>
+<table style="width: 100%; height: 100%"><tr style="height: 1px"><td><b>Code</b></td></tr>
+<tr><td><div style="height: 100%; position: relative">
 <pre class="hidden" id='preamble'>
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
@@ -212,13 +211,11 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 , =.= \l item f . f (cons item l)
 ] =)= reverse
 </pre>
-<pre style="height: 100%; width: 100%; overflow: auto; position: absolute; margin: 0; white-space: pre-wrap; line-height: 150%" id='code'>
+<pre style="height: 100%; width: 100%; overflow: auto; position: absolute; margin: 0; outline: solid black 1px; padding: 5px" id='code'>
 # Booleans
-true = \x y . x
-t = true
-false = \x y . y
-f = false
-not = \a . a false true
+t = \x y . x
+f = \x y . y
+not = \a . a f t
 
 # 10 x 9 grid (a 9x9 grid for missiles and aliens and a 9x1 row for the ship)
 # a grid row applies a function of 9 arguments to its values
@@ -233,7 +230,7 @@ a1    = \1 2 3 4 5 . 3
 a2    = \1 2 3 4 5 . 4
 m     = \1 2 3 4 5 . 5
 cell  = \n f . f n
-isE   = \n . n true false false false false
+isE   = \n . n t f f f f
 kills?= \n1 n2 . n1 n2 (n2 n1 n1 n2 n2 n2) (n2 n1 n1 n1 n2 n2) (n2 n1 n1 n1 n1 n2) n1
 
 # row functions
@@ -243,6 +240,15 @@ right = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g 19 1 2 3 4 5 6 7 
 cellA = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . cell 1
 cellZ = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . cell 19
 get1  = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1
+# return a new row with each element applied to a function
+row-to-func   = \g 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 r . r (1 g) (2 g) (3 g) (4 g) (5 g) (6 g) (7 g) (8 g) (9 g) (10 g) (11 g) (12 g) (13 g) (14 g) (15 g) (16 g) (17 g) (18 g) (19 g)
+# return a new row with a function applied to each element
+func-to-row = \g 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 r . r (g 1) (g 2) (g 3) (g 4) (g 5) (g 6) (g 7) (g 8) (g 9) (g 10) (g 11) (g 12) (g 13) (g 14) (g 15) (g 16) (g 17) (g 18) (g 19)
+# to calculate the value:
+# 1) get the first result by applying the first cell to the function 'first'
+# 2) get the next result for every other element by applying previous result to the function 'f' and applying the result of that to the row element
+# 3) get the final value by applying the final result to the function 'last'
+rowReduce = \first g last 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1 first g 2 g 3 g 4 g 5 g 6 g 7 g 8 g 9 g 10 g 11 g 12 g 13 g 14 g 15 g 16 g 17 g 18 g 19 last
 empty     = row e e e e e e e e e e e e e e e e e e e
 arow1     = row e e e e e a1 e a1 e a1 e a1 e a1 e e e e e
 gridStart = row arow1 empty arow1 empty arow1 empty arow1 empty empty empty empty empty empty empty empty empty empty empty empty
@@ -252,13 +258,13 @@ shipStart = row e e e e e e e e e s e e e e e e e e e
 identity  = \x . x
 ignore    = \x . row
 onFirstEmpty    = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1 identity ignore ignore ignore ignore
-# compare a cell with the first row element.  If they're both e, return e otherwise return one of the nonE values
+# compare a cell with the first row element.  If they're both e, return a cell with e otherwise return one of the non-e values
 check1    = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 m10 m11 m12 m13 m14 m15 m16 m17 m18 m19 . cell (n m1 n n n n)
 check9    = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 m10 m11 m12 m13 m14 m15 m16 m17 m18 m19 . cell (n m19 n n n n)
-isAllFirstEmpty = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1 cellA check1 2 check1 3 check1 4 check1 5 check1 6 check1 7 check1 8 check1 9 check1 10 check1 11 check1 12 check1 13 check1 14 check1 15 check1 16 check1 17 check1 18 check1 19 isE
-isAllLastEmpty  = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1 cellZ check9 2 check9 3 check9 4 check9 5 check9 6 check9 7 check9 8 check9 9 check9 10 check9 11 check9 12 check9 13 check9 14 check9 15 check9 16 check9 17 check9 18 check9 19 isE
-allLeft   = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . row (1 left) (2 left) (3 left) (4 left) (5 left) (6 left) (7 left) (8 left) (9 left) (10 left) (11 left) (12 left) (13 left) (14 left) (15 left) (16 left) (17 left) (18 left) (19 left)
-allRight  = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . row (1 right) (2 right) (3 right) (4 right) (5 right) (6 right) (7 right) (8 right) (9 right) (10 right) (11 right) (12 right) (13 right) (14 right) (15 right) (16 right) (17 right) (18 right) (19 right)
+isAllFirstEmpty = rowReduce cellA check1 isE
+isAllLastEmpty  = rowReduce cellZ check9 isE
+allLeft   = row-to-func left
+allRight  = row-to-func right
 
 # counter
 counter = \1 2 3 4 5 6 7 8 9 10 11 12 c . c 1 2 3 4 5 6 7 8 9 10 11 12
@@ -272,12 +278,12 @@ faster  = counter t f t f t f t f t f t f
 fastest = counter t t t t t t t t t t t t
 
 # game functions
-cflip     = \n . n e s a2 a1 m
-flip      = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g (cflip 1) (cflip 2) (cflip 3) (cflip 4) (cflip 5) (cflip 6) (cflip 7) (cflip 8) (cflip 9) (cflip 10) (cflip 11) (cflip 12) (cflip 13) (cflip 14) (cflip 15) (cflip 16) (cflip 17) (cflip 18) (cflip 19)
-allFlip   = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g (1 flip) (2 flip) (3 flip) (4 flip) (5 flip) (6 flip) (7 flip) (8 flip) (9 flip) (10 flip) (11 flip) (12 flip) (13 flip) (14 flip) (15 flip) (16 flip) (17 flip) (18 flip) (19 flip)
-start     = \statef . statef gridStart shipStart true slowest
-checkDir  = \grid left? . left? (grid isAllFirstEmpty) (not (grid isAllLastEmpty))
-next      = \grid ship left? ctr statef . (\dir . statef (ctr cTrue (grid (dir allLeft allRight) allFlip) grid) ship dir (ctr cNext)) (checkDir grid left?)
+cflip    = \n . n e s a2 a1 m
+flip     = func-to-row cflip
+allFlip  = row-to-func flip
+start    = \statef . statef gridStart shipStart t slowest
+checkDir = \grid left? . left? (grid isAllFirstEmpty) (not (grid isAllLastEmpty))
+next     = \grid ship left? ctr statef . (\dir . statef (ctr cTrue (grid (dir allLeft allRight) allFlip) grid) ship dir (ctr cNext)) (checkDir grid left?)
 
 #events
 moveLeft  = \grid ship left? ctr . next grid (ship (ship onFirstEmpty left)) left? ctr
@@ -291,7 +297,7 @@ second = \a b c d . b
 num   = \n 0 1 2 3 4 . n 0 1 2 3 4
 </pre>
 </div>
-</td></td>
-</table>
+</td></tr></table>
+</td></tr></table>
 </body>
 </html>
