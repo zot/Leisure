@@ -167,9 +167,13 @@ function loaded() {
 </table></td></tr></table>
 </td></tr>
 <tr style="height: 1px"><td>
-Here's my simplistic version of "space invaders".  It's not as deluxe as the real one, but the point is to show how you might make a video game with Lambda Calculus.  Below is all of the Lambda Calulus code.  JavaScript provides the key event (or an empty key event) and the game state to a Lambda Calculus function to calculate the next state of the game.  Then, it uses other Lambda Calculus functions to inspect the current state so it can display it.
-<br>
-<br><b>Code</b></td></tr>
+Here's my simplistic version of "space invaders".  It's not as deluxe as the real one, but the point is to show how you might make a video game with Lambda Calculus.  Below is all of the Lambda Calulus code.  JavaScript provides the key event (or an empty key event) and the game state to a Lambda Calculus function to calculate the next state of the game.  Then, it uses other Lambda Calculus functions to inspect the current state so it can display it.<br><br>
+
+To advance the state, JavaScript calls (state eventFunc).  State starts out equal to (start).  The eventFuncs are: (moveLeft), (moveRight), (stay), and (fire).<br><br>
+
+The screen is a grid of values, with a row of values underneath.  A row has 19 values in it, so it's a function which applies its argument to its 19 values.  The grid is really a "row of rows".  You can use (left) and (right) to rotate the values and (get1) to get the first value.  The base values are numbers from 0 to 4, represented with 5 argument functions that return the Nth argument, depending on which number the function represents.<br><br>
+
+<b>Code</b></td></tr>
 <tr><td>
 <div style="height: 100%; position: relative">
 <pre class="hidden" id='preamble'>
