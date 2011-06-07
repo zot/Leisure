@@ -24,14 +24,18 @@ misrepresented as being the original software.
 -->
 <head>
 	<style>
-		#grid {
-			outline: solid black 1px;
+		#grid td {
+			position: relative;
+			width: 12px;
+			height: 12px;
+			overflow: visible;
 		}
 		#grid div,#grid img {
+			position: absolute;
 			text-align: center;
 			vertical-align: middle;
 			width: 24px; height: 24px;
-			overflow: clipped;
+			overflow: visible;
 		}
 		.hidden {
 			height: 0;
@@ -51,10 +55,10 @@ function icon(c) {
 }
 
 function updateGrid(rows) {
-	for (var r = 0; r < 9; r++) {
+	for (var r = 0; r < 19; r++) {
 		var row = rows(LC.code.get1)
 
-		for (var c = 0; c < 9; c++) {
+		for (var c = 0; c < 19; c++) {
 			grid.rows[r].cells[c].firstElementChild.src = icon(row(LC.code.get1))
 			row = row(LC.code.left)
 		}
@@ -62,14 +66,16 @@ function updateGrid(rows) {
 	}
 }
 function updateShip(row) {
-	for (var i = 0; i < 9; i++) {
-		grid.rows[9].cells[i].firstElementChild.src = icon(row(LC.code.get1))
+	for (var i = 0; i < 19; i++) {
+		grid.rows[19].cells[i].firstElementChild.src = icon(row(LC.code.get1))
 		row = row(LC.code.left)
 	}
 }
 var buttonCounter = 0
 var buttonOp = null
 var continueButton = false
+var LEFT = 37
+var RIGHT = 39
 function setOperation(op) {
 	var old = buttonOp
 
@@ -77,10 +83,16 @@ function setOperation(op) {
 	buttonOp = op
 	if (!old) doOp()
 }
+function keypress(event) {
+	setOperation((event.keyCode & 63) == LEFT ? left
+		: (event.keyCode & 63) == RIGHT ? right
+		: event.charCode == ' ' ? fire
+		: stay)
+}
 function next() {
 	window.setTimeout(function(){
 		if (buttonOp) doOp()
-	}, 200)
+	}, 50)
 }
 function doOp() {
 	if (buttonCounter % 2 == 0) {
@@ -128,23 +140,31 @@ function loaded() {
 }
 	</script>
 </head>
-<body onload="loaded()">
+<body onload="loaded()" onkeydown="keypress(event)" onkeyup="continueButton = false">
 <table style="width: 100%; height: 100%; border: 0">
-<tr style="height: 1px"><td>
+<tr style="height: 1px"><td><table style='padding-right: 12px; padding-bottom: 24px; outline: solid black 1px'><tr><td>
 <table id="grid">
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-<tr><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td><td><img></img></td></tr>
-</table>
-<br>
-<button onmousedown='setOperation(left)' onmouseup='continueButton = false'>&lt;</button><button onmousedown='setOperation(fire)' onmouseup='continueButton = false'>*</button><button onmousedown='setOperation(right)' onmouseup='continueButton = false'>&gt;</button>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+<tr><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td><td><img></td></tr>
+</table></td></tr></table>
 </td></tr>
 <tr style="height: 1px"><td>
 Here's my simplistic version of "space invaders".  It's not as deluxe as the real one, but the point is to show how you might make a video game with Lambda Calculus.  Below is all of the Lambda Calulus code.  JavaScript provides the key event (or an empty key event) and the game state to a Lambda Calculus function to calculate the next state of the game.  Then, it uses other Lambda Calculus functions to inspect the current state so it can display it.
@@ -203,28 +223,28 @@ isE   = \n . n true false false false false
 kills?= \n1 n2 . n1 n2 (n2 n1 n1 n2 n2 n2) (n2 n1 n1 n1 n2 n2) (n2 n1 n1 n1 n1 n2) n1
 
 # row functions
-row   = \1 2 3 4 5 6 7 8 9 g . g 1 2 3 4 5 6 7 8 9
-left  = \1 2 3 4 5 6 7 8 9 g . g 2 3 4 5 6 7 8 9 1
-right = \1 2 3 4 5 6 7 8 9 g . g 9 1 2 3 4 5 6 7 8
-cell1 = \1 2 3 4 5 6 7 8 9 . cell 1
-cell9 = \1 2 3 4 5 6 7 8 9 . cell 9
-get1  = \1 2 3 4 5 6 7 8 9 . 1
-empty     = row e e e e e e e e e
-arow1     = row e e a1 a1 a1 a1 a1 e e
-gridStart = row arow1 arow1 arow1 arow1 empty empty empty empty empty
-shipStart = row e e e e s e e e e
+row   = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+left  = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 1
+right = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g 19 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18
+cellA = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . cell 1
+cellZ = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . cell 19
+get1  = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1
+empty     = row e e e e e e e e e e e e e e e e e e e
+arow1     = row e e e e e a1 e a1 e a1 e a1 e a1 e e e e e
+gridStart = row arow1 empty arow1 empty arow1 empty arow1 empty empty empty empty empty empty empty empty empty empty empty empty
+shipStart = row e e e e e e e e e s e e e e e e e e e
 
 # grid functions
 identity  = \x . x
 ignore    = \x . row
-onFirstEmpty    = \1 2 3 4 5 6 7 8 9 . 1 identity ignore ignore ignore ignore
+onFirstEmpty    = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1 identity ignore ignore ignore ignore
 # compare a cell with the first row element.  If they're both e, return e otherwise return one of the nonE values
-check1    = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 . cell (n m1 n n n n)
-check9    = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 . cell (n m9 n n n n)
-isAllFirstEmpty = \1 2 3 4 5 6 7 8 9 . 1 cell1 check1 2 check1 3 check1 4 check1 5 check1 6 check1 7 check1 8 check1 9 isE
-isAllLastEmpty  = \1 2 3 4 5 6 7 8 9 . 1 cell9 check9 2 check9 3 check9 4 check9 5 check9 6 check9 7 check9 8 check9 9 isE
-allLeft   = \1 2 3 4 5 6 7 8 9 . row (1 left) (2 left) (3 left) (4 left) (5 left) (6 left) (7 left) (8 left) (9 left)
-allRight  = \1 2 3 4 5 6 7 8 9 . row (1 right) (2 right) (3 right) (4 right) (5 right) (6 right) (7 right) (8 right) (9 right)
+check1    = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 m10 m11 m12 m13 m14 m15 m16 m17 m18 m19 . cell (n m1 n n n n)
+check9    = \n r . r \m1 m2 m3 m4 m5 m6 m7 m8 m9 m10 m11 m12 m13 m14 m15 m16 m17 m18 m19 . cell (n m19 n n n n)
+isAllFirstEmpty = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1 cellA check1 2 check1 3 check1 4 check1 5 check1 6 check1 7 check1 8 check1 9 check1 10 check1 11 check1 12 check1 13 check1 14 check1 15 check1 16 check1 17 check1 18 check1 19 isE
+isAllLastEmpty  = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . 1 cellZ check9 2 check9 3 check9 4 check9 5 check9 6 check9 7 check9 8 check9 9 check9 10 check9 11 check9 12 check9 13 check9 14 check9 15 check9 16 check9 17 check9 18 check9 19 isE
+allLeft   = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . row (1 left) (2 left) (3 left) (4 left) (5 left) (6 left) (7 left) (8 left) (9 left) (10 left) (11 left) (12 left) (13 left) (14 left) (15 left) (16 left) (17 left) (18 left) (19 left)
+allRight  = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 . row (1 right) (2 right) (3 right) (4 right) (5 right) (6 right) (7 right) (8 right) (9 right) (10 right) (11 right) (12 right) (13 right) (14 right) (15 right) (16 right) (17 right) (18 right) (19 right)
 
 # counter
 counter = \1 2 3 4 5 6 7 8 9 10 11 12 c . c 1 2 3 4 5 6 7 8 9 10 11 12
@@ -239,9 +259,9 @@ fastest = counter t t t t t t t t t t t t
 
 # game functions
 cflip     = \n . n e s a2 a1 m
-flip      = \1 2 3 4 5 6 7 8 9 g . g (cflip 1) (cflip 2) (cflip 3) (cflip 4) (cflip 5) (cflip 6) (cflip 7) (cflip 8) (cflip 9)
-allFlip   = \1 2 3 4 5 6 7 8 9 g . g (1 flip) (2 flip) (3 flip) (4 flip) (5 flip) (6 flip) (7 flip) (8 flip) (9 flip)
-start     = \statef . statef gridStart shipStart true slow
+flip      = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g (cflip 1) (cflip 2) (cflip 3) (cflip 4) (cflip 5) (cflip 6) (cflip 7) (cflip 8) (cflip 9) (cflip 10) (cflip 11) (cflip 12) (cflip 13) (cflip 14) (cflip 15) (cflip 16) (cflip 17) (cflip 18) (cflip 19)
+allFlip   = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g (1 flip) (2 flip) (3 flip) (4 flip) (5 flip) (6 flip) (7 flip) (8 flip) (9 flip) (10 flip) (11 flip) (12 flip) (13 flip) (14 flip) (15 flip) (16 flip) (17 flip) (18 flip) (19 flip)
+start     = \statef . statef gridStart shipStart true slowest
 checkDir  = \grid left? . left? (grid isAllFirstEmpty) (not (grid isAllLastEmpty))
 next      = \grid ship left? ctr statef . (\dir . statef (ctr cTrue (grid (dir allLeft allRight) allFlip) grid) ship dir (ctr cNext)) (checkDir grid left?)
 
