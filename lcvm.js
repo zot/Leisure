@@ -31,6 +31,8 @@ LC = (function(){
     var FREE_VARIABLE = 2
 
 /*
+check out ptmalloc3 for the native compiler http://www.malloc.de/en/index.html
+
 context: [code addr | ctx flag, bound?, var ...] -- if bound, apply throws away the argument
 code: ... index ... opcode ... -- the compiler/linker should know how large index is
 stack: [... ct pc value] or [... ct pc func arg]
