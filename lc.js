@@ -39,6 +39,8 @@ var groupCloses = {')': 1}
 var tokenPat = null
 var specials = '[]().*+?'
 var tokenDefPat = /^ *([^ ]+) *(=[.)]=|=\([^=]+=|=)(?:[^=])/
+var warnFreeVariable = []
+var line = 0
 
 function loadDefs(defs) {
 	var d = defs.split('\n')
@@ -51,8 +53,10 @@ function loadDefs(defs) {
 	funcCount = 1
 	hashed = {}
 	LC.L = L = null
+	line = 1
 	for (var index in d) {
 	    evalLine(d[index].trim(), true)
+	    line++
 	}
 	constructEnv()
 	findCons();
@@ -149,6 +153,7 @@ function constructEnv(src) {
 		for (var i = 0; i < order.length; i++) {
 			if (order[i].name != "") {
 				env.push('\n// ' + order[i].name + ' = ' + order[i].expr.format(true, true))
+				if (order[i].usesFree) env.push('//WARNING, line ' + line + ': uses free variables: ' + order[i].usesFree)
 			}
 			env.push('LC.code[order[' + i + '].name] = order[' + i + '].code = ' + order[i].src)
 			if (order[i].name != "") {
@@ -307,6 +312,10 @@ function Entry(name, expr) {
 	if (expr) {
 		try {
 			this.src = 'function() {\nreturn ' + expr.ret([]).join("") + '\n}'
+			if (warnFreeVariable.length) {
+				this.usesFree = warnFreeVariable.join(', ')
+				warnFreeVariable = []
+			}
 		} catch (err) {
 			this.src = function() {return "Error compiling: " + expr}
 		}
@@ -588,9 +597,15 @@ var vcount = 0
 Variable.prototype.__proto__ = new Entity({
 	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
+	valueFunc: function() {
+		warnFreeVariable.push(this.name)
+		return "setLambda(function() {throw new Error('Line " + line + " attempts to use free variable, \"" + this.name + "\" as a function.')}, " + this.id + ")"
+	},
 	pass: function(stream, prefix) {
+//		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.cname
+//			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
 		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.cname
-			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
+			    : this.valueFunc())
 		return stream
 	},
 	ret: function(stream, prefix) {
@@ -598,7 +613,8 @@ Variable.prototype.__proto__ = new Entity({
 			this.pass(stream, prefix)
 			stream.push("()")
 		} else {
-			stream.push(this.name.match('^[0-9]+(.[0-9]*)?$') ? this.name : "'" + this.name + "'")
+//			stream.push(this.name.match('^[0-9]+(.[0-9]*)?$') ? this.name : "'" + this.name + "'")
+			stream.push(this.valueFunc())
 		}
 		return stream
 	},
