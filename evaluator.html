@@ -47,6 +47,7 @@ var result
 var showDebug = false
 var showSubs = true
 var results = []
+var docMsg = true
 
 function setShowDebug(state) {
 	showDebug = state
@@ -66,7 +67,7 @@ function handleFiles(files) {
 	reader.onload = function() {
 		LC.loadDefs(reader.result)
 		displayOutput()
-		displayResults()
+		displayResults(true)
 		result.innerHTML = ''
 	}
 	reader.readAsText(files[0])
@@ -76,27 +77,15 @@ function displayOutput() {
 
 	for (var index = 0; index < LC.order.length; index++) {
 		var expr = LC.order[index]
-//		var gl = expr.globalSub()
-//		var ac = gl.alphaConvert()
-//		var br = ac.betaReduce()
-//		var ec = br.etaConvert()
 
-		outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true)
-//			+ "<div class='debug'><ul>"
-//			+ "<li><b>Normalized:</b> <span class='subs'>" + expr.normalize() + "</span><span class='nosubs'>" + expr.normalize().expr.format(false, true) + "</span>"
-//			+ "<li><b>Alpha conversion:</b> <span class='subs'>" + ac + "</span><span class='nosubs'>" + ac.expr.format(false, true) + "</span>"
-//			+ "<li><b>Beta reduction:</b> <span class='subs'>" + br + "</span><span class='nosubs'>" + br.expr.format(false, true) + "</span>"
-//			+ "<li><b>Eta conversion:</b> <span class='subs'>" + ec + "</span><span class='nosubs'>" + ec.expr.format(false, true) + "</span>"
-//			+ "</ul></div>"
-			+ "</div>"
-		)
+		outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true) + "</div>")
 	}
 	output.innerHTML = outputs.join('')
 	output.lastChild.scrollIntoView()
 }
 function runFunc(index) {
 	LC.runFunc(index)
-	displayResults();
+	displayResults(results.length && docMsg);
 }
 function resultCode(expr, res, index) {
 	var subs = expr.format()
@@ -106,8 +95,7 @@ function resultCode(expr, res, index) {
 	if (lam) {
 		res = "<span class='subs'>" + LC.pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
-	result.innerHTML += "<div><b><span class='dollar'>$: </span>$" + index + ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(LC.historyExprs[" + index + "])'>Reduce</button><span class='subs'>" + subs + "</span><span class='nosubs'>" + nosubs + "</span>" + "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + res + "<br><br></div>"
-	result.lastChild.scrollIntoView()
+	results.push("<div><b><span class='dollar'>$: </span>$", index, ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(LC.historyExprs[", index, "])'>Reduce</button><span class='subs'>", subs, "</span><span class='nosubs'>", nosubs, "</span>&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", res, "<br><br></div>")
 }
 function formatExpr(label, expr) {
 	results.push("<div><b>" + label + ":</b> " + formatSubexpr(expr) + "</div>")
@@ -120,7 +108,11 @@ function runReduce(expr) {
 
 	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>+</a> Reduce", expr, result)
 	results.push("<div></div>")
-	displayResults()
+	if (results.length && docMsg) {
+		docMsg = false
+		result.innerHTML = ''
+	}
+	displayResults(results.length && docMsg)
 	last = expr = expr.globalSub()
 	var trace = result.lastElementChild
 	formatExpr("Globals", expr)
@@ -161,7 +153,11 @@ function loaded() {
 	displayResults()
 	def.select()
 }
-function displayResults() {
+function displayResults(clear) {
+	if (clear) {
+		docMsg = false
+		result.innerHTML = ''
+	}
 	if (results.length) {
 		result.innerHTML += results.join('')
 		result.lastChild.scrollIntoView()
@@ -172,7 +168,7 @@ function input() {
 	if (LC.evalLine(def.value)) {
 		displayOutput()
 	}
-	displayResults();
+	displayResults(results.length && docMsg);
 	def.value = ''
 }
 function editFunc(name, expr) {
@@ -210,10 +206,7 @@ I use these in the example definitions to create an array-like syntax for lists:
 , =.= \l item f . f (cons item l)
 ] =)= reverse
 </pre>
-<br>
-If you want to get rid of this message, you can click "Clear", above.<br>
-<br>
-<br>
+<br><br>
 Have fun!<br>
 Bill Burdick (you can send me mail at bill dot burdick on gmail)<br>
 <br>
@@ -228,6 +221,17 @@ save button
 true = \x y . x
 false = \x y . y
 
+# Y combinator
+Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+rec = \f . f (Y f)
+
+# lists
+# using false as "nil" in lists, so you use a list like this:
+# DUMMY can be anything, but it needs to be there
+# here's how you use a list:
+# aList (\h t DUMMY . {list-case}) {empty-case}
+# If the list is not empty, h and t are the head and tail of the list and it returns list-case.  DUMMY is not used, but needs to be there
+# If the list is empty, it returns empty-case
 cons = \a b f . f a b
 nil = false
 head = \l . l (\h t D . h) nil

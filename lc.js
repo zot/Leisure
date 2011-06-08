@@ -373,13 +373,15 @@ Transformer.prototype = {
 	transform: function(entity) {return entity.doTransform(this)},
 }
 function lcode(name) {
-	return eval('(function(){return runLCode(L.' + nameSub(name) + '(), arguments)})')
-}
-function runLCode(func, args) {
-	for (var i = 0; i < args.length; i++) {
-		func = func.call(null, wrap(args[i]))
-	}
-	return func
+	name = nameSub(name)
+	return (function(){
+		var func = L[name]()
+
+		for (var i = 0; i < arguments.length; i++) {
+			func = func.call(null, wrap(arguments[i]))
+		}
+		return func
+	})
 }
 var entityCounter = 0
 function Entity(obj) {
@@ -592,6 +594,7 @@ function Variable(txt, free, base, num) {
 	this.num = num || 0
 	this.free = free
 	this.id = entityCounter++
+	if (!lambdas[this.id]) lambdas[this.id] = this
 }
 var vcount = 0
 Variable.prototype.__proto__ = new Entity({
@@ -601,20 +604,21 @@ Variable.prototype.__proto__ = new Entity({
 		warnFreeVariable.push(this.name)
 		return "setLambda(function() {throw new Error('Line " + line + " attempts to use free variable, \"" + this.name + "\" as a function.')}, " + this.id + ")"
 	},
-	pass: function(stream, prefix) {
-//		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.cname
-//			: this.name.match('^[0-9]+(.[0-9]*)?$') ? "wrap(" + this.name + ")" : "wrap('" + this.name + "')")
-		stream.push(!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length) ? pfx(prefix) + this.cname
-			    : this.valueFunc())
-		return stream
-	},
 	ret: function(stream, prefix) {
-		if (!this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length)) {
+		if (this.isBound()) {
 			this.pass(stream, prefix)
 			stream.push("()")
 		} else {
-//			stream.push(this.name.match('^[0-9]+(.[0-9]*)?$') ? this.name : "'" + this.name + "'")
 			stream.push(this.valueFunc())
+		}
+		return stream
+	},
+	isBound: function() {return !this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length)},
+	pass: function(stream, prefix) {
+		if (this.isBound()) {
+			stream.push(pfx(prefix), this.cname)
+		} else {
+			stream.push("(function(){return ", this.valueFunc(), "})")
 		}
 		return stream
 	},
@@ -667,19 +671,8 @@ Apply.prototype.__proto__ = new Entity({
 	etaConvert: function() {return this.innermost(function() {return new Apply(this.func.etaConvert(), this.arg)})},
 })
 function wrap(x) {return function() {return x}}
-var Ltrue = lcode('true')
-var Lfalse = lcode('false')
-//var Land = lcode('and')
-//var Lor = lcode('or')
-//var Leq = lcode('eq')
-//var Lxor = lcode('xor')
-//var Lnot = lcode('not')
-//var Lpair = lcode('pair')
 var Lhead = lcode('head')
 var Ltail = lcode('tail')
-//var Lempty = lcode('empty')
-//var Lappend = lcode('append')
-//var Lisempty = lcode('isempty')
 var LC = {
     loadDefs: loadDefs,
     runFunc: runFunc,
