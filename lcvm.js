@@ -2,7 +2,7 @@
 a (\x y . x) (c d) e
 --------------------
 
-[a,c,d,e]: ResolveVar(a), NewContext(L, 0), BindContext, NewClosedContext(C, 0), BindContext, BindVar(e), Return
+[a,c,d,e]: UseVar(a), NewContext(L, 0), BindContext, NewClosedContext(C, 0), BindContext, BindVar(e), Return
 
 L[x]: NewClosedContext(L2, 1), Inherit(x), UseContext, Return
 L2[x]: UseVar(x), Return
