@@ -89,8 +89,8 @@ LC = (function(){
     var USE_VAR = 5
     var USE_CONTEXT = 6
     var BIND_PRIM = 7
-    var USE_PRIM = 7
-    var RETURN = 8
+    var USE_PRIM = 8
+    var RETURN = 9
 
     // primitive values are 31 bits
     // normal data is 28 bit addrs (aligned on 16 byte boundaries)
@@ -163,8 +163,11 @@ A bytecode verifier can ensure that TAPPLY and R-- opcodes only appear at the en
 	    case INHERIT:
 	    case BIND_CONTEXT:
 	    case BIND_VAR:
+	    case BIND_PRIM:
 	    case USE_VAR:
 	    case USE_CONTEXT:
+	    case USE_PRIM:
+	    case RETURN:
 	    }
 	}
     }

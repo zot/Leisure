@@ -231,7 +231,8 @@ a2     = \1 2 3 4 5 . 4
 m      = \1 2 3 4 5 . 5
 cell   = \n f . f n
 isE    = \n . n t f f f f
-kills? = \n1 n2 . n1 n2 (n2 n1 n1 n2 n2 n2) (n2 n1 n1 n1 n2 n2) (n2 n1 n1 n1 n1 n2) n1
+# (larger a b) returns the larger value -- for missles vs aliens and aliens vs the ship
+larger = \n1 n2 . n1 n2 (n2 n1 n1 n2 n2 n2) (n2 n1 n1 n1 n2 n2) (n2 n1 n1 n1 n1 n2) n1
 
 # row functions
 row   = \1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 g . g 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
