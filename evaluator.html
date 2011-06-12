@@ -129,7 +129,32 @@ function runReduce(expr) {
 		trace.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + '<b>' + err + '</b>'
 	}
 	results.push("<br>")
+	displayResults(results.length && docMsg)
 	result.lastElementChild.scrollIntoView()
+}
+function runDeBruijn(expr) {
+	var depth = 0
+	var deb = expr.transform2({
+		apply: function(funcF, argF) {
+			var d = depth
+			var func = funcF(this.func)
+			var max = depth
+			depth = d
+			var arg = argF(this.arg)
+			depth = max > depth ? max : depth
+			return [func, arg]
+		},
+		lambda: function(lvarF, bodyF) {
+			var newV = new LC.Variable("duh")
+			var lvar = lvarF(newV)
+			var body = bodyF(this.body)
+			newV.name = String(depth)
+			depth++
+			return [lvar, body]
+		},
+	})
+	results.push(expr.format(false), ', DeBruijn: <b>', deb.format(false, true), '</b><br>')
+	displayResults(results.length && docMsg)
 }
 function toggleSteps(link) {
 	var div = link.parentElement.parentElement.nextElementSibling

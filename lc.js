@@ -350,11 +350,11 @@ function reduce(expr, ecallback, acallback, bcallback) {
 }
 
 function pre(type, func) {
-	return function(trans) {trans.pre[type.name] = func}
+    return function(trans) {trans.pre[type.name] = func}
 }
 
 function post(type, func) {
-	return function(trans) {trans.post[type.name] = func}
+    return function(trans) {trans.post[type.name] = func}
 }
 
 function identity() {return this}
@@ -371,6 +371,29 @@ Transformer.prototype = {
 	prune: function(oldEnt, newEnt) {return this.trail[oldEnt.id] = newEnt},
 	getTransform: function(entity) {return this.trail[entity.id]},
 	transform: function(entity) {return entity.doTransform(this)},
+}
+function Transformer2(settings) {
+    for (var i in settings) {
+	this[i] = settings[i]
+    }
+    this.map = {}
+}
+Transformer2.prototype = {
+    visit: function(el) {
+	var t = this
+
+	if (el instanceof Apply) {
+	    return el.make.apply(el, this.apply.call(el, function(newF) {return t.visit(newF == el.func ? t.map[el.id] || newF : newF)}, function(newA) {return t.visit(newA == el.arg ? t.map[el.id] || newA : newA)}))
+	} else if (el instanceof Lambda) {
+	    return el.make.apply(el, this.lambda.call(el, function(newV) {return t.map[el.lvar.id] = t.visit(newV == el.lvar ? t.map[el.id] || newV : newV)}, function(newB) {return t.visit(newB == el.body ? t.map[el.id] || newB : newB)}))
+	} else {
+	    return this.map[el.id] = this.variable.call(el, function(newV) {return newV == el ? t.map[el.id] || newV : newV})
+	}
+    },
+    prune: function(el, newEl) {this.map[el.id] = newEl},
+    apply: function(funcF, argF) {return [funcF(this.func), argF(this.arg)]},
+    lambda: function(lvarF, bodyF) {return [lvarF(this.lvar), bodyF(this.body)]},
+    variable: function(varF) {return varF(this)},
 }
 function lcode(name) {
 	name = nameSub(name)
@@ -390,6 +413,7 @@ function Entity(obj) {
 	}
 }
 Entity.prototype.__proto__ = {
+	transform2: function(settings) {return new Transformer2(settings).visit(this)},
 	pretty: function() {return this.id == lcons.id ? pretty(constructEnv(this.ret([]).join(""))) : this.format()},
 	transform: function() {return this.doTransform(new Transformer(arguments))},
 	startTransform: function(transformer) {return transformer.getTransform(this) || this.doTransform(transformer)},
@@ -503,10 +527,10 @@ Lambda.prototype.__proto__ = new Entity({
 		return this.lvar.format(slash, nosubs) + (n ? (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + n : this.body instanceof Lambda ? ' ' + this.body.formatRest(slash, nosubs) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(slash, nosubs))
 	},
 	propagateTransform: function(transformer) {
-		var newVar = this.lvar.startTransform(transformer)
-		var newBod = this.body.startTransform(transformer)
+	    var newVar = this.lvar.startTransform(transformer)
+	    var newBod = this.body.startTransform(transformer)
 
-		return this.make(newVar, newBod)
+	    return this.make(newVar, newBod)
 	},
 	make: function(newVar, newBody) {return (this.lvar == newVar && this.body == newBody && this) || new Lambda(newVar, newBody, this.id)},
 	substitute: function(value) {
@@ -658,10 +682,10 @@ Apply.prototype.__proto__ = new Entity({
 	toString: function() {return "Apply(" + this.func + " " + this.arg + ")"},
 	format: function(slash, nosubs, func, arg) {return (arg ? '(' : '') + this.func.format(slash, nosubs, true, false) + ' ' + this.arg.format(slash, nosubs, func, true) + (arg ? ')' : '')},
 	propagateTransform: function(transformer) {
-		var newFunc = this.func.startTransform(transformer)
-		var newArg = this.arg.startTransform(transformer)
+	    var newFunc = this.func.startTransform(transformer)
+	    var newArg = this.arg.startTransform(transformer)
 
-		return this.make(newFunc, newArg)
+	    return this.make(newFunc, newArg)
 	},
 	make: function(newFunc, newArg) {return (newFunc == this.func && newArg == this.arg && this) || new Apply(newFunc, newArg)},
 	innermost: function(func) {return this.func.isApply() ? new Apply(this.func.innermost(func), this.arg) : func.call(this)},
@@ -685,6 +709,11 @@ var LC = {
     resultCode: function() {},
     wrap: wrap,
     lcode: lcode,
+    pre: pre,
+    post: post,
+    Lambda: Lambda,
+    Variable: Variable,
+    Apply: Apply,
 }
 
 return LC

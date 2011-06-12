@@ -1,71 +1,105 @@
 /*
-a (\x y . x) (c d) e
---------------------
+a (\x . \y . x) (c d) e
+-----------------------
 
-[a,c,d,e]: UseVar(a), NewContext(L, 0), BindContext, NewClosedContext(C, 0), BindContext, BindVar(e), Return
+[a,c,d,e,-]: UseVar(a), BindContext(0, L, false), Memo, BindContext(0, C, true), Memo, BindVarTail(e)
 
-L[x]: NewClosedContext(L2, 1), Inherit(x), UseContext, Return
-L2[x]: UseVar(x), Return
-C[c,d]: UseVar(c), BindVar(d), Return
+L[x](\x . \y . x): UseContext(1, L2), Return
+L2[x,-](\y . x)): UseVar(x), Return
+C[c,d,-](c d): Inherit(c), Inherit(d), UseVar(c), BindVarTail(d)
+
+
+(\x . x) 3
+
+[3,-]((\x . x) 3): Inherit(3), UseContext(0, L), BindVarTail(3)
+L[x](\x . x): UseVar(x), Memo, Return
+
+
+\x . \y . prim(plus)
+
+L[x]: UseContext(1, L2), Return
+L2[y]: UsePrim(plus), Return
+
+
+
+Instructions requiring a following Memo: BindContext, BindVar, UseVar
 
 Registers
   PC: program counter
-  CP: context pointer
+  CP: closure pointer
   FP: function pointer
-  CS: context slot number (used by Inherit)
-  AP: arg pointer
+  CS: new closure slot number (used by Inherit)
+  MP: memo pointer
   SP: stack pointer
 
 
 Stack
-[PC1, CP1, ...]
+  [PC1, CP1, MP1 (FP at call-time, MP at return-time), ...]
+  Execution ends when PC = -1, so the stack starts as: [-1, null, null]
+  Free variables are contexts with -1 for the address, so they cause code to end
+  When code ends, if MP == null, it was successful and the result is in FP
+  If MP != null, that means a variable was executed and it is in MP
+
+Contexts
+  result: result of computation (stored by memo instruction)
+  addr: the address of the code body -- free variables are contexts with -1 as the address
+  isApply: true if it's an apply, false if it's a lambda
+  parent: parent context
+  0: lambda variable
+  1-N: variables from parent contexts
 
 
 Instructions
 
-NewContext(addr, inherit) -- AP = new context, CS = 0
-  addr is address of code
-  inherit is # of parent slots to allocate
-
-NewClosedContext(addr, inherit) -- AP = new closed context, CS = 0
-  addr is address of code
-  inherit is # of parent slots to allocate
-  this context has no value
-
-Inherit(n) -- AP[CS++] = CP[n]
-  n is the index of the slot to inherit
-
-BindContext -- bind current function to arg and reduce it
-  if FP unbound, FP[0] = AP
-  stack[sp++] = PC, stack[sp++] = CP, CP = FP, PC = CP.addr
-
-BindVar(n) -- bind current function to var and reduce it
-  if FP unbound and var(n) is a context with a result, FP[0] = var(n).result
-  else if FP unbound, FP[0] = var(n)
-  stack[sp++] = PC, stack[sp++] = CP, CP = FP, PC = CP.addr
+UseContext(size, addr) -- FP = new context(size, addr)
 
 UseVar(n) -- use var as function
-  if var(n) is a primitive value, a free variable, or an unbound context without a result, FP = var(n)
-  if var(n) is a primitive call, FP = var(n)()
-  if var(n) is a context with a result, FP = var(n).result
-  if var(n) is a bound context without a result, stack[sp++] = PC, stack[sp++] = CP, CP = var(n), PC = CP.addr
-
-UseContext -- FP = AP
-  FP = AP
-
-BindPrimitive(name) -- bind func to lazy prim call and reduce
-  FP unbound, FP[0] = newPrimCall(name, CP)
-  stack[sp++] = PC, stack[sp++] = CP, CP = FP, PC = CP.addr
+  FP = CP[n], MP = 0
+  if FP.isApply
+    if FP.result, FP = FP.result
+    else push(PC), push(CP), push(FP), CP = FP, PC = CP.addr
 
 UsePrimitive(name) -- call primitive and use result as new function
-  FP = newPrimCall(name, CP)()
+  FP = name(vars)
 
-Return -- CP.value = FP, CP = stack[sp--], PC = stack[sp--]
+Inherit(n) -- copy var n into the new closure
+  CP[CS++] = CP.parent[n]
+
+BindContext(size, addr, apply)/BindContextTail -- bind current function to arg and reduce it
+  if FP.result
+    BindContext: FP = FP.result, PC++ (because of following memoize)
+    BindContextTail: FP = FP.result, pop(MP), pop(CP), pop(PC) (result + return)
+  else
+    BindContext: push(PC), push(CP), push(FP), FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
+    BindContextTail: FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
+
+BindVar(n)/BindVarTail(n) -- bind current function to var and reduce it
+  if FP.result
+    BindVar: FP = FP.result, PC++ (because of following memoize)
+    BindVarTail: FP = FP.result, pop(MP), pop(CP), pop(PC) (result + return)
+  else
+    BindVar: push(PC), push(CP), push(FP), FP[0] = CP[n], CP = FP, PC = CP.addr
+    BindVarTail: FP[0] = CP[n], CP = FP, PC = CP.addr
+
+Memo -- store result in function that just executed
+  MP.result = FP
+
+Return -- return from call
+  MP = stack[sp--], CP = stack[sp--], PC = stack[sp--]
 
 
-Contexts
+=== TODO ===
 
-Context: [result, addr, val0, val1, ...]
+* Put flag in context to indicate if it's ever bound to a variable
+  Contexts which are never bound may be able to be collected quickly
+
+* Potential optimization -- add PP register, InheritParent and DerefParent
+
+\1 . \2 . \3 . 1
+
+L1[1]: UseContext(-1, L2), return
+L2[2]: UseContext(1, L3), return
+L3[1, 3]: InheritParent, DerefParent, Inherit(0), Deref, UseVar(1), Return
 
 */
 
@@ -76,102 +110,143 @@ LC = (function(){
     var stack = []
     var pc = 0
     var cp = null
-    var ncp = null
-    var ncs = 0
-    var sp = 0
-    var contexts = []	// free list for contexts
+    var fp = null
+    var cs = 0
+    var mp = null
+
     //OPCODES
-    var NEW_CONTEXT = 0
-    var NEW_CLOSED_CONTEXT = 1
-    var INHERIT = 2
-    var BIND_CONTEXT = 3
-    var BIND_VAR = 4
-    var USE_VAR = 5
-    var USE_CONTEXT = 6
-    var BIND_PRIM = 7
+    var INHERIT = 1
+    var BIND_CONTEXT = 2
+    var BIND_CONTEXT_TAIL = 3
+    var USE_CONTEXT = 4
+    var BIND_VAR = 5
+    var BIND_VAR_TAIL = 6
+    var USE_VAR = 7
     var USE_PRIM = 8
-    var RETURN = 9
+    var MEMO = 9
+    var RETURN = 10
 
-    // primitive values are 31 bits
-    // normal data is 28 bit addrs (aligned on 16 byte boundaries)
+    function addLabel(name) {labels[name] = code.length}
+    function addCode() { // addCode(instr, arg ...)
+	code.push.apply(code, arguments)
+    }
 
-    //DATA TYPES -- bottom 3 bits of data
-    var PRIMITVE = 0
-    var CONTEXT = 1
-    var FREE_VARIABLE = 3
-    var PRIM_CALL = 5
-    // nothing for value 7
-
-    //REF FLAGS -- 4th bit of a non-primitive value
-    var FREE = 0
-    var REFFED = 8
-
-/*
-check out ptmalloc3 for the native compiler http://www.malloc.de/en/index.html
-
-values:
-primitive value: [type + value]
-free variable value: [type + ref flag + id]
-context value: [type + ref flag + addr] -> [bound?, code addr, var ...] -- if bound, apply throws away argument during apply
-application value: [type + ref flag + addr] -> [0 or value, context addr, value] -- if value == 0, application is still needed
-
-
-
-code: ... index ... opcode ... -- the compiler/linker should know how large index is
-stack: [... ct pc value] or [... ct pc func arg]
-apply: [... ct pc func arg] -> [... ct pc ct2 pc2] or [... ct pc value func arg] -> [... ct pc value ct2 pc2]
-return: [... ct pc ct2 pc2 value] -> [... ct pc value] or [... ct pc value ct2 pc2 value] -> [... ct pc func arg]
-
-
-
-example code:
-t = \x y . x
-f = \x y . y
-and = \a b . a b a
-
-main = and t (and t f)
-
---> (code is label: ops or label: [indices] ops. label can be name or name[drop], which is compiler info that indicates to use lambdacp instead of lambda)
-
-t: RLAMBDA0(t2, 0) -- CP to throw y away
-t2[drop]: RVAR(0) -- 0 because y was thrown away
-f[drop]: RLAMBDA(f2, 0) -- 0 because it uses no parent vars
-f2: RVAR(0)
-and: RLAMBDA(and2, 1)
-and2: [0] VAR(1), VAR(0), APPLY, VAR(1), TAPPLY
-main: LAMBDACP(and), LAMBDACP(t), APPLY, LAMBDACP(main2), TAPPLY
-main2: LAMBDACP(and), LAMBDACP(t), APPLY, LAMBDACP(f), TAPPLY
-
-A bytecode verifier can ensure that TAPPLY and R-- opcodes only appear at the end of a code body
-*/
-
-    for (var i = 0; i < 256; i++) contexts[i] = []
-
-    function label(name) {labels[name] = code.length}
+    function Context(size, addr) {
+	this.addr = addr
+	this.parent = cp
+    }
 
     function execute(label) {
 	var len = code.length
 
-	stack = []
-	stack.push(nil, -1)
-	sp = 1
+	stack = [-1, null, null]
 	pc = labels[label]
 	while (pc > -1) {
 	    switch (code[pc++]) {
-	    case NEW_CONTEXT:
-	    case NEW_CLOSED_CONTEXT:
-	    case INHERIT:
-	    case BIND_CONTEXT:
-	    case BIND_VAR:
-	    case BIND_PRIM:
-	    case USE_VAR:
 	    case USE_CONTEXT:
+		var size = code[pc++]
+		fp = new Context(size, code[pc++])
+		break;
+	    case USE_VAR:
+		fp = cp[code[pc++]]
+		if (fp.isApply) {
+		    if (fp.result) {
+			fp = fp.result
+		    } else {
+			stack.push(pc, cp, fp)
+			cp = fp
+			pc = cp.addr
+		    }
+		}
+		break
 	    case USE_PRIM:
+		fp = code[pc++].apply(null, cp)
+		break
+	    case INHERIT:
+		cp[cs++] = cp.parent[code[pc++]]
+		break
+	    case BIND_CONTEXT:
+		if (fp.result) {
+		    fp = fp.result
+		    pc++
+		} else {
+		    var size = code[pc++]
+		    var addr = code[pc++]
+		    var apply = code[pc++]
+		    stack.push(pc, cp, fp)
+		    fp[0] = new Context(size, addr, apply)
+		    cp = fp
+		    pc = cp.addr
+		}
+		break
+	    case BIND_CONTEXT_TAIL:
+		if (fp.result) {
+		    fp = fp.result
+		    mp = stack.pop()
+		    cp = stack.pop()
+		    pc = stack.pop()
+		} else {
+		    var size = code[pc++]
+		    var addr = code[pc++]
+		    var apply = code[pc++]
+		    fp[0] = new Context(size, addr, apply)
+		    cp = fp
+		    pc = cp.addr
+		}
+		break
+	    case BIND_VAR:
+		if (fp.result) {
+		    fp = fp.result
+		    pc++
+		} else {
+		    var varNum = code[pc++]
+		    push(pc, cp, fp)
+		    fp[0] = cp[varNum]
+		    cp = fp
+		    pc = cp.addr
+		}
+		break
+	    case BIND_VAR_TAIL:
+		if (fp.result) {
+		    fp = fp.result
+		    mp = stack.pop()
+		    cp = stack.pop()
+		    pc = stack.pop()
+		} else {
+		    var varNum = code[pc++]
+		    fp[0] = cp[varNum]
+		    cp = fp
+		    pc = cp.addr
+		}
+		break
+	    case MEMO:
+		MP.result = FP
+		break
 	    case RETURN:
+		mp = stack.pop()
+		cp = stack.pop()
+		pc = stack.pop()
+		break
 	    }
 	}
     }
 
+    LC.Lambda.gen = function() {
+    }
+
     return {
+	addLabel: addLabel,
+	addCode: addCode,
+	USE_CONTEXT: USE_CONTEXT,
+	USE_VAR: USE_VAR,
+	USE_PRIM: USE_PRIM,
+	INHERIT: INHERIT,
+	BIND_CONTEXT: BIND_CONTEXT,
+	BIND_CONTEXT_TAIL: BIND_CONTEXT_TAIL,
+	BIND_VAR: BIND_VAR,
+	BIND_VAR_TAIL: BIND_VAR_TAIL,
+	MEMO: MEMO,
+	RETURN: RETURN,
+	gen: gen,
     }
 })()
