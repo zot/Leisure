@@ -79,7 +79,7 @@ function displayOutput() {
 	for (var index = 0; index < LC.order.length; index++) {
 		var expr = LC.order[index]
 
-		outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button><button onclick='compileVM(LC.order[" + index + "])'>VM</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true) + "</div>")
+		outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button><button onclick='compileVM(LC.order[" + index + "].expr)'>VM</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true) + "</div>")
 	}
 	output.innerHTML = outputs.join('')
 	output.lastChild.scrollIntoView()
@@ -96,7 +96,7 @@ function compileVM(expr) {
 		var addr = VM.addrs[i]
 
 		if (addr) {
-			results.push("<tr><td><b>", addr.match('.*-' + expr.id + '$') ? "main" : addr, "</b></td><td>")
+			results.push("<tr><td><b>", addr.match('APPLY-' + expr.id + '$') ? "main" : addr, "</b></td><td>")
 		} else {
 			results.push("<tr><td></td><td>")
 		}
