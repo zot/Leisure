@@ -140,16 +140,17 @@ VM = (function(){
 	this.parent = cp
     }
 
-    function execute(label) {
-	var len = code.length
-
+    function execute(label, comp) {
+	labels = comp.labels
+	addrs = comp.addrs
+	code = comp.code
 	stack = [-1, null, null]
 	pc = labels[label]
 	while (pc > -1) {
 	    switch (code[pc++]) {
 	    case USE_CONTEXT:
-		var size = code[pc++]
 		var addr = code[pc++]
+		var size = code[pc++]
 		fp = new Context(size, addr, code[pc++])
 		break;
 	    case USE_VAR:
@@ -175,8 +176,8 @@ VM = (function(){
 		    fp = fp.result
 		    pc++
 		} else {
-		    var size = code[pc++]
 		    var addr = code[pc++]
+		    var size = code[pc++]
 		    var apply = code[pc++]
 		    stack.push(pc, cp, fp)
 		    fp[0] = new Context(size, addr, apply)
@@ -191,8 +192,8 @@ VM = (function(){
 		    cp = stack.pop()
 		    pc = stack.pop()
 		} else {
-		    var size = code[pc++]
 		    var addr = code[pc++]
+		    var size = code[pc++]
 		    var apply = code[pc++]
 		    fp[0] = new Context(size, addr, apply)
 		    cp = fp
@@ -224,7 +225,7 @@ VM = (function(){
 		}
 		break
 	    case MEMO:
-		MP.result = FP
+		mp.result = fp
 		break
 	    case RETURN:
 		mp = stack.pop()
@@ -233,6 +234,7 @@ VM = (function(){
 		break
 	    }
 	}
+	return {mp: mp, fp: fp}
     }
 
     function Cons(a, b) {
@@ -247,18 +249,18 @@ VM = (function(){
 	var result = expr.gen([], null, true)
 	addLabel("APPLY-" + expr.id)
 	code.push.apply(code, result.instructions)
+	return {expr: expr, code: code, addrs: addrs, labels: labels}
     }
 
     LC.Lambda.prototype.__proto__.gen = function(instructions, parents, top) {
 	var bodyCode = this.body.gen([], new Cons(this, parents), true)
+	var start = instructions.length == 0
 
 	addLabel("LAMBDA-" + this.id)
-	if (!instructions.length) {
-	    instructions.push(USE_CONTEXT, bodyCode.size + 1, code.length, false)
-	} else {
-	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, bodyCode.size + 1, code.length, false)
-	}
+	instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, bodyCode.size + 1, false)
 	code.push.apply(code, bodyCode.instructions)
+	if (!(top || start)) instructions.push(MEMO)
+	if (start && top) instructions.push(RETURN)
 	return {size: Math.max(0, bodyCode.size - 1), instructions: instructions}
     }
 
@@ -267,36 +269,42 @@ VM = (function(){
     }
 
     LC.Variable.prototype.__proto__.gen = function(instructions, parents, top) {
+	var start = instructions.length == 0
+	var vn = 0
+
+//	alert("generate inherits")
 	if (this.free) {
 	    addLabel("FREE-VAR-" + this.id)
-	    instructions.push(instructions.length ? BIND_CONTEXT : USE_CONTEXT, 0, -this.id, true)
-	    return {size: 0, instructions: instructions}
+	    instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, -this.id, 0, true)
 	} else {
-	    var vn = varNum(this.id, parents)
-
+	    vn = varNum(this.id, parents)
 	    instructions.push(instructions.length == 0 ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR, vn)
-	    return {size: vn, instructions: instructions}
 	}
+	if (!(top || start)) instructions.push(MEMO)
+	if (start && top) instructions.push(RETURN)
+	return {size: vn, instructions: instructions}
     }
 
     LC.Apply.prototype.__proto__.gen = function(instructions, parents, top) {
 	var funcCode = this.func.gen(instructions, parents, false)
+	var aCode
 
+//	alert("generate inherits")
 	if (this.arg instanceof LC.Apply) {
-	    var aCode = this.arg.gen([], parents, true)
-
+	    aCode = this.arg.gen([], parents, true)
 	    addLabel("APPLY-" + this.arg.id)
-	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, aCode.size, code.length, true)
+	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, aCode.size, true)
+	    if (!top) instructions.push(MEMO)
 	    code.push.apply(code, aCode.instructions)
 	} else {
-	    var aCode = this.arg.gen(instructions, parents, top)
-
-	    return {size: Math.max(funcCode.size, aCode.size), instructions: instructions}
+	    aCode = this.arg.gen(instructions, parents, top)
 	}
+	return {size: Math.max(funcCode.size, aCode.size), instructions: instructions}
     }
 
     var obj = {
 	gen: gen,
+	execute: execute,
 	code: code,
 	addrs: addrs,
 	INHERIT: INHERIT,

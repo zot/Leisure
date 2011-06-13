@@ -49,6 +49,7 @@ var showDebug = false
 var showSubs = true
 var results = []
 var docMsg = true
+var compilations = {}
 
 function setShowDebug(state) {
 	showDebug = state
@@ -88,51 +89,59 @@ function runFunc(index) {
 	LC.runFunc(index)
 	displayResults(results.length && docMsg)
 }
+function runVm(id) {
+	var result = VM.execute("APPLY-" + compilations[id].expr.id, compilations[id])
+
+	results.push("<b>Execute:</b> ", compilations[id].expr.format(false, true), "<br><b>MP:</b> ", result.mp, "<br><b>FP:</b> ", result.fp, "<br><br>")
+	displayResults(results.length && docMsg)
+}
 function compileVM(expr) {
-	results.push("<b>Compile:</b> ", expr.format(false, true), "<table>")
 	expr = expr.globalSub()
-	VM.gen(expr)
-	for (var i = 0; i < VM.code.length; ) {
-		var addr = VM.addrs[i]
+	results.push("<b>Compile:</b> ", expr.format(false, true), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
+	var comp = VM.gen(expr)
+	compilations[expr.id] = comp
+	for (var i = 0; i < comp.code.length; ) {
+		var addr = comp.addrs[i]
 
 		if (addr) {
 			results.push("<tr><td><b>", addr.match('APPLY-' + expr.id + '$') ? "main" : addr, "</b></td><td>")
 		} else {
 			results.push("<tr><td></td><td>")
 		}
-		switch(VM.code[i++]) {
+		results.push("&nbsp;<b>", i, "</b>&nbsp;</td><td>")
+		switch(comp.code[i++]) {
 		case VM.USE_CONTEXT:
-			var size = VM.code[i++]
-			var addr = VM.code[i++]
-			var label = addr >= 0 ? VM.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
-			results.push("USE_CONTEXT ", size, " ", label, " ", VM.code[i++])
+			var addr = comp.code[i++]
+			var size = comp.code[i++]
+			var label = addr >= 0 ? comp.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("USE_CONTEXT ", label, " ", size, " ", comp.code[i++])
 			break
 		case VM.USE_VAR:
-			results.push("USE_VAR ", VM.code[i++])
+			results.push("USE_VAR ", comp.code[i++])
 			break
 		case VM.USE_PRIM:
-			results.push("USE_PRIM ", VM.code[i++])
+			results.push("USE_PRIM ", comp.code[i++])
 			break
 		case VM.INHERIT:
-			results.push("INHERIT ", VM.code[i++])
+			results.push("INHERIT ", comp.code[i++])
 			break
 		case VM.BIND_CONTEXT:
-			var size = VM.code[i++]
-			var addr = VM.code[i++]
-			var label = addr >= 0 ? VM.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
-			results.push("BIND_CONTEXT ", size, " ", label, " ", VM.code[i++])
+			var addr = comp.code[i++]
+			var size = comp.code[i++]
+			var label = addr >= 0 ? comp.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("BIND_CONTEXT ", label, " ", size, " ", comp.code[i++])
 			break
 		case VM.BIND_CONTEXT_TAIL:
-			var size = VM.code[i++]
-			var addr = VM.code[i++]
-			var label = addr >= 0 ? VM.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
-			results.push("BIND_CONTEXT_TAIL ", size, " ", label, " ", VM.code[i++])
+			var addr = comp.code[i++]
+			var size = comp.code[i++]
+			var label = addr >= 0 ? comp.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("BIND_CONTEXT_TAIL ", label, " ", size, " ", comp.code[i++])
 			break
 		case VM.BIND_VAR:
-			results.push("BIND_VAR ", VM.code[i++])
+			results.push("BIND_VAR ", comp.code[i++])
 			break
 		case VM.BIND_VAR_TAIL:
-			results.push("BIND_VAR_TAIL ", VM.code[i++])
+			results.push("BIND_VAR_TAIL ", comp.code[i++])
 			break
 		case VM.MEMO:
 			results.push("MEMO")
