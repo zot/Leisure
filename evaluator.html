@@ -89,9 +89,9 @@ function runFunc(index) {
 	displayResults(results.length && docMsg)
 }
 function compileVM(expr) {
+	results.push("<b>Compile:</b> ", expr.format(false, true), "<table>")
 	expr = expr.globalSub()
 	VM.gen(expr)
-	results.push("<table>")
 	for (var i = 0; i < VM.code.length; ) {
 		var addr = VM.addrs[i]
 
