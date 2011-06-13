@@ -40,6 +40,7 @@ misrepresented as being the original software.
 }
 </style>
 <script src="lc.js"></script>
+<script src="lcvm.js"></script>
 <script>
 var def
 var output
@@ -78,14 +79,72 @@ function displayOutput() {
 	for (var index = 0; index < LC.order.length; index++) {
 		var expr = LC.order[index]
 
-		outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true) + "</div>")
+		outputs.push("<div><button onclick='editFunc(\"" + expr.name + "\", \"" + expr.formatSlash(true).replace(/\\/g, '\\\\') + "\")'>Edit</button> <button onclick='runFunc(\"" + index + "\")'>Run</button><button onclick='runReduce(LC.order[" + index + "].expr)'>Reduce</button><button onclick='compileVM(LC.order[" + index + "])'>VM</button> <b>" + (expr.name  ? expr.name + ':' : '') + '</b>&nbsp;&nbsp;' + expr.expr.format(false, true) + "</div>")
 	}
 	output.innerHTML = outputs.join('')
 	output.lastChild.scrollIntoView()
 }
 function runFunc(index) {
 	LC.runFunc(index)
-	displayResults(results.length && docMsg);
+	displayResults(results.length && docMsg)
+}
+function compileVM(expr) {
+	expr = expr.globalSub()
+	VM.gen(expr)
+	results.push("<table>")
+	for (var i = 0; i < VM.code.length; ) {
+		var addr = VM.addrs[i]
+
+		if (addr) {
+			results.push("<tr><td><b>", addr.match('.*-' + expr.id + '$') ? "main" : addr, "</b></td><td>")
+		} else {
+			results.push("<tr><td></td><td>")
+		}
+		switch(VM.code[i++]) {
+		case VM.USE_CONTEXT:
+			var size = VM.code[i++]
+			var addr = VM.code[i++]
+			var label = addr >= 0 ? VM.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("USE_CONTEXT ", size, " ", label, " ", VM.code[i++])
+			break
+		case VM.USE_VAR:
+			results.push("USE_VAR ", VM.code[i++])
+			break
+		case VM.USE_PRIM:
+			results.push("USE_PRIM ", VM.code[i++])
+			break
+		case VM.INHERIT:
+			results.push("INHERIT ", VM.code[i++])
+			break
+		case VM.BIND_CONTEXT:
+			var size = VM.code[i++]
+			var addr = VM.code[i++]
+			var label = addr >= 0 ? VM.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("BIND_CONTEXT ", size, " ", label, " ", VM.code[i++])
+			break
+		case VM.BIND_CONTEXT_TAIL:
+			var size = VM.code[i++]
+			var addr = VM.code[i++]
+			var label = addr >= 0 ? VM.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("BIND_CONTEXT_TAIL ", size, " ", label, " ", VM.code[i++])
+			break
+		case VM.BIND_VAR:
+			results.push("BIND_VAR ", VM.code[i++])
+			break
+		case VM.BIND_VAR_TAIL:
+			results.push("BIND_VAR_TAIL ", VM.code[i++])
+			break
+		case VM.MEMO:
+			results.push("MEMO")
+			break
+		case VM.RETURN:
+			results.push("RETURN")
+			break
+		}
+		results.push("</td></tr>")
+	}
+	results.push("</table>")
+	displayResults(results.length && docMsg)
 }
 function resultCode(expr, res, index) {
 	var subs = expr.format()
@@ -95,7 +154,7 @@ function resultCode(expr, res, index) {
 	if (lam) {
 		res = "<span class='subs'>" + LC.pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
 	}
-	results.push("<div><b><span class='dollar'>$: </span>$", index, ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(LC.historyExprs[", index, "])'>Reduce</button><span class='subs'>", subs, "</span><span class='nosubs'>", nosubs, "</span>&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", res, "<br><br></div>")
+	results.push("<div><b><span class='dollar'>$: </span>$", index, ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(LC.historyExprs[", index, "])'>Reduce</button><button onclick='compileVM(LC.historyExprs[" + index + "])'>VM</button><span class='subs'>", subs, "</span><span class='nosubs'>", nosubs, "</span>&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", res, "<br><br></div>")
 }
 function formatExpr(label, expr) {
 	results.push("<div><b>" + label + ":</b> " + formatSubexpr(expr) + "</div>")
@@ -193,7 +252,7 @@ function input() {
 	if (LC.evalLine(def.value)) {
 		displayOutput()
 	}
-	displayResults(results.length && docMsg);
+	displayResults(results.length && docMsg)
 	def.value = ''
 }
 function editFunc(name, expr) {

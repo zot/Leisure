@@ -47,7 +47,7 @@ function loadDefs(defs) {
 
 	LC.exprs = exprs = {}
 	LC.code = {}
-	lambdas = {}
+	LC.lambdas = lambdas = {}
 	hashed = {}
 	LC.order = order = []
 	funcCount = 1
@@ -703,6 +703,7 @@ var LC = {
     evalLine: evalLine,
     reduce: reduce,
     order: order,
+    lambdas: lambdas,
     historyExprs: [],
     pretty: pretty,
     output: function() {},

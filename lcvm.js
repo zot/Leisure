@@ -35,7 +35,7 @@ Registers
 
 Stack
   [PC1, CP1, MP1 (FP at call-time, MP at return-time), ...]
-  Execution ends when PC = -1, so the stack starts as: [-1, null, null]
+  Execution ends when PC < 0, so the stack starts as: [-1, null, null]
   Free variables are contexts with -1 for the address, so they cause code to end
   When code ends, if MP == null, it was successful and the result is in FP
   If MP != null, that means a variable was executed and it is in MP
@@ -104,9 +104,10 @@ L3[1, 3]: InheritParent, DerefParent, Inherit(0), Deref, UseVar(1), Return
 */
 
 
-LC = (function(){
+VM = (function(){
     var code = []
     var labels = {}	// label -> code offset
+    var addrs = {}	// addr -> label, for decoding functions
     var stack = []
     var pc = 0
     var cp = null
@@ -126,7 +127,10 @@ LC = (function(){
     var MEMO = 9
     var RETURN = 10
 
-    function addLabel(name) {labels[name] = code.length}
+    function addLabel(name) {
+	labels[name] = code.length
+	addrs[code.length] = name
+    }
     function addCode() { // addCode(instr, arg ...)
 	code.push.apply(code, arguments)
     }
@@ -145,7 +149,8 @@ LC = (function(){
 	    switch (code[pc++]) {
 	    case USE_CONTEXT:
 		var size = code[pc++]
-		fp = new Context(size, code[pc++])
+		var addr = code[pc++]
+		fp = new Context(size, addr, code[pc++])
 		break;
 	    case USE_VAR:
 		fp = cp[code[pc++]]
@@ -195,11 +200,10 @@ LC = (function(){
 		}
 		break
 	    case BIND_VAR:
+		var varNum = code[pc++]
 		if (fp.result) {
 		    fp = fp.result
-		    pc++
 		} else {
-		    var varNum = code[pc++]
 		    push(pc, cp, fp)
 		    fp[0] = cp[varNum]
 		    cp = fp
@@ -231,22 +235,81 @@ LC = (function(){
 	}
     }
 
-    LC.Lambda.gen = function() {
+    function Cons(a, b) {
+	this.car = a
+	this.cdr = b
     }
 
-    return {
-	addLabel: addLabel,
-	addCode: addCode,
-	USE_CONTEXT: USE_CONTEXT,
-	USE_VAR: USE_VAR,
-	USE_PRIM: USE_PRIM,
+    function gen(expr) {
+	obj.code = code = []
+	obj.addrs = addrs = {}
+	labels = {}
+	var result = expr.gen([], null, true)
+	addLabel("APPLY-" + expr.id)
+	code.push.apply(code, result.instructions)
+    }
+
+    LC.Lambda.prototype.__proto__.gen = function(instructions, parents, top) {
+	var bodyCode = this.body.gen([], new Cons(this, parents), true)
+
+	addLabel("LAMBDA-" + this.id)
+	if (!instructions.length) {
+	    instructions.push(USE_CONTEXT, bodyCode.size + 1, code.length, false)
+	} else {
+	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, bodyCode.size + 1, code.length, false)
+	}
+	code.push.apply(code, bodyCode.instructions)
+	return {size: Math.max(0, bodyCode.size - 1), instructions: instructions}
+    }
+
+    function varNum(id, parents) {
+	return id == parents.car.lvar.id ? 0 : 1 + varNum(id, parents.cdr)
+    }
+
+    LC.Variable.prototype.__proto__.gen = function(instructions, parents, top) {
+	if (this.free) {
+	    addLabel("FREE-VAR-" + this.id)
+	    instructions.push(instructions.length ? BIND_CONTEXT : USE_CONTEXT, 0, -this.id, true)
+	    return {size: 0, instructions: instructions}
+	} else {
+	    var vn = varNum(this.id, parents)
+
+	    instructions.push(instructions.length == 0 ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR, vn)
+	    return {size: vn, instructions: instructions}
+	}
+    }
+
+    LC.Apply.prototype.__proto__.gen = function(instructions, parents, top) {
+	var funcCode = this.func.gen(instructions, parents, false)
+
+	if (this.arg instanceof LC.Apply) {
+	    var aCode = this.arg.gen([], parents, true)
+
+	    addLabel("APPLY-" + this.arg.id)
+	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, aCode.size, code.length, true)
+	    code.push.apply(code, aCode.instructions)
+	} else {
+	    var aCode = this.arg.gen(instructions, parents, top)
+
+	    return {size: Math.max(funcCode.size, aCode.size), instructions: instructions}
+	}
+    }
+
+    var obj = {
+	gen: gen,
+	code: code,
+	addrs: addrs,
 	INHERIT: INHERIT,
 	BIND_CONTEXT: BIND_CONTEXT,
 	BIND_CONTEXT_TAIL: BIND_CONTEXT_TAIL,
+	USE_CONTEXT: USE_CONTEXT,
 	BIND_VAR: BIND_VAR,
 	BIND_VAR_TAIL: BIND_VAR_TAIL,
+	USE_VAR: USE_VAR,
+	USE_PRIM: USE_PRIM,
 	MEMO: MEMO,
 	RETURN: RETURN,
-	gen: gen,
     }
+
+    return obj
 })()
