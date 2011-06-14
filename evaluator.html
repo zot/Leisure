@@ -92,7 +92,7 @@ function runFunc(index) {
 function runVm(id) {
 	var result = VM.execute("APPLY-" + compilations[id].expr.id, compilations[id])
 
-	results.push("<b>Execute:</b> ", compilations[id].expr.format(false, true), "<br><b>MP:</b> ", result.mp, "<br><b>FP:</b> ", result.fp, "<br><br>")
+	results.push("<b>Execute:</b> ", compilations[id].expr.format(false, true), "<br><b>MP:</b> ", result.mp, "<br><b>FP:</b> ", VM.source[result.fp.addr].format(), "<br><br>")
 	displayResults(results.length && docMsg)
 }
 function compileVM(expr) {
@@ -121,6 +121,9 @@ function compileVM(expr) {
 			break
 		case VM.USE_PRIM:
 			results.push("USE_PRIM ", comp.code[i++])
+			break
+		case VM.CLEAR_CS:
+			results.push("CLEAR_CS")
 			break
 		case VM.INHERIT:
 			results.push("INHERIT ", comp.code[i++])

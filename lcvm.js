@@ -6,12 +6,12 @@ a (\x . \y . x) (c d) e
 
 L[x](\x . \y . x): UseContext(1, L2), Return
 L2[x,-](\y . x)): UseVar(x), Return
-C[c,d,-](c d): Inherit(c), Inherit(d), UseVar(c), BindVarTail(d)
+C[c,d,-](c d): ClearCs, Inherit(c), Inherit(d), UseVar(c), BindVarTail(d)
 
 
 (\x . x) 3
 
-[3,-]((\x . x) 3): Inherit(3), UseContext(0, L), BindVarTail(3)
+[3,-]((\x . x) 3): ClearCs, Inherit(3), UseContext(0, L), BindVarTail(3)
 L[x](\x . x): UseVar(x), Memo, Return
 
 
@@ -62,6 +62,9 @@ UseVar(n) -- use var as function
 UsePrimitive(name) -- call primitive and use result as new function
   FP = name(vars)
 
+ClearCs -- set context slot register to 1 for inherit to use
+  CS = 1
+
 Inherit(n) -- copy var n into the new closure
   CP[CS++] = CP.parent[n]
 
@@ -108,6 +111,7 @@ VM = (function(){
     var code = []
     var labels = {}	// label -> code offset
     var addrs = {}	// addr -> label, for decoding functions
+    var source = {}	// addr -> expr, for decoding functions
     var stack = []
     var pc = 0
     var cp = null
@@ -116,6 +120,7 @@ VM = (function(){
     var mp = null
 
     //OPCODES
+    var CLEAR_CS = 0
     var INHERIT = 1
     var BIND_CONTEXT = 2
     var BIND_CONTEXT_TAIL = 3
@@ -127,9 +132,10 @@ VM = (function(){
     var MEMO = 9
     var RETURN = 10
 
-    function addLabel(name) {
+    function addLabel(name, expr) {
 	labels[name] = code.length
 	addrs[code.length] = name
+	source[code.length] = expr
     }
     function addCode() { // addCode(instr, arg ...)
 	code.push.apply(code, arguments)
@@ -144,6 +150,7 @@ VM = (function(){
 	labels = comp.labels
 	addrs = comp.addrs
 	code = comp.code
+	source = comp.source
 	stack = [-1, null, null]
 	pc = labels[label]
 	while (pc > -1) {
@@ -167,6 +174,9 @@ VM = (function(){
 		break
 	    case USE_PRIM:
 		fp = code[pc++].apply(null, cp)
+		break
+	    case CLEAR_CS:
+		cs = 1
 		break
 	    case INHERIT:
 		cp[cs++] = cp.parent[code[pc++]]
@@ -237,69 +247,116 @@ VM = (function(){
 	return {mp: mp, fp: fp}
     }
 
-    function Cons(a, b) {
-	this.car = a
-	this.cdr = b
+    function cons(a, b) {return {car: a, cdr: b}}
+
+    function index(list, element) {
+	return list == null ? -1 : list.car == element ? 0 : 1 + index(list.cdr, element)
+    }
+
+    function contains(list, element) {return index(list, element) + 1}
+
+    function remove(list, el) {
+	if (list == null) return null
+	var result = remove(list.cdr, el)
+	return list.car == el? result : list.cdr == result ? list : cons (list.car, result)
+    }
+
+    function length(list) {
+	return list == null ? 0 : 1 + length(list.cdr)
+    }
+
+    function reverse(list, res) {
+	return list == null ? res : reverse(list.cdr, cons(list.car, res))
+    }
+
+    function merge(list1, list2) {
+	return list1 == null ? list2 : merge(list1.cdr, index(list2, list1.car) == -1 ? cons(list1.car, list2) : list2)
     }
 
     function gen(expr) {
 	obj.code = code = []
 	obj.addrs = addrs = {}
+	obj.source = source = {}
 	labels = {}
-	var result = expr.gen([], null, true)
-	addLabel("APPLY-" + expr.id)
+	var result = expr.gen([], null, null, true)
+	addLabel("APPLY-" + expr.id, expr)
 	code.push.apply(code, result.instructions)
-	return {expr: expr, code: code, addrs: addrs, labels: labels}
+	return {expr: expr, code: code, addrs: addrs, source: source, labels: labels}
     }
 
-    LC.Lambda.prototype.__proto__.gen = function(instructions, parents, top) {
-	var bodyCode = this.body.gen([], new Cons(this, parents), true)
+    function inherit(vars, parentVars) {
+	if (vars != null) {
+	    code.push(CLEAR_CS)
+	    genInherit(vars, parentVars)
+	}
+    }
+
+    function genInherit(vars, parentVars) {
+	if (vars != null) {
+	    code.push(INHERIT, index(parentVars, vars.car))
+	    genInherit(vars.cdr, parentVars)
+	}
+    }
+
+    LC.Lambda.prototype.__proto__.gen = function(instructions, parent, vars, top) {
+	var bodyCode = this.body.gen([], this.lvar, null, true)
+	var bodyVars = remove(bodyCode.vars, this.lvar)
 	var start = instructions.length == 0
 
-	addLabel("LAMBDA-" + this.id)
-	instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, bodyCode.size + 1, false)
+	vars = merge(bodyVars, vars)
+	addLabel("LAMBDA-" + this.id, this)
+	instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, length(bodyVars) + 1, false)
+	inherit(bodyVars, reverse(vars))
 	code.push.apply(code, bodyCode.instructions)
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
-	return {size: Math.max(0, bodyCode.size - 1), instructions: instructions}
+	return {instructions: instructions, vars: vars}
     }
 
-    function varNum(id, parents) {
-	return id == parents.car.lvar.id ? 0 : 1 + varNum(id, parents.cdr)
-    }
-
-    LC.Variable.prototype.__proto__.gen = function(instructions, parents, top) {
+    LC.Apply.prototype.__proto__.gen = function(instructions, parents, vars, top) {
 	var start = instructions.length == 0
-	var vn = 0
+	var funcCode = this.func.gen(instructions, parent, vars, false)
+	var aCode
 
-//	alert("generate inherits")
-	if (this.free) {
-	    addLabel("FREE-VAR-" + this.id)
-	    instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, -this.id, 0, true)
+	vars = merge(funcCode.vars, vars)
+	if (this.arg instanceof LC.Apply) {
+	    aCode = this.arg.gen([], null, null, true)
+	    vars = merge(aCode.vars, vars)
+	    addLabel("APPLY-" + this.arg.id, this.arg)
+	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, length(aCode.vars), true)
+	    if (!top) instructions.push(MEMO)
+	    inherit(aCode.vars, reverse(vars))
+	    code.push.apply(code, aCode.instructions)
 	} else {
-	    vn = varNum(this.id, parents)
+	    aCode = this.arg.gen(instructions, parent, vars, top)
+	    vars = aCode.vars
+	}
+	return {instructions: instructions, vars: vars}
+    }
+
+    LC.Variable.prototype.__proto__.gen = function(instructions, parent, vars, top) {
+	var start = instructions.length == 0
+
+	if (this.free) {
+	    instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, -this.id, 0, true)
+	    source[-this.id] = this
+	} else {
+	    var vn
+
+	    if (parent == this) {
+		vn = 0
+	    } else {
+		vn = index(reverse(vars), this) + 1
+		if (!vn) {
+		    vars = cons(this, vars)
+		    vn = length(vars)
+		}
+	    }
 	    instructions.push(instructions.length == 0 ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR, vn)
 	}
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
-	return {size: vn, instructions: instructions}
-    }
-
-    LC.Apply.prototype.__proto__.gen = function(instructions, parents, top) {
-	var funcCode = this.func.gen(instructions, parents, false)
-	var aCode
-
-//	alert("generate inherits")
-	if (this.arg instanceof LC.Apply) {
-	    aCode = this.arg.gen([], parents, true)
-	    addLabel("APPLY-" + this.arg.id)
-	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, aCode.size, true)
-	    if (!top) instructions.push(MEMO)
-	    code.push.apply(code, aCode.instructions)
-	} else {
-	    aCode = this.arg.gen(instructions, parents, top)
-	}
-	return {size: Math.max(funcCode.size, aCode.size), instructions: instructions}
+	return {instructions: instructions, vars: vars}
     }
 
     var obj = {
@@ -307,6 +364,8 @@ VM = (function(){
 	execute: execute,
 	code: code,
 	addrs: addrs,
+	source: source,
+	CLEAR_CS: CLEAR_CS,
 	INHERIT: INHERIT,
 	BIND_CONTEXT: BIND_CONTEXT,
 	BIND_CONTEXT_TAIL: BIND_CONTEXT_TAIL,
