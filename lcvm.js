@@ -6,12 +6,12 @@ a (\x . \y . x) (c d) e
 
 L[x](\x . \y . x): UseContext(1, L2), Return
 L2[x,-](\y . x)): UseVar(x), Return
-C[c,d,-](c d): ClearCs, Inherit(c), Inherit(d), UseVar(c), BindVarTail(d)
+C[c,d,-](c d): SetCs 0, Inherit(c), Inherit(d), UseVar(c), BindVarTail(d)
 
 
 (\x . x) 3
 
-[3,-]((\x . x) 3): ClearCs, Inherit(3), UseContext(0, L), BindVarTail(3)
+[3,-]((\x . x) 3): SetCs 1, Inherit(3), UseContext(0, L), BindVarTail(3)
 L[x](\x . x): UseVar(x), Memo, Return
 
 
@@ -62,8 +62,8 @@ UseVar(n) -- use var as function
 UsePrimitive(name) -- call primitive and use result as new function
   FP = name(vars)
 
-ClearCs -- set context slot register to 1 for inherit to use
-  CS = 1
+SetCs(n) -- set context slot register to n for inherit to use (n is either 1 or 0)
+  CS = n
 
 Inherit(n) -- copy var n into the new closure
   CP[CS++] = CP.parent[n]
@@ -120,7 +120,7 @@ VM = (function(){
     var mp = null
 
     //OPCODES
-    var CLEAR_CS = 0
+    var SET_CS = 0
     var INHERIT = 1
     var BIND_CONTEXT = 2
     var BIND_CONTEXT_TAIL = 3
@@ -141,9 +141,15 @@ VM = (function(){
 	code.push.apply(code, arguments)
     }
 
-    function Context(size, addr) {
+    function Context(size, addr, isApply) {
 	this.addr = addr
 	this.parent = cp
+	this.isApply = isApply
+    }
+    // produce a text representation of the complete context
+    Context.prototype.format = function() {
+	if (!this.isApply) {
+	}
     }
 
     function execute(label, comp) {
@@ -175,8 +181,8 @@ VM = (function(){
 	    case USE_PRIM:
 		fp = code[pc++].apply(null, cp)
 		break
-	    case CLEAR_CS:
-		cs = 1
+	    case SET_CS:
+		cs = code[pc++]
 		break
 	    case INHERIT:
 		cp[cs++] = cp.parent[code[pc++]]
@@ -284,9 +290,9 @@ VM = (function(){
 	return {expr: expr, code: code, addrs: addrs, source: source, labels: labels}
     }
 
-    function inherit(vars, parentVars) {
+    function inherit(vars, n, parentVars) {
 	if (vars != null) {
-	    code.push(CLEAR_CS)
+	    code.push(SET_CS, n)
 	    genInherit(vars, parentVars)
 	}
     }
@@ -306,7 +312,7 @@ VM = (function(){
 	vars = merge(bodyVars, vars)
 	addLabel("LAMBDA-" + this.id, this)
 	instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, length(bodyVars) + 1, false)
-	inherit(bodyVars, reverse(vars))
+	inherit(bodyVars, 1, reverse(vars))
 	code.push.apply(code, bodyCode.instructions)
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
@@ -325,7 +331,7 @@ VM = (function(){
 	    addLabel("APPLY-" + this.arg.id, this.arg)
 	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, length(aCode.vars), true)
 	    if (!top) instructions.push(MEMO)
-	    inherit(aCode.vars, reverse(vars))
+	    inherit(aCode.vars, 0, reverse(vars))
 	    code.push.apply(code, aCode.instructions)
 	} else {
 	    aCode = this.arg.gen(instructions, parent, vars, top)
@@ -365,7 +371,7 @@ VM = (function(){
 	code: code,
 	addrs: addrs,
 	source: source,
-	CLEAR_CS: CLEAR_CS,
+	SET_CS: SET_CS,
 	INHERIT: INHERIT,
 	BIND_CONTEXT: BIND_CONTEXT,
 	BIND_CONTEXT_TAIL: BIND_CONTEXT_TAIL,

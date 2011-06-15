@@ -122,8 +122,8 @@ function compileVM(expr) {
 		case VM.USE_PRIM:
 			results.push("USE_PRIM ", comp.code[i++])
 			break
-		case VM.CLEAR_CS:
-			results.push("CLEAR_CS")
+		case VM.SET_CS:
+			results.push("SET_CS ", comp.code[i++])
 			break
 		case VM.INHERIT:
 			results.push("INHERIT ", comp.code[i++])
