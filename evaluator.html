@@ -92,7 +92,12 @@ function runFunc(index) {
 function runVm(id) {
 	var result = VM.execute("APPLY-" + compilations[id].expr.id, compilations[id])
 
-	results.push("<b>Execute:</b> ", compilations[id].expr.format(false, true), "<br><b>MP:</b> ", result.mp, "<br><b>FP:</b> ", VM.source[result.fp.addr].format(), "<br><br>")
+	results.push("<b>Execute:</b> ", compilations[id].expr.format(false, true), "<br>")
+	if (!result.mp) {
+		results.push("<b>Result:</b>", LC.pretty(VM.source[result.fp.addr]), "<br><br>")
+	} else {
+		results.push("<b><i>Attempt to use free variable ", VM.source[result.mp.result.addr].format(), " as a function</i></b>")
+	}
 	displayResults(results.length && docMsg)
 }
 function compileVM(expr) {
@@ -151,6 +156,9 @@ function compileVM(expr) {
 			break
 		case VM.RETURN:
 			results.push("RETURN")
+			break
+		case VM.SEAL_CONTEXT:
+			results.push("SEAL_CONTEXT")
 			break
 		}
 		results.push("</td></tr>")

@@ -2,23 +2,23 @@
 a (\x . \y . x) (c d) e
 -----------------------
 
-[a,c,d,e,-]: UseVar(a), BindContext(0, L, false), Memo, BindContext(0, C, true), Memo, BindVarTail(e)
+[a,c,d,e,-]: SealContext, UseVar(a), BindContext(0, L, false), Memo, BindContext(0, C, true), Memo, BindVarTail(e)
 
-L[x](\x . \y . x): UseContext(1, L2), Return
-L2[x,-](\y . x)): UseVar(x), Return
-C[c,d,-](c d): SetCs 0, Inherit(c), Inherit(d), UseVar(c), BindVarTail(d)
+L[x](\x . \y . x): SealContext, UseContext(1, L2), Return
+L2[x,-](\y . x)): SealContext, UseVar(x), Return
+C[c,d,-](c d): SetCs 0, Inherit(c), Inherit(d), SealContext, UseVar(c), BindVarTail(d)
 
 
 (\x . x) 3
 
-[3,-]((\x . x) 3): SetCs 1, Inherit(3), UseContext(0, L), BindVarTail(3)
-L[x](\x . x): UseVar(x), Memo, Return
+[3,-]((\x . x) 3): SetCs 1, Inherit(3), SealContext, UseContext(0, L), BindVarTail(3)
+L[x](\x . x): SealContext, UseVar(x), Memo, Return
 
 
 \x . \y . prim(plus)
 
-L[x]: UseContext(1, L2), Return
-L2[y]: UsePrim(plus), Return
+L[x]: SealContext, UseContext(1, L2), Return
+L2[y]: SealContext, UsePrim(plus), Return
 
 
 
@@ -28,6 +28,7 @@ Registers
   PC: program counter
   CP: closure pointer
   FP: function pointer
+  PP: parent context (set by BindX, used by Inherit, cleared by UseX)
   CS: new closure slot number (used by Inherit)
   MP: memo pointer
   SP: stack pointer
@@ -67,6 +68,10 @@ SetCs(n) -- set context slot register to n for inherit to use (n is either 1 or 
 
 Inherit(n) -- copy var n into the new closure
   CP[CS++] = CP.parent[n]
+
+SealContext -- finishes context initialization (removes ref to parent, etc.)
+  PP.decRef()
+  PP = null
 
 BindContext(size, addr, apply)/BindContextTail -- bind current function to arg and reduce it
   if FP.result
@@ -116,6 +121,7 @@ VM = (function(){
     var pc = 0
     var cp = null
     var fp = null
+    var pp = null
     var cs = 0
     var mp = null
 
@@ -131,6 +137,15 @@ VM = (function(){
     var USE_PRIM = 8
     var MEMO = 9
     var RETURN = 10
+    var SEAL_CONTEXT = 11
+
+    //GC
+    var contexts = {}
+    var freeContexts = []
+    var _cn = 0
+
+
+    for (var i = 0; i < 256; i++) freeContexts[i] = []
 
     function addLabel(name, expr) {
 	labels[name] = code.length
@@ -141,18 +156,76 @@ VM = (function(){
 	code.push.apply(code, arguments)
     }
 
-    function Context(size, addr, isApply) {
-	this.addr = addr
-	this.parent = cp
-	this.isApply = isApply
+    function Context(size) {
+	this.size = size
+	this._id = _cn++
     }
+    function newContext(size, addr, isApply) {
+	var ctx = freeContexts[size].pop()
+
+	if (!ctx) ctx = new Context(size)
+	ctx.addr = addr
+	ctx.parent = cp
+	ctx.isApply = isApply
+/*
+	ctx.ref = 1
+	contexts[ctx.id] = ctx
+*/
+	return ctx
+    }
+    function breakLinks(ctx) {
+/*
+	for (var i = 0; i < ctx.size; i++) {
+	    deref(ctx[i])
+	    ctx[i] = null
+	}
+	deref(ctx[parent])
+	ctx.parent = null
+*/
+    }
+    function deref(ctx) {
+/*
+	if (ctx && !--(ctx.ref)) {
+	    freeContexts[ctx.size].push(ctx)
+	    breakLinks(ctx)
+	    deref(ctx.result)
+	    ctx.result = null
+	}
+*/
+    }
+
     // produce a text representation of the complete context
     Context.prototype.format = function() {
 	if (!this.isApply) {
 	}
     }
 
+    function jump() {
+	cp = fp
+	pp = cp.parent
+	cp.parent = null
+	pc = cp.addr
+    }
+
+    function setFp(val) {
+	deref(fp)
+	fp = val
+    }
+
+    function popRegs() {
+	deref(mp)
+	deref(cp)
+	mp = stack.pop()
+	cp = stack.pop()
+	pc = stack.pop()
+    }
+
     function execute(label, comp) {
+	setFp(null)
+	deref(mp)
+	mp = null
+	deref(cp)
+	cp = null
 	labels = comp.labels
 	addrs = comp.addrs
 	code = comp.code
@@ -164,89 +237,88 @@ VM = (function(){
 	    case USE_CONTEXT:
 		var addr = code[pc++]
 		var size = code[pc++]
-		fp = new Context(size, addr, code[pc++])
+		setFp(newContext(size, addr, code[pc++]))
 		break;
 	    case USE_VAR:
-		fp = cp[code[pc++]]
+		setFp(cp[code[pc++]])
 		if (fp.isApply) {
 		    if (fp.result) {
-			fp = fp.result
+			setFp(fp.result)
 		    } else {
 			stack.push(pc, cp, fp)
-			cp = fp
-			pc = cp.addr
+			jump()
 		    }
 		}
 		break
 	    case USE_PRIM:
-		fp = code[pc++].apply(null, cp)
+		setFp(code[pc++].apply(null, cp))
 		break
 	    case SET_CS:
 		cs = code[pc++]
+		cp.parent = null
 		break
 	    case INHERIT:
-		cp[cs++] = cp.parent[code[pc++]]
+		cp[cs] = pp[code[pc++]]
+		cp[cs++].ref++
+		cp.parent = null
+		break
+	    case SEAL_CONTEXT:
+		deref(pp)
+		pp = null
 		break
 	    case BIND_CONTEXT:
 		if (fp.result) {
-		    fp = fp.result
+		    setFp(fp.result)
 		    pc++
 		} else {
 		    var addr = code[pc++]
 		    var size = code[pc++]
 		    var apply = code[pc++]
 		    stack.push(pc, cp, fp)
-		    fp[0] = new Context(size, addr, apply)
-		    cp = fp
-		    pc = cp.addr
+		    fp[0] = newContext(size, addr, apply)
+		    jump()
 		}
 		break
 	    case BIND_CONTEXT_TAIL:
 		if (fp.result) {
-		    fp = fp.result
-		    mp = stack.pop()
-		    cp = stack.pop()
-		    pc = stack.pop()
+		    setFp(fp.result)
+		    popRegs()
 		} else {
 		    var addr = code[pc++]
 		    var size = code[pc++]
 		    var apply = code[pc++]
-		    fp[0] = new Context(size, addr, apply)
-		    cp = fp
-		    pc = cp.addr
+		    fp[0] = newContext(size, addr, apply)
+		    jump()
 		}
 		break
 	    case BIND_VAR:
 		var varNum = code[pc++]
 		if (fp.result) {
-		    fp = fp.result
+		    setFp(fp.result)
 		} else {
 		    push(pc, cp, fp)
 		    fp[0] = cp[varNum]
-		    cp = fp
-		    pc = cp.addr
+		    fp[0].ref++
+		    jump()
 		}
 		break
 	    case BIND_VAR_TAIL:
 		if (fp.result) {
-		    fp = fp.result
-		    mp = stack.pop()
-		    cp = stack.pop()
-		    pc = stack.pop()
+		    setFp(fp.result)
+		    popRegs()
 		} else {
-		    var varNum = code[pc++]
-		    fp[0] = cp[varNum]
-		    cp = fp
-		    pc = cp.addr
+		    fp[0] = cp[code[pc++]]
+		    fp[0].ref++
+		    jump()
 		}
 		break
 	    case MEMO:
 		mp.result = fp
+		fp.ref++
+		breakLinks(mp)
 		break
 	    case RETURN:
-		mp = stack.pop()
-		cp = stack.pop()
-		pc = stack.pop()
+		popRegs()
 		break
 	    }
 	}
@@ -295,6 +367,7 @@ VM = (function(){
 	    code.push(SET_CS, n)
 	    genInherit(vars, parentVars)
 	}
+	code.push(SEAL_CONTEXT)
     }
 
     function genInherit(vars, parentVars) {
@@ -344,7 +417,7 @@ VM = (function(){
 	var start = instructions.length == 0
 
 	if (this.free) {
-	    instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, -this.id, 0, true)
+	    instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, -this.id, 0, false)
 	    source[-this.id] = this
 	} else {
 	    var vn
@@ -382,6 +455,7 @@ VM = (function(){
 	USE_PRIM: USE_PRIM,
 	MEMO: MEMO,
 	RETURN: RETURN,
+	SEAL_CONTEXT: SEAL_CONTEXT,
     }
 
     return obj
