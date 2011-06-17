@@ -64,7 +64,6 @@ function handleFiles(fileElement) {
 	var files = fileElement.files
 	var reader = new FileReader()
 
-	fileElement.value = null
 	reader.onerror = function(evt) {
 		alert('error' + evt)
 	}
@@ -75,6 +74,7 @@ function handleFiles(fileElement) {
 		result.innerHTML = ''
 	}
 	reader.readAsText(files[0])
+	fileElement.value = null
 }
 function displayOutput() {
 	var outputs = []
