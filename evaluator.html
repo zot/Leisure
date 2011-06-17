@@ -60,11 +60,13 @@ function setShowSubs(state) {
 	show()
 }
 function show() {document.getElementById("control").setAttribute("class", (showDebug ? "" : "hidedebug ") + (showSubs ? "showsubs" : "shownosubs"))}
-function handleFiles(files) {
+function handleFiles(fileElement) {
+	var files = fileElement.files
 	var reader = new FileReader()
 
-	reader.onerror = function(e1, e2, e3, e4) {
-		alert('error' + exception.getMessage())
+	fileElement.value = null
+	reader.onerror = function(evt) {
+		alert('error' + evt)
 	}
 	reader.onload = function() {
 		LC.loadDefs(reader.result)
@@ -287,7 +289,7 @@ function editResult(str) {
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
 	<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
-		<tr style="height: 0"><td>Load file: <input type="file" id="input" onchange="handleFiles(this.files)"></input></td></tr>
+		<tr style="height: 0"><td>Load file: <input type="file" id="input" onchange="handleFiles(this)"></input></td></tr>
 		<tr style="height: auto"><td>
 			<div style="position: relative; width: 100%; height: 100%">
 				<table style="position: absolute; width: 100%; height: 100%">
