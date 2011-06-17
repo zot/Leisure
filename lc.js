@@ -136,12 +136,12 @@ function runCode(expr, code) {
 	historyCount++
 	LC.L = L = null
 }
-function isCons(l) {return l.lambda.id == lcons.id}
-function isFalse(l) {return l.lambda.id == lfalse.id}
+function isCons(l) {return lcons && l.lambda.id == lcons.id}
+function isFalse(l) {return lfalse && l.lambda.id == lfalse.id}
 function pretty(l) {
 	var lam = l.lambda
 
-	return lam && lam.id == lcons.id ? '[' + elements(l, true) + ']' : lam ? lam.format() : l
+	return lam && lcons && lam.id == lcons.id ? '[' + elements(l, true) + ']' : lam ? lam.format() : l
 }
 function elements(l, first) {
 	return isFalse(l) ? '' : ((first ? '' : ', ') + pretty(Lhead(l)) + elements(Ltail(l), false))

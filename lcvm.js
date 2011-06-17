@@ -111,6 +111,15 @@ L3[1, 3]: InheritParent, DerefParent, Inherit(0), Deref, UseVar(1), Return
 
 */
 
+/*
+GC:
+mark, sort, merge
+
+use 2-power best fit (N sizes -- 1024 arguments seems like enough, so N is 10)
+
+double-thread memory
+*/
+
 
 VM = (function(){
     var code = []
@@ -167,31 +176,7 @@ VM = (function(){
 	ctx.addr = addr
 	ctx.parent = cp
 	ctx.isApply = isApply
-/*
-	ctx.ref = 1
-	contexts[ctx.id] = ctx
-*/
 	return ctx
-    }
-    function breakLinks(ctx) {
-/*
-	for (var i = 0; i < ctx.size; i++) {
-	    deref(ctx[i])
-	    ctx[i] = null
-	}
-	deref(ctx[parent])
-	ctx.parent = null
-*/
-    }
-    function deref(ctx) {
-/*
-	if (ctx && !--(ctx.ref)) {
-	    freeContexts[ctx.size].push(ctx)
-	    breakLinks(ctx)
-	    deref(ctx.result)
-	    ctx.result = null
-	}
-*/
     }
 
     // produce a text representation of the complete context
@@ -207,24 +192,15 @@ VM = (function(){
 	pc = cp.addr
     }
 
-    function setFp(val) {
-	deref(fp)
-	fp = val
-    }
-
     function popRegs() {
-	deref(mp)
-	deref(cp)
 	mp = stack.pop()
 	cp = stack.pop()
 	pc = stack.pop()
     }
 
     function execute(label, comp) {
-	setFp(null)
-	deref(mp)
+	fp = null
 	mp = null
-	deref(cp)
 	cp = null
 	labels = comp.labels
 	addrs = comp.addrs
@@ -237,13 +213,13 @@ VM = (function(){
 	    case USE_CONTEXT:
 		var addr = code[pc++]
 		var size = code[pc++]
-		setFp(newContext(size, addr, code[pc++]))
+		fp = newContext(size, addr, code[pc++])
 		break;
 	    case USE_VAR:
-		setFp(cp[code[pc++]])
+		fp = cp[code[pc++]]
 		if (fp.isApply) {
 		    if (fp.result) {
-			setFp(fp.result)
+			fp = fp.result
 		    } else {
 			stack.push(pc, cp, fp)
 			jump()
@@ -251,24 +227,22 @@ VM = (function(){
 		}
 		break
 	    case USE_PRIM:
-		setFp(code[pc++].apply(null, cp))
+		fp = code[pc++].apply(null, cp)
 		break
 	    case SET_CS:
 		cs = code[pc++]
 		cp.parent = null
 		break
 	    case INHERIT:
-		cp[cs] = pp[code[pc++]]
-		cp[cs++].ref++
+		cp[cs++] = pp[code[pc++]]
 		cp.parent = null
 		break
 	    case SEAL_CONTEXT:
-		deref(pp)
 		pp = null
 		break
 	    case BIND_CONTEXT:
 		if (fp.result) {
-		    setFp(fp.result)
+		    fp = fp.result
 		    pc++
 		} else {
 		    var addr = code[pc++]
@@ -281,7 +255,7 @@ VM = (function(){
 		break
 	    case BIND_CONTEXT_TAIL:
 		if (fp.result) {
-		    setFp(fp.result)
+		    fp = fp.result
 		    popRegs()
 		} else {
 		    var addr = code[pc++]
@@ -294,28 +268,24 @@ VM = (function(){
 	    case BIND_VAR:
 		var varNum = code[pc++]
 		if (fp.result) {
-		    setFp(fp.result)
+		    fp = fp.result
 		} else {
 		    push(pc, cp, fp)
 		    fp[0] = cp[varNum]
-		    fp[0].ref++
 		    jump()
 		}
 		break
 	    case BIND_VAR_TAIL:
 		if (fp.result) {
-		    setFp(fp.result)
+		    fp = fp.result
 		    popRegs()
 		} else {
 		    fp[0] = cp[code[pc++]]
-		    fp[0].ref++
 		    jump()
 		}
 		break
 	    case MEMO:
 		mp.result = fp
-		fp.ref++
-		breakLinks(mp)
 		break
 	    case RETURN:
 		popRegs()

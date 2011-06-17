@@ -353,51 +353,5 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 ] =)= reverse
 
 	</pre>
-	<pre class="hidden" id="initialDefs2">
-# Booleans
-true = \x y . x
-false = \x y . y
-not = \b . b false true
-and = \a b . a b a
-or = \a b . a a b
-eq = \a b . a b (not b)
-xor = \a b . a (not b) b
-
-#rotation
-rot2 = \a b f . f b a
-f2 = \a b . a
-rot3 = \a b c f . f b c a
-r3 = rot3 1 2 3
-f3 = \a b c . a
-rot4 = \a b c d f . f b c d a
-f4 = \a b c d . a
-
-# Y combinator
-Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
-rec = \f . f (Y f)
-
-# lists
-# using false as "nil" in lists, so you use a list like this:
-# DUMMY can be anything, but it needs to be there
-# here's how you use a list:
-# aList (\h t DUMMY . {list-case}) {empty-case}
-# If the list is not empty, h and t are the head and tail of the list and it returns list-case.  DUMMY is not used, but needs to be there
-# If the list is empty, it returns empty-case
-cons = \a b f.f a b
-nil = false
-head = \l . l (\h t D . h) nil
-tail = \l . l (\h t D . t) nil
-null = \l . l (\h t D . false) true
-last = rec \last l  . l (\h t D . null t h (last t)) nil
-append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
-reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
-# list constructor: list 1 , 2 , 3 end
-#list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
-#, = true
-#end = false
-[ =(]= \item f  .  f (cons item nil)
-, =.= \l item f . f (cons item l)
-] =)= reverse
-	</pre>
 </body>
 </html>
