@@ -75,6 +75,7 @@ function handleFiles(fileElement) {
 	}
 	reader.readAsText(files[0])
 	fileElement.value = null
+	def.select()
 }
 function displayOutput() {
 	var outputs = []
