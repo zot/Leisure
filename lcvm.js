@@ -270,7 +270,7 @@ VM = (function(){
 		if (fp.result) {
 		    fp = fp.result
 		} else {
-		    push(pc, cp, fp)
+		    stack.push(pc, cp, fp)
 		    fp[0] = cp[varNum]
 		    jump()
 		}
@@ -295,7 +295,20 @@ VM = (function(){
 	return {mp: mp, fp: fp}
     }
 
-    function cons(a, b) {return {car: a, cdr: b}}
+    function Cons(a, b) {
+	this.car = a
+	this.cdr = b
+    }
+    Cons.prototype = {
+	toString: function() {
+	    return "(" + this.printElements(true) + ")"
+	},
+	printElements: function(first) {
+	    return (first ? " " : "") + this.car + (this.cdr ? this.cdr.printElements(false) : "")
+	}
+    }
+
+    function cons(a, b) {return new Cons(a, b)}
 
     function index(list, element) {
 	return list == null ? -1 : list.car == element ? 0 : 1 + index(list.cdr, element)
@@ -326,7 +339,7 @@ VM = (function(){
 	obj.addrs = addrs = {}
 	obj.source = source = {}
 	labels = {}
-	var result = expr.gen([], null, null, true)
+	var result = expr.gen([], null, null, true, true)
 	addLabel("APPLY-" + expr.id, expr)
 	code.push.apply(code, result.instructions)
 	return {expr: expr, code: code, addrs: addrs, source: source, labels: labels}
@@ -347,37 +360,45 @@ VM = (function(){
 	}
     }
 
-    LC.Lambda.prototype.__proto__.gen = function(instructions, parent, vars, top) {
-	var bodyCode = this.body.gen([], this.lvar, null, true)
+    LC.Lambda.prototype.__proto__.gen = function(instructions, parent, vars, top, gen) {
+	var label = "LAMBDA-" + this.id
+	gen = gen && !labels[label]
+	var bodyCode = this.body.gen([], this.lvar, null, true, gen)
 	var bodyVars = remove(bodyCode.vars, this.lvar)
 	var start = instructions.length == 0
 
 	vars = merge(bodyVars, vars)
-	addLabel("LAMBDA-" + this.id, this)
-	instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, length(bodyVars) + 1, false)
-	inherit(bodyVars, 1, reverse(vars))
-	code.push.apply(code, bodyCode.instructions)
+	if (gen) {
+	    addLabel(label, this)
+	    inherit(bodyVars, 1, reverse(vars))
+	    code.push.apply(code, bodyCode.instructions)
+	}
+	instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, labels[label], length(bodyVars) + 1, false)
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
 	return {instructions: instructions, vars: vars}
     }
 
-    LC.Apply.prototype.__proto__.gen = function(instructions, parents, vars, top) {
+    LC.Apply.prototype.__proto__.gen = function(instructions, parent, vars, top, gen) {
 	var start = instructions.length == 0
-	var funcCode = this.func.gen(instructions, parent, vars, false)
+	var funcCode = this.func.gen(instructions, parent, vars, false, gen)
 	var aCode
 
 	vars = merge(funcCode.vars, vars)
 	if (this.arg instanceof LC.Apply) {
-	    aCode = this.arg.gen([], null, null, true)
+	    var label = "APPLY-" + this.arg.id
+	    gen = gen && !labels[label]
+	    aCode = this.arg.gen([], null, null, true, gen)
 	    vars = merge(aCode.vars, vars)
-	    addLabel("APPLY-" + this.arg.id, this.arg)
-	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, code.length, length(aCode.vars), true)
+	    if (gen) {
+		addLabel(label, this.arg)
+		inherit(aCode.vars, 0, reverse(vars))
+		code.push.apply(code, aCode.instructions)
+	    }
+	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, labels[label], length(aCode.vars), true)
 	    if (!top) instructions.push(MEMO)
-	    inherit(aCode.vars, 0, reverse(vars))
-	    code.push.apply(code, aCode.instructions)
 	} else {
-	    aCode = this.arg.gen(instructions, parent, vars, top)
+	    aCode = this.arg.gen(instructions, parent, vars, top, gen)
 	    vars = aCode.vars
 	}
 	return {instructions: instructions, vars: vars}

@@ -97,7 +97,7 @@ function runVm(id) {
 
 	results.push("<b>Execute:</b> ", compilations[id].expr.format(false, true), "<br>")
 	if (!result.mp) {
-		results.push("<b>Result:</b>", LC.pretty(VM.source[result.fp.addr]), "<br><br>")
+		results.push("<b>Result:</b>", LC.pretty(VM.source[result.fp.addr]), "<br><br><span>.</span>")
 	} else {
 		results.push("<b><i>Attempt to use free variable ", VM.source[result.mp.result.addr].format(), " as a function</i></b>")
 	}
@@ -166,7 +166,7 @@ function compileVM(expr) {
 		}
 		results.push("</td></tr>")
 	}
-	results.push("</table><br>")
+	results.push("</table><br><span>.</span>")
 	displayResults(results.length && docMsg)
 }
 function resultCode(expr, res, index) {
@@ -261,14 +261,14 @@ function loaded() {
 	def.select()
 }
 function displayResults(clear) {
-	if (clear) {
-		docMsg = false
-		result.innerHTML = ''
-	}
 	if (results.length) {
+		if (clear) {
+			docMsg = false
+			result.innerHTML = ''
+		}
 		result.innerHTML += results.join('')
-		result.lastChild.scrollIntoView()
 		results = []
+		result.lastElementChild.scrollIntoView()
 	}
 }
 function input() {
@@ -354,6 +354,8 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 [ =(]= \item f  .  f (cons item nil)
 , =.= \l item f . f (cons item l)
 ] =)= reverse
+test = (\f . f a) (\x . x)
+test2 = head (cons 1 nil)
 
 	</pre>
 </body>

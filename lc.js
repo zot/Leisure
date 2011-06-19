@@ -139,7 +139,7 @@ function runCode(expr, code) {
 function isCons(l) {return lcons && l.lambda.id == lcons.id}
 function isFalse(l) {return lfalse && l.lambda.id == lfalse.id}
 function pretty(l) {
-	var lam = l.lambda
+	var lam = l instanceof Entity ? l : l.lambda
 
 	return lam && lcons && lam.id == lcons.id ? '[' + elements(l, true) + ']' : lam ? lam.format() : l
 }
