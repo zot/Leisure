@@ -304,14 +304,16 @@ VM = (function(){
 	    return "(" + this.printElements(true) + ")"
 	},
 	printElements: function(first) {
-	    return (first ? " " : "") + this.car + (this.cdr ? this.cdr.printElements(false) : "")
+	    return (first ? "" : " ") + this.car + (this.cdr ? this.cdr.printElements(false) : "")
 	}
     }
 
     function cons(a, b) {return new Cons(a, b)}
 
-    function index(list, element) {
-	return list == null ? -1 : list.car == element ? 0 : 1 + index(list.cdr, element)
+    function index(list, element) {return lindex(list, element, 0)}
+
+    function lindex(list, element, i) {
+	return list == null ? -1 : list.car == element ? i : lindex(list.cdr, element, i + 1)
     }
 
     function contains(list, element) {return index(list, element) + 1}
@@ -322,24 +324,21 @@ VM = (function(){
 	return list.car == el? result : list.cdr == result ? list : cons (list.car, result)
     }
 
-    function length(list) {
-	return list == null ? 0 : 1 + length(list.cdr)
-    }
+    function length(list) {return list == null ? 0 : 1 + length(list.cdr)}
 
-    function reverse(list, res) {
-	return list == null ? res : reverse(list.cdr, cons(list.car, res))
-    }
+    function append(l1, l2) {return l1 ? cons(l1.car, append(l1.cdr, l2)) : l2}
+    
+    function removeAll(target, master) {return !master ? target : removeAll(remove(target, master.car), master.cdr)}
 
-    function merge(list1, list2) {
-	return list1 == null ? list2 : merge(list1.cdr, index(list2, list1.car) == -1 ? cons(list1.car, list2) : list2)
-    }
+    // append list1 and list2, removing duplicates from list2
+    function merge(list1, list2) {return append(list1, removeAll(list2, list1))}
 
     function gen(expr) {
 	obj.code = code = []
 	obj.addrs = addrs = {}
 	obj.source = source = {}
 	labels = {}
-	var result = expr.gen([], null, null, true, true)
+	var result = expr.gen([], null, true, true)
 	addLabel("APPLY-" + expr.id, expr)
 	code.push.apply(code, result.instructions)
 	return {expr: expr, code: code, addrs: addrs, source: source, labels: labels}
@@ -360,73 +359,67 @@ VM = (function(){
 	}
     }
 
-    LC.Lambda.prototype.__proto__.gen = function(instructions, parent, vars, top, gen) {
+    LC.Lambda.prototype.__proto__.gen = function(instructions, vars, top, gen) {
 	var label = "LAMBDA-" + this.id
 	gen = gen && !labels[label]
-	var bodyCode = this.body.gen([], this.lvar, null, true, gen)
+	var bodyCode = this.body.gen([], cons(this.lvar, null), true, gen)
 	var bodyVars = remove(bodyCode.vars, this.lvar)
 	var start = instructions.length == 0
 
-	vars = merge(bodyVars, vars)
 	if (gen) {
 	    addLabel(label, this)
-	    inherit(bodyVars, 1, reverse(vars))
+	    inherit(bodyVars, 1, merge(vars, bodyVars))
 	    code.push.apply(code, bodyCode.instructions)
 	}
 	instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, labels[label], length(bodyVars) + 1, false)
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
-	return {instructions: instructions, vars: vars}
+	return {instructions: instructions, vars: bodyVars}
     }
 
-    LC.Apply.prototype.__proto__.gen = function(instructions, parent, vars, top, gen) {
+    LC.Apply.prototype.__proto__.gen = function(instructions, vars, top, gen) {
 	var start = instructions.length == 0
-	var funcCode = this.func.gen(instructions, parent, vars, false, gen)
+	var funcCode = this.func.gen(instructions, vars, false, gen)
+	var myVars
 	var aCode
 
-	vars = merge(funcCode.vars, vars)
+	argVars = merge(vars, funcCode.vars)
 	if (this.arg instanceof LC.Apply) {
 	    var label = "APPLY-" + this.arg.id
 	    gen = gen && !labels[label]
-	    aCode = this.arg.gen([], null, null, true, gen)
-	    vars = merge(aCode.vars, vars)
+	    aCode = this.arg.gen([], argVars, true, gen)
+	    myVars = merge(funcCode.vars, aCode.vars)
 	    if (gen) {
 		addLabel(label, this.arg)
-		inherit(aCode.vars, 0, reverse(vars))
+		inherit(aCode.vars, 0, merge(argVars, aCode.vars))
 		code.push.apply(code, aCode.instructions)
 	    }
 	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, labels[label], length(aCode.vars), true)
 	    if (!top) instructions.push(MEMO)
 	} else {
-	    aCode = this.arg.gen(instructions, parent, vars, top, gen)
-	    vars = aCode.vars
+	    aCode = this.arg.gen(instructions, argVars, top, gen)
+	    myVars = merge(funcCode.vars, aCode.vars)
 	}
-	return {instructions: instructions, vars: vars}
+	return {instructions: instructions, vars: myVars}
     }
 
-    LC.Variable.prototype.__proto__.gen = function(instructions, parent, vars, top) {
+    LC.Variable.prototype.__proto__.gen = function(instructions, vars, top) {
 	var start = instructions.length == 0
 
 	if (this.free) {
 	    instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, -this.id, 0, false)
 	    source[-this.id] = this
 	} else {
-	    var vn
+	    var vn = index(vars, this)
 
-	    if (parent == this) {
-		vn = 0
-	    } else {
-		vn = index(reverse(vars), this) + 1
-		if (!vn) {
-		    vars = cons(this, vars)
-		    vn = length(vars)
-		}
+	    if (vn == -1) {
+		vn = length(vars)
 	    }
 	    instructions.push(instructions.length == 0 ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR, vn)
 	}
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
-	return {instructions: instructions, vars: vars}
+	return {instructions: instructions, vars: this.free ? null : cons(this, null)}
     }
 
     var obj = {

@@ -112,7 +112,7 @@ function compileVM(expr) {
 		var addr = comp.addrs[i]
 
 		if (addr) {
-			results.push("<tr><td><b>", addr.match('APPLY-' + expr.id + '$') ? "main" : addr, "</b></td><td>")
+			results.push("<tr style='vertical-align: bottom'><td><br><b>", addr.match('APPLY-' + expr.id + '$') ? "main" : addr, "</b></td><td>")
 		} else {
 			results.push("<tr><td></td><td>")
 		}
@@ -354,8 +354,10 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 [ =(]= \item f  .  f (cons item nil)
 , =.= \l item f . f (cons item l)
 ] =)= reverse
-test = (\f . f a) (\x . x)
+test1 = (\f . f a) (\x . x)
 test2 = head (cons 1 nil)
+test3 = head (tail (cons 1 (cons 2 nil)))
+test = last (cons 1 (cons 2 nil))
 
 	</pre>
 </body>
