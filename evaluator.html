@@ -271,12 +271,14 @@ function displayResults(clear) {
 		result.lastElementChild.scrollIntoView()
 	}
 }
-function input() {
-	if (LC.evalLine(def.value)) {
-		displayOutput()
+function input(event) {
+	if (event.charCode == 13) {
+		if (LC.evalLine(def.value)) {
+			displayOutput()
+		}
+		displayResults(results.length && docMsg)
+		def.value = ''
 	}
-	displayResults(results.length && docMsg)
-	def.value = ''
 }
 function editFunc(name, expr) {
 	def.value = name + ' = ' + expr
@@ -300,9 +302,16 @@ function editResult(str) {
 Copyright (C) 2011, Bill Burdick, Tiny Concepts: <a href='http://tinyconcepts.com/fs.pl/lambda.fsl'>http://tinyconcepts.com/fs.pl/lambda.fsl</a><br>
 Licensed with the ZLIB license.  See source code for details.<br>
 <br>
-Use the text field below to enter Lambda Calculus expressions.  You can use normal Lambda Calculus syntax, with \ meaning &lambda;, but you have to separate your variables with spaces (click edit on any of the definitions for an example)<br>
+Use the text field below to enter Lambda Calculus expressions.  You can use normal Lambda Calculus syntax, with \ meaning &lambda;, but you have to separate your variables with spaces (click edit on any of the definitions for an example).  Try testing it out with this (you need to hit enter after you click this): <a href='javascript:editResult("(\\x y . x) 1 2")'>(\x y . x) 1 2</a><br>
 <br>
-You can define terms using NAME = EXPR<br>
+You can define terms using NAME = EXPR.  Try this: <a href='javascript:editResult("pickThird = \\x y z . z")'>pickThird = \x y z . z</a><br>
+<br>
+You can evaluate lambda calculus expressions in 3 ways:
+<ol><li>The 'Run' button will compile into JavaScript and run it
+<li>The 'Reduce' button will use alpha conversion, beta reduction, and eta conversion to simplify it
+<li>The 'VM' button will compile it into byte code and display another 'Run' button you can use to run it (the VM is stilla work-in-progress)
+</ol>
+The evaluator displays lists for 'Run' (of the first kind) and 'Reduce' results, but not VM's 'Run' results, yet.  It cannot display detailed function results of other types for 'Run' (both kinds), but it can for Reduce.  Eventually, the VM will display fully detailed results, just like 'Reduce' can.
 <br>
 You can modify the parser in these ways:<br>
 <ul>
@@ -322,7 +331,7 @@ save button
 </div></td></tr></table>
 			</div>
 		</td></tr>
-		<tr style="height: 0"><td><input id="def" type="text" onchange="input()" style="width: 100%"></input></td></tr>
+		<tr style="height: 0"><td><input id="def" type="text" onkeypress="input(event)" style="width: 100%"></input></td></tr>
 	</table>
 	<pre class="hidden" id="initialDefs">
 true = \x y . x
