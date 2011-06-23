@@ -42,6 +42,27 @@ var tokenDefPat = /^ *([^ ]+) *(=[.)]=|=\([^=]+=|=)(?:[^=])/
 var warnFreeVariable = []
 var line = 0
 
+function Cons(a, b) {
+    this.car = a
+    this.cdr = b
+}
+Cons.prototype = {
+    toString: function() {
+	return "(" + this.printElements(true) + ")"
+    },
+    printElements: function(first) {
+	return (first ? "" : " ") + this.car + (this.cdr ? this.cdr.printElements(false) : "")
+    }
+}
+
+function cons(a, b) {return new Cons(a, b)}
+
+function index(list, element) {return lindex(list, element, 0)}
+
+function lindex(list, element, i) {
+    return list == null ? -1 : list.car == element ? i : lindex(list.cdr, element, i + 1)
+}
+
 function loadDefs(defs) {
 	var d = defs.split('\n')
 
@@ -328,7 +349,7 @@ Entry.prototype = {
 	alphaConvert: function() {return new Entry(this.name, this.expr.alphaConvert())},
 	betaReduce: function() {return new Entry(this.name, this.expr.betaReduce())},
 	etaConvert: function() {return new Entry(this.name, this.expr.etaConvert())},
-	normalize: function() {return new Entry(this.name, this.expr.normalize())},
+	debruijn: function() {return new Entry(this.name, this.expr.debruijn())},
 	globalSub: function() {return new Entry(this.name, this.expr.globalSub())},
 }
 
@@ -436,7 +457,7 @@ Entity.prototype.__proto__ = {
 		return names
 	},
 	uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
-	hashKey: function() {return this.normalize().format(true, true)},
+	hashKey: function() {return this.debruijn().dformat()},
 	globalSub: function() {
 		var v = this.uniquify(exprs).transform(pre(Variable, function() {
 			return exprs[this.name] ? exprs[this.name].expr.globalSub() : this
@@ -452,18 +473,6 @@ Entity.prototype.__proto__ = {
 			alert("Error in globalSub for " + this.format(true, true))
 		}
 		return v
-	},
-	normalize: function() {
-		var id = 0
-		var fid = 0
-
-		return this.globalSub().transform(
-			pre(Lambda, function(transformer) {
-				transformer.prune(this.lvar, new Variable(id++, this.lvar.free))
-				return this
-			}),
-			pre(Variable, function(transformer) {return this.free ? new Variable("F" + fid++, true) : this})
-		)
 	},
 	containsVar: function(targetVar) {
 		var contains = false
@@ -497,6 +506,8 @@ function Lambda(arg, body, id) {
 	if (!lambdas[this.id]) lambdas[this.id] = this
 }
 Lambda.prototype.__proto__ = new Entity({
+	dformat: function(inner) {return inner ? "(" + "\u03BB" + this.body.dformat(false) + ")" : "\u03BB" + this.body.dformat(false)},
+	debruijn: function(vars) {return this.make(null, this.body.debruijn(cons(this.lvar, vars)))},
 	equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
 	toString: function() {return this.format()},
 	ret: function(stream, prefix) {
@@ -622,6 +633,12 @@ function Variable(txt, free, base, num) {
 }
 var vcount = 0
 Variable.prototype.__proto__ = new Entity({
+	dformat: function() {return this.free ? "[" + this.name + "]" : this.name},
+	debruijn: function(vars) {
+		var i = index(vars, this)
+
+		return new Variable(i == -1 ? this.name : i, i == -1)
+	},
 	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
 	valueFunc: function() {
@@ -664,6 +681,12 @@ function Apply(func, arg) {
 	this.id = entityCounter++
 }
 Apply.prototype.__proto__ = new Entity({
+	dformat: function(inner) {
+	    var fstr = this.func.dformat(true)
+
+	    return fstr + " " + (this.arg instanceof Apply ? "(" + this.arg.dformat(false) + ")" : this.arg.dformat(inner))
+	},
+	debruijn: function(vars) {return this.make(this.func.debruijn(vars), this.arg.debruijn(vars))},
 	equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
 	apply: function(stream, prefix) {
 		this.func.apply(stream, prefix)
@@ -715,6 +738,9 @@ var LC = {
     Lambda: Lambda,
     Variable: Variable,
     Apply: Apply,
+    Cons: Cons,
+    cons: cons,
+    index: index,
 }
 
 return LC

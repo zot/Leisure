@@ -105,7 +105,8 @@ function runVm(id) {
 }
 function compileVM(expr) {
 	expr = expr.globalSub()
-	results.push("<b>Compile:</b> ", expr.format(false, true), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
+//	results.push("<b>Compile:</b> ", expr.format(false, true), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
+	results.push("<b>Compile:</b> ", expr.debruijn().dformat(), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
 	var comp = VM.gen(expr)
 	compilations[expr.id] = comp
 	for (var i = 0; i < comp.code.length; ) {
@@ -126,9 +127,6 @@ function compileVM(expr) {
 			break
 		case VM.USE_VAR:
 			results.push("USE_VAR ", comp.code[i++])
-			break
-		case VM.USE_PRIM:
-			results.push("USE_PRIM ", comp.code[i++])
 			break
 		case VM.SET_CS:
 			results.push("SET_CS ", comp.code[i++])
@@ -162,6 +160,15 @@ function compileVM(expr) {
 			break
 		case VM.SEAL_CONTEXT:
 			results.push("SEAL_CONTEXT")
+			break
+		case VM.EXT_PUSH_LAZY:
+			results.push("EXT_PUSH_LAZY ", comp.code[i++])
+			break
+		case VM.EXT_PUSH_STRICT:
+			results.push("EXT_PUSH_STRICT ", comp.code[i++])
+			break
+		case VM.EXT_CALL:
+			results.push("EXT_CALL ", comp.code[i++])
 			break
 		}
 		results.push("</td></tr>")

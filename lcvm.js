@@ -60,9 +60,6 @@ UseVar(n) -- use var as function
     if FP.result, FP = FP.result
     else push(PC), push(CP), push(FP), CP = FP, PC = CP.addr
 
-UsePrimitive(name) -- call primitive and use result as new function
-  FP = name(vars)
-
 SetCs(n) -- set context slot register to n for inherit to use (n is either 1 or 0)
   CS = n
 
@@ -95,6 +92,9 @@ Memo -- store result in function that just executed
 Return -- return from call
   MP = stack[sp--], CP = stack[sp--], PC = stack[sp--]
 
+ExtCall(name) -- call primitive and use result as new function
+  FP = name(vars)
+
 
 === TODO ===
 
@@ -120,9 +120,25 @@ use 2-power best fit (N sizes -- 1024 arguments seems like enough, so N is 10)
 double-thread memory
 */
 
+/*
+FFI
+
+Use stack to call function
+push frame info
+push args - either lazy or not
+call foreign func
+put return value in FP
+
+*/
+
+/*
+change context rep to: [parent, addr, value] or [parent, addr]
+*/
+
 
 VM = (function(){
     var code = []
+    var labelHash = {}
     var labels = {}	// label -> code offset
     var addrs = {}	// addr -> label, for decoding functions
     var source = {}	// addr -> expr, for decoding functions
@@ -143,16 +159,22 @@ VM = (function(){
     var BIND_VAR = 5
     var BIND_VAR_TAIL = 6
     var USE_VAR = 7
-    var USE_PRIM = 8
-    var MEMO = 9
-    var RETURN = 10
-    var SEAL_CONTEXT = 11
+    var MEMO = 8
+    var RETURN = 9
+    var SEAL_CONTEXT = 10
+    var EXT_PUSH_LAZY = 11
+    var EXT_PUSH_STRICT = 12
+    var EXT_CALL = 13
 
     //GC
     var contexts = {}
     var freeContexts = []
     var _cn = 0
 
+    // imports
+    var Cons = LC.Cons
+    var cons = LC.cons
+    var index = LC.index
 
     for (var i = 0; i < 256; i++) freeContexts[i] = []
 
@@ -226,9 +248,6 @@ VM = (function(){
 		    }
 		}
 		break
-	    case USE_PRIM:
-		fp = code[pc++].apply(null, cp)
-		break
 	    case SET_CS:
 		cs = code[pc++]
 		cp.parent = null
@@ -290,30 +309,15 @@ VM = (function(){
 	    case RETURN:
 		popRegs()
 		break
+	    case EXT_PUSH_LAZY:
+		break
+	    case EXT_PUSH_STRICT:
+		break
+	    case EXT_CALL:
+		break
 	    }
 	}
 	return {mp: mp, fp: fp}
-    }
-
-    function Cons(a, b) {
-	this.car = a
-	this.cdr = b
-    }
-    Cons.prototype = {
-	toString: function() {
-	    return "(" + this.printElements(true) + ")"
-	},
-	printElements: function(first) {
-	    return (first ? "" : " ") + this.car + (this.cdr ? this.cdr.printElements(false) : "")
-	}
-    }
-
-    function cons(a, b) {return new Cons(a, b)}
-
-    function index(list, element) {return lindex(list, element, 0)}
-
-    function lindex(list, element, i) {
-	return list == null ? -1 : list.car == element ? i : lindex(list.cdr, element, i + 1)
     }
 
     function contains(list, element) {return index(list, element) + 1}
@@ -321,7 +325,7 @@ VM = (function(){
     function remove(list, el) {
 	if (list == null) return null
 	var result = remove(list.cdr, el)
-	return list.car == el? result : list.cdr == result ? list : cons (list.car, result)
+	return list.car == el? result : list.cdr == result ? list : cons(list.car, result)
     }
 
     function length(list) {return list == null ? 0 : 1 + length(list.cdr)}
@@ -359,8 +363,26 @@ VM = (function(){
 	}
     }
 
+    LC.Lambda.prototype.__proto__.label = function() {
+	if (!this.cachedLabel) {
+	    if (!this.containsFree()) {
+		var key = this.hashKey()
+
+		this.cachedLabel = labelHash[key]
+		if (!this.cachedLabel) {
+		    this.cachedLabel = labelHash[key] = "LAMBDA-" + this.id
+		}
+	    } else {
+		this.cachedLabel = "LAMBDA-" + this.id
+	    }
+	}
+	return this.cachedLabel
+    }
+
+    LC.Lambda.prototype.__proto__.containsFree = function(used) {return this.body.containsFree(cons(this.lvar, used))}
+
     LC.Lambda.prototype.__proto__.gen = function(instructions, vars, top, gen) {
-	var label = "LAMBDA-" + this.id
+	var label = this.label()
 	gen = gen && !labels[label]
 	var bodyCode = this.body.gen([], cons(this.lvar, null), true, gen)
 	var bodyVars = remove(bodyCode.vars, this.lvar)
@@ -377,6 +399,8 @@ VM = (function(){
 	return {instructions: instructions, vars: bodyVars}
     }
 
+    LC.Apply.prototype.__proto__.containsFree = function(used) {return this.func.containsFree(used) || this.arg.containsFree(used)}
+
     LC.Apply.prototype.__proto__.gen = function(instructions, vars, top, gen) {
 	var start = instructions.length == 0
 	var funcCode = this.func.gen(instructions, vars, false, gen)
@@ -387,7 +411,7 @@ VM = (function(){
 	if (this.arg instanceof LC.Apply) {
 	    var label = "APPLY-" + this.arg.id
 	    gen = gen && !labels[label]
-	    aCode = this.arg.gen([], argVars, true, gen)
+	    aCode = this.arg.gen([], [], true, gen)
 	    myVars = merge(funcCode.vars, aCode.vars)
 	    if (gen) {
 		addLabel(label, this.arg)
@@ -402,6 +426,8 @@ VM = (function(){
 	}
 	return {instructions: instructions, vars: myVars}
     }
+
+    LC.Variable.prototype.__proto__.containsFree = function(used) {return index(used, this) == -1}
 
     LC.Variable.prototype.__proto__.gen = function(instructions, vars, top) {
 	var start = instructions.length == 0
@@ -436,10 +462,12 @@ VM = (function(){
 	BIND_VAR: BIND_VAR,
 	BIND_VAR_TAIL: BIND_VAR_TAIL,
 	USE_VAR: USE_VAR,
-	USE_PRIM: USE_PRIM,
 	MEMO: MEMO,
 	RETURN: RETURN,
 	SEAL_CONTEXT: SEAL_CONTEXT,
+	EXT_PUSH_LAZY: EXT_PUSH_LAZY,
+	EXT_PUSH_STRICT: EXT_PUSH_STRICT,
+	EXT_CALL: EXT_CALL,
     }
 
     return obj
