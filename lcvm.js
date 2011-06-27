@@ -365,7 +365,7 @@ VM = (function(){
 	    addEntry(this)
 	    env.code.push.apply(env.code, bodyCode.instructions)
 	}
-	instructions.push(start ? USE_LAMBDA_CONTEXT : top ? BIND_LAMBDA_CONTEXT_TAIL : BIND_CONTEXT, this.cachedEntry.addr, length(bodyVars) + 1, parents == null ? -1 : index(bodyCode.vars, parents.car) ? 0 : 1)
+	instructions.push(start ? USE_LAMBDA_CONTEXT : top ? BIND_LAMBDA_CONTEXT_TAIL : BIND_CONTEXT, this.cachedEntry.addr, length(bodyVars) + 1, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1)
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
 	return {instructions: instructions, vars: remove(bodyVars, this)}
@@ -427,6 +427,10 @@ VM = (function(){
 	EXT_CALL: EXT_CALL,
 	VAR_START: VAR_START,
 	NEXT_VAR: NEXT_VAR,
+	CTX_ADDR: CTX_ADDR,
+	CTX_PARENT: CTX_PARENT,
+	CTX_RESULT: CTX_RESULT,
+	CTX_BINDING: CTX_BINDING,
     }
 
     return obj

@@ -64,23 +64,22 @@ function lindex(list, element, i) {
 }
 
 function loadDefs(defs) {
-	var d = defs.split('\n')
+    var d = defs.split('\n')
 
-	LC.exprs = exprs = {}
-	LC.code = {}
-	LC.lambdas = lambdas = {}
-	hashed = {}
-	LC.order = order = []
-	funcCount = 1
-	hashed = {}
-	LC.L = L = null
-	line = 1
-	for (var index in d) {
-	    evalLine(d[index].trim(), true)
-	    line++
-	}
-	constructEnv()
-	findCons();
+    LC.exprs = exprs = {}
+    LC.code = {}
+    LC.lambdas = lambdas = {}
+    LC.hashed = hashed = {}
+    LC.order = order = []
+    funcCount = 1
+    LC.L = L = null
+    line = 1
+    for (var index in d) {
+	evalLine(d[index].trim(), true)
+	line++
+    }
+    constructEnv()
+    findCons();
 }
 function defineToken(name, def) {
 	if (def != '=') {

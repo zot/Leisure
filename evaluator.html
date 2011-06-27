@@ -93,22 +93,27 @@ function runFunc(index) {
 	displayResults(results.length && docMsg)
 }
 function runVm(id) {
-	var result = VM.execute("main", compilations[id])
+	var comp = compilations[id]
+	var result = VM.execute("main", comp)
+	var rexpr = LC.hashed[comp.addrs[result.fp[VM.CTX_ADDR]].expr.dformat()]
 
-	results.push("<b>Execute:</b> ", compilations[id].expr.format(false, true), "<br>")
+	results.push("<b>Execute:</b> ", comp.expr.format(false, true), "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", comp.expr.debruijn().dformat(), "<br>")
 	if (!result.mp) {
-		results.push("<b>Result:</b>", LC.pretty(VM.source[result.fp.addr]), "<br><br><span>.</span>")
+		results.push("<b>Result:</b>", LC.pretty(rexpr), "<br><br><span>.</span>")
 	} else {
-		results.push("<b><i>Attempt to use free variable ", VM.source[result.mp.result.addr].format(), " as a function</i></b>")
+		results.push("<b><i>Attempt to use free variable ", rexpr, " as a function</i></b>")
 	}
 	displayResults(results.length && docMsg)
 }
 function compileVM(expr) {
+	var oldEx = expr
 	expr = expr.globalSub().debruijn()
 //	results.push("<b>Compile:</b> ", expr.format(false, true), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
-	results.push("<b>Compile:</b> ", expr.dformat(), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
+//	results.push("<b>Compile:</b> ", expr.dformat(), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
+	results.push("<b>Compile:</b> ", oldEx.format(false, true), "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", expr.dformat(), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
 	var comp = VM.gen(expr)
 	compilations[expr.id] = comp
+	comp.expr = oldEx
 	for (var i = 0; i < comp.code.length; ) {
 		var entry = comp.addrs[i]
 
