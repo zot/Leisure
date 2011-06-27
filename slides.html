@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head> 
+  <title>My Slides</title> 
+  <link rel="stylesheet" type="text/css" media="screen, projection, print" 
+   href="slidy.css" />
+  <script src="showdown.js"></script>
+  <script src="slidy.js"></script>
+</head>
+<body>
+<script type=text/markdown>
+<!--
+#Primordial Programming...
+
+Nontrivial uses of untyped Lambda Calculus
+***
+#Disclaimer: I'm not selling a language or a paradigm
+
+Languages are tools and they all have advantages and disadvantages
+
+Programmers should know more languages, because they open your mind to different ways to solve problems
+
+To understand a language, you need to program something nontrivial in a way that depends on that language's "goodies"
+
+Examples of some fairly uncommon languages that can teach you interesting things (this list is not exhaustive)...
+
+<table>
+<tr><td>LISP (macros, code is data)
+</td><td>Scheme (continuations)
+</td></tr><tr><td>Haskell (lazy evaluation, monads, etc.)
+</td><td>Scala (OO + functional, actors)
+</td></tr><tr><td>Erlang (actors)
+</td><td>Go/Oberon (implicit interfaces)
+</td></tr><tr><td>TCL (dual-ported objects, uplevel)
+</td><td>Smalltalk/Squeak/Scratch (foundational OO)
+</td></tr><tr><td>OPS5 (forward chaining)
+</td><td>Prolog (unification/backtracking)
+</td></tr><tr><td>Icon (goal-directed execution/backtracking)
+</td><td>FORTH/PostScript/Factor (stack languages, compile-time execution)
+</td></tr><tr><td>Lua (meta model)
+</td><td>Self/Io (pure prototype-based OO)</td></tr>
+</table>
+***
+#Background info
+
+Haskell is the most popular version of Lambda Calculus around
+
+***
+#Background info
+
+Haskell is the most popular version of Lambda Calculus around
+
+Haskell is (very) strongly typed.
+***
+#Background info
+
+Haskell is the most popular version of Lambda Calculus around
+
+Haskell is (very) strongly typed.
+
+It's one of the _most_ strongly type languages around.
+***
+#Background info
+
+Haskell is the most popular version of Lambda Calculus around
+
+Haskell is (very) strongly typed.
+
+It's one of the _most_ strongly type languages around.
+
+If you think Java's and C++'s Generics are complicated, that's just peanuts compared to Haskell's
+***
+#Background info
+
+Haskell is the most popular version of Lambda Calculus around
+
+Haskell is (very) strongly typed.
+
+It's one of the _most_ strongly type languages around.
+
+If you think Java's and C++'s Generics are complicated, that's just peanuts compared to Haskell's
+
+But this talk is not about Haskell.
+***
+#Some neato things you can do in Lambda calculus
+
+* easy generators
+* easy custom control structures
+* infinite streams (good for filtering/generate and test)
+* varargs (without extra language constructs)
+* deep code factoring (eg. combinators)
+***
+#Generators
+***
+#Custom control structures
+***
+#Infinite streams
+***
+#Varargs
+***
+#Deep factoring
+***
+#So what?
+***
+#So what?
+
+Teaching people about deep CS concepts (recursion, laziness, functional, ...)
+***
+#So what?
+
+Teaching people about deep CS concepts (recursion, laziness, functional, ...)
+
+[Evaluator](evaluator.html)
+***
+#So what?
+
+Teaching people about deep CS concepts (recursion, laziness, functional, ...)
+
+[Evaluator](evaluator.html)
+
+[Space Invaders](invaders.html)
+***
+# Resources
+
+* Documents about functional programming and lazy evaluation
+ *  Talk on Why Functional Programming Matters: [http://www.infoq.com/interviews/john-hughes-fp](http://www.infoq.com/interviews/john-hughes-fp)
+ *  Why Functional Programming Matters paper: [http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.63.7911&rep=rep1&type=pdf](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.63.7911&rep=rep1&type=pdf)
+ *  Tim Sweeney's (of Epic Games) talk on the future of graphics programming: [http://www.cs.princeton.edu/~dpw/popl/06/Tim-POPL.ppt](http://www.cs.princeton.edu/~dpw/popl/06/Tim-POPL.ppt)
+ *  The Real Point of Laziness: [http://existentialtype.wordpress.com/2011/04/24/the-real-point-of-laziness/](http://existentialtype.wordpress.com/2011/04/24/the-real-point-of-laziness/)
+ *  More Points for Lazy Evaluation: [http://augustss.blogspot.com/2011/05/more-points-for-lazy-evaluation-in.html](http://augustss.blogspot.com/2011/05/more-points-for-lazy-evaluation-in.html)
+* Markdown slide presentations
+ * QuickSlides: [http://tobyho.com/Quick-and-Dirty\_Presentations\_in\_Markdown](http://tobyho.com/Quick-and-Dirty_Presentations_in_Markdown)
+ * Slidy: [http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz](http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz)
+ * Slidy CSS: [http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css](http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css)
+ * Showdown: [http://softwaremaniacs.org/playground/showdown-highlight/](http://softwaremaniacs.org/playground/showdown-highlight/)
+-->
+</script>
+<script>
+var scripts = document.getElementsByTagName('script');
+for (var i = 0; i < scripts.length; i++){
+    var script = scripts[i];
+    if (script.type != 'text/markdown') continue;
+    var md = script.innerHTML.replace(/^\s<!--*/, '')
+        .replace(/-->\s*$/, '');
+    var markup = new Showdown.converter().makeHtml(md);
+    var slides = markup.split('<hr />');
+    for (var j = 0; j < slides.length; j++)
+      document.write('<div class=slide>' + slides[j] + '</div>');
+}
+w3c_slidy.add_listener(document.body, "touchend", w3c_slidy.mouse_button_click);
+</script>
+</body>
+</html>
