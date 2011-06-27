@@ -1,24 +1,24 @@
 /*
 a (\x . \y . x) (c d) e
+-> a ()
 -----------------------
 
-[a,c,d,e,-]: SealContext, UseVar(a), BindContext(0, L, false), Memo, BindContext(0, C, true), Memo, BindVarTail(e)
-
-L[x](\x . \y . x): SealContext, UseContext(1, L2), Return
-L2[x,-](\y . x)): SealContext, UseVar(x), Return
-C[c,d,-](c d): SetCs 0, Inherit(c), Inherit(d), SealContext, UseVar(c), BindVarTail(d)
+[a,c,d,e,-]: UseVar(a), BindContext(0, L, -1), Memo, BindContext(0, C, -1), Memo, BindVarTail(e)
+L[x](\x . \y . x): UseContext(1, L2), Return
+L2[x,-](\y . x)): UseVar(x), Memo, Return
+C[c,d,-](c d): UseVar(c), Memo, BindVarTail(d)
 
 
 (\x . x) 3
 
-[3,-]((\x . x) 3): SetCs 1, Inherit(3), SealContext, UseContext(0, L), BindVarTail(3)
-L[x](\x . x): SealContext, UseVar(x), Memo, Return
+[3,-]((\x . x) 3): UseContext(0, L, -1), BindVarTail(3)
+L[x](\x . x): UseVar(x), Memo, Return
 
 
-\x . \y . prim(plus)
+\x . \y . prim(plus, x, y)
 
-L[x]: SealContext, UseContext(1, L2), Return
-L2[y]: SealContext, UsePrim(plus), Return
+L[x]: UseContext(1, L2), Return
+L2[y]: PushStrict(1), PushStrict(0), UsePrim(plus), Return
 
 
 
@@ -26,12 +26,10 @@ Instructions requiring a following Memo: BindContext, BindVar, UseVar
 
 Registers
   PC: program counter
+  SP: stack pointer
   CP: closure pointer
   FP: function pointer
-  PP: parent context (set by BindX, used by Inherit, cleared by UseX)
-  CS: new closure slot number (used by Inherit)
   MP: memo pointer
-  SP: stack pointer
 
 
 Stack
@@ -60,23 +58,13 @@ UseVar(n) -- use var as function
     if FP.result, FP = FP.result
     else push(PC), push(CP), push(FP), CP = FP, PC = CP.addr
 
-SetCs(n) -- set context slot register to n for inherit to use (n is either 1 or 0)
-  CS = n
-
-Inherit(n) -- copy var n into the new closure
-  CP[CS++] = CP.parent[n]
-
-SealContext -- finishes context initialization (removes ref to parent, etc.)
-  PP.decRef()
-  PP = null
-
-BindContext(size, addr, apply)/BindContextTail -- bind current function to arg and reduce it
+BindLambdaContext(size, addr)/BindApplyContext/BindLambdaContextTail/BindApplyContextTail -- bind current function to arg and reduce it
   if FP.result
-    BindContext: FP = FP.result, PC++ (because of following memoize)
-    BindContextTail: FP = FP.result, pop(MP), pop(CP), pop(PC) (result + return)
+    Bind*Context: FP = FP.result, PC++ (because of following memoize)
+    Bind*ContextTail: FP = FP.result, pop(MP), pop(CP), pop(PC) (result + return)
   else
-    BindContext: push(PC), push(CP), push(FP), FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
-    BindContextTail: FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
+    Bind*Context: push(PC), push(CP), push(FP), FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
+    Bind*ContextTail: FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
 
 BindVar(n)/BindVarTail(n) -- bind current function to var and reduce it
   if FP.result
@@ -137,81 +125,79 @@ change context rep to: [parent, addr, value] or [parent, addr]
 
 
 VM = (function(){
-    var code = []
-    var labelHash = {}
-    var labels = {}	// label -> code offset
-    var addrs = {}	// addr -> label, for decoding functions
-    var source = {}	// addr -> expr, for decoding functions
+    // indices for env
+    var env = {
+	debruijns: {},	// by debruijn string
+	addrs: {},	// by code offset
+	names: {},	// by code label
+	code: [],
+    }
     var stack = []
     var pc = 0
     var cp = null
     var fp = null
-    var pp = null
-    var cs = 0
     var mp = null
+    var vp = null
 
     //OPCODES
-    var SET_CS = 0
-    var INHERIT = 1
-    var BIND_CONTEXT = 2
-    var BIND_CONTEXT_TAIL = 3
-    var USE_CONTEXT = 4
-    var BIND_VAR = 5
-    var BIND_VAR_TAIL = 6
-    var USE_VAR = 7
-    var MEMO = 8
-    var RETURN = 9
-    var SEAL_CONTEXT = 10
+    var BIND_LAMBDA_CONTEXT = 0
+    var BIND_APPLY_CONTEXT = 1
+    var BIND_VAR = 2
+    var BIND_LAMBDA_CONTEXT_TAIL = 3
+    var BIND_APPLY_CONTEXT_TAIL = 4
+    var BIND_VAR_TAIL = 5
+    var USE_LAMBDA_CONTEXT = 6
+    var USE_APPLY_CONTEXT = 7
+    var USE_VAR = 8
+    var MEMO = 9
+    var RETURN = 10
     var EXT_PUSH_LAZY = 11
     var EXT_PUSH_STRICT = 12
     var EXT_CALL = 13
+    var VAR_START = 14
+    var NEXT_VAR = 15
 
-    //GC
-    var contexts = {}
-    var freeContexts = []
-    var _cn = 0
+    //CONTEXT ACCESS
+    var CTX_ADDR = 0	// code address
+    var CTX_PARENT = 1	// parent context
+    var CTX_RESULT = 2	// for memo
+    var CTX_BINDING = 3	// bound value
 
     // imports
     var Cons = LC.Cons
     var cons = LC.cons
     var index = LC.index
 
-    for (var i = 0; i < 256; i++) freeContexts[i] = []
-
-    function addLabel(name, expr) {
-	labels[name] = code.length
-	addrs[code.length] = name
-	source[code.length] = expr
-    }
-    function addCode() { // addCode(instr, arg ...)
-	code.push.apply(code, arguments)
+    function Entry(name, expr, addr) {
+	this.name = name
+	this.expr = expr
+	this.addr = addr
     }
 
-    function Context(size) {
-	this.size = size
-	this._id = _cn++
-    }
-    function newContext(size, addr, isApply) {
-	var ctx = freeContexts[size].pop()
+    function addEntry(expr, prefix) {
+	var debruijn = expr.dformat()
 
-	if (!ctx) ctx = new Context(size)
-	ctx.addr = addr
-	ctx.parent = cp
-	ctx.isApply = isApply
-	return ctx
-    }
-
-    // produce a text representation of the complete context
-    Context.prototype.format = function() {
-	if (!this.isApply) {
+	entry = env.debruijns[debruijn]
+	if (!entry) {
+	    name = prefix || ((expr instanceof LC.Apply ? "APPLY-" : "LAMBDA-") + expr.id)
+	    entry = env.debruijns[debruijn] = env.addrs[env.code.length] = env.names[name] = new Entry(name, expr, env.code.length)
+	    expr.cachedEntry = entry
 	}
+	return entry
     }
+
+    function newContext(size, addr, parentCount) {
+	var parent = parentCount == -1 ? null : parentCount = 0 ? cp : cp[CTX_PARENT]
+
+	return size == 2 ? [addr, parent, null] : [addr, parent, null, null]
+    }
+
+    function isApply(ctx) {return ctx.length == 3}
 
     function jump() {
 	cp = fp
-	pp = cp.parent
-	cp.parent = null
-	pc = cp.addr
+	pp = cp[CTX_PARENT]
+	pc = cp[CTX_ADDR]
     }
 
     function popRegs() {
@@ -220,91 +206,112 @@ VM = (function(){
 	pc = stack.pop()
     }
 
-    function execute(label, comp) {
+    function execute(label, newEntries) {
 	fp = null
 	mp = null
 	cp = null
-	labels = comp.labels
-	addrs = comp.addrs
-	code = comp.code
-	source = comp.source
+	env = newEntries
+	var code = env.code
 	stack = [-1, null, null]
-	pc = labels[label]
+	pc = env.names[label].addr
 	while (pc > -1) {
 	    switch (code[pc++]) {
-	    case USE_CONTEXT:
+	    case VAR_START:
+		vp = cp;
+		break;
+	    case NEXT_VAR:
+		vp = vp[CTX_PARENT]
+		break;
+	    case USE_LAMBDA_CONTEXT:
+		var addr = code[pc++]
+		var size = code[pc++]
+		fp = newContext(size, addr, code[pc++])
+		break;
+	    case USE_APPLY_CONTEXT:
 		var addr = code[pc++]
 		var size = code[pc++]
 		fp = newContext(size, addr, code[pc++])
 		break;
 	    case USE_VAR:
-		fp = cp[code[pc++]]
-		if (fp.isApply) {
-		    if (fp.result) {
-			fp = fp.result
+		fp = vp[CTX_BINDING]
+		vp = null
+		if (isApply(fp)) {
+		    if (fp[CTX_RESULT]) {
+			fp = fp[CTX_RESULT]
 		    } else {
 			stack.push(pc, cp, fp)
 			jump()
 		    }
 		}
 		break
-	    case SET_CS:
-		cs = code[pc++]
-		cp.parent = null
-		break
-	    case INHERIT:
-		cp[cs++] = pp[code[pc++]]
-		cp.parent = null
-		break
-	    case SEAL_CONTEXT:
-		pp = null
-		break
-	    case BIND_CONTEXT:
-		if (fp.result) {
-		    fp = fp.result
+	    case BIND_LAMBDA_CONTEXT:
+		if (fp[CTX_RESULT]) {
+		    fp = fp[CTX_RESULT]
 		    pc++
 		} else {
 		    var addr = code[pc++]
 		    var size = code[pc++]
-		    var apply = code[pc++]
 		    stack.push(pc, cp, fp)
-		    fp[0] = newContext(size, addr, apply)
+		    fp[CTX_BINDING] = newContext(size, addr, code[pc++])
 		    jump()
 		}
 		break
-	    case BIND_CONTEXT_TAIL:
-		if (fp.result) {
-		    fp = fp.result
+	    case BIND_APPLY_CONTEXT:
+		if (fp[CTX_RESULT]) {
+		    fp = fp[CTX_RESULT]
+		    pc++
+		} else {
+		    var addr = code[pc++]
+		    var size = code[pc++]
+		    stack.push(pc, cp, fp)
+		    fp[CTX_BINDING] = newContext(size, addr, code[pc++])
+		    jump()
+		}
+		break
+	    case BIND_LAMBDA_CONTEXT_TAIL:
+		if (fp[CTX_RESULT]) {
+		    fp = fp[CTX_RESULT]
 		    popRegs()
 		} else {
 		    var addr = code[pc++]
 		    var size = code[pc++]
-		    var apply = code[pc++]
-		    fp[0] = newContext(size, addr, apply)
+		    fp[CTX_BINDING] = newContext(size, addr, code[pc++])
+		    jump()
+		}
+		break
+	    case BIND_APPLY_CONTEXT_TAIL:
+		if (fp[CTX_RESULT]) {
+		    fp = fp[CTX_RESULT]
+		    popRegs()
+		} else {
+		    var addr = code[pc++]
+		    var size = code[pc++]
+		    fp[CTX_BINDING] = newContext(size, addr, code[pc++])
 		    jump()
 		}
 		break
 	    case BIND_VAR:
-		var varNum = code[pc++]
-		if (fp.result) {
-		    fp = fp.result
+		if (fp[CTX_RESULT]) {
+		    fp = fp[CTX_RESULT]
 		} else {
 		    stack.push(pc, cp, fp)
-		    fp[0] = cp[varNum]
+		    fp[CTX_BINDING] = vp[CTX_BINDING]
 		    jump()
 		}
+		vp = null
 		break
 	    case BIND_VAR_TAIL:
-		if (fp.result) {
-		    fp = fp.result
+		if (fp[CTX_RESULT]) {
+		    fp = fp[CTX_RESULT]
 		    popRegs()
 		} else {
-		    fp[0] = cp[code[pc++]]
+		    fp[CTX_BINDING] = vp[CTX_BINDING]
 		    jump()
 		}
+		vp = null
 		break
 	    case MEMO:
-		mp.result = fp
+		mp[CTX_RESULT] = fp
 		break
 	    case RETURN:
 		popRegs()
@@ -322,6 +329,8 @@ VM = (function(){
 
     function contains(list, element) {return index(list, element) + 1}
 
+    function nth(list, index) {return index ? nth(list.cdr, index - 1) : list.car}
+
     function remove(list, el) {
 	if (list == null) return null
 	var result = remove(list.cdr, el)
@@ -337,137 +346,87 @@ VM = (function(){
     // append list1 and list2, removing duplicates from list2
     function merge(list1, list2) {return append(list1, removeAll(list2, list1))}
 
+    // this assumes expr is a debruijn expression
     function gen(expr) {
-	obj.code = code = []
-	obj.addrs = addrs = {}
-	obj.source = source = {}
-	labels = {}
+	env = {debruijns: {}, addrs: {}, names: {}, code: []}
 	var result = expr.gen([], null, true, true)
-	addLabel("APPLY-" + expr.id, expr)
-	code.push.apply(code, result.instructions)
-	return {expr: expr, code: code, addrs: addrs, source: source, labels: labels}
+	env.addrs[env.code.length] = env.names["main"] = new Entry("main", expr, env.code.length)
+	env.code.push.apply(env.code, result.instructions)
+	return env
     }
 
-    function inherit(vars, n, parentVars) {
-	if (vars != null) {
-	    code.push(SET_CS, n)
-	    genInherit(vars, parentVars)
-	}
-	code.push(SEAL_CONTEXT)
-    }
-
-    function genInherit(vars, parentVars) {
-	if (vars != null) {
-	    code.push(INHERIT, index(parentVars, vars.car))
-	    genInherit(vars.cdr, parentVars)
-	}
-    }
-
-    LC.Lambda.prototype.__proto__.label = function() {
-	if (!this.cachedLabel) {
-	    if (!this.containsFree()) {
-		var key = this.hashKey()
-
-		this.cachedLabel = labelHash[key]
-		if (!this.cachedLabel) {
-		    this.cachedLabel = labelHash[key] = "LAMBDA-" + this.id
-		}
-	    } else {
-		this.cachedLabel = "LAMBDA-" + this.id
-	    }
-	}
-	return this.cachedLabel
-    }
-
-    LC.Lambda.prototype.__proto__.containsFree = function(used) {return this.body.containsFree(cons(this.lvar, used))}
-
-    LC.Lambda.prototype.__proto__.gen = function(instructions, vars, top, gen) {
-	var label = this.label()
-	gen = gen && !labels[label]
-	var bodyCode = this.body.gen([], cons(this.lvar, null), true, gen)
-	var bodyVars = remove(bodyCode.vars, this.lvar)
+    LC.Lambda.prototype.__proto__.gen = function(instructions, parents, top, gen) {
+	gen = gen && !this.cachedEntry
+	var bodyCode = this.body.gen([], cons(this, parents), true, gen)
+	var bodyVars = remove(bodyCode.vars, this)
 	var start = instructions.length == 0
 
 	if (gen) {
-	    addLabel(label, this)
-	    inherit(bodyVars, 1, merge(vars, bodyVars))
-	    code.push.apply(code, bodyCode.instructions)
+	    addEntry(this)
+	    env.code.push.apply(env.code, bodyCode.instructions)
 	}
-	instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, labels[label], length(bodyVars) + 1, false)
+	instructions.push(start ? USE_LAMBDA_CONTEXT : top ? BIND_LAMBDA_CONTEXT_TAIL : BIND_CONTEXT, this.cachedEntry.addr, length(bodyVars) + 1, parents == null ? -1 : index(bodyCode.vars, parents.car) ? 0 : 1)
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
-	return {instructions: instructions, vars: bodyVars}
+	return {instructions: instructions, vars: remove(bodyVars, this)}
     }
 
-    LC.Apply.prototype.__proto__.containsFree = function(used) {return this.func.containsFree(used) || this.arg.containsFree(used)}
-
-    LC.Apply.prototype.__proto__.gen = function(instructions, vars, top, gen) {
+    LC.Apply.prototype.__proto__.gen = function(instructions, parents, top, gen) {
 	var start = instructions.length == 0
-	var funcCode = this.func.gen(instructions, vars, false, gen)
+	var funcCode = this.func.gen(instructions, parents, false, gen)
 	var myVars
 	var aCode
 
-	argVars = merge(vars, funcCode.vars)
 	if (this.arg instanceof LC.Apply) {
-	    var label = "APPLY-" + this.arg.id
-	    gen = gen && !labels[label]
+	    gen = gen && !this.arg.cacheEntry
 	    aCode = this.arg.gen([], [], true, gen)
-	    myVars = merge(funcCode.vars, aCode.vars)
 	    if (gen) {
-		addLabel(label, this.arg)
-		inherit(aCode.vars, 0, merge(argVars, aCode.vars))
-		code.push.apply(code, aCode.instructions)
+		addEntry(this.arg)
+		env.code.push.apply(env.code, aCode.instructions)
 	    }
-	    instructions.push(top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, labels[label], length(aCode.vars), true)
+	    instructions.push(top ? BIND_APPLY_CONTEXT_TAIL : BIND_APPLY_CONTEXT, this.arg.cachedEntry.addr, length(aCode.vars), aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1)
 	    if (!top) instructions.push(MEMO)
 	} else {
-	    aCode = this.arg.gen(instructions, argVars, top, gen)
-	    myVars = merge(funcCode.vars, aCode.vars)
+	    aCode = this.arg.gen(instructions, parents, top, gen)
 	}
-	return {instructions: instructions, vars: myVars}
+	return {instructions: instructions, vars: merge(funcCode.vars, aCode.vars)}
     }
 
-    LC.Variable.prototype.__proto__.containsFree = function(used) {return index(used, this) == -1}
-
-    LC.Variable.prototype.__proto__.gen = function(instructions, vars, top) {
+    LC.Variable.prototype.__proto__.gen = function(instructions, parents, top) {
 	var start = instructions.length == 0
 
 	if (this.free) {
-	    instructions.push(start ? USE_CONTEXT : top ? BIND_CONTEXT_TAIL : BIND_CONTEXT, -this.id, 0, false)
-	    source[-this.id] = this
+	    instructions.push(start ? USE_APPLY_CONTEXT : top ? BIND_APPLY_CONTEXT_TAIL : BIND_APPLY_CONTEXT, -this.id, 0, -1)
+	    //source[-this.id] = this
 	} else {
-	    var vn = index(vars, this)
-
-	    if (vn == -1) {
-		vn = length(vars)
-	    }
-	    instructions.push(instructions.length == 0 ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR, vn)
+	    instructions.push(VAR_START)
+	    for (var i = 0; i < this.num; i++) instructions.push(NEXT_VAR)
+	    instructions.push(instructions.length == 0 ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR)
 	}
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
-	return {instructions: instructions, vars: this.free ? null : cons(this, null)}
+	return {instructions: instructions, vars: this.free ? null : cons(nth(parents, this.num), null)}
     }
 
     var obj = {
 	gen: gen,
 	execute: execute,
-	code: code,
-	addrs: addrs,
-	source: source,
-	SET_CS: SET_CS,
-	INHERIT: INHERIT,
-	BIND_CONTEXT: BIND_CONTEXT,
-	BIND_CONTEXT_TAIL: BIND_CONTEXT_TAIL,
-	USE_CONTEXT: USE_CONTEXT,
+	BIND_LAMBDA_CONTEXT: BIND_LAMBDA_CONTEXT,
+	BIND_APPLY_CONTEXT: BIND_APPLY_CONTEXT,
 	BIND_VAR: BIND_VAR,
+	BIND_LAMBDA_CONTEXT_TAIL: BIND_LAMBDA_CONTEXT_TAIL,
+	BIND_APPLY_CONTEXT_TAIL: BIND_APPLY_CONTEXT_TAIL,
 	BIND_VAR_TAIL: BIND_VAR_TAIL,
+	USE_LAMBDA_CONTEXT: USE_LAMBDA_CONTEXT,
+	USE_APPLY_CONTEXT: USE_APPLY_CONTEXT,
 	USE_VAR: USE_VAR,
 	MEMO: MEMO,
 	RETURN: RETURN,
-	SEAL_CONTEXT: SEAL_CONTEXT,
 	EXT_PUSH_LAZY: EXT_PUSH_LAZY,
 	EXT_PUSH_STRICT: EXT_PUSH_STRICT,
 	EXT_CALL: EXT_CALL,
+	VAR_START: VAR_START,
+	NEXT_VAR: NEXT_VAR,
     }
 
     return obj

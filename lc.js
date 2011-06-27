@@ -417,15 +417,19 @@ Transformer2.prototype = {
     variable: function(varF) {return varF(this)},
 }
 function lcode(name) {
-	name = nameSub(name)
-	return (function(){
-		var func = L[name]()
+    name = nameSub(name)
+    return (function(){
+	var func = L[name]()
 
-		for (var i = 0; i < arguments.length; i++) {
-			func = func.call(null, wrap(arguments[i]))
-		}
-		return func
-	})
+	for (var i = 0; i < arguments.length; i++) {
+	    func = func.call(null, wrap(arguments[i]))
+	}
+	return func
+    })
+}
+function debcache(expr, cache) {
+    var key = expr.dformat()
+    return cache[key] || (cache[key] = expr)
 }
 var entityCounter = 0
 function Entity(obj) {
@@ -458,6 +462,7 @@ Entity.prototype.__proto__ = {
 	},
 	uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
 	hashKey: function() {return this.debruijn().dformat()},
+	debruijn: function() {return this.subdebruijn(null, {})},
 	globalSub: function() {
 		var v = this.uniquify(exprs).transform(pre(Variable, function() {
 			return exprs[this.name] ? exprs[this.name].expr.globalSub() : this
@@ -506,50 +511,50 @@ function Lambda(arg, body, id) {
 	if (!lambdas[this.id]) lambdas[this.id] = this
 }
 Lambda.prototype.__proto__ = new Entity({
-	dformat: function(inner) {return inner ? "(" + "\u03BB" + this.body.dformat(false) + ")" : "\u03BB" + this.body.dformat(false)},
-	debruijn: function(vars) {return this.make(null, this.body.debruijn(cons(this.lvar, vars)))},
-	equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
-	toString: function() {return this.format()},
-	ret: function(stream, prefix) {
-		var index = stream.length
-
-		stream.push("setLambda(function(", pfx(prefix), this.lvar.cname, ") {\n", "return ")
-		this.body.ret(stream, prefix)
-		stream.push("\n}, " + this.id + ")")
-		return stream
-	},
-	pass: function(stream, prefix) {
-		stream.push("memoize(function(){return ")
-		this.ret(stream, prefix)
-		stream.push("\n})")
-		return stream
-	},
-	apply: function(stream, prefix) {
-		stream.push("(")
-		this.ret(stream, prefix)
-		stream.push(")")
-		return stream
-	},
-	getHashedName: function() {var d = hashed[this.hashKey()]; return d && d.name},
-	format: function(slash, nosubs, func, arg) {return (!nosubs && this.getHashedName()) || ((func ? '(' : '') + (slash ? '\\' : '&lambda;') + this.formatRest(slash, nosubs)) + (func ? ')' : '')},
-	formatRest: function(slash, nosubs) {
-		var n = !nosubs && this.body instanceof Lambda && this.body.getHashedName()
-
-		return this.lvar.format(slash, nosubs) + (n ? (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + n : this.body instanceof Lambda ? ' ' + this.body.formatRest(slash, nosubs) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(slash, nosubs))
-	},
-	propagateTransform: function(transformer) {
-	    var newVar = this.lvar.startTransform(transformer)
-	    var newBod = this.body.startTransform(transformer)
-
-	    return this.make(newVar, newBod)
-	},
-	make: function(newVar, newBody) {return (this.lvar == newVar && this.body == newBody && this) || new Lambda(newVar, newBody, this.id)},
-	substitute: function(value) {
-		var trans = new Transformer([])
-
-		trans.prune(this.lvar, value)
-		return trans.transform(this.body)
-	},
+    dformat: function(inner) {return inner ? "(" + "\u03BB" + this.body.dformat(false) + ")" : "\u03BB" + this.body.dformat(false)},
+    subdebruijn: function(vars, cache) {return debcache(this.make(null, this.body.subdebruijn(cons(this.lvar, vars), cache)), cache)},
+    equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
+    toString: function() {return this.format()},
+    ret: function(stream, prefix) {
+	var index = stream.length
+	
+	stream.push("setLambda(function(", pfx(prefix), this.lvar.cname, ") {\n", "return ")
+	this.body.ret(stream, prefix)
+	stream.push("\n}, " + this.id + ")")
+	return stream
+    },
+    pass: function(stream, prefix) {
+	stream.push("memoize(function(){return ")
+	this.ret(stream, prefix)
+	stream.push("\n})")
+	return stream
+    },
+    apply: function(stream, prefix) {
+	stream.push("(")
+	this.ret(stream, prefix)
+	stream.push(")")
+	return stream
+    },
+    getHashedName: function() {var d = hashed[this.hashKey()]; return d && d.name},
+    format: function(slash, nosubs, func, arg) {return (!nosubs && this.getHashedName()) || ((func ? '(' : '') + (slash ? '\\' : '&lambda;') + this.formatRest(slash, nosubs)) + (func ? ')' : '')},
+    formatRest: function(slash, nosubs) {
+	var n = !nosubs && this.body instanceof Lambda && this.body.getHashedName()
+	
+	return this.lvar.format(slash, nosubs) + (n ? (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + n : this.body instanceof Lambda ? ' ' + this.body.formatRest(slash, nosubs) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(slash, nosubs))
+    },
+    propagateTransform: function(transformer) {
+	var newVar = this.lvar.startTransform(transformer)
+	var newBod = this.body.startTransform(transformer)
+	
+	return this.make(newVar, newBod)
+    },
+    make: function(newVar, newBody) {return (this.lvar == newVar && this.body == newBody && this) || new Lambda(newVar, newBody, this.id)},
+    substitute: function(value) {
+	var trans = new Transformer([])
+	
+	trans.prune(this.lvar, value)
+	return trans.transform(this.body)
+    },
 })
 function numberFor(name, names) {
 	var i = 0
@@ -634,10 +639,10 @@ function Variable(txt, free, base, num) {
 var vcount = 0
 Variable.prototype.__proto__ = new Entity({
 	dformat: function() {return this.free ? "[" + this.name + "]" : this.name},
-	debruijn: function(vars) {
+	subdebruijn: function(vars, cache) {
 		var i = index(vars, this)
 
-		return new Variable(i == -1 ? this.name : i, i == -1)
+		return new Variable(i == -1 ? this.name : i, i == -1, this.base, i)
 	},
 	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
 	toString: function() {return "Variable(" + this.name + ")"},
@@ -681,41 +686,41 @@ function Apply(func, arg) {
 	this.id = entityCounter++
 }
 Apply.prototype.__proto__ = new Entity({
-	dformat: function(inner) {
-	    var fstr = this.func.dformat(true)
-
-	    return fstr + " " + (this.arg instanceof Apply ? "(" + this.arg.dformat(false) + ")" : this.arg.dformat(inner))
-	},
-	debruijn: function(vars) {return this.make(this.func.debruijn(vars), this.arg.debruijn(vars))},
-	equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
-	apply: function(stream, prefix) {
-		this.func.apply(stream, prefix)
-		stream.push("(")
-		this.arg.pass(stream, prefix)
-		stream.push(")")
-		return stream
-	},
-	ret: function(stream, prefix) {return this.apply(stream, prefix)},
-	pass: function(stream, prefix) {
-		stream.push("memoize(function(){return ")
-		this.apply(stream, prefix)
-		stream.push("\n})")
-		return stream
-	},
-	toString: function() {return "Apply(" + this.func + " " + this.arg + ")"},
-	format: function(slash, nosubs, func, arg) {return (arg ? '(' : '') + this.func.format(slash, nosubs, true, false) + ' ' + this.arg.format(slash, nosubs, func, true) + (arg ? ')' : '')},
-	propagateTransform: function(transformer) {
-	    var newFunc = this.func.startTransform(transformer)
-	    var newArg = this.arg.startTransform(transformer)
-
-	    return this.make(newFunc, newArg)
-	},
-	make: function(newFunc, newArg) {return (newFunc == this.func && newArg == this.arg && this) || new Apply(newFunc, newArg)},
-	innermost: function(func) {return this.func.isApply() ? new Apply(this.func.innermost(func), this.arg) : func.call(this)},
-	isApply: function() {return true},
-	alphaConvert: function() {return this.innermost(function() {return new Apply(this.func, this.arg.uniquify(this.func.names()))})},
-	betaReduce: function() {return this.innermost(function() {return this.func.substitute(this.arg)})},
-	etaConvert: function() {return this.innermost(function() {return new Apply(this.func.etaConvert(), this.arg)})},
+    dformat: function(inner) {
+	var fstr = this.func.dformat(true)
+	
+	return fstr + " " + (this.arg instanceof Apply ? "(" + this.arg.dformat(false) + ")" : this.arg.dformat(inner))
+    },
+    subdebruijn: function(vars, cache) {return debcache(this.make(this.func.subdebruijn(vars, cache), this.arg.subdebruijn(vars, cache)), cache)},
+    equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
+    apply: function(stream, prefix) {
+	this.func.apply(stream, prefix)
+	stream.push("(")
+	this.arg.pass(stream, prefix)
+	stream.push(")")
+	return stream
+    },
+    ret: function(stream, prefix) {return this.apply(stream, prefix)},
+    pass: function(stream, prefix) {
+	stream.push("memoize(function(){return ")
+	this.apply(stream, prefix)
+	stream.push("\n})")
+	return stream
+    },
+    toString: function() {return "Apply(" + this.func + " " + this.arg + ")"},
+    format: function(slash, nosubs, func, arg) {return (arg ? '(' : '') + this.func.format(slash, nosubs, true, false) + ' ' + this.arg.format(slash, nosubs, func, true) + (arg ? ')' : '')},
+    propagateTransform: function(transformer) {
+	var newFunc = this.func.startTransform(transformer)
+	var newArg = this.arg.startTransform(transformer)
+	
+	return this.make(newFunc, newArg)
+    },
+    make: function(newFunc, newArg) {return (newFunc == this.func && newArg == this.arg && this) || new Apply(newFunc, newArg)},
+    innermost: function(func) {return this.func.isApply() ? new Apply(this.func.innermost(func), this.arg) : func.call(this)},
+    isApply: function() {return true},
+    alphaConvert: function() {return this.innermost(function() {return new Apply(this.func, this.arg.uniquify(this.func.names()))})},
+    betaReduce: function() {return this.innermost(function() {return this.func.substitute(this.arg)})},
+    etaConvert: function() {return this.innermost(function() {return new Apply(this.func.etaConvert(), this.arg)})},
 })
 function wrap(x) {return function() {return x}}
 var Lhead = lcode('head')

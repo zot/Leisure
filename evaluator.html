@@ -93,7 +93,7 @@ function runFunc(index) {
 	displayResults(results.length && docMsg)
 }
 function runVm(id) {
-	var result = VM.execute("APPLY-" + compilations[id].expr.id, compilations[id])
+	var result = VM.execute("main", compilations[id])
 
 	results.push("<b>Execute:</b> ", compilations[id].expr.format(false, true), "<br>")
 	if (!result.mp) {
@@ -104,62 +104,65 @@ function runVm(id) {
 	displayResults(results.length && docMsg)
 }
 function compileVM(expr) {
-	expr = expr.globalSub()
+	expr = expr.globalSub().debruijn()
 //	results.push("<b>Compile:</b> ", expr.format(false, true), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
-	results.push("<b>Compile:</b> ", expr.debruijn().dformat(), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
+	results.push("<b>Compile:</b> ", expr.dformat(), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
 	var comp = VM.gen(expr)
 	compilations[expr.id] = comp
 	for (var i = 0; i < comp.code.length; ) {
-		var addr = comp.addrs[i]
+		var entry = comp.addrs[i]
 
-		if (addr) {
-			results.push("<tr style='vertical-align: bottom'><td><br><b>", addr.match('APPLY-' + expr.id + '$') ? "main" : addr, "</b></td><td>")
+		if (entry) {
+			results.push("<tr style='vertical-align: bottom'><td><br><b>", entry.name, "</b></td><td>")
 		} else {
 			results.push("<tr><td></td><td>")
 		}
 		results.push("&nbsp;<b>", i, "</b>&nbsp;</td><td>")
 		switch(comp.code[i++]) {
-		case VM.USE_CONTEXT:
+		case VM.VAR_START:
+			results.push("VAR_START")
+			break;
+		case VM.NEXT_VAR:
+			results.push("NEXT_VAR")
+			break;
+		case VM.USE_LAMBDA_CONTEXT:
+		case VM.USE_APPLY_CONTEXT:
+			var inst = comp.code[i - 1]
 			var addr = comp.code[i++]
 			var size = comp.code[i++]
-			var label = addr >= 0 ? comp.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
-			results.push("USE_CONTEXT ", label, " ", size, " ", comp.code[i++])
+			var label = addr >= 0 ? comp.addrs[addr].name : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("USE_", inst == VM.USE_LAMBDA_CONTEXT ? "LAMBDA" : "APPLY", "_CONTEXT ", label, " ", size, " ", comp.code[i++])
 			break
 		case VM.USE_VAR:
-			results.push("USE_VAR ", comp.code[i++])
+			results.push("USE_VAR ")
 			break
-		case VM.SET_CS:
-			results.push("SET_CS ", comp.code[i++])
-			break
-		case VM.INHERIT:
-			results.push("INHERIT ", comp.code[i++])
-			break
-		case VM.BIND_CONTEXT:
+		case VM.BIND_LAMBDA_CONTEXT:
+		case VM.BIND_APPLY_CONTEXT:
+			var inst = comp.code[i - 1]
 			var addr = comp.code[i++]
 			var size = comp.code[i++]
-			var label = addr >= 0 ? comp.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
-			results.push("BIND_CONTEXT ", label, " ", size, " ", comp.code[i++])
+			var label = addr >= 0 ? comp.addrs[addr].name : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("BIND_", inst == VM.BIND_LAMBDA_CONTEXT ? "LAMBDA" : "APPLY", "_CONTEXT ", label, " ", size, " ", comp.code[i++])
 			break
-		case VM.BIND_CONTEXT_TAIL:
+		case VM.BIND_LAMBDA_CONTEXT_TAIL:
+		case VM.BIND_APPLY_CONTEXT_TAIL:
+			var inst = comp.code[i - 1]
 			var addr = comp.code[i++]
 			var size = comp.code[i++]
-			var label = addr >= 0 ? comp.addrs[addr] : "VAR(" + LC.lambdas[-addr].name + ")"
-			results.push("BIND_CONTEXT_TAIL ", label, " ", size, " ", comp.code[i++])
+			var label = addr >= 0 ? comp.addrs[addr].name : "VAR(" + LC.lambdas[-addr].name + ")"
+			results.push("BIND_", inst == VM.BIND_LAMBDA_CONTEXT ? "LAMBDA" : "APPLY", "_CONTEXT_TAIL ", label, " ", size, " ", comp.code[i++])
 			break
 		case VM.BIND_VAR:
-			results.push("BIND_VAR ", comp.code[i++])
+			results.push("BIND_VAR ")
 			break
 		case VM.BIND_VAR_TAIL:
-			results.push("BIND_VAR_TAIL ", comp.code[i++])
+			results.push("BIND_VAR_TAIL ")
 			break
 		case VM.MEMO:
 			results.push("MEMO")
 			break
 		case VM.RETURN:
 			results.push("RETURN")
-			break
-		case VM.SEAL_CONTEXT:
-			results.push("SEAL_CONTEXT")
 			break
 		case VM.EXT_PUSH_LAZY:
 			results.push("EXT_PUSH_LAZY ", comp.code[i++])
