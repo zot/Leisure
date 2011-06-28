@@ -535,11 +535,11 @@ Lambda.prototype.__proto__ = new Entity({
 	return stream
     },
     getHashedName: function() {var d = hashed[this.hashKey()]; return d && d.name},
-    format: function(slash, nosubs, func, arg) {return (!nosubs && this.getHashedName()) || ((func ? '(' : '') + (slash ? '\\' : '&lambda;') + this.formatRest(slash, nosubs)) + (func ? ')' : '')},
+    format: function(slash, nosubs, func, arg) {return (!nosubs && this.getHashedName()) || ((func ? '(' : '') + (slash ? '\\' : '\u03BB') + this.formatRest(slash, nosubs)) + (func ? ')' : '')},
     formatRest: function(slash, nosubs) {
 	var n = !nosubs && this.body instanceof Lambda && this.body.getHashedName()
 	
-	return this.lvar.format(slash, nosubs) + (n ? (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + n : this.body instanceof Lambda ? ' ' + this.body.formatRest(slash, nosubs) : (slash ? '  .  ' : '&nbsp;&nbsp;.&nbsp;&nbsp;') + this.body.format(slash, nosubs))
+	return this.lvar.format(slash, nosubs) + (n ? (slash ? '  .  ' : ' . ') + n : this.body instanceof Lambda ? ' ' + this.body.formatRest(slash, nosubs) : (slash ? '  .  ' : ' . ') + this.body.format(slash, nosubs))
     },
     propagateTransform: function(transformer) {
 	var newVar = this.lvar.startTransform(transformer)

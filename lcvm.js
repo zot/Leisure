@@ -89,8 +89,6 @@ ExtCall(name) -- call primitive and use result as new function
 * Put flag in context to indicate if it's ever bound to a variable
   Contexts which are never bound may be able to be collected quickly
 
-* Potential optimization -- add PP register, InheritParent and DerefParent
-
 \1 . \2 . \3 . 1
 
 L1[1]: UseContext(-1, L2), return
@@ -187,7 +185,7 @@ VM = (function(){
     }
 
     function newContext(size, addr, parentCount) {
-	var parent = parentCount == -1 ? null : parentCount = 0 ? cp : cp[CTX_PARENT]
+	var parent = parentCount == -1 ? null : parentCount == 0 ? cp : cp[CTX_PARENT]
 
 	return size == 2 ? [addr, parent, null] : [addr, parent, null, null]
     }
@@ -196,7 +194,6 @@ VM = (function(){
 
     function jump() {
 	cp = fp
-	pp = cp[CTX_PARENT]
 	pc = cp[CTX_ADDR]
     }
 
@@ -251,8 +248,9 @@ VM = (function(){
 		} else {
 		    var addr = code[pc++]
 		    var size = code[pc++]
+		    var parentCount = code[pc++]
 		    stack.push(pc, cp, fp)
-		    fp[CTX_BINDING] = newContext(size, addr, code[pc++])
+		    fp[CTX_BINDING] = newContext(size, addr, parentCount)
 		    jump()
 		}
 		break
@@ -263,8 +261,9 @@ VM = (function(){
 		} else {
 		    var addr = code[pc++]
 		    var size = code[pc++]
+		    var parentCount = code[pc++]
 		    stack.push(pc, cp, fp)
-		    fp[CTX_BINDING] = newContext(size, addr, code[pc++])
+		    fp[CTX_BINDING] = newContext(size, addr, parentCount)
 		    jump()
 		}
 		break
@@ -312,6 +311,7 @@ VM = (function(){
 		break
 	    case MEMO:
 		mp[CTX_RESULT] = fp
+		mp = null
 		break
 	    case RETURN:
 		popRegs()
@@ -365,7 +365,7 @@ VM = (function(){
 	    addEntry(this)
 	    env.code.push.apply(env.code, bodyCode.instructions)
 	}
-	instructions.push(start ? USE_LAMBDA_CONTEXT : top ? BIND_LAMBDA_CONTEXT_TAIL : BIND_CONTEXT, this.cachedEntry.addr, length(bodyVars) + 1, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1)
+	instructions.push(start ? USE_LAMBDA_CONTEXT : top ? BIND_LAMBDA_CONTEXT_TAIL : BIND_LAMBDA_CONTEXT, this.cachedEntry.addr, 3, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1)
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)
 	return {instructions: instructions, vars: remove(bodyVars, this)}
@@ -384,7 +384,7 @@ VM = (function(){
 		addEntry(this.arg)
 		env.code.push.apply(env.code, aCode.instructions)
 	    }
-	    instructions.push(top ? BIND_APPLY_CONTEXT_TAIL : BIND_APPLY_CONTEXT, this.arg.cachedEntry.addr, length(aCode.vars), aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1)
+	    instructions.push(top ? BIND_APPLY_CONTEXT_TAIL : BIND_APPLY_CONTEXT, this.arg.cachedEntry.addr, 2, aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1)
 	    if (!top) instructions.push(MEMO)
 	} else {
 	    aCode = this.arg.gen(instructions, parents, top, gen)
@@ -396,12 +396,13 @@ VM = (function(){
 	var start = instructions.length == 0
 
 	if (this.free) {
-	    instructions.push(start ? USE_APPLY_CONTEXT : top ? BIND_APPLY_CONTEXT_TAIL : BIND_APPLY_CONTEXT, -this.id, 0, -1)
+	    instructions.push(start ? USE_APPLY_CONTEXT : top ? BIND_APPLY_CONTEXT_TAIL : BIND_APPLY_CONTEXT, -this.id, 2, -1)
+	    env.addrs[-this.id] = new Entry(this.dformat(), this, -this.id)
 	    //source[-this.id] = this
 	} else {
 	    instructions.push(VAR_START)
 	    for (var i = 0; i < this.num; i++) instructions.push(NEXT_VAR)
-	    instructions.push(instructions.length == 0 ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR)
+	    instructions.push(start ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR)
 	}
 	if (!(top || start)) instructions.push(MEMO)
 	if (start && top) instructions.push(RETURN)

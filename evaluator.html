@@ -95,7 +95,8 @@ function runFunc(index) {
 function runVm(id) {
 	var comp = compilations[id]
 	var result = VM.execute("main", comp)
-	var rexpr = LC.hashed[comp.addrs[result.fp[VM.CTX_ADDR]].expr.dformat()]
+	var compExpr = comp.addrs[result.fp[VM.CTX_ADDR]].expr
+	var rexpr = compExpr instanceof LC.Variable ? compExpr : LC.hashed[compExpr.dformat()]
 
 	results.push("<b>Execute:</b> ", comp.expr.format(false, true), "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", comp.expr.debruijn().dformat(), "<br>")
 	if (!result.mp) {
@@ -378,10 +379,17 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 [ =(]= \item f  .  f (cons item nil)
 , =.= \l item f . f (cons item l)
 ] =)= reverse
+1of3 = \1 2 3 . 1
+2of3 = \1 2 3 . 2
+3of3 = \1 2 3 . 3
+3f = \1 2 3 f . f 1 2 3
 test1 = (\f . f a) (\x . x)
-test2 = head (cons 1 nil)
-test3 = head (tail (cons 1 (cons 2 nil)))
-test = last (cons 1 (cons 2 nil))
+test2-1 = 3f a b c 1of3
+test2-2 = 3f a b c 2of3
+test2-3 = 3f a b c 3of3
+test3 = head (cons 1 nil)
+test4 = head (tail (cons 1 (cons 2 nil)))
+test5 = last (cons 1 (cons 2 nil))
 
 	</pre>
 </body>
