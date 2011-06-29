@@ -3,15 +3,15 @@ a (\x . \y . x) (c d) e
 -> a ()
 -----------------------
 
-[a,c,d,e,-]: UseVar(a), BindContext(0, L, -1), Memo, BindContext(0, C, -1), Memo, BindVarTail(e)
+[a,c,d,e,-]: UseVar(a), BindContext(0, L, -1), Memo, BindContext(0, C, -1), Memo, BindVar(e), Return
 L[x](\x . \y . x): UseContext(1, L2), Return
 L2[x,-](\y . x)): UseVar(x), Memo, Return
-C[c,d,-](c d): UseVar(c), Memo, BindVarTail(d)
+C[c,d,-](c d): UseVar(c), Memo, BindVar(d), Return
 
 
 (\x . x) 3
 
-[3,-]((\x . x) 3): UseContext(0, L, -1), BindVarTail(3)
+[3,-]((\x . x) 3): UseContext(0, L, -1), BindVar(3), Return
 L[x](\x . x): UseVar(x), Memo, Return
 
 
@@ -58,21 +58,17 @@ UseVar(n) -- use var as function
     if FP.result, FP = FP.result
     else push(PC), push(CP), push(FP), CP = FP, PC = CP.addr
 
-BindLambdaContext(size, addr)/BindApplyContext/BindLambdaContextTail/BindApplyContextTail -- bind current function to arg and reduce it
+BindLambdaContext(size, addr)/BindApplyContext/BindLambdaContext/BindApplyContext -- bind current function to arg and reduce it
   if FP.result
     Bind*Context: FP = FP.result, PC++ (because of following memoize)
-    Bind*ContextTail: FP = FP.result, pop(MP), pop(CP), pop(PC) (result + return)
   else
     Bind*Context: push(PC), push(CP), push(FP), FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
-    Bind*ContextTail: FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
 
-BindVar(n)/BindVarTail(n) -- bind current function to var and reduce it
+BindVar(n) -- bind current function to var and reduce it
   if FP.result
     BindVar: FP = FP.result, PC++ (because of following memoize)
-    BindVarTail: FP = FP.result, pop(MP), pop(CP), pop(PC) (result + return)
   else
     BindVar: push(PC), push(CP), push(FP), FP[0] = CP[n], CP = FP, PC = CP.addr
-    BindVarTail: FP[0] = CP[n], CP = FP, PC = CP.addr
 
 Memo -- store result in function that just executed
   MP.result = FP
@@ -138,22 +134,17 @@ VM = (function(){
     var vp = null
 
     //OPCODES
-    var BIND_LAMBDA_CONTEXT = 0
-    var BIND_APPLY_CONTEXT = 1
-    var BIND_VAR = 2
-    var BIND_LAMBDA_CONTEXT_TAIL = 3
-    var BIND_APPLY_CONTEXT_TAIL = 4
-    var BIND_VAR_TAIL = 5
-    var USE_LAMBDA_CONTEXT = 6
-    var USE_APPLY_CONTEXT = 7
-    var USE_VAR = 8
-    var MEMO = 9
-    var RETURN = 10
-    var EXT_PUSH_LAZY = 11
-    var EXT_PUSH_STRICT = 12
-    var EXT_CALL = 13
-    var VAR_START = 14
-    var NEXT_VAR = 15
+    var BIND_CONTEXT = 0
+    var BIND_VAR = 1
+    var USE_CONTEXT = 2
+    var USE_VAR = 3
+    var MEMO = 4
+    var RETURN = 5
+    var EXT_PUSH_LAZY = 6
+    var EXT_PUSH_STRICT = 7
+    var EXT_CALL = 8
+    var VAR_START = 9
+    var NEXT_VAR = 10
 
     //CONTEXT ACCESS
     var CTX_ADDR = 0	// code address
@@ -184,13 +175,11 @@ VM = (function(){
 	return entry
     }
 
-    function newContext(size, addr, parentCount) {
-	var parent = parentCount == -1 ? null : parentCount == 0 ? cp : cp[CTX_PARENT]
-
-	return size == 2 ? [addr, parent, null] : [addr, parent, null, null]
+    function newContext(addr, parentCount, isApply) {
+	return [addr, parentCount == -1 ? null : parentCount == 0 ? cp : cp[CTX_PARENT], null, isApply ? -1 : null]
     }
 
-    function isApply(ctx) {return ctx.length == 3}
+    function isApply(ctx) {return ctx[3] == -1}
 
     function jump() {
 	cp = fp
@@ -219,16 +208,13 @@ VM = (function(){
 	    case NEXT_VAR:
 		vp = vp[CTX_PARENT]
 		break;
-	    case USE_LAMBDA_CONTEXT:
+	    case USE_CONTEXT: {
 		var addr = code[pc++]
-		var size = code[pc++]
-		fp = newContext(size, addr, code[pc++])
+		var parent = code[pc++]
+		var apply = code[pc++]
+		fp = newContext(addr, parent, apply)
 		break;
-	    case USE_APPLY_CONTEXT:
-		var addr = code[pc++]
-		var size = code[pc++]
-		fp = newContext(size, addr, code[pc++])
-		break;
+	    }
 	    case USE_VAR:
 		fp = vp[CTX_BINDING]
 		vp = null
@@ -241,69 +227,190 @@ VM = (function(){
 		    }
 		}
 		break
-	    case BIND_LAMBDA_CONTEXT:
+	    case BIND_CONTEXT:
 		if (fp[CTX_RESULT]) {
 		    fp = fp[CTX_RESULT]
-		    pc++
+		    if (code[pc + 3] == RETURN) {
+			popRegs()
+		    } else {
+			pc += 3
+		    }
 		} else {
 		    var addr = code[pc++]
-		    var size = code[pc++]
 		    var parentCount = code[pc++]
-		    stack.push(pc, cp, fp)
-		    fp[CTX_BINDING] = newContext(size, addr, parentCount)
-		    jump()
-		}
-		break
-	    case BIND_APPLY_CONTEXT:
-		if (fp[CTX_RESULT]) {
-		    fp = fp[CTX_RESULT]
-		    pc++
-		} else {
-		    var addr = code[pc++]
-		    var size = code[pc++]
-		    var parentCount = code[pc++]
-		    stack.push(pc, cp, fp)
-		    fp[CTX_BINDING] = newContext(size, addr, parentCount)
-		    jump()
-		}
-		break
-	    case BIND_LAMBDA_CONTEXT_TAIL:
-		if (fp[CTX_RESULT]) {
-		    fp = fp[CTX_RESULT]
-		    popRegs()
-		} else {
-		    var addr = code[pc++]
-		    var size = code[pc++]
-		    fp[CTX_BINDING] = newContext(size, addr, code[pc++])
-		    jump()
-		}
-		break
-	    case BIND_APPLY_CONTEXT_TAIL:
-		if (fp[CTX_RESULT]) {
-		    fp = fp[CTX_RESULT]
-		    popRegs()
-		} else {
-		    var addr = code[pc++]
-		    var size = code[pc++]
-		    fp[CTX_BINDING] = newContext(size, addr, code[pc++])
+		    var apply = code[pc++]
+		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
+		    fp[CTX_BINDING] = newContext(addr, parentCount, apply)
 		    jump()
 		}
 		break
 	    case BIND_VAR:
 		if (fp[CTX_RESULT]) {
 		    fp = fp[CTX_RESULT]
+		    if (code[pc] == RETURN) {
+			popRegs()
+		    }
 		} else {
-		    stack.push(pc, cp, fp)
+		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
 		    fp[CTX_BINDING] = vp[CTX_BINDING]
 		    jump()
 		}
 		vp = null
 		break
-	    case BIND_VAR_TAIL:
+	    case MEMO:
+		mp[CTX_RESULT] = fp
+		mp = null
+		break
+	    case RETURN:
+		popRegs()
+		break
+	    case EXT_PUSH_LAZY:
+		break
+	    case EXT_PUSH_STRICT:
+		break
+	    case EXT_CALL:
+		break
+	    }
+	}
+	return {mp: mp, fp: fp}
+    }
+
+
+    var stackSize = 1024 * 256 // 256k elements of 3 pointers each
+
+    function toLLVM(entries) {
+	var out = [
+	    "%ctx = type {i32, %ctx*, %ctx, %ctx}\n",
+	    "%sf = type {i32, %ctx*, %ctx*}\n",
+	    "@addr = constant i32 0\n",
+	    "@parent = constant i32 1\n",
+	    "@result = constant i32 2\n",
+	    "@binding = constant i32 3\n",
+	    "@null = constant %ctx* 0\n",
+	    "@apply = constant %ctx* -1\n",
+	    "@cp = unnamed_addr alloca %ctx*\n",
+	    "@vp = unnamed_addr alloca %ctx*\n",
+	    "@fp = unnamed_addr alloca %ctx*\n",
+	    "@mp = unnamed_addr alloca %ctx*\n",
+	    "@sp = unnamed_addr alloca %sf*, i32 ", stackSize,"\n",
+
+//*** are these really reused?
+
+	    "\n; REUSED\n",
+	    "USE_VAR_CheckFP:\n",
+	    "; USE_VAR handling applies",
+//	    if (fp[CTX_RESULT]) {
+	    "%rfp = load %ctx** @fp\n",
+	    "%rrfp = load %ctx* %ffp\n",
+	    "%rres = extractvalue %ctx %rrfp, @result\n",
+	    "%has = icmp ctx* %rres, ctx* @null\n",
+	    "br i1 %has, %USE_VAR_Result, %USE_VAR_JSR\n",
+
+	    "\nUSE_VAR_Result:\n",
+//		fp = fp[CTX_RESULT]
+//		// duplication here -- maybe LLVM will save fp[CTX_RESULT] in a register?
+	    "%rfp = load %ctx** @fp\n",
+	    "%rrfp = load %ctx* %ffp\n",
+	    "%rres = extractvalue %ctx %rrfp, @result\n",
+	    "store %ctx* %rres, %ctx** @fp\n",
+	    "br %Start\n",
+
+	    "\nUSE_VAR_JSR:\n",
+	    "",
+
+	    "\nJSR:\n",
+//	    } else {
+//		stack.push(cp, fp)
+//		jump()
+//	    }
+	    "%sp = load %ctx** @sp\n",
+	    "%spPC = * %sp\n",
+	    "%",
+
+	    "\n; START\n",
+	    "Start:",
+	]
+	var code = entries.code
+
+	for (var pc = 0; pc < code.length; pc++) {
+	    var entry = entries.addrs[pc]
+
+	    if (entry) {
+		out.push(entry.name, ": ")
+	    }
+	    switch (code[pc++]) {
+	    case VAR_START:
+//		vp = cp;
+		out.push(
+		    "VAR_START\n",
+		    "%tmp_cp = load %ctx** @cp\n",
+		    "store %ctx* %tmp_cp, %ctx** @vp\n"
+		)
+		break;
+	    case NEXT_VAR:
+//		vp = vp[CTX_PARENT]
+		out.push(
+		    "NEXT_VAR\n",
+		    "%tmp1 = load %ctx** @vp\n",
+		    "%tmp2 = extractvalue %ctx* %tmp1, @parent\n",
+		    "store %ctx* %tmp2, %ctx** @vp\n"
+		)
+		break;
+	    case USE_CONTEXT:
+		var addr = entries.addrs[code[pc++]].name
+		var parent = code[pc++]
+		var isApply = code[pc++]
+//		fp = newContext(addr, parent, isApply)
+		out.push(
+		    "; USE_CONTEXT ", addr, ", ", parent, "\n",
+		    "%ct = call %ctx* @newContext(%", addr, ", ", parent, ", ", isApply ? "%apply" : "%null", ")\n",
+		    "store %ctx* %ct, %ctx** @fp\n"
+		)
+		break;
+	    case USE_VAR:
+//		fp = vp[CTX_BINDING]
+//		vp = null
+//		if (isApply(fp)) {
+//		    if (fp[CTX_RESULT]) {
+//			fp = fp[CTX_RESULT]
+//		    } else {
+//			stack.push(pc, cp, fp)
+//			jump()
+//		    }
+//		}
+		out.push(
+		    "; USE_VAR\n",
+		    "%rvp = load %ctx** @vp\n",
+		    "%rrvp = load %ctx* %fvp\n",
+		    "%rbin = extractvalue %ctx %rrvp, @binding\n",
+		    "store %ctx* %rbin, %ctx** @fp\n",
+		    "store %ctx* 0, %ctx** @vp\n",
+		    "%rrbin = load %ctx* %rbin\n",
+		    "%nextBnd = extractvalue %ctx rrbin, @binding\n",
+		    "%isApply = icmp eq %ctx* %apply, %ctx* %nextBnd\n",
+		    "br i1 %isApply, %USE_VAR_CheckFP, %Start\n"
+		)
+		break
+	    case BIND_CONTEXT:
 		if (fp[CTX_RESULT]) {
 		    fp = fp[CTX_RESULT]
-		    popRegs()
+		    if (code[pc] == RETURN) popRegs()
+		    else pc++
 		} else {
+		    var addr = code[pc++]
+		    var size = code[pc++]
+		    var parentCount = code[pc++]
+		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
+		    fp[CTX_BINDING] = newContext(size, addr, parentCount)
+		    jump()
+		}
+		break
+	    case BIND_VAR:
+		if (fp[CTX_RESULT]) {
+		    fp = fp[CTX_RESULT]
+		    if (code[pc] == RETURN) popRegs()
+		} else {
+		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
 		    fp[CTX_BINDING] = vp[CTX_BINDING]
 		    jump()
 		}
@@ -352,6 +459,7 @@ VM = (function(){
 	var result = expr.gen([], null, true, true)
 	env.addrs[env.code.length] = env.names["main"] = new Entry("main", expr, env.code.length)
 	env.code.push.apply(env.code, result.instructions)
+	env.code.push(RETURN)
 	return env
     }
 
@@ -364,10 +472,10 @@ VM = (function(){
 	if (gen) {
 	    addEntry(this)
 	    env.code.push.apply(env.code, bodyCode.instructions)
+	    env.code.push(RETURN)
 	}
-	instructions.push(start ? USE_LAMBDA_CONTEXT : top ? BIND_LAMBDA_CONTEXT_TAIL : BIND_LAMBDA_CONTEXT, this.cachedEntry.addr, 3, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1)
+	instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.cachedEntry.addr, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1, false)
 	if (!(top || start)) instructions.push(MEMO)
-	if (start && top) instructions.push(RETURN)
 	return {instructions: instructions, vars: remove(bodyVars, this)}
     }
 
@@ -383,8 +491,9 @@ VM = (function(){
 	    if (gen) {
 		addEntry(this.arg)
 		env.code.push.apply(env.code, aCode.instructions)
+		env.code.push(RETURN)
 	    }
-	    instructions.push(top ? BIND_APPLY_CONTEXT_TAIL : BIND_APPLY_CONTEXT, this.arg.cachedEntry.addr, 2, aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1)
+	    instructions.push(BIND_CONTEXT, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1, true)
 	    if (!top) instructions.push(MEMO)
 	} else {
 	    aCode = this.arg.gen(instructions, parents, top, gen)
@@ -396,30 +505,24 @@ VM = (function(){
 	var start = instructions.length == 0
 
 	if (this.free) {
-	    instructions.push(start ? USE_APPLY_CONTEXT : top ? BIND_APPLY_CONTEXT_TAIL : BIND_APPLY_CONTEXT, -this.id, 2, -1)
+	    instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, -this.id, -1, true)
 	    env.addrs[-this.id] = new Entry(this.dformat(), this, -this.id)
 	    //source[-this.id] = this
 	} else {
 	    instructions.push(VAR_START)
 	    for (var i = 0; i < this.num; i++) instructions.push(NEXT_VAR)
-	    instructions.push(start ? USE_VAR : top ? BIND_VAR_TAIL : BIND_VAR)
+	    instructions.push(start ? USE_VAR : BIND_VAR)
 	}
 	if (!(top || start)) instructions.push(MEMO)
-	if (start && top) instructions.push(RETURN)
 	return {instructions: instructions, vars: this.free ? null : cons(nth(parents, this.num), null)}
     }
 
     var obj = {
 	gen: gen,
 	execute: execute,
-	BIND_LAMBDA_CONTEXT: BIND_LAMBDA_CONTEXT,
-	BIND_APPLY_CONTEXT: BIND_APPLY_CONTEXT,
+	BIND_CONTEXT: BIND_CONTEXT,
 	BIND_VAR: BIND_VAR,
-	BIND_LAMBDA_CONTEXT_TAIL: BIND_LAMBDA_CONTEXT_TAIL,
-	BIND_APPLY_CONTEXT_TAIL: BIND_APPLY_CONTEXT_TAIL,
-	BIND_VAR_TAIL: BIND_VAR_TAIL,
-	USE_LAMBDA_CONTEXT: USE_LAMBDA_CONTEXT,
-	USE_APPLY_CONTEXT: USE_APPLY_CONTEXT,
+	USE_CONTEXT: USE_CONTEXT,
 	USE_VAR: USE_VAR,
 	MEMO: MEMO,
 	RETURN: RETURN,
