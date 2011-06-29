@@ -3,21 +3,24 @@ a (\x . \y . x) (c d) e
 -> a ()
 -----------------------
 
-[a,c,d,e,-]: UseVar(a), BindContext(0, L, -1), Memo, BindContext(0, C, -1), Memo, BindVar(e), Return
-L[x](\x . \y . x): UseContext(1, L2), Return
-L2[x,-](\y . x)): UseVar(x), Memo, Return
-C[c,d,-](c d): UseVar(c), Memo, BindVar(d), Return
+[a,c,d,e,-]: UseVar(a), BindContext(L, -1, false), Memo, BindContext(C, -1, true), Memo, BindContext(vE, -1, true), Return
+L[x](\x . \y . x): UseContext(L2, 0, false), Return
+L2[x,-](\y . x)): VarStart, UseVar, Return
+C[c,d,-](c d): BindContext(vC, -1, true), Memo, BindVar(vD, -1, true), Return
+vE: free variable
+vC: free variable
+vD: free variable
 
 
 (\x . x) 3
 
-[3,-]((\x . x) 3): UseContext(0, L, -1), BindVar(3), Return
-L[x](\x . x): UseVar(x), Memo, Return
+[3,-]((\x . x) 3): UseContext(L, 0, false), BindContext(v3, -1, true), Return
+L[x](\x . x): VarStart, UseVar, Return
 
 
 \x . \y . prim(plus, x, y)
 
-L[x]: UseContext(1, L2), Return
+L[x]: UseContext(L2, -1, false), Return
 L2[y]: PushStrict(1), PushStrict(0), UsePrim(plus), Return
 
 
@@ -50,19 +53,23 @@ Contexts
 
 Instructions
 
-UseContext(size, addr) -- FP = new context(size, addr)
+UseContext(addr, parent, apply) -- FP = new context(addr, parent, apply)
+  addr: the address of the code for the context.  Free variables are represented with negative numbers
+  parent: link the parent context; -1 => no parent, 0 => use context, 1 => use context.parent
+  apply: true => this is an apply, false => this is a lambda
+  FP = newContext(addr, parent, apply)
 
-UseVar(n) -- use var as function
-  FP = CP[n], MP = 0
+UseVar -- use var as result
+  FP = VP.binding, VP = null
   if FP.isApply
     if FP.result, FP = FP.result
-    else push(PC), push(CP), push(FP), CP = FP, PC = CP.addr
+    else push(PC, CP, FP), CP = FP, PC = CP.addr
 
-BindLambdaContext(size, addr)/BindApplyContext/BindLambdaContext/BindApplyContext -- bind current function to arg and reduce it
+BindContext(size, addr, apply) -- bind current function to arg and reduce it, if apply = true, place a marker in the context binding
   if FP.result
-    Bind*Context: FP = FP.result, PC++ (because of following memoize)
+    FP = FP.result
   else
-    Bind*Context: push(PC), push(CP), push(FP), FP[0] = newContext(size, addr), CP = FP, PC = CP.addr
+    push(PC, CP, FP), FP[0] = newContext(size, addr, apply), CP = FP, PC = CP.addr
 
 BindVar(n) -- bind current function to var and reduce it
   if FP.result
@@ -76,20 +83,12 @@ Memo -- store result in function that just executed
 Return -- return from call
   MP = stack[sp--], CP = stack[sp--], PC = stack[sp--]
 
-ExtCall(name) -- call primitive and use result as new function
+ExtPushResult -- pushes result onto stack for external call (strict evaluation)
+
+ExtPushVar -- pushes variable onto stack for external call (lazy evaluation)
+
+ExtCall(name) -- call primitive and return result
   FP = name(vars)
-
-
-=== TODO ===
-
-* Put flag in context to indicate if it's ever bound to a variable
-  Contexts which are never bound may be able to be collected quickly
-
-\1 . \2 . \3 . 1
-
-L1[1]: UseContext(-1, L2), return
-L2[2]: UseContext(1, L3), return
-L3[1, 3]: InheritParent, DerefParent, Inherit(0), Deref, UseVar(1), Return
 
 */
 
@@ -99,18 +98,7 @@ mark, sort, merge
 
 use 2-power best fit (N sizes -- 1024 arguments seems like enough, so N is 10)
 
-double-thread memory
-*/
-
-/*
-FFI
-
-Use stack to call function
-push frame info
-push args - either lazy or not
-call foreign func
-put return value in FP
-
+double-thread memory?
 */
 
 /*
@@ -137,14 +125,14 @@ VM = (function(){
     var BIND_CONTEXT = 0
     var BIND_VAR = 1
     var USE_CONTEXT = 2
-    var USE_VAR = 3
-    var MEMO = 4
-    var RETURN = 5
-    var EXT_PUSH_LAZY = 6
-    var EXT_PUSH_STRICT = 7
-    var EXT_CALL = 8
-    var VAR_START = 9
-    var NEXT_VAR = 10
+    var VAR_START = 3
+    var NEXT_VAR = 4
+    var USE_VAR = 5
+    var MEMO = 6
+    var RETURN = 7
+    var EXT_PUSH_LAZY = 8
+    var EXT_PUSH_STRICT = 9
+    var EXT_CALL = 10
 
     //CONTEXT ACCESS
     var CTX_ADDR = 0	// code address
@@ -202,12 +190,8 @@ VM = (function(){
 	pc = env.names[label].addr
 	while (pc > -1) {
 	    switch (code[pc++]) {
-	    case VAR_START:
-		vp = cp;
-		break;
-	    case NEXT_VAR:
-		vp = vp[CTX_PARENT]
-		break;
+	    case VAR_START: vp = cp; break
+	    case NEXT_VAR: vp = vp[CTX_PARENT];	break
 	    case USE_CONTEXT: {
 		var addr = code[pc++]
 		var parent = code[pc++]
@@ -219,9 +203,8 @@ VM = (function(){
 		fp = vp[CTX_BINDING]
 		vp = null
 		if (isApply(fp)) {
-		    if (fp[CTX_RESULT]) {
-			fp = fp[CTX_RESULT]
-		    } else {
+		    if (fp[CTX_RESULT]) fp = fp[CTX_RESULT]
+		    else {
 			if (code[pc] != RETURN) stack.push(pc, cp, fp)
 			jump()
 		    }
@@ -230,27 +213,19 @@ VM = (function(){
 	    case BIND_CONTEXT:
 		if (fp[CTX_RESULT]) {
 		    fp = fp[CTX_RESULT]
-		    if (code[pc + 3] == RETURN) {
-			popRegs()
-		    } else {
-			pc += 3
-		    }
+		    pc += 3
 		} else {
 		    var addr = code[pc++]
 		    var parentCount = code[pc++]
 		    var apply = code[pc++]
-		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
 		    fp[CTX_BINDING] = newContext(addr, parentCount, apply)
+		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
 		    jump()
 		}
 		break
 	    case BIND_VAR:
-		if (fp[CTX_RESULT]) {
-		    fp = fp[CTX_RESULT]
-		    if (code[pc] == RETURN) {
-			popRegs()
-		    }
-		} else {
+		if (fp[CTX_RESULT]) fp = fp[CTX_RESULT]
+		else {
 		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
 		    fp[CTX_BINDING] = vp[CTX_BINDING]
 		    jump()
@@ -261,15 +236,10 @@ VM = (function(){
 		mp[CTX_RESULT] = fp
 		mp = null
 		break
-	    case RETURN:
-		popRegs()
-		break
-	    case EXT_PUSH_LAZY:
-		break
-	    case EXT_PUSH_STRICT:
-		break
-	    case EXT_CALL:
-		break
+	    case RETURN: popRegs(); break
+	    case EXT_PUSH_LAZY:	break
+	    case EXT_PUSH_STRICT: break
+	    case EXT_CALL: break
 	    }
 	}
 	return {mp: mp, fp: fp}
