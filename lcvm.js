@@ -222,7 +222,7 @@ VM = (function(){
 		    if (fp[CTX_RESULT]) {
 			fp = fp[CTX_RESULT]
 		    } else {
-			stack.push(pc, cp, fp)
+			if (code[pc] != RETURN) stack.push(pc, cp, fp)
 			jump()
 		    }
 		}
@@ -474,7 +474,8 @@ VM = (function(){
 	    env.code.push.apply(env.code, bodyCode.instructions)
 	    env.code.push(RETURN)
 	}
-	instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.cachedEntry.addr, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1, false)
+//	instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.cachedEntry.addr, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1, false)
+	instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.cachedEntry.addr, parents == null ? -1 : 0, false)
 	if (!(top || start)) instructions.push(MEMO)
 	return {instructions: instructions, vars: remove(bodyVars, this)}
     }
@@ -487,13 +488,14 @@ VM = (function(){
 
 	if (this.arg instanceof LC.Apply) {
 	    gen = gen && !this.arg.cacheEntry
-	    aCode = this.arg.gen([], [], true, gen)
+	    aCode = this.arg.gen([], parents, true, gen)
 	    if (gen) {
 		addEntry(this.arg)
 		env.code.push.apply(env.code, aCode.instructions)
 		env.code.push(RETURN)
 	    }
-	    instructions.push(BIND_CONTEXT, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1, true)
+//	    instructions.push(BIND_CONTEXT, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1, true)
+	    instructions.push(BIND_CONTEXT, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : 0, true)
 	    if (!top) instructions.push(MEMO)
 	} else {
 	    aCode = this.arg.gen(instructions, parents, top, gen)
