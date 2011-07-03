@@ -153,13 +153,13 @@ VM = (function(){
 
     function addEntry(expr, prefix) {
 	var debruijn = expr.dformat()
+	var entry = env.debruijns[debruijn]
 
-	entry = env.debruijns[debruijn]
 	if (!entry) {
 	    name = prefix || ((expr instanceof LC.Apply ? "APPLY-" : "LAMBDA-") + expr.id)
 	    entry = env.debruijns[debruijn] = env.addrs[env.code.length] = env.names[name] = new Entry(name, expr, env.code.length)
-	    expr.cachedEntry = entry
 	}
+	expr.cachedEntry = entry
 	return entry
     }
 
@@ -184,6 +184,10 @@ VM = (function(){
 	fp = null
 	mp = null
 	cp = null
+	for (var i = 2; i < arguments.length; i++) {
+	    cp = newContext(null, 0, false)
+	    cp[CTX_BINDING] = arguments[i]
+	}
 	env = newEntries
 	var code = env.code
 	stack = [-1, null, null]
@@ -424,18 +428,18 @@ VM = (function(){
     function merge(list1, list2) {return append(list1, removeAll(list2, list1))}
 
     // this assumes expr is a debruijn expression
-    function gen(expr) {
-	env = {debruijns: {}, addrs: {}, names: {}, code: []}
-	var result = expr.gen([], null, true, true)
-	env.addrs[env.code.length] = env.names["main"] = new Entry("main", expr, env.code.length)
+    function gen(expr, genAll, main, newEnv, parents) {
+	env = newEnv || {debruijns: {}, addrs: {}, names: {}, code: []}
+	var result = expr.gen([], parents, true, true, genAll)
+	env.addrs[env.code.length] = env.names[main || "main"] = new Entry(main || "main", expr, env.code.length)
 	env.code.push.apply(env.code, result.instructions)
 	env.code.push(RETURN)
 	return env
     }
 
-    LC.Lambda.prototype.__proto__.gen = function(instructions, parents, top, gen) {
-	gen = gen && !this.cachedEntry
-	var bodyCode = this.body.gen([], cons(this, parents), true, gen)
+    LC.Lambda.prototype.__proto__.gen = function(instructions, parents, top, gen, genAll) {
+	gen = genAll || (gen && !this.cachedEntry)
+	var bodyCode = this.body.gen([], cons(this, parents), true, gen, genAll)
 	var bodyVars = remove(bodyCode.vars, this)
 	var start = instructions.length == 0
 
@@ -450,15 +454,15 @@ VM = (function(){
 	return {instructions: instructions, vars: remove(bodyVars, this)}
     }
 
-    LC.Apply.prototype.__proto__.gen = function(instructions, parents, top, gen) {
+    LC.Apply.prototype.__proto__.gen = function(instructions, parents, top, gen, genAll) {
 	var start = instructions.length == 0
-	var funcCode = this.func.gen(instructions, parents, false, gen)
+	var funcCode = this.func.gen(instructions, parents, false, gen, genAll)
 	var myVars
 	var aCode
 
 	if (this.arg instanceof LC.Apply) {
-	    gen = gen && !this.arg.cacheEntry
-	    aCode = this.arg.gen([], parents, true, gen)
+	    gen = genAll || (gen && !this.arg.cacheEntry)
+	    aCode = this.arg.gen([], parents, true, gen, genAll)
 	    if (gen) {
 		addEntry(this.arg)
 		env.code.push.apply(env.code, aCode.instructions)
@@ -468,7 +472,7 @@ VM = (function(){
 	    instructions.push(BIND_CONTEXT, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : 0, true)
 	    if (!top) instructions.push(MEMO)
 	} else {
-	    aCode = this.arg.gen(instructions, parents, top, gen)
+	    aCode = this.arg.gen(instructions, parents, top, gen, genAll)
 	}
 	return {instructions: instructions, vars: merge(funcCode.vars, aCode.vars)}
     }

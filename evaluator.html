@@ -100,7 +100,9 @@ function runVm(id) {
 
 	results.push("<b>Execute:</b> ", comp.expr.format(false, true), "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", comp.expr.globalSub().debruijn().dformat(), "<br>")
 	if (!result.mp) {
-		results.push("<b>Result:</b>", LC.pretty(rexpr), "<br><br><span>.</span>")
+//		results.push("<b>Result:</b>", LC.pretty(rexpr), "<br><br><span>.</span>")
+//		results.push("<b>Result:</b>", compExpr.original.pretty(true), "<br><br><span>.</span>")
+		results.push("<b>Result:</b>", compExpr.original.format(false, true), "<br><br><span>.</span>")
 	} else {
 		results.push("<b><i>Attempt to use free variable ", rexpr, " as a function</i></b>")
 	}
@@ -108,11 +110,11 @@ function runVm(id) {
 }
 function compileVM(expr) {
 	var oldEx = expr
-	expr = expr.globalSub().debruijn()
+	expr = expr.globalSub().debruijn(true)
 //	results.push("<b>Compile:</b> ", expr.format(false, true), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
 //	results.push("<b>Compile:</b> ", expr.dformat(), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
 	results.push("<b>Compile:</b> ", oldEx.format(false, true), "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", expr.dformat(), " <button onclick='runVm(", expr.id, ")'>Run</button><table>")
-	var comp = VM.gen(expr)
+	var comp = VM.gen(expr, true)
 	compilations[expr.id] = comp
 	comp.expr = oldEx
 	for (var i = 0; i < comp.code.length; ) {
@@ -210,7 +212,7 @@ function runReduce(expr) {
 		results = []
 		trace.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + (success ? formatSubexpr(last) : '<br><b>...</b>')
 	} catch (err) {
-		trace.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + '<b>' + err + '</b>'
+		trace.previousElementSibling.innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;" + '<b style="color: red">' + err + '</b>'
 	}
 	results.push("<br>")
 	displayResults(results.length && docMsg)

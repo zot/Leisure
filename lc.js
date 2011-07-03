@@ -156,15 +156,16 @@ function runCode(expr, code) {
 	historyCount++
 	LC.L = L = null
 }
-function isCons(l) {return lcons && l.lambda.id == lcons.id}
-function isFalse(l) {return lfalse && l.lambda.id == lfalse.id}
-function pretty(l) {
-	var lam = l instanceof Entity ? l : l.lambda
+function isCons(l) {return lcons && getLambda(l).id == lcons.id}
+function isFalse(l) {return lfalse && getLambda(l).id == lfalse.id}
+function getLambda(l) {return l instanceof Entity ? l : l.lambda}
+function pretty(l, nosubs) {
+    var lam = getLambda(l)
 
-	return lam && lcons && lam.id == lcons.id ? '[' + elements(l, true) + ']' : lam ? lam.format() : l
+    return lam && lcons && lam.id == lcons.id ? '[' + elements(l, true, nosubs) + ']' : lam ? lam.format(false, nosubs) : l
 }
-function elements(l, first) {
-	return isFalse(l) ? '' : ((first ? '' : ', ') + pretty(Lhead(l)) + elements(Ltail(l), false))
+function elements(l, first, nosubs) {
+    return isFalse(l) ? '' : ((first ? '' : ', ') + pretty(Lhead(l), nosubs) + elements(Ltail(l), false, nosubs))
 }
 function constructEnv(src) {
 	if (!L || src) {
@@ -348,7 +349,7 @@ Entry.prototype = {
 	alphaConvert: function() {return new Entry(this.name, this.expr.alphaConvert())},
 	betaReduce: function() {return new Entry(this.name, this.expr.betaReduce())},
 	etaConvert: function() {return new Entry(this.name, this.expr.etaConvert())},
-	debruijn: function() {return new Entry(this.name, this.expr.debruijn())},
+	debruijn: function(skipCache) {return new Entry(this.name, this.expr.debruijn(skipCache))},
 	globalSub: function() {return new Entry(this.name, this.expr.globalSub())},
 }
 
@@ -426,9 +427,13 @@ function lcode(name) {
 	return func
     })
 }
-function debcache(expr, cache) {
-    var key = expr.dformat()
-    return cache[key] || (cache[key] = expr)
+function debcache(expr, cache, skipCache) {
+    if (skipCache) {
+	return expr
+    } else {
+	var key = expr.dformat()
+	return cache[key] || (cache[key] = expr)
+    }
 }
 var entityCounter = 0
 function Entity(obj) {
@@ -437,53 +442,52 @@ function Entity(obj) {
 	}
 }
 Entity.prototype.__proto__ = {
-	transform2: function(settings) {return new Transformer2(settings).visit(this)},
-	pretty: function() {return this.id == lcons.id ? pretty(constructEnv(this.ret([]).join(""))) : this.format()},
-	transform: function() {return this.doTransform(new Transformer(arguments))},
-	startTransform: function(transformer) {return transformer.getTransform(this) || this.doTransform(transformer)},
-	doTransform: function(transformer) {
-		if (transformer.getTransform(this)) return transformer.getTransform(this)
-		var pre = transformer.pre[this.constructor.name].call(this, transformer)
+    transform2: function(settings) {return new Transformer2(settings).visit(this)},
+    pretty: function() {return this.id == lcons.id ? pretty(constructEnv(this.ret([]).join(""))) : this.format()},
+    transform: function() {return this.doTransform(new Transformer(arguments))},
+    startTransform: function(transformer) {return transformer.getTransform(this) || this.doTransform(transformer)},
+    doTransform: function(transformer) {
+	if (transformer.getTransform(this)) return transformer.getTransform(this)
+	var pre = transformer.pre[this.constructor.name].call(this, transformer)
 
-		return pre && (transformer.getTransform(this) || transformer.prune(this, transformer.post[pre.constructor.name].call(pre.propagateTransform(transformer), transformer)))
-	},
-	alphaConvert: function() {return this},
-	betaReduce: function() {return this},
-	etaConvert: function() {return this.transform(post(Lambda, function(transformer) {
-		return this.body instanceof Apply && this.body.arg == this.lvar && !this.body.func.containsVar(this.lvar) ? this.body.func : this
-	}))},
-	isApply: function() {return false},
-	names: function() {
-		var names = {}
-
-		this.transform(pre(Lambda, function(){names[this.lvar.name] = 1; return this}))
-		return names
-	},
-	uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
-	hashKey: function() {return this.debruijn().dformat()},
-	debruijn: function() {return this.subdebruijn(null, {})},
-	globalSub: function() {
-		var v = this.uniquify(exprs).transform(pre(Variable, function() {
-			return exprs[this.name] ? exprs[this.name].expr.globalSub() : this
-		}))
-		var bad = false
-
-		v.transform(pre(Lambda, function() {
-			if (!(this.lvar instanceof Variable)) {
-				bad = true; return this
-			}
-		}))
-		if (bad) {
-			alert("Error in globalSub for " + this.format(true, true))
-		}
-		return v
-	},
-	containsVar: function(targetVar) {
-		var contains = false
-
-		this.transform(pre(Variable, function() {contains = contains || this == targetVar; return this}))
-		return contains
-	},
+	return pre && (transformer.getTransform(this) || transformer.prune(this, transformer.post[pre.constructor.name].call(pre.propagateTransform(transformer), transformer)))
+    },
+    alphaConvert: function() {return this},
+    betaReduce: function() {return this},
+    etaConvert: function() {return this},
+    subetaConvert: function() {return this},
+    isApply: function() {return false},
+    names: function() {
+	var names = {}
+	
+	this.transform(pre(Lambda, function(){names[this.lvar.name] = 1; return this}))
+	return names
+    },
+    uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
+    hashKey: function() {return this.debruijn().dformat()},
+    debruijn: function(skipCache) {return this.subdebruijn(null, {}, skipCache)},
+    globalSub: function() {
+	var v = this.uniquify(exprs).transform(pre(Variable, function() {
+	    return exprs[this.name] ? exprs[this.name].expr.globalSub() : this
+	}))
+	var bad = false
+	
+	v.transform(pre(Lambda, function() {
+	    if (!(this.lvar instanceof Variable)) {
+		bad = true; return this
+	    }
+	}))
+	if (bad) {
+	    alert("Error in globalSub for " + this.format(true, true))
+	}
+	return v
+    },
+    containsVar: function(targetVar) {
+	var contains = false
+	
+	this.transform(pre(Variable, function() {contains = contains || this == targetVar; return this}))
+	return contains
+    },
 }
 
 function pfx(prefix) {return prefix == null ? '' : prefix}
@@ -511,7 +515,7 @@ function Lambda(arg, body, id) {
 }
 Lambda.prototype.__proto__ = new Entity({
     dformat: function(inner) {return inner ? "(" + "\u03BB" + this.body.dformat(false) + ")" : "\u03BB" + this.body.dformat(false)},
-    subdebruijn: function(vars, cache) {return debcache(this.make(null, this.body.subdebruijn(cons(this.lvar, vars), cache)), cache)},
+    subdebruijn: function(vars, cache, skipCache) {return debcache(this.make(null, this.body.subdebruijn(cons(this.lvar, vars), cache, skipCache), skipCache && 'original'), cache, skipCache)},
     equals: function(obj) {return obj instanceof Lambda && this.lvar.equals(obj.lvar) && this.body.equals(obj.body)},
     toString: function() {return this.format()},
     ret: function(stream, prefix) {
@@ -547,13 +551,15 @@ Lambda.prototype.__proto__ = new Entity({
 	
 	return this.make(newVar, newBod)
     },
-    make: function(newVar, newBody) {return (this.lvar == newVar && this.body == newBody && this) || new Lambda(newVar, newBody, this.id)},
-    substitute: function(value) {
-	var trans = new Transformer([])
-	
-	trans.prune(this.lvar, value)
-	return trans.transform(this.body)
+    make: function(newVar, newBody, link) {
+	var newExpr = (this.lvar == newVar && this.body == newBody && this) || new Lambda(newVar, newBody, this.id)
+
+	if (newExpr != this && link) newExpr[link] = this
+	return newExpr
     },
+    substitute: function(value) {return this.body.rsub(this.lvar, value)},
+    rsub: function(variable, value) {return this.make(this.lvar, this.body.rsub(variable, value))},
+    subetaConvert: function() {return this.body instanceof Apply && this.body.arg == this.lvar && !this.body.func.containsVar ? this.body.func : this},
 })
 function numberFor(name, names) {
 	var i = 0
@@ -637,46 +643,49 @@ function Variable(txt, free, base, num) {
 }
 var vcount = 0
 Variable.prototype.__proto__ = new Entity({
-	dformat: function() {return this.free ? "[" + this.name + "]" : this.name},
-	subdebruijn: function(vars, cache) {
-		var i = index(vars, this)
+    dformat: function() {return this.free ? "[" + this.name + "]" : this.name},
+    subdebruijn: function(vars, cache, skipCache) {
+	var i = index(vars, this)
+	var newVar = new Variable(i == -1 ? this.name : i, i == -1, this.base, i)
 
-		return new Variable(i == -1 ? this.name : i, i == -1, this.base, i)
-	},
-	equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
-	toString: function() {return "Variable(" + this.name + ")"},
-	valueFunc: function() {
-		warnFreeVariable.push(this.name)
-		return "setLambda(function() {throw new Error('Line " + line + " attempts to use free variable, \"" + this.name + "\" as a function.')}, " + this.id + ")"
-	},
-	ret: function(stream, prefix) {
-		if (this.isBound()) {
-			this.pass(stream, prefix)
-			stream.push("()")
-		} else {
-			stream.push(this.valueFunc())
-		}
-		return stream
-	},
-	isBound: function() {return !this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length)},
-	pass: function(stream, prefix) {
-		if (this.isBound()) {
-			stream.push(pfx(prefix), this.cname)
-		} else {
-			stream.push("(function(){return ", this.valueFunc(), "})")
-		}
-		return stream
-	},
-	apply: function(stream, prefix) {return this.ret(stream, prefix)},
-	format: function() {return this.name},
-	propagateTransform: function(transformer) {return this},
-	rename: function(names) {
-		if (!names[this.name]) return this
-		var i = this.num
-
-		while (names[this.base + '_' + ++i]) {}
-		return new Variable(this.base + '_' + i, this.free, this.base, i)
-	},
+	if (skipCache) newVar.original = this
+	return newVar
+    },
+    equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
+    toString: function() {return "Variable(" + this.name + ")"},
+    valueFunc: function() {
+	warnFreeVariable.push(this.name)
+	return "setLambda(function() {throw new Error('Line " + line + " attempts to use free variable, \"" + this.name + "\" as a function.')}, " + this.id + ")"
+    },
+    ret: function(stream, prefix) {
+	if (this.isBound()) {
+	    this.pass(stream, prefix)
+	    stream.push("()")
+	} else {
+	    stream.push(this.valueFunc())
+	}
+	return stream
+    },
+    isBound: function() {return !this.free || exprs[this.name] || this.name == "$" || (this.name.match('^\\$[0-9]+$') && Number(this.name.substring(1)) < history.length)},
+    pass: function(stream, prefix) {
+	if (this.isBound()) {
+	    stream.push(pfx(prefix), this.cname)
+	} else {
+	    stream.push("(function(){return ", this.valueFunc(), "})")
+	}
+	return stream
+    },
+    apply: function(stream, prefix) {return this.ret(stream, prefix)},
+    format: function() {return this.name},
+    propagateTransform: function(transformer) {return this},
+    rename: function(names) {
+	if (!names[this.name]) return this
+	var i = this.num
+	
+	while (names[this.base + '_' + ++i]) {}
+	return new Variable(this.base + '_' + i, this.free, this.base, i)
+    },
+    rsub: function(variable, value) {return this == variable ? value : this},
 })
 
 function Apply(func, arg) {
@@ -690,7 +699,7 @@ Apply.prototype.__proto__ = new Entity({
 	
 	return fstr + " " + (this.arg instanceof Apply ? "(" + this.arg.dformat(false) + ")" : this.arg.dformat(inner))
     },
-    subdebruijn: function(vars, cache) {return debcache(this.make(this.func.subdebruijn(vars, cache), this.arg.subdebruijn(vars, cache)), cache)},
+    subdebruijn: function(vars, cache, skipCache) {return debcache(this.make(this.func.subdebruijn(vars, cache, skipCache), this.arg.subdebruijn(vars, cache, skipCache), skipCache && 'original'), cache, skipCache)},
     equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
     apply: function(stream, prefix) {
 	this.func.apply(stream, prefix)
@@ -714,12 +723,18 @@ Apply.prototype.__proto__ = new Entity({
 	
 	return this.make(newFunc, newArg)
     },
-    make: function(newFunc, newArg) {return (newFunc == this.func && newArg == this.arg && this) || new Apply(newFunc, newArg)},
+    make: function(newFunc, newArg, link) {
+	var newExpr = (newFunc == this.func && newArg == this.arg && this) || new Apply(newFunc, newArg)
+
+	if (this != newExpr && link) newExpr[link] = this
+	return newExpr
+    },
     innermost: function(func) {return this.func.isApply() ? new Apply(this.func.innermost(func), this.arg) : func.call(this)},
     isApply: function() {return true},
     alphaConvert: function() {return this.innermost(function() {return new Apply(this.func, this.arg.uniquify(this.func.names()))})},
     betaReduce: function() {return this.innermost(function() {return this.func.substitute(this.arg)})},
-    etaConvert: function() {return this.innermost(function() {return new Apply(this.func.etaConvert(), this.arg)})},
+    etaConvert: function() {return this.innermost(function() {return this.make(this.func.subetaConvert(), this.arg)})},
+    rsub: function(variable, value) {return this.make(this.func.rsub(variable, value), this.arg.rsub(variable, value))},
 })
 function wrap(x) {return function() {return x}}
 var Lhead = lcode('head')

@@ -84,13 +84,21 @@ But this talk is not about Haskell.
 ***
 #Some neato things you can do in Lambda calculus
 
-* easy generators
+* easy generators (iterators)
 * easy custom control structures
 * infinite streams (good for filtering/generate and test)
 * varargs (without extra language constructs)
 * deep code factoring (eg. combinators)
 ***
 #Generators
+
+makeTree = \value left right . [value, left, right]
+getValue = \tree . head tree
+getLeft = \tree . head (tail tree)
+getRight = \tree . head (tail (tail tree))
+traverse = rec λtraverse tree . (null tree) nil (cons getValue(tree) (append (traverse (getLeft tree)) (traverse (getRight tree))))
+
+
 ***
 #Custom control structures
 ***
