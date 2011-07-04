@@ -82,27 +82,99 @@ If you think Java's and C++'s Generics are complicated, that's just peanuts comp
 
 But this talk is not about Haskell.
 ***
-#Some neato things you can do in Lambda calculus
+#Some neato things you can easily do in Lambda calculus
 
-* easy generators (iterators)
-* easy custom control structures
+* generators (iterators)
 * infinite streams (good for filtering/generate and test)
+* custom control structures
 * varargs (without extra language constructs)
 * deep code factoring (eg. combinators)
 ***
 #Generators
 
-makeTree = \value left right . [value, left, right]
-getValue = \tree . head tree
-getLeft = \tree . head (tail tree)
-getRight = \tree . head (tail (tail tree))
-traverse = rec λtraverse tree . (null tree) nil (cons getValue(tree) (append (traverse (getLeft tree)) (traverse (getRight tree))))
+* makeTree = &lambda;value left right f . f value left right
+* value = &lambda;tree . tree &lambda;v l r . v
+* left = &lambda;tree . tree &lambda;v l r . l
+* right = &lambda;tree . tree &lambda;v l r . r
+* traverse = rec &lambda;tr tree . tree (&lambda;v l r D . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
 
+Traverse just creates of a list of the preorder traversal of the tree:
 
+traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil) nil) &rArr; [1,2,3]
 ***
-#Custom control structures
+#Generators
+
+* makeTree = &lambda;value left right f . f value left right
+* value = &lambda;tree . tree &lambda;v l r . v
+* left = &lambda;tree . tree &lambda;v l r . l
+* right = &lambda;tree . tree &lambda;v l r . r
+* traverse = rec &lambda;tr tree . tree (&lambda;v l r D . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+
+Traverse just creates of a list of the preorder traversal of the tree:
+
+traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil) nil) &rArr; [1,2,3]
+
+Right?
+***
+#Generators
+
+* makeTree = &lambda;value left right f . f value left right
+* value = &lambda;tree . tree &lambda;v l r . v
+* left = &lambda;tree . tree &lambda;v l r . l
+* right = &lambda;tree . tree &lambda;v l r . r
+* traverse = rec &lambda;tr tree . tree (&lambda;v l r D . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+
+Traverse just creates of a list of the preorder traversal of the tree:
+
+traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil) nil) &rArr; [1,2,3]
+
+Right?
+
+Well... 
+***
+#Generators
+
+* makeTree = &lambda;value left right f . f value left right
+* value = &lambda;tree . tree &lambda;v l r . v
+* left = &lambda;tree . tree &lambda;v l r . l
+* right = &lambda;tree . tree &lambda;v l r . r
+* traverse = rec &lambda;tr tree . tree (&lambda;v l r D . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+
+Traverse just creates of a list of the preorder traversal of the tree:
+
+traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil) nil) &rArr; [1,2,3]
+
+Right?
+
+Well... 
+
+Check out what it _really_ returns...
+***
+#Generators
+λf_1 . f_1 (getValue (nd 1 false false)) (rec (λappend_1 l1 l2 . l1 (λh t D . cons h (append_1 t l2)) l2) (Y (λtraverse_2 tree_1 . tree_1 (λv_1 l_1 r_1 D_1 . cons (getValue tree_1) (rec (λappend_1 l1 l2 . l1 (λh t D . cons h (append_1 t l2)) l2) (traverse_2 (getLeft tree_1)) (traverse_2 (getRight tree_1)))) false) (getLeft (nd 1 false false))) (Y (λtraverse_2 tree_1 . tree_1 (λv_1 l_1 r_1 D_1 . cons (getValue tree_1) (rec (λappend_1 l1 l2 . l1 (λh t D . cons h (append_1 t l2)) l2) (traverse_2 (getLeft tree_1)) (traverse_2 (getRight tree_1)))) false) (getRight (nd 1 false false))))
+
+Complicated, but this is the "captured execution".
+***
+#Generators
+
+Lazy evaluation means that only the parts of the list you access are actually computed.  The rest remain _virtual_.
+
+This brings us to...
 ***
 #Infinite streams
+
+Example infinite streams:
+
+* natural numbers
+* whole numbers
+* even numbers
+* random numbers (given a seed)
+
+With lazy evaluation, you can make functions that filter streams, transform them, skip elements, truncating them (and more).
+
+You can send this function an infinite stream and 
+***
+#Custom control structures
 ***
 #Varargs
 ***
@@ -127,6 +199,10 @@ Teaching people about deep CS concepts (recursion, laziness, functional, ...)
 [Evaluator](evaluator.html)
 
 [Space Invaders](http://tinyconcepts.com/invaders.html)
+***
+# These slides
+
+<img src="http://qrcode.kaywa.com/img.php?s=8&d=http%3A%2F%2Ftinyconcepts.com%2Ffs.pl%2Flambda.fsl%2Fdoc%2Ftip%2Fslides.html" alt="qrcode">
 ***
 # Resources
 

@@ -32,7 +32,7 @@ misrepresented as being the original software.
 	visibility: inherit;
 	display: inherit;
 }
-.hidden, .hidedebug .debug, .shownosubs .subs, .showsubs .nosubs {
+.hidden, .hidedebug .debug, .shownosubs .subs, .showsubs .nosubs, .shownopretty .pretty, .showpretty .nopretty {
 	height: 0;
 	width: 0;
 	visibility: hidden;
@@ -47,9 +47,11 @@ var output
 var result
 var showDebug = false
 var showSubs = true
+var showPretty = true
 var results = []
 var docMsg = true
 var compilations = {}
+var collapseInitial = true
 
 function setShowDebug(state) {
 	showDebug = state
@@ -59,7 +61,11 @@ function setShowSubs(state) {
 	showSubs = state
 	show()
 }
-function show() {document.getElementById("control").setAttribute("class", (showDebug ? "" : "hidedebug ") + (showSubs ? "showsubs" : "shownosubs"))}
+function setShowPretty(state) {
+	showPretty = state
+	show()
+}
+function show() {document.getElementById("control").setAttribute("class", (showDebug ? "" : "hidedebug ") + (showSubs ? "showsubs " : "shownosubs ") + (showPretty ? "showpretty" : "shownopretty"))}
 function handleFiles(fileElement) {
 	var files = fileElement.files
 	var reader = new FileReader()
@@ -187,13 +193,13 @@ function formatExpr(label, expr) {
 	results.push("<div><b>" + label + ":</b> " + formatSubexpr(expr) + "</div>")
 }
 function formatSubexpr(expr) {
-	return "<span class='subs'>" + expr.pretty() + "</span><span class='nosubs'>" + expr.format(false, true) + "</span>"
+	return "<span class='subs pretty'>" + expr.pretty() + "</span><span class='subs nopretty'>" + expr.format() + "</span><span class='nosubs nopretty'>" + expr.format(false, true) + "</span>"
 }
 function runReduce(expr) {
 	var last
 
 	formatExpr(" <a style='border: solid black 1px;font-family: monospace' onclick='toggleSteps(this)'>+</a> Reduce", expr, result)
-	results.push("<div></div>")
+	results.push("<div ", collapseInitial ? "class='hidden'" : "","></div>")
 	if (results.length && docMsg) {
 		docMsg = false
 		result.innerHTML = ''
@@ -295,12 +301,12 @@ function editResult(str) {
 </script>
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
-	<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs" id="control">
+	<table style="position: absolute; height: 100%; width: 100%; border: 0" class="hidedebug showsubs showpretty" id="control">
 		<tr style="height: 0"><td>Load file: <input type="file" id="input" onchange="handleFiles(this)"></input></td></tr>
 		<tr style="height: auto"><td>
 			<div style="position: relative; width: 100%; height: 100%">
 				<table style="position: absolute; width: 100%; height: 100%">
-					<tr style="height: 0"><td style="width: 50%"><span class='hidden' style="color: red">CURRENT ERROR: reduce on test</span><h2>Definitions (show debug <input type="checkbox" onclick="setShowDebug(this.checked)">, show substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results <button onclick="result.innerHTML = '';def.select()">Clear</button></h2></td></tr>
+					<tr style="height: 0"><td style="width: 50%"><span class='hidden' style="color: red">CURRENT ERROR: reduce on test</span><h2>Definitions (<!--debug <input type="checkbox" onclick="setShowDebug(this.checked)">, -->substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">, pretty <input type="checkbox" onclick="setShowPretty(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results (collapse reduce <input type="checkbox" onclick="collapseInitial = this.checked" checked="true">)<button onclick="result.innerHTML = '';def.select()">Clear</button></h2></td></tr>
 					<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px" id="result">
 <h1>Lambda Calculus compiler and interpreter</h1>
 Copyright (C) 2011, Bill Burdick, Tiny Concepts: <a href='http://tinyconcepts.com/fs.pl/lambda.fsl'>http://tinyconcepts.com/fs.pl/lambda.fsl</a><br>
@@ -354,8 +360,8 @@ rec = \f . f (Y f)
 # If the list is empty, it returns empty-case
 cons = \a b f . f a b
 nil = false
-head = \l . l (\h t D . h) nil
-tail = \l . l (\h t D . t) nil
+head = \l . l \h t . h
+tail = \l . l \h t . t
 null = \l . l (\h t D . false) true
 last = rec \last l  . l (\h t D . null t h (last t)) nil
 append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
@@ -374,6 +380,16 @@ test1 = (\f . f a) (\x . x)
 test2 = 1f 1 ident
 test3 = head (cons 1 nil)
 test4 = head (tail (cons 1 (cons 2 nil)))
+
+nd = \value left right f . f value left right
+getValue = \tree . tree \v l r . v
+getLeft = \tree . tree \v l r . l
+getRight = \tree . tree \v l r . r
+nullTree = \tree . tree (\v l r D . false) true
+traverse = rec \traverse tree . tree (\v l r D . (cons (getValue tree) (append (traverse (getLeft tree)) (traverse (getRight tree))))) nil
+testt1 = traverse (nd 1 nil nil)
+testt2 = traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil))
+testt3 = traverse (nd 1 (nd 2 (nd 3 nil nil) (nd 4 nil nil)) (nd 5 (nd 6 nil nil) (nd 7 nil nil)))
 
 	</pre>
 </body>

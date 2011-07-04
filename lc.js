@@ -106,36 +106,36 @@ function evalLine(line, noRebuild) {
 	return false
 }
 function addExpr(name, txt, noRebuild) {
-	if (name) {
-		var expr = new Entry(name, parse(txt))
-		var newOutput = ''
+    if (name) {
+	var expr = new Entry(name, parse(txt))
+	var newOutput = ''
 
-		if (!noRebuild) {
-			for (var i = 0; i < order.length; i++) {
-				if (order[i].name == name) {
-					order.splice(i, 1)
-				}
-			}
+	if (!noRebuild) {
+	    for (var i = 0; i < order.length; i++) {
+		if (order[i].name == name) {
+		    order.splice(i, 1)
 		}
-		LC.L = L = null
-		order.push(expr)
-		exprs[name] = expr
-		var hk = expr.expr.hashKey()
-		if (!hashed[hk]) hashed[hk] = expr
-		return true
-	} else {
-		runExpr(txt.trim())
-		return false
+	    }
 	}
+	LC.L = L = null
+	order.push(expr)
+	exprs[name] = expr
+	var hk = expr.expr.hashKey()
+	if (!hashed[hk]) hashed[hk] = expr
+	return true
+    } else {
+	runExpr(txt.trim())
+	return false
+    }
 }
 function findCons() {
-	if (L._cons) {
-		lcons = L._cons().lambda.body.body
-		lfalse = L._false().lambda
-	}
+    if (L._cons) {
+	lcons = L._cons().lambda.body.body
+	lfalse = L._false().lambda
+    }
 }
 function runFunc(index) {
-	runCode(order[index].expr, order[index].code)
+    runCode(order[index].expr, order[index].code)
 }
 function runExpr(str) {
 	var expr = parse(str)
@@ -464,7 +464,7 @@ Entity.prototype.__proto__ = {
 	return names
     },
     uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
-    hashKey: function() {return this.debruijn().dformat()},
+    hashKey: function() {return this.globalSub().debruijn().dformat()},
     debruijn: function(skipCache) {return this.subdebruijn(null, {}, skipCache)},
     globalSub: function() {
 	var v = this.uniquify(exprs).transform(pre(Variable, function() {
