@@ -148,13 +148,13 @@ Maybe untyped LC could be too
 
 * LC uses "lazy evaluation" -- function arguments are never evaluated until they are used (and this is transitive)
 * LC is just functions -- data is also functions, which means data is also lazy
-* LC uses "currying" -- if you call a 3-arg function with the first 2 args, it returns a 1-arg function
+* LC allows "currying" -- calling a 3-arg function with only the first 2 args returns a 1-arg function that "saves" the first 2
 
 Most languages don't have lazy evaluation + currying + data/functions
 
 This combination can be really powerful
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Functions
 
 LC is just functions and functions are like subroutines
 
@@ -168,7 +168,7 @@ A function body can be...
 
 Values can be functions or undefined
 ***
-#Brief Overview
+#Brief Overview: Functions
 
 A function which returns another function acts like it takes another argument
 
@@ -188,13 +188,13 @@ as
 
 It's less of a pain
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Data
 
 Here's how you can define a simple "person record"...
 
 * makePerson = <span class="def">&lambda;name number f</span> . f name number
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Data
 
 Here's how you can define a simple "person record"...
 
@@ -204,7 +204,7 @@ Calling makePerson with a name returns a function that takes a number and return
 
 makePerson fred &rArr; <span class="def">&lambda;number f</span> . f fred number
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Data
 
 Here's how you can define a simple "person record"...
 
@@ -218,7 +218,7 @@ You can call that with a number to get a "person record":
 
 (makePerson fred) 777-2344 &rArr; <span class="def">&lambda;f</span> . f fred 777-2344
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Data
 
 Here's how you can define a simple "person record"...
 
@@ -236,7 +236,25 @@ Lambda Calculus is "left associative" to make this easier:
 
 makePerson fred 777-2344 &rArr; <span class="def">&lambda;number f</span> . f fred 777-2344
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Data
+
+**Wait -- what just happened?**
+
+We used currying to create a "person record"...
+
+* makePerson = <span class="def">&lambda;name number f</span> . f name number
+
+makePerson fred 777-2344 &rArr; <span class="def">&lambda;number f</span> . f fred 777-2344
+
+See how makePerson defines this "f" argument, but we aren't using it?
+
+When I send only 2 arguments to makePerson, I get back a function that takes an "f"
+
+The fact that I can send in "f" later allows the "person record function" to work
+
+LC uses currying for a LOT of things
+***
+#Brief Overview: Data
 
 <span class="def">&lambda;f</span> . f fred 777-2344
 
@@ -244,7 +262,7 @@ This "person record" takes a function (f) and applies it to the name and number
 
 You could define getName to return the name of the person
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Data
 
 <span class="def">&lambda;f</span> . f fred 777-2344
 
@@ -254,7 +272,7 @@ You could define getName to return the name of the person
 
 * getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Data
 
 <span class="def">&lambda;f</span> . f fred 777-2344
 
@@ -266,7 +284,7 @@ You could define getName to return the name of the person
 
 getName (<span class="def">&lambda;f</span> . f fred 777-2344) &rArr; fred
 ***
-#Brief Overview: Functions and Data
+#Brief Overview: Data
 
 <span class="def">&lambda;f</span> . f fred 777-2344
 
@@ -278,7 +296,23 @@ You could define getName to return the name of the person
 
 getName (<span class="def">&lambda;f</span> . f fred 777-2344) &rArr; fred
 
-This is a lot like `struct person p = {"fred", "777-2344"};` in C, but later, we'll see some powerful differences.
+This is a lot like `struct person p = {"fred", "777-2344"};` in C
+***
+#Brief Overview: Data
+
+<span class="def">&lambda;f</span> . f fred 777-2344
+
+This "person record" takes a function (f) and applies it to the name and number
+
+You could define getName to return the name of the person
+
+* getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
+
+getName (<span class="def">&lambda;f</span> . f fred 777-2344) &rArr; fred
+
+This is a lot like `struct person p = {"fred", "777-2344"};` in C
+
+but later, we'll see some powerful differences.
 ***
 #Custom Control Structures
 
@@ -341,27 +375,39 @@ Ever write an iterator for a recursive data structure, like a tree or graph?
 ***
 #Computed Streams of Data
 
+What cons does...
+***
+#Computed Streams of Data
+
+What cons does...
+
 cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
 ***
 #Computed Streams of Data
 
+What cons does...
+
 cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
 
-cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B <span class="def">&lambda;f</span> . f A nil
+cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B (<span class="def">&lambda;f</span> . f A nil)
 ***
 #Computed Streams of Data
 
+What cons does...
+
 cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
 
-cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B <span class="def">&lambda;f</span> . f A nil
+cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B (<span class="def">&lambda;f</span> . f A nil)
 
 Right?
 ***
 #Computed Streams of Data
 
+What cons does...
+
 cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
 
-cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B <span class="def">&lambda;f</span> . f A nil
+cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B (<span class="def">&lambda;f</span> . f A nil)
 
 Right?
 
@@ -375,6 +421,7 @@ What can you do with them?
 * Produce a new stream by discarding some of the elements of the original
 * Produce a new stream by inserting elements into the original
 * Combine the above operations
+* Produce a new stream by merging several streams together
 * Kind of like SQL
 ***
 #Generators
@@ -441,7 +488,7 @@ This brings us to...
 
 You can use infinite streams in a loop to generate values
 
-map FUNC (filter (not prime) naturals)  
+map FUNC (remove (not prime) naturals)  
 // this would be kind of like: for (i in naturals - !prime) {FUNC}  
 // if - and not applied to lists and functions
 
