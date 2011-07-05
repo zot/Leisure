@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head> 
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <title>My Slides</title> 
   <link rel="stylesheet" type="text/css" media="screen, projection, print" 
    href="slidy.css" />
@@ -74,7 +75,7 @@ Some neato things that are easy to do in Lambda calculus
 * infinite streams
 * deep code factoring (combinators)
 * extensible syntax (parsing tricks can make this even more powerful)
-* parallel computing
+* ***parallel computing*** (ooh... ahh...)
 
 You can do some of these things in a lot of other languages, but they probably won't be as straight-forward.  They can still be very useful and powerful, though.  One example of this is the [Functional Java](http://functionaljava.org/) library, which bolts functional capabilities onto Java.
 ***
@@ -158,13 +159,13 @@ This combination can be really powerful
 
 LC is just functions and functions are like subroutines
 
-function = argument + body: <span class="def">&lambda;argument</span> . body
+function = argument + body: <span class="def">λargument</span> . body
 
 A function body can be...
 
-* another function: <span class="def">&lambda;a</span> . <span class="def">&lambda;b</span> . a
-* an argument: <span class="def">&lambda;b</span> . a
-* calling a value with another value (and the result with another value, etc.): <span class="def">&lambda;a</span> . <span class="def">&lambda;b</span> . <span class="def">&lambda;f</span> . (f a) b
+* another function: <span class="def">λa</span> . <span class="def">λb</span> . a
+* an argument: <span class="def">λb</span> . a
+* calling a value with another value (and the result with another value, etc.): <span class="def">λa</span> . <span class="def">λb</span> . <span class="def">λf</span> . (f a) b
 
 Values can be functions or undefined
 ***
@@ -180,11 +181,11 @@ but LC is "right associative" and lets you say `func X Y`, instead
 
 So people smash together functions that return other functions; they write
 
-<span class="def">&lambda;a</span> . <span class="def">&lambda;b</span> . <span class="def">&lambda;f</span> . f a b
+<span class="def">λa</span> . <span class="def">λb</span> . <span class="def">λf</span> . f a b
 
 as
 
-<span class="def">&lambda;a b f</span> . f a b
+<span class="def">λa b f</span> . f a b
 
 It's less of a pain
 ***
@@ -192,49 +193,49 @@ It's less of a pain
 
 Here's how you can define a simple "person record"...
 
-* makePerson = <span class="def">&lambda;name number f</span> . f name number
+* makePerson = <span class="def">λname number f</span> . f name number
 ***
 #Brief Overview: Data
 
 Here's how you can define a simple "person record"...
 
-* makePerson = <span class="def">&lambda;name number f</span> . f name number
+* makePerson = <span class="def">λname number f</span> . f name number
 
 Calling makePerson with a name returns a function that takes a number and returns another function:
 
-makePerson fred &rArr; <span class="def">&lambda;number f</span> . f fred number
+makePerson fred &rArr; <span class="def">λnumber f</span> . f fred number
 ***
 #Brief Overview: Data
 
 Here's how you can define a simple "person record"...
 
-* makePerson = <span class="def">&lambda;name number f</span> . f name number
+* makePerson = <span class="def">λname number f</span> . f name number
 
 Calling makePerson with a name returns a function that takes a number and returns another function:
 
-makePerson fred &rArr; <span class="def">&lambda;number f</span> . f fred number
+makePerson fred &rArr; <span class="def">λnumber f</span> . f fred number
 
 You can call that with a number to get a "person record":
 
-(makePerson fred) 777-2344 &rArr; <span class="def">&lambda;f</span> . f fred 777-2344
+(makePerson fred) 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344
 ***
 #Brief Overview: Data
 
 Here's how you can define a simple "person record"...
 
-* makePerson = <span class="def">&lambda;name number f</span> . f name number
+* makePerson = <span class="def">λname number f</span> . f name number
 
 Calling makePerson with a name returns a function that takes a number and returns another function:
 
-makePerson fred &rArr; <span class="def">&lambda;number f</span> . f fred number
+makePerson fred &rArr; <span class="def">λnumber f</span> . f fred number
 
 You can call that with a number to get a "person record":
 
-(makePerson fred) 777-2344 &rArr; <span class="def">&lambda;f</span> . f fred 777-2344
+(makePerson fred) 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344
 
 Lambda Calculus is "left associative" to make this easier:
 
-makePerson fred 777-2344 &rArr; <span class="def">&lambda;number f</span> . f fred 777-2344
+makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344
 ***
 #Brief Overview: Data
 
@@ -242,9 +243,9 @@ makePerson fred 777-2344 &rArr; <span class="def">&lambda;number f</span> . f fr
 
 We used currying to create a "person record"...
 
-* makePerson = <span class="def">&lambda;name number f</span> . f name number
+* makePerson = <span class="def">λname number f</span> . f name number
 
-makePerson fred 777-2344 &rArr; <span class="def">&lambda;number f</span> . f fred 777-2344
+makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344
 
 See how makePerson defines this "f" argument, but we aren't using it?
 
@@ -256,7 +257,7 @@ LC uses currying for a LOT of things
 ***
 #Brief Overview: Data
 
-<span class="def">&lambda;f</span> . f fred 777-2344
+<span class="def">λf</span> . f fred 777-2344
 
 This "person record" takes a function (f) and applies it to the name and number
 
@@ -264,51 +265,51 @@ You could define getName to return the name of the person
 ***
 #Brief Overview: Data
 
-<span class="def">&lambda;f</span> . f fred 777-2344
+<span class="def">λf</span> . f fred 777-2344
 
 This "person record" takes a function (f) and applies it to the name and number
 
 You could define getName to return the name of the person
 
-* getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
+* getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)
 ***
 #Brief Overview: Data
 
-<span class="def">&lambda;f</span> . f fred 777-2344
+<span class="def">λf</span> . f fred 777-2344
 
 This "person record" takes a function (f) and applies it to the name and number
 
 You could define getName to return the name of the person
 
-* getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
+* getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)
 
-getName (<span class="def">&lambda;f</span> . f fred 777-2344) &rArr; fred
+getName (<span class="def">λf</span> . f fred 777-2344) &rArr; fred
 ***
 #Brief Overview: Data
 
-<span class="def">&lambda;f</span> . f fred 777-2344
+<span class="def">λf</span> . f fred 777-2344
 
 This "person record" takes a function (f) and applies it to the name and number
 
 You could define getName to return the name of the person
 
-* getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
+* getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)
 
-getName (<span class="def">&lambda;f</span> . f fred 777-2344) &rArr; fred
+getName (<span class="def">λf</span> . f fred 777-2344) &rArr; fred
 
 This is a lot like `struct person p = {"fred", "777-2344"};` in C
 ***
 #Brief Overview: Data
 
-<span class="def">&lambda;f</span> . f fred 777-2344
+<span class="def">λf</span> . f fred 777-2344
 
 This "person record" takes a function (f) and applies it to the name and number
 
 You could define getName to return the name of the person
 
-* getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
+* getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)
 
-getName (<span class="def">&lambda;f</span> . f fred 777-2344) &rArr; fred
+getName (<span class="def">λf</span> . f fred 777-2344) &rArr; fred
 
 This is a lot like `struct person p = {"fred", "777-2344"};` in C
 
@@ -318,8 +319,8 @@ but later, we'll see some powerful differences.
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
-* true = <span class="def">&lambda;a b</span> . a
-* false = <span class="def">&lambda;a b</span> . b
+* true = <span class="def">λa b</span> . a
+* false = <span class="def">λa b</span> . b
 
 Suppose you have three variables, v1 = true, v2 = false, and v3 = false
 
@@ -339,9 +340,9 @@ There are some pretty useful control structures that aren't in C or Java
 ***
 #Computed Streams of Data
 
-* cons = <span class="def">&lambda;h t f</span> . f h t
-* head = <span class="def">&lambda;list</span> . list (<span class="def">&lambda;head tail</span> . head)
-* tail = <span class="def">&lambda;list</span> . list (<span class="def">&lambda;head tail</span> . tail)
+* cons = <span class="def">λh t f</span> . f h t
+* head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)
+* tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)
 * nil = false
 
 Cons makes a list.
@@ -356,9 +357,9 @@ Lazy evaluation makes computing a list in LC like making a Java/C++ iterator or 
 ***
 #Computed Streams of Data
 
-* cons = <span class="def">&lambda;h t f</span> . f h t
-* head = <span class="def">&lambda;list</span> . list (<span class="def">&lambda;head tail</span> . head)
-* tail = <span class="def">&lambda;list</span> . list (<span class="def">&lambda;head tail</span> . tail)
+* cons = <span class="def">λh t f</span> . f h t
+* head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)
+* tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)
 * nil = false
 
 Cons makes a list.
@@ -381,23 +382,23 @@ What cons does...
 
 What cons does...
 
-cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
+cons A nil &rArr; <span class="def">λf</span> . f A nil
 ***
 #Computed Streams of Data
 
 What cons does...
 
-cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
+cons A nil &rArr; <span class="def">λf</span> . f A nil
 
-cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B (<span class="def">&lambda;f</span> . f A nil)
+cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (<span class="def">λf</span> . f A nil)
 ***
 #Computed Streams of Data
 
 What cons does...
 
-cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
+cons A nil &rArr; <span class="def">λf</span> . f A nil
 
-cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B (<span class="def">&lambda;f</span> . f A nil)
+cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (<span class="def">λf</span> . f A nil)
 
 Right?
 ***
@@ -405,9 +406,9 @@ Right?
 
 What cons does...
 
-cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
+cons A nil &rArr; <span class="def">λf</span> . f A nil
 
-cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B (<span class="def">&lambda;f</span> . f A nil)
+cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (<span class="def">λf</span> . f A nil)
 
 Right?
 
@@ -426,11 +427,11 @@ What can you do with them?
 ***
 #Generators
 
-* nd = <span class="def">&lambda;value left right f</span> . f value left right
-* value = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . v)
-* left = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . l)
-* right = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . r)
-* traverse = rec <span class="def">&lambda;tr tree</span> . tree (<span class="def">&lambda;v l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+* nd = <span class="def">λvalue left right f</span> . f value left right
+* value = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . v)
+* left = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . l)
+* right = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . r)
+* traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
 
 (rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
 
@@ -440,11 +441,11 @@ traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]
 ***
 #Generators
 
-* nd = <span class="def">&lambda;value left right f</span> . f value left right
-* value = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . v)
-* left = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . l)
-* right = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . r)
-* traverse = rec <span class="def">&lambda;tr tree</span> . tree (<span class="def">&lambda;v l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+* nd = <span class="def">λvalue left right f</span> . f value left right
+* value = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . v)
+* left = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . l)
+* right = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . r)
+* traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
 
 (rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
 
@@ -456,7 +457,7 @@ But [1,2,3] is a **lazy** list
 ***
 #Generators
 
-The result ([1,2,3]) is really just <span class="def">&lambda;f</span> . f (node-value) (traverse-the-rest)
+The result ([1,2,3]) is really just <span class="def">λf</span> . f (node-value) (traverse-the-rest)
 
 It traverses the tree as you draw elements from the list
 
@@ -526,7 +527,7 @@ You can transform and filter lists, just like you can in Smalltalk, LISP, Haskel
 "Currying" when mapping or filtering produces a new function that operates on any list
 
 You can compose them with other functions that operate on lists:  
-`mogrify = \func l . map func (map square (remove (! (prime || ten || even)) l))`  
+`mogrify = λfunc l . map func (map square (remove (! (prime || ten || even)) l))`  
 `mogrify bob` uses currying to make a combinator you can use on lists or in other list combinators
 
 This makes it easy to create and reuse functions that transform lists
