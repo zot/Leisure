@@ -124,13 +124,15 @@ Uses JavaScript to display the state and get events
 
 To run it, I made a [Lambda Calculus evaluator](evaluator.html) in JavaScript
 
-You can run Lambda Calculus 3 different ways.  You can...
+It can run Lambda Calculus 3 different ways.  It can...
 
-1. compile it into JavaScript
-1. interpret it in JavaScript and see the substitution steps
-1. compile it into virtual machine bytecode
+1. compile into JavaScript
+1. interpret in JavaScript and see the substitution steps
+1. compile into virtual machine bytecode (and run it)
 
-I'm working on a LLVM code generator that will compile into native machine code (and let you link with libraries)
+I'm working on a LLVM code generator to compile into native machine code (and let you link with libraries)
+
+The idea here is to give people insight into how compilers, interpreters, and VMs work
 ***
 #Brief Overview
 
@@ -407,7 +409,7 @@ But [1,2,3] is a **lazy** list
 ***
 #Generators
 
-[1,2,3] is really just <span class="def">&lambda;f</span> . f (node-value) (traverse-the-rest)
+The result ([1,2,3]) is really just <span class="def">&lambda;f</span> . f (node-value) (traverse-the-rest)
 
 It traverses the tree as you draw elements from the list
 
@@ -423,48 +425,52 @@ This brings us to...
 ***
 #Infinite Streams
 
-Example infinite streams:
-
 * natural numbers
 * whole numbers
 * even numbers
-* random numbers (given a seed)
-
-You can use infinite streams in a loop to generate values
-
-for (int i in primes()) {...}
+* random numbers
+* ...
 ***
 #Infinite Streams
 
-Example infinite streams:
-
 * natural numbers
 * whole numbers
 * even numbers
-* random numbers (given a seed)
+* random numbers
+* ...
 
 You can use infinite streams in a loop to generate values
 
-for (int i in primes()) {...}
+map FUNC (filter (not prime) naturals)  
+// this would be kind of like: for (i in naturals - !prime) {FUNC}  
+// if - and not applied to lists and functions
 
-for (int i in squares()) {...}
+map FUNC (map square naturals)  
+// this would be kind of like: for (i in square * naturals) {...}
+// if * applied to lists and functions
 ***
 #Infinite Streams
 
-Example infinite streams:
-
 * natural numbers
 * whole numbers
 * even numbers
-* random numbers (given a seed)
+* random numbers
+* ...
 
 You can use infinite streams in a loop to generate values
 
-for (i in primes(naturals)) {...}
+map FUNC (remove (not prime) naturals)  
+// this would be kind of like: for (i in naturals - !prime) {FUNC}  
+// if - and not applied to lists and functions
 
-for (i in squares(naturals)) {...}
+map FUNC (map square naturals)  
+// this would be kind of like: for (i in square * naturals) {...}
+// if * applied to lists and functions
 
-for (i in (squares(primes(naturals)) + odds(naturals))) {...}
+map FUNC (map square (remove (! (prime || ten || even)) naturals))  
+for (i in squares * (naturals - !(prime || ten || odd))) {...}  
+// I'm using "|" to alternate, so naturals - ((!prime & !ten) | even) is  
+// all naturals which are prime or odd or multiples of 10
 ***
 #Deep Factoring
 
@@ -472,27 +478,47 @@ You can transform and filter lists, just like you can in Smalltalk, LISP, Haskel
 
 "Currying" when mapping or filtering produces a new function that operates on any list
 
-You can compose them with other functions that operate on lists (ex: seniorMaleIncome)
+You can compose them with other functions that operate on lists:  
+`mogrify = \func l . map func (map square (remove (! (prime || ten || even)) l))`  
+`mogrify bob` uses currying to make a combinator you can use on lists or in other list combinators
 
-This makes it easy to create and reuse functions that transform lists (and other functions, too)
+This makes it easy to create and reuse functions that transform lists
+
+You can use these techniques for things other than collections, too, like "parser combinators"
 ***
 #Extensible Syntax
 
-[1, 2, 3] constructs lists
+[ 1 , 2 , 3 ] constructs lists
 
-"[", ",", and "]" are really just functions (you can see the definitions in the [evaluator](evaluator.html))
+"[", ",", and "]" are really just functions
+
+"[" creates a "list builder function"
+
+"," makes the list builder continue
+
+"]" makes the list builder produce the final list
+
+Without any extra rules, you can make functions that look like infix
+
+Extra parsing goodies will let you do even better
+
+Like allowing you to leave out spaces and define groups:
+
+append [1,2,3] [4,5]
+
+This and custom control structures are good for creating your own "DSLs" -- domain specific languages
 ***
 #Parallel Computing
 
-Another thread changing your data is probably the worst horror of parallel computing
+A thread changing data while another thread uses it is one of the worst horrors of parallel computing
 
-But in functional programs, ***you can't change data***
+But in functional programs, you ***can't change data***
 
-The data you have is going to remain that way
+The data you have is going to remain as it is
 
 That means another thread can't change it underneath you
 
-You "change" things by returning "transformed replacements"
+The way you make "changes" is to return "transformed replacements"
 ***
 #Parallel Computing
 
@@ -502,23 +528,23 @@ Isn't creating new data instead of changing existing data inefficient?
 
 Isn't creating new data instead of changing existing data inefficient?
 
-Yes, but data structures don't have to copy *everything* just to transform a little
+Yes, but transformed data structures can reuse parts of the original structure
 ***
 #Parallel Computing
 
 Isn't creating new data instead of changing existing data inefficient?
 
-Yes, but data structures don't have to copy *everything* just to transform a little
+Yes, but transformed data structures can reuse parts of the original structure
 
-And speed != efficiency (a Viper isn't as efficient as a Prius)
+And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 ***
 #Parallel Computing
 
 Isn't creating new data instead of changing existing data inefficient?
 
-Yes, but data structures don't have to copy *everything* just to transform a little
+Yes, but transformed data structures can reuse parts of the original structure
 
-And speed != efficiency (a Viper isn't as efficient as a Prius)
+And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 
 Nvidia Fermi needs to run over 20,000 of threads for optimal usage
 ***
@@ -526,33 +552,57 @@ Nvidia Fermi needs to run over 20,000 of threads for optimal usage
 
 Isn't creating new data instead of changing existing data inefficient?
 
-Yes, but data structures don't have to copy *everything* just to transform a little
+Yes, but transformed data structures can reuse parts of the original structure
 
-And speed != efficiency (a Viper isn't as efficient as a Prius)
+And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 
 Nvidia Fermi needs to run over 20,000 of threads for optimal usage
 
-But to use that many threads, we needs automatic ways to parellelize code
+But to use that many threads, we needs automatic ways to *massively* parellelize code
 ***
 #Parallel Computing
 
 Isn't creating new data instead of changing existing data inefficient?
 
-Yes, but data structures don't have to copy *everything* just to transform a little
+Yes, but transformed data structures can reuse parts of the original structure
 
-And speed != efficiency (a Viper isn't as efficient as a Prius)
+And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 
 Nvidia Fermi needs to run over 20,000 of threads for optimal usage
 
-But to use that many threads, we needs automatic ways to parellelize code
+But to use that many threads, we needs automatic ways to *massively* parellelize code
 
-Functional programming can do that
+Relegating high-level tasks to another thread (like updating a browser tab) isn't good enough
 ***
-# These slides
+#Parallel Computing
+
+So, functional programming can *support* parallel computing well, but can it make it easier?
+
+Those stream operations we talked about, before: transforming, discarding, inserting
+
+Those are a lot like Google's map/reduce (because it's based on functional concepts)
+
+Google's Map/reduce operates "in the large", on server farms
+
+Functional programming languages can do this "in the small" (like on an SMP machine)
+***
+#Parallel Computing
+
+Map is a function that transforms a list of values by applying a function to each element:
+
+map twice [1,2,3] &rArr; [2,4,6]
+
+Parallel functional languages (like Haskell and Scala) support parallel list transformations
+
+So they would send each element of the list to a different processor (if you have that many processors)
+
+This works on other types of collections, besides streams, of course (trees, arrays, etc.)
+***
+# The End
 
 <img src="qrCode.png" alt="qrcode">
 ***
-# Resources
+#Resources
 
 * Documents about functional programming and lazy evaluation
  *  Talk on Why Functional Programming Matters: [http://www.infoq.com/interviews/john-hughes-fp](http://www.infoq.com/interviews/john-hughes-fp)
@@ -560,8 +610,8 @@ Functional programming can do that
  *  Tim Sweeney's (of Epic Games) talk on the future of graphics programming: [http://www.cs.princeton.edu/~dpw/popl/06/Tim-POPL.ppt](http://www.cs.princeton.edu/~dpw/popl/06/Tim-POPL.ppt)
  *  The Real Point of Laziness: [http://existentialtype.wordpress.com/2011/04/24/the-real-point-of-laziness/](http://existentialtype.wordpress.com/2011/04/24/the-real-point-of-laziness/)
  *  More Points for Lazy Evaluation: [http://augustss.blogspot.com/2011/05/more-points-for-lazy-evaluation-in.html](http://augustss.blogspot.com/2011/05/more-points-for-lazy-evaluation-in.html)
- *  Martin Odersky's [talk on Scala](http://www.parleys.com/#st=5&id=2184) and parallel computing
-* Markdown slide presentations
+ *  Martin Odersky's [talk on Scala and parallel computing](http://www.parleys.com/#st=5&id=2184)
+* Tools for easy slide presentations, like this
  * QuickSlides: [http://tobyho.com/Quick-and-Dirty\_Presentations\_in\_Markdown](http://tobyho.com/Quick-and-Dirty_Presentations_in_Markdown)
  * Slidy: [http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz](http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz)
  * Slidy CSS: [http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css](http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css)
