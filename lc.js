@@ -24,7 +24,7 @@ misrepresented as being the original software.
 
 var LC = (function() {
 var lcons
-var lfalse
+var lnil
 var exprs = {}
 var order = []
 var lambdas = {}
@@ -131,7 +131,7 @@ function addExpr(name, txt, noRebuild) {
 function findCons() {
     if (L._cons) {
 	lcons = L._cons().lambda.body.body
-	lfalse = L._false().lambda
+	lnil = L._nil().lambda
     }
 }
 function runFunc(index) {
@@ -157,7 +157,7 @@ function runCode(expr, code) {
 	LC.L = L = null
 }
 function isCons(l) {return lcons && getLambda(l).id == lcons.id}
-function isFalse(l) {return lfalse && getLambda(l).id == lfalse.id}
+function isNil(l) {return lnil && getLambda(l).id == lnil.id}
 function getLambda(l) {return l instanceof Entity ? l : l.lambda}
 function pretty(l, nosubs) {
     var lam = getLambda(l)
@@ -165,7 +165,7 @@ function pretty(l, nosubs) {
     return lam && lcons && lam.id == lcons.id ? '[' + elements(l, true, nosubs) + ']' : lam ? lam.format(false, nosubs) : l
 }
 function elements(l, first, nosubs) {
-    return isFalse(l) ? '' : ((first ? '' : ', ') + pretty(Lhead(l), nosubs) + elements(Ltail(l), false, nosubs))
+    return isNil(l) ? '' : ((first ? '' : ', ') + pretty(Lhead(l), nosubs) + elements(Ltail(l), false, nosubs))
 }
 function constructEnv(src) {
 	if (!L || src) {

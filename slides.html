@@ -6,19 +6,24 @@
    href="slidy.css" />
   <script src="showdown.js"></script>
   <script src="slidy.js"></script>
+  <style>
+.def {
+  color: blue;
+}
+  </style>
 </head>
 <body>
 <script type=text/markdown>
 <!--
-#Primordial Programming...
+#Back to BASICs: Primordial Programming
 
-Getting close to the metal with untyped Lambda Calculus
+Getting **REALLY** close to the metal with untyped Lambda Calculus
 ***
 #Disclaimer: I'm not selling a language or a paradigm
 
 Languages are tools and they all have advantages and disadvantages
 
-Programmers should know more languages, because they open your mind to different ways to solve problems
+I think programmers should know more languages, because they open your mind to different ways to solve problems
 
 To understand a language, you need to program something nontrivial in a way that depends on that language's "goodies"
 
@@ -41,127 +46,382 @@ Examples of some fairly uncommon languages that can teach you interesting things
 </td><td>Self/Io (pure prototype-based OO)</td></tr>
 </table>
 ***
-#Background info
+#Lambda Calculus is a Programming Language
 
-Haskell is the most popular version of Lambda Calculus around
+Alonzo Church (Alan Turing's professor) created Lambda Calculus around 1928.
 
+It's not the oldest programming language
+
+(around 400 BC, an Indian guy named P&#257;&#7751;ini made a grammatical system for Sanskrit that is actually a "turing equivalent" programming language)
+
+But I still think LC is truly primordial, based on its simplicity (very few "moving parts")
 ***
-#Background info
+#Lambda Calculus is a Programming Language
 
-Haskell is the most popular version of Lambda Calculus around
+It's very simple
 
-Haskell is (very) strongly typed.
+I think it's ideal for teaching CS concepts
+
+There's just so little to get in the way
 ***
-#Background info
+#Lambda Calculus is a Programming Language
 
-Haskell is the most popular version of Lambda Calculus around
+Some neato things that are easy to do in Lambda calculus
 
-Haskell is (very) strongly typed.
-
-It's one of the _most_ strongly typed languages around.
-***
-#Background info
-
-Haskell is the most popular version of Lambda Calculus around
-
-Haskell is (very) strongly typed.
-
-It's one of the _most_ strongly typed languages around.
-
-If you think Java's and C++'s Generics are complicated, that's just peanuts compared to Haskell's
-***
-#Background info
-
-Haskell is the most popular version of Lambda Calculus around
-
-Haskell is (very) strongly typed.
-
-It's one of the _most_ strongly typed languages around.
-
-If you think Java's and C++'s Generics are complicated, that's just peanuts compared to Haskell's
-
-But this talk is not about Haskell.
-***
-#Some neato things you can easily do in Lambda calculus
-
-* generators (iterators)
-* infinite streams (good for filtering/generate and test)
 * custom control structures
-* varargs (without extra language constructs)
-* deep code factoring (eg. combinators)
+* computed streams of data
+* generators/iterators
+* infinite streams
+* deep code factoring (combinators)
+* extensible syntax (parsing tricks can make this even more powerful)
+* parallel computing
+
+You can do some of these things in a lot of other languages, but they probably won't be as straight-forward.  They can still be very useful and powerful, though.  One example of this is the [Functional Java](http://functionaljava.org/) library, which bolts functional capabilities onto Java.
 ***
-#Generators
+#Lambda Calculus is a Programming Language
 
-* makeTree = &lambda;value left right f . f value left right
-* value = &lambda;tree . tree &lambda;v l r . v
-* left = &lambda;tree . tree &lambda;v l r . l
-* right = &lambda;tree . tree &lambda;v l r . r
-* traverse = rec &lambda;tr tree . tree (&lambda;v l r D . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
-
-Traverse just creates of a list of the preorder traversal of the tree:
-
-traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil) nil) &rArr; [1,2,3]
+How primordial is it?
 ***
-#Generators
+#THERE ARE NO NUMBERS
+***
+#THERE ARE NO BITS
+***
+#THERE ARE NO COMPARISONS
+***
+#WHAT THE?
+***
+#YOU CAN'T EVEN REASSIGN VARIABLES
+***
+#WHAT THE?
+***
+#It's not as bad as it seems
 
-* makeTree = &lambda;value left right f . f value left right
-* value = &lambda;tree . tree &lambda;v l r . v
-* left = &lambda;tree . tree &lambda;v l r . l
-* right = &lambda;tree . tree &lambda;v l r . r
-* traverse = rec &lambda;tr tree . tree (&lambda;v l r D . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+It's actually very powerful
 
-Traverse just creates of a list of the preorder traversal of the tree:
+It's easy to use, once you get the hang of it
 
-traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil) nil) &rArr; [1,2,3]
+(and modern versions of typed LC, like Haskell do give you primitive numbers and comparisons)
+***
+#It's not as bad as it seems
+
+No numbers and comparisons &rArr; students can implement them
+
+How do you show how to define bits, numbers, and ">" in C or assembly?
+
+This is the primoridal value of LC
+
+But even at this low level, you can still do "real" things...
+***
+#It's not as bad as it seems
+
+To show this, I started on a version of [Space Invaders in Lambda Calculus](http://tinyconcepts.com/invaders.html)
+
+55 lines of code, so far (including definitions for numbers and comparisons)
+
+Uses JavaScript to display the state and get events
+***
+#Evaluator
+
+To run it, I made a [Lambda Calculus evaluator](evaluator.html) in JavaScript
+
+You can run Lambda Calculus 3 different ways.  You can...
+
+1. compile it into JavaScript
+1. interpret it in JavaScript and see the substitution steps
+1. compile it into virtual machine bytecode
+
+I'm working on a LLVM code generator that will compile into native machine code (and let you link with libraries)
+***
+#Brief Overview
+
+Teaching and experimentation
+
+The things in this talk also work in Haskell
+
+Haskell has proven to be practical and fast (DARCS DVCS is written in Haskell)
+
+Maybe untyped LC could be too
+
+**LC gives you a lot of power and productivity, even though it's low-level**
+
+* LC uses "lazy evaluation" -- function arguments are never evaluated until they are used (and this is transitive)
+* LC is just functions -- data is also functions, which means data is also lazy
+* LC uses "currying" -- if you call a 3-arg function with the first 2 args, it returns a 1-arg function
+
+Most languages don't have lazy evaluation + currying + data/functions
+
+This combination can be really powerful
+***
+#Brief Overview: Functions and Data
+
+LC is just functions and functions are like subroutines
+
+function = argument + body: <span class="def">&lambda;argument</span> . body
+
+A function body can be...
+
+* another function: <span class="def">&lambda;a</span> . <span class="def">&lambda;b</span> . a
+* an argument: <span class="def">&lambda;b</span> . a
+* calling a value with another value (and the result with another value, etc.): <span class="def">&lambda;a</span> . <span class="def">&lambda;b</span> . <span class="def">&lambda;f</span> . (f a) b
+
+Values can be functions or undefined
+***
+#Brief Overview
+
+A function which returns another function acts like it takes another argument
+
+because `(func X) Y` sends `Y` to the function returned by `(func X)`
+
+but LC is "right associative" and lets you say `func X Y`, instead
+
+(so `func X` is really currying `func X Y`)
+
+So people smash together functions that return other functions; they write
+
+<span class="def">&lambda;a</span> . <span class="def">&lambda;b</span> . <span class="def">&lambda;f</span> . f a b
+
+as
+
+<span class="def">&lambda;a b f</span> . f a b
+
+It's less of a pain
+***
+#Brief Overview: Functions and Data
+
+Here's how you can define a simple "person record"...
+
+* makePerson = <span class="def">&lambda;name number f</span> . f name number
+***
+#Brief Overview: Functions and Data
+
+Here's how you can define a simple "person record"...
+
+* makePerson = <span class="def">&lambda;name number f</span> . f name number
+
+Calling makePerson with a name returns a function that takes a number and returns another function:
+
+makePerson fred &rArr; <span class="def">&lambda;number f</span> . f fred number
+***
+#Brief Overview: Functions and Data
+
+Here's how you can define a simple "person record"...
+
+* makePerson = <span class="def">&lambda;name number f</span> . f name number
+
+Calling makePerson with a name returns a function that takes a number and returns another function:
+
+makePerson fred &rArr; <span class="def">&lambda;number f</span> . f fred number
+
+You can call that with a number to get a "person record":
+
+(makePerson fred) 777-2344 &rArr; <span class="def">&lambda;f</span> . f fred 777-2344
+***
+#Brief Overview: Functions and Data
+
+Here's how you can define a simple "person record"...
+
+* makePerson = <span class="def">&lambda;name number f</span> . f name number
+
+Calling makePerson with a name returns a function that takes a number and returns another function:
+
+makePerson fred &rArr; <span class="def">&lambda;number f</span> . f fred number
+
+You can call that with a number to get a "person record":
+
+(makePerson fred) 777-2344 &rArr; <span class="def">&lambda;f</span> . f fred 777-2344
+
+Lambda Calculus is "left associative" to make this easier:
+
+makePerson fred 777-2344 &rArr; <span class="def">&lambda;number f</span> . f fred 777-2344
+***
+#Brief Overview: Functions and Data
+
+<span class="def">&lambda;f</span> . f fred 777-2344
+
+This "person record" takes a function (f) and applies it to the name and number
+
+You could define getName to return the name of the person
+***
+#Brief Overview: Functions and Data
+
+<span class="def">&lambda;f</span> . f fred 777-2344
+
+This "person record" takes a function (f) and applies it to the name and number
+
+You could define getName to return the name of the person
+
+* getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
+***
+#Brief Overview: Functions and Data
+
+<span class="def">&lambda;f</span> . f fred 777-2344
+
+This "person record" takes a function (f) and applies it to the name and number
+
+You could define getName to return the name of the person
+
+* getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
+
+getName (<span class="def">&lambda;f</span> . f fred 777-2344) &rArr; fred
+***
+#Brief Overview: Functions and Data
+
+<span class="def">&lambda;f</span> . f fred 777-2344
+
+This "person record" takes a function (f) and applies it to the name and number
+
+You could define getName to return the name of the person
+
+* getName = <span class="def">&lambda;person</span> . person (<span class="def">&lambda;name number</span> . name)
+
+getName (<span class="def">&lambda;f</span> . f fred 777-2344) &rArr; fred
+
+This is a lot like `struct person p = {"fred", "777-2344"};` in C, but later, we'll see some powerful differences.
+***
+#Custom Control Structures
+
+You can use booleans in LC as if-then statements, kind of like how C uses && and ||
+
+* true = <span class="def">&lambda;a b</span> . a
+* false = <span class="def">&lambda;a b</span> . b
+
+Suppose you have three variables, v1 = true, v2 = false, and v3 = false
+
+v1 (v2 a b) (v3 c d) &rArr; b
+
+This does not evaluate the second argument, just like C wouldn't: (v1 && ((v2 && a) || b)) || ((v3 && c) || d)
+
+"lazy evaluation" makes **everything** use "short-circuit" evaluation, like C's && and ||
+***
+#Custom Control Structures
+
+Lazy evaluation lets you define your own control structures, like if, for, while, switch, etc.
+
+There are some pretty useful control structures that aren't in C or Java
+
+(like Scala's "for comprehension", which looks like a "for" loop but is a lot more powerful)
+***
+#Computed Streams of Data
+
+* cons = <span class="def">&lambda;h t f</span> . f h t
+* head = <span class="def">&lambda;list</span> . list (<span class="def">&lambda;head tail</span> . head)
+* tail = <span class="def">&lambda;list</span> . list (<span class="def">&lambda;head tail</span> . tail)
+* nil = false
+
+Cons makes a list.
+
+This is a lot like makePerson, but you use it differently.
+
+The "head" is an item in the list.
+
+The "tail" is the rest of the list (either another cons or nil).
+
+Lazy evaluation makes computing a list in LC like making a Java/C++ iterator or a Python generator
+***
+#Computed Streams of Data
+
+* cons = <span class="def">&lambda;h t f</span> . f h t
+* head = <span class="def">&lambda;list</span> . list (<span class="def">&lambda;head tail</span> . head)
+* tail = <span class="def">&lambda;list</span> . list (<span class="def">&lambda;head tail</span> . tail)
+* nil = false
+
+Cons makes a list.
+
+This is a lot like makePerson, but you use it differently.
+
+The "head" is an item in the list.
+
+The "tail" is the rest of the list (either another cons or nil).
+
+Lazy evaluation makes computing a list in LC like making a Java/C++ iterator or a Python generator
+
+Ever write an iterator for a recursive data structure, like a tree or graph?
+***
+#Computed Streams of Data
+
+cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
+***
+#Computed Streams of Data
+
+cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
+
+cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B <span class="def">&lambda;f</span> . f A nil
+***
+#Computed Streams of Data
+
+cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
+
+cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B <span class="def">&lambda;f</span> . f A nil
 
 Right?
 ***
-#Generators
+#Computed Streams of Data
 
-* makeTree = &lambda;value left right f . f value left right
-* value = &lambda;tree . tree &lambda;v l r . v
-* left = &lambda;tree . tree &lambda;v l r . l
-* right = &lambda;tree . tree &lambda;v l r . r
-* traverse = rec &lambda;tr tree . tree (&lambda;v l r D . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+cons A nil &rArr; <span class="def">&lambda;f</span> . f A nil
 
-Traverse just creates of a list of the preorder traversal of the tree:
-
-traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil) nil) &rArr; [1,2,3]
+cons B (cons A nil) &rArr; <span class="def">&lambda;f2</span> . f2 B <span class="def">&lambda;f</span> . f A nil
 
 Right?
 
-Well... 
+Let's look at the [replay](slideEx.html)...
+***
+#Computed Streams of Data
+
+What can you do with them?
+
+* Produce a new stream by transform the elements of the original
+* Produce a new stream by discarding some of the elements of the original
+* Produce a new stream by inserting elements into the original
+* Combine the above operations
+* Kind of like SQL
 ***
 #Generators
 
-* makeTree = &lambda;value left right f . f value left right
-* value = &lambda;tree . tree &lambda;v l r . v
-* left = &lambda;tree . tree &lambda;v l r . l
-* right = &lambda;tree . tree &lambda;v l r . r
-* traverse = rec &lambda;tr tree . tree (&lambda;v l r D . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+* nd = <span class="def">&lambda;value left right f</span> . f value left right
+* value = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . v)
+* left = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . l)
+* right = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . r)
+* traverse = rec <span class="def">&lambda;tr tree</span> . tree (<span class="def">&lambda;v l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+
+(rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
 
 Traverse just creates of a list of the preorder traversal of the tree:
 
-traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil) nil) &rArr; [1,2,3]
-
-Right?
-
-Well... 
-
-Check out what it _really_ returns...
-***
-#Generators
-λf_1 . f_1 (getValue (nd 1 false false)) (rec (λappend_1 l1 l2 . l1 (λh t D . cons h (append_1 t l2)) l2) (Y (λtraverse_2 tree_1 . tree_1 (λv_1 l_1 r_1 D_1 . cons (getValue tree_1) (rec (λappend_1 l1 l2 . l1 (λh t D . cons h (append_1 t l2)) l2) (traverse_2 (getLeft tree_1)) (traverse_2 (getRight tree_1)))) false) (getLeft (nd 1 false false))) (Y (λtraverse_2 tree_1 . tree_1 (λv_1 l_1 r_1 D_1 . cons (getValue tree_1) (rec (λappend_1 l1 l2 . l1 (λh t D . cons h (append_1 t l2)) l2) (traverse_2 (getLeft tree_1)) (traverse_2 (getRight tree_1)))) false) (getRight (nd 1 false false))))
-
-Complicated, but this is the "captured execution".
+traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]
 ***
 #Generators
 
-Lazy evaluation means that only the parts of the list you access are actually computed.  The rest remain _virtual_.
+* nd = <span class="def">&lambda;value left right f</span> . f value left right
+* value = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . v)
+* left = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . l)
+* right = <span class="def">&lambda;tree</span> . tree (<span class="def">&lambda;v l r</span> . r)
+* traverse = rec <span class="def">&lambda;tr tree</span> . tree (<span class="def">&lambda;v l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+
+(rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
+
+Traverse just creates of a list of the preorder traversal of the tree:
+
+traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]
+
+But [1,2,3] is a **lazy** list
+***
+#Generators
+
+[1,2,3] is really just <span class="def">&lambda;f</span> . f (node-value) (traverse-the-rest)
+
+It traverses the tree as you draw elements from the list
+
+Lazy evaluation makes this automatic
+***
+#Generators
+
+Only the parts of the list you access are actually computed
+
+The rest remain _virtual_
 
 This brings us to...
 ***
-#Infinite streams
+#Infinite Streams
 
 Example infinite streams:
 
@@ -170,39 +430,127 @@ Example infinite streams:
 * even numbers
 * random numbers (given a seed)
 
-With lazy evaluation, you can make functions that filter streams, transform them, skip elements, truncating them (and more).
+You can use infinite streams in a loop to generate values
 
-You can send this function an infinite stream and 
+for (int i in primes()) {...}
 ***
-#Custom control structures
-***
-#Varargs
-***
-#Deep factoring
-***
-#So what?
-***
-#So what?
+#Infinite Streams
 
-Teaching people about deep CS concepts (recursion, laziness, functional, ...)
+Example infinite streams:
+
+* natural numbers
+* whole numbers
+* even numbers
+* random numbers (given a seed)
+
+You can use infinite streams in a loop to generate values
+
+for (int i in primes()) {...}
+
+for (int i in squares()) {...}
 ***
-#So what?
+#Infinite Streams
 
-Teaching people about deep CS concepts (recursion, laziness, functional, ...)
+Example infinite streams:
 
-[Evaluator](evaluator.html)
+* natural numbers
+* whole numbers
+* even numbers
+* random numbers (given a seed)
+
+You can use infinite streams in a loop to generate values
+
+for (i in primes(naturals)) {...}
+
+for (i in squares(naturals)) {...}
+
+for (i in (squares(primes(naturals)) + odds(naturals))) {...}
 ***
-#So what?
+#Deep Factoring
 
-Teaching people about deep CS concepts (recursion, laziness, functional, ...)
+You can transform and filter lists, just like you can in Smalltalk, LISP, Haskell, etc.
 
-[Evaluator](evaluator.html)
+"Currying" when mapping or filtering produces a new function that operates on any list
 
-[Space Invaders](http://tinyconcepts.com/invaders.html)
+You can compose them with other functions that operate on lists (ex: seniorMaleIncome)
+
+This makes it easy to create and reuse functions that transform lists (and other functions, too)
+***
+#Extensible Syntax
+
+[1, 2, 3] constructs lists
+
+"[", ",", and "]" are really just functions (you can see the definitions in the [evaluator](evaluator.html))
+***
+#Parallel Computing
+
+Another thread changing your data is probably the worst horror of parallel computing
+
+But in functional programs, ***you can't change data***
+
+The data you have is going to remain that way
+
+That means another thread can't change it underneath you
+
+You "change" things by returning "transformed replacements"
+***
+#Parallel Computing
+
+Isn't creating new data instead of changing existing data inefficient?
+***
+#Parallel Computing
+
+Isn't creating new data instead of changing existing data inefficient?
+
+Yes, but data structures don't have to copy *everything* just to transform a little
+***
+#Parallel Computing
+
+Isn't creating new data instead of changing existing data inefficient?
+
+Yes, but data structures don't have to copy *everything* just to transform a little
+
+And speed != efficiency (a Viper isn't as efficient as a Prius)
+***
+#Parallel Computing
+
+Isn't creating new data instead of changing existing data inefficient?
+
+Yes, but data structures don't have to copy *everything* just to transform a little
+
+And speed != efficiency (a Viper isn't as efficient as a Prius)
+
+Nvidia Fermi needs to run over 20,000 of threads for optimal usage
+***
+#Parallel Computing
+
+Isn't creating new data instead of changing existing data inefficient?
+
+Yes, but data structures don't have to copy *everything* just to transform a little
+
+And speed != efficiency (a Viper isn't as efficient as a Prius)
+
+Nvidia Fermi needs to run over 20,000 of threads for optimal usage
+
+But to use that many threads, we needs automatic ways to parellelize code
+***
+#Parallel Computing
+
+Isn't creating new data instead of changing existing data inefficient?
+
+Yes, but data structures don't have to copy *everything* just to transform a little
+
+And speed != efficiency (a Viper isn't as efficient as a Prius)
+
+Nvidia Fermi needs to run over 20,000 of threads for optimal usage
+
+But to use that many threads, we needs automatic ways to parellelize code
+
+Functional programming can do that
 ***
 # These slides
 
-<img src="http://qrcode.kaywa.com/img.php?s=8&d=http%3A%2F%2Ftinyconcepts.com%2Ffs.pl%2Flambda.fsl%2Fdoc%2Ftip%2Fslides.html" alt="qrcode">
+<img src="qrCode.png" alt="qrcode">
 ***
 # Resources
 
@@ -212,6 +560,7 @@ Teaching people about deep CS concepts (recursion, laziness, functional, ...)
  *  Tim Sweeney's (of Epic Games) talk on the future of graphics programming: [http://www.cs.princeton.edu/~dpw/popl/06/Tim-POPL.ppt](http://www.cs.princeton.edu/~dpw/popl/06/Tim-POPL.ppt)
  *  The Real Point of Laziness: [http://existentialtype.wordpress.com/2011/04/24/the-real-point-of-laziness/](http://existentialtype.wordpress.com/2011/04/24/the-real-point-of-laziness/)
  *  More Points for Lazy Evaluation: [http://augustss.blogspot.com/2011/05/more-points-for-lazy-evaluation-in.html](http://augustss.blogspot.com/2011/05/more-points-for-lazy-evaluation-in.html)
+ *  Martin Odersky's [talk on Scala](http://www.parleys.com/#st=5&id=2184) and parallel computing
 * Markdown slide presentations
  * QuickSlides: [http://tobyho.com/Quick-and-Dirty\_Presentations\_in\_Markdown](http://tobyho.com/Quick-and-Dirty_Presentations_in_Markdown)
  * Slidy: [http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz](http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz)
