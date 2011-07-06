@@ -483,6 +483,77 @@ makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777
 
 **Wait -- what just happened?**
 
+***
+#Brief Overview: Data
+
+**Wait -- what just happened?**
+
+We used currying to create a "person record"...
+***
+#Brief Overview: Data
+
+**Wait -- what just happened?**
+
+We used currying to create a "person record"...
+
+* makePerson = <span class="def">λname number f</span> . f name number
+***
+#Brief Overview: Data
+
+**Wait -- what just happened?**
+
+We used currying to create a "person record"...
+
+* makePerson = <span class="def">λname number f</span> . f name number
+
+makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344
+***
+#Brief Overview: Data
+
+**Wait -- what just happened?**
+
+We used currying to create a "person record"...
+
+* makePerson = <span class="def">λname number f</span> . f name number
+
+makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344
+
+See how makePerson defines this "f" argument, but we aren't using it?
+***
+#Brief Overview: Data
+
+**Wait -- what just happened?**
+
+We used currying to create a "person record"...
+
+* makePerson = <span class="def">λname number f</span> . f name number
+
+makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344
+
+See how makePerson defines this "f" argument, but we aren't using it?
+
+When I send only 2 arguments to makePerson, I get back a function that takes an "f"
+***
+#Brief Overview: Data
+
+**Wait -- what just happened?**
+
+We used currying to create a "person record"...
+
+* makePerson = <span class="def">λname number f</span> . f name number
+
+makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344
+
+See how makePerson defines this "f" argument, but we aren't using it?
+
+When I send only 2 arguments to makePerson, I get back a function that takes an "f"
+
+The fact that I can send in "f" later allows the "person record function" to work
+***
+#Brief Overview: Data
+
+**Wait -- what just happened?**
+
 We used currying to create a "person record"...
 
 * makePerson = <span class="def">λname number f</span> . f name number
@@ -563,6 +634,103 @@ You can use booleans in LC as if-then statements, kind of like how C uses && and
 
 * true = <span class="def">λa b</span> . a
 * false = <span class="def">λa b</span> . b
+***
+#Custom Control Structures
+
+You can use booleans in LC as if-then statements, kind of like how C uses && and ||
+
+* true = <span class="def">λa b</span> . a
+* false = <span class="def">λa b</span> . b
+
+true really just means "choose the first one"
+***
+#Custom Control Structures
+
+You can use booleans in LC as if-then statements, kind of like how C uses && and ||
+
+* true = <span class="def">λa b</span> . a
+* false = <span class="def">λa b</span> . b
+
+true really just means "choose the first one"
+
+false really just means "choose the second one"
+***
+#Custom Control Structures
+
+You can use booleans in LC as if-then statements, kind of like how C uses && and ||
+
+* true = <span class="def">λa b</span> . a
+* false = <span class="def">λa b</span> . b
+
+true really just means "choose the first one"
+
+false really just means "choose the second one"
+
+kind of like an if-then statement
+***
+#Custom Control Structures
+
+You can use booleans in LC as if-then statements, kind of like how C uses && and ||
+
+* true = <span class="def">λa b</span> . a
+* false = <span class="def">λa b</span> . b
+
+true really just means "choose the first one"
+
+false really just means "choose the second one"
+
+kind of like an if-then statement
+
+Suppose you have three variables, v1 = true, v2 = false, and v3 = false
+***
+#Custom Control Structures
+
+You can use booleans in LC as if-then statements, kind of like how C uses && and ||
+
+* true = <span class="def">λa b</span> . a
+* false = <span class="def">λa b</span> . b
+
+true really just means "choose the first one"
+
+false really just means "choose the second one"
+
+kind of like an if-then statement
+
+Suppose you have three variables, v1 = true, v2 = false, and v3 = false
+
+v1 (v2 a b) (v3 c d) &rArr; b
+***
+#Custom Control Structures
+
+You can use booleans in LC as if-then statements, kind of like how C uses && and ||
+
+* true = <span class="def">λa b</span> . a
+* false = <span class="def">λa b</span> . b
+
+true really just means "choose the first one"
+
+false really just means "choose the second one"
+
+kind of like an if-then statement
+
+Suppose you have three variables, v1 = true, v2 = false, and v3 = false
+
+v1 (v2 a b) (v3 c d) &rArr; b
+
+This does not evaluate the second argument, just like C wouldn't: (v1 && ((v2 && a) || b)) || ((v3 && c) || d)
+***
+#Custom Control Structures
+
+You can use booleans in LC as if-then statements, kind of like how C uses && and ||
+
+* true = <span class="def">λa b</span> . a
+* false = <span class="def">λa b</span> . b
+
+true really just means "choose the first one"
+
+false really just means "choose the second one"
+
+kind of like an if-then statement
 
 Suppose you have three variables, v1 = true, v2 = false, and v3 = false
 
@@ -570,9 +738,11 @@ v1 (v2 a b) (v3 c d) &rArr; b
 
 This does not evaluate the second argument, just like C wouldn't: (v1 && ((v2 && a) || b)) || ((v3 && c) || d)
 
-"lazy evaluation" makes **everything** use "short-circuit" evaluation, like C's && and ||
+Lazy evaluation makes **everything** use "short-circuit" evaluation, like C's && and ||
 ***
 #Custom Control Structures
+
+Control structures are all about choosing what to do
 
 Lazy evaluation lets you define your own control structures, like if, for, while, switch, etc.
 
