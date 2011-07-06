@@ -332,13 +332,82 @@ This combination can be really powerful
 
 LC is just functions and functions are like subroutines
 
-function = argument + body: <span class="def">λargument</span> . body
+Here's a JavaScript function: `function(argument) {return body}`
+***
+#Brief Overview: Functions
 
-A function body can be...
+LC is just functions and functions are like subroutines
 
-* another function: <span class="def">λa</span> . <span class="def">λb</span> . a
-* an argument: <span class="def">λb</span> . a
-* calling a value with another value (and the result with another value, etc.): <span class="def">λa</span> . <span class="def">λb</span> . <span class="def">λf</span> . (f a) b
+Here's a JavaScript function: `function(argument) {return body}`
+
+In Lambda Calculus, you would say this:
+
+<span class="def">λargument</span> . body
+***
+#Brief Overview: Functions
+
+LC is just functions and functions are like subroutines
+
+Here's a JavaScript function: `function(argument) {return body}`
+
+In Lambda Calculus, you would say this:
+
+<span class="def">λargument</span> . body
+<br>  
+<br>  
+A function body can...
+
+* return function: <span class="def">λa</span> . <span class="def">λb</span> . a
+***
+#Brief Overview: Functions
+
+LC is just functions and functions are like subroutines
+
+Here's a JavaScript function: `function(argument) {return body}`
+
+In Lambda Calculus, you would say this:
+
+<span class="def">λargument</span> . body
+<br>  
+<br>  
+A function body can...
+
+* return function: <span class="def">λa</span> . <span class="def">λb</span> . a
+* return an argument: <span class="def">λb</span> . a
+***
+#Brief Overview: Functions
+
+LC is just functions and functions are like subroutines
+
+Here's a JavaScript function: `function(argument) {return body}`
+
+In Lambda Calculus, you would say this:
+
+<span class="def">λargument</span> . body
+<br>  
+<br>  
+A function body can...
+
+* return function: <span class="def">λa</span> . <span class="def">λb</span> . a
+* return an argument: <span class="def">λb</span> . a
+* call a function with a value (and the result with another value, etc.): <span class="def">λa</span> . <span class="def">λb</span> . <span class="def">λf</span> . (f a) b
+***
+#Brief Overview: Functions
+
+LC is just functions and functions are like subroutines
+
+Here's a JavaScript function: `function(argument) {return body}`
+
+In Lambda Calculus, you would say this:
+
+<span class="def">λargument</span> . body
+<br>  
+<br>  
+A function body can...
+
+* return function: <span class="def">λa</span> . <span class="def">λb</span> . a
+* return an argument: <span class="def">λb</span> . a
+* call a function with a value (and the result with another value, etc.): <span class="def">λa</span> . <span class="def">λb</span> . <span class="def">λf</span> . (f a) b
 
 Values can be functions or undefined
 ***
@@ -577,12 +646,11 @@ Here are the LC definitions:
 * head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)
 * tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)
 * nil = false
+* null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true
 
 Null uses a currying trick which we can go into if anyone is interested
 
 Lazy evaluation makes computing a list in LC like making a Java/C++ iterator or a Python generator
-
-Ever write an iterator for a recursive data structure, like a tree or graph?
 ***
 #Computed Streams of Data
 
@@ -598,6 +666,7 @@ Here are the LC definitions:
 * head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)
 * tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)
 * nil = false
+* null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true
 
 Null uses a currying trick which we can go into if anyone is interested
 
