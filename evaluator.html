@@ -380,17 +380,6 @@ test1 = (\f . f a) (\x . x)
 test2 = 1f 1 ident
 test3 = head (cons 1 nil)
 test4 = head (tail (cons 1 (cons 2 nil)))
-
-nd = \value left right f . f value left right
-getValue = \tree . tree \v l r . v
-getLeft = \tree . tree \v l r . l
-getRight = \tree . tree \v l r . r
-nullTree = \tree . tree (\v l r D . false) true
-traverse = rec \traverse tree . tree (\v l r D . (cons (getValue tree) (append (traverse (getLeft tree)) (traverse (getRight tree))))) nil
-testt1 = traverse (nd 1 nil nil)
-testt2 = traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil))
-testt3 = traverse (nd 1 (nd 2 (nd 3 nil nil) (nd 4 nil nil)) (nd 5 (nd 6 nil nil) (nd 7 nil nil)))
-
 	</pre>
 </body>
 </html>
