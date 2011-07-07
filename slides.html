@@ -445,7 +445,7 @@ Here's how you can define a simple "person record"...
 
 * <code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
-Calling makePerson with a name returns a function that takes a number and returns another function:
+Calling `makePerson` with a name returns a function that takes a number and returns another function:
 
 <code>makePerson fred &rArr; <span class="def">λnumber f</span> . f fred number</code>
 ***
@@ -455,7 +455,7 @@ Here's how you can define a simple "person record"...
 
 * <code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
-Calling makePerson with a name returns a function that takes a number and returns another function:
+Calling `makePerson` with a name returns a function that takes a number and returns another function:
 
 <code>makePerson fred &rArr; <span class="def">λnumber f</span> . f fred number</code>
 
@@ -469,7 +469,7 @@ Here's how you can define a simple "person record"...
 
 * <code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
-Calling makePerson with a name returns a function that takes a number and returns another function:
+Calling `makePerson` with a name returns a function that takes a number and returns another function:
 
 <code>makePerson fred &rArr; <span class="def">λnumber f</span> . f fred number</code>
 
@@ -520,7 +520,7 @@ We used currying to create a "person record"...
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
 
-See how makePerson defines this "f" argument, but we aren't using it?
+See how `makePerson` defines this `f` argument, but we aren't using it?
 ***
 #Brief Overview: Data
 
@@ -532,9 +532,9 @@ We used currying to create a "person record"...
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
 
-See how makePerson defines this "f" argument, but we aren't using it?
+See how `makePerson` defines this `f` argument, but we aren't using it?
 
-When I send only 2 arguments to makePerson, I get back a function that takes an "f"
+When I send only 2 arguments to `makePerson`, I get back a function that takes an `f`
 ***
 #Brief Overview: Data
 
@@ -546,11 +546,11 @@ We used currying to create a "person record"...
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
 
-See how makePerson defines this "f" argument, but we aren't using it?
+See how `makePerson` defines this `f` argument, but we aren't using it?
 
-When I send only 2 arguments to makePerson, I get back a function that takes an "f"
+When I send only 2 arguments to `makePerson`, I get back a function that takes an `f`
 
-The fact that I can send in "f" later allows the "person record function" to work
+The fact that I can send in `f` later allows the "person record function" to work
 ***
 #Brief Overview: Data
 
@@ -562,11 +562,11 @@ We used currying to create a "person record"...
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
 
-See how makePerson defines this "f" argument, but we aren't using it?
+See how `makePerson` defines this `f` argument, but we aren't using it?
 
-When I send only 2 arguments to makePerson, I get back a function that takes an "f"
+When I send only 2 arguments to `makePerson`, I get back a function that takes an `f`
 
-The fact that I can send in "f" later allows the "person record function" to work
+The fact that I can send in `f` later allows the "person record function" to work
 
 LC uses currying for a LOT of things
 ***
@@ -576,7 +576,7 @@ LC uses currying for a LOT of things
 
 This "person record" takes a function `f` and applies it to the name and number
 
-You could define getName to return the name of the person
+You could define `getName` to return the name of the person
 ***
 #Brief Overview: Data
 
@@ -584,7 +584,7 @@ You could define getName to return the name of the person
 
 This "person record" takes a function `f` and applies it to the name and number
 
-You could define getName to return the name of the person
+You could define `getName` to return the name of the person
 
 * <code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
 ***
@@ -594,7 +594,7 @@ You could define getName to return the name of the person
 
 This "person record" takes a function `f` and applies it to the name and number
 
-You could define getName to return the name of the person
+You could define `getName` to return the name of the person
 
 * <code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
 
@@ -604,9 +604,9 @@ You could define getName to return the name of the person
 
 <code><span class="def">λf</span> . f fred 777-2344</code>
 
-This "person record" takes a function (f) and applies it to the name and number
+This "person record" takes a function `f` and applies it to the name and number
 
-You could define getName to return the name of the person
+You could define `getName` to return the name of the person
 
 * <code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
 
@@ -618,9 +618,9 @@ This is a lot like `struct person p = {"fred", "777-2344"};` in C
 
 <code><span class="def">λf</span> . f fred 777-2344</code>
 
-This "person record" takes a function (f) and applies it to the name and number
+This "person record" takes a function `f` and applies it to the name and number
 
-You could define getName to return the name of the person
+You could define `getName` to return the name of the person
 
 * <code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
 
@@ -760,13 +760,13 @@ There are some pretty useful control structures that aren't in C or Java
 
 `(cons a b)` makes a list with a as the "head" and b as the "tail"
 
-The tail is usually either nil or another cons, which makes a chain of values
+The tail is usually either `nil` or another cons, which makes a chain of values
 ***
 #Computed Streams of Data
 
 `(cons a b)` makes a list with a as the "head" and b as the "tail"
 
-The tail is usually either nil or another cons, which makes a chain of values
+The tail is usually either `nil` or another cons, which makes a chain of values
 
 So, `cons A (cons B nil)` makes `[A, B]` and `cons A (cons B (cons C nil))` makes `[A, B, C]`
 ***
@@ -774,7 +774,7 @@ So, `cons A (cons B nil)` makes `[A, B]` and `cons A (cons B (cons C nil))` make
 
 `(cons a b)` makes a list with a as the "head" and b as the "tail"
 
-The tail is usually either nil or another cons, which makes a chain of values
+The tail is usually either `nil` or another cons, which makes a chain of values
 
 So, `cons A (cons B nil)` makes `[A, B]` and `cons A (cons B (cons C nil))` makes `[A, B, C]`
 
@@ -790,7 +790,7 @@ Here are the LC definitions:
 
 `(cons a b)` makes a list with a as the "head" and b as the "tail"
 
-The tail is usually either nil or another cons, which makes a chain of values
+The tail is usually either `nil` or another cons, which makes a chain of values
 
 So, `cons A (cons B nil)` makes `[A, B]` and `cons A (cons B (cons C nil))` makes `[A, B, C]`
 
@@ -808,7 +808,7 @@ Null uses a currying trick which we can go into if anyone is interested
 
 `(cons a b)` makes a list with a as the "head" and b as the "tail"
 
-The tail is usually either nil or another cons, which makes a chain of values
+The tail is usually either `nil` or another cons, which makes a chain of values
 
 So, `cons A (cons B nil)` makes `[A, B]` and `cons A (cons B (cons C nil))` makes `[A, B, C]`
 
@@ -828,7 +828,7 @@ Lazy evaluation makes computing a list in LC like making a Java/C++ iterator or 
 
 `(cons a b)` makes a list with a as the "head" and b as the "tail"
 
-The tail is usually either nil or another cons, which makes a chain of values
+The tail is usually either `nil` or another cons, which makes a chain of values
 
 So, `cons A (cons B nil)` makes `[A, B]` and `cons A (cons B (cons C nil))` makes `[A, B, C]`
 
@@ -914,7 +914,7 @@ Let's look at the replay...
 
 <code>cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (cons A nil)</code>
 
-`(cons A nil)` doesn't get evaulated until you "use" it, like head `(tail (cons B (cons A nil)))`
+`(cons A nil)` doesn't get evaulated until you "use" it, like `head (tail (cons B (cons A nil)))`
 ***
 #Computed Streams of Data
 
@@ -930,7 +930,43 @@ Kind of like SQL, only for lists
 ***
 #Generators
 
-Here's an example tree traversal stream
+Whenever you make a list, the head and tail remain "in stasis" because of lazy evaluation
+
+(this is true for all data structions in LC, of course)
+
+So, lists in LC act a lot like generators and iterators do in Python/JavaScript/Java/C++
+
+Except that a list is a "regular" data structure; you can reaccess it
+***
+#Generators
+
+Whenever you make a list, the head and tail remain "in stasis" because of lazy evaluation
+
+(this is true for all data structions in LC, of course)
+
+So, lists in LC act a lot like generators and iterators do in Python/JavaScript/Java/C++
+
+Except that a list is a "regular" data structure; you can reaccess it
+
+`append X X` works if X is a list
+***
+#Generators
+
+Whenever you make a list, the head and tail remain "in stasis" because of lazy evaluation
+
+(this is true for all data structions in LC, of course)
+
+So, lists in LC act a lot like generators and iterators do in Python/JavaScript/Java/C++
+
+Except that a list is a "regular" data structure; you can reaccess it
+
+`append X X` works if X is a list
+
+`append X X` does not if X is a generator
+***
+#Generators
+
+Here's an example tree traversal
 
 <code>traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]</code>  
 <br>  
@@ -939,22 +975,22 @@ Here's an example tree traversal stream
 * <code>value = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . v)</code>
 * <code>left = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . l)</code>
 * <code>right = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . r)</code>
-* <code>traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil</code>
+* <code>traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . cons v (append (tr l) (tr r))) nil</code>
 
 (rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
 ***
 #Generators
 
-Here's an example tree traversal stream
+Here's an example tree traversal
 
 <code>traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]</code>  
-But `[1,2,3]` is a **lazy** list
+ ***But `[1,2,3]` is lazy***
 
 * <code>nd = <span class="def">λvalue left right f</span> . f value left right</code>
 * <code>value = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . v)</code>
 * <code>left = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . l)</code>
 * <code>right = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . r)</code>
-* <code>traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil</code>
+* <code>traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . cons v (append (tr l) (tr r))) nil</code>
 
 (rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
 ***
@@ -962,7 +998,7 @@ But `[1,2,3]` is a **lazy** list
 
 `[1,2,3]` is really just <code><span class="def">λf</span> . f (node-value) (traverse-the-rest)</code>
 
-It continues the tree traversal as you draw elements from the list
+It continues the tree traversal as you get more elements from the list
 
 Lazy evaluation makes this automatic
 ***
@@ -993,12 +1029,10 @@ This brings us to...
 You can use infinite streams in a loop to generate values
 
 **`map FUNC (remove (not prime) naturals)`**  
-// this would be kind of like: for (i in naturals - !prime) {FUNC}  
-// if - and not applied to lists and functions
+// this would be kind of like: for (i in naturals - !prime) {FUNC}, if `-` and `!` worked
 
 **`map FUNC (map square naturals)`**  
-// this would be kind of like: for (i in square * naturals) {...}
-// if * applied to lists and functions
+// this would be kind of like: for (i in square * naturals) {...}, if `*` worked
 ***
 #Infinite Streams
 
@@ -1010,17 +1044,14 @@ You can use infinite streams in a loop to generate values
 
 You can use infinite streams in a loop to generate values
 
-**map FUNC (remove (not prime) naturals)**  
-// this would be kind of like: for (i in naturals - !prime) {FUNC}  
-// if - and not applied to lists and functions
+**`map FUNC (remove (not prime) naturals)`**  
+// this would be kind of like: for (i in naturals - !prime) {FUNC}, if `-` and `!` worked
 
-**map FUNC (map square naturals)**  
-// this would be kind of like: for (i in square * naturals) {...}
-// if * applied to lists and functions
+**`map FUNC (map square naturals)`**  
+// this would be kind of like: for (i in square * naturals) {...}, if `*` worked
 
-**map FUNC (map square (remove (! (prime || ten || even)) naturals))**  
-// this would be like for (i in squares * (naturals - !(prime || ten || odd))) {...}  
-// if "|" alternated  
+**`map FUNC (map square (remove (! (prime || ten || even)) naturals))`**  
+// this would be like for (i in squares * (naturals - !(prime || ten || odd))) {...}, if `|` worked  
 // so naturals - ((!prime & !ten) | even) is all naturals which are prime or odd or multiples of 10
 ***
 #Deep Factoring
