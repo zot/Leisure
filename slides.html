@@ -19,6 +19,21 @@
 #Back to BASICs: Primordial Programming
 
 Getting **REALLY** close to the metal with untyped Lambda Calculus
+
+<br>  
+<br>  
+<br>  
+<b>cflip</b>    = <span class="def">λn</span> . n e s a2 a1 m  
+<b>flip</b>     = func-to-row cflip  
+<b>allFlip</b>  = row-to-func flip  
+<b>start</b>    = <span class="def">λstatef</span> . statef gridStart shipStart t slowest  
+<b>checkDir</b> = <span class="def">λgrid left?</span> . left? (grid isAllFirstEmpty) (not (grid isAllLastEmpty))  
+<b>next</b>     = <span class="def">λgrid ship left? ctr statef</span> . (<span class="def">λdir</span> . statef (ctr cTrue (grid (dir allLeft allRight) allFlip) grid) ship dir (ctr cNext)) (checkDir grid left?)  
+<b>moveLeft</b>  = <span class="def">λgrid ship left? ctr</span> . next grid (ship (ship onFirstEmpty left)) left? ctr  
+<b>moveRight</b> = <span class="def">λgrid ship left? ctr</span> . next grid (ship (ship right onFirstEmpty right)) left? ctr  
+<b>stay</b>      = <span class="def">λgrid ship left? ctr</span> . next grid ship left? ctr  
+<b>fire</b>      = <span class="def">λgrid ship left? ctr</span> . next (missile grid ship) ship left? ctr  
+
 ***
 #Disclaimer: I'm not selling a language or a paradigm
 
@@ -95,9 +110,7 @@ I think it's ideal for teaching CS concepts
 
 There's just so little to get in the way
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures
 * computed streams of data
@@ -107,9 +120,7 @@ Some neato things that are easy to do in Lambda calculus
 * extensible syntax (parsing tricks can make this even more powerful)
 * ***parallel computing*** (ooh... ahh...)
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
@@ -120,9 +131,7 @@ Some neato things that are easy to do in Lambda calculus
 * extensible syntax (parsing tricks can make this even more powerful)
 * ***parallel computing*** (ooh... ahh...)
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
@@ -134,9 +143,7 @@ Some neato things that are easy to do in Lambda calculus
 * extensible syntax (parsing tricks can make this even more powerful)
 * ***parallel computing*** (ooh... ahh...)
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
@@ -149,9 +156,7 @@ Some neato things that are easy to do in Lambda calculus
 * extensible syntax (parsing tricks can make this even more powerful)
 * ***parallel computing*** (ooh... ahh...)
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
@@ -165,9 +170,7 @@ Some neato things that are easy to do in Lambda calculus
 * extensible syntax (parsing tricks can make this even more powerful)
 * ***parallel computing*** (ooh... ahh...)
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
@@ -182,9 +185,7 @@ Some neato things that are easy to do in Lambda calculus
 * extensible syntax (parsing tricks can make this even more powerful)
 * ***parallel computing*** (ooh... ahh...)
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
@@ -200,9 +201,7 @@ Some neato things that are easy to do in Lambda calculus
     create Domain Specific Languages (DSLs)
 * ***parallel computing*** (ooh... ahh...)
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
@@ -219,9 +218,7 @@ Some neato things that are easy to do in Lambda calculus
 * ***parallel computing*** (ooh... ahh...)  
     LC (and other functional languages) have tools for massively parallel programs (20,000+ threads)
 ***
-#Lambda Calculus is a Functional Programming Language
-
-Some neato things that are easy to do in Lambda calculus
+#Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
@@ -240,7 +237,7 @@ Some neato things that are easy to do in Lambda calculus
 
 You can do some of these things in a lot of other languages, but they probably won't be as straight-forward.  They can still be very useful and powerful, though.  One example of this is the [Functional Java](http://functionaljava.org/) library, which bolts functional capabilities onto Java.
 ***
-#Lambda Calculus is a Functional Programming Language
+#Lambda Calculus is Primordial
 
 How primordial is it?
 ***
@@ -278,7 +275,7 @@ It's easy to use, once you get the hang of it
 ***
 #It's not as bad as it seems
 
-No numbers and comparisons &rArr; students can implement them themselves
+No numbers or comparisons &rArr; students can implement them themselves
 
 How do you define bits, numbers, and ">" in C or assembly?
 
@@ -298,13 +295,13 @@ Uses JavaScript to display the state and get events
 
 To run it, I made a [Lambda Calculus evaluator](evaluator.html) in JavaScript
 
-It can run Lambda Calculus 3 different ways.  It can...
+It can run Lambda Calculus 3 different ways...
 
 1. compile into JavaScript
-1. interpret in JavaScript and see the substitution steps
+1. interpret in JavaScript and show the substitution steps
 1. compile into virtual machine bytecode (and run it)
 
-I'm working on a LLVM code generator to compile into native machine code (and let you link with libraries)
+I'm working on an LLVM code generator to compile into native machine code (and let you link with libraries)
 
 The idea here is to give people insight into how compilers, interpreters, and VMs work
 ***
@@ -324,9 +321,9 @@ Maybe untyped LC could be too
 * LC is just functions -- data is also functions, which means data is also lazy
 * LC allows "currying" -- calling a 3-arg function with only the first 2 args returns a 1-arg function that "saves" the first 2
 
-Most languages don't have lazy evaluation + currying + data/functions
+Lazy evaluation + currying + data/functions can be very powerful
 
-This combination can be really powerful
+Most languages don't support this
 ***
 #Brief Overview: Functions
 
@@ -748,7 +745,7 @@ Lazy evaluation lets you define your own control structures, like if, for, while
 
 There are some pretty useful control structures that aren't in C or Java
 
-(like Scala's "for comprehension", which looks like a "for" loop but is a lot more powerful)
+(like Scala's pattern matching "switch" and powerful "for")
 ***
 #Computed Streams of Data
 
@@ -758,13 +755,13 @@ There are some pretty useful control structures that aren't in C or Java
 
 (cons a b) makes a list with a as the "head" and b as the "tail"
 
-The tail us usually either nil or another cons, which makes a chain of values
+The tail is usually either nil or another cons, which makes a chain of values
 ***
 #Computed Streams of Data
 
 (cons a b) makes a list with a as the "head" and b as the "tail"
 
-The tail us usually either nil or another cons, which makes a chain of values
+The tail is usually either nil or another cons, which makes a chain of values
 
 So, cons A (cons B nil) makes [A, B] and cons A (cons B (cons C nil)) makes [A, B, C]
 ***
@@ -772,7 +769,7 @@ So, cons A (cons B nil) makes [A, B] and cons A (cons B (cons C nil)) makes [A, 
 
 (cons a b) makes a list with a as the "head" and b as the "tail"
 
-The tail us usually either nil or another cons, which makes a chain of values
+The tail is usually either nil or another cons, which makes a chain of values
 
 So, cons A (cons B nil) makes [A, B] and cons A (cons B (cons C nil)) makes [A, B, C]
 
@@ -781,14 +778,14 @@ Here are the LC definitions:
 * cons = <span class="def">λh t f</span> . f h t
 * head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)
 * tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)
-* nil = false
+* nil = <span class="def">λa b</span> . b
 * null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true
 ***
 #Computed Streams of Data
 
 (cons a b) makes a list with a as the "head" and b as the "tail"
 
-The tail us usually either nil or another cons, which makes a chain of values
+The tail is usually either nil or another cons, which makes a chain of values
 
 So, cons A (cons B nil) makes [A, B] and cons A (cons B (cons C nil)) makes [A, B, C]
 
@@ -797,7 +794,7 @@ Here are the LC definitions:
 * cons = <span class="def">λh t f</span> . f h t
 * head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)
 * tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)
-* nil = false
+* nil = <span class="def">λa b</span> . b
 * null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true
 
 Null uses a currying trick which we can go into if anyone is interested
@@ -806,7 +803,7 @@ Null uses a currying trick which we can go into if anyone is interested
 
 (cons a b) makes a list with a as the "head" and b as the "tail"
 
-The tail us usually either nil or another cons, which makes a chain of values
+The tail is usually either nil or another cons, which makes a chain of values
 
 So, cons A (cons B nil) makes [A, B] and cons A (cons B (cons C nil)) makes [A, B, C]
 
@@ -815,7 +812,7 @@ Here are the LC definitions:
 * cons = <span class="def">λh t f</span> . f h t
 * head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)
 * tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)
-* nil = false
+* nil = <span class="def">λa b</span> . b
 * null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true
 
 Null uses a currying trick which we can go into if anyone is interested
@@ -826,7 +823,7 @@ Lazy evaluation makes computing a list in LC like making a Java/C++ iterator or 
 
 (cons a b) makes a list with a as the "head" and b as the "tail"
 
-The tail us usually either nil or another cons, which makes a chain of values
+The tail is usually either nil or another cons, which makes a chain of values
 
 So, cons A (cons B nil) makes [A, B] and cons A (cons B (cons C nil)) makes [A, B, C]
 
@@ -835,7 +832,7 @@ Here are the LC definitions:
 * cons = <span class="def">λh t f</span> . f h t
 * head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)
 * tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)
-* nil = false
+* nil = <span class="def">λa b</span> . b
 * null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true
 
 Null uses a currying trick which we can go into if anyone is interested
@@ -882,20 +879,56 @@ cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (<span class="de
 
 Right?
 
-Let's look at the [replay](slideEx.html)...
+Let's look at the replay...
 ***
 #Computed Streams of Data
 
-What can you do with them?
+What cons does...
 
-* Produce a new stream by transform the elements of the original
-* Produce a new stream by discarding some of the elements of the original
-* Produce a new stream by inserting elements into the original
-* Combine the above operations
-* Produce a new stream by merging several streams together
-* Kind of like SQL
+cons A nil &rArr; <span class="def">λf</span> . f A nil
+
+cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (<span class="def">λf</span> . f A nil)
+
+Right?
+
+Let's look at the replay...
+
+cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (cons A nil)
+***
+#Computed Streams of Data
+
+What cons does...
+
+cons A nil &rArr; <span class="def">λf</span> . f A nil
+
+cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (<span class="def">λf</span> . f A nil)
+
+Right?
+
+Let's look at the replay...
+
+cons B (cons A nil) &rArr; <span class="def">λf2</span> . f2 B (cons A nil)
+
+(cons A nil) doesn't get evaulated until you "use" it, like head (tail (cons B (cons A nil)))
+***
+#Computed Streams of Data
+
+You can produce a new list by:
+
+* Transforming the elements of the original
+* Discarding some of the elements of the original
+* Inserting elements into the original
+* Merging several lists together
+* Combining the above operations
+
+Kind of like SQL, only for lists
 ***
 #Generators
+
+Here's an example tree traversal stream
+
+traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]  
+<br>  
 
 * nd = <span class="def">λvalue left right f</span> . f value left right
 * value = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . v)
@@ -904,32 +937,27 @@ What can you do with them?
 * traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
 
 (rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
-
-Traverse just creates of a list of the preorder traversal of the tree:
-
-traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]
 ***
 #Generators
 
-* nd = <span class="def">λvalue left right f</span> . f value left right
-* value = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . v)
-* left = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . l)
-* right = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . r)
-* traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+Here's an example tree traversal stream
 
-(rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
-
-Traverse just creates of a list of the preorder traversal of the tree:
-
-traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]
-
+traverse (nd 1 (nd 2 nil nil) (nd 3 nil nil)) &rArr; [1,2,3]  
 But [1,2,3] is a **lazy** list
+  
+* nd = <span class="def">λvalue left right f</span> . f value left right
+* value = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . v)
+* left = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . l)
+* right = <span class="def">λtree</span> . tree (<span class="def">λv l r</span> . r)
+* traverse = rec <span class="def">λtr tree</span> . tree (<span class="def">λv l r D</span> . (cons (value tree) (append (tr (left tree)) (tr (right tree))))) nil
+
+(rec is a function which uses the "Y-combinator" to define a recursive function, so "tr" becomes the recursive name for "traverse")
 ***
 #Generators
 
-The result ([1,2,3]) is really just <span class="def">λf</span> . f (node-value) (traverse-the-rest)
+[1,2,3] is really just <span class="def">λf</span> . f (node-value) (traverse-the-rest)
 
-It traverses the tree as you draw elements from the list
+It continues the tree traversal as you draw elements from the list
 
 Lazy evaluation makes this automatic
 ***
@@ -959,11 +987,11 @@ This brings us to...
 
 You can use infinite streams in a loop to generate values
 
-map FUNC (remove (not prime) naturals)  
+**map FUNC (remove (not prime) naturals)**  
 // this would be kind of like: for (i in naturals - !prime) {FUNC}  
 // if - and not applied to lists and functions
 
-map FUNC (map square naturals)  
+**map FUNC (map square naturals)**  
 // this would be kind of like: for (i in square * naturals) {...}
 // if * applied to lists and functions
 ***
@@ -977,18 +1005,18 @@ map FUNC (map square naturals)
 
 You can use infinite streams in a loop to generate values
 
-map FUNC (remove (not prime) naturals)  
+**map FUNC (remove (not prime) naturals)**  
 // this would be kind of like: for (i in naturals - !prime) {FUNC}  
 // if - and not applied to lists and functions
 
-map FUNC (map square naturals)  
+**map FUNC (map square naturals)**  
 // this would be kind of like: for (i in square * naturals) {...}
 // if * applied to lists and functions
 
-map FUNC (map square (remove (! (prime || ten || even)) naturals))  
-for (i in squares * (naturals - !(prime || ten || odd))) {...}  
-// I'm using "|" to alternate, so naturals - ((!prime & !ten) | even) is  
-// all naturals which are prime or odd or multiples of 10
+**map FUNC (map square (remove (! (prime || ten || even)) naturals))**  
+// this would be like for (i in squares * (naturals - !(prime || ten || odd))) {...}  
+// if "|" alternated  
+// so naturals - ((!prime & !ten) | even) is all naturals which are prime or odd or multiples of 10
 ***
 #Deep Factoring
 
@@ -997,7 +1025,7 @@ You can transform and filter lists, just like you can in Smalltalk, LISP, Haskel
 "Currying" when mapping or filtering produces a new function that operates on any list
 
 You can compose them with other functions that operate on lists:  
-`mogrify = λfunc l . map func (map square (remove (! (prime || ten || even)) l))`  
+mogrify = <span class="def">λfunc l</span> . map func (map square (remove (! (prime || ten || even)) l))  
 `mogrify bob` uses currying to make a combinator you can use on lists or in other list combinators
 
 This makes it easy to create and reuse functions that transform lists
@@ -1064,7 +1092,7 @@ Yes, but transformed data structures can reuse parts of the original structure
 
 And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 
-Nvidia Fermi needs to run over 20,000 of threads for optimal usage
+NVIDIA Fermi needs to run over 20,000 of threads for optimal usage
 ***
 #Parallel Computing
 
@@ -1074,7 +1102,7 @@ Yes, but transformed data structures can reuse parts of the original structure
 
 And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 
-Nvidia Fermi needs to run over 20,000 of threads for optimal usage
+NVIDIA Fermi needs to run over 20,000 of threads for optimal usage
 
 But to use that many threads, we needs automatic ways to *massively* parellelize code
 ***
@@ -1086,7 +1114,7 @@ Yes, but transformed data structures can reuse parts of the original structure
 
 And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 
-Nvidia Fermi needs to run over 20,000 of threads for optimal usage
+NVIDIA Fermi needs to run over 20,000 of threads for optimal usage
 
 But to use that many threads, we needs automatic ways to *massively* parellelize code
 
@@ -1102,13 +1130,14 @@ Those are a lot like Google's map/reduce (because it's based on functional conce
 
 Google's Map/reduce operates "in the large", on server farms
 
-Functional programming languages can do this "in the small" (like on an SMP machine)
+Functional programming languages can do this "in the small" (like on your laptop)
 ***
 #Parallel Computing
 
 Map is a function that transforms a list of values by applying a function to each element:
 
-map twice [1,2,3] &rArr; [2,4,6]
+map twice [1,2,3] &rArr; [2,4,6]  
+(i.e. map (<span class="def">λitem</span> . times 2 item) [1,2,3])
 
 Parallel functional languages (like Haskell and Scala) support parallel list transformations
 
