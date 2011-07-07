@@ -414,15 +414,15 @@ A function which returns another function acts like it takes another argument
 
 t = <span class="def">λa</span> . <span class="def">λb</span> . a
 
-`t 1` returns a function: <span class="def">λb</span> . 1
+Calling `t` with `1` substitutes `1` for `a` in the body: t 1 &rArr; <span class="def">λb</span> . 1
 
-when you call that function with an argument, you get 1, because that's the body: `(t 1) 2` &rArr; `1`
+When you call that function with any argument, you get 1, because that's the body: (t 1) 2 &rArr; 1
 
-but LC is "right associative" and lets you say `t 1 2`, instead of `(t 1) 2`
+LC is "right associative" and lets you say `t 1 2`, instead of `(t 1) 2`
 
-(so `t 1` is really currying `t 1 2`)
+(So `t 1` is really currying `t 1 2`)
 
-So, when people make multiple argument functions this way, they smash them together:
+When people make multiple argument functions this way, they smash them together:
 
 <span class="def">λa</span> . <span class="def">λb</span> . a
 
