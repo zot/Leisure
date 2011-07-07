@@ -412,7 +412,7 @@ Values can be functions or undefined
 
 A function which returns another function acts like it takes another argument
 
-because `(func X) Y` sends `Y` to the function returned by `(func X)`
+because `(func X) Y` calls `func` with `X` and calls the result of that with `Y`
 
 but LC is "right associative" and lets you say `func X Y`, instead
 
