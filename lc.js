@@ -37,7 +37,7 @@ var tokens = {}
 var groupOpens = {'(': ')'}
 var groupCloses = {')': 1}
 var tokenPat = null
-var specials = '[]().*+?'
+var specials = '[]().*+?|'
 var tokenDefPat = /^ *([^ ]+) *(=[.)]=|=\([^=]+=|=)(?:[^=])/
 var warnFreeVariable = []
 var line = 0

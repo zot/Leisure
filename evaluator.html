@@ -328,7 +328,7 @@ You can modify the parser in these ways:<br>
 	<li>You can make your definition a token to the parser using <pre>NAME =.= EXPR</pre>this means that you won't need spaces around NAME.  Good for punctuation, etc.
 	<li>You can make your definition a grouping token with <pre>NAME =(CLOSE= EXPR</pre> and <pre>CLOSE =)= EXPR</pre> (for the corresponding closing token).
 </ul>
-I use these in the example definitions to create an array-like syntax for lists: [1,2,3] is the same as saying cons 1 (cons 2 (cons 3 nil)).  The definitions of '[', ',', and ']' are:<pre>[ =(]= \item f  .  f (cons item nil)
+I use these in the example definitions to create an array-like syntax for lists: [1,2,3] is the same as saying cons 1 (cons 2 (cons 3 nil)) and [1,2|list] is the same as cons 1 (cons 2 list) (like in Prolog).  The definitions of '[', ',', and ']' are:<pre>[ =(]= \item f  .  f (cons item nil)
 , =.= \l item f . f (cons item l)
 ] =)= reverse
 </pre>
@@ -367,12 +367,25 @@ last = rec \last l  . l (\h t D . null t h (last t)) nil
 append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
 reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 # list constructor: list 1 , 2 , 3 end
+# first attempt, using recursive 'list' definition
+#
 #list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
 #, = true
 #end = false
+#
+# second attempt, using "post-processing" with reverse
+#[ =(]= \item f  .  f (cons item nil)
+#, =.= \l item f . f (cons item l)
+#] =)= reverse
+#
+# current constructor
+# no post processing
+# also allows [1, 2, 3 | REST ] (like Prolog)
+
 [ =(]= \item c . c \cont rest . cons item rest
 , =.= \f . \item c . c \cont rest . f true (cons item rest)
 ] =)= \f . f false nil
+| =.= \f rest g . f false rest
 ident = \x . x
 1f = \1 f . f 1
 test5 = last (cons 1 (cons 2 nil))
