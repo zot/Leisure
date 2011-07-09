@@ -370,9 +370,9 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 #list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
 #, = true
 #end = false
-[ =(]= \item f  .  f (cons item nil)
-, =.= \l item f . f (cons item l)
-] =)= reverse
+[ =(]= \item c . c \cont rest . cons item rest
+, =.= \f . \item c . c \cont rest . f true (cons item rest)
+] =)= \f . f false nil
 ident = \x . x
 1f = \1 f . f 1
 test5 = last (cons 1 (cons 2 nil))
