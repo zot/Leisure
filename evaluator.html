@@ -328,10 +328,10 @@ You can modify the parser in these ways:<br>
 	<li>You can make your definition a token to the parser using <pre>NAME =.= EXPR</pre>this means that you won't need spaces around NAME.  Good for punctuation, etc.
 	<li>You can make your definition a grouping token with <pre>NAME =(CLOSE= EXPR</pre> and <pre>CLOSE =)= EXPR</pre> (for the corresponding closing token).
 </ul>
-I use these in the example definitions to create an array-like syntax for lists: [1,2,3] is the same as saying cons 1 (cons 2 (cons 3 nil)) and [1,2|list] is the same as cons 1 (cons 2 list) (like in Prolog).  The definitions of '[', ',', and ']' are:<pre>[ =(]= \item f  .  f (cons item nil)
-, =.= \l item f . f (cons item l)
-] =)= reverse
-</pre>
+I use these in the example definitions to create an array-like syntax for lists, using normal Lambda Calculus functions.  This demonstrates a way to define functions that act like syntactic sugar.  It's really not sugar, though; these are real functions but the point of them is to make things more convenient for the programmer, like syntactic sugar does: [1,2,3] is the same as saying cons 1 (cons 2 (cons 3 nil)) and [1,2|list] is the same as cons 1 (cons 2 list) (like in Prolog).  The definitions of '[', ',', '|', and ']' are:<pre>[ =(]= λitem c . c λcont rest . cons item rest
+, =.= λf . λitem c . c λcont rest . f true (cons item rest)
+] =)= λf . f false nil
+| =.= λf rest g . f false rest</pre>
 <br><br>
 Have fun!<br>
 Bill Burdick (you can send me mail at bill dot burdick on gmail)<br>
