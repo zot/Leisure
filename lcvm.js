@@ -519,9 +519,53 @@ VM = (function(){
 	return {instructions: instructions, vars: this.free ? null : cons(nth(parents, this.num), null)}
     }
 
+    function printContext(ctx, buf, inner) {
+	var buf = buf || []
+
+	env.addrs[ctx[CTX_ADDR]].expr.printContext(ctx, buf, inner)
+	return buf.join('')
+    }
+
+    LC.Lambda.prototype.__proto__.printContext = function(ctx, buf, inner) {
+	if (inner) buf.push('(')
+	buf.push('\u03BB')
+	if (this.original) buf.push(this.original.lvar.name, ' . ')
+	this.body.printContext(ctx, buf, false)
+	if (inner) buf.push(')')
+    }
+
+    LC.Apply.prototype.__proto__.printContext = function(ctx, buf, inner) {
+	this.func.printContext(ctx, buf, true)
+	buf.push(' ')
+	if (this.arg instanceof LC.Apply) buf.push('(')
+	this.arg.printContext(ctx, buf, this.arg instanceof LC.Apply ? false : inner)
+	if (this.arg instanceof LC.Apply) buf.push(')')
+    }
+
+    function getValue(ctx, n) {
+	return ctx == null ? null : n == 0 ? ctx[CTX_BINDING] : getValue(ctx[CTX_PARENT], n - 1)
+    }
+
+    LC.Variable.prototype.__proto__.printContext = function(ctx, buf, inner) {
+	if (this.free) {
+	    buf.push('[', this.name, ']')
+	} else {
+	    var value = getValue(ctx, this.num)
+
+	    if (!value) {
+		buf.push(this.original ? this.original.name : this.num)
+	    } else if (value[CTX_ADDR] < 0) {
+		buf.push('[', LC.lambdas[-value[CTX_ADDR]].name, ']')
+	    } else {
+		printContext(ctx, buf, inner)
+	    }
+	}
+    }
+
     var obj = {
 	gen: gen,
 	execute: execute,
+	printContext: printContext,
 	BIND_CONTEXT: BIND_CONTEXT,
 	BIND_VAR: BIND_VAR,
 	USE_CONTEXT: USE_CONTEXT,

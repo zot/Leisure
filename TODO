@@ -1,7 +1,5 @@
 TODO
-* print VM objects
-* debug recursion in VM
+* debug VM
 
 DONE
-
-
+* print VM contexts

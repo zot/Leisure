@@ -108,7 +108,8 @@ function runVm(id) {
 	if (!result.mp) {
 //		results.push("<b>Result:</b>", LC.pretty(rexpr), "<br><br><span>.</span>")
 //		results.push("<b>Result:</b>", compExpr.original.pretty(true), "<br><br><span>.</span>")
-		results.push("<b>Result:</b>", compExpr.original.format(false, true), "<br><br><span>.</span>")
+//		results.push("<b>Result:</b>", compExpr.original.format(false, true), "<br><br><span>.</span>")
+		results.push("<b>Result:</b>", VM.printContext(result.fp), "<br><br><span>.</span>")
 	} else {
 		results.push("<b><i>Attempt to use free variable ", rexpr, " as a function</i></b>")
 	}
