@@ -140,20 +140,27 @@ function compileVM(expr) {
 			results.push("NEXT_VAR")
 			break;
 		case VM.USE_CONTEXT:
+			var id = comp.code[i++]
 			var addr = comp.code[i++]
 			var parent = comp.code[i++]
-			var label = addr >= 0 ? comp.addrs[addr].name : "VAR(" + LC.lambdas[-addr].name + ")"
-			results.push("USE_CONTEXT ", label, ", ", parent, ", ", comp.code[i++])
+			var label = addr >= 0 ? comp.addrs[addr].name : "VAR(" + LC.lambdas[id].name + ")"
+			var original = LC.lambdas[id]
+//			results.push("USE_CONTEXT ", (original &&  original.name != '' && original.name) || ('L' + id), ", ", label, ", ", parent, ", ", comp.code[i++])
+//			results.push("USE_CONTEXT ", (original &&  original.name != '' && original.name) || ((original instanceof LC.Apply ? "A-" : "L-") + id), ", ", addr, ", ", parent, ", ", comp.code[i++])
+			results.push("USE_CONTEXT ", label, ", ", addr, ", ", parent, ", ", comp.code[i++])
 			break
 		case VM.USE_VAR:
 			results.push("USE_VAR ")
 			break
 		case VM.BIND_CONTEXT:
-			var inst = comp.code[i - 1]
+			var id = comp.code[i++]
 			var addr = comp.code[i++]
 			var parent = comp.code[i++]
-			var label = addr >= 0 ? comp.addrs[addr].name : "VAR(" + LC.lambdas[-addr].name + ")"
-			results.push("BIND_CONTEXT ", label, ", ", parent, ", ", comp.code[i++])
+			var label = addr >= 0 ? comp.addrs[addr].name : "VAR(" + LC.lambdas[id].name + ")"
+			var original = LC.lambdas[id]
+//			results.push("BIND_CONTEXT ", (original && original.name != '' && original.name) || ('L' + id), ", ", label, ", ", parent, ", ", comp.code[i++])
+//			results.push("BIND_CONTEXT ", (original && original.name != '' && original.name) || ('L' + id), ", ", addr, ", ", parent, ", ", comp.code[i++])
+			results.push("BIND_CONTEXT ", label, ", ", addr, ", ", parent, ", ", comp.code[i++])
 			break
 		case VM.BIND_VAR:
 			results.push("BIND_VAR ")
@@ -180,14 +187,15 @@ function compileVM(expr) {
 	displayResults(results.length && docMsg)
 }
 function resultCode(expr, res, index) {
+	var pretty = LC.pretty(expr)
 	var subs = expr.format()
 	var nosubs = expr.format(false, true)
 	var lam = res.lambda
 
 	if (lam) {
-		res = "<span class='subs'>" + LC.pretty(res) + "</span><span class='nosubs'>" + lam.format(false, true) + "</span>" 
+		res = "<span class='subs pretty'>" + LC.pretty(res) + "</span><span class='subs nopretty'>" + lam.format() + "</span><span class='nosubs nopretty'>" + lam.format(false, true) + "</span>" 
 	}
-	results.push("<div><b><span class='dollar'>$: </span>$", index, ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(LC.historyExprs[", index, "])'>Reduce</button><button onclick='compileVM(LC.historyExprs[" + index + "])'>VM</button><span class='subs'>", subs, "</span><span class='nosubs'>", nosubs, "</span>&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", res, "<br><br></div>")
+	results.push("<div><b><span class='dollar'>$: </span>$", index, ":</b> <button onclick='editResult(\"" + subs.replace(/\\|&lambda;/g, '\\\\') + "\")'>Edit</button><button onclick='runReduce(LC.historyExprs[", index, "])'>Reduce</button><button onclick='compileVM(LC.historyExprs[" + index + "])'>VM</button>", "<span class='subs pretty'>", pretty, "</span>", "<span class='subs nopretty'>", subs, "</span><span class='nosubs nopretty'>", nosubs, "</span>&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", res, "<br><br></div>")
 }
 function formatExpr(label, expr) {
 	results.push("<div><b>" + label + ":</b> " + formatSubexpr(expr) + "</div>")
@@ -388,6 +396,8 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 | =.= \f rest g . f false rest
 ident = \x . x
 1f = \1 f . f 1
+get = \f . f ident
+test6 = get (1f a)
 test5 = last (cons 1 (cons 2 nil))
 test1 = (\f . f a) (\x . x)
 test2 = 1f 1 ident

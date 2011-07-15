@@ -110,6 +110,7 @@ function addExpr(name, txt, noRebuild) {
 	var expr = new Entry(name, parse(txt))
 	var newOutput = ''
 
+	expr.expr.name = name
 	if (!noRebuild) {
 	    for (var i = 0; i < order.length; i++) {
 		if (order[i].name == name) {
@@ -119,9 +120,9 @@ function addExpr(name, txt, noRebuild) {
 	}
 	LC.L = L = null
 	order.push(expr)
-	exprs[name] = expr
 	var hk = expr.expr.hashKey()
 	if (!hashed[hk]) hashed[hk] = expr
+	exprs[name] = expr
 	return true
     } else {
 	runExpr(txt.trim())
@@ -327,20 +328,21 @@ function tparseLambda(toks, vars) {
 	return new Lambda(lvar, body)
 }
 function Entry(name, expr) {
-	this.name = name
-	this.cname = nameSub(name)
-	this.expr = expr
-	if (expr) {
-		try {
-			this.src = 'function() {\nreturn ' + expr.ret([]).join("") + '\n}'
-			if (warnFreeVariable.length) {
-				this.usesFree = warnFreeVariable.join(', ')
-				warnFreeVariable = []
-			}
-		} catch (err) {
-			this.src = function() {return "Error compiling: " + expr}
-		}
+    this.name = name
+    this.cname = nameSub(name)
+    this.expr = expr
+    this.reduced = expr.globalSub()
+    if (expr) {
+	try {
+	    this.src = 'function() {\nreturn ' + expr.ret([]).join("") + '\n}'
+	    if (warnFreeVariable.length) {
+		this.usesFree = warnFreeVariable.join(', ')
+		warnFreeVariable = []
+	    }
+	} catch (err) {
+	    this.src = function() {return "Error compiling: " + expr}
 	}
+    }
 }
 Entry.prototype = {
 	toString: function() {return this.expr && this.expr.format(false)},
@@ -466,22 +468,6 @@ Entity.prototype.__proto__ = {
     uniquify: function(names) {return this.transform(pre(Lambda, function(transformer){transformer.prune(this.lvar, this.lvar.rename(names)); return this}))},
     hashKey: function() {return this.globalSub().debruijn().dformat()},
     debruijn: function(skipCache) {return this.subdebruijn(null, {}, skipCache)},
-    globalSub: function() {
-	var v = this.uniquify(exprs).transform(pre(Variable, function() {
-	    return exprs[this.name] ? exprs[this.name].expr.globalSub() : this
-	}))
-	var bad = false
-	
-	v.transform(pre(Lambda, function() {
-	    if (!(this.lvar instanceof Variable)) {
-		bad = true; return this
-	    }
-	}))
-	if (bad) {
-	    alert("Error in globalSub for " + this.format(true, true))
-	}
-	return v
-    },
     containsVar: function(targetVar) {
 	var contains = false
 	
@@ -538,7 +524,8 @@ Lambda.prototype.__proto__ = new Entity({
 	stream.push(")")
 	return stream
     },
-    getHashedName: function() {var d = hashed[this.hashKey()]; return d && d.name},
+    getHashedName: function() {if (this.name) return this.name; var d = hashed[this.hashKey()]; return d && d.name},
+    globalSub: function() {return this.make(this.lvar, this.body.globalSub())},
     format: function(slash, nosubs, func, arg) {return (!nosubs && this.getHashedName()) || ((func ? '(' : '') + (slash ? '\\' : '\u03BB') + this.formatRest(slash, nosubs)) + (func ? ')' : '')},
     formatRest: function(slash, nosubs) {
 	var n = !nosubs && this.body instanceof Lambda && this.body.getHashedName()
@@ -651,6 +638,7 @@ Variable.prototype.__proto__ = new Entity({
 	if (skipCache) newVar.original = this
 	return newVar
     },
+    globalSub: function() {return this.free && exprs[this.name] ? exprs[this.name].reduced : this},
     equals: function(obj) {return obj instanceof Variable && this.name == obj.name},
     toString: function() {return "Variable(" + this.name + ")"},
     valueFunc: function() {
@@ -700,6 +688,7 @@ Apply.prototype.__proto__ = new Entity({
 	return fstr + " " + (this.arg instanceof Apply ? "(" + this.arg.dformat(false) + ")" : this.arg.dformat(inner))
     },
     subdebruijn: function(vars, cache, skipCache) {return debcache(this.make(this.func.subdebruijn(vars, cache, skipCache), this.arg.subdebruijn(vars, cache, skipCache), skipCache && 'original'), cache, skipCache)},
+    globalSub: function() {return this.make(this.func.globalSub(), this.arg.globalSub())},
     equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
     apply: function(stream, prefix) {
 	this.func.apply(stream, prefix)

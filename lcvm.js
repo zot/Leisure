@@ -27,10 +27,10 @@ a (\x . \y . x) (c d) e
 -> a ()
 -----------------------
 
-[a,c,d,e,-]: UseVar(a), BindContext(L, -1, false), Memo, BindContext(C, -1, true), Memo, BindContext(vE, -1, true), Return
-L[x](\x . \y . x): UseContext(L2, 0, false), Return
+[a,c,d,e,-]: UseVar(a), BindContext("L", L, -1, false), Memo, BindContext("C", C, -1, true), Memo, BindContext("vE", vE, -1, true), Return
+L[x](\x . \y . x): UseContext("L2", L2, 0, false), Return
 L2[x,-](\y . x)): VarStart, UseVar, Return
-C[c,d,-](c d): BindContext(vC, -1, true), Memo, BindVar(vD, -1, true), Return
+C[c,d,-](c d): BindContext("vC", vC, -1, true), Memo, BindVar("vD", vD, -1, true), Return
 vE: free variable
 vC: free variable
 vD: free variable
@@ -38,13 +38,13 @@ vD: free variable
 
 (\x . x) 3
 
-[3,-]((\x . x) 3): UseContext(L, 0, false), BindContext(v3, -1, true), Return
+[3,-]((\x . x) 3): UseContext("L", L, 0, false), BindContext("v3", v3, -1, true), Return
 L[x](\x . x): VarStart, UseVar, Return
 
 
 \x . \y . prim(plus, x, y)
 
-L[x]: UseContext(L2, -1, false), Return
+L[x]: UseContext("L2", L2, -1, false), Return
 L2[y]: PushStrict(1), PushStrict(0), UsePrim(plus), Return
 
 
@@ -77,11 +77,11 @@ Contexts
 
 Instructions
 
-UseContext(addr, parent, apply) -- FP = new context(addr, parent, apply)
+UseContext(id, addr, parent, apply) -- FP = new context(addr, parent, apply)
   addr: the address of the code for the context.  Free variables are represented with negative numbers
   parent: link the parent context; -1 => no parent, 0 => use context, 1 => use context.parent
   apply: true => this is an apply, false => this is a lambda
-  FP = newContext(addr, parent, apply)
+  FP = newContext(id, addr, parent, apply)
 
 UseVar -- use var as result
   FP = VP.binding, VP = null
@@ -89,11 +89,11 @@ UseVar -- use var as result
     if FP.result, FP = FP.result
     else push(PC, CP, FP), CP = FP, PC = CP.addr
 
-BindContext(size, addr, apply) -- bind current function to arg and reduce it, if apply = true, place a marker in the context binding
+BindContext(id, size, addr, apply) -- bind current function to arg and reduce it, if apply = true, place a marker in the context binding
   if FP.result
     FP = FP.result
   else
-    push(PC, CP, FP), FP[0] = newContext(size, addr, apply), CP = FP, PC = CP.addr
+    push(PC, CP, FP), FP[0] = newContext(id, size, addr, apply), CP = FP, PC = CP.addr
 
 BindVar(n) -- bind current function to var and reduce it
   if FP.result
@@ -159,10 +159,11 @@ VM = (function(){
     var EXT_CALL = 10
 
     //CONTEXT ACCESS
-    var CTX_ADDR = 0	// code address
-    var CTX_PARENT = 1	// parent context
-    var CTX_RESULT = 2	// for memo
-    var CTX_BINDING = 3	// bound value
+    var CTX_NAME = 0	// code address
+    var CTX_ADDR = 1	// code address
+    var CTX_PARENT = 2	// parent context
+    var CTX_RESULT = 3	// for memo
+    var CTX_BINDING = 4	// bound value
 
     // imports
     var Cons = LC.Cons
@@ -180,20 +181,22 @@ VM = (function(){
 	var entry = env.debruijns[debruijn]
 
 	if (!entry) {
-	    name = prefix || ((expr instanceof LC.Apply ? "APPLY-" : "LAMBDA-") + expr.id)
+	    var original = LC.lambdas[expr.id]
+	    name = (original &&  original.name != '' && original.name) || ((expr instanceof LC.Apply ? "A-" : "L-") + expr.id)
 	    entry = env.debruijns[debruijn] = env.addrs[env.code.length] = env.names[name] = new Entry(name, expr, env.code.length)
 	}
 	expr.cachedEntry = entry
 	return entry
     }
 
-    function newContext(addr, parentCount, isApply) {
-	return [addr, parentCount == -1 ? null : parentCount == 0 ? cp : cp[CTX_PARENT], null, isApply ? -1 : null]
+    function newContext(name, addr, parentCount, isApply) {
+	return [name, addr, parentCount == -1 ? null : parentCount == 0 ? cp : cp[CTX_PARENT], null, isApply ? -1 : null]
     }
 
     function isApply(ctx) {return ctx[3] == -1}
 
     function jump() {
+	/*if (code[pc] != RETURN)*/ stack.push(pc, cp, fp)
 	cp = fp
 	pc = cp[CTX_ADDR]
     }
@@ -209,7 +212,7 @@ VM = (function(){
 	mp = null
 	cp = null
 	for (var i = 2; i < arguments.length; i++) {
-	    cp = newContext(null, 0, false)
+	    cp = newContext(null, null, 0, false)
 	    cp[CTX_BINDING] = arguments[i]
 	}
 	env = newEntries
@@ -221,10 +224,11 @@ VM = (function(){
 	    case VAR_START: vp = cp; break
 	    case NEXT_VAR: vp = vp[CTX_PARENT];	break
 	    case USE_CONTEXT: {
+		var name = code[pc++]
 		var addr = code[pc++]
 		var parent = code[pc++]
 		var apply = code[pc++]
-		fp = newContext(addr, parent, apply)
+		fp = newContext(name, addr, parent, apply)
 		break;
 	    }
 	    case USE_VAR:
@@ -233,7 +237,6 @@ VM = (function(){
 		if (isApply(fp)) {
 		    if (fp[CTX_RESULT]) fp = fp[CTX_RESULT]
 		    else {
-			if (code[pc] != RETURN) stack.push(pc, cp, fp)
 			jump()
 		    }
 		}
@@ -241,20 +244,19 @@ VM = (function(){
 	    case BIND_CONTEXT:
 		if (fp[CTX_RESULT]) {
 		    fp = fp[CTX_RESULT]
-		    pc += 3
+		    pc += 4
 		} else {
+		    var name = code[pc++]
 		    var addr = code[pc++]
 		    var parentCount = code[pc++]
 		    var apply = code[pc++]
-		    fp[CTX_BINDING] = newContext(addr, parentCount, apply)
-		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
+		    fp[CTX_BINDING] = newContext(name, addr, parentCount, apply)
 		    jump()
 		}
 		break
 	    case BIND_VAR:
 		if (fp[CTX_RESULT]) fp = fp[CTX_RESULT]
 		else {
-		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
 		    fp[CTX_BINDING] = vp[CTX_BINDING]
 		    jump()
 		}
@@ -472,8 +474,8 @@ VM = (function(){
 	    env.code.push.apply(env.code, bodyCode.instructions)
 	    env.code.push(RETURN)
 	}
-//	instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.cachedEntry.addr, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1, false)
-	instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.cachedEntry.addr, parents == null ? -1 : 0, false)
+//	instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.original.id, this.cachedEntry.addr, parents == null ? -1 : index(bodyCode.vars, this) ? 0 : 1, false)
+	instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.original.id, this.cachedEntry.addr, parents == null ? -1 : 0, false)
 	if (!(top || start)) instructions.push(MEMO)
 	return {instructions: instructions, vars: remove(bodyVars, this)}
     }
@@ -492,8 +494,8 @@ VM = (function(){
 		env.code.push.apply(env.code, aCode.instructions)
 		env.code.push(RETURN)
 	    }
-//	    instructions.push(BIND_CONTEXT, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1, true)
-	    instructions.push(BIND_CONTEXT, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : 0, true)
+//	    instructions.push(BIND_CONTEXT, this.arg.original.id, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1, true)
+	    instructions.push(BIND_CONTEXT, this.arg.original.id, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : 0, true)
 	    if (!top) instructions.push(MEMO)
 	} else {
 	    aCode = this.arg.gen(instructions, parents, top, gen, genAll)
@@ -505,7 +507,7 @@ VM = (function(){
 	var start = instructions.length == 0
 
 	if (this.free) {
-	    instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, -this.id, -1, true)
+	    instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.id, -this.id, -1, true)
 	    env.addrs[-this.id] = new Entry(this.dformat(), this, -this.id)
 	    //source[-this.id] = this
 	} else {
