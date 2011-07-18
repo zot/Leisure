@@ -399,13 +399,14 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 ident = \x . x
 1f = \1 f . f 1
 get = \f . f ident
-test6 = (\a b c . a (b c)) ident ident 1
-test7 = last (cons 1 (cons 2 nil))
+test7 = last \f . f 1 \g . g 2 nil
+test8 = last (cons 1 (cons 2 nil))
 test1 = (\f . f a) (\x . x)
 test2 = 1f 1 ident
 test3 = head (cons 1 nil)
 test4 = head (tail (cons 1 (cons 2 nil)))
 test5 = get (1f a)
+test6 = (\a b c . a (b c)) ident ident 1
 	</pre>
 </body>
 </html>

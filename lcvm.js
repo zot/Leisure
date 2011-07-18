@@ -200,7 +200,7 @@ VM = (function(){
 	return ctx
     }
 
-    function isApply(ctx) {return ctx[CTX_BINDING] == CTP_APPLY}
+    function isApply(ctx) {return ctx[CTX_BINDING] === CTP_APPLY}
 
     function jump() {
 	/*if (code[pc] != RETURN)*/ stack.push(pc, cp, fp)
@@ -214,7 +214,10 @@ VM = (function(){
 	pc = stack.pop()
     }
 
+    var steps
+
     function execute(label, newEntries) {
+	steps = 0
 	fp = null
 	mp = null
 	cp = null
@@ -227,7 +230,6 @@ VM = (function(){
 	stack = [-1, null, null]
 	pc = env.names[label].addr
 	while (pc > -1) {
-//var fps = fp && fp.toString()
 	    switch (code[pc++]) {
 	    case VAR_START: vp = cp; break
 	    case NEXT_VAR: vp = vp[CTX_PARENT];	break
@@ -279,6 +281,7 @@ VM = (function(){
 	    case EXT_PUSH_STRICT: break
 	    case EXT_CALL: break
 	    }
+	    steps++
 	}
 	return {mp: mp, fp: fp}
     }
@@ -402,7 +405,7 @@ VM = (function(){
 	    case BIND_CONTEXT:
 		if (fp[CTX_RESULT]) {
 		    fp = fp[CTX_RESULT]
-		    if (code[pc] == RETURN) popRegs()
+		    if (code[pc] === RETURN) popRegs()
 		    else pc++
 		} else {
 		    var addr = code[pc++]
@@ -416,9 +419,9 @@ VM = (function(){
 	    case BIND_VAR:
 		if (fp[CTX_RESULT]) {
 		    fp = fp[CTX_RESULT]
-		    if (code[pc] == RETURN) popRegs()
+		    if (code[pc] === RETURN) popRegs()
 		} else {
-		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
+		    if (code[pc] !== RETURN) stack.push(pc, cp, fp)
 		    fp[CTX_BINDING] = vp[CTX_BINDING]
 		    jump()
 		}
@@ -447,12 +450,12 @@ VM = (function(){
     function nthCond(list, cond, index) {return !cond(list.car) || index > 0 ? nthCond(list.cdr, cond, cond(list.car) ? index - 1 : index) : list.car}
 
     function remove(list, el) {
-	if (list == null) return null
+	if (list === null) return null
 	var result = remove(list.cdr, el)
-	return list.car == el? result : list.cdr == result ? list : cons(list.car, result)
+	return list.car === el? result : list.cdr === result ? list : cons(list.car, result)
     }
 
-    function length(list) {return list == null ? 0 : 1 + length(list.cdr)}
+    function length(list) {return list === null ? 0 : 1 + length(list.cdr)}
 
     function append(l1, l2) {return l1 ? cons(l1.car, append(l1.cdr, l2)) : l2}
     
@@ -464,20 +467,20 @@ VM = (function(){
     // this assumes expr is a debruijn expression
     function gen(expr, genAll, main, newEnv, parents) {
 	env = newEnv || {debruijns: {}, addrs: {}, names: {}, code: []}
-	var result = expr.gen([], parents, true, true, genAll)
+	var result = expr.gen([], parents || null, true, true, genAll)
 	env.addrs[env.code.length] = env.names[main || "main"] = new Entry(main || "main", expr, env.code.length)
 	env.code.push.apply(env.code, result.instructions)
 	env.code.push(RETURN)
 	return env
     }
 
-    function hasLambda(parents) {return parents == null ? false : parents.car instanceof LC.Lambda ? true : hasLamda(parents.cdr)}
+    function hasLambda(parents) {return parents === null ? false : parents.car instanceof LC.Lambda ? true : hasLamda(parents.cdr)}
 
     LC.Lambda.prototype.__proto__.gen = function(instructions, parents, top, gen, genAll) {
 	gen = genAll || (gen && !this.cachedEntry)
 	var bodyCode = this.body.gen([], cons(this, parents), true, gen, genAll)
 	var bodyVars = remove(bodyCode.vars, this)
-	var start = instructions.length == 0
+	var start = instructions.length === 0
 
 	if (gen) {
 	    addEntry(this)
@@ -491,7 +494,7 @@ VM = (function(){
     }
 
     LC.Apply.prototype.__proto__.gen = function(instructions, parents, top, gen, genAll) {
-	var start = instructions.length == 0
+	var start = instructions.length === 0
 	var funcCode = this.func.gen(instructions, parents, false, gen, genAll)
 	var myVars
 	var aCode
@@ -504,8 +507,8 @@ VM = (function(){
 		env.code.push.apply(env.code, aCode.instructions)
 		env.code.push(RETURN)
 	    }
-//	    instructions.push(BIND_CONTEXT, this.arg.original.id, this.arg.cachedEntry.addr, aCode.vars == null || parents == null ? -1 : index(aCode.vars, parents.car) ? 0 : 1, true)
-	    instructions.push(BIND_CONTEXT, this.arg.original.id, this.arg.cachedEntry.addr, aCode.vars == null || !hasLambda(parents) ? -1 : 0, CTP_APPLY)
+//	    instructions.push(BIND_CONTEXT, this.arg.original.id, this.arg.cachedEntry.addr, aCode.vars === null || parents === null ? -1 : index(aCode.vars, parents.car) ? 0 : 1, true)
+	    instructions.push(BIND_CONTEXT, this.arg.original.id, this.arg.cachedEntry.addr, aCode.vars === null || !hasLambda(parents) ? -1 : 0, CTP_APPLY)
 	    if (!top) instructions.push(MEMO)
 	} else {
 	    aCode = this.arg.gen(instructions, parents, top, gen, genAll)
@@ -514,7 +517,7 @@ VM = (function(){
     }
 
     LC.Variable.prototype.__proto__.gen = function(instructions, parents, top) {
-	var start = instructions.length == 0
+	var start = instructions.length === 0
 
 	if (this.free) {
 	    instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.id, -this.id, -1, CTP_FREE_VAR)
@@ -531,19 +534,35 @@ VM = (function(){
 	return {instructions: instructions, vars: this.free ? null : cons(nthCond(parents, function(el){return el instanceof LC.Lambda}, this.num), null)}
     }
 
-    function printContext(ctx, buf, inner) {
+    var ctxId = -1
+
+    function checkNew(ctx, buf, seen) {
+	if (!ctx.id) {
+	    ctx.id = ctxId--
+	} else if (seen[ctx.id]) {
+	    buf.push(' ... ')
+	    return false
+	}
+	seen[ctx.id] = true
+	return true
+    }
+
+    function printContext(ctx, buf, inner, seen) {
 	var orig = buf
 	var buf = buf || []
 
-	env.addrs[ctx[CTX_ADDR]].expr.printContext(ctx, buf, inner)
+	seen = seen || {}
+	if (checkNew(ctx, buf, seen)) {
+	    env.addrs[ctx[CTX_ADDR]].expr.printContext(ctx, buf, inner, seen)
+	}
 	return orig ? null : buf.join('')
     }
 
-    LC.Lambda.prototype.__proto__.printContext = function(ctx, buf, inner) {
+    LC.Lambda.prototype.__proto__.printContext = function(ctx, buf, inner, seen) {
 	if (inner) buf.push('(')
 	buf.push('\u03BB')
 	if (this.original) buf.push(this.original.lvar.name, ' . ')
-	this.body.printContext(this.body instanceof LC.Lambda ? fakeCtx(ctx, this.body) : ctx, buf, false)
+	this.body.printContext(this.body instanceof LC.Lambda ? fakeCtx(ctx, this.body) : ctx, buf, false, seen)
 	if (inner) buf.push(')')
     }
 
@@ -551,19 +570,19 @@ VM = (function(){
 	return [expr.id, 1000000, ctx, null, null]
     }
 
-    LC.Apply.prototype.__proto__.printContext = function(ctx, buf, inner) {
-	this.func.printContext(this.func instanceof LC.Lambda ? fakeCtx(ctx, this.func) : ctx, buf, true)
+    LC.Apply.prototype.__proto__.printContext = function(ctx, buf, inner, seen) {
+	this.func.printContext(this.func instanceof LC.Lambda ? fakeCtx(ctx, this.func) : ctx, buf, true, seen)
 	buf.push(' ')
 	if (this.arg instanceof LC.Apply) buf.push('(')
-	this.arg.printContext(this.arg instanceof LC.Lambda ? fakeCtx(ctx, this.arg) : ctx, buf, this.arg instanceof LC.Apply ? false : inner)
+	this.arg.printContext(this.arg instanceof LC.Lambda ? fakeCtx(ctx, this.arg) : ctx, buf, this.arg instanceof LC.Apply ? false : inner, seen)
 	if (this.arg instanceof LC.Apply) buf.push(')')
     }
 
     function getValue(ctx, n) {
-	return ctx == null ? null : ctx[CTX_BINDING] !== -1 && n == 0 ? ctx[CTX_BINDING] : getValue(ctx[CTX_PARENT], ctx[CTX_BINDING] !== -1 ? n - 1 : n)
+	return ctx === null ? null : ctx[CTX_BINDING] !== -1 && n === 0 ? ctx[CTX_BINDING] : getValue(ctx[CTX_PARENT], ctx[CTX_BINDING] !== -1 ? n - 1 : n)
     }
 
-    LC.Variable.prototype.__proto__.printContext = function(ctx, buf, inner) {
+    LC.Variable.prototype.__proto__.printContext = function(ctx, buf, inner, seen) {
 	if (this.free) {
 	    buf.push('[', this.name, ']')
 	} else {
@@ -574,7 +593,7 @@ VM = (function(){
 	    } else if (value[CTX_ADDR] < 0) {
 		buf.push('[', LC.lambdas[-value[CTX_ADDR]].name, ']')
 	    } else {
-		printContext(value, buf, inner)
+		printContext(value, buf, inner, seen)
 	    }
 	}
     }
