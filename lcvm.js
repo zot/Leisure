@@ -534,16 +534,12 @@ VM = (function(){
 	return {instructions: instructions, vars: this.free ? null : cons(nthCond(parents, function(el){return el instanceof LC.Lambda}, this.num), null)}
     }
 
-    var ctxId = -1
-
-    function checkNew(ctx, buf, seen) {
-	if (!ctx.id) {
-	    ctx.id = ctxId--
-	} else if (seen[ctx.id]) {
-	    buf.push(' ... ')
+    function checkNew(ctx, buf, seen, str) {
+	if (seen[ctx[CTX_NAME]]) {
+	    buf.push(str || '', ' ... ')
 	    return false
 	}
-	seen[ctx.id] = true
+	seen[ctx[CTX_NAME]] = true
 	return true
     }
 
@@ -558,16 +554,30 @@ VM = (function(){
 	return orig ? null : buf.join('')
     }
 
+    function fakeCtx(ctx, expr) {
+	return [expr.id, 1000000, ctx, null, null]
+    }
+
+    function printBody(lam, ctx, buf, seen) {
+	if (lam.body instanceof LC.Lambda) {
+	    var fc = fakeCtx(ctx, lam.body)
+
+	    if (checkNew(fc, buf, seen, ' . ')) {
+		buf.push(' ', lam.body.original ? lam.body.original.lvar.name : lam.body.lvar.name)
+		printBody(lam.body, fc, buf, seen)
+	    }
+	} else {
+	    buf.push(' . ')
+	    lam.body.printContext(ctx, buf, false, seen)
+	}
+    }
+
     LC.Lambda.prototype.__proto__.printContext = function(ctx, buf, inner, seen) {
 	if (inner) buf.push('(')
 	buf.push('\u03BB')
-	if (this.original) buf.push(this.original.lvar.name, ' . ')
-	this.body.printContext(this.body instanceof LC.Lambda ? fakeCtx(ctx, this.body) : ctx, buf, false, seen)
+	buf.push(this.original ? this.original.lvar.name : this.lvar.name)
+	printBody(this, ctx, buf, seen)
 	if (inner) buf.push(')')
-    }
-
-    function fakeCtx(ctx, expr) {
-	return [expr.id, 1000000, ctx, null, null]
     }
 
     LC.Apply.prototype.__proto__.printContext = function(ctx, buf, inner, seen) {
