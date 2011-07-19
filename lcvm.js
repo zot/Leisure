@@ -193,11 +193,18 @@ VM = (function(){
 	return entry
     }
 
-    function newContext(name, addr, parentCount, contextType) {
-	var ctx = [name, addr, parentCount == -1 ? null : parentCount == 0 ? cp : cp[CTX_PARENT], null, contextType]
-
+    function initContext(ctx) {
 	ctx.toString = function() {return printContext(this)}
 	return ctx
+    }
+
+    function newContextFromCode(code) {
+	var name = code[pc++]
+	var addr = code[pc++]
+	var parentCount = code[pc++]
+	var contextType = code[pc++]
+
+	return initContext([name, addr, parentCount == -1 ? null : parentCount == 0 ? cp : cp[CTX_PARENT], null, contextType])
     }
 
     function isApply(ctx) {return ctx[CTX_BINDING] === CTP_APPLY}
@@ -222,8 +229,7 @@ VM = (function(){
 	mp = null
 	cp = null
 	for (var i = 2; i < arguments.length; i++) {
-	    cp = newContext(null, null, 0, CTP_LAMBDA)
-	    cp[CTX_BINDING] = arguments[i]
+	    cp = initContext([null, null, null, arguments[i], CTP_LAMBDA])
 	}
 	env = newEntries
 	var code = env.code
@@ -234,11 +240,7 @@ VM = (function(){
 	    case VAR_START: vp = cp; break
 	    case NEXT_VAR: vp = vp[CTX_PARENT];	break
 	    case USE_CONTEXT: {
-		var name = code[pc++]
-		var addr = code[pc++]
-		var parent = code[pc++]
-		var apply = code[pc++]
-		fp = newContext(name, addr, parent, apply)
+		fp = newContextFromCode(code)
 		break;
 	    }
 	    case USE_VAR:
@@ -246,9 +248,7 @@ VM = (function(){
 		vp = null
 		if (isApply(fp)) {
 		    if (fp[CTX_RESULT]) fp = fp[CTX_RESULT]
-		    else {
-			jump()
-		    }
+		    else jump()
 		}
 		break
 	    case BIND_CONTEXT:
@@ -256,11 +256,7 @@ VM = (function(){
 		    fp = fp[CTX_RESULT]
 		    pc += 4
 		} else {
-		    var name = code[pc++]
-		    var addr = code[pc++]
-		    var parentCount = code[pc++]
-		    var apply = code[pc++]
-		    fp[CTX_BINDING] = newContext(name, addr, parentCount, apply)
+		    fp[CTX_BINDING] = newContextFromCode(code)
 		    jump()
 		}
 		break
@@ -544,14 +540,10 @@ VM = (function(){
     }
 
     function printContext(ctx, buf, inner, seen) {
-	var orig = buf
-	var buf = buf || []
+	var workBuf = buf || []
 
-	seen = seen || {}
-	if (checkNew(ctx, buf, seen)) {
-	    env.addrs[ctx[CTX_ADDR]].expr.printContext(ctx, buf, inner, seen)
-	}
-	return orig ? null : buf.join('')
+	env.addrs[ctx[CTX_ADDR]].expr.printContext(ctx, workBuf, inner, seen || {})
+	return buf ? null : workBuf.join('')
     }
 
     function fakeCtx(ctx, expr) {
@@ -581,11 +573,13 @@ VM = (function(){
     }
 
     LC.Apply.prototype.__proto__.printContext = function(ctx, buf, inner, seen) {
-	this.func.printContext(this.func instanceof LC.Lambda ? fakeCtx(ctx, this.func) : ctx, buf, true, seen)
-	buf.push(' ')
-	if (this.arg instanceof LC.Apply) buf.push('(')
-	this.arg.printContext(this.arg instanceof LC.Lambda ? fakeCtx(ctx, this.arg) : ctx, buf, this.arg instanceof LC.Apply ? false : inner, seen)
-	if (this.arg instanceof LC.Apply) buf.push(')')
+	if (checkNew(ctx, buf, seen)) {
+	    this.func.printContext(this.func instanceof LC.Lambda ? fakeCtx(ctx, this.func) : ctx, buf, true, seen)
+	    buf.push(' ')
+	    if (this.arg instanceof LC.Apply) buf.push('(')
+	    this.arg.printContext(this.arg instanceof LC.Lambda ? fakeCtx(ctx, this.arg) : ctx, buf, this.arg instanceof LC.Apply ? false : inner, seen)
+	    if (this.arg instanceof LC.Apply) buf.push(')')
+	}
     }
 
     function getValue(ctx, n) {
@@ -603,7 +597,7 @@ VM = (function(){
 	    } else if (value[CTX_ADDR] < 0) {
 		buf.push('[', LC.lambdas[-value[CTX_ADDR]].name, ']')
 	    } else {
-		printContext(value, buf, inner, seen)
+		value.printContext(value instanceof LC.Lambda ? fakeCtx(ctx, value) : ctx, buf, inner, seen)
 	    }
 	}
     }
