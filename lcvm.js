@@ -285,160 +285,177 @@ VM = (function(){
 
     var stackSize = 1024 * 256 // 256k elements of 3 pointers each
 
-    function toLLVM(entries) {
+    function storeContextFromCode(newCon, env, code, line, nextNum, pc) {
+	var name = code[pc++]
+	var addr = code[pc++]
+	var parentCount = code[pc++]
+	var contextType = code[pc++]
+
+	if (parentCount == -1) {
+	    line('store %ctx <{i32 ', name << 2, ', i32 ptrtoint (%func* @', env.addrs[addr].name, ' to i32), i32 0, i32 0, i32 0}>, %ctx* ', newCon)
+	} else if (parentCount == 0) {
+	    var cpn = '%cp' + nextNum
+
+	    line(cpn, 'int = ptrtoint %ctx* %cp to i32')
+	    line('store %ctx <{i32 ', name << 2, ', i32 ptrtoint (%func* @', env.addrs[addr].name, ' to i32), i32 ', cpn , 'int, i32 0, i32 0}>, %ctx* ', newCon)
+	} else {
+	    var parentCtx = '%pctx' + nextNum
+
+	    line(parentCtx, 'raw = getelementptr %ctx* %cp, i32 0, i32 ', CTX_PARENT, '; CTX_PARENT')
+	    line(parentCtx, ' = load %ctx* ', parentCtx, 'raw')
+	    line(parentCtx, 'int = ptrtoint %ctx* ', parentCtx, ' to i32')
+	    line('store %ctx <{i32 ', name << 2, ', i32 ptrtoint (%func* @', env.addrs[addr].name, ' to i32), i32 ', parentCtx , 'int, i32 0, i32 0}>, %ctx* ', newCon)
+	}
+	return [nextNum, pc]
+    }
+
+    function toLLVM(env) {
 	var out = [
-	    "%ctx = type {i32, %ctx*, %ctx, %ctx}\n",
-	    "%sf = type {i32, %ctx*, %ctx*}\n",
-	    "@addr = constant i32 0\n",
-	    "@parent = constant i32 1\n",
-	    "@result = constant i32 2\n",
-	    "@binding = constant i32 3\n",
-	    "@null = constant %ctx* 0\n",
-	    "@apply = constant %ctx* -1\n",
-	    "@cp = unnamed_addr alloca %ctx*\n",
-	    "@vp = unnamed_addr alloca %ctx*\n",
-	    "@fp = unnamed_addr alloca %ctx*\n",
-	    "@mp = unnamed_addr alloca %ctx*\n",
-	    "@sp = unnamed_addr alloca %sf*, i32 ", stackSize,"\n",
-
-//*** are these really reused?
-
-	    "\n; REUSED\n",
-	    "USE_VAR_CheckFP:\n",
-	    "; USE_VAR handling applies",
-//	    if (fp[CTX_RESULT]) {
-	    "%rfp = load %ctx** @fp\n",
-	    "%rrfp = load %ctx* %ffp\n",
-	    "%rres = extractvalue %ctx %rrfp, @result\n",
-	    "%has = icmp ctx* %rres, ctx* @null\n",
-	    "br i1 %has, %USE_VAR_Result, %USE_VAR_JSR\n",
-
-	    "\nUSE_VAR_Result:\n",
-//		fp = fp[CTX_RESULT]
-//		// duplication here -- maybe LLVM will save fp[CTX_RESULT] in a register?
-	    "%rfp = load %ctx** @fp\n",
-	    "%rrfp = load %ctx* %ffp\n",
-	    "%rres = extractvalue %ctx %rrfp, @result\n",
-	    "store %ctx* %rres, %ctx** @fp\n",
-	    "br %Start\n",
-
-	    "\nUSE_VAR_JSR:\n",
-	    "",
-
-	    "\nJSR:\n",
-//	    } else {
-//		stack.push(cp, fp)
-//		jump()
-//	    }
-	    "%sp = load %ctx** @sp\n",
-	    "%spPC = * %sp\n",
-	    "%",
-
-	    "\n; START\n",
-	    "Start:",
+	    [
+		"; ModuleID = 'test-lam.ll'",
+		'target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:32:32-n8:16:32"',
+		'target triple = "i386-pc-linux-gnu"\n',
+		'%ctx = type <{i32, i32, i32, i32, i32}>',
+		'%func = type i32 (%ctx*)\n',
+		'',
+	    ].join('\n')
 	]
-	var code = entries.code
+	var code = env.code
+	var started = false
+	var nextNum = 0
+	var curV = ''
+	var value = ''
+	var prevV = ''
+	var curT = ''
+	var curC = ''
+	var nl = '\n'
+	var tab = '  '
+	var line = function() {
+	    out.push(tab)
+	    out.push.apply(out, arguments)
+	    out.push(nl)
+	}
 
-	for (var pc = 0; pc < code.length; pc++) {
-	    var entry = entries.addrs[pc]
+	for (var pc = 0; pc < code.length; ) {
+	    var entry = env.addrs[pc]
 
 	    if (entry) {
-		out.push(entry.name, ": ")
+		if (started) out.push('}\n')
+		out.push('define i32 @', entry.name, "(%ctx* %cp) nounwind readnone {\n")
+		started = true
+		nextVar = 0
+		prevV = ''
+		curV = '%cp'
 	    }
 	    switch (code[pc++]) {
 	    case VAR_START:
 //		vp = cp;
-		out.push(
-		    "VAR_START\n",
-		    "%tmp_cp = load %ctx** @cp\n",
-		    "store %ctx* %tmp_cp, %ctx** @vp\n"
-		)
-		break;
+		nextNum++
+		prevV = curV
+		curV = "%var" + nextNum
+		line(curV, 'raw = getelementptr %ctx* ', prevV, ', i32 0, i32 ', CTX_BINDING, '; CTX_BINDING')
+		line(curV, 'int = load i32* ', curV, 'raw')
+		line(curV, ' = inttoptr i32 ', curV, 'int to %ctx*')
+		break
 	    case NEXT_VAR:
-//		vp = vp[CTX_PARENT]
-		out.push(
-		    "NEXT_VAR\n",
-		    "%tmp1 = load %ctx** @vp\n",
-		    "%tmp2 = extractvalue %ctx* %tmp1, @parent\n",
-		    "store %ctx* %tmp2, %ctx** @vp\n"
-		)
+//		vp = vp[CTX_PARENT];
+		break
+	    case USE_CONTEXT: {
+		//fp = newContextFromCode(code)
+		nextNum++
+		var newCon = '%con' + nextNum
+		line(newCon, 'raw = alloca i8, i32 add(i32 2, i32 mul (i32 5, i32 4))')
+		line(newCon, 'p = getelementptr i8* ', newCon, 'raw, i32 2')
+		line(newCon, ' = bitcast i8* ', newCon, 'p to %ctx*')
+		line(newCon, 'int = ptrtoint %ctx* ', newCon, ' to i32')
+		storeRes = storeContextFromCode(newCon, env, code, line, nextNum, pc)
+		nextNum = storeRes[0]
+		pc = storeRes[1]
 		break;
-	    case USE_CONTEXT:
-		var addr = entries.addrs[code[pc++]].name
-		var parent = code[pc++]
-		var isApply = code[pc++]
-//		fp = newContext(addr, parent, isApply)
-		out.push(
-		    "; USE_CONTEXT ", addr, ", ", parent, "\n",
-		    "%ct = call %ctx* @newContext(%", addr, ", ", parent, ", ", isApply ? "%apply" : "%null", ")\n",
-		    "store %ctx* %ct, %ctx** @fp\n"
-		)
-		break;
+	    }
 	    case USE_VAR:
 //		fp = vp[CTX_BINDING]
 //		vp = null
 //		if (isApply(fp)) {
-//		    if (fp[CTX_RESULT]) {
-//			fp = fp[CTX_RESULT]
-//		    } else {
-//			stack.push(pc, cp, fp)
-//			jump()
-//		    }
+//		    if (fp[CTX_RESULT]) fp = fp[CTX_RESULT]
+//		    else jump()
 //		}
-		out.push(
-		    "; USE_VAR\n",
-		    "%rvp = load %ctx** @vp\n",
-		    "%rrvp = load %ctx* %fvp\n",
-		    "%rbin = extractvalue %ctx %rrvp, @binding\n",
-		    "store %ctx* %rbin, %ctx** @fp\n",
-		    "store %ctx* 0, %ctx** @vp\n",
-		    "%rrbin = load %ctx* %rbin\n",
-		    "%nextBnd = extractvalue %ctx rrbin, @binding\n",
-		    "%isApply = icmp eq %ctx* %apply, %ctx* %nextBnd\n",
-		    "br i1 %isApply, %USE_VAR_CheckFP, %Start\n"
-		)
+		var type = "%type" + nextNum
+		var cond = "%cond" + nextNum
+		var check = 'checkCtxt' + nextNum
+		var isApply = 'isApply' + nextNum
+		var notApply = 'notApply' + nextNum
+		var useResult = 'useResult' + nextNum
+		var jump = 'jump' + nextNum
+		var result = '%result' + nextNum
+		var addr = '%addr' + nextNum
+		var res = '%res' + nextNum
+		var start = 'start' + nextNum
+		var done = 'done' + nextNum
+		var varB = curV + 'B'
+		var condB = cond + 'B'
+		var condC = cond + 'C'
+		var jumpRes = '%jumpRes' + nextNum
+		var res = '%res' + nextNum
+		line('br label %', start, '\n')
+		out.push(start, ':\n')
+		line(type, ' = and i32 ', curV, 'int, 3')
+		line(cond, ' = icmp eq i32 ', type, ', 2')
+		line('br i1 ', cond, ', label %', check, ', label %', done, '\n')
+		out.push(check, ':\n')
+		nextNum++
+		line(varB, 'raw = getelementptr %ctx* ', curV, ', i32 0, i32 ', CTX_BINDING, '; CTX_BINDING')
+		line(varB, 'int = load i32* ', varB, 'raw')
+		line(condB, ' = icmp eq i32 ', varB, 'int, ', CTP_APPLY << 2, '; CTP_APPLY')
+		line('br i1 ', condB, ', label %', isApply, ', label %', done, '\n')
+		out.push(isApply, ':\n')
+		nextNum++
+		line(result, 'raw = getelementptr %ctx* ', curV, ', i32 0, i32 ', CTX_RESULT, '; CTX_RESULT')
+		line(result, 'int = load i32* ', result, 'raw')
+		line(condC, ' = icmp ne i32 ', result, 'int, 0')
+		line('br i1 ', condC, ', label %', done, ', label %', jump, '\n')
+		out.push(jump, ':\n')
+		line(addr, 'raw = getelementptr %ctx* ', curV, ', i32 0, i32 ', CTX_ADDR, '; CTX_ADDR')
+		line(addr, 'int = load i32* ', addr, 'raw')
+		line(addr, ' = inttoptr i32 ', addr, 'int to %func*')
+		line(jumpRes, ' = tail call cc 10 %func* ', addr, '(%ctx* ', curV, ')')
+		line('br label %', done, '\n')
+		out.push(done, ':\n')
+		line(res, ' = phi i32 [', result, 'int, %', isApply, '], [', jumpRes, ', %', jump, '], [', curV, 'int, %', start, '], [', curV, 'int, %', check, ']')
+		line('ret i32 ', res)
 		break
 	    case BIND_CONTEXT:
-		if (fp[CTX_RESULT]) {
-		    fp = fp[CTX_RESULT]
-		    if (code[pc] === RETURN) popRegs()
-		    else pc++
-		} else {
-		    var addr = code[pc++]
-		    var size = code[pc++]
-		    var parentCount = code[pc++]
-		    if (code[pc] != RETURN) stack.push(pc, cp, fp)
-		    fp[CTX_BINDING] = newContext(size, addr, parentCount)
-		    jump()
-		}
+//		if (fp[CTX_RESULT]) {
+//		    fp = fp[CTX_RESULT]
+//		    pc += 4
+//		} else {
+//		    fp[CTX_BINDING] = newContextFromCode(code)
+//		    jump()
+//		}
 		break
 	    case BIND_VAR:
-		if (fp[CTX_RESULT]) {
-		    fp = fp[CTX_RESULT]
-		    if (code[pc] === RETURN) popRegs()
-		} else {
-		    if (code[pc] !== RETURN) stack.push(pc, cp, fp)
-		    fp[CTX_BINDING] = vp[CTX_BINDING]
-		    jump()
-		}
-		vp = null
+//		if (fp[CTX_RESULT]) fp = fp[CTX_RESULT]
+//		else {
+//		    fp[CTX_BINDING] = vp[CTX_BINDING]
+//		    jump()
+//		}
+//		vp = null
 		break
 	    case MEMO:
-		mp[CTX_RESULT] = fp
-		mp = null
+//		mp[CTX_RESULT] = fp
+//		mp = null
 		break
 	    case RETURN:
-		popRegs()
+//		popRegs();
 		break
 	    case EXT_PUSH_LAZY:
-		break
 	    case EXT_PUSH_STRICT:
-		break
 	    case EXT_CALL:
 		break
 	    }
 	}
-	return {mp: mp, fp: fp}
+	if (started) out.push('}\n')
+	return out.join('')
     }
 
     function contains(list, element) {return index(list, element) + 1}
@@ -464,7 +481,7 @@ VM = (function(){
     function gen(expr, genAll, main, newEnv, parents) {
 	env = newEnv || {debruijns: {}, addrs: {}, names: {}, code: []}
 	var result = expr.gen([], parents || null, true, true, genAll)
-	env.addrs[env.code.length] = env.names[main || "main"] = new Entry(main || "main", expr, env.code.length)
+	env.addrs[env.code.length] = env.names[main || "EXPR"] = new Entry(main || "EXPR", expr, env.code.length)
 	env.code.push.apply(env.code, result.instructions)
 	env.code.push(RETURN)
 	return env
@@ -530,6 +547,13 @@ VM = (function(){
 	return {instructions: instructions, vars: this.free ? null : cons(nthCond(parents, function(el){return el instanceof LC.Lambda}, this.num), null)}
     }
 
+    function printContext(ctx, buf, inner, seen) {
+	var workBuf = buf || []
+
+	env.addrs[ctx[CTX_ADDR]].expr.printContext(ctx, workBuf, inner, seen || {})
+	return buf ? null : workBuf.join('')
+    }
+
     function checkNew(ctx, buf, seen, str) {
 	if (seen[ctx[CTX_NAME]]) {
 	    buf.push(str || '', ' ... ')
@@ -539,28 +563,19 @@ VM = (function(){
 	return true
     }
 
-    function printContext(ctx, buf, inner, seen) {
-	var workBuf = buf || []
-
-	env.addrs[ctx[CTX_ADDR]].expr.printContext(ctx, workBuf, inner, seen || {})
-	return buf ? null : workBuf.join('')
-    }
-
     function fakeCtx(ctx, expr) {
-	return [expr.id, 1000000, ctx, null, null]
+	return initContext([expr.id, 1000000, ctx, null, null])
     }
 
     function printBody(lam, ctx, buf, seen) {
-	if (lam.body instanceof LC.Lambda) {
-	    var fc = fakeCtx(ctx, lam.body)
-
-	    if (checkNew(fc, buf, seen, ' . ')) {
+	if (checkNew(ctx, buf, seen, ' . ')) {
+	    if (lam.body instanceof LC.Lambda) {
 		buf.push(' ', lam.body.original ? lam.body.original.lvar.name : lam.body.lvar.name)
-		printBody(lam.body, fc, buf, seen)
+		printBody(lam.body, fakeCtx(ctx, lam.body), buf, seen)
+	    } else {
+		buf.push(' . ')
+		lam.body.printContext(ctx, buf, false, seen)
 	    }
-	} else {
-	    buf.push(' . ')
-	    lam.body.printContext(ctx, buf, false, seen)
 	}
     }
 
@@ -597,7 +612,7 @@ VM = (function(){
 	    } else if (value[CTX_ADDR] < 0) {
 		buf.push('[', LC.lambdas[-value[CTX_ADDR]].name, ']')
 	    } else {
-		value.printContext(value instanceof LC.Lambda ? fakeCtx(ctx, value) : ctx, buf, inner, seen)
+		printContext(value, value instanceof LC.Lambda ? fakeCtx(ctx, value) : ctx, buf, inner, seen)
 	    }
 	}
     }
@@ -605,6 +620,7 @@ VM = (function(){
     var obj = {
 	gen: gen,
 	execute: execute,
+	toLLVM: toLLVM,
 	printContext: printContext,
 	BIND_CONTEXT: BIND_CONTEXT,
 	BIND_VAR: BIND_VAR,
