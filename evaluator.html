@@ -101,6 +101,10 @@ function runFunc(index) {
 function compileLLVM(id) {
 	var comp = compilations[id]
 
+	comp.defs = []
+	for (i in LC.defs) {
+		comp.defs.push(LC.defs[i])
+	}
 	results.push("<b>LLVM</b><pre>", VM.toLLVM(comp), "</pre>")
 	displayResults(results.length && docMsg)
 }
@@ -174,11 +178,11 @@ function compileVM(expr) {
 		case VM.RETURN:
 			results.push("RETURN")
 			break
-		case VM.EXT_PUSH_LAZY:
-			results.push("EXT_PUSH_LAZY ", comp.code[i++])
+		case VM.EXT_LAZY_VAR:
+			results.push("EXT_LAZY_VAR")
 			break
-		case VM.EXT_PUSH_STRICT:
-			results.push("EXT_PUSH_STRICT ", comp.code[i++])
+		case VM.EXT_STRICT_VAR:
+			results.push("EXT_STRICT_VAR")
 			break
 		case VM.EXT_CALL:
 			results.push("EXT_CALL ", comp.code[i++])
@@ -309,8 +313,13 @@ function editResult(str) {
 	def.value = str
 	def.select()
 }
-function puts() {
-	alert.apply(null, arguments)
+function puts(x) {
+	alert('MESSAGE: ' + LC.pretty(x.lambda))
+	return x
+}
+function putsl(x) {
+	alert('MESSAGE: ' + LC.pretty(x().lambda))
+	return x()
 }
 </script>
 </head>
@@ -413,8 +422,10 @@ test5 = get (1f a)
 test6 = (\a b c . a (b c)) ident ident 1
 test7 = ident 4
 puts = \x . #strict puts x
+puts2 = \x . #lazy putsl x
+test10 = puts2 (ident 3)
 
-#declare puts i32 @puts(i8* nocapture) nounwind
+#define puts i32 @puts(i8* nocapture) nounwind
 	</pre>
 </body>
 </html>

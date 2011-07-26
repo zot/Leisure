@@ -23,6 +23,7 @@ misrepresented as being the original software.
 */
 
 var LC = (function() {
+var defs = {}
 var lcons
 var lnil
 var exprs = {}
@@ -93,7 +94,7 @@ function defineToken(name, def) {
 	}
 }
 function evalLine(line, noRebuild) {
-	if (line != "" && line[0] != '#') {
+	if (line != "" && (line.match(/^#(define|strict|lazy)/) || line[0] != '#')) {
 		var def = line.match(tokenDefPat)
 		var name = def ? def[1].trim() : null
 
@@ -141,7 +142,7 @@ function runFunc(index) {
 function runExpr(str) {
 	var expr = parse(str)
 
-	runCode(expr, constructEnv('function() {\nreturn ' + expr.ret([]).join("") + '\n}'))
+	expr && runCode(expr, constructEnv('function() {\nreturn ' + expr.ret([]).join("") + '\n}'))
 }
 function runCode(expr, code) {
 	var res
@@ -230,72 +231,83 @@ function createTokenPat() {
 			}
 			types[i] = o
 		}
-		types.push('[().\\\\]| +')
+		types.push('((#define|#strict|#lazy)(?=[ \t]))|[()#.\\\\]| +')
 		tokenPat = new RegExp(types.join('|'))
 	}
 }
 function tokenize(str) {
-	var pos = 0
-	var toks = []
+    var pos = 0
+    var toks = []
 
-	str = str.replace(/\u03BB/g, '\\')
-	createTokenPat()
-	while (str.length && (pos = str.search(tokenPat)) > -1) {
-		if (pos > 0) {
-			toks.push(str.substring(0, pos))
-		}
-		var tok = tokenPat.exec(str.substring(pos))[0]
-		if (tok.trim()) {
-			toks.push(tok)
-		}
-		str = str.substring(pos + tok.length)
+    str = str.replace(/\u03BB/g, '\\')
+    createTokenPat()
+    while (str.length && (pos = str.search(tokenPat)) > -1) {
+	if (pos > 0) {
+	    toks.push(str.substring(0, pos))
 	}
-	if (str.length) {
-		toks.push(str)
+	var tok = tokenPat.exec(str.substring(pos))[0]
+	if (tok.trim()) {
+	    if (tok[0] == '#' && !tok.match(/^#(define|strict|lazy)/)) break
+	    toks.push(tok)
 	}
-	return toks
+	str = str.substring(pos + tok.length)
+    }
+    if (str.length) {
+	toks.push(str)
+    }
+    return toks
 }
 function parse(str) {return tparse(tokenize(str).reverse(), {})}
+function addDef(toks) {
+    var t = toks.reverse()
+
+    defs[t[0]] = t.join(' ')
+}
 function tparse(toks, vars, expr) {
-	var cur
-	var oldVars = {}
+    var cur
+    var oldVars = {}
 
-	while (toks.length) {
-		var tok = toks.pop()
+    while (toks.length) {
+	var tok = toks.pop()
 
-		if (tok == ')') {
-			toks.push(tok)
-			return expr
-		}
-		if (tok == '\\') {
-			cur = tparseLambda(toks, vars)
-		} else {
-			var expectedClose = groupOpens[tok]
-			var skip = false
-
-			if (expectedClose) {
-				cur = tparse(toks, vars, tok != '(' ? tparseVariable(tok, vars, oldVars) : null)
-				var last = toks[toks.length - 1]
-				if (!toks.length || last != expectedClose) {
-					throw new Error('unbalanced group, expected "' + expectedClose + '", but got "' + last + '"')
-				}
-				toks.pop()
-				skip = true
-			}
-			if (!skip) {
-				cur = tparseVariable(tok, vars, oldVars)
-			}
-		}
-		expr = expr ? new Apply(expr, cur) : cur
-		if (groupCloses[tok]) {
-			toks.push(tok)
-			return expr
-		}
+	if (tok == ')') {
+	    toks.push(tok)
+	    return expr
 	}
-	for (i in oldVars) {
-		vars[i] = oldVars[i]
+	if (tok == '\\') {
+	    cur = tparseLambda(toks, vars)
+	} else if (tok == '#define') {
+	    addDef(toks)
+	    toks = []
+	} else if (tok == '#lazy' || tok == '#strict') {
+	    cur = tparseVariable(tok, vars, oldVars)
+	} else {
+	    var expectedClose = groupOpens[tok]
+	    var skip = false
+
+	    if (expectedClose) {
+		cur = tparse(toks, vars, tok != '(' ? tparseVariable(tok, vars, oldVars) : null)
+		var last = toks[toks.length - 1]
+		if (!toks.length || last != expectedClose) {
+		    throw new Error('unbalanced group, expected "' + expectedClose + '", but got "' + last + '"')
+		}
+		toks.pop()
+		skip = true
+	    }
+	    if (!skip) {
+		cur = tparseVariable(tok, vars, oldVars)
+	    }
 	}
-	return expr
+	expr = expr ? new Apply(expr, cur) : cur
+	if (groupCloses[tok]) {
+	    toks.push(tok)
+	    return expr
+	}
+    }
+    for (i in oldVars) {
+	vars[i] = oldVars[i]
+    }
+    return expr
 }
 function tparseVariable(tok, vars, oldVars) {
 	var cur = vars[tok]
@@ -518,6 +530,7 @@ Lambda.prototype.__proto__ = new Entity({
 	stream.push("\n})")
 	return stream
     },
+    isPrimitive: function(obj) {return false},
     apply: function(stream, prefix) {
 	stream.push("(")
 	this.ret(stream, prefix)
@@ -565,7 +578,6 @@ var charCodes = {
 	'*': '$g',
 	'&': '$h',
 	'^': '$i',
-	'#': '$j',
 	'!': '$k',
 	'`': '$l',
 	'~': '$m',
@@ -663,6 +675,7 @@ Variable.prototype.__proto__ = new Entity({
 	}
 	return stream
     },
+    isPrimitive: function(obj) {return this.name.match(/^#(lazy|strict)$/)},
     apply: function(stream, prefix) {return this.ret(stream, prefix)},
     format: function() {return this.name},
     propagateTransform: function(transformer) {return this},
@@ -690,11 +703,35 @@ Apply.prototype.__proto__ = new Entity({
     subdebruijn: function(vars, cache, skipCache) {return debcache(this.make(this.func.subdebruijn(vars, cache, skipCache), this.arg.subdebruijn(vars, cache, skipCache), skipCache && 'original'), cache, skipCache)},
     globalSub: function() {return this.make(this.func.globalSub(), this.arg.globalSub())},
     equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
+    isPrimitive: function(obj) {return this.func.isPrimitive()},
+    compilePrimitive: function(stream, prefix) {
+	if (this.func instanceof Variable) {
+	    stream.push(this.arg.name, "(")
+	    return this.func.name == '#strict'
+	}
+	var strict = this.func.compilePrimitive(stream, prefix)
+	if (!(this.func.func instanceof Variable)) {
+	    stream.push(", ")
+	}
+	if (strict) {
+	    this.arg.apply(stream, prefix)
+	} else {
+	    stream.push("memoize(function(){return ")
+	    this.arg.apply(stream, prefix)
+	    stream.push("\n})")
+	}
+	return strict
+    },
     apply: function(stream, prefix) {
-	this.func.apply(stream, prefix)
-	stream.push("(")
-	this.arg.pass(stream, prefix)
-	stream.push(")")
+	if (this.isPrimitive()) {
+	    this.compilePrimitive(stream, prefix)
+	    stream.push(")")
+	} else {
+	    this.func.apply(stream, prefix)
+	    stream.push("(")
+	    this.arg.pass(stream, prefix)
+	    stream.push(")")
+	}
 	return stream
     },
     ret: function(stream, prefix) {return this.apply(stream, prefix)},
@@ -735,6 +772,7 @@ var LC = {
     reduce: reduce,
     order: order,
     lambdas: lambdas,
+    defs: defs,
     historyExprs: [],
     pretty: pretty,
     output: function() {},

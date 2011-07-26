@@ -154,8 +154,8 @@ VM = (function(){
     var USE_VAR = 5
     var MEMO = 6
     var RETURN = 7
-    var EXT_PUSH_LAZY = 8
-    var EXT_PUSH_STRICT = 9
+    var EXT_LAZY_VAR = 8
+    var EXT_STRICT_VAR = 9
     var EXT_CALL = 10
 
     //CONTEXT ACCESS
@@ -228,6 +228,7 @@ VM = (function(){
 	fp = null
 	mp = null
 	cp = null
+	primArgs = []
 	for (var i = 2; i < arguments.length; i++) {
 	    cp = initContext([null, null, null, arguments[i], CTP_LAMBDA])
 	}
@@ -273,9 +274,22 @@ VM = (function(){
 		mp = null
 		break
 	    case RETURN: popRegs(); break
-	    case EXT_PUSH_LAZY:	break
-	    case EXT_PUSH_STRICT: break
-	    case EXT_CALL: break
+	    case EXT_LAZY_VAR:
+		primArgs.push(vp[CTX_BINDING])
+		vp = null
+		break
+	    case EXT_STRICT_VAR:
+		fp = vp[CTX_BINDING]
+		vp = null
+		if (isApply(fp)) {
+		    if (fp[CTX_RESULT]) fp = fp[CTX_RESULT]
+		    else jump()
+		}
+		primArgs.push(fp)
+		break
+	    case EXT_CALL:
+		extFuncs[code[pc++]].apply(null, primArgs)
+		break
 	    }
 	    steps++
 	}
@@ -310,6 +324,8 @@ VM = (function(){
     }
 
     function toLLVM(env) {
+	var nl = '\n'
+	var tab = '  '
 	var out = [
 	    [
 		"; ModuleID = 'test-lam.ll'",
@@ -318,7 +334,9 @@ VM = (function(){
 		'%ctx = type <{i32, i32, i32, i32, i32}>',
 		'%func = type i32 (%ctx*)\n',
 		'',
-	    ].join('\n')
+	    ].join('\n'),
+	    env.defs.join('\n'),
+	    nl, nl,
 	]
 	var code = env.code
 	var started = false
@@ -328,8 +346,6 @@ VM = (function(){
 	var prevV = ''
 	var curT = ''
 	var curC = ''
-	var nl = '\n'
-	var tab = '  '
 	var line = function() {
 	    out.push(tab)
 	    out.push.apply(out, arguments)
@@ -448,8 +464,8 @@ VM = (function(){
 	    case RETURN:
 //		popRegs();
 		break
-	    case EXT_PUSH_LAZY:
-	    case EXT_PUSH_STRICT:
+	    case EXT_LAZY_VAR:
+	    case EXT_STRICT_VAR:
 	    case EXT_CALL:
 		break
 	    }
@@ -505,8 +521,42 @@ VM = (function(){
 	if (!(top || start)) instructions.push(MEMO)
 	return {instructions: instructions, vars: remove(bodyVars, this)}
     }
+    LC.Lambda.prototype.__proto__.primBind = function(lazy, instructions, parents, top, gen, genAll) {
+	instructions.push(lazy ? EXT_LAZY_CONTEXT : EXT_STRICT_CONTEXT, this.original.id, this.cachedEntry.addr, hasLambda(parents) ? 0 : -1, CTP_APPLY)
+	return {instructions: instructions, vars: null}
+    }
 
+    LC.Apply.prototype.__proto__.primBinds = function(lazy, instructions, parents, top, gen, genAll) {
+	if (!(this.func instanceof LC.Variable)) {
+	    var v1 = this.func.primBinds(lazy, instructions, parents, top, gen, genAll).vars
+	    var v2 = this.arg.primBind(lazy, instructions, parents, top, gen, genAll).vars
+
+	    return {instructions: instructions, vars: merge(v1, v2)}
+	}
+	return {instructions: instructions, vars: null}
+    }
+    LC.Apply.prototype.__proto__.primBind = function(lazy, instructions, parents, top, gen, genAll) {
+	instructions.push(lazy ? EXT_LAZY_CONTEXT : EXT_STRICT_CONTEXT, this.original.id, this.cachedEntry.addr, 0, CTP_APPLY)
+	return {instructions: instructions, vars: null}
+    }
+    LC.Apply.prototype.__proto__.primCall = function(instructions, parents, top, gen, genAll) {
+	if (this.func instanceof LC.Variable) {
+	    instructions.push(EXT_CALL, this.arg.name)
+	} else {
+	    this.func.primCall(instructions, parents, top, gen, genAll)
+	}
+    }
+    LC.Apply.prototype.__proto__.genPrimitive = function(instructions, parents, top, gen, genAll) {
+	var lazy = this.isPrimitive()[0] == '#lazy'
+	var vars = this.primBinds(lazy, instructions, parents, top, gen, genAll).vars
+
+	this.primCall(instructions, parents, top, gen, genAll)
+	return {instructions: instructions, vars: vars}
+    }
     LC.Apply.prototype.__proto__.gen = function(instructions, parents, top, gen, genAll) {
+	if (this.isPrimitive()) {
+	    return this.genPrimitive(instructions, parents, top, gen, genAll)
+	}
 	var start = instructions.length === 0
 	var funcCode = this.func.gen(instructions, parents, false, gen, genAll)
 	var myVars
@@ -529,6 +579,14 @@ VM = (function(){
 	return {instructions: instructions, vars: merge(funcCode.vars, aCode.vars)}
     }
 
+    LC.Variable.prototype.__proto__.primBind = function(lazy, instructions, parents, top) {
+	instructions.push(VAR_START)
+	for (var i = 0; i < this.num; i++) {
+	    instructions.push(NEXT_VAR)
+	}
+	instructions.push(lazy ? EXT_LAZY_VAR : EXT_STRICT_VAR)
+	return {instructions: instructions, vars: this.free ? null : cons(nthCond(parents, function(el){return el instanceof LC.Lambda}, this.num), null)}
+    }
     LC.Variable.prototype.__proto__.gen = function(instructions, parents, top) {
 	var start = instructions.length === 0
 
@@ -628,8 +686,8 @@ VM = (function(){
 	USE_VAR: USE_VAR,
 	MEMO: MEMO,
 	RETURN: RETURN,
-	EXT_PUSH_LAZY: EXT_PUSH_LAZY,
-	EXT_PUSH_STRICT: EXT_PUSH_STRICT,
+	EXT_LAZY_VAR: EXT_LAZY_VAR,
+	EXT_STRICT_VAR: EXT_STRICT_VAR,
 	EXT_CALL: EXT_CALL,
 	VAR_START: VAR_START,
 	NEXT_VAR: NEXT_VAR,
