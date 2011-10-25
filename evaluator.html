@@ -340,6 +340,7 @@ function plus() {
 
 	for (var i = 0; i < arguments.length; i++) a.push(arguments[i].value)
 	alert(a.join(', '))
+	return arguments[0]
 }
 VM.addFunc(puts)
 VM.addFunc(putsl)
