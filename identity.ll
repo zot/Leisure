@@ -30,20 +30,10 @@ target triple = "i386-pc-linux-gnu"
 %ctx = type <{i32, i32, i32, i32, i32}>
 %func = type i32 (%ctx*)
 
-@.str = private constant [12 x i8] c"result: %d\0A\00", align 1
-@.showCon = private constant [9 x i8] c"con: %d\0A\00", align 1
-@.showVal = private constant [9 x i8] c"val: %d\0A\00", align 1
-; debugging strings
-@d0 = private constant [4 x i8] c"  0\00", align 1
-@d1 = private constant [4 x i8] c"  1\00", align 1
-@d2 = private constant [4 x i8] c"  2\00", align 1
-@d3 = private constant [4 x i8] c"  3\00", align 1
-@d4 = private constant [4 x i8] c"  4\00", align 1
-@d5 = private constant [4 x i8] c"  5\00", align 1
 ; example
 ;  tail call i32 (i8*)* @puts(i8* noalias getelementptr inbounds ([4 x i8]* @d0, i32 0, i32 0)) nounwind
 
-define i32 @ident(%ctx* %cp) nounwind readnone {
+define internal cc 10 i32 @ident(%ctx* %cp) nounwind readnone {
   %var1raw = getelementptr %ctx* %cp, i32 0, i32 4; CTX_BINDING
   %var1int = load i32* %var1raw
   %var1 = inttoptr i32 %var1int to %ctx*
@@ -78,24 +68,42 @@ done1:
   ret i32 %res1
 }
 
-define i32 @main() nounwind {
-entry:
-  %con4raw = alloca i8, i32 add (i32 2, i32 mul (i32 5, i32 4))
-  %con4p = getelementptr i8* %con4raw, i32 2
-  %con4 = bitcast i8* %con4p to %ctx*
-  %con4int = ptrtoint %ctx* %con4 to i32
-  store %ctx <{i32 0, i32 ptrtoint (%func* @ident to i32), i32 0, i32 0, i32 0}>, %ctx* %con4
-  %val1Raw = alloca i8, i32 add (i32 2, i32 mul (i32 5, i32 4))
-  %val1P = getelementptr i8* %val1Raw, i32 2
-  %val1 = ptrtoint i8* %val1P to i32
-  %binding = getelementptr %ctx* %con4, i32 0, i32 4; CTX_BINDING
-  store i32 %val1, i32* %binding
-  %res = tail call %func* @ident(%ctx* %con4)
-  tail call i32 (i8*, ...)* @printf(i8* noalias getelementptr inbounds ([9 x i8]* @.showVal, i32 0, i32 0), i32 %val1) nounwind
-  tail call i32 (i8*, ...)* @printf(i8* noalias getelementptr inbounds ([9 x i8]* @.showCon, i32 0, i32 0), i32 %con4int) nounwind
-  tail call i32 (i8*, ...)* @printf(i8* noalias getelementptr inbounds ([12 x i8]* @.str, i32 0, i32 0), i32 %res) nounwind
-  ret i32 0
+; define cc 10 i32 @c_ident(%ctx* %cp) nounwind {
+define ccc i32 @c_ident(%ctx* %cp) nounwind {
+   %res = tail call cc 10 %func* @ident(%ctx* %cp)
+   ret i32 %res
 }
+
+; define cc 10 i32 @main() nounwind {
+; entry:
+;   %con4raw = alloca i8, i32 add (i32 2, i32 mul (i32 5, i32 4))
+;   %con4p = getelementptr i8* %con4raw, i32 2
+;   %con4 = bitcast i8* %con4p to %ctx*
+;   %con4int = ptrtoint %ctx* %con4 to i32
+;   store %ctx <{i32 0, i32 ptrtoint (%func* @ident to i32), i32 0, i32 0, i32 0}>, %ctx* %con4
+;   %val1Raw = alloca i8, i32 add (i32 2, i32 mul (i32 5, i32 4))
+;   %val1P = getelementptr i8* %val1Raw, i32 2
+;   %val1 = ptrtoint i8* %val1P to i32
+;   %binding = getelementptr %ctx* %con4, i32 0, i32 4; CTX_BINDING
+;   store i32 %val1, i32* %binding
+;   call i32 (i8*, ...)* @printf(i8* noalias getelementptr inbounds ([5 x i8]* @d1, i32 0, i32 0)) nounwind
+;   call i32 (i8*, ...)* @printf(i8* noalias getelementptr inbounds ([9 x i8]* @.showVal, i32 0, i32 0), i32 %val1) nounwind
+;   call i32 (i8*, ...)* @printf(i8* noalias getelementptr inbounds ([9 x i8]* @.showCon, i32 0, i32 0), i32 %con4int) nounwind
+; ;  call i32 (i8*, ...)* @printf(i8* noalias getelementptr inbounds ([12 x i8]* @.str, i32 0, i32 0), i32 %res) nounwind
+;   %res = tail call cc 10 %func* @ident(%ctx* %con4)
+;   ret i32 %res
+; }
 
 declare i32 @puts(i8* nocapture) nounwind
 declare i32 @printf(i8* nocapture, ...) nounwind
+
+@.str = linkonce constant [12 x i8] c"result: %d\0A\00", align 1
+@.showCon = linkonce constant [9 x i8] c"con: %d\0A\00", align 1
+@.showVal = linkonce constant [9 x i8] c"val: %d\0A\00", align 1
+; debugging strings
+@d0 = linkonce constant [5 x i8] c"  0\0A\00", align 1
+@d1 = linkonce constant [5 x i8] c"  1\0A\00", align 1
+@d2 = linkonce constant [5 x i8] c"  2\0A\00", align 1
+@d3 = linkonce constant [5 x i8] c"  3\0A\00", align 1
+@d4 = linkonce constant [5 x i8] c"  4\0A\00", align 1
+@d5 = linkonce constant [5 x i8] c"  5\0A\00", align 1

@@ -157,6 +157,8 @@ VM = (function(){
     var EXT_LAZY_VAR = 8
     var EXT_STRICT_VAR = 9
     var EXT_CALL = 10
+    var USE_PRIM = 11
+    var BIND_PRIM = 12
 
     //CONTEXT ACCESS
     var CTX_NAME = 0	// code address
@@ -173,6 +175,9 @@ VM = (function(){
     var Cons = LC.Cons
     var cons = LC.cons
     var index = LC.index
+
+    // external functions
+    var extFuncs = {}
 
     function Entry(name, expr, addr) {
 	this.name = name
@@ -242,8 +247,11 @@ VM = (function(){
 	    case NEXT_VAR: vp = vp[CTX_PARENT];	break
 	    case USE_CONTEXT: {
 		fp = newContextFromCode(code)
-		break;
+		break
 	    }
+	    case USE_PRIM:
+		fp = code[pc++]
+		break
 	    case USE_VAR:
 		fp = vp[CTX_BINDING]
 		vp = null
@@ -268,6 +276,10 @@ VM = (function(){
 		    jump()
 		}
 		vp = null
+		break
+	    case BIND_PRIM:
+		fp[CTX_BINDING] = code[pc++]
+		jump()
 		break
 	    case MEMO:
 		mp[CTX_RESULT] = fp
@@ -351,6 +363,9 @@ VM = (function(){
 	    out.push.apply(out, arguments)
 	    out.push(nl)
 	}
+	var nextString = 0
+	var strings = {}
+	var primArgs = []
 
 	for (var pc = 0; pc < code.length; ) {
 	    var entry = env.addrs[pc]
@@ -438,7 +453,25 @@ VM = (function(){
 		line('br label %', done, '\n')
 		out.push(done, ':\n')
 		line(res, ' = phi i32 [', result, 'int, %', isApply, '], [', jumpRes, ', %', jump, '], [', curV, 'int, %', start, '], [', curV, 'int, %', check, ']')
-		line('ret i32 ', res)
+		currentResult = res
+		break
+	    case USE_PRIM:
+		var prim = code[pc++]
+
+		currentResult = "%res" + nextNum
+		if (typeof prim == 'string') {
+		    var id = strings[prim]
+
+		    if (!id) {
+			id = "@.s" + (nextString++)
+			strings[prim] = id
+		    }
+		    primArgs.push(id)
+		    line(currentResult, ' = ptrtoint [', prim.length, ' x i8]* ', id, ' to i32')
+		} else {
+		    line(currentResult, ' = i32 ', prim)
+		}
+		nextNum++
 		break
 	    case BIND_CONTEXT:
 //		if (fp[CTX_RESULT]) {
@@ -457,12 +490,22 @@ VM = (function(){
 //		}
 //		vp = null
 		break
+	    case BIND_PRIM:
+		break
 	    case MEMO:
 //		mp[CTX_RESULT] = fp
 //		mp = null
 		break
 	    case RETURN:
 //		popRegs();
+//////////////////////////////
+// ******** no currentResult
+//toLLVM() at lcvm.js:501
+//compileLLVM() at evaluator.html:108
+//(anonymous function)() at evaluator.html:1
+//onclick() at evaluator.html:2
+//////////////////////////////
+		line('ret i32 ', currentResult)
 		break
 	    case EXT_LAZY_VAR:
 	    case EXT_STRICT_VAR:
@@ -471,6 +514,9 @@ VM = (function(){
 	    }
 	}
 	if (started) out.push('}\n')
+	for (var i in strings) {
+	    out.push(strings[i], ' = private constant [', i.length, ' xi8] c"', i, '\00", align 1\n')
+	}
 	return out.join('')
     }
 
@@ -587,11 +633,17 @@ VM = (function(){
 	instructions.push(lazy ? EXT_LAZY_VAR : EXT_STRICT_VAR)
 	return {instructions: instructions, vars: this.free ? null : cons(nthCond(parents, function(el){return el instanceof LC.Lambda}, this.num), null)}
     }
+    function primFor(name) {
+	if (name.match(/^".*"$/) || name.match(/^'.*'$/)) return name.substring(1, name.length - 1)
+	if (name.match(/^[0-9]+(.[[0-9]+)?(e[-+]?[0-9]+)?$/)) return Number(name)
+	return "UNKNOWN(" + name + ")"
+    }
     LC.Variable.prototype.__proto__.gen = function(instructions, parents, top) {
 	var start = instructions.length === 0
 
 	if (this.free) {
-	    instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.id, -this.id, -1, CTP_FREE_VAR)
+//	    instructions.push(start ? USE_CONTEXT : BIND_CONTEXT, this.id, -this.id, -1, CTP_FREE_VAR)
+	    instructions.push(start ? USE_PRIM : BIND_PRIM, primFor(this.name))
 	    env.addrs[-this.id] = new Entry(this.dformat(), this, -this.id)
 	    //source[-this.id] = this
 	} else {
@@ -675,6 +727,12 @@ VM = (function(){
 	}
     }
 
+    function addFunc(func) {extFuncs[func.name] = func}
+
+    function getExpr(context) {return env.addrs[context[CTX_ADDR]].expr}
+
+    function getEntry(n) {return env.addrs[n]}
+
     var obj = {
 	gen: gen,
 	execute: execute,
@@ -689,12 +747,17 @@ VM = (function(){
 	EXT_LAZY_VAR: EXT_LAZY_VAR,
 	EXT_STRICT_VAR: EXT_STRICT_VAR,
 	EXT_CALL: EXT_CALL,
+	USE_PRIM: USE_PRIM,
+	BIND_PRIM: BIND_PRIM,
 	VAR_START: VAR_START,
 	NEXT_VAR: NEXT_VAR,
 	CTX_ADDR: CTX_ADDR,
 	CTX_PARENT: CTX_PARENT,
 	CTX_RESULT: CTX_RESULT,
 	CTX_BINDING: CTX_BINDING,
+	addFunc: addFunc,
+	getExpr: getExpr,
+	getEntry: getEntry,
     }
 
     return obj

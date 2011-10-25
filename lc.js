@@ -40,6 +40,7 @@ var groupCloses = {')': 1}
 var tokenPat = null
 var specials = '[]().*+?|'
 var tokenDefPat = /^ *([^ ]+) *(=[.)]=|=\([^=]+=|=)(?:[^=])/
+var numberPat = /^[0-9]+(\.[0-9]+)?|([0-9]+)?\.[0-9]+/
 var warnFreeVariable = []
 var line = 0
 
@@ -232,7 +233,7 @@ function createTokenPat() {
 			types[i] = o
 		}
 		types.push('((#define|#strict|#lazy)(?=[ \t]))|[()#.\\\\]| +')
-		tokenPat = new RegExp(types.join('|'))
+		tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'))
 	}
 }
 function tokenize(str) {
@@ -497,12 +498,14 @@ function memoize(func) {
     }
 
     out.lambda = func.lambda
+    out.value = func.value
     return out
 }
 
-function setLambda(func, id) {
-	func.lambda = lambdas[id]
-	return func
+function setLambda(func, id, value) {
+    func.lambda = lambdas[id]
+    func.value = value
+    return func
 }
 
 function Lambda(arg, body, id) {
@@ -530,7 +533,7 @@ Lambda.prototype.__proto__ = new Entity({
 	stream.push("\n})")
 	return stream
     },
-    isPrimitive: function(obj) {return false},
+    isPrimitive: function() {return false},
     apply: function(stream, prefix) {
 	stream.push("(")
 	this.ret(stream, prefix)
@@ -641,6 +644,26 @@ function Variable(txt, free, base, num) {
 	if (!lambdas[this.id]) lambdas[this.id] = this
 }
 var vcount = 0
+function esc(n) {
+    var s = null
+
+    for (var i = 0; i < n.length; i++) {
+	switch (n[i]) {
+	case '"':
+	case "'":
+	    if (s == null) s = n.substring(0, i)
+	    s += '\\' + n[i]
+	    break;
+	default:
+	    if (s != null) s += n[i]
+	    break;
+	}
+    }
+    return s || n
+}
+function value(n) {
+    return n.match(numberPat) ? Number(n) : '"' + esc(n) + '"';
+}
 Variable.prototype.__proto__ = new Entity({
     dformat: function() {return this.free ? "[" + this.name + "]" : this.name},
     subdebruijn: function(vars, cache, skipCache) {
@@ -655,7 +678,7 @@ Variable.prototype.__proto__ = new Entity({
     toString: function() {return "Variable(" + this.name + ")"},
     valueFunc: function() {
 	warnFreeVariable.push(this.name)
-	return "setLambda(function() {throw new Error('Line " + line + " attempts to use free variable, \"" + this.name + "\" as a function.')}, " + this.id + ")"
+	return "setLambda(function() {throw new Error('Line " + line + " attempts to use free variable, \"" + esc(this.name) + "\" as a function.')}, " + this.id + ", " + value(this.name) + ")"
     },
     ret: function(stream, prefix) {
 	if (this.isBound()) {
@@ -675,7 +698,7 @@ Variable.prototype.__proto__ = new Entity({
 	}
 	return stream
     },
-    isPrimitive: function(obj) {return this.name.match(/^#(lazy|strict)$/)},
+    isPrimitive: function() {return String(this.name).match(/^#(lazy|strict)$/)},
     apply: function(stream, prefix) {return this.ret(stream, prefix)},
     format: function() {return this.name},
     propagateTransform: function(transformer) {return this},
@@ -703,7 +726,7 @@ Apply.prototype.__proto__ = new Entity({
     subdebruijn: function(vars, cache, skipCache) {return debcache(this.make(this.func.subdebruijn(vars, cache, skipCache), this.arg.subdebruijn(vars, cache, skipCache), skipCache && 'original'), cache, skipCache)},
     globalSub: function() {return this.make(this.func.globalSub(), this.arg.globalSub())},
     equals: function(obj) {return obj instanceof Apply && this.func.equals(obj.func) && this.arg.equals(obj.arg)},
-    isPrimitive: function(obj) {return this.func.isPrimitive()},
+    isPrimitive: function() {return this.func.isPrimitive()},
     compilePrimitive: function(stream, prefix) {
 	if (this.func instanceof Variable) {
 	    stream.push(this.arg.name, "(")

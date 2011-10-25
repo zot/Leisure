@@ -111,14 +111,16 @@ function compileLLVM(id) {
 function runVm(id) {
 	var comp = compilations[id]
 	var result = VM.execute("EXPR", comp)
-	var compExpr = comp.addrs[result.fp[VM.CTX_ADDR]].expr
-	var rexpr = compExpr instanceof LC.Variable ? compExpr : LC.hashed[compExpr.dformat()]
-
 	results.push("<b>Execute:</b> ", comp.expr.format(false, true), "&nbsp;&nbsp;&nbsp;&nbsp;&rArr;&nbsp;&nbsp;&nbsp;&nbsp;", comp.expr.globalSub().debruijn().dformat(), "<br>")
 	if (!result.mp) {
-		results.push("<b>Result:</b>", result.fp, "<br><br><span>.</span>")
+		results.push("<b>Result:</b>", (typeof result.fp == 'object' ? "" : " [primitive] "), result.fp, "<br><br><span>.</span>")
 	} else {
-		results.push("<b><i>Attempt to use free variable ", rexpr, " as a function</i></b>")
+		if (typeof result.fp == 'object') {
+			var compExpr = comp.addrs[result.fp[VM.CTX_ADDR]].expr
+			var rexpr = compExpr instanceof LC.Variable ? compExpr : LC.hashed[compExpr.dformat()]
+
+			results.push("<b><i>Attempt to use free variable ", rexpr, " as a function</i></b>")
+		}
 	}
 	displayResults(results.length && docMsg)
 }
@@ -186,6 +188,12 @@ function compileVM(expr) {
 			break
 		case VM.EXT_CALL:
 			results.push("EXT_CALL ", comp.code[i++])
+			break
+		case VM.USE_PRIM:
+			results.push("USE_PRIM ", typeof comp.code[i] == 'string' ? "(String) " : "(int) ", comp.code[i++])
+			break
+		case VM.BIND_PRIM:
+			results.push("BIND_PRIM ", typeof comp.code[i] == 'string' ? "(String) " : "(int) ", comp.code[i++])
 			break
 		}
 		results.push("</td></tr>")
@@ -314,13 +322,27 @@ function editResult(str) {
 	def.select()
 }
 function puts(x) {
+	if (x instanceof Array) x = VM.getExpr(x)
 	alert('MESSAGE: ' + LC.pretty(x.lambda))
 	return x
 }
 function putsl(x) {
-	alert('MESSAGE: ' + LC.pretty(x().lambda))
-	return x()
+	if (x instanceof Array) {
+		alert('MESSAGE: ' + LC.pretty(VM.getExpr(x).original))
+		return x
+	} else {
+		alert('MESSAGE: ' + LC.pretty(x().lambda))
+		return x()
+	}
 }
+function plus() {
+	var a = []
+
+	for (var i = 0; i < arguments.length; i++) a.push(arguments[i].value)
+	alert(a.join(', '))
+}
+VM.addFunc(puts)
+VM.addFunc(putsl)
 </script>
 </head>
 <body onload="loaded()" style="margin: 0; position: relative; top: 0; bottom: 0; right: 0; left: 0; overflow: auto; border: 0">
@@ -372,7 +394,10 @@ false = \x y . y
 
 # Y combinator
 Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+
 rec = \f . f (Y f)
+
+# rec = \f . f f
 
 # lists
 # using false as "nil" in lists, so you use a list like this:
@@ -426,6 +451,7 @@ puts2 = \x . #lazy putsl x
 test10 = puts2 (ident 3)
 
 #define puts i32 @puts(i8* nocapture) nounwind
+#define putsl i32 @putsl(i8* nocapture) nounwind
 	</pre>
 </body>
 </html>
