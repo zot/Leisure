@@ -661,6 +661,7 @@ function esc(n) {
     }
     return s || n
 }
+// supports number and string literals
 function value(n) {
     return n.match(numberPat) ? Number(n) : '"' + esc(n) + '"';
 }
@@ -678,7 +679,9 @@ Variable.prototype.__proto__ = new Entity({
     toString: function() {return "Variable(" + this.name + ")"},
     valueFunc: function() {
 	warnFreeVariable.push(this.name)
-	return "setLambda(function() {throw new Error('Line " + line + " attempts to use free variable, \"" + esc(this.name) + "\" as a function.')}, " + this.id + ", " + value(this.name) + ")"
+//	this was for when unbound value were represented by functions
+//	return "setLambda(function() {throw new Error('Line " + line + " attempts to use free variable, \"" + esc(this.name) + "\" as a function.')}, " + this.id + ", " + value(this.name) + ")"
+	return value(this.name)
     },
     ret: function(stream, prefix) {
 	if (this.isBound()) {

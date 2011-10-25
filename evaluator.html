@@ -336,11 +336,12 @@ function putsl(x) {
 	}
 }
 function plus() {
-	var a = []
+	var tot = 0
 
-	for (var i = 0; i < arguments.length; i++) a.push(arguments[i].value)
-	alert(a.join(', '))
-	return arguments[0]
+//	this was for when unbound value were represented by functions
+//	for (var i = 0; i < arguments.length; i++) tot += arguments[i].value
+	for (var i = 0; i < arguments.length; i++) tot += arguments[i]
+	return tot
 }
 VM.addFunc(puts)
 VM.addFunc(putsl)
