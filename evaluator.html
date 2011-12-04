@@ -80,6 +80,8 @@ I use these in the example definitions to create an array-like syntax for lists,
 If you make an IO monad, a "Step" button will appear that you can use to step through your code.  Try testM1-testM9 to see it.  Just run one of the tests and Click the "Step" button that appears until you see the final result.
 <br>
 The "stepIO" function in lc.js is the driver for the io monad.  The "Step" button calls it with the queued commands in the current IO monad and the latest return value.  If there is more computation left, it returns a two-element array containing the rest of the command list and the latest return value otherwise, it returns a one-element array containing only the final return value.
+<br>
+A "real" environment would repeatedly call stepIO until it reaches the final value.  This is just a first crack at an IO monad.  It's not very efficient, but it does demonstrate how to do IO without side effects.
 <br><br>
 Have fun!<br>
 Bill Burdick (you can send me mail at bill dot burdick on gmail)<br>
