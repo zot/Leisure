@@ -51,7 +51,7 @@ misrepresented as being the original software.
 				<table style="position: absolute; width: 100%; height: 100%">
 					<tr style="height: 0"><td style="width: 50%"><span class='hidden' style="color: red">CURRENT ERROR: reduce on test</span><h2>Definitions (<!--debug <input type="checkbox" onclick="setShowDebug(this.checked)">, -->substitutions <input type="checkbox" onclick="setShowSubs(this.checked)" checked="true">, pretty <input type="checkbox" onclick="setShowPretty(this.checked)" checked="true">)</h2></td><td style="width: 50%"><h2>Results (collapse reduce <input type="checkbox" onclick="collapseInitial = this.checked" checked="true">)<button onclick="result.innerHTML = '';def.select()">Clear</button></h2></td></tr>
 					<tr style="height: auto"><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px; padding: 3px" id="output"></div></td><td style="width: 50%"><div style="height: 100%; position: relative; overflow: auto; outline: solid black 1px; padding: 3px" id="result">
-<h1>Lambda Calculus compiler and interpreter</h1>
+<h1>Lambda Calculus compiler and interpreter (now with an IO Monad -- see below!)</h1>
 Copyright (C) 2011, Bill Burdick, Tiny Concepts: <a href='http://tinyconcepts.com/fs.pl/lambda.fsl'>http://tinyconcepts.com/fs.pl/lambda.fsl</a><br>
 Licensed with the ZLIB license.  See source code for details.<br>
 <br>
@@ -71,10 +71,13 @@ You can modify the parser in these ways:<br>
 	<li>You can make your definition a token to the parser using <pre>NAME =.= EXPR</pre>this means that you won't need spaces around NAME.  Good for punctuation, etc.
 	<li>You can make your definition a grouping token with <pre>NAME =(CLOSE= EXPR</pre> and <pre>CLOSE =)= EXPR</pre> (for the corresponding closing token).
 </ul>
-I use these in the example definitions to create an array-like syntax for lists, using normal Lambda Calculus functions.  This demonstrates a way to define functions that act like syntactic sugar.  It's really not sugar, though; these are real functions but the point of them is to make things more convenient for the programmer, like syntactic sugar does: [1,2,3] is the same as saying cons 1 (cons 2 (cons 3 nil)) and [1,2|list] is the same as cons 1 (cons 2 list) (like in Prolog).  The definitions of '[', ',', '|', and ']' are:<pre>[ =(]= λitem c . c λcont rest . cons item rest
-, =.= λf . λitem c . c λcont rest . f true (cons item rest)
-] =)= λf . f false nil
-| =.= λf rest g . f false rest</pre>
+I use these in the example definitions to create an array-like syntax for lists, using normal Lambda Calculus functions.  This demonstrates a way to define functions that act like syntactic sugar.  It's really not sugar, though; these are real functions but the point of them is to make things more convenient for the programmer, like syntactic sugar does: [1,2,3] is the same as saying cons 1 (cons 2 (cons 3 nil)) and [1,2|list] is the same as cons 1 (cons 2 list) (like in Prolog).  The definitions of '[', ',', '|', and ']' are:<pre>[ =(]= &lambda;item c . c &lambda;cont rest . cons item rest
+, =.= &lambda;f . &lambda;item c . c &lambda;cont rest . f true (cons item rest)
+] =)= &lambda;f . f false nil
+| =.= &lambda;f rest g . f false rest</pre>
+<br>
+<h3>IO Monad</h3>
+If you make an IO monad, a "Step" button will appear that you can use to step through your code.  Try testM1-testM9 to see it.  Just run one of the tests and Click the "Step" button that appears until you see the final result.
 <br><br>
 Have fun!<br>
 Bill Burdick (you can send me mail at bill dot burdick on gmail)<br>

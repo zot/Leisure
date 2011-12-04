@@ -226,9 +226,10 @@ function pretty(l, nosubs) {
     if (lam) {
 	if (isCons(l)) return '[' + elements(l, true, nosubs) + ']'
 	if (ioMonadId) switch (lambdaId(l)) {
-	case ioMonadId: return "MONAD(" + pretty(getCmds(l)) + ", " + pretty(getVal(l)) + ")"
+	case ioMonadId: return "MONAD(" + pretty(getCmdsReversed(l)) + ", " + pretty(getVal(l)) + ")"
 	case printCmdId: return "print(" + pretty(getPrintedThing(l)) + ")"
 	case readCmdId: return "read()"
+	case bindCmdId: return "bind"
 	}
 	return lam.format(false, nosubs)
     }
