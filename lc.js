@@ -154,12 +154,12 @@ function findCons() {
 	Lappend = lcode2('append')
     }
     if (LC.L._makeIO) {
-	ioMonadId = LC.L._makeIO().lambda.body.body.id
+	ioMonadId = LC.L._makeIO().lambda.body.body.body.id
 	printCmdId = LC.L._printCmd().lambda.body.id
 	readCmdId = LC.L._readCmd().lambda.body.id
 	bindCmdId = LC.L._bindCmd().lambda.body.id
 	getCmds = lcode2('getCmds')
-	getVal = lcode2('getVal')
+	LC.getVal = getVal = lcode2('getVal')
 	getPrintedThing = lcode2('getPrintedThing')
 	getCmdsReversed = lcode2('getCmdsReversed')
 	getBindAction = lcode2('getBindAction')
@@ -192,24 +192,27 @@ function getCommands(value) {
     return getCmdsReversed(value)
 }
 function stepIO(commands, lastRet) {
-    if (isNil(commands)) {
-	alert("Final value: " + pretty(lastRet))
-	return [lastRet]
-    }
-    var head = Lhead(commands)
-    switch (lambdaId(head)) {
-    case printCmdId:
-	alert("Print: " + getPrintedThing(head))
-	return [Ltail(commands), lnil]
-    case readCmdId: return [Ltail(commands), prompt("input...")]
-    case bindCmdId:
-	var action = getBindAction(head)
-	var monad = action(wrap(lastRet))
+    for (;;) {
+	if (isNil(commands)) {
+	    alert("Final value: " + pretty(lastRet))
+	    return [lastRet]
+	}
+	var head = Lhead(commands)
+	switch (lambdaId(head)) {
+	case printCmdId:
+	    alert("Print: " + getPrintedThing(head))
+	    return [Ltail(commands), lastRet]
+	case readCmdId: return [Ltail(commands), prompt("input...")]
+	case bindCmdId:
+	    var action = getBindAction(head)
+	    var monad = action(wrap(lastRet))
 
-	alert('bind')
-	return [Lappend(getCmdsReversed(monad), Ltail(commands)), getVal(monad)]
+	    commands = Lappend(getCmdsReversed(monad), Ltail(commands))
+	    lastRet = getVal(monad)
+	    continue
+	}
+	throw new Error("unknown command: " + pretty(head))
     }
-    throw new Error("unknown command: " + pretty(head))
 }
 function primRead(arg) {
     if (!arg.memo) arg.memo = prompt("Input...")
@@ -229,7 +232,7 @@ function pretty(l, nosubs) {
 	case ioMonadId: return "MONAD(" + pretty(getCmdsReversed(l)) + ", " + pretty(getVal(l)) + ")"
 	case printCmdId: return "print(" + pretty(getPrintedThing(l)) + ")"
 	case readCmdId: return "read()"
-	case bindCmdId: return "bind"
+	case bindCmdId: return "bind("+pretty(getBindAction(l))+")"
 	}
 	return lam.format(false, nosubs)
     }
@@ -895,6 +898,7 @@ var LC = {
     index: index,
     getLambda: getLambda,
     isIOMonad: isIOMonad,
+    getVal: getVal,
     stepIO: stepIO,
     isNil: isNil,
     getCommands: getCommands,

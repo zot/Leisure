@@ -78,6 +78,8 @@ I use these in the example definitions to create an array-like syntax for lists,
 <br>
 <h3>IO Monad</h3>
 If you make an IO monad, a "Step" button will appear that you can use to step through your code.  Try testM1-testM9 to see it.  Just run one of the tests and Click the "Step" button that appears until you see the final result.
+<br>
+The "stepIO" function in lc.js is the driver for the io monad.  The "Step" button calls it with the queued commands in the current IO monad and the latest return value.  If there is more computation left, it returns a two-element array containing the rest of the command list and the latest return value otherwise, it returns a one-element array containing only the final return value.
 <br><br>
 Have fun!<br>
 Bill Burdick (you can send me mail at bill dot burdick on gmail)<br>
@@ -152,26 +154,27 @@ puts = \x . #strict puts x
 puts2 = \x . #lazy putsl x
 test10 = puts2 (ident 3)
 # simple IO monad
-makeIO = \cmds val f . f cmds val
-getCmds = \m . m (\cmds val . cmds)
+makeIO = \suspend cmds val f . f suspend cmds val
+getCmds = \m . m (\suspend cmds val . cmds)
+getVal = \m . m (\suspend cmds val . val)
+getSuspend = \m . m (\suspend cmds val . suspend)
 getCmdsReversed = \m . reverse (getCmds m)
-getVal = \m . m (\cmds val . val)
-return = \x . makeIO nil x
+return = \x . makeIO false nil x
 bindCmd = \action f . f action
 getBindAction = \cmd . cmd ident
-bind = \io f . makeIO [(bindCmd f) | (getCmds io)] nil
+bind = \io f . (getSuspend io) (makeIO true [(bindCmd f) | (getCmds io)] nil) ((f (getVal io)) \suspend cmds val . makeIO suspend (append cmds (getCmds io)) val)
 printCmd = \thing f . f thing
 getPrintedThing = \pcmd . pcmd \t . t
-print = \thing . makeIO [(printCmd thing)] nil
+print = \thing . makeIO false [(printCmd thing)] nil
 readCmd = \x y . read
-read = \x . makeIO [(readCmd nil)] nil
+read = \x . makeIO true [(readCmd nil)] nil
 testM1 = return 3
 testM2 = print hello
 testM3 = read nil
 testM4 = bind (read nil) \x . print x
-testM5 = bind (read nil) \x . bind (print x) \y . bind (read nil) \z . (print z)
+testM5 = bind (read nil) \x . bind (print x) \y . bind (read nil) \z . bind (print z) \q . return 50
 testM6 = bind (print one) \x . bind (read nil) \y . print y
-testM7 = bind (print one) \x . return x
+testM7 = bind (print one) \x . return 3
 testM8 = bind (print one) \x . bind (print two) \y . bind (print three) \z . return z
 testM9 = bind (print hello) \x . bind (read nil) \y . return y
 
