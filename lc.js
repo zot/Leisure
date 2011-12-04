@@ -24,8 +24,19 @@ misrepresented as being the original software.
 
 var LC = (function() {
 var defs = {}
-var lcons
-var lnil
+var lconsId
+var lnilId
+var Lhead
+var Ltail
+var ioMonadId
+var printCmdId
+var readCmdId
+var bindCmdId
+var getCmds
+var getVal
+var getPrintedThing
+var getCmdsReversed
+var getBindAction
 var exprs = {}
 var order = []
 var lambdas = {}
@@ -133,8 +144,22 @@ function addExpr(name, txt, noRebuild) {
 }
 function findCons() {
     if (L._cons) {
-	lcons = L._cons().lambda.body.body
-	lnil = L._nil().lambda
+	lconsId = L._cons().lambda.body.body.id
+	LC.lnil = L._nil().lambda
+	lnilId = LC.lnil.id
+	Lhead = lcode2('head')
+	Ltail = lcode2('tail')
+    }
+    if (LC.L._makeIO) {
+	ioMonadId = LC.L._makeIO().lambda.body.body.id
+	printCmdId = LC.L._printCmd().lambda.body.id
+	readCmdId = LC.L._readCmd().lambda.body.id
+	bindCmdId = LC.L._bindCmd().lambda.body.id
+	getCmds = lcode2('getCmds')
+	getVal = lcode2('getVal')
+	getPrintedThing = lcode2('getPrintedThing')
+	getCmdsReversed = lcode2('getCmdsReversed')
+	getBindAction = lcode2('getBindAction')
     }
 }
 function runFunc(index) {
@@ -155,17 +180,52 @@ function runCode(expr, code) {
 	} catch (err) {
 		res = "Error: " + err.message
 	}
+	LC.lastResult = res
 	LC.resultCode(expr, res, historyCount)
 	historyCount++
 	LC.L = L = null
 }
-function isCons(l) {return lcons && getLambda(l).id == lcons.id}
-function isNil(l) {return lnil && getLambda(l).id == lnil.id}
+function getCommands(value) {
+    return getCommandsReversed(value)
+}
+function stepIO(commands, lastRet) {
+    if (isNil(commands)) {
+	alert("Final value: " + pretty(lastRet))
+	return lastRet
+    }
+    var head = Lhead(list)
+    switch (lambdaId(head)) {
+    case printCmdId:
+	alert("Print: " + getPrintedThing(head))
+	return [Ltail(commands), lnil]
+    case readCmdId:
+	return [Ltail(commands), prompt("input...")]
+    case bindCmdId: return [Ltail(commands), getBindAction(head)(lastRet)]
+    }
+    throw new Exception("unknown command: " + pretty(head))
+}
+function primRead(arg) {
+    if (!arg.memo) arg.memo = prompt("Input...")
+    return arg.memo
+}
 function getLambda(l) {return l instanceof Entity ? l : l.lambda}
+function lambdaId(l) {var lam = getLambda(l); return lam && lam.id || null}
+function isCons(l) {return lconsId && lambdaId(l) == lconsId}
+function isIOMonad(l) {return ioMonadId && lambdaId(l) == ioMonadId}
+function isNil(l) {return lnilId && lambdaId(l) == lnilId}
 function pretty(l, nosubs) {
     var lam = getLambda(l)
 
-    return lam && lcons && lam.id == lcons.id ? '[' + elements(l, true, nosubs) + ']' : lam ? lam.format(false, nosubs) : l
+    if (lam) {
+	if (isCons(l)) return '[' + elements(l, true, nosubs) + ']'
+	if (ioMonadId) switch (lambdaId(l)) {
+	case ioMonadId: return "MONAD(" + pretty(getCmds(l)) + ", " + pretty(getVal(l)) + ")"
+	case printCmdId: return "print(" + pretty(getPrintedThing(l)) + ")"
+	case readCmdId: return "read()"
+	}
+	return lam.format(false, nosubs)
+    }
+    return l
 }
 function elements(l, first, nosubs) {
     return isNil(l) ? '' : ((first ? '' : ', ') + pretty(Lhead(l), nosubs) + elements(Ltail(l), false, nosubs))
@@ -442,6 +502,18 @@ function lcode(name) {
 	return func
     })
 }
+function lcode2(name) {
+    var func = L[nameSub(name)]()
+
+    return (function(){
+	var f = func
+
+	for (var i = 0; i < arguments.length; i++) {
+	    f = func.call(null, wrap(arguments[i]))
+	}
+	return f
+    })
+}
 function debcache(expr, cache, skipCache) {
     if (skipCache) {
 	return expr
@@ -458,7 +530,7 @@ function Entity(obj) {
 }
 Entity.prototype.__proto__ = {
     transform2: function(settings) {return new Transformer2(settings).visit(this)},
-    pretty: function() {return this.id == lcons.id ? pretty(constructEnv(this.ret([]).join(""))) : this.format()},
+    pretty: function() {return this.id == lconsId ? pretty(constructEnv(this.ret([]).join(""))) : this.format()},
     transform: function() {return this.doTransform(new Transformer(arguments))},
     startTransform: function(transformer) {return transformer.getTransform(this) || this.doTransform(transformer)},
     doTransform: function(transformer) {
@@ -492,9 +564,8 @@ Entity.prototype.__proto__ = {
 function pfx(prefix) {return prefix == null ? '' : prefix}
 
 function memoize(func) {
-    var res
     var out = function() {
-	return res || (res = func())
+	return func.memo || (func.memo = func())
     }
 
     out.lambda = func.lambda
@@ -789,8 +860,8 @@ Apply.prototype.__proto__ = new Entity({
     rsub: function(variable, value) {return this.make(this.func.rsub(variable, value), this.arg.rsub(variable, value))},
 })
 function wrap(x) {return function() {return x}}
-var Lhead = lcode('head')
-var Ltail = lcode('tail')
+//var Lhead = lcode('head')
+//var Ltail = lcode('tail')
 var LC = {
     loadDefs: loadDefs,
     runFunc: runFunc,
@@ -800,6 +871,7 @@ var LC = {
     lambdas: lambdas,
     defs: defs,
     historyExprs: [],
+    history: history,
     pretty: pretty,
     output: function() {},
     resultCode: function() {},
@@ -813,6 +885,10 @@ var LC = {
     Cons: Cons,
     cons: cons,
     index: index,
+    getLambda: getLambda,
+    isIOMonad: isIOMonad,
+    stepIO: stepIO,
+    isNil: isNil,
 }
 
 return LC
