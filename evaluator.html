@@ -154,23 +154,23 @@ getCmds = \m . m (\cmds val . cmds)
 getCmdsReversed = \m . reverse (getCmds m)
 getVal = \m . m (\cmds val . val)
 return = \x . makeIO nil x
-#bind = \io f . io (\cmds1 val1 . (\m . makeIO (append cmds1 (getCmds m)) (getVal m)) (f val1))
 bindCmd = \action f . f action
-getBindAction = \cmd . cmd identity
+getBindAction = \cmd . cmd ident
 bind = \io f . makeIO [(bindCmd f) | (getCmds io)] nil
 printCmd = \thing f . f thing
 getPrintedThing = \pcmd . pcmd \t . t
 print = \thing . makeIO [(printCmd thing)] nil
-readCmd = \f g . dummy
-#read = \x . (\cmd . makeIO [cmd] cmd) (readCmd duh)
-read = \x . read
+readCmd = \x y . read
+read = \x . makeIO [(readCmd nil)] nil
 testM1 = return 3
 testM2 = print hello
 testM3 = read nil
-testM4 = bind (print one) \x . bind (read nil) \y . print y
-testM5 = bind (print one) \x . return x
-testM6 = bind (print one) \x . bind (print two) \y . bind (print three) \z . return z
-testM7 = bind (print hello) \x . bind (read nil) \y . return y
+testM4 = bind (read nil) \x . print x
+testM5 = bind (read nil) \x . bind (print x) \y . bind (read nil) \z . (print z)
+testM6 = bind (print one) \x . bind (read nil) \y . print y
+testM7 = bind (print one) \x . return x
+testM8 = bind (print one) \x . bind (print two) \y . bind (print three) \z . return z
+testM9 = bind (print hello) \x . bind (read nil) \y . return y
 
 #define puts i32 @puts(i8* nocapture) nounwind
 #define putsl i32 @putsl(i8* nocapture) nounwind

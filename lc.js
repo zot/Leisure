@@ -25,9 +25,11 @@ misrepresented as being the original software.
 var LC = (function() {
 var defs = {}
 var lconsId
+var lnil
 var lnilId
 var Lhead
 var Ltail
+var Lappend
 var ioMonadId
 var printCmdId
 var readCmdId
@@ -145,10 +147,11 @@ function addExpr(name, txt, noRebuild) {
 function findCons() {
     if (L._cons) {
 	lconsId = L._cons().lambda.body.body.id
-	LC.lnil = L._nil().lambda
+	LC.lnil = lnil = L._nil().lambda
 	lnilId = LC.lnil.id
 	Lhead = lcode2('head')
 	Ltail = lcode2('tail')
+	Lappend = lcode2('append')
     }
     if (LC.L._makeIO) {
 	ioMonadId = LC.L._makeIO().lambda.body.body.id
@@ -186,23 +189,27 @@ function runCode(expr, code) {
 	LC.L = L = null
 }
 function getCommands(value) {
-    return getCommandsReversed(value)
+    return getCmdsReversed(value)
 }
 function stepIO(commands, lastRet) {
     if (isNil(commands)) {
 	alert("Final value: " + pretty(lastRet))
-	return lastRet
+	return [lastRet]
     }
-    var head = Lhead(list)
+    var head = Lhead(commands)
     switch (lambdaId(head)) {
     case printCmdId:
 	alert("Print: " + getPrintedThing(head))
 	return [Ltail(commands), lnil]
-    case readCmdId:
-	return [Ltail(commands), prompt("input...")]
-    case bindCmdId: return [Ltail(commands), getBindAction(head)(lastRet)]
+    case readCmdId: return [Ltail(commands), prompt("input...")]
+    case bindCmdId:
+	var action = getBindAction(head)
+	var monad = action(wrap(lastRet))
+
+	alert('bind')
+	return [Lappend(getCmdsReversed(monad), Ltail(commands)), getVal(monad)]
     }
-    throw new Exception("unknown command: " + pretty(head))
+    throw new Error("unknown command: " + pretty(head))
 }
 function primRead(arg) {
     if (!arg.memo) arg.memo = prompt("Input...")
@@ -509,7 +516,7 @@ function lcode2(name) {
 	var f = func
 
 	for (var i = 0; i < arguments.length; i++) {
-	    f = func.call(null, wrap(arguments[i]))
+	    f = f.call(null, wrap(arguments[i]))
 	}
 	return f
     })
@@ -889,6 +896,7 @@ var LC = {
     isIOMonad: isIOMonad,
     stepIO: stepIO,
     isNil: isNil,
+    getCommands: getCommands,
 }
 
 return LC
