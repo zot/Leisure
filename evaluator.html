@@ -81,7 +81,7 @@ If you make an IO monad, a "Step" button will appear that you can use to step th
 <br>
 The "stepIO" function in lc.js is the driver for the io monad.  The "Step" button calls it with the queued commands in the current IO monad and the latest return value.  If there is more computation left, it returns a two-element array containing the rest of the command list and the latest return value otherwise, it returns a one-element array containing only the final return value.
 <br>
-A "real" environment would repeatedly call stepIO until it reaches the final value.  This is just a first crack at an IO monad.  It's not very efficient, but it does demonstrate how to do IO without side effects.
+A "real" environment would repeatedly call stepIO until it reaches the final value.  This is just a first crack at an IO monad.  It's relatively efficient, because it uses difference lists, but the main point is that it demonstrates how to do IO without side effects.
 <br><br>
 Have fun!<br>
 Bill Burdick (you can send me mail at bill dot burdick on gmail)<br>
