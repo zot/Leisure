@@ -182,6 +182,7 @@ testM6 = bind (print one) \x . bind (read nil) \y . print y
 testM7 = bind (print one) \x . return 3
 testM8 = bind (print one) \x . bind (print two) \y . bind (print three) \z . return z
 testM9 = bind (print hello) \x . bind (read nil) \y . return y
+testM10 = bind (read nil) \x . bind (bind (read nil) \y . return y) \z . return x
 
 #define puts i32 @puts(i8* nocapture) nounwind
 #define putsl i32 @putsl(i8* nocapture) nounwind
