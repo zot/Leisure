@@ -37,8 +37,10 @@ var bindCmdId
 var getCmds
 var getVal
 var getPrintedThing
-var getCmdsReversed
 var getBindAction
+var Ldl
+var LdlList
+var LdlAppend
 var exprs = {}
 var order = []
 var lambdas = {}
@@ -148,21 +150,25 @@ function findCons() {
     if (L._cons) {
 	lconsId = L._cons().lambda.body.body.id
 	LC.lnil = lnil = L._nil().lambda
+	Lnil = L._nil
 	lnilId = LC.lnil.id
 	Lhead = lcode2('head')
 	Ltail = lcode2('tail')
 	Lappend = lcode2('append')
     }
     if (LC.L._makeIO) {
-	ioMonadId = LC.L._makeIO().lambda.body.body.body.id
+	ioMonadId = LC.L._makeIO().lambda.body.body.id
 	printCmdId = LC.L._printCmd().lambda.body.id
 	readCmdId = LC.L._readCmd().lambda.body.id
 	bindCmdId = LC.L._bindCmd().lambda.body.id
 	getCmds = lcode2('getCmds')
+	LC.getAllCmds = getAllCmds = lcode2('getAllCmds')
 	LC.getVal = getVal = lcode2('getVal')
 	getPrintedThing = lcode2('getPrintedThing')
-	getCmdsReversed = lcode2('getCmdsReversed')
 	getBindAction = lcode2('getBindAction')
+	Ldl = lcode2('dl')
+	LdlList = lcode2('dlList')
+	LdlAppend = lcode2('dlAppend')
     }
 }
 function runFunc(index) {
@@ -188,9 +194,9 @@ function runCode(expr, code) {
 	historyCount++
 	LC.L = L = null
 }
-function getCommands(value) {
-    return getCmdsReversed(value)
-}
+//function getCommands(io) {
+//    return getCmds(io)(Lnil)
+//}
 function stepIO(commands, lastRet) {
     for (;;) {
 	if (isNil(commands)) {
@@ -207,7 +213,7 @@ function stepIO(commands, lastRet) {
 	    var action = getBindAction(head)
 	    var monad = action(wrap(lastRet))
 
-	    commands = Lappend(getCmdsReversed(monad), Ltail(commands))
+	    commands = LdlList(LdlAppend(getCmds(monad), Ldl(Ltail(commands))))
 	    lastRet = getVal(monad)
 	    continue
 	}
@@ -229,7 +235,7 @@ function pretty(l, nosubs) {
     if (lam) {
 	if (isCons(l)) return '[' + elements(l, true, nosubs) + ']'
 	if (ioMonadId) switch (lambdaId(l)) {
-	case ioMonadId: return "MONAD(" + pretty(getCmdsReversed(l)) + ", " + pretty(getVal(l)) + ")"
+	case ioMonadId: return "MONAD(" + pretty(getAllCmds(l)) + ", " + pretty(getVal(l)) + ")"
 	case printCmdId: return "print(" + pretty(getPrintedThing(l)) + ")"
 	case readCmdId: return "read()"
 	case bindCmdId: return "bind("+pretty(getBindAction(l))+")"
@@ -901,7 +907,7 @@ var LC = {
     getVal: getVal,
     stepIO: stepIO,
     isNil: isNil,
-    getCommands: getCommands,
+    getAllCmds: null,
 }
 
 return LC
