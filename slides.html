@@ -344,7 +344,7 @@ Maybe untyped LC could be too
 **LC gives you a lot of power and productivity, even though it's low-level**
 
 * LC uses "lazy evaluation" -- function arguments are never evaluated until they are used (and this is transitive)
-* LC is just functions -- data is also functions, which means data is also lazy
+* LC is only functions -- data is also functions, which means data is also lazy
 * LC allows "currying" -- calling a 3-arg function with only the first 2 args returns a 1-arg function that "saves" the first 2
 
 Lazy evaluation + currying + data/functions can be very powerful
@@ -353,13 +353,17 @@ Most languages don't support this
 ***
 #Brief Overview: Functions
 
-LC is just functions and functions are like subroutines
+LC is only functions and functions are like subroutines
+***
+#Brief Overview: Functions
+
+LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 ***
 #Brief Overview: Functions
 
-LC is just functions and functions are like subroutines
+LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
@@ -369,7 +373,7 @@ In Lambda Calculus, you would say this:
 ***
 #Brief Overview: Functions
 
-LC is just functions and functions are like subroutines
+LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
@@ -384,7 +388,7 @@ A function body can...
 ***
 #Brief Overview: Functions
 
-LC is just functions and functions are like subroutines
+LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
@@ -400,7 +404,7 @@ A function body can...
 ***
 #Brief Overview: Functions
 
-LC is just functions and functions are like subroutines
+LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
@@ -417,7 +421,7 @@ A function body can...
 ***
 #Brief Overview: Functions
 
-LC is just functions and functions are like subroutines
+LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
@@ -655,14 +659,14 @@ This is a lot like `struct person p = {"fred", "777-2344"};` in C
 
 but later, we'll see some powerful differences.
 ***
-#Custom Control Structures
+#Custom Control Structures: Booleans/Ifs
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
 * <code>true = <span class="def">λa b</span> . a</code>
 * <code>false = <span class="def">λa b</span> . b</code>
 ***
-#Custom Control Structures
+#Custom Control Structures: Booleans/Ifs
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
@@ -671,7 +675,7 @@ You can use booleans in LC as if-then statements, kind of like how C uses && and
 
 true really just means "choose the first one"
 ***
-#Custom Control Structures
+#Custom Control Structures: Booleans/Ifs
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
@@ -682,7 +686,7 @@ true really just means "choose the first one"
 
 false really just means "choose the second one"
 ***
-#Custom Control Structures
+#Custom Control Structures: Booleans/Ifs
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
@@ -695,7 +699,7 @@ false really just means "choose the second one"
 
 kind of like an if-then statement
 ***
-#Custom Control Structures
+#Custom Control Structures: Booleans/Ifs
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
@@ -710,7 +714,7 @@ kind of like an if-then statement
 
 Suppose you have three variables, `v1 = true`, `v2 = false`, and `v3 = false`
 ***
-#Custom Control Structures
+#Custom Control Structures: Booleans/Ifs
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
@@ -727,7 +731,7 @@ Suppose you have three variables, `v1 = true`, `v2 = false`, and `v3 = false`
 
 <code>v1 (v2 a b) (v3 c d) &rArr; b</code>
 ***
-#Custom Control Structures
+#Custom Control Structures: Booleans/Ifs
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
@@ -746,7 +750,7 @@ Suppose you have three variables, `v1 = true`, `v2 = false`, and `v3 = false`
 
 This doesn't evaluate several things, like in `(v1 && ((v2 && a) || b)) || ((v3 && c) || d)`
 ***
-#Custom Control Structures
+#Custom Control Structures: Booleans/Ifs
 
 You can use booleans in LC as if-then statements, kind of like how C uses && and ||
 
@@ -776,6 +780,94 @@ Lazy evaluation lets you define your own control structures, like if, for, while
 There are some pretty useful control structures that aren't in C or Java
 
 (like Scala's pattern matching "switch" and powerful "for")
+***
+#Custom Control Structures: Enums/Switches
+
+Maybe you already guessed this...
+***
+#Custom Control Structures: Enums/Switches
+
+Maybe you already guessed this...
+
+If you can represent a boolean by a function that applies its argument to two values, what about more than 2?
+***
+#Custom Control Structures: Enums/Switches
+
+Maybe you already guessed this...
+
+If you can represent a boolean by a function that applies its argument to two values, what about more than 2?
+
+* <code>sunday = <span class="def">λsun mon tue wed thu fri sat</span> . sun</code>
+***
+#Custom Control Structures: Enums/Switches
+
+Maybe you already guessed this...
+
+If you can represent a boolean by a function that applies its argument to two values, what about more than 2?
+
+* <code>sunday = <span class="def">λsun mon tue wed thu fri sat</span> . sun</code>
+* <code>monday = <span class="def">λsun mon tue wed thu fri sat</span> . mon</code>
+* <code>tuesday = <span class="def">λsun mon tue wed thu fri sat</span> . tue</code>
+* <code>wednesday = <span class="def">λsun mon tue wed thu fri sat</span> . wed</code>
+* <code>thursday = <span class="def">λsun mon tue wed thu fri sat</span> . thu</code>
+* <code>friday = <span class="def">λsun mon tue wed thu fri sat</span> . fri</code>
+* <code>shabbat = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
+***
+#Custom Control Structures: Enums/Switches
+
+Maybe you already guessed this...
+
+If you can represent a boolean by a function that applies its argument to two values, what about more than 2?
+
+* <code>sunday = <span class="def">λsun mon tue wed thu fri sat</span> . sun</code>
+* <code>monday = <span class="def">λsun mon tue wed thu fri sat</span> . mon</code>
+* <code>tuesday = <span class="def">λsun mon tue wed thu fri sat</span> . tue</code>
+* <code>wednesday = <span class="def">λsun mon tue wed thu fri sat</span> . wed</code>
+* <code>thursday = <span class="def">λsun mon tue wed thu fri sat</span> . thu</code>
+* <code>friday = <span class="def">λsun mon tue wed thu fri sat</span> . fri</code>
+* <code>shabbat = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
+
+<code>dayName = <span class="def">λday</span> . day Sunday Monday Tuesday Wednesday Thursday Friday Saturday</code>
+***
+#Custom Control Structures: Enums/Switches
+
+Maybe you already guessed this...
+
+If you can represent a boolean by a function that applies its argument to two values, what about more than 2?
+
+* <code>sunday = <span class="def">λsun mon tue wed thu fri sat</span> . sun</code>
+* <code>monday = <span class="def">λsun mon tue wed thu fri sat</span> . mon</code>
+* <code>tuesday = <span class="def">λsun mon tue wed thu fri sat</span> . tue</code>
+* <code>wednesday = <span class="def">λsun mon tue wed thu fri sat</span> . wed</code>
+* <code>thursday = <span class="def">λsun mon tue wed thu fri sat</span> . thu</code>
+* <code>friday = <span class="def">λsun mon tue wed thu fri sat</span> . fri</code>
+* <code>shabbat = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
+
+<code>dayName = <span class="def">λday</span> . day Sunday Monday Tuesday Wednesday Thursday Friday Saturday</code>
+
+<code>dayName thursday &rArr; Thursday</code>
+***
+#Custom Control Structures: Enums/Switches
+
+So, OK, it's like a switch.  But can we get the next or previous day?
+***
+#Custom Control Structures: Enums/Switches
+
+So, OK, it's like a switch.  But can we get the next or previous day?
+
+* <code>nextDay = <span class="def">λday sun mon tue wed thu fri sat</span> . day mon tue wed thu fri sat sun</code>
+* <code>prevDay = <span class="def">λday sun mon tue wed thu fri sat</span> . day sat sun mon tue wed thu fri</code>
+***
+#Custom Control Structures: Enums/Switches
+
+So, OK, it's like a switch.  But can we get the next or previous day?
+
+* <code>nextDay = <span class="def">λday sun mon tue wed thu fri sat</span> . day mon tue wed thu fri sat sun</code>
+* <code>prevDay = <span class="def">λday sun mon tue wed thu fri sat</span> . day sat sun mon tue wed thu fri</code>
+
+<code>dayName (nextDay monday) &rArr; Tuesday</code>
+
+<code>dayName (prevDay monday) &rArr; Sunday</code>
 ***
 #Computed Streams of Data
 
@@ -1509,11 +1601,25 @@ So they would send each element of the list to a different processor (if you hav
 
 This works on other types of collections, besides streams, of course (trees, arrays, etc.)
 ***
+#Part 1 Conclusion
+
+So, I think we've seen how utterly brilliant and simple Lambda Calculus is.
+***
+#Part 1 Conclusion
+
+So, I think we've seen how utterly brilliant and simple Lambda Calculus is.
+
+Maybe if alien beings wanted to send messages to an unknown civilization, they would start with Lambda Calculus, instead of math...
+***
 #Part 2
 
-Here is the [Lambda Calculus evaluator](evaluator.html), again :)
+Speaking of alien "communication," here is some of [Space Invaders in Lambda Calculus](invaders.html)
+***
+#Part 2
 
-Here is [Space Invaders in Lambda Calculus](http://tinyconcepts.com/invaders.html)
+Speaking of alien "communication," here is some of [Space Invaders in Lambda Calculus](invaders.html)
+
+And here is the [Lambda Calculus evaluator](evaluator.html), again :)
 ***
 # The End
 

@@ -84,7 +84,8 @@ function setOperation(op) {
 	if (!old) doOp()
 }
 function keypress(event) {
-	var transition = (event.keyCode & 63) == LEFT ? left
+	var transition = event.altKey || event.shiftKey || event.ctrlKey || event.metaKey || event.altGraphKey ? stay
+		: (event.keyCode & 63) == LEFT ? left
 		: (event.keyCode & 63) == RIGHT ? right
 		: (event.keyCode == 32) ? fire
 		: stay
