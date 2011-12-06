@@ -34,9 +34,10 @@ var ioMonadId
 var printCmdId
 var readCmdId
 var bindCmdId
+var returnCmdId
 var getCmds
 var getVal
-var getPrintedThing
+var getCmdVal
 var getBindAction
 var Ldl
 var LdlList
@@ -160,11 +161,12 @@ function findCons() {
 	ioMonadId = LC.L._makeIO().lambda.body.body.id
 	printCmdId = LC.L._printCmd().lambda.body.id
 	readCmdId = LC.L._readCmd().lambda.body.id
+	returnCmdId = LC.L._returnCmd().lambda.body.id
 	bindCmdId = LC.L._bindCmd().lambda.body.id
 	getCmds = lcode2('getCmds')
 	LC.getAllCmds = getAllCmds = lcode2('getAllCmds')
 	LC.getVal = getVal = lcode2('getVal')
-	getPrintedThing = lcode2('getPrintedThing')
+	getCmdVal = lcode2('getCmdVal')
 	getBindAction = lcode2('getBindAction')
 	Ldl = lcode2('dl')
 	LdlList = lcode2('dlList')
@@ -206,9 +208,13 @@ function stepIO(commands, lastRet) {
 	var head = Lhead(commands)
 	switch (lambdaId(head)) {
 	case printCmdId:
-	    alert("Print: " + getPrintedThing(head))
-	    return [Ltail(commands), lastRet]
-	case readCmdId: return [Ltail(commands), prompt("input...")]
+	    alert("Print: " + pretty(getCmdVal(head)))
+	    return [Ltail(commands), getVal(head)]
+	case readCmdId: return [Ltail(commands), prompt(pretty(getCmdVal(head)))]
+	case returnCmdId:
+	    commands = Ltail(commands)
+	    lastRet = getCmdVal(head)
+	    continue
 	case bindCmdId:
 	    var action = getBindAction(head)
 	    var monad = action(wrap(lastRet))
@@ -236,8 +242,9 @@ function pretty(l, nosubs) {
 	if (isCons(l)) return '[' + elements(l, true, nosubs) + ']'
 	if (ioMonadId) switch (lambdaId(l)) {
 	case ioMonadId: return "MONAD(" + pretty(getAllCmds(l)) + ", " + pretty(getVal(l)) + ")"
-	case printCmdId: return "print(" + pretty(getPrintedThing(l)) + ")"
-	case readCmdId: return "read()"
+	case printCmdId: return "print(" + pretty(getCmdVal(l)) + ")"
+	case readCmdId: return "read("+pretty(getCmdVal(l))+")"
+	case returnCmdId: return "return("+pretty(getCmdVal(l))+")"
 	case bindCmdId: return "bind("+pretty(getBindAction(l))+")"
 	}
 	return lam.format(false, nosubs)

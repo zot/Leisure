@@ -11,6 +11,9 @@
 .def {
   color: blue;
 }
+.current {
+  color: red;
+}
   </style>
 </head>
 <body>
@@ -62,6 +65,10 @@ Examples of some fairly uncommon languages that can teach you interesting things
 </td></tr><tr><td>Lua (meta model)
 </td><td>Self/Io (pure prototype-based OO)</td></tr>
 </table>
+***
+#Part 1: Concepts
+
+#Part 2: Implementation
 ***
 #Lambda Calculus is a Functional Programming Language
 
@@ -124,7 +131,7 @@ There's just so little to get in the way
 #Neato things that are easy to do in Lambda calculus
 
 * custom control structures  
-    ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
+    <span class="current">ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...</span>
 * computed streams of data
 * generators/iterators
 * infinite streams
@@ -137,7 +144,7 @@ There's just so little to get in the way
 * custom control structures  
     ex: pattern matching "switch", comprehensions (that transform structures), visitors, ...
 * computed streams of data  
-    transformable collections of values produced by functions
+    <span class="current">transformable collections of values produced by functions</span>
 * generators/iterators
 * infinite streams
 * deep code factoring (combinators)
@@ -151,7 +158,7 @@ There's just so little to get in the way
 * computed streams of data  
     transformable collections of values produced by functions
 * generators/iterators  
-    present datastructures as streams
+    <span class="current">present datastructures as streams</span>
 * infinite streams
 * deep code factoring (combinators)
 * extensible syntax (parsing tricks can make this even more powerful)
@@ -166,7 +173,7 @@ There's just so little to get in the way
 * generators/iterators  
     present datastructures as streams
 * infinite streams  
-    simple and complex streams of infinite values are good for loops and some computations
+    <span class="current">simple and complex streams of infinite values are good for loops and some computations</span>
 * deep code factoring (combinators)
 * extensible syntax (parsing tricks can make this even more powerful)
 * ***parallel computing*** (ooh... ahh...)
@@ -182,7 +189,7 @@ There's just so little to get in the way
 * infinite streams  
     simple and complex streams of infinite values are good for loops and some computations
 * deep code factoring (combinators)  
-    types of code factoring that you don't really see in mainstream languages (C/C++/Java/C#/Python)
+    <span class="current">types of code factoring that you don't really see in mainstream languages (C/C++/Java/C#/Python)</span>
 * extensible syntax (parsing tricks can make this even more powerful)
 * ***parallel computing*** (ooh... ahh...)
 ***
@@ -199,7 +206,7 @@ There's just so little to get in the way
 * deep code factoring (combinators)  
     types of code factoring that you don't really see in mainstream languages (C/C++/Java/C#/Python)
 * extensible syntax (parsing tricks can make this even more powerful)  
-    create Domain Specific Languages (DSLs)
+    <span class="current">create Domain Specific Languages (DSLs)</span>
 * ***parallel computing*** (ooh... ahh...)
 ***
 #Neato things that are easy to do in Lambda calculus
@@ -217,7 +224,7 @@ There's just so little to get in the way
 * extensible syntax (parsing tricks can make this even more powerful)  
     create Domain Specific Languages (DSLs)
 * ***parallel computing*** (ooh... ahh...)  
-    LC (and other functional languages) have tools for massively parallel programs (20,000+ threads)
+    <span class="current">Haskell (and other functional languages) have tools for massively parallel programs (20,000+ threads)</span>
 ***
 #Neato things that are easy to do in Lambda calculus
 
@@ -234,9 +241,9 @@ There's just so little to get in the way
 * extensible syntax (parsing tricks can make this even more powerful)  
     create Domain Specific Languages (DSLs)
 * ***parallel computing*** (ooh... ahh...)  
-    LC (and other functional languages) have tools for massively parallel programs (20,000+ threads)
+    Haskell (and other functional languages) have tools for massively parallel programs (20,000+ threads)
 
-You can do some of these things in a lot of other languages, but they probably won't be as straight-forward.  They can still be very useful and powerful, though.  One example of this is the [Functional Java](http://functionaljava.org/) library, which bolts functional capabilities onto Java.
+<span class="current">You can do some of these things in a lot of other languages, but they probably won't be as straight-forward.  They can still be very useful and powerful, though.  One example of this is the [Functional Java](http://functionaljava.org/) library, which bolts functional capabilities onto Java.</span>
 ***
 #Lambda Calculus is Primordial
 
@@ -267,7 +274,15 @@ WHAT THE?
 </h1></td></tr></table>
 ***
 <table style="position: absolute; height: 100%; width: 100%"><tr><td style="vertical-align: center"><h1 style="text-align: center; font-size: 64px">
-THERE IS NO RECURSION
+THERE ARE NO LOOPS
+</h1></td></tr></table>
+***
+<table style="position: absolute; height: 100%; width: 100%"><tr><td style="vertical-align: center"><h1 style="text-align: center; font-size: 64px">
+SH**...
+</h1></td></tr></table>
+***
+<table style="position: absolute; height: 100%; width: 100%"><tr><td style="vertical-align: center"><h1 style="text-align: center; font-size: 64px">
+THERE ISN'T EVEN RECURSION
 </h1></td></tr></table>
 ***
 <table style="position: absolute; height: 100%; width: 100%"><tr><td style="vertical-align: center"><h1 style="text-align: center; font-size: 64px">
@@ -286,7 +301,7 @@ It's easy to use, once you get the hang of it
 
 No numbers or comparisons &rArr; students can implement them themselves
 
-How do you define bits, numbers, and ">" in C or assembly?
+How do you define bits, numbers, and ">" in C or even in assembly?
 
 Students can even implement recursion themselves!
 
@@ -1093,6 +1108,19 @@ You can use infinite streams in a loop to generate values
 
 **`map FUNC (remove (not prime) naturals)`**  
 // this would be kind of like: for (i in naturals - !prime) {FUNC}, if `-` and `!` worked
+***
+#Infinite Streams
+
+* natural numbers
+* whole numbers
+* even numbers
+* random numbers
+* ...
+
+You can use infinite streams in a loop to generate values
+
+**`map FUNC (remove (not prime) naturals)`**  
+// this would be kind of like: for (i in naturals - !prime) {FUNC}, if `-` and `!` worked
 
 **`map FUNC (map square naturals)`**  
 // this would be kind of like: for (i in square * naturals) {...}, if `*` worked
@@ -1124,12 +1152,249 @@ You can transform and filter lists, just like you can in Smalltalk, LISP, Haskel
 "Currying" when mapping or filtering produces a new function that operates on any list
 
 You can compose them with other functions that operate on lists:  
-<code>mogrify = <span class="def">λfunc l</span> . map func (map square (remove (! (prime || ten || even)) l))</code>  
+<code>mogrify = <span class="def">λfunc l</span> . map func (map square (remove (! (prime || ten || even)) l))</code>
+
 `mogrify bob` uses currying to make a combinator you can use on lists or in other list combinators
 
 This makes it easy to create and reuse functions that transform lists
 
 You can use these techniques for things other than collections, too, like "parser combinators"
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+
+* monads let you sequence functional operations
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+
+* monads let you sequence functional operations
+ * let you appear to program imperatively (with the right syntactic sugar)
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+
+* monads let you sequence functional operations
+ * let you appear to program imperatively (with the right syntactic sugar)
+ * but actually, you are programming functionally
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+
+* monads let you sequence functional operations
+ * let you appear to program imperatively (with the right syntactic sugar)
+ * but actually, you are programming functionally
+* interact smoothly with external environments, like IO and window systems
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+
+* monads let you sequence functional operations
+ * let you appear to program imperatively (with the right syntactic sugar)
+ * but actually, you are programming functionally
+* interact smoothly with external environments, like IO and window systems
+* exception handling
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+
+* monads let you sequence functional operations
+ * let you appear to program imperatively (with the right syntactic sugar)
+ * but actually, you are programming functionally
+* interact smoothly with external environments, like IO and window systems
+* exception handling
+
+Haskell example:
+
+    do
+      printStr "Please enter your name: "
+      name <- getLine
+      name <- return (name ++ " Jr")
+      printStrLn ("Your actual name is: " ++ name)
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+
+* monads let you sequence functional operations
+ * let you appear to program imperatively (with the right syntactic sugar)
+ * but actually, you are programming functionally
+* interact smoothly with external environments, like IO and window systems
+* exception handling
+
+Haskell example:
+
+    do
+      printStr "Please enter your name: "
+      name <- getLine
+      name <- return (name ++ " Jr")
+      printStrLn ("Your actual name is: " ++ name)
+
+Lamda Calculus example:
+
+    bind (print hello) λx . bind (read nil) λy . return y
+***
+#Monads
+
+Monads are one of the treasures of Haskell
+
+* monads let you sequence functional operations
+ * let you appear to program imperatively (with the right syntactic sugar)
+ * but actually, you are programming functionally
+* interact smoothly with external environments, like IO and window systems
+* exception handling
+
+Haskell example:
+
+    do
+      printStr "Please enter your name: "
+      name <- getLine
+      name <- return (name ++ " Jr")
+      printStrLn ("Your actual name is: " ++ name)
+
+Lamda Calculus example:
+
+    bind (print Please-enter-your-name) λx . bind (read name) λnm . bind (return [nm, Jr]) \nm . print [Your, actual, name, is, nm]
+
+Or with slightly more readable syntax (only slightly):
+
+    bind (print Please-enter-your-name)
+      λx . bind (read name)
+      λnm . bind (return [nm, Jr])
+      λnm . bind (print [Your, actual, name, is, nm])
+***
+#How this IO Monad works
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+* Read creates a "read" IO monad with the text to prompt
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+* Read creates a "read" IO monad with the text to prompt
+* Return creates a "return" IO monad with the value to return
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+* Read creates a "read" IO monad with the text to prompt
+* Return creates a "return" IO monad with the value to return
+
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+* Read creates a "read" IO monad with the text to prompt
+* Return creates a "return" IO monad with the value to return
+
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
+
+* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+* Read creates a "read" IO monad with the text to prompt
+* Return creates a "return" IO monad with the value to return
+
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
+
+* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
+* Print: display the argument in a JavaScript alert, replace the current value with false
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+* Read creates a "read" IO monad with the text to prompt
+* Return creates a "return" IO monad with the value to return
+
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
+
+* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
+* Print: display the argument in a JavaScript alert, replace the current value with false
+* Read: prompt the user with the given prompt, replace the current value with the user's response
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+* Read creates a "read" IO monad with the text to prompt
+* Return creates a "return" IO monad with the value to return
+
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
+
+* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
+* Print: display the argument in a JavaScript alert, replace the current value with false
+* Read: prompt the user with the given prompt, replace the current value with the user's response
+* Return: replace the current value with the return argument
+***
+#How this IO Monad works
+
+It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+
+* Bind creates a "bind" IO monad with a lambda in it
+* Print creates a "print" IO monad with the thing to print
+* Read creates a "read" IO monad with the text to prompt
+* Return creates a "return" IO monad with the value to return
+
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
+
+* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
+* Print: display the argument in a JavaScript alert, replace the current value with false
+* Read: prompt the user with the given prompt, replace the current value with the user's response
+* Return: replace the current value with the return argument
+
+Later, we'll use the Lambda Calculator to step through some monads
 ***
 #Extensible Syntax
 
@@ -1243,6 +1508,12 @@ Parallel functional languages (like Haskell and Scala) support parallel list tra
 So they would send each element of the list to a different processor (if you have that many processors)
 
 This works on other types of collections, besides streams, of course (trees, arrays, etc.)
+***
+#Part 2
+
+Here is the [Lambda Calculus evaluator](evaluator.html), again :)
+
+Here is [Space Invaders in Lambda Calculus](http://tinyconcepts.com/invaders.html)
 ***
 # The End
 

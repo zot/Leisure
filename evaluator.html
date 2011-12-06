@@ -77,7 +77,7 @@ I use these in the example definitions to create an array-like syntax for lists,
 | =.= &lambda;f rest g . f false rest</pre>
 <br>
 <h3>IO Monad</h3>
-If you make an IO monad, a "Step" button will appear that you can use to step through your code.  Try testM1-testM9 to see it.  Just run one of the tests and Click the "Step" button that appears until you see the final result.
+If you make an IO monad, a "Step" button will appear that you can use to step through your code.  Try testM1-testM10 to see it.  Just run one of the tests and Click the "Step" button that appears until you see the final result.
 <br>
 The "stepIO" function in lc.js is the driver for the io monad.  The "Step" button calls it with the queued commands in the current IO monad and the latest return value.  If there is more computation left, it returns a two-element array containing the rest of the command list and the latest return value otherwise, it returns a one-element array containing only the final return value.
 <br>
@@ -160,29 +160,30 @@ dl = \list . append list
 dlAppend = \da db list . da (db list)
 dlList = \dl . dl nil
 # simple IO monad
+getCmdVal = \cmd . cmd ident
 makeIO = \cmds val f . f cmds val
 getCmds = \m . m (\cmds val . cmds)
 getAllCmds = \m . dlList (getCmds m)
 getVal = \m . m (\cmds val . val)
-return = \x . makeIO (dl nil) x
+returnCmd = \x f . f x
+return = \x . makeIO (dl [(returnCmd x)]) x
 bindCmd = \action f . f action
 getBindAction = \cmd . cmd ident
 bind = \io f . io \cmds val . makeIO (dlAppend cmds (dl [(bindCmd f)])) false
 printCmd = \thing f . f thing
-getPrintedThing = \pcmd . pcmd \t . t
-print = \thing . makeIO (append [(printCmd thing)]) false
-readCmd = \x y . read
-read = \x . makeIO (append [(readCmd nil)]) false
+print = \thing . makeIO (dl [(printCmd thing)]) false
+readCmd = \prompt f . f prompt
+read = \prompt . makeIO (dl [(readCmd prompt)]) false
 testM1 = return 3
 testM2 = print hello
 testM3 = read nil
-testM4 = bind (read nil) \x . print x
-testM5 = bind (read nil) \x . bind (print x) \y . bind (read nil) \z . bind (print z) \q . return 50
-testM6 = bind (print one) \x . bind (read nil) \y . print y
+testM4 = bind (read [Please, type, something]) \x . print x
+testM5 = bind (read One) \x . bind (print x) \y . bind (read Two) \z . bind (print z) \q . return 50
+testM6 = bind (print one) \x . bind (read Two) \y . print y
 testM7 = bind (print one) \x . return 3
 testM8 = bind (print one) \x . bind (print two) \y . bind (print three) \z . return z
-testM9 = bind (print hello) \x . bind (read nil) \y . return y
-testM10 = bind (read nil) \x . bind (bind (read nil) \y . return y) \z . return x
+testM9 = bind (print hello) \x . bind (read Goodbye) \y . return y
+testM10 = bind (read One) \x . bind (bind (read Two) \y . return y) \z . return x
 
 #define puts i32 @puts(i8* nocapture) nounwind
 #define putsl i32 @putsl(i8* nocapture) nounwind
