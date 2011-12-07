@@ -137,7 +137,7 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 # also allows [1, 2, 3 | REST ] (like Prolog)
 
 [ =(]= \item c . c \cont rest . cons item rest
-, =.= \f . \item c . c \cont rest . f true (cons item rest)
+, =.= \f item c . c \cont rest . f true (cons item rest)
 ] =)= \f . f false nil
 | =.= \f rest g . f false rest
 ident = \x . x
@@ -161,29 +161,28 @@ dlAppend = \da db list . da (db list)
 dlList = \dl . dl nil
 # simple IO monad
 getCmdVal = \cmd . cmd ident
-makeIO = \cmds val f . f cmds val
-getCmds = \m . m (\cmds val . cmds)
+makeIO = \cmds f . f cmds
+getCmds = \m . m (\cmds . cmds)
 getAllCmds = \m . dlList (getCmds m)
-getVal = \m . m (\cmds val . val)
 returnCmd = \x f . f x
-return = \x . makeIO (dl [(returnCmd x)]) x
+return = \x . makeIO (dl [(returnCmd x)])
 bindCmd = \action f . f action
 getBindAction = \cmd . cmd ident
-bind = \io f . io \cmds val . makeIO (dlAppend cmds (dl [(bindCmd f)])) false
-printCmd = \thing f . f thing
-print = \thing . makeIO (dl [(printCmd thing)]) false
-readCmd = \prompt f . f prompt
-read = \prompt . makeIO (dl [(readCmd prompt)]) false
+bind = \io f . io \cmds . makeIO (dlAppend cmds (dl [(bindCmd f)]))
+alertCmd = \thing f . f thing
+alert = \thing . makeIO (dl [(alertCmd thing)])
+promptCmd = \prompt f . f prompt
+prompt = \prompt . makeIO (dl [(promptCmd prompt)])
 testM1 = return 3
-testM2 = print hello
-testM3 = read nil
-testM4 = bind (read [Please, type, something]) \x . print x
-testM5 = bind (read One) \x . bind (print x) \y . bind (read Two) \z . bind (print z) \q . return 50
-testM6 = bind (print one) \x . bind (read Two) \y . print y
-testM7 = bind (print one) \x . return 3
-testM8 = bind (print one) \x . bind (print two) \y . bind (print three) \z . return z
-testM9 = bind (print hello) \x . bind (read Goodbye) \y . return y
-testM10 = bind (read One) \x . bind (bind (read Two) \y . return y) \z . return x
+testM2 = alert hello
+testM3 = prompt nil
+testM4 = bind (prompt [Please, type, something]) \x . alert x
+testM5 = bind (prompt One) \x . bind (alert x) \y . bind (prompt Two) \z . bind (alert z) \q . return [x, z]
+testM6 = bind (alert one) \x . bind (prompt Two) \y . alert y
+testM7 = bind (alert one) \x . return 3
+testM8 = bind (alert one) \x . bind (alert two) \y . bind (alert three) \z . return z
+testM9 = bind (alert hello) \x . bind (prompt Goodbye) \y . return y
+testM10 = bind (prompt One) \x . bind (bind (prompt Two) \y . return y) \z . return x
 
 sunday = \sun mon tue wed thu fri sat . sun
 monday = \sun mon tue wed thu fri sat . mon
@@ -197,6 +196,8 @@ dayName = \day . day Sunday Monday Tuesday Wednesday Thursday Friday Saturday
 nextDay = \day sun mon tue wed thu fri sat . day mon tue wed thu fri sat sun
 prevDay = \day sun mon tue wed thu fri sat . day sat sun mon tue wed thu fri
 testDay = dayName (nextDay monday)
+
+testMName = bind (alert Please-enter-your-name) \x . bind (prompt name) \nm . bind (return [nm, Jr]) \nm . alert [Your, actual, name, is, nm]
 
 #define puts i32 @puts(i8* nocapture) nounwind
 #define putsl i32 @putsl(i8* nocapture) nounwind

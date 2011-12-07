@@ -1334,7 +1334,7 @@ Haskell example:
 
 Lamda Calculus example:
 
-    bind (print hello) λx . bind (read nil) λy . return y
+    bind (alert hello) λx . bind (prompt nil) λy . return y
 ***
 #Monads
 
@@ -1356,143 +1356,189 @@ Haskell example:
 
 Lamda Calculus example:
 
-    bind (print Please-enter-your-name) λx . bind (read name) λnm . bind (return [nm, Jr]) \nm . print [Your, actual, name, is, nm]
+    bind (alert Please-enter-your-name) λx . bind (prompt name) λnm . bind (return [nm, Jr]) λnm . alert [Your, actual, name, is, nm]
 
 Or with slightly more readable syntax (only slightly):
 
-    bind (print Please-enter-your-name)
-      λx . bind (read name)
+    bind (alert Please-enter-your-name)
+      λx . bind (prompt name)
       λnm . bind (return [nm, Jr])
-      λnm . bind (print [Your, actual, name, is, nm])
+      λnm . bind (alert [Your, actual, name, is, nm])
 ***
-#How this IO Monad works
+#Monads
+
+We have a little IO monad!
 ***
-#How this IO Monad works
+#What Our Little IO Monad is
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+It's pretty much an implementation of the command pattern.  The result of a bunch of monad code is a monad containing a list of commands.
 ***
-#How this IO Monad works
+#What Our Little IO Monad is
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+It's pretty much an implementation of the command pattern.  The result of a bunch of monad code is a monad containing a list of commands.
 
-* Bind creates a "bind" IO monad with a lambda in it
+* Bind "extends" an IO monad by making a new monad with the old commands and a new "bind" command with the lambda in it
 ***
-#How this IO Monad works
+#What Our Little IO Monad is
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+It's pretty much an implementation of the command pattern.  The result of a bunch of monad code is a monad containing a list of commands.
 
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
+* Bind "extends" an IO monad by making a new monad with the old commands and a new "bind" command with the lambda in it
+ * I.e. it doesn't actually execute the lambda body (that happens later)
 ***
-#How this IO Monad works
+#What Our Little IO Monad is
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+It's pretty much an implementation of the command pattern.  The result of a bunch of monad code is a monad containing a list of commands.
 
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
-* Read creates a "read" IO monad with the text to prompt
+* Bind "extends" an IO monad by making a new monad with the old commands and a new "bind" command with the lambda in it
+ * I.e. it doesn't actually execute the lambda body (that happens later)
+* Alert creates an "alert" command with the thing to alert
 ***
-#How this IO Monad works
+#What Our Little IO Monad is
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+It's pretty much an implementation of the command pattern.  The result of a bunch of monad code is a monad containing a list of commands.
 
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
-* Read creates a "read" IO monad with the text to prompt
-* Return creates a "return" IO monad with the value to return
+* Bind "extends" an IO monad by making a new monad with the old commands and a new "bind" command with the lambda in it
+ * I.e. it doesn't actually execute the lambda body (that happens later)
+* Alert creates an "alert" command with the thing to alert
+* Prompt creates a "prompt" command with the message to use in the prompt
 ***
-#How this IO Monad works
+#What Our Little IO Monad is
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+It's pretty much an implementation of the command pattern.  The result of a bunch of monad code is a monad containing a list of commands.
 
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
-* Read creates a "read" IO monad with the text to prompt
-* Return creates a "return" IO monad with the value to return
-
-A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
+* Bind "extends" an IO monad by making a new monad with the old commands and a new "bind" command with the lambda in it
+ * I.e. it doesn't actually execute the lambda body (that happens later)
+* Alert creates an "alert" command with the thing to alert
+* Prompt creates a "prompt" command with the message to use in the prompt
+* Return creates a "return" command with the value to return
 ***
-#How this IO Monad works
+#What Our Little IO Monad does
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
-
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
-* Read creates a "read" IO monad with the text to prompt
-* Return creates a "return" IO monad with the value to return
-
-A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
-
-* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It keeps track of the "current value" (starting at false) as it executes commands:
 ***
-#How this IO Monad works
+#What Our Little IO Monad does
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It keeps track of the "current value" (starting at false) as it executes commands:
 
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
-* Read creates a "read" IO monad with the text to prompt
-* Return creates a "return" IO monad with the value to return
-
-A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
-
-* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
-* Print: display the argument in a JavaScript alert, replace the current value with false
+* Bind: call the lambda with the current value, which returns another monad, then add that monad's commands to the front of the current list of commands, then change the current value to false
 ***
-#How this IO Monad works
+#What Our Little IO Monad does
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It keeps track of the "current value" (starting at false) as it executes commands:
 
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
-* Read creates a "read" IO monad with the text to prompt
-* Return creates a "return" IO monad with the value to return
-
-A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
-
-* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
-* Print: display the argument in a JavaScript alert, replace the current value with false
-* Read: prompt the user with the given prompt, replace the current value with the user's response
+* Bind: call the lambda with the current value, which returns another monad, then add that monad's commands to the front of the current list of commands, then change the current value to false
+* Alert: display the argument in a JavaScript alert, then change the current value to false
 ***
-#How this IO Monad works
+#What Our Little IO Monad does
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It keeps track of the "current value" (starting at false) as it executes commands:
 
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
-* Read creates a "read" IO monad with the text to prompt
-* Return creates a "return" IO monad with the value to return
-
-A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
-
-* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
-* Print: display the argument in a JavaScript alert, replace the current value with false
-* Read: prompt the user with the given prompt, replace the current value with the user's response
-* Return: replace the current value with the return argument
+* Bind: call the lambda with the current value, which returns another monad, then add that monad's commands to the front of the current list of commands, then change the current value to false
+* Alert: display the argument in a JavaScript alert, then change the current value to false
+* Prompt: prompt the user with the given prompt, then change the current value to the user's response
 ***
-#How this IO Monad works
+#What Our Little IO Monad does
 
-It functions like the command pattern.  The result of a string of binds is a monad containing a list of commands.
+A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It keeps track of the "current value" (starting at false) as it executes commands:
 
-* Bind creates a "bind" IO monad with a lambda in it
-* Print creates a "print" IO monad with the thing to print
-* Read creates a "read" IO monad with the text to prompt
-* Return creates a "return" IO monad with the value to return
+* Bind: call the lambda with the current value, which returns another monad, then add that monad's commands to the front of the current list of commands, then change the current value to false
+* Alert: display the argument in a JavaScript alert, then change the current value to false
+* Prompt: prompt the user with the given prompt, then change the current value to the user's response
+* Return: change the current value to the return argument
+***
+#How Our Little IO Monad is Defined
 
-A small, JavaScript "driver" function executes the monad's list of commands, which allows you to keep side effects out of your funcitonal code.  It executes the commands in the following way, keeping track of the current value (which starts as false):
+* <code>makeIO  = <span class="def">λcmds f</span> . f cmds</code>
+***
+#How Our Little IO Monad is Defined
 
-* Bind: call the lambda, which returns another monad, then add that monad's commands at the front of the current list of commands, replace the current value with the monad's value
-* Print: display the argument in a JavaScript alert, replace the current value with false
-* Read: prompt the user with the given prompt, replace the current value with the user's response
-* Return: replace the current value with the return argument
+* <code>makeIO  = <span class="def">λcmds f</span> . f cmds</code>
+
+Commands:
+
+* <code>return  = <span class="def">λx</span> . makeIO [(returnCmd x)] </code>
+* <code>alert	= <span class="def">λthing</span> . makeIO [(alertCmd thing)] </code>
+* <code>prompt	= <span class="def">λmsg</span> . makeIO [(promptCmd msg)] </code>
+* <code>bind	= <span class="def">λio f</span> . io <span class="def">λcmds</span> . makeIO (append cmds [(bindCmd f)])</code>
+***
+#How Our Little IO Monad is Defined
+
+* <code>makeIO  = <span class="def">λcmds f</span> . f cmds</code>
+
+Commands:
+
+* <code>return  = <span class="def">λx</span> . makeIO [(returnCmd x)] </code>
+* <code>alert	= <span class="def">λthing</span> . makeIO [(alertCmd thing)] </code>
+* <code>prompt	= <span class="def">λmsg</span> . makeIO [(promptCmd msg)] </code>
+* <code>bind	= <span class="def">λio f</span> . io <span class="def">λcmds</span> . makeIO (append cmds [(bindCmd f)])</code>
+
+Command data:
+
+* <code>returnCmd = <span class="def">λx f</span> . f x</code>
+* <code>alertCmd	= <span class="def">λthing f</span> . f thing</code>
+* <code>promptCmd	= <span class="def">λprompt f</span> . f prompt</code>
+* <code>bindCmd   = <span class="def">λaction f</span> . f action</code>
+***
+#How Our Little IO Monad is Defined
+
+* <code>makeIO  = <span class="def">λcmds f</span> . f cmds</code>
+
+Commands:
+
+* <code>return  = <span class="def">λx</span> . makeIO [(returnCmd x)] </code>
+* <code>alert	= <span class="def">λthing</span> . makeIO [(alertCmd thing)] </code>
+* <code>prompt	= <span class="def">λmsg</span> . makeIO [(promptCmd msg)] </code>
+* <code>bind	= <span class="def">λio f</span> . io <span class="def">λcmds</span> . makeIO (append cmds [(bindCmd f)])</code>
+
+Command data:
+
+* <code>returnCmd = <span class="def">λx f</span> . f x</code>
+* <code>alertCmd	= <span class="def">λthing f</span> . f thing</code>
+* <code>promptCmd	= <span class="def">λprompt f</span> . f prompt</code>
+* <code>bindCmd   = <span class="def">λaction f</span> . f action</code>
 
 Later, we'll use the Lambda Calculator to step through some monads
 ***
 #Extensible Syntax
 
-`[ 1 , 2 , 3 ]` constructs lists
+`[1, 2, 3]` constructs lists
+***
+#Extensible Syntax
 
-`[`, `,`, and `]` are really just functions
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+
+`[` creates a "list builder function"
+
+`,` makes the list builder continue
+
+`]` makes the list builder produce the final list
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
 
 `[` creates a "list builder function"
 
@@ -1500,7 +1546,45 @@ Later, we'll use the Lambda Calculator to step through some monads
 
 `]` makes the list builder produce the final list
 
-Without any extra rules, you can make functions that look like infix
+So, without any extra syntax rules, you can make functions that look like infix
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+
+`[` creates a "list builder function"
+
+`,` makes the list builder continue
+
+`]` makes the list builder produce the final list
+
+So, without any extra syntax rules, you can make functions that look like infix
+
+Extra parsing goodies will let you do even better
+
+Like allowing you to leave out spaces and define groups:
+
+`append [1,2,3] [4,5]`
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+
+`[` creates a "list builder function"
+
+`,` makes the list builder continue
+
+`]` makes the list builder produce the final list
+
+So, without any extra syntax rules, you can make functions that look like infix
 
 Extra parsing goodies will let you do even better
 
@@ -1509,6 +1593,84 @@ Like allowing you to leave out spaces and define groups:
 `append [1,2,3] [4,5]`
 
 This and custom control structures are good for creating your own "[DSLs](http://en.wikipedia.org/wiki/Domain-specific_language)" -- domain specific languages
+***
+#Extensible Syntax
+
+Here are the definitions :D
+***
+#Extensible Syntax
+
+Here are the definitions :D
+
+For purposes of meditation
+***
+#Extensible Syntax
+
+Here are the definitions :D
+
+For purposes of meditation (*torture*?)
+***
+#Extensible Syntax
+
+Here are the definitions :D
+
+For purposes of meditation (*torture*?)
+
+<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λcont rest</span> . cons item rest</code>
+
+<code>, =.= <span class="def">λf item c</span> . c <span class="def">λcont rest</span> . f true (cons item rest)</code>
+
+<code>] =)= <span class="def">λf</span> . f false nil</code>
+
+<code>| =.= <span class="def">λf rest g</span> . f false rest</code>
+***
+#Extensible Syntax
+
+Here are the definitions :D
+
+For purposes of meditation (*torture*?)
+
+<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λcont rest</span> . cons item rest</code>
+
+<code>, =.= <span class="def">λf item c</span> . c <span class="def">λcont rest</span> . f true (cons item rest)</code>
+
+<code>] =)= <span class="def">λf</span> . f false nil</code>
+
+<code>| =.= <span class="def">λf rest g</span> . f false rest</code>
+
+This demonstrates =.=, =(?=, and =)=; our lame syntax additions...
+
+=.= makes a function that doesn't need spaces to delimit it
+
+=(?= makes a function that starts a group and specifies the end group function name (the '?')
+
+=)= makes a function that closes a group
+***
+#Extensible Syntax
+
+Here are the definitions :D
+
+For purposes of meditation (*torture*?)
+
+<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λcont rest</span> . cons item rest</code>
+
+<code>, =.= <span class="def">λf item c</span> . c <span class="def">λcont rest</span> . f true (cons item rest)</code>
+
+<code>] =)= <span class="def">λf</span> . f false nil</code>
+
+<code>| =.= <span class="def">λf rest g</span> . f false rest</code>
+
+This demonstrates =.=, =(?=, and =)=; our lame syntax additions...
+
+=.= makes a function that doesn't need spaces to delimit it
+
+=(?= makes a function that starts a group and specifies the end group function name (the '?')
+
+=)= makes a function that closes a group
+
+so ...{group-start}...{group-close}... is the same as ... ( {group-start} ... {group-close} ) ...
+
+and ...{token}... is the same as ... {token} ...
 ***
 #Parallel Computing
 
@@ -1560,7 +1722,7 @@ And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 
 NVIDIA Fermi needs to run over 20,000 of threads for optimal usage
 
-But to use that many threads, we needs automatic ways to *massively* parellelize code
+But to use that many threads, we need automatic ways to *massively* parellelize code
 ***
 #Parallel Computing
 
@@ -1572,7 +1734,7 @@ And speed != efficiency (a Viper isn't quite as efficient as a Prius)
 
 NVIDIA Fermi needs to run over 20,000 of threads for optimal usage
 
-But to use that many threads, we needs automatic ways to *massively* parellelize code
+But to use that many threads, we need automatic ways to *massively* parellelize code
 
 Relegating high-level tasks to another thread (like updating a browser tab) isn't good enough
 ***

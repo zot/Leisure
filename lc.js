@@ -31,12 +31,11 @@ var Lhead
 var Ltail
 var Lappend
 var ioMonadId
-var printCmdId
-var readCmdId
+var alertCmdId
+var promptCmdId
 var bindCmdId
 var returnCmdId
 var getCmds
-var getVal
 var getCmdVal
 var getBindAction
 var Ldl
@@ -158,14 +157,13 @@ function findCons() {
 	Lappend = lcode2('append')
     }
     if (LC.L._makeIO) {
-	ioMonadId = LC.L._makeIO().lambda.body.body.id
-	printCmdId = LC.L._printCmd().lambda.body.id
-	readCmdId = LC.L._readCmd().lambda.body.id
+	ioMonadId = LC.L._makeIO().lambda.body.id
+	alertCmdId = LC.L._alertCmd().lambda.body.id
+	promptCmdId = LC.L._promptCmd().lambda.body.id
 	returnCmdId = LC.L._returnCmd().lambda.body.id
 	bindCmdId = LC.L._bindCmd().lambda.body.id
 	getCmds = lcode2('getCmds')
 	LC.getAllCmds = getAllCmds = lcode2('getAllCmds')
-	LC.getVal = getVal = lcode2('getVal')
 	getCmdVal = lcode2('getCmdVal')
 	getBindAction = lcode2('getBindAction')
 	Ldl = lcode2('dl')
@@ -207,10 +205,10 @@ function stepIO(commands, lastRet) {
 	}
 	var head = Lhead(commands)
 	switch (lambdaId(head)) {
-	case printCmdId:
-	    alert("Print: " + pretty(getCmdVal(head)))
-	    return [Ltail(commands), getVal(head)]
-	case readCmdId: return [Ltail(commands), prompt(pretty(getCmdVal(head)))]
+	case alertCmdId:
+	    alert(pretty(getCmdVal(head)))
+	    return [Ltail(commands), false]
+	case promptCmdId: return [Ltail(commands), prompt(pretty(getCmdVal(head)))]
 	case returnCmdId:
 	    commands = Ltail(commands)
 	    lastRet = getCmdVal(head)
@@ -220,15 +218,11 @@ function stepIO(commands, lastRet) {
 	    var monad = action(wrap(lastRet))
 
 	    commands = LdlList(LdlAppend(getCmds(monad), Ldl(Ltail(commands))))
-	    lastRet = getVal(monad)
+	    lastRet = false
 	    continue
 	}
 	throw new Error("unknown command: " + pretty(head))
     }
-}
-function primRead(arg) {
-    if (!arg.memo) arg.memo = prompt("Input...")
-    return arg.memo
 }
 function getLambda(l) {return l instanceof Entity ? l : l.lambda}
 function lambdaId(l) {var lam = getLambda(l); return lam && lam.id || null}
@@ -241,9 +235,9 @@ function pretty(l, nosubs) {
     if (lam) {
 	if (isCons(l)) return '[' + elements(l, true, nosubs) + ']'
 	if (ioMonadId) switch (lambdaId(l)) {
-	case ioMonadId: return "MONAD(" + pretty(getAllCmds(l)) + ", " + pretty(getVal(l)) + ")"
-	case printCmdId: return "print(" + pretty(getCmdVal(l)) + ")"
-	case readCmdId: return "read("+pretty(getCmdVal(l))+")"
+	case ioMonadId: return "IO MONAD(" + pretty(getAllCmds(l)) + ")"
+	case alertCmdId: return "alert(" + pretty(getCmdVal(l)) + ")"
+	case promptCmdId: return "prompt("+pretty(getCmdVal(l))+")"
 	case returnCmdId: return "return("+pretty(getCmdVal(l))+")"
 	case bindCmdId: return "bind("+pretty(getBindAction(l))+")"
 	}
@@ -911,7 +905,6 @@ var LC = {
     index: index,
     getLambda: getLambda,
     isIOMonad: isIOMonad,
-    getVal: getVal,
     stepIO: stepIO,
     isNil: isNil,
     getAllCmds: null,

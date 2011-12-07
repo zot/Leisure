@@ -24,7 +24,7 @@ function setShowPretty(state) {
 }
 function step(value) {
     if (pendingIO == null || pendingMonad != value) {
-	pendingIO = [LC.getAllCmds(value), LC.getVal(value)]
+	pendingIO = [LC.getAllCmds(value), false]
 	pendingMonad = value
     }
     pendingIO = LC.stepIO(pendingIO[0], pendingIO[1])
