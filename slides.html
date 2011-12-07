@@ -448,7 +448,7 @@ Calling `t` with `1` substitutes `1` for `a` in the body: <code>t 1 &rArr; <span
 
 When you call that function with any argument, you get 1, because that's the body: <code>(t 1) 2 &rArr; 1</code>
 
-LC is "right associative" and lets you say `t 1 2`, instead of `(t 1) 2`
+LC is "left associative" and lets you say `t 1 2`, instead of `(t 1) 2`
 
 (So `t 1` is really currying `t 1 2`)
 
@@ -508,7 +508,7 @@ You can call that with a number to get a "person record":
 
 Lambda Calculus is "left associative" to make this easier:
 
-<code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
+<code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 ***
 #Brief Overview: Data
 
@@ -537,7 +537,7 @@ We used currying to create a "person record"...
 
 * <code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
-<code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
+<code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 ***
 #Brief Overview: Data
 
@@ -547,7 +547,7 @@ We used currying to create a "person record"...
 
 * <code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
-<code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
+<code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 
 See how `makePerson` defines this `f` argument, but we aren't using it?
 ***
@@ -559,7 +559,7 @@ We used currying to create a "person record"...
 
 * <code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
-<code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
+<code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 
 See how `makePerson` defines this `f` argument, but we aren't using it?
 
@@ -573,7 +573,7 @@ We used currying to create a "person record"...
 
 * <code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
-<code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
+<code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 
 See how `makePerson` defines this `f` argument, but we aren't using it?
 
@@ -589,7 +589,7 @@ We used currying to create a "person record"...
 
 * <code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
-<code>makePerson fred 777-2344 &rArr; <span class="def">λnumber f</span> . f fred 777-2344</code>
+<code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 
 See how `makePerson` defines this `f` argument, but we aren't using it?
 
@@ -963,7 +963,7 @@ Here are the LC definitions:
 * <code>nil = <span class="def">λa b</span> . b</code>
 * <code>null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true</code>
 
-Null uses a currying trick to return whether or not a list is `nil`
+Null returns whether or not a list is `nil` and uses a currying trick to do it...
 ***
 #Computed Streams of Data
 
@@ -977,7 +977,71 @@ Here are the LC definitions:
 * <code>nil = <span class="def">λa b</span> . b</code>
 * <code>null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true</code>
 
-Null uses a currying trick to return whether or not a list is `nil`
+Null returns whether or not a list is `nil` and uses a currying trick to do it...
+
+if list is empty, then it's "false", and  it will just ignore the first argument, so that's "normal"
+***
+#Computed Streams of Data
+
+`cons A (cons B (cons C nil))` &rArr; `[A, B, C]`
+
+Here are the LC definitions:
+
+* <code>cons = <span class="def">λh t f</span> . f h t</code>
+* <code>head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)</code>
+* <code>tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)</code>
+* <code>nil = <span class="def">λa b</span> . b</code>
+* <code>null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true</code>
+
+Null returns whether or not a list is `nil` and uses a currying trick to do it...
+
+if list is empty, then it's "false", and  it will just ignore the first argument, so that's "normal"
+
+but what if list is not empty?
+***
+#Computed Streams of Data
+
+`cons A (cons B (cons C nil))` &rArr; `[A, B, C]`
+
+Here are the LC definitions:
+
+* <code>cons = <span class="def">λh t f</span> . f h t</code>
+* <code>head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)</code>
+* <code>tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)</code>
+* <code>nil = <span class="def">λa b</span> . b</code>
+* <code>null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true</code>
+
+Null returns whether or not a list is `nil` and uses a currying trick to do it...
+
+if list is empty, then it's "false", and  it will just ignore the first argument, so that's "normal"
+
+but what if list is not empty?
+
+list (<span class="def">λhead tail DUMMY</span> . false) true</code><br>
+&rArr; (<span class="def">λDUMMY</span> . false) true</code><br>
+&rArr; false
+***
+#Computed Streams of Data
+
+`cons A (cons B (cons C nil))` &rArr; `[A, B, C]`
+
+Here are the LC definitions:
+
+* <code>cons = <span class="def">λh t f</span> . f h t</code>
+* <code>head = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . head)</code>
+* <code>tail = <span class="def">λlist</span> . list (<span class="def">λhead tail</span> . tail)</code>
+* <code>nil = <span class="def">λa b</span> . b</code>
+* <code>null = <span class="def">λlist</span> . list (<span class="def">λhead tail DUMMY </span> . false) true</code>
+
+Null returns whether or not a list is `nil` and uses a currying trick to do it...
+
+if list is empty, then it's "false", and  it will just ignore the first argument, so that's "normal"
+
+but what if list is not empty?
+
+list (<span class="def">λhead tail DUMMY</span> . false) true</code><br>
+&rArr; (<span class="def">λDUMMY</span> . false) true</code><br>
+&rArr; false
 
 Lazy evaluation makes computing a list in LC like making a Java/C++ iterator or a Python generator
 ***
@@ -1067,7 +1131,7 @@ Kind of like SQL, only for lists
 
 Whenever you make a list, the head and tail remain "in stasis" because of lazy evaluation
 
-(this is true for all data structions in LC, of course)
+(this is true for all data structions in LC, of course, since they are just functions)
 
 So, lists in LC act a lot like generators and iterators do in Python/JavaScript/Java/C++
 
@@ -1077,7 +1141,7 @@ Except that a list is a "regular" data structure; you can reaccess it
 
 Whenever you make a list, the head and tail remain "in stasis" because of lazy evaluation
 
-(this is true for all data structions in LC, of course)
+(this is true for all data structions in LC, of course, since they are just functions)
 
 So, lists in LC act a lot like generators and iterators do in Python/JavaScript/Java/C++
 
@@ -1089,7 +1153,7 @@ Except that a list is a "regular" data structure; you can reaccess it
 
 Whenever you make a list, the head and tail remain "in stasis" because of lazy evaluation
 
-(this is true for all data structions in LC, of course)
+(this is true for all data structions in LC, of course, since they are just functions)
 
 So, lists in LC act a lot like generators and iterators do in Python/JavaScript/Java/C++
 
