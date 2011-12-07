@@ -136,10 +136,10 @@ reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
 # no post processing
 # also allows [1, 2, 3 | REST ] (like Prolog)
 
-[ =(]= \item c . c \cont rest . cons item rest
-, =.= \f item c . c \cont rest . f true (cons item rest)
-] =)= \f . f false nil
-| =.= \f rest g . f false rest
+[ =(]= \item c . c \rest . cons item rest
+, =.= \f item c . c \rest . f (cons item rest)
+] =)= \f . f nil
+| =.= \f rest g . f rest
 ident = \x . x
 1f = \1 f . f 1
 get = \f . f ident
@@ -197,7 +197,7 @@ nextDay = \day sun mon tue wed thu fri sat . day mon tue wed thu fri sat sun
 prevDay = \day sun mon tue wed thu fri sat . day sat sun mon tue wed thu fri
 testDay = dayName (nextDay monday)
 
-testMName = bind (alert Please-enter-your-name) \x . bind (prompt name) \nm . bind (return [nm, Jr]) \nm . alert [Your, actual, name, is, nm]
+testMName = bind (alert Please-enter-your-name) \_ . bind (prompt name) \nm . bind (return [nm, Jr]) \nm . alert [Your, actual, name, is, nm]
 
 #define puts i32 @puts(i8* nocapture) nounwind
 #define putsl i32 @putsl(i8* nocapture) nounwind
