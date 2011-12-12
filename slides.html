@@ -1316,6 +1316,274 @@ This makes it easy to create and reuse functions that transform lists
 
 You can use these techniques for things other than collections, too, like "parser combinators"
 ***
+#List Buffers
+
+Successively append items to a list.
+
+empty &rArr; &lt;an empty buffer&gt;<br>
+add buf element &rArr; &lt;a new buffer with element added to the end&gt;<br>
+buffer nil &rArr; &lt;the buffer's list&gt;<br>
+***
+#List Buffers
+
+Successively append items to a list.
+
+empty &rArr; &lt;an empty buffer&gt;<br>
+add buf element &rArr; &lt;a new buffer with element added to the end&gt;<br>
+buffer nil &rArr; &lt;the buffer's list&gt;<br>
+
+<code>add (add ident 1) 2 nil &rArr; [1, 2]</code>
+***
+#List Buffers
+
+Successively append items to a list.
+
+empty &rArr; &lt;an empty buffer&gt;<br>
+add buf element &rArr; &lt;a new buffer with element added to the end&gt;<br>
+buffer nil &rArr; &lt;the buffer's list&gt;<br>
+
+<code>add (add ident 1) 2 nil &rArr; [1, 2]</code>
+
+<code>empty = <span class="def">λx</span> . x</code><br>
+<code>add = <span class="def">λbuffer element nextElements</span> . buffer (cons element nextElements)</code>
+***
+#List Buffers
+
+Successively append items to a list.
+
+empty &rArr; &lt;an empty buffer&gt;<br>
+add buf element &rArr; &lt;a new buffer with element added to the end&gt;<br>
+buffer nil &rArr; &lt;the buffer's list&gt;<br>
+
+<code>add (add ident 1) 2 nil &rArr; [1, 2]</code>
+
+<code>empty = <span class="def">λx</span> . x</code><br>
+<code>add = <span class="def">λbuffer element nextElements</span> . buffer (cons element nextElements)</code>
+
+'Empty' is the identity function
+
+'Add' returns a function that puts one more cons in the list when you only pass in two of the three arguments
+***
+#Difference Lists
+
+Like list buffers, but you can append lists instead of just adding elements, so we use the same technique, but with 'append' instead of 'cons'.  Why use these instead of regular lists?  They append in O(n) instead of O(n^2).
+
+empty &rArr; &lt;an empty buffer&gt;<br>
+dl list &rArr; &lt;a difference list&gt;<br>
+addDl dl1 dl2 &rArr; &lt;a new difference list that appends the two lists&gt;<br>
+&lt;d-list&gt; nil &rArr; &lt;the difference list's list&gt;<br>
+***
+#Difference Lists
+
+Like list buffers, but you can append lists instead of just adding elements, so we use the same technique, but with 'append' instead of 'cons'.  Why use these instead of regular lists?  They append in O(n) instead of O(n^2).
+
+empty &rArr; &lt;an empty buffer&gt;<br>
+dl list &rArr; &lt;a difference list&gt;<br>
+addDl dl1 dl2 &rArr; &lt;a new difference list that appends the two lists&gt;<br>
+&lt;d-list&gt; nil &rArr; &lt;the difference list's list&gt;<br>
+
+<code>addDl (addDl ident (dl [1,2,3])) (dl [4,5,6]) nil &rArr; [1,2,3,4,5,6]</code>
+***
+#Difference Lists
+
+Like list buffers, but you can append lists instead of just adding elements, so we use the same technique, but with 'append' instead of 'cons'.  Why use these instead of regular lists?  They append in O(n) instead of O(n^2).
+
+empty &rArr; &lt;an empty buffer&gt;<br>
+dl list &rArr; &lt;a difference list&gt;<br>
+addDl dl1 dl2 &rArr; &lt;a new difference list that appends the two lists&gt;<br>
+&lt;d-list&gt; nil &rArr; &lt;the difference list's list&gt;<br>
+
+<code>addDl (addDl ident (dl [1,2,3])) (dl [4,5,6]) nil &rArr; [1,2,3,4,5,6]</code>
+
+or, since difference lists just append their agrument,
+
+<code>addDl ident (dl [1,2,3]) [4,5,6] &rArr; [1,2,3,4,5,6]</code>
+***
+#Difference Lists
+
+Like list buffers, but you can append lists instead of just adding elements, so we use the same technique, but with 'append' instead of 'cons'.  Why use these instead of regular lists?  They append in O(n) instead of O(n^2).
+
+empty &rArr; &lt;an empty buffer&gt;<br>
+dl list &rArr; &lt;a difference list&gt;<br>
+addDl dl1 dl2 &rArr; &lt;a new difference list that appends the two lists&gt;<br>
+&lt;d-list&gt; nil &rArr; &lt;the difference list's list&gt;<br>
+
+<code>addDl (addDl ident (dl [1,2,3])) (dl [4,5,6]) nil &rArr; [1,2,3,4,5,6]</code>
+
+or, since difference lists just append their agrument,
+
+<code>addDl ident (dl [1,2,3]) [4,5,6] &rArr; [1,2,3,4,5,6]</code>
+
+<code>empty = <span class="def">λx</span> . x</code><br>
+<code>dl = append</code><br>
+<code>addDl = <span class="def">λdl1 dl2 newDl</span> . dl1 (dl2 newDl)</code><br>
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+
+`[` creates a "list builder function"
+
+`,` makes the list builder continue
+
+`]` makes the list builder produce the final list
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+
+`[` creates a "list builder function"
+
+`,` makes the list builder continue
+
+`]` makes the list builder produce the final list
+
+So, without any extra syntax rules, you can make functions that look like infix
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+
+`[` creates a "list builder function"
+
+`,` makes the list builder continue
+
+`]` makes the list builder produce the final list
+
+So, without any extra syntax rules, you can make functions that look like infix
+
+Extra parsing goodies will let you do even better
+
+Like allowing you to leave out spaces and define groups:
+
+`append [1,2,3] [4,5]`
+***
+#Extensible Syntax
+
+`[1, 2, 3]` constructs lists
+
+Well, sort of.
+
+Actually, `[`, `,`, and `]` are just functions
+
+`[` creates a "list builder function"
+
+`,` makes the list builder continue
+
+`]` makes the list builder produce the final list
+
+So, without any extra syntax rules, you can make functions that look like infix
+
+Extra parsing goodies will let you do even better
+
+Like allowing you to leave out spaces and define groups:
+
+`append [1,2,3] [4,5]`
+
+This and custom control structures are good for creating your own "[DSLs](http://en.wikipedia.org/wiki/Domain-specific_language)" -- domain specific languages
+***
+#Extensible Syntax
+
+Here are the list constructor function definitions :D
+***
+#Extensible Syntax
+
+Here are the list constructor function definitions :D
+
+Remember the list buffer?  This is a sort of like it, but a bit more indirect...
+***
+#Extensible Syntax
+
+Here are the list constructor function definitions :D
+
+Remember the list buffer?  This is a sort of like it, but a bit more indirect...
+
+<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
+
+<code>, =.= <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
+
+<code>] =)= <span class="def">λf</span> . f nil</code>
+
+<code>| =.= <span class="def">λf rest g</span> . f rest</code>
+***
+#Extensible Syntax
+
+Here are the list constructor function definitions :D
+
+Remember the list buffer?  This is a sort of like it, but a bit more indirect...
+
+<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
+
+<code>, =.= <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
+
+<code>] =)= <span class="def">λf</span> . f nil</code>
+
+<code>| =.= <span class="def">λf rest g</span> . f rest</code>
+
+This demonstrates =.=, =(?=, and =)=; our lame syntax additions...
+
+=.= makes a function that doesn't need spaces to delimit it
+
+=(?= makes a function that starts a group and specifies the end group function name (the '?')
+
+=)= makes a function that closes a group
+***
+#Extensible Syntax
+
+Here are the list constructor function definitions :D
+
+Remember the list buffer?  This is a sort of like it, but a bit more indirect...
+
+<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
+
+<code>, =.= <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
+
+<code>] =)= <span class="def">λf</span> . f nil</code>
+
+<code>| =.= <span class="def">λf rest g</span> . f rest</code>
+
+This demonstrates =.=, =(?=, and =)=; our lame syntax additions...
+
+=.= makes a function that doesn't need spaces to delimit it
+
+=(?= makes a function that starts a group and specifies the end group function name (the '?')
+
+=)= makes a function that closes a group
+
+so ...{group-start}...{group-close}... is the same as ... ( {group-start} ... {group-close} ) ...
+
+and ...{token}... is the same as ... {token} ...
+***
 #Monads
 
 * monads let you sequence functional operations
@@ -1631,178 +1899,6 @@ Hey, all of the commands are really the same!
 The JavaScript driver code uses the function to identify which command is which.
 
 Later, we'll use the Lambda Calculator to step through some monads
-***
-#Extensible Syntax
-
-`[1, 2, 3]` constructs lists
-***
-#Extensible Syntax
-
-`[1, 2, 3]` constructs lists
-
-Well, sort of.
-***
-#Extensible Syntax
-
-`[1, 2, 3]` constructs lists
-
-Well, sort of.
-
-Actually, `[`, `,`, and `]` are just functions
-***
-#Extensible Syntax
-
-`[1, 2, 3]` constructs lists
-
-Well, sort of.
-
-Actually, `[`, `,`, and `]` are just functions
-
-`[` creates a "list builder function"
-
-`,` makes the list builder continue
-
-`]` makes the list builder produce the final list
-***
-#Extensible Syntax
-
-`[1, 2, 3]` constructs lists
-
-Well, sort of.
-
-Actually, `[`, `,`, and `]` are just functions
-
-`[` creates a "list builder function"
-
-`,` makes the list builder continue
-
-`]` makes the list builder produce the final list
-
-So, without any extra syntax rules, you can make functions that look like infix
-***
-#Extensible Syntax
-
-`[1, 2, 3]` constructs lists
-
-Well, sort of.
-
-Actually, `[`, `,`, and `]` are just functions
-
-`[` creates a "list builder function"
-
-`,` makes the list builder continue
-
-`]` makes the list builder produce the final list
-
-So, without any extra syntax rules, you can make functions that look like infix
-
-Extra parsing goodies will let you do even better
-
-Like allowing you to leave out spaces and define groups:
-
-`append [1,2,3] [4,5]`
-***
-#Extensible Syntax
-
-`[1, 2, 3]` constructs lists
-
-Well, sort of.
-
-Actually, `[`, `,`, and `]` are just functions
-
-`[` creates a "list builder function"
-
-`,` makes the list builder continue
-
-`]` makes the list builder produce the final list
-
-So, without any extra syntax rules, you can make functions that look like infix
-
-Extra parsing goodies will let you do even better
-
-Like allowing you to leave out spaces and define groups:
-
-`append [1,2,3] [4,5]`
-
-This and custom control structures are good for creating your own "[DSLs](http://en.wikipedia.org/wiki/Domain-specific_language)" -- domain specific languages
-***
-#Extensible Syntax
-
-Here are the list constructor function definitions :D
-***
-#Extensible Syntax
-
-Here are the list constructor function definitions :D
-
-For purposes of meditation
-***
-#Extensible Syntax
-
-Here are the list constructor function definitions :D
-
-For purposes of meditation (*torture*?)
-***
-#Extensible Syntax
-
-Here are the list constructor function definitions :D
-
-For purposes of meditation (*torture*?)
-
-<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
-
-<code>, =.= <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
-
-<code>] =)= <span class="def">λf</span> . f nil</code>
-
-<code>| =.= <span class="def">λf rest g</span> . f rest</code>
-***
-#Extensible Syntax
-
-Here are the list constructor function definitions :D
-
-For purposes of meditation (*torture*?)
-
-<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
-
-<code>, =.= <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
-
-<code>] =)= <span class="def">λf</span> . f nil</code>
-
-<code>| =.= <span class="def">λf rest g</span> . f rest</code>
-
-This demonstrates =.=, =(?=, and =)=; our lame syntax additions...
-
-=.= makes a function that doesn't need spaces to delimit it
-
-=(?= makes a function that starts a group and specifies the end group function name (the '?')
-
-=)= makes a function that closes a group
-***
-#Extensible Syntax
-
-Here are the list constructor function definitions :D
-
-For purposes of meditation (*torture*?)
-
-<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
-
-<code>, =.= <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
-
-<code>] =)= <span class="def">λf</span> . f nil</code>
-
-<code>| =.= <span class="def">λf rest g</span> . f rest</code>
-
-This demonstrates =.=, =(?=, and =)=; our lame syntax additions...
-
-=.= makes a function that doesn't need spaces to delimit it
-
-=(?= makes a function that starts a group and specifies the end group function name (the '?')
-
-=)= makes a function that closes a group
-
-so ...{group-start}...{group-close}... is the same as ... ( {group-start} ... {group-close} ) ...
-
-and ...{token}... is the same as ... {token} ...
 ***
 #Parallel Computing
 

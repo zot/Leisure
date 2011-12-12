@@ -366,11 +366,13 @@ function tparse(toks, vars, expr) {
 
 	    if (expectedClose) {
 		cur = tparse(toks, vars, tok != '(' ? tparseVariable(tok, vars, oldVars) : null)
-		var last = toks[toks.length - 1]
-		if (!toks.length || last != expectedClose) {
-		    throw new Error('unbalanced group, expected "' + expectedClose + '", but got "' + last + '"')
+		if (toks.length && toks[toks.length - 1] == expectedClose) {
+		    toks.pop()
 		}
-		toks.pop()
+//		if (!toks.length || last != expectedClose) {
+//		    throw new Error('unbalanced group, expected "' + expectedClose + '", but got "' + last + '"')
+//		}
+//		toks.pop()
 		skip = true
 	    }
 	    if (!skip) {
