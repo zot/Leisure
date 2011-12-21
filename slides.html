@@ -367,9 +367,7 @@ LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
-In Lambda Calculus, you would say this:
-
-<code><span class="def">λargument</span> . body</code>
+In Lambda Calculus, you would say this: <code><span class="def">λargument</span> . body</code>
 ***
 #Brief Overview: Functions
 
@@ -377,14 +375,12 @@ LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
-In Lambda Calculus, you would say this:
-
-<code><span class="def">λargument</span> . body</code>
+In Lambda Calculus, you would say this: <code><span class="def">λargument</span> . body</code>
 <br>  
 <br>  
 A function body can...
 
-* return function: <code><span class="def">λa</span> . <span class="def">λb</span> . a</code>
+* return a function: <code><span class="def">λa</span> . <span class="def">λb</span> . a</code>
 ***
 #Brief Overview: Functions
 
@@ -392,14 +388,12 @@ LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
-In Lambda Calculus, you would say this:
-
-<code><span class="def">λargument</span> . body</code>
+In Lambda Calculus, you would say this: <code><span class="def">λargument</span> . body</code>
 <br>  
 <br>  
 A function body can...
 
-* return function: <code><span class="def">λa</span> . <span class="def">λb</span> . a</code>
+* return a function: <code><span class="def">λa</span> . <span class="def">λb</span> . a</code>
 * return an argument: <code><span class="def">λb</span> . a</code>
 ***
 #Brief Overview: Functions
@@ -408,14 +402,12 @@ LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
-In Lambda Calculus, you would say this:
-
-<code><span class="def">λargument</span> . body</code>
+In Lambda Calculus, you would say this: <code><span class="def">λargument</span> . body</code>
 <br>  
 <br>  
 A function body can...
 
-* return function: <code><span class="def">λa</span> . <span class="def">λb</span> . a</code>
+* return a function: <code><span class="def">λa</span> . <span class="def">λb</span> . a</code>
 * return an argument: <code><span class="def">λb</span> . a</code>
 * call a function with a value (and the result with another value, etc.): <code><span class="def">λa</span> . <span class="def">λb</span> . <span class="def">λf</span> . f a</code>
 ***
@@ -425,14 +417,12 @@ LC is only functions and functions are like subroutines
 
 Here's a JavaScript function: `function(argument) {return body}`
 
-In Lambda Calculus, you would say this:
-
-<code><span class="def">λargument</span> . body</code>
+In Lambda Calculus, you would say this: <code><span class="def">λargument</span> . body</code>
 <br>  
 <br>  
 A function body can...
 
-* return function: <code><span class="def">λa</span> . <span class="def">λb</span> . a</code>
+* return a function: <code><span class="def">λa</span> . <span class="def">λb</span> . a</code>
 * return an argument: <code><span class="def">λb</span> . a</code>
 * call a function with a value (and the result with another value, etc.): <code><span class="def">λa</span> . <span class="def">λb</span> . <span class="def">λf</span> . f a</code>
 
@@ -464,15 +454,25 @@ It's less of a pain
 ***
 #Brief Overview: Data
 
-Here's how you can define a simple "person record"...
+<code>PERSON = makePerson fred 777-2344</code>
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>getName PERSON &rArr; fred</code>
+
+<code>getNumber PERSON &rArr; 777-2344</code>
+
+PERSON is a function, because everything in Lambda Calculus is a function.
 ***
 #Brief Overview: Data
 
-Here's how you can define a simple "person record"...
+Here's how you can define our simple "person record"...
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
+***
+#Brief Overview: Data
+
+Here's how you can define our simple "person record"...
+
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
 Calling `makePerson` with a name returns a function that takes a number and returns another function:
 
@@ -480,9 +480,9 @@ Calling `makePerson` with a name returns a function that takes a number and retu
 ***
 #Brief Overview: Data
 
-Here's how you can define a simple "person record"...
+Here's how you can define our simple "person record"...
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
 Calling `makePerson` with a name returns a function that takes a number and returns another function:
 
@@ -494,9 +494,9 @@ You can call that with a number to get a "person record":
 ***
 #Brief Overview: Data
 
-Here's how you can define a simple "person record"...
+Here's how you can define our simple "person record"...
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
 Calling `makePerson` with a name returns a function that takes a number and returns another function:
 
@@ -527,15 +527,7 @@ We used currying to create a "person record"...
 
 We used currying to create a "person record"...
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
-***
-#Brief Overview: Data
-
-**Wait -- what just happened?**
-
-We used currying to create a "person record"...
-
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 ***
@@ -545,7 +537,7 @@ We used currying to create a "person record"...
 
 We used currying to create a "person record"...
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 
@@ -557,7 +549,7 @@ See how `makePerson` defines this `f` argument, but we aren't using it?
 
 We used currying to create a "person record"...
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 
@@ -571,7 +563,7 @@ When I send only 2 arguments to `makePerson`, I get back a function that takes a
 
 We used currying to create a "person record"...
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 
@@ -587,7 +579,7 @@ The fact that I can send in `f` later allows the "person record function" to wor
 
 We used currying to create a "person record"...
 
-* <code>makePerson = <span class="def">λname number f</span> . f name number</code>
+<code>makePerson = <span class="def">λname number f</span> . f name number</code>
 
 <code>makePerson fred 777-2344 &rArr; <span class="def">λf</span> . f fred 777-2344</code>
 
@@ -615,7 +607,7 @@ This "person record" takes a function `f` and applies it to the name and number
 
 You could define `getName` to return the name of the person
 
-* <code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
+<code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
 ***
 #Brief Overview: Data
 
@@ -625,7 +617,7 @@ This "person record" takes a function `f` and applies it to the name and number
 
 You could define `getName` to return the name of the person
 
-* <code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
+<code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
 
 <code>getName (<span class="def">λf</span> . f fred 777-2344) &rArr; fred</code>
 ***
@@ -637,7 +629,7 @@ This "person record" takes a function `f` and applies it to the name and number
 
 You could define `getName` to return the name of the person
 
-* <code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
+<code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
 
 <code>getName (<span class="def">λf</span> . f fred 777-2344) &rArr; fred</code>
 
@@ -651,7 +643,7 @@ This "person record" takes a function `f` and applies it to the name and number
 
 You could define `getName` to return the name of the person
 
-* <code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
+<code>getName = <span class="def">λperson</span> . person (<span class="def">λname number</span> . name)</code>
 
 <code>getName (<span class="def">λf</span> . f fred 777-2344) &rArr; fred</code>
 
@@ -1420,41 +1412,27 @@ or, since difference lists just append their agrument,
 ***
 #Extensible Syntax
 
-`[1, 2, 3]` constructs lists
+We've been using '[ 1 , 2 , 3 ]' to represent cons 1 (cons 2 (cons 3 nil))
 ***
 #Extensible Syntax
 
-`[1, 2, 3]` constructs lists
+We've been using '[ 1 , 2 , 3 ]' to represent cons 1 (cons 2 (cons 3 nil))
 
-Well, sort of.
+But [ 1 , 2 , 3 ] can be **normal** lambda calculus -- really!
 ***
 #Extensible Syntax
 
-`[1, 2, 3]` constructs lists
+We've been using '[ 1 , 2 , 3 ]' to represent cons 1 (cons 2 (cons 3 nil))
 
-Well, sort of.
+But [ 1 , 2 , 3 ] can be **normal** lambda calculus -- really!
 
 Actually, `[`, `,`, and `]` are just functions
 ***
 #Extensible Syntax
 
-`[1, 2, 3]` constructs lists
+We've been using '[ 1 , 2 , 3 ]' to represent cons 1 (cons 2 (cons 3 nil))
 
-Well, sort of.
-
-Actually, `[`, `,`, and `]` are just functions
-
-`[` creates a "list builder function"
-
-`,` makes the list builder continue
-
-`]` makes the list builder produce the final list
-***
-#Extensible Syntax
-
-`[1, 2, 3]` constructs lists
-
-Well, sort of.
+But [ 1 , 2 , 3 ] can be **normal** lambda calculus -- really!
 
 Actually, `[`, `,`, and `]` are just functions
 
@@ -1463,14 +1441,12 @@ Actually, `[`, `,`, and `]` are just functions
 `,` makes the list builder continue
 
 `]` makes the list builder produce the final list
-
-So, without any extra syntax rules, you can make functions that look like infix
 ***
 #Extensible Syntax
 
-`[1, 2, 3]` constructs lists
+We've been using '[ 1 , 2 , 3 ]' to represent cons 1 (cons 2 (cons 3 nil))
 
-Well, sort of.
+But [ 1 , 2 , 3 ] can be **normal** lambda calculus -- really!
 
 Actually, `[`, `,`, and `]` are just functions
 
@@ -1481,18 +1457,12 @@ Actually, `[`, `,`, and `]` are just functions
 `]` makes the list builder produce the final list
 
 So, without any extra syntax rules, you can make functions that look like infix
-
-Extra parsing goodies will let you do even better
-
-Like allowing you to leave out spaces and define groups:
-
-`append [1,2,3] [4,5]`
 ***
 #Extensible Syntax
 
-`[1, 2, 3]` constructs lists
+We've been using '[ 1 , 2 , 3 ]' to represent cons 1 (cons 2 (cons 3 nil))
 
-Well, sort of.
+But [ 1 , 2 , 3 ] can be **normal** lambda calculus -- really!
 
 Actually, `[`, `,`, and `]` are just functions
 
@@ -1514,19 +1484,101 @@ This and custom control structures are good for creating your own "[DSLs](http:/
 ***
 #Extensible Syntax
 
-Here are the list constructor function definitions :D
+Want to see how we can define list constructor functions? :D
 ***
 #Extensible Syntax
 
-Here are the list constructor function definitions :D
+Want to see how we can define list constructor functions? :D
+
+[ 1 ] = cons 1 nil
+
+[ 1 , 2 ] = cons 1 (cons 2 nil)
+
+[ 1 , 2 | list ] = cons 1 (cons 2 list)
+***
+#Extensible Syntax
+
+Want to see how we can define list constructor functions? :D
+
+[ 1 ] = cons 1 nil
+
+[ 1 , 2 ] = cons 1 (cons 2 nil)
+
+[ 1 , 2 | list ] = cons 1 (cons 2 list)
 
 Remember the list buffer?  This is a sort of like it, but a bit more indirect...
 ***
 #Extensible Syntax
 
-Here are the list constructor function definitions :D
+Want to see how we can define list constructor functions? :D
+
+[ 1 ] = cons 1 nil
+
+[ 1 , 2 ] = cons 1 (cons 2 nil)
+
+[ 1 , 2 | list ] = cons 1 (cons 2 list)
 
 Remember the list buffer?  This is a sort of like it, but a bit more indirect...
+
+<code>[ = <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
+
+<code>, = <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
+
+<code>] = <span class="def">λf</span> . f nil</code>
+
+<code>| = <span class="def">λf rest g</span> . f rest</code>
+***
+#Extensible Syntax
+
+We can make it even more convient if we allow two lame syntax extensions -- tokens and groups...
+***
+#Extensible Syntax
+
+We can make it even more convient if we allow two lame syntax extensions -- tokens and groups...
+
+This lets you say <code>append [1,2,3] [4,5,6]</code> instead of <code>append ([ 1 , 2 , 3 ]) ([ 4 , 5 , 6 ])</code>
+***
+#Extensible Syntax
+
+We can make it even more convient if we allow two lame syntax extensions -- tokens and groups...
+
+This lets you say <code>append [1,2,3] [4,5,6]</code> instead of <code>append ([ 1 , 2 , 3 ]) ([ 4 , 5 , 6 ])</code>
+
+so we want ...{group-start}...{group-close}... to be the same as ... ( {group-start} ... {group-close} ) ...
+
+and ...{token}... to be the same as ... {token} ...
+***
+#Extensible Syntax
+
+We can make it even more convient if we allow two lame syntax extensions -- tokens and groups...
+
+This lets you say <code>append [1,2,3] [4,5,6]</code> instead of <code>append ([ 1 , 2 , 3 ]) ([ 4 , 5 , 6 ])</code>
+
+so we want ...{group-start}...{group-close}... to be the same as ... ( {group-start} ... {group-close} ) ...
+
+and ...{token}... to be the same as ... {token} ...
+
+=.= makes a "token" function that doesn't need spaces to delimit it
+
+=(?= makes a "group begin" function and specifies the end group function name (the '?')
+
+=)= makes a "group end" function that closes a syntax group
+***
+#Extensible Syntax
+
+We can make it even more convient if we allow two lame syntax extensions -- tokens and groups...
+
+This lets you say <code>append [1,2,3] [4,5,6]</code> instead of <code>append ([ 1 , 2 , 3 ]) ([ 4 , 5 , 6 ])</code>
+
+so we want ...{group-start}...{group-close}... to be the same as ... ( {group-start} ... {group-close} ) ...
+
+and ...{token}... to be the same as ... {token} ...
+
+=.= makes a "token" function that doesn't need spaces to delimit it
+
+=(?= makes a "group begin" function and specifies the end group function name (the '?')
+
+=)= makes a "group end" function that closes a syntax group
 
 <code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
 
@@ -1535,54 +1587,6 @@ Remember the list buffer?  This is a sort of like it, but a bit more indirect...
 <code>] =)= <span class="def">λf</span> . f nil</code>
 
 <code>| =.= <span class="def">λf rest g</span> . f rest</code>
-***
-#Extensible Syntax
-
-Here are the list constructor function definitions :D
-
-Remember the list buffer?  This is a sort of like it, but a bit more indirect...
-
-<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
-
-<code>, =.= <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
-
-<code>] =)= <span class="def">λf</span> . f nil</code>
-
-<code>| =.= <span class="def">λf rest g</span> . f rest</code>
-
-This demonstrates =.=, =(?=, and =)=; our lame syntax additions...
-
-=.= makes a function that doesn't need spaces to delimit it
-
-=(?= makes a function that starts a group and specifies the end group function name (the '?')
-
-=)= makes a function that closes a group
-***
-#Extensible Syntax
-
-Here are the list constructor function definitions :D
-
-Remember the list buffer?  This is a sort of like it, but a bit more indirect...
-
-<code>[ =(]= <span class="def">λitem c</span> . c <span class="def">λrest</span> . cons item rest</code>
-
-<code>, =.= <span class="def">λf item c</span> . c <span class="def">λrest</span> . f (cons item rest)</code>
-
-<code>] =)= <span class="def">λf</span> . f nil</code>
-
-<code>| =.= <span class="def">λf rest g</span> . f rest</code>
-
-This demonstrates =.=, =(?=, and =)=; our lame syntax additions...
-
-=.= makes a function that doesn't need spaces to delimit it
-
-=(?= makes a function that starts a group and specifies the end group function name (the '?')
-
-=)= makes a function that closes a group
-
-so ...{group-start}...{group-close}... is the same as ... ( {group-start} ... {group-close} ) ...
-
-and ...{token}... is the same as ... {token} ...
 ***
 #Monads
 
@@ -1634,8 +1638,7 @@ and ...{token}... is the same as ... {token} ...
 
 Haskell example:
 
-    do
-      printStr "Please enter your name: "
+    do printStr "Please enter your name: "
       name <- getLine
       name <- return (name ++ " Jr")
       printStrLn ("Your actual name is: " ++ name)
@@ -1651,8 +1654,7 @@ Haskell example:
 
 Haskell example:
 
-    do
-      printStr "Please enter your name: "
+    do printStr "Please enter your name: "
       name <- getLine
       name <- return (name ++ " Jr")
       printStrLn ("Your actual name is: " ++ name)
@@ -1672,8 +1674,7 @@ Lamda Calculus example:
 
 Haskell example:
 
-    do
-      printStr "Please enter your name: "
+    do printStr "Please enter your name: "
       name <- getLine
       name <- return (name ++ " Jr")
       printStrLn ("Your actual name is: " ++ name)
@@ -1700,8 +1701,7 @@ Or with slightly more readable syntax (only slightly):
 
 Haskell example:
 
-    do
-      printStr "Please enter your name: "
+    do printStr "Please enter your name: "
       name <- getLine
       name <- return (name ++ " Jr")
       printStrLn ("Your actual name is: " ++ name)
