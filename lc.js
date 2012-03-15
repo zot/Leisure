@@ -912,5 +912,11 @@ var LC = {
     getAllCmds: null,
 }
 
+if (exports) {
+    for (i in LC) {
+	exports[i] = LC[i]
+    }
+}
+
 return LC
 })()

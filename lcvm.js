@@ -130,7 +130,10 @@ change context rep to: [parent, addr, value] or [parent, addr]
 */
 
 
-VM = (function(){
+if (exports) {
+    var LC=require('./lc.js')
+}
+var VM = (function(){
     // indices for env
     var env = {
 	debruijns: {},	// by debruijn string
@@ -760,5 +763,12 @@ VM = (function(){
 	getEntry: getEntry,
     }
 
+
+
+    if (exports) {
+	for (i in obj) {
+	    exports[i] = obj[i]
+	}
+    }
     return obj
 })()
