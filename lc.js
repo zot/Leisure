@@ -912,7 +912,7 @@ var LC = {
     getAllCmds: null,
 }
 
-if (exports) {
+if (typeof exports != 'undefined') {
     for (i in LC) {
 	exports[i] = LC[i]
     }

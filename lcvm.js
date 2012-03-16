@@ -130,7 +130,7 @@ change context rep to: [parent, addr, value] or [parent, addr]
 */
 
 
-if (exports) {
+if (typeof exports != 'undefined') {
     var LC=require('./lc.js')
 }
 var VM = (function(){
@@ -765,7 +765,7 @@ var VM = (function(){
 
 
 
-    if (exports) {
+    if (typeof exports != 'undefined') {
 	for (i in obj) {
 	    exports[i] = obj[i]
 	}
