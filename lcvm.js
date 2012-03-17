@@ -763,8 +763,6 @@ var VM = (function(){
 	getEntry: getEntry,
     }
 
-
-
     if (typeof exports != 'undefined') {
 	for (i in obj) {
 	    exports[i] = obj[i]

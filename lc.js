@@ -83,13 +83,13 @@ function lindex(list, element, i) {
 function loadDefs(defs) {
     var d = defs.split('\n')
 
-    LC.exprs = exprs = {}
-    LC.code = {}
-    LC.lambdas = lambdas = {}
-    LC.hashed = hashed = {}
-    LC.order = order = []
+    exp("exprs", LC.exprs = exprs = {})
+    exp("code", LC.code = {})
+    exp("lambdas", LC.lambdas = lambdas = {})
+    exp("hashed", LC.hashed = hashed = {})
+    exp("order", LC.order = order = [])
     funcCount = 1
-    LC.L = L = null
+    exp("L", LC.L = L = null)
     line = 1
     for (var index in d) {
 	evalLine(d[index].trim(), true)
@@ -135,7 +135,7 @@ function addExpr(name, txt, noRebuild) {
 		}
 	    }
 	}
-	LC.L = L = null
+	exp("L", LC.L = L = null)
 	order.push(expr)
 	var hk = expr.expr.hashKey()
 	if (!hashed[hk]) hashed[hk] = expr
@@ -149,7 +149,7 @@ function addExpr(name, txt, noRebuild) {
 function findCons() {
     if (L._cons) {
 	lconsId = L._cons().lambda.body.body.id
-	LC.lnil = lnil = L._nil().lambda
+	exp("lnil", LC.lnil = lnil = L._nil().lambda)
 	Lnil = L._nil
 	lnilId = LC.lnil.id
 	Lhead = lcode2('head')
@@ -163,7 +163,7 @@ function findCons() {
 	returnCmdId = LC.L._returnCmd().lambda.body.id
 	bindCmdId = LC.L._bindCmd().lambda.body.id
 	getCmds = lcode2('getCmds')
-	LC.getAllCmds = getAllCmds = lcode2('getAllCmds')
+	exp("getAllCmds", LC.getAllCmds = getAllCmds = lcode2('getAllCmds'))
 	getCmdVal = lcode2('getCmdVal')
 	getBindAction = lcode2('getBindAction')
 	Ldl = lcode2('dl')
@@ -180,19 +180,19 @@ function runExpr(str) {
 	expr && runCode(expr, constructEnv('function() {\nreturn ' + expr.ret([]).join("") + '\n}'))
 }
 function runCode(expr, code) {
-	var res
+    var res
 
-	LC.historyExprs[historyCount] = expr
-	try {
-		constructEnv()
-		history[historyCount] = res = code()
-	} catch (err) {
-		res = "Error: " + err.message
-	}
-	LC.lastResult = res
-	LC.resultCode(expr, res, historyCount)
-	historyCount++
-	LC.L = L = null
+    LC.historyExprs[historyCount] = expr
+    try {
+	constructEnv()
+	history[historyCount] = res = code()
+    } catch (err) {
+	res = "Error: " + err.message
+    }
+    exp("lastResult", LC.lastResult = res)
+    LC.resultCode(expr, res, historyCount)
+    historyCount++
+    exp("L", LC.L = L = null)
 }
 //function getCommands(io) {
 //    return getCmds(io)(Lnil)
@@ -249,39 +249,39 @@ function elements(l, first, nosubs) {
     return isNil(l) ? '' : ((first ? '' : ', ') + pretty(Lhead(l), nosubs) + elements(Ltail(l), false, nosubs))
 }
 function constructEnv(src) {
-	if (!L || src) {
-		var env = ['(function(){\n']
+    if (!L || src) {
+	var env = ['(function(){\nL.internalEval = function(expr){return eval(expr)}\n']
 
-		for (var i = 0; i < order.length; i++) {
-			if (order[i].name != "") {
-				env.push('\n// ' + order[i].name + ' = ' + order[i].expr.format(true, true))
-				if (order[i].usesFree) env.push('//WARNING, line ' + line + ': uses free variables: ' + order[i].usesFree)
-			}
-			env.push('LC.code[order[' + i + '].name] = order[' + i + '].code = ' + order[i].src)
-			if (order[i].name != "") {
-				env.push("var " + order[i].cname + ' = ' + 'order[' + i + '].code')
-				env.push("L." + order[i].cname + " = " + order[i].cname)
-			}
-		}
-		for (var i = 0; i < history.length; i++) {
-			env.push("var _" + charCodes['$'] + i + " = function(){return history[" + i + "]}")
-		}
-		if (history.length > 0) {
-			env.push("var _" + charCodes['$'] + " = function(){return history[" + (history.length - 1) + "]}")
-		}
-		if (src) {
-			env.push('return (' + src + ')')
-		}
-		env.push('\n})()')
-		LC.L = L = {}
-		var res
-		try {
-			res = eval(env.join("\n"))
-		} catch (err) {
-			res = "ERROR: " + err.message
-		}
-		return res
+	for (var i = 0; i < order.length; i++) {
+	    if (order[i].name != "") {
+		env.push('\n// ' + order[i].name + ' = ' + order[i].expr.format(true, true))
+		if (order[i].usesFree) env.push('//WARNING, line ' + line + ': uses free variables: ' + order[i].usesFree)
+	    }
+	    env.push('LC.code[order[' + i + '].name] = order[' + i + '].code = ' + order[i].src)
+	    if (order[i].name != "") {
+		env.push("var " + order[i].cname + ' = ' + 'order[' + i + '].code')
+		env.push("L." + order[i].cname + " = " + order[i].cname)
+	    }
 	}
+	for (var i = 0; i < history.length; i++) {
+	    env.push("var _" + charCodes['$'] + i + " = function(){return history[" + i + "]}")
+	}
+	if (history.length > 0) {
+	    env.push("var _" + charCodes['$'] + " = function(){return history[" + (history.length - 1) + "]}")
+	}
+	if (src) {
+	    env.push('return (' + src + ')')
+	}
+	env.push('\n})()')
+	exp("L", LC.L = L = {})
+	var res
+	try {
+	    res = eval(env.join("\n"))
+	} catch (err) {
+	    res = "ERROR: " + err.message
+	}
+	return res
+    }
 }
 function addToken(tok, group) {
 	var pat = ''
@@ -593,6 +593,13 @@ function memoize(func) {
     return out
 }
 
+function createValue(val) {
+    var func = function(){return val}
+
+    func.value = true
+    return func
+}
+
 function setLambda(func, id, value) {
     func.lambda = lambdas[id]
     func.value = value
@@ -788,7 +795,7 @@ Variable.prototype.__proto__ = new Entity({
 	if (this.isBound()) {
 	    stream.push(pfx(prefix), this.cname)
 	} else {
-	    stream.push("(function(){return ", this.valueFunc(), "})")
+	    stream.push("createValue(", this.valueFunc(), ")")
 	}
 	return stream
     },
@@ -910,7 +917,14 @@ var LC = {
     stepIO: stepIO,
     isNil: isNil,
     getAllCmds: null,
+    value: value,
 }
+
+    function exp(key, value) {
+	if (typeof exports != 'undefined') {
+	    exports[key] = value
+	}
+    }
 
 if (typeof exports != 'undefined') {
     for (i in LC) {

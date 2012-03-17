@@ -15,12 +15,14 @@ Template Haskell demonstrates a perceived need for macros, even in a lazy langua
 
 _lit v -- AST literal value  
 _ref v -- AST variable reference  
-_apply[ func, arg, arg, arg] -- AST function application (uses , and ] for varargs)  
 _lambda var body -- AST lambda binding  
+_apply[ func, arg, arg, arg] -- AST function application (uses , and ] for varargs)  
 _macro var body -- AST macro binding  
 _prim name -- AST primitive call  
 cons head tail  
 nil head tail -- normally, this is curried as just “nil”  
+head list -- return the head of a list  
+tail list -- return the tail of a list  
 string head tail -- a string  
 int head tail -- identify an int value  
 
