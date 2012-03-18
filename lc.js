@@ -250,7 +250,8 @@ function elements(l, first, nosubs) {
 }
 function constructEnv(src) {
     if (!L || src) {
-	var env = ['(function(){\nL.internalEval = function(expr){return eval(expr)}\n']
+	// evalFactory creates a name space for compiling
+	var env = ['(function(){\nL.evalFactory = function(){return function(expr){return eval(expr)}}\n']
 
 	for (var i = 0; i < order.length; i++) {
 	    if (order[i].name != "") {
@@ -918,6 +919,7 @@ var LC = {
     isNil: isNil,
     getAllCmds: null,
     value: value,
+    memoize: memoize,
 }
 
     function exp(key, value) {

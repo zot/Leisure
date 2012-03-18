@@ -23,7 +23,7 @@ The AST functions serve as an embedded DSL.
 ## Examples
 
 eval x = 𝛍x . x  
-apply func arg = 𝛍 func arg . _apply[ _lit func, _lit arg]  
+apply func arg = 𝛍 func arg . _apply (_lit func) (_lit arg)  
 compile code-string -- function returning AST  
 
 ## Parser macros  
