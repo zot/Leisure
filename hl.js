@@ -34,9 +34,10 @@ Represent ASTs as LC cons-lists
     var astDefs = LAZP.hereDoc(function(){/*
 _lit = \x f . f x
 _ref = \x f . f x
+#lambda func, where func = \var . (body)
 _lambda = \f g v . g v (f v)
 _apply = \func arg f . f func arg
-_prim = \name f . f name
+_prim = \arg rest f . f arg rest -- rest is either a _prim, _lit, or _ref
 true = \x y . x
 */})
     var moreDefs = LAZP.hereDoc(function(){/*

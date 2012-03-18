@@ -11,29 +11,15 @@ a b c -> (_apply (_ref a) (_ref b) (_ref c))
 
 Template Haskell demonstrates a perceived need for macros, even in a lazy language, like Haskell.  Macros expose the Lazp code-generator to developers which helps with creating external DSLs, among other things. Eval, which takes an AST as an argument, is the identity macro and the Lazp compiler can be exposed as a macro.
 
-## Standard Functions
+## AST Function usage
 
-_lit v -- AST literal value  
-_ref v -- AST variable reference  
-_lambda var body -- AST lambda binding  
-_apply[ func, arg, arg, arg] -- AST function application (uses , and ] for varargs)  
-_macro var body -- AST macro binding  
-_prim name -- AST primitive call  
-cons head tail  
-nil head tail -- normally, this is curried as just “nil”  
-head list -- return the head of a list  
-tail list -- return the tail of a list  
-string head tail -- a string  
-int head tail -- identify an int value  
+_lit v -- literal value  
+_ref v -- variable reference: should be an input to a _lambda body-func  
+_lambda body-func -- lambda binding: body-func receives a variable name and returns an AST  
+_apply func arg -- function application: func can be any AST function except a _prim  
+_prim arg rest -- primitive call: rest is either a _prim, _lit, or _ref  
 
 The AST functions serve as an embedded DSL.
-## Values
-
-function  
-macro  
-unbound variable  
-primitive value  
-
 ## Examples
 
 eval x = 𝛍x . x  
