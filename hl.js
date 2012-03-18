@@ -299,4 +299,7 @@ tprim =  _lambda \arg . _lambda \rest . _lambda \f . _apply (_apply (_ref f) (_r
     console.log("tlit: " + astPrint(LC.L._tlit()))
     console.log("compile tlit: " + ocompile(LC.L._tlit())[0])
     console.log("run tlit: " + run(ocompile(LC.L._tlit()), laz('a'))()(laz(function(x){return "[[" + x() + "]]"}))())
+
+// TODO: compile AST funcs directly and include the JS source here
+// for self hosting
 })()
