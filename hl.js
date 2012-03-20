@@ -182,16 +182,6 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	return isFirst && res.join('')
     }
 
-    function memoize(func) {
-	var out = function() {
-	    return func.memo || (func.memo = func())
-	}
-
-	out.ast = func.ast
-	out.value = func.value
-	return out
-    }
-
     /**
        A context is program scope
      */
@@ -209,8 +199,10 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    }
 
 	    function nameAst(nm, ast) {
-		C.astsByName[nm] = ast
-		ast.name = nm
+		if (!ast.name) {
+		    C.astsByName[nm] = ast
+		    ast.name = nm
+		}
 	    }
 	    function addAst(ast) {
 		if (!ast.id) {
@@ -259,11 +251,11 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	}
     }
 
-    function dgen(ast) {
+    function dgen(ast, lazy) {
 	var mem = new Memo()
-	var ret = gen(ast, [], null, mem, true)
+	var ret = gen(ast, [], null, Nil, mem, true)
 
-	return mem.count ? ["(function(){", mem, "return " + ret[0] + "})()", ret[1]] : ret
+	return mem.count || lazy ? [["(function(){", mem, "return " + ret[0] + "})", !lazy ? "()" : ""].join(''), ret[1]] : ret
     }
     function memoStart(res, memo, deref) {
 	if (!deref) {
@@ -275,7 +267,18 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     function memoEnd(res, memo, deref) {
 	if (!deref) res.push(")}")
     }
-    function gen(ast, res, ctx, memo, deref, prim, cont) {
+    function Cons(a, b) {
+	this.head = a
+	this.tail = b
+    }
+    Cons.prototype = {
+	contains: function(val) {
+	    return this.head == val || this.tail.contains(val)
+	}
+    }
+    var Nil = new Cons()
+    Nil.contains = function() {return false}
+    function gen(ast, res, ctx, vars, memo, deref, prim, cont) {
 	var isFirst = !ctx
 
 	res = res || []
@@ -289,28 +292,39 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    var a = getNameAst(ast)
 
 	    CTX.nameAst(nm, a)
-	    gen(a, res, ctx, memo)
+	    gen(a, res, ctx, vars, memo)
 	    break
 	case _refId:
 	    var val = getRefVar(ast)
 
 	    if (val.lambda) throw new Error("attempt to use lambda as a variable")
+	    if (!vars.contains(val)) throw new Error("unbound variable -- use lit instead")
 	    res.push(nameSub(val))
 	    if (deref) res.push("()")
 	    break
 	case _litId:
-	    var lit = "lit" + ctx.curLit++
+	    var val = getLitVal(ast)
+	    var lit
 
-	    ctx("var " + lit)
-	    ctx("(function(v){" + lit + " = v})")(getLitVal(ast))
-	    res.push(lit)
-	    if (deref) res.push("()")
+	    memoStart(res, memo, deref)
+	    if (typeof val == 'function') {
+		lit = "lit" + ctx.curLit++
+
+		ctx("var " + lit)
+		ctx("(function(v){" + lit + " = v})")(getLitVal(ast))
+		res.push(lit)
+	    } else {
+		res.push(JSON.stringify(val))
+	    }
+	    memoEnd(res, memo, deref)
 	    break
 	case _lambdaId:
+	    var v = getLambdaVar(ast)
+
 	    memo = new Memo()
 	    if (!deref) res.push("(function(){return ")
-	    res.push("id(function(" + nameSub(getLambdaVar(ast)) + "){", memo, "return ")
-	    gen(getLambdaBody(ast), res, ctx, memo, true)
+	    res.push("id(function(" + nameSub(v) + "){", memo, "return ")
+	    gen(getLambdaBody(ast), res, ctx, new Cons(v, vars), memo, true)
 	    res.push("}, " + ast.id + ")")
 	    if (!deref)	res.push("})")
 	    break
@@ -319,9 +333,9 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    var arg = getApplyArg(ast)
 
 	    memoStart(res, memo, deref)
-	    gen(func, res, ctx, memo, true)
+	    gen(func, res, ctx, vars, memo, true)
 	    res.push("(")
-	    gen(arg, res, ctx, memo)
+	    gen(arg, res, ctx, vars, memo)
 	    res.push(")")
 	    memoEnd(res, memo, deref)
 	    break
@@ -335,14 +349,14 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 		}
 		res.push(arg)
 		if (isPrim(rest)) {
-		    gen(rest, res, ctx, memo, false, true, true)
+		    gen(rest, res, ctx, vars, memo, false, true, true)
 		}
 	    } else {
 		memoStart(res, memo, deref)
 		res.push(arg)
 		res.push("(")
 		if (isPrim(rest)) {
-		    gen(rest, res, ctx, memo, true, true, false)
+		    gen(rest, res, ctx, vars, memo, true, true, false)
 		}
 		res.push(")")
 		memoEnd(res, memo, deref)
@@ -352,7 +366,8 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    res.push("'WHA???'")
 	    break
 	}
-	return isFirst && [res.join(''), ctx]
+	ast.src = res.join('')
+	return isFirst && [ast.src, ctx]
     }
 
     function run(cmp, arg) {
@@ -409,13 +424,6 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 		return _g()(_v)(_f)
 	    }, _lambdaId)
 	}, -1)
-/*
-	return id(function(_g) {
-	    return id(function(_v) {
-		return _g()(memoize(function(){return _f()(_v)}))
-	    }, -1)
-	}, _lambdaId)
-*/
     }
     function apply(_func) {
 	return id(function(_arg) {
@@ -470,7 +478,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    var cmp = compile(ast)
 	    ast.func = cmp[0]
 	    ast.env = cmp[1]
-	    ast.src = 'function() {\nreturn ' + ast.func + '\n}'
+	    ast.src = dgen(ast, true)
 	    if (warnFreeVariable.length) {
 		ast.usesFree = warnFreeVariable.join(', ')
 		warnFreeVariable = []
@@ -498,7 +506,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	if (name) {
 	    var expr = newEntry(name, parse(txt))
 	    var newOutput = ''
-	    
+
 	    expr.expr.name = name
 	    if (!noRebuild) {
 		for (var i = 0; i < order.length; i++) {
@@ -507,7 +515,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 		    }
 		}
 	    }
-	    exp("L", LC.L = L = null)
+	    CTX.L = null
 	    order.push(expr)
 	    var hk = expr.expr.hashKey()
 	    if (!hashed[hk]) hashed[hk] = expr
@@ -743,6 +751,8 @@ var log=console.log
     console.log("T7 3: " + eval(dgen(t7)[0])(laz(function(x){log("x: " + x()); return String(x())+"1"}))(laz(function(y){log("y: " + y()); return y()+"2"}))(laz("FLOOP ")))
 
     console.log("T77: " + LC.L._t77)
+
+    console.log("LIT: " + dgen(wlit('x'), true)[0])
 
 // TODO: compile AST funcs directly and include the JS source here
 // for self hosting
