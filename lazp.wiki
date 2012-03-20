@@ -1,10 +1,10 @@
 @pagedown
 
-# Lazp: An untyped, lazy Lambda Calculus with Macros and Primitives
+# Lazp: An untyped, lazy Lambda Calculus with Metaprogramming and Primitives
 
 The goal, here, isn't to make something that's super fast; it's to provide a useable untyped, lazy, lambda calculus for people to use.
 
-To facilitate macros, Lazp uses abstract syntax trees, made from LC functions (i.e. like LISP):
+To facilitate metaprogramming, Lazp uses abstract syntax trees, made from LC functions (i.e. like LISP):
 
 a b c -> _apply (_apply (_ref a) (_ref b)) (_ref c)  
 𝛌a . b -> _lambda a (_ref b)  
@@ -45,7 +45,7 @@ Functions and unbound variables will have IDs that act like runtime types
 
 \x . y is equivalent to 𝛌x . y  
 
-Since \xxx\ has no meaning in Lazy, it seems like a good way to name character macros, if you don't want to use up "normal" identifiers in the name space.
+Since \xxx\ has no meaning in Lazy, it seems like a good way to name parser macros, if you don't want to use up "normal" identifiers in the name space.
 
 ## LISP-like syntax for Lazp (an alternate parser for curmudgeons)
 
