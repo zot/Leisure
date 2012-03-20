@@ -23,9 +23,9 @@ _prim arg rest -- primitive call: rest is either a _lit, a _ref, or another _pri
 The AST functions serve as an embedded DSL.
 ## Examples
 
-eval x = 𝛍x . x -- evaluates x  
-apply func arg = 𝛍 func arg . _apply (_lit func) (_lit arg)  
-compile code-string -- function returning AST  
+eval x -- evaluates x  
+apply func arg = eval (_apply (_lit func) (_lit arg))  
+compile code-string -- returns an AST for a string of Lazp code  
 
 ## Parser macros  
 

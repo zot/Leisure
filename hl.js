@@ -631,38 +631,33 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     }
     
     function tparseVariable(tok, vars, oldVars) {
-	var cur = vars[tok]
-	if (!cur) {
-	    if (CTX.astsByName[tok]) {
-		cur = wlit(CTX.astsByName[tok])
-	    } else {
-//****		cur = wref(tok) -- need to link in a ref to the lambda's var
-	    }
-	    if (vars[tok]) oldVars[tok] = vars[tok]
-	    vars[tok] = cur
+	if (vars[tok] || CTX.astsByName[tok]) {
+	    vars[tok] = tok
+	    cur = wref(tok)
+	} else {
+	    cur = wlit(tok)
 	}
 	return cur
     }
     function tparseLambda(toks, vars) {
-	var name, old, body, lvar
+	var name, old, body
 	
 	if (toks.length < 3 || toks[toks.length - 1] == '.') {
-		throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
+	    throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
 	}
+	old = vars[name]
 	if (toks[toks.length - 2] == '.') {
-		name = toks.pop()
-		old = vars[name]
-		lvar = vars[name] = new Variable(name, false)
-		toks.pop()
-		body = tparse(toks, vars)
+	    name = toks.pop()
+	    vars[name] = name
+	    toks.pop()
+	    body = tparse(toks, vars)
 	} else {
-		name = toks.pop()
-		old = vars[name]
-		lvar = vars[name] = new Variable(name, false)
-		body = tparseLambda(toks, vars)
+	    name = toks.pop()
+	    vars[name] = name
+	    body = tparseLambda(toks, vars)
 	}
 	vars[name] = old
-	return new Lambda(lvar, body)
+	return wlambda(name, body)
     }
 
 /*
@@ -753,6 +748,8 @@ var log=console.log
     console.log("T77: " + LC.L._t77)
 
     console.log("LIT: " + dgen(wlit('x'), true)[0])
+
+    console.log("\\x.x: " + astPrint(parse("\\x.x x")))
 
 // TODO: compile AST funcs directly and include the JS source here
 // for self hosting

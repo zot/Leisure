@@ -1,4 +1,5 @@
 TODO
+* allow args in definitions: func arg1 arg2 = body => func = \arg1 arg2 . body
 * debug VM
 
 DONE
