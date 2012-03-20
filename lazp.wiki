@@ -14,8 +14,8 @@ Template Haskell demonstrates a perceived need for macros, even in a lazy langua
 ## AST Function usage
 
 _lit v -- literal value  
-_ref v -- variable reference: should be an input to a _lambda body-func  
-_lambda body-func -- lambda binding: body-func receives a variable name and returns an AST  
+_ref v -- variable reference: should be a string
+_lambda var body -- lambda binding: var should be a string, body is an AST
 _apply func arg -- function application: func can be any AST function except a _prim  
 _prim arg rest -- primitive call: rest is either a _prim, _lit, or _ref  
 
