@@ -2,27 +2,28 @@
 
 # Lazp: An untyped, lazy Lambda Calculus with Macros and Primitives
 
-To facilitate macros, Lazp uses abstract syntax trees, made from LC cons-lists (i.e. like LISP):
+The goal, here, isn't to make something that's super fast; it's to provide a useable untyped, lazy, lambda calculus for people to use.
 
-a b c -> (_apply (_ref a) (_ref b) (_ref c))  
-𝛌a . b -> (_lambda (a) (_ref b))  
-𝛍a . b -> (_macro (a) (_ref b)) -- macro: returns an AST which is then evaluated  
-𝜋x y z -> (_prim x (_ref y) (_ref z)) -- call a primitive function x with arguments y and z  
+To facilitate macros, Lazp uses abstract syntax trees, made from LC functions (i.e. like LISP):
 
-Template Haskell demonstrates a perceived need for macros, even in a lazy language, like Haskell.  Macros expose the Lazp code-generator to developers which helps with creating external DSLs, among other things. Eval, which takes an AST as an argument, is the identity macro and the Lazp compiler can be exposed as a macro.
+a b c -> _apply (_apply (_ref a) (_ref b)) (_ref c)  
+𝛌a . b -> _lambda a (_ref b)  
+𝜋x y z -> _prim x (_prim (_ref y) (_ref z)) -- call a primitive function x with arguments y and z  
+
+Template Haskell demonstrates a perceived need for metaprogramming, even in a lazy language, like Haskell.  Eval exposes the Lazp code-generator to developers which helps with creating external DSLs, among other things.
 
 ## AST Function usage
 
 _lit v -- literal value  
-_ref v -- variable reference: should be a string
-_lambda var body -- lambda binding: var should be a string, body is an AST
+_ref v -- variable reference: v should be a string
+_lambda var body -- lambda binding: var should be a string or number, body is an AST
 _apply func arg -- function application: func can be any AST function except a _prim  
-_prim arg rest -- primitive call: rest is either a _prim, _lit, or _ref  
+_prim arg rest -- primitive call: rest is either a _lit, a _ref, or another _prim (which allows more args)  
 
 The AST functions serve as an embedded DSL.
 ## Examples
 
-eval x = 𝛍x . x  
+eval x = 𝛍x . x -- evaluates x  
 apply func arg = 𝛍 func arg . _apply (_lit func) (_lit arg)  
 compile code-string -- function returning AST  
 
@@ -32,7 +33,7 @@ How these work depends on the parser you use, but they run Lazp code at parse-ti
 
 ## Implementation
 
-Lazp will start as a virtual machine in JavaScript, with the intent to generate LLVM code.  Potentially, there could be a C version in between, so that there’s a native one before the LLVM one is done.  The LLVM version could use the VMKit’s garbage collector or the Boehm-Demers-Weiser garbage collector, which performs well with small objects (like function contexts).
+Lazp will start as a virtual machine in JavaScript, with the intent to generate native code.  Native code could be done in C and/or LLVM.  An LLVM version could use the VMKit’s garbage collector or the Boehm-Demers-Weiser garbage collector, which performs well with small objects (like function contexts).
 
 ## Function IDs
 
@@ -42,11 +43,9 @@ Functions and unbound variables will have IDs that act like runtime types
 
 (the parser should eventually be written in Lazp)  
 
-\ is equivalent to 𝛌  
-\m\ is equivalent to 𝛍  
-\p\ is equivalent to 𝜋  
+\x . y is equivalent to 𝛌x . y  
 
-Since \xxx\ is not legal Lazp syntax, it’s a good way to name character macros.
+Since \xxx\ has no meaning in Lazy, it seems like a good way to name character macros, if you don't want to use up "normal" identifiers in the name space.
 
 ## LISP-like syntax for Lazp (an alternate parser for curmudgeons)
 
