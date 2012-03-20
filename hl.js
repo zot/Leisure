@@ -34,7 +34,7 @@ Represent ASTs as LC cons-lists
     var astDefs = LAZP.hereDoc(function(){/*
 _lit = \x f . f x
 _ref = \x f . f x
-_lambda = \f g v . g (f v)
+_lambda = \v f g . g v f
 _apply = \func arg f . f func arg
 # rest is either a _prim, _lit, or _ref
 _prim = \arg rest f . f arg rest
@@ -46,19 +46,19 @@ _name = \nm ast f . f nm ast
     var moreDefs = LAZP.hereDoc(function(){/*
 t0 = _lit bubba
 t1 = _ref bubba
-t2 = _lambda \x ._lit hello
-t3 = _lambda \x . _lit true
-t4 = _lambda \x . _ref x
-t5 = _lambda \x . _lambda \y . _ref x
-t6 = _lambda \x . _lambda \y . _ref y
-t7 = _lambda \x . _lambda \y . _lambda \z . _apply (_ref x) (_apply (_ref y) (_ref z))
+t2 = _lambda x (_lit hello)
+t3 = _lambda x (_lit true)
+t4 = _lambda x (_ref x)
+t5 = _lambda x (_lambda y (_ref x))
+t6 = _lambda x (_lambda y (_ref y))
+t7 = _lambda x (_lambda y (_lambda z (_apply (_ref x) (_apply (_ref y) (_ref z)))))
 t77 = \x y z. x (y z)
-tlit = _lambda \x . _name lit (_lambda \f . _apply (_ref f) (_ref x))
-tref = _lambda \x . _name ref (_lambda \f . _apply (_ref f) (_ref x))
-tlambda = _lambda \f . _name lambda (_lambda \g . _lambda \v . _apply (_ref g) (_apply (_ref f) (_ref v)))
-tapply = _lambda \func . _lambda \arg . _name apply (_lambda \f . _apply (_apply (_ref f) (_ref func)) (_ref arg))
-tprim =  _lambda \arg . _lambda \rest . _name prim (_lambda \f . _apply (_apply (_ref f) (_ref arg)) (_ref rest))
-tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_ref f) (_ref nm)) (_ref ast))
+tlit = _lambda x (_name lit (_lambda f (_apply (_ref f) (_ref x))))
+tref = _lambda x (_name ref (_lambda f (_apply (_ref f) (_ref x))))
+tlambda = _lambda f (_name lambda (_lambda g (_lambda v (_apply (_ref g) (_apply (_ref f) (_ref v))))))
+tapply = _lambda func (_lambda arg (_name apply (_lambda f (_apply (_apply (_ref f) (_ref func)) (_ref arg)))))
+tprim =  _lambda arg (_lambda rest (_name prim (_lambda f (_apply (_apply (_ref f) (_ref arg)) (_ref rest)))))
+tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) (_ref nm)) (_ref ast)))))
 */})
 
     var _refId
@@ -113,7 +113,7 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     function isPrim(f) {return f.lambda.id == _primId}
     function isName(f) {return f.lambda.id == _nameId}
     function astType(f) {
-	switch (f.lambda.id) {
+	switch (f.id || f.lambda.id) {
 	case _refId: return 'ref'
 	case _litId: return 'lit'
 	case _lambdaId: return 'lambda'
@@ -129,7 +129,8 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     function getNameAst(n) {return n(second)}
     function getRefVar(r) {return r(first)()}
     function getLitVal(l) {return l(first)()}
-    function getLambdaBody(l, varName) {return resolve(l(first)(laz(varName)))}
+    function getLambdaVar(l) {return l(first)}
+    function getLambdaBody(l) {return l(second)}
     function getApplyFunc(a) {return a(first)}
     function getApplyArg(a) {return a(second)}
     function getPrimArg(p) {return p(first)}
@@ -157,12 +158,10 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 	    res.push(val.lambda ? "{" + val.lambda.toString() + "}" : val)
 	    break
 	case _lambdaId:
-	    var v = "VAR" + res.gen++
-
 	    res.push('lambda ')
-	    res.push(v)
+	    res.push(getLambdaVar(ast))
 	    res.push(' . ')
-	    astPrint(getLambdaBody(ast, v), res)
+	    astPrint(getLambdaBody(ast), res)
 	    break
 	case _applyId:
 	    res.push('apply (')
@@ -296,7 +295,7 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 	    var val = getRefVar(ast)
 
 	    if (val.lambda) throw new Error("attempt to use lambda as a variable")
-	    res.push(val)
+	    res.push(nameSub(val))
 	    if (deref) res.push("()")
 	    break
 	case _litId:
@@ -308,12 +307,10 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 	    if (deref) res.push("()")
 	    break
 	case _lambdaId:
-	    var v = "VAR" + ctx.gen++
-
 	    memo = new Memo()
 	    if (!deref) res.push("(function(){return ")
-	    res.push("id(function(" + v + "){", memo, "return ")
-	    gen(getLambdaBody(ast, v), res, ctx, memo, true)
+	    res.push("id(function(" + nameSub(getLambdaVar(ast)) + "){", memo, "return ")
+	    gen(getLambdaBody(ast), res, ctx, memo, true)
 	    res.push("}, " + ast.id + ")")
 	    if (!deref)	res.push("})")
 	    break
@@ -377,7 +374,7 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     LC.loadDefs(astDefs + moreDefs)
     _refId = LC.L.__ref().lambda.body.id
     _litId = LC.L.__lit().lambda.body.id
-    _lambdaId = LC.L.__lambda().lambda.body.id
+    _lambdaId = LC.L.__lambda().lambda.body.body.id
     _applyId = LC.L.__apply().lambda.body.body.id
     _primId = LC.L.__prim().lambda.body.body.id
     _nameId = LC.L.__name().lambda.body.body.id
@@ -391,7 +388,7 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     // wrapped functions -- makes args trivally lazy
     function wlit(value) {return lit(laz(value))}
     function wref(variable) {return ref(laz(variable))}
-    function wlambda(func) {return lambda(laz(func))}
+    function wlambda(v, func) {return lambda(laz(v))(laz(func))}
     function wapply(func, arg) {return apply(laz(func))(laz(arg))}
     function wprim(arg, rest) {return prim(laz(arg))(laz(rest))}
     function wname(nm, ast) {return name(laz(nm))(laz(ast))}
@@ -406,12 +403,19 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 	    return _f()(_x)
 	}, _refId)
     }
-    function lambda(_f) {
+    function lambda(_v) {
+	return id(function(_f) {
+	    return id(function(_g) {
+		return _g()(_v)(_f)
+	    }, _lambdaId)
+	}, -1)
+/*
 	return id(function(_g) {
 	    return id(function(_v) {
 		return _g()(memoize(function(){return _f()(_v)}))
 	    }, -1)
 	}, _lambdaId)
+*/
     }
     function apply(_func) {
 	return id(function(_arg) {
@@ -489,19 +493,6 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 	    }
 	}
 	return s || name
-    }
-    function nameUnsub(name) {
-	var s = ''
-
-	for (var i = 1; i < name.length; i++) {
-	    if (name[i] == '$') {
-		if (!s) s = name.substring(0, i)
-		s += codeChars[name[++i]]
-	    } else {
-		if (s) s += name[i]
-	    }
-	}
-	return s
     }
     function addExpr(name, txt, noRebuild) {
 	if (name) {
@@ -693,7 +684,7 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     console.log("t3 'a' 'b': " + run(dgen(LC.L._t3()), laz("a")))
 */
     console.log("gen t4: " + dgen(LC.L._t4())[0])
-    console.log("run t4 'a': " + run(dgen(LC.L._t4()), 'a'))
+    console.log("run t4 'a': " + run(dgen(LC.L._t4()), laz('a')))
 /*
     console.log("gen t5: " + dgen(LC.L._t5())[0])
     console.log("run t5 'a' 'b': " + run(dgen(LC.L._t5()), 'a')('b'))
@@ -734,13 +725,13 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     console.log("REF GEN: " + dgen(ref("duh")())[0])
 */
 
-    var t4 = wlambda(function(x){return ref(x)})
+    var t4 = wlambda('x', wref('x'))
     console.log("T4 AST: " + astPrint(t4))
     console.log("T4 gen: " + dgen(t4)[0])
     console.log("T4 src: " + t4)
 
     console.log("T7: " + astPrint(LC.L._t7()))
-    var t7 = wlambda(function(x){return wlambda(function(y){return wlambda(function(z){return wapply(ref(x), wapply(ref(y), ref(z)))})})})
+    var t7 = wlambda('x', wlambda('y', wlambda('z', wapply(wref('x'), wapply(wref('y'), wref('z'))))))
     console.log("T7 AST: " + astPrint(t7))
     console.log("T7 gen: " + dgen(t7)[0])
     console.log("T7 run: " + eval(dgen(t7)[0]))
