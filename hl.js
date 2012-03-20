@@ -30,8 +30,17 @@ Represent ASTs as LC cons-lists
 
 (function(){
     var LC=require('./lc.js')
-    var LAZP=require('./lazp.js')
-    var astDefs = LAZP.hereDoc(function(){/*
+    var VM=require('./lcvm.js')
+
+    exports.hereDoc = hereDoc
+
+    function hereDoc(f) {
+	return f.toString().
+	    replace(/^[^\/]+\/\*!?/, '').
+	    replace(/\*\/[^\/]+$/, '');
+    }
+
+    var astDefs = hereDoc(function(){/*
 _lit = \x f . f x
 _ref = \x f . f x
 _lambda = \v f g . g v f
@@ -43,7 +52,7 @@ _name = \nm ast f . f nm ast
 # apply is the same def as prim
 # these are for identification purposes
 */})
-    var moreDefs = LAZP.hereDoc(function(){/*
+    var moreDefs = hereDoc(function(){/*
 t0 = _lit bubba
 t1 = _ref bubba
 t2 = _lambda x (_lit hello)
@@ -382,7 +391,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	return function(){return val}
     }
 
-//    LC.L.evalFactory()(LAZP.hereDoc(function(){/*
+//    LC.L.evalFactory()(hereDoc(function(){/*
 //	var __newLit = id(function(VAR0){return (function(){return id(function(VAR1){return (function(){return VAR1()(VAR0)})}, 31)})}, 29)
 //*/}))
 
