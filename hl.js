@@ -51,6 +51,8 @@ t3 = _lambda \x . _lit true
 t4 = _lambda \x . _ref x
 t5 = _lambda \x . _lambda \y . _ref x
 t6 = _lambda \x . _lambda \y . _ref y
+t7 = _lambda \x . _lambda \y . _lambda \z . _apply (_ref x) (_apply (_ref y) (_ref z))
+t77 = \x y z. x (y z)
 tlit = _lambda \x . _name lit (_lambda \f . _apply (_ref f) (_ref x))
 tref = _lambda \x . _name ref (_lambda \f . _apply (_ref f) (_ref x))
 tlambda = _lambda \f . _name lambda (_lambda \g . _lambda \v . _apply (_ref g) (_apply (_ref f) (_ref v)))
@@ -65,7 +67,45 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     var _applyId
     var _primId
     var _nameId
-
+    var tokenPat = null
+    var specials = '[]().*+?|'
+    var tokenDefPat = /^ *([^ ]+) *(=[.)]=|=\([^=]+=|=)(?:[^=])/
+    var numberPat = /^[0-9]+(\.[0-9]+)?|([0-9]+)?\.[0-9]+/
+    var order = []
+    var warnFreeVariable = []
+    var charCodes = {
+	"'": '$a',
+	',': '$b',
+	'$': '$c',
+	'@': '$d',
+	'?': '$e',
+	'/': '$f',
+	'*': '$g',
+	'&': '$h',
+	'^': '$i',
+	'!': '$k',
+	'`': '$l',
+	'~': '$m',
+	'-': '$n',
+	'+': '$o',
+	'=': '$p',
+	'|': '$q',
+	'[': '$r',
+	']': '$s',
+	'{': '$t',
+	'}': '$u',
+	'"': '$v',
+	':': '$w',
+	';': '$x',
+	'<': '$y',
+	'>': '$z',
+	'%': '$A',
+    }
+    var codeChars = {}
+    for (i in charCodes) {
+	codeChars[charCodes[i].substring(1)] = i
+    }
+    
     function isRef(f) {return f.lambda.id == _refId}
     function isLit(f) {return f.lambda.id == _litId}
     function isLambda(f) {return f.lambda.id == _lambdaId}
@@ -84,48 +124,57 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     }
     function resolve(v){return typeof v == 'function' ? v() : v}
     function first(){return function(a) {return a}}
-    function second(){return function(a) {return function(b){return b}}}
+    function second(){return function(a) {return function(b){return b()}}}
+    function getNameNm(n) {return n(first)}
+    function getNameAst(n) {return n(second)}
+    function getRefVar(r) {return r(first)()}
+    function getLitVal(l) {return l(first)()}
+    function getLambdaBody(l, varName) {return resolve(l(first)(laz(varName)))}
+    function getApplyFunc(a) {return a(first)}
+    function getApplyArg(a) {return a(second)}
+    function getPrimArg(p) {return p(first)}
+    function getPrimRest(p) {return p(second)}
     function astPrint(ast, res) {
 	var isFirst = !res
 
 	res = res || []
 	if (isFirst) res.gen = 0
-	switch (ast.lambda && ast.lambda.id) {
+	switch (ast.id || (ast.lambda && ast.lambda.id)) {
 	case _nameId:
-	    res.push('name ', ast(first), ' (')
-	    astPrint(ast(second)(), res)
+	    res.push('name ', getNameNm(ast), ' (')
+	    astPrint(getNameAst(ast), res)
 	    res.push(')')
 	    break
 	case _refId:
 	    res.push('ref ')
-	    var val = ast(first)()
+	    var val = getRefVar(ast)
 	    res.push(val.lambda ? "WHA?" : val)
 	    break
 	case _litId:
 	    res.push('lit ')
-	    var val = ast(first)()
+	    var val = getLitVal(ast)
 
 	    res.push(val.lambda ? "{" + val.lambda.toString() + "}" : val)
 	    break
 	case _lambdaId:
 	    var v = "VAR" + res.gen++
-	    var vf = function(){return v}
 
 	    res.push('lambda ')
 	    res.push(v)
 	    res.push(' . ')
-	    astPrint(resolve(ast(first)(vf)), res)
+	    astPrint(getLambdaBody(ast, v), res)
 	    break
 	case _applyId:
 	    res.push('apply (')
-	    astPrint(ast(first), res)
+	    astPrint(getApplyFunc(ast), res)
 	    res.push(') (')
-	    astPrint(ast(second)(), res)
+	    astPrint(getApplyArg(ast), res)
 	    res.push(')')
 	    break
 	case _primId:
 	    res.push('prim ')
-	    astPrint(ast(first), res)
+	    astPrint(getPrimArg(ast), res)
+	    astPrint(getPrimRest(ast), res)
 	    break
 	default:
 	    res.push("WHA???")
@@ -149,6 +198,11 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
      */
     function createContext() {
 	var ctx = (function(){
+	    var tokens = {}
+	    var groupOpens = {'(': ')'}
+	    var groupCloses = {')': 1}
+	    var C
+
 	    function id(func, id) {
 		func.context = C
 		func.id = id
@@ -167,7 +221,10 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 		return ast
 	    }
 
-	    var C = {
+	    return C = {
+		tokens: tokens,
+		groupOpens: groupOpens,
+		groupCloses: groupCloses,
 		astsById: [],
 		astsByName: {},
 		addAst: addAst,
@@ -176,8 +233,6 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 		eval: function(str){return eval(str)},
 		subcontext: function(){return function(str){return eval(str)}},
 	    }
-
-	    return C
 	})()
 
 	ctx.funcId = 0
@@ -186,9 +241,43 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 
     var CTX = createContext()
 
-    function dgen(ast) {return gen(ast, null, null, true)}
-    function gen(ast, res, ctx, deref, prim, cont) {
-	var isFirst = !res
+    function Memo() {
+	this.count = 0
+    }
+    Memo.prototype = {
+	add: function() {return "memo" + this.count++},
+	toString: function() {
+	    if (this.count) {
+		var ret = ''
+
+		for (var i = 0; i < this.count; i++) {
+		    ret += "var memo" + i + "; "
+		}
+		return ret
+	    } else {
+		return ''
+	    }
+	}
+    }
+
+    function dgen(ast) {
+	var mem = new Memo()
+	var ret = gen(ast, [], null, mem, true)
+
+	return mem.count ? ["(function(){", mem, "return " + ret[0] + "})()", ret[1]] : ret
+    }
+    function memoStart(res, memo, deref) {
+	if (!deref) {
+	    var mem = memo.add()
+
+	    res.push("function(){return ", mem, " || (", mem, " = ")
+	}
+    }
+    function memoEnd(res, memo, deref) {
+	if (!deref) res.push(")}")
+    }
+    function gen(ast, res, ctx, memo, deref, prim, cont) {
+	var isFirst = !ctx
 
 	res = res || []
 	ctx = ctx || CTX.subcontext()
@@ -197,14 +286,14 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 	CTX.addAst(ast)
 	switch (ast.lambda && ast.lambda.id) {
 	case _nameId:
-	    var nm = ast(first)
-	    var a = ast(second)
+	    var nm = getNameNm(ast)
+	    var a = getNameAst(ast)
 
 	    CTX.nameAst(nm, a)
-	    gen(a(), res, ctx)
+	    gen(a, res, ctx, memo)
 	    break
 	case _refId:
-	    var val = ast(first)()
+	    var val = getRefVar(ast)
 
 	    if (val.lambda) throw new Error("attempt to use lambda as a variable")
 	    res.push(val)
@@ -214,30 +303,30 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 	    var lit = "lit" + ctx.curLit++
 
 	    ctx("var " + lit)
-	    ctx("(function(v){" + lit + " = v})")(ast(first)())
+	    ctx("(function(v){" + lit + " = v})")(getLitVal(ast))
 	    res.push(lit)
 	    if (deref) res.push("()")
 	    break
 	case _lambdaId:
 	    var v = "VAR" + ctx.gen++
-	    var vf = function(){return v}
 
+	    memo = new Memo()
 	    if (!deref) res.push("(function(){return ")
-	    res.push("id(function(" + v + "){return ")
-	    gen(resolve(ast(first)(vf)), res, ctx)
+	    res.push("id(function(" + v + "){", memo, "return ")
+	    gen(getLambdaBody(ast, v), res, ctx, memo, true)
 	    res.push("}, " + ast.id + ")")
 	    if (!deref)	res.push("})")
 	    break
 	case _applyId:
-	    var func = ast(first)
-	    var arg = ast(second)()
+	    var func = getApplyFunc(ast)
+	    var arg = getApplyArg(ast)
 
-	    if (!deref) res.push("(function(){return ")
-	    gen(func, res, ctx, true)
+	    memoStart(res, memo, deref)
+	    gen(func, res, ctx, memo, true)
 	    res.push("(")
-	    gen(arg, res, ctx)
+	    gen(arg, res, ctx, memo)
 	    res.push(")")
-	    if (!deref)	res.push("})")
+	    memoEnd(res, memo, deref)
 	    break
 	case _primId:
 	    var arg = ast(first)
@@ -247,14 +336,19 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 		if (cont) {
 		    res.push(", ")
 		}
-		gen(arg, res, ctx, false, true, true, true)
+		res.push(arg)
+		if (isPrim(rest)) {
+		    gen(rest, res, ctx, memo, false, true, true)
+		}
 	    } else {
-		if (!deref) res.push("(function(){return ")
-		gen(arg, res, ctx, true, false)
+		memoStart(res, memo, deref)
+		res.push(arg)
 		res.push("(")
-		gen(rest, res, ctx, true, false, true)
+		if (isPrim(rest)) {
+		    gen(rest, res, ctx, memo, true, true, false)
+		}
 		res.push(")")
-		if (!deref)	res.push("})")
+		memoEnd(res, memo, deref)
 	    }
 	    break
 	default:
@@ -341,7 +435,235 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
 	}, -4)
     }
 
-    function compile(str) {
+    function defineToken(name, def) {
+	if (def != '=') {
+	    CTX.tokens[name] = 1
+	    tokenPat = null
+	    if (def[1] == '(') {
+		CTX.groupOpens[name] = def.substring(2, def.length - 1)
+	    } else if (def[1] == ')') {
+		CTX.groupCloses[name] = 1
+	    }
+	}
+    }
+    function evalLine(line, noRebuild) {
+	if (line != "" && (line.match(/^#(define|strict|lazy)/) || line[0] != '#')) {
+	    var def = line.match(tokenDefPat)
+	    var name = def ? def[1].trim() : null
+	    
+	    if (def) {
+		defineToken(name, def[2])
+		line = line.substring(def[0].length).trim()
+	    }
+	    return addExpr(name, line, noRebuild)
+	}
+	return false
+    }
+    function newEntry(name, ast) {
+	ast.name = name
+	ast.cname = nameSub(name)
+	try {
+	    var cmp = compile(ast)
+	    ast.func = cmp[0]
+	    ast.env = cmp[1]
+	    ast.src = 'function() {\nreturn ' + ast.func + '\n}'
+	    if (warnFreeVariable.length) {
+		ast.usesFree = warnFreeVariable.join(', ')
+		warnFreeVariable = []
+	    }
+	} catch (err) {
+	    ast.src = function() {return "Error compiling: " + expr}
+	}
+    }
+    function nameSub(name) {
+	var s = '_'
+
+	for (var i = 0; i < name.length; i++) {
+	    var code = charCodes[name[i]]
+	    
+	    if (code) {
+		if (!s) s = name.substring(0, i)
+		s += code
+	    } else if (s) {
+		s += name[i]
+	    }
+	}
+	return s || name
+    }
+    function nameUnsub(name) {
+	var s = ''
+
+	for (var i = 1; i < name.length; i++) {
+	    if (name[i] == '$') {
+		if (!s) s = name.substring(0, i)
+		s += codeChars[name[++i]]
+	    } else {
+		if (s) s += name[i]
+	    }
+	}
+	return s
+    }
+    function addExpr(name, txt, noRebuild) {
+	if (name) {
+	    var expr = newEntry(name, parse(txt))
+	    var newOutput = ''
+	    
+	    expr.expr.name = name
+	    if (!noRebuild) {
+		for (var i = 0; i < order.length; i++) {
+		    if (order[i].name == name) {
+			order.splice(i, 1)
+		    }
+		}
+	    }
+	    exp("L", LC.L = L = null)
+	    order.push(expr)
+	    var hk = expr.expr.hashKey()
+	    if (!hashed[hk]) hashed[hk] = expr
+	    exprs[name] = expr
+	    return true
+	} else {
+	    runExpr(txt.trim())
+	    return false
+	}
+    }
+    function addToken(tok, group) {
+	var pat = ''
+	
+	CTX.tokens[tok] = group
+	tokenPat = null
+    }
+    function createTokenPat() {
+	if (!tokenPat) {
+	    var types = []
+	    
+	    for (var i in CTX.tokens) {
+		types.push(i)
+	    }
+	    // sort them by length, longest first
+	    types.sort(function(a, b) {b.length - a.length})
+	    for (var i = 0; i < types.length; i++) {
+		var s = types[i]
+		var o = ''
+		
+		for (var p = 0; p < s.length; p++) {
+		    if (specials.indexOf(s[p]) > -1) {
+			o += '\\'
+		    }
+		    o += s[p]
+		}
+		types[i] = o
+	    }
+	    types.push('((#define|#strict|#lazy)(?=[ \t]))|[()#.\\\\]| +')
+	    tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'))
+	}
+    }
+    function tokenize(str) {
+	var pos = 0
+	var toks = []
+	
+	str = str.replace(/\u03BB/g, '\\')
+	createTokenPat()
+	while (str.length && (pos = str.search(tokenPat)) > -1) {
+	    if (pos > 0) {
+		toks.push(str.substring(0, pos))
+	    }
+	    var tok = tokenPat.exec(str.substring(pos))[0]
+	    if (tok.trim()) {
+		if (tok[0] == '#' && !tok.match(/^#(define|strict|lazy)/)) break
+		toks.push(tok)
+	    }
+	    str = str.substring(pos + tok.length)
+	}
+	if (str.length) {
+	    toks.push(str)
+	}
+	return toks
+    }
+    function parse(str) {return tparse(tokenize(str).reverse(), {})}
+    function addDef(toks) {
+	var t = toks.reverse()
+	
+	defs[t[0]] = t.join(' ')
+    }
+    function tparse(toks, vars, expr) {
+	var cur
+	var oldVars = {}
+
+	while (toks.length) {
+	    var tok = toks.pop()
+
+	    if (tok == ')') {
+		toks.push(tok)
+		return expr
+	    }
+	    if (tok == '\\') {
+		cur = tparseLambda(toks, vars)
+	    } else if (tok == '#define') {
+		addDef(toks)
+		toks = []
+	    } else if (tok == '#lazy' || tok == '#strict') {
+		cur = tparseVariable(tok, vars, oldVars)
+	    } else {
+		var expectedClose = CTX.groupOpens[tok]
+		var skip = false
+
+		if (expectedClose) {
+		    cur = tparse(toks, vars, tok != '(' ? tparseVariable(tok, vars, oldVars) : null)
+		    if (toks.length && toks[toks.length - 1] == expectedClose) {
+			toks.pop()
+		    }
+		    skip = true
+		}
+		if (!skip) {
+		    cur = tparseVariable(tok, vars, oldVars)
+		}
+	    }
+	    expr = expr ? wapply(expr, cur) : cur
+	    if (CTX.groupCloses[tok]) {
+		toks.push(tok)
+		return expr
+	    }
+	}
+	for (i in oldVars) {
+	    vars[i] = oldVars[i]
+	}
+	return expr
+    }
+    
+    function tparseVariable(tok, vars, oldVars) {
+	var cur = vars[tok]
+	if (!cur) {
+	    if (CTX.astsByName[tok]) {
+		cur = wlit(CTX.astsByName[tok])
+	    } else {
+//****		cur = wref(tok) -- need to link in a ref to the lambda's var
+	    }
+	    if (vars[tok]) oldVars[tok] = vars[tok]
+	    vars[tok] = cur
+	}
+	return cur
+    }
+    function tparseLambda(toks, vars) {
+	var name, old, body, lvar
+	
+	if (toks.length < 3 || toks[toks.length - 1] == '.') {
+		throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
+	}
+	if (toks[toks.length - 2] == '.') {
+		name = toks.pop()
+		old = vars[name]
+		lvar = vars[name] = new Variable(name, false)
+		toks.pop()
+		body = tparse(toks, vars)
+	} else {
+		name = toks.pop()
+		old = vars[name]
+		lvar = vars[name] = new Variable(name, false)
+		body = tparseLambda(toks, vars)
+	}
+	vars[name] = old
+	return new Lambda(lvar, body)
     }
 
 /*
@@ -354,7 +676,7 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     console.log("t2 id: " + LC.L._t2().lambda.id)
     console.log("t2 type: " + astType(LC.L._t2()))
     console.log("t2 var: " + LC.L._t2()(first))
-    console.log("t2 body: " + LC.L._t2()(second)().lambda)
+    console.log("t2 body: " + LC.L._t2()(second).lambda)
     console.log("t2: " + astPrint(LC.L._t2()))
     console.log("t3: " + astPrint(LC.L._t3()))
 */
@@ -407,15 +729,29 @@ tname = _lambda \nm . _lambda \ast . _name name (_lambda \f . _apply (_apply (_r
     console.log("tapply: " + LC.L.__apply())
     console.log("tprim: " + LC.L.__apply())
     console.log("tname: " + LC.L.__name())
-*/
-/*
     console.log("REF ID: " + (ref("duh")()).id)
     console.log("REF TEST: " + astPrint(ref("duh")()))
     console.log("REF GEN: " + dgen(ref("duh")())[0])
 */
 
-    console.log("T4 AST: " + astPrint(wlambda(function(x){return ref(x)})))
-    console.log("T4 gen: " + dgen(wlambda(function(x){return ref(x)}))[0])
+    var t4 = wlambda(function(x){return ref(x)})
+    console.log("T4 AST: " + astPrint(t4))
+    console.log("T4 gen: " + dgen(t4)[0])
+    console.log("T4 src: " + t4)
+
+    console.log("T7: " + astPrint(LC.L._t7()))
+    var t7 = wlambda(function(x){return wlambda(function(y){return wlambda(function(z){return wapply(ref(x), wapply(ref(y), ref(z)))})})})
+    console.log("T7 AST: " + astPrint(t7))
+    console.log("T7 gen: " + dgen(t7)[0])
+    console.log("T7 run: " + eval(dgen(t7)[0]))
+    console.log("T7 1: " + eval(dgen(t7)[0])(laz(function(x){return x()+"1"})))
+    console.log("T7 2: " + eval(dgen(t7)[0])(laz(function(x){return x()+"1"}))(laz(function(y){return y()+"2"})))
+
+var log=console.log
+
+    console.log("T7 3: " + eval(dgen(t7)[0])(laz(function(x){log("x: " + x()); return String(x())+"1"}))(laz(function(y){log("y: " + y()); return y()+"2"}))(laz("FLOOP ")))
+
+    console.log("T77: " + LC.L._t77)
 
 // TODO: compile AST funcs directly and include the JS source here
 // for self hosting
