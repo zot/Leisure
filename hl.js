@@ -749,7 +749,7 @@ var log=console.log
 
     console.log("LIT: " + dgen(wlit('x'), true)[0])
 
-    console.log("\\x.x: " + astPrint(parse("\\x.x x")))
+    console.log("\\x.x x x: " + astPrint(parse("\\x.x x y")))
 
 // TODO: compile AST funcs directly and include the JS source here
 // for self hosting
