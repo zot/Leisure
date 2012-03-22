@@ -85,12 +85,7 @@ Represent ASTs as LC cons-lists
 	    replace(/^[^\/]+\/\*!?/, '').
 	    replace(/\*\/[^\/]+$/, '');
     }
-    function isRef(f) {return f.lambda.id == _refId}
-    function isLit(f) {return f.lambda.id == _litId}
-    function isLambda(f) {return f.lambda.id == _lambdaId}
-    function isApply(f) {return f.lambda.id == _applyId}
-    function isPrim(f) {return f.lambda.id == _primId}
-    function isName(f) {return f.lambda.id == _nameId}
+    function isPrim(f) {return (f.id || (f.lambda && f.lambda.id)) == _primId}
     function astType(f) {
 	switch (f.id || f.lambda.id) {
 	case _refId: return 'ref'
@@ -101,7 +96,6 @@ Represent ASTs as LC cons-lists
 	case _nameId: return 'name'
 	}
     }
-    function resolve(v){return typeof v == 'function' ? v() : v}
     function first(){return function(a) {return a}}
     function second(){return function(a) {return function(b){return b()}}}
     function getNameNm(n) {return n(first)}
@@ -306,12 +300,6 @@ Represent ASTs as LC cons-lists
 	}
     }
 
-    function dgen(ast, lazy) {
-	var mem = new Memo()
-	var ret = gen(ast, [], null, Nil, mem, true)
-
-	return mem.count || lazy ? [["(function(){", mem, "return " + ret[0] + "})", !lazy ? "()" : ""].join(''), ret[1]] : ret
-    }
     function memoStart(res, memo, deref) {
 	if (!deref) {
 	    var mem = memo.add()
@@ -322,6 +310,7 @@ Represent ASTs as LC cons-lists
     function memoEnd(res, memo, deref) {
 	if (!deref) res.push(")}")
     }
+
     function Cons(a, b) {
 	this.head = a
 	this.tail = b
@@ -333,6 +322,13 @@ Represent ASTs as LC cons-lists
     }
     var Nil = new Cons()
     Nil.contains = function() {return false}
+
+    function dgen(ast, lazy) {
+	var mem = new Memo()
+	var ret = gen(ast, [], null, Nil, mem, true)
+
+	return mem.count || lazy ? [["(function(){", mem, "return " + ret[0] + "})", !lazy ? "()" : ""].join(''), ret[1]] : ret
+    }
     function gen(ast, res, ctx, vars, memo, deref, prim, cont) {
 	var isFirst = !ctx
 
@@ -395,8 +391,8 @@ Represent ASTs as LC cons-lists
 	    memoEnd(res, memo, deref)
 	    break
 	case _primId:
-	    var arg = ast(first)
-	    var rest = ast(rest)
+	    var arg = getPrimArg(ast)
+	    var rest = getPrimRest(ast)
 
 	    if (prim) {
 		if (cont) {
