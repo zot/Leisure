@@ -29,43 +29,21 @@ Tests for Lazp
 (function(){
     var U = require('util')
     var LZ=require('./lazp.js')
-
-    function assertEq(actual, expected, desc) {
-	if (expected != actual) throw new Error((desc ? "[" + desc + "] " : "") +  "Expected <" + expected + "> but got <" + actual + ">")
-    }
-    function assertEval(actual, expected, desc) {
-	assertEq(LZ.eval(LZ.gen(LZ.parse(actual))[0]), expected, desc || actual)
-    }
-    function assertParse(actual, expected, desc) {
-	assertEq(LZ.astPrint(LZ.parse(actual)), expected, desc || actual)
-    }
-
+    var T = require('./testing.js')
     
-    function runTests() {
-	for (var i = 0; i < arguments.length ;i++) {
-	    try {
-		arguments[i]()
-		U.print('.')
-	    } catch (err) {
-		U.print("\nFailure, ", arguments[i].name, ": ", err.stack)
-	    }
-	}
-	U.print("\nDone")
-    }
-
     function test1() {
-	assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
+	T.assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
     }
     function test2() {
-	assertEval("(\\x . x) hello", 'hello')
+	T.assertEval("(\\x . x) hello", 'hello')
     }
     function test3() {
-	assertEval("eval (_apply (_lambda x (_ref x)) (_lit hello))", 'hello')
+	T.assertEval("eval (_apply (_lambda x (_ref x)) (_lit hello))", 'hello')
     }
 
-    runTests(
+    T.runTests([
 	test1,
 	test2,
-	test3
-    )
+	test3,
+    ])
 })()
