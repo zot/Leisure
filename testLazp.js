@@ -31,19 +31,15 @@ Tests for Lazp
     var LZ=require('./lazp.js')
     var T = require('./testing.js')
     
-    function test1() {
-	T.assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
-    }
-    function test2() {
-	T.assertEval("(\\x . x) hello", 'hello')
-    }
-    function test3() {
-	T.assertEval("eval (_apply (_lambda x (_ref x)) (_lit hello))", 'hello')
-    }
-
     T.runTests([
-	test1,
-	test2,
-	test3,
+	function test1() {
+	    T.assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
+	},
+	function test2() {
+	    T.assertEval("(\\x . x) hello", 'hello')
+	},
+	function test3() {
+	    T.assertEval("eval (_apply (_lambda x (_ref x)) (_lit hello))", 'hello')
+	},
     ])
 })()
