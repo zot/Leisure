@@ -21,6 +21,20 @@ _apply func arg -- function application: func can be any AST function except a _
 _prim arg rest -- primitive call: rest is either a _lit, a _ref, or another _prim (which allows more args)  
 
 The AST functions serve as an embedded DSL.
+## AST Function definitions
+
+_lit = \x f . f x  
+_ref = \x f . f x  
+_lambda = \v f g . g v f  
+_apply = \func arg f . f func arg  
+_prim = \arg rest f . f arg rest  
+_name = \nm ast f . f nm ast  
+
+In _prim, rest is either a _prim, _lit, or _ref  
+lit is the same def as ref  
+apply is the same def as prim  
+these are for identification purposes  
+
 ## Examples
 
 eval x -- evaluates x  

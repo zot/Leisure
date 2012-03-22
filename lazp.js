@@ -41,49 +41,6 @@ Represent ASTs as LC cons-lists
     var _applyId = -4
     var _primId = -5
     var _nameId = -6
-
-    function hereDoc(f) {
-	return f.toString().
-	    replace(/^[^\/]+\/\*!?/, '').
-	    replace(/\*\/[^\/]+$/, '');
-    }
-
-    var astDefs = hereDoc(function(){/*
-_lit = \x f . f x
-_ref = \x f . f x
-_lambda = \v f g . g v f
-_apply = \func arg f . f func arg
-# rest is either a _prim, _lit, or _ref
-_prim = \arg rest f . f arg rest
-_name = \nm ast f . f nm ast
-# lit is the same def as ref
-# apply is the same def as prim
-# these are for identification purposes
-*/})
-    var moreDefs = hereDoc(function(){/*
-t0 = _lit bubba
-t1 = _ref bubba
-t2 = _lambda x (_lit hello)
-t3 = _lambda x (_lit true)
-t4 = _lambda x (_ref x)
-t5 = _lambda x (_lambda y (_ref x))
-t6 = _lambda x (_lambda y (_ref y))
-t7 = _lambda x (_lambda y (_lambda z (_apply (_ref x) (_apply (_ref y) (_ref z)))))
-t77 = \x y z. x (y z)
-tlit = _lambda x (_name lit (_lambda f (_apply (_ref f) (_ref x))))
-tref = _lambda x (_name ref (_lambda f (_apply (_ref f) (_ref x))))
-tlambda = _lambda f (_name lambda (_lambda g (_lambda v (_apply (_ref g) (_apply (_ref f) (_ref v))))))
-tapply = _lambda func (_lambda arg (_name apply (_lambda f (_apply (_apply (_ref f) (_ref func)) (_ref arg)))))
-tprim =  _lambda arg (_lambda rest (_name prim (_lambda f (_apply (_apply (_ref f) (_ref arg)) (_ref rest)))))
-tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) (_ref nm)) (_ref ast)))))
-*/})
-
-    var _refId
-    var _litId
-    var _lambdaId
-    var _applyId
-    var _primId
-    var _nameId
     var tokenPat = null
     var specials = '[]().*+?|'
     var tokenDefPat = /^ *([^ ]+) *(=[.)]=|=\([^=]+=|=)(?:[^=])/
@@ -123,6 +80,11 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	codeChars[charCodes[i].substring(1)] = i
     }
     
+    function hereDoc(f) {
+	return f.toString().
+	    replace(/^[^\/]+\/\*!?/, '').
+	    replace(/\*\/[^\/]+$/, '');
+    }
     function isRef(f) {return f.lambda.id == _refId}
     function isLit(f) {return f.lambda.id == _litId}
     function isLambda(f) {return f.lambda.id == _lambdaId}
@@ -463,77 +425,16 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	return isFirst && [ast.src, ctx]
     }
 
-    function run(cmp, arg) {
-	try {
-	    return cmp[1]("(" + cmp[0] + ")")(arg)
-	} catch (err) {
-	    console.log(err.stack)
-	}
-    }
-
     function laz(val) {
 	return function(){return val}
     }
 
-    function id(func, id) {
-	func.id = id
-	func.lambda = {id: id} //this fake lambda object is temporary; for compatibility
-	return func
-    }
-
-    // wrapped functions -- makes args trivally lazy
-    function wlit(value) {return lit(laz(value))}
-    function wref(variable) {return ref(laz(variable))}
-    function wlambda(v, func) {return lambda(laz(v))(laz(func))}
-    function wapply(func, arg) {return apply(laz(func))(laz(arg))}
-    function wprim(arg, rest) {return prim(laz(arg))(laz(rest))}
-    function wname(nm, ast) {return name(laz(nm))(laz(ast))}
-    // base functions
     var lit = CTX.astsByName._lit
     var ref = CTX.astsByName._ref
     var lambda = CTX.astsByName._lambda
     var apply = CTX.astsByName._apply
     var prim = CTX.astsByName._prim
     var name = CTX.astsByName._name
-
-    function lit(_x) {
-	return id(function(_f) {
-	    return _f()(_x)
-	}, _litId)
-    }
-    function ref(_x) {
-	return id(function(_f) {
-	    return _f()(_x)
-	}, _refId)
-    }
-    function lambda(_v) {
-	return id(function(_f) {
-	    return id(function(_g) {
-		return _g()(_v)(_f)
-	    }, _lambdaId)
-	}, -1)
-    }
-    function apply(_func) {
-	return id(function(_arg) {
-	    return id(function(_f) {
-		return _f()(_func)(_arg)
-	    }, _applyId)
-	}, -2)
-    }
-    function prim(_func) {
-	return id(function(_arg) {
-	    return id(function(_f) {
-		return _f()(_func)(_arg)
-	    }, _primId)
-	}, -3)
-    }
-    function name(_nm) {
-	return id(function(_ast) {
-	    return id(function(_f) {
-		return _f()(_nm)(_ast)
-	    }, _nameId)
-	}, -4)
-    }
 
     function defineToken(name, def) {
 	if (def != '=') {
@@ -706,7 +607,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 		    cur = tparseVariable(tok, vars, oldVars)
 		}
 	    }
-	    expr = expr ? wapply(expr, cur) : cur
+	    expr = expr ? apply(laz(expr))(laz(cur)) : cur
 	    if (CTX.groupCloses[tok]) {
 		toks.push(tok)
 		return expr
@@ -721,9 +622,9 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     function tparseVariable(tok, vars, oldVars) {
 	if (vars[tok] || CTX.astsByName[tok]) {
 	    vars[tok] = tok
-	    cur = wref(tok)
+	    cur = ref(laz(tok))
 	} else {
-	    cur = wlit(tok)
+	    cur = lit(laz(tok))
 	}
 	return cur
     }
@@ -746,6 +647,6 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    body = tparseLambda(toks, vars)
 	}
 	vars[name] = old
-	return wlambda(name, body)
+	return lambda(laz(name))(laz(body))
     }
 })()
