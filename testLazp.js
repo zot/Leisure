@@ -1,61 +1,71 @@
-(function(){
-var LC=require('./lc.js')
-var LAZP=require('./lazp.js')
+/*
+Copyright (C) 2012, Bill Burdick, Tiny Concepts: http://tinyconcepts.com/fs.pl/lambda.fsl
 
-    function run() {
-	console.log('hello')
-	LC.loadDefs(DEFS)
+(licensed with ZLIB license)
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+claim that you wrote the original software. If you use this software
+in a product, an acknowledgment in the product documentation would be
+appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source distribution.
+*/
+
+/*
+Tests for Lazp
+*/
+
+(function(){
+    var U = require('util')
+    var LZ=require('./lazp.js')
+
+    function assertEq(actual, expected, desc) {
+	if (expected != actual) throw new Error((desc ? "[" + desc + "] " : "") +  "Expected <" + expected + "> but got <" + actual + ">")
+    }
+    function assertEval(actual, expected, desc) {
+	assertEq(LZ.eval(LZ.gen(LZ.parse(actual))[0]), expected, desc || actual)
+    }
+    function assertParse(actual, expected, desc) {
+	assertEq(LZ.astPrint(LZ.parse(actual)), expected, desc || actual)
     }
 
-    var DEFS = LAZP.hereDoc(function() {/*
-true = \x y . x
-false = \x y . y
+    
+    function runTests() {
+	for (var i = 0; i < arguments.length ;i++) {
+	    try {
+		arguments[i]()
+		U.print('.')
+	    } catch (err) {
+		U.print("\nFailure, ", arguments[i].name, ": ", err.stack)
+	    }
+	}
+	U.print("\nDone")
+    }
 
-# Y combinator
-Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+    function test1() {
+	assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
+    }
+    function test2() {
+	assertEval("(\\x . x) hello", 'hello')
+    }
+    function test3() {
+	assertEval("eval (_apply (_lambda x (_ref x)) (_lit hello))", 'hello')
+    }
 
-rec = \f . f (Y f)
-
-# rec = \f . f f
-
-# lists
-# using false as "nil" in lists, so you use a list like this:
-# DUMMY can be anything, but it needs to be there
-# here's how you use a list:
-# aList (\h t DUMMY . {list-case}) {empty-case}
-# If the list is not empty, h and t are the head and tail of the list and it returns list-case.  DUMMY is not used, but needs to be there
-# If the list is empty, it returns empty-case
-# these defs are required by the pretty-printer: cons, nil, head, tail
-cons = \a b f . f a b
-nil = \x y . y
-head = \l . l \h t . h
-tail = \l . l \h t . t
-null = \l . l (\h t D . false) true
-last = rec \last l  . l (\h t D . null t h (last t)) nil
-append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
-reverse = \l . (rec \rev l res . l (\h t D . rev t (cons h res)) res) l nil
-# list constructor: list 1 , 2 , 3 end
-# first attempt, using recursive 'list' definition
-#
-#list = (rec \list rest item if-continue . if-continue (list (cons item rest)) (reverse (cons item rest))) nil
-#, = true
-#end = false
-#
-# second attempt, using "post-processing" with reverse
-#[ =(]= \item f  .  f (cons item nil)
-#, =.= \l item f . f (cons item l)
-#] =)= reverse
-#
-# current constructor
-# no post processing
-# also allows [1, 2, 3 | REST ] (like Prolog)
-
-[ =(]= \item c . c \rest . cons item rest
-, =.= \f item c . c \rest . f (cons item rest)
-] =)= \f . f nil
-| =.= \f rest g . f rest
-ident = \x . x
-*/})
-
- run()
+    runTests(
+	test1,
+	test2,
+	test3
+    )
 })()

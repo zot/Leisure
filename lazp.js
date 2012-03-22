@@ -33,6 +33,10 @@ Represent ASTs as LC cons-lists
     var VM=require('./lcvm.js')
 
     exports.hereDoc = hereDoc
+    exports.parse = parse
+    exports.astPrint = astPrint
+    exports.gen = dgen
+    exports.laz = laz
 
     function hereDoc(f) {
 	return f.toString().
@@ -158,7 +162,8 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	case _refId:
 	    res.push('ref ')
 	    var val = getRefVar(ast)
-	    res.push(val.lambda ? "WHA?" : val)
+	    if (val.lambda) throw new Error("Attempt to use lambda in ref, instead of string or number: " + val)
+	    res.push(val)
 	    break
 	case _litId:
 	    res.push('lit ')
@@ -185,7 +190,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    astPrint(getPrimRest(ast), res)
 	    break
 	default:
-	    res.push("WHA???")
+	    throw new Error("Unknown type of object in AST: " + ast)
 	    break
 	}
 	return isFirst && res.join('')
@@ -201,7 +206,70 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    var groupCloses = {')': 1}
 	    var C
 
+	    // standard functions
+	    function _eval() {
+		return function(ast) {
+//		    console.log("EVAL func: " + ast)
+//		    console.log("EVAL ast: " + astPrint(ast()))
+//		    console.log("EVAL gen: " + dgen(ast())[0])
+		    return eval(dgen(ast())[0])
+		}
+	    }
+	    function __lit() {
+		return function(_x) {
+		    return id(function(_f) {
+			return _f()(_x)
+		    }, _litId)
+		}
+	    }
+	    function __ref() {
+		return function(_x) {
+		    return id(function(_f) {
+			return _f()(_x)
+		    }, _refId)
+		}
+	    }
+	    function __lambda() {
+		return function(_v) {
+		    return id(function(_f) {
+			return id(function(_g) {
+			    return _g()(_v)(_f)
+			}, _lambdaId)
+		    }, -1)
+		}
+	    }
+	    function __apply() {
+		return function(_func) {
+		    return id(function(_arg) {
+			return id(function(_f) {
+			    return _f()(_func)(_arg)
+			}, _applyId)
+		    }, -2)
+		}
+	    }
+	    function __prim() {
+		return function(_func) {
+		    return id(function(_arg) {
+			return id(function(_f) {
+			    return _f()(_func)(_arg)
+			}, _primId)
+		    }, -3)
+		}
+	    }
+	    function __name() {
+		return function(_nm) {
+		    return id(function(_ast) {
+			return id(function(_f) {
+			    return _f()(_nm)(_ast)
+			}, _nameId)
+		    }, -4)
+		}
+	    }
+
 	    function id(func, id) {
+		if (!id) {
+		    C.astsById.push(func.name)
+		}
 		func.context = C
 		func.id = id
 		return func
@@ -221,7 +289,9 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 		return ast
 	    }
 
-	    return C = {
+	    var t = this
+
+	    C = {
 		tokens: tokens,
 		groupOpens: groupOpens,
 		groupCloses: groupCloses,
@@ -230,9 +300,21 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 		addAst: addAst,
 		id: id,
 		nameAst: nameAst,
-		eval: function(str){return eval(str)},
+		eval: function(str){
+//		    console.log("CTX.eval: " + str)
+		    return eval(str)
+		},
 		subcontext: function(){return function(str){return eval(str)}},
 	    }
+	    C.astsByName.eval = id(_eval())
+	    C.astsByName._lit = id(__lit())
+	    C.astsByName._ref = id(__ref())
+	    C.astsByName._lambda = id(__lambda())
+	    C.astsByName._apply = id(__apply())
+	    C.astsByName._prim = id(__prim())
+	    C.astsByName._name = id(__name())
+
+	    return C
 	})()
 
 	ctx.funcId = 0
@@ -240,6 +322,8 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     }
 
     var CTX = createContext()
+    exports.eval = CTX.eval
+    exports.tst = CTX.test
 
     function Memo() {
 	this.count = 0
@@ -295,7 +379,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	ctx.curLit = 0
 	if (isFirst) ctx.gen = 0
 	CTX.addAst(ast)
-	switch (ast.lambda && ast.lambda.id) {
+	switch (ast.id || (ast.lambda && ast.lambda.id)) {
 	case _nameId:
 	    var nm = getNameNm(ast)
 	    var a = getNameAst(ast)
@@ -307,7 +391,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    var val = getRefVar(ast)
 
 	    if (val.lambda) throw new Error("attempt to use lambda as a variable")
-	    if (!vars.contains(val)) throw new Error("unbound variable -- use lit instead")
+	    if (!vars.contains(val) && !CTX.astsByName[val]) throw new Error("unbound variable, '" + val + "' -- use lit instead")
 	    res.push(nameSub(val))
 	    if (deref) res.push("()")
 	    break
@@ -372,7 +456,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    }
 	    break
 	default:
-	    res.push("'WHA???'")
+	    throw new Error("Unknown object type in gen: " + ast)
 	    break
 	}
 	ast.src = res.join('')
@@ -417,6 +501,13 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     function wprim(arg, rest) {return prim(laz(arg))(laz(rest))}
     function wname(nm, ast) {return name(laz(nm))(laz(ast))}
     // base functions
+    var lit = CTX.astsByName._lit
+    var ref = CTX.astsByName._ref
+    var lambda = CTX.astsByName._lambda
+    var apply = CTX.astsByName._apply
+    var prim = CTX.astsByName._prim
+    var name = CTX.astsByName._name
+
     function lit(_x) {
 	return id(function(_f) {
 	    return _f()(_x)
@@ -643,14 +734,17 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	if (vars[tok] || CTX.astsByName[tok]) {
 	    vars[tok] = tok
 	    cur = wref(tok)
+//console.log("var: " + tok)
 	} else {
 	    cur = wlit(tok)
+//console.log("lit: " + tok)
 	}
 	return cur
     }
+
     function tparseLambda(toks, vars) {
 	var name, old, body
-	
+
 	if (toks.length < 3 || toks[toks.length - 1] == '.') {
 	    throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
 	}
@@ -682,9 +776,7 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     console.log("t2 body: " + LC.L._t2()(second).lambda)
     console.log("t2: " + astPrint(LC.L._t2()))
     console.log("t3: " + astPrint(LC.L._t3()))
-*/
     console.log("t4: " + astPrint(LC.L._t4()))
-/*
     console.log("t5: " + astPrint(LC.L._t5()))
     console.log("t6: " + astPrint(LC.L._t6()))
     console.log("gen t1: " + dgen(LC.L._t1())[0])
@@ -694,10 +786,8 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     console.log("gen t3: " + dgen(LC.L._t3())[0])
     console.log("run t3 'a' 'b': " + run(dgen(LC.L._t3()), null))
     console.log("t3 'a' 'b': " + run(dgen(LC.L._t3()), laz("a")))
-*/
     console.log("gen t4: " + dgen(LC.L._t4())[0])
     console.log("run t4 'a': " + run(dgen(LC.L._t4()), laz('a')))
-/*
     console.log("gen t5: " + dgen(LC.L._t5())[0])
     console.log("run t5 'a' 'b': " + run(dgen(LC.L._t5()), 'a')('b'))
     console.log("gen t6: " + dgen(LC.L._t6())[0])
@@ -735,7 +825,6 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     console.log("REF ID: " + (ref("duh")()).id)
     console.log("REF TEST: " + astPrint(ref("duh")()))
     console.log("REF GEN: " + dgen(ref("duh")())[0])
-*/
 
     var t4 = wlambda('x', wref('x'))
     console.log("T4 AST: " + astPrint(t4))
@@ -759,6 +848,7 @@ var log=console.log
     console.log("LIT: " + dgen(wlit('x'), true)[0])
 
     console.log("\\x.x x x: " + astPrint(parse("\\x.x x y")))
+*/
 
 // TODO: compile AST funcs directly and include the JS source here
 // for self hosting

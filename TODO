@@ -1,5 +1,7 @@
 TODO
 * allow args in definitions: func arg1 arg2 = body => func = \arg1 arg2 . body
+* allow implicit recursion (puts rec in front of definition for you)
+* a-b recursion?
 * debug VM
 
 DONE
