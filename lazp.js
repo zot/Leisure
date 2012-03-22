@@ -29,14 +29,18 @@ Represent ASTs as LC cons-lists
 */
 
 (function(){
-    var LC=require('./lc.js')
-    var VM=require('./lcvm.js')
-
     exports.hereDoc = hereDoc
     exports.parse = parse
     exports.astPrint = astPrint
     exports.gen = dgen
     exports.laz = laz
+
+    var _refId = -1
+    var _litId = -2
+    var _lambdaId = -3
+    var _applyId = -4
+    var _primId = -5
+    var _nameId = -6
 
     function hereDoc(f) {
 	return f.toString().
@@ -209,9 +213,6 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	    // standard functions
 	    function _eval() {
 		return function(ast) {
-//		    console.log("EVAL func: " + ast)
-//		    console.log("EVAL ast: " + astPrint(ast()))
-//		    console.log("EVAL gen: " + dgen(ast())[0])
 		    return eval(dgen(ast())[0])
 		}
 	    }
@@ -301,7 +302,6 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 		id: id,
 		nameAst: nameAst,
 		eval: function(str){
-//		    console.log("CTX.eval: " + str)
 		    return eval(str)
 		},
 		subcontext: function(){return function(str){return eval(str)}},
@@ -474,18 +474,6 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
     function laz(val) {
 	return function(){return val}
     }
-
-//    LC.L.evalFactory()(hereDoc(function(){/*
-//	var __newLit = id(function(VAR0){return (function(){return id(function(VAR1){return (function(){return VAR1()(VAR0)})}, 31)})}, 29)
-//*/}))
-
-    LC.loadDefs(astDefs + moreDefs)
-    _refId = LC.L.__ref().lambda.body.id
-    _litId = LC.L.__lit().lambda.body.id
-    _lambdaId = LC.L.__lambda().lambda.body.body.id
-    _applyId = LC.L.__apply().lambda.body.body.id
-    _primId = LC.L.__prim().lambda.body.body.id
-    _nameId = LC.L.__name().lambda.body.body.id
 
     function id(func, id) {
 	func.id = id
@@ -734,10 +722,8 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	if (vars[tok] || CTX.astsByName[tok]) {
 	    vars[tok] = tok
 	    cur = wref(tok)
-//console.log("var: " + tok)
 	} else {
 	    cur = wlit(tok)
-//console.log("lit: " + tok)
 	}
 	return cur
     }
@@ -762,94 +748,4 @@ tname = _lambda nm (_lambda ast (_name name (_lambda f (_apply (_apply (_ref f) 
 	vars[name] = old
 	return wlambda(name, body)
     }
-
-/*
-    console.log("_lambdaId: " + _lambdaId)
-    console.log("t1: " + LC.L._t1())
-    console.log("t1.id: " + LC.L._t1().lambda.id)
-    console.log("t1: " + astPrint(LC.L._t1()))
-    console.log("t2: " + LC.L._t2())
-    console.log("t2 lambda: " + LC.L._t2().lambda)
-    console.log("t2 id: " + LC.L._t2().lambda.id)
-    console.log("t2 type: " + astType(LC.L._t2()))
-    console.log("t2 var: " + LC.L._t2()(first))
-    console.log("t2 body: " + LC.L._t2()(second).lambda)
-    console.log("t2: " + astPrint(LC.L._t2()))
-    console.log("t3: " + astPrint(LC.L._t3()))
-    console.log("t4: " + astPrint(LC.L._t4()))
-    console.log("t5: " + astPrint(LC.L._t5()))
-    console.log("t6: " + astPrint(LC.L._t6()))
-    console.log("gen t1: " + dgen(LC.L._t1())[0])
-    console.log("run t1: " + run(dgen(LC.L._t1()), null))
-    console.log("gen t2: " + dgen(LC.L._t2())[0])
-    console.log("run t2: " + run(dgen(LC.L._t2()), null))
-    console.log("gen t3: " + dgen(LC.L._t3())[0])
-    console.log("run t3 'a' 'b': " + run(dgen(LC.L._t3()), null))
-    console.log("t3 'a' 'b': " + run(dgen(LC.L._t3()), laz("a")))
-    console.log("gen t4: " + dgen(LC.L._t4())[0])
-    console.log("run t4 'a': " + run(dgen(LC.L._t4()), laz('a')))
-    console.log("gen t5: " + dgen(LC.L._t5())[0])
-    console.log("run t5 'a' 'b': " + run(dgen(LC.L._t5()), 'a')('b'))
-    console.log("gen t6: " + dgen(LC.L._t6())[0])
-    console.log("run t6 'a' 'b': " + run(dgen(LC.L._t6()), 'a')('b'))
-    console.log("_refId: " + _refId)
-    console.log("_litId: " + _litId)
-    console.log("_lambdaId: " + _lambdaId)
-    console.log("_applyId: " + _applyId)
-    console.log("_primId: " + _primId)
-    console.log("_nameId: " + _nameId)
-    console.log("_ref: " + LC.L.__ref)
-    console.log("_lit: " + LC.L.__lit)
-    console.log("_lambda: " + LC.L.__lambda)
-    console.log("_apply: " + LC.L.__apply)
-    console.log("_prim: " + LC.L.__prim)
-    console.log("_name: " + LC.L.__name)
-    console.log("tlit: " + astPrint(LC.L._tlit()))
-    console.log("tref: " + astPrint(LC.L._tref()))
-    console.log("tlambda: " + astPrint(LC.L._tlambda()))
-    console.log("tapply: " + astPrint(LC.L._tapply()))
-    console.log("tprim: " + astPrint(LC.L._tapply()))
-    console.log("tname: " + astPrint(LC.L._tname()))
-    console.log("tlit: " + dgen(LC.L._tlit())[0])
-    console.log("tref: " + dgen(LC.L._tref())[0])
-    console.log("tlambda: " + dgen(LC.L._tlambda())[0])
-    console.log("tapply: " + dgen(LC.L._tapply())[0])
-    console.log("tprim: " + dgen(LC.L._tapply())[0])
-    console.log("tname: " + dgen(LC.L._tname())[0])
-    console.log("tlit: " + LC.L.__lit())
-    console.log("tref: " + LC.L.__ref())
-    console.log("tlambda: " + LC.L.__lambda())
-    console.log("tapply: " + LC.L.__apply())
-    console.log("tprim: " + LC.L.__apply())
-    console.log("tname: " + LC.L.__name())
-    console.log("REF ID: " + (ref("duh")()).id)
-    console.log("REF TEST: " + astPrint(ref("duh")()))
-    console.log("REF GEN: " + dgen(ref("duh")())[0])
-
-    var t4 = wlambda('x', wref('x'))
-    console.log("T4 AST: " + astPrint(t4))
-    console.log("T4 gen: " + dgen(t4)[0])
-    console.log("T4 src: " + t4)
-
-    console.log("T7: " + astPrint(LC.L._t7()))
-    var t7 = wlambda('x', wlambda('y', wlambda('z', wapply(wref('x'), wapply(wref('y'), wref('z'))))))
-    console.log("T7 AST: " + astPrint(t7))
-    console.log("T7 gen: " + dgen(t7)[0])
-    console.log("T7 run: " + eval(dgen(t7)[0]))
-    console.log("T7 1: " + eval(dgen(t7)[0])(laz(function(x){return x()+"1"})))
-    console.log("T7 2: " + eval(dgen(t7)[0])(laz(function(x){return x()+"1"}))(laz(function(y){return y()+"2"})))
-
-var log=console.log
-
-    console.log("T7 3: " + eval(dgen(t7)[0])(laz(function(x){log("x: " + x()); return String(x())+"1"}))(laz(function(y){log("y: " + y()); return y()+"2"}))(laz("FLOOP ")))
-
-    console.log("T77: " + LC.L._t77)
-
-    console.log("LIT: " + dgen(wlit('x'), true)[0])
-
-    console.log("\\x.x x x: " + astPrint(parse("\\x.x x y")))
-*/
-
-// TODO: compile AST funcs directly and include the JS source here
-// for self hosting
 })()
