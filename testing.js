@@ -48,6 +48,7 @@ Wimpy testing framework
     function runTests(arg) {
 	var args = typeof arg == 'object' && arg.constructor == Array ? arg : arguments
 
+	U.print("Running Tests...\n")
 	for (var i = 0; i < args.length; i++) {
 	    try {
 		args[i]()
@@ -56,6 +57,6 @@ Wimpy testing framework
 		U.print("\nFailure, ", args[i].name, ": ", err.stack)
 	    }
 	}
-	U.print("\nDone")
+	U.print("\nDone\n")
     }
 })()

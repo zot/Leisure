@@ -1,8 +1,11 @@
 TODO
 * quotes for names
+* eliminate redundant memo/deref pairs
 * allow args in definitions: func arg1 arg2 = body => func = \arg1 arg2 . body
-* allow implicit recursion?  -- seems like this should just work, for the compiled version.  For substitution, it could prepend rec for you
-* a-b recursion? -- it could do a pass to get function names, first
+* allow implicit recursion?
+  seems like this should just work, for the compiled version.  For substitution, it could prepend rec for you
+* a-b recursion?
+  it could do a pass to get function names, first
 
 
 DONE

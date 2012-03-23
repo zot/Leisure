@@ -19,6 +19,7 @@ _ref v -- variable reference: v should be a string
 _lambda var body -- lambda binding: var should be a string or number, body is an AST  
 _apply func arg -- function application: func can be any AST function except a _prim  
 _prim arg rest -- primitive call: rest is either a _lit, a _ref, or another _prim (which allows more args)  
+_name name ast -- name a type
 
 The AST functions serve as an embedded DSL.
 ## AST Function definitions
