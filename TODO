@@ -1,4 +1,5 @@
 TODO
+* each line is a definition -- main is the program
 * quotes for names
 * eliminate redundant memo/deref pairs
 * allow args in definitions: func arg1 arg2 = body => func = \arg1 arg2 . body

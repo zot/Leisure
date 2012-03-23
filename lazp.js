@@ -30,17 +30,11 @@ Represent ASTs as LC cons-lists
 */
 
 (function() {
-  var CNil, CTX, Cons, Memo, Nil, addDef, addExpr, addToken, apply, astPrint, char, charCodes, code, codeChars, createContext, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNameAst, getNameNm, getPrimArg, getPrimRest, getRefVar, hereDoc, isPrim, lambda, laz, lit, memoEnd, memoStart, name, nameSub, newEntry, numberPat, order, parse, prim, ref, root, second, specials, tokenDefPat, tokenPat, tokenize, tparse, tparseLambda, tparseVariable, warnFreeVariable, _applyId, _lambdaId, _litId, _nameId, _primId, _refId,
+  var CNil, CTX, Cons, Memo, Nil, addDef, addExpr, addToken, apply, astPrint, charCodes, codeChars, createContext, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNameAst, getNameNm, getPrimArg, getPrimRest, getRefVar, isPrim, lambda, laz, lit, memoEnd, memoStart, name, nameSub, newEntry, order, parse, prim, ref, root, second, specials, tokenDefPat, tokenPat, tokenize, tparse, tparseLambda, tparseVariable, warnFreeVariable, _applyId, _lambdaId, _litId, _nameId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
-  parse = function() {};
-
-  astPrint = function() {};
-
-  dgen = function() {};
-
-  laz = function() {};
+  CTX = lit = ref = lambda = apply = prim = name = null;
 
   _refId = -1;
 
@@ -59,8 +53,6 @@ Represent ASTs as LC cons-lists
   specials = '[]().*+?|';
 
   tokenDefPat = /^ *([^ ]+) *(=[.)]=|=\([^=]+=|=)(?:[^=])/;
-
-  numberPat = /^[0-9]+(\.[0-9]+)?|([0-9]+)?\.[0-9]+/;
 
   order = [];
 
@@ -95,20 +87,18 @@ Represent ASTs as LC cons-lists
     '%': '$A'
   };
 
-  codeChars = {};
-
-  for (char in charCodes) {
-    code = charCodes[char];
-    codeChars[code.substring(1)] = char;
-  }
+  codeChars = new function() {
+    var char, code;
+    for (char in charCodes) {
+      code = charCodes[char];
+      this[code.substring(1)] = char;
+    }
+    return this;
+  };
 
   /*
        * multiline string
   */
-
-  hereDoc = function(f) {
-    return f.toString().replace(/^[^\/]+\/\*!?/, '').replace(/\*\/[^\/]+$/, '');
-  };
 
   getAstType = function(f) {
     var _ref;
@@ -223,7 +213,7 @@ Represent ASTs as LC cons-lists
   createContext = function() {
     var ctx;
     ctx = (function() {
-      var C, addAst, groupCloses, groupOpens, id, nameAst, t, tokens, __apply, __lambda, __lit, __name, __prim, __ref, _eval;
+      var C, addAst, groupCloses, groupOpens, id, nameAst, tokens, __apply, __lambda, __lit, __name, __prim, __ref, _eval;
       tokens = {};
       groupOpens = {
         '(': ')'
@@ -256,7 +246,7 @@ Represent ASTs as LC cons-lists
             return id((function(_g) {
               return _g()(_v)(_f);
             }), _lambdaId);
-          }), -1);
+          }), -1001);
         };
       };
       __apply = function() {
@@ -265,7 +255,7 @@ Represent ASTs as LC cons-lists
             return id((function(_f) {
               return _f()(_func)(_arg);
             }), _applyId);
-          }), -2);
+          }), -1002);
         };
       };
       __prim = function() {
@@ -274,7 +264,7 @@ Represent ASTs as LC cons-lists
             return id((function(_f) {
               return _f()(_arg)(_rest);
             }), _primId);
-          }), -3);
+          }), -1003);
         };
       };
       __name = function() {
@@ -283,7 +273,7 @@ Represent ASTs as LC cons-lists
             return id((function(_f) {
               return _f()(_nm)(_ast);
             }), _nameId);
-          }), -4);
+          }), -1004);
         };
       };
       id = function(func, id) {
@@ -305,7 +295,6 @@ Represent ASTs as LC cons-lists
           return ast;
         }
       };
-      t = this;
       C = {
         tokens: tokens,
         groupOpens: groupOpens,
@@ -325,19 +314,17 @@ Represent ASTs as LC cons-lists
         }
       };
       C.astsByName.eval = id(_eval());
-      C.astsByName._lit = id(__lit());
-      C.astsByName._ref = id(__ref());
-      C.astsByName._lambda = id(__lambda());
-      C.astsByName._apply = id(__apply());
-      C.astsByName._prim = id(__prim());
-      C.astsByName._name = id(__name());
+      lit = C.astsByName._lit = id(__lit());
+      ref = C.astsByName._ref = id(__ref());
+      lambda = C.astsByName._lambda = id(__lambda());
+      apply = C.astsByName._apply = id(__apply());
+      prim = C.astsByName._prim = id(__prim());
+      name = C.astsByName._name = id(__name());
       return C;
     })();
     ctx.funcId = 0;
-    return ctx;
+    return CTX = ctx;
   };
-
-  CTX = createContext();
 
   Memo = (function() {
 
@@ -425,7 +412,7 @@ Represent ASTs as LC cons-lists
   };
 
   gen = function(ast, res, ctx, vars, memo, deref, prim, cont) {
-    var a, arg, func, isFirst, lit, nm, rest, v, val;
+    var a, arg, func, isFirst, nm, rest, v, val;
     isFirst = !ctx;
     res = res || [];
     ctx = ctx || CTX.subcontext();
@@ -509,18 +496,6 @@ Represent ASTs as LC cons-lists
     };
   };
 
-  lit = CTX.astsByName._lit;
-
-  ref = CTX.astsByName._ref;
-
-  lambda = CTX.astsByName._lambda;
-
-  apply = CTX.astsByName._apply;
-
-  prim = CTX.astsByName._prim;
-
-  name = CTX.astsByName._name;
-
   defineToken = function(name, def) {
     if (def !== '=') {
       CTX.tokens[name] = 1;
@@ -568,7 +543,7 @@ Represent ASTs as LC cons-lists
   };
 
   nameSub = function(name) {
-    var i, s, _ref;
+    var code, i, s, _ref;
     s = '_';
     for (i = 0, _ref = name.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
       code = charCodes[name[i]];
@@ -593,7 +568,6 @@ Represent ASTs as LC cons-lists
           if (order[i].name === name) order.splice(i, 1);
         }
       }
-      CTX.L = null;
       order.push(expr);
       hk = expr.expr.hashKey();
       if (!hashed[hk]) hashed[hk] = expr;
@@ -735,9 +709,9 @@ Represent ASTs as LC cons-lists
     return lambda(laz(name))(laz(body));
   };
 
-  root = typeof exports !== "undefined" && exports !== null ? exports : this;
+  createContext();
 
-  root.hereDoc = hereDoc;
+  root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
   root.parse = parse;
 
