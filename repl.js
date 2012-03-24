@@ -1,5 +1,5 @@
 (function() {
-  var L, R, U, print, processLine, repl, root, runRepl,
+  var L, R, U, help, print, processLine, repl, root, runRepl,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -15,7 +15,13 @@
   };
 
   repl = function() {
+    print("Welcome to Lazp!\n");
+    help(process.stdout);
     return runRepl(R.createInterface(process.stdin, process.stdout));
+  };
+
+  help = function(out) {
+    return out.write(":v -- vars\n:h -- help\n:q -- quit\n");
   };
 
   runRepl = function(face) {
@@ -26,24 +32,24 @@
 
   processLine = function(face, line) {
     var g, p, r;
-    switch (line) {
-      case ':q':
-        return process.exit(0);
-      case ':g':
-        return face.write('');
-      default:
-        try {
+    try {
+      switch (line) {
+        case ':q':
+          return process.exit(0);
+        case ':h':
+          return help(face);
+        default:
           p = L.parse(line);
           face.write("PARSED: " + L.astPrint(p) + "\n");
           g = L.gen(p);
           face.write("GEN: " + g[0] + "\n");
           r = g[1](g[0]);
           return face.write("RESULT: " + r + " (" + (typeof r) + ")\n");
-        } catch (err) {
+      }
+    } catch (err) {
 
-        } finally {
-          runRepl(face);
-        }
+    } finally {
+      runRepl(face);
     }
   };
 

@@ -1,5 +1,3 @@
-@pagedown
-
 # Lazp: An untyped, lazy Lambda Calculus with Metaprogramming and Primitives
 
 The goal, here, isn't to make something that's super fast; it's to provide a useable untyped, lazy, lambda calculus for people to use.
