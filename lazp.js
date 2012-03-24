@@ -30,7 +30,7 @@ Represent ASTs as LC cons-lists
 */
 
 (function() {
-  var CNil, CTX, Cons, Memo, Nil, addDef, addExpr, addToken, apply, astPrint, charCodes, codeChars, createContext, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNameAst, getNameNm, getPrimArg, getPrimRest, getRefVar, isPrim, lambda, laz, lit, memoEnd, memoStart, name, nameSub, newEntry, order, parse, prim, ref, root, second, specials, tokenDefPat, tokenPat, tokenize, tparse, tparseLambda, tparseVariable, warnFreeVariable, _applyId, _lambdaId, _litId, _nameId, _primId, _refId,
+  var CNil, CTX, Cons, Memo, Nil, addDef, addExpr, addToken, apply, astPrint, charCodes, codeChars, createContext, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNameAst, getNameNm, getPrimArg, getPrimRest, getRefVar, isPrim, lambda, laz, lit, memoEnd, memoStart, name, nameSub, newEntry, order, parse, prim, ref, root, scanTok, second, specials, tokenDefPat, tokenPat, tokenize, tparse, tparseLambda, tparseVariable, warnFreeVariable, _applyId, _lambdaId, _litId, _nameId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -684,9 +684,17 @@ Represent ASTs as LC cons-lists
       vars[tok] = tok;
       cur = ref(laz(tok));
     } else {
-      cur = lit(laz(tok));
+      cur = lit(laz(scanTok(tok)));
     }
     return cur;
+  };
+
+  scanTok = function(tok) {
+    try {
+      return JSON.parse(tok);
+    } catch (err) {
+      return tok;
+    }
   };
 
   tparseLambda = function(toks, vars) {

@@ -27,13 +27,8 @@ Wimpy testing framework
 */
 
 (function(){
-    U = require('util')
+    R = require('./repl')
     LZ = require('./lazp.js')
-
-    exports.assertEq = assertEq
-    exports.assertEval = assertEval
-    exports.assertParse = assertParse
-    exports.runTests = runTests
 
     function assertEq(actual, expected, desc) {
 	if (expected != actual) throw new Error((desc ? "[" + desc + "] " : "") +  "Expected <" + expected + "> but got <" + actual + ">")
@@ -48,15 +43,20 @@ Wimpy testing framework
     function runTests(arg) {
 	var args = typeof arg == 'object' && arg.constructor == Array ? arg : arguments
 
-	U.print("Running Tests...\n")
+	R.print("Running Tests...\n")
 	for (var i = 0; i < args.length; i++) {
 	    try {
 		args[i]()
-		U.print('.')
+		R.print('.')
 	    } catch (err) {
-		U.print("\nFailure, ", args[i].name, ": ", err.stack)
+		R.print("\nFailure, ", args[i].name, ": ", err.stack)
 	    }
 	}
-	U.print("\nDone\n")
+	R.print("\nDone\n")
     }
+
+    exports.assertEq = assertEq
+    exports.assertEval = assertEval
+    exports.assertParse = assertParse
+    exports.runTests = runTests
 })()

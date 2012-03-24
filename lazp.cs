@@ -419,8 +419,14 @@ tparseVariable = (tok, vars, oldVars)->
   if vars[tok] or CTX.astsByName[tok]
     vars[tok] = tok
     cur = ref(laz(tok))
-  else cur = lit(laz(tok))
+  else cur = lit(laz(scanTok(tok)))
   cur
+
+scanTok = (tok)->
+  try
+    JSON.parse(tok)
+  catch err
+    tok
 
 tparseLambda = (toks, vars)->
   if toks.length < 3 or toks[toks.length - 1] == '.' then throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
@@ -438,6 +444,7 @@ tparseLambda = (toks, vars)->
   lambda(laz(name))(laz(body))
 
 createContext()
+
 root = exports ? this
 root.parse = parse
 root.astPrint = astPrint
