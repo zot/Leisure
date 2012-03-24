@@ -1,0 +1,2 @@
+#!/bin/sh
+node_modules/coffee-script/bin/coffee -c lazp.cs repl.cs runRepl.cs
