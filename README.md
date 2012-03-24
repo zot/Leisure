@@ -2,7 +2,7 @@
 
 The goal, here, isn't to make something that's super fast; it's to provide a useable untyped, lazy, lambda calculus for people to use.
 
-[Status](TODO.md)
+[Status](Lazp/tree/master/TODO.md)
 
 To facilitate metaprogramming, Lazp uses abstract syntax trees, made from LC functions (i.e. like LISP):
 
