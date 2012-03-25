@@ -28,8 +28,6 @@ High level representation of Lambda Calculus AST
 Represent ASTs as LC cons-lists
 ###
 
-id = CTX = lit = ref = lambda = apply = prim = name = null
-
 _refId = -1
 _litId = -2
 _lambdaId = -3
@@ -69,14 +67,55 @@ charCodes =
   '>': '$z'
   '%': '$A'
 
-codeChars = new ->
-  @[code.substring(1)] = char for char, code of charCodes
-  this
+codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
 
-###
-     * multiline string
-###
+astsByName = {}
+astsById = []
+tokens = {}
+groupOpens = {'(': ')'}
+groupCloses = {')': 1}
 
+id = (func, id, name)->
+  if !id then astsById.push(func)
+  func.id = id
+  func.lazpName = name
+  func
+
+nameAst = (nm, ast)-> if !ast.lazpName
+  astsByName[nm] = ast
+  ast.lazpName = nm
+  ast.toString = ()->nm
+
+addAst = (ast)-> if !ast.id
+  astsById.push(ast)
+  ast.id = astsById.length
+  ast
+
+astEval = (ast, src)->
+  src = src || ast.src
+  if ast.lits.length then eval("(function(__lits){return #{src}})")(ast.lits) else eval(src)
+
+_eval = ()-> (ast)-> astEval(dgen(a))
+
+__lit = ()-> (_x)->id ((_f)-> _f()(_x)), _litId
+
+__ref = ()-> (_x)->id ((_f)-> _f()(_x)), _refId
+
+__lambda = ()-> (_v)-> id ((_f)-> id ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
+
+__apply = ()-> (_func)-> id ((_arg)-> id ((_f)-> _f()(_func)(_arg)), _applyId), -1002
+
+__prim = ()-> (_arg)-> id ((_rest)-> id ((_f)-> _f()(_arg)(_rest)), _primId), -1003
+
+__name = ()-> (_nm)-> id ((_ast)-> id ((_f)-> _f()(_nm)(_ast)), _nameId), -1004
+
+astsByName.eval = id(_eval())
+lit = astsByName._lit = id(__lit())
+ref = astsByName._ref = id(__ref())
+lambda = astsByName._lambda = id(__lambda())
+apply = astsByName._apply = id(__apply())
+prim = astsByName._prim = id(__prim())
+name = astsByName._name = id(__name())
 getAstType = (f) -> f.id or f.lambda?.id
 isPrim = (f)-> getAstType(f) == _primId
 first = ()->(a)-> a
@@ -123,71 +162,8 @@ astPrint = (ast, res)->
       res.push 'prim '
       astPrint (getPrimArg ast), res
       astPrint (getPrimRest ast), res
-    else
-      throw new Error("Unknown type of object in AST: " + ast)
+    else throw new Error("Unknown type of object in AST: " + ast)
   isFirst and res.join('')
-
-##
-
-##
-# A context is a program scope
-##
-
-createContext = ()->
-  ctx = (()->
-    tokens = {}
-    groupOpens = {'(': ')'}
-    groupCloses = {')': 1}
-
-    # standard functions
-    _eval = ()-> (ast)-> eval(dgen(ast())[0])
-    __lit = ()-> (_x)->id ((_f)-> _f()(_x)), _litId
-    __ref = ()-> (_x)->id ((_f)-> _f()(_x)), _refId
-    __lambda = ()-> (_v)-> id ((_f)-> id ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
-    __apply = ()-> (_func)-> id ((_arg)-> id ((_f)-> _f()(_func)(_arg)), _applyId), -1002
-    __prim = ()-> (_arg)-> id ((_rest)-> id ((_f)-> _f()(_arg)(_rest)), _primId), -1003
-    __name = ()-> (_nm)-> id ((_ast)-> id ((_f)-> _f()(_nm)(_ast)), _nameId), -1004
-
-    id = (func, id)->
-      if !id then C.astsById.push(func.name)
-      func.context = C
-      func.id = id
-      func
-
-    nameAst = (nm, ast)-> if !ast.name
-      C.astsByName[nm] = ast
-      ast.name = nm
-
-    addAst = (ast)-> if !ast.id
-      C.astsById.push(ast)
-      ast.id = C.astsById.length
-      ast
-
-    C =
-      tokens: tokens,
-      groupOpens: groupOpens,
-      groupCloses: groupCloses,
-      astsById: [],
-      astsByName: {},
-      addAst: addAst,
-      id: id,
-      nameAst: nameAst,
-      eval: (str)->eval(str),
-      subcontext: ()-> (str)-> eval(str)
-
-    C.astsByName.eval = id(_eval())
-    lit = C.astsByName._lit = id(__lit())
-    ref = C.astsByName._ref = id(__ref())
-    lambda = C.astsByName._lambda = id(__lambda())
-    apply = C.astsByName._apply = id(__apply())
-    prim = C.astsByName._prim = id(__prim())
-    name = C.astsByName._name = id(__name())
-    id = C.id
-
-    C
-  )()
-  ctx.funcId = 0
-  CTX = ctx
 
 class Memo
   constructor: ()-> @count = 0
@@ -218,53 +194,48 @@ Nil = new CNil()
 
 dgen = (ast, lazy)->
   mem = new Memo()
-  ret = gen ast, [], null, Nil, mem, true
-  if mem.count or lazy then [["(function(){", mem, "return " + ret[0] + "})", if !lazy then "()" else ""].join(''), ret[1]] else ret
+  ast.lits = []
+  gen ast, [], ast.lits, Nil, mem, true
+  if mem.count or lazy then ast.src = "(function(){#{mem}return #{ast.src}})#{if !lazy then '()' else ''}"
+  ast
 
-gen = (ast, res, ctx, vars, memo, deref, prim, cont)->
-  isFirst = !ctx
-  res = res or []
-  ctx = ctx or CTX.subcontext()
-  ctx.curLit = 0
-  CTX.addAst ast
+gen = (ast, res, lits, vars, memo, deref, prim, cont)->
+  addAst ast
   switch getAstType ast
     when _nameId
       nm = getNameNm ast
       a = getNameAst ast
-      CTX.nameAst nm, a
-      gen a, res, ctx, vars, memo
+      nameAst nm, a
+      gen a, res, lits, vars, memo
     when _refId
       val = getRefVar ast
       if val.lambda then throw new Error("attempt to use lambda as a variable")
-      if !vars.contains(val) and !CTX.astsByName[val] then throw new Error("unbound variable, '" + val + "' -- use lit instead")
-      res.push (if !vars.contains(val) then "this." else "") + (nameSub val)
+      if !vars.contains(val) and !astsByName[val] then throw new Error("unbound variable, '" + val + "' -- use lit instead")
+      res.push (nameSub val)
       if deref then res.push "()"
     when _litId
       val = getLitVal ast
-      lit
-      res.push "(function(){return "
+      if !deref then res.push "(function(){return "
       if typeof val == 'function' or typeof val == 'object'
-        lit = "lit" + ctx.curLit++
-        ctx "var " + lit
-        ctx("(function(v){" + lit + " = v})")(getLitVal ast)
-        res.push lit
+        res.lits.push(val)
+        res.push "(function(){return __lits[#{res.lits.length - 1}]})"
       else res.push(JSON.stringify val)
-      res.push "})"
+      if !deref then res.push "})"
     when _lambdaId
       v = getLambdaVar ast
       memo = new Memo()
       if !deref then res.push "(function(){return "
       res.push "id(function(" + nameSub(v) + "){", memo, "return "
-      gen (getLambdaBody ast), res, ctx, new Cons(v, vars), memo, true
+      gen (getLambdaBody ast), res, lits, new Cons(v, vars), memo, true
       res.push "}, " + ast.id + ")"
       if !deref then res.push "})"
     when _applyId
       func = getApplyFunc ast
       arg = getApplyArg ast
       memoStart res, memo, deref
-      gen func, res, ctx, vars, memo, true
+      gen func, res, lits, vars, memo, true
       res.push "("
-      gen arg, res, ctx, vars, memo
+      gen arg, res, lits, vars, memo
       res.push ")"
       memoEnd res, memo, deref
     when _primId
@@ -273,17 +244,16 @@ gen = (ast, res, ctx, vars, memo, deref, prim, cont)->
       if prim
         if cont then res.push ", "
         res.push arg
-        if isPrim rest then gen rest, res, ctx, vars, memo, false, true, true
+        if isPrim rest then gen rest, res, lits, vars, memo, false, true, true
       else
         memoStart res, memo, deref
         res.push arg
         res.push "("
-        if isPrim rest then gen rest, res, ctx, vars, memo, true, true, false
+        if isPrim rest then gen rest, res, lits, vars, memo, true, true, false
         res.push ")"
         memoEnd res, memo, deref
     else throw new Error("Unknown object type in gen: " + ast)
   ast.src = res.join ''
-  isFirst and [ast.src, ctx]
 
 laz = (val)-> ()-> val
 
@@ -299,10 +269,10 @@ nameSub = (name)->
 
 defineToken = (name, def)->
   if def != '='
-    CTX.tokens[name] = 1
+    tokens[name] = 1
     tokenPat = null
-    if def[1] == '(' then CTX.groupOpens[name] = def.substring(2, def.length - 1)
-    else if (def[1] == ')') then CTX.groupCloses[name] = 1
+    if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
+    else if (def[1] == ')') then groupCloses[name] = 1
 
 prefix = (name, index, expr, pref)->
   if index >= name.length
@@ -316,49 +286,53 @@ createDefinition = (name, ast, index)->
   if index >= name.length then ast
   else lambda(laz(name[index]))(laz(createDefinition(name, ast, index + 1)))
 
-evalLine = (line)->
+compileLine = (line)->
   def = line.match linePat
   expr = (if def then def[3] else line).trim()
   if expr
     nm = if def and def[1] then def[1].trim().split(/\s+/) else null
+    ast = null
     if nm
+      astsByName[nm[0]] = 1
       if def then defineToken(nm[0], def[2])
+      ast = parse(prefix(nm, 1, expr, []))
+      addAst(ast);
+      nameAst(nm[0], ast);
+      dgen(ast)
+      ast.src = "#{nameSub(ast.lazpName)} = id(function(){return #{ast.src}}, #{ast.id}, '#{ast.lazpName}')"
+    else
+      ast = parse(expr)
+      dgen(ast)
+    ast
+
+evalLine = (line)->
+  ast = compileLine line
+  if ast
+    if ast.lazpName
       try
-        console.log("EXPR:", prefix(nm, 1, expr, []))
-        ast = parse(prefix(nm, 1, expr, []))
-        # ast = createDefinition(nm, ast, 1)
-        CTX.addAst(ast);
-        CTX.nameAst(nm[0], ast);
-        code = dgen(ast)[0]
-        console.log("DEFINE: ", "this.#{nameSub(nm[0])} = #{code}")
-        eval("this.#{nameSub(nm[0])} = #{code}")
-        result = "Defined: #{nm[0]}"
+        astEval(ast)
+        result = "Defined: #{ast.lazpName}"
       catch err
         console.log(err.stack)
         result = err.stack
-      [ast, code, result]
+      [ast, result]
     else
       try
-        ast = parse(expr)
-        code = dgen(ast)[0]
-        console.log("EVAL: " + code)
-        result = eval(code)
+        result = astEval(ast)
       catch err
         result = err.stack
-      [ast, code, result]
-  else
-    console.log("line: #{line}")
-    []
+      [ast, result]
+  else []
 
 addToken = (tok, group)->
   pat = ''
-  CTX.tokens[tok] = group
+  tokens[tok] = group
   tokenPat = null
 
 createTokenPat = ()->
   if !tokenPat
     types = []
-    types.push(i) for i of CTX.tokens
+    types.push(i) for i of tokens
     # sort them by length, longest first
     types.sort (a, b)-> b.length - a.length
     for i in [0...types.length]
@@ -406,7 +380,7 @@ tparse = (toks, vars, expr)->
       toks = []
     else if tok == '#lazy' || tok == '#strict' then cur = tparseVariable(tok, vars, oldVars)
     else
-      expectedClose = CTX.groupOpens[tok]
+      expectedClose = groupOpens[tok]
       skip = false
       if expectedClose
         cur = tparse toks, vars, if tok != '(' then tparseVariable(tok, vars, oldVars) else null
@@ -414,7 +388,7 @@ tparse = (toks, vars, expr)->
         skip = true
       if !skip then cur = tparseVariable(tok, vars, oldVars)
     expr = if expr then apply(laz(expr))(laz(cur)) else cur
-    if CTX.groupCloses[tok]
+    if groupCloses[tok]
       toks.push(tok)
       return expr
   for i of oldVars
@@ -422,7 +396,7 @@ tparse = (toks, vars, expr)->
   expr
 
 tparseVariable = (tok, vars, oldVars)->
-  if vars[tok] or CTX.astsByName[tok]
+  if vars[tok] or astsByName[tok]
     vars[tok] = tok
     cur = ref(laz(tok))
   else cur = lit(laz(scanTok(tok)))
@@ -450,11 +424,11 @@ tparseLambda = (toks, vars)->
   vars[nm] = old
   lambda(laz(nm))(laz(body))
 
-createContext()
-
 root = exports ? this
 root.parse = parse
 root.astPrint = astPrint
 root.gen = dgen
 root.laz = laz
+root.compileLine = compileLine
 root.evalLine = evalLine
+root.id = id

@@ -5,8 +5,8 @@ FS = require('fs')
 Path = require('path')
 
 vars = {
-  c: [true, 'show generated code'],
-  a: [true, 'show parsed AST'],
+  c: [false, 'show generated code'],
+  a: [false, 'show parsed AST'],
   r: [true, 'show evaluation result'],
 }
 
@@ -32,7 +32,7 @@ help = ()->
   """)
 
 runRepl = (face)->
-  face.question('Lazp> ', (line)-> processLine(face, line))
+  if face then face.question('Lazp> ', (line)-> processLine(face, line.trim()))
 
 handleVar = (name, value)->
   if !name
@@ -57,17 +57,23 @@ compile = (face, file)->
     stream = FS.createReadStream(file)
     stream.on('data', (data)-> contents += data)
     stream.on('end', ()->
-#     stream.destroy()
-      generateCode(file, contents)
+      generateCode(file, contents, face)
       runRepl(face))
     stream.on('error', (ex)->
       console.log("Exception reading file: ", ex.stack)
       runRepl(face))
 
 
-generateCode = (file, contents)->
-  console.log("Compiling #{file}:\n")
-  console.log("#{i + 1}: #{line}") for line, i in contents.split('\n')
+generateCode = (file, contents, loud)->
+  if loud then console.log("Compiling #{file}:\n")
+  out = 'id = require("./lazp").id\n'
+  for line, i in contents.split('\n')
+    if line
+      ast = L.compileLine line
+      src = if ast.lazpName then ast.src else "console.log(String(#{ast.src}))"
+      out += "#{src}\n"
+  stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
+  stream.end(out, 'utf8')
 
 # rewrite in Lazp
 processLine = (face, line)->
@@ -82,16 +88,16 @@ processLine = (face, line)->
         else
           [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
           if r
-            [ast, code, result] = L.evalLine(line)
-            if !result then write("No Result")
+            [ast, result] = L.evalLine(line)
+            if !result then write("(No Result)")
             else
               if a then write("PARSED: " + L.astPrint(ast) + "\n")
-              if c then write("GEN: " + code + "\n")
-              write("RESULT: " + result + " (" + (typeof result) + ")\n")
+              if c then write("GEN: " + ast.src + "\n")
+              write("#{result} (#{(typeof result)})\n")
           else if a or c
             ast = L.parse(line)
             if a then write("PARSED: " + L.astPrint(ast) + "\n")
-            if c then write("GEN: " + L.gen(ast)[0] + "\n")
+            if c then write("GEN: " + L.gen(ast).src + "\n")
   catch err
     console.log(err.stack)
   runRepl(face)
@@ -99,3 +105,4 @@ processLine = (face, line)->
 root = exports ? this
 root.print = print
 root.repl = repl
+root.compile = compile

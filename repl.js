@@ -13,8 +13,8 @@
   Path = require('path');
 
   vars = {
-    c: [true, 'show generated code'],
-    a: [true, 'show parsed AST'],
+    c: [false, 'show generated code'],
+    a: [false, 'show parsed AST'],
     r: [true, 'show evaluation result']
   };
 
@@ -41,9 +41,11 @@
   };
 
   runRepl = function(face) {
-    return face.question('Lazp> ', function(line) {
-      return processLine(face, line);
-    });
+    if (face) {
+      return face.question('Lazp> ', function(line) {
+        return processLine(face, line.trim());
+      });
+    }
   };
 
   handleVar = function(name, value) {
@@ -92,7 +94,7 @@
         return contents += data;
       });
       stream.on('end', function() {
-        generateCode(file, contents);
+        generateCode(file, contents, face);
         return runRepl(face);
       });
       return stream.on('error', function(ex) {
@@ -102,20 +104,25 @@
     }
   };
 
-  generateCode = function(file, contents) {
-    var i, line, _len, _ref, _results;
-    console.log("Compiling " + file + ":\n");
+  generateCode = function(file, contents, loud) {
+    var ast, i, line, out, src, stream, _len, _ref;
+    if (loud) console.log("Compiling " + file + ":\n");
+    out = 'id = require("./lazp").id\n';
     _ref = contents.split('\n');
-    _results = [];
     for (i = 0, _len = _ref.length; i < _len; i++) {
       line = _ref[i];
-      _results.push(console.log("" + (i + 1) + ": " + line));
+      if (line) {
+        ast = L.compileLine(line);
+        src = ast.lazpName ? ast.src : "console.log(String(" + ast.src + "))";
+        out += "" + src + "\n";
+      }
     }
-    return _results;
+    stream = FS.createWriteStream("" + (Path.basename(file, '.laz')) + ".js");
+    return stream.end(out, 'utf8');
   };
 
   processLine = function(face, line) {
-    var a, ast, c, code, m, r, result, _ref, _ref2;
+    var a, ast, c, m, r, result, _ref, _ref2;
     try {
       if (line) {
         if (line[0] === '!') {
@@ -135,18 +142,18 @@
             default:
               _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
               if (r) {
-                _ref2 = L.evalLine(line), ast = _ref2[0], code = _ref2[1], result = _ref2[2];
+                _ref2 = L.evalLine(line), ast = _ref2[0], result = _ref2[1];
                 if (!result) {
-                  write("No Result");
+                  write("(No Result)");
                 } else {
                   if (a) write("PARSED: " + L.astPrint(ast) + "\n");
-                  if (c) write("GEN: " + code + "\n");
-                  write("RESULT: " + result + " (" + (typeof result) + ")\n");
+                  if (c) write("GEN: " + ast.src + "\n");
+                  write("" + result + " (" + (typeof result) + ")\n");
                 }
               } else if (a || c) {
                 ast = L.parse(line);
                 if (a) write("PARSED: " + L.astPrint(ast) + "\n");
-                if (c) write("GEN: " + L.gen(ast)[0] + "\n");
+                if (c) write("GEN: " + L.gen(ast).src + "\n");
               }
           }
         }
@@ -162,5 +169,7 @@
   root.print = print;
 
   root.repl = repl;
+
+  root.compile = compile;
 
 }).call(this);
