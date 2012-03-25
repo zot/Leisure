@@ -30,7 +30,7 @@ Represent ASTs as LC cons-lists
 */
 
 (function() {
-  var CNil, Cons, Memo, Nil, addAst, addDef, addToken, apply, astEval, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNameAst, getNameNm, getPrimArg, getPrimRest, getRefVar, groupCloses, groupOpens, id, isPrim, lambda, laz, linePat, lit, memoEnd, memoStart, name, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, __apply, __lambda, __lit, __name, __prim, __ref, _applyId, _eval, _lambdaId, _litId, _nameId, _primId, _refId,
+  var CNil, Cons, Memo, Nil, addAst, addDef, addToken, apply, astEval, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimRest, getRefVar, groupCloses, groupOpens, id, isPrim, lambda, laz, linePat, lit, memoEnd, memoStart, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, typesByName, warnFreeVariable, __apply, __is, __lambda, __lit, __prim, __ref, _applyId, _eval, _false, _lambdaId, _litId, _primId, _refId, _true,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -43,8 +43,6 @@ Represent ASTs as LC cons-lists
   _applyId = -4;
 
   _primId = -5;
-
-  _nameId = -6;
 
   tokenPat = null;
 
@@ -94,6 +92,8 @@ Represent ASTs as LC cons-lists
     return this;
   };
 
+  typesByName = {};
+
   astsByName = {};
 
   astsById = [];
@@ -111,7 +111,10 @@ Represent ASTs as LC cons-lists
   id = function(func, id, name) {
     if (!id) astsById.push(func);
     func.id = id;
-    func.lazpName = name;
+    if (name) {
+      func.type = name;
+      typesByName[name] = func;
+    }
     return func;
   };
 
@@ -194,17 +197,41 @@ Represent ASTs as LC cons-lists
     };
   };
 
-  __name = function() {
-    return function(_nm) {
-      return id((function(_ast) {
-        return id((function(_f) {
-          return _f()(_nm)(_ast);
-        }), _nameId);
-      }), -1004);
+  _true = function() {
+    return function(a) {
+      return function(b) {
+        return a();
+      };
+    };
+  };
+
+  _false = function() {
+    return function(a) {
+      return function(b) {
+        return b();
+      };
+    };
+  };
+
+  __is = function() {
+    return function(value) {
+      return function(type) {
+        if ((value != null ? value.type : void 0) === type.dataType) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
     };
   };
 
   astsByName.eval = id(_eval());
+
+  astsByName["true"] = id(_true());
+
+  astsByName["false"] = id(_false());
+
+  astsByName._is = id(__is());
 
   lit = astsByName._lit = id(__lit());
 
@@ -215,8 +242,6 @@ Represent ASTs as LC cons-lists
   apply = astsByName._apply = id(__apply());
 
   prim = astsByName._prim = id(__prim());
-
-  name = astsByName._name = id(__name());
 
   getAstType = function(f) {
     var _ref;
@@ -239,14 +264,6 @@ Represent ASTs as LC cons-lists
         return b();
       };
     };
-  };
-
-  getNameNm = function(n) {
-    return n(first);
-  };
-
-  getNameAst = function(n) {
-    return n(second);
   };
 
   getRefVar = function(r) {
@@ -286,11 +303,6 @@ Represent ASTs as LC cons-lists
     isFirst = !res;
     res = res || [];
     switch (getAstType(ast)) {
-      case _nameId:
-        res.push('name ', getNameNm(ast), ' (');
-        astPrint(getNameAst(ast), res);
-        res.push(')');
-        break;
       case _refId:
         res.push('ref ');
         val = getRefVar(ast);
@@ -414,15 +426,9 @@ Represent ASTs as LC cons-lists
   };
 
   gen = function(ast, res, lits, vars, memo, deref, prim, cont) {
-    var a, arg, func, nm, rest, v, val;
+    var arg, func, rest, v, val;
     addAst(ast);
     switch (getAstType(ast)) {
-      case _nameId:
-        nm = getNameNm(ast);
-        a = getNameAst(ast);
-        nameAst(nm, a);
-        gen(a, res, lits, vars, memo);
-        break;
       case _refId:
         val = getRefVar(ast);
         if (val.lambda) throw new Error("attempt to use lambda as a variable");
@@ -449,7 +455,7 @@ Represent ASTs as LC cons-lists
         if (!deref) res.push("(function(){return ");
         res.push("id(function(" + nameSub(v) + "){", memo, "return ");
         gen(getLambdaBody(ast), res, lits, new Cons(v, vars), memo, true);
-        res.push("}, " + ast.id + ")");
+        res.push("}, " + ast.id + (ast.type ? ', \'' + ast.type + '\'' : '') + ")");
         if (!deref) res.push("})");
         break;
       case _applyId:
@@ -517,16 +523,6 @@ Represent ASTs as LC cons-lists
     }
   };
 
-  prefix = function(name, index, expr, pref) {
-    if (index >= name.length) {
-      pref.push(expr);
-      return pref.join('');
-    } else {
-      pref.push('\\', name[index], '.');
-      return prefix(name, index + 1, expr, pref);
-    }
-  };
-
   createDefinition = function(name, ast, index) {
     if (index >= name.length) {
       return ast;
@@ -535,8 +531,26 @@ Represent ASTs as LC cons-lists
     }
   };
 
+  prefix = function(name, index, expr, res) {
+    if (index >= name.length) {
+      res.push(expr);
+      return res.join('');
+    } else {
+      res.push("\\", name[index], '.');
+      return prefix(name, index + 1, expr, res);
+    }
+  };
+
+  getNthBody = function(ast, n) {
+    if (n === 1) {
+      return ast;
+    } else {
+      return getNthBody(getLambdaBody(ast), n - 1);
+    }
+  };
+
   compileLine = function(line) {
-    var ast, def, expr, nm;
+    var ast, bod, def, expr, nm;
     def = line.match(linePat);
     expr = (def ? def[3] : line).trim();
     if (expr) {
@@ -546,10 +560,22 @@ Represent ASTs as LC cons-lists
         astsByName[nm[0]] = 1;
         if (def) defineToken(nm[0], def[2]);
         ast = parse(prefix(nm, 1, expr, []));
+        if (nm.length > 1) {
+          bod = getNthBody(ast, nm.length);
+          if (getAstType(bod) === _lambdaId) {
+            bod.type = nm[0];
+            ast.dataType = nm[0];
+          }
+        }
         addAst(ast);
         nameAst(nm[0], ast);
         dgen(ast);
-        ast.src = "" + (nameSub(ast.lazpName)) + " = id(function(){return " + ast.src + "}, " + ast.id + ", '" + ast.lazpName + "')";
+        if (nm.length === 1) {
+          nameAst(nm[0], ast);
+          ast.src = "" + (nameSub(nm[0])) + " = id(function(){return " + ast.src + "}, null, '" + ast.lazpName + "')";
+        } else {
+          ast.src = "" + (nameSub(nm[0])) + " = function(){return " + ast.src + "}";
+        }
       } else {
         ast = parse(expr);
         dgen(ast);
@@ -738,5 +764,7 @@ Represent ASTs as LC cons-lists
   root.evalLine = evalLine;
 
   root.id = id;
+
+  global.__is = __is;
 
 }).call(this);

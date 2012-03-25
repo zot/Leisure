@@ -9,6 +9,12 @@
    * eliminate redundant memo/deref pairs
 
 #DONE
+* implicit type names
+   * if you define a function X that returns a function Y, the function Y gets "type" X
+   * cons a b = \f . f a b
+      (cons 1 2) has type cons (the cons function is used as the type)
+   * _is value type -> true or false
+   * _is (cons 1 2) cons -> true
 * use ! in REPL to evaluate JS
 * command line help (-h arg)
 * command line compile/run (-c file... or file...)

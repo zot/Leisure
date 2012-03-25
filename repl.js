@@ -1,5 +1,5 @@
 (function() {
-  var FS, L, Path, R, U, compile, generateCode, handleVar, help, print, processLine, repl, root, runRepl, vars, write,
+  var FS, L, Path, R, U, compile, generateCode, getType, handleVar, help, print, processLine, repl, root, runRepl, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -121,6 +121,10 @@
     return stream.end(out, 'utf8');
   };
 
+  getType = function(value) {
+    return (typeof value === 'function' && value.type) || typeof value;
+  };
+
   processLine = function(face, line) {
     var a, ast, c, m, r, result, _ref, _ref2;
     try {
@@ -148,7 +152,7 @@
                 } else {
                   if (a) write("PARSED: " + L.astPrint(ast) + "\n");
                   if (c) write("GEN: " + ast.src + "\n");
-                  write("" + result + " (" + (typeof result) + ")\n");
+                  write("" + result + " (" + (getType(result)) + ")\n");
                 }
               } else if (a || c) {
                 ast = L.parse(line);

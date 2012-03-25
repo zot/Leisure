@@ -75,6 +75,8 @@ generateCode = (file, contents, loud)->
   stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
   stream.end(out, 'utf8')
 
+getType = (value)-> (typeof value == 'function' and value.type) || typeof value
+
 # rewrite in Lazp
 processLine = (face, line)->
   try
@@ -93,7 +95,7 @@ processLine = (face, line)->
             else
               if a then write("PARSED: " + L.astPrint(ast) + "\n")
               if c then write("GEN: " + ast.src + "\n")
-              write("#{result} (#{(typeof result)})\n")
+              write("#{result} (#{(getType result)})\n")
           else if a or c
             ast = L.parse(line)
             if a then write("PARSED: " + L.astPrint(ast) + "\n")

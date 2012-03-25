@@ -33,7 +33,6 @@ _litId = -2
 _lambdaId = -3
 _applyId = -4
 _primId = -5
-_nameId = -6
 tokenPat = null
 specials = '[]().*+?|'
 linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/
@@ -78,7 +77,7 @@ groupCloses = {')': 1}
 id = (func, id, name)->
   if !id then astsById.push(func)
   func.id = id
-  func.lazpName = name
+  if name then func.type = name
   func
 
 nameAst = (nm, ast)-> if !ast.lazpName
@@ -107,21 +106,25 @@ __apply = ()-> (_func)-> id ((_arg)-> id ((_f)-> _f()(_func)(_arg)), _applyId), 
 
 __prim = ()-> (_arg)-> id ((_rest)-> id ((_f)-> _f()(_arg)(_rest)), _primId), -1003
 
-__name = ()-> (_nm)-> id ((_ast)-> id ((_f)-> _f()(_nm)(_ast)), _nameId), -1004
+_true = ()-> (a)-> (b)-> a()
+
+_false = ()-> (a)-> (b)-> b()
+
+__is = ()-> (value)-> (type)-> if value?.type == type.dataType then _true() else _false()
 
 astsByName.eval = id(_eval())
+astsByName.true = id(_true())
+astsByName.false = id(_false())
+astsByName._is = id(__is())
 lit = astsByName._lit = id(__lit())
 ref = astsByName._ref = id(__ref())
 lambda = astsByName._lambda = id(__lambda())
 apply = astsByName._apply = id(__apply())
 prim = astsByName._prim = id(__prim())
-name = astsByName._name = id(__name())
 getAstType = (f) -> f.id or f.lambda?.id
 isPrim = (f)-> getAstType(f) == _primId
 first = ()->(a)-> a
 second = ()->(a)->(b)-> b()
-getNameNm = (n)-> n first
-getNameAst = (n)-> n second
 getRefVar = (r)-> r(first)()
 getLitVal = (l)-> l(first)()
 getLambdaVar = (l)-> l first
@@ -134,10 +137,6 @@ astPrint = (ast, res)->
   isFirst = !res
   res = res or []
   switch getAstType ast
-    when _nameId
-      res.push 'name ', getNameNm(ast), ' ('
-      astPrint getNameAst(ast), res
-      res.push ')'
     when _refId
       res.push 'ref '
       val = getRefVar ast
@@ -202,11 +201,6 @@ dgen = (ast, lazy)->
 gen = (ast, res, lits, vars, memo, deref, prim, cont)->
   addAst ast
   switch getAstType ast
-    when _nameId
-      nm = getNameNm ast
-      a = getNameAst ast
-      nameAst nm, a
-      gen a, res, lits, vars, memo
     when _refId
       val = getRefVar ast
       if val.lambda then throw new Error("attempt to use lambda as a variable")
@@ -227,7 +221,7 @@ gen = (ast, res, lits, vars, memo, deref, prim, cont)->
       if !deref then res.push "(function(){return "
       res.push "id(function(" + nameSub(v) + "){", memo, "return "
       gen (getLambdaBody ast), res, lits, new Cons(v, vars), memo, true
-      res.push "}, " + ast.id + ")"
+      res.push "}, #{ast.id}#{if ast.type then ', \'' + ast.type + '\'' else ''})"
       if !deref then res.push "})"
     when _applyId
       func = getApplyFunc ast
@@ -274,17 +268,19 @@ defineToken = (name, def)->
     if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
     else if (def[1] == ')') then groupCloses[name] = 1
 
-prefix = (name, index, expr, pref)->
-  if index >= name.length
-    pref.push(expr)
-    pref.join('')
-  else
-    pref.push('\\', name[index], '.')
-    return prefix(name, index + 1, expr, pref)
-
 createDefinition = (name, ast, index)->
   if index >= name.length then ast
   else lambda(laz(name[index]))(laz(createDefinition(name, ast, index + 1)))
+
+prefix = (name, index, expr, res)->
+  if index >= name.length
+    res.push(expr)
+    res.join('')
+  else
+    res.push("\\", name[index], '.')
+    prefix(name, index + 1, expr, res)
+
+getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
 compileLine = (line)->
   def = line.match linePat
@@ -296,10 +292,18 @@ compileLine = (line)->
       astsByName[nm[0]] = 1
       if def then defineToken(nm[0], def[2])
       ast = parse(prefix(nm, 1, expr, []))
-      addAst(ast);
-      nameAst(nm[0], ast);
+      if nm.length > 1
+        bod = getNthBody(ast, nm.length)
+        if getAstType(bod) == _lambdaId
+          bod.type = nm[0]
+          ast.dataType = nm[0]
+      addAst(ast)
+      nameAst(nm[0], ast)
       dgen(ast)
-      ast.src = "#{nameSub(ast.lazpName)} = id(function(){return #{ast.src}}, #{ast.id}, '#{ast.lazpName}')"
+      if nm.length == 1
+        nameAst(nm[0], ast);
+        ast.src = "#{nameSub(nm[0])} = id(function(){return #{ast.src}}, null, '#{ast.lazpName}')"
+      else ast.src = "#{nameSub(nm[0])} = function(){return #{ast.src}}"
     else
       ast = parse(expr)
       dgen(ast)
@@ -432,3 +436,4 @@ root.laz = laz
 root.compileLine = compileLine
 root.evalLine = evalLine
 root.id = id
+global.__is = __is
