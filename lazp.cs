@@ -28,7 +28,7 @@ High level representation of Lambda Calculus AST
 Represent ASTs as LC cons-lists
 ###
 
-CTX = lit = ref = lambda = apply = prim = name = null
+id = CTX = lit = ref = lambda = apply = prim = name = null
 
 _refId = -1
 _litId = -2
@@ -38,7 +38,7 @@ _primId = -5
 _nameId = -6
 tokenPat = null
 specials = '[]().*+?|'
-tokenDefPat = /^ *([^ ]+) *(=[.)]=|=\([^=]+=|=)(?:[^=])/
+linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/
 order = []
 warnFreeVariable = []
 charCodes =
@@ -172,7 +172,7 @@ createContext = ()->
       addAst: addAst,
       id: id,
       nameAst: nameAst,
-      eval: (str)-> eval(str)
+      eval: (str)->eval(str),
       subcontext: ()-> (str)-> eval(str)
 
     C.astsByName.eval = id(_eval())
@@ -182,6 +182,7 @@ createContext = ()->
     apply = C.astsByName._apply = id(__apply())
     prim = C.astsByName._prim = id(__prim())
     name = C.astsByName._name = id(__name())
+    id = C.id
 
     C
   )()
@@ -236,19 +237,19 @@ gen = (ast, res, ctx, vars, memo, deref, prim, cont)->
       val = getRefVar ast
       if val.lambda then throw new Error("attempt to use lambda as a variable")
       if !vars.contains(val) and !CTX.astsByName[val] then throw new Error("unbound variable, '" + val + "' -- use lit instead")
-      res.push nameSub val
+      res.push (if !vars.contains(val) then "this." else "") + (nameSub val)
       if deref then res.push "()"
     when _litId
       val = getLitVal ast
       lit
-      memoStart res, memo, deref
+      res.push "(function(){return "
       if typeof val == 'function' or typeof val == 'object'
         lit = "lit" + ctx.curLit++
         ctx "var " + lit
         ctx("(function(v){" + lit + " = v})")(getLitVal ast)
         res.push lit
       else res.push(JSON.stringify val)
-      memoEnd res, memo, deref
+      res.push "})"
     when _lambdaId
       v = getLambdaVar ast
       memo = new Memo()
@@ -286,37 +287,6 @@ gen = (ast, res, ctx, vars, memo, deref, prim, cont)->
 
 laz = (val)-> ()-> val
 
-defineToken = (name, def)->
-  if def != '='
-    CTX.tokens[name] = 1
-    tokenPat = null
-    if def[1] == '(' then CTX.groupOpens[name] = def.substring(2, def.length - 1)
-    else if (def[1] == ')') then CTX.groupCloses[name] = 1
-
-evalLine = (line, noRebuild)->
-  if line != "" and (line.match(/^#(define|strict|lazy)/) or line[0] != '#')
-    def = line.match tokenDefPat
-    name = if def then def[1].trim() else null
-    if def
-      defineToken(name, def[2])
-      line = line.substring(def[0].length).trim()
-    addExpr(name, line, noRebuild)
-  false
-
-newEntry = (name, ast)->
-  ast.name = name
-  ast.cname = nameSub(name)
-  try
-    cmp = compile(ast)
-    ast.func = cmp[0]
-    ast.env = cmp[1]
-    ast.src = dgen ast, true
-    if warnFreeVariable.length
-      ast.usesFree = warnFreeVariable.join ', '
-      warnFreeVariable = []
-  catch err
-    ast.src = ()-> "Error compiling: " + expr
-
 nameSub = (name)->
   s = '_'
   for i in [0...name.length]
@@ -327,22 +297,58 @@ nameSub = (name)->
     else if s then s += name[i]
   s or name
 
-addExpr = (name, txt, noRebuild)->
-  if name
-    expr = newEntry(name, parse(txt))
-    newOutput = ''
-    expr.expr.name = name
-    if !noRebuild
-      for i in [0...order.length]
-        if order[i].name == name then order.splice(i, 1)
-    order.push expr
-    hk = expr.expr.hashKey()
-    if !hashed[hk] then hashed[hk] = expr
-    exprs[name] = expr
-    true
+defineToken = (name, def)->
+  if def != '='
+    CTX.tokens[name] = 1
+    tokenPat = null
+    if def[1] == '(' then CTX.groupOpens[name] = def.substring(2, def.length - 1)
+    else if (def[1] == ')') then CTX.groupCloses[name] = 1
+
+prefix = (name, index, expr, pref)->
+  if index >= name.length
+    pref.push(expr)
+    pref.join('')
   else
-    runExpr(txt.trim())
-    false
+    pref.push('\\', name[index], '.')
+    return prefix(name, index + 1, expr, pref)
+
+createDefinition = (name, ast, index)->
+  if index >= name.length then ast
+  else lambda(laz(name[index]))(laz(createDefinition(name, ast, index + 1)))
+
+evalLine = (line)->
+  def = line.match linePat
+  expr = (if def then def[3] else line).trim()
+  if expr
+    nm = if def and def[1] then def[1].trim().split(/\s+/) else null
+    if nm
+      if def then defineToken(nm[0], def[2])
+      try
+        console.log("EXPR:", prefix(nm, 1, expr, []))
+        ast = parse(prefix(nm, 1, expr, []))
+        # ast = createDefinition(nm, ast, 1)
+        CTX.addAst(ast);
+        CTX.nameAst(nm[0], ast);
+        code = dgen(ast)[0]
+        console.log("DEFINE: ", "this.#{nameSub(nm[0])} = #{code}")
+        eval("this.#{nameSub(nm[0])} = #{code}")
+        result = "Defined: #{nm[0]}"
+      catch err
+        console.log(err.stack)
+        result = err.stack
+      [ast, code, result]
+    else
+      try
+        ast = parse(expr)
+        code = dgen(ast)[0]
+        console.log("EVAL: " + code)
+        result = eval(code)
+      catch err
+        result = err.stack
+      [ast, code, result]
+  else
+    console.log("line: #{line}")
+    []
 
 addToken = (tok, group)->
   pat = ''
@@ -380,7 +386,7 @@ tokenize = (str)->
   if str.length then toks.push(str)
   toks
 
-parse =(str)-> tparse tokenize(str).reverse(), {}
+parse = (str)-> tparse tokenize(str).reverse(), {}
 
 addDef = (toks)->
   t = toks.reverse()
@@ -429,19 +435,20 @@ scanTok = (tok)->
     tok
 
 tparseLambda = (toks, vars)->
+  nm = null
   if toks.length < 3 or toks[toks.length - 1] == '.' then throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
-  old = vars[name]
+  old = vars[nm]
   if toks[toks.length - 2] == '.'
-    name = toks.pop()
-    vars[name] = name
+    nm = toks.pop()
+    vars[nm] = nm
     toks.pop()
     body = tparse toks, vars
   else
-    name = toks.pop()
-    vars[name] = name
+    nm = toks.pop()
+    vars[nm] = nm
     body = tparseLambda toks, vars
-  vars[name] = old
-  lambda(laz(name))(laz(body))
+  vars[nm] = old
+  lambda(laz(nm))(laz(body))
 
 createContext()
 
@@ -450,4 +457,4 @@ root.parse = parse
 root.astPrint = astPrint
 root.gen = dgen
 root.laz = laz
-root.eval = CTX.eval
+root.evalLine = evalLine
