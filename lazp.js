@@ -30,7 +30,7 @@ Represent ASTs as LC cons-lists
 */
 
 (function() {
-  var CNil, Cons, Memo, Nil, addAst, addDef, addToken, apply, astEval, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimRest, getRefVar, groupCloses, groupOpens, id, isPrim, lambda, laz, linePat, lit, memoEnd, memoStart, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, typesByName, warnFreeVariable, __apply, __is, __lambda, __lit, __prim, __ref, _applyId, _eval, _false, _lambdaId, _litId, _primId, _refId, _true,
+  var CNil, Cons, Memo, Nil, addAst, addDef, addToken, apply, astEval, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimRest, getRefVar, groupCloses, groupOpens, id, isPrim, lambda, laz, linePat, lit, memoEnd, memoStart, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, __apply, __is, __lambda, __lit, __prim, __ref, _applyId, _eval, _false, _lambdaId, _litId, _primId, _refId, _true,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -92,8 +92,6 @@ Represent ASTs as LC cons-lists
     return this;
   };
 
-  typesByName = {};
-
   astsByName = {};
 
   astsById = [];
@@ -111,10 +109,7 @@ Represent ASTs as LC cons-lists
   id = function(func, id, name) {
     if (!id) astsById.push(func);
     func.id = id;
-    if (name) {
-      func.type = name;
-      typesByName[name] = func;
-    }
+    if (name) func.type = name;
     return func;
   };
 
@@ -147,7 +142,7 @@ Represent ASTs as LC cons-lists
 
   _eval = function() {
     return function(ast) {
-      return astEval(dgen(a));
+      return astEval(dgen(ast()));
     };
   };
 
@@ -764,6 +759,10 @@ Represent ASTs as LC cons-lists
   root.evalLine = evalLine;
 
   root.id = id;
+
+  root.eval = function(ast) {
+    return astEval(dgen(ast));
+  };
 
   global.__is = __is;
 

@@ -94,7 +94,7 @@ astEval = (ast, src)->
   src = src || ast.src
   if ast.lits.length then eval("(function(__lits){return #{src}})")(ast.lits) else eval(src)
 
-_eval = ()-> (ast)-> astEval(dgen(a))
+_eval = ()-> (ast)-> astEval(dgen(ast()))
 
 __lit = ()-> (_x)->id ((_f)-> _f()(_x)), _litId
 
@@ -436,4 +436,5 @@ root.laz = laz
 root.compileLine = compileLine
 root.evalLine = evalLine
 root.id = id
+root.eval = (ast) -> astEval(dgen(ast))
 global.__is = __is

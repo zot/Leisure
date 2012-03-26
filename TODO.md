@@ -1,4 +1,7 @@
 # TODO
+* pretty printing
+* monads and monad driver
+* string functions
 * Parser in Lazp
 * rewrite parser, generator, REPL in Lazp, compile, and use them
 * parser improvements
