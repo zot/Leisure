@@ -1,4 +1,10 @@
 # TODO
+* separate out constant functions
+   * so that
+      * \_cons = function(){return setDataType(function(\_a){return setId(function(\_b){return setType(function(\_f){return \_f()(\_a)(\_b)}, 33, 'cons')}, 32)}, 31, 'cons')}
+   * becomes
+      * f\_cons = setDataType(function(\_a){return setId(function(\_b){return setType(function(\_f){return \_f()(\_a)(\_b)}, 33, 'cons')}, 32)}, 31, 'cons')
+      * \_cons = function(){return f\_cons}
 * pretty printing
 * monads and monad driver
 * string functions

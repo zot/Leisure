@@ -30,7 +30,7 @@ Represent ASTs as LC cons-lists
 */
 
 (function() {
-  var CNil, Cons, Memo, Nil, addAst, addDef, addToken, apply, astEval, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimRest, getRefVar, groupCloses, groupOpens, id, isPrim, lambda, laz, linePat, lit, memoEnd, memoStart, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, __apply, __is, __lambda, __lit, __prim, __ref, _applyId, _eval, _false, _lambdaId, _litId, _primId, _refId, _true,
+  var CNil, Cons, Memo, Nil, addAst, addDef, addToken, apply, astEval, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, createTokenPat, defineToken, dgen, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, memoEnd, memoStart, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, __apply, __eq, __is, __lambda, __lit, __prim, __ref, _applyId, _eval, _false, _lambdaId, _litId, _primId, _refId, _true,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -106,10 +106,32 @@ Represent ASTs as LC cons-lists
     ')': 1
   };
 
-  id = function(func, id, name) {
-    if (!id) astsById.push(func);
-    func.id = id;
-    if (name) func.type = name;
+  setDataType = function(func, id, dataType) {
+    if (!id) {
+      astsById.push(func);
+    } else {
+      func.id = id;
+    }
+    if (dataType) func.dataType = dataType;
+    return func;
+  };
+
+  setType = function(func, id, type) {
+    if (!id) {
+      astsById.push(func);
+    } else {
+      func.id = id;
+    }
+    if (type) func.type = type;
+    return func;
+  };
+
+  setId = function(func, id) {
+    if (!id) {
+      astsById.push(func);
+    } else {
+      func.id = id;
+    }
     return func;
   };
 
@@ -124,9 +146,9 @@ Represent ASTs as LC cons-lists
   };
 
   addAst = function(ast) {
-    if (!ast.id) {
+    if (!ast.funcId) {
       astsById.push(ast);
-      ast.id = astsById.length;
+      ast.funcId = astsById.length;
       return ast;
     }
   };
@@ -148,7 +170,7 @@ Represent ASTs as LC cons-lists
 
   __lit = function() {
     return function(_x) {
-      return id((function(_f) {
+      return setId((function(_f) {
         return _f()(_x);
       }), _litId);
     };
@@ -156,7 +178,7 @@ Represent ASTs as LC cons-lists
 
   __ref = function() {
     return function(_x) {
-      return id((function(_f) {
+      return setId((function(_f) {
         return _f()(_x);
       }), _refId);
     };
@@ -164,8 +186,8 @@ Represent ASTs as LC cons-lists
 
   __lambda = function() {
     return function(_v) {
-      return id((function(_f) {
-        return id((function(_g) {
+      return setId((function(_f) {
+        return setId((function(_g) {
           return _g()(_v)(_f);
         }), _lambdaId);
       }), -1001);
@@ -174,8 +196,8 @@ Represent ASTs as LC cons-lists
 
   __apply = function() {
     return function(_func) {
-      return id((function(_arg) {
-        return id((function(_f) {
+      return setId((function(_arg) {
+        return setId((function(_f) {
           return _f()(_func)(_arg);
         }), _applyId);
       }), -1002);
@@ -184,8 +206,8 @@ Represent ASTs as LC cons-lists
 
   __prim = function() {
     return function(_arg) {
-      return id((function(_rest) {
-        return id((function(_f) {
+      return setId((function(_rest) {
+        return setId((function(_f) {
           return _f()(_arg)(_rest);
         }), _primId);
       }), -1003);
@@ -211,7 +233,8 @@ Represent ASTs as LC cons-lists
   __is = function() {
     return function(value) {
       return function(type) {
-        if ((value != null ? value.type : void 0) === type.dataType) {
+        var _ref;
+        if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
           return _true();
         } else {
           return _false();
@@ -220,23 +243,38 @@ Represent ASTs as LC cons-lists
     };
   };
 
-  astsByName.eval = id(_eval());
+  __eq = function() {
+    return function(a) {
+      return function(b) {
+        console.log("a = " + a + "\nb = " + b);
+        if (a() === b()) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
+    };
+  };
 
-  astsByName["true"] = id(_true());
+  astsByName.eval = setId(_eval());
 
-  astsByName["false"] = id(_false());
+  astsByName["true"] = setId(_true());
 
-  astsByName._is = id(__is());
+  astsByName["false"] = setId(_false());
 
-  lit = astsByName._lit = id(__lit());
+  astsByName._is = setId(__is());
 
-  ref = astsByName._ref = id(__ref());
+  astsByName._eq = setId(__eq());
 
-  lambda = astsByName._lambda = id(__lambda());
+  lit = astsByName._lit = setId(__lit());
 
-  apply = astsByName._apply = id(__apply());
+  ref = astsByName._ref = setId(__ref());
 
-  prim = astsByName._prim = id(__prim());
+  lambda = astsByName._lambda = setId(__lambda());
+
+  apply = astsByName._apply = setId(__apply());
+
+  prim = astsByName._prim = setId(__prim());
 
   getAstType = function(f) {
     var _ref;
@@ -421,7 +459,7 @@ Represent ASTs as LC cons-lists
   };
 
   gen = function(ast, res, lits, vars, memo, deref, prim, cont) {
-    var arg, func, rest, v, val;
+    var arg, func, idIdx, rest, v, val;
     addAst(ast);
     switch (getAstType(ast)) {
       case _refId:
@@ -448,9 +486,11 @@ Represent ASTs as LC cons-lists
         v = getLambdaVar(ast);
         memo = new Memo();
         if (!deref) res.push("(function(){return ");
-        res.push("id(function(" + nameSub(v) + "){", memo, "return ");
+        idIdx = res.length;
+        res.push("setId", "(function(" + nameSub(v) + "){", memo, "return ");
         gen(getLambdaBody(ast), res, lits, new Cons(v, vars), memo, true);
-        res.push("}, " + ast.id + (ast.type ? ', \'' + ast.type + '\'' : '') + ")");
+        res[idIdx] = ast.type ? 'setType' : ast.dataType ? 'setDataType' : 'setId';
+        res.push("}, " + ast.funcId + (ast.type ? ', \'' + ast.type + '\'' : '') + (ast.dataType ? ', \'' + ast.dataType + '\'' : '') + ")");
         if (!deref) res.push("})");
         break;
       case _applyId:
@@ -561,13 +601,13 @@ Represent ASTs as LC cons-lists
             bod.type = nm[0];
             ast.dataType = nm[0];
           }
+          addAst(ast);
         }
-        addAst(ast);
         nameAst(nm[0], ast);
         dgen(ast);
         if (nm.length === 1) {
           nameAst(nm[0], ast);
-          ast.src = "" + (nameSub(nm[0])) + " = id(function(){return " + ast.src + "}, null, '" + ast.lazpName + "')";
+          ast.src = "" + (nameSub(nm[0])) + " = setId(function(){return " + ast.src + "}, null, '" + ast.lazpName + "')";
         } else {
           ast.src = "" + (nameSub(nm[0])) + " = function(){return " + ast.src + "}";
         }
@@ -758,12 +798,18 @@ Represent ASTs as LC cons-lists
 
   root.evalLine = evalLine;
 
-  root.id = id;
+  root.setId = setId;
+
+  root.setType = setType;
+
+  root.setDataType = setDataType;
 
   root.eval = function(ast) {
     return astEval(dgen(ast));
   };
 
   global.__is = __is;
+
+  global.__eq = __eq;
 
 }).call(this);
