@@ -13,8 +13,8 @@
   Path = require('path');
 
   vars = {
-    c: [true, 'show generated code'],
-    a: [true, 'show parsed AST'],
+    c: [false, 'show generated code'],
+    a: [false, 'show parsed AST'],
     r: [true, 'show evaluation result']
   };
 
