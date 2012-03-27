@@ -213,10 +213,7 @@ class Code
   reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
   unreffedValue: (deref)-> if deref then @ else @copyWith("(function(){return #{@main}})")
   subfuncName: -> "subfunc#{@fcount}"
-  useSubfunc: (free)-> if !free then @ else @copyWith(@subfuncName(), """
-#{@subfuncs}var #{@subfuncName()} = #{@main}
-
-  """, @fcount + 1)
+  useSubfunc: (free)-> if !free then @ else @copyWith(@subfuncName(), "#{@subfuncs}var #{@subfuncName()} = #{@main}\n", @fcount + 1)
   memoNames: -> ("memo#{i}" for i in [0...@mcount]).join(', ')
   memo: (deref)->
     if !@mcount then @unreffedValue(deref)
@@ -411,8 +408,6 @@ tparse = (toks, vars, expr)->
       toks.push(tok)
       return expr
   expr
-
-
 
 tparseVariable = (tok, vars)->
   if astsByName[tok] then ref(laz(tok))

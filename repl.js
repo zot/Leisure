@@ -18,19 +18,19 @@
     r: [true, 'show evaluation result']
   };
 
-  print = function() {
+  print = function print() {
     var args;
     args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
     return process.stdout.write(U.format.apply(null, args));
   };
 
-  write = function() {
+  write = function write() {
     var args;
     args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
     return process.stdout.write(args.join(''));
   };
 
-  repl = function() {
+  repl = function repl() {
     var face;
     print("Welcome to Lazp!\n");
     help();
@@ -45,11 +45,11 @@
     return face.prompt();
   };
 
-  help = function() {
+  help = function help() {
     return write(":v -- vars\n:h -- help\n:c file -- compile file\n:q -- quit\n!code -- eval JavaScript code\n");
   };
 
-  handleVar = function(name, value) {
+  handleVar = function handleVar(name, value) {
     var k, prop, _i, _len, _ref, _results;
     if (!name) {
       _ref = ((function() {
@@ -75,7 +75,7 @@
     }
   };
 
-  compile = function(face, file) {
+  compile = function compile(face, file) {
     var contents, oldfile, stream;
     if (!file) {
       console.log("No file to compile");
@@ -105,7 +105,7 @@
     }
   };
 
-  generateCode = function(file, contents, loud) {
+  generateCode = function generateCode(file, contents, loud) {
     var ast, i, line, out, src, stream, _len, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
     out = 'L = require("./lazp")\nsetId = L.setId\nsetType = L.setType\nsetDataType = L.setDataType\n';
@@ -123,11 +123,11 @@
     return stream.end(out, 'utf8');
   };
 
-  getType = function(value) {
+  getType = function getType(value) {
     return (typeof value === 'function' && value.type) || typeof value;
   };
 
-  processLine = function(face, line) {
+  processLine = function processLine(face, line) {
     var a, ast, c, m, r, result, _ref, _ref2;
     try {
       if (line) {
