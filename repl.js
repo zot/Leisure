@@ -108,7 +108,7 @@
   generateCode = function generateCode(file, contents, loud) {
     var ast, i, line, out, src, stream, _len, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = 'L = require("./lazp")\nsetId = L.setId\nsetType = L.setType\nsetDataType = L.setDataType\n';
+    out = 'L = require("./lazp")\nsetId = L.setId\nsetType = L.setType\nsetDataType = L.setDataType\ndefine = L.define';
     _ref = contents.split('\n');
     for (i = 0, _len = _ref.length; i < _len; i++) {
       line = _ref[i];

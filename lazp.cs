@@ -74,6 +74,11 @@ tokens = {}
 groupOpens = {'(': ')'}
 groupCloses = {')': 1}
 
+# leave a poopie so we can identify whether functions defined in other files are Lazp funcs
+define = (name, func) ->
+  func.lazpName = name
+  func
+
 setDataType = (func, id, dataType)->
   if !id then astsById.push(func) else func.id = id
   if dataType then func.dataType = dataType
@@ -103,27 +108,27 @@ astEval = (ast, src)->
   src = src ? ast.src
   if ast.lits.length then eval("(function(__lits){\nreturn #{src}})")(ast.lits) else eval(src)
 
-_eval = -> (ast)-> astEval(dgen(ast()))
+_eval = define 'eval', -> (ast)-> astEval(dgen(ast()))
 
-__lit = -> (_x)->setId ((_f)-> _f()(_x)), _litId
+__lit = define '_lit', -> (_x)->setId ((_f)-> _f()(_x)), _litId
 
-__ref = -> (_x)->setId ((_f)-> _f()(_x)), _refId
+__ref = define '_ref', -> (_x)->setId ((_f)-> _f()(_x)), _refId
 
-__lambda = -> (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
+__lambda = define '_lambda', -> (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
 
-__apply = -> (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
+__apply = define '_apply', -> (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
 
-__prim = -> (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
+__prim = define '_prim', -> (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
 
 f_true = (a)-> (b)-> a()
-_true = -> f_true
+_true = define 'true', -> f_true
 
 f_false = (a)-> (b)-> b()
-_false = -> f_false
+_false = -> define 'false', f_false
 
-__is = -> (value)-> (type)-> if value()?.type == type().dataType then _true() else _false()
+__is = define '_is', -> (value)-> (type)-> if value()?.type == type().dataType then _true() else _false()
 
-__eq = -> (a)-> (b)->
+__eq = define '_eq', -> (a)-> (b)->
   if a() == b() then _true() else _false()
 
 astsByName.eval = setId(_eval())
@@ -168,9 +173,9 @@ astPrint = (ast, res)->
     when _litId
       res.push 'lit '
       val = getLitVal ast
-      res.push if val.lambda then "{" + val.lambda.toString() + "}" else val
+      res.push if val?.lambda then "{" + val.lambda.toString() + "}" else val
     when _lambdaId
-      res.push (if ast.notFree then 'lambdaN ' else 'lambda ')
+      res.push 'lambda '
       res.push (getLambdaVar ast)
       res.push ' . '
       astPrint (getLambdaBody ast), res
@@ -178,10 +183,8 @@ astPrint = (ast, res)->
       func = getApplyFunc ast
       arg = getApplyArg ast
       res.push 'apply ('
-      if func.notFree then res.push 'N '
       astPrint (getApplyFunc ast), res
       res.push ') ('
-      if arg.notFree then res.push 'N '
       astPrint (getApplyArg ast), res
       res.push ')'
     when _primId
@@ -219,7 +222,7 @@ class Code
     if !@mcount then @unreffedValue(deref)
     else @copyWith("(function(){var #{@memoNames()}; return #{@main}})", null, null, 0).reffedValue(deref)
 
-dgen = (ast, lazy)->
+dgen = (ast, lazy, name)->
   ast.lits = []
   res = []
   code = (gen ast, new Code(), ast.lits, Nil, true).memo(!lazy)
@@ -227,7 +230,7 @@ dgen = (ast, lazy)->
     ast.src = """
 (function(){
   #{code.subfuncs}
-  return #{code.main}
+  return #{if name? then "define('#{name}', #{code.main})" else code.main}
 })()
     """
   else ast.src = code.main
@@ -244,8 +247,8 @@ gen = (ast, code, lits, vars, deref)->
     when _litId
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'
-        res.lits.push(val)
-        "(function(){\nreturn __lits[#{res.lits.length - 1}]\n})"
+        lits.push(val)
+        "(function(){\nreturn __lits[#{lits.length - 1}]\n})"
       else JSON.stringify val
       code.copyWith(src).unreffedValue(deref)
     when _lambdaId
@@ -312,7 +315,7 @@ compileLine = (line)->
           ast.dataType = nm[0]
         addAst(ast)
       nameAst(nm[0], ast)
-      dgen(ast, true)
+      dgen(ast, true, nm[0])
       if nm.length == 1
         nameAst(nm[0], ast);
         ast.src = "#{nameSub(nm[0])} = setId(#{ast.src}, null, '#{ast.lazpName}')"
@@ -410,7 +413,7 @@ tparse = (toks, vars, expr)->
   expr
 
 tparseVariable = (tok, vars)->
-  if astsByName[tok] then ref(laz(tok))
+  if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] then ref(laz(tok))
   else
     path = []
     if (vars.find (v)-> tok == v.name or !path.push(v))
@@ -452,5 +455,6 @@ root.setId = setId
 root.setType = setType
 root.setDataType = setDataType
 root.eval = (ast) -> astEval(dgen(ast))
+root.define = define
 global.__is = __is
 global.__eq = __eq
