@@ -91,7 +91,7 @@ setId = (func, id)->
 nameAst = (nm, ast)-> if !ast.lazpName
   astsByName[nm] = ast
   ast.lazpName = nm
-  ast.toString = ()->nm
+  ast.toString = ->nm
 
 addAst = (ast)->
   if !ast.funcId
@@ -100,30 +100,30 @@ addAst = (ast)->
     ast
 
 astEval = (ast, src)->
-  src = src || ast.src
-  if ast.lits.length then eval("(function(__lits){return #{src}})")(ast.lits) else eval(src)
+  src = src ? ast.src
+  if ast.lits.length then eval("(function(__lits){\nreturn #{src}})")(ast.lits) else eval(src)
 
-_eval = ()-> (ast)-> astEval(dgen(ast()))
+_eval = -> (ast)-> astEval(dgen(ast()))
 
-__lit = ()-> (_x)->setId ((_f)-> _f()(_x)), _litId
+__lit = -> (_x)->setId ((_f)-> _f()(_x)), _litId
 
-__ref = ()-> (_x)->setId ((_f)-> _f()(_x)), _refId
+__ref = -> (_x)->setId ((_f)-> _f()(_x)), _refId
 
-__lambda = ()-> (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
+__lambda = -> (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
 
-__apply = ()-> (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
+__apply = -> (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
 
-__prim = ()-> (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
+__prim = -> (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
 
-_true = ()-> (a)-> (b)-> a()
+f_true = (a)-> (b)-> a()
+_true = -> f_true
 
-_false = ()-> (a)-> (b)-> b()
+f_false = (a)-> (b)-> b()
+_false = -> f_false
 
-#__is = ()-> (value)-> (type)-> if value?.type == type.dataType then _true() else _false()
-__is = ()-> (value)-> (type)-> if value()?.type == type().dataType then _true() else _false()
+__is = -> (value)-> (type)-> if value()?.type == type().dataType then _true() else _false()
 
-__eq = ()-> (a)-> (b)->
-  console.log("a = #{a}\nb = #{b}")
+__eq = -> (a)-> (b)->
   if a() == b() then _true() else _false()
 
 astsByName.eval = setId(_eval())
@@ -136,10 +136,10 @@ ref = astsByName._ref = setId(__ref())
 lambda = astsByName._lambda = setId(__lambda())
 apply = astsByName._apply = setId(__apply())
 prim = astsByName._prim = setId(__prim())
-getAstType = (f) -> f.id or f.lambda?.id
+getAstType = (f) -> f.id ? f.lambda?.id
 isPrim = (f)-> getAstType(f) == _primId
-first = ()->(a)-> a
-second = ()->(a)->(b)-> b()
+first = ->(a)-> a
+second = ->(a)->(b)-> b()
 getRefVar = (r)-> r(first)()
 getLitVal = (l)-> l(first)()
 getLambdaVar = (l)-> l first
@@ -148,9 +148,17 @@ getApplyFunc = (a)-> a first
 getApplyArg = (a)-> a second
 getPrimArg = (p)-> p first
 getPrimRest = (p)-> p second
+getPrimArgs = (p, args)->
+  args = args ? []
+  p = getPrimRest p
+  while isPrim(p)
+    args.push(getPrimArg p)
+    p = getPrimRest p
+  args.push(p)
+  args
 astPrint = (ast, res)->
   isFirst = !res
-  res = res or []
+  res = res ? []
   switch getAstType ast
     when _refId
       res.push 'ref '
@@ -162,14 +170,18 @@ astPrint = (ast, res)->
       val = getLitVal ast
       res.push if val.lambda then "{" + val.lambda.toString() + "}" else val
     when _lambdaId
-      res.push 'lambda '
+      res.push (if ast.notFree then 'lambdaN ' else 'lambda ')
       res.push (getLambdaVar ast)
       res.push ' . '
       astPrint (getLambdaBody ast), res
     when _applyId
+      func = getApplyFunc ast
+      arg = getApplyArg ast
       res.push 'apply ('
+      if func.notFree then res.push 'N '
       astPrint (getApplyFunc ast), res
       res.push ') ('
+      if arg.notFree then res.push 'N '
       astPrint (getApplyArg ast), res
       res.push ')'
     when _primId
@@ -179,104 +191,91 @@ astPrint = (ast, res)->
     else throw new Error("Unknown type of object in AST: " + ast)
   isFirst and res.join('')
 
-class Memo
-  constructor: ()-> @count = 0
-  add: ()-> "memo" + @count++
-  toString: ()-> if @count
-    ret = 'var '
-    for i in [0...@count]
-      if i > 0 then ret += ", "
-      ret += "memo" + i
-    ret += "; "
-    ret
-  else ''
-
-memoStart = (res, memo, deref)-> if !deref
-  mem = memo.add()
-  res.push "function(){return ", mem, " || (", mem, " = "
-
-memoEnd = (res, memo, deref)-> if !deref then res.push ")}"
-
 class Cons
   constructor: (@head, @tail)->
   contains: (val)-> @head == val or @tail.contains(val)
+  find: (func)-> func(@head) or @tail.find(func)
 
 class CNil extends Cons
-  contains: ()-> false
+  contains: -> false
+  find: ->false
 
 Nil = new CNil()
 
+class Code
+  constructor: (@main, @subfuncs, @fcount, @mcount)->
+    @main = @main ? ''
+    @subfuncs = @subfuncs ? ''
+    @fcount = @fcount ? 0
+    @mcount = @mcount ? 0
+  copyWith: (main, subfuncs, fcount, mcount)->new Code(main ? @main, subfuncs ? @subfuncs, fcount ? @fcount, mcount ? @mcount)
+  resetMemo: -> @copyWith(null, null, null, 0)
+  reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
+  unreffedValue: (deref)-> if deref then @ else @copyWith("(function(){return #{@main}})")
+  subfuncName: -> "subfunc#{@fcount}"
+  useSubfunc: (free)-> if !free then @ else @copyWith(@subfuncName(), """
+#{@subfuncs}var #{@subfuncName()} = #{@main}
+
+  """, @fcount + 1)
+  memoNames: -> ("memo#{i}" for i in [0...@mcount]).join(', ')
+  memo: (deref)->
+    if !@mcount then @unreffedValue(deref)
+    else @copyWith("(function(){var #{@memoNames()}; return #{@main}})", null, null, 0).reffedValue(deref)
+
 dgen = (ast, lazy)->
-  mem = new Memo()
   ast.lits = []
-  gen ast, [], ast.lits, Nil, mem, true
-  if mem.count or lazy then ast.src = "(function(){#{mem}return #{ast.src}})#{if !lazy then '()' else ''}"
+  res = []
+  code = (gen ast, new Code(), ast.lits, Nil, true).memo(!lazy)
+  if code.subfuncs.length
+    ast.src = """
+(function(){
+  #{code.subfuncs}
+  return #{code.main}
+})()
+    """
+  else ast.src = code.main
   ast
 
-gen = (ast, res, lits, vars, memo, deref, prim, cont)->
+gen = (ast, code, lits, vars, deref)->
   addAst ast
   switch getAstType ast
     when _refId
       val = getRefVar ast
       if val.lambda then throw new Error("attempt to use lambda as a variable")
       if !vars.contains(val) and !astsByName[val] then throw new Error("unbound variable, '" + val + "' -- use lit instead")
-      res.push (nameSub val)
-      if deref then res.push "()"
+      code.copyWith(nameSub val).reffedValue(deref)
     when _litId
       val = getLitVal ast
-      if !deref then res.push "(function(){return "
-      if typeof val == 'function' or typeof val == 'object'
+      src = if typeof val == 'function' or typeof val == 'object'
         res.lits.push(val)
-        res.push "(function(){return __lits[#{res.lits.length - 1}]})"
-      else res.push(JSON.stringify val)
-      if !deref then res.push "})"
+        "(function(){\nreturn __lits[#{res.lits.length - 1}]\n})"
+      else JSON.stringify val
+      code.copyWith(src).unreffedValue(deref)
     when _lambdaId
       v = getLambdaVar ast
-      memo = new Memo()
-      if !deref then res.push "(function(){return "
-      idIdx = res.length
-      res.push "setId", "(function(" + nameSub(v) + "){", memo, "return "
-      gen (getLambdaBody ast), res, lits, new Cons(v, vars), memo, true
-      res[idIdx] = if ast.type then 'setType' else if ast.dataType then 'setDataType' else 'setId'
-      res.push "}, #{ast.funcId}#{if ast.type then ', \'' + ast.type + '\'' else ''}#{if ast.dataType then ', \'' + ast.dataType + '\'' else ''})"
-      if !deref then res.push "})"
+      bodyCode = gen (getLambdaBody ast), code.resetMemo(), lits, new Cons(v, vars), true
+      bodyCode.copyWith("#{if ast.type then 'setType' else if ast.dataType then 'setDataType' else 'setId'}(function(#{nameSub(v)}){return #{bodyCode.main}}#{if ast.type ? ast.dataType ? false then ', "' + (ast.type ? ast.dataType) + '"' else ''})").useSubfunc(!ast.notFree).memo(deref)
     when _applyId
       func = getApplyFunc ast
       arg = getApplyArg ast
-      memoStart res, memo, deref
-      gen func, res, lits, vars, memo, true
-      res.push "("
-      gen arg, res, lits, vars, memo
-      res.push ")"
-      memoEnd res, memo, deref
+      funcCode = gen func, code, lits, vars, true
+      argCode = gen arg, funcCode, lits, vars
+      argCode.copyWith("#{funcCode.main}(#{argCode.main})").unreffedValue(deref)
     when _primId
-      arg = getPrimArg ast
-      rest = getPrimRest ast
-      if prim
-        if cont then res.push ", "
-        res.push arg
-        if isPrim rest then gen rest, res, lits, vars, memo, false, true, true
-      else
-        memoStart res, memo, deref
-        res.push arg
-        res.push "("
-        if isPrim rest then gen rest, res, lits, vars, memo, true, true, false
-        res.push ")"
-        memoEnd res, memo, deref
+      args = for arg in getPrimArgs ast
+        code = gen arg, code, lits, vars, true
+      code.copyWith("#{getPrimArg ast}(#{args.map(a -> a.main).join(', ')})")
+      code.unreffedValue(deref)
     else throw new Error("Unknown object type in gen: " + ast)
-  ast.src = res.join ''
 
-laz = (val)-> ()-> val
+laz = (val)-> -> val
 
 nameSub = (name)->
   s = '_'
   for i in [0...name.length]
     code = charCodes[name[i]]
-    if code
-      if !s then s = name.substring 0, i
-      s += code
-    else if s then s += name[i]
-  s or name
+    s += code ? name[i]
+  s
 
 defineToken = (name, def)->
   if def != '='
@@ -316,11 +315,11 @@ compileLine = (line)->
           ast.dataType = nm[0]
         addAst(ast)
       nameAst(nm[0], ast)
-      dgen(ast)
+      dgen(ast, true)
       if nm.length == 1
         nameAst(nm[0], ast);
-        ast.src = "#{nameSub(nm[0])} = setId(function(){return #{ast.src}}, null, '#{ast.lazpName}')"
-      else ast.src = "#{nameSub(nm[0])} = function(){return #{ast.src}}"
+        ast.src = "#{nameSub(nm[0])} = setId(#{ast.src}, null, '#{ast.lazpName}')"
+      else ast.src = "#{nameSub(nm[0])} = #{ast.src}"
     else
       ast = parse(expr)
       dgen(ast)
@@ -350,7 +349,7 @@ addToken = (tok, group)->
   tokens[tok] = group
   tokenPat = null
 
-createTokenPat = ()->
+createTokenPat = ->
   if !tokenPat
     types = []
     types.push(i) for i of tokens
@@ -381,7 +380,7 @@ tokenize = (str)->
   if str.length then toks.push(str)
   toks
 
-parse = (str)-> tparse tokenize(str).reverse(), {}
+parse = (str)-> tparse tokenize(str).reverse(), Nil
 
 addDef = (toks)->
   t = toks.reverse()
@@ -389,39 +388,40 @@ addDef = (toks)->
 
 tparse = (toks, vars, expr)->
   cur
-  oldVars = {}
   while toks.length
     tok = toks.pop()
     if tok == ')'
       toks.push(tok)
       return expr
     if tok == '\\' then cur = tparseLambda(toks, vars)
-    else if tok == '#define'
-      addDef(toks)
-      toks = []
-    else if tok == '#lazy' || tok == '#strict' then cur = tparseVariable(tok, vars, oldVars)
     else
       expectedClose = groupOpens[tok]
       skip = false
       if expectedClose
-        cur = tparse toks, vars, if tok != '(' then tparseVariable(tok, vars, oldVars) else null
+        cur = tparse toks, vars, if tok != '(' then tparseVariable(tok, vars) else null
         if toks.length && toks[toks.length - 1] == expectedClose then toks.pop()
         skip = true
-      if !skip then cur = tparseVariable(tok, vars, oldVars)
-    expr = if expr then apply(laz(expr))(laz(cur)) else cur
+      if !skip then cur = tparseVariable(tok, vars)
+    expr = if expr
+        ast = apply(laz(expr))(laz(cur))
+        ast.notFree = expr.notFree || cur.notFree
+        ast
+      else cur
     if groupCloses[tok]
       toks.push(tok)
       return expr
-  for i of oldVars
-    vars[i] = oldVars[i]
   expr
 
-tparseVariable = (tok, vars, oldVars)->
-  if vars[tok] or astsByName[tok]
-    vars[tok] = tok
-    cur = ref(laz(tok))
-  else cur = lit(laz(scanTok(tok)))
-  cur
+
+
+tparseVariable = (tok, vars)->
+  if astsByName[tok] then ref(laz(tok))
+  else
+    path = []
+    if (vars.find (v)-> tok == v.name or !path.push(v))
+      v.notFree = true for v in path
+      ref(laz(tok))
+    else lit(laz(scanTok(tok)))
 
 scanTok = (tok)->
   try
@@ -431,19 +431,20 @@ scanTok = (tok)->
 
 tparseLambda = (toks, vars)->
   nm = null
+  v = {notFree: false}
   if toks.length < 3 or toks[toks.length - 1] == '.' then throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
-  old = vars[nm]
   if toks[toks.length - 2] == '.'
     nm = toks.pop()
-    vars[nm] = nm
     toks.pop()
-    body = tparse toks, vars
+    v.name = nm
+    body = tparse toks, new Cons(v, vars)
   else
     nm = toks.pop()
-    vars[nm] = nm
-    body = tparseLambda toks, vars
-  vars[nm] = old
-  lambda(laz(nm))(laz(body))
+    v.name = nm
+    body = tparseLambda toks, new Cons(v, vars)
+  ast = lambda(laz(nm))(laz(body))
+  ast.notFree = v.notFree
+  ast
 
 root = exports ? this
 root.parse = parse

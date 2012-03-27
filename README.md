@@ -9,7 +9,7 @@ To facilitate metaprogramming, Lazp uses abstract syntax trees, made from LC fun
 Template Haskell demonstrates a perceived need for metaprogramming, even in a lazy language, like Haskell.  Eval exposes the Lazp code-generator to developers which helps with creating external DSLs, among other things.
 
 ## Untyped
-Lazp is untyped.  This doesn't mean that Lazp is type-free, it just means that variables don't have types -- they can hold anything.  Lazp does have an experimental system that's like "data types" in LISP -- e.g. you can tell if something is a cons-cell (**_is (cons 1 2) cons** returns the **true** function, if you define cons the right way).  This currently works, but it needs more development.
+Lazp is untyped.  This doesn't mean that Lazp is type-free, it just means that variables don't have types -- they can hold anything.  Lazp does have an experimental system that's like "data types" in LISP -- e.g. you can tell if something is a cons-cell (**_is (cons 1 2) cons** returns a **true** function, if you define cons the right way).  This currently works, but it needs more development.
 
 ## Lazy
 Lazp is lazy.  It doesn't allow side effects, not because side effects are somehow *evil*, but because in a lazy language, side effects can lead to very strange behavior that's really hard to diagnose.  The idea is to have side effects outside the Lazp environment and access them using standard functional techniques, like monads and FRP.

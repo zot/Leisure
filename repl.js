@@ -13,8 +13,8 @@
   Path = require('path');
 
   vars = {
-    c: [false, 'show generated code'],
-    a: [false, 'show parsed AST'],
+    c: [true, 'show generated code'],
+    a: [true, 'show parsed AST'],
     r: [true, 'show evaluation result']
   };
 
@@ -147,19 +147,16 @@
               break;
             default:
               _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
+              ast = L.compileLine(line);
+              if (a) write("PARSED: " + (L.astPrint(ast)) + "\n");
+              if (c) write("GEN: " + ast.src + "\n");
               if (r) {
                 _ref2 = L.evalLine(line), ast = _ref2[0], result = _ref2[1];
                 if (!result) {
                   write("(No Result)\n");
                 } else {
-                  if (a) write("PARSED: " + L.astPrint(ast) + "\n");
-                  if (c) write("GEN: " + ast.src + "\n");
                   write("" + result + " (" + (getType(result)) + ")\n");
                 }
-              } else if (a || c) {
-                ast = L.parse(line);
-                if (a) write("PARSED: " + L.astPrint(ast) + "\n");
-                if (c) write("GEN: " + L.gen(ast).src + "\n");
               }
           }
         }

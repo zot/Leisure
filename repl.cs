@@ -5,8 +5,8 @@ FS = require('fs')
 Path = require('path')
 
 vars = {
-  c: [false, 'show generated code'],
-  a: [false, 'show parsed AST'],
+  c: [true, 'show generated code'],
+  a: [true, 'show parsed AST'],
   r: [true, 'show evaluation result'],
 }
 
@@ -90,17 +90,13 @@ processLine = (face, line)->
         when ':q' then process.exit(0)
         else
           [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
+          ast = L.compileLine(line)
+          if a then write("PARSED: #{L.astPrint(ast)}\n")
+          if c then write("GEN: #{ast.src}\n")
           if r
             [ast, result] = L.evalLine(line)
             if !result then write("(No Result)\n")
-            else
-              if a then write("PARSED: " + L.astPrint(ast) + "\n")
-              if c then write("GEN: " + ast.src + "\n")
-              write("#{result} (#{(getType result)})\n")
-          else if a or c
-            ast = L.parse(line)
-            if a then write("PARSED: " + L.astPrint(ast) + "\n")
-            if c then write("GEN: " + L.gen(ast).src + "\n")
+            else write("#{result} (#{getType result})\n")
   catch err
     console.log err
     console.log(err.stack)
