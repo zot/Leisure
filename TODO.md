@@ -1,16 +1,11 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [REPL](lazp.html)
 # TODO
-* separate out constant functions
-   * so that
-      * \_cons = function(){return setDataType(function(\_a){return setId(function(\_b){return setType(function(\_f){return \_f()(\_a)(\_b)}, 33, 'cons')}, 32)}, 31, 'cons')}
-   * becomes
-      * f\_cons = setDataType(function(\_a){return setId(function(\_b){return setType(function(\_f){return \_f()(\_a)(\_b)}, 33, 'cons')}, 32)}, 31, 'cons')
-      * \_cons = function(){return f\_cons}
+* reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)
 * pretty printing
 * monads and monad driver
 * string functions
-* Parser in Lazp
-* rewrite parser, generator, REPL in Lazp, compile, and use them
+* Use Lazp for parser, generator, REPL; compile them and use the JS for them
+   * this will help people extend Lazp
 * parser improvements
    * quotes for names
    * a-b recursion?
@@ -19,6 +14,12 @@
    * eliminate redundant memo/deref pairs
 
 #DONE
+* separate out constant functions
+   * so that
+      * \_cons = function(){return setDataType(function(\_a){return setId(function(\_b){return setType(function(\_f){return \_f()(\_a)(\_b)}, 33, 'cons')}, 32)}, 31, 'cons')}
+   * becomes
+      * f\_cons = setDataType(function(\_a){return setId(function(\_b){return setType(function(\_f){return \_f()(\_a)(\_b)}, 33, 'cons')}, 32)}, 31, 'cons')
+      * \_cons = function(){return f\_cons}
 * implicit type names
    * if you define a function X that returns a function Y, the function Y gets "type" X
    * cons a b = \f . f a b
