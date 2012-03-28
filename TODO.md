@@ -1,4 +1,4 @@
-[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [REPL](lazp.html)
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html)
 # TODO
 * reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)
 * pretty printing
