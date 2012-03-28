@@ -7,16 +7,16 @@
     console.log("Usage: " + process.argv[0] + " [[-c | -i] file...]");
   } else if (process.argv[2] === '-c') {
     for (i = 3, _ref = process.argv.length; 3 <= _ref ? i < _ref : i > _ref; 3 <= _ref ? i++ : i--) {
-      R.compile(null, process.argv[i]);
+      R.compile(process.argv[i]);
     }
-  } else if (process.argv.length > 1) {
+  } else if (process.argv.length > 2) {
     start = 2;
     if (process.argv[2] === '-i') {
       interactive = true;
       start = 3;
     }
     for (i = start, _ref2 = process.argv.length; start <= _ref2 ? i < _ref2 : i > _ref2; start <= _ref2 ? i++ : i--) {
-      R.compile(null, process.argv[i]);
+      R.compile(process.argv[i]);
       require("./" + process.argv[i]);
     }
     if (interactive) R.repl();

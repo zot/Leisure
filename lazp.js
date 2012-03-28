@@ -30,9 +30,16 @@ Represent ASTs as LC cons-lists
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, addToken, apply, astEval, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, createTokenPat, define, defineToken, dgen, evalLine, f_false, f_true, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, __apply, __eq, __is, __lambda, __lit, __prim, __ref, _applyId, _eval, _false, _lambdaId, _litId, _primId, _refId, _true,
+  var CNil, Code, Cons, Nil, addAst, addDef, addToken, apply, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, createTokenPat, define, defineToken, dgen, evalCompiledAst, evalLine, f_false, f_true, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, __apply, __eq, __is, __lambda, __lit, __prim, __ref, _applyId, _eval, _false, _lambdaId, _litId, _primId, _refId, _true,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+
+  if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
+    window.global = window;
+    window.Lazp = root = {};
+  } else {
+    root = typeof exports !== "undefined" && exports !== null ? exports : this;
+  }
 
   _refId = -1;
 
@@ -158,18 +165,17 @@ Represent ASTs as LC cons-lists
     }
   };
 
-  astEval = function astEval(ast, src) {
-    src = src != null ? src : ast.src;
+  evalCompiledAst = function evalCompiledAst(ast) {
     if (ast.lits.length) {
-      return eval("(function(__lits){\nreturn " + src + "})")(ast.lits);
+      return eval("(function(__lits){\nreturn " + ast.src + "})")(ast.lits);
     } else {
-      return eval(src);
+      return eval(ast.src);
     }
   };
 
   _eval = define('eval', function() {
     return function(ast) {
-      return astEval(dgen(ast()));
+      return evalCompiledAst(dgen(ast()));
     };
   });
 
@@ -369,7 +375,7 @@ Represent ASTs as LC cons-lists
         res.push((val != null ? val.lambda : void 0) ? "{" + val.lambda.toString() + "}" : val);
         break;
       case _lambdaId:
-        res.push((ast.notFree ? 'lambdaN ' : 'lambda '));
+        res.push('lambda ');
         res.push(getLambdaVar(ast));
         res.push(' . ');
         astPrint(getLambdaBody(ast), res);
@@ -378,10 +384,8 @@ Represent ASTs as LC cons-lists
         func = getApplyFunc(ast);
         arg = getApplyArg(ast);
         res.push('apply (');
-        if (func.notFree) res.push('N ');
         astPrint(getApplyFunc(ast), res);
         res.push(') (');
-        if (arg.notFree) res.push('N ');
         astPrint(getApplyArg(ast), res);
         res.push(')');
         break;
@@ -664,7 +668,7 @@ Represent ASTs as LC cons-lists
     if (ast) {
       if (ast.lazpName) {
         try {
-          astEval(ast);
+          evalCompiledAst(ast);
           result = "Defined: " + ast.lazpName;
         } catch (err) {
           console.log(err.stack);
@@ -673,7 +677,7 @@ Represent ASTs as LC cons-lists
         return [ast, result];
       } else {
         try {
-          result = astEval(ast);
+          result = evalCompiledAst(ast);
         } catch (err) {
           result = err.stack;
         }
@@ -826,8 +830,6 @@ Represent ASTs as LC cons-lists
     return ast;
   };
 
-  root = typeof exports !== "undefined" && exports !== null ? exports : this;
-
   root.parse = parse;
 
   root.astPrint = astPrint;
@@ -846,8 +848,8 @@ Represent ASTs as LC cons-lists
 
   root.setDataType = setDataType;
 
-  root.eval = function eval(ast) {
-    return astEval(dgen(ast));
+  root.astEval = function astEval(ast) {
+    return evalCompiledAst(dgen(ast));
   };
 
   root.define = define;

@@ -1,5 +1,5 @@
 (function() {
-  var FS, L, Path, R, U, compile, generateCode, getType, handleVar, help, print, processLine, repl, root, vars, write,
+  var Core, FS, L, Path, R, U, compile, generateCode, help, print, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -7,6 +7,8 @@
   R = require('readline');
 
   L = require('./lazp');
+
+  Core = require('./replCore');
 
   FS = require('fs');
 
@@ -40,7 +42,10 @@
       return process.exit(0);
     });
     face.on('line', function(line) {
-      return processLine(face, line.trim());
+      return Core.processLine(line.trim());
+    });
+    Core.setNext(function() {
+      return face.prompt();
     });
     return face.prompt();
   };
@@ -49,37 +54,11 @@
     return write(":v -- vars\n:h -- help\n:c file -- compile file\n:q -- quit\n!code -- eval JavaScript code\n");
   };
 
-  handleVar = function handleVar(name, value) {
-    var k, prop, _i, _len, _ref, _results;
-    if (!name) {
-      _ref = ((function() {
-        var _results2;
-        _results2 = [];
-        for (k in vars) {
-          _results2.push(k);
-        }
-        return _results2;
-      })()).sort();
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        prop = _ref[_i];
-        _results.push(write("" + prop + " = " + vars[prop][0] + " -- " + vars[prop][1] + "\n"));
-      }
-      return _results;
-    } else if (!value && !vars[name]) {
-      return write("No variable named " + name + "\n");
-    } else if (!value) {
-      return write("" + name + " = " + vars[name] + " -- " + vars[prop][1] + "\n");
-    } else {
-      return vars[name][0] = JSON.parse(value);
-    }
-  };
-
-  compile = function compile(face, file) {
+  compile = function compile(file) {
     var contents, oldfile, stream;
     if (!file) {
       console.log("No file to compile");
-      return face != null ? face.prompt() : void 0;
+      return typeof face !== "undefined" && face !== null ? face.prompt() : void 0;
     } else {
       contents = '';
       if (!Path.existsSync(file)) {
@@ -87,7 +66,7 @@
         file = file + ".laz";
         if (!Path.existsSync(file)) {
           console.log("No file: " + oldfile);
-          return face != null ? face.promp() : void 0;
+          return Core.next();
         }
       }
       stream = FS.createReadStream(file);
@@ -95,12 +74,12 @@
         return contents += data;
       });
       stream.on('end', function() {
-        generateCode(file, contents, face);
-        return face != null ? face.prompt() : void 0;
+        generateCode(file, contents, true);
+        return Core.next();
       });
       return stream.on('error', function(ex) {
         console.log("Exception reading file: ", ex.stack);
-        return face != null ? face.prompt() : void 0;
+        return Core.next();
       });
     }
   };
@@ -123,50 +102,13 @@
     return stream.end(out, 'utf8');
   };
 
-  getType = function getType(value) {
-    return (typeof value === 'function' && value.type) || typeof value;
-  };
+  Core.setHelp(help);
 
-  processLine = function processLine(face, line) {
-    var a, ast, c, m, r, result, _ref, _ref2;
-    try {
-      if (line) {
-        if (line[0] === '!') {
-          write(U.inspect(eval(line.substr(1))), "\n");
-        } else if ((m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/))) {
-          handleVar(m[2], m[3]);
-        } else if ((m = line.match(/^:c\s*([^\s]*)$/))) {
-          return compile(face, m[1]);
-        } else {
-          switch (line) {
-            case ':h':
-              help();
-              break;
-            case ':q':
-              process.exit(0);
-              break;
-            default:
-              _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-              ast = L.compileLine(line);
-              if (a) write("PARSED: " + (L.astPrint(ast)) + "\n");
-              if (c) write("GEN: " + ast.src + "\n");
-              if (r) {
-                _ref2 = L.evalLine(line), ast = _ref2[0], result = _ref2[1];
-                if (!result) {
-                  write("(No Result)\n");
-                } else {
-                  write("" + result + " (" + (getType(result)) + ")\n");
-                }
-              }
-          }
-        }
-      }
-    } catch (err) {
-      console.log(err);
-      console.log(err.stack);
-    }
-    return face.prompt();
-  };
+  Core.setCompiler(compile);
+
+  Core.setWriter(function(str) {
+    return process.stdout.write(str);
+  });
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 

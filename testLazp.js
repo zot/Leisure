@@ -65,11 +65,11 @@ Tests for Lazp
   });
 
   run('test6', function() {
-    return LZ.eval(LZ.gen(LZ.parse("cons 1 2")));
+    return LZ.astEval(LZ.gen(LZ.parse("cons 1 2")));
   });
 
   run('test7', function() {
-    return LZ.eval(LZ.gen(LZ.parse("head (cons 1 2)")));
+    return LZ.astEval(LZ.gen(LZ.parse("head (cons 1 2)")));
   });
 
   run('test8', function() {

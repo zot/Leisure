@@ -28,6 +28,11 @@ High level representation of Lambda Calculus AST
 Represent ASTs as LC cons-lists
 ###
 
+if window? and (!global? or global == window)
+  window.global = window
+  window.Lazp = root = {}
+else root = exports ? this
+
 _refId = -1
 _litId = -2
 _lambdaId = -3
@@ -104,11 +109,9 @@ addAst = (ast)->
     ast.funcId = astsById.length
     ast
 
-astEval = (ast, src)->
-  src = src ? ast.src
-  if ast.lits.length then eval("(function(__lits){\nreturn #{src}})")(ast.lits) else eval(src)
+evalCompiledAst = (ast)-> if ast.lits.length then eval("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else eval(ast.src)
 
-_eval = define 'eval', -> (ast)-> astEval(dgen(ast()))
+_eval = define 'eval', -> (ast)-> evalCompiledAst(dgen(ast()))
 
 __lit = define '_lit', -> (_x)->setId ((_f)-> _f()(_x)), _litId
 
@@ -330,7 +333,7 @@ evalLine = (line)->
   if ast
     if ast.lazpName
       try
-        astEval(ast)
+        evalCompiledAst(ast)
         result = "Defined: #{ast.lazpName}"
       catch err
         console.log(err.stack)
@@ -338,7 +341,7 @@ evalLine = (line)->
       [ast, result]
     else
       try
-        result = astEval(ast)
+        result = evalCompiledAst(ast)
       catch err
         result = err.stack
       [ast, result]
@@ -444,7 +447,6 @@ tparseLambda = (toks, vars)->
   ast.notFree = v.notFree
   ast
 
-root = exports ? this
 root.parse = parse
 root.astPrint = astPrint
 root.gen = dgen
@@ -454,7 +456,7 @@ root.evalLine = evalLine
 root.setId = setId
 root.setType = setType
 root.setDataType = setDataType
-root.eval = (ast) -> astEval(dgen(ast))
+root.astEval = (ast)-> evalCompiledAst(dgen(ast))
 root.define = define
 global.__is = __is
 global.__eq = __eq
