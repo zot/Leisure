@@ -1,1 +1,128 @@
-README.html
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>README.md</title>
+
+</head>
+
+<body>
+
+<p><a href="">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="lazp.html">REPL</a></p>
+
+<h1>Lazp: An untyped, lazy Lambda Calculus with Metaprogramming and Primitives</h1>
+
+<p>The goal, here is to provide a useable untyped, lazy, lambda calculus with metaprogramming for people's use and experimentation.</p>
+
+<p>To facilitate metaprogramming, Lazp uses abstract syntax trees, made from LC functions, like how LISP represents code with cons lists.</p>
+
+<p>Template Haskell demonstrates a perceived need for metaprogramming, even in a lazy language, like Haskell.  Eval exposes the Lazp code-generator to developers which helps with creating external DSLs, among other things.</p>
+
+<h2>Untyped</h2>
+
+<p>Lazp is untyped.  This doesn't mean that Lazp is type-free, it just means that variables don't have types -- they can hold anything.  Lazp does have an experimental system that's like "data types" in LISP -- e.g. you can tell if something is a cons-cell (<strong>_is (cons 1 2) cons</strong> returns a <strong>true</strong> function, if you define cons the right way).  This currently works, but it needs more development.</p>
+
+<h2>Lazy</h2>
+
+<p>Lazp is lazy.  It doesn't allow side effects, not because side effects are somehow <em>evil</em>, but because in a lazy language, side effects can lead to very strange behavior that's really hard to diagnose.  The idea is to have side effects outside the Lazp environment and access them using standard functional techniques, like monads and FRP.</p>
+
+<h2>Metaprogramming</h2>
+
+<p>Lazy provides eval as the basic building block for metaprogramming.  Eval takes a Lazp AST as input and returns the result of evaluating the Lazp code it represents (this is similar to LISP's eval).</p>
+
+<h2>AST Function usage</h2>
+
+<p>_lit v -- literal value <br />
+_ref v -- variable reference: v should be a string <br />
+_lambda var body -- lambda binding: var should be a string or number, body is an AST <br />
+_apply func arg -- function application: func can be any AST function except a _prim <br />
+_prim arg rest -- primitive call: rest is either a _lit, a _ref, or another _prim (which allows more args)  </p>
+
+<p>The AST functions serve as an embedded DSL.</p>
+
+<h2>AST Function definitions</h2>
+
+<p>_lit = \x f . f x <br />
+_ref = \x f . f x <br />
+_lambda = \v f g . g v f <br />
+_apply = \func arg f . f func arg <br />
+_prim = \arg rest f . f arg rest  </p>
+
+<p>In _prim, rest is either a _prim, _lit, or _ref <br />
+lit is the same def as ref <br />
+apply is the same def as prim <br />
+these are for identification purposes  </p>
+
+<h2>Examples</h2>
+
+<p>eval x -- evaluates x <br />
+apply func arg = eval (<em>apply (</em>lit func) (_lit arg)) <br />
+compile code-string -- returns an AST for a string of Lazp code  </p>
+
+<h2>Parser macros</h2>
+
+<p>How these work depends on the parser you use, but they run Lazp code at parse-time.  Parser macros can implement things like splicing primitive values into the AST and importing libraries, but the most important thing is that they allow developers to extend the parser.  Parser macros can be activated using a standard parser macro (of course :) ).</p>
+
+<h2>Running it</h2>
+
+<h3>Running the REPL</h3>
+
+<blockquote>
+  <p>node runRepl
+Runs the read eval print loop.  You can enter lazp expressions and definitions there.</p>
+</blockquote>
+
+<h3>Compiling files</h3>
+
+<blockquote>
+  <p>node runRepl -c file1 file2 ...
+Compiles files.  </p>
+</blockquote>
+
+<h3>Running the tests</h3>
+
+<p>To run the tests, you can cd into the top level directory and type</p>
+
+<blockquote>
+  <p>node testLazp
+It should give you something like this:
+Running Tests...
+...
+Done
+Each . on the second line represents a successfully completed test.  If there are errors, it will tell you which tests failed.</p>
+</blockquote>
+
+<h2>Changing it</h2>
+
+<p>If you want to change things, you'll probably want to change the Coffeescript files, rather than their corresponding javascript versions.  The <a href="build">build</a> file that contains a command to rebuild it, which is just</p>
+
+<blockquote>
+  <p>node_modules/coffee-script/bin/coffee -c lazp.cs repl.cs runRepl.cs</p>
+</blockquote>
+
+<h2>Implementation</h2>
+
+<p>Lazp will start as a virtual machine in JavaScript, with the intent to generate native code.  Native code could be done in C and/or LLVM.  An LLVM version could use the VMKit’s garbage collector or the Boehm-Demers-Weiser garbage collector, which performs well with small objects (like function contexts).</p>
+
+<h2>Function IDs</h2>
+
+<p>Functions and unbound variables will have IDs that act like runtime types</p>
+
+<h2>Parser</h2>
+
+<p>(the parser should eventually be written in Lazp)  </p>
+
+<p>\x . y is equivalent to 𝛌x . y  </p>
+
+<p>Since \xxx\ has no meaning in Lazy, it seems like a good way to name parser macros, if you don't want to use up "normal" identifiers in the name space.</p>
+
+<h2>LISP-like syntax for Lazp (an alternate parser for curmudgeons)</h2>
+
+<p>(lambda (a) b) -> (<em>lambda (a) (</em>ref b)) <br />
+(a b c) -> (<em>apply (</em>ref a) (<em>ref b) (</em>ref c))  </p>
+
+</body>
+</html>
