@@ -1,3 +1,4 @@
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [REPL](lazp.html)
 # TODO
 * separate out constant functions
    * so that

@@ -1,8 +1,7 @@
+[Main]() [Reference](REFERENCE.html) [Status](TODO.html) [REPL](lazp.html)
 # Lazp: An untyped, lazy Lambda Calculus with Metaprogramming and Primitives
 
-The goal, here, isn't to make something that's super fast; it's to provide a useable untyped, lazy, lambda calculus with metaprogramming for people's use and experimentation.
-
-[Status](Lazp/tree/master/TODO.md)
+The goal, here is to provide a useable untyped, lazy, lambda calculus with metaprogramming for people's use and experimentation.
 
 To facilitate metaprogramming, Lazp uses abstract syntax trees, made from LC functions, like how LISP represents code with cons lists.
 
@@ -14,14 +13,8 @@ Lazp is untyped.  This doesn't mean that Lazp is type-free, it just means that v
 ## Lazy
 Lazp is lazy.  It doesn't allow side effects, not because side effects are somehow *evil*, but because in a lazy language, side effects can lead to very strange behavior that's really hard to diagnose.  The idea is to have side effects outside the Lazp environment and access them using standard functional techniques, like monads and FRP.
 
-## Syntax
-Lambda syntax is very similar to Church's; Here's the identity function, **𝛌x.x**. For the lambda character, you can either use unicode character 955 (u3BB in JavaScript, &955; in HTML) or you can use \, so **\x.x** works just as well.
-
-Identifiers are space or puctuation separated and you can stack lambda variables in front of the dot, so you can say "true," like this, **𝛌a b.a**.
-
-To name a function, you can use the = sign, like this, **true = 𝛌a b.a**
-
-Like Haskell, Lazp will automatically create a lambda for you if you put arguments in front of the equals sign, like this, **true a b = a**.
+## Metaprogramming
+Lazy provides eval as the basic building block for metaprogramming.  Eval takes a Lazp AST as input and returns the result of evaluating the Lazp code it represents (this is similar to LISP's eval).
 
 ## AST Function usage
 _lit v -- literal value  

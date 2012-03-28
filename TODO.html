@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>TODO.md</title>
+
+</head>
+
+<body>
+
+<p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="lazp.html">REPL</a></p>
+
+<h1>TODO</h1>
+
+<ul>
+<li>separate out constant functions
+<ul>
+<li>so that
+<ul>
+<li>_cons = function(){return setDataType(function(_a){return setId(function(_b){return setType(function(_f){return _f()(_a)(_b)}, 33, 'cons')}, 32)}, 31, 'cons')}</li>
+</ul></li>
+<li>becomes
+<ul>
+<li>f_cons = setDataType(function(_a){return setId(function(_b){return setType(function(_f){return _f()(_a)(_b)}, 33, 'cons')}, 32)}, 31, 'cons')</li>
+<li>_cons = function(){return f_cons}</li>
+</ul></li>
+</ul></li>
+<li>pretty printing</li>
+<li>monads and monad driver</li>
+<li>string functions</li>
+<li>Parser in Lazp</li>
+<li>rewrite parser, generator, REPL in Lazp, compile, and use them</li>
+<li>parser improvements
+<ul>
+<li>quotes for names</li>
+<li>a-b recursion?
+<ul>
+<li>it could do a pass to get function names, first</li>
+</ul></li>
+</ul></li>
+<li>generator improvements
+<ul>
+<li>eliminate redundant memo/deref pairs</li>
+</ul></li>
+</ul>
+
+<h1>DONE</h1>
+
+<ul>
+<li>implicit type names
+<ul>
+<li>if you define a function X that returns a function Y, the function Y gets "type" X</li>
+<li>cons a b = \f . f a b
+(cons 1 2) has type cons (the cons function is used as the type)</li>
+<li><em>is value type -> true or false</li>
+<li></em>is (cons 1 2) cons -> true</li>
+</ul></li>
+<li>use ! in REPL to evaluate JS</li>
+<li>command line help (-h arg)</li>
+<li>command line compile/run (-c file... or file...)</li>
+<li>file compile: 
+<ul>
+<li>in REPL, use :c file</li>
+<li>naked exprs are printed</li>
+</ul></li>
+<li>switched to coffeescript</li>
+<li>REPL -- seems to work</li>
+<li>parse improvements
+<ul>
+<li>each line is a definition -- main is the program
+<ul>
+<li>= expr runs expr (expr can also work if there is no '=' token in expr)</li>
+</ul></li>
+<li>allow args in definitions: func arg1 arg2 = body => func = \arg1 arg2 . body</li>
+<li>allow implicit recursion?
+<ul>
+<li>seems like this should just work, for the compiled version</li>
+</ul></li>
+</ul></li>
+</ul>
+
+<h1>DEFERRED</h1>
+
+</body>
+</html>
