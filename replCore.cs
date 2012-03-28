@@ -4,7 +4,9 @@ if window? and (!global? or global == window)
   Lazp = window.Lazp
 else root = exports ? this
 
-if !Lazp? then Lazp = require?('./lazp')
+if !Lazp? and require?
+  Lazp = require('./lazp')
+  U = require('util')
 
 compileFunc = ->
 
@@ -18,12 +20,14 @@ nextFunc = ->
 
 setNext = (n)-> nextFunc = n
 
+getType = (value)-> (typeof value == 'function' and value.type) || typeof value
+
 handlerFunc = (ast, result, a, c, r)->
   if a then write("PARSED: #{Lazp.astPrint(ast)}\n")
   if c then write("GEN: #{ast.src}\n")
   if r
     if !result then write("(No Result)\n")
-    else write("#{result} (#{getType result})\n")
+    else write("#{U.inspect(result)} (#{getType result})\n")
 
 setHandler = (f)-> handlerFunc = f
 
@@ -58,8 +62,6 @@ handleVar = (name, value)->
   else if !value and !vars[name] then write("No variable named #{name}\n")
   else if !value then write("#{name} = #{vars[name]} -- #{vars[prop][1]}\n")
   else vars[name][0] = JSON.parse(value)
-
-getType = (value)-> (typeof value == 'function' and value.type) || typeof value
 
 # rewrite in Lazp
 processLine = (line)->

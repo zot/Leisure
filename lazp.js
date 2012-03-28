@@ -118,7 +118,7 @@ Represent ASTs as LC cons-lists
     return func;
   };
 
-  setDataType = function setDataType(func, id, dataType) {
+  setDataType = function setDataType(func, dataType, id) {
     if (!id) {
       astsById.push(func);
     } else {
@@ -128,7 +128,7 @@ Represent ASTs as LC cons-lists
     return func;
   };
 
-  setType = function setType(func, id, type) {
+  setType = function setType(func, type, id) {
     if (!id) {
       astsById.push(func);
     } else {

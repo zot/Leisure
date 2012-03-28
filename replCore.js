@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, compileFunc, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, U, compileFunc, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -10,8 +10,9 @@
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  if (!(Lazp != null)) {
-    Lazp = typeof require === "function" ? require('./lazp') : void 0;
+  if (!(Lazp != null) && (typeof require !== "undefined" && require !== null)) {
+    Lazp = require('./lazp');
+    U = require('util');
   }
 
   compileFunc = function compileFunc() {};
@@ -32,6 +33,10 @@
     return nextFunc = n;
   };
 
+  getType = function getType(value) {
+    return (typeof value === 'function' && value.type) || typeof value;
+  };
+
   handlerFunc = function handlerFunc(ast, result, a, c, r) {
     if (a) write("PARSED: " + (Lazp.astPrint(ast)) + "\n");
     if (c) write("GEN: " + ast.src + "\n");
@@ -39,7 +44,7 @@
       if (!result) {
         return write("(No Result)\n");
       } else {
-        return write("" + result + " (" + (getType(result)) + ")\n");
+        return write("" + (U.inspect(result)) + " (" + (getType(result)) + ")\n");
       }
     }
   };
@@ -98,10 +103,6 @@
     } else {
       return vars[name][0] = JSON.parse(value);
     }
-  };
-
-  getType = function getType(value) {
-    return (typeof value === 'function' && value.type) || typeof value;
   };
 
   processLine = function processLine(line) {

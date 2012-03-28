@@ -84,12 +84,12 @@ define = (name, func) ->
   func.lazpName = name
   func
 
-setDataType = (func, id, dataType)->
+setDataType = (func, dataType, id)->
   if !id then astsById.push(func) else func.id = id
   if dataType then func.dataType = dataType
   func
 
-setType = (func, id, type)->
+setType = (func, type, id)->
   if !id then astsById.push(func) else func.id = id
   if type then func.type = type
   func
