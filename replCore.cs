@@ -27,7 +27,7 @@ handlerFunc = (ast, result, a, c, r)->
   if c then write("GEN: #{ast.src}\n")
   if r
     if !result then write("(No Result)\n")
-    else write("#{U.inspect(result)} (#{getType result})\n")
+    else write("#{getType result}: #{U.inspect(result)}\n")
 
 setHandler = (f)-> handlerFunc = f
 

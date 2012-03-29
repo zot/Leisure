@@ -1,9 +1,29 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html)
 # TODO
+* IO monad driver
+* indentation tweak to help with monads
+   * indent line creates a nested expression
+   * a lambda dot at the end of the line continues on the next line, regardless of indentation
+
+>zip  
+>>a  
+  b
+
+> is zip (a) (b)  
+>
+> print "What is your name?" \_.  
+> read \value .  
+> print ["hello ", value, ", would you like a piece of toast?"] \_ .  
+> read \value .  
+> ((match value /\[yY]\[eE]\[sS]/)  
+>>   print "Here, have one!")  
+>>   print "Fine, be that way!")) \_ .
+> print "OK, we're done." end
+
 * reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)
-* pretty printing
-* monads and monad driver
 * string functions
+* Lazp-code for pretty printing
+* monads and monad driver
 * Use Lazp for parser, generator, REPL; compile them and use the JS for them
    * this will help people extend Lazp
 * parser improvements
