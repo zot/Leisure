@@ -38,8 +38,8 @@ _litId = -2
 _lambdaId = -3
 _applyId = -4
 _primId = -5
+commentPat = /^\s*#/
 tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[()#.\\\\]| +/
-
 specials = '[]().*+?|'
 linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/
 order = []
@@ -124,10 +124,10 @@ _apply = global._apply = define 'apply', -> (_func)-> setId ((_arg)-> setId ((_f
 
 _prim = global._prim = define 'prim', -> (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
 
-_is = global._is = define 'is', -> (value)-> (type)-> if value()?.type == type().dataType then _true() else _false()
+_is = global._is = define 'is', -> (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
 
 _eq = global._eq = define 'eq', -> (a)-> (b)->
-  if a() == b() then _true() else _false()
+  if a() == b() then `_true()` else` _false()`
 
 astsByName.eval = setId(_eval())
 astsByName.is = setId(_is())
@@ -308,31 +308,34 @@ prefix = (name, index, expr, res)->
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
 compileLine = (line)->
-  def = line.match linePat
-  expr = (if def then def[3] else line).trim()
-  if expr
-    nm = if def and def[1] then def[1].trim().split(/\s+/) else null
-    ast = null
-    if nm
-      astsByName[nm[0]] = 1
-      if def then defineToken(nm[0], def[2])
-      ast = parse(prefix(nm, 1, expr, []))
-      if nm.length > 1
-        bod = getNthBody(ast, nm.length)
-        if getAstType(bod) == _lambdaId
-          bod.type = nm[0]
-          ast.dataType = nm[0]
-        addAst(ast)
-      nameAst(nm[0], ast)
-      dgen(ast, true, nm[0])
-      if nm.length == 1
-        nameAst(nm[0], ast);
-        ast.src = "#{nameSub(nm[0])} = setId(#{ast.src}, null, '#{ast.lazpName}')"
-      else ast.src = "#{nameSub(nm[0])} = #{ast.src}"
-    else
-      ast = parse(expr)
-      dgen(ast)
-    ast
+  if line.match commentPat then line = ''
+  if true
+    def = line.match linePat
+    expr = (if def then def[3] else line).trim()
+    if expr
+      nm = if def and def[1] then def[1].trim().split(/\s+/) else null
+      ast = null
+      if nm
+        astsByName[nm[0]] = 1
+        if def then defineToken(nm[0], def[2])
+        ast = parse(prefix(nm, 1, expr, []))
+        if nm.length > 1
+          bod = getNthBody(ast, nm.length)
+          if getAstType(bod) == _lambdaId
+            bod.type = nm[0]
+            ast.dataType = nm[0]
+          addAst(ast)
+        nameAst(nm[0], ast)
+        dgen(ast, true, nm[0])
+        if nm.length == 1
+          nameAst(nm[0], ast);
+          ast.src = "#{nameSub(nm[0])} = setId(#{ast.src}, null, '#{ast.lazpName}')"
+        else ast.src = "#{nameSub(nm[0])} = #{ast.src}"
+      else
+        ast = parse(expr)
+        dgen(ast)
+      ast
+  else console.log("comment: #{line}")
 
 evalLine = (line)->
   ast = compileLine line
@@ -354,15 +357,13 @@ evalLine = (line)->
   else []
 
 tokenize = (str)->
-  pos = 0
   toks = []
+  pos = 0
   str = str.replace(/\u03BB/g, '\\')
   while str.length and (pos = str.search(tokenPat)) > -1
     if pos > 0 then toks.push(str.substring(0, pos))
     tok = tokenPat.exec(str.substring pos)[0]
-    if tok.trim()
-      if tok[0] == '#' then break
-      toks.push(tok)
+    if tok.trim() then toks.push(tok)
     str = str.substring pos + tok.length
   if str.length then toks.push(str)
   toks
@@ -431,40 +432,6 @@ tparseLambda = (toks, vars)->
   ast.notFree = v.notFree
   ast
 
-for line in ("""
-  true a b = a
-  false a b = b
-
-# lists
-  cons a b = \f . f a b
-  append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
-
-# difference lists
-  dl = \list . append list
-  dlAppend = \da db list . da (db list)
-  dlList = \dl . dl nil
-# simple IO monad
-  makeIO = \cmds f . f cmds
-  getCmds = \m . m (\cmds . cmds)
-  getAllCmds = \m . dlList (getCmds m)
-  returnCmd = \x f . f x
-  return = \x . makeIO (dl [(returnCmd x)])
-  bindCmd = \action f . f action
-  getBindAction = \cmd . cmd ident
-  bind = \io f . io \cmds . makeIO (dlAppend cmds (dl [(bindCmd f)]))
-  alertCmd = \thing f . f thing
-  alert = \thing . makeIO (dl [(alertCmd thing)])
-  promptCmd = \prompt f . f prompt
-  prompt = \prompt . makeIO (dl [(promptCmd prompt)])
-""".split('\n'))
-#  console.log("line: #{line}")
-  evalLine(line)
-
-# need these because _eq and _is use them
-_true = global._true
-_false = global._false
-_cons = global._cons
-
 root.parse = parse
 root.astPrint = astPrint
 root.gen = dgen
@@ -476,3 +443,4 @@ root.setType = setType
 root.setDataType = setDataType
 root.astEval = (ast)-> evalCompiledAst(dgen(ast))
 root.define = define
+root.getAstType = getAstType

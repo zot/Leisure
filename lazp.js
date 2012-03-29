@@ -30,7 +30,7 @@ Represent ASTs as LC cons-lists
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, compileLine, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, line, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, _apply, _applyId, _cons, _eq, _eval, _false, _i, _is, _lambda, _lambdaId, _len, _lit, _litId, _prim, _primId, _ref, _ref2, _refId, _true,
+  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, _apply, _applyId, _eq, _eval, _is, _lambda, _lambdaId, _lit, _litId, _prim, _primId, _ref, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -50,6 +50,8 @@ Represent ASTs as LC cons-lists
   _applyId = -4;
 
   _primId = -5;
+
+  commentPat = /^\s*#/;
 
   tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[()#.\\\\]| +/;
 
@@ -244,7 +246,7 @@ Represent ASTs as LC cons-lists
         if (a() === b()) {
           return _true();
         } else {
-          return _false();
+          return  _false();
         }
       };
     };
@@ -623,36 +625,41 @@ Represent ASTs as LC cons-lists
 
   compileLine = function compileLine(line) {
     var ast, bod, def, expr, nm;
-    def = line.match(linePat);
-    expr = (def ? def[3] : line).trim();
-    if (expr) {
-      nm = def && def[1] ? def[1].trim().split(/\s+/) : null;
-      ast = null;
-      if (nm) {
-        astsByName[nm[0]] = 1;
-        if (def) defineToken(nm[0], def[2]);
-        ast = parse(prefix(nm, 1, expr, []));
-        if (nm.length > 1) {
-          bod = getNthBody(ast, nm.length);
-          if (getAstType(bod) === _lambdaId) {
-            bod.type = nm[0];
-            ast.dataType = nm[0];
+    if (line.match(commentPat)) line = '';
+    if (true) {
+      def = line.match(linePat);
+      expr = (def ? def[3] : line).trim();
+      if (expr) {
+        nm = def && def[1] ? def[1].trim().split(/\s+/) : null;
+        ast = null;
+        if (nm) {
+          astsByName[nm[0]] = 1;
+          if (def) defineToken(nm[0], def[2]);
+          ast = parse(prefix(nm, 1, expr, []));
+          if (nm.length > 1) {
+            bod = getNthBody(ast, nm.length);
+            if (getAstType(bod) === _lambdaId) {
+              bod.type = nm[0];
+              ast.dataType = nm[0];
+            }
+            addAst(ast);
           }
-          addAst(ast);
-        }
-        nameAst(nm[0], ast);
-        dgen(ast, true, nm[0]);
-        if (nm.length === 1) {
           nameAst(nm[0], ast);
-          ast.src = "" + (nameSub(nm[0])) + " = setId(" + ast.src + ", null, '" + ast.lazpName + "')";
+          dgen(ast, true, nm[0]);
+          if (nm.length === 1) {
+            nameAst(nm[0], ast);
+            ast.src = "" + (nameSub(nm[0])) + " = setId(" + ast.src + ", null, '" + ast.lazpName + "')";
+          } else {
+            ast.src = "" + (nameSub(nm[0])) + " = " + ast.src;
+          }
         } else {
-          ast.src = "" + (nameSub(nm[0])) + " = " + ast.src;
+          ast = parse(expr);
+          dgen(ast);
         }
-      } else {
-        ast = parse(expr);
-        dgen(ast);
+        return ast;
       }
-      return ast;
+    } else {
+      return console.log("comment: " + line);
     }
   };
 
@@ -684,16 +691,13 @@ Represent ASTs as LC cons-lists
 
   tokenize = function tokenize(str) {
     var pos, tok, toks;
-    pos = 0;
     toks = [];
+    pos = 0;
     str = str.replace(/\u03BB/g, '\\');
     while (str.length && (pos = str.search(tokenPat)) > -1) {
       if (pos > 0) toks.push(str.substring(0, pos));
       tok = tokenPat.exec(str.substring(pos))[0];
-      if (tok.trim()) {
-        if (tok[0] === '#') break;
-        toks.push(tok);
-      }
+      if (tok.trim()) toks.push(tok);
       str = str.substring(pos + tok.length);
     }
     if (str.length) toks.push(str);
@@ -792,18 +796,6 @@ Represent ASTs as LC cons-lists
     return ast;
   };
 
-  _ref2 = "true a b = a\nfalse a b = b\n\n# lists\ncons a b = \f . f a b\nappend = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2\n\n# difference lists\ndl = \list . append list\ndlAppend = \da db list . da (db list)\ndlList = \dl . dl nil\n# simple IO monad\nmakeIO = \cmds f . f cmds\ngetCmds = \m . m (\cmds . cmds)\ngetAllCmds = \m . dlList (getCmds m)\nreturnCmd = \x f . f x\nreturn = \x . makeIO (dl [(returnCmd x)])\nbindCmd = \action f . f action\ngetBindAction = \cmd . cmd ident\nbind = \io f . io \cmds . makeIO (dlAppend cmds (dl [(bindCmd f)]))\nalertCmd = \thing f . f thing\nalert = \thing . makeIO (dl [(alertCmd thing)])\npromptCmd = \prompt f . f prompt\nprompt = \prompt . makeIO (dl [(promptCmd prompt)])".split('\n');
-  for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-    line = _ref2[_i];
-    evalLine(line);
-  }
-
-  _true = global._true;
-
-  _false = global._false;
-
-  _cons = global._cons;
-
   root.parse = parse;
 
   root.astPrint = astPrint;
@@ -827,5 +819,7 @@ Represent ASTs as LC cons-lists
   };
 
   root.define = define;
+
+  root.getAstType = getAstType;
 
 }).call(this);

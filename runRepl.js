@@ -1,27 +1,36 @@
 (function() {
-  var R, i, interactive, start, _ref, _ref2;
+  var R, action, i, importFile, next, pos, _ref, _ref2;
 
   R = require('./repl');
 
-  if (process.argv[2] === '-h') {
-    console.log("Usage: " + process.argv[0] + " [[-c | -i] file...]");
-  } else if (process.argv[2] === '-c') {
-    for (i = 3, _ref = process.argv.length; 3 <= _ref ? i < _ref : i > _ref; 3 <= _ref ? i++ : i--) {
-      R.compile(process.argv[i]);
+  importFile = function importFile(file) {
+    R.compile(file);
+    console.log("require('./" + file + "')");
+    return require("./" + file);
+  };
+
+  action = importFile;
+
+  next = R.repl;
+
+  for (i = 2, _ref = process.argv.length; 2 <= _ref ? i < _ref : i > _ref; 2 <= _ref ? i++ : i--) {
+    pos = i;
+    if (process.argv[i] === '-h') {
+      console.log("Usage: " + process.argv[0] + " [[-c | -i] file...]");
+    } else if (process.argv[i] === '-c') {
+      action = R.compile;
+      next = function next() {};
+    } else if (process.argv[i] === '-q') {
+      R.quiet = true;
+    } else {
+      break;
     }
-  } else if (process.argv.length > 2) {
-    start = 2;
-    if (process.argv[2] === '-i') {
-      interactive = true;
-      start = 3;
-    }
-    for (i = start, _ref2 = process.argv.length; start <= _ref2 ? i < _ref2 : i > _ref2; start <= _ref2 ? i++ : i--) {
-      R.compile(process.argv[i]);
-      require("./" + process.argv[i]);
-    }
-    if (interactive) R.repl();
-  } else {
-    R.repl();
   }
+
+  for (i = pos, _ref2 = process.argv.length; pos <= _ref2 ? i < _ref2 : i > _ref2; pos <= _ref2 ? i++ : i--) {
+    action(process.argv[i]);
+  }
+
+  next();
 
 }).call(this);

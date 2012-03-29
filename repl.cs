@@ -5,6 +5,12 @@ Core = require('./replCore')
 FS = require('fs')
 Path = require('path')
 
+#require('./std')
+#console.log("cons: #{`_cons`}")
+
+root = exports ? this
+root.quiet = false
+
 vars = {
   c: [false, 'show generated code'],
   a: [false, 'show parsed AST'],
@@ -51,7 +57,7 @@ compile = (file)->
     stream = FS.createReadStream(file)
     stream.on('data', (data)-> contents += data)
     stream.on('end', ()->
-      generateCode(file, contents, true)
+      generateCode(file, contents, !root.quiet)
       Core.next())
     stream.on('error', (ex)->
       console.log("Exception reading file: ", ex.stack)
@@ -60,13 +66,14 @@ compile = (file)->
 
 generateCode = (file, contents, loud)->
   if loud then console.log("Compiling #{file}:\n")
-  out = 'L = require("./lazp")\nsetId = L.setId\nsetType = L.setType\nsetDataType = L.setDataType\ndefine = L.define'
+  out = 'L = require("./lazp")\nsetId = L.setId\nsetType = L.setType\nsetDataType = L.setDataType\ndefine = L.define\n'
   for line, i in contents.split('\n')
     if line
       ast = L.compileLine line
-      ast.src = "//AST: #{L.astPrint(ast)}\n#{ast.src}"
-      src = if ast.lazpName then ast.src else "console.log(String(#{ast.src}))"
-      out += "#{src}\n"
+      if ast
+        ast.src = "//AST: #{L.astPrint(ast)}\n#{ast.src}"
+        src = if ast.lazpName then ast.src else "console.log(String(#{ast.src}))"
+        out += "#{src}\n"
   stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
   stream.end(out, 'utf8')
 
@@ -74,7 +81,6 @@ Core.setHelp help
 Core.setCompiler compile
 Core.setWriter (str)-> process.stdout.write(str)
 
-root = exports ? this
 root.print = print
 root.repl = repl
 root.compile = compile

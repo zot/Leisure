@@ -1,17 +1,25 @@
 R = require('./repl')
 
-if process.argv[2] == '-h'
-  console.log("Usage: #{process.argv[0]} [[-c | -i] file...]")
-else if process.argv[2] == '-c'
-  for i in [3...process.argv.length]
-    R.compile process.argv[i]
-else if process.argv.length > 2
-  start = 2
-  if process.argv[2] == '-i'
-    interactive = true
-    start = 3
-  for i in [start...process.argv.length]
-    R.compile process.argv[i]
-    require("./#{process.argv[i]}")
-  if interactive then R.repl()
-else R.repl()
+importFile = (file) ->
+  R.compile file
+  console.log("require('./#{file}')")
+  require("./#{file}")
+
+action = importFile
+next = R.repl
+
+for i in [2...process.argv.length]
+  pos = i
+  if process.argv[i] == '-h'
+    console.log("Usage: #{process.argv[0]} [[-c | -i] file...]")
+  else if process.argv[i] == '-c'
+    action = R.compile
+    next = ->
+  else if process.argv[i] == '-q' then R.quiet = true
+  else break
+
+
+for i in [pos...process.argv.length]
+  action(process.argv[i])
+
+next()

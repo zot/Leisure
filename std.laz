@@ -1,0 +1,26 @@
+# booleans
+true a b = a
+false a b = b
+
+# lists
+cons a b = \f . f a b
+append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
+
+# difference lists
+dl = \list . append list
+dlAppend = \da db list . da (db list)
+dlList = \dl . dl nil
+
+# simple IO monad
+makeIO = \cmds f . f cmds
+getCmds = \m . m (\cmds . cmds)
+getAllCmds = \m . dlList (getCmds m)
+returnCmd = \x f . f x
+return = \x . makeIO (dl [(returnCmd x)])
+bindCmd = \action f . f action
+getBindAction = \cmd . cmd ident
+bind = \io f . io \cmds . makeIO (dlAppend cmds (dl [(bindCmd f)]))
+alertCmd = \thing f . f thing
+alert = \thing . makeIO (dl [(alertCmd thing)])
+promptCmd = \prompt f . f prompt
+prompt = \prompt . makeIO (dl [(promptCmd prompt)])
