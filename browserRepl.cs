@@ -18,7 +18,11 @@ init = (input, output, defs)->
   ReplCore.help()
 
 markupDef = (line)->
-  match = line.match /^[^=]*(?=\s*=)/
-  "<b>#{match[0]}</b>#{line.substring(match[0].length)}"
+  if (match = line.match /^[^=]*(?=\s*=)/) then "<b>#{match[0]}</b>#{line.substring(match[0].length)}"
+  else line
+
+markupLines = (lines)-> lines.split('\n').map(markupDef).join('<br>')
 
 root.init = init
+root.markupDef = markupDef
+root.markupLines = markupLines

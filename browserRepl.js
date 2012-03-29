@@ -1,5 +1,5 @@
 (function() {
-  var init, lastLine, markupDef, root;
+  var init, lastLine, markupDef, markupLines, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -35,10 +35,21 @@
 
   markupDef = function markupDef(line) {
     var match;
-    match = line.match(/^[^=]*(?=\s*=)/);
-    return "<b>" + match[0] + "</b>" + (line.substring(match[0].length));
+    if ((match = line.match(/^[^=]*(?=\s*=)/))) {
+      return "<b>" + match[0] + "</b>" + (line.substring(match[0].length));
+    } else {
+      return line;
+    }
+  };
+
+  markupLines = function markupLines(lines) {
+    return lines.split('\n').map(markupDef).join('<br>');
   };
 
   root.init = init;
+
+  root.markupDef = markupDef;
+
+  root.markupLines = markupLines;
 
 }).call(this);
