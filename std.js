@@ -1,8 +1,8 @@
-L = require("./lazp")
-setId = L.setId
-setType = L.setType
-setDataType = L.setDataType
-define = L.define
+if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")}
+setId = Lazp.setId
+setType = Lazp.setType
+setDataType = Lazp.setDataType
+define = Lazp.define
 //AST: lambda a . lambda b . ref a
 _true = (function(){
   var subfunc0 = setId(function(_a){return setId(function(_b){return _a()})})

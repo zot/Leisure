@@ -501,13 +501,13 @@ misrepresented as being the original software.
   };
 
   gen = function gen(ast, code, lits, vars, deref) {
-    var arg, argCode, args, bodyCode, func, funcCode, src, v, val, _ref2, _ref3, _ref4;
+    var arg, argCode, args, bodyCode, func, funcCode, src, v, val, _ref2, _ref3, _ref4, _ref5;
     addAst(ast);
     switch (getAstType(ast)) {
       case _refId:
         val = getRefVar(ast);
         if (val.lambda) throw new Error("attempt to use lambda as a variable");
-        if (!vars.contains(val) && !astsByName[val]) {
+        if (!vars.contains(val) && !astsByName[val] && !(((_ref2 = global[nameSub(val)]) != null ? _ref2.lazpName : void 0) === val)) {
           throw new Error("unbound variable, '" + val + "' -- use lit instead");
         }
         return code.copyWith(nameSub(val)).reffedValue(deref);
@@ -518,7 +518,7 @@ misrepresented as being the original software.
       case _lambdaId:
         v = getLambdaVar(ast);
         bodyCode = gen(getLambdaBody(ast), code.resetMemo(), lits, new Cons(v, vars), true);
-        return bodyCode.copyWith("" + (ast.type ? 'setType' : ast.dataType ? 'setDataType' : 'setId') + "(function(" + (nameSub(v)) + "){return " + bodyCode.main + "}" + (((_ref2 = (_ref3 = ast.type) != null ? _ref3 : ast.dataType) != null ? _ref2 : false) ? ', "' + ((_ref4 = ast.type) != null ? _ref4 : ast.dataType) + '"' : '') + ")").useSubfunc(!ast.notFree).memo(deref);
+        return bodyCode.copyWith("" + (ast.type ? 'setType' : ast.dataType ? 'setDataType' : 'setId') + "(function(" + (nameSub(v)) + "){return " + bodyCode.main + "}" + (((_ref3 = (_ref4 = ast.type) != null ? _ref4 : ast.dataType) != null ? _ref3 : false) ? ', "' + ((_ref5 = ast.type) != null ? _ref5 : ast.dataType) + '"' : '') + ")").useSubfunc(!ast.notFree).memo(deref);
       case _applyId:
         func = getApplyFunc(ast);
         arg = getApplyArg(ast);
@@ -527,11 +527,11 @@ misrepresented as being the original software.
         return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").unreffedValue(deref);
       case _primId:
         args = (function() {
-          var _i, _len, _ref5, _results;
-          _ref5 = getPrimArgs(ast);
+          var _i, _len, _ref6, _results;
+          _ref6 = getPrimArgs(ast);
           _results = [];
-          for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-            arg = _ref5[_i];
+          for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+            arg = _ref6[_i];
             _results.push(code = gen(arg, code, lits, vars, true));
           }
           return _results;
