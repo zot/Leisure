@@ -15,7 +15,7 @@
       }
       function getStdDefs() {
         jQuery.get('std.laz', null, function(data){
-          document.getElementById(defs').innerHTML += Repl.markupLines(data) + "<br>"
+          document.getElementById('defs').innerHTML += Repl.markupLines(data) + "<br>"
         })
       }
     </script>
