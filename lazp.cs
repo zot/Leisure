@@ -22,12 +22,6 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-###
-High level representation of Lambda Calculus AST
-
-Represent ASTs as LC cons-lists
-###
-
 if window? and (!global? or global == window)
   window.global = window
   window.Lazp = root = {}
@@ -238,7 +232,7 @@ gen = (ast, code, lits, vars, deref)->
     when _refId
       val = getRefVar ast
       if val.lambda then throw new Error("attempt to use lambda as a variable")
-      if !vars.contains(val) and !astsByName[val] then throw new Error("unbound variable, '" + val + "' -- use lit instead")
+      if !vars.contains(val) and !astsByName[val] and !(global[nameSub(val)]?.lazpName == val) then throw new Error("unbound variable, '" + val + "' -- use lit instead")
       code.copyWith(nameSub val).reffedValue(deref)
     when _litId
       val = getLitVal ast
