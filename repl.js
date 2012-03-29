@@ -14,6 +14,10 @@
 
   Path = require('path');
 
+  root = typeof exports !== "undefined" && exports !== null ? exports : this;
+
+  root.quiet = false;
+
   vars = {
     c: [false, 'show generated code'],
     a: [false, 'show parsed AST'],
@@ -74,7 +78,7 @@
         return contents += data;
       });
       stream.on('end', function() {
-        generateCode(file, contents, true);
+        generateCode(file, contents, !root.quiet);
         return Core.next();
       });
       return stream.on('error', function(ex) {
@@ -87,15 +91,17 @@
   generateCode = function generateCode(file, contents, loud) {
     var ast, i, line, out, src, stream, _len, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = 'L = require("./lazp")\nsetId = L.setId\nsetType = L.setType\nsetDataType = L.setDataType\ndefine = L.define';
+    out = 'L = require("./lazp")\nsetId = L.setId\nsetType = L.setType\nsetDataType = L.setDataType\ndefine = L.define\n';
     _ref = contents.split('\n');
     for (i = 0, _len = _ref.length; i < _len; i++) {
       line = _ref[i];
       if (line) {
         ast = L.compileLine(line);
-        ast.src = "//AST: " + (L.astPrint(ast)) + "\n" + ast.src;
-        src = ast.lazpName ? ast.src : "console.log(String(" + ast.src + "))";
-        out += "" + src + "\n";
+        if (ast) {
+          ast.src = "//AST: " + (L.astPrint(ast)) + "\n" + ast.src;
+          src = ast.lazpName ? ast.src : "console.log(String(" + ast.src + "))";
+          out += "" + src + "\n";
+        }
       }
     }
     stream = FS.createWriteStream("" + (Path.basename(file, '.laz')) + ".js");
@@ -109,8 +115,6 @@
   Core.setWriter(function(str) {
     return process.stdout.write(str);
   });
-
-  root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
   root.print = print;
 

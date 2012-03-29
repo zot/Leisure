@@ -44,7 +44,7 @@
       if (!result) {
         return write("(No Result)\n");
       } else {
-        return write("" + (U.inspect(result)) + " (" + (getType(result)) + ")\n");
+        return write("" + (getType(result)) + ": " + (U.inspect(result)) + "\n");
       }
     }
   };
