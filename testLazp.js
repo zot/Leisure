@@ -53,15 +53,15 @@ Tests for Lazp
   });
 
   run('test3', function() {
-    return assertEval("eval (_apply (_lambda x (_ref x)) (_lit hello))", 'hello');
+    return assertEval("eval (apply (lambda x (ref x)) (lit hello))", 'hello');
   });
 
   run('test4', function() {
-    return assertEval("(_eq cons cons) yes no", 'yes');
+    return assertEval("(eq cons cons) yes no", 'yes');
   });
 
   run('test5', function() {
-    return assertEval("(_eq cons true) yes no", 'no');
+    return assertEval("(eq cons true) yes no", 'no');
   });
 
   run('test6', function() {
@@ -76,16 +76,20 @@ Tests for Lazp
     return assertEval("head (cons 1 2)", '1');
   });
 
-  run('test8', function() {
+  run('test9', function() {
     return assertEval("tail (cons 1 2)", '2');
   });
 
-  run('test8', function() {
+  run('test10', function() {
     return assertEval("last (cons a nil)", 'a');
   });
 
-  run('test8', function() {
+  run('test11', function() {
     return assertEval("last (cons a (cons b nil))", 'b');
+  });
+
+  run('test12', function() {
+    return assertEval("(is (cons a b) cons) yes no", 'yes');
   });
 
   console.log('\nDone');

@@ -47,15 +47,16 @@ last l = l (\\h t D . null t h (last t)) nil
 
 run 'test1', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
 run 'test2', -> assertEval("(\\x . x) hello", 'hello')
-run 'test3', -> assertEval("eval (_apply (_lambda x (_ref x)) (_lit hello))", 'hello')
-run 'test4', -> assertEval("(_eq cons cons) yes no", 'yes')
-run 'test5', -> assertEval("(_eq cons true) yes no", 'no')
+run 'test3', -> assertEval("eval (apply (lambda x (ref x)) (lit hello))", 'hello')
+run 'test4', -> assertEval("(eq cons cons) yes no", 'yes')
+run 'test5', -> assertEval("(eq cons true) yes no", 'no')
 run 'test6', -> LZ.astEval(LZ.gen(LZ.parse("cons 1 2")))
 run 'test7', -> LZ.astEval(LZ.gen(LZ.parse("head (cons 1 2)")))
 run 'test8', -> assertEval("head (cons 1 2)", '1')
-run 'test8', -> assertEval("tail (cons 1 2)", '2')
-run 'test8', -> assertEval("last (cons a nil)", 'a')
-run 'test8', -> assertEval("last (cons a (cons b nil))", 'b')
+run 'test9', -> assertEval("tail (cons 1 2)", '2')
+run 'test10', -> assertEval("last (cons a nil)", 'a')
+run 'test11', -> assertEval("last (cons a (cons b nil))", 'b')
+run 'test12', -> assertEval("(is (cons a b) cons) yes no", 'yes')
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

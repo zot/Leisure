@@ -38,7 +38,8 @@ _litId = -2
 _lambdaId = -3
 _applyId = -4
 _primId = -5
-tokenPat = null
+tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[()#.\\\\]| +/
+
 specials = '[]().*+?|'
 linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/
 order = []
@@ -113,37 +114,29 @@ evalCompiledAst = (ast)-> if ast.lits.length then eval("(function(__lits){\nretu
 
 _eval = define 'eval', -> (ast)-> evalCompiledAst(dgen(ast()))
 
-__lit = define '_lit', -> (_x)->setId ((_f)-> _f()(_x)), _litId
+_lit = global._lit = define 'lit', -> (_x)->setId ((_f)-> _f()(_x)), _litId
 
-__ref = define '_ref', -> (_x)->setId ((_f)-> _f()(_x)), _refId
+_ref = global._ref = define 'ref', -> (_x)->setId ((_f)-> _f()(_x)), _refId
 
-__lambda = define '_lambda', -> (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
+_lambda = global._lambda = define 'lambda', -> (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
 
-__apply = define '_apply', -> (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
+_apply = global._apply = define 'apply', -> (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
 
-__prim = define '_prim', -> (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
+_prim = global._prim = define 'prim', -> (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
 
-f_true = (a)-> (b)-> a()
-_true = define 'true', -> f_true
+_is = global._is = define 'is', -> (value)-> (type)-> if value()?.type == type().dataType then _true() else _false()
 
-f_false = (a)-> (b)-> b()
-_false = -> define 'false', f_false
-
-__is = define '_is', -> (value)-> (type)-> if value()?.type == type().dataType then _true() else _false()
-
-__eq = define '_eq', -> (a)-> (b)->
+_eq = global._eq = define 'eq', -> (a)-> (b)->
   if a() == b() then _true() else _false()
 
 astsByName.eval = setId(_eval())
-astsByName.true = setId(_true())
-astsByName.false = setId(_false())
-astsByName._is = setId(__is())
-astsByName._eq = setId(__eq())
-lit = astsByName._lit = setId(__lit())
-ref = astsByName._ref = setId(__ref())
-lambda = astsByName._lambda = setId(__lambda())
-apply = astsByName._apply = setId(__apply())
-prim = astsByName._prim = setId(__prim())
+astsByName.is = setId(_is())
+astsByName.eq = setId(_eq())
+lit = astsByName.lit = setId(_lit())
+ref = astsByName.ref = setId(_ref())
+lambda = astsByName.lambda = setId(_lambda())
+apply = astsByName.apply = setId(_apply())
+prim = astsByName.prim = setId(_prim())
 getAstType = (f) -> f.id ? f.lambda?.id
 isPrim = (f)-> getAstType(f) == _primId
 first = ->(a)-> a
@@ -283,9 +276,22 @@ nameSub = (name)->
 defineToken = (name, def)->
   if def != '='
     tokens[name] = 1
-    tokenPat = null
     if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
     else if (def[1] == ')') then groupCloses[name] = 1
+    types = []
+    types.push(i) for i of tokens
+    # sort them by length, longest first
+    types.sort (a, b)-> b.length - a.length
+    for i in [0...types.length]
+      s = types[i]
+      o = ''
+      for p in [0...s.length]
+        if specials.indexOf(s[p]) > -1 then o += '\\'
+        o += s[p]
+      types[i] = o
+    types.push '[()#.\\\\]| +'
+    tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'))
+
 
 createDefinition = (name, ast, index)->
   if index >= name.length then ast
@@ -347,37 +353,15 @@ evalLine = (line)->
       [ast, result]
   else []
 
-addToken = (tok, group)->
-  pat = ''
-  tokens[tok] = group
-  tokenPat = null
-
-createTokenPat = ->
-  if !tokenPat
-    types = []
-    types.push(i) for i of tokens
-    # sort them by length, longest first
-    types.sort (a, b)-> b.length - a.length
-    for i in [0...types.length]
-      s = types[i]
-      o = ''
-      for p in [0...s.length]
-        if specials.indexOf(s[p]) > -1 then o += '\\'
-        o += s[p]
-      types[i] = o
-    types.push '((#define|#strict|#lazy)(?=[ \t]))|[()#.\\\\]| +'
-    tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'))
-
 tokenize = (str)->
   pos = 0
   toks = []
   str = str.replace(/\u03BB/g, '\\')
-  createTokenPat()
   while str.length and (pos = str.search(tokenPat)) > -1
     if pos > 0 then toks.push(str.substring(0, pos))
     tok = tokenPat.exec(str.substring pos)[0]
     if tok.trim()
-      if tok[0] == '#' && !tok.match(/^#(define|strict|lazy)/) then break
+      if tok[0] == '#' then break
       toks.push(tok)
     str = str.substring pos + tok.length
   if str.length then toks.push(str)
@@ -447,6 +431,40 @@ tparseLambda = (toks, vars)->
   ast.notFree = v.notFree
   ast
 
+for line in ("""
+  true a b = a
+  false a b = b
+
+# lists
+  cons a b = \f . f a b
+  append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
+
+# difference lists
+  dl = \list . append list
+  dlAppend = \da db list . da (db list)
+  dlList = \dl . dl nil
+# simple IO monad
+  makeIO = \cmds f . f cmds
+  getCmds = \m . m (\cmds . cmds)
+  getAllCmds = \m . dlList (getCmds m)
+  returnCmd = \x f . f x
+  return = \x . makeIO (dl [(returnCmd x)])
+  bindCmd = \action f . f action
+  getBindAction = \cmd . cmd ident
+  bind = \io f . io \cmds . makeIO (dlAppend cmds (dl [(bindCmd f)]))
+  alertCmd = \thing f . f thing
+  alert = \thing . makeIO (dl [(alertCmd thing)])
+  promptCmd = \prompt f . f prompt
+  prompt = \prompt . makeIO (dl [(promptCmd prompt)])
+""".split('\n'))
+#  console.log("line: #{line}")
+  evalLine(line)
+
+# need these because _eq and _is use them
+_true = global._true
+_false = global._false
+_cons = global._cons
+
 root.parse = parse
 root.astPrint = astPrint
 root.gen = dgen
@@ -458,5 +476,3 @@ root.setType = setType
 root.setDataType = setDataType
 root.astEval = (ast)-> evalCompiledAst(dgen(ast))
 root.define = define
-global.__is = __is
-global.__eq = __eq
