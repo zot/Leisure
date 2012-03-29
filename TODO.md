@@ -1,5 +1,6 @@
-[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html)
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* change Standard Functions link in browser repl to paste them into the defs pane
 * IO monad driver
 * indentation tweak to help with monads
    * indent line creates a nested expression

@@ -66,7 +66,7 @@ compile = (file)->
 
 generateCode = (file, contents, loud)->
   if loud then console.log("Compiling #{file}:\n")
-  out = 'L = require("./lazp")\nsetId = L.setId\nsetType = L.setType\nsetDataType = L.setDataType\ndefine = L.define\n'
+  out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")}\nsetId = Lazp.setId\nsetType = Lazp.setType\nsetDataType = Lazp.setDataType\ndefine = Lazp.define\n'
   for line, i in contents.split('\n')
     if line
       ast = L.compileLine line

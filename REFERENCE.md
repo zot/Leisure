@@ -1,4 +1,4 @@
-[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html)
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 ## Syntax
 Lambda syntax is very similar to Church's; Here's the identity function, **𝛌x.x**. For the lambda character, you can either use unicode character 955 (u3BB in JavaScript, &955; in HTML) or you can use \, so **\x.x** works just as well.
 

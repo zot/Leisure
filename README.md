@@ -1,4 +1,4 @@
-[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html)
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # Lazp: An untyped, lazy Lambda Calculus with Metaprogramming and Primitives
 
 The goal, here is to provide a useable untyped, lazy, lambda calculus with metaprogramming for people's use and experimentation.
