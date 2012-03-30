@@ -66,14 +66,14 @@ compile = (file)->
 
 generateCode = (file, contents, loud)->
   if loud then console.log("Compiling #{file}:\n")
-  out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")}\nsetId = Lazp.setId\nsetType = Lazp.setType\nsetDataType = Lazp.setDataType\ndefine = Lazp.define\n'
+  out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")};\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\n'
   for line, i in contents.split('\n')
     if line
       ast = L.compileLine line
       if ast
         ast.src = "//AST: #{L.astPrint(ast)}\n#{ast.src}"
         src = if ast.lazpName then ast.src else "console.log(String(#{ast.src}))"
-        out += "#{src}\n"
+        out += "#{src};\n"
   stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
   stream.end(out, 'utf8')
 

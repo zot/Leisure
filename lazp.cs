@@ -27,6 +27,8 @@ if window? and (!global? or global == window)
   window.Lazp = root = {}
 else root = exports ? this
 
+root.funcs = {}
+
 _refId = -1
 _litId = -2
 _lambdaId = -3
@@ -74,8 +76,19 @@ tokens = {}
 groupOpens = {'(': ')'}
 groupCloses = {')': 1}
 
+nameSub = (name)->
+  s = '_'
+  for i in [0...name.length]
+    code = charCodes[name[i]]
+    s += code ? name[i]
+  s
+
 # leave a poopie so we can identify whether functions defined in other files are Lazp funcs
 define = (name, func) ->
+  nm = nameSub(name)
+  global[nm] = -> func
+  root.funcs[nm] = func
+  astsByName[name] = func
   func.lazpName = name
   func
 
@@ -106,36 +119,31 @@ addAst = (ast)->
 
 evalCompiledAst = (ast)-> if ast.lits.length then eval("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else eval(ast.src)
 
-_eval = define 'eval', -> (ast)-> evalCompiledAst(dgen(ast()))
+define 'eval', (ast)-> evalCompiledAst(dgen(ast()))
 
-_lit = global._lit = define 'lit', -> (_x)->setId ((_f)-> _f()(_x)), _litId
+define 'lit', (_x)->setId ((_f)-> _f()(_x)), _litId
 
-_ref = global._ref = define 'ref', -> (_x)->setId ((_f)-> _f()(_x)), _refId
+define 'ref', (_x)->setId ((_f)-> _f()(_x)), _refId
 
-_lambda = global._lambda = define 'lambda', -> (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
+define 'lambda', (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
 
-_apply = global._apply = define 'apply', -> (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
+define 'apply', (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
 
-_prim = global._prim = define 'prim', -> (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
+define 'prim', (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
 
-_is = global._is = define 'is', -> (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
+define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
 
-_eq = global._eq = define 'eq', -> (a)-> (b)->
-  if a() == b() then `_true()` else` _false()`
+define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
 
-_withType = global._type = define 'withType', -> (value)->(t)->(f)->
+define 'withType', (value)->(t)->(f)->
   if type = value()?.type then t()(->type)
   else f()
 
-astsByName.eval = setId(_eval())
-astsByName.is = setId(_is())
-astsByName.eq = setId(_eq())
-astsByName.withType = setId(_withType())
-lit = astsByName.lit = setId(_lit())
-ref = astsByName.ref = setId(_ref())
-lambda = astsByName.lambda = setId(_lambda())
-apply = astsByName.apply = setId(_apply())
-prim = astsByName.prim = setId(_prim())
+lit = setId(root.funcs._lit)
+ref = setId(root.funcs._ref)
+lambda = setId(root.funcs._lambda)
+apply = setId(root.funcs._apply)
+prim = setId(root.funcs._prim)
 getAstType = (f) -> f.id ? f.lambda?.id
 isPrim = (f)-> getAstType(f) == _primId
 first = ->(a)-> a
@@ -231,6 +239,10 @@ dgen = (ast, lazy, name)->
   else ast.src = code.main
   ast
 
+wrap = (ast, src)->
+  if !ast.type? and !ast.dataType then src
+  else "#{if ast.type then 'setType' else 'setDataType'}(#{src}, '#{ast.type ? ast.dataType}')"
+
 gen = (ast, code, lits, vars, deref)->
   addAst ast
   switch getAstType ast
@@ -249,7 +261,7 @@ gen = (ast, code, lits, vars, deref)->
     when _lambdaId
       v = getLambdaVar ast
       bodyCode = gen (getLambdaBody ast), code.resetMemo(), lits, new Cons(v, vars), true
-      bodyCode.copyWith("#{if ast.type then 'setType' else if ast.dataType then 'setDataType' else 'setId'}(function(#{nameSub(v)}){return #{bodyCode.main}}#{if ast.type ? ast.dataType ? false then ', "' + (ast.type ? ast.dataType) + '"' else ''})").useSubfunc(!ast.notFree).memo(deref)
+      bodyCode.copyWith(wrap(ast, "function(#{nameSub(v)}){return #{bodyCode.main}}")).useSubfunc(!ast.notFree).memo(deref)
     when _applyId
       func = getApplyFunc ast
       arg = getApplyArg ast
@@ -264,13 +276,6 @@ gen = (ast, code, lits, vars, deref)->
     else throw new Error("Unknown object type in gen: " + ast)
 
 laz = (val)-> -> val
-
-nameSub = (name)->
-  s = '_'
-  for i in [0...name.length]
-    code = charCodes[name[i]]
-    s += code ? name[i]
-  s
 
 defineToken = (name, def)->
   if def != '='
@@ -326,11 +331,8 @@ compileLine = (line)->
           bod.type = nm[0]
           ast.dataType = nm[0]
         nameAst(nm[0], ast)
-        dgen(ast, true, nm[0])
-        if nm.length == 1
-          nameAst(nm[0], ast);
-          ast.src = "#{nameSub(nm[0])} = setId(#{ast.src}, null, '#{ast.lazpName}')"
-        else ast.src = "#{nameSub(nm[0])} = #{ast.src}"
+        dgen(ast, false, nm[0])
+        if nm.length == 1 then nameAst(nm[0], ast)
       else
         ast = parse(expr)
         dgen(ast)

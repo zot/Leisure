@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, _apply, _applyId, _eq, _eval, _is, _lambda, _lambdaId, _lit, _litId, _prim, _primId, _ref, _refId, _withType,
+  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -34,6 +34,8 @@ misrepresented as being the original software.
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
+
+  root.funcs = {};
 
   _refId = -1;
 
@@ -109,7 +111,24 @@ misrepresented as being the original software.
     ')': 1
   };
 
+  nameSub = function nameSub(name) {
+    var code, i, s, _ref;
+    s = '_';
+    for (i = 0, _ref = name.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+      code = charCodes[name[i]];
+      s += code != null ? code : name[i];
+    }
+    return s;
+  };
+
   define = function define(name, func) {
+    var nm;
+    nm = nameSub(name);
+    global[nm] = function() {
+      return func;
+    };
+    root.funcs[nm] = func;
+    astsByName[name] = func;
     func.lazpName = name;
     return func;
   };
@@ -169,121 +188,95 @@ misrepresented as being the original software.
     }
   };
 
-  _eval = define('eval', function() {
-    return function(ast) {
-      return evalCompiledAst(dgen(ast()));
-    };
+  define('eval', function(ast) {
+    return evalCompiledAst(dgen(ast()));
   });
 
-  _lit = global._lit = define('lit', function() {
-    return function(_x) {
+  define('lit', function(_x) {
+    return setId((function(_f) {
+      return _f()(_x);
+    }), _litId);
+  });
+
+  define('ref', function(_x) {
+    return setId((function(_f) {
+      return _f()(_x);
+    }), _refId);
+  });
+
+  define('lambda', function(_v) {
+    return setId((function(_f) {
+      return setId((function(_g) {
+        return _g()(_v)(_f);
+      }), _lambdaId);
+    }), -1001);
+  });
+
+  define('apply', function(_func) {
+    return setId((function(_arg) {
       return setId((function(_f) {
-        return _f()(_x);
-      }), _litId);
-    };
+        return _f()(_func)(_arg);
+      }), _applyId);
+    }), -1002);
   });
 
-  _ref = global._ref = define('ref', function() {
-    return function(_x) {
+  define('prim', function(_arg) {
+    return setId((function(_rest) {
       return setId((function(_f) {
-        return _f()(_x);
-      }), _refId);
+        return _f()(_arg)(_rest);
+      }), _primId);
+    }), -1003);
+  });
+
+  define('is', function(value) {
+    return function(type) {
+      var _ref;
+      if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
+        return _true();
+      } else {
+        return _false();
+      }
     };
   });
 
-  _lambda = global._lambda = define('lambda', function() {
-    return function(_v) {
-      return setId((function(_f) {
-        return setId((function(_g) {
-          return _g()(_v)(_f);
-        }), _lambdaId);
-      }), -1001);
+  define('eq', function(a) {
+    return function(b) {
+      if (a() === b()) {
+        return _true();
+      } else {
+        return  _false();
+      }
     };
   });
 
-  _apply = global._apply = define('apply', function() {
-    return function(_func) {
-      return setId((function(_arg) {
-        return setId((function(_f) {
-          return _f()(_func)(_arg);
-        }), _applyId);
-      }), -1002);
-    };
-  });
-
-  _prim = global._prim = define('prim', function() {
-    return function(_arg) {
-      return setId((function(_rest) {
-        return setId((function(_f) {
-          return _f()(_arg)(_rest);
-        }), _primId);
-      }), -1003);
-    };
-  });
-
-  _is = global._is = define('is', function() {
-    return function(value) {
-      return function(type) {
-        var _ref2;
-        if (((_ref2 = value()) != null ? _ref2.type : void 0) === type().dataType) {
-          return _true();
+  define('withType', function(value) {
+    return function(t) {
+      return function(f) {
+        var type, _ref;
+        if (type = (_ref = value()) != null ? _ref.type : void 0) {
+          return t()(function() {
+            return type;
+          });
         } else {
-          return _false();
+          return f();
         }
       };
     };
   });
 
-  _eq = global._eq = define('eq', function() {
-    return function(a) {
-      return function(b) {
-        if (a() === b()) {
-          return _true();
-        } else {
-          return  _false();
-        }
-      };
-    };
-  });
+  lit = setId(root.funcs._lit);
 
-  _withType = global._type = define('withType', function() {
-    return function(value) {
-      return function(t) {
-        return function(f) {
-          var type, _ref2;
-          if (type = (_ref2 = value()) != null ? _ref2.type : void 0) {
-            return t()(function() {
-              return type;
-            });
-          } else {
-            return f();
-          }
-        };
-      };
-    };
-  });
+  ref = setId(root.funcs._ref);
 
-  astsByName.eval = setId(_eval());
+  lambda = setId(root.funcs._lambda);
 
-  astsByName.is = setId(_is());
+  apply = setId(root.funcs._apply);
 
-  astsByName.eq = setId(_eq());
-
-  astsByName.withType = setId(_withType());
-
-  lit = astsByName.lit = setId(_lit());
-
-  ref = astsByName.ref = setId(_ref());
-
-  lambda = astsByName.lambda = setId(_lambda());
-
-  apply = astsByName.apply = setId(_apply());
-
-  prim = astsByName.prim = setId(_prim());
+  prim = setId(root.funcs._prim);
 
   getAstType = function getAstType(f) {
-    var _ref2, _ref3;
-    return (_ref2 = f.id) != null ? _ref2 : (_ref3 = f.lambda) != null ? _ref3.id : void 0;
+    var _ref, _ref2;
+    return (_ref = f.id) != null ? _ref : (_ref2 = f.lambda) != null ? _ref2.id : void 0;
   };
 
   isPrim = function isPrim(f) {
@@ -435,15 +428,15 @@ misrepresented as being the original software.
   Code = (function() {
 
     function Code(main, subfuncs, fcount, mcount) {
-      var _ref2, _ref3, _ref4, _ref5;
+      var _ref, _ref2, _ref3, _ref4;
       this.main = main;
       this.subfuncs = subfuncs;
       this.fcount = fcount;
       this.mcount = mcount;
-      this.main = (_ref2 = this.main) != null ? _ref2 : '';
-      this.subfuncs = (_ref3 = this.subfuncs) != null ? _ref3 : '';
-      this.fcount = (_ref4 = this.fcount) != null ? _ref4 : 0;
-      this.mcount = (_ref5 = this.mcount) != null ? _ref5 : 0;
+      this.main = (_ref = this.main) != null ? _ref : '';
+      this.subfuncs = (_ref2 = this.subfuncs) != null ? _ref2 : '';
+      this.fcount = (_ref3 = this.fcount) != null ? _ref3 : 0;
+      this.mcount = (_ref4 = this.mcount) != null ? _ref4 : 0;
     }
 
     Code.prototype.copyWith = function copyWith(main, subfuncs, fcount, mcount) {
@@ -485,9 +478,9 @@ misrepresented as being the original software.
     Code.prototype.memoNames = function memoNames() {
       var i;
       return ((function() {
-        var _ref2, _results;
+        var _ref, _results;
         _results = [];
-        for (i = 0, _ref2 = this.mcount; 0 <= _ref2 ? i < _ref2 : i > _ref2; 0 <= _ref2 ? i++ : i--) {
+        for (i = 0, _ref = this.mcount; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
           _results.push("memo" + i);
         }
         return _results;
@@ -519,14 +512,23 @@ misrepresented as being the original software.
     return ast;
   };
 
+  wrap = function wrap(ast, src) {
+    var _ref;
+    if (!(ast.type != null) && !ast.dataType) {
+      return src;
+    } else {
+      return "" + (ast.type ? 'setType' : 'setDataType') + "(" + src + ", '" + ((_ref = ast.type) != null ? _ref : ast.dataType) + "')";
+    }
+  };
+
   gen = function gen(ast, code, lits, vars, deref) {
-    var arg, argCode, args, bodyCode, func, funcCode, src, v, val, _ref2, _ref3, _ref4, _ref5;
+    var arg, argCode, args, bodyCode, func, funcCode, src, v, val, _ref;
     addAst(ast);
     switch (getAstType(ast)) {
       case _refId:
         val = getRefVar(ast);
         if (val.lambda) throw new Error("attempt to use lambda as a variable");
-        if (!vars.contains(val) && !astsByName[val] && !(((_ref2 = global[nameSub(val)]) != null ? _ref2.lazpName : void 0) === val)) {
+        if (!vars.contains(val) && !astsByName[val] && !(((_ref = global[nameSub(val)]) != null ? _ref.lazpName : void 0) === val)) {
           throw new Error("unbound variable, '" + val + "' -- use lit instead");
         }
         return code.copyWith(nameSub(val)).reffedValue(deref);
@@ -537,7 +539,7 @@ misrepresented as being the original software.
       case _lambdaId:
         v = getLambdaVar(ast);
         bodyCode = gen(getLambdaBody(ast), code.resetMemo(), lits, new Cons(v, vars), true);
-        return bodyCode.copyWith("" + (ast.type ? 'setType' : ast.dataType ? 'setDataType' : 'setId') + "(function(" + (nameSub(v)) + "){return " + bodyCode.main + "}" + (((_ref3 = (_ref4 = ast.type) != null ? _ref4 : ast.dataType) != null ? _ref3 : false) ? ', "' + ((_ref5 = ast.type) != null ? _ref5 : ast.dataType) + '"' : '') + ")").useSubfunc(!ast.notFree).memo(deref);
+        return bodyCode.copyWith(wrap(ast, "function(" + (nameSub(v)) + "){return " + bodyCode.main + "}")).useSubfunc(!ast.notFree).memo(deref);
       case _applyId:
         func = getApplyFunc(ast);
         arg = getApplyArg(ast);
@@ -546,11 +548,11 @@ misrepresented as being the original software.
         return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").unreffedValue(deref);
       case _primId:
         args = (function() {
-          var _i, _len, _ref6, _results;
-          _ref6 = getPrimArgs(ast);
+          var _i, _len, _ref2, _results;
+          _ref2 = getPrimArgs(ast);
           _results = [];
-          for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
-            arg = _ref6[_i];
+          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+            arg = _ref2[_i];
             _results.push(code = gen(arg, code, lits, vars, true));
           }
           return _results;
@@ -570,18 +572,8 @@ misrepresented as being the original software.
     };
   };
 
-  nameSub = function nameSub(name) {
-    var code, i, s, _ref2;
-    s = '_';
-    for (i = 0, _ref2 = name.length; 0 <= _ref2 ? i < _ref2 : i > _ref2; 0 <= _ref2 ? i++ : i--) {
-      code = charCodes[name[i]];
-      s += code != null ? code : name[i];
-    }
-    return s;
-  };
-
   defineToken = function defineToken(name, def) {
-    var i, o, p, s, types, _ref2, _ref3;
+    var i, o, p, s, types, _ref, _ref2;
     if (def !== '=') {
       tokens[name] = 1;
       if (def[1] === '(') {
@@ -596,10 +588,10 @@ misrepresented as being the original software.
       types.sort(function(a, b) {
         return b.length - a.length;
       });
-      for (i = 0, _ref2 = types.length; 0 <= _ref2 ? i < _ref2 : i > _ref2; 0 <= _ref2 ? i++ : i--) {
+      for (i = 0, _ref = types.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
         s = types[i];
         o = '';
-        for (p = 0, _ref3 = s.length; 0 <= _ref3 ? p < _ref3 : p > _ref3; 0 <= _ref3 ? p++ : p--) {
+        for (p = 0, _ref2 = s.length; 0 <= _ref2 ? p < _ref2 : p > _ref2; 0 <= _ref2 ? p++ : p--) {
           if (specials.indexOf(s[p]) > -1) o += '\\';
           o += s[p];
         }
@@ -659,13 +651,8 @@ misrepresented as being the original software.
             ast.dataType = nm[0];
           }
           nameAst(nm[0], ast);
-          dgen(ast, true, nm[0]);
-          if (nm.length === 1) {
-            nameAst(nm[0], ast);
-            ast.src = "" + (nameSub(nm[0])) + " = setId(" + ast.src + ", null, '" + ast.lazpName + "')";
-          } else {
-            ast.src = "" + (nameSub(nm[0])) + " = " + ast.src;
-          }
+          dgen(ast, false, nm[0]);
+          if (nm.length === 1) nameAst(nm[0], ast);
         } else {
           ast = parse(expr);
           dgen(ast);
@@ -759,8 +746,8 @@ misrepresented as being the original software.
   };
 
   tparseVariable = function tparseVariable(tok, vars) {
-    var path, v, _i, _len, _ref2;
-    if (((_ref2 = global[nameSub(tok)]) != null ? _ref2.lazpName : void 0) === tok || astsByName[tok]) {
+    var path, v, _i, _len, _ref;
+    if (((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok]) {
       return ref(laz(tok));
     } else {
       path = [];

@@ -1,6 +1,8 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* IO monad driver
+* simple pretty printing
+* IO monad driver; a command can just be a JS function
+* primitive functions
 * indentation tweak to help with monads
    * indent line creates a nested expression
    * a lambda dot at the end of the line continues on the next line, regardless of indentation
