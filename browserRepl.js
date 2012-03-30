@@ -25,10 +25,7 @@
       }
     });
     input.onkeypress = function onkeypress(e) {
-      var code;
-      global.E = e;
-      code = e.charCode || e.keyCode || e.which;
-      if (code === 13) {
+      if ((e.charCode || e.keyCode || e.which) === 13) {
         lastLine = input.value.replace(/\\/g, '\u03BB');
         return ReplCore.processLine(lastLine);
       }
