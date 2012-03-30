@@ -1,17 +1,19 @@
 (function() {
-  var Lazp, U, compileFunc, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, P, U, compileFunc, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.ReplCore = root = {};
     Lazp = window.Lazp;
+    P = window.Pretty;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
   if (!(Lazp != null) && (typeof require !== "undefined" && require !== null)) {
     Lazp = require('./lazp');
+    P = require('./pretty');
     U = require('util');
   }
 
@@ -44,7 +46,7 @@
       if (!result) {
         return write("(No Result)\n");
       } else {
-        return write("" + (getType(result)) + ": " + (U.inspect(result)) + "\n");
+        return write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
       }
     }
   };

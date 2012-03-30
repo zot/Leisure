@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
+  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -127,7 +127,7 @@ misrepresented as being the original software.
     global[nm] = function() {
       return func;
     };
-    root.funcs[nm] = func;
+    root.funcs[name] = func;
     astsByName[name] = func;
     func.lazpName = name;
     return func;
@@ -249,11 +249,15 @@ misrepresented as being the original software.
     };
   });
 
+  getType = function getType(f) {
+    return (f != null ? f.type : void 0) || null;
+  };
+
   define('withType', function(value) {
     return function(t) {
       return function(f) {
-        var type, _ref;
-        if (type = (_ref = value()) != null ? _ref.type : void 0) {
+        var type;
+        if (type = getType(value())) {
           return t()(function() {
             return type;
           });
@@ -264,15 +268,15 @@ misrepresented as being the original software.
     };
   });
 
-  lit = setId(root.funcs._lit);
+  lit = setId(root.funcs.lit);
 
-  ref = setId(root.funcs._ref);
+  ref = setId(root.funcs.ref);
 
-  lambda = setId(root.funcs._lambda);
+  lambda = setId(root.funcs.lambda);
 
-  apply = setId(root.funcs._apply);
+  apply = setId(root.funcs.apply);
 
-  prim = setId(root.funcs._prim);
+  prim = setId(root.funcs.prim);
 
   getAstType = function getAstType(f) {
     var _ref, _ref2;
@@ -822,5 +826,7 @@ misrepresented as being the original software.
   root.define = define;
 
   root.getAstType = getAstType;
+
+  root.getType = getType;
 
 }).call(this);

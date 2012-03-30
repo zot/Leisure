@@ -2,10 +2,12 @@ if window? and (!global? or global == window)
   window.global = window
   window.ReplCore = root = {}
   Lazp = window.Lazp
+  P = window.Pretty
 else root = exports ? this
 
 if !Lazp? and require?
   Lazp = require('./lazp')
+  P = require('./pretty')
   U = require('util')
 
 compileFunc = ->
@@ -27,7 +29,7 @@ handlerFunc = (ast, result, a, c, r)->
   if c then write("GEN: #{ast.src}\n")
   if r
     if !result then write("(No Result)\n")
-    else write("#{getType result}: #{U.inspect(result)}\n")
+    else write("#{getType result}: #{P.print(result)}\n")
 
 setHandler = (f)-> handlerFunc = f
 

@@ -27,10 +27,20 @@ id x = x
 true = \a b . a
 false = \a b . b
 
+# Y combinator
+Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+rec = \f . f (Y f)
+
 # lists
 cons a b = \f . f a b
 nil = \a b . b
 append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
+
+# simple list constructor syntax
+[ =(]= \item c . c \rest . cons item rest
+, =.= \f item c . c \rest . f (cons item rest)
+] =)= \f . f nil
+| =.= \f rest g . f rest
 
 # difference lists
 dl list = append list
@@ -38,15 +48,15 @@ dlAppend da db list = da (db list)
 dlList dl = dl nil
 
 # simple IO monad
-makeIO cmds f = f cmds
+ioMonad cmds = \f . f cmds
 getCmds m = m (\cmds . cmds)
 getAllCmds m = dlList (getCmds m)
 returnCmd x f = f x
-return x = makeIO (dl [(returnCmd x)])
+return x = ioMonad (dl [(returnCmd x)])
 bindCmd action f = f action
 getBindAction cmd = cmd ident
-bind io f = io \cmds . makeIO (dlAppend cmds (dl [(bindCmd f)]))
+bind io f = io \cmds . ioMonad (dlAppend cmds (dl [(bindCmd f)]))
 alertCmd thing f = f thing
-alert thing = makeIO (dl [(alertCmd thing)])
+alert thing = ioMonad (dl [(alertCmd thing)])
 promptCmd pmt f = f pmt
-prompt pmt = makeIO (dl [(promptCmd pmt)])
+prompt pmt = ioMonad (dl [(promptCmd pmt)])

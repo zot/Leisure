@@ -21,7 +21,7 @@
       if (ast.lazpName != null) {
         return defs.innerHTML += "" + (markupDef(lastLine)) + "<br>";
       } else {
-        return output.innerHTML += "" + lastLine + " \u2192\n  " + (ReplCore.getType(result)) + ": " + result + "\n";
+        return output.innerHTML += "" + lastLine + " \u2192\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
       }
     });
     input.onkeypress = function onkeypress(e) {

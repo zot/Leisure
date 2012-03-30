@@ -87,7 +87,7 @@ nameSub = (name)->
 define = (name, func) ->
   nm = nameSub(name)
   global[nm] = -> func
-  root.funcs[nm] = func
+  root.funcs[name] = func
   astsByName[name] = func
   func.lazpName = name
   func
@@ -135,15 +135,17 @@ define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true(
 
 define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
 
+getType = (f)-> f?.type or null
+
 define 'withType', (value)->(t)->(f)->
-  if type = value()?.type then t()(->type)
+  if type = getType(value()) then t()(->type)
   else f()
 
-lit = setId(root.funcs._lit)
-ref = setId(root.funcs._ref)
-lambda = setId(root.funcs._lambda)
-apply = setId(root.funcs._apply)
-prim = setId(root.funcs._prim)
+lit = setId(root.funcs.lit)
+ref = setId(root.funcs.ref)
+lambda = setId(root.funcs.lambda)
+apply = setId(root.funcs.apply)
+prim = setId(root.funcs.prim)
 getAstType = (f) -> f.id ? f.lambda?.id
 isPrim = (f)-> getAstType(f) == _primId
 first = ->(a)-> a
@@ -446,3 +448,4 @@ root.setDataType = setDataType
 root.astEval = (ast)-> evalCompiledAst(dgen(ast))
 root.define = define
 root.getAstType = getAstType
+root.getType = getType
