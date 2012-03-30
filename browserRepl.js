@@ -24,8 +24,11 @@
         return output.innerHTML += "" + lastLine + " \u2192\n  " + (ReplCore.getType(result)) + ": " + result + "\n";
       }
     });
-    input.onkeypress = function onkeypress(evt) {
-      if (evt.charCode === 13) {
+    input.onkeypress = function onkeypress(e) {
+      var code;
+      global.E = e;
+      code = e.charCode || e.keyCode || e.which;
+      if (code === 13) {
         lastLine = input.value.replace(/\\/g, '\u03BB');
         return ReplCore.processLine(lastLine);
       }

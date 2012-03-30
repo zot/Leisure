@@ -11,8 +11,8 @@ init = (input, output, defs)->
   ReplCore.setHandler (ast, result, a, c, r)->
     if ast.lazpName? then defs.innerHTML += "#{markupDef(lastLine)}<br>"
     else output.innerHTML += "#{lastLine} \u2192\n  #{ReplCore.getType result}: #{result}\n"
-  input.onkeypress = (evt)->
-    if evt.charCode == 13
+  input.onkeypress = (e)->
+    if (e.charCode || e.keyCode || e.which) == 13
       lastLine = input.value.replace(/\\/g, '\u03BB')
       ReplCore.processLine(lastLine)
   ReplCore.help()

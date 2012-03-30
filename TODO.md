@@ -1,6 +1,5 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* change Standard Functions link in browser repl to paste them into the defs pane
 * IO monad driver
 * indentation tweak to help with monads
    * indent line creates a nested expression
@@ -33,8 +32,10 @@
       * it could do a pass to get function names, first
 * generator improvements
    * eliminate redundant memo/deref pairs
+* [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* change Standard Functions link in browser repl to paste them into the defs pane
 * separate out constant functions
    * so that
       * \_cons = function(){return setDataType(function(\_a){return setId(function(\_b){return setType(function(\_f){return \_f()(\_a)(\_b)}, 33, 'cons')}, 32)}, 31, 'cons')}
