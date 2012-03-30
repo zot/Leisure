@@ -61,8 +61,6 @@
     }
   };
 
-  root = typeof exports !== "undefined" && exports !== null ? exports : this;
-
   root.print = print;
 
 }).call(this);
