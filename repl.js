@@ -91,7 +91,7 @@
   generateCode = function generateCode(file, contents, loud) {
     var ast, i, line, out, src, stream, _len, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")}\nsetId = Lazp.setId\nsetType = Lazp.setType\nsetDataType = Lazp.setDataType\ndefine = Lazp.define\n';
+    out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")};\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\n';
     _ref = contents.split('\n');
     for (i = 0, _len = _ref.length; i < _len; i++) {
       line = _ref[i];
@@ -100,7 +100,7 @@
         if (ast) {
           ast.src = "//AST: " + (L.astPrint(ast)) + "\n" + ast.src;
           src = ast.lazpName ? ast.src : "console.log(String(" + ast.src + "))";
-          out += "" + src + "\n";
+          out += "" + src + ";\n";
         }
       }
     }
