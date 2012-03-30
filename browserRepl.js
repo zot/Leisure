@@ -1,9 +1,10 @@
 (function() {
-  var init, lastLine, markupDef, markupLines, root;
+  var P, init, lastLine, markupDef, markupLines, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.Repl = root = {};
+    P = window.Pretty;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }

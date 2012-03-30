@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, U, elements, getType, listDo, print, root;
+  var Lazp, U, elements, getType, inspect, listDo, print, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -15,6 +15,10 @@
   }
 
   getType = Lazp.getType;
+
+  inspect = (U != null ? U.inspect : void 0) || function(v) {
+    return v;
+  };
 
   listDo = function listDo(l, f) {
     return l(function() {
@@ -40,7 +44,7 @@
         case 'ioMonad':
           return "IO";
         default:
-          return U.inspect(f);
+          return inspect(f);
       }
     }
   };
