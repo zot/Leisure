@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, _apply, _applyId, _eq, _eval, _is, _lambda, _lambdaId, _lit, _litId, _prim, _primId, _ref, _refId,
+  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, _apply, _applyId, _eq, _eval, _is, _lambda, _lambdaId, _lit, _litId, _prim, _primId, _ref, _refId, _withType,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -246,11 +246,30 @@ misrepresented as being the original software.
     };
   });
 
+  _withType = global._type = define('withType', function() {
+    return function(value) {
+      return function(t) {
+        return function(f) {
+          var type, _ref2;
+          if (type = (_ref2 = value()) != null ? _ref2.type : void 0) {
+            return t()(function() {
+              return type;
+            });
+          } else {
+            return f();
+          }
+        };
+      };
+    };
+  });
+
   astsByName.eval = setId(_eval());
 
   astsByName.is = setId(_is());
 
   astsByName.eq = setId(_eq());
+
+  astsByName.withType = setId(_withType());
 
   lit = astsByName.lit = setId(_lit());
 
@@ -630,13 +649,14 @@ misrepresented as being the original software.
           astsByName[nm[0]] = 1;
           if (def) defineToken(nm[0], def[2]);
           ast = parse(prefix(nm, 1, expr, []));
+          bod = ast;
           if (nm.length > 1) {
             bod = getNthBody(ast, nm.length);
-            if (getAstType(bod) === _lambdaId) {
-              bod.type = nm[0];
-              ast.dataType = nm[0];
-            }
             addAst(ast);
+          }
+          if (getAstType(bod) === _lambdaId) {
+            bod.type = nm[0];
+            ast.dataType = nm[0];
           }
           nameAst(nm[0], ast);
           dgen(ast, true, nm[0]);
