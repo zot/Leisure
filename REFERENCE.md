@@ -7,3 +7,5 @@ Identifiers are space or puctuation separated and you can stack lambda variables
 To name a function, you can use the = sign, like this, **true = 𝛌a b.a**
 
 Like Haskell, Lazp will automatically create a lambda for you if you put arguments in front of the equals sign, like this, **true a b = a**.
+
+Any time a definition returns a lambda, it automatically creates a type with the same name as the definition.  For example, **nil = 𝛌a b.b** creates the type "nil".  You can compare types using the **is** function, for example, to see whether a value **v** is the **nil** function, you can say **is v nil**.

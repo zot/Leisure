@@ -1,26 +1,52 @@
+# primitives
+#
+# eq a b -> true if they are equal or false otherwise
+#
+# withType value (\type . true-case) false-case
+#    if the value has a type, it calls true-case with it
+#    otherwise, return false-case
+# 
+# is value type -> true if the value has type type, false otherwise
+#
+# eval ast -> evaluates ast and returns the result
+#
+# lit value -> a lit AST node, containing value
+#
+# ref var-name -> a ref AST node, containing var-name
+#
+# lambda var-name body-ast -> a lambda AST node, with var-name and the body AST
+#
+# apply func-ast body-ast -> an apply AST node, with func and body ASTs
+#
+# prim arg rest-ast -> a prim AST node, rest-ast should either be a ref or a prim
+#
+
+id x = x
+
 # booleans
-true a b = a
-false a b = b
+true = \a b . a
+false = \a b . b
 
 # lists
 cons a b = \f . f a b
+nil = \a b . b
 append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
 
 # difference lists
-dl = \list . append list
-dlAppend = \da db list . da (db list)
-dlList = \dl . dl nil
+dl list = append list
+dlAppend da db list = da (db list)
+dlList dl = dl nil
 
 # simple IO monad
-makeIO = \cmds f . f cmds
-getCmds = \m . m (\cmds . cmds)
-getAllCmds = \m . dlList (getCmds m)
-returnCmd = \x f . f x
-return = \x . makeIO (dl [(returnCmd x)])
-bindCmd = \action f . f action
-getBindAction = \cmd . cmd ident
-bind = \io f . io \cmds . makeIO (dlAppend cmds (dl [(bindCmd f)]))
-alertCmd = \thing f . f thing
-alert = \thing . makeIO (dl [(alertCmd thing)])
-promptCmd = \prompt f . f prompt
-prompt = \prompt . makeIO (dl [(promptCmd prompt)])
+makeIO cmds f = f cmds
+getCmds m = m (\cmds . cmds)
+getAllCmds m = dlList (getCmds m)
+returnCmd x f = f x
+return x = makeIO (dl [(returnCmd x)])
+bindCmd action f = f action
+getBindAction cmd = cmd ident
+bind io f = io \cmds . makeIO (dlAppend cmds (dl [(bindCmd f)]))
+alertCmd thing f = f thing
+alert thing = makeIO (dl [(alertCmd thing)])
+promptCmd pmt f = f pmt
+prompt pmt = makeIO (dl [(promptCmd pmt)])

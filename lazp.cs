@@ -123,9 +123,14 @@ _is = global._is = define 'is', -> (value)-> (type)-> if value()?.type == type()
 _eq = global._eq = define 'eq', -> (a)-> (b)->
   if a() == b() then `_true()` else` _false()`
 
+_withType = global._type = define 'withType', -> (value)->(t)->(f)->
+  if type = value()?.type then t()(->type)
+  else f()
+
 astsByName.eval = setId(_eval())
 astsByName.is = setId(_is())
 astsByName.eq = setId(_eq())
+astsByName.withType = setId(_withType())
 lit = astsByName.lit = setId(_lit())
 ref = astsByName.ref = setId(_ref())
 lambda = astsByName.lambda = setId(_lambda())
@@ -313,12 +318,13 @@ compileLine = (line)->
         astsByName[nm[0]] = 1
         if def then defineToken(nm[0], def[2])
         ast = parse(prefix(nm, 1, expr, []))
+        bod = ast
         if nm.length > 1
           bod = getNthBody(ast, nm.length)
-          if getAstType(bod) == _lambdaId
-            bod.type = nm[0]
-            ast.dataType = nm[0]
           addAst(ast)
+        if getAstType(bod) == _lambdaId
+          bod.type = nm[0]
+          ast.dataType = nm[0]
         nameAst(nm[0], ast)
         dgen(ast, true, nm[0])
         if nm.length == 1
