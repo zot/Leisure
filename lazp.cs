@@ -265,7 +265,7 @@ gen = (ast, code, lits, vars, deref)->
       code = code.copyWith(nameSub val).reffedValue(deref)
       if vars.find((v)-> v == val) then code.addVar(val)
       else if global[nameSub(val)]? then code
-      else code.addErr "Referenced free variable: #{val}"
+      else code.addErr "Referenced free variable: #{val}, use lit, instead of ref."
     when _litId
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'

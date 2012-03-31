@@ -587,7 +587,7 @@ misrepresented as being the original software.
         } else if (global[nameSub(val)] != null) {
           return code;
         } else {
-          return code.addErr("Referenced free variable: " + val);
+          return code.addErr("Referenced free variable: " + val + ", use lit, instead of ref.");
         }
         break;
       case _litId:
