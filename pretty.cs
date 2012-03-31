@@ -9,6 +9,7 @@ if !Lazp? and require?
   U = require('util')
 
 getType = Lazp.getType
+inspect = U?.inspect || (v)->v
 
 listDo = (l, f)-> l(->(h)->(t)->f(h(), t()))
 
@@ -19,12 +20,11 @@ print = (f)->
     when 'cons' then "[#{elements(f, true)}]"
     when 'nil' then "[]"
     when 'ioMonad' then "IO"
-    else U.inspect(f)
+    else inspect(f)
 
 elements = (l, first, nosubs)->
   if getType(l) == 'nil' then ''
   else if getType(l) != 'cons' then " . #{print(l)}"
   else "#{if first then '' else ', '}#{listDo l, (h, t)-> print(h) + elements(t, false)}"
 
-root = exports ? this
 root.print = print

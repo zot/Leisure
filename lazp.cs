@@ -146,7 +146,7 @@ ref = setId(root.funcs.ref)
 lambda = setId(root.funcs.lambda)
 apply = setId(root.funcs.apply)
 prim = setId(root.funcs.prim)
-getAstType = (f) -> f.id ? f.lambda?.id
+getAstType = (f) -> f.id
 isPrim = (f)-> getAstType(f) == _primId
 first = ->(a)-> a
 second = ->(a)->(b)-> b()
@@ -201,27 +201,38 @@ astPrint = (ast, res)->
 
 class Cons
   constructor: (@head, @tail)->
-  contains: (val)-> @head == val or @tail.contains(val)
   find: (func)-> func(@head) or @tail.find(func)
+  removeAll: (func)->
+    t = @tail.removeAll(func)
+    if func(@head) then t else if t == @tail then @ else cons(@head, t)
+  foldl: (arg, func)-> func(@tail.foldl(arg, func), @head)
+  toArray: -> @foldl [], ((i, el)-> i.push(el); i)
+  toString: -> "Cons(#{@toArray().join(', ')})"
 
 class CNil extends Cons
-  contains: -> false
-  find: ->false
+  find: -> false
+  removeAll: -> @
+  foldl: (arg, func)-> arg
 
 Nil = new CNil()
+cons = (a, b)-> new Cons(a, b)
 
 class Code
-  constructor: (@main, @subfuncs, @fcount, @mcount)->
+  constructor: (@main, @subfuncs, @fcount, @mcount, @vars, @err)->
     @main = @main ? ''
     @subfuncs = @subfuncs ? ''
     @fcount = @fcount ? 0
     @mcount = @mcount ? 0
-  copyWith: (main, subfuncs, fcount, mcount)->new Code(main ? @main, subfuncs ? @subfuncs, fcount ? @fcount, mcount ? @mcount)
+    @vars = @vars ? Nil
+  copyWith: (main, subfuncs, fcount, mcount, vars, err)->new Code(main ? @main, subfuncs ? @subfuncs, fcount ? @fcount, mcount ? @mcount, vars ? @vars, err ? @err)
+  addErr: (e)-> @copyWith(null, null, null, null, null, "#{@err}#{e}\n")
+  addVar: (v)-> @copyWith(null, null, null, null, cons(v, @vars), null)
+  setVars: (v)-> @copyWith(null, null, null, null, v, null)
   resetMemo: -> @copyWith(null, null, null, 0)
   reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
   unreffedValue: (deref)-> if deref then @ else @copyWith("(function(){return #{@main}})")
   subfuncName: -> "subfunc#{@fcount}"
-  useSubfunc: (free)-> if !free then @ else @copyWith(@subfuncName(), "#{@subfuncs}var #{@subfuncName()} = #{@main}\n", @fcount + 1)
+  useSubfunc: (closed)-> if !closed then @ else @copyWith(@subfuncName(), "#{@subfuncs}var #{@subfuncName()} = #{@main}\n", @fcount + 1)
   memoNames: -> ("memo#{i}" for i in [0...@mcount]).join(', ')
   memo: (deref)->
     if !@mcount then @unreffedValue(deref)
@@ -230,15 +241,15 @@ class Code
 dgen = (ast, lazy, name)->
   ast.lits = []
   res = []
-  code = (gen ast, new Code(), ast.lits, Nil, true).memo(!lazy)
-  if code.subfuncs.length
-    ast.src = """
+  code = (gen ast, new Code(), ast.lits, (if name? then cons(name, Nil) else Nil), true).memo(!lazy)
+  if code.err? then ast.err = code.err
+  else if code.subfuncs.length then ast.src = """
 (function(){
   #{code.subfuncs}
   return #{if name? then "define('#{name}', #{code.main})" else code.main}
 })()
     """
-  else ast.src = code.main
+  else ast.src = if name? then "define('#{name}', #{code.main})" else "(#{code.main})"
   ast
 
 wrap = (ast, src)->
@@ -251,8 +262,10 @@ gen = (ast, code, lits, vars, deref)->
     when _refId
       val = getRefVar ast
       if val.lambda then throw new Error("attempt to use lambda as a variable")
-      if !vars.contains(val) and !astsByName[val] and !(global[nameSub(val)]?.lazpName == val) then throw new Error("unbound variable, '" + val + "' -- use lit instead")
-      code.copyWith(nameSub val).reffedValue(deref)
+      code = code.copyWith(nameSub val).reffedValue(deref)
+      if vars.find((v)-> v == val) then code.addVar(val)
+      else if global[nameSub(val)]? then code
+      else code.addErr "Referenced free variable: #{val}"
     when _litId
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'
@@ -262,8 +275,9 @@ gen = (ast, code, lits, vars, deref)->
       code.copyWith(src).unreffedValue(deref)
     when _lambdaId
       v = getLambdaVar ast
-      bodyCode = gen (getLambdaBody ast), code.resetMemo(), lits, new Cons(v, vars), true
-      bodyCode.copyWith(wrap(ast, "function(#{nameSub(v)}){return #{bodyCode.main}}")).useSubfunc(!ast.notFree).memo(deref)
+      bodyCode = (gen (getLambdaBody ast), code.resetMemo(), lits, cons(v, vars), true)
+      bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
+      bodyCode.copyWith(wrap(ast, "function(#{nameSub(v)}){return #{bodyCode.main}}")).useSubfunc(bodyCode.vars == Nil).memo(deref)
     when _applyId
       func = getApplyFunc ast
       arg = getApplyArg ast
@@ -394,11 +408,7 @@ tparse = (toks, vars, expr)->
         if toks.length && toks[toks.length - 1] == expectedClose then toks.pop()
         skip = true
       if !skip then cur = tparseVariable(tok, vars)
-    expr = if expr
-        ast = apply(laz(expr))(laz(cur))
-        ast.notFree = expr.notFree || cur.notFree
-        ast
-      else cur
+    expr = if expr then apply(laz(expr))(laz(cur)) else cur
     if groupCloses[tok]
       toks.push(tok)
       return expr
@@ -408,9 +418,7 @@ tparseVariable = (tok, vars)->
   if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] then ref(laz(tok))
   else
     path = []
-    if (vars.find (v)-> tok == v.name or !path.push(v))
-      v.notFree = true for v in path
-      ref(laz(tok))
+    if (vars.find (v)-> tok == v or !path.push(v)) then ref(laz(tok))
     else lit(laz(scanTok(tok)))
 
 scanTok = (tok)->
@@ -426,14 +434,11 @@ tparseLambda = (toks, vars)->
   if toks[toks.length - 2] == '.'
     nm = toks.pop()
     toks.pop()
-    v.name = nm
-    body = tparse toks, new Cons(v, vars)
+    body = tparse toks, cons(nm, vars)
   else
     nm = toks.pop()
-    v.name = nm
-    body = tparseLambda toks, new Cons(v, vars)
+    body = tparseLambda toks, cons(nm, vars)
   ast = lambda(laz(nm))(laz(body))
-  ast.notFree = v.notFree
   ast
 
 root.parse = parse

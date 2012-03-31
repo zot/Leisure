@@ -1,6 +1,7 @@
 if window? and (!global? or global == window)
   window.global = window
   window.Repl = root = {}
+  Pretty = window.Pretty
 else root = exports ? this
 
 lastLine = null

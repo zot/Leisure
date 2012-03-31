@@ -28,22 +28,23 @@ Tests for Lazp
 
 U = require('util')
 LZ=require('./lazp.js')
+require('./std')
+{setId, setType, setDataType, define} = LZ
 {run, assertParse, assertEval, assertEq} = T = require('./testing.js')
 
 console.log 'Testing'
 
-LZ.evalLine line for line in """
-true a b = a
-false a b = b
+for line in """
 and a b = a b false
 or a b = a true b
-cons a b = \\f . f a b
-nil = \\x y . y
 head l = l \\h t . h
 tail l = l \\h t . t
 null l = l (\\h t D . false) true
 last l = l (\\h t D . null t h (last t)) nil
 """.split '\n'
+  code = LZ.compileLine line
+  if code.err then console.log "Line #{line}\nERROR! #{code.err}"
+  else LZ.evalLine line
 
 run 'test1', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
 run 'test2', -> assertEval("(\\x . x) hello", 'hello')
@@ -57,6 +58,7 @@ run 'test9', -> assertEval("tail (cons 1 2)", '2')
 run 'test10', -> assertEval("last (cons a nil)", 'a')
 run 'test11', -> assertEval("last (cons a (cons b nil))", 'b')
 run 'test12', -> assertEval("(is (cons a b) cons) yes no", 'yes')
+run 'test12', -> assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes')
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

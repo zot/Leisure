@@ -28,20 +28,29 @@ Tests for Lazp
 */
 
 (function() {
-  var LZ, T, U, assertEq, assertEval, assertParse, line, run, _i, _len, _ref, _ref2;
+  var LZ, T, U, assertEq, assertEval, assertParse, code, define, line, run, setDataType, setId, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
 
   LZ = require('./lazp.js');
 
+  require('./std');
+
+  setId = LZ.setId, setType = LZ.setType, setDataType = LZ.setDataType, define = LZ.define;
+
   _ref = T = require('./testing.js'), run = _ref.run, assertParse = _ref.assertParse, assertEval = _ref.assertEval, assertEq = _ref.assertEq;
 
   console.log('Testing');
 
-  _ref2 = "true a b = a\nfalse a b = b\nand a b = a b false\nor a b = a true b\ncons a b = \\f . f a b\nnil = \\x y . y\nhead l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil".split('\n');
+  _ref2 = "and a b = a b false\nor a b = a true b\nhead l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil".split('\n');
   for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
     line = _ref2[_i];
-    LZ.evalLine(line);
+    code = LZ.compileLine(line);
+    if (code.err) {
+      console.log("Line " + line + "\nERROR! " + code.err);
+    } else {
+      LZ.evalLine(line);
+    }
   }
 
   run('test1', function() {
@@ -90,6 +99,10 @@ Tests for Lazp
 
   run('test12', function() {
     return assertEval("(is (cons a b) cons) yes no", 'yes');
+  });
+
+  run('test12', function() {
+    return assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes');
   });
 
   console.log('\nDone');

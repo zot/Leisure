@@ -39,6 +39,9 @@ Wimpy testing framework
 	if (expected != actual) throw new Error((desc ? "[" + desc + "] " : "") +  "Expected <" + expected + "> but got <" + actual + ">")
     }
     function assertEval(actual, expected, desc) {
+	var code = LZ.gen(LZ.parse(actual))
+
+	if (code.err) throw new Error(code.err)
 	assertEq(LZ.astEval(LZ.gen(LZ.parse(actual))), expected, desc || actual)
     }
     function assertParse(actual, expected, desc) {
