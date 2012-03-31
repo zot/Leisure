@@ -192,9 +192,10 @@ thursday =  \sun mon tue wed thu fri sat . thu
 friday =    \sun mon tue wed thu fri sat . fri
 saturday =   \sun mon tue wed thu fri sat . sat
 
+dayName = \day . day Sunday Monday Tuesday Wednesday Thursday Friday Saturday
 nextDay = \day . day monday tuesday wednesday thursday friday saturday sunday
 prevDay = \day . day saturday sunday monday tuesday wednesday thursday friday
-testDay = nextDay monday
+testDay = dayName (nextDay monday)
 
 testMName = bind (alert Please-enter-your-name) \_ . bind (prompt name) \nm . bind (return [nm, Jr]) \nm . alert [Your, actual, name, is, nm]
 

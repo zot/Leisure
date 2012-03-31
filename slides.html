@@ -803,7 +803,7 @@ If you can represent a boolean by a function that applies its argument to two va
 * <code>wednesday = <span class="def">λsun mon tue wed thu fri sat</span> . wed</code>
 * <code>thursday = <span class="def">λsun mon tue wed thu fri sat</span> . thu</code>
 * <code>friday = <span class="def">λsun mon tue wed thu fri sat</span> . fri</code>
-* <code>shabbat = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
+* <code>saturday = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
 ***
 #Custom Control Structures: Enums/Switches
 
@@ -817,7 +817,7 @@ If you can represent a boolean by a function that applies its argument to two va
 * <code>wednesday = <span class="def">λsun mon tue wed thu fri sat</span> . wed</code>
 * <code>thursday = <span class="def">λsun mon tue wed thu fri sat</span> . thu</code>
 * <code>friday = <span class="def">λsun mon tue wed thu fri sat</span> . fri</code>
-* <code>shabbat = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
+* <code>saturday = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
 
 <code>dayName = <span class="def">λday</span> . day Sunday Monday Tuesday Wednesday Thursday Friday Saturday</code>
 ***
@@ -833,7 +833,7 @@ If you can represent a boolean by a function that applies its argument to two va
 * <code>wednesday = <span class="def">λsun mon tue wed thu fri sat</span> . wed</code>
 * <code>thursday = <span class="def">λsun mon tue wed thu fri sat</span> . thu</code>
 * <code>friday = <span class="def">λsun mon tue wed thu fri sat</span> . fri</code>
-* <code>shabbat = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
+* <code>saturday = <span class="def">λsun mon tue wed thu fri sat</span> . sat</code>
 
 <code>dayName = <span class="def">λday</span> . day Sunday Monday Tuesday Wednesday Thursday Friday Saturday</code>
 
@@ -847,15 +847,15 @@ So, OK, it's like a switch.  But can we get the next or previous day?
 
 So, OK, it's like a switch.  But can we get the next or previous day?
 
-* <code>nextDay = <span class="def">λday sun mon tue wed thu fri sat</span> . day mon tue wed thu fri sat sun</code>
-* <code>prevDay = <span class="def">λday sun mon tue wed thu fri sat</span> . day sat sun mon tue wed thu fri</code>
+* <code>nextDay = <span class="def">λday</span> . day monday tuesday wednesday thursday friday saturday sunday</code>
+* <code>prevDay = <span class="def">λday</span> . day saturday sunday monday tuesday wednesday thursday friday</code>
 ***
 #Custom Control Structures: Enums/Switches
 
 So, OK, it's like a switch.  But can we get the next or previous day?
 
-* <code>nextDay = <span class="def">λday sun mon tue wed thu fri sat</span> . day mon tue wed thu fri sat sun</code>
-* <code>prevDay = <span class="def">λday sun mon tue wed thu fri sat</span> . day sat sun mon tue wed thu fri</code>
+* <code>nextDay = <span class="def">λday</span> . day monday tuesday wednesday thursday friday saturday sunday</code>
+* <code>prevDay = <span class="def">λday</span> . day saturday sunday monday tuesday wednesday thursday friday</code>
 
 <code>dayName (nextDay monday) &rArr; Tuesday</code>
 
