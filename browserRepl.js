@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, handleFiles, init, input, lastLine, markupDef, markupLines, root;
+  var Pretty, handleFiles, init, input, lastLine, markupDef, markupLines, root, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -13,8 +13,10 @@
 
   input = null;
 
+  write = null;
+
   init = function init(inputField, output, defs) {
-    ReplCore.setWriter(function(line) {
+    ReplCore.setWriter(write = function write(line) {
       return output.innerHTML += line;
     });
     ReplCore.setNext(function() {
@@ -40,6 +42,7 @@
 
   markupDef = function markupDef(line) {
     var match;
+    if (line.match(/^\s*#/)) line;
     if ((match = line.match(/^[^=]*(?=\s*=)/))) {
       return "<b>" + match[0] + "</b>" + (line.substring(match[0].length));
     } else {
@@ -59,10 +62,24 @@
       return alert('error' + evt);
     };
     reader.onload = function onload() {
-      LC.loadDefs(reader.result);
-      displayOutput();
-      displayResults(true);
-      return result.innerHTML = '';
+      var ast, line, result, _i, _len, _ref, _ref2, _results;
+      _ref = reader.result.split('\n');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        line = _ref[_i];
+        if (line) {
+          write(markupDef(line));
+          ast = Lazp.compileLine(line);
+          if (ast) {
+            _results.push((_ref2 = Lazp.evalLine(line), ast = _ref2[0], result = _ref2[1], _ref2));
+          } else {
+            _results.push(void 0);
+          }
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
     };
     reader.readAsText(files[0]);
     fileElement.value = null;

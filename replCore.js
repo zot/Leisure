@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, P, U, compileFunc, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, P, U, compileFunc, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -143,6 +143,25 @@
     return nextFunc();
   };
 
+  generateCode = function generateCode(file, contents, loud) {
+    var ast, i, line, out, src, _len, _ref;
+    if (loud) console.log("Compiling " + file + ":\n");
+    out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")};\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\n';
+    _ref = contents.split('\n');
+    for (i = 0, _len = _ref.length; i < _len; i++) {
+      line = _ref[i];
+      if (line) {
+        ast = Lazp.compileLine(line);
+        if (ast) {
+          ast.src = "//AST: " + (Lazp.astPrint(ast)) + "\n" + ast.src;
+          src = ast.lazpName ? ast.src : "console.log(String(" + ast.src + "))";
+          out += "" + src + ";\n";
+        }
+      }
+    }
+    return out;
+  };
+
   root.processLine = processLine;
 
   root.setCompiler = setCompiler;
@@ -164,5 +183,7 @@
   };
 
   root.getType = getType;
+
+  root.generateCode = generateCode;
 
 }).call(this);
