@@ -190,12 +190,11 @@ tuesday =   \sun mon tue wed thu fri sat . tue
 wednesday = \sun mon tue wed thu fri sat . wed
 thursday =  \sun mon tue wed thu fri sat . thu
 friday =    \sun mon tue wed thu fri sat . fri
-shabbat =   \sun mon tue wed thu fri sat . sat
+saturday =   \sun mon tue wed thu fri sat . sat
 
-dayName = \day . day Sunday Monday Tuesday Wednesday Thursday Friday Saturday
-nextDay = \day sun mon tue wed thu fri sat . day mon tue wed thu fri sat sun
-prevDay = \day sun mon tue wed thu fri sat . day sat sun mon tue wed thu fri
-testDay = dayName (nextDay monday)
+nextDay = \day . day monday tuesday wednesday thursday friday saturday sunday
+prevDay = \day . day saturday sunday monday tuesday wednesday thursday friday
+testDay = nextDay monday
 
 testMName = bind (alert Please-enter-your-name) \_ . bind (prompt name) \nm . bind (return [nm, Jr]) \nm . alert [Your, actual, name, is, nm]
 
