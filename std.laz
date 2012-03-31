@@ -27,14 +27,15 @@ id x = x
 true = \a b . a
 false = \a b . b
 
-# Y combinator
-Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
-rec = \f . f (Y f)
+# The Y combinator, for reference
+#
+# Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+# rec = \f . f (Y f)
 
 # lists
 cons a b = \f . f a b
 nil = \a b . b
-append = rec \append l1 l2 . l1 (\h t D . cons h (append t l2)) l2
+append = l1 l2 . l1 (\h t D . cons h (append t l2)) l2
 
 # simple list constructor syntax
 [ =(]= \item c . c \rest . cons item rest
