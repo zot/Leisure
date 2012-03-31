@@ -16,7 +16,10 @@
   write = null;
 
   init = function init(inputField, output, defs) {
-    ReplCore.setWriter(write = function write(line) {
+    write = function write(line) {
+      return defs.innerHTML += line;
+    };
+    ReplCore.setWriter(function(line) {
       return output.innerHTML += line;
     });
     ReplCore.setNext(function() {
@@ -68,7 +71,7 @@
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         line = _ref[_i];
         if (line) {
-          write(markupDef(line));
+          write("" + (markupDef(line)) + "\n");
           ast = Lazp.compileLine(line);
           if (ast) {
             _results.push((_ref2 = Lazp.evalLine(line), ast = _ref2[0], result = _ref2[1], _ref2));
