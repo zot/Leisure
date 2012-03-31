@@ -29,7 +29,7 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0; position: relative">
     <table style="width: 100%; height: 100%; vertical-align: top">
-      <tr stele="height: 0"><td colspan="2" style="text-align: center"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="TODO.html" target="_blank">Status</a> <a href="http://github.com/zot/lazp" target="_blank">Source</a> <a href="javascript:(void)0">REPL</a> <a href="javascript:void(getStdDefs())">Standard Functions</a></td></tr>
+      <tr style="height: 0"><td colspan="2" style="text-align: center"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="TODO.html" target="_blank">Status</a> <a href="http://github.com/zot/lazp" target="_blank">Source</a> <a href="javascript:(void)0">REPL</a> <a href="javascript:void(getStdDefs())">Standard Functions</a></td></tr>
       <tr stele="height: 0"><td colspan="2" style="text-align: center">Welcome to Lazp</td></tr>
       <tr style="height: 100%">
 	<td class="cell" style="width: 50%">
@@ -46,7 +46,7 @@ Click on <a href="javascript:void(getStdDefs())">Standard Functions</a> here or 
 	  </div>
 	</td>
       </tr>
-      <tr style="height: 0"><td colspan="2" class="cell"><input id="input" type="text" style="width: 100%"></td></tr>
+      <tr style="height: 0"><td colspan="2" class="cell"><table style="width: 100%; white-space: nowrap"><tr><td style="width: 100%"><input id="input" type="text" style="width: 100%; margin: 0"></td><td style="width: 0">Load file: <input type="file" onchange="Repl.handleFiles(this)"></input></td></tr></table></td></tr>
     </table>
   </body>
 </html>

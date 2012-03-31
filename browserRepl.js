@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, init, lastLine, markupDef, markupLines, root;
+  var Pretty, handleFiles, init, input, lastLine, markupDef, markupLines, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -11,7 +11,9 @@
 
   lastLine = null;
 
-  init = function init(input, output, defs) {
+  input = null;
+
+  init = function init(inputField, output, defs) {
     ReplCore.setWriter(function(line) {
       return output.innerHTML += line;
     });
@@ -25,13 +27,15 @@
         return output.innerHTML += "" + lastLine + " \u2192\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
       }
     });
+    input = inputField;
     input.onkeypress = function onkeypress(e) {
       if ((e.charCode || e.keyCode || e.which) === 13) {
         lastLine = input.value.replace(/\\/g, '\u03BB');
         return ReplCore.processLine(lastLine);
       }
     };
-    return ReplCore.help();
+    ReplCore.help();
+    return input.select();
   };
 
   markupDef = function markupDef(line) {
@@ -47,10 +51,30 @@
     return lines.split('\n').map(markupDef).join('<br>');
   };
 
+  handleFiles = function handleFiles(fileElement) {
+    var files, reader;
+    files = fileElement.files;
+    reader = new FileReader();
+    reader.onerror = function onerror(evt) {
+      return alert('error' + evt);
+    };
+    reader.onload = function onload() {
+      LC.loadDefs(reader.result);
+      displayOutput();
+      displayResults(true);
+      return result.innerHTML = '';
+    };
+    reader.readAsText(files[0]);
+    fileElement.value = null;
+    return input.select();
+  };
+
   root.init = init;
 
   root.markupDef = markupDef;
 
   root.markupLines = markupLines;
+
+  root.handleFiles = handleFiles;
 
 }).call(this);
