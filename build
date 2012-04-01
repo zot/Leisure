@@ -1,4 +1,4 @@
 #!/bin/sh
-node_modules/coffee-script/bin/coffee -c lazp.cs repl.cs runRepl.cs testLazp.cs replCore.cs browserRepl.cs pretty.cs
+node_modules/coffee-script/bin/coffee -c lazp.cs repl.cs runRepl.cs testLazp.cs replCore.cs browserRepl.cs pretty.cs prim.cs
 node runRepl -q -c -b std.laz
 node testLazp

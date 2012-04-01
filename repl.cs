@@ -17,8 +17,7 @@ vars = {
   r: [true, 'show evaluation result'],
 }
 
-print = (args...)->
-  process.stdout.write(U.format.apply(null, args))
+print = (args...)-> process.stdout.write(U.format.apply(null, args))
 
 write = (args...)-> process.stdout.write args.join('')
 

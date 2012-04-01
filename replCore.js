@@ -35,9 +35,7 @@
     return nextFunc = n;
   };
 
-  getType = function getType(value) {
-    return (typeof value === 'function' && value.type) || typeof value;
-  };
+  getType = Lazp.getType;
 
   handlerFunc = function handlerFunc(ast, result, a, c, r) {
     if (a) write("PARSED: " + (Lazp.astPrint(ast)) + "\n");

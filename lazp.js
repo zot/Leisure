@@ -250,7 +250,13 @@ misrepresented as being the original software.
   });
 
   getType = function getType(f) {
-    return (f != null ? f.type : void 0) || null;
+    var t;
+    t = typeof f;
+    if (t === 'function') {
+      return (f != null ? f.type : void 0) || null;
+    } else {
+      return "*" + t;
+    }
   };
 
   define('withType', function(value) {

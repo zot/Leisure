@@ -22,7 +22,8 @@ nextFunc = ->
 
 setNext = (n)-> nextFunc = n
 
-getType = (value)-> (typeof value == 'function' and value.type) || typeof value
+#getType = (value)-> (typeof value == 'function' and value.type) || typeof value
+getType = Lazp.getType
 
 handlerFunc = (ast, result, a, c, r)->
   if a then write("PARSED: #{Lazp.astPrint(ast)}\n")

@@ -135,7 +135,10 @@ define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true(
 
 define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
 
-getType = (f)-> f?.type or null
+getType = (f)->
+  t = typeof f
+  if t == 'function' then f?.type or null
+  else "*#{t}"
 
 define 'withType', (value)->(t)->(f)->
   if type = getType(value()) then t()(->type)
