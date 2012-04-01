@@ -461,27 +461,33 @@ misrepresented as being the original software.
 
   Code = (function() {
 
-    function Code(main, subfuncs, fcount, mcount, vars, err) {
-      var _ref, _ref2, _ref3, _ref4, _ref5;
+    function Code(main, subfuncs, fcount, mcount, vars, err, global) {
+      var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
       this.main = main;
       this.subfuncs = subfuncs;
       this.fcount = fcount;
       this.mcount = mcount;
       this.vars = vars;
       this.err = err;
+      this.global = global;
       this.main = (_ref = this.main) != null ? _ref : '';
       this.subfuncs = (_ref2 = this.subfuncs) != null ? _ref2 : '';
       this.fcount = (_ref3 = this.fcount) != null ? _ref3 : 0;
       this.mcount = (_ref4 = this.mcount) != null ? _ref4 : 0;
       this.vars = (_ref5 = this.vars) != null ? _ref5 : Nil;
+      this.global = (_ref6 = this.global) != null ? _ref6 : Nil;
     }
 
-    Code.prototype.copyWith = function copyWith(main, subfuncs, fcount, mcount, vars, err) {
-      return new Code(main != null ? main : this.main, subfuncs != null ? subfuncs : this.subfuncs, fcount != null ? fcount : this.fcount, mcount != null ? mcount : this.mcount, vars != null ? vars : this.vars, err != null ? err : this.err);
+    Code.prototype.copyWith = function copyWith(main, subfuncs, fcount, mcount, vars, err, global) {
+      return new Code(main != null ? main : this.main, subfuncs != null ? subfuncs : this.subfuncs, fcount != null ? fcount : this.fcount, mcount != null ? mcount : this.mcount, vars != null ? vars : this.vars, err != null ? err : this.err, global != null ? global : this.global);
     };
 
     Code.prototype.addErr = function addErr(e) {
       return this.copyWith(null, null, null, null, null, "" + this.err + e + "\n");
+    };
+
+    Code.prototype.setGlobal = function setGlobal(v) {
+      return this.copyWith(null, null, null, null, null, null, v);
     };
 
     Code.prototype.addVar = function addVar(v) {
@@ -548,11 +554,11 @@ misrepresented as being the original software.
 
   })();
 
-  dgen = function dgen(ast, lazy, name) {
+  dgen = function dgen(ast, lazy, name, globals) {
     var code, res;
     ast.lits = [];
     res = [];
-    code = (gen(ast, new Code(), ast.lits, (name != null ? cons(name, Nil) : Nil), true)).memo(!lazy);
+    code = (gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true)).memo(!lazy);
     if (code.err != null) {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
@@ -560,6 +566,7 @@ misrepresented as being the original software.
     } else {
       ast.src = name != null ? "define('" + name + "', " + code.main + ")" : "(" + code.main + ")";
     }
+    ast.globals = code.global;
     return ast;
   };
 
@@ -584,7 +591,9 @@ misrepresented as being the original software.
           return v === val;
         })) {
           return code.addVar(val);
-        } else if (global[nameSub(val)] != null) {
+        } else if ((global[nameSub(val)] != null) || code.global.find(function(v) {
+          return v === val;
+        })) {
           return code;
         } else {
           return code.addErr("Referenced free variable: " + val + ", use lit, instead of ref.");
@@ -689,39 +698,35 @@ misrepresented as being the original software.
     }
   };
 
-  compileLine = function compileLine(line) {
+  compileLine = function compileLine(line, globals) {
     var ast, bod, def, expr, nm;
     if (line.match(commentPat)) line = '';
-    if (true) {
-      def = line.match(linePat);
-      expr = (def ? def[3] : line).trim();
-      if (expr) {
-        nm = def && def[1] ? def[1].trim().split(/\s+/) : null;
-        ast = null;
-        if (nm) {
-          astsByName[nm[0]] = 1;
-          if (def) defineToken(nm[0], def[2]);
-          ast = parse(prefix(nm, 1, expr, []));
-          bod = ast;
-          if (nm.length > 1) {
-            bod = getNthBody(ast, nm.length);
-            addAst(ast);
-          }
-          if (getAstType(bod) === _lambdaId) {
-            bod.type = nm[0];
-            ast.dataType = nm[0];
-          }
-          nameAst(nm[0], ast);
-          dgen(ast, false, nm[0]);
-          if (nm.length === 1) nameAst(nm[0], ast);
-        } else {
-          ast = parse(expr);
-          dgen(ast);
+    def = line.match(linePat);
+    expr = (def ? def[3] : line).trim();
+    if (expr) {
+      nm = def && def[1] ? def[1].trim().split(/\s+/) : null;
+      ast = null;
+      if (nm) {
+        astsByName[nm[0]] = 1;
+        if (def) defineToken(nm[0], def[2]);
+        ast = parse(prefix(nm, 1, expr, []));
+        bod = ast;
+        if (nm.length > 1) {
+          bod = getNthBody(ast, nm.length);
+          addAst(ast);
         }
-        return ast;
+        if (getAstType(bod) === _lambdaId) {
+          bod.type = nm[0];
+          ast.dataType = nm[0];
+        }
+        nameAst(nm[0], ast);
+        dgen(ast, false, nm[0], globals);
+        if (nm.length === 1) nameAst(nm[0], ast);
+      } else {
+        ast = parse(expr);
+        dgen(ast, null, null, globals);
       }
-    } else {
-      return console.log("comment: " + line);
+      return ast;
     }
   };
 
@@ -878,5 +883,11 @@ misrepresented as being the original software.
   root.getAstType = getAstType;
 
   root.getType = getType;
+
+  root.linePat = linePat;
+
+  root.Nil = Nil;
+
+  root.cons = cons;
 
 }).call(this);

@@ -35,7 +35,7 @@ false = \a b . b
 # lists
 cons a b = \f . f a b
 nil = \a b . b
-append = l1 l2 . l1 (\h t D . cons h (append t l2)) l2
+append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
 
 # simple list constructor syntax
 [ =(]= \item c . c \rest . cons item rest

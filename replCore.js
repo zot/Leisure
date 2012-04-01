@@ -144,21 +144,28 @@
   };
 
   generateCode = function generateCode(file, contents, loud) {
-    var ast, i, line, out, src, _len, _ref;
+    var ast, errs, globals, i, line, m, nm, out, src, _len, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
     out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")};\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\n';
+    errs = '';
+    globals = Lazp.Nil;
     _ref = contents.split('\n');
     for (i = 0, _len = _ref.length; i < _len; i++) {
       line = _ref[i];
       if (line) {
-        ast = Lazp.compileLine(line);
+        ast = Lazp.compileLine(line, globals);
         if (ast) {
-          ast.src = "//AST: " + (Lazp.astPrint(ast)) + "\n" + ast.src;
+          globals = ast.globals;
+          if (ast.err != null) errs = "" + errs + ast.err + "\n";
+          m = line.match(Lazp.linePat);
+          nm = m && m[1].trim().split(/\s+/)[0];
+          ast.src = "//" + (nm ? nm + ' = ' : '') + (Lazp.astPrint(ast)) + "\n" + ast.src;
           src = ast.lazpName ? ast.src : "console.log(String(" + ast.src + "))";
           out += "" + src + ";\n";
         }
       }
     }
+    if (errs) throw new Error("Errors compiling " + file + ": " + errs);
     return out;
   };
 
