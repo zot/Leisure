@@ -6,8 +6,10 @@ else root = exports ? this
 
 lastLine = null
 input = null
+write = null
 
 init = (inputField, output, defs)->
+  write = (line)-> defs.innerHTML += line
   ReplCore.setWriter (line)-> output.innerHTML += line
   ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r)->
@@ -22,6 +24,7 @@ init = (inputField, output, defs)->
   input.select()
 
 markupDef = (line)->
+  if line.match /^\s*#/ then line
   if (match = line.match /^[^=]*(?=\s*=)/) then "<b>#{match[0]}</b>#{line.substring(match[0].length)}"
   else line
 
@@ -32,10 +35,11 @@ handleFiles = (fileElement)->
   reader = new FileReader()
   reader.onerror = (evt)-> alert('error' + evt)
   reader.onload = ->
-    LC.loadDefs(reader.result)
-    displayOutput()
-    displayResults(true)
-    result.innerHTML = ''
+    for line in reader.result.split('\n')
+      if line
+        write "#{markupDef line}\n"
+        ast = Lazp.compileLine line
+        if ast then [ast, result] = Lazp.evalLine line
   reader.readAsText(files[0])
   fileElement.value = null
   input.select()

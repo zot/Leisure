@@ -85,6 +85,25 @@ processLine = (line)->
     write(err.stack)
   nextFunc()
 
+generateCode = (file, contents, loud)->
+  if loud then console.log("Compiling #{file}:\n")
+  out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")};\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\n'
+  errs = ''
+  globals = Lazp.Nil
+  for line, i in contents.split('\n')
+    if line
+      ast = Lazp.compileLine line, globals
+      if ast
+        globals = ast.globals
+        if ast.err? then errs = "#{errs}#{ast.err}\n"
+        m = line.match(Lazp.linePat)
+        nm = m and m[1].trim().split(/\s+/)[0]
+        ast.src = "//#{if nm then nm + ' = ' else ''}#{Lazp.astPrint(ast)}\n#{ast.src}"
+        src = if ast.lazpName then ast.src else "console.log(String(#{ast.src}))"
+        out += "#{src};\n"
+  if errs then throw new Error("Errors compiling #{file}: #{errs}")
+  out
+
 root.processLine = processLine
 root.setCompiler = setCompiler
 root.setHelp = setHelp
@@ -94,3 +113,4 @@ root.setHandler = setHandler
 root.next = -> nextFunc()
 root.help = -> helpFunc()
 root.getType = getType
+root.generateCode = generateCode

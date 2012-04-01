@@ -57,25 +57,14 @@ compile = (file)->
     stream = FS.createReadStream(file)
     stream.on('data', (data)-> contents += data)
     stream.on('end', ()->
-      generateCode(file, contents, !root.quiet)
+      out = Core.generateCode(file, contents, !root.quiet)
+      stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
+      stream.end(out, 'utf8')
       Core.next())
     stream.on('error', (ex)->
       console.log("Exception reading file: ", ex.stack)
       Core.next())
 
-
-generateCode = (file, contents, loud)->
-  if loud then console.log("Compiling #{file}:\n")
-  out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")};\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\n'
-  for line, i in contents.split('\n')
-    if line
-      ast = L.compileLine line
-      if ast
-        ast.src = "//AST: #{L.astPrint(ast)}\n#{ast.src}"
-        src = if ast.lazpName then ast.src else "console.log(String(#{ast.src}))"
-        out += "#{src};\n"
-  stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
-  stream.end(out, 'utf8')
 
 Core.setHelp help
 Core.setCompiler compile

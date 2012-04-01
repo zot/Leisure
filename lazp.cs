@@ -218,14 +218,16 @@ Nil = new CNil()
 cons = (a, b)-> new Cons(a, b)
 
 class Code
-  constructor: (@main, @subfuncs, @fcount, @mcount, @vars, @err)->
+  constructor: (@main, @subfuncs, @fcount, @mcount, @vars, @err, @global)->
     @main = @main ? ''
     @subfuncs = @subfuncs ? ''
     @fcount = @fcount ? 0
     @mcount = @mcount ? 0
     @vars = @vars ? Nil
-  copyWith: (main, subfuncs, fcount, mcount, vars, err)->new Code(main ? @main, subfuncs ? @subfuncs, fcount ? @fcount, mcount ? @mcount, vars ? @vars, err ? @err)
+    @global = @global ? Nil
+  copyWith: (main, subfuncs, fcount, mcount, vars, err, global)->new Code(main ? @main, subfuncs ? @subfuncs, fcount ? @fcount, mcount ? @mcount, vars ? @vars, err ? @err, global ? @global)
   addErr: (e)-> @copyWith(null, null, null, null, null, "#{@err}#{e}\n")
+  setGlobal: (v)-> @copyWith(null, null, null, null, null, null, v)
   addVar: (v)-> @copyWith(null, null, null, null, cons(v, @vars), null)
   setVars: (v)-> @copyWith(null, null, null, null, v, null)
   resetMemo: -> @copyWith(null, null, null, 0)
@@ -238,10 +240,10 @@ class Code
     if !@mcount then @unreffedValue(deref)
     else @copyWith("(function(){var #{@memoNames()}; return #{@main}})", null, null, 0).reffedValue(deref)
 
-dgen = (ast, lazy, name)->
+dgen = (ast, lazy, name, globals)->
   ast.lits = []
   res = []
-  code = (gen ast, new Code(), ast.lits, (if name? then cons(name, Nil) else Nil), true).memo(!lazy)
+  code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true).memo(!lazy)
   if code.err? then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
 (function(){
@@ -250,6 +252,7 @@ dgen = (ast, lazy, name)->
 })()
     """
   else ast.src = if name? then "define('#{name}', #{code.main})" else "(#{code.main})"
+  ast.globals = code.global
   ast
 
 wrap = (ast, src)->
@@ -264,7 +267,7 @@ gen = (ast, code, lits, vars, deref)->
       if val.lambda then throw new Error("attempt to use lambda as a variable")
       code = code.copyWith(nameSub val).reffedValue(deref)
       if vars.find((v)-> v == val) then code.addVar(val)
-      else if global[nameSub(val)]? then code
+      else if global[nameSub(val)]? or code.global.find((v)-> v == val) then code
       else code.addErr "Referenced free variable: #{val}, use lit, instead of ref."
     when _litId
       val = getLitVal ast
@@ -327,33 +330,31 @@ prefix = (name, index, expr, res)->
 
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
-compileLine = (line)->
+compileLine = (line, globals)->
   if line.match commentPat then line = ''
-  if true
-    def = line.match linePat
-    expr = (if def then def[3] else line).trim()
-    if expr
-      nm = if def and def[1] then def[1].trim().split(/\s+/) else null
-      ast = null
-      if nm
-        astsByName[nm[0]] = 1
-        if def then defineToken(nm[0], def[2])
-        ast = parse(prefix(nm, 1, expr, []))
-        bod = ast
-        if nm.length > 1
-          bod = getNthBody(ast, nm.length)
-          addAst(ast)
-        if getAstType(bod) == _lambdaId
-          bod.type = nm[0]
-          ast.dataType = nm[0]
-        nameAst(nm[0], ast)
-        dgen(ast, false, nm[0])
-        if nm.length == 1 then nameAst(nm[0], ast)
-      else
-        ast = parse(expr)
-        dgen(ast)
-      ast
-  else console.log("comment: #{line}")
+  def = line.match linePat
+  expr = (if def then def[3] else line).trim()
+  if expr
+    nm = if def and def[1] then def[1].trim().split(/\s+/) else null
+    ast = null
+    if nm
+      astsByName[nm[0]] = 1
+      if def then defineToken(nm[0], def[2])
+      ast = parse(prefix(nm, 1, expr, []))
+      bod = ast
+      if nm.length > 1
+        bod = getNthBody(ast, nm.length)
+        addAst(ast)
+      if getAstType(bod) == _lambdaId
+        bod.type = nm[0]
+        ast.dataType = nm[0]
+      nameAst(nm[0], ast)
+      dgen(ast, false, nm[0], globals)
+      if nm.length == 1 then nameAst(nm[0], ast)
+    else
+      ast = parse(expr)
+      dgen(ast, null, null, globals)
+    ast
 
 evalLine = (line)->
   ast = compileLine line
@@ -454,3 +455,6 @@ root.astEval = (ast)-> evalCompiledAst(dgen(ast))
 root.define = define
 root.getAstType = getAstType
 root.getType = getType
+root.linePat = linePat
+root.Nil = Nil
+root.cons = cons

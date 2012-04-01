@@ -58,7 +58,8 @@ run 'test9', -> assertEval("tail (cons 1 2)", '2')
 run 'test10', -> assertEval("last (cons a nil)", 'a')
 run 'test11', -> assertEval("last (cons a (cons b nil))", 'b')
 run 'test12', -> assertEval("(is (cons a b) cons) yes no", 'yes')
-run 'test12', -> assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes')
+run 'test13', -> assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes')
+run 'test14', -> assertEval("(\\1 . 1) hello", 'hello')
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

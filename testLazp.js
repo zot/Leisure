@@ -101,8 +101,12 @@ Tests for Lazp
     return assertEval("(is (cons a b) cons) yes no", 'yes');
   });
 
-  run('test12', function() {
+  run('test13', function() {
     return assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes');
+  });
+
+  run('test14', function() {
+    return assertEval("(\\1 . 1) hello", 'hello');
   });
 
   console.log('\nDone');
