@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, handleFiles, init, input, lastLine, markupDef, markupLines, root, write;
+  var Pretty, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, root, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -27,10 +27,11 @@
     });
     ReplCore.setHandler(function(ast, result, a, c, r) {
       if (ast.lazpName != null) {
-        return defs.innerHTML += "" + (markupDef(lastLine)) + "<br>";
+        defs.innerHTML += "" + (markupDef(lastLine)) + "<br>";
       } else {
-        return output.innerHTML += "" + lastLine + " \u2192\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
+        output.innerHTML += "" + lastLine + " \u2192\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
       }
+      return ReplCore.processResult(result);
     });
     input = inputField;
     input.onkeypress = function onkeypress(e) {
@@ -87,6 +88,11 @@
     reader.readAsText(files[0]);
     fileElement.value = null;
     return input.select();
+  };
+
+  processResult = function processResult(result) {
+    write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+    return ReplCore.processResult(result);
   };
 
   root.init = init;

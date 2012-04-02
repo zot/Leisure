@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, P, U, compileFunc, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, P, U, compileFunc, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -44,7 +44,8 @@
       if (!result) {
         return write("(No Result)\n");
       } else {
-        return write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+        write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+        return processResult(result);
       }
     }
   };
@@ -77,6 +78,22 @@
     var args;
     args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
     return writeFunc(args.join(''));
+  };
+
+  processResult = function processResult(result) {
+    if ((getType(result)) === 'monad') {
+      return result(function(value) {
+        if (result.binding != null) {
+          return processResult(result.binding(function() {
+            return value;
+          }));
+        } else {
+          return nextFunc();
+        }
+      });
+    } else {
+      return nextFunc();
+    }
   };
 
   handleVar = function handleVar(name, value) {
@@ -131,7 +148,7 @@
               } else {
                 result = null;
               }
-              handlerFunc(ast, result, a, c, r);
+              return handlerFunc(ast, result, a, c, r);
           }
         }
       }
@@ -144,7 +161,7 @@
   generateCode = function generateCode(file, contents, loud) {
     var ast, errs, globals, i, line, m, nm, out, src, _len, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")};\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\n';
+    out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\nprocessResult = Repl.processResult;\n";
     errs = '';
     globals = Lazp.Nil;
     _ref = contents.split('\n');
@@ -158,7 +175,7 @@
           m = line.match(Lazp.linePat);
           nm = m && m[1].trim().split(/\s+/)[0];
           ast.src = "//" + (nm ? nm + ' = ' : '') + (Lazp.astPrint(ast)) + "\n" + ast.src;
-          src = ast.lazpName ? ast.src : "console.log(String(" + ast.src + "))";
+          src = ast.lazpName ? ast.src : "processResult(" + ast.src + ")";
           out += "" + src + ";\n";
         }
       }
@@ -190,5 +207,7 @@
   root.getType = getType;
 
   root.generateCode = generateCode;
+
+  root.processResult = processResult;
 
 }).call(this);

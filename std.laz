@@ -49,15 +49,15 @@ dlAppend da db list = da (db list)
 dlList dl = dl nil
 
 # simple IO monad
-ioMonad cmds = \f . f cmds
-getCmds m = m (\cmds . cmds)
-getAllCmds m = dlList (getCmds m)
-returnCmd x f = f x
-return x = ioMonad (dl [(returnCmd x)])
-bindCmd action f = f action
-getBindAction cmd = cmd ident
-bind io f = io \cmds . ioMonad (dlAppend cmds (dl [(bindCmd f)]))
-alertCmd thing f = f thing
-alert thing = ioMonad (dl [(alertCmd thing)])
-promptCmd pmt f = f pmt
-prompt pmt = ioMonad (dl [(promptCmd pmt)])
+# ioMonad cmds = \f . f cmds
+# getCmds m = m (\cmds . cmds)
+# getAllCmds m = dlList (getCmds m)
+# returnCmd x f = f x
+# return x = ioMonad (dl [(returnCmd x)])
+# bindCmd action f = f action
+# getBindAction cmd = cmd ident
+# bind io f = io \cmds . ioMonad (dlAppend cmds (dl [(bindCmd f)]))
+# alertCmd thing f = f thing
+# alert thing = ioMonad (dl [(alertCmd thing)])
+# promptCmd pmt f = f pmt
+# prompt pmt = ioMonad (dl [(promptCmd pmt)])

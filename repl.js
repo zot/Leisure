@@ -1,5 +1,5 @@
 (function() {
-  var Core, FS, L, Path, R, U, compile, help, print, repl, root, vars, write,
+  var Core, FS, L, P, Path, Prim, R, U, compile, face, getType, help, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -8,15 +8,21 @@
 
   L = require('./lazp');
 
+  Prim = require('./prim');
+
   Core = require('./replCore');
 
   FS = require('fs');
 
   Path = require('path');
 
+  P = require('./pretty');
+
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
   root.quiet = false;
+
+  getType = L.getType;
 
   vars = {
     c: [false, 'show generated code'],
@@ -36,21 +42,29 @@
     return process.stdout.write(args.join(''));
   };
 
+  face = null;
+
+  init = function init() {
+    if (!(face != null)) {
+      face = R.createInterface(process.stdin, process.stdout);
+      Prim.setTty(face);
+      face.setPrompt("Lazp> ");
+      face.on('close', function() {
+        return process.exit(0);
+      });
+      face.on('line', function(line) {
+        return Core.processLine(line.trim());
+      });
+      return Core.setNext(function() {
+        return face.prompt();
+      });
+    }
+  };
+
   repl = function repl() {
-    var face;
     print("Welcome to Lazp!\n");
     help();
-    face = R.createInterface(process.stdin, process.stdout);
-    face.setPrompt("Lazp> ");
-    face.on('close', function() {
-      return process.exit(0);
-    });
-    face.on('line', function(line) {
-      return Core.processLine(line.trim());
-    });
-    Core.setNext(function() {
-      return face.prompt();
-    });
+    init();
     return face.prompt();
   };
 
@@ -62,7 +76,7 @@
     var contents, oldfile, stream;
     if (!file) {
       console.log("No file to compile");
-      return typeof face !== "undefined" && face !== null ? face.prompt() : void 0;
+      return face != null ? face.prompt() : void 0;
     } else {
       contents = '';
       if (!Path.existsSync(file)) {
@@ -91,6 +105,12 @@
     }
   };
 
+  processResult = function processResult(result) {
+    init();
+    write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+    return Core.processResult(result);
+  };
+
   Core.setHelp(help);
 
   Core.setCompiler(compile);
@@ -104,5 +124,9 @@
   root.repl = repl;
 
   root.compile = compile;
+
+  root.init = init;
+
+  root.processResult = processResult;
 
 }).call(this);
