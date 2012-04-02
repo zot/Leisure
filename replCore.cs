@@ -22,7 +22,6 @@ nextFunc = ->
 
 setNext = (n)-> nextFunc = n
 
-#getType = (value)-> (typeof value == 'function' and value.type) || typeof value
 getType = Lazp.getType
 
 handlerFunc = (ast, result, a, c, r)->
@@ -30,7 +29,9 @@ handlerFunc = (ast, result, a, c, r)->
   if c then write("GEN: #{ast.src}\n")
   if r
     if !result then write("(No Result)\n")
-    else write("#{getType result}: #{P.print(result)}\n")
+    else
+      write("#{getType result}: #{P.print(result)}\n")
+      processResult result
 
 setHandler = (f)-> handlerFunc = f
 
@@ -58,6 +59,12 @@ print = (args...)-> writeFunc(U.format.apply(null, args))
 
 write = (args...)-> writeFunc args.join('')
 
+processResult = (result)->
+  if (getType result) == 'monad'
+    result (value) -> if result.binding? then processResult(result.binding(-> value))
+    else nextFunc()
+  else nextFunc()
+
 handleVar = (name, value)->
   if !name
     for prop in (k for k of vars).sort()
@@ -81,14 +88,27 @@ processLine = (line)->
           ast = Lazp.compileLine(line)
           if r then [ast, result] = Lazp.evalLine(line)
           else result = null
-          handlerFunc(ast, result, a, c, r)
+          return handlerFunc(ast, result, a, c, r)
   catch err
     write(err.stack)
   nextFunc()
 
 generateCode = (file, contents, loud)->
   if loud then console.log("Compiling #{file}:\n")
-  out = 'if (typeof require !== "undefined" && require !== null) {Lazp = require("./lazp")};\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\n'
+  out = """
+if (typeof require !== "undefined" && require !== null) {
+  Lazp = require("./lazp")
+  require('./prim');
+  ReplCore = require("./replCore");
+  Repl = require('./repl');
+}
+setId = Lazp.setId;
+setType = Lazp.setType;
+setDataType = Lazp.setDataType;
+define = Lazp.define;
+processResult = Repl.processResult;
+
+"""
   errs = ''
   globals = Lazp.Nil
   for line, i in contents.split('\n')
@@ -100,7 +120,7 @@ generateCode = (file, contents, loud)->
         m = line.match(Lazp.linePat)
         nm = m and m[1].trim().split(/\s+/)[0]
         ast.src = "//#{if nm then nm + ' = ' else ''}#{Lazp.astPrint(ast)}\n#{ast.src}"
-        src = if ast.lazpName then ast.src else "console.log(String(#{ast.src}))"
+        src = if ast.lazpName then ast.src else "processResult(#{ast.src})"
         out += "#{src};\n"
   if errs then throw new Error("Errors compiling #{file}: #{errs}")
   out
@@ -115,3 +135,4 @@ root.next = -> nextFunc()
 root.help = -> helpFunc()
 root.getType = getType
 root.generateCode = generateCode
+root.processResult = processResult

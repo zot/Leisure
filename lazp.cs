@@ -131,18 +131,9 @@ define 'apply', (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _app
 
 define 'prim', (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
 
-define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
-
-define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
-
 getType = (f)->
   t = typeof f
-  if t == 'function' then f?.type or null
-  else "*#{t}"
-
-define 'withType', (value)->(t)->(f)->
-  if type = getType(value()) then t()(->type)
-  else f()
+  (t == 'function' and f?.type) or "*#{t}"
 
 lit = setId(root.funcs.lit)
 ref = setId(root.funcs.ref)

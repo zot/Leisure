@@ -228,51 +228,11 @@ misrepresented as being the original software.
     }), -1003);
   });
 
-  define('is', function(value) {
-    return function(type) {
-      var _ref;
-      if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
-        return _true();
-      } else {
-        return _false();
-      }
-    };
-  });
-
-  define('eq', function(a) {
-    return function(b) {
-      if (a() === b()) {
-        return _true();
-      } else {
-        return  _false();
-      }
-    };
-  });
-
   getType = function getType(f) {
     var t;
     t = typeof f;
-    if (t === 'function') {
-      return (f != null ? f.type : void 0) || null;
-    } else {
-      return "*" + t;
-    }
+    return (t === 'function' && (f != null ? f.type : void 0)) || ("*" + t);
   };
-
-  define('withType', function(value) {
-    return function(t) {
-      return function(f) {
-        var type;
-        if (type = getType(value())) {
-          return t()(function() {
-            return type;
-          });
-        } else {
-          return f();
-        }
-      };
-    };
-  });
 
   lit = setId(root.funcs.lit);
 

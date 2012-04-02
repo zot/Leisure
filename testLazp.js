@@ -36,6 +36,8 @@ Tests for Lazp
 
   require('./std');
 
+  require('./prim');
+
   setId = LZ.setId, setType = LZ.setType, setDataType = LZ.setDataType, define = LZ.define;
 
   _ref = T = require('./testing.js'), run = _ref.run, assertParse = _ref.assertParse, assertEval = _ref.assertEval, assertEq = _ref.assertEq;

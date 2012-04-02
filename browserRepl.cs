@@ -15,6 +15,7 @@ init = (inputField, output, defs)->
   ReplCore.setHandler (ast, result, a, c, r)->
     if ast.lazpName? then defs.innerHTML += "#{markupDef(lastLine)}<br>"
     else output.innerHTML += "#{lastLine} \u2192\n  #{ReplCore.getType result}: #{Pretty.print result}\n"
+    ReplCore.processResult result
   input = inputField
   input.onkeypress = (e)->
     if (e.charCode || e.keyCode || e.which) == 13
@@ -43,6 +44,10 @@ handleFiles = (fileElement)->
   reader.readAsText(files[0])
   fileElement.value = null
   input.select()
+
+processResult = (result)->
+  write("#{getType result}: #{P.print(result)}\n")
+  ReplCore.processResult result
 
 root.init = init
 root.markupDef = markupDef

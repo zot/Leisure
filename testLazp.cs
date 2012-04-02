@@ -29,6 +29,7 @@ Tests for Lazp
 U = require('util')
 LZ=require('./lazp.js')
 require('./std')
+require('./prim')
 {setId, setType, setDataType, define} = LZ
 {run, assertParse, assertEval, assertEq} = T = require('./testing.js')
 

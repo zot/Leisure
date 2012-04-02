@@ -3,8 +3,6 @@
 
   R = require('./repl');
 
-  require('./prim');
-
   importFile = function importFile(file) {
     R.compile(file);
     console.log("require('./" + file + "')");

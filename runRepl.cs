@@ -1,5 +1,4 @@
 R = require('./repl')
-require('./prim')
 
 importFile = (file) ->
   R.compile file

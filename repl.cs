@@ -1,15 +1,19 @@
 U = require('util')
 R = require('readline')
 L = require('./lazp')
+Prim = require('./prim')
 Core = require('./replCore')
 FS = require('fs')
 Path = require('path')
+P = require('./pretty')
 
 #require('./std')
 #console.log("cons: #{`_cons`}")
 
 root = exports ? this
 root.quiet = false
+
+getType = L.getType
 
 vars = {
   c: [false, 'show generated code'],
@@ -18,17 +22,28 @@ vars = {
 }
 
 print = (args...)-> process.stdout.write(U.format.apply(null, args))
-
 write = (args...)-> process.stdout.write args.join('')
+face = null
+
+init = ->
+  if !face?
+    face = R.createInterface(process.stdin, process.stdout)
+    Prim.setTty(face)
+    face.setPrompt "Lazp> "
+    face.on 'close', ()->process.exit(0)
+    face.on 'line', (line)->Core.processLine(line.trim())
+    Core.setNext -> face.prompt()
 
 repl = () ->
   print("Welcome to Lazp!\n")
   help()
-  face = R.createInterface(process.stdin, process.stdout)
-  face.setPrompt "Lazp> "
-  face.on 'close', ()->process.exit(0)
-  face.on 'line', (line)->Core.processLine(line.trim())
-  Core.setNext -> face.prompt()
+  init()
+  # face = R.createInterface(process.stdin, process.stdout)
+  # Prim.setTty(face)
+  # face.setPrompt "Lazp> "
+  # face.on 'close', ()->process.exit(0)
+  # face.on 'line', (line)->Core.processLine(line.trim())
+  # Core.setNext -> face.prompt()
   face.prompt()
 
 help = ()->
@@ -64,6 +79,10 @@ compile = (file)->
       console.log("Exception reading file: ", ex.stack)
       Core.next())
 
+processResult = (result)->
+  init()
+  write("#{getType result}: #{P.print(result)}\n")
+  Core.processResult result
 
 Core.setHelp help
 Core.setCompiler compile
@@ -72,3 +91,5 @@ Core.setWriter (str)-> process.stdout.write(str)
 root.print = print
 root.repl = repl
 root.compile = compile
+root.init = init
+root.processResult = processResult
