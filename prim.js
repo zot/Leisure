@@ -9,8 +9,8 @@
       if (!(output != null)) output = document.getElementById('output');
       return output.innerHTML += "" + msg;
     };
-    prompt = function prompt(msg, func) {
-      return func(window.prompt(msg));
+    prompt = function prompt(msg, cont) {
+      return cont(window.prompt(msg));
     };
     root = {};
   } else {
@@ -21,8 +21,8 @@
     write = function write(msg) {
       return tty.write(msg);
     };
-    prompt = function prompt(msg, func) {
-      return tty.question(msg, func);
+    prompt = function prompt(msg, cont) {
+      return tty.question(msg, cont);
     };
   }
 
@@ -105,13 +105,11 @@
     m = function m() {};
     m.cmd = func;
     m.type = 'monad';
-    m.binding = binding;
+    if (binding !== "end") m.binding = binding;
     return m;
   };
 
-  define('end', makeMonad(null, function(cont) {
-    return cont(null);
-  }));
+  define('end', "end");
 
   define('return', function(v, binding) {
     return makeMonad(binding(), function(cont) {
@@ -134,6 +132,14 @@
         return prompt(String(msg()), function(input) {
           return cont(input);
         });
+      });
+    };
+  });
+
+  define('js', function(code) {
+    return function(binding) {
+      return makeMonad(binding(), function(cont) {
+        return cont(eval(code()));
       });
     };
   });
