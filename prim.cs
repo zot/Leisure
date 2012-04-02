@@ -55,8 +55,6 @@ define 'print', (msg)->(binding)->
 
 define 'prompt', (msg)->(binding)->
   makeMonad binding(), (cont)->
-    #console.log("PROMPTING: #{msg()}")
-    #cont(null)
     prompt(String(msg()), (input)-> cont(input))
 
 root.setTty = setTty
