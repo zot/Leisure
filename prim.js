@@ -101,9 +101,12 @@
   });
 
   makeMonad = function makeMonad(binding, func) {
-    func.type = 'monad';
-    func.binding = binding;
-    return func;
+    var m;
+    m = function m() {};
+    m.cmd = func;
+    m.type = 'monad';
+    m.binding = binding;
+    return m;
   };
 
   define('end', makeMonad(null, function(cont) {

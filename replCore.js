@@ -82,7 +82,7 @@
 
   processResult = function processResult(result) {
     if ((getType(result)) === 'monad') {
-      return result(function(value) {
+      return result.cmd(function(value) {
         if (result.binding != null) {
           return processResult(result.binding(function() {
             return value;

@@ -32,10 +32,15 @@ define '*', (a)->(b)->a() * b()
 define '/', (a)->(b)->a() / b()
 define '%', (a)->(b)->a() % b()
 
+# Make a new function and hide func and binding in properties on it
+# making them inaccessible to pure Lazp code
+# so people won't accidentally fire off side effects
 makeMonad = (binding, func)->
-  func.type = 'monad'
-  func.binding = binding
-  func
+  m = ->
+  m.cmd = func
+  m.type = 'monad'
+  m.binding = binding
+  m
 
 define 'end', makeMonad null, (cont)->cont(null)
 

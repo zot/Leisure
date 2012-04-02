@@ -61,7 +61,7 @@ write = (args...)-> writeFunc args.join('')
 
 processResult = (result)->
   if (getType result) == 'monad'
-    result (value) -> if result.binding? then processResult(result.binding(-> value))
+    result.cmd (value) -> if result.binding? then processResult(result.binding(-> value))
     else nextFunc()
   else nextFunc()
 
