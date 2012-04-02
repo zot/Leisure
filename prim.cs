@@ -6,7 +6,7 @@ if window? and (!global? or global == window)
   write = (msg)->
     if !output? then output = document.getElementById('output')
     output.innerHTML += "#{msg}"
-  prompt = (msg, func)-> func(window.prompt(msg))
+  prompt = (msg, cont)-> cont(window.prompt(msg))
   root = {}
 else
   # running in node
@@ -15,7 +15,7 @@ else
   RL = require('readline')
   tty = null
   write = (msg)-> tty.write(msg)
-  prompt = (msg, func)-> tty.question(msg, func)
+  prompt = (msg, cont)-> tty.question(msg, cont)
 
 setTty = (rl)-> tty = rl
 
@@ -39,22 +39,25 @@ makeMonad = (binding, func)->
   m = ->
   m.cmd = func
   m.type = 'monad'
-  m.binding = binding
+  if binding != "end" then m.binding = binding
   m
 
-define 'end', makeMonad null, (cont)->cont(null)
+define 'end', "end"
 
 define 'return', (v, binding)->
   makeMonad binding(), (cont) -> cont(v())
 
 define 'print', (msg)->(binding)->
   makeMonad binding(), (cont)->
-    #console.log(msg())
     write("#{msg()}\n")
     cont(null)
 
 define 'prompt', (msg)->(binding)->
   makeMonad binding(), (cont)->
     prompt(String(msg()), (input)-> cont(input))
+
+define 'js', (code)->(binding)->
+  makeMonad binding(), (cont)->
+    cont(eval(code()))
 
 root.setTty = setTty
