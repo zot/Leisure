@@ -84,11 +84,11 @@ Tests for Lazp
   });
 
   run('test8', function() {
-    return assertEval("head (cons 1 2)", '1');
+    return assertEval("head (cons 1 2)", 1);
   });
 
   run('test9', function() {
-    return assertEval("tail (cons 1 2)", '2');
+    return assertEval("tail (cons 1 2)", 2);
   });
 
   run('test10', function() {
@@ -109,6 +109,22 @@ Tests for Lazp
 
   run('test14', function() {
     return assertEval("(\\1 . 1) hello", 'hello');
+  });
+
+  run('test15', function() {
+    return assertEval("head ([ 1 ])", 1);
+  });
+
+  run('test16', function() {
+    return assertEval("head (tail (append ([ 1 ]) ([ 2 ])))", 2);
+  });
+
+  run('test17', function() {
+    return assertEval("head [1]", 1);
+  });
+
+  run('test18', function() {
+    return assertEval("head (tail (append [1] [2]))", 2);
   });
 
   console.log('\nDone');

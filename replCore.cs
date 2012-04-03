@@ -106,6 +106,7 @@ setId = Lazp.setId;
 setType = Lazp.setType;
 setDataType = Lazp.setDataType;
 define = Lazp.define;
+defineToken = Lazp.defineToken;
 processResult = Repl.processResult;
 
 """

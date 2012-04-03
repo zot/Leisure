@@ -35,7 +35,7 @@ _lambdaId = -3
 _applyId = -4
 _primId = -5
 commentPat = /^\s*#/
-tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[()#.\\\\]| +/
+tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/
 specials = '[]().*+?|'
 linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/
 order = []
@@ -234,13 +234,13 @@ class Code
     if !@mcount then @unreffedValue(deref)
     else @copyWith("(function(){var #{@memoNames()}; return #{@main}})", null, null, 0).reffedValue(deref)
 
-dgen = (ast, lazy, name, globals)->
+dgen = (ast, lazy, name, globals, tokenDef)->
   ast.lits = []
   res = []
   code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true).memo(!lazy)
   if code.err? then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
-(function(){
+(function(){#{if tokenDef? then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
   return #{if name? then "define('#{name}', #{code.main})" else code.main}
 })()
@@ -291,23 +291,22 @@ gen = (ast, code, lits, vars, deref)->
 laz = (val)-> -> val
 
 defineToken = (name, def)->
-  if def != '='
-    tokens[name] = 1
-    if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
-    else if (def[1] == ')') then groupCloses[name] = 1
-    types = []
-    types.push(i) for i of tokens
-    # sort them by length, longest first
-    types.sort (a, b)-> b.length - a.length
-    for i in [0...types.length]
-      s = types[i]
-      o = ''
-      for p in [0...s.length]
-        if specials.indexOf(s[p]) > -1 then o += '\\'
-        o += s[p]
-      types[i] = o
-    types.push '[()#.\\\\]| +'
-    tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'))
+  tokens[name] = 1
+  if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
+  else if (def[1] == ')') then groupCloses[name] = 1
+  types = []
+  types.push(i) for i of tokens
+  # sort them by length, longest first
+  types.sort (a, b)-> b.length - a.length
+  for i in [0...types.length]
+    s = types[i]
+    o = ''
+    for p in [0...s.length]
+      if specials.indexOf(s[p]) > -1 then o += '\\'
+      o += s[p]
+    types[i] = o
+  types.push '[().\\\\]| +'
+  tokenPat =  new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'))
 
 
 createDefinition = (name, ast, index)->
@@ -333,7 +332,7 @@ compileLine = (line, globals)->
     ast = null
     if nm
       astsByName[nm[0]] = 1
-      if def then defineToken(nm[0], def[2])
+      if def && def[2] != '=' then defineToken(nm[0], def[2])
       ast = parse(prefix(nm, 1, expr, []))
       bod = ast
       if nm.length > 1
@@ -343,7 +342,7 @@ compileLine = (line, globals)->
         bod.type = nm[0]
         ast.dataType = nm[0]
       nameAst(nm[0], ast)
-      dgen(ast, false, nm[0], globals)
+      dgen(ast, false, nm[0], globals, (if def[2] && def[2] != '=' then def[2] else null))
       if nm.length == 1 then nameAst(nm[0], ast)
     else
       ast = parse(expr)
@@ -373,11 +372,13 @@ tokenize = (str)->
   toks = []
   pos = 0
   str = str.replace(/\u03BB/g, '\\')
-  while str.length and (pos = str.search(tokenPat)) > -1
-    if pos > 0 then toks.push(str.substring(0, pos))
-    tok = tokenPat.exec(str.substring pos)[0]
-    if tok.trim() then toks.push(tok)
-    str = str.substring pos + tok.length
+  while str.length and m = str.match(tokenPat)
+    if m.index > 0 then toks.push(str.substring(0, m.index))
+    tok = m[0]
+    str = str.substring m.index + tok.length
+    if tok.trim()
+      if tok[0] == "'" or tok[0] == '"' then tok = tok.substring(1, tok.length - 1)
+      toks.push(tok)
   if str.length then toks.push(str)
   toks
 
@@ -452,3 +453,4 @@ root.getType = getType
 root.linePat = linePat
 root.Nil = Nil
 root.cons = cons
+root.defineToken = defineToken

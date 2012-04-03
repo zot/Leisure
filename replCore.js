@@ -161,7 +161,7 @@
   generateCode = function generateCode(file, contents, loud) {
     var ast, errs, globals, i, line, m, nm, out, src, _len, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\nprocessResult = Repl.processResult;\n";
+    out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n";
     errs = '';
     globals = Lazp.Nil;
     _ref = contents.split('\n');

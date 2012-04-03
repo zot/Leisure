@@ -29,7 +29,7 @@
       if (ast.lazpName != null) {
         defs.innerHTML += "" + (markupDef(lastLine)) + "<br>";
       } else {
-        output.innerHTML += "" + lastLine + " \u2192\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
+        output.innerHTML += "<b>> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
       }
       return ReplCore.processResult(result);
     });

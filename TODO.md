@@ -39,6 +39,7 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* fix parser groups, etc.
 * monads and monad driver
 * primitive functions
 * simple pretty printing

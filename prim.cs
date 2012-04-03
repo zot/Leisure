@@ -12,6 +12,7 @@ else
   # running in node
   root = exports ? this
   Lazp = require('./lazp')
+  U = require('util')
   RL = require('readline')
   tty = null
   write = (msg)-> tty.write(msg)
@@ -35,9 +36,9 @@ define '%', (a)->(b)->a() % b()
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Lazp code
 # so people won't accidentally fire off side effects
-makeMonad = (binding, func)->
+makeMonad = (binding, guts)->
   m = ->
-  m.cmd = func
+  m.cmd = guts
   m.type = 'monad'
   if binding != "end" then m.binding = binding
   m
@@ -56,8 +57,19 @@ define 'prompt', (msg)->(binding)->
   makeMonad binding(), (cont)->
     prompt(String(msg()), (input)-> cont(input))
 
-define 'js', (code)->(binding)->
+head = (l)->l ->(hh)->(tt)->hh()
+tail = (l)->l ->(hh)->(tt)->tt()
+
+concatList = (l)->
+  if l == _nil() then ""
+  else (head l) + concatList tail l
+
+define 'concat', (l)-> concatList(l())
+
+define 'js', (codeList)->(binding)->
   makeMonad binding(), (cont)->
-    cont(eval(code()))
+    cl = codeList()
+    if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
+    cont(eval(concatList(cl)))
 
 root.setTty = setTty

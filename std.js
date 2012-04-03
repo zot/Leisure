@@ -8,6 +8,7 @@ setId = Lazp.setId;
 setType = Lazp.setType;
 setDataType = Lazp.setDataType;
 define = Lazp.define;
+defineToken = Lazp.defineToken;
 processResult = Repl.processResult;
 //id = lambda x . ref x
 (function(){
@@ -48,25 +49,29 @@ var subfunc1 = setType(function(_a){return subfunc0}, 'nil')
   return define('append', subfunc0)
 })();
 //[ = lambda item . lambda c . apply (ref c) (lambda rest . apply (apply (ref cons) (ref item)) (ref rest))
-(function(){
+(function(){defineToken('[', '=(]=')
+
   var subfunc0 = setType(function(_item){return function(_c){return _c()((function(){return function(_rest){return _cons()(_item)(_rest)}}))}}, '[')
 
   return define('[', subfunc0)
 })();
 //, = lambda f . lambda item . lambda c . apply (ref c) (lambda rest . apply (ref f) (apply (apply (ref cons) (ref item)) (ref rest)))
-(function(){
+(function(){defineToken(',', '=.=')
+
   var subfunc0 = setType(function(_f){return function(_item){return function(_c){return _c()((function(){return function(_rest){return _f()((function(){return _cons()(_item)(_rest)}))}}))}}}, ',')
 
   return define(',', subfunc0)
 })();
 //] = lambda f . apply (ref f) (ref nil)
-(function(){
+(function(){defineToken(']', '=)=')
+
   var subfunc0 = setType(function(_f){return _f()(_nil)}, ']')
 
   return define(']', subfunc0)
 })();
 //| = lambda f . lambda rest . lambda g . apply (ref f) (ref rest)
-(function(){
+(function(){defineToken('|', '=.=')
+
   var subfunc0 = setType(function(_f){return function(_rest){return function(_g){return _f()(_rest)}}}, '|')
 
   return define('|', subfunc0)

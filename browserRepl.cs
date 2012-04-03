@@ -14,7 +14,7 @@ init = (inputField, output, defs)->
   ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r)->
     if ast.lazpName? then defs.innerHTML += "#{markupDef(lastLine)}<br>"
-    else output.innerHTML += "#{lastLine} \u2192\n  #{ReplCore.getType result}: #{Pretty.print result}\n"
+    else output.innerHTML += "<b>> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}\n"
     ReplCore.processResult result
   input = inputField
   input.onkeypress = (e)->
