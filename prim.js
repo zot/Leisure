@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, RL, define, getType, makeMonad, output, prompt, root, setTty, tty, write;
+  var Lazp, RL, U, concatList, define, getType, head, makeMonad, output, prompt, root, setTty, tail, tty, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -16,6 +16,7 @@
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
     Lazp = require('./lazp');
+    U = require('util');
     RL = require('readline');
     tty = null;
     write = function write(msg) {
@@ -100,10 +101,10 @@
     };
   });
 
-  makeMonad = function makeMonad(binding, func) {
+  makeMonad = function makeMonad(binding, guts) {
     var m;
     m = function m() {};
-    m.cmd = func;
+    m.cmd = guts;
     m.type = 'monad';
     if (binding !== "end") m.binding = binding;
     return m;
@@ -136,10 +137,47 @@
     };
   });
 
-  define('js', function(code) {
+  head = function head(l) {
+    return l(function() {
+      return function(hh) {
+        return function(tt) {
+          return hh();
+        };
+      };
+    });
+  };
+
+  tail = function tail(l) {
+    return l(function() {
+      return function(hh) {
+        return function(tt) {
+          return tt();
+        };
+      };
+    });
+  };
+
+  concatList = function concatList(l) {
+    if (l === _nil()) {
+      return "";
+    } else {
+      return (head(l)) + concatList(tail(l));
+    }
+  };
+
+  define('concat', function(l) {
+    return concatList(l());
+  });
+
+  define('js', function(codeList) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
-        return cont(eval(code()));
+        var cl;
+        cl = codeList();
+        if (cl !== _nil() && cl.type !== 'cons') {
+          throw new Error("js expects a list for its code");
+        }
+        return cont(eval(concatList(cl)));
       });
     };
   });

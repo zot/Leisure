@@ -49,7 +49,7 @@ misrepresented as being the original software.
 
   commentPat = /^\s*#/;
 
-  tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[()#.\\\\]| +/;
+  tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/;
 
   specials = '[]().*+?|';
 
@@ -520,7 +520,7 @@ misrepresented as being the original software.
 
   })();
 
-  dgen = function dgen(ast, lazy, name, globals) {
+  dgen = function dgen(ast, lazy, name, globals, tokenDef) {
     var code, res;
     ast.lits = [];
     res = [];
@@ -528,7 +528,7 @@ misrepresented as being the original software.
     if (code.err != null) {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
-      ast.src = "(function(){\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
+      ast.src = "(function(){" + (tokenDef != null ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
     } else {
       ast.src = name != null ? "define('" + name + "', " + code.main + ")" : "(" + code.main + ")";
     }
@@ -610,32 +610,30 @@ misrepresented as being the original software.
 
   defineToken = function defineToken(name, def) {
     var i, o, p, s, types, _ref, _ref2;
-    if (def !== '=') {
-      tokens[name] = 1;
-      if (def[1] === '(') {
-        groupOpens[name] = def.substring(2, def.length - 1);
-      } else if (def[1] === ')') {
-        groupCloses[name] = 1;
-      }
-      types = [];
-      for (i in tokens) {
-        types.push(i);
-      }
-      types.sort(function(a, b) {
-        return b.length - a.length;
-      });
-      for (i = 0, _ref = types.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-        s = types[i];
-        o = '';
-        for (p = 0, _ref2 = s.length; 0 <= _ref2 ? p < _ref2 : p > _ref2; 0 <= _ref2 ? p++ : p--) {
-          if (specials.indexOf(s[p]) > -1) o += '\\';
-          o += s[p];
-        }
-        types[i] = o;
-      }
-      types.push('[()#.\\\\]| +');
-      return tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'));
+    tokens[name] = 1;
+    if (def[1] === '(') {
+      groupOpens[name] = def.substring(2, def.length - 1);
+    } else if (def[1] === ')') {
+      groupCloses[name] = 1;
     }
+    types = [];
+    for (i in tokens) {
+      types.push(i);
+    }
+    types.sort(function(a, b) {
+      return b.length - a.length;
+    });
+    for (i = 0, _ref = types.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+      s = types[i];
+      o = '';
+      for (p = 0, _ref2 = s.length; 0 <= _ref2 ? p < _ref2 : p > _ref2; 0 <= _ref2 ? p++ : p--) {
+        if (specials.indexOf(s[p]) > -1) o += '\\';
+        o += s[p];
+      }
+      types[i] = o;
+    }
+    types.push('[().\\\\]| +');
+    return tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'));
   };
 
   createDefinition = function createDefinition(name, ast, index) {
@@ -674,7 +672,7 @@ misrepresented as being the original software.
       ast = null;
       if (nm) {
         astsByName[nm[0]] = 1;
-        if (def) defineToken(nm[0], def[2]);
+        if (def && def[2] !== '=') defineToken(nm[0], def[2]);
         ast = parse(prefix(nm, 1, expr, []));
         bod = ast;
         if (nm.length > 1) {
@@ -686,7 +684,7 @@ misrepresented as being the original software.
           ast.dataType = nm[0];
         }
         nameAst(nm[0], ast);
-        dgen(ast, false, nm[0], globals);
+        dgen(ast, false, nm[0], globals, (def[2] && def[2] !== '=' ? def[2] : null));
         if (nm.length === 1) nameAst(nm[0], ast);
       } else {
         ast = parse(expr);
@@ -723,15 +721,20 @@ misrepresented as being the original software.
   };
 
   tokenize = function tokenize(str) {
-    var pos, tok, toks;
+    var m, pos, tok, toks;
     toks = [];
     pos = 0;
     str = str.replace(/\u03BB/g, '\\');
-    while (str.length && (pos = str.search(tokenPat)) > -1) {
-      if (pos > 0) toks.push(str.substring(0, pos));
-      tok = tokenPat.exec(str.substring(pos))[0];
-      if (tok.trim()) toks.push(tok);
-      str = str.substring(pos + tok.length);
+    while (str.length && (m = str.match(tokenPat))) {
+      if (m.index > 0) toks.push(str.substring(0, m.index));
+      tok = m[0];
+      str = str.substring(m.index + tok.length);
+      if (tok.trim()) {
+        if (tok[0] === "'" || tok[0] === '"') {
+          tok = tok.substring(1, tok.length - 1);
+        }
+        toks.push(tok);
+      }
     }
     if (str.length) toks.push(str);
     return toks;
@@ -855,5 +858,7 @@ misrepresented as being the original software.
   root.Nil = Nil;
 
   root.cons = cons;
+
+  root.defineToken = defineToken;
 
 }).call(this);
