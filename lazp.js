@@ -729,12 +729,7 @@ misrepresented as being the original software.
       if (m.index > 0) toks.push(str.substring(0, m.index));
       tok = m[0];
       str = str.substring(m.index + tok.length);
-      if (tok.trim()) {
-        if (tok[0] === "'" || tok[0] === '"') {
-          tok = tok.substring(1, tok.length - 1);
-        }
-        toks.push(tok);
-      }
+      if (tok.trim()) toks.push(tok);
     }
     if (str.length) toks.push(str);
     return toks;
@@ -781,18 +776,15 @@ misrepresented as being the original software.
   };
 
   tparseVariable = function tparseVariable(tok, vars) {
-    var path, _ref;
-    if (((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok]) {
+    var _ref;
+    if (tok[0] === '"' || tok[0] === "'") {
+      return lit(laz(tok.substring(1, tok.length - 1)));
+    } else if (((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok] || (vars.find(function(v) {
+      return tok === v;
+    }))) {
       return ref(laz(tok));
     } else {
-      path = [];
-      if (vars.find(function(v) {
-        return tok === v || !path.push(v);
-      })) {
-        return ref(laz(tok));
-      } else {
-        return lit(laz(scanTok(tok)));
-      }
+      return lit(laz(scanTok(tok)));
     }
   };
 
@@ -805,24 +797,18 @@ misrepresented as being the original software.
   };
 
   tparseLambda = function tparseLambda(toks, vars) {
-    var ast, body, nm, v;
-    nm = null;
-    v = {
-      notFree: false
-    };
+    var body, nm;
     if (toks.length < 3 || toks[toks.length - 1] === '.') {
       throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '));
     }
-    if (toks[toks.length - 2] === '.') {
-      nm = toks.pop();
+    nm = toks.pop();
+    if (toks[toks.length - 1] === '.') {
       toks.pop();
       body = tparse(toks, cons(nm, vars));
     } else {
-      nm = toks.pop();
       body = tparseLambda(toks, cons(nm, vars));
     }
-    ast = lambda(laz(nm))(laz(body));
-    return ast;
+    return lambda(laz(nm))(laz(body));
   };
 
   root.parse = parse;
