@@ -376,9 +376,7 @@ tokenize = (str)->
     if m.index > 0 then toks.push(str.substring(0, m.index))
     tok = m[0]
     str = str.substring m.index + tok.length
-    if tok.trim()
-      if tok[0] == "'" or tok[0] == '"' then tok = tok.substring(1, tok.length - 1)
-      toks.push(tok)
+    if tok.trim() then toks.push(tok)
   if str.length then toks.push(str)
   toks
 
@@ -411,11 +409,9 @@ tparse = (toks, vars, expr)->
   expr
 
 tparseVariable = (tok, vars)->
-  if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] then ref(laz(tok))
-  else
-    path = []
-    if (vars.find (v)-> tok == v or !path.push(v)) then ref(laz(tok))
-    else lit(laz(scanTok(tok)))
+  if tok[0] == '"' or tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
+  else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
+  else lit(laz(scanTok(tok)))
 
 scanTok = (tok)->
   try
@@ -424,18 +420,13 @@ scanTok = (tok)->
     tok
 
 tparseLambda = (toks, vars)->
-  nm = null
-  v = {notFree: false}
   if toks.length < 3 or toks[toks.length - 1] == '.' then throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
-  if toks[toks.length - 2] == '.'
-    nm = toks.pop()
+  nm = toks.pop()
+  if toks[toks.length - 1] == '.'
     toks.pop()
     body = tparse toks, cons(nm, vars)
-  else
-    nm = toks.pop()
-    body = tparseLambda toks, cons(nm, vars)
-  ast = lambda(laz(nm))(laz(body))
-  ast
+  else body = tparseLambda toks, cons(nm, vars)
+  lambda(laz(nm))(laz(body))
 
 root.parse = parse
 root.astPrint = astPrint

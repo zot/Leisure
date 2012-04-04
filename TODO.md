@@ -1,20 +1,25 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* make bodiless lambdas eat newlines, to help with monads
+
+> print "What is your name?" \_.  
+> read \value .  
+> print (concat ["hello ", value, "."]) end
+
 * make repl keep track of old definitions so it can wipe the env clean
 * integrate physics engine
-* indentation tweak to help with monads
+* indentation tweak
    * indent line creates a nested expression
-   * a lambda dot at the end of the line continues on the next line, regardless of indentation
 
 >zip  
 >>a  
   b
 
 > is zip (a) (b)  
->
+
 > print "What is your name?" \_.  
 > read \value .  
-> print ["hello ", value, ", would you like a piece of toast?"] \_ .  
+> print (concat ["hello ", value, ", would you like a piece of toast?"] \_ .  
 > read \value .  
 > ((match value /\[yY]\[eE]\[sS]/)  
 >>   print "Here, have one!")  
