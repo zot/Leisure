@@ -1,11 +1,18 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* change to new parser
 * make bodiless lambdas eat newlines, to help with monads
 
 > print "What is your name?" \_.  
 > read \value .  
 > print (concat ["hello ", value, "."]) end
 
+* infix function call syntax
+   * allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)
+   * allow $ to separate expressions, so a $ b $ c is the same as (a) (b) (c) (use ~ instead?)
+* generate n-arg functions for optimizing function application
+   * prefix narg functions with $N_
+   * since cons is a global ref, cons a b -> $2_cons(a, b), instead of _cons(a)(b)
 * make repl keep track of old definitions so it can wipe the env clean
 * integrate physics engine
 * indentation tweak

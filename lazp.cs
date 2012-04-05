@@ -35,7 +35,8 @@ _lambdaId = -3
 _applyId = -4
 _primId = -5
 commentPat = /^\s*#/
-tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/
+baseTokenPat = /\n|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/
+tokenPat = baseTokenPat
 specials = '[]().*+?|'
 linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/
 order = []
@@ -306,7 +307,7 @@ defineToken = (name, def)->
       o += s[p]
     types[i] = o
   types.push '[().\\\\]| +'
-  tokenPat =  new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'))
+  tokenPat =  new RegExp(baseTokenPat.source + '|' + types.join('|'))
 
 
 createDefinition = (name, ast, index)->
@@ -368,6 +369,62 @@ evalLine = (line)->
       [ast, result]
   else []
 
+nextTok = (str)->
+  m = str.match(tokenPat)
+  if !m then [str, '']
+  else if m[0] == '\n' then ['\n', str.substring 1]
+  else
+    tok = str.substring(0, if m.index > 0 then m.index else m[0].length)
+    rest = str.substring tok.length
+    if tok.trim() then [tok, rest]
+    else nextTok rest
+
+newParse = (str)-> newParseApply str.replace(/\u03BB/g, '\\'), Nil
+
+# returns [ast, error, rest-of-input]
+newParseApply = (str, vars)->
+  if !str.length then [null, null, str]
+  else
+    [tok, rest] = nextTok str
+    if tok == '\n' then [null, null, rest]
+    else if tok == ')' then [null, "Unexpected close paren", str]
+    else
+      [func, err, str] = newParseTerm tok, rest, vars
+      if err then [ast, err, rest]
+      else newContinueApply(func, str, vars)
+
+newContinueApply = (func, str, vars)->
+  [tok, rest] = nextTok str
+  if tok in ['\n', ')'] then [func, null, str]
+  else
+    [arg, err, rest] = newParseTerm tok, rest, vars
+    if err then [ast, err, rest]
+    else newContinueApply(apply(laz(func))(laz(arg)), rest, vars)
+
+newParseTerm = (tok, rest, vars)->
+  if tok == '\\' then parseLambda rest, vars
+  else if tok == '('
+    [ast, err, rest] = newParse rest, vars
+    if err then [ast, err, rest]
+    else
+      str = rest
+      [tok, rest] = nextTok str
+      if tok != ')' then [ast, 'Expected close paren', str]
+      else [ast, null, rest]
+  else if tok[0] == '"' or tok[0] == "'" then [lit(laz(tok.substring(1, tok.length - 1))), null, rest]
+  else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then [ref(laz(tok)), null, rest]
+  else [lit(laz(scanTok(tok))), null, rest]
+
+nextTokWithNl = (str)->
+  t = [tok, rest] = nextTok str
+  if t == '\n' then nextTokWithNl rest
+  else t
+
+newParseLambda = (str, vars)->
+  [tok1, rest1] = nextTokWithNL str
+  [tok2, rest2] = nextTokWithNL rest1
+  if tok2 == '.'
+
 tokenize = (str)->
   toks = []
   pos = 0
@@ -376,39 +433,39 @@ tokenize = (str)->
     if m.index > 0 then toks.push(str.substring(0, m.index))
     tok = m[0]
     str = str.substring m.index + tok.length
-    if tok.trim() then toks.push(tok)
+    if tok == '\n' or tok.trim() then toks.push(tok)
   if str.length then toks.push(str)
   toks
 
-parse = (str)-> tparse tokenize(str).reverse(), Nil
+parse = (str)-> parseExpr tokenize(str).reverse(), Nil
 
 addDef = (toks)->
   t = toks.reverse()
   defs[t[0]] = t.join(' ')
 
-tparse = (toks, vars, expr)->
-  cur
+parseExpr = (toks, vars, expr)->
   while toks.length
     tok = toks.pop()
+    if tok == '\n' then return expr
     if tok == ')'
       toks.push(tok)
       return expr
-    if tok == '\\' then cur = tparseLambda(toks, vars)
+    if tok == '\\' then cur = parseLambda(toks, vars)
     else
       expectedClose = groupOpens[tok]
       skip = false
       if expectedClose
-        cur = tparse toks, vars, if tok != '(' then tparseVariable(tok, vars) else null
+        cur = parseExpr toks, vars, if tok != '(' then parseVariable(tok, vars) else null
         if toks.length && toks[toks.length - 1] == expectedClose then toks.pop()
         skip = true
-      if !skip then cur = tparseVariable(tok, vars)
+      if !skip then cur = parseVariable(tok, vars)
     expr = if expr then apply(laz(expr))(laz(cur)) else cur
     if groupCloses[tok]
       toks.push(tok)
       return expr
   expr
 
-tparseVariable = (tok, vars)->
+parseVariable = (tok, vars)->
   if tok[0] == '"' or tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
   else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
   else lit(laz(scanTok(tok)))
@@ -419,13 +476,14 @@ scanTok = (tok)->
   catch err
     tok
 
-tparseLambda = (toks, vars)->
+parseLambda = (toks, vars)->
   if toks.length < 3 or toks[toks.length - 1] == '.' then throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '))
   nm = toks.pop()
   if toks[toks.length - 1] == '.'
     toks.pop()
-    body = tparse toks, cons(nm, vars)
-  else body = tparseLambda toks, cons(nm, vars)
+    toks.pop() while toks.length and toks[toks.length - 1] == '\n'
+    body = parseExpr toks, cons(nm, vars)
+  else body = parseLambda toks, cons(nm, vars)
   lambda(laz(nm))(laz(body))
 
 root.parse = parse
@@ -445,3 +503,5 @@ root.linePat = linePat
 root.Nil = Nil
 root.cons = cons
 root.defineToken = defineToken
+root.tokenize = tokenize
+root.nextTok = nextTok

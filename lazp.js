@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, cons, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
+  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, commentPat, compileLine, cons, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, newContinueApply, newParseApply, newParseLambda, newParseTerm, nextTok, order, parse, parseExpr, parseLambda, parseVariable, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -49,7 +49,9 @@ misrepresented as being the original software.
 
   commentPat = /^\s*#/;
 
-  tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/;
+  baseTokenPat = /\n|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/;
+
+  tokenPat = baseTokenPat;
 
   specials = '[]().*+?|';
 
@@ -633,7 +635,7 @@ misrepresented as being the original software.
       types[i] = o;
     }
     types.push('[().\\\\]| +');
-    return tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'));
+    return tokenPat = new RegExp(baseTokenPat.source + '|' + types.join('|'));
   };
 
   createDefinition = function createDefinition(name, ast, index) {
@@ -720,6 +722,90 @@ misrepresented as being the original software.
     }
   };
 
+  nextTok = function nextTok(str) {
+    var m, rest, tok;
+    m = str.match(tokenPat);
+    if (!m) {
+      return [str, ''];
+    } else if (m[0] === '\n') {
+      return ['\n', str.substring(1)];
+    } else {
+      tok = str.substring(0, m.index > 0 ? m.index : m[0].length);
+      rest = str.substring(tok.length);
+      if (tok.trim()) {
+        return [tok, rest];
+      } else {
+        return nextTok(rest);
+      }
+    }
+  };
+
+  newParseApply = function newParseApply(str, vars) {
+    var err, func, rest, tok, _ref, _ref2;
+    if (!str.length) {
+      return [null, null, str];
+    } else {
+      _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
+      if (tok === '\n') {
+        return [null, null, rest];
+      } else if (tok === ')') {
+        return [null, "Unexpected close paren", str];
+      } else {
+        _ref2 = newParseTerm(tok, rest, vars), func = _ref2[0], err = _ref2[1], str = _ref2[2];
+        if (err) {
+          return [ast, err, rest];
+        } else {
+          return newContinueApply(func, str, vars);
+        }
+      }
+    }
+  };
+
+  newContinueApply = function newContinueApply(func, str, vars) {
+    var arg, err, rest, tok, _ref, _ref2;
+    _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
+    if (tok === '\n' || tok === ')') {
+      return [func, null, str];
+    } else {
+      _ref2 = newParseTerm(tok, rest, vars), arg = _ref2[0], err = _ref2[1], rest = _ref2[2];
+      if (err) {
+        return [ast, err, rest];
+      } else {
+        return newContinueApply(apply(laz(func))(laz(arg)), rest, vars);
+      }
+    }
+  };
+
+  newParseTerm = function newParseTerm(tok, rest, vars) {
+    var ast, err, str, _ref, _ref2, _ref3;
+    if (tok === '\\') {
+      return parseLambda(rest, vars);
+    } else if (tok === '(') {
+      _ref = newParse(rest, vars), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      if (err) {
+        return [ast, err, rest];
+      } else {
+        str = rest;
+        _ref2 = nextTok(str), tok = _ref2[0], rest = _ref2[1];
+        if (tok !== ')') {
+          return [ast, 'Expected close paren', str];
+        } else {
+          return [ast, null, rest];
+        }
+      }
+    } else if (tok[0] === '"' || tok[0] === "'") {
+      return [lit(laz(tok.substring(1, tok.length - 1))), null, rest];
+    } else if (((_ref3 = global[nameSub(tok)]) != null ? _ref3.lazpName : void 0) === tok || astsByName[tok] || (vars.find(function(v) {
+      return tok === v;
+    }))) {
+      return [ref(laz(tok)), null, rest];
+    } else {
+      return [lit(laz(scanTok(tok))), null, rest];
+    }
+  };
+
+  newParseLambda = function newParseLambda(rest, vars) {};
+
   tokenize = function tokenize(str) {
     var m, pos, tok, toks;
     toks = [];
@@ -729,14 +815,14 @@ misrepresented as being the original software.
       if (m.index > 0) toks.push(str.substring(0, m.index));
       tok = m[0];
       str = str.substring(m.index + tok.length);
-      if (tok.trim()) toks.push(tok);
+      if (tok === '\n' || tok.trim()) toks.push(tok);
     }
     if (str.length) toks.push(str);
     return toks;
   };
 
   parse = function parse(str) {
-    return tparse(tokenize(str).reverse(), Nil);
+    return parseExpr(tokenize(str).reverse(), Nil);
   };
 
   addDef = function addDef(toks) {
@@ -745,26 +831,26 @@ misrepresented as being the original software.
     return defs[t[0]] = t.join(' ');
   };
 
-  tparse = function tparse(toks, vars, expr) {
-    cur;
+  parseExpr = function parseExpr(toks, vars, expr) {
     var cur, expectedClose, skip, tok;
     while (toks.length) {
       tok = toks.pop();
+      if (tok === '\n') return expr;
       if (tok === ')') {
         toks.push(tok);
         return expr;
       }
       if (tok === '\\') {
-        cur = tparseLambda(toks, vars);
+        cur = parseLambda(toks, vars);
       } else {
         expectedClose = groupOpens[tok];
         skip = false;
         if (expectedClose) {
-          cur = tparse(toks, vars, tok !== '(' ? tparseVariable(tok, vars) : null);
+          cur = parseExpr(toks, vars, tok !== '(' ? parseVariable(tok, vars) : null);
           if (toks.length && toks[toks.length - 1] === expectedClose) toks.pop();
           skip = true;
         }
-        if (!skip) cur = tparseVariable(tok, vars);
+        if (!skip) cur = parseVariable(tok, vars);
       }
       expr = expr ? apply(laz(expr))(laz(cur)) : cur;
       if (groupCloses[tok]) {
@@ -775,7 +861,7 @@ misrepresented as being the original software.
     return expr;
   };
 
-  tparseVariable = function tparseVariable(tok, vars) {
+  parseVariable = function parseVariable(tok, vars) {
     var _ref;
     if (tok[0] === '"' || tok[0] === "'") {
       return lit(laz(tok.substring(1, tok.length - 1)));
@@ -796,7 +882,7 @@ misrepresented as being the original software.
     }
   };
 
-  tparseLambda = function tparseLambda(toks, vars) {
+  parseLambda = function parseLambda(toks, vars) {
     var body, nm;
     if (toks.length < 3 || toks[toks.length - 1] === '.') {
       throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '));
@@ -804,9 +890,12 @@ misrepresented as being the original software.
     nm = toks.pop();
     if (toks[toks.length - 1] === '.') {
       toks.pop();
-      body = tparse(toks, cons(nm, vars));
+      while (toks.length && toks[toks.length - 1] === '\n') {
+        toks.pop();
+      }
+      body = parseExpr(toks, cons(nm, vars));
     } else {
-      body = tparseLambda(toks, cons(nm, vars));
+      body = parseLambda(toks, cons(nm, vars));
     }
     return lambda(laz(nm))(laz(body));
   };
@@ -846,5 +935,9 @@ misrepresented as being the original software.
   root.cons = cons;
 
   root.defineToken = defineToken;
+
+  root.tokenize = tokenize;
+
+  root.nextTok = nextTok;
 
 }).call(this);
