@@ -13,12 +13,29 @@
         var output = document.getElementById('output')
         var defs = document.getElementById('defs')
 
+        try {
+          $.ajax({
+            url: 'std.laz',
+            success: function(data){stdDefs = data},
+            error: function(){changeStdLinks()}
+          });
+        } catch (err) {
+          changeStdLinks()
+        }
         Repl.init(input, output, defs)
       }
+      function changeStdLinks() {
+        changeStdLink('stdDefsLink1')
+        changeStdLink('stdDefsLink2')
+      }
+      function changeStdLink(name) {
+        var d = document.getElementById(name)
+
+        d.setAttribute('href', "std.laz")
+        d.setAttribute('target', "_blank")
+      }
       function getStdDefs() {
-        jQuery.get('std.laz', null, function(data){
-          document.getElementById('defs').innerHTML += Repl.markupLines(data) + "<br>"
-        })
+        document.getElementById('defs').innerHTML += Repl.markupLines(stdDefs) + "<br>"
       }
     </script>
     <style>
@@ -28,22 +45,27 @@
       }
     </style>
   </head>
-  <body onload="init()" style="border: 0; padding: 0; margin: 0; position: relative">
-    <table style="width: 100%; height: 100%; vertical-align: top">
-      <tr style="height: 0"><td colspan="2" style="text-align: center"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="TODO.html" target="_blank">Status</a> <a href="http://github.com/zot/lazp" target="_blank">Source</a> <a href="javascript:(void)0">REPL</a> <a href="javascript:void(getStdDefs())">Standard Functions</a></td></tr>
-      <tr stele="height: 0"><td colspan="2" style="text-align: center">Welcome to Lazp</td></tr>
+  <body onload="init()" style="border: 0; padding: 0; margin: 0">
+    <table style="vertical-align: top; width: 100%; height: 100%">
+      <tr style="height: 1.5em"><td colspan="2">
+	  <div style="height: 100%; position: relative">
+	    <div style="text-align: center; position: absolute; width: 100%; height">Welcome to Lazp</div>
+	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="TODO.html" target="_blank">Status</a> <a href="http://github.com/zot/lazp" target="_blank">Source</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a></div>
+	  </div>
+	</td>
+      </tr>
       <tr style="height: 100%">
 	<td class="cell" style="width: 50%">
 	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
-	    <pre id="output" style="position: absolute; width: 100%; margin: 0">
-Click on <a href="javascript:void(getStdDefs())">Standard Functions</a> here or above to insert Lazp's standard functions into the definitions pane.
-
-</pre>
+	    <pre id="defs" style="position: absolute; width: 100%; margin: 0"></pre>
 	  </div>
 	</td>
 	<td class="cell" style="width: 50%">
 	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
-	    <pre id="defs" style="position: absolute; width: 100%; margin: 0"></pre>
+	    <pre id="output" style="position: absolute; width: 100%; margin: 0">
+Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> here or above to insert Lazp's standard functions into the definitions pane.
+
+</pre>
 	  </div>
 	</td>
       </tr>

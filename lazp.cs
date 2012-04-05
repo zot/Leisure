@@ -26,7 +26,6 @@ if window? and (!global? or global == window)
   window.global = window
   window.Lazp = root = {}
 else root = exports ? this
-U = require('util')
 
 root.funcs = {}
 
