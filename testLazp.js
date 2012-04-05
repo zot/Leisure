@@ -28,11 +28,13 @@ Tests for Lazp
 */
 
 (function() {
-  var LZ, T, U, assertEq, assertEval, assertParse, code, define, line, run, setDataType, setId, setType, _i, _len, _ref, _ref2;
+  var LZ, R, T, U, assertEq, assertEval, assertParse, code, define, run, setDataType, setId, setType, _ref;
 
   U = require('util');
 
-  LZ = require('./lazp.js');
+  LZ = require('./lazp');
+
+  R = require('./replCore');
 
   require('./std');
 
@@ -44,16 +46,9 @@ Tests for Lazp
 
   console.log('Testing');
 
-  _ref2 = "and a b = a b false\nor a b = a true b\nhead l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil".split('\n');
-  for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-    line = _ref2[_i];
-    code = LZ.compileLine(line);
-    if (code.err) {
-      console.log("Line " + line + "\nERROR! " + code.err);
-    } else {
-      LZ.evalLine(line);
-    }
-  }
+  code = R.generateCode(null, "and a b = a b false\nor a b = a true b\nhead l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil", false);
+
+  eval(code);
 
   run('test1', function() {
     return assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y");

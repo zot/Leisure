@@ -26,6 +26,7 @@ if window? and (!global? or global == window)
   window.global = window
   window.Lazp = root = {}
 else root = exports ? this
+U = require('util')
 
 root.funcs = {}
 
@@ -34,11 +35,10 @@ _litId = -2
 _lambdaId = -3
 _applyId = -4
 _primId = -5
-commentPat = /^\s*#/
-baseTokenPat = /#[^\n]*(\n|$)|\n|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/
+baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
-linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/
+linePat = /^((?:\s*|#[^\n]*\n)*)([^=]*)(=[.)]=|=\([^=]+=|=)?/
 order = []
 warnFreeVariable = []
 charCodes =
@@ -314,47 +314,42 @@ createDefinition = (name, ast, index)->
   if index >= name.length then ast
   else lambda(laz(name[index]))(laz(createDefinition(name, ast, index + 1)))
 
-prefix = (name, index, expr, res)->
-  if index >= name.length
-    res.push(expr)
-    res.join('')
-  else
-    res.push("\\", name[index], '.')
-    prefix(name, index + 1, expr, res)
+prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\') + '.' else '') + str
 
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
-XcompileLine = (line, globals) -> (compileNext line, globals)[0]
-
 # returns [ast, err, rest]
-compileLine = (line, globals)->
-  if line.match commentPat then line = ''
-  def = line.match linePat
-  expr = (if def then def[3] else line).trim()
-  if expr
-    nm = if def and def[1] then def[1].trim().split(/\s+/) else null
-    ast = null
+compileNext = (line, globals)->
+  if (def = line.match linePat) and def[0].length != line.length
+    [matched, leading, name, defType] = def
+    rest = line.substring (if defType then matched else leading).length
+    nm = if defType then name.trim().split(/\s+/) else null
     if nm
       astsByName[nm[0]] = 1
-      if def && def[2] != '=' then defineToken(nm[0], def[2])
-      ast = parse(prefix(nm, 1, expr, []))
-      bod = ast
-      if nm.length > 1
-        bod = getNthBody(ast, nm.length)
-        addAst(ast)
-      if getAstType(bod) == _lambdaId
-        bod.type = nm[0]
-        ast.dataType = nm[0]
-      nameAst(nm[0], ast)
-      dgen(ast, false, nm[0], globals, (if def[2] && def[2] != '=' then def[2] else null))
-      if nm.length == 1 then nameAst(nm[0], ast)
-    else
-      ast = parse(expr)
-      dgen(ast, null, null, globals)
-    ast
+      if defType && defType != '=' then defineToken(nm[0], defType)
+      line = rest.substring(0, rest.indexOf('\n', 1))
+      ifParsed (parseApply (prefix nm, rest), Nil), (ast, rest)->
+        bod = ast
+        if nm.length > 1
+          bod = getNthBody(ast, nm.length)
+          addAst(ast)
+        if getAstType(bod) == _lambdaId
+          bod.type = nm[0]
+          ast.dataType = nm[0]
+        nameAst(nm[0], ast)
+        if nm.length == 1 then nameAst(nm[0], ast)
+        genCode ast, nm[0], globals, defType, rest
+    else ifParsed (parseApply rest, Nil), (ast, rest)->
+      genCode ast, null, globals, null, rest
+  else [null, null, null]
 
-evalLine = (line)->
-  ast = compileLine line
+genCode = (ast, name, globals, defType, rest)->
+  dgen ast, false, name, globals, defType
+  [ast, null, rest]
+
+#returns [ast, err]
+evalNext = (code)->
+  [ast, err, rest] = compileNext code, null
   if ast
     if ast.lazpName
       try
@@ -370,20 +365,24 @@ evalLine = (line)->
       catch err
         result = err.stack
       [ast, result]
-  else []
+  else [null, err]
 
 nextTok = (str)->
+  [t] = res = XnextTok str
+  res
+
+XnextTok = (str)->
   m = str.match(tokenPat)
   if !m then [str, '']
-  else if m[0] == '\n' then ['\n', str.substring 1]
+  else if m.index == 0 && m[0] == '\n' then ['\n', str.substring 1]
   else
     tok = str.substring(0, if m.index > 0 then m.index else m[0].length)
     rest = str.substring tok.length
-    if tok[0] == '#' or !tok.trim() then nextTok rest
+    if tok[0] == '#' or !tok.trim() then XnextTok rest
     else [tok, rest]
 
 parse = (str)->
-  [ast, err, rest] = parseSome str
+  [ast, err, rest] = parseSome str, Nil
   if err then throw new Error(err) else ast
 
 # returns [ast, error, rest-of-input]
@@ -395,7 +394,7 @@ parseApply = (str, vars)->
   if !str.length then [null, null, str]
   else
     [tok, rest] = nextTok str
-    if tok == '\n' then [null, null, rest]
+    if tok == '\n' then [null, 'Newline when expecting expression', rest]
     else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok}", str]
     else ifParsed (parseTerm tok, rest, vars), (func, rest)-> continueApply(func, rest, vars)
 
@@ -406,7 +405,8 @@ continueApply = (func, str, vars)->
     continueApply apply(laz(func))(laz(arg)), rest, vars
 
 parseTerm = (tok, rest, vars)->
-  if tok == '\\' then parseLambda rest, vars
+  if tok == '\n' then [null, 'Unexpected newline while expecting a term', rest]
+  else if tok == '\\' then parseLambda rest, vars
   else if groupOpens[tok]
     apl = if tok == '(' then parseApply rest, vars else ifParsed (parseName tok, rest, vars), (ast, rest)-> continueApply ast, rest, vars
     ifParsed apl, (ast, rest)->
@@ -450,8 +450,8 @@ root.parse = parse
 root.astPrint = astPrint
 root.gen = dgen
 root.laz = laz
-root.compileLine = compileLine
-root.evalLine = evalLine
+root.compileNext = compileNext
+root.evalNext = evalNext
 root.setId = setId
 root.setType = setType
 root.setDataType = setDataType

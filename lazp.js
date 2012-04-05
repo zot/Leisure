@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, XcompileLine, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, commentPat, compileLine, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
+  var CNil, Code, Cons, Nil, U, XnextTok, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -34,6 +34,8 @@ misrepresented as being the original software.
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
+
+  U = require('util');
 
   root.funcs = {};
 
@@ -47,15 +49,13 @@ misrepresented as being the original software.
 
   _primId = -5;
 
-  commentPat = /^\s*#/;
-
-  baseTokenPat = /#[^\n]*(\n|$)|\n|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/;
+  baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/;
 
   tokenPat = baseTokenPat;
 
   specials = '[]().*+?|';
 
-  linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/;
+  linePat = /^((?:\s*|#[^\n]*\n)*)([^=]*)(=[.)]=|=\([^=]+=|=)?/;
 
   order = [];
 
@@ -646,14 +646,8 @@ misrepresented as being the original software.
     }
   };
 
-  prefix = function prefix(name, index, expr, res) {
-    if (index >= name.length) {
-      res.push(expr);
-      return res.join('');
-    } else {
-      res.push("\\", name[index], '.');
-      return prefix(name, index + 1, expr, res);
-    }
+  prefix = function prefix(name, str) {
+    return (name.length > 1 ? '\\' + name.slice(1).join('. \\') + '.' : '') + str;
   };
 
   getNthBody = function getNthBody(ast, n) {
@@ -664,45 +658,49 @@ misrepresented as being the original software.
     }
   };
 
-  XcompileLine = function XcompileLine(line, globals) {
-    return (compileNext(line, globals))[0];
-  };
-
-  compileLine = function compileLine(line, globals) {
-    var ast, bod, def, expr, nm;
-    if (line.match(commentPat)) line = '';
-    def = line.match(linePat);
-    expr = (def ? def[3] : line).trim();
-    if (expr) {
-      nm = def && def[1] ? def[1].trim().split(/\s+/) : null;
-      ast = null;
+  compileNext = function compileNext(line, globals) {
+    var def, defType, leading, matched, name, nm, rest;
+    if ((def = line.match(linePat)) && def[0].length !== line.length) {
+      matched = def[0], leading = def[1], name = def[2], defType = def[3];
+      rest = line.substring((defType ? matched : leading).length);
+      nm = defType ? name.trim().split(/\s+/) : null;
       if (nm) {
         astsByName[nm[0]] = 1;
-        if (def && def[2] !== '=') defineToken(nm[0], def[2]);
-        ast = parse(prefix(nm, 1, expr, []));
-        bod = ast;
-        if (nm.length > 1) {
-          bod = getNthBody(ast, nm.length);
-          addAst(ast);
-        }
-        if (getAstType(bod) === _lambdaId) {
-          bod.type = nm[0];
-          ast.dataType = nm[0];
-        }
-        nameAst(nm[0], ast);
-        dgen(ast, false, nm[0], globals, (def[2] && def[2] !== '=' ? def[2] : null));
-        if (nm.length === 1) nameAst(nm[0], ast);
+        if (defType && defType !== '=') defineToken(nm[0], defType);
+        line = rest.substring(0, rest.indexOf('\n', 1));
+        return ifParsed(parseApply(prefix(nm, rest), Nil), function(ast, rest) {
+          var bod;
+          bod = ast;
+          if (nm.length > 1) {
+            bod = getNthBody(ast, nm.length);
+            addAst(ast);
+          }
+          if (getAstType(bod) === _lambdaId) {
+            bod.type = nm[0];
+            ast.dataType = nm[0];
+          }
+          nameAst(nm[0], ast);
+          if (nm.length === 1) nameAst(nm[0], ast);
+          return genCode(ast, nm[0], globals, defType, rest);
+        });
       } else {
-        ast = parse(expr);
-        dgen(ast, null, null, globals);
+        return ifParsed(parseApply(rest, Nil), function(ast, rest) {
+          return genCode(ast, null, globals, null, rest);
+        });
       }
-      return ast;
+    } else {
+      return [null, null, null];
     }
   };
 
-  evalLine = function evalLine(line) {
-    var ast, result;
-    ast = compileLine(line);
+  genCode = function genCode(ast, name, globals, defType, rest) {
+    dgen(ast, false, name, globals, defType);
+    return [ast, null, rest];
+  };
+
+  evalNext = function evalNext(code) {
+    var ast, err, rest, result, _ref;
+    _ref = compileNext(code, null), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (ast) {
       if (ast.lazpName) {
         try {
@@ -722,22 +720,28 @@ misrepresented as being the original software.
         return [ast, result];
       }
     } else {
-      return [];
+      return [null, err];
     }
   };
 
   nextTok = function nextTok(str) {
+    var res, t;
+    t = (res = XnextTok(str))[0];
+    return res;
+  };
+
+  XnextTok = function XnextTok(str) {
     var m, rest, tok;
     m = str.match(tokenPat);
     if (!m) {
       return [str, ''];
-    } else if (m[0] === '\n') {
+    } else if (m.index === 0 && m[0] === '\n') {
       return ['\n', str.substring(1)];
     } else {
       tok = str.substring(0, m.index > 0 ? m.index : m[0].length);
       rest = str.substring(tok.length);
       if (tok[0] === '#' || !tok.trim()) {
-        return nextTok(rest);
+        return XnextTok(rest);
       } else {
         return [tok, rest];
       }
@@ -746,7 +750,7 @@ misrepresented as being the original software.
 
   parse = function parse(str) {
     var ast, err, rest, _ref;
-    _ref = parseSome(str), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = parseSome(str, Nil), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err) {
       throw new Error(err);
     } else {
@@ -773,7 +777,7 @@ misrepresented as being the original software.
     } else {
       _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
       if (tok === '\n') {
-        return [null, null, rest];
+        return [null, 'Newline when expecting expression', rest];
       } else if (groupCloses[tok]) {
         return [null, "Unexpected group closing token: " + tok, str];
       } else {
@@ -798,7 +802,9 @@ misrepresented as being the original software.
 
   parseTerm = function parseTerm(tok, rest, vars) {
     var apl;
-    if (tok === '\\') {
+    if (tok === '\n') {
+      return [null, 'Unexpected newline while expecting a term', rest];
+    } else if (tok === '\\') {
       return parseLambda(rest, vars);
     } else if (groupOpens[tok]) {
       apl = tok === '(' ? parseApply(rest, vars) : ifParsed(parseName(tok, rest, vars), function(ast, rest) {
@@ -886,9 +892,9 @@ misrepresented as being the original software.
 
   root.laz = laz;
 
-  root.compileLine = compileLine;
+  root.compileNext = compileNext;
 
-  root.evalLine = evalLine;
+  root.evalNext = evalNext;
 
   root.setId = setId;
 

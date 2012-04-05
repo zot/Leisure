@@ -27,7 +27,8 @@ Tests for Lazp
 ###
 
 U = require('util')
-LZ=require('./lazp.js')
+LZ=require('./lazp')
+R = require('./replCore')
 require('./std')
 require('./prim')
 {setId, setType, setDataType, define} = LZ
@@ -35,17 +36,15 @@ require('./prim')
 
 console.log 'Testing'
 
-for line in """
+code = (R.generateCode null, """
 and a b = a b false
 or a b = a true b
 head l = l \\h t . h
 tail l = l \\h t . t
 null l = l (\\h t D . false) true
 last l = l (\\h t D . null t h (last t)) nil
-""".split '\n'
-  code = LZ.compileLine line
-  if code.err then console.log "Line #{line}\nERROR! #{code.err}"
-  else LZ.evalLine line
+""", false)
+eval(code)
 
 run 'test1', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
 run 'test2', -> assertEval("(\\x . x) hello", 'hello')

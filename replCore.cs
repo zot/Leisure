@@ -85,8 +85,8 @@ processLine = (line)->
         when ':q' then process.exit(0)
         else
           [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-          ast = Lazp.compileLine(line)
-          if r then [ast, result] = Lazp.evalLine(line)
+          [ast, err] = Lazp.compileNext(line)
+          if r then ([ast, result] = if err then [null, err] else Lazp.evalLine(line))
           else result = null
           return handlerFunc(ast, result, a, c, r)
   catch err
@@ -112,18 +112,23 @@ processResult = Repl.processResult;
 """
   errs = ''
   globals = Lazp.Nil
-  for line, i in contents.split('\n')
-    if line
-      ast = Lazp.compileLine line, globals
-      if ast
-        globals = ast.globals
-        if ast.err? then errs = "#{errs}#{ast.err}\n"
-        m = line.match(Lazp.linePat)
-        nm = m and m[1].trim().split(/\s+/)[0]
-        ast.src = "//#{if nm then nm + ' = ' else ''}#{Lazp.astPrint(ast)}\n#{ast.src}"
-        src = if ast.lazpName then ast.src else "processResult(#{ast.src})"
-        out += "#{src};\n"
-  if errs then throw new Error("Errors compiling #{file}: #{errs}")
+  rest = contents
+  while rest
+    oldRest = rest
+    [ast, err, rest] = Lazp.compileNext rest, globals
+    if ast
+      code = oldRest.substring(0, oldRest.length - rest.length)
+      globals = ast.globals
+      if ast.err? then errs = "#{errs}#{ast.err}\n"
+      m = code.match(Lazp.linePat)
+      nm = m and m[2].trim().split(/\s+/)[0]
+      ast.src = "//#{if nm then nm + ' = ' else ''}#{Lazp.astPrint(ast)}\n#{ast.src}"
+      src = if ast.lazpName then ast.src else "processResult(#{ast.src})"
+      out += "#{src};\n"
+    else if err
+      errs = "#{errs}#{err}\n"
+      rest = ''
+  if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   out
 
 root.processLine = processLine
