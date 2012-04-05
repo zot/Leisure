@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, commentPat, compileLine, cons, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, newContinueApply, newParseApply, newParseLambda, newParseTerm, nextTok, order, parse, parseExpr, parseLambda, parseVariable, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
+  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, commentPat, compileLine, cons, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, newContinueApply, newParse, newParseApply, newParseLambda, newParseTerm, nextTok, nextTokWithNl, order, parse, parseExpr, parseLambda, parseVariable, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -740,6 +740,10 @@ misrepresented as being the original software.
     }
   };
 
+  newParse = function newParse(str) {
+    return newParseApply(str.replace(/\u03BB/g, '\\'), Nil);
+  };
+
   newParseApply = function newParseApply(str, vars) {
     var err, func, rest, tok, _ref, _ref2;
     if (!str.length) {
@@ -804,7 +808,21 @@ misrepresented as being the original software.
     }
   };
 
-  newParseLambda = function newParseLambda(rest, vars) {};
+  nextTokWithNl = function nextTokWithNl(str) {
+    var rest, t, tok, _ref;
+    t = (_ref = nextTok(str), tok = _ref[0], rest = _ref[1], _ref);
+    if (t === '\n') {
+      return nextTokWithNl(rest);
+    } else {
+      return t;
+    }
+  };
+
+  newParseLambda = function newParseLambda(str, vars) {
+    var rest1, rest2, tok1, tok2, _ref, _ref2;
+    _ref = nextTokWithNL(str), tok1 = _ref[0], rest1 = _ref[1];
+    return _ref2 = nextTokWithNL(rest1), tok2 = _ref2[0], rest2 = _ref2[1], _ref2;
+  };
 
   tokenize = function tokenize(str) {
     var m, pos, tok, toks;

@@ -10,9 +10,9 @@
 * infix function call syntax
    * allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)
    * allow $ to separate expressions, so a $ b $ c is the same as (a) (b) (c) (use ~ instead?)
-* generate n-arg functions for optimizing function application
-   * prefix narg functions with $N_
-   * since cons is a global ref, cons a b -> $2_cons(a, b), instead of _cons(a)(b)
+* generate currying functions at call sites
+   * since cons is a global ref, cons a b -> _cons(a, b), instead of _cons()(a)(b)
+   * cons a -> function(_1){return _cons(a, _1)}
 * make repl keep track of old definitions so it can wipe the env clean
 * integrate physics engine
 * indentation tweak

@@ -423,7 +423,7 @@ nextTokWithNl = (str)->
 newParseLambda = (str, vars)->
   [tok1, rest1] = nextTokWithNL str
   [tok2, rest2] = nextTokWithNL rest1
-  if tok2 == '.'
+  #if tok2 == '.'
 
 tokenize = (str)->
   toks = []
