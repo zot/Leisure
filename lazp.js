@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, charCodes, codeChars, commentPat, compileLine, cons, createDefinition, define, defineToken, dgen, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, order, parse, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, tparse, tparseLambda, tparseVariable, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
+  var CNil, Code, Cons, Nil, U, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -34,6 +34,8 @@ misrepresented as being the original software.
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
+
+  U = require('util');
 
   root.funcs = {};
 
@@ -47,13 +49,13 @@ misrepresented as being the original software.
 
   _primId = -5;
 
-  commentPat = /^\s*#/;
+  baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/;
 
-  tokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +/;
+  tokenPat = baseTokenPat;
 
   specials = '[]().*+?|';
 
-  linePat = /^([^=]*)(=[.)]=|=\([^=]+=|=)(?=[^=])(.*)$/;
+  linePat = /^((?:\s*|#[^\n]*\n)*)([^=]*)(=[.)]=|=\([^=]+=|=)?/;
 
   order = [];
 
@@ -633,7 +635,7 @@ misrepresented as being the original software.
       types[i] = o;
     }
     types.push('[().\\\\]| +');
-    return tokenPat = new RegExp(/'(\\'|[^'])*'|"(\\"|[^"])*"/.source + '|' + types.join('|'));
+    return tokenPat = new RegExp(baseTokenPat.source + '|' + types.join('|'));
   };
 
   createDefinition = function createDefinition(name, ast, index) {
@@ -644,14 +646,8 @@ misrepresented as being the original software.
     }
   };
 
-  prefix = function prefix(name, index, expr, res) {
-    if (index >= name.length) {
-      res.push(expr);
-      return res.join('');
-    } else {
-      res.push("\\", name[index], '.');
-      return prefix(name, index + 1, expr, res);
-    }
+  prefix = function prefix(name, str) {
+    return (name.length > 1 ? '\\' + name.slice(1).join('. \\') + '.' : '') + str;
   };
 
   getNthBody = function getNthBody(ast, n) {
@@ -662,41 +658,49 @@ misrepresented as being the original software.
     }
   };
 
-  compileLine = function compileLine(line, globals) {
-    var ast, bod, def, expr, nm;
-    if (line.match(commentPat)) line = '';
-    def = line.match(linePat);
-    expr = (def ? def[3] : line).trim();
-    if (expr) {
-      nm = def && def[1] ? def[1].trim().split(/\s+/) : null;
-      ast = null;
+  compileNext = function compileNext(line, globals) {
+    var def, defType, leading, matched, name, nm, rest;
+    if ((def = line.match(linePat)) && def[1].length !== line.length) {
+      matched = def[0], leading = def[1], name = def[2], defType = def[3];
+      rest = line.substring((defType ? matched : leading).length);
+      nm = defType ? name.trim().split(/\s+/) : null;
       if (nm) {
         astsByName[nm[0]] = 1;
-        if (def && def[2] !== '=') defineToken(nm[0], def[2]);
-        ast = parse(prefix(nm, 1, expr, []));
-        bod = ast;
-        if (nm.length > 1) {
-          bod = getNthBody(ast, nm.length);
-          addAst(ast);
-        }
-        if (getAstType(bod) === _lambdaId) {
-          bod.type = nm[0];
-          ast.dataType = nm[0];
-        }
-        nameAst(nm[0], ast);
-        dgen(ast, false, nm[0], globals, (def[2] && def[2] !== '=' ? def[2] : null));
-        if (nm.length === 1) nameAst(nm[0], ast);
+        if (defType && defType !== '=') defineToken(nm[0], defType);
+        line = rest.substring(0, rest.indexOf('\n', 1));
+        return ifParsed(parseApply(prefix(nm, rest), Nil), function(ast, rest) {
+          var bod;
+          bod = ast;
+          if (nm.length > 1) {
+            bod = getNthBody(ast, nm.length);
+            addAst(ast);
+          }
+          if (getAstType(bod) === _lambdaId) {
+            bod.type = nm[0];
+            ast.dataType = nm[0];
+          }
+          nameAst(nm[0], ast);
+          if (nm.length === 1) nameAst(nm[0], ast);
+          return genCode(ast, nm[0], globals, defType, rest);
+        });
       } else {
-        ast = parse(expr);
-        dgen(ast, null, null, globals);
+        return ifParsed(parseApply(rest, Nil), function(ast, rest) {
+          return genCode(ast, null, globals, null, rest);
+        });
       }
-      return ast;
+    } else {
+      return [null, null, null];
     }
   };
 
-  evalLine = function evalLine(line) {
-    var ast, result;
-    ast = compileLine(line);
+  genCode = function genCode(ast, name, globals, defType, rest) {
+    dgen(ast, false, name, globals, defType);
+    return [ast, null, rest];
+  };
+
+  evalNext = function evalNext(code) {
+    var ast, err, rest, result, _ref;
+    _ref = compileNext(code, null), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (ast) {
       if (ast.lazpName) {
         try {
@@ -716,76 +720,154 @@ misrepresented as being the original software.
         return [ast, result];
       }
     } else {
-      return [];
+      return [null, err];
     }
   };
 
-  tokenize = function tokenize(str) {
-    var m, pos, tok, toks;
-    toks = [];
-    pos = 0;
-    str = str.replace(/\u03BB/g, '\\');
-    while (str.length && (m = str.match(tokenPat))) {
-      if (m.index > 0) toks.push(str.substring(0, m.index));
-      tok = m[0];
-      str = str.substring(m.index + tok.length);
-      if (tok.trim()) toks.push(tok);
+  nextTok = function nextTok(str) {
+    var m, rest, tok;
+    m = str.match(tokenPat);
+    if (!m) {
+      return [str, ''];
+    } else if (m.index === 0 && m[0] === '\n') {
+      return ['\n', str.substring(1)];
+    } else {
+      tok = str.substring(0, m.index > 0 ? m.index : m[0].length);
+      rest = str.substring(tok.length);
+      if (tok[0] === '#' || !tok.trim()) {
+        return nextTok(rest);
+      } else {
+        return [tok, rest];
+      }
     }
-    if (str.length) toks.push(str);
-    return toks;
   };
 
   parse = function parse(str) {
-    return tparse(tokenize(str).reverse(), Nil);
+    var ast, err, rest, _ref;
+    _ref = parseSome(str, Nil), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    if (err) {
+      throw new Error(err);
+    } else {
+      return ast;
+    }
+  };
+
+  parseSome = function parseSome(str) {
+    return parseApply(str.replace(/\u03BB/g, '\\'), Nil);
+  };
+
+  ifParsed = function ifParsed(res, block) {
+    if (res[1]) {
+      return res;
+    } else {
+      return block(res[0], res[2]);
+    }
+  };
+
+  parseApply = function parseApply(str, vars) {
+    var rest, tok, _ref;
+    if (!str.length) {
+      return [null, null, str];
+    } else {
+      _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
+      if (tok === '\n') {
+        return [null, 'Newline when expecting expression', rest];
+      } else if (groupCloses[tok]) {
+        return [null, "Unexpected group closing token: " + tok, str];
+      } else {
+        return ifParsed(parseTerm(tok, rest, vars), function(func, rest) {
+          return continueApply(func, rest, vars);
+        });
+      }
+    }
+  };
+
+  continueApply = function continueApply(func, str, vars) {
+    var rest, tok, _ref;
+    _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
+    if (!tok || tok === '\n' || groupCloses[tok]) {
+      return [func, null, str];
+    } else {
+      return ifParsed(parseTerm(tok, rest, vars), function(arg, rest) {
+        return continueApply(apply(laz(func))(laz(arg)), rest, vars);
+      });
+    }
+  };
+
+  parseTerm = function parseTerm(tok, rest, vars) {
+    var apl;
+    if (tok === '\n') {
+      return [null, 'Unexpected newline while expecting a term', rest];
+    } else if (tok === '\\') {
+      return parseLambda(rest, vars);
+    } else if (groupOpens[tok]) {
+      apl = tok === '(' ? parseApply(rest, vars) : ifParsed(parseName(tok, rest, vars), function(ast, rest) {
+        return continueApply(ast, rest, vars);
+      });
+      return ifParsed(apl, function(ast, rest) {
+        var rest2, tok2, _ref;
+        _ref = nextTok(rest), tok2 = _ref[0], rest2 = _ref[1];
+        if (tok2 !== groupOpens[tok]) {
+          return [ast, "Expected close token: " + groupOpens[tok] + ", but got " + tok2, rest2];
+        } else if (tok === '(') {
+          return [ast, null, rest2];
+        } else {
+          return ifParsed(parseName(tok2, rest2, vars), function(arg, rest) {
+            return [apply(laz(ast))(laz(arg)), null, rest];
+          });
+        }
+      });
+    } else {
+      return parseName(tok, rest, vars);
+    }
+  };
+
+  parseName = function parseName(tok, rest, vars) {
+    var _ref;
+    if (tok[0] === '"' || tok[0] === "'") {
+      return [lit(laz(tok.substring(1, tok.length - 1))), null, rest];
+    } else if (((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok] || (vars.find(function(v) {
+      return tok === v;
+    }))) {
+      return [ref(laz(tok)), null, rest];
+    } else {
+      return [lit(laz(scanTok(tok))), null, rest];
+    }
+  };
+
+  nextTokWithNl = function nextTokWithNl(str) {
+    var rest, t, tok, _ref;
+    t = (_ref = nextTok(str), tok = _ref[0], rest = _ref[1], _ref);
+    if (t === '\n') {
+      return nextTokWithNl(rest);
+    } else {
+      return t;
+    }
+  };
+
+  eatAllWhitespace = function eatAllWhitespace(str) {
+    var m;
+    m = str.match(/^\s+/);
+    if (m) {
+      return str.substring(m[0].length);
+    } else {
+      return str;
+    }
+  };
+
+  parseLambda = function parseLambda(str, vars) {
+    var nm, rest1, rest2, tok2, _ref, _ref2;
+    _ref = nextTokWithNl(str), nm = _ref[0], rest1 = _ref[1];
+    _ref2 = nextTokWithNl(rest1), tok2 = _ref2[0], rest2 = _ref2[1];
+    return ifParsed((tok2 === '.' ? parseApply(eatAllWhitespace(rest2), cons(nm, vars)) : parseLambda(rest1, cons(nm, vars))), function(body, rest) {
+      return [lambda(laz(nm))(laz(body)), null, rest];
+    });
   };
 
   addDef = function addDef(toks) {
     var t;
     t = toks.reverse();
     return defs[t[0]] = t.join(' ');
-  };
-
-  tparse = function tparse(toks, vars, expr) {
-    cur;
-    var cur, expectedClose, skip, tok;
-    while (toks.length) {
-      tok = toks.pop();
-      if (tok === ')') {
-        toks.push(tok);
-        return expr;
-      }
-      if (tok === '\\') {
-        cur = tparseLambda(toks, vars);
-      } else {
-        expectedClose = groupOpens[tok];
-        skip = false;
-        if (expectedClose) {
-          cur = tparse(toks, vars, tok !== '(' ? tparseVariable(tok, vars) : null);
-          if (toks.length && toks[toks.length - 1] === expectedClose) toks.pop();
-          skip = true;
-        }
-        if (!skip) cur = tparseVariable(tok, vars);
-      }
-      expr = expr ? apply(laz(expr))(laz(cur)) : cur;
-      if (groupCloses[tok]) {
-        toks.push(tok);
-        return expr;
-      }
-    }
-    return expr;
-  };
-
-  tparseVariable = function tparseVariable(tok, vars) {
-    var _ref;
-    if (tok[0] === '"' || tok[0] === "'") {
-      return lit(laz(tok.substring(1, tok.length - 1)));
-    } else if (((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok] || (vars.find(function(v) {
-      return tok === v;
-    }))) {
-      return ref(laz(tok));
-    } else {
-      return lit(laz(scanTok(tok)));
-    }
   };
 
   scanTok = function scanTok(tok) {
@@ -796,21 +878,6 @@ misrepresented as being the original software.
     }
   };
 
-  tparseLambda = function tparseLambda(toks, vars) {
-    var body, nm;
-    if (toks.length < 3 || toks[toks.length - 1] === '.') {
-      throw new Error('imcomplete lambda definition: ' + toks.reverse().join(' '));
-    }
-    nm = toks.pop();
-    if (toks[toks.length - 1] === '.') {
-      toks.pop();
-      body = tparse(toks, cons(nm, vars));
-    } else {
-      body = tparseLambda(toks, cons(nm, vars));
-    }
-    return lambda(laz(nm))(laz(body));
-  };
-
   root.parse = parse;
 
   root.astPrint = astPrint;
@@ -819,9 +886,9 @@ misrepresented as being the original software.
 
   root.laz = laz;
 
-  root.compileLine = compileLine;
+  root.compileNext = compileNext;
 
-  root.evalLine = evalLine;
+  root.evalNext = evalNext;
 
   root.setId = setId;
 
