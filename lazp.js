@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, commentPat, compileLine, cons, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, newContinueApply, newParse, newParseApply, newParseLambda, newParseName, newParseTerm, nextTok, nextTokWithNl, order, parse, parseIf, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokenize, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
+  var CNil, Code, Cons, Nil, XcompileLine, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, commentPat, compileLine, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalLine, first, gen, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -664,6 +664,10 @@ misrepresented as being the original software.
     }
   };
 
+  XcompileLine = function XcompileLine(line, globals) {
+    return (compileNext(line, globals))[0];
+  };
+
   compileLine = function compileLine(line, globals) {
     var ast, bod, def, expr, nm;
     if (line.match(commentPat)) line = '';
@@ -740,11 +744,21 @@ misrepresented as being the original software.
     }
   };
 
-  newParse = function newParse(str) {
-    return newParseApply(str.replace(/\u03BB/g, '\\'), Nil);
+  parse = function parse(str) {
+    var ast, err, rest, _ref;
+    _ref = parseSome(str), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    if (err) {
+      throw new Error(err);
+    } else {
+      return ast;
+    }
   };
 
-  parseIf = function parseIf(res, block) {
+  parseSome = function parseSome(str) {
+    return parseApply(str.replace(/\u03BB/g, '\\'), Nil);
+  };
+
+  ifParsed = function ifParsed(res, block) {
     if (res[1]) {
       return res;
     } else {
@@ -752,7 +766,7 @@ misrepresented as being the original software.
     }
   };
 
-  newParseApply = function newParseApply(str, vars) {
+  parseApply = function parseApply(str, vars) {
     var rest, tok, _ref;
     if (!str.length) {
       return [null, null, str];
@@ -763,34 +777,34 @@ misrepresented as being the original software.
       } else if (groupCloses[tok]) {
         return [null, "Unexpected group closing token: " + tok, str];
       } else {
-        return parseIf(newParseTerm(tok, rest, vars), function(func, rest) {
-          return newContinueApply(func, rest, vars);
+        return ifParsed(parseTerm(tok, rest, vars), function(func, rest) {
+          return continueApply(func, rest, vars);
         });
       }
     }
   };
 
-  newContinueApply = function newContinueApply(func, str, vars) {
+  continueApply = function continueApply(func, str, vars) {
     var rest, tok, _ref;
     _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
     if (!tok || tok === '\n' || groupCloses[tok]) {
       return [func, null, str];
     } else {
-      return parseIf(newParseTerm(tok, rest, vars), function(arg, rest) {
-        return newContinueApply(apply(laz(func))(laz(arg)), rest, vars);
+      return ifParsed(parseTerm(tok, rest, vars), function(arg, rest) {
+        return continueApply(apply(laz(func))(laz(arg)), rest, vars);
       });
     }
   };
 
-  newParseTerm = function newParseTerm(tok, rest, vars) {
+  parseTerm = function parseTerm(tok, rest, vars) {
     var apl;
     if (tok === '\\') {
-      return newParseLambda(rest, vars);
+      return parseLambda(rest, vars);
     } else if (groupOpens[tok]) {
-      apl = tok === '(' ? newParseApply(rest, vars) : parseIf(newParseName(tok, rest, vars), function(ast, rest) {
-        return newContinueApply(ast, rest, vars);
+      apl = tok === '(' ? parseApply(rest, vars) : ifParsed(parseName(tok, rest, vars), function(ast, rest) {
+        return continueApply(ast, rest, vars);
       });
-      return parseIf(apl, function(ast, rest) {
+      return ifParsed(apl, function(ast, rest) {
         var rest2, tok2, _ref;
         _ref = nextTok(rest), tok2 = _ref[0], rest2 = _ref[1];
         if (tok2 !== groupOpens[tok]) {
@@ -798,17 +812,17 @@ misrepresented as being the original software.
         } else if (tok === '(') {
           return [ast, null, rest2];
         } else {
-          return parseIf(newParseName(tok2, rest2, vars), function(arg, rest) {
+          return ifParsed(parseName(tok2, rest2, vars), function(arg, rest) {
             return [apply(laz(ast))(laz(arg)), null, rest];
           });
         }
       });
     } else {
-      return newParseName(tok, rest, vars);
+      return parseName(tok, rest, vars);
     }
   };
 
-  newParseName = function newParseName(tok, rest, vars) {
+  parseName = function parseName(tok, rest, vars) {
     var _ref;
     if (tok[0] === '"' || tok[0] === "'") {
       return [lit(laz(tok.substring(1, tok.length - 1))), null, rest];
@@ -841,38 +855,13 @@ misrepresented as being the original software.
     }
   };
 
-  newParseLambda = function newParseLambda(str, vars) {
+  parseLambda = function parseLambda(str, vars) {
     var nm, rest1, rest2, tok2, _ref, _ref2;
     _ref = nextTokWithNl(str), nm = _ref[0], rest1 = _ref[1];
     _ref2 = nextTokWithNl(rest1), tok2 = _ref2[0], rest2 = _ref2[1];
-    return parseIf((tok2 === '.' ? newParseApply(rest2, cons(nm, vars)) : newParseLambda(rest1, cons(nm, vars))), function(body, rest) {
+    return ifParsed((tok2 === '.' ? parseApply(rest2, cons(nm, vars)) : parseLambda(rest1, cons(nm, vars))), function(body, rest) {
       return [lambda(laz(nm))(laz(body)), null, rest];
     });
-  };
-
-  tokenize = function tokenize(str) {
-    var m, pos, tok, toks;
-    toks = [];
-    pos = 0;
-    str = str.replace(/\u03BB/g, '\\');
-    while (str.length && (m = str.match(tokenPat))) {
-      if (m.index > 0) toks.push(str.substring(0, m.index));
-      tok = m[0];
-      str = str.substring(m.index + tok.length);
-      if (tok === '\n' || tok.trim()) toks.push(tok);
-    }
-    if (str.length) toks.push(str);
-    return toks;
-  };
-
-  parse = function parse(str) {
-    var ast, err, rest, _ref;
-    _ref = newParse(str), ast = _ref[0], err = _ref[1], rest = _ref[2];
-    if (err) {
-      throw new Error(err);
-    } else {
-      return ast;
-    }
   };
 
   addDef = function addDef(toks) {

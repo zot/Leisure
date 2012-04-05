@@ -324,6 +324,9 @@ prefix = (name, index, expr, res)->
 
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
+XcompileLine = (line, globals) -> (compileNext line, globals)[0]
+
+# returns [ast, err, rest]
 compileLine = (line, globals)->
   if line.match commentPat then line = ''
   def = line.match linePat
@@ -379,73 +382,59 @@ nextTok = (str)->
     if tok[0] == '#' or !tok.trim() then nextTok rest
     else [tok, rest]
 
+parse = (str)->
+  [ast, err, rest] = parseSome str
+  if err then throw new Error(err) else ast
+
 # returns [ast, error, rest-of-input]
-newParse = (str)-> newParseApply str.replace(/\u03BB/g, '\\'), Nil
+parseSome = (str)-> parseApply str.replace(/\u03BB/g, '\\'), Nil
 
-parseIf = (res, block)-> if res[1] then res else block res[0], res[2]
+ifParsed = (res, block)-> if res[1] then res else block res[0], res[2]
 
-newParseApply = (str, vars)->
+parseApply = (str, vars)->
   if !str.length then [null, null, str]
   else
     [tok, rest] = nextTok str
     if tok == '\n' then [null, null, rest]
     else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok}", str]
-    else parseIf (newParseTerm tok, rest, vars), (func, rest)-> newContinueApply(func, rest, vars)
+    else ifParsed (parseTerm tok, rest, vars), (func, rest)-> continueApply(func, rest, vars)
 
-newContinueApply = (func, str, vars)->
+continueApply = (func, str, vars)->
   [tok, rest] = nextTok str
   if !tok or tok == '\n' or groupCloses[tok] then [func, null, str]
-  else parseIf (newParseTerm tok, rest, vars), (arg, rest)->
-    newContinueApply apply(laz(func))(laz(arg)), rest, vars
+  else ifParsed (parseTerm tok, rest, vars), (arg, rest)->
+    continueApply apply(laz(func))(laz(arg)), rest, vars
 
-newParseTerm = (tok, rest, vars)->
-  if tok == '\\' then newParseLambda rest, vars
+parseTerm = (tok, rest, vars)->
+  if tok == '\\' then parseLambda rest, vars
   else if groupOpens[tok]
-    apl = if tok == '(' then newParseApply rest, vars else parseIf (newParseName tok, rest, vars), (ast, rest)-> newContinueApply ast, rest, vars
-    parseIf apl, (ast, rest)->
+    apl = if tok == '(' then parseApply rest, vars else ifParsed (parseName tok, rest, vars), (ast, rest)-> continueApply ast, rest, vars
+    ifParsed apl, (ast, rest)->
       [tok2, rest2] = nextTok rest
       if tok2 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok2}", rest2]
       else if tok == '(' then [ast, null, rest2]
-      else
-        parseIf (newParseName tok2, rest2, vars), (arg, rest)-> [apply(laz(ast))(laz(arg)), null, rest]
-  else
-    newParseName tok, rest, vars
+      else ifParsed (parseName tok2, rest2, vars), (arg, rest)->
+        [apply(laz(ast))(laz(arg)), null, rest]
+  else parseName tok, rest, vars
 
-newParseName = (tok, rest, vars) ->
+parseName = (tok, rest, vars) ->
   if tok[0] == '"' or tok[0] == "'" then [lit(laz(tok.substring(1, tok.length - 1))), null, rest]
   else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then [ref(laz(tok)), null, rest]
   else [lit(laz(scanTok(tok))), null, rest]
 
 nextTokWithNl = (str)->
   t = [tok, rest] = nextTok str
-  if t == '\n' then nextTokWithNl rest
-  else t
+  if t == '\n' then nextTokWithNl rest else t
 
 eatAllWhitespace = (str)->
   m = str.match /^\s+/
   if m then str.substring(m[0].length)
   else str
 
-newParseLambda = (str, vars)->
+parseLambda = (str, vars)->
   [nm, rest1] = nextTokWithNl str
   [tok2, rest2] = nextTokWithNl rest1
-  parseIf (if tok2 == '.' then newParseApply rest2, cons(nm, vars) else newParseLambda rest1, cons(nm, vars)), (body, rest)-> [lambda(laz(nm))(laz(body)), null, rest]
-
-tokenize = (str)->
-  toks = []
-  pos = 0
-  str = str.replace(/\u03BB/g, '\\')
-  while str.length and m = str.match(tokenPat)
-    if m.index > 0 then toks.push(str.substring(0, m.index))
-    tok = m[0]
-    str = str.substring m.index + tok.length
-    if tok == '\n' or tok.trim() then toks.push(tok)
-  if str.length then toks.push(str)
-  toks
-
-parse = (str)->
-  [ast, err, rest] = newParse str
-  if err then throw new Error(err) else ast
+  ifParsed (if tok2 == '.' then parseApply rest2, cons(nm, vars) else parseLambda rest1, cons(nm, vars)), (body, rest)-> [lambda(laz(nm))(laz(body)), null, rest]
 
 addDef = (toks)->
   t = toks.reverse()
