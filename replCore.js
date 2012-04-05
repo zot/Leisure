@@ -144,7 +144,7 @@
               _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
               _ref2 = Lazp.compileNext(line), ast = _ref2[0], err = _ref2[1];
               if (r) {
-                _ref3 = err ? [null, err] : Lazp.evalLine(line), ast = _ref3[0], result = _ref3[1];
+                _ref3 = err ? [null, err] : Lazp.evalNext(line), ast = _ref3[0], result = _ref3[1];
               } else {
                 result = null;
               }
@@ -161,15 +161,15 @@
   generateCode = function generateCode(file, contents, loud) {
     var ast, code, err, errs, globals, m, nm, oldRest, out, rest, src, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n";
+    out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./std');\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n";
     errs = '';
     globals = Lazp.Nil;
     rest = contents;
     while (rest) {
       oldRest = rest;
       _ref = Lazp.compileNext(rest, globals), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      code = rest ? oldRest.substring(0, oldRest.length - rest.length) : '';
       if (ast) {
-        code = oldRest.substring(0, oldRest.length - rest.length);
         globals = ast.globals;
         if (ast.err != null) errs = "" + errs + ast.err + "\n";
         m = code.match(Lazp.linePat);

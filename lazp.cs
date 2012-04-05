@@ -320,7 +320,7 @@ getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n
 
 # returns [ast, err, rest]
 compileNext = (line, globals)->
-  if (def = line.match linePat) and def[0].length != line.length
+  if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     rest = line.substring (if defType then matched else leading).length
     nm = if defType then name.trim().split(/\s+/) else null
@@ -368,17 +368,13 @@ evalNext = (code)->
   else [null, err]
 
 nextTok = (str)->
-  [t] = res = XnextTok str
-  res
-
-XnextTok = (str)->
   m = str.match(tokenPat)
   if !m then [str, '']
   else if m.index == 0 && m[0] == '\n' then ['\n', str.substring 1]
   else
     tok = str.substring(0, if m.index > 0 then m.index else m[0].length)
     rest = str.substring tok.length
-    if tok[0] == '#' or !tok.trim() then XnextTok rest
+    if tok[0] == '#' or !tok.trim() then nextTok rest
     else [tok, rest]
 
 parse = (str)->
@@ -434,7 +430,7 @@ eatAllWhitespace = (str)->
 parseLambda = (str, vars)->
   [nm, rest1] = nextTokWithNl str
   [tok2, rest2] = nextTokWithNl rest1
-  ifParsed (if tok2 == '.' then parseApply rest2, cons(nm, vars) else parseLambda rest1, cons(nm, vars)), (body, rest)-> [lambda(laz(nm))(laz(body)), null, rest]
+  ifParsed (if tok2 == '.' then parseApply eatAllWhitespace(rest2), cons(nm, vars) else parseLambda rest1, cons(nm, vars)), (body, rest)-> [lambda(laz(nm))(laz(body)), null, rest]
 
 addDef = (toks)->
   t = toks.reverse()

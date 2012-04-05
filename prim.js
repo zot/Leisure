@@ -20,7 +20,7 @@
     RL = require('readline');
     tty = null;
     write = function write(msg) {
-      return tty.write(msg);
+      return process.stdout.write(msg);
     };
     prompt = function prompt(msg, cont) {
       return tty.question(msg, cont);
@@ -112,10 +112,12 @@
 
   define('end', "end");
 
-  define('return', function(v, binding) {
-    return makeMonad(binding(), function(cont) {
-      return cont(v());
-    });
+  define('return', function(v) {
+    return function(binding) {
+      return makeMonad(binding(), function(cont) {
+        return cont(v());
+      });
+    };
   });
 
   define('print', function(msg) {

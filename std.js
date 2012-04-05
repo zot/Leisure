@@ -1,5 +1,6 @@
 if (typeof require !== "undefined" && require !== null) {
   Lazp = require("./lazp")
+  require('./std');
   require('./prim');
   ReplCore = require("./replCore");
   Repl = require('./repl');

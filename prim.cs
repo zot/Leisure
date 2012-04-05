@@ -15,7 +15,8 @@ else
   U = require('util')
   RL = require('readline')
   tty = null
-  write = (msg)-> tty.write(msg)
+  #write = (msg)-> tty.write(msg)
+  write = (msg)-> process.stdout.write(msg)
   prompt = (msg, cont)-> tty.question(msg, cont)
 
 setTty = (rl)-> tty = rl
@@ -45,7 +46,7 @@ makeMonad = (binding, guts)->
 
 define 'end', "end"
 
-define 'return', (v, binding)->
+define 'return', (v)->(binding)->
   makeMonad binding(), (cont) -> cont(v())
 
 define 'print', (msg)->(binding)->

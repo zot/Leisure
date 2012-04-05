@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, U, XnextTok, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
+  var CNil, Code, Cons, Nil, U, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, specials, tokenPat, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -660,7 +660,7 @@ misrepresented as being the original software.
 
   compileNext = function compileNext(line, globals) {
     var def, defType, leading, matched, name, nm, rest;
-    if ((def = line.match(linePat)) && def[0].length !== line.length) {
+    if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
       rest = line.substring((defType ? matched : leading).length);
       nm = defType ? name.trim().split(/\s+/) : null;
@@ -725,12 +725,6 @@ misrepresented as being the original software.
   };
 
   nextTok = function nextTok(str) {
-    var res, t;
-    t = (res = XnextTok(str))[0];
-    return res;
-  };
-
-  XnextTok = function XnextTok(str) {
     var m, rest, tok;
     m = str.match(tokenPat);
     if (!m) {
@@ -741,7 +735,7 @@ misrepresented as being the original software.
       tok = str.substring(0, m.index > 0 ? m.index : m[0].length);
       rest = str.substring(tok.length);
       if (tok[0] === '#' || !tok.trim()) {
-        return XnextTok(rest);
+        return nextTok(rest);
       } else {
         return [tok, rest];
       }
@@ -865,7 +859,7 @@ misrepresented as being the original software.
     var nm, rest1, rest2, tok2, _ref, _ref2;
     _ref = nextTokWithNl(str), nm = _ref[0], rest1 = _ref[1];
     _ref2 = nextTokWithNl(rest1), tok2 = _ref2[0], rest2 = _ref2[1];
-    return ifParsed((tok2 === '.' ? parseApply(rest2, cons(nm, vars)) : parseLambda(rest1, cons(nm, vars))), function(body, rest) {
+    return ifParsed((tok2 === '.' ? parseApply(eatAllWhitespace(rest2), cons(nm, vars)) : parseLambda(rest1, cons(nm, vars))), function(body, rest) {
       return [lambda(laz(nm))(laz(body)), null, rest];
     });
   };

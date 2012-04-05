@@ -7,9 +7,6 @@ FS = require('fs')
 Path = require('path')
 P = require('./pretty')
 
-#require('./std')
-#console.log("cons: #{`_cons`}")
-
 root = exports ? this
 root.quiet = false
 
@@ -28,8 +25,8 @@ face = null
 init = ->
   if !face?
     face = R.createInterface(process.stdin, process.stdout)
-    Prim.setTty(face)
     face.setPrompt "Lazp> "
+    Prim.setTty face
     face.on 'close', ()->process.exit(0)
     face.on 'line', (line)->Core.processLine(line.trim())
     Core.setNext -> face.prompt()

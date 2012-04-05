@@ -86,7 +86,7 @@ processLine = (line)->
         else
           [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
           [ast, err] = Lazp.compileNext(line)
-          if r then ([ast, result] = if err then [null, err] else Lazp.evalLine(line))
+          if r then ([ast, result] = if err then [null, err] else Lazp.evalNext(line))
           else result = null
           return handlerFunc(ast, result, a, c, r)
   catch err
@@ -98,6 +98,7 @@ generateCode = (file, contents, loud)->
   out = """
 if (typeof require !== "undefined" && require !== null) {
   Lazp = require("./lazp")
+  require('./std');
   require('./prim');
   ReplCore = require("./replCore");
   Repl = require('./repl');
@@ -116,8 +117,8 @@ processResult = Repl.processResult;
   while rest
     oldRest = rest
     [ast, err, rest] = Lazp.compileNext rest, globals
+    code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
     if ast
-      code = oldRest.substring(0, oldRest.length - rest.length)
       globals = ast.globals
       if ast.err? then errs = "#{errs}#{ast.err}\n"
       m = code.match(Lazp.linePat)

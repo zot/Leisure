@@ -47,8 +47,8 @@
   init = function init() {
     if (!(face != null)) {
       face = R.createInterface(process.stdin, process.stdout);
-      Prim.setTty(face);
       face.setPrompt("Lazp> ");
+      Prim.setTty(face);
       face.on('close', function() {
         return process.exit(0);
       });
