@@ -20,7 +20,20 @@ print = (f)->
     when 'cons' then "[#{elements(f, true)}]"
     when 'nil' then "[]"
     when 'ioMonad' then "IO"
+    when 'lit' then f ->(v)->v()
+    when 'ref' then f ->(v)->v()
+    when 'lambda' then f ->(v)->(bod)-> "\\#{printLambda v(), bod()}"
+    when 'apply' then f ->(func)->(arg)-> printApply(func(), arg())
     else inspect(f)
+
+printLambda = (v, body)->
+  if body.type == 'lambda' then body ->(v)->(b)-> "#{v} #{printLambda v(), b()}"
+  else "#{v} . #{print(v())}"
+
+printApply = (func, arg)->
+  f = if func.type == 'lambda' then "(#{print func})" else print(func)
+  a = if arg.type == 'apply' then "(#{print arg})" else print(arg)
+  "#{f} #{a}"
 
 elements = (l, first, nosubs)->
   if getType(l) == 'nil' then ''

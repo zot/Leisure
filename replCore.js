@@ -40,7 +40,10 @@
   getType = Lazp.getType;
 
   handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
-    if (a) write("PARSED: " + (Lazp.astPrint(ast)) + "\n");
+    if (a) {
+      write("PARSED: " + (Lazp.astPrint(ast)) + "\n");
+      write("FORMATTED: " + (P.print(ast)) + "\n");
+    }
     if (c) write("GEN: " + ast.src + "\n");
     if (r) {
       if (!result) {
@@ -93,7 +96,7 @@
   };
 
   handleVar = function handleVar(name, value) {
-    var k, prop, _i, _len, _ref, _results;
+    var k, prop, _i, _len, _ref, _ref2, _results;
     if (!name) {
       _ref = ((function() {
         var _results2;
@@ -114,7 +117,7 @@
     } else if (!value) {
       return write("" + name + " = " + vars[name] + " -- " + vars[prop][1] + "\n");
     } else {
-      return vars[name][0] = JSON.parse(value);
+      return vars[name][0] = !((_ref2 = value[0]) === 'f' || _ref2 === 'F');
     }
   };
 

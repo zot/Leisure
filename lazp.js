@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, ref, root, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -181,14 +181,6 @@ misrepresented as being the original software.
     };
   });
 
-  define('prim', function(_arg) {
-    return function(_rest) {
-      return setType((function(_f) {
-        return _f()(_arg)(_rest);
-      }), 'prim');
-    };
-  });
-
   getType = function getType(f) {
     var t;
     t = typeof f;
@@ -203,14 +195,8 @@ misrepresented as being the original software.
 
   apply = root.funcs.apply;
 
-  prim = root.funcs.prim;
-
   getAstType = function getAstType(f) {
     return f.type;
-  };
-
-  isPrim = function isPrim(f) {
-    return getAstType(f) === 'prim';
   };
 
   first = function first() {
@@ -251,25 +237,6 @@ misrepresented as being the original software.
     return a(second);
   };
 
-  getPrimArg = function getPrimArg(p) {
-    return p(first);
-  };
-
-  getPrimRest = function getPrimRest(p) {
-    return p(second);
-  };
-
-  getPrimArgs = function getPrimArgs(p, args) {
-    args = args != null ? args : [];
-    p = getPrimRest(p);
-    while (isPrim(p)) {
-      args.push(getPrimArg(p));
-      p = getPrimRest(p);
-    }
-    args.push(p);
-    return args;
-  };
-
   astPrint = function astPrint(ast, res) {
     var arg, func, isFirst, val;
     isFirst = !res;
@@ -302,11 +269,6 @@ misrepresented as being the original software.
         res.push(') (');
         astPrint(getApplyArg(ast), res);
         res.push(')');
-        break;
-      case 'prim':
-        res.push('prim ');
-        astPrint(getPrimArg(ast), res);
-        astPrint(getPrimRest(ast), res);
         break;
       default:
         throw new Error("Unknown type of object in AST: " + ast);
@@ -507,7 +469,7 @@ misrepresented as being the original software.
   };
 
   gen = function gen(ast, code, lits, vars, deref) {
-    var arg, argCode, args, bodyCode, func, funcCode, src, v, val;
+    var arg, argCode, bodyCode, func, funcCode, src, v, val;
     switch (getAstType(ast)) {
       case 'ref':
         val = getRefVar(ast);
@@ -542,21 +504,6 @@ misrepresented as being the original software.
         funcCode = gen(func, code, lits, vars, true);
         argCode = gen(arg, funcCode, lits, vars);
         return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").unreffedValue(deref);
-      case 'prim':
-        args = (function() {
-          var _i, _len, _ref, _results;
-          _ref = getPrimArgs(ast);
-          _results = [];
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            arg = _ref[_i];
-            _results.push(code = gen(arg, code, lits, vars, true));
-          }
-          return _results;
-        })();
-        code.copyWith("" + (getPrimArg(ast)) + "(" + (args.map(a(function() {
-          return a.main;
-        })).join(', ')) + ")");
-        return code.unreffedValue(deref);
       default:
         throw new Error("Unknown object type in gen: " + ast);
     }

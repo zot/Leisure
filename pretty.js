@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, U, elements, getType, inspect, listDo, print, root;
+  var Lazp, U, elements, getType, inspect, listDo, print, printApply, printLambda, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -43,10 +43,59 @@
           return "[]";
         case 'ioMonad':
           return "IO";
+        case 'lit':
+          return f(function() {
+            return function(v) {
+              return v();
+            };
+          });
+        case 'ref':
+          return f(function() {
+            return function(v) {
+              return v();
+            };
+          });
+        case 'lambda':
+          return f(function() {
+            return function(v) {
+              return function(bod) {
+                return "\\" + (printLambda(v(), bod()));
+              };
+            };
+          });
+        case 'apply':
+          return f(function() {
+            return function(func) {
+              return function(arg) {
+                return printApply(func(), arg());
+              };
+            };
+          });
         default:
           return inspect(f);
       }
     }
+  };
+
+  printLambda = function printLambda(v, body) {
+    if (body.type === 'lambda') {
+      return body(function() {
+        return function(v) {
+          return function(b) {
+            return "" + v + " " + (printLambda(v(), b()));
+          };
+        };
+      });
+    } else {
+      return "" + v + " . " + (print(v()));
+    }
+  };
+
+  printApply = function printApply(func, arg) {
+    var a, f;
+    f = func.type === 'lambda' ? "(" + (print(func)) + ")" : print(func);
+    a = arg.type === 'apply' ? "(" + (print(arg)) + ")" : print(arg);
+    return "" + f + " " + a;
   };
 
   elements = function elements(l, first, nosubs) {

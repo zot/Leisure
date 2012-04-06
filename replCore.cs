@@ -27,7 +27,9 @@ setNext = (n)-> nextFunc = n
 getType = Lazp.getType
 
 handlerFunc = (ast, result, a, c, r, src)->
-  if a then write("PARSED: #{Lazp.astPrint(ast)}\n")
+  if a
+    write("PARSED: #{Lazp.astPrint(ast)}\n")
+    write("FORMATTED: #{P.print ast}\n")
   if c then write("GEN: #{ast.src}\n")
   if r
     if !result then write("(No Result)\n")
@@ -71,7 +73,7 @@ handleVar = (name, value)->
       write("#{prop} = #{vars[prop][0]} -- #{vars[prop][1]}\n")
   else if !value and !vars[name] then write("No variable named #{name}\n")
   else if !value then write("#{name} = #{vars[name]} -- #{vars[prop][1]}\n")
-  else vars[name][0] = JSON.parse(value)
+  else vars[name][0] = !(value[0] in ['f', 'F'])
 
 # rewrite in Lazp
 processLine = (line)->

@@ -111,8 +111,6 @@ define 'lambda', (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
 
 define 'apply', (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
 
-define 'prim', (_arg)-> (_rest)-> setType ((_f)-> _f()(_arg)(_rest)), 'prim'
-
 getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{t}"
@@ -121,9 +119,7 @@ lit = root.funcs.lit
 ref = root.funcs.ref
 lambda = root.funcs.lambda
 apply = root.funcs.apply
-prim = root.funcs.prim
 getAstType = (f) -> f.type
-isPrim = (f)-> getAstType(f) == 'prim'
 first = ->(a)-> a
 second = ->(a)->(b)-> b()
 getRefVar = (r)-> r(first)()
@@ -132,16 +128,6 @@ getLambdaVar = (l)-> l first
 getLambdaBody = (l)-> l second
 getApplyFunc = (a)-> a first
 getApplyArg = (a)-> a second
-getPrimArg = (p)-> p first
-getPrimRest = (p)-> p second
-getPrimArgs = (p, args)->
-  args = args ? []
-  p = getPrimRest p
-  while isPrim(p)
-    args.push(getPrimArg p)
-    p = getPrimRest p
-  args.push(p)
-  args
 astPrint = (ast, res)->
   isFirst = !res
   res = res ? []
@@ -168,10 +154,6 @@ astPrint = (ast, res)->
       res.push ') ('
       astPrint (getApplyArg ast), res
       res.push ')'
-    when 'prim'
-      res.push 'prim '
-      astPrint (getPrimArg ast), res
-      astPrint (getPrimRest ast), res
     else throw new Error("Unknown type of object in AST: " + ast)
   isFirst and res.join('')
 
@@ -262,11 +244,6 @@ gen = (ast, code, lits, vars, deref)->
       funcCode = gen func, code, lits, vars, true
       argCode = gen arg, funcCode, lits, vars
       argCode.copyWith("#{funcCode.main}(#{argCode.main})").unreffedValue(deref)
-    when 'prim'
-      args = for arg in getPrimArgs ast
-        code = gen arg, code, lits, vars, true
-      code.copyWith("#{getPrimArg ast}(#{args.map(a -> a.main).join(', ')})")
-      code.unreffedValue(deref)
     else throw new Error("Unknown object type in gen: " + ast)
 
 laz = (val)-> -> val
