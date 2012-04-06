@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, P, U, compileFunc, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, P, U, compileFunc, escape, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -160,6 +160,10 @@
     return nextFunc();
   };
 
+  escape = function escape(str) {
+    return str.replace(/\n/g, '\\n');
+  };
+
   generateCode = function generateCode(file, contents, loud, handle) {
     var a, ast, c, code, err, errs, globals, m, nm, oldRest, out, r, rest, src, _ref, _ref2;
     if (loud) console.log("Compiling " + file + ":\n");
@@ -176,7 +180,7 @@
         if (ast.err != null) errs = "" + errs + ast.err + "\n";
         m = code.match(Lazp.linePat);
         if (m && m[3]) nm = m[2].trim().split(/\s+/)[0];
-        ast.src = "//" + (nm ? nm + ' = ' : '') + (Lazp.astPrint(ast)) + "\n" + ast.src;
+        ast.src = "//" + (nm ? nm + ' = ' : '') + (escape(Lazp.astPrint(ast))) + "\n" + ast.src;
         src = ast.lazpName ? ast.src : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
         _ref2 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref2[0], c = _ref2[1], r = _ref2[2];

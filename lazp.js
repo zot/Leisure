@@ -834,7 +834,7 @@ misrepresented as being the original software.
     var restOffset, _ref;
     restOffset = tokOffset + tok.length;
     return [
-      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? (console.log("SCANNING: " + tok), lit(laz(scanTok("\"" + (tok.substring(1, tok.length - 1)) + "\"")))) : ((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok] || (vars.find(function(v) {
+      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok("\"" + (tok.substring(1, tok.length - 1)) + "\""))) : ((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok] || (vars.find(function(v) {
         return tok === v;
       })) ? ref(laz(tok)) : lit(laz(scanTok(tok)))), tokOffset, restOffset), null, rest
     ];

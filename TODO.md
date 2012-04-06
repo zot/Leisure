@@ -1,5 +1,6 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* runRepl file should compile the file, eval it, and then stay in the REPL
 * -g option
    * check function types before application and print meaningful error msgs
    * generate trace

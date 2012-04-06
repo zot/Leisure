@@ -17,6 +17,8 @@
 
   next = R.repl;
 
+  pos = 2;
+
   for (i = 2, _ref = process.argv.length; 2 <= _ref ? i < _ref : i > _ref; 2 <= _ref ? i++ : i--) {
     if (process.argv[i] === '-h') {
       console.log("Usage: " + process.argv[0] + " [[-c | -q | -b] file...]\n\n-b -- bootstrap; don't load std functions\n-c -- compile arguments only\n-q -- quiet");

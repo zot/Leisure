@@ -127,7 +127,7 @@ Tests for Lazp
   });
 
   run('test19', function() {
-    return assertEval("concat divider", '\n-----\n');
+    return assertEval("concat divider", '\\n-----\\n');
   });
 
   run('test20', function() {

@@ -96,6 +96,8 @@ processLine = (line)->
     write(err.stack)
   nextFunc()
 
+escape = (str)-> str.replace(/\n/g, '\\n')
+
 generateCode = (file, contents, loud, handle)->
   if loud then console.log("Compiling #{file}:\n")
   out = """
@@ -126,7 +128,7 @@ processResult = Repl.processResult;
       if ast.err? then errs = "#{errs}#{ast.err}\n"
       m = code.match(Lazp.linePat)
       if m and m[3] then nm = m[2].trim().split(/\s+/)[0]
-      ast.src = "//#{if nm then nm + ' = ' else ''}#{Lazp.astPrint(ast)}\n#{ast.src}"
+      ast.src = "//#{if nm then nm + ' = ' else ''}#{escape(Lazp.astPrint(ast))}\n#{ast.src}"
       src = if ast.lazpName then ast.src else "processResult(#{ast.src})"
       out += "#{src};\n"
       [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]

@@ -9,6 +9,7 @@ loadStd = -> require('./std')
 action = importFile
 next = R.repl
 
+pos = 2
 for i in [2...process.argv.length]
   if process.argv[i] == '-h'
     console.log("""
