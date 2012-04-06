@@ -158,7 +158,7 @@
     return nextFunc();
   };
 
-  generateCode = function generateCode(file, contents, loud) {
+  generateCode = function generateCode(file, contents, loud, handle) {
     var ast, code, err, errs, globals, m, nm, oldRest, out, rest, src, _ref;
     if (loud) console.log("Compiling " + file + ":\n");
     out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./std');\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetId = Lazp.setId;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n";
@@ -177,6 +177,7 @@
         ast.src = "//" + (nm ? nm + ' = ' : '') + (Lazp.astPrint(ast)) + "\n" + ast.src;
         src = ast.lazpName ? ast.src : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
+        if (handle) handlerFunc(ast, null, a, c, r);
       } else if (err) {
         errs = "" + errs + err + "\n";
         rest = '';
