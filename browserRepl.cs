@@ -12,8 +12,8 @@ init = (inputField, output, defs)->
   write = (line)-> defs.innerHTML += line
   ReplCore.setWriter (line)-> output.innerHTML += line
   ReplCore.setNext -> input.value = ''
-  ReplCore.setHandler (ast, result, a, c, r)->
-    if ast.lazpName? then defs.innerHTML += "#{markupDef(ast.lazpCode)}<br>"
+  ReplCore.setHandler (ast, result, a, c, r, src)->
+    if ast.lazpName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
     else if result then output.innerHTML += "<b>> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}\n"
     ReplCore.processResult result
   input = inputField
@@ -23,11 +23,11 @@ init = (inputField, output, defs)->
       ReplCore.processLine(lastLine)
   input.select()
 
-markupDef = (line)->
-  if line.match /^\s*#/ then line
-  if (match = line.match Lazp.linePat)
+markupDef = (src, ast)->
+  if src.match /^\s*#/ then src
+  if (match = src.match Lazp.linePat)
     [matched, leading, name, defType] = match
-    "<b>#{name}</b> #{defType} #{line.substring(matched.length)}"
+    "<b>#{name}</b> #{defType} #{src.substring(matched.length)}"
   else line
 
 markupLines = (lines)-> lines.split('\n').map(markupDef).join('<br>')
@@ -35,12 +35,15 @@ markupLines = (lines)-> lines.split('\n').map(markupDef).join('<br>')
 handleFiles = (fileElement)->
   files = fileElement.files
   reader = new FileReader()
-  reader.onerror = (evt)-> alert('error' + evt)
+  reader.onerror = (evt)->
+    window.e = evt
+    alert('error' + evt)
+    fileElement.value = null
   reader.onload = ->
-    code = ReplCore.generateCode(files[0], reader.result, false)
+    code = ReplCore.generateCode(files[0], reader.result, false, true)
     eval(code)
+    fileElement.value = null
   reader.readAsText(files[0])
-  fileElement.value = null
   input.select()
 
 processResult = (result)->

@@ -25,9 +25,9 @@
     ReplCore.setNext(function() {
       return input.value = '';
     });
-    ReplCore.setHandler(function(ast, result, a, c, r) {
+    ReplCore.setHandler(function(ast, result, a, c, r, src) {
       if (ast.lazpName != null) {
-        defs.innerHTML += "" + (markupDef(ast.lazpCode)) + "<br>";
+        defs.innerHTML += "" + (markupDef(src, ast)) + "<br>";
       } else if (result) {
         output.innerHTML += "<b>> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
       }
@@ -43,12 +43,12 @@
     return input.select();
   };
 
-  markupDef = function markupDef(line) {
+  markupDef = function markupDef(src, ast) {
     var defType, leading, match, matched, name;
-    if (line.match(/^\s*#/)) line;
-    if ((match = line.match(Lazp.linePat))) {
+    if (src.match(/^\s*#/)) src;
+    if ((match = src.match(Lazp.linePat))) {
       matched = match[0], leading = match[1], name = match[2], defType = match[3];
-      return "<b>" + name + "</b> " + defType + " " + (line.substring(matched.length));
+      return "<b>" + name + "</b> " + defType + " " + (src.substring(matched.length));
     } else {
       return line;
     }
@@ -63,15 +63,17 @@
     files = fileElement.files;
     reader = new FileReader();
     reader.onerror = function onerror(evt) {
-      return alert('error' + evt);
+      window.e = evt;
+      alert('error' + evt);
+      return fileElement.value = null;
     };
     reader.onload = function onload() {
       var code;
-      code = ReplCore.generateCode(files[0], reader.result, false);
-      return eval(code);
+      code = ReplCore.generateCode(files[0], reader.result, false, true);
+      eval(code);
+      return fileElement.value = null;
     };
     reader.readAsText(files[0]);
-    fileElement.value = null;
     return input.select();
   };
 
