@@ -3,6 +3,7 @@ if window? and (!global? or global == window)
   window.ReplCore = root = {}
   Lazp = window.Lazp
   P = window.Pretty
+  Prim = window.Prim
 else root = exports ? this
 
 if !Lazp? and require?

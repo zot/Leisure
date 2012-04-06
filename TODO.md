@@ -1,6 +1,17 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* error on undeclared variables -- require quotes for strings
+* pretty print code
+* Run Lazp in sandbox
+   * lazp.cs, std.laz, prim.cs run in a sandbox
+      * in browser, use an iframe with ifr.contentWindow.eval() to communicate
+         * iframe.contentWindow holds globals
+		 * allow user to show or hide iframe (it's where SVG etc can be)
+      * in node, use VM.createContext and VM.runInContext to communicate
+         * context holds globals
+   * repl uses sandbox
+      * allows for reloading, etc.
+* throw error on undeclared variables -- require quotes for strings
+* need supertypes or something for things like booleans (true or false)
 * -g option
    * check function types before application and print meaningful error msgs
    * generate trace
@@ -15,7 +26,6 @@
 * generate currying functions at call sites
    * since cons is a global ref, cons a b -> _cons(a, b), instead of _cons()(a)(b)
    * cons a -> function(_1){return _cons(a, _1)}
-* make repl keep track of old definitions so it can wipe the env clean
 * integrate physics engine
 * indentation tweak
    * indent line creates a nested expression

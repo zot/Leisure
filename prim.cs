@@ -7,7 +7,7 @@ if window? and (!global? or global == window)
     if !output? then output = document.getElementById('output')
     output.innerHTML += "#{msg}"
   prompt = (msg, cont)-> cont(window.prompt(msg))
-  root = {}
+  window.Prim = root = {}
 else
   # running in node
   root = exports ? this
@@ -15,7 +15,6 @@ else
   U = require('util')
   RL = require('readline')
   tty = null
-  #write = (msg)-> tty.write(msg)
   write = (msg)-> process.stdout.write(msg)
   prompt = (msg, cont)-> tty.question(msg, cont)
 

@@ -12,7 +12,7 @@
     prompt = function prompt(msg, cont) {
       return cont(window.prompt(msg));
     };
-    root = {};
+    window.Prim = root = {};
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
     Lazp = require('./lazp');
