@@ -528,7 +528,7 @@ misrepresented as being the original software.
     if (code.err != null) {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
-      ast.src = "(function(){" + (tokenDef != null ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
+      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
     } else {
       ast.src = name != null ? "define('" + name + "', " + code.main + ")" : "(" + code.main + ")";
     }
