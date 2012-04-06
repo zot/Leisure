@@ -29,11 +29,6 @@ else root = exports ? this
 
 root.funcs = {}
 
-_refId = -1
-_litId = -2
-_lambdaId = -3
-_applyId = -4
-_primId = -5
 baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
@@ -71,7 +66,6 @@ charCodes =
 codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
 
 astsByName = {}
-astsById = []
 tokens = {}
 groupOpens = {'(': ')'}
 groupCloses = {')': 1}
@@ -93,17 +87,11 @@ define = (name, func) ->
   func
 
 setDataType = (func, dataType, id)->
-  if !id then astsById.push(func) else func.id = id
   if dataType then func.dataType = dataType
   func
 
 setType = (func, type, id)->
-  if !id then astsById.push(func) else func.id = id
   if type then func.type = type
-  func
-
-setId = (func, id)->
-  if !id then astsById.push(func) else func.id = id
   func
 
 nameAst = (nm, ast)-> if !ast.lazpName
@@ -111,37 +99,31 @@ nameAst = (nm, ast)-> if !ast.lazpName
   ast.lazpName = nm
   ast.toString = ->nm
 
-addAst = (ast)->
-  if !ast.funcId
-    astsById.push(ast)
-    ast.funcId = astsById.length
-    ast
-
 evalCompiledAst = (ast)-> if ast.lits.length then eval("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else eval(ast.src)
 
 define 'eval', (ast)-> evalCompiledAst(dgen(ast()))
 
-define 'lit', (_x)->setId ((_f)-> _f()(_x)), _litId
+define 'lit', (_x)->setType ((_f)-> _f()(_x)), 'lit'
 
-define 'ref', (_x)->setId ((_f)-> _f()(_x)), _refId
+define 'ref', (_x)->setType ((_f)-> _f()(_x)), 'ref'
 
-define 'lambda', (_v)-> setId ((_f)-> setId ((_g)-> _g()(_v)(_f)), _lambdaId), -1001
+define 'lambda', (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
 
-define 'apply', (_func)-> setId ((_arg)-> setId ((_f)-> _f()(_func)(_arg)), _applyId), -1002
+define 'apply', (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
 
-define 'prim', (_arg)-> setId ((_rest)-> setId ((_f)-> _f()(_arg)(_rest)), _primId), -1003
+define 'prim', (_arg)-> (_rest)-> setType ((_f)-> _f()(_arg)(_rest)), 'prim'
 
 getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{t}"
 
-lit = setId(root.funcs.lit)
-ref = setId(root.funcs.ref)
-lambda = setId(root.funcs.lambda)
-apply = setId(root.funcs.apply)
-prim = setId(root.funcs.prim)
-getAstType = (f) -> f.id
-isPrim = (f)-> getAstType(f) == _primId
+lit = root.funcs.lit
+ref = root.funcs.ref
+lambda = root.funcs.lambda
+apply = root.funcs.apply
+prim = root.funcs.prim
+getAstType = (f) -> f.type
+isPrim = (f)-> getAstType(f) == 'prim'
 first = ->(a)-> a
 second = ->(a)->(b)-> b()
 getRefVar = (r)-> r(first)()
@@ -164,21 +146,21 @@ astPrint = (ast, res)->
   isFirst = !res
   res = res ? []
   switch getAstType ast
-    when _refId
+    when 'ref'
       res.push 'ref '
       val = getRefVar ast
       if val.lambda then throw new Error("Attempt to use lambda in ref, instead of string or number: " + val)
       res.push val
-    when _litId
+    when 'lit'
       res.push 'lit '
       val = getLitVal ast
       res.push if val?.lambda then "{" + val.lambda.toString() + "}" else val
-    when _lambdaId
+    when 'lambda'
       res.push 'lambda '
       res.push (getLambdaVar ast)
       res.push ' . '
       astPrint (getLambdaBody ast), res
-    when _applyId
+    when 'apply'
       func = getApplyFunc ast
       arg = getApplyArg ast
       res.push 'apply ('
@@ -186,7 +168,7 @@ astPrint = (ast, res)->
       res.push ') ('
       astPrint (getApplyArg ast), res
       res.push ')'
-    when _primId
+    when 'prim'
       res.push 'prim '
       astPrint (getPrimArg ast), res
       astPrint (getPrimRest ast), res
@@ -250,38 +232,37 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   ast
 
 wrap = (ast, src)->
-  if !ast.type? and !ast.dataType then src
-  else "#{if ast.type then 'setType' else 'setDataType'}(#{src}, '#{ast.type ? ast.dataType}')"
+  if !ast.exprType? and !ast.exprDataType then src
+  else "#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
 
 gen = (ast, code, lits, vars, deref)->
-  addAst ast
   switch getAstType ast
-    when _refId
+    when 'ref'
       val = getRefVar ast
       if val.lambda then throw new Error("attempt to use lambda as a variable")
       code = code.copyWith(nameSub val).reffedValue(deref)
       if vars.find((v)-> v == val) then code.addVar(val)
       else if global[nameSub(val)]? or code.global.find((v)-> v == val) then code
       else code.addErr "Referenced free variable: #{val}, use lit, instead of ref."
-    when _litId
+    when 'lit'
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'
         lits.push(val)
         "(function(){\nreturn __lits[#{lits.length - 1}]\n})"
       else JSON.stringify val
       code.copyWith(src).unreffedValue(deref)
-    when _lambdaId
+    when 'lambda'
       v = getLambdaVar ast
       bodyCode = (gen (getLambdaBody ast), code.resetMemo(), lits, cons(v, vars), true)
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
       bodyCode.copyWith(wrap(ast, "function(#{nameSub(v)}){return #{bodyCode.main}}")).useSubfunc(bodyCode.vars == Nil).memo(deref)
-    when _applyId
+    when 'apply'
       func = getApplyFunc ast
       arg = getApplyArg ast
       funcCode = gen func, code, lits, vars, true
       argCode = gen arg, funcCode, lits, vars
       argCode.copyWith("#{funcCode.main}(#{argCode.main})").unreffedValue(deref)
-    when _primId
+    when 'prim'
       args = for arg in getPrimArgs ast
         code = gen arg, code, lits, vars, true
       code.copyWith("#{getPrimArg ast}(#{args.map(a -> a.main).join(', ')})")
@@ -328,12 +309,10 @@ compileNext = (line, globals)->
       if defType && defType != '=' then defineToken(nm[0], defType)
       ifParsed (parseApply (prefix nm, rest1), Nil), (ast, rest)->
         bod = ast
-        if nm.length > 1
-          bod = getNthBody(ast, nm.length)
-          addAst(ast)
-        if getAstType(bod) == _lambdaId
-          bod.type = nm[0]
-          ast.dataType = nm[0]
+        if nm.length > 1 then bod = getNthBody(ast, nm.length)
+        if getAstType(bod) == 'lambda'
+          bod.exprType = nm[0]
+          ast.exprDataType = nm[0]
         nameAst(nm[0], ast)
         if nm.length == 1 then nameAst(nm[0], ast)
         genCode ast, nm[0], globals, defType, rest
@@ -464,7 +443,6 @@ root.gen = dgen
 root.laz = laz
 root.compileNext = compileNext
 root.evalNext = evalNext
-root.setId = setId
 root.setType = setType
 root.setDataType = setDataType
 root.astEval = (ast)-> evalCompiledAst(dgen(ast))

@@ -31,7 +31,7 @@ LZ=require('./lazp')
 R = require('./replCore')
 require('./std')
 require('./prim')
-{setId, setType, setDataType, define} = LZ
+{setType, setDataType, define} = LZ
 {run, assertParse, assertEval, assertEq} = T = require('./testing.js')
 
 console.log 'Testing'

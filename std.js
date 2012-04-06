@@ -5,7 +5,6 @@ if (typeof require !== "undefined" && require !== null) {
   ReplCore = require("./replCore");
   Repl = require('./repl');
 }
-setId = Lazp.setId;
 setType = Lazp.setType;
 setDataType = Lazp.setDataType;
 define = Lazp.define;

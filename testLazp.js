@@ -28,7 +28,7 @@ Tests for Lazp
 */
 
 (function() {
-  var LZ, R, T, U, assertEq, assertEval, assertParse, code, define, run, setDataType, setId, setType, _ref;
+  var LZ, R, T, U, assertEq, assertEval, assertParse, code, define, run, setDataType, setType, _ref;
 
   U = require('util');
 
@@ -40,7 +40,7 @@ Tests for Lazp
 
   require('./prim');
 
-  setId = LZ.setId, setType = LZ.setType, setDataType = LZ.setDataType, define = LZ.define;
+  setType = LZ.setType, setDataType = LZ.setDataType, define = LZ.define;
 
   _ref = T = require('./testing.js'), run = _ref.run, assertParse = _ref.assertParse, assertEval = _ref.assertEval, assertEq = _ref.assertEq;
 

@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addAst, addDef, apply, astPrint, astsById, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setId, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap, _applyId, _lambdaId, _litId, _primId, _refId,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getPrimArg, getPrimArgs, getPrimRest, getRefVar, getType, groupCloses, groupOpens, ifParsed, isPrim, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, prim, ref, root, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -36,16 +36,6 @@ misrepresented as being the original software.
   }
 
   root.funcs = {};
-
-  _refId = -1;
-
-  _litId = -2;
-
-  _lambdaId = -3;
-
-  _applyId = -4;
-
-  _primId = -5;
 
   baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/;
 
@@ -99,8 +89,6 @@ misrepresented as being the original software.
 
   astsByName = {};
 
-  astsById = [];
-
   tokens = {};
 
   groupOpens = {
@@ -134,31 +122,12 @@ misrepresented as being the original software.
   };
 
   setDataType = function setDataType(func, dataType, id) {
-    if (!id) {
-      astsById.push(func);
-    } else {
-      func.id = id;
-    }
     if (dataType) func.dataType = dataType;
     return func;
   };
 
   setType = function setType(func, type, id) {
-    if (!id) {
-      astsById.push(func);
-    } else {
-      func.id = id;
-    }
     if (type) func.type = type;
-    return func;
-  };
-
-  setId = function setId(func, id) {
-    if (!id) {
-      astsById.push(func);
-    } else {
-      func.id = id;
-    }
     return func;
   };
 
@@ -169,14 +138,6 @@ misrepresented as being the original software.
       return ast.toString = function toString() {
         return nm;
       };
-    }
-  };
-
-  addAst = function addAst(ast) {
-    if (!ast.funcId) {
-      astsById.push(ast);
-      ast.funcId = astsById.length;
-      return ast;
     }
   };
 
@@ -193,39 +154,39 @@ misrepresented as being the original software.
   });
 
   define('lit', function(_x) {
-    return setId((function(_f) {
+    return setType((function(_f) {
       return _f()(_x);
-    }), _litId);
+    }), 'lit');
   });
 
   define('ref', function(_x) {
-    return setId((function(_f) {
+    return setType((function(_f) {
       return _f()(_x);
-    }), _refId);
+    }), 'ref');
   });
 
   define('lambda', function(_v) {
-    return setId((function(_f) {
-      return setId((function(_g) {
+    return function(_f) {
+      return setType((function(_g) {
         return _g()(_v)(_f);
-      }), _lambdaId);
-    }), -1001);
+      }), 'lambda');
+    };
   });
 
   define('apply', function(_func) {
-    return setId((function(_arg) {
-      return setId((function(_f) {
+    return function(_arg) {
+      return setType((function(_f) {
         return _f()(_func)(_arg);
-      }), _applyId);
-    }), -1002);
+      }), 'apply');
+    };
   });
 
   define('prim', function(_arg) {
-    return setId((function(_rest) {
-      return setId((function(_f) {
+    return function(_rest) {
+      return setType((function(_f) {
         return _f()(_arg)(_rest);
-      }), _primId);
-    }), -1003);
+      }), 'prim');
+    };
   });
 
   getType = function getType(f) {
@@ -234,22 +195,22 @@ misrepresented as being the original software.
     return (t === 'function' && (f != null ? f.type : void 0)) || ("*" + t);
   };
 
-  lit = setId(root.funcs.lit);
+  lit = root.funcs.lit;
 
-  ref = setId(root.funcs.ref);
+  ref = root.funcs.ref;
 
-  lambda = setId(root.funcs.lambda);
+  lambda = root.funcs.lambda;
 
-  apply = setId(root.funcs.apply);
+  apply = root.funcs.apply;
 
-  prim = setId(root.funcs.prim);
+  prim = root.funcs.prim;
 
   getAstType = function getAstType(f) {
-    return f.id;
+    return f.type;
   };
 
   isPrim = function isPrim(f) {
-    return getAstType(f) === _primId;
+    return getAstType(f) === 'prim';
   };
 
   first = function first() {
@@ -314,7 +275,7 @@ misrepresented as being the original software.
     isFirst = !res;
     res = res != null ? res : [];
     switch (getAstType(ast)) {
-      case _refId:
+      case 'ref':
         res.push('ref ');
         val = getRefVar(ast);
         if (val.lambda) {
@@ -322,18 +283,18 @@ misrepresented as being the original software.
         }
         res.push(val);
         break;
-      case _litId:
+      case 'lit':
         res.push('lit ');
         val = getLitVal(ast);
         res.push((val != null ? val.lambda : void 0) ? "{" + val.lambda.toString() + "}" : val);
         break;
-      case _lambdaId:
+      case 'lambda':
         res.push('lambda ');
         res.push(getLambdaVar(ast));
         res.push(' . ');
         astPrint(getLambdaBody(ast), res);
         break;
-      case _applyId:
+      case 'apply':
         func = getApplyFunc(ast);
         arg = getApplyArg(ast);
         res.push('apply (');
@@ -342,7 +303,7 @@ misrepresented as being the original software.
         astPrint(getApplyArg(ast), res);
         res.push(')');
         break;
-      case _primId:
+      case 'prim':
         res.push('prim ');
         astPrint(getPrimArg(ast), res);
         astPrint(getPrimRest(ast), res);
@@ -538,18 +499,17 @@ misrepresented as being the original software.
 
   wrap = function wrap(ast, src) {
     var _ref;
-    if (!(ast.type != null) && !ast.dataType) {
+    if (!(ast.exprType != null) && !ast.exprDataType) {
       return src;
     } else {
-      return "" + (ast.type ? 'setType' : 'setDataType') + "(" + src + ", '" + ((_ref = ast.type) != null ? _ref : ast.dataType) + "')";
+      return "" + (ast.exprType ? 'setType' : 'setDataType') + "(" + src + ", '" + ((_ref = ast.exprType) != null ? _ref : ast.exprDataType) + "')";
     }
   };
 
   gen = function gen(ast, code, lits, vars, deref) {
     var arg, argCode, args, bodyCode, func, funcCode, src, v, val;
-    addAst(ast);
     switch (getAstType(ast)) {
-      case _refId:
+      case 'ref':
         val = getRefVar(ast);
         if (val.lambda) throw new Error("attempt to use lambda as a variable");
         code = code.copyWith(nameSub(val)).reffedValue(deref);
@@ -565,24 +525,24 @@ misrepresented as being the original software.
           return code.addErr("Referenced free variable: " + val + ", use lit, instead of ref.");
         }
         break;
-      case _litId:
+      case 'lit':
         val = getLitVal(ast);
         src = typeof val === 'function' || typeof val === 'object' ? (lits.push(val), "(function(){\nreturn __lits[" + (lits.length - 1) + "]\n})") : JSON.stringify(val);
         return code.copyWith(src).unreffedValue(deref);
-      case _lambdaId:
+      case 'lambda':
         v = getLambdaVar(ast);
         bodyCode = gen(getLambdaBody(ast), code.resetMemo(), lits, cons(v, vars), true);
         bodyCode = bodyCode.setVars(bodyCode.vars.removeAll(function(bv) {
           return bv === v;
         }));
         return bodyCode.copyWith(wrap(ast, "function(" + (nameSub(v)) + "){return " + bodyCode.main + "}")).useSubfunc(bodyCode.vars === Nil).memo(deref);
-      case _applyId:
+      case 'apply':
         func = getApplyFunc(ast);
         arg = getApplyArg(ast);
         funcCode = gen(func, code, lits, vars, true);
         argCode = gen(arg, funcCode, lits, vars);
         return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").unreffedValue(deref);
-      case _primId:
+      case 'prim':
         args = (function() {
           var _i, _len, _ref, _results;
           _ref = getPrimArgs(ast);
@@ -668,13 +628,10 @@ misrepresented as being the original software.
         return ifParsed(parseApply(prefix(nm, rest1), Nil), function(ast, rest) {
           var bod;
           bod = ast;
-          if (nm.length > 1) {
-            bod = getNthBody(ast, nm.length);
-            addAst(ast);
-          }
-          if (getAstType(bod) === _lambdaId) {
-            bod.type = nm[0];
-            ast.dataType = nm[0];
+          if (nm.length > 1) bod = getNthBody(ast, nm.length);
+          if (getAstType(bod) === 'lambda') {
+            bod.exprType = nm[0];
+            ast.exprDataType = nm[0];
           }
           nameAst(nm[0], ast);
           if (nm.length === 1) nameAst(nm[0], ast);
@@ -900,8 +857,6 @@ misrepresented as being the original software.
   root.compileNext = compileNext;
 
   root.evalNext = evalNext;
-
-  root.setId = setId;
 
   root.setType = setType;
 
