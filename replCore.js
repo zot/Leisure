@@ -127,7 +127,9 @@
     try {
       if (line) {
         if (line[0] === '!') {
-          write(U.inspect(eval(line.substr(1))), "\n");
+          result = eval(line.substr(1));
+          result = U != null ? U.inspect(result) : result;
+          write(result, "\n");
         } else if ((m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/))) {
           handleVar(m[2], m[3]);
         } else if ((m = line.match(/^:c\s*([^\s]*)$/))) {
@@ -173,7 +175,7 @@
         globals = ast.globals;
         if (ast.err != null) errs = "" + errs + ast.err + "\n";
         m = code.match(Lazp.linePat);
-        nm = m && m[2].trim().split(/\s+/)[0];
+        if (m && m[3]) nm = m[2].trim().split(/\s+/)[0];
         ast.src = "//" + (nm ? nm + ' = ' : '') + (Lazp.astPrint(ast)) + "\n" + ast.src;
         src = ast.lazpName ? ast.src : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
