@@ -40,7 +40,6 @@
         return ReplCore.processLine(lastLine);
       }
     };
-    ReplCore.help();
     return input.select();
   };
 

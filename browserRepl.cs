@@ -21,7 +21,6 @@ init = (inputField, output, defs)->
     if (e.charCode || e.keyCode || e.which) == 13
       lastLine = input.value.replace(/\\/g, '\u03BB')
       ReplCore.processLine(lastLine)
-  ReplCore.help()
   input.select()
 
 markupDef = (line)->
