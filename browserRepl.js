@@ -68,7 +68,9 @@
       return fileElement.value = null;
     };
     reader.onload = function onload() {
-      var code;
+      var code, lazpFile;
+      lazpFile = reader.result;
+      alert('loaded');
       code = ReplCore.generateCode(files[0], reader.result, false);
       eval(code);
       return fileElement.value = null;
