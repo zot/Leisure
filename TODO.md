@@ -1,5 +1,10 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* scroll to bottom on eval
+* file loading in browser
+* example that reads strings and prints them until the user types 'quit'
+* get ! working on browser
+* :p to show primitives
 * change to new parser
 * make bodiless lambdas eat newlines, to help with monads
 
