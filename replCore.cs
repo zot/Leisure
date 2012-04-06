@@ -8,6 +8,7 @@ else root = exports ? this
 if !Lazp? and require?
   Lazp = require('./lazp')
   P = require('./pretty')
+  Prim = require('./prim')
   U = require('util')
 
 compileFunc = ->
@@ -60,9 +61,7 @@ print = (args...)-> writeFunc(U.format.apply(null, args))
 write = (args...)-> writeFunc args.join('')
 
 processResult = (result)->
-  if (getType result) == 'monad'
-    result.cmd (value) -> if result.binding? then processResult(result.binding(-> value))
-    else nextFunc()
+  if (getType result) == 'monad' then Prim.runMonad result, -> nextFunc()
   else nextFunc()
 
 handleVar = (name, value)->

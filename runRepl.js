@@ -5,9 +5,7 @@
 
   importFile = function importFile(file, cont) {
     return R.compile(file, function() {
-      console.log("running require('./" + file + "')...");
       require("./" + file);
-      console.log("done");
       return cont();
     });
   };

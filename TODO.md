@@ -1,5 +1,6 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* error on undeclared variables -- require quotes for strings
 * -g option
    * check function types before application and print meaningful error msgs
    * generate trace

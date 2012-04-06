@@ -34,6 +34,11 @@ define '*', (a)->(b)->a() * b()
 define '/', (a)->(b)->a() / b()
 define '%', (a)->(b)->a() % b()
 
+runMonad = (monad, cont)->
+  monad.cmd (value) ->
+    if monad.binding? then runMonad monad.binding(-> value), cont
+    else cont(value)
+
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Lazp code
 # so people won't accidentally fire off side effects
@@ -45,6 +50,9 @@ makeMonad = (binding, guts)->
   m
 
 define 'end', "end"
+
+define 'bind', (m)->(binding)->
+  makeMonad binding(), (cont)-> runMonad m(), cont
 
 define 'return', (v)->(binding)->
   makeMonad binding(), (cont) -> cont(v())
@@ -74,3 +82,4 @@ define 'js', (codeList)->(binding)->
     cont(eval(concatList(cl)))
 
 root.setTty = setTty
+root.runMonad = runMonad

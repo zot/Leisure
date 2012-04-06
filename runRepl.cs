@@ -2,9 +2,7 @@ R = require('./repl')
 
 importFile = (file, cont) ->
   R.compile file, ->
-    console.log("running require('./#{file}')...")
     require("./#{file}")
-    console.log("done")
     cont()
 
 loadStd = -> require('./std')
