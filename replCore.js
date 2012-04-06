@@ -37,7 +37,7 @@
 
   getType = Lazp.getType;
 
-  handlerFunc = function handlerFunc(ast, result, a, c, r) {
+  handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
     if (a) write("PARSED: " + (Lazp.astPrint(ast)) + "\n");
     if (c) write("GEN: " + ast.src + "\n");
     if (r) {
@@ -148,7 +148,7 @@
               } else {
                 result = null;
               }
-              return handlerFunc(ast, result, a, c, r);
+              return handlerFunc(ast, result, a, c, r, line);
           }
         }
       }
@@ -177,7 +177,7 @@
         ast.src = "//" + (nm ? nm + ' = ' : '') + (Lazp.astPrint(ast)) + "\n" + ast.src;
         src = ast.lazpName ? ast.src : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
-        if (handle) handlerFunc(ast, null, a, c, r);
+        if (handle) handlerFunc(ast, null, a, c, r, code);
       } else if (err) {
         errs = "" + errs + err + "\n";
         rest = '';
