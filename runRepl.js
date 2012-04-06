@@ -1,12 +1,15 @@
 (function() {
-  var R, action, i, importFile, loadStd, next, pos, _ref, _ref2;
+  var R, action, i, importFile, loadStd, next, pos, processArgs, _ref;
 
   R = require('./repl');
 
-  importFile = function importFile(file) {
-    R.compile(file);
-    console.log("require('./" + file + "')");
-    return require("./" + file);
+  importFile = function importFile(file, cont) {
+    return R.compile(file, function() {
+      console.log("running require('./" + file + "')...");
+      require("./" + file);
+      console.log("done");
+      return cont();
+    });
   };
 
   loadStd = function loadStd() {
@@ -25,7 +28,9 @@
     } else if (process.argv[i] === '-b') {
       loadStd = function loadStd() {};
     } else if (process.argv[i] === '-c') {
-      action = R.compile;
+      action = function action(f, cont) {
+        return R.compile(f, cont);
+      };
       next = function next() {};
     } else if (process.argv[i] === '-q') {
       R.quiet = true;
@@ -37,10 +42,16 @@
 
   loadStd();
 
-  for (i = pos, _ref2 = process.argv.length; pos <= _ref2 ? i < _ref2 : i > _ref2; pos <= _ref2 ? i++ : i--) {
-    action(process.argv[i]);
-  }
+  processArgs = function processArgs(i) {
+    if (i < process.argv.length) {
+      return action(process.argv[i], function() {
+        return processArgs(i + 1);
+      });
+    } else {
+      return next();
+    }
+  };
 
-  next();
+  processArgs(pos);
 
 }).call(this);

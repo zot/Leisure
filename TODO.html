@@ -16,7 +16,6 @@
 <h1>TODO</h1>
 
 <ul>
-<li>runRepl file should compile the file, eval it, and then stay in the REPL</li>
 <li>-g option
 <ul>
 <li>check function types before application and print meaningful error msgs</li>
@@ -85,7 +84,6 @@ print "OK, we're done." end</p>
 </ul></li>
 <li>parser improvements
 <ul>
-<li>quotes for names</li>
 <li>a-b recursion?
 <ul>
 <li>it could do a pass to get function names, first</li>
@@ -101,6 +99,7 @@ print "OK, we're done." end</p>
 <h1>DONE</h1>
 
 <ul>
+<li>runRepl file should compile the file, eval it, and then stay in the REPL</li>
 <li>get ! working on browser</li>
 <li>file loading in browser</li>
 <li>change to new parser</li>
@@ -149,8 +148,9 @@ print (concat ["hello ", value, "."]) end</p>
 </ul></li>
 <li>switched to coffeescript</li>
 <li>REPL -- seems to work</li>
-<li>parse improvements
+<li>parser improvements
 <ul>
+<li>quotes for names</li>
 <li>each line is a definition -- main is the program
 <ul>
 <li>= expr runs expr (expr can also work if there is no '=' token in expr)</li>

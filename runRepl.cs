@@ -1,9 +1,11 @@
 R = require('./repl')
 
-importFile = (file) ->
-  R.compile file
-  console.log("require('./#{file}')")
-  require("./#{file}")
+importFile = (file, cont) ->
+  R.compile file, ->
+    console.log("running require('./#{file}')...")
+    require("./#{file}")
+    console.log("done")
+    cont()
 
 loadStd = -> require('./std')
 action = importFile
@@ -21,7 +23,7 @@ Usage: #{process.argv[0]} [[-c | -q | -b] file...]
     """)
   else if process.argv[i] == '-b' then loadStd = ->
   else if process.argv[i] == '-c'
-    action = R.compile
+    action = (f, cont)->R.compile f, cont
     next = ->
   else if process.argv[i] == '-q' then R.quiet = true
   else break
@@ -30,7 +32,8 @@ Usage: #{process.argv[0]} [[-c | -q | -b] file...]
 
 loadStd()
 
-for i in [pos...process.argv.length]
-  action(process.argv[i])
+processArgs = (i)->
+  if i < process.argv.length then action(process.argv[i], ->processArgs(i + 1))
+  else next()
 
-next()
+processArgs pos

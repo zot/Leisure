@@ -1,6 +1,5 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* runRepl file should compile the file, eval it, and then stay in the REPL
 * -g option
    * check function types before application and print meaningful error msgs
    * generate trace
@@ -45,7 +44,6 @@
 * Use Lazp for parser, generator, REPL; compile them and use the JS for them
    * this will help people extend Lazp
 * parser improvements
-   * quotes for names
    * a-b recursion?
       * it could do a pass to get function names, first
 * generator improvements
@@ -53,6 +51,7 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* runRepl file should compile the file, eval it, and then stay in the REPL
 * get ! working on browser
 * file loading in browser
 * change to new parser
@@ -87,7 +86,8 @@
    * naked exprs are printed
 * switched to coffeescript
 * REPL -- seems to work
-* parse improvements
+* parser improvements
+   * quotes for names
    * each line is a definition -- main is the program
       * = expr runs expr (expr can also work if there is no '=' token in expr)
    * allow args in definitions: func arg1 arg2 = body => func = \arg1 arg2 . body

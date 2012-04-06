@@ -53,7 +53,8 @@ help = ()->
 
   """)
 
-compile = (file)->
+compile = (file, cont)->
+  cont = cont ? Core.next
   if !file
     console.log("No file to compile")
     face?.prompt()
@@ -64,17 +65,17 @@ compile = (file)->
       file = file + ".laz"
       if !Path.existsSync(file)
         console.log("No file: #{oldfile}")
-        return Core.next()
+        return cont()
     stream = FS.createReadStream(file)
     stream.on('data', (data)-> contents += data)
     stream.on('end', ()->
       out = Core.generateCode(file, contents, !root.quiet)
       stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
-      stream.end(out, 'utf8')
-      Core.next())
+      stream.end(out, 'utf8'))
+    stream.on 'close', -> cont()
     stream.on('error', (ex)->
       console.log("Exception reading file: ", ex.stack)
-      Core.next())
+      cont())
 
 processResult = (result)->
   init()
