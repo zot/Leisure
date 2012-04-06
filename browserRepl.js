@@ -68,10 +68,8 @@
       return fileElement.value = null;
     };
     reader.onload = function onload() {
-      var code, lazpFile;
-      lazpFile = reader.result;
-      alert('loaded');
-      code = ReplCore.generateCode(files[0], reader.result, false);
+      var code;
+      code = ReplCore.generateCode(files[0], reader.result, false, true);
       eval(code);
       return fileElement.value = null;
     };
