@@ -72,8 +72,9 @@
     return write(":v -- vars\n:h -- help\n:c file -- compile file\n:q -- quit\n!code -- eval JavaScript code\n");
   };
 
-  compile = function compile(file) {
+  compile = function compile(file, cont) {
     var contents, oldfile, stream;
+    cont = cont != null ? cont : Core.next;
     if (!file) {
       console.log("No file to compile");
       return face != null ? face.prompt() : void 0;
@@ -84,7 +85,7 @@
         file = file + ".laz";
         if (!Path.existsSync(file)) {
           console.log("No file: " + oldfile);
-          return Core.next();
+          return cont();
         }
       }
       stream = FS.createReadStream(file);
@@ -95,12 +96,14 @@
         var out;
         out = Core.generateCode(file, contents, !root.quiet);
         stream = FS.createWriteStream("" + (Path.basename(file, '.laz')) + ".js");
-        stream.end(out, 'utf8');
-        return Core.next();
+        return stream.end(out, 'utf8');
+      });
+      stream.on('close', function() {
+        return cont();
       });
       return stream.on('error', function(ex) {
         console.log("Exception reading file: ", ex.stack);
-        return Core.next();
+        return cont();
       });
     }
   };
