@@ -27,8 +27,8 @@
     });
     ReplCore.setHandler(function(ast, result, a, c, r) {
       if (ast.lazpName != null) {
-        defs.innerHTML += "" + (markupDef(lastLine)) + "<br>";
-      } else {
+        defs.innerHTML += "" + (markupDef(ast.lazpCode)) + "<br>";
+      } else if (result) {
         output.innerHTML += "<b>> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
       }
       return ReplCore.processResult(result);
@@ -44,10 +44,11 @@
   };
 
   markupDef = function markupDef(line) {
-    var match;
+    var defType, leading, match, matched, name;
     if (line.match(/^\s*#/)) line;
-    if ((match = line.match(/^[^=]*(?=\s*=)/))) {
-      return "<b>" + match[0] + "</b>" + (line.substring(match[0].length));
+    if ((match = line.match(Lazp.linePat))) {
+      matched = match[0], leading = match[1], name = match[2], defType = match[3];
+      return "<b>" + name + "</b> " + defType + " " + (line.substring(matched.length));
     } else {
       return line;
     }
@@ -65,24 +66,9 @@
       return alert('error' + evt);
     };
     reader.onload = function onload() {
-      var ast, line, result, _i, _len, _ref, _ref2, _results;
-      _ref = reader.result.split('\n');
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        line = _ref[_i];
-        if (line) {
-          write("" + (markupDef(line)) + "\n");
-          ast = Lazp.compileLine(line);
-          if (ast) {
-            _results.push((_ref2 = Lazp.evalLine(line), ast = _ref2[0], result = _ref2[1], _ref2));
-          } else {
-            _results.push(void 0);
-          }
-        } else {
-          _results.push(void 0);
-        }
-      }
-      return _results;
+      var code;
+      code = ReplCore.generateCode(files[0], reader.result, false);
+      return eval(code);
     };
     reader.readAsText(files[0]);
     fileElement.value = null;

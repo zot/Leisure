@@ -46,6 +46,7 @@ last l = l (\\h t D . null t h (last t)) nil
 """, false)
 eval(code)
 
+run 'test0', -> assertParse("1", "lit 1")
 run 'test1', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
 run 'test2', -> assertEval("(\\x . x) hello", 'hello')
 run 'test3', -> assertEval("eval (apply (lambda x (ref x)) (lit hello))", 'hello')

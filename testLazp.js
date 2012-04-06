@@ -50,6 +50,10 @@ Tests for Lazp
 
   eval(code);
 
+  run('test0', function() {
+    return assertParse("1", "lit 1");
+  });
+
   run('test1', function() {
     return assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y");
   });

@@ -13,8 +13,8 @@ init = (inputField, output, defs)->
   ReplCore.setWriter (line)-> output.innerHTML += line
   ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r)->
-    if ast.lazpName? then defs.innerHTML += "#{markupDef(lastLine)}<br>"
-    else output.innerHTML += "<b>> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}\n"
+    if ast.lazpName? then defs.innerHTML += "#{markupDef(ast.lazpCode)}<br>"
+    else if result then output.innerHTML += "<b>> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}\n"
     ReplCore.processResult result
   input = inputField
   input.onkeypress = (e)->
@@ -25,7 +25,9 @@ init = (inputField, output, defs)->
 
 markupDef = (line)->
   if line.match /^\s*#/ then line
-  if (match = line.match /^[^=]*(?=\s*=)/) then "<b>#{match[0]}</b>#{line.substring(match[0].length)}"
+  if (match = line.match Lazp.linePat)
+    [matched, leading, name, defType] = match
+    "<b>#{name}</b> #{defType} #{line.substring(matched.length)}"
   else line
 
 markupLines = (lines)-> lines.split('\n').map(markupDef).join('<br>')
@@ -35,11 +37,8 @@ handleFiles = (fileElement)->
   reader = new FileReader()
   reader.onerror = (evt)-> alert('error' + evt)
   reader.onload = ->
-    for line in reader.result.split('\n')
-      if line
-        write "#{markupDef line}\n"
-        ast = Lazp.compileLine line
-        if ast then [ast, result] = Lazp.evalLine line
+    code = ReplCore.generateCode(files[0], reader.result, false)
+    eval(code)
   reader.readAsText(files[0])
   fileElement.value = null
   input.select()

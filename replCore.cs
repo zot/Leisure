@@ -93,7 +93,7 @@ processLine = (line)->
     write(err.stack)
   nextFunc()
 
-generateCode = (file, contents, loud)->
+generateCode = (file, contents, loud, handle)->
   if loud then console.log("Compiling #{file}:\n")
   out = """
 if (typeof require !== "undefined" && require !== null) {
@@ -126,6 +126,7 @@ processResult = Repl.processResult;
       ast.src = "//#{if nm then nm + ' = ' else ''}#{Lazp.astPrint(ast)}\n#{ast.src}"
       src = if ast.lazpName then ast.src else "processResult(#{ast.src})"
       out += "#{src};\n"
+      if handle then handlerFunc ast, null, a, c, r
     else if err
       errs = "#{errs}#{err}\n"
       rest = ''

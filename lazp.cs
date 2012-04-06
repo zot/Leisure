@@ -321,13 +321,12 @@ getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n
 compileNext = (line, globals)->
   if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
-    rest = line.substring (if defType then matched else leading).length
+    rest1 = line.substring (if defType then matched else leading).length
     nm = if defType then name.trim().split(/\s+/) else null
     if nm
       astsByName[nm[0]] = 1
       if defType && defType != '=' then defineToken(nm[0], defType)
-      line = rest.substring(0, rest.indexOf('\n', 1))
-      ifParsed (parseApply (prefix nm, rest), Nil), (ast, rest)->
+      ifParsed (parseApply (prefix nm, rest1), Nil), (ast, rest)->
         bod = ast
         if nm.length > 1
           bod = getNthBody(ast, nm.length)
@@ -338,7 +337,7 @@ compileNext = (line, globals)->
         nameAst(nm[0], ast)
         if nm.length == 1 then nameAst(nm[0], ast)
         genCode ast, nm[0], globals, defType, rest
-    else ifParsed (parseApply rest, Nil), (ast, rest)->
+    else ifParsed (parseApply rest1, Nil), (ast, rest)->
       genCode ast, null, globals, null, rest
   else [null, null, null]
 
@@ -366,70 +365,88 @@ evalNext = (code)->
       [ast, result]
   else [null, err]
 
-nextTok = (str)->
+nextTok = (str, offset)->
   m = str.match(tokenPat)
-  if !m then [str, '']
-  else if m.index == 0 && m[0] == '\n' then ['\n', str.substring 1]
+  if !m then [str, offset, '']
+  else if m.index == 0 && m[0] == '\n' then ['\n', offset, str.substring(1)]
   else
     tok = str.substring(0, if m.index > 0 then m.index else m[0].length)
     rest = str.substring tok.length
-    if tok[0] == '#' or !tok.trim() then nextTok rest
-    else [tok, rest]
+    if tok[0] != '#' and tok.trim() then [tok, offset, rest]
+    else nextTok rest, offset + tok.length
 
 parse = (str)->
   [ast, err, rest] = parseSome str, Nil
   if err then throw new Error(err) else ast
 
 # returns [ast, error, rest-of-input]
-parseSome = (str)-> parseApply str.replace(/\u03BB/g, '\\'), Nil
+parseSome = (str)-> parseApply str.replace(/\u03BB/g, '\\'), Nil, 0
 
 ifParsed = (res, block)-> if res[1] then res else block res[0], res[2]
 
-parseApply = (str, vars)->
+tag = (ast, start, end)->
+  ast.lazpStart = start
+  ast.lazpEnd = end
+  ast
+
+soff = (orig, offset, rest)-> offset + orig.length - rest.length
+
+parseApply = (str, vars, offset)->
   if !str.length then [null, null, str]
   else
-    [tok, rest] = nextTok str
-    if tok == '\n' then [null, 'Newline when expecting expression', rest]
+    [tok, offset1, rest1] = nextTok str, offset
+    if tok == '\n' then [null, 'Newline when expecting expression', rest1]
     else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok}", str]
-    else ifParsed (parseTerm tok, rest, vars), (func, rest)-> continueApply(func, rest, vars)
+    else ifParsed (parseTerm tok, rest1, vars, offset1), (func, rest)-> continueApply(func, rest, vars, soff(str, offset, rest))
 
-continueApply = (func, str, vars)->
-  [tok, rest] = nextTok str
+continueApply = (func, str, vars, offset)->
+  [tok, offset1, rest] = nextTok str, offset
   if !tok or tok == '\n' or groupCloses[tok] then [func, null, str]
-  else ifParsed (parseTerm tok, rest, vars), (arg, rest)->
-    continueApply apply(laz(func))(laz(arg)), rest, vars
+  else ifParsed (parseTerm tok, rest, vars, offset1), (arg, rest)->
+    continueApply tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, soff(str, offset, rest)
 
-parseTerm = (tok, rest, vars)->
+parseTerm = (tok, rest, vars, tokOffset)->
+  restOffset = tokOffset + tok.length
   if tok == '\n' then [null, 'Unexpected newline while expecting a term', rest]
-  else if tok == '\\' then parseLambda rest, vars
+  else if tok == '\\' then parseLambda rest, vars, restOffset
   else if groupOpens[tok]
-    apl = if tok == '(' then parseApply rest, vars else ifParsed (parseName tok, rest, vars), (ast, rest)-> continueApply ast, rest, vars
-    ifParsed apl, (ast, rest)->
-      [tok2, rest2] = nextTok rest
-      if tok2 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok2}", rest2]
-      else if tok == '(' then [ast, null, rest2]
-      else ifParsed (parseName tok2, rest2, vars), (arg, rest)->
-        [apply(laz(ast))(laz(arg)), null, rest]
-  else parseName tok, rest, vars
+    apl = if tok == '(' then parseApply rest, vars, restOffset else ifParsed (parseName tok, rest, vars, tokOffset), (ast, rest2)-> continueApply ast, rest2, vars, soff(rest, restOffset, rest2)
+    ifParsed apl, (ast, rest3)->
+      [tok4, offset4, rest4] = nextTok rest3, soff(rest, restOffset, rest3)
+      if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
+      else if tok == '(' then [ast, null, rest4]
+      else ifParsed (parseName tok4, rest4, vars, soff(rest, restOffset, rest4)), (arg, rest5)->
+        [tag(apply(laz(ast))(laz(arg)), ast.lazpStart, arg.lazpEnd), null, rest5]
+  else parseName tok, rest, vars, tokOffset
 
-parseName = (tok, rest, vars) ->
-  if tok[0] == '"' or tok[0] == "'" then [lit(laz(tok.substring(1, tok.length - 1))), null, rest]
-  else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then [ref(laz(tok)), null, rest]
-  else [lit(laz(scanTok(tok))), null, rest]
+parseName = (tok, rest, vars, tokOffset) ->
+  restOffset = tokOffset + tok.length
+  [
+    tag((if tok[0] == '"' or tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
+    else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
+    else lit(laz(scanTok(tok)))), tokOffset, restOffset), null, rest]
 
-nextTokWithNl = (str)->
-  t = [tok, rest] = nextTok str
-  if t == '\n' then nextTokWithNl rest else t
+nextTokWithNl = (str, offset)->
+  [t, rest] = subnextTokWithNl str
+  [t, soff(str, offset, rest), rest]
+
+subnextTokWithNl = (str)->
+  [tok, offset, rest] = nextTok str, 0
+  if tok == '\n' then subnextTokWithNl rest else [tok, rest]
 
 eatAllWhitespace = (str)->
   m = str.match /^\s+/
   if m then str.substring(m[0].length)
   else str
 
-parseLambda = (str, vars)->
-  [nm, rest1] = nextTokWithNl str
-  [tok2, rest2] = nextTokWithNl rest1
-  ifParsed (if tok2 == '.' then parseApply eatAllWhitespace(rest2), cons(nm, vars) else parseLambda rest1, cons(nm, vars)), (body, rest)-> [lambda(laz(nm))(laz(body)), null, rest]
+parseLambda = (str, vars, offset)->
+  [nm, offset1, rest1] = nextTokWithNl str, offset
+  [tok2, offset2, rest2] = nextTokWithNl rest1, offset1
+  ifParsed (if tok2 == '.'
+    str2 = eatAllWhitespace rest2
+    off2 = soff(str, offset, str2)
+    parseApply str2, cons(nm, vars), off2
+  else parseLambda rest1, cons(nm, vars), soff(str, offset, rest1)), (body, rest2)-> [tag(lambda(laz(nm))(laz(body)), offset, soff(str, offset, rest2)), null, rest2]
 
 addDef = (toks)->
   t = toks.reverse()
