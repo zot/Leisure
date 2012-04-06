@@ -240,7 +240,7 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true).memo(!lazy)
   if code.err? then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
-(function(){#{if tokenDef? then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
+(function(){#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
   return #{if name? then "define('#{name}', #{code.main})" else code.main}
 })()
