@@ -11,7 +11,34 @@
 
 <body>
 
-<p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> [Source](</p>
+<p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="http://github.com/zot/lazp">Source</a> <a href="lazp.html">REPL</a> <a href="std.laz">Standard functinos</a></p>
+
+<h2>Syntax</h2>
+
+<p>Lambda syntax is very similar to Church's; Here's the identity function, <strong>𝛌x.x</strong>. For the lambda character, you can either use unicode character 955 (u3BB in JavaScript, &955; in HTML) or you can use \, so <strong>\x.x</strong> works just as well.</p>
+
+<p>Identifiers are space or puctuation separated and you can stack lambda variables in front of the dot, so you can say "true," like this, <strong>𝛌a b.a</strong>.</p>
+
+<p>To name a function, you can use the = sign, like this, <strong>true = 𝛌a b.a</strong></p>
+
+<p>Like Haskell, Lazp will automatically create a lambda for you if you put arguments in front of the equals sign, like this, <strong>true a b = a</strong>.</p>
+
+<p>Any time a definition returns a lambda, it automatically creates a type with the same name as the definition.  For example, <strong>nil = 𝛌a b.b</strong> creates the type "nil".  You can compare types using the <strong>is</strong> function, for example, to see whether a value <strong>v</strong> is the <strong>nil</strong> function, you can say <strong>is v nil</strong>.</p>
+
+<h2>Internal Lazp Files</h2>
+
+<ul>
+<li>lazp.cs -- main implementation of the language</li>
+<li>prim.cs -- primitive functions</li>
+<li>std.laz -- standard functions</li>
+<li>pretty.cs -- pretty printer</li>
+<li>replCore.cs -- core of the REPL</li>
+<li>repl.cs -- command line repl</li>
+<li>runRepl.cs -- wrapper that runs the command line repl (probably can merge with repl.cs)</li>
+<li>browserRepl.cs -- browser wrapper for repl</li>
+<li>testing.js -- test case runner</li>
+<li>testLazp.cs -- test cases</li>
+</ul>
 
 </body>
 </html>

@@ -43,8 +43,12 @@ head l = l \\h t . h
 tail l = l \\h t . t
 null l = l (\\h t D . false) true
 last l = l (\\h t D . null t h (last t)) nil
+val = 2
+divider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
+div = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
 """, false)
 eval(code)
+
 
 run 'test0', -> assertParse("1", "lit 1")
 run 'test1', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y")
@@ -65,6 +69,10 @@ run 'test15', -> assertEval("head ([ 1 ])", 1)
 run 'test16', -> assertEval("head (tail (append ([ 1 ]) ([ 2 ])))", 2)
 run 'test17', -> assertEval("head [1]", 1)
 run 'test18', -> assertEval("head (tail (append [1] [2]))", 2)
+run 'test19', -> assertEval("concat divider", '\n-----\n')
+run 'test20', -> assertEval('"\\n"', "\n")
+run 'test21', -> assertEval("concat div", '\\n-----\\n')
+run 'test22', -> assertEval("val", 2)
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

@@ -421,10 +421,12 @@ parseTerm = (tok, rest, vars, tokOffset)->
 
 parseName = (tok, rest, vars, tokOffset) ->
   restOffset = tokOffset + tok.length
-  [
-    tag((if tok[0] == '"' or tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
-    else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
-    else lit(laz(scanTok(tok)))), tokOffset, restOffset), null, rest]
+  [tag((if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
+  else if tok[0] == '"'
+    console.log "SCANNING: #{tok}"
+    lit(laz(scanTok("\"#{tok.substring(1, tok.length - 1)}\"")))
+  else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
+  else lit(laz(scanTok(tok)))), tokOffset, restOffset), null, rest]
 
 nextTokWithNl = (str, offset)->
   [t, rest] = subnextTokWithNl str

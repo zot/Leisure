@@ -46,7 +46,7 @@ Tests for Lazp
 
   console.log('Testing');
 
-  code = R.generateCode(null, "and a b = a b false\nor a b = a true b\nhead l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil", false);
+  code = R.generateCode(null, "and a b = a b false\nor a b = a true b\nhead l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]", false);
 
   eval(code);
 
@@ -124,6 +124,22 @@ Tests for Lazp
 
   run('test18', function() {
     return assertEval("head (tail (append [1] [2]))", 2);
+  });
+
+  run('test19', function() {
+    return assertEval("concat divider", '\n-----\n');
+  });
+
+  run('test20', function() {
+    return assertEval('"\\n"', "\n");
+  });
+
+  run('test21', function() {
+    return assertEval("concat div", '\\n-----\\n');
+  });
+
+  run('test22', function() {
+    return assertEval("val", 2);
   });
 
   console.log('\nDone');

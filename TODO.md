@@ -1,9 +1,12 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* -g option
+   * check function types before application and print meaningful error msgs
+   * generate trace
+* log function that prints while running (side effect)
 * :l should load file
 * scroll to bottom on eval
 * example that reads strings and prints them until the user types 'quit'
-* get ! working on browser
 * :p to show primitives
 * infix function call syntax
    * allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)
@@ -49,6 +52,7 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* get ! working on browser
 * file loading in browser
 * change to new parser
 * make bodiless lambdas eat newlines, to help with monads
