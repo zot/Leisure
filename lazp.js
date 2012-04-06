@@ -53,7 +53,7 @@ misrepresented as being the original software.
 
   specials = '[]().*+?|';
 
-  linePat = /^((?:\s*|#[^\n]*\n)*)([^=]*)(=[.)]=|=\([^=]+=|=)?/;
+  linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/;
 
   order = [];
 

@@ -77,7 +77,10 @@ handleVar = (name, value)->
 processLine = (line)->
   try
     if line
-      if line[0] == '!' then write(U.inspect(eval(line.substr(1))), "\n")
+      if line[0] == '!'
+        result = eval(line.substr(1))
+        result = if U? then U.inspect(result) else result
+        write(result, "\n")
       else if (m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/)) then handleVar(m[2], m[3])
       else if (m = line.match(/^:c\s*([^\s]*)$/)) then return compileFunc(m[1])
       else switch line
@@ -122,7 +125,7 @@ processResult = Repl.processResult;
       globals = ast.globals
       if ast.err? then errs = "#{errs}#{ast.err}\n"
       m = code.match(Lazp.linePat)
-      nm = m and m[2].trim().split(/\s+/)[0]
+      if m and m[3] then nm = m[2].trim().split(/\s+/)[0]
       ast.src = "//#{if nm then nm + ' = ' else ''}#{Lazp.astPrint(ast)}\n#{ast.src}"
       src = if ast.lazpName then ast.src else "processResult(#{ast.src})"
       out += "#{src};\n"

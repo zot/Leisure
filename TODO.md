@@ -2,17 +2,9 @@
 # TODO
 * :l should load file
 * scroll to bottom on eval
-* file loading in browser
 * example that reads strings and prints them until the user types 'quit'
 * get ! working on browser
 * :p to show primitives
-* change to new parser
-* make bodiless lambdas eat newlines, to help with monads
-
-> print "What is your name?" \_.  
-> read \value .  
-> print (concat ["hello ", value, "."]) end
-
 * infix function call syntax
    * allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)
    * allow $ to separate expressions, so a $ b $ c is the same as (a) (b) (c) (use ~ instead?)
@@ -57,6 +49,14 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* file loading in browser
+* change to new parser
+* make bodiless lambdas eat newlines, to help with monads
+
+> print "What is your name?" \_.  
+> read \value .  
+> print (concat ["hello ", value, "."]) end
+
 * fix parser groups, etc.
 * monads and monad driver
 * primitive functions

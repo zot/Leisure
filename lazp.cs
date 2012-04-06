@@ -37,7 +37,7 @@ _primId = -5
 baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
-linePat = /^((?:\s*|#[^\n]*\n)*)([^=]*)(=[.)]=|=\([^=]+=|=)?/
+linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/
 order = []
 warnFreeVariable = []
 charCodes =
