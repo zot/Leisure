@@ -10,6 +10,14 @@
 #
 # eval ast -> evaluates ast and returns the result
 #
+#    MONAD-constructors
+#
+# bind m binding -> transform a monad with a lambda
+#
+# end -- the string 'end' -- ends a monad chain
+#
+#    AST-constructors
+#
 # lit value -> a lit AST node, containing value
 #
 # ref var-name -> a ref AST node, containing var-name
@@ -19,7 +27,7 @@
 # apply func-ast body-ast -> an apply AST node, with func and body ASTs
 #
 # prim arg rest-ast -> a prim AST node, rest-ast should either be a ref or a prim
-#
+# 
 
 id x = x
 

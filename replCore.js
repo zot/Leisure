@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, P, U, compileFunc, escape, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, P, Prim, U, compileFunc, escape, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -14,6 +14,7 @@
   if (!(Lazp != null) && (typeof require !== "undefined" && require !== null)) {
     Lazp = require('./lazp');
     P = require('./pretty');
+    Prim = require('./prim');
     U = require('util');
   }
 
@@ -82,14 +83,8 @@
 
   processResult = function processResult(result) {
     if ((getType(result)) === 'monad') {
-      return result.cmd(function(value) {
-        if (result.binding != null) {
-          return processResult(result.binding(function() {
-            return value;
-          }));
-        } else {
-          return nextFunc();
-        }
+      return Prim.runMonad(result, function() {
+        return nextFunc();
       });
     } else {
       return nextFunc();

@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, RL, U, concatList, define, getType, head, makeMonad, output, prompt, root, setTty, tail, tty, write;
+  var Lazp, RL, U, concatList, define, getType, head, makeMonad, output, prompt, root, runMonad, setTty, tail, tty, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -101,6 +101,18 @@
     };
   });
 
+  runMonad = function runMonad(monad, cont) {
+    return monad.cmd(function(value) {
+      if (monad.binding != null) {
+        return runMonad(monad.binding(function() {
+          return value;
+        }), cont);
+      } else {
+        return cont(value);
+      }
+    });
+  };
+
   makeMonad = function makeMonad(binding, guts) {
     var m;
     m = function m() {};
@@ -111,6 +123,14 @@
   };
 
   define('end', "end");
+
+  define('bind', function(m) {
+    return function(binding) {
+      return makeMonad(binding(), function(cont) {
+        return runMonad(m(), cont);
+      });
+    };
+  });
 
   define('return', function(v) {
     return function(binding) {
@@ -185,5 +205,7 @@
   });
 
   root.setTty = setTty;
+
+  root.runMonad = runMonad;
 
 }).call(this);
