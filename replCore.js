@@ -7,6 +7,7 @@
     window.ReplCore = root = {};
     Lazp = window.Lazp;
     P = window.Pretty;
+    Prim = window.Prim;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }

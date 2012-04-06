@@ -16,7 +16,28 @@
 <h1>TODO</h1>
 
 <ul>
-<li>error on undeclared variables -- require quotes for strings</li>
+<li>pretty print code</li>
+<li>Run Lazp in sandbox
+<ul>
+<li>lazp.cs, std.laz, prim.cs run in a sandbox
+<ul>
+<li>in browser, use an iframe with ifr.contentWindow.eval() to communicate
+<ul>
+<li>iframe.contentWindow holds globals</li>
+<li>allow user to show or hide iframe (it's where SVG etc can be)</li>
+</ul></li>
+<li>in node, use VM.createContext and VM.runInContext to communicate
+<ul>
+<li>context holds globals</li>
+</ul></li>
+</ul></li>
+<li>repl uses sandbox
+<ul>
+<li>allows for reloading, etc.</li>
+</ul></li>
+</ul></li>
+<li>throw error on undeclared variables -- require quotes for strings</li>
+<li>need supertypes or something for things like booleans (true or false)</li>
 <li>-g option
 <ul>
 <li>check function types before application and print meaningful error msgs</li>
@@ -37,7 +58,6 @@
 <li>since cons is a global ref, cons a b -> <em>cons(a, b), instead of _cons()(a)(b)</li>
 <li>cons a -> function(</em>1){return _cons(a, _1)}</li>
 </ul></li>
-<li>make repl keep track of old definitions so it can wipe the env clean</li>
 <li>integrate physics engine</li>
 <li>indentation tweak
 <ul>

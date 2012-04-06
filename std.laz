@@ -14,7 +14,19 @@
 #
 # bind m binding -> transform a monad with a lambda
 #
+# print string binding -> print a string, continue with binding (or end)
+#
+# prompt string binding -> ask user for input, contine with binding (or end)
+#
+# return value binding -> run binding with value
+#
+# js string binding -> run JS code and continue with value
+#
 # end -- the string 'end' -- ends a monad chain
+#
+#    STRING functions
+#
+# concat list -> string
 #
 #    AST-constructors
 #
