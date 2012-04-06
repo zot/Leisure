@@ -23,6 +23,7 @@
           changeStdLinks()
         }
         Repl.init(input, output, defs)
+        clearOutput()
       }
       function changeStdLinks() {
         changeStdLink('stdDefsLink1')
@@ -37,6 +38,13 @@
       function getStdDefs() {
         document.getElementById('defs').innerHTML += Repl.markupLines(stdDefs) + "<br>"
       }
+      function clearOutput() {
+        var o = document.getElementById('output')
+
+        o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Lazp\'s standard functions.\n\n'
+        ReplCore.help()
+        o.innerHTML += '\n'
+      }
     </script>
     <style>
       .cell {
@@ -49,8 +57,10 @@
     <table style="vertical-align: top; width: 100%; height: 100%">
       <tr style="height: 1.5em"><td colspan="2">
 	  <div style="height: 100%; position: relative">
-	    <div style="text-align: center; position: absolute; width: 100%; height">Welcome to Lazp</div>
-	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="TODO.html" target="_blank">Status</a> <a href="http://github.com/zot/lazp" target="_blank">Source</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a></div>
+	    <div><b>Definitions</b></div>
+	    <div style="position: absolute; top: 0; right: 0"> </div>
+	    <div style="text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Lazp</i></b></div>
+	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a> <button onclick="clearOutput()">Clear</button> <b>Output</b></div>
 	  </div>
 	</td>
       </tr>
@@ -62,10 +72,7 @@
 	</td>
 	<td class="cell" style="width: 50%">
 	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
-	    <pre id="output" style="position: absolute; width: 100%; margin: 0">
-Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> here or above to insert Lazp's standard functions into the definitions pane.
-
-</pre>
+	    <pre id="output" style="position: absolute; width: 100%; margin: 0"></pre>
 	  </div>
 	</td>
       </tr>
