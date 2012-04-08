@@ -182,6 +182,7 @@ class Code
     @fcount = @fcount ? 0
     @mcount = @mcount ? 0
     @vars = @vars ? Nil
+    @err = @err ? ''
     @global = @global ? Nil
   copyWith: (main, subfuncs, fcount, mcount, vars, err, global)->new Code(main ? @main, subfuncs ? @subfuncs, fcount ? @fcount, mcount ? @mcount, vars ? @vars, err ? @err, global ? @global)
   addErr: (e)-> @copyWith(null, null, null, null, null, "#{@err}#{e}\n")
@@ -202,7 +203,7 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   ast.lits = []
   res = []
   code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true).memo(!lazy)
-  if code.err? then ast.err = code.err
+  if code.err != '' then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
@@ -221,11 +222,12 @@ gen = (ast, code, lits, vars, deref)->
   switch getAstType ast
     when 'ref'
       val = getRefVar ast
-      if val.lambda then throw new Error("attempt to use lambda as a variable")
-      code = code.copyWith(nameSub val).reffedValue(deref)
-      if vars.find((v)-> v == val) then code.addVar(val)
-      else if global[nameSub(val)]? or code.global.find((v)-> v == val) then code
-      else code.addErr "Referenced free variable: #{val}, use lit, instead of ref."
+      if val.lambda then code.addErr "attempt to use lambda as a variable"
+      else
+        code = code.copyWith(nameSub val).reffedValue(deref)
+        if vars.find((v)-> v == val) then code.addVar(val)
+        else if global[nameSub(val)]? or code.global.find((v)-> v == val) then code
+        else code.addErr "Referenced free variable: #{val}, use lit, instead of ref."
     when 'lit'
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'
@@ -240,11 +242,13 @@ gen = (ast, code, lits, vars, deref)->
       bodyCode.copyWith(wrap(ast, "function(#{nameSub(v)}){return #{bodyCode.main}}")).useSubfunc(bodyCode.vars == Nil).memo(deref)
     when 'apply'
       func = getApplyFunc ast
-      arg = getApplyArg ast
-      funcCode = gen func, code, lits, vars, true
-      argCode = gen arg, funcCode, lits, vars
-      argCode.copyWith("#{funcCode.main}(#{argCode.main})").unreffedValue(deref)
-    else throw new Error("Unknown object type in gen: " + ast)
+      if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
+      else
+        arg = getApplyArg ast
+        funcCode = gen func, code, lits, vars, true
+        argCode = gen arg, funcCode, lits, vars
+        argCode.copyWith("#{funcCode.main}(#{argCode.main})").unreffedValue(deref)
+    else code.addErr "Unknown object type in gen: #{ast}"
 
 laz = (val)-> -> val
 
@@ -276,7 +280,7 @@ prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\'
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
 # returns [ast, err, rest]
-compileNext = (line, globals)->
+compileNext = (line, globals, parseOnly)->
   if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     rest1 = line.substring (if defType then matched else leading).length
@@ -292,13 +296,13 @@ compileNext = (line, globals)->
           ast.exprDataType = nm[0]
         nameAst(nm[0], ast)
         if nm.length == 1 then nameAst(nm[0], ast)
-        genCode ast, nm[0], globals, defType, rest
+        genCode ast, nm[0], globals, defType, rest, parseOnly
     else ifParsed (parseApply rest1, Nil), (ast, rest)->
-      genCode ast, null, globals, null, rest
+      genCode ast, null, globals, null, rest, parseOnly
   else [null, null, null]
 
-genCode = (ast, name, globals, defType, rest)->
-  dgen ast, false, name, globals, defType
+genCode = (ast, name, globals, defType, rest, parseOnly)->
+  if !parseOnly then dgen ast, false, name, globals, defType
   [ast, null, rest]
 
 #returns [ast, err]

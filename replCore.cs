@@ -118,7 +118,7 @@ processResult = Repl.processResult;
 
 """
   errs = ''
-  globals = Lazp.Nil
+  globals = findDefs file, contents
   rest = contents
   while rest
     oldRest = rest
@@ -140,7 +140,16 @@ processResult = Repl.processResult;
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   out
 
-findDefs = (contents)->
+findDefs = (file, contents)->
+  errs = ''
+  globals = Lazp.Nil
+  rest = contents
+  while rest
+    oldRest = rest
+    [ast, err, rest] = Lazp.compileNext rest, globals, true
+    if ast?.lazpName then globals = Lazp.cons(ast.lazpName, globals)
+  if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
+  globals
 
 
 root.processLine = processLine

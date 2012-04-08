@@ -351,7 +351,7 @@ misrepresented as being the original software.
   Code = (function() {
 
     function Code(main, subfuncs, fcount, mcount, vars, err, global) {
-      var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
+      var _ref, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
       this.main = main;
       this.subfuncs = subfuncs;
       this.fcount = fcount;
@@ -364,7 +364,8 @@ misrepresented as being the original software.
       this.fcount = (_ref3 = this.fcount) != null ? _ref3 : 0;
       this.mcount = (_ref4 = this.mcount) != null ? _ref4 : 0;
       this.vars = (_ref5 = this.vars) != null ? _ref5 : Nil;
-      this.global = (_ref6 = this.global) != null ? _ref6 : Nil;
+      this.err = (_ref6 = this.err) != null ? _ref6 : '';
+      this.global = (_ref7 = this.global) != null ? _ref7 : Nil;
     }
 
     Code.prototype.copyWith = function copyWith(main, subfuncs, fcount, mcount, vars, err, global) {
@@ -448,7 +449,7 @@ misrepresented as being the original software.
     ast.lits = [];
     res = [];
     code = (gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true)).memo(!lazy);
-    if (code.err != null) {
+    if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
       ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
@@ -473,18 +474,21 @@ misrepresented as being the original software.
     switch (getAstType(ast)) {
       case 'ref':
         val = getRefVar(ast);
-        if (val.lambda) throw new Error("attempt to use lambda as a variable");
-        code = code.copyWith(nameSub(val)).reffedValue(deref);
-        if (vars.find(function(v) {
-          return v === val;
-        })) {
-          return code.addVar(val);
-        } else if ((global[nameSub(val)] != null) || code.global.find(function(v) {
-          return v === val;
-        })) {
-          return code;
+        if (val.lambda) {
+          return code.addErr("attempt to use lambda as a variable");
         } else {
-          return code.addErr("Referenced free variable: " + val + ", use lit, instead of ref.");
+          code = code.copyWith(nameSub(val)).reffedValue(deref);
+          if (vars.find(function(v) {
+            return v === val;
+          })) {
+            return code.addVar(val);
+          } else if ((global[nameSub(val)] != null) || code.global.find(function(v) {
+            return v === val;
+          })) {
+            return code;
+          } else {
+            return code.addErr("Referenced free variable: " + val + ", use lit, instead of ref.");
+          }
         }
         break;
       case 'lit':
@@ -500,12 +504,17 @@ misrepresented as being the original software.
         return bodyCode.copyWith(wrap(ast, "function(" + (nameSub(v)) + "){return " + bodyCode.main + "}")).useSubfunc(bodyCode.vars === Nil).memo(deref);
       case 'apply':
         func = getApplyFunc(ast);
-        arg = getApplyArg(ast);
-        funcCode = gen(func, code, lits, vars, true);
-        argCode = gen(arg, funcCode, lits, vars);
-        return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").unreffedValue(deref);
+        if (getAstType(func === 'lit')) {
+          return code.addErr("Attempt to use lit as function: " + (getLitVal(func)));
+        } else {
+          arg = getApplyArg(ast);
+          funcCode = gen(func, code, lits, vars, true);
+          argCode = gen(arg, funcCode, lits, vars);
+          return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").unreffedValue(deref);
+        }
+        break;
       default:
-        throw new Error("Unknown object type in gen: " + ast);
+        return code.addErr("Unknown object type in gen: " + ast);
     }
   };
 
@@ -563,7 +572,7 @@ misrepresented as being the original software.
     }
   };
 
-  compileNext = function compileNext(line, globals) {
+  compileNext = function compileNext(line, globals, parseOnly) {
     var def, defType, leading, matched, name, nm, rest1;
     if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
@@ -582,11 +591,11 @@ misrepresented as being the original software.
           }
           nameAst(nm[0], ast);
           if (nm.length === 1) nameAst(nm[0], ast);
-          return genCode(ast, nm[0], globals, defType, rest);
+          return genCode(ast, nm[0], globals, defType, rest, parseOnly);
         });
       } else {
         return ifParsed(parseApply(rest1, Nil), function(ast, rest) {
-          return genCode(ast, null, globals, null, rest);
+          return genCode(ast, null, globals, null, rest, parseOnly);
         });
       }
     } else {
@@ -594,8 +603,8 @@ misrepresented as being the original software.
     }
   };
 
-  genCode = function genCode(ast, name, globals, defType, rest) {
-    dgen(ast, false, name, globals, defType);
+  genCode = function genCode(ast, name, globals, defType, rest, parseOnly) {
+    if (!parseOnly) dgen(ast, false, name, globals, defType);
     return [ast, null, rest];
   };
 

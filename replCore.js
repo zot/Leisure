@@ -168,7 +168,7 @@
     if (loud) console.log("Compiling " + file + ":\n");
     out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./std');\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n";
     errs = '';
-    globals = Lazp.Nil;
+    globals = findDefs(file, contents);
     rest = contents;
     while (rest) {
       oldRest = rest;
@@ -193,7 +193,21 @@
     return out;
   };
 
-  findDefs = function findDefs(contents) {};
+  findDefs = function findDefs(file, contents) {
+    var ast, err, errs, globals, oldRest, rest, _ref;
+    errs = '';
+    globals = Lazp.Nil;
+    rest = contents;
+    while (rest) {
+      oldRest = rest;
+      _ref = Lazp.compileNext(rest, globals, true), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      if (ast != null ? ast.lazpName : void 0) {
+        globals = Lazp.cons(ast.lazpName, globals);
+      }
+    }
+    if (errs !== '') throw new Error("Errors compiling " + file + ": " + errs);
+    return globals;
+  };
 
   root.processLine = processLine;
 
