@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, root, scanName, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, root, scanName, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -506,6 +506,8 @@ misrepresented as being the original software.
         func = getApplyFunc(ast);
         if (getAstType(func === 'lit')) {
           return code.addErr("Attempt to use lit as function: " + (getLitVal(func)));
+        } else if (freeVar(func, vars, code.global)) {
+          return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
         } else {
           arg = getApplyArg(ast);
           funcCode = gen(func, code, lits, vars, true);
@@ -515,6 +517,20 @@ misrepresented as being the original software.
         break;
       default:
         return code.addErr("Unknown object type in gen: " + ast);
+    }
+  };
+
+  freeVar = function freeVar(ast, vars, globals) {
+    var rv;
+    if ((getAstType(ast)) === 'ref') {
+      rv = getRefVar(ast);
+      return !global[nameSub(rv)] && !vars.find(function(v) {
+        return v === rv;
+      }) && !globals.find(function(v) {
+        return v === rv;
+      });
+    } else {
+      return false;
     }
   };
 
@@ -605,7 +621,7 @@ misrepresented as being the original software.
 
   genCode = function genCode(ast, name, globals, defType, rest, parseOnly) {
     if (!parseOnly) dgen(ast, false, name, globals, defType);
-    return [ast, null, rest];
+    return [ast, ast.err, rest];
   };
 
   evalNext = function evalNext(code) {
@@ -619,6 +635,7 @@ misrepresented as being the original software.
         } catch (err) {
           console.log(err.stack);
           result = err.stack;
+          ast.err = err.stack;
         }
         return [ast, result];
       } else {
@@ -630,7 +647,11 @@ misrepresented as being the original software.
         return [ast, result];
       }
     } else {
-      return [null, err];
+      return [
+        {
+          err: err
+        }, err
+      ];
     }
   };
 

@@ -244,12 +244,19 @@ gen = (ast, code, lits, vars, deref)->
     when 'apply'
       func = getApplyFunc ast
       if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
+      else if freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
       else
         arg = getApplyArg ast
         funcCode = gen func, code, lits, vars, true
         argCode = gen arg, funcCode, lits, vars
         argCode.copyWith("#{funcCode.main}(#{argCode.main})").unreffedValue(deref)
     else code.addErr "Unknown object type in gen: #{ast}"
+
+freeVar = (ast, vars, globals)->
+  if (getAstType ast) == 'ref'
+    rv = getRefVar ast
+    !global[nameSub(rv)] and !vars.find((v)-> v == rv) and !globals.find((v)-> v == rv)
+  else false
 
 laz = (val)-> -> val
 
@@ -304,7 +311,7 @@ compileNext = (line, globals, parseOnly)->
 
 genCode = (ast, name, globals, defType, rest, parseOnly)->
   if !parseOnly then dgen ast, false, name, globals, defType
-  [ast, null, rest]
+  [ast, ast.err, rest]
 
 #returns [ast, err]
 evalNext = (code)->
@@ -317,6 +324,7 @@ evalNext = (code)->
       catch err
         console.log(err.stack)
         result = err.stack
+        ast.err = err.stack
       [ast, result]
     else
       try
@@ -324,7 +332,7 @@ evalNext = (code)->
       catch err
         result = err.stack
       [ast, result]
-  else [null, err]
+  else [{err: err}, err]
 
 nextTok = (str, offset)->
   m = str.match(tokenPat)

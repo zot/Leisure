@@ -40,17 +40,23 @@
   getType = Lazp.getType;
 
   handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
-    if (a) {
-      write("PARSED: " + (Lazp.astPrint(ast)) + "\n");
-      write("FORMATTED: " + (P.print(ast)) + "\n");
-    }
-    if (c) write("GEN: " + ast.src + "\n");
-    if (r) {
-      if (!result) {
-        return write("(No Result)\n");
-      } else {
-        write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
-        return processResult(result);
+    if (ast && ast.err) {
+      write("ERROR: " + ast.err);
+      return next();
+    } else {
+      if (a) {
+        write("PARSED: " + (Lazp.astPrint(ast)) + "\n");
+        write("FORMATTED: " + (P.print(ast)) + "\n");
+      }
+      if (c) write("GEN: " + ast.src + "\n");
+      if (r) {
+        if (!result) {
+          write("(No Result)\n");
+          return next();
+        } else {
+          write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+          return processResult(result);
+        }
       }
     }
   };
@@ -145,7 +151,11 @@
               _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
               _ref2 = Lazp.compileNext(line), ast = _ref2[0], err = _ref2[1];
               if (r) {
-                _ref3 = err ? [null, err] : Lazp.evalNext(line), ast = _ref3[0], result = _ref3[1];
+                _ref3 = err ? [
+                  {
+                    err: err
+                  }, err
+                ] : Lazp.evalNext(line), ast = _ref3[0], result = _ref3[1];
               } else {
                 result = null;
               }

@@ -27,15 +27,21 @@ setNext = (n)-> nextFunc = n
 getType = Lazp.getType
 
 handlerFunc = (ast, result, a, c, r, src)->
-  if a
-    write("PARSED: #{Lazp.astPrint(ast)}\n")
-    write("FORMATTED: #{P.print ast}\n")
-  if c then write("GEN: #{ast.src}\n")
-  if r
-    if !result then write("(No Result)\n")
-    else
-      write("#{getType result}: #{P.print(result)}\n")
-      processResult result
+  if ast and ast.err
+    write("ERROR: #{ast.err}")
+    next()
+  else
+    if a
+      write("PARSED: #{Lazp.astPrint(ast)}\n")
+      write("FORMATTED: #{P.print ast}\n")
+    if c then write("GEN: #{ast.src}\n")
+    if r
+      if !result
+        write("(No Result)\n")
+        next()
+      else
+        write("#{getType result}: #{P.print(result)}\n")
+        processResult result
 
 setHandler = (f)-> handlerFunc = f
 
@@ -91,7 +97,7 @@ processLine = (line)->
         else
           [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
           [ast, err] = Lazp.compileNext(line)
-          if r then ([ast, result] = if err then [null, err] else Lazp.evalNext(line))
+          if r then ([ast, result] = if err then [{err: err}, err] else Lazp.evalNext(line))
           else result = null
           return handlerFunc(ast, result, a, c, r, line)
   catch err
