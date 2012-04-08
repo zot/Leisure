@@ -1,6 +1,5 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* pretty print code
 * Run Lazp in sandbox
    * lazp.cs, std.laz, prim.cs run in a sandbox
       * in browser, use an iframe with ifr.contentWindow.eval() to communicate
@@ -10,7 +9,11 @@
          * context holds globals
    * repl uses sandbox
       * allows for reloading, etc.
+* indentation tweak
+   * indent line creates a nested expression
 * throw error on undeclared variables -- require quotes for strings
+   * macros should generate a wrapper at compile-time so that we can define things like let
+   * need a way to handle macros
 * need supertypes or something for things like booleans (true or false)
 * -g option
    * check function types before application and print meaningful error msgs
@@ -27,8 +30,6 @@
    * since cons is a global ref, cons a b -> _cons(a, b), instead of _cons()(a)(b)
    * cons a -> function(_1){return _cons(a, _1)}
 * integrate physics engine
-* indentation tweak
-   * indent line creates a nested expression
 
 >zip  
 >>a  
@@ -62,6 +63,7 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* pretty print code
 * runRepl file should compile the file, eval it, and then stay in the REPL
 * get ! working on browser
 * file loading in browser

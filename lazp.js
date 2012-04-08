@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, root, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, root, scanName, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -487,7 +487,7 @@ misrepresented as being the original software.
           })) {
             return code;
           } else {
-            return code.addErr("Referenced free variable: " + val + ", use lit, instead of ref.");
+            return code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref);
           }
         }
         break;
@@ -740,12 +740,12 @@ misrepresented as being the original software.
   };
 
   parseName = function parseName(tok, rest, vars, globals, tokOffset) {
-    var restOffset, _ref;
+    var restOffset;
     restOffset = tokOffset + tok.length;
     return [
-      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok("\"" + (tok.substring(1, tok.length - 1)) + "\""))) : ((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok] || (vars.find(function(v) {
+      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok("\"" + (tok.substring(1, tok.length - 1)) + "\""))) : vars.find(function(v) {
         return tok === v;
-      })) ? ref(laz(tok)) : lit(laz(scanTok(tok)))), tokOffset, restOffset), null, rest
+      }) ? ref(laz(tok)) : scanName(tok)), tokOffset, restOffset), null, rest
     ];
   };
 
@@ -754,6 +754,20 @@ misrepresented as being the original software.
       return JSON.parse(tok);
     } catch (err) {
       return tok;
+    }
+  };
+
+  scanName = function scanName(name) {
+    var l;
+    try {
+      l = JSON.parse(name);
+      if (typeof l === 'string') {
+        return lit(laz(l));
+      } else {
+        return ref(laz(name));
+      }
+    } catch (err) {
+      return ref(laz(name));
     }
   };
 

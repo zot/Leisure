@@ -51,11 +51,11 @@ Tests for Lazp
   eval(code);
 
   run('test0', function() {
-    return assertParse("1", "lit 1");
+    return assertParse("1", "ref 1");
   });
 
   run('test1', function() {
-    return assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (lit y)", "\\x.x x y");
+    return assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (ref y)", "\\x.x x y");
   });
 
   run('test2', function() {

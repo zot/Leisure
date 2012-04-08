@@ -227,7 +227,8 @@ gen = (ast, code, lits, vars, deref)->
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
         else if global[nameSub(val)]? or code.global.find((v)-> v == val) then code
-        else code.addErr "Referenced free variable: #{val}, use lit, instead of ref."
+        #else code.addErr "Referenced free variable: #{val}, use lit, instead of ref."
+        else code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
     when 'lit'
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'
@@ -380,8 +381,10 @@ parseName = (tok, rest, vars, globals, tokOffset) ->
   restOffset = tokOffset + tok.length
   [tag((if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
   else if tok[0] == '"' then lit(laz(scanTok("\"#{tok.substring(1, tok.length - 1)}\"")))
-  else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
-  else lit(laz(scanTok(tok)))
+  # else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
+  # else lit(laz(scanTok(tok)))
+  else if (vars.find (v)-> tok == v) then ref(laz(tok))
+  else scanName(tok)
   ), tokOffset, restOffset), null, rest]
 
 scanTok = (tok)->
@@ -389,6 +392,14 @@ scanTok = (tok)->
     JSON.parse(tok)
   catch err
     tok
+
+scanName = (name)->
+  try
+    l = JSON.parse(name)
+    if typeof l == 'string' then lit(laz(l))
+    else ref(laz(name))
+  catch err
+    ref(laz(name))
 
 nextTokWithNl = (str, offset)->
   [t, rest] = subnextTokWithNl str
