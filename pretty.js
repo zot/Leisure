@@ -80,14 +80,14 @@
   printLambda = function printLambda(v, body) {
     if (body.type === 'lambda') {
       return body(function() {
-        return function(v) {
+        return function(v2) {
           return function(b) {
-            return "" + v + " " + (printLambda(v(), b()));
+            return "" + v + " " + (printLambda(v2(), b()));
           };
         };
       });
     } else {
-      return "" + v + " . " + (print(v()));
+      return "" + v + " . " + (print(body));
     }
   };
 

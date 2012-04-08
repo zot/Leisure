@@ -27,8 +27,8 @@ print = (f)->
     else inspect(f)
 
 printLambda = (v, body)->
-  if body.type == 'lambda' then body ->(v)->(b)-> "#{v} #{printLambda v(), b()}"
-  else "#{v} . #{print(v())}"
+  if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"
+  else "#{v} . #{print(body)}"
 
 printApply = (func, arg)->
   f = if func.type == 'lambda' then "(#{print func})" else print(func)

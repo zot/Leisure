@@ -140,6 +140,9 @@ processResult = Repl.processResult;
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   out
 
+findDefs = (contents)->
+
+
 root.processLine = processLine
 root.setCompiler = setCompiler
 root.setHelp = setHelp

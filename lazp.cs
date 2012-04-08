@@ -331,12 +331,9 @@ nextTok = (str, offset)->
     if tok[0] != '#' and tok.trim() then [tok, offset, rest]
     else nextTok rest, offset + tok.length
 
-parse = (str)->
-  [ast, err, rest] = parseSome str, Nil
+parse = (str, globals)->
+  [ast, err, rest] = parseApply str.replace(/\u03BB/g, '\\'), Nil, globals ? Nil, 0
   if err then throw new Error(err) else ast
-
-# returns [ast, error, rest-of-input]
-parseSome = (str)-> parseApply str.replace(/\u03BB/g, '\\'), Nil, 0
 
 ifParsed = (res, block)-> if res[1] then res else block res[0], res[2]
 
@@ -347,40 +344,47 @@ tag = (ast, start, end)->
 
 soff = (orig, offset, rest)-> offset + orig.length - rest.length
 
-parseApply = (str, vars, offset)->
+parseApply = (str, vars, globals, offset)->
   if !str.length then [null, null, str]
   else
     [tok, offset1, rest1] = nextTok str, offset
     if tok == '\n' then [null, 'Newline when expecting expression', rest1]
     else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok}", str]
-    else ifParsed (parseTerm tok, rest1, vars, offset1), (func, rest)-> continueApply(func, rest, vars, soff(str, offset, rest))
+    else ifParsed (parseTerm tok, rest1, vars, globals, offset1), (func, rest)-> continueApply(func, rest, vars, globals, soff(str, offset, rest))
 
-continueApply = (func, str, vars, offset)->
+continueApply = (func, str, vars, globals, offset)->
   [tok, offset1, rest] = nextTok str, offset
   if !tok or tok == '\n' or groupCloses[tok] then [func, null, str]
-  else ifParsed (parseTerm tok, rest, vars, offset1), (arg, rest)->
-    continueApply tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, soff(str, offset, rest)
+  else ifParsed (parseTerm tok, rest, vars, globals, offset1), (arg, rest)->
+    continueApply tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, globals, soff(str, offset, rest)
 
-parseTerm = (tok, rest, vars, tokOffset)->
+parseTerm = (tok, rest, vars, globals, tokOffset)->
   restOffset = tokOffset + tok.length
   if tok == '\n' then [null, 'Unexpected newline while expecting a term', rest]
-  else if tok == '\\' then parseLambda rest, vars, restOffset
+  else if tok == '\\' then parseLambda rest, vars, globals, restOffset
   else if groupOpens[tok]
-    apl = if tok == '(' then parseApply rest, vars, restOffset else ifParsed (parseName tok, rest, vars, tokOffset), (ast, rest2)-> continueApply ast, rest2, vars, soff(rest, restOffset, rest2)
+    apl = if tok == '(' then parseApply rest, vars, globals, restOffset else ifParsed (parseName tok, rest, vars, globals, tokOffset), (ast, rest2)-> continueApply ast, rest2, vars, globals, soff(rest, restOffset, rest2)
     ifParsed apl, (ast, rest3)->
       [tok4, offset4, rest4] = nextTok rest3, soff(rest, restOffset, rest3)
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
       else if tok == '(' then [ast, null, rest4]
-      else ifParsed (parseName tok4, rest4, vars, soff(rest, restOffset, rest4)), (arg, rest5)->
+      else ifParsed (parseName tok4, rest4, vars, globals, soff(rest, restOffset, rest4)), (arg, rest5)->
         [tag(apply(laz(ast))(laz(arg)), ast.lazpStart, arg.lazpEnd), null, rest5]
-  else parseName tok, rest, vars, tokOffset
+  else parseName tok, rest, vars, globals, tokOffset
 
-parseName = (tok, rest, vars, tokOffset) ->
+parseName = (tok, rest, vars, globals, tokOffset) ->
   restOffset = tokOffset + tok.length
   [tag((if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
   else if tok[0] == '"' then lit(laz(scanTok("\"#{tok.substring(1, tok.length - 1)}\"")))
   else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
-  else lit(laz(scanTok(tok)))), tokOffset, restOffset), null, rest]
+  else lit(laz(scanTok(tok)))
+  ), tokOffset, restOffset), null, rest]
+
+scanTok = (tok)->
+  try
+    JSON.parse(tok)
+  catch err
+    tok
 
 nextTokWithNl = (str, offset)->
   [t, rest] = subnextTokWithNl str
@@ -407,12 +411,6 @@ parseLambda = (str, vars, offset)->
 addDef = (toks)->
   t = toks.reverse()
   defs[t[0]] = t.join(' ')
-
-scanTok = (tok)->
-  try
-    JSON.parse(tok)
-  catch err
-    tok
 
 root.parse = parse
 root.astPrint = astPrint
