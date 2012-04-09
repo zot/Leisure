@@ -87,19 +87,34 @@ ctxObj = null
 ctx = null
 
 createEnv = ->
-  ctxObj = {}
+  ctxObj =
+    require: require
+    console: console
+  ctxObj.global = ctxObj
+  for i of L.funcs
+    ctxObj[i] = L.funcs[i]
   ctx = VM.createContext ctxObj
+  L.setEvalFunc ctxObj, (str)->VM.runInContext(str, ctx)
+  VM.runInContext("""
+Lazp = require('./lazp')
+require('./std');
+require('./prim');
+ReplCore = require('./replCore');
+Repl = require('./repl');
 
-runInEnv = (str)-> VM.runInContext(str, ctx)
+setType = Lazp.setType;
+setDataType = Lazp.setDataType;
+define = Lazp.define;
+defineToken = Lazp.defineToken;
+processResult = Repl.processResult;
+""", ctx)
 
 createEnv()
 Core.setHelp help
 Core.setCompiler compile
 Core.setWriter (str)-> process.stdout.write(str)
-Core.setEvalFunc (str)-> runInEnv
 
 root.createEnv = createEnv
-root.runInEnv = runInEnv
 root.print = print
 root.repl = repl
 root.compile = compile

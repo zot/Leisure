@@ -1,5 +1,5 @@
 (function() {
-  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, ctx, ctxObj, face, getType, help, init, print, processResult, repl, root, runInEnv, vars, write,
+  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, ctx, ctxObj, face, getType, help, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -121,12 +121,20 @@
   ctx = null;
 
   createEnv = function createEnv() {
-    ctxObj = {};
-    return ctx = VM.createContext(ctxObj);
-  };
-
-  runInEnv = function runInEnv(str) {
-    return VM.runInContext(str, ctx);
+    var i;
+    ctxObj = {
+      require: require,
+      console: console
+    };
+    ctxObj.global = ctxObj;
+    for (i in L.funcs) {
+      ctxObj[i] = L.funcs[i];
+    }
+    ctx = VM.createContext(ctxObj);
+    L.setEvalFunc(ctxObj, function(str) {
+      return VM.runInContext(str, ctx);
+    });
+    return VM.runInContext("Lazp = require('./lazp')\nrequire('./std');\nrequire('./prim');\nReplCore = require('./replCore');\nRepl = require('./repl');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
   };
 
   createEnv();
@@ -139,13 +147,7 @@
     return process.stdout.write(str);
   });
 
-  Core.setEvalFunc(function(str) {
-    return runInEnv;
-  });
-
   root.createEnv = createEnv;
-
-  root.runInEnv = runInEnv;
 
   root.print = print;
 

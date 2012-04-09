@@ -1,8 +1,9 @@
 R = require('./repl')
+LZ = require('./lazp')
 
 importFile = (file, cont) ->
   R.compile file, ->
-    R.runInEnv "require('./#{file}')"
+    LZ.eval "require('./#{file}')"
     cont()
 
 loadStd = -> require('./std')

@@ -27,8 +27,6 @@ if window? and (!global? or global == window)
   window.Lazp = root = {}
 else root = exports ? this
 
-root.funcs = {}
-
 baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
@@ -65,6 +63,7 @@ charCodes =
 
 codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
 
+funcs = {}
 astsByName = {}
 tokens = {}
 groupOpens = {'(': ')'}
@@ -81,16 +80,15 @@ nameSub = (name)->
 define = (name, func) ->
   nm = nameSub(name)
   global[nm] = -> func
-  root.funcs[name] = func
-  astsByName[name] = func
+  funcs[nm] = func
   func.lazpName = name
   func
 
-setDataType = (func, dataType, id)->
+setDataType = (func, dataType)->
   if dataType then func.dataType = dataType
   func
 
-setType = (func, type, id)->
+setType = (func, type)->
   if type then func.type = type
   func
 
@@ -99,7 +97,7 @@ nameAst = (nm, ast)-> if !ast.lazpName
   ast.lazpName = nm
   ast.toString = ->nm
 
-evalCompiledAst = (ast)-> if ast.lits.length then eval("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else eval(ast.src)
+evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
 
 define 'eval', (ast)-> evalCompiledAst(dgen(ast()))
 
@@ -115,10 +113,10 @@ getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{t}"
 
-lit = root.funcs.lit
-ref = root.funcs.ref
-lambda = root.funcs.lambda
-apply = root.funcs.apply
+lit = global._lit()
+ref = global._ref()
+lambda = global._lambda()
+apply = global._apply()
 getAstType = (f) -> f.type
 first = ->(a)-> a
 second = ->(a)->(b)-> b()
@@ -229,7 +227,7 @@ gen = (ast, code, lits, vars, deref)->
       else
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
-        else if global[nameSub(val)]? or code.global.find((v)-> v == val) then code
+        else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) then code
         else code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
     when 'lit'
       val = getLitVal ast
@@ -257,7 +255,7 @@ gen = (ast, code, lits, vars, deref)->
 freeVar = (ast, vars, globals)->
   if (getAstType ast) == 'ref'
     rv = getRefVar ast
-    !global[nameSub(rv)] and !vars.find((v)-> v == rv) and !globals.find((v)-> v == rv)
+    !ctx[nameSub(rv)] and !vars.find((v)-> v == rv) and !globals.find((v)-> v == rv)
   else false
 
 laz = (val)-> -> val
@@ -435,6 +433,15 @@ addDef = (toks)->
   t = toks.reverse()
   defs[t[0]] = t.join(' ')
 
+ctx = global
+evalFunc = eval
+
+setEvalFunc = (ctx, func)->
+  root.ctx = ctx
+  root.eval = evalFunc = func
+
+root.setEvalFunc = setEvalFunc
+root.eval = evalFunc
 root.parse = parse
 root.astPrint = astPrint
 root.gen = dgen
@@ -451,3 +458,4 @@ root.linePat = linePat
 root.Nil = Nil
 root.cons = cons
 root.defineToken = defineToken
+root.funcs = funcs

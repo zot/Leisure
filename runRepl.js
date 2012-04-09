@@ -1,11 +1,13 @@
 (function() {
-  var R, action, i, importFile, loadStd, next, pos, processArgs, _ref;
+  var LZ, R, action, i, importFile, loadStd, next, pos, processArgs, _ref;
 
   R = require('./repl');
 
+  LZ = require('./lazp');
+
   importFile = function importFile(file, cont) {
     return R.compile(file, function() {
-      R.runInEnv("require('./" + file + "')");
+      LZ.eval("require('./" + file + "')");
       return cont();
     });
   };

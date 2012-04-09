@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, root, scanName, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, funcs, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -34,8 +34,6 @@ misrepresented as being the original software.
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
-
-  root.funcs = {};
 
   baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/;
 
@@ -87,6 +85,8 @@ misrepresented as being the original software.
     return this;
   };
 
+  funcs = {};
+
   astsByName = {};
 
   tokens = {};
@@ -115,18 +115,17 @@ misrepresented as being the original software.
     global[nm] = function() {
       return func;
     };
-    root.funcs[name] = func;
-    astsByName[name] = func;
+    funcs[nm] = func;
     func.lazpName = name;
     return func;
   };
 
-  setDataType = function setDataType(func, dataType, id) {
+  setDataType = function setDataType(func, dataType) {
     if (dataType) func.dataType = dataType;
     return func;
   };
 
-  setType = function setType(func, type, id) {
+  setType = function setType(func, type) {
     if (type) func.type = type;
     return func;
   };
@@ -143,9 +142,9 @@ misrepresented as being the original software.
 
   evalCompiledAst = function evalCompiledAst(ast) {
     if (ast.lits.length) {
-      return eval("(function(__lits){\nreturn " + ast.src + "})")(ast.lits);
+      return evalFunc("(function(__lits){\nreturn " + ast.src + "})")(ast.lits);
     } else {
-      return eval(ast.src);
+      return evalFunc(ast.src);
     }
   };
 
@@ -187,13 +186,13 @@ misrepresented as being the original software.
     return (t === 'function' && (f != null ? f.type : void 0)) || ("*" + t);
   };
 
-  lit = root.funcs.lit;
+  lit = global._lit();
 
-  ref = root.funcs.ref;
+  ref = global._ref();
 
-  lambda = root.funcs.lambda;
+  lambda = global._lambda();
 
-  apply = root.funcs.apply;
+  apply = global._apply();
 
   getAstType = function getAstType(f) {
     return f.type;
@@ -462,7 +461,7 @@ misrepresented as being the original software.
             return v === val;
           })) {
             return code.addVar(val);
-          } else if ((global[nameSub(val)] != null) || code.global.find(function(v) {
+          } else if ((ctx[nameSub(val)] != null) || code.global.find(function(v) {
             return v === val;
           })) {
             return code;
@@ -504,7 +503,7 @@ misrepresented as being the original software.
     var rv;
     if ((getAstType(ast)) === 'ref') {
       rv = getRefVar(ast);
-      return !global[nameSub(rv)] && !vars.find(function(v) {
+      return !ctx[nameSub(rv)] && !vars.find(function(v) {
         return v === rv;
       }) && !globals.find(function(v) {
         return v === rv;
@@ -813,6 +812,19 @@ misrepresented as being the original software.
     return defs[t[0]] = t.join(' ');
   };
 
+  ctx = global;
+
+  evalFunc = eval;
+
+  setEvalFunc = function setEvalFunc(ctx, func) {
+    root.ctx = ctx;
+    return root.eval = evalFunc = func;
+  };
+
+  root.setEvalFunc = setEvalFunc;
+
+  root.eval = evalFunc;
+
   root.parse = parse;
 
   root.astPrint = astPrint;
@@ -846,5 +858,7 @@ misrepresented as being the original software.
   root.cons = cons;
 
   root.defineToken = defineToken;
+
+  root.funcs = funcs;
 
 }).call(this);
