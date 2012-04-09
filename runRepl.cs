@@ -6,7 +6,7 @@ importFile = (file, cont) ->
     LZ.eval "require('./#{file}')"
     cont()
 
-loadStd = -> require('./std')
+loadStd = -> LZ.eval("Lazp.req('./std')")
 action = importFile
 next = R.repl
 

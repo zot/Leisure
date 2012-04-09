@@ -35,7 +35,7 @@
 
   getType = Lazp.getType;
 
-  define('is', function(value) {
+  define('is', global, function(value) {
     return function(type) {
       var _ref;
       if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
@@ -46,7 +46,7 @@
     };
   });
 
-  define('eq', function(a) {
+  define('eq', global, function(a) {
     return function(b) {
       if (a() === b()) {
         return _true();
@@ -56,7 +56,7 @@
     };
   });
 
-  define('withType', function(value) {
+  define('withType', global, function(value) {
     return function(t) {
       return function(f) {
         var type;
@@ -71,31 +71,31 @@
     };
   });
 
-  define('+', function(a) {
+  define('+', global, function(a) {
     return function(b) {
       return a() + b();
     };
   });
 
-  define('-', function(a) {
+  define('-', global, function(a) {
     return function(b) {
       return a() - b();
     };
   });
 
-  define('*', function(a) {
+  define('*', global, function(a) {
     return function(b) {
       return a() * b();
     };
   });
 
-  define('/', function(a) {
+  define('/', global, function(a) {
     return function(b) {
       return a() / b();
     };
   });
 
-  define('%', function(a) {
+  define('%', global, function(a) {
     return function(b) {
       return a() % b();
     };
@@ -122,9 +122,9 @@
     return m;
   };
 
-  define('end', "end");
+  define('end', global, "end");
 
-  define('bind', function(m) {
+  define('bind', global, function(m) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         return runMonad(m(), cont);
@@ -132,7 +132,7 @@
     };
   });
 
-  define('return', function(v) {
+  define('return', global, function(v) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         return cont(v());
@@ -140,7 +140,7 @@
     };
   });
 
-  define('print', function(msg) {
+  define('print', global, function(msg) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         write("" + (msg()) + "\n");
@@ -149,7 +149,7 @@
     };
   });
 
-  define('prompt', function(msg) {
+  define('prompt', global, function(msg) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         return prompt(String(msg()), function(input) {
@@ -187,11 +187,11 @@
     }
   };
 
-  define('concat', function(l) {
+  define('concat', global, function(l) {
     return concatList(l());
   });
 
-  define('js', function(codeList) {
+  define('js', global, function(codeList) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         var cl;

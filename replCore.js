@@ -66,7 +66,7 @@
   };
 
   helpFunc = function helpFunc() {
-    return write("Type a Lazp expression or one of these commands and hit enter:\n\n:h -- display this help\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n!code -- eval JavaScript code\n");
+    return write("Type a Lazp expression or one of these commands and hit enter:\n\n:h -- display this help\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the lazp environment\n!! code -- eval JavaScript code in the host environment\n");
   };
 
   setHelp = function setHelp(h) {
@@ -132,9 +132,15 @@
     try {
       if (line) {
         if (line[0] === '!') {
-          result = Lazp.evalFunc(line.substr(1));
-          result = U != null ? U.inspect(result) : result;
-          write(result, "\n");
+          if (line[1] === '!') {
+            result = eval(line.substr(2));
+            result = U != null ? U.inspect(result) : result;
+            write(result, "\n");
+          } else {
+            result = Lazp.eval(line.substr(1));
+            result = U != null ? U.inspect(result) : result;
+            write(result, "\n");
+          }
         } else if ((m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/))) {
           handleVar(m[2], m[3]);
         } else if ((m = line.match(/^:c\s*([^\s]*)$/))) {

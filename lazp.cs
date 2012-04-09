@@ -80,8 +80,7 @@ ctx = global
 
 evalFunc = eval
 
-# leave a poopie so we can identify whether functions defined in other files are Lazp funcs
-define = (name, func) ->
+define = (name, global, func) ->
   nm = nameSub(name)
   ctx[nm] = funcs[nm] = global[nm] = -> func
   func.lazpName = name
@@ -102,15 +101,15 @@ nameAst = (nm, ast)-> if !ast.lazpName
 
 evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
 
-define 'eval', (ast)-> evalCompiledAst(dgen(ast()))
+define 'eval', global, (ast)-> evalCompiledAst(dgen(ast()))
 
-define 'lit', (_x)->setType ((_f)-> _f()(_x)), 'lit'
+define 'lit', global, (_x)->setType ((_f)-> _f()(_x)), 'lit'
 
-define 'ref', (_x)->setType ((_f)-> _f()(_x)), 'ref'
+define 'ref', global, (_x)->setType ((_f)-> _f()(_x)), 'ref'
 
-define 'lambda', (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
+define 'lambda', global, (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
 
-define 'apply', (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
+define 'apply', global, (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
 
 getType = (f)->
   t = typeof f
@@ -208,12 +207,12 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
-  return #{if name? then "define('#{name}', #{code.main})" else code.main}
+  return #{if name? then "define('#{name}', global, #{code.main})" else code.main}
 })()
     """
   else ast.src = if name? then """
 #{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
-define('#{name}', #{code.main})
+define('#{name}', global, #{code.main})
 """ else "(#{code.main})"
   ast.globals = code.global
   ast

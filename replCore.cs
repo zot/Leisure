@@ -53,7 +53,8 @@ Type a Lazp expression or one of these commands and hit enter:
 :v -- display variable values
 :v var value -- set a variable
 :q -- quit
-!code -- eval JavaScript code
+! code -- eval JavaScript code in the lazp environment
+!! code -- eval JavaScript code in the host environment
 
   """)
 
@@ -86,9 +87,14 @@ processLine = (line)->
   try
     if line
       if line[0] == '!'
-        result = Lazp.evalFunc(line.substr(1))
-        result = if U? then U.inspect(result) else result
-        write(result, "\n")
+        if line[1] == '!'
+          result = eval(line.substr(2))
+          result = if U? then U.inspect(result) else result
+          write(result, "\n")
+        else
+          result = Lazp.eval(line.substr(1))
+          result = if U? then U.inspect(result) else result
+          write(result, "\n")
       else if (m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/)) then handleVar(m[2], m[3])
       else if (m = line.match(/^:c\s*([^\s]*)$/)) then return compileFunc(m[1])
       else switch line

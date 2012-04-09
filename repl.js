@@ -10,8 +10,6 @@
 
   Prim = require('./prim');
 
-  require('./std');
-
   Core = require('./replCore');
 
   FS = require('fs');
@@ -129,13 +127,12 @@
     ctxObj.global = ctxObj;
     ctx = VM.createContext(ctxObj);
     for (i in L.funcs) {
-      console.log("FUNC: " + i);
       ctx[i] = L.funcs[i];
     }
     L.setEvalFunc(ctx, function(str) {
       return VM.runInContext(str, ctx);
     });
-    return VM.runInContext("Lazp = require('./lazp')\nLazp.req('./std');\nLazp.req('./prim');\nReplCore = require('./replCore');\nRepl = require('./repl');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
+    return VM.runInContext("Lazp = require('./lazp')\nLazp.req('./prim');\nReplCore = require('./replCore');\nRepl = require('./repl');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
   };
 
   createEnv();
