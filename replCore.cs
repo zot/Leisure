@@ -157,6 +157,10 @@ findDefs = (file, contents)->
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   globals
 
+evalFunc = null
+
+setEvalFunc = (func)-> evalFunc = func
+
 
 root.processLine = processLine
 root.setCompiler = setCompiler
@@ -169,3 +173,4 @@ root.help = -> helpFunc()
 root.getType = getType
 root.generateCode = generateCode
 root.processResult = processResult
+root.setEvalFunc = setEvalFunc

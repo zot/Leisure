@@ -195,21 +195,14 @@ class Code
   #subfuncName: -> "subfunc#{@fcount}"
   #useSubfunc: (closed)-> if !closed then @ else @copyWith(@subfuncName(), "#{@subfuncs}var #{@subfuncName()} = #{@main}\n", @fcount + 1)
   useSubfunc: -> @
-  #memoNames: -> ("memo#{i}" for i in [0...@mcount]).join(', ')
-  #memo: (deref)->
-  #  if !@mcount then @unreffedValue(deref)
-  #  else @copyWith("(function(){var #{@memoNames()}; return #{@main}})", null, null, 0).reffedValue(deref)
-  #memoName: -> "memo#{@mcount}"
-  #memoize: -> @copyWith("(#{@memoName()} || (#{@memoName()} = (#{@main})))", null, null, @mcount + 1)
   memoize: (deref)->
     if deref then @unreffedValue(deref)
-    else @copyWith "(function(){var memo; return function(){return memo || (memo = (#{@main}))}})()"
+    else @copyWith "(function(){var $m; return function(){return $m || ($m = (#{@main}))}})()"
 
 dgen = (ast, lazy, name, globals, tokenDef)->
   ast.lits = []
   res = []
   code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true) #.memo(!lazy)
-  if tokenDef? and tokenDef != '=' then console.log("TOKEN DEF FOR #{name}: #{tokenDef}")
   if code.err != '' then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
@@ -237,7 +230,6 @@ gen = (ast, code, lits, vars, deref)->
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
         else if global[nameSub(val)]? or code.global.find((v)-> v == val) then code
-        #else code.addErr "Referenced free variable: #{val}, use lit, instead of ref."
         else code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
     when 'lit'
       val = getLitVal ast
@@ -398,9 +390,7 @@ parseTerm = (tok, rest, vars, globals, tokOffset)->
 parseName = (tok, rest, vars, globals, tokOffset) ->
   restOffset = tokOffset + tok.length
   [tag((if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
-  else if tok[0] == '"' then lit(laz(scanTok("\"#{tok.substring(1, tok.length - 1)}\"")))
-  # else if global[nameSub(tok)]?.lazpName == tok or astsByName[tok] or (vars.find (v)-> tok == v) then ref(laz(tok))
-  # else lit(laz(scanTok(tok)))
+  else if tok[0] == '"' then lit(laz(scanTok(tok)))
   else if (vars.find (v)-> tok == v) then ref(laz(tok))
   else scanName(tok)
   ), tokOffset, restOffset), null, rest]

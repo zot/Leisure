@@ -416,7 +416,7 @@ misrepresented as being the original software.
       if (deref) {
         return this.unreffedValue(deref);
       } else {
-        return this.copyWith("(function(){var memo; return function(){return memo || (memo = (" + this.main + "))}})()");
+        return this.copyWith("(function(){var $m; return function(){return $m || ($m = (" + this.main + "))}})()");
       }
     };
 
@@ -429,9 +429,6 @@ misrepresented as being the original software.
     ast.lits = [];
     res = [];
     code = gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true);
-    if ((tokenDef != null) && tokenDef !== '=') {
-      console.log("TOKEN DEF FOR " + name + ": " + tokenDef);
-    }
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
@@ -747,7 +744,7 @@ misrepresented as being the original software.
     var restOffset;
     restOffset = tokOffset + tok.length;
     return [
-      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok("\"" + (tok.substring(1, tok.length - 1)) + "\""))) : vars.find(function(v) {
+      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok(tok))) : vars.find(function(v) {
         return tok === v;
       }) ? ref(laz(tok)) : scanName(tok)), tokOffset, restOffset), null, rest
     ];

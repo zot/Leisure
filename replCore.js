@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, P, Prim, U, compileFunc, escape, findDefs, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, P, Prim, U, compileFunc, escape, evalFunc, findDefs, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setEvalFunc, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -219,6 +219,12 @@
     return globals;
   };
 
+  evalFunc = null;
+
+  setEvalFunc = function setEvalFunc(func) {
+    return evalFunc = func;
+  };
+
   root.processLine = processLine;
 
   root.setCompiler = setCompiler;
@@ -244,5 +250,7 @@
   root.generateCode = generateCode;
 
   root.processResult = processResult;
+
+  root.setEvalFunc = setEvalFunc;
 
 }).call(this);

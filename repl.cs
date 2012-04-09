@@ -6,6 +6,7 @@ Core = require('./replCore')
 FS = require('fs')
 Path = require('path')
 P = require('./pretty')
+VM = require('vm')
 
 root = exports ? this
 root.quiet = false
@@ -82,10 +83,23 @@ processResult = (result)->
   write("#{getType result}: #{P.print(result)}\n")
   Core.processResult result
 
+ctxObj = null
+ctx = null
+
+createEnv = ->
+  ctxObj = {}
+  ctx = VM.createContext ctxObj
+
+runInEnv = (str)-> VM.runInContext(str, ctx)
+
+createEnv()
 Core.setHelp help
 Core.setCompiler compile
 Core.setWriter (str)-> process.stdout.write(str)
+Core.setEvalFunc (str)-> runInEnv
 
+root.createEnv = createEnv
+root.runInEnv = runInEnv
 root.print = print
 root.repl = repl
 root.compile = compile

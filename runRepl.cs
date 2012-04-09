@@ -2,7 +2,7 @@ R = require('./repl')
 
 importFile = (file, cont) ->
   R.compile file, ->
-    require("./#{file}")
+    R.runInEnv "require('./#{file}')"
     cont()
 
 loadStd = -> require('./std')

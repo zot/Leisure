@@ -1,5 +1,5 @@
 (function() {
-  var Core, FS, L, P, Path, Prim, R, U, compile, face, getType, help, init, print, processResult, repl, root, vars, write,
+  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, ctx, ctxObj, face, getType, help, init, print, processResult, repl, root, runInEnv, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -17,6 +17,8 @@
   Path = require('path');
 
   P = require('./pretty');
+
+  VM = require('vm');
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
@@ -114,6 +116,21 @@
     return Core.processResult(result);
   };
 
+  ctxObj = null;
+
+  ctx = null;
+
+  createEnv = function createEnv() {
+    ctxObj = {};
+    return ctx = VM.createContext(ctxObj);
+  };
+
+  runInEnv = function runInEnv(str) {
+    return VM.runInContext(str, ctx);
+  };
+
+  createEnv();
+
   Core.setHelp(help);
 
   Core.setCompiler(compile);
@@ -121,6 +138,14 @@
   Core.setWriter(function(str) {
     return process.stdout.write(str);
   });
+
+  Core.setEvalFunc(function(str) {
+    return runInEnv;
+  });
+
+  root.createEnv = createEnv;
+
+  root.runInEnv = runInEnv;
 
   root.print = print;
 
