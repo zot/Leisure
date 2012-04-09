@@ -1,5 +1,5 @@
 (function() {
-  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, ctx, ctxObj, face, getType, help, init, print, processResult, repl, root, vars, write,
+  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, ctx, face, getType, help, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -9,6 +9,8 @@
   L = require('./lazp');
 
   Prim = require('./prim');
+
+  require('./std');
 
   Core = require('./replCore');
 
@@ -116,25 +118,24 @@
     return Core.processResult(result);
   };
 
-  ctxObj = null;
-
   ctx = null;
 
   createEnv = function createEnv() {
-    var i;
+    var ctxObj, i;
     ctxObj = {
       require: require,
       console: console
     };
     ctxObj.global = ctxObj;
-    for (i in L.funcs) {
-      ctxObj[i] = L.funcs[i];
-    }
     ctx = VM.createContext(ctxObj);
-    L.setEvalFunc(ctxObj, function(str) {
+    for (i in L.funcs) {
+      console.log("FUNC: " + i);
+      ctx[i] = L.funcs[i];
+    }
+    L.setEvalFunc(ctx, function(str) {
       return VM.runInContext(str, ctx);
     });
-    return VM.runInContext("Lazp = require('./lazp')\nrequire('./std');\nrequire('./prim');\nReplCore = require('./replCore');\nRepl = require('./repl');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
+    return VM.runInContext("Lazp = require('./lazp')\nLazp.req('./std');\nLazp.req('./prim');\nReplCore = require('./replCore');\nRepl = require('./repl');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
   };
 
   createEnv();

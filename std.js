@@ -1,8 +1,8 @@
-if (typeof require !== "undefined" && require !== null) {
-  Lazp = require("./lazp")
+if (typeof require !== 'undefined' && require !== null) {
+  Lazp = require('./lazp')
   require('./std');
   require('./prim');
-  ReplCore = require("./replCore");
+  ReplCore = require('./replCore');
   Repl = require('./repl');
 }
 setType = Lazp.setType;
@@ -53,3 +53,9 @@ define('dlAppend', function(_da){return function(_db){return function(_list){ret
 //dlList = lambda dl . apply (ref dl) (ref nil)
 
 define('dlList', function(_dl){return _dl()(_nil)});
+if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
+  root = {}
+} else {
+  root = typeof exports !== 'undefined' && exports !== null ? exports : this;
+}
+root.defs = ["_id","_true","_false","_cons","_nil","_append","_$r","_$b","_$s","_$q","_dl","_dlAppend","_dlList"];

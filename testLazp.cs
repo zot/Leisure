@@ -47,7 +47,7 @@ val = 2
 divider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
 div = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
 """, false)
-eval(code)
+LZ.eval(code)
 
 run 'test0', -> assertParse("1", "ref 1")
 run 'test1', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (ref y)", "\\x.x x y")

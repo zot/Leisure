@@ -174,11 +174,12 @@
   };
 
   generateCode = function generateCode(file, contents, loud, handle) {
-    var a, ast, c, code, err, errs, globals, m, nm, oldRest, out, r, rest, src, _ref, _ref2;
+    var a, ast, c, code, defs, err, errs, globals, m, nm, oldRest, out, r, rest, src, _ref, _ref2;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./std');\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n";
+    out = "if (typeof require !== 'undefined' && require !== null) {\n  Lazp = require('./lazp')\n  require('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n";
     errs = '';
     globals = findDefs(file, contents);
+    defs = [];
     rest = contents;
     while (rest) {
       oldRest = rest;
@@ -190,7 +191,7 @@
         m = code.match(Lazp.linePat);
         if (m && m[3]) nm = m[2].trim().split(/\s+/)[0];
         ast.src = "//" + (nm ? nm + ' = ' : '') + (escape(Lazp.astPrint(ast))) + "\n" + ast.src;
-        src = ast.lazpName ? ast.src : "processResult(" + ast.src + ")";
+        src = ast.lazpName ? (defs.push(Lazp.nameSub(ast.lazpName)), ast.src) : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
         _ref2 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref2[0], c = _ref2[1], r = _ref2[2];
         if (handle) handlerFunc(ast, null, a, c, r, code);
@@ -199,6 +200,7 @@
         rest = '';
       }
     }
+    out += "if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  root = {}\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n}\nroot.defs = " + (JSON.stringify(defs)) + ";\n";
     if (errs !== '') throw new Error("Errors compiling " + file + ": " + errs);
     return out;
   };

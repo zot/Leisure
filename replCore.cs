@@ -109,11 +109,11 @@ escape = (str)-> str.replace(/\n/g, '\\n')
 generateCode = (file, contents, loud, handle)->
   if loud then console.log("Compiling #{file}:\n")
   out = """
-if (typeof require !== "undefined" && require !== null) {
-  Lazp = require("./lazp")
+if (typeof require !== 'undefined' && require !== null) {
+  Lazp = require('./lazp')
   require('./std');
   require('./prim');
-  ReplCore = require("./replCore");
+  ReplCore = require('./replCore');
   Repl = require('./repl');
 }
 setType = Lazp.setType;
@@ -125,6 +125,7 @@ processResult = Repl.processResult;
 """
   errs = ''
   globals = findDefs file, contents
+  defs = []
   rest = contents
   while rest
     oldRest = rest
@@ -136,13 +137,24 @@ processResult = Repl.processResult;
       m = code.match(Lazp.linePat)
       if m and m[3] then nm = m[2].trim().split(/\s+/)[0]
       ast.src = "//#{if nm then nm + ' = ' else ''}#{escape(Lazp.astPrint(ast))}\n#{ast.src}"
-      src = if ast.lazpName then ast.src else "processResult(#{ast.src})"
+      src = if ast.lazpName
+        defs.push Lazp.nameSub(ast.lazpName)
+        ast.src
+      else "processResult(#{ast.src})"
       out += "#{src};\n"
       [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
       if handle then handlerFunc ast, null, a, c, r, code
     else if err
       errs = "#{errs}#{err}\n"
       rest = ''
+  out += """
+if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
+  root = {}
+} else {
+  root = typeof exports !== 'undefined' && exports !== null ? exports : this;
+}
+root.defs = #{JSON.stringify defs};\n
+"""
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   out
 

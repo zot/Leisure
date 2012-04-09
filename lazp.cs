@@ -76,11 +76,14 @@ nameSub = (name)->
     s += code ? name[i]
   s
 
+ctx = global
+
+evalFunc = eval
+
 # leave a poopie so we can identify whether functions defined in other files are Lazp funcs
 define = (name, func) ->
   nm = nameSub(name)
-  global[nm] = -> func
-  funcs[nm] = func
+  ctx[nm] = funcs[nm] = global[nm] = -> func
   func.lazpName = name
   func
 
@@ -433,12 +436,14 @@ addDef = (toks)->
   t = toks.reverse()
   defs[t[0]] = t.join(' ')
 
-ctx = global
-evalFunc = eval
-
-setEvalFunc = (ctx, func)->
-  root.ctx = ctx
+setEvalFunc = (ct, func)->
+  ctx = root.ctx = ct
   root.eval = evalFunc = func
+
+req = (name)->
+  res = require(name)
+  if res.defs? then for i of res
+    global[i] = res.defs[i]
 
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
@@ -459,3 +464,5 @@ root.Nil = Nil
 root.cons = cons
 root.defineToken = defineToken
 root.funcs = funcs
+root.req = req
+root.nameSub = nameSub

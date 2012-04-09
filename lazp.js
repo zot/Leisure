@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, funcs, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, funcs, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -109,13 +109,16 @@ misrepresented as being the original software.
     return s;
   };
 
+  ctx = global;
+
+  evalFunc = eval;
+
   define = function define(name, func) {
     var nm;
     nm = nameSub(name);
-    global[nm] = function() {
+    ctx[nm] = funcs[nm] = global[nm] = function() {
       return func;
     };
-    funcs[nm] = func;
     func.lazpName = name;
     return func;
   };
@@ -812,13 +815,21 @@ misrepresented as being the original software.
     return defs[t[0]] = t.join(' ');
   };
 
-  ctx = global;
-
-  evalFunc = eval;
-
-  setEvalFunc = function setEvalFunc(ctx, func) {
-    root.ctx = ctx;
+  setEvalFunc = function setEvalFunc(ct, func) {
+    ctx = root.ctx = ct;
     return root.eval = evalFunc = func;
+  };
+
+  req = function req(name) {
+    var i, res, _results;
+    res = require(name);
+    if (res.defs != null) {
+      _results = [];
+      for (i in res) {
+        _results.push(global[i] = res.defs[i]);
+      }
+      return _results;
+    }
   };
 
   root.setEvalFunc = setEvalFunc;
@@ -860,5 +871,9 @@ misrepresented as being the original software.
   root.defineToken = defineToken;
 
   root.funcs = funcs;
+
+  root.req = req;
+
+  root.nameSub = nameSub;
 
 }).call(this);
