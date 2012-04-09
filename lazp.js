@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseSome, parseTerm, prefix, ref, root, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, root, scanName, scanTok, second, setDataType, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -351,7 +351,7 @@ misrepresented as being the original software.
   Code = (function() {
 
     function Code(main, subfuncs, fcount, mcount, vars, err, global) {
-      var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
+      var _ref, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
       this.main = main;
       this.subfuncs = subfuncs;
       this.fcount = fcount;
@@ -364,7 +364,8 @@ misrepresented as being the original software.
       this.fcount = (_ref3 = this.fcount) != null ? _ref3 : 0;
       this.mcount = (_ref4 = this.mcount) != null ? _ref4 : 0;
       this.vars = (_ref5 = this.vars) != null ? _ref5 : Nil;
-      this.global = (_ref6 = this.global) != null ? _ref6 : Nil;
+      this.err = (_ref6 = this.err) != null ? _ref6 : '';
+      this.global = (_ref7 = this.global) != null ? _ref7 : Nil;
     }
 
     Code.prototype.copyWith = function copyWith(main, subfuncs, fcount, mcount, vars, err, global) {
@@ -387,8 +388,8 @@ misrepresented as being the original software.
       return this.copyWith(null, null, null, null, v, null);
     };
 
-    Code.prototype.resetMemo = function resetMemo() {
-      return this.copyWith(null, null, null, 0);
+    Code.prototype.resetMemo = function resetMemo(n) {
+      return this.copyWith(null, null, null, n != null ? n : 0);
     };
 
     Code.prototype.reffedValue = function reffedValue(deref) {
@@ -407,35 +408,15 @@ misrepresented as being the original software.
       }
     };
 
-    Code.prototype.subfuncName = function subfuncName() {
-      return "subfunc" + this.fcount;
+    Code.prototype.useSubfunc = function useSubfunc() {
+      return this;
     };
 
-    Code.prototype.useSubfunc = function useSubfunc(closed) {
-      if (!closed) {
-        return this;
-      } else {
-        return this.copyWith(this.subfuncName(), "" + this.subfuncs + "var " + (this.subfuncName()) + " = " + this.main + "\n", this.fcount + 1);
-      }
-    };
-
-    Code.prototype.memoNames = function memoNames() {
-      var i;
-      return ((function() {
-        var _ref, _results;
-        _results = [];
-        for (i = 0, _ref = this.mcount; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-          _results.push("memo" + i);
-        }
-        return _results;
-      }).call(this)).join(', ');
-    };
-
-    Code.prototype.memo = function memo(deref) {
-      if (!this.mcount) {
+    Code.prototype.memoize = function memoize(deref) {
+      if (deref) {
         return this.unreffedValue(deref);
       } else {
-        return this.copyWith("(function(){var " + (this.memoNames()) + "; return " + this.main + "})", null, null, 0).reffedValue(deref);
+        return this.copyWith("(function(){var memo; return function(){return memo || (memo = (" + this.main + "))}})()");
       }
     };
 
@@ -447,13 +428,16 @@ misrepresented as being the original software.
     var code, res;
     ast.lits = [];
     res = [];
-    code = (gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true)).memo(!lazy);
-    if (code.err != null) {
+    code = gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true);
+    if ((tokenDef != null) && tokenDef !== '=') {
+      console.log("TOKEN DEF FOR " + name + ": " + tokenDef);
+    }
+    if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
       ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
     } else {
-      ast.src = name != null ? "define('" + name + "', " + code.main + ")" : "(" + code.main + ")";
+      ast.src = name != null ? "" + ((tokenDef != null) && tokenDef !== '=' ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\ndefine('" + name + "', " + code.main + ")" : "(" + code.main + ")";
     }
     ast.globals = code.global;
     return ast;
@@ -473,18 +457,21 @@ misrepresented as being the original software.
     switch (getAstType(ast)) {
       case 'ref':
         val = getRefVar(ast);
-        if (val.lambda) throw new Error("attempt to use lambda as a variable");
-        code = code.copyWith(nameSub(val)).reffedValue(deref);
-        if (vars.find(function(v) {
-          return v === val;
-        })) {
-          return code.addVar(val);
-        } else if ((global[nameSub(val)] != null) || code.global.find(function(v) {
-          return v === val;
-        })) {
-          return code;
+        if (val.lambda) {
+          return code.addErr("attempt to use lambda as a variable");
         } else {
-          return code.addErr("Referenced free variable: " + val + ", use lit, instead of ref.");
+          code = code.copyWith(nameSub(val)).reffedValue(deref);
+          if (vars.find(function(v) {
+            return v === val;
+          })) {
+            return code.addVar(val);
+          } else if ((global[nameSub(val)] != null) || code.global.find(function(v) {
+            return v === val;
+          })) {
+            return code;
+          } else {
+            return code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref);
+          }
         }
         break;
       case 'lit':
@@ -497,15 +484,36 @@ misrepresented as being the original software.
         bodyCode = bodyCode.setVars(bodyCode.vars.removeAll(function(bv) {
           return bv === v;
         }));
-        return bodyCode.copyWith(wrap(ast, "function(" + (nameSub(v)) + "){return " + bodyCode.main + "}")).useSubfunc(bodyCode.vars === Nil).memo(deref);
+        return bodyCode.copyWith(wrap(ast, "function(" + (nameSub(v)) + "){return " + bodyCode.main + "}")).useSubfunc(bodyCode.vars === Nil).memoize(deref);
       case 'apply':
         func = getApplyFunc(ast);
-        arg = getApplyArg(ast);
-        funcCode = gen(func, code, lits, vars, true);
-        argCode = gen(arg, funcCode, lits, vars);
-        return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").unreffedValue(deref);
+        if (getAstType(func === 'lit')) {
+          return code.addErr("Attempt to use lit as function: " + (getLitVal(func)));
+        } else if (freeVar(func, vars, code.global)) {
+          return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
+        } else {
+          arg = getApplyArg(ast);
+          funcCode = gen(func, code, lits, vars, true);
+          argCode = gen(arg, funcCode, lits, vars);
+          return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").memoize(deref);
+        }
+        break;
       default:
-        throw new Error("Unknown object type in gen: " + ast);
+        return code.addErr("Unknown object type in gen: " + ast);
+    }
+  };
+
+  freeVar = function freeVar(ast, vars, globals) {
+    var rv;
+    if ((getAstType(ast)) === 'ref') {
+      rv = getRefVar(ast);
+      return !global[nameSub(rv)] && !vars.find(function(v) {
+        return v === rv;
+      }) && !globals.find(function(v) {
+        return v === rv;
+      });
+    } else {
+      return false;
     }
   };
 
@@ -563,7 +571,7 @@ misrepresented as being the original software.
     }
   };
 
-  compileNext = function compileNext(line, globals) {
+  compileNext = function compileNext(line, globals, parseOnly) {
     var def, defType, leading, matched, name, nm, rest1;
     if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
@@ -582,11 +590,11 @@ misrepresented as being the original software.
           }
           nameAst(nm[0], ast);
           if (nm.length === 1) nameAst(nm[0], ast);
-          return genCode(ast, nm[0], globals, defType, rest);
+          return genCode(ast, nm[0], globals, defType, rest, parseOnly);
         });
       } else {
         return ifParsed(parseApply(rest1, Nil), function(ast, rest) {
-          return genCode(ast, null, globals, null, rest);
+          return genCode(ast, null, globals, null, rest, parseOnly);
         });
       }
     } else {
@@ -594,9 +602,9 @@ misrepresented as being the original software.
     }
   };
 
-  genCode = function genCode(ast, name, globals, defType, rest) {
-    dgen(ast, false, name, globals, defType);
-    return [ast, null, rest];
+  genCode = function genCode(ast, name, globals, defType, rest, parseOnly) {
+    if (!parseOnly) dgen(ast, false, name, globals, defType);
+    return [ast, ast.err, rest];
   };
 
   evalNext = function evalNext(code) {
@@ -610,6 +618,7 @@ misrepresented as being the original software.
         } catch (err) {
           console.log(err.stack);
           result = err.stack;
+          ast.err = err.stack;
         }
         return [ast, result];
       } else {
@@ -621,7 +630,11 @@ misrepresented as being the original software.
         return [ast, result];
       }
     } else {
-      return [null, err];
+      return [
+        {
+          err: err
+        }, err
+      ];
     }
   };
 
@@ -643,18 +656,14 @@ misrepresented as being the original software.
     }
   };
 
-  parse = function parse(str) {
+  parse = function parse(str, globals) {
     var ast, err, rest, _ref;
-    _ref = parseSome(str, Nil), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = parseApply(str.replace(/\u03BB/g, '\\'), Nil, globals != null ? globals : Nil, 0), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err) {
       throw new Error(err);
     } else {
       return ast;
     }
-  };
-
-  parseSome = function parseSome(str) {
-    return parseApply(str.replace(/\u03BB/g, '\\'), Nil, 0);
   };
 
   ifParsed = function ifParsed(res, block) {
@@ -675,7 +684,7 @@ misrepresented as being the original software.
     return offset + orig.length - rest.length;
   };
 
-  parseApply = function parseApply(str, vars, offset) {
+  parseApply = function parseApply(str, vars, globals, offset) {
     var offset1, rest1, tok, _ref;
     if (!str.length) {
       return [null, null, str];
@@ -686,35 +695,35 @@ misrepresented as being the original software.
       } else if (groupCloses[tok]) {
         return [null, "Unexpected group closing token: " + tok, str];
       } else {
-        return ifParsed(parseTerm(tok, rest1, vars, offset1), function(func, rest) {
-          return continueApply(func, rest, vars, soff(str, offset, rest));
+        return ifParsed(parseTerm(tok, rest1, vars, globals, offset1), function(func, rest) {
+          return continueApply(func, rest, vars, globals, soff(str, offset, rest));
         });
       }
     }
   };
 
-  continueApply = function continueApply(func, str, vars, offset) {
+  continueApply = function continueApply(func, str, vars, globals, offset) {
     var offset1, rest, tok, _ref;
     _ref = nextTok(str, offset), tok = _ref[0], offset1 = _ref[1], rest = _ref[2];
     if (!tok || tok === '\n' || groupCloses[tok]) {
       return [func, null, str];
     } else {
-      return ifParsed(parseTerm(tok, rest, vars, offset1), function(arg, rest) {
-        return continueApply(tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, soff(str, offset, rest));
+      return ifParsed(parseTerm(tok, rest, vars, globals, offset1), function(arg, rest) {
+        return continueApply(tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, globals, soff(str, offset, rest));
       });
     }
   };
 
-  parseTerm = function parseTerm(tok, rest, vars, tokOffset) {
+  parseTerm = function parseTerm(tok, rest, vars, globals, tokOffset) {
     var apl, restOffset;
     restOffset = tokOffset + tok.length;
     if (tok === '\n') {
       return [null, 'Unexpected newline while expecting a term', rest];
     } else if (tok === '\\') {
-      return parseLambda(rest, vars, restOffset);
+      return parseLambda(rest, vars, globals, restOffset);
     } else if (groupOpens[tok]) {
-      apl = tok === '(' ? parseApply(rest, vars, restOffset) : ifParsed(parseName(tok, rest, vars, tokOffset), function(ast, rest2) {
-        return continueApply(ast, rest2, vars, soff(rest, restOffset, rest2));
+      apl = tok === '(' ? parseApply(rest, vars, globals, restOffset) : ifParsed(parseName(tok, rest, vars, globals, tokOffset), function(ast, rest2) {
+        return continueApply(ast, rest2, vars, globals, soff(rest, restOffset, rest2));
       });
       return ifParsed(apl, function(ast, rest3) {
         var offset4, rest4, tok4, _ref;
@@ -724,24 +733,46 @@ misrepresented as being the original software.
         } else if (tok === '(') {
           return [ast, null, rest4];
         } else {
-          return ifParsed(parseName(tok4, rest4, vars, soff(rest, restOffset, rest4)), function(arg, rest5) {
+          return ifParsed(parseName(tok4, rest4, vars, globals, soff(rest, restOffset, rest4)), function(arg, rest5) {
             return [tag(apply(laz(ast))(laz(arg)), ast.lazpStart, arg.lazpEnd), null, rest5];
           });
         }
       });
     } else {
-      return parseName(tok, rest, vars, tokOffset);
+      return parseName(tok, rest, vars, globals, tokOffset);
     }
   };
 
-  parseName = function parseName(tok, rest, vars, tokOffset) {
-    var restOffset, _ref;
+  parseName = function parseName(tok, rest, vars, globals, tokOffset) {
+    var restOffset;
     restOffset = tokOffset + tok.length;
     return [
-      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok("\"" + (tok.substring(1, tok.length - 1)) + "\""))) : ((_ref = global[nameSub(tok)]) != null ? _ref.lazpName : void 0) === tok || astsByName[tok] || (vars.find(function(v) {
+      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok("\"" + (tok.substring(1, tok.length - 1)) + "\""))) : vars.find(function(v) {
         return tok === v;
-      })) ? ref(laz(tok)) : lit(laz(scanTok(tok)))), tokOffset, restOffset), null, rest
+      }) ? ref(laz(tok)) : scanName(tok)), tokOffset, restOffset), null, rest
     ];
+  };
+
+  scanTok = function scanTok(tok) {
+    try {
+      return JSON.parse(tok);
+    } catch (err) {
+      return tok;
+    }
+  };
+
+  scanName = function scanName(name) {
+    var l;
+    try {
+      l = JSON.parse(name);
+      if (typeof l === 'string') {
+        return lit(laz(l));
+      } else {
+        return ref(laz(name));
+      }
+    } catch (err) {
+      return ref(laz(name));
+    }
   };
 
   nextTokWithNl = function nextTokWithNl(str, offset) {
@@ -783,14 +814,6 @@ misrepresented as being the original software.
     var t;
     t = toks.reverse();
     return defs[t[0]] = t.join(' ');
-  };
-
-  scanTok = function scanTok(tok) {
-    try {
-      return JSON.parse(tok);
-    } catch (err) {
-      return tok;
-    }
   };
 
   root.parse = parse;

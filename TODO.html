@@ -16,7 +16,6 @@
 <h1>TODO</h1>
 
 <ul>
-<li>pretty print code</li>
 <li>Run Lazp in sandbox
 <ul>
 <li>lazp.cs, std.laz, prim.cs run in a sandbox
@@ -36,7 +35,15 @@
 <li>allows for reloading, etc.</li>
 </ul></li>
 </ul></li>
-<li>throw error on undeclared variables -- require quotes for strings</li>
+<li>indentation tweak
+<ul>
+<li>indent line creates a nested expression</li>
+</ul></li>
+<li>throw error on undeclared variables -- require quotes for strings
+<ul>
+<li>macros should generate a wrapper at compile-time so that we can define things like let</li>
+<li>need a way to handle macros</li>
+</ul></li>
 <li>need supertypes or something for things like booleans (true or false)</li>
 <li>-g option
 <ul>
@@ -59,10 +66,6 @@
 <li>cons a -> function(</em>1){return _cons(a, _1)}</li>
 </ul></li>
 <li>integrate physics engine</li>
-<li>indentation tweak
-<ul>
-<li>indent line creates a nested expression</li>
-</ul></li>
 </ul>
 
 <blockquote>
@@ -120,6 +123,7 @@ print "OK, we're done." end</p>
 <h1>DONE</h1>
 
 <ul>
+<li>pretty print code</li>
 <li>runRepl file should compile the file, eval it, and then stay in the REPL</li>
 <li>get ! working on browser</li>
 <li>file loading in browser</li>
