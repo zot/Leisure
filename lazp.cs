@@ -189,20 +189,27 @@ class Code
   setGlobal: (v)-> @copyWith(null, null, null, null, null, null, v)
   addVar: (v)-> @copyWith(null, null, null, null, cons(v, @vars), null)
   setVars: (v)-> @copyWith(null, null, null, null, v, null)
-  resetMemo: -> @copyWith(null, null, null, 0)
+  resetMemo: (n)-> @copyWith(null, null, null, n ? 0)
   reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
   unreffedValue: (deref)-> if deref then @ else @copyWith("(function(){return #{@main}})")
-  subfuncName: -> "subfunc#{@fcount}"
-  useSubfunc: (closed)-> if !closed then @ else @copyWith(@subfuncName(), "#{@subfuncs}var #{@subfuncName()} = #{@main}\n", @fcount + 1)
-  memoNames: -> ("memo#{i}" for i in [0...@mcount]).join(', ')
-  memo: (deref)->
-    if !@mcount then @unreffedValue(deref)
-    else @copyWith("(function(){var #{@memoNames()}; return #{@main}})", null, null, 0).reffedValue(deref)
+  #subfuncName: -> "subfunc#{@fcount}"
+  #useSubfunc: (closed)-> if !closed then @ else @copyWith(@subfuncName(), "#{@subfuncs}var #{@subfuncName()} = #{@main}\n", @fcount + 1)
+  useSubfunc: -> @
+  #memoNames: -> ("memo#{i}" for i in [0...@mcount]).join(', ')
+  #memo: (deref)->
+  #  if !@mcount then @unreffedValue(deref)
+  #  else @copyWith("(function(){var #{@memoNames()}; return #{@main}})", null, null, 0).reffedValue(deref)
+  #memoName: -> "memo#{@mcount}"
+  #memoize: -> @copyWith("(#{@memoName()} || (#{@memoName()} = (#{@main})))", null, null, @mcount + 1)
+  memoize: (deref)->
+    if deref then @unreffedValue(deref)
+    else @copyWith "(function(){var memo; return function(){return memo || (memo = (#{@main}))}})()"
 
 dgen = (ast, lazy, name, globals, tokenDef)->
   ast.lits = []
   res = []
-  code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true).memo(!lazy)
+  code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true) #.memo(!lazy)
+  if tokenDef? and tokenDef != '=' then console.log("TOKEN DEF FOR #{name}: #{tokenDef}")
   if code.err != '' then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
@@ -210,7 +217,10 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   return #{if name? then "define('#{name}', #{code.main})" else code.main}
 })()
     """
-  else ast.src = if name? then "define('#{name}', #{code.main})" else "(#{code.main})"
+  else ast.src = if name? then """
+#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
+define('#{name}', #{code.main})
+""" else "(#{code.main})"
   ast.globals = code.global
   ast
 
@@ -240,7 +250,7 @@ gen = (ast, code, lits, vars, deref)->
       v = getLambdaVar ast
       bodyCode = (gen (getLambdaBody ast), code.resetMemo(), lits, cons(v, vars), true)
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
-      bodyCode.copyWith(wrap(ast, "function(#{nameSub(v)}){return #{bodyCode.main}}")).useSubfunc(bodyCode.vars == Nil).memo(deref)
+      bodyCode.copyWith(wrap(ast, "function(#{nameSub(v)}){return #{bodyCode.main}}")).useSubfunc(bodyCode.vars == Nil).memoize(deref)
     when 'apply'
       func = getApplyFunc ast
       if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
@@ -249,7 +259,7 @@ gen = (ast, code, lits, vars, deref)->
         arg = getApplyArg ast
         funcCode = gen func, code, lits, vars, true
         argCode = gen arg, funcCode, lits, vars
-        argCode.copyWith("#{funcCode.main}(#{argCode.main})").unreffedValue(deref)
+        argCode.copyWith("#{funcCode.main}(#{argCode.main})").memoize(deref) #.unreffedValue(deref)
     else code.addErr "Unknown object type in gen: #{ast}"
 
 freeVar = (ast, vars, globals)->

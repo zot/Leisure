@@ -388,8 +388,8 @@ misrepresented as being the original software.
       return this.copyWith(null, null, null, null, v, null);
     };
 
-    Code.prototype.resetMemo = function resetMemo() {
-      return this.copyWith(null, null, null, 0);
+    Code.prototype.resetMemo = function resetMemo(n) {
+      return this.copyWith(null, null, null, n != null ? n : 0);
     };
 
     Code.prototype.reffedValue = function reffedValue(deref) {
@@ -408,35 +408,15 @@ misrepresented as being the original software.
       }
     };
 
-    Code.prototype.subfuncName = function subfuncName() {
-      return "subfunc" + this.fcount;
+    Code.prototype.useSubfunc = function useSubfunc() {
+      return this;
     };
 
-    Code.prototype.useSubfunc = function useSubfunc(closed) {
-      if (!closed) {
-        return this;
-      } else {
-        return this.copyWith(this.subfuncName(), "" + this.subfuncs + "var " + (this.subfuncName()) + " = " + this.main + "\n", this.fcount + 1);
-      }
-    };
-
-    Code.prototype.memoNames = function memoNames() {
-      var i;
-      return ((function() {
-        var _ref, _results;
-        _results = [];
-        for (i = 0, _ref = this.mcount; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-          _results.push("memo" + i);
-        }
-        return _results;
-      }).call(this)).join(', ');
-    };
-
-    Code.prototype.memo = function memo(deref) {
-      if (!this.mcount) {
+    Code.prototype.memoize = function memoize(deref) {
+      if (deref) {
         return this.unreffedValue(deref);
       } else {
-        return this.copyWith("(function(){var " + (this.memoNames()) + "; return " + this.main + "})", null, null, 0).reffedValue(deref);
+        return this.copyWith("(function(){var memo; return function(){return memo || (memo = (" + this.main + "))}})()");
       }
     };
 
@@ -448,13 +428,16 @@ misrepresented as being the original software.
     var code, res;
     ast.lits = [];
     res = [];
-    code = (gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true)).memo(!lazy);
+    code = gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true);
+    if ((tokenDef != null) && tokenDef !== '=') {
+      console.log("TOKEN DEF FOR " + name + ": " + tokenDef);
+    }
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
       ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
     } else {
-      ast.src = name != null ? "define('" + name + "', " + code.main + ")" : "(" + code.main + ")";
+      ast.src = name != null ? "" + ((tokenDef != null) && tokenDef !== '=' ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\ndefine('" + name + "', " + code.main + ")" : "(" + code.main + ")";
     }
     ast.globals = code.global;
     return ast;
@@ -501,7 +484,7 @@ misrepresented as being the original software.
         bodyCode = bodyCode.setVars(bodyCode.vars.removeAll(function(bv) {
           return bv === v;
         }));
-        return bodyCode.copyWith(wrap(ast, "function(" + (nameSub(v)) + "){return " + bodyCode.main + "}")).useSubfunc(bodyCode.vars === Nil).memo(deref);
+        return bodyCode.copyWith(wrap(ast, "function(" + (nameSub(v)) + "){return " + bodyCode.main + "}")).useSubfunc(bodyCode.vars === Nil).memoize(deref);
       case 'apply':
         func = getApplyFunc(ast);
         if (getAstType(func === 'lit')) {
@@ -512,7 +495,7 @@ misrepresented as being the original software.
           arg = getApplyArg(ast);
           funcCode = gen(func, code, lits, vars, true);
           argCode = gen(arg, funcCode, lits, vars);
-          return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").unreffedValue(deref);
+          return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").memoize(deref);
         }
         break;
       default:
