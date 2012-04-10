@@ -82,3 +82,4 @@ define 'js', global, (codeList)->(binding)->
 
 root.setTty = setTty
 root.runMonad = runMonad
+root.tokenDefs = []

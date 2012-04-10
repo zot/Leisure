@@ -80,9 +80,11 @@ ctx = global
 
 evalFunc = eval
 
-define = (name, global, func) ->
+define = (name, gl, func) ->
   nm = nameSub(name)
-  ctx[nm] = funcs[nm] = global[nm] = -> func
+  #console.log("DEFINE: #{name} (#{nm}), CTX: #{ctx}, FUNCS: #{funcs}, GLOBAL: #{gl}")
+  #ctx[nm] = funcs[nm] = global[nm] = -> func
+  ctx[nm] = funcs[nm] = gl[nm] = -> func
   func.lazpName = name
   func
 
@@ -205,14 +207,15 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true) #.memo(!lazy)
   if code.err != '' then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
-(function(){#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
+(function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
   return #{if name? then "define('#{name}', global, #{code.main})" else code.main}
 })()
     """
   else ast.src = if name? then """
-#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
-define('#{name}', global, #{code.main})
+(function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}');\n" else ''}
+return define('#{name}', global, #{code.main});
+})()
 """ else "(#{code.main})"
   ast.globals = code.global
   ast
@@ -439,10 +442,16 @@ setEvalFunc = (ct, func)->
   ctx = root.ctx = ct
   root.eval = evalFunc = func
 
-req = (name)->
+req = (name, gl)->
+  gl = gl ? global
   res = require(name)
-  if res.defs? then for i of res
-    global[i] = res.defs[i]
+  if res.defs? then for i of res.defs
+    ((tmp)-> gl[i] = -> tmp) res.defs[i]
+
+  #console.log "** DEFS FOR #{name}**: #{res.tokenDefs}"
+  if res.tokenDefs? then for i in [0...res.tokenDefs.length] by 2
+    defineToken res.tokenDefs[i], res.tokenDefs[i + 1]
+  res
 
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc

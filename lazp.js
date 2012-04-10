@@ -113,10 +113,10 @@ misrepresented as being the original software.
 
   evalFunc = eval;
 
-  define = function define(name, global, func) {
+  define = function define(name, gl, func) {
     var nm;
     nm = nameSub(name);
-    ctx[nm] = funcs[nm] = global[nm] = function() {
+    ctx[nm] = funcs[nm] = gl[nm] = function() {
       return func;
     };
     func.lazpName = name;
@@ -434,9 +434,9 @@ misrepresented as being the original software.
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
-      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', global, " + code.main + ")" : code.main) + "\n})()";
+      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', global, " + code.main + ")" : code.main) + "\n})()";
     } else {
-      ast.src = name != null ? "" + ((tokenDef != null) && tokenDef !== '=' ? "defineToken('" + name + "', '" + tokenDef + "')\n" : '') + "\ndefine('" + name + "', global, " + code.main + ")" : "(" + code.main + ")";
+      ast.src = name != null ? "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "');\n" : '') + "\nreturn define('" + name + "', global, " + code.main + ");\n})()" : "(" + code.main + ")";
     }
     ast.globals = code.global;
     return ast;
@@ -820,16 +820,26 @@ misrepresented as being the original software.
     return root.eval = evalFunc = func;
   };
 
-  req = function req(name) {
-    var i, res, _results;
+  req = function req(name, gl) {
+    var i, res, _fn, _ref;
+    gl = gl != null ? gl : global;
     res = require(name);
     if (res.defs != null) {
-      _results = [];
-      for (i in res) {
-        _results.push(global[i] = res.defs[i]);
+      _fn = function _fn(tmp) {
+        return gl[i] = function() {
+          return tmp;
+        };
+      };
+      for (i in res.defs) {
+        _fn(res.defs[i]);
       }
-      return _results;
     }
+    if (res.tokenDefs != null) {
+      for (i = 0, _ref = res.tokenDefs.length; i < _ref; i += 2) {
+        defineToken(res.tokenDefs[i], res.tokenDefs[i + 1]);
+      }
+    }
+    return res;
   };
 
   root.setEvalFunc = setEvalFunc;

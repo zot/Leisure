@@ -7,13 +7,13 @@
 
   importFile = function importFile(file, cont) {
     return R.compile(file, function() {
-      LZ.eval("require('./" + file + "')");
+      LZ.eval("req('./" + file + "')");
       return cont();
     });
   };
 
   loadStd = function loadStd() {
-    return LZ.eval("Lazp.req('./std')");
+    return LZ.eval("req('./std')");
   };
 
   action = importFile;

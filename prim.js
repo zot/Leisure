@@ -208,4 +208,6 @@
 
   root.runMonad = runMonad;
 
+  root.tokenDefs = [];
+
 }).call(this);

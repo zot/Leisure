@@ -89,8 +89,9 @@ createEnv = ->
   ctxObj =
     require: require
     console: console
-  ctxObj.global = ctxObj
+    Lazp: require './lazp'
   ctx = VM.createContext ctxObj
+  ctx.global = ctx
   ctx[i] = L.funcs[i] for i of L.funcs
   L.setEvalFunc ctx, (str)->VM.runInContext(str, ctx)
   VM.runInContext("""
@@ -98,6 +99,10 @@ Lazp = require('./lazp')
 Lazp.req('./prim');
 ReplCore = require('./replCore');
 Repl = require('./repl');
+function req(name) {
+  return Lazp.req(name, global)
+}
+//Lazp.req('./std');
 
 setType = Lazp.setType;
 setDataType = Lazp.setDataType;
