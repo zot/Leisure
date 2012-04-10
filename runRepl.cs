@@ -3,10 +3,11 @@ LZ = require('./lazp')
 
 importFile = (file, cont) ->
   R.compile file, ->
-    LZ.eval "require('./#{file}')"
+    #console.log "COMPILED. LOADING..."
+    LZ.eval "req('./#{file}')"
     cont()
 
-loadStd = -> require('./std')
+loadStd = -> LZ.eval "req('./std')"
 action = importFile
 next = R.repl
 

@@ -23,15 +23,15 @@ setTty = (rl)-> tty = rl
 define = Lazp.define
 getType = Lazp.getType
 
-define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
-define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
-define 'withType', (value)->(t)->(f)-> if type = getType(value()) then t()(->type) else f()
+define 'is', global, (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
+define 'eq', global, (a)-> (b)-> if a() == b() then `_true()` else` _false()`
+define 'withType', global, (value)->(t)->(f)-> if type = getType(value()) then t()(->type) else f()
 
-define '+', (a)->(b)->a() + b()
-define '-', (a)->(b)->a() - b()
-define '*', (a)->(b)->a() * b()
-define '/', (a)->(b)->a() / b()
-define '%', (a)->(b)->a() % b()
+define '+', global, (a)->(b)->a() + b()
+define '-', global, (a)->(b)->a() - b()
+define '*', global, (a)->(b)->a() * b()
+define '/', global, (a)->(b)->a() / b()
+define '%', global, (a)->(b)->a() % b()
 
 define '>', (a)->(b)->a() > b()
 define '>=', (a)->(b)->a() >= b()
@@ -55,20 +55,20 @@ makeMonad = (binding, guts)->
   if binding != "end" then m.binding = binding
   m
 
-define 'end', "end"
+define 'end', global, "end"
 
-define 'bind', (m)->(binding)->
+define 'bind', global, (m)->(binding)->
   makeMonad binding(), (cont)-> runMonad m(), cont
 
-define 'return', (v)->(binding)->
+define 'return', global, (v)->(binding)->
   makeMonad binding(), (cont) -> cont(v())
 
-define 'print', (msg)->(binding)->
+define 'print', global, (msg)->(binding)->
   makeMonad binding(), (cont)->
     write("#{msg()}\n")
     cont(null)
 
-define 'prompt', (msg)->(binding)->
+define 'prompt', global, (msg)->(binding)->
   makeMonad binding(), (cont)->
     prompt(String(msg()), (input)-> cont(input))
 
@@ -79,9 +79,9 @@ concatList = (l)->
   if l == _nil() then ""
   else (head l) + concatList tail l
 
-define 'concat', (l)-> concatList(l())
+define 'concat', global, (l)-> concatList(l())
 
-define 'js', (codeList)->(binding)->
+define 'js', global, (codeList)->(binding)->
   makeMonad binding(), (cont)->
     cl = codeList()
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
@@ -89,3 +89,4 @@ define 'js', (codeList)->(binding)->
 
 root.setTty = setTty
 root.runMonad = runMonad
+root.tokenDefs = []

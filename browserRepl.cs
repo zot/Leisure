@@ -7,6 +7,7 @@ else root = exports ? this
 lastLine = null
 input = null
 write = null
+envFrame = null
 
 init = (inputField, output, defs)->
   write = (line)-> defs.innerHTML += line
@@ -22,6 +23,32 @@ init = (inputField, output, defs)->
       lastLine = input.value.replace(/\\/g, '\u03BB')
       ReplCore.processLine(lastLine)
   input.select()
+
+reloadEnv = -> envFrame.contentWindow.location.reload()
+
+clearOutput = ->
+  o = document.getElementById('output')
+  o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Lazp\'s standard functions.\n\n'
+  ReplCore.help()
+  o.innerHTML += '\n'
+
+useIframe = (envFr)->
+  if (envFr)
+    if (envFr.getAttribute('duh')) then alert(envFr.getAttribute('duh'))
+    root.envFrame = envFrame = envFr
+    env = envFrame.contentWindow
+    env[i] = Lazp.funcs[i] for i of Lazp.funcs
+    Lazp.setEvalFunc env, env.eval
+    env[i] = global[i] for i of {Lazp: Lazp, ReplCore: ReplCore, Repl: Repl}
+    env.eval """
+global = window;
+setType = Lazp.setType;
+setDataType = Lazp.setDataType;
+define = Lazp.define;
+defineToken = Lazp.defineToken;
+processResult = Repl.processResult;
+"""
+    clearOutput()
 
 markupDef = (src, ast)->
   if src.match /^\s*#/ then src
@@ -54,3 +81,5 @@ root.init = init
 root.markupDef = markupDef
 root.markupLines = markupLines
 root.handleFiles = handleFiles
+root.useIframe = useIframe
+root.reloadEnv = reloadEnv

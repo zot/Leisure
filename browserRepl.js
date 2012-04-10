@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, root, write;
+  var Pretty, clearOutput, envFrame, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -14,6 +14,8 @@
   input = null;
 
   write = null;
+
+  envFrame = null;
 
   init = function init(inputField, output, defs) {
     write = function write(line) {
@@ -41,6 +43,40 @@
       }
     };
     return input.select();
+  };
+
+  reloadEnv = function reloadEnv() {
+    return envFrame.contentWindow.location.reload();
+  };
+
+  clearOutput = function clearOutput() {
+    var o;
+    o = document.getElementById('output');
+    o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Lazp\'s standard functions.\n\n';
+    ReplCore.help();
+    return o.innerHTML += '\n';
+  };
+
+  useIframe = function useIframe(envFr) {
+    var env, i;
+    if (envFr) {
+      if (envFr.getAttribute('duh')) alert(envFr.getAttribute('duh'));
+      root.envFrame = envFrame = envFr;
+      env = envFrame.contentWindow;
+      for (i in Lazp.funcs) {
+        env[i] = Lazp.funcs[i];
+      }
+      Lazp.setEvalFunc(env, env.eval);
+      for (i in {
+        Lazp: Lazp,
+        ReplCore: ReplCore,
+        Repl: Repl
+      }) {
+        env[i] = global[i];
+      }
+      env.eval("global = window;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;");
+      return clearOutput();
+    }
   };
 
   markupDef = function markupDef(src, ast) {
@@ -89,5 +125,9 @@
   root.markupLines = markupLines;
 
   root.handleFiles = handleFiles;
+
+  root.useIframe = useIframe;
+
+  root.reloadEnv = reloadEnv;
 
 }).call(this);

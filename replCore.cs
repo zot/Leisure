@@ -53,7 +53,8 @@ Type a Lazp expression or one of these commands and hit enter:
 :v -- display variable values
 :v var value -- set a variable
 :q -- quit
-!code -- eval JavaScript code
+! code -- eval JavaScript code in the lazp environment
+!! code -- eval JavaScript code in the host environment
 
   """)
 
@@ -86,9 +87,14 @@ processLine = (line)->
   try
     if line
       if line[0] == '!'
-        result = Lazp.evalFunc(line.substr(1))
-        result = if U? then U.inspect(result) else result
-        write(result, "\n")
+        if line[1] == '!'
+          result = eval(line.substr(2))
+          result = if U? then U.inspect(result) else result
+          write(result, "\n")
+        else
+          result = Lazp.eval(line.substr(1))
+          result = if U? then U.inspect(result) else result
+          write(result, "\n")
       else if (m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/)) then handleVar(m[2], m[3])
       else if (m = line.match(/^:c\s*([^\s]*)$/)) then return compileFunc(m[1])
       else switch line
@@ -109,18 +115,28 @@ escape = (str)-> str.replace(/\n/g, '\\n')
 generateCode = (file, contents, loud, handle)->
   if loud then console.log("Compiling #{file}:\n")
   out = """
-if (typeof require !== 'undefined' && require !== null) {
-  Lazp = require('./lazp')
-  require('./std');
+(function(){
+var root;
+
+if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
+  root = {};
+  global = window;
+} else {
+  root = typeof exports !== 'undefined' && exports !== null ? exports : this;
+  Lazp = require('./lazp');
+  Lazp.req('./std');
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
-setType = Lazp.setType;
-setDataType = Lazp.setDataType;
-define = Lazp.define;
-defineToken = Lazp.defineToken;
-processResult = Repl.processResult;
+root.defs = {};
+root.tokenDefs = [];
+
+var setType = Lazp.setType;
+var setDataType = Lazp.setDataType;
+var define = Lazp.define;
+var defineToken = Lazp.defineToken;
+var processResult = Repl.processResult;
 
 """
   errs = ''
@@ -135,8 +151,12 @@ processResult = Repl.processResult;
       globals = ast.globals
       if ast.err? then errs = "#{errs}#{ast.err}\n"
       m = code.match(Lazp.linePat)
-      if m and m[3] then nm = m[2].trim().split(/\s+/)[0]
-      ast.src = "//#{if nm then nm + ' = ' else ''}#{escape(Lazp.astPrint(ast))}\n#{ast.src}"
+      nm = if m and m[3] then m[2].trim().split(/\s+/)[0] else null
+      #if !nm? then console.log("\n@@@ DEF @@@: #{code}\n")
+      ast.src = """
+//#{if nm? then nm + ' = ' else ''}#{escape(Lazp.astPrint(ast))}
+#{if nm? then "root.defs.#{Lazp.nameSub(nm)} = " else ""}#{ast.src}
+"""
       src = if ast.lazpName
         defs.push Lazp.nameSub(ast.lazpName)
         ast.src
@@ -148,12 +168,9 @@ processResult = Repl.processResult;
       errs = "#{errs}#{err}\n"
       rest = ''
   out += """
-if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  root = {}
-} else {
-  root = typeof exports !== 'undefined' && exports !== null ? exports : this;
-}
-root.defs = #{JSON.stringify defs};\n
+
+return root;
+}).call(this)
 """
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   out

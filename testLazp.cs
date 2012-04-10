@@ -29,12 +29,14 @@ Tests for Lazp
 U = require('util')
 LZ=require('./lazp')
 R = require('./replCore')
-require('./std')
+#require('./std')
 require('./prim')
 {setType, setDataType, define} = LZ
 {run, assertParse, assertEval, assertEq} = T = require('./testing.js')
 
 console.log 'Testing'
+
+LZ.eval "Lazp.req('./std')"
 
 code = (R.generateCode null, """
 and a b = a b false
@@ -46,7 +48,9 @@ last l = l (\\h t D . null t h (last t)) nil
 val = 2
 divider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
 div = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
+
 """, false)
+
 LZ.eval(code)
 
 run 'test0', -> assertParse("1", "ref 1")

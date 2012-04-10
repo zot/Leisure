@@ -2,7 +2,6 @@ U = require('util')
 R = require('readline')
 L = require('./lazp')
 Prim = require('./prim')
-require('./std')
 Core = require('./replCore')
 FS = require('fs')
 Path = require('path')
@@ -90,18 +89,20 @@ createEnv = ->
   ctxObj =
     require: require
     console: console
-  ctxObj.global = ctxObj
+    Lazp: require './lazp'
   ctx = VM.createContext ctxObj
-  for i of L.funcs
-    console.log("FUNC: #{i}")
-    ctx[i] = L.funcs[i]
+  ctx.global = ctx
+  ctx[i] = L.funcs[i] for i of L.funcs
   L.setEvalFunc ctx, (str)->VM.runInContext(str, ctx)
   VM.runInContext("""
 Lazp = require('./lazp')
-Lazp.req('./std');
 Lazp.req('./prim');
 ReplCore = require('./replCore');
 Repl = require('./repl');
+function req(name) {
+  return Lazp.req(name, global)
+}
+//Lazp.req('./std');
 
 setType = Lazp.setType;
 setDataType = Lazp.setDataType;

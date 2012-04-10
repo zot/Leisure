@@ -80,10 +80,11 @@ ctx = global
 
 evalFunc = eval
 
-# leave a poopie so we can identify whether functions defined in other files are Lazp funcs
-define = (name, func) ->
+define = (name, gl, func) ->
   nm = nameSub(name)
-  ctx[nm] = funcs[nm] = global[nm] = -> func
+  #console.log("DEFINE: #{name} (#{nm}), CTX: #{ctx}, FUNCS: #{funcs}, GLOBAL: #{gl}")
+  #ctx[nm] = funcs[nm] = global[nm] = -> func
+  ctx[nm] = funcs[nm] = gl[nm] = -> func
   func.lazpName = name
   func
 
@@ -102,15 +103,15 @@ nameAst = (nm, ast)-> if !ast.lazpName
 
 evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
 
-define 'eval', (ast)-> evalCompiledAst(dgen(ast()))
+define 'eval', global, (ast)-> evalCompiledAst(dgen(ast()))
 
-define 'lit', (_x)->setType ((_f)-> _f()(_x)), 'lit'
+define 'lit', global, (_x)->setType ((_f)-> _f()(_x)), 'lit'
 
-define 'ref', (_x)->setType ((_f)-> _f()(_x)), 'ref'
+define 'ref', global, (_x)->setType ((_f)-> _f()(_x)), 'ref'
 
-define 'lambda', (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
+define 'lambda', global, (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
 
-define 'apply', (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
+define 'apply', global, (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
 
 getType = (f)->
   t = typeof f
@@ -206,14 +207,15 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true) #.memo(!lazy)
   if code.err != '' then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
-(function(){#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
+(function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
-  return #{if name? then "define('#{name}', #{code.main})" else code.main}
+  return #{if name? then "define('#{name}', global, #{code.main})" else code.main}
 })()
     """
   else ast.src = if name? then """
-#{if tokenDef? and tokenDef != '=' then "defineToken('#{name}', '#{tokenDef}')\n" else ''}
-define('#{name}', #{code.main})
+(function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}');\n" else ''}
+return define('#{name}', global, #{code.main});
+})()
 """ else "(#{code.main})"
   ast.globals = code.global
   ast
@@ -440,10 +442,16 @@ setEvalFunc = (ct, func)->
   ctx = root.ctx = ct
   root.eval = evalFunc = func
 
-req = (name)->
+req = (name, gl)->
+  gl = gl ? global
   res = require(name)
-  if res.defs? then for i of res
-    global[i] = res.defs[i]
+  if res.defs? then for i of res.defs
+    ((tmp)-> gl[i] = -> tmp) res.defs[i]
+
+  #console.log "** DEFS FOR #{name}**: #{res.tokenDefs}"
+  if res.tokenDefs? then for i in [0...res.tokenDefs.length] by 2
+    defineToken res.tokenDefs[i], res.tokenDefs[i + 1]
+  res
 
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
