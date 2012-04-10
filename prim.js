@@ -101,6 +101,36 @@
     };
   });
 
+  define('>', function(a) {
+    return function(b) {
+      return a() > b();
+    };
+  });
+
+  define('>=', function(a) {
+    return function(b) {
+      return a() >= b();
+    };
+  });
+
+  define('<', function(a) {
+    return function(b) {
+      return a() < b();
+    };
+  });
+
+  define('<=', function(a) {
+    return function(b) {
+      return a() <= b();
+    };
+  });
+
+  define('randInt', function(from) {
+    return function(to) {
+      return Math.floor(Math.random() * (to() - from() + 1)) + from();
+    };
+  });
+
   runMonad = function runMonad(monad, cont) {
     return monad.cmd(function(value) {
       if (monad.binding != null) {
