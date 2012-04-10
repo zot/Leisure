@@ -101,31 +101,31 @@
     };
   });
 
-  define('>', function(a) {
+  define('>', global, function(a) {
     return function(b) {
       return a() > b();
     };
   });
 
-  define('>=', function(a) {
+  define('>=', global, function(a) {
     return function(b) {
       return a() >= b();
     };
   });
 
-  define('<', function(a) {
+  define('<', global, function(a) {
     return function(b) {
       return a() < b();
     };
   });
 
-  define('<=', function(a) {
+  define('<=', global, function(a) {
     return function(b) {
       return a() <= b();
     };
   });
 
-  define('randInt', function(from) {
+  define('randInt', global, function(from) {
     return function(to) {
       return Math.floor(Math.random() * (to() - from() + 1)) + from();
     };

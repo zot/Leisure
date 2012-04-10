@@ -33,12 +33,12 @@ define '*', global, (a)->(b)->a() * b()
 define '/', global, (a)->(b)->a() / b()
 define '%', global, (a)->(b)->a() % b()
 
-define '>', (a)->(b)->a() > b()
-define '>=', (a)->(b)->a() >= b()
-define '<', (a)->(b)->a() < b()
-define '<=', (a)->(b)->a() <= b()
+define '>', global, (a)->(b)->a() > b()
+define '>=', global, (a)->(b)->a() >= b()
+define '<', global, (a)->(b)->a() < b()
+define '<=', global, (a)->(b)->a() <= b()
 
-define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
+define 'randInt', global, (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
 
 runMonad = (monad, cont)->
   monad.cmd (value) ->
