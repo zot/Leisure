@@ -90,7 +90,7 @@
         v = _ref[i];
         env[i] = v;
       }
-      env.eval("global = window;\nglobal.lazpFuncs = {};\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.lazpGetFuncs = function lazpGetFuncs() {\n    return lll\n  }\n  global.lazpSetFuncs = function lazpSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.lazpAddFunc = function lazpAddFunc(func) {\n    lazpSetFuncs(Lazp.cons(func, lazpGetFuncs()))\n  }\n})()");
+      env.eval("global = window;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.lazpGetFuncs = function lazpGetFuncs() {\n    return lll\n  }\n  global.lazpSetFuncs = function lazpSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.lazpAddFunc = function lazpAddFunc(func) {\n    lll = Lazp.cons(func, lll)\n  }\n})()");
       return clearOutput();
     }
   };

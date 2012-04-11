@@ -133,7 +133,7 @@
     L.setEvalFunc(ctx, function(str) {
       return VM.runInContext(str, ctx);
     });
-    VM.runInContext("(function(){\nvar lll;\n\n  global.lazpGetFuncs = function lazpGetFuncs() {\n    return lll\n  }\n  global.lazpSetFuncs = function lazpSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.lazpAddFunc = function lazpAddFunc(func) {\n    lll = Lazp.cons(func, lll)\n    //lazpSetFuncs(Lazp.cons(func, lazpGetFuncs()))\n  }\n})()\n\nfunction req(name) {\n  return Lazp.req(name, global)\n}\n//Lazp.req('./std');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
+    VM.runInContext("(function(){\nvar lll;\n\n  global.lazpGetFuncs = function lazpGetFuncs() {\n    return lll\n  }\n  global.lazpSetFuncs = function lazpSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.lazpAddFunc = function lazpAddFunc(func) {\n    lll = Lazp.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Lazp.req(name, global)\n}\n//Lazp.req('./std');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
     return VM.runInContext('lazpSetFuncs', ctx)(lazpFuncNames);
   };
 

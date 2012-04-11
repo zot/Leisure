@@ -1,7 +1,5 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* disallow redefinition
-* :r resets env in REPL
 * indentation tweak
    * indent line creates a nested expression
 * throw error on undeclared variables -- require quotes for strings
@@ -56,6 +54,8 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* :r resets env in REPL
+* disallow redefinition
 * Run Lazp in sandbox
    * lazp.cs, std.laz, prim.cs run in a sandbox
       * in browser, use an iframe with ifr.contentWindow.eval() to communicate
