@@ -35,7 +35,7 @@ misrepresented as being the original software.
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/;
+  baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/;
 
   tokenPat = baseTokenPat;
 
@@ -643,7 +643,7 @@ misrepresented as being the original software.
         try {
           result = evalCompiledAst(ast);
         } catch (err) {
-          result = err.stack;
+          ast.err = err.stack;
         }
         return [ast, result];
       }
@@ -765,7 +765,7 @@ misrepresented as being the original software.
     var restOffset;
     restOffset = tokOffset + tok.length;
     return [
-      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok(tok))) : vars.find(function(v) {
+      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok(tok))) : tok[0] === '`' ? ref(laz(tok.substring(1, tok.length - 1))) : vars.find(function(v) {
         return tok === v;
       }) ? ref(laz(tok)) : scanName(tok)), tokOffset, restOffset), null, rest
     ];

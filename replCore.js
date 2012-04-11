@@ -56,7 +56,7 @@
       }
       if (c) write("GEN: " + ast.src + "\n");
       if (r) {
-        if (!result) {
+        if (!(result != null)) {
           write("(No Result)\n");
           return nextFunc();
         } else {

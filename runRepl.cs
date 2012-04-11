@@ -1,12 +1,12 @@
-R = require('./repl')
 LZ = require('./lazp')
+R = require('./repl')
 
 importFile = (file, cont) ->
   R.compile file, ->
     LZ.eval "req('./#{file}')"
     cont()
 
-loadStd = -> LZ.eval "req('./std')"
+loadStd = -> LZ.eval "Lazp.req('./std')"
 
 action = importFile
 next = R.repl

@@ -36,7 +36,8 @@ require('./prim')
 
 console.log 'Testing'
 
-LZ.eval "Lazp.req('./std')"
+#LZ.eval "Lazp.req('./std')"
+LZ.eval "req('./std')"
 
 code = (R.generateCode null, """
 and a b = a b false

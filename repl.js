@@ -78,7 +78,6 @@
     var contents, oldfile, stream;
     cont = cont != null ? cont : Core.next;
     if (!file) {
-      console.log("No file to compile");
       return face != null ? face.prompt() : void 0;
     } else {
       contents = '';
@@ -148,7 +147,9 @@
   });
 
   Core.setResetFunc(function() {
-    createEnv;    return L.eval("req('./std')");
+    write("Creating fresh environment");
+    createEnv();
+    return L.eval("req('./std')");
   });
 
   root.createEnv = createEnv;

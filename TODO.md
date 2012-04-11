@@ -2,25 +2,6 @@
 # TODO
 * indentation tweak
    * indent line creates a nested expression
-* throw error on undeclared variables -- require quotes for strings
-   * macros should generate a wrapper at compile-time so that we can define things like let
-   * need a way to handle macros
-* need supertypes or something for things like booleans (true or false)
-* -g option
-   * check function types before application and print meaningful error msgs
-   * generate trace
-* log function that prints while running (side effect)
-* :l should load file
-* scroll to bottom on eval
-* example that reads strings and prints them until the user types 'quit'
-* :p to show primitives
-* infix function call syntax
-   * allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)
-   * allow $ to separate expressions, so a $ b $ c is the same as (a) (b) (c) (use ~ instead?)
-* generate currying functions at call sites
-   * since cons is a global ref, cons a b -> _cons(a, b), instead of _cons()(a)(b)
-   * cons a -> function(_1){return _cons(a, _1)}
-* integrate physics engine
 
 >zip  
 >>a  
@@ -37,6 +18,25 @@
 >>   print "Fine, be that way!")) \_ .
 > print "OK, we're done." end
 
+* throw error on undeclared variables -- require quotes for strings
+   * parser macros should generate a wrapper at compile-time so that we can define things like let
+   * need a way to handle macros
+* need supertypes or something for things like booleans (true or false)
+* -g option
+   * check function types before application and print meaningful error msgs
+   * generate trace
+* log function that prints while running (side effect)
+* :l should load file
+* scroll to bottom of browser on eval
+* example that reads strings and prints them until the user types 'quit'
+* :p to show primitives
+* infix function call syntax
+   * allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)
+   * allow $ to separate expressions, so a $ b $ c is the same as (a) (b) (c) (use ~ instead?)
+* generate currying functions at call sites
+   * since cons is a global ref, cons a b -> _cons(a, b), instead of _cons()(a)(b)
+   * cons a -> function(_1){return _cons(a, _1)}
+* integrate physics engine
 * reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)
 * string functions
 * Lazp configuration environment
@@ -46,14 +46,14 @@
 * Lazp-code for pretty printing
 * Use Lazp for parser, generator, REPL; compile them and use the JS for them
    * this will help people extend Lazp
-* parser improvements
-   * a-b recursion?
-      * it could do a pass to get function names, first
 * generator improvements
    * eliminate redundant memo/deref pairs
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* parser improvements
+   * a-b recursion?
+      * it could do a pass to get function names, first
 * :r resets env in REPL
 * disallow redefinition
 * Run Lazp in sandbox

@@ -1,9 +1,9 @@
 (function() {
   var LZ, R, action, i, importFile, loadStd, next, pos, processArgs, _ref;
 
-  R = require('./repl');
-
   LZ = require('./lazp');
+
+  R = require('./repl');
 
   importFile = function importFile(file, cont) {
     return R.compile(file, function() {

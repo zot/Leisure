@@ -57,7 +57,6 @@ help = ()->
 compile = (file, cont)->
   cont = cont ? Core.next
   if !file
-    console.log("No file to compile")
     face?.prompt()
   else
     contents = ''
@@ -126,7 +125,8 @@ Core.setHelp help
 Core.setCompiler compile
 Core.setWriter (str)-> process.stdout.write(str)
 Core.setResetFunc ->
-  createEnv
+  write "Creating fresh environment"
+  createEnv()
   L.eval "req('./std')"
 
 root.createEnv = createEnv

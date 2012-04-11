@@ -40,7 +40,7 @@ handlerFunc = (ast, result, a, c, r, src)->
       write("FORMATTED: #{P.print ast}\n")
     if c then write("GEN: #{ast.src}\n")
     if r
-      if !result
+      if !result?
         write("(No Result)\n")
         nextFunc()
       else

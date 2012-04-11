@@ -16,56 +16,10 @@
 <h1>TODO</h1>
 
 <ul>
-<li>Run Lazp in sandbox
-<ul>
-<li>lazp.cs, std.laz, prim.cs run in a sandbox
-<ul>
-<li>in browser, use an iframe with ifr.contentWindow.eval() to communicate
-<ul>
-<li>iframe.contentWindow holds globals</li>
-<li>allow user to show or hide iframe (it's where SVG etc can be)</li>
-</ul></li>
-<li>in node, use VM.createContext and VM.runInContext to communicate
-<ul>
-<li>context holds globals</li>
-</ul></li>
-</ul></li>
-<li>repl uses sandbox
-<ul>
-<li>allows for reloading, etc.</li>
-</ul></li>
-</ul></li>
 <li>indentation tweak
 <ul>
 <li>indent line creates a nested expression</li>
 </ul></li>
-<li>throw error on undeclared variables -- require quotes for strings
-<ul>
-<li>macros should generate a wrapper at compile-time so that we can define things like let</li>
-<li>need a way to handle macros</li>
-</ul></li>
-<li>need supertypes or something for things like booleans (true or false)</li>
-<li>-g option
-<ul>
-<li>check function types before application and print meaningful error msgs</li>
-<li>generate trace</li>
-</ul></li>
-<li>log function that prints while running (side effect)</li>
-<li>:l should load file</li>
-<li>scroll to bottom on eval</li>
-<li>example that reads strings and prints them until the user types 'quit'</li>
-<li>:p to show primitives</li>
-<li>infix function call syntax
-<ul>
-<li>allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)</li>
-<li>allow $ to separate expressions, so a $ b $ c is the same as (a) (b) (c) (use ~ instead?)</li>
-</ul></li>
-<li>generate currying functions at call sites
-<ul>
-<li>since cons is a global ref, cons a b -> <em>cons(a, b), instead of _cons()(a)(b)</li>
-<li>cons a -> function(</em>1){return _cons(a, _1)}</li>
-</ul></li>
-<li>integrate physics engine</li>
 </ul>
 
 <blockquote>
@@ -93,6 +47,33 @@ print "OK, we're done." end</p>
 <p></blockquote></p>
 
 <ul>
+<li>throw error on undeclared variables -- require quotes for strings
+<ul>
+<li>parser macros should generate a wrapper at compile-time so that we can define things like let</li>
+<li>need a way to handle macros</li>
+</ul></li>
+<li>need supertypes or something for things like booleans (true or false)</li>
+<li>-g option
+<ul>
+<li>check function types before application and print meaningful error msgs</li>
+<li>generate trace</li>
+</ul></li>
+<li>log function that prints while running (side effect)</li>
+<li>:l should load file</li>
+<li>scroll to bottom of browser on eval</li>
+<li>example that reads strings and prints them until the user types 'quit'</li>
+<li>:p to show primitives</li>
+<li>infix function call syntax
+<ul>
+<li>allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)</li>
+<li>allow $ to separate expressions, so a $ b $ c is the same as (a) (b) (c) (use ~ instead?)</li>
+</ul></li>
+<li>generate currying functions at call sites
+<ul>
+<li>since cons is a global ref, cons a b -> <em>cons(a, b), instead of _cons()(a)(b)</li>
+<li>cons a -> function(</em>1){return _cons(a, _1)}</li>
+</ul></li>
+<li>integrate physics engine</li>
 <li>reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)</li>
 <li>string functions</li>
 <li>Lazp configuration environment
@@ -106,13 +87,6 @@ print "OK, we're done." end</p>
 <ul>
 <li>this will help people extend Lazp</li>
 </ul></li>
-<li>parser improvements
-<ul>
-<li>a-b recursion?
-<ul>
-<li>it could do a pass to get function names, first</li>
-</ul></li>
-</ul></li>
 <li>generator improvements
 <ul>
 <li>eliminate redundant memo/deref pairs</li>
@@ -123,6 +97,34 @@ print "OK, we're done." end</p>
 <h1>DONE</h1>
 
 <ul>
+<li>parser improvements
+<ul>
+<li>a-b recursion?
+<ul>
+<li>it could do a pass to get function names, first</li>
+</ul></li>
+</ul></li>
+<li>:r resets env in REPL</li>
+<li>disallow redefinition</li>
+<li>Run Lazp in sandbox
+<ul>
+<li>lazp.cs, std.laz, prim.cs run in a sandbox
+<ul>
+<li>in browser, use an iframe with ifr.contentWindow.eval() to communicate
+<ul>
+<li>iframe.contentWindow holds globals</li>
+<li>allow user to show or hide iframe (it's where SVG etc can be)</li>
+</ul></li>
+<li>in node, use VM.createContext and VM.runInContext to communicate
+<ul>
+<li>context holds globals</li>
+</ul></li>
+</ul></li>
+<li>repl uses sandbox
+<ul>
+<li>allows for reloading, etc.</li>
+</ul></li>
+</ul></li>
 <li>pretty print code</li>
 <li>runRepl file should compile the file, eval it, and then stay in the REPL</li>
 <li>get ! working on browser</li>

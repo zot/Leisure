@@ -27,7 +27,7 @@ if window? and (!global? or global == window)
   window.Lazp = root = {}
 else root = exports ? this
 
-baseTokenPat = /'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/
+baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
 linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/
@@ -343,7 +343,7 @@ evalNext = (code)->
       try
         result = evalCompiledAst(ast)
       catch err
-        result = err.stack
+        ast.err = err.stack
       [ast, result]
   else [{err: err}, err]
 
@@ -402,6 +402,7 @@ parseName = (tok, rest, vars, globals, tokOffset) ->
   restOffset = tokOffset + tok.length
   [tag((if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
   else if tok[0] == '"' then lit(laz(scanTok(tok)))
+  else if tok[0] == '`' then ref(laz(tok.substring(1, tok.length - 1)))
   else if (vars.find (v)-> tok == v) then ref(laz(tok))
   else scanName(tok)
   ), tokOffset, restOffset), null, rest]
