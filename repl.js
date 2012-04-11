@@ -1,5 +1,5 @@
 (function() {
-  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, ctx, face, getType, help, init, print, processResult, repl, root, vars, write,
+  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, face, getType, help, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -116,25 +116,25 @@
     return Core.processResult(result);
   };
 
-  ctx = null;
-
   createEnv = function createEnv() {
-    var ctxObj, i, v;
+    var ctx, ctxObj, i, v;
     ctxObj = {
       require: require,
-      console: console,
-      Lazp: require('./lazp')
+      Lazp: L,
+      Repl: module,
+      lazpFuncs: {}
     };
-    ctx = VM.createContext(ctxObj);
-    ctx.global = ctx;
     for (i in lazpFuncs) {
       v = lazpFuncs[i];
-      ctx[i] = v;
+      ctxObj[i] = v;
     }
+    ctx = VM.createContext(ctxObj);
+    ctx.global = ctx;
     L.setEvalFunc(ctx, function(str) {
       return VM.runInContext(str, ctx);
     });
-    return VM.runInContext("global.lazpFuncs = {};\nLazp = require('./lazp')\nLazp.req('./prim');\nReplCore = require('./replCore');\nRepl = require('./repl');\nfunction req(name) {\n  return Lazp.req(name, global)\n}\n//Lazp.req('./std');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
+    VM.runInContext("(function(){\nvar lll;\n\n  global.lazpGetFuncs = function lazpGetFuncs() {\n    return lll\n  }\n  global.lazpSetFuncs = function lazpSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.lazpAddFunc = function lazpAddFunc(func) {\n    lll = Lazp.cons(func, lll)\n    //lazpSetFuncs(Lazp.cons(func, lazpGetFuncs()))\n  }\n})()\n\nfunction req(name) {\n  return Lazp.req(name, global)\n}\n//Lazp.req('./std');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
+    return VM.runInContext('lazpSetFuncs', ctx)(lazpFuncNames);
   };
 
   createEnv();
@@ -147,7 +147,9 @@
     return process.stdout.write(str);
   });
 
-  Core.setResetFunc(createEnv);
+  Core.setResetFunc(function() {
+    createEnv;    return L.eval("req('./std')");
+  });
 
   root.createEnv = createEnv;
 

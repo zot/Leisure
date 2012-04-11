@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, astsByName, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -87,8 +87,6 @@ misrepresented as being the original software.
 
   global.lazpFuncs = {};
 
-  astsByName = {};
-
   tokens = {};
 
   groupOpens = {
@@ -113,12 +111,98 @@ misrepresented as being the original software.
 
   evalFunc = eval;
 
+  Cons = (function() {
+
+    function Cons(head, tail) {
+      this.head = head;
+      this.tail = tail;
+    }
+
+    Cons.prototype.find = function find(func) {
+      return func(this.head) || this.tail.find(func);
+    };
+
+    Cons.prototype.removeAll = function removeAll(func) {
+      var t;
+      t = this.tail.removeAll(func);
+      if (func(this.head)) {
+        return t;
+      } else if (t === this.tail) {
+        return this;
+      } else {
+        return cons(this.head, t);
+      }
+    };
+
+    Cons.prototype.foldl = function foldl(arg, func) {
+      return func(this.tail.foldl(arg, func), this.head);
+    };
+
+    Cons.prototype.toArray = function toArray() {
+      return this.foldl([], (function(i, el) {
+        i.push(el);
+        return i;
+      }));
+    };
+
+    Cons.prototype.toString = function toString() {
+      return "Cons(" + (this.toArray().join(', ')) + ")";
+    };
+
+    return Cons;
+
+  })();
+
+  CNil = (function(_super) {
+
+    __extends(CNil, _super);
+
+    function CNil() {
+      CNil.__super__.constructor.apply(this, arguments);
+    }
+
+    CNil.prototype.find = function find() {
+      return false;
+    };
+
+    CNil.prototype.removeAll = function removeAll() {
+      return this;
+    };
+
+    CNil.prototype.foldl = function foldl(arg, func) {
+      return arg;
+    };
+
+    return CNil;
+
+  })(Cons);
+
+  Nil = new CNil();
+
+  cons = function cons(a, b) {
+    return new Cons(a, b);
+  };
+
+  global.lazpFuncNames = ll = Nil;
+
+  global.lazpAddFunc = function lazpAddFunc(nm) {
+    return global.lazpFuncNames = ll = cons(nm, ll);
+  };
+
+  global.lazpGetFuncs = function lazpGetFuncs() {
+    return ll;
+  };
+
   define = function define(name, func) {
     var nm;
     nm = nameSub(name);
+    if (ctx[nm] != null) {
+      throw new Error("[DEF] Attempt to redefine definition: " + name);
+    }
     ctx[nm] = ctx.lazpFuncs[nm] = function() {
       return func;
     };
+    (evalFunc('lazpAddFunc'))(name);
     func.lazpName = name;
     return func;
   };
@@ -135,7 +219,6 @@ misrepresented as being the original software.
 
   nameAst = function nameAst(nm, ast) {
     if (!ast.lazpName) {
-      astsByName[nm] = ast;
       ast.lazpName = nm;
       return ast.toString = function toString() {
         return nm;
@@ -276,78 +359,6 @@ misrepresented as being the original software.
         throw new Error("Unknown type of object in AST: " + ast);
     }
     return isFirst && res.join('');
-  };
-
-  Cons = (function() {
-
-    function Cons(head, tail) {
-      this.head = head;
-      this.tail = tail;
-    }
-
-    Cons.prototype.find = function find(func) {
-      return func(this.head) || this.tail.find(func);
-    };
-
-    Cons.prototype.removeAll = function removeAll(func) {
-      var t;
-      t = this.tail.removeAll(func);
-      if (func(this.head)) {
-        return t;
-      } else if (t === this.tail) {
-        return this;
-      } else {
-        return cons(this.head, t);
-      }
-    };
-
-    Cons.prototype.foldl = function foldl(arg, func) {
-      return func(this.tail.foldl(arg, func), this.head);
-    };
-
-    Cons.prototype.toArray = function toArray() {
-      return this.foldl([], (function(i, el) {
-        i.push(el);
-        return i;
-      }));
-    };
-
-    Cons.prototype.toString = function toString() {
-      return "Cons(" + (this.toArray().join(', ')) + ")";
-    };
-
-    return Cons;
-
-  })();
-
-  CNil = (function(_super) {
-
-    __extends(CNil, _super);
-
-    function CNil() {
-      CNil.__super__.constructor.apply(this, arguments);
-    }
-
-    CNil.prototype.find = function find() {
-      return false;
-    };
-
-    CNil.prototype.removeAll = function removeAll() {
-      return this;
-    };
-
-    CNil.prototype.foldl = function foldl(arg, func) {
-      return arg;
-    };
-
-    return CNil;
-
-  })(Cons);
-
-  Nil = new CNil();
-
-  cons = function cons(a, b) {
-    return new Cons(a, b);
   };
 
   Code = (function() {
@@ -570,30 +581,35 @@ misrepresented as being the original software.
     }
   };
 
-  compileNext = function compileNext(line, globals, parseOnly) {
+  compileNext = function compileNext(line, globals, parseOnly, check) {
     var def, defType, leading, matched, name, nm, pfx, rest1;
     if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
       rest1 = line.substring((defType ? matched : leading).length);
       nm = defType ? name.trim().split(/\s+/) : null;
       if (nm) {
-        astsByName[nm[0]] = 1;
-        if (defType && defType !== '=') defineToken(nm[0], defType);
-        pfx = prefix(nm, rest1);
-        return ifParsed(parseApply(pfx, Nil), function(ast, rest) {
-          var bod;
-          bod = ast;
-          if (nm.length > 1) bod = getNthBody(ast, nm.length);
-          if (getAstType(bod) === 'lambda') {
-            bod.exprType = nm[0];
-            ast.exprDataType = nm[0];
-          }
-          nameAst(nm[0], ast);
-          if (nm.length === 1) nameAst(nm[0], ast);
-          ast.lazpPrefixSrcLen = pfx.length;
-          ast.lazpPrefixCount = nm.length;
-          return genCode(ast, nm[0], globals, defType, rest, parseOnly);
-        });
+        if (check && globals.find(function(v) {
+          return v === nm[0];
+        })) {
+          return [null, "Attempt to redefine function: " + nm[0], null];
+        } else {
+          if (defType && defType !== '=') defineToken(nm[0], defType);
+          pfx = prefix(nm, rest1);
+          return ifParsed(parseApply(pfx, Nil), function(ast, rest) {
+            var bod;
+            bod = ast;
+            if (nm.length > 1) bod = getNthBody(ast, nm.length);
+            if (getAstType(bod) === 'lambda') {
+              bod.exprType = nm[0];
+              ast.exprDataType = nm[0];
+            }
+            nameAst(nm[0], ast);
+            if (nm.length === 1) nameAst(nm[0], ast);
+            ast.lazpPrefixSrcLen = pfx.length;
+            ast.lazpPrefixCount = nm.length;
+            return genCode(ast, nm[0], globals, defType, rest, parseOnly);
+          });
+        }
       } else {
         return ifParsed(parseApply(rest1, Nil), function(ast, rest) {
           return genCode(ast, null, globals, null, rest, parseOnly);
@@ -824,24 +840,28 @@ misrepresented as being the original software.
   };
 
   req = function req(name, gl) {
-    var i, res, _fn, _ref;
+    var i, res, v, _fn, _ref, _ref2;
     gl = gl != null ? gl : global;
     res = require(name);
     if (res.defs != null) {
+      _ref = res.defs;
       _fn = function _fn(tmp) {
         return gl[i] = function() {
           return tmp;
         };
       };
-      for (i in res.defs) {
-        _fn(res.defs[i]);
+      for (i in _ref) {
+        v = _ref[i];
+        _fn(v);
       }
     }
     if (res.tokenDefs != null) {
-      for (i = 0, _ref = res.tokenDefs.length; i < _ref; i += 2) {
+      for (i = 0, _ref2 = res.tokenDefs.length; i < _ref2; i += 2) {
         defineToken(res.tokenDefs[i], res.tokenDefs[i + 1]);
       }
     }
+    res.lazpFuncNames = ctx.lazpFuncNames;
+    res.ctx = ctx;
     return res;
   };
 

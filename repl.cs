@@ -83,23 +83,31 @@ processResult = (result)->
   write("#{getType result}: #{P.print(result)}\n")
   Core.processResult result
 
-ctx = null
-
 createEnv = ->
   ctxObj =
     require: require
-    console: console
-    Lazp: require './lazp'
+    Lazp: L
+    Repl: module
+    lazpFuncs: {}
+  ctxObj[i] = v for i,v of lazpFuncs
   ctx = VM.createContext ctxObj
   ctx.global = ctx
-  ctx[i] = v for i,v of lazpFuncs
-  L.setEvalFunc ctx, (str)->VM.runInContext(str, ctx)
+  L.setEvalFunc ctx, (str)-> VM.runInContext(str, ctx)
   VM.runInContext("""
-global.lazpFuncs = {};
-Lazp = require('./lazp')
-Lazp.req('./prim');
-ReplCore = require('./replCore');
-Repl = require('./repl');
+(function(){
+var lll;
+
+  global.lazpGetFuncs = function lazpGetFuncs() {
+    return lll
+  }
+  global.lazpSetFuncs = function lazpSetFuncs(funcs) {
+    lll = funcs
+  }
+  global.lazpAddFunc = function lazpAddFunc(func) {
+    lll = Lazp.cons(func, lll)
+  }
+})()
+
 function req(name) {
   return Lazp.req(name, global)
 }
@@ -111,12 +119,15 @@ define = Lazp.define;
 defineToken = Lazp.defineToken;
 processResult = Repl.processResult;
 """, ctx)
+  VM.runInContext('lazpSetFuncs', ctx)(lazpFuncNames)
 
 createEnv()
 Core.setHelp help
 Core.setCompiler compile
 Core.setWriter (str)-> process.stdout.write(str)
-Core.setResetFunc createEnv
+Core.setResetFunc ->
+  createEnv
+  L.eval "req('./std')"
 
 root.createEnv = createEnv
 root.print = print

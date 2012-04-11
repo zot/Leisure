@@ -31,9 +31,9 @@ setResetFunc = (func)-> resetFunc = func
 getType = Lazp.getType
 
 handlerFunc = (ast, result, a, c, r, src)->
-  if ast and ast.err
-    write("ERROR: #{ast.err}")
-    next()
+  if ast? and ast.err?
+    write("ERROR: #{ast.err}\n")
+    nextFunc()
   else
     if a
       write("PARSED: #{Lazp.astPrint(ast)}\n")
@@ -42,7 +42,7 @@ handlerFunc = (ast, result, a, c, r, src)->
     if r
       if !result
         write("(No Result)\n")
-        next()
+        nextFunc()
       else
         write("#{getType result}: #{P.print(result)}\n")
         processResult result
@@ -109,9 +109,11 @@ processLine = (line)->
         when ':q' then process.exit(0)
         else
           [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-          [ast, err] = Lazp.compileNext(line)
-          if r then ([ast, result] = if err then [{err: err}, err] else Lazp.evalNext(line))
-          else result = null
+          [ast, err] = Lazp.compileNext(line, getGlobals(), false, true)
+          if err?
+            if ast? then ast.err = err
+            else ast = {err: err}
+          else [ast, result] = if r then Lazp.evalNext(line) else [ast, null]
           return handlerFunc(ast, result, a, c, r, line)
   catch err
     write(err.stack)
@@ -182,14 +184,19 @@ return root;
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   out
 
+#getGlobals = -> Lazp.ctx.ll
+getGlobals = -> Lazp.eval 'lazpGetFuncs()'
+
 findDefs = (file, contents)->
   errs = ''
-  globals = Lazp.Nil
+  globals = getGlobals()
   rest = contents
   while rest
     oldRest = rest
     [ast, err, rest] = Lazp.compileNext rest, globals, true
-    if ast?.lazpName then globals = Lazp.cons(ast.lazpName, globals)
+    if ast?.lazpName
+      if (globals ? Lazp.Nil).find((v)->v == ast.lazpName) then throw new Error("Attempt to redefine function: #{ast.lazpName}")
+      globals = Lazp.cons(ast.lazpName, globals)
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   globals
 

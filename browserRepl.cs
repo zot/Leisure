@@ -49,15 +49,27 @@ useIframe = (envFr)->
     env = envFrame.contentWindow
     env[i] = v for i, v of lazpFuncs
     Lazp.setEvalFunc env, env.eval
-    env[i] = v for i, v of {Lazp: Lazp, ReplCore: ReplCore, Repl: Repl}
+    env[i] = v for i, v of {Lazp: Lazp, ReplCore: ReplCore, Repl: Repl, lazpFuncs: {}}
     env.eval """
 global = window;
-global.lazpFuncs = {};
 setType = Lazp.setType;
 setDataType = Lazp.setDataType;
 define = Lazp.define;
 defineToken = Lazp.defineToken;
 processResult = Repl.processResult;
+(function(){
+var lll;
+
+  global.lazpGetFuncs = function lazpGetFuncs() {
+    return lll
+  }
+  global.lazpSetFuncs = function lazpSetFuncs(funcs) {
+    lll = funcs
+  }
+  global.lazpAddFunc = function lazpAddFunc(func) {
+    lll = Lazp.cons(func, lll)
+  }
+})()
 """
     clearOutput()
 

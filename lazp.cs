@@ -64,7 +64,6 @@ charCodes =
 codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
 
 global.lazpFuncs = {}
-astsByName = {}
 tokens = {}
 groupOpens = {'(': ')'}
 groupCloses = {')': 1}
@@ -80,9 +79,35 @@ ctx = global
 
 evalFunc = eval
 
+class Cons
+  constructor: (@head, @tail)->
+  find: (func)-> func(@head) or @tail.find(func)
+  removeAll: (func)->
+    t = @tail.removeAll(func)
+    if func(@head) then t else if t == @tail then @ else cons(@head, t)
+  foldl: (arg, func)-> func(@tail.foldl(arg, func), @head)
+  toArray: -> @foldl [], ((i, el)-> i.push(el); i)
+  toString: -> "Cons(#{@toArray().join(', ')})"
+
+class CNil extends Cons
+  find: -> false
+  removeAll: -> @
+  foldl: (arg, func)-> arg
+
+Nil = new CNil()
+cons = (a, b)-> new Cons(a, b)
+
+global.lazpFuncNames = ll = Nil
+
+global.lazpAddFunc = (nm)-> global.lazpFuncNames = ll = cons(nm, ll)
+
+global.lazpGetFuncs = -> ll
+
 define = (name, func) ->
   nm = nameSub(name)
+  if ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
   ctx[nm] = ctx.lazpFuncs[nm] = -> func
+  (evalFunc 'lazpAddFunc')(name)
   func.lazpName = name
   func
 
@@ -95,7 +120,6 @@ setType = (func, type)->
   func
 
 nameAst = (nm, ast)-> if !ast.lazpName
-  astsByName[nm] = ast
   ast.lazpName = nm
   ast.toString = ->nm
 
@@ -156,24 +180,6 @@ astPrint = (ast, res)->
       res.push ')'
     else throw new Error("Unknown type of object in AST: " + ast)
   isFirst and res.join('')
-
-class Cons
-  constructor: (@head, @tail)->
-  find: (func)-> func(@head) or @tail.find(func)
-  removeAll: (func)->
-    t = @tail.removeAll(func)
-    if func(@head) then t else if t == @tail then @ else cons(@head, t)
-  foldl: (arg, func)-> func(@tail.foldl(arg, func), @head)
-  toArray: -> @foldl [], ((i, el)-> i.push(el); i)
-  toString: -> "Cons(#{@toArray().join(', ')})"
-
-class CNil extends Cons
-  find: -> false
-  removeAll: -> @
-  foldl: (arg, func)-> arg
-
-Nil = new CNil()
-cons = (a, b)-> new Cons(a, b)
 
 class Code
   constructor: (@main, @subfuncs, @fcount, @mcount, @vars, @err, @global)->
@@ -291,26 +297,27 @@ prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\'
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
 # returns [ast, err, rest]
-compileNext = (line, globals, parseOnly)->
+compileNext = (line, globals, parseOnly, check)->
   if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     rest1 = line.substring (if defType then matched else leading).length
     nm = if defType then name.trim().split(/\s+/) else null
     if nm
-      astsByName[nm[0]] = 1
-      if defType && defType != '=' then defineToken(nm[0], defType)
-      pfx = (prefix nm, rest1)
-      ifParsed (parseApply pfx, Nil), (ast, rest)->
-        bod = ast
-        if nm.length > 1 then bod = getNthBody(ast, nm.length)
-        if getAstType(bod) == 'lambda'
-          bod.exprType = nm[0]
-          ast.exprDataType = nm[0]
-        nameAst(nm[0], ast)
-        if nm.length == 1 then nameAst(nm[0], ast)
-        ast.lazpPrefixSrcLen = pfx.length
-        ast.lazpPrefixCount = nm.length
-        genCode ast, nm[0], globals, defType, rest, parseOnly
+      if check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]}", null]
+      else
+        if defType && defType != '=' then defineToken(nm[0], defType)
+        pfx = (prefix nm, rest1)
+        ifParsed (parseApply pfx, Nil), (ast, rest)->
+          bod = ast
+          if nm.length > 1 then bod = getNthBody(ast, nm.length)
+          if getAstType(bod) == 'lambda'
+            bod.exprType = nm[0]
+            ast.exprDataType = nm[0]
+          nameAst(nm[0], ast)
+          if nm.length == 1 then nameAst(nm[0], ast)
+          ast.lazpPrefixSrcLen = pfx.length
+          ast.lazpPrefixCount = nm.length
+          genCode ast, nm[0], globals, defType, rest, parseOnly
     else ifParsed (parseApply rest1, Nil), (ast, rest)->
       genCode ast, null, globals, null, rest, parseOnly
   else [null, null, null]
@@ -319,7 +326,7 @@ genCode = (ast, name, globals, defType, rest, parseOnly)->
   if !parseOnly then dgen ast, false, name, globals, defType
   [ast, ast.err, rest]
 
-#returns [ast, err]
+#returns [ast, result]
 evalNext = (code)->
   [ast, err, rest] = compileNext code, null
   if ast
@@ -446,12 +453,12 @@ setEvalFunc = (ct, func)->
 req = (name, gl)->
   gl = gl ? global
   res = require(name)
-  if res.defs? then for i of res.defs
-    ((tmp)-> gl[i] = -> tmp) res.defs[i]
-
-  #console.log "** DEFS FOR #{name}**: #{res.tokenDefs}"
+  if res.defs? then for i,v of res.defs
+    ((tmp)-> gl[i] = -> tmp) v
   if res.tokenDefs? then for i in [0...res.tokenDefs.length] by 2
     defineToken res.tokenDefs[i], res.tokenDefs[i + 1]
+  res.lazpFuncNames = ctx.lazpFuncNames
+  res.ctx = ctx
   res
 
 root.setEvalFunc = setEvalFunc

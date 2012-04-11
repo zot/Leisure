@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, P, Prim, U, compileFunc, escape, findDefs, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, vars, write, writeFunc,
+  var Lazp, P, Prim, U, compileFunc, escape, findDefs, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -46,9 +46,9 @@
   getType = Lazp.getType;
 
   handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
-    if (ast && ast.err) {
-      write("ERROR: " + ast.err);
-      return next();
+    if ((ast != null) && (ast.err != null)) {
+      write("ERROR: " + ast.err + "\n");
+      return nextFunc();
     } else {
       if (a) {
         write("PARSED: " + (Lazp.astPrint(ast)) + "\n");
@@ -58,7 +58,7 @@
       if (r) {
         if (!result) {
           write("(No Result)\n");
-          return next();
+          return nextFunc();
         } else {
           write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
           return processResult(result);
@@ -163,15 +163,17 @@
               break;
             default:
               _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-              _ref2 = Lazp.compileNext(line), ast = _ref2[0], err = _ref2[1];
-              if (r) {
-                _ref3 = err ? [
-                  {
+              _ref2 = Lazp.compileNext(line, getGlobals(), false, true), ast = _ref2[0], err = _ref2[1];
+              if (err != null) {
+                if (ast != null) {
+                  ast.err = err;
+                } else {
+                  ast = {
                     err: err
-                  }, err
-                ] : Lazp.evalNext(line), ast = _ref3[0], result = _ref3[1];
+                  };
+                }
               } else {
-                result = null;
+                _ref3 = r ? Lazp.evalNext(line) : [ast, null], ast = _ref3[0], result = _ref3[1];
               }
               return handlerFunc(ast, result, a, c, r, line);
           }
@@ -219,15 +221,24 @@
     return out;
   };
 
+  getGlobals = function getGlobals() {
+    return Lazp.eval('lazpGetFuncs()');
+  };
+
   findDefs = function findDefs(file, contents) {
     var ast, err, errs, globals, oldRest, rest, _ref;
     errs = '';
-    globals = Lazp.Nil;
+    globals = getGlobals();
     rest = contents;
     while (rest) {
       oldRest = rest;
       _ref = Lazp.compileNext(rest, globals, true), ast = _ref[0], err = _ref[1], rest = _ref[2];
       if (ast != null ? ast.lazpName : void 0) {
+        if ((globals != null ? globals : Lazp.Nil).find(function(v) {
+          return v === ast.lazpName;
+        })) {
+          throw new Error("Attempt to redefine function: " + ast.lazpName);
+        }
         globals = Lazp.cons(ast.lazpName, globals);
       }
     }
