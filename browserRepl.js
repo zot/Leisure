@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, clearOutput, envFrame, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write;
+  var Pretty, clearEnv, clearOutput, envFrame, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -35,6 +35,7 @@
       }
       return ReplCore.processResult(result);
     });
+    ReplCore.setResetFunc(clearEnv);
     input = inputField;
     input.onkeypress = function onkeypress(e) {
       if ((e.charCode || e.keyCode || e.which) === 13) {
@@ -57,10 +58,21 @@
     return o.innerHTML += '\n';
   };
 
+  clearEnv = function clearEnv(clearEnv) {
+    var env, newEnv;
+    document.getElementById('defs').innerHTML = "";
+    env = document.getElementById('env');
+    document.body.removeChild(env);
+    newEnv = document.createElement('iframe');
+    newEnv.id = 'env';
+    newEnv.setAttribute("style", "display: none");
+    newEnv.setAttribute("onload", "Repl.useIframe(this)");
+    return document.body.appendChild(newEnv);
+  };
+
   useIframe = function useIframe(envFr) {
     var env, i, v, _ref;
     if (envFr) {
-      if (envFr.getAttribute('duh')) alert(envFr.getAttribute('duh'));
       root.envFrame = envFrame = envFr;
       env = envFrame.contentWindow;
       for (i in lazpFuncs) {
@@ -87,7 +99,7 @@
     if (src.match(/^\s*#/)) src;
     if ((match = src.match(Lazp.linePat))) {
       matched = match[0], leading = match[1], name = match[2], defType = match[3];
-      return "<b>" + name + "</b> " + defType + " " + (src.substring(matched.length));
+      return "<div><b>" + name + "</b> " + defType + " " + (src.substring(matched.length)) + "</div>";
     } else {
       return line;
     }
@@ -132,5 +144,7 @@
   root.useIframe = useIframe;
 
   root.reloadEnv = reloadEnv;
+
+  root.clearEnv = clearEnv;
 
 }).call(this);

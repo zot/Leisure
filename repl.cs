@@ -116,6 +116,7 @@ createEnv()
 Core.setHelp help
 Core.setCompiler compile
 Core.setWriter (str)-> process.stdout.write(str)
+Core.setResetFunc createEnv
 
 root.createEnv = createEnv
 root.print = print

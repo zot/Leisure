@@ -17,6 +17,7 @@ init = (inputField, output, defs)->
     if ast.lazpName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
     else if result then output.innerHTML += "<b>> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}\n"
     ReplCore.processResult result
+  ReplCore.setResetFunc clearEnv
   input = inputField
   input.onkeypress = (e)->
     if (e.charCode || e.keyCode || e.which) == 13
@@ -32,9 +33,18 @@ clearOutput = ->
   ReplCore.help()
   o.innerHTML += '\n'
 
+clearEnv = (clearEnv)->
+  document.getElementById('defs').innerHTML = ""
+  env = document.getElementById('env')
+  document.body.removeChild(env)
+  newEnv = document.createElement('iframe')
+  newEnv.id = 'env'
+  newEnv.setAttribute("style", "display: none")
+  newEnv.setAttribute("onload", "Repl.useIframe(this)")
+  document.body.appendChild(newEnv)
+
 useIframe = (envFr)->
   if (envFr)
-    if (envFr.getAttribute('duh')) then alert(envFr.getAttribute('duh'))
     root.envFrame = envFrame = envFr
     env = envFrame.contentWindow
     env[i] = v for i, v of lazpFuncs
@@ -55,7 +65,7 @@ markupDef = (src, ast)->
   if src.match /^\s*#/ then src
   if (match = src.match Lazp.linePat)
     [matched, leading, name, defType] = match
-    "<b>#{name}</b> #{defType} #{src.substring(matched.length)}"
+    "<div><b>#{name}</b> #{defType} #{src.substring(matched.length)}</div>"
   else line
 
 markupLines = (lines)-> lines.split('\n').map(markupDef).join('<br>')
@@ -84,3 +94,4 @@ root.markupLines = markupLines
 root.handleFiles = handleFiles
 root.useIframe = useIframe
 root.reloadEnv = reloadEnv
+root.clearEnv = clearEnv

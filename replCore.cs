@@ -24,6 +24,10 @@ nextFunc = ->
 
 setNext = (n)-> nextFunc = n
 
+resetFunc = null
+
+setResetFunc = (func)-> resetFunc = func
+
 getType = Lazp.getType
 
 handlerFunc = (ast, result, a, c, r, src)->
@@ -50,6 +54,8 @@ helpFunc = ->
 Type a Lazp expression or one of these commands and hit enter:
 
 :h -- display this help
+:c filename -- compile file
+:r -- reset the Lazp environment
 :v -- display variable values
 :v var value -- set a variable
 :q -- quit
@@ -97,6 +103,7 @@ processLine = (line)->
           write(result, "\n")
       else if (m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/)) then handleVar(m[2], m[3])
       else if (m = line.match(/^:c\s*([^\s]*)$/)) then return compileFunc(m[1])
+      else if (m = line.match(/^:r/)) then resetFunc()
       else switch line
         when ':h' then helpFunc()
         when ':q' then process.exit(0)
@@ -198,3 +205,4 @@ root.help = -> helpFunc()
 root.getType = getType
 root.generateCode = generateCode
 root.processResult = processResult
+root.setResetFunc = setResetFunc

@@ -1,14 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* Run Lazp in sandbox
-   * lazp.cs, std.laz, prim.cs run in a sandbox
-      * in browser, use an iframe with ifr.contentWindow.eval() to communicate
-         * iframe.contentWindow holds globals
-		 * allow user to show or hide iframe (it's where SVG etc can be)
-      * in node, use VM.createContext and VM.runInContext to communicate
-         * context holds globals
-   * repl uses sandbox
-      * allows for reloading, etc.
+* disallow redefinition
+* :r resets env in REPL
 * indentation tweak
    * indent line creates a nested expression
 * throw error on undeclared variables -- require quotes for strings
@@ -63,6 +56,15 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* Run Lazp in sandbox
+   * lazp.cs, std.laz, prim.cs run in a sandbox
+      * in browser, use an iframe with ifr.contentWindow.eval() to communicate
+         * iframe.contentWindow holds globals
+		 * allow user to show or hide iframe (it's where SVG etc can be)
+      * in node, use VM.createContext and VM.runInContext to communicate
+         * context holds globals
+   * repl uses sandbox
+      * allows for reloading, etc.
 * pretty print code
 * runRepl file should compile the file, eval it, and then stay in the REPL
 * get ! working on browser

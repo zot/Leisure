@@ -35,7 +35,7 @@
 
   getType = Lazp.getType;
 
-  define('is', global, function(value) {
+  define('is', function(value) {
     return function(type) {
       var _ref;
       if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
@@ -46,7 +46,7 @@
     };
   });
 
-  define('eq', global, function(a) {
+  define('eq', function(a) {
     return function(b) {
       if (a() === b()) {
         return _true();
@@ -56,7 +56,7 @@
     };
   });
 
-  define('withType', global, function(value) {
+  define('withType', function(value) {
     return function(t) {
       return function(f) {
         var type;
@@ -71,61 +71,93 @@
     };
   });
 
-  define('+', global, function(a) {
+  define('+', function(a) {
     return function(b) {
       return a() + b();
     };
   });
 
-  define('-', global, function(a) {
+  define('-', function(a) {
     return function(b) {
       return a() - b();
     };
   });
 
-  define('*', global, function(a) {
+  define('*', function(a) {
     return function(b) {
       return a() * b();
     };
   });
 
-  define('/', global, function(a) {
+  define('/', function(a) {
     return function(b) {
       return a() / b();
     };
   });
 
-  define('%', global, function(a) {
+  define('%', function(a) {
     return function(b) {
       return a() % b();
     };
   });
 
-  define('>', global, function(a) {
+  define('>', function(a) {
     return function(b) {
-      return a() > b();
+      if (a() > b()) {
+        return _true();
+      } else {
+        return _false();
+      }
     };
   });
 
-  define('>=', global, function(a) {
+  define('>=', function(a) {
     return function(b) {
-      return a() >= b();
+      if (a() >= b()) {
+        return _true();
+      } else {
+        return _false();
+      }
     };
   });
 
-  define('<', global, function(a) {
+  define('<', function(a) {
     return function(b) {
-      return a() < b();
+      if (a() < b()) {
+        return _true();
+      } else {
+        return _false();
+      }
     };
   });
 
-  define('<=', global, function(a) {
+  define('<=', function(a) {
     return function(b) {
-      return a() <= b();
+      if (a() <= b()) {
+        return _true();
+      } else {
+        return _false();
+      }
     };
   });
 
-  define('randInt', global, function(from) {
+  define('++', function(a) {
+    return a() + 1;
+  });
+
+  define('--', function(a) {
+    return a() - 1;
+  });
+
+  define('iszero', function(a) {
+    if (0 === a()) {
+      return _true();
+    } else {
+      return  _false();
+    }
+  });
+
+  define('randInt', function(from) {
     return function(to) {
       return Math.floor(Math.random() * (to() - from() + 1)) + from();
     };
@@ -152,9 +184,9 @@
     return m;
   };
 
-  define('end', global, "end");
+  define('end', "end");
 
-  define('bind', global, function(m) {
+  define('bind', function(m) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         return runMonad(m(), cont);
@@ -162,7 +194,7 @@
     };
   });
 
-  define('return', global, function(v) {
+  define('return', function(v) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         return cont(v());
@@ -170,7 +202,7 @@
     };
   });
 
-  define('print', global, function(msg) {
+  define('print', function(msg) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         write("" + (msg()) + "\n");
@@ -179,7 +211,7 @@
     };
   });
 
-  define('prompt', global, function(msg) {
+  define('prompt', function(msg) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         return prompt(String(msg()), function(input) {
@@ -217,11 +249,11 @@
     }
   };
 
-  define('concat', global, function(l) {
+  define('concat', function(l) {
     return concatList(l());
   });
 
-  define('js', global, function(codeList) {
+  define('js', function(codeList) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         var cl;

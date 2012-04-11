@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, P, Prim, U, compileFunc, escape, findDefs, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, P, Prim, U, compileFunc, escape, findDefs, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -37,6 +37,12 @@
     return nextFunc = n;
   };
 
+  resetFunc = null;
+
+  setResetFunc = function setResetFunc(func) {
+    return resetFunc = func;
+  };
+
   getType = Lazp.getType;
 
   handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
@@ -66,7 +72,7 @@
   };
 
   helpFunc = function helpFunc() {
-    return write("Type a Lazp expression or one of these commands and hit enter:\n\n:h -- display this help\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the lazp environment\n!! code -- eval JavaScript code in the host environment\n");
+    return write("Type a Lazp expression or one of these commands and hit enter:\n\n:h -- display this help\n:c filename -- compile file\n:r -- reset the Lazp environment\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the lazp environment\n!! code -- eval JavaScript code in the host environment\n");
   };
 
   setHelp = function setHelp(h) {
@@ -145,6 +151,8 @@
           handleVar(m[2], m[3]);
         } else if ((m = line.match(/^:c\s*([^\s]*)$/))) {
           return compileFunc(m[1]);
+        } else if ((m = line.match(/^:r/))) {
+          resetFunc();
         } else {
           switch (line) {
             case ':h':
@@ -252,5 +260,7 @@
   root.generateCode = generateCode;
 
   root.processResult = processResult;
+
+  root.setResetFunc = setResetFunc;
 
 }).call(this);

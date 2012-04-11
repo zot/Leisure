@@ -80,11 +80,9 @@ ctx = global
 
 evalFunc = eval
 
-define = (name, gl, func) ->
+define = (name, func) ->
   nm = nameSub(name)
-  #console.log("DEFINE: #{name} (#{nm}), CTX: #{ctx}, FUNCS: #{lazpFuncs}, GLOBAL: #{gl}")
-  #ctx[nm] = lazpFuncs[nm] = global[nm] = -> func
-  ctx[nm] = gl.lazpFuncs[nm] = gl[nm] = -> func
+  ctx[nm] = ctx.lazpFuncs[nm] = -> func
   func.lazpName = name
   func
 
@@ -103,15 +101,15 @@ nameAst = (nm, ast)-> if !ast.lazpName
 
 evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
 
-define 'eval', global, (ast)-> evalCompiledAst(dgen(ast()))
+define 'eval', (ast)-> evalCompiledAst(dgen(ast()))
 
-define 'lit', global, (_x)->setType ((_f)-> _f()(_x)), 'lit'
+define 'lit', (_x)->setType ((_f)-> _f()(_x)), 'lit'
 
-define 'ref', global, (_x)->setType ((_f)-> _f()(_x)), 'ref'
+define 'ref', (_x)->setType ((_f)-> _f()(_x)), 'ref'
 
-define 'lambda', global, (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
+define 'lambda', (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
 
-define 'apply', global, (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
+define 'apply', (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
 
 getType = (f)->
   t = typeof f
@@ -209,12 +207,12 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
-  return #{if name? then "define('#{name}', global, #{code.main})" else code.main}
+  return #{if name? then "define('#{name}', #{code.main})" else code.main}
 })()
     """
   else ast.src = if name? then """
 (function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}');\n" else ''}
-return define('#{name}', global, #{code.main});
+return define('#{name}', #{code.main});
 })()
 """ else "(#{code.main})"
   ast.globals = code.global
@@ -301,7 +299,8 @@ compileNext = (line, globals, parseOnly)->
     if nm
       astsByName[nm[0]] = 1
       if defType && defType != '=' then defineToken(nm[0], defType)
-      ifParsed (parseApply (prefix nm, rest1), Nil), (ast, rest)->
+      pfx = (prefix nm, rest1)
+      ifParsed (parseApply pfx, Nil), (ast, rest)->
         bod = ast
         if nm.length > 1 then bod = getNthBody(ast, nm.length)
         if getAstType(bod) == 'lambda'
@@ -309,6 +308,8 @@ compileNext = (line, globals, parseOnly)->
           ast.exprDataType = nm[0]
         nameAst(nm[0], ast)
         if nm.length == 1 then nameAst(nm[0], ast)
+        ast.lazpPrefixSrcLen = pfx.length
+        ast.lazpPrefixCount = nm.length
         genCode ast, nm[0], globals, defType, rest, parseOnly
     else ifParsed (parseApply rest1, Nil), (ast, rest)->
       genCode ast, null, globals, null, rest, parseOnly
