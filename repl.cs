@@ -92,9 +92,10 @@ createEnv = ->
     Lazp: require './lazp'
   ctx = VM.createContext ctxObj
   ctx.global = ctx
-  ctx[i] = L.funcs[i] for i of L.funcs
+  ctx[i] = v for i,v of lazpFuncs
   L.setEvalFunc ctx, (str)->VM.runInContext(str, ctx)
   VM.runInContext("""
+global.lazpFuncs = {};
 Lazp = require('./lazp')
 Lazp.req('./prim');
 ReplCore = require('./replCore');

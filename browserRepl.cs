@@ -37,11 +37,12 @@ useIframe = (envFr)->
     if (envFr.getAttribute('duh')) then alert(envFr.getAttribute('duh'))
     root.envFrame = envFrame = envFr
     env = envFrame.contentWindow
-    env[i] = Lazp.funcs[i] for i of Lazp.funcs
+    env[i] = v for i, v of lazpFuncs
     Lazp.setEvalFunc env, env.eval
-    env[i] = global[i] for i of {Lazp: Lazp, ReplCore: ReplCore, Repl: Repl}
+    env[i] = v for i, v of {Lazp: Lazp, ReplCore: ReplCore, Repl: Repl}
     env.eval """
 global = window;
+global.lazpFuncs = {};
 setType = Lazp.setType;
 setDataType = Lazp.setDataType;
 define = Lazp.define;

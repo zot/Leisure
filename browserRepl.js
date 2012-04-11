@@ -58,23 +58,26 @@
   };
 
   useIframe = function useIframe(envFr) {
-    var env, i;
+    var env, i, v, _ref;
     if (envFr) {
       if (envFr.getAttribute('duh')) alert(envFr.getAttribute('duh'));
       root.envFrame = envFrame = envFr;
       env = envFrame.contentWindow;
-      for (i in Lazp.funcs) {
-        env[i] = Lazp.funcs[i];
+      for (i in lazpFuncs) {
+        v = lazpFuncs[i];
+        env[i] = v;
       }
       Lazp.setEvalFunc(env, env.eval);
-      for (i in {
+      _ref = {
         Lazp: Lazp,
         ReplCore: ReplCore,
         Repl: Repl
-      }) {
-        env[i] = global[i];
+      };
+      for (i in _ref) {
+        v = _ref[i];
+        env[i] = v;
       }
-      env.eval("global = window;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;");
+      env.eval("global = window;\nglobal.lazpFuncs = {};\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;");
       return clearOutput();
     }
   };

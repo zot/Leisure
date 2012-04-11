@@ -63,7 +63,7 @@ charCodes =
 
 codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
 
-funcs = {}
+global.lazpFuncs = {}
 astsByName = {}
 tokens = {}
 groupOpens = {'(': ')'}
@@ -82,9 +82,9 @@ evalFunc = eval
 
 define = (name, gl, func) ->
   nm = nameSub(name)
-  #console.log("DEFINE: #{name} (#{nm}), CTX: #{ctx}, FUNCS: #{funcs}, GLOBAL: #{gl}")
-  #ctx[nm] = funcs[nm] = global[nm] = -> func
-  ctx[nm] = funcs[nm] = gl[nm] = -> func
+  #console.log("DEFINE: #{name} (#{nm}), CTX: #{ctx}, FUNCS: #{lazpFuncs}, GLOBAL: #{gl}")
+  #ctx[nm] = lazpFuncs[nm] = global[nm] = -> func
+  ctx[nm] = gl.lazpFuncs[nm] = gl[nm] = -> func
   func.lazpName = name
   func
 
@@ -471,6 +471,5 @@ root.linePat = linePat
 root.Nil = Nil
 root.cons = cons
 root.defineToken = defineToken
-root.funcs = funcs
 root.req = req
 root.nameSub = nameSub
