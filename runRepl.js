@@ -13,7 +13,7 @@
   };
 
   loadStd = function loadStd() {
-    return LZ.eval("req('./std')");
+    return LZ.eval("Lazp.req('./std')");
   };
 
   action = importFile;
