@@ -95,4 +95,5 @@ define 'js', (codeList)->(binding)->
 
 root.setTty = setTty
 root.runMonad = runMonad
+root.makeMonad = makeMonad
 root.tokenDefs = []

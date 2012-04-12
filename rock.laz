@@ -1,0 +1,4 @@
+main = js ['moveRock()'] \_.
+js ['moveRock()'] \_.
+js ['moveRock()'] \_.
+js ['moveRock()'] end
