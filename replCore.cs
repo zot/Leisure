@@ -128,7 +128,7 @@ generateCode = (file, contents, loud, handle)->
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  root = {};
+  #{if file? then file.replace(/\.laz(p)?/, '') + ' = ' else ''}root = {};
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;

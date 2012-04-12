@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, apply, astPrint, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -35,7 +35,7 @@ misrepresented as being the original software.
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/;
+  baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n[ ]*/;
 
   tokenPat = baseTokenPat;
 
@@ -840,7 +840,7 @@ misrepresented as being the original software.
   };
 
   req = function req(name, gl) {
-    var i, res, v, _fn, _ref, _ref2;
+    var i, res, v, _fn, _ref;
     gl = gl != null ? gl : global;
     res = require(name);
     if (res.defs != null) {
@@ -855,15 +855,24 @@ misrepresented as being the original software.
         _fn(v);
       }
     }
-    if (res.tokenDefs != null) {
-      for (i = 0, _ref2 = res.tokenDefs.length; i < _ref2; i += 2) {
-        defineToken(res.tokenDefs[i], res.tokenDefs[i + 1]);
-      }
-    }
+    processTokenDefs(res.tokenDefs);
     res.lazpFuncNames = ctx.lazpFuncNames;
     res.ctx = ctx;
     return res;
   };
+
+  processTokenDefs = function processTokenDefs(defs) {
+    var i, _ref, _results;
+    if (defs != null) {
+      _results = [];
+      for (i = 0, _ref = defs.length; i < _ref; i += 2) {
+        _results.push(defineToken(defs[i], defs[i + 1]));
+      }
+      return _results;
+    }
+  };
+
+  root.processTokenDefs = processTokenDefs;
 
   root.setEvalFunc = setEvalFunc;
 

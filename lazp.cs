@@ -27,7 +27,7 @@ if window? and (!global? or global == window)
   window.Lazp = root = {}
 else root = exports ? this
 
-baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n/
+baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n[ ]*/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
 linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/
@@ -456,12 +456,16 @@ req = (name, gl)->
   res = require(name)
   if res.defs? then for i,v of res.defs
     ((tmp)-> gl[i] = -> tmp) v
-  if res.tokenDefs? then for i in [0...res.tokenDefs.length] by 2
-    defineToken res.tokenDefs[i], res.tokenDefs[i + 1]
+  processTokenDefs res.tokenDefs
   res.lazpFuncNames = ctx.lazpFuncNames
   res.ctx = ctx
   res
 
+processTokenDefs = (defs)->
+  if defs? then for i in [0...defs.length] by 2
+    defineToken defs[i], defs[i + 1]
+
+root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
 root.parse = parse

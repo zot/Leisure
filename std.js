@@ -2,7 +2,7 @@
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  root = {};
+  std = root = {};
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;

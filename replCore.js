@@ -192,7 +192,7 @@
   generateCode = function generateCode(file, contents, loud, handle) {
     var a, ast, c, code, defs, err, errs, globals, m, nm, oldRest, out, r, rest, src, _ref, _ref2;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = "(function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Lazp = require('./lazp');\n  Lazp.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\n\nvar setType = Lazp.setType;\nvar setDataType = Lazp.setDataType;\nvar define = Lazp.define;\nvar defineToken = Lazp.defineToken;\nvar processResult = Repl.processResult;\n";
+    out = "(function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.laz(p)?/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Lazp = require('./lazp');\n  Lazp.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\n\nvar setType = Lazp.setType;\nvar setDataType = Lazp.setDataType;\nvar define = Lazp.define;\nvar defineToken = Lazp.defineToken;\nvar processResult = Repl.processResult;\n";
     errs = '';
     globals = findDefs(file, contents);
     defs = [];
