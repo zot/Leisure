@@ -48,6 +48,8 @@ Tests for Lazp
 
   code = R.generateCode(null, "and a b = a b false\nor a b = a true b\nhead l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\n", false);
 
+  console.log("CODE: " + code);
+
   LZ.eval(code);
 
   run('test0', function() {

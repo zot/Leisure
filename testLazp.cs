@@ -52,6 +52,7 @@ div = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
 
 """, false)
 
+console.log "CODE: #{code}"
 LZ.eval(code)
 
 run 'test0', -> assertParse("1", "ref 1")

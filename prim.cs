@@ -38,11 +38,13 @@ define '>=', (a)->(b)->if a() >= b() then `_true()` else `_false()`
 define '<', (a)->(b)->if a() < b() then `_true()` else `_false()`
 define '<=', (a)->(b)->if a() <= b() then `_true()` else `_false()`
 
+###
 define '++', (a)->a() + 1
 define '--', (a)->a() - 1
 define 'iszero', (a)-> if 0 == a() then `_true()` else` _false()`
 
 define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
+###
 
 runMonad = (monad, cont)->
   monad.cmd (value) ->

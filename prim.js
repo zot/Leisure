@@ -141,27 +141,13 @@
     };
   });
 
-  define('++', function(a) {
-    return a() + 1;
-  });
-
-  define('--', function(a) {
-    return a() - 1;
-  });
-
-  define('iszero', function(a) {
-    if (0 === a()) {
-      return _true();
-    } else {
-      return  _false();
-    }
-  });
-
-  define('randInt', function(from) {
-    return function(to) {
-      return Math.floor(Math.random() * (to() - from() + 1)) + from();
-    };
-  });
+  /*
+  define '++', (a)->a() + 1
+  define '--', (a)->a() - 1
+  define 'iszero', (a)-> if 0 == a() then `_true()` else` _false()`
+  
+  define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
+  */
 
   runMonad = function runMonad(monad, cont) {
     return monad.cmd(function(value) {

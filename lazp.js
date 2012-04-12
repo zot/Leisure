@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, apply, astPrint, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -183,6 +183,14 @@ misrepresented as being the original software.
     return new Cons(a, b);
   };
 
+  append = function append(a, b) {
+    if (a === Nil) {
+      return b;
+    } else {
+      return cons(a.head, append(a.tail, b));
+    }
+  };
+
   global.lazpFuncNames = ll = Nil;
 
   global.lazpAddFunc = function lazpAddFunc(nm) {
@@ -194,17 +202,18 @@ misrepresented as being the original software.
   };
 
   define = function define(name, func) {
-    var nm;
+    var f, nm;
     nm = nameSub(name);
+    func.lazpName = name;
     if (ctx[nm] != null) {
       throw new Error("[DEF] Attempt to redefine definition: " + name);
     }
-    ctx[nm] = ctx.lazpFuncs[nm] = function() {
+    f = function f() {
       return func;
     };
+    ctx[nm] = ctx.lazpFuncs[nm] = f;
     (evalFunc('lazpAddFunc'))(name);
-    func.lazpName = name;
-    return func;
+    return f;
   };
 
   setDataType = function setDataType(func, dataType) {
@@ -447,7 +456,7 @@ misrepresented as being the original software.
     } else if (code.subfuncs.length) {
       ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
     } else {
-      ast.src = name != null ? "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "');\n" : '') + "\nreturn define('" + name + "', " + code.main + ");\n})()" : "(" + code.main + ")";
+      ast.src = name != null ? "define('" + name + "', " + code.main + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
     }
     ast.globals = code.global;
     return ast;
@@ -846,9 +855,7 @@ misrepresented as being the original software.
     if (res.defs != null) {
       _ref = res.defs;
       _fn = function _fn(tmp) {
-        return gl[i] = function() {
-          return tmp;
-        };
+        return gl[i] = tmp;
       };
       for (i in _ref) {
         v = _ref[i];
@@ -909,6 +916,8 @@ misrepresented as being the original software.
   root.Nil = Nil;
 
   root.cons = cons;
+
+  root.append = append;
 
   root.defineToken = defineToken;
 

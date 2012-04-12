@@ -96,6 +96,7 @@ class CNil extends Cons
 
 Nil = new CNil()
 cons = (a, b)-> new Cons(a, b)
+append = (a, b)-> if a == Nil then b else cons a.head, append(a.tail, b)
 
 global.lazpFuncNames = ll = Nil
 
@@ -105,11 +106,12 @@ global.lazpGetFuncs = -> ll
 
 define = (name, func) ->
   nm = nameSub(name)
-  if ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
-  ctx[nm] = ctx.lazpFuncs[nm] = -> func
-  (evalFunc 'lazpAddFunc')(name)
   func.lazpName = name
-  func
+  if ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
+  f = -> func
+  ctx[nm] = ctx.lazpFuncs[nm] = f
+  (evalFunc 'lazpAddFunc')(name)
+  f
 
 setDataType = (func, dataType)->
   if dataType then func.dataType = dataType
@@ -217,9 +219,8 @@ dgen = (ast, lazy, name, globals, tokenDef)->
 })()
     """
   else ast.src = if name? then """
-(function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}');\n" else ''}
-return define('#{name}', #{code.main});
-})()
+define('#{name}', #{code.main});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
+
 """ else "(#{code.main})"
   ast.globals = code.global
   ast
@@ -455,7 +456,7 @@ req = (name, gl)->
   gl = gl ? global
   res = require(name)
   if res.defs? then for i,v of res.defs
-    ((tmp)-> gl[i] = -> tmp) v
+    ((tmp)-> gl[i] = tmp) v
   processTokenDefs res.tokenDefs
   res.lazpFuncNames = ctx.lazpFuncNames
   res.ctx = ctx
@@ -483,6 +484,7 @@ root.getType = getType
 root.linePat = linePat
 root.Nil = Nil
 root.cons = cons
+root.append = append
 root.defineToken = defineToken
 root.req = req
 root.nameSub = nameSub

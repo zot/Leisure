@@ -152,6 +152,12 @@ var processResult = Repl.processResult;
   globals = findDefs file, contents
   defs = []
   rest = contents
+  out += "\nvar"
+  for v, i in globals.toArray()
+    if i > 0 then out += ","
+    out += " #{Lazp.nameSub v}"
+  out += ";\n"
+  globals = Lazp.append(globals, getGlobals())
   while rest
     oldRest = rest
     [ast, err, rest] = Lazp.compileNext rest, globals
@@ -164,7 +170,7 @@ var processResult = Repl.processResult;
       #if !nm? then console.log("\n@@@ DEF @@@: #{code}\n")
       ast.src = """
 //#{if nm? then nm + ' = ' else ''}#{escape(Lazp.astPrint(ast))}
-#{if nm? then "root.defs.#{Lazp.nameSub(nm)} = " else ""}#{ast.src}
+#{if nm? then "root.defs.#{Lazp.nameSub(nm)} = #{Lazp.nameSub(nm)} = " else ""}#{ast.src}
 """
       src = if ast.lazpName
         defs.push Lazp.nameSub(ast.lazpName)
@@ -178,6 +184,9 @@ var processResult = Repl.processResult;
       rest = ''
   out += """
 
+if (typeof window !== 'undefined' && window !== null) {
+  Lazp.processTokenDefs(root.tokenDefs);
+}
 return root;
 }).call(this)
 """
@@ -189,7 +198,8 @@ getGlobals = -> Lazp.eval 'lazpGetFuncs()'
 
 findDefs = (file, contents)->
   errs = ''
-  globals = getGlobals()
+  #globals = getGlobals()
+  globals = Lazp.Nil
   rest = contents
   while rest
     oldRest = rest
