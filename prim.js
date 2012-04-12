@@ -192,7 +192,7 @@
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         write("" + (msg()) + "\n");
-        return cont(null);
+        return cont(_false);
       });
     };
   });
@@ -252,9 +252,38 @@
     };
   });
 
+  define('createS', function(binding) {
+    return makeMonad(binding(), function(cont) {
+      return cont({
+        value: null
+      });
+    });
+  });
+
+  define('getS', function(state) {
+    return function(binding) {
+      return makeMonad(binding(), function(cont) {
+        return cont(state().value);
+      });
+    };
+  });
+
+  define('setS', function(state) {
+    return function(value) {
+      return function(binding) {
+        return makeMonad(binding(), function(cont) {
+          state().value = value();
+          return cont(_false);
+        });
+      };
+    };
+  });
+
   root.setTty = setTty;
 
   root.runMonad = runMonad;
+
+  root.makeMonad = makeMonad;
 
   root.tokenDefs = [];
 

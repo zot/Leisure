@@ -72,7 +72,7 @@ define 'return', (v)->(binding)->
 define 'print', (msg)->(binding)->
   makeMonad binding(), (cont)->
     write("#{msg()}\n")
-    cont(null)
+    cont(_false)
 
 define 'prompt', (msg)->(binding)->
   makeMonad binding(), (cont)->
@@ -92,6 +92,19 @@ define 'js', (codeList)->(binding)->
     cl = codeList()
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
     cont(eval(concatList(cl)))
+
+define 'createS', (binding)->
+  makeMonad binding(), (cont)->
+    cont {value: null}
+
+define 'getS', (state)->(binding)->
+  makeMonad binding(), (cont)->
+    cont state().value
+
+define 'setS', (state)->(value)->(binding)->
+  makeMonad binding(), (cont)->
+    state().value = value()
+    cont(_false)
 
 root.setTty = setTty
 root.runMonad = runMonad

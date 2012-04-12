@@ -14,13 +14,19 @@
 #
 # bind m binding -> transform a monad with a lambda
 #
-# print string binding -> print a string, continue with binding (or end)
+# print string binding -> print a string, continue binding with false (or end)
 #
-# prompt string binding -> ask user for input, contine with binding (or end)
+# prompt string binding -> ask user for input, contine binding with input string (or end)
 #
-# return value binding -> run binding with value
+# return value binding -> continue binding with value
 #
 # js string binding -> run JS code and continue with value
+#
+# createS binding -> create a new state variable and continue binding with it
+#
+# getS var binding -> get the value from the state variable var and continue binding with it
+#
+# setS var val binding -> set the state variable var to val and continue binding with false
 #
 # end -- the string 'end' -- ends a monad chain
 #
