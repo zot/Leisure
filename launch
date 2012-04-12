@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ $# != 0 ]; then
+    (sleep 1; google-chrome $(for i in "$@"; do echo "http://localhost:8000/$i"; done))&
+fi
+#delegated -f -P8080 SERVER=http MOUNT="/* $(pwd)/*" REMITTABLE=file ADMIN=a@b FILETYPE=".svg:I:SVG:image:image/svg+xml"
+node node_modules/statify/statify
