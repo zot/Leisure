@@ -352,21 +352,21 @@ indentPat = /^([^\n]*)(\n[ ]*|)/
 #returns [bracified-str, remainder]
 bracify = (str, indent)->
   m = str.match indentPat
-  if !m or m[2].length == 0 then [str, '', 0]
+  if !m or m[2].length == 0 then [str.trim(), '', 0]
   else
     lineIndent = m[2].length
     pfx = m[1]
     sfx = str.substring(m.index + m[0].length)
     if lineIndent == indent
       [result, rest, resIndent] = bracify(sfx, lineIndent)
-      ["#{pfx};#{result}", rest, resIndent]
+      ["#{pfx.trim()};#{result}", rest, resIndent]
     else if lineIndent > indent
       res = [result, rest, resIndent] = bracify(sfx, lineIndent)
-      if resIndent < indent then ["#{pfx}{#{result}}", rest, resIndent]
+      if resIndent < indent then ["#{pfx.trim()}{#{result}}", rest, resIndent]
       else
         [nextResult, nextRest, nextIndent] = bracify(rest, indent)
-        ["#{pfx}{#{result}};#{nextResult}", nextRest, nextIndent]
-    else [pfx, sfx, lineIndent]
+        ["#{pfx.trim()}{#{result}};#{nextResult}", nextRest, nextIndent]
+    else [pfx.trim(), sfx, lineIndent]
 
 nextTok = (str, offset, indent)->
   m = str.match(tokenPat)

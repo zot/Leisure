@@ -671,24 +671,24 @@ misrepresented as being the original software.
     var lineIndent, m, nextIndent, nextRest, nextResult, pfx, res, resIndent, rest, result, sfx, _ref, _ref2, _ref3;
     m = str.match(indentPat);
     if (!m || m[2].length === 0) {
-      return [str, '', 0];
+      return [str.trim(), '', 0];
     } else {
       lineIndent = m[2].length;
       pfx = m[1];
       sfx = str.substring(m.index + m[0].length);
       if (lineIndent === indent) {
         _ref = bracify(sfx, lineIndent), result = _ref[0], rest = _ref[1], resIndent = _ref[2];
-        return ["" + pfx + ";" + result, rest, resIndent];
+        return ["" + (pfx.trim()) + ";" + result, rest, resIndent];
       } else if (lineIndent > indent) {
         res = (_ref2 = bracify(sfx, lineIndent), result = _ref2[0], rest = _ref2[1], resIndent = _ref2[2], _ref2);
         if (resIndent < indent) {
-          return ["" + pfx + "{" + result + "}", rest, resIndent];
+          return ["" + (pfx.trim()) + "{" + result + "}", rest, resIndent];
         } else {
           _ref3 = bracify(rest, indent), nextResult = _ref3[0], nextRest = _ref3[1], nextIndent = _ref3[2];
-          return ["" + pfx + "{" + result + "};" + nextResult, nextRest, nextIndent];
+          return ["" + (pfx.trim()) + "{" + result + "};" + nextResult, nextRest, nextIndent];
         }
       } else {
-        return [pfx, sfx, lineIndent];
+        return [pfx.trim(), sfx, lineIndent];
       }
     }
   };
