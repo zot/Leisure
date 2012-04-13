@@ -308,7 +308,7 @@ compileNext = (line, globals, parseOnly, check)->
       else
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
-        ifParsed (parseApply pfx, Nil), (ast, rest)->
+        ifParsed (parseApply 0, pfx, Nil), (ast, rest)->
           bod = ast
           if nm.length > 1 then bod = getNthBody(ast, nm.length)
           if getAstType(bod) == 'lambda'
@@ -319,7 +319,7 @@ compileNext = (line, globals, parseOnly, check)->
           ast.lazpPrefixSrcLen = pfx.length
           ast.lazpPrefixCount = nm.length
           genCode ast, nm[0], globals, defType, rest, parseOnly
-    else ifParsed (parseApply rest1, Nil), (ast, rest)->
+    else ifParsed (parseApply 0, rest1, Nil), (ast, rest)->
       genCode ast, null, globals, null, rest, parseOnly
   else [null, null, null]
 
@@ -348,18 +348,41 @@ evalNext = (code)->
       [ast, result]
   else [{err: err}, err]
 
-nextTok = (str, offset)->
+indentPat = /^([^\n]*)(\n[ ]*|)/
+#returns [bracified-str, remainder]
+bracify = (str, indent)->
+  m = str.match indentPat
+  if !m or m[2].length == 0 then [str, '', 0]
+  else
+    lineIndent = m[2].length
+    pfx = m[1]
+    sfx = str.substring(m.index + m[0].length)
+    if lineIndent == indent
+      [result, rest, resIndent] = bracify(sfx, lineIndent)
+      ["#{pfx};#{result}", rest, resIndent]
+    else if lineIndent > indent
+      res = [result, rest, resIndent] = bracify(sfx, lineIndent)
+      if resIndent < indent then ["#{pfx}{#{result}}", rest, resIndent]
+      else
+        [nextResult, nextRest, nextIndent] = bracify(rest, indent)
+        ["#{pfx}{#{result}};#{nextResult}", nextRest, nextIndent]
+    else [pfx, sfx, lineIndent]
+
+nextTok = (str, offset, indent)->
   m = str.match(tokenPat)
-  if !m then [str, offset, '']
-  else if m.index == 0 && m[0] == '\n' then ['\n', offset, str.substring(1)]
+  if !m then [str, offset, '', indent]
+  else if m.index == 0 && m[0] == '\n' then ['\n', offset, str.substring(1), indent]
+  else if m.index == 0 && m[0][0] == '\n'
+    console.log "INDENT: '#{m[0].substring(1)}'"
+    nextTok(str.substring(m.length), offset + m.length, m.length - 1)
   else
     tok = str.substring(0, if m.index > 0 then m.index else m[0].length)
     rest = str.substring tok.length
-    if tok[0] != '#' and tok.trim() then [tok, offset, rest]
-    else nextTok rest, offset + tok.length
+    if tok[0] != '#' and tok.trim() then [tok, offset, rest, indent]
+    else nextTok rest, offset + tok.length, indent
 
 parse = (str, globals)->
-  [ast, err, rest] = parseApply str.replace(/\u03BB/g, '\\'), Nil, globals ? Nil, 0
+  [ast, err, rest] = parseApply 0, str.replace(/\u03BB/g, '\\'), Nil, globals ? Nil, 0
   if err then throw new Error(err) else ast
 
 ifParsed = (res, block)-> if res[1] then res else block res[0], res[2]
@@ -371,26 +394,26 @@ tag = (ast, start, end)->
 
 soff = (orig, offset, rest)-> offset + orig.length - rest.length
 
-parseApply = (str, vars, globals, offset)->
+parseApply = (indent, str, vars, globals, offset)->
   if !str.length then [null, null, str]
   else
     [tok, offset1, rest1] = nextTok str, offset
     if tok == '\n' then [null, 'Newline when expecting expression', rest1]
     else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok}", str]
-    else ifParsed (parseTerm tok, rest1, vars, globals, offset1), (func, rest)-> continueApply(func, rest, vars, globals, soff(str, offset, rest))
+    else ifParsed (parseTerm indent, tok, rest1, vars, globals, offset1), (func, rest)-> continueApply(indent, func, rest, vars, globals, soff(str, offset, rest))
 
-continueApply = (func, str, vars, globals, offset)->
+continueApply = (indent, func, str, vars, globals, offset)->
   [tok, offset1, rest] = nextTok str, offset
   if !tok or tok == '\n' or groupCloses[tok] then [func, null, str]
-  else ifParsed (parseTerm tok, rest, vars, globals, offset1), (arg, rest)->
-    continueApply tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, globals, soff(str, offset, rest)
+  else ifParsed (parseTerm indent, tok, rest, vars, globals, offset1), (arg, rest)->
+    continueApply indent, tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, globals, soff(str, offset, rest)
 
-parseTerm = (tok, rest, vars, globals, tokOffset)->
+parseTerm = (indent, tok, rest, vars, globals, tokOffset)->
   restOffset = tokOffset + tok.length
   if tok == '\n' then [null, 'Unexpected newline while expecting a term', rest]
-  else if tok == '\\' then parseLambda rest, vars, globals, restOffset
+  else if tok == '\\' then parseLambda indent, rest, vars, globals, restOffset
   else if groupOpens[tok]
-    apl = if tok == '(' then parseApply rest, vars, globals, restOffset else ifParsed (parseName tok, rest, vars, globals, tokOffset), (ast, rest2)-> continueApply ast, rest2, vars, globals, soff(rest, restOffset, rest2)
+    apl = if tok == '(' then parseApply indent, rest, vars, globals, restOffset else ifParsed (parseName tok, rest, vars, globals, tokOffset), (ast, rest2)-> continueApply indent, ast, rest2, vars, globals, soff(rest, restOffset, rest2)
     ifParsed apl, (ast, rest3)->
       [tok4, offset4, rest4] = nextTok rest3, soff(rest, restOffset, rest3)
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
@@ -435,14 +458,14 @@ eatAllWhitespace = (str)->
   if m then str.substring(m[0].length)
   else str
 
-parseLambda = (str, vars, offset)->
+parseLambda = (indent, str, vars, offset)->
   [nm, offset1, rest1] = nextTokWithNl str, offset
   [tok2, offset2, rest2] = nextTokWithNl rest1, offset1
   ifParsed (if tok2 == '.'
     str2 = eatAllWhitespace rest2
     off2 = soff(str, offset, str2)
-    parseApply str2, cons(nm, vars), off2
-  else parseLambda rest1, cons(nm, vars), soff(str, offset, rest1)), (body, rest2)-> [tag(lambda(laz(nm))(laz(body)), offset, soff(str, offset, rest2)), null, rest2]
+    parseApply indent, str2, cons(nm, vars), off2
+  else parseLambda indent, rest1, cons(nm, vars), soff(str, offset, rest1)), (body, rest2)-> [tag(lambda(laz(nm))(laz(body)), offset, soff(str, offset, rest2)), null, rest2]
 
 addDef = (toks)->
   t = toks.reverse()
@@ -488,3 +511,4 @@ root.append = append
 root.defineToken = defineToken
 root.req = req
 root.nameSub = nameSub
+root.bracify = bracify

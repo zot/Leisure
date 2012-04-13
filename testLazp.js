@@ -28,7 +28,7 @@ Tests for Lazp
 */
 
 (function() {
-  var LZ, R, T, U, assertEq, assertEval, assertParse, code, define, run, setDataType, setType, _ref;
+  var LZ, R, T, U, assertEq, assertEval, assertParse, code, define, in1, in2, run, setDataType, setType, _ref;
 
   U = require('util');
 
@@ -140,6 +140,18 @@ Tests for Lazp
 
   run('test22', function() {
     return assertEval("val", 2);
+  });
+
+  in1 = "a\nb\nc";
+
+  in2 = "a\n  b\n  c\n   d\n  e\n\nf\n  g\n  h\n    i";
+
+  run('test23', function() {
+    return assertEq(LZ.bracify(in1, 1)[0], 'a;b;c');
+  });
+
+  run('test24', function() {
+    return assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}');
   });
 
   console.log('\nDone');

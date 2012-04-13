@@ -78,6 +78,27 @@ run 'test20', -> assertEval('"\\n"', "\n")
 run 'test21', -> assertEval("concat div", '\\n-----\\n')
 run 'test22', -> assertEval("val", 2)
 
+in1 = """
+a
+b
+c
+"""
+in2 = """
+a
+  b
+  c
+   d
+  e
+
+f
+  g
+  h
+    i
+"""
+
+run 'test23', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
+run 'test24', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
+
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
 else console.log """
