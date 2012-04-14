@@ -96,10 +96,25 @@ f
     i
 """
 
+in3 = """
+a    {
+ b;
+  c {
+d};
+  e
+}
+
+f
+  g
+  h
+    i
+"""
+
 run 'test23', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
 run 'test24', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
-run 'test25', -> assertEq(LZ.parenthify(LZ.bracify(in1, 1)[0], true)[0], "a\nb\nc")
-run 'test26', -> assertEq(LZ.parenthify(LZ.bracify(in2, 1)[0], true)[0], '(a b (c d) e)\n\n(f g (h i))')
+run 'test25', -> assertEq(LZ.prepare(in1)[0], "a\nb\nc")
+run 'test26', -> assertEq(LZ.prepare(in2)[0], '(a b (c d) e)\n\n(f g (h i))')
+run 'test27', -> assertEq(LZ.prepare(in3)[0], '(a b (c d) e)\n(f g (h i))')
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

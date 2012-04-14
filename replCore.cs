@@ -153,7 +153,6 @@ var processResult = Repl.processResult;
   defs = []
   [rest, err] = Lazp.prepare contents
   if err then throw new Error(err)
-  console.log "CONTENTS: #{rest}"
   out += "\nvar"
   for v, i in globals.toArray()
     if i > 0 then out += ","

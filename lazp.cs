@@ -27,12 +27,13 @@ if window? and (!global? or global == window)
   window.Lazp = root = {}
 else root = exports ? this
 
-baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\\n;]| +|#[^\n]*\n/
+baseTokenPat = /`(\\[\\`]|[^`])*`|'(\\[\\']|[^'])*'|"(\\[\\"]|[^"])*"|[().\\\n;]| +|#[^\n]*\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
 linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/
-topBracePat = /((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/
-bracePat = /()((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^\n{};])*)([{};])/
+topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/
+bracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^\n{};])*)([{};])/
+embeddedBracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^{};])*)([{};])/
 order = []
 warnFreeVariable = []
 charCodes =
@@ -367,12 +368,14 @@ indentPat = /^([^\n]*)(\n[ ]*|)/
 #convert indented code to braced code
 #returns [bracified-str, remainder]
 bracify = (str, indent)->
-  #b = str.match bracePat
-  #if b then
-  #  [result, rest] = parenthify str
-  #  [braceResult, braceRest, braceIndent] = bracify rest, indent
-  #  ["#{result}#{braceResult}, braceRest, braceIndent]
-  #else
+  b = str.match bracePat
+  if b and b[3] == '{'
+    [result, rest] = parenthify str.substring(b.index + b[2].length + 1), false, true
+    if rest[0] != '}' then [null, "No close brace: #{str.substring(b.index + b[2].length + 1)}", indent]
+    else
+      [nextResult, nextRest, nextIndent] = bracify rest.substring(1), indent
+      ["(#{str.substring(0, b.index + b[2].length).trim()}#{result}) #{nextResult}", nextRest, nextIndent]
+  else
     m = str.match indentPat
     if !m or m[2].length == 0 then [str.trim(), '', 0]
     else
@@ -392,8 +395,8 @@ bracify = (str, indent)->
 
 #convert braced code to parenthesized code
 #bracePat/topBracePat: 1: definition, 2: leading string, 3: brace char ({, }, or ;)
-parenthify = (str, top)->
-  b = str.match (if top then topBracePat else bracePat)
+parenthify = (str, top, embedded)->
+  b = str.match (if embedded then embeddedBracePat else if top then topBracePat else bracePat)
   if !b then [(if str and !top then "(#{str})" else str), '', null]
   else
     def = (stripSemis (b[1] ? '')).trim()
@@ -401,12 +404,12 @@ parenthify = (str, top)->
     pfx = b[2].trim()
     sfx = str.substring(b.index + b[0].length)
     if b[3] == ';'
-      [result, rest, err] = parenthify sfx, top
+      [result, rest, err] = parenthify sfx, top, embedded
       ["#{if !pfx and !top then '' else if !pfx then '\n' else if top then "#{def}#{pfx}\n" else " #{pfx} "}#{result.trim()}", rest, err]
     else if b[3] == '{'
-      [result, rest, err] = parenthify sfx, false
+      [result, rest, err] = parenthify sfx, false, embedded
       if !err and rest[0] == '}'
-        [next, nRest, err] = parenthify rest.substring(1), top
+        [next, nRest, err] = parenthify rest.substring(1), top, embedded
         ["#{if pfx then "#{def}(#{pfx}" else "#{def}("}#{result})#{if top then "\n" else " "}#{next}", nRest, err]
       else ["#{if pfx then "#{def} #{pfx}" else "#{def}"}#{result}", rest, "#{err}\nNo close brace"]
     else [(if pfx then "#{def} #{pfx}" else "#{def}"), str.substring b.index + b[1].length + b[2].length]

@@ -28,7 +28,7 @@ Tests for Lazp
 */
 
 (function() {
-  var LZ, R, T, U, assertEq, assertEval, assertParse, code, define, in1, in2, run, setDataType, setType, _ref;
+  var LZ, R, T, U, assertEq, assertEval, assertParse, code, define, in1, in2, in3, run, setDataType, setType, _ref;
 
   U = require('util');
 
@@ -146,6 +146,8 @@ Tests for Lazp
 
   in2 = "a\n  b\n  c\n   d\n  e\n\nf\n  g\n  h\n    i";
 
+  in3 = "a    {\n b;\n  c {\nd};\n  e\n}\n\nf\n  g\n  h\n    i";
+
   run('test23', function() {
     return assertEq(LZ.bracify(in1, 1)[0], 'a;b;c');
   });
@@ -155,11 +157,15 @@ Tests for Lazp
   });
 
   run('test25', function() {
-    return assertEq(LZ.parenthify(LZ.bracify(in1, 1)[0], true)[0], "a\nb\nc");
+    return assertEq(LZ.prepare(in1)[0], "a\nb\nc");
   });
 
   run('test26', function() {
-    return assertEq(LZ.parenthify(LZ.bracify(in2, 1)[0], true)[0], '(a b (c d) e)\n\n(f g (h i))');
+    return assertEq(LZ.prepare(in2)[0], '(a b (c d) e)\n\n(f g (h i))');
+  });
+
+  run('test27', function() {
+    return assertEq(LZ.prepare(in3)[0], '(a b (c d) e)\n(f g (h i))');
   });
 
   console.log('\nDone');

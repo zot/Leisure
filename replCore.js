@@ -198,7 +198,6 @@
     defs = [];
     _ref = Lazp.prepare(contents), rest = _ref[0], err = _ref[1];
     if (err) throw new Error(err);
-    console.log("CONTENTS: " + rest);
     out += "\nvar";
     _ref2 = globals.toArray();
     for (i = 0, _len = _ref2.length; i < _len; i++) {
