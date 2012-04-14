@@ -59,19 +59,15 @@
     };
   });
 
-  define('withType', function(value) {
-    return function(t) {
-      return function(f) {
-        var type;
-        if (type = getType(value())) {
-          return t()(function() {
-            return type;
-          });
-        } else {
-          return f();
-        }
-      };
-    };
+  define('getType', function(value) {
+    var type;
+    if (type = getType(value())) {
+      return _some()(function() {
+        return type;
+      });
+    } else {
+      return _none();
+    }
   });
 
   define('parse', function(value) {
@@ -192,16 +188,24 @@
 
   define('end', "end");
 
-  define('ret', function(v) {
+  define('return', function(v) {
     return makeMonad('end', function(cont) {
       return cont(v());
     });
   });
 
-  define('pr', function(msg) {
+  define('print', function(msg) {
     return makeMonad('end', function(cont) {
       write("" + (msg()) + "\n");
       return cont(_false);
+    });
+  });
+
+  define('prompt', function(msg) {
+    return makeMonad('end', function(cont) {
+      return prompt(String(msg()), function(input) {
+        return cont(input);
+      });
     });
   });
 
@@ -209,33 +213,6 @@
     return function(binding) {
       return makeMonad(binding(), function(cont) {
         return runMonad(m(), cont);
-      });
-    };
-  });
-
-  define('return', function(v) {
-    return function(binding) {
-      return makeMonad(binding(), function(cont) {
-        return cont(v());
-      });
-    };
-  });
-
-  define('print', function(msg) {
-    return function(binding) {
-      return makeMonad(binding(), function(cont) {
-        write("" + (msg()) + "\n");
-        return cont(_false);
-      });
-    };
-  });
-
-  define('prompt', function(msg) {
-    return function(binding) {
-      return makeMonad(binding(), function(cont) {
-        return prompt(String(msg()), function(input) {
-          return cont(input);
-        });
       });
     };
   });

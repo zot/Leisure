@@ -147,10 +147,10 @@ getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{t}"
 
-lit = global._lit()
-ref = global._ref()
-lambda = global._lambda()
-apply = global._apply()
+lit = _lit()
+ref = _ref()
+lambda = _lambda()
+apply = _apply()
 getAstType = (f) -> f.type
 first = ->(a)-> a
 second = ->(a)->(b)-> b()
@@ -304,7 +304,7 @@ prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\'
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
 # returns [ast, err, rest]
-compileNext = (line, globals, parseOnly, check)->
+compileNext = (line, globals, parseOnly, check, nomacros)->
   if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     rest1 = line.substring (if defType then matched else leading).length
@@ -314,7 +314,8 @@ compileNext = (line, globals, parseOnly, check)->
       else
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
-        ifParsed (parseApply pfx, Nil), (ast, rest)->
+        #ifParsed (parseApply pfx, Nil), (ast, rest)->
+        ifParsed (if nomacros then parseApply pfx, Nil else parseFull pfx), (ast, rest)->
           nameAst(nm[0], ast)
           bod = ast
           if nm.length > 1 then bod = getNthBody(ast, nm.length)
@@ -325,7 +326,8 @@ compileNext = (line, globals, parseOnly, check)->
           ast.lazpPrefixSrcLen = pfx.length
           ast.lazpPrefixCount = nm.length
           genCode ast, nm[0], globals, defType, rest, parseOnly
-    else ifParsed (parseApply rest1, Nil), (ast, rest)->
+    #else ifParsed (parseApply rest1, Nil), (ast, rest)->
+    else ifParsed (if nomacros then parseApply rest1, Nil else parseFull rest1), (ast, rest)->
       genCode ast, null, globals, null, rest, parseOnly
   else [null, null, null]
 
@@ -387,7 +389,7 @@ bracify = (str, indent)->
       sfx = str.substring(m[0].length)
       if lineIndent < indent then [pfx.trim(), sfx, lineIndent]
       else
-        res = [result, rest, resIndent] = bracify(sfx, lineIndent)
+        [result, rest, resIndent] = bracify(sfx, lineIndent)
         if lineIndent == indent then ["#{pfx.trim()};#{result}", rest, resIndent]
         else if resIndent < indent then ["#{pfx.trim()}{#{result}}", rest, resIndent]
         else
@@ -427,33 +429,37 @@ nextTok = (str, offset)->
     if tok[0] != '#' and tok.trim() then [tok, offset, rest]
     else nextTok rest, offset + tok.length
 
-parseFull = (str, globals)->
-  res = [ast, err, rest] = parseApply str, Nil, globals ? Nil, 0
-  if err then res
-  else [substituteMacros ast, err, rest]
+parseFull = (str)->
+  [ast, err, rest] = parseApply str, Nil, 0
+  if err then [ast, err, rest]
+  else [(substituteMacros ast), err, rest]
 
 substituteMacros = (ast)->
   switch getAstType ast
     when 'ref', 'lit' then ast
     when 'lambda'
-      b = substituteMacros getLambdaBody ast
-      if b == getLambdaBody ast then ast
+      body = getLambdaBody ast
+      b = substituteMacros body
+      if b == body then ast
       else lambda(laz getLambdaVar ast)(laz b)
     when 'apply'
       macro = getMacro ast
       if macro then substituteMacros (macro laz ast)
       else
-        a = substituteMacros getApplyArg ast
-        if a == getApplyArg ast then ast
-        else apply(laz getApplyFunc ast)(laz getApplyArg a)
+        func = getApplyFunc ast
+        arg = getApplyArg ast
+        f = substituteMacros func
+        a = substituteMacros arg
+        if a == arg and f == func then ast
+        else apply(laz f)(laz a)
 
 getMacro = (ast)->
   if getAstType(ast) == 'ref' then ctx.macros[getRefVar ast] ? null
   else if getAstType(ast) == 'apply' then getMacro getApplyFunc ast
   else null
 
-parse = (str, globals)->
-  [ast, err, rest] = parseApply str.replace(/\u03BB/g, '\\'), Nil, globals ? Nil, 0
+parse = (str)->
+  [ast, err, rest] = parseApply str.replace(/\u03BB/g, '\\'), Nil, 0
   if err then throw new Error(err) else ast
 
 ifParsed = (res, block)-> if res[1] then res else block res[0], res[2]
@@ -465,35 +471,35 @@ tag = (ast, start, end)->
 
 soff = (orig, offset, rest)-> offset + orig.length - rest.length
 
-parseApply = (str, vars, globals, offset)->
+parseApply = (str, vars, offset)->
   if !str.length then [null, null, str]
   else
     [tok, offset1, rest1] = nextTok str, offset
     if tok == '\n' then [null, 'Newline when expecting expression', rest1]
     else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok}", str]
-    else ifParsed (parseTerm tok, rest1, vars, globals, offset1), (func, rest)-> continueApply(func, rest, vars, globals, soff(str, offset, rest))
+    else ifParsed (parseTerm tok, rest1, vars, offset1), (func, rest)-> continueApply(func, rest, vars, soff(str, offset, rest))
 
-continueApply = (func, str, vars, globals, offset)->
+continueApply = (func, str, vars, offset)->
   [tok, offset1, rest] = nextTok str, offset
   if !tok or tok == '\n' or tok == '}' or groupCloses[tok] then [func, null, str]
-  else ifParsed (parseTerm tok, rest, vars, globals, offset1), (arg, rest)->
-    continueApply tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, globals, soff(str, offset, rest)
+  else ifParsed (parseTerm tok, rest, vars, offset1), (arg, rest)->
+    continueApply tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, soff(str, offset, rest)
 
-parseTerm = (tok, rest, vars, globals, tokOffset)->
+parseTerm = (tok, rest, vars, tokOffset)->
   restOffset = tokOffset + tok.length
   if tok == '\n' then [null, 'Unexpected newline while expecting a term', rest]
-  else if tok == '\\' then parseLambda rest, vars, globals, restOffset
+  else if tok == '\\' then parseLambda rest, vars, restOffset
   else if groupOpens[tok]
-    apl = if tok == '(' then parseApply rest, vars, globals, restOffset else ifParsed (parseName tok, rest, vars, globals, tokOffset), (ast, rest2)-> continueApply ast, rest2, vars, globals, soff(rest, restOffset, rest2)
+    apl = if tok == '(' then parseApply rest, vars, restOffset else ifParsed (parseName tok, rest, vars, tokOffset), (ast, rest2)-> continueApply ast, rest2, vars, soff(rest, restOffset, rest2)
     ifParsed apl, (ast, rest3)->
       [tok4, offset4, rest4] = nextTok rest3, soff(rest, restOffset, rest3)
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
       else if tok == '(' then [ast, null, rest4]
-      else ifParsed (parseName tok4, rest4, vars, globals, soff(rest, restOffset, rest4)), (arg, rest5)->
+      else ifParsed (parseName tok4, rest4, vars, soff(rest, restOffset, rest4)), (arg, rest5)->
         [tag(apply(laz(ast))(laz(arg)), ast.lazpStart, arg.lazpEnd), null, rest5]
-  else parseName tok, rest, vars, globals, tokOffset
+  else parseName tok, rest, vars, tokOffset
 
-parseName = (tok, rest, vars, globals, tokOffset) ->
+parseName = (tok, rest, vars, tokOffset) ->
   restOffset = tokOffset + tok.length
   [tag((if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
   else if tok[0] == '"' then lit(laz(scanTok(tok)))

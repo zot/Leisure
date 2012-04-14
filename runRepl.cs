@@ -2,12 +2,13 @@ LZ = require('./lazp')
 R = require('./repl')
 
 importFile = (file, cont) ->
-  R.compile file, ->
+  R.compile file, (->
     LZ.eval "req('./#{file}')"
-    cont()
+    cont()), nomacros
 
 loadStd = -> LZ.eval "Lazp.req('./std')"
 
+nomacros = false
 action = importFile
 next = R.repl
 
@@ -21,9 +22,11 @@ Usage: #{process.argv[0]} [[-c | -q | -b] file...]
 -c -- compile arguments only
 -q -- quiet
     """)
-  else if process.argv[i] == '-b' then loadStd = ->
+  else if process.argv[i] == '-b'
+    loadStd = ->
+    nomacros = true
   else if process.argv[i] == '-c'
-    action = (f, cont)->R.compile f, cont
+    action = (f, cont)->R.compile f, cont, nomacros
     next = ->
   else if process.argv[i] == '-q' then R.quiet = true
   else break

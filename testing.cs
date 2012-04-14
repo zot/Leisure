@@ -39,8 +39,9 @@ assertEq = (actual, expected, desc)-> if expected != actual
   throw new Error("#{if desc then "[#{desc}] " else ""}Expected <#{expected}> but got <#{actual}>")
 
 assertEval = (actual, expected, desc)->
-  code = LZ.gen(LZ.parse(actual))
-  if code.err then throw new Error(code.err)
+  ast = LZ.parse(actual)
+  code = LZ.gen(ast)
+  if code.err then throw new Error("#{code.err}, ast: #{P.print(ast)}")
   assertEq(LZ.astEval(LZ.gen(LZ.parse(actual))), expected, desc ? actual)
 
 assertEvalPrint = (actual, expected, desc)->

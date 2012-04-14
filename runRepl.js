@@ -1,20 +1,22 @@
 (function() {
-  var LZ, R, action, i, importFile, loadStd, next, pos, processArgs, _ref;
+  var LZ, R, action, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
 
   LZ = require('./lazp');
 
   R = require('./repl');
 
   importFile = function importFile(file, cont) {
-    return R.compile(file, function() {
+    return R.compile(file, (function() {
       LZ.eval("req('./" + file + "')");
       return cont();
-    });
+    }), nomacros);
   };
 
   loadStd = function loadStd() {
     return LZ.eval("Lazp.req('./std')");
   };
+
+  nomacros = false;
 
   action = importFile;
 
@@ -27,9 +29,10 @@
       console.log("Usage: " + process.argv[0] + " [[-c | -q | -b] file...]\n\n-b -- bootstrap; don't load std functions\n-c -- compile arguments only\n-q -- quiet");
     } else if (process.argv[i] === '-b') {
       loadStd = function loadStd() {};
+      nomacros = true;
     } else if (process.argv[i] === '-c') {
       action = function action(f, cont) {
-        return R.compile(f, cont);
+        return R.compile(f, cont, nomacros);
       };
       next = function next() {};
     } else if (process.argv[i] === '-q') {

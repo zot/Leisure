@@ -49,9 +49,10 @@ Wimpy testing framework
   };
 
   assertEval = function assertEval(actual, expected, desc) {
-    var code;
-    code = LZ.gen(LZ.parse(actual));
-    if (code.err) throw new Error(code.err);
+    var ast, code;
+    ast = LZ.parse(actual);
+    code = LZ.gen(ast);
+    if (code.err) throw new Error("" + code.err + ", ast: " + (P.print(ast)));
     return assertEq(LZ.astEval(LZ.gen(LZ.parse(actual))), expected, desc != null ? desc : actual);
   };
 

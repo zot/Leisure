@@ -74,7 +74,7 @@
     return write(":v -- vars\n:h -- help\n:c file -- compile file\n:q -- quit\n!code -- eval JavaScript code\n");
   };
 
-  compile = function compile(file, cont) {
+  compile = function compile(file, cont, nomacros) {
     var contents, oldfile, stream;
     cont = cont != null ? cont : Core.next;
     if (!file) {
@@ -95,7 +95,7 @@
       });
       stream.on('end', function() {
         var out;
-        out = Core.generateCode(file, contents, !root.quiet);
+        out = Core.generateCode(file, contents, !root.quiet, null, nomacros);
         stream = FS.createWriteStream("" + (Path.basename(file, '.laz')) + ".js");
         return stream.end(out, 'utf8');
       });

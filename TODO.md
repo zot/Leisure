@@ -1,11 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* parse primitive
+* fold, map, etc. for asts
 * implement options that are monads and also support util functions
-* replace withType with getType that returns an option
-* throw error on undeclared variables -- require quotes for strings
-   * parser macros should generate a wrapper at compile-time so that we can define things like let
-   * need a way to handle macros
 * need supertypes or something for things like booleans (true or false)
 * -g option
    * check function types before application and print meaningful error msgs
@@ -36,6 +32,11 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* throw error on undeclared variables -- require quotes for strings
+   * parser macros should generate a wrapper at compile-time so that we can define things like let
+   * need a way to handle macros
+* parse primitive
+* replace withType with getType that returns an option
 * indentation tweak
    * indent line creates a nested expression
 

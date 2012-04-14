@@ -27,7 +27,7 @@ laz = Lazp.laz
 
 define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
 define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
-define 'withType', (value)->(t)->(f)-> if type = getType(value()) then t()(->type) else f()
+define 'getType', (value)-> if type = getType(value()) then _some()(->type) else _none()
 define 'parse', (value)->
   [prepped, err] = Lazp.prepare String(value())
   if err? then _right()(laz("Error: #{err}"))
@@ -73,28 +73,20 @@ makeMonad = (binding, guts)->
 
 define 'end', "end"
 
-define 'ret', (v)->
+define 'return', (v)->
   makeMonad 'end', (cont)->cont(v())
 
-define 'pr', (msg)->
+define 'print', (msg)->
   makeMonad 'end', (cont)->
     write("#{msg()}\n")
     cont(_false)
 
+define 'prompt', (msg)->
+  makeMonad 'end', (cont)->
+    prompt(String(msg()), (input)-> cont(input))
+
 define 'bind', (m)->(binding)->
   makeMonad binding(), (cont)-> runMonad m(), cont
-
-define 'return', (v)->(binding)->
-  makeMonad binding(), (cont) -> cont(v())
-
-define 'print', (msg)->(binding)->
-  makeMonad binding(), (cont)->
-    write("#{msg()}\n")
-    cont(_false)
-
-define 'prompt', (msg)->(binding)->
-  makeMonad binding(), (cont)->
-    prompt(String(msg()), (input)-> cont(input))
 
 head = (l)->l ->(hh)->(tt)->hh()
 tail = (l)->l ->(hh)->(tt)->tt()

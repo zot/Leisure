@@ -54,7 +54,7 @@ help = ()->
 
   """)
 
-compile = (file, cont)->
+compile = (file, cont, nomacros)->
   cont = cont ? Core.next
   if !file
     face?.prompt()
@@ -69,7 +69,7 @@ compile = (file, cont)->
     stream = FS.createReadStream(file)
     stream.on('data', (data)-> contents += data)
     stream.on('end', ()->
-      out = Core.generateCode(file, contents, !root.quiet)
+      out = Core.generateCode(file, contents, !root.quiet, null, nomacros)
       stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
       stream.end(out, 'utf8'))
     stream.on 'close', -> cont()
