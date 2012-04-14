@@ -27,13 +27,13 @@ if window? and (!global? or global == window)
   window.Lazp = root = {}
 else root = exports ? this
 
-baseTokenPat = /`(\\[\\`]|[^`])*`|'(\\[\\']|[^'])*'|"(\\[\\"]|[^"])*"|[().\\\n;]| +|#[^\n]*\n/
+baseTokenPat = /`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
 linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
-topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/
-bracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^\n{};])*)([{};])/
-embeddedBracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^{};])*)([{};])/
+topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};])*)([{};])/
+bracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^\n{};])*)([{};])/
+embeddedBracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^{};])*)([{};])/
 order = []
 warnFreeVariable = []
 charCodes =
@@ -366,7 +366,7 @@ commentPat = /([^\n#]*)(#[^\n]*)(\n|$)/g
 
 stripComments = (str)-> str.replace commentPat, (str, p1, p2, p3, offset)-> if p1.trim() then "#{p1}#{p3}" else ""
 
-indentPat = /^([^\n]*)(\n[ ]*|)/
+indentPat = /^([^\n]*)(\n[ ]*|$)/
 
 #convert indented code to braced code
 #returns [bracified-str, remainder]
@@ -384,17 +384,15 @@ bracify = (str, indent)->
     else
       lineIndent = m[2].length
       pfx = m[1]
-      sfx = str.substring(m.index + m[0].length)
-      if lineIndent == indent
-        [result, rest, resIndent] = bracify(sfx, lineIndent)
-        ["#{pfx.trim()};#{result}", rest, resIndent]
-      else if lineIndent > indent
+      sfx = str.substring(m[0].length)
+      if lineIndent < indent then [pfx.trim(), sfx, lineIndent]
+      else
         res = [result, rest, resIndent] = bracify(sfx, lineIndent)
-        if resIndent < indent then ["#{pfx.trim()}{#{result}}", rest, resIndent]
+        if lineIndent == indent then ["#{pfx.trim()};#{result}", rest, resIndent]
+        else if resIndent < indent then ["#{pfx.trim()}{#{result}}", rest, resIndent]
         else
           [nextResult, nextRest, nextIndent] = bracify(rest, indent)
           ["#{pfx.trim()}{#{result}};#{nextResult}", nextRest, nextIndent]
-      else [pfx.trim(), sfx, lineIndent]
 
 #convert braced code to parenthesized code
 #bracePat/topBracePat: 1: definition, 2: leading string, 3: brace char ({, }, or ;)

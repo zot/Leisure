@@ -35,7 +35,7 @@ misrepresented as being the original software.
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  baseTokenPat = /`(\\[\\`]|[^`])*`|'(\\[\\']|[^'])*'|"(\\[\\"]|[^"])*"|[().\\\n;]| +|#[^\n]*\n/;
+  baseTokenPat = /`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
 
   tokenPat = baseTokenPat;
 
@@ -43,11 +43,11 @@ misrepresented as being the original software.
 
   linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
 
-  topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/;
+  topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};])*)([{};])/;
 
-  bracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^\n{};])*)([{};])/;
+  bracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^\n{};])*)([{};])/;
 
-  embeddedBracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^{};])*)([{};])/;
+  embeddedBracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^{};])*)([{};])/;
 
   order = [];
 
@@ -706,10 +706,10 @@ misrepresented as being the original software.
     });
   };
 
-  indentPat = /^([^\n]*)(\n[ ]*|)/;
+  indentPat = /^([^\n]*)(\n[ ]*|$)/;
 
   bracify = function bracify(str, indent) {
-    var b, lineIndent, m, nextIndent, nextRest, nextResult, pfx, res, resIndent, rest, result, sfx, _ref, _ref2, _ref3, _ref4, _ref5;
+    var b, lineIndent, m, nextIndent, nextRest, nextResult, pfx, res, resIndent, rest, result, sfx, _ref, _ref2, _ref3, _ref4;
     b = str.match(bracePat);
     if (b && b[3] === '{') {
       _ref = parenthify(str.substring(b.index + b[2].length + 1), false, true), result = _ref[0], rest = _ref[1];
@@ -726,20 +726,19 @@ misrepresented as being the original software.
       } else {
         lineIndent = m[2].length;
         pfx = m[1];
-        sfx = str.substring(m.index + m[0].length);
-        if (lineIndent === indent) {
-          _ref3 = bracify(sfx, lineIndent), result = _ref3[0], rest = _ref3[1], resIndent = _ref3[2];
-          return ["" + (pfx.trim()) + ";" + result, rest, resIndent];
-        } else if (lineIndent > indent) {
-          res = (_ref4 = bracify(sfx, lineIndent), result = _ref4[0], rest = _ref4[1], resIndent = _ref4[2], _ref4);
-          if (resIndent < indent) {
+        sfx = str.substring(m[0].length);
+        if (lineIndent < indent) {
+          return [pfx.trim(), sfx, lineIndent];
+        } else {
+          res = (_ref3 = bracify(sfx, lineIndent), result = _ref3[0], rest = _ref3[1], resIndent = _ref3[2], _ref3);
+          if (lineIndent === indent) {
+            return ["" + (pfx.trim()) + ";" + result, rest, resIndent];
+          } else if (resIndent < indent) {
             return ["" + (pfx.trim()) + "{" + result + "}", rest, resIndent];
           } else {
-            _ref5 = bracify(rest, indent), nextResult = _ref5[0], nextRest = _ref5[1], nextIndent = _ref5[2];
+            _ref4 = bracify(rest, indent), nextResult = _ref4[0], nextRest = _ref4[1], nextIndent = _ref4[2];
             return ["" + (pfx.trim()) + "{" + result + "};" + nextResult, nextRest, nextIndent];
           }
-        } else {
-          return [pfx.trim(), sfx, lineIndent];
         }
       }
     }
