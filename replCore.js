@@ -46,6 +46,7 @@
   getType = Lazp.getType;
 
   handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
+    if (a) write("PREPARED: " + (Lazp.prepare(src)));
     if ((ast != null) && (ast.err != null)) {
       write("ERROR: " + ast.err + "\n");
       return nextFunc();

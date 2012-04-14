@@ -198,6 +198,18 @@ Tests for Lazp
     return assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (ref pr) (ref a))");
   });
 
+  run('test35', function() {
+    return assertEq(LZ.prepare('a{b}')[0].trim(), '(a (b))');
+  });
+
+  run('test36', function() {
+    return assertEq(LZ.prepare('a{"b"}')[0].trim(), '(a ("b"))');
+  });
+
+  run('test37', function() {
+    return assertEq(LZ.prepare('a{"{b"}')[0].trim(), '(a ("{b"))');
+  });
+
   console.log('\nDone');
 
   if (!T.stats.failures) {

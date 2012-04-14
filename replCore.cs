@@ -31,6 +31,7 @@ setResetFunc = (func)-> resetFunc = func
 getType = Lazp.getType
 
 handlerFunc = (ast, result, a, c, r, src)->
+  if a then write "PREPARED: #{Lazp.prepare(src)}"
   if ast? and ast.err?
     write("ERROR: #{ast.err}\n")
     nextFunc()
