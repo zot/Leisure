@@ -28,7 +28,7 @@ Tests for Lazp
 */
 
 (function() {
-  var LZ, R, T, U, assertEq, assertEval, assertParse, code, define, in1, in2, in3, run, setDataType, setType, _ref;
+  var LZ, R, T, U, assertEq, assertEval, assertEvalPrint, assertParse, code, define, in1, in2, in3, in4, in5, run, setDataType, setType, _ref;
 
   U = require('util');
 
@@ -40,105 +40,105 @@ Tests for Lazp
 
   setType = LZ.setType, setDataType = LZ.setDataType, define = LZ.define;
 
-  _ref = T = require('./testing.js'), run = _ref.run, assertParse = _ref.assertParse, assertEval = _ref.assertEval, assertEq = _ref.assertEq;
+  _ref = T = require('./testing.js'), run = _ref.run, assertParse = _ref.assertParse, assertEval = _ref.assertEval, assertEvalPrint = _ref.assertEvalPrint, assertEq = _ref.assertEq;
 
   console.log('Testing');
 
   LZ.eval("req('./std')");
 
-  code = R.generateCode(null, "and a b = a b false\nor a b = a true b\nhead l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\n", false);
+  code = R.generateCode(null, "head l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\n", false);
 
   LZ.eval(code);
 
-  run('test0', function() {
+  run('test1', function() {
     return assertParse("1", "ref 1");
   });
 
-  run('test1', function() {
+  run('test2', function() {
     return assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (ref y)", "\\x.x x y");
   });
 
-  run('test2', function() {
+  run('test3', function() {
     return assertEval("(\\x . x) hello", 'hello');
   });
 
-  run('test3', function() {
+  run('test4', function() {
     return assertEval("eval (apply (lambda x (ref x)) (lit hello))", 'hello');
   });
 
-  run('test4', function() {
+  run('test5', function() {
     return assertEval("(eq cons cons) yes no", 'yes');
   });
 
-  run('test5', function() {
+  run('test6', function() {
     return assertEval("(eq cons true) yes no", 'no');
   });
 
-  run('test6', function() {
+  run('test7', function() {
     return LZ.astEval(LZ.gen(LZ.parse("cons 1 2")));
   });
 
-  run('test7', function() {
+  run('test8', function() {
     return LZ.astEval(LZ.gen(LZ.parse("head (cons 1 2)")));
   });
 
-  run('test8', function() {
+  run('test9', function() {
     return assertEval("head (cons 1 2)", 1);
   });
 
-  run('test9', function() {
+  run('test10', function() {
     return assertEval("tail (cons 1 2)", 2);
   });
 
-  run('test10', function() {
+  run('test11', function() {
     return assertEval("last (cons a nil)", 'a');
   });
 
-  run('test11', function() {
+  run('test12', function() {
     return assertEval("last (cons a (cons b nil))", 'b');
   });
 
-  run('test12', function() {
+  run('test13', function() {
     return assertEval("(is (cons a b) cons) yes no", 'yes');
   });
 
-  run('test13', function() {
+  run('test14', function() {
     return assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes');
   });
 
-  run('test14', function() {
+  run('test15', function() {
     return assertEval("(\\1 .; 1) hello", 'hello');
   });
 
-  run('test15', function() {
+  run('test16', function() {
     return assertEval("head ([ 1 ])", 1);
   });
 
-  run('test16', function() {
+  run('test17', function() {
     return assertEval("head (tail (append ([ 1 ]) ([ 2 ])))", 2);
   });
 
-  run('test17', function() {
+  run('test18', function() {
     return assertEval("head [1]", 1);
   });
 
-  run('test18', function() {
+  run('test19', function() {
     return assertEval("head (tail (append [1] [2]))", 2);
   });
 
-  run('test19', function() {
+  run('test20', function() {
     return assertEval("concat divider", '\\n-----\\n');
   });
 
-  run('test20', function() {
+  run('test21', function() {
     return assertEval('"\\n"', "\n");
   });
 
-  run('test21', function() {
+  run('test22', function() {
     return assertEval("concat div", '\\n-----\\n');
   });
 
-  run('test22', function() {
+  run('test23', function() {
     return assertEval("val", 2);
   });
 
@@ -148,24 +148,48 @@ Tests for Lazp
 
   in3 = "a    {\n b;\n  c {\nd};\n  e\n}\n\nf\n  g\n  h\n    i";
 
-  run('test23', function() {
+  in4 = "frap bubba =M= a b c\n  d e\n  f g";
+
+  in5 = "do\n  1\n  2";
+
+  run('test24', function() {
     return assertEq(LZ.bracify(in1, 1)[0], 'a;b;c');
   });
 
-  run('test24', function() {
+  run('test25', function() {
     return assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}');
   });
 
-  run('test25', function() {
+  run('test26', function() {
     return assertEq(LZ.prepare(in1)[0], "a\nb\nc");
   });
 
-  run('test26', function() {
-    return assertEq(LZ.prepare(in2)[0], '(a b (c d) e)\n\n(f g (h i))');
+  run('test27', function() {
+    return assertEq(LZ.prepare(in2)[0], '(a (b) (c (d)) (e))\n\n(f (g) (h (i)))');
   });
 
-  run('test27', function() {
-    return assertEq(LZ.prepare(in3)[0], '(a b (c d) e)\n(f g (h i))');
+  run('test28', function() {
+    return assertEq(LZ.prepare(in3)[0], '(a (b) (c (d)) (e))\n(f (g) (h (i)))');
+  });
+
+  run('test29', function() {
+    return assertEq(LZ.bracify(in4, 1)[0], 'frap bubba =M= a b c{d e;f g}');
+  });
+
+  run('test30', function() {
+    return assertEq(LZ.prepare(in4)[0], 'frap bubba =M= (a b c (d e) (f g))\n');
+  });
+
+  run('test31', function() {
+    return assertParse("identMacro 1", "ref 1");
+  });
+
+  run('test32', function() {
+    return assertParse("do 1", "ref 1");
+  });
+
+  run('test33', function() {
+    return assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)");
   });
 
   console.log('\nDone');

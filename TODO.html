@@ -16,37 +16,9 @@
 <h1>TODO</h1>
 
 <ul>
-<li>indentation tweak
-<ul>
-<li>indent line creates a nested expression</li>
-</ul></li>
-</ul>
-
-<blockquote>
-  <p>zip  </p>
-
-<blockquote>
-  <p>a <br />
-  b</p>
-</blockquote>
-
-<p>is zip (a) (b)  </p>
-
-<p>print "What is your name?" _. <br />
-read \value . <br />
-print (concat ["hello ", value, ", would you like a piece of toast?"] _ . <br />
-read \value . <br />
-((match value /[yY][eE][sS]/)  </p>
-
-<blockquote>
-  <p>print "Here, have one!") <br />
-  print "Fine, be that way!")) _ .
-print "OK, we're done." end</p>
-</blockquote>
-
-<p></blockquote></p>
-
-<ul>
+<li>parse primitive</li>
+<li>implement options that are monads and also support util functions</li>
+<li>replace withType with getType that returns an option</li>
 <li>throw error on undeclared variables -- require quotes for strings
 <ul>
 <li>parser macros should generate a wrapper at compile-time so that we can define things like let</li>
@@ -95,6 +67,37 @@ print "OK, we're done." end</p>
 </ul>
 
 <h1>DONE</h1>
+
+<ul>
+<li>indentation tweak
+<ul>
+<li>indent line creates a nested expression</li>
+</ul></li>
+</ul>
+
+<blockquote>
+  <p>zip  </p>
+
+<blockquote>
+  <p>a <br />
+  b</p>
+</blockquote>
+
+<p>is zip (a) (b)  </p>
+
+<p>print "What is your name?" _. <br />
+read \value . <br />
+print (concat ["hello ", value, ", would you like a piece of toast?"] _ . <br />
+read \value . <br />
+((match value /[yY][eE][sS]/)  </p>
+
+<blockquote>
+  <p>print "Here, have one!") <br />
+  print "Fine, be that way!")) _ .
+print "OK, we're done." end</p>
+</blockquote>
+
+<p></blockquote></p>
 
 <ul>
 <li>parser improvements

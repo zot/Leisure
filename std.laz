@@ -52,6 +52,8 @@ id x = x
 # booleans
 true = \a b . a
 false = \a b . b
+and a b = a b false
+or a = a true
 
 # The Y combinator, for reference
 #
@@ -59,9 +61,10 @@ false = \a b . b
 # rec = \f . f (Y f)
 
 # lists
-cons a b = \f . f
-  a
-  b
+cons a b =
+  \f . f
+    a
+    b
 
 nil = \a b . b
 append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
@@ -76,3 +79,17 @@ append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
 dl list = append list
 dlAppend da db list = da (db list)
 dlList dl = dl nil
+
+# do
+identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)
+    
+do apl =M= apl \f a . subdo a f
+
+subdo a f = is f ref
+  a
+  f \f2 a2 . subdo
+    and (is a2 apply)
+      a2 \f3 a3 . and (or (is f3 ref) (is f3 lit)) (eq a3 '<-')
+      a2 \f3 expr . f3 \f4 _ . f4 \v . apply (apply (ref 'bind') expr) (lambda v a)
+      apply (apply (ref 'bind') a2) (lambda '_' a)
+    f2

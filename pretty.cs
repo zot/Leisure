@@ -24,7 +24,7 @@ print = (f)->
     when 'ref' then f ->(v)->v()
     when 'lambda' then f ->(v)->(bod)-> "\\#{printLambda v(), bod()}"
     when 'apply' then f ->(func)->(arg)-> printApply(func(), arg())
-    else inspect(f)
+    else f?.lazpName ? inspect(f)
 
 printLambda = (v, body)->
   if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"

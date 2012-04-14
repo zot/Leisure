@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthify, parse, parseApply, parseLambda, parseName, parseTerm, prefix, prepare, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthify, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, prefix, prepare, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -41,9 +41,9 @@ misrepresented as being the original software.
 
   specials = '[]().*+?|';
 
-  linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/;
+  linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
 
-  topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/;
+  topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/;
 
   bracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^\n{};])*)([{};])/;
 
@@ -92,6 +92,8 @@ misrepresented as being the original software.
   };
 
   global.lazpFuncs = {};
+
+  global.macros = {};
 
   tokens = {};
 
@@ -222,6 +224,10 @@ misrepresented as being the original software.
     return f;
   };
 
+  defineMacro = function defineMacro(name, func) {
+    return ctx.macros[name] = func;
+  };
+
   setDataType = function setDataType(func, dataType) {
     if (dataType) func.dataType = dataType;
     return func;
@@ -253,33 +259,33 @@ misrepresented as being the original software.
     return evalCompiledAst(dgen(ast()));
   });
 
-  define('lit', function(_x) {
+  define('lit', setDataType((function(_x) {
     return setType((function(_f) {
       return _f()(_x);
     }), 'lit');
-  });
+  }), 'lit'));
 
-  define('ref', function(_x) {
+  define('ref', setDataType((function(_x) {
     return setType((function(_f) {
       return _f()(_x);
     }), 'ref');
-  });
+  }), 'ref'));
 
-  define('lambda', function(_v) {
+  define('lambda', setDataType((function(_v) {
     return function(_f) {
       return setType((function(_g) {
         return _g()(_v)(_f);
       }), 'lambda');
     };
-  });
+  }), 'lambda'));
 
-  define('apply', function(_func) {
+  define('apply', setDataType((function(_func) {
     return function(_arg) {
       return setType((function(_f) {
         return _f()(_func)(_arg);
       }), 'apply');
     };
-  });
+  }), 'apply'));
 
   getType = function getType(f) {
     var t;
@@ -460,9 +466,9 @@ misrepresented as being the original software.
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
-      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "define('" + name + "', " + code.main + ")" : code.main) + "\n})()";
+      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ")" : code.main) + "\n})()";
     } else {
-      ast.src = name != null ? "define('" + name + "', " + code.main + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
+      ast.src = name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
     }
     ast.globals = code.global;
     return ast;
@@ -550,30 +556,32 @@ misrepresented as being the original software.
 
   defineToken = function defineToken(name, def) {
     var i, o, p, s, types, _ref, _ref2;
-    tokens[name] = 1;
-    if (def[1] === '(') {
-      groupOpens[name] = def.substring(2, def.length - 1);
-    } else if (def[1] === ')') {
-      groupCloses[name] = 1;
-    }
-    types = [];
-    for (i in tokens) {
-      types.push(i);
-    }
-    types.sort(function(a, b) {
-      return b.length - a.length;
-    });
-    for (i = 0, _ref = types.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-      s = types[i];
-      o = '';
-      for (p = 0, _ref2 = s.length; 0 <= _ref2 ? p < _ref2 : p > _ref2; 0 <= _ref2 ? p++ : p--) {
-        if (specials.indexOf(s[p]) > -1) o += '\\';
-        o += s[p];
+    if (def !== '=M=') {
+      tokens[name] = 1;
+      if (def[1] === '(') {
+        groupOpens[name] = def.substring(2, def.length - 1);
+      } else if (def[1] === ')') {
+        groupCloses[name] = 1;
       }
-      types[i] = o;
+      types = [];
+      for (i in tokens) {
+        types.push(i);
+      }
+      types.sort(function(a, b) {
+        return b.length - a.length;
+      });
+      for (i = 0, _ref = types.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+        s = types[i];
+        o = '';
+        for (p = 0, _ref2 = s.length; 0 <= _ref2 ? p < _ref2 : p > _ref2; 0 <= _ref2 ? p++ : p--) {
+          if (specials.indexOf(s[p]) > -1) o += '\\';
+          o += s[p];
+        }
+        types[i] = o;
+      }
+      types.push('[().\\\\]| +');
+      return tokenPat = new RegExp(baseTokenPat.source + '|' + types.join('|'));
     }
-    types.push('[().\\\\]| +');
-    return tokenPat = new RegExp(baseTokenPat.source + '|' + types.join('|'));
   };
 
   createDefinition = function createDefinition(name, ast, index) {
@@ -749,7 +757,7 @@ misrepresented as being the original software.
       sfx = str.substring(b.index + b[0].length);
       if (b[3] === ';') {
         _ref2 = parenthify(sfx, top, embedded), result = _ref2[0], rest = _ref2[1], err = _ref2[2];
-        return ["" + (!pfx && !top ? '' : !pfx ? '\n' : top ? "" + def + pfx + "\n" : " " + pfx + " ") + (result.trim()), rest, err];
+        return ["" + (!pfx && !top ? '' : !pfx ? '\n' : top ? "" + def + pfx + "\n" : " (" + pfx + ") ") + (result.trim()), rest, err];
       } else if (b[3] === '{') {
         _ref3 = parenthify(sfx, false, embedded), result = _ref3[0], rest = _ref3[1], err = _ref3[2];
         if (!err && rest[0] === '}') {
@@ -759,7 +767,7 @@ misrepresented as being the original software.
           return ["" + (pfx ? "" + def + " " + pfx : "" + def) + result, rest, "" + err + "\nNo close brace"];
         }
       } else {
-        return [(pfx ? "" + def + " " + pfx : "" + def), str.substring(b.index + b[1].length + b[2].length)];
+        return [(pfx ? "" + def + " (" + pfx + ")" : "" + def), str.substring(b.index + b[1].length + b[2].length)];
       }
     }
   };
@@ -783,6 +791,52 @@ misrepresented as being the original software.
       } else {
         return nextTok(rest, offset + tok.length);
       }
+    }
+  };
+
+  parseFull = function parseFull(str, globals) {
+    var ast;
+    ast = parse(str, globals);
+    return substituteMacros(ast);
+  };
+
+  substituteMacros = function substituteMacros(ast) {
+    var a, b, macro;
+    switch (getAstType(ast)) {
+      case 'ref':
+      case 'lit':
+        return ast;
+      case 'lambda':
+        b = substituteMacros(getLambdaBody(ast));
+        if (b === getLambdaBody(ast)) {
+          return ast;
+        } else {
+          return lambda(laz(getLambdaVar(ast)))(laz(b));
+        }
+        break;
+      case 'apply':
+        macro = getMacro(ast);
+        if (macro) {
+          return substituteMacros(macro(laz(ast)));
+        } else {
+          a = substituteMacros(getApplyArg(ast));
+          if (a === getApplyArg(ast)) {
+            return ast;
+          } else {
+            return apply(laz(getApplyFunc(ast)))(laz(getApplyArg(a)));
+          }
+        }
+    }
+  };
+
+  getMacro = function getMacro(ast) {
+    var _ref;
+    if (getAstType(ast) === 'ref') {
+      return (_ref = ctx.macros[getRefVar(ast)]) != null ? _ref : null;
+    } else if (getAstType(ast) === 'apply') {
+      return getMacro(getApplyFunc(ast));
+    } else {
+      return null;
     }
   };
 
@@ -990,6 +1044,8 @@ misrepresented as being the original software.
 
   root.parse = parse;
 
+  root.parseFull = parseFull;
+
   root.astPrint = astPrint;
 
   root.gen = dgen;
@@ -1009,6 +1065,8 @@ misrepresented as being the original software.
   };
 
   root.define = define;
+
+  root.defineMacro = defineMacro;
 
   root.getAstType = getAstType;
 

@@ -32,7 +32,7 @@ R = require('./replCore')
 #require('./std')
 require('./prim')
 {setType, setDataType, define} = LZ
-{run, assertParse, assertEval, assertEq} = T = require('./testing.js')
+{run, assertParse, assertEval, assertEvalPrint, assertEq} = T = require('./testing.js')
 
 console.log 'Testing'
 
@@ -40,8 +40,6 @@ console.log 'Testing'
 LZ.eval "req('./std')"
 
 code = (R.generateCode null, """
-and a b = a b false
-or a b = a true b
 head l = l \\h t . h
 tail l = l \\h t . t
 null l = l (\\h t D . false) true
@@ -54,29 +52,29 @@ div = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
 
 LZ.eval(code)
 
-run 'test0', -> assertParse("1", "ref 1")
-run 'test1', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (ref y)", "\\x.x x y")
-run 'test2', -> assertEval("(\\x . x) hello", 'hello')
-run 'test3', -> assertEval("eval (apply (lambda x (ref x)) (lit hello))", 'hello')
-run 'test4', -> assertEval("(eq cons cons) yes no", 'yes')
-run 'test5', -> assertEval("(eq cons true) yes no", 'no')
-run 'test6', -> LZ.astEval(LZ.gen(LZ.parse("cons 1 2")))
-run 'test7', -> LZ.astEval(LZ.gen(LZ.parse("head (cons 1 2)")))
-run 'test8', -> assertEval("head (cons 1 2)", 1)
-run 'test9', -> assertEval("tail (cons 1 2)", 2)
-run 'test10', -> assertEval("last (cons a nil)", 'a')
-run 'test11', -> assertEval("last (cons a (cons b nil))", 'b')
-run 'test12', -> assertEval("(is (cons a b) cons) yes no", 'yes')
-run 'test13', -> assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes')
-run 'test14', -> assertEval("(\\1 .; 1) hello", 'hello')
-run 'test15', -> assertEval("head ([ 1 ])", 1)
-run 'test16', -> assertEval("head (tail (append ([ 1 ]) ([ 2 ])))", 2)
-run 'test17', -> assertEval("head [1]", 1)
-run 'test18', -> assertEval("head (tail (append [1] [2]))", 2)
-run 'test19', -> assertEval("concat divider", '\\n-----\\n')
-run 'test20', -> assertEval('"\\n"', "\n")
-run 'test21', -> assertEval("concat div", '\\n-----\\n')
-run 'test22', -> assertEval("val", 2)
+run 'test1', -> assertParse("1", "ref 1")
+run 'test2', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (ref y)", "\\x.x x y")
+run 'test3', -> assertEval("(\\x . x) hello", 'hello')
+run 'test4', -> assertEval("eval (apply (lambda x (ref x)) (lit hello))", 'hello')
+run 'test5', -> assertEval("(eq cons cons) yes no", 'yes')
+run 'test6', -> assertEval("(eq cons true) yes no", 'no')
+run 'test7', -> LZ.astEval(LZ.gen(LZ.parse("cons 1 2")))
+run 'test8', -> LZ.astEval(LZ.gen(LZ.parse("head (cons 1 2)")))
+run 'test9', -> assertEval("head (cons 1 2)", 1)
+run 'test10', -> assertEval("tail (cons 1 2)", 2)
+run 'test11', -> assertEval("last (cons a nil)", 'a')
+run 'test12', -> assertEval("last (cons a (cons b nil))", 'b')
+run 'test13', -> assertEval("(is (cons a b) cons) yes no", 'yes')
+run 'test14', -> assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes')
+run 'test15', -> assertEval("(\\1 .; 1) hello", 'hello')
+run 'test16', -> assertEval("head ([ 1 ])", 1)
+run 'test17', -> assertEval("head (tail (append ([ 1 ]) ([ 2 ])))", 2)
+run 'test18', -> assertEval("head [1]", 1)
+run 'test19', -> assertEval("head (tail (append [1] [2]))", 2)
+run 'test20', -> assertEval("concat divider", '\\n-----\\n')
+run 'test21', -> assertEval('"\\n"', "\n")
+run 'test22', -> assertEval("concat div", '\\n-----\\n')
+run 'test23', -> assertEval("val", 2)
 
 in1 = """
 a
@@ -110,11 +108,29 @@ f
     i
 """
 
-run 'test23', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
-run 'test24', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
-run 'test25', -> assertEq(LZ.prepare(in1)[0], "a\nb\nc")
-run 'test26', -> assertEq(LZ.prepare(in2)[0], '(a b (c d) e)\n\n(f g (h i))')
-run 'test27', -> assertEq(LZ.prepare(in3)[0], '(a b (c d) e)\n(f g (h i))')
+in4 = """
+frap bubba =M= a b c
+  d e
+  f g
+"""
+
+in5 = """
+do
+  1
+  2
+"""
+
+run 'test24', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
+run 'test25', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
+run 'test26', -> assertEq(LZ.prepare(in1)[0], "a\nb\nc")
+run 'test27', -> assertEq(LZ.prepare(in2)[0], '(a (b) (c (d)) (e))\n\n(f (g) (h (i)))')
+run 'test28', -> assertEq(LZ.prepare(in3)[0], '(a (b) (c (d)) (e))\n(f (g) (h (i)))')
+run 'test29', -> assertEq(LZ.bracify(in4, 1)[0], 'frap bubba =M= a b c{d e;f g}')
+run 'test30', -> assertEq(LZ.prepare(in4)[0], 'frap bubba =M= (a b c (d e) (f g))\n')
+run 'test31', -> assertParse("identMacro 1", "ref 1")
+run 'test32', -> assertParse("do 1", "ref 1")
+run 'test33', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
+#run 'test34', -> assertEvalPrint("do (apply (ref do) (ref a))", "ref 1")
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

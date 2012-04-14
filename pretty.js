@@ -31,6 +31,7 @@
   };
 
   print = function print(f) {
+    var _ref;
     if (!(f != null)) {
       return "UNDEFINED";
     } else if (f === null) {
@@ -72,7 +73,7 @@
             };
           });
         default:
-          return inspect(f);
+          return (_ref = f != null ? f.lazpName : void 0) != null ? _ref : inspect(f);
       }
     }
   };

@@ -88,6 +88,7 @@ createEnv = ->
     Lazp: L
     Repl: module
     lazpFuncs: {}
+    macros: {}
   ctxObj[i] = v for i,v of lazpFuncs
   ctx = VM.createContext ctxObj
   ctx.global = ctx
@@ -115,6 +116,7 @@ function req(name) {
 setType = Lazp.setType;
 setDataType = Lazp.setDataType;
 define = Lazp.define;
+defineMacro = Lazp.defineMacro;
 defineToken = Lazp.defineToken;
 processResult = Repl.processResult;
 """, ctx)

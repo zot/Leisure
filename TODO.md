@@ -1,23 +1,8 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
-* indentation tweak
-   * indent line creates a nested expression
-
->zip  
->>a  
-  b
-
-> is zip (a) (b)  
-
-> print "What is your name?" \_.  
-> read \value .  
-> print (concat ["hello ", value, ", would you like a piece of toast?"] \_ .  
-> read \value .  
-> ((match value /\[yY]\[eE]\[sS]/)  
->>   print "Here, have one!")  
->>   print "Fine, be that way!")) \_ .
-> print "OK, we're done." end
-
+* parse primitive
+* implement options that are monads and also support util functions
+* replace withType with getType that returns an option
 * throw error on undeclared variables -- require quotes for strings
    * parser macros should generate a wrapper at compile-time so that we can define things like let
    * need a way to handle macros
@@ -51,6 +36,24 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* indentation tweak
+   * indent line creates a nested expression
+
+>zip  
+>>a  
+  b
+
+> is zip (a) (b)  
+
+> print "What is your name?" \_.  
+> read \value .  
+> print (concat ["hello ", value, ", would you like a piece of toast?"] \_ .  
+> read \value .  
+> ((match value /\[yY]\[eE]\[sS]/)  
+>>   print "Here, have one!")  
+>>   print "Fine, be that way!")) \_ .
+> print "OK, we're done." end
+
 * parser improvements
    * a-b recursion?
       * it could do a pass to get function names, first

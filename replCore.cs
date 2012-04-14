@@ -140,10 +140,12 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
 }
 root.defs = {};
 root.tokenDefs = [];
+root.macros = {};
 
 var setType = Lazp.setType;
 var setDataType = Lazp.setDataType;
 var define = Lazp.define;
+var defineMacro = Lazp.defineMacro;
 var defineToken = Lazp.defineToken;
 var processResult = Repl.processResult;
 
@@ -170,10 +172,11 @@ var processResult = Repl.processResult;
     else if ast
       globals = ast.globals
       m = code.match(Lazp.linePat)
-      nm = if m and m[3] then m[2].trim().split(/\s+/)[0] else null
+      #nm = if m and m[3] then m[2].trim().split(/\s+/)[0] else null
+      nm = ast.lazpName
       #if !nm? then console.log("\n@@@ DEF @@@: #{code}\n")
       ast.src = """
-//#{if nm? then nm + ' = ' else ''}#{escape(Lazp.astPrint(ast))}
+//#{if nm? then nm + ' = ' else ''}#{escape(P.print(ast))}
 #{if nm? then "root.defs.#{Lazp.nameSub(nm)} = #{Lazp.nameSub(nm)} = " else ""}#{ast.src}
 """
       src = if ast.lazpName

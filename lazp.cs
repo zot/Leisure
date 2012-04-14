@@ -30,8 +30,8 @@ else root = exports ? this
 baseTokenPat = /`(\\[\\`]|[^`])*`|'(\\[\\']|[^'])*'|"(\\[\\"]|[^"])*"|[().\\\n;]| +|#[^\n]*\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
-linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/
-topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/
+linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
+topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/
 bracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^\n{};])*)([{};])/
 embeddedBracePat = /^()((?:`(?:[^`]|\\[\\`])*`|'(?:[^']|\\[\\'])*'|"(?:[^"]|\\[\\"])*"|[^{};])*)([{};])/
 order = []
@@ -67,6 +67,7 @@ charCodes =
 codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
 
 global.lazpFuncs = {}
+global.macros = {}
 tokens = {}
 groupOpens = {'(': ')'}
 groupCloses = {')': 1}
@@ -116,6 +117,8 @@ define = (name, func) ->
   (evalFunc 'lazpAddFunc')(name)
   f
 
+defineMacro = (name, func)-> ctx.macros[name] = func
+
 setDataType = (func, dataType)->
   if dataType then func.dataType = dataType
   func
@@ -132,13 +135,13 @@ evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\n
 
 define 'eval', (ast)-> evalCompiledAst(dgen(ast()))
 
-define 'lit', (_x)->setType ((_f)-> _f()(_x)), 'lit'
+define 'lit', setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
 
-define 'ref', (_x)->setType ((_f)-> _f()(_x)), 'ref'
+define 'ref', setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
 
-define 'lambda', (_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'
+define 'lambda', setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
 
-define 'apply', (_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'
+define 'apply', setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
 
 getType = (f)->
   t = typeof f
@@ -218,11 +221,11 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
-  return #{if name? then "define('#{name}', #{code.main})" else code.main}
+  return #{if name? then "#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main})" else code.main}
 })()
     """
   else ast.src = if name? then """
-define('#{name}', #{code.main});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
+#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 
 """ else "(#{code.main})"
   ast.globals = code.global
@@ -274,23 +277,23 @@ freeVar = (ast, vars, globals)->
 laz = (val)-> -> val
 
 defineToken = (name, def)->
-  tokens[name] = 1
-  if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
-  else if (def[1] == ')') then groupCloses[name] = 1
-  types = []
-  types.push(i) for i of tokens
-  # sort them by length, longest first
-  types.sort (a, b)-> b.length - a.length
-  for i in [0...types.length]
-    s = types[i]
-    o = ''
-    for p in [0...s.length]
-      if specials.indexOf(s[p]) > -1 then o += '\\'
-      o += s[p]
-    types[i] = o
-  types.push '[().\\\\]| +'
-  tokenPat =  new RegExp(baseTokenPat.source + '|' + types.join('|'))
-
+  if def != '=M='
+    tokens[name] = 1
+    if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
+    else if (def[1] == ')') then groupCloses[name] = 1
+    types = []
+    types.push(i) for i of tokens
+    # sort them by length, longest first
+    types.sort (a, b)-> b.length - a.length
+    for i in [0...types.length]
+      s = types[i]
+      o = ''
+      for p in [0...s.length]
+        if specials.indexOf(s[p]) > -1 then o += '\\'
+        o += s[p]
+      types[i] = o
+    types.push '[().\\\\]| +'
+    tokenPat =  new RegExp(baseTokenPat.source + '|' + types.join('|'))
 
 createDefinition = (name, ast, index)->
   if index >= name.length then ast
@@ -405,14 +408,14 @@ parenthify = (str, top, embedded)->
     sfx = str.substring(b.index + b[0].length)
     if b[3] == ';'
       [result, rest, err] = parenthify sfx, top, embedded
-      ["#{if !pfx and !top then '' else if !pfx then '\n' else if top then "#{def}#{pfx}\n" else " #{pfx} "}#{result.trim()}", rest, err]
+      ["#{if !pfx and !top then '' else if !pfx then '\n' else if top then "#{def}#{pfx}\n" else " (#{pfx}) "}#{result.trim()}", rest, err]
     else if b[3] == '{'
       [result, rest, err] = parenthify sfx, false, embedded
       if !err and rest[0] == '}'
         [next, nRest, err] = parenthify rest.substring(1), top, embedded
         ["#{if pfx then "#{def}(#{pfx}" else "#{def}("}#{result})#{if top then "\n" else " "}#{next}", nRest, err]
       else ["#{if pfx then "#{def} #{pfx}" else "#{def}"}#{result}", rest, "#{err}\nNo close brace"]
-    else [(if pfx then "#{def} #{pfx}" else "#{def}"), str.substring b.index + b[1].length + b[2].length]
+    else [(if pfx then "#{def} (#{pfx})" else "#{def}"), str.substring b.index + b[1].length + b[2].length]
 
 stripSemis = (str)-> str.replace(/^;*/, '')
 
@@ -425,6 +428,30 @@ nextTok = (str, offset)->
     rest = str.substring tok.length
     if tok[0] != '#' and tok.trim() then [tok, offset, rest]
     else nextTok rest, offset + tok.length
+
+parseFull = (str, globals)->
+  ast = parse str, globals
+  substituteMacros ast
+
+substituteMacros = (ast)->
+  switch getAstType ast
+    when 'ref', 'lit' then ast
+    when 'lambda'
+      b = substituteMacros getLambdaBody ast
+      if b == getLambdaBody ast then ast
+      else lambda(laz getLambdaVar ast)(laz b)
+    when 'apply'
+      macro = getMacro ast
+      if macro then substituteMacros (macro laz ast)
+      else
+        a = substituteMacros getApplyArg ast
+        if a == getApplyArg ast then ast
+        else apply(laz getApplyFunc ast)(laz getApplyArg a)
+
+getMacro = (ast)->
+  if getAstType(ast) == 'ref' then ctx.macros[getRefVar ast] ? null
+  else if getAstType(ast) == 'apply' then getMacro getApplyFunc ast
+  else null
 
 parse = (str, globals)->
   [ast, err, rest] = parseApply str.replace(/\u03BB/g, '\\'), Nil, globals ? Nil, 0
@@ -538,6 +565,7 @@ root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
 root.parse = parse
+root.parseFull = parseFull
 root.astPrint = astPrint
 root.gen = dgen
 root.laz = laz
@@ -547,6 +575,7 @@ root.setType = setType
 root.setDataType = setDataType
 root.astEval = (ast)-> evalCompiledAst(dgen(ast))
 root.define = define
+root.defineMacro = defineMacro
 root.getAstType = getAstType
 root.getType = getType
 root.linePat = linePat

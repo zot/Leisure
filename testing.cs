@@ -27,7 +27,8 @@ Wimpy testing framework
 ###
 
 R = require './repl'
-LZ = require './lazp.js'
+LZ = require './lazp'
+P = require './pretty'
 
 stats =
   successes: 0
@@ -41,7 +42,16 @@ assertEval = (actual, expected, desc)->
   if code.err then throw new Error(code.err)
   assertEq(LZ.astEval(LZ.gen(LZ.parse(actual))), expected, desc ? actual)
 
-assertParse = (actual, expected, desc)-> assertEq(LZ.astPrint(LZ.parse(actual)), expected, desc ? actual)
+assertEvalPrint = (actual, expected, desc)->
+  code = LZ.gen(LZ.parse(actual))
+  if code.err then throw new Error(code.err)
+  v = P.print(LZ.astEval(LZ.gen(LZ.parse(actual))))
+  assertEq(v, expected, desc ? actual)
+
+assertParse = (actual, expected, desc)->
+  [prepped, err] = LZ.prepare actual
+  if err? then throw new Error(err)
+  assertEq(LZ.astPrint(LZ.parseFull(prepped)), expected, desc ? actual)
 
 run = (name, func)->
   try
@@ -60,6 +70,7 @@ runTests = (arg)->
 
 exports.assertEq = assertEq
 exports.assertEval = assertEval
+exports.assertEvalPrint = assertEvalPrint
 exports.assertParse = assertParse
 exports.runTests = runTests
 exports.run = run

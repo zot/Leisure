@@ -28,11 +28,13 @@ Wimpy testing framework
 */
 
 (function() {
-  var LZ, R, assertEq, assertEval, assertParse, run, runTests, stats;
+  var LZ, P, R, assertEq, assertEval, assertEvalPrint, assertParse, run, runTests, stats;
 
   R = require('./repl');
 
-  LZ = require('./lazp.js');
+  LZ = require('./lazp');
+
+  P = require('./pretty');
 
   stats = {
     successes: 0,
@@ -52,8 +54,19 @@ Wimpy testing framework
     return assertEq(LZ.astEval(LZ.gen(LZ.parse(actual))), expected, desc != null ? desc : actual);
   };
 
+  assertEvalPrint = function assertEvalPrint(actual, expected, desc) {
+    var code, v;
+    code = LZ.gen(LZ.parse(actual));
+    if (code.err) throw new Error(code.err);
+    v = P.print(LZ.astEval(LZ.gen(LZ.parse(actual))));
+    return assertEq(v, expected, desc != null ? desc : actual);
+  };
+
   assertParse = function assertParse(actual, expected, desc) {
-    return assertEq(LZ.astPrint(LZ.parse(actual)), expected, desc != null ? desc : actual);
+    var err, prepped, _ref;
+    _ref = LZ.prepare(actual), prepped = _ref[0], err = _ref[1];
+    if (err != null) throw new Error(err);
+    return assertEq(LZ.astPrint(LZ.parseFull(prepped)), expected, desc != null ? desc : actual);
   };
 
   run = function run(name, func) {
@@ -80,6 +93,8 @@ Wimpy testing framework
   exports.assertEq = assertEq;
 
   exports.assertEval = assertEval;
+
+  exports.assertEvalPrint = assertEvalPrint;
 
   exports.assertParse = assertParse;
 
