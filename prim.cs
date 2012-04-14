@@ -12,6 +12,7 @@ else
   # running in node
   root = exports ? this
   Lazp = require('./lazp')
+  Pretty = require('./pretty')
   U = require('util')
   RL = require('readline')
   tty = null
@@ -22,10 +23,19 @@ setTty = (rl)-> tty = rl
 
 define = Lazp.define
 getType = Lazp.getType
+laz = Lazp.laz
 
 define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
 define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
 define 'withType', (value)->(t)->(f)-> if type = getType(value()) then t()(->type) else f()
+define 'parse', (value)->
+  [prepped, err] = Lazp.prepare String(value())
+  if err? then _right()(laz("Error: #{err}"))
+  else
+    [ast, err, rest] = Lazp.parseFull(prepped)
+    if err? then _right()(laz("Error: #{err}"))
+    else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
+    else _left()(laz(Pretty.print(ast)))
 
 define '+', (a)->(b)->a() + b()
 define '-', (a)->(b)->a() - b()
@@ -62,6 +72,14 @@ makeMonad = (binding, guts)->
   m
 
 define 'end', "end"
+
+define 'ret', (v)->
+  makeMonad 'end', (cont)->cont(v())
+
+define 'pr', (msg)->
+  makeMonad 'end', (cont)->
+    write("#{msg()}\n")
+    cont(_false)
 
 define 'bind', (m)->(binding)->
   makeMonad binding(), (cont)-> runMonad m(), cont

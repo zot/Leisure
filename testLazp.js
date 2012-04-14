@@ -28,7 +28,7 @@ Tests for Lazp
 */
 
 (function() {
-  var LZ, R, T, U, assertEq, assertEval, assertEvalPrint, assertParse, code, define, in1, in2, in3, in4, in5, run, setDataType, setType, _ref;
+  var LZ, R, T, U, assertEq, assertEval, assertEvalPrint, assertParse, code, define, f, in1, in2, in3, in4, in5, in6, run, setDataType, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
 
@@ -152,6 +152,8 @@ Tests for Lazp
 
   in5 = "do\n  1\n  2";
 
+  in6 = "do\n  a <- ret 3\n  pr a";
+
   run('test24', function() {
     return assertEq(LZ.bracify(in1, 1)[0], 'a;b;c');
   });
@@ -184,20 +186,17 @@ Tests for Lazp
     return assertParse("identMacro 1", "ref 1");
   });
 
-  run('test32', function() {
-    return assertParse("do 1", "ref 1");
-  });
-
-  run('test33', function() {
-    return assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)");
-  });
-
   console.log('\nDone');
 
   if (!T.stats.failures) {
     console.log("Succeeded all " + T.stats.successes + " tests.");
   } else {
-    console.log("Succeeded " + T.stats.successes + " test" + (T.stats.successes > 1 ? 's' : '') + "\nFailed " + T.stats.failures + " test" + (T.stats.failures > 1 ? 's' : ''));
+    console.log("Succeeded " + T.stats.successes + " test" + (T.stats.successes > 1 ? 's' : '') + "\nFailed " + T.stats.failures + " test" + (T.stats.failures > 1 ? 's' : '') + ":");
+    _ref2 = T.stats.failed;
+    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+      f = _ref2[_i];
+      console.log("  " + f);
+    }
   }
 
 }).call(this);

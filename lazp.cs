@@ -355,7 +355,7 @@ evalNext = (code)->
   else [{err: err}, err]
 
 prepare = (str)->
-  [result, rest] = bracify(stripComments(str), 1)
+  [result, rest] = bracify(stripComments(str.replace(/\u03BB/g, '\\')), 1)
   if rest.trim() then [result, 'Indentation problem: #{result}\n\n------->\n\n#{rest}']
   else
     [result, rest, err] = parenthify result, true
@@ -428,8 +428,9 @@ nextTok = (str, offset)->
     else nextTok rest, offset + tok.length
 
 parseFull = (str, globals)->
-  ast = parse str, globals
-  substituteMacros ast
+  res = [ast, err, rest] = parseApply str, Nil, globals ? Nil, 0
+  if err then res
+  else [substituteMacros ast, err, rest]
 
 substituteMacros = (ast)->
   switch getAstType ast

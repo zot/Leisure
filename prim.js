@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, RL, U, concatList, define, getType, head, makeMonad, output, prompt, root, runMonad, setTty, tail, tty, write;
+  var Lazp, Pretty, RL, U, concatList, define, getType, head, laz, makeMonad, output, prompt, root, runMonad, setTty, tail, tty, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -16,6 +16,7 @@
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
     Lazp = require('./lazp');
+    Pretty = require('./pretty');
     U = require('util');
     RL = require('readline');
     tty = null;
@@ -34,6 +35,8 @@
   define = Lazp.define;
 
   getType = Lazp.getType;
+
+  laz = Lazp.laz;
 
   define('is', function(value) {
     return function(type) {
@@ -69,6 +72,23 @@
         }
       };
     };
+  });
+
+  define('parse', function(value) {
+    var ast, err, prepped, rest, _ref, _ref2;
+    _ref = Lazp.prepare(String(value())), prepped = _ref[0], err = _ref[1];
+    if (err != null) {
+      return _right()(laz("Error: " + err));
+    } else {
+      _ref2 = Lazp.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+      if (err != null) {
+        return _right()(laz("Error: " + err));
+      } else if (rest != null ? rest.trim() : void 0) {
+        return _right()(laz("Error, input left after parsing: '" + (rest.trim()) + "'"));
+      } else {
+        return _left()(laz(Pretty.print(ast)));
+      }
+    }
   });
 
   define('+', function(a) {
@@ -171,6 +191,19 @@
   };
 
   define('end', "end");
+
+  define('ret', function(v) {
+    return makeMonad('end', function(cont) {
+      return cont(v());
+    });
+  });
+
+  define('pr', function(msg) {
+    return makeMonad('end', function(cont) {
+      write("" + (msg()) + "\n");
+      return cont(_false);
+    });
+  });
 
   define('bind', function(m) {
     return function(binding) {

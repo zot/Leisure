@@ -33,6 +33,7 @@ P = require './pretty'
 stats =
   successes: 0
   failures: 0
+  failed: []
 
 assertEq = (actual, expected, desc)-> if expected != actual
   throw new Error("#{if desc then "[#{desc}] " else ""}Expected <#{expected}> but got <#{actual}>")
@@ -51,7 +52,10 @@ assertEvalPrint = (actual, expected, desc)->
 assertParse = (actual, expected, desc)->
   [prepped, err] = LZ.prepare actual
   if err? then throw new Error(err)
-  assertEq(LZ.astPrint(LZ.parseFull(prepped)), expected, desc ? actual)
+  [ast, err, rest] = LZ.parseFull(prepped)
+  if err? then throw new Error("Error: #{err}")
+  else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
+  else assertEq(LZ.astPrint(ast), expected, desc ? actual)
 
 run = (name, func)->
   try
@@ -60,6 +64,7 @@ run = (name, func)->
     stats.successes++
   catch err
     stats.failures++
+    stats.failed.push name
     R.print("\nFailure, #{name}: #{err.stack}")
 
 runTests = (arg)->

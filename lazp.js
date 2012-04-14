@@ -681,7 +681,7 @@ misrepresented as being the original software.
 
   prepare = function prepare(str) {
     var err, rest, result, _ref, _ref2;
-    _ref = bracify(stripComments(str), 1), result = _ref[0], rest = _ref[1];
+    _ref = bracify(stripComments(str.replace(/\u03BB/g, '\\')), 1), result = _ref[0], rest = _ref[1];
     if (rest.trim()) {
       return [result, 'Indentation problem: #{result}\n\n------->\n\n#{rest}'];
     } else {
@@ -794,9 +794,13 @@ misrepresented as being the original software.
   };
 
   parseFull = function parseFull(str, globals) {
-    var ast;
-    ast = parse(str, globals);
-    return substituteMacros(ast);
+    var ast, err, res, rest, _ref;
+    res = (_ref = parseApply(str, Nil, globals != null ? globals : Nil, 0), ast = _ref[0], err = _ref[1], rest = _ref[2], _ref);
+    if (err) {
+      return res;
+    } else {
+      return [substituteMacros(ast, err, rest)];
+    }
   };
 
   substituteMacros = function substituteMacros(ast) {

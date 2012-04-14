@@ -83,13 +83,44 @@ dlList dl = dl nil
 # do
 identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)
     
-do apl =M= apl \f a . subdo a f
+# do apl =M= apl \f a . subdo a f
+#
+# subdo a f = is f ref
+#   a
+#   f \f2 a2 . subdo
+#     and (is a2 apply)
+#       a2 \a2f1 a2a1 . and (is a2f1 apply) (a2f1 \a2f2 a2a2 . and (eq a2a2 '<-') (or (is a2f2 ref) (is a2f2 lit)))
+#       a2 \a2f1 a2a1 . a2f1 \a2f2 a2a2 . a2f2 \v . apply (apply (ref 'bind') a2a1) (lambda v a)
+#       apply (apply (ref 'bind') a2) (lambda '_' a)
+#     f2
+# 
+# do_extractVar ast = is ast apply
+#   ast \func arg . (is func apply)
+#     func \ffunc farg . and (eq farg '<-') (or (is ffunc ref) (is ffunc lit))
+#       aa
+#       do_nextExtractVar ast func arg
+#   ast
+# 
+# do_nextExtractVar ast func arg = (\nf na . ()) (do_extractVar nf) (do_extractVar na)
 
-subdo a f = is f ref
-  a
-  f \f2 a2 . subdo
-    and (is a2 apply)
-      a2 \f3 a3 . and (or (is f3 ref) (is f3 lit)) (eq a3 '<-')
-      a2 \f3 expr . f3 \f4 _ . f4 \v . apply (apply (ref 'bind') expr) (lambda v a)
-      apply (apply (ref 'bind') a2) (lambda '_' a)
-    f2
+left v = \l r . l v
+
+right v = \l r . r v
+
+some x = \yes no . yes x
+
+none = \yes no . no
+
+tuple3 a b c = \f . f a b c
+
+# (m_extractVar ast) -> boolean, var, ast
+# -> some [ast | var]
+m_extractVar ast = is ast apply
+  ast \f arg . is f apply
+    f \innerF innerA . and (is innerF ref) (eq innerA '<-')
+      some (cons arg (innerF id))
+      m_extractVar f
+        \l . l \innerAst var . some (cons (apply innerAst arg) var)
+        none
+    none
+  none

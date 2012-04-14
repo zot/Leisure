@@ -38,7 +38,8 @@ Wimpy testing framework
 
   stats = {
     successes: 0,
-    failures: 0
+    failures: 0,
+    failed: []
   };
 
   assertEq = function assertEq(actual, expected, desc) {
@@ -63,10 +64,17 @@ Wimpy testing framework
   };
 
   assertParse = function assertParse(actual, expected, desc) {
-    var err, prepped, _ref;
+    var ast, err, prepped, rest, _ref, _ref2;
     _ref = LZ.prepare(actual), prepped = _ref[0], err = _ref[1];
     if (err != null) throw new Error(err);
-    return assertEq(LZ.astPrint(LZ.parseFull(prepped)), expected, desc != null ? desc : actual);
+    _ref2 = LZ.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+    if (err != null) {
+      throw new Error("Error: " + err);
+    } else if (rest != null ? rest.trim() : void 0) {
+      throw new Error("Error, input left after parsing: '" + (rest.trim()) + "'");
+    } else {
+      return assertEq(LZ.astPrint(ast), expected, desc != null ? desc : actual);
+    }
   };
 
   run = function run(name, func) {
@@ -76,6 +84,7 @@ Wimpy testing framework
       return stats.successes++;
     } catch (err) {
       stats.failures++;
+      stats.failed.push(name);
       return R.print("\nFailure, " + name + ": " + err.stack);
     }
   };

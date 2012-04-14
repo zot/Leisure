@@ -120,6 +120,12 @@ do
   2
 """
 
+in6 = """
+do
+  a <- ret 3
+  pr a
+"""
+
 run 'test24', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
 run 'test25', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
 run 'test26', -> assertEq(LZ.prepare(in1)[0], "a\nb\nc")
@@ -128,13 +134,15 @@ run 'test28', -> assertEq(LZ.prepare(in3)[0], '(a (b) (c (d)) (e))\n(f (g) (h (i
 run 'test29', -> assertEq(LZ.bracify(in4, 1)[0], 'frap bubba =M= a b c{d e;f g}')
 run 'test30', -> assertEq(LZ.prepare(in4)[0], 'frap bubba =M= (a b c (d e) (f g))\n')
 run 'test31', -> assertParse("identMacro 1", "ref 1")
-run 'test32', -> assertParse("do 1", "ref 1")
-run 'test33', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
-#run 'test34', -> assertEvalPrint("do (apply (ref do) (ref a))", "ref 1")
+#run 'test32', -> assertParse("do 1", "ref 1")
+#run 'test33', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
+#run 'test34', -> assertParse(in6, "duh")
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
-else console.log """
+else
+  console.log """
 Succeeded #{T.stats.successes} test#{if T.stats.successes > 1 then 's' else ''}
-Failed #{T.stats.failures} test#{if T.stats.failures > 1 then 's' else ''}
+Failed #{T.stats.failures} test#{if T.stats.failures > 1 then 's' else ''}:
 """
+  console.log "  #{f}" for f in T.stats.failed

@@ -17,6 +17,13 @@ print = (f)->
   if !f? then "UNDEFINED"
   else if f == null then 'NULL'
   else switch getType(f)
+    when 'lit', 'ref', 'lambda', 'apply' then "AST(#{subprint f})"
+    else subprint f
+
+subprint = (f)->
+  if !f? then "UNDEFINED"
+  else if f == null then 'NULL'
+  else switch getType(f)
     when 'cons' then "[#{elements(f, true)}]"
     when 'nil' then "[]"
     when 'ioMonad' then "IO"
@@ -24,15 +31,18 @@ print = (f)->
     when 'ref' then f ->(v)->v()
     when 'lambda' then f ->(v)->(bod)-> "\\#{printLambda v(), bod()}"
     when 'apply' then f ->(func)->(arg)-> printApply(func(), arg())
+    when 'some' then f(->(v)-> "Some(#{print v()})")(null)
+    when 'left' then f(->(l)-> "Left(#{print l()})")(null)
+    when 'right' then f(null)(->(r)-> "Right(#{print r()})")
     else f?.lazpName ? inspect(f)
 
 printLambda = (v, body)->
   if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"
-  else "#{v} . #{print(body)}"
+  else "#{v} . #{subprint(body)}"
 
 printApply = (func, arg)->
-  f = if func.type == 'lambda' then "(#{print func})" else print(func)
-  a = if arg.type == 'apply' then "(#{print arg})" else print(arg)
+  f = if func.type == 'lambda' then "(#{subprint func})" else subprint(func)
+  a = if arg.type == 'apply' then "(#{subprint arg})" else subprint(arg)
   "#{f} #{a}"
 
 elements = (l, first, nosubs)->
