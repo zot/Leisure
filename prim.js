@@ -86,7 +86,7 @@
       } else if (rest != null ? rest.trim() : void 0) {
         return _right()(laz("Error, input left after parsing: '" + (rest.trim()) + "'"));
       } else {
-        return _left()(laz(Pretty.print(ast)));
+        return _left()(laz(ast));
       }
     }
   });

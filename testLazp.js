@@ -186,6 +186,18 @@ Tests for Lazp
     return assertParse("identMacro 1", "ref 1");
   });
 
+  run('test32', function() {
+    return assertParse("do 1", "ref 1");
+  });
+
+  run('test33', function() {
+    return assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)");
+  });
+
+  run('test34', function() {
+    return assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (ref pr) (ref a))");
+  });
+
   console.log('\nDone');
 
   if (!T.stats.failures) {

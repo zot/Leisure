@@ -32,6 +32,7 @@ subprint = (f)->
     when 'lambda' then f ->(v)->(bod)-> "\\#{printLambda v(), bod()}"
     when 'apply' then f ->(func)->(arg)-> printApply(func(), arg())
     when 'some' then f(->(v)-> "Some(#{print v()})")(null)
+    when 'some2' then f(->(a)->(b)-> "Some2(#{print a()}, #{print b()})")(null)
     when 'left' then f(->(l)-> "Left(#{print l()})")(null)
     when 'right' then f(null)(->(r)-> "Right(#{print r()})")
     else f?.lazpName ? inspect(f)
@@ -47,7 +48,7 @@ printApply = (func, arg)->
 
 elements = (l, first, nosubs)->
   if getType(l) == 'nil' then ''
-  else if getType(l) != 'cons' then " . #{print(l)}"
+  else if getType(l) != 'cons' then " | #{print(l)}"
   else "#{if first then '' else ', '}#{listDo l, (h, t)-> print(h) + elements(t, false)}"
 
 root.print = print

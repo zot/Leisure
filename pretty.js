@@ -96,6 +96,14 @@
               return "Some(" + (print(v())) + ")";
             };
           })(null);
+        case 'some2':
+          return f(function() {
+            return function(a) {
+              return function(b) {
+                return "Some2(" + (print(a())) + ", " + (print(b())) + ")";
+              };
+            };
+          })(null);
         case 'left':
           return f(function() {
             return function(l) {
@@ -139,7 +147,7 @@
     if (getType(l) === 'nil') {
       return '';
     } else if (getType(l) !== 'cons') {
-      return " . " + (print(l));
+      return " | " + (print(l));
     } else {
       return "" + (first ? '' : ', ') + (listDo(l, function(h, t) {
         return print(h) + elements(t, false);

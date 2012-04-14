@@ -134,9 +134,9 @@ run 'test28', -> assertEq(LZ.prepare(in3)[0], '(a (b) (c (d)) (e))\n(f (g) (h (i
 run 'test29', -> assertEq(LZ.bracify(in4, 1)[0], 'frap bubba =M= a b c{d e;f g}')
 run 'test30', -> assertEq(LZ.prepare(in4)[0], 'frap bubba =M= (a b c (d e) (f g))\n')
 run 'test31', -> assertParse("identMacro 1", "ref 1")
-#run 'test32', -> assertParse("do 1", "ref 1")
-#run 'test33', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
-#run 'test34', -> assertParse(in6, "duh")
+run 'test32', -> assertParse("do 1", "ref 1")
+run 'test33', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
+run 'test34', -> assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (ref pr) (ref a))")
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

@@ -23,7 +23,7 @@ var defineMacro = Lazp.defineMacro;
 var defineToken = Lazp.defineToken;
 var processResult = Repl.processResult;
 
-var _id, _true, _false, _and, _or, _cons, _nil, _append, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _left, _right, _some, _none, _tuple3, _m_extractVar;
+var _id, _true, _false, _and, _or, _left, _right, _some, _some2, _none, _cons, _nil, _append, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _subdo, _m_extractVar, _m_varFromTuple;
 //id = AST(\x . x)
 root.defs._id = _id = define('id', function(_x){return _x()});
 ;
@@ -38,6 +38,21 @@ root.defs._and = _and = define('and', function(_a){return function(_b){return _a
 ;
 //or = AST(\a . a true)
 root.defs._or = _or = define('or', function(_a){return _a()(_true)});
+;
+//left = AST(\v l r . l v)
+root.defs._left = _left = define('left', setDataType(function(_v){return setType(function(_l){return function(_r){return _l()(_v)}}, 'left')}, 'left'));
+;
+//right = AST(\v l r . r v)
+root.defs._right = _right = define('right', setDataType(function(_v){return setType(function(_l){return function(_r){return _r()(_v)}}, 'right')}, 'right'));
+;
+//some = AST(\x yes no . yes x)
+root.defs._some = _some = define('some', setDataType(function(_x){return setType(function(_yes){return function(_no){return _yes()(_x)}}, 'some')}, 'some'));
+;
+//some2 = AST(\a b yes no . yes a b)
+root.defs._some2 = _some2 = define('some2', setDataType(function(_a){return function(_b){return setType(function(_yes){return function(_no){return _yes()(_a)(_b)}}, 'some2')}}, 'some2'));
+;
+//none = AST(\yes no . no)
+root.defs._none = _none = define('none', setType(function(_yes){return function(_no){return _no()}}, 'none'));
 ;
 //cons = AST(\a b f . f a b)
 root.defs._cons = _cons = define('cons', setDataType(function(_a){return function(_b){return setType(function(_f){return _f()(_a)(_b)}, 'cons')}}, 'cons'));
@@ -77,23 +92,18 @@ root.defs._dlList = _dlList = define('dlList', function(_dl){return _dl()(_nil)}
 root.defs._identMacro = _identMacro = defineMacro('identMacro', function(_apl){return _apl()((function(){var $m; return function(){return $m || ($m = (function(_f){return function(_a){return _is()(_f)(_ref)(_a)((function(){var $m; return function(){return $m || ($m = (_apply()((function(){var $m; return function(){return $m || ($m = (_identMacro()(_f)))}})())(_a)))}})())}}))}})())});
 root.tokenDefs.push('identMacro', '=M=');
 ;
-//left = AST(\v l r . l v)
-root.defs._left = _left = define('left', setDataType(function(_v){return setType(function(_l){return function(_r){return _l()(_v)}}, 'left')}, 'left'));
+//do = AST(\apl . apl \f a . subdo a f)
+root.defs._do = _do = defineMacro('do', function(_apl){return _apl()((function(){var $m; return function(){return $m || ($m = (function(_f){return function(_a){return _subdo()(_a)(_f)}}))}})())});
+root.tokenDefs.push('do', '=M=');
 ;
-//right = AST(\v l r . r v)
-root.defs._right = _right = define('right', setDataType(function(_v){return setType(function(_l){return function(_r){return _r()(_v)}}, 'right')}, 'right'));
+//subdo = AST(\a f . or (is f ref) (is f lit) a (f \f2 a2 . subdo (m_extractVar a2 \v ast . apply (apply (ref bind) ast) (lambda v a) (apply (apply (ref bind) a2) (lambda _ a))) f2))
+root.defs._subdo = _subdo = define('subdo', function(_a){return function(_f){return _or()((function(){var $m; return function(){return $m || ($m = (_is()(_f)(_ref)))}})())((function(){var $m; return function(){return $m || ($m = (_is()(_f)(_lit)))}})())(_a)((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (function(_f2){return function(_a2){return _subdo()((function(){var $m; return function(){return $m || ($m = (_m_extractVar()(_a2)((function(){var $m; return function(){return $m || ($m = (function(_v){return function(_ast){return _apply()((function(){var $m; return function(){return $m || ($m = (_apply()((function(){var $m; return function(){return $m || ($m = (_ref()((function(){return "bind"}))))}})())(_ast)))}})())((function(){var $m; return function(){return $m || ($m = (_lambda()(_v)(_a)))}})())}}))}})())((function(){var $m; return function(){return $m || ($m = (_apply()((function(){var $m; return function(){return $m || ($m = (_apply()((function(){var $m; return function(){return $m || ($m = (_ref()((function(){return "bind"}))))}})())(_a2)))}})())((function(){var $m; return function(){return $m || ($m = (_lambda()((function(){return "_"}))(_a)))}})())))}})())))}})())(_f2)}}))}})())))}})())}});
 ;
-//some = AST(\x yes no . yes x)
-root.defs._some = _some = define('some', setDataType(function(_x){return setType(function(_yes){return function(_no){return _yes()(_x)}}, 'some')}, 'some'));
+//m_extractVar = AST(\ast . is ast apply (ast \f a . m_varFromTuple f \v . some2 v a (m_extractVar f \var ast . some2 var (apply ast a) none)) none)
+root.defs._m_extractVar = _m_extractVar = define('m_extractVar', function(_ast){return _is()(_ast)(_apply)((function(){var $m; return function(){return $m || ($m = (_ast()((function(){var $m; return function(){return $m || ($m = (function(_f){return function(_a){return _m_varFromTuple()(_f)((function(){var $m; return function(){return $m || ($m = (function(_v){return _some2()(_v)(_a)}))}})())((function(){var $m; return function(){return $m || ($m = (_m_extractVar()(_f)((function(){var $m; return function(){return $m || ($m = (function(_var){return function(_ast){return _some2()(_var)((function(){var $m; return function(){return $m || ($m = (_apply()(_ast)(_a)))}})())}}))}})())(_none)))}})())}}))}})())))}})())(_none)});
 ;
-//none = AST(\yes no . no)
-root.defs._none = _none = define('none', setType(function(_yes){return function(_no){return _no()}}, 'none'));
-;
-//tuple3 = AST(\a b c f . f a b c)
-root.defs._tuple3 = _tuple3 = define('tuple3', setDataType(function(_a){return function(_b){return function(_c){return setType(function(_f){return _f()(_a)(_b)(_c)}, 'tuple3')}}}, 'tuple3'));
-;
-//m_extractVar = AST(\ast . is ast apply (ast \f arg . is f apply (f \innerF innerA . and (is innerF ref) (eq innerA <-) (some (cons arg (innerF id))) (m_extractVar f \l . l \innerAst var . some (cons (apply innerAst arg) var) none)) none) none)
-root.defs._m_extractVar = _m_extractVar = define('m_extractVar', function(_ast){return _is()(_ast)(_apply)((function(){var $m; return function(){return $m || ($m = (_ast()((function(){var $m; return function(){return $m || ($m = (function(_f){return function(_arg){return _is()(_f)(_apply)((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (function(_innerF){return function(_innerA){return _and()((function(){var $m; return function(){return $m || ($m = (_is()(_innerF)(_ref)))}})())((function(){var $m; return function(){return $m || ($m = (_eq()(_innerA)((function(){return "<-"}))))}})())((function(){var $m; return function(){return $m || ($m = (_some()((function(){var $m; return function(){return $m || ($m = (_cons()(_arg)((function(){var $m; return function(){return $m || ($m = (_innerF()(_id)))}})())))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_m_extractVar()(_f)((function(){var $m; return function(){return $m || ($m = (function(_l){return _l()((function(){var $m; return function(){return $m || ($m = (function(_innerAst){return function(_var){return _some()((function(){var $m; return function(){return $m || ($m = (_cons()((function(){var $m; return function(){return $m || ($m = (_apply()(_innerAst)(_arg)))}})())(_var)))}})())}}))}})())}))}})())(_none)))}})())}}))}})())))}})())(_none)}}))}})())))}})())(_none)});
+//m_varFromTuple = AST(\ast . is ast apply (ast \f arg . or (is f ref) (is f lit) (or (is arg ref) (is arg lit) (arg \arrow . eq arrow <- (f \v . some v) none) none) none) none)
+root.defs._m_varFromTuple = _m_varFromTuple = define('m_varFromTuple', function(_ast){return _is()(_ast)(_apply)((function(){var $m; return function(){return $m || ($m = (_ast()((function(){var $m; return function(){return $m || ($m = (function(_f){return function(_arg){return _or()((function(){var $m; return function(){return $m || ($m = (_is()(_f)(_ref)))}})())((function(){var $m; return function(){return $m || ($m = (_is()(_f)(_lit)))}})())((function(){var $m; return function(){return $m || ($m = (_or()((function(){var $m; return function(){return $m || ($m = (_is()(_arg)(_ref)))}})())((function(){var $m; return function(){return $m || ($m = (_is()(_arg)(_lit)))}})())((function(){var $m; return function(){return $m || ($m = (_arg()((function(){var $m; return function(){return $m || ($m = (function(_arrow){return _eq()(_arrow)((function(){return "<-"}))((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (function(_v){return _some()(_v)}))}})())))}})())(_none)}))}})())))}})())(_none)))}})())(_none)}}))}})())))}})())(_none)});
 ;
 
 if (typeof window !== 'undefined' && window !== null) {

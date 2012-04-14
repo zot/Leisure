@@ -12,6 +12,8 @@
 #
 #    MONAD-constructors
 #
+# parse string -> an Either with ast or error msg (give it two functions)
+#
 # bind m binding -> transform a monad with a lambda
 #
 # print string binding -> print a string, continue binding with false (or end)
@@ -55,6 +57,13 @@ false = \a b . b
 and a b = a b false
 or a = a true
 
+# choices
+left v = \l r . l v
+right v = \l r . r v
+some x = \yes no . yes x
+some2 a b = \yes no . yes a b
+none = \yes no . no
+
 # The Y combinator, for reference
 #
 # Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
@@ -83,44 +92,39 @@ dlList dl = dl nil
 # do
 identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)
     
-# do apl =M= apl \f a . subdo a f
+do apl =M= apl \f a . subdo a f
+
+subdo a f = or (is f ref) (is f lit)
+  a
+  f \f2 a2 . subdo
+    m_extractVar a2
+      \v ast . apply (apply (ref 'bind') ast) (lambda v a)
+      apply (apply (ref 'bind') a2) (lambda '_' a)
+    f2
+
+# m_extractVar ast
 #
-# subdo a f = is f ref
-#   a
-#   f \f2 a2 . subdo
-#     and (is a2 apply)
-#       a2 \a2f1 a2a1 . and (is a2f1 apply) (a2f1 \a2f2 a2a2 . and (eq a2a2 '<-') (or (is a2f2 ref) (is a2f2 lit)))
-#       a2 \a2f1 a2a1 . a2f1 \a2f2 a2a2 . a2f2 \v . apply (apply (ref 'bind') a2a1) (lambda v a)
-#       apply (apply (ref 'bind') a2) (lambda '_' a)
-#     f2
-# 
-# do_extractVar ast = is ast apply
-#   ast \func arg . (is func apply)
-#     func \ffunc farg . and (eq farg '<-') (or (is ffunc ref) (is ffunc lit))
-#       aa
-#       do_nextExtractVar ast func arg
-#   ast
-# 
-# do_nextExtractVar ast func arg = (\nf na . ()) (do_extractVar nf) (do_extractVar na)
-
-left v = \l r . l v
-
-right v = \l r . r v
-
-some x = \yes no . yes x
-
-none = \yes no . no
-
-tuple3 a b c = \f . f a b c
-
-# (m_extractVar ast) -> boolean, var, ast
-# -> some [ast | var]
+# given (var <- .....), it returns (some2 var ast)
+# otherwise, it returns none
+#
 m_extractVar ast = is ast apply
-  ast \f arg . is f apply
-    f \innerF innerA . and (is innerF ref) (eq innerA '<-')
-      some (cons arg (innerF id))
-      m_extractVar f
-        \l . l \innerAst var . some (cons (apply innerAst arg) var)
+  ast \f a .m_varFromTuple f
+    \v . some2 v a
+    m_extractVar f
+      \var ast . some2 var (apply ast a)
+      none
+  none
+  
+
+# m_extractVar ast
+#
+# given (var <-), it returns (some var), otherwise it returns none
+m_varFromTuple ast = is ast apply
+  ast \f arg . or (is f ref) (is f lit)
+    or (is arg ref) (is arg lit)
+      arg \arrow . eq arrow '<-'
+        f \v . some v
         none
+      none
     none
   none
