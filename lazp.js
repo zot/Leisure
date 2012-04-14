@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracify, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parse, parseApply, parseLambda, parseName, parseTerm, prefix, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, subnextTokWithNl, tag, tokenPat, tokens, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineToken, dgen, eatAllWhitespace, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthify, parse, parseApply, parseLambda, parseName, parseTerm, prefix, prepare, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -35,13 +35,17 @@ misrepresented as being the original software.
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n[ ]*/;
+  baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\\n;]| +|#[^\n]*\n/;
 
   tokenPat = baseTokenPat;
 
   specials = '[]().*+?|';
 
   linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/;
+
+  topBracePat = /((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/;
+
+  bracePat = /()((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^\n{};])*)([{};])/;
 
   order = [];
 
@@ -606,13 +610,13 @@ misrepresented as being the original software.
           pfx = prefix(nm, rest1);
           return ifParsed(parseApply(pfx, Nil), function(ast, rest) {
             var bod;
+            nameAst(nm[0], ast);
             bod = ast;
             if (nm.length > 1) bod = getNthBody(ast, nm.length);
             if (getAstType(bod) === 'lambda') {
               bod.exprType = nm[0];
               ast.exprDataType = nm[0];
             }
-            nameAst(nm[0], ast);
             if (nm.length === 1) nameAst(nm[0], ast);
             ast.lazpPrefixSrcLen = pfx.length;
             ast.lazpPrefixCount = nm.length;
@@ -665,6 +669,33 @@ misrepresented as being the original software.
     }
   };
 
+  prepare = function prepare(str) {
+    var err, rest, result, _ref, _ref2;
+    _ref = bracify(stripComments(str), 1), result = _ref[0], rest = _ref[1];
+    if (rest.trim()) {
+      return [result, 'Indentation problem: #{result}\n\n------->\n\n#{rest}'];
+    } else {
+      _ref2 = parenthify(result, true), result = _ref2[0], rest = _ref2[1], err = _ref2[2];
+      if (rest.trim()) {
+        return [result, 'Unbalanced braces: #{result}\n\n------->\n\n#{rest}'];
+      } else {
+        return [result, err];
+      }
+    }
+  };
+
+  commentPat = /([^\n#]*)(#[^\n]*)(\n|$)/g;
+
+  stripComments = function stripComments(str) {
+    return str.replace(commentPat, function(str, p1, p2, p3, offset) {
+      if (p1.trim()) {
+        return "" + p1 + p3;
+      } else {
+        return "";
+      }
+    });
+  };
+
   indentPat = /^([^\n]*)(\n[ ]*|)/;
 
   bracify = function bracify(str, indent) {
@@ -691,6 +722,37 @@ misrepresented as being the original software.
         return [pfx.trim(), sfx, lineIndent];
       }
     }
+  };
+
+  parenthify = function parenthify(str, top) {
+    var b, def, err, nRest, next, pfx, rest, result, sfx, _ref, _ref2, _ref3, _ref4;
+    b = str.match((top ? topBracePat : bracePat));
+    if (!b) {
+      return [(str && !top ? "(" + str + ")" : str), '', null];
+    } else {
+      def = (stripSemis((_ref = b[1]) != null ? _ref : '')).trim();
+      if (def) def = "" + def + " ";
+      pfx = b[2].trim();
+      sfx = str.substring(b.index + b[0].length);
+      if (b[3] === ';') {
+        _ref2 = parenthify(sfx, top), result = _ref2[0], rest = _ref2[1], err = _ref2[2];
+        return ["" + (!pfx && !top ? '' : !pfx ? '\n' : top ? "" + def + pfx + "\n" : " " + pfx + " ") + (result.trim()), rest, err];
+      } else if (b[3] === '{') {
+        _ref3 = parenthify(sfx, false), result = _ref3[0], rest = _ref3[1], err = _ref3[2];
+        if (!err && rest[0] === '}') {
+          _ref4 = parenthify(rest.substring(1), top), next = _ref4[0], nRest = _ref4[1], err = _ref4[2];
+          return ["" + (pfx ? "" + def + "(" + pfx : "" + def + "(") + result + ")" + (top ? "\n" : " ") + next, nRest, err];
+        } else {
+          return ["" + (pfx ? "" + def + " " + pfx : "" + def) + result, rest, "" + err + "\nNo close brace"];
+        }
+      } else {
+        return [(pfx ? "" + def + " " + pfx : "" + def), str.substring(b.index + b[1].length + b[2].length)];
+      }
+    }
+  };
+
+  stripSemis = function stripSemis(str) {
+    return str.replace(/^;*/, '');
   };
 
   nextTok = function nextTok(str, offset) {
@@ -760,7 +822,7 @@ misrepresented as being the original software.
   continueApply = function continueApply(func, str, vars, globals, offset) {
     var offset1, rest, tok, _ref;
     _ref = nextTok(str, offset), tok = _ref[0], offset1 = _ref[1], rest = _ref[2];
-    if (!tok || tok === '\n' || groupCloses[tok]) {
+    if (!tok || tok === '\n' || tok === '}' || groupCloses[tok]) {
       return [func, null, str];
     } else {
       return ifParsed(parseTerm(tok, rest, vars, globals, offset1), function(arg, rest) {
@@ -848,7 +910,7 @@ misrepresented as being the original software.
 
   eatAllWhitespace = function eatAllWhitespace(str) {
     var m;
-    m = str.match(/^\s+/);
+    m = str.match(/^(\s+|;)/);
     if (m) {
       return str.substring(m[0].length);
     } else {
@@ -954,5 +1016,9 @@ misrepresented as being the original software.
   root.nameSub = nameSub;
 
   root.bracify = bracify;
+
+  root.parenthify = parenthify;
+
+  root.prepare = prepare;
 
 }).call(this);

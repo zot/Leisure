@@ -59,7 +59,10 @@ false = \a b . b
 # rec = \f . f (Y f)
 
 # lists
-cons a b = \f . f a b
+cons a b = \f . f
+  a
+  b
+
 nil = \a b . b
 append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
 

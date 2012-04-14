@@ -107,7 +107,7 @@ Tests for Lazp
   });
 
   run('test14', function() {
-    return assertEval("(\\1 . 1) hello", 'hello');
+    return assertEval("(\\1 .; 1) hello", 'hello');
   });
 
   run('test15', function() {
@@ -152,6 +152,14 @@ Tests for Lazp
 
   run('test24', function() {
     return assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}');
+  });
+
+  run('test25', function() {
+    return assertEq(LZ.parenthify(LZ.bracify(in1, 1)[0], true)[0], "a\nb\nc");
+  });
+
+  run('test26', function() {
+    return assertEq(LZ.parenthify(LZ.bracify(in2, 1)[0], true)[0], '(a b (c d) e)\n\n(f g (h i))');
   });
 
   console.log('\nDone');

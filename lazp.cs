@@ -27,10 +27,12 @@ if window? and (!global? or global == window)
   window.Lazp = root = {}
 else root = exports ? this
 
-baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\]| +|#[^\n]*\n|\n[ ]*/
+baseTokenPat = /`(\\`|[^`])*`|'(\\'|[^'])*'|"(\\"|[^"])*"|[().\\\n;]| +|#[^\n]*\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
 linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)]=|=\([^=]+=|=)?/
+topBracePat = /((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)]=|=\([^=]+=|=)\s*)?((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^;{};])*)([{};])/
+bracePat = /()((?:`(?:[^`]|\\`)*`|'(?:[^']|\\')*'|"(?:[^"]|\\")*"|[^\n{};])*)([{};])/
 order = []
 warnFreeVariable = []
 charCodes =
@@ -309,12 +311,12 @@ compileNext = (line, globals, parseOnly, check)->
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
         ifParsed (parseApply pfx, Nil), (ast, rest)->
+          nameAst(nm[0], ast)
           bod = ast
           if nm.length > 1 then bod = getNthBody(ast, nm.length)
           if getAstType(bod) == 'lambda'
             bod.exprType = nm[0]
             ast.exprDataType = nm[0]
-          nameAst(nm[0], ast)
           if nm.length == 1 then nameAst(nm[0], ast)
           ast.lazpPrefixSrcLen = pfx.length
           ast.lazpPrefixCount = nm.length
@@ -348,25 +350,68 @@ evalNext = (code)->
       [ast, result]
   else [{err: err}, err]
 
+prepare = (str)->
+  [result, rest] = bracify(stripComments(str), 1)
+  if rest.trim() then [result, 'Indentation problem: #{result}\n\n------->\n\n#{rest}']
+  else
+    [result, rest, err] = parenthify result, true
+    if rest.trim() then [result, 'Unbalanced braces: #{result}\n\n------->\n\n#{rest}']
+    else [result, err]
+
+commentPat = /([^\n#]*)(#[^\n]*)(\n|$)/g
+
+stripComments = (str)-> str.replace commentPat, (str, p1, p2, p3, offset)-> if p1.trim() then "#{p1}#{p3}" else ""
+
 indentPat = /^([^\n]*)(\n[ ]*|)/
+
+#convert indented code to braced code
 #returns [bracified-str, remainder]
 bracify = (str, indent)->
-  m = str.match indentPat
-  if !m or m[2].length == 0 then [str.trim(), '', 0]
+  #b = str.match bracePat
+  #if b then
+  #  [result, rest] = parenthify str
+  #  [braceResult, braceRest, braceIndent] = bracify rest, indent
+  #  ["#{result}#{braceResult}, braceRest, braceIndent]
+  #else
+    m = str.match indentPat
+    if !m or m[2].length == 0 then [str.trim(), '', 0]
+    else
+      lineIndent = m[2].length
+      pfx = m[1]
+      sfx = str.substring(m.index + m[0].length)
+      if lineIndent == indent
+        [result, rest, resIndent] = bracify(sfx, lineIndent)
+        ["#{pfx.trim()};#{result}", rest, resIndent]
+      else if lineIndent > indent
+        res = [result, rest, resIndent] = bracify(sfx, lineIndent)
+        if resIndent < indent then ["#{pfx.trim()}{#{result}}", rest, resIndent]
+        else
+          [nextResult, nextRest, nextIndent] = bracify(rest, indent)
+          ["#{pfx.trim()}{#{result}};#{nextResult}", nextRest, nextIndent]
+      else [pfx.trim(), sfx, lineIndent]
+
+#convert braced code to parenthesized code
+#bracePat/topBracePat: 1: definition, 2: leading string, 3: brace char ({, }, or ;)
+parenthify = (str, top)->
+  b = str.match (if top then topBracePat else bracePat)
+  if !b then [(if str and !top then "(#{str})" else str), '', null]
   else
-    lineIndent = m[2].length
-    pfx = m[1]
-    sfx = str.substring(m.index + m[0].length)
-    if lineIndent == indent
-      [result, rest, resIndent] = bracify(sfx, lineIndent)
-      ["#{pfx.trim()};#{result}", rest, resIndent]
-    else if lineIndent > indent
-      res = [result, rest, resIndent] = bracify(sfx, lineIndent)
-      if resIndent < indent then ["#{pfx.trim()}{#{result}}", rest, resIndent]
-      else
-        [nextResult, nextRest, nextIndent] = bracify(rest, indent)
-        ["#{pfx.trim()}{#{result}};#{nextResult}", nextRest, nextIndent]
-    else [pfx.trim(), sfx, lineIndent]
+    def = (stripSemis (b[1] ? '')).trim()
+    if def then def = "#{def} "
+    pfx = b[2].trim()
+    sfx = str.substring(b.index + b[0].length)
+    if b[3] == ';'
+      [result, rest, err] = parenthify sfx, top
+      ["#{if !pfx and !top then '' else if !pfx then '\n' else if top then "#{def}#{pfx}\n" else " #{pfx} "}#{result.trim()}", rest, err]
+    else if b[3] == '{'
+      [result, rest, err] = parenthify sfx, false
+      if !err and rest[0] == '}'
+        [next, nRest, err] = parenthify rest.substring(1), top
+        ["#{if pfx then "#{def}(#{pfx}" else "#{def}("}#{result})#{if top then "\n" else " "}#{next}", nRest, err]
+      else ["#{if pfx then "#{def} #{pfx}" else "#{def}"}#{result}", rest, "#{err}\nNo close brace"]
+    else [(if pfx then "#{def} #{pfx}" else "#{def}"), str.substring b.index + b[1].length + b[2].length]
+
+stripSemis = (str)-> str.replace(/^;*/, '')
 
 nextTok = (str, offset)->
   m = str.match(tokenPat)
@@ -401,7 +446,7 @@ parseApply = (str, vars, globals, offset)->
 
 continueApply = (func, str, vars, globals, offset)->
   [tok, offset1, rest] = nextTok str, offset
-  if !tok or tok == '\n' or groupCloses[tok] then [func, null, str]
+  if !tok or tok == '\n' or tok == '}' or groupCloses[tok] then [func, null, str]
   else ifParsed (parseTerm tok, rest, vars, globals, offset1), (arg, rest)->
     continueApply tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, globals, soff(str, offset, rest)
 
@@ -451,7 +496,7 @@ subnextTokWithNl = (str)->
   if tok == '\n' then subnextTokWithNl rest else [tok, rest]
 
 eatAllWhitespace = (str)->
-  m = str.match /^\s+/
+  m = str.match /^(\s+|;)/
   if m then str.substring(m[0].length)
   else str
 
@@ -509,3 +554,5 @@ root.defineToken = defineToken
 root.req = req
 root.nameSub = nameSub
 root.bracify = bracify
+root.parenthify = parenthify
+root.prepare = prepare

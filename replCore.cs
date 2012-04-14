@@ -151,7 +151,9 @@ var processResult = Repl.processResult;
   errs = ''
   globals = findDefs file, contents
   defs = []
-  rest = contents
+  [rest, err] = Lazp.prepare contents
+  if err then throw new Error(err)
+  console.log "CONTENTS: #{rest}"
   out += "\nvar"
   for v, i in globals.toArray()
     if i > 0 then out += ","
@@ -162,9 +164,12 @@ var processResult = Repl.processResult;
     oldRest = rest
     [ast, err, rest] = Lazp.compileNext rest, globals
     code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
-    if ast
+    err = err ? ast?.err
+    if err
+      errs = "#{errs}#{if ast?.lazpName then "Error in #{ast.lazpName}" else ""}#{err}\n"
+      rest = ''
+    else if ast
       globals = ast.globals
-      if ast.err? then errs = "#{errs}#{ast.err}\n"
       m = code.match(Lazp.linePat)
       nm = if m and m[3] then m[2].trim().split(/\s+/)[0] else null
       #if !nm? then console.log("\n@@@ DEF @@@: #{code}\n")
@@ -179,9 +184,6 @@ var processResult = Repl.processResult;
       out += "#{src};\n"
       [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
       if handle then handlerFunc ast, null, a, c, r, code
-    else if err
-      errs = "#{errs}#{err}\n"
-      rest = ''
   out += """
 
 if (typeof window !== 'undefined' && window !== null) {
@@ -204,6 +206,7 @@ findDefs = (file, contents)->
   while rest
     oldRest = rest
     [ast, err, rest] = Lazp.compileNext rest, globals, true
+    if err then errs = "#{errs}#{if ast.lazpName then "Error in #{ast.lazpName}" else ""}#{err}\n"
     if ast?.lazpName
       if (globals ? Lazp.Nil).find((v)->v == ast.lazpName) then throw new Error("Attempt to redefine function: #{ast.lazpName}")
       globals = Lazp.cons(ast.lazpName, globals)

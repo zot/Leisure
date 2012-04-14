@@ -68,7 +68,7 @@ run 'test10', -> assertEval("last (cons a nil)", 'a')
 run 'test11', -> assertEval("last (cons a (cons b nil))", 'b')
 run 'test12', -> assertEval("(is (cons a b) cons) yes no", 'yes')
 run 'test13', -> assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes')
-run 'test14', -> assertEval("(\\1 . 1) hello", 'hello')
+run 'test14', -> assertEval("(\\1 .; 1) hello", 'hello')
 run 'test15', -> assertEval("head ([ 1 ])", 1)
 run 'test16', -> assertEval("head (tail (append ([ 1 ]) ([ 2 ])))", 2)
 run 'test17', -> assertEval("head [1]", 1)
@@ -98,6 +98,8 @@ f
 
 run 'test23', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
 run 'test24', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
+run 'test25', -> assertEq(LZ.parenthify(LZ.bracify(in1, 1)[0], true)[0], "a\nb\nc")
+run 'test26', -> assertEq(LZ.parenthify(LZ.bracify(in2, 1)[0], true)[0], '(a b (c d) e)\n\n(f g (h i))')
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

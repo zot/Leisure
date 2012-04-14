@@ -62,8 +62,8 @@ root.defs._dl = _dl = define('dl', function(_list){return _append()(_list)});
 //dlAppend = lambda da . lambda db . lambda list . apply (ref da) (apply (ref db) (ref list))
 root.defs._dlAppend = _dlAppend = define('dlAppend', function(_da){return function(_db){return function(_list){return _da()((function(){var $m; return function(){return $m || ($m = (_db()(_list)))}})())}}});
 ;
-//dlList = lambda dl . apply (ref dl) (ref nil)
-root.defs._dlList = _dlList = define('dlList', function(_dl){return _dl()(_nil)});
+//lambda dl . apply (ref dl) (ref nil)
+define('dlList', function(_dl){return _dl()(_nil)});
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
