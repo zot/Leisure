@@ -1,5 +1,11 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* integrate physics engine
+* multiline comments and strings, ala CoffeeScript
+* cond macro
+* better errors for file problems
+* when there are parsing or compilation errors, show which function has the problem
+* if reqs aren't present when runing in browser, show error in output area or use alert if not in repl
 * allow eval to take either a string or an AST
 * add assertMonad() to testing.cs
 * fold, map, etc. for asts
@@ -19,13 +25,13 @@
 * generate currying functions at call sites
    * since cons is a global ref, cons a b -> _cons(a, b), instead of _cons()(a)(b)
    * cons a -> function(_1){return _cons(a, _1)}
-* integrate physics engine
 * reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)
 * string functions
 * Lazp configuration environment
    * pretty-printers for types
    * named parsers
-* AMTs
+* Data structures
+   * AMTs
 * Lazp-code for pretty printing
 * Use Lazp for parser, generator, REPL; compile them and use the JS for them
    * this will help people extend Lazp

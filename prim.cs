@@ -95,8 +95,8 @@ concatList = (l)->
 
 define 'concat', (l)-> concatList(l())
 
-define 'js', (codeList)->(binding)->
-  makeMonad binding(), (cont)->
+define 'js', (codeList)->
+  makeMonad 'end', (cont)->
     cl = codeList()
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
     cont(eval(concatList(cl)))

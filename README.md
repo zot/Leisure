@@ -20,11 +20,25 @@ Curly braces produce in-line groups, separated by semicolons, so instead of **(a
 ### Indentation
 Lazp supports Python-style indentation, which it replaces with curly braces and semicolons during parsing.  Indented lines are considered to be part of the preceding overhanging line and each indented line produces a parenthesized group, so this:
 
-> do  
->> n <- prompt "What is your name? "  
->> print (concat ["Hello, ", n, ", thank you for joining us."])
+<pre><b><big>
+do  
+  n <- prompt "What is your name? "  
+  print (concat ["Hello, ", n, ", thank you for joining us."])
+</big></b></pre>
 
 is equivalent to this: **do {n <- prompt "What is your name? "; print (concat ["Hello, ", n, ", thank you for joining us."])}**
+
+and this:
+
+<pre><b><big>
+let
+  a <- 3
+  b <- + a 1
+  a <- * a b
+  [a, b]
+</big></b></pre>
+
+is equivalent to this: **let {a <- 3; b <- + a 1; a <- * a b; [a, b]}**
 
 ## Untyped
 Lazp is untyped.  This doesn't mean that Lazp is type-free, it just means that variables don't have types -- they can hold anything.  Lazp does have data types -- e.g. you can tell if something is a cons-cell (**_is (cons 1 nil) cons** returns **true**).  Whenever you define a function that returns a lambda, it marks instances of that lambda as having the type of the definition.  For example, if you say:

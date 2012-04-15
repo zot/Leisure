@@ -248,16 +248,14 @@
   });
 
   define('js', function(codeList) {
-    return function(binding) {
-      return makeMonad(binding(), function(cont) {
-        var cl;
-        cl = codeList();
-        if (cl !== _nil() && cl.type !== 'cons') {
-          throw new Error("js expects a list for its code");
-        }
-        return cont(eval(concatList(cl)));
-      });
-    };
+    return makeMonad('end', function(cont) {
+      var cl;
+      cl = codeList();
+      if (cl !== _nil() && cl.type !== 'cons') {
+        throw new Error("js expects a list for its code");
+      }
+      return cont(eval(concatList(cl)));
+    });
   });
 
   define('createS', function() {

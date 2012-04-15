@@ -1,4 +1,5 @@
-main = js ['moveRock()'] \_.
-js ['moveRock()'] \_.
-js ['moveRock()'] \_.
-js ['moveRock()'] end
+main = do
+  js ['moveRock()']
+  js ['moveRock()']
+  js ['moveRock()']
+  js ['moveRock()']
