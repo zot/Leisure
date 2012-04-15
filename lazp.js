@@ -35,7 +35,7 @@ misrepresented as being the original software.
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  baseTokenPat = /`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
+  baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
 
   tokenPat = baseTokenPat;
 

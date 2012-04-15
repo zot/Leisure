@@ -1,6 +1,8 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
 * integrate physics engine
+* multiline REPL
+* allow redefinition in REPL exprs
 * multiline comments and strings, ala CoffeeScript
 * cond macro
 * better errors for file problems
@@ -40,6 +42,7 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* add floating point numbers to tokenDefs
 * let
 * throw error on undeclared variables -- require quotes for strings
    * parser macros should generate a wrapper at compile-time so that we can define things like let

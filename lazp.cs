@@ -27,7 +27,7 @@ if window? and (!global? or global == window)
   window.Lazp = root = {}
 else root = exports ? this
 
-baseTokenPat = /`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
+baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
 linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
@@ -314,7 +314,6 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
       else
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
-        #ifParsed (parseApply pfx, Nil), (ast, rest)->
         ifParsed (if nomacros then parseApply pfx, Nil else parseFull pfx), (ast, rest)->
           nameAst(nm[0], ast)
           bod = ast
@@ -326,7 +325,6 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
           ast.lazpPrefixSrcLen = pfx.length
           ast.lazpPrefixCount = nm.length
           genCode ast, nm[0], globals, defType, rest, parseOnly
-    #else ifParsed (parseApply rest1, Nil), (ast, rest)->
     else ifParsed (if nomacros then parseApply rest1, Nil else parseFull rest1), (ast, rest)->
       genCode ast, null, globals, null, rest, parseOnly
   else [null, null, null]

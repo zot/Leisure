@@ -129,6 +129,26 @@
     return Math.round(a());
   });
 
+  define('>', function(a) {
+    return function(b) {
+      if (a() > b()) {
+        return _true();
+      } else {
+        return _false();
+      }
+    };
+  });
+
+  define('<', function(a) {
+    return function(b) {
+      if (a() < b()) {
+        return _true();
+      } else {
+        return _false();
+      }
+    };
+  });
+
   define('gt', function(a) {
     return function(b) {
       if (a() > b()) {
