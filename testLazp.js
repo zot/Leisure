@@ -46,7 +46,7 @@ Tests for Lazp
 
   LZ.eval("req('./std')");
 
-  code = R.generateCode(null, "head l = l \\h t . h\ntail l = l \\h t . t\nnull l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\n", false);
+  code = R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\nlast l = l (\\h t D . null t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\n", false);
 
   LZ.eval(code);
 

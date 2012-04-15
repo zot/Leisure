@@ -39,9 +39,9 @@ console.log 'Testing'
 LZ.eval "req('./std')"
 
 code = (R.generateCode null, """
-head l = l \\h t . h
-tail l = l \\h t . t
-null l = l (\\h t D . false) true
+#head l = l \\h t . h
+#tail l = l \\h t . t
+#null l = l (\\h t D . false) true
 last l = l (\\h t D . null t h (last t)) nil
 val = 2
 divider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]

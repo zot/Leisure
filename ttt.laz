@@ -2,48 +2,28 @@
 #
 # generic funcs
 
-head l = l \h t . h
-tail l = l \h t . t
-isempty l = (eq (l) nil)
-null l = l (\h. \t. false)
-reverse l = (eq (tail l) nil) l (append (reverse (tail l)) (cons (head l) nil))
-addstr a b = concat [a, b]
 
+#0 = \f . \x . x
+#1 = \f . \x . f x
+#2 = \s. \z. s(s(z))
+#3 = \s. \z. s(s(s(z)))
+#4 = \s. \z. s(s(s(s(z))))
+#5 = \s. \z. s(s(s(s(s(z)))))
+#6 = \s. \z. s(s(s(s(s(s(z))))))
+#7 = \s. \z. s(s(s(s(s(s(s(z)))))))
+#8 = \s. \z. s(s(s(s(s(s(s(s(z))))))))
+#9 = \s. \z. s(s(s(s(s(s(s(s(s(z)))))))))
 
-not a = a false true
-if p a b = p a b
-
-0 = \f . \x . x
-1 = \f . \x . f x
-2 = \s. \z. s(s(z))
-3 = \s. \z. s(s(s(z)))
-4 = \s. \z. s(s(s(s(z))))
-5 = \s. \z. s(s(s(s(s(z)))))
-6 = \s. \z. s(s(s(s(s(s(z))))))
-7 = \s. \z. s(s(s(s(s(s(s(z)))))))
-8 = \s. \z. s(s(s(s(s(s(s(s(z))))))))
-9 = \s. \z. s(s(s(s(s(s(s(s(s(z)))))))))
-
-iszero = \n . n (\x . false) true
-length l = (eq l nil) 0 (++ (length (tail l) ) )
-++ = \n.\f.\x.f (n f x)
--- = \n.\f.\x.n (\g.\h.h (g f)) (\u.x) (\u.u)
-plus = \x . \y . \s . \z . x s (y s z)
-at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
-take x l = (iszero x) nil (append [ (head l) ] (take (-- x) (tail l) ) )
-drop x l = (iszero x) l (drop (-- x) (tail l) )
-
-any f l = (eq (l) nil) false ((f (head l)) true (any f (tail l)))
+#++ = \n.\f.\x.f (n f x)
+#-- = \n.\f.\x.n (\g.\h.h (g f)) (\u.x) (\u.u)
+#plus = \x . \y . \s . \z . x s (y s z)
 #foopy = (cons 2 (cons 1 nil))
 #any (eq 54) foopy
 
 # digits handling
 digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ]
 
-combine x y = (or (eq x nil) (eq y nil)) (nil) (plus x y)
-indexof l x = if (eq l nil) (nil) (if (eq x (head l)) (0) (combine 1 (indexof (tail l) x ) ) )
-
-foopy l x = if (eq l nil) (nil) (x)
+#foopy l x = if (eq l nil) (nil) (x)
 
 
 # tictactoe 'variables'
@@ -65,7 +45,7 @@ ending = [ "\n" ]
 
 # tictactoe funcs
 
-spot b r c = at b (plus c (plus r (plus r r) ) )
+spot b r c = at b (+ c (+ r (+ r r) ) )
 
 row b r = concat [ (spot b r 0), (spot b r 1), (spot b r 2) ]
 col b c = concat [ (spot b 0 c), (spot b 1 c), (spot b 2 c) ]
