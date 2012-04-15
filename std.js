@@ -87,11 +87,11 @@ root.defs._reverse = _reverse = define('reverse', function(_l){return _eq()((fun
 //addstr = AST(\a b . concat ([ a , b ]))
 root.defs._addstr = _addstr = define('addstr', function(_a){return function(_b){return _concat()((function(){var $m; return function(){return $m || ($m = (_$r()(_a)(_$b)(_b)(_$s)))}})())}});
 ;
-//if = AST(\p a b . p a b)
-root.defs._if = _if = define('if', function(_p){return function(_a){return function(_b){return _p()(_a)(_b)}}});
+//if = AST(\p . p)
+root.defs._if = _if = define('if', function(_p){return _p()});
 ;
-//iszero = AST(\x . eq x 0)
-root.defs._iszero = _iszero = define('iszero', function(_x){return _eq()(_x)((function(){return 0}))});
+//iszero = AST(eq 0)
+root.defs._iszero = _iszero = define('iszero', _eq()((function(){return 0})));
 ;
 //length = AST(\l . eq l nil 0 (++ (length (tail l))))
 root.defs._length = _length = define('length', function(_l){return _eq()(_l)(_nil)((function(){return 0}))((function(){var $m; return function(){return $m || ($m = (_$o$o()((function(){var $m; return function(){return $m || ($m = (_length()((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())});

@@ -111,7 +111,7 @@ processLine = (line)->
         else
           [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
           [l, err1] = Lazp.prepare(line)
-          [ast, err] = Lazp.compileNext(l, getGlobals(), false, true)
+          [ast, err] = Lazp.compileNext(l, getGlobals(), false, false)
           if err1? or err?
             if ast? then ast.err = err1 ? err
             else ast = {err: err1 ? err}
@@ -165,7 +165,7 @@ var processResult = Repl.processResult;
   globals = Lazp.append(globals, getGlobals())
   while rest
     oldRest = rest
-    [ast, err, rest] = Lazp.compileNext rest, globals, null, null, nomacros
+    [ast, err, rest] = Lazp.compileNext rest, globals, null, false, nomacros
     code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
     err = err ? ast?.err
     if err
@@ -208,7 +208,7 @@ findDefs = (file, contents, nomacros)->
     [ast, err, rest] = Lazp.compileNext rest, globals, true, null, nomacros
     if err then errs = "#{errs}#{if ast.lazpName then "Error in #{ast.lazpName}" else ""}#{err}\n"
     if ast?.lazpName
-      if (globals ? Lazp.Nil).find((v)->v == ast.lazpName) then throw new Error("Attempt to redefine function: #{ast.lazpName}")
+      if globals?.find((v)->v == ast.lazpName) then throw new Error("Attempt to redefine function: #{ast.lazpName}")
       globals = Lazp.cons(ast.lazpName, globals)
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   globals

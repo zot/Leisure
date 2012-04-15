@@ -339,6 +339,8 @@ evalNext = (code)->
   if ast
     if ast.lazpName
       try
+        nm = nameSub(ast.lazpName)
+        if ctx[nm] then evalFunc("#{nm} = null")
         evalCompiledAst(ast)
         result = "Defined: #{ast.lazpName}"
       catch err
