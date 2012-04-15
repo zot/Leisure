@@ -56,6 +56,7 @@ true = \a b . a
 false = \a b . b
 and a b = a b false
 or a = a true
+not a = a false true
 
 # choices
 left v = \l r . l v
@@ -77,6 +78,31 @@ cons a b =
 
 nil = \a b . b
 append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
+
+# some basic list functions
+
+head l = l \h t . h
+tail l = l \h t . t
+isempty l = (eq (l) nil)
+null l = l (\h t D . false) true
+reverse l = (eq (tail l) nil) l (append (reverse (tail l)) (cons (head l) nil))
+addstr a b = concat [a, b]
+if p a b = p a b
+iszero x = eq x 0
+length l = (eq l nil) 0 (++ (length (tail l) ) )
+
+-- x = - x 1
+++ x = + x 1
+at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
+take x l = (iszero x) nil (append [ (head l) ] (take (-- x) (tail l) ) )
+drop x l = (iszero x) l (drop (-- x) (tail l) )
+
+any f l = (eq (l) nil) false ((f (head l)) true (any f (tail l)))
+
+index_combine x y = (or (eq x nil) (eq y nil)) (nil) (+ x y)
+# return nil if not found, or 0 based index of the first match
+indexof l x = if (eq l nil) (nil) (if (eq x (head l)) (0) (index_combine 1 (indexof (tail l) x ) ) )
+
 
 # simple list constructor syntax
 [ =(]= \item c . c \rest . cons item rest
