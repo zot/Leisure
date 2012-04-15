@@ -186,8 +186,6 @@
     return m;
   };
 
-  define('end', "end");
-
   define('return', function(v) {
     return makeMonad('end', function(cont) {
       return cont(v());
@@ -262,8 +260,8 @@
     };
   });
 
-  define('createS', function(binding) {
-    return makeMonad(binding(), function(cont) {
+  define('createS', function() {
+    return makeMonad('end', function(cont) {
       return cont({
         value: null
       });
@@ -271,21 +269,17 @@
   });
 
   define('getS', function(state) {
-    return function(binding) {
-      return makeMonad(binding(), function(cont) {
-        return cont(state().value);
-      });
-    };
+    return makeMonad('end', function(cont) {
+      return cont(state().value);
+    });
   });
 
   define('setS', function(state) {
     return function(value) {
-      return function(binding) {
-        return makeMonad(binding(), function(cont) {
-          state().value = value();
-          return cont(_false);
-        });
-      };
+      return makeMonad('end', function(cont) {
+        state().value = value();
+        return cont(_false);
+      });
     };
   });
 

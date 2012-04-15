@@ -71,8 +71,6 @@ makeMonad = (binding, guts)->
   if binding != "end" then m.binding = binding
   m
 
-define 'end', "end"
-
 define 'return', (v)->
   makeMonad 'end', (cont)->cont(v())
 
@@ -103,16 +101,16 @@ define 'js', (codeList)->(binding)->
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
     cont(eval(concatList(cl)))
 
-define 'createS', (binding)->
-  makeMonad binding(), (cont)->
+define 'createS', ->
+  makeMonad 'end', (cont)->
     cont {value: null}
 
-define 'getS', (state)->(binding)->
-  makeMonad binding(), (cont)->
+define 'getS', (state)->
+  makeMonad 'end', (cont)->
     cont state().value
 
-define 'setS', (state)->(value)->(binding)->
-  makeMonad binding(), (cont)->
+define 'setS', (state)->(value)->
+  makeMonad 'end', (cont)->
     state().value = value()
     cont(_false)
 

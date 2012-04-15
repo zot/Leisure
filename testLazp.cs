@@ -125,6 +125,13 @@ do
   pr a
 """
 
+in7 = """
+let
+  a <- 3
+  b <- 4
+  [a, b]
+"""
+
 run 'test24', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
 run 'test25', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
 run 'test26', -> assertEq(LZ.prepare(in1)[0], "a\nb\nc")
@@ -139,6 +146,7 @@ run 'test34', -> assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref
 run 'test35', -> assertEq(LZ.prepare('a{b}')[0].trim(), '(a (b))')
 run 'test36', -> assertEq(LZ.prepare('a{"b"}')[0].trim(), '(a ("b"))')
 run 'test37', -> assertEq(LZ.prepare('a{"{b"}')[0].trim(), '(a ("{b"))')
+run 'test38', -> assertEvalPrint(in7, '[3, 4]')
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

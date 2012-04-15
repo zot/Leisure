@@ -92,15 +92,23 @@ dlList dl = dl nil
 # do
 identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)
     
-do apl =M= apl \f a . subdo a f
+do apl =M= apl \f a . m_subdo a f
 
-subdo a f = or (is f ref) (is f lit)
+m_subdo a f = or (is f ref) (is f lit)
   a
-  f \f2 a2 . subdo
+  f \f2 a2 . m_subdo
     m_extractVar a2
       \v ast . apply (apply (ref 'bind') ast) (lambda v a)
       apply (apply (ref 'bind') a2) (lambda '_' a)
     f2
+
+let apl =M= apl \f a . m_sublet f a
+
+m_sublet f a = or (is f ref) (is f lit)
+  a
+  f \f2 a2 . m_extractVar a2
+    \v ast . m_sublet f2 (apply (lambda v a) ast)
+    apply a a2
 
 # m_extractVar ast
 #
@@ -114,7 +122,6 @@ m_extractVar ast = is ast apply
       \var ast . some2 var (apply ast a)
       none
   none
-  
 
 # m_extractVar ast
 #

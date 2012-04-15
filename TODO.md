@@ -1,5 +1,6 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* add assertMonad() to testing.cs
 * fold, map, etc. for asts
 * implement options that are monads and also support util functions
 * need supertypes or something for things like booleans (true or false)
@@ -32,6 +33,7 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* let
 * throw error on undeclared variables -- require quotes for strings
    * parser macros should generate a wrapper at compile-time so that we can define things like let
    * need a way to handle macros

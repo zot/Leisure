@@ -39,16 +39,27 @@ assertEq = (actual, expected, desc)-> if expected != actual
   throw new Error("#{if desc then "[#{desc}] " else ""}Expected <#{expected}> but got <#{actual}>")
 
 assertEval = (actual, expected, desc)->
-  ast = LZ.parse(actual)
-  code = LZ.gen(ast)
-  if code.err then throw new Error("#{code.err}, ast: #{P.print(ast)}")
-  assertEq(LZ.astEval(LZ.gen(LZ.parse(actual))), expected, desc ? actual)
+  [prepped, err] = LZ.prepare actual
+  if err? then throw new Error(err)
+  [ast, err, rest] = LZ.parseFull(prepped)
+  if err? then throw new Error("Error: #{err}")
+  else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
+  else
+    code = LZ.gen(ast)
+    if code.err then throw new Error(code.err)
+    assertEq(LZ.astEval(code), expected, desc ? actual)
 
 assertEvalPrint = (actual, expected, desc)->
-  code = LZ.gen(LZ.parse(actual))
-  if code.err then throw new Error(code.err)
-  v = P.print(LZ.astEval(LZ.gen(LZ.parse(actual))))
-  assertEq(v, expected, desc ? actual)
+  [prepped, err] = LZ.prepare actual
+  if err? then throw new Error(err)
+  [ast, err, rest] = LZ.parseFull(prepped)
+  if err? then throw new Error("Error: #{err}")
+  else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
+  else
+    code = LZ.gen(ast)
+    if code.err then throw new Error(code.err)
+    v = P.print(LZ.astEval(code))
+    assertEq(v, expected, desc ? actual)
 
 assertParse = (actual, expected, desc)->
   [prepped, err] = LZ.prepare actual
