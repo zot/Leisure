@@ -42,11 +42,17 @@ define '-', (a)->(b)->a() - b()
 define '*', (a)->(b)->a() * b()
 define '/', (a)->(b)->a() / b()
 define '%', (a)->(b)->a() % b()
+define 'floor', (a)->Math.floor(a())
+define 'ceil', (a)->Math.ceil(a())
+define 'round', (a)->Math.round(a())
+
 
 define '>', (a)->(b)->if a() > b() then `_true()` else `_false()`
-define '>=', (a)->(b)->if a() >= b() then `_true()` else `_false()`
 define '<', (a)->(b)->if a() < b() then `_true()` else `_false()`
-define '<=', (a)->(b)->if a() <= b() then `_true()` else `_false()`
+define 'gt', (a)->(b)->if a() > b() then `_true()` else `_false()`
+define 'gte', (a)->(b)->if a() >= b() then `_true()` else `_false()`
+define 'lt', (a)->(b)->if a() < b() then `_true()` else `_false()`
+define 'lte', (a)->(b)->if a() <= b() then `_true()` else `_false()`
 
 ###
 define '++', (a)->a() + 1
