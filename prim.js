@@ -117,7 +117,19 @@
     };
   });
 
-  define('>', function(a) {
+  define('floor', function(a) {
+    return Math.floor(a());
+  });
+
+  define('ceil', function(a) {
+    return Math.ceil(a());
+  });
+
+  define('round', function(a) {
+    return Math.round(a());
+  });
+
+  define('gt', function(a) {
     return function(b) {
       if (a() > b()) {
         return _true();
@@ -127,7 +139,7 @@
     };
   });
 
-  define('>=', function(a) {
+  define('gte', function(a) {
     return function(b) {
       if (a() >= b()) {
         return _true();
@@ -137,7 +149,7 @@
     };
   });
 
-  define('<', function(a) {
+  define('lt', function(a) {
     return function(b) {
       if (a() < b()) {
         return _true();
@@ -147,7 +159,7 @@
     };
   });
 
-  define('<=', function(a) {
+  define('lte', function(a) {
     return function(b) {
       if (a() <= b()) {
         return _true();

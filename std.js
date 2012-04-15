@@ -23,7 +23,7 @@ var defineMacro = Lazp.defineMacro;
 var defineToken = Lazp.defineToken;
 var processResult = Repl.processResult;
 
-var _id, _true, _false, _and, _or, _not, _left, _right, _some, _some2, _none, _cons, _nil, _append, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _at, _take, _drop, _any, _index_combine, _indexof, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple;
+var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _at, _take, _drop, _any, _index_combine, _indexof, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple;
 //id = AST(\x . x)
 root.defs._id = _id = define('id', function(_x){return _x()});
 ;
@@ -41,6 +41,9 @@ root.defs._or = _or = define('or', function(_a){return _a()(_true)});
 ;
 //not = AST(\a . a false true)
 root.defs._not = _not = define('not', function(_a){return _a()(_false)(_true)});
+;
+//neq = AST(\a b . not (eq a b))
+root.defs._neq = _neq = define('neq', function(_a){return function(_b){return _not()((function(){var $m; return function(){return $m || ($m = (_eq()(_a)(_b)))}})())}});
 ;
 //left = AST(\v l r . l v)
 root.defs._left = _left = define('left', setDataType(function(_v){return setType(function(_l){return function(_r){return _l()(_v)}}, 'left')}, 'left'));

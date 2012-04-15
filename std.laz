@@ -55,6 +55,7 @@ false = \a b . b
 and a b = a b false
 or a = a true
 not a = a false true
+neq a b = not (eq a b)
 
 # choices
 left v = \l r . l v
