@@ -87,6 +87,10 @@
     }
   });
 
+  define('pretty', function(value) {
+    return Pretty.print(value());
+  });
+
   define('+', function(a) {
     return function(b) {
       return a() + b();

@@ -36,6 +36,7 @@ define 'parse', (value)->
     if err? then _right()(laz("Error: #{err}"))
     else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
     else _left()(laz(ast))
+define 'pretty', (value)-> Pretty.print(value())
 
 define '+', (a)->(b)->a() + b()
 define '-', (a)->(b)->a() - b()
