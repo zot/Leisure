@@ -2,9 +2,7 @@
 #
 # eq a b -> true if they are equal or false otherwise
 #
-# withType value (\type . true-case) false-case
-#    if the value has a type, it calls true-case with it
-#    otherwise, return false-case
+# getType value -> an option containing the type
 # 
 # is value type -> true if the value has type type, false otherwise
 #

@@ -1,5 +1,6 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* allow eval to take either a string or an AST
 * add assertMonad() to testing.cs
 * fold, map, etc. for asts
 * implement options that are monads and also support util functions
