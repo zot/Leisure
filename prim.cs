@@ -66,11 +66,10 @@ define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1))
 
 eventCmds = []
 running = false
-currentEvent = null
 
 lazpEvent = (evt, lazpFuncName)->
   currentEvent = evt
-  monad = Lazp.eval("#{Lazp.nameSub(lazpFuncName)}()")
+  monad = Lazp.eval("#{Lazp.nameSub(lazpFuncName)}()")(laz(evt))
   runMonad monad, ->
 
 addCmd = (cmd)->
@@ -99,8 +98,6 @@ makeMonad = (binding, guts)->
   m.type = 'monad'
   if binding != "end" then m.binding = binding
   m
-
-define 'getEvent', makeMonad 'end', (cont)-> cont(currentEvent)
 
 define 'eventX', (evt)-> evt().x
 
