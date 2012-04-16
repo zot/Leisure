@@ -9,17 +9,32 @@
     <script src="ttt.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
     <script>
-      id = "X"
-      spot = 0
 
-      function moveNextPiece() {
-	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
-	x = 13
-	y = 670
-        piece.setAttribute('transform', 'translate(' + x + ', ' + y + ')')
-        id = "O"
-	++spot
+	// b will be a string of 9 chars, either space, X, or O
+      function showBoard(b) {
+	xIndex = 0
+        oIndex = 0
+        for (var i = 0; i < b.length; ++i) {
+          p = b[i]
+          if (p == 'X') movePiece(p, ++xIndex, i)
+          else if (p == 'O') movePiece(p, ++oIndex, i)
+        }
       }
+
+	// move a piece onto the board
+      function movePiece(prefix, index, spotIndex) {
+	id = prefix + index
+	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
+	spotId = "spot" + spotIndex
+	spot = document.getElementById('scene').getSVGDocument().getElementById(spotId);
+	w_x = (spot.getBBox().width - piece.getBBox().width) / 2.0
+	w_y = (spot.getBBox().height - piece.getBBox().height) / 2.0
+	delta_x = spot.getBBox().x - piece.getBBox().x + w_x
+	delta_y = spot.getBBox().y - piece.getBBox().y + w_y
+	//alert("piece: " + id + " => " + spotId + " d_x: " + delta_x + " d_y: " + delta_y)
+	piece.setAttribute('transform', 'translate(' + delta_x + ', ' + delta_y + ')')
+      }
+
       function init() {
         var input = document.getElementById('input')
         var output = document.getElementById('output')
@@ -67,14 +82,11 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
     <table style="vertical-align: top; width: 100%; height: 100%">
-<<<<<<< HEAD
       <tr style="height: 400px">
 	<td colspan="2">
 	  <object id="scene" data="ttt.svg" type="image/svg+xml" onload="loadedBoard()"></object>
 	</td>
       </tr>
-=======
->>>>>>> origin/gh-pages
       <tr style="height: 1.5em"><td colspan="2">
 	  <div style="height: 100%; position: relative">
 	    <div><b>Definitions</b></div>

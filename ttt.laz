@@ -56,13 +56,13 @@ diag2 b = concat [ (spot b 0 2), (spot b 1 1), (spot b 2 0) ]
 showRow b r = [ (spot b r 0), '|', (spot b r 1), '|', (spot b r 2) ]
 showRowDiv b r = (append (showRow b r) div)
 showBoard2 b = concat (append (showRowDiv b 0) (append (showRowDiv b 1) (append (showRow b 2) ending) ) )
-showBoard b = print (showBoard2 b)
+showBoard b = do
+  browser [ "showBoard('", (concat b), "')" ]
+  print (showBoard2 b)
 
 showStartBoard = showBoard startBoard
 
-playMove p b m = do
-  foo <- js ["moveNextPiece()"]
-  (append (take m b) (append [ p ] (drop (++ m) b) ) )
+playMove p b m = append (take m b) (append [ p ] (drop (++ m) b) )
 
 base_win b cond = (or (eq cond (row b 0)) (or (eq cond (row b 1)) (or (eq cond (row b 2)) (or (eq cond (col b 0)) (or (eq cond (col b 1)) (or (eq cond (col b 2)) (or (eq cond (diag1 b)) (eq cond (diag2 b)) ) ) ) ) ) ) )
 
@@ -93,12 +93,12 @@ gameOver b winner = if (eq winner empty)
 
 convertMove p b move = eq move 'c'
   checkMove p b (minmax p b)
-  checkMove p b move
+  (eq move 'q') (print "PLAYER FORFEITED!!!") (checkMove p b move)
 
 #winner : if the game is not over, prompt current player for a move. otherwise print result of game
 winner w p b = if (eq empty w)
   do
-    move <- prompt (concat ["Your move player ", p, ">" ])
+    move <- prompt (concat ["Your move player ", p, " [0-8] or c or q>" ])
     convertMove p b move
   print w
 
