@@ -8,7 +8,7 @@ main = do
 
 clickRock = do
   e <- getEvent
-  print (concat ['event x: ', (eventX e)])
+  print (concat ['event x: ', (eventX e), ', target: ', (eventTargetId e)])
 
 #
 #Physics stuff

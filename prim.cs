@@ -66,10 +66,11 @@ define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1))
 
 eventCmds = []
 running = false
+currentEvent = null
 
-lazpEvent = (lazpFuncName)->
-  monad = Lazp.eval("(function(evt){window.event = evt; return #{Lazp.nameSub(lazpFuncName)}()})")(event)
-  alert("adding event: #{lazpFuncName}: #{monad}")
+lazpEvent = (evt, lazpFuncName)->
+  currentEvent = evt
+  monad = Lazp.eval("#{Lazp.nameSub(lazpFuncName)}()")
   runMonad monad, ->
 
 addCmd = (cmd)->
@@ -99,11 +100,13 @@ makeMonad = (binding, guts)->
   if binding != "end" then m.binding = binding
   m
 
-define 'getEvent', makeMonad 'end', (cont)-> cont(event)
+define 'getEvent', makeMonad 'end', (cont)-> cont(currentEvent)
 
 define 'eventX', (evt)-> evt().x
 
 define 'eventY', (evt)-> evt().y
+
+define 'eventTargetId', (evt)-> evt().target.id
 
 define 'return', (v)->
   makeMonad 'end', (cont)->cont(v())
