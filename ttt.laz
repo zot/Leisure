@@ -1,0 +1,130 @@
+# Copyright (C) 2012, Roy Riggs
+#
+# generic funcs
+
+
+#0 = \f . \x . x
+#1 = \f . \x . f x
+#2 = \s. \z. s(s(z))
+#3 = \s. \z. s(s(s(z)))
+#4 = \s. \z. s(s(s(s(z))))
+#5 = \s. \z. s(s(s(s(s(z)))))
+#6 = \s. \z. s(s(s(s(s(s(z))))))
+#7 = \s. \z. s(s(s(s(s(s(s(z)))))))
+#8 = \s. \z. s(s(s(s(s(s(s(s(z))))))))
+#9 = \s. \z. s(s(s(s(s(s(s(s(s(z)))))))))
+
+#++ = \n.\f.\x.f (n f x)
+#-- = \n.\f.\x.n (\g.\h.h (g f)) (\u.x) (\u.u)
+#plus = \x . \y . \s . \z . x s (y s z)
+#foopy = (cons 2 (cons 1 nil))
+#any (eq 54) foopy
+
+# digits handling
+digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ]
+
+#foopy l x = if (eq l nil) (nil) (x)
+
+
+# tictactoe 'variables'
+
+player1 = 'X'
+player2 = 'O'
+empty = ' '
+
+player1Win = concat [ player1, player1, player1]
+player2Win = concat [ player2, player2, player2]
+startBoard = [ empty, empty, empty, empty, empty, empty, empty, empty, empty ]
+testBoard = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i' ]
+win1Board = [ player1, empty, empty, empty, player1, empty, empty, empty, player1 ]
+win2Board = [ empty, empty, player2, empty, empty, player2, empty, empty, player2 ]
+slowBoard = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', empty, empty ]
+div = [ "\n", '-', '-', '-', '-', '-', "\n"]
+ending = [ "\n" ]
+
+
+# tictactoe funcs
+
+spot b r c = at b (+ c (+ r (+ r r) ) )
+
+row b r = concat [ (spot b r 0), (spot b r 1), (spot b r 2) ]
+col b c = concat [ (spot b 0 c), (spot b 1 c), (spot b 2 c) ]
+diag1 b = concat [ (spot b 0 0), (spot b 1 1), (spot b 2 2) ]
+diag2 b = concat [ (spot b 0 2), (spot b 1 1), (spot b 2 0) ]
+
+
+showRow b r = [ (spot b r 0), '|', (spot b r 1), '|', (spot b r 2) ]
+showRowDiv b r = (append (showRow b r) div)
+showBoard2 b = concat (append (showRowDiv b 0) (append (showRowDiv b 1) (append (showRow b 2) ending) ) )
+showBoard b = print (showBoard2 b)
+
+showStartBoard = showBoard startBoard
+
+playMove p b m = (append (take m b) (append [ p ] (drop (++ m) b) ) )
+
+base_win b cond = (or (eq cond (row b 0)) (or (eq cond (row b 1)) (or (eq cond (row b 2)) (or (eq cond (col b 0)) (or (eq cond (col b 1)) (or (eq cond (col b 2)) (or (eq cond (diag1 b)) (eq cond (diag2 b)) ) ) ) ) ) ) )
+
+win b = if (base_win b player1Win)
+  player1
+  if (base_win b player2Win)
+    player2
+    empty
+
+# tie : return true if the game was a tie
+tie b = not ( any (eq empty) b )
+
+# nextPlayer : returns the opposite player from what was passed in
+nextPlayer p = if (eq p player1) player2 player1
+
+# isLegalMove : return true if the move passed in is legal. NOTE: move is a character '0' thru '9'
+isLegalMove b m = (\i . (and (not (eq i nil)) (eq (at b i) empty))) (indexof digits m)
+
+# checkMove : if the move is legal, apply it to the board and let the next player take their turn. otherwise same player must try again
+checkMove p b move = if (isLegalMove b move)
+  playGame (nextPlayer p) (playMove p b (indexof digits move))
+  promptOrEnd p b
+
+#gameOver : return a string if the game is over with the results or return empty if we should continue
+gameOver b winner = if (eq winner empty)
+  if (tie b) "WE HAVE A TIE!!!" empty
+  concat [ "WINNER: Player ", winner, "!!!" ]
+
+convertMove p b move = eq move 'c'
+  checkMove p b (minmax p b)
+  checkMove p b move
+
+#winner : if the game is not over, prompt current player for a move. otherwise print result of game
+winner w p b = if (eq empty w)
+  do
+    move <- prompt (concat ["Your move player ", p, ">" ])
+    convertMove p b move
+  print w
+
+#promptOrEnd : either announce the results of the game or prompt the current player for a move
+promptOrEnd p b = winner (gameOver b (win b)) p b
+
+#playGame : recursively take turns playing
+playGame p b = do
+  showBoard b
+  promptOrEnd p b
+
+# testing : playGame (nextPlayer player1) (playMove player1 startBoard (indexof digits '0'))
+
+#main : start the game with the initial parameters
+main = playGame player1 startBoard
+
+
+# AI
+
+
+minmax p b = at digits (head (legalMoves b))
+
+all_moves = [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ]
+base_legalMoves b all = if (eq all nil)
+  nil
+  if (eq (at b (head all)) empty)
+    cons (head all) (base_legalMoves b (tail all))
+    base_legalMoves b (tail all)
+
+legalMoves b = base_legalMoves b all_moves
+
