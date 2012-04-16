@@ -237,4 +237,3 @@ get-value k hashmap = (\pair. if (eq pair nil) nil (value pair)) (get-pair k has
 
 
 remove-hash k hashmap = remove-if (\x . eq (head x) k) hashmap
-
