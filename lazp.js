@@ -41,7 +41,7 @@ misrepresented as being the original software.
 
   specials = '[]().*+?|';
 
-  linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
+  linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
 
   topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/;
 
@@ -608,8 +608,15 @@ misrepresented as being the original software.
     var def, defType, leading, matched, name, nm, pfx, rest1;
     if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
+      if (name[0] === ' ') {
+        console.log("DEF: " + (require('util').inspect(def)));
+        name = null;
+        defType = null;
+        nm = null;
+      } else {
+        nm = defType ? name.trim().split(/\s+/) : null;
+      }
       rest1 = line.substring((defType ? matched : leading).length);
-      nm = defType ? name.trim().split(/\s+/) : null;
       if (nm) {
         if (check && globals.find(function(v) {
           return v === nm[0];

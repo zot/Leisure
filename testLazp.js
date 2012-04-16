@@ -152,9 +152,9 @@ Tests for Lazp
 
   in5 = "do\n  1\n  2";
 
-  in6 = "do\n  a <- ret 3\n  pr a";
+  in6 = "do\n  a <- ret 3\n  b = + a 1\n  pr a";
 
-  in7 = "let\n  a <- 3\n  b <- 4\n  [a, b]";
+  in7 = "let\n  a = 3\n  b = 4\n  [a, b]";
 
   run('test24', function() {
     return assertEq(LZ.bracify(in1, 1)[0], 'a;b;c');
@@ -197,7 +197,7 @@ Tests for Lazp
   });
 
   run('test34', function() {
-    return assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (ref pr) (ref a))");
+    return assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (lambda b . apply (ref pr) (ref a)) (apply (apply (ref +) (ref a)) (ref 1)))");
   });
 
   run('test35', function() {

@@ -30,7 +30,8 @@ else root = exports ? this
 baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
-linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
+#linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
+linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
 topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/
 bracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^\n{};'`"])*)([{};])/
 embeddedBracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^{};'`"])*)([{};])/
@@ -307,8 +308,13 @@ getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n
 compileNext = (line, globals, parseOnly, check, nomacros)->
   if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
+    if name[0] == ' '
+      console.log "DEF: #{require('util').inspect(def)}"
+      name = null
+      defType = null
+      nm = null
+    else nm = if defType then name.trim().split(/\s+/) else null
     rest1 = line.substring (if defType then matched else leading).length
-    nm = if defType then name.trim().split(/\s+/) else null
     if nm
       if check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]}", null]
       else

@@ -13,7 +13,15 @@
       x = 0;
       y = 0;
       rock = null;
+      laz = Lazp.laz
 
+      function getRockBounds() {
+        rock = document.getElementById('scene').getSVGDocument().getElementById('rock');
+        var bbox = rock.getBBox();
+        return function(f) {
+          return f()(laz(bbox.x))(laz(bbox.y))(laz(bbox.width))(laz(bbox.height))
+        }
+      }
       function loadedRock() {
         rock = document.getElementById('scene').getSVGDocument().getElementById('rock');
         var bbox = rock.getBBox();

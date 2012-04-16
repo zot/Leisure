@@ -122,13 +122,14 @@ do
 in6 = """
 do
   a <- ret 3
+  b = + a 1
   pr a
 """
 
 in7 = """
 let
-  a <- 3
-  b <- 4
+  a = 3
+  b = 4
   [a, b]
 """
 
@@ -142,7 +143,7 @@ run 'test30', -> assertEq(LZ.prepare(in4)[0], 'frap bubba =M= (a b c (d e) (f g)
 run 'test31', -> assertParse("identMacro 1", "ref 1")
 run 'test32', -> assertParse("do 1", "ref 1")
 run 'test33', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
-run 'test34', -> assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (ref pr) (ref a))")
+run 'test34', -> assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (lambda b . apply (ref pr) (ref a)) (apply (apply (ref +) (ref a)) (ref 1)))")
 run 'test35', -> assertEq(LZ.prepare('a{b}')[0].trim(), '(a (b))')
 run 'test36', -> assertEq(LZ.prepare('a{"b"}')[0].trim(), '(a ("b"))')
 run 'test37', -> assertEq(LZ.prepare('a{"{b"}')[0].trim(), '(a ("{b"))')
