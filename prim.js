@@ -7,7 +7,8 @@
     output = null;
     write = function write(msg) {
       if (!(output != null)) output = document.getElementById('output');
-      return output.innerHTML += "" + msg;
+      output.innerHTML += "<span>" + msg + "</span>";
+      return output.lastChild.scrollIntoView();
     };
     prompt = function prompt(msg, cont) {
       return cont(window.prompt(msg));
