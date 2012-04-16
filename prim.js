@@ -206,7 +206,7 @@
 
   running = false;
 
-  lazpEvent = function lazpEvent(evt, lazpFuncName) {
+  lazpEvent = function lazpEvent(lazpFuncName, evt) {
     var currentEvent, monad;
     currentEvent = evt;
     monad = Lazp.eval("" + (Lazp.nameSub(lazpFuncName)) + "()")(laz(evt));

@@ -67,7 +67,7 @@ define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1))
 eventCmds = []
 running = false
 
-lazpEvent = (evt, lazpFuncName)->
+lazpEvent = (lazpFuncName, evt)->
   currentEvent = evt
   monad = Lazp.eval("#{Lazp.nameSub(lazpFuncName)}()")(laz(evt))
   runMonad monad, ->
