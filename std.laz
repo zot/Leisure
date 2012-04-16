@@ -92,15 +92,69 @@ length l = (eq l nil) 0 (++ (length (tail l) ) )
 
 -- x = - x 1
 ++ x = + x 1
+even? x = eq 0 (% x 2)
+odd? x = eq 1 (% x 2)
 at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
 take x l = (iszero x) nil (append [ (head l) ] (take (-- x) (tail l) ) )
 drop x l = (iszero x) l (drop (-- x) (tail l) )
 
-any f l = (eq (l) nil) false ((f (head l)) true (any f (tail l)))
+# return true if any elements of l satisfy f, which takes exactly one arg
+# eg. any (eq 0) [ 1, 2, 0] gives true: true
+any f l = if (eq l nil) false
+  if (f (head l)) true
+    any f (tail l)
+
+# return true if ALL elements of l satisfy f, which takes exactly one arg
+# eg. all (eq 0) [ 0, 0, 0] gives true: true
+# caveat!  return true for nil lists
+all f l = if (eq l nil) true
+  if (f (head l)) 
+    all f (tail l)
+    false
 
 index_combine x y = (or (eq x nil) (eq y nil)) (nil) (+ x y)
 # return nil if not found, or 0 based index of the first match
 indexof l x = if (eq l nil) (nil) (if (eq x (head l)) (0) (index_combine 1 (indexof (tail l) x ) ) )
+
+# position does the same thing as indexof, but takes the args in opposite order
+position l x = indexof x l
+
+# find returns x if x is present inside l, otherwise returns nil. note: if x is nil, will always return false
+find x l = if (eq l nil) false
+  if (eq (head l) x) x
+    find x (tail l)
+
+# count returns the number of times x appears in l
+count x l = count-if (eq x) l
+
+# count-if returns the number of times x satifies f in l, f must take a single argument
+# eg. count-if odd? [ 3, 1 ] gives number: 2
+count-if f l = if (eq l nil) 0
+  + (f (head l) 1 0) (count-if f (tail l))
+
+# remove any x's found in list
+remove x l = remove-if (eq x) l
+
+# remove any elements where f evals to true, f must take exactly one argument
+remove-if f l  = if (eq l nil) nil
+  if (f (head l)) (remove-if f (tail l))
+    cons (head l) (remove-if f (tail l))
+
+
+# make a new list by applying func (which takes exactly 1 arg) to each element of list
+# eg. map (+ 1) [ 4, 27, 54 ] gives cons: [5, 28, 55]
+map func list = list (\h t D . cons (func h) (map func t)) nil
+
+# make a new function that takes two args in opposite order than the original function
+# eq. flip cons nil 1 gives cons: [1]
+flip f a b = f b a
+
+# call func on the arguments of list two at a time to 'join' them however func chooses to do so
+# if the list is only one element long, just return the first element
+# eg. reduce + [ 3, 5] gives number: 8
+reduce func list = if (eq list nil) nil
+  if (eq 1 (length list)) (head list)
+    func (head list) (reduce func (tail list))
 
 
 # simple list constructor syntax
