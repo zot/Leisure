@@ -9,22 +9,32 @@
     <script src="ttt.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
     <script>
-	spot = 0
-	ids = [ "X1", "O1", "X2", "O2", "X3", "O3", "X4", "O4", "X5", "O5" ]
-	x_offsets = [ 120, 210, 300]
-	y_offsets = [ 5, 105, 205 ]
 
-	// js [ "moveNextPiece()" ]
-      function moveNextPiece() {
-	id = ids[ spot]
-	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
-	row = Math.floor(spot / 3)
-	col = spot % 3
-
-        piece.setAttribute('transform', 'translate(' + x_offsets[ col ] + ', ' + y_offsets [ row ] + ')')
-        id = "O1"
-	++spot
+	// b will be a string of 9 chars, either space, X, or O
+      function showBoard(b) {
+	xIndex = 0
+        oIndex = 0
+        for (var i = 0; i < b.length; ++i) {
+          p = b[i]
+          if (p == 'X') movePiece(p, ++xIndex, i)
+          else if (p == 'O') movePiece(p, ++oIndex, i)
+        }
       }
+
+	// move a piece onto the board
+      function movePiece(prefix, index, spotIndex) {
+	id = prefix + index
+	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
+	spotId = "spot" + spotIndex
+	spot = document.getElementById('scene').getSVGDocument().getElementById(spotId);
+	w_x = (spot.getBBox().width - piece.getBBox().width) / 2.0
+	w_y = (spot.getBBox().height - piece.getBBox().height) / 2.0
+	delta_x = spot.getBBox().x - piece.getBBox().x + w_x
+	delta_y = spot.getBBox().y - piece.getBBox().y + w_y
+	//alert("piece: " + id + " => " + spotId + " d_x: " + delta_x + " d_y: " + delta_y)
+	piece.setAttribute('transform', 'translate(' + delta_x + ', ' + delta_y + ')')
+      }
+
       function init() {
         var input = document.getElementById('input')
         var output = document.getElementById('output')
