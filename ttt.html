@@ -9,15 +9,19 @@
     <script src="ttt.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
     <script>
-      id = "X1"
-      spot = 0
+	spot = 0
+	ids = [ "X1", "O1", "X2", "O2", "X3", "O3", "X4", "O4", "X5", "O5" ]
+	x_offsets = [ 120, 210, 300]
+	y_offsets = [ 5, 105, 205 ]
 
 	// js [ "moveNextPiece()" ]
       function moveNextPiece() {
+	id = ids[ spot]
 	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
-	x = 0
-	y = -280
-        piece.setAttribute('transform', 'translate(' + x + ', ' + y + ')')
+	row = Math.floor(spot / 3)
+	col = spot % 3
+
+        piece.setAttribute('transform', 'translate(' + x_offsets[ col ] + ', ' + y_offsets [ row ] + ')')
         id = "O1"
 	++spot
       }
@@ -68,14 +72,11 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
     <table style="vertical-align: top; width: 100%; height: 100%">
-<<<<<<< HEAD
       <tr style="height: 400px">
 	<td colspan="2">
 	  <object id="scene" data="ttt.svg" type="image/svg+xml" onload="loadedBoard()"></object>
 	</td>
       </tr>
-=======
->>>>>>> origin/gh-pages
       <tr style="height: 1.5em"><td colspan="2">
 	  <div style="height: 100%; position: relative">
 	    <div><b>Definitions</b></div>
