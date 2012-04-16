@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, root, write;
+  var Pretty, clearEnv, clearOutput, envFrame, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -14,6 +14,8 @@
   input = null;
 
   write = null;
+
+  envFrame = null;
 
   init = function init(inputField, output, defs) {
     write = function write(line) {
@@ -33,6 +35,7 @@
       }
       return ReplCore.processResult(result);
     });
+    ReplCore.setResetFunc(clearEnv);
     input = inputField;
     input.onkeypress = function onkeypress(e) {
       if ((e.charCode || e.keyCode || e.which) === 13) {
@@ -43,12 +46,62 @@
     return input.select();
   };
 
+  reloadEnv = function reloadEnv() {
+    return envFrame.contentWindow.location.reload();
+  };
+
+  clearOutput = function clearOutput() {
+    var o;
+    o = document.getElementById('output');
+    o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Lazp\'s standard functions.\n\n';
+    ReplCore.help();
+    return o.innerHTML += '\n';
+  };
+
+  clearEnv = function clearEnv(clearEnv) {
+    var env, newEnv;
+    document.getElementById('defs').innerHTML = "";
+    env = document.getElementById('env');
+    document.body.removeChild(env);
+    newEnv = document.createElement('iframe');
+    newEnv.id = 'env';
+    newEnv.setAttribute("style", "display: none");
+    newEnv.setAttribute("onload", "Repl.useIframe(this)");
+    return document.body.appendChild(newEnv);
+  };
+
+  useIframe = function useIframe(envFr) {
+    var env, i, v, _ref;
+    if (envFr) {
+      root.envFrame = envFrame = envFr;
+      env = envFrame.contentWindow;
+      for (i in lazpFuncs) {
+        v = lazpFuncs[i];
+        env[i] = v;
+      }
+      Lazp.setEvalFunc(env, env.eval);
+      _ref = {
+        Lazp: Lazp,
+        ReplCore: ReplCore,
+        Repl: Repl,
+        lazpFuncs: {},
+        macros: {}
+      };
+      for (i in _ref) {
+        v = _ref[i];
+        env[i] = v;
+      }
+      env.eval("global = window;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineMacro = Lazp.defineMacro;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.lazpGetFuncs = function lazpGetFuncs() {\n    return lll\n  }\n  global.lazpSetFuncs = function lazpSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.lazpAddFunc = function lazpAddFunc(func) {\n    lll = Lazp.cons(func, lll)\n  }\n})()");
+      return clearOutput();
+    }
+  };
+
   markupDef = function markupDef(src, ast) {
     var defType, leading, match, matched, name;
     if (src.match(/^\s*#/)) src;
     if ((match = src.match(Lazp.linePat))) {
       matched = match[0], leading = match[1], name = match[2], defType = match[3];
-      return "<b>" + name + "</b> " + defType + " " + (src.substring(matched.length));
+      return "<div><b>" + name + "</b> " + defType + " " + (src.substring(matched.length)) + "</div>";
     } else {
       return line;
     }
@@ -89,5 +142,11 @@
   root.markupLines = markupLines;
 
   root.handleFiles = handleFiles;
+
+  root.useIframe = useIframe;
+
+  root.reloadEnv = reloadEnv;
+
+  root.clearEnv = clearEnv;
 
 }).call(this);

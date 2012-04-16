@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, P, Prim, U, compileFunc, escape, findDefs, generateCode, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, root, setCompiler, setHandler, setHelp, setNext, setWriter, vars, write, writeFunc,
+  var Lazp, P, Prim, U, compileFunc, escape, findDefs, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -37,12 +37,19 @@
     return nextFunc = n;
   };
 
+  resetFunc = null;
+
+  setResetFunc = function setResetFunc(func) {
+    return resetFunc = func;
+  };
+
   getType = Lazp.getType;
 
   handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
-    if (ast && ast.err) {
-      write("ERROR: " + ast.err);
-      return next();
+    if (a) write("PREPARED: " + (Lazp.prepare(src)));
+    if ((ast != null) && (ast.err != null)) {
+      write("ERROR: " + ast.err + "\n");
+      return nextFunc();
     } else {
       if (a) {
         write("PARSED: " + (Lazp.astPrint(ast)) + "\n");
@@ -50,9 +57,9 @@
       }
       if (c) write("GEN: " + ast.src + "\n");
       if (r) {
-        if (!result) {
+        if (!(result != null)) {
           write("(No Result)\n");
-          return next();
+          return nextFunc();
         } else {
           write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
           return processResult(result);
@@ -66,7 +73,7 @@
   };
 
   helpFunc = function helpFunc() {
-    return write("Type a Lazp expression or one of these commands and hit enter:\n\n:h -- display this help\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n!code -- eval JavaScript code\n");
+    return write("Type a Lazp expression or one of these commands and hit enter:\n\n:h -- display this help\n:c filename -- compile file\n:r -- reset the Lazp environment\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the lazp environment\n!! code -- eval JavaScript code in the host environment\n");
   };
 
   setHelp = function setHelp(h) {
@@ -128,17 +135,25 @@
   };
 
   processLine = function processLine(line) {
-    var a, ast, c, err, m, r, result, _ref, _ref2, _ref3;
+    var a, ast, c, err, err1, l, m, r, result, _ref, _ref2, _ref3, _ref4;
     try {
       if (line) {
         if (line[0] === '!') {
-          result = eval(line.substr(1));
-          result = U != null ? U.inspect(result) : result;
-          write(result, "\n");
+          if (line[1] === '!') {
+            result = eval(line.substr(2));
+            result = U != null ? U.inspect(result) : result;
+            write(result, "\n");
+          } else {
+            result = Lazp.eval(line.substr(1));
+            result = U != null ? U.inspect(result) : result;
+            write(result, "\n");
+          }
         } else if ((m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/))) {
           handleVar(m[2], m[3]);
         } else if ((m = line.match(/^:c\s*([^\s]*)$/))) {
           return compileFunc(m[1]);
+        } else if ((m = line.match(/^:r/))) {
+          resetFunc();
         } else {
           switch (line) {
             case ':h':
@@ -149,15 +164,18 @@
               break;
             default:
               _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-              _ref2 = Lazp.compileNext(line), ast = _ref2[0], err = _ref2[1];
-              if (r) {
-                _ref3 = err ? [
-                  {
-                    err: err
-                  }, err
-                ] : Lazp.evalNext(line), ast = _ref3[0], result = _ref3[1];
+              _ref2 = Lazp.prepare(line), l = _ref2[0], err1 = _ref2[1];
+              _ref3 = Lazp.compileNext(l, getGlobals(), false, false), ast = _ref3[0], err = _ref3[1];
+              if ((err1 != null) || (err != null)) {
+                if (ast != null) {
+                  ast.err = err1 != null ? err1 : err;
+                } else {
+                  ast = {
+                    err: err1 != null ? err1 : err
+                  };
+                }
               } else {
-                result = null;
+                _ref4 = r ? Lazp.evalNext(l) : [ast, null], ast = _ref4[0], result = _ref4[1];
               }
               return handlerFunc(ast, result, a, c, r, line);
           }
@@ -173,45 +191,69 @@
     return str.replace(/\n/g, '\\n');
   };
 
-  generateCode = function generateCode(file, contents, loud, handle) {
-    var a, ast, c, code, err, errs, globals, m, nm, oldRest, out, r, rest, src, _ref, _ref2;
+  generateCode = function generateCode(file, contents, loud, handle, nomacros) {
+    var a, ast, c, code, defs, err, errs, globals, i, m, nm, oldRest, out, r, rest, src, v, _len, _ref, _ref2, _ref3, _ref4;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = "if (typeof require !== \"undefined\" && require !== null) {\n  Lazp = require(\"./lazp\")\n  require('./std');\n  require('./prim');\n  ReplCore = require(\"./replCore\");\n  Repl = require('./repl');\n}\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n";
+    out = "(function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.laz(p)?/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Lazp = require('./lazp');\n  Lazp.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\nvar setType = Lazp.setType;\nvar setDataType = Lazp.setDataType;\nvar define = Lazp.define;\nvar defineMacro = Lazp.defineMacro;\nvar defineToken = Lazp.defineToken;\nvar processResult = Repl.processResult;\n";
     errs = '';
-    globals = findDefs(file, contents);
-    rest = contents;
+    globals = findDefs(file, contents, nomacros);
+    defs = [];
+    _ref = Lazp.prepare(contents), rest = _ref[0], err = _ref[1];
+    if (err) throw new Error(err);
+    out += "\nvar";
+    _ref2 = globals.toArray();
+    for (i = 0, _len = _ref2.length; i < _len; i++) {
+      v = _ref2[i];
+      if (i > 0) out += ",";
+      out += " " + (Lazp.nameSub(v));
+    }
+    out += ";\n";
+    globals = Lazp.append(globals, getGlobals());
     while (rest) {
       oldRest = rest;
-      _ref = Lazp.compileNext(rest, globals), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      _ref3 = Lazp.compileNext(rest, globals, null, false, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
       code = rest ? oldRest.substring(0, oldRest.length - rest.length) : '';
-      if (ast) {
-        globals = ast.globals;
-        if (ast.err != null) errs = "" + errs + ast.err + "\n";
-        m = code.match(Lazp.linePat);
-        if (m && m[3]) nm = m[2].trim().split(/\s+/)[0];
-        ast.src = "//" + (nm ? nm + ' = ' : '') + (escape(Lazp.astPrint(ast))) + "\n" + ast.src;
-        src = ast.lazpName ? ast.src : "processResult(" + ast.src + ")";
-        out += "" + src + ";\n";
-        _ref2 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref2[0], c = _ref2[1], r = _ref2[2];
-        if (handle) handlerFunc(ast, null, a, c, r, code);
-      } else if (err) {
-        errs = "" + errs + err + "\n";
+      err = err != null ? err : ast != null ? ast.err : void 0;
+      if (err) {
+        errs = "" + errs + ((ast != null ? ast.lazpName : void 0) ? "Error in " + ast.lazpName : "") + err + "\n";
         rest = '';
+      } else if (ast) {
+        globals = ast.globals;
+        m = code.match(Lazp.linePat);
+        nm = ast.lazpName;
+        ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(P.print(ast))) + "\n" + (nm != null ? "root.defs." + (Lazp.nameSub(nm)) + " = " + (Lazp.nameSub(nm)) + " = " : "") + ast.src;
+        src = ast.lazpName ? (defs.push(Lazp.nameSub(ast.lazpName)), ast.src) : "processResult(" + ast.src + ")";
+        out += "" + src + ";\n";
+        _ref4 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref4[0], c = _ref4[1], r = _ref4[2];
+        if (handle) handlerFunc(ast, null, a, c, r, code);
       }
     }
+    out += "\nif (typeof window !== 'undefined' && window !== null) {\n  Lazp.processTokenDefs(root.tokenDefs);\n}\nreturn root;\n}).call(this)";
     if (errs !== '') throw new Error("Errors compiling " + file + ": " + errs);
     return out;
   };
 
-  findDefs = function findDefs(file, contents) {
+  getGlobals = function getGlobals() {
+    return Lazp.eval('lazpGetFuncs()');
+  };
+
+  findDefs = function findDefs(file, contents, nomacros) {
     var ast, err, errs, globals, oldRest, rest, _ref;
     errs = '';
     globals = Lazp.Nil;
     rest = contents;
     while (rest) {
       oldRest = rest;
-      _ref = Lazp.compileNext(rest, globals, true), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      _ref = Lazp.compileNext(rest, globals, true, null, nomacros), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      if (err) {
+        errs = "" + errs + (ast.lazpName ? "Error in " + ast.lazpName : "") + err + "\n";
+      }
       if (ast != null ? ast.lazpName : void 0) {
+        if (globals != null ? globals.find(function(v) {
+          return v === ast.lazpName;
+        }) : void 0) {
+          throw new Error("Attempt to redefine function: " + ast.lazpName);
+        }
         globals = Lazp.cons(ast.lazpName, globals);
       }
     }
@@ -244,5 +286,7 @@
   root.generateCode = generateCode;
 
   root.processResult = processResult;
+
+  root.setResetFunc = setResetFunc;
 
 }).call(this);

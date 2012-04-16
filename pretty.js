@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, U, elements, getType, inspect, listDo, print, printApply, printLambda, root;
+  var Lazp, U, elements, getType, inspect, listDo, print, printApply, printLambda, root, subprint;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -31,6 +31,25 @@
   };
 
   print = function print(f) {
+    if (!(f != null)) {
+      return "UNDEFINED";
+    } else if (f === null) {
+      return 'NULL';
+    } else {
+      switch (getType(f)) {
+        case 'lit':
+        case 'ref':
+        case 'lambda':
+        case 'apply':
+          return "AST(" + (subprint(f)) + ")";
+        default:
+          return subprint(f);
+      }
+    }
+  };
+
+  subprint = function subprint(f) {
+    var _ref;
     if (!(f != null)) {
       return "UNDEFINED";
     } else if (f === null) {
@@ -71,8 +90,34 @@
               };
             };
           });
+        case 'some':
+          return f(function() {
+            return function(v) {
+              return "Some(" + (print(v())) + ")";
+            };
+          })(null);
+        case 'some2':
+          return f(function() {
+            return function(a) {
+              return function(b) {
+                return "Some2(" + (print(a())) + ", " + (print(b())) + ")";
+              };
+            };
+          })(null);
+        case 'left':
+          return f(function() {
+            return function(l) {
+              return "Left(" + (print(l())) + ")";
+            };
+          })(null);
+        case 'right':
+          return f(null)(function() {
+            return function(r) {
+              return "Right(" + (print(r())) + ")";
+            };
+          });
         default:
-          return inspect(f);
+          return (_ref = f != null ? f.lazpName : void 0) != null ? _ref : inspect(f);
       }
     }
   };
@@ -87,14 +132,14 @@
         };
       });
     } else {
-      return "" + v + " . " + (print(body));
+      return "" + v + " . " + (subprint(body));
     }
   };
 
   printApply = function printApply(func, arg) {
     var a, f;
-    f = func.type === 'lambda' ? "(" + (print(func)) + ")" : print(func);
-    a = arg.type === 'apply' ? "(" + (print(arg)) + ")" : print(arg);
+    f = func.type === 'lambda' ? "(" + (subprint(func)) + ")" : subprint(func);
+    a = arg.type === 'apply' ? "(" + (subprint(arg)) + ")" : subprint(arg);
     return "" + f + " " + a;
   };
 
@@ -102,7 +147,7 @@
     if (getType(l) === 'nil') {
       return '';
     } else if (getType(l) !== 'cons') {
-      return " . " + (print(l));
+      return " | " + (print(l));
     } else {
       return "" + (first ? '' : ', ') + (listDo(l, function(h, t) {
         return print(h) + elements(t, false);

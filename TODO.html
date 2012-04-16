@@ -16,34 +16,25 @@
 <h1>TODO</h1>
 
 <ul>
-<li>Run Lazp in sandbox
+<li>integrate physics engine</li>
+<li>make [ a macro and remove need for commas
 <ul>
-<li>lazp.cs, std.laz, prim.cs run in a sandbox
-<ul>
-<li>in browser, use an iframe with ifr.contentWindow.eval() to communicate
-<ul>
-<li>iframe.contentWindow holds globals</li>
-<li>allow user to show or hide iframe (it's where SVG etc can be)</li>
+<li>add helper function for defining [ macros, for varargs</li>
+<li>bubba[ x x x ] seems like it would work as a token, because tokens are sorted by length, for matching purposes.</li>
+<li>or[, and[, js[, concat[</li>
 </ul></li>
-<li>in node, use VM.createContext and VM.runInContext to communicate
-<ul>
-<li>context holds globals</li>
-</ul></li>
-</ul></li>
-<li>repl uses sandbox
-<ul>
-<li>allows for reloading, etc.</li>
-</ul></li>
-</ul></li>
-<li>indentation tweak
-<ul>
-<li>indent line creates a nested expression</li>
-</ul></li>
-<li>throw error on undeclared variables -- require quotes for strings
-<ul>
-<li>macros should generate a wrapper at compile-time so that we can define things like let</li>
-<li>need a way to handle macros</li>
-</ul></li>
+<li>:d command to show how a function is defined</li>
+<li>multiline REPL</li>
+<li>allow redefinition in REPL exprs</li>
+<li>multiline comments and strings, ala CoffeeScript</li>
+<li>cond macro</li>
+<li>better errors for file problems</li>
+<li>when there are parsing or compilation errors, show which function has the problem</li>
+<li>if reqs aren't present when runing in browser, show error in output area or use alert if not in repl</li>
+<li>allow eval to take either a string or an AST</li>
+<li>add assertMonad() to testing.cs</li>
+<li>fold, map, etc. for asts</li>
+<li>implement options that are monads and also support util functions</li>
 <li>need supertypes or something for things like booleans (true or false)</li>
 <li>-g option
 <ul>
@@ -52,7 +43,7 @@
 </ul></li>
 <li>log function that prints while running (side effect)</li>
 <li>:l should load file</li>
-<li>scroll to bottom on eval</li>
+<li>scroll to bottom of browser on eval</li>
 <li>example that reads strings and prints them until the user types 'quit'</li>
 <li>:p to show primitives</li>
 <li>infix function call syntax
@@ -65,7 +56,45 @@
 <li>since cons is a global ref, cons a b -> <em>cons(a, b), instead of _cons()(a)(b)</li>
 <li>cons a -> function(</em>1){return _cons(a, _1)}</li>
 </ul></li>
-<li>integrate physics engine</li>
+<li>reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)</li>
+<li>string functions</li>
+<li>Lazp configuration environment
+<ul>
+<li>pretty-printers for types</li>
+<li>named parsers</li>
+</ul></li>
+<li>Data structures
+<ul>
+<li>AMTs</li>
+</ul></li>
+<li>Lazp-code for pretty printing</li>
+<li>Use Lazp for parser, generator, REPL; compile them and use the JS for them
+<ul>
+<li>this will help people extend Lazp</li>
+</ul></li>
+<li>generator improvements
+<ul>
+<li>eliminate redundant memo/deref pairs</li>
+</ul></li>
+<li><a href="http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm">optimistic evaluation</a>?</li>
+</ul>
+
+<h1>DONE</h1>
+
+<ul>
+<li>add floating point numbers to tokenDefs</li>
+<li>let</li>
+<li>throw error on undeclared variables -- require quotes for strings
+<ul>
+<li>parser macros should generate a wrapper at compile-time so that we can define things like let</li>
+<li>need a way to handle macros</li>
+</ul></li>
+<li>parse primitive</li>
+<li>replace withType with getType that returns an option</li>
+<li>indentation tweak
+<ul>
+<li>indent line creates a nested expression</li>
+</ul></li>
 </ul>
 
 <blockquote>
@@ -93,19 +122,6 @@ print "OK, we're done." end</p>
 <p></blockquote></p>
 
 <ul>
-<li>reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)</li>
-<li>string functions</li>
-<li>Lazp configuration environment
-<ul>
-<li>pretty-printers for types</li>
-<li>named parsers</li>
-</ul></li>
-<li>AMTs</li>
-<li>Lazp-code for pretty printing</li>
-<li>Use Lazp for parser, generator, REPL; compile them and use the JS for them
-<ul>
-<li>this will help people extend Lazp</li>
-</ul></li>
 <li>parser improvements
 <ul>
 <li>a-b recursion?
@@ -113,16 +129,27 @@ print "OK, we're done." end</p>
 <li>it could do a pass to get function names, first</li>
 </ul></li>
 </ul></li>
-<li>generator improvements
+<li>:r resets env in REPL</li>
+<li>disallow redefinition</li>
+<li>Run Lazp in sandbox
 <ul>
-<li>eliminate redundant memo/deref pairs</li>
+<li>lazp.cs, std.laz, prim.cs run in a sandbox
+<ul>
+<li>in browser, use an iframe with ifr.contentWindow.eval() to communicate
+<ul>
+<li>iframe.contentWindow holds globals</li>
+<li>allow user to show or hide iframe (it's where SVG etc can be)</li>
 </ul></li>
-<li><a href="http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm">optimistic evaluation</a>?</li>
-</ul>
-
-<h1>DONE</h1>
-
+<li>in node, use VM.createContext and VM.runInContext to communicate
 <ul>
+<li>context holds globals</li>
+</ul></li>
+</ul></li>
+<li>repl uses sandbox
+<ul>
+<li>allows for reloading, etc.</li>
+</ul></li>
+</ul></li>
 <li>pretty print code</li>
 <li>runRepl file should compile the file, eval it, and then stay in the REPL</li>
 <li>get ! working on browser</li>
