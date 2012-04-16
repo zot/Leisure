@@ -609,7 +609,6 @@ misrepresented as being the original software.
     if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
       if (name[0] === ' ') {
-        console.log("DEF: " + (require('util').inspect(def)));
         name = null;
         defType = null;
         nm = null;

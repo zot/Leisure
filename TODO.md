@@ -1,6 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
 * integrate physics engine
+* doc comments
 * make \[ a macro and remove need for commas
    * add helper function for defining \[ macros, for varargs
    * bubba\[ x x x \] seems like it would work as a token, because tokens are sorted by length, for matching purposes.

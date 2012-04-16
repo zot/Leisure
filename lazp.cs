@@ -309,7 +309,6 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
   if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     if name[0] == ' '
-      console.log "DEF: #{require('util').inspect(def)}"
       name = null
       defType = null
       nm = null
