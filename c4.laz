@@ -41,7 +41,7 @@ playMove p b c = fill_spot p b (find_empty_spot b c)
 playMoves p b l = if (eq l nil)
   b
   let
-    new_b <- playMove p b (head l)
+    new_b = playMove p b (head l)
     playMoves p new_b (tail l)
 
 
@@ -108,7 +108,7 @@ rDiagWinSpots = [[3, 8, 13, 18], [4, 9, 14, 19], [9, 14, 19, 24], [5, 10, 15, 20
 
 testMoves p b l = if (eq l nil) b
   let
-    new_b <- fill_spot p b (head l)
+    new_b = fill_spot p b (head l)
     testMoves p new_b (tail l)
 testWins2 b grp = showBoard (testMoves 'W' b grp)
 testWins b spots = if (eq spots nil) nil
@@ -125,7 +125,7 @@ testVert = testWins startBoard vertWinSpots
 
 # check the four spots in this list to see if they all match one player
 check_group b l = let
-  check <- concat [ (at b (at l 0)), (at b (at l 1)), (at b (at l 2)), (at b (at l 3)) ]
+  check = concat [ (at b (at l 0)), (at b (at l 1)), (at b (at l 2)), (at b (at l 3)) ]
   if (eq check player1Win) player1
     if (eq check player2Win) player2
       empty
@@ -134,16 +134,16 @@ check_group b l = let
 loop_spots b spots = if (eq spots nil)
   empty
   let
-    grp <- check_group b (head spots)
+    grp = check_group b (head spots)
     if (neq grp empty) grp (loop_spots b (tail spots))
 
 # see if any of the precomputed list of winning groups are all owned by the same player
 win? b =
   let
-    spot1 <- loop_spots b horzWinSpots
-    spot2 <- loop_spots b vertWinSpots
-    spot3 <- loop_spots b lDiagWinSpots
-    spot4 <- loop_spots b rDiagWinSpots
+    spot1 = loop_spots b horzWinSpots
+    spot2 = loop_spots b vertWinSpots
+    spot3 = loop_spots b lDiagWinSpots
+    spot4 = loop_spots b rDiagWinSpots
     if (neq spot1 empty) spot1
       if (neq spot2 empty) spot2
         if (neq spot3 empty) spot3

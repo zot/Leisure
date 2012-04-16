@@ -227,11 +227,14 @@ m_varFromTuple ast token = is ast apply
 ###########
 add-hash k v hashmap = cons (cons k v) (remove-hash k hashmap)
 
-get-cons k hashmap = find-if (\x . eq (head x) k) hashmap
-#get-value k hashmap = 
-
 key cons = head cons
 value cons = tail cons
+
+get-pair k hashmap = find-if (\x . eq (head x) k) hashmap
+get-value k hashmap = (\pair. if (eq pair nil) nil (value pair)) (get-pair k hashmap)
+
+#foo = add-hash a 3 nil
+
 
 remove-hash k hashmap = remove-if (\x . eq (head x) k) hashmap
 

@@ -23,7 +23,7 @@ var defineMacro = Lazp.defineMacro;
 var defineToken = Lazp.defineToken;
 var processResult = Repl.processResult;
 
-var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _compose, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _any, _all, _index_combine, _indexof, _position, _find, _find$nif, _count, _count$nif, _count$nif$nnot, _remove, _remove$nif, _remove$nif$nnot, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _add$nhash, _get$ncons, _get$nvalue, _value, _remove$nhash;
+var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _compose, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _any, _all, _index_combine, _indexof, _position, _find, _find$nif, _count, _count$nif, _count$nif$nnot, _remove, _remove$nif, _remove$nif$nnot, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _add$nhash, _get$ncons, _key, _value, _remove$nhash;
 //id = AST(\x . x)
 root.defs._id = _id = define('id', function(_x){return _x()});
 ;
