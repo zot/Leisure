@@ -180,39 +180,41 @@ do apl =M= apl \f a . m_subdo a f
 m_subdo a f = or (is f ref) (is f lit)
   a
   f \f2 a2 . m_subdo
-    m_extractVar a2
+    m_extractVar a2 '<-'
       \v ast . apply (apply (ref 'bind') ast) (lambda v a)
-      apply (apply (ref 'bind') a2) (lambda '_' a)
+      m_extractVar a2 '='
+        \v ast . apply (lambda v a) ast
+        apply (apply (ref 'bind') a2) (lambda '_' a)
     f2
 
 let apl =M= apl \f a . m_sublet f a
 
 m_sublet f a = or (is f ref) (is f lit)
   a
-  f \f2 a2 . m_extractVar a2
+  f \f2 a2 . m_extractVar a2 '='
     \v ast . m_sublet f2 (apply (lambda v a) ast)
     apply a a2
 
-# m_extractVar ast
+# m_extractVar ast '<-'
 #
 # given (var <- .....), it returns (some2 var ast)
 # otherwise, it returns none
 #
-m_extractVar ast = is ast apply
-  ast \f a .m_varFromTuple f
+m_extractVar ast token = is ast apply
+  ast \f a .m_varFromTuple f token
     \v . some2 v a
-    m_extractVar f
+    m_extractVar f token
       \var ast . some2 var (apply ast a)
       none
   none
 
-# m_extractVar ast
+# m_extractVar ast '<-'
 #
 # given (var <-), it returns (some var), otherwise it returns none
-m_varFromTuple ast = is ast apply
+m_varFromTuple ast token = is ast apply
   ast \f arg . or (is f ref) (is f lit)
     or (is arg ref) (is arg lit)
-      arg \arrow . eq arrow '<-'
+      arg \arrow . eq arrow token
         f \v . some v
         none
       none
