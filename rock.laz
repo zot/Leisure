@@ -7,7 +7,7 @@ main = do
   js ['moveRock()']
 
 clickRock = do
-  e <- event
+  e <- getEvent
   print (concat ['event x: ', (eventX e)])
 
 #

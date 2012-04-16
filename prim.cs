@@ -68,8 +68,9 @@ eventCmds = []
 running = false
 
 lazpEvent = (lazpFuncName)->
-  alert("adding event: #{lazpFuncName}")
-  runMonad Lazp.eval("#{Lazp.nameSub(lazpFuncName)}()"), ->
+  monad = Lazp.eval("(function(evt){window.event = evt; return #{Lazp.nameSub(lazpFuncName)}()})")(event)
+  alert("adding event: #{lazpFuncName}: #{monad}")
+  runMonad monad, ->
 
 addCmd = (cmd)->
 
@@ -98,8 +99,7 @@ makeMonad = (binding, guts)->
   if binding != "end" then m.binding = binding
   m
 
-define 'event', (v)->
-  makeMonad 'end', (cont)->cont(event)
+define 'getEvent', makeMonad 'end', (cont)-> cont(event)
 
 define 'eventX', (evt)-> evt().x
 

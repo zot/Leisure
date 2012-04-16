@@ -207,8 +207,10 @@
   running = false;
 
   lazpEvent = function lazpEvent(lazpFuncName) {
-    alert("adding event: " + lazpFuncName);
-    return runMonad(Lazp.eval("" + (Lazp.nameSub(lazpFuncName)) + "()"), function() {});
+    var monad;
+    monad = Lazp.eval("(function(evt){window.event = evt; return " + (Lazp.nameSub(lazpFuncName)) + "()})")(event);
+    alert("adding event: " + lazpFuncName + ": " + monad);
+    return runMonad(monad, function() {});
   };
 
   addCmd = function addCmd(cmd) {};
@@ -248,11 +250,9 @@
     return m;
   };
 
-  define('event', function(v) {
-    return makeMonad('end', function(cont) {
-      return cont(event);
-    });
-  });
+  define('getEvent', makeMonad('end', function(cont) {
+    return cont(event);
+  }));
 
   define('eventX', function(evt) {
     return evt().x;
