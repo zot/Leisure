@@ -9,6 +9,17 @@
     <script src="ttt.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
     <script>
+      id = "X"
+      spot = 0
+
+      function moveNextPiece() {
+	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
+	x = 13
+	y = 670
+        piece.setAttribute('transform', 'translate(' + x + ', ' + y + ')')
+        id = "O"
+	++spot
+      }
       function init() {
         var input = document.getElementById('input')
         var output = document.getElementById('output')
@@ -56,11 +67,14 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
     <table style="vertical-align: top; width: 100%; height: 100%">
+<<<<<<< HEAD
       <tr style="height: 400px">
 	<td colspan="2">
 	  <object id="scene" data="ttt.svg" type="image/svg+xml" onload="loadedBoard()"></object>
 	</td>
       </tr>
+=======
+>>>>>>> origin/gh-pages
       <tr style="height: 1.5em"><td colspan="2">
 	  <div style="height: 100%; position: relative">
 	    <div><b>Definitions</b></div>

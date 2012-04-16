@@ -60,7 +60,9 @@ showBoard b = print (showBoard2 b)
 
 showStartBoard = showBoard startBoard
 
-playMove p b m = (append (take m b) (append [ p ] (drop (++ m) b) ) )
+playMove p b m = do
+  foo <- js ["moveNextPiece()"]
+  (append (take m b) (append [ p ] (drop (++ m) b) ) )
 
 base_win b cond = (or (eq cond (row b 0)) (or (eq cond (row b 1)) (or (eq cond (row b 2)) (or (eq cond (col b 0)) (or (eq cond (col b 1)) (or (eq cond (col b 2)) (or (eq cond (diag1 b)) (eq cond (diag2 b)) ) ) ) ) ) ) )
 
