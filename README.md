@@ -23,7 +23,9 @@ Lazp supports Python-style indentation, which it replaces with curly braces and 
 <pre><b><big>
 do  
   n <- prompt "What is your name? "  
-  print (concat ["Hello, ", n, ", thank you for joining us."])
+  a <- prompt (concat ["Hello, ", n, ", thank you for joining us.  How old are you?"])
+  seconds = * a 31536000
+  print (concat ["You have been alive more than ", seconds, " seconds."])
 </big></b></pre>
 
 is equivalent to this: **do {n <- prompt "What is your name? "; print (concat ["Hello, ", n, ", thank you for joining us."])}**
@@ -32,9 +34,9 @@ and this:
 
 <pre><b><big>
 let
-  a <- 3
-  b <- + a 1
-  a <- * a b
+  a = 3
+  b = + a 1
+  a = * a b
   [a, b]
 </big></b></pre>
 
@@ -62,7 +64,9 @@ Functions
 
 Macros
 * declaration =M= definition -- declares a macro that runs at parse-time.  Input is the AST for the macro expression and output is a new AST to replace the old one.  Further macro replacement is done on the result.  The identity macro is: **identMacro ast =M= ast**.
-* Do and let are macros.
+* Do and let are macros
+   * let uses = to assign (and reassign) variables and returns the result of an expression using those variables
+   * do uses = like let and uses <- to bind monads
 
 ## AST Function usage
 lit v -- a literal value  

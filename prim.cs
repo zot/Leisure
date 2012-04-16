@@ -5,7 +5,8 @@ if window? and (!global? or global == window)
   output = null
   write = (msg)->
     if !output? then output = document.getElementById('output')
-    output.innerHTML += "#{msg}"
+    output.innerHTML += "<span>#{msg}</span>"
+    output.lastChild.scrollIntoView()
   prompt = (msg, cont)-> cont(window.prompt(msg))
   window.Prim = root = {}
 else

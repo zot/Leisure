@@ -11,11 +11,15 @@ envFrame = null
 
 init = (inputField, output, defs)->
   write = (line)-> defs.innerHTML += line
-  ReplCore.setWriter (line)-> output.innerHTML += line
+  ReplCore.setWriter (line)->
+    output.innerHTML += "<span>#{line}</span>"
+    output.lastChild.scrollIntoView()
   ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r, src)->
     if ast.lazpName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
-    else if result then output.innerHTML += "<b>> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}\n"
+    else if result
+      output.innerHTML += "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
+      output.lastElementChild.scrollIntoView()
     ReplCore.processResult result
   ReplCore.setResetFunc clearEnv
   input = inputField
