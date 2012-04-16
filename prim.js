@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, Pretty, RL, U, addCmd, concatList, define, eventCmds, getType, head, laz, lazpEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, write;
+  var Lazp, Pretty, RL, U, concatList, define, eventCmds, getType, head, laz, lazpEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, values, write;
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
@@ -213,8 +213,6 @@
     return runMonad(monad, function() {});
   };
 
-  addCmd = function addCmd(cmd) {};
-
   runMonad = function runMonad(monad, cont) {
     eventCmds.push(function() {
       return runMonads(monad, function(value) {
@@ -347,6 +345,23 @@
         return cont(null);
       }
     });
+  });
+
+  values = {};
+
+  define('getValue', function(name) {
+    return makeMonad('end', function(cont) {
+      return cont(values[name()]);
+    });
+  });
+
+  define('setValue', function(name) {
+    return function(value) {
+      return makeMonad('end', function(cont) {
+        values[name()] = value();
+        return cont(_false);
+      });
+    };
   });
 
   define('createS', function() {

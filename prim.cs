@@ -72,8 +72,6 @@ lazpEvent = (evt, lazpFuncName)->
   monad = Lazp.eval("#{Lazp.nameSub(lazpFuncName)}()")(laz(evt))
   runMonad monad, ->
 
-addCmd = (cmd)->
-
 runMonad = (monad, cont)->
   eventCmds.push ->
     runMonads monad, (value)->
@@ -142,6 +140,17 @@ define 'browser', (codeList)->
       if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
       cont(eval(concatList(cl)))
     else cont(null)
+
+values = {}
+
+define 'getValue', (name)->
+  makeMonad 'end', (cont)->
+    cont values[name()]
+
+define 'setValue', (name)->(value)->
+  makeMonad 'end', (cont)->
+    values[name()] = value()
+    cont _false
 
 define 'createS', ->
   makeMonad 'end', (cont)->
