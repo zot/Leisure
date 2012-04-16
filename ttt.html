@@ -9,15 +9,16 @@
     <script src="ttt.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
     <script>
-      id = "X"
+      id = "X1"
       spot = 0
 
+	// js [ "moveNextPiece()" ]
       function moveNextPiece() {
 	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
-	x = 13
-	y = 670
+	x = 0
+	y = -280
         piece.setAttribute('transform', 'translate(' + x + ', ' + y + ')')
-        id = "O"
+        id = "O1"
 	++spot
       }
       function init() {
