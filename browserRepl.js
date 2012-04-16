@@ -22,7 +22,8 @@
       return defs.innerHTML += line;
     };
     ReplCore.setWriter(function(line) {
-      return output.innerHTML += line;
+      output.innerHTML += "<span>" + line + "</span>";
+      return output.lastChild.scrollIntoView();
     });
     ReplCore.setNext(function() {
       return input.value = '';
@@ -31,7 +32,8 @@
       if (ast.lazpName != null) {
         defs.innerHTML += "" + (markupDef(src, ast)) + "<br>";
       } else if (result) {
-        output.innerHTML += "<b>> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n";
+        output.innerHTML += "<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n";
+        output.lastElementChild.scrollIntoView();
       }
       return ReplCore.processResult(result);
     });
