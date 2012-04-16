@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, Pretty, RL, U, addCmd, concatList, define, eventCmds, getType, head, laz, lazpEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, write;
+  var Lazp, Pretty, RL, U, addCmd, concatList, currentEvent, define, eventCmds, getType, head, laz, lazpEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, write;
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
@@ -206,10 +206,12 @@
 
   running = false;
 
+  currentEvent = null;
+
   lazpEvent = function lazpEvent(evt, lazpFuncName) {
     var monad;
-    monad = Lazp.eval("(function(evt){window.event = evt; return " + (Lazp.nameSub(lazpFuncName)) + "()})")(evt);
-    alert("handling event: " + evt + ", handler: " + lazpFuncName + ", monad: " + monad);
+    currentEvent = evt;
+    monad = Lazp.eval("" + (Lazp.nameSub(lazpFuncName)) + "()");
     return runMonad(monad, function() {});
   };
 
@@ -251,7 +253,7 @@
   };
 
   define('getEvent', makeMonad('end', function(cont) {
-    return cont(event);
+    return cont(currentEvent);
   }));
 
   define('eventX', function(evt) {
