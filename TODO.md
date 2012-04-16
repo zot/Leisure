@@ -1,10 +1,18 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* add prelude.laz
+   * put parser macros in there
+* better browser environment
+   * left side should be an editor
+   * loading files should load them into the editor
+   * input should be in a blinking box on the right side, not in an alert box
+   * should be able to load *.laz files into the environment
 * integrate physics engine
 * doc comments
 * make \[ a macro and remove need for commas
+   * allow macros to define tokens
    * add helper function for defining \[ macros, for varargs
-   * bubba\[ x x x \] seems like it would work as a token, because tokens are sorted by length, for matching purposes.
+   * bubba\[ x x x \] seems like it would work fine as a token, because tokens are sorted by length, for matching purposes.
    * or\[, and\[, js\[, concat\[
 * :d command to show how a function is defined
 * multiline REPL

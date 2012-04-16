@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <script src="lazp.js"></script>
+    <script src="prim.js"></script>
+    <script src="replCore.js"></script>
+    <script src="pretty.js"></script>
+    <script src="browserRepl.js"></script>
+    <script src="std.js"></script>
+    <script src="c4.js"></script>
+    <script src="jquery-1.7.2.min.js"></script>
+    <script>
+      function init() {
+        var input = document.getElementById('input')
+        var output = document.getElementById('output')
+        var defs = document.getElementById('defs')
+
+        try {
+          $.ajax({
+            url: 'std.laz',
+            success: function(data){stdDefs = data},
+            error: function(){changeStdLinks()}
+          });
+        } catch (err) {
+          changeStdLinks()
+        }
+        Repl.init(input, output, defs)
+        clearOutput()
+      }
+      function changeStdLinks() {
+        changeStdLink('stdDefsLink1')
+        changeStdLink('stdDefsLink2')
+      }
+      function changeStdLink(name) {
+        var d = document.getElementById(name)
+
+        d.setAttribute('href', "std.laz")
+        d.setAttribute('target', "_blank")
+      }
+      function getStdDefs() {
+        document.getElementById('defs').innerHTML += Repl.markupLines(stdDefs) + "<br>"
+      }
+      function clearOutput() {
+        var o = document.getElementById('output')
+
+        o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Lazp\'s standard functions.\n\n'
+        ReplCore.help()
+        o.innerHTML += '\n'
+      }
+    </script>
+    <style>
+      .cell {
+        vertical-align: top;
+        border: solid black 1px;
+      }
+    </style>
+  </head>
+  <body onload="init()" style="border: 0; padding: 0; margin: 0">
+    <table style="vertical-align: top; width: 100%; height: 100%">
+      <tr style="height: 1.5em"><td colspan="2">
+	  <div style="height: 100%; position: relative">
+	    <div><b>Definitions</b></div>
+	    <div style="position: absolute; top: 0; right: 0"> </div>
+	    <div style="text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Lazp</i></b></div>
+	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a> <button onclick="clearOutput()">Clear</button> <b>Output</b></div>
+	  </div>
+	</td>
+      </tr>
+      <tr style="height: 100%">
+	<td class="cell" style="width: 50%">
+	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
+	    <pre id="defs" style="position: absolute; width: 100%; margin: 0"></pre>
+	  </div>
+	</td>
+	<td class="cell" style="width: 50%">
+	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
+	    <pre id="output" style="position: absolute; width: 100%; margin: 0"></pre>
+	  </div>
+	</td>
+      </tr>
+      <tr style="height: 0"><td colspan="2" class="cell"><table style="width: 100%; white-space: nowrap"><tr><td style="width: 100%"><input id="input" type="text" style="width: 100%; margin: 0"></td><td style="width: 0"><div>Load file: <input type="file" onchange="Repl.handleFiles(this)"></input><button onclick="Repl.clearEnv()">Clear</button></td></tr></table></td></tr>
+    </table>
+    <iframe duh="1" id="env" style="display: none" onload="Repl.useIframe(this)"></iframe>
+  </body>
+</html>
