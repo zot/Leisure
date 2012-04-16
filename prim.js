@@ -295,6 +295,21 @@
     });
   });
 
+  define('browser', function(codeList) {
+    return makeMonad('end', function(cont) {
+      var cl;
+      if (typeof window !== "undefined" && window !== null) {
+        cl = codeList();
+        if (cl !== _nil() && cl.type !== 'cons') {
+          throw new Error("js expects a list for its code");
+        }
+        return cont(eval(concatList(cl)));
+      } else {
+        return cont(null);
+      }
+    });
+  });
+
   define('createS', function() {
     return makeMonad('end', function(cont) {
       return cont({

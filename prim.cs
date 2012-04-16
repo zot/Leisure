@@ -109,6 +109,14 @@ define 'js', (codeList)->
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
     cont(eval(concatList(cl)))
 
+define 'browser', (codeList)->
+  makeMonad 'end', (cont)->
+    if window?
+      cl = codeList()
+      if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
+      cont(eval(concatList(cl)))
+    else cont(null)
+
 define 'createS', ->
   makeMonad 'end', (cont)->
     cont {value: null}
