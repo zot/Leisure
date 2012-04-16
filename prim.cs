@@ -1,7 +1,6 @@
-if window? and (!global? or global == window)
+if window?
   # running in a browser
   window.global = window
-  Lazp = window.Lazp
   output = null
   write = (msg)->
     if !output? then output = document.getElementById('output')
@@ -9,6 +8,7 @@ if window? and (!global? or global == window)
     output.lastChild.scrollIntoView()
   prompt = (msg, cont)-> cont(window.prompt(msg))
   window.Prim = root = {}
+  Lazp = window.Lazp
 else
   # running in node
   root = exports ? this
@@ -64,9 +64,29 @@ define 'iszero', (a)-> if 0 == a() then `_true()` else` _false()`
 define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
 ###
 
+eventCmds = []
+running = false
+
+lazpEvent = (evt, lazpFuncName)->
+  currentEvent = evt
+  monad = Lazp.eval("#{Lazp.nameSub(lazpFuncName)}()")(laz(evt))
+  runMonad monad, ->
+
+addCmd = (cmd)->
+
 runMonad = (monad, cont)->
+  eventCmds.push ->
+    runMonads monad, (value)->
+      if eventCmds.length then eventCmds.shift()()
+      running = false
+      cont(value)
+  if !running and eventCmds.length
+    running = true
+    eventCmds.shift()()
+
+runMonads = (monad, cont)->
   monad.cmd (value) ->
-    if monad.binding? then runMonad monad.binding(-> value), cont
+    if monad.binding? then runMonads monad.binding(-> value), cont
     else cont(value)
 
 # Make a new function and hide func and binding in properties on it
@@ -78,6 +98,12 @@ makeMonad = (binding, guts)->
   m.type = 'monad'
   if binding != "end" then m.binding = binding
   m
+
+define 'eventX', (evt)-> evt().x
+
+define 'eventY', (evt)-> evt().y
+
+define 'eventTargetId', (evt)-> evt().target.id
 
 define 'return', (v)->
   makeMonad 'end', (cont)->cont(v())
@@ -92,7 +118,7 @@ define 'prompt', (msg)->
     prompt(String(msg()), (input)-> cont(input))
 
 define 'bind', (m)->(binding)->
-  makeMonad binding(), (cont)-> runMonad m(), cont
+  makeMonad binding(), (cont)-> runMonads m(), cont
 
 head = (l)->l ->(hh)->(tt)->hh()
 tail = (l)->l ->(hh)->(tt)->tt()
@@ -134,3 +160,6 @@ root.setTty = setTty
 root.runMonad = runMonad
 root.makeMonad = makeMonad
 root.tokenDefs = []
+root.lazpEvent = lazpEvent
+
+if window? then window.lazpEvent = lazpEvent

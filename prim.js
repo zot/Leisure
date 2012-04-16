@@ -1,9 +1,8 @@
 (function() {
-  var Lazp, Pretty, RL, U, concatList, define, getType, head, laz, makeMonad, output, prompt, root, runMonad, setTty, tail, tty, write;
+  var Lazp, Pretty, RL, U, addCmd, concatList, define, eventCmds, getType, head, laz, lazpEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, write;
 
-  if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
+  if (typeof window !== "undefined" && window !== null) {
     window.global = window;
-    Lazp = window.Lazp;
     output = null;
     write = function write(msg) {
       if (!(output != null)) output = document.getElementById('output');
@@ -14,6 +13,7 @@
       return cont(window.prompt(msg));
     };
     window.Prim = root = {};
+    Lazp = window.Lazp;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
     Lazp = require('./lazp');
@@ -202,10 +202,37 @@
   define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
   */
 
+  eventCmds = [];
+
+  running = false;
+
+  lazpEvent = function lazpEvent(evt, lazpFuncName) {
+    var currentEvent, monad;
+    currentEvent = evt;
+    monad = Lazp.eval("" + (Lazp.nameSub(lazpFuncName)) + "()")(laz(evt));
+    return runMonad(monad, function() {});
+  };
+
+  addCmd = function addCmd(cmd) {};
+
   runMonad = function runMonad(monad, cont) {
+    eventCmds.push(function() {
+      return runMonads(monad, function(value) {
+        if (eventCmds.length) eventCmds.shift()();
+        running = false;
+        return cont(value);
+      });
+    });
+    if (!running && eventCmds.length) {
+      running = true;
+      return eventCmds.shift()();
+    }
+  };
+
+  runMonads = function runMonads(monad, cont) {
     return monad.cmd(function(value) {
       if (monad.binding != null) {
-        return runMonad(monad.binding(function() {
+        return runMonads(monad.binding(function() {
           return value;
         }), cont);
       } else {
@@ -222,6 +249,18 @@
     if (binding !== "end") m.binding = binding;
     return m;
   };
+
+  define('eventX', function(evt) {
+    return evt().x;
+  });
+
+  define('eventY', function(evt) {
+    return evt().y;
+  });
+
+  define('eventTargetId', function(evt) {
+    return evt().target.id;
+  });
 
   define('return', function(v) {
     return makeMonad('end', function(cont) {
@@ -247,7 +286,7 @@
   define('bind', function(m) {
     return function(binding) {
       return makeMonad(binding(), function(cont) {
-        return runMonad(m(), cont);
+        return runMonads(m(), cont);
       });
     };
   });
@@ -340,5 +379,11 @@
   root.makeMonad = makeMonad;
 
   root.tokenDefs = [];
+
+  root.lazpEvent = lazpEvent;
+
+  if (typeof window !== "undefined" && window !== null) {
+    window.lazpEvent = lazpEvent;
+  }
 
 }).call(this);

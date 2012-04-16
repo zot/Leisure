@@ -31,9 +31,9 @@
      inkscape:current-layer="layer2"
      showgrid="false"
      inkscape:window-width="1918"
-     inkscape:window-height="1051"
+     inkscape:window-height="1049"
      inkscape:window-x="0"
-     inkscape:window-y="27"
+     inkscape:window-y="149"
      inkscape:window-maximized="0"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -66,6 +66,7 @@
        style="opacity:0.14814812;fill:#808000;fill-opacity:1;stroke:none;display:inline"
        d="M 49.963315,24.431641 C 51.085687,43.529236 25.925668,56.720587 10.605163,45.074974 -4.9209094,35.22709 -3.105696,8.9034773 14.125388,1.7492523 29.707089,-5.9348003 51.003395,6.7021853 49.963315,24.431641 z"
        id="rock"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0"
+       onclick="lazpEvent('clickRock')" />
   </g>
 </svg>

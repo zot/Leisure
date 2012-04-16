@@ -1,13 +1,3 @@
-init = js ['window.phys = {space: new cp.Space()}']
-
-update dt = js ['phys.space.step(', dt, ')']
-
-# state record
-makeState done count = \f . f done count
-done sDone sCount = sDone
-count sDone sCount = sCount
-
-
 main = do
   bbox <- js ['getRockBounds()']
   bbox \x y w h . print (concat ["Rock x: ", x, ', y: ', y, ', w: ', w, ', h: ', h])
@@ -15,23 +5,37 @@ main = do
   js ['moveRock()']
   js ['moveRock()']
   js ['moveRock()']
-  S <- createS
-  sets S (makeState false 0)
-  init
-  run
 
-run S = do
-  update
-  checkDone S
-  s <- getS S
-  s done
-    return 'done'
-    run S
+clickRock e = print (concat ['event x: ', (eventX e), ', target: ', (eventTargetId e)])
 
-checkDone S = do
-  s <- getS S
-  s <- return
-    makeState
-      s done
-      ++ (s count)
-  
+#
+#Physics stuff
+# 
+# 
+# runPhys =
+#   S <- createS
+#   sets S (makeState false 0)
+#   js ['window.phys = {space: new cp.Space()}']
+#   run S
+# 
+# update dt = js ['phys.space.step(', dt, ')']
+# 
+# # state record
+# makeState done count = \f . f done count
+# done sDone sCount = sDone
+# count sDone sCount = sCount
+# 
+# run S = do
+#   update
+#   checkDone S
+#   s <- getS S
+#   s done
+#     return 'done'
+#     run S
+# 
+# checkDone S = do
+#   s <- getS S
+#   s <- return
+#     makeState
+#       s done
+#       ++ (s count)
