@@ -14,16 +14,18 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
 }
 root.defs = {};
 root.tokenDefs = [];
+root.macros = {};
 
 var setType = Lazp.setType;
 var setDataType = Lazp.setDataType;
 var define = Lazp.define;
+var defineMacro = Lazp.defineMacro;
 var defineToken = Lazp.defineToken;
 var processResult = Repl.processResult;
 
 var _main;
-//main = apply (apply (ref js) (apply (apply (ref [) (lit moveRock())) (ref ]))) (lambda _ . apply (apply (ref js) (apply (apply (ref [) (lit moveRock())) (ref ]))) (lambda _ . apply (apply (ref js) (apply (apply (ref [) (lit moveRock())) (ref ]))) (lambda _ . apply (apply (ref js) (apply (apply (ref [) (lit moveRock())) (ref ]))) (ref end))))
-root.defs._main = _main = define('main', _js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "moveRock()"}))(_$s)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "moveRock()"}))(_$s)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "moveRock()"}))(_$s)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "moveRock()"}))(_$s)))}})())(_end)}))}})())}))}})())}))}})()));
+//main = AST(bind (js ([ moveRock() ])) \_ . bind (js ([ moveRock() ])) \_ . bind (js ([ moveRock() ])) \_ . js ([ moveRock() ]))
+root.defs._main = _main = define('main', _bind()((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "moveRock()"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "moveRock()"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "moveRock()"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "moveRock()"}))(_$s)))}})())}))}})())}))}})())}))}})()));
 ;
 
 if (typeof window !== 'undefined' && window !== null) {

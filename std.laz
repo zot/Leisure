@@ -86,8 +86,8 @@ isempty l = (eq (l) nil)
 null l = l (\h t D . false) true
 reverse l = (eq (tail l) nil) l (append (reverse (tail l)) (cons (head l) nil))
 addstr a b = concat [a, b]
-if p a b = p a b
-iszero x = eq x 0
+if p = p
+iszero = eq 0
 length l = (eq l nil) 0 (++ (length (tail l) ) )
 
 -- x = - x 1

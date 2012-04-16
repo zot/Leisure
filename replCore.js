@@ -165,7 +165,7 @@
             default:
               _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
               _ref2 = Lazp.prepare(line), l = _ref2[0], err1 = _ref2[1];
-              _ref3 = Lazp.compileNext(l, getGlobals(), false, true), ast = _ref3[0], err = _ref3[1];
+              _ref3 = Lazp.compileNext(l, getGlobals(), false, false), ast = _ref3[0], err = _ref3[1];
               if ((err1 != null) || (err != null)) {
                 if (ast != null) {
                   ast.err = err1 != null ? err1 : err;
@@ -211,7 +211,7 @@
     globals = Lazp.append(globals, getGlobals());
     while (rest) {
       oldRest = rest;
-      _ref3 = Lazp.compileNext(rest, globals, null, null, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
+      _ref3 = Lazp.compileNext(rest, globals, null, false, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
       code = rest ? oldRest.substring(0, oldRest.length - rest.length) : '';
       err = err != null ? err : ast != null ? ast.err : void 0;
       if (err) {
@@ -249,9 +249,9 @@
         errs = "" + errs + (ast.lazpName ? "Error in " + ast.lazpName : "") + err + "\n";
       }
       if (ast != null ? ast.lazpName : void 0) {
-        if ((globals != null ? globals : Lazp.Nil).find(function(v) {
+        if (globals != null ? globals.find(function(v) {
           return v === ast.lazpName;
-        })) {
+        }) : void 0) {
           throw new Error("Attempt to redefine function: " + ast.lazpName);
         }
         globals = Lazp.cons(ast.lazpName, globals);

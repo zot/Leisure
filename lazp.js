@@ -35,7 +35,7 @@ misrepresented as being the original software.
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  baseTokenPat = /`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
+  baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
 
   tokenPat = baseTokenPat;
 
@@ -649,11 +649,13 @@ misrepresented as being the original software.
   };
 
   evalNext = function evalNext(code) {
-    var ast, err, rest, result, _ref;
+    var ast, err, nm, rest, result, _ref;
     _ref = compileNext(code, null), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (ast) {
       if (ast.lazpName) {
         try {
+          nm = nameSub(ast.lazpName);
+          if (ctx[nm]) evalFunc("" + nm + " = null");
           evalCompiledAst(ast);
           result = "Defined: " + ast.lazpName;
         } catch (err) {

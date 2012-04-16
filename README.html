@@ -39,17 +39,25 @@
 
 <p>Lazp supports Python-style indentation, which it replaces with curly braces and semicolons during parsing.  Indented lines are considered to be part of the preceding overhanging line and each indented line produces a parenthesized group, so this:</p>
 
-<blockquote>
-  <p>do  </p>
-
-<blockquote>
-  <p>n &lt;- prompt "What is your name? " <br />
-print (concat ["Hello, ", n, ", thank you for joining us."])</p>
-</blockquote>
-
-<p></blockquote></p>
+<pre><b><big>
+do  
+  n <- prompt "What is your name? "  
+  print (concat ["Hello, ", n, ", thank you for joining us."])
+</big></b></pre>
 
 <p>is equivalent to this: <strong>do {n &lt;- prompt "What is your name? "; print (concat ["Hello, ", n, ", thank you for joining us."])}</strong></p>
+
+<p>and this:</p>
+
+<pre><b><big>
+let
+  a <- 3
+  b <- + a 1
+  a <- * a b
+  [a, b]
+</big></b></pre>
+
+<p>is equivalent to this: <strong>let {a &lt;- 3; b &lt;- + a 1; a &lt;- * a b; [a, b]}</strong></p>
 
 <h2>Untyped</h2>
 

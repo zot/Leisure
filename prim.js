@@ -87,6 +87,10 @@
     }
   });
 
+  define('pretty', function(value) {
+    return Pretty.print(value());
+  });
+
   define('+', function(a) {
     return function(b) {
       return a() + b();
@@ -127,6 +131,26 @@
 
   define('round', function(a) {
     return Math.round(a());
+  });
+
+  define('>', function(a) {
+    return function(b) {
+      if (a() > b()) {
+        return _true();
+      } else {
+        return _false();
+      }
+    };
+  });
+
+  define('<', function(a) {
+    return function(b) {
+      if (a() < b()) {
+        return _true();
+      } else {
+        return _false();
+      }
+    };
   });
 
   define('gt', function(a) {
@@ -260,16 +284,14 @@
   });
 
   define('js', function(codeList) {
-    return function(binding) {
-      return makeMonad(binding(), function(cont) {
-        var cl;
-        cl = codeList();
-        if (cl !== _nil() && cl.type !== 'cons') {
-          throw new Error("js expects a list for its code");
-        }
-        return cont(eval(concatList(cl)));
-      });
-    };
+    return makeMonad('end', function(cont) {
+      var cl;
+      cl = codeList();
+      if (cl !== _nil() && cl.type !== 'cons') {
+        throw new Error("js expects a list for its code");
+      }
+      return cont(eval(concatList(cl)));
+    });
   });
 
   define('createS', function() {
