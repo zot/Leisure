@@ -23,7 +23,7 @@ var defineMacro = Lazp.defineMacro;
 var defineToken = Lazp.defineToken;
 var processResult = Repl.processResult;
 
-var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _any, _all, _index_combine, _indexof, _position, _find, _count, _count$nif, _remove, _remove$nif, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple;
+var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _compose, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _any, _all, _index_combine, _indexof, _position, _find, _find$nif, _count, _count$nif, _count$nif$nnot, _remove, _remove$nif, _remove$nif$nnot, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _add$nhash, _get$ncons, _get$nvalue, _value, _remove$nhash;
 //id = AST(\x . x)
 root.defs._id = _id = define('id', function(_x){return _x()});
 ;
@@ -68,6 +68,9 @@ root.defs._nil = _nil = define('nil', setType(function(_a){return function(_b){r
 ;
 //append = AST(\l1 l2 . l1 \h t D . cons h (append t l2) l2)
 root.defs._append = _append = define('append', function(_l1){return function(_l2){return _l1()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _cons()(_h)((function(){var $m; return function(){return $m || ($m = (_append()(_t)(_l2)))}})())}}}))}})())(_l2)}});
+;
+//compose = AST(\f g x . f (g x))
+root.defs._compose = _compose = define('compose', setDataType(function(_f){return function(_g){return setType(function(_x){return _f()((function(){var $m; return function(){return $m || ($m = (_g()(_x)))}})())}, 'compose')}}, 'compose'));
 ;
 //head = AST(\l . l \h t . h)
 root.defs._head = _head = define('head', function(_l){return _l()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return _h()}}))}})())});
@@ -132,8 +135,11 @@ root.defs._indexof = _indexof = define('indexof', function(_l){return function(_
 //position = AST(\l x . indexof x l)
 root.defs._position = _position = define('position', function(_l){return function(_x){return _indexof()(_x)(_l)}});
 ;
-//find = AST(\x l . if (eq l nil) false (if (eq (head l) x) x (find x (tail l))))
-root.defs._find = _find = define('find', function(_x){return function(_l){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_l)(_nil)))}})())(_false)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_eq()((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())(_x)))}})())(_x)((function(){var $m; return function(){return $m || ($m = (_find()(_x)((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())}});
+//find = AST(\x l . find-if (eq x) l)
+root.defs._find = _find = define('find', function(_x){return function(_l){return _find$nif()((function(){var $m; return function(){return $m || ($m = (_eq()(_x)))}})())(_l)}});
+;
+//find-if = AST(\f l . if (eq l nil) nil (if (f (head l)) (head l) (find-if f (tail l))))
+root.defs._find$nif = _find$nif = define('find-if', function(_f){return function(_l){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_l)(_nil)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())((function(){var $m; return function(){return $m || ($m = (_find$nif()(_f)((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())}});
 ;
 //count = AST(\x l . count-if (eq x) l)
 root.defs._count = _count = define('count', function(_x){return function(_l){return _count$nif()((function(){var $m; return function(){return $m || ($m = (_eq()(_x)))}})())(_l)}});
@@ -141,11 +147,17 @@ root.defs._count = _count = define('count', function(_x){return function(_l){ret
 //count-if = AST(\f l . if (eq l nil) 0 (+ (f (head l) 1 0) (count-if f (tail l))))
 root.defs._count$nif = _count$nif = define('count-if', function(_f){return function(_l){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_l)(_nil)))}})())((function(){return 0}))((function(){var $m; return function(){return $m || ($m = (_$o()((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())((function(){return 1}))((function(){return 0}))))}})())((function(){var $m; return function(){return $m || ($m = (_count$nif()(_f)((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())}});
 ;
+//count-if-not = AST(\f l . count-if \x . not (f x) l)
+root.defs._count$nif$nnot = _count$nif$nnot = define('count-if-not', function(_f){return function(_l){return _count$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _not()((function(){var $m; return function(){return $m || ($m = (_f()(_x)))}})())}))}})())(_l)}});
+;
 //remove = AST(\x l . remove-if (eq x) l)
 root.defs._remove = _remove = define('remove', function(_x){return function(_l){return _remove$nif()((function(){var $m; return function(){return $m || ($m = (_eq()(_x)))}})())(_l)}});
 ;
 //remove-if = AST(\f l . if (eq l nil) nil (if (f (head l)) (remove-if f (tail l)) (cons (head l) (remove-if f (tail l)))))
 root.defs._remove$nif = _remove$nif = define('remove-if', function(_f){return function(_l){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_l)(_nil)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nif()(_f)((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_cons()((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nif()(_f)((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())))}})())}});
+;
+//remove-if-not = AST(\f l . remove-if \x . not (f x) l)
+root.defs._remove$nif$nnot = _remove$nif$nnot = define('remove-if-not', function(_f){return function(_l){return _remove$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _not()((function(){var $m; return function(){return $m || ($m = (_f()(_x)))}})())}))}})())(_l)}});
 ;
 //map = AST(\func list . list \h t D . cons (func h) (map func t) nil)
 root.defs._map = _map = define('map', function(_func){return function(_list){return _list()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _cons()((function(){var $m; return function(){return $m || ($m = (_func()(_h)))}})())((function(){var $m; return function(){return $m || ($m = (_map()(_func)(_t)))}})())}}}))}})())(_nil)}});
@@ -204,6 +216,21 @@ root.defs._m_extractVar = _m_extractVar = define('m_extractVar', function(_ast){
 ;
 //m_varFromTuple = AST(\ast . is ast apply (ast \f arg . or (is f ref) (is f lit) (or (is arg ref) (is arg lit) (arg \arrow . eq arrow <- (f \v . some v) none) none) none) none)
 root.defs._m_varFromTuple = _m_varFromTuple = define('m_varFromTuple', function(_ast){return _is()(_ast)(_apply)((function(){var $m; return function(){return $m || ($m = (_ast()((function(){var $m; return function(){return $m || ($m = (function(_f){return function(_arg){return _or()((function(){var $m; return function(){return $m || ($m = (_is()(_f)(_ref)))}})())((function(){var $m; return function(){return $m || ($m = (_is()(_f)(_lit)))}})())((function(){var $m; return function(){return $m || ($m = (_or()((function(){var $m; return function(){return $m || ($m = (_is()(_arg)(_ref)))}})())((function(){var $m; return function(){return $m || ($m = (_is()(_arg)(_lit)))}})())((function(){var $m; return function(){return $m || ($m = (_arg()((function(){var $m; return function(){return $m || ($m = (function(_arrow){return _eq()(_arrow)((function(){return "<-"}))((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (function(_v){return _some()(_v)}))}})())))}})())(_none)}))}})())))}})())(_none)))}})())(_none)}}))}})())))}})())(_none)});
+;
+//add-hash = AST(\k v hashmap . cons (cons k v) (remove-hash k hashmap))
+root.defs._add$nhash = _add$nhash = define('add-hash', function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return function(){return $m || ($m = (_cons()(_k)(_v)))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nhash()(_k)(_hashmap)))}})())}}});
+;
+//get-cons = AST(\k hashmap . find-if \x . eq (head x) k hashmap)
+root.defs._get$ncons = _get$ncons = define('get-cons', function(_k){return function(_hashmap){return _find$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_head()(_x)))}})())(_k)}))}})())(_hashmap)}});
+;
+//key = AST(\cons . head cons)
+root.defs._key = _key = define('key', function(_cons){return _head()(_cons)});
+;
+//value = AST(\cons . tail cons)
+root.defs._value = _value = define('value', function(_cons){return _tail()(_cons)});
+;
+//remove-hash = AST(\k hashmap . remove-if \x . eq (head x) k hashmap)
+root.defs._remove$nhash = _remove$nhash = define('remove-hash', function(_k){return function(_hashmap){return _remove$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_head()(_x)))}})())(_k)}))}})())(_hashmap)}});
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
