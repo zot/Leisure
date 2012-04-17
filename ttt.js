@@ -23,7 +23,7 @@ var defineMacro = Lazp.defineMacro;
 var defineToken = Lazp.defineToken;
 var processResult = Repl.processResult;
 
-var _digits, _player1, _player2, _empty, _player1Win, _player2Win, _startBoard, _testBoard, _win1Board, _win2Board, _slowBoard, _div, _ending, _spot, _row, _col, _diag1, _diag2, _showRow, _showRowDiv, _showBoard2, _showBoard, _showStartBoard, _playMove, _base_win, _win, _tie, _nextPlayer, _isLegalMove, _checkMove, _gameOver, _convertMove, _winner, _promptOrEnd, _playGame, _main, _minmax, _all_moves, _base_legalMoves, _legalMoves;
+var _digits, _player1, _player2, _empty, _player1Win, _player2Win, _startBoard, _testBoard, _win1Board, _win2Board, _slowBoard, _div, _ending, _spot, _row, _col, _diag1, _diag2, _showRow, _showRowDiv, _showBoard2, _showBoard, _showStartBoard, _playMove, _base_win, _win, _tie, _nextPlayer, _isLegalMove, _checkMove, _gameOver, _convertMove, _winner, _promptOrEnd, _playGame, _main, _minmax, _all_moves, _base_legalMoves, _legalMoves, _newGame, _click, _click0, _click1, _click2, _click3, _click4, _click5, _click6, _click7, _click8, _clickC;
 //digits = AST([ 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ])
 root.defs._digits = _digits = define('digits', _$r()((function(){return "0"}))(_$b)((function(){return "1"}))(_$b)((function(){return "2"}))(_$b)((function(){return "3"}))(_$b)((function(){return "4"}))(_$b)((function(){return "5"}))(_$b)((function(){return "6"}))(_$b)((function(){return "7"}))(_$b)((function(){return "8"}))(_$b)((function(){return "9"}))(_$s));
 ;
@@ -143,6 +143,42 @@ root.defs._base_legalMoves = _base_legalMoves = define('base_legalMoves', functi
 ;
 //legalMoves = AST(\b . base_legalMoves b all_moves)
 root.defs._legalMoves = _legalMoves = define('legalMoves', function(_b){return _base_legalMoves()(_b)(_all_moves)});
+;
+//newGame = AST(bind (setValue board startBoard) \_ . bind (setValue player player1) \_ . showBoard startBoard)
+root.defs._newGame = _newGame = define('newGame', _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "board"}))(_startBoard)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))(_player1)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _showBoard()(_startBoard)}))}})())}))}})()));
+;
+//click = AST(\x . bind (getValue board) \b . bind (getValue player) \p . if (eq c x) (click (minmax p b)) (if (isLegalMove b move) (setValue player (nextPlayer p) (if (neq winner empty) print winner)) (print Illegal move, please try again)))
+root.defs._click = _click = define('click', function(_x){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "board"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_b){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "player"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_p){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()((function(){return "c"}))(_x)))}})())((function(){var $m; return function(){return $m || ($m = (_click()((function(){var $m; return function(){return $m || ($m = (_minmax()(_p)(_b)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_isLegalMove()(_b)((function(){return "move"}))))}})())((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))((function(){var $m; return function(){return $m || ($m = (_nextPlayer()(_p)))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_neq()(_winner)(_empty)))}})())(_print)(_winner)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_print()((function(){return "Illegal move, please try again"}))))}})())))}})())}))}})())}))}})())});
+;
+//click0 = AST(click 0)
+root.defs._click0 = _click0 = define('click0', _click()((function(){return "0"})));
+;
+//click1 = AST(click 1)
+root.defs._click1 = _click1 = define('click1', _click()((function(){return "1"})));
+;
+//click2 = AST(click 2)
+root.defs._click2 = _click2 = define('click2', _click()((function(){return "2"})));
+;
+//click3 = AST(click 3)
+root.defs._click3 = _click3 = define('click3', _click()((function(){return "3"})));
+;
+//click4 = AST(click 4)
+root.defs._click4 = _click4 = define('click4', _click()((function(){return "4"})));
+;
+//click5 = AST(click 5)
+root.defs._click5 = _click5 = define('click5', _click()((function(){return "5"})));
+;
+//click6 = AST(click 6)
+root.defs._click6 = _click6 = define('click6', _click()((function(){return "6"})));
+;
+//click7 = AST(click 7)
+root.defs._click7 = _click7 = define('click7', _click()((function(){return "7"})));
+;
+//click8 = AST(click 8)
+root.defs._click8 = _click8 = define('click8', _click()((function(){return "8"})));
+;
+//clickC = AST(click c)
+root.defs._clickC = _clickC = define('clickC', _click()((function(){return "c"})));
 ;
 
 if (typeof window !== 'undefined' && window !== null) {

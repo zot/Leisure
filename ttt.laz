@@ -130,3 +130,39 @@ base_legalMoves b all = if (eq all nil)
 
 legalMoves b = base_legalMoves b all_moves
 
+
+##################
+# GUI Interactions
+##################
+
+newGame = do
+  setValue 'board' startBoard
+  setValue 'player' player1
+  showBoard startBoard
+
+click x = do
+  b <- getValue 'board'
+  p <- getValue 'player'
+  if (eq 'c' x)
+    click (minmax p b)
+    if (isLegalMove b move)
+      let
+        new_b = playMove p b (indexof digits move)
+        winner = gameOver new_b (win new_b)
+        showBoard new_b
+        if (neq winner empty) print winner
+        setValue 'player' (nextPlayer p)
+      print "Illegal move, please try again"
+
+click0 = click '0'
+click1 = click '1'
+click2 = click '2'
+click3 = click '3'
+click4 = click '4'
+click5 = click '5'
+click6 = click '6'
+click7 = click '7'
+click8 = click '8'
+clickC = click 'c'
+
+
