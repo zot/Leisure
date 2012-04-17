@@ -26,6 +26,8 @@
           if (p == 'X') movePiece(p, ++xIndex, i)
           else if (p == 'O') movePiece(p, ++oIndex, i)
         }
+	while (xIndex < 5) hidePiece('X', ++xIndex)
+	while (oIndex < 5) hidePiece('O', ++oIndex)
       }
 
 	// move a piece onto the board
@@ -42,6 +44,13 @@
 	piece.setAttribute('transform', 'translate(' + delta_x + ', ' + delta_y + ')')
       }
 
+	// hide any ununsed pieces
+      function hidePiece(prefix, index) {
+	id = prefix + index
+	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
+	if (piece) piece.setAttribute('transform', 'translate(' + 0 + ', ' + 0 + ')')
+      }
+	
       function init() {
         var input = document.getElementById('input')
         var output = document.getElementById('output')
@@ -89,7 +98,7 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
     <table style="vertical-align: top; width: 100%; height: 100%">
-      <tr style="height: 400px">
+      <tr style="height: 480px">
 	<td colspan="2">
 	  <object id="scene" data="ttt.svg" type="image/svg+xml" onload="tttLoaded()"></object>
 	</td>
