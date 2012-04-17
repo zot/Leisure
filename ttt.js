@@ -144,41 +144,41 @@ root.defs._base_legalMoves = _base_legalMoves = define('base_legalMoves', functi
 //legalMoves = AST(\b . base_legalMoves b all_moves)
 root.defs._legalMoves = _legalMoves = define('legalMoves', function(_b){return _base_legalMoves()(_b)(_all_moves)});
 ;
-//newGame = AST(bind (setValue board startBoard) \_ . bind (setValue player player1) \_ . showBoard startBoard)
-root.defs._newGame = _newGame = define('newGame', _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "board"}))(_startBoard)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))(_player1)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _showBoard()(_startBoard)}))}})())}))}})()));
+//newGame = AST(\e . bind (setValue board startBoard) \_ . bind (setValue player player1) \_ . showBoard startBoard)
+root.defs._newGame = _newGame = define('newGame', function(_e){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "board"}))(_startBoard)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))(_player1)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _showBoard()(_startBoard)}))}})())}))}})())});
 ;
-//click = AST(\x . bind (getValue board) \b . bind (getValue player) \p . if (eq c x) (click (minmax p b)) (if (isLegalMove b move) (setValue player (nextPlayer p) (if (neq winner empty) print winner)) (print Illegal move, please try again)))
-root.defs._click = _click = define('click', function(_x){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "board"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_b){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "player"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_p){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()((function(){return "c"}))(_x)))}})())((function(){var $m; return function(){return $m || ($m = (_click()((function(){var $m; return function(){return $m || ($m = (_minmax()(_p)(_b)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_isLegalMove()(_b)((function(){return "move"}))))}})())((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))((function(){var $m; return function(){return $m || ($m = (_nextPlayer()(_p)))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_neq()(_winner)(_empty)))}})())(_print)(_winner)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_print()((function(){return "Illegal move, please try again"}))))}})())))}})())}))}})())}))}})())});
+//click = AST(\move . bind (getValue board) \b . bind (getValue player) \p . if (eq c move) (click (minmax p b)) (if (isLegalMove b move) (setValue player (nextPlayer p) (if (neq winner empty) print winner)) (print Illegal move, please try again)))
+root.defs._click = _click = define('click', function(_move){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "board"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_b){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "player"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_p){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()((function(){return "c"}))(_move)))}})())((function(){var $m; return function(){return $m || ($m = (_click()((function(){var $m; return function(){return $m || ($m = (_minmax()(_p)(_b)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_isLegalMove()(_b)(_move)))}})())((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))((function(){var $m; return function(){return $m || ($m = (_nextPlayer()(_p)))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_neq()(_winner)(_empty)))}})())(_print)(_winner)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_print()((function(){return "Illegal move, please try again"}))))}})())))}})())}))}})())}))}})())});
 ;
-//click0 = AST(click 0)
-root.defs._click0 = _click0 = define('click0', _click()((function(){return "0"})));
+//click0 = AST(\e . click 0)
+root.defs._click0 = _click0 = define('click0', function(_e){return _click()((function(){return "0"}))});
 ;
-//click1 = AST(click 1)
-root.defs._click1 = _click1 = define('click1', _click()((function(){return "1"})));
+//click1 = AST(\e . click 1)
+root.defs._click1 = _click1 = define('click1', function(_e){return _click()((function(){return "1"}))});
 ;
-//click2 = AST(click 2)
-root.defs._click2 = _click2 = define('click2', _click()((function(){return "2"})));
+//click2 = AST(\e . click 2)
+root.defs._click2 = _click2 = define('click2', function(_e){return _click()((function(){return "2"}))});
 ;
-//click3 = AST(click 3)
-root.defs._click3 = _click3 = define('click3', _click()((function(){return "3"})));
+//click3 = AST(\e . click 3)
+root.defs._click3 = _click3 = define('click3', function(_e){return _click()((function(){return "3"}))});
 ;
-//click4 = AST(click 4)
-root.defs._click4 = _click4 = define('click4', _click()((function(){return "4"})));
+//click4 = AST(\e . click 4)
+root.defs._click4 = _click4 = define('click4', function(_e){return _click()((function(){return "4"}))});
 ;
-//click5 = AST(click 5)
-root.defs._click5 = _click5 = define('click5', _click()((function(){return "5"})));
+//click5 = AST(\e . click 5)
+root.defs._click5 = _click5 = define('click5', function(_e){return _click()((function(){return "5"}))});
 ;
-//click6 = AST(click 6)
-root.defs._click6 = _click6 = define('click6', _click()((function(){return "6"})));
+//click6 = AST(\e . click 6)
+root.defs._click6 = _click6 = define('click6', function(_e){return _click()((function(){return "6"}))});
 ;
-//click7 = AST(click 7)
-root.defs._click7 = _click7 = define('click7', _click()((function(){return "7"})));
+//click7 = AST(\e . click 7)
+root.defs._click7 = _click7 = define('click7', function(_e){return _click()((function(){return "7"}))});
 ;
-//click8 = AST(click 8)
-root.defs._click8 = _click8 = define('click8', _click()((function(){return "8"})));
+//click8 = AST(\e . click 8)
+root.defs._click8 = _click8 = define('click8', function(_e){return _click()((function(){return "8"}))});
 ;
-//clickC = AST(click c)
-root.defs._clickC = _clickC = define('clickC', _click()((function(){return "c"})));
+//clickC = AST(\e . click c)
+root.defs._clickC = _clickC = define('clickC', function(_e){return _click()((function(){return "c"}))});
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
