@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, Pretty, RL, U, concatList, define, eventCmds, getType, head, laz, lazpEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, values, write;
+  var Liesure, Pretty, RL, U, concatList, define, eventCmds, getType, head, laz, liesureEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, values, write;
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
@@ -13,10 +13,10 @@
       return cont(window.prompt(msg));
     };
     window.Prim = root = {};
-    Lazp = window.Lazp;
+    Liesure = window.Liesure;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
-    Lazp = require('./lazp');
+    Liesure = require('./liesure');
     Pretty = require('./pretty');
     U = require('util');
     RL = require('readline');
@@ -33,11 +33,11 @@
     return tty = rl;
   };
 
-  define = Lazp.define;
+  define = Liesure.define;
 
-  getType = Lazp.getType;
+  getType = Liesure.getType;
 
-  laz = Lazp.laz;
+  laz = Liesure.laz;
 
   define('is', function(value) {
     return function(type) {
@@ -73,11 +73,11 @@
 
   define('parse', function(value) {
     var ast, err, prepped, rest, _ref, _ref2;
-    _ref = Lazp.prepare(String(value())), prepped = _ref[0], err = _ref[1];
+    _ref = Liesure.prepare(String(value())), prepped = _ref[0], err = _ref[1];
     if (err != null) {
       return _right()(laz("Error: " + err));
     } else {
-      _ref2 = Lazp.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+      _ref2 = Liesure.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
       if (err != null) {
         return _right()(laz("Error: " + err));
       } else if (rest != null ? rest.trim() : void 0) {
@@ -206,10 +206,10 @@
 
   running = false;
 
-  lazpEvent = function lazpEvent(lazpFuncName, evt) {
+  liesureEvent = function liesureEvent(liesureFuncName, evt) {
     var currentEvent, monad;
     currentEvent = evt;
-    monad = Lazp.eval("" + (Lazp.nameSub(lazpFuncName)) + "()")(laz(evt));
+    monad = Liesure.eval("" + (Liesure.nameSub(liesureFuncName)) + "()")(laz(evt));
     return runMonad(monad, function() {});
   };
 
@@ -228,15 +228,19 @@
   };
 
   runMonads = function runMonads(monad, cont) {
-    return monad.cmd(function(value) {
-      if (monad.binding != null) {
-        return runMonads(monad.binding(function() {
-          return value;
-        }), cont);
-      } else {
-        return cont(value);
-      }
-    });
+    if ((monad != null ? monad.cmd : void 0) != null) {
+      return monad.cmd(function(value) {
+        if (monad.binding != null) {
+          return runMonads(monad.binding(function() {
+            return value;
+          }), cont);
+        } else {
+          return cont(value);
+        }
+      });
+    } else {
+      throw new Error("Attempted to run something that's not a monad");
+    }
   };
 
   makeMonad = function makeMonad(binding, guts) {
@@ -395,10 +399,10 @@
 
   root.tokenDefs = [];
 
-  root.lazpEvent = lazpEvent;
+  root.liesureEvent = liesureEvent;
 
   if (typeof window !== "undefined" && window !== null) {
-    window.lazpEvent = lazpEvent;
+    window.liesureEvent = liesureEvent;
   }
 
 }).call(this);

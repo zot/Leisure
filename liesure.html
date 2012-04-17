@@ -7,36 +7,10 @@
     <script src="browserRepl.js"></script>
     <script src="std.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
-    <script src="cp.min.js"></script>
-    <script src="rock.js"></script>
+    <!-- copy this HTML file and add your compiled Liesure files here
+    <script src="ttt.js"></script>
+    -->
     <script>
-      x = 0;
-      y = 0;
-      rock = null;
-      laz = Liesure.laz
-
-      function getRockBounds() {
-        rock = document.getElementById('scene').getSVGDocument().getElementById('rock');
-        rock = document.getElementById('scene').getSVGDocument().getElementById('rock');
-        var bbox = rock.getBBox();
-        return function(f) {
-          return f()(laz(bbox.x))(laz(bbox.y))(laz(bbox.width))(laz(bbox.height))
-        }
-      }
-      function loadedRock() {
-        rockDoc = document.getElementById('scene').getSVGDocument();
-        rockWin = rockDoc.defaultView;
-        rockWin.liesureEvent = function(funcName) {Prim.liesureEvent(funcName, rockWin.event);};
-        rock = rockDoc.getElementById('rock');
-        var bbox = rock.getBBox();
-        //x = -bbox.x;
-        //y = -bbox.y;
-        //rock.setAttribute('transform', 'translate(' + x + ', ' + y + ')')
-      }
-      function moveRock() {
-        x += 10;
-        rock.setAttribute('transform', 'translate(' + x + ', ' + y + ')')
-      }
       function init() {
         var input = document.getElementById('input')
         var output = document.getElementById('output')
@@ -84,16 +58,6 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
     <table style="vertical-align: top; width: 100%; height: 100%">
-      <tr style="height: 250px">
-	<td colspan="2">
-	  <object id="scene" data="rock.svg" type="image/svg+xml" onload="loadedRock()"></object>
-<!--
-          <svg style="border: green solid 2px; height: 100%; width: 100%">
-	    
-	  </svg>
--->
-	</td>
-      </tr>
       <tr style="height: 1.5em"><td colspan="2">
 	  <div style="height: 100%; position: relative">
 	    <div><b>Definitions</b></div>

@@ -6,8 +6,8 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
-  Lazp = require('./lazp');
-  Lazp.req('./std');
+  Liesure = require('./liesure');
+  Liesure.req('./std');
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
@@ -16,11 +16,11 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-var setType = Lazp.setType;
-var setDataType = Lazp.setDataType;
-var define = Lazp.define;
-var defineMacro = Lazp.defineMacro;
-var defineToken = Lazp.defineToken;
+var setType = Liesure.setType;
+var setDataType = Liesure.setDataType;
+var define = Liesure.define;
+var defineMacro = Liesure.defineMacro;
+var defineToken = Liesure.defineToken;
 var processResult = Repl.processResult;
 
 var _main, _clickRock;
@@ -32,7 +32,7 @@ root.defs._clickRock = _clickRock = define('clickRock', function(_e){return _pri
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
-  Lazp.processTokenDefs(root.tokenDefs);
+  Liesure.processTokenDefs(root.tokenDefs);
 }
 return root;
 }).call(this)

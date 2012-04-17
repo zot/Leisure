@@ -11,25 +11,25 @@
 
 <body>
 
-<p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="http://github.com/zot/lazp">Source</a> <a href="lazp.html">REPL</a> <a href="std.laz">Standard functions</a></p>
+<p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="http://github.com/zot/Liesure">Source</a> <a href="liesure.html">REPL</a> <a href="std.laz">Standard functions</a></p>
 
-<h1>Lazp: a convenient, untyped, lazy Lambda Calculus with Metaprogramming and Primitives</h1>
+<h1>Liesure: a convenient, untyped, lazy Lambda Calculus with Metaprogramming and Primitives</h1>
 
 <p>The goal, here is to provide a convenient language people's use and experimentation that people can easily tailor to their own needs.</p>
 
 <h2>Convenient</h2>
 
-<p>Lazp provides a convenient syntax and powerful tools to help people try things out quickly and be productive.  Lazp's syntax is based on Lambda Calculus and borrows things from Haskell and other languages while still remaining a very small language.</p>
+<p>Liesure provides a convenient syntax and powerful tools to help people try things out quickly and be productive.  Liesure's syntax is based on Lambda Calculus and borrows things from Haskell and other languages while still remaining a very small language.</p>
 
 <h3>Lambdas</h3>
 
-<p>As in Haskell, you can write lambda either as 𝛌 or .  Lambdas are structured as: <strong>𝛌 variable . body</strong> and if you provide serveral space-separated variables, Lazp automatically constructs nested lambdas for you, like this: <strong>\a b . a</strong></p>
+<p>As in Haskell, you can write lambda either as 𝛌 or .  Lambdas are structured as: <strong>𝛌 variable . body</strong> and if you provide serveral space-separated variables, Liesure automatically constructs nested lambdas for you, like this: <strong>\a b . a</strong></p>
 
 <h3>Function definitions</h3>
 
 <p>You define a function with a declaration, an '=', and a body, like this: <strong>true = \a b . a</strong>.  You maplace arguments before the '=' and omit the '\' and '.', like this: <strong>true a b = a</strong>.</p>
 
-<p>Lazp allows some simplistic parser tweaks; you can define tokens, so you can leave out spaces, and you can define tokens that open and close groups.</p>
+<p>Liesure allows some simplistic parser tweaks; you can define tokens, so you can leave out spaces, and you can define tokens that open and close groups.</p>
 
 <h3>Curly braces</h3>
 
@@ -37,7 +37,7 @@
 
 <h3>Indentation</h3>
 
-<p>Lazp supports Python-style indentation, which it replaces with curly braces and semicolons during parsing.  Indented lines are considered to be part of the preceding overhanging line and each indented line produces a parenthesized group, so this:</p>
+<p>Liesure supports Python-style indentation, which it replaces with curly braces and semicolons during parsing.  Indented lines are considered to be part of the preceding overhanging line and each indented line produces a parenthesized group, so this:</p>
 
 <pre><b><big>
 do  
@@ -63,7 +63,7 @@ let
 
 <h2>Untyped</h2>
 
-<p>Lazp is untyped.  This doesn't mean that Lazp is type-free, it just means that variables don't have types -- they can hold anything.  Lazp does have data types -- e.g. you can tell if something is a cons-cell (<strong>_is (cons 1 nil) cons</strong> returns <strong>true</strong>).  Whenever you define a function that returns a lambda, it marks instances of that lambda as having the type of the definition.  For example, if you say:</p>
+<p>Liesure is untyped.  This doesn't mean that Liesure is type-free, it just means that variables don't have types -- they can hold anything.  Liesure does have data types -- e.g. you can tell if something is a cons-cell (<strong>_is (cons 1 nil) cons</strong> returns <strong>true</strong>).  Whenever you define a function that returns a lambda, it marks instances of that lambda as having the type of the definition.  For example, if you say:</p>
 
 <p><strong>person name addr = \f . f name addr</strong></p>
 
@@ -71,11 +71,11 @@ let
 
 <h2>Lazy</h2>
 
-<p>Lazp is lazy.  It doesn't allow side effects, not because side effects are somehow <em>evil</em>, but because in a lazy language, side effects can lead to very strange behavior that's very hard to diagnose.  The idea is to have side effects outside the Lazp environment and access them using standard functional techniques, like monads and FRP.</p>
+<p>Liesure is lazy.  It doesn't allow side effects, not because side effects are somehow <em>evil</em>, but because in a lazy language, side effects can lead to very strange behavior that's very hard to diagnose.  The idea is to have side effects outside the Liesure environment and access them using standard functional techniques, like monads and FRP.</p>
 
 <h2>Metaprogramming</h2>
 
-<p>Lazp provides several tools for metaprogramming:</p>
+<p>Liesure provides several tools for metaprogramming:</p>
 
 <p>Functions
 * getType data -- returns an option with the type of the data (or none if it has no type)
@@ -110,7 +110,7 @@ apply func arg = \f . f func arg  </p>
 
 <blockquote>
   <p>node runRepl
-Runs the read eval print loop.  You can enter lazp expressions and definitions there.</p>
+Runs the read eval print loop.  You can enter Liesure expressions and definitions there.</p>
 </blockquote>
 
 <h3>Compiling files</h3>
@@ -125,7 +125,7 @@ Compiles files.  </p>
 <p>To run the tests, you can cd into the top level directory and type</p>
 
 <blockquote>
-  <p>node testLazp
+  <p>node testLiesure
 It should give you something like this:
 Running Tests...
 ...
@@ -139,12 +139,12 @@ Each . on the second line represents a successfully completed test.  If there ar
 <p>If you want to change things, you'll probably want to change the Coffeescript files, rather than their corresponding javascript versions.  The <a href="build">build</a> file that contains a command to rebuild it, which is just</p>
 
 <blockquote>
-  <p>node_modules/coffee-script/bin/coffee -c lazp.cs repl.cs runRepl.cs</p>
+  <p>node_modules/coffee-script/bin/coffee -c liesure.cs repl.cs runRepl.cs</p>
 </blockquote>
 
 <h2>Implementation</h2>
 
-<p>Lazp is written in JavaScript and runs in node or in browsers.  Later, Lazp may generate native code, using, for instance, C and/or LLVM.  An LLVM version could use the VMKit’s garbage collector or the Boehm-Demers-Weiser garbage collector, which performs well with small objects (like function contexts).</p>
+<p>Liesure is written in JavaScript and runs in node or in browsers.  Later, Liesure may generate native code, using, for instance, C and/or LLVM.  An LLVM version could use the VMKit’s garbage collector or the Boehm-Demers-Weiser garbage collector, which performs well with small objects (like function contexts).</p>
 
 </body>
 </html>

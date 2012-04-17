@@ -6,8 +6,8 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
-  Lazp = require('./lazp');
-  Lazp.req('./std');
+  Liesure = require('./liesure');
+  Liesure.req('./std');
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
@@ -16,14 +16,14 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-var setType = Lazp.setType;
-var setDataType = Lazp.setDataType;
-var define = Lazp.define;
-var defineMacro = Lazp.defineMacro;
-var defineToken = Lazp.defineToken;
+var setType = Liesure.setType;
+var setDataType = Liesure.setDataType;
+var define = Liesure.define;
+var defineMacro = Liesure.defineMacro;
+var defineToken = Liesure.defineToken;
 var processResult = Repl.processResult;
 
-var _digits, _player1, _player2, _empty, _player1Win, _player2Win, _startBoard, _testBoard, _win1Board, _win2Board, _slowBoard, _div, _ending, _spot, _row, _col, _diag1, _diag2, _showRow, _showRowDiv, _showBoard2, _showBoard, _showStartBoard, _playMove, _base_win, _win, _tie, _nextPlayer, _isLegalMove, _checkMove, _gameOver, _convertMove, _winner, _promptOrEnd, _playGame, _main, _minmax, _all_moves, _base_legalMoves, _legalMoves;
+var _digits, _player1, _player2, _empty, _player1Win, _player2Win, _startBoard, _testBoard, _win1Board, _win2Board, _slowBoard, _div, _ending, _spot, _row, _col, _diag1, _diag2, _showRow, _showRowDiv, _showBoard2, _showBoard, _showStartBoard, _playMove, _base_win, _win, _tie, _nextPlayer, _isLegalMove, _checkMove, _gameOver, _convertMove, _winner, _promptOrEnd, _playGame, _main, _minmax, _all_moves, _base_legalMoves, _legalMoves, _promptPlayer, _newGame, _click, _click0, _click1, _click2, _click3, _click4, _click5, _click6, _click7, _click8, _clickC;
 //digits = AST([ 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ])
 root.defs._digits = _digits = define('digits', _$r()((function(){return "0"}))(_$b)((function(){return "1"}))(_$b)((function(){return "2"}))(_$b)((function(){return "3"}))(_$b)((function(){return "4"}))(_$b)((function(){return "5"}))(_$b)((function(){return "6"}))(_$b)((function(){return "7"}))(_$b)((function(){return "8"}))(_$b)((function(){return "9"}))(_$s));
 ;
@@ -108,8 +108,8 @@ root.defs._tie = _tie = define('tie', function(_b){return _not()((function(){var
 //nextPlayer = AST(\p . if (eq p player1) player2 player1)
 root.defs._nextPlayer = _nextPlayer = define('nextPlayer', function(_p){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_p)(_player1)))}})())(_player2)(_player1)});
 ;
-//isLegalMove = AST(\b m . (\i . and (not (eq i nil)) (eq (at b i) empty)) (indexof digits m))
-root.defs._isLegalMove = _isLegalMove = define('isLegalMove', function(_b){return function(_m){return function(_i){return _and()((function(){var $m; return function(){return $m || ($m = (_not()((function(){var $m; return function(){return $m || ($m = (_eq()(_i)(_nil)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_eq()((function(){var $m; return function(){return $m || ($m = (_at()(_b)(_i)))}})())(_empty)))}})())}((function(){var $m; return function(){return $m || ($m = (_indexof()(_digits)(_m)))}})())}});
+//isLegalMove = AST(\b m . if (eq m nil) false ((\i . and (not (eq i nil)) (eq (at b i) empty)) (indexof digits m)))
+root.defs._isLegalMove = _isLegalMove = define('isLegalMove', function(_b){return function(_m){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_m)(_nil)))}})())(_false)((function(){var $m; return function(){return $m || ($m = (function(_i){return _and()((function(){var $m; return function(){return $m || ($m = (_not()((function(){var $m; return function(){return $m || ($m = (_eq()(_i)(_nil)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_eq()((function(){var $m; return function(){return $m || ($m = (_at()(_b)(_i)))}})())(_empty)))}})())}((function(){var $m; return function(){return $m || ($m = (_indexof()(_digits)(_m)))}})())))}})())}});
 ;
 //checkMove = AST(\p b move . if (isLegalMove b move) (playGame (nextPlayer p) (playMove p b (indexof digits move))) (promptOrEnd p b))
 root.defs._checkMove = _checkMove = define('checkMove', function(_p){return function(_b){return function(_move){return _if()((function(){var $m; return function(){return $m || ($m = (_isLegalMove()(_b)(_move)))}})())((function(){var $m; return function(){return $m || ($m = (_playGame()((function(){var $m; return function(){return $m || ($m = (_nextPlayer()(_p)))}})())((function(){var $m; return function(){return $m || ($m = (_playMove()(_p)(_b)((function(){var $m; return function(){return $m || ($m = (_indexof()(_digits)(_move)))}})())))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_promptOrEnd()(_p)(_b)))}})())}}});
@@ -132,8 +132,8 @@ root.defs._playGame = _playGame = define('playGame', function(_p){return functio
 //main = AST(playGame player1 startBoard)
 root.defs._main = _main = define('main', _playGame()(_player1)(_startBoard));
 ;
-//minmax = AST(\p b . at digits (head (legalMoves b)))
-root.defs._minmax = _minmax = define('minmax', function(_p){return function(_b){return _at()(_digits)((function(){var $m; return function(){return $m || ($m = (_head()((function(){var $m; return function(){return $m || ($m = (_legalMoves()(_b)))}})())))}})())}});
+//minmax = AST(\p b . (\legal . if (eq legal nil) nil (at digits (head legal))) (legalMoves b))
+root.defs._minmax = _minmax = define('minmax', function(_p){return function(_b){return function(_legal){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_legal)(_nil)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_at()(_digits)((function(){var $m; return function(){return $m || ($m = (_head()(_legal)))}})())))}})())}((function(){var $m; return function(){return $m || ($m = (_legalMoves()(_b)))}})())}});
 ;
 //all_moves = AST([ 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 ])
 root.defs._all_moves = _all_moves = define('all_moves', _$r()((function(){return 0}))(_$b)((function(){return 1}))(_$b)((function(){return 2}))(_$b)((function(){return 3}))(_$b)((function(){return 4}))(_$b)((function(){return 5}))(_$b)((function(){return 6}))(_$b)((function(){return 7}))(_$b)((function(){return 8}))(_$s));
@@ -144,9 +144,48 @@ root.defs._base_legalMoves = _base_legalMoves = define('base_legalMoves', functi
 //legalMoves = AST(\b . base_legalMoves b all_moves)
 root.defs._legalMoves = _legalMoves = define('legalMoves', function(_b){return _base_legalMoves()(_b)(_all_moves)});
 ;
+//promptPlayer = AST(\p . print (concat ([ Your move player  , p ,  [0-8] or c or q> ])))
+root.defs._promptPlayer = _promptPlayer = define('promptPlayer', function(_p){return _print()((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Your move player "}))(_$b)(_p)(_$b)((function(){return " [0-8] or c or q>"}))(_$s)))}})())))}})())});
+;
+//newGame = AST(\e . bind (setValue board startBoard) \_ . bind (setValue player player1) \_ . bind (print hello world!) \_ . bind (showBoard startBoard) \_ . promptPlayer player1)
+root.defs._newGame = _newGame = define('newGame', function(_e){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "board"}))(_startBoard)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))(_player1)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_print()((function(){return "hello world!"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_showBoard()(_startBoard)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _promptPlayer()(_player1)}))}})())}))}})())}))}})())}))}})())});
+;
+//click = AST(\move . bind (getValue board) \b . bind (getValue player) \p . if (eq c move) (click (minmax p b)) (if (isLegalMove b move) ((\new_b . (\win_msg . (\next_p . bind (showBoard new_b) \_ . bind (if (neq win_msg empty) (print win_msg) (promptPlayer next_p)) \_ . bind (setValue board new_b) \_ . setValue player next_p) (nextPlayer p)) (gameOver new_b (win new_b))) (playMove p b (indexof digits move))) (print Illegal move, please try again)))
+root.defs._click = _click = define('click', function(_move){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "board"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_b){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "player"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_p){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()((function(){return "c"}))(_move)))}})())((function(){var $m; return function(){return $m || ($m = (_click()((function(){var $m; return function(){return $m || ($m = (_minmax()(_p)(_b)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_isLegalMove()(_b)(_move)))}})())((function(){var $m; return function(){return $m || ($m = (function(_new_b){return function(_win_msg){return function(_next_p){return _bind()((function(){var $m; return function(){return $m || ($m = (_showBoard()(_new_b)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_neq()(_win_msg)(_empty)))}})())((function(){var $m; return function(){return $m || ($m = (_print()(_win_msg)))}})())((function(){var $m; return function(){return $m || ($m = (_promptPlayer()(_next_p)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "board"}))(_new_b)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _setValue()((function(){return "player"}))(_next_p)}))}})())}))}})())}))}})())}((function(){var $m; return function(){return $m || ($m = (_nextPlayer()(_p)))}})())}((function(){var $m; return function(){return $m || ($m = (_gameOver()(_new_b)((function(){var $m; return function(){return $m || ($m = (_win()(_new_b)))}})())))}})())}((function(){var $m; return function(){return $m || ($m = (_playMove()(_p)(_b)((function(){var $m; return function(){return $m || ($m = (_indexof()(_digits)(_move)))}})())))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_print()((function(){return "Illegal move, please try again"}))))}})())))}})())}))}})())}))}})())});
+;
+//click0 = AST(\e . click 0)
+root.defs._click0 = _click0 = define('click0', function(_e){return _click()((function(){return "0"}))});
+;
+//click1 = AST(\e . click 1)
+root.defs._click1 = _click1 = define('click1', function(_e){return _click()((function(){return "1"}))});
+;
+//click2 = AST(\e . click 2)
+root.defs._click2 = _click2 = define('click2', function(_e){return _click()((function(){return "2"}))});
+;
+//click3 = AST(\e . click 3)
+root.defs._click3 = _click3 = define('click3', function(_e){return _click()((function(){return "3"}))});
+;
+//click4 = AST(\e . click 4)
+root.defs._click4 = _click4 = define('click4', function(_e){return _click()((function(){return "4"}))});
+;
+//click5 = AST(\e . click 5)
+root.defs._click5 = _click5 = define('click5', function(_e){return _click()((function(){return "5"}))});
+;
+//click6 = AST(\e . click 6)
+root.defs._click6 = _click6 = define('click6', function(_e){return _click()((function(){return "6"}))});
+;
+//click7 = AST(\e . click 7)
+root.defs._click7 = _click7 = define('click7', function(_e){return _click()((function(){return "7"}))});
+;
+//click8 = AST(\e . click 8)
+root.defs._click8 = _click8 = define('click8', function(_e){return _click()((function(){return "8"}))});
+;
+//clickC = AST(\e . click c)
+root.defs._clickC = _clickC = define('clickC', function(_e){return _click()((function(){return "c"}))});
+;
 
 if (typeof window !== 'undefined' && window !== null) {
-  Lazp.processTokenDefs(root.tokenDefs);
+  Liesure.processTokenDefs(root.tokenDefs);
 }
 return root;
 }).call(this)
