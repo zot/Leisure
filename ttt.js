@@ -108,8 +108,8 @@ root.defs._tie = _tie = define('tie', function(_b){return _not()((function(){var
 //nextPlayer = AST(\p . if (eq p player1) player2 player1)
 root.defs._nextPlayer = _nextPlayer = define('nextPlayer', function(_p){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_p)(_player1)))}})())(_player2)(_player1)});
 ;
-//isLegalMove = AST(\b m . (\i . and (not (eq i nil)) (eq (at b i) empty)) (indexof digits m))
-root.defs._isLegalMove = _isLegalMove = define('isLegalMove', function(_b){return function(_m){return function(_i){return _and()((function(){var $m; return function(){return $m || ($m = (_not()((function(){var $m; return function(){return $m || ($m = (_eq()(_i)(_nil)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_eq()((function(){var $m; return function(){return $m || ($m = (_at()(_b)(_i)))}})())(_empty)))}})())}((function(){var $m; return function(){return $m || ($m = (_indexof()(_digits)(_m)))}})())}});
+//isLegalMove = AST(\b m . if (eq m nil) false ((\i . and (not (eq i nil)) (eq (at b i) empty)) (indexof digits m)))
+root.defs._isLegalMove = _isLegalMove = define('isLegalMove', function(_b){return function(_m){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_m)(_nil)))}})())(_false)((function(){var $m; return function(){return $m || ($m = (function(_i){return _and()((function(){var $m; return function(){return $m || ($m = (_not()((function(){var $m; return function(){return $m || ($m = (_eq()(_i)(_nil)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_eq()((function(){var $m; return function(){return $m || ($m = (_at()(_b)(_i)))}})())(_empty)))}})())}((function(){var $m; return function(){return $m || ($m = (_indexof()(_digits)(_m)))}})())))}})())}});
 ;
 //checkMove = AST(\p b move . if (isLegalMove b move) (playGame (nextPlayer p) (playMove p b (indexof digits move))) (promptOrEnd p b))
 root.defs._checkMove = _checkMove = define('checkMove', function(_p){return function(_b){return function(_move){return _if()((function(){var $m; return function(){return $m || ($m = (_isLegalMove()(_b)(_move)))}})())((function(){var $m; return function(){return $m || ($m = (_playGame()((function(){var $m; return function(){return $m || ($m = (_nextPlayer()(_p)))}})())((function(){var $m; return function(){return $m || ($m = (_playMove()(_p)(_b)((function(){var $m; return function(){return $m || ($m = (_indexof()(_digits)(_move)))}})())))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_promptOrEnd()(_p)(_b)))}})())}}});
@@ -132,8 +132,8 @@ root.defs._playGame = _playGame = define('playGame', function(_p){return functio
 //main = AST(playGame player1 startBoard)
 root.defs._main = _main = define('main', _playGame()(_player1)(_startBoard));
 ;
-//minmax = AST(\p b . at digits (head (legalMoves b)))
-root.defs._minmax = _minmax = define('minmax', function(_p){return function(_b){return _at()(_digits)((function(){var $m; return function(){return $m || ($m = (_head()((function(){var $m; return function(){return $m || ($m = (_legalMoves()(_b)))}})())))}})())}});
+//minmax = AST(\p b . (\legal . if (eq legal nil) nil (at digits (head legal))) (legalMoves b))
+root.defs._minmax = _minmax = define('minmax', function(_p){return function(_b){return function(_legal){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_legal)(_nil)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_at()(_digits)((function(){var $m; return function(){return $m || ($m = (_head()(_legal)))}})())))}})())}((function(){var $m; return function(){return $m || ($m = (_legalMoves()(_b)))}})())}});
 ;
 //all_moves = AST([ 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 ])
 root.defs._all_moves = _all_moves = define('all_moves', _$r()((function(){return 0}))(_$b)((function(){return 1}))(_$b)((function(){return 2}))(_$b)((function(){return 3}))(_$b)((function(){return 4}))(_$b)((function(){return 5}))(_$b)((function(){return 6}))(_$b)((function(){return 7}))(_$b)((function(){return 8}))(_$s));
