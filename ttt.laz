@@ -135,10 +135,14 @@ legalMoves b = base_legalMoves b all_moves
 # GUI Interactions
 ##################
 
+promptPlayer p = print (concat ["Your move player ", p, " [0-8] or c or q>" ])
+
 newGame e = do
   setValue 'board' startBoard
   setValue 'player' player1
+  print "hello world!"
   showBoard startBoard
+  promptPlayer player1
 
 click move = do
   b <- getValue 'board'
@@ -146,12 +150,14 @@ click move = do
   if (eq 'c' move)
     click (minmax p b)
     if (isLegalMove b move)
-      let
+      do
         new_b = playMove p b (indexof digits move)
-        winner = gameOver new_b (win new_b)
+        win_msg = gameOver new_b (win new_b)
+        next_p = nextPlayer p
         showBoard new_b
-        if (neq winner empty) print winner
-        setValue 'player' (nextPlayer p)
+        if (neq win_msg empty) (print win_msg) (promptPlayer next_p)
+        setValue 'board' new_b
+        setValue 'player' next_p
       print "Illegal move, please try again"
 
 click0 e = click '0'
