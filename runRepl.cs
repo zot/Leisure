@@ -1,4 +1,4 @@
-LZ = require('./liesure')
+LZ = require('./leisure')
 R = require('./repl')
 
 importFile = (file, cont) ->
@@ -6,7 +6,7 @@ importFile = (file, cont) ->
     LZ.eval "req('./#{file}')"
     cont()), nomacros
 
-loadStd = -> LZ.eval "Liesure.req('./std')"
+loadStd = -> LZ.eval "Leisure.req('./std')"
 
 nomacros = false
 action = importFile

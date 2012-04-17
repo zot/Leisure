@@ -24,7 +24,7 @@ misrepresented as being the original software.
 
 if window? and (!global? or global == window)
   window.global = window
-  window.Liesure = root = {}
+  window.Leisure = root = {}
 else root = exports ? this
 
 baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
@@ -67,7 +67,7 @@ charCodes =
 
 codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
 
-global.liesureFuncs = {}
+global.leisureFuncs = {}
 global.macros = {}
 tokens = {}
 groupOpens = {'(': ')'}
@@ -103,19 +103,19 @@ Nil = new CNil()
 cons = (a, b)-> new Cons(a, b)
 append = (a, b)-> if a == Nil then b else cons a.head, append(a.tail, b)
 
-global.liesureFuncNames = ll = Nil
+global.leisureFuncNames = ll = Nil
 
-global.liesureAddFunc = (nm)-> global.liesureFuncNames = ll = cons(nm, ll)
+global.leisureAddFunc = (nm)-> global.leisureFuncNames = ll = cons(nm, ll)
 
-global.liesureGetFuncs = -> ll
+global.leisureGetFuncs = -> ll
 
 define = (name, func) ->
   nm = nameSub(name)
-  func.liesureName = name
+  func.leisureName = name
   if ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
   f = -> func
-  ctx[nm] = ctx.liesureFuncs[nm] = f
-  (evalFunc 'liesureAddFunc')(name)
+  ctx[nm] = ctx.leisureFuncs[nm] = f
+  (evalFunc 'leisureAddFunc')(name)
   f
 
 defineMacro = (name, func)-> ctx.macros[name] = func
@@ -128,8 +128,8 @@ setType = (func, type)->
   if type then func.type = type
   func
 
-nameAst = (nm, ast)-> if !ast.liesureName
-  ast.liesureName = nm
+nameAst = (nm, ast)-> if !ast.leisureName
+  ast.leisureName = nm
   ast.toString = ->nm
 
 evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
@@ -328,8 +328,8 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
             bod.exprType = nm[0]
             ast.exprDataType = nm[0]
           if nm.length == 1 then nameAst(nm[0], ast)
-          ast.liesurePrefixSrcLen = pfx.length
-          ast.liesurePrefixCount = nm.length
+          ast.leisurePrefixSrcLen = pfx.length
+          ast.leisurePrefixCount = nm.length
           genCode ast, nm[0], globals, defType, rest, parseOnly), errPrefix
     else ifParsed (if nomacros then parseApply rest1, Nil else parseFull rest1), ((ast, rest)->
       genCode ast, null, globals, null, rest, parseOnly), errPrefix
@@ -344,12 +344,12 @@ genCode = (ast, name, globals, defType, rest, parseOnly)->
 evalNext = (code)->
   [ast, err, rest] = compileNext code, null
   if ast
-    if ast.liesureName
+    if ast.leisureName
       try
-        nm = nameSub(ast.liesureName)
+        nm = nameSub(ast.leisureName)
         if ctx[nm] then evalFunc("#{nm} = null")
         evalCompiledAst(ast)
-        result = "Defined: #{ast.liesureName}"
+        result = "Defined: #{ast.leisureName}"
       catch err
         console.log(err.stack)
         result = err.stack
@@ -475,8 +475,8 @@ ifParsed = (res, block, errPrefix)->
   else block res[0], res[2]
 
 tag = (ast, start, end)->
-  ast.liesureStart = start
-  ast.liesureEnd = end
+  ast.leisureStart = start
+  ast.leisureEnd = end
   ast
 
 soff = (orig, offset, rest)-> offset + orig.length - rest.length
@@ -493,7 +493,7 @@ continueApply = (func, str, vars, offset)->
   [tok, offset1, rest] = nextTok str, offset
   if !tok or tok == '\n' or tok == '}' or groupCloses[tok] then [func, null, str]
   else ifParsed (parseTerm tok, rest, vars, offset1), (arg, rest)->
-    continueApply tag(apply(laz(func))(laz(arg)), func.liesureStart, arg.liesureEnd), rest, vars, soff(str, offset, rest)
+    continueApply tag(apply(laz(func))(laz(arg)), func.leisureStart, arg.leisureEnd), rest, vars, soff(str, offset, rest)
 
 parseTerm = (tok, rest, vars, tokOffset)->
   restOffset = tokOffset + tok.length
@@ -506,7 +506,7 @@ parseTerm = (tok, rest, vars, tokOffset)->
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
       else if tok == '(' then [ast, null, rest4]
       else ifParsed (parseName tok4, rest4, vars, soff(rest, restOffset, rest4)), (arg, rest5)->
-        [tag(apply(laz(ast))(laz(arg)), ast.liesureStart, arg.liesureEnd), null, rest5]
+        [tag(apply(laz(ast))(laz(arg)), ast.leisureStart, arg.leisureEnd), null, rest5]
   else parseName tok, rest, vars, tokOffset
 
 parseName = (tok, rest, vars, tokOffset) ->
@@ -568,7 +568,7 @@ req = (name, gl)->
   if res.defs? then for i,v of res.defs
     ((tmp)-> gl[i] = tmp) v
   processTokenDefs res.tokenDefs
-  res.liesureFuncNames = ctx.liesureFuncNames
+  res.leisureFuncNames = ctx.leisureFuncNames
   res.ctx = ctx
   res
 

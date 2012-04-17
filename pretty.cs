@@ -1,14 +1,14 @@
 if window? and (!global? or global == window)
   window.global = window
   window.Pretty = root = {}
-  Liesure = window.Liesure
+  Leisure = window.Leisure
 else root = exports ? this
 
-if !Liesure? and require?
-  Liesure = require('./liesure')
+if !Leisure? and require?
+  Leisure = require('./leisure')
   U = require('util')
 
-getType = Liesure.getType
+getType = Leisure.getType
 inspect = U?.inspect || (v)->v
 
 listDo = (l, f)-> l(->(h)->(t)->f(h(), t()))
@@ -35,7 +35,7 @@ subprint = (f)->
     when 'some2' then f(->(a)->(b)-> "Some2(#{print a()}, #{print b()})")(null)
     when 'left' then f(->(l)-> "Left(#{print l()})")(null)
     when 'right' then f(null)(->(r)-> "Right(#{print r()})")
-    else f?.liesureName ? inspect(f)
+    else f?.leisureName ? inspect(f)
 
 printLambda = (v, body)->
   if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"

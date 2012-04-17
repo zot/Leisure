@@ -1,6 +1,6 @@
 U = require('util')
 R = require('readline')
-L = require('./liesure')
+L = require('./leisure')
 Prim = require('./prim')
 Core = require('./replCore')
 FS = require('fs')
@@ -26,19 +26,19 @@ face = null
 init = ->
   if !face?
     face = R.createInterface(process.stdin, process.stdout)
-    face.setPrompt "Liesure> "
+    face.setPrompt "Leisure> "
     Prim.setTty face
     face.on 'close', ()->process.exit(0)
     face.on 'line', (line)->Core.processLine(line.trim())
     Core.setNext -> face.prompt()
 
 repl = () ->
-  print("Welcome to Liesure!\n")
+  print("Welcome to Leisure!\n")
   help()
   init()
   # face = R.createInterface(process.stdin, process.stdout)
   # Prim.setTty(face)
-  # face.setPrompt "Liesure> "
+  # face.setPrompt "Leisure> "
   # face.on 'close', ()->process.exit(0)
   # face.on 'line', (line)->Core.processLine(line.trim())
   # Core.setNext -> face.prompt()
@@ -85,11 +85,11 @@ processResult = (result)->
 createEnv = ->
   ctxObj =
     require: require
-    Liesure: L
+    Leisure: L
     Repl: module
-    liesureFuncs: {}
+    leisureFuncs: {}
     macros: {}
-  ctxObj[i] = v for i,v of liesureFuncs
+  ctxObj[i] = v for i,v of leisureFuncs
   ctx = VM.createContext ctxObj
   ctx.global = ctx
   L.setEvalFunc ctx, (str)-> VM.runInContext(str, ctx)
@@ -97,30 +97,30 @@ createEnv = ->
 (function(){
 var lll;
 
-  global.liesureGetFuncs = function liesureGetFuncs() {
+  global.leisureGetFuncs = function leisureGetFuncs() {
     return lll
   }
-  global.liesureSetFuncs = function liesureSetFuncs(funcs) {
+  global.leisureSetFuncs = function leisureSetFuncs(funcs) {
     lll = funcs
   }
-  global.liesureAddFunc = function liesureAddFunc(func) {
-    lll = Liesure.cons(func, lll)
+  global.leisureAddFunc = function leisureAddFunc(func) {
+    lll = Leisure.cons(func, lll)
   }
 })()
 
 function req(name) {
-  return Liesure.req(name, global)
+  return Leisure.req(name, global)
 }
-//Liesure.req('./std');
+//Leisure.req('./std');
 
-setType = Liesure.setType;
-setDataType = Liesure.setDataType;
-define = Liesure.define;
-defineMacro = Liesure.defineMacro;
-defineToken = Liesure.defineToken;
+setType = Leisure.setType;
+setDataType = Leisure.setDataType;
+define = Leisure.define;
+defineMacro = Leisure.defineMacro;
+defineToken = Leisure.defineToken;
 processResult = Repl.processResult;
 """, ctx)
-  VM.runInContext('liesureSetFuncs', ctx)(liesureFuncNames)
+  VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames)
 
 createEnv()
 Core.setHelp help

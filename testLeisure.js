@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 /*
-Tests for Liesure
+Tests for Leisure
 */
 
 (function() {
@@ -32,7 +32,7 @@ Tests for Liesure
 
   U = require('util');
 
-  LZ = require('./liesure');
+  LZ = require('./leisure');
 
   R = require('./replCore');
 

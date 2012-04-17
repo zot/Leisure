@@ -6,7 +6,7 @@
 
   R = require('readline');
 
-  L = require('./liesure');
+  L = require('./leisure');
 
   Prim = require('./prim');
 
@@ -49,7 +49,7 @@
   init = function init() {
     if (!(face != null)) {
       face = R.createInterface(process.stdin, process.stdout);
-      face.setPrompt("Liesure> ");
+      face.setPrompt("Leisure> ");
       Prim.setTty(face);
       face.on('close', function() {
         return process.exit(0);
@@ -64,7 +64,7 @@
   };
 
   repl = function repl() {
-    print("Welcome to Liesure!\n");
+    print("Welcome to Leisure!\n");
     help();
     init();
     return face.prompt();
@@ -119,13 +119,13 @@
     var ctx, ctxObj, i, v;
     ctxObj = {
       require: require,
-      Liesure: L,
+      Leisure: L,
       Repl: module,
-      liesureFuncs: {},
+      leisureFuncs: {},
       macros: {}
     };
-    for (i in liesureFuncs) {
-      v = liesureFuncs[i];
+    for (i in leisureFuncs) {
+      v = leisureFuncs[i];
       ctxObj[i] = v;
     }
     ctx = VM.createContext(ctxObj);
@@ -133,8 +133,8 @@
     L.setEvalFunc(ctx, function(str) {
       return VM.runInContext(str, ctx);
     });
-    VM.runInContext("(function(){\nvar lll;\n\n  global.liesureGetFuncs = function liesureGetFuncs() {\n    return lll\n  }\n  global.liesureSetFuncs = function liesureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.liesureAddFunc = function liesureAddFunc(func) {\n    lll = Liesure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Liesure.req(name, global)\n}\n//Liesure.req('./std');\n\nsetType = Liesure.setType;\nsetDataType = Liesure.setDataType;\ndefine = Liesure.define;\ndefineMacro = Liesure.defineMacro;\ndefineToken = Liesure.defineToken;\nprocessResult = Repl.processResult;", ctx);
-    return VM.runInContext('liesureSetFuncs', ctx)(liesureFuncNames);
+    VM.runInContext("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;", ctx);
+    return VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames);
   };
 
   createEnv();

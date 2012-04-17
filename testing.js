@@ -32,7 +32,7 @@ Wimpy testing framework
 
   R = require('./repl');
 
-  LZ = require('./liesure');
+  LZ = require('./leisure');
 
   P = require('./pretty');
 

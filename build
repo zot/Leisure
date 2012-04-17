@@ -1,5 +1,5 @@
 #!/bin/sh
-node_modules/coffee-script/bin/coffee -c liesure.cs prim.cs repl.cs runRepl.cs testLiesure.cs replCore.cs browserRepl.cs pretty.cs testing.cs
+node_modules/coffee-script/bin/coffee -c leisure.cs prim.cs repl.cs runRepl.cs testLeisure.cs replCore.cs browserRepl.cs pretty.cs testing.cs
 node runRepl -q -c -b std
 node_modules/coffee-script/bin/coffee -c aux.cs
-node testLiesure
+node testLeisure

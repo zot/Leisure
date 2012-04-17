@@ -16,7 +16,7 @@ init = (inputField, output, defs)->
     output.lastChild.scrollIntoView()
   ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r, src)->
-    if ast.liesureName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
+    if ast.leisureName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
     else if result
       output.innerHTML += "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
       output.lastElementChild.scrollIntoView()
@@ -33,7 +33,7 @@ reloadEnv = -> envFrame.contentWindow.location.reload()
 
 clearOutput = ->
   o = document.getElementById('output')
-  o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Liesure\'s standard functions.\n\n'
+  o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Leisure\'s standard functions.\n\n'
   ReplCore.help()
   o.innerHTML += '\n'
 
@@ -51,28 +51,28 @@ useIframe = (envFr)->
   if (envFr)
     root.envFrame = envFrame = envFr
     env = envFrame.contentWindow
-    env[i] = v for i, v of liesureFuncs
-    Liesure.setEvalFunc env, env.eval
-    env[i] = v for i, v of {Liesure: Liesure, ReplCore: ReplCore, Repl: Repl, liesureFuncs: {}, macros: {}}
+    env[i] = v for i, v of leisureFuncs
+    Leisure.setEvalFunc env, env.eval
+    env[i] = v for i, v of {Leisure: Leisure, ReplCore: ReplCore, Repl: Repl, leisureFuncs: {}, macros: {}}
     env.eval """
 global = window;
-setType = Liesure.setType;
-setDataType = Liesure.setDataType;
-define = Liesure.define;
-defineMacro = Liesure.defineMacro;
-defineToken = Liesure.defineToken;
+setType = Leisure.setType;
+setDataType = Leisure.setDataType;
+define = Leisure.define;
+defineMacro = Leisure.defineMacro;
+defineToken = Leisure.defineToken;
 processResult = Repl.processResult;
 (function(){
 var lll;
 
-  global.liesureGetFuncs = function liesureGetFuncs() {
+  global.leisureGetFuncs = function leisureGetFuncs() {
     return lll
   }
-  global.liesureSetFuncs = function liesureSetFuncs(funcs) {
+  global.leisureSetFuncs = function leisureSetFuncs(funcs) {
     lll = funcs
   }
-  global.liesureAddFunc = function liesureAddFunc(func) {
-    lll = Liesure.cons(func, lll)
+  global.leisureAddFunc = function leisureAddFunc(func) {
+    lll = Leisure.cons(func, lll)
   }
 })()
 """
@@ -80,7 +80,7 @@ var lll;
 
 markupDef = (src, ast)->
   if src.match /^\s*#/ then src
-  if (match = src.match Liesure.linePat)
+  if (match = src.match Leisure.linePat)
     [matched, leading, name, defType] = match
     "<div><b>#{name}</b> #{defType} #{src.substring(matched.length)}</div>"
   else line

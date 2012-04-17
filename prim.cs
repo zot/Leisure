@@ -8,11 +8,11 @@ if window?
     output.lastChild.scrollIntoView()
   prompt = (msg, cont)-> cont(window.prompt(msg))
   window.Prim = root = {}
-  Liesure = window.Liesure
+  Leisure = window.Leisure
 else
   # running in node
   root = exports ? this
-  Liesure = require('./liesure')
+  Leisure = require('./leisure')
   Pretty = require('./pretty')
   U = require('util')
   RL = require('readline')
@@ -22,18 +22,18 @@ else
 
 setTty = (rl)-> tty = rl
 
-define = Liesure.define
-getType = Liesure.getType
-laz = Liesure.laz
+define = Leisure.define
+getType = Leisure.getType
+laz = Leisure.laz
 
 define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
 define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
 define 'getType', (value)-> if type = getType(value()) then _some()(->type) else _none()
 define 'parse', (value)->
-  [prepped, err] = Liesure.prepare String(value())
+  [prepped, err] = Leisure.prepare String(value())
   if err? then _right()(laz("Error: #{err}"))
   else
-    [ast, err, rest] = Liesure.parseFull(prepped)
+    [ast, err, rest] = Leisure.parseFull(prepped)
     if err? then _right()(laz("Error: #{err}"))
     else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
     else _left()(laz(ast))
@@ -67,9 +67,9 @@ define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1))
 eventCmds = []
 running = false
 
-liesureEvent = (liesureFuncName, evt)->
+leisureEvent = (leisureFuncName, evt)->
   currentEvent = evt
-  monad = Liesure.eval("#{Liesure.nameSub(liesureFuncName)}()")(laz(evt))
+  monad = Leisure.eval("#{Leisure.nameSub(leisureFuncName)}()")(laz(evt))
   runMonad monad, ->
 
 runMonad = (monad, cont)->
@@ -90,7 +90,7 @@ runMonads = (monad, cont)->
   else throw new Error("Attempted to run something that's not a monad")
 
 # Make a new function and hide func and binding in properties on it
-# making them inaccessible to pure Liesure code
+# making them inaccessible to pure Leisure code
 # so people won't accidentally fire off side effects
 makeMonad = (binding, guts)->
   m = ->
@@ -171,6 +171,6 @@ root.setTty = setTty
 root.runMonad = runMonad
 root.makeMonad = makeMonad
 root.tokenDefs = []
-root.liesureEvent = liesureEvent
+root.leisureEvent = leisureEvent
 
-if window? then window.liesureEvent = liesureEvent
+if window? then window.leisureEvent = leisureEvent

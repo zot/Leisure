@@ -1,6 +1,6 @@
 <html>
   <head>
-    <script src="liesure.js"></script>
+    <script src="leisure.js"></script>
     <script src="prim.js"></script>
     <script src="replCore.js"></script>
     <script src="pretty.js"></script>
@@ -13,7 +13,7 @@
       x = 0;
       y = 0;
       rock = null;
-      laz = Liesure.laz
+      laz = Leisure.laz
 
       function getRockBounds() {
         rock = document.getElementById('scene').getSVGDocument().getElementById('rock');
@@ -26,7 +26,7 @@
       function loadedRock() {
         rockDoc = document.getElementById('scene').getSVGDocument();
         rockWin = rockDoc.defaultView;
-        rockWin.liesureEvent = function(funcName) {Prim.liesureEvent(funcName, rockWin.event);};
+        rockWin.leisureEvent = function(funcName) {Prim.leisureEvent(funcName, rockWin.event);};
         rock = rockDoc.getElementById('rock');
         var bbox = rock.getBBox();
         //x = -bbox.x;
@@ -70,7 +70,7 @@
       function clearOutput() {
         var o = document.getElementById('output')
 
-        o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Liesure\'s standard functions.\n\n'
+        o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Leisure\'s standard functions.\n\n'
         ReplCore.help()
         o.innerHTML += '\n'
       }
@@ -98,7 +98,7 @@
 	  <div style="height: 100%; position: relative">
 	    <div><b>Definitions</b></div>
 	    <div style="position: absolute; top: 0; right: 0"> </div>
-	    <div style="text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Liesure</i></b></div>
+	    <div style="text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Leisure</i></b></div>
 	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a> <button onclick="clearOutput()">Clear</button> <b>Output</b></div>
 	  </div>
 	</td>
