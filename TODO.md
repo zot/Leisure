@@ -15,18 +15,18 @@
    * should be able to load *.lsr files into the environment
 * integrate physics engine
 * doc comments
-* make \[ a macro and remove need for commas
-   * allow macros to define tokens
-   * add helper function for defining \[ macros, for varargs
-   * bubba\[ x x x \] seems like it would work fine as a token, because tokens are sorted by length, for matching purposes.
-   * or\[, and\[, js\[, concat\[
+* macros
+   * cond macro
+   * make \[ a macro and remove need for commas
+      * allow macros to define tokens
+      * add helper function for defining \[ macros, for varargs
+      * bubba\[ x x x \] seems like it would work fine as a token, because tokens are sorted by length, for matching purposes.
+      * or\[, and\[, js\[, concat\[
 * :d command to show how a function is defined
 * multiline REPL
 * allow redefinition in REPL exprs
 * multiline comments and strings, ala CoffeeScript
-* cond macro
 * better errors for file problems
-* when there are parsing or compilation errors, show which function has the problem
 * if reqs aren't present when runing in browser, show error in output area or use alert if not in repl
 * allow eval to take either a string or an AST
 * add assertMonad() to testing.cs
@@ -62,6 +62,7 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* when there are parsing or compilation errors, show which function has the problem
 * add floating point numbers to tokenDefs
 * let
 * throw error on undeclared variables -- require quotes for strings
