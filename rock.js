@@ -6,8 +6,8 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
-  Liesure = require('./liesure');
-  Liesure.req('./std');
+  Leisure = require('./leisure');
+  Leisure.req('./std');
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
@@ -16,11 +16,11 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-var setType = Liesure.setType;
-var setDataType = Liesure.setDataType;
-var define = Liesure.define;
-var defineMacro = Liesure.defineMacro;
-var defineToken = Liesure.defineToken;
+var setType = Leisure.setType;
+var setDataType = Leisure.setDataType;
+var define = Leisure.define;
+var defineMacro = Leisure.defineMacro;
+var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
 var _main, _clickRock;
@@ -32,7 +32,7 @@ root.defs._clickRock = _clickRock = define('clickRock', function(_e){return _pri
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
-  Liesure.processTokenDefs(root.tokenDefs);
+  Leisure.processTokenDefs(root.tokenDefs);
 }
 return root;
 }).call(this)

@@ -6,7 +6,7 @@
 The goal, here is to provide a convenient language people's use and experimentation that people can easily tailor to their own needs.
 
 ## Convenient
-Leisure provides a convenient syntax and powerful tools to help people try things out quickly and be productive.  Leisure's syntax is based on Lambda Calculus and borrows things from Haskell and other languages while still remaining a very small language.
+Leisure provides a convenient syntax and powerful tools to help people try things out quickly, be productive, and customize the language to suit their needs.  Leisure's syntax is based on Lambda Calculus and borrows things from Haskell and other languages while still remaining very small.  It also includes metaprogramming facilities to allow powerful customization.
 
 ### Lambdas
 As in Haskell, you can write lambda either as 𝛌 or \.  Lambdas are structured as: **𝛌 variable . body** and if you provide serveral space-separated variables, Leisure automatically constructs nested lambdas for you, like this: **\a b . a**

@@ -688,7 +688,7 @@
     <g
        id="g4431"
        transform="matrix(0.04716137,0,0,0.04716137,17.188178,891.32881)"
-       onclick="liesu lEvent(&quot;newGame&quot;)">
+       onclick="leisureEvent(&quot;newGame&quot;)">
       <g
          id="layer1-8"
          style="display:inline"
