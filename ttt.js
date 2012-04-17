@@ -6,8 +6,8 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
-  Liesure = require('./liesure');
-  Liesure.req('./std');
+  Leisure = require('./leisure');
+  Leisure.req('./std');
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
@@ -16,11 +16,11 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-var setType = Liesure.setType;
-var setDataType = Liesure.setDataType;
-var define = Liesure.define;
-var defineMacro = Liesure.defineMacro;
-var defineToken = Liesure.defineToken;
+var setType = Leisure.setType;
+var setDataType = Leisure.setDataType;
+var define = Leisure.define;
+var defineMacro = Leisure.defineMacro;
+var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
 var _digits, _player1, _player2, _empty, _player1Win, _player2Win, _startBoard, _testBoard, _win1Board, _win2Board, _slowBoard, _div, _ending, _spot, _row, _col, _diag1, _diag2, _showRow, _showRowDiv, _showBoard2, _showBoard, _showStartBoard, _playMove, _base_win, _win, _tie, _nextPlayer, _isLegalMove, _checkMove, _gameOver, _convertMove, _winner, _promptOrEnd, _playGame, _main, _minmax, _all_moves, _base_legalMoves, _legalMoves, _promptPlayer, _newGame, _click, _click0, _click1, _click2, _click3, _click4, _click5, _click6, _click7, _click8, _clickC;
@@ -185,7 +185,7 @@ root.defs._clickC = _clickC = define('clickC', function(_e){return _click()((fun
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
-  Liesure.processTokenDefs(root.tokenDefs);
+  Leisure.processTokenDefs(root.tokenDefs);
 }
 return root;
 }).call(this)
