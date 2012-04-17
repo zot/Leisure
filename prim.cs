@@ -83,9 +83,11 @@ runMonad = (monad, cont)->
     eventCmds.shift()()
 
 runMonads = (monad, cont)->
-  monad.cmd (value) ->
-    if monad.binding? then runMonads monad.binding(-> value), cont
-    else cont(value)
+  if monad?.cmd?
+    monad.cmd (value) ->
+      if monad.binding? then runMonads monad.binding(-> value), cont
+      else cont(value)
+  else throw new Error("Attempted to run something that's not a monad")
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Lazp code

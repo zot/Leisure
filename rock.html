@@ -24,9 +24,10 @@
         }
       }
       function loadedRock() {
-        rockWin = document.getElementById('scene').getSVGDocument().defaultView
-        rockWin.lazpEvent = function(funcName) {Prim.lazpEvent(funcName, rockWin.event);}
-        rock = document.getElementById('scene').getSVGDocument().getElementById('rock');
+        rockDoc = document.getElementById('scene').getSVGDocument();
+        rockWin = rockDoc.defaultView;
+        rockWin.lazpEvent = function(funcName) {Prim.lazpEvent(funcName, rockWin.event);};
+        rock = rockDoc.getElementById('rock');
         var bbox = rock.getBBox();
         //x = -bbox.x;
         //y = -bbox.y;

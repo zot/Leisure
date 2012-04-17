@@ -319,7 +319,8 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
       else
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
-        ifParsed (if nomacros then parseApply pfx, Nil else parseFull pfx), (ast, rest)->
+        errPrefix = "Error while compiling #{nm}: "
+        ifParsed (if nomacros then parseApply pfx, Nil else parseFull pfx), ((ast, rest)->
           nameAst(nm[0], ast)
           bod = ast
           if nm.length > 1 then bod = getNthBody(ast, nm.length)
@@ -329,13 +330,14 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
           if nm.length == 1 then nameAst(nm[0], ast)
           ast.lazpPrefixSrcLen = pfx.length
           ast.lazpPrefixCount = nm.length
-          genCode ast, nm[0], globals, defType, rest, parseOnly
-    else ifParsed (if nomacros then parseApply rest1, Nil else parseFull rest1), (ast, rest)->
-      genCode ast, null, globals, null, rest, parseOnly
+          genCode ast, nm[0], globals, defType, rest, parseOnly), errPrefix
+    else ifParsed (if nomacros then parseApply rest1, Nil else parseFull rest1), ((ast, rest)->
+      genCode ast, null, globals, null, rest, parseOnly), errPrefix
   else [null, null, null]
 
 genCode = (ast, name, globals, defType, rest, parseOnly)->
   if !parseOnly then dgen ast, false, name, globals, defType
+  if ast.err? and name? then ast.err = "Error while compiling #{name}: #{ast.err}"
   [ast, ast.err, rest]
 
 #returns [ast, result]
@@ -467,7 +469,10 @@ parse = (str)->
   [ast, err, rest] = parseApply str.replace(/\u03BB/g, '\\'), Nil, 0
   if err then throw new Error(err) else ast
 
-ifParsed = (res, block)-> if res[1] then res else block res[0], res[2]
+ifParsed = (res, block, errPrefix)->
+  if res[1]
+    [res[0], errPrefix + res[1], res[2]]
+  else block res[0], res[2]
 
 tag = (ast, start, end)->
   ast.lazpStart = start

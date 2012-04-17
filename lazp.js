@@ -605,7 +605,7 @@ misrepresented as being the original software.
   };
 
   compileNext = function compileNext(line, globals, parseOnly, check, nomacros) {
-    var def, defType, leading, matched, name, nm, pfx, rest1;
+    var def, defType, errPrefix, leading, matched, name, nm, pfx, rest1;
     if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
       if (name[0] === ' ') {
@@ -624,7 +624,8 @@ misrepresented as being the original software.
         } else {
           if (defType && defType !== '=') defineToken(nm[0], defType);
           pfx = prefix(nm, rest1);
-          return ifParsed((nomacros ? parseApply(pfx, Nil) : parseFull(pfx)), function(ast, rest) {
+          errPrefix = "Error while compiling " + nm + ": ";
+          return ifParsed((nomacros ? parseApply(pfx, Nil) : parseFull(pfx)), (function(ast, rest) {
             var bod;
             nameAst(nm[0], ast);
             bod = ast;
@@ -637,12 +638,12 @@ misrepresented as being the original software.
             ast.lazpPrefixSrcLen = pfx.length;
             ast.lazpPrefixCount = nm.length;
             return genCode(ast, nm[0], globals, defType, rest, parseOnly);
-          });
+          }), errPrefix);
         }
       } else {
-        return ifParsed((nomacros ? parseApply(rest1, Nil) : parseFull(rest1)), function(ast, rest) {
+        return ifParsed((nomacros ? parseApply(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
           return genCode(ast, null, globals, null, rest, parseOnly);
-        });
+        }), errPrefix);
       }
     } else {
       return [null, null, null];
@@ -651,6 +652,9 @@ misrepresented as being the original software.
 
   genCode = function genCode(ast, name, globals, defType, rest, parseOnly) {
     if (!parseOnly) dgen(ast, false, name, globals, defType);
+    if ((ast.err != null) && (name != null)) {
+      ast.err = "Error while compiling " + name + ": " + ast.err;
+    }
     return [ast, ast.err, rest];
   };
 
@@ -865,9 +869,9 @@ misrepresented as being the original software.
     }
   };
 
-  ifParsed = function ifParsed(res, block) {
+  ifParsed = function ifParsed(res, block, errPrefix) {
     if (res[1]) {
-      return res;
+      return [res[0], errPrefix + res[1], res[2]];
     } else {
       return block(res[0], res[2]);
     }

@@ -1,5 +1,11 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
 # TODO
+* use curlies for do/let
+   * it would be a grouping macro
+   * groups need to parse better
+* debug mode should put a cons into funcs of a new exception and the list from the parent
+* macros should return an either for the parser
+* error if let finds more than one body expr
 * add prelude.laz
    * put parser macros in there
 * better browser environment

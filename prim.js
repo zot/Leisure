@@ -228,15 +228,19 @@
   };
 
   runMonads = function runMonads(monad, cont) {
-    return monad.cmd(function(value) {
-      if (monad.binding != null) {
-        return runMonads(monad.binding(function() {
-          return value;
-        }), cont);
-      } else {
-        return cont(value);
-      }
-    });
+    if ((monad != null ? monad.cmd : void 0) != null) {
+      return monad.cmd(function(value) {
+        if (monad.binding != null) {
+          return runMonads(monad.binding(function() {
+            return value;
+          }), cont);
+        } else {
+          return cont(value);
+        }
+      });
+    } else {
+      throw new Error("Attempted to run something that's not a monad");
+    }
   };
 
   makeMonad = function makeMonad(binding, guts) {
