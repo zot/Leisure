@@ -1,4 +1,4 @@
-[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/Liesure) [REPL](liesure.html) [Standard functions](std.laz)
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/Liesure) [REPL](liesure.html) [Standard functions](std.lsr)
 # Please Note: the repository is now [http://github.com/zot/Liesure](http://github.com/zot/Liesure)
 
 # Liesure: a convenient, untyped, lazy Lambda Calculus with Metaprogramming and Primitives

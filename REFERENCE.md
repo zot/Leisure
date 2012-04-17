@@ -1,4 +1,4 @@
-[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/liesure) [REPL](liesure.html) [Standard functinos](std.laz)
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/liesure) [REPL](liesure.html) [Standard functinos](std.lsr)
 ## Syntax
 Lambda syntax is very similar to Church's; Here's the identity function, **𝛌x.x**. For the lambda character, you can either use unicode character 955 (u3BB in JavaScript, &955; in HTML) or you can use \, so **\x.x** works just as well.
 
@@ -13,7 +13,7 @@ Any time a definition returns a lambda, it automatically creates a type with the
 ## Internal Liesure Files
 * liesure.cs -- main implementation of the language
 * prim.cs -- primitive functions
-* std.laz -- standard functions
+* std.lsr -- standard functions
 * pretty.cs -- pretty printer
 * replCore.cs -- core of the REPL
 * repl.cs -- command line repl

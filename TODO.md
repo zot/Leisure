@@ -1,4 +1,4 @@
-[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/liesure) [REPL](liesure.html) [Standard functinos](std.laz)
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/liesure) [REPL](liesure.html) [Standard functinos](std.lsr)
 # TODO
 * use curlies for do/let
    * it would be a grouping macro
@@ -6,13 +6,13 @@
 * debug mode should put a cons into funcs of a new exception and the list from the parent
 * macros should return an either for the parser
 * error if let finds more than one body expr
-* add prelude.laz
+* add prelude.lsr
    * put parser macros in there
 * better browser environment
    * left side should be an editor
    * loading files should load them into the editor
    * input should be in a blinking box on the right side, not in an alert box
-   * should be able to load *.laz files into the environment
+   * should be able to load *.lsr files into the environment
 * integrate physics engine
 * doc comments
 * make \[ a macro and remove need for commas
@@ -93,7 +93,7 @@
 * :r resets env in REPL
 * disallow redefinition
 * Run liesure in sandbox
-   * Liesure.cs, std.laz, prim.cs run in a sandbox
+   * Liesure.cs, std.lsr, prim.cs run in a sandbox
       * in browser, use an iframe with ifr.contentWindow.eval() to communicate
          * iframe.contentWindow holds globals
 		 * allow user to show or hide iframe (it's where SVG etc can be)

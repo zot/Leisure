@@ -62,7 +62,7 @@ compile = (file, cont, nomacros)->
     contents = ''
     if !Path.existsSync(file)
       oldfile = file
-      file = file + ".laz"
+      file = file + ".lsr"
       if !Path.existsSync(file)
         console.log("No file: #{oldfile}")
         return cont()
@@ -70,7 +70,7 @@ compile = (file, cont, nomacros)->
     stream.on('data', (data)-> contents += data)
     stream.on('end', ()->
       out = Core.generateCode(file, contents, !root.quiet, null, nomacros)
-      stream = FS.createWriteStream("#{Path.basename file, '.laz'}.js")
+      stream = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
       stream.end(out, 'utf8'))
     stream.on 'close', -> cont()
     stream.on('error', (ex)->

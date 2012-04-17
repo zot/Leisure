@@ -83,7 +83,7 @@
       contents = '';
       if (!Path.existsSync(file)) {
         oldfile = file;
-        file = file + ".laz";
+        file = file + ".lsr";
         if (!Path.existsSync(file)) {
           console.log("No file: " + oldfile);
           return cont();
@@ -96,7 +96,7 @@
       stream.on('end', function() {
         var out;
         out = Core.generateCode(file, contents, !root.quiet, null, nomacros);
-        stream = FS.createWriteStream("" + (Path.basename(file, '.laz')) + ".js");
+        stream = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
         return stream.end(out, 'utf8');
       });
       stream.on('close', function() {

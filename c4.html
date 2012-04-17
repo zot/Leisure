@@ -16,7 +16,7 @@
 
         try {
           $.ajax({
-            url: 'std.laz',
+            url: 'std.lsr',
             success: function(data){stdDefs = data},
             error: function(){changeStdLinks()}
           });
@@ -33,7 +33,7 @@
       function changeStdLink(name) {
         var d = document.getElementById(name)
 
-        d.setAttribute('href', "std.laz")
+        d.setAttribute('href', "std.lsr")
         d.setAttribute('target', "_blank")
       }
       function getStdDefs() {
