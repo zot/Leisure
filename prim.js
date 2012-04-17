@@ -1,5 +1,5 @@
 (function() {
-  var Lazp, Pretty, RL, U, addCmd, concatList, currentEvent, define, eventCmds, getType, head, laz, lazpEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, write;
+  var Lazp, Pretty, RL, U, concatList, define, eventCmds, getType, head, laz, lazpEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, values, write;
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
@@ -206,16 +206,12 @@
 
   running = false;
 
-  currentEvent = null;
-
-  lazpEvent = function lazpEvent(evt, lazpFuncName) {
-    var monad;
+  lazpEvent = function lazpEvent(lazpFuncName, evt) {
+    var currentEvent, monad;
     currentEvent = evt;
-    monad = Lazp.eval("" + (Lazp.nameSub(lazpFuncName)) + "()");
+    monad = Lazp.eval("" + (Lazp.nameSub(lazpFuncName)) + "()")(laz(evt));
     return runMonad(monad, function() {});
   };
-
-  addCmd = function addCmd(cmd) {};
 
   runMonad = function runMonad(monad, cont) {
     eventCmds.push(function() {
@@ -252,16 +248,16 @@
     return m;
   };
 
-  define('getEvent', makeMonad('end', function(cont) {
-    return cont(currentEvent);
-  }));
-
   define('eventX', function(evt) {
     return evt().x;
   });
 
   define('eventY', function(evt) {
     return evt().y;
+  });
+
+  define('eventTargetId', function(evt) {
+    return evt().target.id;
   });
 
   define('return', function(v) {
@@ -349,6 +345,23 @@
         return cont(null);
       }
     });
+  });
+
+  values = {};
+
+  define('getValue', function(name) {
+    return makeMonad('end', function(cont) {
+      return cont(values[name()]);
+    });
+  });
+
+  define('setValue', function(name) {
+    return function(value) {
+      return makeMonad('end', function(cont) {
+        values[name()] = value();
+        return cont(_false);
+      });
+    };
   });
 
   define('createS', function() {
