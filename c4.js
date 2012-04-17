@@ -6,8 +6,8 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
-  Lazp = require('./lazp');
-  Lazp.req('./std');
+  Liesure = require('./liesure');
+  Liesure.req('./std');
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
@@ -16,11 +16,11 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-var setType = Lazp.setType;
-var setDataType = Lazp.setDataType;
-var define = Lazp.define;
-var defineMacro = Lazp.defineMacro;
-var defineToken = Lazp.defineToken;
+var setType = Liesure.setType;
+var setDataType = Liesure.setDataType;
+var define = Liesure.define;
+var defineMacro = Liesure.defineMacro;
+var defineToken = Liesure.defineToken;
 var processResult = Repl.processResult;
 
 var _make_list, _count_down, _count_up, _digits, _player1, _player2, _empty, _NUM_COLS, _NUM_ROWS, _ALL_COLS_UP, _ALL_ROWS_UP, _rc2spot, _spot, _fill_spot, _base_find_empty_spot, _find_empty_spot, _playMove, _playMoves, _div, _ending, _showR, _showRow, _showRows, _showBoard, _horzWinSpots, _vertWinSpots, _lDiagWinSpots, _rDiagWinSpots, _testMoves, _testWins2, _testWins, _testHorz, _testVert, _check_group, _loop_spots, _win$e, _CONNECT, _player1Win, _player2Win, _startBoard, _win1Board, _win2Board, _testFullBoard, _tie$e, _nextPlayer, _isColumnLegal, _isLegalMove, _checkMove, _gameOver, _convertMove, _winner, _promptOrEnd, _playGame, _main, _minmax, _all_moves, _base_legalMoves, _legalMoves;
@@ -200,7 +200,7 @@ root.defs._legalMoves = _legalMoves = define('legalMoves', function(_b){return _
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
-  Lazp.processTokenDefs(root.tokenDefs);
+  Liesure.processTokenDefs(root.tokenDefs);
 }
 return root;
 }).call(this)

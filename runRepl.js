@@ -1,7 +1,7 @@
 (function() {
   var LZ, R, action, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
 
-  LZ = require('./lazp');
+  LZ = require('./liesure');
 
   R = require('./repl');
 
@@ -13,7 +13,7 @@
   };
 
   loadStd = function loadStd() {
-    return LZ.eval("Lazp.req('./std')");
+    return LZ.eval("Liesure.req('./std')");
   };
 
   nomacros = false;

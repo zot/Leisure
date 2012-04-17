@@ -381,7 +381,7 @@
        id="text3861"
        sodipodi:linespacing="125%"
        transform="scale(1.1819546,0.84605619)"
-       onclick=" lazpEvent('click0')"><tspan
+       onclick=" liesureEvent('click0')"><tspan
          sodipodi:role="line"
          id="tspan3863"
          x="28.291819"
@@ -395,7 +395,7 @@
        x="117.92352"
        style="font-size:71.87839508000000400px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#e6e6e6;fill-opacity:1;stroke:none;font-family:Sans;opacity:0.5"
        xml:space="preserve"
-       onclick=" lazpEvent('click1')"><tspan
+       onclick=" liesureEvent('click1')"><tspan
          style="font-size:129.38110352000001000px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;fill:#e6e6e6;stroke:none;font-family:Poplar Std;-inkscape-font-specification:Poplar Std Bold"
          y="797.97827"
          x="117.92352"
@@ -409,7 +409,7 @@
        id="text3873"
        sodipodi:linespacing="125%"
        transform="scale(1.1819546,0.84605619)"
-       onclick=" lazpEvent('click2')"><tspan
+       onclick=" liesureEvent('click2')"><tspan
          id="tspan3875"
          sodipodi:role="line"
          x="189.12627"
@@ -423,7 +423,7 @@
        x="26.61647"
        style="font-size:71.87839508000000400px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#e6e6e6;fill-opacity:1;stroke:none;font-family:Sans;opacity:0.5"
        xml:space="preserve"
-       onclick=" lazpEvent('click3')"><tspan
+       onclick=" liesureEvent('click3')"><tspan
          style="font-size:129.38110352000001000px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;fill:#e6e6e6;stroke:none;font-family:Poplar Std;-inkscape-font-specification:Poplar Std Bold"
          y="912.66309"
          x="26.61647"
@@ -437,7 +437,7 @@
        id="text3881"
        sodipodi:linespacing="125%"
        transform="scale(1.1819546,0.84605619)"
-       onclick=" lazpEvent('click4')"><tspan
+       onclick=" liesureEvent('click4')"><tspan
          id="tspan3883"
          sodipodi:role="line"
          x="106.19601"
@@ -451,7 +451,7 @@
        x="186.61324"
        style="font-size:71.87839508000000400px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#e6e6e6;fill-opacity:1;stroke:none;font-family:Sans;opacity:0.5"
        xml:space="preserve"
-       onclick=" lazpEvent('click5')"><tspan
+       onclick=" liesureEvent('click5')"><tspan
          style="font-size:129.38110352000001000px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;fill:#e6e6e6;stroke:none;font-family:Poplar Std;-inkscape-font-specification:Poplar Std Bold"
          y="912.66309"
          x="186.61324"
@@ -465,7 +465,7 @@
        id="text3889"
        sodipodi:linespacing="125%"
        transform="scale(1.1819546,0.84605619)"
-       onclick=" lazpEvent('click6')"><tspan
+       onclick=" liesureEvent('click6')"><tspan
          id="tspan3891"
          sodipodi:role="line"
          x="24.941118"
@@ -479,7 +479,7 @@
        x="112.05978"
        style="font-size:71.87839508000000400px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#e6e6e6;fill-opacity:1;stroke:none;font-family:Sans;opacity:0.5"
        xml:space="preserve"
-       onclick=" lazpEvent('click7')"><tspan
+       onclick=" liesureEvent('click7')"><tspan
          style="font-size:129.38110352000001000px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;fill:#e6e6e6;stroke:none;font-family:Poplar Std;-inkscape-font-specification:Poplar Std Bold"
          y="1030.8585"
          x="112.05978"
@@ -493,7 +493,7 @@
        id="text3897"
        sodipodi:linespacing="125%"
        transform="scale(1.1819546,0.84605619)"
-       onclick=" lazpEvent('click8')"><tspan
+       onclick=" liesureEvent('click8')"><tspan
          id="tspan3899"
          sodipodi:role="line"
          x="189.96396"
@@ -602,7 +602,7 @@
     <g
        id="robot"
        transform="matrix(3.7146624,0,0,3.4847152,123.34133,898.08036)"
-       onclick="lazpEvent(&quot;clickC&quot;)"
+       onclick="liesureEvent(&quot;clickC&quot;)"
        inkscape:label="#layer1-4">
       <rect
          id="rect3687"
@@ -688,7 +688,7 @@
     <g
        id="g4431"
        transform="matrix(0.04716137,0,0,0.04716137,17.188178,891.32881)"
-       onclick="lazpEvent(&quot;newGame&quot;)">
+       onclick="liesureEvent(&quot;newGame&quot;)">
       <g
          id="layer1-8"
          style="display:inline"

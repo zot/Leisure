@@ -1,13 +1,13 @@
 if window? and (!global? or global == window)
   window.global = window
   window.ReplCore = root = {}
-  Lazp = window.Lazp
+  Liesure = window.Liesure
   P = window.Pretty
   Prim = window.Prim
 else root = exports ? this
 
-if !Lazp? and require?
-  Lazp = require('./lazp')
+if !Liesure? and require?
+  Liesure = require('./liesure')
   P = require('./pretty')
   Prim = require('./prim')
   U = require('util')
@@ -28,16 +28,16 @@ resetFunc = null
 
 setResetFunc = (func)-> resetFunc = func
 
-getType = Lazp.getType
+getType = Liesure.getType
 
 handlerFunc = (ast, result, a, c, r, src)->
-  if a then write "PREPARED: #{Lazp.prepare(src)}"
+  if a then write "PREPARED: #{Liesure.prepare(src)}"
   if ast? and ast.err?
     write("ERROR: #{ast.err}\n")
     nextFunc()
   else
     if a
-      write("PARSED: #{Lazp.astPrint(ast)}\n")
+      write("PARSED: #{Liesure.astPrint(ast)}\n")
       write("FORMATTED: #{P.print ast}\n")
     if c then write("GEN: #{ast.src}\n")
     if r
@@ -52,15 +52,15 @@ setHandler = (f)-> handlerFunc = f
 
 helpFunc = ->
   write("""
-Type a Lazp expression or one of these commands and hit enter:
+Type a Liesure expression or one of these commands and hit enter:
 
 :h -- display this help
 :c filename -- compile file
-:r -- reset the Lazp environment
+:r -- reset the Liesure environment
 :v -- display variable values
 :v var value -- set a variable
 :q -- quit
-! code -- eval JavaScript code in the lazp environment
+! code -- eval JavaScript code in the liesure environment
 !! code -- eval JavaScript code in the host environment
 
   """)
@@ -89,7 +89,7 @@ handleVar = (name, value)->
   else if !value then write("#{name} = #{vars[name]} -- #{vars[prop][1]}\n")
   else vars[name][0] = !(value[0] in ['f', 'F'])
 
-# rewrite in Lazp
+# rewrite in Liesure
 processLine = (line)->
   try
     if line
@@ -99,7 +99,7 @@ processLine = (line)->
           result = if U? then U.inspect(result) else result
           write(result, "\n")
         else
-          result = Lazp.eval(line.substr(1))
+          result = Liesure.eval(line.substr(1))
           result = if U? then U.inspect(result) else result
           write(result, "\n")
       else if (m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/)) then handleVar(m[2], m[3])
@@ -110,12 +110,12 @@ processLine = (line)->
         when ':q' then process.exit(0)
         else
           [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-          [l, err1] = Lazp.prepare(line)
-          [ast, err] = Lazp.compileNext(l, getGlobals(), false, false)
+          [l, err1] = Liesure.prepare(line)
+          [ast, err] = Liesure.compileNext(l, getGlobals(), false, false)
           if err1? or err?
             if ast? then ast.err = err1 ? err
             else ast = {err: err1 ? err}
-          else [ast, result] = if r then Lazp.evalNext(l) else [ast, null]
+          else [ast, result] = if r then Liesure.evalNext(l) else [ast, null]
           return handlerFunc(ast, result, a, c, r, line)
   catch err
     write(err.stack)
@@ -134,8 +134,8 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
-  Lazp = require('./lazp');
-  Lazp.req('./std');
+  Liesure = require('./liesure');
+  Liesure.req('./std');
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
@@ -144,43 +144,43 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-var setType = Lazp.setType;
-var setDataType = Lazp.setDataType;
-var define = Lazp.define;
-var defineMacro = Lazp.defineMacro;
-var defineToken = Lazp.defineToken;
+var setType = Liesure.setType;
+var setDataType = Liesure.setDataType;
+var define = Liesure.define;
+var defineMacro = Liesure.defineMacro;
+var defineToken = Liesure.defineToken;
 var processResult = Repl.processResult;
 
 """
   errs = ''
   globals = findDefs file, contents, nomacros
   defs = []
-  [rest, err] = Lazp.prepare contents
+  [rest, err] = Liesure.prepare contents
   if err then throw new Error(err)
   out += "\nvar"
   for v, i in globals.toArray()
     if i > 0 then out += ","
-    out += " #{Lazp.nameSub v}"
+    out += " #{Liesure.nameSub v}"
   out += ";\n"
-  globals = Lazp.append(globals, getGlobals())
+  globals = Liesure.append(globals, getGlobals())
   while rest
     oldRest = rest
-    [ast, err, rest] = Lazp.compileNext rest, globals, null, false, nomacros
+    [ast, err, rest] = Liesure.compileNext rest, globals, null, false, nomacros
     code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
     err = err ? ast?.err
     if err
-      errs = "#{errs}#{if ast?.lazpName then "Error in #{ast.lazpName}" else ""}#{err}\n"
+      errs = "#{errs}#{if ast?.liesureName then "Error in #{ast.liesureName}" else ""}#{err}\n"
       rest = ''
     else if ast
       globals = ast.globals
-      m = code.match(Lazp.linePat)
-      nm = ast.lazpName
+      m = code.match(Liesure.linePat)
+      nm = ast.liesureName
       ast.src = """
 //#{if nm? then nm + ' = ' else ''}#{escape(P.print(ast))}
-#{if nm? then "root.defs.#{Lazp.nameSub(nm)} = #{Lazp.nameSub(nm)} = " else ""}#{ast.src}
+#{if nm? then "root.defs.#{Liesure.nameSub(nm)} = #{Liesure.nameSub(nm)} = " else ""}#{ast.src}
 """
-      src = if ast.lazpName
-        defs.push Lazp.nameSub(ast.lazpName)
+      src = if ast.liesureName
+        defs.push Liesure.nameSub(ast.liesureName)
         ast.src
       else "processResult(#{ast.src})"
       out += "#{src};\n"
@@ -189,7 +189,7 @@ var processResult = Repl.processResult;
   out += """
 
 if (typeof window !== 'undefined' && window !== null) {
-  Lazp.processTokenDefs(root.tokenDefs);
+  Liesure.processTokenDefs(root.tokenDefs);
 }
 return root;
 }).call(this)
@@ -197,19 +197,19 @@ return root;
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   out
 
-getGlobals = -> Lazp.eval 'lazpGetFuncs()'
+getGlobals = -> Liesure.eval 'liesureGetFuncs()'
 
 findDefs = (file, contents, nomacros)->
   errs = ''
-  globals = Lazp.Nil
+  globals = Liesure.Nil
   rest = contents
   while rest
     oldRest = rest
-    [ast, err, rest] = Lazp.compileNext rest, globals, true, null, nomacros
-    if err then errs = "#{errs}#{if ast.lazpName then "Error in #{ast.lazpName}" else ""}#{err}\n"
-    if ast?.lazpName
-      if globals?.find((v)->v == ast.lazpName) then throw new Error("Attempt to redefine function: #{ast.lazpName}")
-      globals = Lazp.cons(ast.lazpName, globals)
+    [ast, err, rest] = Liesure.compileNext rest, globals, true, null, nomacros
+    if err then errs = "#{errs}#{if ast.liesureName then "Error in #{ast.liesureName}" else ""}#{err}\n"
+    if ast?.liesureName
+      if globals?.find((v)->v == ast.liesureName) then throw new Error("Attempt to redefine function: #{ast.liesureName}")
+      globals = Liesure.cons(ast.liesureName, globals)
   if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
   globals
 

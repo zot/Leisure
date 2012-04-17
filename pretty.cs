@@ -1,14 +1,14 @@
 if window? and (!global? or global == window)
   window.global = window
   window.Pretty = root = {}
-  Lazp = window.Lazp
+  Liesure = window.Liesure
 else root = exports ? this
 
-if !Lazp? and require?
-  Lazp = require('./lazp')
+if !Liesure? and require?
+  Liesure = require('./liesure')
   U = require('util')
 
-getType = Lazp.getType
+getType = Liesure.getType
 inspect = U?.inspect || (v)->v
 
 listDo = (l, f)-> l(->(h)->(t)->f(h(), t()))
@@ -35,7 +35,7 @@ subprint = (f)->
     when 'some2' then f(->(a)->(b)-> "Some2(#{print a()}, #{print b()})")(null)
     when 'left' then f(->(l)-> "Left(#{print l()})")(null)
     when 'right' then f(null)(->(r)-> "Right(#{print r()})")
-    else f?.lazpName ? inspect(f)
+    else f?.liesureName ? inspect(f)
 
 printLambda = (v, body)->
   if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"

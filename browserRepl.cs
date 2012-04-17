@@ -16,7 +16,7 @@ init = (inputField, output, defs)->
     output.lastChild.scrollIntoView()
   ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r, src)->
-    if ast.lazpName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
+    if ast.liesureName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
     else if result
       output.innerHTML += "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
       output.lastElementChild.scrollIntoView()
@@ -33,7 +33,7 @@ reloadEnv = -> envFrame.contentWindow.location.reload()
 
 clearOutput = ->
   o = document.getElementById('output')
-  o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Lazp\'s standard functions.\n\n'
+  o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Liesure\'s standard functions.\n\n'
   ReplCore.help()
   o.innerHTML += '\n'
 
@@ -51,28 +51,28 @@ useIframe = (envFr)->
   if (envFr)
     root.envFrame = envFrame = envFr
     env = envFrame.contentWindow
-    env[i] = v for i, v of lazpFuncs
-    Lazp.setEvalFunc env, env.eval
-    env[i] = v for i, v of {Lazp: Lazp, ReplCore: ReplCore, Repl: Repl, lazpFuncs: {}, macros: {}}
+    env[i] = v for i, v of liesureFuncs
+    Liesure.setEvalFunc env, env.eval
+    env[i] = v for i, v of {Liesure: Liesure, ReplCore: ReplCore, Repl: Repl, liesureFuncs: {}, macros: {}}
     env.eval """
 global = window;
-setType = Lazp.setType;
-setDataType = Lazp.setDataType;
-define = Lazp.define;
-defineMacro = Lazp.defineMacro;
-defineToken = Lazp.defineToken;
+setType = Liesure.setType;
+setDataType = Liesure.setDataType;
+define = Liesure.define;
+defineMacro = Liesure.defineMacro;
+defineToken = Liesure.defineToken;
 processResult = Repl.processResult;
 (function(){
 var lll;
 
-  global.lazpGetFuncs = function lazpGetFuncs() {
+  global.liesureGetFuncs = function liesureGetFuncs() {
     return lll
   }
-  global.lazpSetFuncs = function lazpSetFuncs(funcs) {
+  global.liesureSetFuncs = function liesureSetFuncs(funcs) {
     lll = funcs
   }
-  global.lazpAddFunc = function lazpAddFunc(func) {
-    lll = Lazp.cons(func, lll)
+  global.liesureAddFunc = function liesureAddFunc(func) {
+    lll = Liesure.cons(func, lll)
   }
 })()
 """
@@ -80,7 +80,7 @@ var lll;
 
 markupDef = (src, ast)->
   if src.match /^\s*#/ then src
-  if (match = src.match Lazp.linePat)
+  if (match = src.match Liesure.linePat)
     [matched, leading, name, defType] = match
     "<div><b>#{name}</b> #{defType} #{src.substring(matched.length)}</div>"
   else line

@@ -29,7 +29,7 @@
       return input.value = '';
     });
     ReplCore.setHandler(function(ast, result, a, c, r, src) {
-      if (ast.lazpName != null) {
+      if (ast.liesureName != null) {
         defs.innerHTML += "" + (markupDef(src, ast)) + "<br>";
       } else if (result) {
         output.innerHTML += "<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n";
@@ -55,7 +55,7 @@
   clearOutput = function clearOutput() {
     var o;
     o = document.getElementById('output');
-    o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Lazp\'s standard functions.\n\n';
+    o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Liesure\'s standard functions.\n\n';
     ReplCore.help();
     return o.innerHTML += '\n';
   };
@@ -77,23 +77,23 @@
     if (envFr) {
       root.envFrame = envFrame = envFr;
       env = envFrame.contentWindow;
-      for (i in lazpFuncs) {
-        v = lazpFuncs[i];
+      for (i in liesureFuncs) {
+        v = liesureFuncs[i];
         env[i] = v;
       }
-      Lazp.setEvalFunc(env, env.eval);
+      Liesure.setEvalFunc(env, env.eval);
       _ref = {
-        Lazp: Lazp,
+        Liesure: Liesure,
         ReplCore: ReplCore,
         Repl: Repl,
-        lazpFuncs: {},
+        liesureFuncs: {},
         macros: {}
       };
       for (i in _ref) {
         v = _ref[i];
         env[i] = v;
       }
-      env.eval("global = window;\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineMacro = Lazp.defineMacro;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.lazpGetFuncs = function lazpGetFuncs() {\n    return lll\n  }\n  global.lazpSetFuncs = function lazpSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.lazpAddFunc = function lazpAddFunc(func) {\n    lll = Lazp.cons(func, lll)\n  }\n})()");
+      env.eval("global = window;\nsetType = Liesure.setType;\nsetDataType = Liesure.setDataType;\ndefine = Liesure.define;\ndefineMacro = Liesure.defineMacro;\ndefineToken = Liesure.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.liesureGetFuncs = function liesureGetFuncs() {\n    return lll\n  }\n  global.liesureSetFuncs = function liesureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.liesureAddFunc = function liesureAddFunc(func) {\n    lll = Liesure.cons(func, lll)\n  }\n})()");
       return clearOutput();
     }
   };
@@ -101,7 +101,7 @@
   markupDef = function markupDef(src, ast) {
     var defType, leading, match, matched, name;
     if (src.match(/^\s*#/)) src;
-    if ((match = src.match(Lazp.linePat))) {
+    if ((match = src.match(Liesure.linePat))) {
       matched = match[0], leading = match[1], name = match[2], defType = match[3];
       return "<div><b>" + name + "</b> " + defType + " " + (src.substring(matched.length)) + "</div>";
     } else {

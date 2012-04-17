@@ -30,7 +30,7 @@ misrepresented as being the original software.
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
-    window.Lazp = root = {};
+    window.Liesure = root = {};
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
@@ -91,7 +91,7 @@ misrepresented as being the original software.
     return this;
   };
 
-  global.lazpFuncs = {};
+  global.liesureFuncs = {};
 
   global.macros = {};
 
@@ -199,28 +199,28 @@ misrepresented as being the original software.
     }
   };
 
-  global.lazpFuncNames = ll = Nil;
+  global.liesureFuncNames = ll = Nil;
 
-  global.lazpAddFunc = function lazpAddFunc(nm) {
-    return global.lazpFuncNames = ll = cons(nm, ll);
+  global.liesureAddFunc = function liesureAddFunc(nm) {
+    return global.liesureFuncNames = ll = cons(nm, ll);
   };
 
-  global.lazpGetFuncs = function lazpGetFuncs() {
+  global.liesureGetFuncs = function liesureGetFuncs() {
     return ll;
   };
 
   define = function define(name, func) {
     var f, nm;
     nm = nameSub(name);
-    func.lazpName = name;
+    func.liesureName = name;
     if (ctx[nm] != null) {
       throw new Error("[DEF] Attempt to redefine definition: " + name);
     }
     f = function f() {
       return func;
     };
-    ctx[nm] = ctx.lazpFuncs[nm] = f;
-    (evalFunc('lazpAddFunc'))(name);
+    ctx[nm] = ctx.liesureFuncs[nm] = f;
+    (evalFunc('liesureAddFunc'))(name);
     return f;
   };
 
@@ -239,8 +239,8 @@ misrepresented as being the original software.
   };
 
   nameAst = function nameAst(nm, ast) {
-    if (!ast.lazpName) {
-      ast.lazpName = nm;
+    if (!ast.liesureName) {
+      ast.liesureName = nm;
       return ast.toString = function toString() {
         return nm;
       };
@@ -635,8 +635,8 @@ misrepresented as being the original software.
               ast.exprDataType = nm[0];
             }
             if (nm.length === 1) nameAst(nm[0], ast);
-            ast.lazpPrefixSrcLen = pfx.length;
-            ast.lazpPrefixCount = nm.length;
+            ast.liesurePrefixSrcLen = pfx.length;
+            ast.liesurePrefixCount = nm.length;
             return genCode(ast, nm[0], globals, defType, rest, parseOnly);
           }), errPrefix);
         }
@@ -662,12 +662,12 @@ misrepresented as being the original software.
     var ast, err, nm, rest, result, _ref;
     _ref = compileNext(code, null), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (ast) {
-      if (ast.lazpName) {
+      if (ast.liesureName) {
         try {
-          nm = nameSub(ast.lazpName);
+          nm = nameSub(ast.liesureName);
           if (ctx[nm]) evalFunc("" + nm + " = null");
           evalCompiledAst(ast);
-          result = "Defined: " + ast.lazpName;
+          result = "Defined: " + ast.liesureName;
         } catch (err) {
           console.log(err.stack);
           result = err.stack;
@@ -878,8 +878,8 @@ misrepresented as being the original software.
   };
 
   tag = function tag(ast, start, end) {
-    ast.lazpStart = start;
-    ast.lazpEnd = end;
+    ast.liesureStart = start;
+    ast.liesureEnd = end;
     return ast;
   };
 
@@ -912,7 +912,7 @@ misrepresented as being the original software.
       return [func, null, str];
     } else {
       return ifParsed(parseTerm(tok, rest, vars, offset1), function(arg, rest) {
-        return continueApply(tag(apply(laz(func))(laz(arg)), func.lazpStart, arg.lazpEnd), rest, vars, soff(str, offset, rest));
+        return continueApply(tag(apply(laz(func))(laz(arg)), func.liesureStart, arg.liesureEnd), rest, vars, soff(str, offset, rest));
       });
     }
   };
@@ -937,7 +937,7 @@ misrepresented as being the original software.
           return [ast, null, rest4];
         } else {
           return ifParsed(parseName(tok4, rest4, vars, soff(rest, restOffset, rest4)), function(arg, rest5) {
-            return [tag(apply(laz(ast))(laz(arg)), ast.lazpStart, arg.lazpEnd), null, rest5];
+            return [tag(apply(laz(ast))(laz(arg)), ast.liesureStart, arg.liesureEnd), null, rest5];
           });
         }
       });
@@ -1039,7 +1039,7 @@ misrepresented as being the original software.
       }
     }
     processTokenDefs(res.tokenDefs);
-    res.lazpFuncNames = ctx.lazpFuncNames;
+    res.liesureFuncNames = ctx.liesureFuncNames;
     res.ctx = ctx;
     return res;
   };

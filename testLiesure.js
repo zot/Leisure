@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 /*
-Tests for Lazp
+Tests for Liesure
 */
 
 (function() {
@@ -32,7 +32,7 @@ Tests for Lazp
 
   U = require('util');
 
-  LZ = require('./lazp');
+  LZ = require('./liesure');
 
   R = require('./replCore');
 

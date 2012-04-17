@@ -6,8 +6,8 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
-  Lazp = require('./lazp');
-  Lazp.req('./std');
+  Liesure = require('./liesure');
+  Liesure.req('./std');
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
@@ -16,11 +16,11 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-var setType = Lazp.setType;
-var setDataType = Lazp.setDataType;
-var define = Lazp.define;
-var defineMacro = Lazp.defineMacro;
-var defineToken = Lazp.defineToken;
+var setType = Liesure.setType;
+var setDataType = Liesure.setDataType;
+var define = Liesure.define;
+var defineMacro = Liesure.defineMacro;
+var defineToken = Liesure.defineToken;
 var processResult = Repl.processResult;
 
 var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _compose, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _any, _all, _index_combine, _indexof, _position, _find, _find$nif, _count, _count$nif, _count$nif$nnot, _remove, _remove$nif, _remove$nif$nnot, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _add$nhash, _key, _value, _get$npair, _get$nvalue, _remove$nhash;
@@ -237,7 +237,7 @@ root.defs._remove$nhash = _remove$nhash = define('remove-hash', function(_k){ret
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
-  Lazp.processTokenDefs(root.tokenDefs);
+  Liesure.processTokenDefs(root.tokenDefs);
 }
 return root;
 }).call(this)

@@ -27,7 +27,7 @@ Wimpy testing framework
 ###
 
 R = require './repl'
-LZ = require './lazp'
+LZ = require './liesure'
 P = require './pretty'
 
 stats =

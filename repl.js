@@ -6,7 +6,7 @@
 
   R = require('readline');
 
-  L = require('./lazp');
+  L = require('./liesure');
 
   Prim = require('./prim');
 
@@ -49,7 +49,7 @@
   init = function init() {
     if (!(face != null)) {
       face = R.createInterface(process.stdin, process.stdout);
-      face.setPrompt("Lazp> ");
+      face.setPrompt("Liesure> ");
       Prim.setTty(face);
       face.on('close', function() {
         return process.exit(0);
@@ -64,7 +64,7 @@
   };
 
   repl = function repl() {
-    print("Welcome to Lazp!\n");
+    print("Welcome to Liesure!\n");
     help();
     init();
     return face.prompt();
@@ -119,13 +119,13 @@
     var ctx, ctxObj, i, v;
     ctxObj = {
       require: require,
-      Lazp: L,
+      Liesure: L,
       Repl: module,
-      lazpFuncs: {},
+      liesureFuncs: {},
       macros: {}
     };
-    for (i in lazpFuncs) {
-      v = lazpFuncs[i];
+    for (i in liesureFuncs) {
+      v = liesureFuncs[i];
       ctxObj[i] = v;
     }
     ctx = VM.createContext(ctxObj);
@@ -133,8 +133,8 @@
     L.setEvalFunc(ctx, function(str) {
       return VM.runInContext(str, ctx);
     });
-    VM.runInContext("(function(){\nvar lll;\n\n  global.lazpGetFuncs = function lazpGetFuncs() {\n    return lll\n  }\n  global.lazpSetFuncs = function lazpSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.lazpAddFunc = function lazpAddFunc(func) {\n    lll = Lazp.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Lazp.req(name, global)\n}\n//Lazp.req('./std');\n\nsetType = Lazp.setType;\nsetDataType = Lazp.setDataType;\ndefine = Lazp.define;\ndefineMacro = Lazp.defineMacro;\ndefineToken = Lazp.defineToken;\nprocessResult = Repl.processResult;", ctx);
-    return VM.runInContext('lazpSetFuncs', ctx)(lazpFuncNames);
+    VM.runInContext("(function(){\nvar lll;\n\n  global.liesureGetFuncs = function liesureGetFuncs() {\n    return lll\n  }\n  global.liesureSetFuncs = function liesureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.liesureAddFunc = function liesureAddFunc(func) {\n    lll = Liesure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Liesure.req(name, global)\n}\n//Liesure.req('./std');\n\nsetType = Liesure.setType;\nsetDataType = Liesure.setDataType;\ndefine = Liesure.define;\ndefineMacro = Liesure.defineMacro;\ndefineToken = Liesure.defineToken;\nprocessResult = Repl.processResult;", ctx);
+    return VM.runInContext('liesureSetFuncs', ctx)(liesureFuncNames);
   };
 
   createEnv();

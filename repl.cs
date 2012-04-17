@@ -1,6 +1,6 @@
 U = require('util')
 R = require('readline')
-L = require('./lazp')
+L = require('./liesure')
 Prim = require('./prim')
 Core = require('./replCore')
 FS = require('fs')
@@ -26,19 +26,19 @@ face = null
 init = ->
   if !face?
     face = R.createInterface(process.stdin, process.stdout)
-    face.setPrompt "Lazp> "
+    face.setPrompt "Liesure> "
     Prim.setTty face
     face.on 'close', ()->process.exit(0)
     face.on 'line', (line)->Core.processLine(line.trim())
     Core.setNext -> face.prompt()
 
 repl = () ->
-  print("Welcome to Lazp!\n")
+  print("Welcome to Liesure!\n")
   help()
   init()
   # face = R.createInterface(process.stdin, process.stdout)
   # Prim.setTty(face)
-  # face.setPrompt "Lazp> "
+  # face.setPrompt "Liesure> "
   # face.on 'close', ()->process.exit(0)
   # face.on 'line', (line)->Core.processLine(line.trim())
   # Core.setNext -> face.prompt()
@@ -85,11 +85,11 @@ processResult = (result)->
 createEnv = ->
   ctxObj =
     require: require
-    Lazp: L
+    Liesure: L
     Repl: module
-    lazpFuncs: {}
+    liesureFuncs: {}
     macros: {}
-  ctxObj[i] = v for i,v of lazpFuncs
+  ctxObj[i] = v for i,v of liesureFuncs
   ctx = VM.createContext ctxObj
   ctx.global = ctx
   L.setEvalFunc ctx, (str)-> VM.runInContext(str, ctx)
@@ -97,30 +97,30 @@ createEnv = ->
 (function(){
 var lll;
 
-  global.lazpGetFuncs = function lazpGetFuncs() {
+  global.liesureGetFuncs = function liesureGetFuncs() {
     return lll
   }
-  global.lazpSetFuncs = function lazpSetFuncs(funcs) {
+  global.liesureSetFuncs = function liesureSetFuncs(funcs) {
     lll = funcs
   }
-  global.lazpAddFunc = function lazpAddFunc(func) {
-    lll = Lazp.cons(func, lll)
+  global.liesureAddFunc = function liesureAddFunc(func) {
+    lll = Liesure.cons(func, lll)
   }
 })()
 
 function req(name) {
-  return Lazp.req(name, global)
+  return Liesure.req(name, global)
 }
-//Lazp.req('./std');
+//Liesure.req('./std');
 
-setType = Lazp.setType;
-setDataType = Lazp.setDataType;
-define = Lazp.define;
-defineMacro = Lazp.defineMacro;
-defineToken = Lazp.defineToken;
+setType = Liesure.setType;
+setDataType = Liesure.setDataType;
+define = Liesure.define;
+defineMacro = Liesure.defineMacro;
+defineToken = Liesure.defineToken;
 processResult = Repl.processResult;
 """, ctx)
-  VM.runInContext('lazpSetFuncs', ctx)(lazpFuncNames)
+  VM.runInContext('liesureSetFuncs', ctx)(liesureFuncNames)
 
 createEnv()
 Core.setHelp help

@@ -23,11 +23,11 @@ misrepresented as being the original software.
 ###
 
 ###
-Tests for Lazp
+Tests for Liesure
 ###
 
 U = require('util')
-LZ=require('./lazp')
+LZ=require('./liesure')
 R = require('./replCore')
 #require('./std')
 require('./prim')

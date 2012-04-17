@@ -1,20 +1,20 @@
 (function() {
-  var Lazp, U, elements, getType, inspect, listDo, print, printApply, printLambda, root, subprint;
+  var Liesure, U, elements, getType, inspect, listDo, print, printApply, printLambda, root, subprint;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.Pretty = root = {};
-    Lazp = window.Lazp;
+    Liesure = window.Liesure;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  if (!(Lazp != null) && (typeof require !== "undefined" && require !== null)) {
-    Lazp = require('./lazp');
+  if (!(Liesure != null) && (typeof require !== "undefined" && require !== null)) {
+    Liesure = require('./liesure');
     U = require('util');
   }
 
-  getType = Lazp.getType;
+  getType = Liesure.getType;
 
   inspect = (U != null ? U.inspect : void 0) || function(v) {
     return v;
@@ -117,7 +117,7 @@
             };
           });
         default:
-          return (_ref = f != null ? f.lazpName : void 0) != null ? _ref : inspect(f);
+          return (_ref = f != null ? f.liesureName : void 0) != null ? _ref : inspect(f);
       }
     }
   };

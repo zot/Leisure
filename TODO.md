@@ -1,4 +1,4 @@
-[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/lazp) [REPL](lazp.html) [Standard functinos](std.laz)
+[Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/liesure) [REPL](liesure.html) [Standard functinos](std.laz)
 # TODO
 * use curlies for do/let
    * it would be a grouping macro
@@ -49,15 +49,15 @@
    * cons a -> function(_1){return _cons(a, _1)}
 * reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)
 * string functions
-* Lazp configuration environment
-   * pretty-printers for types
+* liesure configuration environment
+   * Pretty-printers for types
    * named parsers
 * Data structures
    * AMTs
-* Lazp-code for pretty printing
-* Use Lazp for parser, generator, REPL; compile them and use the JS for them
-   * this will help people extend Lazp
-* generator improvements
+* liesure-code for pretty printing
+* Use liesure for parser, generator, REPL; compile them and use the JS for them
+   * This will help people extend liesure
+* Generator improvements
    * eliminate redundant memo/deref pairs
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
@@ -92,8 +92,8 @@
       * it could do a pass to get function names, first
 * :r resets env in REPL
 * disallow redefinition
-* Run Lazp in sandbox
-   * lazp.cs, std.laz, prim.cs run in a sandbox
+* Run liesure in sandbox
+   * Liesure.cs, std.laz, prim.cs run in a sandbox
       * in browser, use an iframe with ifr.contentWindow.eval() to communicate
          * iframe.contentWindow holds globals
 		 * allow user to show or hide iframe (it's where SVG etc can be)
