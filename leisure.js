@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthify, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, prefix, prepare, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wrap,
+  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, prefix, prepare, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wordPat, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -35,6 +35,8 @@ misrepresented as being the original software.
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
+  wordPat = /^[^\s]*$/;
+
   baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
 
   tokenPat = baseTokenPat;
@@ -43,7 +45,7 @@ misrepresented as being the original software.
 
   linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
 
-  topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/;
+  topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;{}]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/;
 
   bracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^\n{};'`"])*)([{};])/;
 
@@ -643,7 +645,7 @@ misrepresented as being the original software.
       } else {
         return ifParsed((nomacros ? parseApply(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
           return genCode(ast, null, globals, null, rest, parseOnly);
-        }), errPrefix);
+        }), "Error compiling expr:  " + (line.substring(0, 80)));
       }
     } else {
       return [null, null, null];
@@ -695,11 +697,11 @@ misrepresented as being the original software.
     var err, rest, result, _ref, _ref2;
     _ref = bracify(stripComments(str.replace(/\u03BB/g, '\\')), 1), result = _ref[0], rest = _ref[1];
     if (rest.trim()) {
-      return [result, 'Indentation problem: #{result}\n\n------->\n\n#{rest}'];
+      return [result, "Indentation problem: " + result + "\n\n------->\n\n" + rest];
     } else {
-      _ref2 = parenthify(result, true), result = _ref2[0], rest = _ref2[1], err = _ref2[2];
+      _ref2 = parenthify(result.trim(), true), result = _ref2[0], rest = _ref2[1], err = _ref2[2];
       if (rest.trim()) {
-        return [result, 'Unbalanced braces: #{result}\n\n------->\n\n#{rest}'];
+        return [result, "Unbalanced braces: " + result + "\n\n------->\n\n" + rest];
       } else {
         return [result, err];
       }
@@ -729,7 +731,7 @@ misrepresented as being the original software.
         return [null, "No close brace: " + (str.substring(b.index + b[2].length + 1)), indent];
       } else {
         _ref2 = bracify(rest.substring(1), indent), nextResult = _ref2[0], nextRest = _ref2[1], nextIndent = _ref2[2];
-        return ["(" + (str.substring(0, b.index + b[2].length).trim()) + result + ") " + nextResult, nextRest, nextIndent];
+        return ["" + (parenthesizeTokens(str.substring(0, b.index + b[2].length).trim() + result)) + " " + nextResult, nextRest, nextIndent];
       }
     } else {
       m = str.match(indentPat);
@@ -768,18 +770,29 @@ misrepresented as being the original software.
       sfx = str.substring(b.index + b[0].length);
       if (b[3] === ';') {
         _ref2 = parenthify(sfx, top, embedded), result = _ref2[0], rest = _ref2[1], err = _ref2[2];
-        return ["" + (!pfx && !top ? '' : !pfx ? '\n' : top ? "" + def + pfx + "\n" : " (" + pfx + ") ") + (result.trim()), rest, err];
+        return ["" + (!pfx && !top ? '' : !pfx ? '\n' : top ? "" + def + pfx + "\n" : " " + (parenthesizeTokens(pfx)) + " ") + (result.trim()), rest, err];
       } else if (b[3] === '{') {
         _ref3 = parenthify(sfx, false, embedded), result = _ref3[0], rest = _ref3[1], err = _ref3[2];
         if (!err && rest[0] === '}') {
           _ref4 = parenthify(rest.substring(1), top, embedded), next = _ref4[0], nRest = _ref4[1], err = _ref4[2];
-          return ["" + (pfx ? "" + def + "(" + pfx : "" + def + "(") + result + ")" + (top ? "\n" : " ") + next, nRest, err];
+          return ["" + def + (parenthesizeTokens((pfx ? pfx + result : result))) + (top ? "\n" : " ") + next, nRest, err];
         } else {
           return ["" + (pfx ? "" + def + " " + pfx : "" + def) + result, rest, "" + err + "\nNo close brace"];
         }
       } else {
-        return [(pfx ? "" + def + " (" + pfx + ")" : "" + def), str.substring(b.index + b[1].length + b[2].length)];
+        return [(pfx ? "" + def + " " + (parenthesizeTokens(pfx)) : "" + def), str.substring(b.index + b[1].length + b[2].length)];
       }
+    }
+  };
+
+  parenthesizeTokens = function parenthesizeTokens(str) {
+    var tok, trimmed;
+    trimmed = str.trim();
+    tok = trimmed.match(wordPat);
+    if ((tok && tok[0] === trimmed) || (!tok && trimmed.match(wordPat))) {
+      return trimmed;
+    } else {
+      return "(" + trimmed + ")";
     }
   };
 

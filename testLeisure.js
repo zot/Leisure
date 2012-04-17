@@ -169,11 +169,11 @@ Tests for Leisure
   });
 
   run('test27', function() {
-    return assertEq(LZ.prepare(in2)[0], '(a (b) (c (d)) (e))\n\n(f (g) (h (i)))');
+    return assertEq(LZ.prepare(in2)[0], "(a b (c d) e)\n\n(f g (h i))");
   });
 
   run('test28', function() {
-    return assertEq(LZ.prepare(in3)[0], '(a (b) (c (d)) (e))\n(f (g) (h (i)))');
+    return assertEq(LZ.prepare(in3)[0], "(a b (c d) e)\n(f g (h i))");
   });
 
   run('test29', function() {
@@ -201,18 +201,22 @@ Tests for Leisure
   });
 
   run('test35', function() {
-    return assertEq(LZ.prepare('a{b}')[0].trim(), '(a (b))');
+    return assertEq(LZ.prepare('a{b}')[0].trim(), '(a b)');
   });
 
   run('test36', function() {
-    return assertEq(LZ.prepare('a{"b"}')[0].trim(), '(a ("b"))');
+    return assertEq(LZ.prepare('a{"b"}')[0].trim(), '(a "b")');
   });
 
   run('test37', function() {
-    return assertEq(LZ.prepare('a{"{b"}')[0].trim(), '(a ("{b"))');
+    return assertEq(LZ.prepare('a{"{b"}')[0].trim(), '(a "{b")');
   });
 
   run('test38', function() {
+    return assertEq(LZ.prepare(in7)[0].trim(), '(let (a = 3) (b = 4) ([a, b]))');
+  });
+
+  run('test39', function() {
     return assertEvalPrint(in7, '[3, 4]');
   });
 

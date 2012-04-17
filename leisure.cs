@@ -27,12 +27,13 @@ if window? and (!global? or global == window)
   window.Leisure = root = {}
 else root = exports ? this
 
+wordPat = /^[^\s]*$/
 baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
 tokenPat = baseTokenPat
 specials = '[]().*+?|'
 #linePat = /^((?:\s*|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
 linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
-topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/
+topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;{}]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/
 bracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^\n{};'`"])*)([{};])/
 embeddedBracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^{};'`"])*)([{};])/
 order = []
@@ -332,7 +333,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
           ast.leisurePrefixCount = nm.length
           genCode ast, nm[0], globals, defType, rest, parseOnly), errPrefix
     else ifParsed (if nomacros then parseApply rest1, Nil else parseFull rest1), ((ast, rest)->
-      genCode ast, null, globals, null, rest, parseOnly), errPrefix
+      genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr:  #{line.substring 0, 80}"
   else [null, null, null]
 
 genCode = (ast, name, globals, defType, rest, parseOnly)->
@@ -365,10 +366,10 @@ evalNext = (code)->
 
 prepare = (str)->
   [result, rest] = bracify(stripComments(str.replace(/\u03BB/g, '\\')), 1)
-  if rest.trim() then [result, 'Indentation problem: #{result}\n\n------->\n\n#{rest}']
+  if rest.trim() then [result, "Indentation problem: #{result}\n\n------->\n\n#{rest}"]
   else
-    [result, rest, err] = parenthify result, true
-    if rest.trim() then [result, 'Unbalanced braces: #{result}\n\n------->\n\n#{rest}']
+    [result, rest, err] = parenthify result.trim(), true
+    if rest.trim() then [result, "Unbalanced braces: #{result}\n\n------->\n\n#{rest}"]
     else [result, err]
 
 commentPat = /([^\n#]*)(#[^\n]*)(\n|$)/g
@@ -386,7 +387,7 @@ bracify = (str, indent)->
     if rest[0] != '}' then [null, "No close brace: #{str.substring(b.index + b[2].length + 1)}", indent]
     else
       [nextResult, nextRest, nextIndent] = bracify rest.substring(1), indent
-      ["(#{str.substring(0, b.index + b[2].length).trim()}#{result}) #{nextResult}", nextRest, nextIndent]
+      ["#{parenthesizeTokens str.substring(0, b.index + b[2].length).trim() + result} #{nextResult}", nextRest, nextIndent]
   else
     m = str.match indentPat
     if !m or m[2].length == 0 then [str.trim(), '', 0]
@@ -415,14 +416,21 @@ parenthify = (str, top, embedded)->
     sfx = str.substring(b.index + b[0].length)
     if b[3] == ';'
       [result, rest, err] = parenthify sfx, top, embedded
-      ["#{if !pfx and !top then '' else if !pfx then '\n' else if top then "#{def}#{pfx}\n" else " (#{pfx}) "}#{result.trim()}", rest, err]
+      ["#{if !pfx and !top then '' else if !pfx then '\n' else if top then "#{def}#{pfx}\n" else " #{parenthesizeTokens pfx} "}#{result.trim()}", rest, err]
     else if b[3] == '{'
       [result, rest, err] = parenthify sfx, false, embedded
       if !err and rest[0] == '}'
         [next, nRest, err] = parenthify rest.substring(1), top, embedded
-        ["#{if pfx then "#{def}(#{pfx}" else "#{def}("}#{result})#{if top then "\n" else " "}#{next}", nRest, err]
+        ["#{def}#{parenthesizeTokens (if pfx then pfx + result else result)}#{if top then "\n" else " "}#{next}", nRest, err]
       else ["#{if pfx then "#{def} #{pfx}" else "#{def}"}#{result}", rest, "#{err}\nNo close brace"]
-    else [(if pfx then "#{def} (#{pfx})" else "#{def}"), str.substring b.index + b[1].length + b[2].length]
+    else [(if pfx then "#{def} #{parenthesizeTokens pfx}" else "#{def}"), str.substring b.index + b[1].length + b[2].length]
+
+
+parenthesizeTokens = (str)->
+  trimmed = str.trim()
+  tok = trimmed.match(wordPat)
+  if (tok and tok[0] == trimmed) or (!tok and trimmed.match(wordPat)) then trimmed
+  else "(#{trimmed})"
 
 stripSemis = (str)-> str.replace(/^;*/, '')
 
