@@ -6,8 +6,10 @@
     <script src="pretty.js"></script>
     <script src="browserRepl.js"></script>
     <script src="std.js"></script>
-    <script src="c4.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
+    <!-- copy this HTML file and add your compiled Leisure files here
+    <script src="ttt.js"></script>
+    -->
     <script>
       function init() {
         var input = document.getElementById('input')
@@ -79,6 +81,6 @@
       </tr>
       <tr style="height: 0"><td colspan="2" class="cell"><table style="width: 100%; white-space: nowrap"><tr><td style="width: 100%"><input id="input" type="text" style="width: 100%; margin: 0"></td><td style="width: 0"><div>Load file: <input type="file" onchange="Repl.handleFiles(this)"></input><button onclick="Repl.clearEnv()">Clear</button></td></tr></table></td></tr>
     </table>
-    <iframe duh="1" id="env" style="display: none" onload="Repl.useIframe(this)"></iframe>
+    <iframe id="env" style="display: none" onload="Repl.useIframe(this)"></iframe>
   </body>
 </html>

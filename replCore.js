@@ -1,19 +1,19 @@
 (function() {
-  var Liesure, P, Prim, U, compileFunc, escape, findDefs, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, vars, write, writeFunc,
+  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.ReplCore = root = {};
-    Liesure = window.Liesure;
+    Leisure = window.Leisure;
     P = window.Pretty;
     Prim = window.Prim;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  if (!(Liesure != null) && (typeof require !== "undefined" && require !== null)) {
-    Liesure = require('./liesure');
+  if (!(Leisure != null) && (typeof require !== "undefined" && require !== null)) {
+    Leisure = require('./leisure');
     P = require('./pretty');
     Prim = require('./prim');
     U = require('util');
@@ -43,16 +43,16 @@
     return resetFunc = func;
   };
 
-  getType = Liesure.getType;
+  getType = Leisure.getType;
 
   handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
-    if (a) write("PREPARED: " + (Liesure.prepare(src)));
+    if (a) write("PREPARED: " + (Leisure.prepare(src)));
     if ((ast != null) && (ast.err != null)) {
       write("ERROR: " + ast.err + "\n");
       return nextFunc();
     } else {
       if (a) {
-        write("PARSED: " + (Liesure.astPrint(ast)) + "\n");
+        write("PARSED: " + (Leisure.astPrint(ast)) + "\n");
         write("FORMATTED: " + (P.print(ast)) + "\n");
       }
       if (c) write("GEN: " + ast.src + "\n");
@@ -73,7 +73,7 @@
   };
 
   helpFunc = function helpFunc() {
-    return write("Type a Liesure expression or one of these commands and hit enter:\n\n:h -- display this help\n:c filename -- compile file\n:r -- reset the Liesure environment\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the liesure environment\n!! code -- eval JavaScript code in the host environment\n");
+    return write("Type a Leisure expression or one of these commands and hit enter:\n\n:h -- display this help\n:c filename -- compile file\n:r -- reset the Leisure environment\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the leisure environment\n!! code -- eval JavaScript code in the host environment\n");
   };
 
   setHelp = function setHelp(h) {
@@ -144,7 +144,7 @@
             result = U != null ? U.inspect(result) : result;
             write(result, "\n");
           } else {
-            result = Liesure.eval(line.substr(1));
+            result = Leisure.eval(line.substr(1));
             result = U != null ? U.inspect(result) : result;
             write(result, "\n");
           }
@@ -164,8 +164,8 @@
               break;
             default:
               _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-              _ref2 = Liesure.prepare(line), l = _ref2[0], err1 = _ref2[1];
-              _ref3 = Liesure.compileNext(l, getGlobals(), false, false), ast = _ref3[0], err = _ref3[1];
+              _ref2 = Leisure.prepare(line), l = _ref2[0], err1 = _ref2[1];
+              _ref3 = Leisure.compileNext(l, getGlobals(), false, false), ast = _ref3[0], err = _ref3[1];
               if ((err1 != null) || (err != null)) {
                 if (ast != null) {
                   ast.err = err1 != null ? err1 : err;
@@ -175,7 +175,7 @@
                   };
                 }
               } else {
-                _ref4 = r ? Liesure.evalNext(l) : [ast, null], ast = _ref4[0], result = _ref4[1];
+                _ref4 = r ? Leisure.evalNext(l) : [ast, null], ast = _ref4[0], result = _ref4[1];
               }
               return handlerFunc(ast, result, a, c, r, line);
           }
@@ -194,67 +194,67 @@
   generateCode = function generateCode(file, contents, loud, handle, nomacros) {
     var a, ast, c, code, defs, err, errs, globals, i, m, nm, oldRest, out, r, rest, src, v, _len, _ref, _ref2, _ref3, _ref4;
     if (loud) console.log("Compiling " + file + ":\n");
-    out = "(function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.laz(p)?/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Liesure = require('./liesure');\n  Liesure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\nvar setType = Liesure.setType;\nvar setDataType = Liesure.setDataType;\nvar define = Liesure.define;\nvar defineMacro = Liesure.defineMacro;\nvar defineToken = Liesure.defineToken;\nvar processResult = Repl.processResult;\n";
+    out = "(function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Leisure = require('./leisure');\n  Leisure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\nvar setType = Leisure.setType;\nvar setDataType = Leisure.setDataType;\nvar define = Leisure.define;\nvar defineMacro = Leisure.defineMacro;\nvar defineToken = Leisure.defineToken;\nvar processResult = Repl.processResult;\n";
     errs = '';
     globals = findDefs(file, contents, nomacros);
     defs = [];
-    _ref = Liesure.prepare(contents), rest = _ref[0], err = _ref[1];
+    _ref = Leisure.prepare(contents), rest = _ref[0], err = _ref[1];
     if (err) throw new Error(err);
     out += "\nvar";
     _ref2 = globals.toArray();
     for (i = 0, _len = _ref2.length; i < _len; i++) {
       v = _ref2[i];
       if (i > 0) out += ",";
-      out += " " + (Liesure.nameSub(v));
+      out += " " + (Leisure.nameSub(v));
     }
     out += ";\n";
-    globals = Liesure.append(globals, getGlobals());
+    globals = Leisure.append(globals, getGlobals());
     while (rest) {
       oldRest = rest;
-      _ref3 = Liesure.compileNext(rest, globals, null, false, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
+      _ref3 = Leisure.compileNext(rest, globals, null, false, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
       code = rest ? oldRest.substring(0, oldRest.length - rest.length) : '';
       err = err != null ? err : ast != null ? ast.err : void 0;
       if (err) {
-        errs = "" + errs + ((ast != null ? ast.liesureName : void 0) ? "Error in " + ast.liesureName : "") + err + "\n";
+        errs = "" + errs + ((ast != null ? ast.leisureName : void 0) ? "Error in " + ast.leisureName : "") + err + "\n";
         rest = '';
       } else if (ast) {
         globals = ast.globals;
-        m = code.match(Liesure.linePat);
-        nm = ast.liesureName;
-        ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(P.print(ast))) + "\n" + (nm != null ? "root.defs." + (Liesure.nameSub(nm)) + " = " + (Liesure.nameSub(nm)) + " = " : "") + ast.src;
-        src = ast.liesureName ? (defs.push(Liesure.nameSub(ast.liesureName)), ast.src) : "processResult(" + ast.src + ")";
+        m = code.match(Leisure.linePat);
+        nm = ast.leisureName;
+        ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(P.print(ast))) + "\n" + (nm != null ? "root.defs." + (Leisure.nameSub(nm)) + " = " + (Leisure.nameSub(nm)) + " = " : "") + ast.src;
+        src = ast.leisureName ? (defs.push(Leisure.nameSub(ast.leisureName)), ast.src) : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
         _ref4 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref4[0], c = _ref4[1], r = _ref4[2];
         if (handle) handlerFunc(ast, null, a, c, r, code);
       }
     }
-    out += "\nif (typeof window !== 'undefined' && window !== null) {\n  Liesure.processTokenDefs(root.tokenDefs);\n}\nreturn root;\n}).call(this)";
+    out += "\nif (typeof window !== 'undefined' && window !== null) {\n  Leisure.processTokenDefs(root.tokenDefs);\n}\nreturn root;\n}).call(this)";
     if (errs !== '') throw new Error("Errors compiling " + file + ": " + errs);
     return out;
   };
 
   getGlobals = function getGlobals() {
-    return Liesure.eval('liesureGetFuncs()');
+    return Leisure.eval('leisureGetFuncs()');
   };
 
   findDefs = function findDefs(file, contents, nomacros) {
     var ast, err, errs, globals, oldRest, rest, _ref;
     errs = '';
-    globals = Liesure.Nil;
+    globals = Leisure.Nil;
     rest = contents;
     while (rest) {
       oldRest = rest;
-      _ref = Liesure.compileNext(rest, globals, true, null, nomacros), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      _ref = Leisure.compileNext(rest, globals, true, null, nomacros), ast = _ref[0], err = _ref[1], rest = _ref[2];
       if (err) {
-        errs = "" + errs + (ast.liesureName ? "Error in " + ast.liesureName : "") + err + "\n";
+        errs = "" + errs + (ast.leisureName ? "Error in " + ast.leisureName : "") + err + "\n";
       }
-      if (ast != null ? ast.liesureName : void 0) {
+      if (ast != null ? ast.leisureName : void 0) {
         if (globals != null ? globals.find(function(v) {
-          return v === ast.liesureName;
+          return v === ast.leisureName;
         }) : void 0) {
-          throw new Error("Attempt to redefine function: " + ast.liesureName);
+          throw new Error("Attempt to redefine function: " + ast.leisureName);
         }
-        globals = Liesure.cons(ast.liesureName, globals);
+        globals = Leisure.cons(ast.leisureName, globals);
       }
     }
     if (errs !== '') throw new Error("Errors compiling " + file + ": " + errs);

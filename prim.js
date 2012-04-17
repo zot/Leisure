@@ -1,5 +1,5 @@
 (function() {
-  var Liesure, Pretty, RL, U, concatList, define, eventCmds, getType, head, laz, liesureEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, values, write;
+  var Leisure, Pretty, RL, U, concatList, define, eventCmds, getType, head, laz, leisureEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, values, write;
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
@@ -13,10 +13,10 @@
       return cont(window.prompt(msg));
     };
     window.Prim = root = {};
-    Liesure = window.Liesure;
+    Leisure = window.Leisure;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
-    Liesure = require('./liesure');
+    Leisure = require('./leisure');
     Pretty = require('./pretty');
     U = require('util');
     RL = require('readline');
@@ -33,11 +33,11 @@
     return tty = rl;
   };
 
-  define = Liesure.define;
+  define = Leisure.define;
 
-  getType = Liesure.getType;
+  getType = Leisure.getType;
 
-  laz = Liesure.laz;
+  laz = Leisure.laz;
 
   define('is', function(value) {
     return function(type) {
@@ -73,11 +73,11 @@
 
   define('parse', function(value) {
     var ast, err, prepped, rest, _ref, _ref2;
-    _ref = Liesure.prepare(String(value())), prepped = _ref[0], err = _ref[1];
+    _ref = Leisure.prepare(String(value())), prepped = _ref[0], err = _ref[1];
     if (err != null) {
       return _right()(laz("Error: " + err));
     } else {
-      _ref2 = Liesure.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+      _ref2 = Leisure.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
       if (err != null) {
         return _right()(laz("Error: " + err));
       } else if (rest != null ? rest.trim() : void 0) {
@@ -206,10 +206,10 @@
 
   running = false;
 
-  liesureEvent = function liesureEvent(liesureFuncName, evt) {
+  leisureEvent = function leisureEvent(leisureFuncName, evt) {
     var currentEvent, monad;
     currentEvent = evt;
-    monad = Liesure.eval("" + (Liesure.nameSub(liesureFuncName)) + "()")(laz(evt));
+    monad = Leisure.eval("" + (Leisure.nameSub(leisureFuncName)) + "()")(laz(evt));
     return runMonad(monad, function() {});
   };
 
@@ -399,10 +399,10 @@
 
   root.tokenDefs = [];
 
-  root.liesureEvent = liesureEvent;
+  root.leisureEvent = leisureEvent;
 
   if (typeof window !== "undefined" && window !== null) {
-    window.liesureEvent = liesureEvent;
+    window.leisureEvent = leisureEvent;
   }
 
 }).call(this);

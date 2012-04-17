@@ -29,7 +29,7 @@
       return input.value = '';
     });
     ReplCore.setHandler(function(ast, result, a, c, r, src) {
-      if (ast.liesureName != null) {
+      if (ast.leisureName != null) {
         defs.innerHTML += "" + (markupDef(src, ast)) + "<br>";
       } else if (result) {
         output.innerHTML += "<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n";
@@ -55,7 +55,7 @@
   clearOutput = function clearOutput() {
     var o;
     o = document.getElementById('output');
-    o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Liesure\'s standard functions.\n\n';
+    o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Leisure\'s standard functions.\n\n';
     ReplCore.help();
     return o.innerHTML += '\n';
   };
@@ -77,23 +77,23 @@
     if (envFr) {
       root.envFrame = envFrame = envFr;
       env = envFrame.contentWindow;
-      for (i in liesureFuncs) {
-        v = liesureFuncs[i];
+      for (i in leisureFuncs) {
+        v = leisureFuncs[i];
         env[i] = v;
       }
-      Liesure.setEvalFunc(env, env.eval);
+      Leisure.setEvalFunc(env, env.eval);
       _ref = {
-        Liesure: Liesure,
+        Leisure: Leisure,
         ReplCore: ReplCore,
         Repl: Repl,
-        liesureFuncs: {},
+        leisureFuncs: {},
         macros: {}
       };
       for (i in _ref) {
         v = _ref[i];
         env[i] = v;
       }
-      env.eval("global = window;\nsetType = Liesure.setType;\nsetDataType = Liesure.setDataType;\ndefine = Liesure.define;\ndefineMacro = Liesure.defineMacro;\ndefineToken = Liesure.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.liesureGetFuncs = function liesureGetFuncs() {\n    return lll\n  }\n  global.liesureSetFuncs = function liesureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.liesureAddFunc = function liesureAddFunc(func) {\n    lll = Liesure.cons(func, lll)\n  }\n})()");
+      env.eval("global = window;\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()");
       return clearOutput();
     }
   };
@@ -101,7 +101,7 @@
   markupDef = function markupDef(src, ast) {
     var defType, leading, match, matched, name;
     if (src.match(/^\s*#/)) src;
-    if ((match = src.match(Liesure.linePat))) {
+    if ((match = src.match(Leisure.linePat))) {
       matched = match[0], leading = match[1], name = match[2], defType = match[3];
       return "<div><b>" + name + "</b> " + defType + " " + (src.substring(matched.length)) + "</div>";
     } else {

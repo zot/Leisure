@@ -1,20 +1,20 @@
 (function() {
-  var Liesure, U, elements, getType, inspect, listDo, print, printApply, printLambda, root, subprint;
+  var Leisure, U, elements, getType, inspect, listDo, print, printApply, printLambda, root, subprint;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.Pretty = root = {};
-    Liesure = window.Liesure;
+    Leisure = window.Leisure;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  if (!(Liesure != null) && (typeof require !== "undefined" && require !== null)) {
-    Liesure = require('./liesure');
+  if (!(Leisure != null) && (typeof require !== "undefined" && require !== null)) {
+    Leisure = require('./leisure');
     U = require('util');
   }
 
-  getType = Liesure.getType;
+  getType = Leisure.getType;
 
   inspect = (U != null ? U.inspect : void 0) || function(v) {
     return v;
@@ -117,7 +117,7 @@
             };
           });
         default:
-          return (_ref = f != null ? f.liesureName : void 0) != null ? _ref : inspect(f);
+          return (_ref = f != null ? f.leisureName : void 0) != null ? _ref : inspect(f);
       }
     }
   };
