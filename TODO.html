@@ -16,6 +16,28 @@
 <h1>TODO</h1>
 
 <ul>
+<li>notebook style interface
+<ul>
+<li>get leisure.html working in notebook-style</li>
+<li>move to bootLeisure.cs</li>
+<li>make programs html pages with code="true" attributes
+<ul>
+<li>in browser, use document.querySelector('[code]')</li>
+<li>in node, use htmlparser (npm install htmlparser)</li>
+<li>include <script src='bootLeisure.js> element that boots the Leisure env on that page
+<ul>
+<li>clones doc</li>
+<li>adds iframe with leisure env</li>
+<li>hands leisure the clone to analyze and the current doc to mutate</li>
+</ul></li>
+</ul></li>
+<li>make sure it runs in chrome and ff</li>
+<li>"save output as testcase" -- snapshot input and output as strings and record them as a testcase comment</li>
+<li>incremental compilation (recompile the file after a blank line and update all errors)</li>
+<li>comments that attach event handlers</li>
+<li>make TTT into a notebook that shows the TTT grid</li>
+<li>optionally hide source code</li>
+</ul></li>
 <li>better browser environment
 <ul>
 <li>left side should be an editor</li>

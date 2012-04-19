@@ -8,6 +8,7 @@
     <script src="replCore.js"></script>
     <script src="browserRepl.js"></script>
     <script src="std.js"></script>
+    <script src="notebook.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
 <!--
     <script src="ace/src/ace-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
@@ -15,7 +16,7 @@
     <!-- copy this HTML file and add your compiled Leisure files here
     <script src="ttt.js"></script>
     -->
-    <script>
+    <script>//<[!CDATA[
       function init() {
         var input = document.getElementById('input')
         var output = document.getElementById('output')
@@ -33,11 +34,6 @@
         }
         Repl.init(input, output, defs);
         clearOutput();
-
-/*
-        var editor = ace.edit("editor");
-        editor.setTheme("ace/theme/clouds");
-*/
       }
       function changeStdLinks() {
         changeStdLink('stdDefsLink1')
@@ -65,6 +61,7 @@
       function evalDoc() {
         var doc = document.getElementById('doc')
 
+        Notebook.initNotebook(doc)
         Repl.clearEnv()
         try {
           gen = ReplCore.generateCode('doc', doc.innerText, false)
@@ -73,25 +70,34 @@
           alert(err.stack)
         }
       }
+    //]]>
     </script>
     <style type="text/css" media="screen">
       body {
         overflow: hidden;
       }
     
-      #editor { 
-        margin: 0;
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-      }
     </style>
     <style>
       .cell {
         vertical-align: top;
         border: solid black 1px;
+      }
+      .codeExpr {
+        background: lightgreen;
+        margin: 3px;
+      }
+      .codeMain {
+        border: black solid 1px;
+        margin: 3px;
+      }
+      .codeName {
+        background: lightblue;
+        margin: 3px;
+      }
+      .codeBody {
+        background: salmon;
+        margin: 3px;
       }
     </style>
   </head>
@@ -117,23 +123,17 @@
 	  </div>
 	</td>
       </tr>
-      <tr style="height: 50%"><td><pre style="width: 100%; height: 100%" id="doc" class="cell" contentEditable="true">
-maluba a b = a
+      <tr style="height: 50%"><td><div style="width: 100%; height: 100%; position: relative" id="doc"><div style="width: 100%; height: 100%; white-space: pre-wrap" id="editor" class="cell" contentEditable="true">maluba a b = a
   true true
   b
 
 fred a = a
-</pre>
-<!--
-	  <div style="position: relative; width: 100%; height: 100%"><pre id="editor">
-#Code@Leisure
-</pre></div>
--->
+
+print hello</div></div>
       </td></tr>
       <tr style="height: 0"><td colspan="2" class="cell">
 	  <table style="width: 100%; white-space: nowrap"><tr><td style="width: 100%"><input id="input" type="text" style="width: 100%; margin: 0"></td><td style="width: 0"><div>Load file: <input type="file" onchange="Repl.handleFiles(this)"></input><button onclick="Repl.clearEnv()">Clear</button></td></tr></table>
       </td></tr>
     </table>
-    <iframe id="env" style="display: none" onload="Repl.useIframe(this)"></iframe>
   </body>
 </html>
