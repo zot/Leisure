@@ -52,7 +52,10 @@
         main.setEndAfter(bodyNode);
         _results.push(boxIn(main, 'codeMain', 'div'));
       } else {
-        _results.push(boxIn(main, 'codeExpr', 'div'));
+        body = boxIn(main, 'codeExpr', 'span');
+        main.setStartBefore(body);
+        main.setEndAfter(body);
+        _results.push(boxIn(main, 'codeMain', 'div'));
       }
     }
     return _results;
