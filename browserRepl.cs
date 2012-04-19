@@ -24,10 +24,12 @@ init = (inputField, output, defs)->
   ReplCore.setResetFunc clearEnv
   input = inputField
   input.onkeypress = (e)->
-    if (e.charCode || e.keyCode || e.which) == 13
-      lastLine = input.value.replace(/\\/g, '\u03BB')
-      ReplCore.processLine(lastLine)
+    if (e.charCode || e.keyCode || e.which) == 13 then evalLine(input.value)
   input.select()
+
+evalLine = (line)->
+  lastLine = line.replace(/\\/g, '\u03BB')
+  ReplCore.processLine(lastLine)
 
 reloadEnv = -> envFrame.contentWindow.location.reload()
 
@@ -37,7 +39,7 @@ clearOutput = ->
   ReplCore.help()
   o.innerHTML += '\n'
 
-clearEnv = (clearEnv)->
+clearEnv = ->
   document.getElementById('defs').innerHTML = ""
   env = document.getElementById('env')
   document.body.removeChild(env)
@@ -76,6 +78,7 @@ var lll;
   }
 })()
 """
+    env.leisureSetFuncs(leisureFuncNames)
     clearOutput()
 
 markupDef = (src, ast)->
@@ -112,3 +115,4 @@ root.handleFiles = handleFiles
 root.useIframe = useIframe
 root.reloadEnv = reloadEnv
 root.clearEnv = clearEnv
+root.evalLine = evalLine

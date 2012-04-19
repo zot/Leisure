@@ -129,7 +129,7 @@ Core.setWriter (str)-> process.stdout.write(str)
 Core.setResetFunc ->
   write "Creating fresh environment"
   createEnv()
-  L.eval "req('./std')"
+  L.eval "Leisure.req('./std')"
 
 root.createEnv = createEnv
 root.print = print

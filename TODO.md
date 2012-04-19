@@ -1,18 +1,19 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
-* use curlies for do/let
-   * it would be a grouping macro
-   * groups need to parse better
-* debug mode should put a cons into funcs of a new exception and the list from the parent
-* macros should return an either for the parser
-* error if let finds more than one body expr
-* add prelude.lsr
-   * put parser macros in there
 * better browser environment
    * left side should be an editor
    * loading files should load them into the editor
    * input should be in a blinking box on the right side, not in an alert box
    * should be able to load *.lsr files into the environment
+* use curlies for do/let
+   * remove intermediate step of inserting {}; -- convert directly to parenthesized groups
+   * allow newlines in open groups
+   * { and } would be a grouping macros
+* debug mode should put a cons into funcs of a new exception and the list from the parent
+* macros should return an either for the parser
+* error if let finds more than one body expr
+* add prelude.lsr
+   * put parser macros in there
 * integrate physics engine
 * doc comments
 * macros
@@ -38,7 +39,6 @@
    * generate trace
 * log function that prints while running (side effect)
 * :l should load file
-* scroll to bottom of browser on eval
 * example that reads strings and prints them until the user types 'quit'
 * :p to show primitives
 * infix function call syntax
@@ -62,6 +62,7 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 #DONE
+* scroll to bottom of browser on eval
 * when there are parsing or compilation errors, show which function has the problem
 * add floating point numbers to tokenDefs
 * let

@@ -1,9 +1,13 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/Leisure) [REPL](leisure.html) [Standard functions](std.lsr)
 # Please Note: the repository is now [http://github.com/zot/Leisure](http://github.com/zot/Leisure)
 
-# Leisure: a convenient, untyped, lazy Lambda Calculus with Metaprogramming and Primitives
+# The Leisure Initiative: Functional.  Lazy.  Accessable.  Powerful.
 
-The goal, here is to provide a convenient language people's use and experimentation that people can easily tailor to their own needs.
+# Leisure: a convenient, untyped, lazy Lambda Calculus-based programming language with metaprogramming
+
+Leisure is a convenient language people's use and experimentation that you can easily tailor to your own needs.
+
+One of the major goals of the Leisure initiative is to make learning and doing functional programming as easy as possible.
 
 ## Convenient
 Leisure provides a convenient syntax and powerful tools to help people try things out quickly, be productive, and customize the language to suit their needs.  Leisure's syntax is based on Lambda Calculus and borrows things from Haskell and other languages while still remaining very small.  It also includes metaprogramming facilities to allow powerful customization.

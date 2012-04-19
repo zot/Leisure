@@ -1,12 +1,17 @@
 <html>
   <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <script src="leisure.js"></script>
     <script src="prim.js"></script>
-    <script src="replCore.js"></script>
     <script src="pretty.js"></script>
+    <script src="replCore.js"></script>
     <script src="browserRepl.js"></script>
     <script src="std.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
+<!--
+    <script src="ace/src/ace-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
+-->
     <!-- copy this HTML file and add your compiled Leisure files here
     <script src="ttt.js"></script>
     -->
@@ -15,6 +20,7 @@
         var input = document.getElementById('input')
         var output = document.getElementById('output')
         var defs = document.getElementById('defs')
+        var doc = document.getElementById('doc')
 
         try {
           $.ajax({
@@ -25,8 +31,13 @@
         } catch (err) {
           changeStdLinks()
         }
-        Repl.init(input, output, defs)
-        clearOutput()
+        Repl.init(input, output, defs);
+        clearOutput();
+
+/*
+        var editor = ace.edit("editor");
+        editor.setTheme("ace/theme/clouds");
+*/
       }
       function changeStdLinks() {
         changeStdLink('stdDefsLink1')
@@ -48,7 +59,34 @@
         ReplCore.help()
         o.innerHTML += '\n'
       }
+      function evalSelection() {
+        Repl.evalLine(window.getSelection().toString())
+      }
+      function evalDoc() {
+        var doc = document.getElementById('doc')
+
+        Repl.clearEnv()
+        try {
+          Leisure.eval(ReplCore.generateCode('doc', doc.innerText, false))
+        } catch (err) {
+          alert(err.stack)
+        }
+      }
     </script>
+    <style type="text/css" media="screen">
+      body {
+        overflow: hidden;
+      }
+    
+      #editor { 
+        margin: 0;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+      }
+    </style>
     <style>
       .cell {
         vertical-align: top;
@@ -57,29 +95,43 @@
     </style>
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
-    <table style="vertical-align: top; width: 100%; height: 100%">
+    <table style="position: absolute; vertical-align: top; width: 100%; height: 100%">
       <tr style="height: 1.5em"><td colspan="2">
 	  <div style="height: 100%; position: relative">
-	    <div><b>Definitions</b></div>
-	    <div style="position: absolute; top: 0; right: 0"> </div>
 	    <div style="text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Leisure</i></b></div>
+	    <div style="position: absolute"><b>Definitions</b><button onclick="evalSelection()">Eval Selection</button> <button onclick="evalDoc()">Load Document</button></div>
 	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a> <button onclick="clearOutput()">Clear</button> <b>Output</b></div>
 	  </div>
 	</td>
       </tr>
-      <tr style="height: 100%">
+      <tr style="height: 50%">
 	<td class="cell" style="width: 50%">
 	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
 	    <pre id="defs" style="position: absolute; width: 100%; margin: 0"></pre>
 	  </div>
 	</td>
-	<td class="cell" style="width: 50%">
+	<td rowspan="2" class="cell" style="width: 50%">
 	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
 	    <pre id="output" style="position: absolute; width: 100%; margin: 0"></pre>
 	  </div>
 	</td>
       </tr>
-      <tr style="height: 0"><td colspan="2" class="cell"><table style="width: 100%; white-space: nowrap"><tr><td style="width: 100%"><input id="input" type="text" style="width: 100%; margin: 0"></td><td style="width: 0"><div>Load file: <input type="file" onchange="Repl.handleFiles(this)"></input><button onclick="Repl.clearEnv()">Clear</button></td></tr></table></td></tr>
+      <tr style="height: 50%"><td><pre style="width: 100%; height: 100%" id="doc" class="cell" contentEditable="true">
+maluba a b = a
+  true true
+  b
+
+fred a = a
+</pre>
+<!--
+	  <div style="position: relative; width: 100%; height: 100%"><pre id="editor">
+#Code@Leisure
+</pre></div>
+-->
+      </td></tr>
+      <tr style="height: 0"><td colspan="2" class="cell">
+	  <table style="width: 100%; white-space: nowrap"><tr><td style="width: 100%"><input id="input" type="text" style="width: 100%; margin: 0"></td><td style="width: 0"><div>Load file: <input type="file" onchange="Repl.handleFiles(this)"></input><button onclick="Repl.clearEnv()">Clear</button></td></tr></table>
+      </td></tr>
     </table>
     <iframe id="env" style="display: none" onload="Repl.useIframe(this)"></iframe>
   </body>

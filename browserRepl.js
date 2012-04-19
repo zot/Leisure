@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, clearEnv, clearOutput, envFrame, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write;
+  var Pretty, clearEnv, clearOutput, envFrame, evalLine, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -41,11 +41,15 @@
     input = inputField;
     input.onkeypress = function onkeypress(e) {
       if ((e.charCode || e.keyCode || e.which) === 13) {
-        lastLine = input.value.replace(/\\/g, '\u03BB');
-        return ReplCore.processLine(lastLine);
+        return evalLine(input.value);
       }
     };
     return input.select();
+  };
+
+  evalLine = function evalLine(line) {
+    lastLine = line.replace(/\\/g, '\u03BB');
+    return ReplCore.processLine(lastLine);
   };
 
   reloadEnv = function reloadEnv() {
@@ -60,7 +64,7 @@
     return o.innerHTML += '\n';
   };
 
-  clearEnv = function clearEnv(clearEnv) {
+  clearEnv = function clearEnv() {
     var env, newEnv;
     document.getElementById('defs').innerHTML = "";
     env = document.getElementById('env');
@@ -94,6 +98,7 @@
         env[i] = v;
       }
       env.eval("global = window;\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()");
+      env.leisureSetFuncs(leisureFuncNames);
       return clearOutput();
     }
   };
@@ -150,5 +155,7 @@
   root.reloadEnv = reloadEnv;
 
   root.clearEnv = clearEnv;
+
+  root.evalLine = evalLine;
 
 }).call(this);

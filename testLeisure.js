@@ -28,7 +28,7 @@ Tests for Leisure
 */
 
 (function() {
-  var LZ, R, T, U, assertEq, assertEval, assertEvalPrint, assertParse, code, define, f, in1, in2, in3, in4, in5, in6, in7, run, setDataType, setType, _i, _len, _ref, _ref2;
+  var LZ, R, T, U, assertEq, assertEval, assertEvalPrint, assertParse, code, define, f, in1, in2, in3, in4, in5, in6, in7, in8, run, setDataType, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
 
@@ -156,6 +156,8 @@ Tests for Leisure
 
   in7 = "let\n  a = 3\n  b = 4\n  [a, b]";
 
+  in8 = "duh [\n 1\n ,\n 2\n ]";
+
   run('test24', function() {
     return assertEq(LZ.bracify(in1, 1)[0], 'a;b;c');
   });
@@ -218,6 +220,10 @@ Tests for Leisure
 
   run('test39', function() {
     return assertEvalPrint(in7, '[3, 4]');
+  });
+
+  run('test40', function() {
+    return assertEq(LZ.prepare(in8)[0].trim(), '(duh [ 1 , 2 ])');
   });
 
   console.log('\nDone');

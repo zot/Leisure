@@ -571,8 +571,10 @@ setEvalFunc = (ct, func)->
   root.eval = evalFunc = func
 
 req = (name, gl)->
+  processDefs(require(name), gl)
+
+processDefs = (res, gl)->
   gl = gl ? global
-  res = require(name)
   if res.defs? then for i,v of res.defs
     ((tmp)-> gl[i] = tmp) v
   processTokenDefs res.tokenDefs
@@ -611,3 +613,4 @@ root.nameSub = nameSub
 root.bracify = bracify
 root.parenthify = parenthify
 root.prepare = prepare
+root.processDefs = processDefs

@@ -133,6 +133,14 @@ let
   [a, b]
 """
 
+in8 = """
+duh [
+ 1
+ ,
+ 2
+ ]
+"""
+
 run 'test24', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
 run 'test25', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
 run 'test26', -> assertEq(LZ.prepare(in1)[0], "a\nb\nc")
@@ -149,6 +157,7 @@ run 'test36', -> assertEq(LZ.prepare('a{"b"}')[0].trim(), '(a "b")')
 run 'test37', -> assertEq(LZ.prepare('a{"{b"}')[0].trim(), '(a "{b")')
 run 'test38', -> assertEq(LZ.prepare(in7)[0].trim(), '(let (a = 3) (b = 4) ([a, b]))')
 run 'test39', -> assertEvalPrint(in7, '[3, 4]')
+run 'test40', -> assertEq(LZ.prepare(in8)[0].trim(), '(duh [ 1 , 2 ])')
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
