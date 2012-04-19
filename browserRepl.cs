@@ -13,6 +13,7 @@ writeOutput = (line)->
     output.lastChild.scrollIntoView()
 
 init = (inputField, output, defs)->
+  clearEnv()
   write = (line)-> defs.innerHTML += line
   ReplCore.setWriter writeOutput
   ReplCore.setNext -> input.value = ''
@@ -41,9 +42,9 @@ clearOutput = ->
   o.innerHTML += '\n'
 
 clearEnv = ->
-  document.getElementById('defs').innerHTML = ""
+  defs = document.getElementById('defs').innerHTML = ""
   env = document.getElementById('env')
-  document.body.removeChild(env)
+  if env? then document.body.removeChild(env)
   newEnv = document.createElement('iframe')
   newEnv.id = 'env'
   newEnv.setAttribute("style", "display: none")
@@ -56,7 +57,9 @@ useIframe = (envFr)->
     env = envFrame.contentWindow
     env[i] = v for i, v of leisureFuncs
     Leisure.setEvalFunc env, env.eval
-    env[i] = v for i, v of {Leisure: Leisure, ReplCore: ReplCore, Repl: Repl, leisureFuncs: {}, macros: macros}
+    macs = {}
+    macs.__prototype__ = macros
+    env[i] = v for i, v of {Leisure: Leisure, ReplCore: ReplCore, Repl: Repl, leisureFuncs: {}, macros: macs}
     env.eval """
 global = window;
 setType = Leisure.setType;

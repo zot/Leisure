@@ -23,6 +23,7 @@
   };
 
   init = function init(inputField, output, defs) {
+    clearEnv();
     write = function write(line) {
       return defs.innerHTML += line;
     };
@@ -67,10 +68,10 @@
   };
 
   clearEnv = function clearEnv() {
-    var env, newEnv;
-    document.getElementById('defs').innerHTML = "";
+    var defs, env, newEnv;
+    defs = document.getElementById('defs').innerHTML = "";
     env = document.getElementById('env');
-    document.body.removeChild(env);
+    if (env != null) document.body.removeChild(env);
     newEnv = document.createElement('iframe');
     newEnv.id = 'env';
     newEnv.setAttribute("style", "display: none");
@@ -79,7 +80,7 @@
   };
 
   useIframe = function useIframe(envFr) {
-    var env, i, v, _ref;
+    var env, i, macs, v, _ref;
     if (envFr) {
       root.envFrame = envFrame = envFr;
       env = envFrame.contentWindow;
@@ -88,12 +89,14 @@
         env[i] = v;
       }
       Leisure.setEvalFunc(env, env.eval);
+      macs = {};
+      macs.__prototype__ = macros;
       _ref = {
         Leisure: Leisure,
         ReplCore: ReplCore,
         Repl: Repl,
         leisureFuncs: {},
-        macros: macros
+        macros: macs
       };
       for (i in _ref) {
         v = _ref[i];

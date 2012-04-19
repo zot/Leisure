@@ -152,8 +152,8 @@ var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
 """
-  errs = ''
-  globals = findDefs file, contents, nomacros
+  [globals, errs] = findDefs contents, nomacros
+  if err then throw new Error(err)
   defs = []
   [rest, err] = Leisure.prepare contents
   if err then throw new Error(err)
@@ -199,7 +199,7 @@ return root;
 
 getGlobals = -> Leisure.eval 'leisureGetFuncs()'
 
-findDefs = (file, contents, nomacros)->
+findDefs = (contents, nomacros)->
   errs = ''
   globals = Leisure.Nil
   rest = contents
@@ -210,8 +210,7 @@ findDefs = (file, contents, nomacros)->
     if ast?.leisureName
       if globals?.find((v)->v == ast.leisureName) then throw new Error("Attempt to redefine function: #{ast.leisureName}")
       globals = Leisure.cons(ast.leisureName, globals)
-  if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
-  globals
+  [globals, errs]
 
 
 root.processLine = processLine
@@ -226,3 +225,4 @@ root.getType = getType
 root.generateCode = generateCode
 root.processResult = processResult
 root.setResetFunc = setResetFunc
+root.findDefs = findDefs
