@@ -56,7 +56,7 @@ useIframe = (envFr)->
     env = envFrame.contentWindow
     env[i] = v for i, v of leisureFuncs
     Leisure.setEvalFunc env, env.eval
-    env[i] = v for i, v of {Leisure: Leisure, ReplCore: ReplCore, Repl: Repl, leisureFuncs: {}, macros: {}}
+    env[i] = v for i, v of {Leisure: Leisure, ReplCore: ReplCore, Repl: Repl, leisureFuncs: {}, macros: macros}
     env.eval """
 global = window;
 setType = Leisure.setType;

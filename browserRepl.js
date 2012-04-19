@@ -93,7 +93,7 @@
         ReplCore: ReplCore,
         Repl: Repl,
         leisureFuncs: {},
-        macros: {}
+        macros: macros
       };
       for (i in _ref) {
         v = _ref[i];

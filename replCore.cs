@@ -157,11 +157,11 @@ var processResult = Repl.processResult;
   defs = []
   [rest, err] = Leisure.prepare contents
   if err then throw new Error(err)
-  out += "\nvar"
+  varOut = ''
   for v, i in globals.toArray()
-    if i > 0 then out += ","
-    out += " #{Leisure.nameSub v}"
-  out += ";\n"
+    if i > 0 then varOut += ","
+    varOut += " #{Leisure.nameSub v}"
+  if varOut then out += "\nvar#{varOut};\n"
   globals = Leisure.append(globals, getGlobals())
   while rest
     oldRest = rest

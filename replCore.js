@@ -192,7 +192,7 @@
   };
 
   generateCode = function generateCode(file, contents, loud, handle, nomacros) {
-    var a, ast, c, code, defs, err, errs, globals, i, m, nm, oldRest, out, r, rest, src, v, _len, _ref, _ref2, _ref3, _ref4;
+    var a, ast, c, code, defs, err, errs, globals, i, m, nm, oldRest, out, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3, _ref4;
     if (loud) console.log("Compiling " + file + ":\n");
     out = "(function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Leisure = require('./leisure');\n  Leisure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\nvar setType = Leisure.setType;\nvar setDataType = Leisure.setDataType;\nvar define = Leisure.define;\nvar defineMacro = Leisure.defineMacro;\nvar defineToken = Leisure.defineToken;\nvar processResult = Repl.processResult;\n";
     errs = '';
@@ -200,14 +200,14 @@
     defs = [];
     _ref = Leisure.prepare(contents), rest = _ref[0], err = _ref[1];
     if (err) throw new Error(err);
-    out += "\nvar";
+    varOut = '';
     _ref2 = globals.toArray();
     for (i = 0, _len = _ref2.length; i < _len; i++) {
       v = _ref2[i];
-      if (i > 0) out += ",";
-      out += " " + (Leisure.nameSub(v));
+      if (i > 0) varOut += ",";
+      varOut += " " + (Leisure.nameSub(v));
     }
-    out += ";\n";
+    if (varOut) out += "\nvar" + varOut + ";\n";
     globals = Leisure.append(globals, getGlobals());
     while (rest) {
       oldRest = rest;
