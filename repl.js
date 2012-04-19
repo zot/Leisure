@@ -150,7 +150,7 @@
   Core.setResetFunc(function() {
     write("Creating fresh environment");
     createEnv();
-    return L.eval("req('./std')");
+    return L.eval("Leisure.req('./std')");
   });
 
   root.createEnv = createEnv;

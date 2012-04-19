@@ -16,10 +16,18 @@
 <h1>TODO</h1>
 
 <ul>
+<li>better browser environment
+<ul>
+<li>left side should be an editor</li>
+<li>loading files should load them into the editor</li>
+<li>input should be in a blinking box on the right side, not in an alert box</li>
+<li>should be able to load *.lsr files into the environment</li>
+</ul></li>
 <li>use curlies for do/let
 <ul>
-<li>it would be a grouping macro</li>
-<li>groups need to parse better</li>
+<li>remove intermediate step of inserting {}; -- convert directly to parenthesized groups</li>
+<li>allow newlines in open groups</li>
+<li>{ and } would be a grouping macros</li>
 </ul></li>
 <li>debug mode should put a cons into funcs of a new exception and the list from the parent</li>
 <li>macros should return an either for the parser</li>
@@ -27,13 +35,6 @@
 <li>add prelude.lsr
 <ul>
 <li>put parser macros in there</li>
-</ul></li>
-<li>better browser environment
-<ul>
-<li>left side should be an editor</li>
-<li>loading files should load them into the editor</li>
-<li>input should be in a blinking box on the right side, not in an alert box</li>
-<li>should be able to load *.lsr files into the environment</li>
 </ul></li>
 <li>integrate physics engine</li>
 <li>doc comments</li>
@@ -66,7 +67,6 @@
 </ul></li>
 <li>log function that prints while running (side effect)</li>
 <li>:l should load file</li>
-<li>scroll to bottom of browser on eval</li>
 <li>example that reads strings and prints them until the user types 'quit'</li>
 <li>:p to show primitives</li>
 <li>infix function call syntax
@@ -105,6 +105,7 @@
 <h1>DONE</h1>
 
 <ul>
+<li>scroll to bottom of browser on eval</li>
 <li>when there are parsing or compilation errors, show which function has the problem</li>
 <li>add floating point numbers to tokenDefs</li>
 <li>let</li>

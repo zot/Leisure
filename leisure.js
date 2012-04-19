@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, prefix, prepare, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wordPat, wrap,
+  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, prefix, prepare, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wordPat, wrap,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -1038,9 +1038,12 @@ misrepresented as being the original software.
   };
 
   req = function req(name, gl) {
-    var i, res, v, _fn, _ref;
+    return processDefs(require(name), gl);
+  };
+
+  processDefs = function processDefs(res, gl) {
+    var i, v, _fn, _ref;
     gl = gl != null ? gl : global;
-    res = require(name);
     if (res.defs != null) {
       _ref = res.defs;
       _fn = function _fn(tmp) {
@@ -1123,5 +1126,7 @@ misrepresented as being the original software.
   root.parenthify = parenthify;
 
   root.prepare = prepare;
+
+  root.processDefs = processDefs;
 
 }).call(this);
