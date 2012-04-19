@@ -8,12 +8,13 @@ lastLine = null
 input = null
 write = null
 envFrame = null
+writeOutput = (line)->
+    output.innerHTML += "<span>#{line}</span>"
+    output.lastChild.scrollIntoView()
 
 init = (inputField, output, defs)->
   write = (line)-> defs.innerHTML += line
-  ReplCore.setWriter (line)->
-    output.innerHTML += "<span>#{line}</span>"
-    output.lastChild.scrollIntoView()
+  ReplCore.setWriter writeOutput
   ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r, src)->
     if ast.leisureName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
@@ -105,7 +106,7 @@ handleFiles = (fileElement)->
   input.select()
 
 processResult = (result)->
-  write("#{getType result}: #{P.print(result)}\n")
+  writeOutput("#{ReplCore.getType result}: #{Pretty.print(result)}\n")
   ReplCore.processResult result
 
 root.init = init
@@ -116,3 +117,4 @@ root.useIframe = useIframe
 root.reloadEnv = reloadEnv
 root.clearEnv = clearEnv
 root.evalLine = evalLine
+root.processResult = processResult
