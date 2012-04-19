@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, clearEnv, clearOutput, envFrame, evalLine, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write;
+  var Pretty, clearEnv, clearOutput, envFrame, evalLine, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write, writeOutput;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -17,14 +17,16 @@
 
   envFrame = null;
 
+  writeOutput = function writeOutput(line) {
+    output.innerHTML += "<span>" + line + "</span>";
+    return output.lastChild.scrollIntoView();
+  };
+
   init = function init(inputField, output, defs) {
     write = function write(line) {
       return defs.innerHTML += line;
     };
-    ReplCore.setWriter(function(line) {
-      output.innerHTML += "<span>" + line + "</span>";
-      return output.lastChild.scrollIntoView();
-    });
+    ReplCore.setWriter(writeOutput);
     ReplCore.setNext(function() {
       return input.value = '';
     });
@@ -138,7 +140,7 @@
   };
 
   processResult = function processResult(result) {
-    write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+    writeOutput("" + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n");
     return ReplCore.processResult(result);
   };
 
@@ -157,5 +159,7 @@
   root.clearEnv = clearEnv;
 
   root.evalLine = evalLine;
+
+  root.processResult = processResult;
 
 }).call(this);

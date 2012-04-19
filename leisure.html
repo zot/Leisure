@@ -67,7 +67,8 @@
 
         Repl.clearEnv()
         try {
-          Leisure.eval(ReplCore.generateCode('doc', doc.innerText, false))
+          gen = ReplCore.generateCode('doc', doc.innerText, false)
+          Leisure.eval(gen)
         } catch (err) {
           alert(err.stack)
         }
