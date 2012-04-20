@@ -228,6 +228,54 @@ base_legalMoves b all = if (eq all nil)
 
 legalMoves b = base_legalMoves b all_moves
 
+#minimax b p = do
+#  result = minimax_d b p 0 nil p -999999 999999
+#  if (eq result nil) nil
+#    head (at result 1)
+
+# minimax - search the space of all possible moves for the best move
+#   b is the board
+#   p is the current player to move
+#   d is the depth of the search tree counted up from 0
+#   c is the chain of moves we've made so far
+#   max is the player we are trying to maximize the score for
+#   alpha is the current alpha cutoff
+#   beta is the current beta cutoff
+
+#minimax_d b p d c max alpha beta = if (deepEnough? b d) [ (score b p), c ]
+#  if (neq (gameOver new_b (win? new_b) ) empty) [ (score b p), c ]
+#    # if current player is the one we're maximizing for..
+#    if (eq p max) 
+#      find_max b p d c max alpha beta
+#      find_min b p d c max alpha beta
+
+
+#find_max b p d c max alpha beta = do
+#  moves = legalMoves b 
+#  map (\m. do
+#    new_b = playMove b m
+#    result = minimax_d new_b (nextPlayer p) (++ d) (append c [ m ]) max alpha beta
+#    if (gt (head result) alpha)
+
+#mapWhile test function list = if (eq list nil) nil
+
+removeAt i list = append (take i list) (drop (++ i) list)
+
+
+shuffle list = if (eq list nil) (log "at end of list!" nil)
+    do
+      len = length list
+      index = randInt 0 (-- len)
+#      index = -- len
+      rest = removeAt index list
+      log (append [ "index: ", index, " len: ", len, " list: " ] list)
+        log (append [ "rest => "] rest)
+          if (eq len 1) list
+            cons (at list index) (shuffle rest)
+#            cons (at list index) (shuffle (removeAt index list))
+
+# see if the current depth (counted up from zero) is sufficient
+deepEnough? b d = gte d 4
 
 
 ##################

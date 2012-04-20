@@ -48,7 +48,7 @@ define 'floor', (a)->Math.floor(a())
 define 'ceil', (a)->Math.ceil(a())
 define 'round', (a)->Math.round(a())
 # define 'rand', ->Math.rand()
-define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
+define 'randInt', (from)->(to)-> Math.floor(from() + Math.random() * (to() - from() + 1));
 
 
 define '>', (a)->(b)->if a() > b() then `_true()` else `_false()`
