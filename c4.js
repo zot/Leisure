@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _make_list, _count_down, _count_up, _digits, _player1, _player2, _empty, _NUM_COLS, _NUM_ROWS, _ALL_COLS_UP, _ALL_ROWS_UP, _rc2spot, _spot, _fill_spot, _base_find_empty_spot, _find_empty_spot, _playMove, _playMoves, _div, _ending, _showR, _showRow, _showRows, _showBoard, _horzWinSpots, _vertWinSpots, _lDiagWinSpots, _rDiagWinSpots, _testMoves, _testWins2, _testWins, _testHorz, _testVert, _check_group, _loop_spots, _win$e, _CONNECT, _player1Win, _player2Win, _startBoard, _win1Board, _win2Board, _testFullBoard, _tie$e, _nextPlayer, _isColumnLegal, _isLegalMove, _checkMove, _gameOver, _convertMove, _winner, _promptOrEnd, _playGame, _main, _minmax, _all_moves, _base_legalMoves, _legalMoves;
+var _make_list, _count_down, _count_up, _digits, _player1, _player2, _empty, _NUM_COLS, _NUM_ROWS, _ALL_COLS_UP, _ALL_ROWS_UP, _rc2spot, _spot, _fill_spot, _base_find_empty_spot, _find_empty_spot, _playMove, _playMoves, _div, _ending, _showR, _showRow, _showRows, _showBoard, _horzWinSpots, _vertWinSpots, _lDiagWinSpots, _rDiagWinSpots, _testMoves, _testWins2, _testWins, _testHorz, _testVert, _check_group, _loop_spots, _win$e, _CONNECT, _player1Win, _player2Win, _startBoard, _win1Board, _win2Board, _testFullBoard, _tie$e, _nextPlayer, _isColumnLegal, _isLegalMove, _checkMove, _gameOver, _convertMove, _winner, _promptOrEnd, _playGame, _main, _minmax, _all_moves, _base_legalMoves, _legalMoves, _promptPlayer, _newGame, _click, _click0, _click1, _click2, _click3, _click4, _click5, _click6;
 //make_list = AST(\e c . if (eq c 0) nil (cons e (make_list e (-- c))))
 root.defs._make_list = _make_list = define('make_list', function(_e){return function(_c){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_c)((function(){return 0}))))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_cons()(_e)((function(){var $m; return function(){return $m || ($m = (_make_list()(_e)((function(){var $m; return function(){return $m || ($m = (_$n$n()(_c)))}})())))}})())))}})())}});
 ;
@@ -197,6 +197,40 @@ root.defs._base_legalMoves = _base_legalMoves = define('base_legalMoves', functi
 ;
 //legalMoves = AST(\b . base_legalMoves b all_moves)
 root.defs._legalMoves = _legalMoves = define('legalMoves', function(_b){return _base_legalMoves()(_b)(_all_moves)});
+;
+//promptPlayer = AST(\p . print (concat ([ Your move player  , p ,  [0-6] or c or q> ])))
+root.defs._promptPlayer = _promptPlayer = define('promptPlayer', function(_p){return _print()((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Your move player "}))(_$b)(_p)(_$b)((function(){return " [0-6] or c or q>"}))(_$s)))}})())))}})())});
+;
+//newGame = AST(\e . bind (setValue board startBoard) \_ . bind (setValue player player1) \_ . bind (showBoard startBoard) \_ . bind (browser ([ showBoard(' , (concat startBoard) , ') ])) \_ . promptPlayer player1)
+root.defs._newGame = _newGame = define('newGame', function(_e){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "board"}))(_startBoard)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))(_player1)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_showBoard()(_startBoard)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_browser()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "showBoard('"}))(_$b)((function(){var $m; return function(){return $m || ($m = (_concat()(_startBoard)))}})())(_$b)((function(){return "')"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _promptPlayer()(_player1)}))}})())}))}})())}))}})())}))}})())});
+;
+//click = AST(\move . bind (getValue board) \b . bind (getValue player) \p . if (eq c move) (click (minmax p b)) (if (isLegalMove b move) ((\new_b . (\win_msg . (\next_p . showBoard new_b) (nextPlayer p)) (gameOver new_b (win? new_b))) (playMove p b (indexof digits move)))))
+root.defs._click = _click = define('click', function(_move){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "board"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_b){return _bind()((function(){var $m; return function(){return $m || ($m = (_getValue()((function(){return "player"}))))}})())((function(){var $m; return function(){return $m || ($m = (function(_p){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()((function(){return "c"}))(_move)))}})())((function(){var $m; return function(){return $m || ($m = (_click()((function(){var $m; return function(){return $m || ($m = (_minmax()(_p)(_b)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_isLegalMove()(_b)(_move)))}})())((function(){var $m; return function(){return $m || ($m = (function(_new_b){return function(_win_msg){return function(_next_p){return _showBoard()(_new_b)}((function(){var $m; return function(){return $m || ($m = (_nextPlayer()(_p)))}})())}((function(){var $m; return function(){return $m || ($m = (_gameOver()(_new_b)((function(){var $m; return function(){return $m || ($m = (_win$e()(_new_b)))}})())))}})())}((function(){var $m; return function(){return $m || ($m = (_playMove()(_p)(_b)((function(){var $m; return function(){return $m || ($m = (_indexof()(_digits)(_move)))}})())))}})())))}})())))}})())}))}})())}))}})())});
+;
+processResult(//AST(browser ([ showBoard(' , (concat new_b) , ') ]) (if (neq win_msg empty) (print win_msg) (promptPlayer next_p)) (setValue board new_b) (setValue player next_p))
+(_browser()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "showBoard('"}))(_$b)((function(){var $m; return function(){return $m || ($m = (_concat()((function(){return "new_b"}))))}})())(_$b)((function(){return "')"}))(_$s)))}})())((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_neq()((function(){return "win_msg"}))(_empty)))}})())((function(){var $m; return function(){return $m || ($m = (_print()((function(){return "win_msg"}))))}})())((function(){var $m; return function(){return $m || ($m = (_promptPlayer()((function(){return "next_p"}))))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "board"}))((function(){return "new_b"}))))}})())((function(){var $m; return function(){return $m || ($m = (_setValue()((function(){return "player"}))((function(){return "next_p"}))))}})())));
+processResult(//AST(print Illegal move, please try again)
+(_print()((function(){return "Illegal move, please try again"}))));
+//click0 = AST(\e . click 0)
+root.defs._click0 = _click0 = define('click0', function(_e){return _click()((function(){return "0"}))});
+;
+//click1 = AST(\e . click 1)
+root.defs._click1 = _click1 = define('click1', function(_e){return _click()((function(){return "1"}))});
+;
+//click2 = AST(\e . click 2)
+root.defs._click2 = _click2 = define('click2', function(_e){return _click()((function(){return "2"}))});
+;
+//click3 = AST(\e . click 3)
+root.defs._click3 = _click3 = define('click3', function(_e){return _click()((function(){return "3"}))});
+;
+//click4 = AST(\e . click 4)
+root.defs._click4 = _click4 = define('click4', function(_e){return _click()((function(){return "4"}))});
+;
+//click5 = AST(\e . click 5)
+root.defs._click5 = _click5 = define('click5', function(_e){return _click()((function(){return "5"}))});
+;
+//click6 = AST(\e . click 6)
+root.defs._click6 = _click6 = define('click6', function(_e){return _click()((function(){return "6"}))});
 ;
 
 if (typeof window !== 'undefined' && window !== null) {
