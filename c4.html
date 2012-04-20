@@ -9,6 +9,50 @@
     <script src="c4.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
     <script>
+
+	function c4Loaded()
+	{
+	  tttWin = document.getElementById('scene').getSVGDocument().defaultView
+          tttWin.leisureEvent = function(funcName) {Prim.leisureEvent(funcName, tttWin.event);}
+	  tttWin.leisureEvent('newGame')
+	}
+
+	// b will be a string of 9 chars, either space, X, or O
+      function showBoard(b) {
+	xIndex = -1
+        oIndex = -1
+        for (var i = 0; i < b.length; ++i) {
+          p = b[i]
+          if (p == 'R') movePiece(p, ++xIndex, i)
+          else if (p == 'B') movePiece(p, ++oIndex, i)
+        }
+	while (xIndex < 21) hidePiece('R', ++xIndex)
+	while (oIndex < 21) hidePiece('B', ++oIndex)
+      }
+
+	// move a piece onto the board
+      function movePiece(prefix, index, spotIndex) {
+	id = prefix + index
+	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
+	spotId = "spot" + spotIndex
+	spot = document.getElementById('scene').getSVGDocument().getElementById(spotId);
+	if (piece != null && spot != null) {
+ 	  w_x = (spot.getBBox().width - piece.getBBox().width) / 2.0
+	  w_y = (spot.getBBox().height - piece.getBBox().height) / 2.0
+	  delta_x = spot.getBBox().x - piece.getBBox().x + w_x
+	  delta_y = spot.getBBox().y - piece.getBBox().y + w_y
+	  //alert("piece: " + id + " => " + spotId + " d_x: " + delta_x + " d_y: " + delta_y)
+	  piece.setAttribute('transform', 'translate(' + delta_x + ', ' + delta_y + ')')
+        }
+      }
+
+	// hide any ununsed pieces
+      function hidePiece(prefix, index) {
+	id = prefix + index
+	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
+	if (piece) piece.setAttribute('transform', 'translate(' + 0 + ', ' + 0 + ')')
+      }
+
       function init() {
         var input = document.getElementById('input')
         var output = document.getElementById('output')
@@ -56,6 +100,11 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
     <table style="vertical-align: top; width: 100%; height: 100%">
+      <tr style="height: 480px">
+	<td colspan="2">
+	  <object id="scene" data="c4.svg" type="image/svg+xml" onload="c4Loaded()"></object>
+	</td>
+      </tr>
       <tr style="height: 1.5em"><td colspan="2">
 	  <div style="height: 100%; position: relative">
 	    <div><b>Definitions</b></div>
