@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, boxIn, chunks, continueRangePosition, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, pos, removeOldDefs, root;
+  var Leisure, ReplCore, addsLine, box, chunks, codeSpan, continueRangePosition, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, pos, removeOldDefs, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -39,33 +39,46 @@
   };
 
   markupDefs = function markupDefs(defs) {
-    var body, bodyNode, i, main, name, _i, _len, _results;
+    var body, bx, def, i, main, name, _i, _len, _results;
     _results = [];
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
-      main = i[0], name = i[1], body = i[2];
+      main = i[0], name = i[1], def = i[2], body = i[3];
       if (name != null) {
-        boxIn(name, 'codeName', 'span');
-        bodyNode = boxIn(body, 'codeBody', 'span');
-        main.setEndAfter(bodyNode);
-        _results.push(boxIn(main, 'codeMain', 'div'));
+        bx = box(main, 'codeMain', true);
+        bx.appendChild(codeSpan(name, 'codeName'));
+        bx.appendChild(document.createTextNode(def));
+        _results.push(bx.appendChild(codeSpan(body, 'codeBody')));
       } else {
-        body = boxIn(main, 'codeExpr', 'span');
-        main.setStartBefore(body);
-        main.setEndAfter(body);
-        _results.push(boxIn(main, 'codeMain', 'div'));
+        bx = box(main, 'codeMain', true);
+        _results.push(bx.appendChild(codeSpan(body, 'codeExpr')));
       }
     }
     return _results;
   };
 
-  boxIn = function boxIn(range, boxType, elementType) {
+  codeSpan = function codeSpan(text, boxType) {
     var node;
-    node = document.createElement(elementType);
+    node = document.createElement('span');
     node.setAttribute(boxType, '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', boxType);
-    range.surroundContents(node);
+    node.appendChild(document.createTextNode(text));
+    return node;
+  };
+
+  box = function box(range, boxType, empty) {
+    var node;
+    node = document.createElement('div');
+    node.setAttribute(boxType, '');
+    node.setAttribute('Leisure', '');
+    node.setAttribute('class', boxType);
+    if (empty) {
+      range.deleteContents();
+    } else {
+      node.appendChild(range.extractContents());
+    }
+    range.insertNode(node);
     return node;
   };
 
@@ -91,7 +104,7 @@
   };
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var bodyRange, bodyStart, defType, endPat, leading, leadingSpaces, m, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRange, nameRaw, next, outerRange, rest1, _ref, _ref2, _ref3;
+    var bodyStart, defType, endPat, leading, leadingSpaces, m, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, rest1, _ref, _ref2, _ref3;
     _ref = m = def, matched = _ref[0], leading = _ref[1], nameRaw = _ref[2], defType = _ref[3];
     if (!rest.trim()) {
       return null;
@@ -108,22 +121,20 @@
         name = nameRaw.trim();
       }
       rest1 = rest.substring((defType ? matched : leading).length);
-      endPat = rest1.match(/\n[^\s]|\n?$/);
+      endPat = rest1.match(/\n+[^\s]|\n?$/);
       next = endPat ? rest1.substring(endPat.index) : rest1;
       mainEnd = txt.length - next.length;
       if (name != null) {
         mainStart = matchStart + ((_ref2 = leading != null ? leading.length : void 0) != null ? _ref2 : 0);
         nameEnd = mainStart + name.length;
-        nameRange = makeRange(el, mainStart, nameEnd);
         leadingSpaces = (rest1.match(/^\s*/))[0].length;
         bodyStart = txt.length - (rest1.length - leadingSpaces);
-        bodyRange = makeRange(el, bodyStart, mainEnd);
         outerRange = makeRange(el, mainStart, mainEnd);
-        return [outerRange, nameRange, bodyRange, next];
+        return [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), next];
       } else {
         mainStart = matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
         outerRange = makeRange(el, mainStart, mainEnd);
-        return [outerRange, null, null, next];
+        return [outerRange, null, null, txt.substring(mainStart, mainEnd), next];
       }
     }
   };
@@ -207,17 +218,20 @@
     return node.nodeName === 'BR' || (node.nodeType === 1 && getComputedStyle(node, null).display === 'block');
   };
 
-  /*
-    el.addEventListener 'textInput', (evt)->
-      rng = window.getSelection().getRangeAt(0)
-      txt = el.innerText
-      changed = txt.substring(pos, rng.endOffset)
-      pos = rng.endOffset
-      if txt[pos - 1] == '\n'
-        if pos > 2 and txt[pos - 2] = \n
-          evalChunk
-  */
-
   root.initNotebook = initNotebook;
+
+  root.box = box;
+
+  root.boxFlat = boxFlat;
+
+  root.flatten = flatten;
+
+  root.selection = function selection() {
+    return window.getSelection().getRangeAt(0);
+  };
+
+  root.test = function test() {
+    return flatten(root.selection().cloneContents().childNodes[0]);
+  };
 
 }).call(this);

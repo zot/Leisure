@@ -26,24 +26,32 @@ removeOldDefs = (el)->
 
 markupDefs = (defs)->
   for i in defs
-    [main, name, body] = i
+    [main, name, def, body] = i
     if name?
-      boxIn name, 'codeName', 'span'
-      bodyNode = boxIn body, 'codeBody', 'span'
-      main.setEndAfter bodyNode
-      boxIn main, 'codeMain', 'div'
+      bx = box main, 'codeMain', true
+      bx.appendChild (codeSpan name, 'codeName')
+      bx.appendChild (document.createTextNode(def))
+      bx.appendChild (codeSpan body, 'codeBody')
     else
-      body = boxIn main, 'codeExpr', 'span'
-      main.setStartBefore body
-      main.setEndAfter body
-      boxIn main, 'codeMain', 'div'
+      bx = box main, 'codeMain', true
+      bx.appendChild (codeSpan body, 'codeExpr')
 
-boxIn = (range, boxType, elementType)->
-  node = document.createElement elementType
+codeSpan = (text, boxType)->
+  node = document.createElement 'span'
   node.setAttribute boxType, ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', boxType
-  range.surroundContents(node)
+  node.appendChild document.createTextNode(text)
+  node
+
+box = (range, boxType, empty)->
+  node = document.createElement 'div'
+  node.setAttribute boxType, ''
+  node.setAttribute 'Leisure', ''
+  node.setAttribute 'class', boxType
+  if empty then range.deleteContents()
+  else node.appendChild(range.extractContents())
+  range.insertNode(node)
   node
 
 findDefs = (el)->
@@ -71,22 +79,20 @@ getRanges = (el, txt, rest, def, restOff)->
         defType = null
       else name = nameRaw.trim()
       rest1 = rest.substring (if defType then matched else leading).length
-      endPat = rest1.match /\n[^\s]|\n?$/
+      endPat = rest1.match /\n+[^\s]|\n?$/
       next = if endPat then rest1.substring(endPat.index) else rest1
       mainEnd = txt.length - next.length
       if name?
         mainStart = matchStart + (leading?.length ? 0)
         nameEnd = mainStart + name.length
-        nameRange = makeRange el, mainStart, nameEnd
         leadingSpaces = (rest1.match /^\s*/)[0].length
         bodyStart = txt.length - (rest1.length - leadingSpaces)
-        bodyRange = makeRange el, bodyStart, mainEnd
         outerRange = makeRange el, mainStart, mainEnd
-        [outerRange, nameRange, bodyRange, next]
+        [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), next]
       else
         mainStart = matchStart + (leading?.length ? 0)
         outerRange = makeRange el, mainStart, mainEnd
-        [outerRange, null, null, next]
+        [outerRange, null, null, txt.substring(mainStart, mainEnd), next]
 
 makeRange = (el, off1, off2)->
   range = document.createRange()
@@ -131,15 +137,9 @@ nodeEnd = (node)-> [node, if node.nodeType == 3 then node.length else node.child
 addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputedStyle(node, null).display == 'block')
 
 
-###
-  el.addEventListener 'textInput', (evt)->
-    rng = window.getSelection().getRangeAt(0)
-    txt = el.innerText
-    changed = txt.substring(pos, rng.endOffset)
-    pos = rng.endOffset
-    if txt[pos - 1] == '\n'
-      if pos > 2 and txt[pos - 2] = \n
-        evalChunk
-###
-
 root.initNotebook = initNotebook
+root.box = box
+root.boxFlat = boxFlat
+root.flatten = flatten
+root.selection = -> window.getSelection().getRangeAt(0)
+root.test = -> flatten(root.selection().cloneContents().childNodes[0])
