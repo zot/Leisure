@@ -189,12 +189,12 @@ gameOver b winner = if (eq winner empty)
 
 convertMove p b move = eq move 'c'
   checkMove p b (minmax p b)
-  checkMove p b move
+  (eq move 'q') (print "PLAYER FORFEITED!!!") (checkMove p b move)
 
 #winner : if the game is not over, prompt current player for a move. otherwise print result of game
 winner w p b = if (eq empty w)
   do
-    move <- prompt (concat ["Your move player ", p, ">" ])
+    move <- prompt (concat ["Your move player ", p, " [0-6] or c or q>" ])
     convertMove p b move
   print w
 
@@ -222,9 +222,9 @@ minmax p b = do
 all_moves = ALL_COLS_UP
 base_legalMoves b all = if (eq all nil)
   nil
-  if (eq (at b (head all)) empty)
+  if (isColumnLegal b (head all))
     cons (head all) (base_legalMoves b (tail all))
-    base_legalMoves b (tail all)
+    (base_legalMoves b (tail all))
 
 legalMoves b = base_legalMoves b all_moves
 
@@ -255,7 +255,7 @@ click move = do
         win_msg = gameOver new_b (win? new_b)
         next_p = nextPlayer p
         showBoard new_b
-#	browser [ "showBoard('", (concat new_b), "')" ]
+        browser [ "showBoard('", (concat new_b), "')" ]
         if (neq win_msg empty) (print win_msg) (promptPlayer next_p)
         setValue 'board' new_b
         setValue 'player' next_p
