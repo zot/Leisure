@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, boxIn, chunks, continueRangePosition, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, pos, removeOldDefs, root;
+  var Leisure, ReplCore, addsLine, boxIn, chunks, continueRangePosition, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, pos, removeOldDefs, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -151,7 +151,7 @@
     _ref = getRangePosition(node.firstChild, charOffset, end), child = _ref[0], offset = _ref[1];
     if (!(child != null)) {
       child = node.lastChild;
-      return [child, child.nodeType === 3 ? child.length : child.childNodes.length];
+      return nodeEnd(child);
     } else {
       return [child, offset];
     }
@@ -159,9 +159,7 @@
 
   getRangePosition = function getRangePosition(node, charOffset, end) {
     var newNode, newOff, _ref;
-    if (charOffset === 0 && (node.nodeType !== 1 || node.childNodes.length === 0)) {
-      return [node];
-    } else if (node.nodeType === 3) {
+    if (node.nodeType === 3) {
       if (node.length > (end ? charOffset - 1 : charOffset)) {
         return [node, charOffset];
       } else {
@@ -187,16 +185,22 @@
 
   continueRangePosition = function continueRangePosition(node, charOffset, end) {
     var newOff;
-    newOff = charOffset - ((addsLine(node)) || (addsLine(node.nextSibling)) ? 1 : 0);
-    if (node.nextSibling != null) {
-      if (end && newOff === 1) {
-        return [node];
+    newOff = charOffset - ((addsLine(node)) || ((node.nextSibling != null) && (addsLine(node.nextSibling))) ? 1 : 0);
+    if (end && (newOff === 1 || charOffset === 1)) {
+      return nodeEnd(node);
+    } else if (node.nextSibling != null) {
+      if (newOff === 0 && end) {
+        return nodeEnd(node);
       } else {
         return getRangePosition(node.nextSibling, newOff, end);
       }
     } else {
-      return [null, (newOff !== charOffset && node.parentNode.lastChild === node && addsLine(node.parentNode) ? charOffset : newOff)];
+      return [null, (node.parentNode.lastChild !== node && !(addsLine(node.parentNode)) ? newOff : charOffset)];
     }
+  };
+
+  nodeEnd = function nodeEnd(node) {
+    return [node, node.nodeType === 3 ? node.length : node.childNodes.length - 1];
   };
 
   addsLine = function addsLine(node) {
