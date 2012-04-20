@@ -175,7 +175,7 @@ nextPlayer p = if (eq p player1) player2 player1
 
 isColumnLegal b c = eq empty (spot b 0 c)
 # isLegalMove : return true if the move passed in is legal. NOTE: move is a character '0' thru '9'
-isLegalMove b m = (if (eq m nil) false  (\i . (and (not (eq i nil)) (isColumnLegal b i))) (indexof digits m))
+isLegalMove b m = if (eq m nil) false  ((\i . (and (not (eq i nil)) (isColumnLegal b i))) (indexof digits m))
 
 # checkMove : if the move is legal, apply it to the board and let the next player take their turn. otherwise same player must try again
 checkMove p b move = if (isLegalMove b move)
