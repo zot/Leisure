@@ -136,7 +136,7 @@
 
   define('randInt', function(from) {
     return function(to) {
-      return Math.floor(Math.random() * (to() - from() + 1)) + from();
+      return Math.floor(from() + Math.random() * (to() - from() + 1));
     };
   });
 
