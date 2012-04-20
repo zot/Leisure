@@ -102,12 +102,11 @@ grp = (node, charOffset, end)->
   [child, offset] = getRangePosition node.firstChild, charOffset, end
   if !child?
     child = node.lastChild
-    [child, if child.nodeType == 3 then child.length else child.childNodes.length]
+    nodeEnd child
   else [child, offset]
 
 getRangePosition = (node, charOffset, end)->
-  if charOffset == 0 and (node.nodeType != 1 or node.childNodes.length == 0) then [node]
-  else if node.nodeType == 3
+  if node.nodeType == 3
     if node.length > (if end then charOffset - 1 else charOffset) then [node, charOffset]
     else continueRangePosition node, charOffset - node.length, end
   else if node.nodeName == 'BR'
@@ -120,13 +119,17 @@ getRangePosition = (node, charOffset, end)->
   else continueRangePosition node, charOffset, end
 
 continueRangePosition = (node, charOffset, end)->
-  newOff = charOffset - (if (addsLine node) or (addsLine node.nextSibling) then 1 else 0)
-  if node.nextSibling?
-    if end and newOff == 1 then [node]
+  newOff = charOffset - (if (addsLine node) or (node.nextSibling? and (addsLine node.nextSibling)) then 1 else 0)
+  if end and (newOff == 1 or charOffset == 1) then nodeEnd node
+  else if node.nextSibling?
+    if newOff == 0 and end then nodeEnd node
     else getRangePosition node.nextSibling, newOff, end
-  else [null, (if newOff != charOffset and node.parentNode.lastChild == node and addsLine node.parentNode then charOffset else newOff)]
+  else [null, (if node.parentNode.lastChild != node and !(addsLine node.parentNode) then newOff else charOffset)]
+
+nodeEnd = (node)-> [node, if node.nodeType == 3 then node.length else node.childNodes.length - 1]
 
 addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputedStyle(node, null).display == 'block')
+
 
 ###
   el.addEventListener 'textInput', (evt)->
