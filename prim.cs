@@ -47,6 +47,8 @@ define '%', (a)->(b)->a() % b()
 define 'floor', (a)->Math.floor(a())
 define 'ceil', (a)->Math.ceil(a())
 define 'round', (a)->Math.round(a())
+# define 'rand', ->Math.rand()
+define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
 
 
 define '>', (a)->(b)->if a() > b() then `_true()` else `_false()`
@@ -55,14 +57,6 @@ define 'gt', (a)->(b)->if a() > b() then `_true()` else `_false()`
 define 'gte', (a)->(b)->if a() >= b() then `_true()` else `_false()`
 define 'lt', (a)->(b)->if a() < b() then `_true()` else `_false()`
 define 'lte', (a)->(b)->if a() <= b() then `_true()` else `_false()`
-
-###
-define '++', (a)->a() + 1
-define '--', (a)->a() - 1
-define 'iszero', (a)-> if 0 == a() then `_true()` else` _false()`
-
-define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
-###
 
 eventCmds = []
 running = false
@@ -107,6 +101,11 @@ define 'eventTargetId', (evt)-> evt().target.id
 
 define 'return', (v)->
   makeMonad 'end', (cont)->cont(v())
+
+define 'log', (msg)->(value)->
+  if (msg().type != 'cons') then write("#{msg()}") else write(concatList(msg()))
+  write("\n")
+  value()
 
 define 'print', (msg)->
   makeMonad 'end', (cont)->

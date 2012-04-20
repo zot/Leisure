@@ -134,6 +134,12 @@
     return Math.round(a());
   });
 
+  define('randInt', function(from) {
+    return function(to) {
+      return Math.floor(Math.random() * (to() - from() + 1)) + from();
+    };
+  });
+
   define('>', function(a) {
     return function(b) {
       if (a() > b()) {
@@ -193,14 +199,6 @@
       }
     };
   });
-
-  /*
-  define '++', (a)->a() + 1
-  define '--', (a)->a() - 1
-  define 'iszero', (a)-> if 0 == a() then `_true()` else` _false()`
-  
-  define 'randInt', (from)->(to)-> Math.floor(Math.random() * (to() - from() + 1)) + from();
-  */
 
   eventCmds = [];
 
@@ -268,6 +266,18 @@
     return makeMonad('end', function(cont) {
       return cont(v());
     });
+  });
+
+  define('log', function(msg) {
+    return function(value) {
+      if (msg().type !== 'cons') {
+        write("" + (msg()));
+      } else {
+        write(concatList(msg()));
+      }
+      write("\n");
+      return value();
+    };
   });
 
   define('print', function(msg) {

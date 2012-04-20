@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _compose, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _any, _all, _index_combine, _indexof, _position, _find, _find$nif, _count, _count$nif, _count$nif$nnot, _remove, _remove$nif, _remove$nif$nnot, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _add$nhash, _key, _value, _get$npair, _get$nvalue, _remove$nhash;
+var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _compose, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _max, _min, _any, _all, _index_combine, _indexof, _position, _find, _find$nif, _count, _count$nif, _count$nif$nnot, _remove, _remove$nif, _remove$nif$nnot, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _add$nhash, _key, _value, _get$npair, _get$nvalue, _remove$nhash;
 //id = AST(\x . x)
 root.defs._id = _id = define('id', function(_x){return _x()});
 ;
@@ -119,6 +119,12 @@ root.defs._take = _take = define('take', function(_x){return function(_l){return
 ;
 //drop = AST(\x l . iszero x l (drop (-- x) (tail l)))
 root.defs._drop = _drop = define('drop', function(_x){return function(_l){return _iszero()(_x)(_l)((function(){var $m; return function(){return $m || ($m = (_drop()((function(){var $m; return function(){return $m || ($m = (_$n$n()(_x)))}})())((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())}});
+;
+//max = AST(\a b . gt a b a b)
+root.defs._max = _max = define('max', function(_a){return function(_b){return _gt()(_a)(_b)(_a)(_b)}});
+;
+//min = AST(\a b . lt a b a b)
+root.defs._min = _min = define('min', function(_a){return function(_b){return _lt()(_a)(_b)(_a)(_b)}});
 ;
 //any = AST(\f l . if (eq l nil) false (if (f (head l)) true (any f (tail l))))
 root.defs._any = _any = define('any', function(_f){return function(_l){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_l)(_nil)))}})())(_false)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())))}})())(_true)((function(){var $m; return function(){return $m || ($m = (_any()(_f)((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())}});
