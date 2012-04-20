@@ -34,7 +34,7 @@
     ReplCore.setHandler(function(ast, result, a, c, r, src) {
       if (ast.leisureName != null) {
         defs.innerHTML += "" + (markupDef(src, ast)) + "<br>";
-      } else if (result) {
+      } else if (result != null) {
         output.innerHTML += "<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n";
         output.lastElementChild.scrollIntoView();
       }
