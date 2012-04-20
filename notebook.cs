@@ -22,7 +22,7 @@ removeOldDefs = (el)->
     while node.firstChild?
       parent.insertBefore node.firstChild, node
     parent.removeChild node
-    parent.normalize()
+  el.normalize()
 
 markupDefs = (defs)->
   for i in defs
@@ -90,25 +90,43 @@ getRanges = (el, txt, rest, def, restOff)->
 
 makeRange = (el, off1, off2)->
   range = document.createRange()
-  [node, offset] = getRangePosition el, off1
-  range.setStart(node, offset)
-  [node, offset] = getRangePosition el, off2
-  range.setEnd(node, offset)
+  [node, offset] = grp el, off1, false
+  if offset? then range.setStart(node, offset)
+  else  range.setStartBefore node
+  [node, offset] = grp el, off2, true
+  if offset? then range.setEnd(node, offset)
+  else range.setEndAfter node
   range
 
-getRangePosition = (node, charOffset)->
-  if node.nodeType == 3
-    if node.length >= charOffset then [node, charOffset]
-    else [null, charOffset - node.length]
-  else if node.firstChild?
-      [newNode, newOff] = getRangePosition node.firstChild, charOffset
-      if newNode? then [newNode, newOff]
-      else continueRangePosition node, newOff
-  else continueRangePosition node, charOffset
+grp = (node, charOffset, end)->
+  [child, offset] = getRangePosition node.firstChild, charOffset, end
+  if !child?
+    child = node.lastChild
+    [child, if child.nodeType == 3 then child.length else child.childNodes.length]
+  else [child, offset]
 
-continueRangePosition = (node, charOffset)->
-  if node.nextSibling? then getRangePosition node.nextSibling, charOffset
-  else [null, charOffset]
+getRangePosition = (node, charOffset, end)->
+  if charOffset == 0 and (node.nodeType != 1 or node.childNodes.length == 0) then [node]
+  else if node.nodeType == 3
+    if node.length > (if end then charOffset - 1 else charOffset) then [node, charOffset]
+    else continueRangePosition node, charOffset - node.length, end
+  else if node.nodeName == 'BR'
+    if charOffset == (if end then 1 else 0) then [node]
+    else continueRangePosition node, charOffset, end
+  else if node.firstChild?
+      [newNode, newOff] = getRangePosition node.firstChild, charOffset, end
+      if newNode? then [newNode, newOff]
+      else continueRangePosition node, newOff, end
+  else continueRangePosition node, charOffset, end
+
+continueRangePosition = (node, charOffset, end)->
+  newOff = charOffset - (if (addsLine node) or (addsLine node.nextSibling) then 1 else 0)
+  if node.nextSibling?
+    if end and newOff == 1 then [node]
+    else getRangePosition node.nextSibling, newOff, end
+  else [null, (if newOff != charOffset and node.parentNode.lastChild == node and addsLine node.parentNode then charOffset else newOff)]
+
+addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputedStyle(node, null).display == 'block')
 
 ###
   el.addEventListener 'textInput', (evt)->

@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, boxIn, chunks, continueRangePosition, findDefs, getRangePosition, getRanges, initNotebook, makeRange, markupDefs, pos, removeOldDefs, root;
+  var Leisure, ReplCore, addsLine, boxIn, chunks, continueRangePosition, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, pos, removeOldDefs, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -25,9 +25,8 @@
   };
 
   removeOldDefs = function removeOldDefs(el) {
-    var node, parent, _i, _len, _ref, _results;
+    var node, parent, _i, _len, _ref;
     _ref = el.querySelectorAll("[Leisure]");
-    _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
       parent = node.parentNode;
@@ -35,9 +34,8 @@
         parent.insertBefore(node.firstChild, node);
       }
       parent.removeChild(node);
-      _results.push(parent.normalize());
     }
-    return _results;
+    return el.normalize();
   };
 
   markupDefs = function markupDefs(defs) {
@@ -133,39 +131,76 @@
   makeRange = function makeRange(el, off1, off2) {
     var node, offset, range, _ref, _ref2;
     range = document.createRange();
-    _ref = getRangePosition(el, off1), node = _ref[0], offset = _ref[1];
-    range.setStart(node, offset);
-    _ref2 = getRangePosition(el, off2), node = _ref2[0], offset = _ref2[1];
-    range.setEnd(node, offset);
+    _ref = grp(el, off1, false), node = _ref[0], offset = _ref[1];
+    if (offset != null) {
+      range.setStart(node, offset);
+    } else {
+      range.setStartBefore(node);
+    }
+    _ref2 = grp(el, off2, true), node = _ref2[0], offset = _ref2[1];
+    if (offset != null) {
+      range.setEnd(node, offset);
+    } else {
+      range.setEndAfter(node);
+    }
     return range;
   };
 
-  getRangePosition = function getRangePosition(node, charOffset) {
-    var newNode, newOff, _ref;
-    if (node.nodeType === 3) {
-      if (node.length >= charOffset) {
-        return [node, charOffset];
-      } else {
-        return [null, charOffset - node.length];
-      }
-    } else if (node.firstChild != null) {
-      _ref = getRangePosition(node.firstChild, charOffset), newNode = _ref[0], newOff = _ref[1];
-      if (newNode != null) {
-        return [newNode, newOff];
-      } else {
-        return continueRangePosition(node, newOff);
-      }
+  grp = function grp(node, charOffset, end) {
+    var child, offset, _ref;
+    _ref = getRangePosition(node.firstChild, charOffset, end), child = _ref[0], offset = _ref[1];
+    if (!(child != null)) {
+      child = node.lastChild;
+      return [child, child.nodeType === 3 ? child.length : child.childNodes.length];
     } else {
-      return continueRangePosition(node, charOffset);
+      return [child, offset];
     }
   };
 
-  continueRangePosition = function continueRangePosition(node, charOffset) {
-    if (node.nextSibling != null) {
-      return getRangePosition(node.nextSibling, charOffset);
+  getRangePosition = function getRangePosition(node, charOffset, end) {
+    var newNode, newOff, _ref;
+    if (charOffset === 0 && (node.nodeType !== 1 || node.childNodes.length === 0)) {
+      return [node];
+    } else if (node.nodeType === 3) {
+      if (node.length > (end ? charOffset - 1 : charOffset)) {
+        return [node, charOffset];
+      } else {
+        return continueRangePosition(node, charOffset - node.length, end);
+      }
+    } else if (node.nodeName === 'BR') {
+      if (charOffset === (end ? 1 : 0)) {
+        return [node];
+      } else {
+        return continueRangePosition(node, charOffset, end);
+      }
+    } else if (node.firstChild != null) {
+      _ref = getRangePosition(node.firstChild, charOffset, end), newNode = _ref[0], newOff = _ref[1];
+      if (newNode != null) {
+        return [newNode, newOff];
+      } else {
+        return continueRangePosition(node, newOff, end);
+      }
     } else {
-      return [null, charOffset];
+      return continueRangePosition(node, charOffset, end);
     }
+  };
+
+  continueRangePosition = function continueRangePosition(node, charOffset, end) {
+    var newOff;
+    newOff = charOffset - ((addsLine(node)) || (addsLine(node.nextSibling)) ? 1 : 0);
+    if (node.nextSibling != null) {
+      if (end && newOff === 1) {
+        return [node];
+      } else {
+        return getRangePosition(node.nextSibling, newOff, end);
+      }
+    } else {
+      return [null, (newOff !== charOffset && node.parentNode.lastChild === node && addsLine(node.parentNode) ? charOffset : newOff)];
+    }
+  };
+
+  addsLine = function addsLine(node) {
+    return node.nodeName === 'BR' || (node.nodeType === 1 && getComputedStyle(node, null).display === 'block');
   };
 
   /*
