@@ -24,7 +24,7 @@
         for (var i = 0; i < b.length; ++i) {
           p = b[i]
           if (p == 'R') movePiece(p, ++xIndex, i)
-          else if (p == 'O') movePiece(p, ++oIndex, i)
+          else if (p == 'B') movePiece(p, ++oIndex, i)
         }
 	while (xIndex < 21) hidePiece('R', ++xIndex)
 	while (oIndex < 21) hidePiece('B', ++oIndex)
@@ -36,12 +36,14 @@
 	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
 	spotId = "spot" + spotIndex
 	spot = document.getElementById('scene').getSVGDocument().getElementById(spotId);
-	w_x = (spot.getBBox().width - piece.getBBox().width) / 2.0
-	w_y = (spot.getBBox().height - piece.getBBox().height) / 2.0
-	delta_x = spot.getBBox().x - piece.getBBox().x + w_x
-	delta_y = spot.getBBox().y - piece.getBBox().y + w_y
-	//alert("piece: " + id + " => " + spotId + " d_x: " + delta_x + " d_y: " + delta_y)
-	piece.setAttribute('transform', 'translate(' + delta_x + ', ' + delta_y + ')')
+	if (piece != null && spot != null) {
+ 	  w_x = (spot.getBBox().width - piece.getBBox().width) / 2.0
+	  w_y = (spot.getBBox().height - piece.getBBox().height) / 2.0
+	  delta_x = spot.getBBox().x - piece.getBBox().x + w_x
+	  delta_y = spot.getBBox().y - piece.getBBox().y + w_y
+	  //alert("piece: " + id + " => " + spotId + " d_x: " + delta_x + " d_y: " + delta_y)
+	  piece.setAttribute('transform', 'translate(' + delta_x + ', ' + delta_y + ')')
+        }
       }
 
 	// hide any ununsed pieces
