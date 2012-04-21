@@ -136,8 +136,16 @@
 
   define('randInt', function(from) {
     return function(to) {
-      return Math.floor(from() + Math.random() * (to() - from() + 1));
+      return makeMonad('end', function(cont) {
+        return cont(Math.floor(from() + Math.random() * (to() - from() + 1)));
+      });
     };
+  });
+
+  define('rand', function() {
+    return makeMonad('end', function(cont) {
+      return cont(Math.random());
+    });
   });
 
   define('>', function(a) {
@@ -282,7 +290,7 @@
 
   define('print', function(msg) {
     return makeMonad('end', function(cont) {
-      write("" + (msg()) + "\n");
+      if (msg() !== _nil()) write("" + (msg()) + "\n");
       return cont(_false);
     });
   });

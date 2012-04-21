@@ -47,9 +47,14 @@ define '%', (a)->(b)->a() % b()
 define 'floor', (a)->Math.floor(a())
 define 'ceil', (a)->Math.ceil(a())
 define 'round', (a)->Math.round(a())
-# define 'rand', ->Math.rand()
-define 'randInt', (from)->(to)-> Math.floor(from() + Math.random() * (to() - from() + 1));
 
+define 'randInt', (from)->(to)->
+  makeMonad 'end', (cont)->
+    cont Math.floor(from() + Math.random() * (to() - from() + 1))
+
+define 'rand', ()->
+  makeMonad 'end', (cont)->
+    cont (Math.random())
 
 define '>', (a)->(b)->if a() > b() then `_true()` else `_false()`
 define '<', (a)->(b)->if a() < b() then `_true()` else `_false()`
@@ -109,7 +114,7 @@ define 'log', (msg)->(value)->
 
 define 'print', (msg)->
   makeMonad 'end', (cont)->
-    write("#{msg()}\n")
+    if msg() != _nil() then write("#{msg()}\n")
     cont(_false)
 
 define 'prompt', (msg)->
