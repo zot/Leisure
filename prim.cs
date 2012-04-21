@@ -1,12 +1,14 @@
+defaultEnv = {}
+
 if window?
   # running in a browser
   window.global = window
   output = null
-  write = (msg)->
+  defaultEnv.write = (msg)->
     if !output? then output = document.getElementById('output')
     output.innerHTML += "<span>#{msg}</span>"
     output.lastChild.scrollIntoView()
-  prompt = (msg, cont)-> cont(window.prompt(msg))
+  defaultEnv.prompt = (msg, cont)-> cont(window.prompt(msg))
   window.Prim = root = {}
   Leisure = window.Leisure
 else
@@ -17,8 +19,8 @@ else
   U = require('util')
   RL = require('readline')
   tty = null
-  write = (msg)-> process.stdout.write(msg)
-  prompt = (msg, cont)-> tty.question(msg, cont)
+  defaultEnv.write = (msg)-> process.stdout.write(msg)
+  defaultEnv.prompt = (msg, cont)-> tty.question(msg, cont)
 
 setTty = (rl)-> tty = rl
 
@@ -108,18 +110,18 @@ define 'return', (v)->
   makeMonad 'end', (cont)->cont(v())
 
 define 'log', (msg)->(value)->
-  if (msg().type != 'cons') then write("#{msg()}") else write(concatList(msg()))
-  write("\n")
+  if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
+  defaultEnv.write("\n")
   value()
 
 define 'print', (msg)->
   makeMonad 'end', (cont)->
-    if msg() != _nil() then write("#{msg()}\n")
+    if msg() != _nil() then defaultEnv.write("#{msg()}\n")
     cont(_false)
 
 define 'prompt', (msg)->
   makeMonad 'end', (cont)->
-    prompt(String(msg()), (input)-> cont(input))
+    defaultEnv.prompt(String(msg()), (input)-> cont(input))
 
 define 'bind', (m)->(binding)->
   makeMonad binding(), (cont)-> runMonads m(), cont

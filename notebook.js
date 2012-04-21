@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, codeBox, codeSpan, continueRangePosition, exprBox, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, textNode;
+  var Leisure, ReplCore, addsLine, bindNotebook, box, codeBox, codeSpan, continueRangePosition, evalOutput, exprBox, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, textNode;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -35,15 +35,16 @@
   };
 
   initNotebook = function initNotebook(el) {
-    var bx;
+    var bx, pgm;
     removeOldDefs(el);
-    markupDefs(findDefs(el));
+    pgm = markupDefs(findDefs(el));
     el.appendChild(textNode('\n'));
     el.appendChild(textNode('\n'));
     bx = codeBox('codeMain');
     bx.appendChild(textNode('\n'));
     el.appendChild(bx);
-    return el.normalize();
+    el.normalize();
+    return pgm;
   };
 
   removeOldDefs = function removeOldDefs(el) {
@@ -52,9 +53,9 @@
     _ref = el.querySelectorAll("[LeisureOutput]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
-      node.parent.removeChild(node);
+      node.parentNode.removeChild(node);
     }
-    _ref2 = el.querySelectorAll("[generatedNL]");
+    _ref2 = el.querySelectorAll("[generatednl]");
     for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
       node = _ref2[_j];
       txt = node.lastChild;
@@ -84,8 +85,8 @@
   };
 
   markupDefs = function markupDefs(defs) {
-    var bod, body, bx, def, i, main, name, s, _i, _len, _results;
-    _results = [];
+    var bod, body, bx, def, i, main, name, pgm, s, _i, _len;
+    pgm = '';
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i[0], name = i[1], def = i[2], body = i[3];
@@ -96,21 +97,26 @@
         bod = codeSpan(body, 'codeBody');
         bod.appendChild(textNode('\n'));
         bod.setAttribute('generatedNL', '');
-        _results.push(bx.appendChild(bod));
+        bx.appendChild(bod);
+        pgm += "" + name + " " + def + " " + body + "\n";
       } else {
         bx = box(main, 'codeMainExpr', true);
         s = codeSpan(body, 'codeExpr');
         s.appendChild(textNode('\n'));
         s.setAttribute('generatedNL', '');
         bx.appendChild(s);
-        _results.push(bx.parentNode.insertBefore(exprBox(bx), bx.nextSibling));
+        bx.parentNode.insertBefore(exprBox(bx), bx.nextSibling);
       }
     }
-    return _results;
+    return pgm;
   };
 
   textNode = function textNode(text) {
     return document.createTextNode(text);
+  };
+
+  evalOutput = function evalOutput(exBox) {
+    return alert("Eval: " + exBox.source.innerText);
   };
 
   exprBox = function exprBox(source) {
@@ -119,7 +125,9 @@
     node.setAttribute('LeisureOutput', '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', 'output');
-    node.appendChild(textNode('\n'));
+    node.source = source;
+    node.innerHTML = "<button onclick='Notebook.evalOutput(this.parentNode)'>-&gt;</button>";
+    node.appendChild(textNode(' \n'));
     return node;
   };
 
@@ -293,5 +301,7 @@
   root.initNotebook = initNotebook;
 
   root.bindNotebook = bindNotebook;
+
+  root.evalOutput = evalOutput;
 
 }).call(this);

@@ -64,15 +64,13 @@
         var doc = document.getElementById('editor')
 
         Repl.clearEnv()
-        Notebook.initNotebook(editor)
-/*
+        var pgm = Notebook.initNotebook(editor)
         try {
-          gen = ReplCore.generateCode('doc', doc.innerText, false)
+          gen = ReplCore.generateCode('doc', pgm, false)
           Leisure.eval(gen)
         } catch (err) {
           alert(err.stack)
         }
-*/
       }
     //]]>
     </script>
@@ -96,7 +94,6 @@
         /*border: black solid 2px;*/
         margin: 3px;
         display: inline-block;
-        padding: 5px;
         border-width: 29px 24px 30px 34px;
         -moz-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
         -webkit-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
@@ -111,10 +108,13 @@
         padding: 5px;
       }
       .codeMainExpr {
-        border: blue solid 2px;
+        border-width: 29px 30px 37px 34px;
+        -moz-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
+        -webkit-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
+        -o-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
+        border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
         margin: 3px;
         display: inline-block;
-        padding: 5px;
       }
       .codeName {
         color: blue;

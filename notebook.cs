@@ -25,19 +25,20 @@ bindNotebook = (el)->
 
 initNotebook = (el)->
   removeOldDefs el
-  markupDefs findDefs el
+  pgm = markupDefs findDefs el
   el.appendChild textNode('\n')
   el.appendChild textNode('\n')
   bx = codeBox 'codeMain'
   bx.appendChild textNode('\n')
   el.appendChild bx
   el.normalize()
+  pgm
 
 removeOldDefs = (el)->
   extracted = []
   for node in el.querySelectorAll "[LeisureOutput]"
-    node.parent.removeChild node
-  for node in el.querySelectorAll "[generatedNL]"
+    node.parentNode.removeChild node
+  for node in el.querySelectorAll "[generatednl]"
     txt = node.lastChild
     if txt.nodeType == 3 and txt.data[txt.data.length - 1] == '\n'
       txt.data = txt.data.substring(0, txt.data.length - 1)
@@ -52,6 +53,7 @@ removeOldDefs = (el)->
   el.normalize()
 
 markupDefs = (defs)->
+  pgm = ''
   for i in defs
     [main, name, def, body] = i
     if name?
@@ -62,6 +64,7 @@ markupDefs = (defs)->
       bod.appendChild textNode('\n')
       bod.setAttribute('generatedNL', '')
       bx.appendChild bod
+      pgm += "#{name} #{def} #{body}\n"
     else
       bx = box main, 'codeMainExpr', true
       s = codeSpan body, 'codeExpr'
@@ -69,15 +72,21 @@ markupDefs = (defs)->
       s.setAttribute('generatedNL', '')
       bx.appendChild s
       bx.parentNode.insertBefore exprBox(bx), bx.nextSibling
+  pgm
 
 textNode = (text)-> document.createTextNode(text)
+
+evalOutput = (exBox)->
+  alert("Eval: #{exBox.source.innerText}")
 
 exprBox = (source)->
   node = document.createElement 'div'
   node.setAttribute 'LeisureOutput', ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', 'output'
-  node.appendChild textNode('\n')
+  node.source = source
+  node.innerHTML = "<button onclick='Notebook.evalOutput(this.parentNode)'>-&gt;</button>"
+  node.appendChild textNode(' \n')
   node
 
 codeSpan = (text, boxType)->
@@ -187,5 +196,6 @@ addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputed
 
 root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
+root.evalOutput = evalOutput
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

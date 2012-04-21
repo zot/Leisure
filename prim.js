@@ -1,15 +1,17 @@
 (function() {
-  var Leisure, Pretty, RL, U, concatList, define, eventCmds, getType, head, laz, leisureEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, values, write;
+  var Leisure, Pretty, RL, U, concatList, defaultEnv, define, eventCmds, getType, head, laz, leisureEvent, makeMonad, output, root, runMonad, runMonads, running, setTty, tail, tty, values;
+
+  defaultEnv = {};
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
     output = null;
-    write = function write(msg) {
+    defaultEnv.write = function write(msg) {
       if (!(output != null)) output = document.getElementById('output');
       output.innerHTML += "<span>" + msg + "</span>";
       return output.lastChild.scrollIntoView();
     };
-    prompt = function prompt(msg, cont) {
+    defaultEnv.prompt = function prompt(msg, cont) {
       return cont(window.prompt(msg));
     };
     window.Prim = root = {};
@@ -21,10 +23,10 @@
     U = require('util');
     RL = require('readline');
     tty = null;
-    write = function write(msg) {
+    defaultEnv.write = function write(msg) {
       return process.stdout.write(msg);
     };
-    prompt = function prompt(msg, cont) {
+    defaultEnv.prompt = function prompt(msg, cont) {
       return tty.question(msg, cont);
     };
   }
@@ -279,25 +281,25 @@
   define('log', function(msg) {
     return function(value) {
       if (msg().type !== 'cons') {
-        write("" + (msg()));
+        defaultEnv.write("" + (msg()));
       } else {
-        write(concatList(msg()));
+        defaultEnv.write(concatList(msg()));
       }
-      write("\n");
+      defaultEnv.write("\n");
       return value();
     };
   });
 
   define('print', function(msg) {
     return makeMonad('end', function(cont) {
-      if (msg() !== _nil()) write("" + (msg()) + "\n");
+      if (msg() !== _nil()) defaultEnv.write("" + (msg()) + "\n");
       return cont(_false);
     });
   });
 
   define('prompt', function(msg) {
     return makeMonad('end', function(cont) {
-      return prompt(String(msg()), function(input) {
+      return defaultEnv.prompt(String(msg()), function(input) {
         return cont(input);
       });
     });
