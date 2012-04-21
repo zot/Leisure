@@ -34,9 +34,14 @@ initNotebook = (el)->
   bx = codeBox 'codeMain'
   bx.appendChild textNode('\n')
   el.appendChild bx
+  el.normalize()
 
 removeOldDefs = (el)->
   extracted = []
+  for node in el.querySelectorAll "[generatedNL]"
+    txt = node.lastChild
+    if txt.nodeType == 3 and txt.data[txt.data.length - 1] == '\n'
+      txt.data = txt.data.substring(0, txt.data.length - 1)
   for node in el.querySelectorAll "[Leisure]"
     parent = node.parentNode
     if addsLine(node) and node.firstChild? then extracted.push(node.firstChild)
@@ -56,11 +61,13 @@ markupDefs = (defs)->
       bx.appendChild (textNode(def))
       bod = codeSpan body, 'codeBody'
       bod.appendChild textNode('\n')
+      bod.setAttribute('generatedNL', '')
       bx.appendChild bod
     else
       bx = box main, 'codeMain', true
       s = codeSpan body, 'codeExpr'
       s.appendChild textNode('\n')
+      s.setAttribute('generatedNL', '')
       bx.appendChild s
 
 textNode = (text)-> document.createTextNode(text)

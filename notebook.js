@@ -46,15 +46,24 @@
     el.appendChild(textNode('\n'));
     bx = codeBox('codeMain');
     bx.appendChild(textNode('\n'));
-    return el.appendChild(bx);
+    el.appendChild(bx);
+    return el.normalize();
   };
 
   removeOldDefs = function removeOldDefs(el) {
-    var extracted, node, parent, _i, _j, _len, _len2, _ref;
+    var extracted, node, parent, txt, _i, _j, _k, _len, _len2, _len3, _ref, _ref2;
     extracted = [];
-    _ref = el.querySelectorAll("[Leisure]");
+    _ref = el.querySelectorAll("[generatedNL]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
+      txt = node.lastChild;
+      if (txt.nodeType === 3 && txt.data[txt.data.length - 1] === '\n') {
+        txt.data = txt.data.substring(0, txt.data.length - 1);
+      }
+    }
+    _ref2 = el.querySelectorAll("[Leisure]");
+    for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
+      node = _ref2[_j];
       parent = node.parentNode;
       if (addsLine(node) && (node.firstChild != null)) {
         extracted.push(node.firstChild);
@@ -64,8 +73,8 @@
       }
       parent.removeChild(node);
     }
-    for (_j = 0, _len2 = extracted.length; _j < _len2; _j++) {
-      node = extracted[_j];
+    for (_k = 0, _len3 = extracted.length; _k < _len3; _k++) {
+      node = extracted[_k];
       if ((node.parentNode != null) && !addsLine(node) && (node.previousSibling != null) && !addsLine(node.previousSibling)) {
         node.parentNode.insertBefore(document.createElement('br'), node);
       }
@@ -85,11 +94,13 @@
         bx.appendChild(textNode(def));
         bod = codeSpan(body, 'codeBody');
         bod.appendChild(textNode('\n'));
+        bod.setAttribute('generatedNL', '');
         _results.push(bx.appendChild(bod));
       } else {
         bx = box(main, 'codeMain', true);
         s = codeSpan(body, 'codeExpr');
         s.appendChild(textNode('\n'));
+        s.setAttribute('generatedNL', '');
         _results.push(bx.appendChild(s));
       }
     }
