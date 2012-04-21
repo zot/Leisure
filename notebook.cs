@@ -12,9 +12,28 @@ else root = exports ? this
 pos = 0
 chunks = []
 
+bindNotebook = (el)->
+  if !el.bound?
+    el.bound = true
+    el.addEventListener 'keypress', (e)->
+      if (e.charCode || e.keyCode || e.which) == 13
+        br = textNode('\n')
+        s = window.getSelection()
+        s.getRangeAt(0).insertNode(br)
+        r = document.createRange()
+        r.setStart(br, 1)
+        s.removeAllRanges()
+        s.addRange(r)
+        e.preventDefault()
+
 initNotebook = (el)->
   removeOldDefs el
   markupDefs findDefs el
+  el.appendChild textNode('\n')
+  el.appendChild textNode('\n')
+  bx = codeBox 'codeMain'
+  bx.appendChild textNode('\n')
+  el.appendChild bx
 
 removeOldDefs = (el)->
   extracted = []
@@ -34,25 +53,32 @@ markupDefs = (defs)->
     if name?
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
-      bx.appendChild (document.createTextNode(def))
+      bx.appendChild (textNode(def))
       bx.appendChild (codeSpan body, 'codeBody')
     else
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan body, 'codeExpr')
+      bx.appendChild (textNode('\n'))
+
+textNode = (text)-> document.createTextNode(text)
 
 codeSpan = (text, boxType)->
   node = document.createElement 'span'
   node.setAttribute boxType, ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', boxType
-  node.appendChild document.createTextNode(text)
+  node.appendChild textNode(text)
   node
 
-box = (range, boxType, empty)->
+codeBox = (boxType)->
   node = document.createElement 'div'
   node.setAttribute boxType, ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', boxType
+  node
+
+box = (range, boxType, empty)->
+  node = codeBox boxType
   if empty then range.deleteContents()
   else node.appendChild(range.extractContents())
   range.insertNode(node)
@@ -142,5 +168,6 @@ addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputed
 
 
 root.initNotebook = initNotebook
+root.bindNotebook = bindNotebook
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

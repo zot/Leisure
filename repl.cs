@@ -71,11 +71,6 @@ compile = (file, cont, nomacros)->
     stream.on 'data', (data)-> contents += data
     stream.on 'end', ()->
       out = Core.generateCode(file, contents, !root.quiet, null, nomacros)
-      # str = FS.openSync("#{Path.basename file, '.lsr'}.js", 'w')
-      # pos = 0
-      # while pos < out.length
-      #   pos += FS.writeSync(str, out, pos)
-      # FS.closeSync(str))
       str = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
       str.on 'close', -> cont()
       str.on 'error', -> cont()

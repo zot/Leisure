@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, box, chunks, codeSpan, continueRangePosition, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, pos, removeOldDefs, root;
+  var Leisure, ReplCore, addsLine, bindNotebook, box, chunks, codeBox, codeSpan, continueRangePosition, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, pos, removeOldDefs, root, textNode;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -19,9 +19,34 @@
 
   chunks = [];
 
+  bindNotebook = function bindNotebook(el) {
+    if (!(el.bound != null)) {
+      el.bound = true;
+      return el.addEventListener('keypress', function(e) {
+        var br, r, s;
+        if ((e.charCode || e.keyCode || e.which) === 13) {
+          br = textNode('\n');
+          s = window.getSelection();
+          s.getRangeAt(0).insertNode(br);
+          r = document.createRange();
+          r.setStart(br, 1);
+          s.removeAllRanges();
+          s.addRange(r);
+          return e.preventDefault();
+        }
+      });
+    }
+  };
+
   initNotebook = function initNotebook(el) {
+    var bx;
     removeOldDefs(el);
-    return markupDefs(findDefs(el));
+    markupDefs(findDefs(el));
+    el.appendChild(textNode('\n'));
+    el.appendChild(textNode('\n'));
+    bx = codeBox('codeMain');
+    bx.appendChild(textNode('\n'));
+    return el.appendChild(bx);
   };
 
   removeOldDefs = function removeOldDefs(el) {
@@ -57,14 +82,19 @@
       if (name != null) {
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
-        bx.appendChild(document.createTextNode(def));
+        bx.appendChild(textNode(def));
         _results.push(bx.appendChild(codeSpan(body, 'codeBody')));
       } else {
         bx = box(main, 'codeMain', true);
-        _results.push(bx.appendChild(codeSpan(body, 'codeExpr')));
+        bx.appendChild(codeSpan(body, 'codeExpr'));
+        _results.push(bx.appendChild(textNode('\n')));
       }
     }
     return _results;
+  };
+
+  textNode = function textNode(text) {
+    return document.createTextNode(text);
   };
 
   codeSpan = function codeSpan(text, boxType) {
@@ -73,16 +103,22 @@
     node.setAttribute(boxType, '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', boxType);
-    node.appendChild(document.createTextNode(text));
+    node.appendChild(textNode(text));
     return node;
   };
 
-  box = function box(range, boxType, empty) {
+  codeBox = function codeBox(boxType) {
     var node;
     node = document.createElement('div');
     node.setAttribute(boxType, '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', boxType);
+    return node;
+  };
+
+  box = function box(range, boxType, empty) {
+    var node;
+    node = codeBox(boxType);
     if (empty) {
       range.deleteContents();
     } else {
@@ -229,5 +265,7 @@
   };
 
   root.initNotebook = initNotebook;
+
+  root.bindNotebook = bindNotebook;
 
 }).call(this);

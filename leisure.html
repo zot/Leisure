@@ -34,6 +34,7 @@
         }
         Repl.init(input, output, defs);
         clearOutput();
+	Notebook.bindNotebook(document.getElementById('editor'))
       }
       function changeStdLinks() {
         changeStdLink('stdDefsLink1')
@@ -84,19 +85,24 @@
         border: solid black 1px;
       }
       .codeExpr {
-        background: lightgreen;
+        font-style: italic;
+        font-weight: bold;
         margin: 3px;
       }
       .codeMain {
         border: black solid 1px;
         margin: 3px;
+        display: inline-block;
+        padding: 5px;
       }
       .codeName {
-        background: lightblue;
+        color: blue;
+        font-weight: bold;
         margin: 3px;
       }
       .codeBody {
-        background: salmon;
+        font-style: italic;
+        font-weight: bold;
         margin: 3px;
       }
       .noselect {
