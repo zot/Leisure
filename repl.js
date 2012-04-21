@@ -97,7 +97,8 @@
         var out;
         out = Core.generateCode(file, contents, !root.quiet, null, nomacros);
         stream = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
-        return stream.end(out, 'utf8');
+        stream.end(out, 'utf8');
+        return stream.destroySoon();
       });
       stream.on('close', function() {
         return cont();

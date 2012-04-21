@@ -71,7 +71,8 @@ compile = (file, cont, nomacros)->
     stream.on('end', ()->
       out = Core.generateCode(file, contents, !root.quiet, null, nomacros)
       stream = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
-      stream.end(out, 'utf8'))
+      stream.end(out, 'utf8')
+      stream.destroySoon())
     stream.on 'close', -> cont()
     stream.on('error', (ex)->
       console.log("Exception reading file: ", ex.stack)
