@@ -25,24 +25,13 @@
   init = function init(inputField, output) {
     clearEnv();
     write = function write(line) {};
-    ReplCore.setWriter(writeOutput);
-    ReplCore.setNext(function() {
-      return input.value = '';
-    });
     ReplCore.setHandler(function(ast, result, a, c, r, src, env) {
       if (!(ast.leisureName != null) && (result != null)) {
-        env.write("<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n");
+        env.write("<span><b> " + src + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n");
       }
       return ReplCore.processResult(result, env);
     });
-    ReplCore.setResetFunc(clearEnv);
-    input = inputField;
-    input.onkeypress = function onkeypress(e) {
-      if ((e.charCode || e.keyCode || e.which) === 13) {
-        return evalLine(input.value);
-      }
-    };
-    return input.select();
+    return ReplCore.setResetFunc(clearEnv);
   };
 
   evalLine = function evalLine(line) {
@@ -100,8 +89,7 @@
         env[i] = v;
       }
       env.eval("global = window;\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()");
-      env.leisureSetFuncs(leisureFuncNames);
-      return clearOutput();
+      return env.leisureSetFuncs(leisureFuncNames);
     }
   };
 

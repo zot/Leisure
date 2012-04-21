@@ -40,7 +40,7 @@ handlerFunc = (ast, result, a, c, r, src, env)->
     if a
       env.write("PARSED: #{Leisure.astPrint(ast)}\n")
       env.write("FORMATTED: #{P.print ast}\n")
-    if c then write("GEN: #{ast.src}\n")
+    if c then env.write("GEN: #{ast.src}\n")
     if r
       if !result?
         env.write("(No Result)\n")
@@ -51,8 +51,8 @@ handlerFunc = (ast, result, a, c, r, src, env)->
 
 setHandler = (f)-> handlerFunc = f
 
-helpFunc = ->
-  write("""
+helpFunc = (env)->
+  env.write("""
 Type a Leisure expression or one of these commands and hit enter:
 
 :h -- display this help
@@ -82,12 +82,12 @@ processResult = (result, env)->
   if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> nextFunc()
   else nextFunc()
 
-handleVar = (name, value)->
+handleVar = (name, value, env)->
   if !name
     for prop in (k for k of vars).sort()
-      write("#{prop} = #{vars[prop][0]} -- #{vars[prop][1]}\n")
-  else if !value and !vars[name] then write("No variable named #{name}\n")
-  else if !value then write("#{name} = #{vars[name]} -- #{vars[prop][1]}\n")
+      env.write("#{prop} = #{vars[prop][0]} -- #{vars[prop][1]}\n")
+  else if !value and !vars[name] then env.write("No variable named #{name}\n")
+  else if !value then env.write("#{name} = #{vars[name]} -- #{vars[prop][1]}\n")
   else vars[name][0] = !(value[0] in ['f', 'F'])
 
 # rewrite in Leisure
@@ -98,28 +98,27 @@ processLine = (line, env)->
         if line[1] == '!'
           result = eval(line.substr(2))
           result = if U? then U.inspect(result) else result
-          write(result, "\n")
+          env.write(result, "\n")
         else
           result = Leisure.eval(line.substr(1))
           result = if U? then U.inspect(result) else result
-          write(result, "\n")
-      else if (m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/)) then handleVar(m[2], m[3])
-      else if (m = line.match(/^:c\s*([^\s]*)$/)) then return compileFunc(m[1])
+          env.write(result, "\n")
+      else if (m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/)) then handleVar(m[2], m[3], env)
+      else if (m = line.match(/^:c\s*([^\s]*)$/)) then return compileFunc(m[1], env)
       else if (m = line.match(/^:r/)) then resetFunc()
-      else switch line
-        when ':h' then helpFunc()
-        when ':q' then process.exit(0)
-        else
-          [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-          [l, err1] = Leisure.prepare(line)
-          [ast, err] = Leisure.compileNext(l, getGlobals(), false, false)
-          if err1? or err?
-            if ast? then ast.err = err1 ? err
-            else ast = {err: err1 ? err}
-          else [ast, result] = if r then Leisure.evalNext(l) else [ast, null]
-          return handlerFunc(ast, result, a, c, r, line, env)
+      else if (line.trim() == ':h') then helpFunc(env)
+      else if (line.trim() == ':q') then process.exit(0)
+      else
+        [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
+        [l, err1] = Leisure.prepare(line)
+        [ast, err] = Leisure.compileNext(l, getGlobals(), false, false)
+        if err1? or err?
+          if ast? then ast.err = err1 ? err
+          else ast = {err: err1 ? err}
+        else [ast, result] = if r then Leisure.evalNext(l) else [ast, null]
+        return handlerFunc(ast, result, a, c, r, line, env)
   catch err
-    write(err.stack)
+    env.write(err.stack)
   nextFunc()
 
 escape = (str)-> str.replace(/\n/g, '\\n')

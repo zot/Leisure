@@ -18,9 +18,11 @@
     -->
     <script>//<[!CDATA[
       function init() {
+/*
         var input = document.getElementById('input')
         var output = document.getElementById('output')
         var defs = document.getElementById('defs')
+*/
         var doc = document.getElementById('doc')
 
         try {
@@ -32,8 +34,9 @@
         } catch (err) {
           changeStdLinks()
         }
-        Repl.init(input, output, defs);
-        clearOutput();
+        //Repl.init(input, output, defs);
+        Repl.init()
+        //clearOutput();
 	Notebook.bindNotebook(document.getElementById('editor'));
 	evalDoc()
       }
@@ -54,7 +57,7 @@
         var o = document.getElementById('output')
 
         o.innerHTML = 'Click on <a id="stdDefsLink2" href="javascript:void(getStdDefs())">Standard Functions</a> to see Leisure\'s standard functions.\n\n'
-        ReplCore.help()
+        //ReplCore.help()
         o.innerHTML += '\n'
       }
       function evalSelection() {
@@ -83,7 +86,7 @@
     <style>
       .cell {
         vertical-align: top;
-        border: solid black 1px;
+        outline: solid black 2px;
       }
       .codeExpr {
         font-style: italic;
@@ -91,7 +94,7 @@
         margin: 3px;
       }
       .codeMain {
-        /*border: black solid 2px;*/
+        vertical-align: top;
         margin: 3px;
         display: inline-block;
         border-width: 29px 24px 30px 34px;
@@ -108,6 +111,7 @@
         padding: 5px;
       }
       .codeMainExpr {
+        vertical-align: top;
         border-width: 29px 30px 37px 34px;
         -moz-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
         -webkit-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
@@ -135,18 +139,19 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
     <table style="position: absolute; vertical-align: top; width: 100%; height: 100%">
-      <tr style="height: 1.5em"><td colspan="2">
+<!--      <tr style="height: 1.5em"><td colspan="2">-->
+      <tr style="height: 1em"><td>
 	  <div style="height: 100%; position: relative">
 	    <div style="text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Leisure</i></b></div>
-	    <div style="position: absolute"><b>Definitions</b><button onclick="evalSelection()">Eval Selection</button> <button onclick="evalDoc()">Load Document</button></div>
-	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a> <button onclick="clearOutput()">Clear</button> <b>Output</b></div>
+	    <div style="position: absolute"><b>Leisure</b><button onclick="evalDoc()">Process Document</button></div>
+	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a> <!-- <button onclick="clearOutput()">Clear</button> <b>Output</b>--></div>
 	  </div>
 	</td>
       </tr>
       <tr style="height: 50%">
 	<td class="cell" style="width: 50%">
 	  <div style="position: relative; width: 100%; height: 100%; overflow: auto">
-	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; bottom-padding: 24px; white-space: pre-wrap" id="editor" class="cell" contentEditable="true">maluba a b = a
+	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; padding: 0" id="editor" class="cell" contentEditable="true">maluba a b = a
   true true
   b
 
@@ -155,15 +160,19 @@ fred a = a
 print hello</pre>
 	  </div>
 	</td>
+<!--
 	<td class="cell" style="width: 50%">
 	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
 	    <pre id="output" style="position: absolute; width: 100%; margin: 0"></pre>
 	  </div>
 	</td>
+-->
       </tr>
+<!--
       <tr style="height: 0"><td colspan="2" class="cell">
 	  <table style="width: 100%; white-space: nowrap"><tr><td style="width: 100%"><input id="input" type="text" style="width: 100%; margin: 0"></td><td style="width: 0"><div>Load file: <input type="file" onchange="Repl.handleFiles(this)"></input><button onclick="Repl.clearEnv()">Clear</button></td></tr></table>
       </td></tr>
+-->
     </table>
   </body>
 </html>

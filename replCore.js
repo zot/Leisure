@@ -56,7 +56,7 @@
         env.write("PARSED: " + (Leisure.astPrint(ast)) + "\n");
         env.write("FORMATTED: " + (P.print(ast)) + "\n");
       }
-      if (c) write("GEN: " + ast.src + "\n");
+      if (c) env.write("GEN: " + ast.src + "\n");
       if (r) {
         if (!(result != null)) {
           env.write("(No Result)\n");
@@ -73,8 +73,8 @@
     return handlerFunc = f;
   };
 
-  helpFunc = function helpFunc() {
-    return write("Type a Leisure expression or one of these commands and hit enter:\n\n:h -- display this help\n:c filename -- compile file\n:r -- reset the Leisure environment\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the leisure environment\n!! code -- eval JavaScript code in the host environment\n");
+  helpFunc = function helpFunc(env) {
+    return env.write("Type a Leisure expression or one of these commands and hit enter:\n\n:h -- display this help\n:c filename -- compile file\n:r -- reset the Leisure environment\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the leisure environment\n!! code -- eval JavaScript code in the host environment\n");
   };
 
   setHelp = function setHelp(h) {
@@ -109,7 +109,7 @@
     }
   };
 
-  handleVar = function handleVar(name, value) {
+  handleVar = function handleVar(name, value, env) {
     var k, prop, _i, _len, _ref, _ref2, _results;
     if (!name) {
       _ref = ((function() {
@@ -123,13 +123,13 @@
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         prop = _ref[_i];
-        _results.push(write("" + prop + " = " + vars[prop][0] + " -- " + vars[prop][1] + "\n"));
+        _results.push(env.write("" + prop + " = " + vars[prop][0] + " -- " + vars[prop][1] + "\n"));
       }
       return _results;
     } else if (!value && !vars[name]) {
-      return write("No variable named " + name + "\n");
+      return env.write("No variable named " + name + "\n");
     } else if (!value) {
-      return write("" + name + " = " + vars[name] + " -- " + vars[prop][1] + "\n");
+      return env.write("" + name + " = " + vars[name] + " -- " + vars[prop][1] + "\n");
     } else {
       return vars[name][0] = !((_ref2 = value[0]) === 'f' || _ref2 === 'F');
     }
@@ -143,47 +143,42 @@
           if (line[1] === '!') {
             result = eval(line.substr(2));
             result = U != null ? U.inspect(result) : result;
-            write(result, "\n");
+            env.write(result, "\n");
           } else {
             result = Leisure.eval(line.substr(1));
             result = U != null ? U.inspect(result) : result;
-            write(result, "\n");
+            env.write(result, "\n");
           }
         } else if ((m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/))) {
-          handleVar(m[2], m[3]);
+          handleVar(m[2], m[3], env);
         } else if ((m = line.match(/^:c\s*([^\s]*)$/))) {
-          return compileFunc(m[1]);
+          return compileFunc(m[1], env);
         } else if ((m = line.match(/^:r/))) {
           resetFunc();
+        } else if (line.trim() === ':h') {
+          helpFunc(env);
+        } else if (line.trim() === ':q') {
+          process.exit(0);
         } else {
-          switch (line) {
-            case ':h':
-              helpFunc();
-              break;
-            case ':q':
-              process.exit(0);
-              break;
-            default:
-              _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-              _ref2 = Leisure.prepare(line), l = _ref2[0], err1 = _ref2[1];
-              _ref3 = Leisure.compileNext(l, getGlobals(), false, false), ast = _ref3[0], err = _ref3[1];
-              if ((err1 != null) || (err != null)) {
-                if (ast != null) {
-                  ast.err = err1 != null ? err1 : err;
-                } else {
-                  ast = {
-                    err: err1 != null ? err1 : err
-                  };
-                }
-              } else {
-                _ref4 = r ? Leisure.evalNext(l) : [ast, null], ast = _ref4[0], result = _ref4[1];
-              }
-              return handlerFunc(ast, result, a, c, r, line, env);
+          _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
+          _ref2 = Leisure.prepare(line), l = _ref2[0], err1 = _ref2[1];
+          _ref3 = Leisure.compileNext(l, getGlobals(), false, false), ast = _ref3[0], err = _ref3[1];
+          if ((err1 != null) || (err != null)) {
+            if (ast != null) {
+              ast.err = err1 != null ? err1 : err;
+            } else {
+              ast = {
+                err: err1 != null ? err1 : err
+              };
+            }
+          } else {
+            _ref4 = r ? Leisure.evalNext(l) : [ast, null], ast = _ref4[0], result = _ref4[1];
           }
+          return handlerFunc(ast, result, a, c, r, line, env);
         }
       }
     } catch (err) {
-      write(err.stack);
+      env.write(err.stack);
     }
     return nextFunc();
   };

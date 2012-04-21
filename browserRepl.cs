@@ -16,17 +16,18 @@ init = (inputField, output)->
   clearEnv()
   #write = (line)-> defs.innerHTML += line
   write = (line)->
-  ReplCore.setWriter writeOutput
-  ReplCore.setNext -> input.value = ''
+  #ReplCore.setWriter writeOutput
+  #ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r, src, env)->
     if !ast.leisureName? and result?
-      env.write "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
+      #env.write "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
+      env.write "<span><b> #{src} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
     ReplCore.processResult result, env
   ReplCore.setResetFunc clearEnv
-  input = inputField
-  input.onkeypress = (e)->
-    if (e.charCode || e.keyCode || e.which) == 13 then evalLine(input.value)
-  input.select()
+  #input = inputField
+  #input.onkeypress = (e)->
+  #  if (e.charCode || e.keyCode || e.which) == 13 then evalLine(input.value)
+  #input.select()
 
 evalLine = (line)->
   lastLine = line.replace(/\\/g, '\u03BB')
@@ -82,7 +83,7 @@ var lll;
 })()
 """
     env.leisureSetFuncs(leisureFuncNames)
-    clearOutput()
+    #clearOutput()
 
 markupDef = (src, ast)->
   if src.match /^\s*#/ then src
