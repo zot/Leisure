@@ -45,23 +45,24 @@
 
   getType = Leisure.getType;
 
-  handlerFunc = function handlerFunc(ast, result, a, c, r, src) {
-    if (a) write("PREPARED: " + (Leisure.prepare(src)));
+  handlerFunc = function handlerFunc(ast, result, a, c, r, src, env) {
+    env = env != null ? env : Prim.defaultEnv;
+    if (a) env.write("PREPARED: " + (Leisure.prepare(src)));
     if ((ast != null) && (ast.err != null)) {
-      write("ERROR: " + ast.err + "\n");
+      env.write("ERROR: " + ast.err + "\n");
       return nextFunc();
     } else {
       if (a) {
-        write("PARSED: " + (Leisure.astPrint(ast)) + "\n");
-        write("FORMATTED: " + (P.print(ast)) + "\n");
+        env.write("PARSED: " + (Leisure.astPrint(ast)) + "\n");
+        env.write("FORMATTED: " + (P.print(ast)) + "\n");
       }
       if (c) write("GEN: " + ast.src + "\n");
       if (r) {
         if (!(result != null)) {
-          write("(No Result)\n");
+          env.write("(No Result)\n");
           return nextFunc();
         } else {
-          write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+          env.write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
           return processResult(result);
         }
       }
@@ -98,9 +99,9 @@
     return writeFunc(args.join(''));
   };
 
-  processResult = function processResult(result) {
+  processResult = function processResult(result, env) {
     if ((getType(result)) === 'monad') {
-      return Prim.runMonad(result, Prim.defaultEnv, function() {
+      return Prim.runMonad(result, env != null ? env : Prim.defaultEnv, function() {
         return nextFunc();
       });
     } else {
@@ -134,7 +135,7 @@
     }
   };
 
-  processLine = function processLine(line) {
+  processLine = function processLine(line, env) {
     var a, ast, c, err, err1, l, m, r, result, _ref, _ref2, _ref3, _ref4;
     try {
       if (line) {
@@ -177,7 +178,7 @@
               } else {
                 _ref4 = r ? Leisure.evalNext(l) : [ast, null], ast = _ref4[0], result = _ref4[1];
               }
-              return handlerFunc(ast, result, a, c, r, line);
+              return handlerFunc(ast, result, a, c, r, line, env);
           }
         }
       }

@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, codeBox, codeSpan, continueRangePosition, evalOutput, exprBox, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, textNode;
+  var Leisure, ReplCore, addsLine, bindNotebook, box, codeBox, codeSpan, continueRangePosition, envFor, evalOutput, exprBox, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, textNode;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -116,7 +116,19 @@
   };
 
   evalOutput = function evalOutput(exBox) {
-    return alert("Eval: " + exBox.source.innerText);
+    return ReplCore.processLine(exBox.source.innerText, envFor(exBox));
+  };
+
+  envFor = function envFor(exBox) {
+    return {
+      write: function write(msg) {
+        exBox.innerHTML += "<span>" + msg + "</span>";
+        return exBox.lastChild.scrollIntoView();
+      },
+      prompt: function prompt(msg, cont) {
+        return cont(window.prompt(msg));
+      }
+    };
   };
 
   exprBox = function exprBox(source) {

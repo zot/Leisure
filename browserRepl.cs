@@ -18,11 +18,10 @@ init = (inputField, output)->
   write = (line)->
   ReplCore.setWriter writeOutput
   ReplCore.setNext -> input.value = ''
-  ReplCore.setHandler (ast, result, a, c, r, src)->
+  ReplCore.setHandler (ast, result, a, c, r, src, env)->
     if !ast.leisureName? and result?
-      output.innerHTML += "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
-      output.lastElementChild.scrollIntoView()
-    ReplCore.processResult result
+      env.write "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
+    ReplCore.processResult result, env
   ReplCore.setResetFunc clearEnv
   input = inputField
   input.onkeypress = (e)->

@@ -30,22 +30,23 @@ setResetFunc = (func)-> resetFunc = func
 
 getType = Leisure.getType
 
-handlerFunc = (ast, result, a, c, r, src)->
-  if a then write "PREPARED: #{Leisure.prepare(src)}"
+handlerFunc = (ast, result, a, c, r, src, env)->
+  env = env ? Prim.defaultEnv
+  if a then env.write "PREPARED: #{Leisure.prepare(src)}"
   if ast? and ast.err?
-    write("ERROR: #{ast.err}\n")
+    env.write("ERROR: #{ast.err}\n")
     nextFunc()
   else
     if a
-      write("PARSED: #{Leisure.astPrint(ast)}\n")
-      write("FORMATTED: #{P.print ast}\n")
+      env.write("PARSED: #{Leisure.astPrint(ast)}\n")
+      env.write("FORMATTED: #{P.print ast}\n")
     if c then write("GEN: #{ast.src}\n")
     if r
       if !result?
-        write("(No Result)\n")
+        env.write("(No Result)\n")
         nextFunc()
       else
-        write("#{getType result}: #{P.print(result)}\n")
+        env.write("#{getType result}: #{P.print(result)}\n")
         processResult result
 
 setHandler = (f)-> handlerFunc = f
@@ -77,8 +78,8 @@ print = (args...)-> writeFunc(U.format.apply(null, args))
 
 write = (args...)-> writeFunc args.join('')
 
-processResult = (result)->
-  if (getType result) == 'monad' then Prim.runMonad result, Prim.defaultEnv, -> nextFunc()
+processResult = (result, env)->
+  if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> nextFunc()
   else nextFunc()
 
 handleVar = (name, value)->
@@ -90,7 +91,7 @@ handleVar = (name, value)->
   else vars[name][0] = !(value[0] in ['f', 'F'])
 
 # rewrite in Leisure
-processLine = (line)->
+processLine = (line, env)->
   try
     if line
       if line[0] == '!'
@@ -116,7 +117,7 @@ processLine = (line)->
             if ast? then ast.err = err1 ? err
             else ast = {err: err1 ? err}
           else [ast, result] = if r then Leisure.evalNext(l) else [ast, null]
-          return handlerFunc(ast, result, a, c, r, line)
+          return handlerFunc(ast, result, a, c, r, line, env)
   catch err
     write(err.stack)
   nextFunc()

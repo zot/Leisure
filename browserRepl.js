@@ -29,12 +29,11 @@
     ReplCore.setNext(function() {
       return input.value = '';
     });
-    ReplCore.setHandler(function(ast, result, a, c, r, src) {
+    ReplCore.setHandler(function(ast, result, a, c, r, src, env) {
       if (!(ast.leisureName != null) && (result != null)) {
-        output.innerHTML += "<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n";
-        output.lastElementChild.scrollIntoView();
+        env.write("<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n");
       }
-      return ReplCore.processResult(result);
+      return ReplCore.processResult(result, env);
     });
     ReplCore.setResetFunc(clearEnv);
     input = inputField;

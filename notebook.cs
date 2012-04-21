@@ -77,7 +77,14 @@ markupDefs = (defs)->
 textNode = (text)-> document.createTextNode(text)
 
 evalOutput = (exBox)->
-  alert("Eval: #{exBox.source.innerText}")
+  ReplCore.processLine(exBox.source.innerText, envFor(exBox))
+  #alert("Eval: #{exBox.source.innerText}")
+
+envFor = (exBox)->
+  write: (msg)->
+    exBox.innerHTML += "<span>#{msg}</span>"
+    exBox.lastChild.scrollIntoView()
+  prompt:(msg, cont)-> cont(window.prompt(msg))
 
 exprBox = (source)->
   node = document.createElement 'div'
