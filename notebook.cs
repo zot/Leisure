@@ -9,9 +9,6 @@ if window? and (!global? or global == window)
   window.Notebook = root = {}
 else root = exports ? this
 
-pos = 0
-chunks = []
-
 bindNotebook = (el)->
   if !el.bound?
     el.bound = true
@@ -38,6 +35,8 @@ initNotebook = (el)->
 
 removeOldDefs = (el)->
   extracted = []
+  for node in el.querySelectorAll "[LeisureOutput]"
+    node.parent.removeChild node
   for node in el.querySelectorAll "[generatedNL]"
     txt = node.lastChild
     if txt.nodeType == 3 and txt.data[txt.data.length - 1] == '\n'
@@ -64,13 +63,22 @@ markupDefs = (defs)->
       bod.setAttribute('generatedNL', '')
       bx.appendChild bod
     else
-      bx = box main, 'codeMain', true
+      bx = box main, 'codeMainExpr', true
       s = codeSpan body, 'codeExpr'
       s.appendChild textNode('\n')
       s.setAttribute('generatedNL', '')
       bx.appendChild s
+      bx.parentNode.insertBefore exprBox(bx), bx.nextSibling
 
 textNode = (text)-> document.createTextNode(text)
+
+exprBox = (source)->
+  node = document.createElement 'div'
+  node.setAttribute 'LeisureOutput', ''
+  node.setAttribute 'Leisure', ''
+  node.setAttribute 'class', 'output'
+  node.appendChild textNode('\n')
+  node
 
 codeSpan = (text, boxType)->
   node = document.createElement 'span'

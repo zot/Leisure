@@ -34,7 +34,8 @@
         }
         Repl.init(input, output, defs);
         clearOutput();
-	Notebook.bindNotebook(document.getElementById('editor'))
+	Notebook.bindNotebook(document.getElementById('editor'));
+	evalDoc()
       }
       function changeStdLinks() {
         changeStdLink('stdDefsLink1')
@@ -62,14 +63,16 @@
       function evalDoc() {
         var doc = document.getElementById('editor')
 
-        Notebook.initNotebook(editor)
         Repl.clearEnv()
+        Notebook.initNotebook(editor)
+/*
         try {
           gen = ReplCore.generateCode('doc', doc.innerText, false)
           Leisure.eval(gen)
         } catch (err) {
           alert(err.stack)
         }
+*/
       }
     //]]>
     </script>
@@ -90,7 +93,25 @@
         margin: 3px;
       }
       .codeMain {
-        border: black solid 1px;
+        /*border: black solid 2px;*/
+        margin: 3px;
+        display: inline-block;
+        padding: 5px;
+        border-width: 29px 24px 30px 34px;
+        -moz-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
+        -webkit-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
+        -o-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
+        border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
+      }
+      .output {
+        border: red solid 2px;
+        margin: 3px;
+        left-margin: 10px;
+        display: inline-block;
+        padding: 5px;
+      }
+      .codeMainExpr {
+        border: blue solid 2px;
         margin: 3px;
         display: inline-block;
         padding: 5px;

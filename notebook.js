@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, chunks, codeBox, codeSpan, continueRangePosition, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, pos, removeOldDefs, root, textNode;
+  var Leisure, ReplCore, addsLine, bindNotebook, box, codeBox, codeSpan, continueRangePosition, exprBox, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, textNode;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -14,10 +14,6 @@
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
-
-  pos = 0;
-
-  chunks = [];
 
   bindNotebook = function bindNotebook(el) {
     if (!(el.bound != null)) {
@@ -51,19 +47,24 @@
   };
 
   removeOldDefs = function removeOldDefs(el) {
-    var extracted, node, parent, txt, _i, _j, _k, _len, _len2, _len3, _ref, _ref2;
+    var extracted, node, parent, txt, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3;
     extracted = [];
-    _ref = el.querySelectorAll("[generatedNL]");
+    _ref = el.querySelectorAll("[LeisureOutput]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
+      node.parent.removeChild(node);
+    }
+    _ref2 = el.querySelectorAll("[generatedNL]");
+    for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
+      node = _ref2[_j];
       txt = node.lastChild;
       if (txt.nodeType === 3 && txt.data[txt.data.length - 1] === '\n') {
         txt.data = txt.data.substring(0, txt.data.length - 1);
       }
     }
-    _ref2 = el.querySelectorAll("[Leisure]");
-    for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
-      node = _ref2[_j];
+    _ref3 = el.querySelectorAll("[Leisure]");
+    for (_k = 0, _len3 = _ref3.length; _k < _len3; _k++) {
+      node = _ref3[_k];
       parent = node.parentNode;
       if (addsLine(node) && (node.firstChild != null)) {
         extracted.push(node.firstChild);
@@ -73,8 +74,8 @@
       }
       parent.removeChild(node);
     }
-    for (_k = 0, _len3 = extracted.length; _k < _len3; _k++) {
-      node = extracted[_k];
+    for (_l = 0, _len4 = extracted.length; _l < _len4; _l++) {
+      node = extracted[_l];
       if ((node.parentNode != null) && !addsLine(node) && (node.previousSibling != null) && !addsLine(node.previousSibling)) {
         node.parentNode.insertBefore(document.createElement('br'), node);
       }
@@ -97,11 +98,12 @@
         bod.setAttribute('generatedNL', '');
         _results.push(bx.appendChild(bod));
       } else {
-        bx = box(main, 'codeMain', true);
+        bx = box(main, 'codeMainExpr', true);
         s = codeSpan(body, 'codeExpr');
         s.appendChild(textNode('\n'));
         s.setAttribute('generatedNL', '');
-        _results.push(bx.appendChild(s));
+        bx.appendChild(s);
+        _results.push(bx.parentNode.insertBefore(exprBox(bx), bx.nextSibling));
       }
     }
     return _results;
@@ -109,6 +111,16 @@
 
   textNode = function textNode(text) {
     return document.createTextNode(text);
+  };
+
+  exprBox = function exprBox(source) {
+    var node;
+    node = document.createElement('div');
+    node.setAttribute('LeisureOutput', '');
+    node.setAttribute('Leisure', '');
+    node.setAttribute('class', 'output');
+    node.appendChild(textNode('\n'));
+    return node;
   };
 
   codeSpan = function codeSpan(text, boxType) {
