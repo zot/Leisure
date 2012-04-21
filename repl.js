@@ -1,5 +1,5 @@
 (function() {
-  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, face, getType, help, init, print, processResult, repl, root, vars, write,
+  var Buffer, Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, face, getType, help, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -13,6 +13,8 @@
   Core = require('./replCore');
 
   FS = require('fs');
+
+  Buffer = require('buffer');
 
   Path = require('path');
 
@@ -94,11 +96,14 @@
         return contents += data;
       });
       stream.on('end', function() {
-        var out;
+        var out, pos, str;
         out = Core.generateCode(file, contents, !root.quiet, null, nomacros);
-        stream = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
-        stream.end(out, 'utf8');
-        return stream.destroySoon();
+        str = FS.openSync("" + (Path.basename(file, '.lsr')) + ".js", 'w');
+        pos = 0;
+        while (pos < out.length) {
+          pos += FS.writeSync(str, out, pos);
+        }
+        return FS.closeSync(str);
       });
       stream.on('close', function() {
         return cont();

@@ -4,6 +4,7 @@ L = require('./leisure')
 Prim = require('./prim')
 Core = require('./replCore')
 FS = require('fs')
+Buffer = require('buffer')
 Path = require('path')
 P = require('./pretty')
 VM = require('vm')
@@ -70,9 +71,14 @@ compile = (file, cont, nomacros)->
     stream.on('data', (data)-> contents += data)
     stream.on('end', ()->
       out = Core.generateCode(file, contents, !root.quiet, null, nomacros)
-      stream = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
-      stream.end(out, 'utf8')
-      stream.destroySoon())
+      #str = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
+      #str.end(out, 'utf8')
+      #str.destroySoon())
+      str = FS.openSync("#{Path.basename file, '.lsr'}.js", 'w')
+      pos = 0
+      while pos < out.length
+        pos += FS.writeSync(str, out, pos)
+      FS.closeSync(str))
     stream.on 'close', -> cont()
     stream.on('error', (ex)->
       console.log("Exception reading file: ", ex.stack)
