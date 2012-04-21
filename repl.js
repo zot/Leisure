@@ -96,17 +96,17 @@
         return contents += data;
       });
       stream.on('end', function() {
-        var out, pos, str;
+        var out, str;
         out = Core.generateCode(file, contents, !root.quiet, null, nomacros);
-        str = FS.openSync("" + (Path.basename(file, '.lsr')) + ".js", 'w');
-        pos = 0;
-        while (pos < out.length) {
-          pos += FS.writeSync(str, out, pos);
-        }
-        return FS.closeSync(str);
-      });
-      stream.on('close', function() {
-        return cont();
+        str = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
+        str.on('close', function() {
+          return cont();
+        });
+        str.on('error', function() {
+          return cont();
+        });
+        str.end(out);
+        return str.destroySoon();
       });
       return stream.on('error', function(ex) {
         console.log("Exception reading file: ", ex.stack);

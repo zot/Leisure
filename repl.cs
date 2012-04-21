@@ -68,21 +68,22 @@ compile = (file, cont, nomacros)->
         console.log("No file: #{oldfile}")
         return cont()
     stream = FS.createReadStream(file)
-    stream.on('data', (data)-> contents += data)
-    stream.on('end', ()->
+    stream.on 'data', (data)-> contents += data
+    stream.on 'end', ()->
       out = Core.generateCode(file, contents, !root.quiet, null, nomacros)
-      #str = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
-      #str.end(out, 'utf8')
-      #str.destroySoon())
-      str = FS.openSync("#{Path.basename file, '.lsr'}.js", 'w')
-      pos = 0
-      while pos < out.length
-        pos += FS.writeSync(str, out, pos)
-      FS.closeSync(str))
-    stream.on 'close', -> cont()
-    stream.on('error', (ex)->
+      # str = FS.openSync("#{Path.basename file, '.lsr'}.js", 'w')
+      # pos = 0
+      # while pos < out.length
+      #   pos += FS.writeSync(str, out, pos)
+      # FS.closeSync(str))
+      str = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
+      str.on 'close', -> cont()
+      str.on 'error', -> cont()
+      str.end out
+      str.destroySoon()
+    stream.on 'error', (ex)->
       console.log("Exception reading file: ", ex.stack)
-      cont())
+      cont()
 
 processResult = (result)->
   init()
