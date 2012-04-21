@@ -12,14 +12,14 @@ writeOutput = (line)->
     output.innerHTML += "<span>#{line}</span>"
     output.lastChild.scrollIntoView()
 
-init = (inputField, output, defs)->
+init = (inputField, output)->
   clearEnv()
-  write = (line)-> defs.innerHTML += line
+  #write = (line)-> defs.innerHTML += line
+  write = (line)->
   ReplCore.setWriter writeOutput
   ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r, src)->
-    if ast.leisureName? then defs.innerHTML += "#{markupDef(src, ast)}<br>"
-    else if result?
+    if !ast.leisureName? and result?
       output.innerHTML += "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
       output.lastElementChild.scrollIntoView()
     ReplCore.processResult result
@@ -42,7 +42,6 @@ clearOutput = ->
   o.innerHTML += '\n'
 
 clearEnv = ->
-  defs = document.getElementById('defs').innerHTML = ""
   env = document.getElementById('env')
   if env? then document.body.removeChild(env)
   newEnv = document.createElement('iframe')

@@ -17,11 +17,15 @@ initNotebook = (el)->
   markupDefs findDefs el
 
 removeOldDefs = (el)->
+  extracted = []
   for node in el.querySelectorAll "[Leisure]"
     parent = node.parentNode
+    if addsLine(node) and node.firstChild? then extracted.push(node.firstChild)
     while node.firstChild?
       parent.insertBefore node.firstChild, node
     parent.removeChild node
+  for node in extracted
+    if node.parentNode? and !addsLine(node) and node.previousSibling? and !addsLine(node.previousSibling) then node.parentNode.insertBefore document.createElement('br'), node
   el.normalize()
 
 markupDefs = (defs)->
@@ -134,7 +138,7 @@ continueRangePosition = (node, charOffset, end)->
 
 nodeEnd = (node)-> [node, if node.nodeType == 3 then node.length else node.childNodes.length - 1]
 
-addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputedStyle(node, null).display == 'block')
+addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputedStyle(node, null).display == 'block' and node.childNodes.length > 0)
 
 
 root.initNotebook = initNotebook

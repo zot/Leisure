@@ -22,19 +22,15 @@
     return output.lastChild.scrollIntoView();
   };
 
-  init = function init(inputField, output, defs) {
+  init = function init(inputField, output) {
     clearEnv();
-    write = function write(line) {
-      return defs.innerHTML += line;
-    };
+    write = function write(line) {};
     ReplCore.setWriter(writeOutput);
     ReplCore.setNext(function() {
       return input.value = '';
     });
     ReplCore.setHandler(function(ast, result, a, c, r, src) {
-      if (ast.leisureName != null) {
-        defs.innerHTML += "" + (markupDef(src, ast)) + "<br>";
-      } else if (result != null) {
+      if (!(ast.leisureName != null) && (result != null)) {
         output.innerHTML += "<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n";
         output.lastElementChild.scrollIntoView();
       }
@@ -68,8 +64,7 @@
   };
 
   clearEnv = function clearEnv() {
-    var defs, env, newEnv;
-    defs = document.getElementById('defs').innerHTML = "";
+    var env, newEnv;
     env = document.getElementById('env');
     if (env != null) document.body.removeChild(env);
     newEnv = document.createElement('iframe');

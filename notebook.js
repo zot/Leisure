@@ -25,15 +25,25 @@
   };
 
   removeOldDefs = function removeOldDefs(el) {
-    var node, parent, _i, _len, _ref;
+    var extracted, node, parent, _i, _j, _len, _len2, _ref;
+    extracted = [];
     _ref = el.querySelectorAll("[Leisure]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
       parent = node.parentNode;
+      if (addsLine(node) && (node.firstChild != null)) {
+        extracted.push(node.firstChild);
+      }
       while (node.firstChild != null) {
         parent.insertBefore(node.firstChild, node);
       }
       parent.removeChild(node);
+    }
+    for (_j = 0, _len2 = extracted.length; _j < _len2; _j++) {
+      node = extracted[_j];
+      if ((node.parentNode != null) && !addsLine(node) && (node.previousSibling != null) && !addsLine(node.previousSibling)) {
+        node.parentNode.insertBefore(document.createElement('br'), node);
+      }
     }
     return el.normalize();
   };
@@ -215,7 +225,7 @@
   };
 
   addsLine = function addsLine(node) {
-    return node.nodeName === 'BR' || (node.nodeType === 1 && getComputedStyle(node, null).display === 'block');
+    return node.nodeName === 'BR' || (node.nodeType === 1 && getComputedStyle(node, null).display === 'block' && node.childNodes.length > 0);
   };
 
   root.initNotebook = initNotebook;
