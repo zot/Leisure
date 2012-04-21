@@ -120,7 +120,7 @@
   };
 
   evalOutput = function evalOutput(exBox) {
-    return ReplCore.processLine(exBox.source.innerText, envFor(exBox));
+    return ReplCore.processLine(exBox.source.textContent, envFor(exBox));
   };
 
   envFor = function envFor(exBox) {
@@ -181,7 +181,7 @@
 
   findDefs = function findDefs(el) {
     var def, ranges, rest, rng, txt;
-    txt = el.innerText;
+    txt = el.textContent;
     rest = txt;
     ranges = [];
     while ((def = rest.match(Leisure.linePat)) && def[1].length !== rest.length) {

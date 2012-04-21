@@ -82,8 +82,8 @@ markupDefs = (defs)->
 textNode = (text)-> document.createTextNode(text)
 
 evalOutput = (exBox)->
-  ReplCore.processLine(exBox.source.innerText, envFor(exBox))
-  #alert("Eval: #{exBox.source.innerText}")
+  ReplCore.processLine(exBox.source.textContent, envFor(exBox))
+  #alert("Eval: #{exBox.source.textContent}")
 
 envFor = (exBox)->
   write: (msg)->
@@ -125,7 +125,7 @@ box = (range, boxType, empty)->
   node
 
 findDefs = (el)->
-  txt = el.innerText
+  txt = el.textContent
   rest = txt
   ranges = []
   while (def = rest.match Leisure.linePat) and def[1].length != rest.length

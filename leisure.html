@@ -67,7 +67,7 @@
         var doc = document.getElementById('editor')
 
         Repl.clearEnv()
-        var pgm = Notebook.initNotebook(editor)
+        var pgm = Notebook.initNotebook(doc)
         try {
           gen = ReplCore.generateCode('doc', pgm, false)
           Leisure.eval(gen)

@@ -1,7 +1,6 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
 * notebook style interface
-   * make sure it runs in chrome and ff
    * incremental compilation (recompile the file after a blank line and update all errors)
       * monitor input and test first line to see if it changes between expr and def -- change box
 	  * dynamically add expr box on naked input
@@ -82,6 +81,7 @@
 # DONE
 * notebook style interface
    * get leisure.html working in notebook-style
+   * make sure it runs in chrome and ff
 * scroll to bottom of browser on eval
 * when there are parsing or compilation errors, show which function has the problem
 * add floating point numbers to tokenDefs
