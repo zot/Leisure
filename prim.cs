@@ -51,11 +51,11 @@ define 'ceil', (a)->Math.ceil(a())
 define 'round', (a)->Math.round(a())
 
 define 'randInt', (from)->(to)->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     cont Math.floor(from() + Math.random() * (to() - from() + 1))
 
 define 'rand', ()->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     cont (Math.random())
 
 define '>', (a)->(b)->if a() > b() then `_true()` else `_false()`
@@ -71,11 +71,11 @@ running = false
 leisureEvent = (leisureFuncName, evt)->
   currentEvent = evt
   monad = Leisure.eval("#{Leisure.nameSub(leisureFuncName)}()")(laz(evt))
-  runMonad monad, ->
+  runMonad monad, defaultEnv, ->
 
-runMonad = (monad, cont)->
+runMonad = (monad, env, cont)->
   eventCmds.push ->
-    runMonads monad, (value)->
+    runMonads monad, env, (value)->
       if eventCmds.length then eventCmds.shift()()
       running = false
       cont(value)
@@ -83,10 +83,10 @@ runMonad = (monad, cont)->
     running = true
     eventCmds.shift()()
 
-runMonads = (monad, cont)->
+runMonads = (monad, env, cont)->
   if monad?.cmd?
-    monad.cmd (value) ->
-      if monad.binding? then runMonads monad.binding(-> value), cont
+    monad.cmd env, (value) ->
+      if monad.binding? then runMonads monad.binding(-> value), env, cont
       else cont(value)
   else throw new Error("Attempted to run something that's not a monad")
 
@@ -107,7 +107,7 @@ define 'eventY', (evt)-> evt().y
 define 'eventTargetId', (evt)-> evt().target.id
 
 define 'return', (v)->
-  makeMonad 'end', (cont)->cont(v())
+  makeMonad 'end', (env, cont)->cont(v())
 
 define 'log', (msg)->(value)->
   if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
@@ -115,16 +115,16 @@ define 'log', (msg)->(value)->
   value()
 
 define 'print', (msg)->
-  makeMonad 'end', (cont)->
-    if msg() != _nil() then defaultEnv.write("#{msg()}\n")
+  makeMonad 'end', (env, cont)->
+    if msg() != _nil() then env.write("#{msg()}\n")
     cont(_false)
 
 define 'prompt', (msg)->
-  makeMonad 'end', (cont)->
-    defaultEnv.prompt(String(msg()), (input)-> cont(input))
+  makeMonad 'end', (env, cont)->
+    env.prompt(String(msg()), (input)-> cont(input))
 
 define 'bind', (m)->(binding)->
-  makeMonad binding(), (cont)-> runMonads m(), cont
+  makeMonad binding(), (env, cont)-> runMonads m(), env, cont
 
 head = (l)->l ->(hh)->(tt)->hh()
 tail = (l)->l ->(hh)->(tt)->tt()
@@ -136,13 +136,13 @@ concatList = (l)->
 define 'concat', (l)-> concatList(l())
 
 define 'js', (codeList)->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     cl = codeList()
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
     cont(eval(concatList(cl)))
 
 define 'browser', (codeList)->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     if window?
       cl = codeList()
       if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
@@ -152,24 +152,24 @@ define 'browser', (codeList)->
 values = {}
 
 define 'getValue', (name)->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     cont values[name()]
 
 define 'setValue', (name)->(value)->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     values[name()] = value()
     cont _false
 
 define 'createS', ->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     cont {value: null}
 
 define 'getS', (state)->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     cont state().value
 
 define 'setS', (state)->(value)->
-  makeMonad 'end', (cont)->
+  makeMonad 'end', (env, cont)->
     state().value = value()
     cont(_false)
 
@@ -178,5 +178,6 @@ root.runMonad = runMonad
 root.makeMonad = makeMonad
 root.tokenDefs = []
 root.leisureEvent = leisureEvent
+root.defaultEnv = defaultEnv
 
 if window? then window.leisureEvent = leisureEvent

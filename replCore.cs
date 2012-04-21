@@ -78,7 +78,7 @@ print = (args...)-> writeFunc(U.format.apply(null, args))
 write = (args...)-> writeFunc args.join('')
 
 processResult = (result)->
-  if (getType result) == 'monad' then Prim.runMonad result, -> nextFunc()
+  if (getType result) == 'monad' then Prim.runMonad result, Prim.defaultEnv, -> nextFunc()
   else nextFunc()
 
 handleVar = (name, value)->

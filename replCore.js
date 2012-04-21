@@ -100,7 +100,7 @@
 
   processResult = function processResult(result) {
     if ((getType(result)) === 'monad') {
-      return Prim.runMonad(result, function() {
+      return Prim.runMonad(result, Prim.defaultEnv, function() {
         return nextFunc();
       });
     } else {
