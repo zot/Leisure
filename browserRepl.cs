@@ -58,7 +58,8 @@ useIframe = (envFr)->
     env[i] = v for i, v of leisureFuncs
     Leisure.setEvalFunc env, env.eval
     macs = {}
-    macs.__prototype__ = macros
+    for k, v of macros
+      macs[k] = v
     env[i] = v for i, v of {Leisure: Leisure, ReplCore: ReplCore, Repl: Repl, leisureFuncs: {}, macros: macs}
     env.eval """
 global = window;

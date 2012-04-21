@@ -220,18 +220,4 @@
 
   root.initNotebook = initNotebook;
 
-  root.box = box;
-
-  root.boxFlat = boxFlat;
-
-  root.flatten = flatten;
-
-  root.selection = function selection() {
-    return window.getSelection().getRangeAt(0);
-  };
-
-  root.test = function test() {
-    return flatten(root.selection().cloneContents().childNodes[0]);
-  };
-
 }).call(this);

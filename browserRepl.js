@@ -80,7 +80,7 @@
   };
 
   useIframe = function useIframe(envFr) {
-    var env, i, macs, v, _ref;
+    var env, i, k, macs, v, _ref;
     if (envFr) {
       root.envFrame = envFrame = envFr;
       env = envFrame.contentWindow;
@@ -90,7 +90,10 @@
       }
       Leisure.setEvalFunc(env, env.eval);
       macs = {};
-      macs.__prototype__ = macros;
+      for (k in macros) {
+        v = macros[k];
+        macs[k] = v;
+      }
       _ref = {
         Leisure: Leisure,
         ReplCore: ReplCore,

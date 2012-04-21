@@ -138,8 +138,5 @@ addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputed
 
 
 root.initNotebook = initNotebook
-root.box = box
-root.boxFlat = boxFlat
-root.flatten = flatten
-root.selection = -> window.getSelection().getRangeAt(0)
-root.test = -> flatten(root.selection().cloneContents().childNodes[0])
+#root.selection = -> window.getSelection().getRangeAt(0)
+#root.test = -> flatten(root.selection().cloneContents().childNodes[0])
