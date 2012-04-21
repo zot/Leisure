@@ -139,25 +139,28 @@
   </head>
   <body onload="init()" style="border: 0; padding: 0; margin: 0">
     <table style="position: absolute; vertical-align: top; width: 100%; height: 100%">
-<!--      <tr style="height: 1.5em"><td colspan="2">-->
-      <tr style="height: 1em"><td>
+      <tr style="height: 0">
+	<td>
 	  <div style="height: 100%; position: relative">
-	    <div style="text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Leisure</i></b></div>
-	    <div style="position: absolute"><b>Leisure</b><button onclick="evalDoc()">Process Document</button></div>
-	    <div style="position: absolute; top: 0; right: 0"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a> <!-- <button onclick="clearOutput()">Clear</button> <b>Output</b>--></div>
+	    <div style="pointer-events:none; text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Leisure</i></b></div>
+	    <div style="float: left"><button onclick="evalDoc()">Process Document</button></div>
+	    <div style="float: right"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a></div>
 	  </div>
 	</td>
       </tr>
-      <tr style="height: 50%">
+      <tr style="height: 100%">
 	<td class="cell" style="width: 50%">
 	  <div style="position: relative; width: 100%; height: 100%; overflow: auto">
-	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; padding: 0" id="editor" class="cell" contentEditable="true">maluba a b = a
+	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; padding: 0" id="editor" class="cell" contentEditable="true">maluba a b=a
   true true
   b
 
-fred a = a
+fred a=a
 
-print hello</pre>
+print hello
+do
+  n <- prompt 'What is your name?'
+  print (concat ['hello, ', n])</pre>
 	  </div>
 	</td>
 <!--

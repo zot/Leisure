@@ -26,11 +26,13 @@ bindNotebook = (el)->
 initNotebook = (el)->
   removeOldDefs el
   pgm = markupDefs findDefs el
-  el.appendChild textNode('\n')
-  el.appendChild textNode('\n')
-  bx = codeBox 'codeMain'
-  bx.appendChild textNode('\n')
-  el.appendChild bx
+  if !(el?.lastChild?.nodeType == 3 and el.lastChild.data[el.lastChild.data.length - 1] == '\n')
+    el.appendChild textNode('\n')
+    el.appendChild textNode('\n')
+    el.appendChild textNode('\n')
+  # bx = codeBox 'codeMain'
+  # bx.appendChild textNode('\n')
+  # el.appendChild bx
   el.normalize()
   pgm
 
@@ -49,8 +51,11 @@ removeOldDefs = (el)->
       parent.insertBefore node.firstChild, node
     parent.removeChild node
   for node in extracted
-    if node.parentNode? and !addsLine(node) and node.previousSibling? and !addsLine(node.previousSibling) then node.parentNode.insertBefore document.createElement('br'), node
+    if node.parentNode? and !addsLine(node) and node.previousSibling? and !addsLine(node.previousSibling) then node.parentNode.insertBefore text('\n'), node
   el.normalize()
+  txt = el.lastChild
+  if txt?.nodeType == 3 and (m = txt.data.match /(^|[^\n])(\n+)$/)
+    txt.data = txt.data.substring(0, txt.data.length - m[2].length)
 
 markupDefs = (defs)->
   pgm = ''
@@ -91,6 +96,7 @@ exprBox = (source)->
   node.setAttribute 'LeisureOutput', ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', 'output'
+  node.setAttribute 'contentEditable', 'false'
   node.source = source
   node.innerHTML = "<button onclick='Notebook.evalOutput(this.parentNode)'>-&gt;</button>"
   node.appendChild textNode(' \n')
@@ -155,8 +161,10 @@ getRanges = (el, txt, rest, def, restOff)->
         [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), next]
       else
         mainStart = matchStart + (leading?.length ? 0)
-        outerRange = makeRange el, mainStart, mainEnd
-        [outerRange, null, null, txt.substring(mainStart, mainEnd), next]
+        ex = txt.substring(mainStart, mainEnd).match /^(.*[^ \n])[ \n]*$/
+        exEnd = if ex then mainStart + ex[1].length else mainEnd
+        outerRange = makeRange el, mainStart, exEnd
+        [outerRange, null, null, txt.substring(mainStart, exEnd), next]
 
 makeRange = (el, off1, off2)->
   range = document.createRange()

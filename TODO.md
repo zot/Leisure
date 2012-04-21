@@ -1,19 +1,21 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
 * notebook style interface
-   * get leisure.html working in notebook-style
+   * make sure it runs in chrome and ff
+   * incremental compilation (recompile the file after a blank line and update all errors)
+      * monitor input and test first line to see if it changes between expr and def -- change box
+	  * dynamically add expr box on naked input
+   * use in-doc prompt, instad of popup
    * move to bootLeisure.cs
-   * make programs html pages with code="true" attributes
+   * make programs html pages with code attributes
 	  * in browser, use document.querySelector('[code]')
       * in node, use htmlparser (npm install htmlparser)
       * include <script src='bootLeisure.js> element that boots the Leisure env on that page
          * clones doc
 		 * adds iframe with leisure env
          * hands leisure the clone to analyze and the current doc to mutate
-   * make sure it runs in chrome and ff
    * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
-   * incremental compilation (recompile the file after a blank line and update all errors)
-   * comments that attach event handlers
+   * comments that attach event handlers?
    * make TTT into a notebook that shows the TTT grid
    * optionally hide source code
 * better browser environment
@@ -77,7 +79,9 @@
    * eliminate redundant memo/deref pairs
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
-#DONE
+# DONE
+* notebook style interface
+   * get leisure.html working in notebook-style
 * scroll to bottom of browser on eval
 * when there are parsing or compilation errors, show which function has the problem
 * add floating point numbers to tokenDefs

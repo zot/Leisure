@@ -35,20 +35,20 @@
   };
 
   initNotebook = function initNotebook(el) {
-    var bx, pgm;
+    var pgm, _ref;
     removeOldDefs(el);
     pgm = markupDefs(findDefs(el));
-    el.appendChild(textNode('\n'));
-    el.appendChild(textNode('\n'));
-    bx = codeBox('codeMain');
-    bx.appendChild(textNode('\n'));
-    el.appendChild(bx);
+    if (!((el != null ? (_ref = el.lastChild) != null ? _ref.nodeType : void 0 : void 0) === 3 && el.lastChild.data[el.lastChild.data.length - 1] === '\n')) {
+      el.appendChild(textNode('\n'));
+      el.appendChild(textNode('\n'));
+      el.appendChild(textNode('\n'));
+    }
     el.normalize();
     return pgm;
   };
 
   removeOldDefs = function removeOldDefs(el) {
-    var extracted, node, parent, txt, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3;
+    var extracted, m, node, parent, txt, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3;
     extracted = [];
     _ref = el.querySelectorAll("[LeisureOutput]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -78,10 +78,14 @@
     for (_l = 0, _len4 = extracted.length; _l < _len4; _l++) {
       node = extracted[_l];
       if ((node.parentNode != null) && !addsLine(node) && (node.previousSibling != null) && !addsLine(node.previousSibling)) {
-        node.parentNode.insertBefore(document.createElement('br'), node);
+        node.parentNode.insertBefore(text('\n'), node);
       }
     }
-    return el.normalize();
+    el.normalize();
+    txt = el.lastChild;
+    if ((txt != null ? txt.nodeType : void 0) === 3 && (m = txt.data.match(/(^|[^\n])(\n+)$/))) {
+      return txt.data = txt.data.substring(0, txt.data.length - m[2].length);
+    }
   };
 
   markupDefs = function markupDefs(defs) {
@@ -137,6 +141,7 @@
     node.setAttribute('LeisureOutput', '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', 'output');
+    node.setAttribute('contentEditable', 'false');
     node.source = source;
     node.innerHTML = "<button onclick='Notebook.evalOutput(this.parentNode)'>-&gt;</button>";
     node.appendChild(textNode(' \n'));
@@ -196,7 +201,7 @@
   };
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var bodyStart, defType, endPat, leading, leadingSpaces, m, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, rest1, _ref, _ref2, _ref3;
+    var bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, m, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, rest1, _ref, _ref2, _ref3;
     _ref = m = def, matched = _ref[0], leading = _ref[1], nameRaw = _ref[2], defType = _ref[3];
     if (!rest.trim()) {
       return null;
@@ -225,8 +230,10 @@
         return [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), next];
       } else {
         mainStart = matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
-        outerRange = makeRange(el, mainStart, mainEnd);
-        return [outerRange, null, null, txt.substring(mainStart, mainEnd), next];
+        ex = txt.substring(mainStart, mainEnd).match(/^(.*[^ \n])[ \n]*$/);
+        exEnd = ex ? mainStart + ex[1].length : mainEnd;
+        outerRange = makeRange(el, mainStart, exEnd);
+        return [outerRange, null, null, txt.substring(mainStart, exEnd), next];
       }
     }
   };
