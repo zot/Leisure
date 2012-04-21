@@ -54,11 +54,14 @@ markupDefs = (defs)->
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode(def))
-      bx.appendChild (codeSpan body, 'codeBody')
+      bod = codeSpan body, 'codeBody'
+      bod.appendChild textNode('\n')
+      bx.appendChild bod
     else
       bx = box main, 'codeMain', true
-      bx.appendChild (codeSpan body, 'codeExpr')
-      bx.appendChild (textNode('\n'))
+      s = codeSpan body, 'codeExpr'
+      s.appendChild textNode('\n')
+      bx.appendChild s
 
 textNode = (text)-> document.createTextNode(text)
 

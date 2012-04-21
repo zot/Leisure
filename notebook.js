@@ -74,7 +74,7 @@
   };
 
   markupDefs = function markupDefs(defs) {
-    var body, bx, def, i, main, name, _i, _len, _results;
+    var bod, body, bx, def, i, main, name, s, _i, _len, _results;
     _results = [];
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
@@ -83,11 +83,14 @@
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
-        _results.push(bx.appendChild(codeSpan(body, 'codeBody')));
+        bod = codeSpan(body, 'codeBody');
+        bod.appendChild(textNode('\n'));
+        _results.push(bx.appendChild(bod));
       } else {
         bx = box(main, 'codeMain', true);
-        bx.appendChild(codeSpan(body, 'codeExpr'));
-        _results.push(bx.appendChild(textNode('\n')));
+        s = codeSpan(body, 'codeExpr');
+        s.appendChild(textNode('\n'));
+        _results.push(bx.appendChild(s));
       }
     }
     return _results;
