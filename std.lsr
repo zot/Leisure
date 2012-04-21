@@ -98,6 +98,8 @@ odd? x = eq 1 (% x 2)
 at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
 take x l = (iszero x) nil (append [ (head l) ] (take (-- x) (tail l) ) )
 drop x l = (iszero x) l (drop (-- x) (tail l) )
+max a b = (gt a b) a b
+min a b = (lt a b) a b
 
 # return true if any elements of l satisfy f, which takes exactly one arg
 # eg. any (eq 0) [ 1, 2, 0] gives true: true
