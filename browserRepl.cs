@@ -12,6 +12,11 @@ writeOutput = (line)->
     output.innerHTML += "<span>#{line}</span>"
     output.lastChild.scrollIntoView()
 
+escapeHtml = (str)->
+  if typeof str == 'string' then str.replace(/</g, '&lt;')
+  else if (ReplCore.getType str) == 'html' then str(-> (x)->x())
+  else str
+
 init = (inputField, output)->
   clearEnv()
   #write = (line)-> defs.innerHTML += line
@@ -20,8 +25,7 @@ init = (inputField, output)->
   #ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r, src, env)->
     if !ast.leisureName? and result?
-      #env.write "<span><b> #{lastLine} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
-      env.write "<span><b> #{src} \u2192</b>\n  #{ReplCore.getType result}: #{Pretty.print result}</span>\n"
+      env.write "<span><b> #{escapeHtml(src)} \u2192</b>\n  #{ReplCore.getType result}: #{escapeHtml(Pretty.print result)}</span>\n"
     ReplCore.processResult result, env
   ReplCore.setResetFunc clearEnv
   #input = inputField
@@ -109,7 +113,7 @@ handleFiles = (fileElement)->
   input.select()
 
 processResult = (result)->
-  writeOutput("#{ReplCore.getType result}: #{Pretty.print(result)}\n")
+  writeOutput("#{ReplCore.getType result}: #{escape(Pretty.print(result))}\n")
   ReplCore.processResult result
 
 root.init = init

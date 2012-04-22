@@ -30,7 +30,7 @@ init = ->
     face.setPrompt "Leisure> "
     Prim.setTty face
     face.on 'close', ()->process.exit(0)
-    face.on 'line', (line)->Core.processLine(line.trim())
+    face.on 'line', (line)->Core.processLine(line.trim(), Prim.defaultEnv)
     Core.setNext -> face.prompt()
 
 repl = () ->

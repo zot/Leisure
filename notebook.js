@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, codeBox, codeSpan, continueRangePosition, envFor, evalOutput, exprBox, findDefs, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, textNode;
+  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutate, checkMutateToDef, checkMutateToExpr, codeBox, codeSpan, continueRangePosition, envFor, evalOutput, exprBox, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, textNode;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -19,7 +19,7 @@
     if (!(el.bound != null)) {
       el.bound = true;
       return el.addEventListener('keypress', function(e) {
-        var br, r, s;
+        var br, bx, r, s, sp;
         if ((e.charCode || e.keyCode || e.which) === 13) {
           br = textNode('\n');
           s = window.getSelection();
@@ -29,8 +29,62 @@
           s.removeAllRanges();
           s.addRange(r);
           return e.preventDefault();
+        } else if ((e.charCode || e.keyCode || e.which) === 61) {
+          return checkMutateToDef(e);
+        } else {
+          s = window.getSelection();
+          r = s.getRangeAt(0);
+          if (r.startContainer.parentNode === el) {
+            sp = codeSpan('\n', 'codeExpr');
+            sp.setAttribute('generatedNL', '');
+            bx = box(s.getRangeAt(0), 'codeMainExpr', true);
+            bx.appendChild(sp);
+            r = document.createRange();
+            r.setStart(sp, 0);
+            s.removeAllRanges();
+            return s.addRange(r);
+          }
         }
       });
+    }
+  };
+
+  getBox = function getBox(node) {
+    while ((node != null) && !((node.getAttribute('LeisureBox')) != null)) {
+      node = node.parentNode;
+    }
+    return node;
+  };
+
+  checkMutate = function checkMutate(e) {
+    if (getBox(e.target) != null) return alert("composing: " + e.target);
+  };
+
+  checkMutateToExpr = function checkMutateToExpr(e) {
+    var b;
+    b = getBox(e.target);
+    if (e.target = p.firstChild && p.classList.contains('codeMain') && (e.newValue.match(/^=|^[^=\n]*(\n|$)/))) {
+      p.classList.remove('codeMain');
+      return p.classList.add('codeExpr');
+    }
+  };
+
+  checkMutateToDef = function checkMutateToDef(e) {
+    var defType, leading, m, matched, name, p, r, r2, s, txt;
+    s = window.getSelection();
+    r = s.getRangeAt(0);
+    p = r.startContainer.parentNode;
+    if (((r.startOffset > 0) || (r.startContainer !== p.firstChild)) && p.classList.contains('codeExpr')) {
+      r2 = r.cloneRange();
+      r2.setStart(p, 0);
+      txt = r.cloneContents().textContent;
+      if ((m = txt.match(Leisure.linePat))) {
+        matched = m[0], leading = m[1], name = m[2], defType = m[3];
+        if (defType) {
+          p.classList.remove('codeExpr');
+          return p.classList.add('codeMain');
+        }
+      }
     }
   };
 
@@ -95,19 +149,19 @@
       i = defs[_i];
       main = i[0], name = i[1], def = i[2], body = i[3];
       if (name != null) {
-        bx = box(main, 'codeMain', true);
-        bx.appendChild(codeSpan(name, 'codeName'));
-        bx.appendChild(textNode(def));
         bod = codeSpan(body, 'codeBody');
         bod.appendChild(textNode('\n'));
         bod.setAttribute('generatedNL', '');
+        bx = box(main, 'codeMain', true);
+        bx.appendChild(codeSpan(name, 'codeName'));
+        bx.appendChild(textNode(def));
         bx.appendChild(bod);
         pgm += "" + name + " " + def + " " + body + "\n";
       } else {
-        bx = box(main, 'codeMainExpr', true);
         s = codeSpan(body, 'codeExpr');
         s.appendChild(textNode('\n'));
         s.setAttribute('generatedNL', '');
+        bx = box(main, 'codeMainExpr', true);
         bx.appendChild(s);
         bx.parentNode.insertBefore(exprBox(bx), bx.nextSibling);
       }
@@ -126,7 +180,7 @@
   envFor = function envFor(exBox) {
     return {
       write: function write(msg) {
-        exBox.innerHTML += "<span>" + msg + "</span>";
+        exBox.innerHTML += msg + "<br>";
         return exBox.lastChild.scrollIntoView();
       },
       prompt: function prompt(msg, cont) {
@@ -162,8 +216,12 @@
     var node;
     node = document.createElement('div');
     node.setAttribute(boxType, '');
+    node.setAttribute('LeisureBox', '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', boxType);
+    node.addEventListener('compositionstart', function(e) {
+      return checkMutate(e);
+    });
     return node;
   };
 

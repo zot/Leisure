@@ -57,7 +57,7 @@
         return process.exit(0);
       });
       face.on('line', function(line) {
-        return Core.processLine(line.trim());
+        return Core.processLine(line.trim(), Prim.defaultEnv);
       });
       return Core.setNext(function() {
         return face.prompt();

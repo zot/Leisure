@@ -22,6 +22,47 @@ bindNotebook = (el)->
         s.removeAllRanges()
         s.addRange(r)
         e.preventDefault()
+      else if (e.charCode || e.keyCode || e.which) == 61 then checkMutateToDef e
+      else
+        s = window.getSelection()
+        r = s.getRangeAt(0)
+        if r.startContainer.parentNode == el
+          sp = codeSpan '\n', 'codeExpr'
+          sp.setAttribute('generatedNL', '')
+          bx = box s.getRangeAt(0), 'codeMainExpr', true
+          bx.appendChild sp
+          r = document.createRange()
+          r.setStart(sp, 0)
+          s.removeAllRanges()
+          s.addRange(r)
+
+getBox = (node)->
+  while node? and !(node.getAttribute 'LeisureBox')?
+    node = node.parentNode
+  node
+
+checkMutate = (e)->
+  if getBox(e.target)? then alert("composing: #{e.target}")
+
+checkMutateToExpr = (e)->
+  b = getBox e.target
+  if e.target = p.firstChild and p.classList.contains('codeMain') and (e.newValue.match /^=|^[^=\n]*(\n|$)/)
+    p.classList.remove 'codeMain'
+    p.classList.add 'codeExpr'
+
+checkMutateToDef = (e)->
+  s = window.getSelection()
+  r = s.getRangeAt(0)
+  p = r.startContainer.parentNode
+  if ((r.startOffset > 0) or (r.startContainer != p.firstChild)) and p.classList.contains('codeExpr')
+    r2 = r.cloneRange()
+    r2.setStart(p, 0)
+    txt = r.cloneContents().textContent
+    if (m = txt.match Leisure.linePat)
+      [matched, leading, name, defType] = m
+      if defType
+        p.classList.remove 'codeExpr'
+        p.classList.add 'codeMain'
 
 initNotebook = (el)->
   removeOldDefs el
@@ -62,19 +103,19 @@ markupDefs = (defs)->
   for i in defs
     [main, name, def, body] = i
     if name?
-      bx = box main, 'codeMain', true
-      bx.appendChild (codeSpan name, 'codeName')
-      bx.appendChild (textNode(def))
       bod = codeSpan body, 'codeBody'
       bod.appendChild textNode('\n')
       bod.setAttribute('generatedNL', '')
+      bx = box main, 'codeMain', true
+      bx.appendChild (codeSpan name, 'codeName')
+      bx.appendChild (textNode(def))
       bx.appendChild bod
       pgm += "#{name} #{def} #{body}\n"
     else
-      bx = box main, 'codeMainExpr', true
       s = codeSpan body, 'codeExpr'
       s.appendChild textNode('\n')
       s.setAttribute('generatedNL', '')
+      bx = box main, 'codeMainExpr', true
       bx.appendChild s
       bx.parentNode.insertBefore exprBox(bx), bx.nextSibling
   pgm
@@ -87,7 +128,7 @@ evalOutput = (exBox)->
 
 envFor = (exBox)->
   write: (msg)->
-    exBox.innerHTML += "<span>#{msg}</span>"
+    exBox.innerHTML += msg + "<br>"
     exBox.lastChild.scrollIntoView()
   prompt:(msg, cont)-> cont(window.prompt(msg))
 
@@ -113,8 +154,10 @@ codeSpan = (text, boxType)->
 codeBox = (boxType)->
   node = document.createElement 'div'
   node.setAttribute boxType, ''
+  node.setAttribute 'LeisureBox', ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', boxType
+  node.addEventListener 'compositionstart', (e)-> checkMutate e
   node
 
 box = (range, boxType, empty)->

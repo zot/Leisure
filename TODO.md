@@ -1,6 +1,18 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
+* add assertMonad() to testing.cs
+   * probably use env for this
+* pretty printer function can take an assoc-list of printers for types
+* configuration monads
+   * blocks that run monads on load for configuration, start messages, etc.
+   * default pretty-printers for output
+* named parsers
 * notebook style interface
+   * group adjacent definitions into the same codeMain border
+   * prevent borders from taking up space in doc
+      * separate divs by newlines
+	  * make divs position: relative; overflow: visible
+	  * use internal divs that are bigger than their parents
    * incremental compilation (recompile the file after a blank line and update all errors)
       * monitor input and test first line to see if it changes between expr and def -- change box
 	  * dynamically add expr box on naked input
@@ -27,12 +39,13 @@
    * allow newlines in open groups
    * { and } would be a grouping macros
 * debug mode should put a cons into funcs of a new exception and the list from the parent
-* macros should return an either for the parser
+* parser macros should return (ast, errors, warnings)
 * error if let finds more than one body expr
 * add prelude.lsr
    * put parser macros in there
 * integrate physics engine
 * doc comments
+* allow eval to take either a string or an AST
 * macros
    * cond macro
    * make \[ a macro and remove need for commas
@@ -42,15 +55,12 @@
       * or\[, and\[, js\[, concat\[
 * :d command to show how a function is defined
 * multiline REPL
-* allow redefinition in REPL exprs
 * multiline comments and strings, ala CoffeeScript
 * better errors for file problems
 * if reqs aren't present when runing in browser, show error in output area or use alert if not in repl
-* allow eval to take either a string or an AST
-* add assertMonad() to testing.cs
 * fold, map, etc. for asts
-* implement options that are monads and also support util functions
-* need supertypes or something for things like booleans (true or false)
+* make options also be monads
+* need supertypes or something for things like booleans (true or false), options, eithers
 * -g option
    * check function types before application and print meaningful error msgs
    * generate trace
@@ -66,11 +76,9 @@
    * cons a -> function(_1){return _cons(a, _1)}
 * reorganize project -- make 'old' directory for old stuff that's still useful to have around (slides, etc.)
 * string functions
-* leisure configuration environment
-   * Pretty-printers for types
-   * named parsers
 * Data structures
    * AMTs
+   * HAMTs
 * leisure-code for pretty printing
 * Use leisure for parser, generator, REPL; compile them and use the JS for them
    * This will help people extend leisure
@@ -79,6 +87,8 @@
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
 
 # DONE
+* make eval substitute macros
+* allow redefinition in REPL exprs
 * notebook style interface
    * get leisure.html working in notebook-style
    * make sure it runs in chrome and ff

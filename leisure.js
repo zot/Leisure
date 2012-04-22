@@ -258,7 +258,7 @@ misrepresented as being the original software.
   };
 
   define('eval', function(ast) {
-    return evalCompiledAst(dgen(ast()));
+    return evalCompiledAst(dgen(substituteMacros(ast())));
   });
 
   define('lit', setDataType((function(_x) {
@@ -607,8 +607,13 @@ misrepresented as being the original software.
   };
 
   compileNext = function compileNext(line, globals, parseOnly, check, nomacros) {
-    var def, defType, errPrefix, leading, matched, name, nm, pfx, rest1;
-    if ((def = line.match(linePat)) && def[1].length !== line.length) {
+    var def, defType, errPrefix, leading, matched, name, nm, pfx, rest, rest1;
+    if (line[0] === '=') {
+      rest = line.substring(1);
+      return ifParsed((nomacros ? parseApply(rest, Nil) : parseFull(rest)), (function(ast, rest) {
+        return genCode(ast, null, globals, null, rest, parseOnly);
+      }), "Error compiling expr:  " + (line.substring(0, 80)));
+    } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
       if (name[0] === ' ') {
         name = null;

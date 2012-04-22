@@ -134,7 +134,7 @@ nameAst = (nm, ast)-> if !ast.leisureName
 
 evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
 
-define 'eval', (ast)-> evalCompiledAst(dgen(ast()))
+define 'eval', (ast)-> evalCompiledAst(dgen(substituteMacros ast()))
 
 define 'lit', setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
 
@@ -306,7 +306,11 @@ getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n
 
 # returns [ast, err, rest]
 compileNext = (line, globals, parseOnly, check, nomacros)->
-  if (def = line.match linePat) and def[1].length != line.length
+  if line[0] == '='
+    rest = line.substring 1
+    ifParsed (if nomacros then parseApply rest, Nil else parseFull rest), ((ast, rest)->
+      genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr:  #{line.substring 0, 80}"
+  else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     if name[0] == ' '
       name = null
