@@ -9,6 +9,7 @@
 * named parsers
 * notebook style interface
    * group adjacent definitions into the same codeMain border
+   * put hyperlinks in output to function definitions
    * prevent borders from taking up space in doc
       * separate divs by newlines
 	  * make divs position: relative; overflow: visible
