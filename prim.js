@@ -1,15 +1,17 @@
 (function() {
-  var Leisure, Pretty, RL, U, concatList, define, eventCmds, getType, head, laz, leisureEvent, makeMonad, output, prompt, root, runMonad, runMonads, running, setTty, tail, tty, values, write;
+  var Leisure, Pretty, RL, U, concatList, defaultEnv, define, eventCmds, getType, head, laz, leisureEvent, makeMonad, output, root, runMonad, runMonads, running, setTty, tail, tty, values;
+
+  defaultEnv = {};
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
     output = null;
-    write = function write(msg) {
+    defaultEnv.write = function write(msg) {
       if (!(output != null)) output = document.getElementById('output');
       output.innerHTML += "<span>" + msg + "</span>";
       return output.lastChild.scrollIntoView();
     };
-    prompt = function prompt(msg, cont) {
+    defaultEnv.prompt = function prompt(msg, cont) {
       return cont(window.prompt(msg));
     };
     window.Prim = root = {};
@@ -21,10 +23,10 @@
     U = require('util');
     RL = require('readline');
     tty = null;
-    write = function write(msg) {
+    defaultEnv.write = function write(msg) {
       return process.stdout.write(msg);
     };
-    prompt = function prompt(msg, cont) {
+    defaultEnv.prompt = function prompt(msg, cont) {
       return tty.question(msg, cont);
     };
   }
@@ -136,8 +138,16 @@
 
   define('randInt', function(from) {
     return function(to) {
-      return Math.floor(from() + Math.random() * (to() - from() + 1));
+      return makeMonad('end', function(env, cont) {
+        return cont(Math.floor(from() + Math.random() * (to() - from() + 1)));
+      });
     };
+  });
+
+  define('rand', function() {
+    return makeMonad('end', function(env, cont) {
+      return cont(Math.random());
+    });
   });
 
   define('>', function(a) {
@@ -208,12 +218,12 @@
     var currentEvent, monad;
     currentEvent = evt;
     monad = Leisure.eval("" + (Leisure.nameSub(leisureFuncName)) + "()")(laz(evt));
-    return runMonad(monad, function() {});
+    return runMonad(monad, defaultEnv, function() {});
   };
 
-  runMonad = function runMonad(monad, cont) {
+  runMonad = function runMonad(monad, env, cont) {
     eventCmds.push(function() {
-      return runMonads(monad, function(value) {
+      return runMonads(monad, env, function(value) {
         if (eventCmds.length) eventCmds.shift()();
         running = false;
         return cont(value);
@@ -225,13 +235,13 @@
     }
   };
 
-  runMonads = function runMonads(monad, cont) {
+  runMonads = function runMonads(monad, env, cont) {
     if ((monad != null ? monad.cmd : void 0) != null) {
-      return monad.cmd(function(value) {
+      return monad.cmd(env, function(value) {
         if (monad.binding != null) {
           return runMonads(monad.binding(function() {
             return value;
-          }), cont);
+          }), env, cont);
         } else {
           return cont(value);
         }
@@ -263,7 +273,7 @@
   });
 
   define('return', function(v) {
-    return makeMonad('end', function(cont) {
+    return makeMonad('end', function(env, cont) {
       return cont(v());
     });
   });
@@ -271,25 +281,25 @@
   define('log', function(msg) {
     return function(value) {
       if (msg().type !== 'cons') {
-        write("" + (msg()));
+        defaultEnv.write("" + (msg()));
       } else {
-        write(concatList(msg()));
+        defaultEnv.write(concatList(msg()));
       }
-      write("\n");
+      defaultEnv.write("\n");
       return value();
     };
   });
 
   define('print', function(msg) {
-    return makeMonad('end', function(cont) {
-      write("" + (msg()) + "\n");
+    return makeMonad('end', function(env, cont) {
+      if (msg() !== _nil()) env.write("" + (msg()) + "\n");
       return cont(_false);
     });
   });
 
   define('prompt', function(msg) {
-    return makeMonad('end', function(cont) {
-      return prompt(String(msg()), function(input) {
+    return makeMonad('end', function(env, cont) {
+      return env.prompt(String(msg()), function(input) {
         return cont(input);
       });
     });
@@ -297,8 +307,8 @@
 
   define('bind', function(m) {
     return function(binding) {
-      return makeMonad(binding(), function(cont) {
-        return runMonads(m(), cont);
+      return makeMonad(binding(), function(env, cont) {
+        return runMonads(m(), env, cont);
       });
     };
   });
@@ -336,7 +346,7 @@
   });
 
   define('js', function(codeList) {
-    return makeMonad('end', function(cont) {
+    return makeMonad('end', function(env, cont) {
       var cl;
       cl = codeList();
       if (cl !== _nil() && cl.type !== 'cons') {
@@ -347,7 +357,7 @@
   });
 
   define('browser', function(codeList) {
-    return makeMonad('end', function(cont) {
+    return makeMonad('end', function(env, cont) {
       var cl;
       if (typeof window !== "undefined" && window !== null) {
         cl = codeList();
@@ -364,14 +374,14 @@
   values = {};
 
   define('getValue', function(name) {
-    return makeMonad('end', function(cont) {
+    return makeMonad('end', function(env, cont) {
       return cont(values[name()]);
     });
   });
 
   define('setValue', function(name) {
     return function(value) {
-      return makeMonad('end', function(cont) {
+      return makeMonad('end', function(env, cont) {
         values[name()] = value();
         return cont(_false);
       });
@@ -379,7 +389,7 @@
   });
 
   define('createS', function() {
-    return makeMonad('end', function(cont) {
+    return makeMonad('end', function(env, cont) {
       return cont({
         value: null
       });
@@ -387,14 +397,14 @@
   });
 
   define('getS', function(state) {
-    return makeMonad('end', function(cont) {
+    return makeMonad('end', function(env, cont) {
       return cont(state().value);
     });
   });
 
   define('setS', function(state) {
     return function(value) {
-      return makeMonad('end', function(cont) {
+      return makeMonad('end', function(env, cont) {
         state().value = value();
         return cont(_false);
       });
@@ -410,6 +420,8 @@
   root.tokenDefs = [];
 
   root.leisureEvent = leisureEvent;
+
+  root.defaultEnv = defaultEnv;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;

@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, clearEnv, clearOutput, envFrame, evalLine, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write, writeOutput;
+  var Pretty, clearEnv, clearOutput, envFrame, escapeHtml, evalLine, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write, writeOutput;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -22,32 +22,30 @@
     return output.lastChild.scrollIntoView();
   };
 
-  init = function init(inputField, output, defs) {
+  escapeHtml = function escapeHtml(str) {
+    if (typeof str === 'string') {
+      return str.replace(/</g, '&lt;');
+    } else if ((ReplCore.getType(str)) === 'html') {
+      return str(function() {
+        return function(x) {
+          return x();
+        };
+      });
+    } else {
+      return str;
+    }
+  };
+
+  init = function init(inputField, output) {
     clearEnv();
-    write = function write(line) {
-      return defs.innerHTML += line;
-    };
-    ReplCore.setWriter(writeOutput);
-    ReplCore.setNext(function() {
-      return input.value = '';
-    });
-    ReplCore.setHandler(function(ast, result, a, c, r, src) {
-      if (ast.leisureName != null) {
-        defs.innerHTML += "" + (markupDef(src, ast)) + "<br>";
-      } else if (result != null) {
-        output.innerHTML += "<span><b> " + lastLine + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "</span>\n";
-        output.lastElementChild.scrollIntoView();
+    write = function write(line) {};
+    ReplCore.setHandler(function(ast, result, a, c, r, src, env) {
+      if (!(ast.leisureName != null) && (result != null)) {
+        env.write("<span><b> " + (escapeHtml(src)) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (escapeHtml(Pretty.print(result))) + "</span>\n");
       }
-      return ReplCore.processResult(result);
+      return ReplCore.processResult(result, env);
     });
-    ReplCore.setResetFunc(clearEnv);
-    input = inputField;
-    input.onkeypress = function onkeypress(e) {
-      if ((e.charCode || e.keyCode || e.which) === 13) {
-        return evalLine(input.value);
-      }
-    };
-    return input.select();
+    return ReplCore.setResetFunc(clearEnv);
   };
 
   evalLine = function evalLine(line) {
@@ -68,8 +66,7 @@
   };
 
   clearEnv = function clearEnv() {
-    var defs, env, newEnv;
-    defs = document.getElementById('defs').innerHTML = "";
+    var env, newEnv;
     env = document.getElementById('env');
     if (env != null) document.body.removeChild(env);
     newEnv = document.createElement('iframe');
@@ -106,8 +103,7 @@
         env[i] = v;
       }
       env.eval("global = window;\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\n(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()");
-      env.leisureSetFuncs(leisureFuncNames);
-      return clearOutput();
+      return env.leisureSetFuncs(leisureFuncNames);
     }
   };
 
@@ -146,7 +142,7 @@
   };
 
   processResult = function processResult(result) {
-    writeOutput("" + (ReplCore.getType(result)) + ": " + (Pretty.print(result)) + "\n");
+    writeOutput("" + (ReplCore.getType(result)) + ": " + (escape(Pretty.print(result))) + "\n");
     return ReplCore.processResult(result);
   };
 

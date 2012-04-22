@@ -1,5 +1,5 @@
 (function() {
-  var Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, face, getType, help, init, print, processResult, repl, root, vars, write,
+  var Buffer, Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, face, getType, help, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -13,6 +13,8 @@
   Core = require('./replCore');
 
   FS = require('fs');
+
+  Buffer = require('buffer');
 
   Path = require('path');
 
@@ -55,7 +57,7 @@
         return process.exit(0);
       });
       face.on('line', function(line) {
-        return Core.processLine(line.trim());
+        return Core.processLine(line.trim(), Prim.defaultEnv);
       });
       return Core.setNext(function() {
         return face.prompt();
@@ -94,13 +96,17 @@
         return contents += data;
       });
       stream.on('end', function() {
-        var out;
+        var out, str;
         out = Core.generateCode(file, contents, !root.quiet, null, nomacros);
-        stream = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
-        return stream.end(out, 'utf8');
-      });
-      stream.on('close', function() {
-        return cont();
+        str = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
+        str.on('close', function() {
+          return cont();
+        });
+        str.on('error', function() {
+          return cont();
+        });
+        str.end(out);
+        return str.destroySoon();
       });
       return stream.on('error', function(ex) {
         console.log("Exception reading file: ", ex.stack);
