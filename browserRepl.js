@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, clearEnv, clearOutput, envFrame, escapeHtml, evalLine, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write, writeOutput;
+  var Pretty, clearEnv, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, useIframe, write, writeOutput;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -22,15 +22,17 @@
     return output.lastChild.scrollIntoView();
   };
 
+  getHtml = function getHtml(x) {
+    return x(function() {
+      return function(value) {
+        return value();
+      };
+    });
+  };
+
   escapeHtml = function escapeHtml(str) {
     if (typeof str === 'string') {
       return str.replace(/</g, '&lt;');
-    } else if ((ReplCore.getType(str)) === 'html') {
-      return str(function() {
-        return function(x) {
-          return x();
-        };
-      });
     } else {
       return str;
     }
@@ -41,7 +43,7 @@
     write = function write(line) {};
     ReplCore.setHandler(function(ast, result, a, c, r, src, env) {
       if (!(ast.leisureName != null) && (result != null)) {
-        env.write("<span><b> " + (escapeHtml(src)) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (escapeHtml(Pretty.print(result))) + "</span>\n");
+        env.write("<span><b> " + (escapeHtml(src)) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + ((ReplCore.getType(result)) === 'html' ? getHtml(result) : escapeHtml(Pretty.print(result))) + "</span>\n");
       }
       return ReplCore.processResult(result, env);
     });
