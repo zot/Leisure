@@ -142,7 +142,7 @@ evalOutput = (exBox)->
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
   #alert("Eval: #{exBox.source.textContent}")
 
-prepExpr = (txt)-> if txt[0] == '=' then txt else "=#{txt}"
+prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (exBox)->
   write: (msg)->

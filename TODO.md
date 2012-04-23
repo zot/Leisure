@@ -46,6 +46,7 @@
    * load/save
 * a 'require' directive that works in browsers and on the cmd line
    * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
+   * collaboration
 * use curlies for do/let?
    * not sure what this means for indentation
    * remove intermediate step of inserting {}; -- convert directly to parenthesized groups
