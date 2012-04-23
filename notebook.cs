@@ -139,6 +139,8 @@ markupDefs = (defs)->
 textNode = (text)-> document.createTextNode(text)
 
 evalOutput = (exBox)->
+  while exBox.firstChild != exBox.lastChild
+    exBox.removeChild exBox.lastChild
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
   #alert("Eval: #{exBox.source.textContent}")
 

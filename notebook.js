@@ -213,6 +213,9 @@
   };
 
   evalOutput = function evalOutput(exBox) {
+    while (exBox.firstChild !== exBox.lastChild) {
+      exBox.removeChild(exBox.lastChild);
+    }
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
   };
 
