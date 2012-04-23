@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _append, _compose, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _max, _min, _any, _all, _index_combine, _indexof, _position, _find, _find$nif, _count, _count$nif, _count$nif$nnot, _remove, _remove$nif, _remove$nif$nnot, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _add$nhash, _key, _value, _get$npair, _get$nvalue, _remove$nhash, _html;
+var _id, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _null$e, _append, _compose, _head, _tail, _isempty, _null, _reverse, _addstr, _if, _iszero, _length, _$n$n, _$o$o, _even$e, _odd$e, _at, _take, _drop, _max, _min, _any, _all, _index_combine, _indexof, _position, _find, _find$nif, _count, _count$nif, _count$nif$nnot, _remove, _remove$nif, _remove$nif$nnot, _map, _flip, _reduce, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _html;
 //id = AST(\x . x)
 root.defs._id = _id = define('id', function(_x){return _x()});
 ;
@@ -65,6 +65,9 @@ root.defs._cons = _cons = define('cons', setDataType(function(_a){return functio
 ;
 //nil = AST(\a b . b)
 root.defs._nil = _nil = define('nil', setType(function(_a){return function(_b){return _b()}}, 'nil'));
+;
+//null? = AST(eq nil)
+root.defs._null$e = _null$e = define('null?', _eq()(_nil));
 ;
 //append = AST(\l1 l2 . l1 \h t D . cons h (append t l2) l2)
 root.defs._append = _append = define('append', function(_l1){return function(_l2){return _l1()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _cons()(_h)((function(){var $m; return function(){return $m || ($m = (_append()(_t)(_l2)))}})())}}}))}})())(_l2)}});
@@ -222,24 +225,6 @@ root.defs._m_extractVar = _m_extractVar = define('m_extractVar', function(_ast){
 ;
 //m_varFromTuple = AST(\ast token . is ast apply (ast \f arg . or (is f ref) (is f lit) (or (is arg ref) (is arg lit) (arg \arrow . eq arrow token (f \v . some v) none) none) none) none)
 root.defs._m_varFromTuple = _m_varFromTuple = define('m_varFromTuple', function(_ast){return function(_token){return _is()(_ast)(_apply)((function(){var $m; return function(){return $m || ($m = (_ast()((function(){var $m; return function(){return $m || ($m = (function(_f){return function(_arg){return _or()((function(){var $m; return function(){return $m || ($m = (_is()(_f)(_ref)))}})())((function(){var $m; return function(){return $m || ($m = (_is()(_f)(_lit)))}})())((function(){var $m; return function(){return $m || ($m = (_or()((function(){var $m; return function(){return $m || ($m = (_is()(_arg)(_ref)))}})())((function(){var $m; return function(){return $m || ($m = (_is()(_arg)(_lit)))}})())((function(){var $m; return function(){return $m || ($m = (_arg()((function(){var $m; return function(){return $m || ($m = (function(_arrow){return _eq()(_arrow)(_token)((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (function(_v){return _some()(_v)}))}})())))}})())(_none)}))}})())))}})())(_none)))}})())(_none)}}))}})())))}})())(_none)}});
-;
-//add-hash = AST(\k v hashmap . cons (cons k v) (remove-hash k hashmap))
-root.defs._add$nhash = _add$nhash = define('add-hash', function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return function(){return $m || ($m = (_cons()(_k)(_v)))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nhash()(_k)(_hashmap)))}})())}}});
-;
-//key = AST(\cons . head cons)
-root.defs._key = _key = define('key', function(_cons){return _head()(_cons)});
-;
-//value = AST(\cons . tail cons)
-root.defs._value = _value = define('value', function(_cons){return _tail()(_cons)});
-;
-//get-pair = AST(\k hashmap . find-if \x . eq (head x) k hashmap)
-root.defs._get$npair = _get$npair = define('get-pair', function(_k){return function(_hashmap){return _find$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_head()(_x)))}})())(_k)}))}})())(_hashmap)}});
-;
-//get-value = AST(\k hashmap . (\pair . if (eq pair nil) nil (value pair)) (get-pair k hashmap))
-root.defs._get$nvalue = _get$nvalue = define('get-value', function(_k){return function(_hashmap){return function(_pair){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_pair)(_nil)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_value()(_pair)))}})())}((function(){var $m; return function(){return $m || ($m = (_get$npair()(_k)(_hashmap)))}})())}});
-;
-//remove-hash = AST(\k hashmap . remove-if \x . eq (head x) k hashmap)
-root.defs._remove$nhash = _remove$nhash = define('remove-hash', function(_k){return function(_hashmap){return _remove$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_head()(_x)))}})())(_k)}))}})())(_hashmap)}});
 ;
 //html = AST(\x f . f x)
 root.defs._html = _html = define('html', setDataType(function(_x){return setType(function(_f){return _f()(_x)}, 'html')}, 'html'));

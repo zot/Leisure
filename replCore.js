@@ -137,17 +137,18 @@
 
   processLine = function processLine(line, env) {
     var a, ast, c, err, err1, l, m, r, result, _ref, _ref2, _ref3, _ref4;
+    env = env != null ? env : Prim.defaultEnv;
     try {
       if (line) {
         if (line[0] === '!') {
           if (line[1] === '!') {
             result = eval(line.substr(2));
             result = U != null ? U.inspect(result) : result;
-            env.write(result, "\n");
+            env.write("" + result + "\n");
           } else {
             result = Leisure.eval(line.substr(1));
             result = U != null ? U.inspect(result) : result;
-            env.write(result, "\n");
+            env.write("" + result + "\n");
           }
         } else if ((m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/))) {
           handleVar(m[2], m[3], env);

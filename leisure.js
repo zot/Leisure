@@ -514,8 +514,11 @@ misrepresented as being the original software.
             return v === val;
           })) {
             return code;
-          } else {
+          } else if (typeof val === 'number') {
             return code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref);
+          } else {
+            console.log("FREE: " + val + ", type: " + (typeof val));
+            return code.addErr("attempt to use free variable: " + val);
           }
         }
         break;
@@ -1000,6 +1003,8 @@ misrepresented as being the original software.
       l = JSON.parse(name);
       if (typeof l === 'string') {
         return lit(laz(l));
+      } else if (typeof l === 'number') {
+        return ref(laz(l));
       } else {
         return ref(laz(name));
       }
@@ -1059,16 +1064,13 @@ misrepresented as being the original software.
   };
 
   processDefs = function processDefs(res, gl) {
-    var i, v, _fn, _ref;
+    var i, v, _ref;
     gl = gl != null ? gl : global;
     if (res.defs != null) {
       _ref = res.defs;
-      _fn = function _fn(tmp) {
-        return gl[i] = tmp;
-      };
       for (i in _ref) {
         v = _ref[i];
-        _fn(v);
+        gl[i] = v;
       }
     }
     processTokenDefs(res.tokenDefs);
