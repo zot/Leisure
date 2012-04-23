@@ -8,9 +8,7 @@ LZ.ctx.U = U
 importFile = (file, cont) ->
   R.compile file, (->
     LZ.eval "req('./#{file}')"
-    LZ.eval "console.log('funcs: ' + U.inspect(leisureFuncs))"
     cont()), nomacros
-  #console.log('funcs: ' + U.inspect(leisureFuncs))
 
 #loadStd = -> LZ.eval "Leisure.req('./std')"
 loadStd = ->

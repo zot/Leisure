@@ -14,7 +14,6 @@
   importFile = function importFile(file, cont) {
     return R.compile(file, (function() {
       LZ.eval("req('./" + file + "')");
-      LZ.eval("console.log('funcs: ' + U.inspect(leisureFuncs))");
       return cont();
     }), nomacros);
   };
