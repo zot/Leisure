@@ -36,6 +36,7 @@ bindNotebook = (el)->
           sp.setAttribute('generatedNL', '')
           bx = box s.getRangeAt(0), 'codeMainExpr', true
           bx.appendChild sp
+          makeOutputBox bx
           r = document.createRange()
           r.setStart(sp, 0)
           s.removeAllRanges()
@@ -49,12 +50,18 @@ getBox = (node)->
 checkMutateFromModification = (b)->
   if b?
     inDef = selInDef()
-    if inDef and b.classList.contains('codeMainExpr')
-      b.classList.remove 'codeMainExpr'
-      b.classList.add 'codeMain'
-    else if !inDef and b.classList.contains('codeMain')
-      b.classList.remove 'codeMain'
-      b.classList.add 'codeMainExpr'
+    if inDef and b.classList.contains('codeMainExpr') then toDefBox b
+    else if !inDef and b.classList.contains('codeMain') then toExprBox b
+
+toExprBox = (b)->
+  b.classList.remove 'codeMain'
+  b.classList.add 'codeMainExpr'
+  makeOutputBox b
+
+toDefBox = (b)->
+  if b.output then b.parentNode.removeChild b.output
+  b.classList.remove 'codeMainExpr'
+  b.classList.add 'codeMain'
 
 selInDef = (expectedClass)->
   s = window.getSelection()
@@ -72,8 +79,7 @@ checkMutateToDef = (e, el)->
     s = window.getSelection()
     r = s.getRangeAt(0)
     if p = selInDef('codeMainExpr')
-      p.classList.remove 'codeMainExpr'
-      p.classList.add 'codeMain'
+      toDefBox p
 
 initNotebook = (el)->
   el.replacing = true
@@ -83,9 +89,6 @@ initNotebook = (el)->
     el.appendChild textNode('\n')
     el.appendChild textNode('\n')
     el.appendChild textNode('\n')
-  # bx = codeBox 'codeMain'
-  # bx.appendChild textNode('\n')
-  # el.appendChild bx
   el.normalize()
   el.replacing = false
   pgm
@@ -130,7 +133,7 @@ markupDefs = (defs)->
       s.setAttribute('generatedNL', '')
       bx = box main, 'codeMainExpr', true
       bx.appendChild s
-      bx.parentNode.insertBefore exprBox(bx), bx.nextSibling
+      makeOutputBox(bx)
   pgm
 
 textNode = (text)-> document.createTextNode(text)
@@ -147,15 +150,17 @@ envFor = (exBox)->
     exBox.lastChild.scrollIntoView()
   prompt:(msg, cont)-> cont(window.prompt(msg))
 
-exprBox = (source)->
+makeOutputBox = (source)->
   node = document.createElement 'div'
   node.setAttribute 'LeisureOutput', ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', 'output'
   node.setAttribute 'contentEditable', 'false'
   node.source = source
+  source.output = node
   node.innerHTML = "<button onclick='Notebook.evalOutput(this.parentNode)'>-&gt;</button>"
   node.appendChild textNode(' \n')
+  source.parentNode.insertBefore node, source.nextSibling
   node
 
 codeSpan = (text, boxType)->
