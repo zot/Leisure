@@ -166,7 +166,7 @@ var processResult = Repl.processResult;
     varOut += " #{Leisure.nameSub v}"
   if varOut then out += "\nvar#{varOut};\n"
   globals = Leisure.append(globals, getGlobals())
-  while rest
+  while rest and rest.trim()
     if loud > 1 and prev != names and names != Leisure.Nil then console.log "Compiling function: #{names.head}"
     oldRest = rest
     [ast, err, rest] = Leisure.compileNext rest, globals, null, false, nomacros
