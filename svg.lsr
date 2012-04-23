@@ -9,4 +9,3 @@ insert-fields list map = if (null? list) ''
 
 circle map = concat [ '<circle ', (field 'cx' 50 map), (field 'cy' 50 map), (field 'r' 40 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'red' map), '/>' ]
 
-
