@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, codeBox, codeSpan, continueRangePosition, delay, envFor, evalOutput, exprBox, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, prepExpr, removeOldDefs, root, selInDef, textNode;
+  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, codeBox, codeSpan, continueRangePosition, delay, envFor, evalOutput, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, prepExpr, removeOldDefs, root, selInDef, textNode, toDefBox, toExprBox;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -57,6 +57,7 @@
             sp.setAttribute('generatedNL', '');
             bx = box(s.getRangeAt(0), 'codeMainExpr', true);
             bx.appendChild(sp);
+            makeOutputBox(bx);
             r = document.createRange();
             r.setStart(sp, 0);
             s.removeAllRanges();
@@ -79,13 +80,23 @@
     if (b != null) {
       inDef = selInDef();
       if (inDef && b.classList.contains('codeMainExpr')) {
-        b.classList.remove('codeMainExpr');
-        return b.classList.add('codeMain');
+        return toDefBox(b);
       } else if (!inDef && b.classList.contains('codeMain')) {
-        b.classList.remove('codeMain');
-        return b.classList.add('codeMainExpr');
+        return toExprBox(b);
       }
     }
+  };
+
+  toExprBox = function toExprBox(b) {
+    b.classList.remove('codeMain');
+    b.classList.add('codeMainExpr');
+    return makeOutputBox(b);
+  };
+
+  toDefBox = function toDefBox(b) {
+    if (b.output) b.parentNode.removeChild(b.output);
+    b.classList.remove('codeMainExpr');
+    return b.classList.add('codeMain');
   };
 
   selInDef = function selInDef(expectedClass) {
@@ -109,10 +120,7 @@
     if (!el.replacing) {
       s = window.getSelection();
       r = s.getRangeAt(0);
-      if (p = selInDef('codeMainExpr')) {
-        p.classList.remove('codeMainExpr');
-        return p.classList.add('codeMain');
-      }
+      if (p = selInDef('codeMainExpr')) return toDefBox(p);
     }
   };
 
@@ -193,7 +201,7 @@
         s.setAttribute('generatedNL', '');
         bx = box(main, 'codeMainExpr', true);
         bx.appendChild(s);
-        bx.parentNode.insertBefore(exprBox(bx), bx.nextSibling);
+        makeOutputBox(bx);
       }
     }
     return pgm;
@@ -227,7 +235,7 @@
     };
   };
 
-  exprBox = function exprBox(source) {
+  makeOutputBox = function makeOutputBox(source) {
     var node;
     node = document.createElement('div');
     node.setAttribute('LeisureOutput', '');
@@ -235,8 +243,10 @@
     node.setAttribute('class', 'output');
     node.setAttribute('contentEditable', 'false');
     node.source = source;
+    source.output = node;
     node.innerHTML = "<button onclick='Notebook.evalOutput(this.parentNode)'>-&gt;</button>";
     node.appendChild(textNode(' \n'));
+    source.parentNode.insertBefore(node, source.nextSibling);
     return node;
   };
 
