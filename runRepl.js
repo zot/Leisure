@@ -36,7 +36,9 @@
       };
       next = function next() {};
     } else if (process.argv[i] === '-q') {
-      R.quiet = true;
+      R.loud = 0;
+    } else if (process.argv[i] === '-v') {
+      R.loud++;
     } else {
       break;
     }

@@ -1,5 +1,9 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
+* report indentation underflows
+* parser macros should return (ast, errors, warnings)
+* error if let/do has no expr
+* error if let finds more than one body expr
 * add assertMonad() to testing.cs
    * probably use env for this
 * pretty printer function can take an assoc-list of printers for types
@@ -7,6 +11,8 @@
    * blocks that run monads on load for configuration, start messages, etc.
    * default pretty-printers for output
 * notebook style interface
+   * move to bootLeisure.cs
+   * make cmd line runRepl parse HTML code files
    * group adjacent definitions into the same codeMain border
    * put hyperlinks in output to function definitions
    * prevent borders from taking up space in doc
@@ -17,7 +23,6 @@
       * monitor input and test first line to see if it changes between expr and def -- change box
 	  * dynamically add expr box on naked input
    * use in-doc prompt, instad of popup
-   * move to bootLeisure.cs
    * make programs html pages with code attributes
 	  * in browser, use document.querySelector('[code]')
       * in node, use htmlparser (npm install htmlparser)
@@ -39,8 +44,6 @@
    * allow newlines in open groups
    * { and } would be a grouping macros
 * debug mode should put a cons into funcs of a new exception and the list from the parent
-* parser macros should return (ast, errors, warnings)
-* error if let finds more than one body expr
 * add prelude.lsr
    * put parser macros in there
 * integrate physics engine

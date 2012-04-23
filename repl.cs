@@ -10,7 +10,7 @@ P = require('./pretty')
 VM = require('vm')
 
 root = exports ? this
-root.quiet = false
+root.loud = 1
 
 getType = L.getType
 
@@ -70,12 +70,16 @@ compile = (file, cont, nomacros)->
     stream = FS.createReadStream(file)
     stream.on 'data', (data)-> contents += data
     stream.on 'end', ()->
-      out = Core.generateCode(file, contents, !root.quiet, null, nomacros)
-      str = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
-      str.on 'close', -> cont()
-      str.on 'error', -> cont()
-      str.end out
-      str.destroySoon()
+      try
+        out = Core.generateCode(file, contents, root.loud, null, nomacros)
+        str = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
+        str.on 'close', -> cont()
+        str.on 'error', -> cont()
+        str.end out
+        str.destroySoon()
+      catch err
+        write err.stack
+        cont()
     stream.on 'error', (ex)->
       console.log("Exception reading file: ", ex.stack)
       cont()

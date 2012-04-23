@@ -28,7 +28,8 @@ Usage: #{process.argv[0]} [[-c | -q | -b] file...]
   else if process.argv[i] == '-c'
     action = (f, cont)->R.compile f, cont, nomacros
     next = ->
-  else if process.argv[i] == '-q' then R.quiet = true
+  else if process.argv[i] == '-q' then R.loud = 0
+  else if process.argv[i] == '-v' then R.loud++
   else break
   pos = i + 1
 

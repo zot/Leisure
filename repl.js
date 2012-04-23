@@ -24,7 +24,7 @@
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
-  root.quiet = false;
+  root.loud = 1;
 
   getType = L.getType;
 
@@ -97,16 +97,21 @@
       });
       stream.on('end', function() {
         var out, str;
-        out = Core.generateCode(file, contents, !root.quiet, null, nomacros);
-        str = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
-        str.on('close', function() {
+        try {
+          out = Core.generateCode(file, contents, root.loud, null, nomacros);
+          str = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
+          str.on('close', function() {
+            return cont();
+          });
+          str.on('error', function() {
+            return cont();
+          });
+          str.end(out);
+          return str.destroySoon();
+        } catch (err) {
+          write(err.stack);
           return cont();
-        });
-        str.on('error', function() {
-          return cont();
-        });
-        str.end(out);
-        return str.destroySoon();
+        }
       });
       return stream.on('error', function(ex) {
         console.log("Exception reading file: ", ex.stack);

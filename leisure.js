@@ -159,6 +159,14 @@ misrepresented as being the original software.
       return "Cons(" + (this.toArray().join(', ')) + ")";
     };
 
+    Cons.prototype.reverse = function reverse() {
+      return this.rev(Nil);
+    };
+
+    Cons.prototype.rev = function rev(result) {
+      return this.tail.rev(cons(this.head, result));
+    };
+
     return Cons;
 
   })();
@@ -181,6 +189,10 @@ misrepresented as being the original software.
 
     CNil.prototype.foldl = function foldl(arg, func) {
       return arg;
+    };
+
+    CNil.prototype.rev = function rev(result) {
+      return result;
     };
 
     return CNil;

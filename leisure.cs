@@ -93,11 +93,14 @@ class Cons
   foldl: (arg, func)-> func(@tail.foldl(arg, func), @head)
   toArray: -> @foldl [], ((i, el)-> i.push(el); i)
   toString: -> "Cons(#{@toArray().join(', ')})"
+  reverse: -> @rev Nil
+  rev: (result)-> @tail.rev cons(@head, result)
 
 class CNil extends Cons
   find: -> false
   removeAll: -> @
   foldl: (arg, func)-> arg
+  rev: (result)-> result
 
 Nil = new CNil()
 cons = (a, b)-> new Cons(a, b)

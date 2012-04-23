@@ -188,16 +188,18 @@
   };
 
   generateCode = function generateCode(file, contents, loud, handle, nomacros) {
-    var a, ast, c, code, defs, err, errs, globals, i, m, nm, oldRest, out, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3, _ref4, _ref5;
+    var a, ast, c, code, defs, err, errs, globals, i, m, names, nm, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3, _ref4, _ref5;
     if (loud) console.log("Compiling " + file + ":\n");
     out = "(function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Leisure = require('./leisure');\n  Leisure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\nvar setType = Leisure.setType;\nvar setDataType = Leisure.setDataType;\nvar define = Leisure.define;\nvar defineMacro = Leisure.defineMacro;\nvar defineToken = Leisure.defineToken;\nvar processResult = Repl.processResult;\n";
-    _ref = findDefs(contents, nomacros), globals = _ref[0], errs = _ref[1];
+    _ref = findDefs(contents, nomacros, loud), globals = _ref[0], errs = _ref[1];
+    names = globals;
+    prev = Leisure.Nil;
     if (err) throw new Error(err);
     defs = [];
     _ref2 = Leisure.prepare(contents), rest = _ref2[0], err = _ref2[1];
     if (err) throw new Error(err);
     varOut = '';
-    _ref3 = globals.toArray();
+    _ref3 = globals.reverse().toArray();
     for (i = 0, _len = _ref3.length; i < _len; i++) {
       v = _ref3[i];
       if (i > 0) varOut += ",";
@@ -206,8 +208,15 @@
     if (varOut) out += "\nvar" + varOut + ";\n";
     globals = Leisure.append(globals, getGlobals());
     while (rest) {
+      if (loud > 1 && prev !== names && names !== Leisure.Nil) {
+        console.log("Compiling function: " + names.head);
+      }
       oldRest = rest;
       _ref4 = Leisure.compileNext(rest, globals, null, false, nomacros), ast = _ref4[0], err = _ref4[1], rest = _ref4[2];
+      if (ast.leisureName != null) {
+        prev = ast.leisureName;
+        names = names.tail;
+      }
       code = rest ? oldRest.substring(0, oldRest.length - rest.length) : '';
       err = err != null ? err : ast != null ? ast.err : void 0;
       if (err) {
@@ -233,7 +242,7 @@
     return Leisure.eval('leisureGetFuncs()');
   };
 
-  findDefs = function findDefs(contents, nomacros) {
+  findDefs = function findDefs(contents, nomacros, loud) {
     var ast, err, errs, globals, oldRest, rest, _ref;
     errs = '';
     globals = Leisure.Nil;
@@ -245,6 +254,7 @@
         errs = "" + errs + (ast.leisureName ? "Error in " + ast.leisureName : "") + err + "\n";
       }
       if (ast != null ? ast.leisureName : void 0) {
+        if (loud > 2) console.log("Found function: " + ast.leisureName);
         if (globals != null ? globals.find(function(v) {
           return v === ast.leisureName;
         }) : void 0) {
@@ -253,7 +263,7 @@
         globals = Leisure.cons(ast.leisureName, globals);
       }
     }
-    return [globals, errs];
+    return [globals.reverse(), errs];
   };
 
   root.processLine = processLine;
