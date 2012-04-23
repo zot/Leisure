@@ -31,8 +31,3 @@ merge-hash hm1 hm2 = merge-hash-keys hm1 hm2 (get-keys hm2)
 
 remove-hash k hashmap = remove-if (\x . eq (key x) k) hashmap
 
-
-foo = hash-from-list [ 'foo', 5, 'hello', 'world', 'j', 23 ]
-bar = hash-from-list [ 'bar', 6, 'hello', 'sun', 'fruit', 'apple' ]
-#merge-hash foo bar
-

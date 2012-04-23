@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair, _get$nvalue, _get$nvalue$ndefault, _get$nkeys, _num$nkeys, _merge$nhash$nkeys, _merge$nhash, _remove$nhash, _foo, _bar;
+var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair, _get$nvalue, _get$nvalue$ndefault, _get$nkeys, _num$nkeys, _merge$nhash$nkeys, _merge$nhash, _remove$nhash;
 //add-hash = AST(\k v hashmap . cons (cons k v) (remove-hash k hashmap))
 root.defs._add$nhash = _add$nhash = define('add-hash', function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return function(){return $m || ($m = (_cons()(_k)(_v)))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nhash()(_k)(_hashmap)))}})())}}});
 ;
@@ -59,12 +59,6 @@ root.defs._merge$nhash = _merge$nhash = define('merge-hash', function(_hm1){retu
 ;
 //remove-hash = AST(\k hashmap . remove-if \x . eq (key x) k hashmap)
 root.defs._remove$nhash = _remove$nhash = define('remove-hash', function(_k){return function(_hashmap){return _remove$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_key()(_x)))}})())(_k)}))}})())(_hashmap)}});
-;
-//foo = AST(hash-from-list ([ foo , 5 , hello , world , j , 23 ]))
-root.defs._foo = _foo = define('foo', _hash$nfrom$nlist()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "foo"}))(_$b)((function(){return 5}))(_$b)((function(){return "hello"}))(_$b)((function(){return "world"}))(_$b)((function(){return "j"}))(_$b)((function(){return 23}))(_$s)))}})()));
-;
-//bar = AST(hash-from-list ([ bar , 6 , hello , sun , fruit , apple ]))
-root.defs._bar = _bar = define('bar', _hash$nfrom$nlist()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "bar"}))(_$b)((function(){return 6}))(_$b)((function(){return "hello"}))(_$b)((function(){return "sun"}))(_$b)((function(){return "fruit"}))(_$b)((function(){return "apple"}))(_$s)))}})()));
 ;
 
 if (typeof window !== 'undefined' && window !== null) {

@@ -8,4 +8,20 @@ insert-fields list map = if (null? list) ''
   concat [ (field (head list) (head (tail list)) map), (insert-fields (tail (tail list)) map) ]
 
 circle map = concat [ '<circle ', (field 'cx' 50 map), (field 'cy' 50 map), (field 'r' 40 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'red' map), '/>' ]
+rect map = concat [ '<rect ', (field 'x' 0 map), (field 'y' 0 map), (field 'width' 50 map), (field 'height' 50 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'green' map), '/>' ]
+ellipse map = concat [ '<ellipse ', (field 'cx' 50 map), (field 'cy' 50 map), (field 'rx' 40 map), (field 'ry' 40 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'blue' map), '/>' ]
+line map = concat [ '<line ', (field 'x1' 0 map), (field 'y1' 0 map), (field 'x2' 50 map), (field 'y2' 50 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map), '/>' ]
+text t map = concat [ '<text ', (field 'x' 0 map), (field 'y' 0 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'black' map), '>', t, '</text>' ]
 
+group elem = concat [ '<g>', elem, '</g>' ]
+translate elem x y = concat ['<g transform="translate(', x, ', ', y, ')">', elem, '</g>' ]
+rotate elem a = concat ['<g transform="rotate(', a, ')">', elem, '</g>' ]
+
+#flatten-tree-base t map d c = if (null? t) map
+#  do
+#    id = concat [ '(', d, ',', c, ')' ]
+#    add-hash id [ id, d, c] (merge-hash (flatten-tree-base (first-child t) (++ d) 0) (flatten-tree-base (next-sibling t) 0 (++ c) ) )
+
+#flatten-tree t = flatten-tree-base t nil 0 0
+  
+#svg-build-tree t = traverse t (\c. add-child c r)
