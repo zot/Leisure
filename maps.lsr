@@ -5,6 +5,9 @@
 
 add-hash k v hashmap = cons (cons k v) (remove-hash k hashmap)
 
+hash-from-list l = if (null? l) nil
+  add-hash (head l) (head (tail l)) (hash-from-list (tail (tail l)))
+
 key cons = head cons
 value cons = tail cons
 

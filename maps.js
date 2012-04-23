@@ -23,9 +23,12 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _add$nhash, _key, _value, _get$npair, _get$nvalue, _get$nvalue$ndefault, _remove$nhash;
+var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair, _get$nvalue, _get$nvalue$ndefault, _remove$nhash;
 //add-hash = AST(\k v hashmap . cons (cons k v) (remove-hash k hashmap))
 root.defs._add$nhash = _add$nhash = define('add-hash', function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return function(){return $m || ($m = (_cons()(_k)(_v)))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nhash()(_k)(_hashmap)))}})())}}});
+;
+//hash-from-list = AST(\l . if (null? l) nil (add-hash (head l) (head (tail l)) (hash-from-list (tail (tail l)))))
+root.defs._hash$nfrom$nlist = _hash$nfrom$nlist = define('hash-from-list', function(_l){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_l)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_add$nhash()((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())((function(){var $m; return function(){return $m || ($m = (_head()((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_hash$nfrom$nlist()((function(){var $m; return function(){return $m || ($m = (_tail()((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())))}})())});
 ;
 //key = AST(\cons . head cons)
 root.defs._key = _key = define('key', function(_cons){return _head()(_cons)});

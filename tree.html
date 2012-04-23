@@ -159,11 +159,13 @@ svg (circle nil) nil
 
 circle nil
 
-big-blue = (add-hash 'fill' 'blue' (add-hash 'stroke' 5 nil) )
+big-blue = hash-from-list [ 'fill', 'blue', 'stroke', 'darkblue', 'stroke-width', 5]
 
 big-blue
 
 svg (circle big-blue) nil
+
+
 
 
             </pre>
