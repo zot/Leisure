@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair, _get$nvalue, _get$nvalue$ndefault, _remove$nhash;
+var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair, _get$nvalue, _get$nvalue$ndefault, _get$nkeys, _num$nkeys, _merge$nhash$nkeys, _merge$nhash, _remove$nhash, _foo, _bar;
 //add-hash = AST(\k v hashmap . cons (cons k v) (remove-hash k hashmap))
 root.defs._add$nhash = _add$nhash = define('add-hash', function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return function(){return $m || ($m = (_cons()(_k)(_v)))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nhash()(_k)(_hashmap)))}})())}}});
 ;
@@ -45,8 +45,26 @@ root.defs._get$nvalue = _get$nvalue = define('get-value', function(_k){return fu
 //get-value-default = AST(\k default hashmap . (\val . if (neq val nil) val default) (get-value k hashmap))
 root.defs._get$nvalue$ndefault = _get$nvalue$ndefault = define('get-value-default', function(_k){return function(_default){return function(_hashmap){return function(_val){return _if()((function(){var $m; return function(){return $m || ($m = (_neq()(_val)(_nil)))}})())(_val)(_default)}((function(){var $m; return function(){return $m || ($m = (_get$nvalue()(_k)(_hashmap)))}})())}}});
 ;
+//get-keys = AST(\hashmap . map \cell . key cell hashmap)
+root.defs._get$nkeys = _get$nkeys = define('get-keys', function(_hashmap){return _map()((function(){var $m; return function(){return $m || ($m = (function(_cell){return _key()(_cell)}))}})())(_hashmap)});
+;
+//num-keys = AST(\hashmap . length (get-keys hashmap))
+root.defs._num$nkeys = _num$nkeys = define('num-keys', function(_hashmap){return _length()((function(){var $m; return function(){return $m || ($m = (_get$nkeys()(_hashmap)))}})())});
+;
+//merge-hash-keys = AST(\hm1 hm2 keys . if (null? keys) hm1 (if (null? (get-pair (head keys) hm1)) (cons (get-pair (head keys) hm2) (merge-hash-keys hm1 hm2 (tail keys))) (merge-hash-keys hm1 hm2 (tail keys))))
+root.defs._merge$nhash$nkeys = _merge$nhash$nkeys = define('merge-hash-keys', function(_hm1){return function(_hm2){return function(_keys){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_keys)))}})())(_hm1)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_null$e()((function(){var $m; return function(){return $m || ($m = (_get$npair()((function(){var $m; return function(){return $m || ($m = (_head()(_keys)))}})())(_hm1)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_cons()((function(){var $m; return function(){return $m || ($m = (_get$npair()((function(){var $m; return function(){return $m || ($m = (_head()(_keys)))}})())(_hm2)))}})())((function(){var $m; return function(){return $m || ($m = (_merge$nhash$nkeys()(_hm1)(_hm2)((function(){var $m; return function(){return $m || ($m = (_tail()(_keys)))}})())))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_merge$nhash$nkeys()(_hm1)(_hm2)((function(){var $m; return function(){return $m || ($m = (_tail()(_keys)))}})())))}})())))}})())}}});
+;
+//merge-hash = AST(\hm1 hm2 . merge-hash-keys hm1 hm2 (get-keys hm2))
+root.defs._merge$nhash = _merge$nhash = define('merge-hash', function(_hm1){return function(_hm2){return _merge$nhash$nkeys()(_hm1)(_hm2)((function(){var $m; return function(){return $m || ($m = (_get$nkeys()(_hm2)))}})())}});
+;
 //remove-hash = AST(\k hashmap . remove-if \x . eq (head x) k hashmap)
 root.defs._remove$nhash = _remove$nhash = define('remove-hash', function(_k){return function(_hashmap){return _remove$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_head()(_x)))}})())(_k)}))}})())(_hashmap)}});
+;
+//foo = AST(hash-from-list ([ foo , 5 , hello , world , j , 23 ]))
+root.defs._foo = _foo = define('foo', _hash$nfrom$nlist()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "foo"}))(_$b)((function(){return 5}))(_$b)((function(){return "hello"}))(_$b)((function(){return "world"}))(_$b)((function(){return "j"}))(_$b)((function(){return 23}))(_$s)))}})()));
+;
+//bar = AST(hash-from-list ([ bar , 6 , hello , sun , fruit , apple ]))
+root.defs._bar = _bar = define('bar', _hash$nfrom$nlist()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "bar"}))(_$b)((function(){return 6}))(_$b)((function(){return "hello"}))(_$b)((function(){return "sun"}))(_$b)((function(){return "fruit"}))(_$b)((function(){return "apple"}))(_$s)))}})()));
 ;
 
 if (typeof window !== 'undefined' && window !== null) {

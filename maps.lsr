@@ -17,7 +17,22 @@ get-value-default k default hashmap = do
   val = get-value k hashmap
   if (neq val nil) val default
 
-#foo = add-hash a 3 nil
+
+get-keys hashmap = map (\cell . (key cell)) hashmap
+num-keys hashmap = length (get-keys hashmap)
+
+merge-hash-keys hm1 hm2 keys = if (null? keys) hm1
+  if (null? (get-pair (head keys) hm1) )
+    cons (get-pair (head keys) hm2) (merge-hash-keys hm1 hm2 (tail keys))
+    merge-hash-keys hm1 hm2 (tail keys)
+
+# keys in hm2 take precedence over keys in hm1
+merge-hash hm1 hm2 = merge-hash-keys hm1 hm2 (get-keys hm2)
+
+remove-hash k hashmap = remove-if (\x . eq (key x) k) hashmap
 
 
-remove-hash k hashmap = remove-if (\x . eq (head x) k) hashmap
+foo = hash-from-list [ 'foo', 5, 'hello', 'world', 'j', 23 ]
+bar = hash-from-list [ 'bar', 6, 'hello', 'sun', 'fruit', 'apple' ]
+#merge-hash foo bar
+
