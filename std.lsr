@@ -76,6 +76,7 @@ cons a b =
     b
 
 nil = \a b . b
+null? = eq nil
 append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
 compose f g = \x . f ( g x)
 
@@ -222,23 +223,6 @@ m_varFromTuple ast token = is ast apply
       none
     none
   none
-
-
-###########
-# hashmaps!
-###########
-add-hash k v hashmap = cons (cons k v) (remove-hash k hashmap)
-
-key cons = head cons
-value cons = tail cons
-
-get-pair k hashmap = find-if (\x . eq (head x) k) hashmap
-get-value k hashmap = (\pair. if (eq pair nil) nil (value pair)) (get-pair k hashmap)
-
-#foo = add-hash a 3 nil
-
-
-remove-hash k hashmap = remove-if (\x . eq (head x) k) hashmap
 
 
 ######################

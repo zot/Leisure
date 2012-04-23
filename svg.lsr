@@ -1,0 +1,12 @@
+
+svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', o, '</svg>' ] )
+
+
+field name default map = concat [ name, '="', (get-value-default name default map), '", ' ]
+
+insert-fields list map = if (null? list) ''
+  concat [ (field (head list) (head (tail list)) map), (insert-fields (tail (tail list)) map) ]
+
+circle map = concat [ '<circle ', (field 'cx' 50 map), (field 'cy' 50 map), (field 'r' 40 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'red' map), '/>' ]
+
+
