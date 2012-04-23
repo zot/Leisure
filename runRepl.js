@@ -1,19 +1,26 @@
 (function() {
-  var LZ, R, action, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
+  var LZ, R, U, action, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
 
   LZ = require('./leisure');
 
   R = require('./repl');
 
+  U = require('util');
+
+  LZ.ctx.console = console;
+
+  LZ.ctx.U = U;
+
   importFile = function importFile(file, cont) {
     return R.compile(file, (function() {
       LZ.eval("req('./" + file + "')");
+      LZ.eval("console.log('funcs: ' + U.inspect(leisureFuncs))");
       return cont();
     }), nomacros);
   };
 
   loadStd = function loadStd() {
-    return LZ.eval("Leisure.req('./std')");
+    return LZ.eval("Leisure.processDefs(require('./std'))");
   };
 
   nomacros = false;

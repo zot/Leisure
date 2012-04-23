@@ -1064,16 +1064,13 @@ misrepresented as being the original software.
   };
 
   processDefs = function processDefs(res, gl) {
-    var i, v, _fn, _ref;
+    var i, v, _ref;
     gl = gl != null ? gl : global;
     if (res.defs != null) {
       _ref = res.defs;
-      _fn = function _fn(tmp) {
-        return gl[i] = tmp;
-      };
       for (i in _ref) {
         v = _ref[i];
-        _fn(v);
+        gl[i] = v;
       }
     }
     processTokenDefs(res.tokenDefs);

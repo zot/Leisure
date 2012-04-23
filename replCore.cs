@@ -92,17 +92,18 @@ handleVar = (name, value, env)->
 
 # rewrite in Leisure
 processLine = (line, env)->
+  env = env ? Prim.defaultEnv
   try
     if line
       if line[0] == '!'
         if line[1] == '!'
           result = eval(line.substr(2))
           result = if U? then U.inspect(result) else result
-          env.write(result, "\n")
+          env.write("#{result}\n")
         else
           result = Leisure.eval(line.substr(1))
           result = if U? then U.inspect(result) else result
-          env.write(result, "\n")
+          env.write("#{result}\n")
       else if (m = line.match(/^:v\s*(([^\s]*)\s*([^\s]*)\s*)$/)) then handleVar(m[2], m[3], env)
       else if (m = line.match(/^:c\s*([^\s]*)$/)) then return compileFunc(m[1], env)
       else if (m = line.match(/^:r/)) then resetFunc()

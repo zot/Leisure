@@ -36,9 +36,18 @@
 </ul></li>
 <li>notebook style interface
 <ul>
+<li>exprs that hang in the page are commented out: #@EXPR: + 1 2</li>
+<li>naked exprs are gathered and executed after the file loads, then presented to indicate to the user that they auto-run</li>
 <li>move to bootLeisure.cs</li>
+<li>better formatting
+<ul>
+<li>comments, exprs, and test cases in column 1</li>
+<li>defs in column 2</li>
+<li>enclose def and corresponding comments/exprs/tests within a div</li>
+<li>make tests collapseable</li>
+<li>( -- maybe colums are better than this: group adjacent definitions into the same codeMain border)</li>
+</ul></li>
 <li>make cmd line runRepl parse HTML code files</li>
-<li>group adjacent definitions into the same codeMain border</li>
 <li>put hyperlinks in output to function definitions</li>
 <li>prevent borders from taking up space in doc
 <ul>

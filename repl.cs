@@ -91,16 +91,42 @@ processResult = (result)->
 
 createEnv = ->
   ctxObj =
-    require: require
+    #require: require
+    console: console
     Leisure: L
     Repl: module
     leisureFuncs: {}
     macros: {}
   ctxObj[i] = v for i,v of leisureFuncs
-  ctx = VM.createContext ctxObj
-  ctx.global = ctx
-  L.setEvalFunc ctx, (str)-> VM.runInContext(str, ctx)
-  VM.runInContext("""
+  #ctx = VM.createContext ctxObj
+  #ctx.global = ctx
+  #L.setEvalFunc ctx, (str)-> VM.runInContext(str, ctx)
+  L.setEvalFunc global, (arg)->eval(arg)
+  ctx = global
+  global.Leisure = L
+  global.Repl = module
+  global.leisureFuncs = {}
+  global.macros = {}
+  global.req = L.req
+  ###
+  ctx.U = require('util')
+  #VM.runInContext("""
+  L.eval("""
+(function(req){
+  global.requireCache = {};
+  global.require = function() {
+    var c = req.cache;
+    req.cache = global.requireCache;
+    var result = req.apply(null, arguments);
+    console.log('Called require(' + arguments[0] + '), cache: \\n' + U.inspect(requireCache) + '\\n old cache: \\n' + U.inspect(c))
+    req.cache = c;
+    return result;
+  };
+})
+""")(require)
+  ###
+  #VM.runInContext("""
+  L.eval("""
 (function(){
 var lll;
 
@@ -126,8 +152,9 @@ define = Leisure.define;
 defineMacro = Leisure.defineMacro;
 defineToken = Leisure.defineToken;
 processResult = Repl.processResult;
-""", ctx)
-  VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames)
+""")
+  #VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames)
+  L.eval('leisureSetFuncs')(leisureFuncNames)
 
 createEnv()
 Core.setHelp help

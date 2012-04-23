@@ -13,9 +13,16 @@
    * blocks that run monads on load for configuration, start messages, etc.
    * default pretty-printers for output
 * notebook style interface
+   * exprs that hang in the page are commented out: #@EXPR: + 1 2
+   * naked exprs are gathered and executed after the file loads, then presented to indicate to the user that they auto-run
    * move to bootLeisure.cs
+   * better formatting
+      * comments, exprs, and test cases in column 1
+      * defs in column 2
+	  * enclose def and corresponding comments/exprs/tests within a div
+	  * make tests collapseable
+      * ( -- maybe colums are better than this: group adjacent definitions into the same codeMain border)
    * make cmd line runRepl parse HTML code files
-   * group adjacent definitions into the same codeMain border
    * put hyperlinks in output to function definitions
    * prevent borders from taking up space in doc
       * separate divs by newlines

@@ -129,7 +129,7 @@
   createEnv = function createEnv() {
     var ctx, ctxObj, i, v;
     ctxObj = {
-      require: require,
+      console: console,
       Leisure: L,
       Repl: module,
       leisureFuncs: {},
@@ -139,13 +139,34 @@
       v = leisureFuncs[i];
       ctxObj[i] = v;
     }
-    ctx = VM.createContext(ctxObj);
-    ctx.global = ctx;
-    L.setEvalFunc(ctx, function(str) {
-      return VM.runInContext(str, ctx);
+    L.setEvalFunc(global, function(arg) {
+      return eval(arg);
     });
-    VM.runInContext("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;", ctx);
-    return VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames);
+    ctx = global;
+    global.Leisure = L;
+    global.Repl = module;
+    global.leisureFuncs = {};
+    global.macros = {};
+    global.req = L.req;
+    /*
+      ctx.U = require('util')
+      #VM.runInContext("""
+      L.eval("""
+    (function(req){
+      global.requireCache = {};
+      global.require = function() {
+        var c = req.cache;
+        req.cache = global.requireCache;
+        var result = req.apply(null, arguments);
+        console.log('Called require(' + arguments[0] + '), cache: \\n' + U.inspect(requireCache) + '\\n old cache: \\n' + U.inspect(c))
+        req.cache = c;
+        return result;
+      };
+    })
+    """)(require)
+    */
+    L.eval("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;");
+    return L.eval('leisureSetFuncs')(leisureFuncNames);
   };
 
   createEnv();

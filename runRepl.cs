@@ -1,12 +1,20 @@
 LZ = require('./leisure')
 R = require('./repl')
 
+U=require('util')
+LZ.ctx.console = console
+LZ.ctx.U = U
+
 importFile = (file, cont) ->
   R.compile file, (->
     LZ.eval "req('./#{file}')"
+    LZ.eval "console.log('funcs: ' + U.inspect(leisureFuncs))"
     cont()), nomacros
+  #console.log('funcs: ' + U.inspect(leisureFuncs))
 
-loadStd = -> LZ.eval "Leisure.req('./std')"
+#loadStd = -> LZ.eval "Leisure.req('./std')"
+loadStd = ->
+  LZ.eval "Leisure.processDefs(require('./std'))"
 
 nomacros = false
 action = importFile

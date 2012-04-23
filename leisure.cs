@@ -587,7 +587,8 @@ req = (name, gl)->
 processDefs = (res, gl)->
   gl = gl ? global
   if res.defs? then for i,v of res.defs
-    ((tmp)-> gl[i] = tmp) v
+    #((tmp)-> gl[i] = tmp) v
+    gl[i] = v
   processTokenDefs res.tokenDefs
   res.leisureFuncNames = ctx.leisureFuncNames
   res.ctx = ctx
