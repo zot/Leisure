@@ -6,7 +6,6 @@
 * configuration monads
    * blocks that run monads on load for configuration, start messages, etc.
    * default pretty-printers for output
-* named parsers
 * notebook style interface
    * group adjacent definitions into the same codeMain border
    * put hyperlinks in output to function definitions
@@ -86,6 +85,7 @@
 * Generator improvements
    * eliminate redundant memo/deref pairs
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
+* named parsers
 
 # DONE
 * make eval substitute macros

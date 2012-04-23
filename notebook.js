@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutate, checkMutateToDef, checkMutateToExpr, codeBox, codeSpan, continueRangePosition, envFor, evalOutput, exprBox, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, textNode;
+  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutateFromDelete, checkMutateToDef, codeBox, codeSpan, continueRangePosition, delay, envFor, evalOutput, exprBox, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, selInDef, textNode;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -15,9 +15,27 @@
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
+  delay = function delay(func) {
+    return window.setTimeout(func, 1);
+  };
+
   bindNotebook = function bindNotebook(el) {
     if (!(el.bound != null)) {
       el.bound = true;
+      el.addEventListener('DOMCharacterDataModified', (function(evt) {
+        if (!el.replacing) {
+          return delay(function() {
+            return checkMutateFromDelete(getBox(evt.target));
+          });
+        }
+      }), true, true);
+      el.addEventListener('DOMSubtreeModified', (function(evt) {
+        if (!el.replacing) {
+          return delay(function() {
+            return checkMutateFromDelete(getBox(evt.target));
+          });
+        }
+      }), true, true);
       return el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
         if ((e.charCode || e.keyCode || e.which) === 13) {
@@ -30,7 +48,7 @@
           s.addRange(r);
           return e.preventDefault();
         } else if ((e.charCode || e.keyCode || e.which) === 61) {
-          return checkMutateToDef(e);
+          return checkMutateToDef(e, el);
         } else {
           s = window.getSelection();
           r = s.getRangeAt(0);
@@ -50,46 +68,57 @@
   };
 
   getBox = function getBox(node) {
-    while ((node != null) && !((node.getAttribute('LeisureBox')) != null)) {
+    while ((node != null) && !((typeof node.getAttribute === "function" ? node.getAttribute('LeisureBox') : void 0) != null)) {
       node = node.parentNode;
     }
     return node;
   };
 
-  checkMutate = function checkMutate(e) {
-    if (getBox(e.target) != null) return alert("composing: " + e.target);
-  };
-
-  checkMutateToExpr = function checkMutateToExpr(e) {
-    var b;
-    b = getBox(e.target);
-    if (e.target = p.firstChild && p.classList.contains('codeMain') && (e.newValue.match(/^=|^[^=\n]*(\n|$)/))) {
-      p.classList.remove('codeMain');
-      return p.classList.add('codeExpr');
+  checkMutateFromDelete = function checkMutateFromDelete(b) {
+    var inDef;
+    if (b != null) {
+      inDef = selInDef();
+      if (inDef && b.classList.contains('codeMainExpr')) {
+        b.classList.remove('codeMainExpr');
+        return b.classList.add('codeMain');
+      } else if (!inDef && b.classList.contains('codeMain')) {
+        b.classList.remove('codeMain');
+        return b.classList.add('codeMainExpr');
+      }
     }
   };
 
-  checkMutateToDef = function checkMutateToDef(e) {
-    var defType, leading, m, matched, name, p, r, r2, s, txt;
+  selInDef = function selInDef(expectedClass) {
+    var box, defType, leading, m, matched, name, r, s, txt;
     s = window.getSelection();
-    r = s.getRangeAt(0);
-    p = r.startContainer.parentNode;
-    if (((r.startOffset > 0) || (r.startContainer !== p.firstChild)) && p.classList.contains('codeExpr')) {
-      r2 = r.cloneRange();
-      r2.setStart(p, 0);
-      txt = r.cloneContents().textContent;
-      if ((m = txt.match(Leisure.linePat))) {
-        matched = m[0], leading = m[1], name = m[2], defType = m[3];
-        if (defType) {
-          p.classList.remove('codeExpr');
-          return p.classList.add('codeMain');
+    if (s.rangeCount > 0) {
+      r = s.getRangeAt(0);
+      if ((box = getBox(r.startContainer)) && (!(expectedClass != null) || box.classList.contains(expectedClass))) {
+        txt = box.textContent;
+        if ((m = txt.match(Leisure.linePat))) {
+          matched = m[0], leading = m[1], name = m[2], defType = m[3];
+          return defType && box;
         }
+      }
+    }
+    return false;
+  };
+
+  checkMutateToDef = function checkMutateToDef(e, el) {
+    var p, r, s;
+    if (!el.replacing) {
+      s = window.getSelection();
+      r = s.getRangeAt(0);
+      if (p = selInDef('codeMainExpr')) {
+        p.classList.remove('codeMainExpr');
+        return p.classList.add('codeMain');
       }
     }
   };
 
   initNotebook = function initNotebook(el) {
     var pgm, _ref;
+    el.replacing = true;
     removeOldDefs(el);
     pgm = markupDefs(findDefs(el));
     if (!((el != null ? (_ref = el.lastChild) != null ? _ref.nodeType : void 0 : void 0) === 3 && el.lastChild.data[el.lastChild.data.length - 1] === '\n')) {
@@ -98,6 +127,7 @@
       el.appendChild(textNode('\n'));
     }
     el.normalize();
+    el.replacing = false;
     return pgm;
   };
 
@@ -287,7 +317,7 @@
         outerRange = makeRange(el, mainStart, mainEnd);
         return [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), next];
       } else {
-        mainStart = matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
+        mainStart = def === '=' ? restOff + m.index + m[0].length : matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
         ex = txt.substring(mainStart, mainEnd).match(/^(.*[^ \n])[ \n]*$/);
         exEnd = ex ? mainStart + ex[1].length : mainEnd;
         outerRange = makeRange(el, mainStart, exEnd);

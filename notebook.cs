@@ -9,9 +9,14 @@ if window? and (!global? or global == window)
   window.Notebook = root = {}
 else root = exports ? this
 
+delay = (func)->
+  window.setTimeout func, 1
+
 bindNotebook = (el)->
   if !el.bound?
     el.bound = true
+    el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromDelete getBox(evt.target))), true, true
+    el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromDelete getBox(evt.target))), true, true
     el.addEventListener 'keypress', (e)->
       if (e.charCode || e.keyCode || e.which) == 13
         br = textNode('\n')
@@ -22,7 +27,7 @@ bindNotebook = (el)->
         s.removeAllRanges()
         s.addRange(r)
         e.preventDefault()
-      else if (e.charCode || e.keyCode || e.which) == 61 then checkMutateToDef e
+      else if (e.charCode || e.keyCode || e.which) == 61 then checkMutateToDef e, el
       else
         s = window.getSelection()
         r = s.getRangeAt(0)
@@ -37,34 +42,41 @@ bindNotebook = (el)->
           s.addRange(r)
 
 getBox = (node)->
-  while node? and !(node.getAttribute 'LeisureBox')?
+  while node? and !(node.getAttribute?('LeisureBox'))?
     node = node.parentNode
   node
 
-checkMutate = (e)->
-  if getBox(e.target)? then alert("composing: #{e.target}")
+checkMutateFromDelete = (b)->
+  if b?
+    inDef = selInDef()
+    if inDef and b.classList.contains('codeMainExpr')
+      b.classList.remove 'codeMainExpr'
+      b.classList.add 'codeMain'
+    else if !inDef and b.classList.contains('codeMain')
+      b.classList.remove 'codeMain'
+      b.classList.add 'codeMainExpr'
 
-checkMutateToExpr = (e)->
-  b = getBox e.target
-  if e.target = p.firstChild and p.classList.contains('codeMain') and (e.newValue.match /^=|^[^=\n]*(\n|$)/)
-    p.classList.remove 'codeMain'
-    p.classList.add 'codeExpr'
-
-checkMutateToDef = (e)->
+selInDef = (expectedClass)->
   s = window.getSelection()
-  r = s.getRangeAt(0)
-  p = r.startContainer.parentNode
-  if ((r.startOffset > 0) or (r.startContainer != p.firstChild)) and p.classList.contains('codeExpr')
-    r2 = r.cloneRange()
-    r2.setStart(p, 0)
-    txt = r.cloneContents().textContent
-    if (m = txt.match Leisure.linePat)
-      [matched, leading, name, defType] = m
-      if defType
-        p.classList.remove 'codeExpr'
-        p.classList.add 'codeMain'
+  if s.rangeCount > 0
+    r = s.getRangeAt(0)
+    if (box = getBox r.startContainer) and (!expectedClass? or box.classList.contains(expectedClass))
+      txt = box.textContent
+      if (m = txt.match Leisure.linePat)
+        [matched, leading, name, defType] = m
+        return defType and box
+  false
+
+checkMutateToDef = (e, el)->
+  if !el.replacing
+    s = window.getSelection()
+    r = s.getRangeAt(0)
+    if p = selInDef('codeMainExpr')
+      p.classList.remove 'codeMainExpr'
+      p.classList.add 'codeMain'
 
 initNotebook = (el)->
+  el.replacing = true
   removeOldDefs el
   pgm = markupDefs findDefs el
   if !(el?.lastChild?.nodeType == 3 and el.lastChild.data[el.lastChild.data.length - 1] == '\n')
@@ -75,6 +87,7 @@ initNotebook = (el)->
   # bx.appendChild textNode('\n')
   # el.appendChild bx
   el.normalize()
+  el.replacing = false
   pgm
 
 removeOldDefs = (el)->
@@ -203,7 +216,7 @@ getRanges = (el, txt, rest, def, restOff)->
         outerRange = makeRange el, mainStart, mainEnd
         [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), next]
       else
-        mainStart = matchStart + (leading?.length ? 0)
+        mainStart = if def == '=' then restOff + m.index + m[0].length else matchStart + (leading?.length ? 0)
         ex = txt.substring(mainStart, mainEnd).match /^(.*[^ \n])[ \n]*$/
         exEnd = if ex then mainStart + ex[1].length else mainEnd
         outerRange = makeRange el, mainStart, exEnd
