@@ -109,7 +109,8 @@
           str.end(out);
           return str.destroySoon();
         } catch (err) {
-          write(err.stack);
+          console.log("ERROR: " + err.stack);
+          write(err.stack + "\n");
           return cont();
         }
       });

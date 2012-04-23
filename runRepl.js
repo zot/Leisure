@@ -19,7 +19,7 @@
   };
 
   loadStd = function loadStd() {
-    return LZ.eval("Leisure.processDefs(require('./std'))");
+    return LZ.eval("Leisure.req('./std')");
   };
 
   nomacros = false;
@@ -37,9 +37,6 @@
       loadStd = function loadStd() {};
       nomacros = true;
     } else if (process.argv[i] === '-c') {
-      action = function action(f, cont) {
-        return R.compile(f, cont, nomacros);
-      };
       next = function next() {};
     } else if (process.argv[i] === '-q') {
       R.loud = 0;

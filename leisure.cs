@@ -250,9 +250,7 @@ gen = (ast, code, lits, vars, deref)->
         else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) then code
         #else code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
         else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
-        else
-          console.log "FREE: #{val}, type: #{typeof val}"
-          code.addErr "attempt to use free variable: #{val}"
+        else code.addErr "attempt to use free variable: #{val}"
     when 'lit'
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'
@@ -581,13 +579,11 @@ setEvalFunc = (ct, func)->
   ctx = root.ctx = ct
   root.eval = evalFunc = func
 
-req = (name, gl)->
-  processDefs(require(name), gl)
+req = (name, gl)-> processDefs(require(name), gl)
 
 processDefs = (res, gl)->
   gl = gl ? global
   if res.defs? then for i,v of res.defs
-    #((tmp)-> gl[i] = tmp) v
     gl[i] = v
   processTokenDefs res.tokenDefs
   res.leisureFuncNames = ctx.leisureFuncNames

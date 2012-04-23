@@ -10,9 +10,8 @@ importFile = (file, cont) ->
     LZ.eval "req('./#{file}')"
     cont()), nomacros
 
-#loadStd = -> LZ.eval "Leisure.req('./std')"
-loadStd = ->
-  LZ.eval "Leisure.processDefs(require('./std'))"
+loadStd = -> LZ.eval "Leisure.req('./std')"
+#loadStd = -> LZ.eval "Leisure.processDefs(require('./std'))"
 
 nomacros = false
 action = importFile
@@ -31,9 +30,7 @@ Usage: #{process.argv[0]} [[-c | -q | -b] file...]
   else if process.argv[i] == '-b'
     loadStd = ->
     nomacros = true
-  else if process.argv[i] == '-c'
-    action = (f, cont)->R.compile f, cont, nomacros
-    next = ->
+  else if process.argv[i] == '-c' then next = ->
   else if process.argv[i] == '-q' then R.loud = 0
   else if process.argv[i] == '-v' then R.loud++
   else break

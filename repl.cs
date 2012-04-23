@@ -78,7 +78,8 @@ compile = (file, cont, nomacros)->
         str.end out
         str.destroySoon()
       catch err
-        write err.stack
+        console.log "ERROR: #{err.stack}"
+        write err.stack + "\n"
         cont()
     stream.on 'error', (ex)->
       console.log("Exception reading file: ", ex.stack)

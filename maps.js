@@ -57,8 +57,8 @@ root.defs._merge$nhash$nkeys = _merge$nhash$nkeys = define('merge-hash-keys', fu
 //merge-hash = AST(\hm1 hm2 . merge-hash-keys hm1 hm2 (get-keys hm2))
 root.defs._merge$nhash = _merge$nhash = define('merge-hash', function(_hm1){return function(_hm2){return _merge$nhash$nkeys()(_hm1)(_hm2)((function(){var $m; return function(){return $m || ($m = (_get$nkeys()(_hm2)))}})())}});
 ;
-//remove-hash = AST(\k hashmap . remove-if \x . eq (head x) k hashmap)
-root.defs._remove$nhash = _remove$nhash = define('remove-hash', function(_k){return function(_hashmap){return _remove$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_head()(_x)))}})())(_k)}))}})())(_hashmap)}});
+//remove-hash = AST(\k hashmap . remove-if \x . eq (key x) k hashmap)
+root.defs._remove$nhash = _remove$nhash = define('remove-hash', function(_k){return function(_hashmap){return _remove$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_key()(_x)))}})())(_k)}))}})())(_hashmap)}});
 ;
 //foo = AST(hash-from-list ([ foo , 5 , hello , world , j , 23 ]))
 root.defs._foo = _foo = define('foo', _hash$nfrom$nlist()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "foo"}))(_$b)((function(){return 5}))(_$b)((function(){return "hello"}))(_$b)((function(){return "world"}))(_$b)((function(){return "j"}))(_$b)((function(){return 23}))(_$s)))}})()));

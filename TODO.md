@@ -1,5 +1,9 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
+* configuration monads
+   * require
+   * default pretty-printers for output
+   * run-test-cases -- run test cases after loading this file
 * report indentation underflows
 * parser macros should return (ast, errors, warnings)
 * error if let/do has no expr
@@ -9,12 +13,18 @@
 * add assertMonad() to testing.cs
    * probably use env for this
 * pretty printer function can take an assoc-list of printers for types
-* configuration monads
-   * blocks that run monads on load for configuration, start messages, etc.
-   * default pretty-printers for output
 * notebook style interface
+   * make programs html pages with code attributes
+	  * in browser, use document.querySelector('[code]')
+      * in node, use htmlparser (npm install htmlparser)
+      * include \<script src='bootLeisure.js> element that boots the Leisure env on that page
+         * clones doc
+		 * adds iframe with leisure env
+         * hands leisure the clone to analyze and the current doc to mutate
    * exprs that hang in the page are commented out: #@EXPR: + 1 2
+   * vision statements in default notebook
    * naked exprs are gathered and executed after the file loads, then presented to indicate to the user that they auto-run
+      * notebook-hide-source: monad to hide source
    * move to bootLeisure.cs
    * better formatting
       * comments, exprs, and test cases in column 1
@@ -32,13 +42,6 @@
       * monitor input and test first line to see if it changes between expr and def -- change box
 	  * dynamically add expr box on naked input
    * use in-doc prompt, instad of popup
-   * make programs html pages with code attributes
-	  * in browser, use document.querySelector('[code]')
-      * in node, use htmlparser (npm install htmlparser)
-      * include \<script src='bootLeisure.js> element that boots the Leisure env on that page
-         * clones doc
-		 * adds iframe with leisure env
-         * hands leisure the clone to analyze and the current doc to mutate
    * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
    * comments that attach event handlers?
    * make TTT into a notebook that shows the TTT grid

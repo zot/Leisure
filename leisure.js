@@ -517,7 +517,6 @@ misrepresented as being the original software.
           } else if (typeof val === 'number') {
             return code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref);
           } else {
-            console.log("FREE: " + val + ", type: " + (typeof val));
             return code.addErr("attempt to use free variable: " + val);
           }
         }
