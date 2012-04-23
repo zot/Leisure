@@ -15,8 +15,8 @@ delay = (func)->
 bindNotebook = (el)->
   if !el.bound?
     el.bound = true
-    el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromDelete getBox(evt.target))), true, true
-    el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromDelete getBox(evt.target))), true, true
+    el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
+    el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
     el.addEventListener 'keypress', (e)->
       if (e.charCode || e.keyCode || e.which) == 13
         br = textNode('\n')
@@ -46,7 +46,7 @@ getBox = (node)->
     node = node.parentNode
   node
 
-checkMutateFromDelete = (b)->
+checkMutateFromModification = (b)->
   if b?
     inDef = selInDef()
     if inDef and b.classList.contains('codeMainExpr')
@@ -136,8 +136,10 @@ markupDefs = (defs)->
 textNode = (text)-> document.createTextNode(text)
 
 evalOutput = (exBox)->
-  ReplCore.processLine(exBox.source.textContent, envFor(exBox))
+  ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
   #alert("Eval: #{exBox.source.textContent}")
+
+prepExpr = (txt)-> if txt[0] == '=' then txt else "=#{txt}"
 
 envFor = (exBox)->
   write: (msg)->
