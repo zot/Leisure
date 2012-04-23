@@ -231,8 +231,7 @@
   envFor = function envFor(exBox) {
     return {
       write: function write(msg) {
-        exBox.innerHTML += msg + "<br>";
-        return exBox.lastChild.scrollIntoView();
+        return exBox.innerHTML += msg + "<br>";
       },
       prompt: function prompt(msg, cont) {
         return cont(window.prompt(msg));

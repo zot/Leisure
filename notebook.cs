@@ -149,7 +149,6 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 envFor = (exBox)->
   write: (msg)->
     exBox.innerHTML += msg + "<br>"
-    exBox.lastChild.scrollIntoView()
   prompt:(msg, cont)-> cont(window.prompt(msg))
 
 makeOutputBox = (source)->
