@@ -16,6 +16,10 @@
 <h1>TODO</h1>
 
 <ul>
+<li>report indentation underflows</li>
+<li>parser macros should return (ast, errors, warnings)</li>
+<li>error if let/do has no expr</li>
+<li>error if let finds more than one body expr</li>
 <li>add assertMonad() to testing.cs
 <ul>
 <li>probably use env for this</li>
@@ -28,6 +32,8 @@
 </ul></li>
 <li>notebook style interface
 <ul>
+<li>move to bootLeisure.cs</li>
+<li>make cmd line runRepl parse HTML code files</li>
 <li>group adjacent definitions into the same codeMain border</li>
 <li>put hyperlinks in output to function definitions</li>
 <li>prevent borders from taking up space in doc
@@ -42,7 +48,6 @@
 <li>dynamically add expr box on naked input</li>
 </ul></li>
 <li>use in-doc prompt, instad of popup</li>
-<li>move to bootLeisure.cs</li>
 <li>make programs html pages with code attributes
 <ul>
 <li>in browser, use document.querySelector('[code]')</li>
@@ -73,8 +78,6 @@
 <li>{ and } would be a grouping macros</li>
 </ul></li>
 <li>debug mode should put a cons into funcs of a new exception and the list from the parent</li>
-<li>parser macros should return (ast, errors, warnings)</li>
-<li>error if let finds more than one body expr</li>
 <li>add prelude.lsr
 <ul>
 <li>put parser macros in there</li>

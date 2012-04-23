@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutateFromDelete, checkMutateToDef, codeBox, codeSpan, continueRangePosition, delay, envFor, evalOutput, exprBox, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, removeOldDefs, root, selInDef, textNode;
+  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, codeBox, codeSpan, continueRangePosition, delay, envFor, evalOutput, exprBox, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeRange, markupDefs, nodeEnd, prepExpr, removeOldDefs, root, selInDef, textNode;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -25,14 +25,14 @@
       el.addEventListener('DOMCharacterDataModified', (function(evt) {
         if (!el.replacing) {
           return delay(function() {
-            return checkMutateFromDelete(getBox(evt.target));
+            return checkMutateFromModification(getBox(evt.target));
           });
         }
       }), true, true);
       el.addEventListener('DOMSubtreeModified', (function(evt) {
         if (!el.replacing) {
           return delay(function() {
-            return checkMutateFromDelete(getBox(evt.target));
+            return checkMutateFromModification(getBox(evt.target));
           });
         }
       }), true, true);
@@ -74,7 +74,7 @@
     return node;
   };
 
-  checkMutateFromDelete = function checkMutateFromDelete(b) {
+  checkMutateFromModification = function checkMutateFromModification(b) {
     var inDef;
     if (b != null) {
       inDef = selInDef();
@@ -204,7 +204,15 @@
   };
 
   evalOutput = function evalOutput(exBox) {
-    return ReplCore.processLine(exBox.source.textContent, envFor(exBox));
+    return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
+  };
+
+  prepExpr = function prepExpr(txt) {
+    if (txt[0] === '=') {
+      return txt;
+    } else {
+      return "=" + txt;
+    }
   };
 
   envFor = function envFor(exBox) {
