@@ -248,7 +248,11 @@ gen = (ast, code, lits, vars, deref)->
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
         else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) then code
-        else code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
+        #else code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
+        else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
+        else
+          console.log "FREE: #{val}, type: #{typeof val}"
+          code.addErr "attempt to use free variable: #{val}"
     when 'lit'
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'
@@ -542,6 +546,7 @@ scanName = (name)->
   try
     l = JSON.parse(name)
     if typeof l == 'string' then lit(laz(l))
+    else if typeof l == 'number' then ref(laz(l))
     else ref(laz(name))
   catch err
     ref(laz(name))

@@ -59,19 +59,19 @@ Tests for Leisure
   });
 
   run('test3', function() {
-    return assertEval("(\\x . x) hello", 'hello');
+    return assertEval("(\\x . x) 'hello'", 'hello');
   });
 
   run('test4', function() {
-    return assertEval("eval (apply (lambda x (ref x)) (lit hello))", 'hello');
+    return assertEval("eval (apply (lambda 'x' (ref 'x')) (lit 'hello'))", 'hello');
   });
 
   run('test5', function() {
-    return assertEval("(eq cons cons) yes no", 'yes');
+    return assertEval("(eq cons cons) 'yes' 'no'", 'yes');
   });
 
   run('test6', function() {
-    return assertEval("(eq cons true) yes no", 'no');
+    return assertEval("(eq cons true) 'yes' 'no'", 'no');
   });
 
   run('test7', function() {
@@ -91,23 +91,23 @@ Tests for Leisure
   });
 
   run('test11', function() {
-    return assertEval("last (cons a nil)", 'a');
+    return assertEval("last (cons 'a' nil)", 'a');
   });
 
   run('test12', function() {
-    return assertEval("last (cons a (cons b nil))", 'b');
+    return assertEval("last (cons 'a' (cons 'b' nil))", 'b');
   });
 
   run('test13', function() {
-    return assertEval("(is (cons a b) cons) yes no", 'yes');
+    return assertEval("(is (cons 'a' 'b') cons) 'yes' 'no'", 'yes');
   });
 
   run('test14', function() {
-    return assertEval("(eval (lambda a (lambda b (ref a)))) yes no", 'yes');
+    return assertEval("(eval (lambda 'a' (lambda 'b' (ref 'a')))) 'yes' 'no'", 'yes');
   });
 
   run('test15', function() {
-    return assertEval("(\\1 .; 1) hello", 'hello');
+    return assertEval("(\\1 .; 1) 'hello'", 'hello');
   });
 
   run('test16', function() {

@@ -4,6 +4,8 @@
 * parser macros should return (ast, errors, warnings)
 * error if let/do has no expr
 * error if let finds more than one body expr
+* debug mode should put a cons into funcs of a new error and the list from the parent
+   * can use this to see the origin of a thunk
 * add assertMonad() to testing.cs
    * probably use env for this
 * pretty printer function can take an assoc-list of printers for types
@@ -34,16 +36,14 @@
    * comments that attach event handlers?
    * make TTT into a notebook that shows the TTT grid
    * optionally hide source code
-* better browser environment
-   * left side should be an editor
-   * loading files should load them into the editor
-   * input should be in a blinking box on the right side, not in an alert box
-   * should be able to load *.lsr files into the environment
-* use curlies for do/let
+   * load/save
+* a 'require' directive that works in browsers and on the cmd line
+   * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
+* use curlies for do/let?
+   * not sure what this means for indentation
    * remove intermediate step of inserting {}; -- convert directly to parenthesized groups
    * allow newlines in open groups
    * { and } would be a grouping macros
-* debug mode should put a cons into funcs of a new exception and the list from the parent
 * add prelude.lsr
    * put parser macros in there
 * integrate physics engine

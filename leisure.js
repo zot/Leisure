@@ -514,8 +514,11 @@ misrepresented as being the original software.
             return v === val;
           })) {
             return code;
-          } else {
+          } else if (typeof val === 'number') {
             return code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref);
+          } else {
+            console.log("FREE: " + val + ", type: " + (typeof val));
+            return code.addErr("attempt to use free variable: " + val);
           }
         }
         break;
@@ -1000,6 +1003,8 @@ misrepresented as being the original software.
       l = JSON.parse(name);
       if (typeof l === 'string') {
         return lit(laz(l));
+      } else if (typeof l === 'number') {
+        return ref(laz(l));
       } else {
         return ref(laz(name));
       }
