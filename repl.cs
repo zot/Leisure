@@ -67,13 +67,18 @@ compile = (file, cont, nomacros)->
       if !Path.existsSync(file)
         console.log("No file: #{oldfile}")
         return cont()
+    jsFile = "#{Path.basename file, '.lsr'}.js"
+    if Path.existsSync(jsFile)
+      FS.unlink(jsFile)
     stream = FS.createReadStream(file)
     stream.on 'data', (data)-> contents += data
     stream.on 'end', ()->
       try
         out = Core.generateCode(file, contents, root.loud, null, nomacros)
-        str = FS.createWriteStream("#{Path.basename file, '.lsr'}.js")
-        str.on 'close', -> cont()
+        str = FS.createWriteStream("#{jsFile}Tmp")
+        str.on 'close', ->
+          FS.renameSync("#{jsFile}Tmp", jsFile)
+          cont()
         str.on 'error', -> cont()
         str.end out
         str.destroySoon()
@@ -90,6 +95,7 @@ processResult = (result)->
   write("#{getType result}: #{P.print(result)}\n")
   Core.processResult result
 
+# patched to just prep the global env instead of creating a new one for now
 createEnv = ->
   ctxObj =
     #require: require
@@ -153,6 +159,7 @@ define = Leisure.define;
 defineMacro = Leisure.defineMacro;
 defineToken = Leisure.defineToken;
 processResult = Repl.processResult;
+setContext = Leisure.setContext;
 """)
   #VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames)
   L.eval('leisureSetFuncs')(leisureFuncNames)

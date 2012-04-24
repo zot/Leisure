@@ -46,6 +46,7 @@ handlerFunc = (ast, result, a, c, r, src, env)->
         env.write("(No Result)\n")
         nextFunc()
       else
+        global.$0 = result
         env.write("#{getType result}: #{P.print(result)}\n")
         processResult result
 

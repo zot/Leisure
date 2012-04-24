@@ -220,7 +220,7 @@ class Code
 dgen = (ast, lazy, name, globals, tokenDef)->
   ast.lits = []
   res = []
-  code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true) #.memo(!lazy)
+  code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name) #.memo(!lazy)
   if code.err != '' then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
@@ -235,11 +235,23 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   ast.globals = code.global
   ast
 
-wrap = (ast, src)->
+wrapNoDebug = (name, ast, v, body)->
+  src = "function(#{v}){return #{body}}"
   if !ast.exprType? and !ast.exprDataType then src
   else "#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
 
-gen = (ast, code, lits, vars, deref)->
+wrapDebug = (name, ast, v, body)->
+  if !ast.exprType? and !ast.exprDataType
+    if name? "setContext($ctx, (#{src}))" else src
+  else "#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
+
+wrap = wrapNoDebug
+
+setContext = (ctx, func)->
+  func.LeisureContext = ctx
+  func
+
+gen = (ast, code, lits, vars, deref, name)->
   switch getAstType ast
     when 'ref'
       val = getRefVar ast
@@ -260,17 +272,17 @@ gen = (ast, code, lits, vars, deref)->
       code.copyWith(src).unreffedValue(deref)
     when 'lambda'
       v = getLambdaVar ast
-      bodyCode = (gen (getLambdaBody ast), code.resetMemo(), lits, cons(v, vars), true)
+      bodyCode = (gen (getLambdaBody ast), code.resetMemo(), lits, cons(v, vars), true, name)
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
-      bodyCode.copyWith(wrap(ast, "function(#{nameSub(v)}){return #{bodyCode.main}}")).useSubfunc(bodyCode.vars == Nil).memoize(deref)
+      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main)).useSubfunc(bodyCode.vars == Nil).memoize(deref)
     when 'apply'
       func = getApplyFunc ast
       if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
       else if freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
       else
         arg = getApplyArg ast
-        funcCode = gen func, code, lits, vars, true
-        argCode = gen arg, funcCode, lits, vars
+        funcCode = gen func, code, lits, vars, true, name
+        argCode = gen arg, funcCode, lits, vars, false, name
         argCode.copyWith("#{funcCode.main}(#{argCode.main})").memoize(deref) #.unreffedValue(deref)
     else code.addErr "Unknown object type in gen: #{ast}"
 

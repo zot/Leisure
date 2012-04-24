@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, prefix, prepare, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wordPat, wrap,
+  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, prefix, prepare, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -476,7 +476,7 @@ misrepresented as being the original software.
     var code, res;
     ast.lits = [];
     res = [];
-    code = gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true);
+    code = gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name);
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
@@ -488,8 +488,9 @@ misrepresented as being the original software.
     return ast;
   };
 
-  wrap = function wrap(ast, src) {
-    var _ref;
+  wrapNoDebug = function wrapNoDebug(name, ast, v, body) {
+    var src, _ref;
+    src = "function(" + v + "){return " + body + "}";
     if (!(ast.exprType != null) && !ast.exprDataType) {
       return src;
     } else {
@@ -497,7 +498,25 @@ misrepresented as being the original software.
     }
   };
 
-  gen = function gen(ast, code, lits, vars, deref) {
+  wrapDebug = function wrapDebug(name, ast, v, body) {
+    var _ref;
+    if (!(ast.exprType != null) && !ast.exprDataType) {
+      if (typeof name === "function" ? name("setContext($ctx, (" + src + "))") : void 0) {} else {
+        return src;
+      }
+    } else {
+      return "" + (ast.exprType ? 'setType' : 'setDataType') + "(" + src + ", '" + ((_ref = ast.exprType) != null ? _ref : ast.exprDataType) + "')";
+    }
+  };
+
+  wrap = wrapNoDebug;
+
+  setContext = function setContext(ctx, func) {
+    func.LeisureContext = ctx;
+    return func;
+  };
+
+  gen = function gen(ast, code, lits, vars, deref, name) {
     var arg, argCode, bodyCode, func, funcCode, src, v, val;
     switch (getAstType(ast)) {
       case 'ref':
@@ -527,11 +546,11 @@ misrepresented as being the original software.
         return code.copyWith(src).unreffedValue(deref);
       case 'lambda':
         v = getLambdaVar(ast);
-        bodyCode = gen(getLambdaBody(ast), code.resetMemo(), lits, cons(v, vars), true);
+        bodyCode = gen(getLambdaBody(ast), code.resetMemo(), lits, cons(v, vars), true, name);
         bodyCode = bodyCode.setVars(bodyCode.vars.removeAll(function(bv) {
           return bv === v;
         }));
-        return bodyCode.copyWith(wrap(ast, "function(" + (nameSub(v)) + "){return " + bodyCode.main + "}")).useSubfunc(bodyCode.vars === Nil).memoize(deref);
+        return bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main)).useSubfunc(bodyCode.vars === Nil).memoize(deref);
       case 'apply':
         func = getApplyFunc(ast);
         if (getAstType(func === 'lit')) {
@@ -540,8 +559,8 @@ misrepresented as being the original software.
           return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
         } else {
           arg = getApplyArg(ast);
-          funcCode = gen(func, code, lits, vars, true);
-          argCode = gen(arg, funcCode, lits, vars);
+          funcCode = gen(func, code, lits, vars, true, name);
+          argCode = gen(arg, funcCode, lits, vars, false, name);
           return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").memoize(deref);
         }
         break;

@@ -62,6 +62,7 @@
           env.write("(No Result)\n");
           return nextFunc();
         } else {
+          global.$0 = result;
           env.write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
           return processResult(result);
         }

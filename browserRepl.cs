@@ -25,6 +25,7 @@ init = (inputField, output)->
   #ReplCore.setWriter writeOutput
   #ReplCore.setNext -> input.value = ''
   ReplCore.setHandler (ast, result, a, c, r, src, env)->
+    global.$0 = result
     if !ast.leisureName? and result?
       env.write "<span><b> #{escapeHtml(src)} \u2192</b>\n  #{ReplCore.getType result}: #{if (ReplCore.getType result) == 'html' then getHtml result else escapeHtml(Pretty.print result)}</span>\n"
     ReplCore.processResult result, env
