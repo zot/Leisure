@@ -1,12 +1,12 @@
 
-svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="scene" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', o, '</svg>' ] )
-
-svg-file f map = html (concat [ '<object xmlns="http://www.w3.org/2000/svg" version="1.1" id="scene" data="', f, '" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', '</object>' ] )
-
-field cell = concat [ (key cell), '="', (value cell), '", ' ]
-
 insert-fields map = if (null? map) ''
   concat [ (field (first-pair map)), (insert-fields (rest-pairs map)) ]
+
+svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="scene" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', o, '</svg>' ] )
+
+svg-file map = html (concat [ '<object xmlns="http://www.w3.org/2000/svg" version="1.1" ', (insert-fields map), '</object>' ] )
+
+field cell = concat [ (key cell), '="', (value cell), '", ' ]
 
 default-circle-map = hash-from-list [ 'cx', 50, 'cy', 50, 'r', 40, 'stroke', 'black', 'stroke-width', 2, 'fill', 'red' ]
 default-rect-map = hash-from-list [ 'x', 1, 'y', 1, 'width', 50, 'height', 50, 'stroke', 'black', 'stroke-width', 2, 'fill', 'green' ]

@@ -200,17 +200,13 @@
 	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; padding: 0" id="editor" class="cell" contentEditable="true">
 
 
-svg-map = hash-from-list [ 'width', 500, 'height', 600 ]
+svg-map = hash-from-list [ 'id', 'scene', 'data', 'ttt.svg', 'onload', 'tttLoaded()', 'width', 500, 'height', 600 ]
 
-svg-file 'ttt.svg' svg-map
+svg-file svg-map
 
-start = do
-  svg-file 'ttt.svg' svg-map
-  js [ 'tttLoaded()' ]
-
+start = svg-file svg-map
 
 start
-
 
             </pre>
 	  </div>
