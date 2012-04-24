@@ -68,10 +68,10 @@ define 'lte', (a)->(b)->if a() <= b() then `_true()` else `_false()`
 eventCmds = []
 running = false
 
-leisureEvent = (leisureFuncName, evt)->
+leisureEvent = (leisureFuncName, evt, env)->
   currentEvent = evt
   monad = Leisure.eval("#{Leisure.nameSub(leisureFuncName)}()")(laz(evt))
-  runMonad monad, defaultEnv, ->
+  runMonad monad, (env ? defaultEnv), ->
 
 runMonad = (monad, env, cont)->
   eventCmds.push ->
@@ -86,6 +86,8 @@ runMonad = (monad, env, cont)->
 runMonads = (monad, env, cont)->
   if monad?.cmd?
     monad.cmd env, (value) ->
+      #change to this use setTimeout, kind of like this (which doesn't quite work)
+      #if monad.binding? then global.setTimeout((->runMonads monad.binding(-> value), env, cont), 1)
       if monad.binding? then runMonads monad.binding(-> value), env, cont
       else cont(value)
   else throw new Error("Attempted to run something that's not a monad")

@@ -214,11 +214,11 @@
 
   running = false;
 
-  leisureEvent = function leisureEvent(leisureFuncName, evt) {
+  leisureEvent = function leisureEvent(leisureFuncName, evt, env) {
     var currentEvent, monad;
     currentEvent = evt;
     monad = Leisure.eval("" + (Leisure.nameSub(leisureFuncName)) + "()")(laz(evt));
-    return runMonad(monad, defaultEnv, function() {});
+    return runMonad(monad, env != null ? env : defaultEnv, function() {});
   };
 
   runMonad = function runMonad(monad, env, cont) {

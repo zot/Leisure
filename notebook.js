@@ -240,10 +240,15 @@
     }
   };
 
-  envFor = function envFor(exBox) {
+  envFor = function envFor(box) {
+    var exBox;
+    exBox = getBox(box);
     return {
       write: function write(msg) {
-        return exBox.innerHTML += msg + "<br>";
+        var div;
+        div = document.createElement('div');
+        div.innerHTML = "" + msg + "\n";
+        return exBox.appendChild(div);
       },
       prompt: function prompt(msg, cont) {
         return cont(window.prompt(msg));
@@ -256,6 +261,7 @@
     node = document.createElement('div');
     node.setAttribute('LeisureOutput', '');
     node.setAttribute('Leisure', '');
+    node.setAttribute('LeisureBox', '');
     node.setAttribute('class', 'output');
     node.setAttribute('contentEditable', 'false');
     node.source = source;
@@ -446,5 +452,7 @@
   root.evalOutput = evalOutput;
 
   root.cleanOutput = cleanOutput;
+
+  root.envFor = envFor;
 
 }).call(this);

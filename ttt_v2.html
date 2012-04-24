@@ -18,11 +18,15 @@
     <script src="ttt.js"></script>
 
     <script>//<[!CDATA[
-
+	function initSVG(el) {
+	  el.getSVGDocument().defaultView.leisureEnv = el.leisureEnv = Notebook.envFor(el);
+	  //delay this to the next cycle
+	  window.setTimeout(tttLoaded, 1);
+	}
 	function tttLoaded()
 	{
 	  tttWin = document.getElementById('scene').getSVGDocument().defaultView
-          tttWin.leisureEvent = function(funcName) {Prim.leisureEvent(funcName, tttWin.event);}
+          tttWin.leisureEvent = function(funcName) {Prim.leisureEvent(funcName, tttWin.event, tttWin.leisureEnv);}
 	  tttWin.leisureEvent('newGame')
 	}
 
@@ -200,7 +204,7 @@
 	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; padding: 0" id="editor" class="cell" contentEditable="true">
 
 
-svg-map = hash-from-list [ 'id', 'scene', 'data', 'ttt.svg', 'onload', 'tttLoaded()', 'width', 500, 'height', 600 ]
+svg-map = hash-from-list [ 'id', 'scene', 'data', 'ttt.svg', 'onload', 'initSVG(this)', 'width', 500, 'height', 600 ]
 
 svg-file svg-map
 

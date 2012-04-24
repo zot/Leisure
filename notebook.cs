@@ -153,14 +153,19 @@ cleanOutput = (exBox)->
 
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
-envFor = (exBox)->
-  write: (msg)-> exBox.innerHTML += msg + "<br>"
+envFor = (box)->
+  exBox = getBox box
+  write: (msg)->
+    div = document.createElement('div')
+    div.innerHTML = "#{msg}\n"
+    exBox.appendChild(div)
   prompt:(msg, cont)-> cont(window.prompt(msg))
 
 makeOutputBox = (source)->
   node = document.createElement 'div'
   node.setAttribute 'LeisureOutput', ''
   node.setAttribute 'Leisure', ''
+  node.setAttribute 'LeisureBox', ''
   node.setAttribute 'class', 'output'
   node.setAttribute 'contentEditable', 'false'
   node.source = source
@@ -283,5 +288,6 @@ root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
 root.evalOutput = evalOutput
 root.cleanOutput = cleanOutput
+root.envFor = envFor
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])
