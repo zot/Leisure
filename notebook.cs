@@ -139,10 +139,17 @@ markupDefs = (defs)->
 textNode = (text)-> document.createTextNode(text)
 
 evalOutput = (exBox)->
-  while exBox.firstChild != exBox.lastChild
-    exBox.removeChild exBox.lastChild
+  cleanOutput exBox
+  b = document.createElement('button')
+  b.setAttribute('onclick', 'Notebook.cleanOutput(this.parentNode)')
+  b.innerHTML = "X"
+  exBox.appendChild b
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
   #alert("Eval: #{exBox.source.textContent}")
+
+cleanOutput = (exBox)->
+  while exBox.firstChild != exBox.lastChild
+    exBox.removeChild exBox.lastChild
 
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
@@ -275,5 +282,6 @@ addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputed
 root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
 root.evalOutput = evalOutput
+root.cleanOutput = cleanOutput
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])
