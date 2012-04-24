@@ -11,9 +11,13 @@ hash-from-list l = if (null? l) nil
 key cons = head cons
 value cons = tail cons
 
-get-pair-opt k = find-if-opt (\x . eq (head x) k)
 get-pair k hashmap = find-if (\x . eq (head x) k) hashmap
+
+# get-pair-opt returns a 2-valued option
+get-pair-opt k l = l (\h t D . h (\kk vv . (eq k kk) (some2 kk vv) (get-pair-opt k t))) none
+
 get-value k hashmap = (\pair. if (eq pair nil) nil (value pair)) (get-pair k hashmap)
+
 get-value-default k default hashmap = do
   val = get-value k hashmap
   if (neq val nil) val default

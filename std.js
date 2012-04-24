@@ -147,8 +147,8 @@ root.defs._position = _position = define('position', function(_l){return functio
 //find = AST(\x l . find-if (eq x) l)
 root.defs._find = _find = define('find', function(_x){return function(_l){return _find$nif()((function(){var $m; return function(){return $m || ($m = (_eq()(_x)))}})())(_l)}});
 ;
-//find-if = AST(\f l . if (eq l nil) nil (if (f (head l)) (head l) (find-if f (tail l))))
-root.defs._find$nif = _find$nif = define('find-if', function(_f){return function(_l){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_l)(_nil)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())((function(){var $m; return function(){return $m || ($m = (_find$nif()(_f)((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())}});
+//find-if = AST(\f l . l \h t D . f h h (find-if f t) nil)
+root.defs._find$nif = _find$nif = define('find-if', function(_f){return function(_l){return _l()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _f()(_h)(_h)((function(){var $m; return function(){return $m || ($m = (_find$nif()(_f)(_t)))}})())}}}))}})())(_nil)}});
 ;
 //find-if-opt = AST(\f l . l \h t D . f h (some h) (find-if-opt f t) none)
 root.defs._find$nif$nopt = _find$nif$nopt = define('find-if-opt', function(_f){return function(_l){return _l()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _f()(_h)((function(){var $m; return function(){return $m || ($m = (_some()(_h)))}})())((function(){var $m; return function(){return $m || ($m = (_find$nif$nopt()(_f)(_t)))}})())}}}))}})())(_none)}});

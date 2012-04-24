@@ -129,9 +129,7 @@ position l x = indexof x l
 # find returns x if x is present inside l, otherwise returns nil.
 find x l = find-if (eq x) l
 
-find-if f l = if (eq l nil) nil
-  if (f (head l)) (head l)
-    find-if f (tail l)
+find-if f l = l (\h t D . (f h) h (find-if f t)) nil
 
 find-if-opt f l = l (\h t D . (f h) (some h) (find-if-opt f t)) none
 

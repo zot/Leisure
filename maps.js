@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair$nopt, _get$npair, _get$nvalue, _get$nvalue$ndefault, _get$nkeys, _num$nkeys, _first$npair, _rest$npairs, _merge$nhash$nkeys, _merge$nhash, _remove$nhash;
+var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair, _get$npair$nopt, _get$nvalue, _get$nvalue$ndefault, _get$nkeys, _num$nkeys, _first$npair, _rest$npairs, _merge$nhash$nkeys, _merge$nhash, _remove$nhash;
 //add-hash = AST(\k v hashmap . cons (cons k v) (remove-hash k hashmap))
 root.defs._add$nhash = _add$nhash = define('add-hash', function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return function(){return $m || ($m = (_cons()(_k)(_v)))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nhash()(_k)(_hashmap)))}})())}}});
 ;
@@ -36,11 +36,11 @@ root.defs._key = _key = define('key', function(_cons){return _head()(_cons)});
 //value = AST(\cons . tail cons)
 root.defs._value = _value = define('value', function(_cons){return _tail()(_cons)});
 ;
-//get-pair-opt = AST(\k . find-if-opt \x . eq (head x) k)
-root.defs._get$npair$nopt = _get$npair$nopt = define('get-pair-opt', function(_k){return _find$nif$nopt()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_head()(_x)))}})())(_k)}))}})())});
-;
 //get-pair = AST(\k hashmap . find-if \x . eq (head x) k hashmap)
 root.defs._get$npair = _get$npair = define('get-pair', function(_k){return function(_hashmap){return _find$nif()((function(){var $m; return function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return function(){return $m || ($m = (_head()(_x)))}})())(_k)}))}})())(_hashmap)}});
+;
+//get-pair-opt = AST(\k l . l \h t D . h \kk vv . eq k kk (some2 kk vv) (get-pair-opt k t) none)
+root.defs._get$npair$nopt = _get$npair$nopt = define('get-pair-opt', function(_k){return function(_l){return _l()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _h()((function(){var $m; return function(){return $m || ($m = (function(_kk){return function(_vv){return _eq()(_k)(_kk)((function(){var $m; return function(){return $m || ($m = (_some2()(_kk)(_vv)))}})())((function(){var $m; return function(){return $m || ($m = (_get$npair$nopt()(_k)(_t)))}})())}}))}})())}}}))}})())(_none)}});
 ;
 //get-value = AST(\k hashmap . (\pair . if (eq pair nil) nil (value pair)) (get-pair k hashmap))
 root.defs._get$nvalue = _get$nvalue = define('get-value', function(_k){return function(_hashmap){return function(_pair){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_pair)(_nil)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_value()(_pair)))}})())}((function(){var $m; return function(){return $m || ($m = (_get$npair()(_k)(_hashmap)))}})())}});
