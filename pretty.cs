@@ -35,6 +35,7 @@ subprint = (f)->
     when 'some2' then f(->(a)->(b)-> "Some2(#{print a()}, #{print b()})")(null)
     when 'left' then f(->(l)-> "Left(#{print l()})")(null)
     when 'right' then f(null)(->(r)-> "Right(#{print r()})")
+    when 'html' then f ->(txt)-> txt()
     else f?.leisureName ? inspect(f)
 
 printLambda = (v, body)->
