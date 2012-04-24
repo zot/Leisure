@@ -21,6 +21,10 @@ get-value-default k default hashmap = do
 get-keys hashmap = map (\cell . (key cell)) hashmap
 num-keys hashmap = length (get-keys hashmap)
 
+
+first-pair hashmap = head hashmap
+rest-pairs hashmap = tail hashmap
+
 merge-hash-keys hm1 hm2 keys = if (null? keys) hm1
   if (null? (get-pair (head keys) hm1) )
     cons (get-pair (head keys) hm2) (merge-hash-keys hm1 hm2 (tail keys))

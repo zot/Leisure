@@ -168,18 +168,27 @@ merge-hash foo bar
 # lets visualize our hash-maps!
 ###############################
 
-decorate-arrow = hash-from-list [ 'x1', 50, 'y1', 25, 'x2', 150, 'y2', 25 ]
-decorate-key = hash-from-list [ 'x', 0, 'y', 0, 'width', 100, 'height', 50, 'fill', 'green' ]
-decorate-value = hash-from-list [ 'x', 150, 'y', 0, 'width', 100, 'height', 50, 'fill', 'yellow' ]
+
+circle nil
+
+rect nil
+
+text 'foopy' default-circle-map
+
+decorate-arrow = hash-from-list [ 'x1', 50, 'y1', 25, 'x2', 150, 'y2', 25, 'stroke', 'black', 'stroke-width', 3 ]
+decorate-key = hash-from-list [ 'x', 0, 'y', 0, 'rx', 5, 'ry', 5, 'width', 100, 'height', 50, 'fill', 'green', 'stroke', 'black', 'stroke-width', 3 ]
+decorate-value = hash-from-list [ 'x', 150, 'y', 0, 'rx', 5, 'ry', 5, 'width', 100, 'height', 50, 'fill', 'yellow', 'stroke', 'black', 'stroke-width', 3 ]
 decorate-ktext = hash-from-list [ 'x', 10, 'y', 25 ]
 decorate-vtext = hash-from-list [ 'x', 160, 'y', 25 ]
-svg-map = hash-from-list [ 'width', 300, 'height', 200]
+svg-map = hash-from-list [ 'width', 300, 'height', 200 ]
 
-paint-node key value offset = translate ( concat [ (line decorate-arrow), (rect decorate-key), (rect decorate-value), (text key decorate-ktext), (text value decorate-vtext) ] ) 0 offset
+
+paint-arrow = concat [ (line decorate-arrow), (line (add-hash 'x1' 135 (add-hash 'y1' 15 decorate-arrow))), (line (add-hash 'x1' 135 (add-hash 'y1' 35 decorate-arrow))) ]
+paint-node key value offset = translate ( concat [ (paint-arrow), (rect decorate-key), (rect decorate-value), (text key decorate-ktext), (text value decorate-vtext) ] ) 0 offset
 
 derp hm = concat (map (\cell. (paint-node (key cell) (value cell) (height-offset (key cell) hm)   ) ) hm )
 
-height-offset k hm = * (indexof (get-keys hm) k) 75
+height-offset k hm = + 5 (* (indexof (get-keys hm) k) 75)
 
 paint-hash hm = svg ( derp hm ) (add-hash 'height' (* 75 (num-keys hm)) svg-map)
 
