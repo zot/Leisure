@@ -162,6 +162,8 @@ rect nil
 
 text 'foopy' default-circle-map
 
+polygon nil
+
 svg-map = hash-from-list [ 'width', 200, 'height', 100 ]
 
 svg (circle nil) svg-map
@@ -175,6 +177,9 @@ svg (text 'testing SVG' nil) svg-map
 decorate-text = hash-from-list [ 'x', 0, 'y', 80, 'stroke', 'black', 'stroke-width', 2, 'fill', 'blue', 'font-family', 'Impact', 'font-size', 40 ]
 
 svg (text 'testing SVG' decorate-text) svg-map
+
+
+svg (polygon nil) (merge-hash (hash-from-list [ 'width', 500, 'height', 350 ])  svg-map)
 
 
             </pre>

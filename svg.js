@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _svg, _field, _insert$nfields, _default$ncircle$nmap, _default$nrect$nmap, _default$nline$nmap, _default$nellipse$nmap, _default$ntext$nmap, _svg$nelement, _circle, _rect, _ellipse, _line, _text, _group, _translate, _rotate;
+var _svg, _field, _insert$nfields, _default$ncircle$nmap, _default$nrect$nmap, _default$nline$nmap, _default$nellipse$nmap, _default$ntext$nmap, _default$npolygon$nmap, _svg$nelement, _circle, _rect, _ellipse, _line, _text, _polygon, _group, _translate, _rotate;
 //svg = AST(\o map . html (concat ([ <svg xmlns="http://www.w3.org/2000/svg" version="1.1" style="width:  , (get-value-default width 100 map) , ; height:  , (get-value-default height 100 map) , "> , o , </svg> ])))
 root.defs._svg = _svg = define('svg', function(_o){return function(_map){return _html()((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: "}))(_$b)((function(){var $m; return function(){return $m || ($m = (_get$nvalue$ndefault()((function(){return "width"}))((function(){return 100}))(_map)))}})())(_$b)((function(){return "; height: "}))(_$b)((function(){var $m; return function(){return $m || ($m = (_get$nvalue$ndefault()((function(){return "height"}))((function(){return 100}))(_map)))}})())(_$b)((function(){return "\">"}))(_$b)(_o)(_$b)((function(){return "</svg>"}))(_$s)))}})())))}})())}});
 ;
@@ -48,6 +48,9 @@ root.defs._default$nellipse$nmap = _default$nellipse$nmap = define('default-elli
 //default-text-map = AST(hash-from-list ([ x , 0 , y , 10 , stroke , black , stroke-width , 2 , fill , black ]))
 root.defs._default$ntext$nmap = _default$ntext$nmap = define('default-text-map', _hash$nfrom$nlist()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "x"}))(_$b)((function(){return 0}))(_$b)((function(){return "y"}))(_$b)((function(){return 10}))(_$b)((function(){return "stroke"}))(_$b)((function(){return "black"}))(_$b)((function(){return "stroke-width"}))(_$b)((function(){return 2}))(_$b)((function(){return "fill"}))(_$b)((function(){return "black"}))(_$s)))}})()));
 ;
+//default-polygon-map = AST(hash-from-list ([ points , 350,75  379,161 469,161 397,215 423,301 350,250 277,301 303,215 231,161 321,161 , stroke , black , stroke-width , 2 , fill , yellow ]))
+root.defs._default$npolygon$nmap = _default$npolygon$nmap = define('default-polygon-map', _hash$nfrom$nlist()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "points"}))(_$b)((function(){return "350,75  379,161 469,161 397,215 423,301 350,250 277,301 303,215 231,161 321,161"}))(_$b)((function(){return "stroke"}))(_$b)((function(){return "black"}))(_$b)((function(){return "stroke-width"}))(_$b)((function(){return 2}))(_$b)((function(){return "fill"}))(_$b)((function(){return "yellow"}))(_$s)))}})()));
+;
 //svg-element = AST(\name map . concat ([ < , name ,   , (insert-fields map) , />" ]))
 root.defs._svg$nelement = _svg$nelement = define('svg-element', function(_name){return function(_map){return _concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "<"}))(_$b)(_name)(_$b)((function(){return " "}))(_$b)((function(){var $m; return function(){return $m || ($m = (_insert$nfields()(_map)))}})())(_$b)((function(){return "/>\""}))(_$s)))}})())}});
 ;
@@ -65,6 +68,9 @@ root.defs._line = _line = define('line', function(_map){return _svg$nelement()((
 ;
 //text = AST(\t map . concat ([ <text  , (insert-fields (if (null? map) default-text-map map)) , > , (if (null? t) undefined t) , </text> ]))
 root.defs._text = _text = define('text', function(_t){return function(_map){return _concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "<text "}))(_$b)((function(){var $m; return function(){return $m || ($m = (_insert$nfields()((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_map)))}})())(_default$ntext$nmap)(_map)))}})())))}})())(_$b)((function(){return ">"}))(_$b)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_t)))}})())((function(){return "undefined"}))(_t)))}})())(_$b)((function(){return "</text>"}))(_$s)))}})())}});
+;
+//polygon = AST(\map . svg-element polygon (if (null? map) default-polygon-map map))
+root.defs._polygon = _polygon = define('polygon', function(_map){return _svg$nelement()((function(){return "polygon"}))((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_map)))}})())(_default$npolygon$nmap)(_map)))}})())});
 ;
 //group = AST(\elem . concat ([ <g> , elem , </g> ]))
 root.defs._group = _group = define('group', function(_elem){return _concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "<g>"}))(_$b)(_elem)(_$b)((function(){return "</g>"}))(_$s)))}})())});

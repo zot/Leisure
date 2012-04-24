@@ -12,6 +12,7 @@ default-rect-map = hash-from-list [ 'x', 1, 'y', 1, 'width', 50, 'height', 50, '
 default-line-map = hash-from-list [ 'x1', 0, 'y1', 0, 'x2', 50, 'y2', 50, 'stroke', 'black', 'stroke-width', 2 ]
 default-ellipse-map = hash-from-list [ 'cx', 50, 'cy', 50, 'rx', 40, 'ry', 40, 'stroke', 'black', 'stroke-width', 2, 'fill', 'blue' ]
 default-text-map = hash-from-list [ 'x', 0, 'y', 10, 'stroke', 'black', 'stroke-width', 2, 'fill', 'black' ]
+default-polygon-map = hash-from-list [ 'points', '350,75  379,161 469,161 397,215 423,301 350,250 277,301 303,215 231,161 321,161', 'stroke', 'black', 'stroke-width', 2, 'fill', 'yellow' ]
 
 svg-element name map = concat [ '<', name, ' ', (insert-fields map), '/>"' ]
 
@@ -20,6 +21,7 @@ rect map = svg-element 'rect' (if (null? map) default-rect-map map)
 ellipse map = svg-element 'ellipse' (if (null? map) default-ellipse-map map)
 line map = svg-element 'line' (if (null? map) default-line-map map)
 text t map = concat [ '<text ', (insert-fields (if (null? map) default-text-map map)), '>', (if (null? t) 'undefined' t), '</text>' ]
+polygon map = svg-element 'polygon' (if (null? map) default-polygon-map map)
 
 group elem = concat [ '<g>', elem, '</g>' ]
 translate elem x y = concat ['<g transform="translate(', x, ', ', y, ')">', elem, '</g>' ]
