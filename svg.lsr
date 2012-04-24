@@ -2,20 +2,28 @@
 svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', o, '</svg>' ] )
 
 
-field name default map = concat [ name, '="', (get-value-default name default map), '", ' ]
+field cell = concat [ (key cell), '="', (value cell), '", ' ]
 
-insert-fields list map = if (null? list) ''
-  concat [ (field (head list) (head (tail list)) map), (insert-fields (tail (tail list)) map) ]
+insert-fields map = if (null? map) ''
+  concat [ (field (first-pair map)), (insert-fields (rest-pairs map)) ]
 
-circle map = concat [ '<circle ', (field 'cx' 50 map), (field 'cy' 50 map), (field 'r' 40 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'red' map), '/>' ]
-rect map = concat [ '<rect ', (field 'x' 0 map), (field 'y' 0 map), (field 'width' 50 map), (field 'height' 50 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'green' map), '/>' ]
-ellipse map = concat [ '<ellipse ', (field 'cx' 50 map), (field 'cy' 50 map), (field 'rx' 40 map), (field 'ry' 40 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'blue' map), '/>' ]
-line map = concat [ '<line ', (field 'x1' 0 map), (field 'y1' 0 map), (field 'x2' 50 map), (field 'y2' 50 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map), '/>' ]
-text t map = concat [ '<text ', (field 'x' 0 map), (field 'y' 0 map), (field 'stroke' 'black' map),  (field 'stroke-width' 2 map),  (field 'fill' 'black' map), '>', t, '</text>' ]
+default-circle-map = hash-from-list [ 'cx', 50, 'cy', 50, 'r', 40, 'stroke', 'black', 'stroke-width', 2, 'fill', 'red' ]
+default-rect-map = hash-from-list [ 'x', 1, 'y', 1, 'width', 50, 'height', 50, 'stroke', 'black', 'stroke-width', 2, 'fill', 'green' ]
+default-line-map = hash-from-list [ 'x1', 0, 'y1', 0, 'x2', 50, 'y2', 50, 'stroke', 'black', 'stroke-width', 2 ]
+default-ellipse-map = hash-from-list [ 'cx', 50, 'cy', 50, 'rx', 40, 'ry', 40, 'stroke', 'black', 'stroke-width', 2, 'fill', 'blue' ]
+default-text-map = hash-from-list [ 'x', 0, 'y', 0, 'stroke', 'black', 'stroke-width', 2, 'fill', 'black' ]
+
+svg-element name map = concat [ '<', name, ' ', (insert-fields map), '/>"' ]
+
+circle map = svg-element 'circle' (if (null? map) default-circle-map map)
+rect map = svg-element 'rect' (if (null? map) default-rect-map map)
+ellipse map = svg-element 'ellipse' (if (null? map) default-ellipse-map map)
+line map = svg-element 'line' (if (null? map) default-line-map map)
+text t map = concat [ '<text ', (insert-fields (if (null? map) default-text-map map)), '>', (if (null? t) 'undefined' t), '</text>' ]
 
 group elem = concat [ '<g>', elem, '</g>' ]
 translate elem x y = concat ['<g transform="translate(', x, ', ', y, ')">', elem, '</g>' ]
-rotate elem a = concat ['<g transform="rotate(', a, ')">', elem, '</g>' ]
+rotate elem r = concat ['<g transform="rotate(', r, ')">', elem, '</g>' ]
 
 #flatten-tree-base t map d c = if (null? t) map
 #  do
@@ -25,3 +33,9 @@ rotate elem a = concat ['<g transform="rotate(', a, ')">', elem, '</g>' ]
 #flatten-tree t = flatten-tree-base t nil 0 0
   
 #svg-build-tree t = traverse t (\c. add-child c r)
+
+#foopy = 1
+
+
+# bad compile doesnt delete old .js file
+# can you print out html as plain text in the console

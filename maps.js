@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair, _get$nvalue, _get$nvalue$ndefault, _get$nkeys, _num$nkeys, _merge$nhash$nkeys, _merge$nhash, _remove$nhash;
+var _add$nhash, _hash$nfrom$nlist, _key, _value, _get$npair, _get$nvalue, _get$nvalue$ndefault, _get$nkeys, _num$nkeys, _first$npair, _rest$npairs, _merge$nhash$nkeys, _merge$nhash, _remove$nhash;
 //add-hash = AST(\k v hashmap . cons (cons k v) (remove-hash k hashmap))
 root.defs._add$nhash = _add$nhash = define('add-hash', function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return function(){return $m || ($m = (_cons()(_k)(_v)))}})())((function(){var $m; return function(){return $m || ($m = (_remove$nhash()(_k)(_hashmap)))}})())}}});
 ;
@@ -50,6 +50,12 @@ root.defs._get$nkeys = _get$nkeys = define('get-keys', function(_hashmap){return
 ;
 //num-keys = AST(\hashmap . length (get-keys hashmap))
 root.defs._num$nkeys = _num$nkeys = define('num-keys', function(_hashmap){return _length()((function(){var $m; return function(){return $m || ($m = (_get$nkeys()(_hashmap)))}})())});
+;
+//first-pair = AST(\hashmap . head hashmap)
+root.defs._first$npair = _first$npair = define('first-pair', function(_hashmap){return _head()(_hashmap)});
+;
+//rest-pairs = AST(\hashmap . tail hashmap)
+root.defs._rest$npairs = _rest$npairs = define('rest-pairs', function(_hashmap){return _tail()(_hashmap)});
 ;
 //merge-hash-keys = AST(\hm1 hm2 keys . if (null? keys) hm1 (if (null? (get-pair (head keys) hm1)) (cons (get-pair (head keys) hm2) (merge-hash-keys hm1 hm2 (tail keys))) (merge-hash-keys hm1 hm2 (tail keys))))
 root.defs._merge$nhash$nkeys = _merge$nhash$nkeys = define('merge-hash-keys', function(_hm1){return function(_hm2){return function(_keys){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_keys)))}})())(_hm1)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_null$e()((function(){var $m; return function(){return $m || ($m = (_get$npair()((function(){var $m; return function(){return $m || ($m = (_head()(_keys)))}})())(_hm1)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_cons()((function(){var $m; return function(){return $m || ($m = (_get$npair()((function(){var $m; return function(){return $m || ($m = (_head()(_keys)))}})())(_hm2)))}})())((function(){var $m; return function(){return $m || ($m = (_merge$nhash$nkeys()(_hm1)(_hm2)((function(){var $m; return function(){return $m || ($m = (_tail()(_keys)))}})())))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_merge$nhash$nkeys()(_hm1)(_hm2)((function(){var $m; return function(){return $m || ($m = (_tail()(_keys)))}})())))}})())))}})())}}});
