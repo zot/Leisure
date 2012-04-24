@@ -1,5 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
+* macros
+   * cond macro
 * configuration monads
    * require
    * default pretty-printers for output

@@ -88,7 +88,7 @@ isempty l = (eq (l) nil)
 null l = l (\h t D . false) true
 reverse l = (eq (tail l) nil) l (append (reverse (tail l)) (cons (head l) nil))
 addstr a b = concat [a, b]
-if p = p
+if = id
 iszero = eq 0
 length l = (eq l nil) 0 (++ (length (tail l) ) )
 
@@ -104,17 +104,20 @@ min a b = (lt a b) a b
 
 # return true if any elements of l satisfy f, which takes exactly one arg
 # eg. any (eq 0) [ 1, 2, 0] gives true: true
-any f l = if (eq l nil) false
-  if (f (head l)) true
-    any f (tail l)
 
+any f l = (eq l nil) false
+  or
+    f (head l)
+    any f (tail l)
+    
 # return true if ALL elements of l satisfy f, which takes exactly one arg
 # eg. all (eq 0) [ 0, 0, 0] gives true: true
 # caveat!  return true for nil lists
-all f l = if (eq l nil) true
-  if (f (head l)) 
+all f l = or
+  eq l nil
+  and
+    f (head l)
     all f (tail l)
-    false
 
 index_combine x y = (or (eq x nil) (eq y nil)) (nil) (+ x y)
 # return nil if not found, or 0 based index of the first match
@@ -129,6 +132,8 @@ find x l = find-if (eq x) l
 find-if f l = if (eq l nil) nil
   if (f (head l)) (head l)
     find-if f (tail l)
+
+find-if-opt f l = l (\h t D . (f h) (some h) (find-if-opt f t)) none
 
 # count returns the number of times x appears in l
 count x l = count-if (eq x) l
