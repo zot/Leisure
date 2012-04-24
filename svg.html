@@ -156,64 +156,25 @@
 	  <div style="position: relative; width: 100%; height: 100%; overflow: auto">
 	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; padding: 0" id="editor" class="cell" contentEditable="true">
 
-foo = hash-from-list [ 'foo', 5, 'hello', 'world', 'j', 23 ]
-
-bar = hash-from-list [ 'bar', 6, 'hello', 'sun', 'fruit', 'apple' ]
-
-merge-hash foo bar
-
-
-
-###############################
-# lets visualize our hash-maps!
-###############################
-
-
 circle nil
 
 rect nil
 
 text 'foopy' default-circle-map
 
-decorate-arrow = hash-from-list [ 'x1', 50, 'y1', 25, 'x2', 150, 'y2', 25, 'stroke', 'black', 'stroke-width', 3 ]
-decorate-key = hash-from-list [ 'x', 0, 'y', 0, 'rx', 5, 'ry', 5, 'width', 100, 'height', 50, 'fill', 'green', 'stroke', 'black', 'stroke-width', 3 ]
-decorate-value = hash-from-list [ 'x', 150, 'y', 0, 'rx', 5, 'ry', 5, 'width', 100, 'height', 50, 'fill', 'yellow', 'stroke', 'black', 'stroke-width', 3 ]
-decorate-ktext = hash-from-list [ 'x', 10, 'y', 25 ]
-decorate-vtext = hash-from-list [ 'x', 160, 'y', 25 ]
-svg-map = hash-from-list [ 'width', 300, 'height', 200 ]
+svg-map = hash-from-list [ 'width', 200, 'height', 100 ]
+
+svg (circle nil) svg-map
 
 
-paint-arrow = concat [ (line decorate-arrow), (line (add-hash 'x1' 135 (add-hash 'y1' 15 decorate-arrow))), (line (add-hash 'x1' 135 (add-hash 'y1' 35 decorate-arrow))) ]
-paint-node key value offset = translate ( concat [ (paint-arrow), (rect decorate-key), (rect decorate-value), (text key decorate-ktext), (text value decorate-vtext) ] ) 0 offset
-
-derp hm = concat (map (\cell. (paint-node (key cell) (value cell) (height-offset (key cell) hm)   ) ) hm )
-
-height-offset k hm = + 5 (* (indexof (get-keys hm) k) 75)
-
-paint-hash hm = svg ( derp hm ) (add-hash 'height' (* 75 (num-keys hm)) svg-map)
+svg (rect nil) svg-map
 
 
-(add-hash 'height' (* 75 (num-keys foo)) svg-map)
+svg (text 'testing SVG' nil) svg-map
 
-add-hash 'height' (* 75 (num-keys svg-map)) svg-map
+decorate-text = hash-from-list [ 'x', 0, 'y', 80, 'stroke', 'black', 'stroke-width', 2, 'fill', 'blue', 'font-family', 'Impact', 'font-size', 40 ]
 
-temp = concat (head (map (\cell. [ (paint-node (key cell) (value cell) 0) ]) foo))
-
-translate "foopy" 10 50 
-
-svg (paint-node 'hello' 5 100) svg-map
-
-derp foo
-
-height-offset 'j' foo
-
-paint-hash foo
-
-paint-hash bar
-
-paint-hash (merge-hash foo bar)
-
-
+svg (text 'testing SVG' decorate-text) svg-map
 
 
             </pre>

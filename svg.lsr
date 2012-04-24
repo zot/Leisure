@@ -11,7 +11,7 @@ default-circle-map = hash-from-list [ 'cx', 50, 'cy', 50, 'r', 40, 'stroke', 'bl
 default-rect-map = hash-from-list [ 'x', 1, 'y', 1, 'width', 50, 'height', 50, 'stroke', 'black', 'stroke-width', 2, 'fill', 'green' ]
 default-line-map = hash-from-list [ 'x1', 0, 'y1', 0, 'x2', 50, 'y2', 50, 'stroke', 'black', 'stroke-width', 2 ]
 default-ellipse-map = hash-from-list [ 'cx', 50, 'cy', 50, 'rx', 40, 'ry', 40, 'stroke', 'black', 'stroke-width', 2, 'fill', 'blue' ]
-default-text-map = hash-from-list [ 'x', 0, 'y', 0, 'stroke', 'black', 'stroke-width', 2, 'fill', 'black' ]
+default-text-map = hash-from-list [ 'x', 0, 'y', 10, 'stroke', 'black', 'stroke-width', 2, 'fill', 'black' ]
 
 svg-element name map = concat [ '<', name, ' ', (insert-fields map), '/>"' ]
 
@@ -24,6 +24,7 @@ text t map = concat [ '<text ', (insert-fields (if (null? map) default-text-map 
 group elem = concat [ '<g>', elem, '</g>' ]
 translate elem x y = concat ['<g transform="translate(', x, ', ', y, ')">', elem, '</g>' ]
 rotate elem r = concat ['<g transform="rotate(', r, ')">', elem, '</g>' ]
+
 
 #flatten-tree-base t map d c = if (null? t) map
 #  do
