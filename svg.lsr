@@ -1,6 +1,7 @@
 
-svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', o, '</svg>' ] )
+svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="scene" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', o, '</svg>' ] )
 
+svg-file f map = html (concat [ '<object xmlns="http://www.w3.org/2000/svg" version="1.1" id="scene" data="', f, '" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', '</object>' ] )
 
 field cell = concat [ (key cell), '="', (value cell), '", ' ]
 
