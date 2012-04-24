@@ -147,8 +147,7 @@ evalOutput = (exBox)->
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (exBox)->
-  write: (msg)->
-    exBox.innerHTML += msg + "<br>"
+  write: (msg)-> exBox.innerHTML += msg + "<br>"
   prompt:(msg, cont)-> cont(window.prompt(msg))
 
 makeOutputBox = (source)->
