@@ -77,7 +77,7 @@
   };
 
   compile = function compile(file, cont, nomacros) {
-    var contents, oldfile, stream;
+    var contents, jsFile, oldfile, stream;
     cont = cont != null ? cont : Core.next;
     if (!file) {
       return face != null ? face.prompt() : void 0;
@@ -91,6 +91,8 @@
           return cont();
         }
       }
+      jsFile = "" + (Path.basename(file, '.lsr')) + ".js";
+      if (Path.existsSync(jsFile)) FS.unlink(jsFile);
       stream = FS.createReadStream(file);
       stream.on('data', function(data) {
         return contents += data;
@@ -99,8 +101,9 @@
         var out, str;
         try {
           out = Core.generateCode(file, contents, root.loud, null, nomacros);
-          str = FS.createWriteStream("" + (Path.basename(file, '.lsr')) + ".js");
+          str = FS.createWriteStream("" + jsFile + "Tmp");
           str.on('close', function() {
+            FS.renameSync("" + jsFile + "Tmp", jsFile);
             return cont();
           });
           str.on('error', function() {
@@ -109,7 +112,8 @@
           str.end(out);
           return str.destroySoon();
         } catch (err) {
-          write(err.stack);
+          console.log("ERROR: " + err.stack);
+          write(err.stack + "\n");
           return cont();
         }
       });
@@ -165,7 +169,7 @@
     })
     """)(require)
     */
-    L.eval("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;");
+    L.eval("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;");
     return L.eval('leisureSetFuncs')(leisureFuncNames);
   };
 

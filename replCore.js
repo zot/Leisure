@@ -62,6 +62,7 @@
           env.write("(No Result)\n");
           return nextFunc();
         } else {
+          global.$0 = result;
           env.write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
           return processResult(result);
         }
@@ -208,7 +209,7 @@
     }
     if (varOut) out += "\nvar" + varOut + ";\n";
     globals = Leisure.append(globals, getGlobals());
-    while (rest) {
+    while (rest && rest.trim()) {
       if (loud > 1 && prev !== names && names !== Leisure.Nil) {
         console.log("Compiling function: " + names.head);
       }

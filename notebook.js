@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, codeBox, codeSpan, continueRangePosition, delay, envFor, evalOutput, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, prepExpr, removeOldDefs, root, selInDef, textNode, toDefBox, toExprBox,
+  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalOutput, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, prepExpr, removeOldDefs, root, selInDef, textNode, toDefBox, toExprBox,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -213,7 +213,22 @@
   };
 
   evalOutput = function evalOutput(exBox) {
+    var b;
+    cleanOutput(exBox);
+    b = document.createElement('button');
+    b.setAttribute('onclick', 'Notebook.cleanOutput(this.parentNode)');
+    b.innerHTML = "X";
+    exBox.appendChild(b);
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
+  };
+
+  cleanOutput = function cleanOutput(exBox) {
+    var _results;
+    _results = [];
+    while (exBox.firstChild !== exBox.lastChild) {
+      _results.push(exBox.removeChild(exBox.lastChild));
+    }
+    return _results;
   };
 
   prepExpr = function prepExpr(txt) {
@@ -228,8 +243,7 @@
   envFor = function envFor(exBox) {
     return {
       write: function write(msg) {
-        exBox.innerHTML += msg + "<br>";
-        return exBox.lastChild.scrollIntoView();
+        return exBox.innerHTML += msg + "<br>";
       },
       prompt: function prompt(msg, cont) {
         return cont(window.prompt(msg));
@@ -430,5 +444,7 @@
   root.bindNotebook = bindNotebook;
 
   root.evalOutput = evalOutput;
+
+  root.cleanOutput = cleanOutput;
 
 }).call(this);
