@@ -164,7 +164,6 @@ setContext = Leisure.setContext;
   #VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames)
   L.eval('leisureSetFuncs')(leisureFuncNames)
 
-createEnv()
 Core.setHelp help
 Core.setCompiler compile
 Core.setWriter (str)-> process.stdout.write(str)
@@ -179,3 +178,4 @@ root.repl = repl
 root.compile = compile
 root.init = init
 root.processResult = processResult
+createEnv()

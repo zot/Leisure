@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Pretty, RL, U, concatList, defaultEnv, define, eventCmds, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, runMonads, running, setTty, tail, tty, values;
+  var Leisure, Pretty, RL, U, concatList, continueMonad, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, setTty, tail, tty, values;
 
   defaultEnv = {};
 
@@ -34,8 +34,8 @@
     r = function r(file, cont) {
       console.log(U.inspect(file));
       if (!(file.match(/^\.\//))) file = "./" + file;
-      require(file);
-      return cont();
+      Leisure.req(file);
+      return cont(_false());
     };
     defaultEnv.require = r;
   }
@@ -219,10 +219,6 @@
     };
   });
 
-  eventCmds = [];
-
-  running = false;
-
   define('log', function(msg) {
     return function(value) {
       if (msg().type !== 'cons') {
@@ -242,34 +238,26 @@
     return runMonad(monad, env != null ? env : defaultEnv, function() {});
   };
 
-  runMonad = function runMonad(monad, env, cont) {
-    eventCmds.push(function() {
-      return runMonads(monad, env, function(value) {
-        if (eventCmds.length) eventCmds.shift()();
-        running = false;
-        return cont(value);
-      });
-    });
-    if (!running && eventCmds.length) {
-      running = true;
-      return eventCmds.shift()();
-    }
+  eventCont = [];
+
+  continueMonad = function continueMonad(cont) {
+    var cell;
+    eventCont.unshift(cell = [false, null, cont]);
+    return function(value) {
+      var cnt, ignore, val, _ref, _results;
+      cell[0] = true;
+      cell[1] = value;
+      _results = [];
+      while (eventCont.length && eventCont[0][0]) {
+        _ref = eventCont.shift(), ignore = _ref[0], val = _ref[1], cnt = _ref[2];
+        _results.push(cnt(val));
+      }
+      return _results;
+    };
   };
 
-  runMonads = function runMonads(monad, env, cont) {
-    if ((monad != null ? monad.cmd : void 0) != null) {
-      return monad.cmd(env, function(value) {
-        if (monad.binding != null) {
-          return runMonads(monad.binding(function() {
-            return value;
-          }), env, cont);
-        } else {
-          return cont(value);
-        }
-      });
-    } else {
-      throw new Error("Attempted to run something that's not a monad");
-    }
+  runMonad = function runMonad(monad, env, cont) {
+    return monad.cmd(env, continueMonad(cont));
   };
 
   makeMonad = function makeMonad(binding, guts) {
@@ -304,6 +292,7 @@
   });
 
   define('require', function(file) {
+    console.log("REQUIRE: " + file);
     return makeMonad('end', function(env, cont) {
       return env.require(file(), cont);
     });
@@ -326,8 +315,12 @@
 
   define('bind', function(m) {
     return function(binding) {
-      return makeMonad(binding(), function(env, cont) {
-        return runMonads(m(), env, cont);
+      return makeMonad('end', function(env, cont) {
+        return runMonad(m(), env, function(value) {
+          return runMonad(binding()(function() {
+            return value;
+          }), env, cont);
+        });
       });
     };
   });

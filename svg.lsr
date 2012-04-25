@@ -1,3 +1,5 @@
+print 'SVG'
+require 'maps'
 
 insert-fields map = if (null? map) ''
   concat [ (field (first-pair map)), (insert-fields (rest-pairs map)) ]

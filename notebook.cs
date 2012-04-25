@@ -297,28 +297,28 @@ req = (file, cont)->
     cont(_false())
   document.head.appendChild s
 
-loadQueue = []
+postLoadQueue = []
 
-queueAfterLoad = (func)-> loadQueue.push(func)
+queueAfterLoad = (func)-> postLoadQueue.push(func)
 
 evalDoc = (el)->
-  Repl.clearEnv()
   [pgm, auto] = initNotebook(el)
   try
-	  if auto
-	    Notebook.queueAfterLoad -> Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global)
-	    auto += "\nfinishLoading 'fred'\n";
-	    Leisure.eval(ReplCore.generateCode('_auto', auto, false))
-	  else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global)
+    if auto
+      auto = "do\n  #{auto.trim().replace /\n/, '\n  '}\n  finishLoading 'fred'"
+      Notebook.queueAfterLoad ->
+        Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global)
+      Leisure.eval(ReplCore.generateCode('_auto', auto, false))
+    else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global)
   catch err
     alert(err.stack)
 
 
 Leisure.define 'finishLoading', (bubba)->
   Prim.makeMonad 'end', (env, cont)->
-    for i in loadQueue
+    for i in postLoadQueue
       i()
-    loadQueue = []
+    postLoadQueue = []
     cont(_false())
 
 Prim.defaultEnv.require = req

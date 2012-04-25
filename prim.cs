@@ -25,8 +25,8 @@ else
   r = (file, cont)->
     console.log(U.inspect(file))
     if !(file.match /^\.\//) then file = "./#{file}"
-    require file
-    cont()
+    Leisure.req file
+    cont(_false())
   defaultEnv.require = r
 
 setTty = (rl)-> tty = rl
@@ -72,9 +72,6 @@ define 'gte', (a)->(b)->if a() >= b() then `_true()` else `_false()`
 define 'lt', (a)->(b)->if a() < b() then `_true()` else `_false()`
 define 'lte', (a)->(b)->if a() <= b() then `_true()` else `_false()`
 
-eventCmds = []
-running = false
-
 define 'log', (msg)->(value)->
   if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
   defaultEnv.write("\n")
@@ -85,24 +82,18 @@ leisureEvent = (leisureFuncName, evt, env)->
   monad = Leisure.eval("#{Leisure.nameSub(leisureFuncName)}()")(laz(evt))
   runMonad monad, (env ? defaultEnv), ->
 
-runMonad = (monad, env, cont)->
-  eventCmds.push ->
-    runMonads monad, env, (value)->
-      if eventCmds.length then eventCmds.shift()()
-      running = false
-      cont(value)
-  if !running and eventCmds.length
-    running = true
-    eventCmds.shift()()
+eventCont = []
 
-runMonads = (monad, env, cont)->
-  if monad?.cmd?
-    monad.cmd env, (value) ->
-      #change to this use setTimeout, kind of like this (which doesn't quite work)
-      #if monad.binding? then global.setTimeout((->runMonads monad.binding(-> value), env, cont), 1)
-      if monad.binding? then runMonads monad.binding(-> value), env, cont
-      else cont(value)
-  else throw new Error("Attempted to run something that's not a monad")
+continueMonad = (cont)->
+  eventCont.unshift(cell = [false, null, cont])
+  (value)->
+    cell[0] = true
+    cell[1] = value
+    while eventCont.length && eventCont[0][0]
+      [ignore, val, cnt] = eventCont.shift()
+      cnt(val)
+
+runMonad = (monad, env, cont)-> monad.cmd env, continueMonad(cont)
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code
@@ -126,6 +117,7 @@ define 'return', (v)->
   makeMonad 'end', (env, cont)->cont(v())
 
 define 'require', (file)->
+  console.log "REQUIRE: #{file}"
   makeMonad 'end', (env, cont)->
     env.require(file(), cont)
 
@@ -139,7 +131,7 @@ define 'prompt', (msg)->
     env.prompt(String(msg()), (input)-> cont(input))
 
 define 'bind', (m)->(binding)->
-  makeMonad binding(), (env, cont)-> runMonads m(), env, cont
+  makeMonad 'end', (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
 
 head = (l)->l ->(hh)->(tt)->hh()
 tail = (l)->l ->(hh)->(tt)->tt()

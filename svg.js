@@ -24,6 +24,10 @@ var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
 var _insert$nfields, _svg, _svg$nfile, _field, _default$ncircle$nmap, _default$nrect$nmap, _default$nline$nmap, _default$nellipse$nmap, _default$ntext$nmap, _default$npolygon$nmap, _svg$nelement, _circle, _rect, _ellipse, _line, _text, _polygon, _group, _translate, _rotate;
+processResult(//AST(print SVG)
+(_print()((function(){return "SVG"}))));
+processResult(//AST(require maps)
+(_require()((function(){return "maps"}))));
 //insert-fields = AST(\map . if (null? map)  (concat ([ (field (first-pair map)) , (insert-fields (rest-pairs map)) ])))
 root.defs._insert$nfields = _insert$nfields = define('insert-fields', function(_map){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_map)))}})())((function(){return ""}))((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){var $m; return function(){return $m || ($m = (_field()((function(){var $m; return function(){return $m || ($m = (_first$npair()(_map)))}})())))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_insert$nfields()((function(){var $m; return function(){return $m || ($m = (_rest$npairs()(_map)))}})())))}})())(_$s)))}})())))}})())});
 ;

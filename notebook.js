@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, loadQueue, makeOutputBox, makeRange, markupDefs, nodeEnd, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, textNode, toDefBox, toExprBox,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, textNode, toDefBox, toExprBox,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -463,22 +463,21 @@
     return document.head.appendChild(s);
   };
 
-  loadQueue = [];
+  postLoadQueue = [];
 
   queueAfterLoad = function queueAfterLoad(func) {
-    return loadQueue.push(func);
+    return postLoadQueue.push(func);
   };
 
   evalDoc = function evalDoc(el) {
     var auto, pgm, _ref;
-    Repl.clearEnv();
     _ref = initNotebook(el), pgm = _ref[0], auto = _ref[1];
     try {
       if (auto) {
+        auto = "do\n  " + (auto.trim().replace(/\n/, '\n  ')) + "\n  finishLoading 'fred'";
         Notebook.queueAfterLoad(function() {
           return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global);
         });
-        auto += "\nfinishLoading 'fred'\n";
         return Leisure.eval(ReplCore.generateCode('_auto', auto, false));
       } else {
         return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global);
@@ -491,11 +490,11 @@
   Leisure.define('finishLoading', function(bubba) {
     return Prim.makeMonad('end', function(env, cont) {
       var i, _i, _len;
-      for (_i = 0, _len = loadQueue.length; _i < _len; _i++) {
-        i = loadQueue[_i];
+      for (_i = 0, _len = postLoadQueue.length; _i < _len; _i++) {
+        i = postLoadQueue[_i];
         i();
       }
-      loadQueue = [];
+      postLoadQueue = [];
       return cont(_false());
     });
   });

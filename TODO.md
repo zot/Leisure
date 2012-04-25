@@ -19,7 +19,7 @@
    * make programs html pages with code attributes
 	  * in browser, use document.querySelector('[code]')
       * in node, use htmlparser (npm install htmlparser)
-      * include \<script src='bootLeisure.js> element that boots the Leisure env on that page
+      * include &lt;script src='bootLeisure.js> element that boots the Leisure env on that page
          * clones doc
 		 * adds iframe with leisure env
          * hands leisure the clone to analyze and the current doc to mutate
