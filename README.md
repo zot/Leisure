@@ -5,7 +5,7 @@
 
 # Leisure: a convenient, untyped, lazy Lambda Calculus-based programming language with metaprogramming
 
-Leisure is a convenient language people's use and experimentation that you can easily tailor to your own needs.
+Leisure is a convenient language for people's use and experimentation that you can easily tailor to your own needs.
 
 One of the major goals of the Leisure initiative is to make learning and doing functional programming as easy as possible.
 
@@ -16,7 +16,7 @@ Leisure provides a convenient syntax and powerful tools to help people try thing
 As in Haskell, you can write lambda either as 𝛌 or \.  Lambdas are structured as: **𝛌 variable . body** and if you provide serveral space-separated variables, Leisure automatically constructs nested lambdas for you, like this: **\a b . a**
 
 ### Function definitions
-You define a function with a declaration, an '=', and a body, like this: **true = \a b . a**.  You maplace arguments before the '=' and omit the '\' and '.', like this: **true a b = a**.
+You define a function with a declaration, an '=', and a body, like this: **true = \a b . a**.  You maplace arguments before the '=' and omit the '\' and '.', like this: **true a b = a**.  Leisure automatically builds the lambda and associates it with the name you specified.
 
 Leisure allows some simplistic parser tweaks; you can define tokens, so you can leave out spaces, and you can define tokens that open and close groups.
 
@@ -26,13 +26,13 @@ Curly braces produce in-line groups, separated by semicolons, so instead of **(a
 ### Indentation
 Leisure supports Python-style indentation, which it replaces with curly braces and semicolons during parsing.  Indented lines are considered to be part of the preceding overhanging line and each indented line produces a parenthesized group, so this:
 
-<pre><b><big>
+<b><big><pre>
 do  
   n <- prompt "What is your name? "  
   a <- prompt (concat ["Hello, ", n, ", thank you for joining us.  How old are you?"])
   seconds = * a 31536000
   print (concat ["You have been alive more than ", seconds, " seconds."])
-</big></b></pre>
+</pre></big></b>
 
 is equivalent to this: **do {n <- prompt "What is your name? "; print (concat ["Hello, ", n, ", thank you for joining us."])}**
 
@@ -47,6 +47,12 @@ let
 </big></b></pre>
 
 is equivalent to this: **let {a <- 3; b <- + a 1; a <- * a b; [a, b]}**
+
+## Notebook Style Interactive Development
+
+For decades, programming has been done primarily in glorified text editors.  Some great strides have been made in various IDEs, but typically the programmer is still burdened with a neverending "write, compile, debug, test, repeat" development cycle.  Why do you keep settling for this when clearly we can do better?
+
+While still heavily under development, Leisure is meant to push the envelope here and provide a fully interactive development environment where your code is executed and errors show while you're writing it. Functional programming is quite foreign to new comers, but what if you could instantly view the parse tree of the line of code you wrote? Or specify test arguments to your function and see the results live as you make changes to your code in real time?  Our goal is to show programmers there has to be a better way, and we've settled for the status quo for far too long.
 
 ## Untyped
 Leisure is untyped.  This doesn't mean that Leisure is type-free, it just means that variables don't have types -- they can hold anything.  Leisure does have data types -- e.g. you can tell if something is a cons-cell (**_is (cons 1 nil) cons** returns **true**).  Whenever you define a function that returns a lambda, it marks instances of that lambda as having the type of the definition.  For example, if you say:
@@ -71,7 +77,7 @@ Functions
 Macros
 * declaration =M= definition -- declares a macro that runs at parse-time.  Input is the AST for the macro expression and output is a new AST to replace the old one.  Further macro replacement is done on the result.  The identity macro is: **identMacro ast =M= ast**.
 * Do and let are macros
-   * let uses = to assign (and reassign) variables and returns the result of an expression using those variables
+   * let uses = to assign (and reassign) variables and returns the result of an expression using those variables (deprecated)
    * do uses = like let and uses <- to bind monads
 
 ## AST Function usage
@@ -87,14 +93,21 @@ ref x = \f . f x
 lambda v f = \g . g v f  
 apply func arg = \f . f func arg  
 
+## Installing it
+
+Obviously being hosted on GitHub, installing Leisure requires you to have a Git account and git client installed first. After that, simply clone the repo:
+
+>git clone https://your_name@github.com/zot/Leisure.git
+
+
 ## Running it
 ### Running the REPL
 >node runRepl
 Runs the read eval print loop.  You can enter Leisure expressions and definitions there.
 
 ### Compiling files
->node runRepl -c file1 file2 ...
-Compiles files.  
+>node runRepl -c [-v] file1 file2 ...
+Compiles files.  You can optionally add -v to activate verbose mode where it will display each function name as it's being compiled.  You do not need to add the file extentions, eg. node runRepl maps
 
 ### Running the tests
 To run the tests, you can cd into the top level directory and type
@@ -103,7 +116,7 @@ It should give you something like this:
 > Running Tests...
 > ...
 > Done
-> Succeeded all 38 tests.
+> Succeeded all 40 tests.
 Each . on the second line represents a successfully completed test.  If there are errors, it will tell you which tests failed.
 
 ## Changing it
