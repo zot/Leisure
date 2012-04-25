@@ -10,11 +10,6 @@
     <script src="std.js"></script>
     <script src="notebook.js"></script>
     <script src="jquery-1.7.2.min.js"></script>
-<!--
-    <script src="ace/src/ace-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
--->
-    <script src="maps.js"></script>
-    <script src="svg.js"></script>
     <script src="ttt.js"></script>
 
     <script>//<[!CDATA[
@@ -26,7 +21,9 @@
 	function tttLoaded()
 	{
 	  tttWin = document.getElementById('scene').getSVGDocument().defaultView
-          tttWin.leisureEvent = function(funcName) {Prim.leisureEvent(funcName, tttWin.event, tttWin.leisureEnv);}
+          tttWin.leisureEvent = function(funcName) {
+	    Prim.leisureEvent(funcName, tttWin.event, tttWin.leisureEnv);
+	  }
 	  tttWin.leisureEvent('newGame')
 	}
 
@@ -111,16 +108,7 @@
         Repl.evalLine(window.getSelection().toString())
       }
       function evalDoc() {
-        var doc = document.getElementById('editor')
-
-        Repl.clearEnv()
-        var pgm = Notebook.initNotebook(doc)
-        try {
-          gen = ReplCore.generateCode('doc', pgm, false)
-          Leisure.eval(gen)
-        } catch (err) {
-          alert(err.stack)
-        }
+        Notebook.evalDoc(document.getElementById('editor'))
       }
     //]]>
     </script>
@@ -203,6 +191,12 @@
 	  <div style="position: relative; width: 100%; height: 100%; overflow: auto">
 	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; padding: 0" id="editor" class="cell" contentEditable="true">
 
+
+#@auto
+require 'maps'
+
+#@auto
+require 'svg'
 
 svg-map = hash-from-list [ 'id', 'scene', 'data', 'ttt.svg', 'onload', 'initSVG(this)', 'width', 500, 'height', 600 ]
 

@@ -18,8 +18,10 @@
   envFrame = null;
 
   writeOutput = function writeOutput(line) {
-    output.innerHTML += "<span>" + line + "</span>";
-    return output.lastChild.scrollIntoView();
+    if (typeof output !== "undefined" && output !== null) {
+      output.innerHTML += "<span>" + line + "</span>";
+      return output.lastChild.scrollIntoView();
+    }
   };
 
   getHtml = function getHtml(x) {

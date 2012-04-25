@@ -6,8 +6,9 @@ if window?
   output = null
   defaultEnv.write = (msg)->
     if !output? then output = document.getElementById('output')
-    output.innerHTML += "<span>#{msg}</span>"
-    output.lastChild.scrollIntoView()
+    if output?
+      output.innerHTML += "<span>#{msg}</span>"
+      output.lastChild.scrollIntoView()
   defaultEnv.prompt = (msg, cont)-> cont(window.prompt(msg))
   window.Prim = root = {}
   Leisure = window.Leisure
@@ -21,6 +22,12 @@ else
   tty = null
   defaultEnv.write = (msg)-> process.stdout.write(msg)
   defaultEnv.prompt = (msg, cont)-> tty.question(msg, cont)
+  r = (file, cont)->
+    console.log(U.inspect(file))
+    if !(file.match /^\.\//) then file = "./#{file}"
+    require file
+    cont()
+  defaultEnv.require = r
 
 setTty = (rl)-> tty = rl
 
@@ -54,7 +61,7 @@ define 'randInt', (from)->(to)->
   makeMonad 'end', (env, cont)->
     cont Math.floor(from() + Math.random() * (to() - from() + 1))
 
-define 'rand', ()->
+define 'rand', ->
   makeMonad 'end', (env, cont)->
     cont (Math.random())
 
@@ -67,6 +74,11 @@ define 'lte', (a)->(b)->if a() <= b() then `_true()` else `_false()`
 
 eventCmds = []
 running = false
+
+define 'log', (msg)->(value)->
+  if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
+  defaultEnv.write("\n")
+  value()
 
 leisureEvent = (leisureFuncName, evt, env)->
   currentEvent = evt
@@ -102,6 +114,8 @@ makeMonad = (binding, guts)->
   if binding != "end" then m.binding = binding
   m
 
+define 'eventContext', (evt)-> evt().leisureContext
+
 define 'eventX', (evt)-> evt().x
 
 define 'eventY', (evt)-> evt().y
@@ -111,15 +125,14 @@ define 'eventTargetId', (evt)-> evt().target.id
 define 'return', (v)->
   makeMonad 'end', (env, cont)->cont(v())
 
-define 'log', (msg)->(value)->
-  if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
-  defaultEnv.write("\n")
-  value()
+define 'require', (file)->
+  makeMonad 'end', (env, cont)->
+    env.require(file(), cont)
 
 define 'print', (msg)->
   makeMonad 'end', (env, cont)->
     if msg() != _nil() then env.write("#{msg()}\n")
-    cont(_false)
+    cont(_false())
 
 define 'prompt', (msg)->
   makeMonad 'end', (env, cont)->

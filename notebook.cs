@@ -7,6 +7,7 @@ if window? and (!global? or global == window)
   Leisure = window.Leisure
   ReplCore = window.ReplCore
   window.Notebook = root = {}
+  Prim = window.Prim
 else root = exports ? this
 
 delay = (func)->
@@ -116,6 +117,7 @@ removeOldDefs = (el)->
 
 markupDefs = (defs)->
   pgm = ''
+  auto = ''
   for i in defs
     [main, name, def, body] = i
     if name?
@@ -128,13 +130,14 @@ markupDefs = (defs)->
       bx.appendChild bod
       pgm += "#{name} #{def} #{body}\n"
     else
+      if main.leisureAuto then auto += "#{body}\n"
       s = codeSpan body, 'codeExpr'
       s.appendChild textNode('\n')
       s.setAttribute('generatedNL', '')
       bx = box main, 'codeMainExpr', true
       bx.appendChild s
       makeOutputBox(bx)
-  pgm
+  [pgm, auto]
 
 textNode = (text)-> document.createTextNode(text)
 
@@ -145,7 +148,6 @@ evalOutput = (exBox)->
   b.innerHTML = "X"
   exBox.appendChild b
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
-  #alert("Eval: #{exBox.source.textContent}")
 
 cleanOutput = (exBox)->
   while exBox.firstChild != exBox.lastChild
@@ -155,6 +157,7 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
+  require: req
   write: (msg)->
     div = document.createElement('div')
     div.innerHTML = "#{msg}\n"
@@ -239,6 +242,7 @@ getRanges = (el, txt, rest, def, restOff)->
         ex = txt.substring(mainStart, mainEnd).match /^(.*[^ \n])[ \n]*$/
         exEnd = if ex then mainStart + ex[1].length else mainEnd
         outerRange = makeRange el, mainStart, exEnd
+        if leading.match /@auto/ then outerRange.leisureAuto = true
         [outerRange, null, null, txt.substring(mainStart, exEnd), next]
 
 makeRange = (el, off1, off2)->
@@ -283,11 +287,49 @@ nodeEnd = (node)-> [node, if node.nodeType == 3 then node.length else node.child
 
 addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputedStyle(node, null).display == 'block' and node.childNodes.length > 0)
 
+req = (file, cont)->
+  if !(file.match /\.js$/) then file = "#{file}.js"
+  name = file.substring(0, file.length - 3)
+  s = document.createElement 'script'
+  s.setAttribute 'src', file
+  s.addEventListener 'load', ->
+    Leisure.processDefs global[name], global
+    cont(_false())
+  document.head.appendChild s
+
+loadQueue = []
+
+queueAfterLoad = (func)-> loadQueue.push(func)
+
+evalDoc = (el)->
+  Repl.clearEnv()
+  [pgm, auto] = initNotebook(el)
+  try
+	  if auto
+	    Notebook.queueAfterLoad -> Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global)
+	    auto += "\nfinishLoading 'fred'\n";
+	    Leisure.eval(ReplCore.generateCode('_auto', auto, false))
+	  else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global)
+  catch err
+    alert(err.stack)
+
+
+Leisure.define 'finishLoading', (bubba)->
+  Prim.makeMonad 'end', (env, cont)->
+    for i in loadQueue
+      i()
+    loadQueue = []
+    cont(_false())
+
+Prim.defaultEnv.require = req
 
 root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
 root.evalOutput = evalOutput
 root.cleanOutput = cleanOutput
 root.envFor = envFor
+root.queueAfterLoad = queueAfterLoad
+root.evalDoc = evalDoc
+
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

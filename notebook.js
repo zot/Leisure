@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalOutput, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, prepExpr, removeOldDefs, root, selInDef, textNode, toDefBox, toExprBox,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, loadQueue, makeOutputBox, makeRange, markupDefs, nodeEnd, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, textNode, toDefBox, toExprBox,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -12,6 +12,7 @@
     Leisure = window.Leisure;
     ReplCore = window.ReplCore;
     window.Notebook = root = {};
+    Prim = window.Prim;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
@@ -182,8 +183,9 @@
   };
 
   markupDefs = function markupDefs(defs) {
-    var bod, body, bx, def, i, main, name, pgm, s, _i, _len;
+    var auto, bod, body, bx, def, i, main, name, pgm, s, _i, _len;
     pgm = '';
+    auto = '';
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i[0], name = i[1], def = i[2], body = i[3];
@@ -197,6 +199,7 @@
         bx.appendChild(bod);
         pgm += "" + name + " " + def + " " + body + "\n";
       } else {
+        if (main.leisureAuto) auto += "" + body + "\n";
         s = codeSpan(body, 'codeExpr');
         s.appendChild(textNode('\n'));
         s.setAttribute('generatedNL', '');
@@ -205,7 +208,7 @@
         makeOutputBox(bx);
       }
     }
-    return pgm;
+    return [pgm, auto];
   };
 
   textNode = function textNode(text) {
@@ -244,6 +247,7 @@
     var exBox;
     exBox = getBox(box);
     return {
+      require: req,
       write: function write(msg) {
         var div;
         div = document.createElement('div');
@@ -361,6 +365,7 @@
         ex = txt.substring(mainStart, mainEnd).match(/^(.*[^ \n])[ \n]*$/);
         exEnd = ex ? mainStart + ex[1].length : mainEnd;
         outerRange = makeRange(el, mainStart, exEnd);
+        if (leading.match(/@auto/)) outerRange.leisureAuto = true;
         return [outerRange, null, null, txt.substring(mainStart, exEnd), next];
       }
     }
@@ -445,6 +450,58 @@
     return node.nodeName === 'BR' || (node.nodeType === 1 && getComputedStyle(node, null).display === 'block' && node.childNodes.length > 0);
   };
 
+  req = function req(file, cont) {
+    var name, s;
+    if (!(file.match(/\.js$/))) file = "" + file + ".js";
+    name = file.substring(0, file.length - 3);
+    s = document.createElement('script');
+    s.setAttribute('src', file);
+    s.addEventListener('load', function() {
+      Leisure.processDefs(global[name], global);
+      return cont(_false());
+    });
+    return document.head.appendChild(s);
+  };
+
+  loadQueue = [];
+
+  queueAfterLoad = function queueAfterLoad(func) {
+    return loadQueue.push(func);
+  };
+
+  evalDoc = function evalDoc(el) {
+    var auto, pgm, _ref;
+    Repl.clearEnv();
+    _ref = initNotebook(el), pgm = _ref[0], auto = _ref[1];
+    try {
+      if (auto) {
+        Notebook.queueAfterLoad(function() {
+          return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global);
+        });
+        auto += "\nfinishLoading 'fred'\n";
+        return Leisure.eval(ReplCore.generateCode('_auto', auto, false));
+      } else {
+        return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global);
+      }
+    } catch (err) {
+      return alert(err.stack);
+    }
+  };
+
+  Leisure.define('finishLoading', function(bubba) {
+    return Prim.makeMonad('end', function(env, cont) {
+      var i, _i, _len;
+      for (_i = 0, _len = loadQueue.length; _i < _len; _i++) {
+        i = loadQueue[_i];
+        i();
+      }
+      loadQueue = [];
+      return cont(_false());
+    });
+  });
+
+  Prim.defaultEnv.require = req;
+
   root.initNotebook = initNotebook;
 
   root.bindNotebook = bindNotebook;
@@ -454,5 +511,9 @@
   root.cleanOutput = cleanOutput;
 
   root.envFor = envFor;
+
+  root.queueAfterLoad = queueAfterLoad;
+
+  root.evalDoc = evalDoc;
 
 }).call(this);

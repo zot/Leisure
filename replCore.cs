@@ -127,8 +127,9 @@ escape = (str)-> str.replace(/\n/g, '\\n')
 
 generateCode = (file, contents, loud, handle, nomacros)->
   if loud then console.log("Compiling #{file}:\n")
+  objName = if file? and file.match /\.lsr$/ then file.substring(0, file.length - 4) else file ? '_anonymous'
   out = """
-(function(){
+var #{objName} = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {

@@ -9,6 +9,7 @@ input = null
 write = null
 envFrame = null
 writeOutput = (line)->
+  if output?
     output.innerHTML += "<span>#{line}</span>"
     output.lastChild.scrollIntoView()
 

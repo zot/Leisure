@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Pretty, RL, U, concatList, defaultEnv, define, eventCmds, getType, head, laz, leisureEvent, makeMonad, output, root, runMonad, runMonads, running, setTty, tail, tty, values;
+  var Leisure, Pretty, RL, U, concatList, defaultEnv, define, eventCmds, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, runMonads, running, setTty, tail, tty, values;
 
   defaultEnv = {};
 
@@ -8,8 +8,10 @@
     output = null;
     defaultEnv.write = function write(msg) {
       if (!(output != null)) output = document.getElementById('output');
-      output.innerHTML += "<span>" + msg + "</span>";
-      return output.lastChild.scrollIntoView();
+      if (output != null) {
+        output.innerHTML += "<span>" + msg + "</span>";
+        return output.lastChild.scrollIntoView();
+      }
     };
     defaultEnv.prompt = function prompt(msg, cont) {
       return cont(window.prompt(msg));
@@ -29,6 +31,13 @@
     defaultEnv.prompt = function prompt(msg, cont) {
       return tty.question(msg, cont);
     };
+    r = function r(file, cont) {
+      console.log(U.inspect(file));
+      if (!(file.match(/^\.\//))) file = "./" + file;
+      require(file);
+      return cont();
+    };
+    defaultEnv.require = r;
   }
 
   setTty = function setTty(rl) {
@@ -214,6 +223,18 @@
 
   running = false;
 
+  define('log', function(msg) {
+    return function(value) {
+      if (msg().type !== 'cons') {
+        defaultEnv.write("" + (msg()));
+      } else {
+        defaultEnv.write(concatList(msg()));
+      }
+      defaultEnv.write("\n");
+      return value();
+    };
+  });
+
   leisureEvent = function leisureEvent(leisureFuncName, evt, env) {
     var currentEvent, monad;
     currentEvent = evt;
@@ -260,6 +281,10 @@
     return m;
   };
 
+  define('eventContext', function(evt) {
+    return evt().leisureContext;
+  });
+
   define('eventX', function(evt) {
     return evt().x;
   });
@@ -278,22 +303,16 @@
     });
   });
 
-  define('log', function(msg) {
-    return function(value) {
-      if (msg().type !== 'cons') {
-        defaultEnv.write("" + (msg()));
-      } else {
-        defaultEnv.write(concatList(msg()));
-      }
-      defaultEnv.write("\n");
-      return value();
-    };
+  define('require', function(file) {
+    return makeMonad('end', function(env, cont) {
+      return env.require(file(), cont);
+    });
   });
 
   define('print', function(msg) {
     return makeMonad('end', function(env, cont) {
       if (msg() !== _nil()) env.write("" + (msg()) + "\n");
-      return cont(_false);
+      return cont(_false());
     });
   });
 

@@ -594,12 +594,13 @@ setEvalFunc = (ct, func)->
 req = (name, gl)-> processDefs(require(name), gl)
 
 processDefs = (res, gl)->
-  gl = gl ? global
-  if res.defs? then for i,v of res.defs
-    gl[i] = v
-  processTokenDefs res.tokenDefs
-  res.leisureFuncNames = ctx.leisureFuncNames
-  res.ctx = ctx
+  if res
+    gl = gl ? global
+    if res.defs? then for i,v of res.defs
+      gl[i] = v
+    processTokenDefs res.tokenDefs
+    res.leisureFuncNames = ctx.leisureFuncNames
+    res.ctx = ctx
   res
 
 processTokenDefs = (defs)->
