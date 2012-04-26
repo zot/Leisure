@@ -2,7 +2,11 @@
   <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <script src="leisure.js"></script>
+    <link type="text/css" rel="stylesheet" href="leisure.css">
+    <!-- CSS themes: add the theme name to the body's class to use the theme  -->
+    <link type="text/css" rel="stylesheet" href="gaudy.css">
+    <link type="text/css" rel="stylesheet" href="thin.css">
+    <script src="leisure.js" onload="LEI = event"></script>
     <script src="prim.js"></script>
     <script src="pretty.js"></script>
     <script src="replCore.js"></script>
@@ -18,11 +22,6 @@
     -->
     <script>//<[!CDATA[
       function init() {
-/*
-        var input = document.getElementById('input')
-        var output = document.getElementById('output')
-        var defs = document.getElementById('defs')
-*/
         var doc = document.getElementById('doc')
 
         try {
@@ -64,83 +63,12 @@
         Repl.evalLine(window.getSelection().toString())
       }
       function evalDoc() {
-        var doc = document.getElementById('editor')
-
-        Repl.clearEnv()
-        var pgm = Notebook.initNotebook(doc)
-        try {
-          gen = ReplCore.generateCode('doc', pgm, false)
-          Leisure.eval(gen)
-        } catch (err) {
-          alert(err.stack)
-        }
+        Notebook.evalDoc(document.getElementById('editor'))
       }
     //]]>
     </script>
-    <style type="text/css" media="screen">
-      body {
-        overflow: hidden;
-      }
-    
-    </style>
-    <style>
-      .cell {
-        vertical-align: top;
-        outline: solid black 2px;
-      }
-      .codeExpr {
-        font-style: italic;
-        font-weight: bold;
-        margin: 3px;
-      }
-      .codeMain {
-        vertical-align: top;
-        margin: 3px;
-        display: inline-block;
-        border-width: 29px 24px 30px 34px;
-        -moz-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
-        -webkit-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
-        -o-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
-        border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
-      }
-      .output {
-        border: red solid 2px;
-        margin: 3px;
-        left-margin: 10px;
-        display: inline-block;
-        padding: 5px;
-      }
-      .output span {
-        vertical-align: top;
-      }
-      .codeMainExpr {
-        vertical-align: top;
-        border-width: 29px 30px 37px 34px;
-        -moz-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
-        -webkit-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
-        -o-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
-        border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
-        margin: 3px;
-        display: inline-block;
-      }
-      .codeName {
-        color: blue;
-        font-weight: bold;
-        margin: 3px;
-      }
-      .codeBody {
-        font-style: italic;
-        font-weight: bold;
-        margin: 3px;
-      }
-      .noselect {
-        -moz-user-select: none;  
-        -webkit-user-select: none;  
-        -ms-user-select: none;  
-      }
-    </style>
   </head>
-  <body onload="init()" style="border: 0; padding: 0; margin: 0">
+  <body class="thin" onload="init()">
     <table style="position: absolute; vertical-align: top; width: 100%; height: 100%">
       <tr style="height: 0">
 	<td>
@@ -152,15 +80,15 @@
 	</td>
       </tr>
       <tr style="height: 100%">
-	<td class="cell" style="width: 50%">
-	  <div style="position: relative; width: 100%; height: 100%; overflow: auto">
-	    <pre style="position: absolute; width: 100%; min-height: 100%; margin: 0; padding: 0" id="editor" class="cell" contentEditable="true">maluba a b=a
+	<td style="width: 50%">
+	  <div class="leisure-notebook-holder">
+	    <pre class="leisure-notebook" id="editor" contentEditable="true">maluba a b=a
   true true
   b
 
 fred a=a
 
-print hello
+print 'hello'
 do
   n <- prompt 'What is your name?'
   print (concat ['hello, ', n])
@@ -172,19 +100,7 @@ circle=html '&lt;svg xmlns="http://www.w3.org/2000/svg" version="1.1" style="wid
 circle</pre>
 	  </div>
 	</td>
-<!--
-	<td class="cell" style="width: 50%">
-	  <div style="width: 100%; height: 100%; position: relative; overflow: auto">
-	    <pre id="output" style="position: absolute; width: 100%; margin: 0"></pre>
-	  </div>
-	</td>
--->
       </tr>
-<!--
-      <tr style="height: 0"><td colspan="2" class="cell">
-	  <table style="width: 100%; white-space: nowrap"><tr><td style="width: 100%"><input id="input" type="text" style="width: 100%; margin: 0"></td><td style="width: 0"><div>Load file: <input type="file" onchange="Repl.handleFiles(this)"></input><button onclick="Repl.clearEnv()">Clear</button></td></tr></table>
-      </td></tr>
--->
     </table>
   </body>
 </html>

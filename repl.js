@@ -173,8 +173,6 @@
     return L.eval('leisureSetFuncs')(leisureFuncNames);
   };
 
-  createEnv();
-
   Core.setHelp(help);
 
   Core.setCompiler(compile);
@@ -200,5 +198,7 @@
   root.init = init;
 
   root.processResult = processResult;
+
+  createEnv();
 
 }).call(this);

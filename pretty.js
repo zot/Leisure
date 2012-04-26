@@ -116,6 +116,12 @@
               return "Right(" + (print(r())) + ")";
             };
           });
+        case 'html':
+          return f(function() {
+            return function(txt) {
+              return txt();
+            };
+          });
         default:
           return (_ref = f != null ? f.leisureName : void 0) != null ? _ref : inspect(f);
       }

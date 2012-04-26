@@ -1083,17 +1083,19 @@ misrepresented as being the original software.
 
   processDefs = function processDefs(res, gl) {
     var i, v, _ref;
-    gl = gl != null ? gl : global;
-    if (res.defs != null) {
-      _ref = res.defs;
-      for (i in _ref) {
-        v = _ref[i];
-        gl[i] = v;
+    if (res) {
+      gl = gl != null ? gl : global;
+      if (res.defs != null) {
+        _ref = res.defs;
+        for (i in _ref) {
+          v = _ref[i];
+          gl[i] = v;
+        }
       }
+      processTokenDefs(res.tokenDefs);
+      res.leisureFuncNames = ctx.leisureFuncNames;
+      res.ctx = ctx;
     }
-    processTokenDefs(res.tokenDefs);
-    res.leisureFuncNames = ctx.leisureFuncNames;
-    res.ctx = ctx;
     return res;
   };
 
