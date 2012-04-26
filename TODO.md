@@ -1,15 +1,14 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
-* make require work on command line
-* macros
-   * cond macro
+* make require work in node
+* handle multiple require calls in notebook
 * configuration monads
    * default pretty-printers for output
    * run-test-cases -- run test cases after loading this file
 * report indentation underflows
 * parser macros should return (ast, errors, warnings)
-* error if let/do has no expr
-* error if let finds more than one body expr
+   * error if let/do has no expr
+   * error if let finds more than one body expr
 * debug mode should put a cons into funcs of a new error and the list from the parent
    * can use this to see the origin of a thunk
 * add assertMonad() to testing.cs
@@ -17,17 +16,11 @@
 * pretty printer function can take an assoc-list of printers for types
 * notebook style interface
    * make programs html pages with code attributes
-	  * in browser, use document.querySelector('[code]')
       * in node, use htmlparser (npm install htmlparser)
-      * include &lt;script src='bootLeisure.js> element that boots the Leisure env on that page
-         * clones doc
-		 * adds iframe with leisure env
-         * hands leisure the clone to analyze and the current doc to mutate
    * exprs that hang in the page are commented out: #@EXPR: + 1 2
    * vision statements in default notebook
    * naked exprs are gathered and executed after the file loads, then presented to indicate to the user that they auto-run
       * notebook-hide-source: monad to hide source
-   * move to bootLeisure.cs
    * better formatting
       * comments, exprs, and test cases in column 1
       * defs in column 2
@@ -36,23 +29,15 @@
       * ( -- maybe colums are better than this: group adjacent definitions into the same codeMain border)
    * make cmd line runRepl parse HTML code files
    * put hyperlinks in output to function definitions
-   * prevent borders from taking up space in doc
-      * separate divs by newlines
-	  * make divs position: relative; overflow: visible
-	  * use internal divs that are bigger than their parents
    * incremental compilation (recompile the file after a blank line and update all errors)
-      * monitor input and test first line to see if it changes between expr and def -- change box
-	  * dynamically add expr box on naked input
    * use in-doc prompt, instad of popup
    * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
    * comments that attach event handlers?
-   * make TTT into a notebook that shows the TTT grid
    * optionally hide source code
    * load/save
-* a 'require' directive that works in browsers and on the cmd line
-   * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
    * collaboration
 * use curlies for do/let?
+   * handle groups properly with indentation
    * not sure what this means for indentation
    * remove intermediate step of inserting {}; -- convert directly to parenthesized groups
    * allow newlines in open groups
@@ -76,7 +61,7 @@
 * if reqs aren't present when runing in browser, show error in output area or use alert if not in repl
 * fold, map, etc. for asts
 * make options also be monads
-* need supertypes or something for things like booleans (true or false), options, eithers
+* supertypes or something for things like booleans (true or false), options, eithers
 * -g option
    * check function types before application and print meaningful error msgs
    * generate trace
@@ -96,14 +81,31 @@
    * AMTs
    * HAMTs
 * leisure-code for pretty printing
-* Use leisure for parser, generator, REPL; compile them and use the JS for them
+* Rewriteparser, generator, and REPL in Leisure; compile them and use the JS for them
    * This will help people extend leisure
 * Generator improvements
    * eliminate redundant memo/deref pairs
 * [optimistic evaluation](http://research.microsoft.com/en-us/um/people/simonpj/Papers/optimistic/index.htm)?
-* named parsers
+* named parsers (alternate syntaxes)
 
 # DONE
+* a 'require' directive that works in browsers and on the cmd line
+   * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
+* notebook style interface
+   * make programs html pages with code attributes
+	  * in browser, use document.querySelector('[code]')
+      * include &lt;script src='bootLeisure.js> element that boots the Leisure env on that page
+         * clones doc
+		 * adds iframe with leisure env
+         * hands leisure the clone to analyze and the current doc to mutate
+   * move to bootLeisure.cs
+   * prevent borders from taking up space in doc
+      * separate divs by newlines
+	  * make divs position: relative; overflow: visible
+	  * use internal divs that are bigger than their parents
+   * make TTT into a notebook that shows the TTT grid
+   * dynamically add expr box on naked input
+   * monitor input and test first line to see if it changes between expr and def -- change box
 * configuration monads
    * require
 * make eval substitute macros
