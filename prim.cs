@@ -23,7 +23,6 @@ else
   defaultEnv.write = (msg)-> process.stdout.write(msg)
   defaultEnv.prompt = (msg, cont)-> tty.question(msg, cont)
   r = (file, cont)->
-    console.log(U.inspect(file))
     if !(file.match /^\.\//) then file = "./#{file}"
     Leisure.req file
     cont(_false())
@@ -117,7 +116,6 @@ define 'return', (v)->
   makeMonad 'end', (env, cont)->cont(v())
 
 define 'require', (file)->
-  console.log "REQUIRE: #{file}"
   makeMonad 'end', (env, cont)->
     env.require(file(), cont)
 

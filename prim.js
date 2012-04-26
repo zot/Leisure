@@ -32,7 +32,6 @@
       return tty.question(msg, cont);
     };
     r = function r(file, cont) {
-      console.log(U.inspect(file));
       if (!(file.match(/^\.\//))) file = "./" + file;
       Leisure.req(file);
       return cont(_false());
@@ -292,7 +291,6 @@
   });
 
   define('require', function(file) {
-    console.log("REQUIRE: " + file);
     return makeMonad('end', function(env, cont) {
       return env.require(file(), cont);
     });

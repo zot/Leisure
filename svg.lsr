@@ -1,4 +1,3 @@
-print 'SVG'
 require 'maps'
 
 insert-fields map = if (null? map) ''

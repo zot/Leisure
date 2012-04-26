@@ -1,9 +1,9 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
+* make require work on command line
 * macros
    * cond macro
 * configuration monads
-   * require
    * default pretty-printers for output
    * run-test-cases -- run test cases after loading this file
 * report indentation underflows
@@ -104,6 +104,8 @@
 * named parsers
 
 # DONE
+* configuration monads
+   * require
 * make eval substitute macros
 * allow redefinition in REPL exprs
 * notebook style interface

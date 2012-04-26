@@ -1,0 +1,69 @@
+<html>
+  <head>
+    <script src="bootLeisure.js"></script>
+    <script>//<[!CDATA[
+	function initSVG(el) {
+	  el.getSVGDocument().defaultView.leisureEnv = el.leisureEnv = Notebook.envFor(el);
+	  //delay this to the next cycle
+	  window.setTimeout(tttLoaded, 1);
+	}
+	function tttLoaded()
+	{
+	  tttWin = document.getElementById('scene').getSVGDocument().defaultView
+          tttWin.leisureEvent = function(funcName) {
+	    Prim.leisureEvent(funcName, tttWin.event, tttWin.leisureEnv);
+	  }
+	  tttWin.leisureEvent('newGame')
+	}
+
+	// b will be a string of 9 chars, either space, X, or O
+      function showBoard(b) {
+	xIndex = 0
+        oIndex = 0
+        for (var i = 0; i < b.length; ++i) {
+          p = b[i]
+          if (p == 'X') movePiece(p, ++xIndex, i)
+          else if (p == 'O') movePiece(p, ++oIndex, i)
+        }
+	while (xIndex < 5) hidePiece('X', ++xIndex)
+	while (oIndex < 5) hidePiece('O', ++oIndex)
+      }
+
+	// move a piece onto the board
+      function movePiece(prefix, index, spotIndex) {
+	id = prefix + index
+	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
+	spotId = "spot" + spotIndex
+	spot = document.getElementById('scene').getSVGDocument().getElementById(spotId);
+	w_x = (spot.getBBox().width - piece.getBBox().width) / 2.0
+	w_y = (spot.getBBox().height - piece.getBBox().height) / 2.0
+	delta_x = spot.getBBox().x - piece.getBBox().x + w_x
+	delta_y = spot.getBBox().y - piece.getBBox().y + w_y
+	//alert("piece: " + id + " => " + spotId + " d_x: " + delta_x + " d_y: " + delta_y)
+	piece.setAttribute('transform', 'translate(' + delta_x + ', ' + delta_y + ')')
+      }
+
+	// hide any ununsed pieces
+      function hidePiece(prefix, index) {
+	id = prefix + index
+	piece = document.getElementById('scene').getSVGDocument().getElementById(id);
+	if (piece) piece.setAttribute('transform', 'translate(' + 0 + ', ' + 0 + ')')
+      }
+    //]]>
+    </script>
+</head>
+<body leisureCode class="thin">
+#@auto
+do
+  require 'ttt'
+  require 'svg'
+
+svg-map = hash-from-list [ 'id', 'scene', 'data', 'ttt.svg', 'onload', 'initSVG(this)', 'width', 500, 'height', 600 ]
+
+svg-file svg-map
+
+start = svg-file svg-map
+
+start
+</body>
+</html>
