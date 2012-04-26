@@ -3,7 +3,6 @@
 ###
 
 Leisure = {}
-originalBody = null
 
 bootLeisure = ->
   body = document.body
@@ -16,7 +15,6 @@ bootLeisure = ->
     body.appendChild pre
     body.removeAttribute 'leisurecode'
   window.removeEventListener 'load', bootLeisure
-  originalBody = body.cloneNode true
   for i in ['leisure', 'gaudy', 'thin']
     style = document.createElement('link')
     style.setAttribute 'type', "text/css"
@@ -43,17 +41,9 @@ evalDoc = ->
   for doc in document.querySelectorAll ".leisure-notebook"
     Notebook.evalDoc(doc)
 
-initBootEnv = (iframe)->
-  keys = ""
-  for k, v of iframe.contentWindow.Leisure
-    Leisure[k] = v
-    keys="#{keys} #{k}"
-  alert("init: #{keys}")
-
 if document.readyState == 'complete' then bootLeisure()
 else
   window.addEventListener 'load', bootLeisure
 
 window.Leisure = Leisure
 Leisure.bootLeisure = bootLeisure
-Leisure.initBootEnv = initBootEnv
