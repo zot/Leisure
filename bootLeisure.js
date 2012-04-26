@@ -4,11 +4,9 @@
 */
 
 (function() {
-  var Leisure, bootLeisure, evalDoc, initBootEnv, loadThen, originalBody;
+  var Leisure, bootLeisure, evalDoc, loadThen;
 
   Leisure = {};
-
-  originalBody = null;
 
   bootLeisure = function bootLeisure() {
     var body, i, pre, style, _i, _len, _ref;
@@ -24,7 +22,6 @@
       body.removeAttribute('leisurecode');
     }
     window.removeEventListener('load', bootLeisure);
-    originalBody = body.cloneNode(true);
     _ref = ['leisure', 'gaudy', 'thin'];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       i = _ref[_i];
@@ -75,18 +72,6 @@
     return _results;
   };
 
-  initBootEnv = function initBootEnv(iframe) {
-    var k, keys, v, _ref;
-    keys = "";
-    _ref = iframe.contentWindow.Leisure;
-    for (k in _ref) {
-      v = _ref[k];
-      Leisure[k] = v;
-      keys = "" + keys + " " + k;
-    }
-    return alert("init: " + keys);
-  };
-
   if (document.readyState === 'complete') {
     bootLeisure();
   } else {
@@ -96,7 +81,5 @@
   window.Leisure = Leisure;
 
   Leisure.bootLeisure = bootLeisure;
-
-  Leisure.initBootEnv = initBootEnv;
 
 }).call(this);
