@@ -311,7 +311,7 @@ defineToken = (name, def)->
     types = (escapeRegexpChars i for i in types)
     types.push '[().\\\\]| +'
     tokenPat =  new RegExp(baseTokenPat.source + '|' + types.join('|'))
-    tokenPat2 = new RegExp("\\n *|#{baseTokenPat.source}")
+    tokenPat2 = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
     groupToks = []
     for k, v of groupOpens
       groupToks.push(k)
@@ -332,8 +332,8 @@ getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n
 compileNext = (line, globals, parseOnly, check, nomacros)->
   if line[0] == '='
     rest = line.substring 1
-    ifParsed (if nomacros then parseApply rest, Nil else parseFull rest), ((ast, rest)->
-      genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr:  #{line.substring 0, 80}"
+    ifParsed (if nomacros then parseApplyNew rest, Nil else parseFull rest), ((ast, rest)->
+      genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     if name[0] == ' '
@@ -343,12 +343,14 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
     else nm = if defType then name.trim().split(/\s+/) else null
     rest1 = line.substring (if defType then matched else leading).length
     if nm
-      if check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]}", null]
+      if check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]} #{snip rest1}", null]
       else
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
         errPrefix = "Error while compiling #{nm}: "
-        ifParsed (if nomacros then parseApply pfx, Nil else parseFull pfx), ((ast, rest)->
+        burp "PARSING: #{nm[0]} (nomacros: #{nomacros}) #{snip pfx}"
+        ifParsed (if nomacros then parseApplyNew pfx, Nil else parseFull pfx), ((ast, rest)->
+          burp "PARSED: #{nm[0]}"
           nameAst(nm[0], ast)
           bod = ast
           if nm.length > 1 then bod = getNthBody(ast, nm.length)
@@ -359,8 +361,8 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
           ast.leisurePrefixSrcLen = pfx.length
           ast.leisurePrefixCount = nm.length
           genCode ast, nm[0], globals, defType, rest, parseOnly), errPrefix
-    else ifParsed (if nomacros then parseApply rest1, Nil else parseFull rest1), ((ast, rest)->
-      genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr:  #{line.substring 0, 80}"
+    else ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
+      genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr:  #{snip line}"
   else [null, null, null]
 
 genCode = (ast, name, globals, defType, rest, parseOnly)->
@@ -476,7 +478,7 @@ nextTok = (str, offset)->
     else nextTok rest, offset + tok.length
 
 parseFull = (str)->
-  [ast, err, rest] = parseApply str, Nil, 0
+  [ast, err, rest] = parseApplyNew str, Nil, 0
   if err then [ast, err, rest]
   else [(substituteMacros ast), err, rest]
 
@@ -505,7 +507,7 @@ getMacro = (ast)->
   else null
 
 parse = (str)->
-  [ast, err, rest] = parseApply str.replace(/\u03BB/g, '\\'), Nil, 0
+  [ast, err, rest] = parseApplyNew str.replace(/\u03BB/g, '\\'), Nil, 0
   if err then throw new Error(err) else ast
 
 ifParsed = (res, block, errPrefix)->
@@ -526,7 +528,7 @@ parseApply = (str, vars, offset)->
   else
     [tok, offset1, rest1] = nextTok str, offset
     if tok == '\n' then [null, 'Newline when expecting expression', rest1]
-    else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok}", str]
+    else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok} #{snip rest1}", str]
     else ifParsed (parseTerm tok, rest1, vars, offset1), (func, rest)-> continueApply(func, rest, vars, soff(str, offset, rest))
 
 continueApply = (func, str, vars, offset)->
@@ -543,7 +545,7 @@ parseTerm = (tok, rest, vars, tokOffset)->
     apl = if tok == '(' then parseApply rest, vars, restOffset else ifParsed (parseName tok, rest, vars, tokOffset), (ast, rest2)-> continueApply ast, rest2, vars, soff(rest, restOffset, rest2)
     ifParsed apl, (ast, rest3)->
       [tok4, offset4, rest4] = nextTok rest3, soff(rest, restOffset, rest3)
-      if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
+      if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4} #{snip rest4}", rest4]
       else if tok == '(' then [ast, null, rest4]
       else ifParsed (parseName tok4, rest4, vars, soff(rest, restOffset, rest4)), (arg, rest5)->
         [tag(apply(laz(ast))(laz(arg)), ast.leisureStart, arg.leisureEnd), null, rest5]
@@ -621,13 +623,13 @@ processTokenDefs = (defs)->
 
 
 # returns [tok, rest]
-nextTok2 = (str)->
+nextTok2 = (str, indent)->
   m = str.match(tokenPat2)
   if !m then ['', '']
   else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
   else
     rest = str.substring(m.index + m[0].length)
-    if m[0][0] == '#' or m[0][0] == ' ' then nextTok2 rest
+    if m[0][0] == '#' or m[0][0] == ' ' or (m[0][0] == '\n' and rest[0] == '\n') then nextTok2 rest, indent
     else [m[0], rest]
 
 tag2 = (start, end, ast)->
@@ -643,21 +645,25 @@ parseIf = (res, block, errPrefix)->
   if res[1] then [res[0], (errPrefix ? '') + res[1], res[2]]
   else block res[0], res[2]
 
+snip = (str)->"[#{str.substring 0, 80}]"
+
 # returns [ast, err, rest]
 parseApply2 = (str, vars, indent, totalLen)->
   if !str then [null, null, str]
   else
-    [tok, rest] = nextTok2 str
-    if !tok or tok[0] == '\n' then [null, 'expecting expression', rest]
-    else if groupCloses[tok] then [null, "Unexpected group close: #{tok}", rest]
+    [tok, rest] = nextTok2 str, indent
+    if !tok or tok[0] == '\n' then [null, "expecting expression #{snip str}\n#{new Error().stack}", rest]
+    else if groupCloses[tok] then [null, "Unexpected group close: #{tok} #{snip rest}", rest]
     else parseIf (parseTerm2 tok, rest, vars, indent, totalLen), (func, rest)->continueApply2(func, rest, vars, indent, totalLen)
 
 continueApply2 = (func, str, vars, indent, totalLen)->
-  [tok, rest] = nextTok2 str
+  [tok, rest] = nextTok2 str, indent
   if !tok or (tok[0] == '\n' and tok.length <= indent.length) or groupCloses[tok]
     [func, null, str]
   else
-    parsedArg = if tok[0] == '\n' then parseApply2 rest, vars, tok, totalLen
+    parsedArg = if tok[0] == '\n'
+      console.log "CONTINUING, tok len = #{tok.length}, indent len = #{indent.length}"
+      parseApply2 rest, vars, tok, totalLen
     else parseTerm2 tok, rest, vars, indent, totalLen
     parseIf parsedArg, (arg, rest)->
       continueApply2 tag2(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen
@@ -666,17 +672,17 @@ parseTerm2 = (tok, rest, vars, indent, totalLen)->
   if tok == '\\' then parseLambda2 rest, vars, indent, totalLen
   else if groupOpens[tok]
     apl = if tok == '(' then parseApply2 rest, vars, indent, totalLen
-    else parseIf (parseName2 tok, rest, vars, indent totalLen), (ast, rest2)->
+    else parseIf (parseName2 tok, rest, vars, totalLen), (ast, rest2)->
       continueApply2 ast, rest2, vars, indent, totalLen
     parseIf apl, (ast, rest3)->
-      [tok4, rest4] = nextTok2 rest3
+      [tok4, rest4] = nextTok2 rest3, indent
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
       else if tok == '(' then [ast, null, rest4]
       else parseIf (parseName2 tok4, rest4, vars, totalLen), (arg, rest5)->
         [tag2(ast.leisureStart, ast.leisureEnd, apply(laz(ast))(laz(arg))), null, rest5]
-  else parseName2 tok, rest, vars, indent, totalLen
+  else parseName2 tok, rest, vars, totalLen
 
-parseName2 = (tok, rest, vars, indent, totalLen)->
+parseName2 = (tok, rest, vars, totalLen)->
   name = if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
   else if tok[0] == '"' then lit(laz(scanTok(tok)))
   else if tok[0] == '`' then ref(laz(tok.substring(1, tok.length - 1)))
@@ -684,15 +690,15 @@ parseName2 = (tok, rest, vars, indent, totalLen)->
   else scanName(tok)
   [tag2(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
 
-nextTok2IgnoreNL = (str)->
-  [tok, rest] = r = nextTok str
-  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok rest
+nextTok2IgnoreNL = (str, indent)->
+  [tok, rest] = r = nextTok2 str, indent
+  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok2 rest, indent
   r
 
 parseLambda2 = (str, vars, indent, totalLen)->
-  [nm, rest1] = nextTok2IgnoreNL str
-  [tok2, test2] = nextTok2IgnoreNL rest1
-  apl = if tok2 = '.' then parseApply2 (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
+  [nm, rest1] = nextTok2IgnoreNL str, indent
+  [tok2, rest2] = nextTok2IgnoreNL rest1, indent
+  apl = if tok2 == '.' then parseApply2 (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
   else parseLambda2 rest1, cons(nm, vars), indent, totalLen
   parseIf apl, (body, rest2)->[tag2(tokPos(nm, rest1, totalLen), body.leisureEnd, lambda(laz(nm))(laz(body))), null, rest2]
 
@@ -750,6 +756,11 @@ printGroups = (txt, groups)->
     if groupOpens[groups[i][0]]? then last += groupOpens[groups[i][0]].length
   out += txt.substring(last, groups[2])
   out + "#{close})"
+
+parseApplyNew = parseApply
+burp = (str)->
+#burp = (str)-> console.log str
+#parseApplyNew = (str, vars)-> parseApply2 str, vars, '\n', str.length
 
 root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc

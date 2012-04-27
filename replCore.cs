@@ -172,13 +172,13 @@ var processResult = Repl.processResult;
     if loud > 1 and prev != names and names != Leisure.Nil then console.log "Compiling function: #{names.head}"
     oldRest = rest
     [ast, err, rest] = Leisure.compileNext rest, globals, null, false, nomacros
-    if ast.leisureName?
+    if ast?.leisureName?
       prev = ast.leisureName
       names = names.tail
     code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
     err = err ? ast?.err
     if err
-      errs = "#{errs}#{if ast?.leisureName then "Error in #{ast.leisureName}" else ""}#{err}\n"
+      errs = "#{errs}#{if ast?.leisureName then "Error in #{ast.leisureName}#{showAst ast}" else ""}#{err}\n"
       rest = ''
     else if ast
       globals = ast.globals
@@ -208,6 +208,8 @@ return root;
 
 getGlobals = -> Leisure.eval 'leisureGetFuncs()'
 
+showAst = (ast)-> if ast? then "(#{P.print(ast)})/(#{Leisure.astPrint(ast)})" else ""
+
 findDefs = (contents, nomacros, loud)->
   errs = ''
   globals = Leisure.Nil
@@ -215,10 +217,14 @@ findDefs = (contents, nomacros, loud)->
   while rest
     oldRest = rest
     [ast, err, rest] = Leisure.compileNext rest, globals, true, null, nomacros
-    if err then errs = "#{errs}#{if ast.leisureName then "Error in #{ast.leisureName}" else ""}#{err}\n"
+    if err
+      if ast?.leisureName then errs = "#{errs}Error in #{ast.leisureName}#{showAst ast}: #{err}\n"
+      else if prevName? then errs = "#{errs}Error after #{prevName}: #{err}\n"
+      else errs = "#{erros}#{err}\n"
     if ast?.leisureName
+      prevName = ast.leisureName
       if loud > 2 then console.log "Found function: #{ast.leisureName}"
-      if globals?.find((v)->v == ast.leisureName) then throw new Error("Attempt to redefine function: #{ast.leisureName}")
+      if globals?.find((v)->v == ast.leisureName) then throw new Error("Attempt to redefine function: #{ast.leisureName}#{showAst ast}")
       globals = Leisure.cons(ast.leisureName, globals)
   [globals.reverse(), errs]
 

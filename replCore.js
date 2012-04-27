@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, vars, write, writeFunc,
+  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, showAst, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -216,14 +216,14 @@
       }
       oldRest = rest;
       _ref4 = Leisure.compileNext(rest, globals, null, false, nomacros), ast = _ref4[0], err = _ref4[1], rest = _ref4[2];
-      if (ast.leisureName != null) {
+      if ((ast != null ? ast.leisureName : void 0) != null) {
         prev = ast.leisureName;
         names = names.tail;
       }
       code = rest ? oldRest.substring(0, oldRest.length - rest.length) : '';
       err = err != null ? err : ast != null ? ast.err : void 0;
       if (err) {
-        errs = "" + errs + ((ast != null ? ast.leisureName : void 0) ? "Error in " + ast.leisureName : "") + err + "\n";
+        errs = "" + errs + ((ast != null ? ast.leisureName : void 0) ? "Error in " + ast.leisureName + (showAst(ast)) : "") + err + "\n";
         rest = '';
       } else if (ast) {
         globals = ast.globals;
@@ -245,8 +245,16 @@
     return Leisure.eval('leisureGetFuncs()');
   };
 
+  showAst = function showAst(ast) {
+    if (ast != null) {
+      return "(" + (P.print(ast)) + ")/(" + (Leisure.astPrint(ast)) + ")";
+    } else {
+      return "";
+    }
+  };
+
   findDefs = function findDefs(contents, nomacros, loud) {
-    var ast, err, errs, globals, oldRest, rest, _ref;
+    var ast, err, errs, globals, oldRest, prevName, rest, _ref;
     errs = '';
     globals = Leisure.Nil;
     rest = contents;
@@ -254,14 +262,21 @@
       oldRest = rest;
       _ref = Leisure.compileNext(rest, globals, true, null, nomacros), ast = _ref[0], err = _ref[1], rest = _ref[2];
       if (err) {
-        errs = "" + errs + (ast.leisureName ? "Error in " + ast.leisureName : "") + err + "\n";
+        if (ast != null ? ast.leisureName : void 0) {
+          errs = "" + errs + "Error in " + ast.leisureName + (showAst(ast)) + ": " + err + "\n";
+        } else if (typeof prevName !== "undefined" && prevName !== null) {
+          errs = "" + errs + "Error after " + prevName + ": " + err + "\n";
+        } else {
+          errs = "" + erros + err + "\n";
+        }
       }
       if (ast != null ? ast.leisureName : void 0) {
+        prevName = ast.leisureName;
         if (loud > 2) console.log("Found function: " + ast.leisureName);
         if (globals != null ? globals.find(function(v) {
           return v === ast.leisureName;
         }) : void 0) {
-          throw new Error("Attempt to redefine function: " + ast.leisureName);
+          throw new Error("Attempt to redefine function: " + ast.leisureName + (showAst(ast)));
         }
         globals = Leisure.cons(ast.leisureName, globals);
       }
