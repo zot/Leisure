@@ -14,6 +14,7 @@
     if ((body.getAttribute('leisurecode')) != null) {
       pre = document.createElement('pre');
       pre.setAttribute('leisurecode', '');
+      pre.setAttribute('contentEditable', 'true');
       pre.innerHTML = body.innerHTML;
       while (body.firstChild) {
         body.removeChild(body.firstChild);

@@ -19,19 +19,18 @@ bindNotebook = (el)->
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
     el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
     el.addEventListener 'keypress', (e)->
+      s = window.getSelection()
+      r = s.getRangeAt(0)
       if (e.charCode || e.keyCode || e.which) == 13
         br = textNode('\n')
-        s = window.getSelection()
-        s.getRangeAt(0).insertNode(br)
+        r.insertNode(br)
         r = document.createRange()
         r.setStart(br, 1)
         s.removeAllRanges()
         s.addRange(r)
         e.preventDefault()
-      else if (e.charCode || e.keyCode || e.which) == 61 then checkMutateToDef e, el
+      else if (e.charCode || e.keyCode || e.which) == 61 then checkMutateToDef e, el # 61 is '='
       else
-        s = window.getSelection()
-        r = s.getRangeAt(0)
         if r.startContainer.parentNode == el
           sp = codeSpan '\n', 'codeExpr'
           sp.setAttribute('generatedNL', '')
@@ -42,6 +41,26 @@ bindNotebook = (el)->
           r.setStart(sp, 0)
           s.removeAllRanges()
           s.addRange(r)
+      window.setTimeout(highlightPosition, 1)
+
+highlightPosition = ->
+  s = window.getSelection()
+  r = s.getRangeAt(0)
+  parent = getBox r.startContainer
+  tr = document.createRange()
+  tr.setStart parent, 0
+  tr.setEnd r.endContainer, r.endOffset
+  pos = getRangeText(tr).length
+  allTxt = parent.textContent
+  last = allTxt.length - 1
+  while last < allTxt.length and allTxt[last] in ' \n'
+    last--
+  showNesting parent, allTxt.substring(0, last + 1), pos
+
+showNesting = (parent, allTxt, pos) ->
+  alert "highlight: [#{allTxt.substring 0, pos}] [#{allTxt.substring pos}]"
+
+getRangeText = (r)-> r.cloneContents().textContent
 
 getBox = (node)->
   while node? and !(node.getAttribute?('LeisureBox'))?

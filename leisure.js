@@ -24,9 +24,10 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, prefix, prepare, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tokenPat, tokens, topBracePat, warnFreeVariable, wordPat, wrap, wrapDebug, wrapNoDebug,
+  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseGroupingPat, baseTokenPat, bracePat, bracify, charCodes, codeChars, commentPat, compileNext, cons, continueApply, continueApply2, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findGroup, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNesting, getNthBody, getRefVar, getType, groupCloses, groupOpens, groupingPat, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextGroupTok, nextTok, nextTok2, nextTok2IgnoreNL, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseApply2, parseFull, parseLambda, parseLambda2, parseName, parseName2, parseTerm, parseTerm2, pos, prefix, prepare, printGroups, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tag2, tokPos, tokenPat, tokenPat2, tokens, topBracePat, warnFreeVariable, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -35,11 +36,21 @@ misrepresented as being the original software.
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
+  escapeRegexpChars = function escapeRegexpChars(str) {
+    return str.replace(/([\][().\\*+?{}|])/g, '\\$1');
+  };
+
   wordPat = /^[^\s]*$/;
 
   baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
 
+  baseGroupingPat = /\n *|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|#[^\n]*\n/;
+
   tokenPat = baseTokenPat;
+
+  tokenPat2 = new RegExp("\\n *|" + baseTokenPat.source);
+
+  groupingPat = new RegExp("" + baseGroupingPat.source + "|" + (escapeRegexpChars('[()]')));
 
   specials = '[]().*+?|';
 
@@ -590,7 +601,7 @@ misrepresented as being the original software.
   };
 
   defineToken = function defineToken(name, def) {
-    var i, o, p, s, types, _ref, _ref2;
+    var groupToks, i, k, types, v;
     if (def !== '=M=') {
       tokens[name] = 1;
       if (def[1] === '(') {
@@ -605,17 +616,36 @@ misrepresented as being the original software.
       types.sort(function(a, b) {
         return b.length - a.length;
       });
-      for (i = 0, _ref = types.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-        s = types[i];
-        o = '';
-        for (p = 0, _ref2 = s.length; 0 <= _ref2 ? p < _ref2 : p > _ref2; 0 <= _ref2 ? p++ : p--) {
-          if (specials.indexOf(s[p]) > -1) o += '\\';
-          o += s[p];
+      types = (function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = types.length; _i < _len; _i++) {
+          i = types[_i];
+          _results.push(escapeRegexpChars(i));
         }
-        types[i] = o;
-      }
+        return _results;
+      })();
       types.push('[().\\\\]| +');
-      return tokenPat = new RegExp(baseTokenPat.source + '|' + types.join('|'));
+      tokenPat = new RegExp(baseTokenPat.source + '|' + types.join('|'));
+      tokenPat2 = new RegExp("\\n *|" + baseTokenPat.source);
+      groupToks = [];
+      for (k in groupOpens) {
+        v = groupOpens[k];
+        groupToks.push(k);
+        groupToks.push(v);
+      }
+      groupToks.sort(function(a, b) {
+        return b.length - a.length;
+      });
+      return groupingPat = new RegExp(((function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = groupToks.length; _i < _len; _i++) {
+          i = groupToks[_i];
+          _results.push(escapeRegexpChars(i));
+        }
+        return _results;
+      })()).join('|') + '|' + baseGroupingPat.source);
     }
   };
 
@@ -1110,6 +1140,194 @@ misrepresented as being the original software.
     }
   };
 
+  nextTok2 = function nextTok2(str) {
+    var m, rest;
+    m = str.match(tokenPat);
+    if (!m) {
+      return ['', ''];
+    } else {
+      rest = str.substring(m.index + m[0].length);
+      if (m[0][0] === '#' || m[0].trim() === '') {
+        return nextGroup(rest);
+      } else {
+        return [m[0], rest];
+      }
+    }
+  };
+
+  tag2 = function tag2(start, end, ast) {
+    ast.leisureStart = start;
+    ast.leisureEnd = end;
+    return ast;
+  };
+
+  pos = function pos(str, totalLen) {
+    return totalLen - str.length;
+  };
+
+  tokPos = function tokPos(tok, str, totalLen) {
+    return totalLen - str.length - tok.length;
+  };
+
+  parseApply2 = function parseApply2(str, vars, indent, totalLen) {
+    var rest, tok, _ref;
+    if (!str) {
+      return [null, null, str];
+    } else {
+      _ref = nextTok2(str), tok = _ref[0], rest = _ref[1];
+      if (!tok || tok[0] === '\n') {
+        return [null, 'expecting expression', rest];
+      } else if (groupCloses[tok]) {
+        return [null, "Unexpected group close: " + tok, rest];
+      } else {
+        return parseIf(parseTerm2(tok, rest, vars, indent, totalLen), function(arg, rest) {
+          return continueAppy2(func, rest, vars, indent, totalLen);
+        });
+      }
+    }
+  };
+
+  continueApply2 = function continueApply2(func, str, vars, indent, totalLen) {
+    var parsedArg, rest, tok, _ref;
+    _ref = nextTok2(str), tok = _ref[0], rest = _ref[1];
+    if (!tok || (tok[0] === '\n' && tok[0].length <= indent.length) || groupCloses[tok]) {
+      [func, null, str];
+    } else {
+      parsedArg = tok[0] === '\n' ? parseApply2(rest, vars, tok, totalLen) : parseTerm2(tok, rest, vars, indent, totalLen);
+    }
+    return parseIf(parsedArg, function(arg, rest) {
+      return continueApply2(tag(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, totalLen);
+    });
+  };
+
+  parseTerm2 = function parseTerm2(tok, rest, vars, indent, totalLen) {
+    var apl;
+    if (tok === '\\') {
+      return parseLambda2(rest, vars, indent, totalLen);
+    } else if (groupOpens[tok]) {
+      apl = tok === '(' ? parseApply2(rest, vars, indent, totalLen) : parseIf(parseName2(tok, rest, vars, indent(totalLen)), function(ast, rest2) {
+        return continueApply2(ast, rest2, vars, indent, totalLen);
+      });
+      return parseIf(apl, function(ast, rest3) {
+        var rest4, tok4, _ref;
+        _ref = nextTok2(rest3), tok4 = _ref[0], rest4 = _ref[1];
+        if (tok4 !== groupOpens[tok]) {
+          return [ast, "Expected close token: " + groupOpens[tok] + ", but got " + tok4, rest4];
+        } else if (tok === '(') {
+          return [ast, null, rest4];
+        } else {
+          return parseIf(parseName2(tok4, rest4, vars, totalLen), function(arg, rest5) {
+            return [tag(ast.leisureStart, ast.leisureEnd, apply(laz(ast))(laz(arg))), null, rest5];
+          });
+        }
+      });
+    } else {
+      return parseName2(tok, rest, vars, indent, totalLen);
+    }
+  };
+
+  parseName2 = function parseName2(tok, rest, vars, indent, totalLen) {
+    var name;
+    name = tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok(tok))) : tok[0] === '`' ? ref(laz(tok.substring(1, tok.length - 1))) : vars.find(function(v) {
+      return tok === v;
+    }) ? ref(laz(tok)) : scanName(tok);
+    return [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest];
+  };
+
+  nextTok2IgnoreNL = function nextTok2IgnoreNL(str) {
+    var r, rest, tok, _ref;
+    _ref = r = nextTok(str), tok = _ref[0], rest = _ref[1];
+    if (tok && (tok[0] === '\n' || tok[0] === ' ')) nextTok(rest);
+    return r;
+  };
+
+  parseLambda2 = function parseLambda2(str, vars, indent, totalLen) {
+    var apl, nm, rest1, test2, tok2, _ref, _ref2;
+    _ref = nextTok2IgnoreNL(str), nm = _ref[0], rest1 = _ref[1];
+    _ref2 = nextTok2IgnoreNL(rest1), tok2 = _ref2[0], test2 = _ref2[1];
+    apl = (tok2 = '.') ? parseApply2(eatAllWhitespace(rest2), cons(nm, vars), indent, totalLen) : parseLambda2(rest1, cons(nm, vars), indent, totalLen);
+    return parseIf(apl, function(body, rest2) {
+      return [tag(tokPos(nm, rest1, totalLen), body.leisureEnd, lambda(laz(nm))(laz(body))), null, rest2];
+    });
+  };
+
+  nextGroupTok = function nextGroupTok(str) {
+    var m, rest, _ref;
+    m = str.match(groupingPat);
+    if (!m) {
+      return ['', ''];
+    } else {
+      rest = str.substring(m.index + m[0].length);
+      if (!(_ref = m[0][0], __indexOf.call('\'`"', _ref) >= 0) && ((groupOpens[m[0]] != null) || (groupCloses[m[0]] != null) || m[0][0] === '\n')) {
+        return [m[0], rest];
+      } else {
+        return nextGroupTok(rest);
+      }
+    }
+  };
+
+  getNesting = function getNesting(txt) {
+    return findGroup(txt, '\n', txt.length);
+  };
+
+  findGroup = function findGroup(txt, indent, totalLen) {
+    var done, end, group, next, nextGroup, nextRest, rest, subgroup, subrest, tok, _ref, _ref2, _ref3, _ref4;
+    _ref = nextGroupTok(txt), tok = _ref[0], rest = _ref[1];
+    if (!tok) {
+      return [null, ''];
+    } else if ((end = groupOpens[tok])) {
+      group = [tok, totalLen - rest.length, -1];
+      while (true) {
+        _ref2 = nextGroupTok(rest), next = _ref2[0], nextRest = _ref2[1];
+        if (next === end) {
+          group[2] = totalLen - nextRest.length - next.length;
+          return [group, nextRest];
+        }
+        _ref3 = findGroup(nextRest, indent, totalLen), nextGroup = _ref3[0], nextRest = _ref3[1];
+        group.push(nextGroup);
+        rest = nextRest;
+      }
+    } else if (groupCloses[tok] != null) {
+      return [null, null];
+    } else if (tok.length === indent.length) {
+      return [['', totalLen - txt.length, totalLen - rest.length - tok.length], rest];
+    } else if (tok.length < indent.length) {
+      return [null, txt];
+    } else if (tok.length > indent.length) {
+      group = [tok, totalLen - rest.length, -1];
+      done = false;
+      while (true) {
+        _ref4 = findGroup(rest, tok, totalLen), subgroup = _ref4[0], subrest = _ref4[1];
+        if (!(subgroup != null)) {
+          group[2] = totalLen - rest.length;
+          return [group, rest];
+        }
+        group.push(subgroup);
+        rest = subrest;
+      }
+    }
+  };
+
+  printGroups = function printGroups(txt, groups) {
+    var close, i, last, open, out, start, _ref, _ref2;
+    close = (_ref = groupOpens[groups[0]]) != null ? _ref : '';
+    open = close ? groups[0] : '';
+    out = "(" + open;
+    last = groups[1];
+    for (i = 3, _ref2 = groups.length; 3 <= _ref2 ? i < _ref2 : i > _ref2; 3 <= _ref2 ? i++ : i--) {
+      start = groups[i][1];
+      if (groupOpens[groups[i][0]] != null) start -= groups[i][0].length;
+      out += txt.substring(last, start);
+      out += " " + (printGroups(txt, groups[i]));
+      last = groups[i][2];
+      if (groupOpens[groups[i][0]] != null) {
+        last += groupOpens[groups[i][0]].length;
+      }
+    }
+    out += txt.substring(last, groups[2]);
+    return out + ("" + close + ")");
+  };
+
   root.processTokenDefs = processTokenDefs;
 
   root.setEvalFunc = setEvalFunc;
@@ -1167,5 +1385,11 @@ misrepresented as being the original software.
   root.prepare = prepare;
 
   root.processDefs = processDefs;
+
+  root.getNesting = getNesting;
+
+  root.printGroups = printGroups;
+
+  root.parseApply2 = parseApply2;
 
 }).call(this);

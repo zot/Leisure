@@ -1,5 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
+* number nodes so messages can refer to them -- just number them in an inorder traversal
+* change getType to return the type instead of an option, because it can never return a none
 * make require work in node
 * handle multiple require calls in notebook
 * configuration monads

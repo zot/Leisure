@@ -27,9 +27,14 @@ if window? and (!global? or global == window)
   window.Leisure = root = {}
 else root = exports ? this
 
+escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
+
 wordPat = /^[^\s]*$/
 baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
+baseGroupingPat = /\n *|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|#[^\n]*\n/
 tokenPat = baseTokenPat
+tokenPat2 = new RegExp("\\n *|#{baseTokenPat.source}")
+groupingPat = new RegExp("#{baseGroupingPat.source}|#{escapeRegexpChars '[()]'}")
 specials = '[]().*+?|'
 linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
 topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;{}]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/
@@ -303,15 +308,17 @@ defineToken = (name, def)->
     types.push(i) for i of tokens
     # sort them by length, longest first
     types.sort (a, b)-> b.length - a.length
-    for i in [0...types.length]
-      s = types[i]
-      o = ''
-      for p in [0...s.length]
-        if specials.indexOf(s[p]) > -1 then o += '\\'
-        o += s[p]
-      types[i] = o
+    types = (escapeRegexpChars i for i in types)
     types.push '[().\\\\]| +'
     tokenPat =  new RegExp(baseTokenPat.source + '|' + types.join('|'))
+    tokenPat2 = new RegExp("\\n *|#{baseTokenPat.source}")
+    groupToks = []
+    for k, v of groupOpens
+      groupToks.push(k)
+      groupToks.push(v)
+    groupToks.sort (a, b)-> b.length - a.length
+    groupingPat = new RegExp((escapeRegexpChars i for i in groupToks).join('|') + '|' + baseGroupingPat.source)
+
 
 createDefinition = (name, ast, index)->
   if index >= name.length then ast
@@ -454,6 +461,10 @@ parenthesizeTokens = (str)->
 
 stripSemis = (str)-> str.replace(/^;*/, '')
 
+# takes the rest of the input and the offset of the current input
+# returns [token-string, token-offset, rest]
+# if the string doesn't match a token, it is returned as the entire token
+# this eats whitespace and comments
 nextTok = (str, offset)->
   m = str.match(tokenPat)
   if !m then [str, offset, '']
@@ -509,6 +520,7 @@ tag = (ast, start, end)->
 
 soff = (orig, offset, rest)-> offset + orig.length - rest.length
 
+# returns [ast, err, rest]
 parseApply = (str, vars, offset)->
   if !str.length then [null, null, str]
   else
@@ -607,6 +619,133 @@ processTokenDefs = (defs)->
   if defs? then for i in [0...defs.length] by 2
     defineToken defs[i], defs[i + 1]
 
+
+# returns [tok, rest]
+nextTok2 = (str)->
+  m = str.match(tokenPat)
+  if !m then ['', '']
+  else
+    rest = str.substring(m.index + m[0].length)
+    if m[0][0] == '#' or m[0].trim() == '' then nextGroup rest
+    else [m[0], rest]
+
+tag2 = (start, end, ast)->
+  ast.leisureStart = start
+  ast.leisureEnd = end
+  ast
+
+pos = (str, totalLen)-> totalLen - str.length
+
+tokPos = (tok, str, totalLen)-> totalLen - str.length - tok.length
+
+# returns [ast, err, rest]
+parseApply2 = (str, vars, indent, totalLen)->
+  if !str then [null, null, str]
+  else
+    [tok, rest] = nextTok2 str
+    if !tok or tok[0] == '\n' then [null, 'expecting expression', rest]
+    else if groupCloses[tok] then [null, "Unexpected group close: #{tok}", rest]
+    else parseIf (parseTerm2 tok, rest, vars, indent, totalLen), (arg, rest)->continueAppy2(func, rest, vars, indent, totalLen)
+
+continueApply2 = (func, str, vars, indent, totalLen)->
+  [tok, rest] = nextTok2 str
+  if !tok or (tok[0] == '\n' and tok[0].length <= indent.length) or groupCloses[tok]
+    [func, null, str]
+  else
+    parsedArg = if tok[0] == '\n' then parseApply2 rest, vars, tok, totalLen
+    else parseTerm2 tok, rest, vars, indent, totalLen
+  parseIf parsedArg, (arg, rest)->
+    continueApply2 tag(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, totalLen
+
+parseTerm2 = (tok, rest, vars, indent, totalLen)->
+  if tok == '\\' then parseLambda2 rest, vars, indent, totalLen
+  else if groupOpens[tok]
+    apl = if tok == '(' then parseApply2 rest, vars, indent, totalLen
+    else parseIf (parseName2 tok, rest, vars, indent totalLen), (ast, rest2)->
+      continueApply2 ast, rest2, vars, indent, totalLen
+    parseIf apl, (ast, rest3)->
+      [tok4, rest4] = nextTok2 rest3
+      if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
+      else if tok == '(' then [ast, null, rest4]
+      else parseIf (parseName2 tok4, rest4, vars, totalLen), (arg, rest5)->
+        [tag(ast.leisureStart, ast.leisureEnd, apply(laz(ast))(laz(arg))), null, rest5]
+  else parseName2 tok, rest, vars, indent, totalLen
+
+parseName2 = (tok, rest, vars, indent, totalLen)->
+  name = if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
+  else if tok[0] == '"' then lit(laz(scanTok(tok)))
+  else if tok[0] == '`' then ref(laz(tok.substring(1, tok.length - 1)))
+  else if (vars.find (v)-> tok == v) then ref(laz(tok))
+  else scanName(tok)
+  [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
+
+nextTok2IgnoreNL = (str)->
+  [tok, rest] = r = nextTok str
+  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok rest
+  r
+
+parseLambda2 = (str, vars, indent, totalLen)->
+  [nm, rest1] = nextTok2IgnoreNL str
+  [tok2, test2] = nextTok2IgnoreNL rest1
+  apl = if tok2 = '.' then parseApply2 (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
+  else parseLambda2 rest1, cons(nm, vars), indent, totalLen
+  parseIf apl, (body, rest2)->[tag(tokPos(nm, rest1, totalLen), body.leisureEnd, lambda(laz(nm))(laz(body))), null, rest2]
+
+# returns [tok, rest]
+nextGroupTok = (str)->
+  m = str.match(groupingPat)
+  if !m then ['', '']
+  else
+    rest = str.substring(m.index + m[0].length)
+    if !(m[0][0] in '\'`"') and (groupOpens[m[0]]? or groupCloses[m[0]]? or m[0][0] == '\n') then [m[0], rest]
+    else nextGroupTok rest
+
+# returns group offsets: [opener, start, length, innergroup...], with [0, length, contents] as the outer group
+getNesting = (txt)-> findGroup txt, '\n', txt.length
+
+# returns [group, rest]
+findGroup = (txt, indent, totalLen)->
+  [tok, rest] = nextGroupTok txt
+  if !tok then [null, '']
+  else if (end = groupOpens[tok])
+    group = [tok, totalLen - rest.length, -1]
+    while true
+      [next, nextRest] = nextGroupTok rest
+      if next == end
+        group[2] = totalLen - nextRest.length - next.length
+        return [group, nextRest]
+      [nextGroup, nextRest] = findGroup nextRest, indent, totalLen
+      group.push(nextGroup)
+      rest = nextRest
+  else if groupCloses[tok]? then [null, null]
+  else if tok.length == indent.length then [['', totalLen - txt.length, totalLen - rest.length - tok.length], rest]
+  else if tok.length < indent.length then [null, txt]
+  else if tok.length > indent.length
+    group = [tok, totalLen - rest.length, -1]
+    done = false
+    while true
+      [subgroup, subrest] = findGroup rest, tok, totalLen
+      if !subgroup?
+        group[2] = totalLen - rest.length
+        return [group, rest]
+      group.push subgroup
+      rest = subrest
+
+printGroups = (txt, groups)->
+  close = groupOpens[groups[0]] ? ''
+  open = if close then groups[0] else ''
+  out = "(#{open}"
+  last = groups[1]
+  for i in [3...groups.length]
+    start = groups[i][1]
+    if groupOpens[groups[i][0]]? then start -= groups[i][0].length
+    out += txt.substring(last, start)
+    out += " #{printGroups txt, groups[i]}"
+    last = groups[i][2]
+    if groupOpens[groups[i][0]]? then last += groupOpens[groups[i][0]].length
+  out += txt.substring(last, groups[2])
+  out + "#{close})"
+
 root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
@@ -635,3 +774,6 @@ root.bracify = bracify
 root.parenthify = parenthify
 root.prepare = prepare
 root.processDefs = processDefs
+root.getNesting = getNesting
+root.printGroups = printGroups
+root.parseApply2 = parseApply2

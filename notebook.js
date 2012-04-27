@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRanges, grp, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, textNode, toDefBox, toExprBox,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, showNesting, textNode, toDefBox, toExprBox,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -40,20 +40,19 @@
       }), true, true);
       return el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
+        s = window.getSelection();
+        r = s.getRangeAt(0);
         if ((e.charCode || e.keyCode || e.which) === 13) {
           br = textNode('\n');
-          s = window.getSelection();
-          s.getRangeAt(0).insertNode(br);
+          r.insertNode(br);
           r = document.createRange();
           r.setStart(br, 1);
           s.removeAllRanges();
           s.addRange(r);
-          return e.preventDefault();
+          e.preventDefault();
         } else if ((e.charCode || e.keyCode || e.which) === 61) {
-          return checkMutateToDef(e, el);
+          checkMutateToDef(e, el);
         } else {
-          s = window.getSelection();
-          r = s.getRangeAt(0);
           if (r.startContainer.parentNode === el) {
             sp = codeSpan('\n', 'codeExpr');
             sp.setAttribute('generatedNL', '');
@@ -63,11 +62,37 @@
             r = document.createRange();
             r.setStart(sp, 0);
             s.removeAllRanges();
-            return s.addRange(r);
+            s.addRange(r);
           }
         }
+        return window.setTimeout(highlightPosition, 1);
       });
     }
+  };
+
+  highlightPosition = function highlightPosition() {
+    var allTxt, last, parent, pos, r, s, tr, _ref;
+    s = window.getSelection();
+    r = s.getRangeAt(0);
+    parent = getBox(r.startContainer);
+    tr = document.createRange();
+    tr.setStart(parent, 0);
+    tr.setEnd(r.endContainer, r.endOffset);
+    pos = getRangeText(tr).length;
+    allTxt = parent.textContent;
+    last = allTxt.length - 1;
+    while (last < allTxt.length && (_ref = allTxt[last], __indexOf.call(' \n', _ref) >= 0)) {
+      last--;
+    }
+    return showNesting(parent, allTxt.substring(0, last + 1), pos);
+  };
+
+  showNesting = function showNesting(parent, allTxt, pos) {
+    return alert("highlight: [" + (allTxt.substring(0, pos)) + "] [" + (allTxt.substring(pos)) + "]");
+  };
+
+  getRangeText = function getRangeText(r) {
+    return r.cloneContents().textContent;
   };
 
   getBox = function getBox(node) {

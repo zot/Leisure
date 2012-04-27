@@ -226,6 +226,21 @@ Tests for Leisure
     return assertEq(LZ.prepare(in8)[0].trim(), '(duh [ 1 , 2 ])');
   });
 
+  /*
+  run 'test41', -> assertEq(LZ.getNesting(in1)[0].toString(), ['', 0, 1].toString())
+  run 'test42', -> assertEq(LZ.getNesting(in7)[0].toString(), ["\n  ", 6, 28, ["", 6, 11], ["", 14, 19], ["[", 23, 27]].toString())
+  
+  pnt = (array)->
+    if typeof array != 'object' or array.constructor != Array then JSON.stringify(array)
+    else"[#{(pnt(i) for i in array).join(', ')}]"
+  
+  console.log "\nGROUPS: #{in2}"
+  
+  console.log "\nGROUPS: #{pnt(LZ.getNesting(in2)[0])}"
+  
+  console.log "GROUPS: #{LZ.printGroups(in2, LZ.getNesting(in2)[0])}"
+  */
+
   console.log('\nDone');
 
   if (!T.stats.failures) {
