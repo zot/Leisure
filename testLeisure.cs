@@ -159,6 +159,10 @@ run 'test38', -> assertEq(LZ.prepare(in7)[0].trim(), '(let (a = 3) (b = 4) ([a, 
 run 'test39', -> assertEvalPrint(in7, '[3, 4]')
 run 'test40', -> assertEq(LZ.prepare(in8)[0].trim(), '(duh [ 1 , 2 ])')
 
+#console.log "PARSING: #{in1}"
+
+#console.log "AST: #{LZ.astPrint LZ.parseApply2(in1, LZ.Nil, '\n', in1.length)[0]}"
+
 ###
 run 'test41', -> assertEq(LZ.getNesting(in1)[0].toString(), ['', 0, 1].toString())
 run 'test42', -> assertEq(LZ.getNesting(in7)[0].toString(), ["\n  ", 6, 28, ["", 6, 11], ["", 14, 19], ["[", 23, 27]].toString())

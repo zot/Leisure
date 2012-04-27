@@ -622,11 +622,12 @@ processTokenDefs = (defs)->
 
 # returns [tok, rest]
 nextTok2 = (str)->
-  m = str.match(tokenPat)
+  m = str.match(tokenPat2)
   if !m then ['', '']
+  else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
   else
     rest = str.substring(m.index + m[0].length)
-    if m[0][0] == '#' or m[0].trim() == '' then nextGroup rest
+    if m[0][0] == '#' or m[0][0] == ' ' then nextTok2 rest
     else [m[0], rest]
 
 tag2 = (start, end, ast)->
@@ -638,6 +639,10 @@ pos = (str, totalLen)-> totalLen - str.length
 
 tokPos = (tok, str, totalLen)-> totalLen - str.length - tok.length
 
+parseIf = (res, block, errPrefix)->
+  if res[1] then [res[0], (errPrefix ? '') + res[1], res[2]]
+  else block res[0], res[2]
+
 # returns [ast, err, rest]
 parseApply2 = (str, vars, indent, totalLen)->
   if !str then [null, null, str]
@@ -645,17 +650,17 @@ parseApply2 = (str, vars, indent, totalLen)->
     [tok, rest] = nextTok2 str
     if !tok or tok[0] == '\n' then [null, 'expecting expression', rest]
     else if groupCloses[tok] then [null, "Unexpected group close: #{tok}", rest]
-    else parseIf (parseTerm2 tok, rest, vars, indent, totalLen), (arg, rest)->continueAppy2(func, rest, vars, indent, totalLen)
+    else parseIf (parseTerm2 tok, rest, vars, indent, totalLen), (func, rest)->continueApply2(func, rest, vars, indent, totalLen)
 
 continueApply2 = (func, str, vars, indent, totalLen)->
   [tok, rest] = nextTok2 str
-  if !tok or (tok[0] == '\n' and tok[0].length <= indent.length) or groupCloses[tok]
+  if !tok or (tok[0] == '\n' and tok.length <= indent.length) or groupCloses[tok]
     [func, null, str]
   else
     parsedArg = if tok[0] == '\n' then parseApply2 rest, vars, tok, totalLen
     else parseTerm2 tok, rest, vars, indent, totalLen
-  parseIf parsedArg, (arg, rest)->
-    continueApply2 tag(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, totalLen
+    parseIf parsedArg, (arg, rest)->
+      continueApply2 tag2(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen
 
 parseTerm2 = (tok, rest, vars, indent, totalLen)->
   if tok == '\\' then parseLambda2 rest, vars, indent, totalLen
@@ -668,7 +673,7 @@ parseTerm2 = (tok, rest, vars, indent, totalLen)->
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
       else if tok == '(' then [ast, null, rest4]
       else parseIf (parseName2 tok4, rest4, vars, totalLen), (arg, rest5)->
-        [tag(ast.leisureStart, ast.leisureEnd, apply(laz(ast))(laz(arg))), null, rest5]
+        [tag2(ast.leisureStart, ast.leisureEnd, apply(laz(ast))(laz(arg))), null, rest5]
   else parseName2 tok, rest, vars, indent, totalLen
 
 parseName2 = (tok, rest, vars, indent, totalLen)->
@@ -677,7 +682,7 @@ parseName2 = (tok, rest, vars, indent, totalLen)->
   else if tok[0] == '`' then ref(laz(tok.substring(1, tok.length - 1)))
   else if (vars.find (v)-> tok == v) then ref(laz(tok))
   else scanName(tok)
-  [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
+  [tag2(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
 
 nextTok2IgnoreNL = (str)->
   [tok, rest] = r = nextTok str
@@ -689,7 +694,7 @@ parseLambda2 = (str, vars, indent, totalLen)->
   [tok2, test2] = nextTok2IgnoreNL rest1
   apl = if tok2 = '.' then parseApply2 (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
   else parseLambda2 rest1, cons(nm, vars), indent, totalLen
-  parseIf apl, (body, rest2)->[tag(tokPos(nm, rest1, totalLen), body.leisureEnd, lambda(laz(nm))(laz(body))), null, rest2]
+  parseIf apl, (body, rest2)->[tag2(tokPos(nm, rest1, totalLen), body.leisureEnd, lambda(laz(nm))(laz(body))), null, rest2]
 
 # returns [tok, rest]
 nextGroupTok = (str)->

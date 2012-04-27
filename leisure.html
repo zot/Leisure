@@ -65,6 +65,14 @@
       function evalDoc() {
         Notebook.evalDoc(document.getElementById('editor'))
       }
+      function runTest() {
+        var in1 = "a d e\n  f g\n  h\n   i\n   j\nb\nc";
+
+        var ast = Leisure.parseApply2(in1, Leisure.Nil, '\n', in1.length)
+        console.log("AST: " + Leisure.astPrint(ast[0]));
+        console.log("AST: " + Pretty.print(ast[0]));
+        console.log("PARSING: " + in1)
+      }
     //]]>
     </script>
   </head>
@@ -76,6 +84,7 @@
 	    <div style="pointer-events:none; text-align: center; position: absolute; width: 100%; top: 0"><b><i>Welcome to Leisure</i></b></div>
 	    <div style="float: left"><button onclick="evalDoc()">Process Document</button></div>
 	    <div style="float: right"><a href="README.html" target="_blank">Main</a> <a href="REFERENCE.html" target="_blank">Reference</a> <a href="javascript:(void)0">REPL</a> <a id="stdDefsLink1" href="javascript:void(getStdDefs())">Standard Functions</a></div>
+	    <button onclick="runTest()">Test</button>
 	  </div>
 	</td>
       </tr>
