@@ -699,6 +699,7 @@ misrepresented as being the original software.
           return ifParsed((nomacros ? parseApplyNew(pfx, Nil) : parseFull(pfx)), (function(ast, rest) {
             var bod;
             burp("PARSED: " + nm[0]);
+            ast.leisureDefPrefix = pfx.length - rest1.length;
             nameAst(nm[0], ast);
             bod = ast;
             if (nm.length > 1) bod = getNthBody(ast, nm.length);
@@ -727,6 +728,7 @@ misrepresented as being the original software.
     if ((ast.err != null) && (name != null)) {
       ast.err = "Error while compiling " + name + ": " + ast.err;
     }
+    burp("GENERATED: " + name);
     return [ast, ast.err, rest];
   };
 
@@ -1146,7 +1148,7 @@ misrepresented as being the original software.
     var m, rest;
     m = str.match(tokenPat2);
     if (!m) {
-      return ['', ''];
+      return [str, ''];
     } else if (m.index > 0) {
       return [str.substring(0, m.index), str.substring(m.index)];
     } else {
@@ -1209,7 +1211,7 @@ misrepresented as being the original software.
     if (!tok || (tok[0] === '\n' && tok.length <= indent.length) || groupCloses[tok]) {
       return [func, null, str];
     } else {
-      parsedArg = tok[0] === '\n' ? (console.log("CONTINUING, tok len = " + tok.length + ", indent len = " + indent.length), parseApply2(rest, vars, tok, totalLen)) : parseTerm2(tok, rest, vars, indent, totalLen);
+      parsedArg = tok[0] === '\n' ? (burp("CONTINUING, tok len = " + tok.length + ", indent len = " + indent.length), parseApply2(rest, vars, tok, totalLen)) : parseTerm2(tok, rest, vars, indent, totalLen);
       return parseIf(parsedArg, function(arg, rest) {
         return continueApply2(tag2(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen);
       });
@@ -1344,9 +1346,11 @@ misrepresented as being the original software.
     return out + ("" + close + ")");
   };
 
-  parseApplyNew = parseApply;
-
   burp = function burp(str) {};
+
+  parseApplyNew = function parseApplyNew(str, vars) {
+    return parseApply2(str, vars, '\n', str.length);
+  };
 
   root.processTokenDefs = processTokenDefs;
 

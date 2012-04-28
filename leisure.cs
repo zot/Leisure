@@ -351,6 +351,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
         burp "PARSING: #{nm[0]} (nomacros: #{nomacros}) #{snip pfx}"
         ifParsed (if nomacros then parseApplyNew pfx, Nil else parseFull pfx), ((ast, rest)->
           burp "PARSED: #{nm[0]}"
+          ast.leisureDefPrefix = pfx.length - rest1.length
           nameAst(nm[0], ast)
           bod = ast
           if nm.length > 1 then bod = getNthBody(ast, nm.length)
@@ -368,6 +369,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
 genCode = (ast, name, globals, defType, rest, parseOnly)->
   if !parseOnly then dgen ast, false, name, globals, defType
   if ast.err? and name? then ast.err = "Error while compiling #{name}: #{ast.err}"
+  burp "GENERATED: #{name}"
   [ast, ast.err, rest]
 
 #returns [ast, result]
@@ -625,7 +627,7 @@ processTokenDefs = (defs)->
 # returns [tok, rest]
 nextTok2 = (str, indent)->
   m = str.match(tokenPat2)
-  if !m then ['', '']
+  if !m then [str, '']
   else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
   else
     rest = str.substring(m.index + m[0].length)
@@ -662,7 +664,7 @@ continueApply2 = (func, str, vars, indent, totalLen)->
     [func, null, str]
   else
     parsedArg = if tok[0] == '\n'
-      console.log "CONTINUING, tok len = #{tok.length}, indent len = #{indent.length}"
+      burp "CONTINUING, tok len = #{tok.length}, indent len = #{indent.length}"
       parseApply2 rest, vars, tok, totalLen
     else parseTerm2 tok, rest, vars, indent, totalLen
     parseIf parsedArg, (arg, rest)->
@@ -757,10 +759,10 @@ printGroups = (txt, groups)->
   out += txt.substring(last, groups[2])
   out + "#{close})"
 
-parseApplyNew = parseApply
+#parseApplyNew = parseApply
 burp = (str)->
 #burp = (str)-> console.log str
-#parseApplyNew = (str, vars)-> parseApply2 str, vars, '\n', str.length
+parseApplyNew = (str, vars)-> parseApply2 str, vars, '\n', str.length
 
 root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc

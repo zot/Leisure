@@ -67,12 +67,13 @@
       }
       function runTest() {
         //var in1 = "\\x . x\na d e\n  f g\n  h\n   i\n   j\nb\nc";
-	var in1 = "any f l = (eq l nil) false\n  or\n    f (head l)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)"
+	//var in1 = "any f l = (eq l nil) false\n  or\n    f (head l)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)"
+        var in1 = "\\x . \\f . f x";
 
         var ast = Leisure.parseApply2(in1, Leisure.Nil, '\n', in1.length)
         console.log("AST: " + Leisure.astPrint(ast[0]));
         console.log("AST: " + Pretty.print(ast[0]));
-        console.log("PARSING: " + in1)
+        console.log("CODE: " + Leisure.gen(ast[0]));
       }
     //]]>
     </script>
