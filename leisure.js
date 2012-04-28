@@ -24,10 +24,9 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, append, apply, astBrackets, astPrint, baseGroupingPat, baseTokenPat, between, bracePat, bracify, bracket, bracketApplyParts, brackets, bracketsForApply, burp, charCodes, codeChars, commentPat, compileNext, cons, continueApply, continueApply2, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlnew, eatAllWhitespace, embeddedBracePat, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findGroup, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNesting, getNthBody, getRefVar, getType, groupCloses, groupOpens, groupingPat, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextGroupTok, nextTok, nextTok2, nextTok2IgnoreNL, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseApply2, parseApplyNew, parseFull, parseIf, parseLambda, parseLambda2, parseName, parseName2, parseTerm, parseTerm2, pos, prefix, prepare, printGroups, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, soff, specials, srcApply, srcLambda, srcPrint, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tag2, tokPos, tokenPat, tokenPat2, tokens, topBracePat, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
+  var CNil, Code, Cons, Nil, append, apply, astBrackets, astPrint, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
-    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -44,23 +43,11 @@ misrepresented as being the original software.
 
   baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
 
-  baseGroupingPat = /\n *|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|#[^\n]*\n/;
-
-  tokenPat = baseTokenPat;
-
-  tokenPat2 = new RegExp("\\n *|" + baseTokenPat.source);
-
-  groupingPat = new RegExp("" + baseGroupingPat.source + "|" + (escapeRegexpChars('[()]')));
+  tokenPat = new RegExp("\\n *|" + baseTokenPat.source);
 
   specials = '[]().*+?|';
 
   linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
-
-  topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;{}]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/;
-
-  bracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^\n{};'`"])*)([{};])/;
-
-  embeddedBracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^{};'`"])*)([{};])/;
 
   order = [];
 
@@ -428,41 +415,6 @@ misrepresented as being the original software.
     return isFirst && res.join('');
   };
 
-  srcPrint = function srcPrint(str, ast) {
-    switch (getAstType(ast)) {
-      case 'ref':
-      case 'lit':
-        return "[" + (getAstType(ast)) + " " + (str.substring(ast.leisureStart, ast.leisureEnd)) + "]";
-      case 'lambda':
-        return "\\" + (srcLambda(str, ast, getLambdaVar(ast), getLambdaBody(ast)));
-      case 'apply':
-        return srcApply(str, getApplyFunc(ast), getApplyArg(ast));
-    }
-  };
-
-  srcLambda = function srcLambda(str, lambda, varname, body) {
-    var vsrc;
-    vsrc = str.substring(lambda.leisureStart, lambda.leisureNameEnd);
-    if (body.type === 'lambda') {
-      return body(function() {
-        return function(v2) {
-          return function(b) {
-            return "[" + vsrc + "] [" + (srcLambda(str, body, v2(), b())) + "]";
-          };
-        };
-      });
-    } else {
-      return "[" + vsrc + "] . [" + (srcPrint(str, body)) + "]";
-    }
-  };
-
-  srcApply = function srcApply(str, func, arg) {
-    var a, f;
-    f = func.type === 'lambda' ? "(" + (srcPrint(str, func)) + ")" : srcPrint(str, func);
-    a = arg.type === 'apply' ? "(" + (srcPrint(str, arg)) + ")" : srcPrint(str, arg);
-    return "" + f + " " + a;
-  };
-
   between = function between(start, end, pos) {
     return start <= pos && pos <= end;
   };
@@ -738,7 +690,7 @@ misrepresented as being the original software.
   };
 
   defineToken = function defineToken(name, def) {
-    var groupToks, i, k, types, v;
+    var i, types;
     if (def !== '=M=') {
       tokens[name] = 1;
       if (def[1] === '(') {
@@ -763,26 +715,7 @@ misrepresented as being the original software.
         return _results;
       })();
       types.push('[().\\\\]| +');
-      tokenPat = new RegExp(baseTokenPat.source + '|' + types.join('|'));
-      tokenPat2 = new RegExp("\\n *|" + (types.join('|')) + "|" + baseTokenPat.source);
-      groupToks = [];
-      for (k in groupOpens) {
-        v = groupOpens[k];
-        groupToks.push(k);
-        groupToks.push(v);
-      }
-      groupToks.sort(function(a, b) {
-        return b.length - a.length;
-      });
-      return groupingPat = new RegExp(((function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = groupToks.length; _i < _len; _i++) {
-          i = groupToks[_i];
-          _results.push(escapeRegexpChars(i));
-        }
-        return _results;
-      })()).join('|') + '|' + baseGroupingPat.source);
+      return tokenPat = new RegExp("\\n *|" + (types.join('|')) + "|" + baseTokenPat.source);
     }
   };
 
@@ -832,10 +765,8 @@ misrepresented as being the original software.
           if (defType && defType !== '=') defineToken(nm[0], defType);
           pfx = prefix(nm, rest1);
           errPrefix = "Error while compiling " + nm + ": ";
-          burp("PARSING: " + nm[0] + " (nomacros: " + nomacros + ") " + (snip(pfx)));
           return ifParsed((nomacros ? parseApplyNew(pfx, Nil) : parseFull(pfx)), (function(ast, rest) {
             var bod;
-            burp("PARSED: " + nm[0]);
             ast.leisureDefPrefix = pfx.length - rest1.length;
             nameAst(nm[0], ast);
             bod = ast;
@@ -865,7 +796,6 @@ misrepresented as being the original software.
     if ((ast.err != null) && (name != null)) {
       ast.err = "Error while compiling " + name + ": " + ast.err;
     }
-    burp("GENERATED: " + name);
     return [ast, ast.err, rest];
   };
 
@@ -899,131 +829,6 @@ misrepresented as being the original software.
           err: err
         }, err
       ];
-    }
-  };
-
-  prepare = function prepare(str) {
-    var err, rest, result, _ref, _ref2;
-    _ref = bracify(stripComments(str.replace(/\u03BB/g, '\\')), 1), result = _ref[0], rest = _ref[1];
-    if (rest.trim()) {
-      return [result, "Indentation problem: " + result + "\n\n------->\n\n" + rest];
-    } else {
-      _ref2 = parenthify(result.trim(), true), result = _ref2[0], rest = _ref2[1], err = _ref2[2];
-      if (rest.trim()) {
-        return [result, "Unbalanced braces: " + result + "\n\n------->\n\n" + rest];
-      } else {
-        return [result, err];
-      }
-    }
-  };
-
-  commentPat = /([^\n#]*)(#[^\n]*)(\n|$)/g;
-
-  stripComments = function stripComments(str) {
-    return str.replace(commentPat, function(str, p1, p2, p3, offset) {
-      if (p1.trim()) {
-        return "" + p1 + p3;
-      } else {
-        return "";
-      }
-    });
-  };
-
-  indentPat = /^([^\n]*)(\n[ ]*|$)/;
-
-  bracify = function bracify(str, indent) {
-    var b, lineIndent, m, nextIndent, nextRest, nextResult, pfx, resIndent, rest, result, sfx, _ref, _ref2, _ref3, _ref4;
-    b = str.match(bracePat);
-    if (b && b[3] === '{') {
-      _ref = parenthify(str.substring(b.index + b[2].length + 1), false, true), result = _ref[0], rest = _ref[1];
-      if (rest[0] !== '}') {
-        return [null, "No close brace: " + (str.substring(b.index + b[2].length + 1)), indent];
-      } else {
-        _ref2 = bracify(rest.substring(1), indent), nextResult = _ref2[0], nextRest = _ref2[1], nextIndent = _ref2[2];
-        return ["" + (parenthesizeTokens(str.substring(0, b.index + b[2].length).trim() + result)) + " " + nextResult, nextRest, nextIndent];
-      }
-    } else {
-      m = str.match(indentPat);
-      if (!m || m[2].length === 0) {
-        return [str.trim(), '', 0];
-      } else {
-        lineIndent = m[2].length;
-        pfx = m[1];
-        sfx = str.substring(m[0].length);
-        if (lineIndent < indent) {
-          return [pfx.trim(), sfx, lineIndent];
-        } else {
-          _ref3 = bracify(sfx, lineIndent), result = _ref3[0], rest = _ref3[1], resIndent = _ref3[2];
-          if (lineIndent === indent) {
-            return ["" + (pfx.trim()) + ";" + result, rest, resIndent];
-          } else if (resIndent < indent) {
-            return ["" + (pfx.trim()) + "{" + result + "}", rest, resIndent];
-          } else {
-            _ref4 = bracify(rest, indent), nextResult = _ref4[0], nextRest = _ref4[1], nextIndent = _ref4[2];
-            return ["" + (pfx.trim()) + "{" + result + "};" + nextResult, nextRest, nextIndent];
-          }
-        }
-      }
-    }
-  };
-
-  parenthify = function parenthify(str, top, embedded) {
-    var b, def, err, nRest, next, pfx, rest, result, sfx, _ref, _ref2, _ref3, _ref4;
-    b = str.match((embedded ? embeddedBracePat : top ? topBracePat : bracePat));
-    if (!b) {
-      return [(str && !top ? "(" + str + ")" : str), '', null];
-    } else {
-      def = (stripSemis((_ref = b[1]) != null ? _ref : '')).trim();
-      if (def) def = "" + def + " ";
-      pfx = b[2].trim();
-      sfx = str.substring(b.index + b[0].length);
-      if (b[3] === ';') {
-        _ref2 = parenthify(sfx, top, embedded), result = _ref2[0], rest = _ref2[1], err = _ref2[2];
-        return ["" + (!pfx && !top ? '' : !pfx ? '\n' : top ? "" + def + pfx + "\n" : " " + (parenthesizeTokens(pfx)) + " ") + (result.trim()), rest, err];
-      } else if (b[3] === '{') {
-        _ref3 = parenthify(sfx, false, embedded), result = _ref3[0], rest = _ref3[1], err = _ref3[2];
-        if (!err && rest[0] === '}') {
-          _ref4 = parenthify(rest.substring(1), top, embedded), next = _ref4[0], nRest = _ref4[1], err = _ref4[2];
-          return ["" + def + (parenthesizeTokens((pfx ? pfx + result : result))) + (top ? "\n" : " ") + next, nRest, err];
-        } else {
-          return ["" + (pfx ? "" + def + " " + pfx : "" + def) + result, rest, "" + err + "\nNo close brace"];
-        }
-      } else {
-        return [(pfx ? "" + def + " " + (parenthesizeTokens(pfx)) : "" + def), str.substring(b.index + b[1].length + b[2].length)];
-      }
-    }
-  };
-
-  parenthesizeTokens = function parenthesizeTokens(str) {
-    var tok, trimmed;
-    trimmed = str.trim();
-    tok = trimmed.match(wordPat);
-    if ((tok && tok[0] === trimmed) || (!tok && trimmed.match(wordPat))) {
-      return trimmed;
-    } else {
-      return "(" + trimmed + ")";
-    }
-  };
-
-  stripSemis = function stripSemis(str) {
-    return str.replace(/^;*/, '');
-  };
-
-  nextTok = function nextTok(str, offset) {
-    var m, rest, tok;
-    m = str.match(tokenPat);
-    if (!m) {
-      return [str, offset, ''];
-    } else if (m.index === 0 && m[0] === '\n') {
-      return ['\n', offset, str.substring(1)];
-    } else {
-      tok = str.substring(0, m.index > 0 ? m.index : m[0].length);
-      rest = str.substring(tok.length);
-      if (tok[0] !== '#' && tok.trim()) {
-        return [tok, offset, rest];
-      } else {
-        return nextTok(rest, offset + tok.length);
-      }
     }
   };
 
@@ -1081,103 +886,6 @@ misrepresented as being the original software.
     }
   };
 
-  parse = function parse(str) {
-    var ast, err, rest, _ref;
-    _ref = parseApplyNew(str.replace(/\u03BB/g, '\\'), Nil, 0), ast = _ref[0], err = _ref[1], rest = _ref[2];
-    if (err) {
-      throw new Error(err);
-    } else {
-      return ast;
-    }
-  };
-
-  ifParsed = function ifParsed(res, block, errPrefix) {
-    if (res[1]) {
-      return [res[0], errPrefix + res[1], res[2]];
-    } else {
-      return block(res[0], res[2]);
-    }
-  };
-
-  tag = function tag(ast, start, end) {
-    ast.leisureStart = start;
-    ast.leisureEnd = end;
-    return ast;
-  };
-
-  soff = function soff(orig, offset, rest) {
-    return offset + orig.length - rest.length;
-  };
-
-  parseApply = function parseApply(str, vars, offset) {
-    var offset1, rest1, tok, _ref;
-    if (!str.length) {
-      return [null, null, str];
-    } else {
-      _ref = nextTok(str, offset), tok = _ref[0], offset1 = _ref[1], rest1 = _ref[2];
-      if (tok === '\n') {
-        return [null, 'Newline when expecting expression', rest1];
-      } else if (groupCloses[tok]) {
-        return [null, "Unexpected group closing token: " + tok + " " + (snip(rest1)), str];
-      } else {
-        return ifParsed(parseTerm(tok, rest1, vars, offset1), function(func, rest) {
-          return continueApply(func, rest, vars, soff(str, offset, rest));
-        });
-      }
-    }
-  };
-
-  continueApply = function continueApply(func, str, vars, offset) {
-    var offset1, rest, tok, _ref;
-    _ref = nextTok(str, offset), tok = _ref[0], offset1 = _ref[1], rest = _ref[2];
-    if (!tok || tok === '\n' || tok === '}' || groupCloses[tok]) {
-      return [func, null, str];
-    } else {
-      return ifParsed(parseTerm(tok, rest, vars, offset1), function(arg, rest) {
-        return continueApply(tag(apply(laz(func))(laz(arg)), func.leisureStart, arg.leisureEnd), rest, vars, soff(str, offset, rest));
-      });
-    }
-  };
-
-  parseTerm = function parseTerm(tok, rest, vars, tokOffset) {
-    var apl, restOffset;
-    restOffset = tokOffset + tok.length;
-    if (tok === '\n') {
-      return [null, 'Unexpected newline while expecting a term', rest];
-    } else if (tok === '\\') {
-      return parseLambda(rest, vars, restOffset);
-    } else if (groupOpens[tok]) {
-      apl = tok === '(' ? parseApply(rest, vars, restOffset) : ifParsed(parseName(tok, rest, vars, tokOffset), function(ast, rest2) {
-        return continueApply(ast, rest2, vars, soff(rest, restOffset, rest2));
-      });
-      return ifParsed(apl, function(ast, rest3) {
-        var offset4, rest4, tok4, _ref;
-        _ref = nextTok(rest3, soff(rest, restOffset, rest3)), tok4 = _ref[0], offset4 = _ref[1], rest4 = _ref[2];
-        if (tok4 !== groupOpens[tok]) {
-          return [ast, "Expected close token: " + groupOpens[tok] + ", but got " + tok4 + " " + (snip(rest4)), rest4];
-        } else if (tok === '(') {
-          return [ast, null, rest4];
-        } else {
-          return ifParsed(parseName(tok4, rest4, vars, soff(rest, restOffset, rest4)), function(arg, rest5) {
-            return [tag(apply(laz(ast))(laz(arg)), ast.leisureStart, arg.leisureEnd), null, rest5];
-          });
-        }
-      });
-    } else {
-      return parseName(tok, rest, vars, tokOffset);
-    }
-  };
-
-  parseName = function parseName(tok, rest, vars, tokOffset) {
-    var restOffset;
-    restOffset = tokOffset + tok.length;
-    return [
-      tag((tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok(tok))) : tok[0] === '`' ? ref(laz(tok.substring(1, tok.length - 1))) : vars.find(function(v) {
-        return tok === v;
-      }) ? ref(laz(tok)) : scanName(tok)), tokOffset, restOffset), null, rest
-    ];
-  };
-
   scanTok = function scanTok(tok) {
     try {
       return JSON.parse(tok);
@@ -1202,22 +910,6 @@ misrepresented as being the original software.
     }
   };
 
-  nextTokWithNl = function nextTokWithNl(str, offset) {
-    var rest, t, _ref;
-    _ref = subnextTokWithNl(str), t = _ref[0], rest = _ref[1];
-    return [t, soff(str, offset, rest), rest];
-  };
-
-  subnextTokWithNl = function subnextTokWithNl(str) {
-    var offset, rest, tok, _ref;
-    _ref = nextTok(str, 0), tok = _ref[0], offset = _ref[1], rest = _ref[2];
-    if (tok === '\n') {
-      return subnextTokWithNl(rest);
-    } else {
-      return [tok, rest];
-    }
-  };
-
   eatAllWhitespace = function eatAllWhitespace(str) {
     var m;
     m = str.match(/^(\s+|;)/);
@@ -1226,21 +918,6 @@ misrepresented as being the original software.
     } else {
       return str;
     }
-  };
-
-  parseLambda = function parseLambda(str, vars, offset) {
-    var nm, off2, offset1, offset2, rest1, rest2, str2, tok2, _ref, _ref2;
-    _ref = nextTokWithNl(str, offset), nm = _ref[0], offset1 = _ref[1], rest1 = _ref[2];
-    _ref2 = nextTokWithNl(rest1, offset1), tok2 = _ref2[0], offset2 = _ref2[1], rest2 = _ref2[2];
-    return ifParsed((tok2 === '.' ? (str2 = eatAllWhitespace(rest2), off2 = soff(str, offset, str2), parseApply(str2, cons(nm, vars), off2)) : parseLambda(rest1, cons(nm, vars), soff(str, offset, rest1))), function(body, rest2) {
-      return [tag(lambda(laz(nm))(laz(body)), offset, soff(str, offset, rest2)), null, rest2];
-    });
-  };
-
-  addDef = function addDef(toks) {
-    var t;
-    t = toks.reverse();
-    return defs[t[0]] = t.join(' ');
   };
 
   setEvalFunc = function setEvalFunc(ct, func) {
@@ -1281,9 +958,9 @@ misrepresented as being the original software.
     }
   };
 
-  nextTok2 = function nextTok2(str, indent) {
+  nextTok = function nextTok(str, indent) {
     var m, rest;
-    m = str.match(tokenPat2);
+    m = str.match(tokenPat);
     if (!m) {
       return [str, ''];
     } else if (m.index > 0) {
@@ -1291,14 +968,14 @@ misrepresented as being the original software.
     } else {
       rest = str.substring(m.index + m[0].length);
       if (m[0][0] === '#' || m[0][0] === ' ' || (m[0][0] === '\n' && rest[0] === '\n')) {
-        return nextTok2(rest, indent);
+        return nextTok(rest, indent);
       } else {
         return [m[0], rest];
       }
     }
   };
 
-  tag2 = function tag2(start, end, ast) {
+  tag = function tag(start, end, ast) {
     ast.leisureStart = start;
     ast.leisureEnd = end;
     return ast;
@@ -1312,9 +989,9 @@ misrepresented as being the original software.
     return totalLen - str.length - tok.length;
   };
 
-  parseIf = function parseIf(res, block, errPrefix) {
+  ifParsed = function ifParsed(res, block, errPrefix) {
     if (res[1]) {
-      return [res[0], (errPrefix != null ? errPrefix : '') + res[1], res[2]];
+      return [res[0], errPrefix + res[1], res[2]];
     } else {
       return block(res[0], res[2]);
     }
@@ -1324,172 +1001,93 @@ misrepresented as being the original software.
     return "[" + (str.substring(0, 80)) + "]";
   };
 
-  parseApply2 = function parseApply2(str, vars, indent, totalLen) {
+  parseApplyNew = function parseApplyNew(str, vars) {
+    return parseApply(str, vars, '\n', str.length);
+  };
+
+  parseApply = function parseApply(str, vars, indent, totalLen) {
     var rest, tok, _ref;
     if (!str) {
       return [null, null, str];
     } else {
-      _ref = nextTok2(str, indent), tok = _ref[0], rest = _ref[1];
+      _ref = nextTok(str, indent), tok = _ref[0], rest = _ref[1];
       if (!tok || tok[0] === '\n') {
         return [null, "expecting expression " + (snip(str)) + "\n" + (new Error().stack), rest];
       } else if (groupCloses[tok]) {
         return [null, "Unexpected group close: " + tok + " " + (snip(rest)), rest];
       } else {
-        return parseIf(parseTerm2(tok, rest, vars, indent, totalLen), function(func, rest) {
-          return continueApply2(func, rest, vars, indent, totalLen);
+        return ifParsed(parseTerm(tok, rest, vars, indent, totalLen), function(func, rest) {
+          return continueApply(func, rest, vars, indent, totalLen);
         });
       }
     }
   };
 
-  continueApply2 = function continueApply2(func, str, vars, indent, totalLen) {
+  continueApply = function continueApply(func, str, vars, indent, totalLen) {
     var parsedArg, rest, tok, _ref;
-    _ref = nextTok2(str, indent), tok = _ref[0], rest = _ref[1];
+    _ref = nextTok(str, indent), tok = _ref[0], rest = _ref[1];
     if (!tok || (tok[0] === '\n' && tok.length <= indent.length) || groupCloses[tok]) {
       return [func, null, str];
     } else {
-      parsedArg = tok[0] === '\n' ? (burp("CONTINUING, tok len = " + tok.length + ", indent len = " + indent.length), parseApply2(rest, vars, tok, totalLen)) : parseTerm2(tok, rest, vars, indent, totalLen);
-      return parseIf(parsedArg, function(arg, rest) {
-        return continueApply2(tag2(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen);
+      parsedArg = tok[0] === '\n' ? parseApply(rest, vars, tok, totalLen) : parseTerm(tok, rest, vars, indent, totalLen);
+      return ifParsed(parsedArg, function(arg, rest) {
+        return continueApply(tag(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen);
       });
     }
   };
 
-  parseTerm2 = function parseTerm2(tok, rest, vars, indent, totalLen) {
+  parseTerm = function parseTerm(tok, rest, vars, indent, totalLen) {
     var apl;
     if (tok === '\\') {
-      return parseLambda2(rest, vars, indent, totalLen);
+      return parseLambda(rest, vars, indent, totalLen);
     } else if (groupOpens[tok]) {
-      apl = tok === '(' ? parseApply2(rest, vars, indent, totalLen) : parseIf(parseName2(tok, rest, vars, totalLen), function(ast, rest2) {
-        return continueApply2(ast, rest2, vars, indent, totalLen);
+      apl = tok === '(' ? parseApply(rest, vars, indent, totalLen) : ifParsed(parseName(tok, rest, vars, totalLen), function(ast, rest2) {
+        return continueApply(ast, rest2, vars, indent, totalLen);
       });
-      return parseIf(apl, function(ast, rest3) {
+      return ifParsed(apl, function(ast, rest3) {
         var rest4, tok4, _ref;
-        _ref = nextTok2(rest3, indent), tok4 = _ref[0], rest4 = _ref[1];
+        _ref = nextTok(rest3, indent), tok4 = _ref[0], rest4 = _ref[1];
         if (tok4 !== groupOpens[tok]) {
           return [ast, "Expected close token: " + groupOpens[tok] + ", but got " + tok4, rest4];
         } else if (tok === '(') {
-          return [tag2(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4];
+          return [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4];
         } else {
-          return parseIf(parseName2(tok4, rest4, vars, totalLen), function(arg, rest5) {
-            return [tag2(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5];
+          return ifParsed(parseName(tok4, rest4, vars, totalLen), function(arg, rest5) {
+            return [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5];
           });
         }
       });
     } else {
-      return parseName2(tok, rest, vars, totalLen);
+      return parseName(tok, rest, vars, totalLen);
     }
   };
 
-  parseName2 = function parseName2(tok, rest, vars, totalLen) {
+  parseName = function parseName(tok, rest, vars, totalLen) {
     var name;
     name = tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok(tok))) : tok[0] === '`' ? ref(laz(tok.substring(1, tok.length - 1))) : vars.find(function(v) {
       return tok === v;
     }) ? ref(laz(tok)) : scanName(tok);
-    return [tag2(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest];
+    return [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest];
   };
 
-  nextTok2IgnoreNL = function nextTok2IgnoreNL(str, indent) {
+  nextTokIgnoreNL = function nextTokIgnoreNL(str, indent) {
     var r, rest, tok, _ref;
-    _ref = r = nextTok2(str, indent), tok = _ref[0], rest = _ref[1];
-    if (tok && (tok[0] === '\n' || tok[0] === ' ')) nextTok2(rest, indent);
+    _ref = r = nextTok(str, indent), tok = _ref[0], rest = _ref[1];
+    if (tok && (tok[0] === '\n' || tok[0] === ' ')) nextTok(rest, indent);
     return r;
   };
 
-  parseLambda2 = function parseLambda2(str, vars, indent, totalLen) {
+  parseLambda = function parseLambda(str, vars, indent, totalLen) {
     var apl, nm, rest1, rest2, tok2, _ref, _ref2;
-    _ref = nextTok2IgnoreNL(str, indent), nm = _ref[0], rest1 = _ref[1];
-    _ref2 = nextTok2IgnoreNL(rest1, indent), tok2 = _ref2[0], rest2 = _ref2[1];
-    apl = tok2 === '.' ? parseApply2(eatAllWhitespace(rest2), cons(nm, vars), indent, totalLen) : parseLambda2(rest1, cons(nm, vars), indent, totalLen);
-    return parseIf(apl, function(body, rest2) {
+    _ref = nextTokIgnoreNL(str, indent), nm = _ref[0], rest1 = _ref[1];
+    _ref2 = nextTokIgnoreNL(rest1, indent), tok2 = _ref2[0], rest2 = _ref2[1];
+    apl = tok2 === '.' ? parseApply(eatAllWhitespace(rest2), cons(nm, vars), indent, totalLen) : parseLambda(rest1, cons(nm, vars), indent, totalLen);
+    return ifParsed(apl, function(body, rest2) {
       var ast;
       ast = lambda(laz(nm))(laz(body));
       ast.leisureNameEnd = pos(rest1, totalLen);
-      return [tag2(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2];
+      return [tag(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2];
     });
-  };
-
-  nextGroupTok = function nextGroupTok(str) {
-    var m, rest, _ref;
-    m = str.match(groupingPat);
-    if (!m) {
-      return ['', ''];
-    } else {
-      rest = str.substring(m.index + m[0].length);
-      if (!(_ref = m[0][0], __indexOf.call('\'`"', _ref) >= 0) && ((groupOpens[m[0]] != null) || (groupCloses[m[0]] != null) || m[0][0] === '\n')) {
-        return [m[0], rest];
-      } else {
-        return nextGroupTok(rest);
-      }
-    }
-  };
-
-  getNesting = function getNesting(txt) {
-    return findGroup(txt, '\n', txt.length);
-  };
-
-  findGroup = function findGroup(txt, indent, totalLen) {
-    var done, end, group, next, nextGroup, nextRest, rest, subgroup, subrest, tok, _ref, _ref2, _ref3, _ref4;
-    _ref = nextGroupTok(txt), tok = _ref[0], rest = _ref[1];
-    if (!tok) {
-      return [null, ''];
-    } else if ((end = groupOpens[tok])) {
-      group = [tok, totalLen - rest.length, -1];
-      while (true) {
-        _ref2 = nextGroupTok(rest), next = _ref2[0], nextRest = _ref2[1];
-        if (next === end) {
-          group[2] = totalLen - nextRest.length - next.length;
-          return [group, nextRest];
-        }
-        _ref3 = findGroup(nextRest, indent, totalLen), nextGroup = _ref3[0], nextRest = _ref3[1];
-        group.push(nextGroup);
-        rest = nextRest;
-      }
-    } else if (groupCloses[tok] != null) {
-      return [null, null];
-    } else if (tok.length === indent.length) {
-      return [['', totalLen - txt.length, totalLen - rest.length - tok.length], rest];
-    } else if (tok.length < indent.length) {
-      return [null, txt];
-    } else if (tok.length > indent.length) {
-      group = [tok, totalLen - rest.length, -1];
-      done = false;
-      while (true) {
-        _ref4 = findGroup(rest, tok, totalLen), subgroup = _ref4[0], subrest = _ref4[1];
-        if (!(subgroup != null)) {
-          group[2] = totalLen - rest.length;
-          return [group, rest];
-        }
-        group.push(subgroup);
-        rest = subrest;
-      }
-    }
-  };
-
-  printGroups = function printGroups(txt, groups) {
-    var close, i, last, open, out, start, _ref, _ref2;
-    close = (_ref = groupOpens[groups[0]]) != null ? _ref : '';
-    open = close ? groups[0] : '';
-    out = "(" + open;
-    last = groups[1];
-    for (i = 3, _ref2 = groups.length; 3 <= _ref2 ? i < _ref2 : i > _ref2; 3 <= _ref2 ? i++ : i--) {
-      start = groups[i][1];
-      if (groupOpens[groups[i][0]] != null) start -= groups[i][0].length;
-      out += txt.substring(last, start);
-      out += " " + (printGroups(txt, groups[i]));
-      last = groups[i][2];
-      if (groupOpens[groups[i][0]] != null) {
-        last += groupOpens[groups[i][0]].length;
-      }
-    }
-    out += txt.substring(last, groups[2]);
-    return out + ("" + close + ")");
-  };
-
-  burp = function burp(str) {};
-
-  parseApplyNew = function parseApplyNew(str, vars) {
-    return parseApply2(str, vars, '\n', str.length);
   };
 
   root.processTokenDefs = processTokenDefs;
@@ -1497,8 +1095,6 @@ misrepresented as being the original software.
   root.setEvalFunc = setEvalFunc;
 
   root.eval = evalFunc;
-
-  root.parse = parse;
 
   root.parseFull = parseFull;
 
@@ -1542,26 +1138,10 @@ misrepresented as being the original software.
 
   root.nameSub = nameSub;
 
-  root.bracify = bracify;
-
-  root.parenthify = parenthify;
-
-  root.prepare = prepare;
-
   root.processDefs = processDefs;
 
-  root.getNesting = getNesting;
-
-  root.printGroups = printGroups;
-
-  root.parseApply2 = parseApply2;
-
-  root.srcPrint = srcPrint;
+  root.parseApply = parseApply;
 
   root.bracket = bracket;
-
-  root.dlnew = dlnew;
-
-  root.dlappend = dlappend;
 
 }).call(this);

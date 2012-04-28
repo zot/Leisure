@@ -82,19 +82,14 @@
   });
 
   define('parse', function(value) {
-    var ast, err, prepped, rest, _ref, _ref2;
-    _ref = Leisure.prepare(String(value())), prepped = _ref[0], err = _ref[1];
+    var ast, err, rest, _ref;
+    _ref = Leisure.parseFull(value()), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err != null) {
       return _right()(laz("Error: " + err));
+    } else if (rest != null ? rest.trim() : void 0) {
+      return _right()(laz("Error, input left after parsing: '" + (rest.trim()) + "'"));
     } else {
-      _ref2 = Leisure.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
-      if (err != null) {
-        return _right()(laz("Error: " + err));
-      } else if (rest != null ? rest.trim() : void 0) {
-        return _right()(laz("Error, input left after parsing: '" + (rest.trim()) + "'"));
-      } else {
-        return _left()(laz(ast));
-      }
+      return _left()(laz(ast));
     }
   });
 

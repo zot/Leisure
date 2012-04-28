@@ -17,6 +17,11 @@
    * probably use env for this
 * pretty printer function can take an assoc-list of printers for types
 * notebook style interface
+   * highlighting fixes
+      * defs don't work
+      * grouping tokens should highlight
+   * load/save
+   * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
    * make programs html pages with code attributes
       * in node, use htmlparser (npm install htmlparser)
    * exprs that hang in the page are commented out: #@EXPR: + 1 2
@@ -33,10 +38,8 @@
    * put hyperlinks in output to function definitions
    * incremental compilation (recompile the file after a blank line and update all errors)
    * use in-doc prompt, instad of popup
-   * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
    * comments that attach event handlers?
    * optionally hide source code
-   * load/save
    * collaboration
 * use curlies for do/let?
    * handle groups properly with indentation

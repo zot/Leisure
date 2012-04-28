@@ -57,8 +57,8 @@ run 'test3', -> assertEval("(\\x . x) 'hello'", 'hello')
 run 'test4', -> assertEval("eval (apply (lambda 'x' (ref 'x')) (lit 'hello'))", 'hello')
 run 'test5', -> assertEval("(eq cons cons) 'yes' 'no'", 'yes')
 run 'test6', -> assertEval("(eq cons true) 'yes' 'no'", 'no')
-run 'test7', -> LZ.astEval(LZ.gen(LZ.parse("cons 1 2")))
-run 'test8', -> LZ.astEval(LZ.gen(LZ.parse("head (cons 1 2)")))
+run 'test7', -> LZ.astEval(LZ.gen(LZ.parseFull("cons 1 2")))
+run 'test8', -> LZ.astEval(LZ.gen(LZ.parseFull("head (cons 1 2)")))
 run 'test9', -> assertEval("head (cons 1 2)", 1)
 run 'test10', -> assertEval("tail (cons 1 2)", 2)
 run 'test11', -> assertEval("last (cons 'a' nil)", 'a')
@@ -189,27 +189,11 @@ all f l = or
     all f (tail l)
 """
 
-run 'test24', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
-run 'test25', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
-run 'test26', -> assertEq(LZ.prepare(in1)[0], "a\nb\nc")
-run 'test27', -> assertEq(LZ.prepare(in2)[0], "(a b (c d) e)\n\n(f g (h i))")
-run 'test28', -> assertEq(LZ.prepare(in3)[0], "(a b (c d) e)\n(f g (h i))")
-run 'test29', -> assertEq(LZ.bracify(in4, 1)[0], 'frap bubba =M= a b c{d e;f g}')
-run 'test30', -> assertEq(LZ.prepare(in4)[0], 'frap bubba =M= (a b c (d e) (f g))\n')
-run 'test31', -> assertParse("identMacro 1", "ref 1")
-run 'test32', -> assertParse("do 1", "ref 1")
-run 'test33', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
-run 'test34', -> assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (lambda b . apply (ref pr) (ref a)) (apply (apply (ref +) (ref a)) (ref 1)))")
-run 'test35', -> assertEq(LZ.prepare('a{b}')[0].trim(), '(a b)')
-run 'test36', -> assertEq(LZ.prepare('a{"b"}')[0].trim(), '(a "b")')
-run 'test37', -> assertEq(LZ.prepare('a{"{b"}')[0].trim(), '(a "{b")')
-run 'test38', -> assertEq(LZ.prepare(in7)[0].trim(), '(let (a = 3) (b = 4) ([a, b]))')
-run 'test39', -> assertEvalPrint(in7, '[3, 4]')
-run 'test40', -> assertEq(LZ.prepare(in8)[0].trim(), '(duh [ 1 , 2 ])')
-
-#console.log "PARSING: #{in1}"
-
-#console.log "AST: #{LZ.astPrint LZ.parseApply2(in1, LZ.Nil, '\n', in1.length)[0]}"
+run 'test24', -> assertParse("identMacro 1", "ref 1")
+run 'test25', -> assertParse("do 1", "ref 1")
+run 'test26', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
+run 'test27', -> assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (lambda b . apply (ref pr) (ref a)) (apply (apply (ref +) (ref a)) (ref 1)))")
+run 'test28', -> assertEvalPrint(in7, '[3, 4]')
 
 applyBrackets = (str, pos, func)->
   ast = LZ.parseFull(str)[0]
@@ -226,8 +210,8 @@ applyBrackets = (str, pos, func)->
 
 br = (str, sq)-> "#{if sq then '[[' else '<<'}#{str}#{if sq then ']]' else '>>'}"
 
-run 'test41', -> assertEq(applyBrackets(in9, 12, br), out9_12)
-run 'test42', -> assertEq(applyBrackets(in9, 30, br), out9_30)
+run 'test29', -> assertEq(applyBrackets(in9, 12, br), out9_12)
+run 'test30', -> assertEq(applyBrackets(in9, 30, br), out9_30)
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

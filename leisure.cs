@@ -31,15 +31,9 @@ escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
 
 wordPat = /^[^\s]*$/
 baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
-baseGroupingPat = /\n *|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|#[^\n]*\n/
-tokenPat = baseTokenPat
-tokenPat2 = new RegExp("\\n *|#{baseTokenPat.source}")
-groupingPat = new RegExp("#{baseGroupingPat.source}|#{escapeRegexpChars '[()]'}")
+tokenPat = new RegExp("\\n *|#{baseTokenPat.source}")
 specials = '[]().*+?|'
 linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
-topBracePat = /^((?:;*)(?:\s*|#[^;]*;)*[^=;{}]*(?:=[.)M]=|=\([^=]+=|=)\s*)?((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^;{};'"`])*)([{};])/
-bracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^\n{};'`"])*)([{};])/
-embeddedBracePat = /^()((?:`(?:[^`\n]|\\[\\`])*`|'(?:[^'\n]|\\[\\'])*'|"(?:[^"\n]|\\[\\"])*"|[^{};'`"])*)([{};])/
 order = []
 warnFreeVariable = []
 charCodes =
@@ -202,22 +196,6 @@ astPrint = (ast, res)->
     else throw new Error("Unknown type of object in AST: " + ast)
   isFirst and res.join('')
 
-srcPrint = (str, ast)->
-  switch getAstType ast
-    when 'ref', 'lit' then "[#{getAstType ast} #{str.substring(ast.leisureStart, ast.leisureEnd)}]"
-    when 'lambda' then "\\#{srcLambda str, ast, getLambdaVar(ast), getLambdaBody(ast)}"
-    when 'apply' then srcApply str, getApplyFunc(ast), getApplyArg(ast)
-
-srcLambda = (str, lambda, varname, body)->
-  vsrc = str.substring(lambda.leisureStart, lambda.leisureNameEnd)
-  if body.type == 'lambda' then body ->(v2)->(b)-> "[#{vsrc}] [#{srcLambda str, body, v2(), b()}]"
-  else "[#{vsrc}] . [#{srcPrint str, body}]"
-
-srcApply = (str, func, arg)->
-  f = if func.type == 'lambda' then "(#{srcPrint str, func})" else srcPrint str, func
-  a = if arg.type == 'apply' then "(#{srcPrint str, arg})" else srcPrint str, arg
-  "#{f} #{a}"
-
 between = (start, end, pos)-> start <= pos and pos <= end
 
 within = (ast, pos)-> between ast.leisureStart, ast.leisureEnd, pos
@@ -326,7 +304,6 @@ gen = (ast, code, lits, vars, deref, name)->
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
         else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) then code
-        #else code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
         else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
         else code.addErr "attempt to use free variable: #{val}"
     when 'lit'
@@ -371,15 +348,7 @@ defineToken = (name, def)->
     types.sort (a, b)-> b.length - a.length
     types = (escapeRegexpChars i for i in types)
     types.push '[().\\\\]| +'
-    tokenPat =  new RegExp(baseTokenPat.source + '|' + types.join('|'))
-    tokenPat2 = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
-    groupToks = []
-    for k, v of groupOpens
-      groupToks.push(k)
-      groupToks.push(v)
-    groupToks.sort (a, b)-> b.length - a.length
-    groupingPat = new RegExp((escapeRegexpChars i for i in groupToks).join('|') + '|' + baseGroupingPat.source)
-
+    tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
 
 createDefinition = (name, ast, index)->
   if index >= name.length then ast
@@ -409,9 +378,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
         errPrefix = "Error while compiling #{nm}: "
-        burp "PARSING: #{nm[0]} (nomacros: #{nomacros}) #{snip pfx}"
         ifParsed (if nomacros then parseApplyNew pfx, Nil else parseFull pfx), ((ast, rest)->
-          burp "PARSED: #{nm[0]}"
           ast.leisureDefPrefix = pfx.length - rest1.length
           nameAst(nm[0], ast)
           bod = ast
@@ -430,7 +397,6 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
 genCode = (ast, name, globals, defType, rest, parseOnly)->
   if !parseOnly then dgen ast, false, name, globals, defType
   if ast.err? and name? then ast.err = "Error while compiling #{name}: #{ast.err}"
-  burp "GENERATED: #{name}"
   [ast, ast.err, rest]
 
 #returns [ast, result]
@@ -455,90 +421,6 @@ evalNext = (code)->
         ast.err = err.stack
       [ast, result]
   else [{err: err}, err]
-
-prepare = (str)->
-  [result, rest] = bracify(stripComments(str.replace(/\u03BB/g, '\\')), 1)
-  if rest.trim() then [result, "Indentation problem: #{result}\n\n------->\n\n#{rest}"]
-  else
-    [result, rest, err] = parenthify result.trim(), true
-    if rest.trim() then [result, "Unbalanced braces: #{result}\n\n------->\n\n#{rest}"]
-    else [result, err]
-
-commentPat = /([^\n#]*)(#[^\n]*)(\n|$)/g
-
-stripComments = (str)-> str.replace commentPat, (str, p1, p2, p3, offset)-> if p1.trim() then "#{p1}#{p3}" else ""
-
-indentPat = /^([^\n]*)(\n[ ]*|$)/
-
-#convert indented code to braced code
-#returns [bracified-str, remainder]
-bracify = (str, indent)->
-  b = str.match bracePat
-  if b and b[3] == '{'
-    [result, rest] = parenthify str.substring(b.index + b[2].length + 1), false, true
-    if rest[0] != '}' then [null, "No close brace: #{str.substring(b.index + b[2].length + 1)}", indent]
-    else
-      [nextResult, nextRest, nextIndent] = bracify rest.substring(1), indent
-      ["#{parenthesizeTokens str.substring(0, b.index + b[2].length).trim() + result} #{nextResult}", nextRest, nextIndent]
-  else
-    m = str.match indentPat
-    if !m or m[2].length == 0 then [str.trim(), '', 0]
-    else
-      lineIndent = m[2].length
-      pfx = m[1]
-      sfx = str.substring(m[0].length)
-      if lineIndent < indent then [pfx.trim(), sfx, lineIndent]
-      else
-        [result, rest, resIndent] = bracify(sfx, lineIndent)
-        if lineIndent == indent then ["#{pfx.trim()};#{result}", rest, resIndent]
-        else if resIndent < indent then ["#{pfx.trim()}{#{result}}", rest, resIndent]
-        else
-          [nextResult, nextRest, nextIndent] = bracify(rest, indent)
-          ["#{pfx.trim()}{#{result}};#{nextResult}", nextRest, nextIndent]
-
-#convert braced code to parenthesized code
-#bracePat/topBracePat: 1: definition, 2: leading string, 3: brace char ({, }, or ;)
-parenthify = (str, top, embedded)->
-  b = str.match (if embedded then embeddedBracePat else if top then topBracePat else bracePat)
-  if !b then [(if str and !top then "(#{str})" else str), '', null]
-  else
-    def = (stripSemis (b[1] ? '')).trim()
-    if def then def = "#{def} "
-    pfx = b[2].trim()
-    sfx = str.substring(b.index + b[0].length)
-    if b[3] == ';'
-      [result, rest, err] = parenthify sfx, top, embedded
-      ["#{if !pfx and !top then '' else if !pfx then '\n' else if top then "#{def}#{pfx}\n" else " #{parenthesizeTokens pfx} "}#{result.trim()}", rest, err]
-    else if b[3] == '{'
-      [result, rest, err] = parenthify sfx, false, embedded
-      if !err and rest[0] == '}'
-        [next, nRest, err] = parenthify rest.substring(1), top, embedded
-        ["#{def}#{parenthesizeTokens (if pfx then pfx + result else result)}#{if top then "\n" else " "}#{next}", nRest, err]
-      else ["#{if pfx then "#{def} #{pfx}" else "#{def}"}#{result}", rest, "#{err}\nNo close brace"]
-    else [(if pfx then "#{def} #{parenthesizeTokens pfx}" else "#{def}"), str.substring b.index + b[1].length + b[2].length]
-
-
-parenthesizeTokens = (str)->
-  trimmed = str.trim()
-  tok = trimmed.match(wordPat)
-  if (tok and tok[0] == trimmed) or (!tok and trimmed.match(wordPat)) then trimmed
-  else "(#{trimmed})"
-
-stripSemis = (str)-> str.replace(/^;*/, '')
-
-# takes the rest of the input and the offset of the current input
-# returns [token-string, token-offset, rest]
-# if the string doesn't match a token, it is returned as the entire token
-# this eats whitespace and comments
-nextTok = (str, offset)->
-  m = str.match(tokenPat)
-  if !m then [str, offset, '']
-  else if m.index == 0 && m[0] == '\n' then ['\n', offset, str.substring(1)]
-  else
-    tok = str.substring(0, if m.index > 0 then m.index else m[0].length)
-    rest = str.substring tok.length
-    if tok[0] != '#' and tok.trim() then [tok, offset, rest]
-    else nextTok rest, offset + tok.length
 
 parseFull = (str)->
   [ast, err, rest] = parseApplyNew str, Nil, 0
@@ -569,60 +451,6 @@ getMacro = (ast)->
   else if getAstType(ast) == 'apply' then getMacro getApplyFunc ast
   else null
 
-parse = (str)->
-  [ast, err, rest] = parseApplyNew str.replace(/\u03BB/g, '\\'), Nil, 0
-  if err then throw new Error(err) else ast
-
-ifParsed = (res, block, errPrefix)->
-  if res[1]
-    [res[0], errPrefix + res[1], res[2]]
-  else block res[0], res[2]
-
-tag = (ast, start, end)->
-  ast.leisureStart = start
-  ast.leisureEnd = end
-  ast
-
-soff = (orig, offset, rest)-> offset + orig.length - rest.length
-
-# returns [ast, err, rest]
-parseApply = (str, vars, offset)->
-  if !str.length then [null, null, str]
-  else
-    [tok, offset1, rest1] = nextTok str, offset
-    if tok == '\n' then [null, 'Newline when expecting expression', rest1]
-    else if groupCloses[tok] then [null, "Unexpected group closing token: #{tok} #{snip rest1}", str]
-    else ifParsed (parseTerm tok, rest1, vars, offset1), (func, rest)-> continueApply(func, rest, vars, soff(str, offset, rest))
-
-continueApply = (func, str, vars, offset)->
-  [tok, offset1, rest] = nextTok str, offset
-  if !tok or tok == '\n' or tok == '}' or groupCloses[tok] then [func, null, str]
-  else ifParsed (parseTerm tok, rest, vars, offset1), (arg, rest)->
-    continueApply tag(apply(laz(func))(laz(arg)), func.leisureStart, arg.leisureEnd), rest, vars, soff(str, offset, rest)
-
-parseTerm = (tok, rest, vars, tokOffset)->
-  restOffset = tokOffset + tok.length
-  if tok == '\n' then [null, 'Unexpected newline while expecting a term', rest]
-  else if tok == '\\' then parseLambda rest, vars, restOffset
-  else if groupOpens[tok]
-    apl = if tok == '(' then parseApply rest, vars, restOffset else ifParsed (parseName tok, rest, vars, tokOffset), (ast, rest2)-> continueApply ast, rest2, vars, soff(rest, restOffset, rest2)
-    ifParsed apl, (ast, rest3)->
-      [tok4, offset4, rest4] = nextTok rest3, soff(rest, restOffset, rest3)
-      if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4} #{snip rest4}", rest4]
-      else if tok == '(' then [ast, null, rest4]
-      else ifParsed (parseName tok4, rest4, vars, soff(rest, restOffset, rest4)), (arg, rest5)->
-        [tag(apply(laz(ast))(laz(arg)), ast.leisureStart, arg.leisureEnd), null, rest5]
-  else parseName tok, rest, vars, tokOffset
-
-parseName = (tok, rest, vars, tokOffset) ->
-  restOffset = tokOffset + tok.length
-  [tag((if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
-  else if tok[0] == '"' then lit(laz(scanTok(tok)))
-  else if tok[0] == '`' then ref(laz(tok.substring(1, tok.length - 1)))
-  else if (vars.find (v)-> tok == v) then ref(laz(tok))
-  else scanName(tok)
-  ), tokOffset, restOffset), null, rest]
-
 scanTok = (tok)->
   try
     JSON.parse(tok)
@@ -638,31 +466,10 @@ scanName = (name)->
   catch err
     ref(laz(name))
 
-nextTokWithNl = (str, offset)->
-  [t, rest] = subnextTokWithNl str
-  [t, soff(str, offset, rest), rest]
-
-subnextTokWithNl = (str)->
-  [tok, offset, rest] = nextTok str, 0
-  if tok == '\n' then subnextTokWithNl rest else [tok, rest]
-
 eatAllWhitespace = (str)->
   m = str.match /^(\s+|;)/
   if m then str.substring(m[0].length)
   else str
-
-parseLambda = (str, vars, offset)->
-  [nm, offset1, rest1] = nextTokWithNl str, offset
-  [tok2, offset2, rest2] = nextTokWithNl rest1, offset1
-  ifParsed (if tok2 == '.'
-    str2 = eatAllWhitespace rest2
-    off2 = soff(str, offset, str2)
-    parseApply str2, cons(nm, vars), off2
-  else parseLambda rest1, cons(nm, vars), soff(str, offset, rest1)), (body, rest2)-> [tag(lambda(laz(nm))(laz(body)), offset, soff(str, offset, rest2)), null, rest2]
-
-addDef = (toks)->
-  t = toks.reverse()
-  defs[t[0]] = t.join(' ')
 
 setEvalFunc = (ct, func)->
   ctx = root.ctx = ct
@@ -684,18 +491,17 @@ processTokenDefs = (defs)->
   if defs? then for i in [0...defs.length] by 2
     defineToken defs[i], defs[i + 1]
 
-
 # returns [tok, rest]
-nextTok2 = (str, indent)->
-  m = str.match(tokenPat2)
+nextTok = (str, indent)->
+  m = str.match(tokenPat)
   if !m then [str, '']
   else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
   else
     rest = str.substring(m.index + m[0].length)
-    if m[0][0] == '#' or m[0][0] == ' ' or (m[0][0] == '\n' and rest[0] == '\n') then nextTok2 rest, indent
+    if m[0][0] == '#' or m[0][0] == ' ' or (m[0][0] == '\n' and rest[0] == '\n') then nextTok rest, indent
     else [m[0], rest]
 
-tag2 = (start, end, ast)->
+tag = (start, end, ast)->
   ast.leisureStart = start
   ast.leisureEnd = end
   ast
@@ -704,134 +510,74 @@ pos = (str, totalLen)-> totalLen - str.length
 
 tokPos = (tok, str, totalLen)-> totalLen - str.length - tok.length
 
-parseIf = (res, block, errPrefix)->
-  if res[1] then [res[0], (errPrefix ? '') + res[1], res[2]]
+ifParsed = (res, block, errPrefix)->
+  if res[1] then [res[0], errPrefix + res[1], res[2]]
   else block res[0], res[2]
 
 snip = (str)->"[#{str.substring 0, 80}]"
 
+parseApplyNew = (str, vars)-> parseApply str, vars, '\n', str.length
+
 # returns [ast, err, rest]
-parseApply2 = (str, vars, indent, totalLen)->
+parseApply = (str, vars, indent, totalLen)->
   if !str then [null, null, str]
   else
-    [tok, rest] = nextTok2 str, indent
+    [tok, rest] = nextTok str, indent
     if !tok or tok[0] == '\n' then [null, "expecting expression #{snip str}\n#{new Error().stack}", rest]
     else if groupCloses[tok] then [null, "Unexpected group close: #{tok} #{snip rest}", rest]
-    else parseIf (parseTerm2 tok, rest, vars, indent, totalLen), (func, rest)->continueApply2(func, rest, vars, indent, totalLen)
+    else ifParsed (parseTerm tok, rest, vars, indent, totalLen), (func, rest)->continueApply(func, rest, vars, indent, totalLen)
 
-continueApply2 = (func, str, vars, indent, totalLen)->
-  [tok, rest] = nextTok2 str, indent
+continueApply = (func, str, vars, indent, totalLen)->
+  [tok, rest] = nextTok str, indent
   if !tok or (tok[0] == '\n' and tok.length <= indent.length) or groupCloses[tok]
     [func, null, str]
   else
     parsedArg = if tok[0] == '\n'
-      burp "CONTINUING, tok len = #{tok.length}, indent len = #{indent.length}"
-      parseApply2 rest, vars, tok, totalLen
-    else parseTerm2 tok, rest, vars, indent, totalLen
-    parseIf parsedArg, (arg, rest)->
-      continueApply2 tag2(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen
+      parseApply rest, vars, tok, totalLen
+    else parseTerm tok, rest, vars, indent, totalLen
+    ifParsed parsedArg, (arg, rest)->
+      continueApply tag(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen
 
-parseTerm2 = (tok, rest, vars, indent, totalLen)->
-  if tok == '\\' then parseLambda2 rest, vars, indent, totalLen
+parseTerm = (tok, rest, vars, indent, totalLen)->
+  if tok == '\\' then parseLambda rest, vars, indent, totalLen
   else if groupOpens[tok]
-    apl = if tok == '(' then parseApply2 rest, vars, indent, totalLen
-    else parseIf (parseName2 tok, rest, vars, totalLen), (ast, rest2)->
-      continueApply2 ast, rest2, vars, indent, totalLen
-    parseIf apl, (ast, rest3)->
-      [tok4, rest4] = nextTok2 rest3, indent
+    apl = if tok == '(' then parseApply rest, vars, indent, totalLen
+    else ifParsed (parseName tok, rest, vars, totalLen), (ast, rest2)->
+      continueApply ast, rest2, vars, indent, totalLen
+    ifParsed apl, (ast, rest3)->
+      [tok4, rest4] = nextTok rest3, indent
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
-      else if tok == '(' then [tag2(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4]
-      else parseIf (parseName2 tok4, rest4, vars, totalLen), (arg, rest5)->
-        [tag2(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5]
-  else parseName2 tok, rest, vars, totalLen
+      else if tok == '(' then [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4]
+      else ifParsed (parseName tok4, rest4, vars, totalLen), (arg, rest5)->
+        [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5]
+  else parseName tok, rest, vars, totalLen
 
-parseName2 = (tok, rest, vars, totalLen)->
+parseName = (tok, rest, vars, totalLen)->
   name = if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
   else if tok[0] == '"' then lit(laz(scanTok(tok)))
   else if tok[0] == '`' then ref(laz(tok.substring(1, tok.length - 1)))
   else if (vars.find (v)-> tok == v) then ref(laz(tok))
   else scanName(tok)
-  [tag2(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
+  [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
 
-nextTok2IgnoreNL = (str, indent)->
-  [tok, rest] = r = nextTok2 str, indent
-  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok2 rest, indent
+nextTokIgnoreNL = (str, indent)->
+  [tok, rest] = r = nextTok str, indent
+  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok rest, indent
   r
 
-parseLambda2 = (str, vars, indent, totalLen)->
-  [nm, rest1] = nextTok2IgnoreNL str, indent
-  [tok2, rest2] = nextTok2IgnoreNL rest1, indent
-  apl = if tok2 == '.' then parseApply2 (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
-  else parseLambda2 rest1, cons(nm, vars), indent, totalLen
-  parseIf apl, (body, rest2)->
+parseLambda = (str, vars, indent, totalLen)->
+  [nm, rest1] = nextTokIgnoreNL str, indent
+  [tok2, rest2] = nextTokIgnoreNL rest1, indent
+  apl = if tok2 == '.' then parseApply (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
+  else parseLambda rest1, cons(nm, vars), indent, totalLen
+  ifParsed apl, (body, rest2)->
     ast = lambda(laz(nm))(laz(body))
     ast.leisureNameEnd = pos(rest1, totalLen)
-    [tag2(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2]
-
-# returns [tok, rest]
-nextGroupTok = (str)->
-  m = str.match(groupingPat)
-  if !m then ['', '']
-  else
-    rest = str.substring(m.index + m[0].length)
-    if !(m[0][0] in '\'`"') and (groupOpens[m[0]]? or groupCloses[m[0]]? or m[0][0] == '\n') then [m[0], rest]
-    else nextGroupTok rest
-
-# returns group offsets: [opener, start, length, innergroup...], with [0, length, contents] as the outer group
-getNesting = (txt)-> findGroup txt, '\n', txt.length
-
-# returns [group, rest]
-findGroup = (txt, indent, totalLen)->
-  [tok, rest] = nextGroupTok txt
-  if !tok then [null, '']
-  else if (end = groupOpens[tok])
-    group = [tok, totalLen - rest.length, -1]
-    while true
-      [next, nextRest] = nextGroupTok rest
-      if next == end
-        group[2] = totalLen - nextRest.length - next.length
-        return [group, nextRest]
-      [nextGroup, nextRest] = findGroup nextRest, indent, totalLen
-      group.push(nextGroup)
-      rest = nextRest
-  else if groupCloses[tok]? then [null, null]
-  else if tok.length == indent.length then [['', totalLen - txt.length, totalLen - rest.length - tok.length], rest]
-  else if tok.length < indent.length then [null, txt]
-  else if tok.length > indent.length
-    group = [tok, totalLen - rest.length, -1]
-    done = false
-    while true
-      [subgroup, subrest] = findGroup rest, tok, totalLen
-      if !subgroup?
-        group[2] = totalLen - rest.length
-        return [group, rest]
-      group.push subgroup
-      rest = subrest
-
-printGroups = (txt, groups)->
-  close = groupOpens[groups[0]] ? ''
-  open = if close then groups[0] else ''
-  out = "(#{open}"
-  last = groups[1]
-  for i in [3...groups.length]
-    start = groups[i][1]
-    if groupOpens[groups[i][0]]? then start -= groups[i][0].length
-    out += txt.substring(last, start)
-    out += " #{printGroups txt, groups[i]}"
-    last = groups[i][2]
-    if groupOpens[groups[i][0]]? then last += groupOpens[groups[i][0]].length
-  out += txt.substring(last, groups[2])
-  out + "#{close})"
-
-#parseApplyNew = parseApply
-burp = (str)->
-#burp = (str)-> console.log str
-parseApplyNew = (str, vars)-> parseApply2 str, vars, '\n', str.length
+    [tag(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2]
 
 root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
-root.parse = parse
 root.parseFull = parseFull
 root.astPrint = astPrint
 root.gen = dgen
@@ -852,14 +598,6 @@ root.append = append
 root.defineToken = defineToken
 root.req = req
 root.nameSub = nameSub
-root.bracify = bracify
-root.parenthify = parenthify
-root.prepare = prepare
 root.processDefs = processDefs
-root.getNesting = getNesting
-root.printGroups = printGroups
-root.parseApply2 = parseApply2
-root.srcPrint = srcPrint
+root.parseApply = parseApply
 root.bracket = bracket
-root.dlnew = dlnew
-root.dlappend = dlappend

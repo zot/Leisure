@@ -38,13 +38,10 @@ define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true(
 define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
 define 'getType', (value)-> if type = getType(value()) then _some()(->type) else _none()
 define 'parse', (value)->
-  [prepped, err] = Leisure.prepare String(value())
+  [ast, err, rest] = Leisure.parseFull(value())
   if err? then _right()(laz("Error: #{err}"))
-  else
-    [ast, err, rest] = Leisure.parseFull(prepped)
-    if err? then _right()(laz("Error: #{err}"))
-    else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
-    else _left()(laz(ast))
+  else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
+  else _left()(laz(ast))
 define 'pretty', (value)-> Pretty.print(value())
 
 define '+', (a)->(b)->a() + b()

@@ -39,9 +39,7 @@ assertEq = (actual, expected, desc)-> if expected != actual
   throw new Error("#{if desc then "[#{desc}] " else ""}Expected <#{expected}> but got <#{actual}>")
 
 assertEval = (actual, expected, desc)->
-  [prepped, err] = LZ.prepare actual
-  if err? then throw new Error(err)
-  [ast, err, rest] = LZ.parseFull(prepped)
+  [ast, err, rest] = LZ.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else
@@ -50,9 +48,7 @@ assertEval = (actual, expected, desc)->
     assertEq(LZ.astEval(code), expected, desc ? actual)
 
 assertEvalPrint = (actual, expected, desc)->
-  [prepped, err] = LZ.prepare actual
-  if err? then throw new Error(err)
-  [ast, err, rest] = LZ.parseFull(prepped)
+  [ast, err, rest] = LZ.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else
@@ -62,9 +58,7 @@ assertEvalPrint = (actual, expected, desc)->
     assertEq(v, expected, desc ? actual)
 
 assertParse = (actual, expected, desc)->
-  [prepped, err] = LZ.prepare actual
-  if err? then throw new Error(err)
-  [ast, err, rest] = LZ.parseFull(prepped)
+  [ast, err, rest] = LZ.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else assertEq(LZ.astPrint(ast), expected, desc ? actual)

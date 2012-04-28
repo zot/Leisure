@@ -32,7 +32,6 @@ getType = Leisure.getType
 
 handlerFunc = (ast, result, a, c, r, src, env)->
   env = env ? Prim.defaultEnv
-  if a then env.write "PREPARED: #{Leisure.prepare(src)}"
   if ast? and ast.err?
     env.write("ERROR: #{ast.err}\n")
     nextFunc()
@@ -112,12 +111,11 @@ processLine = (line, env)->
       else if (line.trim() == ':q') then process.exit(0)
       else
         [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-        [l, err1] = Leisure.prepare(line)
-        [ast, err] = Leisure.compileNext(l, getGlobals(), false, false)
-        if err1? or err?
-          if ast? then ast.err = err1 ? err
-          else ast = {err: err1 ? err}
-        else [ast, result] = if r then Leisure.evalNext(l) else [ast, null]
+        [ast, err] = Leisure.compileNext(line, getGlobals(), false, false)
+        if err?
+          if ast? then ast.err = err
+          else ast = {err: err}
+        else [ast, result] = if r then Leisure.evalNext(line) else [ast, null]
         return handlerFunc(ast, result, a, c, r, line, env)
   catch err
     env.write(err.stack)
@@ -160,8 +158,7 @@ var processResult = Repl.processResult;
   prev = Leisure.Nil
   if err then throw new Error(err)
   defs = []
-  [rest, err] = Leisure.prepare contents
-  if err then throw new Error(err)
+  rest = contents
   varOut = ''
   for v, i in globals.toArray()
     if i > 0 then varOut += ","

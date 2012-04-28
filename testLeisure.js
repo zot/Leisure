@@ -75,11 +75,11 @@ Tests for Leisure
   });
 
   run('test7', function() {
-    return LZ.astEval(LZ.gen(LZ.parse("cons 1 2")));
+    return LZ.astEval(LZ.gen(LZ.parseFull("cons 1 2")));
   });
 
   run('test8', function() {
-    return LZ.astEval(LZ.gen(LZ.parse("head (cons 1 2)")));
+    return LZ.astEval(LZ.gen(LZ.parseFull("head (cons 1 2)")));
   });
 
   run('test9', function() {
@@ -165,71 +165,23 @@ Tests for Leisure
   out9_30 = "(eq l nil) false\n  or\n    f ([[head]] <<l>>)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
 
   run('test24', function() {
-    return assertEq(LZ.bracify(in1, 1)[0], 'a;b;c');
-  });
-
-  run('test25', function() {
-    return assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}');
-  });
-
-  run('test26', function() {
-    return assertEq(LZ.prepare(in1)[0], "a\nb\nc");
-  });
-
-  run('test27', function() {
-    return assertEq(LZ.prepare(in2)[0], "(a b (c d) e)\n\n(f g (h i))");
-  });
-
-  run('test28', function() {
-    return assertEq(LZ.prepare(in3)[0], "(a b (c d) e)\n(f g (h i))");
-  });
-
-  run('test29', function() {
-    return assertEq(LZ.bracify(in4, 1)[0], 'frap bubba =M= a b c{d e;f g}');
-  });
-
-  run('test30', function() {
-    return assertEq(LZ.prepare(in4)[0], 'frap bubba =M= (a b c (d e) (f g))\n');
-  });
-
-  run('test31', function() {
     return assertParse("identMacro 1", "ref 1");
   });
 
-  run('test32', function() {
+  run('test25', function() {
     return assertParse("do 1", "ref 1");
   });
 
-  run('test33', function() {
+  run('test26', function() {
     return assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)");
   });
 
-  run('test34', function() {
+  run('test27', function() {
     return assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (lambda b . apply (ref pr) (ref a)) (apply (apply (ref +) (ref a)) (ref 1)))");
   });
 
-  run('test35', function() {
-    return assertEq(LZ.prepare('a{b}')[0].trim(), '(a b)');
-  });
-
-  run('test36', function() {
-    return assertEq(LZ.prepare('a{"b"}')[0].trim(), '(a "b")');
-  });
-
-  run('test37', function() {
-    return assertEq(LZ.prepare('a{"{b"}')[0].trim(), '(a "{b")');
-  });
-
-  run('test38', function() {
-    return assertEq(LZ.prepare(in7)[0].trim(), '(let (a = 3) (b = 4) ([a, b]))');
-  });
-
-  run('test39', function() {
+  run('test28', function() {
     return assertEvalPrint(in7, '[3, 4]');
-  });
-
-  run('test40', function() {
-    return assertEq(LZ.prepare(in8)[0].trim(), '(duh [ 1 , 2 ])');
   });
 
   applyBrackets = function applyBrackets(str, pos, func) {
@@ -252,11 +204,11 @@ Tests for Leisure
     return "" + (sq ? '[[' : '<<') + str + (sq ? ']]' : '>>');
   };
 
-  run('test41', function() {
+  run('test29', function() {
     return assertEq(applyBrackets(in9, 12, br), out9_12);
   });
 
-  run('test42', function() {
+  run('test30', function() {
     return assertEq(applyBrackets(in9, 30, br), out9_30);
   });
 

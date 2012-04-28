@@ -49,10 +49,8 @@ Wimpy testing framework
   };
 
   assertEval = function assertEval(actual, expected, desc) {
-    var ast, code, err, prepped, rest, _ref, _ref2;
-    _ref = LZ.prepare(actual), prepped = _ref[0], err = _ref[1];
-    if (err != null) throw new Error(err);
-    _ref2 = LZ.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+    var ast, code, err, rest, _ref;
+    _ref = LZ.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err != null) {
       throw new Error("Error: " + err);
     } else if (rest != null ? rest.trim() : void 0) {
@@ -65,10 +63,8 @@ Wimpy testing framework
   };
 
   assertEvalPrint = function assertEvalPrint(actual, expected, desc) {
-    var ast, code, err, prepped, rest, v, _ref, _ref2;
-    _ref = LZ.prepare(actual), prepped = _ref[0], err = _ref[1];
-    if (err != null) throw new Error(err);
-    _ref2 = LZ.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+    var ast, code, err, rest, v, _ref;
+    _ref = LZ.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err != null) {
       throw new Error("Error: " + err);
     } else if (rest != null ? rest.trim() : void 0) {
@@ -82,10 +78,8 @@ Wimpy testing framework
   };
 
   assertParse = function assertParse(actual, expected, desc) {
-    var ast, err, prepped, rest, _ref, _ref2;
-    _ref = LZ.prepare(actual), prepped = _ref[0], err = _ref[1];
-    if (err != null) throw new Error(err);
-    _ref2 = LZ.parseFull(prepped), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+    var ast, err, rest, _ref;
+    _ref = LZ.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err != null) {
       throw new Error("Error: " + err);
     } else if (rest != null ? rest.trim() : void 0) {

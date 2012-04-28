@@ -47,7 +47,6 @@
 
   handlerFunc = function handlerFunc(ast, result, a, c, r, src, env) {
     env = env != null ? env : Prim.defaultEnv;
-    if (a) env.write("PREPARED: " + (Leisure.prepare(src)));
     if ((ast != null) && (ast.err != null)) {
       env.write("ERROR: " + ast.err + "\n");
       return nextFunc();
@@ -137,7 +136,7 @@
   };
 
   processLine = function processLine(line, env) {
-    var a, ast, c, err, err1, l, m, r, result, _ref, _ref2, _ref3, _ref4;
+    var a, ast, c, err, m, r, result, _ref, _ref2, _ref3;
     env = env != null ? env : Prim.defaultEnv;
     try {
       if (line) {
@@ -163,18 +162,17 @@
           process.exit(0);
         } else {
           _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-          _ref2 = Leisure.prepare(line), l = _ref2[0], err1 = _ref2[1];
-          _ref3 = Leisure.compileNext(l, getGlobals(), false, false), ast = _ref3[0], err = _ref3[1];
-          if ((err1 != null) || (err != null)) {
+          _ref2 = Leisure.compileNext(line, getGlobals(), false, false), ast = _ref2[0], err = _ref2[1];
+          if (err != null) {
             if (ast != null) {
-              ast.err = err1 != null ? err1 : err;
+              ast.err = err;
             } else {
               ast = {
-                err: err1 != null ? err1 : err
+                err: err
               };
             }
           } else {
-            _ref4 = r ? Leisure.evalNext(l) : [ast, null], ast = _ref4[0], result = _ref4[1];
+            _ref3 = r ? Leisure.evalNext(line) : [ast, null], ast = _ref3[0], result = _ref3[1];
           }
           return handlerFunc(ast, result, a, c, r, line, env);
         }
@@ -190,7 +188,7 @@
   };
 
   generateCode = function generateCode(file, contents, loud, handle, nomacros) {
-    var a, ast, c, code, defs, err, errs, globals, i, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3, _ref4, _ref5;
+    var a, ast, c, code, defs, err, errs, globals, i, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3, _ref4;
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
     out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Leisure = require('./leisure');\n  Leisure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\nvar setType = Leisure.setType;\nvar setDataType = Leisure.setDataType;\nvar define = Leisure.define;\nvar defineMacro = Leisure.defineMacro;\nvar defineToken = Leisure.defineToken;\nvar processResult = Repl.processResult;\n";
@@ -199,12 +197,11 @@
     prev = Leisure.Nil;
     if (err) throw new Error(err);
     defs = [];
-    _ref2 = Leisure.prepare(contents), rest = _ref2[0], err = _ref2[1];
-    if (err) throw new Error(err);
+    rest = contents;
     varOut = '';
-    _ref3 = globals.toArray();
-    for (i = 0, _len = _ref3.length; i < _len; i++) {
-      v = _ref3[i];
+    _ref2 = globals.toArray();
+    for (i = 0, _len = _ref2.length; i < _len; i++) {
+      v = _ref2[i];
       if (i > 0) varOut += ",";
       varOut += " " + (Leisure.nameSub(v));
     }
@@ -215,7 +212,7 @@
         console.log("Compiling function: " + names.head);
       }
       oldRest = rest;
-      _ref4 = Leisure.compileNext(rest, globals, null, false, nomacros), ast = _ref4[0], err = _ref4[1], rest = _ref4[2];
+      _ref3 = Leisure.compileNext(rest, globals, null, false, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
       if ((ast != null ? ast.leisureName : void 0) != null) {
         prev = ast.leisureName;
         names = names.tail;
@@ -232,7 +229,7 @@
         ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(P.print(ast))) + "\n" + (nm != null ? "root.defs." + (Leisure.nameSub(nm)) + " = " + (Leisure.nameSub(nm)) + " = " : "") + ast.src;
         src = ast.leisureName ? (defs.push(Leisure.nameSub(ast.leisureName)), ast.src) : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
-        _ref5 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref5[0], c = _ref5[1], r = _ref5[2];
+        _ref4 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref4[0], c = _ref4[1], r = _ref4[2];
         if (handle) handlerFunc(ast, null, a, c, r, code);
       }
     }
