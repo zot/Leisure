@@ -100,7 +100,7 @@ class Cons
   toString: -> "Cons(#{@toArray().join(', ')})"
   reverse: -> @rev Nil
   rev: (result)-> @tail.rev cons(@head, result)
-  equals: (other)-> other?.constructor == Cons and (@head == other.head or @head.equals(other.head)) and (@tail == other.tail or @tail.equals(other.tail))
+  equals: (other)-> other?.constructor == Cons and (@head == other.head or (@head?.constructor == Cons and @head.equals(other.head))) and (@tail == other.tail or (@tail?.constructor == Cons and @tail.equals(other.tail)))
 
 class CNil extends Cons
   find: -> false

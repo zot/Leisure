@@ -18,6 +18,9 @@ bindNotebook = (el)->
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
     el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
+    el.addEventListener 'click', ((e)-> window.setTimeout(highlightPosition, 1)), true, true
+    el.addEventListener 'keydown', (e)->
+      if (e.charCode || e.keyCode || e.which) in [37, 38, 39, 40] then window.setTimeout(highlightPosition, 1)
     el.addEventListener 'keypress', (e)->
       s = window.getSelection()
       r = s.getRangeAt(0)
@@ -44,7 +47,7 @@ bindNotebook = (el)->
       window.setTimeout(highlightPosition, 1)
 
 #[node, positions]
-oldBrackets = null
+oldBrackets = [null, Leisure.Nil]
 
 highlightPosition = ->
   s = window.getSelection()
@@ -54,14 +57,28 @@ highlightPosition = ->
   tr.setStart parent, 0
   tr.setEnd r.endContainer, r.endOffset
   pos = getRangeText(tr).length
-  allTxt = parent.textContent
-  last = allTxt.length - 1
-  while last < allTxt.length and allTxt[last] in ' \n'
-    last--
-  showNesting parent, allTxt.substring(0, last + 1), pos
-
-showNesting = (parent, allTxt, pos) ->
-  alert "highlight: [#{allTxt.substring 0, pos}] [#{allTxt.substring pos}]"
+  txt = parent.textContent
+  ast = (Leisure.compileNext txt, Leisure.Nil, true, null)[0]
+  offset = ast.leisureDefPrefix ? 0
+  brackets = Leisure.bracket ast, pos + offset
+  if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
+    oldBrackets = [parent, brackets]
+    for node in document.querySelectorAll "[LeisureBrackets]"
+      unwrap node
+    if ast?
+      b = brackets
+      while b != Leisure.Nil
+        span = document.createElement 'span'
+        span.setAttribute 'LeisureBrackets', ''
+        span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
+        r = makeRange parent, b.head.head - offset, b.head.tail.head - offset
+        contents = r.cloneContents()
+        r.deleteContents()
+        r.insertNode span
+        span.appendChild contents
+        b = b.tail
+    s.removeAllRanges()
+    s.addRange(makeRange parent, pos, pos)
 
 getRangeText = (r)-> r.cloneContents().textContent
 
@@ -116,6 +133,12 @@ initNotebook = (el)->
   el.replacing = false
   pgm
 
+unwrap = (node)->
+  parent = node.parentNode
+  while node.firstChild?
+    parent.insertBefore node.firstChild, node
+  parent.removeChild node
+
 removeOldDefs = (el)->
   extracted = []
   for node in el.querySelectorAll "[LeisureOutput]"
@@ -125,11 +148,8 @@ removeOldDefs = (el)->
     if txt.nodeType == 3 and txt.data[txt.data.length - 1] == '\n'
       txt.data = txt.data.substring(0, txt.data.length - 1)
   for node in el.querySelectorAll "[Leisure]"
-    parent = node.parentNode
     if addsLine(node) and node.firstChild? then extracted.push(node.firstChild)
-    while node.firstChild?
-      parent.insertBefore node.firstChild, node
-    parent.removeChild node
+    unwrap node
   for node in extracted
     if node.parentNode? and !addsLine(node) and node.previousSibling? and !addsLine(node.previousSibling) then node.parentNode.insertBefore text('\n'), node
   el.normalize()

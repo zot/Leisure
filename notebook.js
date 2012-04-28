@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, showNesting, textNode, toDefBox, toExprBox,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -38,6 +38,15 @@
           });
         }
       }), true, true);
+      el.addEventListener('click', (function(e) {
+        return window.setTimeout(highlightPosition, 1);
+      }), true, true);
+      el.addEventListener('keydown', function(e) {
+        var _ref;
+        if ((_ref = e.charCode || e.keyCode || e.which) === 37 || _ref === 38 || _ref === 39 || _ref === 40) {
+          return window.setTimeout(highlightPosition, 1);
+        }
+      });
       return el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
         s = window.getSelection();
@@ -70,10 +79,10 @@
     }
   };
 
-  oldBrackets = null;
+  oldBrackets = [null, Leisure.Nil];
 
   highlightPosition = function highlightPosition() {
-    var allTxt, last, parent, pos, r, s, tr, _ref;
+    var ast, b, brackets, contents, node, offset, parent, pos, r, s, span, tr, txt, _i, _len, _ref, _ref2;
     s = window.getSelection();
     r = s.getRangeAt(0);
     parent = getBox(r.startContainer);
@@ -81,16 +90,34 @@
     tr.setStart(parent, 0);
     tr.setEnd(r.endContainer, r.endOffset);
     pos = getRangeText(tr).length;
-    allTxt = parent.textContent;
-    last = allTxt.length - 1;
-    while (last < allTxt.length && (_ref = allTxt[last], __indexOf.call(' \n', _ref) >= 0)) {
-      last--;
+    txt = parent.textContent;
+    ast = (Leisure.compileNext(txt, Leisure.Nil, true, null))[0];
+    offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
+    brackets = Leisure.bracket(ast, pos + offset);
+    if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
+      oldBrackets = [parent, brackets];
+      _ref2 = document.querySelectorAll("[LeisureBrackets]");
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        node = _ref2[_i];
+        unwrap(node);
+      }
+      if (ast != null) {
+        b = brackets;
+        while (b !== Leisure.Nil) {
+          span = document.createElement('span');
+          span.setAttribute('LeisureBrackets', '');
+          span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
+          r = makeRange(parent, b.head.head - offset, b.head.tail.head - offset);
+          contents = r.cloneContents();
+          r.deleteContents();
+          r.insertNode(span);
+          span.appendChild(contents);
+          b = b.tail;
+        }
+      }
+      s.removeAllRanges();
+      return s.addRange(makeRange(parent, pos, pos));
     }
-    return showNesting(parent, allTxt.substring(0, last + 1), pos);
-  };
-
-  showNesting = function showNesting(parent, allTxt, pos) {
-    return alert("highlight: [" + (allTxt.substring(0, pos)) + "] [" + (allTxt.substring(pos)) + "]");
   };
 
   getRangeText = function getRangeText(r) {
@@ -168,8 +195,17 @@
     return pgm;
   };
 
+  unwrap = function unwrap(node) {
+    var parent;
+    parent = node.parentNode;
+    while (node.firstChild != null) {
+      parent.insertBefore(node.firstChild, node);
+    }
+    return parent.removeChild(node);
+  };
+
   removeOldDefs = function removeOldDefs(el) {
-    var extracted, m, node, parent, txt, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3;
+    var extracted, m, node, txt, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3;
     extracted = [];
     _ref = el.querySelectorAll("[LeisureOutput]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -187,14 +223,10 @@
     _ref3 = el.querySelectorAll("[Leisure]");
     for (_k = 0, _len3 = _ref3.length; _k < _len3; _k++) {
       node = _ref3[_k];
-      parent = node.parentNode;
       if (addsLine(node) && (node.firstChild != null)) {
         extracted.push(node.firstChild);
       }
-      while (node.firstChild != null) {
-        parent.insertBefore(node.firstChild, node);
-      }
-      parent.removeChild(node);
+      unwrap(node);
     }
     for (_l = 0, _len4 = extracted.length; _l < _len4; _l++) {
       node = extracted[_l];

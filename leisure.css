@@ -31,3 +31,11 @@ body {
 [leisurecode] {
   white-space: pre-wrap;
 }
+
+.LeisureFunc {
+  background: #d0d0d0;
+}
+
+.LeisureArg {
+  outline: solid black 1px;
+}

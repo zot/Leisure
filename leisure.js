@@ -179,7 +179,8 @@ misrepresented as being the original software.
     };
 
     Cons.prototype.equals = function equals(other) {
-      return (other != null ? other.constructor : void 0) === Cons && (this.head === other.head || this.head.equals(other.head)) && (this.tail === other.tail || this.tail.equals(other.tail));
+      var _ref, _ref2;
+      return (other != null ? other.constructor : void 0) === Cons && (this.head === other.head || (((_ref = this.head) != null ? _ref.constructor : void 0) === Cons && this.head.equals(other.head))) && (this.tail === other.tail || (((_ref2 = this.tail) != null ? _ref2.constructor : void 0) === Cons && this.tail.equals(other.tail)));
     };
 
     return Cons;
