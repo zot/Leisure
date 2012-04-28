@@ -96,19 +96,23 @@ class Cons
     t = @tail.removeAll(func)
     if func(@head) then t else if t == @tail then @ else cons(@head, t)
   foldl: (arg, func)-> func(@tail.foldl(arg, func), @head)
-  toArray: -> @foldl [], ((i, el)-> i.push(el); i)
+  toArray: -> @reverse().foldl [], ((i, el)-> i.push(el); i)
   toString: -> "Cons(#{@toArray().join(', ')})"
   reverse: -> @rev Nil
   rev: (result)-> @tail.rev cons(@head, result)
+  equals: (other)-> other?.constructor == Cons and (@head == other.head or @head.equals(other.head)) and (@tail == other.tail or @tail.equals(other.tail))
 
 class CNil extends Cons
   find: -> false
   removeAll: -> @
   foldl: (arg, func)-> arg
   rev: (result)-> result
+  equals: (other)-> other?.constructor == CNil
 
 Nil = new CNil()
 cons = (a, b)-> new Cons(a, b)
+dlnew = (a)->(b)-> cons(a, b)
+dlappend = (a, b)->(c)-> a(b(c))
 append = (a, b)-> if a == Nil then b else cons a.head, append(a.tail, b)
 
 global.leisureFuncNames = ll = Nil
@@ -197,6 +201,63 @@ astPrint = (ast, res)->
       res.push ')'
     else throw new Error("Unknown type of object in AST: " + ast)
   isFirst and res.join('')
+
+srcPrint = (str, ast)->
+  switch getAstType ast
+    when 'ref', 'lit' then "[#{getAstType ast} #{str.substring(ast.leisureStart, ast.leisureEnd)}]"
+    when 'lambda' then "\\#{srcLambda str, ast, getLambdaVar(ast), getLambdaBody(ast)}"
+    when 'apply' then srcApply str, getApplyFunc(ast), getApplyArg(ast)
+
+srcLambda = (str, lambda, varname, body)->
+  vsrc = str.substring(lambda.leisureStart, lambda.leisureNameEnd)
+  if body.type == 'lambda' then body ->(v2)->(b)-> "[#{vsrc}] [#{srcLambda str, body, v2(), b()}]"
+  else "[#{vsrc}] . [#{srcPrint str, body}]"
+
+srcApply = (str, func, arg)->
+  f = if func.type == 'lambda' then "(#{srcPrint str, func})" else srcPrint str, func
+  a = if arg.type == 'apply' then "(#{srcPrint str, arg})" else srcPrint str, arg
+  "#{f} #{a}"
+
+between = (start, end, pos)-> start <= pos and pos <= end
+
+within = (ast, pos)-> between ast.leisureStart, ast.leisureEnd, pos
+
+brackets = (start, end)-> cons(start, cons(end, Nil))
+
+astBrackets = (ast)-> brackets(ast.leisureStart, ast.leisureEnd)
+
+# bracket application parts in ast for position
+bracket = (ast, pos)->
+  if within ast, pos
+    switch getAstType ast
+      when 'ref', 'lit'
+        if within ast, pos then cons(astBrackets(ast), Nil)
+        else Nil
+      when 'lambda'
+        if between ast.leisureStart, ast.leisureNameEnd, pos then cons(brackets(ast.leisureStart, ast.leisureNameEnd), Nil)
+        else bracket getLambdaBody ast, pos
+      when 'apply' then bracketsForApply ast, ast, pos
+  else Nil
+
+bracketsForApply = (apply, part, pos)->
+  arg = getApplyArg part
+  if within arg, pos
+    if arg.type == 'apply' then bracketsForApply arg, arg, pos
+    else if arg.type == 'lambda' then bracket arg, pos
+    else (bracketApplyParts apply)(Nil)
+  else
+    func = getApplyFunc(part)
+    if func.type == 'apply' then bracketsForApply apply, getApplyFunc(part), pos
+    else if func.type in ['ref', 'lit'] then (bracketApplyParts apply)(Nil)
+    else bracket func, pos
+
+# returns a cons-based difference list (not append-based)
+bracketApplyParts = (ast)->
+  astFunc = getApplyFunc ast
+  start = switch getAstType astFunc
+    when 'ref', 'lit', 'lambda' then dlnew(astBrackets(astFunc))
+    when 'apply' then bracketApplyParts(astFunc)
+  dlappend start, dlnew(astBrackets(getApplyArg ast))
 
 class Code
   constructor: (@main, @subfuncs, @fcount, @mcount, @vars, @err, @global)->
@@ -679,9 +740,9 @@ parseTerm2 = (tok, rest, vars, indent, totalLen)->
     parseIf apl, (ast, rest3)->
       [tok4, rest4] = nextTok2 rest3, indent
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
-      else if tok == '(' then [ast, null, rest4]
+      else if tok == '(' then [tag2(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4]
       else parseIf (parseName2 tok4, rest4, vars, totalLen), (arg, rest5)->
-        [tag2(ast.leisureStart, ast.leisureEnd, apply(laz(ast))(laz(arg))), null, rest5]
+        [tag2(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5]
   else parseName2 tok, rest, vars, totalLen
 
 parseName2 = (tok, rest, vars, totalLen)->
@@ -702,7 +763,10 @@ parseLambda2 = (str, vars, indent, totalLen)->
   [tok2, rest2] = nextTok2IgnoreNL rest1, indent
   apl = if tok2 == '.' then parseApply2 (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
   else parseLambda2 rest1, cons(nm, vars), indent, totalLen
-  parseIf apl, (body, rest2)->[tag2(tokPos(nm, rest1, totalLen), body.leisureEnd, lambda(laz(nm))(laz(body))), null, rest2]
+  parseIf apl, (body, rest2)->
+    ast = lambda(laz(nm))(laz(body))
+    ast.leisureNameEnd = pos(rest1, totalLen)
+    [tag2(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2]
 
 # returns [tok, rest]
 nextGroupTok = (str)->
@@ -795,3 +859,7 @@ root.processDefs = processDefs
 root.getNesting = getNesting
 root.printGroups = printGroups
 root.parseApply2 = parseApply2
+root.srcPrint = srcPrint
+root.bracket = bracket
+root.dlnew = dlnew
+root.dlappend = dlappend

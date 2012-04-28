@@ -65,16 +65,40 @@
       function evalDoc() {
         Notebook.evalDoc(document.getElementById('editor'))
       }
+      function applyBrackets(str, pos, func) {
+	var ast = Leisure.parseFull(str)[0];
+	var brackets = Leisure.bracket(ast, pos)
+        var result = '';
+        var prev = 0;
+
+        while (brackets != Leisure.Nil) {
+          var start = brackets.head.head;
+          var end = brackets.head.tail.head;
+
+          result += str.substring(prev, start) + func(str.substring(start, end), result == '');
+          brackets = brackets.tail;
+          prev = end;
+	}
+        return result + str.substring(prev);
+      }
+
       function runTest() {
         //var in1 = "\\x . x\na d e\n  f g\n  h\n   i\n   j\nb\nc";
-	//var in1 = "any f l = (eq l nil) false\n  or\n    f (head l)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)"
-        var in1 = "\\x . \\f . f x";
+	var in1 = "(eq l nil) false\n  or\n    f (head l)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)"
+        //var in1 = "\\x . \\f . f x";
 
-        var ast = Leisure.parseApply2(in1, Leisure.Nil, '\n', in1.length)
-        console.log("AST: " + Leisure.astPrint(ast[0]));
-        console.log("AST: " + Pretty.print(ast[0]));
-        console.log("CODE: " + Leisure.gen(ast[0]));
+        var ast = Leisure.parseFull(in1)[0]
+        console.log("SRC: " + in1);
+        console.log("AST: " + Leisure.astPrint(ast));
+        console.log("AST: " + Pretty.print(ast));
+	console.log("SRC: " + Leisure.srcPrint(in1, ast));
+	positions = [12, 30];
+	for (var i = 0; i < positions.length; i++) {
+	  console.log("BRACKETED: " + applyBrackets(in1, positions[i], br));
+	}
+        console.log("CODE: " + Leisure.gen(ast));
       }
+      function br(str, sq) {return (sq ? "[[" : "<<") + str + (sq ? "]]" : ">>")}
     //]]>
     </script>
   </head>

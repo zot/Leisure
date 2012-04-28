@@ -163,7 +163,7 @@ var processResult = Repl.processResult;
   [rest, err] = Leisure.prepare contents
   if err then throw new Error(err)
   varOut = ''
-  for v, i in globals.reverse().toArray()
+  for v, i in globals.toArray()
     if i > 0 then varOut += ","
     varOut += " #{Leisure.nameSub v}"
   if varOut then out += "\nvar#{varOut};\n"

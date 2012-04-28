@@ -28,7 +28,7 @@ Tests for Leisure
 */
 
 (function() {
-  var LZ, R, T, U, assertEq, assertEval, assertEvalPrint, assertParse, code, define, f, in1, in2, in3, in4, in5, in6, in7, in8, run, setDataType, setType, _i, _len, _ref, _ref2;
+  var LZ, R, T, U, applyBrackets, assertEq, assertEval, assertEvalPrint, assertParse, br, code, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
 
@@ -158,6 +158,12 @@ Tests for Leisure
 
   in8 = "duh [\n 1\n ,\n 2\n ]";
 
+  in9 = "(eq l nil) false\n  or\n    f (head l)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
+
+  out9_12 = "([[eq]] <<l>> <<nil>>) <<false>>\n  <<or\n    f (head l)\n    any f (tail l)>>\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
+
+  out9_30 = "(eq l nil) false\n  or\n    f ([[head]] <<l>>)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
+
   run('test24', function() {
     return assertEq(LZ.bracify(in1, 1)[0], 'a;b;c');
   });
@@ -226,20 +232,33 @@ Tests for Leisure
     return assertEq(LZ.prepare(in8)[0].trim(), '(duh [ 1 , 2 ])');
   });
 
-  /*
-  run 'test41', -> assertEq(LZ.getNesting(in1)[0].toString(), ['', 0, 1].toString())
-  run 'test42', -> assertEq(LZ.getNesting(in7)[0].toString(), ["\n  ", 6, 28, ["", 6, 11], ["", 14, 19], ["[", 23, 27]].toString())
-  
-  pnt = (array)->
-    if typeof array != 'object' or array.constructor != Array then JSON.stringify(array)
-    else"[#{(pnt(i) for i in array).join(', ')}]"
-  
-  console.log "\nGROUPS: #{in2}"
-  
-  console.log "\nGROUPS: #{pnt(LZ.getNesting(in2)[0])}"
-  
-  console.log "GROUPS: #{LZ.printGroups(in2, LZ.getNesting(in2)[0])}"
-  */
+  applyBrackets = function applyBrackets(str, pos, func) {
+    var ast, brackets, end, prev, result, start;
+    ast = LZ.parseFull(str)[0];
+    brackets = LZ.bracket(ast, pos);
+    result = '';
+    prev = 0;
+    while (brackets !== LZ.Nil) {
+      start = brackets.head.head;
+      end = brackets.head.tail.head;
+      result += "" + (str.substring(prev, start)) + (func(str.substring(start, end), result === ''));
+      brackets = brackets.tail;
+      prev = end;
+    }
+    return "" + result + (str.substring(prev));
+  };
+
+  br = function br(str, sq) {
+    return "" + (sq ? '[[' : '<<') + str + (sq ? ']]' : '>>');
+  };
+
+  run('test41', function() {
+    return assertEq(applyBrackets(in9, 12, br), out9_12);
+  });
+
+  run('test42', function() {
+    return assertEq(applyBrackets(in9, 30, br), out9_30);
+  });
 
   console.log('\nDone');
 

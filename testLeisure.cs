@@ -141,6 +141,54 @@ duh [
  ]
 """
 
+in9 = """
+(eq l nil) false
+  or
+    f (head l)
+    any f (tail l)
+
+# return true if ALL elements of l satisfy f, which takes exactly one arg
+# eg. all (eq 0) [ 0, 0, 0] gives true: true
+# caveat!  return true for nil lists
+all f l = or
+  eq l nil
+  and
+    f (head l)
+    all f (tail l)
+"""
+
+out9_12 = """
+([[eq]] <<l>> <<nil>>) <<false>>
+  <<or
+    f (head l)
+    any f (tail l)>>
+
+# return true if ALL elements of l satisfy f, which takes exactly one arg
+# eg. all (eq 0) [ 0, 0, 0] gives true: true
+# caveat!  return true for nil lists
+all f l = or
+  eq l nil
+  and
+    f (head l)
+    all f (tail l)
+"""
+
+out9_30 = """
+(eq l nil) false
+  or
+    f ([[head]] <<l>>)
+    any f (tail l)
+
+# return true if ALL elements of l satisfy f, which takes exactly one arg
+# eg. all (eq 0) [ 0, 0, 0] gives true: true
+# caveat!  return true for nil lists
+all f l = or
+  eq l nil
+  and
+    f (head l)
+    all f (tail l)
+"""
+
 run 'test24', -> assertEq(LZ.bracify(in1, 1)[0], 'a;b;c')
 run 'test25', -> assertEq(LZ.bracify(in2, 1)[0], 'a{b;c{d};e};;f{g;h{i}}')
 run 'test26', -> assertEq(LZ.prepare(in1)[0], "a\nb\nc")
@@ -163,20 +211,23 @@ run 'test40', -> assertEq(LZ.prepare(in8)[0].trim(), '(duh [ 1 , 2 ])')
 
 #console.log "AST: #{LZ.astPrint LZ.parseApply2(in1, LZ.Nil, '\n', in1.length)[0]}"
 
-###
-run 'test41', -> assertEq(LZ.getNesting(in1)[0].toString(), ['', 0, 1].toString())
-run 'test42', -> assertEq(LZ.getNesting(in7)[0].toString(), ["\n  ", 6, 28, ["", 6, 11], ["", 14, 19], ["[", 23, 27]].toString())
+applyBrackets = (str, pos, func)->
+  ast = LZ.parseFull(str)[0]
+  brackets = LZ.bracket(ast, pos)
+  result = ''
+  prev = 0
+  while brackets != LZ.Nil
+    start = brackets.head.head
+    end = brackets.head.tail.head
+    result += "#{str.substring prev, start}#{func str.substring(start, end), result == ''}"
+    brackets = brackets.tail
+    prev = end
+  "#{result}#{str.substring prev}"
 
-pnt = (array)->
-  if typeof array != 'object' or array.constructor != Array then JSON.stringify(array)
-  else"[#{(pnt(i) for i in array).join(', ')}]"
+br = (str, sq)-> "#{if sq then '[[' else '<<'}#{str}#{if sq then ']]' else '>>'}"
 
-console.log "\nGROUPS: #{in2}"
-
-console.log "\nGROUPS: #{pnt(LZ.getNesting(in2)[0])}"
-
-console.log "GROUPS: #{LZ.printGroups(in2, LZ.getNesting(in2)[0])}"
-###
+run 'test41', -> assertEq(applyBrackets(in9, 12, br), out9_12)
+run 'test42', -> assertEq(applyBrackets(in9, 30, br), out9_30)
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

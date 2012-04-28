@@ -202,7 +202,7 @@
     _ref2 = Leisure.prepare(contents), rest = _ref2[0], err = _ref2[1];
     if (err) throw new Error(err);
     varOut = '';
-    _ref3 = globals.reverse().toArray();
+    _ref3 = globals.toArray();
     for (i = 0, _len = _ref3.length; i < _len; i++) {
       v = _ref3[i];
       if (i > 0) varOut += ",";

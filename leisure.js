@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, addDef, append, apply, astPrint, baseGroupingPat, baseTokenPat, bracePat, bracify, burp, charCodes, codeChars, commentPat, compileNext, cons, continueApply, continueApply2, createDefinition, ctx, define, defineMacro, defineToken, dgen, eatAllWhitespace, embeddedBracePat, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findGroup, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNesting, getNthBody, getRefVar, getType, groupCloses, groupOpens, groupingPat, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextGroupTok, nextTok, nextTok2, nextTok2IgnoreNL, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseApply2, parseApplyNew, parseFull, parseIf, parseLambda, parseLambda2, parseName, parseName2, parseTerm, parseTerm2, pos, prefix, prepare, printGroups, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, soff, specials, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tag2, tokPos, tokenPat, tokenPat2, tokens, topBracePat, warnFreeVariable, wordPat, wrap, wrapDebug, wrapNoDebug,
+  var CNil, Code, Cons, Nil, addDef, append, apply, astBrackets, astPrint, baseGroupingPat, baseTokenPat, between, bracePat, bracify, bracket, bracketApplyParts, brackets, bracketsForApply, burp, charCodes, codeChars, commentPat, compileNext, cons, continueApply, continueApply2, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlnew, eatAllWhitespace, embeddedBracePat, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findGroup, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNesting, getNthBody, getRefVar, getType, groupCloses, groupOpens, groupingPat, ifParsed, indentPat, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextGroupTok, nextTok, nextTok2, nextTok2IgnoreNL, nextTokWithNl, order, parenthesizeTokens, parenthify, parse, parseApply, parseApply2, parseApplyNew, parseFull, parseIf, parseLambda, parseLambda2, parseName, parseName2, parseTerm, parseTerm2, pos, prefix, prepare, printGroups, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, soff, specials, srcApply, srcLambda, srcPrint, stripComments, stripSemis, subnextTokWithNl, substituteMacros, tag, tag2, tokPos, tokenPat, tokenPat2, tokens, topBracePat, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -160,7 +160,7 @@ misrepresented as being the original software.
     };
 
     Cons.prototype.toArray = function toArray() {
-      return this.foldl([], (function(i, el) {
+      return this.reverse().foldl([], (function(i, el) {
         i.push(el);
         return i;
       }));
@@ -176,6 +176,10 @@ misrepresented as being the original software.
 
     Cons.prototype.rev = function rev(result) {
       return this.tail.rev(cons(this.head, result));
+    };
+
+    Cons.prototype.equals = function equals(other) {
+      return (other != null ? other.constructor : void 0) === Cons && (this.head === other.head || this.head.equals(other.head)) && (this.tail === other.tail || this.tail.equals(other.tail));
     };
 
     return Cons;
@@ -206,6 +210,10 @@ misrepresented as being the original software.
       return result;
     };
 
+    CNil.prototype.equals = function equals(other) {
+      return (other != null ? other.constructor : void 0) === CNil;
+    };
+
     return CNil;
 
   })(Cons);
@@ -214,6 +222,18 @@ misrepresented as being the original software.
 
   cons = function cons(a, b) {
     return new Cons(a, b);
+  };
+
+  dlnew = function dlnew(a) {
+    return function(b) {
+      return cons(a, b);
+    };
+  };
+
+  dlappend = function dlappend(a, b) {
+    return function(c) {
+      return a(b(c));
+    };
   };
 
   append = function append(a, b) {
@@ -405,6 +425,122 @@ misrepresented as being the original software.
         throw new Error("Unknown type of object in AST: " + ast);
     }
     return isFirst && res.join('');
+  };
+
+  srcPrint = function srcPrint(str, ast) {
+    switch (getAstType(ast)) {
+      case 'ref':
+      case 'lit':
+        return "[" + (getAstType(ast)) + " " + (str.substring(ast.leisureStart, ast.leisureEnd)) + "]";
+      case 'lambda':
+        return "\\" + (srcLambda(str, ast, getLambdaVar(ast), getLambdaBody(ast)));
+      case 'apply':
+        return srcApply(str, getApplyFunc(ast), getApplyArg(ast));
+    }
+  };
+
+  srcLambda = function srcLambda(str, lambda, varname, body) {
+    var vsrc;
+    vsrc = str.substring(lambda.leisureStart, lambda.leisureNameEnd);
+    if (body.type === 'lambda') {
+      return body(function() {
+        return function(v2) {
+          return function(b) {
+            return "[" + vsrc + "] [" + (srcLambda(str, body, v2(), b())) + "]";
+          };
+        };
+      });
+    } else {
+      return "[" + vsrc + "] . [" + (srcPrint(str, body)) + "]";
+    }
+  };
+
+  srcApply = function srcApply(str, func, arg) {
+    var a, f;
+    f = func.type === 'lambda' ? "(" + (srcPrint(str, func)) + ")" : srcPrint(str, func);
+    a = arg.type === 'apply' ? "(" + (srcPrint(str, arg)) + ")" : srcPrint(str, arg);
+    return "" + f + " " + a;
+  };
+
+  between = function between(start, end, pos) {
+    return start <= pos && pos <= end;
+  };
+
+  within = function within(ast, pos) {
+    return between(ast.leisureStart, ast.leisureEnd, pos);
+  };
+
+  brackets = function brackets(start, end) {
+    return cons(start, cons(end, Nil));
+  };
+
+  astBrackets = function astBrackets(ast) {
+    return brackets(ast.leisureStart, ast.leisureEnd);
+  };
+
+  bracket = function bracket(ast, pos) {
+    if (within(ast, pos)) {
+      switch (getAstType(ast)) {
+        case 'ref':
+        case 'lit':
+          if (within(ast, pos)) {
+            return cons(astBrackets(ast), Nil);
+          } else {
+            return Nil;
+          }
+          break;
+        case 'lambda':
+          if (between(ast.leisureStart, ast.leisureNameEnd, pos)) {
+            return cons(brackets(ast.leisureStart, ast.leisureNameEnd), Nil);
+          } else {
+            return bracket(getLambdaBody(ast, pos));
+          }
+          break;
+        case 'apply':
+          return bracketsForApply(ast, ast, pos);
+      }
+    } else {
+      return Nil;
+    }
+  };
+
+  bracketsForApply = function bracketsForApply(apply, part, pos) {
+    var arg, func, _ref;
+    arg = getApplyArg(part);
+    if (within(arg, pos)) {
+      if (arg.type === 'apply') {
+        return bracketsForApply(arg, arg, pos);
+      } else if (arg.type === 'lambda') {
+        return bracket(arg, pos);
+      } else {
+        return (bracketApplyParts(apply))(Nil);
+      }
+    } else {
+      func = getApplyFunc(part);
+      if (func.type === 'apply') {
+        return bracketsForApply(apply, getApplyFunc(part), pos);
+      } else if ((_ref = func.type) === 'ref' || _ref === 'lit') {
+        return (bracketApplyParts(apply))(Nil);
+      } else {
+        return bracket(func, pos);
+      }
+    }
+  };
+
+  bracketApplyParts = function bracketApplyParts(ast) {
+    var astFunc, start;
+    astFunc = getApplyFunc(ast);
+    start = (function() {
+      switch (getAstType(astFunc)) {
+        case 'ref':
+        case 'lit':
+        case 'lambda':
+          return dlnew(astBrackets(astFunc));
+        case 'apply':
+          return bracketApplyParts(astFunc);
+      }
+    })();
+    return dlappend(start, dlnew(astBrackets(getApplyArg(ast))));
   };
 
   Code = (function() {
@@ -1232,10 +1368,10 @@ misrepresented as being the original software.
         if (tok4 !== groupOpens[tok]) {
           return [ast, "Expected close token: " + groupOpens[tok] + ", but got " + tok4, rest4];
         } else if (tok === '(') {
-          return [ast, null, rest4];
+          return [tag2(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4];
         } else {
           return parseIf(parseName2(tok4, rest4, vars, totalLen), function(arg, rest5) {
-            return [tag2(ast.leisureStart, ast.leisureEnd, apply(laz(ast))(laz(arg))), null, rest5];
+            return [tag2(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5];
           });
         }
       });
@@ -1265,7 +1401,10 @@ misrepresented as being the original software.
     _ref2 = nextTok2IgnoreNL(rest1, indent), tok2 = _ref2[0], rest2 = _ref2[1];
     apl = tok2 === '.' ? parseApply2(eatAllWhitespace(rest2), cons(nm, vars), indent, totalLen) : parseLambda2(rest1, cons(nm, vars), indent, totalLen);
     return parseIf(apl, function(body, rest2) {
-      return [tag2(tokPos(nm, rest1, totalLen), body.leisureEnd, lambda(laz(nm))(laz(body))), null, rest2];
+      var ast;
+      ast = lambda(laz(nm))(laz(body));
+      ast.leisureNameEnd = pos(rest1, totalLen);
+      return [tag2(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2];
     });
   };
 
@@ -1415,5 +1554,13 @@ misrepresented as being the original software.
   root.printGroups = printGroups;
 
   root.parseApply2 = parseApply2;
+
+  root.srcPrint = srcPrint;
+
+  root.bracket = bracket;
+
+  root.dlnew = dlnew;
+
+  root.dlappend = dlappend;
 
 }).call(this);

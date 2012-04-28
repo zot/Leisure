@@ -43,6 +43,9 @@ bindNotebook = (el)->
           s.addRange(r)
       window.setTimeout(highlightPosition, 1)
 
+#[node, positions]
+oldBrackets = null
+
 highlightPosition = ->
   s = window.getSelection()
   r = s.getRangeAt(0)

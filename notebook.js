@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, showNesting, textNode, toDefBox, toExprBox,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, showNesting, textNode, toDefBox, toExprBox,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -69,6 +69,8 @@
       });
     }
   };
+
+  oldBrackets = null;
 
   highlightPosition = function highlightPosition() {
     var allTxt, last, parent, pos, r, s, tr, _ref;
