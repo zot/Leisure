@@ -379,7 +379,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
         pfx = (prefix nm, rest1)
         errPrefix = "Error while compiling #{nm}: "
         ifParsed (if nomacros then parseApplyNew pfx, Nil else parseFull pfx), ((ast, rest)->
-          ast.leisureDefPrefix = pfx.length - rest1.length
+          ast.leisureDefPrefix = line.length - pfx.length
           nameAst(nm[0], ast)
           bod = ast
           if nm.length > 1 then bod = getNthBody(ast, nm.length)

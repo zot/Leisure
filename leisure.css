@@ -33,9 +33,9 @@ body {
 }
 
 .LeisureFunc {
-  background: #d0d0d0;
+  background: #fcc;
 }
 
 .LeisureArg {
-  outline: solid black 1px;
+  background: #ccf;
 }

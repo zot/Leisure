@@ -177,4 +177,6 @@
 
   root.processResult = processResult;
 
+  root.escapeHtml = escapeHtml;
+
 }).call(this);

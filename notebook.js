@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, makeOutputBox, makeRange, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertSaveAndLoad, loadProgram, makeOutputBox, makeRange, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, textNode, toDefBox, toExprBox, unwrap, writeFile,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -84,14 +84,16 @@
   highlightPosition = function highlightPosition() {
     var ast, b, brackets, contents, node, offset, parent, pos, r, s, span, tr, txt, _i, _len, _ref, _ref2;
     s = window.getSelection();
+    if (!s.rangeCount) return;
     r = s.getRangeAt(0);
     parent = getBox(r.startContainer);
+    if (!(parent != null)) return;
     tr = document.createRange();
     tr.setStart(parent, 0);
     tr.setEnd(r.endContainer, r.endOffset);
     pos = getRangeText(tr).length;
     txt = parent.textContent;
-    ast = (Leisure.compileNext(txt, Leisure.Nil, true, null))[0];
+    ast = (Leisure.compileNext(txt, Leisure.Nil, true, null, true))[0];
     offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
     brackets = Leisure.bracket(ast, pos + offset);
     if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
@@ -126,7 +128,7 @@
 
   getBox = function getBox(node) {
     while ((node != null) && !((typeof node.getAttribute === "function" ? node.getAttribute('LeisureBox') : void 0) != null)) {
-      node = node.parentNode;
+      node = node.parentElement;
     }
     return node;
   };
@@ -192,7 +194,80 @@
     }
     el.normalize();
     el.replacing = false;
+    insertSaveAndLoad(el);
     return pgm;
+  };
+
+  insertSaveAndLoad = function insertSaveAndLoad(el) {
+    var controlDiv, loadButton, saveLink;
+    controlDiv = document.createElement('DIV');
+    controlDiv.setAttribute('LeisureOutput', '');
+    controlDiv.setAttribute('contentEditable', 'false');
+    loadButton = document.createElement('INPUT');
+    loadButton.setAttribute('type', 'file');
+    loadButton.addEventListener('change', function(evt) {
+      return loadProgram(el, loadButton.files);
+    });
+    saveLink = document.createElement('A');
+    saveLink.innerHTML = "Save";
+    if (el.leisureFileEntry != null) saveLink.href = el.leisureFileEntry.toURL();
+    controlDiv.appendChild(textNode('Load: '));
+    controlDiv.appendChild(loadButton);
+    controlDiv.appendChild(textNode(' '));
+    controlDiv.appendChild(saveLink);
+    el.leisureSaveLink = saveLink;
+    el.insertBefore(controlDiv, el.firstChild);
+    return configureSaveLink(el);
+  };
+
+  loadProgram = function loadProgram(el, files) {
+    var fr;
+    fr = new FileReader();
+    fr.onloadend = function onloadend(evt) {
+      el.innerHTML = Repl.escapeHtml(fr.result);
+      return initNotebook(el);
+    };
+    return fr.readAsBinaryString(files.item(0));
+  };
+
+  configureSaveLink = function configureSaveLink(el) {
+    var saveLink;
+    saveLink = el.leisureSaveLink;
+    window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
+    if (el.leisureFS != null) {
+      return writeFile(el);
+    } else {
+      return window.requestFileSystem(TEMPORARY, 1024 * 1024, (function(fs) {
+        el.leisureFS = fs;
+        return fs.root.getFile('program.lsr', {
+          create: true
+        }, (function(fileEntry) {
+          el.leisureFileEntry = fileEntry;
+          saveLink.href = fileEntry.toURL();
+          return writeFile(el);
+        }), function(err) {
+          return console.log(err);
+        });
+      }), function(err) {
+        return console.log(err);
+      });
+    }
+  };
+
+  writeFile = function writeFile(el) {
+    return el.leisureFileEntry.createWriter((function(fileWriter) {
+      var blob, builder, c, r;
+      builder = new WebKitBlobBuilder();
+      r = document.createRange();
+      r.selectNode(el);
+      c = r.cloneContents().firstChild;
+      removeOldDefs(c);
+      builder.append(c.textContent);
+      blob = builder.getBlob();
+      return fileWriter.write(blob);
+    }), function(err) {
+      return console.log(err);
+    });
   };
 
   unwrap = function unwrap(node) {
@@ -206,6 +281,7 @@
 
   removeOldDefs = function removeOldDefs(el) {
     var extracted, m, node, txt, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3;
+    el.saveLink = null;
     extracted = [];
     _ref = el.querySelectorAll("[LeisureOutput]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {

@@ -130,3 +130,4 @@ root.reloadEnv = reloadEnv
 root.clearEnv = clearEnv
 root.evalLine = evalLine
 root.processResult = processResult
+root.escapeHtml = escapeHtml

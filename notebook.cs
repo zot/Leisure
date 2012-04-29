@@ -51,14 +51,16 @@ oldBrackets = [null, Leisure.Nil]
 
 highlightPosition = ->
   s = window.getSelection()
+  if !s.rangeCount then return
   r = s.getRangeAt(0)
   parent = getBox r.startContainer
+  if !parent? then return
   tr = document.createRange()
   tr.setStart parent, 0
   tr.setEnd r.endContainer, r.endOffset
   pos = getRangeText(tr).length
   txt = parent.textContent
-  ast = (Leisure.compileNext txt, Leisure.Nil, true, null)[0]
+  ast = (Leisure.compileNext txt, Leisure.Nil, true, null, true)[0]
   offset = ast.leisureDefPrefix ? 0
   brackets = Leisure.bracket ast, pos + offset
   if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
@@ -84,7 +86,7 @@ getRangeText = (r)-> r.cloneContents().textContent
 
 getBox = (node)->
   while node? and !(node.getAttribute?('LeisureBox'))?
-    node = node.parentNode
+    node = node.parentElement
   node
 
 checkMutateFromModification = (b)->
@@ -131,7 +133,57 @@ initNotebook = (el)->
     el.appendChild textNode('\n')
   el.normalize()
   el.replacing = false
+  insertSaveAndLoad(el)
   pgm
+
+insertSaveAndLoad = (el)->
+  controlDiv = document.createElement 'DIV'
+  controlDiv.setAttribute 'LeisureOutput', ''
+  controlDiv.setAttribute 'contentEditable', 'false'
+  loadButton = document.createElement 'INPUT'
+  loadButton.setAttribute 'type', 'file'
+  loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
+  saveLink = document.createElement 'A'
+  saveLink.innerHTML = "Save"
+  if el.leisureFileEntry? then saveLink.href = el.leisureFileEntry.toURL();
+  controlDiv.appendChild textNode 'Load: '
+  controlDiv.appendChild loadButton
+  controlDiv.appendChild textNode ' '
+  controlDiv.appendChild saveLink
+  el.leisureSaveLink = saveLink
+  el.insertBefore controlDiv, el.firstChild
+  configureSaveLink(el)
+
+loadProgram = (el, files)->
+  fr = new FileReader()
+  fr.onloadend = (evt)->
+    el.innerHTML = Repl.escapeHtml(fr.result)
+    initNotebook el
+  fr.readAsBinaryString(files.item(0))
+
+configureSaveLink = (el)->
+  saveLink = el.leisureSaveLink
+  window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
+  if el.leisureFS? then writeFile(el)
+  else window.requestFileSystem(TEMPORARY, 1024 * 1024, ((fs)->
+    el.leisureFS = fs
+    fs.root.getFile('program.lsr', {create: true}, ((fileEntry)->
+      el.leisureFileEntry = fileEntry
+      saveLink.href = fileEntry.toURL();
+      writeFile(el)
+      ), (err)-> console.log(err))
+    ), (err)->console.log(err))
+
+writeFile = (el)->
+  el.leisureFileEntry.createWriter ((fileWriter)->
+    builder = new WebKitBlobBuilder();
+    r = document.createRange()
+    r.selectNode(el)
+    c = r.cloneContents().firstChild
+    removeOldDefs c
+    builder.append(c.textContent);
+    blob = builder.getBlob();
+    fileWriter.write(blob)), (err)-> console.log(err)
 
 unwrap = (node)->
   parent = node.parentNode
@@ -140,6 +192,7 @@ unwrap = (node)->
   parent.removeChild node
 
 removeOldDefs = (el)->
+  el.saveLink = null
   extracted = []
   for node in el.querySelectorAll "[LeisureOutput]"
     node.parentNode.removeChild node

@@ -767,7 +767,7 @@ misrepresented as being the original software.
           errPrefix = "Error while compiling " + nm + ": ";
           return ifParsed((nomacros ? parseApplyNew(pfx, Nil) : parseFull(pfx)), (function(ast, rest) {
             var bod;
-            ast.leisureDefPrefix = pfx.length - rest1.length;
+            ast.leisureDefPrefix = line.length - pfx.length;
             nameAst(nm[0], ast);
             bod = ast;
             if (nm.length > 1) bod = getNthBody(ast, nm.length);

@@ -3,7 +3,6 @@
 * number nodes so messages can refer to them -- just number them in an inorder traversal
 * change getType to return the type instead of an option, because it can never return a none
 * make require work in node
-* handle multiple require calls in notebook
 * configuration monads
    * default pretty-printers for output
    * run-test-cases -- run test cases after loading this file
@@ -17,7 +16,9 @@
    * probably use env for this
 * pretty printer function can take an assoc-list of printers for types
 * notebook style interface
+   * handle multiple require calls
    * highlighting fixes
+      * end quote isn't highlighting
       * defs don't work
       * grouping tokens should highlight
    * load/save

@@ -19,7 +19,6 @@
 <li>number nodes so messages can refer to them -- just number them in an inorder traversal</li>
 <li>change getType to return the type instead of an option, because it can never return a none</li>
 <li>make require work in node</li>
-<li>handle multiple require calls in notebook</li>
 <li>configuration monads
 <ul>
 <li>default pretty-printers for output</li>
@@ -42,8 +41,10 @@
 <li>pretty printer function can take an assoc-list of printers for types</li>
 <li>notebook style interface
 <ul>
+<li>handle multiple require calls</li>
 <li>highlighting fixes
 <ul>
+<li>end quote isn't highlighting</li>
 <li>defs don't work</li>
 <li>grouping tokens should highlight</li>
 </ul></li>
