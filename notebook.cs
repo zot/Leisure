@@ -53,6 +53,7 @@ highlightPosition = ->
   if !s.rangeCount then return
   r = s.getRangeAt(0)
   parent = getBox r.startContainer
+  focusBox parent
   if !parent? or parent.getAttribute('LeisureOutput')? then return
   tr = document.createRange()
   tr.setStart parent, 0
@@ -60,28 +61,29 @@ highlightPosition = ->
   pos = getRangeText(tr).length
   txt = parent.textContent
   ast = (Leisure.compileNext txt, Leisure.Nil, true, null, true)[0]
-  offset = ast.leisureDefPrefix ? 0
-  brackets = Leisure.bracket ast, pos + offset
-  if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
-    oldBrackets = [parent, brackets]
-    for node in document.querySelectorAll "[LeisureBrackets]"
-      unwrap node
-    parent.normalize()
-    if ast?
-      b = brackets
-      while b != Leisure.Nil
-        span = document.createElement 'span'
-        span.setAttribute 'LeisureBrackets', ''
-        span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
-        r = makeRange parent, b.head.head - offset, b.head.tail.head - offset
-        contents = r.cloneContents()
-        r.deleteContents()
-        r.insertNode span
-        span.appendChild contents
-        b = b.tail
-    s.removeAllRanges()
-    parent.normalize()
-    s.addRange(makeRange parent, pos, pos)
+  if ast?
+    offset = ast.leisureDefPrefix ? 0
+    brackets = Leisure.bracket ast, pos + offset
+    if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
+      oldBrackets = [parent, brackets]
+      for node in document.querySelectorAll "[LeisureBrackets]"
+        unwrap node
+      parent.normalize()
+      if ast?
+        b = brackets
+        while b != Leisure.Nil
+          span = document.createElement 'span'
+          span.setAttribute 'LeisureBrackets', ''
+          span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
+          r = makeRange parent, b.head.head - offset, b.head.tail.head - offset
+          contents = r.cloneContents()
+          r.deleteContents()
+          r.insertNode span
+          span.appendChild contents
+          b = b.tail
+      s.removeAllRanges()
+      parent.normalize()
+      s.addRange(makeRange parent, pos, pos)
 
 getRangeText = (r)-> r.cloneContents().textContent
 
@@ -127,7 +129,7 @@ checkMutateToDef = (e, el)->
 initNotebook = (el)->
   el.replacing = true
   removeOldDefs el
-  pgm = markupDefs findDefs el
+  pgm = markupDefs el, findDefs el
   if !(el?.lastChild?.nodeType == 3 and el.lastChild.data[el.lastChild.data.length - 1] == '\n')
     el.appendChild textNode('\n')
     el.appendChild textNode('\n')
@@ -137,7 +139,7 @@ initNotebook = (el)->
   insertControls(el)
   pgm
 
-makeLabel = (text, c)-> 
+makeLabel = (text, c)->
   node = document.createElement 'SPAN'
   node.innerHTML = text
   node.setAttribute 'class', c
@@ -265,7 +267,7 @@ removeOldDefs = (el)->
   if txt?.nodeType == 3 and (m = txt.data.match /(^|[^\n])(\n+)$/)
     txt.data = txt.data.substring(0, txt.data.length - m[2].length)
 
-markupDefs = (defs)->
+markupDefs = (el, defs)->
   pgm = ''
   auto = ''
   for i in defs
@@ -278,6 +280,8 @@ markupDefs = (defs)->
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode(def))
       bx.appendChild bod
+      bx.addEventListener 'blur', (-> evalDoc el), true, true
+      bx.leisureOwner = el
       pgm += "#{name} #{def} #{body}\n"
     else if main.leisureTest
       s = codeSpan body, 'codeTest'
@@ -286,6 +290,7 @@ markupDefs = (defs)->
       bx = box main, 'codeMainTest', true
       bx.setAttribute 'class', 'codeMainTest green'
       bx.appendChild s
+      bx.leisureOwner = el
     else
       if main.leisureAuto then auto += "#{body}\n"
       s = codeSpan body, 'codeExpr'
@@ -293,6 +298,7 @@ markupDefs = (defs)->
       s.setAttribute('generatedNL', '')
       bx = box main, 'codeMainExpr', true
       bx.appendChild s
+      bx.leisureOwner = el
       makeOutputBox(bx)
     for test in tests
       console.log "TEST: #{JSON.stringify(test.leisureTest)}"
@@ -302,6 +308,7 @@ textNode = (text)-> document.createTextNode(text)
 
 evalOutput = (exBox)->
   exBox = getBox exBox
+  focusBox exBox
   cleanOutput exBox
   d = document.createElement('div')
   d.setAttribute 'style', 'float: right'
@@ -357,6 +364,7 @@ makeOutputBox = (source)->
   node.setAttribute 'class', 'output'
   node.setAttribute 'contentEditable', 'false'
   node.source = source
+  node.leisureOwner = source.leisureOwner
   source.output = node
   node.innerHTML = "<div><div style='float: left'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div><button style='visibility: hidden'></button></div>"
   source.parentNode.insertBefore node, source.nextSibling
@@ -494,15 +502,26 @@ postLoadQueue = []
 
 queueAfterLoad = (func)-> postLoadQueue.push(func)
 
+###
+# handle focus manually, because focus and blur events don't seem to work in this case
+###
+
+oldFocus = null
+
+focusBox = (box)->
+  if oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
+  oldFocus = box
+
 evalDoc = (el)->
   [pgm, auto] = initNotebook(el)
   try
     if auto
       auto = "do\n  #{auto.trim().replace /\n/, '\n  '}\n  finishLoading 'fred'"
+      global.noredefs = false
       Notebook.queueAfterLoad ->
-        Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global)
+        Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
       Leisure.eval(ReplCore.generateCode('_auto', auto, false))
-    else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global)
+    else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
   catch err
     alert(err.stack)
 

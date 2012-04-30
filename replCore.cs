@@ -123,7 +123,7 @@ processLine = (line, env)->
 
 escape = (str)-> str.replace(/\n/g, '\\n')
 
-generateCode = (file, contents, loud, handle, nomacros)->
+generateCode = (file, contents, loud, handle, nomacros, check)->
   if loud then console.log("Compiling #{file}:\n")
   objName = if file? and file.match /\.lsr$/ then file.substring(0, file.length - 4) else file ? '_anonymous'
   out = """
@@ -168,7 +168,7 @@ var processResult = Repl.processResult;
   while rest and rest.trim()
     if loud > 1 and prev != names and names != Leisure.Nil then console.log "Compiling function: #{names.head}"
     oldRest = rest
-    [ast, err, rest] = Leisure.compileNext rest, globals, null, false, nomacros
+    [ast, err, rest] = Leisure.compileNext rest, globals, null, check, nomacros
     if ast?.leisureName?
       prev = ast.leisureName
       names = names.tail

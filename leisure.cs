@@ -115,10 +115,12 @@ global.leisureAddFunc = (nm)-> global.leisureFuncNames = ll = cons(nm, ll)
 
 global.leisureGetFuncs = -> ll
 
+global.noredefs = true
+
 define = (name, func) ->
   nm = nameSub(name)
   func.leisureName = name
-  if ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
+  if global.noredefs and ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
   f = -> func
   ctx[nm] = ctx.leisureFuncs[nm] = f
   (evalFunc 'leisureAddFunc')(name)

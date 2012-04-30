@@ -242,11 +242,13 @@ misrepresented as being the original software.
     return ll;
   };
 
+  global.noredefs = true;
+
   define = function define(name, func) {
     var f, nm;
     nm = nameSub(name);
     func.leisureName = name;
-    if (ctx[nm] != null) {
+    if (global.noredefs && (ctx[nm] != null)) {
       throw new Error("[DEF] Attempt to redefine definition: " + name);
     }
     f = function f() {

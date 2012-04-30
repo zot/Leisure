@@ -2,6 +2,7 @@
 # TODO
 * notebook style interface
    * collapse auto exprs
+   * command completion
    * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
    * highlighting fixes
       * defs don't work

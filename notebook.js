@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -85,6 +85,7 @@
     if (!s.rangeCount) return;
     r = s.getRangeAt(0);
     parent = getBox(r.startContainer);
+    focusBox(parent);
     if (!(parent != null) || (parent.getAttribute('LeisureOutput') != null)) {
       return;
     }
@@ -94,33 +95,35 @@
     pos = getRangeText(tr).length;
     txt = parent.textContent;
     ast = (Leisure.compileNext(txt, Leisure.Nil, true, null, true))[0];
-    offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
-    brackets = Leisure.bracket(ast, pos + offset);
-    if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
-      oldBrackets = [parent, brackets];
-      _ref2 = document.querySelectorAll("[LeisureBrackets]");
-      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-        node = _ref2[_i];
-        unwrap(node);
-      }
-      parent.normalize();
-      if (ast != null) {
-        b = brackets;
-        while (b !== Leisure.Nil) {
-          span = document.createElement('span');
-          span.setAttribute('LeisureBrackets', '');
-          span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
-          r = makeRange(parent, b.head.head - offset, b.head.tail.head - offset);
-          contents = r.cloneContents();
-          r.deleteContents();
-          r.insertNode(span);
-          span.appendChild(contents);
-          b = b.tail;
+    if (ast != null) {
+      offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
+      brackets = Leisure.bracket(ast, pos + offset);
+      if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
+        oldBrackets = [parent, brackets];
+        _ref2 = document.querySelectorAll("[LeisureBrackets]");
+        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+          node = _ref2[_i];
+          unwrap(node);
         }
+        parent.normalize();
+        if (ast != null) {
+          b = brackets;
+          while (b !== Leisure.Nil) {
+            span = document.createElement('span');
+            span.setAttribute('LeisureBrackets', '');
+            span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
+            r = makeRange(parent, b.head.head - offset, b.head.tail.head - offset);
+            contents = r.cloneContents();
+            r.deleteContents();
+            r.insertNode(span);
+            span.appendChild(contents);
+            b = b.tail;
+          }
+        }
+        s.removeAllRanges();
+        parent.normalize();
+        return s.addRange(makeRange(parent, pos, pos));
       }
-      s.removeAllRanges();
-      parent.normalize();
-      return s.addRange(makeRange(parent, pos, pos));
     }
   };
 
@@ -188,7 +191,7 @@
     var pgm, _ref;
     el.replacing = true;
     removeOldDefs(el);
-    pgm = markupDefs(findDefs(el));
+    pgm = markupDefs(el, findDefs(el));
     if (!((el != null ? (_ref = el.lastChild) != null ? _ref.nodeType : void 0 : void 0) === 3 && el.lastChild.data[el.lastChild.data.length - 1] === '\n')) {
       el.appendChild(textNode('\n'));
       el.appendChild(textNode('\n'));
@@ -373,7 +376,7 @@
     }
   };
 
-  markupDefs = function markupDefs(defs) {
+  markupDefs = function markupDefs(el, defs) {
     var auto, bod, body, bx, def, i, main, name, pgm, s, test, tests, _i, _j, _len, _len2;
     pgm = '';
     auto = '';
@@ -388,6 +391,10 @@
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
         bx.appendChild(bod);
+        bx.addEventListener('blur', (function() {
+          return evalDoc(el);
+        }), true, true);
+        bx.leisureOwner = el;
         pgm += "" + name + " " + def + " " + body + "\n";
       } else if (main.leisureTest) {
         s = codeSpan(body, 'codeTest');
@@ -396,6 +403,7 @@
         bx = box(main, 'codeMainTest', true);
         bx.setAttribute('class', 'codeMainTest green');
         bx.appendChild(s);
+        bx.leisureOwner = el;
       } else {
         if (main.leisureAuto) auto += "" + body + "\n";
         s = codeSpan(body, 'codeExpr');
@@ -403,6 +411,7 @@
         s.setAttribute('generatedNL', '');
         bx = box(main, 'codeMainExpr', true);
         bx.appendChild(s);
+        bx.leisureOwner = el;
         makeOutputBox(bx);
       }
       for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
@@ -420,6 +429,7 @@
   evalOutput = function evalOutput(exBox) {
     var d;
     exBox = getBox(exBox);
+    focusBox(exBox);
     cleanOutput(exBox);
     d = document.createElement('div');
     d.setAttribute('style', 'float: right');
@@ -505,6 +515,7 @@
     node.setAttribute('class', 'output');
     node.setAttribute('contentEditable', 'false');
     node.source = source;
+    node.leisureOwner = source.leisureOwner;
     source.output = node;
     node.innerHTML = "<div><div style='float: left'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div><button style='visibility: hidden'></button></div>";
     source.parentNode.insertBefore(node, source.nextSibling);
@@ -714,18 +725,32 @@
     return postLoadQueue.push(func);
   };
 
+  /*
+  # handle focus manually, because focus and blur events don't seem to work in this case
+  */
+
+  oldFocus = null;
+
+  focusBox = function focusBox(box) {
+    if (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0) {
+      evalDoc(box.leisureOwner);
+    }
+    return oldFocus = box;
+  };
+
   evalDoc = function evalDoc(el) {
     var auto, pgm, _ref;
     _ref = initNotebook(el), pgm = _ref[0], auto = _ref[1];
     try {
       if (auto) {
         auto = "do\n  " + (auto.trim().replace(/\n/, '\n  ')) + "\n  finishLoading 'fred'";
+        global.noredefs = false;
         Notebook.queueAfterLoad(function() {
-          return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global);
+          return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
         });
         return Leisure.eval(ReplCore.generateCode('_auto', auto, false));
       } else {
-        return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global);
+        return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
       }
     } catch (err) {
       return alert(err.stack);

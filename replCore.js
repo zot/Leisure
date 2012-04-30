@@ -187,7 +187,7 @@
     return str.replace(/\n/g, '\\n');
   };
 
-  generateCode = function generateCode(file, contents, loud, handle, nomacros) {
+  generateCode = function generateCode(file, contents, loud, handle, nomacros, check) {
     var a, ast, c, code, defs, err, errs, globals, i, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3, _ref4;
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
@@ -212,7 +212,7 @@
         console.log("Compiling function: " + names.head);
       }
       oldRest = rest;
-      _ref3 = Leisure.compileNext(rest, globals, null, false, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
+      _ref3 = Leisure.compileNext(rest, globals, null, check, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
       if ((ast != null ? ast.leisureName : void 0) != null) {
         prev = ast.leisureName;
         names = names.tail;
