@@ -266,7 +266,7 @@ makeTestCase = (exBox)->
   source = output.source
   test =
     expr: source.textContent
-    result: output.result.toString()
+    result: Repl.escapeHtml(Pretty.print(output.result))
   source.innerHTML = "#@test #{JSON.stringify test}"
   output.parentNode.removeChild output
   unwrap source

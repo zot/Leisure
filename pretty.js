@@ -119,7 +119,7 @@
         case 'html':
           return f(function() {
             return function(txt) {
-              return txt();
+              return "HTML(" + (txt()) + ")";
             };
           });
         default:
