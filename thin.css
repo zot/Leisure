@@ -6,10 +6,14 @@
 .thin .codeMain {
   vertical-align: top;
   display: inline-block;
-  border: blue solid 2px;
   margin: 0;
   padding: 5px;
 }
+.thin .codeMain:hover {
+  border: blue solid 1px;
+  margin: -1px;
+}
+
 .thin .output {
   border: green solid 2px;
   margin: 3px;
@@ -25,8 +29,11 @@
   margin: 0;
   padding: 5px;
   margin: 0;
-  border: red solid 2px;
   display: inline-block;
+}
+.thin .codeMainExpr:hover {
+  border: red solid 1px;
+  margin: -1px;
 }
 
 .thin .codeMainTest {
@@ -34,11 +41,12 @@
   margin: 0;
   padding: 5px;
   margin: 0;
-  border: green solid 2px;
   display: inline-block;
+  border: green solid 1px;
   min-width: 30px;
   min-height: 30px;
 }
+
 .thin .codeMainTest * {
   display: none;
 }
