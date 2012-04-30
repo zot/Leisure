@@ -144,9 +144,12 @@ insertControls = (el)->
   loadButton = document.createElement 'INPUT'
   loadButton.setAttribute 'type', 'file'
   loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
-  saveLink = document.createElement 'A'
-  saveLink.innerHTML = "Save"
-  if el.leisureFileEntry? then saveLink.href = el.leisureFileEntry.toURL();
+  downloadLink = document.createElement 'A'
+  downloadLink.innerHTML = "Download"
+  downloadLink.setAttribute 'download', 'program.lsr'
+  viewLink = document.createElement 'A'
+  viewLink.innerHTML = "View"
+  viewLink.setAttribute 'target', '_blank'
   testButton = document.createElement 'BUTTON'
   testButton.innerHTML = "Run Tests"
   testButton.addEventListener 'click', -> runTests el
@@ -157,11 +160,14 @@ insertControls = (el)->
   controlDiv.appendChild textNode 'Load: '
   controlDiv.appendChild loadButton
   controlDiv.appendChild textNode ' '
-  controlDiv.appendChild saveLink
+  controlDiv.appendChild downloadLink
+  controlDiv.appendChild textNode ' '
+  controlDiv.appendChild viewLink
   controlDiv.appendChild textNode ' '
   controlDiv.appendChild testButton
   controlDiv.appendChild processButton
-  el.leisureSaveLink = saveLink
+  el.leisureDownloadLink = downloadLink
+  el.leisureViewLink = viewLink
   el.insertBefore controlDiv, el.firstChild
   configureSaveLink(el)
 
@@ -174,27 +180,16 @@ loadProgram = (el, files)->
   fr.readAsBinaryString(files.item(0))
 
 configureSaveLink = (el)->
-  window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
-  if el.leisureFS? then writeFile(el)
-  else window.requestFileSystem(TEMPORARY, 1024 * 1024, ((fs)->
-    el.leisureFS = fs
-    writeFile el), (err)->console.log(err))
-
-writeFile = (el)->
-  el.leisureFS.root.getFile('program.lsr', {create: true}, ((fileEntry)->
-    el.leisureFileEntry = fileEntry
-    el.leisureSaveLink.href = fileEntry.toURL();
-    el.leisureFileEntry.createWriter ((fileWriter)->
-      builder = new WebKitBlobBuilder();
-      r = document.createRange()
-      r.selectNode(el)
-      c = r.cloneContents().firstChild
-      removeOldDefs c
-      builder.append(c.textContent);
-      blob = builder.getBlob('text/plain');
-      fileWriter.seek(0)
-      fileWriter.write(blob)), (err)-> console.log(err)
-    ), (err)-> console.log(err))
+  window.URL = window.URL || window.webkitURL
+  builder = new WebKitBlobBuilder();
+  r = document.createRange()
+  r.selectNode(el)
+  c = r.cloneContents().firstChild
+  removeOldDefs c
+  builder.append(c.textContent);
+  blob = builder.getBlob('text/plain');
+  el.leisureDownloadLink.href = window.URL.createObjectURL(blob)
+  el.leisureViewLink.href = window.URL.createObjectURL(blob)
 
 runTests = (el)-> alert 'run tests'
 
@@ -205,7 +200,8 @@ unwrap = (node)->
   parent.removeChild node
 
 removeOldDefs = (el)->
-  el.saveLink = null
+  el.leisureDownloadLink = null
+  el.leisureViewLink = null
   extracted = []
   for node in el.querySelectorAll "[LeisureOutput]"
     node.parentNode.removeChild node

@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap, writeFile,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -201,7 +201,7 @@
   };
 
   insertControls = function insertControls(el) {
-    var controlDiv, loadButton, processButton, saveLink, testButton;
+    var controlDiv, downloadLink, loadButton, processButton, testButton, viewLink;
     controlDiv = document.createElement('DIV');
     controlDiv.setAttribute('LeisureOutput', '');
     controlDiv.setAttribute('contentEditable', 'false');
@@ -210,9 +210,12 @@
     loadButton.addEventListener('change', function(evt) {
       return loadProgram(el, loadButton.files);
     });
-    saveLink = document.createElement('A');
-    saveLink.innerHTML = "Save";
-    if (el.leisureFileEntry != null) saveLink.href = el.leisureFileEntry.toURL();
+    downloadLink = document.createElement('A');
+    downloadLink.innerHTML = "Download";
+    downloadLink.setAttribute('download', 'program.lsr');
+    viewLink = document.createElement('A');
+    viewLink.innerHTML = "View";
+    viewLink.setAttribute('target', '_blank');
     testButton = document.createElement('BUTTON');
     testButton.innerHTML = "Run Tests";
     testButton.addEventListener('click', function() {
@@ -227,11 +230,14 @@
     controlDiv.appendChild(textNode('Load: '));
     controlDiv.appendChild(loadButton);
     controlDiv.appendChild(textNode(' '));
-    controlDiv.appendChild(saveLink);
+    controlDiv.appendChild(downloadLink);
+    controlDiv.appendChild(textNode(' '));
+    controlDiv.appendChild(viewLink);
     controlDiv.appendChild(textNode(' '));
     controlDiv.appendChild(testButton);
     controlDiv.appendChild(processButton);
-    el.leisureSaveLink = saveLink;
+    el.leisureDownloadLink = downloadLink;
+    el.leisureViewLink = viewLink;
     el.insertBefore(controlDiv, el.firstChild);
     return configureSaveLink(el);
   };
@@ -248,42 +254,17 @@
   };
 
   configureSaveLink = function configureSaveLink(el) {
-    window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
-    if (el.leisureFS != null) {
-      return writeFile(el);
-    } else {
-      return window.requestFileSystem(TEMPORARY, 1024 * 1024, (function(fs) {
-        el.leisureFS = fs;
-        return writeFile(el);
-      }), function(err) {
-        return console.log(err);
-      });
-    }
-  };
-
-  writeFile = function writeFile(el) {
-    return el.leisureFS.root.getFile('program.lsr', {
-      create: true
-    }, (function(fileEntry) {
-      el.leisureFileEntry = fileEntry;
-      el.leisureSaveLink.href = fileEntry.toURL();
-      return el.leisureFileEntry.createWriter((function(fileWriter) {
-        var blob, builder, c, r;
-        builder = new WebKitBlobBuilder();
-        r = document.createRange();
-        r.selectNode(el);
-        c = r.cloneContents().firstChild;
-        removeOldDefs(c);
-        builder.append(c.textContent);
-        blob = builder.getBlob('text/plain');
-        fileWriter.seek(0);
-        return fileWriter.write(blob);
-      }), function(err) {
-        return console.log(err);
-      });
-    }), function(err) {
-      return console.log(err);
-    });
+    var blob, builder, c, r;
+    window.URL = window.URL || window.webkitURL;
+    builder = new WebKitBlobBuilder();
+    r = document.createRange();
+    r.selectNode(el);
+    c = r.cloneContents().firstChild;
+    removeOldDefs(c);
+    builder.append(c.textContent);
+    blob = builder.getBlob('text/plain');
+    el.leisureDownloadLink.href = window.URL.createObjectURL(blob);
+    return el.leisureViewLink.href = window.URL.createObjectURL(blob);
   };
 
   runTests = function runTests(el) {
@@ -301,7 +282,8 @@
 
   removeOldDefs = function removeOldDefs(el) {
     var extracted, m, node, txt, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3;
-    el.saveLink = null;
+    el.leisureDownloadLink = null;
+    el.leisureViewLink = null;
     extracted = [];
     _ref = el.querySelectorAll("[LeisureOutput]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {

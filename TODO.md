@@ -1,6 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
 * notebook style interface
+   * collapse auto exprs
    * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
    * highlighting fixes
       * defs don't work
@@ -21,13 +22,15 @@
    * comments that attach event handlers?
    * optionally hide source code
    * collaboration
+* configuration monads
+   * default pretty-printers for output
+   * run-test-cases -- run test cases after loading this file
+   * set theme
+* name spaces
 * number nodes so messages can refer to them -- just number them in an inorder traversal
 * change getType to return the type instead of an option, because it can never return a none
 * make require work in node
 * pretty printer function can take an assoc-list of printers for types
-* configuration monads
-   * default pretty-printers for output
-   * run-test-cases -- run test cases after loading this file
 * report indentation underflows
 * parser macros should return [ast, errors, warnings]
    * error if let/do has no expr
