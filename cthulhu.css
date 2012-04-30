@@ -5,6 +5,7 @@ body.cthulhu {
 }
 
 .cthulhu .codeExpr {
+  font-family: 'Audiowide', cursive;
   font-style: italic;
   font-weight: bold;
   margin: 3px;
@@ -36,6 +37,7 @@ body.cthulhu {
   padding: 5px;
   margin: 0;
   display: inline-block;
+  font-family: 'Audiowide', cursive;
 }
 .cthulhu .codeMainExpr:hover {
   border: green solid 2px;
@@ -71,10 +73,12 @@ body.cthulhu {
 
 .cthulhu .codeName {
   color: blue;
+  font-family: 'Audiowide', cursive;
   font-weight: bold;
   margin: 3px;
 }
 .cthulhu .codeBody {
+  font-family: 'Audiowide', cursive;
   font-style: italic;
   font-weight: bold;
   margin: 3px;
