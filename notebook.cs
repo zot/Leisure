@@ -137,6 +137,11 @@ initNotebook = (el)->
   insertControls(el)
   pgm
 
+makeOption = (name)->
+  opt = document.createElement 'OPTION'
+  opt.text = name
+  opt
+
 insertControls = (el)->
   controlDiv = document.createElement 'DIV'
   controlDiv.setAttribute 'LeisureOutput', ''
@@ -153,10 +158,28 @@ insertControls = (el)->
   testButton = document.createElement 'BUTTON'
   testButton.innerHTML = "Run Tests"
   testButton.addEventListener 'click', -> runTests el
+  themeLabel = document.createElement 'SPAN'
+  themeLabel.innerHTML = "Theme: "
+  themeSelect = document.createElement 'SELECT'
+  themeSelect.add(makeOption("Thin"), null)
+  themeSelect.add(makeOption("Gaudy"), null)
+  themeSelect.add(makeOption("Cthulhu"), null)
+  themeSelect.addEventListener 'change', (evt)-> changeTheme el
+
+  viewLabel = document.createElement 'SPAN'
+  viewLabel.innerHTML = "View: "
+  viewSelect = document.createElement 'SELECT'
+  viewSelect.add(makeOption("Coding"), null)
+  viewSelect.add(makeOption("Debugging"), null)
+  viewSelect.add(makeOption("Testing"), null)
+  viewSelect.add(makeOption("Running"), null)
+  viewSelect.addEventListener 'change', (evt)-> changeView el
+
   processButton = document.createElement 'BUTTON'
   processButton.innerHTML = "Process"
   processButton.addEventListener 'click', -> evalDoc el
   processButton.setAttribute 'style', 'float:right'
+
   controlDiv.appendChild textNode 'Load: '
   controlDiv.appendChild loadButton
   controlDiv.appendChild textNode ' '
@@ -165,6 +188,10 @@ insertControls = (el)->
   controlDiv.appendChild viewLink
   controlDiv.appendChild textNode ' '
   controlDiv.appendChild testButton
+  controlDiv.appendChild themeLabel
+  controlDiv.appendChild themeSelect
+  controlDiv.appendChild viewLabel
+  controlDiv.appendChild viewSelect
   controlDiv.appendChild processButton
   el.leisureDownloadLink = downloadLink
   el.leisureViewLink = viewLink
@@ -192,6 +219,10 @@ configureSaveLink = (el)->
   el.leisureViewLink.href = window.URL.createObjectURL(blob)
 
 runTests = (el)-> alert 'run tests'
+
+changeTheme = (el)-> alert 'new theme: '
+
+changeView = (el)-> alert 'new view: '
 
 unwrap = (node)->
   parent = node.parentNode

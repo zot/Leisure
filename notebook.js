@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -200,8 +200,15 @@
     return pgm;
   };
 
+  makeOption = function makeOption(name) {
+    var opt;
+    opt = document.createElement('OPTION');
+    opt.text = name;
+    return opt;
+  };
+
   insertControls = function insertControls(el) {
-    var controlDiv, downloadLink, loadButton, processButton, testButton, viewLink;
+    var controlDiv, downloadLink, loadButton, processButton, testButton, themeLabel, themeSelect, viewLabel, viewLink, viewSelect;
     controlDiv = document.createElement('DIV');
     controlDiv.setAttribute('LeisureOutput', '');
     controlDiv.setAttribute('contentEditable', 'false');
@@ -221,6 +228,25 @@
     testButton.addEventListener('click', function() {
       return runTests(el);
     });
+    themeLabel = document.createElement('SPAN');
+    themeLabel.innerHTML = "Theme: ";
+    themeSelect = document.createElement('SELECT');
+    themeSelect.add(makeOption("Thin"), null);
+    themeSelect.add(makeOption("Gaudy"), null);
+    themeSelect.add(makeOption("Cthulhu"), null);
+    themeSelect.addEventListener('change', function(evt) {
+      return changeTheme(el);
+    });
+    viewLabel = document.createElement('SPAN');
+    viewLabel.innerHTML = "View: ";
+    viewSelect = document.createElement('SELECT');
+    viewSelect.add(makeOption("Coding"), null);
+    viewSelect.add(makeOption("Debugging"), null);
+    viewSelect.add(makeOption("Testing"), null);
+    viewSelect.add(makeOption("Running"), null);
+    viewSelect.addEventListener('change', function(evt) {
+      return changeView(el);
+    });
     processButton = document.createElement('BUTTON');
     processButton.innerHTML = "Process";
     processButton.addEventListener('click', function() {
@@ -235,6 +261,10 @@
     controlDiv.appendChild(viewLink);
     controlDiv.appendChild(textNode(' '));
     controlDiv.appendChild(testButton);
+    controlDiv.appendChild(themeLabel);
+    controlDiv.appendChild(themeSelect);
+    controlDiv.appendChild(viewLabel);
+    controlDiv.appendChild(viewSelect);
     controlDiv.appendChild(processButton);
     el.leisureDownloadLink = downloadLink;
     el.leisureViewLink = viewLink;
@@ -269,6 +299,14 @@
 
   runTests = function runTests(el) {
     return alert('run tests');
+  };
+
+  changeTheme = function changeTheme(el) {
+    return alert('new theme: ');
+  };
+
+  changeView = function changeView(el) {
+    return alert('new view: ');
   };
 
   unwrap = function unwrap(node) {
