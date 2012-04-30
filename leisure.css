@@ -45,6 +45,7 @@ body {
   min-height: 32spx;
   background-image: url(leisure_bar.gif);
   background-repeat: no-repeat;
+  color: black;
 }
 
 .leisure_load {
