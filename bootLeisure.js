@@ -23,7 +23,7 @@
       body.removeAttribute('leisurecode');
     }
     window.removeEventListener('load', bootLeisure);
-    _ref = ['leisure', 'gaudy', 'thin'];
+    _ref = ['leisure', 'gaudy', 'thin', 'cthulhu'];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       i = _ref[_i];
       style = document.createElement('link');

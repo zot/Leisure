@@ -1,42 +1,48 @@
-.thin .codeExpr {
+body.cthulhu {
+  background-image: url(Cthulhu_Rising_by_somniturne.jpg);
+  background-repeat: no-repeat;
+  color: yellow;
+}
+
+.cthulhu .codeExpr {
   font-style: italic;
   font-weight: bold;
   margin: 3px;
 }
-.thin .codeMain {
+.cthulhu .codeMain {
   vertical-align: top;
   display: inline-block;
   margin: 0;
   padding: 5px;
 }
-.thin .codeMain:hover {
-  border: blue solid 1px;
-  margin: -1px;
+.cthulhu .codeMain:hover {
+  border: yellow solid 2px;
+  margin: -2px;
 }
 
-.thin .output {
+.cthulhu .output {
   border: green solid 2px;
   margin: 3px;
   left-margin: 10px;
   display: inline-block;
   padding: 5px;
 }
-.thin .output span {
+.cthulhu .output span {
   vertical-align: top;
 }
-.thin .codeMainExpr {
+.cthulhu .codeMainExpr {
   vertical-align: top;
   margin: 0;
   padding: 5px;
   margin: 0;
   display: inline-block;
 }
-.thin .codeMainExpr:hover {
-  border: red solid 1px;
-  margin: -1px;
+.cthulhu .codeMainExpr:hover {
+  border: green solid 2px;
+  margin: -2px;
 }
 
-.thin .codeMainTest {
+.cthulhu .codeMainTest {
   vertical-align: top;
   margin: 0;
   padding: 5px;
@@ -47,30 +53,39 @@
   min-height: 30px;
 }
 
-.thin .codeMainTest * {
+.cthulhu .codeMainTest * {
   display: none;
 }
-.thin .codeMainTest.white {
+.cthulhu .codeMainTest.white {
   background-image: url(testCaseWhite.png);
   background-repeat: no-repeat;
 }
-.thin .codeMainTest.green {
+.cthulhu .codeMainTest.green {
   background-image: url(testCaseGreen.png);
   background-repeat: no-repeat;
 }
-.thin .codeMainTest.red {
+.cthulhu .codeMainTest.red {
   background-image: url(testCaseRed.png);
   background-repeat: no-repeat;
 }
 
-.thin .codeName {
+.cthulhu .codeName {
   color: blue;
   font-weight: bold;
   margin: 3px;
 }
-.thin .codeBody {
+.cthulhu .codeBody {
   font-style: italic;
   font-weight: bold;
   margin: 3px;
+}
+
+
+.cthulhu .LeisureFunc {
+  background: green;
+}
+
+.cthulhu .LeisureArg {
+  background: brown;
 }
 
