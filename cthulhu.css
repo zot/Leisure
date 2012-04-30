@@ -1,6 +1,7 @@
 body.cthulhu {
   background-image: url(Cthulhu_Rising_by_somniturne.jpg);
   background-repeat: no-repeat;
+  background-attachment:fixed;
   color: yellow;
 }
 
