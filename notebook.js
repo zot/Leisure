@@ -238,12 +238,8 @@
     testButton.addEventListener('click', function() {
       return runTests(el);
     });
-    themeLabel = document.createElement('SPAN');
-    themeLabel.innerHTML = "Theme: ";
-    themeSelect = document.createElement('SELECT');
-    themeSelect.add(makeOption("Thin"), null);
-    themeSelect.add(makeOption("Gaudy"), null);
-    themeSelect.add(makeOption("Cthulhu"), null);
+    themeLabel = createNode("<span>Theme </button>");
+    themeSelect = createNode("<select>\n  <option>Thin</option>\n  <option>Gaudy</option>\n  <option>Cthulhu</option>\n</select>");
     themeSelect.addEventListener('change', function(evt) {
       return changeTheme(el);
     });

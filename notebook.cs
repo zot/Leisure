@@ -163,12 +163,14 @@ insertControls = (el)->
   viewLink = createNode "<a target='_blank'>View</a>"
   testButton = createNode "<button>Run Tests</button>"
   testButton.addEventListener 'click', -> runTests el
-  themeLabel = document.createElement 'SPAN'
-  themeLabel.innerHTML = "Theme: "
-  themeSelect = document.createElement 'SELECT'
-  themeSelect.add(makeOption("Thin"), null)
-  themeSelect.add(makeOption("Gaudy"), null)
-  themeSelect.add(makeOption("Cthulhu"), null)
+  themeLabel = createNode "<span>Theme </button>"
+  themeSelect = createNode """
+<select>
+  <option>Thin</option>
+  <option>Gaudy</option>
+  <option>Cthulhu</option>
+</select>
+"""
   themeSelect.addEventListener 'change', (evt)-> changeTheme el
 
   viewLabel = document.createElement 'SPAN'
