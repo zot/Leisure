@@ -6,10 +6,14 @@
 .thin .codeMain {
   vertical-align: top;
   display: inline-block;
-  border: blue solid 2px;
   margin: 0;
   padding: 5px;
 }
+.thin .codeMain:hover {
+  border: blue solid 1px;
+  margin: -1px;
+}
+
 .thin .output {
   border: green solid 2px;
   margin: 3px;
@@ -25,9 +29,40 @@
   margin: 0;
   padding: 5px;
   margin: 0;
-  border: red solid 2px;
   display: inline-block;
 }
+.thin .codeMainExpr:hover {
+  border: red solid 1px;
+  margin: -1px;
+}
+
+.thin .codeMainTest {
+  vertical-align: top;
+  margin: 0;
+  padding: 5px;
+  margin: 0;
+  display: inline-block;
+  border: green solid 1px;
+  min-width: 30px;
+  min-height: 30px;
+}
+
+.thin .codeMainTest * {
+  display: none;
+}
+.thin .codeMainTest.white {
+  background-image: url(testCaseWhite.png);
+  background-repeat: no-repeat;
+}
+.thin .codeMainTest.green {
+  background-image: url(testCaseGreen.png);
+  background-repeat: no-repeat;
+}
+.thin .codeMainTest.red {
+  background-image: url(testCaseRed.png);
+  background-repeat: no-repeat;
+}
+
 .thin .codeName {
   color: blue;
   font-weight: bold;
@@ -38,3 +73,18 @@
   font-weight: bold;
   margin: 3px;
 }
+
+.thin .leisure_bar {
+  min-height: 32spx;
+  background-image: url(leisure_bar.gif);
+  background-repeat: no-repeat;
+}
+
+.thin .leisure_load {
+  padding-left: 200px
+}
+
+.thin .leisure_theme {
+  padding-left: 100px
+}
+
