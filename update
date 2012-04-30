@@ -2,6 +2,8 @@
 for i in *; do
 	cp ../lambdaCalculus/$i .
 done
-git add .
-git commit -m 'update from master'
-git push origin gh-pages
+if [ "$1" != "-t" ]; then
+    git add .
+    git commit -m 'update from master'
+    git push origin gh-pages
+fi
