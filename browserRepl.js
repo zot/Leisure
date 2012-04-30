@@ -54,6 +54,7 @@
     ReplCore.setHandler(function(ast, result, a, c, r, src, env) {
       global.$0 = result;
       if (!(ast.leisureName != null) && (result != null)) {
+        if (typeof env.processResult === "function") env.processResult(result);
         env.write("<span><b> " + (escapeHtml(trimEq(src))) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + ((ReplCore.getType(result)) === 'html' ? getHtml(result) : escapeHtml(Pretty.print(result))) + "</span>\n");
       }
       return ReplCore.processResult(result, env);

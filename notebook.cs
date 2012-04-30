@@ -134,10 +134,10 @@ initNotebook = (el)->
     el.appendChild textNode('\n')
   el.normalize()
   el.replacing = false
-  insertSaveAndLoad(el)
+  insertControls(el)
   pgm
 
-insertSaveAndLoad = (el)->
+insertControls = (el)->
   controlDiv = document.createElement 'DIV'
   controlDiv.setAttribute 'LeisureOutput', ''
   controlDiv.setAttribute 'contentEditable', 'false'
@@ -147,10 +147,15 @@ insertSaveAndLoad = (el)->
   saveLink = document.createElement 'A'
   saveLink.innerHTML = "Save"
   if el.leisureFileEntry? then saveLink.href = el.leisureFileEntry.toURL();
+  testButton = document.createElement 'BUTTON'
+  testButton.innerHTML = "Run Tests"
+  testButton.addEventListener 'click', -> runTests el
   controlDiv.appendChild textNode 'Load: '
   controlDiv.appendChild loadButton
   controlDiv.appendChild textNode ' '
   controlDiv.appendChild saveLink
+  controlDiv.appendChild textNode ' '
+  controlDiv.appendChild testButton
   el.leisureSaveLink = saveLink
   el.insertBefore controlDiv, el.firstChild
   configureSaveLink(el)
@@ -185,6 +190,8 @@ writeFile = (el)->
     builder.append(c.textContent);
     blob = builder.getBlob();
     fileWriter.write(blob)), (err)-> console.log(err)
+
+runTests = (el)-> alert 'run tests'
 
 unwrap = (node)->
   parent = node.parentNode
@@ -238,16 +245,31 @@ markupDefs = (defs)->
 textNode = (text)-> document.createTextNode(text)
 
 evalOutput = (exBox)->
+  exBox = getBox exBox
   cleanOutput exBox
-  b = document.createElement('button')
-  b.setAttribute('onclick', 'Notebook.cleanOutput(this.parentNode)')
-  b.innerHTML = "X"
-  exBox.appendChild b
+  d = document.createElement('div')
+  d.setAttribute 'style', 'float: right'
+  d.innerHTML = "<button onclick='Notebook.makeTestCase(this)'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>"
+  exBox.firstChild.appendChild d
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
 cleanOutput = (exBox)->
+  exBox = getBox exBox
+  fc = exBox.firstChild
+  while fc.firstChild.nextSibling != fc.lastChild
+    fc.removeChild fc.lastChild
   while exBox.firstChild != exBox.lastChild
     exBox.removeChild exBox.lastChild
+
+makeTestCase = (exBox)->
+  output = getBox exBox
+  source = output.source
+  test =
+    expr: source.textContent
+    result: output.result.toString()
+  source.innerHTML = "#@test #{JSON.stringify test}"
+  output.parentNode.removeChild output
+  unwrap source
 
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
@@ -259,6 +281,7 @@ envFor = (box)->
     div.innerHTML = "#{msg}\n"
     exBox.appendChild(div)
   prompt:(msg, cont)-> cont(window.prompt(msg))
+  processResult: (result)-> box.result = result
 
 makeOutputBox = (source)->
   node = document.createElement 'div'
@@ -269,8 +292,7 @@ makeOutputBox = (source)->
   node.setAttribute 'contentEditable', 'false'
   node.source = source
   source.output = node
-  node.innerHTML = "<button onclick='Notebook.evalOutput(this.parentNode)'>-&gt;</button>"
-  node.appendChild textNode(' \n')
+  node.innerHTML = "<div><div style='float: left'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div><button style='visibility: hidden'></button></div>"
   source.parentNode.insertBefore node, source.nextSibling
   node
 
@@ -422,6 +444,7 @@ Prim.defaultEnv.require = req
 root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
 root.evalOutput = evalOutput
+root.makeTestCase = makeTestCase
 root.cleanOutput = cleanOutput
 root.envFor = envFor
 root.queueAfterLoad = queueAfterLoad

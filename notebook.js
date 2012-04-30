@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertSaveAndLoad, loadProgram, makeOutputBox, makeRange, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, selInDef, textNode, toDefBox, toExprBox, unwrap, writeFile,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOutputBox, makeRange, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, textNode, toDefBox, toExprBox, unwrap, writeFile,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -196,12 +196,12 @@
     }
     el.normalize();
     el.replacing = false;
-    insertSaveAndLoad(el);
+    insertControls(el);
     return pgm;
   };
 
-  insertSaveAndLoad = function insertSaveAndLoad(el) {
-    var controlDiv, loadButton, saveLink;
+  insertControls = function insertControls(el) {
+    var controlDiv, loadButton, saveLink, testButton;
     controlDiv = document.createElement('DIV');
     controlDiv.setAttribute('LeisureOutput', '');
     controlDiv.setAttribute('contentEditable', 'false');
@@ -213,10 +213,17 @@
     saveLink = document.createElement('A');
     saveLink.innerHTML = "Save";
     if (el.leisureFileEntry != null) saveLink.href = el.leisureFileEntry.toURL();
+    testButton = document.createElement('BUTTON');
+    testButton.innerHTML = "Run Tests";
+    testButton.addEventListener('click', function() {
+      return runTests(el);
+    });
     controlDiv.appendChild(textNode('Load: '));
     controlDiv.appendChild(loadButton);
     controlDiv.appendChild(textNode(' '));
     controlDiv.appendChild(saveLink);
+    controlDiv.appendChild(textNode(' '));
+    controlDiv.appendChild(testButton);
     el.leisureSaveLink = saveLink;
     el.insertBefore(controlDiv, el.firstChild);
     return configureSaveLink(el);
@@ -270,6 +277,10 @@
     }), function(err) {
       return console.log(err);
     });
+  };
+
+  runTests = function runTests(el) {
+    return alert('run tests');
   };
 
   unwrap = function unwrap(node) {
@@ -353,22 +364,41 @@
   };
 
   evalOutput = function evalOutput(exBox) {
-    var b;
+    var d;
+    exBox = getBox(exBox);
     cleanOutput(exBox);
-    b = document.createElement('button');
-    b.setAttribute('onclick', 'Notebook.cleanOutput(this.parentNode)');
-    b.innerHTML = "X";
-    exBox.appendChild(b);
+    d = document.createElement('div');
+    d.setAttribute('style', 'float: right');
+    d.innerHTML = "<button onclick='Notebook.makeTestCase(this)'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>";
+    exBox.firstChild.appendChild(d);
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
   };
 
   cleanOutput = function cleanOutput(exBox) {
-    var _results;
+    var fc, _results;
+    exBox = getBox(exBox);
+    fc = exBox.firstChild;
+    while (fc.firstChild.nextSibling !== fc.lastChild) {
+      fc.removeChild(fc.lastChild);
+    }
     _results = [];
     while (exBox.firstChild !== exBox.lastChild) {
       _results.push(exBox.removeChild(exBox.lastChild));
     }
     return _results;
+  };
+
+  makeTestCase = function makeTestCase(exBox) {
+    var output, source, test;
+    output = getBox(exBox);
+    source = output.source;
+    test = {
+      expr: source.textContent,
+      result: output.result.toString()
+    };
+    source.innerHTML = "#@test " + (JSON.stringify(test));
+    output.parentNode.removeChild(output);
+    return unwrap(source);
   };
 
   prepExpr = function prepExpr(txt) {
@@ -393,6 +423,9 @@
       },
       prompt: function prompt(msg, cont) {
         return cont(window.prompt(msg));
+      },
+      processResult: function processResult(result) {
+        return box.result = result;
       }
     };
   };
@@ -407,8 +440,7 @@
     node.setAttribute('contentEditable', 'false');
     node.source = source;
     source.output = node;
-    node.innerHTML = "<button onclick='Notebook.evalOutput(this.parentNode)'>-&gt;</button>";
-    node.appendChild(textNode(' \n'));
+    node.innerHTML = "<div><div style='float: left'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div><button style='visibility: hidden'></button></div>";
     source.parentNode.insertBefore(node, source.nextSibling);
     return node;
   };
@@ -643,6 +675,8 @@
   root.bindNotebook = bindNotebook;
 
   root.evalOutput = evalOutput;
+
+  root.makeTestCase = makeTestCase;
 
   root.cleanOutput = cleanOutput;
 
