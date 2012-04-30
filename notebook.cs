@@ -137,6 +137,12 @@ initNotebook = (el)->
   insertControls(el)
   pgm
 
+makeLabel = (text, c)-> 
+  node = document.createElement 'SPAN'
+  node.innerHTML = text
+  node.setAttribute 'class', c
+  node
+
 makeOption = (name)->
   opt = document.createElement 'OPTION'
   opt.text = name
@@ -156,14 +162,14 @@ createFragment = (txt)->
   frag
 
 insertControls = (el)->
-  controlDiv = createNode "<div LeisureOutput contentEditable='false'></div>"
+  controlDiv = createNode "<div LeisureOutput contentEditable='false' class='leisure_bar'></div>"
   loadButton = createNode "<input type='file'></input>"
   loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
   downloadLink = createNode "<a download='program.lsr'>Download</a>"
   viewLink = createNode "<a target='_blank'>View</a>"
   testButton = createNode "<button>Run Tests</button>"
   testButton.addEventListener 'click', -> runTests el
-  themeLabel = createNode "<span>Theme </button>"
+  themeLabel = makeLabel "Theme: ", 'leisure_theme'
   themeSelect = createNode """
 <select>
   <option>Thin</option>
@@ -187,7 +193,7 @@ insertControls = (el)->
   processButton.addEventListener 'click', -> evalDoc el
   processButton.setAttribute 'style', 'float:right'
 
-  controlDiv.appendChild textNode 'Load: '
+  controlDiv.appendChild (makeLabel 'Load: ', 'leisure_load')
   controlDiv.appendChild loadButton
   controlDiv.appendChild textNode ' '
   controlDiv.appendChild downloadLink

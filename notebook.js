@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -200,6 +200,14 @@
     return pgm;
   };
 
+  makeLabel = function makeLabel(text, c) {
+    var node;
+    node = document.createElement('SPAN');
+    node.innerHTML = text;
+    node.setAttribute('class', c);
+    return node;
+  };
+
   makeOption = function makeOption(name) {
     var opt;
     opt = document.createElement('OPTION');
@@ -227,7 +235,7 @@
 
   insertControls = function insertControls(el) {
     var controlDiv, downloadLink, loadButton, processButton, testButton, themeLabel, themeSelect, viewLabel, viewLink, viewSelect;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false'></div>");
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'></div>");
     loadButton = createNode("<input type='file'></input>");
     loadButton.addEventListener('change', function(evt) {
       return loadProgram(el, loadButton.files);
@@ -238,7 +246,7 @@
     testButton.addEventListener('click', function() {
       return runTests(el);
     });
-    themeLabel = createNode("<span>Theme </button>");
+    themeLabel = makeLabel("Theme: ", 'leisure_theme');
     themeSelect = createNode("<select>\n  <option>Thin</option>\n  <option>Gaudy</option>\n  <option>Cthulhu</option>\n</select>");
     themeSelect.addEventListener('change', function(evt) {
       return changeTheme(el);
@@ -259,7 +267,7 @@
       return evalDoc(el);
     });
     processButton.setAttribute('style', 'float:right');
-    controlDiv.appendChild(textNode('Load: '));
+    controlDiv.appendChild(makeLabel('Load: ', 'leisure_load'));
     controlDiv.appendChild(loadButton);
     controlDiv.appendChild(textNode(' '));
     controlDiv.appendChild(downloadLink);

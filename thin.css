@@ -65,3 +65,18 @@
   font-weight: bold;
   margin: 3px;
 }
+
+.thin .leisure_bar {
+  min-height: 32spx;
+  background-image: url(leisure_bar.gif);
+  background-repeat: no-repeat;
+}
+
+.thin .leisure_load {
+  padding-left: 200px
+}
+
+.thin .leisure_theme {
+  padding-left: 100px
+}
+
