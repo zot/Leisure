@@ -142,21 +142,26 @@ makeOption = (name)->
   opt.text = name
   opt
 
+createNode = (txt)->
+  scratch = document.createElement 'DIV'
+  scratch.innerHTML = txt
+  scratch.firstChild
+
+createFragment = (txt)->
+  scratch = document.createElement 'DIV'
+  scratch.innerHTML = txt
+  frag = document.createDocumentFragment()
+  while scratch.firstChild
+    frag.appendChild scratch.firstChild
+  frag
+
 insertControls = (el)->
-  controlDiv = document.createElement 'DIV'
-  controlDiv.setAttribute 'LeisureOutput', ''
-  controlDiv.setAttribute 'contentEditable', 'false'
-  loadButton = document.createElement 'INPUT'
-  loadButton.setAttribute 'type', 'file'
+  controlDiv = createNode "<div LeisureOutput contentEditable='false'></div>"
+  loadButton = createNode "<input type='file'></input>"
   loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
-  downloadLink = document.createElement 'A'
-  downloadLink.innerHTML = "Download"
-  downloadLink.setAttribute 'download', 'program.lsr'
-  viewLink = document.createElement 'A'
-  viewLink.innerHTML = "View"
-  viewLink.setAttribute 'target', '_blank'
-  testButton = document.createElement 'BUTTON'
-  testButton.innerHTML = "Run Tests"
+  downloadLink = createNode "<a download='program.lsr'>Download</a>"
+  viewLink = createNode "<a target='_blank'>View</a>"
+  testButton = createNode "<button>Run Tests</button>"
   testButton.addEventListener 'click', -> runTests el
   themeLabel = document.createElement 'SPAN'
   themeLabel.innerHTML = "Theme: "

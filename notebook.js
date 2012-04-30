@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -207,24 +207,34 @@
     return opt;
   };
 
+  createNode = function createNode(txt) {
+    var scratch;
+    scratch = document.createElement('DIV');
+    scratch.innerHTML = txt;
+    return scratch.firstChild;
+  };
+
+  createFragment = function createFragment(txt) {
+    var frag, scratch;
+    scratch = document.createElement('DIV');
+    scratch.innerHTML = txt;
+    frag = document.createDocumentFragment();
+    while (scratch.firstChild) {
+      frag.appendChild(scratch.firstChild);
+    }
+    return frag;
+  };
+
   insertControls = function insertControls(el) {
     var controlDiv, downloadLink, loadButton, processButton, testButton, themeLabel, themeSelect, viewLabel, viewLink, viewSelect;
-    controlDiv = document.createElement('DIV');
-    controlDiv.setAttribute('LeisureOutput', '');
-    controlDiv.setAttribute('contentEditable', 'false');
-    loadButton = document.createElement('INPUT');
-    loadButton.setAttribute('type', 'file');
+    controlDiv = createNode("<div LeisureOutput contentEditable='false'></div>");
+    loadButton = createNode("<input type='file'></input>");
     loadButton.addEventListener('change', function(evt) {
       return loadProgram(el, loadButton.files);
     });
-    downloadLink = document.createElement('A');
-    downloadLink.innerHTML = "Download";
-    downloadLink.setAttribute('download', 'program.lsr');
-    viewLink = document.createElement('A');
-    viewLink.innerHTML = "View";
-    viewLink.setAttribute('target', '_blank');
-    testButton = document.createElement('BUTTON');
-    testButton.innerHTML = "Run Tests";
+    downloadLink = createNode("<a download='program.lsr'>Download</a>");
+    viewLink = createNode("<a target='_blank'>View</a>");
+    testButton = createNode("<button>Run Tests</button>");
     testButton.addEventListener('click', function() {
       return runTests(el);
     });
