@@ -150,17 +150,23 @@ insertControls = (el)->
   testButton = document.createElement 'BUTTON'
   testButton.innerHTML = "Run Tests"
   testButton.addEventListener 'click', -> runTests el
+  processButton = document.createElement 'BUTTON'
+  processButton.innerHTML = "Process"
+  processButton.addEventListener 'click', -> evalDoc el
+  processButton.setAttribute 'style', 'float:right'
   controlDiv.appendChild textNode 'Load: '
   controlDiv.appendChild loadButton
   controlDiv.appendChild textNode ' '
   controlDiv.appendChild saveLink
   controlDiv.appendChild textNode ' '
   controlDiv.appendChild testButton
+  controlDiv.appendChild processButton
   el.leisureSaveLink = saveLink
   el.insertBefore controlDiv, el.firstChild
   configureSaveLink(el)
 
 loadProgram = (el, files)->
+  el = getBox
   fr = new FileReader()
   fr.onloadend = (evt)->
     el.innerHTML = Repl.escapeHtml(fr.result)
@@ -232,6 +238,13 @@ markupDefs = (defs)->
       bx.appendChild (textNode(def))
       bx.appendChild bod
       pgm += "#{name} #{def} #{body}\n"
+    else if main.leisureTest
+      s = codeSpan body, 'codeTest'
+      s.appendChild textNode('\n')
+      s.setAttribute('generatedNL', '')
+      bx = box main, 'codeMainTest', true
+      bx.setAttribute 'class', 'codeMainTest green'
+      bx.appendChild s
     else
       if main.leisureAuto then auto += "#{body}\n"
       s = codeSpan body, 'codeExpr'
@@ -333,11 +346,14 @@ findDefs = (el)->
     else break
   ranges
 
+testPat = /#@test([^\n]*)\n/
+
 getRanges = (el, txt, rest, def, restOff)->
     [matched, leading, nameRaw, defType] = m = def
     if !rest.trim() then null
-    else if !m? then [(makeRange el, restOff, txt.length), null, null, '']
+    else if !m? then [(makeRange el, restOff, txt.length), null, null, [], '']
     else
+      tests = []
       matchStart = restOff + m.index
       if !defType? then name = null
       else if nameRaw[0] == ' '
@@ -348,20 +364,26 @@ getRanges = (el, txt, rest, def, restOff)->
       endPat = rest1.match /\n+[^\s]|\n?$/
       next = if endPat then rest1.substring(endPat.index) else rest1
       mainEnd = txt.length - next.length
+      t = leading
+      while m2 = t.match /#@test([^\n]*)\n/
+        r = makeRange(el, restOff + m2.index, restOff + m2[0].length)
+        r.leisureTest = JSON.parse(m2[1])
+        tests.push r
+        t = t.substring m.index + m2[0].length
       if name?
         mainStart = matchStart + (leading?.length ? 0)
         nameEnd = mainStart + name.length
         leadingSpaces = (rest1.match /^\s*/)[0].length
         bodyStart = txt.length - (rest1.length - leadingSpaces)
         outerRange = makeRange el, mainStart, mainEnd
-        [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), next]
+        [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), tests, next]
       else
         mainStart = if def == '=' then restOff + m.index + m[0].length else matchStart + (leading?.length ? 0)
         ex = txt.substring(mainStart, mainEnd).match /^(.*[^ \n])[ \n]*$/
         exEnd = if ex then mainStart + ex[1].length else mainEnd
         outerRange = makeRange el, mainStart, exEnd
         if leading.match /@auto/ then outerRange.leisureAuto = true
-        [outerRange, null, null, txt.substring(mainStart, exEnd), next]
+        [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next]
 
 makeRange = (el, off1, off2)->
   range = document.createRange()
@@ -431,7 +453,6 @@ evalDoc = (el)->
   catch err
     alert(err.stack)
 
-
 Leisure.define 'finishLoading', (bubba)->
   Prim.makeMonad 'end', (env, cont)->
     for i in postLoadQueue
@@ -449,6 +470,7 @@ root.cleanOutput = cleanOutput
 root.envFor = envFor
 root.queueAfterLoad = queueAfterLoad
 root.evalDoc = evalDoc
+root.getBox = getBox
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

@@ -28,6 +28,23 @@
   border: red solid 2px;
   display: inline-block;
 }
+.thin .codeMainTest .white {
+  background-image: url(testCaseWhite.png)
+}
+.thin .codeMainTest .green {
+  background-image: url(testCaseGreen.png)
+}
+.thin .codeMainTest .red {
+  background-image: url(testCaseRed.png)
+}
+.thin .codeMainTest {
+  vertical-align: top;
+  margin: 0;
+  padding: 5px;
+  margin: 0;
+  border: green solid 2px;
+  display: inline-block;
+}
 .thin .codeName {
   color: blue;
   font-weight: bold;

@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOutputBox, makeRange, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, textNode, toDefBox, toExprBox, unwrap, writeFile,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOutputBox, makeRange, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap, writeFile,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -201,7 +201,7 @@
   };
 
   insertControls = function insertControls(el) {
-    var controlDiv, loadButton, saveLink, testButton;
+    var controlDiv, loadButton, processButton, saveLink, testButton;
     controlDiv = document.createElement('DIV');
     controlDiv.setAttribute('LeisureOutput', '');
     controlDiv.setAttribute('contentEditable', 'false');
@@ -218,12 +218,19 @@
     testButton.addEventListener('click', function() {
       return runTests(el);
     });
+    processButton = document.createElement('BUTTON');
+    processButton.innerHTML = "Process";
+    processButton.addEventListener('click', function() {
+      return evalDoc(el);
+    });
+    processButton.setAttribute('style', 'float:right');
     controlDiv.appendChild(textNode('Load: '));
     controlDiv.appendChild(loadButton);
     controlDiv.appendChild(textNode(' '));
     controlDiv.appendChild(saveLink);
     controlDiv.appendChild(textNode(' '));
     controlDiv.appendChild(testButton);
+    controlDiv.appendChild(processButton);
     el.leisureSaveLink = saveLink;
     el.insertBefore(controlDiv, el.firstChild);
     return configureSaveLink(el);
@@ -231,6 +238,7 @@
 
   loadProgram = function loadProgram(el, files) {
     var fr;
+    el = getBox;
     fr = new FileReader();
     fr.onloadend = function onloadend(evt) {
       el.innerHTML = Repl.escapeHtml(fr.result);
@@ -346,6 +354,13 @@
         bx.appendChild(textNode(def));
         bx.appendChild(bod);
         pgm += "" + name + " " + def + " " + body + "\n";
+      } else if (main.leisureTest) {
+        s = codeSpan(body, 'codeTest');
+        s.appendChild(textNode('\n'));
+        s.setAttribute('generatedNL', '');
+        bx = box(main, 'codeMainTest', true);
+        bx.setAttribute('class', 'codeMainTest green');
+        bx.appendChild(s);
       } else {
         if (main.leisureAuto) auto += "" + body + "\n";
         s = codeSpan(body, 'codeExpr');
@@ -501,14 +516,17 @@
     return ranges;
   };
 
+  testPat = /#@test([^\n]*)\n/;
+
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, m, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, rest1, _ref, _ref2, _ref3;
+    var bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tests, _ref, _ref2, _ref3;
     _ref = m = def, matched = _ref[0], leading = _ref[1], nameRaw = _ref[2], defType = _ref[3];
     if (!rest.trim()) {
       return null;
     } else if (!(m != null)) {
-      return [makeRange(el, restOff, txt.length), null, null, ''];
+      return [makeRange(el, restOff, txt.length), null, null, [], ''];
     } else {
+      tests = [];
       matchStart = restOff + m.index;
       if (!(defType != null)) {
         name = null;
@@ -522,20 +540,27 @@
       endPat = rest1.match(/\n+[^\s]|\n?$/);
       next = endPat ? rest1.substring(endPat.index) : rest1;
       mainEnd = txt.length - next.length;
+      t = leading;
+      while (m2 = t.match(/#@test([^\n]*)\n/)) {
+        r = makeRange(el, restOff + m2.index, restOff + m2[0].length);
+        r.leisureTest = JSON.parse(m2[1]);
+        tests.push(r);
+        t = t.substring(m.index + m2[0].length);
+      }
       if (name != null) {
         mainStart = matchStart + ((_ref2 = leading != null ? leading.length : void 0) != null ? _ref2 : 0);
         nameEnd = mainStart + name.length;
         leadingSpaces = (rest1.match(/^\s*/))[0].length;
         bodyStart = txt.length - (rest1.length - leadingSpaces);
         outerRange = makeRange(el, mainStart, mainEnd);
-        return [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), next];
+        return [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), tests, next];
       } else {
         mainStart = def === '=' ? restOff + m.index + m[0].length : matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
         ex = txt.substring(mainStart, mainEnd).match(/^(.*[^ \n])[ \n]*$/);
         exEnd = ex ? mainStart + ex[1].length : mainEnd;
         outerRange = makeRange(el, mainStart, exEnd);
         if (leading.match(/@auto/)) outerRange.leisureAuto = true;
-        return [outerRange, null, null, txt.substring(mainStart, exEnd), next];
+        return [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next];
       }
     }
   };
@@ -685,5 +710,7 @@
   root.queueAfterLoad = queueAfterLoad;
 
   root.evalDoc = evalDoc;
+
+  root.getBox = getBox;
 
 }).call(this);
