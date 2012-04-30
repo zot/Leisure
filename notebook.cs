@@ -174,28 +174,27 @@ loadProgram = (el, files)->
   fr.readAsBinaryString(files.item(0))
 
 configureSaveLink = (el)->
-  saveLink = el.leisureSaveLink
   window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
   if el.leisureFS? then writeFile(el)
   else window.requestFileSystem(TEMPORARY, 1024 * 1024, ((fs)->
     el.leisureFS = fs
-    fs.root.getFile('program.lsr', {create: true}, ((fileEntry)->
-      el.leisureFileEntry = fileEntry
-      saveLink.href = fileEntry.toURL();
-      writeFile(el)
-      ), (err)-> console.log(err))
-    ), (err)->console.log(err))
+    writeFile el), (err)->console.log(err))
 
 writeFile = (el)->
-  el.leisureFileEntry.createWriter ((fileWriter)->
-    builder = new WebKitBlobBuilder();
-    r = document.createRange()
-    r.selectNode(el)
-    c = r.cloneContents().firstChild
-    removeOldDefs c
-    builder.append(c.textContent);
-    blob = builder.getBlob();
-    fileWriter.write(blob)), (err)-> console.log(err)
+  el.leisureFS.root.getFile('program.lsr', {create: true}, ((fileEntry)->
+    el.leisureFileEntry = fileEntry
+    el.leisureSaveLink.href = fileEntry.toURL();
+    el.leisureFileEntry.createWriter ((fileWriter)->
+      builder = new WebKitBlobBuilder();
+      r = document.createRange()
+      r.selectNode(el)
+      c = r.cloneContents().firstChild
+      removeOldDefs c
+      builder.append(c.textContent);
+      blob = builder.getBlob('text/plain');
+      fileWriter.seek(0)
+      fileWriter.write(blob)), (err)-> console.log(err)
+    ), (err)-> console.log(err))
 
 runTests = (el)-> alert 'run tests'
 
@@ -228,7 +227,7 @@ markupDefs = (defs)->
   pgm = ''
   auto = ''
   for i in defs
-    [main, name, def, body] = i
+    [main, name, def, body, tests] = i
     if name?
       bod = codeSpan body, 'codeBody'
       bod.appendChild textNode('\n')
@@ -253,6 +252,8 @@ markupDefs = (defs)->
       bx = box main, 'codeMainExpr', true
       bx.appendChild s
       makeOutputBox(bx)
+    for test in tests
+      console.log "TEST: #{JSON.stringify(test.leisureTest)}"
   [pgm, auto]
 
 textNode = (text)-> document.createTextNode(text)
@@ -280,9 +281,19 @@ makeTestCase = (exBox)->
   test =
     expr: source.textContent
     result: Repl.escapeHtml(Pretty.print(output.result))
-  source.innerHTML = "#@test #{JSON.stringify test}"
+  box = makeTestBox "#@test #{JSON.stringify test}"
+  source.parentNode.insertBefore box, source
+  source.parentNode.removeChild source
   output.parentNode.removeChild output
-  unwrap source
+
+makeTestBox = (src)->
+  s = codeSpan src, 'codeTest'
+  s.appendChild textNode('\n')
+  s.setAttribute('generatedNL', '')
+  bx = codeBox 'codeMainTest'
+  bx.setAttribute 'class', 'codeMainTest white'
+  bx.appendChild s
+  bx
 
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 

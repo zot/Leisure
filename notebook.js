@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOutputBox, makeRange, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap, writeFile,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap, writeFile,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -248,23 +248,13 @@
   };
 
   configureSaveLink = function configureSaveLink(el) {
-    var saveLink;
-    saveLink = el.leisureSaveLink;
     window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
     if (el.leisureFS != null) {
       return writeFile(el);
     } else {
       return window.requestFileSystem(TEMPORARY, 1024 * 1024, (function(fs) {
         el.leisureFS = fs;
-        return fs.root.getFile('program.lsr', {
-          create: true
-        }, (function(fileEntry) {
-          el.leisureFileEntry = fileEntry;
-          saveLink.href = fileEntry.toURL();
-          return writeFile(el);
-        }), function(err) {
-          return console.log(err);
-        });
+        return writeFile(el);
       }), function(err) {
         return console.log(err);
       });
@@ -272,16 +262,25 @@
   };
 
   writeFile = function writeFile(el) {
-    return el.leisureFileEntry.createWriter((function(fileWriter) {
-      var blob, builder, c, r;
-      builder = new WebKitBlobBuilder();
-      r = document.createRange();
-      r.selectNode(el);
-      c = r.cloneContents().firstChild;
-      removeOldDefs(c);
-      builder.append(c.textContent);
-      blob = builder.getBlob();
-      return fileWriter.write(blob);
+    return el.leisureFS.root.getFile('program.lsr', {
+      create: true
+    }, (function(fileEntry) {
+      el.leisureFileEntry = fileEntry;
+      el.leisureSaveLink.href = fileEntry.toURL();
+      return el.leisureFileEntry.createWriter((function(fileWriter) {
+        var blob, builder, c, r;
+        builder = new WebKitBlobBuilder();
+        r = document.createRange();
+        r.selectNode(el);
+        c = r.cloneContents().firstChild;
+        removeOldDefs(c);
+        builder.append(c.textContent);
+        blob = builder.getBlob('text/plain');
+        fileWriter.seek(0);
+        return fileWriter.write(blob);
+      }), function(err) {
+        return console.log(err);
+      });
     }), function(err) {
       return console.log(err);
     });
@@ -339,12 +338,12 @@
   };
 
   markupDefs = function markupDefs(defs) {
-    var auto, bod, body, bx, def, i, main, name, pgm, s, _i, _len;
+    var auto, bod, body, bx, def, i, main, name, pgm, s, test, tests, _i, _j, _len, _len2;
     pgm = '';
     auto = '';
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
-      main = i[0], name = i[1], def = i[2], body = i[3];
+      main = i[0], name = i[1], def = i[2], body = i[3], tests = i[4];
       if (name != null) {
         bod = codeSpan(body, 'codeBody');
         bod.appendChild(textNode('\n'));
@@ -369,6 +368,10 @@
         bx = box(main, 'codeMainExpr', true);
         bx.appendChild(s);
         makeOutputBox(bx);
+      }
+      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
+        test = tests[_j];
+        console.log("TEST: " + (JSON.stringify(test.leisureTest)));
       }
     }
     return [pgm, auto];
@@ -404,16 +407,28 @@
   };
 
   makeTestCase = function makeTestCase(exBox) {
-    var output, source, test;
+    var box, output, source, test;
     output = getBox(exBox);
     source = output.source;
     test = {
       expr: source.textContent,
       result: Repl.escapeHtml(Pretty.print(output.result))
     };
-    source.innerHTML = "#@test " + (JSON.stringify(test));
-    output.parentNode.removeChild(output);
-    return unwrap(source);
+    box = makeTestBox("#@test " + (JSON.stringify(test)));
+    source.parentNode.insertBefore(box, source);
+    source.parentNode.removeChild(source);
+    return output.parentNode.removeChild(output);
+  };
+
+  makeTestBox = function makeTestBox(src) {
+    var bx, s;
+    s = codeSpan(src, 'codeTest');
+    s.appendChild(textNode('\n'));
+    s.setAttribute('generatedNL', '');
+    bx = codeBox('codeMainTest');
+    bx.setAttribute('class', 'codeMainTest white');
+    bx.appendChild(s);
+    return bx;
   };
 
   prepExpr = function prepExpr(txt) {

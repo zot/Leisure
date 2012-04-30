@@ -28,15 +28,7 @@
   border: red solid 2px;
   display: inline-block;
 }
-.thin .codeMainTest .white {
-  background-image: url(testCaseWhite.png)
-}
-.thin .codeMainTest .green {
-  background-image: url(testCaseGreen.png)
-}
-.thin .codeMainTest .red {
-  background-image: url(testCaseRed.png)
-}
+
 .thin .codeMainTest {
   vertical-align: top;
   margin: 0;
@@ -44,7 +36,25 @@
   margin: 0;
   border: green solid 2px;
   display: inline-block;
+  min-width: 30px;
+  min-height: 30px;
 }
+.thin .codeMainTest * {
+  display: none;
+}
+.thin .codeMainTest.white {
+  background-image: url(testCaseWhite.png);
+  background-repeat: no-repeat;
+}
+.thin .codeMainTest.green {
+  background-image: url(testCaseGreen.png);
+  background-repeat: no-repeat;
+}
+.thin .codeMainTest.red {
+  background-image: url(testCaseRed.png);
+  background-repeat: no-repeat;
+}
+
 .thin .codeName {
   color: blue;
   font-weight: bold;
