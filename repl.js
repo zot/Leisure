@@ -100,6 +100,7 @@
       stream.on('end', function() {
         var out, str;
         try {
+          contents = contents.replace(/\r\n?/g, "\n");
           out = Core.generateCode(file, contents, root.loud, null, nomacros);
           str = FS.createWriteStream("" + jsFile + "Tmp");
           str.on('close', function() {

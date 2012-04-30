@@ -74,6 +74,7 @@ compile = (file, cont, nomacros)->
     stream.on 'data', (data)-> contents += data
     stream.on 'end', ()->
       try
+        contents = contents.replace( /\r\n?/g, "\n")
         out = Core.generateCode(file, contents, root.loud, null, nomacros)
         str = FS.createWriteStream("#{jsFile}Tmp")
         str.on 'close', ->
