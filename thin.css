@@ -51,14 +51,17 @@
   display: none;
 }
 .thin .codeMainTest.white {
+  border: 0px;
   background-image: url(testCaseWhite.png);
   background-repeat: no-repeat;
 }
 .thin .codeMainTest.green {
+  border: 0px;
   background-image: url(testCaseGreen.png);
   background-repeat: no-repeat;
 }
 .thin .codeMainTest.red {
+  border: 0px;
   background-image: url(testCaseRed.png);
   background-repeat: no-repeat;
 }
