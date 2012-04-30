@@ -247,9 +247,9 @@
       return runTests(el);
     });
     themeLabel = makeLabel("Theme: ", 'leisure_theme');
-    themeSelect = createNode("<select>\n  <option>Thin</option>\n  <option>Gaudy</option>\n  <option>Cthulhu</option>\n</select>");
+    themeSelect = createNode("<select>\n  <option value=thin>Thin</option>\n  <option value=gaudy>Gaudy</option>\n  <option value=cthulhu>Cthulhu</option>\n</select>");
     themeSelect.addEventListener('change', function(evt) {
-      return changeTheme(el);
+      return changeTheme(evt.target);
     });
     viewLabel = document.createElement('SPAN');
     viewLabel.innerHTML = "View: ";
@@ -259,7 +259,7 @@
     viewSelect.add(makeOption("Testing"), null);
     viewSelect.add(makeOption("Running"), null);
     viewSelect.addEventListener('change', function(evt) {
-      return changeView(el);
+      return changeView(evt.target);
     });
     processButton = document.createElement('BUTTON');
     processButton.innerHTML = "Process";
@@ -315,12 +315,14 @@
     return alert('run tests');
   };
 
-  changeTheme = function changeTheme(el) {
-    return alert('new theme: ');
+  changeTheme = function changeTheme(t) {
+    var theme;
+    theme = t.options[t.selectedIndex].value;
+    return document.body.className = theme;
   };
 
-  changeView = function changeView(el) {
-    return alert('new view: ');
+  changeView = function changeView(v) {
+    return alert('new view: ' + v.options[v.selectedIndex].value);
   };
 
   unwrap = function unwrap(node) {

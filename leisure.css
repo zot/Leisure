@@ -39,3 +39,20 @@ body {
 .LeisureArg {
   background: #ccf;
 }
+
+
+.leisure_bar {
+  min-height: 32spx;
+  background-image: url(leisure_bar.gif);
+  background-repeat: no-repeat;
+}
+
+.leisure_load {
+  padding-left: 200px
+}
+
+.leisure_theme {
+  padding-left: 100px
+}
+
+

@@ -16,7 +16,7 @@ bootLeisure = ->
     body.appendChild pre
     body.removeAttribute 'leisurecode'
   window.removeEventListener 'load', bootLeisure
-  for i in ['leisure', 'gaudy', 'thin']
+  for i in ['leisure', 'gaudy', 'thin', 'cthulhu' ]
     style = document.createElement('link')
     style.setAttribute 'type', "text/css"
     style.setAttribute 'rel', "stylesheet"

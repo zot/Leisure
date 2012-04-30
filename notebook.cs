@@ -172,12 +172,12 @@ insertControls = (el)->
   themeLabel = makeLabel "Theme: ", 'leisure_theme'
   themeSelect = createNode """
 <select>
-  <option>Thin</option>
-  <option>Gaudy</option>
-  <option>Cthulhu</option>
+  <option value=thin>Thin</option>
+  <option value=gaudy>Gaudy</option>
+  <option value=cthulhu>Cthulhu</option>
 </select>
 """
-  themeSelect.addEventListener 'change', (evt)-> changeTheme el
+  themeSelect.addEventListener 'change', (evt)-> changeTheme evt.target
 
   viewLabel = document.createElement 'SPAN'
   viewLabel.innerHTML = "View: "
@@ -186,7 +186,7 @@ insertControls = (el)->
   viewSelect.add(makeOption("Debugging"), null)
   viewSelect.add(makeOption("Testing"), null)
   viewSelect.add(makeOption("Running"), null)
-  viewSelect.addEventListener 'change', (evt)-> changeView el
+  viewSelect.addEventListener 'change', (evt)-> changeView evt.target
 
   processButton = document.createElement 'BUTTON'
   processButton.innerHTML = "Process"
@@ -233,9 +233,11 @@ configureSaveLink = (el)->
 
 runTests = (el)-> alert 'run tests'
 
-changeTheme = (el)-> alert 'new theme: '
+changeTheme = (t)->
+  theme = t.options[t.selectedIndex].value
+  document.body.className = theme
 
-changeView = (el)-> alert 'new view: '
+changeView = (v)-> alert 'new view: ' + v.options[v.selectedIndex].value
 
 unwrap = (node)->
   parent = node.parentNode
