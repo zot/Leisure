@@ -61,18 +61,16 @@
           e.preventDefault();
         } else if ((e.charCode || e.keyCode || e.which) === 61) {
           checkMutateToDef(e, el);
-        } else {
-          if (r.startContainer.parentNode === el) {
-            sp = codeSpan('\n', 'codeExpr');
-            sp.setAttribute('generatedNL', '');
-            bx = box(s.getRangeAt(0), 'codeMainExpr', true);
-            bx.appendChild(sp);
-            makeOutputBox(bx);
-            r = document.createRange();
-            r.setStart(sp, 0);
-            s.removeAllRanges();
-            s.addRange(r);
-          }
+        } else if (r.startContainer.parentNode === el) {
+          sp = codeSpan('\n', 'codeExpr');
+          sp.setAttribute('generatedNL', '');
+          bx = box(s.getRangeAt(0), 'codeMainExpr', true);
+          bx.appendChild(sp);
+          makeOutputBox(bx);
+          r = document.createRange();
+          r.setStart(sp, 0);
+          s.removeAllRanges();
+          s.addRange(r);
         }
         return window.setTimeout(highlightPosition, 1);
       });
@@ -87,7 +85,9 @@
     if (!s.rangeCount) return;
     r = s.getRangeAt(0);
     parent = getBox(r.startContainer);
-    if (!(parent != null)) return;
+    if (!(parent != null) || (parent.getAttribute('LeisureOutput') != null)) {
+      return;
+    }
     tr = document.createRange();
     tr.setStart(parent, 0);
     tr.setEnd(r.endContainer, r.endOffset);
@@ -103,6 +103,7 @@
         node = _ref2[_i];
         unwrap(node);
       }
+      parent.normalize();
       if (ast != null) {
         b = brackets;
         while (b !== Leisure.Nil) {
@@ -118,6 +119,7 @@
         }
       }
       s.removeAllRanges();
+      parent.normalize();
       return s.addRange(makeRange(parent, pos, pos));
     }
   };

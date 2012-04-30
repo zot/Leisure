@@ -12,6 +12,7 @@
   LZ.ctx.U = U;
 
   importFile = function importFile(file, cont) {
+    if (file.match(/.lsr$/)) file = file.substring(0, file.length - 4);
     return R.compile(file, (function() {
       LZ.eval("req('./" + file + "')");
       return cont();

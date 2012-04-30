@@ -33,17 +33,16 @@ bindNotebook = (el)->
         s.addRange(r)
         e.preventDefault()
       else if (e.charCode || e.keyCode || e.which) == 61 then checkMutateToDef e, el # 61 is '='
-      else
-        if r.startContainer.parentNode == el
-          sp = codeSpan '\n', 'codeExpr'
-          sp.setAttribute('generatedNL', '')
-          bx = box s.getRangeAt(0), 'codeMainExpr', true
-          bx.appendChild sp
-          makeOutputBox bx
-          r = document.createRange()
-          r.setStart(sp, 0)
-          s.removeAllRanges()
-          s.addRange(r)
+      else if r.startContainer.parentNode == el
+        sp = codeSpan '\n', 'codeExpr'
+        sp.setAttribute('generatedNL', '')
+        bx = box s.getRangeAt(0), 'codeMainExpr', true
+        bx.appendChild sp
+        makeOutputBox bx
+        r = document.createRange()
+        r.setStart(sp, 0)
+        s.removeAllRanges()
+        s.addRange(r)
       window.setTimeout(highlightPosition, 1)
 
 #[node, positions]
@@ -54,7 +53,7 @@ highlightPosition = ->
   if !s.rangeCount then return
   r = s.getRangeAt(0)
   parent = getBox r.startContainer
-  if !parent? then return
+  if !parent? or parent.getAttribute('LeisureOutput')? then return
   tr = document.createRange()
   tr.setStart parent, 0
   tr.setEnd r.endContainer, r.endOffset
@@ -67,6 +66,7 @@ highlightPosition = ->
     oldBrackets = [parent, brackets]
     for node in document.querySelectorAll "[LeisureBrackets]"
       unwrap node
+    parent.normalize()
     if ast?
       b = brackets
       while b != Leisure.Nil
@@ -80,6 +80,7 @@ highlightPosition = ->
         span.appendChild contents
         b = b.tail
     s.removeAllRanges()
+    parent.normalize()
     s.addRange(makeRange parent, pos, pos)
 
 getRangeText = (r)-> r.cloneContents().textContent

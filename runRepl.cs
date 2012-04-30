@@ -6,6 +6,7 @@ LZ.ctx.console = console
 LZ.ctx.U = U
 
 importFile = (file, cont) ->
+  if file.match /.lsr$/ then file = file.substring 0, file.length - 4
   R.compile file, (->
     LZ.eval "req('./#{file}')"
     cont()), nomacros

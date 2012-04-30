@@ -22,7 +22,7 @@ body {
   overflow: auto;
 }
 
-.noselect, .noselect *, .output, .output * {
+.noselect, .noselect * {
   -moz-user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
