@@ -42,9 +42,13 @@ body {
 
 
 .leisure_bar {
-  min-height: 32spx;
+  min-height: 28px;
   background-image: url(leisure_bar.gif);
   background-repeat: no-repeat;
+  color: black;
+  position: fixed;
+  z-index: 100;
+  width: 100%;
 }
 
 .leisure_load {
