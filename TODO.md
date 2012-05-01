@@ -6,10 +6,10 @@
 
 # TODO
 * notebook
-   * run test cases needs a result indicator
    * incremental compilation (automatically recompile and update all errors)
    * show errors in output, but no make test case button if there's an error
    * run test cases button
+      * result indicator
       * checkbox to run all tests on successful auto-build
 	  * auto build should clear tests on a recompile
    * monad to present an html as an app
