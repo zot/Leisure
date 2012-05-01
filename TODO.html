@@ -18,6 +18,7 @@
 <ul>
 <li>notebook style interface
 <ul>
+<li>monad to present an html as an app</li>
 <li>collapse auto exprs</li>
 <li>command completion</li>
 <li>"save output as testcase" -- snapshot input and output as strings and record them as a testcase comment</li>
@@ -53,6 +54,11 @@
 <li>run-test-cases -- run test cases after loading this file</li>
 <li>set theme</li>
 </ul></li>
+<li>test cases
+<ul>
+<li>make human-readable</li>
+<li>add run-tests option to runRepl</li>
+</ul></li>
 <li>name spaces</li>
 <li>number nodes so messages can refer to them -- just number them in an inorder traversal</li>
 <li>change getType to return the type instead of an option, because it can never return a none</li>
@@ -71,6 +77,7 @@
 <li>add assertMonad() to testing.cs
 <ul>
 <li>probably use env for this</li>
+<li>need to convert test runner to CPS</li>
 </ul></li>
 <li>make cmd line runRepl parse HTML code files</li>
 <li>use curlies for do/let?

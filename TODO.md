@@ -1,6 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
 * notebook style interface
+   * monad to present an html as an app
    * collapse auto exprs
    * command completion
    * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
@@ -27,6 +28,9 @@
    * default pretty-printers for output
    * run-test-cases -- run test cases after loading this file
    * set theme
+* test cases
+   * make human-readable
+   * add run-tests option to runRepl
 * name spaces
 * number nodes so messages can refer to them -- just number them in an inorder traversal
 * change getType to return the type instead of an option, because it can never return a none
@@ -40,6 +44,7 @@
    * can use this to see the origin of a thunk
 * add assertMonad() to testing.cs
    * probably use env for this
+   * need to convert test runner to CPS
 * make cmd line runRepl parse HTML code files
 * use curlies for do/let?
    * handle groups properly with indentation

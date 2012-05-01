@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -114,8 +114,7 @@
             span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
             r = makeRange(parent, b.head.head - offset, b.head.tail.head - offset);
             contents = r.cloneContents();
-            r.deleteContents();
-            r.insertNode(span);
+            replaceRange(r, span);
             span.appendChild(contents);
             b = b.tail;
           }
@@ -125,6 +124,11 @@
         return s.addRange(makeRange(parent, pos, pos));
       }
     }
+  };
+
+  replaceRange = function replaceRange(range, node) {
+    range.deleteContents();
+    return range.insertNode(node);
   };
 
   getRangeText = function getRangeText(r) {
@@ -383,6 +387,10 @@
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i[0], name = i[1], def = i[2], body = i[3], tests = i[4];
+      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
+        test = tests[_j];
+        replaceRange(test, makeTestBox(test.leisureTest));
+      }
       if (name != null) {
         bod = codeSpan(body, 'codeBody');
         bod.appendChild(textNode('\n'));
@@ -396,7 +404,7 @@
         }), true, true);
         bx.leisureOwner = el;
         pgm += "" + name + " " + def + " " + body + "\n";
-      } else if (main.leisureTest) {
+      } else if (main != null ? main.leisureTest : void 0) {
         s = codeSpan(body, 'codeTest');
         s.appendChild(textNode('\n'));
         s.setAttribute('generatedNL', '');
@@ -404,7 +412,7 @@
         bx.setAttribute('class', 'codeMainTest green');
         bx.appendChild(s);
         bx.leisureOwner = el;
-      } else {
+      } else if (main != null) {
         if (main.leisureAuto) auto += "" + body + "\n";
         s = codeSpan(body, 'codeExpr');
         s.appendChild(textNode('\n'));
@@ -413,10 +421,6 @@
         bx.appendChild(s);
         bx.leisureOwner = el;
         makeOutputBox(bx);
-      }
-      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
-        test = tests[_j];
-        console.log("TEST: " + (JSON.stringify(test.leisureTest)));
       }
     }
     return [pgm, auto];
@@ -460,21 +464,53 @@
       expr: source.textContent,
       result: Repl.escapeHtml(Pretty.print(output.result))
     };
-    box = makeTestBox("#@test " + (JSON.stringify(test)));
+    box = makeTestBox(test);
     source.parentNode.insertBefore(box, source);
     source.parentNode.removeChild(source);
     return output.parentNode.removeChild(output);
   };
 
-  makeTestBox = function makeTestBox(src) {
-    var bx, s;
+  makeTestBox = function makeTestBox(test) {
+    var bx, s, src;
+    src = "#@test " + (JSON.stringify(test));
     s = codeSpan(src, 'codeTest');
     s.appendChild(textNode('\n'));
     s.setAttribute('generatedNL', '');
     bx = codeBox('codeMainTest');
     bx.setAttribute('class', 'codeMainTest white');
     bx.appendChild(s);
+    bx.addEventListener('click', (function() {
+      return runTest(test, bx);
+    }), true, true);
+    bx.test = test;
     return bx;
+  };
+
+  runTest = function runTest(test, bx) {
+    return ReplCore.processLine(prepExpr(test.expr), {
+      require: req,
+      write: function write() {},
+      prompt: function prompt(msg, cont) {
+        return cont(null);
+      },
+      processResult: function processResult(result) {
+        return showResult(bx, Repl.escapeHtml(Pretty.print(result)), test.result);
+      }
+    });
+  };
+
+  showResult = function showResult(bx, actual, expected) {
+    var cl;
+    cl = bx.classList;
+    cl.remove('white');
+    if (actual === expected) {
+      cl.remove('red');
+      return cl.add('green');
+    } else {
+      cl.remove('green');
+      cl.add('red');
+      return console.log("expected <" + expected + "> but got <" + actual + ">");
+    }
   };
 
   prepExpr = function prepExpr(txt) {
@@ -581,7 +617,7 @@
   testPat = /#@test([^\n]*)\n/;
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tests, _ref, _ref2, _ref3;
+    var body, bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, _ref, _ref2, _ref3;
     _ref = m = def, matched = _ref[0], leading = _ref[1], nameRaw = _ref[2], defType = _ref[3];
     if (!rest.trim()) {
       return null;
@@ -603,11 +639,13 @@
       next = endPat ? rest1.substring(endPat.index) : rest1;
       mainEnd = txt.length - next.length;
       t = leading;
-      while (m2 = t.match(/#@test([^\n]*)\n/)) {
-        r = makeRange(el, restOff + m2.index, restOff + m2[0].length);
+      tOff = restOff;
+      while (m2 = t.match(testPat)) {
+        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[0].length);
         r.leisureTest = JSON.parse(m2[1]);
         tests.push(r);
-        t = t.substring(m.index + m2[0].length);
+        tOff += m2.index + m2[0].length;
+        t = leading.substring(tOff);
       }
       if (name != null) {
         mainStart = matchStart + ((_ref2 = leading != null ? leading.length : void 0) != null ? _ref2 : 0);
@@ -620,9 +658,14 @@
         mainStart = def === '=' ? restOff + m.index + m[0].length : matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
         ex = txt.substring(mainStart, mainEnd).match(/^(.*[^ \n])[ \n]*$/);
         exEnd = ex ? mainStart + ex[1].length : mainEnd;
-        outerRange = makeRange(el, mainStart, exEnd);
-        if (leading.match(/@auto/)) outerRange.leisureAuto = true;
-        return [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next];
+        body = txt.substring(mainStart, exEnd);
+        if (body.trim()) {
+          outerRange = makeRange(el, mainStart, exEnd);
+          if (leading.match(/@auto/)) outerRange.leisureAuto = true;
+          return [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next];
+        } else {
+          return [null, null, null, null, tests, next];
+        }
       }
     }
   };
@@ -732,7 +775,7 @@
   oldFocus = null;
 
   focusBox = function focusBox(box) {
-    if (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0) {
+    if (box && (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0)) {
       evalDoc(box.leisureOwner);
     }
     return oldFocus = box;

@@ -77,13 +77,16 @@ highlightPosition = ->
           span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
           r = makeRange parent, b.head.head - offset, b.head.tail.head - offset
           contents = r.cloneContents()
-          r.deleteContents()
-          r.insertNode span
+          replaceRange r, span
           span.appendChild contents
           b = b.tail
       s.removeAllRanges()
       parent.normalize()
       s.addRange(makeRange parent, pos, pos)
+
+replaceRange = (range, node)->
+  range.deleteContents()
+  range.insertNode node
 
 getRangeText = (r)-> r.cloneContents().textContent
 
@@ -272,6 +275,8 @@ markupDefs = (el, defs)->
   auto = ''
   for i in defs
     [main, name, def, body, tests] = i
+    for test in tests
+      replaceRange test, makeTestBox test.leisureTest
     if name?
       bod = codeSpan body, 'codeBody'
       bod.appendChild textNode('\n')
@@ -283,7 +288,7 @@ markupDefs = (el, defs)->
       bx.addEventListener 'blur', (-> evalDoc el), true, true
       bx.leisureOwner = el
       pgm += "#{name} #{def} #{body}\n"
-    else if main.leisureTest
+    else if main?.leisureTest
       s = codeSpan body, 'codeTest'
       s.appendChild textNode('\n')
       s.setAttribute('generatedNL', '')
@@ -291,7 +296,7 @@ markupDefs = (el, defs)->
       bx.setAttribute 'class', 'codeMainTest green'
       bx.appendChild s
       bx.leisureOwner = el
-    else
+    else if main?
       if main.leisureAuto then auto += "#{body}\n"
       s = codeSpan body, 'codeExpr'
       s.appendChild textNode('\n')
@@ -300,8 +305,6 @@ markupDefs = (el, defs)->
       bx.appendChild s
       bx.leisureOwner = el
       makeOutputBox(bx)
-    for test in tests
-      console.log "TEST: #{JSON.stringify(test.leisureTest)}"
   [pgm, auto]
 
 textNode = (text)-> document.createTextNode(text)
@@ -330,19 +333,42 @@ makeTestCase = (exBox)->
   test =
     expr: source.textContent
     result: Repl.escapeHtml(Pretty.print(output.result))
-  box = makeTestBox "#@test #{JSON.stringify test}"
+  box = makeTestBox test
   source.parentNode.insertBefore box, source
   source.parentNode.removeChild source
   output.parentNode.removeChild output
 
-makeTestBox = (src)->
+makeTestBox = (test)->
+  src = "#@test #{JSON.stringify test}"
   s = codeSpan src, 'codeTest'
   s.appendChild textNode('\n')
   s.setAttribute('generatedNL', '')
   bx = codeBox 'codeMainTest'
   bx.setAttribute 'class', 'codeMainTest white'
   bx.appendChild s
+  bx.addEventListener 'click', (-> runTest test, bx), true, true
+  bx.test = test
   bx
+
+runTest = (test, bx)->
+  #console.log "RUN:\n #{test.expr}\nRESULT:\n #{test.result}"
+  ReplCore.processLine(prepExpr(test.expr), (
+    require: req
+    write: ->
+    prompt: (msg, cont)-> cont(null)
+    processResult: (result)-> showResult bx, Repl.escapeHtml(Pretty.print(result)), test.result
+  ))
+
+showResult = (bx, actual, expected)->
+  cl = bx.classList
+  cl.remove 'white'
+  if actual == expected
+    cl.remove 'red'
+    cl.add 'green'
+  else
+    cl.remove 'green'
+    cl.add 'red'
+    console.log "expected <#{expected}> but got <#{actual}>"
 
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
@@ -426,11 +452,13 @@ getRanges = (el, txt, rest, def, restOff)->
       next = if endPat then rest1.substring(endPat.index) else rest1
       mainEnd = txt.length - next.length
       t = leading
-      while m2 = t.match /#@test([^\n]*)\n/
-        r = makeRange(el, restOff + m2.index, restOff + m2[0].length)
+      tOff = restOff
+      while m2 = t.match testPat
+        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[0].length)
         r.leisureTest = JSON.parse(m2[1])
         tests.push r
-        t = t.substring m.index + m2[0].length
+        tOff += m2.index + m2[0].length
+        t = leading.substring tOff
       if name?
         mainStart = matchStart + (leading?.length ? 0)
         nameEnd = mainStart + name.length
@@ -442,9 +470,12 @@ getRanges = (el, txt, rest, def, restOff)->
         mainStart = if def == '=' then restOff + m.index + m[0].length else matchStart + (leading?.length ? 0)
         ex = txt.substring(mainStart, mainEnd).match /^(.*[^ \n])[ \n]*$/
         exEnd = if ex then mainStart + ex[1].length else mainEnd
-        outerRange = makeRange el, mainStart, exEnd
-        if leading.match /@auto/ then outerRange.leisureAuto = true
-        [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next]
+        body = txt.substring mainStart, exEnd
+        if body.trim()
+          outerRange = makeRange el, mainStart, exEnd
+          if leading.match /@auto/ then outerRange.leisureAuto = true
+          [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next]
+        else [null, null, null, null, tests, next]
 
 makeRange = (el, off1, off2)->
   range = document.createRange()
@@ -509,7 +540,7 @@ queueAfterLoad = (func)-> postLoadQueue.push(func)
 oldFocus = null
 
 focusBox = (box)->
-  if oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
+  if box and oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
   oldFocus = box
 
 evalDoc = (el)->
