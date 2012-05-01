@@ -236,7 +236,9 @@ configureSaveLink = (el)->
   el.leisureDownloadLink.href = window.URL.createObjectURL(blob)
   el.leisureViewLink.href = window.URL.createObjectURL(blob)
 
-runTests = (el)-> alert 'run tests'
+runTests = (el)->
+  for test in el.querySelectorAll '.codeMainTest'
+    runTest test
 
 changeTheme = (t)->
   theme = t.options[t.selectedIndex].value
@@ -289,13 +291,9 @@ markupDefs = (el, defs)->
       bx.leisureOwner = el
       pgm += "#{name} #{def} #{body}\n"
     else if main?.leisureTest
-      s = codeSpan body, 'codeTest'
-      s.appendChild textNode('\n')
-      s.setAttribute('generatedNL', '')
-      bx = box main, 'codeMainTest', true
-      bx.setAttribute 'class', 'codeMainTest green'
-      bx.appendChild s
-      bx.leisureOwner = el
+      bx = makeTestBox main.leisureTest, el, body
+      main.deleteContents()
+      main.insertNode bx
     else if main?
       if main.leisureAuto then auto += "#{body}\n"
       s = codeSpan body, 'codeExpr'
@@ -333,25 +331,27 @@ makeTestCase = (exBox)->
   test =
     expr: source.textContent
     result: Repl.escapeHtml(Pretty.print(output.result))
-  box = makeTestBox test
+  box = makeTestBox test, exBox.leisureOwner
   source.parentNode.insertBefore box, source
   source.parentNode.removeChild source
   output.parentNode.removeChild output
 
-makeTestBox = (test)->
-  src = "#@test #{JSON.stringify test}"
+makeTestBox = (test, owner, src)->
+  src = src ? "#@test #{JSON.stringify test}"
   s = codeSpan src, 'codeTest'
   s.appendChild textNode('\n')
   s.setAttribute('generatedNL', '')
   bx = codeBox 'codeMainTest'
-  bx.setAttribute 'class', 'codeMainTest white'
+  bx.setAttribute 'class', 'codeMainTest unrun'
   bx.appendChild s
-  bx.addEventListener 'click', (-> runTest test, bx), true, true
+  bx.addEventListener 'click', (-> runTest bx), true, true
   bx.test = test
+  bx.leisureOwner = owner
   bx
 
-runTest = (test, bx)->
-  #console.log "RUN:\n #{test.expr}\nRESULT:\n #{test.result}"
+runTest = (bx)->
+  test = bx.test
+  console.log "RUNNING:\n #{test.expr}\nRESULT:\n #{test.result}"
   ReplCore.processLine(prepExpr(test.expr), (
     require: req
     write: ->
@@ -361,13 +361,13 @@ runTest = (test, bx)->
 
 showResult = (bx, actual, expected)->
   cl = bx.classList
-  cl.remove 'white'
+  cl.remove 'unrun'
   if actual == expected
-    cl.remove 'red'
-    cl.add 'green'
+    cl.remove 'failed'
+    cl.add 'succeeded'
   else
-    cl.remove 'green'
-    cl.add 'red'
+    cl.remove 'succeeded'
+    cl.add 'failed'
     console.log "expected <#{expected}> but got <#{actual}>"
 
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"

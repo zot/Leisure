@@ -319,7 +319,14 @@
   };
 
   runTests = function runTests(el) {
-    return alert('run tests');
+    var test, _i, _len, _ref, _results;
+    _ref = el.querySelectorAll('.codeMainTest');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      test = _ref[_i];
+      _results.push(runTest(test));
+    }
+    return _results;
   };
 
   changeTheme = function changeTheme(t) {
@@ -405,13 +412,9 @@
         bx.leisureOwner = el;
         pgm += "" + name + " " + def + " " + body + "\n";
       } else if (main != null ? main.leisureTest : void 0) {
-        s = codeSpan(body, 'codeTest');
-        s.appendChild(textNode('\n'));
-        s.setAttribute('generatedNL', '');
-        bx = box(main, 'codeMainTest', true);
-        bx.setAttribute('class', 'codeMainTest green');
-        bx.appendChild(s);
-        bx.leisureOwner = el;
+        bx = makeTestBox(main.leisureTest, el, body);
+        main.deleteContents();
+        main.insertNode(bx);
       } else if (main != null) {
         if (main.leisureAuto) auto += "" + body + "\n";
         s = codeSpan(body, 'codeExpr');
@@ -464,29 +467,33 @@
       expr: source.textContent,
       result: Repl.escapeHtml(Pretty.print(output.result))
     };
-    box = makeTestBox(test);
+    box = makeTestBox(test, exBox.leisureOwner);
     source.parentNode.insertBefore(box, source);
     source.parentNode.removeChild(source);
     return output.parentNode.removeChild(output);
   };
 
-  makeTestBox = function makeTestBox(test) {
-    var bx, s, src;
-    src = "#@test " + (JSON.stringify(test));
+  makeTestBox = function makeTestBox(test, owner, src) {
+    var bx, s;
+    src = src != null ? src : "#@test " + (JSON.stringify(test));
     s = codeSpan(src, 'codeTest');
     s.appendChild(textNode('\n'));
     s.setAttribute('generatedNL', '');
     bx = codeBox('codeMainTest');
-    bx.setAttribute('class', 'codeMainTest white');
+    bx.setAttribute('class', 'codeMainTest unrun');
     bx.appendChild(s);
     bx.addEventListener('click', (function() {
-      return runTest(test, bx);
+      return runTest(bx);
     }), true, true);
     bx.test = test;
+    bx.leisureOwner = owner;
     return bx;
   };
 
-  runTest = function runTest(test, bx) {
+  runTest = function runTest(bx) {
+    var test;
+    test = bx.test;
+    console.log("RUNNING:\n " + test.expr + "\nRESULT:\n " + test.result);
     return ReplCore.processLine(prepExpr(test.expr), {
       require: req,
       write: function write() {},
@@ -502,13 +509,13 @@
   showResult = function showResult(bx, actual, expected) {
     var cl;
     cl = bx.classList;
-    cl.remove('white');
+    cl.remove('unrun');
     if (actual === expected) {
-      cl.remove('red');
-      return cl.add('green');
+      cl.remove('failed');
+      return cl.add('succeeded');
     } else {
-      cl.remove('green');
-      cl.add('red');
+      cl.remove('succeeded');
+      cl.add('failed');
       return console.log("expected <" + expected + "> but got <" + actual + ">");
     }
   };
