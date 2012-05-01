@@ -59,15 +59,15 @@ body.cthulhu {
 .cthulhu .codeMainTest * {
   display: none;
 }
-.cthulhu .codeMainTest.white {
+.cthulhu .codeMainTest.unrun {
   background-image: url(testCaseWhite.png);
   background-repeat: no-repeat;
 }
-.cthulhu .codeMainTest.green {
+.cthulhu .codeMainTest.succeeded {
   background-image: url(testCaseGreen.png);
   background-repeat: no-repeat;
 }
-.cthulhu .codeMainTest.red {
+.cthulhu .codeMainTest.failed {
   background-image: url(testCaseRed.png);
   background-repeat: no-repeat;
 }

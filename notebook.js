@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, req, root, runTests, selInDef, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -85,6 +85,7 @@
     if (!s.rangeCount) return;
     r = s.getRangeAt(0);
     parent = getBox(r.startContainer);
+    focusBox(parent);
     if (!(parent != null) || (parent.getAttribute('LeisureOutput') != null)) {
       return;
     }
@@ -94,34 +95,40 @@
     pos = getRangeText(tr).length;
     txt = parent.textContent;
     ast = (Leisure.compileNext(txt, Leisure.Nil, true, null, true))[0];
-    offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
-    brackets = Leisure.bracket(ast, pos + offset);
-    if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
-      oldBrackets = [parent, brackets];
-      _ref2 = document.querySelectorAll("[LeisureBrackets]");
-      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-        node = _ref2[_i];
-        unwrap(node);
-      }
-      parent.normalize();
-      if (ast != null) {
-        b = brackets;
-        while (b !== Leisure.Nil) {
-          span = document.createElement('span');
-          span.setAttribute('LeisureBrackets', '');
-          span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
-          r = makeRange(parent, b.head.head - offset, b.head.tail.head - offset);
-          contents = r.cloneContents();
-          r.deleteContents();
-          r.insertNode(span);
-          span.appendChild(contents);
-          b = b.tail;
+    if (ast != null) {
+      offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
+      brackets = Leisure.bracket(ast, pos + offset);
+      if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
+        oldBrackets = [parent, brackets];
+        _ref2 = document.querySelectorAll("[LeisureBrackets]");
+        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+          node = _ref2[_i];
+          unwrap(node);
         }
+        parent.normalize();
+        if (ast != null) {
+          b = brackets;
+          while (b !== Leisure.Nil) {
+            span = document.createElement('span');
+            span.setAttribute('LeisureBrackets', '');
+            span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
+            r = makeRange(parent, b.head.head - offset, b.head.tail.head - offset);
+            contents = r.cloneContents();
+            replaceRange(r, span);
+            span.appendChild(contents);
+            b = b.tail;
+          }
+        }
+        s.removeAllRanges();
+        parent.normalize();
+        return s.addRange(makeRange(parent, pos, pos));
       }
-      s.removeAllRanges();
-      parent.normalize();
-      return s.addRange(makeRange(parent, pos, pos));
     }
+  };
+
+  replaceRange = function replaceRange(range, node) {
+    range.deleteContents();
+    return range.insertNode(node);
   };
 
   getRangeText = function getRangeText(r) {
@@ -188,7 +195,7 @@
     var pgm, _ref;
     el.replacing = true;
     removeOldDefs(el);
-    pgm = markupDefs(findDefs(el));
+    pgm = markupDefs(el, findDefs(el));
     if (!((el != null ? (_ref = el.lastChild) != null ? _ref.nodeType : void 0 : void 0) === 3 && el.lastChild.data[el.lastChild.data.length - 1] === '\n')) {
       el.appendChild(textNode('\n'));
       el.appendChild(textNode('\n'));
@@ -312,7 +319,14 @@
   };
 
   runTests = function runTests(el) {
-    return alert('run tests');
+    var test, _i, _len, _ref, _results;
+    _ref = el.querySelectorAll('.codeMainTest');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      test = _ref[_i];
+      _results.push(runTest(test));
+    }
+    return _results;
   };
 
   changeTheme = function changeTheme(t) {
@@ -373,13 +387,17 @@
     }
   };
 
-  markupDefs = function markupDefs(defs) {
+  markupDefs = function markupDefs(el, defs) {
     var auto, bod, body, bx, def, i, main, name, pgm, s, test, tests, _i, _j, _len, _len2;
     pgm = '';
     auto = '';
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i[0], name = i[1], def = i[2], body = i[3], tests = i[4];
+      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
+        test = tests[_j];
+        replaceRange(test, makeTestBox(test.leisureTest));
+      }
       if (name != null) {
         bod = codeSpan(body, 'codeBody');
         bod.appendChild(textNode('\n'));
@@ -388,26 +406,24 @@
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
         bx.appendChild(bod);
+        bx.addEventListener('blur', (function() {
+          return evalDoc(el);
+        }), true, true);
+        bx.leisureOwner = el;
         pgm += "" + name + " " + def + " " + body + "\n";
-      } else if (main.leisureTest) {
-        s = codeSpan(body, 'codeTest');
-        s.appendChild(textNode('\n'));
-        s.setAttribute('generatedNL', '');
-        bx = box(main, 'codeMainTest', true);
-        bx.setAttribute('class', 'codeMainTest green');
-        bx.appendChild(s);
-      } else {
+      } else if (main != null ? main.leisureTest : void 0) {
+        bx = makeTestBox(main.leisureTest, el, body);
+        main.deleteContents();
+        main.insertNode(bx);
+      } else if (main != null) {
         if (main.leisureAuto) auto += "" + body + "\n";
         s = codeSpan(body, 'codeExpr');
         s.appendChild(textNode('\n'));
         s.setAttribute('generatedNL', '');
         bx = box(main, 'codeMainExpr', true);
         bx.appendChild(s);
+        bx.leisureOwner = el;
         makeOutputBox(bx);
-      }
-      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
-        test = tests[_j];
-        console.log("TEST: " + (JSON.stringify(test.leisureTest)));
       }
     }
     return [pgm, auto];
@@ -418,13 +434,10 @@
   };
 
   evalOutput = function evalOutput(exBox) {
-    var d;
     exBox = getBox(exBox);
+    focusBox(exBox);
     cleanOutput(exBox);
-    d = document.createElement('div');
-    d.setAttribute('style', 'float: right');
-    d.innerHTML = "<button onclick='Notebook.makeTestCase(this)'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>";
-    exBox.firstChild.appendChild(d);
+    exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.makeTestCase(this)'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>"));
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
   };
 
@@ -432,7 +445,7 @@
     var fc, _results;
     exBox = getBox(exBox);
     fc = exBox.firstChild;
-    while (fc.firstChild.nextSibling !== fc.lastChild) {
+    while (fc.firstChild !== fc.lastChild) {
       fc.removeChild(fc.lastChild);
     }
     _results = [];
@@ -450,21 +463,74 @@
       expr: source.textContent,
       result: Repl.escapeHtml(Pretty.print(output.result))
     };
-    box = makeTestBox("#@test " + (JSON.stringify(test)));
+    box = makeTestBox(test, exBox.leisureOwner);
     source.parentNode.insertBefore(box, source);
     source.parentNode.removeChild(source);
     return output.parentNode.removeChild(output);
   };
 
-  makeTestBox = function makeTestBox(src) {
+  makeTestBox = function makeTestBox(test, owner, src) {
     var bx, s;
+    src = src != null ? src : "#@test " + (JSON.stringify(test));
     s = codeSpan(src, 'codeTest');
     s.appendChild(textNode('\n'));
     s.setAttribute('generatedNL', '');
     bx = codeBox('codeMainTest');
-    bx.setAttribute('class', 'codeMainTest white');
+    bx.setAttribute('class', 'codeMainTest unrun');
     bx.appendChild(s);
+    bx.addEventListener('click', (function() {
+      return clickTest(bx);
+    }), true, true);
+    bx.test = test;
+    bx.leisureOwner = owner;
     return bx;
+  };
+
+  clickTest = function clickTest(bx) {
+    var exprBox, r, sp;
+    if (bx.classList.contains('unrun')) {
+      return runTest(bx);
+    } else {
+      r = document.createRange();
+      r.setStartBefore(bx);
+      r.setEndAfter(bx);
+      r.deleteContents();
+      sp = codeSpan(bx.test.expr, 'codeExpr');
+      sp.setAttribute('generatedNL', '');
+      exprBox = box(r, 'codeMainExpr', true);
+      exprBox.appendChild(sp);
+      return makeOutputBox(exprBox);
+    }
+  };
+
+  runTest = function runTest(bx) {
+    var test;
+    test = bx.test;
+    console.log("RUNNING:\n " + test.expr + "\nRESULT:\n " + test.result);
+    return ReplCore.processLine(prepExpr(test.expr), {
+      require: req,
+      write: function write() {},
+      prompt: function prompt(msg, cont) {
+        return cont(null);
+      },
+      processResult: function processResult(result) {
+        return showResult(bx, Repl.escapeHtml(Pretty.print(result)), test.result);
+      }
+    });
+  };
+
+  showResult = function showResult(bx, actual, expected) {
+    var cl;
+    cl = bx.classList;
+    cl.remove('unrun');
+    if (actual === expected) {
+      cl.remove('failed');
+      return cl.add('succeeded');
+    } else {
+      cl.remove('succeeded');
+      cl.add('failed');
+      return console.log("expected <" + expected + "> but got <" + actual + ">");
+    }
   };
 
   prepExpr = function prepExpr(txt) {
@@ -505,8 +571,9 @@
     node.setAttribute('class', 'output');
     node.setAttribute('contentEditable', 'false');
     node.source = source;
+    node.leisureOwner = source.leisureOwner;
     source.output = node;
-    node.innerHTML = "<div><div style='float: left'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div><button style='visibility: hidden'></button></div>";
+    node.innerHTML = "<div><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>";
     source.parentNode.insertBefore(node, source.nextSibling);
     return node;
   };
@@ -570,7 +637,7 @@
   testPat = /#@test([^\n]*)\n/;
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tests, _ref, _ref2, _ref3;
+    var body, bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, _ref, _ref2, _ref3;
     _ref = m = def, matched = _ref[0], leading = _ref[1], nameRaw = _ref[2], defType = _ref[3];
     if (!rest.trim()) {
       return null;
@@ -592,11 +659,13 @@
       next = endPat ? rest1.substring(endPat.index) : rest1;
       mainEnd = txt.length - next.length;
       t = leading;
-      while (m2 = t.match(/#@test([^\n]*)\n/)) {
-        r = makeRange(el, restOff + m2.index, restOff + m2[0].length);
+      tOff = restOff;
+      while (m2 = t.match(testPat)) {
+        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[0].length);
         r.leisureTest = JSON.parse(m2[1]);
         tests.push(r);
-        t = t.substring(m.index + m2[0].length);
+        tOff += m2.index + m2[0].length;
+        t = leading.substring(tOff);
       }
       if (name != null) {
         mainStart = matchStart + ((_ref2 = leading != null ? leading.length : void 0) != null ? _ref2 : 0);
@@ -609,9 +678,14 @@
         mainStart = def === '=' ? restOff + m.index + m[0].length : matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
         ex = txt.substring(mainStart, mainEnd).match(/^(.*[^ \n])[ \n]*$/);
         exEnd = ex ? mainStart + ex[1].length : mainEnd;
-        outerRange = makeRange(el, mainStart, exEnd);
-        if (leading.match(/@auto/)) outerRange.leisureAuto = true;
-        return [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next];
+        body = txt.substring(mainStart, exEnd);
+        if (body.trim()) {
+          outerRange = makeRange(el, mainStart, exEnd);
+          if (leading.match(/@auto/)) outerRange.leisureAuto = true;
+          return [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next];
+        } else {
+          return [null, null, null, null, tests, next];
+        }
       }
     }
   };
@@ -714,18 +788,32 @@
     return postLoadQueue.push(func);
   };
 
+  /*
+  # handle focus manually, because focus and blur events don't seem to work in this case
+  */
+
+  oldFocus = null;
+
+  focusBox = function focusBox(box) {
+    if (box && (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0)) {
+      evalDoc(box.leisureOwner);
+    }
+    return oldFocus = box;
+  };
+
   evalDoc = function evalDoc(el) {
     var auto, pgm, _ref;
     _ref = initNotebook(el), pgm = _ref[0], auto = _ref[1];
     try {
       if (auto) {
         auto = "do\n  " + (auto.trim().replace(/\n/, '\n  ')) + "\n  finishLoading 'fred'";
+        global.noredefs = false;
         Notebook.queueAfterLoad(function() {
-          return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global);
+          return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
         });
         return Leisure.eval(ReplCore.generateCode('_auto', auto, false));
       } else {
-        return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false)), global);
+        return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
       }
     } catch (err) {
       return alert(err.stack);

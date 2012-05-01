@@ -50,17 +50,17 @@
 .thin .codeMainTest * {
   display: none;
 }
-.thin .codeMainTest.white {
+.thin .codeMainTest.unrun {
   border: 0px;
   background-image: url(testCaseWhite.png);
   background-repeat: no-repeat;
 }
-.thin .codeMainTest.green {
+.thin .codeMainTest.succeeded {
   border: 0px;
   background-image: url(testCaseGreen.png);
   background-repeat: no-repeat;
 }
-.thin .codeMainTest.red {
+.thin .codeMainTest.failed {
   border: 0px;
   background-image: url(testCaseRed.png);
   background-repeat: no-repeat;

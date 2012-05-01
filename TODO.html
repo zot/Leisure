@@ -13,23 +13,37 @@
 
 <p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="http://github.com/zot/leisure">Source</a> <a href="leisure.html">REPL</a> <a href="std.lsr">Standard functinos</a></p>
 
+<h1>BUGS</h1>
+
+<ul>
+<li>notebook
+<ul>
+<li>highlight is wrong for defs</li>
+<li>process button eats newlines at end</li>
+</ul></li>
+</ul>
+
 <h1>TODO</h1>
 
 <ul>
-<li>notebook style interface
+<li>notebook
 <ul>
-<li>collapse auto exprs</li>
-<li>"save output as testcase" -- snapshot input and output as strings and record them as a testcase comment</li>
-<li>highlighting fixes
+<li>incremental compilation (automatically recompile and update all errors)</li>
+<li>show errors in output, but no make test case button if there's an error</li>
+<li>run test cases button
 <ul>
-<li>defs don't work</li>
+<li>result indicator</li>
+<li>checkbox to run all tests on successful auto-build</li>
+<li>auto build should clear tests on a recompile</li>
 </ul></li>
-<li>incremental compilation (recompile the file after a blank line and update all errors)</li>
+<li>monad to present an html as an app</li>
+<li>collapse auto exprs</li>
+<li>command completion</li>
 <li>make programs html pages with code attributes
 <ul>
 <li>in node, use htmlparser (npm install htmlparser)</li>
 </ul></li>
-<li>exprs that hang in the page are commented out: #@EXPR: + 1 2</li>
+<li>exprs that hang in the page should be commented out (JSON str): #@EXPR: '+ 1 2'</li>
 <li>vision statements in default notebook</li>
 <li>notebook-hide-source: monad to hide source</li>
 <li>better formatting
@@ -46,17 +60,36 @@
 <li>optionally hide source code</li>
 <li>collaboration</li>
 </ul></li>
+<li>cmd-line REPL
+<ul>
+<li>make nested require work</li>
+<li>should parse HTML source files</li>
+<li>should be multiline</li>
+<li>more REPL cmds
+<ul>
+<li>:l should load file</li>
+<li>:p to show primitives</li>
+<li>:d command to show how a function is defined</li>
+<li>save expr</li>
+<li>run saved expr</li>
+<li>save as a test case</li>
+</ul></li>
+</ul></li>
 <li>configuration monads
 <ul>
 <li>default pretty-printers for output</li>
 <li>run-test-cases -- run test cases after loading this file</li>
 <li>set theme</li>
 </ul></li>
+<li>test cases
+<ul>
+<li>make human-readable</li>
+<li>add run-tests option to runRepl</li>
+</ul></li>
 <li>name spaces</li>
 <li>number nodes so messages can refer to them -- just number them in an inorder traversal</li>
 <li>change getType to return the type instead of an option, because it can never return a none</li>
-<li>make require work in node</li>
-<li>pretty printer function can take an assoc-list of printers for types</li>
+<li>pretty printer function should take an assoc-list of printers for types</li>
 <li>report indentation underflows</li>
 <li>parser macros should return [ast, errors, warnings]
 <ul>
@@ -70,8 +103,8 @@
 <li>add assertMonad() to testing.cs
 <ul>
 <li>probably use env for this</li>
+<li>need to convert test runner to CPS</li>
 </ul></li>
-<li>make cmd line runRepl parse HTML code files</li>
 <li>use curlies for do/let?
 <ul>
 <li>handle groups properly with indentation</li>
@@ -86,31 +119,25 @@
 <li>doc comments</li>
 <li>allow eval to take either a string or an AST</li>
 <li>better errors for file problems</li>
-<li>multiline REPL</li>
 <li>if reqs aren't present when runing in browser, show error in output area or use alert if not in repl</li>
 <li>fold, map, etc. for asts</li>
 <li>make options also be monads</li>
 <li>supertypes or something for things like booleans (true or false), options, eithers</li>
+<li>library
+<ul>
 <li>string functions</li>
 <li>Data structures
 <ul>
 <li>AMTs</li>
 <li>HAMTs</li>
 </ul></li>
-<li>Rewrite parser, generator, pretty printing, and REPL in Leisure; compile them and use the JS for them
-<ul>
+<li>Leisure parser, generator, pretty printer, and REPL (compile and use the JS for them)</li>
 <li>This will help people extend leisure</li>
 </ul></li>
 <li>-g option
 <ul>
 <li>check function types before application and print meaningful error msgs</li>
 <li>generate trace</li>
-</ul></li>
-<li>more REPL cmds
-<ul>
-<li>:l should load file</li>
-<li>:p to show primitives</li>
-<li>:d command to show how a function is defined</li>
 </ul></li>
 <li>example that reads strings and prints them until the user types 'quit'</li>
 <li>infix function call syntax
@@ -152,6 +179,7 @@
 </ul></li>
 <li>notebook style interface
 <ul>
+<li>"save output as testcase" -- snapshot input and output as strings and record them as a testcase comment</li>
 <li>highlighting fixes
 <ul>
 <li>end quote isn't highlighting</li>
