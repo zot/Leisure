@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -483,11 +483,28 @@
     bx.setAttribute('class', 'codeMainTest unrun');
     bx.appendChild(s);
     bx.addEventListener('click', (function() {
-      return runTest(bx);
+      return clickTest(bx);
     }), true, true);
     bx.test = test;
     bx.leisureOwner = owner;
     return bx;
+  };
+
+  clickTest = function clickTest(bx) {
+    var exprBox, r, sp;
+    if (bx.classList.contains('unrun')) {
+      return runTest(bx);
+    } else {
+      r = document.createRange();
+      r.setStartBefore(bx);
+      r.setEndAfter(bx);
+      r.deleteContents();
+      sp = codeSpan(bx.test.expr, 'codeExpr');
+      sp.setAttribute('generatedNL', '');
+      exprBox = box(r, 'codeMainExpr', true);
+      exprBox.appendChild(sp);
+      return makeOutputBox(exprBox);
+    }
   };
 
   runTest = function runTest(bx) {

@@ -1,6 +1,10 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
 * notebook style interface
+   * process button eats newlines at end
+   * highlight is off for defs
+   * test cases
+      * need a way to open them
    * monad to present an html as an app
    * collapse auto exprs
    * command completion

@@ -344,10 +344,23 @@ makeTestBox = (test, owner, src)->
   bx = codeBox 'codeMainTest'
   bx.setAttribute 'class', 'codeMainTest unrun'
   bx.appendChild s
-  bx.addEventListener 'click', (-> runTest bx), true, true
+  bx.addEventListener 'click', (-> clickTest bx), true, true
   bx.test = test
   bx.leisureOwner = owner
   bx
+
+clickTest = (bx)->
+  if bx.classList.contains 'unrun' then runTest bx
+  else
+    r = document.createRange()
+    r.setStartBefore bx
+    r.setEndAfter bx
+    r.deleteContents()
+    sp = codeSpan bx.test.expr, 'codeExpr'
+    sp.setAttribute('generatedNL', '')
+    exprBox = box r, 'codeMainExpr', true
+    exprBox.appendChild sp
+    makeOutputBox exprBox
 
 runTest = (bx)->
   test = bx.test
