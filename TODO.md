@@ -1,20 +1,18 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # TODO
 * notebook style interface
+   * highlight is wrong for defs
    * process button eats newlines at end
-   * highlight is off for defs
-   * test cases
-      * need a way to open them
+   * run test cases button
+      * checkbox to run all tests on successful auto-build
+	  * auto build should clear tests on a recompile
    * monad to present an html as an app
    * collapse auto exprs
    * command completion
-   * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
-   * highlighting fixes
-      * defs don't work
    * incremental compilation (recompile the file after a blank line and update all errors)
    * make programs html pages with code attributes
       * in node, use htmlparser (npm install htmlparser)
-   * exprs that hang in the page are commented out: #@EXPR: + 1 2
+   * exprs that hang in the page should be commented out (JSON str): #@EXPR: '+ 1 2'
    * vision statements in default notebook
    * notebook-hide-source: monad to hide source
    * better formatting
@@ -39,7 +37,7 @@
 * number nodes so messages can refer to them -- just number them in an inorder traversal
 * change getType to return the type instead of an option, because it can never return a none
 * make require work in node
-* pretty printer function can take an assoc-list of printers for types
+* pretty printer function should take an assoc-list of printers for types
 * report indentation underflows
 * parser macros should return [ast, errors, warnings]
    * error if let/do has no expr
@@ -104,6 +102,7 @@
 * a 'require' directive that works in browsers and on the cmd line
    * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
 * notebook style interface
+   * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
    * highlighting fixes
       * end quote isn't highlighting
       * grouping tokens should highlight

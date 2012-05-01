@@ -18,26 +18,22 @@
 <ul>
 <li>notebook style interface
 <ul>
+<li>highlight is wrong for defs</li>
 <li>process button eats newlines at end</li>
-<li>highlight is off for defs</li>
-<li>test cases
+<li>run test cases button
 <ul>
-<li>need a way to open them</li>
+<li>checkbox to run all tests on successful auto-build</li>
+<li>auto build should clear tests on a recompile</li>
 </ul></li>
 <li>monad to present an html as an app</li>
 <li>collapse auto exprs</li>
 <li>command completion</li>
-<li>"save output as testcase" -- snapshot input and output as strings and record them as a testcase comment</li>
-<li>highlighting fixes
-<ul>
-<li>defs don't work</li>
-</ul></li>
 <li>incremental compilation (recompile the file after a blank line and update all errors)</li>
 <li>make programs html pages with code attributes
 <ul>
 <li>in node, use htmlparser (npm install htmlparser)</li>
 </ul></li>
-<li>exprs that hang in the page are commented out: #@EXPR: + 1 2</li>
+<li>exprs that hang in the page should be commented out (JSON str): #@EXPR: '+ 1 2'</li>
 <li>vision statements in default notebook</li>
 <li>notebook-hide-source: monad to hide source</li>
 <li>better formatting
@@ -69,7 +65,7 @@
 <li>number nodes so messages can refer to them -- just number them in an inorder traversal</li>
 <li>change getType to return the type instead of an option, because it can never return a none</li>
 <li>make require work in node</li>
-<li>pretty printer function can take an assoc-list of printers for types</li>
+<li>pretty printer function should take an assoc-list of printers for types</li>
 <li>report indentation underflows</li>
 <li>parser macros should return [ast, errors, warnings]
 <ul>
@@ -166,6 +162,7 @@
 </ul></li>
 <li>notebook style interface
 <ul>
+<li>"save output as testcase" -- snapshot input and output as strings and record them as a testcase comment</li>
 <li>highlighting fixes
 <ul>
 <li>end quote isn't highlighting</li>

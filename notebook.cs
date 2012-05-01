@@ -311,16 +311,13 @@ evalOutput = (exBox)->
   exBox = getBox exBox
   focusBox exBox
   cleanOutput exBox
-  d = document.createElement('div')
-  d.setAttribute 'style', 'float: right'
-  d.innerHTML = "<button onclick='Notebook.makeTestCase(this)'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>"
-  exBox.firstChild.appendChild d
+  exBox.firstChild.appendChild createFragment("<button onclick='Notebook.makeTestCase(this)'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>")
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
 cleanOutput = (exBox)->
   exBox = getBox exBox
   fc = exBox.firstChild
-  while fc.firstChild.nextSibling != fc.lastChild
+  while fc.firstChild != fc.lastChild
     fc.removeChild fc.lastChild
   while exBox.firstChild != exBox.lastChild
     exBox.removeChild exBox.lastChild
@@ -405,7 +402,7 @@ makeOutputBox = (source)->
   node.source = source
   node.leisureOwner = source.leisureOwner
   source.output = node
-  node.innerHTML = "<div><div style='float: left'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div><button style='visibility: hidden'></button></div>"
+  node.innerHTML = "<div><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>"
   source.parentNode.insertBefore node, source.nextSibling
   node
 
