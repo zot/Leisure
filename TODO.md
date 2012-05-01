@@ -6,7 +6,9 @@
 
 # TODO
 * notebook
+   * run test cases needs a result indicator
    * incremental compilation (automatically recompile and update all errors)
+   * show errors in output, but no make test case button if there's an error
    * run test cases button
       * checkbox to run all tests on successful auto-build
 	  * auto build should clear tests on a recompile
@@ -29,6 +31,17 @@
    * comments that attach event handlers?
    * optionally hide source code
    * collaboration
+* cmd-line REPL
+   * make nested require work
+   * should parse HTML source files
+   * should be multiline
+   * more REPL cmds
+      * :l should load file
+      * :p to show primitives
+      * :d command to show how a function is defined
+      * save expr
+	  * run saved expr
+      * save as a test case
 * configuration monads
    * default pretty-printers for output
    * run-test-cases -- run test cases after loading this file
@@ -39,7 +52,6 @@
 * name spaces
 * number nodes so messages can refer to them -- just number them in an inorder traversal
 * change getType to return the type instead of an option, because it can never return a none
-* make require work in node
 * pretty printer function should take an assoc-list of printers for types
 * report indentation underflows
 * parser macros should return [ast, errors, warnings]
@@ -50,7 +62,6 @@
 * add assertMonad() to testing.cs
    * probably use env for this
    * need to convert test runner to CPS
-* make cmd line runRepl parse HTML code files
 * use curlies for do/let?
    * handle groups properly with indentation
    * not sure what this means for indentation
@@ -63,24 +74,20 @@
 * doc comments
 * allow eval to take either a string or an AST
 * better errors for file problems
-* multiline REPL
 * if reqs aren't present when runing in browser, show error in output area or use alert if not in repl
 * fold, map, etc. for asts
 * make options also be monads
 * supertypes or something for things like booleans (true or false), options, eithers
-* string functions
-* Data structures
-   * AMTs
-   * HAMTs
-* Rewrite parser, generator, pretty printing, and REPL in Leisure; compile them and use the JS for them
+* library
+   * string functions
+   * Data structures
+      * AMTs
+      * HAMTs
+   * Leisure parser, generator, pretty printer, and REPL (compile and use the JS for them)
    * This will help people extend leisure
 * -g option
    * check function types before application and print meaningful error msgs
    * generate trace
-* more REPL cmds
-   * :l should load file
-   * :p to show primitives
-   * :d command to show how a function is defined
 * example that reads strings and prints them until the user types 'quit'
 * infix function call syntax
    * allow 1.plus 2.plus 3 as an alternative to plus (plus 1 2) 3 (if @ is compose, @ (@ a b) c is a.@ b.@ c)
