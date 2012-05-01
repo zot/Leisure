@@ -1,15 +1,18 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
-# TODO
-* notebook style interface
+# BUGS
+* notebook
    * highlight is wrong for defs
    * process button eats newlines at end
+
+# TODO
+* notebook
+   * incremental compilation (automatically recompile and update all errors)
    * run test cases button
       * checkbox to run all tests on successful auto-build
 	  * auto build should clear tests on a recompile
    * monad to present an html as an app
    * collapse auto exprs
    * command completion
-   * incremental compilation (recompile the file after a blank line and update all errors)
    * make programs html pages with code attributes
       * in node, use htmlparser (npm install htmlparser)
    * exprs that hang in the page should be commented out (JSON str): #@EXPR: '+ 1 2'
