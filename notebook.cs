@@ -195,7 +195,7 @@ insertControls = (el)->
   [el.leisureDownloadLink, el.leisureViewLink, loadButton, testButton, el.testResults, themeSelect, viewSelect, processButton] = getElements el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']
   loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
   testButton.addEventListener 'click', -> runTests el
-  if (el.leisureTheme) then themeSelect.value = el.leisureTheme
+  themeSelect.value = el.leisureTheme ? 'thin'
   themeSelect.addEventListener 'change', (evt)-> changeTheme el, evt.target
   viewSelect.addEventListener 'change', (evt)-> changeView el, evt.target
   processButton.addEventListener 'click', -> evalDoc el
