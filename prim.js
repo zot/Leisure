@@ -141,14 +141,14 @@
 
   define('randInt', function(from) {
     return function(to) {
-      return makeMonad('end', function(env, cont) {
+      return makeMonad(function(env, cont) {
         return cont(Math.floor(from() + Math.random() * (to() - from() + 1)));
       });
     };
   });
 
   define('rand', function() {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       return cont(Math.random());
     });
   });
@@ -254,12 +254,11 @@
     return monad.cmd(env, continueMonad(cont));
   };
 
-  makeMonad = function makeMonad(binding, guts) {
+  makeMonad = function makeMonad(guts) {
     var m;
     m = function m() {};
     m.cmd = guts;
     m.type = 'monad';
-    if (binding !== "end") m.binding = binding;
     return m;
   };
 
@@ -280,26 +279,26 @@
   });
 
   define('return', function(v) {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       return cont(v());
     });
   });
 
   define('require', function(file) {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       return env.require(file(), cont);
     });
   });
 
   define('print', function(msg) {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       if (msg() !== _nil()) env.write("" + (msg()) + "\n");
       return cont(_false());
     });
   });
 
   define('prompt', function(msg) {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       return env.prompt(String(msg()), function(input) {
         return cont(input);
       });
@@ -308,7 +307,7 @@
 
   define('bind', function(m) {
     return function(binding) {
-      return makeMonad('end', function(env, cont) {
+      return makeMonad(function(env, cont) {
         return runMonad(m(), env, function(value) {
           return runMonad(binding()(function() {
             return value;
@@ -351,7 +350,7 @@
   });
 
   define('js', function(codeList) {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       var cl;
       cl = codeList();
       if (cl !== _nil() && cl.type !== 'cons') {
@@ -362,7 +361,7 @@
   });
 
   define('browser', function(codeList) {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       var cl;
       if (typeof window !== "undefined" && window !== null) {
         cl = codeList();
@@ -379,14 +378,14 @@
   values = {};
 
   define('getValue', function(name) {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       return cont(values[name()]);
     });
   });
 
   define('setValue', function(name) {
     return function(value) {
-      return makeMonad('end', function(env, cont) {
+      return makeMonad(function(env, cont) {
         values[name()] = value();
         return cont(_false);
       });
@@ -394,7 +393,7 @@
   });
 
   define('createS', function() {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       return cont({
         value: null
       });
@@ -402,14 +401,14 @@
   });
 
   define('getS', function(state) {
-    return makeMonad('end', function(env, cont) {
+    return makeMonad(function(env, cont) {
       return cont(state().value);
     });
   });
 
   define('setS', function(state) {
     return function(value) {
-      return makeMonad('end', function(env, cont) {
+      return makeMonad(function(env, cont) {
         state().value = value();
         return cont(_false);
       });
