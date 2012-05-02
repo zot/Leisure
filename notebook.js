@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -241,56 +241,42 @@
   };
 
   insertControls = function insertControls(el) {
-    var controlDiv, downloadLink, loadButton, processButton, testButton, themeLabel, themeSelect, viewLabel, viewLink, viewSelect;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'></div>");
-    loadButton = createNode("<input type='file'></input>");
+    var controlDiv, loadButton, processButton, testButton, themeSelect, viewSelect, _ref;
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'>\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button>\n  <span leisureId='testResults' class=\"unrun\"></span>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button>\n</div>");
+    el.insertBefore(controlDiv, el.firstChild);
+    _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], themeSelect = _ref[5], viewSelect = _ref[6], processButton = _ref[7];
     loadButton.addEventListener('change', function(evt) {
       return loadProgram(el, loadButton.files);
     });
-    downloadLink = createNode("<a download='program.lsr'>Download</a>");
-    viewLink = createNode("<a target='_blank'>View</a>");
-    testButton = createNode("<button>Run Tests</button>");
     testButton.addEventListener('click', function() {
       return runTests(el);
     });
-    themeLabel = makeLabel("Theme: ", 'leisure_theme');
-    themeSelect = createNode("<select>\n  <option value=thin>Thin</option>\n  <option value=gaudy>Gaudy</option>\n  <option value=cthulhu>Cthulhu</option>\n</select>");
     themeSelect.addEventListener('change', function(evt) {
       return changeTheme(evt.target);
     });
-    viewLabel = document.createElement('SPAN');
-    viewLabel.innerHTML = "View: ";
-    viewSelect = document.createElement('SELECT');
-    viewSelect.add(makeOption("Coding"), null);
-    viewSelect.add(makeOption("Debugging"), null);
-    viewSelect.add(makeOption("Testing"), null);
-    viewSelect.add(makeOption("Running"), null);
     viewSelect.addEventListener('change', function(evt) {
       return changeView(evt.target);
     });
-    processButton = document.createElement('BUTTON');
-    processButton.innerHTML = "Process";
     processButton.addEventListener('click', function() {
       return evalDoc(el);
     });
-    processButton.setAttribute('style', 'float:right');
-    controlDiv.appendChild(makeLabel('Load: ', 'leisure_load'));
-    controlDiv.appendChild(loadButton);
-    controlDiv.appendChild(textNode(' '));
-    controlDiv.appendChild(downloadLink);
-    controlDiv.appendChild(textNode(' '));
-    controlDiv.appendChild(viewLink);
-    controlDiv.appendChild(textNode(' '));
-    controlDiv.appendChild(testButton);
-    controlDiv.appendChild(themeLabel);
-    controlDiv.appendChild(themeSelect);
-    controlDiv.appendChild(viewLabel);
-    controlDiv.appendChild(viewSelect);
-    controlDiv.appendChild(processButton);
-    el.leisureDownloadLink = downloadLink;
-    el.leisureViewLink = viewLink;
-    el.insertBefore(controlDiv, el.firstChild);
     return configureSaveLink(el);
+  };
+
+  getElements = function getElements(el, ids) {
+    var els, id, node, _i, _j, _len, _len2, _ref, _results;
+    els = {};
+    _ref = el.querySelectorAll('[leisureId]');
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      els[node.getAttribute('leisureId')] = node;
+    }
+    _results = [];
+    for (_j = 0, _len2 = ids.length; _j < _len2; _j++) {
+      id = ids[_j];
+      _results.push(els[id]);
+    }
+    return _results;
   };
 
   loadProgram = function loadProgram(el, files) {
@@ -319,14 +305,29 @@
   };
 
   runTests = function runTests(el) {
-    var test, _i, _len, _ref, _results;
+    var failed, passed, resultsClass, test, _i, _len, _ref;
+    passed = 0;
+    failed = 0;
     _ref = el.querySelectorAll('.codeMainTest');
-    _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       test = _ref[_i];
-      _results.push(runTest(test));
+      if (runTest(test)) {
+        passed++;
+      } else {
+        failed++;
+      }
     }
-    return _results;
+    resultsClass = el.testResults.classList;
+    resultsClass.remove('notrun');
+    if (!failed) {
+      resultsClass.remove('failed');
+      resultsClass.add('passed');
+      return el.testResults.innerHTML = passed;
+    } else {
+      resultsClass.remove('passed');
+      resultsClass.add('failed');
+      return el.testResults.innerHTML = "" + passed + "/" + failed;
+    }
   };
 
   changeTheme = function changeTheme(t) {
@@ -437,7 +438,7 @@
     exBox = getBox(exBox);
     focusBox(exBox);
     cleanOutput(exBox);
-    exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.makeTestCase(this)'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>"));
+    exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>"));
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
   };
 
@@ -476,7 +477,7 @@
     s.appendChild(textNode('\n'));
     s.setAttribute('generatedNL', '');
     bx = codeBox('codeMainTest');
-    bx.setAttribute('class', 'codeMainTest unrun');
+    bx.setAttribute('class', 'codeMainTest notrun');
     bx.appendChild(s);
     bx.addEventListener('click', (function() {
       return clickTest(bx);
@@ -488,7 +489,7 @@
 
   clickTest = function clickTest(bx) {
     var exprBox, r, sp;
-    if (bx.classList.contains('unrun')) {
+    if (bx.classList.contains('notrun')) {
       return runTest(bx);
     } else {
       r = document.createRange();
@@ -504,33 +505,37 @@
   };
 
   runTest = function runTest(bx) {
-    var test;
+    var passed, test;
     test = bx.test;
     console.log("RUNNING:\n " + test.expr + "\nRESULT:\n " + test.result);
-    return ReplCore.processLine(prepExpr(test.expr), {
+    passed = true;
+    ReplCore.processLine(prepExpr(test.expr), {
       require: req,
       write: function write() {},
       prompt: function prompt(msg, cont) {
         return cont(null);
       },
       processResult: function processResult(result) {
-        return showResult(bx, Repl.escapeHtml(Pretty.print(result)), test.result);
-      }
+        return passed = showResult(bx, Repl.escapeHtml(Pretty.print(result)), test.result);
+      },
+      processError: passed = false
     });
+    return passed;
   };
 
   showResult = function showResult(bx, actual, expected) {
     var cl;
     cl = bx.classList;
-    cl.remove('unrun');
+    cl.remove('notrun');
     if (actual === expected) {
       cl.remove('failed');
-      return cl.add('succeeded');
+      cl.add('passed');
     } else {
-      cl.remove('succeeded');
+      cl.remove('passsed');
       cl.add('failed');
-      return console.log("expected <" + expected + "> but got <" + actual + ">");
+      console.log("expected <" + expected + "> but got <" + actual + ">");
     }
+    return actual === expected;
   };
 
   prepExpr = function prepExpr(txt) {
@@ -558,6 +563,12 @@
       },
       processResult: function processResult(result) {
         return box.result = result;
+      },
+      processError: function processError(ast) {
+        var btn;
+        btn = box.querySelector('[leisureId="makeTestCase"]');
+        btn.parentNode.removeChild(btn);
+        return this.write("ERROR: " + ast.err);
       }
     };
   };

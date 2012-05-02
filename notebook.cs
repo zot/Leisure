@@ -167,54 +167,44 @@ createFragment = (txt)->
   frag
 
 insertControls = (el)->
-  controlDiv = createNode "<div LeisureOutput contentEditable='false' class='leisure_bar'></div>"
-  loadButton = createNode "<input type='file'></input>"
-  loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
-  downloadLink = createNode "<a download='program.lsr'>Download</a>"
-  viewLink = createNode "<a target='_blank'>View</a>"
-  testButton = createNode "<button>Run Tests</button>"
-  testButton.addEventListener 'click', -> runTests el
-  themeLabel = makeLabel "Theme: ", 'leisure_theme'
-  themeSelect = createNode """
-<select>
-  <option value=thin>Thin</option>
-  <option value=gaudy>Gaudy</option>
-  <option value=cthulhu>Cthulhu</option>
-</select>
+  controlDiv = createNode """
+<div LeisureOutput contentEditable='false' class='leisure_bar'>
+  <span class='leisure_load'>Load: </span>
+  <input type='file' leisureId='loadButton'></input>
+  <a download='program.lsr' leisureId='downloadLink'>Download</a>
+  <a target='_blank' leisureId='viewLink'>View</a>
+  <button leisureId='testButton'>Run Tests</button>
+  <span leisureId='testResults' class="unrun"></span>
+  <span class="leisure_theme">Theme: </span>
+  <select leisureId='themeSelect'>
+    <option value=thin>Thin</option>
+    <option value=gaudy>Gaudy</option>
+    <option value=cthulhu>Cthulhu</option>
+  </select>
+  <span>View: </span>
+  <select leisureId='viewSelect'>
+    <option value=coding>Coding</option>
+    <option value=debugging>Debugging</option>
+    <option value=testing>Testing</option>
+    <option value=running>Running</option>
+  </select>
+  <button leisureId='processButton' style="float: right">Process</button>
+</div>
 """
-  themeSelect.addEventListener 'change', (evt)-> changeTheme evt.target
-
-  viewLabel = document.createElement 'SPAN'
-  viewLabel.innerHTML = "View: "
-  viewSelect = document.createElement 'SELECT'
-  viewSelect.add(makeOption("Coding"), null)
-  viewSelect.add(makeOption("Debugging"), null)
-  viewSelect.add(makeOption("Testing"), null)
-  viewSelect.add(makeOption("Running"), null)
-  viewSelect.addEventListener 'change', (evt)-> changeView evt.target
-
-  processButton = document.createElement 'BUTTON'
-  processButton.innerHTML = "Process"
-  processButton.addEventListener 'click', -> evalDoc el
-  processButton.setAttribute 'style', 'float:right'
-
-  controlDiv.appendChild (makeLabel 'Load: ', 'leisure_load')
-  controlDiv.appendChild loadButton
-  controlDiv.appendChild textNode ' '
-  controlDiv.appendChild downloadLink
-  controlDiv.appendChild textNode ' '
-  controlDiv.appendChild viewLink
-  controlDiv.appendChild textNode ' '
-  controlDiv.appendChild testButton
-  controlDiv.appendChild themeLabel
-  controlDiv.appendChild themeSelect
-  controlDiv.appendChild viewLabel
-  controlDiv.appendChild viewSelect
-  controlDiv.appendChild processButton
-  el.leisureDownloadLink = downloadLink
-  el.leisureViewLink = viewLink
   el.insertBefore controlDiv, el.firstChild
+  [el.leisureDownloadLink, el.leisureViewLink, loadButton, testButton, el.testResults, themeSelect, viewSelect, processButton] = getElements el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']
+  loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
+  testButton.addEventListener 'click', -> runTests el
+  themeSelect.addEventListener 'change', (evt)-> changeTheme evt.target
+  viewSelect.addEventListener 'change', (evt)-> changeView evt.target
+  processButton.addEventListener 'click', -> evalDoc el
   configureSaveLink(el)
+
+getElements = (el, ids)->
+  els = {}
+  for node in el.querySelectorAll '[leisureId]'
+    els[node.getAttribute 'leisureId'] = node
+  els[id] for id in ids
 
 loadProgram = (el, files)->
   el = getBox
@@ -237,8 +227,20 @@ configureSaveLink = (el)->
   el.leisureViewLink.href = window.URL.createObjectURL(blob)
 
 runTests = (el)->
+  passed = 0
+  failed = 0
   for test in el.querySelectorAll '.codeMainTest'
-    runTest test
+    if runTest test then passed++ else failed++
+  resultsClass = el.testResults.classList
+  resultsClass.remove 'notrun'
+  if !failed
+    resultsClass.remove 'failed'
+    resultsClass.add 'passed'
+    el.testResults.innerHTML = passed
+  else
+    resultsClass.remove 'passed'
+    resultsClass.add 'failed'
+    el.testResults.innerHTML = "#{passed}/#{failed}"
 
 changeTheme = (t)->
   theme = t.options[t.selectedIndex].value
@@ -311,7 +313,7 @@ evalOutput = (exBox)->
   exBox = getBox exBox
   focusBox exBox
   cleanOutput exBox
-  exBox.firstChild.appendChild createFragment("<button onclick='Notebook.makeTestCase(this)'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>")
+  exBox.firstChild.appendChild createFragment("<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>")
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
 cleanOutput = (exBox)->
@@ -339,7 +341,7 @@ makeTestBox = (test, owner, src)->
   s.appendChild textNode('\n')
   s.setAttribute('generatedNL', '')
   bx = codeBox 'codeMainTest'
-  bx.setAttribute 'class', 'codeMainTest unrun'
+  bx.setAttribute 'class', 'codeMainTest notrun'
   bx.appendChild s
   bx.addEventListener 'click', (-> clickTest bx), true, true
   bx.test = test
@@ -347,7 +349,7 @@ makeTestBox = (test, owner, src)->
   bx
 
 clickTest = (bx)->
-  if bx.classList.contains 'unrun' then runTest bx
+  if bx.classList.contains 'notrun' then runTest bx
   else
     r = document.createRange()
     r.setStartBefore bx
@@ -362,23 +364,27 @@ clickTest = (bx)->
 runTest = (bx)->
   test = bx.test
   console.log "RUNNING:\n #{test.expr}\nRESULT:\n #{test.result}"
+  passed = true
   ReplCore.processLine(prepExpr(test.expr), (
     require: req
     write: ->
     prompt: (msg, cont)-> cont(null)
-    processResult: (result)-> showResult bx, Repl.escapeHtml(Pretty.print(result)), test.result
+    processResult: (result)-> passed = showResult bx, Repl.escapeHtml(Pretty.print(result)), test.result
+    processError: passed = false
   ))
+  passed
 
 showResult = (bx, actual, expected)->
   cl = bx.classList
-  cl.remove 'unrun'
+  cl.remove 'notrun'
   if actual == expected
     cl.remove 'failed'
-    cl.add 'succeeded'
+    cl.add 'passed'
   else
-    cl.remove 'succeeded'
+    cl.remove 'passsed'
     cl.add 'failed'
     console.log "expected <#{expected}> but got <#{actual}>"
+  actual == expected
 
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
@@ -391,6 +397,10 @@ envFor = (box)->
     exBox.appendChild(div)
   prompt:(msg, cont)-> cont(window.prompt(msg))
   processResult: (result)-> box.result = result
+  processError: (ast)->
+    btn = box.querySelector '[leisureId="makeTestCase"]'
+    btn.parentNode.removeChild btn
+    @write "ERROR: #{ast.err}"
 
 makeOutputBox = (source)->
   node = document.createElement 'div'

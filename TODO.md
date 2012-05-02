@@ -8,7 +8,6 @@
 # TODO
 * notebook
    * incremental compilation (automatically recompile and update all errors)
-   * show errors in output, but no make test case button if there's an error
    * run test cases button
       * result indicator
       * checkbox to run all tests on successful auto-build
@@ -113,6 +112,9 @@
 * a 'require' directive that works in browsers and on the cmd line
    * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
 * notebook style interface
+   * run test cases button
+      * result indicator
+   * show errors in output, but no make test case button if there's an error
    * cursor problems with highlight
    * highlight is wrong for defs
    * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment

@@ -63,7 +63,7 @@ body.cthulhu {
   background-image: url(testCaseWhite.png);
   background-repeat: no-repeat;
 }
-.cthulhu .codeMainTest.succeeded {
+.cthulhu .codeMainTest.passed {
   background-image: url(testCaseGreen.png);
   background-repeat: no-repeat;
 }

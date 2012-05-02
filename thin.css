@@ -55,7 +55,7 @@
   background-image: url(testCaseWhite.png);
   background-repeat: no-repeat;
 }
-.thin .codeMainTest.succeeded {
+.thin .codeMainTest.passed {
   border: 0px;
   background-image: url(testCaseGreen.png);
   background-repeat: no-repeat;

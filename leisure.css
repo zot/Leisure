@@ -49,6 +49,27 @@ body {
   position: fixed;
   z-index: 100;
   width: 100%;
+  white-space: normal;
+}
+
+.leisure_bar span.passed, .leisure_bar span.failed, .leisure_bar span.unrun {
+  font-weight: bold;
+  border-radius: 8px;
+  padding-left: 10px;
+  padding-right: 10px;
+  border: solid black 2px;
+}
+
+.leisure_bar span.unrun {
+  background: #fff;
+}
+
+.leisure_bar span.passed {
+  background: #8f8;
+}
+
+.leisure_bar span.failed {
+  background: #f88;
 }
 
 .leisure_load {
