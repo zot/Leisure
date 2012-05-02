@@ -1,7 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
 # BUGS
 * notebook
-   * highlight is wrong for defs
+   * clicking between func and expr dups last char
    * process button eats newlines at end
    * build should preserve outputs
 
@@ -113,6 +113,8 @@
 * a 'require' directive that works in browsers and on the cmd line
    * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
 * notebook style interface
+   * cursor problems with highlight
+   * highlight is wrong for defs
    * "save output as testcase" -- snapshot input and output as strings and record them as a testcase comment
    * highlighting fixes
       * end quote isn't highlighting

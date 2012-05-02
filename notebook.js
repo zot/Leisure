@@ -94,6 +94,8 @@
     tr.setEnd(r.endContainer, r.endOffset);
     pos = getRangeText(tr).length;
     txt = parent.textContent;
+    window.currentParent = parent;
+    window.currentPos = pos;
     ast = (Leisure.compileNext(txt, Leisure.Nil, true, null, true))[0];
     if (ast != null) {
       offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
@@ -121,7 +123,9 @@
         }
         s.removeAllRanges();
         parent.normalize();
-        return s.addRange(makeRange(parent, pos, pos));
+        r = makeRange(parent, pos);
+        console.log("Range start:", r.startContainer, r.startOffset, "end: ", r.endContainer, r.endOffset);
+        return s.addRange(makeRange(parent, pos));
       }
     }
   };
@@ -699,23 +703,24 @@
     } else {
       range.setStartBefore(node);
     }
-    _ref2 = grp(el, off2, true), node = _ref2[0], offset = _ref2[1];
-    if (offset != null) {
-      range.setEnd(node, offset);
-    } else {
-      range.setEndAfter(node);
+    if (off2 != null) {
+      _ref2 = grp(el, off2, true), node = _ref2[0], offset = _ref2[1];
+      if (offset != null) {
+        range.setEnd(node, offset);
+      } else {
+        range.setEndAfter(node);
+      }
     }
     return range;
   };
 
   grp = function grp(node, charOffset, end) {
-    var child, offset, _ref;
-    _ref = getRangePosition(node.firstChild, charOffset, end), child = _ref[0], offset = _ref[1];
+    var child, offset, ret, _ref;
+    _ref = ret = getRangePosition(node.firstChild, charOffset, end), child = _ref[0], offset = _ref[1];
     if (!(child != null)) {
-      child = node.lastChild;
-      return nodeEnd(child);
+      return nodeEnd(node.lastChild);
     } else {
-      return [child, offset];
+      return ret;
     }
   };
 
@@ -851,5 +856,9 @@
   root.evalDoc = evalDoc;
 
   root.getBox = getBox;
+
+  root.makeRange = makeRange;
+
+  root.grp = grp;
 
 }).call(this);

@@ -60,6 +60,8 @@ highlightPosition = ->
   tr.setEnd r.endContainer, r.endOffset
   pos = getRangeText(tr).length
   txt = parent.textContent
+  window.currentParent = parent
+  window.currentPos = pos
   ast = (Leisure.compileNext txt, Leisure.Nil, true, null, true)[0]
   if ast?
     offset = ast.leisureDefPrefix ? 0
@@ -82,7 +84,9 @@ highlightPosition = ->
           b = b.tail
       s.removeAllRanges()
       parent.normalize()
-      s.addRange(makeRange parent, pos, pos)
+      r = makeRange parent, pos
+      console.log "Range start:", r.startContainer, r.startOffset, "end: ", r.endContainer, r.endOffset
+      s.addRange(makeRange parent, pos)
 
 replaceRange = (range, node)->
   range.deleteContents()
@@ -492,17 +496,16 @@ makeRange = (el, off1, off2)->
   [node, offset] = grp el, off1, false
   if offset? then range.setStart(node, offset)
   else  range.setStartBefore node
-  [node, offset] = grp el, off2, true
-  if offset? then range.setEnd(node, offset)
-  else range.setEndAfter node
+  if off2?
+    [node, offset] = grp el, off2, true
+    if offset? then range.setEnd(node, offset)
+    else range.setEndAfter node
   range
 
 grp = (node, charOffset, end)->
-  [child, offset] = getRangePosition node.firstChild, charOffset, end
-  if !child?
-    child = node.lastChild
-    nodeEnd child
-  else [child, offset]
+  [child, offset] = ret = getRangePosition node.firstChild, charOffset, end
+  if !child? then nodeEnd node.lastChild
+  else ret
 
 getRangePosition = (node, charOffset, end)->
   if node.nodeType == 3
@@ -584,6 +587,8 @@ root.envFor = envFor
 root.queueAfterLoad = queueAfterLoad
 root.evalDoc = evalDoc
 root.getBox = getBox
+root.makeRange = makeRange
+root.grp = grp
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])
