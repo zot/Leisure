@@ -59,7 +59,7 @@ body.cthulhu {
 .cthulhu .codeMainTest * {
   display: none;
 }
-.cthulhu .codeMainTest.unrun {
+.cthulhu .codeMainTest.notrun {
   border: 0px;
   background-image: url(tiny_cthulhu_white.png);
   background-repeat: no-repeat;
