@@ -140,6 +140,7 @@ initNotebook = (el)->
   el.normalize()
   el.replacing = false
   insertControls(el)
+  el.testResults.innerHTML = pgm[2]
   pgm
 
 makeLabel = (text, c)->
@@ -173,8 +174,7 @@ insertControls = (el)->
   <input type='file' leisureId='loadButton'></input>
   <a download='program.lsr' leisureId='downloadLink'>Download</a>
   <a target='_blank' leisureId='viewLink'>View</a>
-  <button leisureId='testButton'>Run Tests</button>
-  <span leisureId='testResults' class="unrun"></span>
+  <button leisureId='testButton'>Run Tests <span leisureId='testResults' class="notrun"></span></button>
   <span class="leisure_theme">Theme: </span>
   <select leisureId='themeSelect'>
     <option value=thin>Thin</option>
@@ -277,10 +277,12 @@ removeOldDefs = (el)->
 markupDefs = (el, defs)->
   pgm = ''
   auto = ''
+  totalTests = 0
   for i in defs
     [main, name, def, body, tests] = i
     for test in tests
       replaceRange test, makeTestBox test.leisureTest
+      totalTests++
     if name?
       bod = codeSpan body, 'codeBody'
       bod.appendChild textNode('\n')
@@ -292,10 +294,6 @@ markupDefs = (el, defs)->
       bx.addEventListener 'blur', (-> evalDoc el), true, true
       bx.leisureOwner = el
       pgm += "#{name} #{def} #{body}\n"
-    else if main?.leisureTest
-      bx = makeTestBox main.leisureTest, el, body
-      main.deleteContents()
-      main.insertNode bx
     else if main?
       if main.leisureAuto then auto += "#{body}\n"
       s = codeSpan body, 'codeExpr'
@@ -305,7 +303,7 @@ markupDefs = (el, defs)->
       bx.appendChild s
       bx.leisureOwner = el
       makeOutputBox(bx)
-  [pgm, auto]
+  [pgm, auto, totalTests]
 
 textNode = (text)-> document.createTextNode(text)
 
@@ -576,7 +574,7 @@ evalDoc = (el)->
     alert(err.stack)
 
 Leisure.define 'finishLoading', (bubba)->
-  Prim.makeMonad 'end', (env, cont)->
+  Prim.makeMonad (env, cont)->
     for i in postLoadQueue
       i()
     postLoadQueue = []

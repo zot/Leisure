@@ -50,7 +50,7 @@
 .thin .codeMainTest * {
   display: none;
 }
-.thin .codeMainTest.unrun {
+.thin .codeMainTest.notrun {
   border: 0px;
   background-image: url(testCaseWhite.png);
   background-repeat: no-repeat;

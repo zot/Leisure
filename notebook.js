@@ -204,6 +204,7 @@
     el.normalize();
     el.replacing = false;
     insertControls(el);
+    el.testResults.innerHTML = pgm[2];
     return pgm;
   };
 
@@ -242,7 +243,7 @@
 
   insertControls = function insertControls(el) {
     var controlDiv, loadButton, processButton, testButton, themeSelect, viewSelect, _ref;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'>\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button>\n  <span leisureId='testResults' class=\"unrun\"></span>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button>\n</div>");
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'>\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests <span leisureId='testResults' class=\"notrun\"></span></button>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button>\n</div>");
     el.insertBefore(controlDiv, el.firstChild);
     _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], themeSelect = _ref[5], viewSelect = _ref[6], processButton = _ref[7];
     loadButton.addEventListener('change', function(evt) {
@@ -389,15 +390,17 @@
   };
 
   markupDefs = function markupDefs(el, defs) {
-    var auto, bod, body, bx, def, i, main, name, pgm, s, test, tests, _i, _j, _len, _len2;
+    var auto, bod, body, bx, def, i, main, name, pgm, s, test, tests, totalTests, _i, _j, _len, _len2;
     pgm = '';
     auto = '';
+    totalTests = 0;
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i[0], name = i[1], def = i[2], body = i[3], tests = i[4];
       for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
         test = tests[_j];
         replaceRange(test, makeTestBox(test.leisureTest));
+        totalTests++;
       }
       if (name != null) {
         bod = codeSpan(body, 'codeBody');
@@ -412,10 +415,6 @@
         }), true, true);
         bx.leisureOwner = el;
         pgm += "" + name + " " + def + " " + body + "\n";
-      } else if (main != null ? main.leisureTest : void 0) {
-        bx = makeTestBox(main.leisureTest, el, body);
-        main.deleteContents();
-        main.insertNode(bx);
       } else if (main != null) {
         if (main.leisureAuto) auto += "" + body + "\n";
         s = codeSpan(body, 'codeExpr');
@@ -427,7 +426,7 @@
         makeOutputBox(bx);
       }
     }
-    return [pgm, auto];
+    return [pgm, auto, totalTests];
   };
 
   textNode = function textNode(text) {
@@ -833,7 +832,7 @@
   };
 
   Leisure.define('finishLoading', function(bubba) {
-    return Prim.makeMonad('end', function(env, cont) {
+    return Prim.makeMonad(function(env, cont) {
       var i, _i, _len;
       for (_i = 0, _len = postLoadQueue.length; _i < _len; _i++) {
         i = postLoadQueue[_i];
