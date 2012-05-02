@@ -252,11 +252,12 @@
     testButton.addEventListener('click', function() {
       return runTests(el);
     });
+    if (el.leisureTheme) themeSelect.value = el.leisureTheme;
     themeSelect.addEventListener('change', function(evt) {
-      return changeTheme(evt.target);
+      return changeTheme(el, evt.target);
     });
     viewSelect.addEventListener('change', function(evt) {
-      return changeView(evt.target);
+      return changeView(el, evt.target);
     });
     processButton.addEventListener('click', function() {
       return evalDoc(el);
@@ -331,14 +332,15 @@
     }
   };
 
-  changeTheme = function changeTheme(t) {
+  changeTheme = function changeTheme(el, t) {
     var theme;
-    theme = t.options[t.selectedIndex].value;
+    theme = t.value;
+    el.leisureTheme = theme;
     return document.body.className = theme;
   };
 
-  changeView = function changeView(v) {
-    return alert('new view: ' + v.options[v.selectedIndex].value);
+  changeView = function changeView(el, v) {
+    return alert('new view: ' + v.value);
   };
 
   unwrap = function unwrap(node) {
