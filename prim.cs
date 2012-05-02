@@ -54,11 +54,11 @@ define 'ceil', (a)->Math.ceil(a())
 define 'round', (a)->Math.round(a())
 
 define 'randInt', (from)->(to)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     cont Math.floor(from() + Math.random() * (to() - from() + 1))
 
 define 'rand', ->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     cont (Math.random())
 
 define '>', (a)->(b)->if a() > b() then `_true()` else `_false()`
@@ -94,11 +94,10 @@ runMonad = (monad, env, cont)-> monad.cmd env, continueMonad(cont)
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code
 # so people won't accidentally fire off side effects
-makeMonad = (binding, guts)->
+makeMonad = (guts)->
   m = ->
   m.cmd = guts
   m.type = 'monad'
-  if binding != "end" then m.binding = binding
   m
 
 define 'eventContext', (evt)-> evt().leisureContext
@@ -110,23 +109,23 @@ define 'eventY', (evt)-> evt().y
 define 'eventTargetId', (evt)-> evt().target.id
 
 define 'return', (v)->
-  makeMonad 'end', (env, cont)->cont(v())
+  makeMonad (env, cont)->cont(v())
 
 define 'require', (file)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     env.require(file(), cont)
 
 define 'print', (msg)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     if msg() != _nil() then env.write("#{msg()}\n")
     cont(_false())
 
 define 'prompt', (msg)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     env.prompt(String(msg()), (input)-> cont(input))
 
 define 'bind', (m)->(binding)->
-  makeMonad 'end', (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
+  makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
 
 head = (l)->l ->(hh)->(tt)->hh()
 tail = (l)->l ->(hh)->(tt)->tt()
@@ -138,13 +137,13 @@ concatList = (l)->
 define 'concat', (l)-> concatList(l())
 
 define 'js', (codeList)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     cl = codeList()
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
     cont(eval(concatList(cl)))
 
 define 'browser', (codeList)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     if window?
       cl = codeList()
       if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
@@ -154,24 +153,24 @@ define 'browser', (codeList)->
 values = {}
 
 define 'getValue', (name)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     cont values[name()]
 
 define 'setValue', (name)->(value)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     values[name()] = value()
     cont _false
 
 define 'createS', ->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     cont {value: null}
 
 define 'getS', (state)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     cont state().value
 
 define 'setS', (state)->(value)->
-  makeMonad 'end', (env, cont)->
+  makeMonad (env, cont)->
     state().value = value()
     cont(_false)
 

@@ -9,7 +9,6 @@
 * notebook
    * incremental compilation (automatically recompile and update all errors)
    * run test cases button
-      * result indicator
       * checkbox to run all tests on successful auto-build
 	  * auto build should clear tests on a recompile
    * monad to present an html as an app
