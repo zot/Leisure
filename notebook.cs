@@ -20,7 +20,7 @@ bindNotebook = (el)->
     el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
     el.addEventListener 'click', ((e)-> window.setTimeout(highlightPosition, 1)), true, true
     el.addEventListener 'keydown', (e)->
-      if (e.charCode || e.keyCode || e.which) in [37, 38, 39, 40] then window.setTimeout(highlightPosition, 1)
+      if (e.charCode || e.keyCode || e.which) in [8, 37, 38, 39, 40, 46] then window.setTimeout(highlightPosition, 1)
     el.addEventListener 'keypress', (e)->
       s = window.getSelection()
       r = s.getRangeAt(0)
@@ -60,8 +60,6 @@ highlightPosition = ->
   tr.setEnd r.endContainer, r.endOffset
   pos = getRangeText(tr).length
   txt = parent.textContent
-  window.currentParent = parent
-  window.currentPos = pos
   ast = (Leisure.compileNext txt, Leisure.Nil, true, null, true)[0]
   if ast?
     offset = ast.leisureDefPrefix ? 0
@@ -84,8 +82,6 @@ highlightPosition = ->
           b = b.tail
       s.removeAllRanges()
       parent.normalize()
-      r = makeRange parent, pos
-      console.log "Range start:", r.startContainer, r.startOffset, "end: ", r.endContainer, r.endOffset
       s.addRange(makeRange parent, pos)
 
 replaceRange = (range, node)->

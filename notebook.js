@@ -43,7 +43,7 @@
       }), true, true);
       el.addEventListener('keydown', function(e) {
         var _ref;
-        if ((_ref = e.charCode || e.keyCode || e.which) === 37 || _ref === 38 || _ref === 39 || _ref === 40) {
+        if ((_ref = e.charCode || e.keyCode || e.which) === 8 || _ref === 37 || _ref === 38 || _ref === 39 || _ref === 40 || _ref === 46) {
           return window.setTimeout(highlightPosition, 1);
         }
       });
@@ -94,8 +94,6 @@
     tr.setEnd(r.endContainer, r.endOffset);
     pos = getRangeText(tr).length;
     txt = parent.textContent;
-    window.currentParent = parent;
-    window.currentPos = pos;
     ast = (Leisure.compileNext(txt, Leisure.Nil, true, null, true))[0];
     if (ast != null) {
       offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
@@ -123,8 +121,6 @@
         }
         s.removeAllRanges();
         parent.normalize();
-        r = makeRange(parent, pos);
-        console.log("Range start:", r.startContainer, r.startOffset, "end: ", r.endContainer, r.endOffset);
         return s.addRange(makeRange(parent, pos));
       }
     }
