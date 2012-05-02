@@ -195,8 +195,9 @@ insertControls = (el)->
   [el.leisureDownloadLink, el.leisureViewLink, loadButton, testButton, el.testResults, themeSelect, viewSelect, processButton] = getElements el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']
   loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
   testButton.addEventListener 'click', -> runTests el
-  themeSelect.addEventListener 'change', (evt)-> changeTheme evt.target
-  viewSelect.addEventListener 'change', (evt)-> changeView evt.target
+  if (el.leisureTheme) then themeSelect.value = el.leisureTheme
+  themeSelect.addEventListener 'change', (evt)-> changeTheme el, evt.target
+  viewSelect.addEventListener 'change', (evt)-> changeView el, evt.target
   processButton.addEventListener 'click', -> evalDoc el
   configureSaveLink(el)
 
@@ -242,11 +243,12 @@ runTests = (el)->
     resultsClass.add 'failed'
     el.testResults.innerHTML = "#{passed}/#{failed}"
 
-changeTheme = (t)->
-  theme = t.options[t.selectedIndex].value
+changeTheme = (el, t)->
+  theme = t.value
+  el.leisureTheme = theme
   document.body.className = theme
 
-changeView = (v)-> alert 'new view: ' + v.options[v.selectedIndex].value
+changeView = (el, v)-> alert 'new view: ' + v.value
 
 unwrap = (node)->
   parent = node.parentNode
