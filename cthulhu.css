@@ -60,15 +60,18 @@ body.cthulhu {
   display: none;
 }
 .cthulhu .codeMainTest.unrun {
-  background-image: url(testCaseWhite.png);
+  border: 0px;
+  background-image: url(tiny_cthulhu_white.png);
   background-repeat: no-repeat;
 }
 .cthulhu .codeMainTest.passed {
-  background-image: url(testCaseGreen.png);
+  border: 0px;
+  background-image: url(tiny_cthulhu_yellow.png);
   background-repeat: no-repeat;
 }
 .cthulhu .codeMainTest.failed {
-  background-image: url(testCaseRed.png);
+  border: 0px;
+  background-image: url(tiny_cthulhu_red.png);
   background-repeat: no-repeat;
 }
 
@@ -83,23 +86,6 @@ body.cthulhu {
   font-style: italic;
   font-weight: bold;
   margin: 3px;
-}
-
-
-.cthulhu .codeMainTest.white {
-  border: 0px;
-  background-image: url(tiny_cthulhu_white.png);
-  background-repeat: no-repeat;
-}
-.cthulhu .codeMainTest.green {
-  border: 0px;
-  background-image: url(tiny_cthulhu_yellow.png);
-  background-repeat: no-repeat;
-}
-.cthulhu .codeMainTest.red {
-  border: 0px;
-  background-image: url(tiny_cthulhu_red.png);
-  background-repeat: no-repeat;
 }
 
 .cthulhu .LeisureFunc {
