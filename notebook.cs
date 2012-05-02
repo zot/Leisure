@@ -174,7 +174,7 @@ insertControls = (el)->
   <input type='file' leisureId='loadButton'></input>
   <a download='program.lsr' leisureId='downloadLink'>Download</a>
   <a target='_blank' leisureId='viewLink'>View</a>
-  <button leisureId='testButton'>Run Tests <span leisureId='testResults' class="notrun"></span></button>
+  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class="notrun"></span>
   <span class="leisure_theme">Theme: </span>
   <select leisureId='themeSelect'>
     <option value=thin>Thin</option>
