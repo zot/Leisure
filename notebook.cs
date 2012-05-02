@@ -63,7 +63,7 @@ highlightPosition = ->
   ast = (Leisure.compileNext txt, Leisure.Nil, true, null, true)[0]
   if ast?
     offset = ast.leisureDefPrefix ? 0
-    brackets = Leisure.bracket ast, pos + offset
+    brackets = Leisure.bracket ast.leisureBase, pos - offset
     if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
       oldBrackets = [parent, brackets]
       for node in document.querySelectorAll "[LeisureBrackets]"
@@ -75,7 +75,7 @@ highlightPosition = ->
           span = document.createElement 'span'
           span.setAttribute 'LeisureBrackets', ''
           span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
-          r = makeRange parent, b.head.head - offset, b.head.tail.head - offset
+          r = makeRange parent, b.head.head + offset, b.head.tail.head + offset
           contents = r.cloneContents()
           replaceRange r, span
           span.appendChild contents
@@ -550,7 +550,7 @@ queueAfterLoad = (func)-> postLoadQueue.push(func)
 oldFocus = null
 
 focusBox = (box)->
-  if box and oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
+  if box and box != oldFocus and oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
   oldFocus = box
 
 evalDoc = (el)->

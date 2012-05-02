@@ -770,6 +770,7 @@ misrepresented as being the original software.
           return ifParsed((nomacros ? parseApplyNew(pfx, Nil) : parseFull(pfx)), (function(ast, rest) {
             var bod;
             ast.leisureDefPrefix = line.length - pfx.length;
+            ast.leisureBase = getNthBody(ast, nm.length);
             nameAst(nm[0], ast);
             bod = ast;
             if (nm.length > 1) bod = getNthBody(ast, nm.length);
@@ -785,6 +786,7 @@ misrepresented as being the original software.
         }
       } else {
         return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
+          ast.leisureBase = ast;
           return genCode(ast, null, globals, null, rest, parseOnly);
         }), "Error compiling expr:  " + (snip(line)));
       }

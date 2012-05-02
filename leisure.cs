@@ -382,6 +382,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
         errPrefix = "Error while compiling #{nm}: "
         ifParsed (if nomacros then parseApplyNew pfx, Nil else parseFull pfx), ((ast, rest)->
           ast.leisureDefPrefix = line.length - pfx.length
+          ast.leisureBase = getNthBody(ast, nm.length)
           nameAst(nm[0], ast)
           bod = ast
           if nm.length > 1 then bod = getNthBody(ast, nm.length)
@@ -393,6 +394,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
           ast.leisurePrefixCount = nm.length
           genCode ast, nm[0], globals, defType, rest, parseOnly), errPrefix
     else ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
+      ast.leisureBase = ast
       genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr:  #{snip line}"
   else [null, null, null]
 

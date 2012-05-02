@@ -97,7 +97,7 @@
     ast = (Leisure.compileNext(txt, Leisure.Nil, true, null, true))[0];
     if (ast != null) {
       offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
-      brackets = Leisure.bracket(ast, pos + offset);
+      brackets = Leisure.bracket(ast.leisureBase, pos - offset);
       if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
         oldBrackets = [parent, brackets];
         _ref2 = document.querySelectorAll("[LeisureBrackets]");
@@ -112,7 +112,7 @@
             span = document.createElement('span');
             span.setAttribute('LeisureBrackets', '');
             span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
-            r = makeRange(parent, b.head.head - offset, b.head.tail.head - offset);
+            r = makeRange(parent, b.head.head + offset, b.head.tail.head + offset);
             contents = r.cloneContents();
             replaceRange(r, span);
             span.appendChild(contents);
@@ -795,7 +795,7 @@
   oldFocus = null;
 
   focusBox = function focusBox(box) {
-    if (box && (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0)) {
+    if (box && box !== oldFocus && (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0)) {
       evalDoc(box.leisureOwner);
     }
     return oldFocus = box;

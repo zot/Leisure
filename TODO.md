@@ -3,6 +3,7 @@
 * notebook
    * highlight is wrong for defs
    * process button eats newlines at end
+   * build should preserve outputs
 
 # TODO
 * notebook
