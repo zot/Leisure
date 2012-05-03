@@ -30,6 +30,12 @@
    * comments that attach event handlers?
    * optionally hide source code
    * collaboration
+* better error messages
+   * debug mode should put a cons into funcs of a new error and the list from the parent
+      * better runtime errors -- track the function name and ast
+      * can use this to see the origin of a thunk
+   * accidental curries
+   * macro for optional argument type checking
 * cmd-line REPL
    * make nested require work
    * should parse HTML source files
@@ -57,8 +63,6 @@
 * parser macros should return [ast, errors, warnings]
    * error if let/do has no expr
    * error if let finds more than one body expr
-* debug mode should put a cons into funcs of a new error and the list from the parent
-   * can use this to see the origin of a thunk
 * add assertMonad() to testing.cs
    * probably use env for this
    * need to convert test runner to CPS

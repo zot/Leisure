@@ -217,7 +217,7 @@ findDefs = (contents, nomacros, loud)->
     if err
       if ast?.leisureName then errs = "#{errs}Error in #{ast.leisureName}#{showAst ast}: #{err}\n"
       else if prevName? then errs = "#{errs}Error after #{prevName}: #{err}\n"
-      else errs = "#{erros}#{err}\n"
+      else errs = "#{errs}#{err}\n"
     if ast?.leisureName
       prevName = ast.leisureName
       if loud > 2 then console.log "Found function: #{ast.leisureName}"

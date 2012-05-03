@@ -264,7 +264,7 @@
         } else if (typeof prevName !== "undefined" && prevName !== null) {
           errs = "" + errs + "Error after " + prevName + ": " + err + "\n";
         } else {
-          errs = "" + erros + err + "\n";
+          errs = "" + errs + err + "\n";
         }
       }
       if (ast != null ? ast.leisureName : void 0) {

@@ -59,6 +59,16 @@
 <li>optionally hide source code</li>
 <li>collaboration</li>
 </ul></li>
+<li>better error messages
+<ul>
+<li>debug mode should put a cons into funcs of a new error and the list from the parent
+<ul>
+<li>better runtime errors -- track the function name and ast</li>
+<li>can use this to see the origin of a thunk</li>
+</ul></li>
+<li>accidental curries</li>
+<li>macro for optional argument type checking</li>
+</ul></li>
 <li>cmd-line REPL
 <ul>
 <li>make nested require work</li>
@@ -95,10 +105,6 @@
 <ul>
 <li>error if let/do has no expr</li>
 <li>error if let finds more than one body expr</li>
-</ul></li>
-<li>debug mode should put a cons into funcs of a new error and the list from the parent
-<ul>
-<li>can use this to see the origin of a thunk</li>
 </ul></li>
 <li>add assertMonad() to testing.cs
 <ul>

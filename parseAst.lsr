@@ -12,6 +12,11 @@ subtree-set-height st value = st \svg width height root-x root-y . make-subtree 
 subtree-set-root-x st value = st \svg width height root-x root-y . make-subtree svg width height value root-y
 subtree-set-root-y st value = st \svg width height root-x root-y . make-subtree svg width height root-x value
 
+make-box svg width height = \f . f svg width height
+box-svg b = b \svg width height . svg
+box-width b = b \svg width height . width
+box-height b = b \svg width height . height
+
 treeFor ast = svg (subtree-svg (subtreeFor ast)) [['width'|200],['height'|200]]
 
 subtreeFor ast = do
@@ -20,12 +25,37 @@ subtreeFor ast = do
     createLitSubtree (pretty (ast id))
     eq t 'ref'
       createLitSubtree (pretty (ast id))
-    make-subtree '' 0 0 0 0
+      eq t 'lambda'
+        ast \v b . createLambdaSubtree v b
+        make-subtree '' 0 0 0 0
 
-createLitSubtree lit = (svg-measure-text lit '') \w h . do
+greenStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'green']]
+
+#    (translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)
+
+createLambdaSubtree v b = (svg-measure-text lit '') \w h . do
+  rootBox = textBox greenStyle 'lambda'
+  rootSvg = box-svg rootBox
+  varBox = textBox greenStyle v
+  varSvg = box-svg varBox
+  bodyTree = subtreeFor b
+  bodySvg = subtree-svg bodyTree
+  childWidth = + (+ (box-width varBox) 5) (subtree-width bodyTree)
+  totalWidth = max childWidth (box-width rootBox)
+  pad = max 0 (/ (- totalWidth childWidth) 2)
+  make-subtree
+    concat [(translate varSvg pad (+ (box-height rootBox) 5)),(translate bodySvg (+ pad (+ (box-width varBox) 5)) (+ (box-height rootBox) 5)),(translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)]
+    totalWidth
+    + (+ (box-height rootBox) 5) (max (box-height varBox) (subtree-height bodyTree))
+    / totalWidth 2
+    / (box-height rootBox) 2
+
+createLitSubtree lit = (textBox greenStyle lit) \b w h .  make-subtree b w h (/ w 2) (/ h 2)
+
+textBox map txt = (svg-measure-text txt '') \w h . do
   box-w = + w 20
   box-h = + h 10
-  make-subtree (concat [(rect [['x'|0],['y'|0],['width'|box-w],['height'|box-h],['stroke'|'black'],['stroke-width'|2],['fill'|'green']]), (text lit [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 10 (/ w 2))],['y'|(+ 5 (/ h 2))]])]) box-w box-h (/ box-w 2) (/ box-h 2)
+  make-box (concat [(rect [['x'|0],['y'|0],['width'|box-w],['height'|box-h] | map]), (text txt [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 10 (/ w 2))],['y'|(+ 5 (/ h 2))]])]) box-w box-h
 
 typeof x = getType x id false
 

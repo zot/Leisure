@@ -22,6 +22,9 @@
   };
 
   bindNotebook = function bindNotebook(el) {
+    Prim.defaultEnv.write = function write(msg) {
+      return console.log(msg);
+    };
     if (!(el.bound != null)) {
       el.bound = true;
       el.addEventListener('DOMCharacterDataModified', (function(evt) {

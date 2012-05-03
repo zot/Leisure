@@ -14,6 +14,7 @@ delay = (func)->
   window.setTimeout func, 1
 
 bindNotebook = (el)->
+  Prim.defaultEnv.write = (msg)->console.log msg
   if !el.bound?
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
