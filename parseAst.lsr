@@ -6,7 +6,13 @@ subtree-height st = st \svg width height root-x root-y . height
 subtree-root-x st = st \svg width height root-x root-y . root-x
 subtree-root-y st = st \svg width height root-x root-y . root-y
 
-treeFor ast = subtree-svg (subtreeFor ast)
+subtree-set-svg st value = st \svg width height root-x root-y . make-subtree value width height root-x root-y
+subtree-set-width st value = st \svg width height root-x root-y . make-subtree svg value height root-x root-y
+subtree-set-height st value = st \svg width height root-x root-y . make-subtree svg width value root-x root-y
+subtree-set-root-x st value = st \svg width height root-x root-y . make-subtree svg width height value root-y
+subtree-set-root-y st value = st \svg width height root-x root-y . make-subtree svg width height root-x value
+
+treeFor ast = svg (subtree-svg (subtreeFor ast)) [['width'|200],['height'|200]]
 
 subtreeFor ast = do
   t = typeof ast
@@ -19,7 +25,7 @@ subtreeFor ast = do
 createLitSubtree lit = (svg-measure-text lit '') \w h . do
   box-w = + w 20
   box-h = + h 10
-  make-subtree (svg (concat [(rect [['x'|0],['y'|0],['width'|box-w],['height'|box-h],['stroke'|'black'],['stroke-width'|2],['fill'|'green']]), (text lit [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 10 (/ w 2))],['y'|(+ 5 (/ h 2))]])]) [['width'|200],['height'|200]]) box-w box-h (/ box-w 2) (/ box-h 2)
+  make-subtree (concat [(rect [['x'|0],['y'|0],['width'|box-w],['height'|box-h],['stroke'|'black'],['stroke-width'|2],['fill'|'green']]), (text lit [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 10 (/ w 2))],['y'|(+ 5 (/ h 2))]])]) box-w box-h (/ box-w 2) (/ box-h 2)
 
 typeof x = getType x id false
 
