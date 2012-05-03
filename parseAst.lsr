@@ -33,7 +33,7 @@ greenStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'green']]
 
 #    (translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)
 
-createLambdaSubtree v b = (svg-measure-text lit '') \w h . do
+createLambdaSubtree v b = do
   rootBox = textBox greenStyle 'lambda'
   rootSvg = box-svg rootBox
   varBox = textBox greenStyle v
