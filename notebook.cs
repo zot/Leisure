@@ -582,6 +582,24 @@ Leisure.define 'finishLoading', (bubba)->
     postLoadQueue = []
     cont(_false())
 
+invisibleSvg = null
+
+laz = Leisure.laz
+
+Leisure.define 'svg-measure-text', (text)->(style)->(f)->
+  if !invisibleSvg?
+    invisibleSvg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'/>"
+    invisibleSvgText = document.createElementNS 'http://www.w3.org/2000/svg', 'text'
+    invisibleSvgText.appendChild textNode ''
+    invisibleSvgText.setAttribute 'id', 'HIDDEN_TEXT'
+    invisibleSvg.appendChild invisibleSvgText
+    document.body.appendChild(invisibleSvg)
+  txt = document.getElementById 'HIDDEN_TEXT'
+  if style() then txt.setAttribute 'style', style()
+  txt.lastChild.textContent = text()
+  bx = txt.getBBox()
+  f()(laz(bx.width))(laz(bx.height))
+
 Prim.defaultEnv.require = req
 
 root.initNotebook = initNotebook

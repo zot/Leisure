@@ -45,6 +45,7 @@
    * default pretty-printers for output
    * run-test-cases -- run test cases after loading this file
    * set theme
+   * defining monads that operate at parse-time
 * test cases
    * make human-readable
    * add run-tests option to runRepl
@@ -101,6 +102,7 @@
 * named parsers (alternate syntaxes)
 * macros
    * cond macro
+   * make-struct which defines things for you, using definition monads
    * make \[ a macro and remove need for commas
       * allow macros to define tokens
       * add helper function for defining \[ macros, for varargs
