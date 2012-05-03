@@ -1,4 +1,11 @@
 
+make-subtree svg width height root-x root-y = \f . f svg width height root-x root-y
+
+subtree-svg st = st \svg width height root-x root-y . svg
+subtree-width st = st \svg width height root-x root-y . width
+subtree-height st = st \svg width height root-x root-y . height
+subtree-root-x st = st \svg width height root-x root-y . root-x
+subtree-root-y st = st \svg width height root-x root-y . root-y
 
 parseRef r tree = add-child tree (make-tree [ 'ref', (r id) ] )
 
