@@ -6,18 +6,20 @@ subtree-height st = st \svg width height root-x root-y . height
 subtree-root-x st = st \svg width height root-x root-y . root-x
 subtree-root-y st = st \svg width height root-x root-y . root-y
 
+treeFor ast = subtree-svg (subtreeFor ast)
+
 subtreeFor ast = do
   t = typeof ast
   eq t 'lit'
     createLitSubtree (pretty (ast id))
     eq t 'ref'
       createLitSubtree (pretty (ast id))
-    ''
+    make-subtree '' 0 0 0 0
 
 createLitSubtree lit = (svg-measure-text lit '') \w h . do
   box-w = + w 20
   box-h = + h 10
-  svg (concat [(rect [['x'|0],['y'|0],['width'|box-w],['height'|box-h],['stroke'|'black'],['stroke-width'|2],['fill'|'green']]), (text lit [['x'|10],['y'|10]])]) [['width'|200],['height'|200]]
+  make-subtree (svg (concat [(rect [['x'|0],['y'|0],['width'|box-w],['height'|box-h],['stroke'|'black'],['stroke-width'|2],['fill'|'green']]), (text lit [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 10 (/ w 2))],['y'|(+ 5 (/ h 2))]])]) [['width'|200],['height'|200]]) box-w box-h (/ box-w 2) (/ box-h 2)
 
 typeof x = getType x id false
 
