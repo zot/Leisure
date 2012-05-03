@@ -1,0 +1,41 @@
+
+
+parseRef r tree = add-child tree (make-tree [ 'ref', (r id) ] )
+
+parseLit l tree = add-child tree (make-tree [ 'lit', (l id) ] )
+
+parseLambda l tree = l (\v b . add-child tree (add-child (make-tree [ 'lambda', v ]) (parseAst b nil))  )
+
+parseApply a tree = a (\func arg . add-child tree (add-child (add-child (make-tree [ 'apply', '' ]) (parseAst func nil)) (parseAst arg nil)) )
+
+typeof x = getType x id false
+
+parseAst a tree = do
+  t = typeof a
+  (eq t 'ref')
+    parseRef a tree
+    (eq t 'lit')
+      parseLit a tree
+      (eq t 'lambda')
+        parseLambda a tree
+        parseApply a tree
+
+
+make-error err = make-tree [ 'error', (err id) ]
+
+parseTree s = (parse s) (\x. parseAst x nil) make-error
+
+#ex: printAst (parse 'cons (\x.x) 2' id id)
+
+
+build-svg-node n = (rect nil)
+
+build-svg-children t = ''
+
+build-tree c = if (null? c) ''
+  concat [ build-svg-node (data c), build-svg-children (first-child c) ]
+
+build-svg tree = traverse-infix tree build-tree
+
+tst = (build-svg (parseTree '1'))
+

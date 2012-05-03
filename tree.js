@@ -1,4 +1,4 @@
-(function(){
+var tree = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
@@ -23,10 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _null$e, _empty$ntree, _make$ntree, _add$nchild, _first$nchild, _next$nsibling, _data, _traverse$nprefix, _traverse, _inner$nchildren, _children, _test$ntree, _test$nsmall$ntree, _tiny$ntree, _t1, _t2, _t6, _t7, _t8, _test$nbuild2, _test$nbuild, _tmt4, _tmt5, _tmt1, _test$nminimax$ntree, _alpha$nbeta, _alpha$nbeta$neval, _alpha$nbeta$ntree, _alpha$nbeta$ninside, _test;
-//null? = AST(eq nil)
-root.defs._null$e = _null$e = define('null?', _eq()(_nil));
-;
+var _empty$ntree, _make$ntree, _add$nchild, _first$nchild, _next$nsibling, _data, _traverse$nprefix, _traverse$ninfix, _inner$nchildren, _children, _test$ntree, _test$nsmall$ntree, _tiny$ntree, _t1, _t2, _t6, _t7, _t8, _test$nbuild2, _test$nbuild, _tmt4, _tmt5, _tmt1, _test$nminimax$ntree, _burp, _alpha$nbeta, _alpha$nbeta$neval, _alpha$nbeta$ntree, _alpha$nbeta$ninside, _test;
 //empty-tree = AST(nil)
 root.defs._empty$ntree = _empty$ntree = define('empty-tree', _nil());
 ;
@@ -45,11 +42,11 @@ root.defs._next$nsibling = _next$nsibling = define('next-sibling', function(_t){
 //data = AST(\t . head (head t))
 root.defs._data = _data = define('data', function(_t){return _head()((function(){var $m; return function(){return $m || ($m = (_head()(_t)))}})())});
 ;
-//traverse-prefix = AST(\t f . if (null? t) (f nil) (bind (f (data t)) \_ . bind (traverse (first-child t) f) \_ . traverse (next-sibling t) f))
-root.defs._traverse$nprefix = _traverse$nprefix = define('traverse-prefix', function(_t){return function(_f){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_t)))}})())((function(){var $m; return function(){return $m || ($m = (_f()(_nil)))}})())((function(){var $m; return function(){return $m || ($m = (_bind()((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (_data()(_t)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_traverse()((function(){var $m; return function(){return $m || ($m = (_first$nchild()(_t)))}})())(_f)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _traverse()((function(){var $m; return function(){return $m || ($m = (_next$nsibling()(_t)))}})())(_f)}))}})())}))}})())))}})())}});
+//traverse-prefix = AST(\t f . if (null? t) (f nil) ((\ch . bind (f (data t)) \_ . bind (traverse-prefix ch f) \_ . traverse-prefix (next-sibling ch) f) (first-child t)))
+root.defs._traverse$nprefix = _traverse$nprefix = define('traverse-prefix', function(_t){return function(_f){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_t)))}})())((function(){var $m; return function(){return $m || ($m = (_f()(_nil)))}})())((function(){var $m; return function(){return $m || ($m = (function(_ch){return _bind()((function(){var $m; return function(){return $m || ($m = (_f()((function(){var $m; return function(){return $m || ($m = (_data()(_t)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_traverse$nprefix()(_ch)(_f)))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _traverse$nprefix()((function(){var $m; return function(){return $m || ($m = (_next$nsibling()(_ch)))}})())(_f)}))}})())}))}})())}((function(){var $m; return function(){return $m || ($m = (_first$nchild()(_t)))}})())))}})())}});
 ;
-//traverse = AST(traverse-prefix)
-root.defs._traverse = _traverse = define('traverse', _traverse$nprefix());
+//traverse-infix = AST(\t f . if (null? t) (f nil) ((\ch . append (traverse-infix ch f) (cons (f t) (traverse-infix (next-sibling ch) f))) (first-child t)))
+root.defs._traverse$ninfix = _traverse$ninfix = define('traverse-infix', function(_t){return function(_f){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_t)))}})())((function(){var $m; return function(){return $m || ($m = (_f()(_nil)))}})())((function(){var $m; return function(){return $m || ($m = (function(_ch){return _append()((function(){var $m; return function(){return $m || ($m = (_traverse$ninfix()(_ch)(_f)))}})())((function(){var $m; return function(){return $m || ($m = (_cons()((function(){var $m; return function(){return $m || ($m = (_f()(_t)))}})())((function(){var $m; return function(){return $m || ($m = (_traverse$ninfix()((function(){var $m; return function(){return $m || ($m = (_next$nsibling()(_ch)))}})())(_f)))}})())))}})())}((function(){var $m; return function(){return $m || ($m = (_first$nchild()(_t)))}})())))}})())}});
 ;
 //inner-children = AST(\c . if (eq c nil) nil (cons (head c) (inner-children (next-sibling c))))
 root.defs._inner$nchildren = _inner$nchildren = define('inner-children', function(_c){return _if()((function(){var $m; return function(){return $m || ($m = (_eq()(_c)(_nil)))}})())(_nil)((function(){var $m; return function(){return $m || ($m = (_cons()((function(){var $m; return function(){return $m || ($m = (_head()(_c)))}})())((function(){var $m; return function(){return $m || ($m = (_inner$nchildren()((function(){var $m; return function(){return $m || ($m = (_next$nsibling()(_c)))}})())))}})())))}})())});
@@ -98,6 +95,9 @@ root.defs._tmt1 = _tmt1 = define('tmt1', _add$nchild()((function(){var $m; retur
 ;
 //test-minimax-tree = AST(add-child (add-child (add-child (make-tree 5) tmt4) tmt5) tmt1)
 root.defs._test$nminimax$ntree = _test$nminimax$ntree = define('test-minimax-tree', _add$nchild()((function(){var $m; return function(){return $m || ($m = (_add$nchild()((function(){var $m; return function(){return $m || ($m = (_add$nchild()((function(){var $m; return function(){return $m || ($m = (_make$ntree()((function(){return 5}))))}})())(_tmt4)))}})())(_tmt5)))}})())(_tmt1));
+;
+//burp = AST(traverse-infix test-minimax-tree \n . if (null? n) print  (print (data n)))
+root.defs._burp = _burp = define('burp', _traverse$ninfix()(_test$nminimax$ntree)((function(){var $m; return function(){return $m || ($m = (function(_n){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_n)))}})())(_print)((function(){return ""}))((function(){var $m; return function(){return $m || ($m = (_print()((function(){var $m; return function(){return $m || ($m = (_data()(_n)))}})())))}})())}))}})()));
 ;
 //alpha-beta = AST(\t . alpha-beta-tree t 4 -999999 999999)
 root.defs._alpha$nbeta = _alpha$nbeta = define('alpha-beta', function(_t){return _alpha$nbeta$ntree()(_t)((function(){return 4}))((function(){return -999999}))((function(){return 999999}))});

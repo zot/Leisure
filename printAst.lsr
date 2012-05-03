@@ -1,0 +1,22 @@
+printRef r = concat ['(ref ', (r id), ')']
+
+printLit l = concat ['(lit ', (l id), ')']
+
+printLambda l = l (\v b . concat ['(lambda ', v, ' . ', (printAst b), ')'])
+
+printApply a = a (\func arg . concat ['(apply ', (printAst func), ' ', (printAst arg), ')'])
+
+typeof x = getType x id false
+
+printAst a = do
+  t = typeof a
+  (eq t 'ref')
+    printRef a
+    (eq t 'lit')
+      printLit a
+      (eq t 'lambda')
+        printLambda a
+        printApply a
+
+
+#ex: printAst (parse 'cons (\x.x) 2' id id)

@@ -18,21 +18,17 @@ data t = head (head t)
 
 traverse-prefix t f = if (null? t) (f nil)
   do
+    ch = first-child t
     f (data t)
-    traverse (first-child t) f
-    traverse (next-sibling t) f
- 
-traverse = traverse-prefix
+    traverse-prefix ch f
+    traverse-prefix (next-sibling ch) f
 
-#depth-search t f = if (null? t) nil
-#  do
-#    c = first-child t
-#    if (null? c) (f (data t)) nil
-#    depth-search c f
-#    depth-search (next-sibling c) f
-#traverse-tree t s a = s t a
-#print-tree-depth t = traverse-tree t depth-search print 
-#print-tree-breadth t = traverse-tree t breadth-search print
+
+traverse-infix t f = if (null? t) (f nil)
+  do
+    ch = first-child t
+    append (traverse-infix ch f) (cons (f t) ( traverse-infix (next-sibling ch) f ) )
+
 
 
 # private-inner function for finding the children
@@ -73,6 +69,8 @@ tmt4 = add-child (make-tree 4) (add-child (add-child (make-tree 4) (make-tree 12
 tmt5 = add-child (make-tree 5) (add-child (add-child (make-tree 10) (make-tree 5)) (make-tree 6)) 
 tmt1 = add-child (make-tree 1) (add-child (add-child (make-tree 1) (make-tree 2)) (make-tree 3)) 
 test-minimax-tree = add-child (add-child (add-child (make-tree 5) tmt4) tmt5) tmt1
+
+burp = traverse-infix test-minimax-tree (\n. if (null? n) print '' (print (data n) ) )
 
 
 ######################################################
