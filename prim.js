@@ -94,6 +94,7 @@
   });
 
   define('pretty', function(value) {
+    if (!Pretty) Pretty = window.Pretty;
     return Pretty.print(value());
   });
 
@@ -413,6 +414,10 @@
         return cont(_false);
       });
     };
+  });
+
+  define('svg-measure-text', function(text) {
+    return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
   });
 
   root.setTty = setTty;

@@ -1,4 +1,3 @@
-
 make-subtree svg width height root-x root-y = \f . f svg width height root-x root-y
 
 subtree-svg st = st \svg width height root-x root-y . svg
@@ -7,42 +6,56 @@ subtree-height st = st \svg width height root-x root-y . height
 subtree-root-x st = st \svg width height root-x root-y . root-x
 subtree-root-y st = st \svg width height root-x root-y . root-y
 
-parseRef r tree = add-child tree (make-tree [ 'ref', (r id) ] )
+subtreeFor ast = do
+  t = typeof ast
+  eq t 'lit'
+    createLitSubtree (pretty (ast id))
+    eq t 'ref'
+      createLitSubtree (pretty (ast id))
+    ''
 
-parseLit l tree = add-child tree (make-tree [ 'lit', (l id) ] )
-
-parseLambda l tree = l (\v b . add-child tree (add-child (make-tree [ 'lambda', v ]) (parseAst b nil))  )
-
-parseApply a tree = a (\func arg . add-child tree (add-child (add-child (make-tree [ 'apply', '' ]) (parseAst func nil)) (parseAst arg nil)) )
+createLitSubtree lit = (svg-measure-text lit '') \w h . do
+  box-w = + w 20
+  box-h = + h 10
+  svg (concat [(rect [['x'|0],['y'|0],['width'|box-w],['height'|box-h],['stroke'|'black'],['stroke-width'|2],['fill'|'green']]), (text lit [['x'|10],['y'|10]])]) [['width'|200],['height'|200]]
 
 typeof x = getType x id false
 
-parseAst a tree = do
-  t = typeof a
-  (eq t 'ref')
-    parseRef a tree
-    (eq t 'lit')
-      parseLit a tree
-      (eq t 'lambda')
-        parseLambda a tree
-        parseApply a tree
-
-
-make-error err = make-tree [ 'error', (err id) ]
-
-parseTree s = (parse s) (\x. parseAst x nil) make-error
-
-#ex: printAst (parse 'cons (\x.x) 2' id id)
-
-
-build-svg-node n = (rect nil)
-
-build-svg-children t = ''
-
-build-tree c = if (null? c) ''
-  concat [ build-svg-node (data c), build-svg-children (first-child c) ]
-
-build-svg tree = traverse-infix tree build-tree
-
-tst = (build-svg (parseTree '1'))
+# parseRef r tree = add-child tree (make-tree [ 'ref', (r id) ] )
+# 
+# parseLit l tree = add-child tree (make-tree [ 'lit', (l id) ] )
+# 
+# parseLambda l tree = l (\v b . add-child tree (add-child (make-tree [ 'lambda', v ]) (parseAst b nil))  )
+# 
+# parseApply a tree = a (\func arg . add-child tree (add-child (add-child (make-tree [ 'apply', '' ]) (parseAst func nil)) (parseAst arg nil)) )
+# 
+# 
+# parseAst a tree = do
+#   t = typeof a
+#   (eq t 'ref')
+#     parseRef a tree
+#     (eq t 'lit')
+#       parseLit a tree
+#       (eq t 'lambda')
+#         parseLambda a tree
+#         parseApply a tree
+# 
+# 
+# make-error err = make-tree [ 'error', (err id) ]
+# 
+# parseTree s = (parse s) (\x. parseAst x nil) make-error
+# 
+# #ex: printAst (parse 'cons (\x.x) 2' id id)
+# 
+# 
+# build-svg-node n = (rect nil)
+# 
+# build-svg-children t = ''
+# 
+# build-tree c = if (null? c) ''
+#   concat [ build-svg-node (data c), build-svg-children (first-child c) ]
+# 
+# build-svg tree = traverse-infix tree build-tree
+# 
+# tst = (build-svg (parseTree '1'))
 

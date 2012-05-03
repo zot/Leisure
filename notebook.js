@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -847,7 +847,7 @@
 
   laz = Leisure.laz;
 
-  Leisure.define('svg-measure-text', function(text) {
+  svgMeasureText = function svgMeasureText(text) {
     return function(style) {
       return function(f) {
         var bx, svg, txt;
@@ -865,9 +865,11 @@
         return f()(laz(bx.width))(laz(bx.height));
       };
     };
-  });
+  };
 
   Prim.defaultEnv.require = req;
+
+  root.svgMeasureText = svgMeasureText;
 
   root.initNotebook = initNotebook;
 

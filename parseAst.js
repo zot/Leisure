@@ -23,45 +23,33 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _parseRef, _parseLit, _parseLambda, _parseApply, _typeof, _parseAst, _make$nerror, _parseTree, _build$nsvg$nnode, _build$nsvg$nchildren, _build$ntree, _build$nsvg, _tst;
-//parseRef = AST(\r tree . add-child tree (make-tree ([ ref , (r id) ])))
-root.defs._parseRef = _parseRef = define('parseRef', function(_r){return function(_tree){return _add$nchild()(_tree)((function(){var $m; return function(){return $m || ($m = (_make$ntree()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "ref"}))(_$b)((function(){var $m; return function(){return $m || ($m = (_r()(_id)))}})())(_$s)))}})())))}})())}});
+var _make$nsubtree, _subtree$nsvg, _subtree$nwidth, _subtree$nheight, _subtree$nroot$nx, _subtree$nroot$ny, _subtreeFor, _createLitSubtree, _typeof;
+//make-subtree = AST(\svg width height root-x root-y f . f svg width height root-x root-y)
+root.defs._make$nsubtree = _make$nsubtree = define('make-subtree', setDataType(function(_svg){return function(_width){return function(_height){return function(_root$nx){return function(_root$ny){return setType(function(_f){return _f()(_svg)(_width)(_height)(_root$nx)(_root$ny)}, 'make-subtree')}}}}}, 'make-subtree'));
 ;
-//parseLit = AST(\l tree . add-child tree (make-tree ([ lit , (l id) ])))
-root.defs._parseLit = _parseLit = define('parseLit', function(_l){return function(_tree){return _add$nchild()(_tree)((function(){var $m; return function(){return $m || ($m = (_make$ntree()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "lit"}))(_$b)((function(){var $m; return function(){return $m || ($m = (_l()(_id)))}})())(_$s)))}})())))}})())}});
+//subtree-svg = AST(\st . st \svg width height root-x root-y . svg)
+root.defs._subtree$nsvg = _subtree$nsvg = define('subtree-svg', function(_st){return _st()((function(){var $m; return function(){return $m || ($m = (function(_svg){return function(_width){return function(_height){return function(_root$nx){return function(_root$ny){return _svg()}}}}}))}})())});
 ;
-//parseLambda = AST(\l tree . l \v b . add-child tree (add-child (make-tree ([ lambda , v ])) (parseAst b nil)))
-root.defs._parseLambda = _parseLambda = define('parseLambda', function(_l){return function(_tree){return _l()((function(){var $m; return function(){return $m || ($m = (function(_v){return function(_b){return _add$nchild()(_tree)((function(){var $m; return function(){return $m || ($m = (_add$nchild()((function(){var $m; return function(){return $m || ($m = (_make$ntree()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "lambda"}))(_$b)(_v)(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_parseAst()(_b)(_nil)))}})())))}})())}}))}})())}});
+//subtree-width = AST(\st . st \svg width height root-x root-y . width)
+root.defs._subtree$nwidth = _subtree$nwidth = define('subtree-width', function(_st){return _st()((function(){var $m; return function(){return $m || ($m = (function(_svg){return function(_width){return function(_height){return function(_root$nx){return function(_root$ny){return _width()}}}}}))}})())});
 ;
-//parseApply = AST(\a tree . a \func arg . add-child tree (add-child (add-child (make-tree ([ apply ,  ])) (parseAst func nil)) (parseAst arg nil)))
-root.defs._parseApply = _parseApply = define('parseApply', function(_a){return function(_tree){return _a()((function(){var $m; return function(){return $m || ($m = (function(_func){return function(_arg){return _add$nchild()(_tree)((function(){var $m; return function(){return $m || ($m = (_add$nchild()((function(){var $m; return function(){return $m || ($m = (_add$nchild()((function(){var $m; return function(){return $m || ($m = (_make$ntree()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "apply"}))(_$b)((function(){return ""}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_parseAst()(_func)(_nil)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_parseAst()(_arg)(_nil)))}})())))}})())}}))}})())}});
+//subtree-height = AST(\st . st \svg width height root-x root-y . height)
+root.defs._subtree$nheight = _subtree$nheight = define('subtree-height', function(_st){return _st()((function(){var $m; return function(){return $m || ($m = (function(_svg){return function(_width){return function(_height){return function(_root$nx){return function(_root$ny){return _height()}}}}}))}})())});
+;
+//subtree-root-x = AST(\st . st \svg width height root-x root-y . root-x)
+root.defs._subtree$nroot$nx = _subtree$nroot$nx = define('subtree-root-x', function(_st){return _st()((function(){var $m; return function(){return $m || ($m = (function(_svg){return function(_width){return function(_height){return function(_root$nx){return function(_root$ny){return _root$nx()}}}}}))}})())});
+;
+//subtree-root-y = AST(\st . st \svg width height root-x root-y . root-y)
+root.defs._subtree$nroot$ny = _subtree$nroot$ny = define('subtree-root-y', function(_st){return _st()((function(){var $m; return function(){return $m || ($m = (function(_svg){return function(_width){return function(_height){return function(_root$nx){return function(_root$ny){return _root$ny()}}}}}))}})())});
+;
+//subtreeFor = AST(\ast . (\t . eq t lit (createLitSubtree (pretty (ast id))) (eq t ref (createLitSubtree (pretty (ast id)))) ) (typeof ast))
+root.defs._subtreeFor = _subtreeFor = define('subtreeFor', function(_ast){return function(_t){return _eq()(_t)((function(){return "lit"}))((function(){var $m; return function(){return $m || ($m = (_createLitSubtree()((function(){var $m; return function(){return $m || ($m = (_pretty()((function(){var $m; return function(){return $m || ($m = (_ast()(_id)))}})())))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_eq()(_t)((function(){return "ref"}))((function(){var $m; return function(){return $m || ($m = (_createLitSubtree()((function(){var $m; return function(){return $m || ($m = (_pretty()((function(){var $m; return function(){return $m || ($m = (_ast()(_id)))}})())))}})())))}})())))}})())((function(){return ""}))}((function(){var $m; return function(){return $m || ($m = (_typeof()(_ast)))}})())});
+;
+//createLitSubtree = AST(\lit . svg-measure-text lit  \w h . (\box-w . (\box-h . svg (concat ([ (rect ([ ([ x | 0 ]) , ([ y | 0 ]) , ([ width | box-w ]) , ([ height | box-h ]) , ([ stroke | black ]) , ([ stroke-width | 2 ]) , ([ fill | green ]) ])) , (text lit ([ ([ x | 10 ]) , ([ y | 10 ]) ])) ])) ([ ([ width | 200 ]) , ([ height | 200 ]) ])) (+ h 10)) (+ w 20))
+root.defs._createLitSubtree = _createLitSubtree = define('createLitSubtree', function(_lit){return _svg$nmeasure$ntext()(_lit)((function(){return ""}))((function(){var $m; return function(){return $m || ($m = (function(_w){return function(_h){return function(_box$nw){return function(_box$nh){return _svg()((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){var $m; return function(){return $m || ($m = (_rect()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "x"}))(_$q)((function(){return 0}))(_$s)))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "y"}))(_$q)((function(){return 0}))(_$s)))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "width"}))(_$q)(_box$nw)(_$s)))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "height"}))(_$q)(_box$nh)(_$s)))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "stroke"}))(_$q)((function(){return "black"}))(_$s)))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "stroke-width"}))(_$q)((function(){return 2}))(_$s)))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "fill"}))(_$q)((function(){return "green"}))(_$s)))}})())(_$s)))}})())))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_text()(_lit)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "x"}))(_$q)((function(){return 10}))(_$s)))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "y"}))(_$q)((function(){return 10}))(_$s)))}})())(_$s)))}})())))}})())(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_$r()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "width"}))(_$q)((function(){return 200}))(_$s)))}})())(_$b)((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "height"}))(_$q)((function(){return 200}))(_$s)))}})())(_$s)))}})())}((function(){var $m; return function(){return $m || ($m = (_$o()(_h)((function(){return 10}))))}})())}((function(){var $m; return function(){return $m || ($m = (_$o()(_w)((function(){return 20}))))}})())}}))}})())});
 ;
 //typeof = AST(\x . getType x id false)
 root.defs._typeof = _typeof = define('typeof', function(_x){return _getType()(_x)(_id)(_false)});
-;
-//parseAst = AST(\a tree . (\t . eq t ref (parseRef a tree) (eq t lit (parseLit a tree) (eq t lambda (parseLambda a tree) (parseApply a tree)))) (typeof a))
-root.defs._parseAst = _parseAst = define('parseAst', function(_a){return function(_tree){return function(_t){return _eq()(_t)((function(){return "ref"}))((function(){var $m; return function(){return $m || ($m = (_parseRef()(_a)(_tree)))}})())((function(){var $m; return function(){return $m || ($m = (_eq()(_t)((function(){return "lit"}))((function(){var $m; return function(){return $m || ($m = (_parseLit()(_a)(_tree)))}})())((function(){var $m; return function(){return $m || ($m = (_eq()(_t)((function(){return "lambda"}))((function(){var $m; return function(){return $m || ($m = (_parseLambda()(_a)(_tree)))}})())((function(){var $m; return function(){return $m || ($m = (_parseApply()(_a)(_tree)))}})())))}})())))}})())}((function(){var $m; return function(){return $m || ($m = (_typeof()(_a)))}})())}});
-;
-//make-error = AST(\err . make-tree ([ error , (err id) ]))
-root.defs._make$nerror = _make$nerror = define('make-error', function(_err){return _make$ntree()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "error"}))(_$b)((function(){var $m; return function(){return $m || ($m = (_err()(_id)))}})())(_$s)))}})())});
-;
-//parseTree = AST(\s . parse s \x . parseAst x nil make-error)
-root.defs._parseTree = _parseTree = define('parseTree', function(_s){return _parse()(_s)((function(){var $m; return function(){return $m || ($m = (function(_x){return _parseAst()(_x)(_nil)}))}})())(_make$nerror)});
-;
-//build-svg-node = AST(\n . rect nil)
-root.defs._build$nsvg$nnode = _build$nsvg$nnode = define('build-svg-node', function(_n){return _rect()(_nil)});
-;
-//build-svg-children = AST(\t . )
-root.defs._build$nsvg$nchildren = _build$nsvg$nchildren = define('build-svg-children', function(_t){return ""});
-;
-//build-tree = AST(\c . if (null? c)  (concat ([ build-svg-node (data c) , build-svg-children (first-child c) ])))
-root.defs._build$ntree = _build$ntree = define('build-tree', function(_c){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_c)))}})())((function(){return ""}))((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_$r()(_build$nsvg$nnode)((function(){var $m; return function(){return $m || ($m = (_data()(_c)))}})())(_$b)(_build$nsvg$nchildren)((function(){var $m; return function(){return $m || ($m = (_first$nchild()(_c)))}})())(_$s)))}})())))}})())});
-;
-//build-svg = AST(\tree . traverse-infix tree build-tree)
-root.defs._build$nsvg = _build$nsvg = define('build-svg', function(_tree){return _traverse$ninfix()(_tree)(_build$ntree)});
-;
-//tst = AST(build-svg (parseTree 1))
-root.defs._tst = _tst = define('tst', _build$nsvg()((function(){var $m; return function(){return $m || ($m = (_parseTree()((function(){return "1"}))))}})()));
 ;
 
 if (typeof window !== 'undefined' && window !== null) {

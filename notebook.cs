@@ -584,7 +584,7 @@ Leisure.define 'finishLoading', (bubba)->
 
 laz = Leisure.laz
 
-Leisure.define 'svg-measure-text', (text)->(style)->(f)->
+svgMeasureText = (text)->(style)->(f)->
   if !(txt = document.getElementById 'HIDDEN_TEXT')
     svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'/>"
     txt = document.createElementNS 'http://www.w3.org/2000/svg', 'text'
@@ -599,6 +599,7 @@ Leisure.define 'svg-measure-text', (text)->(style)->(f)->
 
 Prim.defaultEnv.require = req
 
+root.svgMeasureText = svgMeasureText
 root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
 root.evalOutput = evalOutput

@@ -42,7 +42,10 @@ define 'parse', (value)->
   if err? then _right()(laz("Error: #{err}"))
   else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
   else _left()(laz(ast))
-define 'pretty', (value)-> Pretty.print(value())
+define 'pretty', (value)->
+  #kluge this, for now
+  if !Pretty then Pretty = window.Pretty
+  Pretty.print(value())
 
 define '+', (a)->(b)->a() + b()
 define '-', (a)->(b)->a() - b()
@@ -173,6 +176,12 @@ define 'setS', (state)->(value)->
   makeMonad (env, cont)->
     state().value = value()
     cont(_false)
+
+################
+# BROWSER PRIMS
+################
+
+define 'svg-measure-text', (text)->Notebook?.svgMeasureText(text)
 
 root.setTty = setTty
 root.runMonad = runMonad
