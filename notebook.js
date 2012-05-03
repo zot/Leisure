@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, invisibleSvg, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -845,23 +845,20 @@
     });
   });
 
-  invisibleSvg = null;
-
   laz = Leisure.laz;
 
   Leisure.define('svg-measure-text', function(text) {
     return function(style) {
       return function(f) {
-        var bx, invisibleSvgText, txt;
-        if (!(invisibleSvg != null)) {
-          invisibleSvg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'/>");
-          invisibleSvgText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          invisibleSvgText.appendChild(textNode(''));
-          invisibleSvgText.setAttribute('id', 'HIDDEN_TEXT');
-          invisibleSvg.appendChild(invisibleSvgText);
-          document.body.appendChild(invisibleSvg);
+        var bx, svg, txt;
+        if (!(txt = document.getElementById('HIDDEN_TEXT'))) {
+          svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'/>");
+          txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          txt.appendChild(textNode(''));
+          txt.setAttribute('id', 'HIDDEN_TEXT');
+          svg.appendChild(txt);
+          document.body.appendChild(svg);
         }
-        txt = document.getElementById('HIDDEN_TEXT');
         if (style()) txt.setAttribute('style', style());
         txt.lastChild.textContent = text();
         bx = txt.getBBox();
