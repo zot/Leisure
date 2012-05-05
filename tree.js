@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _empty$ntree, _make$ntree, _add$nchild, _first$nchild, _next$nsibling, _data, _traverse$nprefix, _traverse$ninfix, _inner$nchildren, _children, _test$ntree, _test$nsmall$ntree, _tiny$ntree, _t1, _t2, _t6, _t7, _t8, _test$nbuild2, _test$nbuild, _tmt4, _tmt5, _tmt1, _test$nminimax$ntree, _burp, _alpha$nbeta, _alpha$nbeta$neval, _alpha$nbeta$ntree, _alpha$nbeta$ninside, _test;
+var _empty$ntree, _make$ntree, _add$nchild, _first$nchild, _next$nsibling, _data, _traverse$nprefix, _traverse$ninfix, _inner$nchildren, _children, _test$ntree, _test$nsmall$ntree, _tiny$ntree, _t1, _t2, _t6, _t7, _t8, _test$nbuild2, _test$nbuild, _tmt4, _tmt5, _tmt1, _test$nminimax$ntree;
 //empty-tree = AST(nil)
 root.defs._empty$ntree = _empty$ntree = define('empty-tree', _nil());
 ;
@@ -95,24 +95,6 @@ root.defs._tmt1 = _tmt1 = define('tmt1', _add$nchild()((function(){var $m; retur
 ;
 //test-minimax-tree = AST(add-child (add-child (add-child (make-tree 5) tmt4) tmt5) tmt1)
 root.defs._test$nminimax$ntree = _test$nminimax$ntree = define('test-minimax-tree', _add$nchild()((function(){var $m; return function(){return $m || ($m = (_add$nchild()((function(){var $m; return function(){return $m || ($m = (_add$nchild()((function(){var $m; return function(){return $m || ($m = (_make$ntree()((function(){return 5}))))}})())(_tmt4)))}})())(_tmt5)))}})())(_tmt1));
-;
-//burp = AST(traverse-infix test-minimax-tree \n . if (null? n) print  (print (data n)))
-root.defs._burp = _burp = define('burp', _traverse$ninfix()(_test$nminimax$ntree)((function(){var $m; return function(){return $m || ($m = (function(_n){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_n)))}})())(_print)((function(){return ""}))((function(){var $m; return function(){return $m || ($m = (_print()((function(){var $m; return function(){return $m || ($m = (_data()(_n)))}})())))}})())}))}})()));
-;
-//alpha-beta = AST(\t . alpha-beta-tree t 4 -999999 999999)
-root.defs._alpha$nbeta = _alpha$nbeta = define('alpha-beta', function(_t){return _alpha$nbeta$ntree()(_t)((function(){return 4}))((function(){return -999999}))((function(){return 999999}))});
-;
-//alpha-beta-eval = AST(\t . data t)
-root.defs._alpha$nbeta$neval = _alpha$nbeta$neval = define('alpha-beta-eval', function(_t){return _data()(_t)});
-;
-//alpha-beta-tree = AST(\t d alpha beta . if (null? t) alpha (if (or (null? (first-child t)) (lte d 0)) (alpha-beta-eval t) (alpha-beta-inside (first-child t) (-- d) alpha beta)))
-root.defs._alpha$nbeta$ntree = _alpha$nbeta$ntree = define('alpha-beta-tree', function(_t){return function(_d){return function(_alpha){return function(_beta){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_t)))}})())(_alpha)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_or()((function(){var $m; return function(){return $m || ($m = (_null$e()((function(){var $m; return function(){return $m || ($m = (_first$nchild()(_t)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_lte()(_d)((function(){return 0}))))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_alpha$nbeta$neval()(_t)))}})())((function(){var $m; return function(){return $m || ($m = (_alpha$nbeta$ninside()((function(){var $m; return function(){return $m || ($m = (_first$nchild()(_t)))}})())((function(){var $m; return function(){return $m || ($m = (_$n$n()(_d)))}})())(_alpha)(_beta)))}})())))}})())}}}});
-;
-//alpha-beta-inside = AST(\t d alpha beta . if (null? t) alpha ((\val . if (gte val beta) val (if (gt val alpha) (alpha-beta-tree (next-sibling t) d val beta) (alpha-beta-tree (next-sibling t) d alpha beta))) (* -1 (alpha-beta-tree t d (- 0 beta) (- 0 alpha)))))
-root.defs._alpha$nbeta$ninside = _alpha$nbeta$ninside = define('alpha-beta-inside', function(_t){return function(_d){return function(_alpha){return function(_beta){return _if()((function(){var $m; return function(){return $m || ($m = (_null$e()(_t)))}})())(_alpha)((function(){var $m; return function(){return $m || ($m = (function(_val){return _if()((function(){var $m; return function(){return $m || ($m = (_gte()(_val)(_beta)))}})())(_val)((function(){var $m; return function(){return $m || ($m = (_if()((function(){var $m; return function(){return $m || ($m = (_gt()(_val)(_alpha)))}})())((function(){var $m; return function(){return $m || ($m = (_alpha$nbeta$ntree()((function(){var $m; return function(){return $m || ($m = (_next$nsibling()(_t)))}})())(_d)(_val)(_beta)))}})())((function(){var $m; return function(){return $m || ($m = (_alpha$nbeta$ntree()((function(){var $m; return function(){return $m || ($m = (_next$nsibling()(_t)))}})())(_d)(_alpha)(_beta)))}})())))}})())}((function(){var $m; return function(){return $m || ($m = (_$g()((function(){return -1}))((function(){var $m; return function(){return $m || ($m = (_alpha$nbeta$ntree()(_t)(_d)((function(){var $m; return function(){return $m || ($m = (_$n()((function(){return 0}))(_beta)))}})())((function(){var $m; return function(){return $m || ($m = (_$n()((function(){return 0}))(_alpha)))}})())))}})())))}})())))}})())}}}});
-;
-//test = AST(alpha-beta test-minimax-tree)
-root.defs._test = _test = define('test', _alpha$nbeta()(_test$nminimax$ntree));
 ;
 
 if (typeof window !== 'undefined' && window !== null) {

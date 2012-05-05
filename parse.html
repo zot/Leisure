@@ -10,17 +10,23 @@ do
   require 'parseAst'
 
 
-parseTree '2'
-
-build-svg (parseTree '2')
-
-parseTree 'nil'
-
-parseTree 'cons 5 nil'
-
 treeFor (parse '1' id id)
 
+treeFor (parse '"bloop"' id id)
+
 treeFor (parse '\x . x' id id)
+
+bloop = subtreeFor((parse '\x . x' ) id id)
+
+subtree-svg bloop
+
+treeFor (parse 'cons 3 nil' id id)
+
+treeFor (parse 'null? nil' id id)
+
+derp=subtree-svg (subtreeFor((parse 'null? null' ) id id))
+
+derp
 
   </body>
 </html>

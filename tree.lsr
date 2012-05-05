@@ -70,29 +70,29 @@ tmt5 = add-child (make-tree 5) (add-child (add-child (make-tree 10) (make-tree 5
 tmt1 = add-child (make-tree 1) (add-child (add-child (make-tree 1) (make-tree 2)) (make-tree 3)) 
 test-minimax-tree = add-child (add-child (add-child (make-tree 5) tmt4) tmt5) tmt1
 
-burp = traverse-infix test-minimax-tree (\n. if (null? n) print '' (print (data n) ) )
+#burp = traverse-infix test-minimax-tree (\n. if (null? n) print '' (print (data n) ) )
 
 
 ######################################################
 # messing around with basic minimax alpha/beta pruning
 ######################################################
 
-alpha-beta t = alpha-beta-tree t 4 -999999 999999
+#alpha-beta t = alpha-beta-tree t 4 -999999 999999
 
-alpha-beta-eval t = data t
+#alpha-beta-eval t = data t
 
-alpha-beta-tree t d alpha beta = if (null? t) alpha
-  if (or (null? (first-child t)) (lte d 0)) (alpha-beta-eval t)
-    alpha-beta-inside (first-child t) (-- d) alpha beta
+#alpha-beta-tree t d alpha beta = if (null? t) alpha
+#  if (or (null? (first-child t)) (lte d 0)) (alpha-beta-eval t)
+#    alpha-beta-inside (first-child t) (-- d) alpha beta
 
 
-alpha-beta-inside t d alpha beta = if (null? t) alpha
-  do
-    val = (* -1 (alpha-beta-tree t d (- 0 beta) (- 0 alpha) ) )
-    if (gte val beta) val
-      if (gt val alpha)
-        alpha-beta-tree (next-sibling t) d val beta
-        alpha-beta-tree (next-sibling t) d alpha beta  
+#alpha-beta-inside t d alpha beta = if (null? t) alpha
+#  do
+#    val = (* -1 (alpha-beta-tree t d (- 0 beta) (- 0 alpha) ) )
+#    if (gte val beta) val
+#      if (gt val alpha)
+#        alpha-beta-tree (next-sibling t) d val beta
+#        alpha-beta-tree (next-sibling t) d alpha beta  
 
-test = alpha-beta test-minimax-tree
+#test = alpha-beta test-minimax-tree
 
