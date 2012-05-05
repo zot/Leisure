@@ -7,6 +7,12 @@
 
 # TODO
 * notebook
+   * use file system api
+      * each webpage is a whole project and gets its own directory on the file system
+      * each pre element needs a "filename" attr
+	  * store the contents of each pre element in the FS
+	  * use FS for autosave
+	  * "save-as" saves the web page
    * incremental compilation (automatically recompile and update all errors)
    * run test cases button
       * checkbox to run all tests on successful auto-build

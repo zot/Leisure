@@ -1,7 +1,7 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/Leisure) [REPL](leisure.html) [Standard functions](std.lsr)
 # Please Note: the repository is now [http://github.com/zot/Leisure](http://github.com/zot/Leisure)
 
-# The Leisure Initiative: Functional.  Lazy.  Accessable.  Powerful.
+# The Leisure Initiative: Functional.  Lazy.  Accessible.  Powerful.
 
 # Leisure: a convenient, untyped, lazy Lambda Calculus-based programming language with metaprogramming
 
