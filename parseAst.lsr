@@ -24,12 +24,16 @@ subtreeFor ast = do
   eq t 'lit'
     createLitSubtree (pretty (ast id))
     eq t 'ref'
-      createLitSubtree (pretty (ast id))
+      createRefSubtree (pretty (ast id))
       eq t 'lambda'
-        ast \v b . createLambdaSubtree v b
+        ast (\v b . createLambdaSubtree v b)
+        eq t 'apply'
+          ast (\f a . createApplySubtree f a)
         make-subtree '' 0 0 0 0
 
-greenStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'green']]
+redStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'red'],['rx'|8],['ry'|8] ]
+greenStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'green'],['rx'|8],['ry'|8] ]
+blueStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'blue'],['rx'|8],['ry'|8] ]
 
 #    (translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)
 
@@ -50,12 +54,31 @@ createLambdaSubtree v b = do
     / totalWidth 2
     / (box-height rootBox) 2
 
+
+createApplySubtree f a = do
+  rootBox = textBox blueStyle 'apply'
+  rootSvg = box-svg rootBox
+  argBox = textBox blueStyle f
+  argSvg = box-svg argBox
+  funcTree = subtreeFor f
+  funcSvg = subtree-svg funcTree
+  childWidth = + (+ (box-width argBox) 5) (subtree-width funcTree)
+  totalWidth = max childWidth (box-width rootBox)
+  pad = max 0 (/ (- totalWidth childWidth) 2)
+  make-subtree
+    concat [(translate argSvg pad (+ (box-height rootBox) 5)),(translate funcSvg (+ pad (+ (box-width argBox) 5)) (+ (box-height rootBox) 5)),(translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)]
+    totalWidth
+    + (+ (box-height rootBox) 5) (max (box-height argBox) (subtree-height funcTree))
+    / totalWidth 2
+    / (box-height rootBox) 2
+
+createRefSubtree ref = (textBox redStyle ref) \b w h .  make-subtree b w h (/ w 2) (/ h 2)
 createLitSubtree lit = (textBox greenStyle lit) \b w h .  make-subtree b w h (/ w 2) (/ h 2)
 
 textBox map txt = (svg-measure-text txt '') \w h . do
-  box-w = + w 20
-  box-h = + h 10
-  make-box (concat [(rect [['x'|0],['y'|0],['width'|box-w],['height'|box-h] | map]), (text txt [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 10 (/ w 2))],['y'|(+ 5 (/ h 2))]])]) box-w box-h
+  box-w = + w 24
+  box-h = + h 14
+  make-box (concat [(rect [['x'|2],['y'|2],['width'|box-w],['height'|box-h] | map]), (text txt [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 14 (/ w 2))],['y'|(+ 5 (/ h 2))]])]) box-w box-h
 
 typeof x = getType x id false
 
