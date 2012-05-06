@@ -11,15 +11,51 @@
 
   Thing = (function() {
 
-    function Thing(svg, size) {
+    function Thing(svg, size, mass, moment) {
       this.svg = svg;
       this.size = size;
+      this.mass = mass;
+      this.moment = moment;
       this.bbox = this.svg.getBBox();
       this.aspect = this.bbox.width / this.bbox.height;
+      if (this.moment === Infinity) {
+        this.body = space.staticBody;
+      } else {
+        this.body = space.addBody(new cp.Body(this.mass, this.moment));
+      }
     }
 
-    Thing.prototype.position = function position(x, y, rotation) {
-      return this.svg.setAttribute('transform', "translate(" + x + ", " + y + ") rotate(" + rotation + ") scale(" + (this.size / this.bbox.width * this.aspect) + ", " + (this.size / this.bbox.height / this.aspect) + ") translate(" + (-this.bbox.x - this.bbox.width / 2) + ", " + (-this.bbox.y - this.bbox.height / 2) + ")");
+    Thing.prototype.setShape = function setShape(sh) {
+      var self;
+      this.shape = space.addShape(sh);
+      self = this;
+      return this.shape.draw = function draw() {
+        return self.svgPosition(self.body.p.x, self.body.p.y, self.body.a);
+      };
+    };
+
+    Thing.prototype.svgPosition = function svgPosition(x, y, rotation) {
+      if (this.size != null) {
+        return this.svg.setAttribute('transform', "translate(" + x + ", " + y + ") rotate(" + (rotation / Math.PI * 180) + ") scale(" + (this.size / this.bbox.width * this.aspect) + ", " + (this.size / this.bbox.height / this.aspect) + ") translate(" + (-this.bbox.x - this.bbox.width / 2) + ", " + (-this.bbox.y - this.bbox.height / 2) + ")");
+      } else {
+        return this.svg.setAttribute('transform', "translate(" + x + ", " + y + ") rotate(" + (rotation / Math.PI * 180) + ") translate(" + (-this.bbox.x - this.bbox.width / 2) + ", " + (-this.bbox.y - this.bbox.height / 2) + ")");
+      }
+    };
+
+    Thing.prototype.setPos = function setPos(x, y) {
+      return this.body.setPos(v(x, y));
+    };
+
+    Thing.prototype.setElasticity = function setElasticity(e) {
+      return this.shape.setElasticity(e);
+    };
+
+    Thing.prototype.setFriction = function setFriction(f) {
+      return this.shape.setFriction(f);
+    };
+
+    Thing.prototype.setAngVel = function setAngVel(v) {
+      return this.body.w = v;
     };
 
     return Thing;
@@ -27,20 +63,23 @@
   })();
 
   initChippy = function initChippy() {
-    var snakeB, snakeMass, snakeS;
-    snake = new Thing(document.getElementById('snake'), 100);
+    var b, ground, snakeMass, snakeSize;
     space = new cp.Space();
-    space.gravity = v(0, -230);
-    snake.position(100, 100, 0);
+    space.gravity = v(0, 230);
     snakeMass = 200;
-    snakeB = space.addBody(new cp.Body(snakeMass, cp.momentForCircle(snakeMass, 0, snake.size, v(0, 0))));
-    snakeB.setPos(v(100, 300));
-    snakeS = space.addShape(new cp.CircleShape(snakeB, snake.size, v(0, 0)));
-    snakeS.setElasticity(1.2);
-    snakeS.setFriction(2);
-    return snakeS.draw = function draw() {
-      return snake.position(snakeB.p.x, snakeB.p.y, snakeB.a);
-    };
+    snakeSize = 100;
+    snake = new Thing(document.getElementById('snake'), snakeSize, snakeMass, cp.momentForCircle(snakeMass, 0, snakeSize, v(0, 0)));
+    snake.setPos(100, 300);
+    snake.setShape(new cp.CircleShape(snake.body, snake.size / 2, v(0, 0)));
+    snake.setElasticity(1.2);
+    snake.setFriction(2);
+    snake.setAngVel(1);
+    ground = new Thing(document.getElementById('ground'), null, 0, Infinity);
+    b = ground.svg.getBBox();
+    ground.setPos(b.x, b.y);
+    ground.setShape(new cp.SegmentShape(ground.body, v(-b.width / 2, 0), v(b.width / 2, 0), 1));
+    ground.setElasticity(0.6);
+    return ground.setFriction(1);
   };
 
   lastStep = Date.now();

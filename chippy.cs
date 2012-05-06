@@ -4,25 +4,43 @@ snake = null
 space = null
 v = cp.v
 
+# this ties an SVG element to a Chipmunk shape and body
+# if you want to reuse SVG shapes, use the "use" element
 class Thing
-  constructor: (@svg, @size)->
+  constructor: (@svg, @size, @mass, @moment)->
     @bbox = @svg.getBBox()
     @aspect = @bbox.width / @bbox.height
-  position: (x, y, rotation)->
-    @svg.setAttribute 'transform', "translate(#{x}, #{y}) rotate(#{rotation}) scale(#{@size / @bbox.width * @aspect}, #{@size / @bbox.height / @aspect}) translate(#{-@bbox.x  - @bbox.width / 2}, #{-@bbox.y - @bbox.height / 2})"
+    if @moment == Infinity then @body = space.staticBody
+    else @body = space.addBody new cp.Body(@mass, @moment)
+  setShape: (sh)->
+    @shape = space.addShape sh
+    self = this
+    @shape.draw = -> self.svgPosition self.body.p.x, self.body.p.y, self.body.a
+  svgPosition: (x, y, rotation)->
+    if @size? then @svg.setAttribute 'transform', "translate(#{x}, #{y}) rotate(#{rotation / Math.PI * 180}) scale(#{@size / @bbox.width * @aspect}, #{@size / @bbox.height / @aspect}) translate(#{-@bbox.x  - @bbox.width / 2}, #{-@bbox.y - @bbox.height / 2})"
+    else @svg.setAttribute 'transform', "translate(#{x}, #{y}) rotate(#{rotation / Math.PI * 180}) translate(#{-@bbox.x  - @bbox.width / 2}, #{-@bbox.y - @bbox.height / 2})"
+  setPos: (x, y)-> @body.setPos v(x, y)
+  setElasticity: (e)-> @shape.setElasticity e
+  setFriction: (f)-> @shape.setFriction f
+  setAngVel: (v)-> @body.w = v
 
 initChippy = ->
-  snake = new Thing(document.getElementById('snake'), 100)
   space = new cp.Space();
-  space.gravity = v 0, -230
-  snake.position(100, 100, 0)
+  space.gravity = v 0, 230
   snakeMass = 200
-  snakeB = space.addBody new cp.Body(snakeMass, cp.momentForCircle(snakeMass, 0, snake.size, v(0, 0)))
-  snakeB.setPos(v(100, 300))
-  snakeS = space.addShape new cp.CircleShape(snakeB, snake.size, v(0, 0))
-  snakeS.setElasticity 1.2
-  snakeS.setFriction 2
-  snakeS.draw = -> snake.position(snakeB.p.x, snakeB.p.y, snakeB.a)
+  snakeSize = 100
+  snake = new Thing document.getElementById('snake'), snakeSize, snakeMass, cp.momentForCircle(snakeMass, 0, snakeSize, v(0, 0))
+  snake.setPos 100, 300
+  snake.setShape new cp.CircleShape(snake.body, snake.size / 2, v(0, 0))
+  snake.setElasticity 1.2
+  snake.setFriction 2
+  snake.setAngVel 1
+  ground = new Thing document.getElementById('ground'), null, 0, Infinity
+  b = ground.svg.getBBox()
+  ground.setPos b.x, b.y
+  ground.setShape new cp.SegmentShape ground.body, v(-b.width / 2, 0), v(b.width / 2, 0), 1
+  ground.setElasticity 0.6
+  ground.setFriction 1
 
 lastStep = Date.now()
 remainder = null
