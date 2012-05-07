@@ -1,5 +1,5 @@
 (function() {
-  var Thing, draw, fps, initChippy, lastStep, remainder, requestAnimationFrame, resized, root, run, running, snake, space, step, update, v;
+  var GroundThing, PolyThing, draw, fps, getPoints, initChippy, lastStep, remainder, requestAnimationFrame, resized, root, run, running, snake, space, step, update, v;
 
   window.Chippy = root = {};
 
@@ -9,77 +9,128 @@
 
   v = cp.v;
 
-  Thing = (function() {
+  PolyThing = (function() {
 
-    function Thing(svg, size, mass, moment) {
-      this.svg = svg;
-      this.size = size;
+    function PolyThing(name, mass) {
+      var bbox, pts, self, skel;
       this.mass = mass;
-      this.moment = moment;
-      this.bbox = this.svg.getBBox();
-      this.aspect = this.bbox.width / this.bbox.height;
-      if (this.moment === Infinity) {
-        this.body = space.staticBody;
-      } else {
-        this.body = space.addBody(new cp.Body(this.mass, this.moment));
-      }
-    }
-
-    Thing.prototype.setShape = function setShape(sh) {
-      var self;
-      this.shape = space.addShape(sh);
+      this.svg = document.getElementById(name);
+      skel = document.getElementById("" + name + "-skeleton");
+      bbox = skel.getBBox();
+      this.midx = bbox.x + bbox.width / 2;
+      this.midy = bbox.y + bbox.height / 2;
+      pts = getPoints(skel);
+      this.body = this.mass === Infinity ? space.staticBody : space.addBody(new cp.Body(this.mass, cp.momentForPoly(this.mass, pts, v(0, 0))));
+      this.setPos(this.midx, this.midy);
+      this.shape = space.addShape(new cp.PolyShape(this.body, pts, v(0, 0)));
       self = this;
-      return this.shape.draw = function draw() {
+      this.shape.draw = function draw() {
         return self.svgPosition(self.body.p.x, self.body.p.y, self.body.a);
       };
+    }
+
+    PolyThing.prototype.svgPosition = function svgPosition(x, y, rotation) {
+      return this.svg.setAttribute('transform', "translate(" + x + ", " + y + ") rotate(" + (rotation / Math.PI * 180) + ") translate(" + (-this.midx) + ", " + (-this.midy) + ")");
     };
 
-    Thing.prototype.svgPosition = function svgPosition(x, y, rotation) {
-      if (this.size != null) {
-        return this.svg.setAttribute('transform', "translate(" + x + ", " + y + ") rotate(" + (rotation / Math.PI * 180) + ") scale(" + (this.size / this.bbox.width * this.aspect) + ", " + (this.size / this.bbox.height / this.aspect) + ") translate(" + (-this.bbox.x - this.bbox.width / 2) + ", " + (-this.bbox.y - this.bbox.height / 2) + ")");
-      } else {
-        return this.svg.setAttribute('transform', "translate(" + x + ", " + y + ") rotate(" + (rotation / Math.PI * 180) + ") translate(" + (-this.bbox.x - this.bbox.width / 2) + ", " + (-this.bbox.y - this.bbox.height / 2) + ")");
-      }
-    };
-
-    Thing.prototype.setPos = function setPos(x, y) {
+    PolyThing.prototype.setPos = function setPos(x, y) {
       return this.body.setPos(v(x, y));
     };
 
-    Thing.prototype.setElasticity = function setElasticity(e) {
+    PolyThing.prototype.setElasticity = function setElasticity(e) {
       return this.shape.setElasticity(e);
     };
 
-    Thing.prototype.setFriction = function setFriction(f) {
+    PolyThing.prototype.setFriction = function setFriction(f) {
       return this.shape.setFriction(f);
     };
 
-    Thing.prototype.setAngVel = function setAngVel(v) {
+    PolyThing.prototype.setAngVel = function setAngVel(v) {
       return this.body.w = v;
     };
 
-    return Thing;
+    return PolyThing;
+
+  })();
+
+  GroundThing = (function() {
+
+    function GroundThing(name) {
+      var i, pts, shape, skel, _ref;
+      skel = document.getElementById("" + name + "-skeleton");
+      pts = getPoints(skel, 0, 0);
+      this.body = space.staticBody;
+      this.body.setPos(v(0, 0));
+      this.shapes = [];
+      for (i = 0, _ref = pts.length - 2; i < _ref; i += 2) {
+        shape = space.addShape(new cp.SegmentShape(this.body, v(pts[i], pts[i + 1]), v(pts[i + 2], pts[i + 3]), 1));
+        shape.draw = function draw() {};
+        this.shapes.push(shape);
+      }
+    }
+
+    GroundThing.prototype.setElasticity = function setElasticity(e) {
+      var s, _i, _len, _ref, _results;
+      _ref = this.shapes;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        s = _ref[_i];
+        _results.push(s.setElasticity(e));
+      }
+      return _results;
+    };
+
+    GroundThing.prototype.setFriction = function setFriction(f) {
+      var s, _i, _len, _ref, _results;
+      _ref = this.shapes;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        s = _ref[_i];
+        _results.push(s.setFriction(f));
+      }
+      return _results;
+    };
+
+    return GroundThing;
 
   })();
 
   initChippy = function initChippy() {
-    var b, ground, snakeMass, snakeSize;
+    var ground;
     space = new cp.Space();
     space.gravity = v(0, 230);
-    snakeMass = 200;
-    snakeSize = 100;
-    snake = new Thing(document.getElementById('snake'), snakeSize, snakeMass, cp.momentForCircle(snakeMass, 0, snakeSize, v(0, 0)));
-    snake.setPos(100, 300);
-    snake.setShape(new cp.CircleShape(snake.body, snake.size / 2, v(0, 0)));
+    snake = new PolyThing('boulder', 200);
     snake.setElasticity(1.2);
     snake.setFriction(2);
-    snake.setAngVel(1);
-    ground = new Thing(document.getElementById('ground'), null, 0, Infinity);
-    b = ground.svg.getBBox();
-    ground.setPos(b.x, b.y);
-    ground.setShape(new cp.SegmentShape(ground.body, v(-b.width / 2, 0), v(b.width / 2, 0), 1));
+    snake.setAngVel(7);
+    ground = new GroundThing('ground');
     ground.setElasticity(0.6);
     return ground.setFriction(1);
+  };
+
+  getPoints = function getPoints(svg, midx, midy) {
+    var bbox, crds, lastx, lasty, p, pts, _i, _len, _ref;
+    pts = [];
+    lastx = 0;
+    lasty = 0;
+    if (!(midx != null)) {
+      bbox = svg.getBBox();
+      midx = bbox.x + bbox.width / 2;
+      midy = bbox.y + bbox.height / 2;
+    }
+    console.log("POINTS...");
+    _ref = (svg.getAttribute('d')).split(' ');
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      p = _ref[_i];
+      crds = p.split(',');
+      if (crds.length === 2) {
+        lastx += Number(crds[0]);
+        lasty += Number(crds[1]);
+        pts.unshift(lastx - midx, lasty - midy);
+      }
+    }
+    console.log("");
+    return pts;
   };
 
   lastStep = Date.now();

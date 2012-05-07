@@ -6,41 +6,74 @@ v = cp.v
 
 # this ties an SVG element to a Chipmunk shape and body
 # if you want to reuse SVG shapes, use the "use" element
-class Thing
-  constructor: (@svg, @size, @mass, @moment)->
-    @bbox = @svg.getBBox()
-    @aspect = @bbox.width / @bbox.height
-    if @moment == Infinity then @body = space.staticBody
-    else @body = space.addBody new cp.Body(@mass, @moment)
-  setShape: (sh)->
-    @shape = space.addShape sh
+class PolyThing
+  constructor: (name, @mass)->
+    @svg = document.getElementById(name)
+    skel = document.getElementById "#{name}-skeleton"
+    bbox = skel.getBBox()
+    @midx = bbox.x + bbox.width / 2
+    @midy = bbox.y + bbox.height / 2
+    pts = (getPoints skel)
+    @body = if @mass == Infinity then space.staticBody else space.addBody new cp.Body(@mass, cp.momentForPoly(@mass, pts, v(0,0)))
+    @setPos @midx, @midy
+    @shape = space.addShape (new cp.PolyShape @body, pts, v(0,0))
     self = this
     @shape.draw = -> self.svgPosition self.body.p.x, self.body.p.y, self.body.a
   svgPosition: (x, y, rotation)->
-    if @size? then @svg.setAttribute 'transform', "translate(#{x}, #{y}) rotate(#{rotation / Math.PI * 180}) scale(#{@size / @bbox.width * @aspect}, #{@size / @bbox.height / @aspect}) translate(#{-@bbox.x  - @bbox.width / 2}, #{-@bbox.y - @bbox.height / 2})"
-    else @svg.setAttribute 'transform', "translate(#{x}, #{y}) rotate(#{rotation / Math.PI * 180}) translate(#{-@bbox.x  - @bbox.width / 2}, #{-@bbox.y - @bbox.height / 2})"
+    @svg.setAttribute 'transform', "translate(#{x}, #{y}) rotate(#{rotation / Math.PI * 180}) translate(#{-@midx}, #{-@midy})"
   setPos: (x, y)-> @body.setPos v(x, y)
   setElasticity: (e)-> @shape.setElasticity e
   setFriction: (f)-> @shape.setFriction f
   setAngVel: (v)-> @body.w = v
 
+# this ties an SVG element to a Chipmunk shape and body
+# if you want to reuse SVG shapes, use the "use" element
+class GroundThing
+  constructor: (name)->
+    skel = document.getElementById "#{name}-skeleton"
+    pts = (getPoints skel, 0, 0)
+    @body = space.staticBody
+    @body.setPos v(0, 0)
+    @shapes = []
+    for i in [0...pts.length - 2] by 2
+      shape = space.addShape new cp.SegmentShape @body, v(pts[i], pts[i + 1]), v(pts[i + 2], pts[i + 3]), 1
+      shape.draw = ->
+      @shapes.push shape
+  setElasticity: (e)->
+    for s in @shapes
+      s.setElasticity e
+  setFriction: (f)->
+    for s in @shapes
+      s.setFriction f
+
 initChippy = ->
   space = new cp.Space();
   space.gravity = v 0, 230
-  snakeMass = 200
-  snakeSize = 100
-  snake = new Thing document.getElementById('snake'), snakeSize, snakeMass, cp.momentForCircle(snakeMass, 0, snakeSize, v(0, 0))
-  snake.setPos 100, 300
-  snake.setShape new cp.CircleShape(snake.body, snake.size / 2, v(0, 0))
+  snake = new PolyThing 'boulder', 200
   snake.setElasticity 1.2
   snake.setFriction 2
-  snake.setAngVel 1
-  ground = new Thing document.getElementById('ground'), null, 0, Infinity
-  b = ground.svg.getBBox()
-  ground.setPos b.x, b.y
-  ground.setShape new cp.SegmentShape ground.body, v(-b.width / 2, 0), v(b.width / 2, 0), 1
+  snake.setAngVel 7
+  ground = new GroundThing 'ground'
   ground.setElasticity 0.6
   ground.setFriction 1
+
+getPoints = (svg, midx, midy)->
+  pts = []
+  lastx = 0
+  lasty = 0
+  if !midx?
+    bbox = svg.getBBox()
+    midx = bbox.x + bbox.width / 2
+    midy = bbox.y + bbox.height / 2
+  console.log "POINTS..."
+  for p in (svg.getAttribute 'd').split ' '
+    crds = p.split ','
+    if crds.length == 2
+      lastx += Number(crds[0])
+      lasty += Number(crds[1])
+      pts.unshift lastx - midx, lasty - midy
+  console.log ""
+  pts
 
 lastStep = Date.now()
 remainder = null
