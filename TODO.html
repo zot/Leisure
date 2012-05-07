@@ -29,6 +29,14 @@
 <ul>
 <li>notebook
 <ul>
+<li>use file system api
+<ul>
+<li>each webpage is a whole project and gets its own directory on the file system</li>
+<li>each pre element needs a "filename" attr</li>
+<li>store the contents of each pre element in the FS</li>
+<li>use FS for autosave</li>
+<li>"save-as" saves the web page</li>
+</ul></li>
 <li>incremental compilation (automatically recompile and update all errors)</li>
 <li>run test cases button
 <ul>
@@ -59,6 +67,16 @@
 <li>optionally hide source code</li>
 <li>collaboration</li>
 </ul></li>
+<li>better error messages
+<ul>
+<li>debug mode should put a cons into funcs of a new error and the list from the parent
+<ul>
+<li>better runtime errors -- track the function name and ast</li>
+<li>can use this to see the origin of a thunk</li>
+</ul></li>
+<li>accidental curries</li>
+<li>macro for optional argument type checking</li>
+</ul></li>
 <li>cmd-line REPL
 <ul>
 <li>make nested require work</li>
@@ -79,6 +97,7 @@
 <li>default pretty-printers for output</li>
 <li>run-test-cases -- run test cases after loading this file</li>
 <li>set theme</li>
+<li>defining monads that operate at parse-time</li>
 </ul></li>
 <li>test cases
 <ul>
@@ -94,10 +113,6 @@
 <ul>
 <li>error if let/do has no expr</li>
 <li>error if let finds more than one body expr</li>
-</ul></li>
-<li>debug mode should put a cons into funcs of a new error and the list from the parent
-<ul>
-<li>can use this to see the origin of a thunk</li>
 </ul></li>
 <li>add assertMonad() to testing.cs
 <ul>
@@ -159,6 +174,7 @@
 <li>macros
 <ul>
 <li>cond macro</li>
+<li>make-struct which defines things for you, using definition monads</li>
 <li>make [ a macro and remove need for commas
 <ul>
 <li>allow macros to define tokens</li>

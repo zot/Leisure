@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -22,6 +22,9 @@
   };
 
   bindNotebook = function bindNotebook(el) {
+    Prim.defaultEnv.write = function write(msg) {
+      return console.log(msg);
+    };
     if (!(el.bound != null)) {
       el.bound = true;
       el.addEventListener('DOMCharacterDataModified', (function(evt) {
@@ -242,8 +245,8 @@
   };
 
   insertControls = function insertControls(el) {
-    var controlDiv, loadButton, processButton, testButton, themeSelect, viewSelect, _ref;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'>\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests <span leisureId='testResults' class=\"notrun\"></span></button>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button>\n</div>");
+    var controlDiv, loadButton, processButton, testButton, themeSelect, viewSelect, _ref, _ref2;
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'>\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button>\n</div>");
     el.insertBefore(controlDiv, el.firstChild);
     _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], themeSelect = _ref[5], viewSelect = _ref[6], processButton = _ref[7];
     loadButton.addEventListener('change', function(evt) {
@@ -252,11 +255,12 @@
     testButton.addEventListener('click', function() {
       return runTests(el);
     });
+    themeSelect.value = (_ref2 = el.leisureTheme) != null ? _ref2 : 'thin';
     themeSelect.addEventListener('change', function(evt) {
-      return changeTheme(evt.target);
+      return changeTheme(el, evt.target);
     });
     viewSelect.addEventListener('change', function(evt) {
-      return changeView(evt.target);
+      return changeView(el, evt.target);
     });
     processButton.addEventListener('click', function() {
       return evalDoc(el);
@@ -331,14 +335,15 @@
     }
   };
 
-  changeTheme = function changeTheme(t) {
+  changeTheme = function changeTheme(el, t) {
     var theme;
-    theme = t.options[t.selectedIndex].value;
+    theme = t.value;
+    el.leisureTheme = theme;
     return document.body.className = theme;
   };
 
-  changeView = function changeView(v) {
-    return alert('new view: ' + v.options[v.selectedIndex].value);
+  changeView = function changeView(el, v) {
+    return alert('new view: ' + v.value);
   };
 
   unwrap = function unwrap(node) {
@@ -843,7 +848,31 @@
     });
   });
 
+  laz = Leisure.laz;
+
+  svgMeasureText = function svgMeasureText(text) {
+    return function(style) {
+      return function(f) {
+        var bx, svg, txt;
+        if (!(txt = document.getElementById('HIDDEN_TEXT'))) {
+          svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'/>");
+          txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          txt.appendChild(textNode(''));
+          txt.setAttribute('id', 'HIDDEN_TEXT');
+          svg.appendChild(txt);
+          document.body.appendChild(svg);
+        }
+        if (style()) txt.setAttribute('style', style());
+        txt.lastChild.textContent = text();
+        bx = txt.getBBox();
+        return f()(laz(bx.width))(laz(bx.height));
+      };
+    };
+  };
+
   Prim.defaultEnv.require = req;
+
+  root.svgMeasureText = svgMeasureText;
 
   root.initNotebook = initNotebook;
 

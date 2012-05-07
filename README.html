@@ -1,8 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>README.md</title>
+
+</head>
+
+<body>
+
 <p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="http://github.com/zot/Leisure">Source</a> <a href="leisure.html">REPL</a> <a href="std.lsr">Standard functions</a></p>
 
 <h1>Please Note: the repository is now <a href="http://github.com/zot/Leisure">http://github.com/zot/Leisure</a></h1>
 
-<h1>The Leisure Initiative: Functional.  Lazy.  Accessable.  Powerful.</h1>
+<h1>The Leisure Initiative: Functional.  Lazy.  Accessible.  Powerful.</h1>
 
 <h1>Leisure: a convenient, untyped, lazy Lambda Calculus-based programming language with metaprogramming</h1>
 
@@ -117,14 +130,14 @@ apply func arg = \f . f func arg  </p>
 
 <blockquote>
   <p>node runRepl
-  Runs the read eval print loop.  You can enter Leisure expressions and definitions there.</p>
+Runs the read eval print loop.  You can enter Leisure expressions and definitions there.</p>
 </blockquote>
 
 <h3>Compiling files</h3>
 
 <blockquote>
   <p>node runRepl -c [-v] file1 file2 ...
-  Compiles files.  You can optionally add -v to activate verbose mode where it will display each function name as it's being compiled.  You do not need to add the file extentions, eg. node runRepl maps</p>
+Compiles files.  You can optionally add -v to activate verbose mode where it will display each function name as it's being compiled.  You do not need to add the file extentions, eg. node runRepl maps</p>
 </blockquote>
 
 <h3>Running the tests</h3>
@@ -133,12 +146,12 @@ apply func arg = \f . f func arg  </p>
 
 <blockquote>
   <p>node testLeisure
-  It should give you something like this:
-  Running Tests...
-  ...
-  Done
-  Succeeded all 40 tests.
-  Each . on the second line represents a successfully completed test.  If there are errors, it will tell you which tests failed.</p>
+It should give you something like this:
+Running Tests...
+...
+Done
+Succeeded all 40 tests.
+Each . on the second line represents a successfully completed test.  If there are errors, it will tell you which tests failed.</p>
 </blockquote>
 
 <h2>Changing it</h2>
@@ -152,3 +165,6 @@ apply func arg = \f . f func arg  </p>
 <h2>Implementation</h2>
 
 <p>Leisure is written in JavaScript and runs in node or in browsers.  Later, Leisure may generate native code, using, for instance, C and/or LLVM.  An LLVM version could use the VMKit’s garbage collector or the Boehm-Demers-Weiser garbage collector, which performs well with small objects (like function contexts).</p>
+
+</body>
+</html>
