@@ -1,9 +1,11 @@
 (function() {
-  var GroundThing, PolyThing, draw, fps, getPoints, initChippy, lastStep, remainder, requestAnimationFrame, resized, root, run, running, snake, space, step, svgTransform, update, v;
+  var GroundThing, PolyThing, boulder, doc, draw, fps, getPoints, initChippy, lastStep, remainder, requestAnimationFrame, resized, root, run, running, space, step, svgTransform, update, v;
 
   window.Chippy = root = {};
 
-  snake = null;
+  doc = null;
+
+  boulder = null;
 
   space = null;
 
@@ -14,8 +16,8 @@
     function PolyThing(name, mass) {
       var bbox, pts, self, skel;
       this.mass = mass;
-      this.svg = document.getElementById(name);
-      skel = document.getElementById("" + name + "-skeleton");
+      this.svg = doc.getElementById(name);
+      skel = doc.getElementById("" + name + "-skeleton");
       bbox = skel.getBBox();
       this.midx = bbox.x + bbox.width / 2;
       this.midy = bbox.y + bbox.height / 2;
@@ -57,7 +59,7 @@
 
     function GroundThing(name) {
       var i, pts, shape, skel, _ref;
-      skel = document.getElementById("" + name + "-skeleton");
+      skel = doc.getElementById("" + name + "-skeleton");
       pts = getPoints(skel, 0, 0);
       this.body = space.staticBody;
       this.body.setPos(v(0, 0));
@@ -95,14 +97,15 @@
 
   })();
 
-  initChippy = function initChippy() {
+  initChippy = function initChippy(document) {
     var ground;
+    doc = document;
     space = new cp.Space();
     space.gravity = v(0, 230);
-    snake = new PolyThing('boulder', 200);
-    snake.setElasticity(1.4);
-    snake.setFriction(0.3);
-    snake.setAngVel(10);
+    root.boulder = boulder = new PolyThing('boulder', 200);
+    boulder.setElasticity(1.4);
+    boulder.setFriction(0.3);
+    boulder.setAngVel(10);
     ground = new GroundThing('ground');
     ground.setElasticity(0.6);
     return ground.setFriction(1);
@@ -200,5 +203,7 @@
   root.run = run;
 
   root.svgTransform = svgTransform;
+
+  root.boulder = boulder;
 
 }).call(this);
