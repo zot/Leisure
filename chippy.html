@@ -2,61 +2,45 @@
 <head>
 <script src="cp.js"></script>
 <script src="chippy.js"></script>
+<script src="game.js"></script>
+<script src="bootLeisure.js"></script>
 <script>
-var curKey = null
 var LEFT_ARROW = 37
 var UP_ARROW = 38
 var RIGHT_ARROW = 39
 var DOWN_ARROW = 40
 
-function down(e) {
-  var c = (e.charCode || e.keyCode || e.which)
-
-  e.preventDefault();
-  if (c != curKey) {
-   if (curKey != null) release(curKey);
-   curKey = c;
-   press(c);
-  }
-}
-function up(e) {
-  var c = (e.charCode || e.keyCode || e.which)
-
-  if (c == curKey) {
-   release(curKey);
-   curKey = null;
-  }
-}
-function press(c) {
-  if (c == curKey) {
-//    console.log("press: " + c);
-    switch (c) {
-    case LEFT_ARROW:
-      Chippy.boulder.body.w -= 0.5
-      break;
-    case RIGHT_ARROW:
-      Chippy.boulder.body.w += 0.5
-      break;
-    }
-    window.setTimeout((function(){press(c)}), 100)
-  }
-}
-function release(c) {
-}
 function initChippy(svg) {
   var doc = svg.getSVGDocument();
   var win = doc.defaultView;
   win.leisureEvent = function(funcName) {Prim.leisureEvent(funcName, win.event);}
   Chippy.initChippy(doc);
   Chippy.run();
-  document.getElementById('floop').focus();
+  Game.bindSvgDiv(document.getElementById('floop'), keyFunc)
   //win.leisureEvent('newGame');
+}
+function keyFunc(e) {
+  c = (e.charCode || e.keyCode || e.which)
+  switch (c) {
+  case LEFT_ARROW:
+    Chippy.boulder.body.w -= 0.5
+    break;
+  case RIGHT_ARROW:
+    Chippy.boulder.body.w += 0.5
+    break
+  }
 }
 </script>
 </head>
 <body>
-<div id="floop" onkeydown="down(event)" onkeyup="up(event)" tabindex="0" style="display: inline">
-<object data="map2.svg" type="image/svg+xml" width="1024" height="768" onload="initChippy(this)"></object>
-</div>
+  <table style="width: 100%; height: 100%">
+    <tr style="height: 100%"><td style="width: 0; vertical-align: top">
+	<div id="floop" tabindex="0" style="display: inline" onmousedown="this.focus()">
+	  <object data="map2.svg" type="image/svg+xml" width="512" height="384" onload="initChippy(this)"></object>
+	</div>
+      </td>
+      <td style="width: 100%"><pre leisureCode style="height: 100%"></pre></td>
+    </tr>
+  </table>
 </body>
 </html>
