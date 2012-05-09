@@ -45,6 +45,8 @@ bindNotebook = (el)->
         s.removeAllRanges()
         s.addRange(r)
       window.setTimeout(highlightPosition, 1)
+    el.addEventListener 'focus', (-> findCurrentCodeHolder()), true, true
+    el.addEventListener 'blur', (-> findCurrentCodeHolder()), true, true
 
 #[node, positions]
 oldBrackets = [null, Leisure.Nil]
@@ -170,7 +172,7 @@ createFragment = (txt)->
 
 insertControls = (el)->
   controlDiv = createNode """
-<div LeisureOutput contentEditable='false' class='leisure_bar'>
+<div LeisureOutput contentEditable='false' class='leisure_bar'><div class="leisure_bar_contents">
   <span class='leisure_load'>Load: </span>
   <input type='file' leisureId='loadButton'></input>
   <a download='program.lsr' leisureId='downloadLink'>Download</a>
@@ -189,7 +191,7 @@ insertControls = (el)->
     <option value=testing>Testing</option>
     <option value=running>Running</option>
   </select>
-  <button leisureId='processButton' style="float: right">Process</button>
+  <button leisureId='processButton' style="float: right">Process</button></div>
 </div>
 """
   el.insertBefore controlDiv, el.firstChild
@@ -314,7 +316,7 @@ evalOutput = (exBox)->
   exBox = getBox exBox
   focusBox exBox
   cleanOutput exBox
-  exBox.firstChild.appendChild createFragment("<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>")
+  exBox.firstChild.appendChild createFragment("<button onclick='Notebook.cleanOutput(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button>")
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
 cleanOutput = (exBox)->
@@ -554,14 +556,25 @@ postLoadQueue = []
 queueAfterLoad = (func)-> postLoadQueue.push(func)
 
 ###
-# handle focus manually, because focus and blur events don't seem to work in this case
+# handle focus manually, because grabbing focus and blur events doesn't seem to work for the parent
 ###
 
+currentCodeHolder = null
 oldFocus = null
 
+findCurrentCodeHolder = ->
+  node = document.activeElement
+  while node? and !(node.getAttribute?('LeisureCode'))?
+    node = node.parentElement
+  if node != currentCodeHolder
+    currentCodeHolder?.classList.remove 'focused'
+    node?.classList.add 'focused'
+    currentCodeHolder = node
+
 focusBox = (box)->
-  if box and box != oldFocus and oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
-  oldFocus = box
+  if box and box != oldFocus
+    if oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
+    oldFocus = box
 
 evalDoc = (el)->
   [pgm, auto] = initNotebook(el)

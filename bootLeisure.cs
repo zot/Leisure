@@ -24,6 +24,7 @@ bootLeisure = ->
     document.head.appendChild style
   loadThen ['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], ->
     Repl.init()
+    bootFs()
     for node in document.querySelectorAll "[leisurecode]"
       node.setAttribute 'contentEditable', 'true'
       Notebook.bindNotebook node
@@ -47,6 +48,26 @@ evalDoc = ->
 if document.readyState == 'complete' then bootLeisure()
 else
   window.addEventListener 'load', bootLeisure
+
+bootFs = ->
+  window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
+  window.webkitStorageInfo.requestQuota PERSISTENT, 1024*1024, ((grantedBytes) ->
+    window.requestFileSystem PERSISTENT, grantedBytes, ((fs)->
+      window.leisureFileSystem = fs
+      initNotebookProperties(fs)
+    ), handleError "Couldn't request file system"
+  ), handleError "Couldn't get quota"
+
+handleError = (args...)->(e)->console.log 'Error: ', args..., e
+
+initNotebookProperties = (fs)->
+  pageName = document.location.pathname.substring(1).replace(/_/g, '__').replace(/\//g, '_').replace(/\.html?$/i, '')
+  fs.root.getFile "#{pageName}.properties", {create: true, exclusive: true}, ((fileEntry)->
+    console.log "Got file, '#{pageName}.properties'"
+    #// fileEntry.isFile === true
+    #// fileEntry.name == 'log.txt'
+    #// fileEntry.fullPath == '/log.txt'
+  ), handleError "Couldn't get file, '#{pageName}.properties'"
 
 window.Leisure = Leisure
 Leisure.bootLeisure = bootLeisure

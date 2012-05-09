@@ -52,6 +52,24 @@ body {
   white-space: normal;
 }
 
+.focused .leisure_bar_contents {
+  display: block;
+}
+
+.leisure_bar_contents {
+  display: none;
+}
+
+.leisure_bar {
+  display: inline-block;
+  width: 135px;
+}
+
+.focused .leisure_bar {
+  display: block;
+  width: 100%;
+}
+
 .leisure_bar span.passed, .leisure_bar span.failed, .leisure_bar span.notrun {
   font-weight: bold;
   border-radius: 8px;

@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -50,7 +50,7 @@
           return window.setTimeout(highlightPosition, 1);
         }
       });
-      return el.addEventListener('keypress', function(e) {
+      el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
         s = window.getSelection();
         r = s.getRangeAt(0);
@@ -77,6 +77,12 @@
         }
         return window.setTimeout(highlightPosition, 1);
       });
+      el.addEventListener('focus', (function() {
+        return findCurrentCodeHolder();
+      }), true, true);
+      return el.addEventListener('blur', (function() {
+        return findCurrentCodeHolder();
+      }), true, true);
     }
   };
 
@@ -246,7 +252,7 @@
 
   insertControls = function insertControls(el) {
     var controlDiv, loadButton, processButton, testButton, themeSelect, viewSelect, _ref, _ref2;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'>\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button>\n</div>");
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button></div>\n</div>");
     el.insertBefore(controlDiv, el.firstChild);
     _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], themeSelect = _ref[5], viewSelect = _ref[6], processButton = _ref[7];
     loadButton.addEventListener('change', function(evt) {
@@ -442,7 +448,7 @@
     exBox = getBox(exBox);
     focusBox(exBox);
     cleanOutput(exBox);
-    exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><button onclick='Notebook.cleanOutput(this)'>X</button>"));
+    exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.cleanOutput(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button>"));
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
   };
 
@@ -805,16 +811,33 @@
   };
 
   /*
-  # handle focus manually, because focus and blur events don't seem to work in this case
+  # handle focus manually, because grabbing focus and blur events doesn't seem to work for the parent
   */
+
+  currentCodeHolder = null;
 
   oldFocus = null;
 
-  focusBox = function focusBox(box) {
-    if (box && box !== oldFocus && (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0)) {
-      evalDoc(box.leisureOwner);
+  findCurrentCodeHolder = function findCurrentCodeHolder() {
+    var node;
+    node = document.activeElement;
+    while ((node != null) && !((typeof node.getAttribute === "function" ? node.getAttribute('LeisureCode') : void 0) != null)) {
+      node = node.parentElement;
     }
-    return oldFocus = box;
+    if (node !== currentCodeHolder) {
+      if (currentCodeHolder != null) currentCodeHolder.classList.remove('focused');
+      if (node != null) node.classList.add('focused');
+      return currentCodeHolder = node;
+    }
+  };
+
+  focusBox = function focusBox(box) {
+    if (box && box !== oldFocus) {
+      if (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0) {
+        evalDoc(box.leisureOwner);
+      }
+      return oldFocus = box;
+    }
   };
 
   evalDoc = function evalDoc(el) {
