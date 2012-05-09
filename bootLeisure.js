@@ -4,7 +4,8 @@
 */
 
 (function() {
-  var Leisure, bootLeisure, evalDoc, loadThen;
+  var Leisure, bootFs, bootLeisure, evalDoc, handleError, initNotebookProperties, loadThen,
+    __slice = Array.prototype.slice;
 
   Leisure = {};
 
@@ -24,6 +25,7 @@
     return loadThen(['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], function() {
       var node, _j, _len2, _ref2, _results;
       Repl.init();
+      bootFs();
       _ref2 = document.querySelectorAll("[leisurecode]");
       _results = [];
       for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
@@ -69,6 +71,35 @@
   } else {
     window.addEventListener('load', bootLeisure);
   }
+
+  bootFs = function bootFs() {
+    window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
+    return window.webkitStorageInfo.requestQuota(PERSISTENT, 1024 * 1024, (function(grantedBytes) {
+      return window.requestFileSystem(PERSISTENT, grantedBytes, (function(fs) {
+        window.leisureFileSystem = fs;
+        return initNotebookProperties(fs);
+      }), handleError("Couldn't request file system"));
+    }), handleError("Couldn't get quota"));
+  };
+
+  handleError = function handleError() {
+    var args;
+    args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+    return function(e) {
+      return console.log.apply(console, ['Error: '].concat(__slice.call(args), [e]));
+    };
+  };
+
+  initNotebookProperties = function initNotebookProperties(fs) {
+    var pageName;
+    pageName = document.location.pathname.substring(1).replace(/_/g, '__').replace(/\//g, '_').replace(/\.html?$/i, '');
+    return fs.root.getFile("" + pageName + ".properties", {
+      create: true,
+      exclusive: true
+    }, (function(fileEntry) {
+      return console.log("Got file, '" + pageName + ".properties'");
+    }), handleError("Couldn't get file, '" + pageName + ".properties'"));
+  };
 
   window.Leisure = Leisure;
 
