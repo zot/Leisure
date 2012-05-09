@@ -257,10 +257,10 @@
     });
     themeSelect.value = (_ref2 = el.leisureTheme) != null ? _ref2 : 'thin';
     themeSelect.addEventListener('change', function(evt) {
-      return changeTheme(el, evt.target);
+      return changeTheme(el, evt.target.value);
     });
     viewSelect.addEventListener('change', function(evt) {
-      return changeView(el, evt.target);
+      return changeView(el, evt.target.value);
     });
     processButton.addEventListener('click', function() {
       return evalDoc(el);
@@ -335,15 +335,15 @@
     }
   };
 
-  changeTheme = function changeTheme(el, t) {
+  changeTheme = function changeTheme(el, value) {
     var theme;
-    theme = t.value;
+    theme = value;
     el.leisureTheme = theme;
     return document.body.className = theme;
   };
 
-  changeView = function changeView(el, v) {
-    return alert('new view: ' + v.value);
+  changeView = function changeView(el, value) {
+    return alert('new view: ' + value);
   };
 
   unwrap = function unwrap(node) {
@@ -895,5 +895,7 @@
   root.makeRange = makeRange;
 
   root.grp = grp;
+
+  root.changeTheme = changeTheme;
 
 }).call(this);

@@ -6,6 +6,9 @@
    * build should preserve outputs
 
 # TODO
+* chippy demo
+   * pan/zoom
+   * Leisure-based mouse controls -- rotate rock with arrow keys
 * notebook
    * use file system api
       * each webpage is a whole project and gets its own directory on the file system
@@ -14,6 +17,8 @@
 	  * use FS for autosave
 	  * "save-as" saves the web page
    * incremental compilation (automatically recompile and update all errors)
+   * function preconditions
+      * "make precondition" button
    * run test cases button
       * checkbox to run all tests on successful auto-build
 	  * auto build should clear tests on a recompile

@@ -9,19 +9,8 @@
   Leisure = {};
 
   bootLeisure = function bootLeisure() {
-    var body, i, pre, style, _i, _len, _ref;
+    var body, i, style, _i, _len, _ref;
     body = document.body;
-    if ((body.getAttribute('leisurecode')) != null) {
-      pre = document.createElement('pre');
-      pre.setAttribute('leisurecode', '');
-      pre.setAttribute('contentEditable', 'true');
-      pre.innerHTML = body.innerHTML;
-      while (body.firstChild) {
-        body.removeChild(body.firstChild);
-      }
-      body.appendChild(pre);
-      body.removeAttribute('leisurecode');
-    }
     window.removeEventListener('load', bootLeisure);
     _ref = ['leisure', 'gaudy', 'thin', 'cthulhu'];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -39,7 +28,9 @@
       _results = [];
       for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
         node = _ref2[_j];
+        node.setAttribute('contentEditable', 'true');
         Notebook.bindNotebook(node);
+        Notebook.changeTheme(node, 'thin');
         _results.push(Notebook.evalDoc(node));
       }
       return _results;

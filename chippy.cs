@@ -1,6 +1,7 @@
 window.Chippy = root = {}
 
-snake = null
+doc = null
+boulder = null
 space = null
 v = cp.v
 
@@ -8,8 +9,8 @@ v = cp.v
 # if you want to reuse SVG shapes, use the "use" element
 class PolyThing
   constructor: (name, @mass)->
-    @svg = document.getElementById(name)
-    skel = document.getElementById "#{name}-skeleton"
+    @svg = doc.getElementById(name)
+    skel = doc.getElementById "#{name}-skeleton"
     bbox = skel.getBBox()
     @midx = bbox.x + bbox.width / 2
     @midy = bbox.y + bbox.height / 2
@@ -30,7 +31,7 @@ class PolyThing
 # if you want to reuse SVG shapes, use the "use" element
 class GroundThing
   constructor: (name)->
-    skel = document.getElementById "#{name}-skeleton"
+    skel = doc.getElementById "#{name}-skeleton"
     pts = (getPoints skel, 0, 0)
     @body = space.staticBody
     @body.setPos v(0, 0)
@@ -46,13 +47,14 @@ class GroundThing
     for s in @shapes
       s.setFriction f
 
-initChippy = ->
-  space = new cp.Space();
+initChippy = (document)->
+  doc = document
+  space = new cp.Space()
   space.gravity = v 0, 230
-  snake = new PolyThing 'boulder', 200
-  snake.setElasticity 1.2
-  snake.setFriction 2
-  snake.setAngVel 7
+  root.boulder = boulder = new PolyThing 'boulder', 200
+  boulder.setElasticity 1.4
+  boulder.setFriction 0.3
+  boulder.setAngVel 10
   ground = new GroundThing 'ground'
   ground.setElasticity 0.6
   ground.setFriction 1
@@ -71,9 +73,16 @@ getPoints = (svg, midx, midy)->
     if crds.length == 2
       lastx += Number(crds[0])
       lasty += Number(crds[1])
+      # use unshift to make the widing right
       pts.unshift lastx - midx, lasty - midy
   console.log ""
   pts
+
+svgTransform = (svg, x, y)->
+  if !pt? then pt = svg.createSVGPoint()
+  pt.x = x
+  pt.y = y
+  pt.matrixTransform(svg.getCTM())
 
 lastStep = Date.now()
 remainder = null
@@ -120,3 +129,5 @@ requestAnimationFrame =
 
 root.initChippy = initChippy
 root.run = run
+root.svgTransform = svgTransform
+root.boulder = boulder

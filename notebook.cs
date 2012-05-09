@@ -197,8 +197,8 @@ insertControls = (el)->
   loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
   testButton.addEventListener 'click', -> runTests el
   themeSelect.value = el.leisureTheme ? 'thin'
-  themeSelect.addEventListener 'change', (evt)-> changeTheme el, evt.target
-  viewSelect.addEventListener 'change', (evt)-> changeView el, evt.target
+  themeSelect.addEventListener 'change', (evt)-> changeTheme el, evt.target.value
+  viewSelect.addEventListener 'change', (evt)-> changeView el, evt.target.value
   processButton.addEventListener 'click', -> evalDoc el
   configureSaveLink(el)
 
@@ -244,12 +244,12 @@ runTests = (el)->
     resultsClass.add 'failed'
     el.testResults.innerHTML = "#{passed}/#{failed}"
 
-changeTheme = (el, t)->
-  theme = t.value
+changeTheme = (el, value)->
+  theme = value
   el.leisureTheme = theme
   document.body.className = theme
 
-changeView = (el, v)-> alert 'new view: ' + v.value
+changeView = (el, value)-> alert 'new view: ' + value
 
 unwrap = (node)->
   parent = node.parentNode
@@ -612,6 +612,7 @@ root.evalDoc = evalDoc
 root.getBox = getBox
 root.makeRange = makeRange
 root.grp = grp
+root.changeTheme = changeTheme
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

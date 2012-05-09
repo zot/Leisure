@@ -6,15 +6,15 @@ Leisure = {}
 
 bootLeisure = ->
   body = document.body
-  if (body.getAttribute 'leisurecode')?
-    pre = document.createElement 'pre'
-    pre.setAttribute 'leisurecode', ''
-    pre.setAttribute 'contentEditable', 'true'
-    pre.innerHTML = body.innerHTML
-    while body.firstChild
-      body.removeChild body.firstChild
-    body.appendChild pre
-    body.removeAttribute 'leisurecode'
+  # if (body.getAttribute 'leisurecode')?
+  #   pre = document.createElement 'pre'
+  #   pre.setAttribute 'leisurecode', ''
+  #   pre.setAttribute 'contentEditable', 'true'
+  #   pre.innerHTML = body.innerHTML
+  #   while body.firstChild
+  #     body.removeChild body.firstChild
+  #   body.appendChild pre
+  #   body.removeAttribute 'leisurecode'
   window.removeEventListener 'load', bootLeisure
   for i in ['leisure', 'gaudy', 'thin', 'cthulhu' ]
     style = document.createElement('link')
@@ -25,7 +25,9 @@ bootLeisure = ->
   loadThen ['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], ->
     Repl.init()
     for node in document.querySelectorAll "[leisurecode]"
+      node.setAttribute 'contentEditable', 'true'
       Notebook.bindNotebook node
+      Notebook.changeTheme node, 'thin'
       Notebook.evalDoc node
 
 loadThen = (files, cont, index)->
