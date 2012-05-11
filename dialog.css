@@ -1,0 +1,76 @@
+div.whiteOverlay { background: url(inc/jqmBG.gif) white; }
+div.jqDrag {cursor: move;}
+
+/* jqmModal dialog CSS courtesy of;
+  Brice Burgess <bhb@iceburg.net> */
+
+div.jqmDialog {
+  display: none;
+
+    position: fixed;
+    top: 17%;
+    left: 50%;
+
+    margin-left: -200px;
+  width: 400px;
+
+  overflow: hidden;
+  font-family:verdana,tahoma,helvetica;
+}
+
+/* Fixed posistioning emulation for IE6
+     Star selector used to hide definition from browsers other than IE6
+     For valid CSS, use a conditional include instead */
+* html div.jqmDialog {
+     position: absolute;
+     top: expression((document.documentElement.scrollTop || document.body.scrollTop) + Math.round(17 * (document.documentElement.offsetHeight || document.body.clientHeight) / 100) + 'px');
+}
+
+
+/* [[[ Title / Top Classes ]]] */
+div.jqmdTC {
+  background: #d5ff84 url(dialog/sprite.gif) repeat-x 0px -82px;
+  color: #528c00;
+  padding: 7px 22px 5px 5px;
+  font-family:"sans serif",verdana,tahoma,helvetica;
+  font-weight: bold;
+  * zoom: 1;
+}
+div.jqmdTL { background:  url(dialog/sprite.gif) no-repeat 0px -41px; padding-left: 3px;}
+div.jqmdTR { background: url(dialog/sprite.gif) no-repeat right 0px; padding-right: 3px; * zoom: 1;}
+
+
+/* [[[ Body / Message Classes ]]] */
+div.jqmdBC {
+  background: url(dialog/bc.gif) repeat-x center bottom;
+  padding: 7px 7px 7px;
+  height: 180px;
+  overflow: auto;
+}
+div.jqmdBL { background: url(dialog/bl.gif) no-repeat left bottom; padding-left: 7px; }
+div.jqmdBR { background: url(dialog/br.gif) no-repeat right bottom; padding-right: 7px; * zoom: 1 }
+
+div.jqmdMSG { color: #317895; }
+
+
+/* [[[ Button classes ]]] */
+input.jqmdX {
+  position: absolute;
+  right: 7px;
+  top: 4px;
+  padding: 0 0 0 19px;
+  height: 19px;
+  width: 0px;
+  background: url(dialog/close.gif) no-repeat top left;
+  overflow: hidden;
+}
+input.jqmdXFocus {background-position: bottom left; outline: none;}
+
+div.jqmdBC button, div.jqmdBC input[type="submit"] {
+  margin: 8px 10px 4px 10px;
+  color: #777;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+div.jqmDialog input:focus, div.jqmDialog input.iefocus { background-color: #eaffc3; }
