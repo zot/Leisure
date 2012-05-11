@@ -111,6 +111,10 @@ define 'eventY', (evt)-> evt().y
 
 define 'eventTargetId', (evt)-> evt().target.id
 
+define 'eventKeyCode', (evt)->
+  e = evt()
+  e.charCode || e.keyCode || e.which
+
 define 'return', (v)->
   makeMonad (env, cont)->cont(v())
 

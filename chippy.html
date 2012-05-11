@@ -10,26 +10,30 @@ var UP_ARROW = 38
 var RIGHT_ARROW = 39
 var DOWN_ARROW = 40
 
+var chipwin = null
+
+function leisureEvent(funcName, evt) {
+  Prim.leisureEvent(funcName, evt || win.event);
+}
+
 function initChippy(svg) {
-  var doc = svg.getSVGDocument();
-  var win = doc.defaultView;
-  win.leisureEvent = function(funcName) {Prim.leisureEvent(funcName, win.event);}
-  Chippy.initChippy(doc);
-  Chippy.run();
-  Game.bindSvgDiv(document.getElementById('floop'), keyFunc)
-  //win.leisureEvent('newGame');
+  Boot.onboot(function() {
+    Boot.loadThen(['chip'], function(){
+      var doc = svg.getSVGDocument();
+      var win = chipwin = doc.defaultView;
+      win.leisureEvent = leisureEvent
+      Chippy.initChippy(doc);
+      Chippy.run();
+      Game.bindSvgDiv(document.getElementById('floop'), keyFunc)
+      win.leisureEvent('newGame');
+    });
+  });
 }
+
 function keyFunc(e) {
-  c = (e.charCode || e.keyCode || e.which)
-  switch (c) {
-  case LEFT_ARROW:
-    Chippy.boulder.body.w -= 0.5
-    break;
-  case RIGHT_ARROW:
-    Chippy.boulder.body.w += 0.5
-    break
-  }
+  leisureEvent('key', e);
 }
+
 </script>
 </head>
 <body>

@@ -34,3 +34,4 @@ If you query definitions, you can edit them directly in the results and they wil
          * version id
 	  * pagename.dir directory
          * file for each code element
+   * pages can import other pages

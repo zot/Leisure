@@ -10,6 +10,10 @@ if window? and (!global? or global == window)
   Prim = window.Prim
 else root = exports ? this
 
+snapshot = (el, pgm)->
+
+setSnapper = (snapFunc)-> snapshot = snapFunc
+
 delay = (func)->
   window.setTimeout func, 1
 
@@ -144,6 +148,7 @@ initNotebook = (el)->
   el.replacing = false
   insertControls(el)
   el.testResults.innerHTML = pgm[2]
+  snapshot(el, pgm)
   pgm
 
 makeLabel = (text, c)->
@@ -626,6 +631,7 @@ root.getBox = getBox
 root.makeRange = makeRange
 root.grp = grp
 root.changeTheme = changeTheme
+root.setSnapper = setSnapper
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

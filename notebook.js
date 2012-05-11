@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, showResult, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, setSnapper, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -16,6 +16,12 @@
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
+
+  snapshot = function snapshot(el, pgm) {};
+
+  setSnapper = function setSnapper(snapFunc) {
+    return snapshot = snapFunc;
+  };
 
   delay = function delay(func) {
     return window.setTimeout(func, 1);
@@ -214,6 +220,7 @@
     el.replacing = false;
     insertControls(el);
     el.testResults.innerHTML = pgm[2];
+    snapshot(el, pgm);
     return pgm;
   };
 
@@ -920,5 +927,7 @@
   root.grp = grp;
 
   root.changeTheme = changeTheme;
+
+  root.setSnapper = setSnapper;
 
 }).call(this);

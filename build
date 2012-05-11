@@ -3,5 +3,5 @@ node_modules/coffee-script/bin/coffee -c leisure.cs prim.cs game.cs
 node_modules/coffee-script/bin/coffee -c repl.cs runRepl.cs testLeisure.cs replCore.cs browserRepl.cs pretty.cs testing.cs bootLeisure.cs notebook.cs
 node runRepl -q -c -b std
 node testLeisure
-#node runRepl -q -c parseAst
+node runRepl -c chip.lsr
 node_modules/coffee-script/bin/coffee -c chippy.cs

@@ -41,6 +41,14 @@
    * comments that attach event handlers?
    * optionally hide source code
    * collaboration
+* keyword syntax
+   1. infix syntax, like Smalltalk?
+      * map: m at: key -> value
+      * map: m at: key put: value -> new map with key -> value
+   1. create map arguments, like LISP?
+      * map m at: key
+      * map m at: key put: value
+* provide access to function ASTs at runtime
 * better error messages
    * debug mode should put a cons into funcs of a new error and the list from the parent
       * better runtime errors -- track the function name and ast
