@@ -92,7 +92,7 @@ continueMonad = (cont)->
       [ignore, val, cnt] = eventCont.shift()
       cnt(val)
 
-runMonad = (monad, env, cont)-> monad.cmd env, continueMonad(cont)
+runMonad = (monad, env, cont)-> monad.cmd?(env, continueMonad(cont))
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code
@@ -180,6 +180,8 @@ define 'setS', (state)->(value)->
   makeMonad (env, cont)->
     state().value = value()
     cont(_false)
+
+define 'poop', 3
 
 ################
 # BROWSER PRIMS

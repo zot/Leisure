@@ -252,7 +252,7 @@
   };
 
   runMonad = function runMonad(monad, env, cont) {
-    return monad.cmd(env, continueMonad(cont));
+    return typeof monad.cmd === "function" ? monad.cmd(env, continueMonad(cont)) : void 0;
   };
 
   makeMonad = function makeMonad(guts) {
@@ -421,6 +421,8 @@
       });
     };
   });
+
+  define('poop', 3);
 
   define('svg-measure-text', function(text) {
     return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;

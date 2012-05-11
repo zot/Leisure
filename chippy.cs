@@ -1,9 +1,23 @@
-window.Chippy = root = {}
+Chippy = root = {}
+if window?
+  Leisure = window.Leisure
+  Prim = window.Prim
+  window.Chippy = root
+  v = cp.v
+  requestAnimationFrame =
+    window.requestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    ((callback)->return window.setTimeout(callback, 1000 / 60))
+else
+  Leisure = require './leisure'
+  Prim = require './prim'
 
 doc = null
 boulder = null
 space = null
-v = cp.v
 
 # this ties an SVG element to a Chipmunk shape and body
 # if you want to reuse SVG shapes, use the "use" element
@@ -92,13 +106,18 @@ update = (dt)-> space.step(dt)
 
 running = false
 
-run = ->
+stepper = (cont)->
+  step()
+  requestAnimationFrame(cont)
+
+startStepper = (cont)->
   running = true
-  stepper = ->
-    step()
-    if running then requestAnimationFrame(stepper)
   lastStep = Date.now()
-  stepper()
+  stepper(cont)
+
+Leisure.define 'startPhysics', Prim.makeMonad (env, cont)-> startStepper -> cont(false)
+
+Leisure.define 'stepPhysics', Prim.makeMonad (env, cont)-> stepper -> cont(false)
 
 fps = 0
 
@@ -119,15 +138,6 @@ step = ->
 
 draw = -> space.eachShape (shape)-> shape.draw()
 
-requestAnimationFrame =
-  window.requestAnimationFrame ||
-  window.webkitRequestAnimationFrame ||
-  window.mozRequestAnimationFrame ||
-  window.oRequestAnimationFrame ||
-  window.msRequestAnimationFrame ||
-  ((callback)->return window.setTimeout(callback, 1000 / 60))
-
 root.initChippy = initChippy
-root.run = run
 root.svgTransform = svgTransform
 root.boulder = boulder

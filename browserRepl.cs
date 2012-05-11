@@ -44,7 +44,9 @@ evalLine = (line)->
   lastLine = line.replace(/\\/g, '\u03BB')
   ReplCore.processLine(lastLine)
 
-reloadEnv = -> envFrame.contentWindow.location.reload()
+#reloadEnv = -> envFrame.contentWindow.location.reload()
+
+reloadEnv = ->
 
 clearOutput = ->
   o = document.getElementById('output')
@@ -52,7 +54,7 @@ clearOutput = ->
   ReplCore.help()
   o.innerHTML += '\n'
 
-clearEnv = ->
+clearEnvX = ->
   env = document.getElementById('env')
   if env? then document.body.removeChild(env)
   newEnv = document.createElement('iframe')
@@ -60,6 +62,11 @@ clearEnv = ->
   newEnv.setAttribute("style", "display: none")
   newEnv.setAttribute("onload", "Repl.useIframe(this)")
   document.body.appendChild(newEnv)
+
+clearEnv = ->
+
+useMainWindow = ->
+  Leisure.setEvalFunc window, eval
 
 useIframe = (envFr)->
   if (envFr)

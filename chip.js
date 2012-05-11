@@ -23,7 +23,7 @@ var defineMacro = Leisure.defineMacro;
 var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
-var _LEFT_ARROW, _UP_ARROW, _RIGHT_ARROW, _DOWN_ARROW, _newGame, _key;
+var _LEFT_ARROW, _UP_ARROW, _RIGHT_ARROW, _DOWN_ARROW, _startChippy, _runPhysics, _key, _boink;
 //LEFT_ARROW = AST(37)
 root.defs._LEFT_ARROW = _LEFT_ARROW = define('LEFT_ARROW', 37);
 ;
@@ -36,11 +36,17 @@ root.defs._RIGHT_ARROW = _RIGHT_ARROW = define('RIGHT_ARROW', 39);
 //DOWN_ARROW = AST(40)
 root.defs._DOWN_ARROW = _DOWN_ARROW = define('DOWN_ARROW', 40);
 ;
-//newGame = AST(\e . js ([ alert('game start') ]))
-root.defs._newGame = _newGame = define('newGame', function(_e){return _js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "alert('game start')"}))(_$s)))}})())});
+//startChippy = AST(\e . bind startPhysics \_ . runPhysics)
+root.defs._startChippy = _startChippy = define('startChippy', function(_e){return _bind()(_startPhysics)((function(){var $m; return function(){return $m || ($m = (function(__){return _runPhysics()}))}})())});
+;
+//runPhysics = AST(bind stepPhysics \_ . runPhysics)
+root.defs._runPhysics = _runPhysics = define('runPhysics', _bind()(_stepPhysics)((function(){var $m; return function(){return $m || ($m = (function(__){return _runPhysics()}))}})()));
 ;
 //key = AST(\e . (\c . eq c LEFT_ARROW (js ([ Chippy.boulder.body.w -= 0.5 ])) (eq c RIGHT_ARROW (js ([ Chippy.boulder.body.w += 0.5 ])) false)) (eventKeyCode e))
 root.defs._key = _key = define('key', function(_e){return function(_c){return _eq()(_c)(_LEFT_ARROW)((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Chippy.boulder.body.w -= 0.5"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_eq()(_c)(_RIGHT_ARROW)((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Chippy.boulder.body.w += 0.5"}))(_$s)))}})())))}})())(_false)))}})())}((function(){var $m; return function(){return $m || ($m = (_eventKeyCode()(_e)))}})())});
+;
+//boink = AST(\e . js ([ console.log("boink!") ]))
+root.defs._boink = _boink = define('boink', function(_e){return _js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "console.log(\"boink!\")"}))(_$s)))}})())});
 ;
 
 if (typeof window !== 'undefined' && window !== null) {

@@ -1,5 +1,5 @@
 (function() {
-  var LZ, R, U, action, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
+  var LZ, R, U, action, eaten, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
 
   LZ = require('./leisure');
 
@@ -31,9 +31,13 @@
 
   pos = 2;
 
+  eaten = 0;
+
   for (i = 2, _ref = process.argv.length; 2 <= _ref ? i < _ref : i > _ref; 2 <= _ref ? i++ : i--) {
-    if (process.argv[i] === '-h') {
-      console.log("Usage: " + process.argv[0] + " [[-c | -q | -b] file...]\n\n-b -- bootstrap; don't load std functions\n-c -- compile arguments only\n-q -- quiet");
+    if (eaten) {
+      eaten--;
+    } else if (process.argv[i] === '-h') {
+      console.log("Usage: " + process.argv[0] + " [[-r file]... [-c | -q | -b] file...]\n\n-b -- bootstrap; don't load std functions\n-r file -- require JS file\n-c -- compile arguments only\n-q -- quiet");
     } else if (process.argv[i] === '-b') {
       loadStd = function loadStd() {};
       nomacros = true;
@@ -43,6 +47,9 @@
       R.loud = 0;
     } else if (process.argv[i] === '-v') {
       R.loud++;
+    } else if (process.argv[i] === '-r') {
+      require("./" + process.argv[i + 1]);
+      eaten = 1;
     } else {
       break;
     }
@@ -52,7 +59,12 @@
   loadStd();
 
   processArgs = function processArgs(i) {
-    if (i < process.argv.length) {
+    if (eaten) {
+      return eaten--;
+    } else if (process.argv[i] === '-r') {
+      require("./" + process.argv[i + 1]);
+      return eaten = 1;
+    } else if (i < process.argv.length) {
       return action(process.argv[i], function() {
         return processArgs(i + 1);
       });

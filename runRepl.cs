@@ -19,12 +19,15 @@ action = importFile
 next = R.repl
 
 pos = 2
+eaten = 0
 for i in [2...process.argv.length]
-  if process.argv[i] == '-h'
+  if eaten then eaten--
+  else if process.argv[i] == '-h'
     console.log("""
-Usage: #{process.argv[0]} [[-c | -q | -b] file...]
+Usage: #{process.argv[0]} [[-r file]... [-c | -q | -b] file...]
 
 -b -- bootstrap; don't load std functions
+-r file -- require JS file
 -c -- compile arguments only
 -q -- quiet
     """)
@@ -34,6 +37,9 @@ Usage: #{process.argv[0]} [[-c | -q | -b] file...]
   else if process.argv[i] == '-c' then next = ->
   else if process.argv[i] == '-q' then R.loud = 0
   else if process.argv[i] == '-v' then R.loud++
+  else if process.argv[i] == '-r'
+    require "./#{process.argv[i + 1]}"
+    eaten = 1
   else break
   pos = i + 1
 
@@ -41,7 +47,11 @@ Usage: #{process.argv[0]} [[-c | -q | -b] file...]
 loadStd()
 
 processArgs = (i)->
-  if i < process.argv.length then action(process.argv[i], ->processArgs(i + 1))
+  if eaten then eaten--
+  else if process.argv[i] == '-r'
+    require "./#{process.argv[i + 1]}"
+    eaten = 1
+  else if i < process.argv.length then action(process.argv[i], ->processArgs(i + 1))
   else next()
 
 processArgs pos

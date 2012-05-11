@@ -3,7 +3,13 @@ UP_ARROW = 38
 RIGHT_ARROW = 39
 DOWN_ARROW = 40
 
-newGame e = js ["alert('game start')"]
+startChippy e = do
+  startPhysics
+  runPhysics
+
+runPhysics = do
+  stepPhysics
+  runPhysics
 
 key e = do
   c = eventKeyCode e
@@ -12,3 +18,5 @@ key e = do
     eq c RIGHT_ARROW
       js ['Chippy.boulder.body.w += 0.5']
       false
+
+boink e = js ['console.log("boink!")']
