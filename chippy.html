@@ -1,7 +1,7 @@
 <html>
 <head>
 <script src="cp.js"></script>
-<script src="chippy.js"></script>
+<!--script src="chippy.js"></script-->
 <script src="game.js"></script>
 <script src="bootLeisure.js"></script>
 <script>
@@ -12,26 +12,24 @@ var DOWN_ARROW = 40
 
 var chipwin = null
 
-function leisureEvent(funcName, evt) {
-  Prim.leisureEvent(funcName, evt || win.event);
+function lEvt(win, funcName) {
+  return function(evt) {
+    Prim.leisureEvent(funcName, evt || win.event);
+  }
 }
 
 function initChippy(svg) {
   Boot.onboot(function() {
-    Boot.loadThen(['chip'], function(){
+    Boot.loadThen(['chippy', 'chip'], function(){
       var doc = svg.getSVGDocument();
       var win = chipwin = doc.defaultView;
       win.leisureEvent = leisureEvent
       Chippy.initChippy(doc);
-      Chippy.run();
-      Game.bindSvgDiv(document.getElementById('floop'), keyFunc)
-      win.leisureEvent('newGame');
+      //Chippy.run();
+      Game.bindSvgDiv(document.getElementById('floop'), lEvt(win, 'key'))
+      lEvt(win, 'startChippy')(null);
     });
   });
-}
-
-function keyFunc(e) {
-  leisureEvent('key', e);
 }
 
 </script>

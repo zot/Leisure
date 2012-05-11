@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, clearEnv, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, trimEq, useIframe, write, writeOutput;
+  var Pretty, clearEnv, clearEnvX, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, trimEq, useIframe, useMainWindow, write, writeOutput;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -69,9 +69,7 @@
     return ReplCore.processLine(lastLine);
   };
 
-  reloadEnv = function reloadEnv() {
-    return envFrame.contentWindow.location.reload();
-  };
+  reloadEnv = function reloadEnv() {};
 
   clearOutput = function clearOutput() {
     var o;
@@ -81,7 +79,7 @@
     return o.innerHTML += '\n';
   };
 
-  clearEnv = function clearEnv() {
+  clearEnvX = function clearEnvX() {
     var env, newEnv;
     env = document.getElementById('env');
     if (env != null) document.body.removeChild(env);
@@ -90,6 +88,12 @@
     newEnv.setAttribute("style", "display: none");
     newEnv.setAttribute("onload", "Repl.useIframe(this)");
     return document.body.appendChild(newEnv);
+  };
+
+  clearEnv = function clearEnv() {};
+
+  useMainWindow = function useMainWindow() {
+    return Leisure.setEvalFunc(window, eval);
   };
 
   useIframe = function useIframe(envFr) {

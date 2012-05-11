@@ -1,15 +1,26 @@
 (function() {
-  var GroundThing, PolyThing, boulder, doc, draw, fps, getPoints, initChippy, lastStep, remainder, requestAnimationFrame, resized, root, run, running, space, step, svgTransform, update, v;
+  var Chippy, GroundThing, Leisure, PolyThing, Prim, boulder, doc, draw, fps, getPoints, initChippy, lastStep, remainder, requestAnimationFrame, resized, root, running, space, startStepper, step, stepper, svgTransform, update, v;
 
-  window.Chippy = root = {};
+  Chippy = root = {};
+
+  if (typeof window !== "undefined" && window !== null) {
+    Leisure = window.Leisure;
+    Prim = window.Prim;
+    window.Chippy = root;
+    v = cp.v;
+    requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || (function(callback) {
+      return window.setTimeout(callback, 1000 / 60);
+    });
+  } else {
+    Leisure = require('./leisure');
+    Prim = require('./prim');
+  }
 
   doc = null;
 
   boulder = null;
 
   space = null;
-
-  v = cp.v;
 
   PolyThing = (function() {
 
@@ -156,16 +167,28 @@
 
   running = false;
 
-  run = function run() {
-    var stepper;
-    running = true;
-    stepper = function stepper() {
-      step();
-      if (running) return requestAnimationFrame(stepper);
-    };
-    lastStep = Date.now();
-    return stepper();
+  stepper = function stepper(cont) {
+    step();
+    return requestAnimationFrame(cont);
   };
+
+  startStepper = function startStepper(cont) {
+    running = true;
+    lastStep = Date.now();
+    return stepper(cont);
+  };
+
+  Leisure.define('startPhysics', Prim.makeMonad(function(env, cont) {
+    return startStepper(function() {
+      return cont(false);
+    });
+  }));
+
+  Leisure.define('stepPhysics', Prim.makeMonad(function(env, cont) {
+    return stepper(function() {
+      return cont(false);
+    });
+  }));
 
   fps = 0;
 
@@ -194,13 +217,7 @@
     });
   };
 
-  requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || (function(callback) {
-    return window.setTimeout(callback, 1000 / 60);
-  });
-
   root.initChippy = initChippy;
-
-  root.run = run;
 
   root.svgTransform = svgTransform;
 
