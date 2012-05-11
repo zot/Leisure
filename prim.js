@@ -279,6 +279,12 @@
     return evt().target.id;
   });
 
+  define('eventKeyCode', function(evt) {
+    var e;
+    e = evt();
+    return e.charCode || e.keyCode || e.which;
+  });
+
   define('return', function(v) {
     return makeMonad(function(env, cont) {
       return cont(v());
