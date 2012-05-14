@@ -8,6 +8,7 @@ startChippy e = do
   runPhysics
 
 runPhysics = do
+  js ['Chippy.showArbitersAndContacts()']
   stepPhysics
   runPhysics
 

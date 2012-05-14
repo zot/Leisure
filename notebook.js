@@ -39,17 +39,17 @@
             return checkMutateFromModification(getBox(evt.target));
           });
         }
-      }), true, true);
+      }), true);
       el.addEventListener('DOMSubtreeModified', (function(evt) {
         if (!el.replacing) {
           return delay(function() {
             return checkMutateFromModification(getBox(evt.target));
           });
         }
-      }), true, true);
+      }), true);
       el.addEventListener('click', (function(e) {
         return window.setTimeout(highlightPosition, 1);
-      }), true, true);
+      }), true);
       el.addEventListener('keydown', function(e) {
         var _ref;
         if ((_ref = e.charCode || e.keyCode || e.which) === 8 || _ref === 37 || _ref === 38 || _ref === 39 || _ref === 40 || _ref === 46) {
@@ -85,10 +85,10 @@
       });
       el.addEventListener('focus', (function() {
         return findCurrentCodeHolder();
-      }), true, true);
+      }), true);
       return el.addEventListener('blur', (function() {
         return findCurrentCodeHolder();
-      }), true, true);
+      }), true);
     }
   };
 
@@ -430,7 +430,7 @@
         bx.appendChild(bod);
         bx.addEventListener('blur', (function() {
           return evalDoc(el);
-        }), true, true);
+        }), true);
         bx.leisureOwner = el;
         pgm += "" + name + " " + def + " " + body + "\n";
       } else if (main != null) {
@@ -498,7 +498,7 @@
     bx.appendChild(s);
     bx.addEventListener('click', (function() {
       return clickTest(bx);
-    }), true, true);
+    }), true);
     bx.test = test;
     bx.leisureOwner = owner;
     return bx;

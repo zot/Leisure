@@ -92,7 +92,9 @@ continueMonad = (cont)->
       [ignore, val, cnt] = eventCont.shift()
       cnt(val)
 
-runMonad = (monad, env, cont)-> monad.cmd?(env, continueMonad(cont))
+runMonad = (monad, env, cont)->
+  if monad.cmd? then monad.cmd(env, continueMonad(cont))
+  else cont(monad)
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code
@@ -105,6 +107,8 @@ makeMonad = (guts)->
 
 define 'eventContext', (evt)-> evt().leisureContext
 
+define 'eventType', (evt)->evt().type
+
 define 'eventX', (evt)-> evt().x
 
 define 'eventY', (evt)-> evt().y
@@ -114,6 +118,11 @@ define 'eventTargetId', (evt)-> evt().target.id
 define 'eventKeyCode', (evt)->
   e = evt()
   e.charCode || e.keyCode || e.which
+
+define 'eventPreventDefault', (evt)->
+  makeMonad (env, cont)->
+    evt().preventDefault()
+    cont(_false())
 
 define 'return', (v)->
   makeMonad (env, cont)->cont(v())
@@ -148,6 +157,14 @@ define 'js', (codeList)->
     cl = codeList()
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
     cont(eval(concatList(cl)))
+
+define 'arrayLength', (array)-> array().length
+
+define 'arrayElements', (array)->(f)->arrayRest array(), 0, f()
+
+arrayRest = (array, index, f)->
+  if index < array.length then arrayRest array, index + 1, f(laz(array[index]))
+  else f
 
 define 'browser', (codeList)->
   makeMonad (env, cont)->

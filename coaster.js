@@ -1,12 +1,13 @@
 (function() {
-  var Chippy, GroundThing, Leisure, PolyThing, Prim, boulder, collisionSegment, doc, draw, fps, getPoints, initChippy, lastStep, remainder, requestAnimationFrame, resized, root, running, showArbitersAndContacts, showArbitersAndContactsX, space, startStepper, step, stepper, svgTransform, update, v;
+  var CircleThing, Coaster, GroundThing, Leisure, PolyThing, Prim, boulder, coasterBottom, coasterTop, collisionSegment, doc, draw, fps, getPoints, ground, initCoaster, lastStep, remainder, requestAnimationFrame, resized, root, running, space, startStepper, step, stepper, svgTransform, touchingGround, update, v,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  Chippy = root = {};
+  Coaster = root = {};
 
   if (typeof window !== "undefined" && window !== null) {
     Leisure = window.Leisure;
     Prim = window.Prim;
-    window.Chippy = root;
+    window.Coaster = root;
     v = cp.v;
     requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || (function(callback) {
       return window.setTimeout(callback, 1000 / 60);
@@ -24,17 +25,67 @@
 
   collisionSegment = null;
 
-  PolyThing = (function() {
+  CircleThing = (function() {
 
-    function PolyThing(name, mass) {
+    function CircleThing(name, mass) {
       var bbox, pts, self, skel;
       this.mass = mass;
       this.svg = doc.getElementById(name);
       skel = doc.getElementById("" + name + "-skeleton");
+      if (!(skel != null)) skel = this.svg;
       bbox = skel.getBBox();
       this.midx = bbox.x + bbox.width / 2;
       this.midy = bbox.y + bbox.height / 2;
       pts = getPoints(skel);
+      this.body = this.mass === Infinity ? space.staticBody : space.addBody(new cp.Body(this.mass, cp.momentForCircle(this.mass, 0, bbox.width / 2, v(0, 0))));
+      this.setPos(this.midx, this.midy);
+      this.shape = space.addShape(new cp.CircleShape(this.body, bbox.width / 2, v(0, 0)));
+      self = this;
+      this.shape.draw = function draw() {
+        return self.svgPosition(self.body.p.x, self.body.p.y, self.body.a);
+      };
+    }
+
+    CircleThing.prototype.svgPosition = function svgPosition(x, y, rotation) {
+      return this.svg.setAttribute('transform', "translate(" + x + ", " + y + ") rotate(" + (rotation / Math.PI * 180) + ") translate(" + (-this.midx) + ", " + (-this.midy) + ")");
+    };
+
+    CircleThing.prototype.setPos = function setPos(x, y) {
+      return this.body.setPos(v(x, y));
+    };
+
+    CircleThing.prototype.setElasticity = function setElasticity(e) {
+      return this.shape.setElasticity(e);
+    };
+
+    CircleThing.prototype.setFriction = function setFriction(f) {
+      return this.shape.setFriction(f);
+    };
+
+    CircleThing.prototype.setAngVel = function setAngVel(v) {
+      return this.body.w = v;
+    };
+
+    return CircleThing;
+
+  })();
+
+  PolyThing = (function() {
+
+    function PolyThing(name, mass) {
+      var bbox, i, pts, self, skel, _ref;
+      this.mass = mass;
+      this.svg = doc.getElementById(name);
+      skel = doc.getElementById("" + name + "-skeleton");
+      if (!(skel != null)) skel = this.svg;
+      bbox = skel.getBBox();
+      this.midx = bbox.x + bbox.width / 2;
+      this.midy = bbox.y + bbox.height / 2;
+      pts = getPoints(skel);
+      this.pts = [];
+      for (i = 0, _ref = pts.length; i < _ref; i += 2) {
+        this.pts.push(v(pts[i], pts[i + 1]));
+      }
       this.body = this.mass === Infinity ? space.staticBody : space.addBody(new cp.Body(this.mass, cp.momentForPoly(this.mass, pts, v(0, 0))));
       this.setPos(this.midx, this.midy);
       this.shape = space.addShape(new cp.PolyShape(this.body, pts, v(0, 0)));
@@ -43,6 +94,21 @@
         return self.svgPosition(self.body.p.x, self.body.p.y, self.body.a);
       };
     }
+
+    PolyThing.prototype.pointClosestTo = function pointClosestTo(p) {
+      var d, i, r, s, td, _ref;
+      r = this.pts[0];
+      d = cp.v.dot(r, r);
+      for (i = 1, _ref = this.pts.length; 1 <= _ref ? i < _ref : i > _ref; 1 <= _ref ? i++ : i--) {
+        s = cp.v.sub(p, this.pts[i]);
+        td = cp.v.dot(s, s);
+        if (td < d) {
+          d = td;
+          r = s;
+        }
+      }
+      return r;
+    };
 
     PolyThing.prototype.svgPosition = function svgPosition(x, y, rotation) {
       return this.svg.setAttribute('transform', "translate(" + x + ", " + y + ") rotate(" + (rotation / Math.PI * 180) + ") translate(" + (-this.midx) + ", " + (-this.midy) + ")");
@@ -110,25 +176,41 @@
 
   })();
 
-  initChippy = function initChippy(document) {
-    var ground;
+  coasterTop = null;
+
+  coasterBottom = null;
+
+  ground = null;
+
+  initCoaster = function initCoaster(document) {
+    var apron, joint, pt;
     doc = document;
-    space = new cp.Space();
+    root.space = space = new cp.Space();
     space.gravity = v(0, 230);
-    root.boulder = boulder = new PolyThing('boulder', 200);
-    boulder.setElasticity(1.4);
-    boulder.setFriction(0.3);
-    boulder.setAngVel(10);
-    ground = new GroundThing('ground');
-    ground.setElasticity(0.6);
-    ground.setFriction(1);
-    collisionSegment = doc.createElementNS("http://www.w3.org/2000/svg", 'line');
-    collisionSegment.setAttribute('style', 'display: none; stroke: #f00; stroke-width: 5');
-    collisionSegment.setAttribute('x1', '0');
-    collisionSegment.setAttribute('y1', '0');
-    collisionSegment.setAttribute('x2', '0');
-    collisionSegment.setAttribute('y2', '0');
-    return doc.getElementById("layer1").appendChild(collisionSegment);
+    root.coasterTop = coasterTop = new CircleThing('coaster-top', 200);
+    coasterTop.setElasticity(0);
+    coasterTop.setFriction(10);
+    root.apron = apron = new PolyThing('apron', 1);
+    coasterTop.shape.group = apron.shape.group = 1;
+    pt = apron.pointClosestTo(coasterTop.body.p);
+    joint = new cp.PivotJoint(coasterTop.body, apron.body, coasterTop.body.p);
+    space.addConstraint(joint);
+    root.ground = ground = new GroundThing('ground');
+    ground.setElasticity(0);
+    return ground.setFriction(1);
+  };
+
+  touchingGround = function touchingGround(shape) {
+    var arb, bodies, _i, _len, _ref, _ref2, _ref3;
+    _ref = space.arbiters;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      arb = _ref[_i];
+      bodies = [arb.body_a, arb.body_b];
+      if ((_ref2 = shape.body, __indexOf.call(bodies, _ref2) >= 0) && (_ref3 = ground.body, __indexOf.call(bodies, _ref3) >= 0)) {
+        return true;
+      }
+    }
+    return false;
   };
 
   getPoints = function getPoints(svg, midx, midy) {
@@ -164,6 +246,18 @@
     return pt.matrixTransform(svg.getCTM());
   };
 
+  Leisure.define('startPhysics', Prim.makeMonad(function(env, cont) {
+    return startStepper(function() {
+      return cont(false);
+    });
+  }));
+
+  Leisure.define('stepPhysics', Prim.makeMonad(function(env, cont) {
+    return stepper(function() {
+      return cont(false);
+    });
+  }));
+
   lastStep = Date.now();
 
   remainder = null;
@@ -186,18 +280,6 @@
     lastStep = Date.now();
     return stepper(cont);
   };
-
-  Leisure.define('startPhysics', Prim.makeMonad(function(env, cont) {
-    return startStepper(function() {
-      return cont(false);
-    });
-  }));
-
-  Leisure.define('stepPhysics', Prim.makeMonad(function(env, cont) {
-    return stepper(function() {
-      return cont(false);
-    });
-  }));
 
   fps = 0;
 
@@ -226,46 +308,12 @@
     });
   };
 
-  showArbitersAndContacts = function showArbitersAndContacts() {
-    var arb, _i, _len, _ref;
-    _ref = space.arbiters;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      arb = _ref[_i];
-      if (arb.a === boulder.shape || arb.b === boulder.shape) {
-        collisionSegment.setAttribute('x1', String(boulder.body.p.x));
-        collisionSegment.setAttribute('y1', String(boulder.body.p.y));
-        collisionSegment.setAttribute('x2', String(arb.contacts[0].p.x));
-        collisionSegment.setAttribute('y2', String(arb.contacts[0].p.y));
-        collisionSegment.style.display = '';
-        return;
-      }
-    }
-    return collisionSegment.style.display = 'none';
-  };
-
-  showArbitersAndContactsX = function showArbitersAndContactsX() {
-    var arb, cont, contacts, _i, _j, _len, _len2, _ref, _ref2;
-    contacts = '';
-    _ref = space.arbiters;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      arb = _ref[_i];
-      _ref2 = arb.contacts;
-      for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
-        cont = _ref2[_j];
-        contacts += cont.toString();
-        window.cont = cont;
-      }
-      window.arb = arb;
-    }
-    if (contacts) return console.log("Contacts: " + contacts);
-  };
-
-  root.initChippy = initChippy;
+  root.initCoaster = initCoaster;
 
   root.svgTransform = svgTransform;
 
   root.boulder = boulder;
 
-  root.showArbitersAndContacts = showArbitersAndContacts;
+  root.touchingGround = touchingGround;
 
 }).call(this);

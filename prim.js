@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Pretty, RL, U, concatList, continueMonad, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, setTty, tail, tty, values;
+  var Leisure, Pretty, RL, U, arrayRest, concatList, continueMonad, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, setTty, tail, tty, values;
 
   defaultEnv = {};
 
@@ -252,7 +252,11 @@
   };
 
   runMonad = function runMonad(monad, env, cont) {
-    return typeof monad.cmd === "function" ? monad.cmd(env, continueMonad(cont)) : void 0;
+    if (monad.cmd != null) {
+      return monad.cmd(env, continueMonad(cont));
+    } else {
+      return cont(monad);
+    }
   };
 
   makeMonad = function makeMonad(guts) {
@@ -265,6 +269,10 @@
 
   define('eventContext', function(evt) {
     return evt().leisureContext;
+  });
+
+  define('eventType', function(evt) {
+    return evt().type;
   });
 
   define('eventX', function(evt) {
@@ -283,6 +291,13 @@
     var e;
     e = evt();
     return e.charCode || e.keyCode || e.which;
+  });
+
+  define('eventPreventDefault', function(evt) {
+    return makeMonad(function(env, cont) {
+      evt().preventDefault();
+      return cont(_false());
+    });
   });
 
   define('return', function(v) {
@@ -366,6 +381,24 @@
       return cont(eval(concatList(cl)));
     });
   });
+
+  define('arrayLength', function(array) {
+    return array().length;
+  });
+
+  define('arrayElements', function(array) {
+    return function(f) {
+      return arrayRest(array(), 0, f());
+    };
+  });
+
+  arrayRest = function arrayRest(array, index, f) {
+    if (index < array.length) {
+      return arrayRest(array, index + 1, f(laz(array[index])));
+    } else {
+      return f;
+    }
+  };
 
   define('browser', function(codeList) {
     return makeMonad(function(env, cont) {

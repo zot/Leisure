@@ -1,8 +1,8 @@
-Chippy = root = {}
+Coaster = root = {}
 if window?
   Leisure = window.Leisure
   Prim = window.Prim
-  window.Chippy = root
+  window.Coaster = root
   v = cp.v
   requestAnimationFrame =
     window.requestAnimationFrame ||
@@ -22,19 +22,54 @@ collisionSegment = null
 
 # this ties an SVG element to a Chipmunk shape and body
 # if you want to reuse SVG shapes, use the "use" element
-class PolyThing
+class CircleThing
   constructor: (name, @mass)->
     @svg = doc.getElementById(name)
     skel = doc.getElementById "#{name}-skeleton"
+    if !skel? then skel = @svg
     bbox = skel.getBBox()
     @midx = bbox.x + bbox.width / 2
     @midy = bbox.y + bbox.height / 2
     pts = (getPoints skel)
+    @body = if @mass == Infinity then space.staticBody else space.addBody new cp.Body(@mass, cp.momentForCircle(@mass, 0, bbox.width / 2, v(0,0)))
+    @setPos @midx, @midy
+    @shape = space.addShape (new cp.CircleShape @body, bbox.width / 2, v(0,0))
+    self = this
+    @shape.draw = -> self.svgPosition self.body.p.x, self.body.p.y, self.body.a
+  svgPosition: (x, y, rotation)->
+    @svg.setAttribute 'transform', "translate(#{x}, #{y}) rotate(#{rotation / Math.PI * 180}) translate(#{-@midx}, #{-@midy})"
+  setPos: (x, y)-> @body.setPos v(x, y)
+  setElasticity: (e)-> @shape.setElasticity e
+  setFriction: (f)-> @shape.setFriction f
+  setAngVel: (v)-> @body.w = v
+
+class PolyThing
+  constructor: (name, @mass)->
+    @svg = doc.getElementById(name)
+    skel = doc.getElementById "#{name}-skeleton"
+    if !skel? then skel = @svg
+    bbox = skel.getBBox()
+    @midx = bbox.x + bbox.width / 2
+    @midy = bbox.y + bbox.height / 2
+    pts = (getPoints skel)
+    @pts = []
+    for i in [0...pts.length] by 2
+      @pts.push v(pts[i], pts[i + 1])
     @body = if @mass == Infinity then space.staticBody else space.addBody new cp.Body(@mass, cp.momentForPoly(@mass, pts, v(0,0)))
     @setPos @midx, @midy
     @shape = space.addShape (new cp.PolyShape @body, pts, v(0,0))
     self = this
     @shape.draw = -> self.svgPosition self.body.p.x, self.body.p.y, self.body.a
+  pointClosestTo: (p)->
+    r = @pts[0]
+    d = cp.v.dot(r, r)
+    for i in [1...@pts.length]
+      s = cp.v.sub(p, @pts[i])
+      td = cp.v.dot(s, s)
+      if td < d
+        d = td
+        r = s
+    r
   svgPosition: (x, y, rotation)->
     @svg.setAttribute 'transform', "translate(#{x}, #{y}) rotate(#{rotation / Math.PI * 180}) translate(#{-@midx}, #{-@midy})"
   setPos: (x, y)-> @body.setPos v(x, y)
@@ -62,24 +97,32 @@ class GroundThing
     for s in @shapes
       s.setFriction f
 
-initChippy = (document)->
+coasterTop = null
+coasterBottom = null
+ground = null
+
+initCoaster = (document)->
   doc = document
-  space = new cp.Space()
+  root.space = space = new cp.Space()
   space.gravity = v 0, 230
-  root.boulder = boulder = new PolyThing 'boulder', 200
-  boulder.setElasticity 1.4
-  boulder.setFriction 0.3
-  boulder.setAngVel 10
-  ground = new GroundThing 'ground'
-  ground.setElasticity 0.6
+  root.coasterTop = coasterTop = new CircleThing 'coaster-top', 200
+  coasterTop.setElasticity 0
+  coasterTop.setFriction 10
+  root.apron = apron = new PolyThing 'apron', 1
+  coasterTop.shape.group = apron.shape.group = 1
+  pt = apron.pointClosestTo coasterTop.body.p
+  #joint = new cp.PivotJoint(coasterTop.body, apron.body, v(0, 0), cp.v.sub(pt, apron.body.p))
+  joint = new cp.PivotJoint(coasterTop.body, apron.body, coasterTop.body.p)
+  space.addConstraint joint
+  root.ground = ground = new GroundThing 'ground'
+  ground.setElasticity 0
   ground.setFriction 1
-  collisionSegment = doc.createElementNS "http://www.w3.org/2000/svg", 'line'
-  collisionSegment.setAttribute 'style', 'display: none; stroke: #f00; stroke-width: 5'
-  collisionSegment.setAttribute 'x1', '0'
-  collisionSegment.setAttribute 'y1', '0'
-  collisionSegment.setAttribute 'x2', '0'
-  collisionSegment.setAttribute 'y2', '0'
-  doc.getElementById("layer1").appendChild collisionSegment
+
+touchingGround = (shape)->
+  for arb in space.arbiters
+    bodies = [arb.body_a, arb.body_b]
+    if (shape.body in bodies) and (ground.body in bodies) then return true
+  return false
 
 getPoints = (svg, midx, midy)->
   pts = []
@@ -106,6 +149,14 @@ svgTransform = (svg, x, y)->
   pt.y = y
   pt.matrixTransform(svg.getCTM())
 
+##############
+# Running it
+##############
+
+Leisure.define 'startPhysics', Prim.makeMonad (env, cont)-> startStepper -> cont(false)
+
+Leisure.define 'stepPhysics', Prim.makeMonad (env, cont)-> stepper -> cont(false)
+
 lastStep = Date.now()
 remainder = null
 resized = true
@@ -122,10 +173,6 @@ startStepper = (cont)->
   running = true
   lastStep = Date.now()
   stepper(cont)
-
-Leisure.define 'startPhysics', Prim.makeMonad (env, cont)-> startStepper -> cont(false)
-
-Leisure.define 'stepPhysics', Prim.makeMonad (env, cont)-> stepper -> cont(false)
 
 fps = 0
 
@@ -146,27 +193,7 @@ step = ->
 
 draw = -> space.eachShape (shape)-> shape.draw()
 
-showArbitersAndContacts = ->
-  for arb in space.arbiters
-    if arb.a == boulder.shape or arb.b == boulder.shape
-      collisionSegment.setAttribute 'x1', String(boulder.body.p.x)
-      collisionSegment.setAttribute 'y1', String(boulder.body.p.y)
-      collisionSegment.setAttribute 'x2', String(arb.contacts[0].p.x)
-      collisionSegment.setAttribute 'y2', String(arb.contacts[0].p.y)
-      collisionSegment.style.display = ''
-      return
-  collisionSegment.style.display = 'none'
-
-showArbitersAndContactsX = ->
-  contacts = ''
-  for arb in space.arbiters
-    for cont in arb.contacts
-      contacts += cont.toString()
-      window.cont = cont
-    window.arb = arb
-  if contacts then console.log "Contacts: #{contacts}"
-
-root.initChippy = initChippy
+root.initCoaster = initCoaster
 root.svgTransform = svgTransform
 root.boulder = boulder
-root.showArbitersAndContacts = showArbitersAndContacts
+root.touchingGround = touchingGround

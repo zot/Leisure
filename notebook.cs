@@ -21,9 +21,9 @@ bindNotebook = (el)->
   Prim.defaultEnv.write = (msg)->console.log msg
   if !el.bound?
     el.bound = true
-    el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
-    el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true, true
-    el.addEventListener 'click', ((e)-> window.setTimeout(highlightPosition, 1)), true, true
+    el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true
+    el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true
+    el.addEventListener 'click', ((e)-> window.setTimeout(highlightPosition, 1)), true
     el.addEventListener 'keydown', (e)->
       if (e.charCode || e.keyCode || e.which) in [8, 37, 38, 39, 40, 46] then window.setTimeout(highlightPosition, 1)
     el.addEventListener 'keypress', (e)->
@@ -49,8 +49,8 @@ bindNotebook = (el)->
         s.removeAllRanges()
         s.addRange(r)
       window.setTimeout(highlightPosition, 1)
-    el.addEventListener 'focus', (-> findCurrentCodeHolder()), true, true
-    el.addEventListener 'blur', (-> findCurrentCodeHolder()), true, true
+    el.addEventListener 'focus', (-> findCurrentCodeHolder()), true
+    el.addEventListener 'blur', (-> findCurrentCodeHolder()), true
 
 #[node, positions]
 oldBrackets = [null, Leisure.Nil]
@@ -301,7 +301,7 @@ markupDefs = (el, defs)->
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode(def))
       bx.appendChild bod
-      bx.addEventListener 'blur', (-> evalDoc el), true, true
+      bx.addEventListener 'blur', (-> evalDoc el), true
       bx.leisureOwner = el
       pgm += "#{name} #{def} #{body}\n"
     else if main?
@@ -351,7 +351,7 @@ makeTestBox = (test, owner, src)->
   bx = codeBox 'codeMainTest'
   bx.setAttribute 'class', 'codeMainTest notrun'
   bx.appendChild s
-  bx.addEventListener 'click', (-> clickTest bx), true, true
+  bx.addEventListener 'click', (-> clickTest bx), true
   bx.test = test
   bx.leisureOwner = owner
   bx

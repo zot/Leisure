@@ -39,8 +39,8 @@ root.defs._DOWN_ARROW = _DOWN_ARROW = define('DOWN_ARROW', 40);
 //startChippy = AST(\e . bind startPhysics \_ . runPhysics)
 root.defs._startChippy = _startChippy = define('startChippy', function(_e){return _bind()(_startPhysics)((function(){var $m; return function(){return $m || ($m = (function(__){return _runPhysics()}))}})())});
 ;
-//runPhysics = AST(bind stepPhysics \_ . runPhysics)
-root.defs._runPhysics = _runPhysics = define('runPhysics', _bind()(_stepPhysics)((function(){var $m; return function(){return $m || ($m = (function(__){return _runPhysics()}))}})()));
+//runPhysics = AST(bind (js ([ Chippy.showArbitersAndContacts() ])) \_ . bind stepPhysics \_ . runPhysics)
+root.defs._runPhysics = _runPhysics = define('runPhysics', _bind()((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Chippy.showArbitersAndContacts()"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()(_stepPhysics)((function(){var $m; return function(){return $m || ($m = (function(__){return _runPhysics()}))}})())}))}})()));
 ;
 //key = AST(\e . (\c . eq c LEFT_ARROW (js ([ Chippy.boulder.body.w -= 0.5 ])) (eq c RIGHT_ARROW (js ([ Chippy.boulder.body.w += 0.5 ])) false)) (eventKeyCode e))
 root.defs._key = _key = define('key', function(_e){return function(_c){return _eq()(_c)(_LEFT_ARROW)((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Chippy.boulder.body.w -= 0.5"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (_eq()(_c)(_RIGHT_ARROW)((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Chippy.boulder.body.w += 0.5"}))(_$s)))}})())))}})())(_false)))}})())}((function(){var $m; return function(){return $m || ($m = (_eventKeyCode()(_e)))}})())});
