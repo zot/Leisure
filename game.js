@@ -1,9 +1,7 @@
 (function() {
-  var DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW, UP_ARROW, bindSvgDiv, curKey, down, press, release, root, up;
+  var DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW, UP_ARROW, bindSvgDiv, count, down, keys, press, root, up;
 
   window.Game = root = {};
-
-  curKey = null;
 
   LEFT_ARROW = 37;
 
@@ -13,45 +11,60 @@
 
   DOWN_ARROW = 40;
 
+  keys = {};
+
+  count = 0;
+
   down = function down(e, keyFunc) {
     var c;
+    window.EVT = e;
     c = e.charCode || e.keyCode || e.which;
-    e.preventDefault();
-    if (c !== curKey) {
-      if (curKey !== null) release(curKey);
-      curKey = c;
-      return press(c, e, keyFunc);
+    if (!(keys[c] != null)) {
+      keys[c] = e;
+      count++;
+      if (count === 1) return press(keyFunc);
+    } else {
+      return e.preventDefault();
     }
   };
 
-  up = function up(e) {
+  up = function up(e, keyFunc) {
     var c;
     c = e.charCode || e.keyCode || e.which;
-    if (c === curKey) {
-      release(curKey);
-      return curKey = null;
+    if (keys[c]) {
+      keys[c] = null;
+      keyFunc(e);
+      return count--;
     }
   };
 
-  press = function press(c, e, keyFunc) {
-    if (c === curKey) {
-      keyFunc(e);
+  press = function press(keyFunc) {
+    var c, e, found;
+    found = false;
+    for (c in keys) {
+      e = keys[c];
+      if (e != null) {
+        keyFunc(e);
+        found = true;
+      }
+    }
+    if (found) {
       return window.setTimeout((function() {
-        return press(c, e, keyFunc);
+        return press(keyFunc);
       }), 100);
     }
   };
-
-  release = function release(c) {};
 
   bindSvgDiv = function bindSvgDiv(div, keyFunc) {
     div.focus();
     div.addEventListener('keydown', function(e) {
       return down(e, keyFunc);
     });
-    div.addEventListener('keyup', up);
-    return div.firstElementChild.getSVGDocument().firstChild.addEventListener('mousedown', (function(evt) {
-      floop.focus();
+    div.addEventListener('keyup', function(e) {
+      return up(e, keyFunc);
+    });
+    return div.firstElementChild.getSVGDocument().rootElement.addEventListener('mousedown', (function(evt) {
+      div.focus();
       return evt.preventDefault();
     }), true, true);
   };
