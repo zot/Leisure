@@ -4,11 +4,13 @@
    * clicking between func and expr dups last char
    * process button eats newlines at end
    * build should preserve outputs
+* blocky demo
+   * rapid left-right makes it disappear
+   * passes through corners
 
 # TODO
 * chippy demo
    * pan/zoom
-   * Leisure-based mouse controls -- rotate rock with arrow keys
 * notebook
    * use file system api
       * each webpage is a whole project and gets its own directory on the file system
@@ -133,6 +135,8 @@
       * or\[, and\[, js\[, concat\[
 
 # DONE
+* chippy demo
+   * Leisure-based mouse controls -- rotate rock with arrow keys
 * a 'require' directive that works in browsers and on the cmd line
    * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
 * notebook style interface
