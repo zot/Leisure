@@ -16,8 +16,8 @@ Any time a definition returns a lambda, it automatically creates a type with the
 * std.lsr -- standard functions
 * pretty.cs -- pretty printer
 * replCore.cs -- core of the REPL
-* repl.cs -- command line repl
+* repl.cs -- command line REPL
 * runRepl.cs -- wrapper that runs the command line repl (probably can merge with repl.cs)
-* browserRepl.cs -- browser wrapper for repl
+* browserRepl.cs -- browser wrapper for REPL
 * testing.js -- test case runner
 * testLeisure.cs -- test cases
