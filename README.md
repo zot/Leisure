@@ -16,7 +16,7 @@ Leisure provides a convenient syntax and powerful tools to help people try thing
 As in Haskell, you can write lambda either as 𝛌 or \.  Lambdas are structured as: **𝛌 variable . body** and if you provide serveral space-separated variables, Leisure automatically constructs nested lambdas for you, like this: **\a b . a**
 
 ### Function definitions
-You define a function with a declaration, an '=', and a body, like this: **true = \a b . a**.  You maplace arguments before the '=' and omit the '\' and '.', like this: **true a b = a**.  Leisure automatically builds the lambda and associates it with the name you specified.
+You define a function with a declaration, an '=', and a body, like this: **true = \a b . a**.  You may place arguments before the '=' and omit the '\' and '.', like this: **true a b = a**.  Leisure automatically builds the lambda and associates it with the name you specified.
 
 Leisure allows some simplistic parser tweaks; you can define tokens, so you can leave out spaces, and you can define tokens that open and close groups.
 
@@ -55,7 +55,7 @@ For decades, programming has been done primarily in glorified text editors.  Som
 While still heavily under development, Leisure is meant to push the envelope here and provide a fully interactive development environment where your code is executed and errors show while you're writing it. Functional programming is quite foreign to new comers, but what if you could instantly view the parse tree of the line of code you wrote? Or specify test arguments to your function and see the results live as you make changes to your code in real time?  Our goal is to show programmers there has to be a better way, and we've settled for the status quo for far too long.
 
 ## Untyped
-Leisure is untyped.  This doesn't mean that Leisure is type-free, it just means that variables don't have types -- they can hold anything.  Leisure does have data types -- e.g. you can tell if something is a cons-cell (**_is (cons 1 nil) cons** returns **true**).  Whenever you define a function that returns a lambda, it marks instances of that lambda as having the type of the definition.  For example, if you say:
+Leisure is untyped.  This doesn't mean that Leisure is type-free, it just means that variables don't have types -- they can hold anything.  Leisure does have data types -- e.g. you can tell if something is a cons-cell (**is (cons 1 nil) cons** returns **true**).  Whenever you define a function that returns a lambda, it marks instances of that lambda as having the type of the definition.  For example, if you say:
 
 **person name addr = \f . f name addr**
 
@@ -72,7 +72,7 @@ Functions
 * is data type -- returns a boolean indicating whether data is of the type
 * eq a b -- returns a boolean indicating whether a and b are identically equal
 * parse string -- returns an AST for the string
-* eval AST -- evaluates ast
+* eval AST -- evaluates AST
 
 Macros
 * declaration =M= definition -- declares a macro that runs at parse-time.  Input is the AST for the macro expression and output is a new AST to replace the old one.  Further macro replacement is done on the result.  The identity macro is: **identMacro ast =M= ast**.
@@ -103,24 +103,28 @@ Obviously being hosted on GitHub, installing Leisure requires you to have a Git 
 ## Running it
 ### Running the REPL
 >node runRepl
+
 Runs the read eval print loop.  You can enter Leisure expressions and definitions there.
 
 ### Compiling files
 >node runRepl -c [-v] file1 file2 ...
+
 Compiles files.  You can optionally add -v to activate verbose mode where it will display each function name as it's being compiled.  You do not need to add the file extentions, eg. node runRepl maps
 
 ### Running the tests
 To run the tests, you can cd into the top level directory and type
 > node testLeisure
+
 It should give you something like this:
 > Running Tests...
 > ...
 > Done
 > Succeeded all 40 tests.
+
 Each . on the second line represents a successfully completed test.  If there are errors, it will tell you which tests failed.
 
 ## Changing it
-If you want to change things, you'll probably want to change the Coffeescript files, rather than their corresponding javascript versions.  The [build](build) file that contains a command to rebuild it, which is just
+If you want to change things, you'll probably want to change the CoffeeScript files, rather than their corresponding JavaScript.  The [build](build) file that contains a command to rebuild it, which is just
 > node_modules/coffee-script/bin/coffee -c leisure.cs repl.cs runRepl.cs
 
 ## Implementation
