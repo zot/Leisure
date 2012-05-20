@@ -125,3 +125,7 @@ If you want to change things, you'll probably want to change the Coffeescript fi
 
 ## Implementation
 Leisure is written in JavaScript and runs in node or in browsers.  Later, Leisure may generate native code, using, for instance, C and/or LLVM.  An LLVM version could use the VMKit’s garbage collector or the Boehm-Demers-Weiser garbage collector, which performs well with small objects (like function contexts).
+
+
+# Contact
+If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
