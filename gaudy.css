@@ -21,7 +21,8 @@
   padding: 5px;
 }
 .gaudy .partialApply {
-  text-decoration: underline;
+  /*text-decoration: underline;*/
+  outline: solid black 1px;
 }
 .gaudy .output span {
   vertical-align: top;

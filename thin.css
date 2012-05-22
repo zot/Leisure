@@ -48,7 +48,8 @@
 }
 
 .thin .partialApply {
-  text-decoration: underline;
+  /*text-decoration: underline;*/
+  outline: solid black 1px;
 }
 
 .thin .codeMainTest * {
