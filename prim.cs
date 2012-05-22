@@ -34,8 +34,8 @@ define = Leisure.define
 getType = Leisure.getType
 laz = Leisure.laz
 
-define 'is', (value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`
-define 'eq', (a)-> (b)-> if a() == b() then `_true()` else` _false()`
+define 'is', ((value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`), 2
+define 'eq', ((a)-> (b)-> if a() == b() then `_true()` else` _false()`), 2
 define 'getType', (value)-> if type = getType(value()) then _some()(->type) else _none()
 define 'parse', (value)->
   [ast, err, rest] = Leisure.parseFull(value())
@@ -204,7 +204,7 @@ define 'poop', 3
 # BROWSER PRIMS
 ################
 
-define 'svg-measure-text', (text)->Notebook?.svgMeasureText(text)
+define 'svg-measure-text', ((text)->Notebook?.svgMeasureText(text)), 2
 
 root.setTty = setTty
 root.runMonad = runMonad

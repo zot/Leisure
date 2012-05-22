@@ -294,28 +294,75 @@ markupDefs = (el, defs)->
       replaceRange test, makeTestBox test.leisureTest
       totalTests++
     if name?
-      bod = codeSpan body, 'codeBody'
-      bod.appendChild textNode('\n')
-      bod.setAttribute('generatedNL', '')
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
-      bx.appendChild (textNode(def))
+      bx.appendChild (textNode def)
+      bod = codeSpan (markPartialApplies bx, body), 'codeBody'
+      bod.appendChild textNode('\n')
+      bod.setAttribute('generatedNL', '')
       bx.appendChild bod
       bx.addEventListener 'blur', (-> evalDoc el), true
       bx.leisureOwner = el
       pgm += "#{name} #{def} #{body}\n"
     else if main?
       if main.leisureAuto then auto += "#{body}\n"
-      s = codeSpan body, 'codeExpr'
-      s.appendChild textNode('\n')
-      s.setAttribute('generatedNL', '')
       bx = box main, 'codeMainExpr', true
-      bx.appendChild s
       bx.leisureOwner = el
+      s = codeSpan (markPartialApplies bx, body), 'codeExpr'
+      s.setAttribute('generatedNL', '')
+      s.appendChild textNode('\n')
+      bx.appendChild s
       makeOutputBox(bx)
   [pgm, auto, totalTests]
 
+getAst = (bx, def)->
+  if bx.ast? then bx.ast
+  else
+    def = def || bx.textContent
+    bx.ast = (Leisure.compileNext def, Leisure.Nil, true, null, true)[0]
+
+markPartialApplies = (bx, def)->
+  ast = getAst bx, def
+  partial = []
+  ((Leisure.findFuncs(ast)) Leisure.Nil).each (f)->
+    name = Leisure.getRefVar(f.head)
+    arity = global[Leisure.nameSub(name)]?()?.leisureArity
+    if (arity and f.tail.head < arity)
+      console.log("Partial: ", name)
+      partial.push [f.head, arity, f.tail.head]
+  if partial.length
+    ranges = []
+    offset = ast.leisureDefPrefix ? 0
+    t = textNode(def)
+    span = document.createElement 'span'
+    span.appendChild t
+    for info in partial
+      p = info[0]
+      r = document.createRange()
+      r.setStart t, p.leisureStart
+      r.setEnd t, p.leisureEnd
+      r.expected = info[1]
+      r.actual = info[2]
+      ranges.push r
+    for r in ranges
+      c = r.extractContents()
+      s = document.createElement 'span'
+      s.setAttribute 'Leisure', ''
+      s.setAttribute 'expected', String(r.expected)
+      s.setAttribute 'actual', String(r.actual)
+      s.classList.add 'partialApply'
+      s.appendChild c
+      r.insertNode s
+    rn = document.createRange()
+    rn.selectNodeContents span
+    c = rn.extractContents()
+    console.log "contents: ", c
+    c
+  else textNode(def)
+
 textNode = (text)-> document.createTextNode(text)
+
+nodeFor = (text)-> if typeof text == 'string' then textNode(text) else text
 
 evalOutput = (exBox)->
   exBox = getBox exBox
@@ -429,7 +476,7 @@ codeSpan = (text, boxType)->
   node.setAttribute boxType, ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', boxType
-  node.appendChild textNode(text)
+  node.appendChild nodeFor(text)
   node
 
 codeBox = (boxType)->

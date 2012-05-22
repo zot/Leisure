@@ -95,6 +95,9 @@ class Cons
   reverse: -> @rev Nil
   rev: (result)-> @tail.rev cons(@head, result)
   equals: (other)-> other?.constructor == Cons and (@head == other.head or (@head?.constructor == Cons and @head.equals(other.head))) and (@tail == other.tail or (@tail?.constructor == Cons and @tail.equals(other.tail)))
+  each: (block)->
+    block(@head)
+    @tail.each(block)
 
 class CNil extends Cons
   find: -> false
@@ -102,9 +105,11 @@ class CNil extends Cons
   foldl: (arg, func)-> arg
   rev: (result)-> result
   equals: (other)-> other?.constructor == CNil
+  each: ->
 
 Nil = new CNil()
 cons = (a, b)-> new Cons(a, b)
+dlempty = (x)->x
 dlnew = (a)->(b)-> cons(a, b)
 dlappend = (a, b)->(c)-> a(b(c))
 append = (a, b)-> if a == Nil then b else cons a.head, append(a.tail, b)
@@ -117,9 +122,11 @@ global.leisureGetFuncs = -> ll
 
 global.noredefs = true
 
-define = (name, func) ->
+# use AST, instead of arity?
+define = (name, func, arity) ->
   nm = nameSub(name)
   func.leisureName = name
+  func.leisureArity = arity
   if global.noredefs and ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
   f = -> func
   ctx[nm] = ctx.leisureFuncs[nm] = f
@@ -169,34 +176,6 @@ getLambdaVar = (l)-> l first
 getLambdaBody = (l)-> l second
 getApplyFunc = (a)-> a first
 getApplyArg = (a)-> a second
-astPrint = (ast, res)->
-  isFirst = !res
-  res = res ? []
-  switch getAstType ast
-    when 'ref'
-      res.push 'ref '
-      val = getRefVar ast
-      if val.lambda then throw new Error("Attempt to use lambda in ref, instead of string or number: " + val)
-      res.push val
-    when 'lit'
-      res.push 'lit '
-      val = getLitVal ast
-      res.push if val?.lambda then "{" + val.lambda.toString() + "}" else val
-    when 'lambda'
-      res.push 'lambda '
-      res.push (getLambdaVar ast)
-      res.push ' . '
-      astPrint (getLambdaBody ast), res
-    when 'apply'
-      func = getApplyFunc ast
-      arg = getApplyArg ast
-      res.push 'apply ('
-      astPrint (getApplyFunc ast), res
-      res.push ') ('
-      astPrint (getApplyArg ast), res
-      res.push ')'
-    else throw new Error("Unknown type of object in AST: " + ast)
-  isFirst and res.join('')
 
 between = (start, end, pos)-> start <= pos and pos <= end
 
@@ -239,6 +218,15 @@ bracketApplyParts = (ast)->
     when 'apply' then bracketApplyParts(astFunc)
   dlappend start, dlnew(astBrackets(getApplyArg ast))
 
+findFuncs = (ast)->
+  if (getAstType ast) == 'apply' then findFuncApply ast, 0
+  else dlempty
+
+findFuncApply = (apply, count)->
+  if (getAstType apply) == 'apply' then dlappend (findFuncApply (getApplyFunc apply), count + 1), (findFuncs (getApplyArg apply))
+  else if (getAstType apply) == 'ref' then dlnew(cons apply, (cons count, Nil))
+  else dlempty
+
 class Code
   constructor: (@main, @subfuncs, @fcount, @mcount, @vars, @err, @global)->
     @main = @main ? ''
@@ -271,11 +259,11 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
-  return #{if name? then "#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main})" else code.main}
+  return #{if name? then "#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1})" else code.main}
 })()
     """
   else ast.src = if name? then """
-#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
+#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 
 """ else "(#{code.main})"
   ast.globals = code.global
@@ -583,7 +571,6 @@ root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
 root.parseFull = parseFull
-root.astPrint = astPrint
 root.gen = dgen
 root.laz = laz
 root.compileNext = compileNext
@@ -594,6 +581,12 @@ root.astEval = (ast)-> evalCompiledAst(dgen(ast))
 root.define = define
 root.defineMacro = defineMacro
 root.getAstType = getAstType
+root.getRefVar = getRefVar
+root.getLitVal = getLitVal
+root.getLambdaVar = getLambdaVar
+root.getLambdaBody = getLambdaBody
+root.getApplyFunc = getApplyFunc
+root.getApplyArg = getApplyArg
 root.getType = getType
 root.linePat = linePat
 root.Nil = Nil
@@ -605,3 +598,4 @@ root.nameSub = nameSub
 root.processDefs = processDefs
 root.parseApply = parseApply
 root.bracket = bracket
+root.findFuncs = findFuncs

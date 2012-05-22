@@ -37,7 +37,7 @@ handlerFunc = (ast, result, a, c, r, src, env)->
     nextFunc()
   else
     if a
-      env.write("PARSED: #{Leisure.astPrint(ast)}\n")
+      # env.write("PARSED: #{Leisure.astPrint(ast)}\n")
       env.write("FORMATTED: #{P.print ast}\n")
     if c then env.write("GEN: #{ast.src}\n")
     if r
@@ -205,7 +205,8 @@ return root;
 
 getGlobals = -> Leisure.eval 'leisureGetFuncs()'
 
-showAst = (ast)-> if ast? then "(#{P.print(ast)})/(#{Leisure.astPrint(ast)})" else ""
+#showAst = (ast)-> if ast? then "(#{P.print(ast)})/(#{Leisure.astPrint(ast)})" else ""
+showAst = (ast)-> if ast? then "(#{P.print(ast)})" else ""
 
 findDefs = (contents, nomacros, loud)->
   errs = ''

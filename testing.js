@@ -28,7 +28,7 @@ Wimpy testing framework
 */
 
 (function() {
-  var LZ, P, R, assertEq, assertEval, assertEvalPrint, assertParse, run, runTests, stats;
+  var LZ, P, R, assertEq, assertEval, assertEvalPrint, assertParse, astPrint, run, runTests, stats;
 
   R = require('./repl');
 
@@ -77,6 +77,45 @@ Wimpy testing framework
     }
   };
 
+  astPrint = function astPrint(ast, res) {
+    var arg, func, isFirst, val;
+    isFirst = !res;
+    res = res != null ? res : [];
+    switch (LZ.getAstType(ast)) {
+      case 'ref':
+        res.push('ref ');
+        val = LZ.getRefVar(ast);
+        if (val.lambda) {
+          throw new Error("Attempt to use lambda in ref, instead of string or number: " + val);
+        }
+        res.push(val);
+        break;
+      case 'lit':
+        res.push('lit ');
+        val = LZ.getLitVal(ast);
+        res.push((val != null ? val.lambda : void 0) ? "{" + val.lambda.toString() + "}" : val);
+        break;
+      case 'lambda':
+        res.push('lambda ');
+        res.push(LZ.getLambdaVar(ast));
+        res.push(' . ');
+        astPrint(LZ.getLambdaBody(ast), res);
+        break;
+      case 'apply':
+        func = LZ.getApplyFunc(ast);
+        arg = LZ.getApplyArg(ast);
+        res.push('apply (');
+        astPrint(LZ.getApplyFunc(ast), res);
+        res.push(') (');
+        astPrint(LZ.getApplyArg(ast), res);
+        res.push(')');
+        break;
+      default:
+        throw new Error("Unknown type of object in AST: " + ast);
+    }
+    return isFirst && res.join('');
+  };
+
   assertParse = function assertParse(actual, expected, desc) {
     var ast, err, rest, _ref;
     _ref = LZ.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
@@ -85,7 +124,7 @@ Wimpy testing framework
     } else if (rest != null ? rest.trim() : void 0) {
       throw new Error("Error, input left after parsing: '" + (rest.trim()) + "'");
     } else {
-      return assertEq(LZ.astPrint(ast), expected, desc != null ? desc : actual);
+      return assertEq(astPrint(ast), expected, desc != null ? desc : actual);
     }
   };
 

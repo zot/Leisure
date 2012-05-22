@@ -4,6 +4,7 @@
    * clicking between func and expr dups last char
    * process button eats newlines at end
    * build should preserve outputs
+   * commas are not highlighting in constructed lists
 * blocky demo
    * rapid left-right makes it disappear
    * passes through corners
@@ -140,6 +141,7 @@
 * a 'require' directive that works in browsers and on the cmd line
    * adding a script tag works in browsers, provided you're not violating access restrictions (the launch script can help with that)
 * notebook style interface
+   * highlight partially applied functions
    * run test cases button
       * result indicator
    * show errors in output, but no make test case button if there's an error

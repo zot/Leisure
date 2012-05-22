@@ -47,6 +47,10 @@
   min-height: 30px;
 }
 
+.thin .partialApply {
+  text-decoration: underline;
+}
+
 .thin .codeMainTest * {
   display: none;
 }

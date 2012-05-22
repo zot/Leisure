@@ -57,11 +57,40 @@ assertEvalPrint = (actual, expected, desc)->
     v = P.print(LZ.astEval(code))
     assertEq(v, expected, desc ? actual)
 
+astPrint = (ast, res)->
+  isFirst = !res
+  res = res ? []
+  switch LZ.getAstType ast
+    when 'ref'
+      res.push 'ref '
+      val = LZ.getRefVar ast
+      if val.lambda then throw new Error("Attempt to use lambda in ref, instead of string or number: " + val)
+      res.push val
+    when 'lit'
+      res.push 'lit '
+      val = LZ.getLitVal ast
+      res.push if val?.lambda then "{" + val.lambda.toString() + "}" else val
+    when 'lambda'
+      res.push 'lambda '
+      res.push (LZ.getLambdaVar ast)
+      res.push ' . '
+      astPrint (LZ.getLambdaBody ast), res
+    when 'apply'
+      func = LZ.getApplyFunc ast
+      arg = LZ.getApplyArg ast
+      res.push 'apply ('
+      astPrint (LZ.getApplyFunc ast), res
+      res.push ') ('
+      astPrint (LZ.getApplyArg ast), res
+      res.push ')'
+    else throw new Error("Unknown type of object in AST: " + ast)
+  isFirst and res.join('')
+
 assertParse = (actual, expected, desc)->
   [ast, err, rest] = LZ.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
-  else assertEq(LZ.astPrint(ast), expected, desc ? actual)
+  else assertEq(astPrint(ast), expected, desc ? actual)
 
 run = (name, func)->
   try

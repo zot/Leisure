@@ -46,12 +46,12 @@ class CircleThing
 class PolyThing
   constructor: (name, @mass)->
     @svg = doc.getElementById(name)
-    skel = doc.getElementById "#{name}-skeleton"
-    if !skel? then skel = @svg
-    bbox = skel.getBBox()
+    @skel = doc.getElementById "#{name}-skeleton"
+    if !@skel? then @skel = @svg
+    bbox = @skel.getBBox()
     @midx = bbox.x + bbox.width / 2
     @midy = bbox.y + bbox.height / 2
-    pts = (getPoints skel)
+    pts = (getPoints @skel)
     @pts = []
     for i in [0...pts.length] by 2
       @pts.push v(pts[i], pts[i + 1])
@@ -76,6 +76,31 @@ class PolyThing
   setElasticity: (e)-> @shape.setElasticity e
   setFriction: (f)-> @shape.setFriction f
   setAngVel: (v)-> @body.w = v
+  moveToStart: ->
+    start = @svg.getAttribute 'leisureStart'
+    if start
+      [x, y, anchor] = start.split ' '
+      bbox = @skel.getBBox()
+      x = Number(x)
+      y = Number(y)
+      switch anchor
+        when 'tl'
+          x += bbox.width/2
+          y += bbox.height/2
+        when 'tr'
+          x -= bbox.width/2
+          y += bbox.height/2
+        when 'bl'
+          x += bbox.width/2
+          y += bbox.height/2
+        when 'br'
+          x -= bbox.width/2
+          y += bbox.height/2
+        when 'tc' then y += bbox.width/2
+        when 'lc' then x += bbox.height/2
+        when 'bc' then y -= bbox.height/2
+        when 'rc' then x -= bbox.width
+      @setPos x, y
 
 # this ties an SVG element to a Chipmunk shape and body
 # if you want to reuse SVG shapes, use the "use" element
@@ -111,16 +136,7 @@ initBlocky = (document)->
   block.setElasticity 0
   block.setFriction 0.5
   block.v_limit = 200
-  ###
-  root.forward = forward = new CircleThing 'forward', 10
-  forward.setElasticity 0
-  forward.setFriction 0
-  space.addConstraint new cp.PivotJoint(block.body, forward.body, forward.body.p)
-  root.reverse = reverse = new CircleThing 'reverse', 10
-  reverse.setElasticity 0
-  reverse.setFriction 0
-  space.addConstraint new cp.PivotJoint(block.body, reverse.body, reverse.body.p)
-  ###
+  block.moveToStart()
   root.forward = root.reverse = root.block
   root.ground = ground = new GroundThing 'ground'
   ground.setElasticity 0
