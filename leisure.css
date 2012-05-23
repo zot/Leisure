@@ -52,6 +52,10 @@ body {
   white-space: normal;
 }
 
+.leisure_space {
+  height: 32px;
+}
+
 .focused .leisure_bar_contents {
   display: block;
 }

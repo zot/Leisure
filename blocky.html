@@ -40,7 +40,12 @@ function initBlocky(svg) {
 	  <object data="blocky.svg" type="image/svg+xml" width="512" height="384" onload="initBlocky(this)"></object>
 	</div>
       </td>
-      <td style="width: 100%"><pre leisureCode style="height: 100%"></pre></td>
+      <td style="width: 100%"><pre leisureCode style="height: 100%">
+do
+  pos <- js ['[Blocky.block.body.p.x, Blocky.block.body.p.y]']
+  print (concat [pos])
+
+</pre></td>
     </tr>
   </table>
 </body>

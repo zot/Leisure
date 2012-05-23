@@ -51,10 +51,7 @@
       env.write("ERROR: " + ast.err + "\n");
       return nextFunc();
     } else {
-      if (a) {
-        env.write("PARSED: " + (Leisure.astPrint(ast)) + "\n");
-        env.write("FORMATTED: " + (P.print(ast)) + "\n");
-      }
+      if (a) env.write("FORMATTED: " + (P.print(ast)) + "\n");
       if (c) env.write("GEN: " + ast.src + "\n");
       if (r) {
         if (!(result != null)) {
@@ -244,7 +241,7 @@
 
   showAst = function showAst(ast) {
     if (ast != null) {
-      return "(" + (P.print(ast)) + ")/(" + (Leisure.astPrint(ast)) + ")";
+      return "(" + (P.print(ast)) + ")";
     } else {
       return "";
     }

@@ -55,7 +55,10 @@ body.cthulhu {
   min-width: 30px;
   min-height: 30px;
 }
-
+.cthulhu .partialApply {
+  /*text-decoration: underline;*/
+  outline: solid black 1px;
+}
 .cthulhu .codeMainTest * {
   display: none;
 }

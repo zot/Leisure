@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markupDefs, nodeEnd, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, setSnapper, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, oldBrackets, oldFocus, postLoadQueue, prepExpr, programUpdate, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, setSnapper, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -30,6 +30,10 @@
   bindNotebook = function bindNotebook(el) {
     Prim.defaultEnv.write = function write(msg) {
       return console.log(msg);
+    };
+    Prim.defaultEnv.owner = document.body;
+    Prim.defaultEnv.finishedEvent = function finishedEvent(evt) {
+      return programUpdate(Prim.defaultEnv);
     };
     if (!(el.bound != null)) {
       el.bound = true;
@@ -111,7 +115,7 @@
     txt = parent.textContent;
     ast = (Leisure.compileNext(txt, Leisure.Nil, true, null, true))[0];
     if (ast != null) {
-      offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
+      offset = (_ref = ast.leisureCodeOffset) != null ? _ref : 0;
       brackets = Leisure.bracket(ast.leisureBase, pos - offset);
       if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
         oldBrackets = [parent, brackets];
@@ -258,8 +262,10 @@
   };
 
   insertControls = function insertControls(el) {
-    var controlDiv, loadButton, processButton, testButton, themeSelect, viewSelect, _ref, _ref2;
+    var controlDiv, loadButton, processButton, spacer, testButton, themeSelect, viewSelect, _ref, _ref2;
     controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button></div>\n</div>");
+    spacer = createNode("<div LeisureOutput  contentEditable='false' class='leisure_space'></div>");
+    el.insertBefore(spacer, el.firstChild);
     el.insertBefore(controlDiv, el.firstChild);
     _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], themeSelect = _ref[5], viewSelect = _ref[6], processButton = _ref[7];
     loadButton.addEventListener('change', function(evt) {
@@ -414,19 +420,19 @@
     totalTests = 0;
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
-      main = i[0], name = i[1], def = i[2], body = i[3], tests = i[4];
+      main = i.main, name = i.name, def = i.def, body = i.body, tests = i.tests;
       for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
         test = tests[_j];
         replaceRange(test, makeTestBox(test.leisureTest));
         totalTests++;
       }
       if (name != null) {
-        bod = codeSpan(body, 'codeBody');
-        bod.appendChild(textNode('\n'));
-        bod.setAttribute('generatedNL', '');
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
+        bod = codeSpan(markPartialApplies(bx, body), 'codeBody');
+        bod.appendChild(textNode('\n'));
+        bod.setAttribute('generatedNL', '');
         bx.appendChild(bod);
         bx.addEventListener('blur', (function() {
           return evalDoc(el);
@@ -434,29 +440,115 @@
         bx.leisureOwner = el;
         pgm += "" + name + " " + def + " " + body + "\n";
       } else if (main != null) {
-        if (main.leisureAuto) auto += "" + body + "\n";
-        s = codeSpan(body, 'codeExpr');
-        s.appendChild(textNode('\n'));
-        s.setAttribute('generatedNL', '');
         bx = box(main, 'codeMainExpr', true);
-        bx.appendChild(s);
         bx.leisureOwner = el;
-        makeOutputBox(bx);
+        s = codeSpan(markPartialApplies(bx, body), 'codeExpr');
+        s.setAttribute('generatedNL', '');
+        s.appendChild(textNode('\n'));
+        bx.appendChild(s);
+        if (main.leisureAuto) {
+          auto += "" + body + "\n";
+        } else {
+          makeOutputBox(bx);
+        }
       }
     }
     return [pgm, auto, totalTests];
+  };
+
+  getAst = function getAst(bx, def) {
+    if (bx.ast != null) {
+      return bx.ast;
+    } else {
+      def = def || bx.textContent;
+      return bx.ast = (Leisure.compileNext(def, Leisure.Nil, true, null, true))[0];
+    }
+  };
+
+  markPartialApplies = function markPartialApplies(bx, def) {
+    var ast, c, info, offset, p, partial, r, ranges, rn, s, span, t, _i, _j, _len, _len2, _ref;
+    ast = getAst(bx, def);
+    partial = [];
+    ((Leisure.findFuncs(ast))(Leisure.Nil)).each(function(f) {
+      var arity, name, _name, _ref;
+      name = Leisure.getRefVar(f.head);
+      arity = typeof global[_name = Leisure.nameSub(name)] === "function" ? (_ref = global[_name]()) != null ? _ref.leisureArity : void 0 : void 0;
+      if (arity && f.tail.head < arity) {
+        console.log("Partial: ", name);
+        return partial.push([f.head, arity, f.tail.head]);
+      }
+    });
+    if (partial.length) {
+      ranges = [];
+      offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
+      t = textNode(def);
+      span = document.createElement('span');
+      span.appendChild(t);
+      for (_i = 0, _len = partial.length; _i < _len; _i++) {
+        info = partial[_i];
+        p = info[0];
+        r = document.createRange();
+        r.setStart(t, p.leisureStart);
+        r.setEnd(t, p.leisureEnd);
+        r.expected = info[1];
+        r.actual = info[2];
+        ranges.push(r);
+      }
+      for (_j = 0, _len2 = ranges.length; _j < _len2; _j++) {
+        r = ranges[_j];
+        c = r.extractContents();
+        s = document.createElement('span');
+        s.setAttribute('Leisure', '');
+        s.setAttribute('expected', String(r.expected));
+        s.setAttribute('actual', String(r.actual));
+        s.classList.add('partialApply');
+        s.appendChild(c);
+        r.insertNode(s);
+      }
+      rn = document.createRange();
+      rn.selectNodeContents(span);
+      c = rn.extractContents();
+      console.log("contents: ", c);
+      return c;
+    } else {
+      return textNode(def);
+    }
   };
 
   textNode = function textNode(text) {
     return document.createTextNode(text);
   };
 
+  nodeFor = function nodeFor(text) {
+    if (typeof text === 'string') {
+      return textNode(text);
+    } else {
+      return text;
+    }
+  };
+
   evalOutput = function evalOutput(exBox) {
+    var updateSelector;
     exBox = getBox(exBox);
     focusBox(exBox);
     cleanOutput(exBox);
-    exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.cleanOutput(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button>"));
+    exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.cleanOutput(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <select leisureId='chooseUpdate'>\n<option value='none'>None</option>\n<option value='programEvent'>Program Event</option>\n<option value='editorEvent'>Editor Event</option>\n<option value='editorFocus'>Editor Focus</option>\n</select>"));
+    updateSelector = getElements(exBox.firstChild, ['chooseUpdate'])[0];
+    updateSelector.addEventListener('change', function(evt) {
+      return exBox.setAttribute('leisureUpdate', evt.target.value);
+    });
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
+  };
+
+  programUpdate = function programUpdate(env) {
+    var node, _i, _len, _ref, _results;
+    _ref = env.owner.querySelectorAll('[leisureUpdate=programEvent]');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      _results.push(evalOutput(node));
+    }
+    return _results;
   };
 
   cleanOutput = function cleanOutput(exBox) {
@@ -568,6 +660,10 @@
     var exBox;
     exBox = getBox(box);
     return {
+      finishedEvent: function finishedEvent(evt) {
+        return programUpdate(this);
+      },
+      owner: box.leisureOwner,
       require: req,
       write: function write(msg) {
         var div;
@@ -612,7 +708,7 @@
     node.setAttribute(boxType, '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', boxType);
-    node.appendChild(textNode(text));
+    node.appendChild(nodeFor(text));
     return node;
   };
 
@@ -649,7 +745,7 @@
     while ((def = rest.match(Leisure.linePat)) && def[1].length !== rest.length) {
       rng = getRanges(el, txt, rest, def, txt.length - rest.length);
       if (rng) {
-        rest = rng.pop();
+        rest = rng.next;
         if (rng) {
           ranges.push(rng);
         } else {
@@ -665,7 +761,7 @@
   testPat = /#@test([^\n]*)\n/;
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var body, bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, _ref, _ref2, _ref3;
+    var body, bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, lm, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, textStart, _ref, _ref2, _ref3;
     _ref = m = def, matched = _ref[0], leading = _ref[1], nameRaw = _ref[2], defType = _ref[3];
     if (!rest.trim()) {
       return null;
@@ -701,18 +797,56 @@
         leadingSpaces = (rest1.match(/^\s*/))[0].length;
         bodyStart = txt.length - (rest1.length - leadingSpaces);
         outerRange = makeRange(el, mainStart, mainEnd);
-        return [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), tests, next];
+        return {
+          main: outerRange,
+          name: txt.substring(mainStart, nameEnd),
+          def: defType,
+          body: txt.substring(bodyStart, mainEnd),
+          tests: tests,
+          next: next
+        };
       } else {
-        mainStart = def === '=' ? restOff + m.index + m[0].length : matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
+        mainStart = defType === '=' ? restOff + m.index + m[0].length : matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
         ex = txt.substring(mainStart, mainEnd).match(/^(.*[^ \n])[ \n]*$/);
         exEnd = ex ? mainStart + ex[1].length : mainEnd;
         body = txt.substring(mainStart, exEnd);
         if (body.trim()) {
-          outerRange = makeRange(el, mainStart, exEnd);
-          if (leading.match(/@auto/)) outerRange.leisureAuto = true;
-          return [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next];
+          textStart = restOff + m.index;
+          if ((leading != null) && (lm = leading.match(/^[ \n]+/))) {
+            textStart += lm[0].length;
+          }
+          if (leading.match(/@auto/)) {
+            outerRange = makeRange(el, textStart, exEnd);
+            outerRange.leisureAuto = true;
+            return {
+              main: outerRange,
+              name: null,
+              def: null,
+              body: txt.substring(textStart, exEnd),
+              tests: tests,
+              fullText: txt.substring(textStart, exEnd),
+              next: next
+            };
+          } else {
+            outerRange = makeRange(el, textStart, exEnd);
+            return {
+              main: outerRange,
+              name: null,
+              def: null,
+              body: txt.substring(textStart, exEnd),
+              tests: tests,
+              next: next
+            };
+          }
         } else {
-          return [null, null, null, null, tests, next];
+          return {
+            main: null,
+            name: null,
+            def: null,
+            body: null,
+            tests: tests,
+            next: next
+          };
         }
       }
     }
@@ -852,7 +986,7 @@
     _ref = initNotebook(el), pgm = _ref[0], auto = _ref[1];
     try {
       if (auto) {
-        auto = "do\n  " + (auto.trim().replace(/\n/, '\n  ')) + "\n  finishLoading 'fred'";
+        auto = "do\n  " + (auto.trim().replace(/\n/g, '\n  ')) + "\n  finishLoading 'fred'";
         global.noredefs = false;
         Notebook.queueAfterLoad(function() {
           return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
@@ -862,6 +996,7 @@
         return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
       }
     } catch (err) {
+      console.log(err);
       return alert(err.stack);
     }
   };

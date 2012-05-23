@@ -49,7 +49,7 @@
 
   laz = Leisure.laz;
 
-  define('is', function(value) {
+  define('is', (function(value) {
     return function(type) {
       var _ref;
       if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
@@ -58,9 +58,9 @@
         return _false();
       }
     };
-  });
+  }), 2);
 
-  define('eq', function(a) {
+  define('eq', (function(a) {
     return function(b) {
       if (a() === b()) {
         return _true();
@@ -68,7 +68,7 @@
         return  _false();
       }
     };
-  });
+  }), 2);
 
   define('getType', function(value) {
     var type;
@@ -230,7 +230,9 @@
     var currentEvent, monad;
     currentEvent = evt;
     monad = Leisure.eval("" + (Leisure.nameSub(leisureFuncName)) + "()")(laz(evt));
-    return runMonad(monad, env != null ? env : defaultEnv, function() {});
+    return runMonad(monad, env != null ? env : defaultEnv, function() {
+      return (env != null ? env : defaultEnv).finishedEvent(evt);
+    });
   };
 
   eventCont = [];
@@ -457,9 +459,9 @@
 
   define('poop', 3);
 
-  define('svg-measure-text', function(text) {
+  define('svg-measure-text', (function(text) {
     return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
-  });
+  }), 2);
 
   root.setTty = setTty;
 

@@ -73,15 +73,15 @@
   PolyThing = (function() {
 
     function PolyThing(name, mass) {
-      var bbox, i, pts, self, skel, _ref;
+      var bbox, i, pts, self, _ref;
       this.mass = mass;
       this.svg = doc.getElementById(name);
-      skel = doc.getElementById("" + name + "-skeleton");
-      if (!(skel != null)) skel = this.svg;
-      bbox = skel.getBBox();
+      this.skel = doc.getElementById("" + name + "-skeleton");
+      if (!(this.skel != null)) this.skel = this.svg;
+      bbox = this.skel.getBBox();
       this.midx = bbox.x + bbox.width / 2;
       this.midy = bbox.y + bbox.height / 2;
-      pts = getPoints(skel);
+      pts = getPoints(this.skel);
       this.pts = [];
       for (i = 0, _ref = pts.length; i < _ref; i += 2) {
         this.pts.push(v(pts[i], pts[i + 1]));
@@ -128,6 +128,47 @@
 
     PolyThing.prototype.setAngVel = function setAngVel(v) {
       return this.body.w = v;
+    };
+
+    PolyThing.prototype.moveToStart = function moveToStart() {
+      var anchor, bbox, start, x, y, _ref;
+      start = this.svg.getAttribute('leisureStart');
+      if (start) {
+        _ref = start.split(' '), x = _ref[0], y = _ref[1], anchor = _ref[2];
+        bbox = this.skel.getBBox();
+        x = Number(x);
+        y = Number(y);
+        switch (anchor) {
+          case 'tl':
+            x += bbox.width / 2;
+            y += bbox.height / 2;
+            break;
+          case 'tr':
+            x -= bbox.width / 2;
+            y += bbox.height / 2;
+            break;
+          case 'bl':
+            x += bbox.width / 2;
+            y += bbox.height / 2;
+            break;
+          case 'br':
+            x -= bbox.width / 2;
+            y += bbox.height / 2;
+            break;
+          case 'tc':
+            y += bbox.width / 2;
+            break;
+          case 'lc':
+            x += bbox.height / 2;
+            break;
+          case 'bc':
+            y -= bbox.height / 2;
+            break;
+          case 'rc':
+            x -= bbox.width;
+        }
+        return this.setPos(x, y);
+      }
     };
 
     return PolyThing;
@@ -192,16 +233,7 @@
     block.setElasticity(0);
     block.setFriction(0.5);
     block.v_limit = 200;
-    /*
-      root.forward = forward = new CircleThing 'forward', 10
-      forward.setElasticity 0
-      forward.setFriction 0
-      space.addConstraint new cp.PivotJoint(block.body, forward.body, forward.body.p)
-      root.reverse = reverse = new CircleThing 'reverse', 10
-      reverse.setElasticity 0
-      reverse.setFriction 0
-      space.addConstraint new cp.PivotJoint(block.body, reverse.body, reverse.body.p)
-    */
+    block.moveToStart();
     root.forward = root.reverse = root.block;
     root.ground = ground = new GroundThing('ground');
     ground.setElasticity(0);

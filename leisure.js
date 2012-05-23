@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astBrackets, astPrint, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
+  var CNil, Code, Cons, Nil, append, apply, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -170,6 +170,11 @@ misrepresented as being the original software.
       return (other != null ? other.constructor : void 0) === Cons && (this.head === other.head || (((_ref = this.head) != null ? _ref.constructor : void 0) === Cons && this.head.equals(other.head))) && (this.tail === other.tail || (((_ref2 = this.tail) != null ? _ref2.constructor : void 0) === Cons && this.tail.equals(other.tail)));
     };
 
+    Cons.prototype.each = function each(block) {
+      block(this.head);
+      return this.tail.each(block);
+    };
+
     return Cons;
 
   })();
@@ -202,6 +207,8 @@ misrepresented as being the original software.
       return (other != null ? other.constructor : void 0) === CNil;
     };
 
+    CNil.prototype.each = function each() {};
+
     return CNil;
 
   })(Cons);
@@ -210,6 +217,10 @@ misrepresented as being the original software.
 
   cons = function cons(a, b) {
     return new Cons(a, b);
+  };
+
+  dlempty = function dlempty(x) {
+    return x;
   };
 
   dlnew = function dlnew(a) {
@@ -244,10 +255,11 @@ misrepresented as being the original software.
 
   global.noredefs = true;
 
-  define = function define(name, func) {
+  define = function define(name, func, arity) {
     var f, nm;
     nm = nameSub(name);
     func.leisureName = name;
+    func.leisureArity = arity;
     if (global.noredefs && (ctx[nm] != null)) {
       throw new Error("[DEF] Attempt to redefine definition: " + name);
     }
@@ -378,45 +390,6 @@ misrepresented as being the original software.
     return a(second);
   };
 
-  astPrint = function astPrint(ast, res) {
-    var arg, func, isFirst, val;
-    isFirst = !res;
-    res = res != null ? res : [];
-    switch (getAstType(ast)) {
-      case 'ref':
-        res.push('ref ');
-        val = getRefVar(ast);
-        if (val.lambda) {
-          throw new Error("Attempt to use lambda in ref, instead of string or number: " + val);
-        }
-        res.push(val);
-        break;
-      case 'lit':
-        res.push('lit ');
-        val = getLitVal(ast);
-        res.push((val != null ? val.lambda : void 0) ? "{" + val.lambda.toString() + "}" : val);
-        break;
-      case 'lambda':
-        res.push('lambda ');
-        res.push(getLambdaVar(ast));
-        res.push(' . ');
-        astPrint(getLambdaBody(ast), res);
-        break;
-      case 'apply':
-        func = getApplyFunc(ast);
-        arg = getApplyArg(ast);
-        res.push('apply (');
-        astPrint(getApplyFunc(ast), res);
-        res.push(') (');
-        astPrint(getApplyArg(ast), res);
-        res.push(')');
-        break;
-      default:
-        throw new Error("Unknown type of object in AST: " + ast);
-    }
-    return isFirst && res.join('');
-  };
-
   between = function between(start, end, pos) {
     return start <= pos && pos <= end;
   };
@@ -496,6 +469,24 @@ misrepresented as being the original software.
       }
     })();
     return dlappend(start, dlnew(astBrackets(getApplyArg(ast))));
+  };
+
+  findFuncs = function findFuncs(ast) {
+    if ((getAstType(ast)) === 'apply') {
+      return findFuncApply(ast, 0);
+    } else {
+      return dlempty;
+    }
+  };
+
+  findFuncApply = function findFuncApply(apply, count) {
+    if ((getAstType(apply)) === 'apply') {
+      return dlappend(findFuncApply(getApplyFunc(apply), count + 1), findFuncs(getApplyArg(apply)));
+    } else if ((getAstType(apply)) === 'ref') {
+      return dlnew(cons(apply, cons(count, Nil)));
+    } else {
+      return dlempty;
+    }
   };
 
   Code = (function() {
@@ -582,9 +573,9 @@ misrepresented as being the original software.
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
-      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ")" : code.main) + "\n})()";
+      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ")" : code.main) + "\n})()";
     } else {
-      ast.src = name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
+      ast.src = name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
     }
     ast.globals = code.global;
     return ast;
@@ -746,6 +737,7 @@ misrepresented as being the original software.
     if (line[0] === '=') {
       rest = line.substring(1);
       return ifParsed((nomacros ? parseApplyNew(rest, Nil) : parseFull(rest)), (function(ast, rest) {
+        ast.leisureCodeOffset = 0;
         return genCode(ast, null, globals, null, rest, parseOnly);
       }), "Error compiling expr " + (snip(line)));
     } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
@@ -769,7 +761,7 @@ misrepresented as being the original software.
           errPrefix = "Error while compiling " + nm + ": ";
           return ifParsed((nomacros ? parseApplyNew(pfx, Nil) : parseFull(pfx)), (function(ast, rest) {
             var bod;
-            ast.leisureDefPrefix = line.length - pfx.length;
+            ast.leisureCodeOffset = ast.leisureDefPrefix = line.length - pfx.length;
             ast.leisureBase = getNthBody(ast, nm.length);
             nameAst(nm[0], ast);
             bod = ast;
@@ -786,6 +778,7 @@ misrepresented as being the original software.
         }
       } else {
         return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
+          ast.leisureCodeOffset = line.length - rest1.length;
           ast.leisureBase = ast;
           return genCode(ast, null, globals, null, rest, parseOnly);
         }), "Error compiling expr:  " + (snip(line)));
@@ -1102,8 +1095,6 @@ misrepresented as being the original software.
 
   root.parseFull = parseFull;
 
-  root.astPrint = astPrint;
-
   root.gen = dgen;
 
   root.laz = laz;
@@ -1126,6 +1117,18 @@ misrepresented as being the original software.
 
   root.getAstType = getAstType;
 
+  root.getRefVar = getRefVar;
+
+  root.getLitVal = getLitVal;
+
+  root.getLambdaVar = getLambdaVar;
+
+  root.getLambdaBody = getLambdaBody;
+
+  root.getApplyFunc = getApplyFunc;
+
+  root.getApplyArg = getApplyArg;
+
   root.getType = getType;
 
   root.linePat = linePat;
@@ -1147,5 +1150,7 @@ misrepresented as being the original software.
   root.parseApply = parseApply;
 
   root.bracket = bracket;
+
+  root.findFuncs = findFuncs;
 
 }).call(this);
