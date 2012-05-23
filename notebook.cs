@@ -371,27 +371,38 @@ nodeFor = (text)-> if typeof text == 'string' then textNode(text) else text
 evalOutput = (exBox)->
   exBox = getBox exBox
   focusBox exBox
-  cleanOutput exBox
-  exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.cleanOutput(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <select leisureId='chooseUpdate'>
+  cleanOutput exBox, true
+  makeOutputControls exBox
+  [updateSelector] = getElements exBox.firstChild, ['chooseUpdate']
+  updateSelector.addEventListener 'change', (evt)-> exBox.setAttribute 'leisureUpdate', evt.target.value
+  updateSelector.value = (exBox.getAttribute 'leisureUpdate') or 'none'
+  ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
+
+makeOutputControls = (exBox)->
+  if exBox.firstChild.firstChild == exBox.firstChild.lastChild
+    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <select leisureId='chooseUpdate'>
   <option value='none'>None</option>
   <option value='programEvent'>Program Event</option>
   <option value='editorEvent'>Editor Event</option>
   <option value='editorFocus'>Editor Focus</option>
 </select>""")
-  [updateSelector] = getElements exBox.firstChild, ['chooseUpdate']
-  updateSelector.addEventListener 'change', (evt)-> exBox.setAttribute 'leisureUpdate', evt.target.value
-  ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
 programUpdate = (env)->
   #console.log 'update env: ', env
   for node in env.owner.querySelectorAll '[leisureUpdate=programEvent]'
     evalOutput node
 
-cleanOutput = (exBox)->
+clearOutputBox = (exBox)->
   exBox = getBox exBox
-  fc = exBox.firstChild
-  while fc.firstChild != fc.lastChild
-    fc.removeChild fc.lastChild
+  exBox.setAttribute 'leisureUpdate', ''
+  cleanOutput(exBox)
+
+cleanOutput = (exBox, preserveControls)->
+  exBox = getBox exBox
+  if !preserveControls
+    fc = exBox.firstChild
+    while fc.firstChild != fc.lastChild
+      fc.removeChild fc.lastChild
   while exBox.firstChild != exBox.lastChild
     exBox.removeChild exBox.lastChild
 
@@ -718,6 +729,7 @@ root.bindNotebook = bindNotebook
 root.evalOutput = evalOutput
 root.makeTestCase = makeTestCase
 root.cleanOutput = cleanOutput
+root.clearOutputBox = clearOutputBox
 root.envFor = envFor
 root.queueAfterLoad = queueAfterLoad
 root.evalDoc = evalDoc
@@ -726,6 +738,7 @@ root.makeRange = makeRange
 root.grp = grp
 root.changeTheme = changeTheme
 root.setSnapper = setSnapper
+root.programUpdate = programUpdate
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])
