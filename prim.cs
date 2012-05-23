@@ -79,7 +79,7 @@ define 'log', (msg)->(value)->
 leisureEvent = (leisureFuncName, evt, env)->
   currentEvent = evt
   monad = Leisure.eval("#{Leisure.nameSub(leisureFuncName)}()")(laz(evt))
-  runMonad monad, (env ? defaultEnv), ->
+  runMonad monad, (env ? defaultEnv), -> (env ? defaultEnv).finishedEvent(evt)
 
 eventCont = []
 

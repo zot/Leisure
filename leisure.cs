@@ -353,6 +353,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
   if line[0] == '='
     rest = line.substring 1
     ifParsed (if nomacros then parseApplyNew rest, Nil else parseFull rest), ((ast, rest)->
+      ast.leisureCodeOffset = 0
       genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
@@ -369,7 +370,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
         pfx = (prefix nm, rest1)
         errPrefix = "Error while compiling #{nm}: "
         ifParsed (if nomacros then parseApplyNew pfx, Nil else parseFull pfx), ((ast, rest)->
-          ast.leisureDefPrefix = line.length - pfx.length
+          ast.leisureCodeOffset = ast.leisureDefPrefix = line.length - pfx.length
           ast.leisureBase = getNthBody(ast, nm.length)
           nameAst(nm[0], ast)
           bod = ast
@@ -382,6 +383,7 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
           ast.leisurePrefixCount = nm.length
           genCode ast, nm[0], globals, defType, rest, parseOnly), errPrefix
     else ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
+      ast.leisureCodeOffset = line.length - rest1.length
       ast.leisureBase = ast
       genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr:  #{snip line}"
   else [null, null, null]

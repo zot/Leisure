@@ -10,6 +10,12 @@
    * passes through corners
 
 # TODO
+* make notebook comfortable enough to be the main Leisure editor
+   * clean on load
+   * autosave
+   * output boxes that update
+      * make an update dropdown with: never/program event/editor event/editor focus
+      * you could use an AST display in one of these
 * chippy demo
    * pan/zoom
 * notebook

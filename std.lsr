@@ -49,6 +49,10 @@
 
 id x = x
 
+# make a new function that takes two args in opposite order than the original function
+# eq. flip cons nil 1 gives cons: [1]
+flip f = \a b . f b a
+
 # booleans
 true = \a b . a
 false = \a b . b
@@ -74,50 +78,76 @@ cons a b =
   \f . f
     a
     b
-    
+
 nil = \a b . b
 null? = eq nil
 append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
 compose f g = \x . f ( g x)
 
+# numerics
+
+iszero = eq 0
+positive = < 0
+length l = (eq l nil) 0 (++ (length (tail l) ) )
+
+-- = (flip -) 1
+++ = + 1
+even? x = iszero (% x 2)
+odd? x = eq 1 (% x 2)
+max a b = (gt a b) a b
+min a b = (lt a b) a b
+
 # some basic list functions
 
 head l = l \h t . h
 tail l = l \h t . t
-isempty l = (eq (l) nil)
-null l = l (\h t D . false) true
-reverse l = (eq (tail l) nil) l (append (reverse (tail l)) (cons (head l) nil))
+reverse l = subreverse l nil
+subreverse l result = l (\h t D . subreverse t (cons h result)) result
 addstr a b = concat [a, b]
 if = id
-iszero = eq 0
-length l = (eq l nil) 0 (++ (length (tail l) ) )
-
--- x = - x 1
-++ x = + x 1
-even? x = eq 0 (% x 2)
-odd? x = eq 1 (% x 2)
 at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
-take x l = (iszero x) nil (append [ (head l) ] (take (-- x) (tail l) ) )
-drop x l = (iszero x) l (drop (-- x) (tail l) )
-max a b = (gt a b) a b
-min a b = (lt a b) a b
+take n list = positive n
+  list
+    \h t D . cons h (take (-- n) t)
+    nil
+  nil
+takeWhile predicate list = list
+  \h t D . predicate h
+    cons h (takeWhile predicate t)
+    nil
+  nil
+drop x list = positive x
+  list
+    \h t D . drop (-- x) t
+    nil
+  list
+dropWhile predicate list = list
+  \h t D . predicate h
+    dropWhile predicate t
+    list
+  nil
+series func n = cons n (series func (func n))
+from n = series ++ n
+fromBy n inc = series (+ inc) n
+fromTo n m = takeWhile (> m) (from n)
+fromToBy n m inc = takeWhile (> m) (fromBy n inc)
 
 # return true if any elements of l satisfy f, which takes exactly one arg
-# eg. any (eq 0) [ 1, 2, 0] gives true: true
-
-any f l = (eq l nil) false
-  or
-    f (head l)
-    any f (tail l)
+# eg. any (eq 0) [1, 2, 0] gives true: true
+any f l = l
+  \h t D . or
+    f h
+    any f t
+  false
 
 # return true if ALL elements of l satisfy f, which takes exactly one arg
 # eg. all (eq 0) [ 0, 0, 0] gives true: true
 # caveat!  return true for nil lists
-all f l = or
-  eq l nil
-  and
-    f (head l)
-    all f (tail l)
+all f l = l
+  \h t D . and
+    f h
+    all f t
+  true
 
 index_combine x y = (or (eq x nil) (eq y nil)) (nil) (+ x y)
 # return nil if not found, or 0 based index of the first match
@@ -155,17 +185,29 @@ remove-if-not f l = remove-if (\x. not (f x)) l
 # eg. map (+ 1) [ 4, 27, 54 ] gives cons: [5, 28, 55]
 map func list = list (\h t D . cons (func h) (map func t)) nil
 
-# make a new function that takes two args in opposite order than the original function
-# eq. flip cons nil 1 gives cons: [1]
-flip f a b = f b a
-
-# call func on the arguments of list two at a time to 'join' them however func chooses to do so
+# call func on the elements of list, 'joining' each with the previous result of func,
+# however func chooses to do so
 # if the list is only one element long, just return the first element
 # eg. reduce + [ 3, 5] gives number: 8
 reduce func list = if (eq list nil) nil
   if (eq 1 (length list)) (head list)
     func (head list) (reduce func (tail list))
 
+# foldr, foldl
+# call func on list items and previous result of fold
+# foldl uses the head of the list for the previous results
+# foldr uses the tail of the list for the previous results
+# foldr can work on infinite lists, but foldl cannot
+
+foldr func value list = list (\h t D . func h (foldr func value t)) value
+foldr1 func list = list
+  \h t D . null? t
+     h
+     func h (foldr1 func t)
+  nil
+
+foldl func value list = list (\h t D . foldl func (func value h) t) value
+foldl1 func list = list (\h t D. foldl func h t) nil
 
 # simple list constructor syntax
 [ =(]= \item c . c \rest . cons item rest

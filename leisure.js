@@ -737,6 +737,7 @@ misrepresented as being the original software.
     if (line[0] === '=') {
       rest = line.substring(1);
       return ifParsed((nomacros ? parseApplyNew(rest, Nil) : parseFull(rest)), (function(ast, rest) {
+        ast.leisureCodeOffset = 0;
         return genCode(ast, null, globals, null, rest, parseOnly);
       }), "Error compiling expr " + (snip(line)));
     } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
@@ -760,7 +761,7 @@ misrepresented as being the original software.
           errPrefix = "Error while compiling " + nm + ": ";
           return ifParsed((nomacros ? parseApplyNew(pfx, Nil) : parseFull(pfx)), (function(ast, rest) {
             var bod;
-            ast.leisureDefPrefix = line.length - pfx.length;
+            ast.leisureCodeOffset = ast.leisureDefPrefix = line.length - pfx.length;
             ast.leisureBase = getNthBody(ast, nm.length);
             nameAst(nm[0], ast);
             bod = ast;
@@ -777,6 +778,7 @@ misrepresented as being the original software.
         }
       } else {
         return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
+          ast.leisureCodeOffset = line.length - rest1.length;
           ast.leisureBase = ast;
           return genCode(ast, null, globals, null, rest, parseOnly);
         }), "Error compiling expr:  " + (snip(line)));

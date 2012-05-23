@@ -230,7 +230,9 @@
     var currentEvent, monad;
     currentEvent = evt;
     monad = Leisure.eval("" + (Leisure.nameSub(leisureFuncName)) + "()")(laz(evt));
-    return runMonad(monad, env != null ? env : defaultEnv, function() {});
+    return runMonad(monad, env != null ? env : defaultEnv, function() {
+      return (env != null ? env : defaultEnv).finishedEvent(evt);
+    });
   };
 
   eventCont = [];

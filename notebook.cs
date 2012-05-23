@@ -19,6 +19,8 @@ delay = (func)->
 
 bindNotebook = (el)->
   Prim.defaultEnv.write = (msg)->console.log msg
+  Prim.defaultEnv.owner = document.body
+  Prim.defaultEnv.finishedEvent = (evt)->programUpdate(Prim.defaultEnv)
   if !el.bound?
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true
@@ -69,7 +71,7 @@ highlightPosition = ->
   txt = parent.textContent
   ast = (Leisure.compileNext txt, Leisure.Nil, true, null, true)[0]
   if ast?
-    offset = ast.leisureDefPrefix ? 0
+    offset = ast.leisureCodeOffset ? 0
     brackets = Leisure.bracket ast.leisureBase, pos - offset
     if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
       oldBrackets = [parent, brackets]
@@ -199,6 +201,8 @@ insertControls = (el)->
   <button leisureId='processButton' style="float: right">Process</button></div>
 </div>
 """
+  spacer = createNode "<div LeisureOutput  contentEditable='false' class='leisure_space'></div>"
+  el.insertBefore spacer, el.firstChild
   el.insertBefore controlDiv, el.firstChild
   [el.leisureDownloadLink, el.leisureViewLink, loadButton, testButton, el.testResults, themeSelect, viewSelect, processButton] = getElements el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']
   loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
@@ -289,7 +293,7 @@ markupDefs = (el, defs)->
   auto = ''
   totalTests = 0
   for i in defs
-    [main, name, def, body, tests] = i
+    {main, name, def, body, tests} = i
     for test in tests
       replaceRange test, makeTestBox test.leisureTest
       totalTests++
@@ -305,14 +309,14 @@ markupDefs = (el, defs)->
       bx.leisureOwner = el
       pgm += "#{name} #{def} #{body}\n"
     else if main?
-      if main.leisureAuto then auto += "#{body}\n"
       bx = box main, 'codeMainExpr', true
       bx.leisureOwner = el
       s = codeSpan (markPartialApplies bx, body), 'codeExpr'
       s.setAttribute('generatedNL', '')
       s.appendChild textNode('\n')
       bx.appendChild s
-      makeOutputBox(bx)
+      if main.leisureAuto then auto += "#{body}\n"
+      else makeOutputBox(bx)
   [pgm, auto, totalTests]
 
 getAst = (bx, def)->
@@ -368,8 +372,20 @@ evalOutput = (exBox)->
   exBox = getBox exBox
   focusBox exBox
   cleanOutput exBox
-  exBox.firstChild.appendChild createFragment("<button onclick='Notebook.cleanOutput(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button>")
+  exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.cleanOutput(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <select leisureId='chooseUpdate'>
+  <option value='none'>None</option>
+  <option value='programEvent'>Program Event</option>
+  <option value='editorEvent'>Editor Event</option>
+  <option value='editorFocus'>Editor Focus</option>
+</select>""")
+  [updateSelector] = getElements exBox.firstChild, ['chooseUpdate']
+  updateSelector.addEventListener 'change', (evt)-> exBox.setAttribute 'leisureUpdate', evt.target.value
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
+
+programUpdate = (env)->
+  #console.log 'update env: ', env
+  for node in env.owner.querySelectorAll '[leisureUpdate=programEvent]'
+    evalOutput node
 
 cleanOutput = (exBox)->
   exBox = getBox exBox
@@ -445,6 +461,8 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
+  finishedEvent: (evt)->programUpdate(this)
+  owner: box.leisureOwner
   require: req
   write: (msg)->
     div = document.createElement('div')
@@ -502,7 +520,7 @@ findDefs = (el)->
   while (def = rest.match Leisure.linePat) and def[1].length != rest.length
     rng = getRanges(el, txt, rest, def, txt.length - rest.length)
     if rng
-      rest = rng.pop()
+      rest = rng.next
       if rng then ranges.push(rng)
       else break
     else break
@@ -540,17 +558,45 @@ getRanges = (el, txt, rest, def, restOff)->
         leadingSpaces = (rest1.match /^\s*/)[0].length
         bodyStart = txt.length - (rest1.length - leadingSpaces)
         outerRange = makeRange el, mainStart, mainEnd
-        [outerRange, txt.substring(mainStart, nameEnd), defType, txt.substring(bodyStart, mainEnd), tests, next]
+        main: outerRange
+        name: txt.substring(mainStart, nameEnd)
+        def: defType
+        body: txt.substring(bodyStart, mainEnd)
+        tests: tests
+        next: next
       else
-        mainStart = if def == '=' then restOff + m.index + m[0].length else matchStart + (leading?.length ? 0)
+        mainStart = if defType == '=' then restOff + m.index + m[0].length else matchStart + (leading?.length ? 0)
         ex = txt.substring(mainStart, mainEnd).match /^(.*[^ \n])[ \n]*$/
         exEnd = if ex then mainStart + ex[1].length else mainEnd
         body = txt.substring mainStart, exEnd
         if body.trim()
-          outerRange = makeRange el, mainStart, exEnd
-          if leading.match /@auto/ then outerRange.leisureAuto = true
-          [outerRange, null, null, txt.substring(mainStart, exEnd), tests, next]
-        else [null, null, null, null, tests, next]
+          textStart = restOff + m.index
+          if leading? and (lm = leading.match /^[ \n]+/) then textStart += lm[0].length
+          if leading.match /@auto/
+            outerRange = makeRange el, textStart, exEnd
+            outerRange.leisureAuto = true
+            main: outerRange
+            name: null
+            def: null
+            body: txt.substring(textStart, exEnd)
+            tests: tests
+            fullText: txt.substring(textStart, exEnd)
+            next: next
+          else
+            outerRange = makeRange el, textStart, exEnd
+            main: outerRange
+            name: null
+            def: null
+            body: txt.substring(textStart, exEnd)
+            tests: tests
+            next: next
+        else
+          main: null
+          name: null
+          def: null
+          body: null
+          tests: tests
+          next: next
 
 makeRange = (el, off1, off2)->
   range = document.createRange()
@@ -632,13 +678,14 @@ evalDoc = (el)->
   [pgm, auto] = initNotebook(el)
   try
     if auto
-      auto = "do\n  #{auto.trim().replace /\n/, '\n  '}\n  finishLoading 'fred'"
+      auto = "do\n  #{auto.trim().replace /\n/g, '\n  '}\n  finishLoading 'fred'"
       global.noredefs = false
       Notebook.queueAfterLoad ->
         Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
       Leisure.eval(ReplCore.generateCode('_auto', auto, false))
     else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
   catch err
+    console.log err
     alert(err.stack)
 
 Leisure.define 'finishLoading', (bubba)->
