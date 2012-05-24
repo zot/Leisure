@@ -132,6 +132,8 @@
 
     PolyThing.prototype.moveToStart = function moveToStart() {
       var anchor, bbox, start, x, y, _ref;
+      this.body.resetForces();
+      this.body.setVelocity(v(0, 0));
       start = this.svg.getAttribute('leisureStart');
       if (start) {
         _ref = start.split(' '), x = _ref[0], y = _ref[1], anchor = _ref[2];
