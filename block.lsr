@@ -10,7 +10,7 @@ startBlocky e = do
 runPhysics = do
   js ['Blocky.block.body.setAngle(Math.max(-Math.PI/3, Math.min(Blocky.block.body.a, Math.PI/3)))']
   stepPhysics
-  js ['Notebook.programUpdate()']
+  js ['Notebook.update("program")']
   runPhysics
 
 key e = eq (eventType e) 'keydown'

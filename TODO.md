@@ -14,8 +14,8 @@
    * clean on load
    * autosave
    * output boxes that update
-      * make an update dropdown with: never/program event/editor event/editor focus
-      * you could use an AST display in one of these
+      * store update channel name in comment
+      * visually set-off auto-updaters
 * chippy demo
    * pan/zoom
 * notebook
@@ -142,6 +142,9 @@
       * or\[, and\[, js\[, concat\[
 
 # DONE
+* make notebook comfortable enough to be the main Leisure editor
+   * output boxes that update
+      * make an update dropdown with: never/program event/editor event/editor focus
 * chippy demo
    * Leisure-based mouse controls -- rotate rock with arrow keys
 * a 'require' directive that works in browsers and on the cmd line

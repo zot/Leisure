@@ -9,9 +9,9 @@ var UP_ARROW = 38
 var RIGHT_ARROW = 39
 var DOWN_ARROW = 40
 
-function lEvt(win, funcName) {
+function lEvt(win, funcName, channel) {
   return function(evt) {
-    Prim.leisureEvent(funcName, evt || win.event);
+    Prim.leisureEvent(funcName, evt || win.event, null, channel);
   }
 }
 
@@ -24,7 +24,7 @@ function initBlocky(svg) {
       var win = doc.defaultView;
       win.leisureEvent = leisureEvent
       Blocky.initBlocky(doc);
-      Game.bindSvgDiv(document.getElementById('floop'), lEvt(win, 'key'))
+      Game.bindSvgDiv(document.getElementById('floop'), lEvt(win, 'key', 'coords'))
       lEvt(win, 'startBlocky')(null);
     });
   });
@@ -41,6 +41,7 @@ function initBlocky(svg) {
 	</div>
       </td>
       <td style="width: 100%"><pre leisureCode style="height: 100%">
+#@update coords
 do
   pos <- js ['[Blocky.block.body.p.x, Blocky.block.body.p.y]']
   print (concat [pos])

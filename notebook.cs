@@ -18,9 +18,17 @@ delay = (func)->
   window.setTimeout func, 1
 
 bindNotebook = (el)->
+  if !(document.getElementById 'channelList')?
+    document.body.appendChild createNode """
+<datalist id='channelList'>
+   <option value=''></option>
+   <option value='program'>program</option>
+   <option value='editor'>editor</option>
+   <option value='editorFocus'>editorFocus</option>
+</datalist>"""
   Prim.defaultEnv.write = (msg)->console.log msg
   Prim.defaultEnv.owner = document.body
-  Prim.defaultEnv.finishedEvent = (evt)->programUpdate(Prim.defaultEnv)
+  Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'program', Prim.defaultEnv)
   if !el.bound?
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true
@@ -373,23 +381,29 @@ evalOutput = (exBox)->
   focusBox exBox
   cleanOutput exBox, true
   makeOutputControls exBox
-  [updateSelector] = getElements exBox.firstChild, ['chooseUpdate']
+  [updateSelector, stopUpdates] = getElements exBox.firstChild, ['chooseUpdate', 'stopUpdates']
   updateSelector.addEventListener 'change', (evt)-> exBox.setAttribute 'leisureUpdate', evt.target.value
+  updateSelector.addEventListener 'keydown', (e)->
+    c = (e.charCode || e.keyCode || e.which)
+    if c == 13
+      e.preventDefault()
+      updateSelector.blur()
   updateSelector.value = (exBox.getAttribute 'leisureUpdate') or 'none'
+  stopUpdates.updateSelector = updateSelector
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
-    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <select leisureId='chooseUpdate'>
-  <option value='none'>None</option>
-  <option value='programEvent'>Program Event</option>
-  <option value='editorEvent'>Editor Event</option>
-  <option value='editorFocus'>Editor Focus</option>
-</select>""")
+    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' list='channelList' leisureId='chooseUpdate'></input> <button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Stop</button>""")
 
-programUpdate = (env)->
-  #console.log 'update env: ', env
-  for node in env.owner.querySelectorAll '[leisureUpdate=programEvent]'
+clearUpdates = (widget)->
+  exBox = getBox widget
+  widget.updateSelector.value = ''
+  exBox.setAttribute 'leisureUpdate', ''
+
+update = (type, env)->
+  env = env ? Prim.defaultEnv
+  for node in env.owner.querySelectorAll "[leisureUpdate=#{type}]"
     evalOutput node
 
 clearOutputBox = (exBox)->
@@ -472,7 +486,7 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
-  finishedEvent: (evt)->programUpdate(this)
+  finishedEvent: (evt, channel)->update(channel ? 'program', this)
   owner: box.leisureOwner
   require: req
   write: (msg)->
@@ -738,7 +752,8 @@ root.makeRange = makeRange
 root.grp = grp
 root.changeTheme = changeTheme
 root.setSnapper = setSnapper
-root.programUpdate = programUpdate
+root.update = update
+root.clearUpdates = clearUpdates
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])
