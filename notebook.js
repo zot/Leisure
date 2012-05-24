@@ -29,14 +29,14 @@
 
   bindNotebook = function bindNotebook(el) {
     if (!((document.getElementById('channelList')) != null)) {
-      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='program'>program</option>\n   <option value='editor'>editor</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
+      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='editor'>editor</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
     }
     Prim.defaultEnv.write = function write(msg) {
       return console.log(msg);
     };
     Prim.defaultEnv.owner = document.body;
     Prim.defaultEnv.finishedEvent = function finishedEvent(evt, channel) {
-      return update(channel != null ? channel : 'program', Prim.defaultEnv);
+      return update(channel != null ? channel : 'app', Prim.defaultEnv);
     };
     if (!(el.bound != null)) {
       el.bound = true;
@@ -361,7 +361,7 @@
     var theme;
     theme = value;
     el.leisureTheme = theme;
-    return document.body.className = theme;
+    return el.className = theme;
   };
 
   changeView = function changeView(el, value) {
@@ -696,7 +696,7 @@
     exBox = getBox(box);
     return {
       finishedEvent: function finishedEvent(evt, channel) {
-        return update(channel != null ? channel : 'program', this);
+        return update(channel != null ? channel : 'app', this);
       },
       owner: box.leisureOwner,
       require: req,

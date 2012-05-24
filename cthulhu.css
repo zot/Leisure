@@ -1,4 +1,4 @@
-body.cthulhu {
+.cthulhu {
   background-image: url(Cthulhu_Rising_by_somniturne.jpg);
   background-repeat: no-repeat;
   background-attachment:fixed;
@@ -16,6 +16,7 @@ body.cthulhu {
   display: inline-block;
   margin: 0;
   padding: 5px;
+  background-color: rgba(0,0,0, 0.5);
 }
 .cthulhu .codeMain:hover {
   border: yellow solid 2px;
@@ -28,6 +29,7 @@ body.cthulhu {
   left-margin: 10px;
   display: inline-block;
   padding: 5px;
+  background-color: rgba(0,0,0, 0.5);
 }
 .cthulhu .output span {
   vertical-align: top;
@@ -39,6 +41,7 @@ body.cthulhu {
   margin: 0;
   display: inline-block;
   font-family: 'Audiowide', cursive;
+  background-color: rgba(0,0,0, 0.5);
 }
 .cthulhu .codeMainExpr:hover {
   border: green solid 2px;
