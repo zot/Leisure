@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clearOutputBox, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, oldBrackets, oldFocus, postLoadQueue, prepExpr, programUpdate, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, setSnapper, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clearOutputBox, clearUpdates, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, setSnapper, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -28,12 +28,15 @@
   };
 
   bindNotebook = function bindNotebook(el) {
+    if (!((document.getElementById('channelList')) != null)) {
+      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='program'>program</option>\n   <option value='editor'>editor</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
+    }
     Prim.defaultEnv.write = function write(msg) {
       return console.log(msg);
     };
     Prim.defaultEnv.owner = document.body;
-    Prim.defaultEnv.finishedEvent = function finishedEvent(evt) {
-      return programUpdate(Prim.defaultEnv);
+    Prim.defaultEnv.finishedEvent = function finishedEvent(evt, channel) {
+      return update(channel != null ? channel : 'program', Prim.defaultEnv);
     };
     if (!(el.bound != null)) {
       el.bound = true;
@@ -528,29 +531,45 @@
   };
 
   evalOutput = function evalOutput(exBox) {
-    var updateSelector;
+    var stopUpdates, updateSelector, _ref;
     exBox = getBox(exBox);
     focusBox(exBox);
     cleanOutput(exBox, true);
     makeOutputControls(exBox);
-    updateSelector = getElements(exBox.firstChild, ['chooseUpdate'])[0];
+    _ref = getElements(exBox.firstChild, ['chooseUpdate', 'stopUpdates']), updateSelector = _ref[0], stopUpdates = _ref[1];
     updateSelector.addEventListener('change', function(evt) {
       return exBox.setAttribute('leisureUpdate', evt.target.value);
     });
-    updateSelector.value = (exBox.getAttribute('leisureUpdate')) || 'none';
+    updateSelector.addEventListener('keydown', function(e) {
+      var c;
+      c = e.charCode || e.keyCode || e.which;
+      if (c === 13) {
+        e.preventDefault();
+        return updateSelector.blur();
+      }
+    });
+    updateSelector.value = (exBox.getAttribute('leisureUpdate')) || '';
+    stopUpdates.updateSelector = updateSelector;
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
   };
 
   makeOutputControls = function makeOutputControls(exBox) {
     if (exBox.firstChild.firstChild === exBox.firstChild.lastChild) {
-      return exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <select leisureId='chooseUpdate'>\n<option value='none'>None</option>\n<option value='programEvent'>Program Event</option>\n<option value='editorEvent'>Editor Event</option>\n<option value='editorFocus'>Editor Focus</option>\n</select>"));
+      return exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click Here' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>"));
     }
   };
 
-  programUpdate = function programUpdate(env) {
+  clearUpdates = function clearUpdates(widget) {
+    var exBox;
+    exBox = getBox(widget);
+    widget.updateSelector.value = '';
+    return exBox.setAttribute('leisureUpdate', '');
+  };
+
+  update = function update(type, env) {
     var node, _i, _len, _ref, _results;
     env = env != null ? env : Prim.defaultEnv;
-    _ref = env.owner.querySelectorAll('[leisureUpdate=programEvent]');
+    _ref = env.owner.querySelectorAll("[leisureUpdate=" + type + "]");
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
@@ -676,8 +695,8 @@
     var exBox;
     exBox = getBox(box);
     return {
-      finishedEvent: function finishedEvent(evt) {
-        return programUpdate(this);
+      finishedEvent: function finishedEvent(evt, channel) {
+        return update(channel != null ? channel : 'program', this);
       },
       owner: box.leisureOwner,
       require: req,
@@ -1083,6 +1102,8 @@
 
   root.setSnapper = setSnapper;
 
-  root.programUpdate = programUpdate;
+  root.update = update;
+
+  root.clearUpdates = clearUpdates;
 
 }).call(this);
