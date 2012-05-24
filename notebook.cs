@@ -388,13 +388,13 @@ evalOutput = (exBox)->
     if c == 13
       e.preventDefault()
       updateSelector.blur()
-  updateSelector.value = (exBox.getAttribute 'leisureUpdate') or 'none'
+  updateSelector.value = (exBox.getAttribute 'leisureUpdate') or ''
   stopUpdates.updateSelector = updateSelector
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
-    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' list='channelList' leisureId='chooseUpdate'></input> <button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Stop</button>""")
+    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click Here' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>""")
 
 clearUpdates = (widget)->
   exBox = getBox widget
