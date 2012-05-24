@@ -22,13 +22,13 @@ bindNotebook = (el)->
     document.body.appendChild createNode """
 <datalist id='channelList'>
    <option value=''></option>
-   <option value='program'>program</option>
+   <option value='app'>app</option>
    <option value='editor'>editor</option>
    <option value='editorFocus'>editorFocus</option>
 </datalist>"""
   Prim.defaultEnv.write = (msg)->console.log msg
   Prim.defaultEnv.owner = document.body
-  Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'program', Prim.defaultEnv)
+  Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', Prim.defaultEnv)
   if !el.bound?
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true
@@ -266,7 +266,7 @@ runTests = (el)->
 changeTheme = (el, value)->
   theme = value
   el.leisureTheme = theme
-  document.body.className = theme
+  el.className = theme
 
 changeView = (el, value)-> alert 'new view: ' + value
 
@@ -394,7 +394,7 @@ evalOutput = (exBox)->
 
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
-    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click Here' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>""")
+    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>""")
 
 clearUpdates = (widget)->
   exBox = getBox widget
@@ -486,7 +486,7 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
-  finishedEvent: (evt, channel)->update(channel ? 'program', this)
+  finishedEvent: (evt, channel)->update(channel ? 'app', this)
   owner: box.leisureOwner
   require: req
   write: (msg)->

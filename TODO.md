@@ -1,22 +1,13 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/leisure) [REPL](leisure.html) [Standard functinos](std.lsr)
-# BUGS
-* notebook
-   * clicking between func and expr dups last char
-   * process button eats newlines at end
-   * build should preserve outputs
-   * commas are not highlighting in constructed lists
-* blocky demo
-   * rapid left-right makes it disappear
-   * passes through corners
+# NOTE -- moving these items to Github Issues
 
 # TODO
 * make notebook comfortable enough to be the main Leisure editor
-   * clean on load
-   * autosave
-   * output boxes that update
-      * store update channel name in comment
-      * visually set-off auto-updaters
-* chippy demo
+   * more svg funcs
+      * svgNode should make an "svg" which is just a type-wrapper on a string
+      * svgCat should concatenate a list of svgNodes
+      * for svgNodes, the pretty printer can find their bbox and wrap them with a sized SVG element
+* blocky demo
    * pan/zoom
 * notebook
    * use file system api
@@ -25,12 +16,8 @@
 	  * store the contents of each pre element in the FS
 	  * use FS for autosave
 	  * "save-as" saves the web page
-   * incremental compilation (automatically recompile and update all errors)
    * function preconditions
       * "make precondition" button
-   * run test cases button
-      * checkbox to run all tests on successful auto-build
-	  * auto build should clear tests on a recompile
    * monad to present an html as an app
    * collapse auto exprs
    * command completion
@@ -271,4 +258,41 @@
    * allow implicit recursion?
       * seems like this should just work, for the compiled version
 
-#DEFERRED
+# DEFERRED
+
+---
+
+# Items below this have moved to Github Issues
+
+# BUGS
+* notebook
+   * clicking between func and expr dups last char
+   * process button eats newlines at end of doc
+   * (comment updating channels supercede this) build should preserve outputs
+   * commas are not highlighting in constructed lists
+   * sometimes list close bracket doesn't highlight
+   * Download/View should produce an HTML file
+   * require doesn't work with html Leisure files (disable bootLeisure for required files, etc.)
+* blocky demo
+   * rapid left-right makes it disappear
+   * passes through corners
+
+# TODO
+* make notebook comfortable enough to be the main Leisure editor
+   * debug view that shows info on the current AST, selection position, brackets, code box, etc.
+   * clean on load
+   * autosave
+   * autobuild (should update errors all over the place)
+   * updating output boxes
+      * store/retrieve update channel name in @update comment
+      * make editor/editorFocus update channels work for a better REPL
+      * visually set-off auto-updaters
+   * autorun test cases
+   * convenience key-bindings (C-enter for evaluate, etc.)
+   * AST inspector
+   * put arity in all prim funcs
+   * hook up to cloud9 for Git
+   * run test cases button
+      * checkbox to run all tests on successful auto-build
+	  * auto build should clear tests on a recompile
+* put readme into a leisure notebook (link to it from readme.md)

@@ -77,6 +77,8 @@ class PolyThing
   setFriction: (f)-> @shape.setFriction f
   setAngVel: (v)-> @body.w = v
   moveToStart: ->
+    @body.resetForces()
+    @body.setVelocity(v(0, 0))
     start = @svg.getAttribute 'leisureStart'
     if start
       [x, y, anchor] = start.split ' '

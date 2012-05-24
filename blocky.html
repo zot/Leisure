@@ -16,8 +16,6 @@ function lEvt(win, funcName, channel) {
 }
 
 function initBlocky(svg) {
-  //var floop = document.getElementById('floop');
-  //floop.addEventListener('mousedown', (function(){floop.focus()}), true);
   Boot.onboot(function() {
     Boot.loadThen(['blocky', 'block'], function(){
       var doc = svg.getSVGDocument();

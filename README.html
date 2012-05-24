@@ -33,7 +33,7 @@
 
 <h3>Function definitions</h3>
 
-<p>You define a function with a declaration, an '=', and a body, like this: <strong>true = \a b . a</strong>.  You maplace arguments before the '=' and omit the '\' and '.', like this: <strong>true a b = a</strong>.  Leisure automatically builds the lambda and associates it with the name you specified.</p>
+<p>You define a function with a declaration, an '=', and a body, like this: <strong>true = \a b . a</strong>.  You may place arguments before the '=' and omit the '\' and '.', like this: <strong>true a b = a</strong>.  Leisure automatically builds the lambda and associates it with the name you specified.</p>
 
 <p>Leisure allows some simplistic parser tweaks; you can define tokens, so you can leave out spaces, and you can define tokens that open and close groups.</p>
 
@@ -46,8 +46,8 @@
 <p>Leisure supports Python-style indentation, which it replaces with curly braces and semicolons during parsing.  Indented lines are considered to be part of the preceding overhanging line and each indented line produces a parenthesized group, so this:</p>
 
 <p><b><big><pre>
-do <br />
-  n &lt;- prompt "What is your name? " <br />
+do
+  n &lt;- prompt "What is your name? "
   a &lt;- prompt (concat ["Hello, ", n, ", thank you for joining us.  How old are you?"])
   seconds = * a 31536000
   print (concat ["You have been alive more than ", seconds, " seconds."])
@@ -75,7 +75,7 @@ let
 
 <h2>Untyped</h2>
 
-<p>Leisure is untyped.  This doesn't mean that Leisure is type-free, it just means that variables don't have types -- they can hold anything.  Leisure does have data types -- e.g. you can tell if something is a cons-cell (<strong>_is (cons 1 nil) cons</strong> returns <strong>true</strong>).  Whenever you define a function that returns a lambda, it marks instances of that lambda as having the type of the definition.  For example, if you say:</p>
+<p>Leisure is untyped.  This doesn't mean that Leisure is type-free, it just means that variables don't have types -- they can hold anything.  Leisure does have data types -- e.g. you can tell if something is a cons-cell (<strong>is (cons 1 nil) cons</strong> returns <strong>true</strong>).  Whenever you define a function that returns a lambda, it marks instances of that lambda as having the type of the definition.  For example, if you say:</p>
 
 <p><strong>person name addr = \f . f name addr</strong></p>
 
@@ -94,7 +94,7 @@ let
 * is data type -- returns a boolean indicating whether data is of the type
 * eq a b -- returns a boolean indicating whether a and b are identically equal
 * parse string -- returns an AST for the string
-* eval AST -- evaluates ast</p>
+* eval AST -- evaluates AST</p>
 
 <p>Macros
 * declaration =M= definition -- declares a macro that runs at parse-time.  Input is the AST for the macro expression and output is a new AST to replace the old one.  Further macro replacement is done on the result.  The identity macro is: <strong>identMacro ast =M= ast</strong>.
@@ -129,34 +129,41 @@ apply func arg = \f . f func arg  </p>
 <h3>Running the REPL</h3>
 
 <blockquote>
-  <p>node runRepl
-Runs the read eval print loop.  You can enter Leisure expressions and definitions there.</p>
+  <p>node runRepl</p>
 </blockquote>
+
+<p>Runs the read eval print loop.  You can enter Leisure expressions and definitions there.</p>
 
 <h3>Compiling files</h3>
 
 <blockquote>
-  <p>node runRepl -c [-v] file1 file2 ...
-Compiles files.  You can optionally add -v to activate verbose mode where it will display each function name as it's being compiled.  You do not need to add the file extentions, eg. node runRepl maps</p>
+  <p>node runRepl -c [-v] file1 file2 ...</p>
 </blockquote>
+
+<p>Compiles files.  You can optionally add -v to activate verbose mode where it will display each function name as it's being compiled.  You do not need to add the file extentions, eg. node runRepl maps</p>
 
 <h3>Running the tests</h3>
 
 <p>To run the tests, you can cd into the top level directory and type</p>
 
 <blockquote>
-  <p>node testLeisure
-It should give you something like this:
-Running Tests...
+  <p>node testLeisure</p>
+</blockquote>
+
+<p>It should give you something like this:</p>
+
+<blockquote>
+  <p>Running Tests...
 ...
 Done
-Succeeded all 40 tests.
-Each . on the second line represents a successfully completed test.  If there are errors, it will tell you which tests failed.</p>
+Succeeded all 40 tests.</p>
 </blockquote>
+
+<p>Each . on the second line represents a successfully completed test.  If there are errors, it will tell you which tests failed.</p>
 
 <h2>Changing it</h2>
 
-<p>If you want to change things, you'll probably want to change the Coffeescript files, rather than their corresponding javascript versions.  The <a href="build">build</a> file that contains a command to rebuild it, which is just</p>
+<p>If you want to change things, you'll probably want to change the CoffeeScript files, rather than their corresponding JavaScript.  The <a href="build">build</a> file that contains a command to rebuild it, which is just</p>
 
 <blockquote>
   <p>node_modules/coffee-script/bin/coffee -c leisure.cs repl.cs runRepl.cs</p>

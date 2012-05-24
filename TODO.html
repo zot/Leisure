@@ -13,37 +13,21 @@
 
 <p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="http://github.com/zot/leisure">Source</a> <a href="leisure.html">REPL</a> <a href="std.lsr">Standard functinos</a></p>
 
-<h1>BUGS</h1>
-
-<ul>
-<li>notebook
-<ul>
-<li>clicking between func and expr dups last char</li>
-<li>process button eats newlines at end</li>
-<li>build should preserve outputs</li>
-<li>commas are not highlighting in constructed lists</li>
-</ul></li>
-<li>blocky demo
-<ul>
-<li>rapid left-right makes it disappear</li>
-<li>passes through corners</li>
-</ul></li>
-</ul>
+<h1>NOTE -- moving these items to Github Issues</h1>
 
 <h1>TODO</h1>
 
 <ul>
 <li>make notebook comfortable enough to be the main Leisure editor
 <ul>
-<li>clean on load</li>
-<li>autosave</li>
-<li>output boxes that update
+<li>more svg funcs
 <ul>
-<li>store update channel name in comment</li>
-<li>visually set-off auto-updaters</li>
+<li>svgNode should make an "svg" which is just a type-wrapper on a string</li>
+<li>svgCat should concatenate a list of svgNodes</li>
+<li>for svgNodes, the pretty printer can find their bbox and wrap them with a sized SVG element</li>
 </ul></li>
 </ul></li>
-<li>chippy demo
+<li>blocky demo
 <ul>
 <li>pan/zoom</li>
 </ul></li>
@@ -57,15 +41,9 @@
 <li>use FS for autosave</li>
 <li>"save-as" saves the web page</li>
 </ul></li>
-<li>incremental compilation (automatically recompile and update all errors)</li>
 <li>function preconditions
 <ul>
 <li>"make precondition" button</li>
-</ul></li>
-<li>run test cases button
-<ul>
-<li>checkbox to run all tests on successful auto-build</li>
-<li>auto build should clear tests on a recompile</li>
 </ul></li>
 <li>monad to present an html as an app</li>
 <li>collapse auto exprs</li>
@@ -430,6 +408,59 @@ print (concat ["hello ", value, "."]) end</p>
 </ul>
 
 <h1>DEFERRED</h1>
+
+<hr />
+
+<h1>Items below this have moved to Github Issues</h1>
+
+<h1>BUGS</h1>
+
+<ul>
+<li>notebook
+<ul>
+<li>clicking between func and expr dups last char</li>
+<li>process button eats newlines at end of doc</li>
+<li>(comment updating channels supercede this) build should preserve outputs</li>
+<li>commas are not highlighting in constructed lists</li>
+<li>sometimes list close bracket doesn't highlight</li>
+<li>Download/View should produce an HTML file</li>
+<li>require doesn't work with html Leisure files (disable bootLeisure for required files, etc.)</li>
+</ul></li>
+<li>blocky demo
+<ul>
+<li>rapid left-right makes it disappear</li>
+<li>passes through corners</li>
+</ul></li>
+</ul>
+
+<h1>TODO</h1>
+
+<ul>
+<li>make notebook comfortable enough to be the main Leisure editor
+<ul>
+<li>debug view that shows info on the current AST, selection position, brackets, code box, etc.</li>
+<li>clean on load</li>
+<li>autosave</li>
+<li>autobuild (should update errors all over the place)</li>
+<li>updating output boxes
+<ul>
+<li>store/retrieve update channel name in @update comment</li>
+<li>make editor/editorFocus update channels work for a better REPL</li>
+<li>visually set-off auto-updaters</li>
+</ul></li>
+<li>autorun test cases</li>
+<li>convenience key-bindings (C-enter for evaluate, etc.)</li>
+<li>AST inspector</li>
+<li>put arity in all prim funcs</li>
+<li>hook up to cloud9 for Git</li>
+<li>run test cases button
+<ul>
+<li>checkbox to run all tests on successful auto-build</li>
+<li>auto build should clear tests on a recompile</li>
+</ul></li>
+</ul></li>
+<li>put readme into a leisure notebook (link to it from readme.md)</li>
+</ul>
 
 </body>
 </html>

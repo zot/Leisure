@@ -27,8 +27,8 @@ Curly braces produce in-line groups, separated by semicolons, so instead of **(a
 Leisure supports Python-style indentation, which it replaces with curly braces and semicolons during parsing.  Indented lines are considered to be part of the preceding overhanging line and each indented line produces a parenthesized group, so this:
 
 <b><big><pre>
-do  
-  n <- prompt "What is your name? "  
+do
+  n <- prompt "What is your name? "
   a <- prompt (concat ["Hello, ", n, ", thank you for joining us.  How old are you?"])
   seconds = * a 31536000
   print (concat ["You have been alive more than ", seconds, " seconds."])
