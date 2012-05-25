@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, oldFocus, postLoadQueue, prepExpr, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, setSnapper, setUpdate, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, oldFocus, postLoadQueue, prepExpr, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -68,7 +68,7 @@
           return (_ref = getBox(window.getSelection().focusNode)) != null ? _ref.ast = null : void 0;
         }
       });
-      return el.addEventListener('keypress', function(e) {
+      el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
         s = window.getSelection();
         r = s.getRangeAt(0);
@@ -92,6 +92,12 @@
           return s.addRange(r);
         }
       });
+      el.addEventListener('focus', (function() {
+        return findCurrentCodeHolder();
+      }), true);
+      return el.addEventListener('blur', (function() {
+        return findCurrentCodeHolder();
+      }), true);
     }
   };
 
@@ -131,21 +137,19 @@
   oldBrackets = [null, Leisure.Nil];
 
   highlightPosition = function highlightPosition() {
-    var ast, b, brackets, contents, node, offset, parent, pos, r, s, span, tr, _i, _len, _ref, _ref2;
+    var ast, b, brackets, contents, node, offset, parent, pos, r, s, span, _i, _len, _ref, _ref2;
     s = window.getSelection();
     if (!s.rangeCount) return;
-    r = s.getRangeAt(0);
-    parent = getBox(r.startContainer);
+    focusBox(s.focusNode);
+    parent = getBox(s.focusNode);
     if (!parent || (parent.getAttribute('LeisureOutput') != null)) return;
     if (parent.parentNode) {
-      focusBox(parent);
-      tr = document.createRange();
-      tr.setStart(parent, 0);
-      tr.setEnd(r.endContainer, r.endOffset);
-      pos = getRangeText(tr).length;
       ast = getAst(parent);
       if (ast != null) {
         offset = (_ref = ast.leisureCodeOffset) != null ? _ref : 0;
+        r = s.getRangeAt(0);
+        r.setStart(parent, 0);
+        pos = getRangeText(r).length;
         brackets = Leisure.bracket(ast.leisureBase, pos - offset);
         if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
           oldBrackets = [parent, brackets];
@@ -155,18 +159,16 @@
             unwrap(node);
           }
           parent.normalize();
-          if (ast != null) {
-            b = brackets;
-            while (b !== Leisure.Nil) {
-              span = document.createElement('span');
-              span.setAttribute('LeisureBrackets', '');
-              span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
-              r = makeRange(parent, b.head.head + offset, b.head.tail.head + offset);
-              contents = r.cloneContents();
-              replaceRange(r, span);
-              span.appendChild(contents);
-              b = b.tail;
-            }
+          b = brackets;
+          while (b !== Leisure.Nil) {
+            span = document.createElement('span');
+            span.setAttribute('LeisureBrackets', '');
+            span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
+            r = makeRange(parent, b.head.head + offset, b.head.tail.head + offset);
+            contents = r.cloneContents();
+            replaceRange(r, span);
+            span.appendChild(contents);
+            b = b.tail;
           }
           s.removeAllRanges();
           parent.normalize();
@@ -217,22 +219,6 @@
     return b.classList.add('codeMain');
   };
 
-  selInDef = function selInDef(expectedClass) {
-    var box, defType, leading, m, matched, name, r, s, txt;
-    s = window.getSelection();
-    if (s.rangeCount > 0) {
-      r = s.getRangeAt(0);
-      if ((box = getBox(r.startContainer)) && (!(expectedClass != null) || box.classList.contains(expectedClass))) {
-        txt = box.textContent;
-        if ((m = txt.match(Leisure.linePat))) {
-          matched = m[0], leading = m[1], name = m[2], defType = m[3];
-          return defType && box;
-        }
-      }
-    }
-    return false;
-  };
-
   isDef = function isDef(box) {
     var defType, leading, m, matched, name, txt;
     txt = box.textContent;
@@ -241,14 +227,6 @@
       return (defType != null ? defType.length : void 0) > 0;
     }
     return false;
-  };
-
-  checkMutateToDef = function checkMutateToDef(e, el) {
-    var parent;
-    parent = getBox(el);
-    if (!parent.replacing && isDef(parent && parent.classList.contains('codeMainExpr'))) {
-      return toDefBox(p);
-    }
   };
 
   initNotebook = function initNotebook(el) {
@@ -1030,25 +1008,21 @@
   # handle focus manually, because grabbing focus and blur events doesn't seem to work for the parent
   */
 
-  currentCodeHolder = null;
-
   oldFocus = null;
 
   findCurrentCodeHolder = function findCurrentCodeHolder() {
-    var node;
-    node = document.activeElement;
-    while ((node != null) && !((typeof node.getAttribute === "function" ? node.getAttribute('LeisureCode') : void 0) != null)) {
-      node = node.parentElement;
-    }
-    if (node !== currentCodeHolder) {
-      if (currentCodeHolder != null) currentCodeHolder.classList.remove('focused');
-      if (node != null) node.classList.add('focused');
-      return currentCodeHolder = node;
-    }
+    return focusBox(window.getSelection().focusNode);
   };
 
   focusBox = function focusBox(box) {
-    if (box && box !== oldFocus) return oldFocus = box;
+    while (box && (box.nodeType !== 1 || !((box.getAttribute('leisureCode')) != null))) {
+      box = box.parentNode;
+    }
+    if (box !== oldFocus) {
+      if (oldFocus !== null) oldFocus.classList.remove('focused');
+      oldFocus = box;
+      if (box !== null) return box.classList.add('focused');
+    }
   };
 
   evalDoc = function evalDoc(el) {

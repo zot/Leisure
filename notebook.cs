@@ -59,6 +59,8 @@ bindNotebook = (el)->
         r.setStart(sp, 0)
         s.removeAllRanges()
         s.addRange(r)
+    el.addEventListener 'focus', (-> findCurrentCodeHolder()), true
+    el.addEventListener 'blur', (-> findCurrentCodeHolder()), true
 
 printableControls = (c.charCodeAt(0) for c in "\r\i\n\b")
 printable = (code)-> (code > 0xf and code < 37) or code > 40 or code in printableControls
@@ -82,35 +84,32 @@ highlightPosition = ->
   #console.log "highlight"
   s = window.getSelection()
   if !s.rangeCount then return
-  r = s.getRangeAt(0)
-  parent = getBox r.startContainer
+  focusBox s.focusNode
+  parent = getBox s.focusNode
   if !parent or parent.getAttribute('LeisureOutput')? then return
   if parent.parentNode
-    focusBox parent
-    tr = document.createRange()
-    tr.setStart parent, 0
-    tr.setEnd r.endContainer, r.endOffset
-    pos = getRangeText(tr).length
     ast = getAst parent
     if ast?
       offset = ast.leisureCodeOffset ? 0
+      r = s.getRangeAt(0)
+      r.setStart parent, 0
+      pos = getRangeText(r).length
       brackets = Leisure.bracket ast.leisureBase, pos - offset
       if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
         oldBrackets = [parent, brackets]
         for node in document.querySelectorAll "[LeisureBrackets]"
           unwrap node
         parent.normalize()
-        if ast?
-          b = brackets
-          while b != Leisure.Nil
-            span = document.createElement 'span'
-            span.setAttribute 'LeisureBrackets', ''
-            span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
-            r = makeRange parent, b.head.head + offset, b.head.tail.head + offset
-            contents = r.cloneContents()
-            replaceRange r, span
-            span.appendChild contents
-            b = b.tail
+        b = brackets
+        while b != Leisure.Nil
+          span = document.createElement 'span'
+          span.setAttribute 'LeisureBrackets', ''
+          span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
+          r = makeRange parent, b.head.head + offset, b.head.tail.head + offset
+          contents = r.cloneContents()
+          replaceRange r, span
+          span.appendChild contents
+          b = b.tail
         s.removeAllRanges()
         parent.normalize()
         s.addRange(makeRange parent, pos)
@@ -143,28 +142,12 @@ toDefBox = (b)->
   b.classList.remove 'codeMainExpr'
   b.classList.add 'codeMain'
 
-selInDef = (expectedClass)->
-  s = window.getSelection()
-  if s.rangeCount > 0
-    r = s.getRangeAt(0)
-    if (box = getBox r.startContainer) and (!expectedClass? or box.classList.contains(expectedClass))
-      txt = box.textContent
-      if (m = txt.match Leisure.linePat)
-        [matched, leading, name, defType] = m
-        return defType and box
-  false
-
 isDef = (box)->
   txt = box.textContent
   if (m = txt.match Leisure.linePat)
     [matched, leading, name, defType] = m
     return defType?.length > 0
   false
-
-checkMutateToDef = (e, el)->
-  parent = getBox el
-  if !parent.replacing and isDef parent and parent.classList.contains('codeMainExpr')
-    toDefBox p
 
 initNotebook = (el)->
   el.replacing = true
@@ -358,6 +341,7 @@ getAst = (bx, def)->
     bx.ast = (Leisure.compileNext def, Leisure.Nil, true, null, true)[0]
 
 # mark partial applies within bx
+# the last child of bx should be a fresh expr span with the full code in it
 markPartialApplies = (bx, def)->
   def = def ? bx.textContent
   ast = getAst bx, def
@@ -370,7 +354,6 @@ markPartialApplies = (bx, def)->
   if partial.length
     ranges = []
     offset = ast.leisureCodeOffset ? 0
-    # bx should contain a fresh expr span with the full code in it
     t = bx.lastChild.firstChild
     for info in partial
       p = info[0]
@@ -705,23 +688,17 @@ queueAfterLoad = (func)-> postLoadQueue.push(func)
 ###
 # handle focus manually, because grabbing focus and blur events doesn't seem to work for the parent
 ###
-
-currentCodeHolder = null
 oldFocus = null
 
-findCurrentCodeHolder = ->
-  node = document.activeElement
-  while node? and !(node.getAttribute?('LeisureCode'))?
-    node = node.parentElement
-  if node != currentCodeHolder
-    currentCodeHolder?.classList.remove 'focused'
-    node?.classList.add 'focused'
-    currentCodeHolder = node
+findCurrentCodeHolder = -> focusBox window.getSelection().focusNode
 
 focusBox = (box)->
-  if box and box != oldFocus
-    #if oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
+  while box and (box.nodeType != 1 or !(box.getAttribute 'leisureCode')?)
+    box = box.parentNode
+  if box != oldFocus
+    if oldFocus != null then oldFocus.classList.remove 'focused'
     oldFocus = box
+    if box != null then box.classList.add 'focused'
 
 evalDoc = (el)->
   [pgm, auto] = initNotebook(el)
