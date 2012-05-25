@@ -967,13 +967,9 @@
     if (end && (newOff === 1 || charOffset === 1)) {
       return nodeEnd(node);
     } else if (node.nextSibling != null) {
-      if (newOff === 0 && end) {
-        return nodeEnd(node);
-      } else {
-        return getRangePosition(node.nextSibling, newOff, end);
-      }
+      return getRangePosition(node.nextSibling, newOff, end);
     } else {
-      return [null, (node.parentNode.lastChild !== node && !(addsLine(node.parentNode)) ? newOff : charOffset)];
+      return continueRangePosition(node.parentNode, newOff, end);
     }
   };
 

@@ -662,10 +662,8 @@ getRangePosition = (node, charOffset, end)->
 continueRangePosition = (node, charOffset, end)->
   newOff = charOffset - (if (addsLine node) or (node.nextSibling? and (addsLine node.nextSibling)) then 1 else 0)
   if end and (newOff == 1 or charOffset == 1) then nodeEnd node
-  else if node.nextSibling?
-    if newOff == 0 and end then nodeEnd node
-    else getRangePosition node.nextSibling, newOff, end
-  else [null, (if node.parentNode.lastChild != node and !(addsLine node.parentNode) then newOff else charOffset)]
+  else if node.nextSibling? then getRangePosition node.nextSibling, newOff, end
+  else continueRangePosition node.parentNode, newOff, end
 
 nodeEnd = (node)-> [node, if node.nodeType == 3 then node.length else node.childNodes.length - 1]
 
