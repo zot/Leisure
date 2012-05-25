@@ -472,10 +472,10 @@ misrepresented as being the original software.
   };
 
   findFuncs = function findFuncs(ast) {
-    if ((getAstType(ast)) === 'apply') {
-      return findFuncApply(ast, 0);
-    } else {
+    if (!ast || (getAstType(ast)) !== 'apply') {
       return dlempty;
+    } else {
+      return findFuncApply(ast, 0);
     }
   };
 

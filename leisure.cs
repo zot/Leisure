@@ -34,6 +34,7 @@ baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]
 tokenPat = new RegExp("\\n *|#{baseTokenPat.source}")
 specials = '[]().*+?|'
 linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
+#linePat = /^((?:\s*\n|#[^\n]*\n)*)([a-zA-Z0-9!@#$%\^&*\-_+=[\]{}|:;,<>/? ]*)(=[.)M]=|=\([^=]+=|=)?/
 order = []
 warnFreeVariable = []
 charCodes =
@@ -219,8 +220,8 @@ bracketApplyParts = (ast)->
   dlappend start, dlnew(astBrackets(getApplyArg ast))
 
 findFuncs = (ast)->
-  if (getAstType ast) == 'apply' then findFuncApply ast, 0
-  else dlempty
+  if !ast or (getAstType ast) != 'apply' then dlempty
+  else findFuncApply ast, 0
 
 findFuncApply = (apply, count)->
   if (getAstType apply) == 'apply' then dlappend (findFuncApply (getApplyFunc apply), count + 1), (findFuncs (getApplyArg apply))

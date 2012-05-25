@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clearOutputBox, clearUpdates, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, oldBrackets, oldFocus, postLoadQueue, prepExpr, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, setSnapper, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update,
+  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, checkMutateToDef, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, currentCodeHolder, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, oldFocus, postLoadQueue, prepExpr, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, selInDef, setSnapper, setUpdate, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -43,27 +43,32 @@
       el.addEventListener('DOMCharacterDataModified', (function(evt) {
         if (!el.replacing) {
           return delay(function() {
-            return checkMutateFromModification(getBox(evt.target));
+            return checkMutateFromModification(evt);
           });
         }
       }), true);
       el.addEventListener('DOMSubtreeModified', (function(evt) {
         if (!el.replacing) {
           return delay(function() {
-            return checkMutateFromModification(getBox(evt.target));
+            return checkMutateFromModification(evt);
           });
         }
       }), true);
       el.addEventListener('click', (function(e) {
-        return window.setTimeout(highlightPosition, 1);
+        return delay(highlightPosition);
       }), true);
+      el.addEventListener('keyup', function(e) {
+        var node;
+        node = getBox(window.getSelection().focusNode);
+        return highlightPosition();
+      });
       el.addEventListener('keydown', function(e) {
         var _ref;
-        if ((_ref = e.charCode || e.keyCode || e.which) === 8 || _ref === 37 || _ref === 38 || _ref === 39 || _ref === 40 || _ref === 46) {
-          return window.setTimeout(highlightPosition, 1);
+        if (printable(e.charCode || e.keyCode || e.which)) {
+          return (_ref = getBox(window.getSelection().focusNode)) != null ? _ref.ast = null : void 0;
         }
       });
-      el.addEventListener('keypress', function(e) {
+      return el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
         s = window.getSelection();
         r = s.getRangeAt(0);
@@ -74,9 +79,7 @@
           r.setStart(br, 1);
           s.removeAllRanges();
           s.addRange(r);
-          e.preventDefault();
-        } else if ((e.charCode || e.keyCode || e.which) === 61) {
-          checkMutateToDef(e, el);
+          return e.preventDefault();
         } else if (r.startContainer.parentNode === el) {
           sp = codeSpan('\n', 'codeExpr');
           sp.setAttribute('generatedNL', '');
@@ -86,64 +89,89 @@
           r = document.createRange();
           r.setStart(sp, 0);
           s.removeAllRanges();
-          s.addRange(r);
+          return s.addRange(r);
         }
-        return window.setTimeout(highlightPosition, 1);
       });
-      el.addEventListener('focus', (function() {
-        return findCurrentCodeHolder();
-      }), true);
-      return el.addEventListener('blur', (function() {
-        return findCurrentCodeHolder();
-      }), true);
     }
+  };
+
+  printableControls = (function() {
+    var _i, _len, _ref, _results;
+    _ref = "\r\i\n\b";
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      c = _ref[_i];
+      _results.push(c.charCodeAt(0));
+    }
+    return _results;
+  })();
+
+  printable = function printable(code) {
+    return (code > 0xf && code < 37) || code > 40 || __indexOf.call(printableControls, code) >= 0;
+  };
+
+  nonprintable = null;
+
+  (function() {
+    var i, s;
+    s = '';
+    for (i = 0; 0 <= 0xf ? i <= 0xf : i >= 0xf; 0 <= 0xf ? i++ : i--) {
+      s += String.fromCharCode(i);
+    }
+    s.replace(/[\i\r\f]/g, '');
+    return nonprintable = new RegExp("[" + s + "]");
+  })();
+
+  clearAst = function clearAst(box) {
+    var cbox;
+    cbox = getBox(box);
+    return cbox != null ? cbox.ast = null : void 0;
   };
 
   oldBrackets = [null, Leisure.Nil];
 
   highlightPosition = function highlightPosition() {
-    var ast, b, brackets, contents, node, offset, parent, pos, r, s, span, tr, txt, _i, _len, _ref, _ref2;
+    var ast, b, brackets, contents, node, offset, parent, pos, r, s, span, tr, _i, _len, _ref, _ref2;
     s = window.getSelection();
     if (!s.rangeCount) return;
     r = s.getRangeAt(0);
     parent = getBox(r.startContainer);
-    focusBox(parent);
-    if (!(parent != null) || (parent.getAttribute('LeisureOutput') != null)) {
-      return;
-    }
-    tr = document.createRange();
-    tr.setStart(parent, 0);
-    tr.setEnd(r.endContainer, r.endOffset);
-    pos = getRangeText(tr).length;
-    txt = parent.textContent;
-    ast = (Leisure.compileNext(txt, Leisure.Nil, true, null, true))[0];
-    if (ast != null) {
-      offset = (_ref = ast.leisureCodeOffset) != null ? _ref : 0;
-      brackets = Leisure.bracket(ast.leisureBase, pos - offset);
-      if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
-        oldBrackets = [parent, brackets];
-        _ref2 = document.querySelectorAll("[LeisureBrackets]");
-        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-          node = _ref2[_i];
-          unwrap(node);
-        }
-        parent.normalize();
-        if (ast != null) {
-          b = brackets;
-          while (b !== Leisure.Nil) {
-            span = document.createElement('span');
-            span.setAttribute('LeisureBrackets', '');
-            span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
-            r = makeRange(parent, b.head.head + offset, b.head.tail.head + offset);
-            contents = r.cloneContents();
-            replaceRange(r, span);
-            span.appendChild(contents);
-            b = b.tail;
+    if (!parent || (parent.getAttribute('LeisureOutput') != null)) return;
+    if (parent.parentNode) {
+      focusBox(parent);
+      tr = document.createRange();
+      tr.setStart(parent, 0);
+      tr.setEnd(r.endContainer, r.endOffset);
+      pos = getRangeText(tr).length;
+      ast = getAst(parent);
+      if (ast != null) {
+        offset = (_ref = ast.leisureCodeOffset) != null ? _ref : 0;
+        brackets = Leisure.bracket(ast.leisureBase, pos - offset);
+        if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
+          oldBrackets = [parent, brackets];
+          _ref2 = document.querySelectorAll("[LeisureBrackets]");
+          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+            node = _ref2[_i];
+            unwrap(node);
           }
+          parent.normalize();
+          if (ast != null) {
+            b = brackets;
+            while (b !== Leisure.Nil) {
+              span = document.createElement('span');
+              span.setAttribute('LeisureBrackets', '');
+              span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
+              r = makeRange(parent, b.head.head + offset, b.head.tail.head + offset);
+              contents = r.cloneContents();
+              replaceRange(r, span);
+              span.appendChild(contents);
+              b = b.tail;
+            }
+          }
+          s.removeAllRanges();
+          parent.normalize();
+          return s.addRange(makeRange(parent, pos));
         }
-        s.removeAllRanges();
-        parent.normalize();
-        return s.addRange(makeRange(parent, pos));
       }
     }
   };
@@ -164,13 +192,14 @@
     return node;
   };
 
-  checkMutateFromModification = function checkMutateFromModification(b) {
-    var inDef;
-    if (b != null) {
-      inDef = selInDef();
-      if (inDef && b.classList.contains('codeMainExpr')) {
+  checkMutateFromModification = function checkMutateFromModification(evt) {
+    var b, b2;
+    b = getBox(evt.target);
+    b2 = getBox(window.getSelection().focusNode);
+    if (b && b === b2) {
+      if ((isDef(b)) && b.classList.contains('codeMainExpr')) {
         return toDefBox(b);
-      } else if (!inDef && b.classList.contains('codeMain')) {
+      } else if (!(isDef(b)) && b.classList.contains('codeMain')) {
         return toExprBox(b);
       }
     }
@@ -204,12 +233,21 @@
     return false;
   };
 
+  isDef = function isDef(box) {
+    var defType, leading, m, matched, name, txt;
+    txt = box.textContent;
+    if ((m = txt.match(Leisure.linePat))) {
+      matched = m[0], leading = m[1], name = m[2], defType = m[3];
+      return (defType != null ? defType.length : void 0) > 0;
+    }
+    return false;
+  };
+
   checkMutateToDef = function checkMutateToDef(e, el) {
-    var p, r, s;
-    if (!el.replacing) {
-      s = window.getSelection();
-      r = s.getRangeAt(0);
-      if (p = selInDef('codeMainExpr')) return toDefBox(p);
+    var parent;
+    parent = getBox(el);
+    if (!parent.replacing && isDef(parent && parent.classList.contains('codeMainExpr'))) {
+      return toDefBox(p);
     }
   };
 
@@ -318,7 +356,7 @@
   };
 
   configureSaveLink = function configureSaveLink(el) {
-    var blob, builder, c, r;
+    var blob, builder, r;
     window.URL = window.URL || window.webkitURL;
     builder = new WebKitBlobBuilder();
     r = document.createRange();
@@ -433,7 +471,7 @@
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
-        bod = codeSpan(markPartialApplies(bx, body), 'codeBody');
+        bod = codeSpan(textNode(body), 'codeBody');
         bod.appendChild(textNode('\n'));
         bod.setAttribute('generatedNL', '');
         bx.appendChild(bod);
@@ -441,14 +479,16 @@
           return evalDoc(el);
         }), true);
         bx.leisureOwner = el;
+        markPartialApplies(bx);
         pgm += "" + name + " " + def + " " + body + "\n";
       } else if (main != null) {
         bx = box(main, 'codeMainExpr', true);
         bx.leisureOwner = el;
-        s = codeSpan(markPartialApplies(bx, body), 'codeExpr');
+        s = codeSpan(textNode(body), 'codeExpr');
         s.setAttribute('generatedNL', '');
         s.appendChild(textNode('\n'));
         bx.appendChild(s);
+        markPartialApplies(bx);
         if (main.leisureAuto) {
           auto += "" + body + "\n";
         } else {
@@ -469,7 +509,8 @@
   };
 
   markPartialApplies = function markPartialApplies(bx, def) {
-    var ast, c, info, offset, p, partial, r, ranges, rn, s, span, t, _i, _j, _len, _len2, _ref;
+    var ast, info, offset, p, partial, r, ranges, s, t, _i, _j, _len, _len2, _ref, _results;
+    def = def != null ? def : bx.textContent;
     ast = getAst(bx, def);
     partial = [];
     ((Leisure.findFuncs(ast))(Leisure.Nil)).each(function(f) {
@@ -477,26 +518,24 @@
       name = Leisure.getRefVar(f.head);
       arity = typeof global[_name = Leisure.nameSub(name)] === "function" ? (_ref = global[_name]()) != null ? _ref.leisureArity : void 0 : void 0;
       if (arity && f.tail.head < arity) {
-        console.log("Partial: ", name);
         return partial.push([f.head, arity, f.tail.head]);
       }
     });
     if (partial.length) {
       ranges = [];
-      offset = (_ref = ast.leisureDefPrefix) != null ? _ref : 0;
-      t = textNode(def);
-      span = document.createElement('span');
-      span.appendChild(t);
+      offset = (_ref = ast.leisureCodeOffset) != null ? _ref : 0;
+      t = bx.lastChild.firstChild;
       for (_i = 0, _len = partial.length; _i < _len; _i++) {
         info = partial[_i];
         p = info[0];
         r = document.createRange();
-        r.setStart(t, p.leisureStart);
-        r.setEnd(t, p.leisureEnd);
+        r.setStart(t, p.leisureStart + offset);
+        r.setEnd(t, p.leisureEnd + offset);
         r.expected = info[1];
         r.actual = info[2];
         ranges.push(r);
       }
+      _results = [];
       for (_j = 0, _len2 = ranges.length; _j < _len2; _j++) {
         r = ranges[_j];
         c = r.extractContents();
@@ -506,15 +545,9 @@
         s.setAttribute('actual', String(r.actual));
         s.classList.add('partialApply');
         s.appendChild(c);
-        r.insertNode(s);
+        _results.push(r.insertNode(s));
       }
-      rn = document.createRange();
-      rn.selectNodeContents(span);
-      c = rn.extractContents();
-      console.log("contents: ", c);
-      return c;
-    } else {
-      return textNode(def);
+      return _results;
     }
   };
 
@@ -538,10 +571,9 @@
     makeOutputControls(exBox);
     _ref = getElements(exBox.firstChild, ['chooseUpdate', 'stopUpdates']), updateSelector = _ref[0], stopUpdates = _ref[1];
     updateSelector.addEventListener('change', function(evt) {
-      return exBox.setAttribute('leisureUpdate', evt.target.value);
+      return setUpdate(exBox, evt.target.value);
     });
     updateSelector.addEventListener('keydown', function(e) {
-      var c;
       c = e.charCode || e.keyCode || e.which;
       if (c === 13) {
         e.preventDefault();
@@ -551,6 +583,12 @@
     updateSelector.value = (exBox.getAttribute('leisureUpdate')) || '';
     stopUpdates.updateSelector = updateSelector;
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
+  };
+
+  setUpdate = function setUpdate(el, channel) {
+    var ast;
+    el.setAttribute('leisureUpdate', channel);
+    return ast = getAst(el.source);
   };
 
   makeOutputControls = function makeOutputControls(exBox) {
@@ -563,7 +601,7 @@
     var exBox;
     exBox = getBox(widget);
     widget.updateSelector.value = '';
-    return exBox.setAttribute('leisureUpdate', '');
+    return setUpdate(exBox, '');
   };
 
   update = function update(type, env) {
@@ -579,8 +617,7 @@
   };
 
   clearOutputBox = function clearOutputBox(exBox) {
-    exBox = getBox(exBox);
-    exBox.setAttribute('leisureUpdate', '');
+    clearUpdates(exBox);
     return cleanOutput(exBox);
   };
 
@@ -651,7 +688,6 @@
   runTest = function runTest(bx) {
     var passed, test;
     test = bx.test;
-    console.log("RUNNING:\n " + test.expr + "\nRESULT:\n " + test.result);
     passed = true;
     ReplCore.processLine(prepExpr(test.expr), {
       require: req,
@@ -910,16 +946,20 @@
   grp = function grp(node, charOffset, end) {
     var child, offset, ret, _ref;
     _ref = ret = getRangePosition(node.firstChild, charOffset, end), child = _ref[0], offset = _ref[1];
-    if (!(child != null)) {
+    if (child) {
+      return ret;
+    } else if (node.lastChild) {
       return nodeEnd(node.lastChild);
     } else {
-      return ret;
+      return [node, end ? 1 : 0];
     }
   };
 
   getRangePosition = function getRangePosition(node, charOffset, end) {
     var newNode, newOff, _ref;
-    if (node.nodeType === 3) {
+    if (!node) {
+      return [null, charOffset];
+    } else if (node.nodeType === 3) {
       if (node.length > (end ? charOffset - 1 : charOffset)) {
         return [node, charOffset];
       } else {
@@ -1008,12 +1048,7 @@
   };
 
   focusBox = function focusBox(box) {
-    if (box && box !== oldFocus) {
-      if (oldFocus != null ? oldFocus.classList.contains('codeMain') : void 0) {
-        evalDoc(box.leisureOwner);
-      }
-      return oldFocus = box;
-    }
+    if (box && box !== oldFocus) return oldFocus = box;
   };
 
   evalDoc = function evalDoc(el) {

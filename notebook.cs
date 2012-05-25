@@ -14,8 +14,7 @@ snapshot = (el, pgm)->
 
 setSnapper = (snapFunc)-> snapshot = snapFunc
 
-delay = (func)->
-  window.setTimeout func, 1
+delay = (func)-> window.setTimeout func, 1
 
 bindNotebook = (el)->
   if !(document.getElementById 'channelList')?
@@ -31,11 +30,14 @@ bindNotebook = (el)->
   Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', Prim.defaultEnv)
   if !el.bound?
     el.bound = true
-    el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true
-    el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification getBox(evt.target))), true
-    el.addEventListener 'click', ((e)-> window.setTimeout(highlightPosition, 1)), true
-    el.addEventListener 'keydown', (e)->
-      if (e.charCode || e.keyCode || e.which) in [8, 37, 38, 39, 40, 46] then window.setTimeout(highlightPosition, 1)
+    el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
+    el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
+    el.addEventListener 'click', ((e)-> delay highlightPosition), true
+    el.addEventListener 'keyup', (e)->
+      node = getBox window.getSelection().focusNode
+      highlightPosition()
+    el.addEventListener 'keydown', (e)-> if printable(e.charCode || e.keyCode || e.which)
+      (getBox window.getSelection().focusNode)?.ast = null
     el.addEventListener 'keypress', (e)->
       s = window.getSelection()
       r = s.getRangeAt(0)
@@ -47,7 +49,6 @@ bindNotebook = (el)->
         s.removeAllRanges()
         s.addRange(r)
         e.preventDefault()
-      else if (e.charCode || e.keyCode || e.which) == 61 then checkMutateToDef e, el # 61 is '='
       else if r.startContainer.parentNode == el
         sp = codeSpan '\n', 'codeExpr'
         sp.setAttribute('generatedNL', '')
@@ -58,48 +59,61 @@ bindNotebook = (el)->
         r.setStart(sp, 0)
         s.removeAllRanges()
         s.addRange(r)
-      window.setTimeout(highlightPosition, 1)
-    el.addEventListener 'focus', (-> findCurrentCodeHolder()), true
-    el.addEventListener 'blur', (-> findCurrentCodeHolder()), true
+
+printableControls = (c.charCodeAt(0) for c in "\r\i\n\b")
+printable = (code)-> (code > 0xf and code < 37) or code > 40 or code in printableControls
+
+nonprintable = null
+(->
+  s=''
+  for i in [0..0xf]
+    s += String.fromCharCode(i)
+  s.replace /[\i\r\f]/g, ''
+  nonprintable = new RegExp("[#{s}]"))()
+
+clearAst = (box)->
+  cbox = getBox box
+  cbox?.ast = null
 
 #[node, positions]
 oldBrackets = [null, Leisure.Nil]
 
 highlightPosition = ->
+  #console.log "highlight"
   s = window.getSelection()
   if !s.rangeCount then return
   r = s.getRangeAt(0)
   parent = getBox r.startContainer
-  focusBox parent
-  if !parent? or parent.getAttribute('LeisureOutput')? then return
-  tr = document.createRange()
-  tr.setStart parent, 0
-  tr.setEnd r.endContainer, r.endOffset
-  pos = getRangeText(tr).length
-  txt = parent.textContent
-  ast = (Leisure.compileNext txt, Leisure.Nil, true, null, true)[0]
-  if ast?
-    offset = ast.leisureCodeOffset ? 0
-    brackets = Leisure.bracket ast.leisureBase, pos - offset
-    if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
-      oldBrackets = [parent, brackets]
-      for node in document.querySelectorAll "[LeisureBrackets]"
-        unwrap node
-      parent.normalize()
-      if ast?
-        b = brackets
-        while b != Leisure.Nil
-          span = document.createElement 'span'
-          span.setAttribute 'LeisureBrackets', ''
-          span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
-          r = makeRange parent, b.head.head + offset, b.head.tail.head + offset
-          contents = r.cloneContents()
-          replaceRange r, span
-          span.appendChild contents
-          b = b.tail
-      s.removeAllRanges()
-      parent.normalize()
-      s.addRange(makeRange parent, pos)
+  if !parent or parent.getAttribute('LeisureOutput')? then return
+  if parent.parentNode
+    focusBox parent
+    tr = document.createRange()
+    tr.setStart parent, 0
+    tr.setEnd r.endContainer, r.endOffset
+    pos = getRangeText(tr).length
+    ast = getAst parent
+    if ast?
+      offset = ast.leisureCodeOffset ? 0
+      brackets = Leisure.bracket ast.leisureBase, pos - offset
+      if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
+        oldBrackets = [parent, brackets]
+        for node in document.querySelectorAll "[LeisureBrackets]"
+          unwrap node
+        parent.normalize()
+        if ast?
+          b = brackets
+          while b != Leisure.Nil
+            span = document.createElement 'span'
+            span.setAttribute 'LeisureBrackets', ''
+            span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
+            r = makeRange parent, b.head.head + offset, b.head.tail.head + offset
+            contents = r.cloneContents()
+            replaceRange r, span
+            span.appendChild contents
+            b = b.tail
+        s.removeAllRanges()
+        parent.normalize()
+        s.addRange(makeRange parent, pos)
 
 replaceRange = (range, node)->
   range.deleteContents()
@@ -112,11 +126,12 @@ getBox = (node)->
     node = node.parentElement
   node
 
-checkMutateFromModification = (b)->
-  if b?
-    inDef = selInDef()
-    if inDef and b.classList.contains('codeMainExpr') then toDefBox b
-    else if !inDef and b.classList.contains('codeMain') then toExprBox b
+checkMutateFromModification = (evt)->
+  b = getBox evt.target
+  b2 = getBox window.getSelection().focusNode
+  if b and b == b2
+    if (isDef b) and b.classList.contains('codeMainExpr') then toDefBox b
+    else if !(isDef b) and b.classList.contains('codeMain') then toExprBox b
 
 toExprBox = (b)->
   b.classList.remove 'codeMain'
@@ -139,12 +154,17 @@ selInDef = (expectedClass)->
         return defType and box
   false
 
+isDef = (box)->
+  txt = box.textContent
+  if (m = txt.match Leisure.linePat)
+    [matched, leading, name, defType] = m
+    return defType?.length > 0
+  false
+
 checkMutateToDef = (e, el)->
-  if !el.replacing
-    s = window.getSelection()
-    r = s.getRangeAt(0)
-    if p = selInDef('codeMainExpr')
-      toDefBox p
+  parent = getBox el
+  if !parent.replacing and isDef parent and parent.classList.contains('codeMainExpr')
+    toDefBox p
 
 initNotebook = (el)->
   el.replacing = true
@@ -309,20 +329,24 @@ markupDefs = (el, defs)->
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode def)
-      bod = codeSpan (markPartialApplies bx, body), 'codeBody'
+      #bod = codeSpan (markPartialApplies bx, body), 'codeBody'
+      bod = codeSpan textNode(body), 'codeBody'
       bod.appendChild textNode('\n')
       bod.setAttribute('generatedNL', '')
       bx.appendChild bod
       bx.addEventListener 'blur', (-> evalDoc el), true
       bx.leisureOwner = el
+      markPartialApplies bx
       pgm += "#{name} #{def} #{body}\n"
     else if main?
       bx = box main, 'codeMainExpr', true
       bx.leisureOwner = el
-      s = codeSpan (markPartialApplies bx, body), 'codeExpr'
+      #s = codeSpan (markPartialApplies bx, body), 'codeExpr'
+      s = codeSpan textNode(body), 'codeExpr'
       s.setAttribute('generatedNL', '')
       s.appendChild textNode('\n')
       bx.appendChild s
+      markPartialApplies bx
       if main.leisureAuto then auto += "#{body}\n"
       else makeOutputBox(bx)
   [pgm, auto, totalTests]
@@ -333,26 +357,26 @@ getAst = (bx, def)->
     def = def || bx.textContent
     bx.ast = (Leisure.compileNext def, Leisure.Nil, true, null, true)[0]
 
+# mark partial applies within bx
 markPartialApplies = (bx, def)->
+  def = def ? bx.textContent
   ast = getAst bx, def
   partial = []
   ((Leisure.findFuncs(ast)) Leisure.Nil).each (f)->
     name = Leisure.getRefVar(f.head)
     arity = global[Leisure.nameSub(name)]?()?.leisureArity
     if (arity and f.tail.head < arity)
-      console.log("Partial: ", name)
       partial.push [f.head, arity, f.tail.head]
   if partial.length
     ranges = []
-    offset = ast.leisureDefPrefix ? 0
-    t = textNode(def)
-    span = document.createElement 'span'
-    span.appendChild t
+    offset = ast.leisureCodeOffset ? 0
+    # bx should contain a fresh expr span with the full code in it
+    t = bx.lastChild.firstChild
     for info in partial
       p = info[0]
       r = document.createRange()
-      r.setStart t, p.leisureStart
-      r.setEnd t, p.leisureEnd
+      r.setStart t, p.leisureStart + offset
+      r.setEnd t, p.leisureEnd + offset
       r.expected = info[1]
       r.actual = info[2]
       ranges.push r
@@ -365,12 +389,6 @@ markPartialApplies = (bx, def)->
       s.classList.add 'partialApply'
       s.appendChild c
       r.insertNode s
-    rn = document.createRange()
-    rn.selectNodeContents span
-    c = rn.extractContents()
-    console.log "contents: ", c
-    c
-  else textNode(def)
 
 textNode = (text)-> document.createTextNode(text)
 
@@ -382,7 +400,7 @@ evalOutput = (exBox)->
   cleanOutput exBox, true
   makeOutputControls exBox
   [updateSelector, stopUpdates] = getElements exBox.firstChild, ['chooseUpdate', 'stopUpdates']
-  updateSelector.addEventListener 'change', (evt)-> exBox.setAttribute 'leisureUpdate', evt.target.value
+  updateSelector.addEventListener 'change', (evt)-> setUpdate exBox, evt.target.value
   updateSelector.addEventListener 'keydown', (e)->
     c = (e.charCode || e.keyCode || e.which)
     if c == 13
@@ -392,6 +410,11 @@ evalOutput = (exBox)->
   stopUpdates.updateSelector = updateSelector
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
+setUpdate = (el, channel)->
+  el.setAttribute 'leisureUpdate', channel
+  ast = getAst el.source
+  #console.log 'update leading:', (el.textContent).substring(0, ast.leisureCodeOffset)
+
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
     exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>""")
@@ -399,7 +422,7 @@ makeOutputControls = (exBox)->
 clearUpdates = (widget)->
   exBox = getBox widget
   widget.updateSelector.value = ''
-  exBox.setAttribute 'leisureUpdate', ''
+  setUpdate exBox, ''
 
 update = (type, env)->
   env = env ? Prim.defaultEnv
@@ -407,8 +430,7 @@ update = (type, env)->
     evalOutput node
 
 clearOutputBox = (exBox)->
-  exBox = getBox exBox
-  exBox.setAttribute 'leisureUpdate', ''
+  clearUpdates exBox
   cleanOutput(exBox)
 
 cleanOutput = (exBox, preserveControls)->
@@ -459,7 +481,7 @@ clickTest = (bx)->
 
 runTest = (bx)->
   test = bx.test
-  console.log "RUNNING:\n #{test.expr}\nRESULT:\n #{test.result}"
+  #console.log "RUNNING:\n #{test.expr}\nRESULT:\n #{test.result}"
   passed = true
   ReplCore.processLine(prepExpr(test.expr), (
     require: req
@@ -636,11 +658,13 @@ makeRange = (el, off1, off2)->
 
 grp = (node, charOffset, end)->
   [child, offset] = ret = getRangePosition node.firstChild, charOffset, end
-  if !child? then nodeEnd node.lastChild
-  else ret
+  if child then ret
+  else if node.lastChild then nodeEnd node.lastChild
+  else [node, if end then 1 else 0]
 
 getRangePosition = (node, charOffset, end)->
-  if node.nodeType == 3
+  if !node then [null, charOffset]
+  else if node.nodeType == 3
     if node.length > (if end then charOffset - 1 else charOffset) then [node, charOffset]
     else continueRangePosition node, charOffset - node.length, end
   else if node.nodeName == 'BR'
@@ -696,7 +720,7 @@ findCurrentCodeHolder = ->
 
 focusBox = (box)->
   if box and box != oldFocus
-    if oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
+    #if oldFocus?.classList.contains 'codeMain' then evalDoc(box.leisureOwner)
     oldFocus = box
 
 evalDoc = (el)->
