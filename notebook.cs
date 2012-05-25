@@ -390,7 +390,7 @@ evalOutput = (exBox)->
       e.preventDefault()
       updateSelector.blur()
   updateSelector.value = (exBox.getAttribute 'leisureUpdate') or ''
-  stopUpdates.updateSelector = updateSelector
+  exBox.updateSelector = updateSelector
   ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
 
 setUpdate = (el, channel)->
@@ -404,7 +404,7 @@ makeOutputControls = (exBox)->
 
 clearUpdates = (widget)->
   exBox = getBox widget
-  widget.updateSelector.value = ''
+  exBox.updateSelector.value = ''
   setUpdate exBox, ''
 
 update = (type, env)->
@@ -688,7 +688,7 @@ queueAfterLoad = (func)-> postLoadQueue.push(func)
 ###
 oldFocus = null
 
-findCurrentCodeHolder = -> focusBox window.getSelection().focusNode
+findCurrentCodeHolder = -> focusBox window.getSelection()?.focusNode
 
 focusBox = (box)->
   while box and (box.nodeType != 1 or !(box.getAttribute 'leisureCode')?)

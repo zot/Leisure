@@ -559,7 +559,7 @@
       }
     });
     updateSelector.value = (exBox.getAttribute('leisureUpdate')) || '';
-    stopUpdates.updateSelector = updateSelector;
+    exBox.updateSelector = updateSelector;
     return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
   };
 
@@ -578,7 +578,7 @@
   clearUpdates = function clearUpdates(widget) {
     var exBox;
     exBox = getBox(widget);
-    widget.updateSelector.value = '';
+    exBox.updateSelector.value = '';
     return setUpdate(exBox, '');
   };
 
@@ -1007,7 +1007,8 @@
   oldFocus = null;
 
   findCurrentCodeHolder = function findCurrentCodeHolder() {
-    return focusBox(window.getSelection().focusNode);
+    var _ref;
+    return focusBox((_ref = window.getSelection()) != null ? _ref.focusNode : void 0);
   };
 
   focusBox = function focusBox(box) {
