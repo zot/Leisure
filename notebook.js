@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, oldFocus, postLoadQueue, prepExpr, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update,
+  var ENTER, Leisure, Prim, ReplCore, acceptCode, addsLine, arrows, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, handleKey, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -17,6 +17,8 @@
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
+  ENTER = 13;
+
   snapshot = function snapshot(el, pgm) {};
 
   setSnapper = function setSnapper(snapFunc) {
@@ -27,9 +29,11 @@
     return window.setTimeout(func, 1);
   };
 
+  arrows = [37, 38, 39, 40];
+
   bindNotebook = function bindNotebook(el) {
     if (!((document.getElementById('channelList')) != null)) {
-      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='editor'>editor</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
+      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='compile'>compile</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
     }
     Prim.defaultEnv.write = function write(msg) {
       return console.log(msg);
@@ -57,16 +61,15 @@
       el.addEventListener('click', (function(e) {
         return delay(highlightPosition);
       }), true);
-      el.addEventListener('keyup', function(e) {
-        var node;
-        node = getBox(window.getSelection().focusNode);
-        return highlightPosition();
-      });
       el.addEventListener('keydown', function(e) {
-        var _ref;
-        if (printable(e.charCode || e.keyCode || e.which)) {
-          return (_ref = getBox(window.getSelection().focusNode)) != null ? _ref.ast = null : void 0;
+        var c;
+        c = e.charCode || e.keyCode || e.which;
+        if (printable(c)) clearAst(getBox(window.getSelection().focusNode));
+        if ((__indexOf.call(arrows, c) >= 0) || printable(c)) {
+          delay(highlightPosition);
         }
+        if (e.ctrlKey && c === ENTER) handleKey("C-ENTER");
+        if (e.altKey && c === ENTER) return handleKey("M-ENTER");
       });
       el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
@@ -128,6 +131,25 @@
     return nonprintable = new RegExp("[" + s + "]");
   })();
 
+  handleKey = function handleKey(key) {
+    var box;
+    switch (key) {
+      case "C-ENTER":
+        box = getBox(window.getSelection().focusNode);
+        if ((box.getAttribute('codeMainExpr')) != null) {
+          return evalOutput(box.output);
+        } else if ((box.getAttribute('codeMain')) != null) {
+          return acceptCode(box);
+        }
+        break;
+      case "M-ENTER":
+        box = getBox(window.getSelection().focusNode);
+        if ((box.getAttribute('codeMainExpr')) != null) {
+          return clearOutputBox(box.output);
+        }
+    }
+  };
+
   clearAst = function clearAst(box) {
     var cbox;
     cbox = getBox(box);
@@ -137,7 +159,7 @@
   oldBrackets = [null, Leisure.Nil];
 
   highlightPosition = function highlightPosition() {
-    var ast, b, brackets, contents, node, offset, parent, pos, r, s, span, _i, _len, _ref, _ref2;
+    var ast, b, brackets, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3;
     s = window.getSelection();
     if (!s.rangeCount) return;
     focusBox(s.focusNode);
@@ -158,23 +180,41 @@
             node = _ref2[_i];
             unwrap(node);
           }
+          _ref3 = parent.querySelectorAll(".partialApply");
+          for (_j = 0, _len2 = _ref3.length; _j < _len2; _j++) {
+            node = _ref3[_j];
+            unwrap(node);
+          }
           parent.normalize();
+          markPartialApplies(parent);
           b = brackets;
+          ranges = [];
           while (b !== Leisure.Nil) {
-            span = document.createElement('span');
-            span.setAttribute('LeisureBrackets', '');
-            span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
-            r = makeRange(parent, b.head.head + offset, b.head.tail.head + offset);
-            contents = r.cloneContents();
-            replaceRange(r, span);
-            span.appendChild(contents);
+            ranges.push(makeRange(parent, b.head.head + offset, b.head.tail.head + offset));
             b = b.tail;
           }
+          for (i = 0, _len3 = ranges.length; i < _len3; i++) {
+            r = ranges[i];
+            span = document.createElement('span');
+            span.setAttribute('LeisureBrackets', '');
+            span.setAttribute('class', i === 0 ? 'LeisureFunc' : 'LeisureArg');
+            wrapRange(r, span);
+          }
           s.removeAllRanges();
-          parent.normalize();
           return s.addRange(makeRange(parent, pos));
         }
       }
+    }
+  };
+
+  wrapRange = function wrapRange(range, node) {
+    var contents;
+    try {
+      return range.surroundContents(node);
+    } catch (err) {
+      contents = range.cloneContents();
+      replaceRange(range, node);
+      return node.appendChild(contents);
     }
   };
 
@@ -208,14 +248,18 @@
   };
 
   toExprBox = function toExprBox(b) {
+    b.removeAttribute('codeMain');
     b.classList.remove('codeMain');
+    b.setAttribute('codeMainExpr', '');
     b.classList.add('codeMainExpr');
     return makeOutputBox(b);
   };
 
   toDefBox = function toDefBox(b) {
     if (b.output) b.parentNode.removeChild(b.output);
+    b.removeAttribute('codeMainExpr');
     b.classList.remove('codeMainExpr');
+    b.setAttribute('codeMain', '');
     return b.classList.add('codeMain');
   };
 
@@ -282,11 +326,11 @@
 
   insertControls = function insertControls(el) {
     var controlDiv, loadButton, processButton, spacer, testButton, themeSelect, viewSelect, _ref, _ref2;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button></div>\n</div>");
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <input type='checkbox' leisureId='autorunTests'><b>Auto</b></input>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button></div>\n</div>");
     spacer = createNode("<div LeisureOutput  contentEditable='false' class='leisure_space'></div>");
     el.insertBefore(spacer, el.firstChild);
     el.insertBefore(controlDiv, el.firstChild);
-    _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], themeSelect = _ref[5], viewSelect = _ref[6], processButton = _ref[7];
+    _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], el.autorun = _ref[5], themeSelect = _ref[6], viewSelect = _ref[7], processButton = _ref[8];
     loadButton.addEventListener('change', function(evt) {
       return loadProgram(el, loadButton.files);
     });
@@ -456,12 +500,10 @@
         bx.addEventListener('blur', (function() {
           return evalDoc(el);
         }), true);
-        bx.leisureOwner = el;
         markPartialApplies(bx);
         pgm += "" + name + " " + def + " " + body + "\n";
       } else if (main != null) {
         bx = box(main, 'codeMainExpr', true);
-        bx.leisureOwner = el;
         s = codeSpan(textNode(body), 'codeExpr');
         s.setAttribute('generatedNL', '');
         s.appendChild(textNode('\n'));
@@ -488,6 +530,7 @@
 
   markPartialApplies = function markPartialApplies(bx, def) {
     var ast, info, offset, p, partial, r, ranges, s, t, _i, _j, _len, _len2, _ref, _results;
+    bx.normalize();
     def = def != null ? def : bx.textContent;
     ast = getAst(bx, def);
     partial = [];
@@ -623,10 +666,13 @@
       expr: source.textContent,
       result: Repl.escapeHtml(Pretty.print(output.result))
     };
-    box = makeTestBox(test, exBox.leisureOwner);
+    box = makeTestBox(test, owner(exBox));
     source.parentNode.insertBefore(box, source);
     source.parentNode.removeChild(source);
-    return output.parentNode.removeChild(output);
+    output.parentNode.removeChild(output);
+    box.parentNode.insertBefore(textNode('\uFEFF'), box);
+    box.parentNode.insertBefore(textNode('\uFEFF'), box.nextSibling);
+    if (owner(box).autorun.checked) return clickTest(box);
   };
 
   makeTestBox = function makeTestBox(test, owner, src) {
@@ -637,12 +683,12 @@
     s.setAttribute('generatedNL', '');
     bx = codeBox('codeMainTest');
     bx.setAttribute('class', 'codeMainTest notrun');
+    bx.setAttribute('contenteditable', 'false');
     bx.appendChild(s);
     bx.addEventListener('click', (function() {
       return clickTest(bx);
     }), true);
     bx.test = test;
-    bx.leisureOwner = owner;
     return bx;
   };
 
@@ -712,7 +758,7 @@
       finishedEvent: function finishedEvent(evt, channel) {
         return update(channel != null ? channel : 'app', this);
       },
-      owner: box.leisureOwner,
+      owner: owner(box),
       require: req,
       write: function write(msg) {
         var div;
@@ -744,7 +790,6 @@
     node.setAttribute('class', 'output');
     node.setAttribute('contentEditable', 'false');
     node.source = source;
-    node.leisureOwner = source.leisureOwner;
     source.output = node;
     node.innerHTML = "<div><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>";
     source.parentNode.insertBefore(node, source.nextSibling);
@@ -934,14 +979,15 @@
   };
 
   getRangePosition = function getRangePosition(node, charOffset, end) {
-    var newNode, newOff, _ref;
+    var newNode, newOff, ret, _ref;
     if (!node) {
       return [null, charOffset];
     } else if (node.nodeType === 3) {
       if (node.length > (end ? charOffset - 1 : charOffset)) {
         return [node, charOffset];
       } else {
-        return continueRangePosition(node, charOffset - node.length, end);
+        ret = continueRangePosition(node, charOffset - node.length, end);
+        return ret;
       }
     } else if (node.nodeName === 'BR') {
       if (charOffset === (end ? 1 : 0)) {
@@ -1004,7 +1050,9 @@
   # handle focus manually, because grabbing focus and blur events doesn't seem to work for the parent
   */
 
-  oldFocus = null;
+  docFocus = null;
+
+  codeFocus = null;
 
   findCurrentCodeHolder = function findCurrentCodeHolder() {
     var _ref;
@@ -1012,13 +1060,38 @@
   };
 
   focusBox = function focusBox(box) {
+    var newCode, old;
+    newCode = null;
+    while (box && (box.nodeType !== 1 || !((box.getAttribute('leisureCode')) != null))) {
+      if (box.nodeType === 1 && ((box.getAttribute('LeisureBox')) != null)) {
+        newCode = box;
+      }
+      box = box.parentNode;
+    }
+    if (box !== docFocus) {
+      if (docFocus !== null) docFocus.classList.remove('focused');
+      docFocus = box;
+      if (box !== null) box.classList.add('focused');
+    }
+    if (newCode !== codeFocus) {
+      old = codeFocus;
+      codeFocus = newCode;
+      if (old) return acceptCode(old);
+    }
+  };
+
+  owner = function owner(box) {
     while (box && (box.nodeType !== 1 || !((box.getAttribute('leisureCode')) != null))) {
       box = box.parentNode;
     }
-    if (box !== oldFocus) {
-      if (oldFocus !== null) oldFocus.classList.remove('focused');
-      oldFocus = box;
-      if (box !== null) return box.classList.add('focused');
+    return box;
+  };
+
+  acceptCode = function acceptCode(box) {
+    if ((box.getAttribute('codemain')) != null) {
+      ReplCore.processLine(box.textContent, envFor(box), 'Leisure.');
+      update('compile');
+      if (owner(box).autorun.checked) return runTests(owner(box));
     }
   };
 

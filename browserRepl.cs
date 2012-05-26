@@ -32,7 +32,7 @@ init = (inputField, output)->
     if !ast.leisureName? and result?
       env.processResult?(result)
       env.write "<span><b> #{escapeHtml(trimEq(src))} \u2192</b>\n  #{ReplCore.getType result}: #{if (ReplCore.getType result) == 'html' then getHtml result else escapeHtml(Pretty.print result)}</span>\n"
-    else if env.processError? then env.processError ast
+    else if ast.err and env.processError? then env.processError ast
     ReplCore.processResult result, env
   ReplCore.setResetFunc clearEnv
   #input = inputField

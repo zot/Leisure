@@ -10,11 +10,15 @@ if window? and (!global? or global == window)
   Prim = window.Prim
 else root = exports ? this
 
+ENTER = 13
+
 snapshot = (el, pgm)->
 
 setSnapper = (snapFunc)-> snapshot = snapFunc
 
 delay = (func)-> window.setTimeout func, 1
+
+arrows = [37..40]
 
 bindNotebook = (el)->
   if !(document.getElementById 'channelList')?
@@ -22,7 +26,7 @@ bindNotebook = (el)->
 <datalist id='channelList'>
    <option value=''></option>
    <option value='app'>app</option>
-   <option value='editor'>editor</option>
+   <option value='compile'>compile</option>
    <option value='editorFocus'>editorFocus</option>
 </datalist>"""
   Prim.defaultEnv.write = (msg)->console.log msg
@@ -33,11 +37,12 @@ bindNotebook = (el)->
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
     el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
     el.addEventListener 'click', ((e)-> delay highlightPosition), true
-    el.addEventListener 'keyup', (e)->
-      node = getBox window.getSelection().focusNode
-      highlightPosition()
-    el.addEventListener 'keydown', (e)-> if printable(e.charCode || e.keyCode || e.which)
-      (getBox window.getSelection().focusNode)?.ast = null
+    el.addEventListener 'keydown', (e)->
+      c = (e.charCode || e.keyCode || e.which)
+      if printable c then clearAst getBox window.getSelection().focusNode
+      if (c in arrows) or printable c then delay(highlightPosition)
+      if e.ctrlKey and c == ENTER then handleKey("C-ENTER")
+      if e.altKey and c == ENTER then handleKey("M-ENTER")
     el.addEventListener 'keypress', (e)->
       s = window.getSelection()
       r = s.getRangeAt(0)
@@ -73,6 +78,16 @@ nonprintable = null
   s.replace /[\i\r\f]/g, ''
   nonprintable = new RegExp("[#{s}]"))()
 
+handleKey = (key)->
+  switch key
+    when "C-ENTER"
+      box = getBox window.getSelection().focusNode
+      if (box.getAttribute 'codeMainExpr')? then evalOutput box.output
+      else if (box.getAttribute 'codeMain')? then acceptCode box
+    when "M-ENTER"
+      box = getBox window.getSelection().focusNode
+      if (box.getAttribute 'codeMainExpr')? then clearOutputBox box.output
+
 clearAst = (box)->
   cbox = getBox box
   cbox?.ast = null
@@ -81,7 +96,6 @@ clearAst = (box)->
 oldBrackets = [null, Leisure.Nil]
 
 highlightPosition = ->
-  #console.log "highlight"
   s = window.getSelection()
   if !s.rangeCount then return
   focusBox s.focusNode
@@ -99,20 +113,31 @@ highlightPosition = ->
         oldBrackets = [parent, brackets]
         for node in document.querySelectorAll "[LeisureBrackets]"
           unwrap node
+        for node in parent.querySelectorAll ".partialApply"
+          unwrap node
         parent.normalize()
+        markPartialApplies parent
         b = brackets
+        ranges = []
         while b != Leisure.Nil
+          ranges.push (makeRange parent, b.head.head + offset, b.head.tail.head + offset)
+          b = b.tail
+        for r, i in ranges
           span = document.createElement 'span'
           span.setAttribute 'LeisureBrackets', ''
-          span.setAttribute 'class', if b == brackets then 'LeisureFunc' else 'LeisureArg'
-          r = makeRange parent, b.head.head + offset, b.head.tail.head + offset
-          contents = r.cloneContents()
-          replaceRange r, span
-          span.appendChild contents
-          b = b.tail
+          span.setAttribute 'class', if i == 0 then 'LeisureFunc' else 'LeisureArg'
+          wrapRange r, span
         s.removeAllRanges()
-        parent.normalize()
+        #parent.normalize()
         s.addRange(makeRange parent, pos)
+
+wrapRange = (range, node)->
+  try
+    range.surroundContents node
+  catch err
+    contents = range.cloneContents()
+    replaceRange range, node
+    node.appendChild contents
 
 replaceRange = (range, node)->
   range.deleteContents()
@@ -133,13 +158,17 @@ checkMutateFromModification = (evt)->
     else if !(isDef b) and b.classList.contains('codeMain') then toExprBox b
 
 toExprBox = (b)->
+  b.removeAttribute 'codeMain'
   b.classList.remove 'codeMain'
+  b.setAttribute 'codeMainExpr', ''
   b.classList.add 'codeMainExpr'
   makeOutputBox b
 
 toDefBox = (b)->
   if b.output then b.parentNode.removeChild b.output
+  b.removeAttribute 'codeMainExpr'
   b.classList.remove 'codeMainExpr'
+  b.setAttribute 'codeMain', ''
   b.classList.add 'codeMain'
 
 isDef = (box)->
@@ -196,6 +225,7 @@ insertControls = (el)->
   <a download='program.lsr' leisureId='downloadLink'>Download</a>
   <a target='_blank' leisureId='viewLink'>View</a>
   <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class="notrun"></span>
+  <input type='checkbox' leisureId='autorunTests'><b>Auto</b></input>
   <span class="leisure_theme">Theme: </span>
   <select leisureId='themeSelect'>
     <option value=thin>Thin</option>
@@ -215,7 +245,7 @@ insertControls = (el)->
   spacer = createNode "<div LeisureOutput  contentEditable='false' class='leisure_space'></div>"
   el.insertBefore spacer, el.firstChild
   el.insertBefore controlDiv, el.firstChild
-  [el.leisureDownloadLink, el.leisureViewLink, loadButton, testButton, el.testResults, themeSelect, viewSelect, processButton] = getElements el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']
+  [el.leisureDownloadLink, el.leisureViewLink, loadButton, testButton, el.testResults, el.autorun, themeSelect, viewSelect, processButton] = getElements el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect', 'processButton']
   loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
   testButton.addEventListener 'click', -> runTests el
   themeSelect.value = el.leisureTheme ? 'thin'
@@ -318,12 +348,10 @@ markupDefs = (el, defs)->
       bod.setAttribute('generatedNL', '')
       bx.appendChild bod
       bx.addEventListener 'blur', (-> evalDoc el), true
-      bx.leisureOwner = el
       markPartialApplies bx
       pgm += "#{name} #{def} #{body}\n"
     else if main?
       bx = box main, 'codeMainExpr', true
-      bx.leisureOwner = el
       #s = codeSpan (markPartialApplies bx, body), 'codeExpr'
       s = codeSpan textNode(body), 'codeExpr'
       s.setAttribute('generatedNL', '')
@@ -343,6 +371,7 @@ getAst = (bx, def)->
 # mark partial applies within bx
 # the last child of bx should be a fresh expr span with the full code in it
 markPartialApplies = (bx, def)->
+  bx.normalize()
   def = def ? bx.textContent
   ast = getAst bx, def
   partial = []
@@ -431,10 +460,14 @@ makeTestCase = (exBox)->
   test =
     expr: source.textContent
     result: Repl.escapeHtml(Pretty.print(output.result))
-  box = makeTestBox test, exBox.leisureOwner
+  box = makeTestBox test, owner(exBox)
   source.parentNode.insertBefore box, source
   source.parentNode.removeChild source
   output.parentNode.removeChild output
+  # semi-fix to allow you to position the caret properly before and after a test case
+  box.parentNode.insertBefore textNode('\uFEFF'), box
+  box.parentNode.insertBefore textNode('\uFEFF'), box.nextSibling
+  if owner(box).autorun.checked then clickTest(box)
 
 makeTestBox = (test, owner, src)->
   src = src ? "#@test #{JSON.stringify test}"
@@ -443,10 +476,10 @@ makeTestBox = (test, owner, src)->
   s.setAttribute('generatedNL', '')
   bx = codeBox 'codeMainTest'
   bx.setAttribute 'class', 'codeMainTest notrun'
+  bx.setAttribute 'contenteditable', 'false'
   bx.appendChild s
   bx.addEventListener 'click', (-> clickTest bx), true
   bx.test = test
-  bx.leisureOwner = owner
   bx
 
 clickTest = (bx)->
@@ -492,7 +525,7 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 envFor = (box)->
   exBox = getBox box
   finishedEvent: (evt, channel)->update(channel ? 'app', this)
-  owner: box.leisureOwner
+  owner: owner(box)
   require: req
   write: (msg)->
     div = document.createElement('div')
@@ -513,7 +546,6 @@ makeOutputBox = (source)->
   node.setAttribute 'class', 'output'
   node.setAttribute 'contentEditable', 'false'
   node.source = source
-  node.leisureOwner = source.leisureOwner
   source.output = node
   node.innerHTML = "<div><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>"
   source.parentNode.insertBefore node, source.nextSibling
@@ -649,7 +681,9 @@ getRangePosition = (node, charOffset, end)->
   if !node then [null, charOffset]
   else if node.nodeType == 3
     if node.length > (if end then charOffset - 1 else charOffset) then [node, charOffset]
-    else continueRangePosition node, charOffset - node.length, end
+    else
+      ret = continueRangePosition node, charOffset - node.length, end
+      ret
   else if node.nodeName == 'BR'
     if charOffset == (if end then 1 else 0) then [node]
     else continueRangePosition node, charOffset, end
@@ -686,17 +720,36 @@ queueAfterLoad = (func)-> postLoadQueue.push(func)
 ###
 # handle focus manually, because grabbing focus and blur events doesn't seem to work for the parent
 ###
-oldFocus = null
+docFocus = null
+codeFocus = null
 
 findCurrentCodeHolder = -> focusBox window.getSelection()?.focusNode
 
 focusBox = (box)->
+  newCode = null
+  while box and (box.nodeType != 1 or !(box.getAttribute 'leisureCode')?)
+    if box.nodeType == 1 and (box.getAttribute 'LeisureBox')? then newCode = box
+    box = box.parentNode
+  if box != docFocus
+    if docFocus != null then docFocus.classList.remove 'focused'
+    docFocus = box
+    if box != null then box.classList.add 'focused'
+  if newCode != codeFocus
+    old = codeFocus
+    codeFocus = newCode
+    if old then acceptCode old
+    #if newCode then console.log "Code box gained focus: #{newCode}"
+
+owner = (box)->
   while box and (box.nodeType != 1 or !(box.getAttribute 'leisureCode')?)
     box = box.parentNode
-  if box != oldFocus
-    if oldFocus != null then oldFocus.classList.remove 'focused'
-    oldFocus = box
-    if box != null then box.classList.add 'focused'
+  box
+
+acceptCode = (box)->
+  if (box.getAttribute 'codemain')?
+    ReplCore.processLine box.textContent, envFor(box), 'Leisure.'
+    update 'compile'
+    if owner(box).autorun.checked then runTests owner(box)
 
 evalDoc = (el)->
   [pgm, auto] = initNotebook(el)

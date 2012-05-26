@@ -91,7 +91,7 @@ handleVar = (name, value, env)->
   else vars[name][0] = !(value[0] in ['f', 'F'])
 
 # rewrite in Leisure
-processLine = (line, env)->
+processLine = (line, env, namespace)->
   env = env ? Prim.defaultEnv
   try
     if line
@@ -111,11 +111,11 @@ processLine = (line, env)->
       else if (line.trim() == ':q') then process.exit(0)
       else
         [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-        [ast, err] = Leisure.compileNext(line, getGlobals(), false, false)
+        [ast, err] = Leisure.compileNext(line, getGlobals(), false, false, namespace)
         if err?
           if ast? then ast.err = err
           else ast = {err: err}
-        else [ast, result] = if r then Leisure.evalNext(line) else [ast, null]
+        else [ast, result] = if r then Leisure.evalNext(line, namespace) else [ast, null]
         return handlerFunc(ast, result, a, c, r, line, env)
   catch err
     env.write(err.stack)

@@ -124,7 +124,8 @@ global.leisureGetFuncs = -> ll
 global.noredefs = true
 
 # use AST, instead of arity?
-define = (name, func, arity) ->
+define = (name, func, arity, src) ->
+  func.src = src
   nm = nameSub(name)
   func.leisureName = name
   func.leisureArity = arity
@@ -188,7 +189,7 @@ astBrackets = (ast)-> brackets(ast.leisureStart, ast.leisureEnd)
 
 # bracket application parts in ast for position
 bracket = (ast, pos)->
-  if within ast, pos
+  if ast? and within ast, pos
     switch getAstType ast
       when 'ref', 'lit'
         if within ast, pos then cons(astBrackets(ast), Nil)
@@ -252,7 +253,7 @@ class Code
     if deref then @unreffedValue(deref)
     else @copyWith "(function(){var $m; return function(){return $m || ($m = (#{@main}))}})()"
 
-dgen = (ast, lazy, name, globals, tokenDef)->
+dgen = (ast, lazy, name, globals, tokenDef, namespace, src)->
   ast.lits = []
   res = []
   code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name) #.memo(!lazy)
@@ -260,11 +261,11 @@ dgen = (ast, lazy, name, globals, tokenDef)->
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
   #{code.subfuncs}
-  return #{if name? then "#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1})" else code.main}
+  return #{if name? then "#{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'})" else code.main}
 })()
     """
   else ast.src = if name? then """
-#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
+#{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 
 """ else "(#{code.main})"
   ast.globals = code.global
@@ -350,12 +351,12 @@ prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\'
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
 
 # returns [ast, err, rest]
-compileNext = (line, globals, parseOnly, check, nomacros)->
+compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
   if line[0] == '='
-    rest = line.substring 1
-    ifParsed (if nomacros then parseApplyNew rest, Nil else parseFull rest), ((ast, rest)->
+    rest1 = line.substring 1
+    ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = 0
-      genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr #{snip line}"
+      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length)), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     if name[0] == ' '
@@ -382,21 +383,21 @@ compileNext = (line, globals, parseOnly, check, nomacros)->
           if nm.length == 1 then nameAst(nm[0], ast)
           ast.leisurePrefixSrcLen = pfx.length
           ast.leisurePrefixCount = nm.length
-          genCode ast, nm[0], globals, defType, rest, parseOnly), errPrefix
+          genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length)), errPrefix
     else ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = line.length - rest1.length
       ast.leisureBase = ast
-      genCode ast, null, globals, null, rest, parseOnly), "Error compiling expr:  #{snip line}"
+      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length)), "Error compiling expr:  #{snip line}"
   else [null, null, null]
 
-genCode = (ast, name, globals, defType, rest, parseOnly)->
-  if !parseOnly then dgen ast, false, name, globals, defType
+genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src)->
+  if !parseOnly then dgen ast, false, name, globals, defType, namespace, src
   if ast.err? and name? then ast.err = "Error while compiling #{name}: #{ast.err}"
   [ast, ast.err, rest]
 
 #returns [ast, result]
-evalNext = (code)->
-  [ast, err, rest] = compileNext code, null
+evalNext = (code, namespace)->
+  [ast, err, rest] = compileNext code, null, null, null, null, namespace
   if ast
     if ast.leisureName
       try

@@ -56,7 +56,7 @@
       if (!(ast.leisureName != null) && (result != null)) {
         if (typeof env.processResult === "function") env.processResult(result);
         env.write("<span><b> " + (escapeHtml(trimEq(src))) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + ((ReplCore.getType(result)) === 'html' ? getHtml(result) : escapeHtml(Pretty.print(result))) + "</span>\n");
-      } else if (env.processError != null) {
+      } else if (ast.err && (env.processError != null)) {
         env.processError(ast);
       }
       return ReplCore.processResult(result, env);

@@ -255,8 +255,9 @@ misrepresented as being the original software.
 
   global.noredefs = true;
 
-  define = function define(name, func, arity) {
+  define = function define(name, func, arity, src) {
     var f, nm;
+    func.src = src;
     nm = nameSub(name);
     func.leisureName = name;
     func.leisureArity = arity;
@@ -407,7 +408,7 @@ misrepresented as being the original software.
   };
 
   bracket = function bracket(ast, pos) {
-    if (within(ast, pos)) {
+    if ((ast != null) && within(ast, pos)) {
       switch (getAstType(ast)) {
         case 'ref':
         case 'lit':
@@ -565,7 +566,7 @@ misrepresented as being the original software.
 
   })();
 
-  dgen = function dgen(ast, lazy, name, globals, tokenDef) {
+  dgen = function dgen(ast, lazy, name, globals, tokenDef, namespace, src) {
     var code, res;
     ast.lits = [];
     res = [];
@@ -573,9 +574,9 @@ misrepresented as being the original software.
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
-      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ")" : code.main) + "\n})()";
+      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ")" : code.main) + "\n})()";
     } else {
-      ast.src = name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
+      ast.src = name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
     }
     ast.globals = code.global;
     return ast;
@@ -732,13 +733,13 @@ misrepresented as being the original software.
     }
   };
 
-  compileNext = function compileNext(line, globals, parseOnly, check, nomacros) {
-    var def, defType, errPrefix, leading, matched, name, nm, pfx, rest, rest1;
+  compileNext = function compileNext(line, globals, parseOnly, check, nomacros, namespace) {
+    var def, defType, errPrefix, leading, matched, name, nm, pfx, rest1;
     if (line[0] === '=') {
-      rest = line.substring(1);
-      return ifParsed((nomacros ? parseApplyNew(rest, Nil) : parseFull(rest)), (function(ast, rest) {
+      rest1 = line.substring(1);
+      return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
         ast.leisureCodeOffset = 0;
-        return genCode(ast, null, globals, null, rest, parseOnly);
+        return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length));
       }), "Error compiling expr " + (snip(line)));
     } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
@@ -773,14 +774,14 @@ misrepresented as being the original software.
             if (nm.length === 1) nameAst(nm[0], ast);
             ast.leisurePrefixSrcLen = pfx.length;
             ast.leisurePrefixCount = nm.length;
-            return genCode(ast, nm[0], globals, defType, rest, parseOnly);
+            return genCode(ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length));
           }), errPrefix);
         }
       } else {
         return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
           ast.leisureCodeOffset = line.length - rest1.length;
           ast.leisureBase = ast;
-          return genCode(ast, null, globals, null, rest, parseOnly);
+          return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length));
         }), "Error compiling expr:  " + (snip(line)));
       }
     } else {
@@ -788,17 +789,17 @@ misrepresented as being the original software.
     }
   };
 
-  genCode = function genCode(ast, name, globals, defType, rest, parseOnly) {
-    if (!parseOnly) dgen(ast, false, name, globals, defType);
+  genCode = function genCode(ast, name, globals, defType, rest, parseOnly, namespace, src) {
+    if (!parseOnly) dgen(ast, false, name, globals, defType, namespace, src);
     if ((ast.err != null) && (name != null)) {
       ast.err = "Error while compiling " + name + ": " + ast.err;
     }
     return [ast, ast.err, rest];
   };
 
-  evalNext = function evalNext(code) {
+  evalNext = function evalNext(code, namespace) {
     var ast, err, nm, rest, result, _ref;
-    _ref = compileNext(code, null), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = compileNext(code, null, null, null, null, namespace), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (ast) {
       if (ast.leisureName) {
         try {
