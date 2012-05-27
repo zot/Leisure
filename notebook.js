@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getExprSource, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -172,7 +172,7 @@
   highlightPosition = function highlightPosition() {
     var ast, b, brackets, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3;
     s = window.getSelection();
-    if (!s.rangeCount) return;
+    if (!s.rangeCount || !s.getRangeAt(0).collapsed) return;
     focusBox(s.focusNode);
     parent = getBox(s.focusNode);
     if (!parent || (parent.getAttribute('LeisureOutput') != null)) return;
@@ -619,7 +619,18 @@
     });
     updateSelector.value = (exBox.getAttribute('leisureUpdate')) || '';
     exBox.updateSelector = updateSelector;
-    return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
+    return ReplCore.processLine(prepExpr(getExprSource(exBox.source)), envFor(exBox));
+  };
+
+  getExprSource = function getExprSource(box) {
+    var b, s;
+    s = window.getSelection();
+    b = getBox(s.focusNode);
+    if (b !== box || !s.rangeCount || s.getRangeAt(0).collapsed) {
+      return box.textContent;
+    } else {
+      return getRangeText(s.getRangeAt(0));
+    }
   };
 
   setUpdate = function setUpdate(el, channel) {
@@ -1198,7 +1209,7 @@
     if ((el = document.getElementById(id))) {
       return el;
     } else {
-      svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'></text></svg>");
+      svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'>bubba</text></svg>");
       document.body.appendChild(svg);
       return document.getElementById(id);
     }
@@ -1227,16 +1238,24 @@
 
   svgMeasure = function svgMeasure(content) {
     return function(f) {
-      var bx, node, pad, svg, _ref;
-      svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>" + (content()) + "</g></svg>");
+      var bx, node, pad, svg, x1, x2, y1, y2, _i, _len, _ref, _ref2;
+      svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'>" + (content()) + "</svg>");
       document.body.appendChild(svg);
-      node = svg.firstElementChild.firstElementChild;
-      bx = node.getBBox();
-      svg.setAttribute('width', (_ref = getComputedStyle(node).strokeWidth) != null ? _ref : 0);
-      pad = svg.width.baseVal.value;
-      console.log("pad: " + pad);
+      x1 = y1 = Number.MAX_VALUE;
+      x2 = y2 = Number.MIN_VALUE;
+      _ref = svg.childNodes;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        node = _ref[_i];
+        bx = node.getBBox();
+        svg.setAttribute('width', (_ref2 = getComputedStyle(node).strokeWidth) != null ? _ref2 : 0);
+        pad = svg.width.baseVal.value;
+        x1 = Math.min(x1, bx.x - pad / 2);
+        y1 = Math.min(y1, bx.y - pad / 2);
+        x2 = Math.max(x2, bx.x + bx.width + pad);
+        y2 = Math.max(y2, bx.y + bx.height + pad);
+      }
       document.body.removeChild(svg);
-      return f()(laz(bx.x - pad / 2))(laz(bx.y - pad / 2))(laz(bx.width + pad))(laz(bx.height + pad));
+      return f()(laz(x1))(laz(y1))(laz(x2 - x1))(laz(y2 - y1));
     };
   };
 

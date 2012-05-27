@@ -20,7 +20,7 @@ default-polygon-map = hash-from-list [ 'points', '350,75  379,161 469,161 397,21
 
 svg-node contents = \f . f contents
 
-svg-nodes nodeList = nodeList (\h t D . cons (h id) (nodeList t)) nil
+svg-nodes nodeList = nodeList (\h t D . cons (h id) (svg-nodes t)) nil
 
 svg-concat nodeList = svg-node (concat (svg-nodes nodeList))
 

@@ -62,8 +62,8 @@ root.defs._default$_polygon$_map = _default$_polygon$_map = define('default-poly
 //svg-node = AST(\contents f . f contents)
 root.defs._svg$_node = _svg$_node = define('svg-node', setDataType(function(_contents){return setType(function(_f){return _f()(_contents)}, 'svg-node')}, 'svg-node'), 1, "\\contents. \\f . f contents");
 ;
-//svg-nodes = AST(\nodeList . nodeList \h t D . cons (h id) (nodeList t) nil)
-root.defs._svg$_nodes = _svg$_nodes = define('svg-nodes', function(_nodeList){return _nodeList()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _cons()((function(){var $m; return function(){return $m || ($m = (_h()(_id)))}})())((function(){var $m; return function(){return $m || ($m = (_nodeList()(_t)))}})())}}}))}})())(_nil)}, 1, "\\nodeList. nodeList (\\h t D . cons (h id) (nodeList t)) nil");
+//svg-nodes = AST(\nodeList . nodeList \h t D . cons (h id) (svg-nodes t) nil)
+root.defs._svg$_nodes = _svg$_nodes = define('svg-nodes', function(_nodeList){return _nodeList()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _cons()((function(){var $m; return function(){return $m || ($m = (_h()(_id)))}})())((function(){var $m; return function(){return $m || ($m = (_svg$_nodes()(_t)))}})())}}}))}})())(_nil)}, 1, "\\nodeList. nodeList (\\h t D . cons (h id) (svg-nodes t)) nil");
 ;
 //svg-concat = AST(\nodeList . svg-node (concat (svg-nodes nodeList)))
 root.defs._svg$_concat = _svg$_concat = define('svg-concat', function(_nodeList){return _svg$_node()((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_svg$_nodes()(_nodeList)))}})())))}})())}, 1, "\\nodeList. svg-node (concat (svg-nodes nodeList))");

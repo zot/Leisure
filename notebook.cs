@@ -103,7 +103,7 @@ oldBrackets = [null, Leisure.Nil]
 
 highlightPosition = ->
   s = window.getSelection()
-  if !s.rangeCount then return
+  if !s.rangeCount or !s.getRangeAt(0).collapsed then return
   focusBox s.focusNode
   parent = getBox s.focusNode
   if !parent or parent.getAttribute('LeisureOutput')? then return
@@ -430,7 +430,13 @@ evalOutput = (exBox)->
       updateSelector.blur()
   updateSelector.value = (exBox.getAttribute 'leisureUpdate') or ''
   exBox.updateSelector = updateSelector
-  ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox))
+  ReplCore.processLine(prepExpr(getExprSource exBox.source), envFor(exBox))
+
+getExprSource = (box)->
+  s = window.getSelection()
+  b = getBox s.focusNode
+  if b != box or !s.rangeCount or s.getRangeAt(0).collapsed then box.textContent
+  else getRangeText s.getRangeAt(0)
 
 setUpdate = (el, channel)->
   el.setAttribute 'leisureUpdate', channel
@@ -770,11 +776,9 @@ evalDoc = (el)->
       Notebook.queueAfterLoad ->
         Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
         if el.autorunState then runTests el
-      #Leisure.eval(ReplCore.generateCode('_auto', auto, false))
       e = envFor(el)
       e.write = ->
       e.processError = (ast)->alert(ast.err)
-      #ReplCore.processLine(auto, e, 'Leisure.')
       ReplCore.processLine(auto, e)
     else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
   catch err
@@ -806,7 +810,7 @@ laz = Leisure.laz
 getSvgElement = (id)->
   if (el = document.getElementById id) then el
   else
-    svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'></text></svg>"
+    svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'>bubba</text></svg>"
     document.body.appendChild(svg)
     document.getElementById id
 
@@ -823,16 +827,21 @@ primconcatNodes = (nodes)->
 
 # try to take strokeWidth into account
 svgMeasure = (content)->(f)->
-  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>#{content()}</g></svg>"
+  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'>#{content()}</svg>"
   document.body.appendChild(svg)
-  node = svg.firstElementChild.firstElementChild
-  bx = node.getBBox()
-  #hack to parse strokeWidth string by setting the width of the svg to it
-  svg.setAttribute 'width', (getComputedStyle(node).strokeWidth ? 0)
-  pad = svg.width.baseVal.value
-  console.log "pad: #{pad}"
+  x1 = y1 = Number.MAX_VALUE
+  x2 = y2 = Number.MIN_VALUE
+  for node in svg.childNodes
+    bx = node.getBBox()
+    #hack to parse strokeWidth string by setting the width of the svg to it
+    svg.setAttribute 'width', (getComputedStyle(node).strokeWidth ? 0)
+    pad = svg.width.baseVal.value
+    x1 = Math.min(x1, bx.x - pad / 2)
+    y1 = Math.min(y1, bx.y - pad / 2)
+    x2 = Math.max(x2, bx.x + bx.width + pad)
+    y2 = Math.max(y2, bx.y + bx.height + pad)
   document.body.removeChild(svg)
-  f()(laz(bx.x - pad / 2))(laz(bx.y - pad / 2))(laz(bx.width + pad))(laz(bx.height + pad))
+  f()(laz(x1))(laz(y1))(laz(x2 - x1))(laz(y2 - y1))
 
 presentSvgNode = (node)->
   content = node(laz(id))
