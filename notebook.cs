@@ -71,6 +71,7 @@ bindNotebook = (el)->
         s.addRange(r)
     el.addEventListener 'focus', (-> findCurrentCodeHolder()), true
     el.addEventListener 'blur', (-> findCurrentCodeHolder()), true
+    el.autorunState = false
 
 printableControls = (c.charCodeAt(0) for c in "\r\i\n\b")
 printable = (code)-> (code > 0xf and code < 37) or code > 40 or code in printableControls
@@ -257,6 +258,10 @@ insertControls = (el)->
   themeSelect.addEventListener 'change', (evt)-> changeTheme el, evt.target.value
   viewSelect.addEventListener 'change', (evt)-> changeView el, evt.target.value
   processButton.addEventListener 'click', -> evalDoc el
+  el.autorun.checked = el.autorunState
+  el.autorun.addEventListener 'change', (evt)->
+    el.autorunState = el.autorun.checked
+    if el.autorun.checked then runTests el
   configureSaveLink(el)
 
 getElements = (el, ids)->
@@ -593,7 +598,7 @@ findDefs = (el)->
     else break
   ranges
 
-testPat = /#@test([^\n]*)\n/
+testPat = /(#@test([^\n]*))\n/
 
 getRanges = (el, txt, rest, def, restOff)->
     [matched, leading, nameRaw, defType] = m = def
@@ -612,13 +617,13 @@ getRanges = (el, txt, rest, def, restOff)->
       next = if endPat then rest1.substring(endPat.index) else rest1
       mainEnd = txt.length - next.length
       t = leading
-      tOff = restOff
+      leadOff = tOff = restOff
       while m2 = t.match testPat
-        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[0].length)
-        r.leisureTest = JSON.parse(m2[1])
+        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[1].length)
+        r.leisureTest = JSON.parse(m2[2])
         tests.push r
-        tOff += m2.index + m2[0].length
-        t = leading.substring tOff
+        tOff += m2.index + m2[1].length
+        t = leading.substring tOff - leadOff
       if name?
         mainStart = matchStart + (leading?.length ? 0)
         nameEnd = mainStart + name.length
@@ -764,7 +769,13 @@ evalDoc = (el)->
       global.noredefs = false
       Notebook.queueAfterLoad ->
         Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
-      Leisure.eval(ReplCore.generateCode('_auto', auto, false))
+        if el.autorunState then runTests el
+      #Leisure.eval(ReplCore.generateCode('_auto', auto, false))
+      e = envFor(el)
+      e.write = ->
+      e.processError = (ast)->alert(ast.err)
+      #ReplCore.processLine(auto, e, 'Leisure.')
+      ReplCore.processLine(auto, e)
     else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
   catch err
     console.log err
@@ -776,6 +787,16 @@ Leisure.define 'finishLoading', (bubba)->
       i()
     postLoadQueue = []
     cont(_false())
+
+Leisure.define 'config', (name)->(value)->
+  Prim.makeMonad (env, cont)->
+    switch name()
+      when 'autoTest' then autoRun(env.owner, true)
+    cont(_false())
+
+autoRun = (el, state)->
+  el.autorunState = state
+  el.autorun?.checked = state
 
 head = (l)->l ->(hh)->(tt)->hh()
 tail = (l)->l ->(hh)->(tt)->tt()

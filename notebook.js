@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -108,9 +108,10 @@
       el.addEventListener('focus', (function() {
         return findCurrentCodeHolder();
       }), true);
-      return el.addEventListener('blur', (function() {
+      el.addEventListener('blur', (function() {
         return findCurrentCodeHolder();
       }), true);
+      return el.autorunState = false;
     }
   };
 
@@ -356,6 +357,11 @@
     });
     processButton.addEventListener('click', function() {
       return evalDoc(el);
+    });
+    el.autorun.checked = el.autorunState;
+    el.autorun.addEventListener('change', function(evt) {
+      el.autorunState = el.autorun.checked;
+      if (el.autorun.checked) return runTests(el);
     });
     return configureSaveLink(el);
   };
@@ -862,10 +868,10 @@
     return ranges;
   };
 
-  testPat = /#@test([^\n]*)\n/;
+  testPat = /(#@test([^\n]*))\n/;
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var body, bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, lm, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, textStart, _ref, _ref2, _ref3;
+    var body, bodyStart, defType, endPat, ex, exEnd, leadOff, leading, leadingSpaces, lm, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, textStart, _ref, _ref2, _ref3;
     _ref = m = def, matched = _ref[0], leading = _ref[1], nameRaw = _ref[2], defType = _ref[3];
     if (!rest.trim()) {
       return null;
@@ -887,13 +893,13 @@
       next = endPat ? rest1.substring(endPat.index) : rest1;
       mainEnd = txt.length - next.length;
       t = leading;
-      tOff = restOff;
+      leadOff = tOff = restOff;
       while (m2 = t.match(testPat)) {
-        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[0].length);
-        r.leisureTest = JSON.parse(m2[1]);
+        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[1].length);
+        r.leisureTest = JSON.parse(m2[2]);
         tests.push(r);
-        tOff += m2.index + m2[0].length;
-        t = leading.substring(tOff);
+        tOff += m2.index + m2[1].length;
+        t = leading.substring(tOff - leadOff);
       }
       if (name != null) {
         mainStart = matchStart + ((_ref2 = leading != null ? leading.length : void 0) != null ? _ref2 : 0);
@@ -1106,16 +1112,22 @@
   };
 
   evalDoc = function evalDoc(el) {
-    var auto, pgm, _ref;
+    var auto, e, pgm, _ref;
     _ref = initNotebook(el), pgm = _ref[0], auto = _ref[1];
     try {
       if (auto) {
         auto = "do\n  " + (auto.trim().replace(/\n/g, '\n  ')) + "\n  finishLoading 'fred'";
         global.noredefs = false;
         Notebook.queueAfterLoad(function() {
-          return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
+          Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
+          if (el.autorunState) return runTests(el);
         });
-        return Leisure.eval(ReplCore.generateCode('_auto', auto, false));
+        e = envFor(el);
+        e.write = function write() {};
+        e.processError = function processError(ast) {
+          return alert(ast.err);
+        };
+        return ReplCore.processLine(auto, e);
       } else {
         return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
       }
@@ -1136,6 +1148,24 @@
       return cont(_false());
     });
   });
+
+  Leisure.define('config', function(name) {
+    return function(value) {
+      return Prim.makeMonad(function(env, cont) {
+        switch (name()) {
+          case 'autoTest':
+            autoRun(env.owner, true);
+        }
+        return cont(_false());
+      });
+    };
+  });
+
+  autoRun = function autoRun(el, state) {
+    var _ref;
+    el.autorunState = state;
+    return (_ref = el.autorun) != null ? _ref.checked = state : void 0;
+  };
 
   head = function head(l) {
     return l(function() {
