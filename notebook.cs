@@ -747,9 +747,9 @@ focusBox = (box)->
     if box.nodeType == 1 and (box.getAttribute 'LeisureBox')? then newCode = box
     box = box.parentNode
   if box != docFocus
-    if docFocus != null then docFocus.classList.remove 'focused'
+    docFocus?.classList.remove 'focused'
     docFocus = box
-    if box != null then box.classList.add 'focused'
+    box.classList?.add 'focused'
   if newCode != codeFocus
     old = codeFocus
     codeFocus = newCode
@@ -825,21 +825,31 @@ primconcatNodes = (nodes)->
   if nodes == _nil() then ""
   else (head nodes)(id) + concatNodes tail nodes
 
+transformedPoint = (pt, x, y, ctm, ictm)->
+  pt.x = x
+  pt.y = y
+  pt.matrixTransform(ctm).matrixTransform(ictm)
+
 # try to take strokeWidth into account
 svgMeasure = (content)->(f)->
   svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'>#{content()}</svg>"
   document.body.appendChild(svg)
   x1 = y1 = Number.MAX_VALUE
   x2 = y2 = Number.MIN_VALUE
+  pt = svg.createSVGPoint()
+  isctm = svg.getScreenCTM().inverse()
   for node in svg.childNodes
     bx = node.getBBox()
     #hack to parse strokeWidth string by setting the width of the svg to it
     svg.setAttribute 'width', (getComputedStyle(node).strokeWidth ? 0)
-    pad = svg.width.baseVal.value
-    x1 = Math.min(x1, bx.x - pad / 2)
-    y1 = Math.min(y1, bx.y - pad / 2)
-    x2 = Math.max(x2, bx.x + bx.width + pad)
-    y2 = Math.max(y2, bx.y + bx.height + pad)
+    pad = svg.width.baseVal.value / 2
+    ctm = node.getScreenCTM()
+    tp1 = transformedPoint pt, bx.x - Math.ceil(pad), bx.y - Math.ceil(pad), ctm, isctm
+    tp2 = transformedPoint pt, bx.x + bx.width + Math.ceil(pad), bx.y + bx.height + Math.ceil(pad), ctm, isctm
+    x1 = Math.min(Math.min(x1, tp1.x), tp2.x)
+    y1 = Math.min(Math.min(y1, tp1.y), tp2.y)
+    x2 = Math.max(Math.max(x2, tp1.x), tp2.x)
+    y2 = Math.max(Math.max(y2, tp1.y), tp2.y)
   document.body.removeChild(svg)
   f()(laz(x1))(laz(y1))(laz(x2 - x1))(laz(y2 - y1))
 

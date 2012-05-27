@@ -1,0 +1,22 @@
+<html>
+  <head><script src="bootLeisure.js"></script>
+<link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'></head>
+  <body leisureCode class="thin">
+#@auto
+do
+  require 'maps'
+  require 'svg'
+  require 'parseAst'
+
+box-svg (textBox greenStyle 'lambda')
+subtree-svg (subtreeFor (parse '1' id false))
+treeFor (parse '1' id false)
+subtree-svg (subtreeFor (parse 'cons 1' id false))
+treeFor (parse 'cons 1' id false)
+subtreeFor (parse (funcSource and id false) id id)
+treeFor (parse (funcSource and id false) id id)
+
+svg-concat [(rect nil), (circle nil)]
+
+  </body>
+</html>

@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getExprSource, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getExprSource, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformedPoint, unwrap, update, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -1087,7 +1087,7 @@
   };
 
   focusBox = function focusBox(box) {
-    var newCode, old;
+    var newCode, old, _ref;
     newCode = null;
     while (box && (box.nodeType !== 1 || !((box.getAttribute('leisureCode')) != null))) {
       if (box.nodeType === 1 && ((box.getAttribute('LeisureBox')) != null)) {
@@ -1096,9 +1096,9 @@
       box = box.parentNode;
     }
     if (box !== docFocus) {
-      if (docFocus !== null) docFocus.classList.remove('focused');
+      if (docFocus != null) docFocus.classList.remove('focused');
       docFocus = box;
-      if (box !== null) box.classList.add('focused');
+      if ((_ref = box.classList) != null) _ref.add('focused');
     }
     if (newCode !== codeFocus) {
       old = codeFocus;
@@ -1236,23 +1236,34 @@
     }
   };
 
+  transformedPoint = function transformedPoint(pt, x, y, ctm, ictm) {
+    pt.x = x;
+    pt.y = y;
+    return pt.matrixTransform(ctm).matrixTransform(ictm);
+  };
+
   svgMeasure = function svgMeasure(content) {
     return function(f) {
-      var bx, node, pad, svg, x1, x2, y1, y2, _i, _len, _ref, _ref2;
+      var bx, ctm, isctm, node, pad, pt, svg, tp1, tp2, x1, x2, y1, y2, _i, _len, _ref, _ref2;
       svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'>" + (content()) + "</svg>");
       document.body.appendChild(svg);
       x1 = y1 = Number.MAX_VALUE;
       x2 = y2 = Number.MIN_VALUE;
+      pt = svg.createSVGPoint();
+      isctm = svg.getScreenCTM().inverse();
       _ref = svg.childNodes;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         node = _ref[_i];
         bx = node.getBBox();
         svg.setAttribute('width', (_ref2 = getComputedStyle(node).strokeWidth) != null ? _ref2 : 0);
-        pad = svg.width.baseVal.value;
-        x1 = Math.min(x1, bx.x - pad / 2);
-        y1 = Math.min(y1, bx.y - pad / 2);
-        x2 = Math.max(x2, bx.x + bx.width + pad);
-        y2 = Math.max(y2, bx.y + bx.height + pad);
+        pad = svg.width.baseVal.value / 2;
+        ctm = node.getScreenCTM();
+        tp1 = transformedPoint(pt, bx.x - Math.ceil(pad), bx.y - Math.ceil(pad), ctm, isctm);
+        tp2 = transformedPoint(pt, bx.x + bx.width + Math.ceil(pad), bx.y + bx.height + Math.ceil(pad), ctm, isctm);
+        x1 = Math.min(Math.min(x1, tp1.x), tp2.x);
+        y1 = Math.min(Math.min(y1, tp1.y), tp2.y);
+        x2 = Math.max(Math.max(x2, tp1.x), tp2.x);
+        y2 = Math.max(Math.max(y2, tp1.y), tp2.y);
       }
       document.body.removeChild(svg);
       return f()(laz(x1))(laz(y1))(laz(x2 - x1))(laz(y2 - y1));

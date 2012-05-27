@@ -57,17 +57,17 @@ createLambdaSubtree v b = do
 createApplySubtree f a = do
   rootBox = textBox blueStyle 'apply'
   rootSvg = box-svg rootBox
-  argBox = textBox blueStyle f
-  argSvg = box-svg argBox
+  argTree = subtreeFor a
+  argSvg = subtree-svg argTree
   funcTree = subtreeFor f
   funcSvg = subtree-svg funcTree
-  childWidth = + (+ (box-width argBox) 5) (subtree-width funcTree)
+  childWidth = + (+ (subtree-width argTree) 5) (subtree-width funcTree)
   totalWidth = max childWidth (box-width rootBox)
   pad = max 0 (/ (- totalWidth childWidth) 2)
   make-subtree
-    svg-concat [(translate argSvg pad (+ (box-height rootBox) 5)),(translate funcSvg (+ pad (+ (box-width argBox) 5)) (+ (box-height rootBox) 5)),(translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)]
+    svg-concat [(translate argSvg pad (+ (box-height rootBox) 5)), (translate funcSvg (+ pad (+ (subtree-width argTree) 5)) (+ (box-height rootBox) 5)), (translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)]
     totalWidth
-    + (+ (box-height rootBox) 5) (max (box-height argBox) (subtree-height funcTree))
+    + (+ (box-height rootBox) 5) (max (subtree-height argTree) (subtree-height funcTree))
     / totalWidth 2
     / (box-height rootBox) 2
 
