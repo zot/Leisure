@@ -26,17 +26,19 @@ bootLeisure = ->
     body.appendChild pre
     body.removeAttribute 'leisurecode'
   window.removeEventListener 'load', bootLeisure
-  for i in ['leisure', 'gaudy', 'thin', 'cthulhu', 'jqModal', 'dialog' ]
+  #for i in ['leisure', 'gaudy', 'thin', 'cthulhu', 'jqModal', 'dialog' ]
+  for i in ['leisure', 'gaudy', 'thin', 'cthulhu']
     style = document.createElement('link')
     style.setAttribute 'type', "text/css"
     style.setAttribute 'rel', "stylesheet"
     style.setAttribute 'href', "#{i}.css"
     document.head.appendChild style
-  loadThen ['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jqModal', 'jqDnR', 'dimensions', 'sha256'], ->
+  #loadThen ['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jqModal', 'jqDnR', 'dimensions', 'sha256'], ->
+  loadThen ['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], ->
     window.Leisure.restoreAutosave = restoreAutosave
     window.Leisure.backupAutosave = backupAutosave
     window.Leisure.deleteAutosave = deleteAutosave
-    prepTools()
+    #prepTools()
     Repl.init()
     bootFs ->
       for node in document.querySelectorAll "[leisurecode]"
