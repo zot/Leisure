@@ -3,7 +3,9 @@ require 'maps'
 insert-fields map = if (null? map) ''
   concat [ (field (first-pair map)), (insert-fields (rest-pairs map)) ]
 
-svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="scene" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', (o id), '</svg>' ] )
+svg-template attrs contents = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" ', attrs, '>', contents, '</svg>'])
+
+svg o map = svg-template (concat ['style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '"']) (o id)
 
 svg-file map = html (concat [ '<object xmlns="http://www.w3.org/2000/svg" version="1.1" ', (insert-fields map), '</object>' ] )
 
@@ -22,21 +24,23 @@ svg-nodes nodeList = nodeList (\h t D . cons (h id) (nodeList t)) nil
 
 svg-concat nodeList = concat (svg-nodes nodeList)
 
-svg-element name map = svg-node (concat [ '<', name, ' ', (insert-fields map), '/>"' ])
+svg-element name map = svg-node (concat [ '<', name, ' ', (insert-fields map), '/>' ])
 
-svg-measure-nodes nodeList = prim-svg-measure-nodes (svg-concat nodeList)
+svg-measure content = prim-svg-measure content
+
+svg-present content = svg-measure content \x y w h .
+  svg-template (concat ["width='", w, "' height='", h, "' viewbox='", x, ' ', y, ' ', w, ' ', h, "'"]) content
 
 circle map = svg-element 'circle' (if (null? map) default-circle-map map)
 rect map = svg-element 'rect' (if (null? map) default-rect-map map)
 ellipse map = svg-element 'ellipse' (if (null? map) default-ellipse-map map)
 line map = svg-element 'line' (if (null? map) default-line-map map)
-text t map = concat [ '<text ', (insert-fields (if (null? map) default-text-map map)), '>', (if (null? t) 'undefined' t), '</text>' ]
+text t map = svg-node (concat [ '<text ', (insert-fields (if (null? map) default-text-map map)), '>', (if (null? t) 'undefined' t), '</text>' ])
 polygon map = svg-element 'polygon' (if (null? map) default-polygon-map map)
 
 group elem = svg-node (concat [ '<g>', (elem id), '</g>' ])
 translate elem x y = svg-node (concat ['<g transform="translate(', x, ', ', y, ')">', (elem id), '</g>' ])
 rotate elem r = svg-node (concat ['<g transform="rotate(', r, ')">', (elem id), '</g>' ])
-
 
 #flatten-tree-base t map d c = if (null? t) map
 #  do

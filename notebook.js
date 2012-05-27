@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, ReplCore, acceptCode, addsLine, arrows, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasureNodes, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -13,6 +13,7 @@
     ReplCore = window.ReplCore;
     window.Notebook = root = {};
     Prim = window.Prim;
+    Repl = window.Repl;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
@@ -32,6 +33,15 @@
   arrows = [37, 38, 39, 40];
 
   bindNotebook = function bindNotebook(el) {
+    var pres;
+    pres = Repl.presentValue;
+    Repl.setValuePresenter(function(v) {
+      if ((ReplCore.getType(v)) === 'svg-node') {
+        return presentSvgNode(v);
+      } else {
+        return pres(v);
+      }
+    });
     if (!((document.getElementById('channelList')) != null)) {
       document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='compile'>compile</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
     }
@@ -1127,6 +1137,30 @@
     });
   });
 
+  head = function head(l) {
+    return l(function() {
+      return function(hh) {
+        return function(tt) {
+          return hh();
+        };
+      };
+    });
+  };
+
+  tail = function tail(l) {
+    return l(function() {
+      return function(hh) {
+        return function(tt) {
+          return tt();
+        };
+      };
+    });
+  };
+
+  id = function id(v) {
+    return v();
+  };
+
   laz = Leisure.laz;
 
   getSvgElement = function getSvgElement(id) {
@@ -1153,26 +1187,6 @@
     };
   };
 
-  head = function head(l) {
-    return l(function() {
-      return function(hh) {
-        return function(tt) {
-          return hh();
-        };
-      };
-    });
-  };
-
-  tail = function tail(l) {
-    return l(function() {
-      return function(hh) {
-        return function(tt) {
-          return tt();
-        };
-      };
-    });
-  };
-
   primconcatNodes = function primconcatNodes(nodes) {
     if (nodes === _nil()) {
       return "";
@@ -1181,22 +1195,32 @@
     }
   };
 
-  svgMeasureNodes = function svgMeasureNodes(nodeListString) {
+  svgMeasure = function svgMeasure(content) {
     return function(f) {
-      var bx, svg;
-      svg = createNode("<svg id='HIDDEN_SVG2' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g id='HIDDEN_GROUP'>" + (nodeListString()) + "</g></svg>");
+      var bx, node, pad, svg, _ref;
+      svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>" + (content()) + "</g></svg>");
       document.body.appendChild(svg);
-      bx = document.getElementById('HIDDEN_GROUP').getBBox();
+      node = svg.firstElementChild.firstElementChild;
+      bx = node.getBBox();
+      svg.setAttribute('width', (_ref = getComputedStyle(node).strokeWidth) != null ? _ref : 0);
+      pad = svg.width.baseVal.value;
+      console.log("pad: " + pad);
       document.body.removeChild(svg);
-      return f()(laz(bx.width))(laz(bx.height));
+      return f()(laz(bx.x - pad / 2))(laz(bx.y - pad / 2))(laz(bx.width + pad))(laz(bx.height + pad));
     };
+  };
+
+  presentSvgNode = function presentSvgNode(node) {
+    var content;
+    content = node(laz(id));
+    return _svg$_present()(laz(content))(laz(id));
   };
 
   Prim.defaultEnv.require = req;
 
   root.svgMeasureText = svgMeasureText;
 
-  root.svgMeasureNodes = svgMeasureNodes;
+  root.svgMeasure = svgMeasure;
 
   root.initNotebook = initNotebook;
 

@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, clearEnv, clearEnvX, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, processResult, reloadEnv, root, trimEq, useIframe, useMainWindow, write, writeOutput;
+  var Pretty, clearEnv, clearEnvX, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, presentValue, processResult, reloadEnv, root, setValuePresenter, trimEq, useIframe, useMainWindow, write, writeOutput;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -55,13 +55,27 @@
       global.$0 = result;
       if (!(ast.leisureName != null) && (result != null)) {
         if (typeof env.processResult === "function") env.processResult(result);
-        env.write("<span><b> " + (escapeHtml(trimEq(src))) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + ((ReplCore.getType(result)) === 'html' ? getHtml(result) : escapeHtml(Pretty.print(result))) + "</span>\n");
+        env.write("<span><b> " + (escapeHtml(trimEq(src))) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (presentValue(result)) + "</span>\n");
       } else if (ast.err && (env.processError != null)) {
         env.processError(ast);
       }
       return ReplCore.processResult(result, env);
     });
     return ReplCore.setResetFunc(clearEnv);
+  };
+
+  presentValue = function presentValue(value) {
+    switch (ReplCore.getType(value)) {
+      case 'html':
+      case 'svg':
+        return getHtml(value);
+      default:
+        return escapeHtml(Pretty.print(value));
+    }
+  };
+
+  setValuePresenter = function setValuePresenter(func) {
+    return root.presentValue = presentValue = func;
   };
 
   evalLine = function evalLine(line) {
@@ -185,5 +199,9 @@
   root.processResult = processResult;
 
   root.escapeHtml = escapeHtml;
+
+  root.presentValue = presentValue;
+
+  root.setValuePresenter = setValuePresenter;
 
 }).call(this);

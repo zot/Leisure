@@ -56,7 +56,7 @@ misrepresented as being the original software.
   charCodes = {
     "'": '$a',
     ',': '$b',
-    '$': '$c',
+    '$': '$$',
     '@': '$d',
     '?': '$e',
     '/': '$f',
@@ -66,7 +66,7 @@ misrepresented as being the original software.
     '!': '$k',
     '`': '$l',
     '~': '$m',
-    '-': '$n',
+    '-': '$_',
     '+': '$o',
     '=': '$p',
     '|': '$q',

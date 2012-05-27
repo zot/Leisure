@@ -473,8 +473,8 @@
     return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
   }), 2);
 
-  define('prim-svg-measure-nodes', (function(nodeListString) {
-    return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureNodes(nodeListString) : void 0;
+  define('prim-svg-measure', (function(content) {
+    return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasure(content) : void 0;
   }), 1);
 
   root.setTty = setTty;

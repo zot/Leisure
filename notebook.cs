@@ -8,6 +8,7 @@ if window? and (!global? or global == window)
   ReplCore = window.ReplCore
   window.Notebook = root = {}
   Prim = window.Prim
+  Repl = window.Repl
 else root = exports ? this
 
 ENTER = 13
@@ -21,6 +22,10 @@ delay = (func)-> window.setTimeout func, 1
 arrows = [37..40]
 
 bindNotebook = (el)->
+  pres = Repl.presentValue
+  Repl.setValuePresenter (v)->
+    if (ReplCore.getType v) == 'svg-node' then presentSvgNode v
+    else pres(v)
   if !(document.getElementById 'channelList')?
     document.body.appendChild createNode """
 <datalist id='channelList'>
@@ -772,6 +777,9 @@ Leisure.define 'finishLoading', (bubba)->
     postLoadQueue = []
     cont(_false())
 
+head = (l)->l ->(hh)->(tt)->hh()
+tail = (l)->l ->(hh)->(tt)->tt()
+id = (v)->v()
 laz = Leisure.laz
 
 getSvgElement = (id)->
@@ -788,24 +796,31 @@ svgMeasureText = (text)->(style)->(f)->
   bx = txt.getBBox()
   f()(laz(bx.width))(laz(bx.height))
 
-head = (l)->l ->(hh)->(tt)->hh()
-tail = (l)->l ->(hh)->(tt)->tt()
-
 primconcatNodes = (nodes)->
   if nodes == _nil() then ""
   else (head nodes)(id) + concatNodes tail nodes
 
-svgMeasureNodes = (nodeListString)->(f)->
-  svg = createNode "<svg id='HIDDEN_SVG2' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g id='HIDDEN_GROUP'>#{nodeListString()}</g></svg>"
+# try to take strokeWidth into account
+svgMeasure = (content)->(f)->
+  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>#{content()}</g></svg>"
   document.body.appendChild(svg)
-  bx = document.getElementById('HIDDEN_GROUP').getBBox()
+  node = svg.firstElementChild.firstElementChild
+  bx = node.getBBox()
+  #hack to parse strokeWidth string by setting the width of the svg to it
+  svg.setAttribute 'width', (getComputedStyle(node).strokeWidth ? 0)
+  pad = svg.width.baseVal.value
+  console.log "pad: #{pad}"
   document.body.removeChild(svg)
-  f()(laz(bx.width))(laz(bx.height))
+  f()(laz(bx.x - pad / 2))(laz(bx.y - pad / 2))(laz(bx.width + pad))(laz(bx.height + pad))
+
+presentSvgNode = (node)->
+  content = node(laz(id))
+  _svg$_present()(laz(content))(laz(id))
 
 Prim.defaultEnv.require = req
 
 root.svgMeasureText = svgMeasureText
-root.svgMeasureNodes = svgMeasureNodes
+root.svgMeasure = svgMeasure
 root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
 root.evalOutput = evalOutput

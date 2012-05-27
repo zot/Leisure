@@ -36,6 +36,7 @@ subprint = (f)->
     when 'left' then f(->(l)-> "Left(#{print l()})")(null)
     when 'right' then f(null)(->(r)-> "Right(#{print r()})")
     when 'html' then f ->(txt)-> "HTML(#{txt()})"
+    when 'svg-node' then f ->(txt)-> "SVG NODE(#{txt()})"
     else f?.leisureName ? inspect(f)
 
 printLambda = (v, body)->

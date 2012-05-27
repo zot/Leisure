@@ -31,7 +31,8 @@ init = (inputField, output)->
     global.$0 = result
     if !ast.leisureName? and result?
       env.processResult?(result)
-      env.write "<span><b> #{escapeHtml(trimEq(src))} \u2192</b>\n  #{ReplCore.getType result}: #{if (ReplCore.getType result) == 'html' then getHtml result else escapeHtml(Pretty.print result)}</span>\n"
+      #handle SVG nodes here (measure them and create an SVG element)
+      env.write "<span><b> #{escapeHtml(trimEq(src))} \u2192</b>\n  #{ReplCore.getType result}: #{presentValue result}</span>\n"
     else if ast.err and env.processError? then env.processError ast
     ReplCore.processResult result, env
   ReplCore.setResetFunc clearEnv
@@ -39,6 +40,13 @@ init = (inputField, output)->
   #input.onkeypress = (e)->
   #  if (e.charCode || e.keyCode || e.which) == 13 then evalLine(input.value)
   #input.select()
+
+presentValue = (value)->
+  switch ReplCore.getType value
+    when 'html' , 'svg' then getHtml value
+    else escapeHtml Pretty.print value
+
+setValuePresenter = (func)-> root.presentValue = presentValue = func
 
 evalLine = (line)->
   lastLine = line.replace(/\\/g, '\u03BB')
@@ -140,3 +148,5 @@ root.clearEnv = clearEnv
 root.evalLine = evalLine
 root.processResult = processResult
 root.escapeHtml = escapeHtml
+root.presentValue = presentValue
+root.setValuePresenter = setValuePresenter

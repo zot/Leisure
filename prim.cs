@@ -209,7 +209,7 @@ define 'poop', 3
 ################
 
 define 'svg-measure-text', ((text)->Notebook?.svgMeasureText(text)), 2
-define 'prim-svg-measure-nodes', ((nodeListString)->Notebook?.svgMeasureNodes(nodeListString)), 1
+define 'prim-svg-measure', ((content)->Notebook?.svgMeasure(content)), 1
 
 root.setTty = setTty
 root.runMonad = runMonad
