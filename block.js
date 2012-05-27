@@ -25,22 +25,22 @@ var processResult = Repl.processResult;
 
 var _LEFT_ARROW, _UP_ARROW, _RIGHT_ARROW, _DOWN_ARROW, _startBlocky, _runPhysics, _key, _down, _up, _jsPD;
 //LEFT_ARROW = AST(37)
-root.defs._LEFT_ARROW = _LEFT_ARROW = define('LEFT_ARROW', 37, 0, " 37");
+root.defs._LEFT_ARROW = _LEFT_ARROW = define('LEFT_ARROW', 37, 0, "37");
 ;
 //UP_ARROW = AST(38)
-root.defs._UP_ARROW = _UP_ARROW = define('UP_ARROW', 38, 0, " 38");
+root.defs._UP_ARROW = _UP_ARROW = define('UP_ARROW', 38, 0, "38");
 ;
 //RIGHT_ARROW = AST(39)
-root.defs._RIGHT_ARROW = _RIGHT_ARROW = define('RIGHT_ARROW', 39, 0, " 39");
+root.defs._RIGHT_ARROW = _RIGHT_ARROW = define('RIGHT_ARROW', 39, 0, "39");
 ;
 //DOWN_ARROW = AST(40)
-root.defs._DOWN_ARROW = _DOWN_ARROW = define('DOWN_ARROW', 40, 0, " 40");
+root.defs._DOWN_ARROW = _DOWN_ARROW = define('DOWN_ARROW', 40, 0, "40");
 ;
 //startBlocky = AST(\e . bind startPhysics \_ . runPhysics)
 root.defs._startBlocky = _startBlocky = define('startBlocky', function(_e){return _bind()(_startPhysics)((function(){var $m; return function(){return $m || ($m = (function(__){return _runPhysics()}))}})())}, 1, "\\e. do\n  startPhysics\n  runPhysics");
 ;
 //runPhysics = AST(bind (js ([ Blocky.block.body.setAngle(Math.max(-Math.PI/3, Math.min(Blocky.block.body.a, Math.PI/3))) ])) \_ . bind stepPhysics \_ . bind (js ([ Notebook.update("app") ])) \_ . runPhysics)
-root.defs._runPhysics = _runPhysics = define('runPhysics', _bind()((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Blocky.block.body.setAngle(Math.max(-Math.PI/3, Math.min(Blocky.block.body.a, Math.PI/3)))"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()(_stepPhysics)((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Notebook.update(\"app\")"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _runPhysics()}))}})())}))}})())}))}})()), 0, " do\n  js ['Blocky.block.body.setAngle(Math.max(-Math.PI/3, Math.min(Blocky.block.body.a, Math.PI/3)))']\n  stepPhysics\n  js ['Notebook.update(\"app\")']\n  runPhysics");
+root.defs._runPhysics = _runPhysics = define('runPhysics', _bind()((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Blocky.block.body.setAngle(Math.max(-Math.PI/3, Math.min(Blocky.block.body.a, Math.PI/3)))"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()(_stepPhysics)((function(){var $m; return function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return function(){return $m || ($m = (_js()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "Notebook.update(\"app\")"}))(_$s)))}})())))}})())((function(){var $m; return function(){return $m || ($m = (function(__){return _runPhysics()}))}})())}))}})())}))}})()), 0, "do\n  js ['Blocky.block.body.setAngle(Math.max(-Math.PI/3, Math.min(Blocky.block.body.a, Math.PI/3)))']\n  stepPhysics\n  js ['Notebook.update(\"app\")']\n  runPhysics");
 ;
 //key = AST(\e . eq (eventType e) keydown (down e) (up e))
 root.defs._key = _key = define('key', function(_e){return _eq()((function(){var $m; return function(){return $m || ($m = (_eventType()(_e)))}})())((function(){return "keydown"}))((function(){var $m; return function(){return $m || ($m = (_down()(_e)))}})())((function(){var $m; return function(){return $m || ($m = (_up()(_e)))}})())}, 1, "\\e. eq (eventType e) 'keydown'\n  down e\n  up e");

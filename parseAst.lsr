@@ -54,7 +54,6 @@ createLambdaSubtree v b = do
     / totalWidth 2
     / (box-height rootBox) 2
 
-
 createApplySubtree f a = do
   rootBox = textBox blueStyle 'apply'
   rootSvg = box-svg rootBox

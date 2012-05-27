@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, ReplCore, acceptCode, addsLine, arrows, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, handleKey, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
+  var ENTER, Leisure, Prim, ReplCore, acceptCode, addsLine, arrows, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasureNodes, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, unwrap, update, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -1129,18 +1129,22 @@
 
   laz = Leisure.laz;
 
+  getSvgElement = function getSvgElement(id) {
+    var el, svg;
+    if ((el = document.getElementById(id))) {
+      return el;
+    } else {
+      svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'></text></svg>");
+      document.body.appendChild(svg);
+      return document.getElementById(id);
+    }
+  };
+
   svgMeasureText = function svgMeasureText(text) {
     return function(style) {
       return function(f) {
-        var bx, svg, txt;
-        if (!(txt = document.getElementById('HIDDEN_TEXT'))) {
-          svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'/>");
-          txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          txt.appendChild(textNode(''));
-          txt.setAttribute('id', 'HIDDEN_TEXT');
-          svg.appendChild(txt);
-          document.body.appendChild(svg);
-        }
+        var bx, txt;
+        txt = getSvgElement('HIDDEN_TEXT');
         if (style()) txt.setAttribute('style', style());
         txt.lastChild.textContent = text();
         bx = txt.getBBox();
@@ -1149,9 +1153,50 @@
     };
   };
 
+  head = function head(l) {
+    return l(function() {
+      return function(hh) {
+        return function(tt) {
+          return hh();
+        };
+      };
+    });
+  };
+
+  tail = function tail(l) {
+    return l(function() {
+      return function(hh) {
+        return function(tt) {
+          return tt();
+        };
+      };
+    });
+  };
+
+  primconcatNodes = function primconcatNodes(nodes) {
+    if (nodes === _nil()) {
+      return "";
+    } else {
+      return (head(nodes))(id) + concatNodes(tail(nodes));
+    }
+  };
+
+  svgMeasureNodes = function svgMeasureNodes(nodeListString) {
+    return function(f) {
+      var bx, svg;
+      svg = createNode("<svg id='HIDDEN_SVG2' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g id='HIDDEN_GROUP'>" + (nodeListString()) + "</g></svg>");
+      document.body.appendChild(svg);
+      bx = document.getElementById('HIDDEN_GROUP').getBBox();
+      document.body.removeChild(svg);
+      return f()(laz(bx.width))(laz(bx.height));
+    };
+  };
+
   Prim.defaultEnv.require = req;
 
   root.svgMeasureText = svgMeasureText;
+
+  root.svgMeasureNodes = svgMeasureNodes;
 
   root.initNotebook = initNotebook;
 

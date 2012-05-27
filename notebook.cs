@@ -774,22 +774,38 @@ Leisure.define 'finishLoading', (bubba)->
 
 laz = Leisure.laz
 
-svgMeasureText = (text)->(style)->(f)->
-  if !(txt = document.getElementById 'HIDDEN_TEXT')
-    svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'/>"
-    txt = document.createElementNS 'http://www.w3.org/2000/svg', 'text'
-    txt.appendChild textNode ''
-    txt.setAttribute 'id', 'HIDDEN_TEXT'
-    svg.appendChild txt
+getSvgElement = (id)->
+  if (el = document.getElementById id) then el
+  else
+    svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'></text></svg>"
     document.body.appendChild(svg)
+    document.getElementById id
+
+svgMeasureText = (text)->(style)->(f)->
+  txt = getSvgElement('HIDDEN_TEXT')
   if style() then txt.setAttribute 'style', style()
   txt.lastChild.textContent = text()
   bx = txt.getBBox()
   f()(laz(bx.width))(laz(bx.height))
 
+head = (l)->l ->(hh)->(tt)->hh()
+tail = (l)->l ->(hh)->(tt)->tt()
+
+primconcatNodes = (nodes)->
+  if nodes == _nil() then ""
+  else (head nodes)(id) + concatNodes tail nodes
+
+svgMeasureNodes = (nodeListString)->(f)->
+  svg = createNode "<svg id='HIDDEN_SVG2' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g id='HIDDEN_GROUP'>#{nodeListString()}</g></svg>"
+  document.body.appendChild(svg)
+  bx = document.getElementById('HIDDEN_GROUP').getBBox()
+  document.body.removeChild(svg)
+  f()(laz(bx.width))(laz(bx.height))
+
 Prim.defaultEnv.require = req
 
 root.svgMeasureText = svgMeasureText
+root.svgMeasureNodes = svgMeasureNodes
 root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
 root.evalOutput = evalOutput

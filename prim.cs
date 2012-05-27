@@ -46,6 +46,10 @@ define 'pretty', (value)->
   #kluge this, for now
   if !Pretty then Pretty = window.Pretty
   Pretty.print(value())
+define 'funcSource', (func)->
+  f = func()
+  if f.src? then _some()(laz(f.src))
+  else _none()
 
 define '+', (a)->(b)->a() + b()
 define '-', (a)->(b)->a() - b()
@@ -205,6 +209,7 @@ define 'poop', 3
 ################
 
 define 'svg-measure-text', ((text)->Notebook?.svgMeasureText(text)), 2
+define 'prim-svg-measure-nodes', ((nodeListString)->Notebook?.svgMeasureNodes(nodeListString)), 1
 
 root.setTty = setTty
 root.runMonad = runMonad

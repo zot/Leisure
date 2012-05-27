@@ -356,7 +356,7 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
     rest1 = line.substring 1
     ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = 0
-      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length)), "Error compiling expr #{snip line}"
+      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim()), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     if name[0] == ' '
@@ -383,11 +383,11 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
           if nm.length == 1 then nameAst(nm[0], ast)
           ast.leisurePrefixSrcLen = pfx.length
           ast.leisurePrefixCount = nm.length
-          genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length)), errPrefix
+          genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length).trim()), errPrefix
     else ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = line.length - rest1.length
       ast.leisureBase = ast
-      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length)), "Error compiling expr:  #{snip line}"
+      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim()), "Error compiling expr:  #{snip line}"
   else [null, null, null]
 
 genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src)->

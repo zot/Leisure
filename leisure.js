@@ -739,7 +739,7 @@ misrepresented as being the original software.
       rest1 = line.substring(1);
       return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
         ast.leisureCodeOffset = 0;
-        return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length));
+        return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim());
       }), "Error compiling expr " + (snip(line)));
     } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
@@ -774,14 +774,14 @@ misrepresented as being the original software.
             if (nm.length === 1) nameAst(nm[0], ast);
             ast.leisurePrefixSrcLen = pfx.length;
             ast.leisurePrefixCount = nm.length;
-            return genCode(ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length));
+            return genCode(ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length).trim());
           }), errPrefix);
         }
       } else {
         return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
           ast.leisureCodeOffset = line.length - rest1.length;
           ast.leisureBase = ast;
-          return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length));
+          return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim());
         }), "Error compiling expr:  " + (snip(line)));
       }
     } else {

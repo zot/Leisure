@@ -31,10 +31,10 @@ root.defs._id = _id = define('id', function(_x){return _x()}, 1, "\\x. x");
 root.defs._flip = _flip = define('flip', setDataType(function(_f){return setType(function(_a){return function(_b){return _f()(_b)(_a)}}, 'flip')}, 'flip'), 1, "\\f. \\a b . f b a");
 ;
 //true = AST(\a b . a)
-root.defs._true = _true = define('true', setType(function(_a){return function(_b){return _a()}}, 'true'), 0, " \\a b . a");
+root.defs._true = _true = define('true', setType(function(_a){return function(_b){return _a()}}, 'true'), 0, "\\a b . a");
 ;
 //false = AST(\a b . b)
-root.defs._false = _false = define('false', setType(function(_a){return function(_b){return _b()}}, 'false'), 0, " \\a b . b");
+root.defs._false = _false = define('false', setType(function(_a){return function(_b){return _b()}}, 'false'), 0, "\\a b . b");
 ;
 //and = AST(\a b . a b false)
 root.defs._and = _and = define('and', function(_a){return function(_b){return _a()(_b)(_false)}}, 2, "\\a. \\b. a b false");
@@ -61,16 +61,16 @@ root.defs._some = _some = define('some', setDataType(function(_x){return setType
 root.defs._some2 = _some2 = define('some2', setDataType(function(_a){return function(_b){return setType(function(_yes){return function(_no){return _yes()(_a)(_b)}}, 'some2')}}, 'some2'), 2, "\\a. \\b. \\yes no . yes a b");
 ;
 //none = AST(\yes no . no)
-root.defs._none = _none = define('none', setType(function(_yes){return function(_no){return _no()}}, 'none'), 0, " \\yes no . no");
+root.defs._none = _none = define('none', setType(function(_yes){return function(_no){return _no()}}, 'none'), 0, "\\yes no . no");
 ;
 //cons = AST(\a b f . f a b)
 root.defs._cons = _cons = define('cons', setDataType(function(_a){return function(_b){return setType(function(_f){return _f()(_a)(_b)}, 'cons')}}, 'cons'), 2, "\\a. \\b.\n  \\f . f\n    a\n    b");
 ;
 //nil = AST(\a b . b)
-root.defs._nil = _nil = define('nil', setType(function(_a){return function(_b){return _b()}}, 'nil'), 0, " \\a b . b");
+root.defs._nil = _nil = define('nil', setType(function(_a){return function(_b){return _b()}}, 'nil'), 0, "\\a b . b");
 ;
 //null? = AST(eq nil)
-root.defs._null$e = _null$e = define('null?', _eq()(_nil), 0, " eq nil");
+root.defs._null$e = _null$e = define('null?', _eq()(_nil), 0, "eq nil");
 ;
 //append = AST(\l1 l2 . l1 \h t D . cons h (append t l2) l2)
 root.defs._append = _append = define('append', function(_l1){return function(_l2){return _l1()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _cons()(_h)((function(){var $m; return function(){return $m || ($m = (_append()(_t)(_l2)))}})())}}}))}})())(_l2)}}, 2, "\\l1. \\l2. l1 (\\h t D . cons h (append t l2)) l2");
@@ -79,19 +79,19 @@ root.defs._append = _append = define('append', function(_l1){return function(_l2
 root.defs._compose = _compose = define('compose', setDataType(function(_f){return function(_g){return setType(function(_x){return _f()((function(){var $m; return function(){return $m || ($m = (_g()(_x)))}})())}, 'compose')}}, 'compose'), 2, "\\f. \\g. \\x . f ( g x)");
 ;
 //iszero = AST(eq 0)
-root.defs._iszero = _iszero = define('iszero', _eq()((function(){return 0})), 0, " eq 0");
+root.defs._iszero = _iszero = define('iszero', _eq()((function(){return 0})), 0, "eq 0");
 ;
 //positive = AST(< 0)
-root.defs._positive = _positive = define('positive', _$y()((function(){return 0})), 0, " < 0");
+root.defs._positive = _positive = define('positive', _$y()((function(){return 0})), 0, "< 0");
 ;
 //length = AST(\l . eq l nil 0 (++ (length (tail l))))
 root.defs._length = _length = define('length', function(_l){return _eq()(_l)(_nil)((function(){return 0}))((function(){var $m; return function(){return $m || ($m = (_$o$o()((function(){var $m; return function(){return $m || ($m = (_length()((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())))}})())))}})())}, 1, "\\l. (eq l nil) 0 (++ (length (tail l) ) )");
 ;
 //-- = AST(flip - 1)
-root.defs._$n$n = _$n$n = define('--', _flip()(_$n)((function(){return 1})), 0, " (flip -) 1");
+root.defs._$n$n = _$n$n = define('--', _flip()(_$n)((function(){return 1})), 0, "(flip -) 1");
 ;
 //++ = AST(+ 1)
-root.defs._$o$o = _$o$o = define('++', _$o()((function(){return 1})), 0, " + 1");
+root.defs._$o$o = _$o$o = define('++', _$o()((function(){return 1})), 0, "+ 1");
 ;
 //even? = AST(\x . iszero (% x 2))
 root.defs._even$e = _even$e = define('even?', function(_x){return _iszero()((function(){var $m; return function(){return $m || ($m = (_$A()(_x)((function(){return 2}))))}})())}, 1, "\\x. iszero (% x 2)");
@@ -121,7 +121,7 @@ root.defs._subreverse = _subreverse = define('subreverse', function(_l){return f
 root.defs._addstr = _addstr = define('addstr', function(_a){return function(_b){return _concat()((function(){var $m; return function(){return $m || ($m = (_$r()(_a)(_$b)(_b)(_$s)))}})())}}, 2, "\\a. \\b. concat [a, b]");
 ;
 //if = AST(id)
-root.defs._if = _if = define('if', _id(), 0, " id");
+root.defs._if = _if = define('if', _id(), 0, "id");
 ;
 //at = AST(\l x . iszero x (head l) (at (tail l) (-- x)))
 root.defs._at = _at = define('at', function(_l){return function(_x){return _iszero()(_x)((function(){var $m; return function(){return $m || ($m = (_head()(_l)))}})())((function(){var $m; return function(){return $m || ($m = (_at()((function(){var $m; return function(){return $m || ($m = (_tail()(_l)))}})())((function(){var $m; return function(){return $m || ($m = (_$n$n()(_x)))}})())))}})())}}, 2, "\\l. \\x. (iszero (x)) (head l) (at (tail l) (-- (x) ) )");
@@ -214,19 +214,19 @@ root.defs._foldl = _foldl = define('foldl', function(_func){return function(_val
 root.defs._foldl1 = _foldl1 = define('foldl1', function(_func){return function(_list){return _list()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _foldl()(_func)(_h)(_t)}}}))}})())(_nil)}}, 2, "\\func. \\list. list (\\h t D. foldl func h t) nil");
 ;
 //[ = AST(\item c . c \rest . cons item rest)
-root.defs._$r = _$r = define('[', setType(function(_item){return function(_c){return _c()((function(){var $m; return function(){return $m || ($m = (function(_rest){return _cons()(_item)(_rest)}))}})())}}, '['), 0, " \\item c . c \\rest . cons item rest");
+root.defs._$r = _$r = define('[', setType(function(_item){return function(_c){return _c()((function(){var $m; return function(){return $m || ($m = (function(_rest){return _cons()(_item)(_rest)}))}})())}}, '['), 0, "\\item c . c \\rest . cons item rest");
 root.tokenDefs.push('[', '=(]=');
 ;
 //, = AST(\f item c . c \rest . f (cons item rest))
-root.defs._$b = _$b = define(',', setType(function(_f){return function(_item){return function(_c){return _c()((function(){var $m; return function(){return $m || ($m = (function(_rest){return _f()((function(){var $m; return function(){return $m || ($m = (_cons()(_item)(_rest)))}})())}))}})())}}}, ','), 0, " \\f item c . c \\rest . f (cons item rest)");
+root.defs._$b = _$b = define(',', setType(function(_f){return function(_item){return function(_c){return _c()((function(){var $m; return function(){return $m || ($m = (function(_rest){return _f()((function(){var $m; return function(){return $m || ($m = (_cons()(_item)(_rest)))}})())}))}})())}}}, ','), 0, "\\f item c . c \\rest . f (cons item rest)");
 root.tokenDefs.push(',', '=.=');
 ;
 //] = AST(\f . f nil)
-root.defs._$s = _$s = define(']', setType(function(_f){return _f()(_nil)}, ']'), 0, " \\f . f nil");
+root.defs._$s = _$s = define(']', setType(function(_f){return _f()(_nil)}, ']'), 0, "\\f . f nil");
 root.tokenDefs.push(']', '=)=');
 ;
 //| = AST(\f rest g . f rest)
-root.defs._$q = _$q = define('|', setType(function(_f){return function(_rest){return function(_g){return _f()(_rest)}}}, '|'), 0, " \\f rest g . f rest");
+root.defs._$q = _$q = define('|', setType(function(_f){return function(_rest){return function(_g){return _f()(_rest)}}}, '|'), 0, "\\f rest g . f rest");
 root.tokenDefs.push('|', '=.=');
 ;
 //dl = AST(\list . append list)

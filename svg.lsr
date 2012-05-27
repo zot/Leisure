@@ -3,7 +3,7 @@ require 'maps'
 insert-fields map = if (null? map) ''
   concat [ (field (first-pair map)), (insert-fields (rest-pairs map)) ]
 
-svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="scene" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', o, '</svg>' ] )
+svg o map = html (concat [ '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="scene" style="width: ', (get-value-default 'width' 100 map), '; height: ' , (get-value-default 'height' 100 map), '">', (o id), '</svg>' ] )
 
 svg-file map = html (concat [ '<object xmlns="http://www.w3.org/2000/svg" version="1.1" ', (insert-fields map), '</object>' ] )
 
@@ -16,7 +16,15 @@ default-ellipse-map = hash-from-list [ 'cx', 50, 'cy', 50, 'rx', 40, 'ry', 40, '
 default-text-map = hash-from-list [ 'x', 0, 'y', 10, 'stroke', 'black', 'stroke-width', 2, 'fill', 'black' ]
 default-polygon-map = hash-from-list [ 'points', '350,75  379,161 469,161 397,215 423,301 350,250 277,301 303,215 231,161 321,161', 'stroke', 'black', 'stroke-width', 2, 'fill', 'yellow' ]
 
-svg-element name map = concat [ '<', name, ' ', (insert-fields map), '/>"' ]
+svg-node contents = \f . f contents
+
+svg-nodes nodeList = nodeList (\h t D . cons (h id) (nodeList t)) nil
+
+svg-concat nodeList = concat (svg-nodes nodeList)
+
+svg-element name map = svg-node (concat [ '<', name, ' ', (insert-fields map), '/>"' ])
+
+svg-measure-nodes nodeList = prim-svg-measure-nodes (svg-concat nodeList)
 
 circle map = svg-element 'circle' (if (null? map) default-circle-map map)
 rect map = svg-element 'rect' (if (null? map) default-rect-map map)
@@ -25,9 +33,9 @@ line map = svg-element 'line' (if (null? map) default-line-map map)
 text t map = concat [ '<text ', (insert-fields (if (null? map) default-text-map map)), '>', (if (null? t) 'undefined' t), '</text>' ]
 polygon map = svg-element 'polygon' (if (null? map) default-polygon-map map)
 
-group elem = concat [ '<g>', elem, '</g>' ]
-translate elem x y = concat ['<g transform="translate(', x, ', ', y, ')">', elem, '</g>' ]
-rotate elem r = concat ['<g transform="rotate(', r, ')">', elem, '</g>' ]
+group elem = svg-node (concat [ '<g>', (elem id), '</g>' ])
+translate elem x y = svg-node (concat ['<g transform="translate(', x, ', ', y, ')">', (elem id), '</g>' ])
+rotate elem r = svg-node (concat ['<g transform="rotate(', r, ')">', (elem id), '</g>' ])
 
 
 #flatten-tree-base t map d c = if (null? t) map
