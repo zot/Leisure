@@ -22,7 +22,7 @@ svg-node contents = \f . f contents
 
 svg-nodes nodeList = nodeList (\h t D . cons (h id) (nodeList t)) nil
 
-svg-concat nodeList = concat (svg-nodes nodeList)
+svg-concat nodeList = svg-node (concat (svg-nodes nodeList))
 
 svg-element name map = svg-node (concat [ '<', name, ' ', (insert-fields map), '/>' ])
 

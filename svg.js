@@ -65,8 +65,8 @@ root.defs._svg$_node = _svg$_node = define('svg-node', setDataType(function(_con
 //svg-nodes = AST(\nodeList . nodeList \h t D . cons (h id) (nodeList t) nil)
 root.defs._svg$_nodes = _svg$_nodes = define('svg-nodes', function(_nodeList){return _nodeList()((function(){var $m; return function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _cons()((function(){var $m; return function(){return $m || ($m = (_h()(_id)))}})())((function(){var $m; return function(){return $m || ($m = (_nodeList()(_t)))}})())}}}))}})())(_nil)}, 1, "\\nodeList. nodeList (\\h t D . cons (h id) (nodeList t)) nil");
 ;
-//svg-concat = AST(\nodeList . concat (svg-nodes nodeList))
-root.defs._svg$_concat = _svg$_concat = define('svg-concat', function(_nodeList){return _concat()((function(){var $m; return function(){return $m || ($m = (_svg$_nodes()(_nodeList)))}})())}, 1, "\\nodeList. concat (svg-nodes nodeList)");
+//svg-concat = AST(\nodeList . svg-node (concat (svg-nodes nodeList)))
+root.defs._svg$_concat = _svg$_concat = define('svg-concat', function(_nodeList){return _svg$_node()((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_svg$_nodes()(_nodeList)))}})())))}})())}, 1, "\\nodeList. svg-node (concat (svg-nodes nodeList))");
 ;
 //svg-element = AST(\name map . svg-node (concat ([ < , name ,   , (insert-fields map) , /> ])))
 root.defs._svg$_element = _svg$_element = define('svg-element', function(_name){return function(_map){return _svg$_node()((function(){var $m; return function(){return $m || ($m = (_concat()((function(){var $m; return function(){return $m || ($m = (_$r()((function(){return "<"}))(_$b)(_name)(_$b)((function(){return " "}))(_$b)((function(){var $m; return function(){return $m || ($m = (_insert$_fields()(_map)))}})())(_$b)((function(){return "/>"}))(_$s)))}})())))}})())}}, 2, "\\name. \\map. svg-node (concat [ '<', name, ' ', (insert-fields map), '/>' ])");
