@@ -536,11 +536,18 @@
   };
 
   getAst = function getAst(bx, def) {
+    var _name, _ref, _ref2;
     if (bx.ast != null) {
       return bx.ast;
     } else {
       def = def || bx.textContent;
-      return bx.ast = (Leisure.compileNext(def, Leisure.Nil, true, null, true))[0];
+      bx.ast = (Leisure.compileNext(def, Leisure.Nil, true, null, true))[0];
+      if (((_ref = bx.ast) != null ? _ref.leisureName : void 0) != null) {
+        if (typeof window[_name = Leisure.nameSub(bx.ast.leisureName)] === "function") {
+          if ((_ref2 = window[_name]()) != null) _ref2.src = bx.ast.leisureSource;
+        }
+        return update("ast-" + bx.ast.leisureName);
+      }
     }
   };
 
@@ -600,10 +607,10 @@
     }
   };
 
-  evalOutput = function evalOutput(exBox) {
+  evalOutput = function evalOutput(exBox, nofocus) {
     var stopUpdates, updateSelector, _ref;
     exBox = getBox(exBox);
-    focusBox(exBox);
+    if (!nofocus) focusBox(exBox);
     cleanOutput(exBox, true);
     makeOutputControls(exBox);
     _ref = getElements(exBox.firstChild, ['chooseUpdate', 'stopUpdates']), updateSelector = _ref[0], stopUpdates = _ref[1];
@@ -659,7 +666,7 @@
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
-      _results.push(evalOutput(node));
+      _results.push(evalOutput(node, true));
     }
     return _results;
   };

@@ -571,7 +571,7 @@ misrepresented as being the original software.
     var code, res;
     ast.lits = [];
     res = [];
-    code = gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name);
+    code = gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name, namespace);
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
@@ -583,24 +583,24 @@ misrepresented as being the original software.
     return ast;
   };
 
-  wrapNoDebug = function wrapNoDebug(name, ast, v, body) {
+  wrapNoDebug = function wrapNoDebug(name, ast, v, body, namespace) {
     var src, _ref;
     src = "function(" + v + "){return " + body + "}";
     if (!(ast.exprType != null) && !ast.exprDataType) {
       return src;
     } else {
-      return "" + (ast.exprType ? 'setType' : 'setDataType') + "(" + src + ", '" + ((_ref = ast.exprType) != null ? _ref : ast.exprDataType) + "')";
+      return "" + (namespace != null ? namespace : '') + (ast.exprType ? 'setType' : 'setDataType') + "(" + src + ", '" + ((_ref = ast.exprType) != null ? _ref : ast.exprDataType) + "')";
     }
   };
 
-  wrapDebug = function wrapDebug(name, ast, v, body) {
+  wrapDebug = function wrapDebug(name, ast, v, body, namespace) {
     var _ref;
     if (!(ast.exprType != null) && !ast.exprDataType) {
       if (typeof name === "function" ? name("setContext($ctx, (" + src + "))") : void 0) {} else {
         return src;
       }
     } else {
-      return "" + (ast.exprType ? 'setType' : 'setDataType') + "(" + src + ", '" + ((_ref = ast.exprType) != null ? _ref : ast.exprDataType) + "')";
+      return "" + (namespace != null ? namespace : '') + (ast.exprType ? 'setType' : 'setDataType') + "(" + src + ", '" + ((_ref = ast.exprType) != null ? _ref : ast.exprDataType) + "')";
     }
   };
 
@@ -611,7 +611,7 @@ misrepresented as being the original software.
     return func;
   };
 
-  gen = function gen(ast, code, lits, vars, deref, name) {
+  gen = function gen(ast, code, lits, vars, deref, name, namespace) {
     var arg, argCode, bodyCode, func, funcCode, src, v, val;
     switch (getAstType(ast)) {
       case 'ref':
@@ -641,11 +641,11 @@ misrepresented as being the original software.
         return code.copyWith(src).unreffedValue(deref);
       case 'lambda':
         v = getLambdaVar(ast);
-        bodyCode = gen(getLambdaBody(ast), code.resetMemo(), lits, cons(v, vars), true, name);
+        bodyCode = gen(getLambdaBody(ast), code.resetMemo(), lits, cons(v, vars), true, name, namespace);
         bodyCode = bodyCode.setVars(bodyCode.vars.removeAll(function(bv) {
           return bv === v;
         }));
-        return bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main)).useSubfunc(bodyCode.vars === Nil).memoize(deref);
+        return bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).useSubfunc(bodyCode.vars === Nil).memoize(deref);
       case 'apply':
         func = getApplyFunc(ast);
         if (getAstType(func === 'lit')) {
@@ -654,8 +654,8 @@ misrepresented as being the original software.
           return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
         } else {
           arg = getApplyArg(ast);
-          funcCode = gen(func, code, lits, vars, true, name);
-          argCode = gen(arg, funcCode, lits, vars, false, name);
+          funcCode = gen(func, code, lits, vars, true, name, namespace);
+          argCode = gen(arg, funcCode, lits, vars, false, name, namespace);
           return argCode.copyWith("" + funcCode.main + "(" + argCode.main + ")").memoize(deref);
         }
         break;
@@ -775,14 +775,16 @@ misrepresented as being the original software.
             if (nm.length === 1) nameAst(nm[0], ast);
             ast.leisurePrefixSrcLen = pfx.length;
             ast.leisurePrefixCount = nm.length;
-            return genCode(ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length).trim());
+            ast.leisureSource = pfx.substring(0, pfx.length - rest.length).trim();
+            return genCode(ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource);
           }), errPrefix);
         }
       } else {
         return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
           ast.leisureCodeOffset = line.length - rest1.length;
           ast.leisureBase = ast;
-          return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim());
+          ast.leisureSource = rest1.substring(0, rest1.length - rest.length).trim();
+          return genCode(ast, null, globals, null, rest, parseOnly, namespace, ast.leisureSource);
         }), "Error compiling expr:  " + (snip(line)));
       }
     } else {
