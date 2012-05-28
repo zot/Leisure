@@ -377,6 +377,9 @@ getAst = (bx, def)->
   else
     def = def || bx.textContent
     bx.ast = (Leisure.compileNext def, Leisure.Nil, true, null, true)[0]
+    if bx.ast?.leisureName?
+      window[Leisure.nameSub(bx.ast.leisureName)]?()?.src = bx.ast.leisureSource
+      update "ast-#{bx.ast.leisureName}"
 
 # mark partial applies within bx
 # the last child of bx should be a fresh expr span with the full code in it
@@ -416,9 +419,9 @@ textNode = (text)-> document.createTextNode(text)
 
 nodeFor = (text)-> if typeof text == 'string' then textNode(text) else text
 
-evalOutput = (exBox)->
+evalOutput = (exBox, nofocus)->
   exBox = getBox exBox
-  focusBox exBox
+  if !nofocus then focusBox exBox
   cleanOutput exBox, true
   makeOutputControls exBox
   [updateSelector, stopUpdates] = getElements exBox.firstChild, ['chooseUpdate', 'stopUpdates']
@@ -455,7 +458,7 @@ clearUpdates = (widget)->
 update = (type, env)->
   env = env ? Prim.defaultEnv
   for node in env.owner.querySelectorAll "[leisureUpdate=#{type}]"
-    evalOutput node
+    evalOutput node, true
 
 clearOutputBox = (exBox)->
   clearUpdates exBox

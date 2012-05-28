@@ -257,7 +257,7 @@ class Code
 dgen = (ast, lazy, name, globals, tokenDef, namespace, src)->
   ast.lits = []
   res = []
-  code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name) #.memo(!lazy)
+  code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace) #.memo(!lazy)
   if code.err != '' then ast.err = code.err
   else if code.subfuncs.length then ast.src = """
 (function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
@@ -272,15 +272,15 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src)->
   ast.globals = code.global
   ast
 
-wrapNoDebug = (name, ast, v, body)->
+wrapNoDebug = (name, ast, v, body, namespace)->
   src = "function(#{v}){return #{body}}"
   if !ast.exprType? and !ast.exprDataType then src
-  else "#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
+  else "#{namespace ? ''}#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
 
-wrapDebug = (name, ast, v, body)->
+wrapDebug = (name, ast, v, body, namespace)->
   if !ast.exprType? and !ast.exprDataType
     if name? "setContext($ctx, (#{src}))" else src
-  else "#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
+  else "#{namespace ? ''}#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
 
 wrap = wrapNoDebug
 
@@ -288,7 +288,7 @@ setContext = (ctx, func)->
   func.LeisureContext = ctx
   func
 
-gen = (ast, code, lits, vars, deref, name)->
+gen = (ast, code, lits, vars, deref, name, namespace)->
   switch getAstType ast
     when 'ref'
       val = getRefVar ast
@@ -308,17 +308,17 @@ gen = (ast, code, lits, vars, deref, name)->
       code.copyWith(src).unreffedValue(deref)
     when 'lambda'
       v = getLambdaVar ast
-      bodyCode = (gen (getLambdaBody ast), code.resetMemo(), lits, cons(v, vars), true, name)
+      bodyCode = (gen (getLambdaBody ast), code.resetMemo(), lits, cons(v, vars), true, name, namespace)
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
-      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main)).useSubfunc(bodyCode.vars == Nil).memoize(deref)
+      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).useSubfunc(bodyCode.vars == Nil).memoize(deref)
     when 'apply'
       func = getApplyFunc ast
       if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
       else if freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
       else
         arg = getApplyArg ast
-        funcCode = gen func, code, lits, vars, true, name
-        argCode = gen arg, funcCode, lits, vars, false, name
+        funcCode = gen func, code, lits, vars, true, name, namespace
+        argCode = gen arg, funcCode, lits, vars, false, name, namespace
         argCode.copyWith("#{funcCode.main}(#{argCode.main})").memoize(deref) #.unreffedValue(deref)
     else code.addErr "Unknown object type in gen: #{ast}"
 
@@ -384,11 +384,13 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
           if nm.length == 1 then nameAst(nm[0], ast)
           ast.leisurePrefixSrcLen = pfx.length
           ast.leisurePrefixCount = nm.length
-          genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length).trim()), errPrefix
+          ast.leisureSource = pfx.substring(0, pfx.length - rest.length).trim()
+          genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource), errPrefix
     else ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = line.length - rest1.length
       ast.leisureBase = ast
-      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim()), "Error compiling expr:  #{snip line}"
+      ast.leisureSource = rest1.substring(0, rest1.length - rest.length).trim()
+      genCode ast, null, globals, null, rest, parseOnly, namespace, ast.leisureSource), "Error compiling expr:  #{snip line}"
   else [null, null, null]
 
 genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src)->
