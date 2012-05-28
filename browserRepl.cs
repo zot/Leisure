@@ -16,7 +16,10 @@ writeOutput = (line)->
 getHtml = (x)-> x ->(value)->value()
 
 escapeHtml = (str)->
-  if typeof str == 'string' then str.replace(/</g, '&lt;')
+  if typeof str == 'string' then str.replace /[<>]/g, (c)->
+    switch c
+      when '<' then '&lt;'
+      when '>' then '&gt;'
   else str
 
 trimEq = (str)-> if str[0] == '=' then str.substring(1) else str

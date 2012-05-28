@@ -334,7 +334,7 @@ removeOldDefs = (el)->
     unwrap node
   for node in extracted
     if node.parentNode? and !addsLine(node) and node.previousSibling? and !addsLine(node.previousSibling) then node.parentNode.insertBefore text('\n'), node
-  el.normalize()
+  el.textContent = el.textContent.replace /\uFEFF/g, ''
   txt = el.lastChild
   if txt?.nodeType == 3 and (m = txt.data.match /(^|[^\n])(\n+)$/)
     txt.data = txt.data.substring(0, txt.data.length - m[2].length)
@@ -345,9 +345,6 @@ markupDefs = (el, defs)->
   totalTests = 0
   for i in defs
     {main, name, def, body, tests} = i
-    for test in tests
-      replaceRange test, makeTestBox test.leisureTest
-      totalTests++
     if name?
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
@@ -370,6 +367,9 @@ markupDefs = (el, defs)->
       markPartialApplies bx
       if main.leisureAuto then auto += "#{body}\n"
       else makeOutputBox(bx)
+    for test in tests
+      replaceRange test, makeTestBox test.leisureTest
+      totalTests++
   [pgm, auto, totalTests]
 
 getAst = (bx, def)->
@@ -519,7 +519,7 @@ runTest = (bx)->
     require: req
     write: ->
     prompt: (msg, cont)-> cont(null)
-    processResult: (result)-> passed = showResult bx, Repl.escapeHtml(Pretty.print(result)), test.result
+    processResult: (result)-> passed = showResult bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result)
     processError: passed = false
   ))
   passed
@@ -648,9 +648,11 @@ getRanges = (el, txt, rest, def, restOff)->
         exEnd = if ex then mainStart + ex[1].length else mainEnd
         body = txt.substring mainStart, exEnd
         if body.trim()
-          textStart = restOff + m.index
-          if leading? and (lm = leading.match /^[ \n]+/) then textStart += lm[0].length
-          if leading.match /@auto/
+          textStart = restOff + m.index + (if t then leading.length - t.length else 0)
+          #if leading? and (lm = leading.match /^[ \n]+/) then textStart += lm[0].length
+          if t? and (lm = t.match /^[ \n]+/) then textStart += lm[0].length
+          #if leading.match /@auto/
+          if t.match /@auto/
             outerRange = makeRange el, textStart, exEnd
             outerRange.leisureAuto = true
             main: outerRange
@@ -749,7 +751,7 @@ focusBox = (box)->
   if box != docFocus
     docFocus?.classList.remove 'focused'
     docFocus = box
-    box.classList?.add 'focused'
+    box?.classList?.add 'focused'
   if newCode != codeFocus
     old = codeFocus
     codeFocus = newCode
@@ -792,9 +794,9 @@ Leisure.define 'finishLoading', (bubba)->
     postLoadQueue = []
     cont(_false())
 
-Leisure.define 'config', (name)->(value)->
+Leisure.define 'config', (expr)->
   Prim.makeMonad (env, cont)->
-    switch name()
+    switch expr()
       when 'autoTest' then autoRun(env.owner, true)
     cont(_false())
 
@@ -831,27 +833,44 @@ transformedPoint = (pt, x, y, ctm, ictm)->
   pt.matrixTransform(ctm).matrixTransform(ictm)
 
 # try to take strokeWidth into account
-svgMeasure = (content)->(f)->
-  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'>#{content()}</svg>"
+svgMeasure = (content)-> primSvgMeasure content, baseStrokeWidth
+
+# try to take strokeWidth into account
+svgBetterMeasure = (content)-> primSvgMeasure content, transformStrokeWidth
+
+# try to take strokeWidth into account
+primSvgMeasure = (content, transformFunc)->(f)->
+  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>#{content()}</g></svg>"
   document.body.appendChild(svg)
-  x1 = y1 = Number.MAX_VALUE
-  x2 = y2 = Number.MIN_VALUE
-  pt = svg.createSVGPoint()
-  isctm = svg.getScreenCTM().inverse()
-  for node in svg.childNodes
-    bx = node.getBBox()
-    #hack to parse strokeWidth string by setting the width of the svg to it
-    svg.setAttribute 'width', (getComputedStyle(node).strokeWidth ? 0)
-    pad = svg.width.baseVal.value / 2
-    ctm = node.getScreenCTM()
-    tp1 = transformedPoint pt, bx.x - Math.ceil(pad), bx.y - Math.ceil(pad), ctm, isctm
-    tp2 = transformedPoint pt, bx.x + bx.width + Math.ceil(pad), bx.y + bx.height + Math.ceil(pad), ctm, isctm
-    x1 = Math.min(Math.min(x1, tp1.x), tp2.x)
-    y1 = Math.min(Math.min(y1, tp1.y), tp2.y)
-    x2 = Math.max(Math.max(x2, tp1.x), tp2.x)
-    y2 = Math.max(Math.max(y2, tp1.y), tp2.y)
+  g = svg.firstChild
+  bbox = g.getBBox()
+  pad = getMaxStrokeWidth g, g, svg, transformFunc
   document.body.removeChild(svg)
-  f()(laz(x1))(laz(y1))(laz(x2 - x1))(laz(y2 - y1))
+  f()(laz(bbox.x - Math.ceil(pad/2)))(laz(bbox.y - Math.ceil(pad/2)))(laz(bbox.width + pad))(laz(bbox.height + pad))
+
+baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']
+
+getMaxStrokeWidth = (el, base, svg, transformFunc)->
+  if base.nodeName in baseElements
+    #hack to parse strokeWidth string by setting the width of the svg to it
+    svg.setAttribute 'width', (getComputedStyle(base).strokeWidth ? '0'), svg
+    transformFunc el, svg.width.baseVal.value
+  else if base.nodeName == 'use' then getMaxStrokeWidth base, base.instanceRoot.correspondingElement, svg, transformFunc
+  else if base.nodeName == 'g'
+    Leisure.foldLeft ((v, n)-> Math.max v, (getMaxStrokeWidth n, n, svg, transformFunc)), 0, el.childNodes
+  else 0
+
+baseStrokeWidth = (el, w)-> w
+
+transformStrokeWidth = (el, w)->
+  if w == 0 then 0
+  else
+    ctm = el.getScreenCTM()
+    tp1 = transformedPoint pt, bx.x - Math.ceil(w), bx.y - Math.ceil(w), ctm, isctm
+    tp2 = transformedPoint pt, bx.x + bx.width + Math.ceil(w), bx.y + bx.height + Math.ceil(w), ctm, isctm
+    x = tp2.x - tp1.x
+    y = tp2.y - tp1.y
+    Math.sqrt(x * x + y * y)
 
 presentSvgNode = (node)->
   content = node(laz(id))

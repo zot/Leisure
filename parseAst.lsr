@@ -1,83 +1,91 @@
-make-subtree svg width height root-x root-y = \f . f svg width height root-x root-y
+make-node svg width height root-x root-y = \f . f svg width height root-x root-y
 
-subtree-svg st = st \svg width height root-x root-y . svg
-subtree-width st = st \svg width height root-x root-y . width
-subtree-height st = st \svg width height root-x root-y . height
-subtree-root-x st = st \svg width height root-x root-y . root-x
-subtree-root-y st = st \svg width height root-x root-y . root-y
+node-svg st = st \svg width height root-x root-y . svg
+node-width st = st \svg width height root-x root-y . width
+node-height st = st \svg width height root-x root-y . height
+node-root-x st = st \svg width height root-x root-y . root-x
+node-root-y st = st \svg width height root-x root-y . root-y
 
-subtree-set-svg st value = st \svg width height root-x root-y . make-subtree value width height root-x root-y
-subtree-set-width st value = st \svg width height root-x root-y . make-subtree svg value height root-x root-y
-subtree-set-height st value = st \svg width height root-x root-y . make-subtree svg width value root-x root-y
-subtree-set-root-x st value = st \svg width height root-x root-y . make-subtree svg width height value root-y
-subtree-set-root-y st value = st \svg width height root-x root-y . make-subtree svg width height root-x value
+node-set-svg st value = st \svg width height root-x root-y . make-node value width height root-x root-y
+node-set-width st value = st \svg width height root-x root-y . make-node svg value height root-x root-y
+node-set-height st value = st \svg width height root-x root-y . make-node svg width value root-x root-y
+node-set-root-x st value = st \svg width height root-x root-y . make-node svg width height value root-y
+node-set-root-y st value = st \svg width height root-x root-y . make-node svg width height root-x value
 
-make-box svg width height = \f . f svg width height
-box-svg b = b \svg width height . svg
-box-width b = b \svg width height . width
-box-height b = b \svg width height . height
+node-translate st x y = st \svg width height root-x root-y . make-node
+  translate svg x y
+  width
+  height
+  + root-x x
+  + root-y y
 
-treeFor ast = svg (subtree-svg (subtreeFor ast)) [['width'|200],['height'|200]]
+node-line n1 n2 = n1 \s1 w1 h1 x1 y1 . n2 \s2 w2 h2 x2 y2 .
+  line [['x1'|x1],['y1'|y1],['x2'|x2],['y2'|y2]|default-line-map]
 
-subtreeFor ast = do
+treeFor ast = node-svg (nodeFor ast)
+
+nodeFor ast = do
   t = typeof ast
   eq t 'lit'
-    createLitSubtree (pretty (ast id))
+    createLitNode (pretty (ast id))
     eq t 'ref'
-      createRefSubtree (pretty (ast id))
+      createRefNode (pretty (ast id))
       eq t 'lambda'
-        ast (\v b . createLambdaSubtree v b)
+        ast (\v b . createLambdaNode v b)
         eq t 'apply'
-          ast (\f a . createApplySubtree f a)
-          make-subtree (svg-node '') 0 0 0 0
+          ast (\f a . createApplyNode f a)
+          make-node (svg-node '') 0 0 0 0
 
 redStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'red'],['rx'|8],['ry'|8] ]
 greenStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'green'],['rx'|8],['ry'|8] ]
 blueStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'blue'],['rx'|8],['ry'|8] ]
 
-#    (translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)
-
-createLambdaSubtree v b = do
-  rootBox = textBox greenStyle 'lambda'
-  rootSvg = box-svg rootBox
-  varBox = textBox greenStyle v
-  varSvg = box-svg varBox
-  bodyTree = subtreeFor b
-  bodySvg = subtree-svg bodyTree
-  childWidth = + (+ (box-width varBox) 5) (subtree-width bodyTree)
-  totalWidth = max childWidth (box-width rootBox)
+createLambdaNode v b = do
+  rootBox = textNode greenStyle 'lambda'
+  varBox = textNode greenStyle v
+  bodyTree = nodeFor b
+  childWidth = + (+ (node-width varBox) 5) (node-width bodyTree)
+  totalWidth = max childWidth (node-width rootBox)
   pad = max 0 (/ (- totalWidth childWidth) 2)
-  make-subtree
-    svg-concat [(translate varSvg pad (+ (box-height rootBox) 5)),(translate bodySvg (+ pad (+ (box-width varBox) 5)) (+ (box-height rootBox) 5)),(translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)]
+  rootBox = node-translate rootBox (- (/ totalWidth 2) (/ (node-width rootBox) 2)) 0
+  varBox = node-translate varBox pad (+ (node-height rootBox) 5)
+  bodyTree = node-translate bodyTree (+ pad (+ (node-width varBox) 5)) (+ (node-height rootBox) 5)
+  make-node
+    svg-concat [(node-line rootBox varBox), (node-line rootBox bodyTree), (node-svg varBox),(node-svg bodyTree),(node-svg rootBox)]
     totalWidth
-    + (+ (box-height rootBox) 5) (max (box-height varBox) (subtree-height bodyTree))
+    + (+ (node-height rootBox) 5) (max (node-height varBox) (node-height bodyTree))
     / totalWidth 2
-    / (box-height rootBox) 2
+    / (node-height rootBox) 2
 
-createApplySubtree f a = do
-  rootBox = textBox blueStyle 'apply'
-  rootSvg = box-svg rootBox
-  argTree = subtreeFor a
-  argSvg = subtree-svg argTree
-  funcTree = subtreeFor f
-  funcSvg = subtree-svg funcTree
-  childWidth = + (+ (subtree-width argTree) 5) (subtree-width funcTree)
-  totalWidth = max childWidth (box-width rootBox)
+createApplyNode f a = do
+  rootBox = textNode blueStyle 'apply'
+  funcTree = nodeFor f
+  argTree = nodeFor a
+  childWidth = + (+ (node-width argTree) 5) (node-width funcTree)
+  totalWidth = max childWidth (node-width rootBox)
   pad = max 0 (/ (- totalWidth childWidth) 2)
-  make-subtree
-    svg-concat [(translate argSvg pad (+ (box-height rootBox) 5)), (translate funcSvg (+ pad (+ (subtree-width argTree) 5)) (+ (box-height rootBox) 5)), (translate rootSvg (- (/ totalWidth 2) (/ (box-width rootBox) 2)) 0)]
+  rootBox = node-translate rootBox (- (/ totalWidth 2) (/ (node-width rootBox) 2)) 0
+  argTree = node-translate argTree pad (+ (node-height rootBox) 5)
+  funcTree = node-translate funcTree (+ pad (+ (node-width argTree) 5)) (+ (node-height rootBox) 5)
+  make-node
+    svg-concat [(node-line rootBox funcTree), (node-line rootBox argTree), (node-svg rootBox), (node-svg funcTree), (node-svg argTree)]
     totalWidth
-    + (+ (box-height rootBox) 5) (max (subtree-height argTree) (subtree-height funcTree))
+    + (+ (node-height rootBox) 5) (max (node-height argTree) (node-height funcTree))
     / totalWidth 2
-    / (box-height rootBox) 2
+    / (node-height rootBox) 2
 
-createRefSubtree ref = (textBox redStyle ref) \b w h .  make-subtree b w h (/ w 2) (/ h 2)
-createLitSubtree lit = (textBox greenStyle lit) \b w h .  make-subtree b w h (/ w 2) (/ h 2)
+createRefNode ref = textNode redStyle ref
+createLitNode lit = textNode greenStyle lit
 
-textBox map txt = (svg-measure-text txt '') \w h . do
-  box-w = + w 24
-  box-h = + h 14
-  make-box (svg-concat [(rect [['x'|2],['y'|2],['width'|box-w],['height'|box-h] | map]), (text txt [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 14 (/ w 2))],['y'|(+ 5 (/ h 2))]])]) box-w box-h
+textNode map txt = (svg-measure-text txt '') \w h . do
+  node-w = + w 24
+  node-h = + h 14
+  make-node
+    (svg-concat [(rect [['x'|2],['y'|2],['width'|node-w],['height'|node-h] | map]), (text txt [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 14 (/ w 2))],['y'|(+ 5 (/ h 2))]])])
+    node-w
+    node-h
+    / node-w 2
+    / node-h 2
 
 typeof x = getType x id false
 

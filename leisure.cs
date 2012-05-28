@@ -64,6 +64,7 @@ charCodes =
   '<': '$y'
   '>': '$z'
   '%': '$A'
+  '.': '$B'
 
 codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
 
@@ -571,6 +572,11 @@ parseLambda = (str, vars, indent, totalLen)->
     ast.leisureNameEnd = pos(rest1, totalLen)
     [tag(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2]
 
+foldLeft = (func, val, array)-> primFoldLeft func, val, array, 0
+primFoldLeft = (func, val, array, index)->
+  if index < array.length then primFoldLeft func, func(val, array[index]), array, index + 1
+  else val
+
 root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
@@ -603,3 +609,4 @@ root.processDefs = processDefs
 root.parseApply = parseApply
 root.bracket = bracket
 root.findFuncs = findFuncs
+root.foldLeft = foldLeft

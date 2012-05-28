@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getExprSource, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformedPoint, unwrap, update, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, baseElements, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformStrokeWidth, transformedPoint, unwrap, update, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -485,7 +485,7 @@
         node.parentNode.insertBefore(text('\n'), node);
       }
     }
-    el.normalize();
+    el.textContent = el.textContent.replace(/\uFEFF/g, '');
     txt = el.lastChild;
     if ((txt != null ? txt.nodeType : void 0) === 3 && (m = txt.data.match(/(^|[^\n])(\n+)$/))) {
       return txt.data = txt.data.substring(0, txt.data.length - m[2].length);
@@ -500,11 +500,6 @@
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i.main, name = i.name, def = i.def, body = i.body, tests = i.tests;
-      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
-        test = tests[_j];
-        replaceRange(test, makeTestBox(test.leisureTest));
-        totalTests++;
-      }
       if (name != null) {
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
@@ -530,6 +525,11 @@
         } else {
           makeOutputBox(bx);
         }
+      }
+      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
+        test = tests[_j];
+        replaceRange(test, makeTestBox(test.leisureTest));
+        totalTests++;
       }
     }
     return [pgm, auto, totalTests];
@@ -747,7 +747,7 @@
         return cont(null);
       },
       processResult: function processResult(result) {
-        return passed = showResult(bx, Repl.escapeHtml(Pretty.print(result)), test.result);
+        return passed = showResult(bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result));
       },
       processError: passed = false
     });
@@ -932,11 +932,9 @@
         exEnd = ex ? mainStart + ex[1].length : mainEnd;
         body = txt.substring(mainStart, exEnd);
         if (body.trim()) {
-          textStart = restOff + m.index;
-          if ((leading != null) && (lm = leading.match(/^[ \n]+/))) {
-            textStart += lm[0].length;
-          }
-          if (leading.match(/@auto/)) {
+          textStart = restOff + m.index + (t ? leading.length - t.length : 0);
+          if ((t != null) && (lm = t.match(/^[ \n]+/))) textStart += lm[0].length;
+          if (t.match(/@auto/)) {
             outerRange = makeRange(el, textStart, exEnd);
             outerRange.leisureAuto = true;
             return {
@@ -1098,7 +1096,7 @@
     if (box !== docFocus) {
       if (docFocus != null) docFocus.classList.remove('focused');
       docFocus = box;
-      if ((_ref = box.classList) != null) _ref.add('focused');
+      if (box != null) if ((_ref = box.classList) != null) _ref.add('focused');
     }
     if (newCode !== codeFocus) {
       old = codeFocus;
@@ -1160,16 +1158,14 @@
     });
   });
 
-  Leisure.define('config', function(name) {
-    return function(value) {
-      return Prim.makeMonad(function(env, cont) {
-        switch (name()) {
-          case 'autoTest':
-            autoRun(env.owner, true);
-        }
-        return cont(_false());
-      });
-    };
+  Leisure.define('config', function(expr) {
+    return Prim.makeMonad(function(env, cont) {
+      switch (expr()) {
+        case 'autoTest':
+          autoRun(env.owner, true);
+      }
+      return cont(_false());
+    });
   });
 
   autoRun = function autoRun(el, state) {
@@ -1243,31 +1239,60 @@
   };
 
   svgMeasure = function svgMeasure(content) {
+    return primSvgMeasure(content, baseStrokeWidth);
+  };
+
+  svgBetterMeasure = function svgBetterMeasure(content) {
+    return primSvgMeasure(content, transformStrokeWidth);
+  };
+
+  primSvgMeasure = function primSvgMeasure(content, transformFunc) {
     return function(f) {
-      var bx, ctm, isctm, node, pad, pt, svg, tp1, tp2, x1, x2, y1, y2, _i, _len, _ref, _ref2;
-      svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'>" + (content()) + "</svg>");
+      var bbox, g, pad, svg;
+      svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>" + (content()) + "</g></svg>");
       document.body.appendChild(svg);
-      x1 = y1 = Number.MAX_VALUE;
-      x2 = y2 = Number.MIN_VALUE;
-      pt = svg.createSVGPoint();
-      isctm = svg.getScreenCTM().inverse();
-      _ref = svg.childNodes;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        node = _ref[_i];
-        bx = node.getBBox();
-        svg.setAttribute('width', (_ref2 = getComputedStyle(node).strokeWidth) != null ? _ref2 : 0);
-        pad = svg.width.baseVal.value / 2;
-        ctm = node.getScreenCTM();
-        tp1 = transformedPoint(pt, bx.x - Math.ceil(pad), bx.y - Math.ceil(pad), ctm, isctm);
-        tp2 = transformedPoint(pt, bx.x + bx.width + Math.ceil(pad), bx.y + bx.height + Math.ceil(pad), ctm, isctm);
-        x1 = Math.min(Math.min(x1, tp1.x), tp2.x);
-        y1 = Math.min(Math.min(y1, tp1.y), tp2.y);
-        x2 = Math.max(Math.max(x2, tp1.x), tp2.x);
-        y2 = Math.max(Math.max(y2, tp1.y), tp2.y);
-      }
+      g = svg.firstChild;
+      bbox = g.getBBox();
+      pad = getMaxStrokeWidth(g, g, svg, transformFunc);
       document.body.removeChild(svg);
-      return f()(laz(x1))(laz(y1))(laz(x2 - x1))(laz(y2 - y1));
+      return f()(laz(bbox.x - Math.ceil(pad / 2)))(laz(bbox.y - Math.ceil(pad / 2)))(laz(bbox.width + pad))(laz(bbox.height + pad));
     };
+  };
+
+  baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon'];
+
+  getMaxStrokeWidth = function getMaxStrokeWidth(el, base, svg, transformFunc) {
+    var _ref, _ref2;
+    if (_ref = base.nodeName, __indexOf.call(baseElements, _ref) >= 0) {
+      svg.setAttribute('width', (_ref2 = getComputedStyle(base).strokeWidth) != null ? _ref2 : '0', svg);
+      return transformFunc(el, svg.width.baseVal.value);
+    } else if (base.nodeName === 'use') {
+      return getMaxStrokeWidth(base, base.instanceRoot.correspondingElement, svg, transformFunc);
+    } else if (base.nodeName === 'g') {
+      return Leisure.foldLeft((function(v, n) {
+        return Math.max(v, getMaxStrokeWidth(n, n, svg, transformFunc));
+      }), 0, el.childNodes);
+    } else {
+      return 0;
+    }
+  };
+
+  baseStrokeWidth = function baseStrokeWidth(el, w) {
+    return w;
+  };
+
+  transformStrokeWidth = function transformStrokeWidth(el, w) {
+    var ctm, tp1, tp2, x, y;
+    if (w === 0) {
+      return 0;
+    } else {
+      ctm = el.getScreenCTM();
+      tp1 = transformedPoint(pt, bx.x - Math.ceil(w), bx.y - Math.ceil(w), ctm, isctm);
+      tp2 = transformedPoint(pt, bx.x + bx.width + Math.ceil(w), bx.y + bx.height + Math.ceil(w), ctm, isctm);
+      x = tp2.x - tp1.x;
+      y = tp2.y - tp1.y;
+      return Math.sqrt(x * x + y * y);
+    }
   };
 
   presentSvgNode = function presentSvgNode(node) {

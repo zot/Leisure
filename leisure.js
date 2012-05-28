@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
+  var CNil, Code, Cons, Nil, append, apply, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -79,7 +79,8 @@ misrepresented as being the original software.
     ';': '$x',
     '<': '$y',
     '>': '$z',
-    '%': '$A'
+    '%': '$A',
+    '.': '$B'
   };
 
   codeChars = new function() {
@@ -1088,6 +1089,18 @@ misrepresented as being the original software.
     });
   };
 
+  foldLeft = function foldLeft(func, val, array) {
+    return primFoldLeft(func, val, array, 0);
+  };
+
+  primFoldLeft = function primFoldLeft(func, val, array, index) {
+    if (index < array.length) {
+      return primFoldLeft(func, func(val, array[index]), array, index + 1);
+    } else {
+      return val;
+    }
+  };
+
   root.processTokenDefs = processTokenDefs;
 
   root.setEvalFunc = setEvalFunc;
@@ -1153,5 +1166,7 @@ misrepresented as being the original software.
   root.bracket = bracket;
 
   root.findFuncs = findFuncs;
+
+  root.foldLeft = foldLeft;
 
 }).call(this);

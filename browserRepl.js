@@ -34,7 +34,14 @@
 
   escapeHtml = function escapeHtml(str) {
     if (typeof str === 'string') {
-      return str.replace(/</g, '&lt;');
+      return str.replace(/[<>]/g, function(c) {
+        switch (c) {
+          case '<':
+            return '&lt;';
+          case '>':
+            return '&gt;';
+        }
+      });
     } else {
       return str;
     }

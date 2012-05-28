@@ -7,14 +7,15 @@ do
   require 'maps'
   require 'svg'
   require 'parseAst'
+  config 'autoTest'
 
 box-svg (textBox greenStyle 'lambda')
-subtree-svg (subtreeFor (parse '1' id false))
+
 treeFor (parse '1' id false)
-subtree-svg (subtreeFor (parse 'cons 1' id false))
+
 treeFor (parse 'cons 1' id false)
-subtreeFor (parse (funcSource and id false) id id)
-treeFor (parse (funcSource and id false) id id)
+
+treeFor (parse (funcSource and id false) id false)
 
 svg-concat [(rect nil), (circle nil)]
 
