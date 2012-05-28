@@ -122,6 +122,12 @@
               return "HTML(" + (txt()) + ")";
             };
           });
+        case 'svg-node':
+          return f(function() {
+            return function(txt) {
+              return "SVG NODE(" + (txt()) + ")";
+            };
+          });
         default:
           return (_ref = f != null ? f.leisureName : void 0) != null ? _ref : inspect(f);
       }

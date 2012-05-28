@@ -13,6 +13,10 @@ cons a
 
 circle nil
 
+translate (circle nil) 10 10
+
+svg-measure-nodes [(circle nil)] \x y w h . concat ['x: ', x, ', y: ', y, ', w: ', w, ', h: ', h]
+
 rect nil
 
 text 'foopy' default-circle-map

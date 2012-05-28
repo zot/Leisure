@@ -38,7 +38,7 @@
       body.removeAttribute('leisurecode');
     }
     window.removeEventListener('load', bootLeisure);
-    _ref = ['leisure', 'gaudy', 'thin', 'cthulhu', 'jqModal', 'dialog'];
+    _ref = ['leisure', 'gaudy', 'thin', 'cthulhu'];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       i = _ref[_i];
       style = document.createElement('link');
@@ -47,11 +47,10 @@
       style.setAttribute('href', "" + i + ".css");
       document.head.appendChild(style);
     }
-    return loadThen(['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jqModal', 'jqDnR', 'dimensions', 'sha256'], function() {
+    return loadThen(['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], function() {
       window.Leisure.restoreAutosave = restoreAutosave;
       window.Leisure.backupAutosave = backupAutosave;
       window.Leisure.deleteAutosave = deleteAutosave;
-      prepTools();
       Repl.init();
       return bootFs(function() {
         var node, _j, _len2, _ref2;

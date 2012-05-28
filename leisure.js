@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
+  var CNil, Code, Cons, Nil, append, apply, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -56,7 +56,7 @@ misrepresented as being the original software.
   charCodes = {
     "'": '$a',
     ',': '$b',
-    '$': '$c',
+    '$': '$$',
     '@': '$d',
     '?': '$e',
     '/': '$f',
@@ -66,7 +66,7 @@ misrepresented as being the original software.
     '!': '$k',
     '`': '$l',
     '~': '$m',
-    '-': '$n',
+    '-': '$_',
     '+': '$o',
     '=': '$p',
     '|': '$q',
@@ -79,7 +79,8 @@ misrepresented as being the original software.
     ';': '$x',
     '<': '$y',
     '>': '$z',
-    '%': '$A'
+    '%': '$A',
+    '.': '$B'
   };
 
   codeChars = new function() {
@@ -255,8 +256,9 @@ misrepresented as being the original software.
 
   global.noredefs = true;
 
-  define = function define(name, func, arity) {
+  define = function define(name, func, arity, src) {
     var f, nm;
+    func.src = src;
     nm = nameSub(name);
     func.leisureName = name;
     func.leisureArity = arity;
@@ -407,7 +409,7 @@ misrepresented as being the original software.
   };
 
   bracket = function bracket(ast, pos) {
-    if (within(ast, pos)) {
+    if ((ast != null) && within(ast, pos)) {
       switch (getAstType(ast)) {
         case 'ref':
         case 'lit':
@@ -565,7 +567,7 @@ misrepresented as being the original software.
 
   })();
 
-  dgen = function dgen(ast, lazy, name, globals, tokenDef) {
+  dgen = function dgen(ast, lazy, name, globals, tokenDef, namespace, src) {
     var code, res;
     ast.lits = [];
     res = [];
@@ -573,9 +575,9 @@ misrepresented as being the original software.
     if (code.err !== '') {
       ast.err = code.err;
     } else if (code.subfuncs.length) {
-      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ")" : code.main) + "\n})()";
+      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ")" : code.main) + "\n})()";
     } else {
-      ast.src = name != null ? "" + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
+      ast.src = name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
     }
     ast.globals = code.global;
     return ast;
@@ -732,13 +734,13 @@ misrepresented as being the original software.
     }
   };
 
-  compileNext = function compileNext(line, globals, parseOnly, check, nomacros) {
-    var def, defType, errPrefix, leading, matched, name, nm, pfx, rest, rest1;
+  compileNext = function compileNext(line, globals, parseOnly, check, nomacros, namespace) {
+    var def, defType, errPrefix, leading, matched, name, nm, pfx, rest1;
     if (line[0] === '=') {
-      rest = line.substring(1);
-      return ifParsed((nomacros ? parseApplyNew(rest, Nil) : parseFull(rest)), (function(ast, rest) {
+      rest1 = line.substring(1);
+      return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
         ast.leisureCodeOffset = 0;
-        return genCode(ast, null, globals, null, rest, parseOnly);
+        return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim());
       }), "Error compiling expr " + (snip(line)));
     } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
@@ -773,14 +775,14 @@ misrepresented as being the original software.
             if (nm.length === 1) nameAst(nm[0], ast);
             ast.leisurePrefixSrcLen = pfx.length;
             ast.leisurePrefixCount = nm.length;
-            return genCode(ast, nm[0], globals, defType, rest, parseOnly);
+            return genCode(ast, nm[0], globals, defType, rest, parseOnly, namespace, pfx.substring(0, pfx.length - rest.length).trim());
           }), errPrefix);
         }
       } else {
         return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
           ast.leisureCodeOffset = line.length - rest1.length;
           ast.leisureBase = ast;
-          return genCode(ast, null, globals, null, rest, parseOnly);
+          return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim());
         }), "Error compiling expr:  " + (snip(line)));
       }
     } else {
@@ -788,17 +790,17 @@ misrepresented as being the original software.
     }
   };
 
-  genCode = function genCode(ast, name, globals, defType, rest, parseOnly) {
-    if (!parseOnly) dgen(ast, false, name, globals, defType);
+  genCode = function genCode(ast, name, globals, defType, rest, parseOnly, namespace, src) {
+    if (!parseOnly) dgen(ast, false, name, globals, defType, namespace, src);
     if ((ast.err != null) && (name != null)) {
       ast.err = "Error while compiling " + name + ": " + ast.err;
     }
     return [ast, ast.err, rest];
   };
 
-  evalNext = function evalNext(code) {
+  evalNext = function evalNext(code, namespace) {
     var ast, err, nm, rest, result, _ref;
-    _ref = compileNext(code, null), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = compileNext(code, null, null, null, null, namespace), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (ast) {
       if (ast.leisureName) {
         try {
@@ -1087,6 +1089,18 @@ misrepresented as being the original software.
     });
   };
 
+  foldLeft = function foldLeft(func, val, array) {
+    return primFoldLeft(func, val, array, 0);
+  };
+
+  primFoldLeft = function primFoldLeft(func, val, array, index) {
+    if (index < array.length) {
+      return primFoldLeft(func, func(val, array[index]), array, index + 1);
+    } else {
+      return val;
+    }
+  };
+
   root.processTokenDefs = processTokenDefs;
 
   root.setEvalFunc = setEvalFunc;
@@ -1152,5 +1166,7 @@ misrepresented as being the original software.
   root.bracket = bracket;
 
   root.findFuncs = findFuncs;
+
+  root.foldLeft = foldLeft;
 
 }).call(this);

@@ -36,6 +36,11 @@
   margin: -1px;
 }
 
+.thin .partialApply {
+  /*text-decoration: underline;*/
+  outline: solid black 1px;
+}
+
 .thin .codeMainTest {
   vertical-align: top;
   margin: 0;
@@ -45,28 +50,21 @@
   border: green solid 1px;
   min-width: 30px;
   min-height: 30px;
-}
-
-.thin .partialApply {
-  /*text-decoration: underline;*/
-  outline: solid black 1px;
+  border: 0px;
 }
 
 .thin .codeMainTest * {
   display: none;
 }
 .thin .codeMainTest.notrun {
-  border: 0px;
   background-image: url(testCaseWhite.png);
   background-repeat: no-repeat;
 }
 .thin .codeMainTest.passed {
-  border: 0px;
   background-image: url(testCaseGreen.png);
   background-repeat: no-repeat;
 }
 .thin .codeMainTest.failed {
-  border: 0px;
   background-image: url(testCaseRed.png);
   background-repeat: no-repeat;
 }

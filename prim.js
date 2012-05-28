@@ -98,6 +98,16 @@
     return Pretty.print(value());
   });
 
+  define('funcSource', function(func) {
+    var f;
+    f = func();
+    if (f.src != null) {
+      return _some()(laz(f.src));
+    } else {
+      return _none();
+    }
+  });
+
   define('+', function(a) {
     return function(b) {
       return a() + b();
@@ -462,6 +472,10 @@
   define('svg-measure-text', (function(text) {
     return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
   }), 2);
+
+  define('prim-svg-measure', (function(content) {
+    return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasure(content) : void 0;
+  }), 1);
 
   root.setTty = setTty;
 

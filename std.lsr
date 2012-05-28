@@ -8,27 +8,29 @@
 #
 # eval ast -> evaluates ast and returns the result
 #
-#    MONAD-constructors
-#
 # parse string -> an Either with ast or error msg (give it two functions)
 #
-# bind m binding -> transform a monad with a lambda
+# pretty value -> pretty print a value
 #
-# print string binding -> print a string, continue binding with false (or end)
+# funcSource func -> option with function's src or none if no source (e.g. primitive or lambda)
 #
-# prompt string binding -> ask user for input, contine binding with input string (or end)
+#    MONADS
 #
-# return value binding -> continue binding with value
+# bind m binding -> transform a monad with a function and continue with result of function
 #
-# js string binding -> run JS code and continue with value
+# print string -> print a string and continue with false
 #
-# createS binding -> create a new state variable and continue binding with it
+# prompt string -> ask user for input and continue with value
 #
-# getS var binding -> get the value from the state variable var and continue binding with it
+# return value -> continus with value
 #
-# setS var val binding -> set the state variable var to val and continue binding with false
+# js string -> run JS code and continue with value
 #
-# end -- the string 'end' -- ends a monad chain
+# createS -> create a new state variable and continue with it
+#
+# getS var -> get the value from the state variable var and continue with it
+#
+# setS var val -> set the state variable var to val and continue with false
 #
 #    STRING functions
 #

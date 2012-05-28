@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Leisure, Prim, ReplCore, addsLine, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getRangePosition, getRangeText, getRanges, grp, highlightPosition, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, oldFocus, postLoadQueue, prepExpr, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgMeasureText, testPat, textNode, toDefBox, toExprBox, unwrap, update,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, baseElements, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformStrokeWidth, transformedPoint, unwrap, update, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -13,9 +13,12 @@
     ReplCore = window.ReplCore;
     window.Notebook = root = {};
     Prim = window.Prim;
+    Repl = window.Repl;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
+
+  ENTER = 13;
 
   snapshot = function snapshot(el, pgm) {};
 
@@ -27,9 +30,20 @@
     return window.setTimeout(func, 1);
   };
 
+  arrows = [37, 38, 39, 40];
+
   bindNotebook = function bindNotebook(el) {
+    var pres;
+    pres = Repl.presentValue;
+    Repl.setValuePresenter(function(v) {
+      if ((ReplCore.getType(v)) === 'svg-node') {
+        return presentSvgNode(v);
+      } else {
+        return pres(v);
+      }
+    });
     if (!((document.getElementById('channelList')) != null)) {
-      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='editor'>editor</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
+      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='compile'>compile</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
     }
     Prim.defaultEnv.write = function write(msg) {
       return console.log(msg);
@@ -57,16 +71,15 @@
       el.addEventListener('click', (function(e) {
         return delay(highlightPosition);
       }), true);
-      el.addEventListener('keyup', function(e) {
-        var node;
-        node = getBox(window.getSelection().focusNode);
-        return highlightPosition();
-      });
       el.addEventListener('keydown', function(e) {
-        var _ref;
-        if (printable(e.charCode || e.keyCode || e.which)) {
-          return (_ref = getBox(window.getSelection().focusNode)) != null ? _ref.ast = null : void 0;
+        var c;
+        c = e.charCode || e.keyCode || e.which;
+        if (printable(c)) clearAst(getBox(window.getSelection().focusNode));
+        if ((__indexOf.call(arrows, c) >= 0) || printable(c)) {
+          delay(highlightPosition);
         }
+        if (e.ctrlKey && c === ENTER) handleKey("C-ENTER");
+        if (e.altKey && c === ENTER) return handleKey("M-ENTER");
       });
       el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
@@ -95,9 +108,10 @@
       el.addEventListener('focus', (function() {
         return findCurrentCodeHolder();
       }), true);
-      return el.addEventListener('blur', (function() {
+      el.addEventListener('blur', (function() {
         return findCurrentCodeHolder();
       }), true);
+      return el.autorunState = false;
     }
   };
 
@@ -128,6 +142,25 @@
     return nonprintable = new RegExp("[" + s + "]");
   })();
 
+  handleKey = function handleKey(key) {
+    var box;
+    switch (key) {
+      case "C-ENTER":
+        box = getBox(window.getSelection().focusNode);
+        if ((box.getAttribute('codeMainExpr')) != null) {
+          return evalOutput(box.output);
+        } else if ((box.getAttribute('codeMain')) != null) {
+          return acceptCode(box);
+        }
+        break;
+      case "M-ENTER":
+        box = getBox(window.getSelection().focusNode);
+        if ((box.getAttribute('codeMainExpr')) != null) {
+          return clearOutputBox(box.output);
+        }
+    }
+  };
+
   clearAst = function clearAst(box) {
     var cbox;
     cbox = getBox(box);
@@ -137,9 +170,9 @@
   oldBrackets = [null, Leisure.Nil];
 
   highlightPosition = function highlightPosition() {
-    var ast, b, brackets, contents, node, offset, parent, pos, r, s, span, _i, _len, _ref, _ref2;
+    var ast, b, brackets, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3;
     s = window.getSelection();
-    if (!s.rangeCount) return;
+    if (!s.rangeCount || !s.getRangeAt(0).collapsed) return;
     focusBox(s.focusNode);
     parent = getBox(s.focusNode);
     if (!parent || (parent.getAttribute('LeisureOutput') != null)) return;
@@ -158,23 +191,41 @@
             node = _ref2[_i];
             unwrap(node);
           }
+          _ref3 = parent.querySelectorAll(".partialApply");
+          for (_j = 0, _len2 = _ref3.length; _j < _len2; _j++) {
+            node = _ref3[_j];
+            unwrap(node);
+          }
           parent.normalize();
+          markPartialApplies(parent);
           b = brackets;
+          ranges = [];
           while (b !== Leisure.Nil) {
-            span = document.createElement('span');
-            span.setAttribute('LeisureBrackets', '');
-            span.setAttribute('class', b === brackets ? 'LeisureFunc' : 'LeisureArg');
-            r = makeRange(parent, b.head.head + offset, b.head.tail.head + offset);
-            contents = r.cloneContents();
-            replaceRange(r, span);
-            span.appendChild(contents);
+            ranges.push(makeRange(parent, b.head.head + offset, b.head.tail.head + offset));
             b = b.tail;
           }
+          for (i = 0, _len3 = ranges.length; i < _len3; i++) {
+            r = ranges[i];
+            span = document.createElement('span');
+            span.setAttribute('LeisureBrackets', '');
+            span.setAttribute('class', i === 0 ? 'LeisureFunc' : 'LeisureArg');
+            wrapRange(r, span);
+          }
           s.removeAllRanges();
-          parent.normalize();
           return s.addRange(makeRange(parent, pos));
         }
       }
+    }
+  };
+
+  wrapRange = function wrapRange(range, node) {
+    var contents;
+    try {
+      return range.surroundContents(node);
+    } catch (err) {
+      contents = range.cloneContents();
+      replaceRange(range, node);
+      return node.appendChild(contents);
     }
   };
 
@@ -208,14 +259,18 @@
   };
 
   toExprBox = function toExprBox(b) {
+    b.removeAttribute('codeMain');
     b.classList.remove('codeMain');
+    b.setAttribute('codeMainExpr', '');
     b.classList.add('codeMainExpr');
     return makeOutputBox(b);
   };
 
   toDefBox = function toDefBox(b) {
     if (b.output) b.parentNode.removeChild(b.output);
+    b.removeAttribute('codeMainExpr');
     b.classList.remove('codeMainExpr');
+    b.setAttribute('codeMain', '');
     return b.classList.add('codeMain');
   };
 
@@ -282,11 +337,11 @@
 
   insertControls = function insertControls(el) {
     var controlDiv, loadButton, processButton, spacer, testButton, themeSelect, viewSelect, _ref, _ref2;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button></div>\n</div>");
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <input type='checkbox' leisureId='autorunTests'><b>Auto</b></input>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button></div>\n</div>");
     spacer = createNode("<div LeisureOutput  contentEditable='false' class='leisure_space'></div>");
     el.insertBefore(spacer, el.firstChild);
     el.insertBefore(controlDiv, el.firstChild);
-    _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], themeSelect = _ref[5], viewSelect = _ref[6], processButton = _ref[7];
+    _ref = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref[0], el.leisureViewLink = _ref[1], loadButton = _ref[2], testButton = _ref[3], el.testResults = _ref[4], el.autorun = _ref[5], themeSelect = _ref[6], viewSelect = _ref[7], processButton = _ref[8];
     loadButton.addEventListener('change', function(evt) {
       return loadProgram(el, loadButton.files);
     });
@@ -302,6 +357,11 @@
     });
     processButton.addEventListener('click', function() {
       return evalDoc(el);
+    });
+    el.autorun.checked = el.autorunState;
+    el.autorun.addEventListener('change', function(evt) {
+      el.autorunState = el.autorun.checked;
+      if (el.autorun.checked) return runTests(el);
     });
     return configureSaveLink(el);
   };
@@ -425,7 +485,7 @@
         node.parentNode.insertBefore(text('\n'), node);
       }
     }
-    el.normalize();
+    el.textContent = el.textContent.replace(/\uFEFF/g, '');
     txt = el.lastChild;
     if ((txt != null ? txt.nodeType : void 0) === 3 && (m = txt.data.match(/(^|[^\n])(\n+)$/))) {
       return txt.data = txt.data.substring(0, txt.data.length - m[2].length);
@@ -440,11 +500,6 @@
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i.main, name = i.name, def = i.def, body = i.body, tests = i.tests;
-      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
-        test = tests[_j];
-        replaceRange(test, makeTestBox(test.leisureTest));
-        totalTests++;
-      }
       if (name != null) {
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
@@ -456,12 +511,10 @@
         bx.addEventListener('blur', (function() {
           return evalDoc(el);
         }), true);
-        bx.leisureOwner = el;
         markPartialApplies(bx);
         pgm += "" + name + " " + def + " " + body + "\n";
       } else if (main != null) {
         bx = box(main, 'codeMainExpr', true);
-        bx.leisureOwner = el;
         s = codeSpan(textNode(body), 'codeExpr');
         s.setAttribute('generatedNL', '');
         s.appendChild(textNode('\n'));
@@ -472,6 +525,11 @@
         } else {
           makeOutputBox(bx);
         }
+      }
+      for (_j = 0, _len2 = tests.length; _j < _len2; _j++) {
+        test = tests[_j];
+        replaceRange(test, makeTestBox(test.leisureTest));
+        totalTests++;
       }
     }
     return [pgm, auto, totalTests];
@@ -488,6 +546,7 @@
 
   markPartialApplies = function markPartialApplies(bx, def) {
     var ast, info, offset, p, partial, r, ranges, s, t, _i, _j, _len, _len2, _ref, _results;
+    bx.normalize();
     def = def != null ? def : bx.textContent;
     ast = getAst(bx, def);
     partial = [];
@@ -559,8 +618,19 @@
       }
     });
     updateSelector.value = (exBox.getAttribute('leisureUpdate')) || '';
-    stopUpdates.updateSelector = updateSelector;
-    return ReplCore.processLine(prepExpr(exBox.source.textContent), envFor(exBox));
+    exBox.updateSelector = updateSelector;
+    return ReplCore.processLine(prepExpr(getExprSource(exBox.source)), envFor(exBox));
+  };
+
+  getExprSource = function getExprSource(box) {
+    var b, s;
+    s = window.getSelection();
+    b = getBox(s.focusNode);
+    if (b !== box || !s.rangeCount || s.getRangeAt(0).collapsed) {
+      return box.textContent;
+    } else {
+      return getRangeText(s.getRangeAt(0));
+    }
   };
 
   setUpdate = function setUpdate(el, channel) {
@@ -578,7 +648,7 @@
   clearUpdates = function clearUpdates(widget) {
     var exBox;
     exBox = getBox(widget);
-    widget.updateSelector.value = '';
+    exBox.updateSelector.value = '';
     return setUpdate(exBox, '');
   };
 
@@ -623,10 +693,13 @@
       expr: source.textContent,
       result: Repl.escapeHtml(Pretty.print(output.result))
     };
-    box = makeTestBox(test, exBox.leisureOwner);
+    box = makeTestBox(test, owner(exBox));
     source.parentNode.insertBefore(box, source);
     source.parentNode.removeChild(source);
-    return output.parentNode.removeChild(output);
+    output.parentNode.removeChild(output);
+    box.parentNode.insertBefore(textNode('\uFEFF'), box);
+    box.parentNode.insertBefore(textNode('\uFEFF'), box.nextSibling);
+    if (owner(box).autorun.checked) return clickTest(box);
   };
 
   makeTestBox = function makeTestBox(test, owner, src) {
@@ -637,12 +710,12 @@
     s.setAttribute('generatedNL', '');
     bx = codeBox('codeMainTest');
     bx.setAttribute('class', 'codeMainTest notrun');
+    bx.setAttribute('contenteditable', 'false');
     bx.appendChild(s);
     bx.addEventListener('click', (function() {
       return clickTest(bx);
     }), true);
     bx.test = test;
-    bx.leisureOwner = owner;
     return bx;
   };
 
@@ -674,7 +747,7 @@
         return cont(null);
       },
       processResult: function processResult(result) {
-        return passed = showResult(bx, Repl.escapeHtml(Pretty.print(result)), test.result);
+        return passed = showResult(bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result));
       },
       processError: passed = false
     });
@@ -712,7 +785,7 @@
       finishedEvent: function finishedEvent(evt, channel) {
         return update(channel != null ? channel : 'app', this);
       },
-      owner: box.leisureOwner,
+      owner: owner(box),
       require: req,
       write: function write(msg) {
         var div;
@@ -744,7 +817,6 @@
     node.setAttribute('class', 'output');
     node.setAttribute('contentEditable', 'false');
     node.source = source;
-    node.leisureOwner = source.leisureOwner;
     source.output = node;
     node.innerHTML = "<div><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>";
     source.parentNode.insertBefore(node, source.nextSibling);
@@ -807,10 +879,10 @@
     return ranges;
   };
 
-  testPat = /#@test([^\n]*)\n/;
+  testPat = /(#@test([^\n]*))\n/;
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var body, bodyStart, defType, endPat, ex, exEnd, leading, leadingSpaces, lm, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, textStart, _ref, _ref2, _ref3;
+    var body, bodyStart, defType, endPat, ex, exEnd, leadOff, leading, leadingSpaces, lm, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, textStart, _ref, _ref2, _ref3;
     _ref = m = def, matched = _ref[0], leading = _ref[1], nameRaw = _ref[2], defType = _ref[3];
     if (!rest.trim()) {
       return null;
@@ -832,13 +904,13 @@
       next = endPat ? rest1.substring(endPat.index) : rest1;
       mainEnd = txt.length - next.length;
       t = leading;
-      tOff = restOff;
+      leadOff = tOff = restOff;
       while (m2 = t.match(testPat)) {
-        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[0].length);
-        r.leisureTest = JSON.parse(m2[1]);
+        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[1].length);
+        r.leisureTest = JSON.parse(m2[2]);
         tests.push(r);
-        tOff += m2.index + m2[0].length;
-        t = leading.substring(tOff);
+        tOff += m2.index + m2[1].length;
+        t = leading.substring(tOff - leadOff);
       }
       if (name != null) {
         mainStart = matchStart + ((_ref2 = leading != null ? leading.length : void 0) != null ? _ref2 : 0);
@@ -860,11 +932,9 @@
         exEnd = ex ? mainStart + ex[1].length : mainEnd;
         body = txt.substring(mainStart, exEnd);
         if (body.trim()) {
-          textStart = restOff + m.index;
-          if ((leading != null) && (lm = leading.match(/^[ \n]+/))) {
-            textStart += lm[0].length;
-          }
-          if (leading.match(/@auto/)) {
+          textStart = restOff + m.index + (t ? leading.length - t.length : 0);
+          if ((t != null) && (lm = t.match(/^[ \n]+/))) textStart += lm[0].length;
+          if (t.match(/@auto/)) {
             outerRange = makeRange(el, textStart, exEnd);
             outerRange.leisureAuto = true;
             return {
@@ -934,14 +1004,15 @@
   };
 
   getRangePosition = function getRangePosition(node, charOffset, end) {
-    var newNode, newOff, _ref;
+    var newNode, newOff, ret, _ref;
     if (!node) {
       return [null, charOffset];
     } else if (node.nodeType === 3) {
       if (node.length > (end ? charOffset - 1 : charOffset)) {
         return [node, charOffset];
       } else {
-        return continueRangePosition(node, charOffset - node.length, end);
+        ret = continueRangePosition(node, charOffset - node.length, end);
+        return ret;
       }
     } else if (node.nodeName === 'BR') {
       if (charOffset === (end ? 1 : 0)) {
@@ -1004,34 +1075,68 @@
   # handle focus manually, because grabbing focus and blur events doesn't seem to work for the parent
   */
 
-  oldFocus = null;
+  docFocus = null;
+
+  codeFocus = null;
 
   findCurrentCodeHolder = function findCurrentCodeHolder() {
-    return focusBox(window.getSelection().focusNode);
+    var _ref;
+    return focusBox((_ref = window.getSelection()) != null ? _ref.focusNode : void 0);
   };
 
   focusBox = function focusBox(box) {
+    var newCode, old, _ref;
+    newCode = null;
+    while (box && (box.nodeType !== 1 || !((box.getAttribute('leisureCode')) != null))) {
+      if (box.nodeType === 1 && ((box.getAttribute('LeisureBox')) != null)) {
+        newCode = box;
+      }
+      box = box.parentNode;
+    }
+    if (box !== docFocus) {
+      if (docFocus != null) docFocus.classList.remove('focused');
+      docFocus = box;
+      if (box != null) if ((_ref = box.classList) != null) _ref.add('focused');
+    }
+    if (newCode !== codeFocus) {
+      old = codeFocus;
+      codeFocus = newCode;
+      if (old) return acceptCode(old);
+    }
+  };
+
+  owner = function owner(box) {
     while (box && (box.nodeType !== 1 || !((box.getAttribute('leisureCode')) != null))) {
       box = box.parentNode;
     }
-    if (box !== oldFocus) {
-      if (oldFocus !== null) oldFocus.classList.remove('focused');
-      oldFocus = box;
-      if (box !== null) return box.classList.add('focused');
+    return box;
+  };
+
+  acceptCode = function acceptCode(box) {
+    if ((box.getAttribute('codemain')) != null) {
+      ReplCore.processLine(box.textContent, envFor(box), 'Leisure.');
+      update('compile');
+      if (owner(box).autorun.checked) return runTests(owner(box));
     }
   };
 
   evalDoc = function evalDoc(el) {
-    var auto, pgm, _ref;
+    var auto, e, pgm, _ref;
     _ref = initNotebook(el), pgm = _ref[0], auto = _ref[1];
     try {
       if (auto) {
         auto = "do\n  " + (auto.trim().replace(/\n/g, '\n  ')) + "\n  finishLoading 'fred'";
         global.noredefs = false;
         Notebook.queueAfterLoad(function() {
-          return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
+          Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
+          if (el.autorunState) return runTests(el);
         });
-        return Leisure.eval(ReplCore.generateCode('_auto', auto, false));
+        e = envFor(el);
+        e.write = function write() {};
+        e.processError = function processError(ast) {
+          return alert(ast.err);
+        };
+        return ReplCore.processLine(auto, e);
       } else {
         return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
       }
@@ -1053,20 +1158,64 @@
     });
   });
 
+  Leisure.define('config', function(expr) {
+    return Prim.makeMonad(function(env, cont) {
+      switch (expr()) {
+        case 'autoTest':
+          autoRun(env.owner, true);
+      }
+      return cont(_false());
+    });
+  });
+
+  autoRun = function autoRun(el, state) {
+    var _ref;
+    el.autorunState = state;
+    return (_ref = el.autorun) != null ? _ref.checked = state : void 0;
+  };
+
+  head = function head(l) {
+    return l(function() {
+      return function(hh) {
+        return function(tt) {
+          return hh();
+        };
+      };
+    });
+  };
+
+  tail = function tail(l) {
+    return l(function() {
+      return function(hh) {
+        return function(tt) {
+          return tt();
+        };
+      };
+    });
+  };
+
+  id = function id(v) {
+    return v();
+  };
+
   laz = Leisure.laz;
+
+  getSvgElement = function getSvgElement(id) {
+    var el, svg;
+    if ((el = document.getElementById(id))) {
+      return el;
+    } else {
+      svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'>bubba</text></svg>");
+      document.body.appendChild(svg);
+      return document.getElementById(id);
+    }
+  };
 
   svgMeasureText = function svgMeasureText(text) {
     return function(style) {
       return function(f) {
-        var bx, svg, txt;
-        if (!(txt = document.getElementById('HIDDEN_TEXT'))) {
-          svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'/>");
-          txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          txt.appendChild(textNode(''));
-          txt.setAttribute('id', 'HIDDEN_TEXT');
-          svg.appendChild(txt);
-          document.body.appendChild(svg);
-        }
+        var bx, txt;
+        txt = getSvgElement('HIDDEN_TEXT');
         if (style()) txt.setAttribute('style', style());
         txt.lastChild.textContent = text();
         bx = txt.getBBox();
@@ -1075,9 +1224,88 @@
     };
   };
 
+  primconcatNodes = function primconcatNodes(nodes) {
+    if (nodes === _nil()) {
+      return "";
+    } else {
+      return (head(nodes))(id) + concatNodes(tail(nodes));
+    }
+  };
+
+  transformedPoint = function transformedPoint(pt, x, y, ctm, ictm) {
+    pt.x = x;
+    pt.y = y;
+    return pt.matrixTransform(ctm).matrixTransform(ictm);
+  };
+
+  svgMeasure = function svgMeasure(content) {
+    return primSvgMeasure(content, baseStrokeWidth);
+  };
+
+  svgBetterMeasure = function svgBetterMeasure(content) {
+    return primSvgMeasure(content, transformStrokeWidth);
+  };
+
+  primSvgMeasure = function primSvgMeasure(content, transformFunc) {
+    return function(f) {
+      var bbox, g, pad, svg;
+      svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>" + (content()) + "</g></svg>");
+      document.body.appendChild(svg);
+      g = svg.firstChild;
+      bbox = g.getBBox();
+      pad = getMaxStrokeWidth(g, g, svg, transformFunc);
+      document.body.removeChild(svg);
+      return f()(laz(bbox.x - Math.ceil(pad / 2)))(laz(bbox.y - Math.ceil(pad / 2)))(laz(bbox.width + pad))(laz(bbox.height + pad));
+    };
+  };
+
+  baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon'];
+
+  getMaxStrokeWidth = function getMaxStrokeWidth(el, base, svg, transformFunc) {
+    var _ref, _ref2;
+    if (_ref = base.nodeName, __indexOf.call(baseElements, _ref) >= 0) {
+      svg.setAttribute('width', (_ref2 = getComputedStyle(base).strokeWidth) != null ? _ref2 : '0', svg);
+      return transformFunc(el, svg.width.baseVal.value);
+    } else if (base.nodeName === 'use') {
+      return getMaxStrokeWidth(base, base.instanceRoot.correspondingElement, svg, transformFunc);
+    } else if (base.nodeName === 'g') {
+      return Leisure.foldLeft((function(v, n) {
+        return Math.max(v, getMaxStrokeWidth(n, n, svg, transformFunc));
+      }), 0, el.childNodes);
+    } else {
+      return 0;
+    }
+  };
+
+  baseStrokeWidth = function baseStrokeWidth(el, w) {
+    return w;
+  };
+
+  transformStrokeWidth = function transformStrokeWidth(el, w) {
+    var ctm, tp1, tp2, x, y;
+    if (w === 0) {
+      return 0;
+    } else {
+      ctm = el.getScreenCTM();
+      tp1 = transformedPoint(pt, bx.x - Math.ceil(w), bx.y - Math.ceil(w), ctm, isctm);
+      tp2 = transformedPoint(pt, bx.x + bx.width + Math.ceil(w), bx.y + bx.height + Math.ceil(w), ctm, isctm);
+      x = tp2.x - tp1.x;
+      y = tp2.y - tp1.y;
+      return Math.sqrt(x * x + y * y);
+    }
+  };
+
+  presentSvgNode = function presentSvgNode(node) {
+    var content;
+    content = node(laz(id));
+    return _svg$_present()(laz(content))(laz(id));
+  };
+
   Prim.defaultEnv.require = req;
 
   root.svgMeasureText = svgMeasureText;
+
+  root.svgMeasure = svgMeasure;
 
   root.initNotebook = initNotebook;
 

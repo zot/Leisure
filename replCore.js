@@ -132,7 +132,7 @@
     }
   };
 
-  processLine = function processLine(line, env) {
+  processLine = function processLine(line, env, namespace) {
     var a, ast, c, err, m, r, result, _ref, _ref2, _ref3;
     env = env != null ? env : Prim.defaultEnv;
     try {
@@ -159,7 +159,7 @@
           process.exit(0);
         } else {
           _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-          _ref2 = Leisure.compileNext(line, getGlobals(), false, false), ast = _ref2[0], err = _ref2[1];
+          _ref2 = Leisure.compileNext(line, getGlobals(), false, false, namespace), ast = _ref2[0], err = _ref2[1];
           if (err != null) {
             if (ast != null) {
               ast.err = err;
@@ -169,7 +169,7 @@
               };
             }
           } else {
-            _ref3 = r ? Leisure.evalNext(line) : [ast, null], ast = _ref3[0], result = _ref3[1];
+            _ref3 = r ? Leisure.evalNext(line, namespace) : [ast, null], ast = _ref3[0], result = _ref3[1];
           }
           return handlerFunc(ast, result, a, c, r, line, env);
         }
