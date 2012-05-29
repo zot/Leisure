@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
+  var CNil, Code, Cons, Nil, append, apply, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -38,6 +38,8 @@ misrepresented as being the original software.
   escapeRegexpChars = function escapeRegexpChars(str) {
     return str.replace(/([\][().\\*+?{}|])/g, '\\$1');
   };
+
+  forward = {};
 
   wordPat = /^[^\s]*$/;
 
@@ -626,7 +628,7 @@ misrepresented as being the original software.
             return code.addVar(val);
           } else if ((ctx[nameSub(val)] != null) || code.global.find(function(v) {
             return v === val;
-          })) {
+          }) || (forward[nameSub(val)] != null)) {
             return code;
           } else if (typeof val === 'number') {
             return code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref);
@@ -672,7 +674,7 @@ misrepresented as being the original software.
         return v === rv;
       }) && !globals.find(function(v) {
         return v === rv;
-      });
+      }) && !forward[nameSub(rv)];
     } else {
       return false;
     }
@@ -732,6 +734,10 @@ misrepresented as being the original software.
     } else {
       return getNthBody(getLambdaBody(ast), n - 1);
     }
+  };
+
+  defineForward = function defineForward(name) {
+    return forward[nameSub(name())] = true;
   };
 
   compileNext = function compileNext(line, globals, parseOnly, check, nomacros, namespace) {
@@ -1170,5 +1176,7 @@ misrepresented as being the original software.
   root.findFuncs = findFuncs;
 
   root.foldLeft = foldLeft;
+
+  root.defineForward = defineForward;
 
 }).call(this);

@@ -93,6 +93,14 @@
     }
   });
 
+  define('ast-start', function(ast) {
+    return ast().leisureStart;
+  });
+
+  define('ast-end', function(ast) {
+    return ast().leisureEnd;
+  });
+
   define('pretty', function(value) {
     if (!Pretty) Pretty = window.Pretty;
     return Pretty.print(value());
@@ -224,6 +232,10 @@
     };
   });
 
+  define('strlen', function(a) {
+    return a().length;
+  });
+
   define('log', function(msg) {
     return function(value) {
       if (msg().type !== 'cons') {
@@ -312,6 +324,13 @@
     });
   });
 
+  define('forward', function(name) {
+    return makeMonad(function(env, cont) {
+      Leisure.defineForward(name);
+      return cont(_false());
+    });
+  });
+
   define('return', function(v) {
     return makeMonad(function(env, cont) {
       return cont(v());
@@ -327,6 +346,13 @@
   define('print', function(msg) {
     return makeMonad(function(env, cont) {
       if (msg() !== _nil()) env.write("" + (msg()) + "\n");
+      return cont(_false());
+    });
+  });
+
+  define('printValue', function(value) {
+    return makeMonad(function(env, cont) {
+      if (value() !== _nil()) env.write("" + (env.presentValue(value())) + "\n");
       return cont(_false());
     });
   });

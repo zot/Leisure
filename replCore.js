@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, showAst, vars, write, writeFunc,
+  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, showAst, vars, write, writeFunc,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -96,13 +96,14 @@
     return writeFunc(args.join(''));
   };
 
-  processResult = function processResult(result, env) {
+  processResult = function processResult(result, env, next) {
+    next = next != null ? next : nextFunc;
     if ((getType(result)) === 'monad') {
       return Prim.runMonad(result, env != null ? env : Prim.defaultEnv, function() {
-        return nextFunc();
+        return next();
       });
     } else {
-      return nextFunc();
+      return next();
     }
   };
 
@@ -185,20 +186,32 @@
   };
 
   generateCode = function generateCode(file, contents, loud, handle, nomacros, check) {
-    var a, ast, c, code, defs, err, errs, globals, i, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3, _ref4;
+    var auto, errs, globals, _ref;
+    _ref = findDefs(contents, nomacros, loud), globals = _ref[0], errs = _ref[1], auto = _ref[2];
+    if (auto) {
+      console.log("auto: '" + auto + "'");
+      return processResult(Leisure.evalNext(auto, 'Leisure.')[1], {}, function() {
+        return generate(file, contents, loud, handle, nomacros, check, globals, errs);
+      });
+    } else {
+      return generate(file, contents, loud, handle, nomacros, check, globals, errs);
+    }
+  };
+
+  generate = function generate(file, contents, loud, handle, nomacros, check, globals, errs) {
+    var a, ast, c, code, defs, err, i, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3;
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
     out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Leisure = require('./leisure');\n  Leisure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\nvar setType = Leisure.setType;\nvar setDataType = Leisure.setDataType;\nvar define = Leisure.define;\nvar defineMacro = Leisure.defineMacro;\nvar defineToken = Leisure.defineToken;\nvar processResult = Repl.processResult;\n";
-    _ref = findDefs(contents, nomacros, loud), globals = _ref[0], errs = _ref[1];
     names = globals;
     prev = Leisure.Nil;
     if (err) throw new Error(err);
     defs = [];
     rest = contents;
     varOut = '';
-    _ref2 = globals.toArray();
-    for (i = 0, _len = _ref2.length; i < _len; i++) {
-      v = _ref2[i];
+    _ref = globals.toArray();
+    for (i = 0, _len = _ref.length; i < _len; i++) {
+      v = _ref[i];
       if (i > 0) varOut += ",";
       varOut += " " + (Leisure.nameSub(v));
     }
@@ -209,7 +222,7 @@
         console.log("Compiling function: " + names.head);
       }
       oldRest = rest;
-      _ref3 = Leisure.compileNext(rest, globals, null, check, nomacros), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
+      _ref2 = Leisure.compileNext(rest, globals, null, check, nomacros), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
       if ((ast != null ? ast.leisureName : void 0) != null) {
         prev = ast.leisureName;
         names = names.tail;
@@ -226,7 +239,7 @@
         ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(P.print(ast))) + "\n" + (nm != null ? "root.defs." + (Leisure.nameSub(nm)) + " = " + (Leisure.nameSub(nm)) + " = " : "") + ast.src;
         src = ast.leisureName ? (defs.push(Leisure.nameSub(ast.leisureName)), ast.src) : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
-        _ref4 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref4[0], c = _ref4[1], r = _ref4[2];
+        _ref3 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref3[0], c = _ref3[1], r = _ref3[2];
         if (handle) handlerFunc(ast, null, a, c, r, code);
       }
     }
@@ -248,7 +261,8 @@
   };
 
   findDefs = function findDefs(contents, nomacros, loud) {
-    var ast, err, errs, globals, oldRest, prevName, rest, _ref;
+    var ast, auto, err, errs, globals, line, oldRest, prevName, rest, _ref;
+    auto = null;
     errs = '';
     globals = Leisure.Nil;
     rest = contents;
@@ -263,6 +277,9 @@
         } else {
           errs = "" + errs + err + "\n";
         }
+      } else {
+        line = oldRest.substring(0, (rest != null ? oldRest.length - rest.length : oldRest.length));
+        if (line.match(/(^|\n)#@auto/)) auto = line;
       }
       if (ast != null ? ast.leisureName : void 0) {
         prevName = ast.leisureName;
@@ -275,7 +292,7 @@
         globals = Leisure.cons(ast.leisureName, globals);
       }
     }
-    return [globals.reverse(), errs];
+    return [globals.reverse(), errs, auto];
   };
 
   root.processLine = processLine;

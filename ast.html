@@ -13,6 +13,8 @@ box-svg (textBox greenStyle 'lambda')
 
 treeFor (parse '1' id false)
 
+printValue (treeFor (parse '1' id false))
+
 treeFor (parse 'cons 1' id false)
 
 treeFor (parse (funcSource and id false) id false)
@@ -23,6 +25,14 @@ svg-concat [(rect nil), (circle nil)]
 test a b=\f . f a b
 
 treeForFunc test
+
+all2 f l = l
+  \h t D . and
+    f h
+    all f t
+  true
+
+treeForNotebook all2
 
   </body>
 </html>
