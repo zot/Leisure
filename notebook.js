@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showResult, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformStrokeWidth, transformedPoint, unwrap, update, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showResult, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -20,6 +20,10 @@
 
   ENTER = 13;
 
+  arrows = [37, 38, 39, 40];
+
+  updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/;
+
   snapshot = function snapshot(el, pgm) {};
 
   setSnapper = function setSnapper(snapFunc) {
@@ -29,8 +33,6 @@
   delay = function delay(func) {
     return window.setTimeout(func, 1);
   };
-
-  arrows = [37, 38, 39, 40];
 
   basePresentValue = null;
 
@@ -640,10 +642,12 @@
   };
 
   evalOutput = function evalOutput(exBox, nofocus) {
-    var stopUpdates, updateSelector, _ref;
+    var selector, stopUpdates, updateSelector, _ref;
     exBox = getBox(exBox);
     if (!nofocus) focusBox(exBox);
     cleanOutput(exBox, true);
+    selector = findUpdateSelector(exBox.source);
+    if (selector) exBox.setAttribute('leisureUpdate', selector);
     makeOutputControls(exBox);
     _ref = getElements(exBox.firstChild, ['chooseUpdate', 'stopUpdates']), updateSelector = _ref[0], stopUpdates = _ref[1];
     updateSelector.addEventListener('change', function(evt) {
@@ -661,6 +665,14 @@
     return evalBox(exBox.source, exBox);
   };
 
+  findUpdateSelector = function findUpdateSelector(box) {
+    var def, defType, leading, matched, name, u;
+    if (def = box.textContent.match(Leisure.linePat)) {
+      matched = def[0], leading = def[1], name = def[2], defType = def[3];
+      if (u = leading.match(updatePat)) return u[3];
+    }
+  };
+
   getExprSource = function getExprSource(box) {
     var b, s;
     s = window.getSelection();
@@ -673,9 +685,23 @@
   };
 
   setUpdate = function setUpdate(el, channel) {
-    var ast;
+    var ast, def, defType, index, leading, matched, name, r, txt, u;
     el.setAttribute('leisureUpdate', channel);
-    return ast = getAst(el.source);
+    ast = getAst(el.source);
+    txt = el.source.textContent;
+    if (def = txt.match(Leisure.linePat)) {
+      matched = def[0], leading = def[1], name = def[2], defType = def[3];
+      index = def.index;
+      if (u = leading.match(updatePat)) {
+        index += u.index + u[1].length + u[2].length;
+        r = makeRange(el.source, index, index + u[3].length);
+        r.deleteContents();
+      } else {
+        r = makeRange(el.source, index + leading.length, index + leading.length);
+      }
+      r.insertNode(textNode(channel));
+      return el.source.normalize();
+    }
   };
 
   makeOutputControls = function makeOutputControls(exBox) {
