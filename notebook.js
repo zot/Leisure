@@ -73,7 +73,13 @@
           });
         }
       }), true);
-      el.addEventListener('click', (function(e) {
+      el.addEventListener('mousedown', (function(e) {
+        return delay(highlightPosition);
+      }), true);
+      el.addEventListener('mousemove', (function(e) {
+        return delay(highlightPosition);
+      }), true);
+      el.addEventListener('mouseup', (function(e) {
         return delay(highlightPosition);
       }), true);
       el.addEventListener('keydown', function(e) {
