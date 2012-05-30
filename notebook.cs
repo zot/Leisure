@@ -12,6 +12,8 @@ if window? and (!global? or global == window)
 else root = exports ? this
 
 ENTER = 13
+arrows = [37..40]
+updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
 
 snapshot = (el, pgm)->
 
@@ -19,13 +21,15 @@ setSnapper = (snapFunc)-> snapshot = snapFunc
 
 delay = (func)-> window.setTimeout func, 1
 
-arrows = [37..40]
+basePresentValue = null
+
+presentValue = (v)->
+  if (ReplCore.getType v) == 'svg-node'
+    content = v(laz(id))
+    _svg$_present()(laz(content))(laz(id))
+  else basePresentValue(v)
 
 bindNotebook = (el)->
-  pres = Repl.presentValue
-  Repl.setValuePresenter (v)->
-    if (ReplCore.getType v) == 'svg-node' then presentSvgNode v
-    else pres(v)
   if !(document.getElementById 'channelList')?
     document.body.appendChild createNode """
 <datalist id='channelList'>
@@ -34,6 +38,8 @@ bindNotebook = (el)->
    <option value='compile'>compile</option>
    <option value='editorFocus'>editorFocus</option>
 </datalist>"""
+  basePresentValue = Prim.defaultEnv.presentValue
+  Prim.defaultEnv.presentValue = presentValue
   Prim.defaultEnv.write = (msg)->console.log msg
   Prim.defaultEnv.owner = document.body
   Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', Prim.defaultEnv)
@@ -41,7 +47,9 @@ bindNotebook = (el)->
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
     el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
-    el.addEventListener 'click', ((e)-> delay highlightPosition), true
+    el.addEventListener 'mousedown', ((e)-> delay highlightPosition), true
+    el.addEventListener 'mousemove', ((e)-> delay highlightPosition), true
+    el.addEventListener 'mouseup', ((e)-> delay highlightPosition), true
     el.addEventListener 'keydown', (e)->
       c = (e.charCode || e.keyCode || e.which)
       if printable c then clearAst getBox window.getSelection().focusNode
@@ -103,39 +111,41 @@ oldBrackets = [null, Leisure.Nil]
 
 highlightPosition = ->
   s = window.getSelection()
-  if !s.rangeCount or !s.getRangeAt(0).collapsed then return
-  focusBox s.focusNode
-  parent = getBox s.focusNode
-  if !parent or parent.getAttribute('LeisureOutput')? then return
-  if parent.parentNode
-    ast = getAst parent
-    if ast?
-      offset = ast.leisureCodeOffset ? 0
-      r = s.getRangeAt(0)
-      r.setStart parent, 0
-      pos = getRangeText(r).length
-      brackets = Leisure.bracket ast.leisureBase, pos - offset
-      if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
-        oldBrackets = [parent, brackets]
-        for node in document.querySelectorAll "[LeisureBrackets]"
-          unwrap node
-        for node in parent.querySelectorAll ".partialApply"
-          unwrap node
-        parent.normalize()
-        markPartialApplies parent
-        b = brackets
-        ranges = []
-        while b != Leisure.Nil
-          ranges.push (makeRange parent, b.head.head + offset, b.head.tail.head + offset)
-          b = b.tail
-        for r, i in ranges
-          span = document.createElement 'span'
-          span.setAttribute 'LeisureBrackets', ''
-          span.setAttribute 'class', if i == 0 then 'LeisureFunc' else 'LeisureArg'
-          wrapRange r, span
-        s.removeAllRanges()
-        #parent.normalize()
-        s.addRange(makeRange parent, pos)
+  if s.rangeCount
+    focusBox s.focusNode
+    parent = getBox s.focusNode
+    if s.getRangeAt(0)?.collapsed
+      if !parent or parent.getAttribute('LeisureOutput')? then return
+      if parent.parentNode
+        ast = getAst parent
+        if ast?
+          offset = ast.leisureCodeOffset ? 0
+          r = s.getRangeAt(0)
+          r.setStart parent, 0
+          pos = getRangeText(r).length
+          brackets = Leisure.bracket ast.leisureBase, pos - offset
+          if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
+            oldBrackets = [parent, brackets]
+            for node in document.querySelectorAll "[LeisureBrackets]"
+              unwrap node
+            for node in parent.querySelectorAll ".partialApply"
+              unwrap node
+            parent.normalize()
+            markPartialApplies parent
+            b = brackets
+            ranges = []
+            while b != Leisure.Nil
+              ranges.push (makeRange parent, b.head.head + offset, b.head.tail.head + offset)
+              b = b.tail
+            for r, i in ranges
+              span = document.createElement 'span'
+              span.setAttribute 'LeisureBrackets', ''
+              span.setAttribute 'class', if i == 0 then 'LeisureFunc' else 'LeisureArg'
+              wrapRange r, span
+            s.removeAllRanges()
+            #parent.normalize()
+            s.addRange(makeRange parent, pos)
+    if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
 
 wrapRange = (range, node)->
   try
@@ -185,6 +195,7 @@ isDef = (box)->
   false
 
 initNotebook = (el)->
+  ReplCore.setNext ->3
   el.replacing = true
   removeOldDefs el
   pgm = markupDefs el, findDefs el
@@ -373,13 +384,22 @@ markupDefs = (el, defs)->
   [pgm, auto, totalTests]
 
 getAst = (bx, def)->
-  if bx.ast? then bx.ast
+  if bx.ast?
+    patchFuncAst bx.ast
+    bx.ast
   else
     def = def || bx.textContent
-    bx.ast = (Leisure.compileNext def, Leisure.Nil, true, null, true)[0]
-    if bx.ast?.leisureName?
-      window[Leisure.nameSub(bx.ast.leisureName)]?()?.src = bx.ast.leisureSource
-      update "ast-#{bx.ast.leisureName}"
+    setAst bx, (Leisure.compileNext def, Leisure.Nil, true, null, true)[0]
+
+setAst = (bx, ast)->
+    bx.ast = ast
+    patchFuncAst ast
+
+patchFuncAst = (ast)->
+  if ast?.leisureName?
+    window[Leisure.nameSub(ast.leisureName)]?()?.ast = ast
+    window[Leisure.nameSub(ast.leisureName)]?()?.src = ast.leisureSource
+    update "ast-#{ast.leisureName}"
 
 # mark partial applies within bx
 # the last child of bx should be a fresh expr span with the full code in it
@@ -423,6 +443,8 @@ evalOutput = (exBox, nofocus)->
   exBox = getBox exBox
   if !nofocus then focusBox exBox
   cleanOutput exBox, true
+  selector = findUpdateSelector exBox.source
+  if selector then exBox.setAttribute 'leisureUpdate', selector
   makeOutputControls exBox
   [updateSelector, stopUpdates] = getElements exBox.firstChild, ['chooseUpdate', 'stopUpdates']
   updateSelector.addEventListener 'change', (evt)-> setUpdate exBox, evt.target.value
@@ -433,7 +455,12 @@ evalOutput = (exBox, nofocus)->
       updateSelector.blur()
   updateSelector.value = (exBox.getAttribute 'leisureUpdate') or ''
   exBox.updateSelector = updateSelector
-  ReplCore.processLine(prepExpr(getExprSource exBox.source), envFor(exBox))
+  evalBox exBox.source, exBox
+
+findUpdateSelector = (box)->
+  if def = box.textContent.match Leisure.linePat
+    [matched, leading, name, defType] = def
+    if u = leading.match updatePat then u[3]
 
 getExprSource = (box)->
   s = window.getSelection()
@@ -444,7 +471,17 @@ getExprSource = (box)->
 setUpdate = (el, channel)->
   el.setAttribute 'leisureUpdate', channel
   ast = getAst el.source
-  #console.log 'update leading:', (el.textContent).substring(0, ast.leisureCodeOffset)
+  txt = el.source.textContent
+  if def = txt.match Leisure.linePat
+    [matched, leading, name, defType] = def
+    index = def.index
+    if u = leading.match updatePat
+      index += u.index + u[1].length + u[2].length
+      r = makeRange el.source, index, index + u[3].length
+      r.deleteContents()
+    else r = makeRange el.source, index + leading.length, index + leading.length
+    r.insertNode textNode(channel)
+    el.source.normalize()
 
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
@@ -522,7 +559,7 @@ runTest = (bx)->
     require: req
     write: ->
     prompt: (msg, cont)-> cont(null)
-    processResult: (result)-> passed = showResult bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result)
+    processResult: (result, ast)-> passed = showResult bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result)
     processError: passed = false
   ))
   passed
@@ -551,7 +588,10 @@ envFor = (box)->
     div.innerHTML = "#{msg}\n"
     exBox.appendChild(div)
   prompt:(msg, cont)-> cont(window.prompt(msg))
-  processResult: (result)-> box.result = result
+  processResult: (result, ast)->
+    box.result = result
+    setAst box, ast
+  presentValue: presentValue
   processError: (ast)->
     btn = box.querySelector '[leisureId="makeTestCase"]'
     btn.parentNode.removeChild btn
@@ -766,9 +806,13 @@ owner = (box)->
     box = box.parentNode
   box
 
+evalBox = (box, envBox)->
+  ReplCore.processLine box.textContent, (if envBox? then envFor(envBox) else null), 'Leisure.'
+  getAst box
+
 acceptCode = (box)->
   if (box.getAttribute 'codemain')?
-    ReplCore.processLine box.textContent, envFor(box), 'Leisure.'
+    evalBox box
     update 'compile'
     if owner(box).autorun.checked then runTests owner(box)
 
@@ -779,16 +823,21 @@ evalDoc = (el)->
       auto = "do\n  #{auto.trim().replace /\n/g, '\n  '}\n  finishLoading 'fred'"
       global.noredefs = false
       Notebook.queueAfterLoad ->
-        Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
+        evalDocCode el, pgm
         if el.autorunState then runTests el
       e = envFor(el)
       e.write = ->
       e.processError = (ast)->alert(ast.err)
       ReplCore.processLine(auto, e)
-    else Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
+    else evalDocCode pgm
   catch err
     console.log err
     alert(err.stack)
+
+evalDocCode = (el, pgm)->
+  Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
+  for node in el.querySelectorAll '[codeMain]'
+    getAst node
 
 Leisure.define 'finishLoading', (bubba)->
   Prim.makeMonad (env, cont)->
@@ -802,6 +851,26 @@ Leisure.define 'config', (expr)->
     switch expr()
       when 'autoTest' then autoRun(env.owner, true)
     cont(_false())
+
+Leisure.define 'notebookSelection', (func)->
+  Prim.makeMonad (env, cont)->
+    sel = window.getSelection()
+    bx = getBox sel.focusNode
+    if bx? and getAst(bx) == func().ast
+      offset = (bx.ast.leisureCodeOffset ? 0) #+ (bx.ast.leisurePrefixCount ? 0)
+      r = sel.getRangeAt(0)
+      window.r = r
+      r2 = document.createRange()
+      r2.setStart bx, 0
+      r2.setEnd r.startContainer, r.startOffset
+      p1 = r2.cloneContents().textContent.length - offset
+      if !r.collapsed then r2.setEnd r.endContainer, r.endOffset
+      p2 = r2.cloneContents().textContent.length - offset
+      cont(_some2()(->p1)(->p2))
+    else
+      if bx?
+        console.log "no selection"
+      cont(_none())
 
 autoRun = (el, state)->
   el.autorunState = state
@@ -874,10 +943,6 @@ transformStrokeWidth = (el, w)->
     x = tp2.x - tp1.x
     y = tp2.y - tp1.y
     Math.sqrt(x * x + y * y)
-
-presentSvgNode = (node)->
-  content = node(laz(id))
-  _svg$_present()(laz(content))(laz(id))
 
 Prim.defaultEnv.require = req
 

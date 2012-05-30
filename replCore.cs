@@ -78,9 +78,10 @@ print = (args...)-> writeFunc(U.format.apply(null, args))
 
 write = (args...)-> writeFunc args.join('')
 
-processResult = (result, env)->
-  if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> nextFunc()
-  else nextFunc()
+processResult = (result, env, next)->
+  next = next ? nextFunc
+  if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
+  else next()
 
 handleVar = (name, value, env)->
   if !name
@@ -124,6 +125,14 @@ processLine = (line, env, namespace)->
 escape = (str)-> str.replace(/\n/g, '\\n')
 
 generateCode = (file, contents, loud, handle, nomacros, check)->
+  [globals, errs, auto] = findDefs contents, nomacros, loud
+  if auto
+    console.log "auto: '#{auto}'"
+    processResult Leisure.evalNext(auto, 'Leisure.')[1], {}, ->
+      generate file, contents, loud, handle, nomacros, check, globals, errs
+  else generate file, contents, loud, handle, nomacros, check, globals, errs
+
+generate = (file, contents, loud, handle, nomacros, check, globals, errs)->
   if loud then console.log("Compiling #{file}:\n")
   objName = if file? and file.match /\.lsr$/ then file.substring(0, file.length - 4) else file ? '_anonymous'
   out = """
@@ -153,7 +162,6 @@ var defineToken = Leisure.defineToken;
 var processResult = Repl.processResult;
 
 """
-  [globals, errs] = findDefs contents, nomacros, loud
   names = globals
   prev = Leisure.Nil
   if err then throw new Error(err)
@@ -209,6 +217,7 @@ getGlobals = -> Leisure.eval 'leisureGetFuncs()'
 showAst = (ast)-> if ast? then "(#{P.print(ast)})" else ""
 
 findDefs = (contents, nomacros, loud)->
+  auto = null
   errs = ''
   globals = Leisure.Nil
   rest = contents
@@ -219,13 +228,15 @@ findDefs = (contents, nomacros, loud)->
       if ast?.leisureName then errs = "#{errs}Error in #{ast.leisureName}#{showAst ast}: #{err}\n"
       else if prevName? then errs = "#{errs}Error after #{prevName}: #{err}\n"
       else errs = "#{errs}#{err}\n"
+    else
+      line = oldRest.substring(0, (if rest? then oldRest.length - rest.length else oldRest.length))
+      if line.match /(^|\n)#@auto/ then auto = line
     if ast?.leisureName
       prevName = ast.leisureName
       if loud > 2 then console.log "Found function: #{ast.leisureName}"
       if globals?.find((v)->v == ast.leisureName) then throw new Error("Attempt to redefine function: #{ast.leisureName}#{showAst ast}")
       globals = Leisure.cons(ast.leisureName, globals)
-  [globals.reverse(), errs]
-
+  [globals.reverse(), errs, auto]
 
 root.processLine = processLine
 root.setCompiler = setCompiler

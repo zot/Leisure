@@ -26,6 +26,7 @@ trimEq = (str)-> if str[0] == '=' then str.substring(1) else str
 
 init = (inputField, output)->
   clearEnv()
+  Prim.defaultEnv.presentValue = presentValue
   #write = (line)-> defs.innerHTML += line
   write = (line)->
   #ReplCore.setWriter writeOutput
@@ -33,9 +34,9 @@ init = (inputField, output)->
   ReplCore.setHandler (ast, result, a, c, r, src, env)->
     global.$0 = result
     if !ast.leisureName? and result?
-      env.processResult?(result)
+      env.processResult?(result, ast)
       #handle SVG nodes here (measure them and create an SVG element)
-      env.write "<span><b> #{escapeHtml(trimEq(src))} \u2192</b>\n  #{ReplCore.getType result}: #{presentValue result}</span>\n"
+      env.write "<span><b> #{escapeHtml(trimEq(src))} \u2192</b>\n  #{ReplCore.getType result}: #{env.presentValue result}</span>\n"
     else if ast.err and env.processError? then env.processError ast
     ReplCore.processResult result, env
   ReplCore.setResetFunc clearEnv
@@ -48,8 +49,6 @@ presentValue = (value)->
   switch ReplCore.getType value
     when 'html' , 'svg' then getHtml value
     else escapeHtml Pretty.print value
-
-setValuePresenter = (func)-> root.presentValue = presentValue = func
 
 evalLine = (line)->
   lastLine = line.replace(/\\/g, '\u03BB')
@@ -152,4 +151,3 @@ root.evalLine = evalLine
 root.processResult = processResult
 root.escapeHtml = escapeHtml
 root.presentValue = presentValue
-root.setValuePresenter = setValuePresenter

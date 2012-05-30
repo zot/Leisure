@@ -1,5 +1,5 @@
 (function() {
-  var Pretty, clearEnv, clearEnvX, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, presentValue, processResult, reloadEnv, root, setValuePresenter, trimEq, useIframe, useMainWindow, write, writeOutput;
+  var Pretty, clearEnv, clearEnvX, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, presentValue, processResult, reloadEnv, root, trimEq, useIframe, useMainWindow, write, writeOutput;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -57,12 +57,15 @@
 
   init = function init(inputField, output) {
     clearEnv();
+    Prim.defaultEnv.presentValue = presentValue;
     write = function write(line) {};
     ReplCore.setHandler(function(ast, result, a, c, r, src, env) {
       global.$0 = result;
       if (!(ast.leisureName != null) && (result != null)) {
-        if (typeof env.processResult === "function") env.processResult(result);
-        env.write("<span><b> " + (escapeHtml(trimEq(src))) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (presentValue(result)) + "</span>\n");
+        if (typeof env.processResult === "function") {
+          env.processResult(result, ast);
+        }
+        env.write("<span><b> " + (escapeHtml(trimEq(src))) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (env.presentValue(result)) + "</span>\n");
       } else if (ast.err && (env.processError != null)) {
         env.processError(ast);
       }
@@ -79,10 +82,6 @@
       default:
         return escapeHtml(Pretty.print(value));
     }
-  };
-
-  setValuePresenter = function setValuePresenter(func) {
-    return root.presentValue = presentValue = func;
   };
 
   evalLine = function evalLine(line) {
@@ -208,7 +207,5 @@
   root.escapeHtml = escapeHtml;
 
   root.presentValue = presentValue;
-
-  root.setValuePresenter = setValuePresenter;
 
 }).call(this);

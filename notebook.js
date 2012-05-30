@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, baseElements, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalDoc, evalOutput, findCurrentCodeHolder, findDefs, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, postLoadQueue, prepExpr, presentSvgNode, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setSnapper, setUpdate, showResult, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformStrokeWidth, transformedPoint, unwrap, update, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showResult, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -20,6 +20,10 @@
 
   ENTER = 13;
 
+  arrows = [37, 38, 39, 40];
+
+  updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/;
+
   snapshot = function snapshot(el, pgm) {};
 
   setSnapper = function setSnapper(snapFunc) {
@@ -30,21 +34,24 @@
     return window.setTimeout(func, 1);
   };
 
-  arrows = [37, 38, 39, 40];
+  basePresentValue = null;
+
+  presentValue = function presentValue(v) {
+    var content;
+    if ((ReplCore.getType(v)) === 'svg-node') {
+      content = v(laz(id));
+      return _svg$_present()(laz(content))(laz(id));
+    } else {
+      return basePresentValue(v);
+    }
+  };
 
   bindNotebook = function bindNotebook(el) {
-    var pres;
-    pres = Repl.presentValue;
-    Repl.setValuePresenter(function(v) {
-      if ((ReplCore.getType(v)) === 'svg-node') {
-        return presentSvgNode(v);
-      } else {
-        return pres(v);
-      }
-    });
     if (!((document.getElementById('channelList')) != null)) {
       document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='compile'>compile</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
     }
+    basePresentValue = Prim.defaultEnv.presentValue;
+    Prim.defaultEnv.presentValue = presentValue;
     Prim.defaultEnv.write = function write(msg) {
       return console.log(msg);
     };
@@ -68,7 +75,13 @@
           });
         }
       }), true);
-      el.addEventListener('click', (function(e) {
+      el.addEventListener('mousedown', (function(e) {
+        return delay(highlightPosition);
+      }), true);
+      el.addEventListener('mousemove', (function(e) {
+        return delay(highlightPosition);
+      }), true);
+      el.addEventListener('mouseup', (function(e) {
         return delay(highlightPosition);
       }), true);
       el.addEventListener('keydown', function(e) {
@@ -170,50 +183,56 @@
   oldBrackets = [null, Leisure.Nil];
 
   highlightPosition = function highlightPosition() {
-    var ast, b, brackets, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3;
+    var ast, b, brackets, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
     s = window.getSelection();
-    if (!s.rangeCount || !s.getRangeAt(0).collapsed) return;
-    focusBox(s.focusNode);
-    parent = getBox(s.focusNode);
-    if (!parent || (parent.getAttribute('LeisureOutput') != null)) return;
-    if (parent.parentNode) {
-      ast = getAst(parent);
-      if (ast != null) {
-        offset = (_ref = ast.leisureCodeOffset) != null ? _ref : 0;
-        r = s.getRangeAt(0);
-        r.setStart(parent, 0);
-        pos = getRangeText(r).length;
-        brackets = Leisure.bracket(ast.leisureBase, pos - offset);
-        if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
-          oldBrackets = [parent, brackets];
-          _ref2 = document.querySelectorAll("[LeisureBrackets]");
-          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-            node = _ref2[_i];
-            unwrap(node);
+    if (s.rangeCount) {
+      focusBox(s.focusNode);
+      parent = getBox(s.focusNode);
+      if ((_ref = s.getRangeAt(0)) != null ? _ref.collapsed : void 0) {
+        if (!parent || (parent.getAttribute('LeisureOutput') != null)) return;
+        if (parent.parentNode) {
+          ast = getAst(parent);
+          if (ast != null) {
+            offset = (_ref2 = ast.leisureCodeOffset) != null ? _ref2 : 0;
+            r = s.getRangeAt(0);
+            r.setStart(parent, 0);
+            pos = getRangeText(r).length;
+            brackets = Leisure.bracket(ast.leisureBase, pos - offset);
+            if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
+              oldBrackets = [parent, brackets];
+              _ref3 = document.querySelectorAll("[LeisureBrackets]");
+              for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+                node = _ref3[_i];
+                unwrap(node);
+              }
+              _ref4 = parent.querySelectorAll(".partialApply");
+              for (_j = 0, _len2 = _ref4.length; _j < _len2; _j++) {
+                node = _ref4[_j];
+                unwrap(node);
+              }
+              parent.normalize();
+              markPartialApplies(parent);
+              b = brackets;
+              ranges = [];
+              while (b !== Leisure.Nil) {
+                ranges.push(makeRange(parent, b.head.head + offset, b.head.tail.head + offset));
+                b = b.tail;
+              }
+              for (i = 0, _len3 = ranges.length; i < _len3; i++) {
+                r = ranges[i];
+                span = document.createElement('span');
+                span.setAttribute('LeisureBrackets', '');
+                span.setAttribute('class', i === 0 ? 'LeisureFunc' : 'LeisureArg');
+                wrapRange(r, span);
+              }
+              s.removeAllRanges();
+              s.addRange(makeRange(parent, pos));
+            }
           }
-          _ref3 = parent.querySelectorAll(".partialApply");
-          for (_j = 0, _len2 = _ref3.length; _j < _len2; _j++) {
-            node = _ref3[_j];
-            unwrap(node);
-          }
-          parent.normalize();
-          markPartialApplies(parent);
-          b = brackets;
-          ranges = [];
-          while (b !== Leisure.Nil) {
-            ranges.push(makeRange(parent, b.head.head + offset, b.head.tail.head + offset));
-            b = b.tail;
-          }
-          for (i = 0, _len3 = ranges.length; i < _len3; i++) {
-            r = ranges[i];
-            span = document.createElement('span');
-            span.setAttribute('LeisureBrackets', '');
-            span.setAttribute('class', i === 0 ? 'LeisureFunc' : 'LeisureArg');
-            wrapRange(r, span);
-          }
-          s.removeAllRanges();
-          return s.addRange(makeRange(parent, pos));
         }
+      }
+      if ((parent != null ? (_ref5 = parent.ast) != null ? _ref5.leisureName : void 0 : void 0) != null) {
+        return update("sel-" + parent.ast.leisureName);
       }
     }
   };
@@ -286,6 +305,9 @@
 
   initNotebook = function initNotebook(el) {
     var pgm, _ref;
+    ReplCore.setNext(function() {
+      return 3;
+    });
     el.replacing = true;
     removeOldDefs(el);
     pgm = markupDefs(el, findDefs(el));
@@ -536,18 +558,30 @@
   };
 
   getAst = function getAst(bx, def) {
-    var _name, _ref, _ref2;
     if (bx.ast != null) {
+      patchFuncAst(bx.ast);
       return bx.ast;
     } else {
       def = def || bx.textContent;
-      bx.ast = (Leisure.compileNext(def, Leisure.Nil, true, null, true))[0];
-      if (((_ref = bx.ast) != null ? _ref.leisureName : void 0) != null) {
-        if (typeof window[_name = Leisure.nameSub(bx.ast.leisureName)] === "function") {
-          if ((_ref2 = window[_name]()) != null) _ref2.src = bx.ast.leisureSource;
-        }
-        return update("ast-" + bx.ast.leisureName);
+      return setAst(bx, (Leisure.compileNext(def, Leisure.Nil, true, null, true))[0]);
+    }
+  };
+
+  setAst = function setAst(bx, ast) {
+    bx.ast = ast;
+    return patchFuncAst(ast);
+  };
+
+  patchFuncAst = function patchFuncAst(ast) {
+    var _name, _name2, _ref, _ref2;
+    if ((ast != null ? ast.leisureName : void 0) != null) {
+      if (typeof window[_name = Leisure.nameSub(ast.leisureName)] === "function") {
+        if ((_ref = window[_name]()) != null) _ref.ast = ast;
       }
+      if (typeof window[_name2 = Leisure.nameSub(ast.leisureName)] === "function") {
+        if ((_ref2 = window[_name2]()) != null) _ref2.src = ast.leisureSource;
+      }
+      return update("ast-" + ast.leisureName);
     }
   };
 
@@ -608,10 +642,12 @@
   };
 
   evalOutput = function evalOutput(exBox, nofocus) {
-    var stopUpdates, updateSelector, _ref;
+    var selector, stopUpdates, updateSelector, _ref;
     exBox = getBox(exBox);
     if (!nofocus) focusBox(exBox);
     cleanOutput(exBox, true);
+    selector = findUpdateSelector(exBox.source);
+    if (selector) exBox.setAttribute('leisureUpdate', selector);
     makeOutputControls(exBox);
     _ref = getElements(exBox.firstChild, ['chooseUpdate', 'stopUpdates']), updateSelector = _ref[0], stopUpdates = _ref[1];
     updateSelector.addEventListener('change', function(evt) {
@@ -626,7 +662,15 @@
     });
     updateSelector.value = (exBox.getAttribute('leisureUpdate')) || '';
     exBox.updateSelector = updateSelector;
-    return ReplCore.processLine(prepExpr(getExprSource(exBox.source)), envFor(exBox));
+    return evalBox(exBox.source, exBox);
+  };
+
+  findUpdateSelector = function findUpdateSelector(box) {
+    var def, defType, leading, matched, name, u;
+    if (def = box.textContent.match(Leisure.linePat)) {
+      matched = def[0], leading = def[1], name = def[2], defType = def[3];
+      if (u = leading.match(updatePat)) return u[3];
+    }
   };
 
   getExprSource = function getExprSource(box) {
@@ -641,9 +685,23 @@
   };
 
   setUpdate = function setUpdate(el, channel) {
-    var ast;
+    var ast, def, defType, index, leading, matched, name, r, txt, u;
     el.setAttribute('leisureUpdate', channel);
-    return ast = getAst(el.source);
+    ast = getAst(el.source);
+    txt = el.source.textContent;
+    if (def = txt.match(Leisure.linePat)) {
+      matched = def[0], leading = def[1], name = def[2], defType = def[3];
+      index = def.index;
+      if (u = leading.match(updatePat)) {
+        index += u.index + u[1].length + u[2].length;
+        r = makeRange(el.source, index, index + u[3].length);
+        r.deleteContents();
+      } else {
+        r = makeRange(el.source, index + leading.length, index + leading.length);
+      }
+      r.insertNode(textNode(channel));
+      return el.source.normalize();
+    }
   };
 
   makeOutputControls = function makeOutputControls(exBox) {
@@ -753,7 +811,7 @@
       prompt: function prompt(msg, cont) {
         return cont(null);
       },
-      processResult: function processResult(result) {
+      processResult: function processResult(result, ast) {
         return passed = showResult(bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result));
       },
       processError: passed = false
@@ -803,9 +861,11 @@
       prompt: function prompt(msg, cont) {
         return cont(window.prompt(msg));
       },
-      processResult: function processResult(result) {
-        return box.result = result;
+      processResult: function processResult(result, ast) {
+        box.result = result;
+        return setAst(box, ast);
       },
+      presentValue: presentValue,
       processError: function processError(ast) {
         var btn;
         btn = box.querySelector('[leisureId="makeTestCase"]');
@@ -1119,9 +1179,14 @@
     return box;
   };
 
+  evalBox = function evalBox(box, envBox) {
+    ReplCore.processLine(box.textContent, (envBox != null ? envFor(envBox) : null), 'Leisure.');
+    return getAst(box);
+  };
+
   acceptCode = function acceptCode(box) {
     if ((box.getAttribute('codemain')) != null) {
-      ReplCore.processLine(box.textContent, envFor(box), 'Leisure.');
+      evalBox(box);
       update('compile');
       if (owner(box).autorun.checked) return runTests(owner(box));
     }
@@ -1135,7 +1200,7 @@
         auto = "do\n  " + (auto.trim().replace(/\n/g, '\n  ')) + "\n  finishLoading 'fred'";
         global.noredefs = false;
         Notebook.queueAfterLoad(function() {
-          Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
+          evalDocCode(el, pgm);
           if (el.autorunState) return runTests(el);
         });
         e = envFor(el);
@@ -1145,12 +1210,24 @@
         };
         return ReplCore.processLine(auto, e);
       } else {
-        return Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
+        return evalDocCode(pgm);
       }
     } catch (err) {
       console.log(err);
       return alert(err.stack);
     }
+  };
+
+  evalDocCode = function evalDocCode(el, pgm) {
+    var node, _i, _len, _ref, _results;
+    Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global);
+    _ref = el.querySelectorAll('[codeMain]');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      _results.push(getAst(node));
+    }
+    return _results;
   };
 
   Leisure.define('finishLoading', function(bubba) {
@@ -1172,6 +1249,33 @@
           autoRun(env.owner, true);
       }
       return cont(_false());
+    });
+  });
+
+  Leisure.define('notebookSelection', function(func) {
+    return Prim.makeMonad(function(env, cont) {
+      var bx, offset, p1, p2, r, r2, sel, _ref;
+      sel = window.getSelection();
+      bx = getBox(sel.focusNode);
+      if ((bx != null) && getAst(bx) === func().ast) {
+        offset = (_ref = bx.ast.leisureCodeOffset) != null ? _ref : 0;
+        r = sel.getRangeAt(0);
+        window.r = r;
+        r2 = document.createRange();
+        r2.setStart(bx, 0);
+        r2.setEnd(r.startContainer, r.startOffset);
+        p1 = r2.cloneContents().textContent.length - offset;
+        if (!r.collapsed) r2.setEnd(r.endContainer, r.endOffset);
+        p2 = r2.cloneContents().textContent.length - offset;
+        return cont(_some2()(function() {
+          return p1;
+        })(function() {
+          return p2;
+        }));
+      } else {
+        if (bx != null) console.log("no selection");
+        return cont(_none());
+      }
     });
   });
 
@@ -1300,12 +1404,6 @@
       y = tp2.y - tp1.y;
       return Math.sqrt(x * x + y * y);
     }
-  };
-
-  presentSvgNode = function presentSvgNode(node) {
-    var content;
-    content = node(laz(id));
-    return _svg$_present()(laz(content))(laz(id));
   };
 
   Prim.defaultEnv.require = req;

@@ -42,6 +42,8 @@ define 'parse', (value)->
   if err? then _right()(laz("Error: #{err}"))
   else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
   else _left()(laz(ast))
+define 'ast-start', (ast)-> ast().leisureStart
+define 'ast-end', (ast)-> ast().leisureEnd
 define 'pretty', (value)->
   #kluge this, for now
   if !Pretty then Pretty = window.Pretty
@@ -74,6 +76,8 @@ define 'gt', (a)->(b)->if a() > b() then `_true()` else `_false()`
 define 'gte', (a)->(b)->if a() >= b() then `_true()` else `_false()`
 define 'lt', (a)->(b)->if a() < b() then `_true()` else `_false()`
 define 'lte', (a)->(b)->if a() <= b() then `_true()` else `_false()`
+
+define 'strlen', (a)->a().length
 
 define 'log', (msg)->(value)->
   if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
@@ -128,6 +132,11 @@ define 'eventPreventDefault', (evt)->
     evt().preventDefault()
     cont(_false())
 
+define 'forward', (name)->
+  makeMonad (env, cont)->
+    Leisure.defineForward name
+    cont _false()
+
 define 'return', (v)->
   makeMonad (env, cont)->cont(v())
 
@@ -138,6 +147,11 @@ define 'require', (file)->
 define 'print', (msg)->
   makeMonad (env, cont)->
     if msg() != _nil() then env.write("#{msg()}\n")
+    cont(_false())
+
+define 'printValue', (value)->
+  makeMonad (env, cont)->
+    if value() != _nil() then env.write("#{env.presentValue value()}\n")
     cont(_false())
 
 define 'prompt', (msg)->

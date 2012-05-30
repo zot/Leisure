@@ -29,6 +29,7 @@ else root = exports ? this
 
 escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
 
+forward = {}
 wordPat = /^[^\s]*$/
 baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
 tokenPat = new RegExp("\\n *|#{baseTokenPat.source}")
@@ -296,7 +297,7 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
       else
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
-        else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) then code
+        else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) or forward[nameSub(val)]? then code
         else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
         else code.addErr "attempt to use free variable: #{val}"
     when 'lit'
@@ -325,7 +326,7 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
 freeVar = (ast, vars, globals)->
   if (getAstType ast) == 'ref'
     rv = getRefVar ast
-    !ctx[nameSub(rv)] and !vars.find((v)-> v == rv) and !globals.find((v)-> v == rv)
+    !ctx[nameSub(rv)] and !vars.find((v)-> v == rv) and !globals.find((v)-> v == rv) and !forward[nameSub(rv)]
   else false
 
 laz = (val)-> -> val
@@ -350,6 +351,8 @@ createDefinition = (name, ast, index)->
 prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\') + '.' else '') + str
 
 getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
+
+defineForward = (name)-> forward[nameSub(name())] = true
 
 # returns [ast, err, rest]
 compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
@@ -612,3 +615,4 @@ root.parseApply = parseApply
 root.bracket = bracket
 root.findFuncs = findFuncs
 root.foldLeft = foldLeft
+root.defineForward = defineForward

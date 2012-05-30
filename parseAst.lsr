@@ -1,3 +1,6 @@
+#@auto
+forward 'notebookSelection'
+
 make-node svg width height root-x root-y = \f . f svg width height root-x root-y
 
 node-svg st = st \svg width height root-x root-y . svg
@@ -5,12 +8,6 @@ node-width st = st \svg width height root-x root-y . width
 node-height st = st \svg width height root-x root-y . height
 node-root-x st = st \svg width height root-x root-y . root-x
 node-root-y st = st \svg width height root-x root-y . root-y
-
-node-set-svg st value = st \svg width height root-x root-y . make-node value width height root-x root-y
-node-set-width st value = st \svg width height root-x root-y . make-node svg value height root-x root-y
-node-set-height st value = st \svg width height root-x root-y . make-node svg width value root-x root-y
-node-set-root-x st value = st \svg width height root-x root-y . make-node svg width height value root-y
-node-set-root-y st value = st \svg width height root-x root-y . make-node svg width height root-x value
 
 node-translate st x y = st \svg width height root-x root-y . make-node
   translate svg x y
@@ -22,30 +19,61 @@ node-translate st x y = st \svg width height root-x root-y . make-node
 node-line n1 n2 = n1 \s1 w1 h1 x1 y1 . n2 \s2 w2 h2 x2 y2 .
   line [['x1'|x1],['y1'|y1],['x2'|x2],['y2'|y2]|default-line-map]
 
+treeForNotebook func = do
+  s <- notebookSelection func
+  printValue (treeForWith (parse (funcSource func id false) id false) \ast map . s (\start end . (shouldHighlight ast start end) (highlight map) map) map)
+
+rangeContainsRange start end innerStart innerEnd = and (lte start innerStart) (lte innerEnd end)
+
+shouldHighlight ast start end = do
+  astStart = ast-start ast
+  astEnd = ast-end ast
+  or
+    rangeContainsRange start end astStart astEnd
+    or
+      and
+        or (eq 'lit' (getType ast id id)) (eq 'ref' (getType ast id id))
+        rangeContainsRange astStart astEnd start end
+      and
+        eq 'lambda' (getType ast id id)
+        rangeContainsRange astStart (+ astStart (strlen (ast \v b . v))) start end
+
+highlight map = do
+  c = get-value 'fill' map
+  eq c '#fcc'
+    add-hash 'fill' 'red' map
+    eq c '#cfc'
+      add-hash 'fill' 'green' map
+      eq c '#ccf'
+        add-hash 'fill' 'blue' map
+        map
+
 treeForFunc func = treeFor (parse (funcSource func id false) id false)
 
-treeFor ast = node-svg (nodeFor ast)
+treeFor ast = treeForWith ast \ast map . map
 
-nodeFor ast = do
+treeForWith ast mapFunc = node-svg (nodeFor ast mapFunc)
+
+nodeFor ast mapFunc = do
   t = typeof ast
   eq t 'lit'
-    createLitNode (pretty (ast id))
+    createLitNode ast (pretty (ast id)) mapFunc
     eq t 'ref'
-      createRefNode (pretty (ast id))
+      createRefNode ast (pretty (ast id)) mapFunc
       eq t 'lambda'
-        ast (\v b . createLambdaNode v b)
+        ast (\v b . createLambdaNode ast v b mapFunc)
         eq t 'apply'
-          ast (\f a . createApplyNode f a)
+          ast (\f a . createApplyNode ast f a mapFunc)
           make-node (svg-node '') 0 0 0 0
 
-redStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'red'],['rx'|8],['ry'|8] ]
-greenStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'green'],['rx'|8],['ry'|8] ]
-blueStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'blue'],['rx'|8],['ry'|8] ]
+redStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'#fcc'],['rx'|8],['ry'|8]]
+greenStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'#cfc'],['rx'|8],['ry'|8]]
+blueStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'#ccf'],['rx'|8],['ry'|8]]
 
-createLambdaNode v b = do
-  rootBox = textNode greenStyle 'lambda'
-  varBox = textNode greenStyle v
-  bodyTree = nodeFor b
+createLambdaNode ast v b mapFunc = do
+  rootBox = textNode (mapFunc ast greenStyle) 'lambda'
+  varBox = textNode (mapFunc ast greenStyle) v
+  bodyTree = nodeFor b mapFunc
   childWidth = + (+ (node-width varBox) 5) (node-width bodyTree)
   totalWidth = max childWidth (node-width rootBox)
   pad = max 0 (/ (- totalWidth childWidth) 2)
@@ -59,10 +87,10 @@ createLambdaNode v b = do
     / totalWidth 2
     / (node-height rootBox) 2
 
-createApplyNode f a = do
-  rootBox = textNode blueStyle 'apply'
-  funcTree = nodeFor f
-  argTree = nodeFor a
+createApplyNode ast f a mapFunc = do
+  rootBox = textNode (mapFunc ast blueStyle) 'apply'
+  funcTree = nodeFor f mapFunc
+  argTree = nodeFor a mapFunc
   childWidth = + (+ (node-width argTree) 5) (node-width funcTree)
   totalWidth = max childWidth (node-width rootBox)
   pad = max 0 (/ (- totalWidth childWidth) 2)
@@ -76,14 +104,14 @@ createApplyNode f a = do
     / totalWidth 2
     / (node-height rootBox) 2
 
-createRefNode ref = textNode redStyle ref
-createLitNode lit = textNode greenStyle lit
+createRefNode ast ref mapFunc = textNode (mapFunc ast redStyle) ref
+createLitNode ast lit mapFunc = textNode (mapFunc ast greenStyle) lit
 
 textNode map txt = (svg-measure-text txt '') \w h . do
   node-w = + w 24
   node-h = + h 14
   make-node
-    (svg-concat [(rect [['x'|2],['y'|2],['width'|node-w],['height'|node-h] | map]), (text txt [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 14 (/ w 2))],['y'|(+ 5 (/ h 2))]])])
+    (svg-concat [(rect [['x'|2],['y'|2],['width'|node-w],['height'|node-h] | map]), (text txt [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 14 (/ w 2))],['y'|(+ 5 (/ h 2))], ['font-weight'|'bold']])])
     node-w
     node-h
     / node-w 2

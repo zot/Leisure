@@ -9,22 +9,13 @@ do
   require 'parseAst'
   config 'autoTest'
 
-box-svg (textBox greenStyle 'lambda')
+circle nil
 
-treeFor (parse '1' id false)
+a=1
+b=2
 
-printValue (treeFor (parse '1' id false))
-
-treeFor (parse 'cons 1' id false)
-
-treeFor (parse (funcSource and id false) id false)
-
-svg-concat [(rect nil), (circle nil)]
-
- 
-test a b=\f . f a b
-
-treeForFunc test
+#@test {"expr":"a\n","result":1}
+#@test {"expr":"b\n","result":2}
 
 all2 f l = l
   \h t D . and
@@ -34,6 +25,5 @@ all2 f l = l
 
 #@update sel-all2
 treeForNotebook all2
-
   </body>
 </html>
