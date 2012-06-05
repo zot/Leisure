@@ -116,7 +116,18 @@ body {
   height: 24px;
 }
 
-.hidingSource .controls *, .hidingSource .exprOutput {
+.hidingSource {
+  position: relative;
+}
+
+.hidingSource .controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.hidingSource .controls *, .hidingSource .controls + * {
   display: none;
 }
 
