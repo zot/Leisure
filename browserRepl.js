@@ -65,7 +65,7 @@
         if (typeof env.processResult === "function") {
           env.processResult(result, ast);
         }
-        env.write("<span><b> " + (escapeHtml(trimEq(src))) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (env.presentValue(result)) + "</span>\n");
+        env.write("<span class='exprOutput'><b> " + (escapeHtml(trimEq(src))) + " \u2192</b>\n  " + (ReplCore.getType(result)) + ": " + (env.presentValue(result)) + "</span>\n");
       } else if (ast.err && (env.processError != null)) {
         env.processError(ast);
       }

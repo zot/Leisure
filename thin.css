@@ -7,11 +7,12 @@
   vertical-align: top;
   display: inline-block;
   margin: 0;
+  margin-right: 28px;
   padding: 5px;
 }
 .thin .codeMain:hover {
-  border: blue solid 1px;
-  margin: -1px;
+  outline: blue solid 1px;
+  margin-right: 28px;
 }
 
 .thin .output {
@@ -32,8 +33,7 @@
   display: inline-block;
 }
 .thin .codeMainExpr:hover {
-  border: red solid 1px;
-  margin: -1px;
+  outline: red solid 1px;
 }
 
 .thin .partialApply {

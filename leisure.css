@@ -102,4 +102,38 @@ body {
   padding-left: 100px
 }
 
+.codeMain {
+  position: relative;
+  overflow: visible;
+}
 
+.astbutton {
+  position: absolute;
+  top: 0;
+  right: -28px;
+  background: url(ast.png) no-repeat;
+  width: 24px;
+  height: 24px;
+}
+
+.hidingSource .controls *, .hidingSource .exprOutput {
+  display: none;
+}
+
+.sourceToggle {
+  background: url(hideSource.png) center;
+  width: 34px;
+  height: 26px;
+  display: block;
+}
+
+.hidingSource .sourceToggle {
+  background: url(viewSource.png) center;
+  width: 34px;
+  height: 26px;
+  display: block;
+}
+
+.codeMainExpr {
+  position: relative;
+}
