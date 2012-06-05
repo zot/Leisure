@@ -720,12 +720,12 @@
     }
   };
 
-  setUpdate = function setUpdate(el, channel) {
+  setUpdate = function setUpdate(el, channel, preserveSource) {
     var ast, def, defType, index, leading, matched, name, r, txt, u;
     el.setAttribute('leisureUpdate', channel);
     ast = getAst(el.source);
     txt = el.source.textContent;
-    if (def = txt.match(Leisure.linePat)) {
+    if (!preserveSource && (def = txt.match(Leisure.linePat))) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
       index = def.index;
       if (u = leading.match(updatePat)) {
@@ -758,11 +758,11 @@
     }
   };
 
-  clearUpdates = function clearUpdates(widget) {
+  clearUpdates = function clearUpdates(widget, preserveSource) {
     var exBox;
     exBox = getBox(widget);
     exBox.updateSelector.value = '';
-    return setUpdate(exBox, '');
+    return setUpdate(exBox, '', preserveSource);
   };
 
   update = function update(type, env) {
@@ -778,7 +778,7 @@
   };
 
   clearOutputBox = function clearOutputBox(exBox) {
-    clearUpdates(exBox);
+    clearUpdates(exBox, true);
     return cleanOutput(exBox);
   };
 
