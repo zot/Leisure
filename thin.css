@@ -32,6 +32,14 @@
   margin: 0;
   display: inline-block;
 }
+
+.thin .hidingSource .controls {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+}
+
 .thin .codeMainExpr:hover {
   outline: red solid 1px;
 }
