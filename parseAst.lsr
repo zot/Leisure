@@ -19,9 +19,16 @@ node-translate st x y = st \svg width height root-x root-y . make-node
 node-line n1 n2 = n1 \s1 w1 h1 x1 y1 . n2 \s2 w2 h2 x2 y2 .
   line [['x1'|x1],['y1'|y1],['x2'|x2],['y2'|y2]|default-line-map]
 
+astFor func = isFunc func
+  funcSource func (\src . parse src) (right 'no source')
+  left (lit func)
+
 treeForNotebook func = do
   s <- notebookSelection func
-  printValue (treeForWith (parse (funcSource func id false) id false) \ast map . s (\start end . (shouldHighlight ast start end) (highlight map) map) map)
+  printValue
+    astFor func
+      \ast . treeForWith ast \ast map . s (\start end . (shouldHighlight ast start end) (highlight map) map) map
+      \ignore . concat ['no source for ' func]
 
 rangeContainsRange start end innerStart innerEnd = and (lte start innerStart) (lte innerEnd end)
 

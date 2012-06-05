@@ -36,7 +36,7 @@ init = (inputField, output)->
     if !ast.leisureName? and result?
       env.processResult?(result, ast)
       #handle SVG nodes here (measure them and create an SVG element)
-      env.write "<span><b> #{escapeHtml(trimEq(src))} \u2192</b>\n  #{ReplCore.getType result}: #{env.presentValue result}</span>\n"
+      env.write "<span class='exprOutput'><b> #{escapeHtml(trimEq(src))} \u2192</b>\n  #{ReplCore.getType result}: #{env.presentValue result}</span>\n"
     else if ast.err and env.processError? then env.processError ast
     ReplCore.processResult result, env
   ReplCore.setResetFunc clearEnv

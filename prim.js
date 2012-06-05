@@ -60,6 +60,14 @@
     };
   }), 2);
 
+  define('isFunc', function(value) {
+    if (typeof value() === 'function') {
+      return _true();
+    } else {
+      return _false();
+    }
+  });
+
   define('eq', (function(a) {
     return function(b) {
       if (a() === b()) {

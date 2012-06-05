@@ -35,6 +35,7 @@ getType = Leisure.getType
 laz = Leisure.laz
 
 define 'is', ((value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`), 2
+define 'isFunc', (value)->if typeof value() == 'function' then `_true()` else `_false()`
 define 'eq', ((a)-> (b)-> if a() == b() then `_true()` else` _false()`), 2
 define 'getType', (value)-> if type = getType(value()) then _some()(->type) else _none()
 define 'parse', (value)->

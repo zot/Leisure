@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showResult, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleSource, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -278,19 +278,54 @@
   };
 
   toExprBox = function toExprBox(b) {
+    var node, _i, _len, _ref;
     b.removeAttribute('codeMain');
     b.classList.remove('codeMain');
     b.setAttribute('codeMainExpr', '');
     b.classList.add('codeMainExpr');
+    _ref = b.querySelectorAll('.astbutton');
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      remove(node);
+    }
     return makeOutputBox(b);
   };
 
   toDefBox = function toDefBox(b) {
-    if (b.output) b.parentNode.removeChild(b.output);
+    if (b.output) remove(b.output);
     b.removeAttribute('codeMainExpr');
     b.classList.remove('codeMainExpr');
     b.setAttribute('codeMain', '');
-    return b.classList.add('codeMain');
+    b.classList.add('codeMain');
+    return addDefControls(b);
+  };
+
+  addDefControls = function addDefControls(box) {
+    return box.appendChild(createNode("<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>"));
+  };
+
+  remove = function remove(node) {
+    var _ref;
+    return (_ref = node.parentNode) != null ? _ref.removeChild(node) : void 0;
+  };
+
+  showAst = function showAst(box) {
+    var name, node, output;
+    name = (getAst(box)).leisureName;
+    if (box.astOut != null) {
+      remove(box.astOut.output);
+      remove(box.astOut);
+      return box.astOut = null;
+    } else if (name != null) {
+      node = codeBox('codeMainExpr');
+      box.astOut = node;
+      node.setAttribute('leisureOutput', '');
+      box.parentNode.insertBefore(node, box.nextSibling);
+      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name;
+      output = makeOutputBox(node);
+      toggleSource(output);
+      return evalOutput(output, true);
+    }
   };
 
   isDef = function isDef(box) {
@@ -483,7 +518,7 @@
     _ref = el.querySelectorAll("[LeisureOutput]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
-      node.parentNode.removeChild(node);
+      remove(node);
     }
     _ref2 = el.querySelectorAll("[generatednl]");
     for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
@@ -526,6 +561,7 @@
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
+        addDefControls(bx);
         bod = codeSpan(textNode(body), 'codeBody');
         bod.appendChild(textNode('\n'));
         bod.setAttribute('generatedNL', '');
@@ -684,12 +720,12 @@
     }
   };
 
-  setUpdate = function setUpdate(el, channel) {
+  setUpdate = function setUpdate(el, channel, preserveSource) {
     var ast, def, defType, index, leading, matched, name, r, txt, u;
     el.setAttribute('leisureUpdate', channel);
     ast = getAst(el.source);
     txt = el.source.textContent;
-    if (def = txt.match(Leisure.linePat)) {
+    if (!preserveSource && (def = txt.match(Leisure.linePat))) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
       index = def.index;
       if (u = leading.match(updatePat)) {
@@ -706,15 +742,27 @@
 
   makeOutputControls = function makeOutputControls(exBox) {
     if (exBox.firstChild.firstChild === exBox.firstChild.lastChild) {
-      return exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>"));
+      return exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleSource(this)' class='sourceToggle' style='float:right'></button>"));
     }
   };
 
-  clearUpdates = function clearUpdates(widget) {
+  toggleSource = function toggleSource(toggleButton) {
+    var output;
+    output = getBox(toggleButton);
+    if (output.classList.contains('hidingSource')) {
+      output.classList.remove('hidingSource');
+      return output.source.style.display = '';
+    } else {
+      output.classList.add('hidingSource');
+      return output.source.style.display = 'none';
+    }
+  };
+
+  clearUpdates = function clearUpdates(widget, preserveSource) {
     var exBox;
     exBox = getBox(widget);
     exBox.updateSelector.value = '';
-    return setUpdate(exBox, '');
+    return setUpdate(exBox, '', preserveSource);
   };
 
   update = function update(type, env) {
@@ -730,7 +778,7 @@
   };
 
   clearOutputBox = function clearOutputBox(exBox) {
-    clearUpdates(exBox);
+    clearUpdates(exBox, true);
     return cleanOutput(exBox);
   };
 
@@ -760,8 +808,8 @@
     };
     box = makeTestBox(test, owner(exBox));
     source.parentNode.insertBefore(box, source);
-    source.parentNode.removeChild(source);
-    output.parentNode.removeChild(output);
+    remove(source);
+    remove(output);
     box.parentNode.insertBefore(textNode('\uFEFF'), box);
     box.parentNode.insertBefore(textNode('\uFEFF'), box.nextSibling);
     if (owner(box).autorun.checked) return clickTest(box);
@@ -869,7 +917,7 @@
       processError: function processError(ast) {
         var btn;
         btn = box.querySelector('[leisureId="makeTestCase"]');
-        btn.parentNode.removeChild(btn);
+        remove(btn);
         return this.write("ERROR: " + ast.err);
       }
     };
@@ -885,7 +933,7 @@
     node.setAttribute('contentEditable', 'false');
     node.source = source;
     source.output = node;
-    node.innerHTML = "<div><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>";
+    node.innerHTML = "<div class='controls'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>";
     source.parentNode.insertBefore(node, source.nextSibling);
     return node;
   };
@@ -1042,7 +1090,7 @@
     var node, offset, range, _ref, _ref2;
     range = document.createRange();
     _ref = grp(el, off1, false), node = _ref[0], offset = _ref[1];
-    if (offset != null) {
+    if ((offset != null) && offset > 0) {
       range.setStart(node, offset);
     } else {
       range.setStartBefore(node);
@@ -1443,5 +1491,9 @@
   root.update = update;
 
   root.clearUpdates = clearUpdates;
+
+  root.showAst = showAst;
+
+  root.toggleSource = toggleSource;
 
 }).call(this);

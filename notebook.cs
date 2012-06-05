@@ -178,14 +178,38 @@ toExprBox = (b)->
   b.classList.remove 'codeMain'
   b.setAttribute 'codeMainExpr', ''
   b.classList.add 'codeMainExpr'
+  for node in b.querySelectorAll '.astbutton'
+    remove node
   makeOutputBox b
 
 toDefBox = (b)->
-  if b.output then b.parentNode.removeChild b.output
+  if b.output then remove b.output
   b.removeAttribute 'codeMainExpr'
   b.classList.remove 'codeMainExpr'
   b.setAttribute 'codeMain', ''
   b.classList.add 'codeMain'
+  addDefControls b
+
+addDefControls = (box)->
+  box.appendChild createNode "<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>"
+
+remove = (node)->node.parentNode?.removeChild node
+
+showAst = (box)->
+  name = (getAst box).leisureName
+  if box.astOut?
+    remove box.astOut.output
+    remove box.astOut
+    box.astOut = null
+  else if name?
+    node = codeBox 'codeMainExpr'
+    box.astOut = node
+    node.setAttribute 'leisureOutput', ''
+    box.parentNode.insertBefore node, box.nextSibling
+    node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name}"
+    output = makeOutputBox node
+    toggleSource output
+    evalOutput output, true
 
 isDef = (box)->
   txt = box.textContent
@@ -335,7 +359,7 @@ removeOldDefs = (el)->
   el.leisureViewLink = null
   extracted = []
   for node in el.querySelectorAll "[LeisureOutput]"
-    node.parentNode.removeChild node
+    remove node
   for node in el.querySelectorAll "[generatednl]"
     txt = node.lastChild
     if txt.nodeType == 3 and txt.data[txt.data.length - 1] == '\n'
@@ -360,6 +384,7 @@ markupDefs = (el, defs)->
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode def)
+      addDefControls bx
       #bod = codeSpan (markPartialApplies bx, body), 'codeBody'
       bod = codeSpan textNode(body), 'codeBody'
       bod.appendChild textNode('\n')
@@ -468,11 +493,11 @@ getExprSource = (box)->
   if b != box or !s.rangeCount or s.getRangeAt(0).collapsed then box.textContent
   else getRangeText s.getRangeAt(0)
 
-setUpdate = (el, channel)->
+setUpdate = (el, channel, preserveSource)->
   el.setAttribute 'leisureUpdate', channel
   ast = getAst el.source
   txt = el.source.textContent
-  if def = txt.match Leisure.linePat
+  if !preserveSource and def = txt.match Leisure.linePat
     [matched, leading, name, defType] = def
     index = def.index
     if u = leading.match updatePat
@@ -485,12 +510,21 @@ setUpdate = (el, channel)->
 
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
-    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>""")
+    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleSource(this)' class='sourceToggle' style='float:right'></button>""")
 
-clearUpdates = (widget)->
+toggleSource = (toggleButton)->
+  output = getBox toggleButton
+  if output.classList.contains 'hidingSource'
+    output.classList.remove 'hidingSource'
+    output.source.style.display = ''
+  else
+    output.classList.add 'hidingSource'
+    output.source.style.display = 'none'
+
+clearUpdates = (widget, preserveSource)->
   exBox = getBox widget
   exBox.updateSelector.value = ''
-  setUpdate exBox, ''
+  setUpdate exBox, '', preserveSource
 
 update = (type, env)->
   env = env ? Prim.defaultEnv
@@ -498,7 +532,7 @@ update = (type, env)->
     evalOutput node, true
 
 clearOutputBox = (exBox)->
-  clearUpdates exBox
+  clearUpdates exBox, true
   cleanOutput(exBox)
 
 cleanOutput = (exBox, preserveControls)->
@@ -518,8 +552,8 @@ makeTestCase = (exBox)->
     result: Repl.escapeHtml(Pretty.print(output.result))
   box = makeTestBox test, owner(exBox)
   source.parentNode.insertBefore box, source
-  source.parentNode.removeChild source
-  output.parentNode.removeChild output
+  remove source
+  remove output
   # semi-fix to allow you to position the caret properly before and after a test case
   box.parentNode.insertBefore textNode('\uFEFF'), box
   box.parentNode.insertBefore textNode('\uFEFF'), box.nextSibling
@@ -594,7 +628,7 @@ envFor = (box)->
   presentValue: presentValue
   processError: (ast)->
     btn = box.querySelector '[leisureId="makeTestCase"]'
-    btn.parentNode.removeChild btn
+    remove btn
     @write "ERROR: #{ast.err}"
 
 makeOutputBox = (source)->
@@ -606,7 +640,7 @@ makeOutputBox = (source)->
   node.setAttribute 'contentEditable', 'false'
   node.source = source
   source.output = node
-  node.innerHTML = "<div><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>"
+  node.innerHTML = "<div class='controls'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>"
   source.parentNode.insertBefore node, source.nextSibling
   node
 
@@ -724,7 +758,7 @@ getRanges = (el, txt, rest, def, restOff)->
 makeRange = (el, off1, off2)->
   range = document.createRange()
   [node, offset] = grp el, off1, false
-  if offset? then range.setStart(node, offset)
+  if offset? and offset > 0 then range.setStart(node, offset)
   else  range.setStartBefore node
   if off2?
     [node, offset] = grp el, off2, true
@@ -964,6 +998,8 @@ root.changeTheme = changeTheme
 root.setSnapper = setSnapper
 root.update = update
 root.clearUpdates = clearUpdates
+root.showAst = showAst
+root.toggleSource = toggleSource
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])
