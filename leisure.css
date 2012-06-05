@@ -107,6 +107,10 @@ body {
   overflow: visible;
 }
 
+.fatControls {
+  min-width: 72px;
+}
+
 .astbutton {
   position: absolute;
   top: 0;

@@ -742,7 +742,8 @@
 
   makeOutputControls = function makeOutputControls(exBox) {
     if (exBox.firstChild.firstChild === exBox.firstChild.lastChild) {
-      return exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button> <b>Update:</b> <input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleSource(this)' class='sourceToggle' style='float:right'></button>"));
+      exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleSource(this)' class='sourceToggle' style='float:right'></button>"));
+      return exBox.classList.add('fatControls');
     }
   };
 
