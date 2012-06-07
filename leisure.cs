@@ -125,9 +125,37 @@ global.leisureGetFuncs = -> ll
 
 global.noredefs = true
 
+contextStack = Nil
+
+funcAstAtOffset = (func, nodeOffset)->
+  ast = funcAst func
+  if ast then astAtOffset ast, nodeOffset else null
+
+funcAst = (func)-> if func.src then func.ast ? (func.ast = parseFull(func.src)[0]) else null
+
+astAtOffset = (ast, offset)->
+  if ast.leisureNodeNumber == offset then ast
+  else switch getAstType ast
+    when 'lambda' then astAtOffset (getLambdaBody ast), offset
+    when 'apply'
+      if ast.leisureNodeNumber > offset then astAtOffset (getApplyFunc ast), offset
+      else astAtOffset (getApplyArg ast), offset
+
+runInContext = (func, nodeOffset, code)->
+  old = contextStack
+  ctx = func.leisureContexts?[nodeOffset] ? (func.leisureContexts[nodeOffset] = [func, nodeOffset])
+  contextStack = cons ctx, contextStack
+  try
+    code()
+  catch err
+    if err? and !err.leisureContext then err.leisureContext = contextStack
+  finally
+    contextStack = old
+
 # use AST, instead of arity?
 define = (name, func, arity, src) ->
   func.src = src
+  func.leisureContexts = []
   nm = nameSub(name)
   func.leisureName = name
   func.leisureArity = arity
@@ -232,40 +260,32 @@ findFuncApply = (apply, count)->
   else dlempty
 
 class Code
-  constructor: (@main, @subfuncs, @fcount, @mcount, @vars, @err, @global)->
+  constructor: (@main, @vars, @err, @global, @debug)->
     @main = @main ? ''
-    @subfuncs = @subfuncs ? ''
-    @fcount = @fcount ? 0
-    @mcount = @mcount ? 0
     @vars = @vars ? Nil
     @err = @err ? ''
     @global = @global ? Nil
-  copyWith: (main, subfuncs, fcount, mcount, vars, err, global)->new Code(main ? @main, subfuncs ? @subfuncs, fcount ? @fcount, mcount ? @mcount, vars ? @vars, err ? @err, global ? @global)
-  addErr: (e)-> @copyWith(null, null, null, null, null, "#{@err}#{e}\n")
-  setGlobal: (v)-> @copyWith(null, null, null, null, null, null, v)
-  addVar: (v)-> @copyWith(null, null, null, null, cons(v, @vars), null)
-  setVars: (v)-> @copyWith(null, null, null, null, v, null)
-  resetMemo: (n)-> @copyWith(null, null, null, n ? 0)
+    @debug = @debug ? Nil
+  copyWith: (main, vars, err, global, debug)->new Code(main ? @main, vars ? @vars, err ? @err, global ? @global, debug ? @debug)
+  setVars: (v)-> @copyWith(null, v)
+  addVar: (v)-> @copyWith(null, cons(v, @vars))
+  addErr: (e)-> @copyWith(null, null, "#{@err}#{e}\n")
+  setGlobal: (v)-> @copyWith(null, null, null, v)
+  setDebug: (d)-> @copyWith(null, null, null, null, d)
   reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
-  unreffedValue: (deref)-> if deref then @ else @copyWith("(function(){return #{@main}})")
-  #subfuncName: -> "subfunc#{@fcount}"
-  #useSubfunc: (closed)-> if !closed then @ else @copyWith(@subfuncName(), "#{@subfuncs}var #{@subfuncName()} = #{@main}\n", @fcount + 1)
-  useSubfunc: -> @
+  unreffedValue: (deref, name, ast)-> if deref then @ else @wrapFunction()
   memoize: (deref)->
     if deref then @unreffedValue(deref)
-    else @copyWith "(function(){var $m; return function(){return $m || ($m = (#{@main}))}})()"
+    else
+      tmp = @copyWith("$m || ($m = (#{@main}))").wrapFunction()
+      tmp.copyWith "(function(){var $m; return #{tmp.main}})()"
+  wrapFunction: (func, ast)->@copyWith("(function(){return #{@main}})")
 
 dgen = (ast, lazy, name, globals, tokenDef, namespace, src)->
   ast.lits = []
   res = []
   code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace) #.memo(!lazy)
   if code.err != '' then ast.err = code.err
-  else if code.subfuncs.length then ast.src = """
-(function(){#{if tokenDef? and tokenDef != '=' then "root.tokenDefs.push('#{name}', '#{tokenDef}')\n" else ''}
-  #{code.subfuncs}
-  return #{if name? then "#{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'})" else code.main}
-})()
-    """
   else ast.src = if name? then """
 #{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 
@@ -309,9 +329,9 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
       code.copyWith(src).unreffedValue(deref)
     when 'lambda'
       v = getLambdaVar ast
-      bodyCode = (gen (getLambdaBody ast), code.resetMemo(), lits, cons(v, vars), true, name, namespace)
+      bodyCode = (gen (getLambdaBody ast), code, lits, cons(v, vars), true, name, namespace)
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
-      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).useSubfunc(bodyCode.vars == Nil).memoize(deref)
+      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref)
     when 'apply'
       func = getApplyFunc ast
       if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
@@ -358,7 +378,7 @@ defineForward = (name)-> forward[nameSub(name())] = true
 compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
   if line[0] == '='
     rest1 = line.substring 1
-    ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
+    ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = 0
       genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim()), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
@@ -375,7 +395,7 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
         errPrefix = "Error while compiling #{nm}: "
-        ifParsed (if nomacros then parseApplyNew pfx, Nil else parseFull pfx), ((ast, rest)->
+        ifParsed (if nomacros then parse pfx else parseFull pfx), ((ast, rest)->
           ast.leisureCodeOffset = ast.leisureDefPrefix = line.length - pfx.length
           ast.leisureBase = getNthBody(ast, nm.length)
           nameAst(nm[0], ast)
@@ -389,7 +409,7 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
           ast.leisurePrefixCount = nm.length
           ast.leisureSource = pfx.substring(0, pfx.length - rest.length).trim()
           genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource), errPrefix
-    else ifParsed (if nomacros then parseApplyNew rest1, Nil else parseFull rest1), ((ast, rest)->
+    else ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = line.length - rest1.length
       ast.leisureBase = ast
       ast.leisureSource = rest1.substring(0, rest1.length - rest.length).trim()
@@ -424,10 +444,25 @@ evalNext = (code, namespace)->
       [ast, result]
   else [{err: err}, err]
 
+parse = (str)->
+  ret = parseApply str, Nil, '\n', str.length
+  if !ret[2] then ret[0] = numberAst ret[0], 0
+  ret
+
 parseFull = (str)->
-  [ast, err, rest] = parseApplyNew str, Nil, 0
+  [ast, err, rest] = parseApply str, Nil, '\n', str.length
   if err then [ast, err, rest]
-  else [(substituteMacros ast), err, rest]
+  else [numberAst(substituteMacros(ast), 0), err, rest]
+
+numberAst = (ast, number)->
+  switch getAstType ast
+    when 'ref', 'lit' then setNumber ast, number
+    when 'lambda' then setNumber ast, (numberAst (getLambdaBody ast), number).leisureNodeNumber + 1
+    when 'apply' then setNumber ast, (numberAst (getApplyArg ast), (numberAst (getApplyFunc ast), number).leisureNodeNumber + 1).leisureNodeNumber + 1
+
+setNumber = (ast, number)->
+  ast.leisureNodeNumber = number
+  ast
 
 substituteMacros = (ast)->
   switch getAstType ast
@@ -517,8 +552,6 @@ ifParsed = (res, block, errPrefix)->
   else block res[0], res[2]
 
 snip = (str)->"[#{str.substring 0, 80}]"
-
-parseApplyNew = (str, vars)-> parseApply str, vars, '\n', str.length
 
 # returns [ast, err, rest]
 parseApply = (str, vars, indent, totalLen)->
@@ -616,3 +649,6 @@ root.bracket = bracket
 root.findFuncs = findFuncs
 root.foldLeft = foldLeft
 root.defineForward = defineForward
+root.runInContext = runInContext
+root.funcAstAtOffset = funcAstAtOffset
+root.funcAst = funcAst

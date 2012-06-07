@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, continueApply, createDefinition, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, order, parseApply, parseApplyNew, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
+  var CNil, Code, Cons, Nil, append, apply, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, contextStack, continueApply, createDefinition, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, numberAst, order, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, runInContext, scanName, scanTok, second, setContext, setDataType, setEvalFunc, setNumber, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapDebug, wrapNoDebug,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -258,9 +258,64 @@ misrepresented as being the original software.
 
   global.noredefs = true;
 
+  contextStack = Nil;
+
+  funcAstAtOffset = function funcAstAtOffset(func, nodeOffset) {
+    var ast;
+    ast = funcAst(func);
+    if (ast) {
+      return astAtOffset(ast, nodeOffset);
+    } else {
+      return null;
+    }
+  };
+
+  funcAst = function funcAst(func) {
+    var _ref;
+    if (func.src) {
+      return (_ref = func.ast) != null ? _ref : (func.ast = parseFull(func.src)[0]);
+    } else {
+      return null;
+    }
+  };
+
+  astAtOffset = function astAtOffset(ast, offset) {
+    if (ast.leisureNodeNumber === offset) {
+      return ast;
+    } else {
+      switch (getAstType(ast)) {
+        case 'lambda':
+          return astAtOffset(getLambdaBody(ast), offset);
+        case 'apply':
+          if (ast.leisureNodeNumber > offset) {
+            return astAtOffset(getApplyFunc(ast), offset);
+          } else {
+            return astAtOffset(getApplyArg(ast), offset);
+          }
+      }
+    }
+  };
+
+  runInContext = function runInContext(func, nodeOffset, code) {
+    var old, _ref, _ref2;
+    old = contextStack;
+    ctx = (_ref = (_ref2 = func.leisureContexts) != null ? _ref2[nodeOffset] : void 0) != null ? _ref : (func.leisureContexts[nodeOffset] = [func, nodeOffset]);
+    contextStack = cons(ctx, contextStack);
+    try {
+      return code();
+    } catch (err) {
+      if ((err != null) && !err.leisureContext) {
+        return err.leisureContext = contextStack;
+      }
+    } finally {
+      contextStack = old;
+    }
+  };
+
   define = function define(name, func, arity, src) {
     var f, nm;
     func.src = src;
+    func.leisureContexts = [];
     nm = nameSub(name);
     func.leisureName = name;
     func.leisureArity = arity;
@@ -495,46 +550,42 @@ misrepresented as being the original software.
 
   Code = (function() {
 
-    function Code(main, subfuncs, fcount, mcount, vars, err, global) {
-      var _ref, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+    function Code(main, vars, err, global, debug) {
+      var _ref, _ref2, _ref3, _ref4, _ref5;
       this.main = main;
-      this.subfuncs = subfuncs;
-      this.fcount = fcount;
-      this.mcount = mcount;
       this.vars = vars;
       this.err = err;
       this.global = global;
+      this.debug = debug;
       this.main = (_ref = this.main) != null ? _ref : '';
-      this.subfuncs = (_ref2 = this.subfuncs) != null ? _ref2 : '';
-      this.fcount = (_ref3 = this.fcount) != null ? _ref3 : 0;
-      this.mcount = (_ref4 = this.mcount) != null ? _ref4 : 0;
-      this.vars = (_ref5 = this.vars) != null ? _ref5 : Nil;
-      this.err = (_ref6 = this.err) != null ? _ref6 : '';
-      this.global = (_ref7 = this.global) != null ? _ref7 : Nil;
+      this.vars = (_ref2 = this.vars) != null ? _ref2 : Nil;
+      this.err = (_ref3 = this.err) != null ? _ref3 : '';
+      this.global = (_ref4 = this.global) != null ? _ref4 : Nil;
+      this.debug = (_ref5 = this.debug) != null ? _ref5 : Nil;
     }
 
-    Code.prototype.copyWith = function copyWith(main, subfuncs, fcount, mcount, vars, err, global) {
-      return new Code(main != null ? main : this.main, subfuncs != null ? subfuncs : this.subfuncs, fcount != null ? fcount : this.fcount, mcount != null ? mcount : this.mcount, vars != null ? vars : this.vars, err != null ? err : this.err, global != null ? global : this.global);
-    };
-
-    Code.prototype.addErr = function addErr(e) {
-      return this.copyWith(null, null, null, null, null, "" + this.err + e + "\n");
-    };
-
-    Code.prototype.setGlobal = function setGlobal(v) {
-      return this.copyWith(null, null, null, null, null, null, v);
-    };
-
-    Code.prototype.addVar = function addVar(v) {
-      return this.copyWith(null, null, null, null, cons(v, this.vars), null);
+    Code.prototype.copyWith = function copyWith(main, vars, err, global, debug) {
+      return new Code(main != null ? main : this.main, vars != null ? vars : this.vars, err != null ? err : this.err, global != null ? global : this.global, debug != null ? debug : this.debug);
     };
 
     Code.prototype.setVars = function setVars(v) {
-      return this.copyWith(null, null, null, null, v, null);
+      return this.copyWith(null, v);
     };
 
-    Code.prototype.resetMemo = function resetMemo(n) {
-      return this.copyWith(null, null, null, n != null ? n : 0);
+    Code.prototype.addVar = function addVar(v) {
+      return this.copyWith(null, cons(v, this.vars));
+    };
+
+    Code.prototype.addErr = function addErr(e) {
+      return this.copyWith(null, null, "" + this.err + e + "\n");
+    };
+
+    Code.prototype.setGlobal = function setGlobal(v) {
+      return this.copyWith(null, null, null, v);
+    };
+
+    Code.prototype.setDebug = function setDebug(d) {
+      return this.copyWith(null, null, null, null, d);
     };
 
     Code.prototype.reffedValue = function reffedValue(deref) {
@@ -545,24 +596,26 @@ misrepresented as being the original software.
       }
     };
 
-    Code.prototype.unreffedValue = function unreffedValue(deref) {
+    Code.prototype.unreffedValue = function unreffedValue(deref, name, ast) {
       if (deref) {
         return this;
       } else {
-        return this.copyWith("(function(){return " + this.main + "})");
+        return this.wrapFunction();
       }
-    };
-
-    Code.prototype.useSubfunc = function useSubfunc() {
-      return this;
     };
 
     Code.prototype.memoize = function memoize(deref) {
+      var tmp;
       if (deref) {
         return this.unreffedValue(deref);
       } else {
-        return this.copyWith("(function(){var $m; return function(){return $m || ($m = (" + this.main + "))}})()");
+        tmp = this.copyWith("$m || ($m = (" + this.main + "))").wrapFunction();
+        return tmp.copyWith("(function(){var $m; return " + tmp.main + "})()");
       }
+    };
+
+    Code.prototype.wrapFunction = function wrapFunction(func, ast) {
+      return this.copyWith("(function(){return " + this.main + "})");
     };
 
     return Code;
@@ -576,8 +629,6 @@ misrepresented as being the original software.
     code = gen(ast, new Code().setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name, namespace);
     if (code.err !== '') {
       ast.err = code.err;
-    } else if (code.subfuncs.length) {
-      ast.src = "(function(){" + ((tokenDef != null) && tokenDef !== '=' ? "root.tokenDefs.push('" + name + "', '" + tokenDef + "')\n" : '') + "\n  " + code.subfuncs + "\n  return " + (name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ")" : code.main) + "\n})()";
     } else {
       ast.src = name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + code.main + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : "(" + code.main + ")";
     }
@@ -643,11 +694,11 @@ misrepresented as being the original software.
         return code.copyWith(src).unreffedValue(deref);
       case 'lambda':
         v = getLambdaVar(ast);
-        bodyCode = gen(getLambdaBody(ast), code.resetMemo(), lits, cons(v, vars), true, name, namespace);
+        bodyCode = gen(getLambdaBody(ast), code, lits, cons(v, vars), true, name, namespace);
         bodyCode = bodyCode.setVars(bodyCode.vars.removeAll(function(bv) {
           return bv === v;
         }));
-        return bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).useSubfunc(bodyCode.vars === Nil).memoize(deref);
+        return bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref);
       case 'apply':
         func = getApplyFunc(ast);
         if (getAstType(func === 'lit')) {
@@ -744,7 +795,7 @@ misrepresented as being the original software.
     var def, defType, errPrefix, leading, matched, name, nm, pfx, rest1;
     if (line[0] === '=') {
       rest1 = line.substring(1);
-      return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
+      return ifParsed((nomacros ? parse(rest1) : parseFull(rest1)), (function(ast, rest) {
         ast.leisureCodeOffset = 0;
         return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim());
       }), "Error compiling expr " + (snip(line)));
@@ -767,7 +818,7 @@ misrepresented as being the original software.
           if (defType && defType !== '=') defineToken(nm[0], defType);
           pfx = prefix(nm, rest1);
           errPrefix = "Error while compiling " + nm + ": ";
-          return ifParsed((nomacros ? parseApplyNew(pfx, Nil) : parseFull(pfx)), (function(ast, rest) {
+          return ifParsed((nomacros ? parse(pfx) : parseFull(pfx)), (function(ast, rest) {
             var bod;
             ast.leisureCodeOffset = ast.leisureDefPrefix = line.length - pfx.length;
             ast.leisureBase = getNthBody(ast, nm.length);
@@ -786,7 +837,7 @@ misrepresented as being the original software.
           }), errPrefix);
         }
       } else {
-        return ifParsed((nomacros ? parseApplyNew(rest1, Nil) : parseFull(rest1)), (function(ast, rest) {
+        return ifParsed((nomacros ? parse(rest1) : parseFull(rest1)), (function(ast, rest) {
           ast.leisureCodeOffset = line.length - rest1.length;
           ast.leisureBase = ast;
           ast.leisureSource = rest1.substring(0, rest1.length - rest.length).trim();
@@ -839,14 +890,38 @@ misrepresented as being the original software.
     }
   };
 
+  parse = function parse(str) {
+    var ret;
+    ret = parseApply(str, Nil, '\n', str.length);
+    if (!ret[2]) ret[0] = numberAst(ret[0], 0);
+    return ret;
+  };
+
   parseFull = function parseFull(str) {
     var ast, err, rest, _ref;
-    _ref = parseApplyNew(str, Nil, 0), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = parseApply(str, Nil, '\n', str.length), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err) {
       return [ast, err, rest];
     } else {
-      return [substituteMacros(ast), err, rest];
+      return [numberAst(substituteMacros(ast), 0), err, rest];
     }
+  };
+
+  numberAst = function numberAst(ast, number) {
+    switch (getAstType(ast)) {
+      case 'ref':
+      case 'lit':
+        return setNumber(ast, number);
+      case 'lambda':
+        return setNumber(ast, (numberAst(getLambdaBody(ast), number)).leisureNodeNumber + 1);
+      case 'apply':
+        return setNumber(ast, (numberAst(getApplyArg(ast), (numberAst(getApplyFunc(ast), number)).leisureNodeNumber + 1)).leisureNodeNumber + 1);
+    }
+  };
+
+  setNumber = function setNumber(ast, number) {
+    ast.leisureNodeNumber = number;
+    return ast;
   };
 
   substituteMacros = function substituteMacros(ast) {
@@ -1006,10 +1081,6 @@ misrepresented as being the original software.
 
   snip = function snip(str) {
     return "[" + (str.substring(0, 80)) + "]";
-  };
-
-  parseApplyNew = function parseApplyNew(str, vars) {
-    return parseApply(str, vars, '\n', str.length);
   };
 
   parseApply = function parseApply(str, vars, indent, totalLen) {
@@ -1178,5 +1249,11 @@ misrepresented as being the original software.
   root.foldLeft = foldLeft;
 
   root.defineForward = defineForward;
+
+  root.runInContext = runInContext;
+
+  root.funcAstAtOffset = funcAstAtOffset;
+
+  root.funcAst = funcAst;
 
 }).call(this);
