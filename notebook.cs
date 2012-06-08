@@ -348,7 +348,9 @@ changeTheme = (el, value)->
   el.leisureTheme = theme
   el.className = theme
 
-changeView = (el, value)-> alert 'new view: ' + value
+changeView = (el, value)->
+  debug = value == 'debugging'
+  alert 'new view: ' + value + ", debug: " + debug
 
 unwrap = (node)->
   parent = node.parentNode

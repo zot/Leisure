@@ -156,16 +156,7 @@ function req(name) {
 }
 //Leisure.req('./std');
 
-setType = Leisure.setType;
-setDataType = Leisure.setDataType;
-define = Leisure.define;
-defineMacro = Leisure.defineMacro;
-defineToken = Leisure.defineToken;
-processResult = Repl.processResult;
-setContext = Leisure.setContext;
-funcContext = Leisure.funcContext;
-Nil = Leisure.Nil;
-cons = Leisure.cons;
+#{Core.prelude}
 """)
   #VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames)
   L.eval('leisureSetFuncs')(leisureFuncNames)

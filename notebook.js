@@ -500,7 +500,8 @@
   };
 
   changeView = function changeView(el, value) {
-    return alert('new view: ' + value);
+    debug = value === 'debugging';
+    return alert('new view: ' + value + ", debug: " + debug);
   };
 
   unwrap = function unwrap(node) {

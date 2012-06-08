@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, showAst, vars, write,
+  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, showAst, vars, write,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -179,6 +179,10 @@
     return str.replace(/\n/g, '\\n');
   };
 
+  prelude = "setType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\nNil = Leisure.Nil;\ncons = Leisure.cons;";
+
+  localPrelude = prelude.split('\n').join("\nvar ");
+
   generateCode = function generateCode(file, contents, loud, handle, nomacros, check, debug) {
     var auto, errs, globals, _ref;
     _ref = findDefs(contents, nomacros, loud), globals = _ref[0], errs = _ref[1], auto = _ref[2];
@@ -196,7 +200,7 @@
     var a, ast, c, code, defs, err, i, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3;
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
-    out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Leisure = require('./leisure');\n  Leisure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\nvar setType = Leisure.setType;\nvar setDataType = Leisure.setDataType;\nvar define = Leisure.define;\nvar defineMacro = Leisure.defineMacro;\nvar defineToken = Leisure.defineToken;\nvar processResult = Repl.processResult;\n";
+    out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Leisure = require('./leisure');\n  Leisure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\n" + localPrelude;
     names = globals;
     prev = Leisure.Nil;
     if (err) throw new Error(err);
@@ -316,5 +320,7 @@
   root.setResetFunc = setResetFunc;
 
   root.findDefs = findDefs;
+
+  root.prelude = prelude;
 
 }).call(this);

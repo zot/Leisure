@@ -28,7 +28,7 @@ Tests for Leisure
 */
 
 (function() {
-  var LZ, R, T, U, applyBrackets, assertEq, assertEval, assertEvalPrint, assertParse, br, code, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
+  var LZ, R, T, U, applyBrackets, assertEq, assertEval, assertEvalPrint, assertParse, br, code, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
 
@@ -46,7 +46,9 @@ Tests for Leisure
 
   LZ.eval("req('./std')");
 
-  code = R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\nlast l = l (\\h t D . null? t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\n", false);
+  debug = false;
+
+  code = R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\nlast l = l (\\h t D . null? t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\n", false, null, null, null, debug);
 
   LZ.eval(code);
 

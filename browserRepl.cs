@@ -90,16 +90,7 @@ useIframe = (envFr)->
     env[i] = v for i, v of {Leisure: Leisure, ReplCore: ReplCore, Repl: Repl, leisureFuncs: {}, macros: macs}
     env.eval """
 global = window;
-setType = Leisure.setType;
-setDataType = Leisure.setDataType;
-define = Leisure.define;
-defineMacro = Leisure.defineMacro;
-defineToken = Leisure.defineToken;
-processResult = Repl.processResult;
-setContext = Leisure.setContext;
-funcContext = Leisure.funcContext;
-Nil = Leisure.Nil;
-cons = Leisure.cons;
+#{ReplCore.prelude}
 (function(){
 var lll;
 

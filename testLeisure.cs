@@ -38,6 +38,8 @@ console.log 'Testing'
 
 LZ.eval "req('./std')"
 
+debug = false
+
 code = (R.generateCode null, """
 #head l = l \\h t . h
 #tail l = l \\h t . t
@@ -47,7 +49,9 @@ val = 2
 divider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
 div = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
 
-""", false)
+""", false, null, null, null, debug)
+
+#console.log "CODE: #{code}"
 
 LZ.eval(code)
 

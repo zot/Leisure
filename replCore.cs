@@ -120,6 +120,21 @@ processLine = (line, env, namespace)->
 
 escape = (str)-> str.replace(/\n/g, '\\n')
 
+prelude = """
+setType = Leisure.setType;
+setDataType = Leisure.setDataType;
+define = Leisure.define;
+defineMacro = Leisure.defineMacro;
+defineToken = Leisure.defineToken;
+processResult = Repl.processResult;
+setContext = Leisure.setContext;
+funcContext = Leisure.funcContext;
+Nil = Leisure.Nil;
+cons = Leisure.cons;
+"""
+
+localPrelude = prelude.split('\n').join("\nvar ")
+
 generateCode = (file, contents, loud, handle, nomacros, check, debug)->
   [globals, errs, auto] = findDefs contents, nomacros, loud
   if auto
@@ -150,13 +165,7 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-var setType = Leisure.setType;
-var setDataType = Leisure.setDataType;
-var define = Leisure.define;
-var defineMacro = Leisure.defineMacro;
-var defineToken = Leisure.defineToken;
-var processResult = Repl.processResult;
-
+#{localPrelude}
 """
   names = globals
   prev = Leisure.Nil
@@ -246,3 +255,4 @@ root.generateCode = generateCode
 root.processResult = processResult
 root.setResetFunc = setResetFunc
 root.findDefs = findDefs
+root.prelude = prelude

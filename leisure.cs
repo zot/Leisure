@@ -139,7 +139,13 @@ astAtOffset = (ast, offset)->
       if ast.leisureNodeNumber > offset then astAtOffset (getApplyFunc ast), offset
       else astAtOffset (getApplyArg ast), offset
 
-funcContext = (func, offset)-> func.leisureContexts?[nodeOffset] ? (func.leisureContexts[nodeOffset] = [func, nodeOffset])
+contexts = {}
+
+funcContext = (funcName, offset)->
+  cur = contexts[funcName]
+  if !cur? then cur = contexts[funcName] = []
+  if !cur[offset] then cur[offset] = [funcName, offset]
+  cur[offset]
 
 runInContext = (func, nodeOffset, code)->
   old = contextStack
@@ -279,19 +285,24 @@ class Code
       tmp = @copyWith("$m || ($m = (#{@main}))").wrapFunction(name, ast)
       tmp.copyWith "(function(){var $m; return #{tmp.main}})()"
   wrapFunction: (name, ast)->
-    if !@debug then @copyWith("(function(){return #{@main}})")
+    if !@debug or !(name? and ast.leisureNodeNumber?) then @copyWith("(function(){return #{@main}})")
     else
       @copyWith """
 (function(){
+  var ctx = Leisure.contextStack;
+
+  return function(){
     try {
-      Leisure.contextStack = Leisure.cons(funcContext('#{nameSub(name)}', #{ast.leisureNodeNumber}), ctx);
+      var newCtx = Leisure.contextStack = Leisure.cons(funcContext('#{nameSub(name)}', #{ast.leisureNodeNumber}), ctx);
       return #{@main};
     } catch (err) {
       if (!err.leisureContext) err.leisureContext = Leisure.contextStack;
+      throw err;
     } finally {
       Leisure.contextStack = ctx
     }
-  })
+  };
+})()
       """
   grabContext: (ast)->
     if getAstType ast == 'lambda' then @copyWith """
@@ -304,21 +315,17 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
   res = []
   code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace) #.memo(!lazy)
   if code.err != '' then ast.err = code.err
-  else ast.src = if name? then """
-#{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
+  else
+    jsCode = "(#{code.main})"
+    ast.src = if name? then """
+#{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 
-""" else "(function(){var ctx = #{namespace ? ''}Nil; return #{code.main}})()"
+""" else jsCode
   ast.globals = code.global
   ast
 
 wrap = (name, ast, v, body, namespace, debug)->
-  body = if name? and debug then """
-function(#{v}){
-  var ctx = Leisure.contextStack;
-
-  return #{body};
-}
-  """ else "function(#{v}){return #{body};}"
+  body = "function(#{v}){return #{body};}"
   if !ast.exprType? and !ast.exprDataType then body
   else
     """
@@ -356,7 +363,26 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
         arg = getApplyArg ast
         funcCode = gen func, code, lits, vars, true, name, namespace
         argCode = gen arg, funcCode, lits, vars, false, name, namespace
-        argCode.copyWith("#{funcCode.main}(#{argCode.main})").memoize(deref, name, ast)
+        aplCode = if code.debug then """
+(function(){
+  var ctx = Leisure.contextStack;
+  var prevNewCtx = newCtx;
+
+  try {
+    var newCtx = Leisure.contextStack = Leisure.cons(funcContext('#{nameSub(name)}', #{ast.leisureNodeNumber}), ctx);
+    return #{funcCode.main}(#{argCode.main});
+  } catch (err) {
+    if (!err.leisureContext) {
+      err.leisureContext = Leisure.contextStack;
+      err.leisureLazyContext = prevNewCtx;
+    }
+    throw err;
+  } finally {
+    Leisure.contextStack = ctx
+  }
+})()
+        """ else "#{funcCode.main}(#{argCode.main})"
+        argCode.copyWith(aplCode).memoize(deref, name, ast)
     else code.addErr "Unknown object type in gen: #{ast}"
 
 freeVar = (ast, vars, globals)->
@@ -462,13 +488,15 @@ evalNext = (code, namespace, debug)->
 
 parse = (str)->
   ret = parseApply str, Nil, '\n', str.length
-  if !ret[2] then ret[0] = numberAst ret[0], 0
+  #if !ret[2] then ret[0] = numberAst ret[0], 0
+  if ret[0] then ret[0] = numberAst ret[0], 0
   ret
 
 parseFull = (str)->
   [ast, err, rest] = parseApply str, Nil, '\n', str.length
-  if err then [ast, err, rest]
-  else [numberAst(substituteMacros(ast), 0), err, rest]
+  if ast then ast = substituteMacros(ast)
+  if ast then ast = numberAst(ast, 0)
+  [ast, err, rest]
 
 numberAst = (ast, number)->
   switch getAstType ast
