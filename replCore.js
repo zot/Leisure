@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, setWriter, showAst, vars, write, writeFunc,
+  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, nextFunc, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, showAst, vars, write,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -23,12 +23,6 @@
 
   setCompiler = function setCompiler(c) {
     return compileFunc = c;
-  };
-
-  writeFunc = function writeFunc() {};
-
-  setWriter = function setWriter(w) {
-    return writeFunc = w;
   };
 
   nextFunc = function nextFunc() {};
@@ -71,7 +65,7 @@
   };
 
   helpFunc = function helpFunc(env) {
-    return env.write("Type a Leisure expression or one of these commands and hit enter:\n\n:h -- display this help\n:c filename -- compile file\n:r -- reset the Leisure environment\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the leisure environment\n!! code -- eval JavaScript code in the host environment\n");
+    return (env != null ? env : Prim.defaultEnv).write("Type a Leisure expression or one of these commands and hit enter:\n\n:h -- display this help\n:c filename -- compile file\n:r -- reset the Leisure environment\n:v -- display variable values\n:v var value -- set a variable\n:q -- quit\n! code -- eval JavaScript code in the leisure environment\n!! code -- eval JavaScript code in the host environment\n");
   };
 
   setHelp = function setHelp(h) {
@@ -160,7 +154,7 @@
           process.exit(0);
         } else {
           _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-          _ref2 = Leisure.compileNext(line, getGlobals(), false, false, namespace), ast = _ref2[0], err = _ref2[1];
+          _ref2 = Leisure.compileNext(line, getGlobals(), false, false, false, namespace, env.debug), ast = _ref2[0], err = _ref2[1];
           if (err != null) {
             if (ast != null) {
               ast.err = err;
@@ -170,7 +164,7 @@
               };
             }
           } else {
-            _ref3 = r ? Leisure.evalNext(line, namespace) : [ast, null], ast = _ref3[0], result = _ref3[1];
+            _ref3 = r ? Leisure.evalNext(line, namespace, env.debug) : [ast, null], ast = _ref3[0], result = _ref3[1];
           }
           return handlerFunc(ast, result, a, c, r, line, env);
         }
@@ -185,20 +179,20 @@
     return str.replace(/\n/g, '\\n');
   };
 
-  generateCode = function generateCode(file, contents, loud, handle, nomacros, check) {
+  generateCode = function generateCode(file, contents, loud, handle, nomacros, check, debug) {
     var auto, errs, globals, _ref;
     _ref = findDefs(contents, nomacros, loud), globals = _ref[0], errs = _ref[1], auto = _ref[2];
     if (auto) {
       console.log("auto: '" + auto + "'");
-      return processResult(Leisure.evalNext(auto, 'Leisure.')[1], {}, function() {
-        return generate(file, contents, loud, handle, nomacros, check, globals, errs);
+      return processResult(Leisure.evalNext(auto, 'Leisure.', debug)[1], {}, function() {
+        return generate(file, contents, loud, handle, nomacros, check, globals, errs, debug);
       });
     } else {
-      return generate(file, contents, loud, handle, nomacros, check, globals, errs);
+      return generate(file, contents, loud, handle, nomacros, check, globals, errs, debug);
     }
   };
 
-  generate = function generate(file, contents, loud, handle, nomacros, check, globals, errs) {
+  generate = function generate(file, contents, loud, handle, nomacros, check, globals, errs, debug) {
     var a, ast, c, code, defs, err, i, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3;
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
@@ -222,7 +216,7 @@
         console.log("Compiling function: " + names.head);
       }
       oldRest = rest;
-      _ref2 = Leisure.compileNext(rest, globals, null, check, nomacros), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+      _ref2 = Leisure.compileNext(rest, globals, null, check, nomacros, 'Leisure.', debug), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
       if ((ast != null ? ast.leisureName : void 0) != null) {
         prev = ast.leisureName;
         names = names.tail;
@@ -300,8 +294,6 @@
   root.setCompiler = setCompiler;
 
   root.setHelp = setHelp;
-
-  root.setWriter = setWriter;
 
   root.setNext = setNext;
 

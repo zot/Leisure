@@ -16,10 +16,6 @@ compileFunc = ->
 
 setCompiler = (c)-> compileFunc = c
 
-writeFunc = ->
-
-setWriter = (w)-> writeFunc = w
-
 nextFunc = ->
 
 setNext = (n)-> nextFunc = n
@@ -52,7 +48,7 @@ handlerFunc = (ast, result, a, c, r, src, env)->
 setHandler = (f)-> handlerFunc = f
 
 helpFunc = (env)->
-  env.write("""
+  (env ? Prim.defaultEnv).write("""
 Type a Leisure expression or one of these commands and hit enter:
 
 :h -- display this help
@@ -112,11 +108,11 @@ processLine = (line, env, namespace)->
       else if (line.trim() == ':q') then process.exit(0)
       else
         [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-        [ast, err] = Leisure.compileNext(line, getGlobals(), false, false, namespace)
+        [ast, err] = Leisure.compileNext(line, getGlobals(), false, false, false, namespace, env.debug)
         if err?
           if ast? then ast.err = err
           else ast = {err: err}
-        else [ast, result] = if r then Leisure.evalNext(line, namespace) else [ast, null]
+        else [ast, result] = if r then Leisure.evalNext(line, namespace, env.debug) else [ast, null]
         return handlerFunc(ast, result, a, c, r, line, env)
   catch err
     env.write(err.stack)
@@ -124,15 +120,15 @@ processLine = (line, env, namespace)->
 
 escape = (str)-> str.replace(/\n/g, '\\n')
 
-generateCode = (file, contents, loud, handle, nomacros, check)->
+generateCode = (file, contents, loud, handle, nomacros, check, debug)->
   [globals, errs, auto] = findDefs contents, nomacros, loud
   if auto
     console.log "auto: '#{auto}'"
-    processResult Leisure.evalNext(auto, 'Leisure.')[1], {}, ->
-      generate file, contents, loud, handle, nomacros, check, globals, errs
-  else generate file, contents, loud, handle, nomacros, check, globals, errs
+    processResult Leisure.evalNext(auto, 'Leisure.', debug)[1], {}, ->
+      generate file, contents, loud, handle, nomacros, check, globals, errs, debug
+  else generate file, contents, loud, handle, nomacros, check, globals, errs, debug
 
-generate = (file, contents, loud, handle, nomacros, check, globals, errs)->
+generate = (file, contents, loud, handle, nomacros, check, globals, errs, debug)->
   if loud then console.log("Compiling #{file}:\n")
   objName = if file? and file.match /\.lsr$/ then file.substring(0, file.length - 4) else file ? '_anonymous'
   out = """
@@ -176,7 +172,7 @@ var processResult = Repl.processResult;
   while rest and rest.trim()
     if loud > 1 and prev != names and names != Leisure.Nil then console.log "Compiling function: #{names.head}"
     oldRest = rest
-    [ast, err, rest] = Leisure.compileNext rest, globals, null, check, nomacros
+    [ast, err, rest] = Leisure.compileNext rest, globals, null, check, nomacros, 'Leisure.', debug
     if ast?.leisureName?
       prev = ast.leisureName
       names = names.tail
@@ -241,7 +237,6 @@ findDefs = (contents, nomacros, loud)->
 root.processLine = processLine
 root.setCompiler = setCompiler
 root.setHelp = setHelp
-root.setWriter = setWriter
 root.setNext = setNext
 root.setHandler = setHandler
 root.next = -> nextFunc()

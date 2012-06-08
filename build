@@ -1,11 +1,14 @@
 #!/bin/sh
+#DEBUG=-g
+
+
 node_modules/coffee-script/bin/coffee -c leisure.cs prim.cs game.cs
 node_modules/coffee-script/bin/coffee -c repl.cs runRepl.cs testLeisure.cs replCore.cs browserRepl.cs pretty.cs testing.cs bootLeisure.cs notebook.cs
-node runRepl -q -c -b std
+node runRepl $DEBUG -q -c -b std
 node testLeisure
 #node_modules/coffee-script/bin/coffee -c chippy.cs
 #node runRepl -c -r chippy chip.lsr
 #node_modules/coffee-script/bin/coffee -c coaster.cs
 #node runRepl -c -r coaster coast.lsr
 node_modules/coffee-script/bin/coffee -c blocky.cs
-node runRepl -c -r blocky block.lsr
+node runRepl $DEBUG -c -r blocky block.lsr

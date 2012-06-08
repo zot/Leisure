@@ -1,5 +1,5 @@
 (function() {
-  var Buffer, Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, face, getType, help, init, print, processResult, repl, root, vars, write,
+  var Buffer, Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, face, getType, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -67,16 +67,24 @@
 
   repl = function repl() {
     print("Welcome to Leisure!\n");
-    help();
+    Core.help();
     init();
     return face.prompt();
   };
 
-  help = function help() {
-    return write(":v -- vars\n:h -- help\n:c file -- compile file\n:q -- quit\n!code -- eval JavaScript code\n");
-  };
+  /*
+  help = ()->
+    write("""
+  :v -- vars
+  :h -- help
+  :c file -- compile file
+  :q -- quit
+  !code -- eval JavaScript code
+  
+    """)
+  */
 
-  compile = function compile(file, cont, nomacros) {
+  compile = function compile(file, cont, nomacros, debug) {
     var contents, jsFile, oldfile, stream;
     cont = cont != null ? cont : Core.next;
     if (!file) {
@@ -101,7 +109,7 @@
         var out, str;
         try {
           contents = contents.replace(/\r\n?/g, "\n");
-          out = Core.generateCode(file, contents, root.loud, null, nomacros);
+          out = Core.generateCode(file, contents, root.loud, null, nomacros, null, debug);
           str = FS.createWriteStream("" + jsFile + "Tmp");
           str.on('close', function() {
             FS.renameSync("" + jsFile + "Tmp", jsFile);
@@ -170,17 +178,11 @@
     })
     """)(require)
     */
-    L.eval("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;");
+    L.eval("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\nsetType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\nNil = Leisure.Nil;\ncons = Leisure.cons;");
     return L.eval('leisureSetFuncs')(leisureFuncNames);
   };
 
-  Core.setHelp(help);
-
   Core.setCompiler(compile);
-
-  Core.setWriter(function(str) {
-    return process.stdout.write(str);
-  });
 
   Core.setResetFunc(function() {
     write("Creating fresh environment");

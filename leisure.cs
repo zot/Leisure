@@ -125,8 +125,6 @@ global.leisureGetFuncs = -> ll
 
 global.noredefs = true
 
-contextStack = Nil
-
 funcAstAtOffset = (func, nodeOffset)->
   ast = funcAst func
   if ast then astAtOffset ast, nodeOffset else null
@@ -141,9 +139,11 @@ astAtOffset = (ast, offset)->
       if ast.leisureNodeNumber > offset then astAtOffset (getApplyFunc ast), offset
       else astAtOffset (getApplyArg ast), offset
 
+funcContext = (func, offset)-> func.leisureContexts?[nodeOffset] ? (func.leisureContexts[nodeOffset] = [func, nodeOffset])
+
 runInContext = (func, nodeOffset, code)->
   old = contextStack
-  ctx = func.leisureContexts?[nodeOffset] ? (func.leisureContexts[nodeOffset] = [func, nodeOffset])
+  ctx = funcContext func, offset
   contextStack = cons ctx, contextStack
   try
     code()
@@ -177,7 +177,7 @@ setType = (func, type)->
 
 nameAst = (nm, ast)-> if !ast.leisureName
   ast.leisureName = nm
-  ast.toString = ->nm
+  ast.toString = ->"{#{nm}}"
 
 evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
 
@@ -265,7 +265,6 @@ class Code
     @vars = @vars ? Nil
     @err = @err ? ''
     @global = @global ? Nil
-    @debug = @debug ? Nil
   copyWith: (main, vars, err, global, debug)->new Code(main ? @main, vars ? @vars, err ? @err, global ? @global, debug ? @debug)
   setVars: (v)-> @copyWith(null, v)
   addVar: (v)-> @copyWith(null, cons(v, @vars))
@@ -273,41 +272,58 @@ class Code
   setGlobal: (v)-> @copyWith(null, null, null, v)
   setDebug: (d)-> @copyWith(null, null, null, null, d)
   reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
-  unreffedValue: (deref, name, ast)-> if deref then @ else @wrapFunction()
-  memoize: (deref)->
-    if deref then @unreffedValue(deref)
+  unreffedValue: (deref, name, ast)-> if deref then @ else @wrapFunction(name, ast)
+  memoize: (deref, name, ast)->
+    if deref then @unreffedValue(deref, name, ast)
     else
-      tmp = @copyWith("$m || ($m = (#{@main}))").wrapFunction()
+      tmp = @copyWith("$m || ($m = (#{@main}))").wrapFunction(name, ast)
       tmp.copyWith "(function(){var $m; return #{tmp.main}})()"
-  wrapFunction: (func, ast)->@copyWith("(function(){return #{@main}})")
+  wrapFunction: (name, ast)->
+    if !@debug then @copyWith("(function(){return #{@main}})")
+    else
+      @copyWith """
+(function(){
+    try {
+      Leisure.contextStack = Leisure.cons(funcContext('#{nameSub(name)}', #{ast.leisureNodeNumber}), ctx);
+      return #{@main};
+    } catch (err) {
+      if (!err.leisureContext) err.leisureContext = Leisure.contextStack;
+    } finally {
+      Leisure.contextStack = ctx
+    }
+  })
+      """
+  grabContext: (ast)->
+    if getAstType ast == 'lambda' then @copyWith """
 
-dgen = (ast, lazy, name, globals, tokenDef, namespace, src)->
+    """ else @copyWith """
+    """
+
+dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
   ast.lits = []
   res = []
-  code = (gen ast, new Code().setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace) #.memo(!lazy)
+  code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace) #.memo(!lazy)
   if code.err != '' then ast.err = code.err
   else ast.src = if name? then """
 #{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{code.main}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 
-""" else "(#{code.main})"
+""" else "(function(){var ctx = #{namespace ? ''}Nil; return #{code.main}})()"
   ast.globals = code.global
   ast
 
-wrapNoDebug = (name, ast, v, body, namespace)->
-  src = "function(#{v}){return #{body}}"
-  if !ast.exprType? and !ast.exprDataType then src
-  else "#{namespace ? ''}#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
+wrap = (name, ast, v, body, namespace, debug)->
+  body = if name? and debug then """
+function(#{v}){
+  var ctx = Leisure.contextStack;
 
-wrapDebug = (name, ast, v, body, namespace)->
-  if !ast.exprType? and !ast.exprDataType
-    if name? "setContext($ctx, (#{src}))" else src
-  else "#{namespace ? ''}#{if ast.exprType then 'setType' else 'setDataType'}(#{src}, '#{ast.exprType ? ast.exprDataType}')"
-
-wrap = wrapNoDebug
-
-setContext = (ctx, func)->
-  func.LeisureContext = ctx
-  func
+  return #{body};
+}
+  """ else "function(#{v}){return #{body};}"
+  if !ast.exprType? and !ast.exprDataType then body
+  else
+    """
+#{namespace ? ''}#{if ast.exprType then 'setType' else 'setDataType'}(#{body}, '#{ast.exprType ? ast.exprDataType}')
+    """
 
 gen = (ast, code, lits, vars, deref, name, namespace)->
   switch getAstType ast
@@ -318,7 +334,7 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
         else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) or forward[nameSub(val)]? then code
-        else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref)
+        else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref, name, ast)
         else code.addErr "attempt to use free variable: #{val}"
     when 'lit'
       val = getLitVal ast
@@ -326,12 +342,12 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
         lits.push(val)
         "(function(){\nreturn __lits[#{lits.length - 1}]\n})"
       else JSON.stringify val
-      code.copyWith(src).unreffedValue(deref)
+      code.copyWith(src).unreffedValue(deref, name, ast)
     when 'lambda'
       v = getLambdaVar ast
       bodyCode = (gen (getLambdaBody ast), code, lits, cons(v, vars), true, name, namespace)
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
-      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref)
+      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast)
     when 'apply'
       func = getApplyFunc ast
       if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
@@ -340,7 +356,7 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
         arg = getApplyArg ast
         funcCode = gen func, code, lits, vars, true, name, namespace
         argCode = gen arg, funcCode, lits, vars, false, name, namespace
-        argCode.copyWith("#{funcCode.main}(#{argCode.main})").memoize(deref) #.unreffedValue(deref)
+        argCode.copyWith("#{funcCode.main}(#{argCode.main})").memoize(deref, name, ast)
     else code.addErr "Unknown object type in gen: #{ast}"
 
 freeVar = (ast, vars, globals)->
@@ -375,12 +391,12 @@ getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n
 defineForward = (name)-> forward[nameSub(name())] = true
 
 # returns [ast, err, rest]
-compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
+compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
   if line[0] == '='
     rest1 = line.substring 1
     ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = 0
-      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim()), "Error compiling expr #{snip line}"
+      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     if name[0] == ' '
@@ -408,22 +424,22 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace)->
           ast.leisurePrefixSrcLen = pfx.length
           ast.leisurePrefixCount = nm.length
           ast.leisureSource = pfx.substring(0, pfx.length - rest.length).trim()
-          genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource), errPrefix
+          genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource, debug), errPrefix
     else ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = line.length - rest1.length
       ast.leisureBase = ast
       ast.leisureSource = rest1.substring(0, rest1.length - rest.length).trim()
-      genCode ast, null, globals, null, rest, parseOnly, namespace, ast.leisureSource), "Error compiling expr:  #{snip line}"
+      genCode ast, null, globals, null, rest, parseOnly, namespace, ast.leisureSource, debug), "Error compiling expr:  #{snip line}"
   else [null, null, null]
 
-genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src)->
-  if !parseOnly then dgen ast, false, name, globals, defType, namespace, src
+genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src, debug)->
+  if !parseOnly then dgen ast, false, name, globals, defType, namespace, src, debug
   if ast.err? and name? then ast.err = "Error while compiling #{name}: #{ast.err}"
   [ast, ast.err, rest]
 
 #returns [ast, result]
-evalNext = (code, namespace)->
-  [ast, err, rest] = compileNext code, null, null, null, null, namespace
+evalNext = (code, namespace, debug)->
+  [ast, err, rest] = compileNext code, null, null, null, null, namespace, debug
   if ast
     if ast.leisureName
       try
@@ -652,3 +668,5 @@ root.defineForward = defineForward
 root.runInContext = runInContext
 root.funcAstAtOffset = funcAstAtOffset
 root.funcAst = funcAst
+root.funcContext = funcContext
+root.contextStack = Nil

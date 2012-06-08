@@ -35,7 +35,7 @@ init = ->
 
 repl = () ->
   print("Welcome to Leisure!\n")
-  help()
+  Core.help()
   init()
   # face = R.createInterface(process.stdin, process.stdout)
   # Prim.setTty(face)
@@ -45,6 +45,7 @@ repl = () ->
   # Core.setNext -> face.prompt()
   face.prompt()
 
+###
 help = ()->
   write("""
 :v -- vars
@@ -54,8 +55,9 @@ help = ()->
 !code -- eval JavaScript code
 
   """)
+###
 
-compile = (file, cont, nomacros)->
+compile = (file, cont, nomacros, debug)->
   cont = cont ? Core.next
   if !file
     face?.prompt()
@@ -75,7 +77,7 @@ compile = (file, cont, nomacros)->
     stream.on 'end', ()->
       try
         contents = contents.replace( /\r\n?/g, "\n")
-        out = Core.generateCode(file, contents, root.loud, null, nomacros)
+        out = Core.generateCode(file, contents, root.loud, null, nomacros, null, debug)
         str = FS.createWriteStream("#{jsFile}Tmp")
         str.on 'close', ->
           FS.renameSync("#{jsFile}Tmp", jsFile)
@@ -109,7 +111,7 @@ createEnv = ->
   #ctx = VM.createContext ctxObj
   #ctx.global = ctx
   #L.setEvalFunc ctx, (str)-> VM.runInContext(str, ctx)
-  L.setEvalFunc global, (arg)->eval(arg)
+  L.setEvalFunc global, (arg)-> eval(arg)
   ctx = global
   global.Leisure = L
   global.Repl = module
@@ -161,13 +163,15 @@ defineMacro = Leisure.defineMacro;
 defineToken = Leisure.defineToken;
 processResult = Repl.processResult;
 setContext = Leisure.setContext;
+funcContext = Leisure.funcContext;
+Nil = Leisure.Nil;
+cons = Leisure.cons;
 """)
   #VM.runInContext('leisureSetFuncs', ctx)(leisureFuncNames)
   L.eval('leisureSetFuncs')(leisureFuncNames)
 
-Core.setHelp help
+#Core.setHelp help
 Core.setCompiler compile
-Core.setWriter (str)-> process.stdout.write(str)
 Core.setResetFunc ->
   write "Creating fresh environment"
   createEnv()

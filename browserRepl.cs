@@ -96,6 +96,10 @@ define = Leisure.define;
 defineMacro = Leisure.defineMacro;
 defineToken = Leisure.defineToken;
 processResult = Repl.processResult;
+setContext = Leisure.setContext;
+funcContext = Leisure.funcContext;
+Nil = Leisure.Nil;
+cons = Leisure.cons;
 (function(){
 var lll;
 

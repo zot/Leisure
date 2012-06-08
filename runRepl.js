@@ -1,5 +1,5 @@
 (function() {
-  var LZ, R, U, action, eaten, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
+  var LZ, R, U, action, debug, eaten, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
 
   LZ = require('./leisure');
 
@@ -11,12 +11,14 @@
 
   LZ.ctx.U = U;
 
+  debug = false;
+
   importFile = function importFile(file, cont) {
     if (file.match(/.lsr$/)) file = file.substring(0, file.length - 4);
     return R.compile(file, (function() {
       LZ.eval("req('./" + file + "')");
       return cont();
-    }), nomacros);
+    }), nomacros, debug);
   };
 
   loadStd = function loadStd() {
@@ -37,7 +39,7 @@
     if (eaten) {
       eaten--;
     } else if (process.argv[i] === '-h') {
-      console.log("Usage: " + process.argv[0] + " [[-r file]... [-c | -q | -b] file...]\n\n-b -- bootstrap; don't load std functions\n-r file -- require JS file\n-c -- compile arguments only\n-q -- quiet");
+      console.log("Usage: " + process.argv[0] + " [[-r file]... [-c | -q | -b] file...]\n\n-b -- bootstrap; don't load std functions\n-r file -- require JS file\n-c -- compile arguments only\n-g -- generate debug code\n-q -- quiet");
     } else if (process.argv[i] === '-b') {
       loadStd = function loadStd() {};
       nomacros = true;
@@ -47,6 +49,8 @@
       R.loud = 0;
     } else if (process.argv[i] === '-v') {
       R.loud++;
+    } else if (process.argv[i] === '-g') {
+      debug = true;
     } else if (process.argv[i] === '-r') {
       require("./" + process.argv[i + 1]);
       eaten = 1;

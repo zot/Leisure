@@ -11,6 +11,8 @@ if window? and (!global? or global == window)
   Repl = window.Repl
 else root = exports ? this
 
+debug = false
+
 ENTER = 13
 arrows = [37..40]
 updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
@@ -593,6 +595,7 @@ runTest = (bx)->
   ReplCore.processLine(prepExpr(test.expr), (
     require: req
     write: ->
+    debug: debug
     prompt: (msg, cont)-> cont(null)
     processResult: (result, ast)-> passed = showResult bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result)
     processError: passed = false
@@ -615,6 +618,7 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
+  debug: debug
   finishedEvent: (evt, channel)->update(channel ? 'app', this)
   owner: owner(box)
   require: req
@@ -861,16 +865,17 @@ evalDoc = (el)->
         evalDocCode el, pgm
         if el.autorunState then runTests el
       e = envFor(el)
+      console.log "ENV DEBUG: #{e.debug}"
       e.write = ->
       e.processError = (ast)->alert(ast.err)
-      ReplCore.processLine(auto, e)
+      ReplCore.processLine(auto, e, "Leisure.")
     else evalDocCode pgm
   catch err
     console.log err
     alert(err.stack)
 
 evalDocCode = (el, pgm)->
-  Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false)), global)
+  Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false, null, debug), global))
   for node in el.querySelectorAll '[codeMain]'
     getAst node
 
