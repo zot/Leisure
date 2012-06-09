@@ -947,7 +947,7 @@
   linkSource = function linkSource(funcName, offset) {
     var end, src, start, _ref;
     _ref = Leisure.funcContextSource(funcName, offset), src = _ref[0], start = _ref[1], end = _ref[2];
-    return "<a href='javascript:void(Notebook.showSource(\"" + funcName + "\", " + offset + "))'>" + funcName + ":" + start + "," + end + "</a>";
+    return "  <a href='javascript:void(Notebook.showSource(\"" + funcName + "\", " + offset + "))'>" + funcName + ":" + start + "," + end + "</a>";
   };
 
   showSource = function showSource(funcName, offset) {
