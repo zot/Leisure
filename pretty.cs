@@ -37,7 +37,9 @@ subprint = (f)->
     when 'right' then f(null)(->(r)-> "Right(#{print r()})")
     when 'html' then f ->(txt)-> "HTML(#{txt()})"
     when 'svg-node' then f ->(txt)-> "SVG NODE(#{txt()})"
-    else f?.leisureName ? inspect(f)
+    else
+      if f instanceof Error then f.stack
+      else f.leisureName ? inspect(f)
 
 printLambda = (v, body)->
   if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"

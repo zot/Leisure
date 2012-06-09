@@ -11,3 +11,9 @@ node testLeisure
 #node runRepl -c -r coaster coast.lsr
 node_modules/coffee-script/bin/coffee -c blocky.cs
 node runRepl $DEBUG -c -r blocky block
+
+if [ "$1" = -a ]; then
+    node runRepl -c maps
+    node runRepl -c -r maps svg
+    node runRepl -c -r maps -r svg parseAst
+fi

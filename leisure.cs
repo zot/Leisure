@@ -139,6 +139,13 @@ astAtOffset = (ast, offset)->
       if ast.leisureNodeNumber > offset then astAtOffset (getApplyFunc ast), offset
       else astAtOffset (getApplyArg ast), offset
 
+funcContextSource = (funcName, offset)->
+  func = global[Leisure.nameSub(funcName)]()
+  ast = Leisure.funcAstAtOffset func, offset
+  start = ast.leisureStart
+  end = ast.leisureEnd
+  [func.src, start, end, func, ast]
+
 contexts = {}
 
 funcContext = (funcName, offset)->
@@ -254,27 +261,37 @@ findFuncApply = (apply, count)->
   else if (getAstType apply) == 'ref' then dlnew(cons apply, (cons count, Nil))
   else dlempty
 
-wrapContextVars = (code, top)->"""
+wrapContextVars = (name, ast, code, top)->"""
 (function(){
-  var ctx = Leisure.contextStack;
-  #{if top then "var prevNewCtx = newCtx;" else ''}
-
-  #{code}
+  var ctx = Leisure.contextStack
+  #{indent code}
 })()
   """
 
-wrapContext = (name, ast, code, top)->wrapContextVars wrapContextBody(name, ast, code), top
+indent = (str, amt)->
+  amt = amt ? 2
+  idt = '\n'
+  for i in [0..amt]
+    idt += ' '
+  str.replace /\n/g, idt
 
-wrapLazyContext = (name, ast, code, top)->wrapContextVars "return function(){#{wrapContextBody name, ast, code}};", top
+wrapContext = (name, ast, code, top)->
+  if name? then wrapContextVars name, ast, wrapContextBody(name, ast, code, top), top
+  else code
 
-wrapContextBody = (name, ast, code)->"""
+wrapLazyContext = (name, ast, code, top)->
+  if name? then wrapContextVars name, ast, "return function(){#{indent wrapContextBody(name, ast, code, top)}};", top
+  else "(function(){return #{code}})"
+
+wrapContextBody = (name, ast, code, top)->"""
+  #{if top then '' else "var oldCtx = ctx;\n  "}
+  var ctx = Leisure.contextStack;
+  Leisure.contextStack = cons(funcContext('#{name}', #{ast.leisureNodeNumber}), #{if top then 'ctx' else 'oldCtx'})
   try {
-    var newCtx = Leisure.contextStack = Leisure.cons(funcContext('#{nameSub(name)}', #{ast.leisureNodeNumber}), ctx);
-    return #{code};
+    return #{indent code};
   } catch (err) {
     if (!err.leisureContext) {
       err.leisureContext = Leisure.contextStack;
-      err.leisureLazyContext = prevNewCtx;
     }
     throw err;
   } finally {
@@ -295,15 +312,15 @@ class Code
   setGlobal: (v)-> @copyWith(null, null, null, v)
   setDebug: (d)-> @copyWith(null, null, null, null, d)
   reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
-  unreffedValue: (deref, name, ast)-> if deref then @ else @lazy(name, ast)
-  memoize: (deref, name, ast)->
+  unreffedValue: (deref, name, ast, top)-> if deref then @ else @lazy(name, ast, top)
+  memoize: (deref, name, ast, top)->
     if deref then @
     else
-      tmp = @copyWith("$m || ($m = (#{@main}))").lazy(name, ast)
+      tmp = @copyWith("$m || ($m = (#{@main}))").lazy(name, ast, top)
       tmp.copyWith "(function(){var $m; return #{tmp.main}})()"
-  lazy: (name, ast)->
+  lazy: (name, ast, top)->
     if !@debug or !(name? and ast.leisureNodeNumber?) then @copyWith("(function(){return #{@main}})")
-    else @copyWith (wrapLazyContext name, ast, @main, false)
+    else @copyWith (wrapLazyContext name, ast, @main, top)
   grabContext: (ast)->
     if getAstType ast == 'lambda' then @copyWith """
 
@@ -313,10 +330,10 @@ class Code
 dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
   ast.lits = []
   res = []
-  code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace) #.memo(!lazy)
+  code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace, true)
   if code.err != '' then ast.err = code.err
   else
-    jsCode = "(#{code.main})"
+    jsCode = if getAstType == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
     ast.src = if name? then """
 #{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 
@@ -332,7 +349,7 @@ wrap = (name, ast, v, body, namespace, debug)->
 #{namespace ? ''}#{if ast.exprType then 'setType' else 'setDataType'}(#{body}, '#{ast.exprType ? ast.exprDataType}')
     """
 
-gen = (ast, code, lits, vars, deref, name, namespace)->
+gen = (ast, code, lits, vars, deref, name, namespace, top)->
   switch getAstType ast
     when 'ref'
       val = getRefVar ast
@@ -341,7 +358,7 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
         else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) or forward[nameSub(val)]? then code
-        else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref, name, ast)
+        else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref, name, ast, top)
         else code.addErr "attempt to use free variable: #{val}"
     when 'lit'
       val = getLitVal ast
@@ -349,23 +366,23 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
         lits.push(val)
         "(function(){\nreturn __lits[#{lits.length - 1}]\n})"
       else JSON.stringify val
-      code.copyWith(src).unreffedValue(deref, name, ast)
+      code.copyWith(src).unreffedValue(deref, name, ast, top)
     when 'lambda'
       v = getLambdaVar ast
-      bodyCode = (gen (getLambdaBody ast), code, lits, cons(v, vars), true, name, namespace)
+      bodyCode = (gen (getLambdaBody ast), code, lits, cons(v, vars), true, name, namespace, false)
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
-      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast)
+      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast, top)
     when 'apply'
       func = getApplyFunc ast
       if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
       else if freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
       else
         arg = getApplyArg ast
-        funcCode = gen func, code, lits, vars, true, name, namespace
-        argCode = gen arg, funcCode, lits, vars, false, name, namespace
-        aplCode = if code.debug then wrapContext name, ast, "#{funcCode.main}(#{argCode.main})", false
+        funcCode = gen func, code, lits, vars, true, name, namespace, false
+        argCode = gen arg, funcCode, lits, vars, false, name, namespace, false
+        aplCode = if code.debug then wrapContext name, ast, "#{funcCode.main}(#{argCode.main})", top
         else "#{funcCode.main}(#{argCode.main})"
-        argCode.copyWith(aplCode).memoize(deref, name, ast)
+        argCode.copyWith(aplCode).memoize(deref, name, ast, top)
     else code.addErr "Unknown object type in gen: #{ast}"
 
 freeVar = (ast, vars, globals)->
@@ -458,14 +475,14 @@ evalNext = (code, namespace, debug)->
         result = "Defined: #{ast.leisureName}"
       catch err
         console.log(err.stack)
-        result = err.stack
-        ast.err = err.stack
+        result = err
+        ast.err = err
       [ast, result]
     else
       try
         result = evalCompiledAst(ast)
       catch err
-        ast.err = err.stack
+        ast.err = err
       [ast, result]
   else [{err: err}, err]
 
@@ -680,3 +697,5 @@ root.funcAstAtOffset = funcAstAtOffset
 root.funcAst = funcAst
 root.funcContext = funcContext
 root.contextStack = Nil
+root.funcContextSource = funcContextSource
+root.indent = indent

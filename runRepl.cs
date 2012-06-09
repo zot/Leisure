@@ -1,5 +1,6 @@
 LZ = require('./leisure')
 R = require('./repl')
+Prim = require('./prim')
 
 U=require('util')
 LZ.ctx.console = console
@@ -40,7 +41,9 @@ Usage: #{process.argv[0]} [[-r file]... [-c | -q | -b] file...]
   else if process.argv[i] == '-c' then next = ->
   else if process.argv[i] == '-q' then R.loud = 0
   else if process.argv[i] == '-v' then R.loud++
-  else if process.argv[i] == '-g' then debug = true
+  else if process.argv[i] == '-g'
+    debug = true
+    Prim.defaultEnv.debug = true
   else if process.argv[i] == '-r'
     require "./#{process.argv[i + 1]}"
     eaten = 1

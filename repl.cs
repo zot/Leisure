@@ -33,29 +33,11 @@ init = ->
     face.on 'line', (line)->Core.processLine(line.trim(), Prim.defaultEnv)
     Core.setNext -> face.prompt()
 
-repl = () ->
+repl = ->
   print("Welcome to Leisure!\n")
   Core.help()
   init()
-  # face = R.createInterface(process.stdin, process.stdout)
-  # Prim.setTty(face)
-  # face.setPrompt "Leisure> "
-  # face.on 'close', ()->process.exit(0)
-  # face.on 'line', (line)->Core.processLine(line.trim())
-  # Core.setNext -> face.prompt()
   face.prompt()
-
-###
-help = ()->
-  write("""
-:v -- vars
-:h -- help
-:c file -- compile file
-:q -- quit
-!code -- eval JavaScript code
-
-  """)
-###
 
 compile = (file, cont, nomacros, debug)->
   cont = cont ? Core.next

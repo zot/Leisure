@@ -637,7 +637,17 @@ envFor = (box)->
   processError: (ast)->
     btn = box.querySelector '[leisureId="makeTestCase"]'
     remove btn
-    @write "ERROR: #{ast.err}"
+    @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack}"
+
+leisureContextString = (err)-> (linkSource func, offset for [func, offset] in err.leisureContext.toArray()).join('\n')
+
+linkSource = (funcName, offset)->
+  [src, start, end] = Leisure.funcContextSource funcName, offset
+  "<a href='javascript:void(Notebook.showSource(\"#{funcName}\", #{offset}))'>#{funcName}:#{start},#{end}</a><br>"
+
+showSource = (funcName, offset)->
+  [src, start, end] = Leisure.funcContextSource funcName, offset
+  alert("#{funcName} = #{src.substring(0, start)} << #{src.substring(start, end)} >> #{src.substring(end)}")
 
 makeOutputBox = (source)->
   node = document.createElement 'div'
@@ -870,7 +880,7 @@ evalDoc = (el)->
       e = envFor(el)
       console.log "ENV DEBUG: #{e.debug}"
       e.write = ->
-      e.processError = (ast)->alert(ast.err)
+      e.processError = (ast)->alert(ReplCore.errString ast.err)
       ReplCore.processLine(auto, e, "Leisure.")
     else evalDocCode pgm
   catch err
@@ -1009,6 +1019,7 @@ root.update = update
 root.clearUpdates = clearUpdates
 root.showAst = showAst
 root.toggleSource = toggleSource
+root.showSource = showSource
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

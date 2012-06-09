@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, P, Prim, U, compileFunc, escape, findDefs, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, showAst, vars, write,
+  var Leisure, P, Prim, U, compileFunc, errString, escape, findDefs, formatContexts, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, showAst, vars, write,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -39,10 +39,30 @@
 
   getType = Leisure.getType;
 
+  formatContexts = function formatContexts(stack) {
+    var end, funcName, offset, src, start, _i, _len, _ref, _ref2, _ref3, _results;
+    _ref = stack.toArray();
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      _ref2 = _ref[_i], funcName = _ref2[0], offset = _ref2[1];
+      _ref3 = Leisure.funcContextSource(funcName, offset), src = _ref3[0], start = _ref3[1], end = _ref3[2];
+      _results.push("" + funcName + ":" + start + "," + end + ": " + (Leisure.indent("" + (src.substring(0, start)) + " << " + (src.substring(start, end)) + " >> " + (src.substring(end)), 4)));
+    }
+    return _results;
+  };
+
+  errString = function errString(err) {
+    if (err instanceof Error) {
+      return "" + (err.leisureContext != null ? "\n" + err + ":\n  " + (formatContexts(err.leisureContext).join('\n  ')) + "\n\n" : '') + err.stack;
+    } else {
+      return err;
+    }
+  };
+
   handlerFunc = function handlerFunc(ast, result, a, c, r, src, env) {
     env = env != null ? env : Prim.defaultEnv;
-    if ((ast != null) && (ast.err != null)) {
-      env.write("ERROR: " + ast.err + "\n");
+    if ((ast != null ? ast.err : void 0) != null) {
+      env.write(errString(ast.err));
       return nextFunc();
     } else {
       if (a) env.write("FORMATTED: " + (P.print(ast)) + "\n");
@@ -170,10 +190,7 @@
         }
       }
     } catch (err) {
-      env.write(err.stack);
-      if (err.leisureContext != null) {
-        env.write("Leisure stack:\n" + (err.leisureContext.reverse().toArray().join("\n")));
-      }
+      env.write(errString(err));
     }
     return nextFunc();
   };
@@ -325,5 +342,7 @@
   root.findDefs = findDefs;
 
   root.prelude = prelude;
+
+  root.errString = errString;
 
 }).call(this);

@@ -1,9 +1,11 @@
 (function() {
-  var LZ, R, U, action, debug, eaten, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
+  var LZ, Prim, R, U, action, debug, eaten, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
 
   LZ = require('./leisure');
 
   R = require('./repl');
+
+  Prim = require('./prim');
 
   U = require('util');
 
@@ -51,6 +53,7 @@
       R.loud++;
     } else if (process.argv[i] === '-g') {
       debug = true;
+      Prim.defaultEnv.debug = true;
     } else if (process.argv[i] === '-r') {
       require("./" + process.argv[i + 1]);
       eaten = 1;

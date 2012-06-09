@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, contexts, continueApply, createDefinition, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, numberAst, order, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setNumber, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext,
+  var CNil, Code, Cons, Nil, append, apply, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, contexts, continueApply, createDefinition, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indent, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, numberAst, order, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setNumber, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -294,6 +294,15 @@ misrepresented as being the original software.
     }
   };
 
+  funcContextSource = function funcContextSource(funcName, offset) {
+    var ast, end, func, start;
+    func = global[Leisure.nameSub(funcName)]();
+    ast = Leisure.funcAstAtOffset(func, offset);
+    start = ast.leisureStart;
+    end = ast.leisureEnd;
+    return [func.src, start, end, func, ast];
+  };
+
   contexts = {};
 
   funcContext = function funcContext(funcName, offset) {
@@ -540,20 +549,38 @@ misrepresented as being the original software.
     }
   };
 
-  wrapContextVars = function wrapContextVars(code, top) {
-    return "(function(){\n  var ctx = Leisure.contextStack;\n  " + (top ? "var prevNewCtx = newCtx;" : '') + "\n\n  " + code + "\n})()";
+  wrapContextVars = function wrapContextVars(name, ast, code, top) {
+    return "(function(){\n  var ctx = Leisure.contextStack\n  " + (indent(code)) + "\n})()";
+  };
+
+  indent = function indent(str, amt) {
+    var i, idt;
+    amt = amt != null ? amt : 2;
+    idt = '\n';
+    for (i = 0; 0 <= amt ? i <= amt : i >= amt; 0 <= amt ? i++ : i--) {
+      idt += ' ';
+    }
+    return str.replace(/\n/g, idt);
   };
 
   wrapContext = function wrapContext(name, ast, code, top) {
-    return wrapContextVars(wrapContextBody(name, ast, code), top);
+    if (name != null) {
+      return wrapContextVars(name, ast, wrapContextBody(name, ast, code, top), top);
+    } else {
+      return code;
+    }
   };
 
   wrapLazyContext = function wrapLazyContext(name, ast, code, top) {
-    return wrapContextVars("return function(){" + (wrapContextBody(name, ast, code)) + "};", top);
+    if (name != null) {
+      return wrapContextVars(name, ast, "return function(){" + (indent(wrapContextBody(name, ast, code, top))) + "};", top);
+    } else {
+      return "(function(){return " + code + "})";
+    }
   };
 
-  wrapContextBody = function wrapContextBody(name, ast, code) {
-    return "try {\n  var newCtx = Leisure.contextStack = Leisure.cons(funcContext('" + (nameSub(name)) + "', " + ast.leisureNodeNumber + "), ctx);\n  return " + code + ";\n} catch (err) {\n  if (!err.leisureContext) {\n    err.leisureContext = Leisure.contextStack;\n    err.leisureLazyContext = prevNewCtx;\n  }\n  throw err;\n} finally {\n  Leisure.contextStack = ctx\n}";
+  wrapContextBody = function wrapContextBody(name, ast, code, top) {
+    return "" + (top ? '' : "var oldCtx = ctx;\n  ") + "\nvar ctx = Leisure.contextStack;\nLeisure.contextStack = cons(funcContext('" + name + "', " + ast.leisureNodeNumber + "), " + (top ? 'ctx' : 'oldCtx') + ")\ntry {\n  return " + (indent(code)) + ";\n} catch (err) {\n  if (!err.leisureContext) {\n    err.leisureContext = Leisure.contextStack;\n  }\n  throw err;\n} finally {\n  Leisure.contextStack = ctx\n}";
   };
 
   Code = (function() {
@@ -603,29 +630,29 @@ misrepresented as being the original software.
       }
     };
 
-    Code.prototype.unreffedValue = function unreffedValue(deref, name, ast) {
+    Code.prototype.unreffedValue = function unreffedValue(deref, name, ast, top) {
       if (deref) {
         return this;
       } else {
-        return this.lazy(name, ast);
+        return this.lazy(name, ast, top);
       }
     };
 
-    Code.prototype.memoize = function memoize(deref, name, ast) {
+    Code.prototype.memoize = function memoize(deref, name, ast, top) {
       var tmp;
       if (deref) {
         return this;
       } else {
-        tmp = this.copyWith("$m || ($m = (" + this.main + "))").lazy(name, ast);
+        tmp = this.copyWith("$m || ($m = (" + this.main + "))").lazy(name, ast, top);
         return tmp.copyWith("(function(){var $m; return " + tmp.main + "})()");
       }
     };
 
-    Code.prototype.lazy = function lazy(name, ast) {
+    Code.prototype.lazy = function lazy(name, ast, top) {
       if (!this.debug || !((name != null) && (ast.leisureNodeNumber != null))) {
         return this.copyWith("(function(){return " + this.main + "})");
       } else {
-        return this.copyWith(wrapLazyContext(name, ast, this.main, false));
+        return this.copyWith(wrapLazyContext(name, ast, this.main, top));
       }
     };
 
@@ -645,11 +672,11 @@ misrepresented as being the original software.
     var code, jsCode, res;
     ast.lits = [];
     res = [];
-    code = gen(ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name, namespace);
+    code = gen(ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name, namespace, true);
     if (code.err !== '') {
       ast.err = code.err;
     } else {
-      jsCode = "(" + code.main + ")";
+      jsCode = getAstType === 'apply' || !name ? "(" + code.main + ")" : wrapContext(name, ast, code.main, true);
       ast.src = name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + jsCode + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : jsCode;
     }
     ast.globals = code.global;
@@ -666,7 +693,7 @@ misrepresented as being the original software.
     }
   };
 
-  gen = function gen(ast, code, lits, vars, deref, name, namespace) {
+  gen = function gen(ast, code, lits, vars, deref, name, namespace, top) {
     var aplCode, arg, argCode, bodyCode, func, funcCode, src, v, val;
     switch (getAstType(ast)) {
       case 'ref':
@@ -684,7 +711,7 @@ misrepresented as being the original software.
           }) || (forward[nameSub(val)] != null)) {
             return code;
           } else if (typeof val === 'number') {
-            return code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref, name, ast);
+            return code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref, name, ast, top);
           } else {
             return code.addErr("attempt to use free variable: " + val);
           }
@@ -693,14 +720,14 @@ misrepresented as being the original software.
       case 'lit':
         val = getLitVal(ast);
         src = typeof val === 'function' || typeof val === 'object' ? (lits.push(val), "(function(){\nreturn __lits[" + (lits.length - 1) + "]\n})") : JSON.stringify(val);
-        return code.copyWith(src).unreffedValue(deref, name, ast);
+        return code.copyWith(src).unreffedValue(deref, name, ast, top);
       case 'lambda':
         v = getLambdaVar(ast);
-        bodyCode = gen(getLambdaBody(ast), code, lits, cons(v, vars), true, name, namespace);
+        bodyCode = gen(getLambdaBody(ast), code, lits, cons(v, vars), true, name, namespace, false);
         bodyCode = bodyCode.setVars(bodyCode.vars.removeAll(function(bv) {
           return bv === v;
         }));
-        return bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast);
+        return bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast, top);
       case 'apply':
         func = getApplyFunc(ast);
         if (getAstType(func === 'lit')) {
@@ -709,10 +736,10 @@ misrepresented as being the original software.
           return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
         } else {
           arg = getApplyArg(ast);
-          funcCode = gen(func, code, lits, vars, true, name, namespace);
-          argCode = gen(arg, funcCode, lits, vars, false, name, namespace);
-          aplCode = code.debug ? wrapContext(name, ast, "" + funcCode.main + "(" + argCode.main + ")", false) : "" + funcCode.main + "(" + argCode.main + ")";
-          return argCode.copyWith(aplCode).memoize(deref, name, ast);
+          funcCode = gen(func, code, lits, vars, true, name, namespace, false);
+          argCode = gen(arg, funcCode, lits, vars, false, name, namespace, false);
+          aplCode = code.debug ? wrapContext(name, ast, "" + funcCode.main + "(" + argCode.main + ")", top) : "" + funcCode.main + "(" + argCode.main + ")";
+          return argCode.copyWith(aplCode).memoize(deref, name, ast, top);
         }
         break;
       default:
@@ -874,15 +901,15 @@ misrepresented as being the original software.
           result = "Defined: " + ast.leisureName;
         } catch (err) {
           console.log(err.stack);
-          result = err.stack;
-          ast.err = err.stack;
+          result = err;
+          ast.err = err;
         }
         return [ast, result];
       } else {
         try {
           result = evalCompiledAst(ast);
         } catch (err) {
-          ast.err = err.stack;
+          ast.err = err;
         }
         return [ast, result];
       }
@@ -1260,5 +1287,9 @@ misrepresented as being the original software.
   root.funcContext = funcContext;
 
   root.contextStack = Nil;
+
+  root.funcContextSource = funcContextSource;
+
+  root.indent = indent;
 
 }).call(this);

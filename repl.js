@@ -72,18 +72,6 @@
     return face.prompt();
   };
 
-  /*
-  help = ()->
-    write("""
-  :v -- vars
-  :h -- help
-  :c file -- compile file
-  :q -- quit
-  !code -- eval JavaScript code
-  
-    """)
-  */
-
   compile = function compile(file, cont, nomacros, debug) {
     var contents, jsFile, oldfile, stream;
     cont = cont != null ? cont : Core.next;

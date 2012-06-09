@@ -26,10 +26,20 @@ setResetFunc = (func)-> resetFunc = func
 
 getType = Leisure.getType
 
+formatContexts = (stack)->
+  for [funcName, offset] in stack.toArray()
+    [src, start, end] = Leisure.funcContextSource funcName, offset
+    "#{funcName}:#{start},#{end}: #{Leisure.indent "#{src.substring(0, start)} << #{src.substring(start, end)} >> #{src.substring(end)}", 4}"
+
+errString = (err)->
+  if err instanceof Error
+    "#{if err.leisureContext? then "\n#{err}:\n  #{formatContexts(err.leisureContext).join('\n  ')}\n\n" else ''}#{err.stack}"
+  else err
+
 handlerFunc = (ast, result, a, c, r, src, env)->
   env = env ? Prim.defaultEnv
-  if ast? and ast.err?
-    env.write("ERROR: #{ast.err}\n")
+  if ast?.err?
+    env.write errString ast.err
     nextFunc()
   else
     if a
@@ -115,9 +125,7 @@ processLine = (line, env, namespace)->
         else [ast, result] = if r then Leisure.evalNext(line, namespace, env.debug) else [ast, null]
         return handlerFunc(ast, result, a, c, r, line, env)
   catch err
-    env.write(err.stack)
-    if err.leisureContext?
-      env.write "Leisure stack:\n#{err.leisureContext.reverse().toArray().join("\n")}"
+    env.write errString err
   nextFunc()
 
 escape = (str)-> str.replace(/\n/g, '\\n')
@@ -258,3 +266,4 @@ root.processResult = processResult
 root.setResetFunc = setResetFunc
 root.findDefs = findDefs
 root.prelude = prelude
+root.errString = errString

@@ -129,7 +129,11 @@
             };
           });
         default:
-          return (_ref = f != null ? f.leisureName : void 0) != null ? _ref : inspect(f);
+          if (f instanceof Error) {
+            return f.stack;
+          } else {
+            return (_ref = f.leisureName) != null ? _ref : inspect(f);
+          }
       }
     }
   };
