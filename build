@@ -10,4 +10,4 @@ node testLeisure
 #node_modules/coffee-script/bin/coffee -c coaster.cs
 #node runRepl -c -r coaster coast.lsr
 node_modules/coffee-script/bin/coffee -c blocky.cs
-node runRepl $DEBUG -c -r blocky block.lsr
+node runRepl $DEBUG -c -r blocky block

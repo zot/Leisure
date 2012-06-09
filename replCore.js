@@ -171,6 +171,9 @@
       }
     } catch (err) {
       env.write(err.stack);
+      if (err.leisureContext != null) {
+        env.write("Leisure stack:\n" + (err.leisureContext.reverse().toArray().join("\n")));
+      }
     }
     return nextFunc();
   };
@@ -181,7 +184,7 @@
 
   prelude = "setType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\nNil = Leisure.Nil;\ncons = Leisure.cons;";
 
-  localPrelude = prelude.split('\n').join("\nvar ");
+  localPrelude = prelude.replace(/\n/g, "\nvar ");
 
   generateCode = function generateCode(file, contents, loud, handle, nomacros, check, debug) {
     var auto, errs, globals, _ref;

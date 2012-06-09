@@ -18,7 +18,7 @@
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  debug = false;
+  debug = true;
 
   ENTER = 13;
 
@@ -61,6 +61,7 @@
     Prim.defaultEnv.finishedEvent = function finishedEvent(evt, channel) {
       return update(channel != null ? channel : 'app', Prim.defaultEnv);
     };
+    Prim.defaultEnv.debug = debug;
     if (!(el.bound != null)) {
       el.bound = true;
       el.addEventListener('DOMCharacterDataModified', (function(evt) {

@@ -147,17 +147,6 @@ funcContext = (funcName, offset)->
   if !cur[offset] then cur[offset] = [funcName, offset]
   cur[offset]
 
-runInContext = (func, nodeOffset, code)->
-  old = contextStack
-  ctx = funcContext func, offset
-  contextStack = cons ctx, contextStack
-  try
-    code()
-  catch err
-    if err? and !err.leisureContext then err.leisureContext = contextStack
-  finally
-    contextStack = old
-
 # use AST, instead of arity?
 define = (name, func, arity, src) ->
   func.src = src
@@ -265,6 +254,34 @@ findFuncApply = (apply, count)->
   else if (getAstType apply) == 'ref' then dlnew(cons apply, (cons count, Nil))
   else dlempty
 
+wrapContextVars = (code, top)->"""
+(function(){
+  var ctx = Leisure.contextStack;
+  #{if top then "var prevNewCtx = newCtx;" else ''}
+
+  #{code}
+})()
+  """
+
+wrapContext = (name, ast, code, top)->wrapContextVars wrapContextBody(name, ast, code), top
+
+wrapLazyContext = (name, ast, code, top)->wrapContextVars "return function(){#{wrapContextBody name, ast, code}};", top
+
+wrapContextBody = (name, ast, code)->"""
+  try {
+    var newCtx = Leisure.contextStack = Leisure.cons(funcContext('#{nameSub(name)}', #{ast.leisureNodeNumber}), ctx);
+    return #{code};
+  } catch (err) {
+    if (!err.leisureContext) {
+      err.leisureContext = Leisure.contextStack;
+      err.leisureLazyContext = prevNewCtx;
+    }
+    throw err;
+  } finally {
+    Leisure.contextStack = ctx
+  }
+  """
+
 class Code
   constructor: (@main, @vars, @err, @global, @debug)->
     @main = @main ? ''
@@ -278,32 +295,15 @@ class Code
   setGlobal: (v)-> @copyWith(null, null, null, v)
   setDebug: (d)-> @copyWith(null, null, null, null, d)
   reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
-  unreffedValue: (deref, name, ast)-> if deref then @ else @wrapFunction(name, ast)
+  unreffedValue: (deref, name, ast)-> if deref then @ else @lazy(name, ast)
   memoize: (deref, name, ast)->
-    if deref then @unreffedValue(deref, name, ast)
+    if deref then @
     else
-      tmp = @copyWith("$m || ($m = (#{@main}))").wrapFunction(name, ast)
+      tmp = @copyWith("$m || ($m = (#{@main}))").lazy(name, ast)
       tmp.copyWith "(function(){var $m; return #{tmp.main}})()"
-  wrapFunction: (name, ast)->
+  lazy: (name, ast)->
     if !@debug or !(name? and ast.leisureNodeNumber?) then @copyWith("(function(){return #{@main}})")
-    else
-      @copyWith """
-(function(){
-  var ctx = Leisure.contextStack;
-
-  return function(){
-    try {
-      var newCtx = Leisure.contextStack = Leisure.cons(funcContext('#{nameSub(name)}', #{ast.leisureNodeNumber}), ctx);
-      return #{@main};
-    } catch (err) {
-      if (!err.leisureContext) err.leisureContext = Leisure.contextStack;
-      throw err;
-    } finally {
-      Leisure.contextStack = ctx
-    }
-  };
-})()
-      """
+    else @copyWith (wrapLazyContext name, ast, @main, false)
   grabContext: (ast)->
     if getAstType ast == 'lambda' then @copyWith """
 
@@ -363,25 +363,8 @@ gen = (ast, code, lits, vars, deref, name, namespace)->
         arg = getApplyArg ast
         funcCode = gen func, code, lits, vars, true, name, namespace
         argCode = gen arg, funcCode, lits, vars, false, name, namespace
-        aplCode = if code.debug then """
-(function(){
-  var ctx = Leisure.contextStack;
-  var prevNewCtx = newCtx;
-
-  try {
-    var newCtx = Leisure.contextStack = Leisure.cons(funcContext('#{nameSub(name)}', #{ast.leisureNodeNumber}), ctx);
-    return #{funcCode.main}(#{argCode.main});
-  } catch (err) {
-    if (!err.leisureContext) {
-      err.leisureContext = Leisure.contextStack;
-      err.leisureLazyContext = prevNewCtx;
-    }
-    throw err;
-  } finally {
-    Leisure.contextStack = ctx
-  }
-})()
-        """ else "#{funcCode.main}(#{argCode.main})"
+        aplCode = if code.debug then wrapContext name, ast, "#{funcCode.main}(#{argCode.main})", false
+        else "#{funcCode.main}(#{argCode.main})"
         argCode.copyWith(aplCode).memoize(deref, name, ast)
     else code.addErr "Unknown object type in gen: #{ast}"
 
@@ -693,7 +676,6 @@ root.bracket = bracket
 root.findFuncs = findFuncs
 root.foldLeft = foldLeft
 root.defineForward = defineForward
-root.runInContext = runInContext
 root.funcAstAtOffset = funcAstAtOffset
 root.funcAst = funcAst
 root.funcContext = funcContext

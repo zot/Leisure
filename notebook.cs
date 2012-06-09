@@ -11,7 +11,7 @@ if window? and (!global? or global == window)
   Repl = window.Repl
 else root = exports ? this
 
-debug = false
+debug = true
 
 ENTER = 13
 arrows = [37..40]
@@ -45,6 +45,7 @@ bindNotebook = (el)->
   Prim.defaultEnv.write = (msg)->console.log msg
   Prim.defaultEnv.owner = document.body
   Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', Prim.defaultEnv)
+  Prim.defaultEnv.debug = debug
   if !el.bound?
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true

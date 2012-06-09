@@ -116,6 +116,8 @@ processLine = (line, env, namespace)->
         return handlerFunc(ast, result, a, c, r, line, env)
   catch err
     env.write(err.stack)
+    if err.leisureContext?
+      env.write "Leisure stack:\n#{err.leisureContext.reverse().toArray().join("\n")}"
   nextFunc()
 
 escape = (str)-> str.replace(/\n/g, '\\n')
@@ -133,7 +135,7 @@ Nil = Leisure.Nil;
 cons = Leisure.cons;
 """
 
-localPrelude = prelude.split('\n').join("\nvar ")
+localPrelude = prelude.replace(/\n/g, "\nvar ")
 
 generateCode = (file, contents, loud, handle, nomacros, check, debug)->
   [globals, errs, auto] = findDefs contents, nomacros, loud

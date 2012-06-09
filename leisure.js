@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, contexts, continueApply, createDefinition, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, numberAst, order, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, runInContext, scanName, scanTok, second, setDataType, setEvalFunc, setNumber, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap,
+  var CNil, Code, Cons, Nil, append, apply, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, contexts, continueApply, createDefinition, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, numberAst, order, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setNumber, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -304,22 +304,6 @@ misrepresented as being the original software.
     return cur[offset];
   };
 
-  runInContext = function runInContext(func, nodeOffset, code) {
-    var contextStack, old;
-    old = contextStack;
-    ctx = funcContext(func, offset);
-    contextStack = cons(ctx, contextStack);
-    try {
-      return code();
-    } catch (err) {
-      if ((err != null) && !err.leisureContext) {
-        return err.leisureContext = contextStack;
-      }
-    } finally {
-      contextStack = old;
-    }
-  };
-
   define = function define(name, func, arity, src) {
     var f, nm;
     func.src = src;
@@ -556,6 +540,22 @@ misrepresented as being the original software.
     }
   };
 
+  wrapContextVars = function wrapContextVars(code, top) {
+    return "(function(){\n  var ctx = Leisure.contextStack;\n  " + (top ? "var prevNewCtx = newCtx;" : '') + "\n\n  " + code + "\n})()";
+  };
+
+  wrapContext = function wrapContext(name, ast, code, top) {
+    return wrapContextVars(wrapContextBody(name, ast, code), top);
+  };
+
+  wrapLazyContext = function wrapLazyContext(name, ast, code, top) {
+    return wrapContextVars("return function(){" + (wrapContextBody(name, ast, code)) + "};", top);
+  };
+
+  wrapContextBody = function wrapContextBody(name, ast, code) {
+    return "try {\n  var newCtx = Leisure.contextStack = Leisure.cons(funcContext('" + (nameSub(name)) + "', " + ast.leisureNodeNumber + "), ctx);\n  return " + code + ";\n} catch (err) {\n  if (!err.leisureContext) {\n    err.leisureContext = Leisure.contextStack;\n    err.leisureLazyContext = prevNewCtx;\n  }\n  throw err;\n} finally {\n  Leisure.contextStack = ctx\n}";
+  };
+
   Code = (function() {
 
     function Code(main, vars, err, global, debug) {
@@ -607,25 +607,25 @@ misrepresented as being the original software.
       if (deref) {
         return this;
       } else {
-        return this.wrapFunction(name, ast);
+        return this.lazy(name, ast);
       }
     };
 
     Code.prototype.memoize = function memoize(deref, name, ast) {
       var tmp;
       if (deref) {
-        return this.unreffedValue(deref, name, ast);
+        return this;
       } else {
-        tmp = this.copyWith("$m || ($m = (" + this.main + "))").wrapFunction(name, ast);
+        tmp = this.copyWith("$m || ($m = (" + this.main + "))").lazy(name, ast);
         return tmp.copyWith("(function(){var $m; return " + tmp.main + "})()");
       }
     };
 
-    Code.prototype.wrapFunction = function wrapFunction(name, ast) {
+    Code.prototype.lazy = function lazy(name, ast) {
       if (!this.debug || !((name != null) && (ast.leisureNodeNumber != null))) {
         return this.copyWith("(function(){return " + this.main + "})");
       } else {
-        return this.copyWith("(function(){\n  var ctx = Leisure.contextStack;\n\n  return function(){\n    try {\n      var newCtx = Leisure.contextStack = Leisure.cons(funcContext('" + (nameSub(name)) + "', " + ast.leisureNodeNumber + "), ctx);\n      return " + this.main + ";\n    } catch (err) {\n      if (!err.leisureContext) err.leisureContext = Leisure.contextStack;\n      throw err;\n    } finally {\n      Leisure.contextStack = ctx\n    }\n  };\n})()");
+        return this.copyWith(wrapLazyContext(name, ast, this.main, false));
       }
     };
 
@@ -711,7 +711,7 @@ misrepresented as being the original software.
           arg = getApplyArg(ast);
           funcCode = gen(func, code, lits, vars, true, name, namespace);
           argCode = gen(arg, funcCode, lits, vars, false, name, namespace);
-          aplCode = code.debug ? "(function(){\n  var ctx = Leisure.contextStack;\n  var prevNewCtx = newCtx;\n\n  try {\n    var newCtx = Leisure.contextStack = Leisure.cons(funcContext('" + (nameSub(name)) + "', " + ast.leisureNodeNumber + "), ctx);\n    return " + funcCode.main + "(" + argCode.main + ");\n  } catch (err) {\n    if (!err.leisureContext) {\n      err.leisureContext = Leisure.contextStack;\n      err.leisureLazyContext = prevNewCtx;\n    }\n    throw err;\n  } finally {\n    Leisure.contextStack = ctx\n  }\n})()" : "" + funcCode.main + "(" + argCode.main + ")";
+          aplCode = code.debug ? wrapContext(name, ast, "" + funcCode.main + "(" + argCode.main + ")", false) : "" + funcCode.main + "(" + argCode.main + ")";
           return argCode.copyWith(aplCode).memoize(deref, name, ast);
         }
         break;
@@ -1252,8 +1252,6 @@ misrepresented as being the original software.
   root.foldLeft = foldLeft;
 
   root.defineForward = defineForward;
-
-  root.runInContext = runInContext;
 
   root.funcAstAtOffset = funcAstAtOffset;
 
