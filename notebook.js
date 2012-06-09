@@ -924,7 +924,7 @@
       processError: function processError(ast) {
         var btn;
         btn = box.querySelector('[leisureId="makeTestCase"]');
-        remove(btn);
+        if (btn) remove(btn);
         return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ast.err.stack);
       }
     };
@@ -947,7 +947,7 @@
   linkSource = function linkSource(funcName, offset) {
     var end, src, start, _ref;
     _ref = Leisure.funcContextSource(funcName, offset), src = _ref[0], start = _ref[1], end = _ref[2];
-    return "<a href='javascript:void(Notebook.showSource(\"" + funcName + "\", " + offset + "))'>" + funcName + ":" + start + "," + end + "</a><br>";
+    return "<a href='javascript:void(Notebook.showSource(\"" + funcName + "\", " + offset + "))'>" + funcName + ":" + start + "," + end + "</a>";
   };
 
   showSource = function showSource(funcName, offset) {

@@ -636,14 +636,14 @@ envFor = (box)->
   presentValue: presentValue
   processError: (ast)->
     btn = box.querySelector '[leisureId="makeTestCase"]'
-    remove btn
+    if btn then remove btn
     @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack}"
 
 leisureContextString = (err)-> (linkSource func, offset for [func, offset] in err.leisureContext.toArray()).join('\n')
 
 linkSource = (funcName, offset)->
   [src, start, end] = Leisure.funcContextSource funcName, offset
-  "<a href='javascript:void(Notebook.showSource(\"#{funcName}\", #{offset}))'>#{funcName}:#{start},#{end}</a><br>"
+  "<a href='javascript:void(Notebook.showSource(\"#{funcName}\", #{offset}))'>#{funcName}:#{start},#{end}</a>"
 
 showSource = (funcName, offset)->
   [src, start, end] = Leisure.funcContextSource funcName, offset
