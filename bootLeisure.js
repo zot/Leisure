@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Boot, Leisure, addHashResult, backupAutosave, bootFs, bootFsX, bootFuncs, bootLeisure, booted, checkBackup, deleteAutosave, dirEntry, docs, evalDoc, fileSystem, fsSnapper, handleError, hashForDocs, initNotebookProperties, loadThen, nextNameNumber, prepTools, properties, propsEntry, readFile, restoreAutosave, showDialog, withDirHash, writeFile,
+  var Boot, Leisure, addHashResult, backupAutosave, bootFs, bootFsX, bootFuncs, bootLeisure, booted, callPrepCode, checkBackup, deleteAutosave, dirEntry, docs, evalDoc, fileSystem, finishBoot, fsSnapper, handleError, hashForDocs, initNotebookProperties, loadThen, nextNameNumber, prepTools, properties, propsEntry, readFile, restoreAutosave, showDialog, withDirHash, writeFile,
     __slice = Array.prototype.slice;
 
   Leisure = {};
@@ -53,22 +53,43 @@
       window.Leisure.deleteAutosave = deleteAutosave;
       Repl.init();
       return bootFs(function() {
-        var node, _j, _len2, _ref2;
-        _ref2 = document.querySelectorAll("[leisurecode]");
-        for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
-          node = _ref2[_j];
-          node.setAttribute('contentEditable', 'true');
-          Notebook.bindNotebook(node);
-          Notebook.changeTheme(node, 'thin');
-          Notebook.evalDoc(node);
+        Notebook.bootNotebook();
+        if (window.leisurePrep != null) {
+          return callPrepCode(window.leisurePrep, 0, finishBoot);
+        } else {
+          return finishBoot();
         }
-        checkBackup();
-        while (bootFuncs.length) {
-          bootFuncs.shift()();
-        }
-        return booted = true;
       });
     });
+  };
+
+  callPrepCode = function callPrepCode(preps, index, finishBoot) {
+    if (index < preps.length) {
+      ReplCore.setNext(function() {
+        return callPrepCode(preps, index + 1, finishBoot);
+      });
+      return ReplCore.processLine(preps[index], Prim.defaultEnv, 'Leisure.');
+    } else {
+      ReplCore.setNext(function() {});
+      return finishBoot();
+    }
+  };
+
+  finishBoot = function finishBoot() {
+    var node, _i, _len, _ref;
+    _ref = document.querySelectorAll("[leisurecode]");
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      node.setAttribute('contentEditable', 'true');
+      Notebook.bindNotebook(node);
+      Notebook.changeTheme(node, 'thin');
+      Notebook.evalDoc(node);
+    }
+    checkBackup();
+    while (bootFuncs.length) {
+      bootFuncs.shift()();
+    }
+    return booted = true;
   };
 
   prepTools = function prepTools() {
