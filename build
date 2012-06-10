@@ -1,5 +1,12 @@
 #!/bin/sh
-DEBUG=-g
+#DEBUG=-g
+
+while [ $# != 0 ]; do
+  if [ "$1" = -g ]; then DEBUG=-g
+  elif [ "$1" = -a ]; then ALL=yes
+  fi
+  shift
+done
 
 node_modules/coffee-script/bin/coffee -c leisure.cs prim.cs game.cs
 node_modules/coffee-script/bin/coffee -c repl.cs runRepl.cs testLeisure.cs replCore.cs browserRepl.cs pretty.cs testing.cs bootLeisure.cs notebook.cs
@@ -12,8 +19,8 @@ node testLeisure
 node_modules/coffee-script/bin/coffee -c blocky.cs
 node runRepl $DEBUG -c -r blocky block
 
-if [ "$1" = -a ]; then
-    node runRepl -c maps
-    node runRepl -c -r maps svg
-    node runRepl -c -r maps -r svg parseAst
+if [ -n "$ALL" ]; then
+    node runRepl $DEBUG -c maps
+    node runRepl $DEBUG -c -r maps svg
+    node runRepl $DEBUG -c -r maps -r svg parseAst
 fi

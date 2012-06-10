@@ -580,7 +580,7 @@ misrepresented as being the original software.
   };
 
   wrapContextBody = function wrapContextBody(name, ast, code, top) {
-    return "" + (top ? '' : "var oldCtx = ctx;\n  ") + "\nvar ctx = Leisure.contextStack;\nLeisure.contextStack = cons(funcContext('" + name + "', " + ast.leisureNodeNumber + "), " + (top ? 'ctx' : 'oldCtx') + ")\ntry {\n  return " + (indent(code)) + ";\n} catch (err) {\n  if (!err.leisureContext) {\n    err.leisureContext = Leisure.contextStack;\n  }\n  throw err;\n} finally {\n  Leisure.contextStack = ctx\n}";
+    return "" + (top ? '' : "var oldCtx = ctx;\n  ") + "\nvar ctx = Leisure.contextStack;\nLeisure.contextStack = Leisure.cons(Leisure.funcContext('" + name + "', " + ast.leisureNodeNumber + "), " + (top ? 'ctx' : 'oldCtx') + ")\ntry {\n  return " + (indent(code)) + ";\n} catch (err) {\n  if (!err.leisureContext) {\n    err.leisureContext = Leisure.contextStack;\n  }\n  throw err;\n} finally {\n  Leisure.contextStack = ctx\n}";
   };
 
   Code = (function() {
@@ -676,7 +676,7 @@ misrepresented as being the original software.
     if (code.err !== '') {
       ast.err = code.err;
     } else {
-      jsCode = getAstType === 'apply' || !name ? "(" + code.main + ")" : wrapContext(name, ast, code.main, true);
+      jsCode = !debug || getAstType === 'apply' || !name ? "(" + code.main + ")" : wrapContext(name, ast, code.main, true);
       ast.src = name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + jsCode + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : jsCode;
     }
     ast.globals = code.global;

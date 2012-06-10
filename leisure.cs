@@ -286,7 +286,7 @@ wrapLazyContext = (name, ast, code, top)->
 wrapContextBody = (name, ast, code, top)->"""
   #{if top then '' else "var oldCtx = ctx;\n  "}
   var ctx = Leisure.contextStack;
-  Leisure.contextStack = cons(funcContext('#{name}', #{ast.leisureNodeNumber}), #{if top then 'ctx' else 'oldCtx'})
+  Leisure.contextStack = Leisure.cons(Leisure.funcContext('#{name}', #{ast.leisureNodeNumber}), #{if top then 'ctx' else 'oldCtx'})
   try {
     return #{indent code};
   } catch (err) {
@@ -333,7 +333,7 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
   code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace, true)
   if code.err != '' then ast.err = code.err
   else
-    jsCode = if getAstType == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
+    jsCode = if !debug or getAstType == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
     ast.src = if name? then """
 #{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 

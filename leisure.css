@@ -52,6 +52,18 @@ body {
   white-space: normal;
 }
 
+.embedded .leisure_bar {
+  min-height: 28px;
+  background-image: url(leisure_bar.gif);
+  background-repeat: no-repeat;
+  color: black;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  white-space: normal;
+}
+
 .leisure_space {
   height: 32px;
 }
@@ -95,11 +107,11 @@ body {
 }
 
 .leisure_load {
-  padding-left: 200px
+  padding-left: 150px
 }
 
 .leisure_theme {
-  padding-left: 100px
+  padding-left: 10px
 }
 
 .codeMain {
@@ -135,16 +147,16 @@ body {
   display: none;
 }
 
-.sourceToggle {
-  background: url(hideSource.png) center;
-  width: 34px;
+.editToggle {
+  background: url(noedit.png) center no-repeat;
+  width: 24px;
   height: 26px;
   display: block;
 }
 
-.hidingSource .sourceToggle {
-  background: url(viewSource.png) center;
-  width: 34px;
+.hidingSource .editToggle {
+  background: url(edit.png) center no-repeat;
+  width: 24px;
   height: 26px;
   display: block;
 }

@@ -41,15 +41,28 @@ bootLeisure = ->
     #prepTools()
     Repl.init()
     bootFs ->
-      for node in document.querySelectorAll "[leisurecode]"
-        node.setAttribute 'contentEditable', 'true'
-        Notebook.bindNotebook node
-        Notebook.changeTheme node, 'thin'
-        Notebook.evalDoc node
-      checkBackup()
-      while bootFuncs.length
-        bootFuncs.shift()()
-      booted = true
+      Notebook.bootNotebook()
+      if window.leisurePrep? then callPrepCode window.leisurePrep, 0, finishBoot
+      else finishBoot()
+
+callPrepCode = (preps, index, finishBoot)->
+  if index < preps.length
+    ReplCore.setNext -> callPrepCode preps, index + 1, finishBoot
+    ReplCore.processLine preps[index], Prim.defaultEnv, 'Leisure.'
+  else
+    ReplCore.setNext ->
+    finishBoot()
+
+finishBoot = ->
+  for node in document.querySelectorAll "[leisurecode]"
+    node.setAttribute 'contentEditable', 'true'
+    Notebook.bindNotebook node
+    Notebook.changeTheme node, 'thin'
+    Notebook.evalDoc node
+  checkBackup()
+  while bootFuncs.length
+    bootFuncs.shift()()
+  booted = true
 
 prepTools = ->
   div = document.createElement 'div'

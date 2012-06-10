@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControls, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleSource, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -48,10 +48,13 @@
     }
   };
 
-  bindNotebook = function bindNotebook(el) {
+  bootNotebook = function bootNotebook(el) {
     if (!((document.getElementById('channelList')) != null)) {
-      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='compile'>compile</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
+      return document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='compile'>compile</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
     }
+  };
+
+  bindNotebook = function bindNotebook(el) {
     basePresentValue = Prim.defaultEnv.presentValue;
     Prim.defaultEnv.presentValue = presentValue;
     Prim.defaultEnv.write = function write(msg) {
@@ -131,7 +134,7 @@
     }
   };
 
-  printableControls = (function() {
+  printableControlCharacters = (function() {
     var _i, _len, _ref, _results;
     _ref = "\r\i\n\b";
     _results = [];
@@ -143,7 +146,7 @@
   })();
 
   printable = function printable(code) {
-    return (code > 0xf && code < 37) || code > 40 || __indexOf.call(printableControls, code) >= 0;
+    return (code > 0xf && code < 37) || code > 40 || __indexOf.call(printableControlCharacters, code) >= 0;
   };
 
   nonprintable = null;
@@ -326,7 +329,7 @@
       box.parentNode.insertBefore(node, box.nextSibling);
       node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name;
       output = makeOutputBox(node);
-      toggleSource(output);
+      toggleEdit(output);
       return evalOutput(output, true);
     }
   };
@@ -342,18 +345,19 @@
   };
 
   initNotebook = function initNotebook(el) {
-    var pgm, _ref;
+    var pgm;
     ReplCore.setNext(function() {
       return 3;
     });
     el.replacing = true;
     removeOldDefs(el);
     pgm = markupDefs(el, findDefs(el));
-    if (!((el != null ? (_ref = el.lastChild) != null ? _ref.nodeType : void 0 : void 0) === 3 && el.lastChild.data[el.lastChild.data.length - 1] === '\n')) {
-      el.appendChild(textNode('\n'));
-      el.appendChild(textNode('\n'));
-      el.appendChild(textNode('\n'));
-    }
+    /*
+      if !(el?.lastChild?.nodeType == 3 and el.lastChild.data[el.lastChild.data.length - 1] == '\n')
+        el.appendChild textNode('\n')
+        el.appendChild textNode('\n')
+        el.appendChild textNode('\n')
+    */
     el.normalize();
     el.replacing = false;
     insertControls(el);
@@ -746,12 +750,12 @@
 
   makeOutputControls = function makeOutputControls(exBox) {
     if (exBox.firstChild.firstChild === exBox.firstChild.lastChild) {
-      exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleSource(this)' class='sourceToggle' style='float:right'></button>"));
+      exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleEdit(this)' class='editToggle' style='float:right'></button>"));
       return exBox.classList.add('fatControls');
     }
   };
 
-  toggleSource = function toggleSource(toggleButton) {
+  toggleEdit = function toggleEdit(toggleButton) {
     var output;
     output = getBox(toggleButton);
     if (output.classList.contains('hidingSource')) {
@@ -790,6 +794,7 @@
   cleanOutput = function cleanOutput(exBox, preserveControls) {
     var fc, _results;
     exBox = getBox(exBox);
+    exBox.classList.remove('fatControls');
     if (!preserveControls) {
       fc = exBox.firstChild;
       while (fc.firstChild !== fc.lastChild) {
@@ -947,7 +952,7 @@
   linkSource = function linkSource(funcName, offset) {
     var end, src, start, _ref;
     _ref = Leisure.funcContextSource(funcName, offset), src = _ref[0], start = _ref[1], end = _ref[2];
-    return "<a href='javascript:void(Notebook.showSource(\"" + funcName + "\", " + offset + "))'>" + funcName + ":" + start + "," + end + "</a>";
+    return "  <a href='javascript:void(Notebook.showSource(\"" + funcName + "\", " + offset + "))'>" + funcName + ":" + start + "," + end + "</a>";
   };
 
   showSource = function showSource(funcName, offset) {
@@ -1292,7 +1297,7 @@
         };
         return ReplCore.processLine(auto, e, "Leisure.");
       } else {
-        return evalDocCode(pgm);
+        return evalDocCode(el, pgm);
       }
     } catch (err) {
       console.log(err);
@@ -1398,7 +1403,7 @@
     if ((el = document.getElementById(id))) {
       return el;
     } else {
-      svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'>bubba</text></svg>");
+      svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000; position: absolute'><text id='HIDDEN_TEXT'>bubba</text></svg>");
       document.body.appendChild(svg);
       return document.getElementById(id);
     }
@@ -1528,8 +1533,10 @@
 
   root.showAst = showAst;
 
-  root.toggleSource = toggleSource;
+  root.toggleEdit = toggleEdit;
 
   root.showSource = showSource;
+
+  root.bootNotebook = bootNotebook;
 
 }).call(this);

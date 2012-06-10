@@ -31,7 +31,7 @@ presentValue = (v)->
     _svg$_present()(laz(content))(laz(id))
   else basePresentValue(v)
 
-bindNotebook = (el)->
+bootNotebook = (el)->
   if !(document.getElementById 'channelList')?
     document.body.appendChild createNode """
 <datalist id='channelList'>
@@ -40,6 +40,8 @@ bindNotebook = (el)->
    <option value='compile'>compile</option>
    <option value='editorFocus'>editorFocus</option>
 </datalist>"""
+
+bindNotebook = (el)->
   basePresentValue = Prim.defaultEnv.presentValue
   Prim.defaultEnv.presentValue = presentValue
   Prim.defaultEnv.write = (msg)->console.log msg
@@ -84,8 +86,8 @@ bindNotebook = (el)->
     el.addEventListener 'blur', (-> findCurrentCodeHolder()), true
     el.autorunState = false
 
-printableControls = (c.charCodeAt(0) for c in "\r\i\n\b")
-printable = (code)-> (code > 0xf and code < 37) or code > 40 or code in printableControls
+printableControlCharacters = (c.charCodeAt(0) for c in "\r\i\n\b")
+printable = (code)-> (code > 0xf and code < 37) or code > 40 or code in printableControlCharacters
 
 nonprintable = null
 (->
@@ -211,7 +213,7 @@ showAst = (box)->
     box.parentNode.insertBefore node, box.nextSibling
     node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name}"
     output = makeOutputBox node
-    toggleSource output
+    toggleEdit output
     evalOutput output, true
 
 isDef = (box)->
@@ -226,10 +228,12 @@ initNotebook = (el)->
   el.replacing = true
   removeOldDefs el
   pgm = markupDefs el, findDefs el
+  ###
   if !(el?.lastChild?.nodeType == 3 and el.lastChild.data[el.lastChild.data.length - 1] == '\n')
     el.appendChild textNode('\n')
     el.appendChild textNode('\n')
     el.appendChild textNode('\n')
+  ###
   el.normalize()
   el.replacing = false
   insertControls(el)
@@ -515,10 +519,10 @@ setUpdate = (el, channel, preserveSource)->
 
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
-    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleSource(this)' class='sourceToggle' style='float:right'></button>""")
+    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleEdit(this)' class='editToggle' style='float:right'></button>""")
     exBox.classList.add 'fatControls'
 
-toggleSource = (toggleButton)->
+toggleEdit = (toggleButton)->
   output = getBox toggleButton
   if output.classList.contains 'hidingSource'
     output.classList.remove 'hidingSource'
@@ -543,6 +547,7 @@ clearOutputBox = (exBox)->
 
 cleanOutput = (exBox, preserveControls)->
   exBox = getBox exBox
+  exBox.classList.remove 'fatControls'
   if !preserveControls
     fc = exBox.firstChild
     while fc.firstChild != fc.lastChild
@@ -643,7 +648,7 @@ leisureContextString = (err)-> (linkSource func, offset for [func, offset] in er
 
 linkSource = (funcName, offset)->
   [src, start, end] = Leisure.funcContextSource funcName, offset
-  "<a href='javascript:void(Notebook.showSource(\"#{funcName}\", #{offset}))'>#{funcName}:#{start},#{end}</a>"
+  "  <a href='javascript:void(Notebook.showSource(\"#{funcName}\", #{offset}))'>#{funcName}:#{start},#{end}</a>"
 
 showSource = (funcName, offset)->
   [src, start, end] = Leisure.funcContextSource funcName, offset
@@ -882,7 +887,7 @@ evalDoc = (el)->
       e.write = ->
       e.processError = (ast)->alert(ReplCore.errString ast.err)
       ReplCore.processLine(auto, e, "Leisure.")
-    else evalDocCode pgm
+    else evalDocCode el, pgm
   catch err
     console.log err
     alert(err.stack)
@@ -937,7 +942,7 @@ laz = Leisure.laz
 getSvgElement = (id)->
   if (el = document.getElementById id) then el
   else
-    svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><text id='HIDDEN_TEXT'>bubba</text></svg>"
+    svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000; position: absolute'><text id='HIDDEN_TEXT'>bubba</text></svg>"
     document.body.appendChild(svg)
     document.getElementById id
 
@@ -1018,8 +1023,9 @@ root.setSnapper = setSnapper
 root.update = update
 root.clearUpdates = clearUpdates
 root.showAst = showAst
-root.toggleSource = toggleSource
+root.toggleEdit = toggleEdit
 root.showSource = showSource
+root.bootNotebook = bootNotebook
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])
