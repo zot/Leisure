@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, contexts, continueApply, createDefinition, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indent, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, numberAst, order, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setNumber, setType, snip, specials, substituteMacros, tag, tokPos, tokenPat, tokens, warnFreeVariable, within, wordPat, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext,
+  var CNil, Code, Cons, Nil, append, apply, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, contexts, continueApply, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indent, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, numberAst, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setNumber, setType, snip, substituteMacros, tag, tokPos, tokenPat, tokens, within, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -41,19 +41,11 @@ misrepresented as being the original software.
 
   forward = {};
 
-  wordPat = /^[^\s]*$/;
-
-  baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/;
+  baseTokenPat = /[().\\]| +|[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|#[^\n]*(\n|$)/;
 
   tokenPat = new RegExp("\\n *|" + baseTokenPat.source);
 
-  specials = '[]().*+?|';
-
   linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
-
-  order = [];
-
-  warnFreeVariable = [];
 
   charCodes = {
     "'": '$a',
@@ -792,16 +784,7 @@ misrepresented as being the original software.
         }
         return _results;
       })();
-      types.push('[().\\\\]| +');
       return tokenPat = new RegExp("\\n *|" + (types.join('|')) + "|" + baseTokenPat.source);
-    }
-  };
-
-  createDefinition = function createDefinition(name, ast, index) {
-    if (index >= name.length) {
-      return ast;
-    } else {
-      return lambda(laz(name[index]))(laz(createDefinition(name, ast, index + 1)));
     }
   };
 
@@ -1070,7 +1053,7 @@ misrepresented as being the original software.
     }
   };
 
-  nextTok = function nextTok(str, indent) {
+  nextTok = function nextTok(str) {
     var m, rest;
     m = str.match(tokenPat);
     if (!m) {
@@ -1080,7 +1063,7 @@ misrepresented as being the original software.
     } else {
       rest = str.substring(m.index + m[0].length);
       if (m[0][0] === '#' || m[0][0] === ' ' || (m[0][0] === '\n' && rest[0] === '\n')) {
-        return nextTok(rest, indent);
+        return nextTok(rest);
       } else {
         return [m[0], rest];
       }
@@ -1118,7 +1101,7 @@ misrepresented as being the original software.
     if (!str) {
       return [null, null, str];
     } else {
-      _ref = nextTok(str, indent), tok = _ref[0], rest = _ref[1];
+      _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
       if (!tok || tok[0] === '\n') {
         return [null, "expecting expression " + (snip(str)) + "\n" + (new Error().stack), rest];
       } else if (groupCloses[tok]) {
@@ -1133,7 +1116,7 @@ misrepresented as being the original software.
 
   continueApply = function continueApply(func, str, vars, indent, totalLen) {
     var parsedArg, rest, tok, _ref;
-    _ref = nextTok(str, indent), tok = _ref[0], rest = _ref[1];
+    _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
     if (!tok || (tok[0] === '\n' && tok.length <= indent.length) || groupCloses[tok]) {
       return [func, null, str];
     } else {
@@ -1154,7 +1137,7 @@ misrepresented as being the original software.
       });
       return ifParsed(apl, function(ast, rest3) {
         var rest4, tok4, _ref;
-        _ref = nextTok(rest3, indent), tok4 = _ref[0], rest4 = _ref[1];
+        _ref = nextTok(rest3), tok4 = _ref[0], rest4 = _ref[1];
         if (tok4 !== groupOpens[tok]) {
           return [ast, "Expected close token: " + groupOpens[tok] + ", but got " + tok4, rest4];
         } else if (tok === '(') {
@@ -1178,17 +1161,17 @@ misrepresented as being the original software.
     return [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest];
   };
 
-  nextTokIgnoreNL = function nextTokIgnoreNL(str, indent) {
+  nextTokIgnoreNL = function nextTokIgnoreNL(str) {
     var r, rest, tok, _ref;
-    _ref = r = nextTok(str, indent), tok = _ref[0], rest = _ref[1];
-    if (tok && (tok[0] === '\n' || tok[0] === ' ')) nextTok(rest, indent);
+    _ref = r = nextTok(str), tok = _ref[0], rest = _ref[1];
+    if (tok && (tok[0] === '\n' || tok[0] === ' ')) nextTok(rest);
     return r;
   };
 
   parseLambda = function parseLambda(str, vars, indent, totalLen) {
     var apl, nm, rest1, rest2, tok2, _ref, _ref2;
-    _ref = nextTokIgnoreNL(str, indent), nm = _ref[0], rest1 = _ref[1];
-    _ref2 = nextTokIgnoreNL(rest1, indent), tok2 = _ref2[0], rest2 = _ref2[1];
+    _ref = nextTokIgnoreNL(str), nm = _ref[0], rest1 = _ref[1];
+    _ref2 = nextTokIgnoreNL(rest1), tok2 = _ref2[0], rest2 = _ref2[1];
     apl = tok2 === '.' ? parseApply(eatAllWhitespace(rest2), cons(nm, vars), indent, totalLen) : parseLambda(rest1, cons(nm, vars), indent, totalLen);
     return ifParsed(apl, function(body, rest2) {
       var ast;
