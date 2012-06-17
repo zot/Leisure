@@ -30,14 +30,10 @@ else root = exports ? this
 escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
 
 forward = {}
-wordPat = /^[^\s]*$/
-baseTokenPat = /[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|[().\\\n;]| +|#[^\n]*\n/
+baseTokenPat = /[().\\]| +|[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|#[^\n]*(\n|$)/
 tokenPat = new RegExp("\\n *|#{baseTokenPat.source}")
-specials = '[]().*+?|'
 linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
 #linePat = /^((?:\s*\n|#[^\n]*\n)*)([a-zA-Z0-9!@#$%\^&*\-_+=[\]{}|:;,<>/? ]*)(=[.)M]=|=\([^=]+=|=)?/
-order = []
-warnFreeVariable = []
 charCodes =
   "'": '$a'
   ',': '$b'
@@ -403,12 +399,7 @@ defineToken = (name, def)->
     # sort them by length, longest first
     types.sort (a, b)-> b.length - a.length
     types = (escapeRegexpChars i for i in types)
-    types.push '[().\\\\]| +'
     tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
-
-createDefinition = (name, ast, index)->
-  if index >= name.length then ast
-  else lambda(laz(name[index]))(laz(createDefinition(name, ast, index + 1)))
 
 prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\') + '.' else '') + str
 
@@ -573,13 +564,13 @@ processTokenDefs = (defs)->
     defineToken defs[i], defs[i + 1]
 
 # returns [tok, rest]
-nextTok = (str, indent)->
+nextTok = (str)->
   m = str.match(tokenPat)
   if !m then [str, '']
   else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
   else
     rest = str.substring(m.index + m[0].length)
-    if m[0][0] == '#' or m[0][0] == ' ' or (m[0][0] == '\n' and rest[0] == '\n') then nextTok rest, indent
+    if m[0][0] == '#' or m[0][0] == ' ' or (m[0][0] == '\n' and rest[0] == '\n') then nextTok rest
     else [m[0], rest]
 
 tag = (start, end, ast)->
@@ -601,13 +592,13 @@ snip = (str)->"[#{str.substring 0, 80}]"
 parseApply = (str, vars, indent, totalLen)->
   if !str then [null, null, str]
   else
-    [tok, rest] = nextTok str, indent
+    [tok, rest] = nextTok str
     if !tok or tok[0] == '\n' then [null, "expecting expression #{snip str}\n#{new Error().stack}", rest]
     else if groupCloses[tok] then [null, "Unexpected group close: #{tok} #{snip rest}", rest]
     else ifParsed (parseTerm tok, rest, vars, indent, totalLen), (func, rest)->continueApply(func, rest, vars, indent, totalLen)
 
 continueApply = (func, str, vars, indent, totalLen)->
-  [tok, rest] = nextTok str, indent
+  [tok, rest] = nextTok str
   if !tok or (tok[0] == '\n' and tok.length <= indent.length) or groupCloses[tok]
     [func, null, str]
   else
@@ -624,7 +615,7 @@ parseTerm = (tok, rest, vars, indent, totalLen)->
     else ifParsed (parseName tok, rest, vars, totalLen), (ast, rest2)->
       continueApply ast, rest2, vars, indent, totalLen
     ifParsed apl, (ast, rest3)->
-      [tok4, rest4] = nextTok rest3, indent
+      [tok4, rest4] = nextTok rest3
       if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
       else if tok == '(' then [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4]
       else ifParsed (parseName tok4, rest4, vars, totalLen), (arg, rest5)->
@@ -639,14 +630,14 @@ parseName = (tok, rest, vars, totalLen)->
   else scanName(tok)
   [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
 
-nextTokIgnoreNL = (str, indent)->
-  [tok, rest] = r = nextTok str, indent
-  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok rest, indent
+nextTokIgnoreNL = (str)->
+  [tok, rest] = r = nextTok str
+  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok rest
   r
 
 parseLambda = (str, vars, indent, totalLen)->
-  [nm, rest1] = nextTokIgnoreNL str, indent
-  [tok2, rest2] = nextTokIgnoreNL rest1, indent
+  [nm, rest1] = nextTokIgnoreNL str
+  [tok2, rest2] = nextTokIgnoreNL rest1
   apl = if tok2 == '.' then parseApply (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
   else parseLambda rest1, cons(nm, vars), indent, totalLen
   ifParsed apl, (body, rest2)->
