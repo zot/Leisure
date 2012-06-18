@@ -424,10 +424,11 @@ getAst = (bx, def)->
   else
     def = def || bx.textContent
     setAst bx, (Leisure.compileNext def, Leisure.Nil, true, null, true)[0]
+    bx.ast
 
 setAst = (bx, ast)->
-    bx.ast = ast
-    patchFuncAst ast
+  bx.ast = ast
+  patchFuncAst ast
 
 patchFuncAst = (ast)->
   if ast?.leisureName?
@@ -925,10 +926,7 @@ Leisure.define 'notebookSelection', (func)->
       if !r.collapsed then r2.setEnd r.endContainer, r.endOffset
       p2 = r2.cloneContents().textContent.length - offset
       cont(_some2()(->p1)(->p2))
-    else
-      if bx?
-        console.log "no selection"
-      cont(_none())
+    else cont(_none())
 
 autoRun = (el, state)->
   el.autorunState = state

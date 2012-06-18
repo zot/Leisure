@@ -8,8 +8,8 @@ while [ $# != 0 ]; do
   shift
 done
 
-node_modules/coffee-script/bin/coffee -c leisure.cs prim.cs game.cs parse.cs
-node_modules/coffee-script/bin/coffee -c repl.cs runRepl.cs testLeisure.cs replCore.cs browserRepl.cs pretty.cs testing.cs bootLeisure.cs notebook.cs
+node_modules/coffee-script/bin/coffee -c leisure.cs prim.cs game.cs
+node_modules/coffee-script/bin/coffee -c repl.cs runRepl.cs testLeisure.cs replCore.cs browserRepl.cs pretty.cs testing.cs bootLeisure.cs notebook.cs parse.cs
 node runRepl $DEBUG -q -c -b std
 node testLeisure
 #node_modules/coffee-script/bin/coffee -c chippy.cs

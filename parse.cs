@@ -25,7 +25,10 @@ misrepresented as being the original software.
 if window? and (!global? or global == window)
   window.global = window
   window.Parse = root = {}
-else root = exports ? this
+else
+  root = exports ? this
+  inspect = require('util').inspect # for testing
+  #Pretty = require './pretty' # for testing
 
 ######
 ###### naming
@@ -81,9 +84,9 @@ setType = (func, type)->
   if type then func.type = type
   func
 
-# JS class overlaid on cons/Nil funcs for convenience
+# JS class overlaid on lexCons/lexNil funcs for convenience
 # merge start and end into functional rep
-class Cons
+class LexCons
   setPos: (start, end)->
     @startPos = start
     @endPos = end
@@ -96,46 +99,46 @@ class Cons
   foldl: (func, arg)-> @tail().foldl func, func(arg, @head())
   foldr: (func, arg)-> func @head(), @tail().foldr(func, arg)
   toArray: -> @foldl ((i, el)-> i.push(el); i), []
-  toString: -> "Cons[#{@toArray().join(' ')}]"
-  reverse: -> @rev Nil
-  rev: (result)-> @tail().rev cons(@head(), result)
-  equals: (other)-> other?.constructor == Cons and (@head() == other.head or (@head()?.constructor == Cons and @head()?.equals(other.head))) and (@tail() == other.tail or (@tail()?.constructor == Cons and @tail()?.equals(other.tail)))
+  toString: -> "LexCons[#{@toArray().join(' ')}]"
+  reverse: -> @rev lexNil
+  rev: (result)-> @tail().rev lexCons(@head(), result)
+  equals: (other)-> other?.constructor == LexCons and (@head() == other.head or (@head()?.constructor == LexCons and @head()?.equals(other.head))) and (@tail() == other.tail or (@tail()?.constructor == LexCons and @tail()?.equals(other.tail)))
   each: (block)->
     block(@head())
     @tail().each(block)
   last: ->
     t = @tail()
-    if t == Nil then t else t.last()
+    if t == lexNil then t else t.last()
 
-class CNil extends Cons
+class LCNil extends LexCons
   find: -> false
   removeAll: -> @
-  foldr: (func, arg)-> arg
   foldl: (func, arg)-> arg
+  foldr: (func, arg)-> arg
   rev: (result)-> result
-  equals: (other)-> other?.constructor == CNil
+  equals: (other)-> other?.constructor == LCNil
   each: ->
-  toString: -> 'Nil'
+  toString: -> 'lexNil'
 
-# cons and Nil are Leisure-based so that Leisure code can work with it transparently
-primCons = setDataType(((a)->(b)->
-  c = setType ((f)-> f()(a)(b)), 'cons'
-  c.__proto__ = Cons.prototype
-  c), 'cons')
-Nil = setType(((a)->(b)->b()), 'nil')
-Nil.__proto__ = CNil.prototype
+# cons and lexNil are Leisure-based so that Leisure code can work with it transparently
+primLexCons = setDataType(((a)->(b)->
+  c = setType ((f)-> f()(a)(b)), 'lexCons'
+  c.__proto__ = LexCons.prototype
+  c), 'lexCons')
+lexNil = setType(((a)->(b)->b()), 'lexNil')
+lexNil.__proto__ = LCNil.prototype
 
-cons = (a, b)-> consPos(a, b, a.start?(), b.end?())
-consPos = (a, b, start, end)-> primCons(->a)(->b).setPos(start, end)
+lexCons = (a, b)-> lexConsPos(a, b, a.start?(), b.end?())
+lexConsPos = (a, b, start, end)-> primLexCons(->a)(->b).setPos(start, end)
 dlempty = (x)->x
-dlnew = (a)->(b)-> cons(a, b)
+dlnew = (a)->(b)-> lexCons(a, b)
 dlappend = (a, b)->(c)-> a(b(c))
 
 global.leisureFuncs = {}
 
-global.leisureFuncNames = Nil
+global.leisureFuncNames = lexNil
 
-global.leisureAddFunc = (nm)-> global.leisureFuncNames = cons(nm, global.leisureFuncNames)
+global.leisureAddFunc = (nm)-> global.leisureFuncNames = lexCons(nm, global.leisureFuncNames)
 
 evalFunc = eval
 
@@ -151,10 +154,10 @@ define = (name, func, arity, src) ->
   (evalFunc 'leisureAddFunc')(name)
   f
 
-# expose cons and nil to Leisure code
+# expose lexCons and lexNil to Leisure code
 
-define 'cons', primCons, 2, '\a b f . f a b'
-define 'nil', Nil, 0, '\a b . b'
+define 'lexCons', primLexCons, 2, '\a b f . f a b'
+define 'lexNil', lexNil, 0, '\a b . b'
 
 ######
 ###### Scanning
@@ -214,10 +217,6 @@ pos = (str, totalLen)-> totalLen - str.length
 
 tokPos = (tok, str, totalLen)-> totalLen - str.length - tok.length
 
-ifParsed = (res, block, errPrefix)->
-  if res[1] then [res[0], errPrefix + res[1], res[2]]
-  else block res[0], res[2]
-
 snip = (str)->"[#{str.substring 0, 80}]"
 
 # Tokens are also Leisure datatypes overlaid with a JS class for interoperability
@@ -237,12 +236,16 @@ makeToken = (tok, rest, totalLen)->
   primToken(->tok)(->pos)
 
 ######
-###### Parsing phase 1 -- parse into a cons-list
+###### Parsing phase 1 -- parse into a lexCons-list
 ######
 
+ifParsed = (res, block)->
+  if res[1] then res
+  else block res[0], res[2]
+
 parsePhase1 = (str)-> ifParsed (parseGroup str, '\n', str.length), (group, rest)->
-  g = group(Nil)
-  if g != Nil then g.setPos(g.head().start(), g.last().end())
+  g = group(lexNil)
+  if g != lexNil then g.setPos(g.head().start(), g.last().end())
   [g, null, rest]
 
 # returns [group, err, rest]
@@ -268,15 +271,8 @@ parseGroupTerm = (tok, rest, indent, totalLen)->
   else [dlnew(token), null, rest]
 
 # takes a difference list
-positionGroup = (groupDL, startTok, endTok)-> groupDL(Nil).setPos startTok.start(), endTok.end()
+positionGroup = (groupDL, startTok, endTok)-> groupDL(lexNil).setPos startTok.start(), endTok.end()
 
-####
-#tests
-console.log "parse: a b: #{parsePhase1('a b')[0]}"
-console.log "parse: a (b): #{parsePhase1('a (b)')[0]}"
-console.log "parse: a (b c d (e f)): #{parsePhase1('a (b c d (e f))')[0]}"
-console.log "parse: \\\\\\\u03BB\\\u03BB: #{parsePhase1('\\\\\\\u03BB\\\u03BB')[0]}"
-####
 
 ######
 ###### ASTs
@@ -287,12 +283,21 @@ define 'ref', setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
 define 'lambda', setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
 define 'apply', setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
 
+tag = (ast, start, end)->
+  ast.leisureStart = start
+  ast.leisureEnd = end
+  ast
+
 getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{t}"
 
-lit = (l)->_lit()(-> l)
-ref = (r)->_ref()(-> r)
+lit = (l)->
+  console.log "LIT: #{l}"
+  _lit()(-> l)
+ref = (r)->
+  console.log "REF: #{r}"
+  _ref()(-> r)
 lambda = (v, body)->_lambda()(-> v)(-> body)
 apply = (f, a)->_apply()(-> f)(-> a)
 getAstType = (f) -> f.type
@@ -307,198 +312,116 @@ getApplyArg = (apl)-> apl (a)->(b)-> b()
 ###### Parsing phase 2
 ######
 
-lambdaChar = /^[\\\u03BB]$/
-
 # returns [ast] or [null, err, token]
-listToAst = (list, endPos)->
-  if list == Nil then [null, "Expecting expression, but input is empty", null]
+listToAst = (list)->
+  if list == lexNil then [null, "Expecting expression, but input is empty"]
+  else if !(list instanceof LexCons) then tokenToAst list
   else if isLambdaToken list.head() then checkLambda list.tail()
-  else if list.tail() == Nil then tokenToAst list.head()
-  else listToApply list
+  else ifParsed listToAst(list.head()), (f)-> listToApply f, list.tail()
+
+isLambdaToken = (tok)-> (tok instanceof Token) and (tok.tok() in ['\\', '\u03BB'])
 
 checkLambda = (list)->
   if list.head() instanceof Token && list.head().tok() != '.' then listToLambda list
   else [null, "Bad lambda construct, expected names, followed by a dot", list]
 
-isLambdaToken = (tok)-> (tok instanceof Token) and (tok.tok() in ['\\', '\u03BB'])
-
-sourcePos = (errItem)->
-  if typeof errItem == 'number' then errItem
-  else if errItem instanceof Token then tok.pos
-  else Math.min(sourcePos(errItem.head()), sourcePos(errItem.tail()))
-
-ifParsed = (res, block)->
-  if res[1] then res
-  else block res[0]
+badLambdaCont = (tok)-> !(tok instanceof Token) || isLambdaToken(tok)
 
 # convert a list starting after a lambda character
-listToLambda = (list, endPos)->
-  if list == Nil then [null, "Bad lambda construct -- no variable or body", endPos]
+listToLambda = (list)->
+  if list == lexNil then [null, "Bad lambda construct -- no variable or body"]
+  else if list.tail() == lexNil then [null, "Bad lambda construct -- no body"]
   else
     head = list.head()
-    if isLambdaToken(head) || !(head instanceof Token) then [null, "Bad lambda construct", head]
+    if badLambdaCont(head) || badLambdaCont(list.tail().head()) then [null, "Bad lambda construct", head]
     else
-      bodyRes = if head.tok() == '.' then listToAst list.tail(), endPos
-      else listToLambda list.tail(), endPos
-      ifParsed bodyRes, (body)-> [(tag head.start(), rest.leisureEnd, (lambda head.tok(), body))]
+      bodyRes = if list.tail().head().tok() == '.' then listToAst list.tail().tail()
+      else listToLambda list.tail()
+      ifParsed bodyRes, (body)-> [tag(lambda(head.tok(), body), list.start(), list.end())]
 
-orPos = (a, b)-> if a != Nil then a else b
+tokenToAst = (tok)->
+  try
+    [tag lit(JSON.parse tok.tok()), tok.start(), tok.end()]
+  catch err
+    [tag ref(tok.tok()), tok.start(), tok.end()]
 
-listToApply = (list, endPos)->
-  if list == Nil then [null, "", (orPos list, endPos)]
-  else
-    ifParsed (listToAst list.head()), (f)->
-      ifParsed (listToAst list.tail().head()), (a)->
-        if list.tail().tail() == Nil then [(tag )]
+listToApply = (f, rest)->
+  if rest == lexNil then [f]
+  else ifParsed listToAst(rest.head()), (a)->
+    listToApply tag(apply(f, a), f.leisureStart, a.leisureEnd), rest.tail()
 
 ###
 TODO
 
 * get working with current ASTs
-* change to new ASTs (start, end, data...)
+* change to lexCons (start, end, a, b) and new AST structures (start, end, data...)
 * rewrite listToAst in Leisure?
 * write precedence parser in Leisure
 ###
 
+listDo = (l, f)-> l(->(h)->(t)->f(h(), t()))
 
-parse = (str)->
-  ret = parseApply str, Nil, '\n', str.length
-  #if !ret[2] then ret[0] = numberAst ret[0], 0
-  if ret[0] then ret[0] = numberAst ret[0], 0
-  ret
+print = (f)->
+  if !f? then "UNDEFINED"
+  else if f == null then 'NULL'
+  else switch getType(f)
+    when 'lit', 'ref', 'lambda', 'apply' then "AST(#{subprint f})"
+    else subprint f
 
-parseFull = (str)->
-  [ast, err, rest] = parseApply str, Nil, '\n', str.length
-  if ast then ast = substituteMacros(ast)
-  if ast then ast = numberAst(ast, 0)
-  [ast, err, rest]
+subprint = (f)->
+  if !f? then "UNDEFINED"
+  else if f == null then 'NULL'
+  else switch getType(f)
+    when 'lexCons' then "[#{elements(f, true)}]"
+    when 'lexNil' then "[]"
+    when 'token' then "Token(#{f.tok()})"
+    when 'ioMonad' then "IO"
+    when 'lit' then f ->(v)->v()
+    when 'ref' then f ->(v)->v()
+    when 'lambda' then f ->(v)->(bod)-> "\u03BB#{printLambda v(), bod()}"
+    when 'apply' then f ->(func)->(arg)-> printApply(func(), arg())
+    when 'some' then f(->(v)-> "Some(#{print v()})")(null)
+    when 'some2' then f(->(a)->(b)-> "Some2(#{print a()}, #{print b()})")(null)
+    when 'left' then f(->(l)-> "Left(#{print l()})")(null)
+    when 'right' then f(null)(->(r)-> "Right(#{print r()})")
+    when 'html' then f ->(txt)-> "HTML(#{txt()})"
+    when 'svg-node' then f ->(txt)-> "SVG NODE(#{txt()})"
+    else
+      if f instanceof Error then f.stack
+      else f.leisureName ? inspect(f)
 
-numberAst = (ast, number)->
-  switch getAstType ast
-    when 'ref', 'lit' then setNumber ast, number
-    when 'lambda' then setNumber ast, (numberAst (getLambdaBody ast), number).leisureNodeNumber + 1
-    when 'apply' then setNumber ast, (numberAst (getApplyArg ast), (numberAst (getApplyFunc ast), number).leisureNodeNumber + 1).leisureNodeNumber + 1
+printLambda = (v, body)->
+  if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"
+  else "#{v} . #{subprint(body)}"
 
-setNumber = (ast, number)->
-  ast.leisureNodeNumber = number
-  ast
+printApply = (func, arg)->
+  f = if func.type == 'lambda' then "(#{subprint func})" else subprint(func)
+  a = if arg.type == 'apply' then "(#{subprint arg})" else subprint(arg)
+  "#{f} #{a}"
 
-defineMacro = (name, func)-> ctx.macros[name] = func
+elements = (l, first, nosubs)->
+  if getType(l) == 'lexNil' then ''
+  else if getType(l) != 'lexCons' then " | #{print(l)}"
+  else "#{if first then '' else ', '}#{listDo l, (h, t)-> print(h) + elements(t, false)}"
 
-substituteMacros = (ast)->
-  switch getAstType ast
-    when 'ref', 'lit' then ast
-    when 'lambda'
-      body = getLambdaBody ast
-      b = substituteMacros body
-      if b == body then ast
-      else lambda(laz getLambdaVar ast)(laz b)
-    when 'apply'
-      macro = getMacro ast
-      if macro then substituteMacros (macro laz ast)
-      else
-        func = getApplyFunc ast
-        arg = getApplyArg ast
-        f = substituteMacros func
-        a = substituteMacros arg
-        if a == arg and f == func then ast
-        else apply(laz f)(laz a)
 
-getMacro = (ast)->
-  if getAstType(ast) == 'ref' then ctx.macros[getRefVar ast] ? null
-  else if getAstType(ast) == 'apply' then getMacro getApplyFunc ast
-  else null
+####
+# tests
+####
 
-scanTok = (tok)->
-  try
-    JSON.parse(tok)
-  catch err
-    tok
+console.log "parse: a b: #{parsePhase1('a b')[0]}"
+console.log "parse: a (b): #{parsePhase1('a (b)')[0]}"
+console.log "parse: a (b c d (e f)): #{parsePhase1('a (b c d (e f))')[0]}"
+console.log "parse: \\\\\\\u03BB\\\u03BB: #{parsePhase1('\\\\\\\u03BB\\\u03BB')[0]}"
 
-scanName = (name)->
-  try
-    l = JSON.parse(name)
-    if typeof l == 'string' then lit(laz(l))
-    else if typeof l == 'number' then ref(laz(l))
-    else ref(laz(name))
-  catch err
-    ref(laz(name))
-
-sourceBracket = (item)->
-  if item instanceof Token then [tok.start(), tok.start() + tok.tok().length]
+testParse = (str)->
+  p = parsePhase1(str)
+  if p[1] then p[1]
   else
-    first = sourceBracket item.head()
-    rest = sourceBracket item.last()
-    [first[0], rest[1]]
+    console.log "phase 1: #{print p[0]}"
+    a = listToAst(p[0], str.length)
+    a[1] ? print(a[0])
 
-tagBracket = (item, ast)->
-  br = sourceBracket item
-  tag br[0], br[1], ast
-
-tag = (start, end, ast)->
-  ast.leisureStart = start
-  ast.leisureEnd = end
-  ast
-
-ifParsed = (res, block, errPrefix)->
-  if res[1] then [res[0], errPrefix + res[1], res[2]]
-  else block res[0], res[2]
-
-snip = (str)->"[#{str.substring 0, 80}]"
-
-# returns [ast, err, rest]
-parseApply = (str, vars, indent, totalLen)->
-  if !str then [null, null, str]
-  else
-    [tok, rest] = nextTok str, indent
-    if !tok or tok[0] == '\n' then [null, "expecting expression #{snip str}\n#{new Error().stack}", rest]
-    else if groupCloses[tok] then [null, "Unexpected group close: #{tok} #{snip rest}", rest]
-    else ifParsed (parseTerm tok, rest, vars, indent, totalLen), (func, rest)->continueApply(func, rest, vars, indent, totalLen)
-
-continueApply = (func, str, vars, indent, totalLen)->
-  [tok, rest] = nextTok str, indent
-  if !tok or (tok[0] == '\n' and tok.length <= indent.length) or groupCloses[tok]
-    [func, null, str]
-  else
-    parsedArg = if tok[0] == '\n'
-      parseApply rest, vars, tok, totalLen
-    else parseTerm tok, rest, vars, indent, totalLen
-    ifParsed parsedArg, (arg, rest)->
-      continueApply tag(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen
-
-parseTerm = (tok, rest, vars, indent, totalLen)->
-  if tok == '\\' then parseLambda rest, vars, indent, totalLen
-  else if groupOpens[tok]
-    apl = if tok == '(' then parseApply rest, vars, indent, totalLen
-    else ifParsed (parseName tok, rest, vars, totalLen), (ast, rest2)->
-      continueApply ast, rest2, vars, indent, totalLen
-    ifParsed apl, (ast, rest3)->
-      [tok4, rest4] = nextTok rest3, indent
-      if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
-      else if tok == '(' then [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4]
-      else ifParsed (parseName tok4, rest4, vars, totalLen), (arg, rest5)->
-        [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5]
-  else parseName tok, rest, vars, totalLen
-
-parseName = (tok, rest, vars, totalLen)->
-  name = if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
-  else if tok[0] == '"' then lit(laz(scanTok(tok)))
-  else if tok[0] == '`' then ref(laz(tok.substring(1, tok.length - 1)))
-  else if (vars.find (v)-> tok == v) then ref(laz(tok))
-  else scanName(tok)
-  [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
-
-nextTokIgnoreNL = (str, indent)->
-  [tok, rest] = r = nextTok str, indent
-  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok rest, indent
-  r
-
-parseLambda = (str, vars, indent, totalLen)->
-  [nm, rest1] = nextTokIgnoreNL str, indent
-  [tok2, rest2] = nextTokIgnoreNL rest1, indent
-  apl = if tok2 == '.' then parseApply (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
-  else parseLambda rest1, cons(nm, vars), indent, totalLen
-  ifParsed apl, (body, rest2)->
-    ast = lambda(laz(nm))(laz(body))
-    ast.leisureNameEnd = pos(rest1, totalLen)
-    [tag(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2]
+console.log "ast for a: #{testParse('a')}"
+console.log "ast for a b: #{testParse('a b')}"
+console.log "ast for \\a.b: #{testParse('\\a.b')}"
