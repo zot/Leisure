@@ -607,7 +607,8 @@
       return bx.ast;
     } else {
       def = def || bx.textContent;
-      return setAst(bx, (Leisure.compileNext(def, Leisure.Nil, true, null, true))[0]);
+      setAst(bx, (Leisure.compileNext(def, Leisure.Nil, true, null, true))[0]);
+      return bx.ast;
     }
   };
 
@@ -1360,7 +1361,6 @@
           return p2;
         }));
       } else {
-        if (bx != null) console.log("no selection");
         return cont(_none());
       }
     });
