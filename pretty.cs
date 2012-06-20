@@ -26,7 +26,7 @@ subprint = (f)->
   else switch getType(f)
     when 'cons' then "[#{elements(f, true)}]"
     when 'nil' then "[]"
-    when 'ioMonad' then "IO"
+    when 'monad' then "monad"
     when 'lit' then f ->(v)->v()
     when 'ref' then f ->(v)->v()
     when 'lambda' then f ->(v)->(bod)-> "\\#{printLambda v(), bod()}"

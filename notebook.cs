@@ -518,9 +518,16 @@ setUpdate = (el, channel, preserveSource)->
     r.insertNode textNode(channel)
     el.source.normalize()
 
+checkHideSource = (box)->
+  if !box.hideSource and box.firstElementChild?.nextElementSibling?.nextElementSibling?
+    hs = createNode "<button class='editToggle' style='float:right'></button>"
+    hs.addEventListener 'click', -> toggleEdit(hs)
+    box.hideSource = hs
+    box.firstChild.appendChild hs
+
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
-    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button><button onclick='Notebook.toggleEdit(this)' class='editToggle' style='float:right'></button>""")
+    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>""")
     exBox.classList.add 'fatControls'
 
 toggleEdit = (toggleButton)->
@@ -549,6 +556,7 @@ clearOutputBox = (exBox)->
 cleanOutput = (exBox, preserveControls)->
   exBox = getBox exBox
   exBox.classList.remove 'fatControls'
+  exBox.hideSource = null
   if !preserveControls
     fc = exBox.firstChild
     while fc.firstChild != fc.lastChild
@@ -635,6 +643,7 @@ envFor = (box)->
     div = document.createElement('div')
     div.innerHTML = "#{msg}\n"
     exBox.appendChild(div)
+    checkHideSource exBox
   prompt:(msg, cont)-> cont(window.prompt(msg))
   processResult: (result, ast)->
     box.result = result

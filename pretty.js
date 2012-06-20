@@ -60,8 +60,8 @@
           return "[" + (elements(f, true)) + "]";
         case 'nil':
           return "[]";
-        case 'ioMonad':
-          return "IO";
+        case 'monad':
+          return "monad";
         case 'lit':
           return f(function() {
             return function(v) {
