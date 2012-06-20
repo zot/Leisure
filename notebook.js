@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addDefControls, addHideSource, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -749,14 +749,16 @@
     }
   };
 
-  addHideSource = function addHideSource(box) {
-    var hs;
-    hs = createNode("<button class='editToggle' style='float:right'></button>");
-    hs.addEventListener('click', function() {
-      return toggleEdit(hs);
-    });
-    box.hideSource = hs;
-    return box.firstChild.appendChild(hs);
+  checkHideSource = function checkHideSource(box) {
+    var hs, _ref, _ref2;
+    if (!box.hideSource && (((_ref = box.firstElementChild) != null ? (_ref2 = _ref.nextElementSibling) != null ? _ref2.nextElementSibling : void 0 : void 0) != null)) {
+      hs = createNode("<button class='editToggle' style='float:right'></button>");
+      hs.addEventListener('click', function() {
+        return toggleEdit(hs);
+      });
+      box.hideSource = hs;
+      return box.firstChild.appendChild(hs);
+    }
   };
 
   makeOutputControls = function makeOutputControls(exBox) {
@@ -806,6 +808,7 @@
     var fc, _results;
     exBox = getBox(exBox);
     exBox.classList.remove('fatControls');
+    exBox.hideSource = null;
     if (!preserveControls) {
       fc = exBox.firstChild;
       while (fc.firstChild !== fc.lastChild) {
@@ -927,7 +930,8 @@
         var div;
         div = document.createElement('div');
         div.innerHTML = "" + msg + "\n";
-        return exBox.appendChild(div);
+        exBox.appendChild(div);
+        return checkHideSource(exBox);
       },
       prompt: function prompt(msg, cont) {
         return cont(window.prompt(msg));
@@ -1278,10 +1282,7 @@
 
   evalBox = function evalBox(box, envBox) {
     ReplCore.processLine(box.textContent, (envBox != null ? envFor(envBox) : null), 'Leisure.');
-    getAst(box);
-    if (envBox && box.output && envBox.result && ReplCore.getType(envBox.result) === 'monad') {
-      return addHideSource(box.output);
-    }
+    return getAst(box);
   };
 
   acceptCode = function acceptCode(box) {
