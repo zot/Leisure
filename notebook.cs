@@ -520,10 +520,10 @@ setUpdate = (el, channel, preserveSource)->
 
 checkHideSource = (box)->
   if !box.hideSource and box.firstElementChild?.nextElementSibling?.nextElementSibling?
+    box.hideSource = true
     hs = createNode "<button class='editToggle' style='float:right'></button>"
     hs.addEventListener 'click', -> toggleEdit(hs)
-    box.hideSource = hs
-    box.firstChild.appendChild hs
+    box.firstElementChild.appendChild hs
 
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
@@ -556,8 +556,8 @@ clearOutputBox = (exBox)->
 cleanOutput = (exBox, preserveControls)->
   exBox = getBox exBox
   exBox.classList.remove 'fatControls'
-  exBox.hideSource = null
   if !preserveControls
+    exBox.hideSource = null
     fc = exBox.firstChild
     while fc.firstChild != fc.lastChild
       fc.removeChild fc.lastChild

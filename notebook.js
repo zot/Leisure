@@ -752,12 +752,12 @@
   checkHideSource = function checkHideSource(box) {
     var hs, _ref, _ref2;
     if (!box.hideSource && (((_ref = box.firstElementChild) != null ? (_ref2 = _ref.nextElementSibling) != null ? _ref2.nextElementSibling : void 0 : void 0) != null)) {
+      box.hideSource = true;
       hs = createNode("<button class='editToggle' style='float:right'></button>");
       hs.addEventListener('click', function() {
         return toggleEdit(hs);
       });
-      box.hideSource = hs;
-      return box.firstChild.appendChild(hs);
+      return box.firstElementChild.appendChild(hs);
     }
   };
 
@@ -808,8 +808,8 @@
     var fc, _results;
     exBox = getBox(exBox);
     exBox.classList.remove('fatControls');
-    exBox.hideSource = null;
     if (!preserveControls) {
+      exBox.hideSource = null;
       fc = exBox.firstChild;
       while (fc.firstChild !== fc.lastChild) {
         fc.removeChild(fc.lastChild);
