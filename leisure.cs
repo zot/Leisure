@@ -158,12 +158,13 @@ define = (name, func, arity, src) ->
   func.leisureName = name
   func.leisureArity = arity
   if global.noredefs and ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
-  f = -> func
-  ctx[nm] = ctx.leisureFuncs[nm] = f
+  #f = -> func
+  ctx[nm] = ctx.leisureFuncs[nm] = func
   (evalFunc 'leisureAddFunc')(name)
-  f
+  #f
+  func
 
-defineMacro = (name, func)-> ctx.macros[name] = func
+defineMacro = (name, func)-> ctx.macros[name] = func()
 
 setDataType = (func, dataType)->
   if dataType then func.dataType = dataType
@@ -179,15 +180,15 @@ nameAst = (nm, ast)-> if !ast.leisureName
 
 evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
 
-define 'eval', (ast)-> evalCompiledAst(dgen(substituteMacros ast()))
+define 'eval', ->(ast)-> evalCompiledAst(dgen(substituteMacros ast()))
 
-define 'lit', setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
+define 'lit', ->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
 
-define 'ref', setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
+define 'ref', ->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
 
-define 'lambda', setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
+define 'lambda', ->setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
 
-define 'apply', setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
+define 'apply', ->setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
 
 getType = (f)->
   t = typeof f
@@ -329,7 +330,10 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
   code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace, true)
   if code.err != '' then ast.err = code.err
   else
-    jsCode = if !debug or getAstType == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
+    jsCode = if !debug or (getAstType ast) == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
+    if name
+      n = nameSub name
+      jsCode = if (getAstType ast) == 'lambda' then "(function() {var f = #{jsCode}; return function #{n}(){return f;}})()" else "(function #{n}() {return (#{jsCode});})"
     ast.src = if name? then """
 #{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
 

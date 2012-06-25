@@ -34,36 +34,36 @@ define = Leisure.define
 getType = Leisure.getType
 laz = Leisure.laz
 
-define 'is', ((value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`), 2
-define 'isFunc', (value)->if typeof value() == 'function' then `_true()` else `_false()`
-define 'eq', ((a)-> (b)-> if a() == b() then `_true()` else` _false()`), 2
-define 'getType', (value)-> if type = getType(value()) then _some()(->type) else _none()
-define 'parse', (value)->
+define 'is', (->(value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`), 2
+define 'isFunc', ->(value)->if typeof value() == 'function' then `_true()` else `_false()`
+define 'eq', (->(a)-> (b)-> if a() == b() then `_true()` else` _false()`), 2
+define 'getType', ->(value)-> if type = getType(value()) then _some()(->type) else _none()
+define 'parse', ->(value)->
   [ast, err, rest] = Leisure.parseFull(value())
   if err? then _right()(laz("Error: #{err}"))
   else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
   else _left()(laz(ast))
-define 'ast-start', (ast)-> ast().leisureStart
-define 'ast-end', (ast)-> ast().leisureEnd
-define 'pretty', (value)->
+define 'ast-start', ->(ast)-> ast().leisureStart
+define 'ast-end', ->(ast)-> ast().leisureEnd
+define 'pretty', ->(value)->
   #kluge this, for now
   if !Pretty then Pretty = window.Pretty
   Pretty.print(value())
-define 'funcSource', (func)->
+define 'funcSource', ->(func)->
   f = func()
   if f.src? then _some()(laz(f.src))
   else _none()
 
-define '+', (a)->(b)->a() + b()
-define '-', (a)->(b)->a() - b()
-define '*', (a)->(b)->a() * b()
-define '/', (a)->(b)->a() / b()
-define '%', (a)->(b)->a() % b()
-define 'floor', (a)->Math.floor(a())
-define 'ceil', (a)->Math.ceil(a())
-define 'round', (a)->Math.round(a())
+define '+', ->(a)->(b)->a() + b()
+define '-', ->(a)->(b)->a() - b()
+define '*', ->(a)->(b)->a() * b()
+define '/', ->(a)->(b)->a() / b()
+define '%', ->(a)->(b)->a() % b()
+define 'floor', ->(a)->Math.floor(a())
+define 'ceil', ->(a)->Math.ceil(a())
+define 'round', ->(a)->Math.round(a())
 
-define 'randInt', (from)->(to)->
+define 'randInt', ->(from)->(to)->
   makeMonad (env, cont)->
     cont Math.floor(from() + Math.random() * (to() - from() + 1))
 
@@ -71,16 +71,16 @@ define 'rand', ->
   makeMonad (env, cont)->
     cont (Math.random())
 
-define '>', (a)->(b)->if a() > b() then `_true()` else `_false()`
-define '<', (a)->(b)->if a() < b() then `_true()` else `_false()`
-define 'gt', (a)->(b)->if a() > b() then `_true()` else `_false()`
-define 'gte', (a)->(b)->if a() >= b() then `_true()` else `_false()`
-define 'lt', (a)->(b)->if a() < b() then `_true()` else `_false()`
-define 'lte', (a)->(b)->if a() <= b() then `_true()` else `_false()`
+define '>', ->(a)->(b)->if a() > b() then `_true()` else `_false()`
+define '<', ->(a)->(b)->if a() < b() then `_true()` else `_false()`
+define 'gt', ->(a)->(b)->if a() > b() then `_true()` else `_false()`
+define 'gte', ->(a)->(b)->if a() >= b() then `_true()` else `_false()`
+define 'lt', ->(a)->(b)->if a() < b() then `_true()` else `_false()`
+define 'lte', ->(a)->(b)->if a() <= b() then `_true()` else `_false()`
 
-define 'strlen', (a)->a().length
+define 'strlen', ->(a)->a().length
 
-define 'log', (msg)->(value)->
+define 'log', ->(msg)->(value)->
   if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
   defaultEnv.write("\n")
   value()
@@ -114,52 +114,52 @@ makeMonad = (guts)->
   m.type = 'monad'
   m
 
-define 'eventContext', (evt)-> evt().leisureContext
+define 'eventContext', ->(evt)-> evt().leisureContext
 
-define 'eventType', (evt)->evt().type
+define 'eventType', ->(evt)->evt().type
 
-define 'eventX', (evt)-> evt().x
+define 'eventX', ->(evt)-> evt().x
 
-define 'eventY', (evt)-> evt().y
+define 'eventY', ->(evt)-> evt().y
 
-define 'eventTargetId', (evt)-> evt().target.id
+define 'eventTargetId', ->(evt)-> evt().target.id
 
-define 'eventKeyCode', (evt)->
+define 'eventKeyCode', ->(evt)->
   e = evt()
   e.charCode || e.keyCode || e.which
 
-define 'eventPreventDefault', (evt)->
+define 'eventPreventDefault', ->(evt)->
   makeMonad (env, cont)->
     evt().preventDefault()
     cont(_false())
 
-define 'forward', (name)->
+define 'forward', ->(name)->
   makeMonad (env, cont)->
     Leisure.defineForward name
     cont _false()
 
-define 'return', (v)->
+define 'return', ->(v)->
   makeMonad (env, cont)->cont(v())
 
-define 'require', (file)->
+define 'require', ->(file)->
   makeMonad (env, cont)->
     env.require(file(), cont)
 
-define 'print', (msg)->
+define 'print', ->(msg)->
   makeMonad (env, cont)->
     if msg() != _nil() then env.write("#{msg()}\n")
     cont(_false())
 
-define 'printValue', (value)->
+define 'printValue', ->(value)->
   makeMonad (env, cont)->
     if value() != _nil() then env.write("#{env.presentValue value()}\n")
     cont(_false())
 
-define 'prompt', (msg)->
+define 'prompt', ->(msg)->
   makeMonad (env, cont)->
     env.prompt(String(msg()), (input)-> cont(input))
 
-define 'bind', (m)->(binding)->
+define 'bind', ->(m)->(binding)->
   makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
 
 head = (l)->l ->(hh)->(tt)->hh()
@@ -169,23 +169,23 @@ concatList = (l)->
   if l == _nil() then ""
   else (head l) + concatList tail l
 
-define 'concat', (l)-> concatList(l())
+define 'concat', ->(l)-> concatList(l())
 
-define 'js', (codeList)->
+define 'js', ->(codeList)->
   makeMonad (env, cont)->
     cl = codeList()
     if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
     cont(eval(concatList(cl)))
 
-define 'arrayLength', (array)-> array().length
+define 'arrayLength', ->(array)-> array().length
 
-define 'arrayElements', (array)->(f)->arrayRest array(), 0, f()
+define 'arrayElements', ->(array)->(f)->arrayRest array(), 0, f()
 
 arrayRest = (array, index, f)->
   if index < array.length then arrayRest array, index + 1, f(laz(array[index]))
   else f
 
-define 'browser', (codeList)->
+define 'browser', ->(codeList)->
   makeMonad (env, cont)->
     if window?
       cl = codeList()
@@ -195,11 +195,11 @@ define 'browser', (codeList)->
 
 values = {}
 
-define 'getValue', (name)->
+define 'getValue', ->(name)->
   makeMonad (env, cont)->
     cont values[name()]
 
-define 'setValue', (name)->(value)->
+define 'setValue', ->(name)->(value)->
   makeMonad (env, cont)->
     values[name()] = value()
     cont _false
@@ -208,23 +208,23 @@ define 'createS', ->
   makeMonad (env, cont)->
     cont {value: null}
 
-define 'getS', (state)->
+define 'getS', ->(state)->
   makeMonad (env, cont)->
     cont state().value
 
-define 'setS', (state)->(value)->
+define 'setS', ->(state)->(value)->
   makeMonad (env, cont)->
     state().value = value()
     cont(_false)
 
-define 'poop', 3
+define 'poop', ->3
 
 ################
 # BROWSER PRIMS
 ################
 
-define 'svg-measure-text', ((text)->Notebook?.svgMeasureText(text)), 2
-define 'prim-svg-measure', ((content)->Notebook?.svgMeasure(content)), 1
+define 'svg-measure-text', (->(text)->Notebook?.svgMeasureText(text)), 2
+define 'prim-svg-measure', (->(content)->Notebook?.svgMeasure(content)), 1
 
 root.setTty = setTty
 root.runMonad = runMonad

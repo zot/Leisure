@@ -186,9 +186,9 @@ svgTransform = (svg, x, y)->
 # Running it
 ##############
 
-Leisure.define 'startPhysics', Prim.makeMonad (env, cont)-> startStepper -> cont(false)
+Leisure.define 'startPhysics', ->Prim.makeMonad (env, cont)-> startStepper -> cont(false)
 
-Leisure.define 'stepPhysics', Prim.makeMonad (env, cont)-> stepper -> cont(false)
+Leisure.define 'stepPhysics', ->Prim.makeMonad (env, cont)-> stepper -> cont(false)
 
 lastStep = Date.now()
 remainder = null

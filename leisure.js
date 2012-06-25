@@ -306,7 +306,7 @@ misrepresented as being the original software.
   };
 
   define = function define(name, func, arity, src) {
-    var f, nm;
+    var nm;
     func.src = src;
     func.leisureContexts = [];
     nm = nameSub(name);
@@ -315,16 +315,13 @@ misrepresented as being the original software.
     if (global.noredefs && (ctx[nm] != null)) {
       throw new Error("[DEF] Attempt to redefine definition: " + name);
     }
-    f = function f() {
-      return func;
-    };
-    ctx[nm] = ctx.leisureFuncs[nm] = f;
+    ctx[nm] = ctx.leisureFuncs[nm] = func;
     (evalFunc('leisureAddFunc'))(name);
-    return f;
+    return func;
   };
 
   defineMacro = function defineMacro(name, func) {
-    return ctx.macros[name] = func;
+    return ctx.macros[name] = func();
   };
 
   setDataType = function setDataType(func, dataType) {
@@ -354,37 +351,47 @@ misrepresented as being the original software.
     }
   };
 
-  define('eval', function(ast) {
-    return evalCompiledAst(dgen(substituteMacros(ast())));
+  define('eval', function() {
+    return function(ast) {
+      return evalCompiledAst(dgen(substituteMacros(ast())));
+    };
   });
 
-  define('lit', setDataType((function(_x) {
-    return setType((function(_f) {
-      return _f()(_x);
-    }), 'lit');
-  }), 'lit'));
-
-  define('ref', setDataType((function(_x) {
-    return setType((function(_f) {
-      return _f()(_x);
-    }), 'ref');
-  }), 'ref'));
-
-  define('lambda', setDataType((function(_v) {
-    return function(_f) {
-      return setType((function(_g) {
-        return _g()(_v)(_f);
-      }), 'lambda');
-    };
-  }), 'lambda'));
-
-  define('apply', setDataType((function(_func) {
-    return function(_arg) {
+  define('lit', function() {
+    return setDataType((function(_x) {
       return setType((function(_f) {
-        return _f()(_func)(_arg);
-      }), 'apply');
-    };
-  }), 'apply'));
+        return _f()(_x);
+      }), 'lit');
+    }), 'lit');
+  });
+
+  define('ref', function() {
+    return setDataType((function(_x) {
+      return setType((function(_f) {
+        return _f()(_x);
+      }), 'ref');
+    }), 'ref');
+  });
+
+  define('lambda', function() {
+    return setDataType((function(_v) {
+      return function(_f) {
+        return setType((function(_g) {
+          return _g()(_v)(_f);
+        }), 'lambda');
+      };
+    }), 'lambda');
+  });
+
+  define('apply', function() {
+    return setDataType((function(_func) {
+      return function(_arg) {
+        return setType((function(_f) {
+          return _f()(_func)(_arg);
+        }), 'apply');
+      };
+    }), 'apply');
+  });
 
   getType = function getType(f) {
     var t;
@@ -661,14 +668,18 @@ misrepresented as being the original software.
   })();
 
   dgen = function dgen(ast, lazy, name, globals, tokenDef, namespace, src, debug) {
-    var code, jsCode, res;
+    var code, jsCode, n, res;
     ast.lits = [];
     res = [];
     code = gen(ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name, namespace, true);
     if (code.err !== '') {
       ast.err = code.err;
     } else {
-      jsCode = !debug || getAstType === 'apply' || !name ? "(" + code.main + ")" : wrapContext(name, ast, code.main, true);
+      jsCode = !debug || (getAstType(ast)) === 'apply' || !name ? "(" + code.main + ")" : wrapContext(name, ast, code.main, true);
+      if (name) {
+        n = nameSub(name);
+        jsCode = (getAstType(ast)) === 'lambda' ? "(function() {var f = " + jsCode + "; return function " + n + "(){return f;}})()" : "(function " + n + "() {return (" + jsCode + ");})";
+      }
       ast.src = name != null ? "" + (namespace != null ? namespace : '') + (tokenDef === '=M=' ? 'defineMacro' : 'define') + "('" + name + "', " + jsCode + ", " + ((ast.leisurePrefixCount || 1) - 1) + ", " + (src ? JSON.stringify(src) : '""') + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '') + "\n" : jsCode;
     }
     ast.globals = code.global;

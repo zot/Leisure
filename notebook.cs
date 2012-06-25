@@ -907,20 +907,20 @@ evalDocCode = (el, pgm)->
   for node in el.querySelectorAll '[codeMain]'
     getAst node
 
-Leisure.define 'finishLoading', (bubba)->
+Leisure.define 'finishLoading', ->(bubba)->
   Prim.makeMonad (env, cont)->
     for i in postLoadQueue
       i()
     postLoadQueue = []
     cont(_false())
 
-Leisure.define 'config', (expr)->
+Leisure.define 'config', ->(expr)->
   Prim.makeMonad (env, cont)->
     switch expr()
       when 'autoTest' then autoRun(env.owner, true)
     cont(_false())
 
-Leisure.define 'notebookSelection', (func)->
+Leisure.define 'notebookSelection', ->(func)->
   Prim.makeMonad (env, cont)->
     sel = window.getSelection()
     bx = getBox sel.focusNode

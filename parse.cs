@@ -149,15 +149,16 @@ define = (name, func, arity, src) ->
   func.leisureName = name
   func.leisureArity = arity
   if global.noredefs and global[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
-  f = -> func
-  global[nm] = global.leisureFuncs[nm] = f
+  #f = -> func
+  global[nm] = global.leisureFuncs[nm] = func
   (evalFunc 'leisureAddFunc')(name)
-  f
+  ##f
+  func
 
 # expose lexCons and lexNil to Leisure code
 
-define 'lexCons', primLexCons, 2, '\a b f . f a b'
-define 'lexNil', lexNil, 0, '\a b . b'
+define 'lexCons', (->primLexCons), 2, '\a b f . f a b'
+define 'lexNil', (->lexNil), 0, '\a b . b'
 
 ######
 ###### Scanning
@@ -278,10 +279,10 @@ positionGroup = (groupDL, startTok, endTok)-> groupDL(lexNil).setPos startTok.st
 ###### ASTs
 ######
 
-define 'lit', setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
-define 'ref', setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
-define 'lambda', setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
-define 'apply', setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
+define 'lit', ->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
+define 'ref', ->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
+define 'lambda', ->setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
+define 'apply', ->setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
 
 tag = (ast, start, end)->
   ast.leisureStart = start

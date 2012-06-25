@@ -123,9 +123,9 @@ startStepper = (cont)->
   lastStep = Date.now()
   stepper(cont)
 
-Leisure.define 'startPhysics', Prim.makeMonad (env, cont)-> startStepper -> cont(false)
+Leisure.define 'startPhysics', ->Prim.makeMonad (env, cont)-> startStepper -> cont(false)
 
-Leisure.define 'stepPhysics', Prim.makeMonad (env, cont)-> stepper -> cont(false)
+Leisure.define 'stepPhysics', ->Prim.makeMonad (env, cont)-> stepper -> cont(false)
 
 fps = 0
 

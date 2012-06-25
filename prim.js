@@ -49,128 +49,164 @@
 
   laz = Leisure.laz;
 
-  define('is', (function(value) {
-    return function(type) {
-      var _ref;
-      if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
+  define('is', (function() {
+    return function(value) {
+      return function(type) {
+        var _ref;
+        if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
+    };
+  }), 2);
+
+  define('isFunc', function() {
+    return function(value) {
+      if (typeof value() === 'function') {
         return _true();
       } else {
         return _false();
       }
     };
-  }), 2);
-
-  define('isFunc', function(value) {
-    if (typeof value() === 'function') {
-      return _true();
-    } else {
-      return _false();
-    }
   });
 
-  define('eq', (function(a) {
-    return function(b) {
-      if (a() === b()) {
-        return _true();
+  define('eq', (function() {
+    return function(a) {
+      return function(b) {
+        if (a() === b()) {
+          return _true();
+        } else {
+          return  _false();
+        }
+      };
+    };
+  }), 2);
+
+  define('getType', function() {
+    return function(value) {
+      var type;
+      if (type = getType(value())) {
+        return _some()(function() {
+          return type;
+        });
       } else {
-        return  _false();
+        return _none();
       }
     };
-  }), 2);
-
-  define('getType', function(value) {
-    var type;
-    if (type = getType(value())) {
-      return _some()(function() {
-        return type;
-      });
-    } else {
-      return _none();
-    }
   });
 
-  define('parse', function(value) {
-    var ast, err, rest, _ref;
-    _ref = Leisure.parseFull(value()), ast = _ref[0], err = _ref[1], rest = _ref[2];
-    if (err != null) {
-      return _right()(laz("Error: " + err));
-    } else if (rest != null ? rest.trim() : void 0) {
-      return _right()(laz("Error, input left after parsing: '" + (rest.trim()) + "'"));
-    } else {
-      return _left()(laz(ast));
-    }
-  });
-
-  define('ast-start', function(ast) {
-    return ast().leisureStart;
-  });
-
-  define('ast-end', function(ast) {
-    return ast().leisureEnd;
-  });
-
-  define('pretty', function(value) {
-    if (!Pretty) Pretty = window.Pretty;
-    return Pretty.print(value());
-  });
-
-  define('funcSource', function(func) {
-    var f;
-    f = func();
-    if (f.src != null) {
-      return _some()(laz(f.src));
-    } else {
-      return _none();
-    }
-  });
-
-  define('+', function(a) {
-    return function(b) {
-      return a() + b();
+  define('parse', function() {
+    return function(value) {
+      var ast, err, rest, _ref;
+      _ref = Leisure.parseFull(value()), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      if (err != null) {
+        return _right()(laz("Error: " + err));
+      } else if (rest != null ? rest.trim() : void 0) {
+        return _right()(laz("Error, input left after parsing: '" + (rest.trim()) + "'"));
+      } else {
+        return _left()(laz(ast));
+      }
     };
   });
 
-  define('-', function(a) {
-    return function(b) {
-      return a() - b();
+  define('ast-start', function() {
+    return function(ast) {
+      return ast().leisureStart;
     };
   });
 
-  define('*', function(a) {
-    return function(b) {
-      return a() * b();
+  define('ast-end', function() {
+    return function(ast) {
+      return ast().leisureEnd;
     };
   });
 
-  define('/', function(a) {
-    return function(b) {
-      return a() / b();
+  define('pretty', function() {
+    return function(value) {
+      if (!Pretty) Pretty = window.Pretty;
+      return Pretty.print(value());
     };
   });
 
-  define('%', function(a) {
-    return function(b) {
-      return a() % b();
+  define('funcSource', function() {
+    return function(func) {
+      var f;
+      f = func();
+      if (f.src != null) {
+        return _some()(laz(f.src));
+      } else {
+        return _none();
+      }
     };
   });
 
-  define('floor', function(a) {
-    return Math.floor(a());
+  define('+', function() {
+    return function(a) {
+      return function(b) {
+        return a() + b();
+      };
+    };
   });
 
-  define('ceil', function(a) {
-    return Math.ceil(a());
+  define('-', function() {
+    return function(a) {
+      return function(b) {
+        return a() - b();
+      };
+    };
   });
 
-  define('round', function(a) {
-    return Math.round(a());
+  define('*', function() {
+    return function(a) {
+      return function(b) {
+        return a() * b();
+      };
+    };
   });
 
-  define('randInt', function(from) {
-    return function(to) {
-      return makeMonad(function(env, cont) {
-        return cont(Math.floor(from() + Math.random() * (to() - from() + 1)));
-      });
+  define('/', function() {
+    return function(a) {
+      return function(b) {
+        return a() / b();
+      };
+    };
+  });
+
+  define('%', function() {
+    return function(a) {
+      return function(b) {
+        return a() % b();
+      };
+    };
+  });
+
+  define('floor', function() {
+    return function(a) {
+      return Math.floor(a());
+    };
+  });
+
+  define('ceil', function() {
+    return function(a) {
+      return Math.ceil(a());
+    };
+  });
+
+  define('round', function() {
+    return function(a) {
+      return Math.round(a());
+    };
+  });
+
+  define('randInt', function() {
+    return function(from) {
+      return function(to) {
+        return makeMonad(function(env, cont) {
+          return cont(Math.floor(from() + Math.random() * (to() - from() + 1)));
+        });
+      };
     };
   });
 
@@ -180,79 +216,95 @@
     });
   });
 
-  define('>', function(a) {
-    return function(b) {
-      if (a() > b()) {
-        return _true();
-      } else {
-        return _false();
-      }
+  define('>', function() {
+    return function(a) {
+      return function(b) {
+        if (a() > b()) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
     };
   });
 
-  define('<', function(a) {
-    return function(b) {
-      if (a() < b()) {
-        return _true();
-      } else {
-        return _false();
-      }
+  define('<', function() {
+    return function(a) {
+      return function(b) {
+        if (a() < b()) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
     };
   });
 
-  define('gt', function(a) {
-    return function(b) {
-      if (a() > b()) {
-        return _true();
-      } else {
-        return _false();
-      }
+  define('gt', function() {
+    return function(a) {
+      return function(b) {
+        if (a() > b()) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
     };
   });
 
-  define('gte', function(a) {
-    return function(b) {
-      if (a() >= b()) {
-        return _true();
-      } else {
-        return _false();
-      }
+  define('gte', function() {
+    return function(a) {
+      return function(b) {
+        if (a() >= b()) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
     };
   });
 
-  define('lt', function(a) {
-    return function(b) {
-      if (a() < b()) {
-        return _true();
-      } else {
-        return _false();
-      }
+  define('lt', function() {
+    return function(a) {
+      return function(b) {
+        if (a() < b()) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
     };
   });
 
-  define('lte', function(a) {
-    return function(b) {
-      if (a() <= b()) {
-        return _true();
-      } else {
-        return _false();
-      }
+  define('lte', function() {
+    return function(a) {
+      return function(b) {
+        if (a() <= b()) {
+          return _true();
+        } else {
+          return _false();
+        }
+      };
     };
   });
 
-  define('strlen', function(a) {
-    return a().length;
+  define('strlen', function() {
+    return function(a) {
+      return a().length;
+    };
   });
 
-  define('log', function(msg) {
-    return function(value) {
-      if (msg().type !== 'cons') {
-        defaultEnv.write("" + (msg()));
-      } else {
-        defaultEnv.write(concatList(msg()));
-      }
-      defaultEnv.write("\n");
-      return value();
+  define('log', function() {
+    return function(msg) {
+      return function(value) {
+        if (msg().type !== 'cons') {
+          defaultEnv.write("" + (msg()));
+        } else {
+          defaultEnv.write(concatList(msg()));
+        }
+        defaultEnv.write("\n");
+        return value();
+      };
     };
   });
 
@@ -299,89 +351,117 @@
     return m;
   };
 
-  define('eventContext', function(evt) {
-    return evt().leisureContext;
+  define('eventContext', function() {
+    return function(evt) {
+      return evt().leisureContext;
+    };
   });
 
-  define('eventType', function(evt) {
-    return evt().type;
+  define('eventType', function() {
+    return function(evt) {
+      return evt().type;
+    };
   });
 
-  define('eventX', function(evt) {
-    return evt().x;
+  define('eventX', function() {
+    return function(evt) {
+      return evt().x;
+    };
   });
 
-  define('eventY', function(evt) {
-    return evt().y;
+  define('eventY', function() {
+    return function(evt) {
+      return evt().y;
+    };
   });
 
-  define('eventTargetId', function(evt) {
-    return evt().target.id;
+  define('eventTargetId', function() {
+    return function(evt) {
+      return evt().target.id;
+    };
   });
 
-  define('eventKeyCode', function(evt) {
-    var e;
-    e = evt();
-    return e.charCode || e.keyCode || e.which;
+  define('eventKeyCode', function() {
+    return function(evt) {
+      var e;
+      e = evt();
+      return e.charCode || e.keyCode || e.which;
+    };
   });
 
-  define('eventPreventDefault', function(evt) {
-    return makeMonad(function(env, cont) {
-      evt().preventDefault();
-      return cont(_false());
-    });
-  });
-
-  define('forward', function(name) {
-    return makeMonad(function(env, cont) {
-      Leisure.defineForward(name);
-      return cont(_false());
-    });
-  });
-
-  define('return', function(v) {
-    return makeMonad(function(env, cont) {
-      return cont(v());
-    });
-  });
-
-  define('require', function(file) {
-    return makeMonad(function(env, cont) {
-      return env.require(file(), cont);
-    });
-  });
-
-  define('print', function(msg) {
-    return makeMonad(function(env, cont) {
-      if (msg() !== _nil()) env.write("" + (msg()) + "\n");
-      return cont(_false());
-    });
-  });
-
-  define('printValue', function(value) {
-    return makeMonad(function(env, cont) {
-      if (value() !== _nil()) env.write("" + (env.presentValue(value())) + "\n");
-      return cont(_false());
-    });
-  });
-
-  define('prompt', function(msg) {
-    return makeMonad(function(env, cont) {
-      return env.prompt(String(msg()), function(input) {
-        return cont(input);
-      });
-    });
-  });
-
-  define('bind', function(m) {
-    return function(binding) {
+  define('eventPreventDefault', function() {
+    return function(evt) {
       return makeMonad(function(env, cont) {
-        return runMonad(m(), env, function(value) {
-          return runMonad(binding()(function() {
-            return value;
-          }), env, cont);
+        evt().preventDefault();
+        return cont(_false());
+      });
+    };
+  });
+
+  define('forward', function() {
+    return function(name) {
+      return makeMonad(function(env, cont) {
+        Leisure.defineForward(name);
+        return cont(_false());
+      });
+    };
+  });
+
+  define('return', function() {
+    return function(v) {
+      return makeMonad(function(env, cont) {
+        return cont(v());
+      });
+    };
+  });
+
+  define('require', function() {
+    return function(file) {
+      return makeMonad(function(env, cont) {
+        return env.require(file(), cont);
+      });
+    };
+  });
+
+  define('print', function() {
+    return function(msg) {
+      return makeMonad(function(env, cont) {
+        if (msg() !== _nil()) env.write("" + (msg()) + "\n");
+        return cont(_false());
+      });
+    };
+  });
+
+  define('printValue', function() {
+    return function(value) {
+      return makeMonad(function(env, cont) {
+        if (value() !== _nil()) env.write("" + (env.presentValue(value())) + "\n");
+        return cont(_false());
+      });
+    };
+  });
+
+  define('prompt', function() {
+    return function(msg) {
+      return makeMonad(function(env, cont) {
+        return env.prompt(String(msg()), function(input) {
+          return cont(input);
         });
       });
+    };
+  });
+
+  define('bind', function() {
+    return function(m) {
+      return function(binding) {
+        return makeMonad(function(env, cont) {
+          return runMonad(m(), env, function(value) {
+            return runMonad(binding()(function() {
+              return value;
+            }), env, cont);
+          });
+        });
+      };
     };
   });
 
@@ -413,28 +493,36 @@
     }
   };
 
-  define('concat', function(l) {
-    return concatList(l());
+  define('concat', function() {
+    return function(l) {
+      return concatList(l());
+    };
   });
 
-  define('js', function(codeList) {
-    return makeMonad(function(env, cont) {
-      var cl;
-      cl = codeList();
-      if (cl !== _nil() && cl.type !== 'cons') {
-        throw new Error("js expects a list for its code");
-      }
-      return cont(eval(concatList(cl)));
-    });
+  define('js', function() {
+    return function(codeList) {
+      return makeMonad(function(env, cont) {
+        var cl;
+        cl = codeList();
+        if (cl !== _nil() && cl.type !== 'cons') {
+          throw new Error("js expects a list for its code");
+        }
+        return cont(eval(concatList(cl)));
+      });
+    };
   });
 
-  define('arrayLength', function(array) {
-    return array().length;
+  define('arrayLength', function() {
+    return function(array) {
+      return array().length;
+    };
   });
 
-  define('arrayElements', function(array) {
-    return function(f) {
-      return arrayRest(array(), 0, f());
+  define('arrayElements', function() {
+    return function(array) {
+      return function(f) {
+        return arrayRest(array(), 0, f());
+      };
     };
   });
 
@@ -446,35 +534,41 @@
     }
   };
 
-  define('browser', function(codeList) {
-    return makeMonad(function(env, cont) {
-      var cl;
-      if (typeof window !== "undefined" && window !== null) {
-        cl = codeList();
-        if (cl !== _nil() && cl.type !== 'cons') {
-          throw new Error("js expects a list for its code");
+  define('browser', function() {
+    return function(codeList) {
+      return makeMonad(function(env, cont) {
+        var cl;
+        if (typeof window !== "undefined" && window !== null) {
+          cl = codeList();
+          if (cl !== _nil() && cl.type !== 'cons') {
+            throw new Error("js expects a list for its code");
+          }
+          return cont(eval(concatList(cl)));
+        } else {
+          return cont(null);
         }
-        return cont(eval(concatList(cl)));
-      } else {
-        return cont(null);
-      }
-    });
+      });
+    };
   });
 
   values = {};
 
-  define('getValue', function(name) {
-    return makeMonad(function(env, cont) {
-      return cont(values[name()]);
-    });
+  define('getValue', function() {
+    return function(name) {
+      return makeMonad(function(env, cont) {
+        return cont(values[name()]);
+      });
+    };
   });
 
-  define('setValue', function(name) {
-    return function(value) {
-      return makeMonad(function(env, cont) {
-        values[name()] = value();
-        return cont(_false);
-      });
+  define('setValue', function() {
+    return function(name) {
+      return function(value) {
+        return makeMonad(function(env, cont) {
+          values[name()] = value();
+          return cont(_false);
+        });
+      };
     };
   });
 
@@ -486,29 +580,39 @@
     });
   });
 
-  define('getS', function(state) {
-    return makeMonad(function(env, cont) {
-      return cont(state().value);
-    });
-  });
-
-  define('setS', function(state) {
-    return function(value) {
+  define('getS', function() {
+    return function(state) {
       return makeMonad(function(env, cont) {
-        state().value = value();
-        return cont(_false);
+        return cont(state().value);
       });
     };
   });
 
-  define('poop', 3);
+  define('setS', function() {
+    return function(state) {
+      return function(value) {
+        return makeMonad(function(env, cont) {
+          state().value = value();
+          return cont(_false);
+        });
+      };
+    };
+  });
 
-  define('svg-measure-text', (function(text) {
-    return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
+  define('poop', function() {
+    return 3;
+  });
+
+  define('svg-measure-text', (function() {
+    return function(text) {
+      return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
+    };
   }), 2);
 
-  define('prim-svg-measure', (function(content) {
-    return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasure(content) : void 0;
+  define('prim-svg-measure', (function() {
+    return function(content) {
+      return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasure(content) : void 0;
+    };
   }), 1);
 
   root.setTty = setTty;

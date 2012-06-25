@@ -302,17 +302,21 @@
     return pt.matrixTransform(svg.getCTM());
   };
 
-  Leisure.define('startPhysics', Prim.makeMonad(function(env, cont) {
-    return startStepper(function() {
-      return cont(false);
+  Leisure.define('startPhysics', function() {
+    return Prim.makeMonad(function(env, cont) {
+      return startStepper(function() {
+        return cont(false);
+      });
     });
-  }));
+  });
 
-  Leisure.define('stepPhysics', Prim.makeMonad(function(env, cont) {
-    return stepper(function() {
-      return cont(false);
+  Leisure.define('stepPhysics', function() {
+    return Prim.makeMonad(function(env, cont) {
+      return stepper(function() {
+        return cont(false);
+      });
     });
-  }));
+  });
 
   lastStep = Date.now();
 

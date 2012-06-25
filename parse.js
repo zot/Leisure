@@ -288,7 +288,7 @@ misrepresented as being the original software.
   evalFunc = eval;
 
   define = function define(name, func, arity, src) {
-    var f, nm;
+    var nm;
     func.src = src;
     func.leisureContexts = [];
     nm = nameSub(name);
@@ -297,17 +297,18 @@ misrepresented as being the original software.
     if (global.noredefs && (global[nm] != null)) {
       throw new Error("[DEF] Attempt to redefine definition: " + name);
     }
-    f = function f() {
-      return func;
-    };
-    global[nm] = global.leisureFuncs[nm] = f;
+    global[nm] = global.leisureFuncs[nm] = func;
     (evalFunc('leisureAddFunc'))(name);
-    return f;
+    return func;
   };
 
-  define('lexCons', primLexCons, 2, '\a b f . f a b');
+  define('lexCons', (function() {
+    return primLexCons;
+  }), 2, '\a b f . f a b');
 
-  define('lexNil', lexNil, 0, '\a b . b');
+  define('lexNil', (function() {
+    return lexNil;
+  }), 0, '\a b . b');
 
   escapeRegexpChars = function escapeRegexpChars(str) {
     return str.replace(/([\][().\\*+?{}|])/g, '\\$1');
@@ -527,33 +528,41 @@ misrepresented as being the original software.
     return groupDL(lexNil).setPos(startTok.start(), endTok.end());
   };
 
-  define('lit', setDataType((function(_x) {
-    return setType((function(_f) {
-      return _f()(_x);
-    }), 'lit');
-  }), 'lit'));
-
-  define('ref', setDataType((function(_x) {
-    return setType((function(_f) {
-      return _f()(_x);
-    }), 'ref');
-  }), 'ref'));
-
-  define('lambda', setDataType((function(_v) {
-    return function(_f) {
-      return setType((function(_g) {
-        return _g()(_v)(_f);
-      }), 'lambda');
-    };
-  }), 'lambda'));
-
-  define('apply', setDataType((function(_func) {
-    return function(_arg) {
+  define('lit', function() {
+    return setDataType((function(_x) {
       return setType((function(_f) {
-        return _f()(_func)(_arg);
-      }), 'apply');
-    };
-  }), 'apply'));
+        return _f()(_x);
+      }), 'lit');
+    }), 'lit');
+  });
+
+  define('ref', function() {
+    return setDataType((function(_x) {
+      return setType((function(_f) {
+        return _f()(_x);
+      }), 'ref');
+    }), 'ref');
+  });
+
+  define('lambda', function() {
+    return setDataType((function(_v) {
+      return function(_f) {
+        return setType((function(_g) {
+          return _g()(_v)(_f);
+        }), 'lambda');
+      };
+    }), 'lambda');
+  });
+
+  define('apply', function() {
+    return setDataType((function(_func) {
+      return function(_arg) {
+        return setType((function(_f) {
+          return _f()(_func)(_arg);
+        }), 'apply');
+      };
+    }), 'apply');
+  });
 
   tag = function tag(ast, start, end) {
     ast.leisureStart = start;
