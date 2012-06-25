@@ -27,5 +27,18 @@ all2 f l = l
 
 #@update sel-all2
 treeForNotebook all2
+
+ones = cons 1 ones
+
+increasing x = cons x (increasing (+ 1 x))
+
+naturals = increasing 1
+
+evens = remove-if odd? naturals
+
+take 5 ones
+take 5 naturals
+take 5 evens
+
   </body>
 </html>
