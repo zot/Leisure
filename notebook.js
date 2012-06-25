@@ -1332,52 +1332,58 @@
     return _results;
   };
 
-  Leisure.define('finishLoading', function(bubba) {
-    return Prim.makeMonad(function(env, cont) {
-      var i, _i, _len;
-      for (_i = 0, _len = postLoadQueue.length; _i < _len; _i++) {
-        i = postLoadQueue[_i];
-        i();
-      }
-      postLoadQueue = [];
-      return cont(_false());
-    });
+  Leisure.define('finishLoading', function() {
+    return function(bubba) {
+      return Prim.makeMonad(function(env, cont) {
+        var i, _i, _len;
+        for (_i = 0, _len = postLoadQueue.length; _i < _len; _i++) {
+          i = postLoadQueue[_i];
+          i();
+        }
+        postLoadQueue = [];
+        return cont(_false());
+      });
+    };
   });
 
-  Leisure.define('config', function(expr) {
-    return Prim.makeMonad(function(env, cont) {
-      switch (expr()) {
-        case 'autoTest':
-          autoRun(env.owner, true);
-      }
-      return cont(_false());
-    });
+  Leisure.define('config', function() {
+    return function(expr) {
+      return Prim.makeMonad(function(env, cont) {
+        switch (expr()) {
+          case 'autoTest':
+            autoRun(env.owner, true);
+        }
+        return cont(_false());
+      });
+    };
   });
 
-  Leisure.define('notebookSelection', function(func) {
-    return Prim.makeMonad(function(env, cont) {
-      var bx, offset, p1, p2, r, r2, sel, _ref;
-      sel = window.getSelection();
-      bx = getBox(sel.focusNode);
-      if ((bx != null) && getAst(bx) === func().ast) {
-        offset = (_ref = bx.ast.leisureCodeOffset) != null ? _ref : 0;
-        r = sel.getRangeAt(0);
-        window.r = r;
-        r2 = document.createRange();
-        r2.setStart(bx, 0);
-        r2.setEnd(r.startContainer, r.startOffset);
-        p1 = r2.cloneContents().textContent.length - offset;
-        if (!r.collapsed) r2.setEnd(r.endContainer, r.endOffset);
-        p2 = r2.cloneContents().textContent.length - offset;
-        return cont(_some2()(function() {
-          return p1;
-        })(function() {
-          return p2;
-        }));
-      } else {
-        return cont(_none());
-      }
-    });
+  Leisure.define('notebookSelection', function() {
+    return function(func) {
+      return Prim.makeMonad(function(env, cont) {
+        var bx, offset, p1, p2, r, r2, sel, _ref;
+        sel = window.getSelection();
+        bx = getBox(sel.focusNode);
+        if ((bx != null) && getAst(bx) === func().ast) {
+          offset = (_ref = bx.ast.leisureCodeOffset) != null ? _ref : 0;
+          r = sel.getRangeAt(0);
+          window.r = r;
+          r2 = document.createRange();
+          r2.setStart(bx, 0);
+          r2.setEnd(r.startContainer, r.startOffset);
+          p1 = r2.cloneContents().textContent.length - offset;
+          if (!r.collapsed) r2.setEnd(r.endContainer, r.endOffset);
+          p2 = r2.cloneContents().textContent.length - offset;
+          return cont(_some2()(function() {
+            return p1;
+          })(function() {
+            return p2;
+          }));
+        } else {
+          return cont(_none());
+        }
+      });
+    };
   });
 
   autoRun = function autoRun(el, state) {
