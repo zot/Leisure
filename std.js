@@ -26,7 +26,7 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var Nil = Leisure.Nil;
 var cons = Leisure.cons;
-var _id, _flip, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _null$e, _append, _compose, _iszero, _positive, _length, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _head, _tail, _reverse, _subreverse, _addstr, _if, _at, _take, _takeWhile, _drop, _dropWhile, _series, _from, _fromBy, _fromTo, _fromToBy, _any, _all, _index_combine, _indexof, _position, _find, _find$_if, _find$_if$_opt, _count, _count$_if, _count$_if$_not, _remove, _remove$_if, _remove$_if$_not, _map, _reduce, _foldr, _foldr1, _foldl, _foldl1, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _html;
+var _id, _flip, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _null$e, _append, _compose, _iszero, _positive, _length, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _head, _tail, _reverse, _subreverse, _addstr, _if, _at, _take, _takeWhile, _drop, _dropWhile, _series, _from, _fromBy, _fromTo, _fromToBy, _any, _all, _index_combine, _indexof, _position, _find, _find$_if, _find$_if$_opt, _count, _count$_if, _count$_if$_not, _remove, _remove$_if, _remove$_if$_not, _filter, _map, _reduce, _foldr, _foldr1, _foldl, _foldl1, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _html;
 //id = AST(\x . x)
 root.defs._id = _id = Leisure.define('id', (function() {var f = (function(_x){return _x();}); return function _id(){return f;}})(), 1, "\\x. x");
 ;
@@ -197,6 +197,9 @@ root.defs._remove$_if = _remove$_if = Leisure.define('remove-if', (function() {v
 ;
 //remove-if-not = AST(\f l . remove-if \x . not (f x) l)
 root.defs._remove$_if$_not = _remove$_if$_not = Leisure.define('remove-if-not', (function() {var f = (function(_f){return function(_l){return _remove$_if()((function(){var $m; return (function(){return $m || ($m = (function(_x){return _not()((function(){var $m; return (function(){return $m || ($m = (_f()(_x)))})})());}))})})())(_l);};}); return function _remove$_if$_not(){return f;}})(), 2, "\\f. \\l. remove-if (\\x. not (f x)) l");
+;
+//filter = AST(\f . remove-if (compose not f))
+root.defs._filter = _filter = Leisure.define('filter', (function() {var f = (function(_f){return _remove$_if()((function(){var $m; return (function(){return $m || ($m = (_compose()(_not)(_f)))})})());}); return function _filter(){return f;}})(), 1, "\\f. remove-if (compose not f)");
 ;
 //map = AST(\func list . list \h t D . cons (func h) (map func t) nil)
 root.defs._map = _map = Leisure.define('map', (function() {var f = (function(_func){return function(_list){return _list()((function(){var $m; return (function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _cons()((function(){var $m; return (function(){return $m || ($m = (_func()(_h)))})})())((function(){var $m; return (function(){return $m || ($m = (_map()(_func)(_t)))})})());};};}))})})())(_nil);};}); return function _map(){return f;}})(), 2, "\\func. \\list. list (\\h t D . cons (func h) (map func t)) nil");

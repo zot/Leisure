@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var LCNil, LexCons, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, codeChars, defGroup, defToken, define, dlappend, dlempty, dlnew, eatAllWhitespace, elements, escapeRegexpChars, evalFunc, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, groupCloses, groupOpens, ifParsed, inspect, isLambdaToken, lambda, lexCons, lexConsPos, lexNil, listDo, listToApply, listToAst, listToLambda, lit, makeToken, nameSub, nextTok, numberPat, parseGroup, parseGroupTerm, parsePhase1, pos, positionGroup, primLexCons, primToken, print, printApply, printLambda, ref, resetScanner, root, setDataType, setType, snip, subprint, tag, testParse, tokPos, tokenPat, tokenToAst, tokenTypes, tokens,
+  var CNil, Cons, DL, LexCons, LexDL, Nil, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, codeChars, cons, defGroup, defToken, define, dlappend, dlempty, dlnew, eatAllWhitespace, elements, escapeRegexpChars, evalFunc, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, groupCloses, groupOpens, ifParsed, inspect, isLambdaToken, jsType, lambda, lexCons, lexDlappend, lexDlempty, lexDlnew, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, nextTok, numberPat, parseGroup, parseGroupTerm, parsePhase1, pos, positionGroup, primCons, primLexCons, primToken, print, printApply, printLambda, ref, resetScanner, root, setDataType, setType, snip, subprint, tag, testParse, tokPos, tokenPat, tokenToAst, tokenTypes, tokens,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -95,25 +95,11 @@ misrepresented as being the original software.
     return func;
   };
 
-  LexCons = (function() {
+  Cons = (function() {
 
-    function LexCons() {}
+    function Cons() {}
 
-    LexCons.prototype.setPos = function setPos(start, end) {
-      this.startPos = start;
-      this.endPos = end;
-      return this;
-    };
-
-    LexCons.prototype.start = function start() {
-      return this.startPos;
-    };
-
-    LexCons.prototype.end = function end() {
-      return this.endPos;
-    };
-
-    LexCons.prototype.head = function head() {
+    Cons.prototype.head = function head() {
       return this(function() {
         return function(a) {
           return function(b) {
@@ -123,7 +109,7 @@ misrepresented as being the original software.
       });
     };
 
-    LexCons.prototype.tail = function tail() {
+    Cons.prototype.tail = function tail() {
       return this(function() {
         return function(a) {
           return function(b) {
@@ -133,48 +119,63 @@ misrepresented as being the original software.
       });
     };
 
-    LexCons.prototype.find = function find(func) {
+    Cons.prototype.cons = function cons(a, b) {
+      return cons(a, b);
+    };
+
+    Cons.prototype.find = function find(func) {
       return func(this.head()) || this.tail().find(func);
     };
 
-    LexCons.prototype.foldl = function foldl(func, arg) {
+    Cons.prototype.removeAll = function removeAll(func) {
+      var t;
+      t = this.tail().removeAll(func);
+      if (func(this.head)) {
+        return t;
+      } else if (t === this.tail()) {
+        return this;
+      } else {
+        return cons(this.head(), t);
+      }
+    };
+
+    Cons.prototype.foldl = function foldl(func, arg) {
       return this.tail().foldl(func, func(arg, this.head()));
     };
 
-    LexCons.prototype.foldr = function foldr(func, arg) {
+    Cons.prototype.foldr = function foldr(func, arg) {
       return func(this.head(), this.tail().foldr(func, arg));
     };
 
-    LexCons.prototype.toArray = function toArray() {
+    Cons.prototype.toArray = function toArray() {
       return this.foldl((function(i, el) {
         i.push(el);
         return i;
       }), []);
     };
 
-    LexCons.prototype.toString = function toString() {
-      return "LexCons[" + (this.toArray().join(' ')) + "]";
+    Cons.prototype.toString = function toString() {
+      return "Cons[" + (this.toArray().join(', ')) + "]";
     };
 
-    LexCons.prototype.reverse = function reverse() {
-      return this.rev(lexNil);
+    Cons.prototype.reverse = function reverse() {
+      return this.rev(Nil);
     };
 
-    LexCons.prototype.rev = function rev(result) {
-      return this.tail().rev(lexCons(this.head(), result));
+    Cons.prototype.rev = function rev(result) {
+      return this.tail().rev(cons(this.head(), result));
     };
 
-    LexCons.prototype.equals = function equals(other) {
-      var _ref, _ref2, _ref3, _ref4;
-      return (other != null ? other.constructor : void 0) === LexCons && (this.head() === other.head || (((_ref = this.head()) != null ? _ref.constructor : void 0) === LexCons && ((_ref2 = this.head()) != null ? _ref2.equals(other.head) : void 0))) && (this.tail() === other.tail || (((_ref3 = this.tail()) != null ? _ref3.constructor : void 0) === LexCons && ((_ref4 = this.tail()) != null ? _ref4.equals(other.tail) : void 0)));
+    Cons.prototype.equals = function equals(other) {
+      return this === other || (other instanceof Cons && (this.head() === other.head() || (this.head() instanceof Cons && this.head().equals(other.head()))) && (this.tail() === other.tail() || (this.tail() instanceof Cons && this.tail().equals(other.tail()))));
     };
 
-    LexCons.prototype.each = function each(block) {
+    Cons.prototype.each = function each(block) {
       block(this.head());
       return this.tail().each(block);
     };
 
-    LexCons.prototype.last = function last() {
+    Cons.prototype.last = function last() {
       var t;
       t = this.tail();
       if (t === lexNil) {
@@ -184,105 +185,249 @@ misrepresented as being the original software.
       }
     };
 
-    return LexCons;
+    return Cons;
 
   })();
 
-  LCNil = (function(_super) {
+  CNil = (function(_super) {
 
-    __extends(LCNil, _super);
+    __extends(CNil, _super);
 
-    function LCNil() {
-      LCNil.__super__.constructor.apply(this, arguments);
+    function CNil() {
+      CNil.__super__.constructor.apply(this, arguments);
     }
 
-    LCNil.prototype.find = function find() {
+    CNil.prototype.find = function find() {
       return false;
     };
 
-    LCNil.prototype.removeAll = function removeAll() {
+    CNil.prototype.removeAll = function removeAll() {
       return this;
     };
 
-    LCNil.prototype.foldl = function foldl(func, arg) {
+    CNil.prototype.foldl = function foldl(func, arg) {
       return arg;
     };
 
-    LCNil.prototype.foldr = function foldr(func, arg) {
+    CNil.prototype.foldr = function foldr(func, arg) {
       return arg;
     };
 
-    LCNil.prototype.rev = function rev(result) {
+    CNil.prototype.rev = function rev(result) {
       return result;
     };
 
-    LCNil.prototype.equals = function equals(other) {
-      return (other != null ? other.constructor : void 0) === LCNil;
+    CNil.prototype.equals = function equals(other) {
+      return other instanceof CNil;
     };
 
-    LCNil.prototype.each = function each() {};
+    CNil.prototype.each = function each() {};
 
-    LCNil.prototype.toString = function toString() {
-      return 'lexNil';
-    };
+    return CNil;
 
-    return LCNil;
+  })(Cons);
 
-  })(LexCons);
+  DL = (function() {
 
-  primLexCons = setDataType((function(a) {
+    function DL() {}
+
+    return DL;
+
+  })();
+
+  jsType = function jsType(v) {
+    var t;
+    t = typeof v;
+    if (t === 'object') {
+      return v.constructor || t;
+    } else {
+      return t;
+    }
+  };
+
+  mkProto = function mkProto(protoFunc, value) {
+    value.__proto__ = protoFunc.prototype;
+    return value;
+  };
+
+  checkType = function checkType(value, type) {
+    if (!(value instanceof type)) {
+      throw new Error("Type error: expected type: " + type + ", but got: " + (jsType(value)));
+    }
+  };
+
+  primCons = setDataType((function(a) {
     return function(b) {
-      var c;
-      c = setType((function(f) {
+      return mkProto(Cons, setType((function(f) {
         return f()(a)(b);
-      }), 'lexCons');
-      c.__proto__ = LexCons.prototype;
-      return c;
+      }), 'cons'));
     };
-  }), 'lexCons');
+  }), 'cons');
 
-  lexNil = setType((function(a) {
+  Nil = mkProto(CNil, setType((function(a) {
     return function(b) {
       return b();
     };
-  }), 'lexNil');
+  }), 'nil'));
 
-  lexNil.__proto__ = LCNil.prototype;
-
-  lexCons = function lexCons(a, b) {
-    return lexConsPos(a, b, typeof a.start === "function" ? a.start() : void 0, typeof b.end === "function" ? b.end() : void 0);
-  };
-
-  lexConsPos = function lexConsPos(a, b, start, end) {
-    return primLexCons(function() {
+  cons = function cons(a, b) {
+    return primCons(function() {
       return a;
     })(function() {
       return b;
-    }).setPos(start, end);
+    });
   };
 
-  dlempty = function dlempty(x) {
+  dlempty = mkProto(DL, function(x) {
     return x;
-  };
+  });
 
   dlnew = function dlnew(a) {
-    return function(b) {
-      return lexCons(a, b);
-    };
+    return mkProto(DL, function(b) {
+      return cons(a, b);
+    });
   };
 
   dlappend = function dlappend(a, b) {
-    return function(c) {
+    checkType(a, DL);
+    checkType(b, DL);
+    return mkProto(DL, function(c) {
       return a(b(c));
+    });
+  };
+
+  LexCons = (function(_super) {
+
+    __extends(LexCons, _super);
+
+    function LexCons() {
+      LexCons.__super__.constructor.apply(this, arguments);
+    }
+
+    LexCons.prototype.head = function head() {
+      return this(function() {
+        return function(a) {
+          return function(s) {
+            return function(b) {
+              return function(e) {
+                return a();
+              };
+            };
+          };
+        };
+      });
     };
+
+    LexCons.prototype.tail = function tail() {
+      return this(function() {
+        return function(a) {
+          return function(s) {
+            return function(b) {
+              return function(e) {
+                return b();
+              };
+            };
+          };
+        };
+      });
+    };
+
+    LexCons.prototype.start = function start() {
+      return this(function() {
+        return function(a) {
+          return function(s) {
+            return function(b) {
+              return function(e) {
+                return s();
+              };
+            };
+          };
+        };
+      });
+    };
+
+    LexCons.prototype.end = function end() {
+      return this(function() {
+        return function(a) {
+          return function(s) {
+            return function(b) {
+              return function(e) {
+                return e();
+              };
+            };
+          };
+        };
+      });
+    };
+
+    LexCons.prototype.withStart = function withStart(start) {
+      return lexCons(this.head(), start, this.tail(), this.end());
+    };
+
+    LexCons.prototype.toString = function toString() {
+      return "LexCons(" + (this.start()) + ", " + (this.end()) + ")[" + (this.toArray().join(' ')) + "]";
+    };
+
+    return LexCons;
+
+  })(Cons);
+
+  primLexCons = setDataType((function(a) {
+    return function(start) {
+      return function(b) {
+        return function(end) {
+          return mkProto(LexCons, setType((function(f) {
+            return f()(a)(start)(b)(end);
+          }), 'lexCons'));
+        };
+      };
+    };
+  }), 'lexCons');
+
+  LexDL = (function() {
+
+    function LexDL() {}
+
+    return LexDL;
+
+  })();
+
+  lexCons = function lexCons(a, start, b, end) {
+    return primLexCons(function() {
+      return a;
+    })(function() {
+      return start;
+    })(function() {
+      return b;
+    })(function() {
+      return end;
+    });
+  };
+
+  lexDlempty = mkProto(LexDL, function(x, end) {
+    return x;
+  });
+
+  lexDlnew = function lexDlnew(a, start) {
+    return mkProto(LexDL, function(b, end) {
+      return lexCons(a, start, b, end);
+    });
+  };
+
+  lexDlappend = function lexDlappend(a, b) {
+    checkType(a, LexDL);
+    checkType(b, LexDL);
+    return mkProto(LexDL, function(c, end) {
+      return a(b(c, end), end);
+    });
   };
 
   global.leisureFuncs = {};
 
-  global.leisureFuncNames = lexNil;
+  global.leisureFuncNames = Nil;
 
   global.leisureAddFunc = function leisureAddFunc(nm) {
-    return global.leisureFuncNames = lexCons(nm, global.leisureFuncNames);
+    return global.leisureFuncNames = cons(nm, global.leisureFuncNames);
   };
 
   evalFunc = eval;
@@ -302,13 +447,17 @@ misrepresented as being the original software.
     return func;
   };
 
-  define('lexCons', (function() {
-    return primLexCons;
+  define('cons', (function() {
+    return primCons;
   }), 2, '\a b f . f a b');
 
-  define('lexNil', (function() {
-    return lexNil;
+  define('nil', (function() {
+    return primNil;
   }), 0, '\a b . b');
+
+  define('lexCons', (function() {
+    return primLexCons;
+  }), 4, '\a s b e f . f a s b e');
 
   escapeRegexpChars = function escapeRegexpChars(str) {
     return str.replace(/([\][().\\*+?{}|])/g, '\\$1');
@@ -440,7 +589,7 @@ misrepresented as being the original software.
     };
 
     Token.prototype.toString = function toString() {
-      return "Token(" + (this.tok()) + ")";
+      return "Token('" + (this.tok()) + "', " + (this.start()) + "-" + (this.end()) + ")";
     };
 
     return Token;
@@ -450,20 +599,21 @@ misrepresented as being the original software.
   primToken = setDataType((function(a) {
     return function(b) {
       var t;
-      t = setType((function(f) {
+      t = mkProto(Token, setType((function(f) {
         return f()(a)(b);
-      }), 'token');
-      t.__proto__ = Token.prototype;
+      }), 'token'));
+      console.log("NEW TOKEN: " + t);
       return t;
     };
   }), 'token');
 
   makeToken = function makeToken(tok, rest, totalLen) {
-    pos = totalLen - rest.length - tok.length;
+    var tp;
+    tp = totalLen - rest.length - tok.length;
     return primToken(function() {
       return tok;
     })(function() {
-      return pos;
+      return tp;
     });
   };
 
@@ -478,8 +628,7 @@ misrepresented as being the original software.
   parsePhase1 = function parsePhase1(str) {
     return ifParsed(parseGroup(str, '\n', str.length), function(group, rest) {
       var g;
-      g = group(lexNil);
-      if (g !== lexNil) g.setPos(g.head().start(), g.last().end());
+      g = group(Nil, str.length - rest.length);
       return [g, null, rest];
     });
   };
@@ -487,16 +636,16 @@ misrepresented as being the original software.
   parseGroup = function parseGroup(str, indent, totalLen) {
     var rest, tok, _ref;
     if (!str) {
-      return [dlempty, null, str];
+      return [lexDlempty, null, str];
     } else {
       _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
-      if (!tok || tok[0] === '\n') [dlempty, null, rest];
+      if (!tok || tok[0] === '\n') [lexDlempty, null, rest];
       if (groupCloses[tok]) {
-        return [dlempty, null, str];
+        return [lexDlempty, null, str];
       } else {
         return ifParsed(parseGroupTerm(tok, rest, indent, totalLen), function(term, rest2) {
           return ifParsed(parseGroup(rest2, indent, totalLen), function(group, rest3) {
-            return [dlappend(term, group), null, rest3];
+            return [lexDlappend(term, group), null, rest3];
           });
         });
       }
@@ -508,24 +657,26 @@ misrepresented as being the original software.
     token = makeToken(tok, rest, totalLen);
     if (close = groupOpens[tok]) {
       return ifParsed(parseGroup(rest, indent, totalLen), function(group, rest2) {
-        var closeToken, next, rest3, _ref;
+        var closeToken, innerGroup, next, rest3, _ref;
         _ref = nextTok(rest2), next = _ref[0], rest3 = _ref[1];
         closeToken = makeToken(next, rest3, totalLen);
         if (close !== next) {
           return [null, "Expecting group close: '" + close + "', but got " + (snip(rest2)) + "\n" + (new Error().stack), rest3];
         } else if (tok === '(') {
-          return [dlnew(positionGroup(group, token, closeToken)), null, rest3];
+          return [lexDlnew(positionGroup(group, token, closeToken), token.start()), null, rest3];
         } else {
-          return [dlnew(positionGroup(dlappend(dlappend(dlnew(token), group), dlnew(closeToken), token, closeToken))), null, rest3];
+          innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end());
+          return [lexDlnew(innerGroup, token.start()), null, rest3];
         }
       });
     } else {
-      return [dlnew(token), null, rest];
+      return [lexDlnew(token, token.start()), null, rest];
     }
   };
 
   positionGroup = function positionGroup(groupDL, startTok, endTok) {
-    return groupDL(lexNil).setPos(startTok.start(), endTok.end());
+    console.log("POSITIONING GROUP FOR TOKENS: " + startTok + ", " + endTok);
+    return groupDL(Nil, endTok.end()).withStart(startTok.start());
   };
 
   define('lit', function() {
@@ -655,7 +806,7 @@ misrepresented as being the original software.
   };
 
   listToAst = function listToAst(list) {
-    if (list === lexNil) {
+    if (list === Nil) {
       return [null, "Expecting expression, but input is empty"];
     } else if (!(list instanceof LexCons)) {
       return tokenToAst(list);
@@ -687,9 +838,9 @@ misrepresented as being the original software.
 
   listToLambda = function listToLambda(list) {
     var bodyRes, head;
-    if (list === lexNil) {
+    if (list === Nil) {
       return [null, "Bad lambda construct -- no variable or body"];
-    } else if (list.tail() === lexNil) {
+    } else if (list.tail() === Nil) {
       return [null, "Bad lambda construct -- no body"];
     } else {
       head = list.head();
@@ -713,7 +864,7 @@ misrepresented as being the original software.
   };
 
   listToApply = function listToApply(f, rest) {
-    if (rest === lexNil) {
+    if (rest === Nil) {
       return [f];
     } else {
       return ifParsed(listToAst(rest.head()), function(a) {
@@ -723,23 +874,14 @@ misrepresented as being the original software.
   };
 
   /*
+  tests
+  
   TODO
   
   * get working with current ASTs
-  * change to lexCons (start, end, a, b) and new AST structures (start, end, data...)
   * rewrite listToAst in Leisure?
   * write precedence parser in Leisure
   */
-
-  listDo = function listDo(l, f) {
-    return l(function() {
-      return function(h) {
-        return function(t) {
-          return f(h(), t());
-        };
-      };
-    });
-  };
 
   print = function print(f) {
     if (!(f != null)) {
@@ -768,11 +910,13 @@ misrepresented as being the original software.
     } else {
       switch (getType(f)) {
         case 'lexCons':
+          return "(" + (f.start()) + ", " + (f.end()) + ")[" + (elements(f, true)) + "]";
+        case 'cons':
           return "[" + (elements(f, true)) + "]";
-        case 'lexNil':
+        case 'nil':
           return "[]";
         case 'token':
-          return "Token(" + (f.tok()) + ")";
+          return "" + f;
         case 'ioMonad':
           return "IO";
         case 'lit':
@@ -873,14 +1017,12 @@ misrepresented as being the original software.
   };
 
   elements = function elements(l, first, nosubs) {
-    if (getType(l) === 'lexNil') {
+    if (getType(l) === 'nil') {
       return '';
     } else if (getType(l) !== 'lexCons') {
       return " | " + (print(l));
     } else {
-      return "" + (first ? '' : ', ') + (listDo(l, function(h, t) {
-        return print(h) + elements(t, false);
-      }));
+      return "" + (first ? '' : ', ') + (print(l.head()) + elements(l.tail(), false));
     }
   };
 

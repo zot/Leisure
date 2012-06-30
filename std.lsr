@@ -183,6 +183,8 @@ remove-if f l  = if (eq l nil) nil
     cons (head l) (remove-if f (tail l))
 remove-if-not f l = remove-if (\x. not (f x)) l
 
+filter f = remove-if (compose not f)
+
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
 # eg. map (+ 1) [ 4, 27, 54 ] gives cons: [5, 28, 55]
 map func list = list (\h t D . cons (func h) (map func t)) nil

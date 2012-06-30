@@ -84,25 +84,23 @@ setType = (func, type)->
   if type then func.type = type
   func
 
-# JS class overlaid on lexCons/lexNil funcs for convenience
-# merge start and end into functional rep
-class LexCons
-  setPos: (start, end)->
-    @startPos = start
-    @endPos = end
-    @
-  start: -> @startPos
-  end: -> @endPos
+# cons and lexNil are Leisure-based so that Leisure code can work with it transparently
+# they look like ordinary JS classes, but the cons
+class Cons
   head: -> @ ->(a)->(b)->a()
   tail: -> @ ->(a)->(b)->b()
+  cons: (a, b)->cons(a, b)
   find: (func)-> func(@head()) or @tail().find(func)
+  removeAll: (func)->
+    t = @tail().removeAll(func)
+    if func(@head) then t else if t == @tail() then @ else cons(@head(), t)
   foldl: (func, arg)-> @tail().foldl func, func(arg, @head())
   foldr: (func, arg)-> func @head(), @tail().foldr(func, arg)
   toArray: -> @foldl ((i, el)-> i.push(el); i), []
-  toString: -> "LexCons[#{@toArray().join(' ')}]"
-  reverse: -> @rev lexNil
-  rev: (result)-> @tail().rev lexCons(@head(), result)
-  equals: (other)-> other?.constructor == LexCons and (@head() == other.head or (@head()?.constructor == LexCons and @head()?.equals(other.head))) and (@tail() == other.tail or (@tail()?.constructor == LexCons and @tail()?.equals(other.tail)))
+  toString: -> "Cons[#{@toArray().join(', ')}]"
+  reverse: -> @rev Nil
+  rev: (result)-> @tail().rev cons(@head(), result)
+  equals: (other)-> @ == other or (other instanceof Cons and (@head() == other.head() or (@head() instanceof Cons and @head().equals(other.head()))) and (@tail() == other.tail() or (@tail() instanceof Cons and @tail().equals(other.tail()))))
   each: (block)->
     block(@head())
     @tail().each(block)
@@ -110,35 +108,65 @@ class LexCons
     t = @tail()
     if t == lexNil then t else t.last()
 
-class LCNil extends LexCons
+class CNil extends Cons
   find: -> false
   removeAll: -> @
   foldl: (func, arg)-> arg
   foldr: (func, arg)-> arg
   rev: (result)-> result
-  equals: (other)-> other?.constructor == LCNil
+  equals: (other)-> other instanceof CNil
   each: ->
-  toString: -> 'lexNil'
 
-# cons and lexNil are Leisure-based so that Leisure code can work with it transparently
-primLexCons = setDataType(((a)->(b)->
-  c = setType ((f)-> f()(a)(b)), 'lexCons'
-  c.__proto__ = LexCons.prototype
-  c), 'lexCons')
-lexNil = setType(((a)->(b)->b()), 'lexNil')
-lexNil.__proto__ = LCNil.prototype
+class DL
 
-lexCons = (a, b)-> lexConsPos(a, b, a.start?(), b.end?())
-lexConsPos = (a, b, start, end)-> primLexCons(->a)(->b).setPos(start, end)
-dlempty = (x)->x
-dlnew = (a)->(b)-> lexCons(a, b)
-dlappend = (a, b)->(c)-> a(b(c))
+jsType = (v)->
+  t = typeof v
+  if t == 'object' then v.constructor || t
+  else t
+
+mkProto = (protoFunc, value)->
+  value.__proto__ = protoFunc.prototype
+  value
+
+checkType = (value, type)-> if !(value instanceof type) then throw new Error("Type error: expected type: #{type}, but got: #{jsType value}")
+
+primCons = setDataType(((a)->(b)-> mkProto Cons, setType ((f)-> f()(a)(b)), 'cons'), 'cons')
+Nil = mkProto CNil, setType(((a)->(b)->b()), 'nil')
+cons = (a, b)-> primCons(->a)(->b)
+dlempty = mkProto DL, (x)-> x
+dlnew = (a)-> mkProto DL, (b)-> cons(a, b)
+dlappend = (a, b)->
+  checkType(a, DL)
+  checkType(b, DL)
+  mkProto DL, (c)-> a(b(c))
+
+# JS class overlaid on lexCons/lexNil funcs for convenience
+# merge start and end into functional rep
+class LexCons extends Cons
+  head: -> @ ->(a)->(s)->(b)->(e)->a()
+  tail: -> @ ->(a)->(s)->(b)->(e)->b()
+  start: -> @ ->(a)->(s)->(b)->(e)->s()
+  end: -> @ ->(a)->(s)->(b)->(e)->e()
+  withStart: (start)-> lexCons(@head(), start, @tail(), @end())
+  toString: -> "LexCons(#{@start()}, #{@end()})[#{@toArray().join(' ')}]"
+
+primLexCons = setDataType(((a)->(start)->(b)->(end)-> mkProto LexCons, setType ((f)-> f()(a)(start)(b)(end)), 'lexCons'), 'lexCons')
+
+class LexDL
+
+lexCons = (a, start, b, end)-> primLexCons(->a)(->start)(->b)(->end)
+lexDlempty = mkProto LexDL, (x, end)-> x
+lexDlnew = (a, start)-> mkProto LexDL, (b, end)-> lexCons(a, start, b, end)
+lexDlappend = (a, b)->
+  checkType(a, LexDL)
+  checkType(b, LexDL)
+  mkProto LexDL, (c, end)->a(b(c, end), end)
 
 global.leisureFuncs = {}
 
-global.leisureFuncNames = lexNil
+global.leisureFuncNames = Nil
 
-global.leisureAddFunc = (nm)-> global.leisureFuncNames = lexCons(nm, global.leisureFuncNames)
+global.leisureAddFunc = (nm)-> global.leisureFuncNames = cons(nm, global.leisureFuncNames)
 
 evalFunc = eval
 
@@ -157,8 +185,9 @@ define = (name, func, arity, src) ->
 
 # expose lexCons and lexNil to Leisure code
 
-define 'lexCons', (->primLexCons), 2, '\a b f . f a b'
-define 'lexNil', (->lexNil), 0, '\a b . b'
+define 'cons', (->primCons), 2, '\a b f . f a b'
+define 'nil', (->primNil), 0, '\a b . b'
+define 'lexCons', (->primLexCons), 4, '\a s b e f . f a s b e'
 
 ######
 ###### Scanning
@@ -225,16 +254,17 @@ class Token
   tok: -> @ ->(t)->(p)->t()
   start: -> @ ->(t)->(p)->p()
   end: -> @start() + @tok().length
-  toString: -> "Token(#{@tok()})"
+  toString: -> "Token('#{@tok()}', #{@start()}-#{@end()})"
 
 primToken = setDataType(((a)->(b)->
-  t = setType ((f)-> f()(a)(b)), 'token'
-  t.__proto__ = Token.prototype
-  t), 'token')
+  t = mkProto Token, setType ((f)-> f()(a)(b)), 'token'
+  console.log "NEW TOKEN: #{t}"
+  t
+  ), 'token')
 
 makeToken = (tok, rest, totalLen)->
-  pos = totalLen - rest.length - tok.length
-  primToken(->tok)(->pos)
+  tp = totalLen - rest.length - tok.length
+  primToken(->tok)(->tp)
 
 ######
 ###### Parsing phase 1 -- parse into a lexCons-list
@@ -245,20 +275,19 @@ ifParsed = (res, block)->
   else block res[0], res[2]
 
 parsePhase1 = (str)-> ifParsed (parseGroup str, '\n', str.length), (group, rest)->
-  g = group(lexNil)
-  if g != lexNil then g.setPos(g.head().start(), g.last().end())
+  g = group(Nil, str.length - rest.length)
   [g, null, rest]
 
 # returns [group, err, rest]
 # note that group is not a list, it's a difference list
 parseGroup = (str, indent, totalLen)->
-  if !str then [dlempty, null, str]
+  if !str then [lexDlempty, null, str]
   else
     [tok, rest] = nextTok str
-    if !tok or tok[0] == '\n' then [dlempty, null, rest]
-    if groupCloses[tok] then [dlempty, null, str]
+    if !tok or tok[0] == '\n' then [lexDlempty, null, rest]
+    if groupCloses[tok] then [lexDlempty, null, str]
     else ifParsed (parseGroupTerm tok, rest, indent, totalLen), (term, rest2)->
-      ifParsed (parseGroup rest2, indent, totalLen), (group, rest3)-> [dlappend(term, group), null, rest3]
+      ifParsed (parseGroup rest2, indent, totalLen), (group, rest3)-> [lexDlappend(term, group), null, rest3]
 
 parseGroupTerm = (tok, rest, indent, totalLen)->
   token = makeToken(tok, rest, totalLen)
@@ -267,13 +296,16 @@ parseGroupTerm = (tok, rest, indent, totalLen)->
       [next, rest3] = nextTok rest2
       closeToken = makeToken(next, rest3, totalLen)
       if close != next then [null, "Expecting group close: '#{close}', but got #{snip rest2}\n#{new Error().stack}", rest3]
-      else if tok == '(' then [dlnew(positionGroup group, token, closeToken), null, rest3]
-      else [dlnew(positionGroup dlappend(dlappend(dlnew(token), group), dlnew(closeToken), token, closeToken)), null, rest3]
-  else [dlnew(token), null, rest]
+      else if tok == '(' then [lexDlnew((positionGroup group, token, closeToken), token.start()), null, rest3]
+      else
+        innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end())
+        [lexDlnew(innerGroup, token.start()), null, rest3]
+  else [lexDlnew(token, token.start()), null, rest]
 
 # takes a difference list
-positionGroup = (groupDL, startTok, endTok)-> groupDL(lexNil).setPos startTok.start(), endTok.end()
-
+positionGroup = (groupDL, startTok, endTok)->
+  console.log "POSITIONING GROUP FOR TOKENS: #{startTok}, #{endTok}"
+  groupDL(Nil, endTok.end()).withStart(startTok.start())
 
 ######
 ###### ASTs
@@ -315,7 +347,7 @@ getApplyArg = (apl)-> apl (a)->(b)-> b()
 
 # returns [ast] or [null, err, token]
 listToAst = (list)->
-  if list == lexNil then [null, "Expecting expression, but input is empty"]
+  if list == Nil then [null, "Expecting expression, but input is empty"]
   else if !(list instanceof LexCons) then tokenToAst list
   else if isLambdaToken list.head() then checkLambda list.tail()
   else ifParsed listToAst(list.head()), (f)-> listToApply f, list.tail()
@@ -330,8 +362,8 @@ badLambdaCont = (tok)-> !(tok instanceof Token) || isLambdaToken(tok)
 
 # convert a list starting after a lambda character
 listToLambda = (list)->
-  if list == lexNil then [null, "Bad lambda construct -- no variable or body"]
-  else if list.tail() == lexNil then [null, "Bad lambda construct -- no body"]
+  if list == Nil then [null, "Bad lambda construct -- no variable or body"]
+  else if list.tail() == Nil then [null, "Bad lambda construct -- no body"]
   else
     head = list.head()
     if badLambdaCont(head) || badLambdaCont(list.tail().head()) then [null, "Bad lambda construct", head]
@@ -347,20 +379,19 @@ tokenToAst = (tok)->
     [tag ref(tok.tok()), tok.start(), tok.end()]
 
 listToApply = (f, rest)->
-  if rest == lexNil then [f]
+  if rest == Nil then [f]
   else ifParsed listToAst(rest.head()), (a)->
     listToApply tag(apply(f, a), f.leisureStart, a.leisureEnd), rest.tail()
 
 ###
+tests
+
 TODO
 
 * get working with current ASTs
-* change to lexCons (start, end, a, b) and new AST structures (start, end, data...)
 * rewrite listToAst in Leisure?
 * write precedence parser in Leisure
 ###
-
-listDo = (l, f)-> l(->(h)->(t)->f(h(), t()))
 
 print = (f)->
   if !f? then "UNDEFINED"
@@ -373,9 +404,10 @@ subprint = (f)->
   if !f? then "UNDEFINED"
   else if f == null then 'NULL'
   else switch getType(f)
-    when 'lexCons' then "[#{elements(f, true)}]"
-    when 'lexNil' then "[]"
-    when 'token' then "Token(#{f.tok()})"
+    when 'lexCons' then "(#{f.start()}, #{f.end()})[#{elements(f, true)}]"
+    when 'cons' then "[#{elements(f, true)}]"
+    when 'nil' then "[]"
+    when 'token' then "#{f}"
     when 'ioMonad' then "IO"
     when 'lit' then f ->(v)->v()
     when 'ref' then f ->(v)->v()
@@ -401,14 +433,9 @@ printApply = (func, arg)->
   "#{f} #{a}"
 
 elements = (l, first, nosubs)->
-  if getType(l) == 'lexNil' then ''
+  if getType(l) == 'nil' then ''
   else if getType(l) != 'lexCons' then " | #{print(l)}"
-  else "#{if first then '' else ', '}#{listDo l, (h, t)-> print(h) + elements(t, false)}"
-
-
-####
-# tests
-####
+  else "#{if first then '' else ', '}#{print(l.head()) + elements(l.tail(), false)}"
 
 console.log "parse: a b: #{parsePhase1('a b')[0]}"
 console.log "parse: a (b): #{parsePhase1('a (b)')[0]}"
