@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Cons, DL, LexCons, LexDL, Nil, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, codeChars, cons, defGroup, defToken, define, dlappend, dlempty, dlnew, eatAllWhitespace, elements, escapeRegexpChars, evalFunc, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, groupCloses, groupOpens, ifParsed, inspect, isLambdaToken, jsType, lambda, lexCons, lexDlappend, lexDlempty, lexDlnew, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, nextTok, numberPat, parseGroup, parseGroupTerm, parsePhase1, pos, positionGroup, primCons, primLexCons, primToken, print, printApply, printLambda, ref, resetScanner, root, setDataType, setType, snip, subprint, tag, testParse, tokPos, tokenPat, tokenToAst, tokenTypes, tokens,
+  var CNil, Cons, DL, LexCons, LexDL, Nil, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, codeChars, collapseTrivial, cons, defGroup, defToken, define, dlappend, dlempty, dlnew, eatAllWhitespace, elements, escapeRegexpChars, evalFunc, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, groupCloses, groupOpens, ifParsed, inspect, isLambdaToken, jsType, lambda, lexCons, lexDlappend, lexDlempty, lexDlnew, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, nextTok, numberPat, parseGroup, parseGroupTerm, parsePhase1, pos, positionGroup, primCons, primLexCons, primToken, print, printApply, printLambda, ref, resetScanner, root, setDataType, setType, snip, subprint, tag, testParse, tokPos, tokenPat, tokenToAst, tokenTypes, tokens,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -602,7 +602,6 @@ misrepresented as being the original software.
       t = mkProto(Token, setType((function(f) {
         return f()(a)(b);
       }), 'token'));
-      console.log("NEW TOKEN: " + t);
       return t;
     };
   }), 'token');
@@ -639,8 +638,7 @@ misrepresented as being the original software.
       return [lexDlempty, null, str];
     } else {
       _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
-      if (!tok || tok[0] === '\n') [lexDlempty, null, rest];
-      if (groupCloses[tok]) {
+      if (!tok || (tok[0] === '\n' && tok.length <= indent.length) || groupCloses[tok]) {
         return [lexDlempty, null, str];
       } else {
         return ifParsed(parseGroupTerm(tok, rest, indent, totalLen), function(term, rest2) {
@@ -652,31 +650,50 @@ misrepresented as being the original software.
     }
   };
 
+  collapseTrivial = function collapseTrivial(group) {
+    if (group instanceof Cons && group.tail() === Nil) {
+      return collapseTrivial(group.head());
+    } else {
+      return group;
+    }
+  };
+
   parseGroupTerm = function parseGroupTerm(tok, rest, indent, totalLen) {
     var close, token;
     token = makeToken(tok, rest, totalLen);
-    if (close = groupOpens[tok]) {
-      return ifParsed(parseGroup(rest, indent, totalLen), function(group, rest2) {
-        var closeToken, innerGroup, next, rest3, _ref;
-        _ref = nextTok(rest2), next = _ref[0], rest3 = _ref[1];
-        closeToken = makeToken(next, rest3, totalLen);
-        if (close !== next) {
-          return [null, "Expecting group close: '" + close + "', but got " + (snip(rest2)) + "\n" + (new Error().stack), rest3];
-        } else if (tok === '(') {
-          return [lexDlnew(positionGroup(group, token, closeToken), token.start()), null, rest3];
-        } else {
-          innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end());
-          return [lexDlnew(innerGroup, token.start()), null, rest3];
-        }
+    if (tok[0] === '\n') {
+      return ifParsed(parseGroup(rest, tok, totalLen), function(group, rest2) {
+        return [lexDlnew(collapseTrivial(group(Nil, totalLen - rest2.length)), token.start()), null, rest2];
       });
     } else {
-      return [lexDlnew(token, token.start()), null, rest];
+      if (close = groupOpens[tok]) {
+        return ifParsed(parseGroup(rest, indent, totalLen), function(group, rest2) {
+          var closeToken, innerGroup, next, rest3, _ref;
+          _ref = nextTok(rest2), next = _ref[0], rest3 = _ref[1];
+          closeToken = makeToken(next, rest3, totalLen);
+          if (close !== next) {
+            return [null, "Expecting group close: '" + close + "', but got " + (snip(rest2)) + "\n" + (new Error().stack), rest3];
+          } else if (tok === '(') {
+            return [lexDlnew(positionGroup(group, token, closeToken), token.start()), null, rest3];
+          } else {
+            innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end());
+            return [lexDlnew(innerGroup, token.start()), null, rest3];
+          }
+        });
+      } else {
+        return [lexDlnew(token, token.start()), null, rest];
+      }
     }
   };
 
   positionGroup = function positionGroup(groupDL, startTok, endTok) {
-    console.log("POSITIONING GROUP FOR TOKENS: " + startTok + ", " + endTok);
-    return groupDL(Nil, endTok.end()).withStart(startTok.start());
+    var g;
+    g = collapseTrivial(groupDL(Nil, endTok.end()));
+    if (g instanceof LexCons) {
+      return g.withStart(startTok.start());
+    } else {
+      return g;
+    }
   };
 
   define('lit', function() {
@@ -1022,7 +1039,7 @@ misrepresented as being the original software.
     } else if (getType(l) !== 'lexCons') {
       return " | " + (print(l));
     } else {
-      return "" + (first ? '' : ', ') + (print(l.head()) + elements(l.tail(), false));
+      return "" + (first ? '' : ' ') + (print(l.head()) + elements(l.tail(), false));
     }
   };
 
@@ -1033,6 +1050,10 @@ misrepresented as being the original software.
   console.log("parse: a (b c d (e f)): " + (parsePhase1('a (b c d (e f))')[0]));
 
   console.log("parse: \\\\\\\u03BB\\\u03BB: " + (parsePhase1('\\\\\\\u03BB\\\u03BB')[0]));
+
+  console.log("parse: 'a\n  b c\n  d\n  e f g\nh': " + (parsePhase1('a\n  b c\n  d\n  e f g\nh')[0]));
+
+  console.log("parse: 'a\n b\n  c\n   d\n  e\n f\ng': " + (parsePhase1('a\n b\n  c\n   d\n  e\n f\ng')[0]));
 
   testParse = function testParse(str) {
     var a, p, _ref;

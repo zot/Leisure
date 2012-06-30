@@ -258,7 +258,7 @@ class Token
 
 primToken = setDataType(((a)->(b)->
   t = mkProto Token, setType ((f)-> f()(a)(b)), 'token'
-  console.log "NEW TOKEN: #{t}"
+  #console.log "NEW TOKEN: #{t}"
   t
   ), 'token')
 
@@ -278,34 +278,37 @@ parsePhase1 = (str)-> ifParsed (parseGroup str, '\n', str.length), (group, rest)
   g = group(Nil, str.length - rest.length)
   [g, null, rest]
 
-# returns [group, err, rest]
-# note that group is not a list, it's a difference list
+# returns [lexdlGroup, err, rest]
+# note that lexdlGroup is not a list, it's a difference list
 parseGroup = (str, indent, totalLen)->
   if !str then [lexDlempty, null, str]
   else
     [tok, rest] = nextTok str
-    if !tok or tok[0] == '\n' then [lexDlempty, null, rest]
-    if groupCloses[tok] then [lexDlempty, null, str]
+    if !tok or (tok[0] == '\n' and tok.length <= indent.length) or groupCloses[tok] then [lexDlempty, null, str]
     else ifParsed (parseGroupTerm tok, rest, indent, totalLen), (term, rest2)->
       ifParsed (parseGroup rest2, indent, totalLen), (group, rest3)-> [lexDlappend(term, group), null, rest3]
 
+collapseTrivial = (group)-> if group instanceof Cons and group.tail() == Nil then collapseTrivial group.head() else group
+
 parseGroupTerm = (tok, rest, indent, totalLen)->
   token = makeToken(tok, rest, totalLen)
-  if close = groupOpens[tok]
-    ifParsed (parseGroup rest, indent, totalLen), (group, rest2)->
-      [next, rest3] = nextTok rest2
-      closeToken = makeToken(next, rest3, totalLen)
-      if close != next then [null, "Expecting group close: '#{close}', but got #{snip rest2}\n#{new Error().stack}", rest3]
-      else if tok == '(' then [lexDlnew((positionGroup group, token, closeToken), token.start()), null, rest3]
-      else
-        innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end())
-        [lexDlnew(innerGroup, token.start()), null, rest3]
-  else [lexDlnew(token, token.start()), null, rest]
+  if tok[0] == '\n' then ifParsed (parseGroup rest, tok, totalLen), (group, rest2)-> [lexDlnew(collapseTrivial(group(Nil, totalLen - rest2.length)), token.start()), null, rest2]
+  else
+    if close = groupOpens[tok]
+      ifParsed (parseGroup rest, indent, totalLen), (group, rest2)->
+        [next, rest3] = nextTok rest2
+        closeToken = makeToken(next, rest3, totalLen)
+        if close != next then [null, "Expecting group close: '#{close}', but got #{snip rest2}\n#{new Error().stack}", rest3]
+        else if tok == '(' then [lexDlnew((positionGroup group, token, closeToken), token.start()), null, rest3]
+        else
+          innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end())
+          [lexDlnew(innerGroup, token.start()), null, rest3]
+    else [lexDlnew(token, token.start()), null, rest]
 
 # takes a difference list
 positionGroup = (groupDL, startTok, endTok)->
-  console.log "POSITIONING GROUP FOR TOKENS: #{startTok}, #{endTok}"
-  groupDL(Nil, endTok.end()).withStart(startTok.start())
+  g = collapseTrivial(groupDL(Nil, endTok.end()))
+  if g instanceof LexCons then g.withStart(startTok.start()) else g
 
 ######
 ###### ASTs
@@ -435,12 +438,14 @@ printApply = (func, arg)->
 elements = (l, first, nosubs)->
   if getType(l) == 'nil' then ''
   else if getType(l) != 'lexCons' then " | #{print(l)}"
-  else "#{if first then '' else ', '}#{print(l.head()) + elements(l.tail(), false)}"
+  else "#{if first then '' else ' '}#{print(l.head()) + elements(l.tail(), false)}"
 
 console.log "parse: a b: #{parsePhase1('a b')[0]}"
 console.log "parse: a (b): #{parsePhase1('a (b)')[0]}"
 console.log "parse: a (b c d (e f)): #{parsePhase1('a (b c d (e f))')[0]}"
 console.log "parse: \\\\\\\u03BB\\\u03BB: #{parsePhase1('\\\\\\\u03BB\\\u03BB')[0]}"
+console.log "parse: 'a\n  b c\n  d\n  e f g\nh': #{parsePhase1('a\n  b c\n  d\n  e f g\nh')[0]}"
+console.log "parse: 'a\n b\n  c\n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   d\n  e\n f\ng')[0]}"
 
 testParse = (str)->
   p = parsePhase1(str)
