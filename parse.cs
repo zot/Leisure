@@ -353,7 +353,7 @@ listToAst = (list)->
   if list == Nil then [null, "Expecting expression, but input is empty"]
   else if !(list instanceof LexCons) then tokenToAst list
   else if isLambdaToken list.head() then checkLambda list.tail()
-  else ifParsed listToAst(list.head()), (f)-> listToApply f, list.tail()
+  else ifParsed listToAst(list.head()), (f)-> listToApply f, list.start(), list.tail()
 
 isLambdaToken = (tok)-> (tok instanceof Token) and (tok.tok() in ['\\', '\u03BB'])
 
@@ -381,10 +381,10 @@ tokenToAst = (tok)->
   catch err
     [tag ref(tok.tok()), tok.start(), tok.end()]
 
-listToApply = (f, rest)->
+listToApply = (f, start, rest)->
   if rest == Nil then [f]
   else ifParsed listToAst(rest.head()), (a)->
-    listToApply tag(apply(f, a), f.leisureStart, a.leisureEnd), rest.tail()
+    listToApply tag(apply(f, a), start, rest.head().end()), start, rest.tail()
 
 ###
 tests
@@ -446,6 +446,7 @@ console.log "parse: a (b c d (e f)): #{parsePhase1('a (b c d (e f))')[0]}"
 console.log "parse: \\\\\\\u03BB\\\u03BB: #{parsePhase1('\\\\\\\u03BB\\\u03BB')[0]}"
 console.log "parse: 'a\n  b c\n  d\n  e f g\nh': #{parsePhase1('a\n  b c\n  d\n  e f g\nh')[0]}"
 console.log "parse: 'a\n b\n  c\n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   d\n  e\n f\ng')[0]}"
+console.log "parse: 'a\n b\n  c\n   \n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   \n   d\n  e\n f\ng')[0]}"
 
 testParse = (str)->
   p = parsePhase1(str)

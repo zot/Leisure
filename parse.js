@@ -831,7 +831,7 @@ misrepresented as being the original software.
       return checkLambda(list.tail());
     } else {
       return ifParsed(listToAst(list.head()), function(f) {
-        return listToApply(f, list.tail());
+        return listToApply(f, list.start(), list.tail());
       });
     }
   };
@@ -880,12 +880,12 @@ misrepresented as being the original software.
     }
   };
 
-  listToApply = function listToApply(f, rest) {
+  listToApply = function listToApply(f, start, rest) {
     if (rest === Nil) {
       return [f];
     } else {
       return ifParsed(listToAst(rest.head()), function(a) {
-        return listToApply(tag(apply(f, a), f.leisureStart, a.leisureEnd), rest.tail());
+        return listToApply(tag(apply(f, a), start, rest.head().end()), start, rest.tail());
       });
     }
   };
@@ -1054,6 +1054,8 @@ misrepresented as being the original software.
   console.log("parse: 'a\n  b c\n  d\n  e f g\nh': " + (parsePhase1('a\n  b c\n  d\n  e f g\nh')[0]));
 
   console.log("parse: 'a\n b\n  c\n   d\n  e\n f\ng': " + (parsePhase1('a\n b\n  c\n   d\n  e\n f\ng')[0]));
+
+  console.log("parse: 'a\n b\n  c\n   \n   d\n  e\n f\ng': " + (parsePhase1('a\n b\n  c\n   \n   d\n  e\n f\ng')[0]));
 
   testParse = function testParse(str) {
     var a, p, _ref;
