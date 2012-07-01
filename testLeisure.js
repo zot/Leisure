@@ -48,7 +48,7 @@ Tests for Leisure
 
   debug = false;
 
-  code = R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\nlast l = l (\\h t D . null? t h (last t)) nil\nval = 2\ndivider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\ndiv = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]\n", false, null, null, null, debug);
+  code = R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\nlast l = l (\\h t D . null? t h (last t)) nil\nval = 2\ndivider = ['\\n' '-' '-' '-' '-' '-' '\\n']\ndiv = ['\\n' '-' '-' '-' '-' '-' '\\n']\n", false, null, null, null, debug);
 
   LZ.eval(code);
 
@@ -156,15 +156,15 @@ Tests for Leisure
 
   in6 = "do\n  a <- ret 3\n  b = + a 1\n  pr a";
 
-  in7 = "let\n  a = 3\n  b = 4\n  [a, b]";
+  in7 = "let\n  a = 3\n  b = 4\n  [a b]";
 
-  in8 = "duh [\n 1\n ,\n 2\n ]";
+  in8 = "duh [\n 1\n 2\n ]";
 
-  in9 = "(eq l nil) false\n  or\n    f (head l)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
+  in9 = "(eq l nil) false\n  or\n    f (head l)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [0 0 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
 
-  out9_12 = "([[eq]] <<l>> <<nil>>) <<false>>\n  <<or\n    f (head l)\n    any f (tail l)>>\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
+  out9_12 = "([[eq]] <<l>> <<nil>>) <<false>>\n  <<or\n    f (head l)\n    any f (tail l)>>\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [0 0 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
 
-  out9_30 = "(eq l nil) false\n  or\n    f ([[head]] <<l>>)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [ 0, 0, 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
+  out9_30 = "(eq l nil) false\n  or\n    f ([[head]] <<l>>)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [0 0 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
 
   run('test24', function() {
     return assertParse("identMacro 1", "ref 1");
@@ -183,7 +183,7 @@ Tests for Leisure
   });
 
   run('test28', function() {
-    return assertEvalPrint(in7, '[3, 4]');
+    return assertEvalPrint(in7, '[3 4]');
   });
 
   applyBrackets = function applyBrackets(str, pos, func) {

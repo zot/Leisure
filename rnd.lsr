@@ -34,7 +34,7 @@ shuffle list = if (eq list nil) (log "at end of list!" nil)
 
 #        len = length list
 #        rest = removeAt index list
-#        log (append [ "index: ", index, " len: ", len, " list: " ] list)
+#        log (append [ "index: " index " len: " len " list: " ] list)
 #          log (append [ "rest => "] rest)
 #            if (eq len 1) list
 #              cons (at list index) (shuffle rest)

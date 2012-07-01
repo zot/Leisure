@@ -105,7 +105,7 @@ head l = l \h t . h
 tail l = l \h t . t
 reverse l = subreverse l nil
 subreverse l result = l (\h t D . subreverse t (cons h result)) result
-addstr a b = concat [a, b]
+addstr a b = concat [a b]
 if = id
 at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
 take n list = positive n
@@ -135,7 +135,7 @@ fromTo n m = takeWhile (> m) (from n)
 fromToBy n m inc = takeWhile (> m) (fromBy n inc)
 
 # return true if any elements of l satisfy f, which takes exactly one arg
-# eg. any (eq 0) [1, 2, 0] gives true: true
+# eg. any (eq 0) [1 2 0] gives true: true
 any f l = l
   \h t D . or
     f h
@@ -143,7 +143,7 @@ any f l = l
   false
 
 # return true if ALL elements of l satisfy f, which takes exactly one arg
-# eg. all (eq 0) [ 0, 0, 0] gives true: true
+# eg. all (eq 0) [0 0 0] gives true: true
 # caveat!  return true for nil lists
 all f l = l
   \h t D . and
@@ -169,7 +169,7 @@ find-if-opt f l = l (\h t D . (f h) (some h) (find-if-opt f t)) none
 count x l = count-if (eq x) l
 
 # count-if returns the number of times x satifies f in l, f must take a single argument
-# eg. count-if odd? [ 3, 1 ] gives number: 2
+# eg. count-if odd? [3 1] gives number: 2
 count-if f l = if (eq l nil) 0
   + (f (head l) 1 0) (count-if f (tail l))
 count-if-not f l = count-if (\x. not (f x)) l
@@ -186,13 +186,13 @@ remove-if-not f l = remove-if (\x. not (f x)) l
 filter f = remove-if (compose not f)
 
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
-# eg. map (+ 1) [ 4, 27, 54 ] gives cons: [5, 28, 55]
+# eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
 map func list = list (\h t D . cons (func h) (map func t)) nil
 
 # call func on the elements of list, 'joining' each with the previous result of func,
 # however func chooses to do so
 # if the list is only one element long, just return the first element
-# eg. reduce + [ 3, 5] gives number: 8
+# eg. reduce + [3 5] gives number: 8
 reduce func list = if (eq list nil) nil
   if (eq 1 (length list)) (head list)
     func (head list) (reduce func (tail list))
@@ -214,15 +214,29 @@ foldl func value list = list (\h t D . foldl func (func value h) t) value
 foldl1 func list = list (\h t D. foldl func h t) nil
 
 # simple list constructor syntax
-[ =(]= \item c . c \rest . cons item rest
-, =.= \f item c . c \rest . f (cons item rest)
-] =)= \f . f nil
-| =.= \f rest g . f rest
+#[ =(]= \item c . c \rest . cons item rest
+#, =.= \f item c . c \rest . f (cons item rest)
+#] =)= \f . f nil
+#| =.= \f rest g . f rest
+
+[ =(]= \item . eq item `]`
+  nil
+  next-list-item (dl item)
+] =)= \x . x
+| =.= \x . x
+, =.= \x . x
+next-list-item items next = eq next `]`
+  items nil
+  eq next `|`
+    \tail close . items tail
+    eq next `,`
+      next-list-item items
+      next-list-item (dlAppend items (dl next))
 
 # difference lists
-dl list = append list
-dlAppend da db list = da (db list)
-dlList dl = dl nil
+dlempty = id
+dl item = \rest . cons item rest
+dlAppend a b = \rest . a (b rest)
 
 # do
 identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)

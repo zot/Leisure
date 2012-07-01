@@ -46,8 +46,8 @@ code = (R.generateCode null, """
 #null l = l (\\h t D . false) true
 last l = l (\\h t D . null? t h (last t)) nil
 val = 2
-divider = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
-div = [ '\\n', '-', '-', '-', '-', '-', '\\n' ]
+divider = ['\\n' '-' '-' '-' '-' '-' '\\n']
+div = ['\\n' '-' '-' '-' '-' '-' '\\n']
 
 """, false, null, null, null, debug)
 
@@ -134,13 +134,12 @@ in7 = """
 let
   a = 3
   b = 4
-  [a, b]
+  [a b]
 """
 
 in8 = """
 duh [
  1
- ,
  2
  ]
 """
@@ -152,7 +151,7 @@ in9 = """
     any f (tail l)
 
 # return true if ALL elements of l satisfy f, which takes exactly one arg
-# eg. all (eq 0) [ 0, 0, 0] gives true: true
+# eg. all (eq 0) [0 0 0] gives true: true
 # caveat!  return true for nil lists
 all f l = or
   eq l nil
@@ -168,7 +167,7 @@ out9_12 = """
     any f (tail l)>>
 
 # return true if ALL elements of l satisfy f, which takes exactly one arg
-# eg. all (eq 0) [ 0, 0, 0] gives true: true
+# eg. all (eq 0) [0 0 0] gives true: true
 # caveat!  return true for nil lists
 all f l = or
   eq l nil
@@ -184,7 +183,7 @@ out9_30 = """
     any f (tail l)
 
 # return true if ALL elements of l satisfy f, which takes exactly one arg
-# eg. all (eq 0) [ 0, 0, 0] gives true: true
+# eg. all (eq 0) [0 0 0] gives true: true
 # caveat!  return true for nil lists
 all f l = or
   eq l nil
@@ -197,7 +196,7 @@ run 'test24', -> assertParse("identMacro 1", "ref 1")
 run 'test25', -> assertParse("do 1", "ref 1")
 run 'test26', -> assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)")
 run 'test27', -> assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (lambda b . apply (ref pr) (ref a)) (apply (apply (ref +) (ref a)) (ref 1)))")
-run 'test28', -> assertEvalPrint(in7, '[3, 4]')
+run 'test28', -> assertEvalPrint(in7, '[3 4]')
 
 applyBrackets = (str, pos, func)->
   ast = LZ.parseFull(str)[0]

@@ -53,6 +53,6 @@ printApply = (func, arg)->
 elements = (l, first, nosubs)->
   if getType(l) == 'nil' then ''
   else if getType(l) != 'cons' then " | #{print(l)}"
-  else "#{if first then '' else ', '}#{listDo l, (h, t)-> print(h) + elements(t, false)}"
+  else "#{if first then '' else ' '}#{listDo l, (h, t)-> print(h) + elements(t, false)}"
 
 root.print = print

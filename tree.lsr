@@ -50,9 +50,9 @@ children t = if (eq t nil) nil
 #           12
 # trees are stored as a list with root node value, then first-child, then siblings, all recursively
 
-test-tree = [[1, [2, [6], [7], [8] ], [3], [4, [9, [12] ]], [5, [10], [11] ]]]
-test-small-tree = [[1, [2, [6], [7], [8] ] ]]
-tiny-tree = [[1, [2]]]
+test-tree = [[1 [2 [6] [7] [8]] [3] [4 [9 [12]]] [5 [10] [11]]]]
+test-small-tree = [[1 [2 [6] [7] [8]]]]
+tiny-tree = [[1 [2]]]
 
 t1 = make-tree 1
 t2 = make-tree 2

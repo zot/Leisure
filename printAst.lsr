@@ -1,10 +1,10 @@
-printRef r = concat ['(ref ', (r id), ')']
+printRef r = concat ['(ref ' (r id) ')']
 
-printLit l = concat ['(lit ', (l id), ')']
+printLit l = concat ['(lit ' (l id) ')']
 
-printLambda l = l (\v b . concat ['(lambda ', v, ' . ', (printAst b), ')'])
+printLambda l = l (\v b . concat ['(lambda ' v ' . ' (printAst b) ')'])
 
-printApply a = a (\func arg . concat ['(apply ', (printAst func), ' ', (printAst arg), ')'])
+printApply a = a (\func arg . concat ['(apply ' (printAst func) ' ' (printAst arg) ')'])
 
 typeof x = getType x id false
 

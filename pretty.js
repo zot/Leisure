@@ -165,7 +165,7 @@
     } else if (getType(l) !== 'cons') {
       return " | " + (print(l));
     } else {
-      return "" + (first ? '' : ', ') + (listDo(l, function(h, t) {
+      return "" + (first ? '' : ' ') + (listDo(l, function(h, t) {
         return print(h) + elements(t, false);
       }));
     }

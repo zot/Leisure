@@ -17,7 +17,7 @@ node-translate st x y = st \svg width height root-x root-y . make-node
   + root-y y
 
 node-line n1 n2 = n1 \s1 w1 h1 x1 y1 . n2 \s2 w2 h2 x2 y2 .
-  line [['x1'|x1],['y1'|y1],['x2'|x2],['y2'|y2]|default-line-map]
+  line [['x1'|x1] ['y1'|y1] ['x2'|x2] ['y2'|y2] | default-line-map]
 
 astFor func = isFunc func
   funcSource func (\src . parse src) (right 'no source')
@@ -73,9 +73,9 @@ nodeFor ast mapFunc = do
           ast (\f a . createApplyNode ast f a mapFunc)
           make-node (svg-node '') 0 0 0 0
 
-redStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'#fcc'],['rx'|8],['ry'|8]]
-greenStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'#cfc'],['rx'|8],['ry'|8]]
-blueStyle = [['stroke'|'black'],['stroke-width'|2],['fill'|'#ccf'],['rx'|8],['ry'|8]]
+redStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#fcc'] ['rx'|8] ['ry'|8]]
+greenStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#cfc'] ['rx'|8] ['ry'|8]]
+blueStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#ccf'] ['rx'|8] ['ry'|8]]
 
 createLambdaNode ast v b mapFunc = do
   rootBox = textNode (mapFunc ast greenStyle) 'lambda'
@@ -88,7 +88,7 @@ createLambdaNode ast v b mapFunc = do
   varBox = node-translate varBox pad (+ (node-height rootBox) 5)
   bodyTree = node-translate bodyTree (+ pad (+ (node-width varBox) 5)) (+ (node-height rootBox) 5)
   make-node
-    svg-concat [(node-line rootBox varBox), (node-line rootBox bodyTree), (node-svg varBox),(node-svg bodyTree),(node-svg rootBox)]
+    svg-concat [(node-line rootBox varBox) (node-line rootBox bodyTree) (node-svg varBox) (node-svg bodyTree) (node-svg rootBox)]
     totalWidth
     + (+ (node-height rootBox) 5) (max (node-height varBox) (node-height bodyTree))
     / totalWidth 2
@@ -105,7 +105,7 @@ createApplyNode ast f a mapFunc = do
   funcTree = node-translate funcTree pad (+ (node-height rootBox) 5)
   argTree = node-translate argTree (+ pad (+ (node-width funcTree) 5)) (+ (node-height rootBox) 5)
   make-node
-    svg-concat [(node-line rootBox funcTree), (node-line rootBox argTree), (node-svg rootBox), (node-svg funcTree), (node-svg argTree)]
+    svg-concat [(node-line rootBox funcTree) (node-line rootBox argTree) (node-svg rootBox) (node-svg funcTree) (node-svg argTree)]
     totalWidth
     + (+ (node-height rootBox) 5) (max (node-height argTree) (node-height funcTree))
     / totalWidth 2
@@ -118,7 +118,7 @@ textNode map txt = (svg-measure-text txt '') \w h . do
   node-w = + w 24
   node-h = + h 14
   make-node
-    (svg-concat [(rect [['x'|2],['y'|2],['width'|node-w],['height'|node-h] | map]), (text txt [['text-anchor'|"middle"],['dominant-baseline'|"mathematical"],['x'|(+ 14 (/ w 2))],['y'|(+ 5 (/ h 2))], ['font-weight'|'bold']])])
+    (svg-concat [(rect [['x'|2] ['y'|2] ['width'|node-w] ['height'|node-h] | map]) (text txt [['text-anchor'|"middle"] ['dominant-baseline'|"mathematical"] ['x'|(+ 14 (/ w 2))] ['y'|(+ 5 (/ h 2))] ['font-weight'|'bold']])])
     node-w
     node-h
     / node-w 2

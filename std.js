@@ -26,7 +26,7 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var Nil = Leisure.Nil;
 var cons = Leisure.cons;
-var _id, _flip, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _null$e, _append, _compose, _iszero, _positive, _length, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _head, _tail, _reverse, _subreverse, _addstr, _if, _at, _take, _takeWhile, _drop, _dropWhile, _series, _from, _fromBy, _fromTo, _fromToBy, _any, _all, _index_combine, _indexof, _position, _find, _find$_if, _find$_if$_opt, _count, _count$_if, _count$_if$_not, _remove, _remove$_if, _remove$_if$_not, _filter, _map, _reduce, _foldr, _foldr1, _foldl, _foldl1, _$r, _$b, _$s, _$q, _dl, _dlAppend, _dlList, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _html;
+var _id, _flip, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _cons, _nil, _null$e, _append, _compose, _iszero, _positive, _length, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _head, _tail, _reverse, _subreverse, _addstr, _if, _at, _take, _takeWhile, _drop, _dropWhile, _series, _from, _fromBy, _fromTo, _fromToBy, _any, _all, _index_combine, _indexof, _position, _find, _find$_if, _find$_if$_opt, _count, _count$_if, _count$_if$_not, _remove, _remove$_if, _remove$_if$_not, _filter, _map, _reduce, _foldr, _foldr1, _foldl, _foldl1, _$r, _$s, _$q, _$b, _next$_list$_item, _dlempty, _dl, _dlAppend, _identMacro, _do, _m_subdo, _let, _m_sublet, _m_extractVar, _m_varFromTuple, _html;
 //id = AST(\x . x)
 root.defs._id = _id = Leisure.define('id', (function() {var f = (function(_x){return _x();}); return function _id(){return f;}})(), 1, "\\x. x");
 ;
@@ -120,8 +120,8 @@ root.defs._reverse = _reverse = Leisure.define('reverse', (function() {var f = (
 //subreverse = AST(\l result . l \h t D . subreverse t (cons h result) result)
 root.defs._subreverse = _subreverse = Leisure.define('subreverse', (function() {var f = (function(_l){return function(_result){return _l()((function(){var $m; return (function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _subreverse()(_t)((function(){var $m; return (function(){return $m || ($m = (_cons()(_h)(_result)))})})());};};}))})})())(_result);};}); return function _subreverse(){return f;}})(), 2, "\\l. \\result. l (\\h t D . subreverse t (cons h result)) result");
 ;
-//addstr = AST(\a b . concat ([ a , b ]))
-root.defs._addstr = _addstr = Leisure.define('addstr', (function() {var f = (function(_a){return function(_b){return _concat()((function(){var $m; return (function(){return $m || ($m = (_$r()(_a)(_$b)(_b)(_$s)))})})());};}); return function _addstr(){return f;}})(), 2, "\\a. \\b. concat [a, b]");
+//addstr = AST(\a b . concat ([ a b ]))
+root.defs._addstr = _addstr = Leisure.define('addstr', (function() {var f = (function(_a){return function(_b){return _concat()((function(){var $m; return (function(){return $m || ($m = (_$r()(_a)(_b)(_$s)))})})());};}); return function _addstr(){return f;}})(), 2, "\\a. \\b. concat [a b]");
 ;
 //if = AST(id)
 root.defs._if = _if = Leisure.define('if', (function _if() {return ((_id()));}), 0, "id");
@@ -219,30 +219,33 @@ root.defs._foldl = _foldl = Leisure.define('foldl', (function() {var f = (functi
 //foldl1 = AST(\func list . list \h t D . foldl func h t nil)
 root.defs._foldl1 = _foldl1 = Leisure.define('foldl1', (function() {var f = (function(_func){return function(_list){return _list()((function(){var $m; return (function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _foldl()(_func)(_h)(_t);};};}))})})())(_nil);};}); return function _foldl1(){return f;}})(), 2, "\\func. \\list. list (\\h t D. foldl func h t) nil");
 ;
-//[ = AST(\item c . c \rest . cons item rest)
-root.defs._$r = _$r = Leisure.define('[', (function() {var f = (Leisure.setType(function(_item){return function(_c){return _c()((function(){var $m; return (function(){return $m || ($m = (function(_rest){return _cons()(_item)(_rest);}))})})());};}, '[')); return function _$r(){return f;}})(), 0, "\\item c . c \\rest . cons item rest");
+//[ = AST(\item . eq item ] nil (next-list-item (dl item)))
+root.defs._$r = _$r = Leisure.define('[', (function() {var f = (Leisure.setType(function(_item){return _eq()(_item)(_$s)(_nil)((function(){var $m; return (function(){return $m || ($m = (_next$_list$_item()((function(){var $m; return (function(){return $m || ($m = (_dl()(_item)))})})())))})})());}, '[')); return function _$r(){return f;}})(), 0, "\\item . eq item `]`\n  nil\n  next-list-item (dl item)");
 root.tokenDefs.push('[', '=(]=');
 ;
-//, = AST(\f item c . c \rest . f (cons item rest))
-root.defs._$b = _$b = Leisure.define(',', (function() {var f = (Leisure.setType(function(_f){return function(_item){return function(_c){return _c()((function(){var $m; return (function(){return $m || ($m = (function(_rest){return _f()((function(){var $m; return (function(){return $m || ($m = (_cons()(_item)(_rest)))})})());}))})})());};};}, ',')); return function _$b(){return f;}})(), 0, "\\f item c . c \\rest . f (cons item rest)");
-root.tokenDefs.push(',', '=.=');
-;
-//] = AST(\f . f nil)
-root.defs._$s = _$s = Leisure.define(']', (function() {var f = (Leisure.setType(function(_f){return _f()(_nil);}, ']')); return function _$s(){return f;}})(), 0, "\\f . f nil");
+//] = AST(\x . x)
+root.defs._$s = _$s = Leisure.define(']', (function() {var f = (Leisure.setType(function(_x){return _x();}, ']')); return function _$s(){return f;}})(), 0, "\\x . x");
 root.tokenDefs.push(']', '=)=');
 ;
-//| = AST(\f rest g . f rest)
-root.defs._$q = _$q = Leisure.define('|', (function() {var f = (Leisure.setType(function(_f){return function(_rest){return function(_g){return _f()(_rest);};};}, '|')); return function _$q(){return f;}})(), 0, "\\f rest g . f rest");
+//| = AST(\x . x)
+root.defs._$q = _$q = Leisure.define('|', (function() {var f = (Leisure.setType(function(_x){return _x();}, '|')); return function _$q(){return f;}})(), 0, "\\x . x");
 root.tokenDefs.push('|', '=.=');
 ;
-//dl = AST(\list . append list)
-root.defs._dl = _dl = Leisure.define('dl', (function() {var f = (function(_list){return _append()(_list);}); return function _dl(){return f;}})(), 1, "\\list. append list");
+//, = AST(\x . x)
+root.defs._$b = _$b = Leisure.define(',', (function() {var f = (Leisure.setType(function(_x){return _x();}, ',')); return function _$b(){return f;}})(), 0, "\\x . x");
+root.tokenDefs.push(',', '=.=');
 ;
-//dlAppend = AST(\da db list . da (db list))
-root.defs._dlAppend = _dlAppend = Leisure.define('dlAppend', (function() {var f = (function(_da){return function(_db){return function(_list){return _da()((function(){var $m; return (function(){return $m || ($m = (_db()(_list)))})})());};};}); return function _dlAppend(){return f;}})(), 3, "\\da. \\db. \\list. da (db list)");
+//next-list-item = AST(\items next . eq next ] (items nil) (eq next | \tail close . items tail (eq next , (next-list-item items) (next-list-item (dlAppend items (dl next))))))
+root.defs._next$_list$_item = _next$_list$_item = Leisure.define('next-list-item', (function() {var f = (function(_items){return function(_next){return _eq()(_next)(_$s)((function(){var $m; return (function(){return $m || ($m = (_items()(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (_eq()(_next)(_$q)((function(){var $m; return (function(){return $m || ($m = (function(_tail){return function(_close){return _items()(_tail);};}))})})())((function(){var $m; return (function(){return $m || ($m = (_eq()(_next)(_$b)((function(){var $m; return (function(){return $m || ($m = (_next$_list$_item()(_items)))})})())((function(){var $m; return (function(){return $m || ($m = (_next$_list$_item()((function(){var $m; return (function(){return $m || ($m = (_dlAppend()(_items)((function(){var $m; return (function(){return $m || ($m = (_dl()(_next)))})})())))})})())))})})())))})})())))})})());};}); return function _next$_list$_item(){return f;}})(), 2, "\\items. \\next. eq next `]`\n  items nil\n  eq next `|`\n    \\tail close . items tail\n    eq next `,`\n      next-list-item items\n      next-list-item (dlAppend items (dl next))");
 ;
-//dlList = AST(\dl . dl nil)
-root.defs._dlList = _dlList = Leisure.define('dlList', (function() {var f = (function(_dl){return _dl()(_nil);}); return function _dlList(){return f;}})(), 1, "\\dl. dl nil");
+//dlempty = AST(id)
+root.defs._dlempty = _dlempty = Leisure.define('dlempty', (function _dlempty() {return ((_id()));}), 0, "id");
+;
+//dl = AST(\item rest . cons item rest)
+root.defs._dl = _dl = Leisure.define('dl', (function() {var f = (Leisure.setDataType(function(_item){return Leisure.setType(function(_rest){return _cons()(_item)(_rest);}, 'dl');}, 'dl')); return function _dl(){return f;}})(), 1, "\\item. \\rest . cons item rest");
+;
+//dlAppend = AST(\a b rest . a (b rest))
+root.defs._dlAppend = _dlAppend = Leisure.define('dlAppend', (function() {var f = (Leisure.setDataType(function(_a){return function(_b){return Leisure.setType(function(_rest){return _a()((function(){var $m; return (function(){return $m || ($m = (_b()(_rest)))})})());}, 'dlAppend');};}, 'dlAppend')); return function _dlAppend(){return f;}})(), 2, "\\a. \\b. \\rest . a (b rest)");
 ;
 //identMacro = AST(\apl . apl \f a . is f ref a (apply (identMacro f) a))
 root.defs._identMacro = _identMacro = Leisure.defineMacro('identMacro', (function() {var f = (function(_apl){return _apl()((function(){var $m; return (function(){return $m || ($m = (function(_f){return function(_a){return _is()(_f)(_ref)(_a)((function(){var $m; return (function(){return $m || ($m = (_apply()((function(){var $m; return (function(){return $m || ($m = (_identMacro()(_f)))})})())(_a)))})})());};}))})})());}); return function _identMacro(){return f;}})(), 1, "\\apl. apl \\f a . (is f ref) a (apply (identMacro f) a)");
