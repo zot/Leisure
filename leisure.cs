@@ -69,8 +69,6 @@ tokenPat = new RegExp("\\n *|#{baseTokenPat.source}")
 linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
 #linePat = /^((?:\s*\n|#[^\n]*\n)*)([a-zA-Z0-9!@#$%\^&*\-_+=[\]{}|:;,<>/? ]*)(=[.)M]=|=\([^=]+=|=)?/
 
-global.macros = {}
-
 ctx = global
 
 global.leisureGetFuncs = -> global.leisureFuncNames
@@ -109,11 +107,9 @@ nameAst = (nm, ast)-> if !ast.leisureName
   ast.leisureName = nm
   ast.toString = ->"{#{nm}}"
 
-evalCompiledAst = (ast)->
-  console.log "EVAL AST: #{Parse.print ast}, #{ast.src}"
-  if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else Parse.evalFunc(ast.src)
+evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else Parse.evalFunc(ast.src)
 
-define 'eval', ->(ast)-> evalCompiledAst(dgen(substituteMacros ast()))
+define 'eval', ->(ast)-> evalCompiledAst(dgen(ast()))
 
 between = (start, end, pos)-> start <= pos and pos <= end
 within = (ast, pos)-> between ast.leisureStart, ast.leisureEnd, pos
@@ -229,9 +225,10 @@ class Code
     """
 
 dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
+  debug = false
   ast.lits = []
   res = []
-  code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? Nil)), ast.lits, Nil, true, name, namespace, true)
+  code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true)
   if code.err != '' then ast.err = code.err
   else
     jsCode = if !debug or (getAstType ast) == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
@@ -361,7 +358,6 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
 
 genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src, debug)->
   if !parseOnly then dgen ast, false, name, globals, defType, namespace, src, debug
-  console.log "GEN_CODE: #{ast.src}"
   if ast.err? and name? then ast.err = "Error while compiling #{name}: #{ast.err}"
   [ast, ast.err, rest]
 
@@ -408,35 +404,6 @@ setNumber = (ast, number)->
   ast.leisureNodeNumber = number
   ast
 
-###
-# OLD MACRO CODE
-
-substituteMacros = (ast)->
-  switch getAstType ast
-    when 'ref', 'lit' then ast
-    when 'lambda'
-      body = getLambdaBody ast
-      b = substituteMacros body
-      if b == body then ast
-      else lambda(laz getLambdaVar ast)(laz b)
-    when 'apply'
-      macro = getMacro ast
-      if macro then substituteMacros (macro laz ast)
-      else
-        func = getApplyFunc ast
-        arg = getApplyArg ast
-        f = substituteMacros func
-        a = substituteMacros arg
-        if a == arg and f == func then ast
-        else apply(laz f)(laz a)
-
-getMacro = (ast)->
-  if getAstType(ast) == 'ref' then ctx.macros[getRefVar ast] ? null
-  else if getAstType(ast) == 'apply' then getMacro getApplyFunc ast
-  else null
-#
-###
-
 setEvalFunc = (ct, func)->
   ctx = root.ctx = ct
   root.eval = evalFunc = Parse.evalFunc = func
@@ -477,3 +444,5 @@ root.funcContext = funcContext
 root.contextStack = Nil
 root.funcContextSource = funcContextSource
 root.indent = indent
+root.parse = parse
+root.parseFull = parseFull

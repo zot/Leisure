@@ -18,7 +18,6 @@ else
   root = exports ? this
   Parse = require('./parse')
   Leisure = require('./leisure')
-  #Pretty = require('./pretty')
   U = require('util')
   RL = require('readline')
   tty = null
@@ -37,8 +36,6 @@ getType = Parse.getType
 throwError = Parse.throwError
 laz = Leisure.laz
 
-define 'false', (->(a)->(b)-> b()), 2
-
 define 'is', (->(value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`), 2
 define 'isFunc', ->(value)->if typeof value() == 'function' then `_true()` else `_false()`
 define 'eq', (->(a)-> (b)-> if a() == b() then `_true()` else` _false()`), 2
@@ -52,20 +49,22 @@ define 'ast-start', ->(ast)-> ast().leisureStart
 define 'ast-end', ->(ast)-> ast().leisureEnd
 define 'pretty', ->(value)->
   #kluge this, for now
-  #if !Pretty then Pretty = window.Pretty
   Parse.print(value())
 define 'funcSource', ->(func)->
   f = func()
   if f.src? then _some()(laz(f.src))
   else _none()
+
+tmpFalse = (a)->(b)-> b()
+
 define 'defToken', ->(token)->
   makeMonad (env, cont)->
     Parse.defToken token()
-    cont _false()
+    cont tmpFalse
 define 'defGroup', ->(open)->(close)->
   makeMonad (env, cont)->
     Parse.defGroup open(), close()
-    cont _false()
+    cont tmpFalse
 
 define '+', ->(a)->(b)->a() + b()
 define '-', ->(a)->(b)->a() - b()
@@ -144,12 +143,12 @@ define 'eventKeyCode', ->(evt)->
 define 'eventPreventDefault', ->(evt)->
   makeMonad (env, cont)->
     evt().preventDefault()
-    cont(_false())
+    cont(`_false()`)
 
 define 'forward', ->(name)->
   makeMonad (env, cont)->
     Leisure.defineForward name
-    cont _false()
+    cont `_false()`
 
 define 'return', ->(v)->
   makeMonad (env, cont)->cont(v())
@@ -161,12 +160,12 @@ define 'require', ->(file)->
 define 'print', ->(msg)->
   makeMonad (env, cont)->
     if msg() != _nil() then env.write("#{msg()}\n")
-    cont(_false())
+    cont(`_false()`)
 
 define 'printValue', ->(value)->
   makeMonad (env, cont)->
     if value() != _nil() then env.write("#{env.presentValue value()}\n")
-    cont(_false())
+    cont(`_false()`)
 
 define 'prompt', ->(msg)->
   makeMonad (env, cont)->
@@ -236,8 +235,8 @@ define 'poop', ->3
 # BROWSER PRIMS
 ################
 
-define 'svg-measure-text', (->(text)->Notebook?.svgMeasureText(text)), 2
-define 'prim-svg-measure', (->(content)->Notebook?.svgMeasure(content)), 1
+define 'svgMeasureText', (->(text)->Notebook?.svgMeasureText(text)), 2
+define 'primSvgMeasure', (->(content)->Notebook?.svgMeasure(content)), 1
 
 root.setTty = setTty
 root.runMonad = runMonad

@@ -79,11 +79,11 @@ Tests for Leisure
   });
 
   run('test7', function() {
-    return LZ.astEval(LZ.gen(Parse.parseFull("cons 1 2")));
+    return LZ.astEval(LZ.gen(LZ.parseFull("cons 1 2")));
   });
 
   run('test8', function() {
-    return LZ.astEval(LZ.gen(Parse.parseFull("head (cons 1 2)")));
+    return LZ.astEval(LZ.gen(LZ.parseFull("head (cons 1 2)")));
   });
 
   run('test9', function() {
@@ -154,12 +154,6 @@ Tests for Leisure
 
   in4 = "frap bubba =M= a b c\n  d e\n  f g";
 
-  in5 = "do\n  1\n  2";
-
-  in6 = "do\n  a <- ret 3\n  b = + a 1\n  pr a";
-
-  in7 = "let\n  a = 3\n  b = 4\n  [a b]";
-
   in8 = "duh [\n 1\n 2\n ]";
 
   in9 = "(eq l nil) false\n  or\n    f (head l)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [0 0 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
@@ -169,36 +163,46 @@ Tests for Leisure
   out9_30 = "(eq l nil) false\n  or\n    f ([[head]] <<l>>)\n    any f (tail l)\n\n# return true if ALL elements of l satisfy f, which takes exactly one arg\n# eg. all (eq 0) [0 0 0] gives true: true\n# caveat!  return true for nil lists\nall f l = or\n  eq l nil\n  and\n    f (head l)\n    all f (tail l)";
 
   run('test24', function() {
-    return assertParse("identMacro 1", "ref 1");
+    return assertParse("identMacro 1", "lit 1");
   });
 
   run('test25', function() {
-    return assertParse("do 1", "ref 1");
+    return assertParse("macroCons 1 nil", "apply (apply (ref cons) (lit 1)) (ref nil)");
   });
 
   run('test26', function() {
-    return assertParse(in5, "apply (apply (ref bind) (ref 1)) (lambda _ . ref 2)");
+    return assertParse("do 1", "lit 1");
   });
+
+  in5 = "do\n  1\n  2";
 
   run('test27', function() {
-    return assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref 3))) (lambda a . apply (lambda b . apply (ref pr) (ref a)) (apply (apply (ref +) (ref a)) (ref 1)))");
+    return assertParse(in5, "apply (apply (ref bind) (lit 1)) (lambda _ . ref 2)");
   });
 
+  in6 = "do\n  a <- ret 3\n  b = + a 1\n  pr a";
+
   run('test28', function() {
+    return assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (lit 3))) (lambda a . apply (lambda b . apply (ref pr) (ref a)) (apply (apply (ref +) (ref a)) (lit 1)))");
+  });
+
+  in7 = "do\n  a = 3\n  b = 4\n  [a b]";
+
+  run('test29', function() {
     return assertEvalPrint(in7, '[3 4]');
   });
 
   applyBrackets = function applyBrackets(str, pos, func) {
     var ast, brackets, end, prev, result, start;
-    ast = Parse.parseFull(str)[0];
+    ast = LZ.parseFull(str)[0];
     brackets = LZ.bracket(ast, pos);
     result = '';
     prev = 0;
     while (brackets !== Parse.Nil) {
-      start = brackets.head.head;
-      end = brackets.head.tail.head;
+      start = brackets.head().head();
+      end = brackets.head().tail().head();
       result += "" + (str.substring(prev, start)) + (func(str.substring(start, end), result === ''));
-      brackets = brackets.tail;
+      brackets = brackets.tail();
       prev = end;
     }
     return "" + result + (str.substring(prev));
@@ -208,11 +212,11 @@ Tests for Leisure
     return "" + (sq ? '[[' : '<<') + str + (sq ? ']]' : '>>');
   };
 
-  run('test29', function() {
+  run('test30', function() {
     return assertEq(applyBrackets(in9, 12, br), out9_12);
   });
 
-  run('test30', function() {
+  run('test31', function() {
     return assertEq(applyBrackets(in9, 30, br), out9_30);
   });
 

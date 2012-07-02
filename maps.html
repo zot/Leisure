@@ -6,16 +6,16 @@ do
   require 'maps'
   require 'svg'
 
-foo = hash-from-list [ 'foo' 5 'hello' 'world' 'j' 23 ]
+foo = hashFromList [ 'foo' 5 'hello' 'world' 'j' 23 ]
 
-bar = hash-from-list [ 'bar' 6 'hello' 'sun' 'fruit' 'apple' ]
+bar = hashFromList [ 'bar' 6 'hello' 'sun' 'fruit' 'apple' ]
 
-merge-hash foo bar
+mergeHash foo bar
 
 
 
 ###############################
-# lets visualize our hash-maps!
+# lets visualize our hashMaps!
 ###############################
 
 
@@ -23,44 +23,44 @@ circle nil
 
 rect nil
 
-text 'foopy' default-circle-map
+text 'foopy' defaultCircleMap
 
-decorate-arrow = hash-from-list [ 'x1' 50 'y1' 25 'x2' 150 'y2' 25 'stroke' 'black' 'stroke-width' 3 ]
-decorate-key = hash-from-list [ 'x' 0 'y' 0 'rx' 5 'ry' 5 'width' 100 'height' 50 'fill' 'green' 'stroke' 'black' 'stroke-width' 3 ]
-decorate-value = hash-from-list [ 'x' 150 'y' 0 'rx' 5 'ry' 5 'width' 100 'height' 50 'fill' 'yellow' 'stroke' 'black' 'stroke-width' 3 ]
-decorate-ktext = hash-from-list [ 'x' 10 'y' 25 ]
-decorate-vtext = hash-from-list [ 'x' 160 'y' 25 ]
-svg-map = hash-from-list [ 'width' 300 'height' 200 ]
-
-
-paint-arrow = concat [ (line decorate-arrow) (line (add-hash 'x1' 135 (add-hash 'y1' 15 decorate-arrow))) (line (add-hash 'x1' 135 (add-hash 'y1' 35 decorate-arrow))) ]
-paint-node key value offset = translate ( concat [ (paint-arrow) (rect decorate-key) (rect decorate-value) (text key decorate-ktext) (text value decorate-vtext) ] ) 0 offset
-
-derp hm = concat (map (\cell. (paint-node (key cell) (value cell) (height-offset (key cell) hm)   ) ) hm )
-
-height-offset k hm = + 5 (* (indexof (get-keys hm) k) 75)
-
-paint-hash hm = svg ( derp hm ) (add-hash 'height' (* 75 (num-keys hm)) svg-map)
+decorateArrow = hashFromList [ 'x1' 50 'y1' 25 'x2' 150 'y2' 25 'stroke' 'black' 'stroke-width' 3 ]
+decorateKey = hashFromList [ 'x' 0 'y' 0 'rx' 5 'ry' 5 'width' 100 'height' 50 'fill' 'green' 'stroke' 'black' 'stroke-width' 3 ]
+decorateValue = hashFromList [ 'x' 150 'y' 0 'rx' 5 'ry' 5 'width' 100 'height' 50 'fill' 'yellow' 'stroke' 'black' 'stroke-width' 3 ]
+decorateKtext = hashFromList [ 'x' 10 'y' 25 ]
+decorateVtext = hashFromList [ 'x' 160 'y' 25 ]
+svgMap = hashFromList [ 'width' 300 'height' 200 ]
 
 
-(add-hash 'height' (* 75 (num-keys foo)) svg-map)
+paintArrow = concat [ (line decorateArrow) (line (addHash 'x1' 135 (addHash 'y1' 15 decorateArrow))) (line (addHash 'x1' 135 (addHash 'y1' 35 decorateArrow))) ]
+paintNode key value offset = translate ( concat [ (paintArrow) (rect decorateKey) (rect decorateValue) (text key decorateKtext) (text value decorateVtext) ] ) 0 offset
 
-add-hash 'height' (* 75 (num-keys svg-map)) svg-map
+derp hm = concat (map (\cell. (paintNode (key cell) (value cell) (heightOffset (key cell) hm)   ) ) hm )
 
-temp = concat (head (map (\cell. [ (paint-node (key cell) (value cell) 0) ]) foo))
+heightOffset k hm = + 5 (* (indexof (getKeys hm) k) 75)
+
+paintHash hm = svg ( derp hm ) (addHash 'height' (* 75 (numKeys hm)) svgMap)
+
+
+(addHash 'height' (* 75 (numKeys foo)) svgMap)
+
+addHash 'height' (* 75 (numKeys svgMap)) svgMap
+
+temp = concat (head (map (\cell. [ (paintNode (key cell) (value cell) 0) ]) foo))
 
 translate "foopy" 10 50 
 
-svg (paint-node 'hello' 5 100) svg-map
+svg (paintNode 'hello' 5 100) svgMap
 
 derp foo
 
-height-offset 'j' foo
+heightOffset 'j' foo
 
-paint-hash foo
+paintHash foo
 
-paint-hash bar
+paintHash bar
 
-paint-hash (merge-hash foo bar)
+paintHash (mergeHash foo bar)
   </body>
 </html>

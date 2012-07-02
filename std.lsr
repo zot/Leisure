@@ -64,8 +64,7 @@ flip f = \a b . f b a
 
 # booleans
 true = \a b . a
-#false is defined as a primitive, but here is its definition
-#false = \a b . b
+false = \a b . b
 and a b = a b false
 or a = a true
 not a = a false true
@@ -108,9 +107,18 @@ max a b = (gt a b) a b
 min a b = (lt a b) a b
 
 # some basic list functions
-
-head l = l \h t . h
-tail l = l \h t . t
+# some list functions are primitives, for the time being: cons, nil, head, tail
+# cons a b = \f . f a b
+# nil = \a b . b
+# head l = l \h t . h
+# tail l = l \h t . t
+lexAsCons l = eq l nil
+  nil
+  is l lexCons
+    cons (lexAsCons (head l)) (lexAsCons (tail l))
+    is l token
+      tokenName l
+      l
 reverse l = subreverse l nil
 subreverse l result = l (\h t D . subreverse t (cons h result)) result
 addstr a b = concat [a b]
@@ -167,31 +175,31 @@ indexof l x = if (eq l nil) (nil) (if (eq x (head l)) (0) (index_combine 1 (inde
 position l x = indexof x l
 
 # find returns x if x is present inside l, otherwise returns nil.
-find x l = find-if (eq x) l
+find x l = findIf (eq x) l
 
-find-if f l = l (\h t D . (f h) h (find-if f t)) nil
+findIf f l = l (\h t D . (f h) h (findIf f t)) nil
 
-find-if-opt f l = l (\h t D . (f h) (some h) (find-if-opt f t)) none
+findIfOpt f l = l (\h t D . (f h) (some h) (findIfOpt f t)) none
 
 # count returns the number of times x appears in l
-count x l = count-if (eq x) l
+count x l = countIf (eq x) l
 
-# count-if returns the number of times x satifies f in l, f must take a single argument
-# eg. count-if odd? [3 1] gives number: 2
-count-if f l = if (eq l nil) 0
-  + (f (head l) 1 0) (count-if f (tail l))
-count-if-not f l = count-if (\x. not (f x)) l
+# countIf returns the number of times x satifies f in l, f must take a single argument
+# eg. countIf odd? [3 1] gives number: 2
+countIf f l = if (eq l nil) 0
+  + (f (head l) 1 0) (countIf f (tail l))
+countIfNot f l = countIf (\x. not (f x)) l
 
 # remove any x's found in list
-remove x l = remove-if (eq x) l
+remove x l = removeIf (eq x) l
 
 # remove any elements where f evals to true, f must take exactly one argument
-remove-if f l  = if (eq l nil) nil
-  if (f (head l)) (remove-if f (tail l))
-    cons (head l) (remove-if f (tail l))
-remove-if-not f l = remove-if (\x. not (f x)) l
+removeIf f l  = if (eq l nil) nil
+  if (f (head l)) (removeIf f (tail l))
+    cons (head l) (removeIf f (tail l))
+removeIfNot f l = removeIf (\x. not (f x)) l
 
-filter f = remove-if (compose not f)
+filter f = removeIf (compose not f)
 
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
 # eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
@@ -206,20 +214,21 @@ reduce func list = if (eq list nil) nil
     func (head list) (reduce func (tail list))
 
 # foldr, foldl
+# these are primitives, for the time being
 # call func on list items and previous result of fold
 # foldl uses the head of the list for the previous results
 # foldr uses the tail of the list for the previous results
 # foldr can work on infinite lists, but foldl cannot
 
-foldr func value list = list (\h t D . func h (foldr func value t)) value
-foldr1 func list = list
-  \h t D . null? t
-     h
-     func h (foldr1 func t)
-  nil
+#foldr func value list = list (\h t D . func h (foldr func value t)) value
+#foldr1 func list = list
+#  \h t D . null? t
+#     h
+#     func h (foldr1 func t)
+#  nil
 
-foldl func value list = list (\h t D . foldl func (func value h) t) value
-foldl1 func list = list (\h t D. foldl func h t) nil
+#foldl func value list = list (\h t D . foldl func (func value h) t) value
+#foldl1 func list = list (\h t D. foldl func h t) nil
 
 # simple list constructor syntax
 # pure Lambda Calculus definition
@@ -232,72 +241,57 @@ foldl1 func list = list (\h t D. foldl func h t) nil
 # Leisure definition relies 
 [ = \item . eq item `]`
   nil
-  next-list-item (dl item)
+  nextListItem (dl item)
 ] = \x . x
 | = \x . x
 , = \x . x
-next-list-item items next = eq next `]`
+nextListItem items next = eq next `]`
   items nil
   eq next `|`
     \tail close . items tail
     eq next `,`
-      next-list-item items
-      next-list-item (dlAppend items (dl next))
+      nextListItem items
+      nextListItem (dlAppend items (dl next))
 
 # difference lists
 dlempty = id
 dl item = \rest . cons item rest
 dlAppend a b = \rest . a (b rest)
 
-# do
-#identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)
-#
-#do apl =M= apl \f a . m_subdo a f
-#
-#m_subdo a f = or (is f ref) (is f lit)
-#  a
-#  f \f2 a2 . m_subdo
-#    m_extractVar a2 '<-'
-#      \v ast . apply (apply (ref 'bind') ast) (lambda v a)
-#      m_extractVar a2 '='
-#        \v ast . apply (lambda v a) ast
-#        apply (apply (ref 'bind') a2) (lambda '_' a)
-#    f2
-#
-#let apl =M= apl \f a . m_sublet f a
-#
-#m_sublet f a = or (is f ref) (is f lit)
-#  a
-#  f \f2 a2 . m_extractVar a2 '='
-#    \v ast . m_sublet f2 (apply (lambda v a) ast)
-#    apply a a2
+# Macros
+#the Lex functions will change with type assertions
 
-# m_extractVar ast '<-'
-#
-# given (var <- .....), it returns (some2 var ast)
-# otherwise, it returns none
-#
-m_extractVar ast token = is ast apply
-  ast \f a .m_varFromTuple f token
-    \v . some2 v a
-    m_extractVar f token
-      \var ast . some2 var (apply ast a)
-      none
+identMacro list =M= tail list
+
+macroCons list =M= cons 'cons' (tail list)
+
+do list =M= foldr1 (\el . doClause el) (tail list)
+
+doClause clause rest = doExtractVar clause '<-'
+  \var . ['bind' (tail (tail clause)) '\\' var '.' rest]
+  doExtractVar clause '='
+    \var . [['\\' var '.' rest] (tail (tail clause))]
+    ['bind' clause '\\' '_' '.' rest]
+
+doExtractVar list tokName = and
+  is list lexCons
+  and
+    is (tail list) lexCons
+    and
+      is (head (tail list)) token
+      eq tokName (tokenName (head (tail list)))
+  some (head list)
   none
 
-# m_extractVar ast '<-'
-#
-# given (var <-), it returns (some var), otherwise it returns none
-m_varFromTuple ast token = is ast apply
-  ast \f arg . or (is f ref) (is f lit)
-    or (is arg ref) (is arg lit)
-      arg \arrow . eq arrow token
-        f \v . some v
-        none
-      none
-    none
+dev list tokName = and
+  is list cons
+  and
+    is (tail list) cons
+    and
+      is (head (tail list)) token
+      eq tokName (tokenName (head (tail list)))
+  some (head list)
   none
-
 
 ######################
 # output tag functions

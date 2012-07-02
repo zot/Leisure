@@ -49,8 +49,6 @@ misrepresented as being the original software.
 
   linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
 
-  global.macros = {};
-
   ctx = global;
 
   global.leisureGetFuncs = function leisureGetFuncs() {
@@ -124,7 +122,6 @@ misrepresented as being the original software.
   };
 
   evalCompiledAst = function evalCompiledAst(ast) {
-    console.log("EVAL AST: " + (Parse.print(ast)) + ", " + ast.src);
     if (ast.lits.length) {
       return evalFunc("(function(__lits){\nreturn " + ast.src + "})")(ast.lits);
     } else {
@@ -134,7 +131,7 @@ misrepresented as being the original software.
 
   define('eval', function() {
     return function(ast) {
-      return evalCompiledAst(dgen(substituteMacros(ast())));
+      return evalCompiledAst(dgen(ast()));
     };
   });
 
@@ -358,9 +355,10 @@ misrepresented as being the original software.
 
   dgen = function dgen(ast, lazy, name, globals, tokenDef, namespace, src, debug) {
     var code, jsCode, n, res;
+    debug = false;
     ast.lits = [];
     res = [];
-    code = gen(ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name, namespace, true);
+    code = gen(ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true);
     if (code.err !== '') {
       ast.err = code.err;
     } else {
@@ -547,7 +545,6 @@ misrepresented as being the original software.
     if (!parseOnly) {
       dgen(ast, false, name, globals, defType, namespace, src, debug);
     }
-    console.log("GEN_CODE: " + ast.src);
     if ((ast.err != null) && (name != null)) {
       ast.err = "Error while compiling " + name + ": " + ast.err;
     }
@@ -617,35 +614,6 @@ misrepresented as being the original software.
     ast.leisureNodeNumber = number;
     return ast;
   };
-
-  /*
-  # OLD MACRO CODE
-  
-  substituteMacros = (ast)->
-    switch getAstType ast
-      when 'ref', 'lit' then ast
-      when 'lambda'
-        body = getLambdaBody ast
-        b = substituteMacros body
-        if b == body then ast
-        else lambda(laz getLambdaVar ast)(laz b)
-      when 'apply'
-        macro = getMacro ast
-        if macro then substituteMacros (macro laz ast)
-        else
-          func = getApplyFunc ast
-          arg = getApplyArg ast
-          f = substituteMacros func
-          a = substituteMacros arg
-          if a == arg and f == func then ast
-          else apply(laz f)(laz a)
-  
-  getMacro = (ast)->
-    if getAstType(ast) == 'ref' then ctx.macros[getRefVar ast] ? null
-    else if getAstType(ast) == 'apply' then getMacro getApplyFunc ast
-    else null
-  #
-  */
 
   setEvalFunc = function setEvalFunc(ct, func) {
     ctx = root.ctx = ct;
@@ -726,5 +694,9 @@ misrepresented as being the original software.
   root.funcContextSource = funcContextSource;
 
   root.indent = indent;
+
+  root.parse = parse;
+
+  root.parseFull = parseFull;
 
 }).call(this);

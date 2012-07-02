@@ -1,6 +1,7 @@
 Blocky = root = {}
 if window?
   Leisure = window.Leisure
+  Parse = window.Parse
   Prim = window.Prim
   window.Blocky = root
   v = cp.v
@@ -12,6 +13,7 @@ if window?
     window.msRequestAnimationFrame ||
     ((callback)->return window.setTimeout(callback, 1000 / 60))
 else
+  Parse = require './parse'
   Leisure = require './leisure'
   Prim = require './prim'
 
@@ -186,9 +188,9 @@ svgTransform = (svg, x, y)->
 # Running it
 ##############
 
-Leisure.define 'startPhysics', ->Prim.makeMonad (env, cont)-> startStepper -> cont(false)
+Parse.define 'startPhysics', ->Prim.makeMonad (env, cont)-> startStepper -> cont(false)
 
-Leisure.define 'stepPhysics', ->Prim.makeMonad (env, cont)-> stepper -> cont(false)
+Parse.define 'stepPhysics', ->Prim.makeMonad (env, cont)-> stepper -> cont(false)
 
 lastStep = Date.now()
 remainder = null

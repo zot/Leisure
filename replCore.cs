@@ -3,14 +3,12 @@ if window? and (!global? or global == window)
   window.ReplCore = root = {}
   Parse = window.Parse
   Leisure = window.Leisure
-  #P = window.Pretty
   Prim = window.Prim
 else root = exports ? this
 
 if !Leisure? and require?
   Parse = require('./parse')
   Leisure = require('./leisure')
-  #P = require('./pretty')
   Prim = require('./prim')
   U = require('util')
 
@@ -90,12 +88,8 @@ write = (args...)-> writeFunc args.join('')
 
 processResult = (result, env, next)->
   next = next ? nextFunc
-  if (getType result) == 'monad'
-    console.log "RESULT IS A MONAD"
-    Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
-  else
-    console.log "RESULT IS NOT A MONAD, IT'S #{getType result}: #{result}"
-    next()
+  if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
+  else next()
 
 handleVar = (name, value, env)->
   if !name
@@ -154,9 +148,7 @@ localPrelude = prelude.replace(/\n/g, "\nvar ")
 
 generateCode = (file, contents, loud, handle, nomacros, check, debug)->
   [globals, errs, auto] = findDefs contents, nomacros, loud
-  console.log "auto: '#{auto}'"
-  runAutosThen auto, debug, ->
-    generate file, contents, loud, handle, nomacros, check, globals, errs, debug
+  runAutosThen auto, debug, -> generate file, contents, loud, handle, nomacros, check, globals, errs, debug
 
 runAutosThen = (autos, debug, cont)->
   if autos == Nil then cont()

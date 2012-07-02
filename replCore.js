@@ -115,12 +115,10 @@
   processResult = function processResult(result, env, next) {
     next = next != null ? next : nextFunc;
     if ((getType(result)) === 'monad') {
-      console.log("RESULT IS A MONAD");
       return Prim.runMonad(result, env != null ? env : Prim.defaultEnv, function() {
         return next();
       });
     } else {
-      console.log("RESULT IS NOT A MONAD, IT'S " + (getType(result)) + ": " + result);
       return next();
     }
   };
@@ -210,7 +208,6 @@
   generateCode = function generateCode(file, contents, loud, handle, nomacros, check, debug) {
     var auto, errs, globals, _ref;
     _ref = findDefs(contents, nomacros, loud), globals = _ref[0], errs = _ref[1], auto = _ref[2];
-    console.log("auto: '" + auto + "'");
     return runAutosThen(auto, debug, function() {
       return generate(file, contents, loud, handle, nomacros, check, globals, errs, debug);
     });

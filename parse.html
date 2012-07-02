@@ -18,13 +18,13 @@ treeFor (parse '\x . x' id id)
 
 bloop = subtreeFor((parse '\x . x' ) id id)
 
-subtree-svg bloop
+subtreeSvg bloop
 
 treeFor (parse 'cons 3 nil' id id)
 
 treeFor (parse 'null? nil' id id)
 
-derp=subtree-svg (subtreeFor((parse 'null? null' ) id id))
+derp=subtreeSvg (subtreeFor((parse 'null? null' ) id id))
 
 derp
 

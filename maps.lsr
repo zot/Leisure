@@ -3,40 +3,40 @@
 # hashmaps!
 ###########
 
-add-hash k v hashmap = cons (cons k v) (remove-hash k hashmap)
+addHash k v hashmap = cons (cons k v) (removeHash k hashmap)
 
-hash-from-list l = if (null? l) nil
-  add-hash (head l) (head (tail l)) (hash-from-list (tail (tail l)))
+hashFromList l = if (null? l) nil
+  addHash (head l) (head (tail l)) (hashFromList (tail (tail l)))
 
 key cons = head cons
 value cons = tail cons
 
-get-pair k hashmap = find-if (\x . eq (head x) k) hashmap
+getPair k hashmap = findIf (\x . eq (head x) k) hashmap
 
-# get-pair-opt returns a 2-valued option
-get-pair-opt k l = l (\h t D . h (\kk vv . (eq k kk) (some2 kk vv) (get-pair-opt k t))) none
+# getPairOpt returns a 2Valued option
+getPairOpt k l = l (\h t D . h (\kk vv . (eq k kk) (some2 kk vv) (getPairOpt k t))) none
 
-get-value k hashmap = (\pair. if (eq pair nil) nil (value pair)) (get-pair k hashmap)
+getHashValue k hashmap = (\pair. if (eq pair nil) nil (value pair)) (getPair k hashmap)
 
-get-value-default k default hashmap = do
-  val = get-value k hashmap
+getHashValueDefault k default hashmap = do
+  val = getHashValue k hashmap
   if (neq val nil) val default
 
 
-get-keys hashmap = map (\cell . (key cell)) hashmap
-num-keys hashmap = length (get-keys hashmap)
+getKeys hashmap = map (\cell . (key cell)) hashmap
+numKeys hashmap = length (getKeys hashmap)
 
 
-first-pair hashmap = head hashmap
-rest-pairs hashmap = tail hashmap
+firstPair hashmap = head hashmap
+restPairs hashmap = tail hashmap
 
-merge-hash-keys hm1 hm2 keys = if (null? keys) hm1
-  if (null? (get-pair (head keys) hm1) )
-    cons (get-pair (head keys) hm2) (merge-hash-keys hm1 hm2 (tail keys))
-    merge-hash-keys hm1 hm2 (tail keys)
+mergeHashKeys hm1 hm2 keys = if (null? keys) hm1
+  if (null? (getPair (head keys) hm1) )
+    cons (getPair (head keys) hm2) (mergeHashKeys hm1 hm2 (tail keys))
+    mergeHashKeys hm1 hm2 (tail keys)
 
 # keys in hm2 take precedence over keys in hm1
-merge-hash hm1 hm2 = merge-hash-keys hm1 hm2 (get-keys hm2)
+mergeHash hm1 hm2 = mergeHashKeys hm1 hm2 (getKeys hm2)
 
-remove-hash k hashmap = remove-if (\x . eq (key x) k) hashmap
+removeHash k hashmap = removeIf (\x . eq (key x) k) hashmap
 

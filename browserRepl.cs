@@ -1,7 +1,7 @@
 if window? and (!global? or global == window)
   window.global = window
   window.Repl = root = {}
-  Pretty = window.Pretty
+  Parse = window.Parse
 else root = exports ? this
 
 lastLine = null
@@ -48,7 +48,7 @@ init = (inputField, output)->
 presentValue = (value)->
   switch ReplCore.getType value
     when 'html' , 'svg' then getHtml value
-    else escapeHtml Pretty.print value
+    else escapeHtml Parse.print value
 
 evalLine = (line)->
   lastLine = line.replace(/\\/g, '\u03BB')
@@ -132,7 +132,7 @@ handleFiles = (fileElement)->
   input.select()
 
 processResult = (result)->
-  writeOutput("#{ReplCore.getType result}: #{escape(Pretty.print(result))}\n")
+  writeOutput("#{ReplCore.getType result}: #{escape(Parse.print(result))}\n")
   ReplCore.processResult result
 
 root.init = init

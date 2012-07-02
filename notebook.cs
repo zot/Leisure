@@ -11,7 +11,8 @@ if window? and (!global? or global == window)
   Repl = window.Repl
 else root = exports ? this
 
-debug = true
+#debug = true
+debug = false
 
 ENTER = 13
 arrows = [37..40]
@@ -26,9 +27,9 @@ delay = (func)-> window.setTimeout func, 1
 basePresentValue = null
 
 presentValue = (v)->
-  if (ReplCore.getType v) == 'svg-node'
+  if (ReplCore.getType v) == 'svgNode'
     content = v(laz(id))
-    _svg$_present()(laz(content))(laz(id))
+    _svgPresent()(laz(content))(laz(id))
   else basePresentValue(v)
 
 bootNotebook = (el)->
@@ -112,7 +113,7 @@ clearAst = (box)->
   cbox?.ast = null
 
 #[node, positions]
-oldBrackets = [null, Leisure.Nil]
+oldBrackets = [null, Parse.Nil]
 
 highlightPosition = ->
   s = window.getSelection()
@@ -139,9 +140,9 @@ highlightPosition = ->
             markPartialApplies parent
             b = brackets
             ranges = []
-            while b != Leisure.Nil
-              ranges.push (makeRange parent, b.head.head + offset, b.head.tail.head + offset)
-              b = b.tail
+            while b != Parse.Nil
+              ranges.push (makeRange parent, b.head().head() + offset, b.head().tail().head() + offset)
+              b = b.tail()
             for r, i in ranges
               span = document.createElement 'span'
               span.setAttribute 'LeisureBrackets', ''
@@ -423,7 +424,7 @@ getAst = (bx, def)->
     bx.ast
   else
     def = def || bx.textContent
-    setAst bx, (Leisure.compileNext def, Leisure.Nil, true, null, true)[0]
+    setAst bx, (Leisure.compileNext def, Parse.Nil, true, null, true)[0]
     bx.ast
 
 setAst = (bx, ast)->
@@ -432,8 +433,8 @@ setAst = (bx, ast)->
 
 patchFuncAst = (ast)->
   if ast?.leisureName?
-    window[Leisure.nameSub(ast.leisureName)]?()?.ast = ast
-    window[Leisure.nameSub(ast.leisureName)]?()?.src = ast.leisureSource
+    window[Parse.nameSub(ast.leisureName)]?()?.ast = ast
+    window[Parse.nameSub(ast.leisureName)]?()?.src = ast.leisureSource
     update "ast-#{ast.leisureName}"
 
 # mark partial applies within bx
@@ -443,11 +444,11 @@ markPartialApplies = (bx, def)->
   def = def ? bx.textContent
   ast = getAst bx, def
   partial = []
-  ((Leisure.findFuncs(ast)) Leisure.Nil).each (f)->
-    name = Leisure.getRefVar(f.head)
-    arity = global[Leisure.nameSub(name)]?()?.leisureArity
-    if (arity and f.tail.head < arity)
-      partial.push [f.head, arity, f.tail.head]
+  ((Leisure.findFuncs(ast)) Parse.Nil).each (f)->
+    name = Parse.getRefVar(f.head())
+    arity = global[Parse.nameSub(name)]?()?.leisureArity
+    if (arity and f.tail().head() < arity)
+      partial.push [f.head(), arity, f.tail().head()]
   if partial.length
     ranges = []
     offset = ast.leisureCodeOffset ? 0
@@ -569,7 +570,7 @@ makeTestCase = (exBox)->
   source = output.source
   test =
     expr: source.textContent
-    result: Repl.escapeHtml(Pretty.print(output.result))
+    result: Repl.escapeHtml(Parse.print(output.result))
   box = makeTestBox test, owner(exBox)
   source.parentNode.insertBefore box, source
   remove source
@@ -614,7 +615,7 @@ runTest = (bx)->
     write: ->
     debug: debug
     prompt: (msg, cont)-> cont(null)
-    processResult: (result, ast)-> passed = showResult bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result)
+    processResult: (result, ast)-> passed = showResult bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.result)
     processError: passed = false
   ))
   passed
@@ -907,20 +908,20 @@ evalDocCode = (el, pgm)->
   for node in el.querySelectorAll '[codeMain]'
     getAst node
 
-Leisure.define 'finishLoading', ->(bubba)->
+Parse.define 'finishLoading', ->(bubba)->
   Prim.makeMonad (env, cont)->
     for i in postLoadQueue
       i()
     postLoadQueue = []
     cont(_false())
 
-Leisure.define 'config', ->(expr)->
+Parse.define 'config', ->(expr)->
   Prim.makeMonad (env, cont)->
     switch expr()
       when 'autoTest' then autoRun(env.owner, true)
     cont(_false())
 
-Leisure.define 'notebookSelection', ->(func)->
+Parse.define 'notebookSelection', ->(func)->
   Prim.makeMonad (env, cont)->
     sel = window.getSelection()
     bx = getBox sel.focusNode
@@ -994,7 +995,7 @@ getMaxStrokeWidth = (el, base, svg, transformFunc)->
     transformFunc el, svg.width.baseVal.value
   else if base.nodeName == 'use' then getMaxStrokeWidth base, base.instanceRoot.correspondingElement, svg, transformFunc
   else if base.nodeName == 'g'
-    Leisure.foldLeft ((v, n)-> Math.max v, (getMaxStrokeWidth n, n, svg, transformFunc)), 0, el.childNodes
+    Parse.foldLeft ((v, n)-> Math.max v, (getMaxStrokeWidth n, n, svg, transformFunc)), 0, el.childNodes
   else 0
 
 baseStrokeWidth = (el, w)-> w

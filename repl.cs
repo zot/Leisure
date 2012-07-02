@@ -7,7 +7,6 @@ Core = require('./replCore')
 FS = require('fs')
 Buffer = require('buffer')
 Path = require('path')
-#P = require('./pretty')
 VM = require('vm')
 
 root = exports ? this

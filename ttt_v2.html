@@ -2,6 +2,7 @@
   <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <script src="parse.js"></script>
     <script src="leisure.js"></script>
     <script src="prim.js"></script>
     <script src="pretty.js"></script>
@@ -196,11 +197,11 @@
 #@auto
 require 'svg'
 
-svg-map = hash-from-list [ 'id' 'scene' 'data' 'ttt.svg' 'onload' 'initSVG(this)' 'width' 500 'height' 600 ]
+svgMap = hashFromList [ 'id' 'scene' 'data' 'ttt.svg' 'onload' 'initSVG(this)' 'width' 500 'height' 600 ]
 
-svg-file svg-map
+svgFile svgMap
 
-start = svg-file svg-map
+start = svgFile svgMap
 
 start
 

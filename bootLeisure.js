@@ -47,7 +47,7 @@
       style.setAttribute('href', "" + i + ".css");
       document.head.appendChild(style);
     }
-    return loadThen(['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], function() {
+    return loadThen(['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], function() {
       window.Leisure.restoreAutosave = restoreAutosave;
       window.Leisure.backupAutosave = backupAutosave;
       window.Leisure.deleteAutosave = deleteAutosave;

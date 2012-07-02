@@ -33,8 +33,8 @@ bootLeisure = ->
     style.setAttribute 'rel', "stylesheet"
     style.setAttribute 'href', "#{i}.css"
     document.head.appendChild style
-  #loadThen ['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jqModal', 'jqDnR', 'dimensions', 'sha256'], ->
-  loadThen ['leisure', 'prim', 'pretty', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], ->
+  #loadThen ['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jqModal', 'jqDnR', 'dimensions', 'sha256'], ->
+  loadThen ['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min'], ->
     window.Leisure.restoreAutosave = restoreAutosave
     window.Leisure.backupAutosave = backupAutosave
     window.Leisure.deleteAutosave = deleteAutosave

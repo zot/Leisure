@@ -29,7 +29,6 @@ Wimpy testing framework
 R = require './repl'
 Parse = require './parse'
 LZ = require './leisure'
-P = require './pretty'
 
 stats =
   successes: 0
@@ -40,7 +39,7 @@ assertEq = (actual, expected, desc)-> if expected != actual
   throw new Error("#{if desc then "[#{desc}] " else ""}Expected <#{expected}> but got <#{actual}>")
 
 assertEval = (actual, expected, desc)->
-  [ast, err, rest] = Parse.parseFull(actual)
+  [ast, err, rest] = LZ.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else
@@ -49,13 +48,13 @@ assertEval = (actual, expected, desc)->
     assertEq(LZ.astEval(code), expected, desc ? actual)
 
 assertEvalPrint = (actual, expected, desc)->
-  [ast, err, rest] = Parse.parseFull(actual)
+  [ast, err, rest] = LZ.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else
     code = LZ.gen(ast)
     if code.err then throw new Error(code.err)
-    v = P.print(LZ.astEval(code))
+    v = Parse.print(LZ.astEval(code))
     assertEq(v, expected, desc ? actual)
 
 astPrint = (ast, res)->
@@ -88,7 +87,7 @@ astPrint = (ast, res)->
   isFirst and res.join('')
 
 assertParse = (actual, expected, desc)->
-  [ast, err, rest] = Parse.parseFull(actual)
+  [ast, err, rest] = LZ.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else assertEq(astPrint(ast), expected, desc ? actual)

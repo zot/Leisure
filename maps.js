@@ -6,6 +6,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
+  Parse = require('./parse');
   Leisure = require('./leisure');
   Leisure.req('./std');
   require('./prim');
@@ -16,65 +17,64 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-setType = Leisure.setType;
-var setDataType = Leisure.setDataType;
-var define = Leisure.define;
-var defineMacro = Leisure.defineMacro;
-var defineToken = Leisure.defineToken;
+Nil = Parse.Nil;
+var cons = Parse.cons;
+var setType = Parse.setType;
+var setDataType = Parse.setDataType;
+var define = Parse.define;
 var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
-var Nil = Leisure.Nil;
-var cons = Leisure.cons;
-var _add$_hash, _hash$_from$_list, _key, _value, _get$_pair, _get$_pair$_opt, _get$_value, _get$_value$_default, _get$_keys, _num$_keys, _first$_pair, _rest$_pairs, _merge$_hash$_keys, _merge$_hash, _remove$_hash;
-//add-hash = AST(\k v hashmap . cons (cons k v) (remove-hash k hashmap))
-root.defs._add$_hash = _add$_hash = Leisure.define('add-hash', (function() {var f = (function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return (function(){return $m || ($m = (_cons()(_k)(_v)))})})())((function(){var $m; return (function(){return $m || ($m = (_remove$_hash()(_k)(_hashmap)))})})());};};}); return function _add$_hash(){return f;}})(), 3, "\\k. \\v. \\hashmap. cons (cons k v) (remove-hash k hashmap)");
+var define = Parse.define;
+var _addHash, _hashFromList, _key, _value, _getPair, _getPairOpt, _getHashValue, _getHashValueDefault, _getKeys, _numKeys, _firstPair, _restPairs, _mergeHashKeys, _mergeHash, _removeHash;
+//addHash = AST(λk v hashmap . "cons" ("cons" "k" "v") ("removeHash" "k" "hashmap"))
+root.defs._addHash = _addHash = Parse.define('addHash', (function() {var f = (function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return (function(){return $m || ($m = (_cons()(_k)(_v)))})})())((function(){var $m; return (function(){return $m || ($m = (_removeHash()(_k)(_hashmap)))})})());};};}); return function _addHash(){return f;}})(), 3, "\\k. \\v. \\hashmap. cons (cons k v) (removeHash k hashmap)");
 ;
-//hash-from-list = AST(\l . if (null? l) nil (add-hash (head l) (head (tail l)) (hash-from-list (tail (tail l)))))
-root.defs._hash$_from$_list = _hash$_from$_list = Leisure.define('hash-from-list', (function() {var f = (function(_l){return _if()((function(){var $m; return (function(){return $m || ($m = (_null$e()(_l)))})})())(_nil)((function(){var $m; return (function(){return $m || ($m = (_add$_hash()((function(){var $m; return (function(){return $m || ($m = (_head()(_l)))})})())((function(){var $m; return (function(){return $m || ($m = (_head()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_hash$_from$_list()((function(){var $m; return (function(){return $m || ($m = (_tail()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())))})})())))})})());}); return function _hash$_from$_list(){return f;}})(), 1, "\\l. if (null? l) nil\n  add-hash (head l) (head (tail l)) (hash-from-list (tail (tail l)))");
+//hashFromList = AST(λl . "if" ("null?" "l") "nil" ("addHash" ("head" "l") ("head" ("tail" "l")) ("hashFromList" ("tail" ("tail" "l")))))
+root.defs._hashFromList = _hashFromList = Parse.define('hashFromList', (function() {var f = (function(_l){return _if()((function(){var $m; return (function(){return $m || ($m = (_null$e()(_l)))})})())(_nil)((function(){var $m; return (function(){return $m || ($m = (_addHash()((function(){var $m; return (function(){return $m || ($m = (_head()(_l)))})})())((function(){var $m; return (function(){return $m || ($m = (_head()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_hashFromList()((function(){var $m; return (function(){return $m || ($m = (_tail()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())))})})())))})})());}); return function _hashFromList(){return f;}})(), 1, "\\l. if (null? l) nil\n  addHash (head l) (head (tail l)) (hashFromList (tail (tail l)))");
 ;
-//key = AST(\cons . head cons)
-root.defs._key = _key = Leisure.define('key', (function() {var f = (function(_cons){return _head()(_cons);}); return function _key(){return f;}})(), 1, "\\cons. head cons");
+//key = AST(λcons . "head" "cons")
+root.defs._key = _key = Parse.define('key', (function() {var f = (function(_cons){return _head()(_cons);}); return function _key(){return f;}})(), 1, "\\cons. head cons");
 ;
-//value = AST(\cons . tail cons)
-root.defs._value = _value = Leisure.define('value', (function() {var f = (function(_cons){return _tail()(_cons);}); return function _value(){return f;}})(), 1, "\\cons. tail cons");
+//value = AST(λcons . "tail" "cons")
+root.defs._value = _value = Parse.define('value', (function() {var f = (function(_cons){return _tail()(_cons);}); return function _value(){return f;}})(), 1, "\\cons. tail cons");
 ;
-//get-pair = AST(\k hashmap . find-if \x . eq (head x) k hashmap)
-root.defs._get$_pair = _get$_pair = Leisure.define('get-pair', (function() {var f = (function(_k){return function(_hashmap){return _find$_if()((function(){var $m; return (function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return (function(){return $m || ($m = (_head()(_x)))})})())(_k);}))})})())(_hashmap);};}); return function _get$_pair(){return f;}})(), 2, "\\k. \\hashmap. find-if (\\x . eq (head x) k) hashmap");
+//getPair = AST(λk hashmap . "findIf" λx . "eq" ("head" "x") "k" "hashmap")
+root.defs._getPair = _getPair = Parse.define('getPair', (function() {var f = (function(_k){return function(_hashmap){return _findIf()((function(){var $m; return (function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return (function(){return $m || ($m = (_head()(_x)))})})())(_k);}))})})())(_hashmap);};}); return function _getPair(){return f;}})(), 2, "\\k. \\hashmap. findIf (\\x . eq (head x) k) hashmap");
 ;
-//get-pair-opt = AST(\k l . l \h t D . h \kk vv . eq k kk (some2 kk vv) (get-pair-opt k t) none)
-root.defs._get$_pair$_opt = _get$_pair$_opt = Leisure.define('get-pair-opt', (function() {var f = (function(_k){return function(_l){return _l()((function(){var $m; return (function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _h()((function(){var $m; return (function(){return $m || ($m = (function(_kk){return function(_vv){return _eq()(_k)(_kk)((function(){var $m; return (function(){return $m || ($m = (_some2()(_kk)(_vv)))})})())((function(){var $m; return (function(){return $m || ($m = (_get$_pair$_opt()(_k)(_t)))})})());};}))})})());};};}))})})())(_none);};}); return function _get$_pair$_opt(){return f;}})(), 2, "\\k. \\l. l (\\h t D . h (\\kk vv . (eq k kk) (some2 kk vv) (get-pair-opt k t))) none");
+//getPairOpt = AST(λk l . "l" λh t D . "h" λkk vv . "eq" "k" "kk" ("some2" "kk" "vv") ("getPairOpt" "k" "t") "none")
+root.defs._getPairOpt = _getPairOpt = Parse.define('getPairOpt', (function() {var f = (function(_k){return function(_l){return _l()((function(){var $m; return (function(){return $m || ($m = (function(_h){return function(_t){return function(_D){return _h()((function(){var $m; return (function(){return $m || ($m = (function(_kk){return function(_vv){return _eq()(_k)(_kk)((function(){var $m; return (function(){return $m || ($m = (_some2()(_kk)(_vv)))})})())((function(){var $m; return (function(){return $m || ($m = (_getPairOpt()(_k)(_t)))})})());};}))})})());};};}))})})())(_none);};}); return function _getPairOpt(){return f;}})(), 2, "\\k. \\l. l (\\h t D . h (\\kk vv . (eq k kk) (some2 kk vv) (getPairOpt k t))) none");
 ;
-//get-value = AST(\k hashmap . (\pair . if (eq pair nil) nil (value pair)) (get-pair k hashmap))
-root.defs._get$_value = _get$_value = Leisure.define('get-value', (function() {var f = (function(_k){return function(_hashmap){return function(_pair){return _if()((function(){var $m; return (function(){return $m || ($m = (_eq()(_pair)(_nil)))})})())(_nil)((function(){var $m; return (function(){return $m || ($m = (_value()(_pair)))})})());}((function(){var $m; return (function(){return $m || ($m = (_get$_pair()(_k)(_hashmap)))})})());};}); return function _get$_value(){return f;}})(), 2, "\\k. \\hashmap. (\\pair. if (eq pair nil) nil (value pair)) (get-pair k hashmap)");
+//getHashValue = AST(λk hashmap . (λpair . "if" ("eq" "pair" "nil") "nil" ("value" "pair")) ("getPair" "k" "hashmap"))
+root.defs._getHashValue = _getHashValue = Parse.define('getHashValue', (function() {var f = (function(_k){return function(_hashmap){return function(_pair){return _if()((function(){var $m; return (function(){return $m || ($m = (_eq()(_pair)(_nil)))})})())(_nil)((function(){var $m; return (function(){return $m || ($m = (_value()(_pair)))})})());}((function(){var $m; return (function(){return $m || ($m = (_getPair()(_k)(_hashmap)))})})());};}); return function _getHashValue(){return f;}})(), 2, "\\k. \\hashmap. (\\pair. if (eq pair nil) nil (value pair)) (getPair k hashmap)");
 ;
-//get-value-default = AST(\k default hashmap . (\val . if (neq val nil) val default) (get-value k hashmap))
-root.defs._get$_value$_default = _get$_value$_default = Leisure.define('get-value-default', (function() {var f = (function(_k){return function(_default){return function(_hashmap){return function(_val){return _if()((function(){var $m; return (function(){return $m || ($m = (_neq()(_val)(_nil)))})})())(_val)(_default);}((function(){var $m; return (function(){return $m || ($m = (_get$_value()(_k)(_hashmap)))})})());};};}); return function _get$_value$_default(){return f;}})(), 3, "\\k. \\default. \\hashmap. do\n  val = get-value k hashmap\n  if (neq val nil) val default");
+//getHashValueDefault = AST(λk default hashmap . (λval . "if" ("neq" "val" "nil") "val" "default") ("getHashValue" "k" "hashmap"))
+root.defs._getHashValueDefault = _getHashValueDefault = Parse.define('getHashValueDefault', (function() {var f = (function(_k){return function(_default){return function(_hashmap){return function(_val){return _if()((function(){var $m; return (function(){return $m || ($m = (_neq()(_val)(_nil)))})})())(_val)(_default);}((function(){var $m; return (function(){return $m || ($m = (_getHashValue()(_k)(_hashmap)))})})());};};}); return function _getHashValueDefault(){return f;}})(), 3, "\\k. \\default. \\hashmap. do\n  val = getHashValue k hashmap\n  if (neq val nil) val default");
 ;
-//get-keys = AST(\hashmap . map \cell . key cell hashmap)
-root.defs._get$_keys = _get$_keys = Leisure.define('get-keys', (function() {var f = (function(_hashmap){return _map()((function(){var $m; return (function(){return $m || ($m = (function(_cell){return _key()(_cell);}))})})())(_hashmap);}); return function _get$_keys(){return f;}})(), 1, "\\hashmap. map (\\cell . (key cell)) hashmap");
+//getKeys = AST(λhashmap . "map" λcell . "key" "cell" "hashmap")
+root.defs._getKeys = _getKeys = Parse.define('getKeys', (function() {var f = (function(_hashmap){return _map()((function(){var $m; return (function(){return $m || ($m = (function(_cell){return _key()(_cell);}))})})())(_hashmap);}); return function _getKeys(){return f;}})(), 1, "\\hashmap. map (\\cell . (key cell)) hashmap");
 ;
-//num-keys = AST(\hashmap . length (get-keys hashmap))
-root.defs._num$_keys = _num$_keys = Leisure.define('num-keys', (function() {var f = (function(_hashmap){return _length()((function(){var $m; return (function(){return $m || ($m = (_get$_keys()(_hashmap)))})})());}); return function _num$_keys(){return f;}})(), 1, "\\hashmap. length (get-keys hashmap)");
+//numKeys = AST(λhashmap . "length" ("getKeys" "hashmap"))
+root.defs._numKeys = _numKeys = Parse.define('numKeys', (function() {var f = (function(_hashmap){return _length()((function(){var $m; return (function(){return $m || ($m = (_getKeys()(_hashmap)))})})());}); return function _numKeys(){return f;}})(), 1, "\\hashmap. length (getKeys hashmap)");
 ;
-//first-pair = AST(\hashmap . head hashmap)
-root.defs._first$_pair = _first$_pair = Leisure.define('first-pair', (function() {var f = (function(_hashmap){return _head()(_hashmap);}); return function _first$_pair(){return f;}})(), 1, "\\hashmap. head hashmap");
+//firstPair = AST(λhashmap . "head" "hashmap")
+root.defs._firstPair = _firstPair = Parse.define('firstPair', (function() {var f = (function(_hashmap){return _head()(_hashmap);}); return function _firstPair(){return f;}})(), 1, "\\hashmap. head hashmap");
 ;
-//rest-pairs = AST(\hashmap . tail hashmap)
-root.defs._rest$_pairs = _rest$_pairs = Leisure.define('rest-pairs', (function() {var f = (function(_hashmap){return _tail()(_hashmap);}); return function _rest$_pairs(){return f;}})(), 1, "\\hashmap. tail hashmap");
+//restPairs = AST(λhashmap . "tail" "hashmap")
+root.defs._restPairs = _restPairs = Parse.define('restPairs', (function() {var f = (function(_hashmap){return _tail()(_hashmap);}); return function _restPairs(){return f;}})(), 1, "\\hashmap. tail hashmap");
 ;
-//merge-hash-keys = AST(\hm1 hm2 keys . if (null? keys) hm1 (if (null? (get-pair (head keys) hm1)) (cons (get-pair (head keys) hm2) (merge-hash-keys hm1 hm2 (tail keys))) (merge-hash-keys hm1 hm2 (tail keys))))
-root.defs._merge$_hash$_keys = _merge$_hash$_keys = Leisure.define('merge-hash-keys', (function() {var f = (function(_hm1){return function(_hm2){return function(_keys){return _if()((function(){var $m; return (function(){return $m || ($m = (_null$e()(_keys)))})})())(_hm1)((function(){var $m; return (function(){return $m || ($m = (_if()((function(){var $m; return (function(){return $m || ($m = (_null$e()((function(){var $m; return (function(){return $m || ($m = (_get$_pair()((function(){var $m; return (function(){return $m || ($m = (_head()(_keys)))})})())(_hm1)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_get$_pair()((function(){var $m; return (function(){return $m || ($m = (_head()(_keys)))})})())(_hm2)))})})())((function(){var $m; return (function(){return $m || ($m = (_merge$_hash$_keys()(_hm1)(_hm2)((function(){var $m; return (function(){return $m || ($m = (_tail()(_keys)))})})())))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_merge$_hash$_keys()(_hm1)(_hm2)((function(){var $m; return (function(){return $m || ($m = (_tail()(_keys)))})})())))})})())))})})());};};}); return function _merge$_hash$_keys(){return f;}})(), 3, "\\hm1. \\hm2. \\keys. if (null? keys) hm1\n  if (null? (get-pair (head keys) hm1) )\n    cons (get-pair (head keys) hm2) (merge-hash-keys hm1 hm2 (tail keys))\n    merge-hash-keys hm1 hm2 (tail keys)");
+//mergeHashKeys = AST(λhm1 hm2 keys . "if" ("null?" "keys") "hm1" ("if" ("null?" ("getPair" ("head" "keys") "hm1")) ("cons" ("getPair" ("head" "keys") "hm2") ("mergeHashKeys" "hm1" "hm2" ("tail" "keys"))) ("mergeHashKeys" "hm1" "hm2" ("tail" "keys"))))
+root.defs._mergeHashKeys = _mergeHashKeys = Parse.define('mergeHashKeys', (function() {var f = (function(_hm1){return function(_hm2){return function(_keys){return _if()((function(){var $m; return (function(){return $m || ($m = (_null$e()(_keys)))})})())(_hm1)((function(){var $m; return (function(){return $m || ($m = (_if()((function(){var $m; return (function(){return $m || ($m = (_null$e()((function(){var $m; return (function(){return $m || ($m = (_getPair()((function(){var $m; return (function(){return $m || ($m = (_head()(_keys)))})})())(_hm1)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_getPair()((function(){var $m; return (function(){return $m || ($m = (_head()(_keys)))})})())(_hm2)))})})())((function(){var $m; return (function(){return $m || ($m = (_mergeHashKeys()(_hm1)(_hm2)((function(){var $m; return (function(){return $m || ($m = (_tail()(_keys)))})})())))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_mergeHashKeys()(_hm1)(_hm2)((function(){var $m; return (function(){return $m || ($m = (_tail()(_keys)))})})())))})})())))})})());};};}); return function _mergeHashKeys(){return f;}})(), 3, "\\hm1. \\hm2. \\keys. if (null? keys) hm1\n  if (null? (getPair (head keys) hm1) )\n    cons (getPair (head keys) hm2) (mergeHashKeys hm1 hm2 (tail keys))\n    mergeHashKeys hm1 hm2 (tail keys)");
 ;
-//merge-hash = AST(\hm1 hm2 . merge-hash-keys hm1 hm2 (get-keys hm2))
-root.defs._merge$_hash = _merge$_hash = Leisure.define('merge-hash', (function() {var f = (function(_hm1){return function(_hm2){return _merge$_hash$_keys()(_hm1)(_hm2)((function(){var $m; return (function(){return $m || ($m = (_get$_keys()(_hm2)))})})());};}); return function _merge$_hash(){return f;}})(), 2, "\\hm1. \\hm2. merge-hash-keys hm1 hm2 (get-keys hm2)");
+//mergeHash = AST(λhm1 hm2 . "mergeHashKeys" "hm1" "hm2" ("getKeys" "hm2"))
+root.defs._mergeHash = _mergeHash = Parse.define('mergeHash', (function() {var f = (function(_hm1){return function(_hm2){return _mergeHashKeys()(_hm1)(_hm2)((function(){var $m; return (function(){return $m || ($m = (_getKeys()(_hm2)))})})());};}); return function _mergeHash(){return f;}})(), 2, "\\hm1. \\hm2. mergeHashKeys hm1 hm2 (getKeys hm2)");
 ;
-//remove-hash = AST(\k hashmap . remove-if \x . eq (key x) k hashmap)
-root.defs._remove$_hash = _remove$_hash = Leisure.define('remove-hash', (function() {var f = (function(_k){return function(_hashmap){return _remove$_if()((function(){var $m; return (function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return (function(){return $m || ($m = (_key()(_x)))})})())(_k);}))})})())(_hashmap);};}); return function _remove$_hash(){return f;}})(), 2, "\\k. \\hashmap. remove-if (\\x . eq (key x) k) hashmap");
+//removeHash = AST(λk hashmap . "removeIf" λx . "eq" ("key" "x") "k" "hashmap")
+root.defs._removeHash = _removeHash = Parse.define('removeHash', (function() {var f = (function(_k){return function(_hashmap){return _removeIf()((function(){var $m; return (function(){return $m || ($m = (function(_x){return _eq()((function(){var $m; return (function(){return $m || ($m = (_key()(_x)))})})())(_k);}))})})())(_hashmap);};}); return function _removeHash(){return f;}})(), 2, "\\k. \\hashmap. removeIf (\\x . eq (key x) k) hashmap");
 ;
 
-if (typeof window !== 'undefined' && window !== null) {
-  Leisure.processTokenDefs(root.tokenDefs);
-}
+//if (typeof window !== 'undefined' && window !== null) {
+//  Leisure.processTokenDefs(root.tokenDefs);
+//}
 return root;
 }).call(this)

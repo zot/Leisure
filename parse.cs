@@ -88,13 +88,17 @@ setType = (func, type)->
 class Cons
   head: -> @ ->(a)->(b)->a()
   tail: -> @ ->(a)->(b)->b()
-  cons: (a, b)->cons(a, b)
   find: (func)-> func(@head()) or @tail().find(func)
   removeAll: (func)->
     t = @tail().removeAll(func)
     if func(@head) then t else if t == @tail() then @ else cons(@head(), t)
+  map: (func)-> cons func(@head()), @tail().map func
   foldl: (func, arg)-> @tail().foldl func, func(arg, @head())
+  foldl1: (func)-> @tail().foldl func, @head()
   foldr: (func, arg)-> func @head(), @tail().foldr(func, arg)
+  foldr1: (func)->
+    if @tail() == Nil then @head()
+    else func @head(), @tail().foldr1(func)
   toArray: -> @foldl ((i, el)-> i.push(el); i), []
   join: (str)->@toArray().join(str)
   toString: -> "Cons[#{@toArray().join(', ')}]"
@@ -112,6 +116,7 @@ class Cons
 class CNil extends Cons
   find: -> false
   removeAll: -> @
+  map: (func)-> Nil
   foldl: (func, arg)-> arg
   foldr: (func, arg)-> arg
   rev: (result)-> result
@@ -145,6 +150,13 @@ dlappend = (a, b)->
   checkType(b, DL)
   mkProto DL, (c)-> a(b(c))
 
+foldLeft = (func, val, thing)->
+  if thing instanceof Cons then thing.foldl func, val
+  else primFoldLeft func, val, thing, 0
+primFoldLeft = (func, val, array, index)->
+  if index < array.length then primFoldLeft func, func(val, array[index]), array, index + 1
+  else val
+
 # JS class overlaid on lexCons/lexNil funcs for convenience
 # merge start and end into functional rep
 class LexCons extends Cons
@@ -152,6 +164,7 @@ class LexCons extends Cons
   tail: -> @ ->(a)->(s)->(b)->(e)->b()
   start: -> @ ->(a)->(s)->(b)->(e)->s()
   end: -> @ ->(a)->(s)->(b)->(e)->e()
+  map: (func)-> lexCons func(@head()), @start(), @tail().map(func), @end()
   withStart: (start)-> lexCons(@head(), start, @tail(), @end())
   toString: -> "LexCons(#{@start()}, #{@end()})[#{@toArray().join(' ')}]"
 
@@ -167,9 +180,10 @@ lexDlappend = (a, b)->
   checkType(b, LexDL)
   mkProto LexDL, (c, end)->a(b(c, end), end)
 
+global.leisureMacros = {}
 global.leisureFuncs = {}
 global.leisureFuncNames = Nil
-global.leisureAddFunc = (nm)-> global.leisureFuncNames = cons(nm, global.leisureFuncNames)
+leisureAddFunc = global.leisureAddFunc = (nm)-> global.leisureFuncNames = cons(nm, global.leisureFuncNames)
 root.evalFunc = evalFunc = eval
 
 # use AST, instead of arity?
@@ -181,14 +195,24 @@ define = (name, func, arity, src) ->
   func.leisureArity = arity
   if global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
   global[nm] = global.leisureFuncs[nm] = func
-  (evalFunc 'leisureAddFunc')(name)
+  leisureAddFunc name
   func
 
-# expose lexCons and lexNil to Leisure code
+# expose cons and lexCons functions to Leisure
 
-define 'cons', (->primCons), 2, '\a b f . f a b'
-define 'nil', (->Nil), 0, '\a b . b'
-define 'lexCons', (->primLexCons), 4, '\a s b e f . f a s b e'
+define 'cons', (-> primCons), 2, '\a b f . f a b'
+define 'head', (-> (l)-> l().head()), 1, '\l . l \h t . h'
+define 'tail', (-> (l)-> l().tail()), 1, '\l . l \h t . t'
+define 'lexCons', (-> primLexCons), 4, '\a s b e f . f a s b e'
+define 'lexStart', (-> (l)-> l().start()), 1, '\l . l h s t e . s'
+define 'lexEnd', (-> (l)-> l().end()), 1, '\l . l h s t e . e'
+define 'nil', (-> Nil), 0, '\a b . b'
+define 'foldl', (-> (f)->(v)->(l)-> l().foldl(lfunc(f), v())), 3, ''
+define 'foldl1', (-> (f)->(l)-> l().foldl1(lfunc(f))), 3, ''
+define 'foldr', (-> (f)->(v)->(l)-> l().foldlr(lfunc(f), v())), 3, ''
+define 'foldr1', (-> (f)->(l)-> l().foldr1(lfunc(f))), 3, ''
+
+lfunc = (f)->(v, el)-> f()(-> v)(-> el)
 
 ######
 ###### Scanning
@@ -214,7 +238,6 @@ resetScanner = ->
 resetScanner()
 
 defToken = (name)->
-  console.log "DEFINING TOKEN: #{name}"
   if !tokens[name]?
     tokens[name] = 1
     tokenTypes.push name
@@ -224,7 +247,6 @@ defToken = (name)->
     tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
 
 defGroup = (open, close)->
-  console.log "DEFINING GROUP: #{open}, #{close}"
   if !tokens[open]?
     defToken open
     defToken close
@@ -242,10 +264,11 @@ nextTok = (str)->
   if !m then [str, '']
   else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
   else
-    if m[0][0] == "'" then m[0] = "\"#{m[0].substring(1, m[0].length - 1)}\""
+    tok = m[0]
+    if tok[0][0] == "'" then tok = '"' + tok.substring(1, tok.length - 1).replace(/[\\]?./g, (s)-> if s[0] == '"' then '\\"' else s) + '"'
     rest = str.substring(m.index + m[0].length)
-    if m[0][0] == '#' or m[0][0] == ' ' or (m[0][0] == '\n' and rest[0] == '\n') then nextTok rest
-    else [m[0], rest]
+    if tok[0] == '#' or tok[0] == ' ' or (tok[0] == '\n' and rest[0] == '\n') then nextTok rest
+    else [tok, rest]
 
 pos = (str, totalLen)-> totalLen - str.length
 
@@ -262,13 +285,16 @@ class Token
 
 primToken = setDataType(((a)->(b)->
   t = mkProto Token, setType ((f)-> f()(a)(b)), 'token'
-  #console.log "NEW TOKEN: #{t}"
   t
   ), 'token')
 
 makeToken = (tok, rest, totalLen)->
   tp = totalLen - rest.length - tok.length
   primToken(->tok)(->tp)
+
+define 'token', (-> primToken), 2, '\tok pos f . f tok pos'
+define 'tokenName', (-> (t)-> t().tok()), 1, '\tok . tok \n p . n'
+define 'tokenStart', (-> (t)-> t().start()), 1, '\tok . tok \n p . p'
 
 ######
 ###### Parsing phase 1 -- parse into a lexCons-list
@@ -320,6 +346,34 @@ positionGroup = (groupDL, startTok, endTok)->
   if g instanceof LexCons then g.withStart(startTok.start()) else g
 
 ######
+###### Macros
+######
+
+defineMacro = (name, func)-> global.leisureMacros[name] = func()
+
+substituteMacros = (list)->
+  if list == Nil or !(list instanceof Cons) then list
+  else if list.head() instanceof Token and macro = global.leisureMacros[list.head().tok()]
+    cleaned = cleanupMacro (macro ->list)
+    substituteMacros cleaned
+  else substituteLambdaMacros list
+
+substituteLambdaMacros = (list)->
+  if list == Nil then Nil
+  else if isLambdaToken list.head() then substituteLambdaBody list
+  else lexCons (substituteMacros list.head()), list.start(), (substituteLambdaMacros list.tail()), list.end()
+
+substituteLambdaBody = (list)->
+  if list == Nil then Nil
+  else lexCons list.head(), list.start(), (if (list.head() instanceof Token) and list.head().tok() == '.' then substituteMacros(list.tail()) else substituteLambdaBody list.tail()), list.end()
+
+cleanupMacro = (list)->
+  if typeof list == 'string' then primToken(->list)(->0)
+  else if !(list instanceof Cons) or list == Nil then list
+  else if list instanceof LexCons then list.map cleanupMacro
+  else lexCons (cleanupMacro list.head()), 0, (cleanupMacro list.tail()), 0
+
+######
 ###### ASTs
 ######
 
@@ -341,12 +395,8 @@ getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{t}"
 
-lit = (l)->
-  #console.log "LIT: #{l}"
-  _lit()(-> l)
-ref = (r)->
-  #console.log "REF: #{r}"
-  _ref()(-> r)
+lit = (l)-> _lit()(-> l)
+ref = (r)-> _ref()(-> r)
 lambda = (v, body)->_lambda()(-> v)(-> body)
 apply = (f, a)->_apply()(-> f)(-> a)
 getAstType = (f) -> f.type
@@ -392,7 +442,8 @@ listToLambda = (list, vars)->
 tokenToAst = (tok, vars)->
   try
     l = JSON.parse tok.tok()
-    [tag (if typeof l == 'number' and vars.find(l) then ref(l) else lit(l)), tok.start(), tok.end()]
+    t = typeof l
+    [tag (if t == 'number' and vars.find(l) then ref(l) else if t in ['string', 'number'] then lit(l) else ref(tok.tok())), tok.start(), tok.end()]
   catch err
     [tag ref(tok.tok()), tok.start(), tok.end()]
 
@@ -409,21 +460,22 @@ parseOptional = (string, macros)->
   [res, err, rest] = parsePhase1 string
   if err then [null, err, rest]
   else
-    #
-    # -- substitute macros, here
-    #
-    [res, err, tok] = listToAst res
+    [res, err, tok] = listToAst (if macros then substituteMacros res else res)
     if res then [res, null, rest]
-    else [null, err, string.substring(tok.pos())]
+    else
+      console.log "ERR TOK: #{tok}, MSG: #{err}"
+      [null, err, (if tok then string.substring(tok.start()) else rest)]
+
+right = (value)-> (a)->(b)-> a()(->value)
+left = (value)-> (a)->(b)-> b()(->value)
+
+define 'scan', -> (string)->
+  [res, err, rest] = parsePhase1 string()
+  if err then left("Error at: #{JSON.stringify snip rest}..., #{err}")
+  else right(substituteMacros res)
 
 parse = (string)->parseOptional string, false
 parseFull = (string)->parseOptional string, true
-
-###
-# Macros
-###
-
-defMacro = (name, func)-> ctx.macros[name] = func()
 
 ###
 tests
@@ -446,13 +498,13 @@ subprint = (f)->
   if !f? then "UNDEFINED"
   else if f == null then 'NULL'
   else switch getType(f)
-    when 'lexCons' then "(#{f.start()}, #{f.end()})[#{elements(f, true)}]"
+    when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elements(f, true)}]"
     when 'cons' then "[#{elements(f, true)}]"
     when 'nil' then "[]"
     when 'token' then "#{f}"
     when 'ioMonad' then "IO"
-    when 'lit' then f ->(v)->v()
-    when 'ref' then f ->(v)->v()
+    when 'lit' then f ->(v)->JSON.stringify(v())
+    when 'ref' then f ->(v)->JSON.stringify(v())
     when 'lambda' then f ->(v)->(bod)-> "\u03BB#{printLambda v(), bod()}"
     when 'apply' then f ->(func)->(arg)-> printApply(func(), arg())
     when 'some' then f(->(v)-> "Some(#{print v()})")(null)
@@ -460,10 +512,10 @@ subprint = (f)->
     when 'left' then f(->(l)-> "Left(#{print l()})")(null)
     when 'right' then f(null)(->(r)-> "Right(#{print r()})")
     when 'html' then f ->(txt)-> "HTML(#{txt()})"
-    when 'svg-node' then f ->(txt)-> "SVG NODE(#{txt()})"
+    when 'svgNode' then f ->(txt)-> "SVG NODE(#{txt()})"
     else
       if f instanceof Error then f.stack
-      else f.leisureName ? inspect(f)
+      else f.leisureName ? (inspect ? (v)->"#{v}")(f)
 
 printLambda = (v, body)->
   if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"
@@ -475,8 +527,8 @@ printApply = (func, arg)->
   "#{f} #{a}"
 
 elements = (l, first, nosubs)->
-  if getType(l) == 'nil' then ''
-  else if getType(l) != 'lexCons' then " | #{print(l)}"
+  if l == Nil then ''
+  else if !(l instanceof Cons) then " | #{print(l)}"
   else "#{if first then '' else ' '}#{print(l.head()) + elements(l.tail(), false)}"
 
 ###
@@ -520,9 +572,9 @@ root.lexDlempty = lexDlempty
 root.lexDlnew = lexDlnew
 root.lexDlappend = lexDlappend
 root.define = define
+root.defineMacro = defineMacro
 root.defGroup = defGroup
 root.defToken = defToken
-root.defMacro = defMacro
 root.parse = parse
 root.parseFull = parseFull
 root.parsePhase1 = parsePhase1
@@ -543,3 +595,4 @@ root.print = print
 root.ifParsed = ifParsed
 root.snip = snip
 root.throwError = throwError
+root.foldLeft = foldLeft

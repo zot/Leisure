@@ -1,10 +1,10 @@
 (function() {
-  var Pretty, clearEnv, clearEnvX, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, presentValue, processResult, reloadEnv, root, trimEq, useIframe, useMainWindow, write, writeOutput;
+  var Parse, clearEnv, clearEnvX, clearOutput, envFrame, escapeHtml, evalLine, getHtml, handleFiles, init, input, lastLine, markupDef, markupLines, presentValue, processResult, reloadEnv, root, trimEq, useIframe, useMainWindow, write, writeOutput;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.Repl = root = {};
-    Pretty = window.Pretty;
+    Parse = window.Parse;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
@@ -80,7 +80,7 @@
       case 'svg':
         return getHtml(value);
       default:
-        return escapeHtml(Pretty.print(value));
+        return escapeHtml(Parse.print(value));
     }
   };
 
@@ -182,7 +182,7 @@
   };
 
   processResult = function processResult(result) {
-    writeOutput("" + (ReplCore.getType(result)) + ": " + (escape(Pretty.print(result))) + "\n");
+    writeOutput("" + (ReplCore.getType(result)) + ": " + (escape(Parse.print(result))) + "\n");
     return ReplCore.processResult(result);
   };
 

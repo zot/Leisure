@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Parse, RL, U, arrayRest, concatList, continueMonad, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, setTty, tail, throwError, tty, values;
+  var Leisure, Parse, RL, U, arrayRest, concatList, continueMonad, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, setTty, tail, throwError, tmpFalse, tty, values;
 
   defaultEnv = {};
 
@@ -51,14 +51,6 @@
   throwError = Parse.throwError;
 
   laz = Leisure.laz;
-
-  define('false', (function() {
-    return function(a) {
-      return function(b) {
-        return b();
-      };
-    };
-  }), 2);
 
   define('is', (function() {
     return function(value) {
@@ -152,11 +144,17 @@
     };
   });
 
+  tmpFalse = function tmpFalse(a) {
+    return function(b) {
+      return b();
+    };
+  };
+
   define('defToken', function() {
     return function(token) {
       return makeMonad(function(env, cont) {
         Parse.defToken(token());
-        return cont(_false());
+        return cont(tmpFalse);
       });
     };
   });
@@ -166,7 +164,7 @@
       return function(close) {
         return makeMonad(function(env, cont) {
           Parse.defGroup(open(), close());
-          return cont(_false());
+          return cont(tmpFalse);
         });
       };
     };
@@ -633,13 +631,13 @@
     return 3;
   });
 
-  define('svg-measure-text', (function() {
+  define('svgMeasureText', (function() {
     return function(text) {
       return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
     };
   }), 2);
 
-  define('prim-svg-measure', (function() {
+  define('primSvgMeasure', (function() {
     return function(content) {
       return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasure(content) : void 0;
     };
