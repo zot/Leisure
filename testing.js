@@ -28,9 +28,11 @@ Wimpy testing framework
 */
 
 (function() {
-  var LZ, P, R, assertEq, assertEval, assertEvalPrint, assertParse, astPrint, run, runTests, stats;
+  var LZ, P, Parse, R, assertEq, assertEval, assertEvalPrint, assertParse, astPrint, run, runTests, stats;
 
   R = require('./repl');
+
+  Parse = require('./parse');
 
   LZ = require('./leisure');
 
@@ -50,7 +52,7 @@ Wimpy testing framework
 
   assertEval = function assertEval(actual, expected, desc) {
     var ast, code, err, rest, _ref;
-    _ref = LZ.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = Parse.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err != null) {
       throw new Error("Error: " + err);
     } else if (rest != null ? rest.trim() : void 0) {
@@ -64,7 +66,7 @@ Wimpy testing framework
 
   assertEvalPrint = function assertEvalPrint(actual, expected, desc) {
     var ast, code, err, rest, v, _ref;
-    _ref = LZ.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = Parse.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err != null) {
       throw new Error("Error: " + err);
     } else if (rest != null ? rest.trim() : void 0) {
@@ -81,10 +83,10 @@ Wimpy testing framework
     var arg, func, isFirst, val;
     isFirst = !res;
     res = res != null ? res : [];
-    switch (LZ.getAstType(ast)) {
+    switch (Parse.getAstType(ast)) {
       case 'ref':
         res.push('ref ');
-        val = LZ.getRefVar(ast);
+        val = Parse.getRefVar(ast);
         if (val.lambda) {
           throw new Error("Attempt to use lambda in ref, instead of string or number: " + val);
         }
@@ -92,22 +94,22 @@ Wimpy testing framework
         break;
       case 'lit':
         res.push('lit ');
-        val = LZ.getLitVal(ast);
+        val = Parse.getLitVal(ast);
         res.push((val != null ? val.lambda : void 0) ? "{" + val.lambda.toString() + "}" : val);
         break;
       case 'lambda':
         res.push('lambda ');
-        res.push(LZ.getLambdaVar(ast));
+        res.push(Parse.getLambdaVar(ast));
         res.push(' . ');
-        astPrint(LZ.getLambdaBody(ast), res);
+        astPrint(Parse.getLambdaBody(ast), res);
         break;
       case 'apply':
-        func = LZ.getApplyFunc(ast);
-        arg = LZ.getApplyArg(ast);
+        func = Parse.getApplyFunc(ast);
+        arg = Parse.getApplyArg(ast);
         res.push('apply (');
-        astPrint(LZ.getApplyFunc(ast), res);
+        astPrint(Parse.getApplyFunc(ast), res);
         res.push(') (');
-        astPrint(LZ.getApplyArg(ast), res);
+        astPrint(Parse.getApplyArg(ast), res);
         res.push(')');
         break;
       default:
@@ -118,7 +120,7 @@ Wimpy testing framework
 
   assertParse = function assertParse(actual, expected, desc) {
     var ast, err, rest, _ref;
-    _ref = LZ.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = Parse.parseFull(actual), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (err != null) {
       throw new Error("Error: " + err);
     } else if (rest != null ? rest.trim() : void 0) {

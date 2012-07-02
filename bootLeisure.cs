@@ -48,7 +48,7 @@ bootLeisure = ->
 callPrepCode = (preps, index, finishBoot)->
   if index < preps.length
     ReplCore.setNext -> callPrepCode preps, index + 1, finishBoot
-    ReplCore.processLine preps[index], Prim.defaultEnv, 'Leisure.'
+    ReplCore.processLine preps[index], Prim.defaultEnv, 'Parse.'
   else
     ReplCore.setNext ->
     finishBoot()

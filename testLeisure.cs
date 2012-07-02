@@ -27,6 +27,7 @@ Tests for Leisure
 ###
 
 U = require('util')
+Parse = require('./parse')
 LZ=require('./leisure')
 R = require('./replCore')
 #require('./std')
@@ -55,28 +56,28 @@ div = ['\\n' '-' '-' '-' '-' '-' '\\n']
 
 LZ.eval(code)
 
-run 'test1', -> assertParse("1", "ref 1")
+run 'test1', -> assertParse("1", "lit 1")
 run 'test2', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (ref y)", "\\x.x x y")
 run 'test3', -> assertEval("(\\x . x) 'hello'", 'hello')
 run 'test4', -> assertEval("eval (apply (lambda 'x' (ref 'x')) (lit 'hello'))", 'hello')
 run 'test5', -> assertEval("(eq cons cons) 'yes' 'no'", 'yes')
 run 'test6', -> assertEval("(eq cons true) 'yes' 'no'", 'no')
-run 'test7', -> LZ.astEval(LZ.gen(LZ.parseFull("cons 1 2")))
-run 'test8', -> LZ.astEval(LZ.gen(LZ.parseFull("head (cons 1 2)")))
+run 'test7', -> LZ.astEval(LZ.gen(Parse.parseFull("cons 1 2")))
+run 'test8', -> LZ.astEval(LZ.gen(Parse.parseFull("head (cons 1 2)")))
 run 'test9', -> assertEval("head (cons 1 2)", 1)
 run 'test10', -> assertEval("tail (cons 1 2)", 2)
 run 'test11', -> assertEval("last (cons 'a' nil)", 'a')
 run 'test12', -> assertEval("last (cons 'a' (cons 'b' nil))", 'b')
 run 'test13', -> assertEval("(is (cons 'a' 'b') cons) 'yes' 'no'", 'yes')
 run 'test14', -> assertEval("(eval (lambda 'a' (lambda 'b' (ref 'a')))) 'yes' 'no'", 'yes')
-run 'test15', -> assertEval("(\\1 .; 1) 'hello'", 'hello')
+run 'test15', -> assertEval("(\\1 .\n 1) 'hello'", 'hello')
 run 'test16', -> assertEval("head ([ 1 ])", 1)
 run 'test17', -> assertEval("head (tail (append ([ 1 ]) ([ 2 ])))", 2)
 run 'test18', -> assertEval("head [1]", 1)
 run 'test19', -> assertEval("head (tail (append [1] [2]))", 2)
-run 'test20', -> assertEval("concat divider", '\\n-----\\n')
+run 'test20', -> assertEval("concat divider", '\n-----\n')
 run 'test21', -> assertEval('"\\n"', "\n")
-run 'test22', -> assertEval("concat div", '\\n-----\\n')
+run 'test22', -> assertEval("concat div", '\n-----\n')
 run 'test23', -> assertEval("val", 2)
 
 in1 = """
@@ -199,11 +200,11 @@ run 'test27', -> assertParse(in6, "apply (apply (ref bind) (apply (ref ret) (ref
 run 'test28', -> assertEvalPrint(in7, '[3 4]')
 
 applyBrackets = (str, pos, func)->
-  ast = LZ.parseFull(str)[0]
+  ast = Parse.parseFull(str)[0]
   brackets = LZ.bracket(ast, pos)
   result = ''
   prev = 0
-  while brackets != LZ.Nil
+  while brackets != Parse.Nil
     start = brackets.head.head
     end = brackets.head.tail.head
     result += "#{str.substring prev, start}#{func str.substring(start, end), result == ''}"

@@ -27,6 +27,7 @@ Wimpy testing framework
 ###
 
 R = require './repl'
+Parse = require './parse'
 LZ = require './leisure'
 P = require './pretty'
 
@@ -39,7 +40,7 @@ assertEq = (actual, expected, desc)-> if expected != actual
   throw new Error("#{if desc then "[#{desc}] " else ""}Expected <#{expected}> but got <#{actual}>")
 
 assertEval = (actual, expected, desc)->
-  [ast, err, rest] = LZ.parseFull(actual)
+  [ast, err, rest] = Parse.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else
@@ -48,7 +49,7 @@ assertEval = (actual, expected, desc)->
     assertEq(LZ.astEval(code), expected, desc ? actual)
 
 assertEvalPrint = (actual, expected, desc)->
-  [ast, err, rest] = LZ.parseFull(actual)
+  [ast, err, rest] = Parse.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else
@@ -60,34 +61,34 @@ assertEvalPrint = (actual, expected, desc)->
 astPrint = (ast, res)->
   isFirst = !res
   res = res ? []
-  switch LZ.getAstType ast
+  switch Parse.getAstType ast
     when 'ref'
       res.push 'ref '
-      val = LZ.getRefVar ast
+      val = Parse.getRefVar ast
       if val.lambda then throw new Error("Attempt to use lambda in ref, instead of string or number: " + val)
       res.push val
     when 'lit'
       res.push 'lit '
-      val = LZ.getLitVal ast
+      val = Parse.getLitVal ast
       res.push if val?.lambda then "{" + val.lambda.toString() + "}" else val
     when 'lambda'
       res.push 'lambda '
-      res.push (LZ.getLambdaVar ast)
+      res.push (Parse.getLambdaVar ast)
       res.push ' . '
-      astPrint (LZ.getLambdaBody ast), res
+      astPrint (Parse.getLambdaBody ast), res
     when 'apply'
-      func = LZ.getApplyFunc ast
-      arg = LZ.getApplyArg ast
+      func = Parse.getApplyFunc ast
+      arg = Parse.getApplyArg ast
       res.push 'apply ('
-      astPrint (LZ.getApplyFunc ast), res
+      astPrint (Parse.getApplyFunc ast), res
       res.push ') ('
-      astPrint (LZ.getApplyArg ast), res
+      astPrint (Parse.getApplyArg ast), res
       res.push ')'
     else throw new Error("Unknown type of object in AST: " + ast)
   isFirst and res.join('')
 
 assertParse = (actual, expected, desc)->
-  [ast, err, rest] = LZ.parseFull(actual)
+  [ast, err, rest] = Parse.parseFull(actual)
   if err? then throw new Error("Error: #{err}")
   else if rest?.trim() then throw new Error("Error, input left after parsing: '#{rest.trim()}'")
   else assertEq(astPrint(ast), expected, desc ? actual)

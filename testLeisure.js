@@ -28,9 +28,11 @@ Tests for Leisure
 */
 
 (function() {
-  var LZ, R, T, U, applyBrackets, assertEq, assertEval, assertEvalPrint, assertParse, br, code, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
+  var LZ, Parse, R, T, U, applyBrackets, assertEq, assertEval, assertEvalPrint, assertParse, br, code, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
+
+  Parse = require('./parse');
 
   LZ = require('./leisure');
 
@@ -53,7 +55,7 @@ Tests for Leisure
   LZ.eval(code);
 
   run('test1', function() {
-    return assertParse("1", "ref 1");
+    return assertParse("1", "lit 1");
   });
 
   run('test2', function() {
@@ -77,11 +79,11 @@ Tests for Leisure
   });
 
   run('test7', function() {
-    return LZ.astEval(LZ.gen(LZ.parseFull("cons 1 2")));
+    return LZ.astEval(LZ.gen(Parse.parseFull("cons 1 2")));
   });
 
   run('test8', function() {
-    return LZ.astEval(LZ.gen(LZ.parseFull("head (cons 1 2)")));
+    return LZ.astEval(LZ.gen(Parse.parseFull("head (cons 1 2)")));
   });
 
   run('test9', function() {
@@ -109,7 +111,7 @@ Tests for Leisure
   });
 
   run('test15', function() {
-    return assertEval("(\\1 .; 1) 'hello'", 'hello');
+    return assertEval("(\\1 .\n 1) 'hello'", 'hello');
   });
 
   run('test16', function() {
@@ -129,7 +131,7 @@ Tests for Leisure
   });
 
   run('test20', function() {
-    return assertEval("concat divider", '\\n-----\\n');
+    return assertEval("concat divider", '\n-----\n');
   });
 
   run('test21', function() {
@@ -137,7 +139,7 @@ Tests for Leisure
   });
 
   run('test22', function() {
-    return assertEval("concat div", '\\n-----\\n');
+    return assertEval("concat div", '\n-----\n');
   });
 
   run('test23', function() {
@@ -188,11 +190,11 @@ Tests for Leisure
 
   applyBrackets = function applyBrackets(str, pos, func) {
     var ast, brackets, end, prev, result, start;
-    ast = LZ.parseFull(str)[0];
+    ast = Parse.parseFull(str)[0];
     brackets = LZ.bracket(ast, pos);
     result = '';
     prev = 0;
-    while (brackets !== LZ.Nil) {
+    while (brackets !== Parse.Nil) {
       start = brackets.head.head;
       end = brackets.head.tail.head;
       result += "" + (str.substring(prev, start)) + (func(str.substring(start, end), result === ''));

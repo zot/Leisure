@@ -327,7 +327,7 @@ function tokenize(str) {
 	}
 	var tok = tokenPat.exec(str.substring(pos))[0]
 	if (tok.trim()) {
-	    if (tok[0] == '#' && !tok.match(/^#(define|strict|lazy)/)) break
+	    if (tok[0] == '#' && !tok.match(/^#(define|strict|lazy)/)) break;
 	    toks.push(tok)
 	}
 	str = str.substring(pos + tok.length)

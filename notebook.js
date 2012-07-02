@@ -1281,7 +1281,7 @@
   };
 
   evalBox = function evalBox(box, envBox) {
-    ReplCore.processLine(box.textContent, (envBox != null ? envFor(envBox) : null), 'Leisure.');
+    ReplCore.processLine(box.textContent, (envBox != null ? envFor(envBox) : null), 'Parse.');
     return getAst(box);
   };
 
@@ -1310,7 +1310,7 @@
         e.processError = function processError(ast) {
           return alert(ReplCore.errString(ast.err));
         };
-        return ReplCore.processLine(auto, e, "Leisure.");
+        return ReplCore.processLine(auto, e, 'Parse.');
       } else {
         return evalDocCode(el, pgm);
       }

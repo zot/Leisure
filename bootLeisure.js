@@ -68,7 +68,7 @@
       ReplCore.setNext(function() {
         return callPrepCode(preps, index + 1, finishBoot);
       });
-      return ReplCore.processLine(preps[index], Prim.defaultEnv, 'Leisure.');
+      return ReplCore.processLine(preps[index], Prim.defaultEnv, 'Parse.');
     } else {
       ReplCore.setNext(function() {});
       return finishBoot();

@@ -1,16 +1,20 @@
 if window? and (!global? or global == window)
   window.global = window
   window.ReplCore = root = {}
+  Parse = window.Parse
   Leisure = window.Leisure
-  P = window.Pretty
+  #P = window.Pretty
   Prim = window.Prim
 else root = exports ? this
 
 if !Leisure? and require?
+  Parse = require('./parse')
   Leisure = require('./leisure')
-  P = require('./pretty')
+  #P = require('./pretty')
   Prim = require('./prim')
   U = require('util')
+
+throwError = Parse.throwError
 
 compileFunc = ->
 
@@ -24,7 +28,7 @@ resetFunc = null
 
 setResetFunc = (func)-> resetFunc = func
 
-getType = Leisure.getType
+getType = Parse.getType
 
 formatContexts = (stack)->
   for [funcName, offset] in stack.toArray()
@@ -44,7 +48,7 @@ handlerFunc = (ast, result, a, c, r, src, env)->
   else
     if a
       # env.write("PARSED: #{Leisure.astPrint(ast)}\n")
-      env.write("FORMATTED: #{P.print ast}\n")
+      env.write("FORMATTED: #{Parse.print ast}\n")
     if c then env.write("GEN: #{ast.src}\n")
     if r
       if !result?
@@ -52,7 +56,7 @@ handlerFunc = (ast, result, a, c, r, src, env)->
         nextFunc()
       else
         global.$0 = result
-        env.write("#{getType result}: #{P.print(result)}\n")
+        env.write("#{getType result}: #{Parse.print(result)}\n")
         processResult result
 
 setHandler = (f)-> handlerFunc = f
@@ -86,8 +90,12 @@ write = (args...)-> writeFunc args.join('')
 
 processResult = (result, env, next)->
   next = next ? nextFunc
-  if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
-  else next()
+  if (getType result) == 'monad'
+    console.log "RESULT IS A MONAD"
+    Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
+  else
+    console.log "RESULT IS NOT A MONAD, IT'S #{getType result}: #{result}"
+    next()
 
 handleVar = (name, value, env)->
   if !name
@@ -131,27 +139,29 @@ processLine = (line, env, namespace)->
 escape = (str)-> str.replace(/\n/g, '\\n')
 
 prelude = """
-setType = Leisure.setType;
-setDataType = Leisure.setDataType;
-define = Leisure.define;
-defineMacro = Leisure.defineMacro;
-defineToken = Leisure.defineToken;
+Nil = Parse.Nil;
+cons = Parse.cons;
+setType = Parse.setType;
+setDataType = Parse.setDataType;
+define = Parse.define;
 processResult = Repl.processResult;
 setContext = Leisure.setContext;
 funcContext = Leisure.funcContext;
-Nil = Leisure.Nil;
-cons = Leisure.cons;
+define = Parse.define;
 """
 
 localPrelude = prelude.replace(/\n/g, "\nvar ")
 
 generateCode = (file, contents, loud, handle, nomacros, check, debug)->
   [globals, errs, auto] = findDefs contents, nomacros, loud
-  if auto
-    console.log "auto: '#{auto}'"
-    processResult Leisure.evalNext(auto, 'Leisure.', debug)[1], {}, ->
-      generate file, contents, loud, handle, nomacros, check, globals, errs, debug
-  else generate file, contents, loud, handle, nomacros, check, globals, errs, debug
+  console.log "auto: '#{auto}'"
+  runAutosThen auto, debug, ->
+    generate file, contents, loud, handle, nomacros, check, globals, errs, debug
+
+runAutosThen = (autos, debug, cont)->
+  if autos == Nil then cont()
+  else processResult Leisure.evalNext(autos.head(), 'Parse.', debug)[1], {}, ->
+    runAutosThen autos.tail(), debug, cont
 
 generate = (file, contents, loud, handle, nomacros, check, globals, errs, debug)->
   if loud then console.log("Compiling #{file}:\n")
@@ -165,6 +175,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
+  Parse = require('./parse');
   Leisure = require('./leisure');
   Leisure.req('./std');
   require('./prim');
@@ -178,23 +189,23 @@ root.macros = {};
 #{localPrelude}
 """
   names = globals
-  prev = Leisure.Nil
-  if err then throw new Error(err)
+  prev = Parse.Nil
+  if err then throwError(err)
   defs = []
   rest = contents
   varOut = ''
   for v, i in globals.toArray()
     if i > 0 then varOut += ","
-    varOut += " #{Leisure.nameSub v}"
+    varOut += " #{Parse.nameSub v}"
   if varOut then out += "\nvar#{varOut};\n"
-  globals = Leisure.append(globals, getGlobals())
+  globals = globals.append(getGlobals())
   while rest and rest.trim()
-    if loud > 1 and prev != names and names != Leisure.Nil then console.log "Compiling function: #{names.head}"
+    if loud > 1 and prev != names and names != Parse.Nil then console.log "Compiling function: #{names.head()}"
     oldRest = rest
-    [ast, err, rest] = Leisure.compileNext rest, globals, null, check, nomacros, 'Leisure.', debug
+    [ast, err, rest] = Leisure.compileNext rest, globals, null, check, nomacros, 'Parse.', debug
     if ast?.leisureName?
       prev = ast.leisureName
-      names = names.tail
+      names = names.tail()
     code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
     err = err ? ast?.err
     if err
@@ -205,11 +216,11 @@ root.macros = {};
       m = code.match(Leisure.linePat)
       nm = ast.leisureName
       ast.src = """
-//#{if nm? then nm + ' = ' else ''}#{escape(P.print(ast))}
-#{if nm? then "root.defs.#{Leisure.nameSub(nm)} = #{Leisure.nameSub(nm)} = " else ""}#{ast.src}
+//#{if nm? then nm + ' = ' else ''}#{escape(Parse.print(ast))}
+#{if nm? then "root.defs.#{Parse.nameSub(nm)} = #{Parse.nameSub(nm)} = " else ""}#{ast.src}
 """
       src = if ast.leisureName
-        defs.push Leisure.nameSub(ast.leisureName)
+        defs.push Parse.nameSub(ast.leisureName)
         ast.src
       else "processResult(#{ast.src})"
       out += "#{src};\n"
@@ -217,24 +228,24 @@ root.macros = {};
       if handle then handlerFunc ast, null, a, c, r, code
   out += """
 
-if (typeof window !== 'undefined' && window !== null) {
-  Leisure.processTokenDefs(root.tokenDefs);
-}
+//if (typeof window !== 'undefined' && window !== null) {
+//  Leisure.processTokenDefs(root.tokenDefs);
+//}
 return root;
 }).call(this)
 """
-  if errs != '' then throw new Error("Errors compiling #{file}: #{errs}")
+  if errs != '' then throwError("Errors compiling #{file}: #{errs}")
   out
 
 getGlobals = -> Leisure.eval 'leisureGetFuncs()'
 
-#showAst = (ast)-> if ast? then "(#{P.print(ast)})/(#{Leisure.astPrint(ast)})" else ""
-showAst = (ast)-> if ast? then "(#{P.print(ast)})" else ""
+#showAst = (ast)-> if ast? then "(#{Parse.print(ast)})/(#{Leisure.astPrint(ast)})" else ""
+showAst = (ast)-> if ast? then "(#{Parse.print(ast)})" else ""
 
 findDefs = (contents, nomacros, loud)->
-  auto = null
+  auto = Parse.dlempty
   errs = ''
-  globals = Leisure.Nil
+  globals = Nil
   rest = contents
   while rest
     oldRest = rest
@@ -245,13 +256,13 @@ findDefs = (contents, nomacros, loud)->
       else errs = "#{errs}#{err}\n"
     else
       line = oldRest.substring(0, (if rest? then oldRest.length - rest.length else oldRest.length))
-      if line.match /(^|\n)#@auto/ then auto = line
+      if line.match /(^|\n)#@auto/ then auto = Parse.dlappend auto, (Parse.dlnew line)
     if ast?.leisureName
       prevName = ast.leisureName
       if loud > 2 then console.log "Found function: #{ast.leisureName}"
-      if globals?.find((v)->v == ast.leisureName) then throw new Error("Attempt to redefine function: #{ast.leisureName}#{showAst ast}")
-      globals = Leisure.cons(ast.leisureName, globals)
-  [globals.reverse(), errs, auto]
+      if globals?.find((v)->v == ast.leisureName) then throwError("Attempt to redefine function: #{ast.leisureName}#{showAst ast}")
+      globals = Parse.cons(ast.leisureName, globals)
+  [globals.reverse(), errs, auto(Nil)]
 
 root.processLine = processLine
 root.setCompiler = setCompiler

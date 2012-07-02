@@ -28,7 +28,6 @@ if window? and (!global? or global == window)
 else
   root = exports ? this
   inspect = require('util').inspect # for testing
-  #Pretty = require './pretty' # for testing
 
 ######
 ###### naming
@@ -97,6 +96,7 @@ class Cons
   foldl: (func, arg)-> @tail().foldl func, func(arg, @head())
   foldr: (func, arg)-> func @head(), @tail().foldr(func, arg)
   toArray: -> @foldl ((i, el)-> i.push(el); i), []
+  join: (str)->@toArray().join(str)
   toString: -> "Cons[#{@toArray().join(', ')}]"
   reverse: -> @rev Nil
   rev: (result)-> @tail().rev cons(@head(), result)
@@ -107,6 +107,7 @@ class Cons
   last: ->
     t = @tail()
     if t == lexNil then t else t.last()
+  append: (l)->cons @head(), @tail().append(l)
 
 class CNil extends Cons
   find: -> false
@@ -116,6 +117,7 @@ class CNil extends Cons
   rev: (result)-> result
   equals: (other)-> other instanceof CNil
   each: ->
+  append: (l)-> l
 
 class DL
 
@@ -128,7 +130,10 @@ mkProto = (protoFunc, value)->
   value.__proto__ = protoFunc.prototype
   value
 
-checkType = (value, type)-> if !(value instanceof type) then throw new Error("Type error: expected type: #{type}, but got: #{jsType value}")
+throwError = (msg)->
+  throw new Error(msg)
+
+checkType = (value, type)-> if !(value instanceof type) then throwError("Type error: expected type: #{type}, but got: #{jsType value}")
 
 primCons = setDataType(((a)->(b)-> mkProto Cons, setType ((f)-> f()(a)(b)), 'cons'), 'cons')
 Nil = mkProto CNil, setType(((a)->(b)->b()), 'nil')
@@ -163,30 +168,26 @@ lexDlappend = (a, b)->
   mkProto LexDL, (c, end)->a(b(c, end), end)
 
 global.leisureFuncs = {}
-
 global.leisureFuncNames = Nil
-
 global.leisureAddFunc = (nm)-> global.leisureFuncNames = cons(nm, global.leisureFuncNames)
+root.evalFunc = evalFunc = eval
 
-evalFunc = eval
-
+# use AST, instead of arity?
 define = (name, func, arity, src) ->
   func.src = src
   func.leisureContexts = []
   nm = nameSub(name)
   func.leisureName = name
   func.leisureArity = arity
-  if global.noredefs and global[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
-  #f = -> func
+  if global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
   global[nm] = global.leisureFuncs[nm] = func
   (evalFunc 'leisureAddFunc')(name)
-  ##f
   func
 
 # expose lexCons and lexNil to Leisure code
 
 define 'cons', (->primCons), 2, '\a b f . f a b'
-define 'nil', (->primNil), 0, '\a b . b'
+define 'nil', (->Nil), 0, '\a b . b'
 define 'lexCons', (->primLexCons), 4, '\a s b e f . f a s b e'
 
 ######
@@ -213,6 +214,7 @@ resetScanner = ->
 resetScanner()
 
 defToken = (name)->
+  console.log "DEFINING TOKEN: #{name}"
   if !tokens[name]?
     tokens[name] = 1
     tokenTypes.push name
@@ -222,11 +224,12 @@ defToken = (name)->
     tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
 
 defGroup = (open, close)->
+  console.log "DEFINING GROUP: #{open}, #{close}"
   if !tokens[open]?
     defToken open
     defToken close
-    groupOpens[name] = close
-    groupCloses[name] = 1
+    groupOpens[open] = close
+    groupCloses[close] = 1
 
 eatAllWhitespace = (str)->
   m = str.match /^(\s+|;)/
@@ -239,6 +242,7 @@ nextTok = (str)->
   if !m then [str, '']
   else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
   else
+    if m[0][0] == "'" then m[0] = "\"#{m[0].substring(1, m[0].length - 1)}\""
     rest = str.substring(m.index + m[0].length)
     if m[0][0] == '#' or m[0][0] == ' ' or (m[0][0] == '\n' and rest[0] == '\n') then nextTok rest
     else [m[0], rest]
@@ -303,7 +307,12 @@ parseGroupTerm = (tok, rest, indent, totalLen)->
         else
           innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end())
           [lexDlnew(innerGroup, token.start()), null, rest3]
-    else [lexDlnew(token, token.start()), null, rest]
+    else
+      if tok[0] == "`"
+        tp = token.start() + 1
+        tok = tok.substring(1, tok.length - 1)
+        token = primToken(->tok)(->tp)
+      [lexDlnew(token, token.start()), null, rest]
 
 # takes a difference list
 positionGroup = (groupDL, startTok, endTok)->
@@ -313,6 +322,10 @@ positionGroup = (groupDL, startTok, endTok)->
 ######
 ###### ASTs
 ######
+
+# Make an AST for these
+# add node numder and source start and end into leisure structure
+# make lit, ref, lambda, and apply subclasses of AST
 
 define 'lit', ->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
 define 'ref', ->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
@@ -329,62 +342,88 @@ getType = (f)->
   (t == 'function' and f?.type) or "*#{t}"
 
 lit = (l)->
-  console.log "LIT: #{l}"
+  #console.log "LIT: #{l}"
   _lit()(-> l)
 ref = (r)->
-  console.log "REF: #{r}"
+  #console.log "REF: #{r}"
   _ref()(-> r)
 lambda = (v, body)->_lambda()(-> v)(-> body)
 apply = (f, a)->_apply()(-> f)(-> a)
 getAstType = (f) -> f.type
-getRefVar = (rf)-> rf (a)-> a()
-getLitVal = (lt)-> lt (a)-> a()
-getLambdaVar = (lam)-> lam (a)->(b)-> a()
-getLambdaBody = (lam)-> lam (a)->(b)-> b()
-getApplyFunc = (apl)-> apl (a)->(b)-> a()
-getApplyArg = (apl)-> apl (a)->(b)-> b()
+getRefVar = (rf)-> rf ->(a)-> a()
+getLitVal = (lt)-> lt ->(a)-> a()
+getLambdaVar = (lam)-> lam ->(v)->(b)-> v()
+getLambdaBody = (lam)-> lam ->(v)->(b)-> b()
+getApplyFunc = (apl)-> apl ->(a)->(b)-> a()
+getApplyArg = (apl)-> apl ->(a)->(b)-> b()
 
 ######
 ###### Parsing phase 2
 ######
 
 # returns [ast] or [null, err, token]
-listToAst = (list)->
+listToAst = (list)-> primListToAst list, Nil
+primListToAst = (list, vars)->
   if list == Nil then [null, "Expecting expression, but input is empty"]
-  else if !(list instanceof LexCons) then tokenToAst list
-  else if isLambdaToken list.head() then checkLambda list.tail()
-  else ifParsed listToAst(list.head()), (f)-> listToApply f, list.start(), list.tail()
+  else if !(list instanceof LexCons) then tokenToAst list, vars
+  else if isLambdaToken list.head() then checkLambda list.tail(), vars
+  else ifParsed primListToAst(list.head(), vars), (f)-> listToApply f, list.start(), list.tail(), vars
 
 isLambdaToken = (tok)-> (tok instanceof Token) and (tok.tok() in ['\\', '\u03BB'])
 
-checkLambda = (list)->
-  if list.head() instanceof Token && list.head().tok() != '.' then listToLambda list
+checkLambda = (list, vars)->
+  if list.head() instanceof Token && list.head().tok() != '.' then listToLambda list, vars
   else [null, "Bad lambda construct, expected names, followed by a dot", list]
 
 badLambdaCont = (tok)-> !(tok instanceof Token) || isLambdaToken(tok)
 
 # convert a list starting after a lambda character
-listToLambda = (list)->
+listToLambda = (list, vars)->
   if list == Nil then [null, "Bad lambda construct -- no variable or body"]
   else if list.tail() == Nil then [null, "Bad lambda construct -- no body"]
   else
     head = list.head()
     if badLambdaCont(head) || badLambdaCont(list.tail().head()) then [null, "Bad lambda construct", head]
     else
-      bodyRes = if list.tail().head().tok() == '.' then listToAst list.tail().tail()
-      else listToLambda list.tail()
+      v = cons(head.tok(), vars)
+      bodyRes = if list.tail().head().tok() == '.' then primListToAst list.tail().tail(), v else listToLambda list.tail(), v
       ifParsed bodyRes, (body)-> [tag(lambda(head.tok(), body), list.start(), list.end())]
 
-tokenToAst = (tok)->
+tokenToAst = (tok, vars)->
   try
-    [tag lit(JSON.parse tok.tok()), tok.start(), tok.end()]
+    l = JSON.parse tok.tok()
+    [tag (if typeof l == 'number' and vars.find(l) then ref(l) else lit(l)), tok.start(), tok.end()]
   catch err
     [tag ref(tok.tok()), tok.start(), tok.end()]
 
-listToApply = (f, start, rest)->
+listToApply = (f, start, rest, vars)->
   if rest == Nil then [f]
+  else if isLambdaToken rest.head()
+    ifParsed listToAst(rest), (a)-> [tag(apply(f, a), start, rest.end())]
   else ifParsed listToAst(rest.head()), (a)->
     listToApply tag(apply(f, a), start, rest.head().end()), start, rest.tail()
+
+# returns [ast, err, rest] -- err may be null
+# if there is an error, rest is the start of the erroneous input
+parseOptional = (string, macros)->
+  [res, err, rest] = parsePhase1 string
+  if err then [null, err, rest]
+  else
+    #
+    # -- substitute macros, here
+    #
+    [res, err, tok] = listToAst res
+    if res then [res, null, rest]
+    else [null, err, string.substring(tok.pos())]
+
+parse = (string)->parseOptional string, false
+parseFull = (string)->parseOptional string, true
+
+###
+# Macros
+###
+
+defMacro = (name, func)-> ctx.macros[name] = func()
 
 ###
 tests
@@ -440,6 +479,11 @@ elements = (l, first, nosubs)->
   else if getType(l) != 'lexCons' then " | #{print(l)}"
   else "#{if first then '' else ' '}#{print(l.head()) + elements(l.tail(), false)}"
 
+###
+# testing
+###
+
+###
 console.log "parse: a b: #{parsePhase1('a b')[0]}"
 console.log "parse: a (b): #{parsePhase1('a (b)')[0]}"
 console.log "parse: a (b c d (e f)): #{parsePhase1('a (b c d (e f))')[0]}"
@@ -459,3 +503,43 @@ testParse = (str)->
 console.log "ast for a: #{testParse('a')}"
 console.log "ast for a b: #{testParse('a b')}"
 console.log "ast for \\a.b: #{testParse('\\a.b')}"
+###
+
+root.evalFunc = evalFunc
+root.nameSub = nameSub
+root.setDataType = setDataType
+root.setType = setType
+root.mkProto = mkProto
+root.Nil = Nil
+root.cons = cons
+root.dlempty = dlempty
+root.dlnew = dlnew
+root.dlappend = dlappend
+root.lexCons = lexCons
+root.lexDlempty = lexDlempty
+root.lexDlnew = lexDlnew
+root.lexDlappend = lexDlappend
+root.define = define
+root.defGroup = defGroup
+root.defToken = defToken
+root.defMacro = defMacro
+root.parse = parse
+root.parseFull = parseFull
+root.parsePhase1 = parsePhase1
+root.listToAst = listToAst
+root.getType = getType
+root.lit = lit
+root.ref = ref
+root.lambda = lambda
+root.apply = apply
+root.getAstType = getAstType
+root.getRefVar = getRefVar
+root.getLitVal = getLitVal
+root.getLambdaBody = getLambdaBody
+root.getLambdaVar = getLambdaVar
+root.getApplyFunc = getApplyFunc
+root.getApplyArg = getApplyArg
+root.print = print
+root.ifParsed = ifParsed
+root.snip = snip
+root.throwError = throwError

@@ -1,18 +1,19 @@
 U = require('util')
 R = require('readline')
+Parse = require('./parse')
 L = require('./leisure')
 Prim = require('./prim')
 Core = require('./replCore')
 FS = require('fs')
 Buffer = require('buffer')
 Path = require('path')
-P = require('./pretty')
+#P = require('./pretty')
 VM = require('vm')
 
 root = exports ? this
 root.loud = 1
 
-getType = L.getType
+getType = Parse.getType
 
 vars = {
   c: [false, 'show generated code'],
@@ -77,7 +78,7 @@ compile = (file, cont, nomacros, debug)->
 
 processResult = (result)->
   init()
-  write("#{getType result}: #{P.print(result)}\n")
+  write("#{getType result}: #{Parse.print(result)}\n")
   Core.processResult result
 
 # patched to just prep the global env instead of creating a new one for now
@@ -129,7 +130,7 @@ var lll;
     lll = funcs
   }
   global.leisureAddFunc = function leisureAddFunc(func) {
-    lll = Leisure.cons(func, lll)
+    lll = Parse.cons(func, lll)
   }
 })()
 

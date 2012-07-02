@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Pretty, RL, U, arrayRest, concatList, continueMonad, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, setTty, tail, tty, values;
+  var Leisure, Parse, RL, U, arrayRest, concatList, continueMonad, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, setTty, tail, throwError, tty, values;
 
   defaultEnv = {};
 
@@ -18,10 +18,11 @@
     };
     window.Prim = root = {};
     Leisure = window.Leisure;
+    Parse = window.Parse;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
+    Parse = require('./parse');
     Leisure = require('./leisure');
-    Pretty = require('./pretty');
     U = require('util');
     RL = require('readline');
     tty = null;
@@ -43,11 +44,21 @@
     return tty = rl;
   };
 
-  define = Leisure.define;
+  define = Parse.define;
 
-  getType = Leisure.getType;
+  getType = Parse.getType;
+
+  throwError = Parse.throwError;
 
   laz = Leisure.laz;
+
+  define('false', (function() {
+    return function(a) {
+      return function(b) {
+        return b();
+      };
+    };
+  }), 2);
 
   define('is', (function() {
     return function(value) {
@@ -125,8 +136,7 @@
 
   define('pretty', function() {
     return function(value) {
-      if (!Pretty) Pretty = window.Pretty;
-      return Pretty.print(value());
+      return Parse.print(value());
     };
   });
 
@@ -139,6 +149,26 @@
       } else {
         return _none();
       }
+    };
+  });
+
+  define('defToken', function() {
+    return function(token) {
+      return makeMonad(function(env, cont) {
+        Parse.defToken(token());
+        return cont(_false());
+      });
+    };
+  });
+
+  define('defGroup', function() {
+    return function(open) {
+      return function(close) {
+        return makeMonad(function(env, cont) {
+          Parse.defGroup(open(), close());
+          return cont(_false());
+        });
+      };
     };
   });
 
@@ -505,7 +535,7 @@
         var cl;
         cl = codeList();
         if (cl !== _nil() && cl.type !== 'cons') {
-          throw new Error("js expects a list for its code");
+          throwError("js expects a list for its code");
         }
         return cont(eval(concatList(cl)));
       });
@@ -541,7 +571,7 @@
         if (typeof window !== "undefined" && window !== null) {
           cl = codeList();
           if (cl !== _nil() && cl.type !== 'cons') {
-            throw new Error("js expects a list for its code");
+            throwError("js expects a list for its code");
           }
           return cont(eval(concatList(cl)));
         } else {

@@ -25,7 +25,41 @@ misrepresented as being the original software.
 if window? and (!global? or global == window)
   window.global = window
   window.Leisure = root = {}
-else root = exports ? this
+  Parse = window.Parse
+else
+  root = exports ? this
+  Parse = require('./parse')
+
+{
+  nameSub,
+  setDataType,
+  setType,
+  mkProto,
+  cons,
+  dlempty,
+  dlnew,
+  dlappend,
+  lexCons,
+  lexDlempty,
+  lexDlnew,
+  lexDlappend,
+  define,
+  fullParse,
+  parsePhase1,
+  listToAst,
+  evalFunc,
+  Nil,
+  cons,
+  getAstType,
+  getRefVar,
+  getLitVal,
+  getLambdaBody,
+  getLambdaVar,
+  getApplyFunc,
+  getApplyArg,
+  ifParsed,
+  snip,
+} = Parse
 
 escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
 
@@ -34,91 +68,12 @@ baseTokenPat = /[().\\]| +|[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*
 tokenPat = new RegExp("\\n *|#{baseTokenPat.source}")
 linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/
 #linePat = /^((?:\s*\n|#[^\n]*\n)*)([a-zA-Z0-9!@#$%\^&*\-_+=[\]{}|:;,<>/? ]*)(=[.)M]=|=\([^=]+=|=)?/
-charCodes =
-  "'": '$a'
-  ',': '$b'
-  '$': '$$'
-  '@': '$d'
-  '?': '$e'
-  '/': '$f'
-  '*': '$g'
-  '&': '$h'
-  '^': '$i'
-  '!': '$k'
-  '`': '$l'
-  '~': '$m'
-  '-': '$_'
-  '+': '$o'
-  '=': '$p'
-  '|': '$q'
-  '[': '$r'
-  ']': '$s'
-  '{': '$t'
-  '}': '$u'
-  '"': '$v'
-  ':': '$w'
-  ';': '$x'
-  '<': '$y'
-  '>': '$z'
-  '%': '$A'
-  '.': '$B'
 
-codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
-
-global.leisureFuncs = {}
 global.macros = {}
-tokens = {}
-groupOpens = {'(': ')'}
-groupCloses = {')': 1}
-
-nameSub = (name)->
-  s = '_'
-  for i in [0...name.length]
-    code = charCodes[name[i]]
-    s += code ? name[i]
-  s
 
 ctx = global
 
-evalFunc = eval
-
-class Cons
-  constructor: (@head, @tail)->
-  find: (func)-> func(@head) or @tail.find(func)
-  removeAll: (func)->
-    t = @tail.removeAll(func)
-    if func(@head) then t else if t == @tail then @ else cons(@head, t)
-  foldl: (arg, func)-> func(@tail.foldl(arg, func), @head)
-  toArray: -> @reverse().foldl [], ((i, el)-> i.push(el); i)
-  toString: -> "Cons(#{@toArray().join(', ')})"
-  reverse: -> @rev Nil
-  rev: (result)-> @tail.rev cons(@head, result)
-  equals: (other)-> other?.constructor == Cons and (@head == other.head or (@head?.constructor == Cons and @head.equals(other.head))) and (@tail == other.tail or (@tail?.constructor == Cons and @tail.equals(other.tail)))
-  each: (block)->
-    block(@head)
-    @tail.each(block)
-
-class CNil extends Cons
-  find: -> false
-  removeAll: -> @
-  foldl: (arg, func)-> arg
-  rev: (result)-> result
-  equals: (other)-> other?.constructor == CNil
-  each: ->
-
-Nil = new CNil()
-cons = (a, b)-> new Cons(a, b)
-dlempty = (x)->x
-dlnew = (a)->(b)-> cons(a, b)
-dlappend = (a, b)->(c)-> a(b(c))
-append = (a, b)-> if a == Nil then b else cons a.head, append(a.tail, b)
-
-global.leisureFuncNames = ll = Nil
-
-global.leisureAddFunc = (nm)-> global.leisureFuncNames = ll = cons(nm, ll)
-
-global.leisureGetFuncs = -> ll
-
+global.leisureGetFuncs = -> global.leisureFuncNames
 global.noredefs = true
 
 funcAstAtOffset = (func, nodeOffset)->
@@ -150,70 +105,19 @@ funcContext = (funcName, offset)->
   if !cur[offset] then cur[offset] = [funcName, offset]
   cur[offset]
 
-# use AST, instead of arity?
-define = (name, func, arity, src) ->
-  func.src = src
-  func.leisureContexts = []
-  nm = nameSub(name)
-  func.leisureName = name
-  func.leisureArity = arity
-  if global.noredefs and ctx[nm]? then throw new Error("[DEF] Attempt to redefine definition: #{name}")
-  #f = -> func
-  ctx[nm] = ctx.leisureFuncs[nm] = func
-  (evalFunc 'leisureAddFunc')(name)
-  #f
-  func
-
-defineMacro = (name, func)-> ctx.macros[name] = func()
-
-setDataType = (func, dataType)->
-  if dataType then func.dataType = dataType
-  func
-
-setType = (func, type)->
-  if type then func.type = type
-  func
-
 nameAst = (nm, ast)-> if !ast.leisureName
   ast.leisureName = nm
   ast.toString = ->"{#{nm}}"
 
-evalCompiledAst = (ast)-> if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else evalFunc(ast.src)
+evalCompiledAst = (ast)->
+  console.log "EVAL AST: #{Parse.print ast}, #{ast.src}"
+  if ast.lits.length then evalFunc("(function(__lits){\nreturn #{ast.src}})")(ast.lits) else Parse.evalFunc(ast.src)
 
 define 'eval', ->(ast)-> evalCompiledAst(dgen(substituteMacros ast()))
 
-define 'lit', ->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
-
-define 'ref', ->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
-
-define 'lambda', ->setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
-
-define 'apply', ->setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
-
-getType = (f)->
-  t = typeof f
-  (t == 'function' and f?.type) or "*#{t}"
-
-lit = _lit()
-ref = _ref()
-lambda = _lambda()
-apply = _apply()
-getAstType = (f) -> f.type
-first = ->(a)-> a
-second = ->(a)->(b)-> b()
-getRefVar = (r)-> r(first)()
-getLitVal = (l)-> l(first)()
-getLambdaVar = (l)-> l first
-getLambdaBody = (l)-> l second
-getApplyFunc = (a)-> a first
-getApplyArg = (a)-> a second
-
 between = (start, end, pos)-> start <= pos and pos <= end
-
 within = (ast, pos)-> between ast.leisureStart, ast.leisureEnd, pos
-
 brackets = (start, end)-> cons(start, cons(end, Nil))
-
 astBrackets = (ast)-> brackets(ast.leisureStart, ast.leisureEnd)
 
 # bracket application parts in ast for position
@@ -374,7 +278,7 @@ gen = (ast, code, lits, vars, deref, name, namespace, top)->
       bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast, top)
     when 'apply'
       func = getApplyFunc ast
-      if getAstType func == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
+      if getAstType(func) == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
       else if freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
       else
         arg = getApplyArg ast
@@ -395,15 +299,17 @@ laz = (val)-> -> val
 
 defineToken = (name, def)->
   if def != '=M='
-    tokens[name] = 1
-    if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
-    else if (def[1] == ')') then groupCloses[name] = 1
-    types = []
-    types.push(i) for i of tokens
+    #tokens[name] = 1
+    #if def[1] == '(' then groupOpens[name] = def.substring(2, def.length - 1)
+    if def[1] == '(' then Parse.defGroup name, def.substring(2, def.length - 1)
+    else if def[1] != ')' then Parse.defToken name
+    #else if (def[1] == ')') then groupCloses[name] = 1
+    #types = []
+    #types.push(i) for i of tokens
     # sort them by length, longest first
-    types.sort (a, b)-> b.length - a.length
-    types = (escapeRegexpChars i for i in types)
-    tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
+    #types.sort (a, b)-> b.length - a.length
+    #types = (escapeRegexpChars i for i in types)
+    #tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
 
 prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\') + '.' else '') + str
 
@@ -455,6 +361,7 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
 
 genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src, debug)->
   if !parseOnly then dgen ast, false, name, globals, defType, namespace, src, debug
+  console.log "GEN_CODE: #{ast.src}"
   if ast.err? and name? then ast.err = "Error while compiling #{name}: #{ast.err}"
   [ast, ast.err, rest]
 
@@ -482,14 +389,12 @@ evalNext = (code, namespace, debug)->
   else [{err: err}, err]
 
 parse = (str)->
-  ret = parseApply str, Nil, '\n', str.length
-  #if !ret[2] then ret[0] = numberAst ret[0], 0
+  ret = Parse.parse str
   if ret[0] then ret[0] = numberAst ret[0], 0
   ret
 
 parseFull = (str)->
-  [ast, err, rest] = parseApply str, Nil, '\n', str.length
-  if ast then ast = substituteMacros(ast)
+  [ast, err, rest] = Parse.parseFull str
   if ast then ast = numberAst(ast, 0)
   [ast, err, rest]
 
@@ -502,6 +407,9 @@ numberAst = (ast, number)->
 setNumber = (ast, number)->
   ast.leisureNodeNumber = number
   ast
+
+###
+# OLD MACRO CODE
 
 substituteMacros = (ast)->
   switch getAstType ast
@@ -526,30 +434,12 @@ getMacro = (ast)->
   if getAstType(ast) == 'ref' then ctx.macros[getRefVar ast] ? null
   else if getAstType(ast) == 'apply' then getMacro getApplyFunc ast
   else null
-
-scanTok = (tok)->
-  try
-    JSON.parse(tok)
-  catch err
-    tok
-
-scanName = (name)->
-  try
-    l = JSON.parse(name)
-    if typeof l == 'string' then lit(laz(l))
-    else if typeof l == 'number' then ref(laz(l))
-    else ref(laz(name))
-  catch err
-    ref(laz(name))
-
-eatAllWhitespace = (str)->
-  m = str.match /^(\s+|;)/
-  if m then str.substring(m[0].length)
-  else str
+#
+###
 
 setEvalFunc = (ct, func)->
   ctx = root.ctx = ct
-  root.eval = evalFunc = func
+  root.eval = evalFunc = Parse.evalFunc = func
 
 req = (name, gl)-> processDefs(require(name), gl)
 
@@ -558,132 +448,25 @@ processDefs = (res, gl)->
     gl = gl ? global
     if res.defs? then for i,v of res.defs
       gl[i] = v
-    processTokenDefs res.tokenDefs
     res.leisureFuncNames = ctx.leisureFuncNames
     res.ctx = ctx
   res
-
-processTokenDefs = (defs)->
-  if defs? then for i in [0...defs.length] by 2
-    defineToken defs[i], defs[i + 1]
-
-# returns [tok, rest]
-nextTok = (str)->
-  m = str.match(tokenPat)
-  if !m then [str, '']
-  else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
-  else
-    rest = str.substring(m.index + m[0].length)
-    if m[0][0] == '#' or m[0][0] == ' ' or (m[0][0] == '\n' and rest[0] == '\n') then nextTok rest
-    else [m[0], rest]
-
-tag = (start, end, ast)->
-  ast.leisureStart = start
-  ast.leisureEnd = end
-  ast
-
-pos = (str, totalLen)-> totalLen - str.length
-
-tokPos = (tok, str, totalLen)-> totalLen - str.length - tok.length
-
-ifParsed = (res, block, errPrefix)->
-  if res[1] then [res[0], errPrefix + res[1], res[2]]
-  else block res[0], res[2]
-
-snip = (str)->"[#{str.substring 0, 80}]"
-
-# returns [ast, err, rest]
-parseApply = (str, vars, indent, totalLen)->
-  if !str then [null, null, str]
-  else
-    [tok, rest] = nextTok str
-    if !tok or tok[0] == '\n' then [null, "expecting expression #{snip str}\n#{new Error().stack}", rest]
-    else if groupCloses[tok] then [null, "Unexpected group close: #{tok} #{snip rest}", rest]
-    else ifParsed (parseTerm tok, rest, vars, indent, totalLen), (func, rest)->continueApply(func, rest, vars, indent, totalLen)
-
-continueApply = (func, str, vars, indent, totalLen)->
-  [tok, rest] = nextTok str
-  if !tok or (tok[0] == '\n' and tok.length <= indent.length) or groupCloses[tok]
-    [func, null, str]
-  else
-    parsedArg = if tok[0] == '\n'
-      parseApply rest, vars, tok, totalLen
-    else parseTerm tok, rest, vars, indent, totalLen
-    ifParsed parsedArg, (arg, rest)->
-      continueApply tag(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen
-
-parseTerm = (tok, rest, vars, indent, totalLen)->
-  if tok == '\\' then parseLambda rest, vars, indent, totalLen
-  else if groupOpens[tok]
-    apl = if tok == '(' then parseApply rest, vars, indent, totalLen
-    else ifParsed (parseName tok, rest, vars, totalLen), (ast, rest2)->
-      continueApply ast, rest2, vars, indent, totalLen
-    ifParsed apl, (ast, rest3)->
-      [tok4, rest4] = nextTok rest3
-      if tok4 != groupOpens[tok] then [ast, "Expected close token: #{groupOpens[tok]}, but got #{tok4}", rest4]
-      else if tok == '(' then [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4]
-      else ifParsed (parseName tok4, rest4, vars, totalLen), (arg, rest5)->
-        [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5]
-  else parseName tok, rest, vars, totalLen
-
-parseName = (tok, rest, vars, totalLen)->
-  name = if tok[0] == "'" then lit(laz(tok.substring(1, tok.length - 1)))
-  else if tok[0] == '"' then lit(laz(scanTok(tok)))
-  else if tok[0] == '`' then ref(laz(tok.substring(1, tok.length - 1)))
-  else if (vars.find (v)-> tok == v) then ref(laz(tok))
-  else scanName(tok)
-  [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest]
-
-nextTokIgnoreNL = (str)->
-  [tok, rest] = r = nextTok str
-  if tok and (tok[0] == '\n' or tok[0] == ' ') then nextTok rest
-  r
-
-parseLambda = (str, vars, indent, totalLen)->
-  [nm, rest1] = nextTokIgnoreNL str
-  [tok2, rest2] = nextTokIgnoreNL rest1
-  apl = if tok2 == '.' then parseApply (eatAllWhitespace rest2), cons(nm, vars), indent, totalLen
-  else parseLambda rest1, cons(nm, vars), indent, totalLen
-  ifParsed apl, (body, rest2)->
-    ast = lambda(laz(nm))(laz(body))
-    ast.leisureNameEnd = pos(rest1, totalLen)
-    [tag(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2]
 
 foldLeft = (func, val, array)-> primFoldLeft func, val, array, 0
 primFoldLeft = (func, val, array, index)->
   if index < array.length then primFoldLeft func, func(val, array[index]), array, index + 1
   else val
 
-root.processTokenDefs = processTokenDefs
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
-root.parseFull = parseFull
 root.gen = dgen
 root.laz = laz
 root.compileNext = compileNext
 root.evalNext = evalNext
-root.setType = setType
-root.setDataType = setDataType
 root.astEval = (ast)-> evalCompiledAst(dgen(ast))
-root.define = define
-root.defineMacro = defineMacro
-root.getAstType = getAstType
-root.getRefVar = getRefVar
-root.getLitVal = getLitVal
-root.getLambdaVar = getLambdaVar
-root.getLambdaBody = getLambdaBody
-root.getApplyFunc = getApplyFunc
-root.getApplyArg = getApplyArg
-root.getType = getType
 root.linePat = linePat
-root.Nil = Nil
-root.cons = cons
-root.append = append
-root.defineToken = defineToken
 root.req = req
-root.nameSub = nameSub
 root.processDefs = processDefs
-root.parseApply = parseApply
 root.bracket = bracket
 root.findFuncs = findFuncs
 root.foldLeft = foldLeft

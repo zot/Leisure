@@ -47,7 +47,14 @@
 # apply func-ast body-ast -> an apply AST node, with func and body ASTs
 #
 # prim arg rest-ast -> a prim AST node, rest-ast should either be a ref or a prim
-# 
+#
+
+#@auto
+defGroup '[' ']'
+#@auto
+defToken '|'
+#@auto
+defToken ','
 
 id x = x
 
@@ -57,7 +64,8 @@ flip f = \a b . f b a
 
 # booleans
 true = \a b . a
-false = \a b . b
+#false is defined as a primitive, but here is its definition
+#false = \a b . b
 and a b = a b false
 or a = a true
 not a = a false true
@@ -76,12 +84,12 @@ none = \yes no . no
 # rec = \f . f (Y f)
 
 # lists
-cons a b =
-  \f . f
-    a
-    b
+#cons a b =
+#  \f . f
+#    a
+#    b
 
-nil = \a b . b
+#nil = \a b . b
 null? = eq nil
 append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
 compose f g = \x . f ( g x)
@@ -214,17 +222,20 @@ foldl func value list = list (\h t D . foldl func (func value h) t) value
 foldl1 func list = list (\h t D. foldl func h t) nil
 
 # simple list constructor syntax
+# pure Lambda Calculus definition
 #[ =(]= \item c . c \rest . cons item rest
 #, =.= \f item c . c \rest . f (cons item rest)
 #] =)= \f . f nil
 #| =.= \f rest g . f rest
 
-[ =(]= \item . eq item `]`
+# simple list constructor syntax
+# Leisure definition relies 
+[ = \item . eq item `]`
   nil
   next-list-item (dl item)
-] =)= \x . x
-| =.= \x . x
-, =.= \x . x
+] = \x . x
+| = \x . x
+, = \x . x
 next-list-item items next = eq next `]`
   items nil
   eq next `|`
@@ -239,27 +250,27 @@ dl item = \rest . cons item rest
 dlAppend a b = \rest . a (b rest)
 
 # do
-identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)
-
-do apl =M= apl \f a . m_subdo a f
-
-m_subdo a f = or (is f ref) (is f lit)
-  a
-  f \f2 a2 . m_subdo
-    m_extractVar a2 '<-'
-      \v ast . apply (apply (ref 'bind') ast) (lambda v a)
-      m_extractVar a2 '='
-        \v ast . apply (lambda v a) ast
-        apply (apply (ref 'bind') a2) (lambda '_' a)
-    f2
-
-let apl =M= apl \f a . m_sublet f a
-
-m_sublet f a = or (is f ref) (is f lit)
-  a
-  f \f2 a2 . m_extractVar a2 '='
-    \v ast . m_sublet f2 (apply (lambda v a) ast)
-    apply a a2
+#identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)
+#
+#do apl =M= apl \f a . m_subdo a f
+#
+#m_subdo a f = or (is f ref) (is f lit)
+#  a
+#  f \f2 a2 . m_subdo
+#    m_extractVar a2 '<-'
+#      \v ast . apply (apply (ref 'bind') ast) (lambda v a)
+#      m_extractVar a2 '='
+#        \v ast . apply (lambda v a) ast
+#        apply (apply (ref 'bind') a2) (lambda '_' a)
+#    f2
+#
+#let apl =M= apl \f a . m_sublet f a
+#
+#m_sublet f a = or (is f ref) (is f lit)
+#  a
+#  f \f2 a2 . m_extractVar a2 '='
+#    \v ast . m_sublet f2 (apply (lambda v a) ast)
+#    apply a a2
 
 # m_extractVar ast '<-'
 #

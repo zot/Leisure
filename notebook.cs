@@ -874,7 +874,7 @@ owner = (box)->
   box
 
 evalBox = (box, envBox)->
-  ReplCore.processLine box.textContent, (if envBox? then envFor(envBox) else null), 'Leisure.'
+  ReplCore.processLine box.textContent, (if envBox? then envFor(envBox) else null), 'Parse.'
   getAst box
 
 acceptCode = (box)->
@@ -896,7 +896,7 @@ evalDoc = (el)->
       console.log "ENV DEBUG: #{e.debug}"
       e.write = ->
       e.processError = (ast)->alert(ReplCore.errString ast.err)
-      ReplCore.processLine(auto, e, "Leisure.")
+      ReplCore.processLine(auto, e, 'Parse.')
     else evalDocCode el, pgm
   catch err
     console.log err

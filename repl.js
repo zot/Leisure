@@ -1,10 +1,12 @@
 (function() {
-  var Buffer, Core, FS, L, P, Path, Prim, R, U, VM, compile, createEnv, face, getType, init, print, processResult, repl, root, vars, write,
+  var Buffer, Core, FS, L, Parse, Path, Prim, R, U, VM, compile, createEnv, face, getType, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
 
   R = require('readline');
+
+  Parse = require('./parse');
 
   L = require('./leisure');
 
@@ -18,15 +20,13 @@
 
   Path = require('path');
 
-  P = require('./pretty');
-
   VM = require('vm');
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
   root.loud = 1;
 
-  getType = L.getType;
+  getType = Parse.getType;
 
   vars = {
     c: [false, 'show generated code'],
@@ -123,7 +123,7 @@
 
   processResult = function processResult(result) {
     init();
-    write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+    write("" + (getType(result)) + ": " + (Parse.print(result)) + "\n");
     return Core.processResult(result);
   };
 
@@ -166,7 +166,7 @@
     })
     """)(require)
     */
-    L.eval("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Leisure.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\n" + Core.prelude);
+    L.eval("(function(){\nvar lll;\n\n  global.leisureGetFuncs = function leisureGetFuncs() {\n    return lll\n  }\n  global.leisureSetFuncs = function leisureSetFuncs(funcs) {\n    lll = funcs\n  }\n  global.leisureAddFunc = function leisureAddFunc(func) {\n    lll = Parse.cons(func, lll)\n  }\n})()\n\nfunction req(name) {\n  return Leisure.req(name, global)\n}\n//Leisure.req('./std');\n\n" + Core.prelude);
     return L.eval('leisureSetFuncs')(leisureFuncNames);
   };
 

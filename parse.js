@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Cons, DL, LexCons, LexDL, Nil, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, codeChars, collapseTrivial, cons, defGroup, defToken, define, dlappend, dlempty, dlnew, eatAllWhitespace, elements, escapeRegexpChars, evalFunc, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, groupCloses, groupOpens, ifParsed, inspect, isLambdaToken, jsType, lambda, lexCons, lexDlappend, lexDlempty, lexDlnew, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, nextTok, numberPat, parseGroup, parseGroupTerm, parsePhase1, pos, positionGroup, primCons, primLexCons, primToken, print, printApply, printLambda, ref, resetScanner, root, setDataType, setType, snip, subprint, tag, testParse, tokPos, tokenPat, tokenToAst, tokenTypes, tokens,
+  var CNil, Cons, DL, LexCons, LexDL, Nil, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, codeChars, collapseTrivial, cons, defGroup, defMacro, defToken, define, dlappend, dlempty, dlnew, eatAllWhitespace, elements, escapeRegexpChars, evalFunc, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, groupCloses, groupOpens, ifParsed, inspect, isLambdaToken, jsType, lambda, lexCons, lexDlappend, lexDlempty, lexDlnew, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, nextTok, numberPat, parse, parseFull, parseGroup, parseGroupTerm, parseOptional, parsePhase1, pos, positionGroup, primCons, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, resetScanner, root, setDataType, setType, snip, subprint, tag, throwError, tokPos, tokenPat, tokenToAst, tokenTypes, tokens,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -154,6 +154,10 @@ misrepresented as being the original software.
       }), []);
     };
 
+    Cons.prototype.join = function join(str) {
+      return this.toArray().join(str);
+    };
+
     Cons.prototype.toString = function toString() {
       return "Cons[" + (this.toArray().join(', ')) + "]";
     };
@@ -183,6 +187,10 @@ misrepresented as being the original software.
       } else {
         return t.last();
       }
+    };
+
+    Cons.prototype.append = function append(l) {
+      return cons(this.head(), this.tail().append(l));
     };
 
     return Cons;
@@ -223,6 +231,10 @@ misrepresented as being the original software.
 
     CNil.prototype.each = function each() {};
 
+    CNil.prototype.append = function append(l) {
+      return l;
+    };
+
     return CNil;
 
   })(Cons);
@@ -250,9 +262,13 @@ misrepresented as being the original software.
     return value;
   };
 
+  throwError = function throwError(msg) {
+    throw new Error(msg);
+  };
+
   checkType = function checkType(value, type) {
     if (!(value instanceof type)) {
-      throw new Error("Type error: expected type: " + type + ", but got: " + (jsType(value)));
+      return throwError("Type error: expected type: " + type + ", but got: " + (jsType(value)));
     }
   };
 
@@ -430,7 +446,7 @@ misrepresented as being the original software.
     return global.leisureFuncNames = cons(nm, global.leisureFuncNames);
   };
 
-  evalFunc = eval;
+  root.evalFunc = evalFunc = eval;
 
   define = function define(name, func, arity, src) {
     var nm;
@@ -440,7 +456,7 @@ misrepresented as being the original software.
     func.leisureName = name;
     func.leisureArity = arity;
     if (global.noredefs && (global[nm] != null)) {
-      throw new Error("[DEF] Attempt to redefine definition: " + name);
+      throwError("[DEF] Attempt to redefine definition: " + name);
     }
     global[nm] = global.leisureFuncs[nm] = func;
     (evalFunc('leisureAddFunc'))(name);
@@ -452,7 +468,7 @@ misrepresented as being the original software.
   }), 2, '\a b f . f a b');
 
   define('nil', (function() {
-    return primNil;
+    return Nil;
   }), 0, '\a b . b');
 
   define('lexCons', (function() {
@@ -493,6 +509,7 @@ misrepresented as being the original software.
 
   defToken = function defToken(name) {
     var i, types;
+    console.log("DEFINING TOKEN: " + name);
     if (!(tokens[name] != null)) {
       tokens[name] = 1;
       tokenTypes.push(name);
@@ -513,11 +530,12 @@ misrepresented as being the original software.
   };
 
   defGroup = function defGroup(open, close) {
+    console.log("DEFINING GROUP: " + open + ", " + close);
     if (!(tokens[open] != null)) {
       defToken(open);
       defToken(close);
-      groupOpens[name] = close;
-      return groupCloses[name] = 1;
+      groupOpens[open] = close;
+      return groupCloses[close] = 1;
     }
   };
 
@@ -539,6 +557,9 @@ misrepresented as being the original software.
     } else if (m.index > 0) {
       return [str.substring(0, m.index), str.substring(m.index)];
     } else {
+      if (m[0][0] === "'") {
+        m[0] = "\"" + (m[0].substring(1, m[0].length - 1)) + "\"";
+      }
       rest = str.substring(m.index + m[0].length);
       if (m[0][0] === '#' || m[0][0] === ' ' || (m[0][0] === '\n' && rest[0] === '\n')) {
         return nextTok(rest);
@@ -659,7 +680,7 @@ misrepresented as being the original software.
   };
 
   parseGroupTerm = function parseGroupTerm(tok, rest, indent, totalLen) {
-    var close, token;
+    var close, token, tp;
     token = makeToken(tok, rest, totalLen);
     if (tok[0] === '\n') {
       return ifParsed(parseGroup(rest, tok, totalLen), function(group, rest2) {
@@ -681,6 +702,15 @@ misrepresented as being the original software.
           }
         });
       } else {
+        if (tok[0] === "`") {
+          tp = token.start() + 1;
+          tok = tok.substring(1, tok.length - 1);
+          token = primToken(function() {
+            return tok;
+          })(function() {
+            return tp;
+          });
+        }
         return [lexDlnew(token, token.start()), null, rest];
       }
     }
@@ -745,14 +775,12 @@ misrepresented as being the original software.
   };
 
   lit = function lit(l) {
-    console.log("LIT: " + l);
     return _lit()(function() {
       return l;
     });
   };
 
   ref = function ref(r) {
-    console.log("REF: " + r);
     return _ref()(function() {
       return r;
     });
@@ -779,59 +807,75 @@ misrepresented as being the original software.
   };
 
   getRefVar = function getRefVar(rf) {
-    return rf(function(a) {
-      return a();
+    return rf(function() {
+      return function(a) {
+        return a();
+      };
     });
   };
 
   getLitVal = function getLitVal(lt) {
-    return lt(function(a) {
-      return a();
+    return lt(function() {
+      return function(a) {
+        return a();
+      };
     });
   };
 
   getLambdaVar = function getLambdaVar(lam) {
-    return lam(function(a) {
-      return function(b) {
-        return a();
+    return lam(function() {
+      return function(v) {
+        return function(b) {
+          return v();
+        };
       };
     });
   };
 
   getLambdaBody = function getLambdaBody(lam) {
-    return lam(function(a) {
-      return function(b) {
-        return b();
+    return lam(function() {
+      return function(v) {
+        return function(b) {
+          return b();
+        };
       };
     });
   };
 
   getApplyFunc = function getApplyFunc(apl) {
-    return apl(function(a) {
-      return function(b) {
-        return a();
+    return apl(function() {
+      return function(a) {
+        return function(b) {
+          return a();
+        };
       };
     });
   };
 
   getApplyArg = function getApplyArg(apl) {
-    return apl(function(a) {
-      return function(b) {
-        return b();
+    return apl(function() {
+      return function(a) {
+        return function(b) {
+          return b();
+        };
       };
     });
   };
 
   listToAst = function listToAst(list) {
+    return primListToAst(list, Nil);
+  };
+
+  primListToAst = function primListToAst(list, vars) {
     if (list === Nil) {
       return [null, "Expecting expression, but input is empty"];
     } else if (!(list instanceof LexCons)) {
-      return tokenToAst(list);
+      return tokenToAst(list, vars);
     } else if (isLambdaToken(list.head())) {
-      return checkLambda(list.tail());
+      return checkLambda(list.tail(), vars);
     } else {
-      return ifParsed(listToAst(list.head()), function(f) {
-        return listToApply(f, list.start(), list.tail());
+      return ifParsed(primListToAst(list.head(), vars), function(f) {
+        return listToApply(f, list.start(), list.tail(), vars);
       });
     }
   };
@@ -841,9 +885,9 @@ misrepresented as being the original software.
     return (tok instanceof Token) && ((_ref = tok.tok()) === '\\' || _ref === '\u03BB');
   };
 
-  checkLambda = function checkLambda(list) {
+  checkLambda = function checkLambda(list, vars) {
     if (list.head() instanceof Token && list.head().tok() !== '.') {
-      return listToLambda(list);
+      return listToLambda(list, vars);
     } else {
       return [null, "Bad lambda construct, expected names, followed by a dot", list];
     }
@@ -853,8 +897,8 @@ misrepresented as being the original software.
     return !(tok instanceof Token) || isLambdaToken(tok);
   };
 
-  listToLambda = function listToLambda(list) {
-    var bodyRes, head;
+  listToLambda = function listToLambda(list, vars) {
+    var bodyRes, head, v;
     if (list === Nil) {
       return [null, "Bad lambda construct -- no variable or body"];
     } else if (list.tail() === Nil) {
@@ -864,7 +908,8 @@ misrepresented as being the original software.
       if (badLambdaCont(head) || badLambdaCont(list.tail().head())) {
         return [null, "Bad lambda construct", head];
       } else {
-        bodyRes = list.tail().head().tok() === '.' ? listToAst(list.tail().tail()) : listToLambda(list.tail());
+        v = cons(head.tok(), vars);
+        bodyRes = list.tail().head().tok() === '.' ? primListToAst(list.tail().tail(), v) : listToLambda(list.tail(), v);
         return ifParsed(bodyRes, function(body) {
           return [tag(lambda(head.tok(), body), list.start(), list.end())];
         });
@@ -872,22 +917,59 @@ misrepresented as being the original software.
     }
   };
 
-  tokenToAst = function tokenToAst(tok) {
+  tokenToAst = function tokenToAst(tok, vars) {
+    var l;
     try {
-      return [tag(lit(JSON.parse(tok.tok())), tok.start(), tok.end())];
+      l = JSON.parse(tok.tok());
+      return [tag((typeof l === 'number' && vars.find(l) ? ref(l) : lit(l)), tok.start(), tok.end())];
     } catch (err) {
       return [tag(ref(tok.tok()), tok.start(), tok.end())];
     }
   };
 
-  listToApply = function listToApply(f, start, rest) {
+  listToApply = function listToApply(f, start, rest, vars) {
     if (rest === Nil) {
       return [f];
+    } else if (isLambdaToken(rest.head())) {
+      return ifParsed(listToAst(rest), function(a) {
+        return [tag(apply(f, a), start, rest.end())];
+      });
     } else {
       return ifParsed(listToAst(rest.head()), function(a) {
         return listToApply(tag(apply(f, a), start, rest.head().end()), start, rest.tail());
       });
     }
+  };
+
+  parseOptional = function parseOptional(string, macros) {
+    var err, res, rest, tok, _ref, _ref2;
+    _ref = parsePhase1(string), res = _ref[0], err = _ref[1], rest = _ref[2];
+    if (err) {
+      return [null, err, rest];
+    } else {
+      _ref2 = listToAst(res), res = _ref2[0], err = _ref2[1], tok = _ref2[2];
+      if (res) {
+        return [res, null, rest];
+      } else {
+        return [null, err, string.substring(tok.pos())];
+      }
+    }
+  };
+
+  parse = function parse(string) {
+    return parseOptional(string, false);
+  };
+
+  parseFull = function parseFull(string) {
+    return parseOptional(string, true);
+  };
+
+  /*
+  # Macros
+  */
+
+  defMacro = function defMacro(name, func) {
+    return ctx.macros[name] = func();
   };
 
   /*
@@ -1043,36 +1125,106 @@ misrepresented as being the original software.
     }
   };
 
-  console.log("parse: a b: " + (parsePhase1('a b')[0]));
+  /*
+  # testing
+  */
 
-  console.log("parse: a (b): " + (parsePhase1('a (b)')[0]));
+  /*
+  console.log "parse: a b: #{parsePhase1('a b')[0]}"
+  console.log "parse: a (b): #{parsePhase1('a (b)')[0]}"
+  console.log "parse: a (b c d (e f)): #{parsePhase1('a (b c d (e f))')[0]}"
+  console.log "parse: \\\\\\\u03BB\\\u03BB: #{parsePhase1('\\\\\\\u03BB\\\u03BB')[0]}"
+  console.log "parse: 'a\n  b c\n  d\n  e f g\nh': #{parsePhase1('a\n  b c\n  d\n  e f g\nh')[0]}"
+  console.log "parse: 'a\n b\n  c\n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   d\n  e\n f\ng')[0]}"
+  console.log "parse: 'a\n b\n  c\n   \n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   \n   d\n  e\n f\ng')[0]}"
+  
+  testParse = (str)->
+    p = parsePhase1(str)
+    if p[1] then p[1]
+    else
+      console.log "phase 1: #{print p[0]}"
+      a = listToAst(p[0], str.length)
+      a[1] ? print(a[0])
+  
+  console.log "ast for a: #{testParse('a')}"
+  console.log "ast for a b: #{testParse('a b')}"
+  console.log "ast for \\a.b: #{testParse('\\a.b')}"
+  */
 
-  console.log("parse: a (b c d (e f)): " + (parsePhase1('a (b c d (e f))')[0]));
+  root.evalFunc = evalFunc;
 
-  console.log("parse: \\\\\\\u03BB\\\u03BB: " + (parsePhase1('\\\\\\\u03BB\\\u03BB')[0]));
+  root.nameSub = nameSub;
 
-  console.log("parse: 'a\n  b c\n  d\n  e f g\nh': " + (parsePhase1('a\n  b c\n  d\n  e f g\nh')[0]));
+  root.setDataType = setDataType;
 
-  console.log("parse: 'a\n b\n  c\n   d\n  e\n f\ng': " + (parsePhase1('a\n b\n  c\n   d\n  e\n f\ng')[0]));
+  root.setType = setType;
 
-  console.log("parse: 'a\n b\n  c\n   \n   d\n  e\n f\ng': " + (parsePhase1('a\n b\n  c\n   \n   d\n  e\n f\ng')[0]));
+  root.mkProto = mkProto;
 
-  testParse = function testParse(str) {
-    var a, p, _ref;
-    p = parsePhase1(str);
-    if (p[1]) {
-      return p[1];
-    } else {
-      console.log("phase 1: " + (print(p[0])));
-      a = listToAst(p[0], str.length);
-      return (_ref = a[1]) != null ? _ref : print(a[0]);
-    }
-  };
+  root.Nil = Nil;
 
-  console.log("ast for a: " + (testParse('a')));
+  root.cons = cons;
 
-  console.log("ast for a b: " + (testParse('a b')));
+  root.dlempty = dlempty;
 
-  console.log("ast for \\a.b: " + (testParse('\\a.b')));
+  root.dlnew = dlnew;
+
+  root.dlappend = dlappend;
+
+  root.lexCons = lexCons;
+
+  root.lexDlempty = lexDlempty;
+
+  root.lexDlnew = lexDlnew;
+
+  root.lexDlappend = lexDlappend;
+
+  root.define = define;
+
+  root.defGroup = defGroup;
+
+  root.defToken = defToken;
+
+  root.defMacro = defMacro;
+
+  root.parse = parse;
+
+  root.parseFull = parseFull;
+
+  root.parsePhase1 = parsePhase1;
+
+  root.listToAst = listToAst;
+
+  root.getType = getType;
+
+  root.lit = lit;
+
+  root.ref = ref;
+
+  root.lambda = lambda;
+
+  root.apply = apply;
+
+  root.getAstType = getAstType;
+
+  root.getRefVar = getRefVar;
+
+  root.getLitVal = getLitVal;
+
+  root.getLambdaBody = getLambdaBody;
+
+  root.getLambdaVar = getLambdaVar;
+
+  root.getApplyFunc = getApplyFunc;
+
+  root.getApplyArg = getApplyArg;
+
+  root.print = print;
+
+  root.ifParsed = ifParsed;
+
+  root.snip = snip;
+
+  root.throwError = throwError;
 
 }).call(this);

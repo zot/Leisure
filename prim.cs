@@ -12,11 +12,13 @@ if window?
   defaultEnv.prompt = (msg, cont)-> cont(window.prompt(msg))
   window.Prim = root = {}
   Leisure = window.Leisure
+  Parse = window.Parse
 else
   # running in node
   root = exports ? this
+  Parse = require('./parse')
   Leisure = require('./leisure')
-  Pretty = require('./pretty')
+  #Pretty = require('./pretty')
   U = require('util')
   RL = require('readline')
   tty = null
@@ -30,9 +32,12 @@ else
 
 setTty = (rl)-> tty = rl
 
-define = Leisure.define
-getType = Leisure.getType
+define = Parse.define
+getType = Parse.getType
+throwError = Parse.throwError
 laz = Leisure.laz
+
+define 'false', (->(a)->(b)-> b()), 2
 
 define 'is', (->(value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`), 2
 define 'isFunc', ->(value)->if typeof value() == 'function' then `_true()` else `_false()`
@@ -47,12 +52,20 @@ define 'ast-start', ->(ast)-> ast().leisureStart
 define 'ast-end', ->(ast)-> ast().leisureEnd
 define 'pretty', ->(value)->
   #kluge this, for now
-  if !Pretty then Pretty = window.Pretty
-  Pretty.print(value())
+  #if !Pretty then Pretty = window.Pretty
+  Parse.print(value())
 define 'funcSource', ->(func)->
   f = func()
   if f.src? then _some()(laz(f.src))
   else _none()
+define 'defToken', ->(token)->
+  makeMonad (env, cont)->
+    Parse.defToken token()
+    cont _false()
+define 'defGroup', ->(open)->(close)->
+  makeMonad (env, cont)->
+    Parse.defGroup open(), close()
+    cont _false()
 
 define '+', ->(a)->(b)->a() + b()
 define '-', ->(a)->(b)->a() - b()
@@ -174,7 +187,7 @@ define 'concat', ->(l)-> concatList(l())
 define 'js', ->(codeList)->
   makeMonad (env, cont)->
     cl = codeList()
-    if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
+    if cl != _nil() && cl.type != 'cons' then throwError("js expects a list for its code")
     cont(eval(concatList(cl)))
 
 define 'arrayLength', ->(array)-> array().length
@@ -189,7 +202,7 @@ define 'browser', ->(codeList)->
   makeMonad (env, cont)->
     if window?
       cl = codeList()
-      if cl != _nil() && cl.type != 'cons' then throw new Error("js expects a list for its code")
+      if cl != _nil() && cl.type != 'cons' then throwError("js expects a list for its code")
       cont(eval(concatList(cl)))
     else cont(null)
 
