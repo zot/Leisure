@@ -46,6 +46,8 @@ Tests for Leisure
 
   console.log('Testing');
 
+  LZ.eval("req('./prelude')");
+
   LZ.eval("req('./std')");
 
   debug = false;

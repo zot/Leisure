@@ -12,6 +12,10 @@ if !Leisure? and require?
   Prim = require('./prim')
   U = require('util')
 
+includeStd = true
+
+setIncludeStd = (flag)-> includeStd = flag
+
 throwError = Parse.throwError
 
 compileFunc = ->
@@ -168,8 +172,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
   Parse = require('./parse');
-  Leisure = require('./leisure');
-  Leisure.req('./std');
+  Leisure = require('./leisure');#{if includeStd then "\n  Leisure.req('./prelude');\n  Leisure.req('./std');" else ''}
   require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
@@ -270,3 +273,4 @@ root.setResetFunc = setResetFunc
 root.findDefs = findDefs
 root.prelude = prelude
 root.errString = errString
+root.setIncludeStd = setIncludeStd

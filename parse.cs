@@ -153,6 +153,7 @@ dlappend = (a, b)->
 foldLeft = (func, val, thing)->
   if thing instanceof Cons then thing.foldl func, val
   else primFoldLeft func, val, thing, 0
+
 primFoldLeft = (func, val, array, index)->
   if index < array.length then primFoldLeft func, func(val, array[index]), array, index + 1
   else val
@@ -368,10 +369,13 @@ substituteLambdaBody = (list)->
   else lexCons list.head(), list.start(), (if (list.head() instanceof Token) and list.head().tok() == '.' then substituteMacros(list.tail()) else substituteLambdaBody list.tail()), list.end()
 
 cleanupMacro = (list)->
-  if typeof list == 'string' then primToken(->list)(->0)
-  else if !(list instanceof Cons) or list == Nil then list
+  if typeof list in ['string', 'number'] then primToken(->String(list))(->0)
+  else if !(list instanceof Cons) or (list == Nil) then list
   else if list instanceof LexCons then list.map cleanupMacro
-  else lexCons (cleanupMacro list.head()), 0, (cleanupMacro list.tail()), 0
+  else
+    head = cleanupMacro list.head()
+    tail = cleanupMacro list.tail()
+    lexCons head, (if head != Nil then head.start() else 0), tail, (if tail != Nil then tail.end() else 0)
 
 ######
 ###### ASTs
@@ -462,9 +466,7 @@ parseOptional = (string, macros)->
   else
     [res, err, tok] = listToAst (if macros then substituteMacros res else res)
     if res then [res, null, rest]
-    else
-      console.log "ERR TOK: #{tok}, MSG: #{err}"
-      [null, err, (if tok then string.substring(tok.start()) else rest)]
+    else [null, err, (if tok then string.substring(tok.start()) else rest)]
 
 right = (value)-> (a)->(b)-> a()(->value)
 left = (value)-> (a)->(b)-> b()(->value)
@@ -504,7 +506,7 @@ subprint = (f)->
     when 'token' then "#{f}"
     when 'ioMonad' then "IO"
     when 'lit' then f ->(v)->JSON.stringify(v())
-    when 'ref' then f ->(v)->JSON.stringify(v())
+    when 'ref' then f ->(v)->v()
     when 'lambda' then f ->(v)->(bod)-> "\u03BB#{printLambda v(), bod()}"
     when 'apply' then f ->(func)->(arg)-> printApply(func(), arg())
     when 'some' then f(->(v)-> "Some(#{print v()})")(null)
@@ -530,32 +532,6 @@ elements = (l, first, nosubs)->
   if l == Nil then ''
   else if !(l instanceof Cons) then " | #{print(l)}"
   else "#{if first then '' else ' '}#{print(l.head()) + elements(l.tail(), false)}"
-
-###
-# testing
-###
-
-###
-console.log "parse: a b: #{parsePhase1('a b')[0]}"
-console.log "parse: a (b): #{parsePhase1('a (b)')[0]}"
-console.log "parse: a (b c d (e f)): #{parsePhase1('a (b c d (e f))')[0]}"
-console.log "parse: \\\\\\\u03BB\\\u03BB: #{parsePhase1('\\\\\\\u03BB\\\u03BB')[0]}"
-console.log "parse: 'a\n  b c\n  d\n  e f g\nh': #{parsePhase1('a\n  b c\n  d\n  e f g\nh')[0]}"
-console.log "parse: 'a\n b\n  c\n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   d\n  e\n f\ng')[0]}"
-console.log "parse: 'a\n b\n  c\n   \n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   \n   d\n  e\n f\ng')[0]}"
-
-testParse = (str)->
-  p = parsePhase1(str)
-  if p[1] then p[1]
-  else
-    console.log "phase 1: #{print p[0]}"
-    a = listToAst(p[0], str.length)
-    a[1] ? print(a[0])
-
-console.log "ast for a: #{testParse('a')}"
-console.log "ast for a b: #{testParse('a b')}"
-console.log "ast for \\a.b: #{testParse('\\a.b')}"
-###
 
 root.evalFunc = evalFunc
 root.nameSub = nameSub

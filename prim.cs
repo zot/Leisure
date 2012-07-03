@@ -229,8 +229,6 @@ define 'setS', ->(state)->(value)->
     state().value = value()
     cont(_false)
 
-define 'poop', ->3
-
 ################
 # BROWSER PRIMS
 ################

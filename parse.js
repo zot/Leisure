@@ -892,18 +892,24 @@ misrepresented as being the original software.
   };
 
   cleanupMacro = function cleanupMacro(list) {
-    if (typeof list === 'string') {
+    var head, tail, _ref;
+    if ((_ref = typeof list) === 'string' || _ref === 'number') {
       return primToken(function() {
-        return list;
+        return String(list);
       })(function() {
         return 0;
       });
-    } else if (!(list instanceof Cons) || list === Nil) {
+    } else if ((list instanceof Token) || (list === Nil)) {
+      return list;
+    } else if (!(list instanceof Cons)) {
+      console.log("WEIRD ITEM AFTER MACRO: " + list);
       return list;
     } else if (list instanceof LexCons) {
       return list.map(cleanupMacro);
     } else {
-      return lexCons(cleanupMacro(list.head()), 0, cleanupMacro(list.tail()), 0);
+      head = cleanupMacro(list.head());
+      tail = cleanupMacro(list.tail());
+      return lexCons(head, (head !== Nil ? head.start() : 0), tail, (tail !== Nil ? tail.end() : 0));
     }
   };
 
@@ -1163,6 +1169,7 @@ misrepresented as being the original software.
     return function(string) {
       var err, res, rest, _ref;
       _ref = parsePhase1(string()), res = _ref[0], err = _ref[1], rest = _ref[2];
+      console.log("PHASE 1: " + res);
       if (err) {
         return left("Error at: " + (JSON.stringify(snip(rest))) + "..., " + err);
       } else {
@@ -1234,7 +1241,7 @@ misrepresented as being the original software.
         case 'ref':
           return f(function() {
             return function(v) {
-              return JSON.stringify(v());
+              return v();
             };
           });
         case 'lambda':
@@ -1333,32 +1340,6 @@ misrepresented as being the original software.
       return "" + (first ? '' : ' ') + (print(l.head()) + elements(l.tail(), false));
     }
   };
-
-  /*
-  # testing
-  */
-
-  /*
-  console.log "parse: a b: #{parsePhase1('a b')[0]}"
-  console.log "parse: a (b): #{parsePhase1('a (b)')[0]}"
-  console.log "parse: a (b c d (e f)): #{parsePhase1('a (b c d (e f))')[0]}"
-  console.log "parse: \\\\\\\u03BB\\\u03BB: #{parsePhase1('\\\\\\\u03BB\\\u03BB')[0]}"
-  console.log "parse: 'a\n  b c\n  d\n  e f g\nh': #{parsePhase1('a\n  b c\n  d\n  e f g\nh')[0]}"
-  console.log "parse: 'a\n b\n  c\n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   d\n  e\n f\ng')[0]}"
-  console.log "parse: 'a\n b\n  c\n   \n   d\n  e\n f\ng': #{parsePhase1('a\n b\n  c\n   \n   d\n  e\n f\ng')[0]}"
-  
-  testParse = (str)->
-    p = parsePhase1(str)
-    if p[1] then p[1]
-    else
-      console.log "phase 1: #{print p[0]}"
-      a = listToAst(p[0], str.length)
-      a[1] ? print(a[0])
-  
-  console.log "ast for a: #{testParse('a')}"
-  console.log "ast for a b: #{testParse('a b')}"
-  console.log "ast for \\a.b: #{testParse('\\a.b')}"
-  */
 
   root.evalFunc = evalFunc;
 

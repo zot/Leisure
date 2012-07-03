@@ -1,9 +1,11 @@
 (function() {
-  var LZ, Prim, R, U, action, debug, eaten, i, importFile, loadStd, next, nomacros, pos, processArgs, _ref;
+  var LZ, Prim, R, RC, U, action, debug, eaten, i, importFile, loadStandardLimit, loadStd, next, nomacros, pos, processArgs, standard, _ref;
 
   LZ = require('./leisure');
 
   R = require('./repl');
+
+  RC = require('./replCore');
 
   Prim = require('./prim');
 
@@ -23,8 +25,17 @@
     }), nomacros, debug);
   };
 
+  standard = ['prelude', 'std'];
+
+  loadStandardLimit = standard.length;
+
   loadStd = function loadStd() {
-    return LZ.eval("Leisure.req('./std')");
+    var i, _results;
+    _results = [];
+    for (i = 0; 0 <= loadStandardLimit ? i < loadStandardLimit : i > loadStandardLimit; 0 <= loadStandardLimit ? i++ : i--) {
+      _results.push(LZ.eval("Leisure.req('./" + standard[i] + "')"));
+    }
+    return _results;
   };
 
   nomacros = false;
@@ -41,10 +52,11 @@
     if (eaten) {
       eaten--;
     } else if (process.argv[i] === '-h') {
-      console.log("Usage: " + process.argv[0] + " [[-r file]... [-c | -q | -b] file...]\n\n-b -- bootstrap; don't load std functions\n-r file -- require JS file\n-c -- compile arguments only\n-g -- generate debug code\n-q -- quiet");
+      console.log("Usage: " + process.argv[0] + " [[-r file]... [-c | -q | -b] file...]\n\n-b n -- bootstrap; only load up to standard file N\n-m -- bootstrap; do not expand macros\n-r file -- require JS file\n-c -- compile arguments only\n-g -- generate debug code\n-q -- quiet");
     } else if (process.argv[i] === '-b') {
-      loadStd = function loadStd() {};
-      nomacros = true;
+      loadStandardLimit = process.argv[i + 1];
+      RC.setIncludeStd(false);
+      eaten = 1;
     } else if (process.argv[i] === '-c') {
       next = function next() {};
     } else if (process.argv[i] === '-q') {

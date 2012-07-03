@@ -627,10 +627,6 @@
     };
   });
 
-  define('poop', function() {
-    return 3;
-  });
-
   define('svgMeasureText', (function() {
     return function(text) {
       return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
