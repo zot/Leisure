@@ -24,16 +24,22 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Code, Cons, Nil, append, apply, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, charCodes, codeChars, compileNext, cons, contexts, continueApply, ctx, define, defineForward, defineMacro, defineToken, dgen, dlappend, dlempty, dlnew, eatAllWhitespace, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, first, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getMacro, getNthBody, getRefVar, getType, groupCloses, groupOpens, ifParsed, indent, lambda, laz, linePat, lit, ll, nameAst, nameSub, nextTok, nextTokIgnoreNL, numberAst, parse, parseApply, parseFull, parseLambda, parseName, parseTerm, pos, prefix, primFoldLeft, processDefs, processTokenDefs, ref, req, root, scanName, scanTok, second, setDataType, setEvalFunc, setNumber, setType, snip, substituteMacros, tag, tokPos, tokenPat, tokens, within, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext,
-    __hasProp = Object.prototype.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+  var Code, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, compileNext, cons, contexts, ctx, declScanner, define, defineForward, defineToken, dgen, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, ifParsed, indent, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, mkProto, nameAst, nameSub, numberAst, parse, parseFull, prefix, primFoldLeft, processDefs, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.Leisure = root = {};
+    Parse = window.Parse;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
+    Parse = require('./parse');
   }
+
+  nameSub = Parse.nameSub, setDataType = Parse.setDataType, setType = Parse.setType, mkProto = Parse.mkProto, cons = Parse.cons, dlempty = Parse.dlempty, dlnew = Parse.dlnew, dlappend = Parse.dlappend, lexCons = Parse.lexCons, lexDlempty = Parse.lexDlempty, lexDlnew = Parse.lexDlnew, lexDlappend = Parse.lexDlappend, define = Parse.define, listToAst = Parse.listToAst, evalFunc = Parse.evalFunc, Nil = Parse.Nil, cons = Parse.cons, getAstType = Parse.getAstType, getRefVar = Parse.getRefVar, getLitVal = Parse.getLitVal, getLambdaBody = Parse.getLambdaBody, getLambdaVar = Parse.getLambdaVar, getApplyFunc = Parse.getApplyFunc, getApplyArg = Parse.getApplyArg, ifParsed = Parse.ifParsed, snip = Parse.snip, Scanner = Parse.Scanner;
+
+  declScanner = new Scanner();
+
+  declScanner.defToken('::');
 
   escapeRegexpChars = function escapeRegexpChars(str) {
     return str.replace(/([\][().\\*+?{}|])/g, '\\$1');
@@ -47,205 +53,10 @@ misrepresented as being the original software.
 
   linePat = /^((?:\s*\n|#[^\n]*\n)*)([^=\n]*)(=[.)M]=|=\([^=]+=|=)?/;
 
-  charCodes = {
-    "'": '$a',
-    ',': '$b',
-    '$': '$$',
-    '@': '$d',
-    '?': '$e',
-    '/': '$f',
-    '*': '$g',
-    '&': '$h',
-    '^': '$i',
-    '!': '$k',
-    '`': '$l',
-    '~': '$m',
-    '-': '$_',
-    '+': '$o',
-    '=': '$p',
-    '|': '$q',
-    '[': '$r',
-    ']': '$s',
-    '{': '$t',
-    '}': '$u',
-    '"': '$v',
-    ':': '$w',
-    ';': '$x',
-    '<': '$y',
-    '>': '$z',
-    '%': '$A',
-    '.': '$B'
-  };
-
-  codeChars = new function() {
-    var char, code;
-    for (char in charCodes) {
-      code = charCodes[char];
-      this[code.substring(1)] = char;
-    }
-    return this;
-  };
-
-  global.leisureFuncs = {};
-
-  global.macros = {};
-
-  tokens = {};
-
-  groupOpens = {
-    '(': ')'
-  };
-
-  groupCloses = {
-    ')': 1
-  };
-
-  nameSub = function nameSub(name) {
-    var code, i, s, _ref;
-    s = '_';
-    for (i = 0, _ref = name.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-      code = charCodes[name[i]];
-      s += code != null ? code : name[i];
-    }
-    return s;
-  };
-
   ctx = global;
 
-  evalFunc = eval;
-
-  Cons = (function() {
-
-    function Cons(head, tail) {
-      this.head = head;
-      this.tail = tail;
-    }
-
-    Cons.prototype.find = function find(func) {
-      return func(this.head) || this.tail.find(func);
-    };
-
-    Cons.prototype.removeAll = function removeAll(func) {
-      var t;
-      t = this.tail.removeAll(func);
-      if (func(this.head)) {
-        return t;
-      } else if (t === this.tail) {
-        return this;
-      } else {
-        return cons(this.head, t);
-      }
-    };
-
-    Cons.prototype.foldl = function foldl(arg, func) {
-      return func(this.tail.foldl(arg, func), this.head);
-    };
-
-    Cons.prototype.toArray = function toArray() {
-      return this.reverse().foldl([], (function(i, el) {
-        i.push(el);
-        return i;
-      }));
-    };
-
-    Cons.prototype.toString = function toString() {
-      return "Cons(" + (this.toArray().join(', ')) + ")";
-    };
-
-    Cons.prototype.reverse = function reverse() {
-      return this.rev(Nil);
-    };
-
-    Cons.prototype.rev = function rev(result) {
-      return this.tail.rev(cons(this.head, result));
-    };
-
-    Cons.prototype.equals = function equals(other) {
-      var _ref, _ref2;
-      return (other != null ? other.constructor : void 0) === Cons && (this.head === other.head || (((_ref = this.head) != null ? _ref.constructor : void 0) === Cons && this.head.equals(other.head))) && (this.tail === other.tail || (((_ref2 = this.tail) != null ? _ref2.constructor : void 0) === Cons && this.tail.equals(other.tail)));
-    };
-
-    Cons.prototype.each = function each(block) {
-      block(this.head);
-      return this.tail.each(block);
-    };
-
-    return Cons;
-
-  })();
-
-  CNil = (function(_super) {
-
-    __extends(CNil, _super);
-
-    function CNil() {
-      CNil.__super__.constructor.apply(this, arguments);
-    }
-
-    CNil.prototype.find = function find() {
-      return false;
-    };
-
-    CNil.prototype.removeAll = function removeAll() {
-      return this;
-    };
-
-    CNil.prototype.foldl = function foldl(arg, func) {
-      return arg;
-    };
-
-    CNil.prototype.rev = function rev(result) {
-      return result;
-    };
-
-    CNil.prototype.equals = function equals(other) {
-      return (other != null ? other.constructor : void 0) === CNil;
-    };
-
-    CNil.prototype.each = function each() {};
-
-    return CNil;
-
-  })(Cons);
-
-  Nil = new CNil();
-
-  cons = function cons(a, b) {
-    return new Cons(a, b);
-  };
-
-  dlempty = function dlempty(x) {
-    return x;
-  };
-
-  dlnew = function dlnew(a) {
-    return function(b) {
-      return cons(a, b);
-    };
-  };
-
-  dlappend = function dlappend(a, b) {
-    return function(c) {
-      return a(b(c));
-    };
-  };
-
-  append = function append(a, b) {
-    if (a === Nil) {
-      return b;
-    } else {
-      return cons(a.head, append(a.tail, b));
-    }
-  };
-
-  global.leisureFuncNames = ll = Nil;
-
-  global.leisureAddFunc = function leisureAddFunc(nm) {
-    return global.leisureFuncNames = ll = cons(nm, ll);
-  };
-
   global.leisureGetFuncs = function leisureGetFuncs() {
-    return ll;
+    return global.leisureFuncNames;
   };
 
   global.noredefs = true;
@@ -305,35 +116,6 @@ misrepresented as being the original software.
     return cur[offset];
   };
 
-  define = function define(name, func, arity, src) {
-    var nm;
-    func.src = src;
-    func.leisureContexts = [];
-    nm = nameSub(name);
-    func.leisureName = name;
-    func.leisureArity = arity;
-    if (global.noredefs && (ctx[nm] != null)) {
-      throw new Error("[DEF] Attempt to redefine definition: " + name);
-    }
-    ctx[nm] = ctx.leisureFuncs[nm] = func;
-    (evalFunc('leisureAddFunc'))(name);
-    return func;
-  };
-
-  defineMacro = function defineMacro(name, func) {
-    return ctx.macros[name] = func();
-  };
-
-  setDataType = function setDataType(func, dataType) {
-    if (dataType) func.dataType = dataType;
-    return func;
-  };
-
-  setType = function setType(func, type) {
-    if (type) func.type = type;
-    return func;
-  };
-
   nameAst = function nameAst(nm, ast) {
     if (!ast.leisureName) {
       ast.leisureName = nm;
@@ -347,107 +129,15 @@ misrepresented as being the original software.
     if (ast.lits.length) {
       return evalFunc("(function(__lits){\nreturn " + ast.src + "})")(ast.lits);
     } else {
-      return evalFunc(ast.src);
+      return Parse.evalFunc(ast.src);
     }
   };
 
   define('eval', function() {
     return function(ast) {
-      return evalCompiledAst(dgen(substituteMacros(ast())));
+      return evalCompiledAst(dgen(ast()));
     };
   });
-
-  define('lit', function() {
-    return setDataType((function(_x) {
-      return setType((function(_f) {
-        return _f()(_x);
-      }), 'lit');
-    }), 'lit');
-  });
-
-  define('ref', function() {
-    return setDataType((function(_x) {
-      return setType((function(_f) {
-        return _f()(_x);
-      }), 'ref');
-    }), 'ref');
-  });
-
-  define('lambda', function() {
-    return setDataType((function(_v) {
-      return function(_f) {
-        return setType((function(_g) {
-          return _g()(_v)(_f);
-        }), 'lambda');
-      };
-    }), 'lambda');
-  });
-
-  define('apply', function() {
-    return setDataType((function(_func) {
-      return function(_arg) {
-        return setType((function(_f) {
-          return _f()(_func)(_arg);
-        }), 'apply');
-      };
-    }), 'apply');
-  });
-
-  getType = function getType(f) {
-    var t;
-    t = typeof f;
-    return (t === 'function' && (f != null ? f.type : void 0)) || ("*" + t);
-  };
-
-  lit = _lit();
-
-  ref = _ref();
-
-  lambda = _lambda();
-
-  apply = _apply();
-
-  getAstType = function getAstType(f) {
-    return f.type;
-  };
-
-  first = function first() {
-    return function(a) {
-      return a;
-    };
-  };
-
-  second = function second() {
-    return function(a) {
-      return function(b) {
-        return b();
-      };
-    };
-  };
-
-  getRefVar = function getRefVar(r) {
-    return r(first)();
-  };
-
-  getLitVal = function getLitVal(l) {
-    return l(first)();
-  };
-
-  getLambdaVar = function getLambdaVar(l) {
-    return l(first);
-  };
-
-  getLambdaBody = function getLambdaBody(l) {
-    return l(second);
-  };
-
-  getApplyFunc = function getApplyFunc(a) {
-    return a(first);
-  };
-
-  getApplyArg = function getApplyArg(a) {
-    return a(second);
-  };
 
   between = function between(start, end, pos) {
     return start <= pos && pos <= end;
@@ -669,9 +359,10 @@ misrepresented as being the original software.
 
   dgen = function dgen(ast, lazy, name, globals, tokenDef, namespace, src, debug) {
     var code, jsCode, n, res;
+    debug = false;
     ast.lits = [];
     res = [];
-    code = gen(ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : Nil)), ast.lits, Nil, true, name, namespace, true);
+    code = gen(ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true);
     if (code.err !== '') {
       ast.err = code.err;
     } else {
@@ -733,7 +424,7 @@ misrepresented as being the original software.
         return bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast, top);
       case 'apply':
         func = getApplyFunc(ast);
-        if (getAstType(func === 'lit')) {
+        if (getAstType(func) === 'lit') {
           return code.addErr("Attempt to use lit as function: " + (getLitVal(func)));
         } else if (freeVar(func, vars, code.global)) {
           return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
@@ -771,31 +462,12 @@ misrepresented as being the original software.
   };
 
   defineToken = function defineToken(name, def) {
-    var i, types;
     if (def !== '=M=') {
-      tokens[name] = 1;
       if (def[1] === '(') {
-        groupOpens[name] = def.substring(2, def.length - 1);
-      } else if (def[1] === ')') {
-        groupCloses[name] = 1;
+        return Parse.defGroup(name, def.substring(2, def.length - 1));
+      } else if (def[1] !== ')') {
+        return Parse.defToken(name);
       }
-      types = [];
-      for (i in tokens) {
-        types.push(i);
-      }
-      types.sort(function(a, b) {
-        return b.length - a.length;
-      });
-      types = (function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = types.length; _i < _len; _i++) {
-          i = types[_i];
-          _results.push(escapeRegexpChars(i));
-        }
-        return _results;
-      })();
-      return tokenPat = new RegExp("\\n *|" + (types.join('|')) + "|" + baseTokenPat.source);
     }
   };
 
@@ -918,15 +590,14 @@ misrepresented as being the original software.
 
   parse = function parse(str) {
     var ret;
-    ret = parseApply(str, Nil, '\n', str.length);
+    ret = Parse.parse(str);
     if (ret[0]) ret[0] = numberAst(ret[0], 0);
     return ret;
   };
 
   parseFull = function parseFull(str) {
     var ast, err, rest, _ref;
-    _ref = parseApply(str, Nil, '\n', str.length), ast = _ref[0], err = _ref[1], rest = _ref[2];
-    if (ast) ast = substituteMacros(ast);
+    _ref = Parse.parseFull(str), ast = _ref[0], err = _ref[1], rest = _ref[2];
     if (ast) ast = numberAst(ast, 0);
     return [ast, err, rest];
   };
@@ -948,87 +619,9 @@ misrepresented as being the original software.
     return ast;
   };
 
-  substituteMacros = function substituteMacros(ast) {
-    var a, arg, b, body, f, func, macro;
-    switch (getAstType(ast)) {
-      case 'ref':
-      case 'lit':
-        return ast;
-      case 'lambda':
-        body = getLambdaBody(ast);
-        b = substituteMacros(body);
-        if (b === body) {
-          return ast;
-        } else {
-          return lambda(laz(getLambdaVar(ast)))(laz(b));
-        }
-        break;
-      case 'apply':
-        macro = getMacro(ast);
-        if (macro) {
-          return substituteMacros(macro(laz(ast)));
-        } else {
-          func = getApplyFunc(ast);
-          arg = getApplyArg(ast);
-          f = substituteMacros(func);
-          a = substituteMacros(arg);
-          if (a === arg && f === func) {
-            return ast;
-          } else {
-            return apply(laz(f))(laz(a));
-          }
-        }
-    }
-  };
-
-  getMacro = function getMacro(ast) {
-    var _ref;
-    if (getAstType(ast) === 'ref') {
-      return (_ref = ctx.macros[getRefVar(ast)]) != null ? _ref : null;
-    } else if (getAstType(ast) === 'apply') {
-      return getMacro(getApplyFunc(ast));
-    } else {
-      return null;
-    }
-  };
-
-  scanTok = function scanTok(tok) {
-    try {
-      return JSON.parse(tok);
-    } catch (err) {
-      return tok;
-    }
-  };
-
-  scanName = function scanName(name) {
-    var l;
-    try {
-      l = JSON.parse(name);
-      if (typeof l === 'string') {
-        return lit(laz(l));
-      } else if (typeof l === 'number') {
-        return ref(laz(l));
-      } else {
-        return ref(laz(name));
-      }
-    } catch (err) {
-      return ref(laz(name));
-    }
-  };
-
-  eatAllWhitespace = function eatAllWhitespace(str) {
-    var m;
-    m = str.match(/^(\s+|;)/);
-    if (m) {
-      return str.substring(m[0].length);
-    } else {
-      return str;
-    }
-  };
-
   setEvalFunc = function setEvalFunc(ct, func) {
     ctx = root.ctx = ct;
-    return root.eval = evalFunc = func;
+    return root.eval = evalFunc = Parse.evalFunc = func;
   };
 
   req = function req(name, gl) {
@@ -1046,150 +639,10 @@ misrepresented as being the original software.
           gl[i] = v;
         }
       }
-      processTokenDefs(res.tokenDefs);
       res.leisureFuncNames = ctx.leisureFuncNames;
       res.ctx = ctx;
     }
     return res;
-  };
-
-  processTokenDefs = function processTokenDefs(defs) {
-    var i, _ref, _results;
-    if (defs != null) {
-      _results = [];
-      for (i = 0, _ref = defs.length; i < _ref; i += 2) {
-        _results.push(defineToken(defs[i], defs[i + 1]));
-      }
-      return _results;
-    }
-  };
-
-  nextTok = function nextTok(str) {
-    var m, rest;
-    m = str.match(tokenPat);
-    if (!m) {
-      return [str, ''];
-    } else if (m.index > 0) {
-      return [str.substring(0, m.index), str.substring(m.index)];
-    } else {
-      rest = str.substring(m.index + m[0].length);
-      if (m[0][0] === '#' || m[0][0] === ' ' || (m[0][0] === '\n' && rest[0] === '\n')) {
-        return nextTok(rest);
-      } else {
-        return [m[0], rest];
-      }
-    }
-  };
-
-  tag = function tag(start, end, ast) {
-    ast.leisureStart = start;
-    ast.leisureEnd = end;
-    return ast;
-  };
-
-  pos = function pos(str, totalLen) {
-    return totalLen - str.length;
-  };
-
-  tokPos = function tokPos(tok, str, totalLen) {
-    return totalLen - str.length - tok.length;
-  };
-
-  ifParsed = function ifParsed(res, block, errPrefix) {
-    if (res[1]) {
-      return [res[0], errPrefix + res[1], res[2]];
-    } else {
-      return block(res[0], res[2]);
-    }
-  };
-
-  snip = function snip(str) {
-    return "[" + (str.substring(0, 80)) + "]";
-  };
-
-  parseApply = function parseApply(str, vars, indent, totalLen) {
-    var rest, tok, _ref;
-    if (!str) {
-      return [null, null, str];
-    } else {
-      _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
-      if (!tok || tok[0] === '\n') {
-        return [null, "expecting expression " + (snip(str)) + "\n" + (new Error().stack), rest];
-      } else if (groupCloses[tok]) {
-        return [null, "Unexpected group close: " + tok + " " + (snip(rest)), rest];
-      } else {
-        return ifParsed(parseTerm(tok, rest, vars, indent, totalLen), function(func, rest) {
-          return continueApply(func, rest, vars, indent, totalLen);
-        });
-      }
-    }
-  };
-
-  continueApply = function continueApply(func, str, vars, indent, totalLen) {
-    var parsedArg, rest, tok, _ref;
-    _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
-    if (!tok || (tok[0] === '\n' && tok.length <= indent.length) || groupCloses[tok]) {
-      return [func, null, str];
-    } else {
-      parsedArg = tok[0] === '\n' ? parseApply(rest, vars, tok, totalLen) : parseTerm(tok, rest, vars, indent, totalLen);
-      return ifParsed(parsedArg, function(arg, rest) {
-        return continueApply(tag(func.leisureStart, arg.leisureEnd, apply(laz(func))(laz(arg))), rest, vars, indent, totalLen);
-      });
-    }
-  };
-
-  parseTerm = function parseTerm(tok, rest, vars, indent, totalLen) {
-    var apl;
-    if (tok === '\\') {
-      return parseLambda(rest, vars, indent, totalLen);
-    } else if (groupOpens[tok]) {
-      apl = tok === '(' ? parseApply(rest, vars, indent, totalLen) : ifParsed(parseName(tok, rest, vars, totalLen), function(ast, rest2) {
-        return continueApply(ast, rest2, vars, indent, totalLen);
-      });
-      return ifParsed(apl, function(ast, rest3) {
-        var rest4, tok4, _ref;
-        _ref = nextTok(rest3), tok4 = _ref[0], rest4 = _ref[1];
-        if (tok4 !== groupOpens[tok]) {
-          return [ast, "Expected close token: " + groupOpens[tok] + ", but got " + tok4, rest4];
-        } else if (tok === '(') {
-          return [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), ast), null, rest4];
-        } else {
-          return ifParsed(parseName(tok4, rest4, vars, totalLen), function(arg, rest5) {
-            return [tag(tokPos(tok, rest, totalLen), pos(rest4, totalLen), apply(laz(ast))(laz(arg))), null, rest5];
-          });
-        }
-      });
-    } else {
-      return parseName(tok, rest, vars, totalLen);
-    }
-  };
-
-  parseName = function parseName(tok, rest, vars, totalLen) {
-    var name;
-    name = tok[0] === "'" ? lit(laz(tok.substring(1, tok.length - 1))) : tok[0] === '"' ? lit(laz(scanTok(tok))) : tok[0] === '`' ? ref(laz(tok.substring(1, tok.length - 1))) : vars.find(function(v) {
-      return tok === v;
-    }) ? ref(laz(tok)) : scanName(tok);
-    return [tag(tokPos(tok, rest, totalLen), pos(rest, totalLen), name), null, rest];
-  };
-
-  nextTokIgnoreNL = function nextTokIgnoreNL(str) {
-    var r, rest, tok, _ref;
-    _ref = r = nextTok(str), tok = _ref[0], rest = _ref[1];
-    if (tok && (tok[0] === '\n' || tok[0] === ' ')) nextTok(rest);
-    return r;
-  };
-
-  parseLambda = function parseLambda(str, vars, indent, totalLen) {
-    var apl, nm, rest1, rest2, tok2, _ref, _ref2;
-    _ref = nextTokIgnoreNL(str), nm = _ref[0], rest1 = _ref[1];
-    _ref2 = nextTokIgnoreNL(rest1), tok2 = _ref2[0], rest2 = _ref2[1];
-    apl = tok2 === '.' ? parseApply(eatAllWhitespace(rest2), cons(nm, vars), indent, totalLen) : parseLambda(rest1, cons(nm, vars), indent, totalLen);
-    return ifParsed(apl, function(body, rest2) {
-      var ast;
-      ast = lambda(laz(nm))(laz(body));
-      ast.leisureNameEnd = pos(rest1, totalLen);
-      return [tag(tokPos(nm, rest1, totalLen), body.leisureEnd, ast), null, rest2];
-    });
   };
 
   foldLeft = function foldLeft(func, val, array) {
@@ -1204,13 +657,9 @@ misrepresented as being the original software.
     }
   };
 
-  root.processTokenDefs = processTokenDefs;
-
   root.setEvalFunc = setEvalFunc;
 
   root.eval = evalFunc;
-
-  root.parseFull = parseFull;
 
   root.gen = dgen;
 
@@ -1220,51 +669,15 @@ misrepresented as being the original software.
 
   root.evalNext = evalNext;
 
-  root.setType = setType;
-
-  root.setDataType = setDataType;
-
   root.astEval = function astEval(ast) {
     return evalCompiledAst(dgen(ast));
   };
 
-  root.define = define;
-
-  root.defineMacro = defineMacro;
-
-  root.getAstType = getAstType;
-
-  root.getRefVar = getRefVar;
-
-  root.getLitVal = getLitVal;
-
-  root.getLambdaVar = getLambdaVar;
-
-  root.getLambdaBody = getLambdaBody;
-
-  root.getApplyFunc = getApplyFunc;
-
-  root.getApplyArg = getApplyArg;
-
-  root.getType = getType;
-
   root.linePat = linePat;
-
-  root.Nil = Nil;
-
-  root.cons = cons;
-
-  root.append = append;
-
-  root.defineToken = defineToken;
 
   root.req = req;
 
-  root.nameSub = nameSub;
-
   root.processDefs = processDefs;
-
-  root.parseApply = parseApply;
 
   root.bracket = bracket;
 
@@ -1285,5 +698,9 @@ misrepresented as being the original software.
   root.funcContextSource = funcContextSource;
 
   root.indent = indent;
+
+  root.parse = parse;
+
+  root.parseFull = parseFull;
 
 }).call(this);

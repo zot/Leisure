@@ -7,7 +7,7 @@ do
   require 'maps'
   require 'svg'
 
-(svg-measure-text 'hello' '') \w h . [w, h]
+(svgMeasureText 'hello' '') \w h . [w h]
 
 cons a
 
@@ -15,32 +15,32 @@ circle nil
 
 translate (circle nil) 10 10
 
-svg-measure-nodes [(circle nil)] \x y w h . concat ['x: ', x, ', y: ', y, ', w: ', w, ', h: ', h]
+svgMeasureNodes [(circle nil)] \x y w h . concat ['x: ' x ', y: ' y ', w: ' w ', h: ' h]
 
 rect nil
 
-text 'foopy' default-circle-map
+text 'foopy' defaultCircleMap
 
 polygon nil
 
-svg-map = hash-from-list [ 'width', 200, 'height', 100 ]
+svgMap = hashFromList [ 'width' 200 'height' 100 ]
 
 
 #hello
-svg (circle nil) svg-map
+svg (circle nil) svgMap
 
 
-svg (rect nil) svg-map
+svg (rect nil) svgMap
 
 
-svg (text 'testing SVG' nil) svg-map
+svg (text 'testing SVG' nil) svgMap
 
-decorate-text = hash-from-list [ 'x', 0, 'y', 80, 'stroke', 'black', 'stroke-width', 2, 'fill', 'blue', 'font-family', 'Impact', 'font-size', 40 ]
+decorateText = hashFromList [ 'x' 0 'y' 80 'stroke' 'black' 'stroke-width' 2 'fill' 'blue' 'font-family' 'Impact' 'font-size' 40 ]
 
-svg (text 'testing SVG' decorate-text) svg-map
+svg (text 'testing SVG' decorateText) svgMap
 
 
-svg (polygon nil) (merge-hash (hash-from-list [ 'width', 500, 'height', 350 ])  svg-map)
+svg (polygon nil) (mergeHash (hashFromList [ 'width' 500 'height' 350 ])  svgMap)
 
 
 #@test {"expr":"cons 'a' nil\n","result":"[a]"}

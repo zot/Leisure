@@ -18,7 +18,7 @@
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
-  debug = true;
+  debug = false;
 
   ENTER = 13;
 
@@ -40,9 +40,9 @@
 
   presentValue = function presentValue(v) {
     var content;
-    if ((ReplCore.getType(v)) === 'svg-node') {
+    if ((ReplCore.getType(v)) === 'svgNode') {
       content = v(laz(id));
-      return _svg$_present()(laz(content))(laz(id));
+      return _svgPresent()(laz(content))(laz(id));
     } else {
       return basePresentValue(v);
     }
@@ -186,7 +186,7 @@
     return cbox != null ? cbox.ast = null : void 0;
   };
 
-  oldBrackets = [null, Leisure.Nil];
+  oldBrackets = [null, Parse.Nil];
 
   highlightPosition = function highlightPosition() {
     var ast, b, brackets, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
@@ -220,9 +220,9 @@
               markPartialApplies(parent);
               b = brackets;
               ranges = [];
-              while (b !== Leisure.Nil) {
-                ranges.push(makeRange(parent, b.head.head + offset, b.head.tail.head + offset));
-                b = b.tail;
+              while (b !== Parse.Nil) {
+                ranges.push(makeRange(parent, b.head().head() + offset, b.head().tail().head() + offset));
+                b = b.tail();
               }
               for (i = 0, _len3 = ranges.length; i < _len3; i++) {
                 r = ranges[i];
@@ -607,7 +607,7 @@
       return bx.ast;
     } else {
       def = def || bx.textContent;
-      setAst(bx, (Leisure.compileNext(def, Leisure.Nil, true, null, true))[0]);
+      setAst(bx, (Leisure.compileNext(def, Parse.Nil, true, null, true))[0]);
       return bx.ast;
     }
   };
@@ -620,10 +620,10 @@
   patchFuncAst = function patchFuncAst(ast) {
     var _name, _name2, _ref, _ref2;
     if ((ast != null ? ast.leisureName : void 0) != null) {
-      if (typeof window[_name = Leisure.nameSub(ast.leisureName)] === "function") {
+      if (typeof window[_name = Parse.nameSub(ast.leisureName)] === "function") {
         if ((_ref = window[_name]()) != null) _ref.ast = ast;
       }
-      if (typeof window[_name2 = Leisure.nameSub(ast.leisureName)] === "function") {
+      if (typeof window[_name2 = Parse.nameSub(ast.leisureName)] === "function") {
         if ((_ref2 = window[_name2]()) != null) _ref2.src = ast.leisureSource;
       }
       return update("ast-" + ast.leisureName);
@@ -636,12 +636,12 @@
     def = def != null ? def : bx.textContent;
     ast = getAst(bx, def);
     partial = [];
-    ((Leisure.findFuncs(ast))(Leisure.Nil)).each(function(f) {
+    ((Leisure.findFuncs(ast))(Parse.Nil)).each(function(f) {
       var arity, name, _name, _ref;
-      name = Leisure.getRefVar(f.head);
-      arity = typeof global[_name = Leisure.nameSub(name)] === "function" ? (_ref = global[_name]()) != null ? _ref.leisureArity : void 0 : void 0;
-      if (arity && f.tail.head < arity) {
-        return partial.push([f.head, arity, f.tail.head]);
+      name = Parse.getRefVar(f.head());
+      arity = typeof global[_name = Parse.nameSub(name)] === "function" ? (_ref = global[_name]()) != null ? _ref.leisureArity : void 0 : void 0;
+      if (arity && f.tail().head() < arity) {
+        return partial.push([f.head(), arity, f.tail().head()]);
       }
     });
     if (partial.length) {
@@ -828,7 +828,7 @@
     source = output.source;
     test = {
       expr: source.textContent,
-      result: Repl.escapeHtml(Pretty.print(output.result))
+      result: Repl.escapeHtml(Parse.print(output.result))
     };
     box = makeTestBox(test, owner(exBox));
     source.parentNode.insertBefore(box, source);
@@ -885,7 +885,7 @@
         return cont(null);
       },
       processResult: function processResult(result, ast) {
-        return passed = showResult(bx, Repl.escapeHtml(Pretty.print(result)), Repl.escapeHtml(test.result));
+        return passed = showResult(bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.result));
       },
       processError: passed = false
     });
@@ -1281,7 +1281,7 @@
   };
 
   evalBox = function evalBox(box, envBox) {
-    ReplCore.processLine(box.textContent, (envBox != null ? envFor(envBox) : null), 'Leisure.');
+    ReplCore.processLine(box.textContent, (envBox != null ? envFor(envBox) : null), 'Parse.');
     return getAst(box);
   };
 
@@ -1310,7 +1310,7 @@
         e.processError = function processError(ast) {
           return alert(ReplCore.errString(ast.err));
         };
-        return ReplCore.processLine(auto, e, "Leisure.");
+        return ReplCore.processLine(auto, e, 'Parse.');
       } else {
         return evalDocCode(el, pgm);
       }
@@ -1332,7 +1332,7 @@
     return _results;
   };
 
-  Leisure.define('finishLoading', function() {
+  Parse.define('finishLoading', function() {
     return function(bubba) {
       return Prim.makeMonad(function(env, cont) {
         var i, _i, _len;
@@ -1346,7 +1346,7 @@
     };
   });
 
-  Leisure.define('config', function() {
+  Parse.define('config', function() {
     return function(expr) {
       return Prim.makeMonad(function(env, cont) {
         switch (expr()) {
@@ -1358,7 +1358,7 @@
     };
   });
 
-  Leisure.define('notebookSelection', function() {
+  Parse.define('notebookSelection', function() {
     return function(func) {
       return Prim.makeMonad(function(env, cont) {
         var bx, offset, p1, p2, r, r2, sel, _ref;
@@ -1487,7 +1487,7 @@
     } else if (base.nodeName === 'use') {
       return getMaxStrokeWidth(base, base.instanceRoot.correspondingElement, svg, transformFunc);
     } else if (base.nodeName === 'g') {
-      return Leisure.foldLeft((function(v, n) {
+      return Parse.foldLeft((function(v, n) {
         return Math.max(v, getMaxStrokeWidth(n, n, svg, transformFunc));
       }), 0, el.childNodes);
     } else {

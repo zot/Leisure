@@ -11,13 +11,13 @@ do
 
 circle nil
 
-svg-concat [(rect nil), (circle nil)]
+svgConcat [(rect nil) (circle nil)]
 
 a=1
 b=2
 
-#@test {"expr":"a\n","result":1}
-#@test {"expr":"b\n","result":2}
+#@test {"expr":"a\n","result":"1"}
+#@test {"expr":"b\n","result":"2"}
 
 all2 f l = l
   \h t D . and
@@ -34,11 +34,10 @@ increasing x = cons x (increasing (+ 1 x))
 
 naturals = increasing 1
 
-evens = remove-if odd? naturals
+evens = removeIf odd? naturals
 
 take 5 ones
 take 5 naturals
 take 5 evens
-
-  </body>
+</body>
 </html>

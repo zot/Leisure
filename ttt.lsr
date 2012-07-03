@@ -21,7 +21,7 @@
 #any (eq 54) foopy
 
 # digits handling
-digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ]
+digits = ['0' '1' '2' '3' '4' '5' '6' '7' '8' '9']
 
 #foopy l x = if (eq l nil) (nil) (x)
 
@@ -32,32 +32,32 @@ player1 = 'X'
 player2 = 'O'
 empty = ' '
 
-player1Win = concat [ player1, player1, player1]
-player2Win = concat [ player2, player2, player2]
-startBoard = [ empty, empty, empty, empty, empty, empty, empty, empty, empty ]
-testBoard = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i' ]
-win1Board = [ player1, empty, empty, empty, player1, empty, empty, empty, player1 ]
-win2Board = [ empty, empty, player2, empty, empty, player2, empty, empty, player2 ]
-slowBoard = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', empty, empty ]
-div = [ "\n", '-', '-', '-', '-', '-', "\n"]
-ending = [ "\n" ]
+player1Win = concat [player1 player1 player1]
+player2Win = concat [player2 player2 player2]
+startBoard = [empty empty empty empty empty empty empty empty empty]
+testBoard = ['a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' 'i']
+win1Board = [player1 empty empty empty player, empty empty empty player1]
+win2Board = [empty empty player2 empty empty player2 empty empty player2]
+slowBoard = ['a' 'b' 'c' 'd' 'e' 'f' 'g' empty empty]
+div = [ "\n" '-' '-' '-' '-' '-' "\n"]
+ending = ["\n"]
 
 
 # tictactoe funcs
 
 spot b r c = at b (+ c (+ r (+ r r) ) )
 
-row b r = concat [ (spot b r 0), (spot b r 1), (spot b r 2) ]
-col b c = concat [ (spot b 0 c), (spot b 1 c), (spot b 2 c) ]
-diag1 b = concat [ (spot b 0 0), (spot b 1 1), (spot b 2 2) ]
-diag2 b = concat [ (spot b 0 2), (spot b 1 1), (spot b 2 0) ]
+row b r = concat [(spot b r 0) (spot b r 1) (spot b r 2)]
+col b c = concat [(spot b 0 c) (spot b 1 c) (spot b 2 c)]
+diag1 b = concat [(spot b 0 0) (spot b 1 1) (spot b 2 2)]
+diag2 b = concat [(spot b 0 2) (spot b 1 1) (spot b 2 0)]
 
 
-showRow b r = [ (spot b r 0), '|', (spot b r 1), '|', (spot b r 2) ]
+showRow b r = [(spot b r 0) '|' (spot b r 1) '|' (spot b r 2)]
 showRowDiv b r = (append (showRow b r) div)
 showBoard2 b = concat (append (showRowDiv b 0) (append (showRowDiv b 1) (append (showRow b 2) ending) ) )
 showBoard b = do
-  browser [ "showBoard('", (concat b), "')" ]
+  browser ["showBoard('" (concat b) "')"]
   print (showBoard2 b)
 
 showStartBoard = showBoard startBoard
@@ -89,7 +89,7 @@ checkMove p b move = if (isLegalMove b move)
 #gameOver : return a string if the game is over with the results or return empty if we should continue
 gameOver b winner = if (eq winner empty)
   if (tie b) "WE HAVE A TIE!!!" empty
-  concat [ "WINNER: Player ", winner, "!!!" ]
+  concat [ "WINNER: Player " winner "!!!" ]
 
 convertMove p b move = eq move 'c'
   checkMove p b (minmax p b)
@@ -98,7 +98,7 @@ convertMove p b move = eq move 'c'
 #winner : if the game is not over, prompt current player for a move. otherwise print result of game
 winner w p b = if (eq empty w)
   do
-    move <- prompt (concat ["Your move player ", p, " [0-8] or c or q>" ])
+    move <- prompt (concat ["Your move player " p " [0-8] or c or q>" ])
     convertMove p b move
   print w
 
@@ -124,7 +124,7 @@ minmax p b = do
   if (eq legal nil) nil
     at digits (head legal)
 
-all_moves = [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ]
+all_moves = [0 1 2 3 4 5 6 7 8]
 base_legalMoves b all = if (eq all nil)
   nil
   if (eq (at b (head all)) empty)
@@ -138,7 +138,7 @@ legalMoves b = base_legalMoves b all_moves
 # GUI Interactions
 ##################
 
-promptPlayer p = print (concat ["Your move player ", p, " [0-8] or c or q>" ])
+promptPlayer p = print (concat ["Your move player " p " [0-8] or c or q>" ])
 
 newGame e = do
   setValue 'board' startBoard

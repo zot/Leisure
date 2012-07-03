@@ -1,11 +1,12 @@
 (function() {
-  var Blocky, CircleThing, GroundThing, Leisure, PolyThing, Prim, block, doc, draw, fps, getPoints, ground, initBlocky, jumpBlockBy, lastStep, moveBlockBy, remainder, requestAnimationFrame, resized, root, running, space, startStepper, step, stepper, svgTransform, touchingGround, update, v, wright,
+  var Blocky, CircleThing, GroundThing, Leisure, Parse, PolyThing, Prim, block, doc, draw, fps, getPoints, ground, initBlocky, jumpBlockBy, lastStep, moveBlockBy, remainder, requestAnimationFrame, resized, root, running, space, startStepper, step, stepper, svgTransform, touchingGround, update, v, wright,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   Blocky = root = {};
 
   if (typeof window !== "undefined" && window !== null) {
     Leisure = window.Leisure;
+    Parse = window.Parse;
     Prim = window.Prim;
     window.Blocky = root;
     v = cp.v;
@@ -13,6 +14,7 @@
       return window.setTimeout(callback, 1000 / 60);
     });
   } else {
+    Parse = require('./parse');
     Leisure = require('./leisure');
     Prim = require('./prim');
   }
@@ -302,7 +304,7 @@
     return pt.matrixTransform(svg.getCTM());
   };
 
-  Leisure.define('startPhysics', function() {
+  Parse.define('startPhysics', function() {
     return Prim.makeMonad(function(env, cont) {
       return startStepper(function() {
         return cont(false);
@@ -310,7 +312,7 @@
     });
   });
 
-  Leisure.define('stepPhysics', function() {
+  Parse.define('stepPhysics', function() {
     return Prim.makeMonad(function(env, cont) {
       return stepper(function() {
         return cont(false);

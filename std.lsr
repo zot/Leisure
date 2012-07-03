@@ -1,279 +1,30 @@
-# primitives
-#
-# eq a b -> true if they are equal or false otherwise
-#
-# getType value -> an option containing the type
-# 
-# is value type -> true if the value has type type, false otherwise
-#
-# eval ast -> evaluates ast and returns the result
-#
-# parse string -> an Either with ast or error msg (give it two functions)
-#
-# pretty value -> pretty print a value
-#
-# funcSource func -> option with function's src or none if no source (e.g. primitive or lambda)
-#
-#    MONADS
-#
-# bind m binding -> transform a monad with a function and continue with result of function
-#
-# print string -> print a string and continue with false
-#
-# prompt string -> ask user for input and continue with value
-#
-# return value -> continus with value
-#
-# js string -> run JS code and continue with value
-#
-# createS -> create a new state variable and continue with it
-#
-# getS var -> get the value from the state variable var and continue with it
-#
-# setS var val -> set the state variable var to val and continue with false
-#
-#    STRING functions
-#
-# concat list -> string
-#
-#    AST-constructors
-#
-# lit value -> a lit AST node, containing value
-#
-# ref var-name -> a ref AST node, containing var-name
-#
-# lambda var-name body-ast -> a lambda AST node, with var-name and the body AST
-#
-# apply func-ast body-ast -> an apply AST node, with func and body ASTs
-#
-# prim arg rest-ast -> a prim AST node, rest-ast should either be a ref or a prim
-# 
+#vararg macros
+#@auto
+defGroup 'concat[' ']'
+#@auto
+defGroup 'or[' ']'
+#@auto
+defGroup 'and[' ']'
 
-id x = x
+concat[ list =M= ['concat' (cons '[' (tail list))]
 
-# make a new function that takes two args in opposite order than the original function
-# eq. flip cons nil 1 gives cons: [1]
-flip f = \a b . f b a
+or[ list =M= do
+  args = (dropLast 1 (tail list))
+  eq args nil
+    ['true']
+    eq (tail args) nil
+      args
+      foldr1 (\v el . ['or' v el]) args
 
-# booleans
-true = \a b . a
-false = \a b . b
-and a b = a b false
-or a = a true
-not a = a false true
-neq a b = not (eq a b)
-
-# choices
-left v = \l r . l v
-right v = \l r . r v
-some x = \yes no . yes x
-some2 a b = \yes no . yes a b
-none = \yes no . no
-
-# The Y combinator, for reference
-#
-# Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
-# rec = \f . f (Y f)
-
-# lists
-cons a b =
-  \f . f
-    a
-    b
-
-nil = \a b . b
-null? = eq nil
-append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
-compose f g = \x . f ( g x)
-
-# numerics
-
-iszero = eq 0
-positive = < 0
-length l = (eq l nil) 0 (++ (length (tail l) ) )
-
--- = (flip -) 1
-++ = + 1
-even? x = iszero (% x 2)
-odd? x = eq 1 (% x 2)
-max a b = (gt a b) a b
-min a b = (lt a b) a b
-
-# some basic list functions
-
-head l = l \h t . h
-tail l = l \h t . t
-reverse l = subreverse l nil
-subreverse l result = l (\h t D . subreverse t (cons h result)) result
-addstr a b = concat [a, b]
-if = id
-at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
-take n list = positive n
-  list
-    \h t D . cons h (take (-- n) t)
-    nil
+# for debugging macros
+lexAsCons l = eq l nil
   nil
-takeWhile predicate list = list
-  \h t D . predicate h
-    cons h (takeWhile predicate t)
-    nil
-  nil
-drop x list = positive x
-  list
-    \h t D . drop (-- x) t
-    nil
-  list
-dropWhile predicate list = list
-  \h t D . predicate h
-    dropWhile predicate t
-    list
-  nil
-series func n = cons n (series func (func n))
-from n = series ++ n
-fromBy n inc = series (+ inc) n
-fromTo n m = takeWhile (> m) (from n)
-fromToBy n m inc = takeWhile (> m) (fromBy n inc)
+  is l lexCons
+    cons (lexAsCons (head l)) (lexAsCons (tail l))
+    is l token
+      tokenName l
+      l
 
-# return true if any elements of l satisfy f, which takes exactly one arg
-# eg. any (eq 0) [1, 2, 0] gives true: true
-any f l = l
-  \h t D . or
-    f h
-    any f t
-  false
-
-# return true if ALL elements of l satisfy f, which takes exactly one arg
-# eg. all (eq 0) [ 0, 0, 0] gives true: true
-# caveat!  return true for nil lists
-all f l = l
-  \h t D . and
-    f h
-    all f t
-  true
-
-index_combine x y = (or (eq x nil) (eq y nil)) (nil) (+ x y)
-# return nil if not found, or 0 based index of the first match
-indexof l x = if (eq l nil) (nil) (if (eq x (head l)) (0) (index_combine 1 (indexof (tail l) x ) ) )
-
-# position does the same thing as indexof, but takes the args in opposite order
-position l x = indexof x l
-
-# find returns x if x is present inside l, otherwise returns nil.
-find x l = find-if (eq x) l
-
-find-if f l = l (\h t D . (f h) h (find-if f t)) nil
-
-find-if-opt f l = l (\h t D . (f h) (some h) (find-if-opt f t)) none
-
-# count returns the number of times x appears in l
-count x l = count-if (eq x) l
-
-# count-if returns the number of times x satifies f in l, f must take a single argument
-# eg. count-if odd? [ 3, 1 ] gives number: 2
-count-if f l = if (eq l nil) 0
-  + (f (head l) 1 0) (count-if f (tail l))
-count-if-not f l = count-if (\x. not (f x)) l
-
-# remove any x's found in list
-remove x l = remove-if (eq x) l
-
-# remove any elements where f evals to true, f must take exactly one argument
-remove-if f l  = if (eq l nil) nil
-  if (f (head l)) (remove-if f (tail l))
-    cons (head l) (remove-if f (tail l))
-remove-if-not f l = remove-if (\x. not (f x)) l
-
-# make a new list by applying func (which takes exactly 1 arg) to each element of list
-# eg. map (+ 1) [ 4, 27, 54 ] gives cons: [5, 28, 55]
-map func list = list (\h t D . cons (func h) (map func t)) nil
-
-# call func on the elements of list, 'joining' each with the previous result of func,
-# however func chooses to do so
-# if the list is only one element long, just return the first element
-# eg. reduce + [ 3, 5] gives number: 8
-reduce func list = if (eq list nil) nil
-  if (eq 1 (length list)) (head list)
-    func (head list) (reduce func (tail list))
-
-# foldr, foldl
-# call func on list items and previous result of fold
-# foldl uses the head of the list for the previous results
-# foldr uses the tail of the list for the previous results
-# foldr can work on infinite lists, but foldl cannot
-
-foldr func value list = list (\h t D . func h (foldr func value t)) value
-foldr1 func list = list
-  \h t D . null? t
-     h
-     func h (foldr1 func t)
-  nil
-
-foldl func value list = list (\h t D . foldl func (func value h) t) value
-foldl1 func list = list (\h t D. foldl func h t) nil
-
-# simple list constructor syntax
-[ =(]= \item c . c \rest . cons item rest
-, =.= \f item c . c \rest . f (cons item rest)
-] =)= \f . f nil
-| =.= \f rest g . f rest
-
-# difference lists
-dl list = append list
-dlAppend da db list = da (db list)
-dlList dl = dl nil
-
-# do
-identMacro apl =M= apl \f a . (is f ref) a (apply (identMacro f) a)
-
-do apl =M= apl \f a . m_subdo a f
-
-m_subdo a f = or (is f ref) (is f lit)
-  a
-  f \f2 a2 . m_subdo
-    m_extractVar a2 '<-'
-      \v ast . apply (apply (ref 'bind') ast) (lambda v a)
-      m_extractVar a2 '='
-        \v ast . apply (lambda v a) ast
-        apply (apply (ref 'bind') a2) (lambda '_' a)
-    f2
-
-let apl =M= apl \f a . m_sublet f a
-
-m_sublet f a = or (is f ref) (is f lit)
-  a
-  f \f2 a2 . m_extractVar a2 '='
-    \v ast . m_sublet f2 (apply (lambda v a) ast)
-    apply a a2
-
-# m_extractVar ast '<-'
-#
-# given (var <- .....), it returns (some2 var ast)
-# otherwise, it returns none
-#
-m_extractVar ast token = is ast apply
-  ast \f a .m_varFromTuple f token
-    \v . some2 v a
-    m_extractVar f token
-      \var ast . some2 var (apply ast a)
-      none
-  none
-
-# m_extractVar ast '<-'
-#
-# given (var <-), it returns (some var), otherwise it returns none
-m_varFromTuple ast token = is ast apply
-  ast \f arg . or (is f ref) (is f lit)
-    or (is arg ref) (is arg lit)
-      arg \arrow . eq arrow token
-        f \v . some v
-        none
-      none
-    none
-  none
-
-
-######################
-# output tag functions
-######################
-
-html x = \f . f x
+#defInfixToken tokenName precedence = do
+#  defToken tokenName
+#  setValue (concat[ 'infixToken.' 

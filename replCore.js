@@ -1,23 +1,31 @@
 (function() {
-  var Leisure, P, Prim, U, compileFunc, errString, escape, findDefs, formatContexts, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, setCompiler, setHandler, setHelp, setNext, setResetFunc, showAst, vars, write,
+  var Leisure, Parse, Prim, U, compileFunc, errString, escape, findDefs, formatContexts, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, includeStd, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, runAutosThen, setCompiler, setHandler, setHelp, setIncludeStd, setNext, setResetFunc, showAst, throwError, vars, write,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.ReplCore = root = {};
+    Parse = window.Parse;
     Leisure = window.Leisure;
-    P = window.Pretty;
     Prim = window.Prim;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
 
   if (!(Leisure != null) && (typeof require !== "undefined" && require !== null)) {
+    Parse = require('./parse');
     Leisure = require('./leisure');
-    P = require('./pretty');
     Prim = require('./prim');
     U = require('util');
   }
+
+  includeStd = true;
+
+  setIncludeStd = function setIncludeStd(flag) {
+    return includeStd = flag;
+  };
+
+  throwError = Parse.throwError;
 
   compileFunc = function compileFunc() {};
 
@@ -37,7 +45,7 @@
     return resetFunc = func;
   };
 
-  getType = Leisure.getType;
+  getType = Parse.getType;
 
   formatContexts = function formatContexts(stack) {
     var end, funcName, offset, src, start, _i, _len, _ref, _ref2, _ref3, _results;
@@ -65,7 +73,7 @@
       env.write(errString(ast.err));
       return nextFunc();
     } else {
-      if (a) env.write("FORMATTED: " + (P.print(ast)) + "\n");
+      if (a) env.write("FORMATTED: " + (Parse.print(ast)) + "\n");
       if (c) env.write("GEN: " + ast.src + "\n");
       if (r) {
         if (!(result != null)) {
@@ -73,7 +81,7 @@
           return nextFunc();
         } else {
           global.$0 = result;
-          env.write("" + (getType(result)) + ": " + (P.print(result)) + "\n");
+          env.write("" + (getType(result)) + ": " + (Parse.print(result)) + "\n");
           return processResult(result);
         }
       }
@@ -199,20 +207,25 @@
     return str.replace(/\n/g, '\\n');
   };
 
-  prelude = "setType = Leisure.setType;\nsetDataType = Leisure.setDataType;\ndefine = Leisure.define;\ndefineMacro = Leisure.defineMacro;\ndefineToken = Leisure.defineToken;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\nNil = Leisure.Nil;\ncons = Leisure.cons;";
+  prelude = "Nil = Parse.Nil;\ncons = Parse.cons;\nsetType = Parse.setType;\nsetDataType = Parse.setDataType;\ndefine = Parse.define;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\ndefine = Parse.define;";
 
   localPrelude = prelude.replace(/\n/g, "\nvar ");
 
   generateCode = function generateCode(file, contents, loud, handle, nomacros, check, debug) {
     var auto, errs, globals, _ref;
     _ref = findDefs(contents, nomacros, loud), globals = _ref[0], errs = _ref[1], auto = _ref[2];
-    if (auto) {
-      console.log("auto: '" + auto + "'");
-      return processResult(Leisure.evalNext(auto, 'Leisure.', debug)[1], {}, function() {
-        return generate(file, contents, loud, handle, nomacros, check, globals, errs, debug);
-      });
-    } else {
+    return runAutosThen(auto, debug, function() {
       return generate(file, contents, loud, handle, nomacros, check, globals, errs, debug);
+    });
+  };
+
+  runAutosThen = function runAutosThen(autos, debug, cont) {
+    if (autos === Nil) {
+      return cont();
+    } else {
+      return processResult(Leisure.evalNext(autos.head(), 'Parse.', debug)[1], {}, function() {
+        return runAutosThen(autos.tail(), debug, cont);
+      });
     }
   };
 
@@ -220,10 +233,10 @@
     var a, ast, c, code, defs, err, i, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3;
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
-    out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Leisure = require('./leisure');\n  Leisure.req('./std');\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\n" + localPrelude;
+    out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.lsr/, '') + ' = ' : '') + "root = {};\n  global = window;\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Parse = require('./parse');\n  Leisure = require('./leisure');" + (includeStd ? "\n  Leisure.req('./prelude');\n  Leisure.req('./std');" : '') + "\n  require('./prim');\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\nroot.defs = {};\nroot.tokenDefs = [];\nroot.macros = {};\n\n" + localPrelude;
     names = globals;
-    prev = Leisure.Nil;
-    if (err) throw new Error(err);
+    prev = Parse.Nil;
+    if (err) throwError(err);
     defs = [];
     rest = contents;
     varOut = '';
@@ -231,19 +244,19 @@
     for (i = 0, _len = _ref.length; i < _len; i++) {
       v = _ref[i];
       if (i > 0) varOut += ",";
-      varOut += " " + (Leisure.nameSub(v));
+      varOut += " " + (Parse.nameSub(v));
     }
     if (varOut) out += "\nvar" + varOut + ";\n";
-    globals = Leisure.append(globals, getGlobals());
+    globals = globals.append(getGlobals());
     while (rest && rest.trim()) {
-      if (loud > 1 && prev !== names && names !== Leisure.Nil) {
-        console.log("Compiling function: " + names.head);
+      if (loud > 1 && prev !== names && names !== Parse.Nil) {
+        console.log("Compiling function: " + (names.head()));
       }
       oldRest = rest;
-      _ref2 = Leisure.compileNext(rest, globals, null, check, nomacros, 'Leisure.', debug), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+      _ref2 = Leisure.compileNext(rest, globals, null, check, nomacros, 'Parse.', debug), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
       if ((ast != null ? ast.leisureName : void 0) != null) {
         prev = ast.leisureName;
-        names = names.tail;
+        names = names.tail();
       }
       code = rest ? oldRest.substring(0, oldRest.length - rest.length) : '';
       err = err != null ? err : ast != null ? ast.err : void 0;
@@ -254,15 +267,15 @@
         globals = ast.globals;
         m = code.match(Leisure.linePat);
         nm = ast.leisureName;
-        ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(P.print(ast))) + "\n" + (nm != null ? "root.defs." + (Leisure.nameSub(nm)) + " = " + (Leisure.nameSub(nm)) + " = " : "") + ast.src;
-        src = ast.leisureName ? (defs.push(Leisure.nameSub(ast.leisureName)), ast.src) : "processResult(" + ast.src + ")";
+        ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(Parse.print(ast))) + "\n" + (nm != null ? "root.defs." + (Parse.nameSub(nm)) + " = " + (Parse.nameSub(nm)) + " = " : "") + ast.src;
+        src = ast.leisureName ? (defs.push(Parse.nameSub(ast.leisureName)), ast.src) : "processResult(" + ast.src + ")";
         out += "" + src + ";\n";
         _ref3 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref3[0], c = _ref3[1], r = _ref3[2];
         if (handle) handlerFunc(ast, null, a, c, r, code);
       }
     }
-    out += "\nif (typeof window !== 'undefined' && window !== null) {\n  Leisure.processTokenDefs(root.tokenDefs);\n}\nreturn root;\n}).call(this)";
-    if (errs !== '') throw new Error("Errors compiling " + file + ": " + errs);
+    out += "\n//if (typeof window !== 'undefined' && window !== null) {\n//  Leisure.processTokenDefs(root.tokenDefs);\n//}\nreturn root;\n}).call(this)";
+    if (errs !== '') throwError("Errors compiling " + file + ": " + errs);
     return out;
   };
 
@@ -272,7 +285,7 @@
 
   showAst = function showAst(ast) {
     if (ast != null) {
-      return "(" + (P.print(ast)) + ")";
+      return "(" + (Parse.print(ast)) + ")";
     } else {
       return "";
     }
@@ -280,9 +293,9 @@
 
   findDefs = function findDefs(contents, nomacros, loud) {
     var ast, auto, err, errs, globals, line, oldRest, prevName, rest, _ref;
-    auto = null;
+    auto = Parse.dlempty;
     errs = '';
-    globals = Leisure.Nil;
+    globals = Nil;
     rest = contents;
     while (rest) {
       oldRest = rest;
@@ -297,7 +310,9 @@
         }
       } else {
         line = oldRest.substring(0, (rest != null ? oldRest.length - rest.length : oldRest.length));
-        if (line.match(/(^|\n)#@auto/)) auto = line;
+        if (line.match(/(^|\n)#@auto/)) {
+          auto = Parse.dlappend(auto, Parse.dlnew(line));
+        }
       }
       if (ast != null ? ast.leisureName : void 0) {
         prevName = ast.leisureName;
@@ -305,12 +320,12 @@
         if (globals != null ? globals.find(function(v) {
           return v === ast.leisureName;
         }) : void 0) {
-          throw new Error("Attempt to redefine function: " + ast.leisureName + (showAst(ast)));
+          throwError("Attempt to redefine function: " + ast.leisureName + (showAst(ast)));
         }
-        globals = Leisure.cons(ast.leisureName, globals);
+        globals = Parse.cons(ast.leisureName, globals);
       }
     }
-    return [globals.reverse(), errs, auto];
+    return [globals.reverse(), errs, auto(Nil)];
   };
 
   root.processLine = processLine;
@@ -344,5 +359,7 @@
   root.prelude = prelude;
 
   root.errString = errString;
+
+  root.setIncludeStd = setIncludeStd;
 
 }).call(this);
