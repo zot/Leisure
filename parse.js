@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Cons, DL, LexCons, LexDL, Nil, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, cleanupMacro, codeChars, collapseTrivial, cons, defGroup, defToken, define, defineMacro, dlappend, dlempty, dlnew, eatAllWhitespace, elements, escapeRegexpChars, evalFunc, foldLeft, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, groupCloses, groupOpens, ifParsed, inspect, isLambdaToken, jsType, lambda, left, leisureAddFunc, lexCons, lexDlappend, lexDlempty, lexDlnew, lfunc, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, nextTok, numberPat, parse, parseFull, parseGroup, parseGroupTerm, parseOptional, parsePhase1, pos, positionGroup, primCons, primFoldLeft, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, resetScanner, right, root, setDataType, setType, snip, subprint, substituteLambdaBody, substituteLambdaMacros, substituteMacros, tag, throwError, tokPos, tokenPat, tokenToAst, tokenTypes, tokens,
+  var CNil, Cons, DL, LexCons, LexDL, Nil, Scanner, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, cleanupMacro, codeChars, collapseTrivial, cons, defGroup, defToken, defaultScanner, define, defineMacro, dlappend, dlempty, dlnew, elements, escapeRegexpChars, evalFunc, foldLeft, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, ifParsed, inspect, isLambdaToken, jsType, lambda, left, leisureAddFunc, lexCons, lexDlappend, lexDlempty, lexDlnew, lfunc, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, numberPat, parse, parseFull, parseOptional, pos, positionGroup, primCons, primFoldLeft, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, right, root, setDataType, setType, snip, subprint, substituteLambdaBody, substituteLambdaMacros, substituteMacros, tag, throwError, tokPos, tokenToAst,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -583,103 +583,163 @@ misrepresented as being the original software.
     };
   };
 
+  Scanner = (function() {
+
+    function Scanner() {
+      this.tokenPat = new RegExp("\\n *|" + baseTokenPat.source);
+      this.tokens = {};
+      this.tokenTypes = [];
+      this.groupOpens = {
+        '(': ')'
+      };
+      this.groupCloses = {
+        ')': 1
+      };
+    }
+
+    Scanner.prototype.defToken = function defToken(name) {
+      var i, types;
+      if (!(this.tokens[name] != null)) {
+        this.tokens[name] = 1;
+        this.tokenTypes.push(name);
+        this.tokenTypes.sort(function(a, b) {
+          return b.length - a.length;
+        });
+        types = (function() {
+          var _i, _len, _ref, _results;
+          _ref = this.tokenTypes;
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            i = _ref[_i];
+            _results.push(escapeRegexpChars(i));
+          }
+          return _results;
+        }).call(this);
+        return this.tokenPat = new RegExp("\\n *|" + (types.join('|')) + "|" + baseTokenPat.source);
+      }
+    };
+
+    Scanner.prototype.defGroup = function defGroup(open, close) {
+      if (!(this.tokens[open] != null)) {
+        this.defToken(open);
+        this.defToken(close);
+        this.groupOpens[open] = close;
+        return this.groupCloses[close] = 1;
+      }
+    };
+
+    Scanner.prototype.nextTok = function nextTok(str) {
+      var m, rest, tok;
+      m = str.match(this.tokenPat);
+      if (!m) {
+        return [str, ''];
+      } else if (m.index > 0) {
+        return [str.substring(0, m.index), str.substring(m.index)];
+      } else {
+        tok = m[0];
+        if (tok[0][0] === "'") {
+          tok = '"' + tok.substring(1, tok.length - 1).replace(/[\\]?./g, function(s) {
+            if (s[0] === '"') {
+              return '\\"';
+            } else {
+              return s;
+            }
+          }) + '"';
+        }
+        rest = str.substring(m.index + m[0].length);
+        if (tok[0] === '#' || tok[0] === ' ' || (tok[0] === '\n' && rest[0] === '\n')) {
+          return this.nextTok(rest);
+        } else {
+          return [tok, rest];
+        }
+      }
+    };
+
+    Scanner.prototype.scan = function scan(str) {
+      return ifParsed(this.parseGroup(str, '\n', str.length), function(group, rest) {
+        var g;
+        g = group(Nil, str.length - rest.length);
+        return [g, null, rest];
+      });
+    };
+
+    Scanner.prototype.parseGroup = function parseGroup(str, indent, totalLen) {
+      var rest, tok, _ref,
+        _this = this;
+      if (!str) {
+        return [lexDlempty, null, str];
+      } else {
+        _ref = this.nextTok(str), tok = _ref[0], rest = _ref[1];
+        if (!tok || (tok[0] === '\n' && tok.length <= indent.length) || this.groupCloses[tok]) {
+          return [lexDlempty, null, str];
+        } else {
+          return ifParsed(this.parseGroupTerm(tok, rest, indent, totalLen), function(term, rest2) {
+            return ifParsed(_this.parseGroup(rest2, indent, totalLen), function(group, rest3) {
+              return [lexDlappend(term, group), null, rest3];
+            });
+          });
+        }
+      }
+    };
+
+    Scanner.prototype.parseGroupTerm = function parseGroupTerm(tok, rest, indent, totalLen) {
+      var close, token, tp,
+        _this = this;
+      token = makeToken(tok, rest, totalLen);
+      if (tok[0] === '\n') {
+        return ifParsed(this.parseGroup(rest, tok, totalLen), function(group, rest2) {
+          return [lexDlnew(collapseTrivial(group(Nil, totalLen - rest2.length)), token.start()), null, rest2];
+        });
+      } else {
+        if (close = this.groupOpens[tok]) {
+          return ifParsed(this.parseGroup(rest, indent, totalLen), function(group, rest2) {
+            var closeToken, innerGroup, next, rest3, _ref;
+            _ref = _this.nextTok(rest2), next = _ref[0], rest3 = _ref[1];
+            closeToken = makeToken(next, rest3, totalLen);
+            if (close !== next) {
+              return [null, "Expecting group close: '" + close + "', but got " + (snip(rest2)) + "\n" + (new Error().stack), rest3];
+            } else if (tok === '(') {
+              return [lexDlnew(positionGroup(group, token, closeToken), token.start()), null, rest3];
+            } else {
+              innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end());
+              return [lexDlnew(innerGroup, token.start()), null, rest3];
+            }
+          });
+        } else {
+          if (tok[0] === "`") {
+            tp = token.start() + 1;
+            tok = tok.substring(1, tok.length - 1);
+            token = primToken(function() {
+              return tok;
+            })(function() {
+              return tp;
+            });
+          }
+          return [lexDlnew(token, token.start()), null, rest];
+        }
+      }
+    };
+
+    return Scanner;
+
+  })();
+
   escapeRegexpChars = function escapeRegexpChars(str) {
     return str.replace(/([\][().\\*+?{}|])/g, '\\$1');
   };
 
   baseTokenPat = /[().\\\u03BB]| +|[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|#[^\n]*(\n|$)/;
 
-  tokenPat = null;
-
-  tokens = null;
-
-  tokenTypes = null;
-
-  groupOpens = null;
-
-  groupCloses = null;
-
   numberPat = /^[0-9]+\.[0-9]+$/;
 
-  resetScanner = function resetScanner() {
-    tokenPat = new RegExp("\\n *|" + baseTokenPat.source);
-    tokens = {};
-    tokenTypes = [];
-    groupOpens = {
-      '(': ')'
-    };
-    return groupCloses = {
-      ')': 1
-    };
-  };
-
-  resetScanner();
+  defaultScanner = new Scanner();
 
   defToken = function defToken(name) {
-    var i, types;
-    if (!(tokens[name] != null)) {
-      tokens[name] = 1;
-      tokenTypes.push(name);
-      tokenTypes.sort(function(a, b) {
-        return b.length - a.length;
-      });
-      types = (function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = tokenTypes.length; _i < _len; _i++) {
-          i = tokenTypes[_i];
-          _results.push(escapeRegexpChars(i));
-        }
-        return _results;
-      })();
-      return tokenPat = new RegExp("\\n *|" + (types.join('|')) + "|" + baseTokenPat.source);
-    }
+    return defaultScanner.defToken(name);
   };
 
   defGroup = function defGroup(open, close) {
-    if (!(tokens[open] != null)) {
-      defToken(open);
-      defToken(close);
-      groupOpens[open] = close;
-      return groupCloses[close] = 1;
-    }
-  };
-
-  eatAllWhitespace = function eatAllWhitespace(str) {
-    var m;
-    m = str.match(/^(\s+|;)/);
-    if (m) {
-      return str.substring(m[0].length);
-    } else {
-      return str;
-    }
-  };
-
-  nextTok = function nextTok(str) {
-    var m, rest, tok;
-    m = str.match(tokenPat);
-    if (!m) {
-      return [str, ''];
-    } else if (m.index > 0) {
-      return [str.substring(0, m.index), str.substring(m.index)];
-    } else {
-      tok = m[0];
-      if (tok[0][0] === "'") {
-        tok = '"' + tok.substring(1, tok.length - 1).replace(/[\\]?./g, function(s) {
-          if (s[0] === '"') {
-            return '\\"';
-          } else {
-            return s;
-          }
-        }) + '"';
-      }
-      rest = str.substring(m.index + m[0].length);
-      if (tok[0] === '#' || tok[0] === ' ' || (tok[0] === '\n' && rest[0] === '\n')) {
-        return nextTok(rest);
-      } else {
-        return [tok, rest];
-      }
-    }
+    return defaultScanner.defGroup(open, close);
   };
 
   pos = function pos(str, totalLen) {
@@ -774,74 +834,11 @@ misrepresented as being the original software.
     }
   };
 
-  parsePhase1 = function parsePhase1(str) {
-    return ifParsed(parseGroup(str, '\n', str.length), function(group, rest) {
-      var g;
-      g = group(Nil, str.length - rest.length);
-      return [g, null, rest];
-    });
-  };
-
-  parseGroup = function parseGroup(str, indent, totalLen) {
-    var rest, tok, _ref;
-    if (!str) {
-      return [lexDlempty, null, str];
-    } else {
-      _ref = nextTok(str), tok = _ref[0], rest = _ref[1];
-      if (!tok || (tok[0] === '\n' && tok.length <= indent.length) || groupCloses[tok]) {
-        return [lexDlempty, null, str];
-      } else {
-        return ifParsed(parseGroupTerm(tok, rest, indent, totalLen), function(term, rest2) {
-          return ifParsed(parseGroup(rest2, indent, totalLen), function(group, rest3) {
-            return [lexDlappend(term, group), null, rest3];
-          });
-        });
-      }
-    }
-  };
-
   collapseTrivial = function collapseTrivial(group) {
     if (group instanceof Cons && group.tail() === Nil) {
       return collapseTrivial(group.head());
     } else {
       return group;
-    }
-  };
-
-  parseGroupTerm = function parseGroupTerm(tok, rest, indent, totalLen) {
-    var close, token, tp;
-    token = makeToken(tok, rest, totalLen);
-    if (tok[0] === '\n') {
-      return ifParsed(parseGroup(rest, tok, totalLen), function(group, rest2) {
-        return [lexDlnew(collapseTrivial(group(Nil, totalLen - rest2.length)), token.start()), null, rest2];
-      });
-    } else {
-      if (close = groupOpens[tok]) {
-        return ifParsed(parseGroup(rest, indent, totalLen), function(group, rest2) {
-          var closeToken, innerGroup, next, rest3, _ref;
-          _ref = nextTok(rest2), next = _ref[0], rest3 = _ref[1];
-          closeToken = makeToken(next, rest3, totalLen);
-          if (close !== next) {
-            return [null, "Expecting group close: '" + close + "', but got " + (snip(rest2)) + "\n" + (new Error().stack), rest3];
-          } else if (tok === '(') {
-            return [lexDlnew(positionGroup(group, token, closeToken), token.start()), null, rest3];
-          } else {
-            innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end());
-            return [lexDlnew(innerGroup, token.start()), null, rest3];
-          }
-        });
-      } else {
-        if (tok[0] === "`") {
-          tp = token.start() + 1;
-          tok = tok.substring(1, tok.length - 1);
-          token = primToken(function() {
-            return tok;
-          })(function() {
-            return tp;
-          });
-        }
-        return [lexDlnew(token, token.start()), null, rest];
-      }
     }
   };
 
@@ -899,10 +896,7 @@ misrepresented as being the original software.
       })(function() {
         return 0;
       });
-    } else if ((list instanceof Token) || (list === Nil)) {
-      return list;
-    } else if (!(list instanceof Cons)) {
-      console.log("WEIRD ITEM AFTER MACRO: " + list);
+    } else if (!(list instanceof Cons) || (list === Nil)) {
       return list;
     } else if (list instanceof LexCons) {
       return list.map(cleanupMacro);
@@ -1131,7 +1125,7 @@ misrepresented as being the original software.
 
   parseOptional = function parseOptional(string, macros) {
     var err, res, rest, tok, _ref, _ref2;
-    _ref = parsePhase1(string), res = _ref[0], err = _ref[1], rest = _ref[2];
+    _ref = defaultScanner.scan(string), res = _ref[0], err = _ref[1], rest = _ref[2];
     if (err) {
       return [null, err, rest];
     } else {
@@ -1139,7 +1133,6 @@ misrepresented as being the original software.
       if (res) {
         return [res, null, rest];
       } else {
-        console.log("ERR TOK: " + tok + ", MSG: " + err);
         return [null, err, (tok ? string.substring(tok.start()) : rest)];
       }
     }
@@ -1168,13 +1161,18 @@ misrepresented as being the original software.
   define('scan', function() {
     return function(string) {
       var err, res, rest, _ref;
-      _ref = parsePhase1(string()), res = _ref[0], err = _ref[1], rest = _ref[2];
-      console.log("PHASE 1: " + res);
+      _ref = scan(string()), res = _ref[0], err = _ref[1], rest = _ref[2];
       if (err) {
         return left("Error at: " + (JSON.stringify(snip(rest))) + "..., " + err);
       } else {
-        return right(substituteMacros(res));
+        return right(res);
       }
+    };
+  });
+
+  define('macro', function() {
+    return function(list) {
+      return substituteMacros(list());
     };
   });
 
@@ -1381,8 +1379,6 @@ misrepresented as being the original software.
 
   root.parseFull = parseFull;
 
-  root.parsePhase1 = parsePhase1;
-
   root.listToAst = listToAst;
 
   root.getType = getType;
@@ -1418,5 +1414,7 @@ misrepresented as being the original software.
   root.throwError = throwError;
 
   root.foldLeft = foldLeft;
+
+  root.Scanner = Scanner;
 
 }).call(this);

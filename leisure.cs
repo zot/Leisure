@@ -44,8 +44,6 @@ else
   lexDlnew,
   lexDlappend,
   define,
-  fullParse,
-  parsePhase1,
   listToAst,
   evalFunc,
   Nil,
@@ -59,7 +57,12 @@ else
   getApplyArg,
   ifParsed,
   snip,
+  Scanner,
 } = Parse
+
+declScanner = new Scanner()
+
+declScanner.defToken '::'
 
 escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
 
@@ -332,6 +335,7 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
     if nm
       if check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]} #{snip rest1}", null]
       else
+        #console.log "SCANNED NAME: #{declScanner.scan name}"
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
         errPrefix = "Error while compiling #{nm}: "

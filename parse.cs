@@ -219,57 +219,79 @@ lfunc = (f)->(v, el)-> f()(-> v)(-> el)
 ###### Scanning
 ######
 
+class Scanner
+  constructor: ->
+    @tokenPat = new RegExp("\\n *|#{baseTokenPat.source}")
+    @tokens = {}
+    # () is a special group because it doesn't capture ( and ) tokens
+    @tokenTypes = []
+    @groupOpens = {'(': ')'}
+    @groupCloses = {')': 1}
+  defToken: (name)->
+    if !@tokens[name]?
+      @tokens[name] = 1
+      @tokenTypes.push name
+      # sort them by length, longest first
+      @tokenTypes.sort (a, b)-> b.length - a.length
+      types = (escapeRegexpChars i for i in @tokenTypes)
+      @tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
+  defGroup: (open, close)->
+    if !@tokens[open]?
+      @defToken open
+      @defToken close
+      @groupOpens[open] = close
+      @groupCloses[close] = 1
+  # returns [tok, rest]
+  nextTok: (str)->
+    m = str.match(@tokenPat)
+    if !m then [str, '']
+    else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
+    else
+      tok = m[0]
+      if tok[0][0] == "'" then tok = '"' + tok.substring(1, tok.length - 1).replace(/[\\]?./g, (s)-> if s[0] == '"' then '\\"' else s) + '"'
+      rest = str.substring(m.index + m[0].length)
+      if tok[0] == '#' or tok[0] == ' ' or (tok[0] == '\n' and rest[0] == '\n') then @nextTok rest
+      else [tok, rest]
+  scan: (str)-> ifParsed (@parseGroup str, '\n', str.length), (group, rest)->
+    g = group(Nil, str.length - rest.length)
+    [g, null, rest]
+  parseGroup: (str, indent, totalLen)->
+    # returns [lexdlGroup, err, rest]
+    # note that lexdlGroup is not a list, it's a difference list
+    if !str then [lexDlempty, null, str]
+    else
+      [tok, rest] = @nextTok str
+      if !tok or (tok[0] == '\n' and tok.length <= indent.length) or @groupCloses[tok] then [lexDlempty, null, str]
+      else ifParsed (@parseGroupTerm tok, rest, indent, totalLen), (term, rest2)=>
+        ifParsed (@parseGroup rest2, indent, totalLen), (group, rest3)-> [lexDlappend(term, group), null, rest3]
+  parseGroupTerm: (tok, rest, indent, totalLen)->
+    token = makeToken(tok, rest, totalLen)
+    if tok[0] == '\n' then ifParsed (@parseGroup rest, tok, totalLen), (group, rest2)-> [lexDlnew(collapseTrivial(group(Nil, totalLen - rest2.length)), token.start()), null, rest2]
+    else
+      if close = @groupOpens[tok]
+        ifParsed (@parseGroup rest, indent, totalLen), (group, rest2)=>
+          [next, rest3] = @nextTok rest2
+          closeToken = makeToken(next, rest3, totalLen)
+          if close != next then [null, "Expecting group close: '#{close}', but got #{snip rest2}\n#{new Error().stack}", rest3]
+          else if tok == '(' then [lexDlnew((positionGroup group, token, closeToken), token.start()), null, rest3]
+          else
+            innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end())
+            [lexDlnew(innerGroup, token.start()), null, rest3]
+      else
+        if tok[0] == "`"
+          tp = token.start() + 1
+          tok = tok.substring(1, tok.length - 1)
+          token = primToken(->tok)(->tp)
+        [lexDlnew(token, token.start()), null, rest]
+
 escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
 baseTokenPat = /[().\\\u03BB]| +|[0-9]+\.[0-9]+|`(\\[\\`]|[^`\n])*`|'(\\[\\']|[^'\n])*'|"(\\[\\"]|[^"\n])*"|#[^\n]*(\n|$)/
-tokenPat = null
-tokens = null
-tokenTypes = null
-groupOpens = null
-groupCloses = null
 numberPat = /^[0-9]+\.[0-9]+$/
+defaultScanner = new Scanner()
 
-resetScanner = ->
-  tokenPat = new RegExp("\\n *|#{baseTokenPat.source}")
-  tokens = {}
-  # () is a special group because it doesn't capture ( and ) tokens
-  tokenTypes = []
-  groupOpens = {'(': ')'}
-  groupCloses = {')': 1}
+defToken = (name)-> defaultScanner.defToken name
 
-resetScanner()
-
-defToken = (name)->
-  if !tokens[name]?
-    tokens[name] = 1
-    tokenTypes.push name
-    # sort them by length, longest first
-    tokenTypes.sort (a, b)-> b.length - a.length
-    types = (escapeRegexpChars i for i in tokenTypes)
-    tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
-
-defGroup = (open, close)->
-  if !tokens[open]?
-    defToken open
-    defToken close
-    groupOpens[open] = close
-    groupCloses[close] = 1
-
-eatAllWhitespace = (str)->
-  m = str.match /^(\s+|;)/
-  if m then str.substring(m[0].length)
-  else str
-
-# returns [tok, rest]
-nextTok = (str)->
-  m = str.match(tokenPat)
-  if !m then [str, '']
-  else if m.index > 0 then [str.substring(0, m.index), str.substring(m.index)]
-  else
-    tok = m[0]
-    if tok[0][0] == "'" then tok = '"' + tok.substring(1, tok.length - 1).replace(/[\\]?./g, (s)-> if s[0] == '"' then '\\"' else s) + '"'
-    rest = str.substring(m.index + m[0].length)
-    if tok[0] == '#' or tok[0] == ' ' or (tok[0] == '\n' and rest[0] == '\n') then nextTok rest
-    else [tok, rest]
+defGroup = (open, close)-> defaultScanner.defGroup open, close
 
 pos = (str, totalLen)-> totalLen - str.length
 
@@ -297,49 +319,11 @@ define 'token', (-> primToken), 2, '\tok pos f . f tok pos'
 define 'tokenName', (-> (t)-> t().tok()), 1, '\tok . tok \n p . n'
 define 'tokenStart', (-> (t)-> t().start()), 1, '\tok . tok \n p . p'
 
-######
-###### Parsing phase 1 -- parse into a lexCons-list
-######
-
 ifParsed = (res, block)->
   if res[1] then res
   else block res[0], res[2]
 
-parsePhase1 = (str)-> ifParsed (parseGroup str, '\n', str.length), (group, rest)->
-  g = group(Nil, str.length - rest.length)
-  [g, null, rest]
-
-# returns [lexdlGroup, err, rest]
-# note that lexdlGroup is not a list, it's a difference list
-parseGroup = (str, indent, totalLen)->
-  if !str then [lexDlempty, null, str]
-  else
-    [tok, rest] = nextTok str
-    if !tok or (tok[0] == '\n' and tok.length <= indent.length) or groupCloses[tok] then [lexDlempty, null, str]
-    else ifParsed (parseGroupTerm tok, rest, indent, totalLen), (term, rest2)->
-      ifParsed (parseGroup rest2, indent, totalLen), (group, rest3)-> [lexDlappend(term, group), null, rest3]
-
 collapseTrivial = (group)-> if group instanceof Cons and group.tail() == Nil then collapseTrivial group.head() else group
-
-parseGroupTerm = (tok, rest, indent, totalLen)->
-  token = makeToken(tok, rest, totalLen)
-  if tok[0] == '\n' then ifParsed (parseGroup rest, tok, totalLen), (group, rest2)-> [lexDlnew(collapseTrivial(group(Nil, totalLen - rest2.length)), token.start()), null, rest2]
-  else
-    if close = groupOpens[tok]
-      ifParsed (parseGroup rest, indent, totalLen), (group, rest2)->
-        [next, rest3] = nextTok rest2
-        closeToken = makeToken(next, rest3, totalLen)
-        if close != next then [null, "Expecting group close: '#{close}', but got #{snip rest2}\n#{new Error().stack}", rest3]
-        else if tok == '(' then [lexDlnew((positionGroup group, token, closeToken), token.start()), null, rest3]
-        else
-          innerGroup = lexDlappend(lexDlappend(lexDlnew(token, token.start()), group), lexDlnew(closeToken, closeToken.start()))(Nil, closeToken.end())
-          [lexDlnew(innerGroup, token.start()), null, rest3]
-    else
-      if tok[0] == "`"
-        tp = token.start() + 1
-        tok = tok.substring(1, tok.length - 1)
-        token = primToken(->tok)(->tp)
-      [lexDlnew(token, token.start()), null, rest]
 
 # takes a difference list
 positionGroup = (groupDL, startTok, endTok)->
@@ -461,7 +445,7 @@ listToApply = (f, start, rest, vars)->
 # returns [ast, err, rest] -- err may be null
 # if there is an error, rest is the start of the erroneous input
 parseOptional = (string, macros)->
-  [res, err, rest] = parsePhase1 string
+  [res, err, rest] = defaultScanner.scan string
   if err then [null, err, rest]
   else
     [res, err, tok] = listToAst (if macros then substituteMacros res else res)
@@ -472,9 +456,10 @@ right = (value)-> (a)->(b)-> a()(->value)
 left = (value)-> (a)->(b)-> b()(->value)
 
 define 'scan', -> (string)->
-  [res, err, rest] = parsePhase1 string()
-  if err then left("Error at: #{JSON.stringify snip rest}..., #{err}")
-  else right(substituteMacros res)
+  [res, err, rest] = scan string()
+  if err then left("Error at: #{JSON.stringify snip rest}..., #{err}") else right(res)
+
+define 'macro', -> (list)-> substituteMacros list()
 
 parse = (string)->parseOptional string, false
 parseFull = (string)->parseOptional string, true
@@ -553,7 +538,6 @@ root.defGroup = defGroup
 root.defToken = defToken
 root.parse = parse
 root.parseFull = parseFull
-root.parsePhase1 = parsePhase1
 root.listToAst = listToAst
 root.getType = getType
 root.lit = lit
@@ -572,3 +556,4 @@ root.ifParsed = ifParsed
 root.snip = snip
 root.throwError = throwError
 root.foldLeft = foldLeft
+root.Scanner = Scanner
