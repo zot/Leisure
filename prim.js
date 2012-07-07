@@ -339,7 +339,7 @@
   leisureEvent = function leisureEvent(leisureFuncName, evt, env, channel) {
     var currentEvent, monad;
     currentEvent = evt;
-    monad = Leisure.eval("" + (Leisure.nameSub(leisureFuncName)) + "()")(laz(evt));
+    monad = Leisure.eval("" + (Parse.nameSub(leisureFuncName)) + "()")(laz(evt));
     return runMonad(monad, env != null ? env : defaultEnv, function() {
       return (env != null ? env : defaultEnv).finishedEvent(evt, channel);
     });

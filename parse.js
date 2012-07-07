@@ -657,9 +657,7 @@ misrepresented as being the original software.
 
     Scanner.prototype.scan = function scan(str) {
       return ifParsed(this.parseGroup(str, '\n', str.length), function(group, rest) {
-        var g;
-        g = group(Nil, str.length - rest.length);
-        return [g, null, rest];
+        return [group(Nil, str.length - rest.length), null, rest];
       });
     };
 
@@ -1416,5 +1414,7 @@ misrepresented as being the original software.
   root.foldLeft = foldLeft;
 
   root.Scanner = Scanner;
+
+  root.Token = Token;
 
 }).call(this);

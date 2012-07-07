@@ -25,7 +25,7 @@ var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
-var _concat$r, _or$r, _lexAsCons;
+var _concat$r, _or$r, _lexAsCons, _maluba, _maluba2;
 processResult(//AST(defGroup "concat[" "]")
 (_defGroup()((function(){return "concat["}))((function(){return "]"}))));
 processResult(//AST(defGroup "or[" "]")
@@ -43,6 +43,14 @@ root.tokenDefs.push('or[', '=M=');
 //lexAsCons = AST(λl . eq l nil nil (is l lexCons (cons (lexAsCons (head l)) (lexAsCons (tail l))) (is l token (tokenName l) l)))
 root.defs._lexAsCons = _lexAsCons = Parse.define('lexAsCons', (function() {var f = (function(_l){return _eq()(_l)(_nil)(_nil)((function(){var $m; return (function(){return $m || ($m = (_is()(_l)(_lexCons)((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_lexAsCons()((function(){var $m; return (function(){return $m || ($m = (_head()(_l)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_lexAsCons()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_is()(_l)(_token)((function(){var $m; return (function(){return $m || ($m = (_tokenName()(_l)))})})())(_l)))})})())))})})());}); return function _lexAsCons(){return f;}})(), 1, "\\l. eq l nil\n  nil\n  is l lexCons\n    cons (lexAsCons (head l)) (lexAsCons (tail l))\n    is l token\n      tokenName l\n      l");
 ;
+//maluba = AST(λx . x)
+root.defs._maluba = _maluba = Parse.define('maluba', (function() {var f = (function(_x){return _x();}); return function _maluba(){return f;}})(), 1, "\\x. x");
+Leisure.makeDispatchFunction('_maluba', 1, ['maluba', 'x'])
+//method: global._duh.prototype.maluba = function(x) {return _x();};
+//maluba2 = AST(λx . x)
+root.defs._maluba2 = _maluba2 = Parse.define('maluba2', (function() {var f = (function(_x){return _x();}); return function _maluba2(){return f;}})(), 1, "\\x. x");
+Leisure.makeDispatchFunction('_maluba2', 1, ['maluba2', 'x'])
+//method: global._duh.prototype.maluba2 = function(x) {return _x();};
 
 //if (typeof window !== 'undefined' && window !== null) {
 //  Leisure.processTokenDefs(root.tokenDefs);
