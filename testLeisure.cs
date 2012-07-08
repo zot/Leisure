@@ -184,7 +184,7 @@ do
   2
 """
 
-run 'test27', -> assertParse(in5, "apply (apply (ref bind) (lit 1)) (lambda _ . ref 2)")
+run 'test27', -> assertParse(in5, "apply (apply (ref bind) (lit 1)) (lambda _ . lit 2)")
 
 in6 = """
 do

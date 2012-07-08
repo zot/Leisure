@@ -81,7 +81,19 @@ setDataType = (func, dataType)->
 
 setType = (func, type)->
   if type then func.type = type
+  func.__proto__ = (ensureLeisureClass type).prototype
   func
+
+class LeisureObject
+
+global.LeisureObject = LeisureObject
+
+ensureLeisureClass = (leisureClass)->
+  cl = "Leisure#{nameSub leisureClass}"
+  if !global[cl]?
+    global[cl] = eval "(function #{cl}(){})"
+    global[cl].prototype.__proto__ = LeisureObject.prototype
+  global[cl]
 
 # cons and lexNil are Leisure-based so that Leisure code can work with it transparently
 # they look like ordinary JS classes, but the cons
@@ -188,13 +200,13 @@ leisureAddFunc = global.leisureAddFunc = (nm)-> global.leisureFuncNames = cons(n
 root.evalFunc = evalFunc = eval
 
 # use AST, instead of arity?
-define = (name, func, arity, src) ->
+define = (name, func, arity, src, method) ->
   func.src = src
   func.leisureContexts = []
   nm = nameSub(name)
   func.leisureName = name
   func.leisureArity = arity
-  if global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
+  if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
   global[nm] = global.leisureFuncs[nm] = func
   leisureAddFunc name
   func
@@ -252,9 +264,7 @@ class Scanner
       rest = str.substring(m.index + m[0].length)
       if tok[0] == '#' or tok[0] == ' ' or (tok[0] == '\n' and rest[0] == '\n') then @nextTok rest
       else [tok, rest]
-  scan: (str)-> ifParsed (@parseGroup str, '\n', str.length), (group, rest)->
-    g = group(Nil, str.length - rest.length)
-    [g, null, rest]
+  scan: (str)-> ifParsed (@parseGroup str, '\n', str.length), (group, rest)-> [group(Nil, str.length - rest.length), null, rest]
   parseGroup: (str, indent, totalLen)->
     # returns [lexdlGroup, err, rest]
     # note that lexdlGroup is not a list, it's a difference list
@@ -431,7 +441,7 @@ tokenToAst = (tok, vars)->
   try
     l = JSON.parse tok.tok()
     t = typeof l
-    [tag (if t == 'number' and vars.find(l) then ref(l) else if t in ['string', 'number'] then lit(l) else ref(tok.tok())), tok.start(), tok.end()]
+    [tag (if vars.find((n)-> n == l or n == tok.tok()) then ref(tok.tok()) else if t in ['string', 'number'] then lit(l) else ref(tok.tok())), tok.start(), tok.end()]
   catch err
     [tag ref(tok.tok()), tok.start(), tok.end()]
 
@@ -557,3 +567,6 @@ root.snip = snip
 root.throwError = throwError
 root.foldLeft = foldLeft
 root.Scanner = Scanner
+root.Token = Token
+root.ensureLeisureClass = ensureLeisureClass
+root.LeisureObject = LeisureObject

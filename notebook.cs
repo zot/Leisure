@@ -926,7 +926,7 @@ Parse.define 'notebookSelection', ->(func)->
     sel = window.getSelection()
     bx = getBox sel.focusNode
     if bx? and getAst(bx) == func().ast
-      offset = (bx.ast.leisureCodeOffset ? 0) #+ (bx.ast.leisurePrefixCount ? 0)
+      offset = (bx.ast.leisureCodeOffset ? 0)
       r = sel.getRangeAt(0)
       window.r = r
       r2 = document.createRange()

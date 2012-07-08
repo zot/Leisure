@@ -28,3 +28,8 @@ lexAsCons l = eq l nil
 #defInfixToken tokenName precedence = do
 #  defToken tokenName
 #  setValue (concat[ 'infixToken.' 
+
+maluba x = \f . f x
+
+i x = x
+i x::maluba = concat ['maluba: ' (x id)]

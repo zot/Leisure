@@ -31,6 +31,7 @@ else
   Parse = require('./parse')
 
 {
+  LeisureObject,
   nameSub,
   setDataType,
   setType,
@@ -58,11 +59,13 @@ else
   ifParsed,
   snip,
   Scanner,
+  Token,
 } = Parse
 
 declScanner = new Scanner()
 
 declScanner.defToken '::'
+declScanner.defToken ':?'
 
 escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
 
@@ -200,17 +203,18 @@ wrapContextBody = (name, ast, code, top)->"""
   """
 
 class Code
-  constructor: (@main, @vars, @err, @global, @debug)->
+  constructor: (@main, @vars, @err, @global, @debug, @method)->
     @main = @main ? ''
     @vars = @vars ? Nil
     @err = @err ? ''
     @global = @global ? Nil
-  copyWith: (main, vars, err, global, debug)->new Code(main ? @main, vars ? @vars, err ? @err, global ? @global, debug ? @debug)
+  copyWith: (main, vars, err, global, debug, method)->new Code(main ? @main, vars ? @vars, err ? @err, global ? @global, debug ? @debug, method ? @method)
   setVars: (v)-> @copyWith(null, v)
   addVar: (v)-> @copyWith(null, cons(v, @vars))
   addErr: (e)-> @copyWith(null, null, "#{@err}#{e}\n")
   setGlobal: (v)-> @copyWith(null, null, null, v)
   setDebug: (d)-> @copyWith(null, null, null, null, d)
+  setMethod: (meth)-> @copyWith(null, null, null, null, null, meth)
   reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
   unreffedValue: (deref, name, ast, top)-> if deref then @ else @lazy(name, ast, top)
   memoize: (deref, name, ast, top)->
@@ -231,7 +235,7 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
   debug = false
   ast.lits = []
   res = []
-  code = (gen ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true)
+  code = (gen ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true)
   if code.err != '' then ast.err = code.err
   else
     jsCode = if !debug or (getAstType ast) == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
@@ -239,11 +243,59 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
       n = nameSub name
       jsCode = if (getAstType ast) == 'lambda' then "(function() {var f = #{jsCode}; return function #{n}(){return f;}})()" else "(function #{n}() {return (#{jsCode});})"
     ast.src = if name? then """
-#{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 1) - 1}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}
-
+#{if code.method?
+  [type, name, argNames, methodCode] = code.method
+  "#{checkClass(name, n, ast)};\nLeisure.createMethod('#{type}', '#{name}', #{if src then JSON.stringify(src) else "''"}, function(#{argNames.slice(1).map((n)->nameSub n).join(", ")}) {return #{methodCode};})"
+else "#{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 0)}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}"}
 """ else jsCode
   ast.globals = code.global
   ast
+
+##
+## Dispatching
+##
+
+checkClass = (funcName, func, ast, src)->
+  [receiver, args] = receiverAndArgs(ast)
+  "Leisure.makeDispatchFunction('#{funcName}', '#{func}', '#{receiver}', ['#{ast.leisureArgNames.map((n)->nameSub n).join "', '"}'])"
+
+receiverPositionFor = (ast)->
+  for i in [0...ast.leisureArgNames.length]
+    if ast.leisureTypeAssertions[ast.leisureArgNames[i]]? then return i
+  -1
+
+makeDispatchFunction = (funcName, methodName, receiverName, argNames)->
+  dispSrc = "(function(){return #{genDispatchFunc(methodName, receiverName, 0, argNames[1...argNames.length])};})"
+  disp = eval(dispSrc)
+  if !LeisureObject.prototype[methodName]? and global[methodName]?
+    LeisureObject.prototype[methodName] = global[methodName]()
+  define funcName, disp, argNames.length, null, true
+  disp
+
+genDispatchFunc = (methodName, receiverName, index, args)->
+  if index < args.length then "function(#{args[index]}) {return #{genDispatchFunc methodName, receiverName, index + 1, args};}"
+  else
+    joined = args.join ', '
+    "(#{receiverName}() instanceof LeisureObject ? #{receiverName}() : LeisureObject.prototype).#{methodName}(#{joined})"
+
+noDefaultError = (methodName)-> throw new Error("No default function #{methodName}")
+
+receiverAndArgs = (ast)->
+  rPos = receiverPositionFor ast
+  args = ast.leisureArgNames
+  receiver = nameSub(args[rPos])
+  [receiver, args[1...args.length].map((n)-> nameSub n).filter((n)-> n != receiver)]
+
+createMethod = (leisureClass, methodName, src, definition)->
+  fun = Parse.ensureLeisureClass leisureClass
+  meth = nameSub methodName
+  if fun.prototype.hasOwnProperty(meth) then throw new Error("Attempt to redefine existing method: #{leisureClass}.#{methodName}, current definition: #{fun.prototype[meth]()}, class: #{fun}")
+  fun.prototype[meth] = definition
+  definition.src = src
+
+##
+## END Dispatching
+##
 
 wrap = (name, ast, v, body, namespace, debug)->
   body = "function(#{v}){return #{body};}"
@@ -253,7 +305,7 @@ wrap = (name, ast, v, body, namespace, debug)->
 #{namespace ? ''}#{if ast.exprType then 'setType' else 'setDataType'}(#{body}, '#{ast.exprType ? ast.exprDataType}')
     """
 
-gen = (ast, code, lits, vars, deref, name, namespace, top)->
+gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, top)->
   switch getAstType ast
     when 'ref'
       val = getRefVar ast
@@ -262,8 +314,8 @@ gen = (ast, code, lits, vars, deref, name, namespace, top)->
         code = code.copyWith(nameSub val).reffedValue(deref)
         if vars.find((v)-> v == val) then code.addVar(val)
         else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) or forward[nameSub(val)]? then code
-        else if typeof val == 'number' then code.copyWith(JSON.stringify(scanTok(val))).unreffedValue(deref, name, ast, top)
-        else code.addErr "attempt to use free variable: #{val}"
+        else if typeof val == 'number' then code.copyWith(val).unreffedValue(deref, name, ast, top)
+        else code.addErr "attempt to use free variable: #{val} in #{Parse.print originalAst}"
     when 'lit'
       val = getLitVal ast
       src = if typeof val == 'function' or typeof val == 'object'
@@ -273,21 +325,38 @@ gen = (ast, code, lits, vars, deref, name, namespace, top)->
       code.copyWith(src).unreffedValue(deref, name, ast, top)
     when 'lambda'
       v = getLambdaVar ast
-      bodyCode = (gen (getLambdaBody ast), code, lits, cons(v, vars), true, name, namespace, false)
+      bodyCode = (gen originalAst, prefixCount - 1, (getLambdaBody ast), code, lits, cons(v, vars), true, name, namespace, false)
+      bodyCode = if (originalAst.leisureTypeAssertions?) and (prefixCount == 1) then generateDispatch name, originalAst, bodyCode else bodyCode
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
-      bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast, top)
+      bodyCode = bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast, top)
+      bodyCode
     when 'apply'
       func = getApplyFunc ast
       if getAstType(func) == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
       else if freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
       else
         arg = getApplyArg ast
-        funcCode = gen func, code, lits, vars, true, name, namespace, false
-        argCode = gen arg, funcCode, lits, vars, false, name, namespace, false
+        funcCode = gen originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false
+        argCode = gen originalAst, prefixCount, arg, funcCode, lits, vars, false, name, namespace, false
         aplCode = if code.debug then wrapContext name, ast, "#{funcCode.main}(#{argCode.main})", top
         else "#{funcCode.main}(#{argCode.main})"
         argCode.copyWith(aplCode).memoize(deref, name, ast, top)
     else code.addErr "Unknown object type in gen: #{ast}"
+
+generateDispatch = (name, ast, code)->
+  type = firstConstrainedArgumentType ast
+  code = code.setMethod [type, name, ast.leisureArgNames, code.main]
+  code
+
+displayTypeConstraintsFor = (name, ast)->
+  "method #{firstConstrainedArgumentType ast}.#{name}(#{ast.leisureArgNames.join(', ')})"
+
+firstConstrainedArgumentType = (ast)->
+  for i in [0...ast.leisureArgNames.length]
+    arg = ast.leisureArgNames[i]
+    type = ast.leisureTypeAssertions[arg]
+    if type? then return type[1]
+  'null'
 
 freeVar = (ast, vars, globals)->
   if (getAstType ast) == 'ref'
@@ -330,12 +399,12 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
       name = null
       defType = null
       nm = null
-    else nm = if defType then name.trim().split(/\s+/) else null
+    else [nm, typeAssertions, err] = if defType then parseDecl name else []
     rest1 = line.substring (if defType then matched else leading).length
-    if nm
+    if err then [null, err]
+    else if nm
       if check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]} #{snip rest1}", null]
       else
-        #console.log "SCANNED NAME: #{declScanner.scan name}"
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1)
         errPrefix = "Error while compiling #{nm}: "
@@ -350,8 +419,11 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
             ast.exprDataType = nm[0]
           if nm.length == 1 then nameAst(nm[0], ast)
           ast.leisurePrefixSrcLen = pfx.length
-          ast.leisurePrefixCount = nm.length
+          ast.leisurePrefixCount = nm.length - 1
           ast.leisureSource = pfx.substring(0, pfx.length - rest.length).trim()
+          if !isEmpty typeAssertions
+            ast.leisureTypeAssertions = typeAssertions
+            ast.leisureArgNames = nm
           genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource, debug), errPrefix
     else ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = line.length - rest1.length
@@ -359,6 +431,30 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
       ast.leisureSource = rest1.substring(0, rest1.length - rest.length).trim()
       genCode ast, null, globals, null, rest, parseOnly, namespace, ast.leisureSource, debug), "Error compiling expr:  #{snip line}"
   else [null, null, null]
+
+isEmpty = (obj)->
+  for i of obj
+    return false
+  return true
+
+parseDecl = (name)->
+  [scanned, err, rest] = declScanner.scan name
+  if err then [null, null, err]
+  else
+    names = []
+    assertions = {}
+    while scanned != Nil
+      if isAssertion scanned.head() then return [null, null, "Badly type assertion in declaration: assertion must be on an argument name: #{name}"]
+      names.push scanned.head().tok()
+      if scanned.tail() != Nil and isAssertion scanned.tail().head()
+        if scanned.tail().tail() == Nil then return [null, null, "Badly type assertion in declaration -- no type: #{name}"]
+        assertions[scanned.head().tok()] = [scanned.tail().head().tok(), scanned.tail().tail().head().tok()]
+        scanned = scanned.tail().tail().tail()
+      else scanned = scanned.tail()
+    [names, assertions]
+    #name.trim().split(/\s+/)
+
+isAssertion = (tok)-> tok instanceof Token and tok.tok() in ['::', ':?']
 
 genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src, debug)->
   if !parseOnly then dgen ast, false, name, globals, defType, namespace, src, debug
@@ -450,3 +546,6 @@ root.funcContextSource = funcContextSource
 root.indent = indent
 root.parse = parse
 root.parseFull = parseFull
+root.makeDispatchFunction = makeDispatchFunction
+root.createMethod = createMethod
+root.noDefaultError = noDefaultError

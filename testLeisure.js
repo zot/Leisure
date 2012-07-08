@@ -179,7 +179,7 @@ Tests for Leisure
   in5 = "do\n  1\n  2";
 
   run('test27', function() {
-    return assertParse(in5, "apply (apply (ref bind) (lit 1)) (lambda _ . ref 2)");
+    return assertParse(in5, "apply (apply (ref bind) (lit 1)) (lambda _ . lit 2)");
   });
 
   in6 = "do\n  a <- ret 3\n  b = + a 1\n  pr a";

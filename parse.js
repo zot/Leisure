@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Cons, DL, LexCons, LexDL, Nil, Scanner, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, cleanupMacro, codeChars, collapseTrivial, cons, defGroup, defToken, defaultScanner, define, defineMacro, dlappend, dlempty, dlnew, elements, escapeRegexpChars, evalFunc, foldLeft, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, ifParsed, inspect, isLambdaToken, jsType, lambda, left, leisureAddFunc, lexCons, lexDlappend, lexDlempty, lexDlnew, lfunc, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, numberPat, parse, parseFull, parseOptional, pos, positionGroup, primCons, primFoldLeft, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, right, root, setDataType, setType, snip, subprint, substituteLambdaBody, substituteLambdaMacros, substituteMacros, tag, throwError, tokPos, tokenToAst,
+  var CNil, Cons, DL, LeisureObject, LexCons, LexDL, Nil, Scanner, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, cleanupMacro, codeChars, collapseTrivial, cons, defGroup, defToken, defaultScanner, define, defineMacro, dlappend, dlempty, dlnew, elements, ensureLeisureClass, escapeRegexpChars, evalFunc, foldLeft, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, ifParsed, inspect, isLambdaToken, jsType, lambda, left, leisureAddFunc, lexCons, lexDlappend, lexDlempty, lexDlnew, lfunc, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, numberPat, parse, parseFull, parseOptional, pos, positionGroup, primCons, primFoldLeft, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, right, root, setDataType, setType, snip, subprint, substituteLambdaBody, substituteLambdaMacros, substituteMacros, tag, throwError, tokPos, tokenToAst,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -92,7 +92,28 @@ misrepresented as being the original software.
 
   setType = function setType(func, type) {
     if (type) func.type = type;
+    func.__proto__ = (ensureLeisureClass(type)).prototype;
     return func;
+  };
+
+  LeisureObject = (function() {
+
+    function LeisureObject() {}
+
+    return LeisureObject;
+
+  })();
+
+  global.LeisureObject = LeisureObject;
+
+  ensureLeisureClass = function ensureLeisureClass(leisureClass) {
+    var cl;
+    cl = "Leisure" + (nameSub(leisureClass));
+    if (!(global[cl] != null)) {
+      global[cl] = eval("(function " + cl + "(){})");
+      global[cl].prototype.__proto__ = LeisureObject.prototype;
+    }
+    return global[cl];
   };
 
   Cons = (function() {
@@ -486,14 +507,14 @@ misrepresented as being the original software.
 
   root.evalFunc = evalFunc = eval;
 
-  define = function define(name, func, arity, src) {
+  define = function define(name, func, arity, src, method) {
     var nm;
     func.src = src;
     func.leisureContexts = [];
     nm = nameSub(name);
     func.leisureName = name;
     func.leisureArity = arity;
-    if (global.noredefs && (global[nm] != null)) {
+    if (!method && global.noredefs && (global[nm] != null)) {
       throwError("[DEF] Attempt to redefine definition: " + name);
     }
     global[nm] = global.leisureFuncs[nm] = func;
@@ -657,9 +678,7 @@ misrepresented as being the original software.
 
     Scanner.prototype.scan = function scan(str) {
       return ifParsed(this.parseGroup(str, '\n', str.length), function(group, rest) {
-        var g;
-        g = group(Nil, str.length - rest.length);
-        return [g, null, rest];
+        return [group(Nil, str.length - rest.length), null, rest];
       });
     };
 
@@ -1103,7 +1122,11 @@ misrepresented as being the original software.
     try {
       l = JSON.parse(tok.tok());
       t = typeof l;
-      return [tag((t === 'number' && vars.find(l) ? ref(l) : t === 'string' || t === 'number' ? lit(l) : ref(tok.tok())), tok.start(), tok.end())];
+      return [
+        tag((vars.find(function(n) {
+          return n === l || n === tok.tok();
+        }) ? ref(tok.tok()) : t === 'string' || t === 'number' ? lit(l) : ref(tok.tok())), tok.start(), tok.end())
+      ];
     } catch (err) {
       return [tag(ref(tok.tok()), tok.start(), tok.end())];
     }
@@ -1416,5 +1439,11 @@ misrepresented as being the original software.
   root.foldLeft = foldLeft;
 
   root.Scanner = Scanner;
+
+  root.Token = Token;
+
+  root.ensureLeisureClass = ensureLeisureClass;
+
+  root.LeisureObject = LeisureObject;
 
 }).call(this);

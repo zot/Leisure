@@ -255,7 +255,7 @@ findDefs = (contents, nomacros, loud)->
     if ast?.leisureName
       prevName = ast.leisureName
       if loud > 2 then console.log "Found function: #{ast.leisureName}"
-      if globals?.find((v)->v == ast.leisureName) then throwError("Attempt to redefine function: #{ast.leisureName}#{showAst ast}")
+      if globals?.find((v)->v == ast.leisureName && !ast.leisureTypeAssertions) then throwError("Attempt to redefine function: #{ast.leisureName}#{showAst ast}")
       globals = Parse.cons(ast.leisureName, globals)
   [globals.reverse(), errs, auto(Nil)]
 
