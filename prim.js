@@ -581,6 +581,14 @@
 
   values = {};
 
+  define('hasValue', function() {
+    return function(name) {
+      return makeMonad(function(env, cont) {
+        return cont((values[name()] != null ? _true() : _false()));
+      });
+    };
+  });
+
   define('getValue', function() {
     return function(name) {
       return makeMonad(function(env, cont) {
@@ -594,7 +602,7 @@
       return function(value) {
         return makeMonad(function(env, cont) {
           values[name()] = value();
-          return cont(_false);
+          return cont(_false());
         });
       };
     };

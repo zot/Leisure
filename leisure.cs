@@ -59,7 +59,7 @@ else
   ifParsed,
   snip,
   Scanner,
-  Token,
+  Leisure_token,
 } = Parse
 
 declScanner = new Scanner()
@@ -454,7 +454,7 @@ parseDecl = (name)->
     [names, assertions]
     #name.trim().split(/\s+/)
 
-isAssertion = (tok)-> tok instanceof Token and tok.tok() in ['::', ':?']
+isAssertion = (tok)-> tok instanceof Leisure_token and tok.tok() in ['::', ':?']
 
 genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src, debug)->
   if !parseOnly then dgen ast, false, name, globals, defType, namespace, src, debug

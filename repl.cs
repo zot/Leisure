@@ -68,7 +68,7 @@ compile = (file, cont, nomacros, debug)->
         str.end out
         str.destroySoon()
       catch err
-        console.log "ERROR: #{err.stack}"
+        console.log "ERROR: #{err}\n#{err.stack}"
         write err.stack + "\n"
         cont()
     stream.on 'error', (ex)->

@@ -1,10 +1,9 @@
 #vararg macros
 #@auto
-defGroup 'concat[' ']'
-#@auto
-defGroup 'or[' ']'
-#@auto
-defGroup 'and[' ']'
+do
+  defGroup 'concat[' ']'
+  defGroup 'or[' ']'
+  defGroup 'and[' ']'
 
 concat[ list =M= ['concat' (cons '[' (tail list))]
 
@@ -25,11 +24,15 @@ lexAsCons l = eq l nil
       tokenName l
       l
 
-#defInfixToken tokenName precedence = do
-#  defToken tokenName
-#  setValue (concat[ 'infixToken.' 
-
-maluba x = \f . f x
-
-i x = x
-i x::maluba = concat ['maluba: ' (x id)]
+# defInfixToken tokenName precedence = do
+#   defToken tokenName
+#   defs <- getValue 'parseFilter.defs'
+#   setValue 'parseFilter.defs' (assocSet 'infix' (assocSet tokenName precedence (assocGet 'infix' defs)) defs)
+#
+# parseInfix parseDefs list = parseInfixList (assocGet 'infix' parseDefs) list
+#
+# parseInfixList tokens list = is list lexCons
+#   rearrange tokens (lexMap (parseInfix tokens) list)
+#   list
+#
+# rearrange tokens list =

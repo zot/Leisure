@@ -207,6 +207,10 @@ define 'browser', ->(codeList)->
 
 values = {}
 
+define 'hasValue', ->(name)->
+  makeMonad (env, cont)->
+    cont (if values[name()]? then _true() else _false())
+
 define 'getValue', ->(name)->
   makeMonad (env, cont)->
     cont values[name()]
@@ -214,7 +218,7 @@ define 'getValue', ->(name)->
 define 'setValue', ->(name)->(value)->
   makeMonad (env, cont)->
     values[name()] = value()
-    cont _false
+    cont _false()
 
 define 'createS', ->
   makeMonad (env, cont)->

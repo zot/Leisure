@@ -95,9 +95,9 @@ ensureLeisureClass = (leisureClass)->
     global[cl].prototype.__proto__ = LeisureObject.prototype
   global[cl]
 
-# cons and lexNil are Leisure-based so that Leisure code can work with it transparently
+# cons and Nil are Leisure-based so that Leisure code can work with it transparently
 # they look like ordinary JS classes, but the cons
-class Cons
+class Leisure_cons extends LeisureObject
   head: -> @ ->(a)->(b)->a()
   tail: -> @ ->(a)->(b)->b()
   find: (func)-> func(@head()) or @tail().find(func)
@@ -116,23 +116,25 @@ class Cons
   toString: -> "Cons[#{@toArray().join(', ')}]"
   reverse: -> @rev Nil
   rev: (result)-> @tail().rev cons(@head(), result)
-  equals: (other)-> @ == other or (other instanceof Cons and (@head() == other.head() or (@head() instanceof Cons and @head().equals(other.head()))) and (@tail() == other.tail() or (@tail() instanceof Cons and @tail().equals(other.tail()))))
+  equals: (other)-> @ == other or (other instanceof Leisure_cons and (@head() == other.head() or (@head() instanceof Leisure_cons and @head().equals(other.head()))) and (@tail() == other.tail() or (@tail() instanceof Leisure_cons and @tail().equals(other.tail()))))
   each: (block)->
     block(@head())
     @tail().each(block)
   last: ->
     t = @tail()
-    if t == lexNil then t else t.last()
+    if t == Nil then t else t.last()
   append: (l)->cons @head(), @tail().append(l)
 
-class CNil extends Cons
+global.Leisure_cons = Leisure_cons
+
+class Leisure_nil extends Leisure_cons
   find: -> false
   removeAll: -> @
   map: (func)-> Nil
   foldl: (func, arg)-> arg
   foldr: (func, arg)-> arg
   rev: (result)-> result
-  equals: (other)-> other instanceof CNil
+  equals: (other)-> other instanceof Leisure_nil
   each: ->
   append: (l)-> l
 
@@ -152,8 +154,8 @@ throwError = (msg)->
 
 checkType = (value, type)-> if !(value instanceof type) then throwError("Type error: expected type: #{type}, but got: #{jsType value}")
 
-primCons = setDataType(((a)->(b)-> mkProto Cons, setType ((f)-> f()(a)(b)), 'cons'), 'cons')
-Nil = mkProto CNil, setType(((a)->(b)->b()), 'nil')
+primCons = setDataType(((a)->(b)-> mkProto Leisure_cons, setType ((f)-> f()(a)(b)), 'cons'), 'cons')
+Nil = mkProto Leisure_nil, setType(((a)->(b)->b()), 'nil')
 cons = (a, b)-> primCons(->a)(->b)
 dlempty = mkProto DL, (x)-> x
 dlnew = (a)-> mkProto DL, (b)-> cons(a, b)
@@ -163,16 +165,16 @@ dlappend = (a, b)->
   mkProto DL, (c)-> a(b(c))
 
 foldLeft = (func, val, thing)->
-  if thing instanceof Cons then thing.foldl func, val
+  if thing instanceof Leisure_cons then thing.foldl func, val
   else primFoldLeft func, val, thing, 0
 
 primFoldLeft = (func, val, array, index)->
   if index < array.length then primFoldLeft func, func(val, array[index]), array, index + 1
   else val
 
-# JS class overlaid on lexCons/lexNil funcs for convenience
+# JS class overlaid on lexCons funcs for convenience
 # merge start and end into functional rep
-class LexCons extends Cons
+class Leisure_lexCons extends Leisure_cons
   head: -> @ ->(a)->(s)->(b)->(e)->a()
   tail: -> @ ->(a)->(s)->(b)->(e)->b()
   start: -> @ ->(a)->(s)->(b)->(e)->s()
@@ -181,7 +183,9 @@ class LexCons extends Cons
   withStart: (start)-> lexCons(@head(), start, @tail(), @end())
   toString: -> "LexCons(#{@start()}, #{@end()})[#{@toArray().join(' ')}]"
 
-primLexCons = setDataType(((a)->(start)->(b)->(end)-> mkProto LexCons, setType ((f)-> f()(a)(start)(b)(end)), 'lexCons'), 'lexCons')
+global.Leisure_lexCons = Leisure_lexCons
+
+primLexCons = setDataType(((a)->(start)->(b)->(end)-> mkProto Leisure_lexCons, setType ((f)-> f()(a)(start)(b)(end)), 'lexCons'), 'lexCons')
 
 class LexDL
 
@@ -214,16 +218,16 @@ define = (name, func, arity, src, method) ->
 # expose cons and lexCons functions to Leisure
 
 define 'cons', (-> primCons), 2, '\a b f . f a b'
-define 'head', (-> (l)-> l().head()), 1, '\l . l \h t . h'
-define 'tail', (-> (l)-> l().tail()), 1, '\l . l \h t . t'
+#define 'head', (-> (l)-> l().head()), 1, '\l . l \h t . h'
+#define 'tail', (-> (l)-> l().tail()), 1, '\l . l \h t . t'
 define 'lexCons', (-> primLexCons), 4, '\a s b e f . f a s b e'
 define 'lexStart', (-> (l)-> l().start()), 1, '\l . l h s t e . s'
 define 'lexEnd', (-> (l)-> l().end()), 1, '\l . l h s t e . e'
 define 'nil', (-> Nil), 0, '\a b . b'
-define 'foldl', (-> (f)->(v)->(l)-> l().foldl(lfunc(f), v())), 3, ''
-define 'foldl1', (-> (f)->(l)-> l().foldl1(lfunc(f))), 3, ''
-define 'foldr', (-> (f)->(v)->(l)-> l().foldlr(lfunc(f), v())), 3, ''
-define 'foldr1', (-> (f)->(l)-> l().foldr1(lfunc(f))), 3, ''
+#define 'foldl', (-> (f)->(v)->(l)-> l().foldl(lfunc(f), v())), 3, ''
+#define 'foldl1', (-> (f)->(l)-> l().foldl1(lfunc(f))), 3, ''
+#define 'foldr', (-> (f)->(v)->(l)-> l().foldlr(lfunc(f), v())), 3, ''
+#define 'foldr1', (-> (f)->(l)-> l().foldr1(lfunc(f))), 3, ''
 
 lfunc = (f)->(v, el)-> f()(-> v)(-> el)
 
@@ -309,17 +313,16 @@ tokPos = (tok, str, totalLen)-> totalLen - str.length - tok.length
 
 snip = (str)->"[#{str.substring 0, 80}]"
 
-# Tokens are also Leisure datatypes overlaid with a JS class for interoperability
-class Token
+# Leisure_tokens are also Leisure datatypes overlaid with a JS class for interoperability
+class Leisure_token extends LeisureObject
   tok: -> @ ->(t)->(p)->t()
   start: -> @ ->(t)->(p)->p()
   end: -> @start() + @tok().length
   toString: -> "Token('#{@tok()}', #{@start()}-#{@end()})"
 
-primToken = setDataType(((a)->(b)->
-  t = mkProto Token, setType ((f)-> f()(a)(b)), 'token'
-  t
-  ), 'token')
+global.Leisure_token = Leisure_token
+
+primToken = setDataType(((tok)->(pos)-> mkProto Leisure_token, setType ((f)-> f()(tok)(pos)), 'token'), 'token')
 
 makeToken = (tok, rest, totalLen)->
   tp = totalLen - rest.length - tok.length
@@ -333,12 +336,12 @@ ifParsed = (res, block)->
   if res[1] then res
   else block res[0], res[2]
 
-collapseTrivial = (group)-> if group instanceof Cons and group.tail() == Nil then collapseTrivial group.head() else group
+collapseTrivial = (group)-> if group instanceof Leisure_cons and group.tail() == Nil then collapseTrivial group.head() else group
 
 # takes a difference list
 positionGroup = (groupDL, startTok, endTok)->
   g = collapseTrivial(groupDL(Nil, endTok.end()))
-  if g instanceof LexCons then g.withStart(startTok.start()) else g
+  if g instanceof Leisure_lexCons then g.withStart(startTok.start()) else g
 
 ######
 ###### Macros
@@ -347,8 +350,8 @@ positionGroup = (groupDL, startTok, endTok)->
 defineMacro = (name, func)-> global.leisureMacros[name] = func()
 
 substituteMacros = (list)->
-  if list == Nil or !(list instanceof Cons) then list
-  else if list.head() instanceof Token and macro = global.leisureMacros[list.head().tok()]
+  if list == Nil or !(list instanceof Leisure_cons) then list
+  else if list.head() instanceof Leisure_token and macro = global.leisureMacros[list.head().tok()]
     cleaned = cleanupMacro (macro ->list)
     substituteMacros cleaned
   else substituteLambdaMacros list
@@ -360,12 +363,12 @@ substituteLambdaMacros = (list)->
 
 substituteLambdaBody = (list)->
   if list == Nil then Nil
-  else lexCons list.head(), list.start(), (if (list.head() instanceof Token) and list.head().tok() == '.' then substituteMacros(list.tail()) else substituteLambdaBody list.tail()), list.end()
+  else lexCons list.head(), list.start(), (if (list.head() instanceof Leisure_token) and list.head().tok() == '.' then substituteMacros(list.tail()) else substituteLambdaBody list.tail()), list.end()
 
 cleanupMacro = (list)->
   if typeof list in ['string', 'number'] then primToken(->String(list))(->0)
-  else if !(list instanceof Cons) or (list == Nil) then list
-  else if list instanceof LexCons then list.map cleanupMacro
+  else if !(list instanceof Leisure_cons) or (list == Nil) then list
+  else if list instanceof Leisure_lexCons then list.map cleanupMacro
   else
     head = cleanupMacro list.head()
     tail = cleanupMacro list.tail()
@@ -413,17 +416,17 @@ getApplyArg = (apl)-> apl ->(a)->(b)-> b()
 listToAst = (list)-> primListToAst list, Nil
 primListToAst = (list, vars)->
   if list == Nil then [null, "Expecting expression, but input is empty"]
-  else if !(list instanceof LexCons) then tokenToAst list, vars
+  else if !(list instanceof Leisure_lexCons) then tokenToAst list, vars
   else if isLambdaToken list.head() then checkLambda list.tail(), vars
   else ifParsed primListToAst(list.head(), vars), (f)-> listToApply f, list.start(), list.tail(), vars
 
-isLambdaToken = (tok)-> (tok instanceof Token) and (tok.tok() in ['\\', '\u03BB'])
+isLambdaToken = (tok)-> (tok instanceof Leisure_token) and (tok.tok() in ['\\', '\u03BB'])
 
 checkLambda = (list, vars)->
-  if list.head() instanceof Token && list.head().tok() != '.' then listToLambda list, vars
+  if list.head() instanceof Leisure_token && list.head().tok() != '.' then listToLambda list, vars
   else [null, "Bad lambda construct, expected names, followed by a dot", list]
 
-badLambdaCont = (tok)-> !(tok instanceof Token) || isLambdaToken(tok)
+badLambdaCont = (tok)-> !(tok instanceof Leisure_token) || isLambdaToken(tok)
 
 # convert a list starting after a lambda character
 listToLambda = (list, vars)->
@@ -525,7 +528,7 @@ printApply = (func, arg)->
 
 elements = (l, first, nosubs)->
   if l == Nil then ''
-  else if !(l instanceof Cons) then " | #{print(l)}"
+  else if !(l instanceof Leisure_cons) then " | #{print(l)}"
   else "#{if first then '' else ' '}#{print(l.head()) + elements(l.tail(), false)}"
 
 root.evalFunc = evalFunc
@@ -567,6 +570,6 @@ root.snip = snip
 root.throwError = throwError
 root.foldLeft = foldLeft
 root.Scanner = Scanner
-root.Token = Token
+root.Leisure_token = Leisure_token
 root.ensureLeisureClass = ensureLeisureClass
 root.LeisureObject = LeisureObject
