@@ -282,6 +282,8 @@ misrepresented as being the original software.
 
   })(Leisure_cons);
 
+  global.Leisure_nil = Leisure_nil;
+
   DL = (function() {
 
     function DL() {}

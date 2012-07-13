@@ -102,26 +102,39 @@ pairFunc l::lexCons = \h t . null? t
   lexCons h (startPos h) nil (endPos h)
   lexCons h (startPos h) t (endPos t)
 #nil = \a b . b
-null? = eq nil
-foldl func arg list = null? list
-  arg
-  foldl func (func arg (head list)) (tail list)
-foldl1 func list = null? list
-  nil
-  foldl func (head list) (tail list)
+null? x = false
+null? x::nil = true
+#foldl func arg list = null? list
+#  arg
+#  foldl func (func arg (head list)) (tail list)
+foldl func arg list = foldl func (func arg (head list)) (tail list)
+foldl func arg list::nil = arg
+#foldl1 func list = null? list
+#  nil
+#  foldl func (head list) (tail list)
+foldl1 func list = foldl func (head list) (tail list)
+foldl1 func list::nil = nil
 foldr func arg list = null? list
   arg
   func (head list) (foldr func arg (tail list))
+#foldr func arg list = func (head list) (foldr func arg (tail list))
+#foldr func arg list::nil = arg
 foldr1 func list = null? list
   nil
   eq (tail list) nil
     head list
     func (head list) (foldr1 func (tail list))
-#append l1 l2 = l1 (\h t D . cons h (append t l2)) l2
+#foldr1 func list = eq (tail list) nil
+#  head list
+#  func (head list) (foldr1 func (tail list))
+#foldr1 func list::nil = nil
 append l1 l2 = _append (pairFunc l1) l1 l2
+#append l1::nil l2 = l2
 _append pairF l1 l2 = null? l1
   l2
   pairF (head l1) (_append pairF (tail l1) l2)
+#_append pairF l1 l2 = pairF (head l1) (_append pairF (tail l1) l2)
+#_append pairF l1::nil l2 = l2
 compose f g = \x . f ( g x)
 
 # numerics
@@ -284,7 +297,7 @@ reduce func list = foldl1 func list
 
 # simple list constructor syntax
 # Leisure definition relies 
-[ = \item . eq item `]`
+[ item = eq item `]`
   nil
   nextListItem (dl item)
 # These are just punctuation, used by the '[' continuation function

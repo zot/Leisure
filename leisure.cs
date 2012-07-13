@@ -203,25 +203,35 @@ wrapContextBody = (name, ast, code, top)->"""
   """
 
 class Code
-  constructor: (@main, @vars, @err, @global, @debug, @method)->
+  constructor: (@main, @vars, @err, @global, @debug, @method, @unmemoized)->
     @main = @main ? ''
     @vars = @vars ? Nil
     @err = @err ? ''
     @global = @global ? Nil
-  copyWith: (main, vars, err, global, debug, method)->new Code(main ? @main, vars ? @vars, err ? @err, global ? @global, debug ? @debug, method ? @method)
+  copyWith: (main, vars, err, global, debug, method, unmemoized)->
+    if !main and !unmemoized and @unmemoized then console.log "PRESERVING UNMEMOIZED: @unmemoized"
+    #else if unmemoized then console.log "SETTING UNMEMOIZED: #{unmemoized}"
+    new Code(main ? @main, vars ? @vars, err ? @err, global ? @global, debug ? @debug, method ? @method, unmemoized ? (if !main then @unmemoized else null))
   setVars: (v)-> @copyWith(null, v)
   addVar: (v)-> @copyWith(null, cons(v, @vars))
   addErr: (e)-> @copyWith(null, null, "#{@err}#{e}\n")
   setGlobal: (v)-> @copyWith(null, null, null, v)
   setDebug: (d)-> @copyWith(null, null, null, null, d)
   setMethod: (meth)-> @copyWith(null, null, null, null, null, meth)
-  reffedValue: (deref)-> if deref then @copyWith(@main + "()") else @
+  setUnmemoized: (u)-> @copyWith(null, null, null, null, null, null, u)
+  unmemoize: -> @copyWith(@unmemoized, null, null, null, null, null, '')
+  reffedValue: (deref)-> if !deref then @
+  else
+    #tmp = if @unmemoized then @unmemoize() else @
+    tmp = @
+    if @unmemoized then console.log "DEREF: #{@main}()  [#{@unmemoized}()]"
+    tmp.copyWith("#{tmp.main}()")
   unreffedValue: (deref, name, ast, top)-> if deref then @ else @lazy(name, ast, top)
   memoize: (deref, name, ast, top)->
     if deref then @
     else
       tmp = @copyWith("$m || ($m = (#{@main}))").lazy(name, ast, top)
-      tmp.copyWith "(function(){var $m; return #{tmp.main}})()"
+      tmp.copyWith("(function(){var $m; return #{tmp.main}})()").setUnmemoized(@main)
   lazy: (name, ast, top)->
     if !@debug or !(name? and ast.leisureNodeNumber?) then @copyWith("(function(){return #{@main}})")
     else @copyWith (wrapLazyContext name, ast, @main, top)
@@ -241,7 +251,8 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
     jsCode = if !debug or (getAstType ast) == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
     if name
       n = nameSub name
-      jsCode = if (getAstType ast) == 'lambda' then "(function() {var f = #{jsCode}; return function #{n}(){return f;}})()" else "(function #{n}() {return (#{jsCode});})"
+      # this is needed in order to be able to compare unapplied functions with each other
+      jsCode = if (getAstType ast) == 'lambda' then "(function() {var f; return function #{n}(){return f || (f = #{jsCode});}})()" else "(function #{n}() {return (#{jsCode});})"
     ast.src = if name? then """
 #{if code.method?
   [type, name, argNames, methodCode] = code.method
@@ -259,10 +270,16 @@ checkClass = (funcName, func, ast, src)->
   [receiver, args] = receiverAndArgs(ast)
   "Leisure.makeDispatchFunction('#{funcName}', '#{func}', '#{receiver}', ['#{ast.leisureArgNames.map((n)->nameSub n).join "', '"}'])"
 
-receiverPositionFor = (ast)->
-  for i in [0...ast.leisureArgNames.length]
-    if ast.leisureTypeAssertions[ast.leisureArgNames[i]]? then return i
-  -1
+receiverAndArgs = (ast)->
+  receiver = nameSub(receiverFor ast, 0)
+  args = ast.leisureArgNames
+  [receiver, args[1...args.length].map((n)-> nameSub n).filter((n)-> n != receiver)]
+
+receiverFor = (ast, index)->
+  if index < ast.leisureArgNames.length
+    if ast.leisureTypeAssertions[ast.leisureArgNames[index]] then ast.leisureArgNames[index]
+    else receiverFor ast, index + 1
+  else null
 
 makeDispatchFunction = (funcName, methodName, receiverName, argNames)->
   dispSrc = "(function(){return #{genDispatchFunc(methodName, receiverName, 0, argNames[1...argNames.length])};})"
@@ -279,12 +296,6 @@ genDispatchFunc = (methodName, receiverName, index, args)->
     "(#{receiverName}() instanceof LeisureObject ? #{receiverName}() : LeisureObject.prototype).#{methodName}(#{joined})"
 
 noDefaultError = (methodName)-> throw new Error("No default function #{methodName}")
-
-receiverAndArgs = (ast)->
-  rPos = receiverPositionFor ast
-  args = ast.leisureArgNames
-  receiver = nameSub(args[rPos])
-  [receiver, args[1...args.length].map((n)-> nameSub n).filter((n)-> n != receiver)]
 
 createMethod = (leisureClass, methodName, src, definition)->
   fun = Parse.ensureLeisureClass leisureClass
@@ -388,6 +399,7 @@ defineForward = (name)-> forward[nameSub(name())] = true
 
 # returns [ast, err, rest]
 compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
+  #console.log "LINE: #{line}"
   if line[0] == '='
     rest1 = line.substring 1
     ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
@@ -424,6 +436,7 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
           if !isEmpty typeAssertions
             ast.leisureTypeAssertions = typeAssertions
             ast.leisureArgNames = nm
+            console.log "arg names: #{nm}"
           genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource, debug), errPrefix
     else ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = line.length - rest1.length

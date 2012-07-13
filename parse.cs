@@ -138,6 +138,8 @@ class Leisure_nil extends Leisure_cons
   each: ->
   append: (l)-> l
 
+global.Leisure_nil = Leisure_nil
+
 class DL
 
 jsType = (v)->

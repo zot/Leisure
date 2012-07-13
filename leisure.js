@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, mkProto, nameAst, nameSub, noDefaultError, numberAst, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverPositionFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext;
+  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, mkProto, nameAst, nameSub, noDefaultError, numberAst, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -276,7 +276,7 @@ misrepresented as being the original software.
 
   Code = (function() {
 
-    function Code(main, vars, err, global, debug, method) {
+    function Code(main, vars, err, global, debug, method, unmemoized) {
       var _ref, _ref2, _ref3, _ref4;
       this.main = main;
       this.vars = vars;
@@ -284,14 +284,18 @@ misrepresented as being the original software.
       this.global = global;
       this.debug = debug;
       this.method = method;
+      this.unmemoized = unmemoized;
       this.main = (_ref = this.main) != null ? _ref : '';
       this.vars = (_ref2 = this.vars) != null ? _ref2 : Nil;
       this.err = (_ref3 = this.err) != null ? _ref3 : '';
       this.global = (_ref4 = this.global) != null ? _ref4 : Nil;
     }
 
-    Code.prototype.copyWith = function copyWith(main, vars, err, global, debug, method) {
-      return new Code(main != null ? main : this.main, vars != null ? vars : this.vars, err != null ? err : this.err, global != null ? global : this.global, debug != null ? debug : this.debug, method != null ? method : this.method);
+    Code.prototype.copyWith = function copyWith(main, vars, err, global, debug, method, unmemoized) {
+      if (!main && !unmemoized && this.unmemoized) {
+        console.log("PRESERVING UNMEMOIZED: @unmemoized");
+      }
+      return new Code(main != null ? main : this.main, vars != null ? vars : this.vars, err != null ? err : this.err, global != null ? global : this.global, debug != null ? debug : this.debug, method != null ? method : this.method, unmemoized != null ? unmemoized : (!main ? this.unmemoized : null));
     };
 
     Code.prototype.setVars = function setVars(v) {
@@ -318,11 +322,24 @@ misrepresented as being the original software.
       return this.copyWith(null, null, null, null, null, meth);
     };
 
+    Code.prototype.setUnmemoized = function setUnmemoized(u) {
+      return this.copyWith(null, null, null, null, null, null, u);
+    };
+
+    Code.prototype.unmemoize = function unmemoize() {
+      return this.copyWith(this.unmemoized, null, null, null, null, null, '');
+    };
+
     Code.prototype.reffedValue = function reffedValue(deref) {
-      if (deref) {
-        return this.copyWith(this.main + "()");
-      } else {
+      var tmp;
+      if (!deref) {
         return this;
+      } else {
+        tmp = this;
+        if (this.unmemoized) {
+          console.log("DEREF: " + this.main + "()  [" + this.unmemoized + "()]");
+        }
+        return tmp.copyWith("" + tmp.main + "()");
       }
     };
 
@@ -340,7 +357,7 @@ misrepresented as being the original software.
         return this;
       } else {
         tmp = this.copyWith("$m || ($m = (" + this.main + "))").lazy(name, ast, top);
-        return tmp.copyWith("(function(){var $m; return " + tmp.main + "})()");
+        return tmp.copyWith("(function(){var $m; return " + tmp.main + "})()").setUnmemoized(this.main);
       }
     };
 
@@ -376,7 +393,7 @@ misrepresented as being the original software.
       jsCode = !debug || (getAstType(ast)) === 'apply' || !name ? "(" + code.main + ")" : wrapContext(name, ast, code.main, true);
       if (name) {
         n = nameSub(name);
-        jsCode = (getAstType(ast)) === 'lambda' ? "(function() {var f = " + jsCode + "; return function " + n + "(){return f;}})()" : "(function " + n + "() {return (" + jsCode + ");})";
+        jsCode = (getAstType(ast)) === 'lambda' ? "(function() {var f; return function " + n + "(){return f || (f = " + jsCode + ");}})()" : "(function " + n + "() {return (" + jsCode + ");})";
       }
       ast.src = name != null ? "" + (code.method != null ? ((_ref = code.method, type = _ref[0], name = _ref[1], argNames = _ref[2], methodCode = _ref[3], _ref), "" + (checkClass(name, n, ast)) + ";\nLeisure.createMethod('" + type + "', '" + name + "', " + (src ? JSON.stringify(src) : "''") + ", function(" + (argNames.slice(1).map(function(n) {
         return nameSub(n);
@@ -394,12 +411,29 @@ misrepresented as being the original software.
     }).join("', '")) + "'])";
   };
 
-  receiverPositionFor = function receiverPositionFor(ast) {
-    var i, _ref;
-    for (i = 0, _ref = ast.leisureArgNames.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-      if (ast.leisureTypeAssertions[ast.leisureArgNames[i]] != null) return i;
+  receiverAndArgs = function receiverAndArgs(ast) {
+    var args, receiver;
+    receiver = nameSub(receiverFor(ast, 0));
+    args = ast.leisureArgNames;
+    return [
+      receiver, args.slice(1, args.length).map(function(n) {
+        return nameSub(n);
+      }).filter(function(n) {
+        return n !== receiver;
+      })
+    ];
+  };
+
+  receiverFor = function receiverFor(ast, index) {
+    if (index < ast.leisureArgNames.length) {
+      if (ast.leisureTypeAssertions[ast.leisureArgNames[index]]) {
+        return ast.leisureArgNames[index];
+      } else {
+        return receiverFor(ast, index + 1);
+      }
+    } else {
+      return null;
     }
-    return -1;
   };
 
   makeDispatchFunction = function makeDispatchFunction(funcName, methodName, receiverName, argNames) {
@@ -425,20 +459,6 @@ misrepresented as being the original software.
 
   noDefaultError = function noDefaultError(methodName) {
     throw new Error("No default function " + methodName);
-  };
-
-  receiverAndArgs = function receiverAndArgs(ast) {
-    var args, rPos, receiver;
-    rPos = receiverPositionFor(ast);
-    args = ast.leisureArgNames;
-    receiver = nameSub(args[rPos]);
-    return [
-      receiver, args.slice(1, args.length).map(function(n) {
-        return nameSub(n);
-      }).filter(function(n) {
-        return n !== receiver;
-      })
-    ];
   };
 
   createMethod = function createMethod(leisureClass, methodName, src, definition) {
@@ -632,6 +652,7 @@ misrepresented as being the original software.
             if (!isEmpty(typeAssertions)) {
               ast.leisureTypeAssertions = typeAssertions;
               ast.leisureArgNames = nm;
+              console.log("arg names: " + nm);
             }
             return genCode(ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource, debug);
           }), errPrefix);

@@ -15,6 +15,14 @@ or[ list =M= do
       args
       foldr1 (\v el . ['or' v el]) args
 
+and[ list =M= do
+  args = (dropLast 1 (tail list))
+  eq args nil
+    ['false']
+    eq (tail args) nil
+      args
+      foldr1 (\v el . ['and' v el]) args
+
 # for debugging macros
 lexAsCons l = eq l nil
   nil
@@ -24,15 +32,27 @@ lexAsCons l = eq l nil
       tokenName l
       l
 
-# defInfixToken tokenName precedence = do
-#   defToken tokenName
-#   defs <- getValue 'parseFilter.defs'
-#   setValue 'parseFilter.defs' (assocSet 'infix' (assocSet tokenName precedence (assocGet 'infix' defs)) defs)
+#defInfixToken tokenName location reference = do
+#  defToken tokenName
+#  defs <- getValueOr 'parseFilter.defs' nil
+#  operators = assocGetWithDefault 'infix' nil defs
+#  operators = eq reference nil
+#    eq location 'before'
+#      [[tokenName] | operators]
+#      append operators [tokenName]
+#    insertOperator tokenName reference operators
+#  setValue 'parseFilter.defs' (assocSet 'infix' operators defs)
 #
+#insertOperator tokenName reference operators = null? operators
+#  [[tokenName]]
+#  find reference (head operators)
+#    [[tokenName | (head operators)] | (tail operators)]
+#    [(head operators) | (insertOperator tokenName reference (tail operators))]
+
 # parseInfix parseDefs list = parseInfixList (assocGet 'infix' parseDefs) list
 #
 # parseInfixList tokens list = is list lexCons
 #   rearrange tokens (lexMap (parseInfix tokens) list)
 #   list
 #
-# rearrange tokens list =
+# rearrange operators precedence list = 

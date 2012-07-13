@@ -22,7 +22,12 @@ else
   RL = require('readline')
   tty = null
   defaultEnv.write = (msg)-> process.stdout.write(msg)
-  defaultEnv.prompt = (msg, cont)-> tty.question(msg, cont)
+  defaultEnv.prompt = (msg, cont)-> tty.question(msg, ->
+    try
+      cont()
+    catch err
+      console.log "ERROR PRINTING VALUE: #{err.stack}"
+  )
   r = (file, cont)->
     if !(file.match /^\.\//) then file = "./#{file}"
     Leisure.req file
@@ -110,12 +115,18 @@ continueMonad = (cont)->
     cell[0] = true
     cell[1] = value
     while eventCont.length && eventCont[0][0]
-      [ignore, val, cnt] = eventCont.shift()
-      cnt(val)
+      try
+        [ignore, val, cnt] = eventCont.shift()
+        cnt(val)
+      catch err
+        console.log "ERROR RUNNING MONAD: #{err.stack}"
 
 runMonad = (monad, env, cont)->
-  if monad.cmd? then monad.cmd(env, continueMonad(cont))
-  else cont(monad)
+  try
+    if monad.cmd? then monad.cmd(env, continueMonad(cont))
+    else cont(monad)
+  catch err
+    console.log "ERROR RUNNING MONAD: #{err.stack}"
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code
@@ -205,11 +216,15 @@ define 'browser', ->(codeList)->
       cont(eval(concatList(cl)))
     else cont(null)
 
-values = {}
+global.LeisureValues = values = {}
 
 define 'hasValue', ->(name)->
   makeMonad (env, cont)->
     cont (if values[name()]? then _true() else _false())
+
+define 'getValueOr', ->(name)->(defaultValue)->
+  makeMonad (env, cont)->
+    cont(values[name()] ? defaultValue())
 
 define 'getValue', ->(name)->
   makeMonad (env, cont)->
@@ -218,7 +233,7 @@ define 'getValue', ->(name)->
 define 'setValue', ->(name)->(value)->
   makeMonad (env, cont)->
     values[name()] = value()
-    cont _false()
+    cont _false
 
 define 'createS', ->
   makeMonad (env, cont)->
