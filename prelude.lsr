@@ -82,11 +82,13 @@ none = \yes no . no
 # Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
 # rec = \f . f (Y f)
 
-# lists
+# lists -- cons is a primitive, because the parser and compiler uses it
 #cons a b =
 #  \f . f
 #    a
 #    b
+# lists -- cons is a primitive, because the parser and compiler uses it
+#nil = \a b . b
 
 head l::cons = l \h t . h
 tail l::cons = l \h t . t
@@ -101,38 +103,21 @@ pairFunc l::cons = cons
 pairFunc l::lexCons = \h t . null? t
   lexCons h (startPos h) nil (endPos h)
   lexCons h (startPos h) t (endPos t)
-#nil = \a b . b
 null? x = false
 null? x::nil = true
-#foldl func arg list = null? list
-#  arg
-#  foldl func (func arg (head list)) (tail list)
 foldl func arg list = foldl func (func arg (head list)) (tail list)
 foldl func arg list::nil = arg
-#foldl1 func list = null? list
-#  nil
-#  foldl func (head list) (tail list)
 foldl1 func list = foldl func (head list) (tail list)
 foldl1 func list::nil = nil
 foldr func arg list = null? list
   arg
   func (head list) (foldr func arg (tail list))
-#foldr func arg list = func (head list) (foldr func arg (tail list))
-#foldr func arg list::nil = arg
-foldr1 func list = null? list
-  nil
-  eq (tail list) nil
-    head list
-    func (head list) (foldr1 func (tail list))
-#foldr1 func list = eq (tail list) nil
-#  head list
-#  func (head list) (foldr1 func (tail list))
-#foldr1 func list::nil = nil
+foldr1 func list = eq (tail list) nil
+  head list
+  func (head list) (foldr1 func (tail list))
+foldr1 func list::nil = nil
 append l1 l2 = _append (pairFunc l1) l1 l2
 append l1::nil l2 = l2
-#_append pairF l1 l2 = null? l1
-#  l2
-#  pairF (head l1) (_append pairF (tail l1) l2)
 _append pairF l1 l2 = pairF (head l1) (_append pairF (tail l1) l2)
 _append pairF l1::nil l2 = l2
 compose f g = \x . f ( g x)
@@ -289,14 +274,14 @@ reduce func list = foldl1 func list
 #foldl1 func list = list (\h t D. foldl func h t) nil
 
 # simple list constructor syntax
-# pure Lambda Calculus definition
+# pure Lambda Calculus definition, for reference
 #[ =(]= \item c . c \rest . cons item rest
 #, =.= \f item c . c \rest . f (cons item rest)
 #] =)= \f . f nil
 #| =.= \f rest g . f rest
 
 # simple list constructor syntax
-# Leisure definition relies 
+# Leisure definition relies on eq -- not pure Lambda Calculus :)
 [ item = eq item `]`
   nil
   nextListItem (dl item)

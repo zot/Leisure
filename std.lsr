@@ -32,22 +32,22 @@ lexAsCons l = eq l nil
       tokenName l
       l
 
-#defInfixToken tokenName location reference = do
-#  defToken tokenName
-#  defs <- getValueOr 'parseFilter.defs' nil
-#  operators = assocGetWithDefault 'infix' nil defs
-#  operators = eq reference nil
-#    eq location 'before'
-#      [[tokenName] | operators]
-#      append operators [tokenName]
-#    insertOperator tokenName reference operators
-#  setValue 'parseFilter.defs' (assocSet 'infix' operators defs)
-#
-#insertOperator tokenName reference operators = null? operators
-#  [[tokenName]]
-#  find reference (head operators)
-#    [[tokenName | (head operators)] | (tail operators)]
-#    [(head operators) | (insertOperator tokenName reference (tail operators))]
+defInfixToken tokenName location reference = do
+  defToken tokenName
+  defs <- getValueOr 'parseFilter.defs' nil
+  operators = assocGetWithDefault 'infix' nil defs
+  operators = eq reference nil
+    eq location 'before'
+      [[tokenName] | operators]
+      append operators [tokenName]
+    insertOperator tokenName reference operators
+  setValue 'parseFilter.defs' (assocSet 'infix' operators defs)
+
+insertOperator tokenName reference operators = null? operators
+  [[tokenName]]
+  find reference (head operators)
+    [[tokenName | (head operators)] | (tail operators)]
+    [(head operators) | (insertOperator tokenName reference (tail operators))]
 
 # parseInfix parseDefs list = parseInfixList (assocGet 'infix' parseDefs) list
 #
