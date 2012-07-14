@@ -28,7 +28,7 @@ Tests for Leisure
 */
 
 (function() {
-  var LZ, Parse, R, T, U, applyBrackets, assertEq, assertEval, assertEvalPrint, assertParse, br, code, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
+  var LZ, Parse, R, T, U, applyBrackets, arrayToCons, assertEq, assertEval, assertEvalPrint, assertParse, br, code, cons, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
 
@@ -220,6 +220,36 @@ Tests for Leisure
 
   run('test31', function() {
     return assertEq(applyBrackets(in9, 30, br), out9_30);
+  });
+
+  cons = Parse.cons;
+
+  arrayToCons = function arrayToCons(array) {
+    var i, res, _ref2;
+    res = Nil;
+    for (i = _ref2 = array.length - 1; _ref2 <= 0 ? i <= 0 : i >= 0; _ref2 <= 0 ? i++ : i--) {
+      res = cons(array[i], res);
+    }
+    return res;
+  };
+
+  run('test32', function() {
+    var ast;
+    ast = (LZ.parseFull('_append pairF (tail l1) l2'))[0];
+    return assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)");
+  });
+
+  run('test33', function() {
+    var ast;
+    ast = (LZ.parseFull('pairF (head l1) (_append pairF (tail l1) l2)'))[0];
+    return assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "_pairF()((function(){var $m; return (function(){return $m || ($m = (_head()(_l1)))})})())((function(){var $m; return (function(){return $m || ($m = (__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)))})})())");
+  });
+
+  run('test34', function() {
+    var ast;
+    ast = LZ.getNthBody((LZ.parseFull('\\pairF . \\l1 . \\l2 . pairF (head l1) (_append pairF (tail l1) l2)'))[0], 4);
+    console.log("TEST 34, AST: " + (Parse.print(ast)));
+    return assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "_pairF()((function(){var $m; return (function(){return $m || ($m = (_head()(_l1)))})})())((function(){var $m; return (function(){return $m || ($m = (__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)))})})())");
   });
 
   console.log('\nDone');

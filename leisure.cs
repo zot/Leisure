@@ -251,7 +251,7 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
     jsCode = if !debug or (getAstType ast) == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
     if name
       n = nameSub name
-      # this is needed in order to be able to compare unapplied functions with each other
+      # need to memoize lambdas in order to be able to compare unapplied functions with each other
       jsCode = if (getAstType ast) == 'lambda' then "(function() {var f; return function #{n}(){return f || (f = #{jsCode});}})()" else "(function #{n}() {return (#{jsCode});})"
     ast.src = if name? then """
 #{if code.method?
@@ -281,11 +281,16 @@ receiverFor = (ast, index)->
     else receiverFor ast, index + 1
   else null
 
+# This should be moved to compile-time, rather than load-time
 makeDispatchFunction = (funcName, methodName, receiverName, argNames)->
   dispSrc = "(function(){return #{genDispatchFunc(methodName, receiverName, 0, argNames[1...argNames.length])};})"
+  console.log "DISPATCH #{funcName}/#{methodName} = #{dispSrc}"
   disp = eval(dispSrc)
-  if !LeisureObject.prototype[methodName]? and global[methodName]?
-    LeisureObject.prototype[methodName] = global[methodName]()
+  if !LeisureObject.prototype[methodName]?
+    if global[methodName]?
+      #LeisureObject.prototype[methodName] = global[methodName]()
+      LeisureObject.prototype[methodName] = genDispatchDefault(funcName, methodName, global[methodName], argNames)
+    else LeisureObject.prototype[methodName] = true
   define funcName, disp, argNames.length, null, true
   disp
 
@@ -294,6 +299,31 @@ genDispatchFunc = (methodName, receiverName, index, args)->
   else
     joined = args.join ', '
     "(#{receiverName}() instanceof LeisureObject ? #{receiverName}() : LeisureObject.prototype).#{methodName}(#{joined})"
+
+genDispatchDefault = (lsrName, name, func, args)->
+  originalAst = funcAst func
+  #originalAst = parseFull(func.src)[0]
+  console.log "DISPATCH DEFAULT FOR #{lsrName}/#{name}, #{func.src}"
+  v = getNargs originalAst, args.length
+  ast = getNthBody originalAst, args.length
+  if lsrName == "_append"
+    console.log "_APPEND arg: #{Parse.print(Parse.getApplyArg ast)}"
+    #ast = Parse.getApplyArg ast
+  console.log "DISPATCH DEFAULT AST: #{Parse.print ast}"
+  #Can't define function with name here, because it can interfere with recursive calls
+  code = (gen ast, 0, ast, new Code().setGlobal(cons(lsrName, global.leisureFuncNames)), originalAst.lits, v, true, '', "Parse.", true, true)
+  if code.err then throw new Error(code.err)
+  code = code.main
+  console.log "DISPATCH DEFAULT: #{code}"
+  #Can't define function with name here, because it can interfere with recursive calls
+  code = "(function (#{args[1..].join(', ')}){return (#{code})})"
+  f = eval(code)
+  console.log "DISPATCH DEFAULT CODE: #{f}"
+  f
+
+getNargs = (ast, n)->
+  if n == 0 then Nil
+  else cons Parse.getLambdaVar(ast), getNargs(Parse.getLambdaBody(ast), n - 1)
 
 noDefaultError = (methodName)-> throw new Error("No default function #{methodName}")
 
@@ -316,14 +346,14 @@ wrap = (name, ast, v, body, namespace, debug)->
 #{namespace ? ''}#{if ast.exprType then 'setType' else 'setDataType'}(#{body}, '#{ast.exprType ? ast.exprDataType}')
     """
 
-gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, top)->
+gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, top, ignoreUnknownNames)->
   switch getAstType ast
     when 'ref'
       val = getRefVar ast
       if val.lambda then code.addErr "attempt to use lambda as a variable"
       else
         code = code.copyWith(nameSub val).reffedValue(deref)
-        if vars.find((v)-> v == val) then code.addVar(val)
+        if ignoreUnknownNames or vars.find((v)-> v == val) then code.addVar(val)
         else if ctx[nameSub(val)]? or code.global.find((v)-> v == val) or forward[nameSub(val)]? then code
         else if typeof val == 'number' then code.copyWith(val).unreffedValue(deref, name, ast, top)
         else code.addErr "attempt to use free variable: #{val} in #{Parse.print originalAst}"
@@ -336,7 +366,7 @@ gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, 
       code.copyWith(src).unreffedValue(deref, name, ast, top)
     when 'lambda'
       v = getLambdaVar ast
-      bodyCode = (gen originalAst, prefixCount - 1, (getLambdaBody ast), code, lits, cons(v, vars), true, name, namespace, false)
+      bodyCode = (gen originalAst, prefixCount - 1, (getLambdaBody ast), code, lits, cons(v, vars), true, name, namespace, false, ignoreUnknownNames)
       bodyCode = if (originalAst.leisureTypeAssertions?) and (prefixCount == 1) then generateDispatch name, originalAst, bodyCode else bodyCode
       bodyCode = bodyCode.setVars(bodyCode.vars.removeAll (bv)-> bv == v)
       bodyCode = bodyCode.copyWith(wrap(name, ast, nameSub(v), bodyCode.main, namespace)).memoize(deref, name, ast, top)
@@ -344,11 +374,11 @@ gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, 
     when 'apply'
       func = getApplyFunc ast
       if getAstType(func) == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
-      else if freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
+      else if !ignoreUnknownNames and freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
       else
         arg = getApplyArg ast
-        funcCode = gen originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false
-        argCode = gen originalAst, prefixCount, arg, funcCode, lits, vars, false, name, namespace, false
+        funcCode = gen originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false, ignoreUnknownNames
+        argCode = gen originalAst, prefixCount, arg, funcCode, lits, vars, false, name, namespace, false, ignoreUnknownNames
         aplCode = if code.debug then wrapContext name, ast, "#{funcCode.main}(#{argCode.main})", top
         else "#{funcCode.main}(#{argCode.main})"
         argCode.copyWith(aplCode).memoize(deref, name, ast, top)
@@ -393,7 +423,11 @@ defineToken = (name, def)->
 
 prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\') + '.' else '') + str
 
-getNthBody = (ast, n)-> if n == 1 then ast else getNthBody(getLambdaBody(ast), n - 1)
+getNthBody = (ast, n)->
+  if n == 1 then ast
+  else
+    if Parse.getType(ast) != 'lambda' then throw new Error("Error: Expected lambda, but got #{Parse.getType ast}")
+    getNthBody(getLambdaBody(ast), n - 1)
 
 defineForward = (name)-> forward[nameSub(name())] = true
 
@@ -540,6 +574,7 @@ primFoldLeft = (func, val, array, index)->
 root.setEvalFunc = setEvalFunc
 root.eval = evalFunc
 root.gen = dgen
+root.primGen = gen
 root.laz = laz
 root.compileNext = compileNext
 root.evalNext = evalNext
@@ -562,3 +597,5 @@ root.parseFull = parseFull
 root.makeDispatchFunction = makeDispatchFunction
 root.createMethod = createMethod
 root.noDefaultError = noDefaultError
+root.Code = Code
+root.getNthBody = getNthBody

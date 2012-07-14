@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, mkProto, nameAst, nameSub, noDefaultError, numberAst, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext;
+  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, mkProto, nameAst, nameSub, noDefaultError, numberAst, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -439,9 +439,14 @@ misrepresented as being the original software.
   makeDispatchFunction = function makeDispatchFunction(funcName, methodName, receiverName, argNames) {
     var disp, dispSrc;
     dispSrc = "(function(){return " + (genDispatchFunc(methodName, receiverName, 0, argNames.slice(1, argNames.length))) + ";})";
+    console.log("DISPATCH " + funcName + "/" + methodName + " = " + dispSrc);
     disp = eval(dispSrc);
-    if (!(LeisureObject.prototype[methodName] != null) && (global[methodName] != null)) {
-      LeisureObject.prototype[methodName] = global[methodName]();
+    if (!(LeisureObject.prototype[methodName] != null)) {
+      if (global[methodName] != null) {
+        LeisureObject.prototype[methodName] = genDispatchDefault(funcName, methodName, global[methodName], argNames);
+      } else {
+        LeisureObject.prototype[methodName] = true;
+      }
     }
     define(funcName, disp, argNames.length, null, true);
     return disp;
@@ -454,6 +459,34 @@ misrepresented as being the original software.
     } else {
       joined = args.join(', ');
       return "(" + receiverName + "() instanceof LeisureObject ? " + receiverName + "() : LeisureObject.prototype)." + methodName + "(" + joined + ")";
+    }
+  };
+
+  genDispatchDefault = function genDispatchDefault(lsrName, name, func, args) {
+    var ast, code, f, originalAst, v;
+    originalAst = funcAst(func);
+    console.log("DISPATCH DEFAULT FOR " + lsrName + "/" + name + ", " + func.src);
+    v = getNargs(originalAst, args.length);
+    ast = getNthBody(originalAst, args.length);
+    if (lsrName === "_append") {
+      console.log("_APPEND arg: " + (Parse.print(Parse.getApplyArg(ast))));
+    }
+    console.log("DISPATCH DEFAULT AST: " + (Parse.print(ast)));
+    code = gen(ast, 0, ast, new Code().setGlobal(cons(lsrName, global.leisureFuncNames)), originalAst.lits, v, true, '', "Parse.", true, true);
+    if (code.err) throw new Error(code.err);
+    code = code.main;
+    console.log("DISPATCH DEFAULT: " + code);
+    code = "(function (" + (args.slice(1).join(', ')) + "){return (" + code + ")})";
+    f = eval(code);
+    console.log("DISPATCH DEFAULT CODE: " + f);
+    return f;
+  };
+
+  getNargs = function getNargs(ast, n) {
+    if (n === 0) {
+      return Nil;
+    } else {
+      return cons(Parse.getLambdaVar(ast), getNargs(Parse.getLambdaBody(ast), n - 1));
     }
   };
 
@@ -482,7 +515,7 @@ misrepresented as being the original software.
     }
   };
 
-  gen = function gen(originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, top) {
+  gen = function gen(originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, top, ignoreUnknownNames) {
     var aplCode, arg, argCode, bodyCode, func, funcCode, src, v, val;
     switch (getAstType(ast)) {
       case 'ref':
@@ -491,7 +524,7 @@ misrepresented as being the original software.
           return code.addErr("attempt to use lambda as a variable");
         } else {
           code = code.copyWith(nameSub(val)).reffedValue(deref);
-          if (vars.find(function(v) {
+          if (ignoreUnknownNames || vars.find(function(v) {
             return v === val;
           })) {
             return code.addVar(val);
@@ -512,7 +545,7 @@ misrepresented as being the original software.
         return code.copyWith(src).unreffedValue(deref, name, ast, top);
       case 'lambda':
         v = getLambdaVar(ast);
-        bodyCode = gen(originalAst, prefixCount - 1, getLambdaBody(ast), code, lits, cons(v, vars), true, name, namespace, false);
+        bodyCode = gen(originalAst, prefixCount - 1, getLambdaBody(ast), code, lits, cons(v, vars), true, name, namespace, false, ignoreUnknownNames);
         bodyCode = (originalAst.leisureTypeAssertions != null) && (prefixCount === 1) ? generateDispatch(name, originalAst, bodyCode) : bodyCode;
         bodyCode = bodyCode.setVars(bodyCode.vars.removeAll(function(bv) {
           return bv === v;
@@ -523,12 +556,12 @@ misrepresented as being the original software.
         func = getApplyFunc(ast);
         if (getAstType(func) === 'lit') {
           return code.addErr("Attempt to use lit as function: " + (getLitVal(func)));
-        } else if (freeVar(func, vars, code.global)) {
+        } else if (!ignoreUnknownNames && freeVar(func, vars, code.global)) {
           return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
         } else {
           arg = getApplyArg(ast);
-          funcCode = gen(originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false);
-          argCode = gen(originalAst, prefixCount, arg, funcCode, lits, vars, false, name, namespace, false);
+          funcCode = gen(originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false, ignoreUnknownNames);
+          argCode = gen(originalAst, prefixCount, arg, funcCode, lits, vars, false, name, namespace, false, ignoreUnknownNames);
           aplCode = code.debug ? wrapContext(name, ast, "" + funcCode.main + "(" + argCode.main + ")", top) : "" + funcCode.main + "(" + argCode.main + ")";
           return argCode.copyWith(aplCode).memoize(deref, name, ast, top);
         }
@@ -597,6 +630,9 @@ misrepresented as being the original software.
     if (n === 1) {
       return ast;
     } else {
+      if (Parse.getType(ast) !== 'lambda') {
+        throw new Error("Error: Expected lambda, but got " + (Parse.getType(ast)));
+      }
       return getNthBody(getLambdaBody(ast), n - 1);
     }
   };
@@ -828,6 +864,8 @@ misrepresented as being the original software.
 
   root.gen = dgen;
 
+  root.primGen = gen;
+
   root.laz = laz;
 
   root.compileNext = compileNext;
@@ -873,5 +911,9 @@ misrepresented as being the original software.
   root.createMethod = createMethod;
 
   root.noDefaultError = noDefaultError;
+
+  root.Code = Code;
+
+  root.getNthBody = getNthBody;
 
 }).call(this);

@@ -12,6 +12,7 @@ node_modules/coffee-script/bin/coffee -c parse.cs leisure.cs prim.cs game.cs
 node_modules/coffee-script/bin/coffee -c repl.cs runRepl.cs testLeisure.cs replCore.cs browserRepl.cs testing.cs bootLeisure.cs notebook.cs
 echo prelude...
 node runRepl $DEBUG -q -b 0 -c prelude
+#node --debug-brk runRepl $DEBUG -q -b 0 -c prelude
 #node runRepl $DEBUG -v -b 0 -c prelude
 echo std...
 #node --debug-brk runRepl $DEBUG -q -b 1 -c std

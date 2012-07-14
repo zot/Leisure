@@ -222,6 +222,23 @@ br = (str, sq)-> "#{if sq then '[[' else '<<'}#{str}#{if sq then ']]' else '>>'}
 run 'test30', -> assertEq(applyBrackets(in9, 12, br), out9_12)
 run 'test31', -> assertEq(applyBrackets(in9, 30, br), out9_30)
 
+cons = Parse.cons
+arrayToCons = (array)->
+  res = Nil
+  for i in [array.length - 1 .. 0]
+    res = cons array[i], res
+  res
+run 'test32', ->
+  ast = (LZ.parseFull '_append pairF (tail l1) l2')[0]
+  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)")
+run 'test33', ->
+  ast = (LZ.parseFull 'pairF (head l1) (_append pairF (tail l1) l2)')[0]
+  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "_pairF()((function(){var $m; return (function(){return $m || ($m = (_head()(_l1)))})})())((function(){var $m; return (function(){return $m || ($m = (__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)))})})())")
+run 'test34', ->
+  ast = LZ.getNthBody((LZ.parseFull '\\pairF . \\l1 . \\l2 . pairF (head l1) (_append pairF (tail l1) l2)')[0], 4)
+  console.log "TEST 34, AST: #{Parse.print ast}"
+  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "_pairF()((function(){var $m; return (function(){return $m || ($m = (_head()(_l1)))})})())((function(){var $m; return (function(){return $m || ($m = (__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)))})})())")
+
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
 else

@@ -129,12 +129,12 @@ foldr1 func list = null? list
 #  func (head list) (foldr1 func (tail list))
 #foldr1 func list::nil = nil
 append l1 l2 = _append (pairFunc l1) l1 l2
-#append l1::nil l2 = l2
-_append pairF l1 l2 = null? l1
-  l2
-  pairF (head l1) (_append pairF (tail l1) l2)
-#_append pairF l1 l2 = pairF (head l1) (_append pairF (tail l1) l2)
-#_append pairF l1::nil l2 = l2
+append l1::nil l2 = l2
+#_append pairF l1 l2 = null? l1
+#  l2
+#  pairF (head l1) (_append pairF (tail l1) l2)
+_append pairF l1 l2 = pairF (head l1) (_append pairF (tail l1) l2)
+_append pairF l1::nil l2 = l2
 compose f g = \x . f ( g x)
 
 # numerics
