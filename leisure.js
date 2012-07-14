@@ -292,9 +292,6 @@ misrepresented as being the original software.
     }
 
     Code.prototype.copyWith = function copyWith(main, vars, err, global, debug, method, unmemoized) {
-      if (!main && !unmemoized && this.unmemoized) {
-        console.log("PRESERVING UNMEMOIZED: @unmemoized");
-      }
       return new Code(main != null ? main : this.main, vars != null ? vars : this.vars, err != null ? err : this.err, global != null ? global : this.global, debug != null ? debug : this.debug, method != null ? method : this.method, unmemoized != null ? unmemoized : (!main ? this.unmemoized : null));
     };
 
@@ -336,9 +333,6 @@ misrepresented as being the original software.
         return this;
       } else {
         tmp = this;
-        if (this.unmemoized) {
-          console.log("DEREF: " + this.main + "()  [" + this.unmemoized + "()]");
-        }
         return tmp.copyWith("" + tmp.main + "()");
       }
     };
@@ -439,14 +433,9 @@ misrepresented as being the original software.
   makeDispatchFunction = function makeDispatchFunction(funcName, methodName, receiverName, argNames) {
     var disp, dispSrc;
     dispSrc = "(function(){return " + (genDispatchFunc(methodName, receiverName, 0, argNames.slice(1, argNames.length))) + ";})";
-    console.log("DISPATCH " + funcName + "/" + methodName + " = " + dispSrc);
     disp = eval(dispSrc);
     if (!(LeisureObject.prototype[methodName] != null)) {
-      if (global[methodName] != null) {
-        LeisureObject.prototype[methodName] = genDispatchDefault(funcName, methodName, global[methodName], argNames);
-      } else {
-        LeisureObject.prototype[methodName] = true;
-      }
+      LeisureObject.prototype[methodName] = global[methodName] != null ? genDispatchDefault(funcName, methodName, global[methodName], argNames) : true;
     }
     define(funcName, disp, argNames.length, null, true);
     return disp;
@@ -463,23 +452,15 @@ misrepresented as being the original software.
   };
 
   genDispatchDefault = function genDispatchDefault(lsrName, name, func, args) {
-    var ast, code, f, originalAst, v;
+    var ast, code, originalAst, v;
     originalAst = funcAst(func);
-    console.log("DISPATCH DEFAULT FOR " + lsrName + "/" + name + ", " + func.src);
     v = getNargs(originalAst, args.length);
     ast = getNthBody(originalAst, args.length);
-    if (lsrName === "_append") {
-      console.log("_APPEND arg: " + (Parse.print(Parse.getApplyArg(ast))));
-    }
-    console.log("DISPATCH DEFAULT AST: " + (Parse.print(ast)));
     code = gen(ast, 0, ast, new Code().setGlobal(cons(lsrName, global.leisureFuncNames)), originalAst.lits, v, true, '', "Parse.", true, true);
     if (code.err) throw new Error(code.err);
     code = code.main;
-    console.log("DISPATCH DEFAULT: " + code);
     code = "(function (" + (args.slice(1).join(', ')) + "){return (" + code + ")})";
-    f = eval(code);
-    console.log("DISPATCH DEFAULT CODE: " + f);
-    return f;
+    return eval(code);
   };
 
   getNargs = function getNargs(ast, n) {
@@ -688,7 +669,6 @@ misrepresented as being the original software.
             if (!isEmpty(typeAssertions)) {
               ast.leisureTypeAssertions = typeAssertions;
               ast.leisureArgNames = nm;
-              console.log("arg names: " + nm);
             }
             return genCode(ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource, debug);
           }), errPrefix);

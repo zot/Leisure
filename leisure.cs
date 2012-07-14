@@ -209,7 +209,7 @@ class Code
     @err = @err ? ''
     @global = @global ? Nil
   copyWith: (main, vars, err, global, debug, method, unmemoized)->
-    if !main and !unmemoized and @unmemoized then console.log "PRESERVING UNMEMOIZED: @unmemoized"
+    #if !main and !unmemoized and @unmemoized then console.log "PRESERVING UNMEMOIZED: @unmemoized"
     #else if unmemoized then console.log "SETTING UNMEMOIZED: #{unmemoized}"
     new Code(main ? @main, vars ? @vars, err ? @err, global ? @global, debug ? @debug, method ? @method, unmemoized ? (if !main then @unmemoized else null))
   setVars: (v)-> @copyWith(null, v)
@@ -224,7 +224,7 @@ class Code
   else
     #tmp = if @unmemoized then @unmemoize() else @
     tmp = @
-    if @unmemoized then console.log "DEREF: #{@main}()  [#{@unmemoized}()]"
+    #if @unmemoized then console.log "DEREF: #{@main}()  [#{@unmemoized}()]"
     tmp.copyWith("#{tmp.main}()")
   unreffedValue: (deref, name, ast, top)-> if deref then @ else @lazy(name, ast, top)
   memoize: (deref, name, ast, top)->
@@ -284,13 +284,10 @@ receiverFor = (ast, index)->
 # This should be moved to compile-time, rather than load-time
 makeDispatchFunction = (funcName, methodName, receiverName, argNames)->
   dispSrc = "(function(){return #{genDispatchFunc(methodName, receiverName, 0, argNames[1...argNames.length])};})"
-  console.log "DISPATCH #{funcName}/#{methodName} = #{dispSrc}"
+  #console.log "DISPATCH #{funcName}/#{methodName} = #{dispSrc}"
   disp = eval(dispSrc)
   if !LeisureObject.prototype[methodName]?
-    if global[methodName]?
-      #LeisureObject.prototype[methodName] = global[methodName]()
-      LeisureObject.prototype[methodName] = genDispatchDefault(funcName, methodName, global[methodName], argNames)
-    else LeisureObject.prototype[methodName] = true
+    LeisureObject.prototype[methodName] = if global[methodName]? then genDispatchDefault(funcName, methodName, global[methodName], argNames) else true
   define funcName, disp, argNames.length, null, true
   disp
 
@@ -302,24 +299,15 @@ genDispatchFunc = (methodName, receiverName, index, args)->
 
 genDispatchDefault = (lsrName, name, func, args)->
   originalAst = funcAst func
-  #originalAst = parseFull(func.src)[0]
-  console.log "DISPATCH DEFAULT FOR #{lsrName}/#{name}, #{func.src}"
   v = getNargs originalAst, args.length
   ast = getNthBody originalAst, args.length
-  if lsrName == "_append"
-    console.log "_APPEND arg: #{Parse.print(Parse.getApplyArg ast)}"
-    #ast = Parse.getApplyArg ast
-  console.log "DISPATCH DEFAULT AST: #{Parse.print ast}"
   #Can't define function with name here, because it can interfere with recursive calls
   code = (gen ast, 0, ast, new Code().setGlobal(cons(lsrName, global.leisureFuncNames)), originalAst.lits, v, true, '', "Parse.", true, true)
   if code.err then throw new Error(code.err)
   code = code.main
-  console.log "DISPATCH DEFAULT: #{code}"
   #Can't define function with name here, because it can interfere with recursive calls
   code = "(function (#{args[1..].join(', ')}){return (#{code})})"
-  f = eval(code)
-  console.log "DISPATCH DEFAULT CODE: #{f}"
-  f
+  eval(code)
 
 getNargs = (ast, n)->
   if n == 0 then Nil
@@ -433,7 +421,6 @@ defineForward = (name)-> forward[nameSub(name())] = true
 
 # returns [ast, err, rest]
 compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
-  #console.log "LINE: #{line}"
   if line[0] == '='
     rest1 = line.substring 1
     ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
@@ -470,7 +457,6 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
           if !isEmpty typeAssertions
             ast.leisureTypeAssertions = typeAssertions
             ast.leisureArgNames = nm
-            console.log "arg names: #{nm}"
           genCode ast, nm[0], globals, defType, rest, parseOnly, namespace, ast.leisureSource, debug), errPrefix
     else ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = line.length - rest1.length
