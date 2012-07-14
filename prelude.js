@@ -25,7 +25,7 @@ var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
-var _id, _flip, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _head, _tail, _head, _tail, _startPos, _startPos, _endPos, _endPos, _pairFunc, _pairFunc, _pairFunc, _null$e, _null$e, _foldl, _foldl, _foldl1, _foldl1, _foldr, _foldr1, _foldr1, _append, _append, __append, __append, _compose, _iszero, _positive, _length, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _reverse, _subreverse, _addstr, _if, _at, _take, __take, _takeWhile, __takeWhile, _drop, _dropWhile, _dropLast, __dropLast, _series, _from, _fromBy, _fromTo, _fromToBy, _any, __any, _all, __all, _index_combine, _indexof, _position, _find, _findIf, _findIfOpt, _count, _countIf, _countIfNot, _remove, _removeIf, __removeIf, _removeIfNot, _filter, _map, __map, _reduce, _$r, _$s, _$q, _$b, _nextListItem, _dlempty, _dl, _dlAppend, _identMacro, _macroCons, _do, _doClause, _doExtractVar, _html, _assocFromList, _assocKey, _assocValue, _assocGetPair, _assocGetPairOpt, _valueOrDefault, _assocKeys, _assocNumKeys, _assocMergeKeys, _assocMerge, _assocSet, _assocGet, _assocGetWithDefault, _assocRemove;
+var _id, _flip, _compose, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _iszero, _positive, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _head, _tail, _head, _tail, _length, _last, _startPos, _startPos, _endPos, _endPos, _pairFunc, _pairFunc, _pairFunc, _null$e, _null$e, _foldl, _foldl, _foldl1, _foldl1, _foldr, _foldr1, _foldr1, _append, _append, __append, __append, _reverse, _subreverse, _addstr, _if, _at, _take, __take, _takeWhile, __takeWhile, _drop, _dropWhile, _dropLast, __dropLast, _series, _from, _fromBy, _fromTo, _fromToBy, _any, __any, _all, __all, _index_combine, _indexof, _position, _find, _findIf, _findIfOpt, _count, _countIf, _countIfNot, _remove, _removeIf, __removeIf, _removeIfNot, _filter, _map, __map, _reduce, _$r, _$s, _$q, _$b, _nextListItem, _dlempty, _dl, _dlAppend, _identMacro, _macroCons, _do, _doClause, _doExtractVar, _html, _assocFromList, _assocKey, _assocValue, _assocGetPair, _assocGetPairOpt, _valueOrDefault, _assocKeys, _assocNumKeys, _assocMergeKeys, _assocMerge, _assocSet, _assocGet, _assocGetWithDefault, _assocRemove;
 processResult(//AST(defGroup "[" "]")
 (_defGroup()((function(){return "["}))((function(){return "]"}))));
 processResult(//AST(defToken "|")
@@ -36,6 +36,8 @@ processResult(//AST(defToken ",")
 root.defs._id = _id = Parse.define('id', (function() {var f; return function _id(){return f || (f = (function(_x){return _x();}));}})(), 1, "\\x. x");;
 //flip = AST(λf a b . f b a)
 root.defs._flip = _flip = Parse.define('flip', (function() {var f; return function _flip(){return f || (f = (Parse.setDataType(function(_f){return Parse.setType(function(_a){return function(_b){return _f()(_b)(_a);};}, 'flip');}, 'flip')));}})(), 1, "\\f. \\a b . f b a");;
+//compose = AST(λf g x . f (g x))
+root.defs._compose = _compose = Parse.define('compose', (function() {var f; return function _compose(){return f || (f = (Parse.setDataType(function(_f){return function(_g){return Parse.setType(function(_x){return _f()((function(){var $m; return (function(){return $m || ($m = (_g()(_x)))})})());}, 'compose');};}, 'compose')));}})(), 2, "\\f. \\g. \\x . f ( g x)");;
 //true = AST(λa b . a)
 root.defs._true = _true = Parse.define('true', (function() {var f; return function _true(){return f || (f = (Parse.setType(function(_a){return function(_b){return _a();};}, 'true')));}})(), 0, "\\a b . a");;
 //false = AST(λa b . b)
@@ -58,6 +60,22 @@ root.defs._some = _some = Parse.define('some', (function() {var f; return functi
 root.defs._some2 = _some2 = Parse.define('some2', (function() {var f; return function _some2(){return f || (f = (Parse.setDataType(function(_a){return function(_b){return Parse.setType(function(_yes){return function(_no){return _yes()(_a)(_b);};}, 'some2');};}, 'some2')));}})(), 2, "\\a. \\b. \\yes no . yes a b");;
 //none = AST(λyes no . no)
 root.defs._none = _none = Parse.define('none', (function() {var f; return function _none(){return f || (f = (Parse.setType(function(_yes){return function(_no){return _no();};}, 'none')));}})(), 0, "\\yes no . no");;
+//iszero = AST(eq 0)
+root.defs._iszero = _iszero = Parse.define('iszero', (function _iszero() {return ((_eq()((function(){return 0}))));}), 0, "eq 0");;
+//positive = AST(< 0)
+root.defs._positive = _positive = Parse.define('positive', (function _positive() {return ((_$y()((function(){return 0}))));}), 0, "< 0");;
+//-- = AST(flip - 1)
+root.defs._$_$_ = _$_$_ = Parse.define('--', (function _$_$_() {return ((_flip()(_$_)((function(){return 1}))));}), 0, "(flip -) 1");;
+//++ = AST(+ 1)
+root.defs._$o$o = _$o$o = Parse.define('++', (function _$o$o() {return ((_$o()((function(){return 1}))));}), 0, "+ 1");;
+//even? = AST(λx . iszero (% x 2))
+root.defs._even$e = _even$e = Parse.define('even?', (function() {var f; return function _even$e(){return f || (f = (function(_x){return _iszero()((function(){var $m; return (function(){return $m || ($m = (_$A()(_x)((function(){return 2}))))})})());}));}})(), 1, "\\x. iszero (% x 2)");;
+//odd? = AST(λx . eq 1 (% x 2))
+root.defs._odd$e = _odd$e = Parse.define('odd?', (function() {var f; return function _odd$e(){return f || (f = (function(_x){return _eq()((function(){return 1}))((function(){var $m; return (function(){return $m || ($m = (_$A()(_x)((function(){return 2}))))})})());}));}})(), 1, "\\x. eq 1 (% x 2)");;
+//max = AST(λa b . gt a b a b)
+root.defs._max = _max = Parse.define('max', (function() {var f; return function _max(){return f || (f = (function(_a){return function(_b){return _gt()(_a)(_b)(_a)(_b);};}));}})(), 2, "\\a. \\b. (gt a b) a b");;
+//min = AST(λa b . lt a b a b)
+root.defs._min = _min = Parse.define('min', (function() {var f; return function _min(){return f || (f = (function(_a){return function(_b){return _lt()(_a)(_b)(_a)(_b);};}));}})(), 2, "\\a. \\b. (lt a b) a b");;
 //head = AST(λl . l λh t . h)
 root.defs._head = _head = Leisure.makeDispatchFunction('head', '_head', '_l', ['_head', '_l']);
 Leisure.createMethod('cons', 'head', "\\l. l \\h t . h", function(_l) {return _l()((function(){var $m; return (function(){return $m || ($m = (function(_h){return function(_t){return _h();};}))})})());});
@@ -70,6 +88,10 @@ Leisure.createMethod('lexCons', 'head', "\\l. l \\h s t e . h", function(_l) {re
 //tail = AST(λl . l λh s t e . t)
 root.defs._tail = _tail = Leisure.makeDispatchFunction('tail', '_tail', '_l', ['_tail', '_l']);
 Leisure.createMethod('lexCons', 'tail', "\\l. l \\h s t e . t", function(_l) {return _l()((function(){var $m; return (function(){return $m || ($m = (function(_h){return function(_s){return function(_t){return function(_e){return _t();};};};}))})})());});
+//length = AST(λl . eq l nil 0 (++ (length (tail l))))
+root.defs._length = _length = Parse.define('length', (function() {var f; return function _length(){return f || (f = (function(_l){return _eq()(_l)(_nil)((function(){return 0}))((function(){var $m; return (function(){return $m || ($m = (_$o$o()((function(){var $m; return (function(){return $m || ($m = (_length()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())))})})());}));}})(), 1, "\\l. (eq l nil) 0 (++ (length (tail l) ) )");;
+//last = AST(λl . eq (tail l) nil (head l) (last (tail l)))
+root.defs._last = _last = Parse.define('last', (function() {var f; return function _last(){return f || (f = (function(_l){return _eq()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())(_nil)((function(){var $m; return (function(){return $m || ($m = (_head()(_l)))})})())((function(){var $m; return (function(){return $m || ($m = (_last()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})());}));}})(), 1, "\\l. eq (tail l) nil\n  head l\n  last (tail l)");;
 //startPos = AST(λl . lexStart l)
 root.defs._startPos = _startPos = Leisure.makeDispatchFunction('startPos', '_startPos', '_l', ['_startPos', '_l']);
 Leisure.createMethod('lexCons', 'startPos', "\\l. lexStart l", function(_l) {return _lexStart()(_l);});
@@ -122,26 +144,6 @@ root.defs.__append = __append = Parse.define('_append', (function() {var f; retu
 //_append = AST(λpairF l1 l2 . l2)
 root.defs.__append = __append = Leisure.makeDispatchFunction('_append', '__append', '_l1', ['__append', '_pairF', '_l1', '_l2']);
 Leisure.createMethod('nil', '_append', "\\pairF. \\l1. \\l2. l2", function(_pairF, _l1, _l2) {return _l2();});
-//compose = AST(λf g x . f (g x))
-root.defs._compose = _compose = Parse.define('compose', (function() {var f; return function _compose(){return f || (f = (Parse.setDataType(function(_f){return function(_g){return Parse.setType(function(_x){return _f()((function(){var $m; return (function(){return $m || ($m = (_g()(_x)))})})());}, 'compose');};}, 'compose')));}})(), 2, "\\f. \\g. \\x . f ( g x)");;
-//iszero = AST(eq 0)
-root.defs._iszero = _iszero = Parse.define('iszero', (function _iszero() {return ((_eq()((function(){return 0}))));}), 0, "eq 0");;
-//positive = AST(< 0)
-root.defs._positive = _positive = Parse.define('positive', (function _positive() {return ((_$y()((function(){return 0}))));}), 0, "< 0");;
-//length = AST(λl . eq l nil 0 (++ (length (tail l))))
-root.defs._length = _length = Parse.define('length', (function() {var f; return function _length(){return f || (f = (function(_l){return _eq()(_l)(_nil)((function(){return 0}))((function(){var $m; return (function(){return $m || ($m = (_$o$o()((function(){var $m; return (function(){return $m || ($m = (_length()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())))})})());}));}})(), 1, "\\l. (eq l nil) 0 (++ (length (tail l) ) )");;
-//-- = AST(flip - 1)
-root.defs._$_$_ = _$_$_ = Parse.define('--', (function _$_$_() {return ((_flip()(_$_)((function(){return 1}))));}), 0, "(flip -) 1");;
-//++ = AST(+ 1)
-root.defs._$o$o = _$o$o = Parse.define('++', (function _$o$o() {return ((_$o()((function(){return 1}))));}), 0, "+ 1");;
-//even? = AST(λx . iszero (% x 2))
-root.defs._even$e = _even$e = Parse.define('even?', (function() {var f; return function _even$e(){return f || (f = (function(_x){return _iszero()((function(){var $m; return (function(){return $m || ($m = (_$A()(_x)((function(){return 2}))))})})());}));}})(), 1, "\\x. iszero (% x 2)");;
-//odd? = AST(λx . eq 1 (% x 2))
-root.defs._odd$e = _odd$e = Parse.define('odd?', (function() {var f; return function _odd$e(){return f || (f = (function(_x){return _eq()((function(){return 1}))((function(){var $m; return (function(){return $m || ($m = (_$A()(_x)((function(){return 2}))))})})());}));}})(), 1, "\\x. eq 1 (% x 2)");;
-//max = AST(λa b . gt a b a b)
-root.defs._max = _max = Parse.define('max', (function() {var f; return function _max(){return f || (f = (function(_a){return function(_b){return _gt()(_a)(_b)(_a)(_b);};}));}})(), 2, "\\a. \\b. (gt a b) a b");;
-//min = AST(λa b . lt a b a b)
-root.defs._min = _min = Parse.define('min', (function() {var f; return function _min(){return f || (f = (function(_a){return function(_b){return _lt()(_a)(_b)(_a)(_b);};}));}})(), 2, "\\a. \\b. (lt a b) a b");;
 //reverse = AST(λl . subreverse l nil)
 root.defs._reverse = _reverse = Parse.define('reverse', (function() {var f; return function _reverse(){return f || (f = (function(_l){return _subreverse()(_l)(_nil);}));}})(), 1, "\\l. subreverse l nil");;
 //subreverse = AST(λl result . l λh t D . subreverse t (cons h result) result)

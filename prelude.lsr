@@ -62,6 +62,13 @@ id x = x
 # eq. flip cons nil 1 gives cons: [1]
 flip f = \a b . f b a
 
+compose f g = \x . f ( g x)
+
+# The Y combinator, for reference
+#
+# Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+# rec = \f . f (Y f)
+
 # booleans
 true = \a b . a
 false = \a b . b
@@ -77,23 +84,31 @@ some x = \yes no . yes x
 some2 a b = \yes no . yes a b
 none = \yes no . no
 
-# The Y combinator, for reference
-#
-# Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
-# rec = \f . f (Y f)
+# numerics
 
-# lists -- cons is a primitive, because the parser and compiler uses it
-#cons a b =
-#  \f . f
-#    a
-#    b
-# lists -- cons is a primitive, because the parser and compiler uses it
-#nil = \a b . b
+iszero = eq 0
+positive = < 0
+
+-- = (flip -) 1
+++ = + 1
+even? x = iszero (% x 2)
+odd? x = eq 1 (% x 2)
+max a b = (gt a b) a b
+min a b = (lt a b) a b
+
+# some basic list functions
+# some list functions are primitives, for the time being: cons, nil
+# cons a b = \f . f a b
+# nil = \a b . b
 
 head l::cons = l \h t . h
 tail l::cons = l \h t . t
 head l::lexCons = l \h s t e . h
 tail l::lexCons = l \h s t e . t
+length l = (eq l nil) 0 (++ (length (tail l) ) )
+last l = eq (tail l) nil
+  head l
+  last (tail l)
 startPos l::lexCons = lexStart l
 startPos t::token = t \t p . p
 endPos l::lexCons = lexEnd l
@@ -105,6 +120,12 @@ pairFunc l::lexCons = \h t . null? t
   lexCons h (startPos h) t (endPos t)
 null? x = false
 null? x::nil = true
+
+# foldr, foldl
+# call func on list items and previous result of fold
+# foldl uses the head of the list for the previous results
+# foldr uses the tail of the list for the previous results
+# foldr can work on infinite lists, but foldl cannot
 foldl func arg list = foldl func (func arg (head list)) (tail list)
 foldl func arg list::nil = arg
 foldl1 func list = foldl func (head list) (tail list)
@@ -116,31 +137,12 @@ foldr1 func list = eq (tail list) nil
   head list
   func (head list) (foldr1 func (tail list))
 foldr1 func list::nil = nil
+
 append l1 l2 = _append (pairFunc l1) l1 l2
 append l1::nil l2 = l2
 _append pairF l1 l2 = pairF (head l1) (_append pairF (tail l1) l2)
 _append pairF l1::nil l2 = l2
-compose f g = \x . f ( g x)
 
-# numerics
-
-iszero = eq 0
-positive = < 0
-length l = (eq l nil) 0 (++ (length (tail l) ) )
-
--- = (flip -) 1
-++ = + 1
-even? x = iszero (% x 2)
-odd? x = eq 1 (% x 2)
-max a b = (gt a b) a b
-min a b = (lt a b) a b
-
-# some basic list functions
-# some list functions are primitives, for the time being: cons, nil, head, tail
-# cons a b = \f . f a b
-# nil = \a b . b
-# head l = l \h t . h
-# tail l = l \h t . t
 reverse l = subreverse l nil
 subreverse l result = l (\h t D . subreverse t (cons h result)) result
 addstr a b = concat [a b]
@@ -241,7 +243,6 @@ filter f = removeIf (compose not f)
 
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
 # eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
-#map func list = list (\h t D . cons (func h) (map func t)) nil
 map func list = _map (pairFunc list) func list
 _map pairF func list = null? list
   nil
@@ -252,26 +253,6 @@ _map pairF func list = null? list
 # if the list is only one element long, just return the first element
 # eg. reduce + [3 5] gives number: 8
 reduce func list = foldl1 func list
-#reduce func list = if (eq list nil) nil
-#  if (eq 1 (length list)) (head list)
-#    func (head list) (reduce func (tail list))
-
-# foldr, foldl
-# these are primitives, for the time being
-# call func on list items and previous result of fold
-# foldl uses the head of the list for the previous results
-# foldr uses the tail of the list for the previous results
-# foldr can work on infinite lists, but foldl cannot
-
-#foldr func value list = list (\h t D . func h (foldr func value t)) value
-#foldr1 func list = list
-#  \h t D . null? t
-#     h
-#     func h (foldr1 func t)
-#  nil
-
-#foldl func value list = list (\h t D . foldl func (func value h) t) value
-#foldl1 func list = list (\h t D. foldl func h t) nil
 
 # simple list constructor syntax
 # pure Lambda Calculus definition, for reference

@@ -52,7 +52,7 @@ Tests for Leisure
 
   debug = false;
 
-  code = R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\nlast l = l (\\h t D . null? t h (last t)) nil\nval = 2\ndivider = ['\\n' '-' '-' '-' '-' '-' '\\n']\ndiv = ['\\n' '-' '-' '-' '-' '-' '\\n']\n", false, null, null, null, debug);
+  code = R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\n#last l = l (\\h t D . null? t h (last t)) nil\nval = 2\ndivider = ['\\n' '-' '-' '-' '-' '-' '\\n']\ndiv = ['\\n' '-' '-' '-' '-' '-' '\\n']\n", false, null, null, null, debug);
 
   LZ.eval(code);
 
