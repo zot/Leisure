@@ -138,6 +138,7 @@ class Leisure_nil extends Leisure_cons
   equals: (other)-> other instanceof Leisure_nil
   each: ->
   append: (l)-> l
+  elementString: -> ''
 
 global.Leisure_nil = Leisure_nil
 
@@ -246,6 +247,9 @@ class Scanner
     @tokenTypes = []
     @groupOpens = {'(': ')'}
     @groupCloses = {')': 1}
+    @filters = []
+    @filterInfo = Nil
+  addFilter: (filter)-> @filters.push(filter)
   defToken: (name)->
     if !@tokens[name]?
       @tokens[name] = 1
@@ -271,7 +275,18 @@ class Scanner
       rest = str.substring(m.index + m[0].length)
       if tok[0] == '#' or tok[0] == ' ' or (tok[0] == '\n' and rest[0] == '\n') then @nextTok rest
       else [tok, rest]
-  scan: (str)-> ifParsed (@parseGroup str, '\n', str.length), (group, rest)-> [group(Nil, str.length - rest.length), null, rest]
+  scan: (str)->
+    [group] = res = @filter 0, (@basicScan str)
+    if @filters.length then console.log "PARSED: #{group}"
+    res
+  filter: (index, result)-> ifParsed result, (group, rest)=>
+    if index < @filters.length
+      try
+        @filter index + 1, [cleanupMacro(@filters[index](=> @filterInfo)(-> group)), null, rest]
+      catch err
+        [null, err.toString(), null]
+    else [group, null, rest]
+  basicScan: (str)-> ifParsed (@parseGroup str, '\n', str.length), (group, rest)-> [group(Nil, str.length - rest.length), null, rest]
   parseGroup: (str, indent, totalLen)->
     # returns [lexdlGroup, err, rest]
     # note that lexdlGroup is not a list, it's a difference list
@@ -471,11 +486,11 @@ parseOptional = (string, macros)->
 right = (value)-> (a)->(b)-> a()(->value)
 left = (value)-> (a)->(b)-> b()(->value)
 
-define 'scan', -> (string)->
+define 'scan', (-> (string)->
   [res, err, rest] = defaultScanner.scan string()
-  if err then _left()(->"Error at: #{JSON.stringify snip rest}..., #{err}") else _right()(->res)
+  if err then _left()(->"Error at: #{JSON.stringify snip rest}..., #{err}") else _right()(->res)), 1
 
-define 'macro', -> (list)-> substituteMacros list()
+define 'macro', (-> (list)-> substituteMacros list()), 1
 
 parse = (string)->parseOptional string, false
 parseFull = (string)->parseOptional string, true
@@ -576,3 +591,4 @@ root.Scanner = Scanner
 root.Leisure_token = Leisure_token
 root.ensureLeisureClass = ensureLeisureClass
 root.LeisureObject = LeisureObject
+root.defaultScanner = defaultScanner

@@ -18,6 +18,7 @@ node runRepl $DEBUG -q -b 1 -c std
 #node runRepl $DEBUG -v -b 1 -c std
 echo tests...
 node testLeisure
+#node runRepl $DEBUG -q -c parsing
 #node_modules/coffee-script/bin/coffee -c chippy.cs
 #node runRepl -c -r chippy chip.lsr
 #node_modules/coffee-script/bin/coffee -c coaster.cs

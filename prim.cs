@@ -71,6 +71,17 @@ define 'defGroup', ->(open)->(close)->
   makeMonad (env, cont)->
     Parse.defGroup open(), close()
     cont tmpFalse
+define 'addParseFilter', (->(filter)->
+  makeMonad (env, cont)->
+    Parse.defaultScanner.addFilter filter()
+    cont tmpFalse), 1
+define 'getParseFilterInfo', (->
+  makeMonad (env, cont)->
+    cont Parse.defaultScanner.filterInfo), 0
+define 'setParseFilterInfo', (->(info)->
+  makeMonad (env, cont)->
+    Parse.defaultScanner.filterInfo = info()
+    cont tmpFalse), 1
 
 define '+', ->(a)->(b)->a() + b()
 define '-', ->(a)->(b)->a() - b()

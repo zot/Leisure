@@ -188,14 +188,14 @@ primAndVar list args = eq args nil
 # defInfixToken '-' 'same' '+' -- make - bind the same strength as +
 defInfixToken tokenName location reference = do
   defToken tokenName
-  defs <- getValueOr 'parseFilter.defs' nil
+  defs <- getParseFilterInfo
   operators = assocGetWithDefault 'infix' nil defs
   operators = eq reference nil
     eq location 'before'
       [[tokenName] | operators]
       append operators [[tokenName]]
     insertOperator tokenName location reference operators
-  setValue 'parseFilter.defs' (assocSet 'infix' operators defs)
+  setParseFilterInfo (assocSet 'infix' operators defs)
 
 insertOperator tokenName location reference operators = find reference (head operators)
   eq location 'before'
@@ -212,10 +212,12 @@ testInfix str = do
 mainParseInfix parseDefs list = parseInfix (assocGetWithDefault 'infix' nil parseDefs) list
 
 parseInfix tokens list = list
-parseInfix tokens list::cons = do
+parseInfix tokens list::cons = callParseInfixList tokens list
+parseInfix tokens list::lexCons = callParseInfixList tokens list
+
+callParseInfixList tokens list = do
   prep = map (parseInfix tokens) list
   parseInfixList tokens dlempty (head prep) (tail prep)
-parseInfix tokens list::nil = nil
 
 # tokens is the list of operator lists
 # firstList is the reversed first part of the list
@@ -236,5 +238,8 @@ parseInfixList tokens firstList token restList = do
           error concat['Parse error -- expected token after operator: ' op]
           parseInfixList tokens firstList [op token nextTok] nextRest
 
-# TODO optimizer could factor (any (eq op)) out, since it only depends on op.  That would prevent repeated application
-operatorIn op tokens = any (\toks . any (\el . eq (tokString op) el) toks) tokens
+# TODO optimizer could factor out opEq by itself, since it only depends on op.  That would prevent repeated application
+operatorIn op tokens = do
+  opEq = eq (tokString op)
+  log ['operator in: ' (tokString op) ' ' tokens]
+    any (\toks . any opEq toks) tokens

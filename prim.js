@@ -182,6 +182,30 @@
     };
   });
 
+  define('addParseFilter', (function() {
+    return function(filter) {
+      return makeMonad(function(env, cont) {
+        Parse.defaultScanner.addFilter(filter());
+        return cont(tmpFalse);
+      });
+    };
+  }), 1);
+
+  define('getParseFilterInfo', (function() {
+    return makeMonad(function(env, cont) {
+      return cont(Parse.defaultScanner.filterInfo);
+    });
+  }), 0);
+
+  define('setParseFilterInfo', (function() {
+    return function(info) {
+      return makeMonad(function(env, cont) {
+        Parse.defaultScanner.filterInfo = info();
+        return cont(tmpFalse);
+      });
+    };
+  }), 1);
+
   define('+', function() {
     return function(a) {
       return function(b) {

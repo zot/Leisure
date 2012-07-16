@@ -282,6 +282,10 @@ misrepresented as being the original software.
       return l;
     };
 
+    Leisure_nil.prototype.elementString = function elementString() {
+      return '';
+    };
+
     return Leisure_nil;
 
   })(Leisure_cons);
@@ -582,7 +586,13 @@ misrepresented as being the original software.
       this.groupCloses = {
         ')': 1
       };
+      this.filters = [];
+      this.filterInfo = Nil;
     }
+
+    Scanner.prototype.addFilter = function addFilter(filter) {
+      return this.filters.push(filter);
+    };
 
     Scanner.prototype.defToken = function defToken(name) {
       var i, types;
@@ -643,6 +653,34 @@ misrepresented as being the original software.
     };
 
     Scanner.prototype.scan = function scan(str) {
+      var group, res;
+      group = (res = this.filter(0, this.basicScan(str)))[0];
+      if (this.filters.length) console.log("PARSED: " + group);
+      return res;
+    };
+
+    Scanner.prototype.filter = function filter(index, result) {
+      var _this = this;
+      return ifParsed(result, function(group, rest) {
+        if (index < _this.filters.length) {
+          try {
+            return _this.filter(index + 1, [
+              cleanupMacro(_this.filters[index](function() {
+                return _this.filterInfo;
+              })(function() {
+                return group;
+              })), null, rest
+            ]);
+          } catch (err) {
+            return [null, err.toString(), null];
+          }
+        } else {
+          return [group, null, rest];
+        }
+      });
+    };
+
+    Scanner.prototype.basicScan = function basicScan(str) {
       return ifParsed(this.parseGroup(str, '\n', str.length), function(group, rest) {
         return [group(Nil, str.length - rest.length), null, rest];
       });
@@ -1151,7 +1189,7 @@ misrepresented as being the original software.
     };
   };
 
-  define('scan', function() {
+  define('scan', (function() {
     return function(string) {
       var err, res, rest, _ref;
       _ref = defaultScanner.scan(string()), res = _ref[0], err = _ref[1], rest = _ref[2];
@@ -1165,13 +1203,13 @@ misrepresented as being the original software.
         });
       }
     };
-  });
+  }), 1);
 
-  define('macro', function() {
+  define('macro', (function() {
     return function(list) {
       return substituteMacros(list());
     };
-  });
+  }), 1);
 
   parse = function parse(string) {
     return parseOptional(string, false);
@@ -1419,5 +1457,7 @@ misrepresented as being the original software.
   root.ensureLeisureClass = ensureLeisureClass;
 
   root.LeisureObject = LeisureObject;
+
+  root.defaultScanner = defaultScanner;
 
 }).call(this);
