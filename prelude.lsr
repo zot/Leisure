@@ -1,3 +1,5 @@
+# Prelude is where we define macros that std.lsr uses
+#
 # primitives
 #
 # eq a b -> true if they are equal or false otherwise
@@ -145,62 +147,8 @@ _append pairF l1::nil l2 = l2
 
 reverse l = subreverse l nil
 subreverse l result = l (\h t D . subreverse t (cons h result)) result
-addstr a b = concat [a b]
 if = id
 at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
-take n list = _take (pairFunc list) n list
-_take pairF n list = positive n
-  null? list
-    nil
-    pairF (head list) (_take pairF (-- n) (tail list))
-  nil
-takeWhile predicate list = _takeWhile (pairFunc list) predicate list
-_takeWhile pairF predicate list = null? list
-  nil
-  predicate (head list)
-    pairF (head list) (_takeWhile pairF predicate (tail list))
-    nil
-drop x list = positive x
-  null? list
-    nil
-    drop (-- x) (tail list)
-  list
-dropWhile predicate list = null? list
-  nil
-  predicate (head list)
-    dropWhile predicate (tail list)
-    list
-dropLast n list = tail (_dropLast (pairFunc list) n list)
-_dropLast pairF n list = eq list nil
-  [0]
-  (\next . gt n (head next)
-    [(+ 1 (head next))]
-    [n | (pairF (head list) (tail next))]) (_dropLast pairF n (tail list))
-
-series func n = cons n (series func (func n))
-from n = series ++ n
-fromBy n inc = series (+ inc) n
-fromTo n m = takeWhile (> m) (from n)
-fromToBy n m inc = takeWhile (> m) (fromBy n inc)
-
-# return true if any elements of l satisfy f, which takes exactly one arg
-# eg. any (eq 0) [1 2 0] gives true: true
-any f l = _any (pairFunc l) f l
-_any pairF f l = null? l
-  false
-  or
-    f (head l)
-    _any pairF f (tail l)
-
-# return true if ALL elements of l satisfy f, which takes exactly one arg
-# eg. all (eq 0) [0 0 0] gives true: true
-# caveat!  return true for nil lists
-all f l = _all (pairFunc l) f l
-_all pairF f l = null? l
-  true
-  and
-    f (head l)
-    _all pairF f (tail l)
 
 index_combine x y = (or (eq x nil) (eq y nil)) (nil) (+ x y)
 # return nil if not found, or 0 based index of the first match
@@ -209,82 +157,37 @@ indexof l x = if (eq l nil) (nil) (if (eq x (head l)) (0) (index_combine 1 (inde
 # position does the same thing as indexof, but takes the args in opposite order
 position l x = indexof x l
 
-# find returns x if x is present inside l, otherwise returns nil.
-find x l = findIf (eq x) l
+# Macros
 
-findIf f l = null? l
-  nil
-  (f (head l)) (head l) (findIf f (tail l))
+#
+# List constructor macro
+#
 
-findIfOpt f l = null? l
-  none
-  (f (head l)) (some (head l)) (findIfOpt f (tail l))
-
-# count returns the number of times x appears in l
-count x l = countIf (eq x) l
-
-# countIf returns the number of times x satifies f in l, f must take a single argument
-# eg. countIf odd? [3 1] gives number: 2
-countIf f l = if (eq l nil) 0
-  + (f (head l) 1 0) (countIf f (tail l))
-countIfNot f l = countIf (\x. not (f x)) l
-
-# remove any x's found in list
-remove x l = removeIf (eq x) l
-
-# remove any elements where f evals to true, f must take exactly one argument
-removeIf f l = _removeIf (pairFunc l) f l
-_removeIf pairF f l  = if (eq l nil) nil
-  if (f (head l)) (_removeIf pairF f (tail l))
-    pairF (head l) (_removeIf pairF f (tail l))
-removeIfNot f l = removeIf (\x. not (f x)) l
-
-filter f = removeIf (compose not f)
-
-# make a new list by applying func (which takes exactly 1 arg) to each element of list
-# eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
-map func list = _map (pairFunc list) func list
-_map pairF func list = null? list
-  nil
-  pairF (func (head list)) (_map pairF func (tail list))
-
-# call func on the elements of list, 'joining' each with the previous result of func,
-# however func chooses to do so
-# if the list is only one element long, just return the first element
-# eg. reduce + [3 5] gives number: 8
-reduce func list = foldl1 func list
-
-# simple list constructor syntax
-# pure Lambda Calculus definition, for reference
+# pure Lambda Calculus list constructor, for reference
 #[ =(]= \item c . c \rest . cons item rest
 #, =.= \f item c . c \rest . f (cons item rest)
 #] =)= \f . f nil
 #| =.= \f rest g . f rest
 
-# simple list constructor syntax
-# Leisure definition relies on eq -- not pure Lambda Calculus :)
-[ item = eq item `]`
-  nil
-  nextListItem (dl item)
-# These are just punctuation, used by the '[' continuation function
-] = \x . x
-| = \x . x
-, = \x . x
-nextListItem items next = eq next `]`
-  items nil
-  eq next `|`
-    \tail close . items tail
-    eq next `,`
-      nextListItem items
-      nextListItem (dlAppend items (dl next))
+[ list =M= constructList (tail list)
 
-# difference lists
-dlempty = id
-dl item = \rest . cons item rest
-dlAppend a b = \rest . a (b rest)
+constructList list = cl (head list) (tokString (head list)) (tail list)
+constructList list::nil = nil
 
-# Macros
-#the Lex functions will change with type assertions
+cl h hs t = eq hs '|'
+  eq (length t) 2
+    # -- scanner ensures: eq (tokString (head (tail t))) ']'
+    cons (head t) nil
+    error "Bad list format."
+  eq hs ']'
+    # -- scanner ensures: eq t nil
+    cons 'nil' nil
+    eq hs ','
+      constructList t
+      cons (cons 'cons' (cons h (constructList t))) nil
+
+tokString x = nil
+tokString t::token = t \t p . t
 
 identMacro list =M= tail list
 
@@ -293,10 +196,10 @@ macroCons list =M= cons 'cons' (tail list)
 do list =M= foldr1 (\el . doClause el) (tail list)
 
 doClause clause rest = doExtractVar clause '<-'
-  \var . ['bind' (tail (tail clause)) '\\' var '.' rest]
+  \var . cons 'bind' (cons (tail (tail clause)) (cons '\\' (cons var (cons '.' (cons rest nil)))))
   doExtractVar clause '='
-    \var . [['\\' var '.' rest] (tail (tail clause))]
-    ['bind' clause '\\' '_' '.' rest]
+    \var . cons (cons '\\' (cons var (cons '.' (cons rest nil)))) (cons (tail (tail clause)) nil)
+    cons 'bind' (cons clause (cons '\\' (cons '_' (cons '.' (cons rest nil)))))
 
 doExtractVar list tokName = and
   is list lexCons
@@ -307,45 +210,3 @@ doExtractVar list tokName = and
       eq tokName (tokenName (head (tail list)))
   some (head list)
   none
-
-######################
-# output tag functions
-######################
-
-html x = \f . f x
-
-###########
-# Assoc lists (from Roy's hashmap code)
-###########
-
-assocFromList l = if (null? l) nil
-  assocSet (head l) (head (tail l)) (assocFromList (tail (tail l)))
-
-assocKey cons = head cons
-assocValue cons = tail cons
-
-assocGetPair k anAssoc = findIf (\x . eq (head x) k) anAssoc
-
-# assocGetPairOpt returns a 2Valued option
-assocGetPairOpt k l = l (\h t D . h (\kk vv . (eq k kk) (some2 kk vv) (assocGetPairOpt k t))) none
-
-valueOrDefault value default = if (neq value nil) value default
-
-assocKeys anAssoc = map (\cell . (assocKey cell)) anAssoc
-assocNumKeys anAssoc = length (assocKeys anAssoc)
-
-assocMergeKeys hm1 hm2 keys = if (null? keys) hm1
-  if (null? (assocGetPair (head keys) hm1) )
-    cons (assocGetPair (head keys) hm2) (assocMergeKeys hm1 hm2 (tail keys))
-    assocMergeKeys hm1 hm2 (tail keys)
-
-# keys in hm2 take precedence over keys in hm1
-assocMerge hm1 hm2 = assocMergeKeys hm1 hm2 (assocKeys hm2)
-
-assocSet k v anAssoc = cons (cons k v) (assocRemove k anAssoc)
-
-assocGet k anAssoc = (assocGetPair k anAssoc) (\h t D . some h) none
-
-assocGetWithDefault k default anAssoc = valueOrDefault (assocGet k anAssoc) default
-
-assocRemove k anAssoc = removeIf (\x . eq (assocKey x) k) anAssoc

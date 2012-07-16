@@ -101,7 +101,7 @@ misrepresented as being the original software.
 
   funcContextSource = function funcContextSource(funcName, offset) {
     var ast, end, func, start;
-    func = global[Leisure.nameSub(funcName)]();
+    func = global[nameSub(funcName)]();
     ast = Leisure.funcAstAtOffset(func, offset);
     start = ast.leisureStart;
     end = ast.leisureEnd;
@@ -271,7 +271,7 @@ misrepresented as being the original software.
   };
 
   wrapContextBody = function wrapContextBody(name, ast, code, top) {
-    return "" + (top ? '' : "var oldCtx = ctx;\n  ") + "\nvar ctx = Leisure.contextStack;\nLeisure.contextStack = Leisure.cons(Leisure.funcContext('" + name + "', " + ast.leisureNodeNumber + "), " + (top ? 'ctx' : 'oldCtx') + ")\ntry {\n  return " + (indent(code)) + ";\n} catch (err) {\n  if (!err.leisureContext) {\n    err.leisureContext = Leisure.contextStack;\n  }\n  throw err;\n} finally {\n  Leisure.contextStack = ctx\n}";
+    return "" + (top ? '' : "var oldCtx = ctx;\n  ") + "\nvar ctx = Leisure.contextStack;\nLeisure.contextStack = Parse.cons(Leisure.funcContext('" + name + "', " + ast.leisureNodeNumber + "), " + (top ? 'ctx' : 'oldCtx') + ")\ntry {\n  return " + (indent(code)) + ";\n} catch (err) {\n  if (!err.leisureContext) {\n    err.leisureContext = Leisure.contextStack;\n  }\n  throw err;\n} finally {\n  Leisure.contextStack = ctx\n}";
   };
 
   Code = (function() {
@@ -377,7 +377,6 @@ misrepresented as being the original software.
 
   dgen = function dgen(ast, lazy, name, globals, tokenDef, namespace, src, debug) {
     var argNames, code, jsCode, methodCode, n, res, type, _ref;
-    debug = false;
     ast.lits = [];
     res = [];
     code = gen(ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true);

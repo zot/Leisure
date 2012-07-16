@@ -95,7 +95,7 @@ astAtOffset = (ast, offset)->
       else astAtOffset (getApplyArg ast), offset
 
 funcContextSource = (funcName, offset)->
-  func = global[Leisure.nameSub(funcName)]()
+  func = global[nameSub(funcName)]()
   ast = Leisure.funcAstAtOffset func, offset
   start = ast.leisureStart
   end = ast.leisureEnd
@@ -189,7 +189,7 @@ wrapLazyContext = (name, ast, code, top)->
 wrapContextBody = (name, ast, code, top)->"""
   #{if top then '' else "var oldCtx = ctx;\n  "}
   var ctx = Leisure.contextStack;
-  Leisure.contextStack = Leisure.cons(Leisure.funcContext('#{name}', #{ast.leisureNodeNumber}), #{if top then 'ctx' else 'oldCtx'})
+  Leisure.contextStack = Parse.cons(Leisure.funcContext('#{name}', #{ast.leisureNodeNumber}), #{if top then 'ctx' else 'oldCtx'})
   try {
     return #{indent code};
   } catch (err) {
@@ -242,7 +242,7 @@ class Code
     """
 
 dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
-  debug = false
+  #debug = false
   ast.lits = []
   res = []
   code = (gen ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true)

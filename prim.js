@@ -150,6 +150,12 @@
     };
   });
 
+  define('error', (function() {
+    return function(str) {
+      throw new Error(str());
+    };
+  }), 1);
+
   tmpFalse = function tmpFalse(a) {
     return function(b) {
       return b();

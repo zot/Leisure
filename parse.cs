@@ -374,7 +374,7 @@ cleanupMacro = (list)->
   else
     head = cleanupMacro list.head()
     tail = cleanupMacro list.tail()
-    lexCons head, (if head != Nil then head.start() else 0), tail, (if tail != Nil then tail.end() else 0)
+    lexCons head, (if head.start? then head.start() else if tail.start? then tail.start() else 0), tail, (if tail.start? then tail.start() else 0)
 
 ######
 ###### ASTs
@@ -471,8 +471,8 @@ right = (value)-> (a)->(b)-> a()(->value)
 left = (value)-> (a)->(b)-> b()(->value)
 
 define 'scan', -> (string)->
-  [res, err, rest] = scan string()
-  if err then left("Error at: #{JSON.stringify snip rest}..., #{err}") else right(res)
+  [res, err, rest] = defaultScanner.scan string()
+  if err then _left()(->"Error at: #{JSON.stringify snip rest}..., #{err}") else _right()(->res)
 
 define 'macro', -> (list)-> substituteMacros list()
 

@@ -59,6 +59,7 @@ define 'funcSource', ->(func)->
   f = func()
   if f.src? then _some()(laz(f.src))
   else _none()
+define 'error', (->(str)-> throw new Error(str())), 1
 
 tmpFalse = (a)->(b)-> b()
 

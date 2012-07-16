@@ -888,7 +888,7 @@ misrepresented as being the original software.
     } else {
       head = cleanupMacro(list.head());
       tail = cleanupMacro(list.tail());
-      return lexCons(head, (head !== Nil ? head.start() : 0), tail, (tail !== Nil ? tail.end() : 0));
+      return lexCons(head, (head.start != null ? head.start() : tail.start != null ? tail.start() : 0), tail, (tail.start != null ? tail.start() : 0));
     }
   };
 
@@ -1150,11 +1150,15 @@ misrepresented as being the original software.
   define('scan', function() {
     return function(string) {
       var err, res, rest, _ref;
-      _ref = scan(string()), res = _ref[0], err = _ref[1], rest = _ref[2];
+      _ref = defaultScanner.scan(string()), res = _ref[0], err = _ref[1], rest = _ref[2];
       if (err) {
-        return left("Error at: " + (JSON.stringify(snip(rest))) + "..., " + err);
+        return _left()(function() {
+          return "Error at: " + (JSON.stringify(snip(rest))) + "..., " + err;
+        });
       } else {
-        return right(res);
+        return _right()(function() {
+          return res;
+        });
       }
     };
   });
