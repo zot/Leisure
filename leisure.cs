@@ -306,8 +306,15 @@ genDispatchDefault = (lsrName, name, func, args)->
   if code.err then throw new Error(code.err)
   code = code.main
   #Can't define function with name here, because it can interfere with recursive calls
-  code = "(function (#{args[1..].join(', ')}){return (#{code})})"
+  code = "(function (#{(collectArgs originalAst, args.length - 1).join(', ')}){return (#{code})})"
   eval(code)
+
+collectArgs = (ast, n)->
+  args = []
+  for i in [0...n]
+    args.push Parse.nameSub(Parse.getLambdaVar(ast))
+    ast = Parse.getLambdaBody(ast)
+  args
 
 getNargs = (ast, n)->
   if n == 0 then Nil

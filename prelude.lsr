@@ -54,6 +54,8 @@
 #@auto
 defGroup '[' ']'
 #@auto
+defGroup 'concat[' ']'
+#@auto
 defToken '|'
 #@auto
 defToken ','
@@ -103,6 +105,9 @@ min a b = (lt a b) a b
 # cons a b = \f . f a b
 # nil = \a b . b
 
+isStream x = false
+isStream x::cons = true
+isStream x::lexCons = true
 head l::cons = l \h t . h
 tail l::cons = l \h t . t
 head l::lexCons = l \h s t e . h
@@ -117,13 +122,16 @@ endPos l::lexCons = lexEnd l
 endPos t::token = + (tokenStart t) (strlen (tokenName t))
 pairFunc l = false
 pairFunc l::cons = cons
-pairFunc l::lexCons = \h t . null? t
+pairFunc l::lexCons = lexConsFuzzy
+pairFunc l::token = lexConsFuzzy
+lexConsFuzzy h t = null? t
   lexCons h (startPos h) nil (endPos h)
   lexCons h (startPos h) t (endPos t)
 null? x = false
 null? x::nil = true
 
-# foldr, foldl
+# foldl (\prev el . ...) list
+# foldr (\el prev . ...) list
 # call func on list items and previous result of fold
 # foldl uses the head of the list for the previous results
 # foldr uses the tail of the list for the previous results
@@ -147,10 +155,12 @@ _append pairF l1::nil l2 = l2
 
 reverse l = subreverse l nil
 subreverse l result = l (\h t D . subreverse t (cons h result)) result
+
 if = id
 at l x = (iszero (x)) (head l) (at (tail l) (-- (x) ) )
 
 index_combine x y = (or (eq x nil) (eq y nil)) (nil) (+ x y)
+
 # return nil if not found, or 0 based index of the first match
 indexof l x = if (eq l nil) (nil) (if (eq x (head l)) (0) (index_combine 1 (indexof (tail l) x ) ) )
 
@@ -186,12 +196,14 @@ cl h hs t = eq hs '|'
       constructList t
       cons (cons 'cons' (cons h (constructList t))) nil
 
-tokString x = nil
+tokString x = x
 tokString t::token = t \t p . t
 
 identMacro list =M= tail list
 
 macroCons list =M= cons 'cons' (tail list)
+
+concat[ list =M= cons 'concat' (cons (cons '[' (tail list)) nil)
 
 do list =M= foldr1 (\el . doClause el) (tail list)
 

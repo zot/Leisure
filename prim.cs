@@ -171,7 +171,8 @@ define 'require', ->(file)->
 
 define 'print', ->(msg)->
   makeMonad (env, cont)->
-    if msg() != _nil() then env.write("#{msg()}\n")
+    m = msg()
+    env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
     cont(`_false()`)
 
 define 'printValue', ->(value)->
@@ -191,7 +192,8 @@ tail = (l)->l ->(hh)->(tt)->tt()
 
 concatList = (l)->
   if l == _nil() then ""
-  else (head l) + concatList tail l
+  else if typeof (head l) == 'string' then (head l) + concatList tail l
+  else Parse.print(head l) + concatList tail l
 
 define 'concat', ->(l)-> concatList(l())
 
@@ -234,7 +236,7 @@ define 'getValue', ->(name)->
 define 'setValue', ->(name)->(value)->
   makeMonad (env, cont)->
     values[name()] = value()
-    cont _false
+    cont _false()
 
 define 'createS', ->
   makeMonad (env, cont)->
@@ -247,7 +249,7 @@ define 'getS', ->(state)->
 define 'setS', ->(state)->(value)->
   makeMonad (env, cont)->
     state().value = value()
-    cont(_false)
+    cont(_false())
 
 ################
 # BROWSER PRIMS

@@ -196,7 +196,11 @@ misrepresented as being the original software.
     };
 
     Leisure_cons.prototype.toString = function toString() {
-      return "Cons[" + (this.toArray().join(', ')) + "]";
+      return "Cons[" + (this.elementString()) + "]";
+    };
+
+    Leisure_cons.prototype.elementString = function elementString() {
+      return "" + (this.head()) + (this.tail() === Nil ? '' : this.tail() instanceof Leisure_cons ? " " + (this.tail().elementString()) : " | " + (this.tail()));
     };
 
     Leisure_cons.prototype.reverse = function reverse() {

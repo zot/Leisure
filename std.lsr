@@ -7,7 +7,14 @@ do
 # difference lists
 dlempty = id
 dl item = \rest . [item | rest]
+dlPush list item = dlAppend list (dl item)
 dlAppend a b = \rest . a (b rest)
+
+flatten list = subflatten list nil
+subflatten list = isStream list
+  dlAppend (subflatten (head list)) (subflatten (tail list))
+  dl list
+subflatten list::nil = dlempty
 
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
 # eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
@@ -52,11 +59,21 @@ find x l = findIf (eq x) l
 
 findIf f l = null? l
   nil
-  (f (head l)) (head l) (findIf f (tail l))
+  f (head l)
+    head l
+    findIf f (tail l)
 
 findIfOpt f l = null? l
   none
-  (f (head l)) (some (head l)) (findIfOpt f (tail l))
+  f (head l)
+    some (head l)
+    findIfOpt f (tail l)
+
+findIndex func list = subFindIndex 0 func list
+subFindIndex index func list = func (head list)
+  index
+  subFindIndex (+ 1 index) func (tail list)
+subFindIndex index func list::nil = -1
 
 take n list = _take (pairFunc list) n list
 _take pairF n list = positive n
@@ -117,8 +134,6 @@ assocGetPair k anAssoc = findIf (\x . eq (head x) k) anAssoc
 # assocGetPairOpt returns a 2Valued option
 assocGetPairOpt k l = l (\h t D . h (\kk vv . (eq k kk) (some2 kk vv) (assocGetPairOpt k t))) none
 
-valueOrDefault value default = if (neq value nil) value default
-
 assocKeys anAssoc = map (\cell . (assocKey cell)) anAssoc
 assocNumKeys anAssoc = length (assocKeys anAssoc)
 
@@ -134,7 +149,7 @@ assocSet k v anAssoc = [(cons k v) | (assocRemove k anAssoc)]
 
 assocGet k anAssoc = (assocGetPair k anAssoc) (\h t D . some h) none
 
-assocGetWithDefault k default anAssoc = valueOrDefault (assocGet k anAssoc) default
+assocGetWithDefault k default anAssoc = (assocGetPair k anAssoc) (\h t D . t) default
 
 assocRemove k anAssoc = removeIf (\x . eq (assocKey x) k) anAssoc
 
@@ -144,9 +159,9 @@ assocRemove k anAssoc = removeIf (\x . eq (assocKey x) k) anAssoc
 
 html x = \f . f x
 
-#
+######################
 # Macros
-#
+######################
 
 or[ list =M= primOrVar list (dropLast 1 (tail list))
 primOrVar list args = eq args nil
@@ -162,19 +177,15 @@ primAndVar list args = eq args nil
     args
     foldr1 (\v el . ['and' v el]) args
 
-#
+######################
 # Infix
-#
+######################
 
-# for debugging
-lexAsCons l = eq l nil
-  nil
-  is l lexCons
-    [(lexAsCons (head l)) | (lexAsCons (tail l))]
-    is l token
-      tokenName l
-      l
-
+# defInfixToken tok location reference
+# defInfixToken '/' 'before' nil -- make + the tightest binding operator
+# defInfixToken '@' 'same' nil -- make @ the loosest binding operator
+# defInfixToken '+' 'before' '/' -- make + bind just tighter than /
+# defInfixToken '-' 'same' '+' -- make - bind the same strength as +
 defInfixToken tokenName location reference = do
   defToken tokenName
   defs <- getValueOr 'parseFilter.defs' nil
@@ -182,20 +193,48 @@ defInfixToken tokenName location reference = do
   operators = eq reference nil
     eq location 'before'
       [[tokenName] | operators]
-      append operators [tokenName]
-    insertOperator tokenName reference operators
+      append operators [[tokenName]]
+    insertOperator tokenName location reference operators
   setValue 'parseFilter.defs' (assocSet 'infix' operators defs)
 
-insertOperator tokenName reference operators = null? operators
-  [[tokenName]]
-  find reference (head operators)
+insertOperator tokenName location reference operators = find reference (head operators)
+  eq location 'before'
+    [[tokenName] | operators]
     [[tokenName | (head operators)] | (tail operators)]
-    [(head operators) | (insertOperator tokenName reference (tail operators))]
+  [(head operators) | (insertOperator tokenName location reference (tail operators))]
+insertOperator tokenName location reference operators::nil = [[tokenName]]
 
-# parseInfix parseDefs list = parseInfixList (assocGet 'infix' parseDefs) list
+testInfix str = do
+  defs <- getValueOr 'parseFilter.defs' nil
+  print concat['defs: ' defs]
+  print (mainParseInfix defs (scan str id id))
+
+mainParseInfix parseDefs list = parseInfix (assocGetWithDefault 'infix' nil parseDefs) list
+
+parseInfix tokens list = list
+parseInfix tokens list::cons = do
+  prep = map (parseInfix tokens) list
+  parseInfixList tokens dlempty (head prep) (tail prep)
+parseInfix tokens list::nil = nil
+
+# tokens is the list of operator lists
+# firstList is the reversed first part of the list
 #
-# parseInfixList tokens list = is list lexCons
-#   rearrange tokens (lexMap (parseInfix tokens) list)
-#   list
-#
-# rearrange operators precedence list = 
+# right associative, for now
+parseInfixList tokens firstList token restList = do
+  fullList = firstList [token | restList]
+  op = head restList
+  nextTok = head (tail restList)
+  nextRest = tail (tail restList)
+  null? tokens
+    fullList
+    null? restList
+      parseInfixList (tail tokens) dlempty (head fullList) (tail fullList)
+      not (operatorIn op tokens)
+        parseInfixList tokens (dlPush firstList token) op (tail restList)
+        null? (tail restList)
+          error concat['Parse error -- expected token after operator: ' op]
+          parseInfixList tokens firstList [op token nextTok] nextRest
+
+# TODO optimizer could factor (any (eq op)) out, since it only depends on op.  That would prevent repeated application
+operatorIn op tokens = any (\toks . any (\el . eq (tokString op) el) toks) tokens

@@ -113,7 +113,8 @@ class Leisure_cons extends LeisureObject
     else func @head(), @tail().foldr1(func)
   toArray: -> @foldl ((i, el)-> i.push(el); i), []
   join: (str)->@toArray().join(str)
-  toString: -> "Cons[#{@toArray().join(', ')}]"
+  toString: -> "Cons[#{@elementString()}]"
+  elementString: -> "#{@head()}#{if @tail() == Nil then '' else if @tail() instanceof Leisure_cons then " #{@tail().elementString()}" else " | #{@tail()}"}"
   reverse: -> @rev Nil
   rev: (result)-> @tail().rev cons(@head(), result)
   equals: (other)-> @ == other or (other instanceof Leisure_cons and (@head() == other.head() or (@head() instanceof Leisure_cons and @head().equals(other.head()))) and (@tail() == other.tail() or (@tail() instanceof Leisure_cons and @tail().equals(other.tail()))))

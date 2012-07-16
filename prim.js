@@ -474,7 +474,9 @@
   define('print', function() {
     return function(msg) {
       return makeMonad(function(env, cont) {
-        if (msg() !== _nil()) env.write("" + (msg()) + "\n");
+        var m;
+        m = msg();
+        env.write("" + (typeof m === 'string' ? m : Parse.print(m)) + "\n");
         return cont(_false());
       });
     };
@@ -536,8 +538,10 @@
   concatList = function concatList(l) {
     if (l === _nil()) {
       return "";
-    } else {
+    } else if (typeof (head(l)) === 'string') {
       return (head(l)) + concatList(tail(l));
+    } else {
+      return Parse.print(head(l)) + concatList(tail(l));
     }
   };
 
@@ -633,7 +637,7 @@
       return function(value) {
         return makeMonad(function(env, cont) {
           values[name()] = value();
-          return cont(_false);
+          return cont(_false());
         });
       };
     };
@@ -660,7 +664,7 @@
       return function(value) {
         return makeMonad(function(env, cont) {
           state().value = value();
-          return cont(_false);
+          return cont(_false());
         });
       };
     };

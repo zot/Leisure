@@ -25,9 +25,11 @@ var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
-var _id, _flip, _compose, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _iszero, _positive, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _head, _tail, _head, _tail, _length, _last, _startPos, _startPos, _endPos, _endPos, _pairFunc, _pairFunc, _pairFunc, _null$e, _null$e, _foldl, _foldl, _foldl1, _foldl1, _foldr, _foldr1, _foldr1, _append, _append, __append, __append, _reverse, _subreverse, _if, _at, _index_combine, _indexof, _position, _$r, _constructList, _constructList, _cl, _tokString, _tokString, _identMacro, _macroCons, _do, _doClause, _doExtractVar;
+var _id, _flip, _compose, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _iszero, _positive, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _isStream, _isStream, _isStream, _head, _tail, _head, _tail, _length, _last, _startPos, _startPos, _endPos, _endPos, _pairFunc, _pairFunc, _pairFunc, _pairFunc, _lexConsFuzzy, _null$e, _null$e, _foldl, _foldl, _foldl1, _foldl1, _foldr, _foldr1, _foldr1, _append, _append, __append, __append, _reverse, _subreverse, _if, _at, _index_combine, _indexof, _position, _$r, _constructList, _constructList, _cl, _tokString, _tokString, _identMacro, _macroCons, _concat$r, _do, _doClause, _doExtractVar;
 processResult(//AST(defGroup "[" "]")
 (_defGroup()((function(){return "["}))((function(){return "]"}))));
+processResult(//AST(defGroup "concat[" "]")
+(_defGroup()((function(){return "concat["}))((function(){return "]"}))));
 processResult(//AST(defToken "|")
 (_defToken()((function(){return "|"}))));
 processResult(//AST(defToken ",")
@@ -76,6 +78,14 @@ root.defs._odd$e = _odd$e = Parse.define('odd?', (function() {var f; return func
 root.defs._max = _max = Parse.define('max', (function() {var f; return function _max(){return f || (f = (function(_a){return function(_b){return _gt()(_a)(_b)(_a)(_b);};}));}})(), 2, "\\a. \\b. (gt a b) a b");;
 //min = AST(λa b . lt a b a b)
 root.defs._min = _min = Parse.define('min', (function() {var f; return function _min(){return f || (f = (function(_a){return function(_b){return _lt()(_a)(_b)(_a)(_b);};}));}})(), 2, "\\a. \\b. (lt a b) a b");;
+//isStream = AST(λx . false)
+root.defs._isStream = _isStream = Parse.define('isStream', (function() {var f; return function _isStream(){return f || (f = (function(_x){return _false();}));}})(), 1, "\\x. false");;
+//isStream = AST(λx . true)
+root.defs._isStream = _isStream = Leisure.makeDispatchFunction('isStream', '_isStream', '_x', ['_isStream', '_x']);
+Leisure.createMethod('cons', 'isStream', "\\x. true", function(_x) {return _true();});
+//isStream = AST(λx . true)
+root.defs._isStream = _isStream = Leisure.makeDispatchFunction('isStream', '_isStream', '_x', ['_isStream', '_x']);
+Leisure.createMethod('lexCons', 'isStream', "\\x. true", function(_x) {return _true();});
 //head = AST(λl . l λh t . h)
 root.defs._head = _head = Leisure.makeDispatchFunction('head', '_head', '_l', ['_head', '_l']);
 Leisure.createMethod('cons', 'head', "\\l. l \\h t . h", function(_l) {return _l()((function(){var $m; return (function(){return $m || ($m = (function(_h){return function(_t){return _h();};}))})})());});
@@ -109,9 +119,14 @@ root.defs._pairFunc = _pairFunc = Parse.define('pairFunc', (function() {var f; r
 //pairFunc = AST(λl . cons)
 root.defs._pairFunc = _pairFunc = Leisure.makeDispatchFunction('pairFunc', '_pairFunc', '_l', ['_pairFunc', '_l']);
 Leisure.createMethod('cons', 'pairFunc', "\\l. cons", function(_l) {return _cons();});
-//pairFunc = AST(λl h t . null? t (lexCons h (startPos h) nil (endPos h)) (lexCons h (startPos h) t (endPos t)))
+//pairFunc = AST(λl . lexConsFuzzy)
 root.defs._pairFunc = _pairFunc = Leisure.makeDispatchFunction('pairFunc', '_pairFunc', '_l', ['_pairFunc', '_l']);
-Leisure.createMethod('lexCons', 'pairFunc', "\\l. \\h t . null? t\n  lexCons h (startPos h) nil (endPos h)\n  lexCons h (startPos h) t (endPos t)", function(_l) {return Parse.setType(function(_h){return function(_t){return _null$e()(_t)((function(){var $m; return (function(){return $m || ($m = (_lexCons()(_h)((function(){var $m; return (function(){return $m || ($m = (_startPos()(_h)))})})())(_nil)((function(){var $m; return (function(){return $m || ($m = (_endPos()(_h)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_lexCons()(_h)((function(){var $m; return (function(){return $m || ($m = (_startPos()(_h)))})})())(_t)((function(){var $m; return (function(){return $m || ($m = (_endPos()(_t)))})})())))})})());};}, 'pairFunc');});
+Leisure.createMethod('lexCons', 'pairFunc', "\\l. lexConsFuzzy", function(_l) {return _lexConsFuzzy();});
+//pairFunc = AST(λl . lexConsFuzzy)
+root.defs._pairFunc = _pairFunc = Leisure.makeDispatchFunction('pairFunc', '_pairFunc', '_l', ['_pairFunc', '_l']);
+Leisure.createMethod('token', 'pairFunc', "\\l. lexConsFuzzy", function(_l) {return _lexConsFuzzy();});
+//lexConsFuzzy = AST(λh t . null? t (lexCons h (startPos h) nil (endPos h)) (lexCons h (startPos h) t (endPos t)))
+root.defs._lexConsFuzzy = _lexConsFuzzy = Parse.define('lexConsFuzzy', (function() {var f; return function _lexConsFuzzy(){return f || (f = (function(_h){return function(_t){return _null$e()(_t)((function(){var $m; return (function(){return $m || ($m = (_lexCons()(_h)((function(){var $m; return (function(){return $m || ($m = (_startPos()(_h)))})})())(_nil)((function(){var $m; return (function(){return $m || ($m = (_endPos()(_h)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_lexCons()(_h)((function(){var $m; return (function(){return $m || ($m = (_startPos()(_h)))})})())(_t)((function(){var $m; return (function(){return $m || ($m = (_endPos()(_t)))})})())))})})());};}));}})(), 2, "\\h. \\t. null? t\n  lexCons h (startPos h) nil (endPos h)\n  lexCons h (startPos h) t (endPos t)");;
 //null? = AST(λx . false)
 root.defs._null$e = _null$e = Parse.define('null?', (function() {var f; return function _null$e(){return f || (f = (function(_x){return _false();}));}})(), 1, "\\x. false");;
 //null? = AST(λx . true)
@@ -168,8 +183,8 @@ root.defs._constructList = _constructList = Leisure.makeDispatchFunction('constr
 Leisure.createMethod('nil', 'constructList', "\\list. nil", function(_list) {return _nil();});
 //cl = AST(λh hs t . eq hs "|" (eq (length t) 2 (cons (head t) nil) (error "Bad list format.")) (eq hs "]" (cons "nil" nil) (eq hs "," (constructList t) (cons (cons "cons" (cons h (constructList t))) nil))))
 root.defs._cl = _cl = Parse.define('cl', (function() {var f; return function _cl(){return f || (f = (function(_h){return function(_hs){return function(_t){return _eq()(_hs)((function(){return "|"}))((function(){var $m; return (function(){return $m || ($m = (_eq()((function(){var $m; return (function(){return $m || ($m = (_length()(_t)))})})())((function(){return 2}))((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_head()(_t)))})})())(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (_error()((function(){return "Bad list format."}))))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_eq()(_hs)((function(){return "]"}))((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){return "nil"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (_eq()(_hs)((function(){return ","}))((function(){var $m; return (function(){return $m || ($m = (_constructList()(_t)))})})())((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){return "cons"}))((function(){var $m; return (function(){return $m || ($m = (_cons()(_h)((function(){var $m; return (function(){return $m || ($m = (_constructList()(_t)))})})())))})})())))})})())(_nil)))})})())))})})())))})})());};};}));}})(), 3, "\\h. \\hs. \\t. eq hs '|'\n  eq (length t) 2\n    # -- scanner ensures: eq (tokString (head (tail t))) ']'\n    cons (head t) nil\n    error \"Bad list format.\"\n  eq hs ']'\n    # -- scanner ensures: eq t nil\n    cons 'nil' nil\n    eq hs ','\n      constructList t\n      cons (cons 'cons' (cons h (constructList t))) nil");;
-//tokString = AST(λx . nil)
-root.defs._tokString = _tokString = Parse.define('tokString', (function() {var f; return function _tokString(){return f || (f = (function(_x){return _nil();}));}})(), 1, "\\x. nil");;
+//tokString = AST(λx . x)
+root.defs._tokString = _tokString = Parse.define('tokString', (function() {var f; return function _tokString(){return f || (f = (function(_x){return _x();}));}})(), 1, "\\x. x");;
 //tokString = AST(λt . t λt p . t)
 root.defs._tokString = _tokString = Leisure.makeDispatchFunction('tokString', '_tokString', '_t', ['_tokString', '_t']);
 Leisure.createMethod('token', 'tokString', "\\t. t \\t p . t", function(_t) {return _t()((function(){var $m; return (function(){return $m || ($m = (function(_t){return function(_p){return _t();};}))})})());});
@@ -179,6 +194,9 @@ root.tokenDefs.push('identMacro', '=M=');;
 //macroCons = AST(λlist . cons "cons" (tail list))
 root.defs._macroCons = _macroCons = Parse.defineMacro('macroCons', (function() {var f; return function _macroCons(){return f || (f = (function(_list){return _cons()((function(){return "cons"}))((function(){var $m; return (function(){return $m || ($m = (_tail()(_list)))})})());}));}})(), 1, "\\list. cons 'cons' (tail list)");
 root.tokenDefs.push('macroCons', '=M=');;
+//concat[ = AST(λlist . cons "concat" (cons (cons "[" (tail list)) nil))
+root.defs._concat$r = _concat$r = Parse.defineMacro('concat[', (function() {var f; return function _concat$r(){return f || (f = (function(_list){return _cons()((function(){return "concat"}))((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){return "["}))((function(){var $m; return (function(){return $m || ($m = (_tail()(_list)))})})())))})})())(_nil)))})})());}));}})(), 1, "\\list. cons 'concat' (cons (cons '[' (tail list)) nil)");
+root.tokenDefs.push('concat[', '=M=');;
 //do = AST(λlist . foldr1 λel . doClause el (tail list))
 root.defs._do = _do = Parse.defineMacro('do', (function() {var f; return function _do(){return f || (f = (function(_list){return _foldr1()((function(){var $m; return (function(){return $m || ($m = (function(_el){return _doClause()(_el);}))})})())((function(){var $m; return (function(){return $m || ($m = (_tail()(_list)))})})());}));}})(), 1, "\\list. foldr1 (\\el . doClause el) (tail list)");
 root.tokenDefs.push('do', '=M=');;
