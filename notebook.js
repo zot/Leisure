@@ -602,12 +602,14 @@
   };
 
   getAst = function getAst(bx, def) {
+    var _ref;
     if (bx.ast != null) {
       patchFuncAst(bx.ast);
+      bx.setAttribute('leisureFunc', (_ref = bx.ast.leisureName) != null ? _ref : '');
       return bx.ast;
     } else {
       def = def || bx.textContent;
-      setAst(bx, (Leisure.compileNext(def, Parse.Nil, true, null, true))[0]);
+      setAst(bx, (Leisure.compileNext(def, Parse.Nil, true, null))[0]);
       return bx.ast;
     }
   };
@@ -1382,6 +1384,24 @@
         } else {
           return cont(_none());
         }
+      });
+    };
+  });
+
+  Parse.define('notebookAst', function() {
+    return function(func) {
+      return Prim.makeMonad(function(env, cont) {
+        var ast, node;
+        if (func.leisureName != null) {
+          node = document.querySelector("[LeisureFunc=" + func.leisureName + "]");
+          if (node != null) {
+            ast = getAst(node);
+            return cont(_some()(function() {
+              return ast;
+            }));
+          }
+        }
+        return cont(_none());
       });
     };
   });
