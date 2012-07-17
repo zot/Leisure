@@ -50,8 +50,8 @@ define 'parse', ->(value)->
   if err? then _right()(laz("Error: #{err}"))
   else if rest?.trim() then _right()(laz("Error, input left after parsing: '#{rest.trim()}'"))
   else _left()(laz(ast))
-define 'ast-start', ->(ast)-> ast().leisureStart
-define 'ast-end', ->(ast)-> ast().leisureEnd
+define 'astStart', ->(ast)-> ast().leisureStart
+define 'astEnd', ->(ast)-> ast().leisureEnd
 define 'pretty', ->(value)->
   #kluge this, for now
   Parse.print(value())

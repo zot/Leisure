@@ -25,7 +25,9 @@ var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
-var _dlempty, _dl, _dlPush, _dlAppend, _flatten, _subflatten, _subflatten, _map, __map, _remove, _removeIf, __removeIf, _removeIfNot, _filter, _any, __any, _all, __all, _find, _findIf, _findIfOpt, _findIndex, _subFindIndex, _subFindIndex, _take, __take, _takeWhile, __takeWhile, _drop, _dropWhile, _dropLast, __dropLast, _series, _from, _fromBy, _fromTo, _fromToBy, _count, _countIf, _countIfNot, _assocFromList, _assocKey, _assocValue, _assocGetPair, _assocGetPairOpt, _assocKeys, _assocNumKeys, _assocMergeKeys, _assocMerge, _assocSet, _assocGet, _assocGetWithDefault, _assocRemove, _html, _or$r, _primOrVar, _and$r, _primAndVar, _defInfixToken, _insertOperator, _insertOperator, _testInfix, _mainParseInfix, _parseInfix, _parseInfix, _parseInfix, _callParseInfixList, _printOperators, _parseInfixList, _getPrecedence, _getPrecedence, _operatorIn;
+var _dlempty, _dl, _dlPush, _dlAppend, _flatten, _subflatten, _subflatten, _remove, _removeIf, __removeIf, _removeIfNot, _filter, _any, __any, _all, __all, _find, _findIf, _findIfOpt, _findIndex, _subFindIndex, _subFindIndex, _take, __take, _takeWhile, __takeWhile, _drop, _dropWhile, _dropLast, __dropLast, _series, _from, _fromBy, _fromTo, _fromToBy, _count, _countIf, _countIfNot, _assocFromList, _assocKey, _assocValue, _assocGetPair, _assocGetPairOpt, _assocKeys, _assocNumKeys, _assocMergeKeys, _assocMerge, _assocSet, _assocGet, _assocGetWithDefault, _assocRemove, _html, _or$r, _primOrVar, _and$r, _primAndVar, _defInfixToken, _insertOperator, _insertOperator, _testInfix, _mainParseInfix, _parseInfix, _parseInfix, _parseInfix, _callParseInfixList, _printOperators, _parseInfixList, _getPrecedence, _getPrecedence, _operatorIn;
+processResult(//AST(addParseFilter doFilter)
+(_addParseFilter()(_doFilter)));
 processResult(//AST(bind (defGroup "or[" "]") λ_ . defGroup "and[" "]")
 (_bind()((function(){var $m; return (function(){return $m || ($m = (_defGroup()((function(){return "or["}))((function(){return "]"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _defGroup()((function(){return "and["}))((function(){return "]"}));}))})})())));
 //dlempty = AST(id)
@@ -43,10 +45,6 @@ root.defs._subflatten = _subflatten = Parse.define('subflatten', (function() {va
 //subflatten = AST(λlist . dlempty)
 root.defs._subflatten = _subflatten = Leisure.makeDispatchFunction('subflatten', '_subflatten', '_list', ['_subflatten', '_list']);
 Leisure.createMethod('nil', 'subflatten', "\\list. dlempty", function(_list) {return _dlempty();});
-//map = AST(λfunc list . _map (pairFunc list) func list)
-root.defs._map = _map = Parse.define('map', (function() {var f; return function _map(){return f || (f = (function(_func){return function(_list){return __map()((function(){var $m; return (function(){return $m || ($m = (_pairFunc()(_list)))})})())(_func)(_list);};}));}})(), 2, "\\func. \\list. _map (pairFunc list) func list");;
-//_map = AST(λpairF func list . null? list nil (pairF (func (head list)) (_map pairF func (tail list))))
-root.defs.__map = __map = Parse.define('_map', (function() {var f; return function __map(){return f || (f = (function(_pairF){return function(_func){return function(_list){return _null$e()(_list)(_nil)((function(){var $m; return (function(){return $m || ($m = (_pairF()((function(){var $m; return (function(){return $m || ($m = (_func()((function(){var $m; return (function(){return $m || ($m = (_head()(_list)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (__map()(_pairF)(_func)((function(){var $m; return (function(){return $m || ($m = (_tail()(_list)))})})())))})})())))})})());};};}));}})(), 3, "\\pairF. \\func. \\list. null? list\n  nil\n  pairF (func (head list)) (_map pairF func (tail list))");;
 //remove = AST(λx l . removeIf (eq x) l)
 root.defs._remove = _remove = Parse.define('remove', (function() {var f; return function _remove(){return f || (f = (function(_x){return function(_l){return _removeIf()((function(){var $m; return (function(){return $m || ($m = (_eq()(_x)))})})())(_l);};}));}})(), 2, "\\x. \\l. removeIf (eq x) l");;
 //removeIf = AST(λf l . _removeIf (pairFunc l) f l)

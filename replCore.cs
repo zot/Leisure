@@ -156,7 +156,7 @@ generateCode = (file, contents, loud, handle, nomacros, check, debug)->
 
 runAutosThen = (autos, debug, cont)->
   if autos == Nil then cont()
-  else processResult Leisure.evalNext(autos.head(), 'Parse.', debug)[1], {}, ->
+  else  processResult Leisure.evalNext(autos.head(), 'Parse.', debug)[1], {}, ->
     runAutosThen autos.tail(), debug, cont
 
 generate = (file, contents, loud, handle, nomacros, check, globals, errs, debug)->

@@ -652,6 +652,16 @@ misrepresented as being the original software.
       }
     };
 
+    Scanner.prototype.scan = function scan(str) {
+      return this.filter(0, this.basicScan(str));
+    };
+
+    Scanner.prototype.basicScan = function basicScan(str) {
+      return ifParsed(this.parseGroup(str, '\n', str.length), function(group, rest) {
+        return [group(Nil, str.length - rest.length), null, rest];
+      });
+    };
+
     Scanner.prototype.filter = function filter(index, result) {
       var _this = this;
       return ifParsed(result, function(group, rest) {
@@ -670,12 +680,6 @@ misrepresented as being the original software.
         } else {
           return [group, null, rest];
         }
-      });
-    };
-
-    Scanner.prototype.scan = function scan(str) {
-      return ifParsed(this.parseGroup(str, '\n', str.length), function(group, rest) {
-        return [group(Nil, str.length - rest.length), null, rest];
       });
     };
 
@@ -1148,21 +1152,17 @@ misrepresented as being the original software.
   };
 
   parseOptional = function parseOptional(string, macros) {
-    var err, macres, res, rest, _ref;
+    var err, res, rest, tok, _ref, _ref2;
     _ref = defaultScanner.scan(string), res = _ref[0], err = _ref[1], rest = _ref[2];
     if (err) {
       return [null, err, rest];
     } else {
-      macres = [(macros ? substituteMacros(res) : res), null, rest];
-      return ifParsed((macros ? defaultScanner.filter(0, macres) : macres), function(macroed, rest) {
-        var tok, _ref2;
-        _ref2 = listToAst(macroed), res = _ref2[0], err = _ref2[1], tok = _ref2[2];
-        if (res) {
-          return [res, null, rest];
-        } else {
-          return [null, err, (tok ? string.substring(tok.start()) : rest)];
-        }
-      });
+      _ref2 = listToAst((macros ? substituteMacros(res) : res)), res = _ref2[0], err = _ref2[1], tok = _ref2[2];
+      if (res) {
+        return [res, null, rest];
+      } else {
+        return [null, err, (tok ? string.substring(tok.start()) : rest)];
+      }
     }
   };
 

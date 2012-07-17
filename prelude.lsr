@@ -132,6 +132,14 @@ lexConsFuzzy h t = null? t
 null? x = false
 null? x::nil = true
 
+
+# make a new list by applying func (which takes exactly 1 arg) to each element of list
+# eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
+map func list = _map (pairFunc list) func list
+_map pairF func list = null? list
+  nil
+  pairF (func (head list)) (_map pairF func (tail list))
+
 # foldl (\prev el . ...) list
 # foldr (\el prev . ...) list
 # call func on list items and previous result of fold
@@ -207,7 +215,25 @@ macroCons list =M= cons 'cons' (tail list)
 
 concat[ list =M= cons 'concat' (cons (cons '[' (tail list)) nil)
 
-do list =M= foldr1 (\el . doClause el) (tail list)
+doFilter parseDefs list = transformDo list
+
+transformDo list = list
+transformDo list::nil = nil
+transformDo list::cons = subDos list
+transformDo list::lexCons = subDos list
+
+subDos list = eq 'do' (tokString (head list))
+  foldr1 (\el . doClause el) (subNextDos (tail list))
+  subNextDos list
+
+subNextDos nonlist = nonlist
+subNextDos nonlist::nil = nil
+subNextDos list::cons = listSubNextDos list
+subNextDos list::lexCons = listSubNextDos list
+
+listSubNextDos list = eq '.' (tokString (head list))
+  cons (head list) (transformDo (tail list))
+  cons (transformDo (head list)) (subNextDos (tail list))
 
 doClause clause rest = doExtractVar clause '<-'
   \var . cons 'bind' (cons (tail (tail clause)) (cons '\\' (cons var (cons '.' (cons rest nil)))))
@@ -215,12 +241,11 @@ doClause clause rest = doExtractVar clause '<-'
     \var . cons (cons '\\' (cons var (cons '.' (cons rest nil)))) (cons (tail (tail clause)) nil)
     cons 'bind' (cons clause (cons '\\' (cons '_' (cons '.' (cons rest nil)))))
 
-doExtractVar list tokName = and
-  is list lexCons
-  and
-    is (tail list) lexCons
-    and
-      is (head (tail list)) token
-      eq tokName (tokenName (head (tail list)))
-  some (head list)
+doExtractVar list tokName = none
+doExtractVar list::nil tokName = none
+doExtractVar list::cons tokName = listDoExtractVar list tokName
+doExtractVar list::lexCons tokName = listDoExtractVar list tokName
+
+listDoExtractVar list tokName = or (null? (tail list)) (neq tokName (tokString (head (tail list))))
   none
+  some (head list)

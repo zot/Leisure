@@ -9,12 +9,12 @@ nodeHeight st = st \svg width height rootX rootY . height
 nodeRootX st = st \svg width height rootX rootY . rootX
 nodeRootY st = st \svg width height rootX rootY . rootY
 
-node-translate st x y = st \svg width height rootX rootY . makeNode
+nodeTranslate st x y = st \svg width height rootX rootY . makeNode
   translate svg x y
   width
   height
-  + rootX x
-  + rootY y
+  rootX + x
+  rootY + y
 
 nodeLine n1 n2 = n1 \s1 w1 h1 x1 y1 . n2 \s2 w2 h2 x2 y2 .
   line [['x1'|x1] ['y1'|y1] ['x2'|x2] ['y2'|y2] | defaultLineMap]
@@ -33,17 +33,17 @@ treeForNotebook func = do
 rangeContainsRange start end innerStart innerEnd = and (lte start innerStart) (lte innerEnd end)
 
 shouldHighlight ast start end = do
-  astStart = ast-start ast
-  astEnd = ast-end ast
+  aStart = astStart ast
+  aEnd = astEnd ast
   or
-    rangeContainsRange start end astStart astEnd
+    rangeContainsRange start end aStart aEnd
     or
       and
         or (eq 'lit' (getType ast id id)) (eq 'ref' (getType ast id id))
-        rangeContainsRange astStart astEnd start end
+        rangeContainsRange aStart aEnd start end
       and
         eq 'lambda' (getType ast id id)
-        rangeContainsRange astStart (+ astStart (strlen (ast \v b . v))) start end
+        rangeContainsRange aStart (aStart + (strlen (ast \v b . v))) start end
 
 highlight map = do
   c = getHashValue 'fill' map
@@ -81,47 +81,47 @@ createLambdaNode ast v b mapFunc = do
   rootBox = textNode (mapFunc ast greenStyle) 'lambda'
   varBox = textNode (mapFunc ast greenStyle) v
   bodyTree = nodeFor b mapFunc
-  childWidth = + (+ (nodeWidth varBox) 5) (nodeWidth bodyTree)
+  childWidth = (nodeWidth varBox) + 5 + (nodeWidth bodyTree)
   totalWidth = max childWidth (nodeWidth rootBox)
-  pad = max 0 (/ (- totalWidth childWidth) 2)
-  rootBox = node-translate rootBox (- (/ totalWidth 2) (/ (nodeWidth rootBox) 2)) 0
-  varBox = node-translate varBox pad (+ (nodeHeight rootBox) 5)
-  bodyTree = node-translate bodyTree (+ pad (+ (nodeWidth varBox) 5)) (+ (nodeHeight rootBox) 5)
+  pad = max 0 (totalWidth - childWidth) / 2
+  rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0
+  varBox = nodeTranslate varBox pad (nodeHeight rootBox) + 5
+  bodyTree = nodeTranslate bodyTree pad + (nodeWidth varBox) + 5 (nodeHeight rootBox) + 5
   makeNode
     svgConcat [(nodeLine rootBox varBox) (nodeLine rootBox bodyTree) (nodeSvg varBox) (nodeSvg bodyTree) (nodeSvg rootBox)]
     totalWidth
-    + (+ (nodeHeight rootBox) 5) (max (nodeHeight varBox) (nodeHeight bodyTree))
-    / totalWidth 2
-    / (nodeHeight rootBox) 2
+    (nodeHeight rootBox) + 5 + (max (nodeHeight varBox) (nodeHeight bodyTree))
+    totalWidth / 2
+    (nodeHeight rootBox) / 2
 
 createApplyNode ast f a mapFunc = do
   rootBox = textNode (mapFunc ast blueStyle) 'apply'
   funcTree = nodeFor f mapFunc
   argTree = nodeFor a mapFunc
-  childWidth = + (+ (nodeWidth argTree) 5) (nodeWidth funcTree)
+  childWidth = (nodeWidth argTree) + 5 + (nodeWidth funcTree)
   totalWidth = max childWidth (nodeWidth rootBox)
-  pad = max 0 (/ (- totalWidth childWidth) 2)
-  rootBox = node-translate rootBox (- (/ totalWidth 2) (/ (nodeWidth rootBox) 2)) 0
-  funcTree = node-translate funcTree pad (+ (nodeHeight rootBox) 5)
-  argTree = node-translate argTree (+ pad (+ (nodeWidth funcTree) 5)) (+ (nodeHeight rootBox) 5)
+  pad = max 0 (totalWidth - childWidth) / 2
+  rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0
+  funcTree = nodeTranslate funcTree pad (nodeHeight rootBox) + 5
+  argTree = nodeTranslate argTree (pad + (nodeWidth funcTree) + (nodeHeight rootBox) + 10)
   makeNode
     svgConcat [(nodeLine rootBox funcTree) (nodeLine rootBox argTree) (nodeSvg rootBox) (nodeSvg funcTree) (nodeSvg argTree)]
     totalWidth
-    + (+ (nodeHeight rootBox) 5) (max (nodeHeight argTree) (nodeHeight funcTree))
-    / totalWidth 2
-    / (nodeHeight rootBox) 2
+    (nodeHeight rootBox) + 5 + (max (nodeHeight argTree) (nodeHeight funcTree))
+    totalWidth / 2
+    (nodeHeight rootBox) / 2
 
 createRefNode ast ref mapFunc = textNode (mapFunc ast redStyle) ref
 createLitNode ast lit mapFunc = textNode (mapFunc ast greenStyle) lit
 
 textNode map txt = (svgMeasureText txt '') \w h . do
-  nodeW = + w 24
-  nodeH = + h 14
+  nodeW = w + 24
+  nodeH = h + 14
   makeNode
-    (svgConcat [(rect [['x'|2] ['y'|2] ['width'|nodeW] ['height'|nodeH] | map]) (text txt [['text-anchor'|"middle"] ['dominant-baseline'|"mathematical"] ['x'|(+ 14 (/ w 2))] ['y'|(+ 5 (/ h 2))] ['font-weight'|'bold']])])
+    (svgConcat [(rect [['x'|2] ['y'|2] ['width'|nodeW] ['height'|nodeH] | map]) (text txt [['text-anchor'|"middle"] ['dominant-baseline'|"mathematical"] ['x'| 14 + w / 2] ['y'| 5 + h / 2] ['font-weight'|'bold']])])
     nodeW
     nodeH
-    / nodeW 2
-    / nodeH 2
+    nodeW / 2
+    nodeH / 2
 
 typeof x = getType x id false

@@ -1,5 +1,7 @@
 #vararg macros
 #@auto
+addParseFilter doFilter
+#@auto
 do
   defGroup 'or[' ']'
   defGroup 'and[' ']'
@@ -15,13 +17,6 @@ subflatten list = isStream list
   dlAppend (subflatten (head list)) (subflatten (tail list))
   dl list
 subflatten list::nil = dlempty
-
-# make a new list by applying func (which takes exactly 1 arg) to each element of list
-# eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
-map func list = _map (pairFunc list) func list
-_map pairF func list = null? list
-  nil
-  pairF (func (head list)) (_map pairF func (tail list))
 
 # remove any x's found in list
 remove x l = removeIf (eq x) l

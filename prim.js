@@ -120,13 +120,13 @@
     };
   });
 
-  define('ast-start', function() {
+  define('astStart', function() {
     return function(ast) {
       return ast().leisureStart;
     };
   });
 
-  define('ast-end', function() {
+  define('astEnd', function() {
     return function(ast) {
       return ast().leisureEnd;
     };
