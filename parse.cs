@@ -128,17 +128,20 @@ class Leisure_cons extends LeisureObject
 
 global.Leisure_cons = Leisure_cons
 
-class Leisure_nil extends Leisure_cons
+class Leisure_nil extends LeisureObject
   find: -> false
   removeAll: -> @
   map: (func)-> Nil
   foldl: (func, arg)-> arg
   foldr: (func, arg)-> arg
+  reverse: -> @
   rev: (result)-> result
   equals: (other)-> other instanceof Leisure_nil
   each: ->
+  toArray: -> []
+  join: -> ''
   append: (l)-> l
-  elementString: -> ''
+  toString: -> "Cons[]"
 
 global.Leisure_nil = Leisure_nil
 

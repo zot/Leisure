@@ -268,6 +268,10 @@ misrepresented as being the original software.
       return arg;
     };
 
+    Leisure_nil.prototype.reverse = function reverse() {
+      return this;
+    };
+
     Leisure_nil.prototype.rev = function rev(result) {
       return result;
     };
@@ -278,17 +282,25 @@ misrepresented as being the original software.
 
     Leisure_nil.prototype.each = function each() {};
 
+    Leisure_nil.prototype.toArray = function toArray() {
+      return [];
+    };
+
+    Leisure_nil.prototype.join = function join() {
+      return '';
+    };
+
     Leisure_nil.prototype.append = function append(l) {
       return l;
     };
 
-    Leisure_nil.prototype.elementString = function elementString() {
-      return '';
+    Leisure_nil.prototype.toString = function toString() {
+      return "Cons[]";
     };
 
     return Leisure_nil;
 
-  })(Leisure_cons);
+  })(LeisureObject);
 
   global.Leisure_nil = Leisure_nil;
 

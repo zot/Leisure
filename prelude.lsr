@@ -132,7 +132,6 @@ lexConsFuzzy h t = null? t
 null? x = false
 null? x::nil = true
 
-
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
 # eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
 map func list = _map (pairFunc list) func list
@@ -218,7 +217,6 @@ concat[ list =M= cons 'concat' (cons (cons '[' (tail list)) nil)
 doFilter parseDefs list = transformDo list
 
 transformDo list = list
-transformDo list::nil = nil
 transformDo list::cons = subDos list
 transformDo list::lexCons = subDos list
 
@@ -227,7 +225,6 @@ subDos list = eq 'do' (tokString (head list))
   subNextDos list
 
 subNextDos nonlist = nonlist
-subNextDos nonlist::nil = nil
 subNextDos list::cons = listSubNextDos list
 subNextDos list::lexCons = listSubNextDos list
 
@@ -242,7 +239,6 @@ doClause clause rest = doExtractVar clause '<-'
     cons 'bind' (cons clause (cons '\\' (cons '_' (cons '.' (cons rest nil)))))
 
 doExtractVar list tokName = none
-doExtractVar list::nil tokName = none
 doExtractVar list::cons tokName = listDoExtractVar list tokName
 doExtractVar list::lexCons tokName = listDoExtractVar list tokName
 

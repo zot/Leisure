@@ -228,9 +228,10 @@ parseInfixList tokens firstList token restList = do
   nextTok = head (tail restList)
   nextRest = tail (tail restList)
   prec = getPrecedence 0 op tokens
-  nextPrec = null? nextRest
+  nextPrec = or (null? restList) (or (null? (tail restList)) (null? nextRest))
     length tokens
     getPrecedence 0 (head nextRest) tokens
+  nextParsed = parseInfixList tokens dlempty nextTok nextRest
   null? tokens
     fullList
     null? restList
@@ -241,9 +242,7 @@ parseInfixList tokens firstList token restList = do
           error concat['Parse error -- expected token after operator: ' op]
           < prec nextPrec
             parseInfixList tokens firstList [op token nextTok] nextRest
-            do
-              nextParsed = parseInfixList tokens dlempty nextTok nextRest
-              parseInfixList tokens firstList [op token (head nextParsed)] (tail nextParsed)
+            parseInfixList tokens firstList [op token (head nextParsed)] (tail nextParsed)
 
 getPrecedence index op tokens = any (eq (tokString op)) (head tokens)
   index
