@@ -1,5 +1,7 @@
 #@auto
-forward 'notebookSelection'
+do
+  forward 'notebookSelection'
+  forward 'notebookAst'
 
 makeNode svg width height rootX rootY = \f . f svg width height rootX rootY
 
@@ -25,10 +27,15 @@ astFor func = isFunc func
 
 treeForNotebook func = do
   s <- notebookSelection func
-  printValue
-    astFor func
-      \ast . treeForWith ast \ast map . s (\start end . (shouldHighlight ast start end) (highlight map) map) map
-      \ignore . concat ['no source for ' func]
+  ast <- notebookAst func
+  ast
+    \ast . printValue (treeForWith ast \ast map . s (\start end . (shouldHighlight ast start end) (highlight map) map) map)
+    \ignore . concat ['no source for ' func]
+
+#printValue
+#  astFor func
+#    \ast . treeForWith ast \ast map . s (\start end . (shouldHighlight ast start end) (highlight map) map) map
+#    \ignore . concat ['no source for ' func]
 
 rangeContainsRange start end innerStart innerEnd = and (lte start innerStart) (lte innerEnd end)
 

@@ -421,10 +421,12 @@ markupDefs = (el, defs)->
 getAst = (bx, def)->
   if bx.ast?
     patchFuncAst bx.ast
+    bx.setAttribute 'leisureFunc', (bx.ast.leisureName ? '')
     bx.ast
   else
     def = def || bx.textContent
-    setAst bx, (Leisure.compileNext def, Parse.Nil, true, null, true)[0]
+    #setAst bx, (Leisure.compileNext def, Parse.Nil, true, null, true)[0]
+    setAst bx, (Leisure.compileNext def, Parse.Nil, true, null)[0]
     bx.ast
 
 setAst = (bx, ast)->
@@ -937,6 +939,15 @@ Parse.define 'notebookSelection', ->(func)->
       p2 = r2.cloneContents().textContent.length - offset
       cont(_some2()(->p1)(->p2))
     else cont(_none())
+
+Parse.define 'notebookAst', ->(func)->
+  Prim.makeMonad (env, cont)->
+    if func.leisureName?
+      node = document.querySelector "[LeisureFunc=#{func.leisureName}]"
+      if node?
+        ast = getAst node
+        return cont(_some()(->ast))
+    cont(_none())
 
 autoRun = (el, state)->
   el.autorunState = state
