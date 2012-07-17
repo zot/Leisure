@@ -197,7 +197,7 @@ defInfixToken tokenName location reference = do
     insertOperator tokenName location reference operators
   setParseFilterInfo (assocSet 'infix' operators defs)
 
-insertOperator tokenName location reference operators = find reference (head operators)
+insertOperator tokenName location reference operators = any (eq reference) (head operators)
   eq location 'before'
     [[tokenName] | operators]
     [[tokenName | (head operators)] | (tail operators)]
@@ -219,27 +219,43 @@ callParseInfixList tokens list = do
   prep = map (parseInfix tokens) list
   parseInfixList tokens dlempty (head prep) (tail prep)
 
+printOperators = do
+  defs <- getParseFilterInfo
+  print (assocGetWithDefault 'infix' nil defs)
+
 # tokens is the list of operator lists
 # firstList is the reversed first part of the list
 #
-# right associative, for now
+# right associative, for now; for left-associative, use <= instead of <
 parseInfixList tokens firstList token restList = do
   fullList = firstList [token | restList]
   op = head restList
   nextTok = head (tail restList)
   nextRest = tail (tail restList)
+  prec = getPrecedence 0 op tokens
+  nextPrec = null? nextRest
+    length tokens
+    getPrecedence 0 (head nextRest) tokens
   null? tokens
     fullList
     null? restList
       parseInfixList (tail tokens) dlempty (head fullList) (tail fullList)
-      not (operatorIn op tokens)
+      eq prec (length tokens)
         parseInfixList tokens (dlPush firstList token) op (tail restList)
         null? (tail restList)
           error concat['Parse error -- expected token after operator: ' op]
-          parseInfixList tokens firstList [op token nextTok] nextRest
+          < prec nextPrec
+            parseInfixList tokens firstList [op token nextTok] nextRest
+            do
+              nextParsed = parseInfixList tokens dlempty nextTok nextRest
+              parseInfixList tokens firstList [op token (head nextParsed)] (tail nextParsed)
+
+getPrecedence index op tokens = any (eq (tokString op)) (head tokens)
+  index
+  getPrecedence (+ 1 index) op (tail tokens)
+getPrecedence index op tokens::nil = index
 
 # TODO optimizer could factor out opEq by itself, since it only depends on op.  That would prevent repeated application
 operatorIn op tokens = do
   opEq = eq (tokString op)
-  log ['operator in: ' (tokString op) ' ' tokens]
-    any (\toks . any opEq toks) tokens
+  any (\toks . any opEq toks) tokens

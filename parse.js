@@ -652,13 +652,6 @@ misrepresented as being the original software.
       }
     };
 
-    Scanner.prototype.scan = function scan(str) {
-      var group, res;
-      group = (res = this.filter(0, this.basicScan(str)))[0];
-      if (this.filters.length) console.log("PARSED: " + group);
-      return res;
-    };
-
     Scanner.prototype.filter = function filter(index, result) {
       var _this = this;
       return ifParsed(result, function(group, rest) {
@@ -680,7 +673,7 @@ misrepresented as being the original software.
       });
     };
 
-    Scanner.prototype.basicScan = function basicScan(str) {
+    Scanner.prototype.scan = function scan(str) {
       return ifParsed(this.parseGroup(str, '\n', str.length), function(group, rest) {
         return [group(Nil, str.length - rest.length), null, rest];
       });
@@ -1155,17 +1148,21 @@ misrepresented as being the original software.
   };
 
   parseOptional = function parseOptional(string, macros) {
-    var err, res, rest, tok, _ref, _ref2;
+    var err, macres, res, rest, _ref;
     _ref = defaultScanner.scan(string), res = _ref[0], err = _ref[1], rest = _ref[2];
     if (err) {
       return [null, err, rest];
     } else {
-      _ref2 = listToAst((macros ? substituteMacros(res) : res)), res = _ref2[0], err = _ref2[1], tok = _ref2[2];
-      if (res) {
-        return [res, null, rest];
-      } else {
-        return [null, err, (tok ? string.substring(tok.start()) : rest)];
-      }
+      macres = [(macros ? substituteMacros(res) : res), null, rest];
+      return ifParsed((macros ? defaultScanner.filter(0, macres) : macres), function(macroed, rest) {
+        var tok, _ref2;
+        _ref2 = listToAst(macroed), res = _ref2[0], err = _ref2[1], tok = _ref2[2];
+        if (res) {
+          return [res, null, rest];
+        } else {
+          return [null, err, (tok ? string.substring(tok.start()) : rest)];
+        }
+      });
     }
   };
 

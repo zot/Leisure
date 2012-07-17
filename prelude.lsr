@@ -59,6 +59,8 @@ defGroup 'concat[' ']'
 defToken '|'
 #@auto
 defToken ','
+#@auto
+defToken '<-'
 
 id x = x
 

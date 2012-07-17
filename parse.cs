@@ -275,10 +275,8 @@ class Scanner
       rest = str.substring(m.index + m[0].length)
       if tok[0] == '#' or tok[0] == ' ' or (tok[0] == '\n' and rest[0] == '\n') then @nextTok rest
       else [tok, rest]
-  scan: (str)->
-    [group] = res = @filter 0, (@basicScan str)
-    if @filters.length then console.log "PARSED: #{group}"
-    res
+  #scan: (str)-> @filter 0, (@basicScan str)
+  #basicScan: (str)-> ifParsed (@parseGroup str, '\n', str.length), (group, rest)-> [group(Nil, str.length - rest.length), null, rest]
   filter: (index, result)-> ifParsed result, (group, rest)=>
     if index < @filters.length
       try
@@ -286,7 +284,7 @@ class Scanner
       catch err
         [null, err.toString(), null]
     else [group, null, rest]
-  basicScan: (str)-> ifParsed (@parseGroup str, '\n', str.length), (group, rest)-> [group(Nil, str.length - rest.length), null, rest]
+  scan: (str)-> ifParsed (@parseGroup str, '\n', str.length), (group, rest)-> [group(Nil, str.length - rest.length), null, rest]
   parseGroup: (str, indent, totalLen)->
     # returns [lexdlGroup, err, rest]
     # note that lexdlGroup is not a list, it's a difference list
@@ -479,9 +477,11 @@ parseOptional = (string, macros)->
   [res, err, rest] = defaultScanner.scan string
   if err then [null, err, rest]
   else
-    [res, err, tok] = listToAst (if macros then substituteMacros res else res)
-    if res then [res, null, rest]
-    else [null, err, (if tok then string.substring(tok.start()) else rest)]
+    macres = [(if macros then substituteMacros res else res), null, rest]
+    ifParsed (if macros then defaultScanner.filter 0, macres else macres), (macroed, rest)->
+      [res, err, tok] = listToAst macroed
+      if res then [res, null, rest]
+      else [null, err, (if tok then string.substring(tok.start()) else rest)]
 
 right = (value)-> (a)->(b)-> a()(->value)
 left = (value)-> (a)->(b)-> b()(->value)

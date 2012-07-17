@@ -15,7 +15,7 @@ importFile = (file, cont) ->
     LZ.eval "req('./#{file}')"
     cont()), nomacros, debug
 
-standard = ['prelude', 'std']
+standard = ['prelude', 'std', 'parsing']
 
 loadStandardLimit = standard.length
 
