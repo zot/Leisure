@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var CNil, Cons, DL, LexCons, LexDL, Nil, Scanner, Token, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, cleanupMacro, codeChars, collapseTrivial, cons, defGroup, defToken, defaultScanner, define, defineMacro, dlappend, dlempty, dlnew, elements, escapeRegexpChars, evalFunc, foldLeft, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, ifParsed, inspect, isLambdaToken, jsType, lambda, left, leisureAddFunc, lexCons, lexDlappend, lexDlempty, lexDlnew, lfunc, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, numberPat, parse, parseFull, parseOptional, pos, positionGroup, primCons, primFoldLeft, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, right, root, setDataType, setType, snip, subprint, substituteLambdaBody, substituteLambdaMacros, substituteMacros, tag, throwError, tokPos, tokenToAst,
+  var DL, LeisureObject, Leisure_cons, Leisure_lexCons, Leisure_nil, Leisure_token, LexDL, Nil, Scanner, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, cleanupMacro, codeChars, collapseTrivial, cons, defGroup, defToken, defaultScanner, define, defineMacro, dlappend, dlempty, dlnew, elements, ensureLeisureClass, escapeRegexpChars, evalFunc, foldLeft, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, ifParsed, inspect, isLambdaToken, jsType, lambda, left, leisureAddFunc, lexCons, lexDlappend, lexDlempty, lexDlnew, lfunc, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, numberPat, parse, parseFull, parseOptional, pos, positionGroup, primCons, primFoldLeft, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, right, root, setDataType, setType, snip, subprint, substituteLambdaBody, substituteLambdaMacros, substituteMacros, tag, throwError, tokPos, tokenToAst,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -92,14 +92,39 @@ misrepresented as being the original software.
 
   setType = function setType(func, type) {
     if (type) func.type = type;
+    func.__proto__ = (ensureLeisureClass(type)).prototype;
     return func;
   };
 
-  Cons = (function() {
+  LeisureObject = (function() {
 
-    function Cons() {}
+    function LeisureObject() {}
 
-    Cons.prototype.head = function head() {
+    return LeisureObject;
+
+  })();
+
+  global.LeisureObject = LeisureObject;
+
+  ensureLeisureClass = function ensureLeisureClass(leisureClass) {
+    var cl;
+    cl = "Leisure" + (nameSub(leisureClass));
+    if (!(global[cl] != null)) {
+      global[cl] = eval("(function " + cl + "(){})");
+      global[cl].prototype.__proto__ = LeisureObject.prototype;
+    }
+    return global[cl];
+  };
+
+  Leisure_cons = (function(_super) {
+
+    __extends(Leisure_cons, _super);
+
+    function Leisure_cons() {
+      Leisure_cons.__super__.constructor.apply(this, arguments);
+    }
+
+    Leisure_cons.prototype.head = function head() {
       return this(function() {
         return function(a) {
           return function(b) {
@@ -109,7 +134,7 @@ misrepresented as being the original software.
       });
     };
 
-    Cons.prototype.tail = function tail() {
+    Leisure_cons.prototype.tail = function tail() {
       return this(function() {
         return function(a) {
           return function(b) {
@@ -119,11 +144,11 @@ misrepresented as being the original software.
       });
     };
 
-    Cons.prototype.find = function find(func) {
+    Leisure_cons.prototype.find = function find(func) {
       return func(this.head()) || this.tail().find(func);
     };
 
-    Cons.prototype.removeAll = function removeAll(func) {
+    Leisure_cons.prototype.removeAll = function removeAll(func) {
       var t;
       t = this.tail().removeAll(func);
       if (func(this.head)) {
@@ -135,23 +160,23 @@ misrepresented as being the original software.
       }
     };
 
-    Cons.prototype.map = function map(func) {
+    Leisure_cons.prototype.map = function map(func) {
       return cons(func(this.head()), this.tail().map(func));
     };
 
-    Cons.prototype.foldl = function foldl(func, arg) {
+    Leisure_cons.prototype.foldl = function foldl(func, arg) {
       return this.tail().foldl(func, func(arg, this.head()));
     };
 
-    Cons.prototype.foldl1 = function foldl1(func) {
+    Leisure_cons.prototype.foldl1 = function foldl1(func) {
       return this.tail().foldl(func, this.head());
     };
 
-    Cons.prototype.foldr = function foldr(func, arg) {
+    Leisure_cons.prototype.foldr = function foldr(func, arg) {
       return func(this.head(), this.tail().foldr(func, arg));
     };
 
-    Cons.prototype.foldr1 = function foldr1(func) {
+    Leisure_cons.prototype.foldr1 = function foldr1(func) {
       if (this.tail() === Nil) {
         return this.head();
       } else {
@@ -159,101 +184,113 @@ misrepresented as being the original software.
       }
     };
 
-    Cons.prototype.toArray = function toArray() {
+    Leisure_cons.prototype.toArray = function toArray() {
       return this.foldl((function(i, el) {
         i.push(el);
         return i;
       }), []);
     };
 
-    Cons.prototype.join = function join(str) {
+    Leisure_cons.prototype.join = function join(str) {
       return this.toArray().join(str);
     };
 
-    Cons.prototype.toString = function toString() {
-      return "Cons[" + (this.toArray().join(', ')) + "]";
+    Leisure_cons.prototype.toString = function toString() {
+      return "Cons[" + (this.elementString()) + "]";
     };
 
-    Cons.prototype.reverse = function reverse() {
+    Leisure_cons.prototype.elementString = function elementString() {
+      return "" + (this.head()) + (this.tail() === Nil ? '' : this.tail() instanceof Leisure_cons ? " " + (this.tail().elementString()) : " | " + (this.tail()));
+    };
+
+    Leisure_cons.prototype.reverse = function reverse() {
       return this.rev(Nil);
     };
 
-    Cons.prototype.rev = function rev(result) {
+    Leisure_cons.prototype.rev = function rev(result) {
       return this.tail().rev(cons(this.head(), result));
     };
 
-    Cons.prototype.equals = function equals(other) {
-      return this === other || (other instanceof Cons && (this.head() === other.head() || (this.head() instanceof Cons && this.head().equals(other.head()))) && (this.tail() === other.tail() || (this.tail() instanceof Cons && this.tail().equals(other.tail()))));
+    Leisure_cons.prototype.equals = function equals(other) {
+      return this === other || (other instanceof Leisure_cons && (this.head() === other.head() || (this.head() instanceof Leisure_cons && this.head().equals(other.head()))) && (this.tail() === other.tail() || (this.tail() instanceof Leisure_cons && this.tail().equals(other.tail()))));
     };
 
-    Cons.prototype.each = function each(block) {
+    Leisure_cons.prototype.each = function each(block) {
       block(this.head());
       return this.tail().each(block);
     };
 
-    Cons.prototype.last = function last() {
+    Leisure_cons.prototype.last = function last() {
       var t;
       t = this.tail();
-      if (t === lexNil) {
+      if (t === Nil) {
         return t;
       } else {
         return t.last();
       }
     };
 
-    Cons.prototype.append = function append(l) {
+    Leisure_cons.prototype.append = function append(l) {
       return cons(this.head(), this.tail().append(l));
     };
 
-    return Cons;
+    return Leisure_cons;
 
-  })();
+  })(LeisureObject);
 
-  CNil = (function(_super) {
+  global.Leisure_cons = Leisure_cons;
 
-    __extends(CNil, _super);
+  Leisure_nil = (function(_super) {
 
-    function CNil() {
-      CNil.__super__.constructor.apply(this, arguments);
+    __extends(Leisure_nil, _super);
+
+    function Leisure_nil() {
+      Leisure_nil.__super__.constructor.apply(this, arguments);
     }
 
-    CNil.prototype.find = function find() {
+    Leisure_nil.prototype.find = function find() {
       return false;
     };
 
-    CNil.prototype.removeAll = function removeAll() {
+    Leisure_nil.prototype.removeAll = function removeAll() {
       return this;
     };
 
-    CNil.prototype.map = function map(func) {
+    Leisure_nil.prototype.map = function map(func) {
       return Nil;
     };
 
-    CNil.prototype.foldl = function foldl(func, arg) {
+    Leisure_nil.prototype.foldl = function foldl(func, arg) {
       return arg;
     };
 
-    CNil.prototype.foldr = function foldr(func, arg) {
+    Leisure_nil.prototype.foldr = function foldr(func, arg) {
       return arg;
     };
 
-    CNil.prototype.rev = function rev(result) {
+    Leisure_nil.prototype.rev = function rev(result) {
       return result;
     };
 
-    CNil.prototype.equals = function equals(other) {
-      return other instanceof CNil;
+    Leisure_nil.prototype.equals = function equals(other) {
+      return other instanceof Leisure_nil;
     };
 
-    CNil.prototype.each = function each() {};
+    Leisure_nil.prototype.each = function each() {};
 
-    CNil.prototype.append = function append(l) {
+    Leisure_nil.prototype.append = function append(l) {
       return l;
     };
 
-    return CNil;
+    Leisure_nil.prototype.elementString = function elementString() {
+      return '';
+    };
 
-  })(Cons);
+    return Leisure_nil;
+
+  })(Leisure_cons);
+
+  global.Leisure_nil = Leisure_nil;
 
   DL = (function() {
 
@@ -290,13 +327,13 @@ misrepresented as being the original software.
 
   primCons = setDataType((function(a) {
     return function(b) {
-      return mkProto(Cons, setType((function(f) {
+      return mkProto(Leisure_cons, setType((function(f) {
         return f()(a)(b);
       }), 'cons'));
     };
   }), 'cons');
 
-  Nil = mkProto(CNil, setType((function(a) {
+  Nil = mkProto(Leisure_nil, setType((function(a) {
     return function(b) {
       return b();
     };
@@ -329,7 +366,7 @@ misrepresented as being the original software.
   };
 
   foldLeft = function foldLeft(func, val, thing) {
-    if (thing instanceof Cons) {
+    if (thing instanceof Leisure_cons) {
       return thing.foldl(func, val);
     } else {
       return primFoldLeft(func, val, thing, 0);
@@ -344,15 +381,15 @@ misrepresented as being the original software.
     }
   };
 
-  LexCons = (function(_super) {
+  Leisure_lexCons = (function(_super) {
 
-    __extends(LexCons, _super);
+    __extends(Leisure_lexCons, _super);
 
-    function LexCons() {
-      LexCons.__super__.constructor.apply(this, arguments);
+    function Leisure_lexCons() {
+      Leisure_lexCons.__super__.constructor.apply(this, arguments);
     }
 
-    LexCons.prototype.head = function head() {
+    Leisure_lexCons.prototype.head = function head() {
       return this(function() {
         return function(a) {
           return function(s) {
@@ -366,7 +403,7 @@ misrepresented as being the original software.
       });
     };
 
-    LexCons.prototype.tail = function tail() {
+    Leisure_lexCons.prototype.tail = function tail() {
       return this(function() {
         return function(a) {
           return function(s) {
@@ -380,7 +417,7 @@ misrepresented as being the original software.
       });
     };
 
-    LexCons.prototype.start = function start() {
+    Leisure_lexCons.prototype.start = function start() {
       return this(function() {
         return function(a) {
           return function(s) {
@@ -394,7 +431,7 @@ misrepresented as being the original software.
       });
     };
 
-    LexCons.prototype.end = function end() {
+    Leisure_lexCons.prototype.end = function end() {
       return this(function() {
         return function(a) {
           return function(s) {
@@ -408,27 +445,29 @@ misrepresented as being the original software.
       });
     };
 
-    LexCons.prototype.map = function map(func) {
+    Leisure_lexCons.prototype.map = function map(func) {
       return lexCons(func(this.head()), this.start(), this.tail().map(func), this.end());
     };
 
-    LexCons.prototype.withStart = function withStart(start) {
+    Leisure_lexCons.prototype.withStart = function withStart(start) {
       return lexCons(this.head(), start, this.tail(), this.end());
     };
 
-    LexCons.prototype.toString = function toString() {
+    Leisure_lexCons.prototype.toString = function toString() {
       return "LexCons(" + (this.start()) + ", " + (this.end()) + ")[" + (this.toArray().join(' ')) + "]";
     };
 
-    return LexCons;
+    return Leisure_lexCons;
 
-  })(Cons);
+  })(Leisure_cons);
+
+  global.Leisure_lexCons = Leisure_lexCons;
 
   primLexCons = setDataType((function(a) {
     return function(start) {
       return function(b) {
         return function(end) {
-          return mkProto(LexCons, setType((function(f) {
+          return mkProto(Leisure_lexCons, setType((function(f) {
             return f()(a)(start)(b)(end);
           }), 'lexCons'));
         };
@@ -486,14 +525,14 @@ misrepresented as being the original software.
 
   root.evalFunc = evalFunc = eval;
 
-  define = function define(name, func, arity, src) {
+  define = function define(name, func, arity, src, method) {
     var nm;
     func.src = src;
     func.leisureContexts = [];
     nm = nameSub(name);
     func.leisureName = name;
     func.leisureArity = arity;
-    if (global.noredefs && (global[nm] != null)) {
+    if (!method && global.noredefs && (global[nm] != null)) {
       throwError("[DEF] Attempt to redefine definition: " + name);
     }
     global[nm] = global.leisureFuncs[nm] = func;
@@ -504,18 +543,6 @@ misrepresented as being the original software.
   define('cons', (function() {
     return primCons;
   }), 2, '\a b f . f a b');
-
-  define('head', (function() {
-    return function(l) {
-      return l().head();
-    };
-  }), 1, '\l . l \h t . h');
-
-  define('tail', (function() {
-    return function(l) {
-      return l().tail();
-    };
-  }), 1, '\l . l \h t . t');
 
   define('lexCons', (function() {
     return primLexCons;
@@ -536,42 +563,6 @@ misrepresented as being the original software.
   define('nil', (function() {
     return Nil;
   }), 0, '\a b . b');
-
-  define('foldl', (function() {
-    return function(f) {
-      return function(v) {
-        return function(l) {
-          return l().foldl(lfunc(f), v());
-        };
-      };
-    };
-  }), 3, '');
-
-  define('foldl1', (function() {
-    return function(f) {
-      return function(l) {
-        return l().foldl1(lfunc(f));
-      };
-    };
-  }), 3, '');
-
-  define('foldr', (function() {
-    return function(f) {
-      return function(v) {
-        return function(l) {
-          return l().foldlr(lfunc(f), v());
-        };
-      };
-    };
-  }), 3, '');
-
-  define('foldr1', (function() {
-    return function(f) {
-      return function(l) {
-        return l().foldr1(lfunc(f));
-      };
-    };
-  }), 3, '');
 
   lfunc = function lfunc(f) {
     return function(v, el) {
@@ -595,7 +586,13 @@ misrepresented as being the original software.
       this.groupCloses = {
         ')': 1
       };
+      this.filters = [];
+      this.filterInfo = Nil;
     }
+
+    Scanner.prototype.addFilter = function addFilter(filter) {
+      return this.filters.push(filter);
+    };
 
     Scanner.prototype.defToken = function defToken(name) {
       var i, types;
@@ -656,8 +653,33 @@ misrepresented as being the original software.
     };
 
     Scanner.prototype.scan = function scan(str) {
+      return this.filter(0, this.basicScan(str));
+    };
+
+    Scanner.prototype.basicScan = function basicScan(str) {
       return ifParsed(this.parseGroup(str, '\n', str.length), function(group, rest) {
         return [group(Nil, str.length - rest.length), null, rest];
+      });
+    };
+
+    Scanner.prototype.filter = function filter(index, result) {
+      var _this = this;
+      return ifParsed(result, function(group, rest) {
+        if (index < _this.filters.length) {
+          try {
+            return _this.filter(index + 1, [
+              cleanupMacro(_this.filters[index](function() {
+                return _this.filterInfo;
+              })(function() {
+                return group;
+              })), null, rest
+            ]);
+          } catch (err) {
+            return [null, err.toString(), null];
+          }
+        } else {
+          return [group, null, rest];
+        }
       });
     };
 
@@ -752,11 +774,15 @@ misrepresented as being the original software.
     return "[" + (str.substring(0, 80)) + "]";
   };
 
-  Token = (function() {
+  Leisure_token = (function(_super) {
 
-    function Token() {}
+    __extends(Leisure_token, _super);
 
-    Token.prototype.tok = function tok() {
+    function Leisure_token() {
+      Leisure_token.__super__.constructor.apply(this, arguments);
+    }
+
+    Leisure_token.prototype.tok = function tok() {
       return this(function() {
         return function(t) {
           return function(p) {
@@ -766,7 +792,7 @@ misrepresented as being the original software.
       });
     };
 
-    Token.prototype.start = function start() {
+    Leisure_token.prototype.start = function start() {
       return this(function() {
         return function(t) {
           return function(p) {
@@ -776,25 +802,25 @@ misrepresented as being the original software.
       });
     };
 
-    Token.prototype.end = function end() {
+    Leisure_token.prototype.end = function end() {
       return this.start() + this.tok().length;
     };
 
-    Token.prototype.toString = function toString() {
+    Leisure_token.prototype.toString = function toString() {
       return "Token('" + (this.tok()) + "', " + (this.start()) + "-" + (this.end()) + ")";
     };
 
-    return Token;
+    return Leisure_token;
 
-  })();
+  })(LeisureObject);
 
-  primToken = setDataType((function(a) {
-    return function(b) {
-      var t;
-      t = mkProto(Token, setType((function(f) {
-        return f()(a)(b);
+  global.Leisure_token = Leisure_token;
+
+  primToken = setDataType((function(tok) {
+    return function(pos) {
+      return mkProto(Leisure_token, setType((function(f) {
+        return f()(tok)(pos);
       }), 'token'));
-      return t;
     };
   }), 'token');
 
@@ -833,7 +859,7 @@ misrepresented as being the original software.
   };
 
   collapseTrivial = function collapseTrivial(group) {
-    if (group instanceof Cons && group.tail() === Nil) {
+    if (group instanceof Leisure_cons && group.tail() === Nil) {
       return collapseTrivial(group.head());
     } else {
       return group;
@@ -843,7 +869,7 @@ misrepresented as being the original software.
   positionGroup = function positionGroup(groupDL, startTok, endTok) {
     var g;
     g = collapseTrivial(groupDL(Nil, endTok.end()));
-    if (g instanceof LexCons) {
+    if (g instanceof Leisure_lexCons) {
       return g.withStart(startTok.start());
     } else {
       return g;
@@ -856,9 +882,9 @@ misrepresented as being the original software.
 
   substituteMacros = function substituteMacros(list) {
     var cleaned, macro;
-    if (list === Nil || !(list instanceof Cons)) {
+    if (list === Nil || !(list instanceof Leisure_cons)) {
       return list;
-    } else if (list.head() instanceof Token && (macro = global.leisureMacros[list.head().tok()])) {
+    } else if (list.head() instanceof Leisure_token && (macro = global.leisureMacros[list.head().tok()])) {
       cleaned = cleanupMacro(macro(function() {
         return list;
       }));
@@ -882,7 +908,7 @@ misrepresented as being the original software.
     if (list === Nil) {
       return Nil;
     } else {
-      return lexCons(list.head(), list.start(), ((list.head() instanceof Token) && list.head().tok() === '.' ? substituteMacros(list.tail()) : substituteLambdaBody(list.tail())), list.end());
+      return lexCons(list.head(), list.start(), ((list.head() instanceof Leisure_token) && list.head().tok() === '.' ? substituteMacros(list.tail()) : substituteLambdaBody(list.tail())), list.end());
     }
   };
 
@@ -894,14 +920,14 @@ misrepresented as being the original software.
       })(function() {
         return 0;
       });
-    } else if (!(list instanceof Cons) || (list === Nil)) {
+    } else if (!(list instanceof Leisure_cons) || (list === Nil)) {
       return list;
-    } else if (list instanceof LexCons) {
+    } else if (list instanceof Leisure_lexCons) {
       return list.map(cleanupMacro);
     } else {
       head = cleanupMacro(list.head());
       tail = cleanupMacro(list.tail());
-      return lexCons(head, (head !== Nil ? head.start() : 0), tail, (tail !== Nil ? tail.end() : 0));
+      return lexCons(head, (head.start != null ? head.start() : tail.start != null ? tail.start() : 0), tail, (tail.start != null ? tail.start() : 0));
     }
   };
 
@@ -1048,7 +1074,7 @@ misrepresented as being the original software.
   primListToAst = function primListToAst(list, vars) {
     if (list === Nil) {
       return [null, "Expecting expression, but input is empty"];
-    } else if (!(list instanceof LexCons)) {
+    } else if (!(list instanceof Leisure_lexCons)) {
       return tokenToAst(list, vars);
     } else if (isLambdaToken(list.head())) {
       return checkLambda(list.tail(), vars);
@@ -1061,11 +1087,11 @@ misrepresented as being the original software.
 
   isLambdaToken = function isLambdaToken(tok) {
     var _ref;
-    return (tok instanceof Token) && ((_ref = tok.tok()) === '\\' || _ref === '\u03BB');
+    return (tok instanceof Leisure_token) && ((_ref = tok.tok()) === '\\' || _ref === '\u03BB');
   };
 
   checkLambda = function checkLambda(list, vars) {
-    if (list.head() instanceof Token && list.head().tok() !== '.') {
+    if (list.head() instanceof Leisure_token && list.head().tok() !== '.') {
       return listToLambda(list, vars);
     } else {
       return [null, "Bad lambda construct, expected names, followed by a dot", list];
@@ -1073,7 +1099,7 @@ misrepresented as being the original software.
   };
 
   badLambdaCont = function badLambdaCont(tok) {
-    return !(tok instanceof Token) || isLambdaToken(tok);
+    return !(tok instanceof Leisure_token) || isLambdaToken(tok);
   };
 
   listToLambda = function listToLambda(list, vars) {
@@ -1101,7 +1127,11 @@ misrepresented as being the original software.
     try {
       l = JSON.parse(tok.tok());
       t = typeof l;
-      return [tag((t === 'number' && vars.find(l) ? ref(l) : t === 'string' || t === 'number' ? lit(l) : ref(tok.tok())), tok.start(), tok.end())];
+      return [
+        tag((vars.find(function(n) {
+          return n === l || n === tok.tok();
+        }) ? ref(tok.tok()) : t === 'string' || t === 'number' ? lit(l) : ref(tok.tok())), tok.start(), tok.end())
+      ];
     } catch (err) {
       return [tag(ref(tok.tok()), tok.start(), tok.end())];
     }
@@ -1156,23 +1186,27 @@ misrepresented as being the original software.
     };
   };
 
-  define('scan', function() {
+  define('scan', (function() {
     return function(string) {
       var err, res, rest, _ref;
-      _ref = scan(string()), res = _ref[0], err = _ref[1], rest = _ref[2];
+      _ref = defaultScanner.scan(string()), res = _ref[0], err = _ref[1], rest = _ref[2];
       if (err) {
-        return left("Error at: " + (JSON.stringify(snip(rest))) + "..., " + err);
+        return _left()(function() {
+          return "Error at: " + (JSON.stringify(snip(rest))) + "..., " + err;
+        });
       } else {
-        return right(res);
+        return _right()(function() {
+          return res;
+        });
       }
     };
-  });
+  }), 1);
 
-  define('macro', function() {
+  define('macro', (function() {
     return function(list) {
       return substituteMacros(list());
     };
-  });
+  }), 1);
 
   parse = function parse(string) {
     return parseOptional(string, false);
@@ -1330,7 +1364,7 @@ misrepresented as being the original software.
   elements = function elements(l, first, nosubs) {
     if (l === Nil) {
       return '';
-    } else if (!(l instanceof Cons)) {
+    } else if (!(l instanceof Leisure_cons)) {
       return " | " + (print(l));
     } else {
       return "" + (first ? '' : ' ') + (print(l.head()) + elements(l.tail(), false));
@@ -1415,6 +1449,12 @@ misrepresented as being the original software.
 
   root.Scanner = Scanner;
 
-  root.Token = Token;
+  root.Leisure_token = Leisure_token;
+
+  root.ensureLeisureClass = ensureLeisureClass;
+
+  root.LeisureObject = LeisureObject;
+
+  root.defaultScanner = defaultScanner;
 
 }).call(this);

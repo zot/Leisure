@@ -28,9 +28,9 @@ all2 f l = l
 #@update sel-all2
 treeForNotebook all2
 
-ones = cons 1 ones
+ones = [1 | ones]
 
-increasing x = cons x (increasing (+ 1 x))
+increasing x = [x | (increasing (1 + x))]
 
 naturals = increasing 1
 

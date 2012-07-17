@@ -318,7 +318,7 @@
         prevName = ast.leisureName;
         if (loud > 2) console.log("Found function: " + ast.leisureName);
         if (globals != null ? globals.find(function(v) {
-          return v === ast.leisureName;
+          return v === ast.leisureName && !ast.leisureTypeAssertions;
         }) : void 0) {
           throwError("Attempt to redefine function: " + ast.leisureName + (showAst(ast)));
         }

@@ -1,33 +1,256 @@
 #vararg macros
 #@auto
-defGroup 'concat[' ']'
+addParseFilter doFilter
 #@auto
-defGroup 'or[' ']'
-#@auto
-defGroup 'and[' ']'
+do
+  defGroup 'or[' ']'
+  defGroup 'and[' ']'
 
-concat[ list =M= ['concat' (cons '[' (tail list))]
+# difference lists
+dlempty = id
+dl item = \rest . [item | rest]
+dlPush list item = dlAppend list (dl item)
+dlAppend a b = \rest . a (b rest)
 
-or[ list =M= do
-  args = (dropLast 1 (tail list))
-  eq args nil
-    ['true']
-    eq (tail args) nil
-      args
-      foldr1 (\v el . ['or' v el]) args
+flatten list = subflatten list nil
+subflatten list = isStream list
+  dlAppend (subflatten (head list)) (subflatten (tail list))
+  dl list
+subflatten list::nil = dlempty
 
-# for debugging macros
-lexAsCons l = eq l nil
+# remove any x's found in list
+remove x l = removeIf (eq x) l
+
+# remove any elements where f evals to true, f must take exactly one argument
+removeIf f l = _removeIf (pairFunc l) f l
+_removeIf pairF f l  = if (eq l nil) nil
+  if (f (head l)) (_removeIf pairF f (tail l))
+    pairF (head l) (_removeIf pairF f (tail l))
+removeIfNot f l = removeIf (\x. not (f x)) l
+
+filter f = removeIf (compose not f)
+
+# return true if any elements of l satisfy f, which takes exactly one arg
+# eg. any (eq 0) [1 2 0] gives true: true
+any f l = _any (pairFunc l) f l
+_any pairF f l = null? l
+  false
+  or
+    f (head l)
+    _any pairF f (tail l)
+
+# return true if ALL elements of l satisfy f, which takes exactly one arg
+# eg. all (eq 0) [0 0 0] gives true: true
+# caveat!  return true for nil lists
+all f l = _all (pairFunc l) f l
+_all pairF f l = null? l
+  true
+  and
+    f (head l)
+    _all pairF f (tail l)
+
+# find returns x if x is present inside l, otherwise returns nil.
+find x l = findIf (eq x) l
+
+findIf f l = null? l
   nil
-  is l lexCons
-    cons (lexAsCons (head l)) (lexAsCons (tail l))
-    is l token
-      tokenName l
-      l
+  f (head l)
+    head l
+    findIf f (tail l)
 
-#defInfixToken tokenName precedence = do
-#  defToken tokenName
-#  setValue (concat[ 'infixToken.' 
+findIfOpt f l = null? l
+  none
+  f (head l)
+    some (head l)
+    findIfOpt f (tail l)
 
-maluba x::duh = x
-maluba2 x::duh = x
+findIndex func list = subFindIndex 0 func list
+subFindIndex index func list = func (head list)
+  index
+  subFindIndex (+ 1 index) func (tail list)
+subFindIndex index func list::nil = -1
+
+take n list = _take (pairFunc list) n list
+_take pairF n list = positive n
+  null? list
+    nil
+    pairF (head list) (_take pairF (-- n) (tail list))
+  nil
+takeWhile predicate list = _takeWhile (pairFunc list) predicate list
+_takeWhile pairF predicate list = null? list
+  nil
+  predicate (head list)
+    pairF (head list) (_takeWhile pairF predicate (tail list))
+    nil
+drop x list = positive x
+  null? list
+    nil
+    drop (-- x) (tail list)
+  list
+dropWhile predicate list = null? list
+  nil
+  predicate (head list)
+    dropWhile predicate (tail list)
+    list
+dropLast n list = tail (_dropLast (pairFunc list) n list)
+_dropLast pairF n list = eq list nil
+  [0]
+  (\next . gt n (head next)
+    [(+ 1 (head next))]
+    [n | (pairF (head list) (tail next))]) (_dropLast pairF n (tail list))
+
+series func n = [n | (series func (func n))]
+from n = series ++ n
+fromBy n inc = series (+ inc) n
+fromTo n m = takeWhile (> m) (from n)
+fromToBy n m inc = takeWhile (> m) (fromBy n inc)
+
+# count returns the number of times x appears in l
+count x l = countIf (eq x) l
+
+# countIf returns the number of times x satifies f in l, f must take a single argument
+# eg. countIf odd? [3 1] gives number: 2
+countIf f l = if (eq l nil) 0
+  + (f (head l) 1 0) (countIf f (tail l))
+countIfNot f l = countIf (\x. not (f x)) l
+
+###########
+# Assoc lists (from Roy's hashmap code)
+###########
+
+assocFromList l = if (null? l) nil
+  assocSet (head l) (head (tail l)) (assocFromList (tail (tail l)))
+
+assocKey cons = head cons
+assocValue cons = tail cons
+
+assocGetPair k anAssoc = findIf (\x . eq (head x) k) anAssoc
+
+# assocGetPairOpt returns a 2Valued option
+assocGetPairOpt k l = l (\h t D . h (\kk vv . (eq k kk) (some2 kk vv) (assocGetPairOpt k t))) none
+
+assocKeys anAssoc = map (\cell . (assocKey cell)) anAssoc
+assocNumKeys anAssoc = length (assocKeys anAssoc)
+
+assocMergeKeys hm1 hm2 keys = if (null? keys) hm1
+  if (null? (assocGetPair (head keys) hm1) )
+    [(assocGetPair (head keys) hm2) | (assocMergeKeys hm1 hm2 (tail keys))]
+    assocMergeKeys hm1 hm2 (tail keys)
+
+# keys in hm2 take precedence over keys in hm1
+assocMerge hm1 hm2 = assocMergeKeys hm1 hm2 (assocKeys hm2)
+
+assocSet k v anAssoc = [(cons k v) | (assocRemove k anAssoc)]
+
+assocGet k anAssoc = (assocGetPair k anAssoc) (\h t D . some h) none
+
+assocGetWithDefault k default anAssoc = (assocGetPair k anAssoc) (\h t D . t) default
+
+assocRemove k anAssoc = removeIf (\x . eq (assocKey x) k) anAssoc
+
+######################
+# output tag functions
+######################
+
+html x = \f . f x
+
+######################
+# Macros
+######################
+
+or[ list =M= primOrVar list (dropLast 1 (tail list))
+primOrVar list args = eq args nil
+  ['true']
+  eq (tail args) nil
+    args
+    foldr1 (\v el . ['or' v el]) args
+
+and[ list =M= primAndVar list (dropLast 1 (tail list))
+primAndVar list args = eq args nil
+  ['false']
+  eq (tail args) nil
+    args
+    foldr1 (\v el . ['and' v el]) args
+
+######################
+# Infix
+######################
+
+# defInfixToken tok location reference
+# defInfixToken '/' 'before' nil -- make + the tightest binding operator
+# defInfixToken '@' 'same' nil -- make @ the loosest binding operator
+# defInfixToken '+' 'before' '/' -- make + bind just tighter than /
+# defInfixToken '-' 'same' '+' -- make - bind the same strength as +
+defInfixToken tokenName location reference = do
+  defToken tokenName
+  defs <- getParseFilterInfo
+  operators = assocGetWithDefault 'infix' nil defs
+  operators = eq reference nil
+    eq location 'before'
+      [[tokenName] | operators]
+      append operators [[tokenName]]
+    insertOperator tokenName location reference operators
+  setParseFilterInfo (assocSet 'infix' operators defs)
+
+insertOperator tokenName location reference operators = any (eq reference) (head operators)
+  eq location 'before'
+    [[tokenName] | operators]
+    [[tokenName | (head operators)] | (tail operators)]
+  [(head operators) | (insertOperator tokenName location reference (tail operators))]
+insertOperator tokenName location reference operators::nil = [[tokenName]]
+
+testInfix str = do
+  defs <- getValueOr 'parseFilter.defs' nil
+  print concat['defs: ' defs]
+  print (mainParseInfix defs (scan str id id))
+
+mainParseInfix parseDefs list = parseInfix (assocGetWithDefault 'infix' nil parseDefs) list
+
+parseInfix tokens list = list
+parseInfix tokens list::cons = callParseInfixList tokens list
+parseInfix tokens list::lexCons = callParseInfixList tokens list
+
+callParseInfixList tokens list = do
+  prep = map (parseInfix tokens) list
+  parseInfixList tokens dlempty (head prep) (tail prep)
+
+printOperators = do
+  defs <- getParseFilterInfo
+  print (assocGetWithDefault 'infix' nil defs)
+
+# tokens is the list of operator lists
+# firstList is the reversed first part of the list
+#
+# right associative, for now; for left-associative, use <= instead of <
+parseInfixList tokens firstList token restList = do
+  fullList = firstList [token | restList]
+  op = head restList
+  nextTok = head (tail restList)
+  nextRest = tail (tail restList)
+  prec = getPrecedence 0 op tokens
+  nextPrec = null? nextRest
+    length tokens
+    getPrecedence 0 (head nextRest) tokens
+  null? tokens
+    fullList
+    null? restList
+      parseInfixList (tail tokens) dlempty (head fullList) (tail fullList)
+      eq prec (length tokens)
+        parseInfixList tokens (dlPush firstList token) op (tail restList)
+        null? (tail restList)
+          error concat['Parse error -- expected token after operator: ' op]
+          < prec nextPrec
+            parseInfixList tokens firstList [op token nextTok] nextRest
+            do
+              nextParsed = parseInfixList tokens dlempty nextTok nextRest
+              parseInfixList tokens firstList [op token (head nextParsed)] (tail nextParsed)
+
+getPrecedence index op tokens = any (eq (tokString op)) (head tokens)
+  index
+  getPrecedence (+ 1 index) op (tail tokens)
+getPrecedence index op tokens::nil = index
+
+# TODO optimizer could factor out opEq by itself, since it only depends on op.  That would prevent repeated application
+operatorIn op tokens = do
+  opEq = eq (tokString op)
+  any (\toks . any opEq toks) tokens

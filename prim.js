@@ -30,7 +30,13 @@
       return process.stdout.write(msg);
     };
     defaultEnv.prompt = function prompt(msg, cont) {
-      return tty.question(msg, cont);
+      return tty.question(msg, function() {
+        try {
+          return cont();
+        } catch (err) {
+          return console.log("ERROR PRINTING VALUE: " + err.stack);
+        }
+      });
     };
     r = function r(file, cont) {
       if (!(file.match(/^\.\//))) file = "./" + file;
@@ -114,13 +120,13 @@
     };
   });
 
-  define('ast-start', function() {
+  define('astStart', function() {
     return function(ast) {
       return ast().leisureStart;
     };
   });
 
-  define('ast-end', function() {
+  define('astEnd', function() {
     return function(ast) {
       return ast().leisureEnd;
     };
@@ -143,6 +149,12 @@
       }
     };
   });
+
+  define('error', (function() {
+    return function(str) {
+      throw new Error(str());
+    };
+  }), 1);
 
   tmpFalse = function tmpFalse(a) {
     return function(b) {
@@ -169,6 +181,30 @@
       };
     };
   });
+
+  define('addParseFilter', (function() {
+    return function(filter) {
+      return makeMonad(function(env, cont) {
+        Parse.defaultScanner.addFilter(filter());
+        return cont(tmpFalse);
+      });
+    };
+  }), 1);
+
+  define('getParseFilterInfo', (function() {
+    return makeMonad(function(env, cont) {
+      return cont(Parse.defaultScanner.filterInfo);
+    });
+  }), 0);
+
+  define('setParseFilterInfo', (function() {
+    return function(info) {
+      return makeMonad(function(env, cont) {
+        Parse.defaultScanner.filterInfo = info();
+        return cont(tmpFalse);
+      });
+    };
+  }), 1);
 
   define('+', function() {
     return function(a) {
@@ -356,18 +392,26 @@
       cell[1] = value;
       _results = [];
       while (eventCont.length && eventCont[0][0]) {
-        _ref = eventCont.shift(), ignore = _ref[0], val = _ref[1], cnt = _ref[2];
-        _results.push(cnt(val));
+        try {
+          _ref = eventCont.shift(), ignore = _ref[0], val = _ref[1], cnt = _ref[2];
+          _results.push(cnt(val));
+        } catch (err) {
+          _results.push(console.log("ERROR RUNNING MONAD: " + err.stack));
+        }
       }
       return _results;
     };
   };
 
   runMonad = function runMonad(monad, env, cont) {
-    if (monad.cmd != null) {
-      return monad.cmd(env, continueMonad(cont));
-    } else {
-      return cont(monad);
+    try {
+      if (monad.cmd != null) {
+        return monad.cmd(env, continueMonad(cont));
+      } else {
+        return cont(monad);
+      }
+    } catch (err) {
+      return console.log("ERROR RUNNING MONAD: " + err.stack);
     }
   };
 
@@ -454,7 +498,9 @@
   define('print', function() {
     return function(msg) {
       return makeMonad(function(env, cont) {
-        if (msg() !== _nil()) env.write("" + (msg()) + "\n");
+        var m;
+        m = msg();
+        env.write("" + (typeof m === 'string' ? m : Parse.print(m)) + "\n");
         return cont(_false());
       });
     };
@@ -516,8 +562,10 @@
   concatList = function concatList(l) {
     if (l === _nil()) {
       return "";
-    } else {
+    } else if (typeof (head(l)) === 'string') {
       return (head(l)) + concatList(tail(l));
+    } else {
+      return Parse.print(head(l)) + concatList(tail(l));
     }
   };
 
@@ -579,7 +627,26 @@
     };
   });
 
-  values = {};
+  global.LeisureValues = values = {};
+
+  define('hasValue', function() {
+    return function(name) {
+      return makeMonad(function(env, cont) {
+        return cont((values[name()] != null ? _true() : _false()));
+      });
+    };
+  });
+
+  define('getValueOr', function() {
+    return function(name) {
+      return function(defaultValue) {
+        return makeMonad(function(env, cont) {
+          var _ref;
+          return cont((_ref = values[name()]) != null ? _ref : defaultValue());
+        });
+      };
+    };
+  });
 
   define('getValue', function() {
     return function(name) {
@@ -594,7 +661,7 @@
       return function(value) {
         return makeMonad(function(env, cont) {
           values[name()] = value();
-          return cont(_false);
+          return cont(_false());
         });
       };
     };
@@ -621,7 +688,7 @@
       return function(value) {
         return makeMonad(function(env, cont) {
           state().value = value();
-          return cont(_false);
+          return cont(_false());
         });
       };
     };
