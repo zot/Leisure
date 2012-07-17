@@ -86,7 +86,7 @@ createLambdaNode ast v b mapFunc = do
   pad = max 0 (totalWidth - childWidth) / 2
   rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0
   varBox = nodeTranslate varBox pad (nodeHeight rootBox) + 5
-  bodyTree = nodeTranslate bodyTree pad + (nodeWidth varBox) + 5 (nodeHeight rootBox) + 5
+  bodyTree = nodeTranslate bodyTree (pad + (nodeWidth varBox) + 5) ((nodeHeight rootBox) + 5)
   makeNode
     svgConcat [(nodeLine rootBox varBox) (nodeLine rootBox bodyTree) (nodeSvg varBox) (nodeSvg bodyTree) (nodeSvg rootBox)]
     totalWidth
@@ -103,7 +103,7 @@ createApplyNode ast f a mapFunc = do
   pad = max 0 (totalWidth - childWidth) / 2
   rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0
   funcTree = nodeTranslate funcTree pad (nodeHeight rootBox) + 5
-  argTree = nodeTranslate argTree (pad + (nodeWidth funcTree) + (nodeHeight rootBox) + 10)
+  argTree = nodeTranslate argTree (pad + (nodeWidth funcTree) + 5) ((nodeHeight rootBox) + 5)
   makeNode
     svgConcat [(nodeLine rootBox funcTree) (nodeLine rootBox argTree) (nodeSvg rootBox) (nodeSvg funcTree) (nodeSvg argTree)]
     totalWidth
