@@ -1,4 +1,14 @@
 <html>
+	<head>
+		<script>
+			// example token fragment: #access_token=ya29.AHES6ZSb4M4ju8U_X_zgFrz_MD2RsjrQu5V05HjsBtrCl0nh2SrnaA&token_type=Bearer&expires_in=3600
+			var hash = location.hash.substring(1).split('&');
+
+			//console.log("fragment: " + location.hash);
+			console.log("fragment: " + hash);
+			location.hash = '';
+		</script>
+	</head>
 	<body>
 		<a href="javascript:poptastic('https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/drive.file&client_id=270759921607.apps.googleusercontent.com&redirect_uri=https://leisurestorage.appspot.com&response_type=token');">Authorize Leisure Storage</a>
 		<script>
