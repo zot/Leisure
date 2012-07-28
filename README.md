@@ -1,4 +1,10 @@
 [Main](README.html) [Reference](REFERENCE.html) [Status](TODO.html) [Source](http://github.com/zot/Leisure) [REPL](leisure.html) [Standard functions](std.lsr)
+# NOTE -- Leisure has developed far beyond what this document says
+
+# Release 1.0 and updates to this document coming soon
+
+---
+
 # Please Note: the repository is now [http://github.com/zot/Leisure](http://github.com/zot/Leisure)
 
 # The Leisure Initiative: Functional.  Lazy.  Accessible.  Powerful.

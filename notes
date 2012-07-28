@@ -1,3 +1,22 @@
+Add 'let' AST node to allow recursive definitions:
+
+let def body = \f . f def body
+simpleDef name def = \f . f name def
+typeAssertionDef name type def = \f . f name type def
+
+Def can be another simpleDef or typeAssertionDef to form a name-chain, for data types.
+
+Body can be another let, to form a let-chain.
+
+Generates a function with one var definition for each let, returning the body.  Var names in let-chain are valid within all of the chain's defs and final body
+
+If there is no body in a top-level program, it defaults to (lit 0)
+
+
+Modify AST to handle patterns with "case" node, like GHC?
+
+
+
 VM
 
 prims: [30 bits][00]

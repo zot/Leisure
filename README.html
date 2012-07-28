@@ -13,6 +13,12 @@
 
 <p><a href="README.html">Main</a> <a href="REFERENCE.html">Reference</a> <a href="TODO.html">Status</a> <a href="http://github.com/zot/Leisure">Source</a> <a href="leisure.html">REPL</a> <a href="std.lsr">Standard functions</a></p>
 
+<h1>NOTE -- Leisure has developed far beyond what this document says</h1>
+
+<h1>Release 1.0 and updates to this document coming soon</h1>
+
+<hr />
+
 <h1>Please Note: the repository is now <a href="http://github.com/zot/Leisure">http://github.com/zot/Leisure</a></h1>
 
 <h1>The Leisure Initiative: Functional.  Lazy.  Accessible.  Powerful.</h1>
@@ -53,7 +59,7 @@ do
   print (concat ["You have been alive more than ", seconds, " seconds."])
 </pre></big></b></p>
 
-<p>is equivalent to this: <strong>do {n &lt;- prompt "What is your name? "; print (concat ["Hello, " n ", thank you for joining us."])}</strong></p>
+<p>is equivalent to this: <strong>do {n &lt;- prompt "What is your name? "; print (concat ["Hello, ", n, ", thank you for joining us."])}</strong></p>
 
 <p>and this:</p>
 
@@ -62,10 +68,10 @@ let
   a = 3
   b = + a 1
   a = * a b
-  [a b]
+  [a, b]
 </big></b></pre>
 
-<p>is equivalent to this: <strong>let {a &lt;- 3; b &lt;- + a 1; a &lt;- * a b; [a b]}</strong></p>
+<p>is equivalent to this: <strong>let {a &lt;- 3; b &lt;- + a 1; a &lt;- * a b; [a, b]}</strong></p>
 
 <h2>Notebook Style Interactive Development</h2>
 
