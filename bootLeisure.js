@@ -47,7 +47,7 @@
       style.setAttribute('href', "" + i + ".css");
       document.head.appendChild(style);
     }
-    return loadThen(['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min'], function() {
+    return loadThen(['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min', 'storage'], function() {
       window.Leisure.restoreAutosave = restoreAutosave;
       window.Leisure.backupAutosave = backupAutosave;
       window.Leisure.deleteAutosave = deleteAutosave;
@@ -65,21 +65,25 @@
 
   callPrepCode = function callPrepCode(preps, index, finishBoot) {
     if (index < preps.length) {
-      ReplCore.setNext(function() {
+      return ReplCore.processLine(preps[index], Prim.defaultEnv, 'Parse.', function() {
         return callPrepCode(preps, index + 1, finishBoot);
       });
-      return ReplCore.processLine(preps[index], Prim.defaultEnv, 'Parse.');
     } else {
-      ReplCore.setNext(function() {});
       return finishBoot();
     }
   };
 
   finishBoot = function finishBoot() {
-    var node, _i, _len, _ref;
+    var node, nodes, _i, _j, _len, _len2, _ref;
+    nodes = [];
     _ref = document.querySelectorAll("[leisurecode]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
+      nodes.push(node);
+      console.log("Evaluating node: " + node.innerHTML);
+    }
+    for (_j = 0, _len2 = nodes.length; _j < _len2; _j++) {
+      node = nodes[_j];
       node.setAttribute('contentEditable', 'true');
       Notebook.bindNotebook(node);
       Notebook.changeTheme(node, 'thin');
