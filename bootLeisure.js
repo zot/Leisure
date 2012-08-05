@@ -74,16 +74,12 @@
   };
 
   finishBoot = function finishBoot() {
-    var node, nodes, _i, _j, _len, _len2, _ref;
+    var node, nodes, _i, _len, _ref;
     nodes = [];
     _ref = document.querySelectorAll("[leisurecode]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
       nodes.push(node);
-      console.log("Evaluating node: " + node.innerHTML);
-    }
-    for (_j = 0, _len2 = nodes.length; _j < _len2; _j++) {
-      node = nodes[_j];
       node.setAttribute('contentEditable', 'true');
       Notebook.bindNotebook(node);
       Notebook.changeTheme(node, 'thin');
