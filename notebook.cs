@@ -43,12 +43,13 @@ bootNotebook = (el)->
 </datalist>"""
 
 bindNotebook = (el)->
-  basePresentValue = Prim.defaultEnv.presentValue
-  Prim.defaultEnv.presentValue = presentValue
-  Prim.defaultEnv.write = (msg)->console.log msg
-  Prim.defaultEnv.owner = document.body
-  Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', Prim.defaultEnv)
-  Prim.defaultEnv.debug = debug
+  if !basePresentValue
+    basePresentValue = Prim.defaultEnv.presentValue
+    Prim.defaultEnv.presentValue = presentValue
+    Prim.defaultEnv.write = (msg)->console.log msg
+    Prim.defaultEnv.owner = document.body
+    Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', Prim.defaultEnv)
+    Prim.defaultEnv.debug = debug
   if !el.bound?
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
@@ -237,8 +238,9 @@ initNotebook = (el)->
   ###
   el.normalize()
   el.replacing = false
-  insertControls(el)
-  el.testResults.innerHTML = pgm[2]
+  if !el.hasAttribute('noLeisureBar')
+    insertControls(el)
+    el.testResults.innerHTML = pgm[2]
   snapshot(el, pgm)
   pgm
 
@@ -530,7 +532,8 @@ checkHideSource = (box)->
 
 makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
-    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>""")
+    exBox.firstChild.insertBefore createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button>"""), exBox.firstChild.firstChild
+    exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Stop Updates</button>""")
     exBox.classList.add 'fatControls'
 
 toggleEdit = (toggleButton)->
@@ -562,6 +565,7 @@ cleanOutput = (exBox, preserveControls)->
   if !preserveControls
     exBox.hideSource = null
     fc = exBox.firstChild
+    fc.removeChild fc.firstChild
     while fc.firstChild != fc.lastChild
       fc.removeChild fc.lastChild
   while exBox.firstChild != exBox.lastChild

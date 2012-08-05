@@ -59,7 +59,7 @@
     clearEnv();
     Prim.defaultEnv.presentValue = presentValue;
     write = function write(line) {};
-    ReplCore.setHandler(function(ast, result, a, c, r, src, env) {
+    ReplCore.setHandler(function(ast, result, a, c, r, src, env, next) {
       global.$0 = result;
       if (!(ast.leisureName != null) && (result != null)) {
         if (typeof env.processResult === "function") {
@@ -69,7 +69,7 @@
       } else if (ast.err && (env.processError != null)) {
         env.processError(ast);
       }
-      return ReplCore.processResult(result, env);
+      return ReplCore.processResult(result, env, next);
     });
     return ReplCore.setResetFunc(clearEnv);
   };
@@ -181,9 +181,9 @@
     return input.select();
   };
 
-  processResult = function processResult(result) {
+  processResult = function processResult(result, next) {
     writeOutput("" + (ReplCore.getType(result)) + ": " + (escape(Parse.print(result))) + "\n");
-    return ReplCore.processResult(result);
+    return ReplCore.processResult(result, null, next);
   };
 
   root.init = init;

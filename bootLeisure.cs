@@ -34,7 +34,7 @@ bootLeisure = ->
     style.setAttribute 'href', "#{i}.css"
     document.head.appendChild style
   #loadThen ['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jqModal', 'jqDnR', 'dimensions', 'sha256'], ->
-  loadThen ['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min'], ->
+  loadThen ['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min', 'storage'], ->
     window.Leisure.restoreAutosave = restoreAutosave
     window.Leisure.backupAutosave = backupAutosave
     window.Leisure.deleteAutosave = deleteAutosave
@@ -47,14 +47,16 @@ bootLeisure = ->
 
 callPrepCode = (preps, index, finishBoot)->
   if index < preps.length
-    ReplCore.setNext -> callPrepCode preps, index + 1, finishBoot
-    ReplCore.processLine preps[index], Prim.defaultEnv, 'Parse.'
+    ReplCore.processLine preps[index], Prim.defaultEnv, 'Parse.', -> callPrepCode preps, index + 1, finishBoot
   else
-    ReplCore.setNext ->
     finishBoot()
 
 finishBoot = ->
+  nodes = []
   for node in document.querySelectorAll "[leisurecode]"
+    nodes.push node
+    console.log "Evaluating node: #{node.innerHTML}"
+  for node in nodes
     node.setAttribute 'contentEditable', 'true'
     Notebook.bindNotebook node
     Notebook.changeTheme node, 'thin'

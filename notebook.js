@@ -55,16 +55,18 @@
   };
 
   bindNotebook = function bindNotebook(el) {
-    basePresentValue = Prim.defaultEnv.presentValue;
-    Prim.defaultEnv.presentValue = presentValue;
-    Prim.defaultEnv.write = function write(msg) {
-      return console.log(msg);
-    };
-    Prim.defaultEnv.owner = document.body;
-    Prim.defaultEnv.finishedEvent = function finishedEvent(evt, channel) {
-      return update(channel != null ? channel : 'app', Prim.defaultEnv);
-    };
-    Prim.defaultEnv.debug = debug;
+    if (!basePresentValue) {
+      basePresentValue = Prim.defaultEnv.presentValue;
+      Prim.defaultEnv.presentValue = presentValue;
+      Prim.defaultEnv.write = function write(msg) {
+        return console.log(msg);
+      };
+      Prim.defaultEnv.owner = document.body;
+      Prim.defaultEnv.finishedEvent = function finishedEvent(evt, channel) {
+        return update(channel != null ? channel : 'app', Prim.defaultEnv);
+      };
+      Prim.defaultEnv.debug = debug;
+    }
     if (!(el.bound != null)) {
       el.bound = true;
       el.addEventListener('DOMCharacterDataModified', (function(evt) {
@@ -360,8 +362,10 @@
     */
     el.normalize();
     el.replacing = false;
-    insertControls(el);
-    el.testResults.innerHTML = pgm[2];
+    if (!el.hasAttribute('noLeisureBar')) {
+      insertControls(el);
+      el.testResults.innerHTML = pgm[2];
+    }
     snapshot(el, pgm);
     return pgm;
   };
@@ -765,7 +769,8 @@
 
   makeOutputControls = function makeOutputControls(exBox) {
     if (exBox.firstChild.firstChild === exBox.firstChild.lastChild) {
-      exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button><button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Clear</button>"));
+      exBox.firstChild.insertBefore(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button>"), exBox.firstChild.firstChild);
+      exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Stop Updates</button>"));
       return exBox.classList.add('fatControls');
     }
   };
@@ -813,6 +818,7 @@
     if (!preserveControls) {
       exBox.hideSource = null;
       fc = exBox.firstChild;
+      fc.removeChild(fc.firstChild);
       while (fc.firstChild !== fc.lastChild) {
         fc.removeChild(fc.lastChild);
       }

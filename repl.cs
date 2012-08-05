@@ -75,10 +75,10 @@ compile = (file, cont, nomacros, debug)->
       console.log("Exception reading file: ", ex.stack)
       cont()
 
-processResult = (result)->
+processResult = (result, next)->
   init()
   write("#{getType result}: #{Parse.print(result)}\n")
-  Core.processResult result
+  Core.processResult result, next
 
 # patched to just prep the global env instead of creating a new one for now
 createEnv = ->

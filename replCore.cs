@@ -42,11 +42,11 @@ errString = (err)->
     "#{if err.leisureContext? then "\n#{err}:\n  #{formatContexts(err.leisureContext).join('\n  ')}\n\n" else ''}#{err.stack}"
   else err
 
-handlerFunc = (ast, result, a, c, r, src, env)->
+handlerFunc = (ast, result, a, c, r, src, env, next)->
   env = env ? Prim.defaultEnv
   if ast?.err?
     env.write errString ast.err
-    nextFunc()
+    next?()
   else
     if a
       # env.write("PARSED: #{Leisure.astPrint(ast)}\n")
@@ -55,11 +55,11 @@ handlerFunc = (ast, result, a, c, r, src, env)->
     if r
       if !result?
         env.write("(No Result)\n")
-        nextFunc()
+        next?()
       else
         global.$0 = result
         env.write("#{getType result}: #{Parse.print(result)}\n")
-        processResult result
+        processResult result, env, next
 
 setHandler = (f)-> handlerFunc = f
 
@@ -104,7 +104,7 @@ handleVar = (name, value, env)->
   else vars[name][0] = !(value[0] in ['f', 'F'])
 
 # rewrite in Leisure
-processLine = (line, env, namespace)->
+processLine = (line, env, namespace, next)->
   env = env ? Prim.defaultEnv
   try
     if line
@@ -129,10 +129,10 @@ processLine = (line, env, namespace)->
           if ast? then ast.err = err
           else ast = {err: err}
         else [ast, result] = if r then Leisure.evalNext(line, namespace, env.debug) else [ast, null]
-        return handlerFunc(ast, result, a, c, r, line, env)
+        return handlerFunc(ast, result, a, c, r, line, env, next)
   catch err
     env.write errString err
-  nextFunc()
+  (next ? nextFunc)()
 
 escape = (str)-> str.replace(/\n/g, '\\n')
 

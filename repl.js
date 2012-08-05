@@ -121,10 +121,10 @@
     }
   };
 
-  processResult = function processResult(result) {
+  processResult = function processResult(result, next) {
     init();
     write("" + (getType(result)) + ": " + (Parse.print(result)) + "\n");
-    return Core.processResult(result);
+    return Core.processResult(result, next);
   };
 
   createEnv = function createEnv() {

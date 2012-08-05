@@ -8,7 +8,7 @@ while [ $# != 0 ]; do
   shift
 done
 
-node_modules/coffee-script/bin/coffee -c parse.cs leisure.cs prim.cs game.cs
+node_modules/coffee-script/bin/coffee -c storage.cs parse.cs leisure.cs prim.cs game.cs
 node_modules/coffee-script/bin/coffee -c repl.cs runRepl.cs testLeisure.cs replCore.cs browserRepl.cs testing.cs bootLeisure.cs notebook.cs
 #echo prelude...
 node runRepl $DEBUG -q -b 0 -c prelude

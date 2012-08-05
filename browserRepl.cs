@@ -31,14 +31,14 @@ init = (inputField, output)->
   write = (line)->
   #ReplCore.setWriter writeOutput
   #ReplCore.setNext -> input.value = ''
-  ReplCore.setHandler (ast, result, a, c, r, src, env)->
+  ReplCore.setHandler (ast, result, a, c, r, src, env, next)->
     global.$0 = result
     if !ast.leisureName? and result?
       env.processResult?(result, ast)
       #handle SVG nodes here (measure them and create an SVG element)
       env.write "<span><b> #{escapeHtml(trimEq(src))} \u2192</b>\n  #{ReplCore.getType result}: #{env.presentValue result}</span>\n"
     else if ast.err and env.processError? then env.processError ast
-    ReplCore.processResult result, env
+    ReplCore.processResult result, env, next
   ReplCore.setResetFunc clearEnv
   #input = inputField
   #input.onkeypress = (e)->
@@ -131,9 +131,9 @@ handleFiles = (fileElement)->
   reader.readAsText(files[0])
   input.select()
 
-processResult = (result)->
+processResult = (result, next)->
   writeOutput("#{ReplCore.getType result}: #{escape(Parse.print(result))}\n")
-  ReplCore.processResult result
+  ReplCore.processResult result, null, next
 
 root.init = init
 root.markupDef = markupDef

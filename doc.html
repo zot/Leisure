@@ -1,9 +1,17 @@
 <html>
   <head>
+  	<style>
+  		pre[leisureCode] {
+  			outline: solid black 2px;
+  			display: inline-block;
+  			padding: 10px;
+  			position: relative;
+  		}
+  	</style>
     <script>
-      leisurePrep = ["do\n  require 'maps'\n  require 'svg'\n  require 'parseAst'"]
+      //leisurePrep = ["do\n  require 'maps'\n  require 'svg'\n  require 'parseAst'"]
+     leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
     </script>
-    <script src="bootLeisure.js"></script>
     <link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
     <script src="showdown.js"></script>
     <script>
@@ -18,43 +26,125 @@
       }
     </script>
   </head>
-  <body class="thin" onload="markup()">
-  	<div style="float: right">
+  <body class="thin">
+  	<!--div style="float: right">
     	<iframe src="https://embed.spotify.com/?uri=spotify:user:tezt:playlist:5Kgw2weHCp582LVj6wIwEE" width="300" height="80" frameborder="0" allowtransparency="true"></iframe>
     	<div>(Daft Punk music from Tron Legacy (R))</div>
-    </div>
+    </div-->
     <div doc class="embedded" style="padding: 5px">
 <!--
 # Welcome to Leisure!
 
-Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!  Here is some Leisure code you can interact with that draws shapes.  Click the arrow buttons, below:
+Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
 
-<pre leisureCode style="outline: solid black 2px; width: 1150px; position: relative">rect nil
-polygon nil
-svgConcat [(translate (circle nil) 10 10) (rect nil)]</pre>
+Programming ought to be fun, easy, and interesting, and Leisure tries to make it that way.
 
-# Definitions
+## Comfortable
 
-Here are some code definitions.  You can click the diagram button next to them to see how the computer decodes the program into a structure, in order to compile it to JavaScript.
+Like LISP and Haskell, Leisure traces its roots to Lambda Calculus.  It tries to remain true to Lambda Calculus, while
+also providing a comfortable syntax, with infix notation and indentation to help reduce the parentheses you need.
 
-<pre leisureCode style="outline: solid black 2px; width: 1150px; position: relative">a = 1
-add3 a b c = + (+ a b) c
+Here are some code definitions.  You can click the diagram button next to them to see how the computer decodes the program into a structure,
+in order to compile it to JavaScript and you can click the arrow button to evaluate the expression.
+
+<pre noLeisureBar leisureCode>a = 1
+add3 a b c = a + b + c
 
 add3 1 2 3
 </pre>
 
-Here is some fun with infinite lists:
+## Customizable
 
-<pre leisureCode style="outline: solid black 2px; width: 1150px; position: relative">
-ones = cons 1 ones
+Leisure provides some powerful customization techniques, called "metaprogramming."  Leisure's compiler uses Leisure
+structures and you can change how it works by defining macros and even registering "parsing filters" that rewrite the structures
+before the macros get them.  The goal, here, is to give power to programmers to help them get things done.
+
+concat[...] is an example -- concat['a: ' 1 ', b: ' 2] expands to (concat ['a: ' 1 ', b: ' 2]) and it lets you avoid those
+extra parentheses (like in Clojure, commas are optional)
+
+<pre noLeisureBar leisureCode>
+concat['a: ' 1 ', b: ' 2]
+concat['a: ', 1 ', b: ', 2]
+</pre>
+
+## Lazy and Untyped
+
+Like Haskell, Leisure is a lazy language, but like LISP, Leisure is untyped.  Try clicking the arrow, below, next to ignore2nd.
+It doesn't crash, because Leisure doesn't evaluate the second argument to ignore2nd.  Leisure uses "call by need," like Haskell, instead
+of "call by value," like C, Java, and LISP.  Also, just like in Haskell, *data* in Leisure is lazy, too!  In Leisure, you can make
+infinite lists, like in Haskell.  Like Haskell, but unlike Clojure, Leisure lists are just a regular data structure.
+
+<pre noLeisureBar leisureCode>
+ignore2nd a b = a
+
+ignore2nd 1 (2 / 0)
+
+ones = [1 | ones]
 
 take 5 ones
 </pre>
 
+Laziness also means you can factor your code more easily, because you can define terms you use in one place, even if they
+depend on other terms that are invalid in some cases (locally defined terms act like functions).  Try these expressions, below...
+
+<pre noLeisureBar leisureCode>
+f x y = do
+  a = x
+  b = x / y
+  eq y 0
+    a
+    b
+
+f 2 0
+f 2 2
+</pre>
+
+## Webby
+
+As you can see, Leisure runs in a web page, and it lets you do web pagey things.  Click the arrow buttons, below:
+
+<pre noLeisureBar leisureCode>rect nil
+polygon nil
+
+svgConcat [(translate (circle nil) 10 10) (rect nil)]
+</pre>
+
+# Syntax
+
+Leisure is a modified version of the Untyped Lambda Calculus, with data types, the let construct
+(for recursion and definitions), simple pattern matching, macros, parse filters, and syntax tokens and groups.
+
+## indentation
+
+Indentation in Leisure just adds grouped terms to the end of the term before the indentation:
+
+<pre noLeisureBar leisureCode>
+[
+  1
+  2
+  [
+    3
+    4]]
+</pre>
+
+
+## Definitions
+
+To define a term, just use '=', like this:
+
+<pre noLeisureBar leisureCode>
+x = 3
+
+add2x a = a + x
+
+add2x 10
+</pre>
 
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
 -->
     </div>
+    <script>markup()</script>
+    <script src="bootLeisure.js"></script>
   </body>
 </html>

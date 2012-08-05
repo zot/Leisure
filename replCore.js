@@ -67,22 +67,22 @@
     }
   };
 
-  handlerFunc = function handlerFunc(ast, result, a, c, r, src, env) {
+  handlerFunc = function handlerFunc(ast, result, a, c, r, src, env, next) {
     env = env != null ? env : Prim.defaultEnv;
     if ((ast != null ? ast.err : void 0) != null) {
       env.write(errString(ast.err));
-      return nextFunc();
+      return typeof next === "function" ? next() : void 0;
     } else {
       if (a) env.write("FORMATTED: " + (Parse.print(ast)) + "\n");
       if (c) env.write("GEN: " + ast.src + "\n");
       if (r) {
         if (!(result != null)) {
           env.write("(No Result)\n");
-          return nextFunc();
+          return typeof next === "function" ? next() : void 0;
         } else {
           global.$0 = result;
           env.write("" + (getType(result)) + ": " + (Parse.print(result)) + "\n");
-          return processResult(result);
+          return processResult(result, env, next);
         }
       }
     }
@@ -155,7 +155,7 @@
     }
   };
 
-  processLine = function processLine(line, env, namespace) {
+  processLine = function processLine(line, env, namespace, next) {
     var a, ast, c, err, m, r, result, _ref, _ref2, _ref3;
     env = env != null ? env : Prim.defaultEnv;
     try {
@@ -194,13 +194,13 @@
           } else {
             _ref3 = r ? Leisure.evalNext(line, namespace, env.debug) : [ast, null], ast = _ref3[0], result = _ref3[1];
           }
-          return handlerFunc(ast, result, a, c, r, line, env);
+          return handlerFunc(ast, result, a, c, r, line, env, next);
         }
       }
     } catch (err) {
       env.write(errString(err));
     }
-    return nextFunc();
+    return (next != null ? next : nextFunc)();
   };
 
   escape = function escape(str) {
