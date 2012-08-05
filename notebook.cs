@@ -965,7 +965,7 @@ laz = Leisure.laz
 getSvgElement = (id)->
   if (el = document.getElementById id) then el
   else
-    svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000; position: absolute'><text id='HIDDEN_TEXT'>bubba</text></svg>"
+    svg = createNode "<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000; position: absolute'><text id='HIDDEN_TEXT'>bubba</text></svg>"
     document.body.appendChild(svg)
     document.getElementById id
 
@@ -993,7 +993,7 @@ svgBetterMeasure = (content)-> primSvgMeasure content, transformStrokeWidth
 
 # try to take strokeWidth into account
 primSvgMeasure = (content, transformFunc)->(f)->
-  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>#{content()}</g></svg>"
+  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000'><g>#{content()}</g></svg>"
   document.body.appendChild(svg)
   g = svg.firstChild
   bbox = g.getBBox()

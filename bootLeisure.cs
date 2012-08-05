@@ -55,8 +55,6 @@ finishBoot = ->
   nodes = []
   for node in document.querySelectorAll "[leisurecode]"
     nodes.push node
-    console.log "Evaluating node: #{node.innerHTML}"
-  for node in nodes
     node.setAttribute 'contentEditable', 'true'
     Notebook.bindNotebook node
     Notebook.changeTheme node, 'thin'

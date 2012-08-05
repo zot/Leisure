@@ -71,7 +71,7 @@ concat['a: ', 1 ', b: ', 2]
 
 Like Haskell, Leisure is a lazy language, but like LISP, Leisure is untyped.  Try clicking the arrow, below, next to ignore2nd.
 It doesn't crash, because Leisure doesn't evaluate the second argument to ignore2nd.  Leisure uses "call by need," like Haskell, instead
-of "call by value," like C, Java, and LISP.  Also, just like in Haskell, *data* in Leisure is lazy, too!  In Leisure, you can make
+of "call by value," like C, Java, and LISP.  Also, just like in Haskell, *data* is lazy, too!  In Leisure, you can make
 infinite lists, like in Haskell.  Like Haskell, but unlike Clojure, Leisure lists are just a regular data structure.
 
 <pre noLeisureBar leisureCode>
@@ -109,12 +109,14 @@ polygon nil
 svgConcat [(translate (circle nil) 10 10) (rect nil)]
 </pre>
 
-# Syntax
+# The Language
 
 Leisure is a modified version of the Untyped Lambda Calculus, with data types, the let construct
 (for recursion and definitions), simple pattern matching, macros, parse filters, and syntax tokens and groups.
 
-## indentation
+But wait, how can there be data types if Leisure is untyped?  *Variables* and *functions* in Leisure are untyped, like in LISP, but unlike in Haskell.
+
+## Indentation
 
 Indentation in Leisure just adds grouped terms to the end of the term before the indentation:
 
@@ -138,6 +140,54 @@ x = 3
 add2x a = a + x
 
 add2x 10
+</pre>
+
+## Anonymous Functions
+
+You can create anonymous functions, using \ for lambda, like in Haskell:
+
+<pre noLeisureBar leisureCode>
+(\a b . a + b) 1 2
+</pre>
+
+## Data types
+
+To define a data type, just return a lambda.  Here's a second definition of the 'cons' function, to demonstrate:
+
+<pre noLeisureBar leisureCode>
+cons2 a b = \f . f a b
+
+getType (cons2 1 nil)
+
+</pre>
+
+## Simple Pattern Matching
+
+Leisure has only simple pattern matching: type assertions.
+
+<pre noLeisureBar leisureCode>
+car name = \f . f name
+bike name = \f . f name
+
+identifyVehicle anything = 'none'
+identifyVehicle thing::bike = concat['A Bike: ' (thing id)]
+identifyVehicle thing::car = concat['A Car: ' (thing id)]
+
+identifyVehicle (bike 'fred')
+</pre>
+
+## Do
+
+Like Haskell, Leisure supports a "do" construct.  Do can bind monads and create "let" terms.
+
+<pre noLeisureBar leisureCode>
+do
+  x <- prompt 'What is your name?'
+  x = concat['Hello, ' x '.']
+  print x
+  x = concat['The previous message was: ' x]
+  print x
+  print concat[x ' -- ' x]
 </pre>
 
 # Contact
