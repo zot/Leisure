@@ -132,7 +132,14 @@
       el.addEventListener('blur', (function() {
         return findCurrentCodeHolder();
       }), true);
-      return el.autorunState = false;
+      if (window.leisureAutoRunAll) {
+        autoRun(el, true);
+        return window.setTimeout((function() {
+          return runTests(el);
+        }), 1);
+      } else {
+        return el.autorunState = false;
+      }
     }
   };
 
@@ -429,7 +436,7 @@
     el.autorun.checked = el.autorunState;
     el.autorun.addEventListener('change', function(evt) {
       el.autorunState = el.autorun.checked;
-      if (el.autorun.checked) return runTests(el);
+      if (el.autorunState) return runTests(el);
     });
     return configureSaveLink(el);
   };
@@ -488,16 +495,18 @@
         failed++;
       }
     }
-    resultsClass = el.testResults.classList;
-    resultsClass.remove('notrun');
-    if (!failed) {
-      resultsClass.remove('failed');
-      resultsClass.add('passed');
-      return el.testResults.innerHTML = passed;
-    } else {
-      resultsClass.remove('passed');
-      resultsClass.add('failed');
-      return el.testResults.innerHTML = "" + passed + "/" + failed;
+    if (el.testResults) {
+      resultsClass = el.testResults.classList;
+      resultsClass.remove('notrun');
+      if (!failed) {
+        resultsClass.remove('failed');
+        resultsClass.add('passed');
+        return el.testResults.innerHTML = passed;
+      } else {
+        resultsClass.remove('passed');
+        resultsClass.add('failed');
+        return el.testResults.innerHTML = "" + passed + "/" + failed;
+      }
     }
   };
 
@@ -844,7 +853,7 @@
     remove(output);
     box.parentNode.insertBefore(textNode('\uFEFF'), box);
     box.parentNode.insertBefore(textNode('\uFEFF'), box.nextSibling);
-    if (owner(box).autorun.checked) return clickTest(box);
+    if (owner(box).autorunState) return clickTest(box);
   };
 
   makeTestBox = function makeTestBox(test, owner, src) {
@@ -1297,7 +1306,7 @@
     if ((box.getAttribute('codemain')) != null) {
       evalBox(box);
       update('compile');
-      if (owner(box).autorun.checked) return runTests(owner(box));
+      if (owner(box).autorunState) return runTests(owner(box));
     }
   };
 
@@ -1449,7 +1458,7 @@
     if ((el = document.getElementById(id))) {
       return el;
     } else {
-      svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000; position: absolute'><text id='HIDDEN_TEXT'>bubba</text></svg>");
+      svg = createNode("<svg id='HIDDEN_SVG' xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000; position: absolute'><text id='HIDDEN_TEXT'>bubba</text></svg>");
       document.body.appendChild(svg);
       return document.getElementById(id);
     }
@@ -1493,7 +1502,7 @@
   primSvgMeasure = function primSvgMeasure(content, transformFunc) {
     return function(f) {
       var bbox, g, pad, svg;
-      svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='bottom: -100000'><g>" + (content()) + "</g></svg>");
+      svg = createNode("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000'><g>" + (content()) + "</g></svg>");
       document.body.appendChild(svg);
       g = svg.firstChild;
       bbox = g.getBBox();
