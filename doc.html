@@ -9,8 +9,8 @@
   		}
   	</style>
     <script>
-      //leisurePrep = ["do\n  require 'maps'\n  require 'svg'\n  require 'parseAst'"]
-     leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
+      leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
+      leisureAutoRunAll = true;
     </script>
     <link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
     <script src="showdown.js"></script>
@@ -53,6 +53,28 @@ add3 a b c = a + b + c
 add3 1 2 3
 </pre>
 
+## Notebook Style Interactive Development
+
+For decades, programming has been done primarily in glorified text editors.  Some great strides have been made in various IDEs, but typically the
+programmer is still burdened with a neverending "write, compile, debug, test, repeat" development cycle.  Why do you keep settling for this when
+clearly we can do better?
+
+While still heavily under development, Leisure is meant to push the envelope here and provide a fully interactive development environment where
+your code is executed and errors show while you're writing it. Functional programming is quite foreign to new comers, but what if you could
+instantly view the parse tree of the code you wrote? Or specify test arguments to your function and see the results live as you make
+changes to your code in real time?  Our goal is to show programmers there has to be a better way, and we've settled for the status quo for far too long.
+
+Here's one example; below is a test case that compares val with 3 and it automatically runs whenever you change the code.  Try changing val to something
+other than 3, and click outside the box.  Then, change it back to 3.  You can click the arrow to verify the value of val for yourself.
+
+<pre noLeisureBar leisureCode>
+val = 3
+
+#@test {"expr":"val\n","result":"3"}
+
+val
+</pre>
+
 ## Customizable
 
 Leisure provides some powerful customization techniques, called "metaprogramming."  Leisure's compiler uses Leisure
@@ -67,9 +89,9 @@ concat['a: ' 1 ', b: ' 2]
 concat['a: ', 1 ', b: ', 2]
 </pre>
 
-## Lazy and Untyped
+## Lazy, functional, and Untyped
 
-Like Haskell, Leisure is a lazy language, but like LISP, Leisure is untyped.  Try clicking the arrow, below, next to ignore2nd.
+Like Haskell, Leisure is lazy.  Try clicking the arrow, below, next to ignore2nd.
 It doesn't crash, because Leisure doesn't evaluate the second argument to ignore2nd.  Leisure uses "call by need," like Haskell, instead
 of "call by value," like C, Java, and LISP.  Also, just like in Haskell, *data* is lazy, too!  In Leisure, you can make
 infinite lists, like in Haskell.  Like Haskell, but unlike Clojure, Leisure lists are just a regular data structure.
@@ -98,6 +120,12 @@ f x y = do
 f 2 0
 f 2 2
 </pre>
+
+Leisure is functional; it doesn't allow side effects -- but not because side effects are somehow *evil*; it's because in a lazy language,
+side effects lead to very strange behavior that's very hard to understand and fix.  The idea is to have side effects outside the Leisure environment and
+access them using standard functional techniques, like monads and FRP.
+
+Leisure is untyped: it does have data types, but its variables and functions are untyped, like LISP's.
 
 ## Webby
 
