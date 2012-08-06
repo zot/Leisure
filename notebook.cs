@@ -86,7 +86,10 @@ bindNotebook = (el)->
         s.addRange(r)
     el.addEventListener 'focus', (-> findCurrentCodeHolder()), true
     el.addEventListener 'blur', (-> findCurrentCodeHolder()), true
-    el.autorunState = false
+    if window.leisureAutoRunAll
+      autoRun el, true
+      window.setTimeout (->runTests el), 1
+    else el.autorunState = false
 
 printableControlCharacters = (c.charCodeAt(0) for c in "\r\i\n\b")
 printable = (code)-> (code > 0xf and code < 37) or code > 40 or code in printableControlCharacters
@@ -306,7 +309,7 @@ insertControls = (el)->
   el.autorun.checked = el.autorunState
   el.autorun.addEventListener 'change', (evt)->
     el.autorunState = el.autorun.checked
-    if el.autorun.checked then runTests el
+    if el.autorunState then runTests el
   configureSaveLink(el)
 
 getElements = (el, ids)->
@@ -340,16 +343,17 @@ runTests = (el)->
   failed = 0
   for test in el.querySelectorAll '.codeMainTest'
     if runTest test then passed++ else failed++
-  resultsClass = el.testResults.classList
-  resultsClass.remove 'notrun'
-  if !failed
-    resultsClass.remove 'failed'
-    resultsClass.add 'passed'
-    el.testResults.innerHTML = passed
-  else
-    resultsClass.remove 'passed'
-    resultsClass.add 'failed'
-    el.testResults.innerHTML = "#{passed}/#{failed}"
+  if el.testResults
+    resultsClass = el.testResults.classList
+    resultsClass.remove 'notrun'
+    if !failed
+      resultsClass.remove 'failed'
+      resultsClass.add 'passed'
+      el.testResults.innerHTML = passed
+    else
+      resultsClass.remove 'passed'
+      resultsClass.add 'failed'
+      el.testResults.innerHTML = "#{passed}/#{failed}"
 
 changeTheme = (el, value)->
   theme = value
@@ -584,7 +588,7 @@ makeTestCase = (exBox)->
   # semi-fix to allow you to position the caret properly before and after a test case
   box.parentNode.insertBefore textNode('\uFEFF'), box
   box.parentNode.insertBefore textNode('\uFEFF'), box.nextSibling
-  if owner(box).autorun.checked then clickTest(box)
+  if owner(box).autorunState then clickTest(box)
 
 makeTestBox = (test, owner, src)->
   src = src ? "#@test #{JSON.stringify test}"
@@ -888,7 +892,7 @@ acceptCode = (box)->
   if (box.getAttribute 'codemain')?
     evalBox box
     update 'compile'
-    if owner(box).autorun.checked then runTests owner(box)
+    if owner(box).autorunState then runTests owner(box)
 
 evalDoc = (el)->
   [pgm, auto] = initNotebook(el)
