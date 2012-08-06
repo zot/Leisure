@@ -3,7 +3,7 @@
 Leisure is a lazy, untyped, functional language that supports metaprogramming.  It aims to be comfortable,
 easy to customize, and fun to use.
 
-Here is a [demo and readme](http://zot.github.com/Leisure/doc.html).
+Here is a more complete [readme and demo](http://zot.github.com/Leisure/doc.html).
 
 ## Convenient
 Leisure provides a convenient syntax and powerful tools to help people try things out quickly, be productive, and customize the language to suit their needs.
