@@ -218,6 +218,4 @@ LeisureStorage
     return document.head.appendChild(script);
   };
 
-  start();
-
 }).call(this);

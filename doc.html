@@ -27,17 +27,14 @@
     </script>
   </head>
   <body class="thin">
-  	<!--div style="float: right">
-    	<iframe src="https://embed.spotify.com/?uri=spotify:user:tezt:playlist:5Kgw2weHCp582LVj6wIwEE" width="300" height="80" frameborder="0" allowtransparency="true"></iframe>
-    	<div>(Daft Punk music from Tron Legacy (R))</div>
-    </div-->
     <div doc class="embedded" style="padding: 5px">
 <!--
 # Welcome to Leisure!
 
 Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
 
-Programming ought to be fun, easy, and interesting, and Leisure tries to make it that way.
+Programming ought to be fun, easy, and interesting, and Leisure tries to make it that way.  This is a Leisure notebook
+that explains a little about the language and environment.
 
 ## Comfortable
 
@@ -165,9 +162,9 @@ To define a term, just use '=', like this:
 <pre noLeisureBar leisureCode>
 x = 3
 
-add2x a = a + x
+addToX a = a + x
 
-add2x 10
+addToX 10
 </pre>
 
 ## Anonymous Functions
@@ -197,7 +194,7 @@ Leisure has only simple pattern matching: type assertions.
 car name = \f . f name
 bike name = \f . f name
 
-identifyVehicle anything = 'none'
+identifyVehicle anything = 'Not a vehicle'
 identifyVehicle thing::bike = concat['A Bike: ' (thing id)]
 identifyVehicle thing::car = concat['A Car: ' (thing id)]
 
