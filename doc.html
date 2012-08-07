@@ -36,28 +36,16 @@ Leisure reveals arcane secrets so that you can write modern programs using the e
 Programming ought to be fun, easy, and interesting, and Leisure tries to make it that way.  This is a Leisure notebook
 that explains a little about the language and environment.
 
-## Comfortable
-
-Like LISP and Haskell, Leisure traces its roots to Lambda Calculus.  It tries to remain true to Lambda Calculus, while
-also providing a comfortable syntax, with infix notation and indentation to help reduce the parentheses you need.
-
-Here are some code definitions.  You can click the diagram button next to them to see how the computer decodes the program into a structure,
-in order to compile it to JavaScript and you can click the arrow button to evaluate the expression.
-
-<pre noLeisureBar leisureCode>a = 1
-add3 a b c = a + b + c
-
-add3 1 2 3
-</pre>
-
 ## Notebook Style Interactive Development
 
 For decades, programming has been done primarily in glorified text editors.  Some great strides have been made in various IDEs, but typically the
 programmer is still burdened with a neverending "write, compile, debug, test, repeat" development cycle.  Why do you keep settling for this when
 clearly we can do better?
 
-While still heavily under development, Leisure is meant to push the envelope here and provide a fully interactive development environment where
-your code is executed and errors show while you're writing it. Functional programming is quite foreign to new comers, but what if you could
+LISP programmers know the REPL -- the command line interactive programming interface.  While still heavily under development, Leisure is meant to push this
+envelope and provide a fully interactive development environment where
+your code is executed, errors show when you make them, tests execute as you write your code, and documentation is rich and interactive, as well.
+Functional programming is quite foreign to newcomers, but what if you could
 instantly view the parse tree of the code you wrote? Or specify test arguments to your function and see the results live as you make
 changes to your code in real time?  Our goal is to show programmers there has to be a better way, and we've settled for the status quo for far too long.
 
@@ -70,6 +58,20 @@ val = 3
 #@test {"expr":"val\n","result":"3"}
 
 val
+</pre>
+
+## Comfortable
+
+Like LISP and Haskell, Leisure traces its roots to Lambda Calculus.  It tries to remain true to Lambda Calculus, while
+also providing a comfortable syntax, with infix notation and indentation to help reduce the parentheses you need.
+
+Here are some code definitions.  You can click the diagram button next to them to see how the computer decodes the program into a structure,
+in order to compile it to JavaScript and you can click the arrow button to evaluate the expression.
+
+<pre noLeisureBar leisureCode>z = 1
+add3 a b c = a + b + c
+
+add3 1 2 3
 </pre>
 
 ## Customizable

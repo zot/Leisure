@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, TAB, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -19,6 +19,8 @@
   }
 
   debug = false;
+
+  TAB = 9;
 
   ENTER = 13;
 
@@ -99,14 +101,20 @@
         if ((__indexOf.call(arrows, c) >= 0) || printable(c)) {
           delay(highlightPosition);
         }
-        if (e.ctrlKey && c === ENTER) handleKey("C-ENTER");
-        if (e.altKey && c === ENTER) return handleKey("M-ENTER");
+        if (e.ctrlKey && c === ENTER) {
+          return handleKey("C-ENTER");
+        } else if (e.altKey && c === ENTER) {
+          return handleKey("M-ENTER");
+        } else if (c === TAB) {
+          handleKey("TAB");
+          return e.preventDefault();
+        }
       });
       el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
         s = window.getSelection();
         r = s.getRangeAt(0);
-        if ((e.charCode || e.keyCode || e.which) === 13) {
+        if ((e.charCode || e.keyCode || e.which) === ENTER) {
           br = textNode('\n');
           r.insertNode(br);
           r = document.createRange();
@@ -174,6 +182,7 @@
     var box;
     switch (key) {
       case "C-ENTER":
+      case "TAB":
         box = getBox(window.getSelection().focusNode);
         if ((box.getAttribute('codeMainExpr')) != null) {
           return evalOutput(box.output);
@@ -715,7 +724,7 @@
     });
     updateSelector.addEventListener('keydown', function(e) {
       c = e.charCode || e.keyCode || e.which;
-      if (c === 13) {
+      if (c === ENTER) {
         e.preventDefault();
         return updateSelector.blur();
       }
