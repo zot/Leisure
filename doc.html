@@ -43,7 +43,7 @@ programmer is still burdened with a neverending "write, compile, debug, test, re
 clearly we can do better?
 
 LISP programmers know the REPL -- the command line interactive programming interface.  While still heavily under development, Leisure is meant to push this
-envelope and provide a fully interactive development environment where
+envelope and provide a fully interactive, document-based development environment where
 your code is executed, errors show when you make them, tests execute as you write your code, and documentation is rich and interactive, as well.
 Functional programming is quite foreign to newcomers, but what if you could
 instantly view the parse tree of the code you wrote? Or specify test arguments to your function and see the results live as you make
@@ -142,6 +142,7 @@ Leisure is a modified version of the Untyped Lambda Calculus, with data types, t
 (for recursion and definitions), simple pattern matching, macros, parse filters, and syntax tokens and groups.
 
 But wait, how can there be data types if Leisure is untyped?  *Variables* and *functions* in Leisure are untyped, like in LISP, but unlike in Haskell.
+Just like in LISP, *data,* however, does have types -- a regular Leisure list has the "cons" type, for instance.
 
 ## Indentation
 

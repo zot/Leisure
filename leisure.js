@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, collectArgs, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, mkProto, nameAst, nameSub, noDefaultError, numberAst, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap, wrapContext, wrapContextBody, wrapContextVars, wrapLazyContext;
+  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, collectArgs, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, markLeisureErrors, mkProto, nameAst, nameSub, noDefaultError, numberAst, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -62,6 +62,8 @@ misrepresented as being the original software.
   };
 
   global.noredefs = true;
+
+  global.leisureContext = Nil;
 
   funcAstAtOffset = function funcAstAtOffset(func, nodeOffset) {
     var ast;
@@ -240,10 +242,6 @@ misrepresented as being the original software.
     }
   };
 
-  wrapContextVars = function wrapContextVars(name, ast, code, top) {
-    return "(function(){\n  var ctx = Leisure.contextStack\n  " + (indent(code)) + "\n})()";
-  };
-
   indent = function indent(str, amt) {
     var i, idt;
     amt = amt != null ? amt : 2;
@@ -254,25 +252,38 @@ misrepresented as being the original software.
     return str.replace(/\n/g, idt);
   };
 
-  wrapContext = function wrapContext(name, ast, code, top) {
-    if (name != null) {
-      return wrapContextVars(name, ast, wrapContextBody(name, ast, code, top), top);
-    } else {
-      return code;
+  /*
+  wrapContextVars = (name, ast, code, top)->"""
+  (function(){
+    var ctx = Leisure.contextStack
+    #{indent code}
+  })()
+    """
+  
+  wrapContext = (name, ast, code, top)->
+    if name? then wrapContextVars name, ast, wrapContextBody(name, ast, code, top), top
+    else code
+  
+  wrapLazyContext = (name, ast, code, top)->
+    if name? then wrapContextVars name, ast, "return function(){#{indent wrapContextBody(name, ast, code, top)}};", top
+    else "(function(){return #{code}})"
+  
+  wrapContextBody = (name, ast, code, top)->"""
+    #{if top then '' else "var oldCtx = ctx;\n  "}
+    var ctx = Leisure.contextStack;
+    Leisure.contextStack = Parse.cons(Leisure.funcContext('#{name}', #{ast.leisureNodeNumber}), #{if top then 'ctx' else 'oldCtx'})
+    try {
+      return #{indent code};
+    } catch (err) {
+      if (!err.leisureContext) {
+        err.leisureContext = Leisure.contextStack;
+      }
+      throw err;
+    } finally {
+      Leisure.contextStack = ctx
     }
-  };
-
-  wrapLazyContext = function wrapLazyContext(name, ast, code, top) {
-    if (name != null) {
-      return wrapContextVars(name, ast, "return function(){" + (indent(wrapContextBody(name, ast, code, top))) + "};", top);
-    } else {
-      return "(function(){return " + code + "})";
-    }
-  };
-
-  wrapContextBody = function wrapContextBody(name, ast, code, top) {
-    return "" + (top ? '' : "var oldCtx = ctx;\n  ") + "\nvar ctx = Leisure.contextStack;\nLeisure.contextStack = Parse.cons(Leisure.funcContext('" + name + "', " + ast.leisureNodeNumber + "), " + (top ? 'ctx' : 'oldCtx') + ")\ntry {\n  return " + (indent(code)) + ";\n} catch (err) {\n  if (!err.leisureContext) {\n    err.leisureContext = Leisure.contextStack;\n  }\n  throw err;\n} finally {\n  Leisure.contextStack = ctx\n}";
-  };
+    """
+  */
 
   Code = (function() {
 
@@ -350,24 +361,39 @@ misrepresented as being the original software.
       if (deref) {
         return this;
       } else {
-        tmp = this.copyWith("$m || ($m = (" + this.main + "))").lazy(name, ast, top);
-        return tmp.copyWith("(function(){var $m; return " + tmp.main + "})()").setUnmemoized(this.main);
+        tmp = this.catchErrorsWithDebugContext(name, ast);
+        tmp = tmp.copyWith("$m || ($m = " + tmp.main + ")").lazy(name, ast, top);
+        return tmp.copyWith("function(" + (tmp.debug ? '$ctx' : '') + "){var $m; return " + tmp.main + "}").captureDebugContext(name).setUnmemoized(tmp.main);
+      }
+    };
+
+    Code.prototype.captureDebugContext = function captureDebugContext(name) {
+      if (this.debug) {
+        return this.copyWith("(" + this.main + ")(leisureContext)");
+      } else {
+        return this.copyWith("(" + this.main + ")()");
+      }
+    };
+
+    Code.prototype.catchErrorsWithDebugContext = function catchErrorsWithDebugContext(name, ast) {
+      if (this.debug) {
+        return this.copyWith("markLeisureErrors('" + name + "', $ctx, (function(){" + this.main + "}))");
+      } else {
+        return this.copyWith("(" + this.main + ")");
       }
     };
 
     Code.prototype.lazy = function lazy(name, ast, top) {
-      if (!this.debug || !((name != null) && (ast.leisureNodeNumber != null))) {
-        return this.copyWith("(function(){return " + this.main + "})");
-      } else {
-        return this.copyWith(wrapLazyContext(name, ast, this.main, top));
-      }
+      return this.copyWith("(function(){return " + this.main + "})");
     };
 
-    Code.prototype.grabContext = function grabContext(ast) {
-      if (getAstType(ast === 'lambda')) {
-        return this.copyWith("");
+    Code.prototype.genTopLevelDebug = function genTopLevelDebug(name, ast) {
+      var tmp;
+      if (this.debug && name) {
+        tmp = this.catchErrorsWithDebugContext(name, ast);
+        return tmp.copyWith("function($ctx){" + tmp.main + "}").captureDebugContext(name);
       } else {
-        return this.copyWith("");
+        return this;
       }
     };
 
@@ -375,15 +401,29 @@ misrepresented as being the original software.
 
   })();
 
+  markLeisureErrors = function markLeisureErrors(name, ctx, func) {
+    try {
+      console.log("USING CONTEXT: " + name);
+      global.leisureContext = cons([name, 0], ctx);
+      return func();
+    } catch (err) {
+      err.leisureContext = global.leisureContext;
+      throw err;
+    } finally {
+      global.leisureContext = global.leisureContext.tail();
+    }
+  };
+
   dgen = function dgen(ast, lazy, name, globals, tokenDef, namespace, src, debug) {
     var argNames, code, jsCode, methodCode, n, res, type, _ref;
     ast.lits = [];
     res = [];
     code = gen(ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true);
+    code = code.genTopLevelDebug(name, ast);
     if (code.err !== '') {
       ast.err = code.err;
     } else {
-      jsCode = !debug || (getAstType(ast)) === 'apply' || !name ? "(" + code.main + ")" : wrapContext(name, ast, code.main, true);
+      jsCode = "(" + code.main + ")";
       if (name) {
         n = nameSub(name);
         jsCode = (getAstType(ast)) === 'lambda' ? "(function() {var f; return function " + n + "(){return f || (f = " + jsCode + ");}})()" : "(function " + n + "() {return (" + jsCode + ");})";
@@ -552,7 +592,7 @@ misrepresented as being the original software.
           arg = getApplyArg(ast);
           funcCode = gen(originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false, ignoreUnknownNames);
           argCode = gen(originalAst, prefixCount, arg, funcCode, lits, vars, false, name, namespace, false, ignoreUnknownNames);
-          aplCode = code.debug ? wrapContext(name, ast, "" + funcCode.main + "(" + argCode.main + ")", top) : "" + funcCode.main + "(" + argCode.main + ")";
+          aplCode = "" + funcCode.main + "(" + argCode.main + ")";
           return argCode.copyWith(aplCode).memoize(deref, name, ast, top);
         }
         break;
@@ -904,5 +944,7 @@ misrepresented as being the original software.
   root.Code = Code;
 
   root.getNthBody = getNthBody;
+
+  root.markLeisureErrors = markLeisureErrors;
 
 }).call(this);

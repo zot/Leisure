@@ -20,6 +20,7 @@ root.macros = {};
 
 Nil = Parse.Nil;
 var cons = Parse.cons;
+var primCons = Parse.primCons;
 var setType = Parse.setType;
 var setDataType = Parse.setDataType;
 var define = Parse.define;
@@ -27,6 +28,8 @@ var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
+var wrapContext = Leisure.wrapContext;
+var markLeisureErrors = Leisure.markLeisureErrors;
 var _LEFT_ARROW, _UP_ARROW, _RIGHT_ARROW, _DOWN_ARROW, _startBlocky, _runPhysics, _key, _down, _up, _jsPD;
 //LEFT_ARROW = AST(37)
 root.defs._LEFT_ARROW = _LEFT_ARROW = Parse.define('LEFT_ARROW', (function _LEFT_ARROW() {return ((37));}), 0, "37");;
