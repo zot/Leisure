@@ -68,12 +68,14 @@ compile = (file, cont, nomacros, debug)->
         str.end out
         str.destroySoon()
       catch err
-        console.log "ERROR: #{err}\n#{err.stack}"
+        console.log "ERROR: #{err}#{if err.leisureContext then formatLeisureStack(err) else ''}\n#{err.stack}"
         write err.stack + "\n"
         cont()
     stream.on 'error', (ex)->
       console.log("Exception reading file: ", ex.stack)
       cont()
+
+formatLeisureStack = (err)-> "\nLeisure Stack:\n  #{err.toArray().join("\n  ")}"
 
 processResult = (result, next)->
   init()
@@ -100,6 +102,7 @@ createEnv = ->
   global.leisureFuncs = {}
   global.macros = {}
   global.req = L.req
+  global.markLeisureErrors = Leisure.markLeisureErrors
   ###
   ctx.U = require('util')
   #VM.runInContext("""

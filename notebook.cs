@@ -14,6 +14,7 @@ else root = exports ? this
 #debug = true
 debug = false
 
+TAB = 9
 ENTER = 13
 arrows = [37..40]
 updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
@@ -62,11 +63,14 @@ bindNotebook = (el)->
       if printable c then clearAst getBox window.getSelection().focusNode
       if (c in arrows) or printable c then delay(highlightPosition)
       if e.ctrlKey and c == ENTER then handleKey("C-ENTER")
-      if e.altKey and c == ENTER then handleKey("M-ENTER")
+      else if e.altKey and c == ENTER then handleKey("M-ENTER")
+      else if c == TAB
+        handleKey("TAB")
+        e.preventDefault()
     el.addEventListener 'keypress', (e)->
       s = window.getSelection()
       r = s.getRangeAt(0)
-      if (e.charCode || e.keyCode || e.which) == 13
+      if (e.charCode || e.keyCode || e.which) == ENTER
         br = textNode('\n')
         r.insertNode(br)
         r = document.createRange()
@@ -104,7 +108,7 @@ nonprintable = null
 
 handleKey = (key)->
   switch key
-    when "C-ENTER"
+    when "C-ENTER", "TAB"
       box = getBox window.getSelection().focusNode
       if (box.getAttribute 'codeMainExpr')? then evalOutput box.output
       else if (box.getAttribute 'codeMain')? then acceptCode box
@@ -494,7 +498,7 @@ evalOutput = (exBox, nofocus)->
   updateSelector.addEventListener 'change', (evt)-> setUpdate exBox, evt.target.value
   updateSelector.addEventListener 'keydown', (e)->
     c = (e.charCode || e.keyCode || e.which)
-    if c == 13
+    if c == ENTER
       e.preventDefault()
       updateSelector.blur()
   updateSelector.value = (exBox.getAttribute 'leisureUpdate') or ''

@@ -16,8 +16,10 @@ For decades, programming has been done primarily in glorified text editors.  Som
 programmer is still burdened with a neverending "write, compile, debug, test, repeat" development cycle.  Why do you keep settling for this when
 clearly we can do better?
 
-While still heavily under development, Leisure is meant to push the envelope here and provide a fully interactive development environment where
-your code is executed and errors show while you're writing it. Functional programming is quite foreign to new comers, but what if you could
+LISP programmers know the REPL -- the command line interactive programming interface.  While still heavily under development, Leisure is meant to push this
+envelope and provide a fully interactive, document-based development environment where
+your code is executed, errors show when you make them, tests execute as you write your code, and documentation is rich and interactive, as well.
+Functional programming is quite foreign to newcomers, but what if you could
 instantly view the parse tree of the code you wrote? Or specify test arguments to your function and see the results live as you make
 changes to your code in real time?  Our goal is to show programmers there has to be a better way, and we've settled for the status quo for far too long.
 

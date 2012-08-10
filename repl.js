@@ -1,5 +1,5 @@
 (function() {
-  var Buffer, Core, FS, L, Parse, Path, Prim, R, U, VM, compile, createEnv, face, getType, init, print, processResult, repl, root, vars, write,
+  var Buffer, Core, FS, L, Parse, Path, Prim, R, U, VM, compile, createEnv, face, formatLeisureStack, getType, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -109,7 +109,7 @@
           str.end(out);
           return str.destroySoon();
         } catch (err) {
-          console.log("ERROR: " + err + "\n" + err.stack);
+          console.log("ERROR: " + err + (err.leisureContext ? formatLeisureStack(err) : '') + "\n" + err.stack);
           write(err.stack + "\n");
           return cont();
         }
@@ -119,6 +119,10 @@
         return cont();
       });
     }
+  };
+
+  formatLeisureStack = function formatLeisureStack(err) {
+    return "\nLeisure Stack:\n  " + (err.toArray().join("\n  "));
   };
 
   processResult = function processResult(result, next) {
@@ -149,6 +153,7 @@
     global.leisureFuncs = {};
     global.macros = {};
     global.req = L.req;
+    global.markLeisureErrors = Leisure.markLeisureErrors;
     /*
       ctx.U = require('util')
       #VM.runInContext("""

@@ -34,6 +34,7 @@ getType = Parse.getType
 
 formatContexts = (stack)->
   for [funcName, offset] in stack.toArray()
+    console.log "FUNCNAME: #{funcName}, OFFSET: #{offset}"
     [src, start, end] = Leisure.funcContextSource funcName, offset
     "#{funcName}:#{start},#{end}: #{Leisure.indent "#{src.substring(0, start)} << #{src.substring(start, end)} >> #{src.substring(end)}", 4}"
 
@@ -139,6 +140,7 @@ escape = (str)-> str.replace(/\n/g, '\\n')
 prelude = """
 Nil = Parse.Nil;
 cons = Parse.cons;
+primCons = Parse.primCons;
 setType = Parse.setType;
 setDataType = Parse.setDataType;
 define = Parse.define;
@@ -146,6 +148,8 @@ processResult = Repl.processResult;
 setContext = Leisure.setContext;
 funcContext = Leisure.funcContext;
 define = Parse.define;
+wrapContext = Leisure.wrapContext;
+markLeisureErrors = Leisure.markLeisureErrors;
 """
 
 localPrelude = prelude.replace(/\n/g, "\nvar ")

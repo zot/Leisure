@@ -79,6 +79,7 @@ ctx = global
 
 global.leisureGetFuncs = -> global.leisureFuncNames
 global.noredefs = true
+global.leisureContext = Nil
 
 funcAstAtOffset = (func, nodeOffset)->
   ast = funcAst func
@@ -164,19 +165,20 @@ findFuncApply = (apply, count)->
   else if (getAstType apply) == 'ref' then dlnew(cons apply, (cons count, Nil))
   else dlempty
 
-wrapContextVars = (name, ast, code, top)->"""
-(function(){
-  var ctx = Leisure.contextStack
-  #{indent code}
-})()
-  """
-
 indent = (str, amt)->
   amt = amt ? 2
   idt = '\n'
   for i in [0..amt]
     idt += ' '
   str.replace /\n/g, idt
+
+###
+wrapContextVars = (name, ast, code, top)->"""
+(function(){
+  var ctx = Leisure.contextStack
+  #{indent code}
+})()
+  """
 
 wrapContext = (name, ast, code, top)->
   if name? then wrapContextVars name, ast, wrapContextBody(name, ast, code, top), top
@@ -201,6 +203,7 @@ wrapContextBody = (name, ast, code, top)->"""
     Leisure.contextStack = ctx
   }
   """
+###
 
 class Code
   constructor: (@main, @vars, @err, @global, @debug, @method, @unmemoized)->
@@ -230,25 +233,46 @@ class Code
   memoize: (deref, name, ast, top)->
     if deref then @
     else
-      tmp = @copyWith("$m || ($m = (#{@main}))").lazy(name, ast, top)
-      tmp.copyWith("(function(){var $m; return #{tmp.main}})()").setUnmemoized(@main)
+      tmp = @catchErrorsWithDebugContext(name, ast)
+      tmp = tmp.copyWith("$m || ($m = #{tmp.main})").lazy(name, ast, top)
+      tmp.copyWith("function(#{if tmp.debug then '$ctx' else ''}){var $m; return #{tmp.main}}").captureDebugContext(name).setUnmemoized(tmp.main)
+  captureDebugContext: (name)->
+    if @debug then @copyWith "(#{@main})(leisureContext)"
+    else @copyWith "(#{@main})()"
+  catchErrorsWithDebugContext: (name, ast)->
+    if @debug then @copyWith "markLeisureErrors('#{name}', $ctx, (function(){#{@main}}))"
+    else @copyWith("(#{@main})")
   lazy: (name, ast, top)->
-    if !@debug or !(name? and ast.leisureNodeNumber?) then @copyWith("(function(){return #{@main}})")
-    else @copyWith (wrapLazyContext name, ast, @main, top)
-  grabContext: (ast)->
-    if getAstType ast == 'lambda' then @copyWith """
+    #if !@debug or !(name? and ast.leisureNodeNumber?) then @copyWith("(function(){return #{@main}})")
+    #else @copyWith (wrapLazyContext name, ast, @main, top)
+    @copyWith("(function(){return #{@main}})")
+  genTopLevelDebug: (name, ast)->
+    if @debug && name
+      tmp = @catchErrorsWithDebugContext(name, ast)
+      tmp.copyWith("function($ctx){#{tmp.main}}").captureDebugContext(name)
+    else @
 
-    """ else @copyWith """
-    """
+markLeisureErrors = (name, ctx, func)->
+  try
+    console.log "USING CONTEXT: #{name}"
+    global.leisureContext = cons([name, 0], ctx)
+    func()
+  catch err
+    err.leisureContext = global.leisureContext
+    throw err
+  finally
+    global.leisureContext = global.leisureContext.tail()
 
 dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
   #debug = false
   ast.lits = []
   res = []
   code = (gen ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true)
+  code = code.genTopLevelDebug(name, ast)
   if code.err != '' then ast.err = code.err
   else
-    jsCode = if !debug or (getAstType ast) == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
+    #jsCode = if !debug or (getAstType ast) == 'apply' or !name then "(#{code.main})" else wrapContext name, ast, code.main, true
+    jsCode = "(#{code.main})"
     if name
       n = nameSub name
       # need to memoize lambdas in order to be able to compare unapplied functions with each other
@@ -374,8 +398,9 @@ gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, 
         arg = getApplyArg ast
         funcCode = gen originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false, ignoreUnknownNames
         argCode = gen originalAst, prefixCount, arg, funcCode, lits, vars, false, name, namespace, false, ignoreUnknownNames
-        aplCode = if code.debug then wrapContext name, ast, "#{funcCode.main}(#{argCode.main})", top
-        else "#{funcCode.main}(#{argCode.main})"
+        #aplCode = if code.debug then wrapContext name, ast, "#{funcCode.main}(#{argCode.main})", top
+        #else "#{funcCode.main}(#{argCode.main})"
+        aplCode = "#{funcCode.main}(#{argCode.main})"
         argCode.copyWith(aplCode).memoize(deref, name, ast, top)
     else code.addErr "Unknown object type in gen: #{ast}"
 
@@ -592,3 +617,4 @@ root.createMethod = createMethod
 root.noDefaultError = noDefaultError
 root.Code = Code
 root.getNthBody = getNthBody
+root.markLeisureErrors = markLeisureErrors

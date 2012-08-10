@@ -192,4 +192,4 @@ start = ->
   script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
   document.head.appendChild(script);
 
-start()
+#start()

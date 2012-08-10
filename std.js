@@ -18,6 +18,7 @@ root.macros = {};
 
 Nil = Parse.Nil;
 var cons = Parse.cons;
+var primCons = Parse.primCons;
 var setType = Parse.setType;
 var setDataType = Parse.setDataType;
 var define = Parse.define;
@@ -25,6 +26,8 @@ var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
+var wrapContext = Leisure.wrapContext;
+var markLeisureErrors = Leisure.markLeisureErrors;
 var _dlempty, _dl, _dlPush, _dlAppend, _flatten, _subflatten, _subflatten, _remove, _removeIf, __removeIf, _removeIfNot, _filter, _any, __any, _all, __all, _find, _findIf, _findIfOpt, _findIndex, _subFindIndex, _subFindIndex, _take, __take, _takeWhile, __takeWhile, _drop, _dropWhile, _dropLast, __dropLast, _series, _from, _fromBy, _fromTo, _fromToBy, _count, _countIf, _countIfNot, _assocFromList, _assocKey, _assocValue, _assocGetPair, _assocGetPairOpt, _assocKeys, _assocNumKeys, _assocMergeKeys, _assocMerge, _assocSet, _assocGet, _assocGetWithDefault, _assocRemove, _html, _or$r, _primOrVar, _and$r, _primAndVar, _defInfixToken, _insertOperator, _insertOperator, _testInfix, _mainParseInfix, _parseInfix, _parseInfix, _parseInfix, _callParseInfixList, _printOperators, _parseInfixList, _getPrecedence, _getPrecedence, _operatorIn;
 processResult(//AST(addParseFilter doFilter)
 (_addParseFilter()(_doFilter)));

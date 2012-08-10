@@ -562,6 +562,7 @@ root.setType = setType
 root.mkProto = mkProto
 root.Nil = Nil
 root.cons = cons
+root.primCons = primCons
 root.dlempty = dlempty
 root.dlnew = dlnew
 root.dlappend = dlappend

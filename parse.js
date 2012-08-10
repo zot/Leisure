@@ -1397,6 +1397,8 @@ misrepresented as being the original software.
 
   root.cons = cons;
 
+  root.primCons = primCons;
+
   root.dlempty = dlempty;
 
   root.dlnew = dlnew;

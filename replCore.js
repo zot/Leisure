@@ -53,6 +53,7 @@
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       _ref2 = _ref[_i], funcName = _ref2[0], offset = _ref2[1];
+      console.log("FUNCNAME: " + funcName + ", OFFSET: " + offset);
       _ref3 = Leisure.funcContextSource(funcName, offset), src = _ref3[0], start = _ref3[1], end = _ref3[2];
       _results.push("" + funcName + ":" + start + "," + end + ": " + (Leisure.indent("" + (src.substring(0, start)) + " << " + (src.substring(start, end)) + " >> " + (src.substring(end)), 4)));
     }
@@ -207,7 +208,7 @@
     return str.replace(/\n/g, '\\n');
   };
 
-  prelude = "Nil = Parse.Nil;\ncons = Parse.cons;\nsetType = Parse.setType;\nsetDataType = Parse.setDataType;\ndefine = Parse.define;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\ndefine = Parse.define;";
+  prelude = "Nil = Parse.Nil;\ncons = Parse.cons;\nprimCons = Parse.primCons;\nsetType = Parse.setType;\nsetDataType = Parse.setDataType;\ndefine = Parse.define;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\ndefine = Parse.define;\nwrapContext = Leisure.wrapContext;\nmarkLeisureErrors = Leisure.markLeisureErrors;";
 
   localPrelude = prelude.replace(/\n/g, "\nvar ");
 
