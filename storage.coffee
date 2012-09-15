@@ -48,6 +48,7 @@
 ####
 
 # this always runs in a browser, so no coffeescript browser/cmdline finagling
+
 window.global = window
 window.Storage = root = {}
 
