@@ -1,4 +1,14 @@
-Add 'let' AST node to allow recursive definitions:
+NOTEBOOK MODULES
+
+Use Xus to connect modules
+
+* core
+* 
+
+
+AST
+
+Add 'let' AST node to allow recursive definitions (hey, GHC does this!):
 
 let def body = \f . f def body
 simpleDef name def = \f . f name def
@@ -14,7 +24,6 @@ If there is no body in a top-level program, it defaults to (lit 0)
 
 
 Modify AST to handle patterns with "case" node, like GHC?
-
 
 
 VM
