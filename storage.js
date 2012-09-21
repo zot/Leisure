@@ -55,8 +55,8 @@
       accessToken = authResult.access_token;
       return continueAuth();
     } else {
-      createAuthButton();
-      return console.log("Authentication failed");
+      console.log("Not authenticated, yet -- creating button");
+      return createAuthButton();
     }
   };
 
