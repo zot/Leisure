@@ -51,6 +51,7 @@
     var authorizeButton;
     authorizeButton = document.getElementById('authorize-button');
     if (authResult && !authResult.error) {
+      console.log("Authenticated");
       accessToken = authResult.access_token;
       return continueAuth();
     } else {
