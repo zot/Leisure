@@ -185,7 +185,8 @@
   };
 
   window.poptastic = function poptastic(url) {
-    return Storage.start();
+    Storage.start();
+    return window.killAuthFrag();
   };
 
   window.killAuthFrag = function killAuthFrag() {
