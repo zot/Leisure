@@ -181,16 +181,7 @@
   }
 
   addGDriveAuth = function addGDriveAuth() {
-    return document.body.insertBefore(Notebook.createNode("<div><a href=\"javascript:poptastic('https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file&client_id=270759921607.apps.googleusercontent.com&redirect_uri=https://leisurestorage.appspot.com&response_type=token');\">Authorize Leisure Storage</a> <a href=\"javascript:killAuthFrag()\">Cancel</a><br></div>"), document.body.firstChild);
-  };
-
-  window.poptastic = function poptastic(url) {
-    Storage.start();
-    return window.killAuthFrag();
-  };
-
-  window.killAuthFrag = function killAuthFrag() {
-    return document.body.removeChild(document.body.firstChild);
+    return Storage.start();
   };
 
   fileSystem = null;
