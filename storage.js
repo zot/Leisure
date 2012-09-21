@@ -63,7 +63,7 @@
   createAuthButton = function createAuthButton() {
     if (!authButtonDiv) {
       authButtonDiv = document.createElement('div');
-      authButtonDiv.innerHTML = '<span>Leisure wants to create files and access them in your Google drive.  <button onclick="handleAuthClick()">Authorize</button> <button onclick="continueAuth()">Cancel</button></span>';
+      authButtonDiv.innerHTML = '<span>Would you like to authorize Leisure to create files and access them in your Google drive?<button onclick="handleAuthClick()">Yes</button> <button onclick="continueAuth()">No</button></span>';
       return document.body.insertBefore(authButtonDiv, document.body.firstChild);
     }
   };
