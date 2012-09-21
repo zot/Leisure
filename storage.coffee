@@ -75,6 +75,7 @@ window.handleAuthClick = (event)->
   false;
 
 checkDriveAuth = (immediate)->
+  console.log "AUTH"
   try
     gapi.auth.authorize({
       client_id: '270759921607',
@@ -93,16 +94,17 @@ checkDriveAuth = (immediate)->
 handleAuthResult = (authResult)->
   authorizeButton = document.getElementById('authorize-button');
   if authResult && !authResult.error
+    console.log("Authenticated");
     accessToken = authResult.access_token;
     continueAuth()
   else
+    console.log("Not authenticated, yet -- creating button");
     createAuthButton()
-    console.log("Authentication failed");
 
 createAuthButton = ->
   if !authButtonDiv
     authButtonDiv = document.createElement 'div'
-    authButtonDiv.innerHTML = '<span>Leisure wants to create files and access them in your Google drive.  <button onclick="handleAuthClick()">Authorize</button> <button onclick="continueAuth()">Cancel</button></span>'
+    authButtonDiv.innerHTML = '<span>Would you like to authorize Leisure to create files and access them in a LeisureStorage directory in your Google drive?  <button onclick="handleAuthClick()">Yes</button> <button onclick="continueAuth()">No</button></span>'
     document.body.insertBefore authButtonDiv, document.body.firstChild
 
 window.continueAuth = ->
@@ -210,3 +212,4 @@ start = ->
 root.checkAutosave = checkAutosave
 root.deleteAutosave = deleteAutosave
 root.autosave = autosave
+root.start = start

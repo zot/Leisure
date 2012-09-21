@@ -1,58 +1,23 @@
-
-/*
-Copyright (C) 2012, Bill Burdick, Tiny Concepts: http://tinyconcepts.com/fs.pl/lambda.fsl
-
-(licensed with ZLIB license)
-
-This software is provided 'as-is', without any express or implied
-warranty. In no event will the authors be held liable for any damages
-arising from the use of this software.
-
-Permission is granted to anyone to use this software for any purpose,
-including commercial applications, and to alter it and redistribute it
-freely, subject to the following restrictions:
-
-1. The origin of this software must not be misrepresented; you must not
-claim that you wrote the original software. If you use this software
-in a product, an acknowledgment in the product documentation would be
-appreciated but is not required.
-
-2. Altered source versions must be plainly marked as such, and must not be
-misrepresented as being the original software.
-
-3. This notice may not be removed or altered from any source distribution.
-*/
-
-/*
-File structure in Google drive, just use local file system for autosave
-Later, do offline mode with syncing
-This lets people share files and get functionality sooner (I think)
-
-LeisureStorage
-   +- state.json
-   +- Imports -- projects from other users
-   |  +- ImportedProject1-Name -- this is a link to another user's shared Leisure project
-   |  +- ImportedProejct2-Name
-   +- Projects
-      +- Project1-Name
-      |  +- info.json -- list files that are imported: name -> original id -- most likely in an imported project
-      |  +- main.lsr -- main file, which imports the others (order might be important?)
-      |  +- file1.lsr
-      |  +- file2.lsr
-      |  +- import1.lsr -- listed in info.json
-      |  +- import2.lsr -- listed in info.json
-      |  +- ...
-      +- Project2-Name
-      |  +- ...
-      +- ...
-*/
-
 (function() {
-  var accessToken, authButtonDiv, checkDriveAuth, checkFileSystemAccess, continueWithAutoSaves, createAuthButton, fsError, handleAuthResult, listFiles, mimePart, root, start, tmpFalse, uploadTestFile;
+  var accessToken, authButtonDiv, autosave, checkAutosave, checkDriveAuth, checkFileSystemAccess, continueWithAutoSaves, createAuthButton, deleteAutosave, fsError, handleAuthResult, itemKey, listFiles, mimePart, root, start, tmpFalse, uploadTestFile;
 
   window.global = window;
 
   window.Storage = root = {};
+
+  itemKey = "Leisure/autosave" + document.location.pathname;
+
+  checkAutosave = function checkAutosave(cont) {
+    return cont(localStorage.getItem(itemKey));
+  };
+
+  deleteAutosave = function deleteAutosave() {
+    return localStorage.removeItem(itemKey);
+  };
+
+  autosave = function autosave(value) {
+    return localStorage.setItem(itemKey, value);
+  };
 
   accessToken = root.accessToken = null;
 
@@ -70,6 +35,7 @@ LeisureStorage
   };
 
   checkDriveAuth = function checkDriveAuth(immediate) {
+    console.log("AUTH");
     try {
       return gapi.auth.authorize({
         client_id: '270759921607',
@@ -85,18 +51,19 @@ LeisureStorage
     var authorizeButton;
     authorizeButton = document.getElementById('authorize-button');
     if (authResult && !authResult.error) {
+      console.log("Authenticated");
       accessToken = authResult.access_token;
       return continueAuth();
     } else {
-      createAuthButton();
-      return console.log("Authentication failed");
+      console.log("Not authenticated, yet -- creating button");
+      return createAuthButton();
     }
   };
 
   createAuthButton = function createAuthButton() {
     if (!authButtonDiv) {
       authButtonDiv = document.createElement('div');
-      authButtonDiv.innerHTML = '<span>Leisure wants to create files and access them in your Google drive.  <button onclick="handleAuthClick()">Authorize</button> <button onclick="continueAuth()">Cancel</button></span>';
+      authButtonDiv.innerHTML = '<span>Would you like to authorize Leisure to create files and access them in your Google drive?<button onclick="handleAuthClick()">Yes</button> <button onclick="continueAuth()">No</button></span>';
       return document.body.insertBefore(authButtonDiv, document.body.firstChild);
     }
   };
@@ -155,21 +122,6 @@ LeisureStorage
     };
   };
 
-  /*
-  Temporary file system, only, for autosave -- just store unsaved files and remove them when uploaded to storage
-  See above for future plans
-  
-  LeisureAutoSave
-     +- state.json
-     +- Project1-name
-     |  +- info.json
-     |  +- file1.lsr
-     |  +- ...
-     +- Project2-name
-     |  +- ...
-     +- ...
-  */
-
   window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
 
   checkFileSystemAccess = function checkFileSystemAccess(cont) {
@@ -217,5 +169,13 @@ LeisureStorage
     script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
     return document.head.appendChild(script);
   };
+
+  root.checkAutosave = checkAutosave;
+
+  root.deleteAutosave = deleteAutosave;
+
+  root.autosave = autosave;
+
+  root.start = start;
 
 }).call(this);

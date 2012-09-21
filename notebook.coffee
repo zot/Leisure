@@ -1057,6 +1057,7 @@ root.showAst = showAst
 root.toggleEdit = toggleEdit
 root.showSource = showSource
 root.bootNotebook = bootNotebook
+root.createNode = createNode
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

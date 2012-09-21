@@ -1603,4 +1603,6 @@
 
   root.bootNotebook = bootNotebook;
 
+  root.createNode = createNode;
+
 }).call(this);

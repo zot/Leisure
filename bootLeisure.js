@@ -89,6 +89,7 @@
     while (bootFuncs.length) {
       bootFuncs.shift()();
     }
+    Storage.start();
     return booted = true;
   };
 

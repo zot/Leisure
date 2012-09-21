@@ -62,6 +62,7 @@ finishBoot = ->
   checkBackup()
   while bootFuncs.length
     bootFuncs.shift()()
+  Storage.start()
   booted = true
 
 prepTools = ->
@@ -124,8 +125,7 @@ evalDoc = ->
     Notebook.evalDoc(doc)
 
 if document.readyState == 'complete' then bootLeisure()
-else
-  window.addEventListener 'load', bootLeisure
+else window.addEventListener 'load', bootLeisure
 
 #####################
 # File system hookup -- Here's a great resource for learning about this: http://www.html5rocks.com/en/tutorials/file/filesystem/
