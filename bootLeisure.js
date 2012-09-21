@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Boot, Leisure, addHashResult, backupAutosave, bootFs, bootFsX, bootFuncs, bootLeisure, booted, callPrepCode, checkBackup, deleteAutosave, dirEntry, docs, evalDoc, fileSystem, finishBoot, fsSnapper, handleError, hashForDocs, initNotebookProperties, loadThen, nextNameNumber, prepTools, properties, propsEntry, readFile, restoreAutosave, showDialog, withDirHash, writeFile,
+  var Boot, Leisure, addGDriveAuth, addHashResult, backupAutosave, bootFs, bootFsX, bootFuncs, bootLeisure, booted, callPrepCode, checkBackup, deleteAutosave, dirEntry, docs, evalDoc, fileSystem, finishBoot, fsSnapper, handleError, hashForDocs, initNotebookProperties, loadThen, nextNameNumber, prepTools, properties, propsEntry, readFile, restoreAutosave, showDialog, withDirHash, writeFile,
     __slice = Array.prototype.slice;
 
   Leisure = {};
@@ -47,7 +47,7 @@
       style.setAttribute('href', "" + i + ".css");
       document.head.appendChild(style);
     }
-    return loadThen(['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min', 'storage'], function() {
+    return loadThen(['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min', 'jquery.indexeddb', 'storage'], function() {
       window.Leisure.restoreAutosave = restoreAutosave;
       window.Leisure.backupAutosave = backupAutosave;
       window.Leisure.deleteAutosave = deleteAutosave;
@@ -89,6 +89,7 @@
     while (bootFuncs.length) {
       bootFuncs.shift()();
     }
+    addGDriveAuth();
     return booted = true;
   };
 
@@ -178,6 +179,18 @@
   } else {
     window.addEventListener('load', bootLeisure);
   }
+
+  addGDriveAuth = function addGDriveAuth() {
+    return document.body.insertBefore(Notebook.createNode("<div><a href=\"javascript:poptastic('https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file&client_id=270759921607.apps.googleusercontent.com&redirect_uri=https://leisurestorage.appspot.com&response_type=token');\">Authorize Leisure Storage</a> <a href=\"javascript:killAuthFrag()\">Cancel</a><br></div>"), document.body.firstChild);
+  };
+
+  window.poptastic = function poptastic(url) {
+    return Storage.start();
+  };
+
+  window.killAuthFrag = function killAuthFrag() {
+    return document.body.removeChild(document.body.firstChild);
+  };
 
   fileSystem = null;
 
