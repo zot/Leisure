@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Boot, Leisure, addGDriveAuth, addHashResult, backupAutosave, bootFs, bootFsX, bootFuncs, bootLeisure, booted, callPrepCode, checkBackup, deleteAutosave, dirEntry, docs, evalDoc, fileSystem, finishBoot, fsSnapper, handleError, hashForDocs, initNotebookProperties, loadThen, nextNameNumber, prepTools, properties, propsEntry, readFile, restoreAutosave, showDialog, withDirHash, writeFile,
+  var Boot, Leisure, addHashResult, backupAutosave, bootFs, bootFsX, bootFuncs, bootLeisure, booted, callPrepCode, checkBackup, deleteAutosave, dirEntry, docs, evalDoc, fileSystem, finishBoot, fsSnapper, handleError, hashForDocs, initNotebookProperties, loadThen, nextNameNumber, prepTools, properties, propsEntry, readFile, restoreAutosave, showDialog, withDirHash, writeFile,
     __slice = Array.prototype.slice;
 
   Leisure = {};
@@ -89,7 +89,7 @@
     while (bootFuncs.length) {
       bootFuncs.shift()();
     }
-    addGDriveAuth();
+    Storage.start();
     return booted = true;
   };
 
@@ -179,10 +179,6 @@
   } else {
     window.addEventListener('load', bootLeisure);
   }
-
-  addGDriveAuth = function addGDriveAuth() {
-    return Storage.start();
-  };
 
   fileSystem = null;
 
