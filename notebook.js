@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, TAB, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, TAB, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nextId, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerNotifySelection, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -14,6 +14,7 @@
     window.Notebook = root = {};
     Prim = window.Prim;
     Repl = window.Repl;
+    Xus = window.Xus;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
@@ -27,6 +28,10 @@
   arrows = [37, 38, 39, 40];
 
   updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/;
+
+  peer = null;
+
+  nextId = 0;
 
   snapshot = function snapshot(el, pgm) {};
 
@@ -52,8 +57,45 @@
 
   bootNotebook = function bootNotebook(el) {
     if (!((document.getElementById('channelList')) != null)) {
-      return document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='compile'>compile</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
+      document.body.appendChild(createNode("<datalist id='channelList'>\n   <option value=''></option>\n   <option value='app'>app</option>\n   <option value='compile'>compile</option>\n   <option value='editorFocus'>editorFocus</option>\n</datalist>"));
     }
+    return createPeer();
+  };
+
+  createPeer = function createPeer() {
+    var k, param, params, server, v, _i, _len, _ref, _ref2;
+    server = new Xus.Server();
+    peer = Notebook.peer = Xus.createDirectPeer(server);
+    peer.server = server;
+    if (document.location.hash) {
+      params = {};
+      _ref = document.location.hash.substring(1).split('&');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        param = _ref[_i];
+        _ref2 = param.split('='), k = _ref2[0], v = _ref2[1];
+        params[k.toLowerCase()] = decodeURIComponent(v);
+      }
+      if (params.xusproxy != null) Xus.xusToProxy(server, params.xusproxy);
+    }
+    return peer.listen('leisure/selection/contents', true, function(key, value) {
+      var node, r, s;
+      if (key === 'leisure/selection/contents') {
+        s = window.getSelection();
+        if (s.rangeCount && s.toString() !== value) {
+          r = s.getRangeAt(0);
+          r.deleteContents();
+          node = document.createTextNode(value.toString());
+          r.insertNode(node);
+          s.removeAllRanges();
+          r.selectNode(node);
+          return s.addRange(r);
+        }
+      }
+    });
+  };
+
+  makeId = function makeId(el) {
+    if (!el.id) return el.id = "Leisure-" + (nextId++);
   };
 
   bindNotebook = function bindNotebook(el) {
@@ -70,6 +112,7 @@
       Prim.defaultEnv.debug = debug;
     }
     if (!(el.bound != null)) {
+      makeId(el);
       el.bound = true;
       el.addEventListener('DOMCharacterDataModified', (function(evt) {
         if (!el.replacing) {
@@ -151,6 +194,11 @@
     }
   };
 
+  peerNotifySelection = function peerNotifySelection(el, str) {
+    peer.set('leisure/selection/id', (el ? el.id : null));
+    return peer.set('leisure/selection/contents', str);
+  };
+
   printableControlCharacters = (function() {
     var _i, _len, _ref, _results;
     _ref = "\r\i\n\b";
@@ -208,6 +256,7 @@
 
   highlightPosition = function highlightPosition() {
     var ast, b, brackets, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
+    parent = null;
     s = window.getSelection();
     if (s.rangeCount) {
       focusBox(s.focusNode);
@@ -256,9 +305,10 @@
         }
       }
       if ((parent != null ? (_ref5 = parent.ast) != null ? _ref5.leisureName : void 0 : void 0) != null) {
-        return update("sel-" + parent.ast.leisureName);
+        update("sel-" + parent.ast.leisureName);
       }
     }
+    return peerNotifySelection(parent, s.toString());
   };
 
   wrapRange = function wrapRange(range, node) {

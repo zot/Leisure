@@ -12,7 +12,9 @@ while [ $# != 0 ]; do
     shift
 done
 
-set $args
+if [ -n "$args" ]; then
+    set $args
+fi
 
 if [ $# != 0 ]; then
     (sleep 1; google-chrome $(for i in $*; do echo "http://localhost:8000/$i"; done))&

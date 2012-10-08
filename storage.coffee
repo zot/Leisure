@@ -68,11 +68,11 @@ autosave = (value)-> localStorage.setItem itemKey, value
 accessToken = root.accessToken = null;
 authButtonDiv = null;
 
-window.gapiClientLoaded = ()-> window.setTimeout((-> checkDriveAuth(true)), 1);
+window.gapiClientLoaded = -> window.setTimeout (-> checkDriveAuth true), 1
 
 window.handleAuthClick = (event)->
-  checkDriveAuth(false);
-  false;
+  checkDriveAuth false
+  false
 
 checkDriveAuth = (immediate)->
   console.log "AUTH"

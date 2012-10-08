@@ -9,6 +9,7 @@ if window? and (!global? or global == window)
   window.Notebook = root = {}
   Prim = window.Prim
   Repl = window.Repl
+  Xus = window.Xus
 else root = exports ? this
 
 #debug = true
@@ -18,6 +19,8 @@ TAB = 9
 ENTER = 13
 arrows = [37..40]
 updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
+peer = null
+nextId = 0
 
 snapshot = (el, pgm)->
 
@@ -42,6 +45,31 @@ bootNotebook = (el)->
    <option value='compile'>compile</option>
    <option value='editorFocus'>editorFocus</option>
 </datalist>"""
+  createPeer()
+
+createPeer = ->
+  server = new Xus.Server()
+  peer = Notebook.peer = Xus.createDirectPeer server
+  peer.server = server
+  if document.location.hash
+    params = {}
+    for param in document.location.hash.substring(1).split '&'
+      [k, v] = param.split '='
+      params[k.toLowerCase()] = decodeURIComponent v
+    if params.xusproxy? then Xus.xusToProxy(server, params.xusproxy)
+  peer.listen 'leisure/selection/contents', true, (key, value)->
+    if key == 'leisure/selection/contents'
+      s = window.getSelection()
+      if s.rangeCount && s.toString() != value
+        r = s.getRangeAt 0
+        r.deleteContents()
+        node = document.createTextNode value.toString()
+        r.insertNode node
+        s.removeAllRanges()
+        r.selectNode node
+        s.addRange(r)
+
+makeId = (el)-> if !el.id then el.id = "Leisure-#{nextId++}"
 
 bindNotebook = (el)->
   if !basePresentValue
@@ -52,6 +80,7 @@ bindNotebook = (el)->
     Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', Prim.defaultEnv)
     Prim.defaultEnv.debug = debug
   if !el.bound?
+    makeId el
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
     el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
@@ -95,6 +124,10 @@ bindNotebook = (el)->
       window.setTimeout (->runTests el), 1
     else el.autorunState = false
 
+peerNotifySelection = (el, str)->
+  peer.set 'leisure/selection/id', (if el then el.id else null)
+  peer.set 'leisure/selection/contents', str
+
 printableControlCharacters = (c.charCodeAt(0) for c in "\r\i\n\b")
 printable = (code)-> (code > 0xf and code < 37) or code > 40 or code in printableControlCharacters
 
@@ -124,6 +157,7 @@ clearAst = (box)->
 oldBrackets = [null, Parse.Nil]
 
 highlightPosition = ->
+  parent = null
   s = window.getSelection()
   if s.rangeCount
     focusBox s.focusNode
@@ -160,6 +194,7 @@ highlightPosition = ->
             #parent.normalize()
             s.addRange(makeRange parent, pos)
     if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
+  peerNotifySelection parent, s.toString()
 
 wrapRange = (range, node)->
   try

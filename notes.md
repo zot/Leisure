@@ -1,6 +1,22 @@
+# Storage
+
+* Autosave, using WebStorage
+* Permanent storage, using Google Drive and OrionHub
+* Git using OrionHub + GitHub and GDrive + GitHub (using google cmd)
+  Drive + 
+
 # NOTEBOOK MODULES
 
 Use Xus to connect modules
+
+Connection types
+
+* in browser: use in-memory Xus
+* command line tools use delegated Xus in node server
+   * localhost-sourced iframe connects to Xus server
+   * iframe uses window.postMessage to communicate with notebook
+   * delegates to node
+   * node runs a Xus proxy to talk to command line tools
 
 Modules
 
@@ -12,6 +28,22 @@ Data
 * docRequest
 * event
 
+# Syntax and Libraries
+
+* make basic parseFilter handle = and =M=, using 'define' and
+  'defMacro' monads
+   * each line is an expression that returns a monad (or a value which
+     is ignored)
+* Use JS module pattern to isolate code
+   * modules export the libraries they require
+   * syntax should only be affected by imported macros and parseFilters
+* monads require libraries and syntax into module
+* "require 'standardLeisure'" imports std syntax and libraries
+   * requires 'std'
+   * adds parse filters: doFilter, mainParseInfix
+* only a few global monads
+   * require
+   * primitive
 
 # AST
 
