@@ -68,6 +68,18 @@ createPeer = ->
         s.removeAllRanges()
         r.selectNode node
         s.addRange(r)
+  peer.set 'leisure/document', peerGetDocument
+  peer.set 'leisure/functions', peerGetFunctions
+
+peerGetDocument = ->
+  nodes = document.querySelectorAll '[LeisureCode]'
+  if nodes.length > 1 || Notebook.md then getMDDocument()
+  else getSimpleDocument()
+
+peerGetFunctions = -> (_.uniq window.leisureFuncNames.toArray().sort(), true).sort()
+
+getMDDocument = (nodes)->
+  Notebook.md.replace /<pre.*\/pre>/g, (match)-> '\n=>' + match.replace('\n', '\n->')
 
 makeId = (el)-> if !el.id then el.id = "Leisure-#{nextId++}"
 

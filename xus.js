@@ -515,7 +515,7 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
               _ref = this.relevantConnections(prefixes(key));
               for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                 c = _ref[_i];
-                c.addCmd(msg);
+                this.addCmd(c, msg);
               }
               if (this.storageModes[key] === storage_permanent) {
                 return this.store(con, key, value);
@@ -526,6 +526,15 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
           return this.disconnect(con, error_bad_message, "Unknown command, '" + name + "' in message: " + (JSON.stringify(msg)));
         }
       }
+    };
+
+    Server.prototype.addCmd = function(con, msg) {
+      var k, v, _i, _len;
+      for (k = _i = 0, _len = msg.length; _i < _len; k = ++_i) {
+        v = msg[k];
+        msg[k] = this.getValue(v);
+      }
+      return con.addCmd(msg);
     };
 
     Server.prototype.relevantConnections = function(keyPrefixes) {
@@ -724,7 +733,7 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
         if (storageMode) {
           this.storageModes[key] = storageMode;
         }
-        cmd[2] = value = this.getValue(value);
+        cmd[2] = value;
         return true;
       }
     };
@@ -1387,13 +1396,16 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
     };
 
     Peer.prototype.processBatch = function(con, batch) {
-      var block, cb, cmd, i, idx, index, k, key, msg, name, numKeys, oldValue, type, value, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref1, _ref2, _ref3, _step;
+      var block, cb, cmd, i, idx, index, k, key, msg, name, numKeys, oldValues, type, value, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref1, _ref2, _results, _step;
       this.verbose("Peer batch: " + (JSON.stringify(batch)));
       numKeys = this.keys.length;
+      oldValues = {};
       for (_i = 0, _len = batch.length; _i < _len; _i++) {
         cmd = batch[_i];
         name = cmd[0], key = cmd[1], value = cmd[2], index = cmd[3];
-        oldValue = __indexOf.call(setCmds, name) >= 0 && this.values[key];
+        if (__indexOf.call(setCmds, name) >= 0) {
+          oldValues[key] = this.values[key];
+        }
         switch (name) {
           case 'name':
             this.rename(key);
@@ -1433,27 +1445,40 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
             name = cmd[0], type = cmd[1], msg = cmd[2];
             console.log(msg);
         }
-        if (__indexOf.call(setCmds, name) >= 0) {
-          _ref2 = this.listenersFor(key);
-          for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-            block = _ref2[_k];
-            block(key, this.values[key], oldValue, cmd, batch);
-          }
-          if (!oldValue) {
-            this.keys.push(key);
-          }
-        } else if (name === 'value' && this.treeListeners[key]) {
-          _ref3 = this.treeListeners[key];
-          for (_l = 0, _len3 = _ref3.length; _l < _len3; _l++) {
-            cb = _ref3[_l];
-            cb(cmd, batch);
-          }
-          delete this.treeListeners[key];
+        if (__indexOf.call(setCmds, name) >= 0 && !oldValues[key]) {
+          this.keys.push(key);
         }
       }
       if (numKeys !== this.keys.length) {
-        return this.keys.sort();
+        this.keys.sort();
       }
+      _results = [];
+      for (_k = 0, _len2 = batch.length; _k < _len2; _k++) {
+        cmd = batch[_k];
+        name = cmd[0], key = cmd[1], value = cmd[2], index = cmd[3];
+        if (__indexOf.call(setCmds, name) >= 0) {
+          _results.push((function() {
+            var _l, _len3, _ref2, _results1;
+            _ref2 = this.listenersFor(key);
+            _results1 = [];
+            for (_l = 0, _len3 = _ref2.length; _l < _len3; _l++) {
+              block = _ref2[_l];
+              _results1.push(block(key, this.values[key], oldValues[key], cmd, batch));
+            }
+            return _results1;
+          }).call(this));
+        } else if (name === 'value' && this.treeListeners[key]) {
+          _ref2 = this.treeListeners[key];
+          for (_l = 0, _len3 = _ref2.length; _l < _len3; _l++) {
+            cb = _ref2[_l];
+            cb(cmd, batch);
+          }
+          _results.push(delete this.treeListeners[key]);
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
     };
 
     Peer.prototype.rename = function(newName) {
@@ -1628,7 +1653,7 @@ require.define("/browser.js",function(require,module,exports,__dirname,__filenam
 
   require('./peer');
 
-  _ = require('./lodash.min');
+  window._ = _ = require('./lodash.min');
 
   if (window.MozWebSocket) {
     window.WebSocket = window.MozWebSocket;

@@ -10,17 +10,19 @@
   	</style>
     <script>
       leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
+      leisureBoot = function() {Notebook.md = md};
       leisureAutoRunAll = true;
     </script>
     <link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
     <script src="showdown.js"></script>
     <script>
+      var md = null
       function markup() {
         var nodes = document.querySelectorAll('[doc]')
         for (var i = 0; i < nodes.length; i++) {
 	  var el = nodes[i];
-          var md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '');
 
+          md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '');
           el.innerHTML = new Showdown.converter().makeHtml(md);
         }
       }

@@ -60,6 +60,7 @@ finishBoot = ->
     Notebook.changeTheme node, 'thin'
     Notebook.evalDoc node
   checkBackup()
+  if window.leisureBoot? then bootFuncs.push window.leisureBoot
   while bootFuncs.length
     bootFuncs.shift()()
   Storage.start()
