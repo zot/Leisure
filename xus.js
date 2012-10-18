@@ -598,10 +598,14 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
         con.send();
         con.close();
         if (con === this.master) {
-          process.exit();
+          this.exit();
         }
       }
       return false;
+    };
+
+    Server.prototype.exit = function() {
+      return console.log("No custom exit function");
     };
 
     Server.prototype.keysForPrefix = function(pref) {
@@ -1149,7 +1153,7 @@ require.define("/transport.js",function(require,module,exports,__dirname,__filen
       if (con === this.mainConnection) {
         return this.mainDisconnect(con);
       } else {
-        this.mainSend([['delete', con.id]]);
+        this.mainSend([['disconnect', con.id]]);
         return this.removeConnection(con);
       }
     };
@@ -1350,7 +1354,7 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
       }
       if (!this.changeListeners[key]) {
         this.changeListeners[key] = [];
-        this.grabTree(key, function(msg) {
+        this.grabTree(key, function(msg, batch) {
           if (simulateSetsForTree) {
             _this.sendTreeSets(_this.setsForTree(msg), callback);
           } else {
@@ -1373,8 +1377,8 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
       return this.addCmd(['value', key, cookie, isTree]);
     };
 
-    Peer.prototype.set = function(key, value) {
-      return this.addCmd(['set', key, value]);
+    Peer.prototype.set = function(key, value, storage) {
+      return this.addCmd((storage ? ['set', key, value, storage] : ['set', key, value]));
     };
 
     Peer.prototype.put = function(key, index, value) {

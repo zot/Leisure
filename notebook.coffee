@@ -49,6 +49,10 @@ bootNotebook = (el)->
 
 createPeer = ->
   server = new Xus.Server()
+  server.exit = ->
+    console.log "CLOSING WINDOW"
+    window.open '', '_self', ''
+    window.close()
   peer = Notebook.peer = Xus.createDirectPeer server
   peer.server = server
   if document.location.hash
@@ -68,8 +72,30 @@ createPeer = ->
         s.removeAllRanges()
         r.selectNode node
         s.addRange(r)
+  peer.set 'leisure/evalExpr', null, 'transient'
+  peer.listen 'leisure/evalExpr', false, (key, value)->
+    if key == 'leisure/evalExpr' && value?
+      [expr, result] = value
+      console.log "EVAL: #{expr}, RESULT: #{result}"
+      ReplCore.processLine expr, xusEnv(result, expr), 'Parse.'
   peer.set 'leisure/document', peerGetDocument
   peer.set 'leisure/functions', peerGetFunctions
+
+xusEnv = (resultVar, expr)->
+  result = ''
+  debug: debug
+  finishedEvent: ->
+  owner: null
+  require: req
+  write: (msg)-> result += "#{msg}\n"
+  prompt:(msg, cont)-> result += "Attempt to prompt with #{msg}"
+  processResult: (res, ast)->
+    result += res
+    peer.set resultVar, result
+  presentValue: (x)-> x
+  processError: (ast)->
+    result += if ast.err.leisureContext then "ERROR: #{ast.err}:\n#{leisureContextString(ast.err)}\n#{ast.err.stack}" else "Couldn't parse: #{expr}"
+    peer.set resultVar, result
 
 peerGetDocument = ->
   nodes = document.querySelectorAll '[LeisureCode]'
@@ -975,6 +1001,8 @@ Parse.define 'finishLoading', ->(bubba)->
       i()
     postLoadQueue = []
     cont(_false())
+
+Parse.define 'quit', -> window.close()
 
 Parse.define 'config', ->(expr)->
   Prim.makeMonad (env, cont)->

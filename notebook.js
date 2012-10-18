@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, TAB, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nextId, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange,
+  var ENTER, Leisure, Prim, Repl, ReplCore, TAB, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nextId, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -65,6 +65,11 @@
   createPeer = function createPeer() {
     var k, param, params, server, v, _i, _len, _ref, _ref2;
     server = new Xus.Server();
+    server.exit = function exit() {
+      console.log("CLOSING WINDOW");
+      window.open('', '_self', '');
+      return window.close();
+    };
     peer = Notebook.peer = Xus.createDirectPeer(server);
     peer.server = server;
     if (document.location.hash) {
@@ -92,8 +97,45 @@
         }
       }
     });
+    peer.set('leisure/evalExpr', null, 'transient');
+    peer.listen('leisure/evalExpr', false, function(key, value) {
+      var expr, result;
+      if (key === 'leisure/evalExpr' && (value != null)) {
+        expr = value[0], result = value[1];
+        console.log("EVAL: " + expr + ", RESULT: " + result);
+        return ReplCore.processLine(expr, xusEnv(result, expr), 'Parse.');
+      }
+    });
     peer.set('leisure/document', peerGetDocument);
     return peer.set('leisure/functions', peerGetFunctions);
+  };
+
+  xusEnv = function xusEnv(resultVar, expr) {
+    var result;
+    result = '';
+    return {
+      debug: debug,
+      finishedEvent: function finishedEvent() {},
+      owner: null,
+      require: req,
+      write: function write(msg) {
+        return result += "" + msg + "\n";
+      },
+      prompt: function prompt(msg, cont) {
+        return result += "Attempt to prompt with " + msg;
+      },
+      processResult: function processResult(res, ast) {
+        result += res;
+        return peer.set(resultVar, result);
+      },
+      presentValue: function presentValue(x) {
+        return x;
+      },
+      processError: function processError(ast) {
+        result += ast.err.leisureContext ? "ERROR: " + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" + ast.err.stack : "Couldn't parse: " + expr;
+        return peer.set(resultVar, result);
+      }
+    };
   };
 
   peerGetDocument = function peerGetDocument() {
@@ -1442,6 +1484,10 @@
         return cont(_false());
       });
     };
+  });
+
+  Parse.define('quit', function() {
+    return window.close();
   });
 
   Parse.define('config', function() {
