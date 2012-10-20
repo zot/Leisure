@@ -47,7 +47,8 @@
       style.setAttribute('href', "" + i + ".css");
       document.head.appendChild(style);
     }
-    return loadThen(['parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min', 'jquery.indexeddb', 'storage'], function() {
+    return loadThen(['xus', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min', 'jquery.indexeddb', 'storage', 'marked', 'md'], function() {
+      if (typeof window.leisureFirst === "function") window.leisureFirst();
       window.Leisure.restoreAutosave = restoreAutosave;
       window.Leisure.backupAutosave = backupAutosave;
       window.Leisure.deleteAutosave = deleteAutosave;
@@ -74,18 +75,17 @@
   };
 
   finishBoot = function finishBoot() {
-    var node, nodes, _i, _len, _ref;
-    nodes = [];
+    var node, _i, _len, _ref;
     _ref = document.querySelectorAll("[leisurecode]");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
-      nodes.push(node);
       node.setAttribute('contentEditable', 'true');
       Notebook.bindNotebook(node);
       Notebook.changeTheme(node, 'thin');
       Notebook.evalDoc(node);
     }
     checkBackup();
+    if (window.leisureBoot != null) bootFuncs.push(window.leisureBoot);
     while (bootFuncs.length) {
       bootFuncs.shift()();
     }
