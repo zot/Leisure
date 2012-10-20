@@ -8,23 +8,12 @@
   			position: relative;
   		}
   	</style>
-    <script language="javascript">
-          leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
-          leisureBoot = function() {Notebook.md = md};
-          leisureAutoRunAll = true;
-    </script>
     <link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
-    <script src="showdown.js"></script>
     <script language="javascript">
-      var md = null
-      function markup() {
-          var nodes = document.querySelectorAll('[doc]')
-          for (var i = 0; i < nodes.length; i++) {
-              var el = nodes[i];
-              
-              md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '');
-              el.innerHTML = new Showdown.converter().makeHtml(md);
-          }
+      leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
+      leisureFirst = function() {markup()};
+      leisureAutoRunAll = true;
+      function start() {
           var script = document.createElement('script');
           script.src = "bootLeisure.js";
           document.body.appendChild(script);
@@ -57,13 +46,13 @@ changes to your code in real time?  Our goal is to show programmers there has to
 Here's one example; below is a test case that compares val with 3 and it automatically runs whenever you change the code.  Try changing val to something
 other than 3, and click outside the box.  Then, change it back to 3.  You can click the arrow to verify the value of val for yourself.
 
-<pre noLeisureBar leisureCode>
+```
 val = 3
 
 #@test {"expr":"val\n","result":"3"}
 
 val
-</pre>
+```
 
 In Leisure, just like in Smalltalk, you deploy the development environment.  Be default, users can interact directly with Leisure.  You can disable that behavior, and you can
 also have your code decide to pop up a Leisure code box later.
@@ -76,11 +65,12 @@ also providing a comfortable syntax, with infix notation and indentation to help
 Here are some code definitions.  You can click the diagram button next to them to see how the computer decodes the program into a structure,
 in order to compile it to JavaScript and you can click the arrow button to evaluate the expression.
 
-<pre noLeisureBar leisureCode>z = 1
+```
+z = 1
 add3 a b c = a + b + c
 
 add3 1 2 3
-</pre>
+```
 
 ## Customizable
 
@@ -91,10 +81,10 @@ before the macros get them.  The goal, here, is to give power to programmers to 
 concat[...] is an example -- concat['a: ' 1 ', b: ' 2] expands to (concat ['a: ' 1 ', b: ' 2]) and it lets you avoid those
 extra parentheses (like in Clojure, commas are optional)
 
-<pre noLeisureBar leisureCode>
+```
 concat['a: ' 1 ', b: ' 2]
 concat['a: ', 1 ', b: ', 2]
-</pre>
+```
 
 ## Lazy, functional, and Untyped
 
@@ -103,7 +93,7 @@ It doesn't crash, because Leisure doesn't evaluate the second argument to ignore
 of "call by value," like C, Java, and LISP.  Also, just like in Haskell, *data* is lazy, too!  In Leisure, you can make
 infinite lists, like in Haskell.  Like Haskell, but unlike Clojure, Leisure lists are just a regular data structure.
 
-<pre noLeisureBar leisureCode>
+```
 ignore2nd a b = a
 
 ignore2nd 1 (2 / 0)
@@ -111,12 +101,12 @@ ignore2nd 1 (2 / 0)
 ones = [1 | ones]
 
 take 5 ones
-</pre>
+```
 
 Laziness also means you can factor your code more easily, because you can define terms you use in one place, even if they
 depend on other terms that are invalid in some cases (locally defined terms act like functions).  Try these expressions, below...
 
-<pre noLeisureBar leisureCode>
+```
 f x y = do
   a = x
   b = x / y
@@ -126,7 +116,7 @@ f x y = do
 
 f 2 0
 f 2 2
-</pre>
+```
 
 Leisure is functional; it doesn't allow side effects -- but not because side effects are somehow *evil*; it's because in a lazy language,
 side effects lead to very strange behavior that's very hard to understand and fix.  The idea is to have side effects outside the Leisure environment and
@@ -138,11 +128,12 @@ Leisure is untyped: it does have data types, but its variables and functions are
 
 As you can see, Leisure runs in a web page, and it lets you do web pagey things.  Click the arrow buttons, below:
 
-<pre noLeisureBar leisureCode>rect nil
+```
+rect nil
 polygon nil
 
 svgConcat [(translate (circle nil) 10 10) (rect nil)]
-</pre>
+```
 
 # The Language
 
@@ -152,60 +143,58 @@ Leisure is a modified version of the Untyped Lambda Calculus, with data types, t
 But wait, how can there be data types if Leisure is untyped?  *Variables* and *functions* in Leisure are untyped, like in LISP, but unlike in Haskell.
 Just like in LISP, *data,* however, does have types -- a regular Leisure list has the "cons" type, for instance.
 
-<pre noLeisureBar leisureCode>
+```
 getType [1]
-</pre>
+```
 
 ## Indentation
 
 Indentation in Leisure just adds grouped terms to the end of the term before the indentation:
 
-<pre noLeisureBar leisureCode>
+```
 [
   1
   2
   [
     3
     4]]
-</pre>
-
+```
 
 ## Definitions
 
 To define a term, just use '=', like this:
 
-<pre noLeisureBar leisureCode>
+```
 x = 3
 
 addToX a = a + x
 
 addToX 10
-</pre>
+```
 
 ## Anonymous Functions
 
 You can create anonymous functions, using \ for lambda, like in Haskell:
 
-<pre noLeisureBar leisureCode>
+```
 (\a b . a + b) 1 2
-</pre>
+```
 
 ## Data types
 
 To define a data type, just return a lambda.  Here's a second definition of the 'cons' function, to demonstrate:
 
-<pre noLeisureBar leisureCode>
+```
 cons2 a b = \f . f a b
 
 getType (cons2 1 nil)
-
-</pre>
+```
 
 ## Simple Pattern Matching
 
 Leisure has only simple pattern matching: type assertions.
 
-<pre noLeisureBar leisureCode>
+```
 car name = \f . f name
 bike name = \f . f name
 
@@ -214,13 +203,13 @@ identifyVehicle thing::bike = concat['A Bike: ' (thing id)]
 identifyVehicle thing::car = concat['A Car: ' (thing id)]
 
 identifyVehicle (bike 'fred')
-</pre>
+```
 
 ## Do
 
 Like Haskell, Leisure supports a "do" construct.  Do can bind monads and create "let" terms.
 
-<pre noLeisureBar leisureCode>
+```
 do
   x <- prompt 'What is your name?'
   x = concat['Hello, ' x '.']
@@ -228,12 +217,12 @@ do
   x = concat['The previous message was: ' x]
   print x
   print concat[x ' -- ' x]
-</pre>
+```
 
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
 -->
     </div>
-    <script>markup()</script>
+    <script>start()</script>
   </body>
 </html>
