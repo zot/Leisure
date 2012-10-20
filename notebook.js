@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var ENTER, Leisure, Prim, Repl, ReplCore, TAB, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nextId, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, ENTER, LEFT_ARROW, Leisure, Prim, Repl, ReplCore, TAB, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkHideSource, checkMutateFromModification, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, nextId, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentValue, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -21,9 +21,15 @@
 
   debug = false;
 
+  BS = 8;
+
   TAB = 9;
 
   ENTER = 13;
+
+  DEL = 46;
+
+  LEFT_ARROW = 37;
 
   arrows = [37, 38, 39, 40];
 
@@ -64,24 +70,14 @@
 
   createPeer = function createPeer() {
     var k, param, params, server, v, _i, _len, _ref, _ref2;
-    server = new Xus.Server();
+    root.xusServer = server = new Xus.Server();
     server.exit = function exit() {
       console.log("CLOSING WINDOW");
       window.open('', '_self', '');
       return window.close();
     };
-    peer = Notebook.peer = Xus.createDirectPeer(server);
+    peer = root.peer = Xus.createDirectPeer(server);
     peer.server = server;
-    if (document.location.hash) {
-      params = {};
-      _ref = document.location.hash.substring(1).split('&');
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        param = _ref[_i];
-        _ref2 = param.split('='), k = _ref2[0], v = _ref2[1];
-        params[k.toLowerCase()] = decodeURIComponent(v);
-      }
-      if (params.xusproxy != null) Xus.xusToProxy(server, params.xusproxy);
-    }
     peer.listen('leisure/selection/contents', true, function(key, value) {
       var node, r, s;
       if (key === 'leisure/selection/contents') {
@@ -107,7 +103,17 @@
       }
     });
     peer.set('leisure/document', peerGetDocument);
-    return peer.set('leisure/functions', peerGetFunctions);
+    peer.set('leisure/functions', peerGetFunctions);
+    if (document.location.hash) {
+      params = {};
+      _ref = document.location.hash.substring(1).split('&');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        param = _ref[_i];
+        _ref2 = param.split('='), k = _ref2[0], v = _ref2[1];
+        params[k.toLowerCase()] = decodeURIComponent(v);
+      }
+      if (params.xusproxy != null) return Xus.xusToProxy(server, params.xusproxy);
+    }
   };
 
   xusEnv = function xusEnv(resultVar, expr) {
@@ -202,8 +208,17 @@
         return delay(highlightPosition);
       }), true);
       el.addEventListener('keydown', function(e) {
-        var c;
+        var c, r, s;
         c = e.charCode || e.keyCode || e.which;
+        if (c === DEL || c === BS) {
+          s = window.getSelection();
+          r = s.getRangeAt(0);
+          if (c === BS && skipLeftOverOutputBox(r)) {
+            return e.preventDefault();
+          } else if (c === DEL && ignoreDeleteOutputBox(r)) {
+            return e.preventDefault();
+          }
+        }
         if (printable(c)) clearAst(getBox(window.getSelection().focusNode));
         if ((__indexOf.call(arrows, c) >= 0) || printable(c)) {
           delay(highlightPosition);
@@ -255,6 +270,34 @@
       } else {
         return el.autorunState = false;
       }
+    }
+  };
+
+  skipLeftOverOutputBox = function skipLeftOverOutputBox(r) {
+    var s;
+    if (r.startContainer.nodeType === 1 && r.startOffset > 0) {
+      s = window.getSelection();
+      r = s.getRangeAt(0);
+      r.setStart(r.startContainer, r.startOffset - 1);
+      r.collapse(true);
+      s.removeAllRanges();
+      s.addRange(r);
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  ignoreDeleteOutputBox = function ignoreDeleteOutputBox(r) {
+    var n;
+    if (r.startContainer.nodeType === 3 && r.startOffset === r.startContainer.length) {
+      n = r.startContainer;
+      while (n && n.nextSibling === null) {
+        n = n.parentNode;
+      }
+      return n != null ? n.nextSibling : void 0;
+    } else {
+      return false;
     }
   };
 
@@ -1722,5 +1765,9 @@
   root.bootNotebook = bootNotebook;
 
   root.createNode = createNode;
+
+  root.ENTER = ENTER;
+
+  root.textNode = textNode;
 
 }).call(this);

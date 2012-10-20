@@ -15,8 +15,11 @@ else root = exports ? this
 #debug = true
 debug = false
 
+BS = 8
 TAB = 9
 ENTER = 13
+DEL = 46
+LEFT_ARROW = 37
 arrows = [37..40]
 updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
 peer = null
@@ -48,19 +51,13 @@ bootNotebook = (el)->
   createPeer()
 
 createPeer = ->
-  server = new Xus.Server()
+  root.xusServer = server = new Xus.Server()
   server.exit = ->
     console.log "CLOSING WINDOW"
     window.open '', '_self', ''
     window.close()
-  peer = Notebook.peer = Xus.createDirectPeer server
+  peer = root.peer = Xus.createDirectPeer server
   peer.server = server
-  if document.location.hash
-    params = {}
-    for param in document.location.hash.substring(1).split '&'
-      [k, v] = param.split '='
-      params[k.toLowerCase()] = decodeURIComponent v
-    if params.xusproxy? then Xus.xusToProxy(server, params.xusproxy)
   peer.listen 'leisure/selection/contents', true, (key, value)->
     if key == 'leisure/selection/contents'
       s = window.getSelection()
@@ -80,6 +77,12 @@ createPeer = ->
       ReplCore.processLine expr, xusEnv(result, expr), 'Parse.'
   peer.set 'leisure/document', peerGetDocument
   peer.set 'leisure/functions', peerGetFunctions
+  if document.location.hash
+    params = {}
+    for param in document.location.hash.substring(1).split '&'
+      [k, v] = param.split '='
+      params[k.toLowerCase()] = decodeURIComponent v
+    if params.xusproxy? then Xus.xusToProxy(server, params.xusproxy)
 
 xusEnv = (resultVar, expr)->
   result = ''
@@ -127,6 +130,11 @@ bindNotebook = (el)->
     el.addEventListener 'mouseup', ((e)-> delay highlightPosition), true
     el.addEventListener 'keydown', (e)->
       c = (e.charCode || e.keyCode || e.which)
+      if c == DEL || c == BS
+        s = window.getSelection()
+        r = s.getRangeAt(0)
+        if c == BS && skipLeftOverOutputBox r then return e.preventDefault()
+        else if c == DEL && ignoreDeleteOutputBox r then return e.preventDefault()
       if printable c then clearAst getBox window.getSelection().focusNode
       if (c in arrows) or printable c then delay(highlightPosition)
       if e.ctrlKey and c == ENTER then handleKey("C-ENTER")
@@ -161,6 +169,25 @@ bindNotebook = (el)->
       autoRun el, true
       window.setTimeout (->runTests el), 1
     else el.autorunState = false
+
+skipLeftOverOutputBox = (r)->
+  if r.startContainer.nodeType == 1 && r.startOffset > 0
+    s = window.getSelection()
+    r = s.getRangeAt 0
+    r.setStart r.startContainer, r.startOffset - 1
+    r.collapse true
+    s.removeAllRanges()
+    s.addRange r
+    true
+  else false
+
+ignoreDeleteOutputBox = (r)->
+  if r.startContainer.nodeType == 3 && r.startOffset == r.startContainer.length
+    n = r.startContainer
+    n = n.parentNode while n && n.nextSibling == null
+    n?.nextSibling
+  else
+    false
 
 peerNotifySelection = (el, str)->
   peer.set 'leisure/selection/id', (if el then el.id else null)
@@ -1133,6 +1160,8 @@ root.toggleEdit = toggleEdit
 root.showSource = showSource
 root.bootNotebook = bootNotebook
 root.createNode = createNode
+root.ENTER = ENTER
+root.textNode = textNode
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])
