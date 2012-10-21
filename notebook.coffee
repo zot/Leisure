@@ -101,7 +101,7 @@ xusEnv = (resultVar, expr)->
     peer.set resultVar, result
 
 peerGetDocument = ->
-  nodes = document.querySelectorAll '[LeisureCode]'
+  nodes = document.querySelectorAll "[leisurenode='code']"
   if nodes.length > 1 || Notebook.md then getMDDocument()
   else getSimpleDocument()
 
@@ -111,7 +111,7 @@ getMDDocument = (nodes)->
   #Notebook.md.replace /<pre.*\/pre>/g, (match)-> '\n=>' + match.replace('\n', '\n->')
   md = ''
   for node in document.querySelector('[doc]').childNodes
-    md += if node.hasAttribute 'leisurecode' then "```\n#{getElementCode node}\n```\n" else node.md ? ''
+    md += if isLeisureCode node then "```\n#{getElementCode node}\n```\n" else node.md ? ''
   md
 
 makeId = (el)-> if !el.id then el.id = "Leisure-#{nextId++}"
@@ -216,7 +216,7 @@ ignoreDeleteOutputBox = (el, r)->
 
 isOutput = (el)-> el?.nodeType == 1 && el.hasAttribute 'LeisureOutput'
 
-isLeisureCode = (el)-> el?.nodeType == 1 && el.hasAttribute 'LeisureCode'
+isLeisureCode = (el)-> el?.nodeType == 1 && el.getAttribute('leisureNode') == 'code'
 
 peerNotifySelection = (el, str)->
   peer.set 'leisure/selection/id', (if el then el.id else null)
@@ -264,13 +264,17 @@ presentLeisureCode = (node, doEval)->
   if doEval then Notebook.evalDoc node else Notebook.initNotebook node
 
 mergeLeisureCode = (el1, el2)->
-  if isLeisureCode(el1) && isLeisureCode el2
-    newCode = textNode el1.md = "#{getElementCode(el1)}\n#{getElementCode el2}"
-    el1.innerHTML = ''
-    el1.appendChild newCode
+  if el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') == el2.getAttribute('leisureNode')
+    newCode = textNode el1.md = if el1.getAttribute('leisureNode') == 'code' then "#{getElementCode(el1)}\n#{getElementCode el2}" else "#{el1.md}\n#{el2.md}"
+    #el1.innerHTML = ''
+    #el1.appendChild newCode
+    #el2.parentNode.removeChild el2
+    #presentLeisureCode el1, false
+    #if el1.autorunState then Notebook.runTests el1
+    r = document.createRange()
+    r.selectNodeContents el2
+    el1.appendChild r.extractContents()
     el2.parentNode.removeChild el2
-    presentLeisureCode el1, false
-    if el1.autorunState then Notebook.runTests el1
 
 highlightPosition = ->
   parent = null
@@ -1025,7 +1029,7 @@ findCurrentCodeHolder = -> focusBox window.getSelection()?.focusNode
 
 focusBox = (box)->
   newCode = null
-  while box and (box.nodeType != 1 or !(box.getAttribute 'leisureCode')?)
+  while box and (box.nodeType != 1 or !isLeisureCode box)
     if box.nodeType == 1 and (box.getAttribute 'LeisureBox')? then newCode = box
     box = box.parentNode
   if box != docFocus
@@ -1039,7 +1043,7 @@ focusBox = (box)->
     #if newCode then console.log "Code box gained focus: #{newCode}"
 
 owner = (box)->
-  while box and (box.nodeType != 1 or !(box.getAttribute 'leisureCode')?)
+  while box and (box.nodeType != 1 or !isLeisureCode box)
     box = box.parentNode
   box
 

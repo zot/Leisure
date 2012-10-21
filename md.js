@@ -39,7 +39,7 @@
         code.innerHTML = node.innerHTML;
       }
       code.setAttribute('noLeisureBar', '');
-      code.setAttribute('leisureCode', '');
+      code.setAttribute('leisureNode', 'code');
       code.md = lex[codePos].text;
       if (code.parentNode.firstChild !== code) {
         if (prev === null) {
@@ -78,7 +78,7 @@
   bindMarkupDiv = function bindMarkupDiv(div) {
     var editing;
     div.bound = true;
-    div.setAttribute('markdown', '');
+    div.setAttribute('leisureNode', 'markdown');
     div.setAttribute('contenteditable', 'false');
     editing = false;
     div.addEventListener('dblclick', function(e) {
@@ -114,7 +114,7 @@
         editing = false;
         div.setAttribute('contenteditable', 'false');
         if (markupElement(div, div.textContent)) {
-          _ref = div.querySelectorAll("[leisurecode]");
+          _ref = div.querySelectorAll("[leisurenode='code']");
           for (_i = 0, _len = _ref.length; _i < _len; _i++) {
             node = _ref[_i];
             presentLeisureCode(node, true);

@@ -16,15 +16,15 @@ bootLeisure = ->
   body = document.body
   # Gotta be able to stuff extra hidden things in the body
   # so if it's a code container, copy it into a child
-  if (body.getAttribute 'leisurecode')?
+  if 'code' == body.getAttribute 'leisureNode'
     pre = document.createElement 'pre'
-    pre.setAttribute 'leisurecode', ''
+    pre.setAttribute 'leisureNode', 'code'
     pre.setAttribute 'contentEditable', 'true'
     pre.innerHTML = body.innerHTML
     while body.firstChild
       body.removeChild body.firstChild
     body.appendChild pre
-    body.removeAttribute 'leisurecode'
+    body.removeAttribute 'leisureNode'
   window.removeEventListener 'load', bootLeisure
   #for i in ['leisure', 'gaudy', 'thin', 'cthulhu', 'jqModal', 'dialog' ]
   for i in ['leisure', 'gaudy', 'thin', 'cthulhu']
@@ -53,7 +53,7 @@ callPrepCode = (preps, index, finishBoot)->
     finishBoot()
 
 finishBoot = ->
-  for node in document.querySelectorAll "[leisurecode]"
+  for node in document.querySelectorAll "[leisurenode='code']"
     node.setAttribute 'contentEditable', 'true'
     Notebook.bindNotebook node
     Notebook.changeTheme node, 'thin'

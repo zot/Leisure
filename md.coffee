@@ -40,7 +40,7 @@ markupElement = (el, md)->
       code = node.parentNode
       code.innerHTML = node.innerHTML
     code.setAttribute 'noLeisureBar', ''
-    code.setAttribute 'leisureCode', ''
+    code.setAttribute 'leisureNode', 'code'
     code.md = lex[codePos].text
     if code.parentNode.firstChild != code
       if prev == null then range.setStart el, 0 else range.setStartAfter prev
@@ -67,7 +67,7 @@ makeMarkupDiv = (range, md)->
 
 bindMarkupDiv = (div)->
   div.bound = true
-  div.setAttribute 'markdown', ''
+  div.setAttribute 'leisureNode', 'markdown'
   div.setAttribute 'contenteditable', 'false'
   editing = false
   div.addEventListener 'dblclick', (e)->
@@ -96,7 +96,7 @@ bindMarkupDiv = (div)->
       editing = false
       div.setAttribute 'contenteditable', 'false'
       if markupElement div, div.textContent
-        for node in div.querySelectorAll "[leisurecode]"
+        for node in div.querySelectorAll "[leisurenode='code']"
           presentLeisureCode node, true
         r = document.createRange()
         r.selectNodeContents div
