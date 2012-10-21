@@ -146,7 +146,7 @@
 
   peerGetDocument = function peerGetDocument() {
     var nodes;
-    nodes = document.querySelectorAll('[LeisureCode]');
+    nodes = document.querySelectorAll("[leisurenode='code']");
     if (nodes.length > 1 || Notebook.md) {
       return getMDDocument();
     } else {
@@ -164,7 +164,7 @@
     _ref = document.querySelector('[doc]').childNodes;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
-      md += node.hasAttribute('leisurecode') ? "```\n" + (getElementCode(node)) + "\n```\n" : (_ref2 = node.md) != null ? _ref2 : '';
+      md += isLeisureCode(node) ? "```\n" + (getElementCode(node)) + "\n```\n" : (_ref2 = node.md) != null ? _ref2 : '';
     }
     return md;
   };
@@ -334,7 +334,7 @@
   };
 
   isLeisureCode = function isLeisureCode(el) {
-    return (el != null ? el.nodeType : void 0) === 1 && el.hasAttribute('LeisureCode');
+    return (el != null ? el.nodeType : void 0) === 1 && el.getAttribute('leisureNode') === 'code';
   };
 
   peerNotifySelection = function peerNotifySelection(el, str) {
@@ -419,14 +419,13 @@
   };
 
   mergeLeisureCode = function mergeLeisureCode(el1, el2) {
-    var newCode;
-    if (isLeisureCode(el1) && isLeisureCode(el2)) {
-      newCode = textNode(el1.md = "" + (getElementCode(el1)) + "\n" + (getElementCode(el2)));
-      el1.innerHTML = '';
-      el1.appendChild(newCode);
-      el2.parentNode.removeChild(el2);
-      presentLeisureCode(el1, false);
-      if (el1.autorunState) return Notebook.runTests(el1);
+    var newCode, r;
+    if (el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') === el2.getAttribute('leisureNode')) {
+      newCode = textNode(el1.md = el1.getAttribute('leisureNode') === 'code' ? "" + (getElementCode(el1)) + "\n" + (getElementCode(el2)) : "" + el1.md + "\n" + el2.md);
+      r = document.createRange();
+      r.selectNodeContents(el2);
+      el1.appendChild(r.extractContents());
+      return el2.parentNode.removeChild(el2);
     }
   };
 
@@ -1513,7 +1512,7 @@
   focusBox = function focusBox(box) {
     var newCode, old, _ref;
     newCode = null;
-    while (box && (box.nodeType !== 1 || !((box.getAttribute('leisureCode')) != null))) {
+    while (box && (box.nodeType !== 1 || !isLeisureCode(box))) {
       if (box.nodeType === 1 && ((box.getAttribute('LeisureBox')) != null)) {
         newCode = box;
       }
@@ -1532,7 +1531,7 @@
   };
 
   owner = function owner(box) {
-    while (box && (box.nodeType !== 1 || !((box.getAttribute('leisureCode')) != null))) {
+    while (box && (box.nodeType !== 1 || !isLeisureCode(box))) {
       box = box.parentNode;
     }
     return box;

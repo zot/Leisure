@@ -26,16 +26,16 @@
   bootLeisure = function bootLeisure() {
     var body, i, pre, style, _i, _len, _ref;
     body = document.body;
-    if ((body.getAttribute('leisurecode')) != null) {
+    if ('code' === body.getAttribute('leisureNode')) {
       pre = document.createElement('pre');
-      pre.setAttribute('leisurecode', '');
+      pre.setAttribute('leisureNode', 'code');
       pre.setAttribute('contentEditable', 'true');
       pre.innerHTML = body.innerHTML;
       while (body.firstChild) {
         body.removeChild(body.firstChild);
       }
       body.appendChild(pre);
-      body.removeAttribute('leisurecode');
+      body.removeAttribute('leisureNode');
     }
     window.removeEventListener('load', bootLeisure);
     _ref = ['leisure', 'gaudy', 'thin', 'cthulhu'];
@@ -76,7 +76,7 @@
 
   finishBoot = function finishBoot() {
     var node, _i, _len, _ref;
-    _ref = document.querySelectorAll("[leisurecode]");
+    _ref = document.querySelectorAll("[leisurenode='code']");
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
       node.setAttribute('contentEditable', 'true');
