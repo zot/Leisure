@@ -1,7 +1,7 @@
 (function() {
-  var ENTER, bindMarkupDiv, makeMarkupDiv, markupElement, textNode;
+  var ENTER, bindMarkupDiv, cleanEmptyNodes, getElementCode, isLeisureCode, makeMarkupDiv, markupElement, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, textNode;
 
-  ENTER = Notebook.ENTER, textNode = Notebook.textNode;
+  ENTER = Notebook.ENTER, textNode = Notebook.textNode, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode;
 
   window.markup = function markup() {
     var el, md, _i, _len, _ref, _results;
@@ -108,7 +108,7 @@
       }
     });
     return div.addEventListener('blur', function(e) {
-      var frag, node, r, _i, _len, _ref;
+      var first, frag, last, node, r, _i, _len, _ref;
       if (editing) {
         div.style.whiteSpace = '';
         editing = false;
@@ -117,15 +117,18 @@
           _ref = div.querySelectorAll("[leisurecode]");
           for (_i = 0, _len = _ref.length; _i < _len; _i++) {
             node = _ref[_i];
-            node.setAttribute('contentEditable', 'true');
-            Notebook.bindNotebook(node);
-            Notebook.changeTheme(node, 'thin');
-            Notebook.evalDoc(node);
+            presentLeisureCode(node, true);
           }
           r = document.createRange();
           r.selectNodeContents(div);
           frag = r.extractContents();
-          return div.parentNode.replaceChild(frag, div);
+          first = frag.childNodes[0];
+          last = frag.childNodes[frag.childNodes.length - 1];
+          div.parentNode.replaceChild(frag, div);
+          mergeLeisureCode(previousSibling(first), first);
+          return mergeLeisureCode(last, nextSibling(last));
+        } else if (div.textContent.trim() === '') {
+          return cleanEmptyNodes(div);
         }
       }
     });
