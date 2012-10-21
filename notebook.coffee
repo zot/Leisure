@@ -108,7 +108,11 @@ peerGetDocument = ->
 peerGetFunctions = -> (_.uniq window.leisureFuncNames.toArray().sort(), true).sort()
 
 getMDDocument = (nodes)->
-  Notebook.md.replace /<pre.*\/pre>/g, (match)-> '\n=>' + match.replace('\n', '\n->')
+  #Notebook.md.replace /<pre.*\/pre>/g, (match)-> '\n=>' + match.replace('\n', '\n->')
+  md = ''
+  for node in document.querySelector('[doc]').childNodes
+    md += if node.hasAttribute 'leisurecode' then "```\n#{getElementCode node}\n```\n" else node.md ? ''
+  md
 
 makeId = (el)-> if !el.id then el.id = "Leisure-#{nextId++}"
 
@@ -133,8 +137,12 @@ bindNotebook = (el)->
       if c == DEL || c == BS
         s = window.getSelection()
         r = s.getRangeAt(0)
-        if c == BS && skipLeftOverOutputBox r then return e.preventDefault()
-        else if c == DEL && ignoreDeleteOutputBox r then return e.preventDefault()
+        if c == BS
+          checkDeleteExpr getBox r.startContainer
+          if skipLeftOverOutputBox el, r then return e.preventDefault()
+        else if c == DEL
+          checkDeleteExpr getBox r.startContainer
+          if ignoreDeleteOutputBox el, r then return e.preventDefault()
       if printable c then clearAst getBox window.getSelection().focusNode
       if (c in arrows) or printable c then delay(highlightPosition)
       if e.ctrlKey and c == ENTER then handleKey("C-ENTER")
@@ -170,24 +178,45 @@ bindNotebook = (el)->
       window.setTimeout (->runTests el), 1
     else el.autorunState = false
 
-skipLeftOverOutputBox = (r)->
-  if r.startContainer.nodeType == 1 && r.startOffset > 0
+checkDeleteExpr = (node)->
+  if isOutput node && node.output
+    out = node.output
+    window.setTimeout (->
+      if !node.textContent.trim() then node.parentNode.removeChild node
+      if !node.parentNode? then out.parentNode.removeChild out
+    ), 1
+
+skipLeftOverOutputBox = (el, r)->
+  el.normalize()
+  box = previousBoxRangeInternal(r) || previousBoxRangeStart r
+  if isOutput box
     s = window.getSelection()
-    r = s.getRangeAt 0
-    r.setStart r.startContainer, r.startOffset - 1
+    r.selectNode box
     r.collapse true
     s.removeAllRanges()
     s.addRange r
     true
   else false
 
-ignoreDeleteOutputBox = (r)->
+previousBoxRangeInternal = (r)->
+  r.startContainer.nodeType == 1 && r.startOffset > 0 && r.startContainer.childNodes[r.startOffset - 1]
+
+previousBoxRangeStart = (r)->
+  r.startContainer.nodeType == 3 && r.startOffset == 0 && previousSibling r.startContainer
+
+
+ignoreDeleteOutputBox = (el, r)->
+  el.normalize()
   if r.startContainer.nodeType == 3 && r.startOffset == r.startContainer.length
     n = r.startContainer
     n = n.parentNode while n && n.nextSibling == null
-    n?.nextSibling
+    isOutput n?.nextSibling
   else
     false
+
+isOutput = (el)-> el?.nodeType == 1 && el.hasAttribute 'LeisureOutput'
+
+isLeisureCode = (el)-> el?.nodeType == 1 && el.hasAttribute 'LeisureCode'
 
 peerNotifySelection = (el, str)->
   peer.set 'leisure/selection/id', (if el then el.id else null)
@@ -221,14 +250,37 @@ clearAst = (box)->
 #[node, positions]
 oldBrackets = [null, Parse.Nil]
 
+cleanEmptyNodes = (el)->
+  prev = el.previousSibling
+  next = el.nextSibling
+  if el.nodeType == 1 && el.textContent.trim() == '' && el.parentNode?.hasAttribute 'doc'
+    el.parentNode.removeChild el
+  if next == nextSibling prev then mergeLeisureCode prev, next
+
+presentLeisureCode = (node, doEval)->
+  node.setAttribute 'contentEditable', 'true'
+  Notebook.bindNotebook node
+  Notebook.changeTheme node, 'thin'
+  if doEval then Notebook.evalDoc node else Notebook.initNotebook node
+
+mergeLeisureCode = (el1, el2)->
+  if isLeisureCode(el1) && isLeisureCode el2
+    newCode = textNode el1.md = "#{getElementCode(el1)}\n#{getElementCode el2}"
+    el1.innerHTML = ''
+    el1.appendChild newCode
+    el2.parentNode.removeChild el2
+    presentLeisureCode el1, false
+    if el1.autorunState then Notebook.runTests el1
+
 highlightPosition = ->
   parent = null
   s = window.getSelection()
   if s.rangeCount
+    if cleanEmptyNodes s.getRangeAt(0).startContainer then return
     focusBox s.focusNode
     parent = getBox s.focusNode
     if s.getRangeAt(0)?.collapsed
-      if !parent or parent.getAttribute('LeisureOutput')? then return
+      if !parent or isOutput parent then return
       if parent.parentNode
         ast = getAst parent
         if ast?
@@ -432,15 +484,18 @@ loadProgram = (el, files)->
 
 configureSaveLink = (el)->
   window.URL = window.URL || window.webkitURL
-  builder = new WebKitBlobBuilder();
+  builder = new WebKitBlobBuilder()
+  builder.append getElementCode el
+  blob = builder.getBlob('text/plain')
+  el.leisureDownloadLink.href = window.URL.createObjectURL(blob)
+  el.leisureViewLink.href = window.URL.createObjectURL(blob)
+
+getElementCode = (el)->
   r = document.createRange()
   r.selectNode(el)
   c = r.cloneContents().firstChild
   removeOldDefs c
-  builder.append(c.textContent);
-  blob = builder.getBlob('text/plain');
-  el.leisureDownloadLink.href = window.URL.createObjectURL(blob)
-  el.leisureViewLink.href = window.URL.createObjectURL(blob)
+  c.textContent
 
 runTests = (el)->
   passed = 0
@@ -1135,6 +1190,16 @@ transformStrokeWidth = (el, w)->
     y = tp2.y - tp1.y
     Math.sqrt(x * x + y * y)
 
+previousSibling = (node)->
+  while node?.parentNode && !node.previousSibling
+    node = node.parentNode
+  node?.previousSibling
+
+nextSibling = (node)->
+  while node?.parentNode && !node.nextSibling
+    node = node.parentNode
+  node?.nextSibling
+
 Prim.defaultEnv.require = req
 
 root.svgMeasureText = svgMeasureText
@@ -1162,6 +1227,14 @@ root.bootNotebook = bootNotebook
 root.createNode = createNode
 root.ENTER = ENTER
 root.textNode = textNode
+root.cleanEmptyNodes = cleanEmptyNodes
+root.isLeisureCode = isLeisureCode
+root.getElementCode = getElementCode
+root.runTests = runTests
+root.previousSibling = previousSibling
+root.nextSibling = nextSibling
+root.presentLeisureCode = presentLeisureCode
+root.mergeLeisureCode = mergeLeisureCode
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

@@ -8,7 +8,15 @@
 #   Xus = window.Xus
 # else root = exports ? this
 
-{ENTER,textNode} = Notebook
+{ENTER,
+  textNode,
+  cleanEmptyNodes,
+  isLeisureCode,
+  getElementCode,
+  previousSibling,
+  nextSibling,
+  presentLeisureCode,
+  mergeLeisureCode} = Notebook
 
 window.markup = ->
   for el in document.querySelectorAll('[doc]')
@@ -89,11 +97,13 @@ bindMarkupDiv = (div)->
       div.setAttribute 'contenteditable', 'false'
       if markupElement div, div.textContent
         for node in div.querySelectorAll "[leisurecode]"
-          node.setAttribute 'contentEditable', 'true'
-          Notebook.bindNotebook node
-          Notebook.changeTheme node, 'thin'
-          Notebook.evalDoc node
+          presentLeisureCode node, true
         r = document.createRange()
         r.selectNodeContents div
         frag = r.extractContents()
+        first = frag.childNodes[0]
+        last = frag.childNodes[frag.childNodes.length - 1]
         div.parentNode.replaceChild frag, div
+        mergeLeisureCode previousSibling(first), first
+        mergeLeisureCode last, nextSibling last
+      else if div.textContent.trim() == '' then cleanEmptyNodes div
