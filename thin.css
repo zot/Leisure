@@ -62,19 +62,28 @@
 }
 
 .thin .codeMainTest * {
+  display: block;
+  margin-left: 40px;
+  font-weight: bold;
+}
+
+/*
+.thin .codeMainTest.passed * {
   display: none;
+}
+*/
+.thin .codeMainTest {
+  background-repeat: no-repeat;
+  background-position: 0%, 50%;
 }
 .thin .codeMainTest.notrun {
   background-image: url(testCaseWhite.png);
-  background-repeat: no-repeat;
 }
 .thin .codeMainTest.passed {
   background-image: url(testCaseGreen.png);
-  background-repeat: no-repeat;
 }
-.thin .codeMainTest.failed {
+.thin .codeMainTest {
   background-image: url(testCaseRed.png);
-  background-repeat: no-repeat;
 }
 
 .thin .codeName {

@@ -32,7 +32,7 @@ Leisure reveals arcane secrets so that you can write modern programs using the e
 Programming ought to be fun, easy, and interesting, and Leisure tries to make it that way.  This is a Leisure notebook
 that explains a little about the language and environment.
 
-## Notebook Style Interactive Development and Deployment
+## Interactive Development and Zero-Install Deployment With Notebooks
 
 For decades, programming has been done primarily in glorified text editors.  Some great strides have been made in various IDEs, but typically the
 programmer is still burdened with a neverending "write, compile, debug, test, repeat" development cycle.  Why do you keep settling for this when
@@ -43,7 +43,7 @@ envelope and provide a fully interactive, document-based development environment
 your code is executed, errors show when you make them, tests execute as you write your code, and documentation is rich and interactive, as well.
 Functional programming is quite foreign to newcomers, but what if you could
 instantly view the parse tree of the code you wrote? Or specify test arguments to your function and see the results live as you make
-changes to your code in real time?  Our goal is to show programmers there has to be a better way, and we've settled for the status quo for far too long.
+changes to your code in real time?  Our goal is to show programmers a better way; we've settled for the status quo for far too long.
 
 Here's one example; below is a test case that compares val with 3 and it automatically runs whenever you change the code.  Try changing val to something
 other than 3, and click outside the box.  Then, change it back to 3.  You can click the arrow to verify the value of val for yourself.
@@ -51,7 +51,8 @@ other than 3, and click outside the box.  Then, change it back to 3.  You can cl
 ```
 val = 3
 
-#@test {"expr":"val\n","result":"3"}
+#@test "val"
+#@expected "3"
 
 val
 ```
@@ -62,7 +63,7 @@ also have your code decide to pop up a Leisure code box later.
 ## Comfortable
 
 Like LISP and Haskell, Leisure traces its roots to Lambda Calculus.  It tries to remain true to Lambda Calculus, while
-also providing a comfortable syntax, with infix notation and indentation to help reduce the parentheses you need.
+also providing a comfortable syntax, with infix notation and indentation to help reduce the need for parentheses.
 
 Here are some code definitions.  You can click the diagram button next to them to see how the computer decodes the program into a structure,
 in order to compile it to JavaScript and you can click the arrow button to evaluate the expression.
@@ -80,12 +81,12 @@ Leisure provides some powerful customization techniques, called "metaprogramming
 structures and you can change how it works by defining macros and even registering "parsing filters" that rewrite the structures
 before the macros get them.  The goal, here, is to give power to programmers to help them get things done.
 
-concat[...] is an example -- concat['a: ' 1 ', b: ' 2] expands to (concat ['a: ' 1 ', b: ' 2]) and it lets you avoid those
-extra parentheses (like in Clojure, commas are optional)
+concat[...] is an example -- concat['a: ' 1 ', b: ' 2] expands to (concat (cons 'a: ' (cons 1 (cons ', b: ' (cons 2 nil))))), so you can avoid those
+extra parentheses (like in Clojure, commas are optional).  Click on the diagram buttons to see it in action.
 
 ```
-concat['a: ' 1 ', b: ' 2]
-concat['a: ', 1 ', b: ', 2]
+conc1 = concat['a: ' 1 ', b: ' 2]
+conc2 = concat['a: ', 1 ', b: ', 2]
 ```
 
 ## Lazy, functional, and Untyped

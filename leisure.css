@@ -148,14 +148,14 @@ body {
 }
 
 .editToggle {
-  background: url(noedit.png) center no-repeat;
+  background: url(edit.png) center no-repeat;
   width: 24px;
   height: 26px;
   display: block;
 }
 
 .hidingSource .editToggle {
-  background: url(edit.png) center no-repeat;
+  background: url(noedit.png) center no-repeat;
   width: 24px;
   height: 26px;
   display: block;

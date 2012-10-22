@@ -742,8 +742,8 @@ makeTestCase = (exBox)->
   output = getBox exBox
   source = output.source
   test =
-    expr: source.textContent
-    result: Repl.escapeHtml(Parse.print(output.result))
+    expr: source.textContent.trim()
+    expected: Repl.escapeHtml(Parse.print(output.result))
   box = makeTestBox test, owner(exBox)
   source.parentNode.insertBefore box, source
   remove source
@@ -754,11 +754,12 @@ makeTestCase = (exBox)->
   if owner(box).autorunState then clickTest(box)
 
 makeTestBox = (test, owner, src)->
-  src = src ? "#@test #{JSON.stringify test}"
+  src = src ? "#@test #{JSON.stringify test.expr}\n#@expected #{JSON.stringify test.expected}"
   s = codeSpan src, 'codeTest'
   s.appendChild textNode('\n')
   s.setAttribute('generatedNL', '')
   bx = codeBox 'codeMainTest'
+  bx.testSrc = s
   bx.setAttribute 'class', 'codeMainTest notrun'
   bx.setAttribute 'contenteditable', 'false'
   bx.appendChild s
@@ -788,7 +789,7 @@ runTest = (bx)->
     write: ->
     debug: debug
     prompt: (msg, cont)-> cont(null)
-    processResult: (result, ast)-> passed = showResult bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.result)
+    processResult: (result, ast)-> passed = showResult bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.expected)
     processError: passed = false
   ))
   passed
@@ -799,9 +800,11 @@ showResult = (bx, actual, expected)->
   if actual == expected
     cl.remove 'failed'
     cl.add 'passed'
+    bx.testSrc.innerHTML = "#@test #{JSON.stringify bx.test.expr}\n#@expected #{JSON.stringify bx.test.expected}"
   else
-    cl.remove 'passsed'
+    cl.remove 'passed'
     cl.add 'failed'
+    bx.testSrc.innerHTML = "#@test #{JSON.stringify bx.test.expr}\n#@expected #{JSON.stringify bx.test.expected}\n#@result #{JSON.stringify actual}"
     console.log "expected <#{expected}> but got <#{actual}>"
   actual == expected
 
@@ -888,7 +891,7 @@ findDefs = (el)->
     else break
   ranges
 
-testPat = /(#@test([^\n]*))\n/
+testPat = /(#@test([^\n]*)\n#@expected([^\n]*))\n/m
 
 getRanges = (el, txt, rest, def, restOff)->
     [matched, leading, nameRaw, defType] = m = def
@@ -910,7 +913,7 @@ getRanges = (el, txt, rest, def, restOff)->
       leadOff = tOff = restOff
       while m2 = t.match testPat
         r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[1].length)
-        r.leisureTest = JSON.parse(m2[2])
+        r.leisureTest = expr: JSON.parse(m2[2]), expected: JSON.parse(m2[3])
         tests.push r
         tOff += m2.index + m2[1].length
         t = leading.substring tOff - leadOff
