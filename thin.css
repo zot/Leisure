@@ -62,6 +62,12 @@
 }
 
 .thin .codeMainTest * {
+  display: block;
+  margin-left: 40px;
+  font-weight: bold;
+}
+
+.thin .codeMainTest.passed * {
   display: none;
 }
 .thin .codeMainTest.notrun {
@@ -75,6 +81,7 @@
 .thin .codeMainTest.failed {
   background-image: url(testCaseRed.png);
   background-repeat: no-repeat;
+  background-position: 0%, 50%;
 }
 
 .thin .codeName {

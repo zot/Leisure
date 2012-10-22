@@ -1084,8 +1084,8 @@
     output = getBox(exBox);
     source = output.source;
     test = {
-      expr: source.textContent,
-      result: Repl.escapeHtml(Parse.print(output.result))
+      expr: source.textContent.trim(),
+      expected: Repl.escapeHtml(Parse.print(output.result))
     };
     box = makeTestBox(test, owner(exBox));
     source.parentNode.insertBefore(box, source);
@@ -1098,11 +1098,12 @@
 
   makeTestBox = function makeTestBox(test, owner, src) {
     var bx, s;
-    src = src != null ? src : "#@test " + (JSON.stringify(test));
+    src = src != null ? src : "#@test " + (JSON.stringify(test.expr)) + "\n#@expected " + (JSON.stringify(test.expected));
     s = codeSpan(src, 'codeTest');
     s.appendChild(textNode('\n'));
     s.setAttribute('generatedNL', '');
     bx = codeBox('codeMainTest');
+    bx.testSrc = s;
     bx.setAttribute('class', 'codeMainTest notrun');
     bx.setAttribute('contenteditable', 'false');
     bx.appendChild(s);
@@ -1142,7 +1143,7 @@
         return cont(null);
       },
       processResult: function processResult(result, ast) {
-        return passed = showResult(bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.result));
+        return passed = showResult(bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.expected));
       },
       processError: passed = false
     });
@@ -1156,9 +1157,11 @@
     if (actual === expected) {
       cl.remove('failed');
       cl.add('passed');
+      bx.testSrc.innerHTML = "#@test " + (JSON.stringify(bx.test.expr)) + "\n#@expected " + (JSON.stringify(bx.test.expected));
     } else {
-      cl.remove('passsed');
+      cl.remove('passed');
       cl.add('failed');
+      bx.testSrc.innerHTML = "#@test " + (JSON.stringify(bx.test.expr)) + "\n#@expected " + (JSON.stringify(bx.test.expected)) + "\n#@result " + (JSON.stringify(actual));
       console.log("expected <" + expected + "> but got <" + actual + ">");
     }
     return actual === expected;
@@ -1304,7 +1307,7 @@
     return ranges;
   };
 
-  testPat = /(#@test([^\n]*))\n/;
+  testPat = /(#@test([^\n]*)\n#@expected([^\n]*))\n/m;
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
     var body, bodyStart, defType, endPat, ex, exEnd, leadOff, leading, leadingSpaces, lm, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, textStart, _ref, _ref2, _ref3;
@@ -1332,7 +1335,10 @@
       leadOff = tOff = restOff;
       while (m2 = t.match(testPat)) {
         r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[1].length);
-        r.leisureTest = JSON.parse(m2[2]);
+        r.leisureTest = {
+          expr: JSON.parse(m2[2]),
+          expected: JSON.parse(m2[3])
+        };
         tests.push(r);
         tOff += m2.index + m2[1].length;
         t = leading.substring(tOff - leadOff);
