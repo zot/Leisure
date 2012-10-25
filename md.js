@@ -1,8 +1,8 @@
 (function() {
-  var $, DOWN_ARROW, END, ENTER, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, cleanEmptyNodes, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, textNode,
+  var $, DOWN_ARROW, END, ENTER, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, cleanEmptyNodes, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, textNode, _,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  jQuery = window.jQuery, $ = window.$;
+  jQuery = window.jQuery, $ = window.$, _ = window._;
 
   ENTER = Notebook.ENTER, textNode = Notebook.textNode, createNode = Notebook.createNode, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode, HOME = Notebook.HOME, END = Notebook.END, PAGE_UP = Notebook.PAGE_UP, PAGE_DOWN = Notebook.PAGE_DOWN, LEFT_ARROW = Notebook.LEFT_ARROW, RIGHT_ARROW = Notebook.RIGHT_ARROW, UP_ARROW = Notebook.UP_ARROW, DOWN_ARROW = Notebook.DOWN_ARROW, arrows = Notebook.arrows;
 
@@ -46,7 +46,13 @@
       }
       div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; margin-right: 10px'></div>\n</div>");
       document.body.appendChild(div);
-      return document.body.classList.add('scroll');
+      if (location.search && _.find(location.search.slice(1).split('&'), (function(p) {
+        return p.match(/^slides=/);
+      }))) {
+        return showSlide($(document.body.firstElementChild));
+      } else {
+        return document.body.classList.add('scroll');
+      }
     } else {
       return markupElement(el, md);
     }
