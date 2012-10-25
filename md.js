@@ -1,7 +1,10 @@
 (function() {
-  var ENTER, bindMarkupDiv, cleanEmptyNodes, getElementCode, isLeisureCode, makeMarkupDiv, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, textNode;
+  var $, DOWN_ARROW, END, ENTER, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, cleanEmptyNodes, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideKeyListener, textNode,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  ENTER = Notebook.ENTER, textNode = Notebook.textNode, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode;
+  jQuery = window.jQuery, $ = window.$;
+
+  ENTER = Notebook.ENTER, textNode = Notebook.textNode, createNode = Notebook.createNode, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode, HOME = Notebook.HOME, END = Notebook.END, PAGE_UP = Notebook.PAGE_UP, PAGE_DOWN = Notebook.PAGE_DOWN, LEFT_ARROW = Notebook.LEFT_ARROW, RIGHT_ARROW = Notebook.RIGHT_ARROW, UP_ARROW = Notebook.UP_ARROW, DOWN_ARROW = Notebook.DOWN_ARROW, arrows = Notebook.arrows;
 
   window.markup = function markup() {
     var el, md, nodes, oneDoc, _i, _len, _results;
@@ -20,23 +23,95 @@
     return _results;
   };
 
+  lastSlide = null;
+
   markupSlides = function markupSlides(el, md) {
-    var div, p, pages, _i, _len, _results;
+    var cl, count, div, p, pages, _i, _len;
     pages = md.split(/\n\*\*\*\n/m);
     if (pages.length > 1) {
+      cl = document.body.classList;
+      if (!cl.contains('slide-container')) cl.add('slide-container');
       document.body.innerHTML = '';
-      _results = [];
+      bindSlider();
+      count = 1;
       for (_i = 0, _len = pages.length; _i < _len; _i++) {
         p = pages[_i];
-        div = document.createElement('DIV');
-        div.setAttribute('style', 'border: black solid 2px; margin: 2px;');
+        lastSlide = div = document.createElement('DIV');
+        div.classList.add('slide');
+        div.setAttribute('slide', count++);
+        hideSlide($(div));
         document.body.appendChild(div);
-        _results.push(markupElement(div, p));
+        markupElement(div, p);
       }
-      return _results;
+      div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; right-margin: 10px'></div>\n</div>");
+      document.body.appendChild(div);
+      return showSlide($(document.body.firstElementChild));
     } else {
       return markupElement(el, md);
     }
+  };
+
+  window.toggleSlideShow = function toggleSlideShow() {
+    if ($(document.body).is('.scroll')) {
+      $(document.body).removeClass('scroll');
+      return showSlide($(document.body.firstElementChild));
+    } else {
+      $(document.body).addClass('scroll');
+      return $('#slide-num').html('');
+    }
+  };
+
+  bindSlider = function bindSlider() {
+    return document.body.addEventListener('keydown', slideKeyListener);
+  };
+
+  slideControls = [LEFT_ARROW, RIGHT_ARROW, HOME, END, PAGE_UP, PAGE_DOWN];
+
+  slideKeyListener = function slideKeyListener(e) {
+    var c, cur, n, next;
+    window.evt = e;
+    c = e.charCode || e.keyCode || e.which;
+    console.log("keydown: " + c);
+    if ((__indexOf.call(slideControls, c) >= 0) && !$(e.target).is('[leisurenode=code],[leisurenode=code] *')) {
+      e.preventDefault();
+      cur = $('.slide.showing');
+      next = (function() {
+        switch (c) {
+          case HOME:
+            return $(document.body.firstElementChild);
+          case END:
+            return $(lastSlide);
+          case LEFT_ARROW:
+          case PAGE_UP:
+            n = cur.prev();
+            if (n.length) {
+              return n;
+            } else {
+              return $(document.body.firstElementChild);
+            }
+            break;
+          case RIGHT_ARROW:
+          case PAGE_DOWN:
+            n = cur.next('.slide');
+            if (n.length) {
+              return n;
+            } else {
+              return $(lastSlide);
+            }
+        }
+      })();
+      hideSlide(cur);
+      return showSlide(next);
+    }
+  };
+
+  showSlide = function showSlide(el) {
+    $('#slide-num').html(el[0].getAttribute('slide'));
+    return el.removeClass('hidden').addClass('showing');
+  };
+
+  hideSlide = function hideSlide(el) {
+    return el.addClass('hidden').removeClass('showing');
   };
 
   markupElement = function markupElement(el, md) {
