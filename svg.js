@@ -20,6 +20,7 @@ root.macros = {};
 
 Nil = Parse.Nil;
 var cons = Parse.cons;
+var primCons = Parse.primCons;
 var setType = Parse.setType;
 var setDataType = Parse.setDataType;
 var define = Parse.define;
@@ -27,6 +28,8 @@ var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
+var wrapContext = Leisure.wrapContext;
+var markLeisureErrors = Leisure.markLeisureErrors;
 var _insertFields, _svgTemplate, _svg, _svgFile, _field, _defaultCircleMap, _defaultRectMap, _defaultLineMap, _defaultEllipseMap, _defaultTextMap, _defaultPolygonMap, _svgNode, _svgNodes, _svgConcat, _svgElement, _svgMeasure, _svgPresent, _circle, _rect, _ellipse, _line, _text, _polygon, _group, _translate, _rotate;
 processResult(//AST(require "maps")
 (_require()((function(){return "maps"}))));

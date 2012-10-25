@@ -20,6 +20,7 @@ root.macros = {};
 
 Nil = Parse.Nil;
 var cons = Parse.cons;
+var primCons = Parse.primCons;
 var setType = Parse.setType;
 var setDataType = Parse.setDataType;
 var define = Parse.define;
@@ -27,6 +28,8 @@ var processResult = Repl.processResult;
 var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
+var wrapContext = Leisure.wrapContext;
+var markLeisureErrors = Leisure.markLeisureErrors;
 var _addHash, _hashFromList, _key, _value, _getPair, _getPairOpt, _getHashValue, _getHashValueDefault, _getKeys, _numKeys, _firstPair, _restPairs, _mergeHashKeys, _mergeHash, _removeHash;
 //addHash = AST(λk v hashmap . cons (cons k v) (removeHash k hashmap))
 root.defs._addHash = _addHash = Parse.define('addHash', (function() {var f; return function _addHash(){return f || (f = (function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return (function(){return $m || ($m = (_cons()(_k)(_v)))})})())((function(){var $m; return (function(){return $m || ($m = (_removeHash()(_k)(_hashmap)))})})());};};}));}})(), 3, "\\k. \\v. \\hashmap. cons (cons k v) (removeHash k hashmap)");;

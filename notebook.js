@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, ENTER, LEFT_ARROW, Leisure, Prim, Repl, ReplCore, TAB, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, ENTER, LEFT_ARROW, Leisure, Prim, Repl, ReplCore, TAB, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -437,7 +437,7 @@
       if (cleanEmptyNodes(s.getRangeAt(0).startContainer)) return;
       focusBox(s.focusNode);
       parent = getBox(s.focusNode);
-      if ((_ref = s.getRangeAt(0)) != null ? _ref.collapsed : void 0) {
+      if (false && ((_ref = s.getRangeAt(0)) != null ? _ref.collapsed : void 0)) {
         if (!parent || isOutput(parent)) return;
         if (parent.parentNode) {
           ast = getAst(parent);
@@ -483,8 +483,8 @@
       if ((parent != null ? (_ref5 = parent.ast) != null ? _ref5.leisureName : void 0 : void 0) != null) {
         update("sel-" + parent.ast.leisureName);
       }
+      return peerNotifySelection(parent, s.toString());
     }
-    return peerNotifySelection(parent, s.toString());
   };
 
   wrapRange = function wrapRange(range, node) {
@@ -571,11 +571,22 @@
       box.astOut = node;
       node.setAttribute('leisureOutput', '');
       box.parentNode.insertBefore(node, box.nextSibling);
-      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name;
+      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name + " \\attrs ast .\n  [['onclick' | concat[\"Notebook.highlightNotebookFunction('" + (name.trim()) + "', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]";
+      console.log("SVG EVENT: " + node.textContent);
       output = makeOutputBox(node);
       toggleEdit(output);
       return evalOutput(output, true);
     }
+  };
+
+  highlightNotebookFunction = function highlightNotebookFunction(funcName, start, stop) {
+    var box, offset, sel, _ref;
+    box = document.body.querySelector("[leisurefunc=" + funcName + "]");
+    offset = (_ref = getAst(box).leisureCodeOffset) != null ? _ref : 0;
+    console.log("select " + start + "-" + stop);
+    sel = window.getSelection();
+    sel.removeAllRanges();
+    return sel.addRange(makeRange(box, start + offset, stop + offset));
   };
 
   isDef = function isDef(box) {
@@ -1879,5 +1890,7 @@
   root.presentLeisureCode = presentLeisureCode;
 
   root.mergeLeisureCode = mergeLeisureCode;
+
+  root.highlightNotebookFunction = highlightNotebookFunction;
 
 }).call(this);

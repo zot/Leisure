@@ -1,18 +1,42 @@
 (function() {
-  var ENTER, bindMarkupDiv, cleanEmptyNodes, getElementCode, isLeisureCode, makeMarkupDiv, markupElement, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, textNode;
+  var ENTER, bindMarkupDiv, cleanEmptyNodes, getElementCode, isLeisureCode, makeMarkupDiv, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, textNode;
 
   ENTER = Notebook.ENTER, textNode = Notebook.textNode, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode;
 
   window.markup = function markup() {
-    var el, md, _i, _len, _ref, _results;
-    _ref = document.querySelectorAll('[doc]');
+    var el, md, nodes, oneDoc, _i, _len, _results;
+    nodes = document.querySelectorAll('[doc]');
+    oneDoc = nodes.length === 1 && nodes[0] === document.body;
     _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      el = _ref[_i];
+    for (_i = 0, _len = nodes.length; _i < _len; _i++) {
+      el = nodes[_i];
       md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '');
-      _results.push(markupElement(el, md));
+      if (oneDoc) {
+        _results.push(markupSlides(el, md));
+      } else {
+        _results.push(markupElement(el, md));
+      }
     }
     return _results;
+  };
+
+  markupSlides = function markupSlides(el, md) {
+    var div, p, pages, _i, _len, _results;
+    pages = md.split(/\n\*\*\*\n/m);
+    if (pages.length > 1) {
+      document.body.innerHTML = '';
+      _results = [];
+      for (_i = 0, _len = pages.length; _i < _len; _i++) {
+        p = pages[_i];
+        div = document.createElement('DIV');
+        div.setAttribute('style', 'border: black solid 2px; margin: 2px;');
+        document.body.appendChild(div);
+        _results.push(markupElement(div, p));
+      }
+      return _results;
+    } else {
+      return markupElement(el, md);
+    }
   };
 
   markupElement = function markupElement(el, md) {
@@ -84,7 +108,7 @@
     div.addEventListener('dblclick', function(e) {
       if (!editing) {
         div.innerHTML = '';
-        div.appendChild(document.createTextNode(div.md));
+        div.appendChild(textNode(div.md));
         div.style.whiteSpace = 'pre-wrap';
         div.setAttribute('contenteditable', 'true');
         editing = true;
