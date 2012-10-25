@@ -1,5 +1,5 @@
 (function() {
-  var $, DOWN_ARROW, END, ENTER, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, cleanEmptyNodes, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideKeyListener, textNode,
+  var $, DOWN_ARROW, END, ENTER, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, cleanEmptyNodes, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, textNode,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   jQuery = window.jQuery, $ = window.$;
@@ -25,27 +25,28 @@
 
   lastSlide = null;
 
+  slideCount = 0;
+
   markupSlides = function markupSlides(el, md) {
-    var cl, count, div, p, pages, _i, _len;
+    var cl, div, p, pages, _i, _len;
     pages = md.split(/\n\*\*\*\n/m);
     if (pages.length > 1) {
       cl = document.body.classList;
       if (!cl.contains('slide-container')) cl.add('slide-container');
       document.body.innerHTML = '';
       bindSlider();
-      count = 1;
       for (_i = 0, _len = pages.length; _i < _len; _i++) {
         p = pages[_i];
         lastSlide = div = document.createElement('DIV');
         div.classList.add('slide');
-        div.setAttribute('slide', count++);
+        div.setAttribute('slide', ++slideCount);
         hideSlide($(div));
         document.body.appendChild(div);
         markupElement(div, p);
       }
-      div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; right-margin: 10px'></div>\n</div>");
+      div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; margin-right: 10px'></div>\n</div>");
       document.body.appendChild(div);
-      return showSlide($(document.body.firstElementChild));
+      return document.body.classList.add('scroll');
     } else {
       return markupElement(el, md);
     }
@@ -56,6 +57,7 @@
       $(document.body).removeClass('scroll');
       return showSlide($(document.body.firstElementChild));
     } else {
+      hideSlide($('.slide.showing'));
       $(document.body).addClass('scroll');
       return $('#slide-num').html('');
     }
@@ -106,7 +108,7 @@
   };
 
   showSlide = function showSlide(el) {
-    $('#slide-num').html(el[0].getAttribute('slide'));
+    $('#slide-num').html("" + (el[0].getAttribute('slide')) + " / " + slideCount);
     return el.removeClass('hidden').addClass('showing');
   };
 
