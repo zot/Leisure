@@ -212,7 +212,9 @@ identMacro list =M= tail list
 
 macroCons list =M= cons 'cons' (tail list)
 
-concat[ list =M= cons 'concat' (cons (cons '[' (tail list)) nil)
+#concat[ list =M= cons 'concat' (cons (cons '[' (tail list)) nil)
+
+concat[ list =M= cons (token 'concat' (tokenStart list)) (cons (cons (token '[' (tokenStart (tail list))) (tail list)) nil)
 
 doFilter parseDefs list = transformDo list
 

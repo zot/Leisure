@@ -192,11 +192,14 @@ class Leisure_lexCons extends Leisure_cons
 
 global.Leisure_lexCons = Leisure_lexCons
 
-primLexCons = setDataType(((a)->(start)->(b)->(end)-> mkProto Leisure_lexCons, setType ((f)-> f()(a)(start)(b)(end)), 'lexCons'), 'lexCons')
+primLexCons = setDataType(((a)->(start)->(b)->(end)-> mkProto Leisure_lexCons, setType ((f)-> f()(a)(b.start && Math.min(b.start(), start) || start)(b)(a.end && Math.max(a.end(), end) || end)), 'lexCons'), 'lexCons')
 
 class LexDL
 
-lexCons = (a, start, b, end)-> primLexCons(->a)(->start)(->b)(->end)
+lexCons = (a, start, b, end)->
+  s = if b.start? then Math.min(start, b.start()) else start
+  e = if a.end? then Math.max(end, a.end()) else end
+  primLexCons(->a)(->s)(->b)(->e)
 lexDlempty = mkProto LexDL, (x, end)-> x
 lexDlnew = (a, start)-> mkProto LexDL, (b, end)-> lexCons(a, start, b, end)
 lexDlappend = (a, b)->
@@ -283,7 +286,7 @@ class Scanner
   filter: (index, result)-> ifParsed result, (group, rest)=>
     if index < @filters.length
       try
-        @filter index + 1, [cleanupMacro(@filters[index](=> @filterInfo)(-> group)), null, rest]
+        @filter index + 1, [cleanupMacro(0, @filters[index](=> @filterInfo)(-> group)), null, rest]
       catch err
         [null, err.toString(), null]
     else [group, null, rest]
@@ -338,6 +341,9 @@ class Leisure_token extends LeisureObject
   start: -> @ ->(t)->(p)->p()
   end: -> @start() + @tok().length
   toString: -> "Token('#{@tok()}', #{@start()}-#{@end()})"
+  zeroLen: ->
+    @end = => @start()
+    @
 
 global.Leisure_token = Leisure_token
 
@@ -371,7 +377,7 @@ defineMacro = (name, func)-> global.leisureMacros[name] = func()
 substituteMacros = (list)->
   if list == Nil or !(list instanceof Leisure_cons) then list
   else if list.head() instanceof Leisure_token and macro = global.leisureMacros[list.head().tok()]
-    cleaned = cleanupMacro (macro ->list)
+    cleaned = cleanupMacro (if list instanceof Leisure_cons then list.end() else 0), (macro ->list)
     substituteMacros cleaned
   else substituteLambdaMacros list
 
@@ -384,14 +390,19 @@ substituteLambdaBody = (list)->
   if list == Nil then Nil
   else lexCons list.head(), list.start(), (if (list.head() instanceof Leisure_token) and list.head().tok() == '.' then substituteMacros(list.tail()) else substituteLambdaBody list.tail()), list.end()
 
-cleanupMacro = (list)->
-  if typeof list in ['string', 'number'] then primToken(->String(list))(->0)
+cleanupMacro = (nextOffset, list)->
+  if typeof list in ['string', 'number'] then primToken(->String(list))(->nextOffset).zeroLen()
   else if !(list instanceof Leisure_cons) or (list == Nil) then list
-  else if list instanceof Leisure_lexCons then list.map cleanupMacro
+  else if list instanceof Leisure_lexCons
+    #list.map ((x)-> cleanupMacro x.end(), x)
+    list.foldr ((el, res)->
+      cl = cleanupMacro (res.start && res.start() || nextOffset), el
+      lexCons cl, cl.start(), res, (if res.end then res.end() else Math.max(cl.end(), nextOffset))), Nil
   else
-    head = cleanupMacro list.head()
-    tail = cleanupMacro list.tail()
-    lexCons head, (if head.start? then head.start() else if tail.start? then tail.start() else 0), tail, (if tail.start? then tail.start() else 0)
+    tail = cleanupMacro nextOffset, list.tail()
+    head = cleanupMacro (tail.start && tail.start() || nextOffset), list.head()
+    #lexCons head, (if head.start? then head.start() else if tail.start? then tail.start() else 0), tail, (if tail.start? then tail.start() else 0)
+    lexCons head, head.start(), tail, (tail.end && tail.end() || Math.max(head.end(), nextOffset))
 
 ######
 ###### ASTs
@@ -470,9 +481,13 @@ tokenToAst = (tok, vars)->
 listToApply = (f, start, rest, vars)->
   if rest == Nil then [f]
   else if isLambdaToken rest.head()
-    ifParsed listToAst(rest), (a)-> [tag(apply(f, a), start, rest.end())]
-  else ifParsed listToAst(rest.head()), (a)->
-    listToApply tag(apply(f, a), start, rest.head().end()), start, rest.tail()
+      ifParsed listToAst(rest), (a)-> [tag(apply(f, a), start, Math.max(f.leisureEnd, rest.end()))]
+    else ifParsed listToAst(rest.head()), (a)->
+      listToApply tag(apply(f, a), Math.min(start, f.leisureStart, rest.head().start()), Math.max(f.leisureEnd, rest.head().end())), start, rest.tail()
+
+#minStart = (lc)-> if lc.tail() == Nil then lc.start() else Math.min(lc.start(), minStart lc.tail())
+#
+#maxEnd = (lc) if lc.tail() == Nil then lc.end() else Math.max(lc.end(), maxEnd lc.tail())
 
 # returns [ast, err, rest] -- err may be null
 # if there is an error, rest is the start of the erroneous input

@@ -25,11 +25,11 @@ astFor func = isFunc func
   funcSource func (\src . parse src) (right 'no source')
   left (lit func)
 
-treeForNotebook func = do
+treeForNotebook func attrFunc = do
   s <- notebookSelection func
   ast <- notebookAst func
   ast
-    \ast . printValue (treeForWith ast \ast map . s (\start end . (shouldHighlight ast start end) (highlight map) map) map)
+    \ast . printValue (treeForWith ast \ast map . attrFunc (s (\start end . (shouldHighlight ast start end) (highlight map) map) map) ast)
     \ignore . concat ['no source for ' func]
 
 #printValue
@@ -125,7 +125,7 @@ textNode map txt = (svgMeasureText txt '') \w h . do
   nodeW = w + 24
   nodeH = h + 14
   makeNode
-    (svgConcat [(rect [['x'|2] ['y'|2] ['width'|nodeW] ['height'|nodeH] | map]) (text txt [['text-anchor'|"middle"] ['dominant-baseline'|"mathematical"] ['x'| 14 + w / 2] ['y'| 5 + h / 2] ['font-weight'|'bold']])])
+    (svgConcat [(rect [['x'|2] ['y'|2] ['width'|nodeW] ['height'|nodeH] | map]) (text txt [['pointer-events' | 'none'] ['text-anchor'|"middle"] ['dominant-baseline'|"mathematical"] ['x'| 14 + w / 2] ['y'| 5 + h / 2] ['font-weight'|'bold']])])
     nodeW
     nodeH
     nodeW / 2

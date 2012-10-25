@@ -480,7 +480,7 @@ misrepresented as being the original software.
       return function(b) {
         return function(end) {
           return mkProto(Leisure_lexCons, setType((function(f) {
-            return f()(a)(start)(b)(end);
+            return f()(a)(b.start && Math.min(b.start(), start) || start)(b)(a.end && Math.max(a.end(), end) || end);
           }), 'lexCons'));
         };
       };
@@ -496,14 +496,17 @@ misrepresented as being the original software.
   })();
 
   lexCons = function lexCons(a, start, b, end) {
+    var e, s;
+    s = b.start != null ? Math.min(start, b.start()) : start;
+    e = a.end != null ? Math.max(end, a.end()) : end;
     return primLexCons(function() {
       return a;
     })(function() {
-      return start;
+      return s;
     })(function() {
       return b;
     })(function() {
-      return end;
+      return e;
     });
   };
 
@@ -680,7 +683,7 @@ misrepresented as being the original software.
         if (index < _this.filters.length) {
           try {
             return _this.filter(index + 1, [
-              cleanupMacro(_this.filters[index](function() {
+              cleanupMacro(0, _this.filters[index](function() {
                 return _this.filterInfo;
               })(function() {
                 return group;
@@ -822,6 +825,14 @@ misrepresented as being the original software.
       return "Token('" + (this.tok()) + "', " + (this.start()) + "-" + (this.end()) + ")";
     };
 
+    Leisure_token.prototype.zeroLen = function zeroLen() {
+      var _this = this;
+      this.end = function end() {
+        return _this.start();
+      };
+      return this;
+    };
+
     return Leisure_token;
 
   })(LeisureObject);
@@ -897,7 +908,7 @@ misrepresented as being the original software.
     if (list === Nil || !(list instanceof Leisure_cons)) {
       return list;
     } else if (list.head() instanceof Leisure_token && (macro = global.leisureMacros[list.head().tok()])) {
-      cleaned = cleanupMacro(macro(function() {
+      cleaned = cleanupMacro((list instanceof Leisure_cons ? list.end() : 0), macro(function() {
         return list;
       }));
       return substituteMacros(cleaned);
@@ -924,22 +935,26 @@ misrepresented as being the original software.
     }
   };
 
-  cleanupMacro = function cleanupMacro(list) {
+  cleanupMacro = function cleanupMacro(nextOffset, list) {
     var head, tail, _ref;
     if ((_ref = typeof list) === 'string' || _ref === 'number') {
       return primToken(function() {
         return String(list);
       })(function() {
-        return 0;
-      });
+        return nextOffset;
+      }).zeroLen();
     } else if (!(list instanceof Leisure_cons) || (list === Nil)) {
       return list;
     } else if (list instanceof Leisure_lexCons) {
-      return list.map(cleanupMacro);
+      return list.foldr((function(el, res) {
+        var cl;
+        cl = cleanupMacro(res.start && res.start() || nextOffset, el);
+        return lexCons(cl, cl.start(), res, (res.end ? res.end() : Math.max(cl.end(), nextOffset)));
+      }), Nil);
     } else {
-      head = cleanupMacro(list.head());
-      tail = cleanupMacro(list.tail());
-      return lexCons(head, (head.start != null ? head.start() : tail.start != null ? tail.start() : 0), tail, (tail.start != null ? tail.start() : 0));
+      tail = cleanupMacro(nextOffset, list.tail());
+      head = cleanupMacro(tail.start && tail.start() || nextOffset, list.head());
+      return lexCons(head, head.start(), tail, tail.end && tail.end() || Math.max(head.end(), nextOffset));
     }
   };
 
@@ -1154,11 +1169,11 @@ misrepresented as being the original software.
       return [f];
     } else if (isLambdaToken(rest.head())) {
       return ifParsed(listToAst(rest), function(a) {
-        return [tag(apply(f, a), start, rest.end())];
+        return [tag(apply(f, a), start, Math.max(f.leisureEnd, rest.end()))];
       });
     } else {
       return ifParsed(listToAst(rest.head()), function(a) {
-        return listToApply(tag(apply(f, a), start, rest.head().end()), start, rest.tail());
+        return listToApply(tag(apply(f, a), Math.min(start, f.leisureStart, rest.head().start()), Math.max(f.leisureEnd, rest.head().end())), start, rest.tail());
       });
     }
   };

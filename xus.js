@@ -772,6 +772,10 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
     Server.prototype.splice = function(con, _arg, cmd) {
       var del, index, key, x, _ref;
       x = _arg[0], key = _arg[1], index = _arg[2], del = _arg[3];
+      if (!(this.values[key] != null) && (index === 0 || index === -1) && del === 0) {
+        this.storageModes[key] = storage_memory;
+        this.values[key] = [];
+      }
       if (!((this.values[key].splice != null) && (this.values[key].length != null))) {
         return this.disconnect(con, error_variable_not_array, "Can't insert into " + key + " because it does not support splice and length");
       } else {
@@ -1358,9 +1362,24 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
       return this.con.send();
     };
 
-    Peer.prototype.listen = function(key, simulateSetsForTree, callback) {
+    Peer.prototype.listen = function(key, simulateSetsForTree, noChildren, callback) {
       var _ref1,
         _this = this;
+      if (typeof simulateSetsForTree === 'function') {
+        noChildren = simulateSetsForTree;
+        simulateSetsForTree = false;
+      }
+      if (typeof noChildren === 'function') {
+        callback = noChildren;
+        noChildren = false;
+      }
+      if (noChildren) {
+        callback = function(changedKey, value, oldValue, cmd, batch) {
+          if (key === changedKey) {
+            return callback(changedKey, value, oldValue, cmd, batch);
+          }
+        };
+      }
       if (this.peerName != null) {
         key = key.replace(new RegExp("^this(?=/|$)"), "peer/" + this.peerName);
       }

@@ -376,10 +376,19 @@ showAst = (box)->
     box.astOut = node
     node.setAttribute 'leisureOutput', ''
     box.parentNode.insertBefore node, box.nextSibling
-    node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name}"
+    node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name} \\attrs ast . [['onclick' | concat[\"Notebook.highlightNotebookFunction('#{name.trim()}', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]"
+    console.log "SVG EVENT: #{node.textContent}"
     output = makeOutputBox node
     toggleEdit output
     evalOutput output, true
+
+highlightNotebookFunction = (funcName, start, stop)->
+  box = document.body.querySelector "[leisurefunc=#{funcName}]"
+  offset = getAst(box).leisureCodeOffset ? 0
+  console.log "select #{start}-#{stop}"
+  sel = window.getSelection()
+  sel.removeAllRanges()
+  sel.addRange makeRange box, start + offset, stop + offset
 
 isDef = (box)->
   txt = box.textContent
@@ -1242,6 +1251,7 @@ root.previousSibling = previousSibling
 root.nextSibling = nextSibling
 root.presentLeisureCode = presentLeisureCode
 root.mergeLeisureCode = mergeLeisureCode
+root.highlightNotebookFunction = highlightNotebookFunction
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

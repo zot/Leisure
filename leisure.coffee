@@ -441,7 +441,28 @@ defineToken = (name, def)->
     #types = (escapeRegexpChars i for i in types)
     #tokenPat = new RegExp("\\n *|#{types.join '|'}|#{baseTokenPat.source}")
 
-prefix = (name, str)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\') + '.' else '') + str
+#prefix = (name, str, fullDecl, line)-> (if name.length > 1 then '\\' + name.slice(1).join('. \\') + '.' else '') + str
+
+prefix = (name, str, fullDecl, line)-> (if name.length > 1 then padDecl(fullDecl, line) else '') + str
+
+padDecl = (decl, line)->
+  p = basicPaddedDecl 0, decl.tail()
+  [x, leading, rest] = p.match /^( *)([^ ].*$)/
+  res = "#{leading[1..]}\\#{rest} ."
+  console.log("DECL  : #{line}$\nPADDED: #{res}$")
+  res
+
+basicPaddedDecl = (offset, decl)->
+  if decl == Nil then ''
+  else if decl.head().tok() == '::'
+    pad(decl.tail().head().end() - offset) + basicPaddedDecl(decl.tail().head().end(), decl.tail().tail())
+  else
+    pad(decl.head().start() - offset) + decl.head().tok() + basicPaddedDecl(decl.head().end(), decl.tail())
+
+pad = (n)->
+  s = ''
+  (s = s + ' ') for i in [0...n]
+  s
 
 getNthBody = (ast, n)->
   if n == 1 then ast
@@ -464,14 +485,14 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
       name = null
       defType = null
       nm = null
-    else [nm, typeAssertions, err] = if defType then parseDecl name else []
+    else [nm, typeAssertions, scannedDecl, err] = if defType then parseDecl name else []
     rest1 = line.substring (if defType then matched else leading).length
     if err then [null, err]
     else if nm
       if check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]} #{snip rest1}", null]
       else
         if defType && defType != '=' then defineToken(nm[0], defType)
-        pfx = (prefix nm, rest1)
+        pfx = (prefix nm, rest1, scannedDecl, matched[leading.length..])
         errPrefix = "Error while compiling #{nm}: "
         ifParsed (if nomacros then parse pfx else parseFull pfx), ((ast, rest)->
           ast.leisureCodeOffset = ast.leisureDefPrefix = line.length - pfx.length
@@ -504,19 +525,20 @@ isEmpty = (obj)->
 
 parseDecl = (name)->
   [scanned, err, rest] = declScanner.scan name
+  all = scanned
   if err then [null, null, err]
   else
     names = []
     assertions = {}
     while scanned != Nil
-      if isAssertion scanned.head() then return [null, null, "Badly type assertion in declaration: assertion must be on an argument name: #{name}"]
+      if isAssertion scanned.head() then return [null, null, null, "Badly type assertion in declaration: assertion must be on an argument name: #{name}"]
       names.push scanned.head().tok()
       if scanned.tail() != Nil and isAssertion scanned.tail().head()
         if scanned.tail().tail() == Nil then return [null, null, "Badly type assertion in declaration -- no type: #{name}"]
         assertions[scanned.head().tok()] = [scanned.tail().head().tok(), scanned.tail().tail().head().tok()]
         scanned = scanned.tail().tail().tail()
       else scanned = scanned.tail()
-    [names, assertions]
+    [names, assertions, all]
     #name.trim().split(/\s+/)
 
 isAssertion = (tok)-> tok instanceof Leisure_token and tok.tok() in ['::', ':?']

@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, collectArgs, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, markLeisureErrors, mkProto, nameAst, nameSub, noDefaultError, numberAst, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap;
+  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, basicPaddedDecl, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, collectArgs, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, markLeisureErrors, mkProto, nameAst, nameSub, noDefaultError, numberAst, pad, padDecl, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -652,8 +652,36 @@ misrepresented as being the original software.
     }
   };
 
-  prefix = function prefix(name, str) {
-    return (name.length > 1 ? '\\' + name.slice(1).join('. \\') + '.' : '') + str;
+  prefix = function prefix(name, str, fullDecl, line) {
+    return (name.length > 1 ? padDecl(fullDecl, line) : '') + str;
+  };
+
+  padDecl = function padDecl(decl, line) {
+    var leading, p, res, rest, x, _ref;
+    p = basicPaddedDecl(0, decl.tail());
+    _ref = p.match(/^( *)([^ ].*$)/), x = _ref[0], leading = _ref[1], rest = _ref[2];
+    res = "" + leading.slice(1) + "\\" + rest + " .";
+    console.log("DECL  : " + line + "$\nPADDED: " + res + "$");
+    return res;
+  };
+
+  basicPaddedDecl = function basicPaddedDecl(offset, decl) {
+    if (decl === Nil) {
+      return '';
+    } else if (decl.head().tok() === '::') {
+      return pad(decl.tail().head().end() - offset) + basicPaddedDecl(decl.tail().head().end(), decl.tail().tail());
+    } else {
+      return pad(decl.head().start() - offset) + decl.head().tok() + basicPaddedDecl(decl.head().end(), decl.tail());
+    }
+  };
+
+  pad = function pad(n) {
+    var i, s;
+    s = '';
+    for (i = 0; 0 <= n ? i < n : i > n; 0 <= n ? i++ : i--) {
+      s = s + ' ';
+    }
+    return s;
   };
 
   getNthBody = function getNthBody(ast, n) {
@@ -672,7 +700,7 @@ misrepresented as being the original software.
   };
 
   compileNext = function compileNext(line, globals, parseOnly, check, nomacros, namespace, debug) {
-    var def, defType, err, errPrefix, leading, matched, name, nm, pfx, rest1, typeAssertions, _ref;
+    var def, defType, err, errPrefix, leading, matched, name, nm, pfx, rest1, scannedDecl, typeAssertions, _ref;
     if (line[0] === '=') {
       rest1 = line.substring(1);
       return ifParsed((nomacros ? parse(rest1) : parseFull(rest1)), (function(ast, rest) {
@@ -686,7 +714,7 @@ misrepresented as being the original software.
         defType = null;
         nm = null;
       } else {
-        _ref = defType ? parseDecl(name) : [], nm = _ref[0], typeAssertions = _ref[1], err = _ref[2];
+        _ref = defType ? parseDecl(name) : [], nm = _ref[0], typeAssertions = _ref[1], scannedDecl = _ref[2], err = _ref[3];
       }
       rest1 = line.substring((defType ? matched : leading).length);
       if (err) {
@@ -698,7 +726,7 @@ misrepresented as being the original software.
           return [null, "Attempt to redefine function: " + nm[0] + " " + (snip(rest1)), null];
         } else {
           if (defType && defType !== '=') defineToken(nm[0], defType);
-          pfx = prefix(nm, rest1);
+          pfx = prefix(nm, rest1, scannedDecl, matched.slice(leading.length));
           errPrefix = "Error while compiling " + nm + ": ";
           return ifParsed((nomacros ? parse(pfx) : parseFull(pfx)), (function(ast, rest) {
             var bod;
@@ -744,8 +772,9 @@ misrepresented as being the original software.
   };
 
   parseDecl = function parseDecl(name) {
-    var assertions, err, names, rest, scanned, _ref;
+    var all, assertions, err, names, rest, scanned, _ref;
     _ref = declScanner.scan(name), scanned = _ref[0], err = _ref[1], rest = _ref[2];
+    all = scanned;
     if (err) {
       return [null, null, err];
     } else {
@@ -753,7 +782,7 @@ misrepresented as being the original software.
       assertions = {};
       while (scanned !== Nil) {
         if (isAssertion(scanned.head())) {
-          return [null, null, "Badly type assertion in declaration: assertion must be on an argument name: " + name];
+          return [null, null, null, "Badly type assertion in declaration: assertion must be on an argument name: " + name];
         }
         names.push(scanned.head().tok());
         if (scanned.tail() !== Nil && isAssertion(scanned.tail().head())) {
@@ -766,7 +795,7 @@ misrepresented as being the original software.
           scanned = scanned.tail();
         }
       }
-      return [names, assertions];
+      return [names, assertions, all];
     }
   };
 
