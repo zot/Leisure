@@ -283,7 +283,7 @@ highlightPosition = ->
     if cleanEmptyNodes s.getRangeAt(0).startContainer then return
     focusBox s.focusNode
     parent = getBox s.focusNode
-    if s.getRangeAt(0)?.collapsed
+    if false and s.getRangeAt(0)?.collapsed
       if !parent or isOutput parent then return
       if parent.parentNode
         ast = getAst parent
@@ -315,7 +315,7 @@ highlightPosition = ->
             #parent.normalize()
             s.addRange(makeRange parent, pos)
     if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
-  peerNotifySelection parent, s.toString()
+    peerNotifySelection parent, s.toString()
 
 wrapRange = (range, node)->
   try
@@ -376,7 +376,7 @@ showAst = (box)->
     box.astOut = node
     node.setAttribute 'leisureOutput', ''
     box.parentNode.insertBefore node, box.nextSibling
-    node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name} \\attrs ast . [['onclick' | concat[\"Notebook.highlightNotebookFunction('#{name.trim()}', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]"
+    node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name} \\attrs ast .\n  [['onclick' | concat[\"Notebook.highlightNotebookFunction('#{name.trim()}', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]"
     console.log "SVG EVENT: #{node.textContent}"
     output = makeOutputBox node
     toggleEdit output

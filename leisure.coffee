@@ -449,7 +449,7 @@ padDecl = (decl, line)->
   p = basicPaddedDecl 0, decl.tail()
   [x, leading, rest] = p.match /^( *)([^ ].*$)/
   res = "#{leading[1..]}\\#{rest} ."
-  console.log("DECL  : #{line}$\nPADDED: #{res}$")
+  #console.log("DECL  : #{line}$\nPADDED: #{res}$")
   res
 
 basicPaddedDecl = (offset, decl)->

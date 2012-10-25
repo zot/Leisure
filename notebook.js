@@ -437,7 +437,7 @@
       if (cleanEmptyNodes(s.getRangeAt(0).startContainer)) return;
       focusBox(s.focusNode);
       parent = getBox(s.focusNode);
-      if ((_ref = s.getRangeAt(0)) != null ? _ref.collapsed : void 0) {
+      if (false && ((_ref = s.getRangeAt(0)) != null ? _ref.collapsed : void 0)) {
         if (!parent || isOutput(parent)) return;
         if (parent.parentNode) {
           ast = getAst(parent);
@@ -483,8 +483,8 @@
       if ((parent != null ? (_ref5 = parent.ast) != null ? _ref5.leisureName : void 0 : void 0) != null) {
         update("sel-" + parent.ast.leisureName);
       }
+      return peerNotifySelection(parent, s.toString());
     }
-    return peerNotifySelection(parent, s.toString());
   };
 
   wrapRange = function wrapRange(range, node) {
@@ -571,7 +571,7 @@
       box.astOut = node;
       node.setAttribute('leisureOutput', '');
       box.parentNode.insertBefore(node, box.nextSibling);
-      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name + " \\attrs ast . [['onclick' | concat[\"Notebook.highlightNotebookFunction('" + (name.trim()) + "', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]";
+      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name + " \\attrs ast .\n  [['onclick' | concat[\"Notebook.highlightNotebookFunction('" + (name.trim()) + "', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]";
       console.log("SVG EVENT: " + node.textContent);
       output = makeOutputBox(node);
       toggleEdit(output);

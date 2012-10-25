@@ -661,7 +661,6 @@ misrepresented as being the original software.
     p = basicPaddedDecl(0, decl.tail());
     _ref = p.match(/^( *)([^ ].*$)/), x = _ref[0], leading = _ref[1], rest = _ref[2];
     res = "" + leading.slice(1) + "\\" + rest + " .";
-    console.log("DECL  : " + line + "$\nPADDED: " + res + "$");
     return res;
   };
 
