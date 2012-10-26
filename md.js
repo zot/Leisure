@@ -30,7 +30,7 @@
   slideCount = 0;
 
   markupSlides = function markupSlides(el, md) {
-    var continuation, div, firstNode, overlayDiv, p, pages, _i, _len;
+    var continuation, div, firstNode, p, pages, _i, _len;
     pages = md.split(/^(?=\*\*\*\n)/m);
     if (pages.length > 1) {
       document.body.classList.add('slide-container');
@@ -41,15 +41,12 @@
         continuation = p.match(/-\n/m);
         lastSlide = div = document.createElement('DIV');
         div.classList.add('slide');
+        div.classList.add('ui-widget-content');
         div.setAttribute('doc', '');
         if (continuation) div.classList.add('continuation');
         div.setAttribute('slide', ++slideCount);
         hideSlide($(div));
         document.body.appendChild(div);
-        div.classList.add('ui-overlay');
-        overlayDiv = document.createElement('DIV');
-        overlayDiv.classList.add('ui-widget-overlay');
-        div.appendChild(overlayDiv);
         firstNode = document.createElement('DIV');
         div.appendChild(firstNode);
         markupElement(firstNode, p);
@@ -169,7 +166,6 @@
       }
       code.setAttribute('noLeisureBar', '');
       code.setAttribute('leisureNode', 'code');
-      code.classList.add('ui-widget-overlay');
       code.md = lex[codePos].text;
       if (code.parentNode.firstChild !== code) {
         if (prev === null) {
