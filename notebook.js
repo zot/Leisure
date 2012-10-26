@@ -1101,7 +1101,7 @@
     if (!box.hideSource && (((_ref = box.firstElementChild) != null ? (_ref2 = _ref.nextElementSibling) != null ? _ref2.nextElementSibling : void 0 : void 0) != null)) {
       box.hideSource = true;
       hs = createNode("<button class='editToggle' style='float:right'></button>");
-      markupButton(btn);
+      markupButton(hs);
       hs.addEventListener('click', function() {
         return toggleEdit(hs);
       });
