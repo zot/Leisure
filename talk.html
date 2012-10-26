@@ -16,14 +16,19 @@
       };
       leisureAutoRunAll = true;
       function start() {
-          var script = document.createElement('script');
-          script.src = "bootLeisure.js";
-          document.body.appendChild(script);
+          if (navigator && navigator.appVersion && navigator.appVersion.match(/Chrome/)) {
+              var script = document.createElement('script');
+              script.src = "bootLeisure.js";
+              document.body.appendChild(script);
+          } else {
+              document.body.innerHTML = '<h1>This version of Leisure only supports Chrome</h1>';
+          }
       }
     </script>
   </head>
   <body class="thin" doc class="embedded">
 <!--
+-
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
 Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
@@ -32,7 +37,13 @@ Leisure reveals arcane secrets so that you can write modern programs using the e
 
 ## **Use the left arrow, right arrow, page up, page down, home, and end keys to navigate**
 
-## **To view this as a regular notebook instead of slides, click the slides button, below**
+## **To view this as a regular notebook instead of slides, hit escape or click the slides button, below**
+***
+# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+
+Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
+
+![Tiny Concepts](tinyconcepts.png)
 ***
 # Leisure is a **Toy**
 
@@ -40,15 +51,41 @@ Let's listen to Dr. Steel's definition of *toy...*
 
 <iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
 
+We like to share our toys.  Leisure is **open source**; you are invited to play with it and changes it.  Please feel free to use it to make cool stuff!
+
 ***
 # Programming should be fun!
 
-Programming ought to be fun, easy, and interesting, and it should have there should be cool stuff to play with.  Leisure tries to make it that way.  This Leisure notebook explains a little about the language and environment.
+Programming ought to be fun, easy, and interesting, and there should be cool stuff to play with.  Leisure tries to make it that way.
 ***
-## Notebooks: Interactive Development and Zero-Install Deployment
+-
+# Notebooks
 
-What if markdown code blocks contained real, executable code?  That's the case with Leisure.  Leisure programs are markdown files.
+Markdown.
+***
+-
+# Notebooks
 
+Markdown.
+
+What if markdown code blocks were real, executable code?
+***
+-
+# Notebooks
+
+Markdown.
+
+What if markdown code blocks were real, executable code?
+
+```
+3 + 4
+```
+***
+# Leisure Complier Flow
+![Compiler Flow](LeisureParsingFlow.svg)
+***
+# OLD STUFF
+***
 For decades, programming has been done primarily in glorified text editors.  Some great strides have been made in various IDEs, but typically the
 programmer is still burdened with a neverending "compile, test, debug" development cycle.  Why do we keep settling for this when clearly we can do better?
 

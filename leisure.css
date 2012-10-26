@@ -168,6 +168,12 @@ body {
 .scroll .slide {
   position: static !important;
   display: block !important;
+  border: solid black 1px;
+  margin: 5px;
+}
+
+.scroll .slide.continuation {
+  display: none !important;
 }
 
 .slide {
