@@ -9,8 +9,8 @@
   margin: 0;
   margin-right: 28px;
   padding: 5px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 .thin .codeMain:hover {
   outline: blue solid 1px;
@@ -23,8 +23,8 @@
   left-margin: 10px;
   display: inline-block;
   padding: 5px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 .thin .output span {
   vertical-align: top;
@@ -33,8 +33,8 @@
   vertical-align: top;
   margin: 0;
   padding: 5px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 15px;
+  padding-right: 15px;
   margin: 0;
   display: inline-block;
 }
@@ -55,12 +55,16 @@
   outline: solid black 1px;
 }
 
+html {
+  cursor: url(tentacles.png) 5 5;
+}
+
 .thin .codeMainTest {
   vertical-align: top;
   margin: 0;
   padding: 5px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 15px;
+  padding-right: 15px;
   margin: 0;
   display: inline-block;
   border: green solid 1px;
