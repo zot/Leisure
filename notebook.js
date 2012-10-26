@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -554,12 +554,41 @@
     }
   };
 
+  boxClasses = {
+    codeMainExpr: ['codeMainExpr', 'ui-widget', 'ui-widget-content', 'ui-corner-all'],
+    codeMain: ['codeMain', 'ui-widget', 'ui-widget-content', 'ui-corner-all'],
+    codeMainTest: ['codeMainTest'],
+    output: ['output', 'ui-widget', 'ui-widget-content', 'ui-corner-all']
+  };
+
+  addBoxClasses = function addBoxClasses(box, type) {
+    var cl, _i, _len, _ref, _results;
+    box.setAttribute(type, '');
+    _ref = boxClasses[type];
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      cl = _ref[_i];
+      _results.push(box.classList.add(cl));
+    }
+    return _results;
+  };
+
+  removeBoxClasses = function removeBoxClasses(box, type) {
+    var cl, _i, _len, _ref, _results;
+    box.removeAttribute(type);
+    _ref = boxClasses[type];
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      cl = _ref[_i];
+      _results.push(box.classList.remove(cl));
+    }
+    return _results;
+  };
+
   toExprBox = function toExprBox(b) {
     var node, _i, _len, _ref;
-    b.removeAttribute('codeMain');
-    b.classList.remove('codeMain');
-    b.setAttribute('codeMainExpr', '');
-    b.classList.add('codeMainExpr');
+    removeBoxClasses(b, 'codeMain');
+    addBoxClasses(b, 'codeMainExpr');
     _ref = b.querySelectorAll('.astbutton');
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
@@ -570,10 +599,8 @@
 
   toDefBox = function toDefBox(b) {
     if (b.output) remove(b.output);
-    b.removeAttribute('codeMainExpr');
-    b.classList.remove('codeMainExpr');
-    b.setAttribute('codeMain', '');
-    b.classList.add('codeMain');
+    removeBoxClasses(b, 'codeMainExpr');
+    addBoxClasses(b, 'codeMain');
     return addDefControls(b);
   };
 
@@ -1275,12 +1302,16 @@
   };
 
   makeOutputBox = function makeOutputBox(source) {
-    var node;
+    var cl, node, _i, _len, _ref;
     node = document.createElement('div');
     node.setAttribute('LeisureOutput', '');
     node.setAttribute('Leisure', '');
     node.setAttribute('LeisureBox', '');
-    node.setAttribute('class', 'output');
+    _ref = boxClasses.output;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      cl = _ref[_i];
+      node.classList.add(cl);
+    }
     node.setAttribute('contentEditable', 'false');
     node.source = source;
     source.output = node;
@@ -1302,10 +1333,9 @@
   codeBox = function codeBox(boxType) {
     var node;
     node = document.createElement('div');
-    node.setAttribute(boxType, '');
+    addBoxClasses(node, boxType);
     node.setAttribute('LeisureBox', '');
     node.setAttribute('Leisure', '');
-    node.setAttribute('class', boxType);
     node.addEventListener('compositionstart', function(e) {
       return checkMutate(e);
     });
