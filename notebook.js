@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, ENTER, LEFT_ARROW, Leisure, Prim, Repl, ReplCore, TAB, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -27,9 +27,25 @@
 
   ENTER = 13;
 
-  DEL = 46;
+  ESC = 27;
+
+  PAGE_UP = 33;
+
+  PAGE_DOWN = 34;
+
+  END = 35;
+
+  HOME = 36;
 
   LEFT_ARROW = 37;
+
+  UP_ARROW = 38;
+
+  RIGHT_ARROW = 39;
+
+  DOWN_ARROW = 40;
+
+  DEL = 46;
 
   arrows = [37, 38, 39, 40];
 
@@ -286,7 +302,9 @@
       out = node.output;
       return window.setTimeout((function() {
         if (!node.textContent.trim()) node.parentNode.removeChild(node);
-        if (!(node.parentNode != null)) return out.parentNode.removeChild(out);
+        if (!(node.parentNode != null) && ((out != null ? out.parentNode : void 0) != null)) {
+          return out.parentNode.removeChild(out);
+        }
       }), 1);
     }
   };
@@ -399,12 +417,16 @@
 
   cleanEmptyNodes = function cleanEmptyNodes(el) {
     var next, prev, _ref;
-    prev = el.previousSibling;
-    next = el.nextSibling;
-    if (el.nodeType === 1 && el.textContent.trim() === '' && ((_ref = el.parentNode) != null ? _ref.hasAttribute('doc') : void 0)) {
-      el.parentNode.removeChild(el);
+    if (el.nodeType === 3 && (el.parentNode != null)) {
+      return cleanEmptyNodes(el.parentNode);
+    } else {
+      prev = el.previousSibling;
+      next = el.nextSibling;
+      if (el.nodeType === 1 && el.textContent.trim() === '' && ((_ref = el.parentNode) != null ? _ref.hasAttribute('doc') : void 0)) {
+        el.parentNode.removeChild(el);
+      }
+      if (next === nextSibling(prev)) return mergeLeisureCode(prev, next);
     }
-    if (next === nextSibling(prev)) return mergeLeisureCode(prev, next);
   };
 
   presentLeisureCode = function presentLeisureCode(node, doEval) {
@@ -424,6 +446,7 @@
       newCode = textNode(el1.md = el1.getAttribute('leisureNode') === 'code' ? "" + (getElementCode(el1)) + "\n" + (getElementCode(el2)) : "" + el1.md + "\n" + el2.md);
       r = document.createRange();
       r.selectNodeContents(el2);
+      el1.appendChild(textNode('\n'));
       el1.appendChild(r.extractContents());
       return el2.parentNode.removeChild(el2);
     }
@@ -1892,5 +1915,25 @@
   root.mergeLeisureCode = mergeLeisureCode;
 
   root.highlightNotebookFunction = highlightNotebookFunction;
+
+  root.ESC = ESC;
+
+  root.HOME = HOME;
+
+  root.END = END;
+
+  root.PAGE_UP = PAGE_UP;
+
+  root.PAGE_DOWN = PAGE_DOWN;
+
+  root.LEFT_ARROW = LEFT_ARROW;
+
+  root.UP_ARROW = UP_ARROW;
+
+  root.RIGHT_ARROW = RIGHT_ARROW;
+
+  root.DOWN_ARROW = DOWN_ARROW;
+
+  root.arrows = arrows;
 
 }).call(this);

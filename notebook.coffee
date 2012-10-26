@@ -18,8 +18,16 @@ debug = false
 BS = 8
 TAB = 9
 ENTER = 13
-DEL = 46
+ESC = 27
+PAGE_UP = 33
+PAGE_DOWN = 34
+END = 35
+HOME = 36
 LEFT_ARROW = 37
+UP_ARROW = 38
+RIGHT_ARROW = 39
+DOWN_ARROW = 40
+DEL = 46
 arrows = [37..40]
 updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
 peer = null
@@ -183,7 +191,7 @@ checkDeleteExpr = (node)->
     out = node.output
     window.setTimeout (->
       if !node.textContent.trim() then node.parentNode.removeChild node
-      if !node.parentNode? then out.parentNode.removeChild out
+      if !node.parentNode? && out?.parentNode? then out.parentNode.removeChild out
     ), 1
 
 skipLeftOverOutputBox = (el, r)->
@@ -251,11 +259,13 @@ clearAst = (box)->
 oldBrackets = [null, Parse.Nil]
 
 cleanEmptyNodes = (el)->
-  prev = el.previousSibling
-  next = el.nextSibling
-  if el.nodeType == 1 && el.textContent.trim() == '' && el.parentNode?.hasAttribute 'doc'
-    el.parentNode.removeChild el
-  if next == nextSibling prev then mergeLeisureCode prev, next
+  if el.nodeType == 3 and el.parentNode? then cleanEmptyNodes el.parentNode
+  else
+    prev = el.previousSibling
+    next = el.nextSibling
+    if el.nodeType == 1 && el.textContent.trim() == '' && el.parentNode?.hasAttribute 'doc'
+      el.parentNode.removeChild el
+    if next == nextSibling prev then mergeLeisureCode prev, next
 
 presentLeisureCode = (node, doEval)->
   node.setAttribute 'contentEditable', 'true'
@@ -273,6 +283,7 @@ mergeLeisureCode = (el1, el2)->
     #if el1.autorunState then Notebook.runTests el1
     r = document.createRange()
     r.selectNodeContents el2
+    el1.appendChild textNode '\n'
     el1.appendChild r.extractContents()
     el2.parentNode.removeChild el2
 
@@ -1252,6 +1263,16 @@ root.nextSibling = nextSibling
 root.presentLeisureCode = presentLeisureCode
 root.mergeLeisureCode = mergeLeisureCode
 root.highlightNotebookFunction = highlightNotebookFunction
+root.ESC = ESC
+root.HOME = HOME
+root.END = END
+root.PAGE_UP = PAGE_UP
+root.PAGE_DOWN = PAGE_DOWN
+root.LEFT_ARROW = LEFT_ARROW
+root.UP_ARROW = UP_ARROW
+root.RIGHT_ARROW = RIGHT_ARROW
+root.DOWN_ARROW = DOWN_ARROW
+root.arrows = arrows
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

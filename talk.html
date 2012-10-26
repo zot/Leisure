@@ -16,27 +16,136 @@
       };
       leisureAutoRunAll = true;
       function start() {
-          var script = document.createElement('script');
-          script.src = "bootLeisure.js";
-          document.body.appendChild(script);
+          if (navigator && navigator.appVersion && navigator.appVersion.match(/Chrome/)) {
+              var script = document.createElement('script');
+              script.src = "bootLeisure.js";
+              document.body.appendChild(script);
+          } else {
+              document.body.innerHTML = '<h1>This version of Leisure only supports Chrome</h1>';
+          }
       }
     </script>
   </head>
-  <body class="thin">
-    <div doc class="embedded" style="padding: 5px">
+  <body class="thin" doc class="embedded">
 <!--
+-
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
 Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
 
+![Tiny Concepts](tinyconcepts.png)
+
+## **Use the left arrow, right arrow, page up, page down, home, and end keys to navigate**
+
+## **To view this as a regular notebook instead of slides, click the slides button, below**
+***
+# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+
+Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
+
+![Tiny Concepts](tinyconcepts.png)
+***
 # Leisure is a **Toy**
 
-Programming ought to be fun, easy, and interesting, and it should have there should be cool stuff to play with.  Leisure tries to make it that way.  This is a Leisure notebook that explains a little about the language and environment.
+Let's listen to Dr. Steel's definition of *toy...*
 
-## Notebooks: Interactive Development and Zero-Install Deployment
+<iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
 
-What if markdown code blocks contained real, executable code?  That's the case with Leisure.  Leisure programs are markdown files.
+We like to share our toys.  Leisure is **open source**; you are invited to play with it and changes it.  Please feel free to use it to make cool stuff!
 
+***
+# Programming should be fun!
+
+Programming ought to be fun, easy, and interesting, and there should be cool stuff to play with.  Leisure tries to make it that way.
+***
+# Notebooks
+
+Markdown.
+***
+-
+# Notebooks
+
+Markdown.
+
+What if markdown code blocks were real, executable code?
+***
+-
+# Notebooks
+
+Markdown.
+
+What if markdown code blocks were real, executable code?
+***
+# Interactive Development
+
+The LISP REPL was a good first step
+***
+-
+# Interactive Development
+
+The LISP REPL was a good first step -- teletype-like interaction
+***
+-
+# Interactive Development
+
+The LISP REPL was a good first step -- teletype-like interaction
+
+Smalltalk introduced the IDE
+***
+-
+# Interactive Development
+
+The LISP REPL was a good first step -- teletype-like interaction
+
+Smalltalk introduced the IDE -- but it wasn't document-based
+***
+-
+# Interactive Development
+
+The LISP REPL was a good first step -- teletype-like interaction
+
+Smalltalk introduced the IDE -- but it wasn't document-based (like Eclipse)
+***
+-
+# Interactive Development
+
+The LISP REPL was a good first step -- teletype-like interaction
+
+Smalltalk introduced the IDE -- but it wasn't document-based (like Eclipse)
+
+Mathematica introduced the Notebook
+***
+-
+# Interactive Development
+
+The LISP REPL was a good first step -- teletype-like interaction
+
+Smalltalk introduced the IDE -- but it wasn't document-based (like Eclipse)
+
+Mathematica introduced the Notebook -- but it requires installation and maintenence
+***
+-
+# Interactive Development
+
+The LISP REPL was a good first step -- teletype-like interaction
+
+Smalltalk introduced the IDE -- but it wasn't document-based (like Eclipse)
+
+Mathematica introduced the Notebook -- but it requires installation and maintenence (and $$$$)
+***
+-
+# Interactive Development
+
+The LISP REPL was a good first step -- teletype-like interaction
+
+Smalltalk introduced the IDE -- but it wasn't document-based (like Eclipse)
+
+Mathematica introduced the Notebook -- but it requires installation and maintenence (and $$$$)
+
+Leisure Runs Entirely in a Browser
+***
+
+***
 For decades, programming has been done primarily in glorified text editors.  Some great strides have been made in various IDEs, but typically the
 programmer is still burdened with a neverending "compile, test, debug" development cycle.  Why do we keep settling for this when clearly we can do better?
 
@@ -226,7 +335,6 @@ do
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
 -->
-    </div>
     <script>start()</script>
   </body>
 </html>

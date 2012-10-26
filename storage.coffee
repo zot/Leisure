@@ -203,6 +203,7 @@ continueWithAutoSaves = ->
 # START AUTHENTICATION
 
 start = ->
+  return
   script = document.createElement('script');
   script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
   document.head.appendChild(script);

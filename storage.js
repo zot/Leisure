@@ -165,6 +165,7 @@
 
   start = function start() {
     var script;
+    return;
     script = document.createElement('script');
     script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
     return document.head.appendChild(script);

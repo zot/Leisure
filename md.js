@@ -1,24 +1,142 @@
 (function() {
-  var ENTER, bindMarkupDiv, cleanEmptyNodes, getElementCode, isLeisureCode, makeMarkupDiv, markupElement, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, textNode;
+  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, cleanEmptyNodes, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, sliding, textNode, _,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  ENTER = Notebook.ENTER, textNode = Notebook.textNode, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode;
+  jQuery = window.jQuery, $ = window.$, _ = window._;
+
+  ENTER = Notebook.ENTER, textNode = Notebook.textNode, createNode = Notebook.createNode, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode, ESC = Notebook.ESC, HOME = Notebook.HOME, END = Notebook.END, PAGE_UP = Notebook.PAGE_UP, PAGE_DOWN = Notebook.PAGE_DOWN, LEFT_ARROW = Notebook.LEFT_ARROW, RIGHT_ARROW = Notebook.RIGHT_ARROW, UP_ARROW = Notebook.UP_ARROW, DOWN_ARROW = Notebook.DOWN_ARROW, arrows = Notebook.arrows;
 
   window.markup = function markup() {
-    var el, md, _i, _len, _ref, _results;
-    _ref = document.querySelectorAll('[doc]');
+    var el, md, nodes, oneDoc, _i, _len, _results;
+    nodes = document.querySelectorAll('[doc]');
+    oneDoc = nodes.length === 1 && nodes[0] === document.body;
     _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      el = _ref[_i];
-      md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '');
-      _results.push(markupElement(el, md));
+    for (_i = 0, _len = nodes.length; _i < _len; _i++) {
+      el = nodes[_i];
+      md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '').trim();
+      if (oneDoc) {
+        _results.push(markupSlides(el, md));
+      } else {
+        _results.push(markupElement(el, md));
+      }
     }
     return _results;
   };
 
+  lastSlide = null;
+
+  slideCount = 0;
+
+  markupSlides = function markupSlides(el, md) {
+    var continuation, div, firstNode, p, pages, _i, _len;
+    pages = md.split(/^(?=\*\*\*\n)/m);
+    if (pages.length > 1) {
+      document.body.classList.add('slide-container');
+      document.body.innerHTML = '';
+      bindSlider();
+      for (_i = 0, _len = pages.length; _i < _len; _i++) {
+        p = pages[_i];
+        continuation = p.match(/-\n/m);
+        lastSlide = div = document.createElement('DIV');
+        div.classList.add('slide');
+        div.setAttribute('doc', '');
+        if (continuation) div.classList.add('continuation');
+        div.setAttribute('slide', ++slideCount);
+        hideSlide($(div));
+        document.body.appendChild(div);
+        firstNode = document.createElement('DIV');
+        div.appendChild(firstNode);
+        markupElement(firstNode, p);
+      }
+      div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; margin-right: 10px'></div>\n</div>");
+      document.body.appendChild(div);
+      if (location.search && _.find(location.search.slice(1).split('&'), (function(p) {
+        return p.match(/^slides=/);
+      }))) {
+        return showSlide($(document.body.firstElementChild));
+      } else {
+        return document.body.classList.add('scroll');
+      }
+    } else {
+      return markupElement(el, md);
+    }
+  };
+
+  sliding = true;
+
+  window.toggleSlideShow = function toggleSlideShow() {
+    sliding = $(document.body).is('.scroll');
+    if (sliding) {
+      $(document.body).removeClass('scroll');
+      return showSlide($(document.body.firstElementChild));
+    } else {
+      hideSlide($('.slide.showing'));
+      $(document.body).addClass('scroll');
+      return $('#slide-num').html('');
+    }
+  };
+
+  bindSlider = function bindSlider() {
+    return document.body.addEventListener('keydown', slideKeyListener);
+  };
+
+  slideControls = [ESC, LEFT_ARROW, RIGHT_ARROW, HOME, END, PAGE_UP, PAGE_DOWN];
+
+  slideKeyListener = function slideKeyListener(e) {
+    var c, cur, n, next;
+    if (sliding) {
+      window.evt = e;
+      c = e.charCode || e.keyCode || e.which;
+      console.log("keydown: " + c);
+      if ((__indexOf.call(slideControls, c) >= 0) && !$(e.target).is('[leisurenode=code],[leisurenode=code] *')) {
+        e.preventDefault();
+        if (c === ESC) return toggleSlideShow();
+        cur = $('.slide.showing');
+        next = (function() {
+          switch (c) {
+            case HOME:
+              return $(document.body.firstElementChild);
+            case END:
+              return $(lastSlide);
+            case LEFT_ARROW:
+            case PAGE_UP:
+              n = cur.prev();
+              if (n.length) {
+                return n;
+              } else {
+                return $(document.body.firstElementChild);
+              }
+              break;
+            case RIGHT_ARROW:
+            case PAGE_DOWN:
+              n = cur.next('.slide');
+              if (n.length) {
+                return n;
+              } else {
+                return $(lastSlide);
+              }
+          }
+        })();
+        hideSlide(cur);
+        return showSlide(next);
+      }
+    }
+  };
+
+  showSlide = function showSlide(el) {
+    $('#slide-num').html("" + (el[0].getAttribute('slide')) + " / " + slideCount);
+    return el.removeClass('hidden').addClass('showing');
+  };
+
+  hideSlide = function hideSlide(el) {
+    return el.addClass('hidden').removeClass('showing');
+  };
+
   markupElement = function markupElement(el, md) {
-    var code, codePos, len, lex, node, prev, prevCodePos, range, _i, _len, _ref, _ref2;
+    var code, codePos, len, lex, node, prev, prevCodePos, range, slide, _i, _len, _ref, _ref2;
     len = md.length;
-    _ref = window.marked(md, {
+    slide = md.match(/^\*\*\*\n(-\n)?|^-\n/);
+    _ref = window.marked((slide ? md.slice(slide[0].length) : md), {
       saveLex: true,
       gfm: true
     }), el.innerHTML = _ref[0], lex = _ref[1];
@@ -84,7 +202,7 @@
     div.addEventListener('dblclick', function(e) {
       if (!editing) {
         div.innerHTML = '';
-        div.appendChild(document.createTextNode(div.md));
+        div.appendChild(textNode(div.md));
         div.style.whiteSpace = 'pre-wrap';
         div.setAttribute('contenteditable', 'true');
         editing = true;

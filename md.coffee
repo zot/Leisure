@@ -8,26 +8,125 @@
 #   Xus = window.Xus
 # else root = exports ? this
 
+{jQuery, $, _} = window
+
 {ENTER,
   textNode,
+  createNode,
   cleanEmptyNodes,
   isLeisureCode,
   getElementCode,
   previousSibling,
   nextSibling,
   presentLeisureCode,
-  mergeLeisureCode} = Notebook
+  mergeLeisureCode,
+  ESC,
+  HOME,
+  END,
+  PAGE_UP,
+  PAGE_DOWN,
+  LEFT_ARROW,
+  RIGHT_ARROW,
+  UP_ARROW,
+  DOWN_ARROW,
+  arrows} = Notebook
 
 window.markup = ->
-  for el in document.querySelectorAll('[doc]')
+  nodes = document.querySelectorAll('[doc]')
+  oneDoc = nodes.length == 1 && nodes[0] == document.body
+  for el in nodes
     #console.log "source: ", el.innerHTML
-    md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '');
+    md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '').trim();
     #console.log "replaced: ", md
+    if oneDoc
+      markupSlides el, md
+    else
+      markupElement el, md
+
+lastSlide = null
+slideCount = 0
+
+markupSlides = (el, md)->
+  pages = md.split /^(?=\*\*\*\n)/m
+  if pages.length > 1
+    document.body.classList.add 'slide-container'
+    document.body.innerHTML = ''
+    bindSlider()
+    for p in pages
+      continuation = p.match /-\n/m
+      lastSlide = div = document.createElement 'DIV'
+      div.classList.add 'slide'
+      div.setAttribute 'doc', ''
+      if continuation then div.classList.add 'continuation'
+      div.setAttribute 'slide', ++slideCount
+      hideSlide $(div)
+      document.body.appendChild div
+      firstNode = document.createElement 'DIV'
+      div.appendChild firstNode
+      markupElement firstNode, p
+    div = createNode """
+<div class='slide-controls'>
+  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>
+  <div id='slide-num' style='float: right; margin-right: 10px'></div>
+</div>
+"""
+    document.body.appendChild div
+    if location.search && _.find location.search[1..].split('&'), ((p)-> p.match /^slides=/)
+      showSlide $(document.body.firstElementChild)
+    else
+      document.body.classList.add 'scroll'
+  else
     markupElement el, md
+
+sliding = true
+
+window.toggleSlideShow = ->
+  sliding = $(document.body).is('.scroll')
+  if sliding
+    $(document.body).removeClass 'scroll'
+    showSlide $(document.body.firstElementChild)
+  else
+    hideSlide $('.slide.showing')
+    $(document.body).addClass 'scroll'
+    $('#slide-num').html('')
+
+bindSlider = ->
+  document.body.addEventListener 'keydown', slideKeyListener
+
+slideControls = [ESC, LEFT_ARROW, RIGHT_ARROW, HOME, END, PAGE_UP, PAGE_DOWN]
+
+slideKeyListener = (e)->
+  if sliding
+    window.evt = e
+    c = (e.charCode || e.keyCode || e.which)
+    console.log "keydown: #{c}"
+    if (c in slideControls) && !$(e.target).is('[leisurenode=code],[leisurenode=code] *')
+      e.preventDefault()
+      if c == ESC then return toggleSlideShow();
+      cur = $('.slide.showing')
+      next = switch c
+        when HOME then $(document.body.firstElementChild)
+        when END then $(lastSlide)
+        when LEFT_ARROW, PAGE_UP
+          n = cur.prev()
+          if n.length then n else $(document.body.firstElementChild)
+        when RIGHT_ARROW, PAGE_DOWN
+          n = cur.next('.slide')
+          if n.length then n else $(lastSlide)
+      hideSlide cur
+      showSlide next
+
+showSlide = (el)->
+  $('#slide-num').html "#{el[0].getAttribute('slide')} / #{slideCount}"
+  el.removeClass('hidden').addClass('showing')
+
+hideSlide = (el)-> el.addClass('hidden').removeClass('showing')
 
 markupElement = (el, md)->
   len = md.length
-  [el.innerHTML, lex] = window.marked md, saveLex: true, gfm: true
+  slide = md.match /^\*\*\*\n(-\n)?|^-\n/
+  #console.log "LEN: #{slide[0].length}, SLIDE: '#{md[0...20]}', SLICED '#{md[slide[0].length...20]}'"
+  [el.innerHTML, lex] = window.marked (if slide then md[slide[0].length..] else md), saveLex: true, gfm: true
   #console.log "Lex: ", JSON.stringify lex
   prev = null
   range = document.createRange()
@@ -73,7 +172,7 @@ bindMarkupDiv = (div)->
   div.addEventListener 'dblclick', (e)->
     if !editing
       div.innerHTML = ''
-      div.appendChild document.createTextNode div.md
+      div.appendChild textNode div.md
       div.style.whiteSpace = 'pre-wrap'
       div.setAttribute 'contenteditable', 'true'
       editing = true
