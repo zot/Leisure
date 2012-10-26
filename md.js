@@ -41,6 +41,7 @@
         continuation = p.match(/-\n/m);
         lastSlide = div = document.createElement('DIV');
         div.classList.add('slide');
+        div.classList.add('ui-widget');
         div.classList.add('ui-widget-content');
         div.setAttribute('doc', '');
         if (continuation) div.classList.add('continuation');
