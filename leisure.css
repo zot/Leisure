@@ -188,7 +188,7 @@ body {
   background: white;
 }
 
-.slide .ui-button {
+.slide .ui-button, .slide-container .ui-button {
   padding-left: 10px;
   padding-right: 10px;
 }
