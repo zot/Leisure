@@ -179,12 +179,16 @@
   };
 
   getMDDocument = function getMDDocument(nodes) {
-    var md, node, _i, _len, _ref, _ref2;
+    var doc, md, node, _i, _j, _len, _len2, _ref, _ref2, _ref3;
     md = '';
-    _ref = document.querySelector('[doc]').childNodes;
+    _ref = document.querySelectorAll('[doc]');
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      node = _ref[_i];
-      md += isLeisureCode(node) ? "```\n" + (getElementCode(node)) + "\n```\n" : (_ref2 = node.md) != null ? _ref2 : '';
+      doc = _ref[_i];
+      _ref2 = doc.childNodes;
+      for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
+        node = _ref2[_j];
+        md += isLeisureCode(node) ? "```\n" + (getElementCode(node)) + "\n```\n" : (_ref3 = node.md) != null ? _ref3 : '';
+      }
     }
     return md;
   };

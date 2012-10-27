@@ -30,27 +30,27 @@
   slideCount = 0;
 
   markupSlides = function markupSlides(el, md) {
-    var continuation, div, firstNode, p, pages, _i, _len;
+    var continuation, div, p, pages, _i, _len;
     pages = md.split(/^(?=\*\*\*\n)/m);
     if (pages.length > 1) {
       document.body.classList.add('slide-container');
       document.body.innerHTML = '';
       bindSlider();
+      el.removeAttribute('doc');
       for (_i = 0, _len = pages.length; _i < _len; _i++) {
         p = pages[_i];
         continuation = p.match(/-\n/m);
         lastSlide = div = document.createElement('DIV');
+        el.appendChild(div);
         div.classList.add('slide');
+        div.classList.add('ui-corner-all');
         div.classList.add('ui-widget');
         div.classList.add('ui-widget-content');
         div.setAttribute('doc', '');
         if (continuation) div.classList.add('continuation');
         div.setAttribute('slide', ++slideCount);
         hideSlide($(div));
-        document.body.appendChild(div);
-        firstNode = document.createElement('DIV');
-        div.appendChild(firstNode);
-        markupElement(firstNode, p);
+        markupElement(div, p);
       }
       div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; margin-right: 10px'></div>\n</div>");
       markupButtons(div);
@@ -189,8 +189,8 @@
         makeMarkupDiv(range, md.substring(len - lex[prevCodePos].remain));
       }
     } else {
-      el.md = md;
-      if (!el.bound) bindMarkupDiv(el);
+      range.selectNodeContents(el);
+      makeMarkupDiv(range, md);
     }
     return prevCodePos > -1;
   };

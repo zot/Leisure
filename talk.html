@@ -53,7 +53,6 @@ Let's listen to Dr. Steel's definition of *toy...*
 <iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
 
 We like to share our toys.  Leisure is **open source**; you are invited to play with it and changes it.  Please feel free to use it to make cool stuff!
-
 ***
 # Programming should be fun!
 
@@ -62,26 +61,155 @@ Programming ought to be fun, easy, and interesting, and there should be cool stu
 -
 # Notebooks
 
-Markdown.
+All Leisure programs are markdown documents
 ***
 -
 # Notebooks
 
-Markdown.
+All Leisure programs are markdown documents
+
+The render as notebooks
+***
+-
+# Notebooks
+
+All Leisure programs are markdown documents
+
+The render as notebooks
+
+This presentation is an example of a Leisure notebook
+***
+-
+# Notebooks
+
+All Leisure programs are markdown documents
+
+The render as notebooks
+
+This presentation is an example of a Leisure notebook
+
+You can edit them
+***
+-
+# Notebooks
 
 What if markdown code blocks were real, executable code?
 ***
 -
 # Notebooks
 
-Markdown.
+# Develop interactively
+***
+# Notebooks
 
-What if markdown code blocks were real, executable code?
+# Develop interactively
+
+## Evaluate expressions in the document
 
 ```
 3 + 4
+cons 1 (cons 2 nil)
+['a' 'b' 1 'c']
+```
+
+## Keep the expressions as live examples in documentation
+## Other people can use them to understand your code better
+***
+# Notebooks
+
+# Develop interactively
+
+## Verify how your code compiles
+
+```
+add3 a b c = a + b + c
 ```
 ***
+# Notebooks
+
+# Develop interactively
+
+## Test cases
+
+```
+#@test "f1"
+#@expected "1"
+f1 = 1
+
+#@test "f2"
+#@expected "1"
+f2 = 2
+```
+***
+-
+# Notebooks
+
+# Deploy your code...
+***
+-
+# Notebooks
+
+# Deploy your code...
+
+# ...as a Notebook, like this
+***
+# Notebooks
+
+# Deploy your code...
+
+# ...as a Notebook, like this
+
+# ...or as a "regular" web page
+***
+# Notebooks
+
+# Deploy your code...
+
+# ...as a Notebook, like this
+
+# ...or as a "regular" web page
+
+# ...or in node.js
+***
+-
+# The Language
+***
+-
+# The Language
+
+## Leisure compiles to Javascript
+***
+-
+# The Language
+
+## Leisure compiles to Javascript
+
+## It's a naive compiler
+***
+-
+# The Language
+
+## Leisure compiles to Javascript
+
+## It's a naive compiler
+
+## There's a lot of room for improvement!
+***
+-
+# The Language
+
+## The syntax minimizes parentheses
+***
+-
+# The Language
+
+## The syntax minimizes parentheses
+
+Indented lines continue the overhanging expression
+***
+-
+# The Language
+
 # Leisure Complier Flow
 ![Compiler Flow](LeisureParsingFlow.svg)
 ***
@@ -121,9 +249,9 @@ in order to compile it to JavaScript and you can click the arrow button to evalu
 
 ```
 z = 1
-add3 a b c = a + b + c
+#add3 a b c = a + b + c
 
-add3 1 2 3
+#add3 1 2 3
 ```
 
 ## Customizable
