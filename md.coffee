@@ -20,6 +20,8 @@
   nextSibling,
   presentLeisureCode,
   mergeLeisureCode,
+  closeWindow,
+  markupButtons,
   ESC,
   HOME,
   END,
@@ -30,6 +32,8 @@
   UP_ARROW,
   DOWN_ARROW,
   arrows} = Notebook
+
+Q = 81
 
 window.markup = ->
   nodes = document.querySelectorAll('[doc]')
@@ -52,24 +56,31 @@ markupSlides = (el, md)->
     document.body.classList.add 'slide-container'
     document.body.innerHTML = ''
     bindSlider()
+    el.removeAttribute 'doc'
     for p in pages
       continuation = p.match /-\n/m
       lastSlide = div = document.createElement 'DIV'
+      el.appendChild div
       div.classList.add 'slide'
+      div.classList.add 'ui-corner-all'
+      div.classList.add 'ui-widget'
+      div.classList.add 'ui-widget-content'
       div.setAttribute 'doc', ''
       if continuation then div.classList.add 'continuation'
       div.setAttribute 'slide', ++slideCount
       hideSlide $(div)
-      document.body.appendChild div
-      firstNode = document.createElement 'DIV'
-      div.appendChild firstNode
-      markupElement firstNode, p
+      #document.body.appendChild div
+      #firstNode = document.createElement 'DIV'
+      #div.appendChild firstNode
+      #markupElement firstNode, p
+      markupElement div, p
     div = createNode """
 <div class='slide-controls'>
   <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>
   <div id='slide-num' style='float: right; margin-right: 10px'></div>
 </div>
 """
+    markupButtons div
     document.body.appendChild div
     if location.search && _.find location.search[1..].split('&'), ((p)-> p.match /^slides=/)
       showSlide $(document.body.firstElementChild)
@@ -93,7 +104,7 @@ window.toggleSlideShow = ->
 bindSlider = ->
   document.body.addEventListener 'keydown', slideKeyListener
 
-slideControls = [ESC, LEFT_ARROW, RIGHT_ARROW, HOME, END, PAGE_UP, PAGE_DOWN]
+slideControls = [Q, ESC, LEFT_ARROW, RIGHT_ARROW, HOME, END, PAGE_UP, PAGE_DOWN]
 
 slideKeyListener = (e)->
   if sliding
@@ -102,19 +113,21 @@ slideKeyListener = (e)->
     console.log "keydown: #{c}"
     if (c in slideControls) && !$(e.target).is('[leisurenode=code],[leisurenode=code] *')
       e.preventDefault()
-      if c == ESC then return toggleSlideShow();
-      cur = $('.slide.showing')
-      next = switch c
-        when HOME then $(document.body.firstElementChild)
-        when END then $(lastSlide)
-        when LEFT_ARROW, PAGE_UP
-          n = cur.prev()
-          if n.length then n else $(document.body.firstElementChild)
-        when RIGHT_ARROW, PAGE_DOWN
-          n = cur.next('.slide')
-          if n.length then n else $(lastSlide)
-      hideSlide cur
-      showSlide next
+      if c == ESC then toggleSlideShow()
+      else if c == Q then closeWindow()
+      else
+        cur = $('.slide.showing')
+        next = switch c
+          when HOME then $(document.body.firstElementChild)
+          when END then $(lastSlide)
+          when LEFT_ARROW, PAGE_UP
+            n = cur.prev()
+            if n.length then n else $(document.body.firstElementChild)
+          when RIGHT_ARROW, PAGE_DOWN
+            n = cur.next('.slide')
+            if n.length then n else $(lastSlide)
+        hideSlide cur
+        showSlide next
 
 showSlide = (el)->
   $('#slide-num').html "#{el[0].getAttribute('slide')} / #{slideCount}"
@@ -154,8 +167,10 @@ markupElement = (el, md)->
       range.setStartAfter prev
       makeMarkupDiv range, md.substring len - lex[prevCodePos].remain
   else
-    el.md = md
-    if !el.bound then bindMarkupDiv el
+    #el.md = md
+    range.selectNodeContents el
+    makeMarkupDiv range, md
+    #if !el.bound then bindMarkupDiv el
   prevCodePos > -1
 
 makeMarkupDiv = (range, md)->

@@ -127,7 +127,7 @@ body {
   position: absolute;
   top: 0;
   right: -28px;
-  background: url(ast.png) no-repeat;
+  background: url(ast.png) no-repeat !important;
   width: 24px;
   height: 24px;
 }
@@ -166,9 +166,10 @@ body {
 }
 
 .scroll .slide {
-  position: static !important;
+  position: relative !important;
   display: block !important;
   border: solid black 1px;
+  padding: 10px;
   margin: 5px;
 }
 
@@ -184,6 +185,17 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
+  color: black;
+  background: white;
+}
+
+.slide .ui-button, .slide-container .ui-button {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.slide a {
+  color: blue;
 }
 
 .slide.hidden {

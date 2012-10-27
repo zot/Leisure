@@ -58,12 +58,14 @@ bootNotebook = (el)->
 </datalist>"""
   createPeer()
 
+closeWindow = ->
+  console.log "CLOSING WINDOW"
+  window.open '', '_self', ''
+  window.close()
+
 createPeer = ->
   root.xusServer = server = new Xus.Server()
-  server.exit = ->
-    console.log "CLOSING WINDOW"
-    window.open '', '_self', ''
-    window.close()
+  server.exit = -> closeWindow()
   peer = root.peer = Xus.createDirectPeer server
   peer.server = server
   peer.listen 'leisure/selection/contents', true, (key, value)->
@@ -118,8 +120,9 @@ peerGetFunctions = -> (_.uniq window.leisureFuncNames.toArray().sort(), true).so
 getMDDocument = (nodes)->
   #Notebook.md.replace /<pre.*\/pre>/g, (match)-> '\n=>' + match.replace('\n', '\n->')
   md = ''
-  for node in document.querySelector('[doc]').childNodes
-    md += if isLeisureCode node then "```\n#{getElementCode node}\n```\n" else node.md ? ''
+  for doc in document.querySelectorAll '[doc]'
+    for node in doc.childNodes
+      md += if isLeisureCode node then "```\n#{getElementCode node}\n```\n" else node.md ? ''
   md
 
 makeId = (el)-> if !el.id then el.id = "Leisure-#{nextId++}"
@@ -354,25 +357,39 @@ checkMutateFromModification = (evt)->
     if (isDef b) and b.classList.contains('codeMainExpr') then toDefBox b
     else if !(isDef b) and b.classList.contains('codeMain') then toExprBox b
 
+buttonClasses = 'ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only'.split ' '
+
+boxClasses =
+  codeMainExpr: ['codeMainExpr', 'ui-widget', 'ui-widget-content', 'ui-corner-all']
+  codeMain: ['codeMain', 'ui-widget', 'ui-widget-content', 'ui-corner-all']
+  codeMainTest: ['codeMainTest']
+  output: ['output', 'ui-widget', 'ui-widget-content', 'ui-corner-all']
+
+addBoxClasses = (box, type)->
+  box.setAttribute type, ''
+  box.classList.add cl for cl in boxClasses[type]
+
+removeBoxClasses = (box, type)->
+  box.removeAttribute type
+  box.classList.remove cl for cl in boxClasses[type]
+
 toExprBox = (b)->
-  b.removeAttribute 'codeMain'
-  b.classList.remove 'codeMain'
-  b.setAttribute 'codeMainExpr', ''
-  b.classList.add 'codeMainExpr'
+  removeBoxClasses b, 'codeMain'
+  addBoxClasses b, 'codeMainExpr'
   for node in b.querySelectorAll '.astbutton'
     remove node
   makeOutputBox b
 
 toDefBox = (b)->
   if b.output then remove b.output
-  b.removeAttribute 'codeMainExpr'
-  b.classList.remove 'codeMainExpr'
-  b.setAttribute 'codeMain', ''
-  b.classList.add 'codeMain'
+  removeBoxClasses b, 'codeMainExpr'
+  addBoxClasses b, 'codeMain'
   addDefControls b
 
 addDefControls = (box)->
-  box.appendChild createNode "<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>"
+  btn = createNode "<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>"
+  markupButton btn
+  box.appendChild btn
 
 remove = (node)->node.parentNode?.removeChild node
 
@@ -491,6 +508,13 @@ insertControls = (el)->
     el.autorunState = el.autorun.checked
     if el.autorunState then runTests el
   configureSaveLink(el)
+  markupButtons controlDiv
+
+markupButtons = (el)->
+  markupButton btn for btn in el.querySelectorAll 'button'
+
+markupButton = (btn)->
+  btn.classList.add cl for cl in buttonClasses
 
 getElements = (el, ids)->
   els = {}
@@ -714,6 +738,7 @@ checkHideSource = (box)->
   if !box.hideSource and box.firstElementChild?.nextElementSibling?.nextElementSibling?
     box.hideSource = true
     hs = createNode "<button class='editToggle' style='float:right'></button>"
+    markupButton hs
     hs.addEventListener 'click', -> toggleEdit(hs)
     box.firstElementChild.appendChild hs
 
@@ -721,6 +746,7 @@ makeOutputControls = (exBox)->
   if exBox.firstChild.firstChild == exBox.firstChild.lastChild
     exBox.firstChild.insertBefore createFragment("""<button onclick='Notebook.clearOutputBox(this)'>X</button>"""), exBox.firstChild.firstChild
     exBox.firstChild.appendChild createFragment("""<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Stop Updates</button>""")
+    markupButtons exBox
     exBox.classList.add 'fatControls'
 
 toggleEdit = (toggleButton)->
@@ -866,11 +892,12 @@ makeOutputBox = (source)->
   node.setAttribute 'LeisureOutput', ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'LeisureBox', ''
-  node.setAttribute 'class', 'output'
+  node.classList.add cl for cl in boxClasses.output
   node.setAttribute 'contentEditable', 'false'
   node.source = source
   source.output = node
   node.innerHTML = "<div class='controls'><button onclick='Notebook.evalOutput(this)'>-&gt;</button></div>"
+  markupButtons node
   source.parentNode.insertBefore node, source.nextSibling
   node
 
@@ -884,10 +911,9 @@ codeSpan = (text, boxType)->
 
 codeBox = (boxType)->
   node = document.createElement 'div'
-  node.setAttribute boxType, ''
+  addBoxClasses node, boxType
   node.setAttribute 'LeisureBox', ''
   node.setAttribute 'Leisure', ''
-  node.setAttribute 'class', boxType
   node.addEventListener 'compositionstart', (e)-> checkMutate e
   node
 
@@ -1273,6 +1299,9 @@ root.UP_ARROW = UP_ARROW
 root.RIGHT_ARROW = RIGHT_ARROW
 root.DOWN_ARROW = DOWN_ARROW
 root.arrows = arrows
+root.closeWindow = closeWindow
+root.markupButton = markupButton
+root.markupButtons = markupButtons
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

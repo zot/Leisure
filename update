@@ -1,6 +1,6 @@
 #!/bin/sh
-for i in *; do
-	cp ../lambdaCalculus/$i .
+for i in $(find * -type f); do
+	cp ../lambdaCalculus/$i $i
 done
 if [ "$1" != "-t" ]; then
     git add .
