@@ -83,11 +83,17 @@ markupSlides = (el, md)->
     markupButtons div
     document.body.appendChild div
     if location.search && _.find location.search[1..].split('&'), ((p)-> p.match /^slides=/)
-      showSlide $(document.body.firstElementChild)
+      showSlide $(chooseSlide())
     else
       document.body.classList.add 'scroll'
   else
     markupElement el, md
+
+chooseSlide = ->
+  param = _.find location.search[1..].split('&'), ((p)-> p.match /^slide=.*/)
+  console.log param
+  if param then document.querySelector "[slide='#{param.split('=')[1]}']"
+  else document.body.firstElementChild
 
 sliding = true
 

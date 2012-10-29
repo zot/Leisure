@@ -1,5 +1,5 @@
 (function() {
-  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, Q, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, cleanEmptyNodes, closeWindow, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupButtons, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, sliding, textNode, _,
+  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, Q, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, chooseSlide, cleanEmptyNodes, closeWindow, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupButtons, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, sliding, textNode, _,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   jQuery = window.jQuery, $ = window.$, _ = window._;
@@ -58,12 +58,25 @@
       if (location.search && _.find(location.search.slice(1).split('&'), (function(p) {
         return p.match(/^slides=/);
       }))) {
-        return showSlide($(document.body.firstElementChild));
+        return showSlide($(chooseSlide()));
       } else {
         return document.body.classList.add('scroll');
       }
     } else {
       return markupElement(el, md);
+    }
+  };
+
+  chooseSlide = function chooseSlide() {
+    var param;
+    param = _.find(location.search.slice(1).split('&'), (function(p) {
+      return p.match(/^slide=.*/);
+    }));
+    console.log(param);
+    if (param) {
+      return document.querySelector("[slide='" + (param.split('=')[1]) + "']");
+    } else {
+      return document.body.firstElementChild;
     }
   };
 

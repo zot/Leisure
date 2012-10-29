@@ -32,7 +32,7 @@
 -
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
-Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
+## Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
 
 ![Tiny Concepts](tinyconcepts.png)
 
@@ -42,67 +42,92 @@ Leisure reveals arcane secrets so that you can write modern programs using the e
 ***
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
-Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
+## Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
 
 ![Tiny Concepts](tinyconcepts.png)
 ***
-# Leisure is a **Toy**
+-
+# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
-Let's listen to Dr. Steel's definition of *toy...*
+## Leisure is a lazy untyped functional language
+***
+-
+# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+
+## Leisure is a **Toy**
+***
+-
+# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+
+## Leisure is a **Toy**
+
+## Let's listen to Dr. Steel's definition of *toy...*
 
 <iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
 
-We like to share our toys.  Leisure is **open source**; you are invited to play with it and changes it.  Please feel free to use it to make cool stuff!
+## We like to share our toys.
+## Leisure is **open source**; you are invited to play with it and changes it.
+## Please feel free to use it to make cool stuff!
 ***
 # Programming should be fun!
 
-Programming ought to be fun, easy, and interesting, and there should be cool stuff to play with.  Leisure tries to make it that way.
+## Programming ought to be fun, easy, and interesting, and there should be cool stuff to play with.  Leisure tries to make it that way.
 ***
 -
 # Notebooks
 
-All Leisure programs are markdown documents
+## All Leisure programs are markdown documents
 ***
 -
 # Notebooks
 
-All Leisure programs are markdown documents
+## All Leisure programs are markdown documents
 
-The render as notebooks
+## They render as notebooks
 ***
 -
 # Notebooks
 
-All Leisure programs are markdown documents
+## All Leisure programs are markdown documents
 
-The render as notebooks
+## They render as notebooks
 
-This presentation is an example of a Leisure notebook
+## This presentation is an example of a Leisure notebook
 ***
 -
 # Notebooks
 
-All Leisure programs are markdown documents
+## All Leisure programs are markdown documents
 
-The render as notebooks
+## They render as notebooks
 
-This presentation is an example of a Leisure notebook
+## This presentation is an example of a Leisure notebook
 
-You can edit them
+## You can edit them
 ***
 -
 # Notebooks
 
-What if markdown code blocks were real, executable code?
+## All Leisure programs are markdown documents
+
+## They render as notebooks
+
+## This presentation is an example of a Leisure notebook
+
+## You can edit them
+
+## (edit this)
 ***
 -
 # Notebooks
 
-# Develop interactively
+## What if markdown code blocks were real, executable code?
+## (edit this and type a code block here)
 ***
-# Notebooks
-
-# Develop interactively
+-
+# Notebooks: Develop interactively
+***
+# Notebooks: Develop interactively
 
 ## Evaluate expressions in the document
 
@@ -115,22 +140,60 @@ cons 1 (cons 2 nil)
 ## Keep the expressions as live examples in documentation
 ## Other people can use them to understand your code better
 ***
-# Notebooks
+# Notebooks: Develop interactively
 
-# Develop interactively
+## Evaluate expressions in the document
 
-## Verify how your code compiles
+```
+3 + 4
+cons 1 (cons 2 nil)
+['a' 'b' 1 'c']
+```
+
+## Keep the expressions as live examples in documentation
+## Other people can use them to understand your code better
+
+## *Leisure doesn't normally execute expressions on load*
+***
+# Notebooks: Develop interactively
+
+## Evaluate expressions in the document
+
+```
+3 + 4
+cons 1 (cons 2 nil)
+['a' 'b' 1 'c']
+```
+
+## Keep the expressions as live examples in documentation
+## Other people can use them to understand your code better
+
+## *Leisure doesn't normally execute expressions on load*
+
+## But you can direct Leisure to
+***
+# Notebooks: Develop interactively
+
+## Verify how your code compiles, with AST buttons
 
 ```
 add3 a b c = a + b + c
 ```
 ***
-# Notebooks
+-
+# Notebooks: Develop interactively
 
-# Develop interactively
+## Updating -- parse tree demonstrates
 
-## Test cases
+```
+add4 = 1 + 2 + 3
+```
 
+## The parse tree just uses a notebook expression
+***
+# Notebooks: Develop interactively
+
+## Test cases run when you change your code
 ```
 #@test "f1"
 #@expected "1"
@@ -142,34 +205,28 @@ f2 = 2
 ```
 ***
 -
-# Notebooks
-
-# Deploy your code...
+# Notebooks: Deploy your code...
 ***
 -
-# Notebooks
-
-# Deploy your code...
+# Notebooks: Deploy your code...
 
 # ...as a Notebook, like this
 ***
-# Notebooks
-
-# Deploy your code...
+# Notebooks: Deploy your code...
 
 # ...as a Notebook, like this
 
 # ...or as a "regular" web page
 ***
-# Notebooks
-
-# Deploy your code...
+# Notebooks: Deploy your code...
 
 # ...as a Notebook, like this
 
 # ...or as a "regular" web page
 
 # ...or in node.js
+***
+# Notebooks: Q&A
 ***
 -
 # The Language
@@ -196,99 +253,45 @@ f2 = 2
 ## There's a lot of room for improvement!
 ***
 -
-# The Language
-
-## The syntax minimizes parentheses
+# The Language: Syntax minimizes parentheses
 ***
 -
-# The Language
+# The Language: Syntax minimizes parentheses
 
-## The syntax minimizes parentheses
+## Each indented adds a group to the overhanging expression
+```
+[
+  [1 2]
+  [3 4]]
 
-Indented lines continue the overhanging expression
+```
 ***
 -
-# The Language
+# The Language: Syntax minimizes parentheses
 
-# Leisure Complier Flow
-![Compiler Flow](LeisureParsingFlow.svg)
+## macros rewrite their expressions at compile time, like in LISP
+## macros can do varargs, which isn't so easy in pure Lambda Calculus
+```
+f4 = concat[1 2 3]
+f4
+```
 ***
-# OLD STUFF
+-
+# The Language: Syntax minimizes parentheses
+
+## commas are optional in lists (because of macros)
+```
+[1 2 3 4]
+[1,2,3,4]
+```
 ***
-For decades, programming has been done primarily in glorified text editors.  Some great strides have been made in various IDEs, but typically the
-programmer is still burdened with a neverending "compile, test, debug" development cycle.  Why do we keep settling for this when clearly we can do better?
-
-LISP programmers know the REPL -- the command line interactive programming interface, but REPLS usually have only a single line of input.  While still heavily under development, Leisure pushes this
-envelope with a fully interactive, document-based development environment where you can present and execute your code, errors show when you make them, tests execute as you change your code, and documentation is rich and interactive.
-Functional programming can be quite foreign to newcomers, but what if you could
-instantly view the parse tree of the code you wrote? Or specify test arguments to your function and see the results live as you
-change your code?  Our goal is to show programmers a better way; we've settled for the status quo for far too long.
-
-Here's one example; below is a test case that compares val with 3 and it automatically runs whenever you change the code.  Try changing val to something
-other than 3, and click outside the box.  Then, change it back to 3.  You can click the arrow to verify the value of val for yourself.
-
-```
-val = 3
-
-#@test "val"
-#@expected "3"
-
-val
-```
-
-In Leisure, just like in Smalltalk, you deploy the development environment.  Be default, users can interact directly with Leisure.  You can disable that behavior, and you can
-also have your code decide to pop up a Leisure code box later.
-
-## Comfortable
-
-Like LISP and Haskell, Leisure traces its roots to Lambda Calculus.  It tries to remain true to Lambda Calculus, while
-also providing a comfortable syntax, with infix notation and indentation to help reduce the need for parentheses.
-
-Here are some code definitions.  You can click the diagram button next to them to see how the computer decodes the program into a structure,
-in order to compile it to JavaScript and you can click the arrow button to evaluate the expression.
-
-```
-z = 1
-#add3 a b c = a + b + c
-
-#add3 1 2 3
-```
-
-## Customizable
-
-Leisure provides some powerful customization techniques, called "metaprogramming."  Leisure's compiler uses Leisure
-structures and you can change how it works by defining macros and even registering "parsing filters" that rewrite the structures
-before the macros get them.  The goal, here, is to give power to programmers to help them get things done.
-
-concat[...] is an example -- concat['a: ' 1 ', b: ' 2] expands to (concat (cons 'a: ' (cons 1 (cons ', b: ' (cons 2 nil))))), so you can avoid those
-extra parentheses (like in Clojure, commas are optional).  Click on the diagram buttons to see it in action.
-
-```
-conc1 = concat['a: ' 1 ', b: ' 2]
-conc2 = concat['a: ', 1 ', b: ', 2]
-```
-
-## Lazy, functional, and Untyped
-
-Like Haskell, Leisure is lazy.  Try clicking the arrow, below, next to ignore2nd.
-It doesn't crash, because Leisure doesn't evaluate the second argument to ignore2nd.  Leisure uses "call by need," like Haskell, instead
-of "call by value," like C, Java, and LISP.  Also, just like in Haskell, *data* is lazy, too!  In Leisure, you can make
-infinite lists, like in Haskell.  Like Haskell, but unlike Clojure, Leisure lists are just a regular data structure.
-
+-
+# The Language: It's lazy
 ```
 ignore2nd a b = a
-
 ignore2nd 1 (2 / 0)
-
 ones = [1 | ones]
-
 take 5 ones
-```
-
-Laziness also means you can factor your code more easily, because you can define terms you use in one place, even if they
-depend on other terms that are invalid in some cases (locally defined terms act like functions).  Try these expressions, below...
-
-```
 f x y = do
   a = x
   b = x / y
@@ -299,108 +302,134 @@ f x y = do
 f 2 0
 f 2 2
 ```
-
-Leisure is functional; it doesn't allow side effects -- but not because side effects are somehow *evil*; it's because in a lazy language,
-side effects lead to very strange behavior that's very hard to understand and fix.  The idea is to have side effects outside the Leisure environment and
-access them using standard functional techniques, like monads and FRP.
-
-Leisure is untyped: it does have data types, but its variables and functions are untyped, like LISP's.
-
-## Webby
-
-As you can see, Leisure runs in a web page, and it lets you do web pagey things.  Click the arrow buttons, below:
-
+***
+-
+# The Language: It's Webby
+## HTML-y values display right in the document
 ```
+html '<b>Hello</b>'
 rect nil
 polygon nil
-
 svgConcat [(translate (circle nil) 10 10) (rect nil)]
 ```
+***
+-
+# The Language: Metaprogramming
+***
+-
+# The Language: Metaprogramming
 
+## basic parsing can define tokens and groups
+```
+[1,2 3]
+```
+***
+-
+# The Language: Metaprogramming
+
+## macros rewrite expressions, using cons/lcons (like cons, but with text start and end)
+```
+ex1 = [ 1 2 3]
+```
+***
+-
+# The Language: Metaprogramming
+
+## parse filters are like macros, but they process **all** code, (also using cons/lcons)
+```
+ex2 = 1 + (2 + 3) + 4
+```
+***
+-
+# The Language: Metaprogramming
+![Compiler Flow](LeisureParsingFlow.svg)
+***
+-
 # The Language
 
-Leisure is a modified version of the Untyped Lambda Calculus, with data types, the let construct
-(for recursion and definitions), simple pattern matching, macros, parse filters, and syntax tokens and groups.
+## functional support
+### Streams, etc.
+```
+increasing x = [x | (increasing x + 1)]
+naturals = increasing 1
+take 5 (filter even? (map (\x . x + 10) naturals))
+```
+***
+-
+# The Language
 
-But wait, how can there be data types if Leisure is untyped?  *Variables* and *functions* in Leisure are untyped, like in LISP, but unlike in Haskell.
-Just like in LISP, *data,* however, does have types -- a regular Leisure list has the "cons" type, for instance.
-
+## Data Types -- yes, it's untyped and yet has data types!  Like LISP!
+## Any function which returns a lambda confers its name as the data type on the lambda
 ```
 getType [1]
+person name addr = \f . f name addr
+getType (person 'bob' '123 Maple St')
 ```
+***
+-
+# The Language
 
-## Indentation
-
-Indentation in Leisure just adds grouped terms to the end of the term before the indentation:
-
+## simple pattern matching
 ```
-[
-  1
-  2
-  [
-    3
-    4]]
+smop x = 'a smop'
+smop x::person = concat['smop person: ' (x \n a . a)]
+smop 3
+smop (person 'bob' '123 Maple St')
 ```
-
-## Definitions
-
-To define a term, just use '=', like this:
-
-```
-x = 3
-
-addToX a = a + x
-
-addToX 10
-```
-
-## Anonymous Functions
-
-You can create anonymous functions, using \ for lambda, like in Haskell:
-
-```
-(\a b . a + b) 1 2
-```
-
-## Data types
-
-To define a data type, just return a lambda.  Here's a second definition of the 'cons' function, to demonstrate:
-
-```
-cons2 a b = \f . f a b
-
-getType (cons2 1 nil)
-```
-
-## Simple Pattern Matching
-
-Leisure has only simple pattern matching: type assertions.
-
-```
-car name = \f . f name
-bike name = \f . f name
-
-identifyVehicle anything = 'Not a vehicle'
-identifyVehicle thing::bike = concat['A Bike: ' (thing id)]
-identifyVehicle thing::car = concat['A Car: ' (thing id)]
-
-identifyVehicle (bike 'fred')
-```
-
-## Do
-
-Like Haskell, Leisure supports a "do" construct.  Do can bind monads and create "let" terms.
-
+***
+-
+# The Language
+## monads
 ```
 do
-  x <- prompt 'What is your name?'
-  x = concat['Hello, ' x '.']
-  print x
-  x = concat['The previous message was: ' x]
-  print x
-  print concat[x ' -- ' x]
+    x <- prompt "What is your name?"
+    print concat["Hello, " x]
 ```
+***
+-
+# The Language Q&A
+***
+# Xus
 
+## Why should development environments block command line tools?
+***
+# Xus
+
+## Why should development environments block command line tools?
+## Why can't you treat development environments like file systems, like in Plan9?
+***
+# Xus
+
+## Why should development environments block command line tools?
+## Why can't you treat development environments like file systems, like in Plan9?
+## Why are developments so annoying to extend?
+***
+# Xus
+
+## Why should development environments block command line tools?
+## Why can't you treat development environments like file systems, like in Plan9?
+## Why are developments so annoying to extend?
+## Why are containers in general so annoying to extend?
+***
+# Xus: The Container Problem
+
+![Compiler Flow](ContainerProblem1.svg)
+***
+# Xus: The Container Problem
+
+![Compiler Flow](ContainerProblem2.svg)
+***
+# Xus
+
+## leisure command
+***
+# Xus
+
+## leisure command
+## extend notebooks in any language
+***
+# Xus Q&A
+***
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
 -->
