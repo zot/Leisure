@@ -355,9 +355,12 @@ ex1 = [ 1 2 3]
 # The Language: Metaprogramming
 
 ## parse filters are like macros, but they process **all** code, (also using cons/lcons)
+## a parse filter processes infix expressions
 ```
 ex2 = 1 + (2 + 3) + 4
 ```
+## At this point, once you turn on a parse filter, it affects subsequent imported files
+## In the future, parse filters will be selectable on a per-file basis
 ***
 # The Language: Metaprogramming
 ![Compiler Flow](LeisureParsingFlow.svg)
@@ -411,6 +414,30 @@ do
     x <- prompt "What is your name?"
     print concat["Hello, " x]
 ```
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+## parser directives are monads
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+## parser directives are monads
+## monads can affect the notebook environment
+### Setting themes
+### Turning on auto test mode
 ***
 # The Language: Debugging
 ## Support specific to lazy evaluation is in the works
