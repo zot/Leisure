@@ -1,5 +1,5 @@
 (function() {
-  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, Q, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, chooseSlide, cleanEmptyNodes, closeWindow, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupButtons, markupElement, markupSlides, mergeLeisureCode, nextSibling, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, sliding, textNode, _,
+  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, Q, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, chooseSlide, cleanEmptyNodes, closeWindow, createNode, getElementCode, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, markupButtons, markupElement, markupSlides, mergeLeisureCode, nextSibling, oldSlide, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, sliding, textNode, _,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   jQuery = window.jQuery, $ = window.$, _ = window._;
@@ -15,7 +15,7 @@
     _results = [];
     for (_i = 0, _len = nodes.length; _i < _len; _i++) {
       el = nodes[_i];
-      md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '').trim();
+      md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*\n/m, '').trim();
       if (oneDoc) {
         _results.push(markupSlides(el, md));
       } else {
@@ -82,12 +82,15 @@
 
   sliding = true;
 
+  oldSlide = 1;
+
   window.toggleSlideShow = function toggleSlideShow() {
     sliding = $(document.body).is('.scroll');
     if (sliding) {
       $(document.body).removeClass('scroll');
-      return showSlide($(document.body.firstElementChild));
+      return showSlide($("[slide=" + oldSlide + "]"));
     } else {
+      oldSlide = $('.slide.showing').attr('slide');
       hideSlide($('.slide.showing'));
       $(document.body).addClass('scroll');
       return $('#slide-num').html('');
