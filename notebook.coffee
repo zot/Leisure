@@ -277,7 +277,13 @@ presentLeisureCode = (node, doEval)->
   if doEval then Notebook.evalDoc node else Notebook.initNotebook node
 
 mergeLeisureCode = (el1, el2)->
-  if el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') == el2.getAttribute('leisureNode')
+  if el1.nodeType == 1 && el2.nodeType == 3
+    el1.appendChild el2
+    el1.normalize()
+  else if el1.nodeType == 3 and el2.nodeType == 1
+    el2.insertBefore el1, el2.firstChild
+    el2.normalize()
+  else if el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') == el2.getAttribute('leisureNode')
     newCode = textNode el1.md = if el1.getAttribute('leisureNode') == 'code' then "#{getElementCode(el1)}\n#{getElementCode el2}" else "#{el1.md}\n#{el2.md}"
     #el1.innerHTML = ''
     #el1.appendChild newCode
@@ -648,9 +654,12 @@ setAst = (bx, ast)->
 
 patchFuncAst = (ast)->
   if ast?.leisureName?
-    window[Parse.nameSub(ast.leisureName)]?()?.ast = ast
-    window[Parse.nameSub(ast.leisureName)]?()?.src = ast.leisureSource
-    update "ast-#{ast.leisureName}"
+    parent = window[Parse.nameSub(ast.leisureName)]
+    if parent?
+      target = if parent?() == 'function' then parent() else parent
+      target.ast = ast
+      target.src = ast.leisureSource
+      update "ast-#{ast.leisureName}"
 
 # mark partial applies within bx
 # the last child of bx should be a fresh expr span with the full code in it
@@ -1118,17 +1127,29 @@ evalDoc = (el)->
       e = envFor(el)
       console.log "ENV DEBUG: #{e.debug}"
       e.write = ->
-      e.processError = (ast)->alert(ReplCore.errString ast.err)
+      e.processError = (ast)->alert('bubba ' + ReplCore.errString ast.err)
       ReplCore.processLine(auto, e, 'Parse.')
     else evalDocCode el, pgm
   catch err
-    console.log err
-    alert(err.stack)
+    showError err, "Error compiling #{pgm}"
+
+showError = (e, msg)->
+  console.log msg
+  console.log e
+  console.log e.stack
+  alert(e.stack)
 
 evalDocCode = (el, pgm)->
-  Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false, null, debug), global))
+  code = ReplCore.generateCode('_doc', pgm, false, false, false, null, debug)
+  try
+    defs = Leisure.eval(code, global)
+  catch err
+    showError err, "Error evaluating JS code: #{code}"
+    throw err
+  Leisure.processDefs(defs)
   for node in el.querySelectorAll '[codeMain]'
     getAst node
+  
 
 Parse.define 'finishLoading', ->(bubba)->
   Prim.makeMonad (env, cont)->
@@ -1149,7 +1170,7 @@ Parse.define 'notebookSelection', ->(func)->
   Prim.makeMonad (env, cont)->
     sel = window.getSelection()
     bx = getBox sel.focusNode
-    if bx? and getAst(bx) == func().ast
+    if bx? and hasFunc bx, func
       offset = (bx.ast.leisureCodeOffset ? 0)
       r = sel.getRangeAt(0)
       window.r = r
@@ -1161,6 +1182,10 @@ Parse.define 'notebookSelection', ->(func)->
       p2 = r2.cloneContents().textContent.length - offset
       cont(_some2()(->p1)(->p2))
     else cont(_none())
+
+hasFunc = (bx, func)->
+  ast = getAst(bx)
+  ast == func().ast || ast == func.ast
 
 Parse.define 'notebookAst', ->(func)->
   Prim.makeMonad (env, cont)->

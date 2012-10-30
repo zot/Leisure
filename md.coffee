@@ -40,7 +40,7 @@ window.markup = ->
   oneDoc = nodes.length == 1 && nodes[0] == document.body
   for el in nodes
     #console.log "source: ", el.innerHTML
-    md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*$/, '').trim();
+    md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*\n/m, '').trim();
     #console.log "replaced: ", md
     if oneDoc
       markupSlides el, md
@@ -97,12 +97,16 @@ chooseSlide = ->
 
 sliding = true
 
+oldSlide = 1
+
 window.toggleSlideShow = ->
   sliding = $(document.body).is('.scroll')
   if sliding
     $(document.body).removeClass 'scroll'
-    showSlide $(document.body.firstElementChild)
+    #showSlide $(document.body.firstElementChild)
+    showSlide $("[slide=#{oldSlide}]")
   else
+    oldSlide = $('.slide.showing').attr('slide')
     hideSlide $('.slide.showing')
     $(document.body).addClass 'scroll'
     $('#slide-num').html('')

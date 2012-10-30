@@ -240,7 +240,7 @@ class Code
     if @debug then @copyWith "(#{@main})(leisureContext)"
     else @copyWith "(#{@main})()"
   catchErrorsWithDebugContext: (name, ast)->
-    if @debug then @copyWith "markLeisureErrors('#{name}', $ctx, (function(){#{@main}}))"
+    if @debug then @copyWith "markLeisureErrors('#{name}', $ctx, (function(){return #{@main}}))"
     else @copyWith("(#{@main})")
   lazy: (name, ast, top)->
     #if !@debug or !(name? and ast.leisureNodeNumber?) then @copyWith("(function(){return #{@main}})")
@@ -640,3 +640,4 @@ root.noDefaultError = noDefaultError
 root.Code = Code
 root.getNthBody = getNthBody
 root.markLeisureErrors = markLeisureErrors
+global.markLeisureErrors = markLeisureErrors

@@ -30,7 +30,7 @@
   <body class="thin" doc class="embedded">
 <!--
 -
-# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+# Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
 ## Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
 
@@ -49,7 +49,7 @@
 -
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
-## Leisure is: a lazy untyped functional language, along with a  notebook environment
+## Leisure is: a lazy untyped functional language with a  notebook environment
 ***
 -
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
@@ -59,19 +59,51 @@
 -
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
-## Leisure: is a **Toy**
+## Leisure is: a **Toy**
 
 ## Let's listen to Dr. Steel's definition of *toy...*
 
 <iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
+***
+-
+# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+
+## Leisure is: a **Toy**
 
 ## We like to share our toys.
-## Leisure is **open source**; you are invited to play with it and changes it.
-## Please feel free to use it to make cool stuff!
+## Leisure is **open source**.
+## Please play with it and change it!
+## Please use it to make cool stuff!
 ***
 # Programming should be fun!
 
-## Programming ought to be fun, easy, and interesting, and there should be cool stuff to play with.  Leisure tries to make it that way.
+## Programming ought to be:
+### Fun
+### Easy
+### Interesting
+## There should be cool stuff for you to play with
+## Leisure tries to make it that way
+***
+# Programming should be fun!
+
+## Programming ought to be:
+* Fun
+* Easy
+* Interesting
+## There should be cool stuff for you to play with
+## Leisure tries to make it that way
+## Leisure is targeted at kids with no programming experience
+***
+# Programming should be fun!
+
+## Programming ought to be:
+* Fun
+* Easy
+* Interesting
+## There should be cool stuff for you to play with
+## Leisure tries to make it that way
+## Leisure is targeted at kids with no programming experience
+## Leisure is also targeted at experts with years of programming experience
 ***
 -
 # Notebooks
@@ -82,58 +114,52 @@
 # Notebooks
 
 ## All Leisure programs are markdown documents
-
 ## They render as notebooks
 ***
 -
 # Notebooks
 
 ## All Leisure programs are markdown documents
-
 ## They render as notebooks
-
-## This presentation is an example of a Leisure notebook
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ***
 -
 # Notebooks
 
 ## All Leisure programs are markdown documents
-
 ## They render as notebooks
-
-## This presentation is an example of a Leisure notebook
-
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ## You can edit them
 ***
 -
 # Notebooks
 
 ## All Leisure programs are markdown documents
-
 ## They render as notebooks
-
-## This presentation is an example of a Leisure notebook
-
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ## You can edit them
+## This presentation is a Leisure notebook
+***
+-
+# Notebooks
 
+## All Leisure programs are markdown documents
+## They render as notebooks
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
+## You can edit them
+## This presentation is a Leisure notebook
 ## (edit this)
 ***
--
 # Notebooks
 
 ## All Leisure programs are markdown documents
-
 ## They render as notebooks
-
-## This presentation is an example of a Leisure notebook
-
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ## You can edit them
-
+## This presentation is a Leisure notebook
 ## (edit this)
-
 ## (click the slide button)
 ***
--
 # Notebooks
 
 ## What if markdown code blocks were real, executable code?
@@ -142,6 +168,7 @@
 -
 # Notebooks: Develop interactively
 ***
+-
 # Notebooks: Develop interactively
 
 ## Evaluate expressions in the document
@@ -155,6 +182,7 @@ cons 1 (cons 2 nil)
 ## Keep the expressions as live examples in documentation
 ## Other people can use them to understand your code better
 ***
+-
 # Notebooks: Develop interactively
 
 ## Evaluate expressions in the document
@@ -195,7 +223,6 @@ cons 1 (cons 2 nil)
 add3 a b c = a + b + c
 ```
 ***
--
 # Notebooks: Develop interactively
 
 ## Updating -- parse tree demonstrates
@@ -219,12 +246,11 @@ f1 = 1
 f2 = 2
 ```
 ***
--
 # Notebooks: Storage (in the works)
-## Local files
-## Google docs
-## Dropbox
-## Eclipse Orion
+* Can already connect to Google Drive and create directories and files
+* Local files
+* Dropbox
+* Eclipse Orion -- has simple CORS API for workspace and Git!
 ***
 -
 # Notebooks: Deploy your code...
@@ -234,6 +260,7 @@ f2 = 2
 
 # ...as a Notebook, like this
 ***
+-
 # Notebooks: Deploy your code...
 
 # ...as a Notebook, like this
@@ -265,7 +292,6 @@ f2 = 2
 
 ## It's a naive compiler
 ***
--
 # The Language
 
 ## Leisure compiles to Javascript
@@ -277,7 +303,6 @@ f2 = 2
 -
 # The Language: Syntax minimizes parentheses
 ***
--
 # The Language: Syntax minimizes parentheses
 
 ## Each indented adds a group to the overhanging expression
@@ -288,7 +313,6 @@ f2 = 2
 
 ```
 ***
--
 # The Language: Syntax minimizes parentheses
 
 ## macros rewrite their expressions at compile time, like in LISP
@@ -298,7 +322,6 @@ f4 = concat[1 2 3]
 f4
 ```
 ***
--
 # The Language: Syntax minimizes parentheses
 
 ## commas are optional in lists (because of macros)
@@ -307,7 +330,6 @@ f4
 [1,2,3,4]
 ```
 ***
--
 # The Language: It's lazy
 ```
 ignore2nd a b = a
@@ -325,7 +347,6 @@ f 2 0
 f 2 2
 ```
 ***
--
 # The Language: It's Webby
 ## HTML-y values display right in the document
 ```
@@ -338,7 +359,6 @@ svgConcat [(translate (circle nil) 10 10) (rect nil)]
 -
 # The Language: Metaprogramming
 ***
--
 # The Language: Metaprogramming
 
 ## basic parsing can define tokens and groups
@@ -346,31 +366,36 @@ svgConcat [(translate (circle nil) 10 10) (rect nil)]
 [1,2 3]
 ```
 ***
--
 # The Language: Metaprogramming
 
 ## macros rewrite expressions, using cons/lcons (like cons, but with text start and end)
+## Some macros
+### [
 ```
-ex1 = [ 1 2 3]
+ex1 = [1 2 3]
 ```
+### concat[
+```
+ex2 = concat[1 2 3]
+```
+#### making concat[ a separate macro makes it more convenient, because it eliminates parentheses
 ***
--
 # The Language: Metaprogramming
 
 ## parse filters are like macros, but they process **all** code, (also using cons/lcons)
+## a parse filter (written in Leisure) processes infix expressions
 ```
-ex2 = 1 + (2 + 3) + 4
+ex3 = 1 + (2 + 3) + 4
 ```
+## Right now, Do (like in Haskell) is a parse filter
+## At this point, once you turn on a parse filter, it affects subsequent imported files
+## In the future, each file will be able to specify its own parse filters
 ***
--
 # The Language: Metaprogramming
 ![Compiler Flow](LeisureParsingFlow.svg)
 ***
--
-# The Language
-
-## functional support
-### Streams, etc.
+# The Language: Functional support
+## Streams, etc.
 ```
 increasing x = [x | (increasing x + 1)]
 naturals = increasing 1
@@ -378,9 +403,23 @@ take 5 (filter even? (map (\x . x + 10) naturals))
 ```
 ***
 -
-# The Language
-
-## Data Types -- yes, it's untyped and yet has data types!  Like LISP!
+# The Language: Data Types
+***
+-
+# The Language: Data Types
+## Wait... data types?  In an untyped language?
+***
+-
+# The Language: Data Types
+## Wait... data types?  In an untyped language?
+## Yes!  Like LISP!
+***
+# The Language: Data Types
+## Wait... data types?  In an untyped language?
+## Yes!  Like LISP!
+## The variables and functions are untyped
+***
+# The Language: Data Types
 ## Any function which returns a lambda confers its name as the data type on the lambda
 ```
 getType [1]
@@ -388,50 +427,81 @@ person name addr = \f . f name addr
 getType (person 'bob' '123 Maple St')
 ```
 ***
--
-# The Language
-
-## simple pattern matching
+# The Language: Simple Pattern Matching
 ```
 smop x = 'a smop'
-smop x::person = concat['smop person: ' (x \n a . a)]
+smop x::person = concat['a person smop: ' (x \n a . a)]
 smop 3
 smop (person 'bob' '123 Maple St')
 ```
+## Maybe some fancier pattern matching later
 ***
--
-# The Language
-## monads
+# The Language: Monads
+## Expression output box is part of monad's "environment"
 ```
 do
     x <- prompt "What is your name?"
     print concat["Hello, " x]
 ```
 ***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+## parser directives are monads
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+## parser directives are monads
+## monads can affect the notebook environment
+### Setting themes
+### Turning on auto test mode
+***
+# The Language: Debugging
+## Support specific to lazy evaluation is in the works
+## Some omniscient debugging techniques
+## History of a value -- stack trace of where it was created
+## Stack trace of where it went wrong
+***
 -
 # The Language Q&A
 ***
-# Xus
+-
+# Xus: A Way to Communicate With Leisure
 
-## Why should development environments block command line tools?
+## Why can't you use command line tools easily with most development environments?
 ***
-# Xus
+-
+# Xus: A Way to Communicate With Leisure
 
-## Why should development environments block command line tools?
-## Why can't you treat development environments like file systems, like in Plan9?
+## Why can't you use command line tools easily with most development environments?
+## Why can't you just treat development environments like file systems, like in Plan9?
 ***
-# Xus
+-
+# Xus: A Way to Communicate With Leisure
 
-## Why should development environments block command line tools?
-## Why can't you treat development environments like file systems, like in Plan9?
-## Why are developments so annoying to extend?
+## Why can't you use command line tools easily with most development environments?
+## Why can't you just treat development environments like file systems, like in Plan9?
+## Why are development environments so annoying to extend?
 ***
-# Xus
+-
+# Xus: A Way to Communicate With Leisure
 
-## Why should development environments block command line tools?
-## Why can't you treat development environments like file systems, like in Plan9?
-## Why are developments so annoying to extend?
-## Why are containers in general so annoying to extend?
+## Why can't you use command line tools easily with most development environments?
+## Why can't you just treat development environments like file systems, like in Plan9?
+## Why are development environments so annoying to extend?
+## Why are other things so annoying to extend? (web browsers, app servers, word processors, IDSs)
 ***
 # Xus: The Container Problem
 
@@ -440,6 +510,29 @@ do
 # Xus: The Container Problem
 
 ![Compiler Flow](ContainerProblem2.svg)
+***
+# Xus: Uh... COM/OLE/CORBA/DCE/RCP/SOAP/RMI?
+## Key differences
+* REALLY easy to use, simple, and flexible
+   * This is VERY different from COM/OLE/CORBA/DCE/RCP/SOAP/RMI!
+   * Pub/sub (data exchange), not RPC (remote invocation)
+   * Protocol doesn't change with your app (no IDL)
+   * Key/value pairs (like SNMP, REDIS, Zookeeper)
+   * Command are just JSON arrays: [["set", "a", 5],["set", "b", 6]]
+   * Only 6 commands: value, set, put, splice, removeFirst, removeAll
+   * Simple protocol makes it very, very easy to hook up any language
+      * No... REALLY, it does!
+      * All my current commands are in JavaScript and Bash
+   * Many ways to connect: socket, WebSocket, direct (same process), WebWorker (future)
+* Storage
+   * Each key has its own storage mode
+   * Easy to get up-to-date
+* Metamodel
+   * Settings
+   * Service discovery
+* "xus" command
+   * Does a lot of setup for you
+   * Sufficient for a lot of tasks just by itself
 ***
 # Xus
 
@@ -454,13 +547,13 @@ do
 
 ## leisure command
 ## extend notebooks in any language
-## storage and other services
+## storage and other services will use Xus
 ***
 # Xus Q&A
 ***
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
 -->
-    <script>start()</script>
+<script>start()</script>
   </body>
 </html>

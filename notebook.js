@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showError, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -450,7 +450,13 @@
 
   mergeLeisureCode = function mergeLeisureCode(el1, el2) {
     var newCode, r;
-    if (el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') === el2.getAttribute('leisureNode')) {
+    if (el1.nodeType === 1 && el2.nodeType === 3) {
+      el1.appendChild(el2);
+      return el1.normalize();
+    } else if (el1.nodeType === 3 && el2.nodeType === 1) {
+      el2.insertBefore(el1, el2.firstChild);
+      return el2.normalize();
+    } else if (el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') === el2.getAttribute('leisureNode')) {
       newCode = textNode(el1.md = el1.getAttribute('leisureNode') === 'code' ? "" + (getElementCode(el1)) + "\n" + (getElementCode(el2)) : "" + el1.md + "\n" + el2.md);
       r = document.createRange();
       r.selectNodeContents(el2);
@@ -969,15 +975,15 @@
   };
 
   patchFuncAst = function patchFuncAst(ast) {
-    var _name, _name2, _ref, _ref2;
+    var parent, target;
     if ((ast != null ? ast.leisureName : void 0) != null) {
-      if (typeof window[_name = Parse.nameSub(ast.leisureName)] === "function") {
-        if ((_ref = window[_name]()) != null) _ref.ast = ast;
+      parent = window[Parse.nameSub(ast.leisureName)];
+      if (parent != null) {
+        target = (typeof parent === "function" ? parent() : void 0) === 'function' ? parent() : parent;
+        target.ast = ast;
+        target.src = ast.leisureSource;
+        return update("ast-" + ast.leisureName);
       }
-      if (typeof window[_name2 = Parse.nameSub(ast.leisureName)] === "function") {
-        if ((_ref2 = window[_name2]()) != null) _ref2.src = ast.leisureSource;
-      }
-      return update("ast-" + ast.leisureName);
     }
   };
 
@@ -1673,21 +1679,34 @@
         console.log("ENV DEBUG: " + e.debug);
         e.write = function write() {};
         e.processError = function processError(ast) {
-          return alert(ReplCore.errString(ast.err));
+          return alert('bubba ' + ReplCore.errString(ast.err));
         };
         return ReplCore.processLine(auto, e, 'Parse.');
       } else {
         return evalDocCode(el, pgm);
       }
     } catch (err) {
-      console.log(err);
-      return alert(err.stack);
+      return showError(err, "Error compiling " + pgm);
     }
   };
 
+  showError = function showError(e, msg) {
+    console.log(msg);
+    console.log(e);
+    console.log(e.stack);
+    return alert(e.stack);
+  };
+
   evalDocCode = function evalDocCode(el, pgm) {
-    var node, _i, _len, _ref, _results;
-    Leisure.processDefs(Leisure.eval(ReplCore.generateCode('_doc', pgm, false, false, false, null, debug), global));
+    var code, defs, node, _i, _len, _ref, _results;
+    code = ReplCore.generateCode('_doc', pgm, false, false, false, null, debug);
+    try {
+      defs = Leisure.eval(code, global);
+    } catch (err) {
+      showError(err, "Error evaluating JS code: " + code);
+      throw err;
+    }
+    Leisure.processDefs(defs);
     _ref = el.querySelectorAll('[codeMain]');
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1733,7 +1752,7 @@
         var bx, offset, p1, p2, r, r2, sel, _ref;
         sel = window.getSelection();
         bx = getBox(sel.focusNode);
-        if ((bx != null) && getAst(bx) === func().ast) {
+        if ((bx != null) && hasFunc(bx, func)) {
           offset = (_ref = bx.ast.leisureCodeOffset) != null ? _ref : 0;
           r = sel.getRangeAt(0);
           window.r = r;
@@ -1754,6 +1773,12 @@
       });
     };
   });
+
+  hasFunc = function hasFunc(bx, func) {
+    var ast;
+    ast = getAst(bx);
+    return ast === func().ast || ast === func.ast;
+  };
 
   Parse.define('notebookAst', function() {
     return function(func) {

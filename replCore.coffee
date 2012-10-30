@@ -138,6 +138,7 @@ processLine = (line, env, namespace, next)->
 escape = (str)-> str.replace(/\n/g, '\\n')
 
 prelude = """
+
 Nil = Parse.Nil;
 cons = Parse.cons;
 primCons = Parse.primCons;

@@ -16,7 +16,8 @@ root.defs = {};
 root.tokenDefs = [];
 root.macros = {};
 
-Nil = Parse.Nil;
+
+var Nil = Parse.Nil;
 var cons = Parse.cons;
 var primCons = Parse.primCons;
 var setType = Parse.setType;

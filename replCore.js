@@ -208,7 +208,7 @@
     return str.replace(/\n/g, '\\n');
   };
 
-  prelude = "Nil = Parse.Nil;\ncons = Parse.cons;\nprimCons = Parse.primCons;\nsetType = Parse.setType;\nsetDataType = Parse.setDataType;\ndefine = Parse.define;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\ndefine = Parse.define;\nwrapContext = Leisure.wrapContext;\nmarkLeisureErrors = Leisure.markLeisureErrors;";
+  prelude = "\nNil = Parse.Nil;\ncons = Parse.cons;\nprimCons = Parse.primCons;\nsetType = Parse.setType;\nsetDataType = Parse.setDataType;\ndefine = Parse.define;\nprocessResult = Repl.processResult;\nsetContext = Leisure.setContext;\nfuncContext = Leisure.funcContext;\ndefine = Parse.define;\nwrapContext = Leisure.wrapContext;\nmarkLeisureErrors = Leisure.markLeisureErrors;";
 
   localPrelude = prelude.replace(/\n/g, "\nvar ");
 
