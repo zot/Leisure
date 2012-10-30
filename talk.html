@@ -30,7 +30,7 @@
   <body class="thin" doc class="embedded">
 <!--
 -
-# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+# Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
 ## Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
 
@@ -49,7 +49,7 @@
 -
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
-## Leisure is: a lazy untyped functional language, along with a  notebook environment
+## Leisure is: a lazy untyped functional language with a  notebook environment
 ***
 -
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
@@ -59,7 +59,7 @@
 -
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
-## Leisure: is a **Toy**
+## Leisure is: a **Toy**
 
 ## Let's listen to Dr. Steel's definition of *toy...*
 
@@ -68,19 +68,19 @@
 -
 # Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
 
-## Leisure: is a **Toy**
+## Leisure is: a **Toy**
 
 ## We like to share our toys.
-## Leisure is **open source**
+## Leisure is **open source**.
 ## Please play with it and change it!
 ## Please use it to make cool stuff!
 ***
 # Programming should be fun!
 
 ## Programming ought to be:
-* Fun
-* Easy
-* Interesting
+### Fun
+### Easy
+### Interesting
 ## There should be cool stuff for you to play with
 ## Leisure tries to make it that way
 ***
@@ -92,7 +92,7 @@
 * Interesting
 ## There should be cool stuff for you to play with
 ## Leisure tries to make it that way
-## Leisure is targeted at kids with no experience
+## Leisure is targeted at kids with no programming experience
 ***
 # Programming should be fun!
 
@@ -102,8 +102,8 @@
 * Interesting
 ## There should be cool stuff for you to play with
 ## Leisure tries to make it that way
-## Leisure is targeted at kids with no experience
-## Leisure is also targeted at experts
+## Leisure is targeted at kids with no programming experience
+## Leisure is also targeted at experts with years of programming experience
 ***
 -
 # Notebooks
@@ -369,19 +369,27 @@ svgConcat [(translate (circle nil) 10 10) (rect nil)]
 # The Language: Metaprogramming
 
 ## macros rewrite expressions, using cons/lcons (like cons, but with text start and end)
+## Some macros
+### [
 ```
-ex1 = [ 1 2 3]
+ex1 = [1 2 3]
 ```
+### concat[
+```
+ex2 = concat[1 2 3]
+```
+#### making concat[ a separate macro makes it more convenient, because it eliminates parentheses
 ***
 # The Language: Metaprogramming
 
 ## parse filters are like macros, but they process **all** code, (also using cons/lcons)
-## a parse filter processes infix expressions
+## a parse filter (written in Leisure) processes infix expressions
 ```
-ex2 = 1 + (2 + 3) + 4
+ex3 = 1 + (2 + 3) + 4
 ```
+## Right now, Do (like in Haskell) is a parse filter
 ## At this point, once you turn on a parse filter, it affects subsequent imported files
-## In the future, parse filters will be selectable on a per-file basis
+## In the future, each file will be able to specify its own parse filters
 ***
 # The Language: Metaprogramming
 ![Compiler Flow](LeisureParsingFlow.svg)

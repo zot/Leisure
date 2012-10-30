@@ -377,7 +377,7 @@ misrepresented as being the original software.
 
     Code.prototype.catchErrorsWithDebugContext = function catchErrorsWithDebugContext(name, ast) {
       if (this.debug) {
-        return this.copyWith("markLeisureErrors('" + name + "', $ctx, (function(){" + this.main + "}))");
+        return this.copyWith("markLeisureErrors('" + name + "', $ctx, (function(){return " + this.main + "}))");
       } else {
         return this.copyWith("(" + this.main + ")");
       }
@@ -974,5 +974,7 @@ misrepresented as being the original software.
   root.getNthBody = getNthBody;
 
   root.markLeisureErrors = markLeisureErrors;
+
+  global.markLeisureErrors = markLeisureErrors;
 
 }).call(this);
