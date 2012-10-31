@@ -99,7 +99,8 @@ html {
 }
 
 .thin .codeName {
-  color: blue;
+  /*color: blue;*/
+  color: #404;
   font-weight: bold;
   margin: 3px;
 }
