@@ -25,7 +25,11 @@ astFor func = isFunc func
   funcSource func (\src . parse src) (right 'no source')
   left (lit func)
 
-treeForNotebook func attrFunc = do
+treeForNotebook func = subTreeForNotebook func
+  \attrs ast .
+    [['onclick' | concat["Notebook.highlightNotebookFunction('" (funcName func id '') "', " (astStart ast) ", " (astEnd ast) ")"]] | attrs]
+
+subTreeForNotebook func attrFunc = do
   s <- notebookSelection func
   ast <- notebookAst func
   ast

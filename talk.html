@@ -75,18 +75,14 @@
 ## Please play with it and change it!
 ## Please use it to make cool stuff!
 ***
-# Programming should be fun!
-
-## Programming ought to be:
+# Programming should be:
 ### Fun
 ### Easy
 ### Interesting
 ## There should be cool stuff for you to play with
 ## Leisure tries to make it that way
 ***
-# Programming should be fun!
-
-## Programming ought to be:
+# Programming should be:
 ### Fun
 ### Easy
 ### Interesting
@@ -94,48 +90,56 @@
 ## Leisure tries to make it that way
 ## Leisure is targeted at kids with no programming experience
 ***
-# Programming should be fun!
-
-## Programming ought to be:
+# Programming should be:
 ### Fun
 ### Easy
 ### Interesting
 ## There should be cool stuff for you to play with
 ## Leisure tries to make it that way
 ## Leisure is targeted at kids with no programming experience
+## All you need is a web browser -- no install needed
+***
+# Programming should be:
+### Fun
+### Easy
+### Interesting
+## There should be cool stuff for you to play with
+## Leisure tries to make it that way
+## Leisure is targeted at kids with no programming experience
+## All you need is a web browser -- no install needed
 ## Leisure is also targeted at experts with years of programming experience
 ***
 -
 # Notebooks
 
-## All Leisure programs are markdown documents
+## All Leisure programs and libraries are markdown documents
 ***
 -
 # Notebooks
 
-## All Leisure programs are markdown documents
-## They render as notebooks
+## All Leisure programs and libraries are markdown documents
+## They render as notebooks (ala Mathematica)
 ***
 -
 # Notebooks
 
-## All Leisure programs are markdown documents
-## They render as notebooks
+## All Leisure programs and libraries are markdown documents
+## They render as notebooks (ala Mathematica)
 ## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ***
 -
 # Notebooks
 
-## All Leisure programs are markdown documents
-## They render as notebooks
+## All Leisure programs and libraries are markdown documents
+## They render as notebooks (ala Mathematica)
 ## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ## You can edit them
 ***
 -
 # Notebooks
 
-## All Leisure programs are markdown documents
-## They render as notebooks
+## All Leisure programs and libraries are markdown documents
+## They render as notebooks (ala Mathematica)
 ## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ## You can edit them
 ## This presentation is a Leisure notebook
@@ -143,8 +147,8 @@
 -
 # Notebooks
 
-## All Leisure programs are markdown documents
-## They render as notebooks
+## All Leisure programs and libraries are markdown documents
+## They render as notebooks (ala Mathematica)
 ## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ## You can edit them
 ## This presentation is a Leisure notebook
@@ -152,8 +156,8 @@
 ***
 # Notebooks
 
-## All Leisure programs are markdown documents
-## They render as notebooks
+## All Leisure programs and libraries are markdown documents
+## They render as notebooks (ala Mathematica)
 ## Notebooks are computing environments -- sort of a cross between an IDE and REPL
 ## You can edit them
 ## This presentation is a Leisure notebook
@@ -217,7 +221,7 @@ cons 1 (cons 2 nil)
 ***
 # Notebooks: Develop interactively
 
-## Verify how your code compiles, with AST buttons
+## Verify how your code parses, with AST buttons
 
 ```
 add3 a b c = a + b + c
@@ -225,7 +229,14 @@ add3 a b c = a + b + c
 ***
 # Notebooks: Develop interactively
 
-## Updating -- parse tree demonstrates
+## Updating
+### VERY simple FRP
+***
+# Notebooks: Develop interactively
+
+## Updating
+### VERY simple FRP
+### parse tree demonstrates
 
 ```
 add4 = 1 + 2 + 3
@@ -235,7 +246,7 @@ add4 = 1 + 2 + 3
 ***
 # Notebooks: Develop interactively
 
-## Test cases run when you change your code
+## Test cases run whenever you change your code
 ```
 #@test "f1"
 #@expected "1"
@@ -247,10 +258,10 @@ f2 = 2
 ```
 ***
 # Notebooks: Storage (in the works)
-* Can already connect to Google Drive and create directories and files
-* Local files
-* Dropbox
-* Eclipse Orion -- has simple CORS API for workspace and Git!
+## Can already connect to Google Drive and create directories and files
+## Local files
+## Dropbox
+## Eclipse Orion -- has simple CORS API for workspace and Git!
 ***
 -
 # Notebooks: Deploy your code...
@@ -327,7 +338,7 @@ le x y = or
 [
   [1 2]
   [3 4]]
-</pre></td><td><span style="vertical-align: middle; margin: 30px; font-weight: bold; font-size: 150%">-&gt;</span></td><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
+</pre></td><td><span style="vertical-align: middle; margin: 30px; font-weight: bold; font-size: 150%">---&gt;</span></td><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
 [ ([ 1 2 ]) ([ 3 4 ]) ]
 </pre></td></tr></table>
 
@@ -343,7 +354,7 @@ indentation
 ***
 # The Language: Syntax minimizes parentheses
 
-## macros rewrite their expressions at compile time, like in LISP
+## macros rewrite their expressions at compile time, like in Clojure (LISP)
 ## macros can do varargs, which isn't so easy in pure Lambda Calculus
 ```
 f4 = concat[1 2 3]
@@ -352,7 +363,7 @@ f4
 ***
 # The Language: Syntax minimizes parentheses
 
-## commas are optional in lists (because [ is a macro)
+## commas are optional in lists (because [ is a macro and it can strain them out)
 ```
 [1 2 3 4]
 [1,2,3,4]
@@ -361,8 +372,8 @@ f4
 # The Language: It's lazy
 ```
 ignore2nd a b = a
-ignore2nd 1 (error 'an error')
 ignore2nd (error 'an error') 1
+ignore2nd 1 (error 'an error')
 ones = [1 | ones]
 take 5 ones
 dbl x = lt x 0
@@ -370,27 +381,30 @@ dbl x = lt x 0
   eq x 0
     0
     1 + (dbl x - 1)
-dbl -1
--1
-1 - -1
+dbl (-1)
 f x y = do
   a = x
   b = dbl y
-  eq y 0
+  lt y 0
     a
     b
 
-f 2 0
+f 2 (-1)
 f 2 2
 ```
 ***
 # The Language: It's Webby
 ## HTML-y values display right in the document
 ```
-html '<b>Hello</b>'
+html '<i><b>Hello</b></i>'
 rect nil
 polygon nil
-svgConcat [(translate (circle nil) 10 10) (rect nil)]
+svgConcat [
+  translate
+    circle nil
+    10
+    10
+  rect nil]
 ```
 ***
 -
@@ -405,8 +419,8 @@ svgConcat [(translate (circle nil) 10 10) (rect nil)]
 ***
 # The Language: Metaprogramming
 
-## macros rewrite expressions, using cons/lcons (like cons, but with text start and end)
-## Some macros
+## macros rewrite expressions, using cons/lcons (like cons, but with start and end positions)
+## Combining groups with macros can work like varargs
 ### [
 ```
 ex1 = [1 2 3]
@@ -420,7 +434,7 @@ ex2 = concat[1 2 3]
 # The Language: Metaprogramming
 
 ## parse filters are like macros, but they process **all** code, (also using cons/lcons)
-## a parse filter (written in Leisure) processes infix expressions
+## a parse filter processes infix expressions
 ```
 ex3 = 1 + (2 + 3) + 4
 ```
@@ -467,11 +481,12 @@ getType (person 'bob' '123 Maple St')
 # The Language: Simple Pattern Matching
 ```
 smop x = 'a smop'
-smop x::person = concat['a person smop: ' (x \n a . a)]
+smop x::person = concat['a person smop (' (x \n a . a) ')']
 smop 3
 smop (person 'bob' '123 Maple St')
 ```
 ## Maybe some fancier pattern matching later
+### Got some basic plans for structural patterns
 ***
 # The Language: Monads
 ## Expression output box is part of monad's "environment"
@@ -509,8 +524,8 @@ do
 ## Support specific to lazy evaluation is in the works
 ## Some omniscient debugging techniques
 ## Two stack traces for an error
-### Stack trace of where the value was created
-### Stack trace of where the value was retrieved
+### Stack trace of where a value was created
+### Stack trace of where a value was requested
 ***
 -
 # The Language Q&A
@@ -576,22 +591,22 @@ do
 # Xus: Uh... COM/OLE/CORBA/DCE/RCP/SOAP/RMI?
 ## Key differences
 * REALLY easy to use, simple, and flexible
-   * This is VERY different from COM/OLE/CORBA/DCE/RCP/SOAP/RMI!
+   * This is very different from COM/OLE/CORBA/DCE/RCP/SOAP/RMI!
    * Pub/sub (data exchange), not RPC (remote invocation)
    * Protocol doesn't change with your app (no IDL)
-   * Key/value pairs (like SNMP, REDIS, Zookeeper, but simpler protocol)
+   * Key/value pairs (like SNMP, REDIS, Zookeeper -- much simpler to use)
    * Commands are just JSON arrays: [["set", "a", 5],["set", "b/c", 6]]
    * Only 6 commands: value, set, put, splice, removeFirst, removeAll
    * Simple protocol makes it very, very easy to hook up any language
-      * No... REALLY, it does!
+      * No... REALLY! It does!
       * All my current commands are in JavaScript and Bash
    * Many ways to connect: socket, WebSocket, direct (same process), WebWorker (future)
 * Storage
-   * Each key has its own storage mode
-   * Easy to get up-to-date
+   * Each key can have its own storage mode
+   * Peers are up-to-date as soon as they connect
 * Metamodel
-   * Settings
-   * Service discovery
+   * Peer settings (subscriptions, peer name, etc)
+   * Can be used for service discovery/registration
 * "xus" command
    * Does a lot of setup for you
    * Sufficient for a lot of tasks just by itself
@@ -599,6 +614,7 @@ do
 # Xus Q&A
 ***
 # Contact
+Please help!
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
 -->
 <script>start()</script>

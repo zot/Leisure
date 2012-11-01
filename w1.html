@@ -1,0 +1,30 @@
+<html>
+  <head>
+    <script>
+      function workerTest() {
+        console.log('Starting worker...');
+        var worker = new SharedWorker('testworker.js');
+      
+        worker.port.addEventListener('message', function(e) {
+          console.log("message: " + e.data);
+        }, false);
+        worker.port.start();
+        window.addEventListener('connect', function(e) {
+          console.log('connection');
+        }, false);
+        window.addEventListener('message', function(e) {
+          console.log("message: " + e.data);
+        }, false);
+      }
+      function windowTest() {
+        console.log('listening on window port');
+        window.addEventListener('message', function(e) {
+          console.log("message: " + e.data);
+        }, false)
+      }
+      workerTest();
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
