@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showError, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, defControls, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showError, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -619,20 +619,20 @@
     if (b.output) remove(b.output);
     removeBoxClasses(b, 'codeMainExpr');
     addBoxClasses(b, 'codeMain');
-    addDefControls(b);
     match = b.textContent.match(/^(( *#[^\n]\n)* *)([^ ][^=]*?) *=/);
-    console.log("def match: " + (match ? match[3] : 'none'));
     if (match) {
       r = makeRange(b, match[1].length, match[1].length + match[3].length);
-      return wrapRange(r, codeSpan('', 'codeName'));
+      wrapRange(r, codeSpan('', 'codeName'));
+      b.normalize();
     }
+    return b.parentNode.insertBefore(defControls(), b.nextElementSibling);
   };
 
-  addDefControls = function addDefControls(box) {
+  defControls = function defControls(box) {
     var btn;
     btn = createNode("<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>");
     markupButton(btn);
-    return box.appendChild(btn);
+    return btn;
   };
 
   remove = function remove(node) {
@@ -652,7 +652,7 @@
       box.astOut = node;
       node.setAttribute('leisureOutput', '');
       box.parentNode.insertBefore(node, box.nextSibling);
-      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name + " \\attrs ast .\n  [['onclick' | concat[\"Notebook.highlightNotebookFunction('" + (name.trim()) + "', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]";
+      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name;
       console.log("SVG EVENT: " + node.textContent);
       output = makeOutputBox(node);
       toggleEdit(output);
@@ -936,7 +936,7 @@
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
-        addDefControls(bx);
+        bx.appendChild(defControls());
         bod = codeSpan(textNode(body), 'codeBody');
         bod.appendChild(textNode('\n'));
         bod.setAttribute('generatedNL', '');

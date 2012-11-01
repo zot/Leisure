@@ -55,6 +55,9 @@ define 'astEnd', ->(ast)-> ast().leisureEnd
 define 'pretty', ->(value)->
   #kluge this, for now
   Parse.print(value())
+define 'funcName', ->(func)->
+  if func.leisureName? then _some()(laz(func.leisureName))
+  else _none()
 define 'funcSource', ->(func)->
   f = func()
   if f.src? then _some()(laz(f.src))

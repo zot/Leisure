@@ -392,17 +392,17 @@ toDefBox = (b)->
   if b.output then remove b.output
   removeBoxClasses b, 'codeMainExpr'
   addBoxClasses b, 'codeMain'
-  addDefControls b
   match = b.textContent.match /^(( *#[^\n]\n)* *)([^ ][^=]*?) *=/
-  console.log "def match: #{if match then match[3] else 'none'}"
   if match
     r = makeRange b, match[1].length, match[1].length + match[3].length
     wrapRange r, (codeSpan '', 'codeName')
+    b.normalize()
+  b.parentNode.insertBefore defControls(), b.nextElementSibling
 
-addDefControls = (box)->
+defControls = (box)->
   btn = createNode "<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>"
   markupButton btn
-  box.appendChild btn
+  btn
 
 remove = (node)->node.parentNode?.removeChild node
 
@@ -417,7 +417,7 @@ showAst = (box)->
     box.astOut = node
     node.setAttribute 'leisureOutput', ''
     box.parentNode.insertBefore node, box.nextSibling
-    node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name} \\attrs ast .\n  [['onclick' | concat[\"Notebook.highlightNotebookFunction('#{name.trim()}', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]"
+    node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name}"
     console.log "SVG EVENT: #{node.textContent}"
     output = makeOutputBox node
     toggleEdit output
@@ -620,7 +620,7 @@ markupDefs = (el, defs)->
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode def)
-      addDefControls bx
+      bx.appendChild defControls()
       #bod = codeSpan (markPartialApplies bx, body), 'codeBody'
       bod = codeSpan textNode(body), 'codeBody'
       bod.appendChild textNode('\n')
