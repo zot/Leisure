@@ -392,17 +392,12 @@ toDefBox = (b)->
   if b.output then remove b.output
   removeBoxClasses b, 'codeMainExpr'
   addBoxClasses b, 'codeMain'
-  match = b.textContent.match /^(( *#[^\n]\n)* *)([^ ][^=]*?) *=/
-  if match
-    r = makeRange b, match[1].length, match[1].length + match[3].length
-    wrapRange r, (codeSpan '', 'codeName')
-    b.normalize()
-  b.parentNode.insertBefore defControls(), b.nextElementSibling
+  addDefControls b
 
-defControls = (box)->
+addDefControls = (box)->
   btn = createNode "<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>"
   markupButton btn
-  btn
+  box.appendChild btn
 
 remove = (node)->node.parentNode?.removeChild node
 
@@ -620,7 +615,7 @@ markupDefs = (el, defs)->
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode def)
-      bx.appendChild defControls()
+      addDefControls bx
       #bod = codeSpan (markPartialApplies bx, body), 'codeBody'
       bod = codeSpan textNode(body), 'codeBody'
       bod.appendChild textNode('\n')
