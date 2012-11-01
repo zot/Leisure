@@ -211,25 +211,55 @@ parseInfix tokens list::cons = callParseInfixList tokens list
 parseInfix tokens list::lexCons = callParseInfixList tokens list
 
 callParseInfixList tokens list = do
-  prep = prepInfixList tokens (map (parseInfix tokens) list)
+  prep = collapseInnerTokens tokens (collapseFirstTokens tokens (map (parseInfix tokens) list))
   parseInfixList tokens dlempty (head prep) (tail prep)
 
-prepInfixList tokens list = list
-prepInfixList tokens list::cons = null? (tail list)
+collapseInnerTokens tokens list = list
+collapseInnerTokens tokens list::cons = collapseInner1 tokens (head list) (tail list) list
+
+collapseInner1 tokens op rest orig = orig
+collapseInner1 tokens op rest::cons orig = collapseInner2 tokens op (head rest) (tail rest)
+
+collapseInner2 tokens op 2nd rest = [op 2nd | rest]
+collapseInner2 tokens op 2nd rest::cons = collapseInner3 tokens op 2nd (head rest) (tail rest)
+
+collapseInner3 tokens op 2nd 3rd rest = [op | (collapseInner2 tokens 2nd 3rd rest)]
+collapseInner3 tokens op::token 2nd 3rd rest = collapseInner4 tokens op 2nd 3rd rest
+
+collapseInner4 tokens op 2nd 3rd rest = [op | (collapseInner2 tokens 2nd 3rd rest)]
+collapseInner4 tokens op 2nd::token 3rd rest = collapseInner5 tokens op 2nd 3rd rest
+
+collapseInner5 tokens op 2nd 3rd rest = [op | (collapseInner2 tokens 2nd 3rd rest)]
+collapseInner5 tokens op 2nd 3rd::token rest = and
+  isOperator tokens op
+  and
+    isOperator tokens 2nd
+    adjacent 2nd 3rd
+  [op (collapseTokens 2nd 3rd) | (collapseInnerTokens tokens rest)]
+  [op | (collapseInner2 tokens 2nd 3rd rest)]
+
+isOperator tokens tok = < (getPrecedence 0 tok tokens) (length tokens)
+
+collapseFirstTokens tokens list = list
+collapseFirstTokens tokens list::cons = null? (tail list)
   list
-  collapseAdjacentToken1 tokens (head list) (head (tail list)) (tail (tail list))
+  collapseFirstTokens1 tokens (head list) (head (tail list)) (tail (tail list))
     id
     list
 
-collapseAdjacentToken1 tokens op next rest = none
-collapseAdjacentToken1 tokens op::token next rest = < (getPrecedence 0 op tokens) (length tokens)
-  collapseAdjacentToken2 tokens op next rest
+collapseFirstTokens1 tokens op next rest = none
+collapseFirstTokens1 tokens op::token next rest = isOperator tokens op
+  collapseFirstTokens2 tokens op next rest
   none
 
-collapseAdjacentToken2 tokens op next rest = none
-collapseAdjacentToken2 tokens op next::token rest = eq (+ (tokenStart op) (strlen (tokenName op))) (tokenStart next)
-  some [(token concat[(tokenName op) (tokenName next)] (tokenStart op)) | rest]
+collapseFirstTokens2 tokens op next rest = none
+collapseFirstTokens2 tokens op next::token rest = adjacent op next
+  some [(collapseTokens op next) | rest]
   none
+
+adjacent tok1 tok2 = eq (+ (tokenStart tok1) (strlen (tokenName tok1))) (tokenStart tok2)
+
+collapseTokens tok1 tok2 = token concat[(tokenName tok1) (tokenName tok2)] (tokenStart tok1)
 
 printOperators = do
   defs <- getParseFilterInfo
