@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showError, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addsLine, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, defControls, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setSnapper, setUpdate, showAst, showError, showResult, showSource, skipLeftOverOutputBox, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -598,29 +598,41 @@
   };
 
   toExprBox = function toExprBox(b) {
-    var node, _i, _len, _ref;
+    var node, _i, _j, _len, _len2, _ref, _ref2;
     removeBoxClasses(b, 'codeMain');
     addBoxClasses(b, 'codeMainExpr');
-    _ref = b.querySelectorAll('.astbutton');
+    _ref = b.querySelectorAll('[codename]');
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
+      unwrap(node);
+    }
+    _ref2 = b.querySelectorAll('.astbutton');
+    for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
+      node = _ref2[_j];
       remove(node);
     }
     return makeOutputBox(b);
   };
 
   toDefBox = function toDefBox(b) {
+    var match, r;
     if (b.output) remove(b.output);
     removeBoxClasses(b, 'codeMainExpr');
     addBoxClasses(b, 'codeMain');
-    return addDefControls(b);
+    match = b.textContent.match(/^(( *#[^\n]\n)* *)([^ ][^=]*?) *=/);
+    if (match) {
+      r = makeRange(b, match[1].length, match[1].length + match[3].length);
+      wrapRange(r, codeSpan('', 'codeName'));
+      b.normalize();
+    }
+    return b.parentNode.insertBefore(defControls(), b.nextElementSibling);
   };
 
-  addDefControls = function addDefControls(box) {
+  defControls = function defControls(box) {
     var btn;
     btn = createNode("<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>");
     markupButton(btn);
-    return box.appendChild(btn);
+    return btn;
   };
 
   remove = function remove(node) {
@@ -640,7 +652,7 @@
       box.astOut = node;
       node.setAttribute('leisureOutput', '');
       box.parentNode.insertBefore(node, box.nextSibling);
-      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name + " \\attrs ast .\n  [['onclick' | concat[\"Notebook.highlightNotebookFunction('" + (name.trim()) + "', \" (astStart ast) \", \" (astEnd ast) \")\"]] | attrs]";
+      node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name;
       console.log("SVG EVENT: " + node.textContent);
       output = makeOutputBox(node);
       toggleEdit(output);
@@ -924,7 +936,7 @@
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
-        addDefControls(bx);
+        bx.appendChild(defControls());
         bod = codeSpan(textNode(body), 'codeBody');
         bod.appendChild(textNode('\n'));
         bod.setAttribute('generatedNL', '');
@@ -975,13 +987,12 @@
   };
 
   patchFuncAst = function patchFuncAst(ast) {
-    var parent, target;
+    var parent;
     if ((ast != null ? ast.leisureName : void 0) != null) {
       parent = window[Parse.nameSub(ast.leisureName)];
       if (parent != null) {
-        target = (typeof parent === "function" ? parent() : void 0) === 'function' ? parent() : parent;
-        target.ast = ast;
-        target.src = ast.leisureSource;
+        parent.ast = ast;
+        parent.src = ast.leisureSource;
         return update("ast-" + ast.leisureName);
       }
     }
@@ -1241,7 +1252,9 @@
     passed = true;
     ReplCore.processLine(prepExpr(test.expr), {
       require: req,
-      write: function write() {},
+      write: function write(str) {
+        return console.log(str);
+      },
       debug: debug,
       prompt: function prompt(msg, cont) {
         return cont(null);
@@ -1249,7 +1262,10 @@
       processResult: function processResult(result, ast) {
         return passed = showResult(bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.expected));
       },
-      processError: passed = false
+      processError: passed = false,
+      presentValue: function presentValue(x) {
+        return x;
+      }
     });
     return passed;
   };
@@ -1306,10 +1322,10 @@
       },
       presentValue: presentValue,
       processError: function processError(ast) {
-        var btn;
+        var btn, _ref;
         btn = box.querySelector('[leisureId="makeTestCase"]');
         if (btn) remove(btn);
-        return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ast.err.stack);
+        return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref = ast.err.stack) != null ? _ref : ast.err));
       }
     };
   };
@@ -1366,7 +1382,7 @@
     node.setAttribute(boxType, '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', boxType);
-    node.appendChild(nodeFor(text));
+    if (text) node.appendChild(nodeFor(text));
     return node;
   };
 

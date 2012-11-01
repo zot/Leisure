@@ -138,6 +138,16 @@
     };
   });
 
+  define('funcName', function() {
+    return function(func) {
+      if (func.leisureName != null) {
+        return _some()(laz(func.leisureName));
+      } else {
+        return _none();
+      }
+    };
+  });
+
   define('funcSource', function() {
     return function(func) {
       var f;

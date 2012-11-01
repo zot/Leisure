@@ -221,7 +221,7 @@
   };
 
   runAutosThen = function runAutosThen(autos, debug, cont) {
-    if (autos === Nil) {
+    if (autos === Parse.Nil) {
       return cont();
     } else {
       return processResult(Leisure.evalNext(autos.head(), 'Parse.', debug)[1], {}, function() {
@@ -296,7 +296,7 @@
     var ast, auto, err, errs, globals, line, oldRest, prevName, rest, _ref;
     auto = Parse.dlempty;
     errs = '';
-    globals = Nil;
+    globals = Parse.Nil;
     rest = contents;
     while (rest) {
       oldRest = rest;
@@ -326,7 +326,7 @@
         globals = Parse.cons(ast.leisureName, globals);
       }
     }
-    return [globals.reverse(), errs, auto(Nil)];
+    return [globals.reverse(), errs, auto(Parse.Nil)];
   };
 
   root.processLine = processLine;
