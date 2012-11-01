@@ -258,10 +258,11 @@ f2 = 2
 ```
 ***
 # Notebooks: Storage (in the works)
-## Can already connect to Google Drive and create directories and files
-## Local files
+## Import/export zip files
+## Google Drive (can already connect and create directories and files)
 ## Dropbox
 ## Eclipse Orion -- has simple CORS API for workspace and Git!
+## Local files (requires an install)
 ***
 -
 # Notebooks: Deploy your code...
@@ -376,11 +377,9 @@ ignore2nd (error 'an error') 1
 ignore2nd 1 (error 'an error')
 ones = [1 | ones]
 take 5 ones
-dbl x = lt x 0
-  error 'Negative number!'
-  eq x 0
-    0
-    1 + (dbl x - 1)
+dbl x = eq x 0
+  0
+  1 + (dbl x - 1)
 dbl (-1)
 f x y = do
   a = x
