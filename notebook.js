@@ -975,13 +975,12 @@
   };
 
   patchFuncAst = function patchFuncAst(ast) {
-    var parent, target;
+    var parent;
     if ((ast != null ? ast.leisureName : void 0) != null) {
       parent = window[Parse.nameSub(ast.leisureName)];
       if (parent != null) {
-        target = (typeof parent === "function" ? parent() : void 0) === 'function' ? parent() : parent;
-        target.ast = ast;
-        target.src = ast.leisureSource;
+        parent.ast = ast;
+        parent.src = ast.leisureSource;
         return update("ast-" + ast.leisureName);
       }
     }
@@ -1241,7 +1240,9 @@
     passed = true;
     ReplCore.processLine(prepExpr(test.expr), {
       require: req,
-      write: function write() {},
+      write: function write(str) {
+        return console.log(str);
+      },
       debug: debug,
       prompt: function prompt(msg, cont) {
         return cont(null);
@@ -1249,7 +1250,10 @@
       processResult: function processResult(result, ast) {
         return passed = showResult(bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.expected));
       },
-      processError: passed = false
+      processError: passed = false,
+      presentValue: function presentValue(x) {
+        return x;
+      }
     });
     return passed;
   };
@@ -1306,10 +1310,10 @@
       },
       presentValue: presentValue,
       processError: function processError(ast) {
-        var btn;
+        var btn, _ref;
         btn = box.querySelector('[leisureId="makeTestCase"]');
         if (btn) remove(btn);
-        return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ast.err.stack);
+        return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref = ast.err.stack) != null ? _ref : ast.err));
       }
     };
   };

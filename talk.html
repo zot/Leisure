@@ -40,24 +40,24 @@
 
 ## **To view this as a regular notebook instead of slides, hit escape or click the slides button, below**
 ***
-# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+# Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
 ## Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
 
 ![Tiny Concepts](tinyconcepts.png)
 ***
 -
-# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+# Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
 ## Leisure is: a lazy untyped functional language with a  notebook environment
 ***
 -
-# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+# Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
 ## Leisure is: a **Toy**
 ***
 -
-# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+# Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
 ## Leisure is: a **Toy**
 
@@ -66,7 +66,7 @@
 <iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
 ***
 -
-# Welcome to Leisure (here's the [project page](https://github.com/zot/Leisure))!
+# Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
 ## Leisure is: a **Toy**
 
@@ -87,9 +87,9 @@
 # Programming should be fun!
 
 ## Programming ought to be:
-* Fun
-* Easy
-* Interesting
+### Fun
+### Easy
+### Interesting
 ## There should be cool stuff for you to play with
 ## Leisure tries to make it that way
 ## Leisure is targeted at kids with no programming experience
@@ -97,9 +97,9 @@
 # Programming should be fun!
 
 ## Programming ought to be:
-* Fun
-* Easy
-* Interesting
+### Fun
+### Easy
+### Interesting
 ## There should be cool stuff for you to play with
 ## Leisure tries to make it that way
 ## Leisure is targeted at kids with no programming experience
@@ -305,12 +305,40 @@ f2 = 2
 ***
 # The Language: Syntax minimizes parentheses
 
-## Each indented adds a group to the overhanging expression
+## Each indented line adds a group to the overhanging expression
+<table><tr><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
+le x y = or
+  lt x y
+  eq x y
+</pre></td><td><span style="vertical-align: middle; margin: 30px; font-weight: bold; font-size: 150%">-&gt;</span></td><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
+le xy = or (lt x y) (eq x y)
+</pre></td></tr></table>
+
 ```
+le x y = or
+  lt x y
+  eq x y
+```
+***
+# The Language: Syntax minimizes parentheses
+## Each indented line adds a group to the overhanging expression
+## Grouping still works, though
+<table><tr><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
 [
   [1 2]
   [3 4]]
+</pre></td><td><span style="vertical-align: middle; margin: 30px; font-weight: bold; font-size: 150%">-&gt;</span></td><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
+[ ([ 1 2 ]) ([ 3 4 ]) ]
+</pre></td></tr></table>
 
+##[ is a macro and '[' and ']' make groups
+
+```
+indentation = [
+  [1 2]
+  [3 4]]
+
+indentation
 ```
 ***
 # The Language: Syntax minimizes parentheses
@@ -324,7 +352,7 @@ f4
 ***
 # The Language: Syntax minimizes parentheses
 
-## commas are optional in lists (because of macros)
+## commas are optional in lists (because [ is a macro)
 ```
 [1 2 3 4]
 [1,2,3,4]
@@ -333,12 +361,20 @@ f4
 # The Language: It's lazy
 ```
 ignore2nd a b = a
-ignore2nd 1 (2 / 0)
+ignore2nd 1 (error 'an error')
+ignore2nd (error 'an error') 1
 ones = [1 | ones]
 take 5 ones
+dbl x = lt x 0
+  error 'Negative number!'
+  eq x 0
+    0
+    1 + (dbl x - 1)
+dbl -1
+-1
 f x y = do
   a = x
-  b = x / y
+  b = dbl y
   eq y 0
     a
     b
@@ -471,8 +507,9 @@ do
 # The Language: Debugging
 ## Support specific to lazy evaluation is in the works
 ## Some omniscient debugging techniques
-## History of a value -- stack trace of where it was created
-## Stack trace of where it went wrong
+## Two stack traces for an error
+### Stack trace of where the value was created
+### Stack trace of where the value was retrieved
 ***
 -
 # The Language Q&A
@@ -503,36 +540,14 @@ do
 ## Why are development environments so annoying to extend?
 ## Why are other things so annoying to extend? (web browsers, app servers, word processors, IDSs)
 ***
-# Xus: The Container Problem
+-
+# Xus: A Way to Communicate With Leisure
 
-![Compiler Flow](ContainerProblem1.svg)
-***
-# Xus: The Container Problem
-
-![Compiler Flow](ContainerProblem2.svg)
-***
-# Xus: Uh... COM/OLE/CORBA/DCE/RCP/SOAP/RMI?
-## Key differences
-* REALLY easy to use, simple, and flexible
-   * This is VERY different from COM/OLE/CORBA/DCE/RCP/SOAP/RMI!
-   * Pub/sub (data exchange), not RPC (remote invocation)
-   * Protocol doesn't change with your app (no IDL)
-   * Key/value pairs (like SNMP, REDIS, Zookeeper)
-   * Command are just JSON arrays: [["set", "a", 5],["set", "b", 6]]
-   * Only 6 commands: value, set, put, splice, removeFirst, removeAll
-   * Simple protocol makes it very, very easy to hook up any language
-      * No... REALLY, it does!
-      * All my current commands are in JavaScript and Bash
-   * Many ways to connect: socket, WebSocket, direct (same process), WebWorker (future)
-* Storage
-   * Each key has its own storage mode
-   * Easy to get up-to-date
-* Metamodel
-   * Settings
-   * Service discovery
-* "xus" command
-   * Does a lot of setup for you
-   * Sufficient for a lot of tasks just by itself
+## Why can't you use command line tools easily with most development environments?
+## Why can't you just treat development environments like file systems, like in Plan9?
+## Why are development environments so annoying to extend?
+## Why are other things so annoying to extend? (web browsers, app servers, word processors, IDSs)
+## How come my toolbar has play/pause for native music players but not ones in web pages?
 ***
 # Xus
 
@@ -548,6 +563,37 @@ do
 ## leisure command
 ## extend notebooks in any language
 ## storage and other services will use Xus
+***
+# Xus: The Container Problem
+
+![Compiler Flow](ContainerProblem1.svg)
+***
+# Xus: The Container Problem
+
+![Compiler Flow](ContainerProblem2.svg)
+***
+# Xus: Uh... COM/OLE/CORBA/DCE/RCP/SOAP/RMI?
+## Key differences
+* REALLY easy to use, simple, and flexible
+   * This is VERY different from COM/OLE/CORBA/DCE/RCP/SOAP/RMI!
+   * Pub/sub (data exchange), not RPC (remote invocation)
+   * Protocol doesn't change with your app (no IDL)
+   * Key/value pairs (like SNMP, REDIS, Zookeeper, but simpler protocol)
+   * Commands are just JSON arrays: [["set", "a", 5],["set", "b/c", 6]]
+   * Only 6 commands: value, set, put, splice, removeFirst, removeAll
+   * Simple protocol makes it very, very easy to hook up any language
+      * No... REALLY, it does!
+      * All my current commands are in JavaScript and Bash
+   * Many ways to connect: socket, WebSocket, direct (same process), WebWorker (future)
+* Storage
+   * Each key has its own storage mode
+   * Easy to get up-to-date
+* Metamodel
+   * Settings
+   * Service discovery
+* "xus" command
+   * Does a lot of setup for you
+   * Sufficient for a lot of tasks just by itself
 ***
 # Xus Q&A
 ***

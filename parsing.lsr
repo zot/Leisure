@@ -5,5 +5,7 @@ do
   defInfixToken '/' 'at' '*'
   defInfixToken '+' 'at' nil
   defInfixToken '-' 'at' '+'
+  defInfixToken '<' 'at' nil
+  defInfixToken '>' 'at' nil
   x = log 'filter' 2
   addParseFilter mainParseInfix

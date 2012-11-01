@@ -211,8 +211,25 @@ parseInfix tokens list::cons = callParseInfixList tokens list
 parseInfix tokens list::lexCons = callParseInfixList tokens list
 
 callParseInfixList tokens list = do
-  prep = map (parseInfix tokens) list
+  prep = prepInfixList tokens (map (parseInfix tokens) list)
   parseInfixList tokens dlempty (head prep) (tail prep)
+
+prepInfixList tokens list = list
+prepInfixList tokens list::cons = null? (tail list)
+  list
+  collapseAdjacentToken1 tokens (head list) (head (tail list)) (tail (tail list))
+    id
+    list
+
+collapseAdjacentToken1 tokens op next rest = none
+collapseAdjacentToken1 tokens op::token next rest = < (getPrecedence 0 op tokens) (length tokens)
+  collapseAdjacentToken2 tokens op next rest
+  none
+
+collapseAdjacentToken2 tokens op next rest = none
+collapseAdjacentToken2 tokens op next::token rest = eq (+ (tokenStart op) (strlen (tokenName op))) (tokenStart next)
+  some [(token concat[(tokenName op) (tokenName next)] (tokenStart op)) | rest]
+  none
 
 printOperators = do
   defs <- getParseFilterInfo

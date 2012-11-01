@@ -656,9 +656,8 @@ patchFuncAst = (ast)->
   if ast?.leisureName?
     parent = window[Parse.nameSub(ast.leisureName)]
     if parent?
-      target = if parent?() == 'function' then parent() else parent
-      target.ast = ast
-      target.src = ast.leisureSource
+      parent.ast = ast
+      parent.src = ast.leisureSource
       update "ast-#{ast.leisureName}"
 
 # mark partial applies within bx
@@ -841,11 +840,12 @@ runTest = (bx)->
   passed = true
   ReplCore.processLine(prepExpr(test.expr), (
     require: req
-    write: ->
+    write: (str)-> console.log str
     debug: debug
     prompt: (msg, cont)-> cont(null)
     processResult: (result, ast)-> passed = showResult bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.expected)
     processError: passed = false
+    presentValue: (x)-> x
   ))
   passed
 
@@ -884,7 +884,7 @@ envFor = (box)->
   processError: (ast)->
     btn = box.querySelector '[leisureId="makeTestCase"]'
     if btn then remove btn
-    @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack}"
+    @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack ? ast.err}"
 
 leisureContextString = (err)-> (linkSource func, offset for [func, offset] in err.leisureContext.toArray()).join('\n')
 

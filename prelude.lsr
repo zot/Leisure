@@ -55,6 +55,10 @@
 defGroup '[' ']'
 #@auto
 defGroup 'concat[' ']'
+#@Xauto
+#defGroup 'and[' ']'
+#@Xauto
+#defGroup 'or[' ']'
 #@auto
 defToken '|'
 #@auto
@@ -215,6 +219,17 @@ macroCons list =M= cons 'cons' (tail list)
 #concat[ list =M= cons 'concat' (cons (cons '[' (tail list)) nil)
 
 concat[ list =M= cons (token 'concat' (tokenStart list)) (cons (cons (token '[' (tokenStart (tail list))) (tail list)) nil)
+
+# and[ list =M= intersperse (token 'and' (tokenStart (list))) (removeLast (tail list))
+# or[ list =M= intersperse (token 'or' (tokenStart (list))) (removeLast (tail list))
+# 
+# removeLast list = rl list (tail list)
+# rl list rest = cons (head list) (rl (tail list) (tail rest))
+# rl list rest::nil = nil
+# 
+# intersperse item list = head (isp item list (tail list))
+# isp item list rest = cons (cons item (cons (head list) (isp item (tail list) (tail rest)))) nil
+# isp item list rest::nil = list
 
 doFilter parseDefs list = transformDo list
 

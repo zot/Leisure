@@ -160,7 +160,7 @@ generateCode = (file, contents, loud, handle, nomacros, check, debug)->
   runAutosThen auto, debug, -> generate file, contents, loud, handle, nomacros, check, globals, errs, debug
 
 runAutosThen = (autos, debug, cont)->
-  if autos == Nil then cont()
+  if autos == Parse.Nil then cont()
   else  processResult Leisure.evalNext(autos.head(), 'Parse.', debug)[1], {}, ->
     runAutosThen autos.tail(), debug, cont
 
@@ -245,7 +245,7 @@ showAst = (ast)-> if ast? then "(#{Parse.print(ast)})" else ""
 findDefs = (contents, nomacros, loud)->
   auto = Parse.dlempty
   errs = ''
-  globals = Nil
+  globals = Parse.Nil
   rest = contents
   while rest
     oldRest = rest
@@ -262,7 +262,7 @@ findDefs = (contents, nomacros, loud)->
       if loud > 2 then console.log "Found function: #{ast.leisureName}"
       if globals?.find((v)->v == ast.leisureName && !ast.leisureTypeAssertions) then throwError("Attempt to redefine function: #{ast.leisureName}#{showAst ast}")
       globals = Parse.cons(ast.leisureName, globals)
-  [globals.reverse(), errs, auto(Nil)]
+  [globals.reverse(), errs, auto(Parse.Nil)]
 
 root.processLine = processLine
 root.setCompiler = setCompiler
