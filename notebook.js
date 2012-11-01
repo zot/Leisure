@@ -598,22 +598,34 @@
   };
 
   toExprBox = function toExprBox(b) {
-    var node, _i, _len, _ref;
+    var node, _i, _j, _len, _len2, _ref, _ref2;
     removeBoxClasses(b, 'codeMain');
     addBoxClasses(b, 'codeMainExpr');
-    _ref = b.querySelectorAll('.astbutton');
+    _ref = b.querySelectorAll('[codename]');
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
+      unwrap(node);
+    }
+    _ref2 = b.querySelectorAll('.astbutton');
+    for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
+      node = _ref2[_j];
       remove(node);
     }
     return makeOutputBox(b);
   };
 
   toDefBox = function toDefBox(b) {
+    var match, r;
     if (b.output) remove(b.output);
     removeBoxClasses(b, 'codeMainExpr');
     addBoxClasses(b, 'codeMain');
-    return addDefControls(b);
+    addDefControls(b);
+    match = b.textContent.match(/^(( *#[^\n]\n)* *)([^ ][^=]*?) *=/);
+    console.log("def match: " + (match ? match[3] : 'none'));
+    if (match) {
+      r = makeRange(b, match[1].length, match[1].length + match[3].length);
+      return wrapRange(r, codeSpan('', 'codeName'));
+    }
   };
 
   addDefControls = function addDefControls(box) {
@@ -1370,7 +1382,7 @@
     node.setAttribute(boxType, '');
     node.setAttribute('Leisure', '');
     node.setAttribute('class', boxType);
-    node.appendChild(nodeFor(text));
+    if (text) node.appendChild(nodeFor(text));
     return node;
   };
 

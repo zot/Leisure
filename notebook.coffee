@@ -382,6 +382,8 @@ removeBoxClasses = (box, type)->
 toExprBox = (b)->
   removeBoxClasses b, 'codeMain'
   addBoxClasses b, 'codeMainExpr'
+  for node in b.querySelectorAll '[codename]'
+    unwrap node
   for node in b.querySelectorAll '.astbutton'
     remove node
   makeOutputBox b
@@ -391,6 +393,11 @@ toDefBox = (b)->
   removeBoxClasses b, 'codeMainExpr'
   addBoxClasses b, 'codeMain'
   addDefControls b
+  match = b.textContent.match /^(( *#[^\n]\n)* *)([^ ][^=]*?) *=/
+  console.log "def match: #{if match then match[3] else 'none'}"
+  if match
+    r = makeRange b, match[1].length, match[1].length + match[3].length
+    wrapRange r, (codeSpan '', 'codeName')
 
 addDefControls = (box)->
   btn = createNode "<button onclick='Notebook.showAst(this.parentNode)' class='astbutton' title='Show AST'></button>"
@@ -915,7 +922,7 @@ codeSpan = (text, boxType)->
   node.setAttribute boxType, ''
   node.setAttribute 'Leisure', ''
   node.setAttribute 'class', boxType
-  node.appendChild nodeFor(text)
+  if text then node.appendChild nodeFor(text)
   node
 
 codeBox = (boxType)->
