@@ -484,8 +484,18 @@ smop x::person = concat['a person smop (' (x \n a . a) ')']
 smop 3
 smop (person 'bob' '123 Maple St')
 ```
+***
 ## Fancier pattern matching later
-### Got some basic plans for structural patterns
+### Got some basic plans for structural patterns, like in Haskell (maybe more powerful -- not sure)
+<br>
+### last [x] = x
+### last [x | y] = last y
+<br>
+### find key [] = none
+### find key [key value | rest] = some value
+### find key [\_ \_ | rest] = find key rest
+<br>
+### getName (person {name: n}) = n
 ***
 # The Language: Monads
 ## Expression output box is part of monad's "environment"
