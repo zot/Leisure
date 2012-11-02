@@ -30,9 +30,7 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
 var wrapContext = Leisure.wrapContext;
-var markLeisureErrors = Leisure.markLeisureErrors;
-var _LEFT_ARROW, _UP_ARROW, _RIGHT_ARROW, _DOWN_ARROW, _startBlocky, _runPhysics, _key, _down, _up, _jsPD;
-//LEFT_ARROW = AST(37)
+var markLeisureErrors = Leisure.markLeisureErrors;//LEFT_ARROW = AST(37)
 root.defs._LEFT_ARROW = _LEFT_ARROW = Parse.define('LEFT_ARROW', (function _LEFT_ARROW() {return ((37));}), 0, "37");;
 //UP_ARROW = AST(38)
 root.defs._UP_ARROW = _UP_ARROW = Parse.define('UP_ARROW', (function _UP_ARROW() {return ((38));}), 0, "38");;

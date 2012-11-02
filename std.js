@@ -28,9 +28,7 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
 var wrapContext = Leisure.wrapContext;
-var markLeisureErrors = Leisure.markLeisureErrors;
-var _dlempty, _dl, _dlPush, _dlAppend, _flatten, _subflatten, _subflatten, _remove, _removeIf, __removeIf, _removeIfNot, _filter, _any, __any, _all, __all, _find, _findIf, _findIfOpt, _findIndex, _subFindIndex, _subFindIndex, _take, __take, _takeWhile, __takeWhile, _drop, _dropWhile, _dropLast, __dropLast, _series, _from, _fromBy, _fromTo, _fromToBy, _count, _countIf, _countIfNot, _assocFromList, _assocKey, _assocValue, _assocGetPair, _assocGetPairOpt, _assocKeys, _assocNumKeys, _assocMergeKeys, _assocMerge, _assocSet, _assocGet, _assocGetWithDefault, _assocRemove, _html, _or$r, _primOrVar, _and$r, _primAndVar, _defInfixToken, _insertOperator, _insertOperator, _testInfix, _mainParseInfix, _parseInfix, _parseInfix, _parseInfix, _callParseInfixList, _collapseInnerTokens, _collapseInnerTokens, _collapseInner1, _collapseInner1, _collapseInner2, _collapseInner2, _collapseInner3, _collapseInner3, _collapseInner4, _collapseInner4, _collapseInner5, _collapseInner5, _isOperator, _collapseFirstTokens, _collapseFirstTokens, _collapseFirstTokens1, _collapseFirstTokens1, _collapseFirstTokens2, _collapseFirstTokens2, _adjacent, _collapseTokens, _printOperators, _parseInfixList, _getPrecedence, _getPrecedence, _operatorIn;
-processResult(//AST(addParseFilter doFilter)
+var markLeisureErrors = Leisure.markLeisureErrors;processResult(//AST(addParseFilter doFilter)
 (_addParseFilter()(_doFilter)));
 processResult(//AST(bind (defGroup "or[" "]") λ_ . defGroup "and[" "]")
 (_bind()((function(){var $m; return (function(){return $m || ($m = (_defGroup()((function(){return "or["}))((function(){return "]"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _defGroup()((function(){return "and["}))((function(){return "]"}));}))})})())));
