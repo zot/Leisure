@@ -758,7 +758,6 @@
       el.autorunState = el.autorun.checked;
       if (el.autorunState) return runTests(el);
     });
-    configureSaveLink(el);
     return markupButtons(controlDiv);
   };
 
