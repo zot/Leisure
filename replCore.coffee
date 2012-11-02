@@ -197,7 +197,7 @@ root.macros = {};
   for v, i in globals.toArray()
     if i > 0 then varOut += ","
     varOut += " #{Parse.nameSub v}"
-  if varOut then out += "\nvar#{varOut};\n"
+  #if varOut then out += "\nvar#{varOut};\n"
   globals = globals.append(getGlobals())
   while rest and rest.trim()
     if loud > 1 and prev != names and names != Parse.Nil then console.log "Compiling function: #{names.head()}"

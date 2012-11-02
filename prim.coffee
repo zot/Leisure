@@ -116,6 +116,9 @@ define 'log', ->(msg)->(value)->
   if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
   defaultEnv.write("\n")
   value()
+define 'break', ->(value)->
+  console.log 'breakpoint'
+  value()
 
 leisureEvent = (leisureFuncName, evt, env, channel)->
   currentEvent = evt

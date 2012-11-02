@@ -382,6 +382,13 @@
     };
   });
 
+  define('break', function() {
+    return function(value) {
+      console.log('breakpoint');
+      return value();
+    };
+  });
+
   leisureEvent = function leisureEvent(leisureFuncName, evt, env, channel) {
     var currentEvent, monad;
     currentEvent = evt;

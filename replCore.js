@@ -247,7 +247,6 @@
       if (i > 0) varOut += ",";
       varOut += " " + (Parse.nameSub(v));
     }
-    if (varOut) out += "\nvar" + varOut + ";\n";
     globals = globals.append(getGlobals());
     while (rest && rest.trim()) {
       if (loud > 1 && prev !== names && names !== Parse.Nil) {

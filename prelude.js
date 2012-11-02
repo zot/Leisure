@@ -28,9 +28,7 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
 var wrapContext = Leisure.wrapContext;
-var markLeisureErrors = Leisure.markLeisureErrors;
-var _id, _flip, _compose, _true, _false, _and, _or, _not, _neq, _left, _right, _some, _some2, _none, _iszero, _positive, _$_$_, _$o$o, _even$e, _odd$e, _max, _min, _isStream, _isStream, _isStream, _head, _tail, _head, _tail, _length, _last, _startPos, _startPos, _endPos, _endPos, _pairFunc, _pairFunc, _pairFunc, _pairFunc, _lexConsFuzzy, _null$e, _null$e, _map, __map, _foldl, _foldl, _foldl1, _foldl1, _foldr, _foldr1, _foldr1, _append, _append, __append, __append, _reverse, _subreverse, _if, _at, _index_combine, _indexof, _position, _$r, _constructList, _constructList, _cl, _tokString, _tokString, _identMacro, _macroCons, _concat$r, _doFilter, _transformDo, _transformDo, _transformDo, _subDos, _subNextDos, _subNextDos, _subNextDos, _listSubNextDos, _doClause, _doExtractVar, _doExtractVar, _doExtractVar, _listDoExtractVar;
-processResult(//AST(defGroup "[" "]")
+var markLeisureErrors = Leisure.markLeisureErrors;processResult(//AST(defGroup "[" "]")
 (_defGroup()((function(){return "["}))((function(){return "]"}))));
 processResult(//AST(defGroup "concat[" "]")
 (_defGroup()((function(){return "concat["}))((function(){return "]"}))));
