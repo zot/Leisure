@@ -1,0 +1,19 @@
+# Structural patterns
+
+## example:
+## \ find key [] = none
+## \ find key [key value | _] = some(value)
+## \ find key [_ _ | rest] = find key rest
+
+```
+3+4
+```
+
+asdf
+
+```
+6+7
+```
+
+qwer
+qwer

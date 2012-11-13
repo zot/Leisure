@@ -264,4 +264,6 @@ Tests for Leisure
     }
   }
 
+  process.exit(0);
+
 }).call(this);

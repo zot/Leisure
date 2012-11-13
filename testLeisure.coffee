@@ -246,3 +246,4 @@ Succeeded #{T.stats.successes} test#{if T.stats.successes > 1 then 's' else ''}
 Failed #{T.stats.failures} test#{if T.stats.failures > 1 then 's' else ''}:
 """
   console.log "  #{f}" for f in T.stats.failed
+process.exit(0)

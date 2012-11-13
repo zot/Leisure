@@ -9,13 +9,15 @@ LZ.ctx.U = U
 
 debug = false
 
+interactiveMode = 'unknown'
+
 importFile = (file, cont) ->
-  if file.match /.lsr$/ then file = file.substring 0, file.length - 4
+  if file.match /\.lsr$|\.lmd$/ then file = file.substring 0, file.length - 4
   R.compile file, (->
     LZ.eval "req('./#{file}')"
     cont()), nomacros, debug
 
-standard = ['prelude', 'std', 'parsing']
+standard = ['prelude', 'std', 'parsing', 'pattern']
 
 loadStandardLimit = standard.length
 
@@ -46,9 +48,15 @@ Usage: #{process.argv[0]} [[-r file]... [-c | -q | -b] file...]
     loadStandardLimit = process.argv[i + 1]
     RC.setIncludeStd(false)
     eaten = 1
-  else if process.argv[i] == '-c' then next = ->
+  else if process.argv[i] == '-c'
+    if interactiveMode == 'unknown'
+      interactiveMode = 'off'
+      next = -> process.exit(0)
   else if process.argv[i] == '-q' then R.loud = 0
   else if process.argv[i] == '-v' then R.loud++
+  else if process.argv[i] == '-i'
+    interactiveMode = 'on'
+    next = R.repl
   else if process.argv[i] == '-g'
     debug = true
     Prim.defaultEnv.debug = true

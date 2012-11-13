@@ -65,7 +65,16 @@ else
 declScanner = new Scanner()
 
 declScanner.defToken '::'
-declScanner.defToken ':?'
+
+allowRedefs = false
+
+allowRedefsIn = (block)->
+  old = allowRedefs
+  allowRedefs = true
+  try
+    block()
+  finally
+    allowRedefs = old
 
 escapeRegexpChars = (str)-> str.replace /([\][().\\*+?{}|])/g, '\\$1'
 
@@ -349,7 +358,7 @@ noDefaultError = (methodName)-> throw new Error("No default function #{methodNam
 createMethod = (leisureClass, methodName, src, definition)->
   fun = Parse.ensureLeisureClass leisureClass
   meth = nameSub methodName
-  if fun.prototype.hasOwnProperty(meth) then throw new Error("Attempt to redefine existing method: #{leisureClass}.#{methodName}, current definition: #{fun.prototype[meth]()}, class: #{fun}")
+  if !allowRedefs && fun.prototype.hasOwnProperty(meth) then throw new Error("Attempt to redefine existing method: #{leisureClass}.#{methodName}, current definition: #{fun.prototype[meth]()}, class: #{fun}")
   fun.prototype[meth] = definition
   definition.src = src
 
@@ -489,7 +498,7 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
     rest1 = line.substring (if defType then matched else leading).length
     if err then [null, err]
     else if nm
-      if check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]} #{snip rest1}", null]
+      if !allowRedefs && check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]} #{snip rest1}", null]
       else
         if defType && defType != '=' then defineToken(nm[0], defType)
         pfx = (prefix nm, rest1, scannedDecl, matched[leading.length..])
@@ -541,7 +550,7 @@ parseDecl = (name)->
     [names, assertions, all]
     #name.trim().split(/\s+/)
 
-isAssertion = (tok)-> tok instanceof Leisure_token and tok.tok() in ['::', ':?']
+isAssertion = (tok)-> tok instanceof Leisure_token and tok.tok() == '::'
 
 genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src, debug)->
   if !parseOnly then dgen ast, false, name, globals, defType, namespace, src, debug
@@ -639,5 +648,6 @@ root.createMethod = createMethod
 root.noDefaultError = noDefaultError
 root.Code = Code
 root.getNthBody = getNthBody
+root.allowRedefsIn = allowRedefsIn
 root.markLeisureErrors = markLeisureErrors
 global.markLeisureErrors = markLeisureErrors

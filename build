@@ -8,27 +8,24 @@ while [ $# != 0 ]; do
   shift
 done
 
-node_modules/coffee-script/bin/coffee -c storage.coffee parse.coffee leisure.coffee prim.coffee game.coffee md.coffee
-node_modules/coffee-script/bin/coffee -c repl.coffee runRepl.coffee testLeisure.coffee replCore.coffee browserRepl.coffee testing.coffee bootLeisure.coffee notebook.coffee
-#echo prelude...
-node runRepl $DEBUG -q -b 0 -c prelude
-#node runRepl $DEBUG -v -b 0 -c prelude
-#echo std...
-node runRepl $DEBUG -q -b 1 -c std
-#node --debug-brk runRepl $DEBUG -q -b 1 -c std
-#node runRepl $DEBUG -v -b 1 -c std
-node runRepl $DEBUG -q -b 2 -c parsing
-echo tests...
-node testLeisure
-#node_modules/coffee-script/bin/coffee -c chippy.coffee
-#node runRepl -c -r chippy chip.lsr
-#node_modules/coffee-script/bin/coffee -c coaster.coffee
-#node runRepl -c -r coaster coast.lsr
-node_modules/coffee-script/bin/coffee -c blocky.coffee
-node runRepl $DEBUG -c -r blocky block
-
-if [ -n "$ALL" ]; then
-    node runRepl $DEBUG -c maps
-    node runRepl $DEBUG -c -r maps svg
-    node runRepl $DEBUG -c -r maps -r svg parseAst
+if node_modules/coffee-script/bin/coffee -c storage.coffee parse.coffee leisure.coffee prim.coffee game.coffee md.coffee \
+ && node_modules/coffee-script/bin/coffee -c repl.coffee runRepl.coffee testLeisure.coffee replCore.coffee browserRepl.coffee testing.coffee bootLeisure.coffee notebook.coffee \
+ && node runRepl $DEBUG -q -b 0 -c prelude \
+ && node runRepl $DEBUG -q -b 1 -c std \
+ && node runRepl $DEBUG -q -b 2 -c parsing \
+ && node runRepl $DEBUG -q -b 3 -c pattern
+then
+    if [ -n "$ALL" ]; then
+        node runRepl $DEBUG -c maps
+        node runRepl $DEBUG -c -r maps svg
+        node runRepl $DEBUG -c -r maps -r svg parseAst
+        #node_modules/coffee-script/bin/coffee -c chippy.coffee
+        #node runRepl -c -r chippy chip.lsr
+        #node_modules/coffee-script/bin/coffee -c coaster.coffee
+        #node runRepl -c -r coaster coast.lsr
+        node_modules/coffee-script/bin/coffee -c blocky.coffee
+        node runRepl $DEBUG -c -r blocky block
+    fi
+    echo tests...
+    node testLeisure
 fi

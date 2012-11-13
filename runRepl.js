@@ -1,5 +1,5 @@
 (function() {
-  var LZ, Prim, R, RC, U, action, debug, eaten, i, importFile, loadStandardLimit, loadStd, next, nomacros, pos, processArgs, standard, _ref;
+  var LZ, Prim, R, RC, U, action, debug, eaten, i, importFile, interactiveMode, loadStandardLimit, loadStd, next, nomacros, pos, processArgs, standard, _ref;
 
   LZ = require('./leisure');
 
@@ -17,8 +17,10 @@
 
   debug = false;
 
+  interactiveMode = 'unknown';
+
   importFile = function importFile(file, cont) {
-    if (file.match(/.lsr$/)) file = file.substring(0, file.length - 4);
+    if (file.match(/\.lsr$|\.lmd$/)) file = file.substring(0, file.length - 4);
     return R.compile(file, (function() {
       LZ.eval("req('./" + file + "')");
       return cont();
@@ -58,11 +60,19 @@
       RC.setIncludeStd(false);
       eaten = 1;
     } else if (process.argv[i] === '-c') {
-      next = function next() {};
+      if (interactiveMode === 'unknown') {
+        interactiveMode = 'off';
+        next = function next() {
+          return process.exit(0);
+        };
+      }
     } else if (process.argv[i] === '-q') {
       R.loud = 0;
     } else if (process.argv[i] === '-v') {
       R.loud++;
+    } else if (process.argv[i] === '-i') {
+      interactiveMode = 'on';
+      next = R.repl;
     } else if (process.argv[i] === '-g') {
       debug = true;
       Prim.defaultEnv.debug = true;

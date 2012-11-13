@@ -84,9 +84,10 @@ createPeer = ->
     if key == 'leisure/evalExpr' && value?
       [expr, result] = value
       console.log "EVAL: #{expr}, RESULT: #{result}"
-      ReplCore.processLine expr, xusEnv(result, expr), 'Parse.'
+      processLine expr, xusEnv(result, expr), 'Parse.'
   peer.set 'leisure/document', peerGetDocument
   peer.set 'leisure/functions', peerGetFunctions
+  peer.set 'leisure/storage', []
   if document.location.hash
     params = {}
     for param in document.location.hash.substring(1).split '&'
@@ -515,7 +516,7 @@ insertControls = (el)->
   el.autorun.addEventListener 'change', (evt)->
     el.autorunState = el.autorun.checked
     if el.autorunState then runTests el
-  configureSaveLink(el)
+  #configureSaveLink(el)
   markupButtons controlDiv
 
 markupButtons = (el)->
@@ -840,7 +841,7 @@ runTest = (bx)->
   test = bx.test
   #console.log "RUNNING:\n #{test.expr}\nRESULT:\n #{test.result}"
   passed = true
-  ReplCore.processLine(prepExpr(test.expr), (
+  processLine(prepExpr(test.expr), (
     require: req
     write: (str)-> console.log str
     debug: debug
@@ -1108,7 +1109,7 @@ owner = (box)->
   box
 
 evalBox = (box, envBox)->
-  ReplCore.processLine box.textContent, (if envBox? then envFor(envBox) else null), 'Parse.'
+  processLine box.textContent, (if envBox? then envFor(envBox) else null), 'Parse.'
   getAst box
 
 acceptCode = (box)->
@@ -1130,10 +1131,12 @@ evalDoc = (el)->
       console.log "ENV DEBUG: #{e.debug}"
       e.write = ->
       e.processError = (ast)->alert('bubba ' + ReplCore.errString ast.err)
-      ReplCore.processLine(auto, e, 'Parse.')
+      processLine(auto, e, 'Parse.')
     else evalDocCode el, pgm
   catch err
     showError err, "Error compiling #{pgm}"
+
+processLine = (args...)-> Leisure.allowRedefsIn -> ReplCore.processLine(args...)
 
 showError = (e, msg)->
   console.log msg

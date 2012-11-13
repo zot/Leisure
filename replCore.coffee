@@ -166,7 +166,7 @@ runAutosThen = (autos, debug, cont)->
 
 generate = (file, contents, loud, handle, nomacros, check, globals, errs, debug)->
   if loud then console.log("Compiling #{file}:\n")
-  objName = if file? and file.match /\.lsr$/ then file.substring(0, file.length - 4) else file ? '_anonymous'
+  objName = if file? and file.match /\.lsr$|\.lmd$/ then file.substring(0, file.length - 4) else file ? '_anonymous'
   out = """
 var #{objName} = (function(){
 var root;

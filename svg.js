@@ -30,9 +30,7 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
 var wrapContext = Leisure.wrapContext;
-var markLeisureErrors = Leisure.markLeisureErrors;
-var _insertFields, _svgTemplate, _svg, _svgFile, _field, _defaultCircleMap, _defaultRectMap, _defaultLineMap, _defaultEllipseMap, _defaultTextMap, _defaultPolygonMap, _svgNode, _svgNodes, _svgConcat, _svgElement, _svgMeasure, _svgPresent, _circle, _rect, _ellipse, _line, _text, _polygon, _group, _translate, _rotate;
-processResult(//AST(require "maps")
+var markLeisureErrors = Leisure.markLeisureErrors;processResult(//AST(require "maps")
 (_require()((function(){return "maps"}))));
 //insertFields = AST(λmap . if (null? map) "" (concat (cons (field (firstPair map)) (cons (insertFields (restPairs map)) nil))))
 root.defs._insertFields = _insertFields = Parse.define('insertFields', (function() {var f; return function _insertFields(){return f || (f = (function(_map){return _if()((function(){var $m; return (function(){return $m || ($m = (_null$e()(_map)))})})())((function(){return ""}))((function(){var $m; return (function(){return $m || ($m = (_concat()((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_field()((function(){var $m; return (function(){return $m || ($m = (_firstPair()(_map)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_insertFields()((function(){var $m; return (function(){return $m || ($m = (_restPairs()(_map)))})})())))})})())(_nil)))})})())))})})())))})})());}));}})(), 1, "\\map . if (null? map) ''\n  concat [ (field (firstPair map)), (insertFields (restPairs map)) ]");;

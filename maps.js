@@ -30,9 +30,7 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
 var wrapContext = Leisure.wrapContext;
-var markLeisureErrors = Leisure.markLeisureErrors;
-var _addHash, _hashFromList, _key, _value, _getPair, _getPairOpt, _getHashValue, _getHashValueDefault, _getKeys, _numKeys, _firstPair, _restPairs, _mergeHashKeys, _mergeHash, _removeHash;
-//addHash = AST(λk v hashmap . cons (cons k v) (removeHash k hashmap))
+var markLeisureErrors = Leisure.markLeisureErrors;//addHash = AST(λk v hashmap . cons (cons k v) (removeHash k hashmap))
 root.defs._addHash = _addHash = Parse.define('addHash', (function() {var f; return function _addHash(){return f || (f = (function(_k){return function(_v){return function(_hashmap){return _cons()((function(){var $m; return (function(){return $m || ($m = (_cons()(_k)(_v)))})})())((function(){var $m; return (function(){return $m || ($m = (_removeHash()(_k)(_hashmap)))})})());};};}));}})(), 3, "\\k v hashmap . cons (cons k v) (removeHash k hashmap)");;
 //hashFromList = AST(λl . if (null? l) nil (addHash (head l) (head (tail l)) (hashFromList (tail (tail l)))))
 root.defs._hashFromList = _hashFromList = Parse.define('hashFromList', (function() {var f; return function _hashFromList(){return f || (f = (function(_l){return _if()((function(){var $m; return (function(){return $m || ($m = (_null$e()(_l)))})})())(_nil)((function(){var $m; return (function(){return $m || ($m = (_addHash()((function(){var $m; return (function(){return $m || ($m = (_head()(_l)))})})())((function(){var $m; return (function(){return $m || ($m = (_head()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_hashFromList()((function(){var $m; return (function(){return $m || ($m = (_tail()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())))})})())))})})());}));}})(), 1, "\\l . if (null? l) nil\n  addHash (head l) (head (tail l)) (hashFromList (tail (tail l)))");;

@@ -45,21 +45,28 @@ compile = (file, cont, nomacros, debug)->
     face?.prompt()
   else
     contents = ''
+    markdown = false
     if !Path.existsSync(file)
       oldfile = file
-      file = file + ".lsr"
-      if !Path.existsSync(file)
-        console.log("No file: #{oldfile}")
-        return cont()
-    jsFile = "#{Path.basename file, '.lsr'}.js"
+      file = oldfile + ".lsr"
+      if Path.existsSync(file)
+        jsFile = "#{Path.basename file, '.lsr'}.js"
+      else
+        file = oldfile + '.lmd'
+        if Path.existsSync file
+          markdown = true
+          jsFile = "#{Path.basename file, '.lmd'}.js"
+        else
+          console.log("No file: #{file}")
+          return cont()
     if Path.existsSync(jsFile)
       FS.unlink(jsFile)
     stream = FS.createReadStream(file)
     stream.on 'data', (data)-> contents += data
     stream.on 'end', ()->
       try
-        contents = contents.replace( /\r\n?/g, "\n")
-        out = Core.generateCode(file, contents, root.loud, null, nomacros, null, debug)
+        contents = contents.replace /\r\n?/g, "\n"
+        out = Core.generateCode(file, (substituteMarkdown markdown, contents), root.loud, null, nomacros, null, debug)
         str = FS.createWriteStream("#{jsFile}Tmp")
         str.on 'close', ->
           FS.renameSync("#{jsFile}Tmp", jsFile)
@@ -74,6 +81,10 @@ compile = (file, cont, nomacros, debug)->
     stream.on 'error', (ex)->
       console.log("Exception reading file: ", ex.stack)
       cont()
+
+substituteMarkdown = (markdown, contents)->
+  if markdown then contents.replace /.*?\n```\n(.*?\n)```\n|.*\n/gm, '$1'
+  else contents
 
 formatLeisureStack = (err)-> "\nLeisure Stack:\n  #{err.toArray().join("\n  ")}"
 
