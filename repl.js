@@ -1,5 +1,5 @@
 (function() {
-  var Buffer, Core, FS, L, Parse, Path, Prim, R, U, VM, compile, createEnv, face, formatLeisureStack, getType, init, print, processResult, repl, root, vars, write,
+  var Buffer, Core, FS, L, Parse, Path, Prim, R, U, VM, compile, createEnv, face, formatLeisureStack, getType, init, print, processResult, repl, root, substituteMarkdown, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -73,21 +73,29 @@
   };
 
   compile = function compile(file, cont, nomacros, debug) {
-    var contents, jsFile, oldfile, stream;
+    var contents, jsFile, markdown, oldfile, stream;
     cont = cont != null ? cont : Core.next;
     if (!file) {
       return face != null ? face.prompt() : void 0;
     } else {
       contents = '';
+      markdown = false;
       if (!Path.existsSync(file)) {
         oldfile = file;
-        file = file + ".lsr";
-        if (!Path.existsSync(file)) {
-          console.log("No file: " + oldfile);
-          return cont();
+        file = oldfile + ".lsr";
+        if (Path.existsSync(file)) {
+          jsFile = "" + (Path.basename(file, '.lsr')) + ".js";
+        } else {
+          file = oldfile + '.lmd';
+          if (Path.existsSync(file)) {
+            markdown = true;
+            jsFile = "" + (Path.basename(file, '.lmd')) + ".js";
+          } else {
+            console.log("No file: " + file);
+            return cont();
+          }
         }
       }
-      jsFile = "" + (Path.basename(file, '.lsr')) + ".js";
       if (Path.existsSync(jsFile)) FS.unlink(jsFile);
       stream = FS.createReadStream(file);
       stream.on('data', function(data) {
@@ -97,7 +105,7 @@
         var out, str;
         try {
           contents = contents.replace(/\r\n?/g, "\n");
-          out = Core.generateCode(file, contents, root.loud, null, nomacros, null, debug);
+          out = Core.generateCode(file, substituteMarkdown(markdown, contents), root.loud, null, nomacros, null, debug);
           str = FS.createWriteStream("" + jsFile + "Tmp");
           str.on('close', function() {
             FS.renameSync("" + jsFile + "Tmp", jsFile);
@@ -118,6 +126,14 @@
         console.log("Exception reading file: ", ex.stack);
         return cont();
       });
+    }
+  };
+
+  substituteMarkdown = function substituteMarkdown(markdown, contents) {
+    if (markdown) {
+      return contents.replace(/.*?\n```\n(.*?\n)```\n|.*\n/gm, '$1');
+    } else {
+      return contents;
     }
   };
 

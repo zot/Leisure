@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, astAtOffset, astBrackets, baseTokenPat, basicPaddedDecl, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, collectArgs, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, markLeisureErrors, mkProto, nameAst, nameSub, noDefaultError, numberAst, pad, padDecl, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap;
+  var Code, LeisureObject, Leisure_token, Nil, Parse, Scanner, allowRedefs, allowRedefsIn, astAtOffset, astBrackets, baseTokenPat, basicPaddedDecl, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, collectArgs, compileNext, cons, contexts, createMethod, ctx, declScanner, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, markLeisureErrors, mkProto, nameAst, nameSub, noDefaultError, numberAst, pad, padDecl, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -42,6 +42,19 @@ misrepresented as being the original software.
   declScanner.defToken('::');
 
   declScanner.defToken(':?');
+
+  allowRedefs = false;
+
+  allowRedefsIn = function allowRedefsIn(block) {
+    var old;
+    old = allowRedefs;
+    allowRedefs = true;
+    try {
+      return block();
+    } finally {
+      allowRedefs = old;
+    }
+  };
 
   escapeRegexpChars = function escapeRegexpChars(str) {
     return str.replace(/([\][().\\*+?{}|])/g, '\\$1');
@@ -528,7 +541,7 @@ misrepresented as being the original software.
     var fun, meth;
     fun = Parse.ensureLeisureClass(leisureClass);
     meth = nameSub(methodName);
-    if (fun.prototype.hasOwnProperty(meth)) {
+    if (!allowRedefs && fun.prototype.hasOwnProperty(meth)) {
       throw new Error("Attempt to redefine existing method: " + leisureClass + "." + methodName + ", current definition: " + (fun.prototype[meth]()) + ", class: " + fun);
     }
     fun.prototype[meth] = definition;
@@ -719,7 +732,7 @@ misrepresented as being the original software.
       if (err) {
         return [null, err];
       } else if (nm) {
-        if (check && globals.find(function(v) {
+        if (!allowRedefs && check && globals.find(function(v) {
           return v === nm[0];
         })) {
           return [null, "Attempt to redefine function: " + nm[0] + " " + (snip(rest1)), null];
@@ -972,6 +985,8 @@ misrepresented as being the original software.
   root.Code = Code;
 
   root.getNthBody = getNthBody;
+
+  root.allowRedefsIn = allowRedefsIn;
 
   root.markLeisureErrors = markLeisureErrors;
 
