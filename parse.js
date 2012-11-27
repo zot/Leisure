@@ -1,6 +1,6 @@
 
 /*
-Copyright (C) 2012, Bill Burdick, Tiny Concepts: http://tinyconcepts.com/fs.pl/lambda.fsl
+Copyright (C) 2012, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
 
 (licensed with ZLIB license)
 
@@ -1479,6 +1479,8 @@ misrepresented as being the original software.
   root.Scanner = Scanner;
 
   root.Leisure_token = Leisure_token;
+
+  root.Leisure_lexCons = Leisure_lexCons;
 
   root.ensureLeisureClass = ensureLeisureClass;
 

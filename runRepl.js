@@ -27,7 +27,7 @@
     }), nomacros, debug);
   };
 
-  standard = ['prelude', 'std', 'parsing'];
+  standard = ['prelude', 'std', 'parsing', 'pattern'];
 
   loadStandardLimit = standard.length;
 

@@ -1,5 +1,5 @@
 ###
-Copyright (C) 2012, Bill Burdick, Tiny Concepts: http://tinyconcepts.com/fs.pl/lambda.fsl
+Copyright (C) 2012, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
 
 (licensed with ZLIB license)
 
@@ -611,6 +611,7 @@ root.throwError = throwError
 root.foldLeft = foldLeft
 root.Scanner = Scanner
 root.Leisure_token = Leisure_token
+root.Leisure_lexCons = Leisure_lexCons
 root.ensureLeisureClass = ensureLeisureClass
 root.LeisureObject = LeisureObject
 root.defaultScanner = defaultScanner

@@ -5,15 +5,18 @@
 ## \ find key [key value | _] = some(value)
 ## \ find key [_ _ | rest] = find key rest
 
-```
-3+4
-```
+## \ isStream x = false
+## \ isStream x::cons = true
+## \ isStream x::lexCons = true
+## \ 
+## \ getName (person name) = name
+## \ getAddress (person _ address) = address
 
-asdf
+[ list =P= listPattern list
+
+listPattern list::lexCons = list
+listPattern list::lexCons = list 
 
 ```
-6+7
+'nothing, yet'
 ```
-
-qwer
-qwer

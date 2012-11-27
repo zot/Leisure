@@ -172,7 +172,7 @@ var #{objName} = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  #{if file? then file.replace(/\.lsr/, '') + ' = ' else ''}root = {};
+  #{if file? then file.replace(/\.(lsr|lmd)/, '') + ' = ' else ''}root = {};
   global = window;
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;

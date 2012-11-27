@@ -120,7 +120,6 @@ slideKeyListener = (e)->
   if sliding
     window.evt = e
     c = (e.charCode || e.keyCode || e.which)
-    console.log "keydown: #{c}"
     if (c in slideControls) && !$(e.target).is('[leisurenode=code],[leisurenode=code] *')
       e.preventDefault()
       if c == ESC then toggleSlideShow()

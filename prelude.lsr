@@ -65,6 +65,8 @@ defToken '|'
 defToken ','
 #@auto
 defToken '<-'
+#@auto
+defToken '::'
 
 id x = x
 

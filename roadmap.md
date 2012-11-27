@@ -5,11 +5,11 @@
    * local/proxied
    * gdrive
    * orion
-* Switch everything to markdown
-* Building
-   * give them monads a kick
+* Sliders for numbers, like Bret Victor has (compiling as you change them)
 * Queries
    * code scanner
+* ignored variable, '_'
+* file-private functions, $func
 * Map constructor
    * {a:1 b:2 c:3} -- ':' operator binds very tightly
    * use it in data constructor, like: person {name:'bubba' dob:(date '3/17/1952')}
@@ -19,6 +19,11 @@
    * use different name space for pattern creation, so '{',
      '[', etc. can have different meanings in a decl
       * defPattern name func -- could bind name to func in the pattern namespace
+   * records which declare their patterns
+   * reflection
+      * get function that matches a signature
+         * ex: matchingFunction find 'fred' [] -- returns subfunction
+           for fred
 * Socially networked source code
    * Code use
       * Authors should know how many projects are using their code
@@ -27,6 +32,10 @@
    * Code notes should be collaborative
       * Code users should be able to attach shared notes to code
       * Authors should be notified about new/changed notes
+
+# Done
+
+* Switch everything to markdown -- *.lmd files work, now
 
 # Goals
 

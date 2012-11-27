@@ -26,9 +26,11 @@ if window? and (!global? or global == window)
   window.global = window
   window.Leisure = root = {}
   Parse = window.Parse
+  Patterns = window.Patterns
 else
   root = exports ? this
   Parse = require('./parse')
+  Patterns = require './patterns'
 
 {
   LeisureObject,
@@ -290,10 +292,16 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
 #{if code.method?
   [type, name, argNames, methodCode] = code.method
   "#{checkClass(name, n, ast)};\nLeisure.createMethod('#{type}', '#{name}', #{if src then JSON.stringify(src) else "''"}, function(#{argNames.slice(1).map((n)->nameSub n).join(", ")}) {return #{methodCode};})"
-else "#{namespace ? ''}#{if tokenDef == '=M=' then 'defineMacro' else 'define'}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 0)}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}"}
+else "#{namespace ? ''}#{defFunc tokenDef}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 0)}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}"}
 """ else jsCode
   ast.globals = code.global
   ast
+
+defFunc = (tok)->
+  switch tok
+    when '=M=' then 'defineMacro'
+    when '=P=' then 'definePattern'
+    else 'define'
 
 ##
 ## Dispatching
@@ -498,6 +506,7 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
     rest1 = line.substring (if defType then matched else leading).length
     if err then [null, err]
     else if nm
+      #console.log "DECL: [#{Patterns.parseDecl(name)[0].join ', '}]"
       if !allowRedefs && check and globals.find((v)-> v == nm[0]) then [null, "Attempt to redefine function: #{nm[0]} #{snip rest1}", null]
       else
         if defType && defType != '=' then defineToken(nm[0], defType)

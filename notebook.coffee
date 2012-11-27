@@ -128,6 +128,8 @@ getMDDocument = (nodes)->
 
 makeId = (el)-> if !el.id then el.id = "Leisure-#{nextId++}"
 
+allowEvents = true
+
 bindNotebook = (el)->
   if !basePresentValue
     basePresentValue = Prim.defaultEnv.presentValue
@@ -139,52 +141,54 @@ bindNotebook = (el)->
   if !el.bound?
     makeId el
     el.bound = true
-    el.addEventListener 'DOMCharacterDataModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
-    el.addEventListener 'DOMSubtreeModified', ((evt)->if !el.replacing then delay(->checkMutateFromModification evt)), true
-    el.addEventListener 'mousedown', ((e)-> delay highlightPosition), true
-    el.addEventListener 'mousemove', ((e)-> delay highlightPosition), true
-    el.addEventListener 'mouseup', ((e)-> delay highlightPosition), true
+    el.addEventListener 'DOMCharacterDataModified', ((evt)->if allowEvents && !el.replacing then delay(->checkMutateFromModification evt)), true
+    el.addEventListener 'DOMSubtreeModified', ((evt)->if allowEvents && !el.replacing then delay(->checkMutateFromModification evt)), true
+    el.addEventListener 'mousedown', ((e)-> if allowEvents then delay highlightPosition), true
+    el.addEventListener 'mousemove', ((e)-> if allowEvents then delay highlightPosition), true
+    el.addEventListener 'mouseup', ((e)-> if allowEvents then delay highlightPosition), true
     el.addEventListener 'keydown', (e)->
-      c = (e.charCode || e.keyCode || e.which)
-      if c == DEL || c == BS
+      if allowEvents
+        c = (e.charCode || e.keyCode || e.which)
+        if c == DEL || c == BS
+          s = window.getSelection()
+          r = s.getRangeAt(0)
+          if c == BS
+            checkDeleteExpr getBox r.startContainer
+            if skipLeftOverOutputBox el, r then return e.preventDefault()
+          else if c == DEL
+            checkDeleteExpr getBox r.startContainer
+            if ignoreDeleteOutputBox el, r then return e.preventDefault()
+        if printable c then clearAst getBox window.getSelection().focusNode
+        if (c in arrows) or printable c then delay(highlightPosition)
+        if e.ctrlKey and c == ENTER then handleKey("C-ENTER")
+        else if e.altKey and c == ENTER then handleKey("M-ENTER")
+        else if c == TAB
+          handleKey("TAB")
+          e.preventDefault()
+    el.addEventListener 'keypress', (e)->
+      if allowEvents
         s = window.getSelection()
         r = s.getRangeAt(0)
-        if c == BS
-          checkDeleteExpr getBox r.startContainer
-          if skipLeftOverOutputBox el, r then return e.preventDefault()
-        else if c == DEL
-          checkDeleteExpr getBox r.startContainer
-          if ignoreDeleteOutputBox el, r then return e.preventDefault()
-      if printable c then clearAst getBox window.getSelection().focusNode
-      if (c in arrows) or printable c then delay(highlightPosition)
-      if e.ctrlKey and c == ENTER then handleKey("C-ENTER")
-      else if e.altKey and c == ENTER then handleKey("M-ENTER")
-      else if c == TAB
-        handleKey("TAB")
-        e.preventDefault()
-    el.addEventListener 'keypress', (e)->
-      s = window.getSelection()
-      r = s.getRangeAt(0)
-      if (e.charCode || e.keyCode || e.which) == ENTER
-        br = textNode('\n')
-        r.insertNode(br)
-        r = document.createRange()
-        r.setStart(br, 1)
-        s.removeAllRanges()
-        s.addRange(r)
-        e.preventDefault()
-      else if r.startContainer.parentNode == el
-        sp = codeSpan '\n', 'codeExpr'
-        sp.setAttribute('generatedNL', '')
-        bx = box s.getRangeAt(0), 'codeMainExpr', true
-        bx.appendChild sp
-        makeOutputBox bx
-        r = document.createRange()
-        r.setStart(sp, 0)
-        s.removeAllRanges()
-        s.addRange(r)
-    el.addEventListener 'focus', (-> findCurrentCodeHolder()), true
-    el.addEventListener 'blur', (-> findCurrentCodeHolder()), true
+        if (e.charCode || e.keyCode || e.which) == ENTER
+          br = textNode('\n')
+          r.insertNode(br)
+          r = document.createRange()
+          r.setStart(br, 1)
+          s.removeAllRanges()
+          s.addRange(r)
+          e.preventDefault()
+        else if r.startContainer.parentNode == el
+          sp = codeSpan '\n', 'codeExpr'
+          sp.setAttribute('generatedNL', '')
+          bx = box s.getRangeAt(0), 'codeMainExpr', true
+          bx.appendChild sp
+          makeOutputBox bx
+          r = document.createRange()
+          r.setStart(sp, 0)
+          s.removeAllRanges()
+          s.addRange(r)
+    el.addEventListener 'focus', (-> if allowEvents then findCurrentCodeHolder()), true
+    el.addEventListener 'blur', (-> if allowEvents then findCurrentCodeHolder()), true
     if window.leisureAutoRunAll
       autoRun el, true
       window.setTimeout (->runTests el), 1
@@ -304,15 +308,14 @@ highlightPosition = ->
     if cleanEmptyNodes s.getRangeAt(0).startContainer then return
     focusBox s.focusNode
     parent = getBox s.focusNode
-    if false and s.getRangeAt(0)?.collapsed
+    if s.getRangeAt(0)?.collapsed
       if !parent or isOutput parent then return
-      if parent.parentNode
-        ast = getAst parent
-        if ast?
-          offset = ast.leisureCodeOffset ? 0
-          r = s.getRangeAt(0)
-          r.setStart parent, 0
-          pos = getRangeText(r).length
+      if parent.parentNode and ast = getAst parent
+        offset = ast.leisureCodeOffset ? 0
+        r = s.getRangeAt(0)
+        r.setStart parent, 0
+        pos = getRangeText(r).length
+        if false
           brackets = Leisure.bracket ast.leisureBase, pos - offset
           if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
             oldBrackets = [parent, brackets]
@@ -325,7 +328,7 @@ highlightPosition = ->
             b = brackets
             ranges = []
             while b != Parse.Nil
-              ranges.push (makeRange parent, b.head().head() + offset, b.head().tail().head() + offset)
+                ranges.push (makeRange parent, b.head().head() + offset, b.head().tail().head() + offset)
               b = b.tail()
             for r, i in ranges
               span = document.createElement 'span'
@@ -334,9 +337,94 @@ highlightPosition = ->
               wrapRange r, span
             s.removeAllRanges()
             #parent.normalize()
-            s.addRange(makeRange parent, pos)
+          s.addRange(makeRange parent, pos)
+        showSlider parent, pos
     if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
     peerNotifySelection parent, s.toString()
+
+numberEnd = /(?:^|.*[^0-9.])([0-9]+\.?[0-9]*|\.[0-9]*)$/
+numberStart = /^([0-9]+\.[0-9]+|[0-9]+|\.[0-9]+)/
+slider = []
+
+showSlider = (parent, pos)->
+  text = parent.textContent
+  oldPos = pos
+  show = false
+  if m = text.substring(0, pos).match(numberEnd)
+    pos -= m[1].length
+  if m = text.substring(pos).match(numberStart)
+    len = m[1].length
+    if oldPos <= pos + len
+      show = true
+  if show
+    [sParent, sPos, sValue] = slider
+    if parent != sParent || pos != sPos || m[1] != sValue
+      if slider.length
+        console.log "ALREADY HAVE A SLIDER"
+        console.log "DUH"
+      hideSlider()
+      console.log "Show slider: [#{pos},#{pos + len}]"
+      r = makeRange parent, pos, pos + m[1].length
+      span = createNode "<span class='leisureRangeNumber ui-widget-content'></span>"
+      wrapRange r, span
+      span.normalize()
+      d = createNode "<div style='position: absolute; width: 200px; background: white; border: solid green 1px'></div>"
+      slider = [parent, pos, m[1], span, d]
+      d.style.top = "#{span.offsetTop + span.offsetHeight}px"
+      d.style.minTop = '0px'
+      d.style.left = "#{Math.max(0, (span.offsetLeft + span.offsetWidth)/2 - 100)}px"
+      value = Number m[1]
+      min = if value < 0 then value * 2 else value / 2
+      max = if value == 0 then 10 else value * 2
+      sl = $(d).slider
+        animate: 'fast'
+        start: -> delay -> allowEvents = false
+        stop: (event, ui)->
+          allowEvents = true
+          setMinMax sl, value
+          console.log "STOP"
+        slide: (event, ui)->
+          console.log "Slider: ", sl
+          span.firstChild.nodeValue = String(ui.value)
+          if isDef parent
+            parent.ast = null
+            ast = getAst parent
+            update "sel-#{parent.ast.leisureName}"
+          else
+            makeId parent
+            if !parent.getAttribute parent.output, 'leisureUpdate'
+              setUpdate parent.output, "id-#{parent.id}", true
+            update "id-#{parent.id}"
+        change: (event, ui)->
+          console.log "CHANGE"
+      setMinMax sl, value
+      parent.insertBefore d, parent.firstChild
+      d.focus()
+  else hideSlider()
+
+setMinMax = (sl, value)->
+  min = if value < 0 then value * 2 else value / 2
+  max = if value == 0 or (value > 1 and value < 50) then 100 else value * 2
+  if Math.round(value) == value
+    min = if value == 1 then 0 else Math.round(min)
+    step = (max - min) / 100
+    step = Math.round(step)
+    step = step - step % (max - min)
+  else
+    step = (max - min) / 100
+  sl.slider "value", value
+  sl.slider "option", "min", min
+  sl.slider "option", "max", max
+  sl.slider "option", "step", step
+
+hideSlider = ->
+  if slider.length
+    console.log "Hide old slider"
+    [parent, sPos, sValue, span, div] = slider
+    unwrap span
+    remove div
+    parent.normalize()
+    slider = []
 
 wrapRange = (range, node)->
   try
@@ -361,6 +449,7 @@ checkMutateFromModification = (evt)->
   b = getBox evt.target
   b2 = getBox window.getSelection().focusNode
   if b and b == b2
+    console.log "MUTATE"
     if (isDef b) and b.classList.contains('codeMainExpr') then toDefBox b
     else if !(isDef b) and b.classList.contains('codeMain') then toExprBox b
 
@@ -616,7 +705,6 @@ markupDefs = (el, defs)->
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode def)
-      addDefControls bx
       #bod = codeSpan (markPartialApplies bx, body), 'codeBody'
       bod = codeSpan textNode(body), 'codeBody'
       bod.appendChild textNode('\n')
@@ -624,6 +712,7 @@ markupDefs = (el, defs)->
       bx.appendChild bod
       bx.addEventListener 'blur', (-> evalDoc el), true
       markPartialApplies bx
+      addDefControls bx
       pgm += "#{name} #{def} #{body}\n"
     else if main?
       bx = box main, 'codeMainExpr', true
@@ -1332,6 +1421,7 @@ root.arrows = arrows
 root.closeWindow = closeWindow
 root.markupButton = markupButton
 root.markupButtons = markupButtons
+root.getAst = getAst
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

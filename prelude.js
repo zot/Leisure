@@ -38,6 +38,8 @@ processResult(//AST(defToken ",")
 (_defToken()((function(){return ","}))));
 processResult(//AST(defToken "<-")
 (_defToken()((function(){return "<-"}))));
+processResult(//AST(defToken "::")
+(_defToken()((function(){return "::"}))));
 //id = AST(λx . x)
 root.defs._id = _id = Parse.define('id', (function() {var f; return function _id(){return f || (f = (function(_x){return _x();}));}})(), 1, "\\x . x");;
 //flip = AST(λf a b . f b a)

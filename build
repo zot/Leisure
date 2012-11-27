@@ -8,6 +8,8 @@ while [ $# != 0 ]; do
   shift
 done
 
+# if node_modules/coffee-script/bin/coffee -c storage.coffee parse.coffee patterns.coffee leisure.coffee prim.coffee game.coffee md.coffee \
+
 if node_modules/coffee-script/bin/coffee -c storage.coffee parse.coffee leisure.coffee prim.coffee game.coffee md.coffee \
  && node_modules/coffee-script/bin/coffee -c repl.coffee runRepl.coffee testLeisure.coffee replCore.coffee browserRepl.coffee testing.coffee bootLeisure.coffee notebook.coffee \
  && node runRepl $DEBUG -q -b 0 -c prelude \
