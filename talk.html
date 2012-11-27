@@ -257,6 +257,32 @@ f1 = 1
 f2 = 2
 ```
 ***
+# Notebooks: they're Webby
+## HTML-y values display right in the document
+```
+html '<i><b>Hello</b></i>'
+rect nil
+polygon nil
+svgConcat [
+  translate
+    circle nil
+    10
+    10
+  rect nil]
+```
+***
+# Notebooks: Bret Victor-like sliders
+```
+xAmt = 10
+svgConcat [
+  translate
+    circle nil
+    xAmt
+    10
+  rect nil]
+rotate (polygon nil) 90
+```
+***
 # Notebooks: Storage (in the works)
 ## Import/export zip files
 ## Google Drive (can already connect and create directories and files)
@@ -390,20 +416,6 @@ f x y = do
 
 f 2 (-1)
 (break f) 2 2
-```
-***
-# The Language: It's Webby
-## HTML-y values display right in the document
-```
-html '<i><b>Hello</b></i>'
-rect nil
-polygon nil
-svgConcat [
-  translate
-    circle nil
-    10
-    10
-  rect nil]
 ```
 ***
 -
