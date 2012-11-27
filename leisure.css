@@ -198,6 +198,10 @@ body {
   color: blue;
 }
 
+.leisureRangeNumber {
+  outline: solid green 1px;
+}
+
 .slide.hidden {
   display: none;
 }

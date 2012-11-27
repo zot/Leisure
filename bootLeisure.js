@@ -47,7 +47,7 @@
       style.setAttribute('href', "" + i + ".css");
       document.head.appendChild(style);
     }
-    return loadThen(['xus', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'notebook', 'jquery-1.7.2.min', 'jquery.indexeddb', 'storage', 'marked', 'md'], function() {
+    return loadThen(['xus', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'pattern', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'jquery.indexeddb', 'storage', 'marked', 'md'], function() {
       if (typeof window.leisureFirst === "function") window.leisureFirst();
       window.Leisure.restoreAutosave = restoreAutosave;
       window.Leisure.backupAutosave = backupAutosave;

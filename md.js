@@ -108,7 +108,6 @@
     if (sliding) {
       window.evt = e;
       c = e.charCode || e.keyCode || e.which;
-      console.log("keydown: " + c);
       if ((__indexOf.call(slideControls, c) >= 0) && !$(e.target).is('[leisurenode=code],[leisurenode=code] *')) {
         e.preventDefault();
         if (c === ESC) {
