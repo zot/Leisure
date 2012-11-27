@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, showAst, showError, showResult, showSlider, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, sgn, showAst, showError, showResult, showSlider, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -475,7 +475,7 @@
   };
 
   highlightPosition = function highlightPosition() {
-    var ast, b, brackets, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
+    var ast, b, brackets, changed, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
     parent = null;
     s = window.getSelection();
     if (s.rangeCount) {
@@ -489,6 +489,7 @@
           r = s.getRangeAt(0);
           r.setStart(parent, 0);
           pos = getRangeText(r).length;
+          changed = false;
           if (false) {
             brackets = Leisure.bracket(ast.leisureBase, pos - offset);
             if (oldBrackets[0] !== parent || !oldBrackets[1].equals(brackets)) {
@@ -518,11 +519,13 @@
                 span.setAttribute('class', i === 0 ? 'LeisureFunc' : 'LeisureArg');
                 wrapRange(r, span);
               }
-              s.removeAllRanges();
+              changed = true;
             }
+          }
+          if ((showSlider(parent, pos)) || changed) {
+            s.removeAllRanges();
             s.addRange(makeRange(parent, pos));
           }
-          showSlider(parent, pos);
         }
       }
       if ((parent != null ? (_ref5 = parent.ast) != null ? _ref5.leisureName : void 0 : void 0) != null) {
@@ -539,10 +542,11 @@
   slider = [];
 
   showSlider = function showSlider(parent, pos) {
-    var d, len, m, max, min, oldPos, r, sParent, sPos, sValue, show, sl, span, text, value;
+    var changed, d, len, m, max, min, oldPos, r, sParent, sPos, sValue, show, sl, span, text, value;
     text = parent.textContent;
     oldPos = pos;
     show = false;
+    changed = false;
     if (m = text.substring(0, pos).match(numberEnd)) pos -= m[1].length;
     if (m = text.substring(pos).match(numberStart)) {
       len = m[1].length;
@@ -560,8 +564,9 @@
         r = makeRange(parent, pos, pos + m[1].length);
         span = createNode("<span class='leisureRangeNumber ui-widget-content'></span>");
         wrapRange(r, span);
+        changed = true;
         span.normalize();
-        d = createNode("<div style='position: absolute; width: 200px; background: white; border: solid green 1px'></div>");
+        d = createNode("<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px'></div>");
         slider = [parent, pos, m[1], span, d];
         d.style.top = "" + (span.offsetTop + span.offsetHeight) + "px";
         d.style.minTop = '0px';
@@ -587,14 +592,16 @@
             span.firstChild.nodeValue = String(ui.value);
             if (isDef(parent)) {
               parent.ast = null;
+              acceptCode(parent);
               ast = getAst(parent);
               return update("sel-" + parent.ast.leisureName);
             } else {
               makeId(parent);
               if (!parent.getAttribute(parent.output, 'leisureUpdate')) {
-                setUpdate(parent.output, "id-" + parent.id, true);
+                setUpdate(parent.output, "id-" + parent.id + " compile", true);
               }
-              return update("id-" + parent.id);
+              update("id-" + parent.id);
+              return update("compile");
             }
           },
           change: function change(event, ui) {
@@ -603,29 +610,39 @@
         });
         setMinMax(sl, value);
         parent.insertBefore(d, parent.firstChild);
-        return d.focus();
+        d.focus();
       }
+      return changed;
     } else {
       return hideSlider();
     }
   };
 
+  sgn = function sgn(x) {
+    if (x < 0) {
+      return -1;
+    } else if (x === 0) {
+      return 0;
+    } else {
+      return 1;
+    }
+  };
+
   setMinMax = function setMinMax(sl, value) {
-    var max, min, step;
-    min = value < 0 ? value * 2 : value / 2;
-    max = value === 0 || (value > 1 && value < 50) ? 100 : value * 2;
+    var max, min, step, _ref;
+    min = 0;
+    max = (1 <= (_ref = Math.abs(value)) && _ref < 50) || value === 0 ? 100 * sgn(value) : value * 2;
     if (Math.round(value) === value) {
-      min = value === 1 ? 0 : Math.round(min);
-      step = (max - min) / 100;
-      step = Math.round(step);
+      step = Math.round((max - min) / 100);
       step = step - step % (max - min);
     } else {
       step = (max - min) / 100;
     }
-    sl.slider("value", value);
+    console.log("<" + min + ", " + value + ", " + max + ">");
     sl.slider("option", "min", min);
     sl.slider("option", "max", max);
-    return sl.slider("option", "step", step);
+    sl.slider("option", "step", step);
+    return sl.slider("value", value);
   };
 
   hideSlider = function hideSlider() {
@@ -636,7 +653,10 @@
       unwrap(span);
       remove(div);
       parent.normalize();
-      return slider = [];
+      slider = [];
+      return true;
+    } else {
+      return false;
     }
   };
 
@@ -988,10 +1008,12 @@
   unwrap = function unwrap(node) {
     var parent;
     parent = node.parentNode;
-    while (node.firstChild != null) {
-      parent.insertBefore(node.firstChild, node);
+    if (parent) {
+      while (node.firstChild != null) {
+        parent.insertBefore(node.firstChild, node);
+      }
+      return parent.removeChild(node);
     }
-    return parent.removeChild(node);
   };
 
   removeOldDefs = function removeOldDefs(el) {
@@ -1173,7 +1195,7 @@
     makeOutputControls(exBox);
     _ref = getElements(exBox.firstChild, ['chooseUpdate', 'stopUpdates']), updateSelector = _ref[0], stopUpdates = _ref[1];
     updateSelector.addEventListener('change', function(evt) {
-      return setUpdate(exBox, evt.target.value);
+      return setUpdate(exBox, evt.target.value, true);
     });
     updateSelector.addEventListener('keydown', function(e) {
       c = e.charCode || e.keyCode || e.which;
@@ -1270,7 +1292,7 @@
   update = function update(type, env) {
     var node, _i, _len, _ref, _results;
     env = env != null ? env : Prim.defaultEnv;
-    _ref = env.owner.querySelectorAll("[leisureUpdate=" + type + "]");
+    _ref = env.owner.querySelectorAll("[leisureUpdate~=" + type + "]");
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];

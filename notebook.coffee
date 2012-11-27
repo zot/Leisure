@@ -315,6 +315,7 @@ highlightPosition = ->
         r = s.getRangeAt(0)
         r.setStart parent, 0
         pos = getRangeText(r).length
+        changed = false
         if false
           brackets = Leisure.bracket ast.leisureBase, pos - offset
           if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
@@ -335,10 +336,11 @@ highlightPosition = ->
               span.setAttribute 'LeisureBrackets', ''
               span.setAttribute 'class', if i == 0 then 'LeisureFunc' else 'LeisureArg'
               wrapRange r, span
-            s.removeAllRanges()
-            #parent.normalize()
+            changed = true
+        if (showSlider parent, pos) or changed
+          s.removeAllRanges()
+          #parent.normalize()
           s.addRange(makeRange parent, pos)
-        showSlider parent, pos
     if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
     peerNotifySelection parent, s.toString()
 
@@ -350,6 +352,7 @@ showSlider = (parent, pos)->
   text = parent.textContent
   oldPos = pos
   show = false
+  changed = false
   if m = text.substring(0, pos).match(numberEnd)
     pos -= m[1].length
   if m = text.substring(pos).match(numberStart)
@@ -367,8 +370,9 @@ showSlider = (parent, pos)->
       r = makeRange parent, pos, pos + m[1].length
       span = createNode "<span class='leisureRangeNumber ui-widget-content'></span>"
       wrapRange r, span
+      changed = true
       span.normalize()
-      d = createNode "<div style='position: absolute; width: 200px; background: white; border: solid green 1px'></div>"
+      d = createNode "<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px'></div>"
       slider = [parent, pos, m[1], span, d]
       d.style.top = "#{span.offsetTop + span.offsetHeight}px"
       d.style.minTop = '0px'
@@ -388,34 +392,40 @@ showSlider = (parent, pos)->
           span.firstChild.nodeValue = String(ui.value)
           if isDef parent
             parent.ast = null
+            acceptCode parent
             ast = getAst parent
             update "sel-#{parent.ast.leisureName}"
           else
             makeId parent
             if !parent.getAttribute parent.output, 'leisureUpdate'
-              setUpdate parent.output, "id-#{parent.id}", true
+              setUpdate parent.output, "id-#{parent.id} compile", true
             update "id-#{parent.id}"
+            update "compile"
         change: (event, ui)->
           console.log "CHANGE"
       setMinMax sl, value
       parent.insertBefore d, parent.firstChild
       d.focus()
+    changed
   else hideSlider()
 
+sgn = (x)-> if x < 0 then -1 else if x == 0 then 0 else 1
+
 setMinMax = (sl, value)->
-  min = if value < 0 then value * 2 else value / 2
-  max = if value == 0 or (value > 1 and value < 50) then 100 else value * 2
+  #min = if value < 0 then value * 2 else value / 2
+  min = 0
+  max = if 1 <= Math.abs(value) < 50 or value == 0 then 100 * sgn(value) else value * 2
   if Math.round(value) == value
-    min = if value == 1 then 0 else Math.round(min)
-    step = (max - min) / 100
-    step = Math.round(step)
+    #min = if value == 1 then 0 else Math.round(min)
+    step = Math.round((max - min) / 100)
     step = step - step % (max - min)
   else
     step = (max - min) / 100
-  sl.slider "value", value
+  console.log "<#{min}, #{value}, #{max}>"
   sl.slider "option", "min", min
   sl.slider "option", "max", max
   sl.slider "option", "step", step
+  sl.slider "value", value
 
 hideSlider = ->
   if slider.length
@@ -425,6 +435,8 @@ hideSlider = ->
     remove div
     parent.normalize()
     slider = []
+    true
+  else false
 
 wrapRange = (range, node)->
   try
@@ -671,9 +683,10 @@ changeView = (el, value)->
 
 unwrap = (node)->
   parent = node.parentNode
-  while node.firstChild?
-    parent.insertBefore node.firstChild, node
-  parent.removeChild node
+  if parent
+    while node.firstChild?
+      parent.insertBefore node.firstChild, node
+    parent.removeChild node
 
 removeOldDefs = (el)->
   el.leisureDownloadLink = null
@@ -798,7 +811,7 @@ evalOutput = (exBox, nofocus)->
   if selector then exBox.setAttribute 'leisureUpdate', selector
   makeOutputControls exBox
   [updateSelector, stopUpdates] = getElements exBox.firstChild, ['chooseUpdate', 'stopUpdates']
-  updateSelector.addEventListener 'change', (evt)-> setUpdate exBox, evt.target.value
+  updateSelector.addEventListener 'change', (evt)-> setUpdate exBox, evt.target.value, true
   updateSelector.addEventListener 'keydown', (e)->
     c = (e.charCode || e.keyCode || e.which)
     if c == ENTER
@@ -865,7 +878,7 @@ clearUpdates = (widget, preserveSource)->
 
 update = (type, env)->
   env = env ? Prim.defaultEnv
-  for node in env.owner.querySelectorAll "[leisureUpdate=#{type}]"
+  for node in env.owner.querySelectorAll "[leisureUpdate~=#{type}]"
     evalOutput node, true
 
 clearOutputBox = (exBox)->
