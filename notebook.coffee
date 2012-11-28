@@ -143,11 +143,11 @@ bindNotebook = (el)->
     el.bound = true
     el.addEventListener 'DOMCharacterDataModified', ((evt)->if allowEvents && !el.replacing then delay(->checkMutateFromModification evt)), true
     el.addEventListener 'DOMSubtreeModified', ((evt)->if allowEvents && !el.replacing then delay(->checkMutateFromModification evt)), true
-    el.addEventListener 'mousedown', ((e)-> if allowEvents then delay highlightPosition), true
-    el.addEventListener 'mousemove', ((e)-> if allowEvents then delay highlightPosition), true
-    el.addEventListener 'mouseup', ((e)-> if allowEvents then delay highlightPosition), true
+    el.addEventListener 'mousedown', ((e)-> if !isSlider e.srcElement then delay -> highlightPosition e), true
+    el.addEventListener 'mousemove', ((e)-> if !isSlider e.srcElement then delay -> highlightPosition e), true
+    el.addEventListener 'mouseup', ((e)-> if !isSlider e.srcElement then delay -> highlightPosition e), true
     el.addEventListener 'keydown', (e)->
-      if allowEvents
+        #if allowEvents
         c = (e.charCode || e.keyCode || e.which)
         if c == DEL || c == BS
           s = window.getSelection()
@@ -159,14 +159,14 @@ bindNotebook = (el)->
             checkDeleteExpr getBox r.startContainer
             if ignoreDeleteOutputBox el, r then return e.preventDefault()
         if printable c then clearAst getBox window.getSelection().focusNode
-        if (c in arrows) or printable c then delay(highlightPosition)
-        if e.ctrlKey and c == ENTER then handleKey("C-ENTER")
-        else if e.altKey and c == ENTER then handleKey("M-ENTER")
+        if (c in arrows) or printable c then delay -> highlightPosition e
+        if e.ctrlKey and c == ENTER then handleKey "C-ENTER"
+        else if e.altKey and c == ENTER then handleKey "M-ENTER"
         else if c == TAB
           handleKey("TAB")
           e.preventDefault()
     el.addEventListener 'keypress', (e)->
-      if allowEvents
+        #if allowEvents
         s = window.getSelection()
         r = s.getRangeAt(0)
         if (e.charCode || e.keyCode || e.which) == ENTER
@@ -301,7 +301,7 @@ mergeLeisureCode = (el1, el2)->
     el1.appendChild r.extractContents()
     el2.parentNode.removeChild el2
 
-highlightPosition = ->
+highlightPosition = (e)->
   parent = null
   s = window.getSelection()
   if s.rangeCount
@@ -337,7 +337,8 @@ highlightPosition = ->
               span.setAttribute 'class', if i == 0 then 'LeisureFunc' else 'LeisureArg'
               wrapRange r, span
             changed = true
-        if (showSlider parent, pos) or changed
+        if (e instanceof MouseEvent and e.type == 'mousedown' and showSliderButton parent, pos) or changed
+          window.EVT = e
           s.removeAllRanges()
           #parent.normalize()
           s.addRange(makeRange parent, pos)
@@ -348,70 +349,77 @@ numberEnd = /(?:^|.*[^0-9.])([0-9]+\.?[0-9]*|\.[0-9]*)$/
 numberStart = /^([0-9]+\.[0-9]+|[0-9]+|\.[0-9]+)/
 slider = []
 
-showSlider = (parent, pos)->
+showSliderButton = (parent, pos)->
   text = parent.textContent
   oldPos = pos
-  show = false
-  changed = false
-  if m = text.substring(0, pos).match(numberEnd)
-    pos -= m[1].length
+  changed = 0
+  if m = text.substring(0, pos).match(numberEnd) then pos -= m[1].length
   if m = text.substring(pos).match(numberStart)
     len = m[1].length
     if oldPos <= pos + len
-      show = true
-  if show
-    [sParent, sPos, sValue] = slider
-    if parent != sParent || pos != sPos || m[1] != sValue
-      if slider.length
-        console.log "ALREADY HAVE A SLIDER"
-        console.log "DUH"
-      hideSlider()
-      console.log "Show slider: [#{pos},#{pos + len}]"
-      r = makeRange parent, pos, pos + m[1].length
-      span = createNode "<span class='leisureRangeNumber ui-widget-content'></span>"
-      wrapRange r, span
-      changed = true
-      span.normalize()
-      d = createNode "<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px'></div>"
-      slider = [parent, pos, m[1], span, d]
-      d.style.top = "#{span.offsetTop + span.offsetHeight}px"
-      d.style.minTop = '0px'
-      d.style.left = "#{Math.max(0, (span.offsetLeft + span.offsetWidth)/2 - 100)}px"
-      value = Number m[1]
-      min = if value < 0 then value * 2 else value / 2
-      max = if value == 0 then 10 else value * 2
-      sl = $(d).slider
-        animate: 'fast'
-        start: -> delay -> allowEvents = false
-        stop: (event, ui)->
-          allowEvents = true
-          setMinMax sl, value
-          console.log "STOP"
-        slide: (event, ui)->
-          console.log "Slider: ", sl
-          span.firstChild.nodeValue = String(ui.value)
-          if isDef parent
-            parent.ast = null
-            acceptCode parent
-            ast = getAst parent
-            update "sel-#{parent.ast.leisureName}"
-          else
-            makeId parent
-            if !parent.getAttribute parent.output, 'leisureUpdate'
-              setUpdate parent.output, "id-#{parent.id} compile", true
-            update "id-#{parent.id}"
-            update "compile"
-        change: (event, ui)->
-          console.log "CHANGE"
-      setMinMax sl, value
-      parent.insertBefore d, parent.firstChild
-      d.focus()
+      [sParent, sPos, sValue] = slider
+      if parent != sParent || pos != sPos || m[1] != sValue
+        hideSlider()
+        console.log "Show slider: [#{pos},#{pos + len}]"
+        r = makeRange parent, pos, pos + m[1].length
+        span = createNode "<span class='leisureRangeNumber ui-widget-content'></span>"
+        wrapRange r, span
+        changed = 1
+        span.normalize()
+        slider = [parent, pos, m[1], span]
+        createSlider()
     changed
   else hideSlider()
+
+isSlider = (el)->
+  while el != document
+    if el.hasAttribute 'slider' then return true
+    el = el.parentNode
+  false
+
+createSlider = ->
+  console.log "create slider..."
+  [parent, pos, value, span, div] = slider
+  if div then return
+  d = createNode "<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider></div>"
+  slider.push d
+  d.style.top = "#{span.offsetTop + span.offsetHeight}px"
+  d.style.minTop = '0px'
+  d.style.left = "#{Math.max(0, (span.offsetLeft + span.offsetWidth)/2 - 100)}px"
+  value = Number value
+  min = if value < 0 then value * 2 else value / 2
+  max = if value == 0 then 10 else value * 2
+  sl = $(d).slider
+    animate: 'fast'
+    start: -> delay -> allowEvents = false
+    stop: (event, ui)->
+      setMinMax sl
+      console.log "STOP"
+      allowEvents = true
+    slide: (event, ui)->
+      console.log "Slider: ", sl
+      span.firstChild.nodeValue = String(ui.value)
+      if isDef parent
+        parent.ast = null
+        acceptCode parent
+        ast = getAst parent
+        update "sel-#{parent.ast.leisureName}"
+      else
+        makeId parent
+        if !parent.getAttribute parent.output, 'leisureUpdate'
+          setUpdate parent.output, "id-#{parent.id} compile", true
+        update "id-#{parent.id}"
+        update "compile"
+    value: value
+  setMinMax sl, value
+  parent.insertBefore d, parent.firstChild
+  d.focus()
 
 sgn = (x)-> if x < 0 then -1 else if x == 0 then 0 else 1
 
 setMinMax = (sl, value)->
+  value = value || sl.slider("value")
+  console.log "VALUE: #{value}"
   #min = if value < 0 then value * 2 else value / 2
   min = 0
   max = if 1 <= Math.abs(value) < 50 or value == 0 then 100 * sgn(value) else value * 2
@@ -425,18 +433,17 @@ setMinMax = (sl, value)->
   sl.slider "option", "min", min
   sl.slider "option", "max", max
   sl.slider "option", "step", step
-  sl.slider "value", value
 
 hideSlider = ->
   if slider.length
     console.log "Hide old slider"
     [parent, sPos, sValue, span, div] = slider
     unwrap span
-    remove div
+    if div then remove div
     parent.normalize()
     slider = []
-    true
-  else false
+    2
+  else 0
 
 wrapRange = (range, node)->
   try
@@ -464,6 +471,9 @@ checkMutateFromModification = (evt)->
     console.log "MUTATE"
     if (isDef b) and b.classList.contains('codeMainExpr') then toDefBox b
     else if !(isDef b) and b.classList.contains('codeMain') then toExprBox b
+    replicate b
+
+replicate = (b)-> if b.replicator then delay -> b.replicator.replicate b
 
 buttonClasses = 'ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only'.split ' '
 
@@ -1028,7 +1038,7 @@ codeBox = (boxType)->
   addBoxClasses node, boxType
   node.setAttribute 'LeisureBox', ''
   node.setAttribute 'Leisure', ''
-  node.addEventListener 'compositionstart', (e)-> checkMutate e
+  node.addEventListener 'compositionstart', (e)-> checkMutateFromModification e
   node
 
 box = (range, boxType, empty)->

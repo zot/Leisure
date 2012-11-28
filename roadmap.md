@@ -5,7 +5,6 @@
    * local/proxied
    * gdrive
    * orion
-* Sliders for numbers, like Bret Victor has (compiling as you change them)
 * Queries
    * code scanner
 * ignored variable, '_'
@@ -33,9 +32,13 @@
       * Code users should be able to attach shared notes to code
       * Authors should be notified about new/changed notes
 
-# Done
+# Notebooks
 
-* Switch everything to markdown -- *.lmd files work, now
+* Music
+* Drawing
+* Games
+* Collections
+* Recursion
 
 # Goals
 
@@ -54,3 +57,9 @@
 * Allow cloned block, so you can edit a function in two places at once
    * Mark clone as a copy -- keep original where it is
    * Use for editable search results
+
+# Done
+
+* Switch everything to markdown -- *.lmd files work, now
+* Sliders for numbers, like Bret Victor has (compiling as you change them)
+
