@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, sgn, showAst, showError, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, replicate, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, sgn, showAst, showError, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -232,13 +232,25 @@
         }
       }), true);
       el.addEventListener('mousedown', (function(e) {
-        if (!isSlider(e.srcElement)) return delay(highlightPosition);
+        if (!isSlider(e.srcElement)) {
+          return delay(function() {
+            return highlightPosition(e);
+          });
+        }
       }), true);
       el.addEventListener('mousemove', (function(e) {
-        if (!isSlider(e.srcElement)) return delay(highlightPosition);
+        if (!isSlider(e.srcElement)) {
+          return delay(function() {
+            return highlightPosition(e);
+          });
+        }
       }), true);
       el.addEventListener('mouseup', (function(e) {
-        if (!isSlider(e.srcElement)) return delay(highlightPosition);
+        if (!isSlider(e.srcElement)) {
+          return delay(function() {
+            return highlightPosition(e);
+          });
+        }
       }), true);
       el.addEventListener('keydown', function(e) {
         var c, r, s;
@@ -256,7 +268,9 @@
         }
         if (printable(c)) clearAst(getBox(window.getSelection().focusNode));
         if ((__indexOf.call(arrows, c) >= 0) || printable(c)) {
-          delay(highlightPosition);
+          delay(function() {
+            return highlightPosition(e);
+          });
         }
         if (e.ctrlKey && c === ENTER) {
           return handleKey("C-ENTER");
@@ -470,8 +484,8 @@
     }
   };
 
-  highlightPosition = function highlightPosition() {
-    var ast, b, brackets, changed, i, node, offset, parent, pos, r, ranges, s, slid, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
+  highlightPosition = function highlightPosition(e) {
+    var ast, b, brackets, changed, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
     parent = null;
     s = window.getSelection();
     if (s.rangeCount) {
@@ -518,7 +532,8 @@
               changed = true;
             }
           }
-          if ((slid = showSliderButton(parent, pos)) || changed) {
+          if ((e instanceof MouseEvent && e.type === 'mousedown' && showSliderButton(parent, pos)) || changed) {
+            window.EVT = e;
             s.removeAllRanges();
             s.addRange(makeRange(parent, pos));
           }
@@ -552,13 +567,11 @@
           console.log("Show slider: [" + pos + "," + (pos + len) + "]");
           r = makeRange(parent, pos, pos + m[1].length);
           span = createNode("<span class='leisureRangeNumber ui-widget-content'></span>");
-          span.addEventListener('click', function() {
-            return createSlider();
-          });
           wrapRange(r, span);
           changed = 1;
           span.normalize();
           slider = [parent, pos, m[1], span];
+          createSlider();
         }
       }
       return changed;
@@ -702,10 +715,19 @@
     if (b && b === b2) {
       console.log("MUTATE");
       if ((isDef(b)) && b.classList.contains('codeMainExpr')) {
-        return toDefBox(b);
+        toDefBox(b);
       } else if (!(isDef(b)) && b.classList.contains('codeMain')) {
-        return toExprBox(b);
+        toExprBox(b);
       }
+      return replicate(b);
+    }
+  };
+
+  replicate = function replicate(b) {
+    if (b.replicator) {
+      return delay(function() {
+        return b.replicator.replicate(b);
+      });
     }
   };
 
@@ -1532,7 +1554,7 @@
     node.setAttribute('LeisureBox', '');
     node.setAttribute('Leisure', '');
     node.addEventListener('compositionstart', function(e) {
-      return checkMutate(e);
+      return checkMutateFromModification(e);
     });
     return node;
   };

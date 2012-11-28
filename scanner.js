@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var $, Leisure, Notebook, Prim, Repl, ReplCore, Xus, createScanner, root;
+  var $, Leisure, NodeReplicator, Notebook, Prim, Repl, ReplCore, Xus, createScanner, root;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
@@ -39,6 +39,31 @@ misrepresented as being the original software.
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
+
+  NodeReplicator = (function() {
+
+    function NodeReplicator(original) {
+      this.original = original;
+      this.nodes = [this.original];
+    }
+
+    NodeReplicator.prototype.replicate = function replicate(from) {
+      var node, _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = nodes.length; _i < _len; _i++) {
+        node = nodes[_i];
+        if (node !== from) {
+          _results.push(node.innerHTML = from.innerHTML);
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
+
+    return NodeReplicator;
+
+  })();
 
   createScanner = function createScanner() {
     var scanner;
