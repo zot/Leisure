@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, sgn, showAst, showError, showResult, showSlider, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, sgn, showAst, showError, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -232,67 +232,63 @@
         }
       }), true);
       el.addEventListener('mousedown', (function(e) {
-        if (allowEvents) return delay(highlightPosition);
+        if (!isSlider(e.srcElement)) return delay(highlightPosition);
       }), true);
       el.addEventListener('mousemove', (function(e) {
-        if (allowEvents) return delay(highlightPosition);
+        if (!isSlider(e.srcElement)) return delay(highlightPosition);
       }), true);
       el.addEventListener('mouseup', (function(e) {
-        if (allowEvents) return delay(highlightPosition);
+        if (!isSlider(e.srcElement)) return delay(highlightPosition);
       }), true);
       el.addEventListener('keydown', function(e) {
         var c, r, s;
-        if (allowEvents) {
-          c = e.charCode || e.keyCode || e.which;
-          if (c === DEL || c === BS) {
-            s = window.getSelection();
-            r = s.getRangeAt(0);
-            if (c === BS) {
-              checkDeleteExpr(getBox(r.startContainer));
-              if (skipLeftOverOutputBox(el, r)) return e.preventDefault();
-            } else if (c === DEL) {
-              checkDeleteExpr(getBox(r.startContainer));
-              if (ignoreDeleteOutputBox(el, r)) return e.preventDefault();
-            }
+        c = e.charCode || e.keyCode || e.which;
+        if (c === DEL || c === BS) {
+          s = window.getSelection();
+          r = s.getRangeAt(0);
+          if (c === BS) {
+            checkDeleteExpr(getBox(r.startContainer));
+            if (skipLeftOverOutputBox(el, r)) return e.preventDefault();
+          } else if (c === DEL) {
+            checkDeleteExpr(getBox(r.startContainer));
+            if (ignoreDeleteOutputBox(el, r)) return e.preventDefault();
           }
-          if (printable(c)) clearAst(getBox(window.getSelection().focusNode));
-          if ((__indexOf.call(arrows, c) >= 0) || printable(c)) {
-            delay(highlightPosition);
-          }
-          if (e.ctrlKey && c === ENTER) {
-            return handleKey("C-ENTER");
-          } else if (e.altKey && c === ENTER) {
-            return handleKey("M-ENTER");
-          } else if (c === TAB) {
-            handleKey("TAB");
-            return e.preventDefault();
-          }
+        }
+        if (printable(c)) clearAst(getBox(window.getSelection().focusNode));
+        if ((__indexOf.call(arrows, c) >= 0) || printable(c)) {
+          delay(highlightPosition);
+        }
+        if (e.ctrlKey && c === ENTER) {
+          return handleKey("C-ENTER");
+        } else if (e.altKey && c === ENTER) {
+          return handleKey("M-ENTER");
+        } else if (c === TAB) {
+          handleKey("TAB");
+          return e.preventDefault();
         }
       });
       el.addEventListener('keypress', function(e) {
         var br, bx, r, s, sp;
-        if (allowEvents) {
-          s = window.getSelection();
-          r = s.getRangeAt(0);
-          if ((e.charCode || e.keyCode || e.which) === ENTER) {
-            br = textNode('\n');
-            r.insertNode(br);
-            r = document.createRange();
-            r.setStart(br, 1);
-            s.removeAllRanges();
-            s.addRange(r);
-            return e.preventDefault();
-          } else if (r.startContainer.parentNode === el) {
-            sp = codeSpan('\n', 'codeExpr');
-            sp.setAttribute('generatedNL', '');
-            bx = box(s.getRangeAt(0), 'codeMainExpr', true);
-            bx.appendChild(sp);
-            makeOutputBox(bx);
-            r = document.createRange();
-            r.setStart(sp, 0);
-            s.removeAllRanges();
-            return s.addRange(r);
-          }
+        s = window.getSelection();
+        r = s.getRangeAt(0);
+        if ((e.charCode || e.keyCode || e.which) === ENTER) {
+          br = textNode('\n');
+          r.insertNode(br);
+          r = document.createRange();
+          r.setStart(br, 1);
+          s.removeAllRanges();
+          s.addRange(r);
+          return e.preventDefault();
+        } else if (r.startContainer.parentNode === el) {
+          sp = codeSpan('\n', 'codeExpr');
+          sp.setAttribute('generatedNL', '');
+          bx = box(s.getRangeAt(0), 'codeMainExpr', true);
+          bx.appendChild(sp);
+          makeOutputBox(bx);
+          r = document.createRange();
+          r.setStart(sp, 0);
+          s.removeAllRanges();
+          return s.addRange(r);
         }
       });
       el.addEventListener('focus', (function() {
@@ -475,7 +471,7 @@
   };
 
   highlightPosition = function highlightPosition() {
-    var ast, b, brackets, changed, i, node, offset, parent, pos, r, ranges, s, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
+    var ast, b, brackets, changed, i, node, offset, parent, pos, r, ranges, s, slid, span, _i, _j, _len, _len2, _len3, _ref, _ref2, _ref3, _ref4, _ref5;
     parent = null;
     s = window.getSelection();
     if (s.rangeCount) {
@@ -522,7 +518,7 @@
               changed = true;
             }
           }
-          if ((showSlider(parent, pos)) || changed) {
+          if ((slid = showSliderButton(parent, pos)) || changed) {
             s.removeAllRanges();
             s.addRange(makeRange(parent, pos));
           }
@@ -541,81 +537,92 @@
 
   slider = [];
 
-  showSlider = function showSlider(parent, pos) {
-    var changed, d, len, m, max, min, oldPos, r, sParent, sPos, sValue, show, sl, span, text, value;
+  showSliderButton = function showSliderButton(parent, pos) {
+    var changed, len, m, oldPos, r, sParent, sPos, sValue, span, text;
     text = parent.textContent;
     oldPos = pos;
-    show = false;
-    changed = false;
+    changed = 0;
     if (m = text.substring(0, pos).match(numberEnd)) pos -= m[1].length;
     if (m = text.substring(pos).match(numberStart)) {
       len = m[1].length;
-      if (oldPos <= pos + len) show = true;
-    }
-    if (show) {
-      sParent = slider[0], sPos = slider[1], sValue = slider[2];
-      if (parent !== sParent || pos !== sPos || m[1] !== sValue) {
-        if (slider.length) {
-          console.log("ALREADY HAVE A SLIDER");
-          console.log("DUH");
+      if (oldPos <= pos + len) {
+        sParent = slider[0], sPos = slider[1], sValue = slider[2];
+        if (parent !== sParent || pos !== sPos || m[1] !== sValue) {
+          hideSlider();
+          console.log("Show slider: [" + pos + "," + (pos + len) + "]");
+          r = makeRange(parent, pos, pos + m[1].length);
+          span = createNode("<span class='leisureRangeNumber ui-widget-content'></span>");
+          span.addEventListener('click', function() {
+            return createSlider();
+          });
+          wrapRange(r, span);
+          changed = 1;
+          span.normalize();
+          slider = [parent, pos, m[1], span];
         }
-        hideSlider();
-        console.log("Show slider: [" + pos + "," + (pos + len) + "]");
-        r = makeRange(parent, pos, pos + m[1].length);
-        span = createNode("<span class='leisureRangeNumber ui-widget-content'></span>");
-        wrapRange(r, span);
-        changed = true;
-        span.normalize();
-        d = createNode("<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px'></div>");
-        slider = [parent, pos, m[1], span, d];
-        d.style.top = "" + (span.offsetTop + span.offsetHeight) + "px";
-        d.style.minTop = '0px';
-        d.style.left = "" + (Math.max(0, (span.offsetLeft + span.offsetWidth) / 2 - 100)) + "px";
-        value = Number(m[1]);
-        min = value < 0 ? value * 2 : value / 2;
-        max = value === 0 ? 10 : value * 2;
-        sl = $(d).slider({
-          animate: 'fast',
-          start: function start() {
-            return delay(function() {
-              return allowEvents = false;
-            });
-          },
-          stop: function stop(event, ui) {
-            allowEvents = true;
-            setMinMax(sl, value);
-            return console.log("STOP");
-          },
-          slide: function slide(event, ui) {
-            var ast;
-            console.log("Slider: ", sl);
-            span.firstChild.nodeValue = String(ui.value);
-            if (isDef(parent)) {
-              parent.ast = null;
-              acceptCode(parent);
-              ast = getAst(parent);
-              return update("sel-" + parent.ast.leisureName);
-            } else {
-              makeId(parent);
-              if (!parent.getAttribute(parent.output, 'leisureUpdate')) {
-                setUpdate(parent.output, "id-" + parent.id + " compile", true);
-              }
-              update("id-" + parent.id);
-              return update("compile");
-            }
-          },
-          change: function change(event, ui) {
-            return console.log("CHANGE");
-          }
-        });
-        setMinMax(sl, value);
-        parent.insertBefore(d, parent.firstChild);
-        d.focus();
       }
       return changed;
     } else {
       return hideSlider();
     }
+  };
+
+  isSlider = function isSlider(el) {
+    while (el !== document) {
+      if (el.hasAttribute('slider')) return true;
+      el = el.parentNode;
+    }
+    return false;
+  };
+
+  createSlider = function createSlider() {
+    var d, div, max, min, parent, pos, sl, span, value;
+    console.log("create slider...");
+    parent = slider[0], pos = slider[1], value = slider[2], span = slider[3], div = slider[4];
+    if (div) return;
+    d = createNode("<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider></div>");
+    slider.push(d);
+    d.style.top = "" + (span.offsetTop + span.offsetHeight) + "px";
+    d.style.minTop = '0px';
+    d.style.left = "" + (Math.max(0, (span.offsetLeft + span.offsetWidth) / 2 - 100)) + "px";
+    value = Number(value);
+    min = value < 0 ? value * 2 : value / 2;
+    max = value === 0 ? 10 : value * 2;
+    sl = $(d).slider({
+      animate: 'fast',
+      start: function start() {
+        return delay(function() {
+          return allowEvents = false;
+        });
+      },
+      stop: function stop(event, ui) {
+        setMinMax(sl);
+        console.log("STOP");
+        return allowEvents = true;
+      },
+      slide: function slide(event, ui) {
+        var ast;
+        console.log("Slider: ", sl);
+        span.firstChild.nodeValue = String(ui.value);
+        if (isDef(parent)) {
+          parent.ast = null;
+          acceptCode(parent);
+          ast = getAst(parent);
+          return update("sel-" + parent.ast.leisureName);
+        } else {
+          makeId(parent);
+          if (!parent.getAttribute(parent.output, 'leisureUpdate')) {
+            setUpdate(parent.output, "id-" + parent.id + " compile", true);
+          }
+          update("id-" + parent.id);
+          return update("compile");
+        }
+      },
+      value: value
+    });
+    setMinMax(sl, value);
+    parent.insertBefore(d, parent.firstChild);
+    return d.focus();
   };
 
   sgn = function sgn(x) {
@@ -630,6 +637,8 @@
 
   setMinMax = function setMinMax(sl, value) {
     var max, min, step, _ref;
+    value = value || sl.slider("value");
+    console.log("VALUE: " + value);
     min = 0;
     max = (1 <= (_ref = Math.abs(value)) && _ref < 50) || value === 0 ? 100 * sgn(value) : value * 2;
     if (Math.round(value) === value) {
@@ -641,8 +650,7 @@
     console.log("<" + min + ", " + value + ", " + max + ">");
     sl.slider("option", "min", min);
     sl.slider("option", "max", max);
-    sl.slider("option", "step", step);
-    return sl.slider("value", value);
+    return sl.slider("option", "step", step);
   };
 
   hideSlider = function hideSlider() {
@@ -651,12 +659,12 @@
       console.log("Hide old slider");
       parent = slider[0], sPos = slider[1], sValue = slider[2], span = slider[3], div = slider[4];
       unwrap(span);
-      remove(div);
+      if (div) remove(div);
       parent.normalize();
       slider = [];
-      return true;
+      return 2;
     } else {
-      return false;
+      return 0;
     }
   };
 
