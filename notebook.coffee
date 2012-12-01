@@ -337,7 +337,12 @@ highlightPosition = (e)->
               span.setAttribute 'class', if i == 0 then 'LeisureFunc' else 'LeisureArg'
               wrapRange r, span
             changed = true
-        if (e instanceof MouseEvent and e.type == 'mousedown' and showSliderButton parent, pos) or changed
+        if e instanceof KeyboardEvent
+          if hideSlider() then pos += 1
+        else if e instanceof MouseEvent and e.type == 'mousedown' and showSliderButton parent, pos
+          changed = true
+          pos += 1
+        if changed
           window.EVT = e
           s.removeAllRanges()
           #parent.normalize()
@@ -415,14 +420,14 @@ createSlider = ->
   parent.insertBefore d, parent.firstChild
   d.focus()
 
-sgn = (x)-> if x < 0 then -1 else if x == 0 then 0 else 1
+psgn = (x)-> if x < 0 then -1 else 1
 
 setMinMax = (sl, value)->
   value = value || sl.slider("value")
   console.log "VALUE: #{value}"
   #min = if value < 0 then value * 2 else value / 2
   min = 0
-  max = if 1 <= Math.abs(value) < 50 or value == 0 then 100 * sgn(value) else value * 2
+  max = if 1 <= Math.abs(value) < 50 or value == 0 then 100 * psgn(value) else value * 2
   if Math.round(value) == value
     #min = if value == 1 then 0 else Math.round(min)
     step = Math.round((max - min) / 100)
@@ -844,6 +849,8 @@ getExprSource = (box)->
 
 setUpdate = (el, channel, preserveSource)->
   el.setAttribute 'leisureUpdate', channel
+  if channel then el.classList.add 'ui-state-highlight'
+  else el.classList.remove 'ui-state-highlight'
   ast = getAst el.source
   txt = el.source.textContent
   if !preserveSource and def = txt.match Leisure.linePat

@@ -23,16 +23,18 @@
 ####
 
 ####
-# File structure in Google drive, just use local file system for autosave
+# Use Xus to access storage
+# 
+# File structure in storage, just use HTML5 file system API for autosave
 # Later, do offline mode with syncing
 # This lets people share files and get functionality sooner (I think)
 # 
 # LeisureStorage
-#    +- state.json
+#    +- info.json
 #    +- Imports -- projects from other users
 #    |  +- ImportedProject1-Name -- this is a link to another user's shared Leisure project
 #    |  +- ImportedProejct2-Name
-#    +- Projects
+#    +- Projects -- your own projects
 #       +- Project1-Name
 #       |  +- info.json -- list files that are imported: name -> original id -- most likely in an imported project
 #       |  +- main.lsr -- main file, which imports the others (order might be important?)
@@ -47,170 +49,9 @@
 # 
 ####
 
-# this always runs in a browser, so no coffeescript browser/cmdline finagling
+if window? and (!global? or global == window)
+  window.global = window
+  window.Storage = root = {}
+else
+  root = exports ? this
 
-window.global = window
-window.Storage = root = {}
-
-# just use WebStorage for autosave
-
-itemKey = "Leisure/autosave#{document.location.pathname}"
-
-checkAutosave = (cont)-> cont localStorage.getItem itemKey
-
-deleteAutosave = -> localStorage.removeItem itemKey
-
-autosave = (value)-> localStorage.setItem itemKey, value
-
-
-# Google drive stuff for projects
-
-accessToken = root.accessToken = null;
-authButtonDiv = null;
-
-window.gapiClientLoaded = -> window.setTimeout (-> checkDriveAuth true), 1
-
-window.handleAuthClick = (event)->
-  checkDriveAuth false
-  false
-
-checkDriveAuth = (immediate)->
-  console.log "AUTH"
-  try
-    gapi.auth.authorize({
-      client_id: '270759921607',
-      scope: [
-          'https://www.googleapis.com/auth/drive',
-          'https://www.googleapis.com/auth/drive.file',
-          'https://www.googleapis.com/auth/drive.readonly',
-          'https://www.googleapis.com/auth/drive.readonly.metadata',
-          'https://www.googleapis.com/auth/drive.metadata.readonly'
-        ].join(' '),
-      immediate: immediate
-    }, handleAuthResult);
-  catch err
-    console.log("Authentication not allowed by security");
-
-handleAuthResult = (authResult)->
-  authorizeButton = document.getElementById('authorize-button');
-  if authResult && !authResult.error
-    console.log("Authenticated");
-    accessToken = authResult.access_token;
-    continueAuth()
-  else
-    console.log("Not authenticated, yet -- creating button");
-    createAuthButton()
-
-createAuthButton = ->
-  if !authButtonDiv
-    authButtonDiv = document.createElement 'div'
-    authButtonDiv.innerHTML = '<span>Would you like to authorize Leisure to create files and access them in a LeisureStorage directory in your Google drive?  <button onclick="handleAuthClick()">Yes</button> <button onclick="continueAuth()">No</button></span>'
-    document.body.insertBefore authButtonDiv, document.body.firstChild
-
-window.continueAuth = ->
-  if authButtonDiv
-    document.body.removeChild authButtonDiv
-    authButtonDiv = null
-  checkFileSystemAccess continueWithAutoSaves
-
-uploadTestFile = ->
-  json = JSON.stringify
-    mimeType: 'text/plain'
-    title: 'leisureUpload'
-  xhr = new XMLHttpRequest();
-  gapi.client.request(
-    'path': '/upload/drive/v1/files'
-    'method': 'POST'
-    'params': {'uploadType': 'multipart'}
-    'headers':
-      'Content-Type': 'multipart/mixed; boundary="END_OF_PART"'
-      'Authorization': 'Bearer ' + params.access_token
-    'body': [
-      mimePart("END_OF_PART", "application/json", json),
-      mimePart("END_OF_PART", "text/plain", "a\nb\n"),
-      "\r\n--END_OF_PART--\r\n",
-    ].join('')
-  ).execute (file)-> document.getElementById("result").innerHTML = "Uploaded file: " + file
-
-mimePart = (boundary, mimeType, content)->
-  return [
-    "\r\n--", boundary, "\r\n",
-    "Content-Type: ", mimeType, "\r\n",
-    "Content-Length: ", content.length, "\r\n",
-    "\r\n",
-    content,
-  ].join('');
-
-# Get a list of Leisure files
-
-
-listFiles = (cont)->
-  xhr = new XMLHttpRequest();
-  xhr.open('GET', "https://www.googleapis.com/drive/v2/files?maxResults=10000&q=#{query}");
-  xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
-  xhr.onreadystatechange = ->
-    if xhr.readyState == DONE
-      document.getElementById("files").innerHTML = "Files: " + xhr.responseText;
-      # Got this: { "kind": "drive#fileList", "etag": "\"Jm4BaSnCWNND-noZsHINRqj4Gd4/MB72XQ8v-QaOn46nNpsPG9QyeTo\"", "selfLink": "https://www.googleapis.com/drive/v2/files", "items": [] }
-  xhr.send();
-
-tmpFalse = (a)->(b)-> b()
-
-#define 'ListLeisureFiles', (->
-#  Prim.makeMonad (env, cont)->
-#    
-#    cont tmpFalse), 1
-
-####
-# Temporary file system, only, for autosave -- just store unsaved files and remove them when uploaded to storage
-# See above for future plans
-# 
-# LeisureAutoSave
-#    +- state.json
-#    +- Project1-name
-#    |  +- info.json
-#    |  +- file1.lsr
-#    |  +- ...
-#    +- Project2-name
-#    |  +- ...
-#    +- ...
-#       
-####
-
-window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
-
-checkFileSystemAccess = (cont)->
-  console.log "check file system access, here."
-  window.requestFileSystem window.TEMPORARY, 5 * 1024 * 1024, ((fileSystem)->
-    cont()
-  ), fsError(cont)
-
-fsError = (cont)->(e)->
-  msg = '';
-  switch e.code
-    when FileError.QUOTA_EXCEEDED_ERR then msg = 'QUOTA_EXCEEDED_ERR'
-    when FileError.NOT_FOUND_ERR then msg = 'NOT_FOUND_ERR'
-    when FileError.SECURITY_ERR then msg = 'SECURITY_ERR'
-    when FileError.INVALID_MODIFICATION_ERR then msg = 'INVALID_MODIFICATION_ERR'
-    when FileError.INVALID_STATE_ERR then msg = 'INVALID_STATE_ERR'
-    else msg = 'Unknown Error'
-  alert "File system error: #{msg}"
-  cont()
-
-continueWithAutoSaves = ->
-  console.log "FILE SYSTEM READY"
-
-# START AUTHENTICATION
-
-start = ->
-  return
-  script = document.createElement('script');
-  script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
-  document.head.appendChild(script);
-
-#start()
-
-root.checkAutosave = checkAutosave
-root.deleteAutosave = deleteAutosave
-root.autosave = autosave
-root.start = start

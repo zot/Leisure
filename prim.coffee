@@ -184,7 +184,15 @@ define 'return', ->(v)->
 
 define 'require', ->(file)->
   makeMonad (env, cont)->
-    env.require(file(), cont)
+    {level} = fileState = env.fileState ? {level: 0}
+    console.log "REQUIRE #{file()}, START: #{level}"
+    env.fileState = {level: level + 1}
+    try
+      result = env.require(file(), cont)
+    finally
+      env.fileState = fileState
+      console.log "REQUIRE #{file()}, END: #{level}"
+    result
 
 define 'print', ->(msg)->
   makeMonad (env, cont)->

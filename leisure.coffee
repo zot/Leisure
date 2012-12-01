@@ -27,10 +27,12 @@ if window? and (!global? or global == window)
   window.Leisure = root = {}
   Parse = window.Parse
   Patterns = window.Patterns
+  Storage = window.Storage
 else
   root = exports ? this
   Parse = require('./parse')
   Patterns = require './patterns'
+  Storage = require './storage'
 
 {
   LeisureObject,
@@ -613,7 +615,9 @@ setEvalFunc = (ct, func)->
   ctx = root.ctx = ct
   root.eval = evalFunc = Parse.evalFunc = func
 
-req = (name, gl)-> processDefs(require(name), gl)
+req = (name, gl)->
+  #if 
+  processDefs(require(name), gl)
 
 processDefs = (res, gl)->
   if res

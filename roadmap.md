@@ -1,13 +1,24 @@
 # Items
 
 * Storage
-   * local
-   * local/proxied
-   * gdrive
-   * orion
+   * types
+      * local
+      * local/proxied
+      * gdrive
+      * orion
+   * Make import a macro:
+      * import file -- import a file from the base webpage location
+      * import file source -- import a file from a named source
+         * Source is the name of a Xus peer (local, gdrive, etc.)
+         * Peer is linked into leisure/storage[]
+* Debugging support
+   * Stack traces that can use AST pictures
+   * Debugger
+* sliders
+   * Configure with comments -- vertical/horizontal, etc.
 * Queries
    * code scanner
-* ignored variable, '_'
+* ignored variable, '_', usable multiple times (replaced with a gensym)
 * file-private functions, $func
 * Map constructor
    * {a:1 b:2 c:3} -- ':' operator binds very tightly
@@ -18,11 +29,10 @@
    * use different name space for pattern creation, so '{',
      '[', etc. can have different meanings in a decl
       * defPattern name func -- could bind name to func in the pattern namespace
-   * records which declare their patterns
+   * records declare patterns and constructors
    * reflection
       * get function that matches a signature
-         * ex: matchingFunction find 'fred' [] -- returns subfunction
-           for fred
+         * ex: matchingFunction maluba 'fred' [] -- returns subfunction for 'fred' []
 * Socially networked source code
    * Code use
       * Authors should know how many projects are using their code
@@ -34,7 +44,7 @@
 
 # Notebooks
 
-* Music
+* Live coding drum machine
 * Drawing
 * Games
 * Collections
