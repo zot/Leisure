@@ -11,7 +11,8 @@
     <link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
     <link href='jquery-ui/css/cthulhu-theme/jquery-ui-1.9.1.custom.min.css' rel='stylesheet' type='text/css'>
     <script language="javascript">
-      leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
+      //leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
+      leisurePrep = ["require 'parseAst'"]
       leisureFirst = function() {
           markup();
       };
@@ -51,7 +52,7 @@
 -
 # Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
-## Leisure is: a lazy untyped functional language with a  notebook environment
+## Leisure is: a lazy dynamically typed functional language with a  notebook environment
 ***
 -
 # Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
@@ -230,6 +231,9 @@ polygon nil
 ```
 ***
 # Notebooks: Bret Victor-like sliders
+
+## [The Khan Academy](http://www.khanacademy.org) has these, too, BTW
+
 ```
 xAmt = 10
 svgConcat [
@@ -457,23 +461,6 @@ increasing x = [x | (increasing x + 1)]
 naturals = increasing 1
 take 5 (filter even? (map (\x . x + 10) naturals))
 ```
-***
--
-# The Language: Data Types
-***
--
-# The Language: Data Types
-## Wait... data types?  In an untyped language?
-***
--
-# The Language: Data Types
-## Wait... data types?  In an untyped language?
-## Yes!  Like LISP!
-***
-# The Language: Data Types
-## Wait... data types?  In an untyped language?
-## Yes!  Like LISP!
-## The variables and functions are untyped
 ***
 # The Language: Data Types
 ## Any function which returns a lambda confers its name as the data type on the lambda

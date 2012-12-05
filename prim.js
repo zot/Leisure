@@ -40,7 +40,9 @@
     };
     r = function r(file, cont) {
       if (!(file.match(/^\.\//))) file = "./" + file;
+      console.log("load start " + file);
       Leisure.req(file);
+      console.log("load end " + file);
       return cont(_false());
     };
     defaultEnv.require = r;

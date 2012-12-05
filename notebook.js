@@ -1265,6 +1265,11 @@
   setUpdate = function setUpdate(el, channel, preserveSource) {
     var ast, def, defType, index, leading, matched, name, r, txt, u;
     el.setAttribute('leisureUpdate', channel);
+    if (channel) {
+      el.classList.add('ui-state-highlight');
+    } else {
+      el.classList.remove('ui-state-highlight');
+    }
     ast = getAst(el.source);
     txt = el.source.textContent;
     if (!preserveSource && (def = txt.match(Leisure.linePat))) {

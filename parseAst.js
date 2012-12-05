@@ -30,7 +30,9 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
 var wrapContext = Leisure.wrapContext;
-var markLeisureErrors = Leisure.markLeisureErrors;processResult(//AST(bind (forward "notebookSelection") λ_ . forward "notebookAst")
+var markLeisureErrors = Leisure.markLeisureErrors;processResult(//AST(require "svg")
+(_require()((function(){return "svg"}))));
+processResult(//AST(bind (forward "notebookSelection") λ_ . forward "notebookAst")
 (_bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "notebookSelection"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _forward()((function(){return "notebookAst"}));}))})})())));
 //makeNode = AST(λsvg width height rootX rootY f . f svg width height rootX rootY)
 root.defs._makeNode = _makeNode = Parse.define('makeNode', (function() {var f; return function _makeNode(){return f || (f = (Parse.setDataType(function(_svg){return function(_width){return function(_height){return function(_rootX){return function(_rootY){return Parse.setType(function(_f){return _f()(_svg)(_width)(_height)(_rootX)(_rootY);}, 'makeNode');};};};};}, 'makeNode')));}})(), 5, "\\svg width height rootX rootY . \\f . f svg width height rootX rootY");;

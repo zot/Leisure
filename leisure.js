@@ -24,17 +24,19 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var Code, LeisureObject, Leisure_token, Nil, Parse, Patterns, Scanner, allowRedefs, allowRedefsIn, astAtOffset, astBrackets, baseTokenPat, basicPaddedDecl, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, collectArgs, compileNext, cons, contexts, createMethod, ctx, declScanner, defFunc, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, markLeisureErrors, mkProto, nameAst, nameSub, noDefaultError, numberAst, pad, padDecl, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap;
+  var Code, LeisureObject, Leisure_token, Nil, Parse, Patterns, Scanner, Storage, allowRedefs, allowRedefsIn, astAtOffset, astBrackets, baseTokenPat, basicPaddedDecl, between, bracket, bracketApplyParts, brackets, bracketsForApply, checkClass, collectArgs, compileNext, cons, contexts, createMethod, ctx, declScanner, defFunc, define, defineForward, defineToken, dgen, displayTypeConstraintsFor, dlappend, dlempty, dlnew, escapeRegexpChars, evalCompiledAst, evalFunc, evalNext, findFuncApply, findFuncs, firstConstrainedArgumentType, foldLeft, forward, freeVar, funcAst, funcAstAtOffset, funcContext, funcContextSource, gen, genCode, genDispatchDefault, genDispatchFunc, generateDispatch, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getNargs, getNthBody, getRefVar, ifParsed, indent, isAssertion, isEmpty, laz, lexCons, lexDlappend, lexDlempty, lexDlnew, linePat, listToAst, makeDispatchFunction, markLeisureErrors, mkProto, nameAst, nameSub, noDefaultError, numberAst, pad, padDecl, parse, parseDecl, parseFull, prefix, primFoldLeft, processDefs, receiverAndArgs, receiverFor, req, root, setDataType, setEvalFunc, setNumber, setType, snip, tokenPat, within, wrap;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
     window.Leisure = root = {};
     Parse = window.Parse;
     Patterns = window.Patterns;
+    Storage = window.Storage;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
     Parse = require('./parse');
     Patterns = require('./patterns');
+    Storage = require('./storage');
   }
 
   LeisureObject = Parse.LeisureObject, nameSub = Parse.nameSub, setDataType = Parse.setDataType, setType = Parse.setType, mkProto = Parse.mkProto, cons = Parse.cons, dlempty = Parse.dlempty, dlnew = Parse.dlnew, dlappend = Parse.dlappend, lexCons = Parse.lexCons, lexDlempty = Parse.lexDlempty, lexDlnew = Parse.lexDlnew, lexDlappend = Parse.lexDlappend, define = Parse.define, listToAst = Parse.listToAst, evalFunc = Parse.evalFunc, Nil = Parse.Nil, cons = Parse.cons, getAstType = Parse.getAstType, getRefVar = Parse.getRefVar, getLitVal = Parse.getLitVal, getLambdaBody = Parse.getLambdaBody, getLambdaVar = Parse.getLambdaVar, getApplyFunc = Parse.getApplyFunc, getApplyArg = Parse.getApplyArg, ifParsed = Parse.ifParsed, snip = Parse.snip, Scanner = Parse.Scanner, Leisure_token = Parse.Leisure_token;
