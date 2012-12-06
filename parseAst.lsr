@@ -1,3 +1,5 @@
+require 'svg'
+
 #@auto
 do
   forward 'notebookSelection'

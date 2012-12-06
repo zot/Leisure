@@ -615,9 +615,7 @@ setEvalFunc = (ct, func)->
   ctx = root.ctx = ct
   root.eval = evalFunc = Parse.evalFunc = func
 
-req = (name, gl)->
-  #if 
-  processDefs(require(name), gl)
+req = (name, gl)-> processDefs(require(name), gl)
 
 processDefs = (res, gl)->
   if res

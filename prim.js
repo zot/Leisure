@@ -40,7 +40,9 @@
     };
     r = function r(file, cont) {
       if (!(file.match(/^\.\//))) file = "./" + file;
+      console.log("load start " + file);
       Leisure.req(file);
+      console.log("load end " + file);
       return cont(_false());
     };
     defaultEnv.require = r;
@@ -507,21 +509,7 @@
   define('require', function() {
     return function(file) {
       return makeMonad(function(env, cont) {
-        var fileState, level, result, _ref;
-        level = (fileState = (_ref = env.fileState) != null ? _ref : {
-          level: 0
-        }).level;
-        console.log("REQUIRE " + (file()) + ", START: " + level);
-        env.fileState = {
-          level: level + 1
-        };
-        try {
-          result = env.require(file(), cont);
-        } finally {
-          env.fileState = fileState;
-          console.log("REQUIRE " + (file()) + ", END: " + level);
-        }
-        return result;
+        return env.require(file(), cont);
       });
     };
   });

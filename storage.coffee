@@ -52,6 +52,11 @@
 if window? and (!global? or global == window)
   window.global = window
   window.Storage = root = {}
+  Notebook = window.Notebook
 else
   root = exports ? this
 
+
+
+getStoragePeerName = ->
+  

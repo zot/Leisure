@@ -30,7 +30,9 @@ else
   )
   r = (file, cont)->
     if !(file.match /^\.\//) then file = "./#{file}"
+    console.log "load start #{file}"
     Leisure.req file
+    console.log "load end #{file}"
     cont(_false())
   defaultEnv.require = r
 
@@ -184,15 +186,7 @@ define 'return', ->(v)->
 
 define 'require', ->(file)->
   makeMonad (env, cont)->
-    {level} = fileState = env.fileState ? {level: 0}
-    console.log "REQUIRE #{file()}, START: #{level}"
-    env.fileState = {level: level + 1}
-    try
-      result = env.require(file(), cont)
-    finally
-      env.fileState = fileState
-      console.log "REQUIRE #{file()}, END: #{level}"
-    result
+    env.require(file(), cont)
 
 define 'print', ->(msg)->
   makeMonad (env, cont)->
