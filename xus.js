@@ -1810,6 +1810,10 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
       return this.processBatch(this.con, batch);
     };
 
+    Peer.prototype.get = function(key) {
+      return this.varStorage.values[key];
+    };
+
     Peer.prototype.listen = function() {
       var args;
       args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];

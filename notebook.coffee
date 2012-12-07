@@ -3,10 +3,10 @@
 ###
 
 if window? and (!global? or global == window)
+  root = window.Notebook ? (window.Notebook = {})
   window.global = window
   Leisure = window.Leisure
   ReplCore = window.ReplCore
-  window.Notebook = root = {}
   Prim = window.Prim
   Repl = window.Repl
   Xus = window.Xus

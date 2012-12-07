@@ -537,8 +537,10 @@ subprint = (f)->
   if !f? then "UNDEFINED"
   else if f == null then 'NULL'
   else switch getType(f)
-    when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elements(f, true)}]"
-    when 'cons' then "[#{elements(f, true)}]"
+    #when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elements(f, true)}]"
+    #when 'cons' then "[#{elements(f, true)}]"
+    when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elementsLoop(f)}]"
+    when 'cons' then "[#{elementsLoop(f)}]"
     when 'nil' then "[]"
     when 'token' then "#{f}"
     when 'ioMonad' then "IO"
@@ -569,6 +571,20 @@ elements = (l, first, nosubs)->
   if l == Nil then ''
   else if !(l instanceof Leisure_cons) then " | #{print(l)}"
   else "#{if first then '' else ' '}#{print(l.head()) + elements(l.tail(), false)}"
+
+# interative version that's not tail recursive'
+elementsLoop = (l, nosubs)->
+  result = ''
+  first = true
+  while l != Nil
+    if !(l instanceof Leisure_cons)
+      result += " | #{print (l)}"
+      break
+    if first then first = false
+    else result += ' '
+    result += print l.head()
+    l = l.tail()
+  result
 
 root.evalFunc = evalFunc
 root.nameSub = nameSub

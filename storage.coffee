@@ -50,13 +50,24 @@
 ####
 
 if window? and (!global? or global == window)
+  root = window.Storage ? (window.Storage = {})
+  Notebook = window.Notebook ? (window.Notebook = {})
+  Xus = window.Xus ? (window.Xus = {})
   window.global = window
-  window.Storage = root = {}
-  Notebook = window.Notebook
 else
   root = exports ? this
 
+storageChoices = null
+peer = null
 
+initStorage = (callback)->
+  if peer then callback()
+  else
+    peer = Xus.createDirectPeer Notebook.xusServer
+    peer.set 'this/name', 'docBase'
+    peer.set 'this/links', ['leisure/storage']
+    peer.listen 'leisure/storage', false, true, (cmd)->
+      storageChoices = peer.get 'leisure/storage'
+      callback()
 
-getStoragePeerName = ->
-  
+root.initStorage = initStorage
