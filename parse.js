@@ -24,7 +24,7 @@ misrepresented as being the original software.
 */
 
 (function() {
-  var DL, LeisureObject, Leisure_cons, Leisure_lexCons, Leisure_nil, Leisure_token, LexDL, Nil, Scanner, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, cleanupMacro, codeChars, collapseTrivial, cons, defGroup, defToken, defaultScanner, define, defineMacro, dlappend, dlempty, dlnew, elements, elementsLoop, ensureLeisureClass, escapeRegexpChars, evalFunc, foldLeft, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, ifParsed, inspect, isLambdaToken, jsType, lambda, left, leisureAddFunc, lexCons, lexDlappend, lexDlempty, lexDlnew, lfunc, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, numberPat, parse, parseFull, parseOptional, pos, positionGroup, primCons, primFoldLeft, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, right, root, setDataType, setType, snip, subprint, substituteLambdaBody, substituteLambdaMacros, substituteMacros, tag, throwError, tokPos, tokenToAst,
+  var DL, LeisureObject, Leisure_cons, Leisure_lexCons, Leisure_nil, Leisure_token, LexDL, Nil, Scanner, apply, badLambdaCont, baseTokenPat, charCodes, checkLambda, checkType, cleanupMacro, codeChars, collapseTrivial, cons, defGroup, defToken, defaultScanner, define, defineMacro, dlappend, dlempty, dlnew, elements, elementsLoop, elementsTail, ensureLeisureClass, escapeRegexpChars, evalFunc, foldLeft, getApplyArg, getApplyFunc, getAstType, getLambdaBody, getLambdaVar, getLitVal, getRefVar, getType, ifParsed, inspect, isLambdaToken, jsType, lambda, left, leisureAddFunc, lexCons, lexDlappend, lexDlempty, lexDlnew, lfunc, listToApply, listToAst, listToLambda, lit, makeToken, mkProto, nameSub, numberPat, parse, parseFull, parseOptional, pos, positionGroup, primCons, primFoldLeft, primLexCons, primListToAst, primToken, print, printApply, printLambda, ref, right, root, setDataType, setType, snip, subprint, substituteLambdaBody, substituteLambdaMacros, substituteMacros, tag, throwError, tokPos, tokenToAst,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -1395,6 +1395,16 @@ misrepresented as being the original software.
       return " | " + (print(l));
     } else {
       return "" + (first ? '' : ' ') + (print(l.head()) + elements(l.tail(), false));
+    }
+  };
+
+  elementsTail = function elementsTail(l, first, acc) {
+    if (l === Nil) {
+      return acc;
+    } else if (!(l instanceof Leisure_cons)) {
+      return "" + acc + " | " + (print(l));
+    } else {
+      return elementsTail(l.tail(), false, "" + acc + (first ? '' : ' ') + (print(l.head())));
     }
   };
 

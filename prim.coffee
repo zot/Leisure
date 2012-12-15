@@ -129,7 +129,7 @@ leisureEvent = (leisureFuncName, evt, env, channel)->
 
 eventCont = []
 
-continueMonad = (cont)->
+nextMonad = (cont)->
   eventCont.unshift(cell = [false, null, cont])
   (value)->
     cell[0] = true
@@ -143,16 +143,27 @@ continueMonad = (cont)->
 
 runMonad = (monad, env, cont)->
   try
-    if monad.cmd? then monad.cmd(env, continueMonad(cont))
+    if monad.cmd? then monad.cmd(env, nextMonad(cont))
     else cont(monad)
   catch err
     console.log "ERROR RUNNING MONAD: #{err.stack}"
+
+class Monad
+  andThenCode: (func)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad (codeMonad func), env, cont
+  andThen: (monad)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad monad, env, cont
+  toString: -> "Monad: #{@cmd.toString()}"
+
+codeMonad = (code)->
+  makeMonad (env, cont)->
+    code env
+    cont _false()
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code
 # so people won't accidentally fire off side effects
 makeMonad = (guts)->
   m = ->
+  m.__proto__ = Monad.prototype
   m.cmd = guts
   m.type = 'monad'
   m
@@ -283,5 +294,6 @@ root.makeMonad = makeMonad
 root.tokenDefs = []
 root.leisureEvent = leisureEvent
 root.defaultEnv = defaultEnv
+root.codeMonad = codeMonad
 
 if window? then window.leisureEvent = leisureEvent

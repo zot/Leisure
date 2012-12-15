@@ -39,12 +39,11 @@ repl = ->
   init()
   face.prompt()
 
-compile = (file, cont, nomacros, debug)->
+compile = (file, cont, nomacros, debug, force)->
   cont = cont ? Core.next
   if !file
     face?.prompt()
   else
-    contents = ''
     markdown = false
     if !Path.existsSync(file)
       oldfile = file
@@ -59,28 +58,38 @@ compile = (file, cont, nomacros, debug)->
         else
           console.log("No file: #{file}")
           return cont()
+    next = -> doCompile file, jsFile, markdown, cont, nomacros, debug
     if Path.existsSync(jsFile)
-      FS.unlink(jsFile)
-    stream = FS.createReadStream(file)
-    stream.on 'data', (data)-> contents += data
-    stream.on 'end', ()->
-      try
-        contents = contents.replace /\r\n?/g, "\n"
-        out = Core.generateCode(file, (substituteMarkdown markdown, contents), root.loud, null, nomacros, null, debug)
-        str = FS.createWriteStream("#{jsFile}Tmp")
-        str.on 'close', ->
-          FS.renameSync("#{jsFile}Tmp", jsFile)
-          cont()
-        str.on 'error', -> cont()
-        str.end out
-        str.destroySoon()
-      catch err
-        console.log "ERROR: #{err}#{if err.leisureContext then formatLeisureStack(err) else ''}\n#{err.stack}"
-        write err.stack + "\n"
+      FS.stat jsFile, (err, jsStats)->
+        FS.stat file, (err, lsStats)->
+          if lsStats.mtime.getTime() > jsStats.mtime.getTime()
+            FS.unlink jsFile, next
+          else if force then next()
+          else cont()
+    else next()
+
+doCompile = (file, jsFile, markdown, cont, nomacros, debug)->
+  contents = ''
+  stream = FS.createReadStream(file)
+  stream.on 'data', (data)-> contents += data
+  stream.on 'end', ()->
+    try
+      contents = contents.replace /\r\n?/g, "\n"
+      out = Core.generateCode(file, (substituteMarkdown markdown, contents), root.loud, null, nomacros, null, debug)
+      str = FS.createWriteStream("#{jsFile}Tmp")
+      str.on 'close', ->
+        FS.renameSync("#{jsFile}Tmp", jsFile)
         cont()
-    stream.on 'error', (ex)->
-      console.log("Exception reading file: ", ex.stack)
+      str.on 'error', -> cont()
+      str.end out
+      str.destroySoon()
+    catch err
+      console.log "ERROR: #{err}#{if err.leisureContext then formatLeisureStack(err) else ''}\n#{err.stack}"
+      write err.stack + "\n"
       cont()
+  stream.on 'error', (ex)->
+    console.log("Exception reading file: ", ex.stack)
+    cont()
 
 substituteMarkdown = (markdown, contents)->
   if markdown then contents.replace /.*?\n```\n(.*?\n)```\n|.*\n/gm, '$1'

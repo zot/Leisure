@@ -178,7 +178,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
   Parse = require('./parse');
   Leisure = require('./leisure');#{if includeStd then "\n  Leisure.req('./prelude');\n  Leisure.req('./std');" else ''}
-  require('./prim');
+  Prim = require('./prim');
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
@@ -187,6 +187,10 @@ root.tokenDefs = [];
 root.macros = {};
 
 #{localPrelude}
+
+processResult(
+Prim.codeMonad(function(){})
+);
 """
   names = globals
   prev = Parse.Nil

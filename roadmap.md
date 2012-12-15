@@ -14,8 +14,16 @@
 * Debugging support
    * Stack traces that can use AST pictures
    * Debugger
+* Optimization
+   * count arguments and eliminate partial application where possible
+   * add tail call optimization for stream functions
+      * define inner function with all args, like with type assertions
 * sliders
    * Configure with comments -- vertical/horizontal, etc.
+* AST presenters
+   * in-place editors that edit code (like sliders do)
+   * music
+   * SVG
 * Queries
    * code scanner
 * ignored variable, '_', usable multiple times (replaced with a gensym)
@@ -45,6 +53,9 @@
 # Notebooks
 
 * Live coding drum machine
+   * use samples off the web
+   * create sound from images
+   * in-place editors
 * Drawing
 * Games
 * Collections

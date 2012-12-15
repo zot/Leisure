@@ -539,6 +539,8 @@ subprint = (f)->
   else switch getType(f)
     #when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elements(f, true)}]"
     #when 'cons' then "[#{elements(f, true)}]"
+    #when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elementsTail(f, true, '')}]"
+    #when 'cons' then "[#{elementsTail(f, true, '')}]"
     when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elementsLoop(f)}]"
     when 'cons' then "[#{elementsLoop(f)}]"
     when 'nil' then "[]"
@@ -571,6 +573,12 @@ elements = (l, first, nosubs)->
   if l == Nil then ''
   else if !(l instanceof Leisure_cons) then " | #{print(l)}"
   else "#{if first then '' else ' '}#{print(l.head()) + elements(l.tail(), false)}"
+
+# This still gets a stack overflow, even though it's a pure tail call
+elementsTail = (l, first, acc)->
+  if l == Nil then acc
+  else if !(l instanceof Leisure_cons) then "#{acc} | #{print(l)}"
+  else elementsTail l.tail(), false, "#{acc}#{if first then '' else ' '}#{print(l.head())}"
 
 # interative version that's not tail recursive'
 elementsLoop = (l, nosubs)->

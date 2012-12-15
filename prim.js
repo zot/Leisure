@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Parse, RL, U, arrayRest, concatList, continueMonad, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, output, r, root, runMonad, setTty, tail, throwError, tmpFalse, tty, values;
+  var Leisure, Monad, Parse, RL, U, arrayRest, codeMonad, concatList, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, nextMonad, output, r, root, runMonad, setTty, tail, throwError, tmpFalse, tty, values;
 
   defaultEnv = {};
 
@@ -402,7 +402,7 @@
 
   eventCont = [];
 
-  continueMonad = function continueMonad(cont) {
+  nextMonad = function nextMonad(cont) {
     var cell;
     eventCont.unshift(cell = [false, null, cont]);
     return function(value) {
@@ -425,7 +425,7 @@
   runMonad = function runMonad(monad, env, cont) {
     try {
       if (monad.cmd != null) {
-        return monad.cmd(env, continueMonad(cont));
+        return monad.cmd(env, nextMonad(cont));
       } else {
         return cont(monad);
       }
@@ -434,9 +434,47 @@
     }
   };
 
+  Monad = (function() {
+
+    function Monad() {}
+
+    Monad.prototype.andThenCode = function andThenCode(func) {
+      var _this = this;
+      return makeMonad(function(env, cont) {
+        return runMonad(_this, env, function(value) {
+          return runMonad(codeMonad(func), env, cont);
+        });
+      });
+    };
+
+    Monad.prototype.andThen = function andThen(monad) {
+      var _this = this;
+      return makeMonad(function(env, cont) {
+        return runMonad(_this, env, function(value) {
+          return runMonad(monad, env, cont);
+        });
+      });
+    };
+
+    Monad.prototype.toString = function toString() {
+      return "Monad: " + (this.cmd.toString());
+    };
+
+    return Monad;
+
+  })();
+
+  codeMonad = function codeMonad(code) {
+    return makeMonad(function(env, cont) {
+      code(env);
+      return cont(_false());
+    });
+  };
+
   makeMonad = function makeMonad(guts) {
     var m;
     m = function m() {};
+    m.__proto__ = Monad.prototype;
     m.cmd = guts;
     m.type = 'monad';
     return m;
@@ -736,6 +774,8 @@
   root.leisureEvent = leisureEvent;
 
   root.defaultEnv = defaultEnv;
+
+  root.codeMonad = codeMonad;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;
