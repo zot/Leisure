@@ -35,7 +35,7 @@
     var i, _results;
     _results = [];
     for (i = 0; 0 <= loadStandardLimit ? i < loadStandardLimit : i > loadStandardLimit; 0 <= loadStandardLimit ? i++ : i--) {
-      _results.push(LZ.eval("Leisure.req('./" + standard[i] + "')"));
+      _results.push(Prim.runRequire("./" + standard[i]));
     }
     return _results;
   };

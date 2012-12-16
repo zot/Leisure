@@ -28,7 +28,7 @@ Tests for Leisure
 */
 
 (function() {
-  var LZ, Parse, R, T, U, applyBrackets, arrayToCons, assertEq, assertEval, assertEvalPrint, assertParse, br, code, cons, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
+  var LZ, Parse, Prim, R, T, U, applyBrackets, arrayToCons, assertEq, assertEval, assertEvalPrint, assertParse, br, code, cons, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
 
@@ -38,7 +38,7 @@ Tests for Leisure
 
   R = require('./replCore');
 
-  require('./prim');
+  Prim = require('./prim');
 
   setType = LZ.setType, setDataType = LZ.setDataType, define = LZ.define;
 
@@ -46,9 +46,9 @@ Tests for Leisure
 
   console.log('Testing');
 
-  LZ.eval("req('./prelude')");
+  Prim.runRequire('./prelude');
 
-  LZ.eval("req('./std')");
+  Prim.runRequire('./std');
 
   debug = false;
 

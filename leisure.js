@@ -445,7 +445,7 @@ misrepresented as being the original software.
       }
       ast.src = name != null ? "" + (code.method != null ? ((_ref = code.method, type = _ref[0], name = _ref[1], argNames = _ref[2], methodCode = _ref[3], _ref), "" + (checkClass(name, n, ast)) + ";\nLeisure.createMethod('" + type + "', '" + name + "', " + (src ? JSON.stringify(src) : "''") + ", function(" + (argNames.slice(1).map(function(n) {
         return nameSub(n);
-      }).join(", ")) + ") {return " + methodCode + ";})") : "" + (namespace != null ? namespace : '') + (defFunc(tokenDef)) + "('" + name + "', " + jsCode + ", " + (ast.leisurePrefixCount || 0) + ", " + (src ? JSON.stringify(src) : '""') + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '')) : jsCode;
+      }).join(", ")) + ") {return " + methodCode + ";})") : "" + (namespace != null ? namespace : '') + (defFunc(tokenDef)) + "('" + name + "', " + jsCode + ", " + (ast.leisurePrefixCount || 0) + ", " + (src ? JSON.stringify(src) : '""') + ");") : jsCode;
     }
     ast.globals = code.global;
     return ast;

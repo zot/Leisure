@@ -174,23 +174,22 @@ var root;
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
   #{if file? then file.replace(/\.(lsr|lmd)/, '') + ' = ' else ''}root = {};
   global = window;
+  module = {};
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
   Parse = require('./parse');
-  Leisure = require('./leisure');#{if includeStd then "\n  Leisure.req('./prelude');\n  Leisure.req('./std');" else ''}
+  Leisure = require('./leisure');
   Prim = require('./prim');
+  #{if includeStd then "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std');" else ''}
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
-root.defs = {};
-root.tokenDefs = [];
-root.macros = {};
+
+Prim.loading('#{file}')
 
 #{localPrelude}
 
-processResult(
-Prim.codeMonad(function(){})
-);
+module.exports = 
 """
   names = globals
   prev = Parse.Nil
@@ -198,44 +197,60 @@ Prim.codeMonad(function(){})
   defs = []
   rest = contents
   varOut = ''
+  inCode = true
+  initial = true
   for v, i in globals.toArray()
     if i > 0 then varOut += ","
     varOut += " #{Parse.nameSub v}"
   #if varOut then out += "\nvar#{varOut};\n"
   globals = globals.append(getGlobals())
   while rest and rest.trim()
-    if loud > 1 and prev != names and names != Parse.Nil then console.log "Compiling function: #{names.head()}"
-    oldRest = rest
-    [ast, err, rest] = Leisure.compileNext rest, globals, null, check, nomacros, 'Parse.', debug
-    if ast?.leisureName?
-      prev = ast.leisureName
-      names = names.tail()
-    code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
-    err = err ? ast?.err
-    if err
-      errs = "#{errs}#{if ast?.leisureName then "Error in #{ast.leisureName}#{showAst ast}" else ""}#{err}\n"
-      rest = ''
-    else if ast
-      globals = ast.globals
-      m = code.match(Leisure.linePat)
-      nm = ast.leisureName
-      ast.src = """
-//#{if nm? then nm + ' = ' else ''}#{escape(Parse.print(ast))}
-#{if nm? then "root.defs.#{Parse.nameSub(nm)} = #{Parse.nameSub(nm)} = " else ""}#{ast.src}
-"""
-      src = if ast.leisureName
-        defs.push Parse.nameSub(ast.leisureName)
-        ast.src
-      else "processResult(#{ast.src})"
-      out += "#{src};\n"
-      [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-      if handle then handlerFunc ast, null, a, c, r, code
+    try
+      if loud > 1 and prev != names and names != Parse.Nil then console.log "Compiling function: #{names.head()}"
+      oldRest = rest
+      [ast, err, rest] = Leisure.compileNext rest, globals, null, check, nomacros, 'Parse.', debug
+      if ast?.leisureName?
+        prev = ast.leisureName
+        names = names.tail()
+      code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
+      err = err ? ast?.err
+      if err
+        errs = "#{errs}#{if ast?.leisureName then "Error in #{ast.leisureName}#{showAst ast}" else ""}#{err}\n"
+        rest = ''
+      else if ast
+        globals = ast.globals
+        m = code.match(Leisure.linePat)
+        nm = ast.leisureName
+        ast.src = """
+  //#{if nm? then nm + ' = ' else ''}#{escape(Parse.print(ast))}
+  #{if nm? then "/*root.defs.#{Parse.nameSub(nm)} =*/ #{Parse.nameSub(nm)} = " else ""}#{ast.src}
+  """
+        src = if ast.leisureName
+          if !inCode
+            out += ".andThenCode(function(){\n"
+            inCode = true
+          else if initial
+            out += "Prim.codeMonad(function(){\n"
+          defs.push Parse.nameSub(ast.leisureName)
+          eval(ast.src)
+          "#{ast.src};"
+        else
+          if inCode
+            if !initial then out += "})\n"
+            inCode = false
+          Prim.runMonad (eval ast.src), Prim.defaultEnv, ->
+          if initial then ast.src else ".andThen(\n#{ast.src})"
+        initial = false
+        out += "#{src}\n"
+        [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
+        if handle then handlerFunc ast, null, a, c, r, code
+    catch err
+      throw new Error "Error compiling #{file}#{if ast.leisureName then "." + ast.leisureName else ""}: code:\n#{out}\n>>> ERROR: #{err.message}\n>>> CODE: #{ast.src}"
+  if initial then return ''
+  if inCode then out += "\n})"
   out += """
-
-//if (typeof window !== 'undefined' && window !== null) {
-//  Leisure.processTokenDefs(root.tokenDefs);
-//}
-return root;
+;
+if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});
 }).call(this)
 """
   if errs != '' then throwError("Errors compiling #{file}: #{errs}")

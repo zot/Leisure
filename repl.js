@@ -151,10 +151,18 @@
   };
 
   substituteMarkdown = function substituteMarkdown(markdown, contents) {
-    if (markdown) {
-      return contents.replace(/.*?\n```\n(.*?\n)```\n|.*\n/gm, '$1');
-    } else {
+    var c, s;
+    if (!markdown) {
       return contents;
+    } else {
+      c = '';
+      s = contents.split(/```[^\n]*\n/);
+      if (s[0] === '') s.shift();
+      while (s.length) {
+        s.shift();
+        if (s.length) c += s.shift();
+      }
+      return c;
     }
   };
 
@@ -215,9 +223,8 @@
   Core.setCompiler(compile);
 
   Core.setResetFunc(function() {
-    write("Creating fresh environment");
     createEnv();
-    return L.eval("Leisure.req('./std')");
+    return Prim.runRequire('./std');
   });
 
   root.createEnv = createEnv;

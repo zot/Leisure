@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Parse, RL, U, arrayRest, codeMonad, concatList, defaultEnv, define, eventCont, getType, head, laz, leisureEvent, makeMonad, nextMonad, output, r, root, runMonad, setTty, tail, throwError, tmpFalse, tty, values;
+  var Leisure, Monad, Parse, RL, U, arrayRest, codeMonad, concatList, defaultEnv, define, eventCont, getType, head, initFileSettings, laz, leisureEvent, loading, makeMonad, nextMonad, output, r, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tty, values;
 
   defaultEnv = {};
 
@@ -40,10 +40,7 @@
     };
     r = function r(file, cont) {
       if (!(file.match(/^\.\//))) file = "./" + file;
-      console.log("load start " + file);
-      Leisure.req(file);
-      console.log("load end " + file);
-      return cont(_false());
+      return require(file);
     };
     defaultEnv.require = r;
   }
@@ -59,6 +56,12 @@
   throwError = Parse.throwError;
 
   laz = Leisure.laz;
+
+  initFileSettings = function initFileSettings() {
+    return defaultEnv.fileSettings = {
+      parseFilters: {}
+    };
+  };
 
   define('is', (function() {
     return function(value) {
@@ -547,10 +550,40 @@
   define('require', function() {
     return function(file) {
       return makeMonad(function(env, cont) {
-        return env.require(file(), cont);
+        var fileSettings, monad;
+        fileSettings = env.fileSettings;
+        env.fileSettings = {};
+        monad = env.require(file());
+        if (monad instanceof Monad) {
+          return runMonad(monad, env, function() {
+            env.fileSettings = fileSettings;
+            return cont();
+          });
+        } else {
+          env.fileSettings = fileSettings;
+          return cont();
+        }
       });
     };
   });
+
+  required = {};
+
+  loading = function loading(file) {
+    file = file.replace(/^(.*?)(\.lsr|\.lmd|)$/, '$1');
+    console.log("LOADING: " + file);
+    return required[file.replace()] = true;
+  };
+
+  runRequire = function runRequire(file) {
+    if (!required[file]) {
+      console.log("REQUIRE " + file);
+      required[file] = true;
+      return runMonad(_require()((function() {
+        return file;
+      })), defaultEnv, function() {});
+    }
+  };
 
   define('print', function() {
     return function(msg) {
@@ -776,6 +809,10 @@
   root.defaultEnv = defaultEnv;
 
   root.codeMonad = codeMonad;
+
+  root.runRequire = runRequire;
+
+  root.loading = loading;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;

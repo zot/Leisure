@@ -4,17 +4,18 @@ var root;
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
   pattern = root = {};
   global = window;
+  module = {};
 } else {
   root = typeof exports !== 'undefined' && exports !== null ? exports : this;
   Parse = require('./parse');
   Leisure = require('./leisure');
-  require('./prim');
+  Prim = require('./prim');
+  
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
-root.defs = {};
-root.tokenDefs = [];
-root.macros = {};
+
+Prim.loading('pattern.lmd')
 
 
 var Nil = Parse.Nil;
@@ -28,11 +29,10 @@ var setContext = Leisure.setContext;
 var funcContext = Leisure.funcContext;
 var define = Parse.define;
 var wrapContext = Leisure.wrapContext;
-var markLeisureErrors = Leisure.markLeisureErrors;processResult(//AST("nothing, yet")
-("nothing, yet"));
+var markLeisureErrors = Leisure.markLeisureErrors;
 
-//if (typeof window !== 'undefined' && window !== null) {
-//  Leisure.processTokenDefs(root.tokenDefs);
-//}
-return root;
+module.exports = //AST("nothing, yet")
+("nothing, yet")
+;
+if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});
 }).call(this)

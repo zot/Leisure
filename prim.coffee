@@ -30,18 +30,16 @@ else
   )
   r = (file, cont)->
     if !(file.match /^\.\//) then file = "./#{file}"
-    console.log "load start #{file}"
-    Leisure.req file
-    console.log "load end #{file}"
-    cont(_false())
+    require file
   defaultEnv.require = r
 
 setTty = (rl)-> tty = rl
-
 define = Parse.define
 getType = Parse.getType
 throwError = Parse.throwError
 laz = Leisure.laz
+
+initFileSettings = -> defaultEnv.fileSettings = parseFilters: {}
 
 define 'is', (->(value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`), 2
 define 'isFunc', ->(value)->if typeof value() == 'function' then `_true()` else `_false()`
@@ -197,7 +195,29 @@ define 'return', ->(v)->
 
 define 'require', ->(file)->
   makeMonad (env, cont)->
-    env.require(file(), cont)
+    fileSettings = env.fileSettings
+    env.fileSettings = {}
+    monad = env.require file()
+    if monad instanceof Monad
+      runMonad monad, env, ->
+        env.fileSettings = fileSettings
+        cont()
+    else
+      env.fileSettings = fileSettings
+      cont()
+
+required = {}
+
+loading = (file)->
+  file = file.replace /^(.*?)(\.lsr|\.lmd|)$/, '$1'
+  console.log "LOADING: #{file}"
+  required[file.replace()] = true
+
+runRequire = (file)->
+  if !required[file]
+    console.log "REQUIRE #{file}"
+    required[file] = true
+    runMonad (_require() (->file)), defaultEnv, ->
 
 define 'print', ->(msg)->
   makeMonad (env, cont)->
@@ -295,5 +315,7 @@ root.tokenDefs = []
 root.leisureEvent = leisureEvent
 root.defaultEnv = defaultEnv
 root.codeMonad = codeMonad
+root.runRequire = runRequire
+root.loading = loading
 
 if window? then window.leisureEvent = leisureEvent

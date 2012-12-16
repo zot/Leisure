@@ -23,7 +23,7 @@ loadStandardLimit = standard.length
 
 loadStd = ->
   for i in [0...loadStandardLimit]
-    LZ.eval "Leisure.req('./#{standard[i]}')"
+    Prim.runRequire "./#{standard[i]}"
 
 nomacros = false
 action = importFile

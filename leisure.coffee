@@ -294,7 +294,7 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
 #{if code.method?
   [type, name, argNames, methodCode] = code.method
   "#{checkClass(name, n, ast)};\nLeisure.createMethod('#{type}', '#{name}', #{if src then JSON.stringify(src) else "''"}, function(#{argNames.slice(1).map((n)->nameSub n).join(", ")}) {return #{methodCode};})"
-else "#{namespace ? ''}#{defFunc tokenDef}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 0)}, #{if src then JSON.stringify(src) else '""'});#{if tokenDef? and tokenDef != '=' then "\nroot.tokenDefs.push('#{name}', '#{tokenDef}');" else ''}"}
+else "#{namespace ? ''}#{defFunc tokenDef}('#{name}', #{jsCode}, #{(ast.leisurePrefixCount || 0)}, #{if src then JSON.stringify(src) else '""'});"}
 """ else jsCode
   ast.globals = code.global
   ast

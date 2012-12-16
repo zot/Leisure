@@ -26,15 +26,13 @@ bootLeisure = ->
     body.appendChild pre
     body.removeAttribute 'leisureNode'
   window.removeEventListener 'load', bootLeisure
-  #for i in ['leisure', 'gaudy', 'thin', 'cthulhu', 'jqModal', 'dialog' ]
   for i in ['leisure', 'gaudy', 'thin', 'cthulhu']
     style = document.createElement('link')
     style.setAttribute 'type', "text/css"
     style.setAttribute 'rel', "stylesheet"
     style.setAttribute 'href', "#{i}.css"
     document.head.appendChild style
-  #loadThen ['xus', 'parse', 'patterns', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'pattern', 'notebook', 'jquery-1.7.2.min', 'jquery.indexeddb', 'storage', 'marked', 'md'], ->
-  loadThen ['xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'pattern', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'jquery.indexeddb', 'marked', 'md', 'scanner'], ->
+  loadThen ['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'prelude', 'std', 'parsing', 'pattern', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'jquery.indexeddb', 'scanner', 'md'], ->
     window.leisureFirst?()
     window.Leisure.restoreAutosave = restoreAutosave
     window.Leisure.backupAutosave = backupAutosave

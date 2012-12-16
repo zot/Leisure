@@ -30,15 +30,14 @@ U = require('util')
 Parse = require('./parse')
 LZ=require('./leisure')
 R = require('./replCore')
-#require('./std')
-require('./prim')
+Prim = require('./prim')
 {setType, setDataType, define} = LZ
 {run, assertParse, assertEval, assertEvalPrint, assertEq} = T = require('./testing.js')
 
 console.log 'Testing'
 
-LZ.eval "req('./prelude')"
-LZ.eval "req('./std')"
+Prim.runRequire './prelude'
+Prim.runRequire './std'
 
 debug = false
 

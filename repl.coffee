@@ -92,8 +92,15 @@ doCompile = (file, jsFile, markdown, cont, nomacros, debug)->
     cont()
 
 substituteMarkdown = (markdown, contents)->
-  if markdown then contents.replace /.*?\n```\n(.*?\n)```\n|.*\n/gm, '$1'
-  else contents
+  if !markdown then contents
+  else
+    c = ''
+    s = contents.split(/```[^\n]*\n/)
+    if s[0] == '' then s.shift()
+    while s.length
+      s.shift()
+      if s.length then c += s.shift()
+    c
 
 formatLeisureStack = (err)-> "\nLeisure Stack:\n  #{err.toArray().join("\n  ")}"
 
@@ -169,9 +176,8 @@ function req(name) {
 #Core.setHelp help
 Core.setCompiler compile
 Core.setResetFunc ->
-  write "Creating fresh environment"
   createEnv()
-  L.eval "Leisure.req('./std')"
+  Prim.runRequire './std'
 
 root.createEnv = createEnv
 root.print = print
