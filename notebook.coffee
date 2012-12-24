@@ -10,6 +10,7 @@ if window? and (!global? or global == window)
   Prim = window.Prim
   Repl = window.Repl
   Xus = window.Xus
+  Prim.defaultEnv.fileSettings.uri = new Prim.URI document.location.href
 else root = exports ? this
 
 #debug = true
@@ -97,19 +98,23 @@ createPeer = ->
 
 xusEnv = (resultVar, expr)->
   result = ''
-  debug: debug
-  finishedEvent: ->
-  owner: null
-  require: req
-  write: (msg)-> result += "#{msg}\n"
-  prompt:(msg, cont)-> result += "Attempt to prompt with #{msg}"
-  processResult: (res, ast)->
-    result += res
-    peer.set resultVar, result
-  presentValue: (x)-> x
-  processError: (ast)->
-    result += if ast.err.leisureContext then "ERROR: #{ast.err}:\n#{leisureContextString(ast.err)}\n#{ast.err.stack}" else "Couldn't parse: #{expr}"
-    peer.set resultVar, result
+  env = Prim.initFileSettings
+    debug: debug
+    finishedEvent: ->
+    owner: null
+    require: req
+    write: (msg)-> result += "#{msg}\n"
+    prompt:(msg, cont)-> result += "Attempt to prompt with #{msg}"
+    processResult: (res, ast)->
+      result += res
+      peer.set resultVar, JSON.stringify result
+    presentValue: (x)-> x
+    processError: (ast)->
+      result += if ast.err.leisureContext then "ERROR: #{ast.err}:\n#{leisureContextString(ast.err)}\n#{ast.err.stack}" else "Couldn't parse: #{expr}"
+      peer.set resultVar, result
+  env.__proto__ = Prim.defaultEnv
+  env.fileSettings.uri = new Prim.URI document.location.href
+  env
 
 peerGetDocument = ->
   nodes = document.querySelectorAll "[leisurenode='code']"
@@ -989,24 +994,25 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
-  debug: debug
-  finishedEvent: (evt, channel)->update(channel ? 'app', this)
-  owner: owner(box)
-  require: req
-  write: (msg)->
-    div = document.createElement('div')
-    div.innerHTML = "#{msg}\n"
-    exBox.appendChild(div)
-    checkHideSource exBox
-  prompt:(msg, cont)-> cont(window.prompt(msg))
-  processResult: (result, ast)->
-    box.result = result
-    setAst box, ast
-  presentValue: presentValue
-  processError: (ast)->
-    btn = box.querySelector '[leisureId="makeTestCase"]'
-    if btn then remove btn
-    @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack ? ast.err}"
+  initFileSettings
+    debug: debug
+    finishedEvent: (evt, channel)->update(channel ? 'app', this)
+    owner: owner(box)
+    require: req
+    write: (msg)->
+      div = document.createElement('div')
+      div.innerHTML = "#{msg}\n"
+      exBox.appendChild(div)
+      checkHideSource exBox
+    prompt:(msg, cont)-> cont(window.prompt(msg))
+    processResult: (result, ast)->
+      box.result = result
+      setAst box, ast
+    presentValue: presentValue
+    processError: (ast)->
+      btn = box.querySelector '[leisureId="makeTestCase"]'
+      if btn then remove btn
+      @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack ? ast.err}"
 
 leisureContextString = (err)-> (linkSource func, offset for [func, offset] in err.leisureContext.toArray()).join('\n')
 
@@ -1192,7 +1198,7 @@ req = (file, cont)->
   s.setAttribute 'src', file
   s.addEventListener 'load', ->
     Leisure.processDefs global[name], global
-    cont(_false())
+    if cont then cont(_false())
   document.head.appendChild s
 
 postLoadQueue = []

@@ -1,8 +1,8 @@
-var pattern = (function(){
+var _pattern$Blmd = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  pattern = root = {};
+  _pattern$Blmd = root = {};
   global = window;
   module = {};
 } else {
@@ -15,7 +15,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Repl = require('./repl');
 }
 
-Prim.loading('pattern.lmd')
+Prim.loading('_pattern$Blmd')
 
 
 var Nil = Parse.Nil;

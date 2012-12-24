@@ -1,6 +1,6 @@
 if window? and (!global? or global == window)
   window.global = window
-  window.ReplCore = root = {}
+  root = window.ReplCore = window.ReplCore ? {}
   Parse = window.Parse
   Leisure = window.Leisure
   Prim = window.Prim
@@ -159,6 +159,20 @@ generateCode = (file, contents, loud, handle, nomacros, check, debug)->
   [globals, errs, auto] = findDefs contents, nomacros, loud
   runAutosThen auto, debug, -> generate file, contents, loud, handle, nomacros, check, globals, errs, debug
 
+substituteMarkdown = (markdown, contents)->
+  if !markdown then contents
+  else
+    c = ''
+    s = contents.split(/```[^\n]*\n/)
+    if s[0] == '' then s.shift()
+    while s.length
+      s.shift()
+      if s.length then c += s.shift()
+    c
+
+compileString = (filename, markdown, contents, loud, nomacros, debug)->
+  generateCode Parse.nameSub(filename), (substituteMarkdown markdown, (contents.replace /\r\n?/g, "\n")), loud, null, nomacros, null, debug
+
 runAutosThen = (autos, debug, cont)->
   if autos == Parse.Nil then cont()
   else  processResult Leisure.evalNext(autos.head(), 'Parse.', debug)[1], {}, ->
@@ -180,7 +194,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Parse = require('./parse');
   Leisure = require('./leisure');
   Prim = require('./prim');
-  #{if includeStd then "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std');" else ''}
+  #{if includeStd then console.log 'INCLUDING STD'; "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;" else ''}
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
@@ -194,16 +208,18 @@ module.exports =
   names = globals
   prev = Parse.Nil
   if err then throwError(err)
-  defs = []
+  #defs = []
   rest = contents
-  varOut = ''
   inCode = true
   initial = true
+  varOut = '' #local
   for v, i in globals.toArray()
     if i > 0 then varOut += ","
     varOut += " #{Parse.nameSub v}"
   #if varOut then out += "\nvar#{varOut};\n"
   globals = globals.append(getGlobals())
+  #compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev
+  #compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev)->
   while rest and rest.trim()
     try
       if loud > 1 and prev != names and names != Parse.Nil then console.log "Compiling function: #{names.head()}"
@@ -231,7 +247,7 @@ module.exports =
             inCode = true
           else if initial
             out += "Prim.codeMonad(function(){\n"
-          defs.push Parse.nameSub(ast.leisureName)
+          #defs.push Parse.nameSub(ast.leisureName)
           eval(ast.src)
           "#{ast.src};"
         else
@@ -298,3 +314,4 @@ root.findDefs = findDefs
 root.prelude = prelude
 root.errString = errString
 root.setIncludeStd = setIncludeStd
+root.compileString = compileString

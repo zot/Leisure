@@ -36,8 +36,7 @@ Prim = require('./prim')
 
 console.log 'Testing'
 
-Prim.runRequire './prelude'
-Prim.runRequire './std'
+Prim.runRequire './prelude', -> Prim.runRequire './std'
 
 debug = false
 

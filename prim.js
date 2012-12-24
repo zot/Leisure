@@ -1,7 +1,11 @@
 (function() {
-  var Leisure, Monad, Parse, RL, U, arrayRest, codeMonad, concatList, defaultEnv, define, eventCont, getType, head, initFileSettings, laz, leisureEvent, loading, makeMonad, nextMonad, output, r, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tty, values;
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, arrayRest, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, load, loadErr, loadFile, loadHTTP, loadSource, loadXus, loading, makeMonad, nextMonad, output, parentPat, path, primRequire, primRequire2, r, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tryLoad, tty, uriHandlerFor, uriHandlers, urlPat, values, _ref;
 
-  defaultEnv = {};
+  defaultEnv = {
+    handleError: function handleError(err, cont) {
+      return console.log(err.stack);
+    }
+  };
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
@@ -19,13 +23,18 @@
     window.Prim = root = {};
     Leisure = window.Leisure;
     Parse = window.Parse;
+    Notebook = window.Notebook;
+    ReplCore = window.ReplCore = (_ref = window.ReplCore) != null ? _ref : {};
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
     Parse = require('./parse');
     Leisure = require('./leisure');
+    ReplCore = require('./replCore');
     U = require('util');
     RL = require('readline');
     tty = null;
+    fs = require('fs');
+    path = require('path');
     defaultEnv.write = function write(msg) {
       return process.stdout.write(msg);
     };
@@ -39,8 +48,10 @@
       });
     };
     r = function r(file, cont) {
+      var result;
       if (!(file.match(/^\.\//))) file = "./" + file;
-      return require(file);
+      result = require(file);
+      if (cont) return cont(result);
     };
     defaultEnv.require = r;
   }
@@ -57,17 +68,18 @@
 
   laz = Leisure.laz;
 
-  initFileSettings = function initFileSettings() {
-    return defaultEnv.fileSettings = {
+  initFileSettings = function initFileSettings(env) {
+    env.fileSettings = {
       parseFilters: {}
     };
+    return env;
   };
 
   define('is', (function() {
     return function(value) {
       return function(type) {
-        var _ref;
-        if (((_ref = value()) != null ? _ref.type : void 0) === type().dataType) {
+        var _ref2;
+        if (((_ref2 = value()) != null ? _ref2.type : void 0) === type().dataType) {
           return _true();
         } else {
           return _false();
@@ -113,8 +125,8 @@
 
   define('parse', function() {
     return function(value) {
-      var ast, err, rest, _ref;
-      _ref = Leisure.parseFull(value()), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      var ast, err, rest, _ref2;
+      _ref2 = Leisure.parseFull(value()), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
       if (err != null) {
         return _right()(laz("Error: " + err));
       } else if (rest != null ? rest.trim() : void 0) {
@@ -409,13 +421,13 @@
     var cell;
     eventCont.unshift(cell = [false, null, cont]);
     return function(value) {
-      var cnt, ignore, val, _ref, _results;
+      var cnt, ignore, val, _ref2, _results;
       cell[0] = true;
       cell[1] = value;
       _results = [];
       while (eventCont.length && eventCont[0][0]) {
         try {
-          _ref = eventCont.shift(), ignore = _ref[0], val = _ref[1], cnt = _ref[2];
+          _ref2 = eventCont.shift(), ignore = _ref2[0], val = _ref2[1], cnt = _ref2[2];
           _results.push(cnt(val));
         } catch (err) {
           _results.push(console.log("ERROR RUNNING MONAD: " + err.stack));
@@ -547,25 +559,248 @@
     };
   });
 
-  define('require', function() {
+  define('dump', function() {
     return function(file) {
       return makeMonad(function(env, cont) {
-        var fileSettings, monad;
-        fileSettings = env.fileSettings;
-        env.fileSettings = {};
-        monad = env.require(file());
-        if (monad instanceof Monad) {
-          return runMonad(monad, env, function() {
-            env.fileSettings = fileSettings;
-            return cont();
-          });
-        } else {
-          env.fileSettings = fileSettings;
+        return fs.readFile(file(), function(err, data) {
+          console.log((err != null ? err : data).toString());
           return cont();
-        }
+        });
       });
     };
   });
+
+  define('fdump', function() {
+    return function(file) {
+      return makeMonad(function(env, cont) {
+        return Notebook.peer.value("peer/local-storage/public/storage" + (file()), null, false, function(_arg) {
+          var data, x1, x2, x3, x4, x5;
+          x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
+          console.log(data.toString());
+          return cont();
+        });
+      });
+    };
+  });
+
+  loadSource = function loadSource(uri, data, cont, err) {
+    console.log("LOADING SOURCE FOR " + uri);
+    try {
+      if (uri.path.match(/\.lmd$|\.lsr$/)) {
+        data = ReplCore.compileString(uri.path, uri.path.match(/\.lmd$/), data, false, false, false);
+      }
+      console.log("LOADING SOURCE FOR " + uri);
+      return cont(eval(data));
+    } catch (e) {
+      console.log("ERROR EVALUATING DATA: \n" + data);
+      global.ERR = e;
+      return err(e, cont);
+    }
+  };
+
+  loadHTTP = function loadHTTP(uri, cont, errHandler, next) {
+    if (typeof window !== "undefined" && window !== null) {
+      return jQuery.ajax(uri.toString(), {
+        success: function success(data) {
+          return loadSource(uri, data, cont, errHandler);
+        },
+        error: function error() {
+          return next();
+        },
+        dataType: 'text'
+      });
+    } else {
+      return (http.get(uri.toString(), function(data) {
+        return loadSource(uri, data, cont, errHandler);
+      })).on('error', next);
+    }
+  };
+
+  isStorageUri = function isStorageUri(uri) {
+    var _ref2, _ref3;
+    return (_ref2 = uri.scheme) === ((_ref3 = Notebook != null ? Notebook.xusServer.varStorage.values['leisure/storage'] : void 0) != null ? _ref3 : []);
+  };
+
+  loadXus = function loadXus(uri, cont, err) {
+    var f;
+    f = "peer/" + uri.scheme + "/public/storage" + uri.path;
+    return Notebook.peer.value(f, null, false, function(_arg) {
+      var data, x1, x2, x3, x4, x5;
+      x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
+      if (data) {
+        return loadSource(uri, data, cont, err);
+      } else {
+        return cont(null);
+      }
+    });
+  };
+
+  loadFile = function loadFile(uri, cont, err, next) {
+    return fs.stat(uri.path, function(e) {
+      if (e) {
+        return next();
+      } else {
+        return fs.readFile(uri.path, function(e2, data) {
+          if (e2) {
+            return err(e2);
+          } else {
+            return loadSource(uri, data.toString(), cont, err);
+          }
+        });
+      }
+    });
+  };
+
+  loadErr = function loadErr(uri, cont, err, next) {
+    return err(new Error("No load handler for this uri, " + uri));
+  };
+
+  tryLoad = function tryLoad(endings, loadFunc, uri, cont, err) {
+    if (!endings.length) {
+      return err(new Error("No loadable file found for " + uri));
+    } else {
+      return loadFunc(uri.relative("" + uri.path + "." + endings[0]), cont, err, function() {
+        return tryLoad(endings.slice(1), loadFunc, uri, cont, err);
+      });
+    }
+  };
+
+  uriHandlerFor = function uriHandlerFor(uri) {
+    var _ref2;
+    if (isStorageUri(uri)) {
+      return loadXus;
+    } else {
+      return (_ref2 = uriHandlers[uri.scheme]) != null ? _ref2 : loadErr;
+    }
+  };
+
+  load = function load(uri, cont, err) {
+    var endings, m;
+    if (m = uri.path.match(/$(.*\/[^/]*)\.([^/]*)$/)) {
+      uri = m[1];
+      endings = [m[2]];
+    } else {
+      endings = ['js', 'lmd', 'lsr'];
+    }
+    if (!required[uri.toString()]) {
+      console.log("REQUIRE " + uri);
+      required[uri.toString()] = true;
+      return tryLoad(endings, uriHandlerFor(uri), uri, cont, err);
+    } else {
+      return cont(null);
+    }
+  };
+
+  uriHandlers = {
+    http: loadHTTP
+  };
+
+  if (!(typeof window !== "undefined" && window !== null)) {
+    uriHandlers.file = loadFile;
+  }
+
+  primRequire = function primRequire() {
+    return function(file) {
+      return makeMonad(function(env, cont) {
+        var fileSettings;
+        fileSettings = env.fileSettings;
+        initFileSettings(env);
+        return env.require(file(), function(monad) {
+          if (monad instanceof Monad) {
+            return runMonad(monad, env, function() {
+              env.fileSettings = fileSettings;
+              return cont();
+            });
+          } else {
+            env.fileSettings = fileSettings;
+            return cont();
+          }
+        });
+      });
+    };
+  };
+
+  primRequire2 = function primRequire2() {
+    return function(file) {
+      return makeMonad(function(env, cont) {
+        var fileSettings, newCont, uri;
+        console.log("REQUIRE MONAD");
+        uri = env.fileSettings.uri.relative(file());
+        fileSettings = env.fileSettings;
+        initFileSettings(env);
+        env.fileSettings.uri = uri;
+        newCont = function newCont() {
+          env.fileSettings = fileSettings;
+          return cont();
+        };
+        return load(uri, (function(monad) {
+          if (monad instanceof Monad) {
+            console.log("REQUIRE: RUNNING MONAD FOR FILE: " + uri);
+            return runMonad(monad, env, newCont);
+          } else {
+            return newCont();
+          }
+        }), function(err) {
+          console.log("ERROR: " + err.stack);
+          return env.fileSettings = fileSettings;
+        });
+      });
+    };
+  };
+
+  define('require', primRequire2);
+
+  urlPat = /^(([^:/]+):\/\/([^/]*))?(\/(.*?))?(\?.*?)?(#.*)?$/;
+
+  dotPat = /\/\.(?=\/|$)/g;
+
+  parentPat = /^\/\.\.|\/[^/]+?\/\.\./g;
+
+  URI = (function() {
+
+    function URI(src) {
+      var match, _ref2, _ref3;
+      if (match = src.match(urlPat)) {
+        if (match[2]) {
+          this.scheme = match[2];
+          this.host = match[3];
+        }
+        this.path = match[5] ? this.normalize(((this.scheme ? '/' : '') + match[5]).replace(dotPat, '')) : '/';
+        this.query = (_ref2 = match[6]) != null ? _ref2 : '';
+        this.fragment = (_ref3 = match[7]) != null ? _ref3 : '';
+      }
+    }
+
+    URI.prototype.normalize = function normalize(path) {
+      var replaced;
+      while (true) {
+        replaced = false;
+        path = path.replace(parentPat, function(match) {
+          replaced = true;
+          return '';
+        });
+        if (!replaced) break;
+      }
+      return path;
+    };
+
+    URI.prototype.relative = function relative(path) {
+      var u;
+      u = new URI(path);
+      if (u.scheme) {
+        return u;
+      } else {
+        return new URI((this.scheme ? "" + this.scheme + "://" + this.host : '') + (path.match(/^\//) ? path : this.path.match(/\/$/) ? "" + this.path + path : "" + this.path + "/../" + path));
+      }
+    };
+
+    URI.prototype.toString = function toString() {
+      return (this.scheme ? "" + this.scheme + "://" + this.host : "") + this.path;
+    };
+
+    return URI;
+
+  })();
 
   required = {};
 
@@ -575,13 +810,25 @@
     return required[file.replace()] = true;
   };
 
-  runRequire = function runRequire(file) {
-    if (!required[file]) {
-      console.log("REQUIRE " + file);
-      required[file] = true;
-      return runMonad(_require()((function() {
-        return file;
-      })), defaultEnv, function() {});
+  runRequire = function runRequire(file, cont) {
+    var m;
+    console.log("RUN REQUIRE: CHECKING " + file);
+    if (!required["file://" + file]) {
+      console.log("RUN REQUIRE " + file);
+      required["file://" + file] = true;
+      m = require(file);
+      if (!(m instanceof Monad)) {
+        console.log("REQUIRE " + file + " WARNING: RESULT IS NOT A MONAD");
+      } else {
+        console.log("REQUIRE: RUNNING MONAD FOR FILE: " + file);
+      }
+      return runMonad(m, defaultEnv, function() {
+        console.log("CONTINUING RUN REQUIRE...");
+        return (cont != null ? cont : function() {})();
+      });
+    } else {
+      console.log("ALREADY LOADED: " + file);
+      return (cont != null ? cont : function() {})();
     }
   };
 
@@ -731,8 +978,8 @@
     return function(name) {
       return function(defaultValue) {
         return makeMonad(function(env, cont) {
-          var _ref;
-          return cont((_ref = values[name()]) != null ? _ref : defaultValue());
+          var _ref2;
+          return cont((_ref2 = values[name()]) != null ? _ref2 : defaultValue());
         });
       };
     };
@@ -786,15 +1033,17 @@
 
   define('svgMeasureText', (function() {
     return function(text) {
-      return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasureText(text) : void 0;
+      return Notebook != null ? Notebook.svgMeasureText(text) : void 0;
     };
   }), 2);
 
   define('primSvgMeasure', (function() {
     return function(content) {
-      return typeof Notebook !== "undefined" && Notebook !== null ? Notebook.svgMeasure(content) : void 0;
+      return Notebook != null ? Notebook.svgMeasure(content) : void 0;
     };
   }), 1);
+
+  initFileSettings(defaultEnv);
 
   root.setTty = setTty;
 
@@ -813,6 +1062,10 @@
   root.runRequire = runRequire;
 
   root.loading = loading;
+
+  root.initFileSettings = initFileSettings;
+
+  root.URI = URI;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;

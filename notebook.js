@@ -16,6 +16,7 @@
     Prim = window.Prim;
     Repl = window.Repl;
     Xus = window.Xus;
+    Prim.defaultEnv.fileSettings.uri = new Prim.URI(document.location.href);
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
   }
@@ -139,9 +140,9 @@
   };
 
   xusEnv = function xusEnv(resultVar, expr) {
-    var result;
+    var env, result;
     result = '';
-    return {
+    env = Prim.initFileSettings({
       debug: debug,
       finishedEvent: function finishedEvent() {},
       owner: null,
@@ -154,7 +155,7 @@
       },
       processResult: function processResult(res, ast) {
         result += res;
-        return peer.set(resultVar, result);
+        return peer.set(resultVar, JSON.stringify(result));
       },
       presentValue: function presentValue(x) {
         return x;
@@ -163,7 +164,10 @@
         result += ast.err.leisureContext ? "ERROR: " + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" + ast.err.stack : "Couldn't parse: " + expr;
         return peer.set(resultVar, result);
       }
-    };
+    });
+    env.__proto__ = Prim.defaultEnv;
+    env.fileSettings.uri = new Prim.URI(document.location.href);
+    return env;
   };
 
   peerGetDocument = function peerGetDocument() {
@@ -1469,7 +1473,7 @@
   envFor = function envFor(box) {
     var exBox;
     exBox = getBox(box);
-    return {
+    return initFileSettings({
       debug: debug,
       finishedEvent: function finishedEvent(evt, channel) {
         return update(channel != null ? channel : 'app', this);
@@ -1497,7 +1501,7 @@
         if (btn) remove(btn);
         return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref2 = ast.err.stack) != null ? _ref2 : ast.err));
       }
-    };
+    });
   };
 
   leisureContextString = function leisureContextString(err) {
@@ -1785,7 +1789,7 @@
     s.setAttribute('src', file);
     s.addEventListener('load', function() {
       Leisure.processDefs(global[name], global);
-      return cont(_false());
+      if (cont) return cont(_false());
     });
     return document.head.appendChild(s);
   };

@@ -21,9 +21,12 @@ standard = ['prelude', 'std', 'parsing', 'pattern']
 
 loadStandardLimit = standard.length
 
-loadStd = ->
-  for i in [0...loadStandardLimit]
-    Prim.runRequire "./#{standard[i]}"
+loadStd = (std)->
+  if std.length
+    console.log "LOADING STANDARD FILE: #{standard[std[0]]}"
+    Prim.runRequire "./#{standard[std[0]]}", ->
+      console.log "LOADING NEXT: #{standard[std[1]]}"
+      loadStd std[1..]
 
 nomacros = false
 action = importFile
@@ -67,7 +70,7 @@ Usage: #{process.argv[0]} [[-r file]... [-c | -q | -b] file...]
   pos = i + 1
 
 
-loadStd()
+loadStd [0...loadStandardLimit]
 
 processArgs = (i)->
   if eaten then eaten--

@@ -1,8 +1,8 @@
-var block = (function(){
+var _block$Blsr = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  block = root = {};
+  _block$Blsr = root = {};
   global = window;
   module = {};
 } else {
@@ -12,12 +12,13 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Prim = require('./prim');
   
   Prim.runRequire('./prelude');
-  Prim.runRequire('./std');
+  Prim.runRequire('./std')
+;
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
 
-Prim.loading('block.lsr')
+Prim.loading('_block$Blsr')
 
 
 var Nil = Parse.Nil;

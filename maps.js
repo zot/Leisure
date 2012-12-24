@@ -1,8 +1,8 @@
-var maps = (function(){
+var _maps$Blsr = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  maps = root = {};
+  _maps$Blsr = root = {};
   global = window;
   module = {};
 } else {
@@ -12,12 +12,13 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Prim = require('./prim');
   
   Prim.runRequire('./prelude');
-  Prim.runRequire('./std');
+  Prim.runRequire('./std')
+;
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
 
-Prim.loading('maps.lsr')
+Prim.loading('_maps$Blsr')
 
 
 var Nil = Parse.Nil;

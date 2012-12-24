@@ -1,10 +1,10 @@
 (function() {
-  var Leisure, Parse, Prim, U, compileFunc, errString, escape, findDefs, formatContexts, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, includeStd, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, runAutosThen, setCompiler, setHandler, setHelp, setIncludeStd, setNext, setResetFunc, showAst, throwError, vars, write,
+  var Leisure, Parse, Prim, U, compileFunc, compileString, errString, escape, findDefs, formatContexts, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, includeStd, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, runAutosThen, setCompiler, setHandler, setHelp, setIncludeStd, setNext, setResetFunc, showAst, substituteMarkdown, throwError, vars, write, _ref,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     window.global = window;
-    window.ReplCore = root = {};
+    root = window.ReplCore = (_ref = window.ReplCore) != null ? _ref : {};
     Parse = window.Parse;
     Leisure = window.Leisure;
     Prim = window.Prim;
@@ -48,13 +48,13 @@
   getType = Parse.getType;
 
   formatContexts = function formatContexts(stack) {
-    var end, funcName, offset, src, start, _i, _len, _ref, _ref2, _ref3, _results;
-    _ref = stack.toArray();
+    var end, funcName, offset, src, start, _i, _len, _ref2, _ref3, _ref4, _results;
+    _ref2 = stack.toArray();
     _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      _ref2 = _ref[_i], funcName = _ref2[0], offset = _ref2[1];
+    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+      _ref3 = _ref2[_i], funcName = _ref3[0], offset = _ref3[1];
       console.log("FUNCNAME: " + funcName + ", OFFSET: " + offset);
-      _ref3 = Leisure.funcContextSource(funcName, offset), src = _ref3[0], start = _ref3[1], end = _ref3[2];
+      _ref4 = Leisure.funcContextSource(funcName, offset), src = _ref4[0], start = _ref4[1], end = _ref4[2];
       _results.push("" + funcName + ":" + start + "," + end + ": " + (Leisure.indent("" + (src.substring(0, start)) + " << " + (src.substring(start, end)) + " >> " + (src.substring(end)), 4)));
     }
     return _results;
@@ -131,9 +131,9 @@
   };
 
   handleVar = function handleVar(name, value, env) {
-    var k, prop, _i, _len, _ref, _ref2, _results;
+    var k, prop, _i, _len, _ref2, _ref3, _results;
     if (!name) {
-      _ref = ((function() {
+      _ref2 = ((function() {
         var _results2;
         _results2 = [];
         for (k in vars) {
@@ -142,8 +142,8 @@
         return _results2;
       })()).sort();
       _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        prop = _ref[_i];
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        prop = _ref2[_i];
         _results.push(env.write("" + prop + " = " + vars[prop][0] + " -- " + vars[prop][1] + "\n"));
       }
       return _results;
@@ -152,12 +152,12 @@
     } else if (!value) {
       return env.write("" + name + " = " + vars[name] + " -- " + vars[prop][1] + "\n");
     } else {
-      return vars[name][0] = !((_ref2 = value[0]) === 'f' || _ref2 === 'F');
+      return vars[name][0] = !((_ref3 = value[0]) === 'f' || _ref3 === 'F');
     }
   };
 
   processLine = function processLine(line, env, namespace, next) {
-    var a, ast, c, err, m, r, result, _ref, _ref2, _ref3;
+    var a, ast, c, err, m, r, result, _ref2, _ref3, _ref4;
     env = env != null ? env : Prim.defaultEnv;
     try {
       if (line) {
@@ -182,8 +182,8 @@
         } else if (line.trim() === ':q') {
           process.exit(0);
         } else {
-          _ref = [vars.a[0], vars.c[0], vars.r[0]], a = _ref[0], c = _ref[1], r = _ref[2];
-          _ref2 = Leisure.compileNext(line, getGlobals(), false, false, false, namespace, env.debug), ast = _ref2[0], err = _ref2[1];
+          _ref2 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref2[0], c = _ref2[1], r = _ref2[2];
+          _ref3 = Leisure.compileNext(line, getGlobals(), false, false, false, namespace, env.debug), ast = _ref3[0], err = _ref3[1];
           if (err != null) {
             if (ast != null) {
               ast.err = err;
@@ -193,7 +193,7 @@
               };
             }
           } else {
-            _ref3 = r ? Leisure.evalNext(line, namespace, env.debug) : [ast, null], ast = _ref3[0], result = _ref3[1];
+            _ref4 = r ? Leisure.evalNext(line, namespace, env.debug) : [ast, null], ast = _ref4[0], result = _ref4[1];
           }
           return handlerFunc(ast, result, a, c, r, line, env, next);
         }
@@ -213,11 +213,31 @@
   localPrelude = prelude.replace(/\n/g, "\nvar ");
 
   generateCode = function generateCode(file, contents, loud, handle, nomacros, check, debug) {
-    var auto, errs, globals, _ref;
-    _ref = findDefs(contents, nomacros, loud), globals = _ref[0], errs = _ref[1], auto = _ref[2];
+    var auto, errs, globals, _ref2;
+    _ref2 = findDefs(contents, nomacros, loud), globals = _ref2[0], errs = _ref2[1], auto = _ref2[2];
     return runAutosThen(auto, debug, function() {
       return generate(file, contents, loud, handle, nomacros, check, globals, errs, debug);
     });
+  };
+
+  substituteMarkdown = function substituteMarkdown(markdown, contents) {
+    var c, s;
+    if (!markdown) {
+      return contents;
+    } else {
+      c = '';
+      s = contents.split(/```[^\n]*\n/);
+      if (s[0] === '') s.shift();
+      while (s.length) {
+        s.shift();
+        if (s.length) c += s.shift();
+      }
+      return c;
+    }
+  };
+
+  compileString = function compileString(filename, markdown, contents, loud, nomacros, debug) {
+    return generateCode(Parse.nameSub(filename), substituteMarkdown(markdown, contents.replace(/\r\n?/g, "\n")), loud, null, nomacros, null, debug);
   };
 
   runAutosThen = function runAutosThen(autos, debug, cont) {
@@ -231,21 +251,20 @@
   };
 
   generate = function generate(file, contents, loud, handle, nomacros, check, globals, errs, debug) {
-    var a, ast, c, code, defs, err, i, inCode, initial, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref, _ref2, _ref3;
+    var a, ast, c, code, err, i, inCode, initial, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref2, _ref3, _ref4;
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$|\.lmd$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
-    out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.(lsr|lmd)/, '') + ' = ' : '') + "root = {};\n  global = window;\n  module = {};\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Parse = require('./parse');\n  Leisure = require('./leisure');\n  Prim = require('./prim');\n  " + (includeStd ? "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std');" : '') + "\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\n\nPrim.loading('" + file + "')\n\n" + localPrelude + "\n\nmodule.exports = ";
+    out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.(lsr|lmd)/, '') + ' = ' : '') + "root = {};\n  global = window;\n  module = {};\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Parse = require('./parse');\n  Leisure = require('./leisure');\n  Prim = require('./prim');\n  " + (includeStd ? (console.log('INCLUDING STD'), "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;") : '') + "\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\n\nPrim.loading('" + file + "')\n\n" + localPrelude + "\n\nmodule.exports = ";
     names = globals;
     prev = Parse.Nil;
     if (err) throwError(err);
-    defs = [];
     rest = contents;
-    varOut = '';
     inCode = true;
     initial = true;
-    _ref = globals.toArray();
-    for (i = 0, _len = _ref.length; i < _len; i++) {
-      v = _ref[i];
+    varOut = '';
+    _ref2 = globals.toArray();
+    for (i = 0, _len = _ref2.length; i < _len; i++) {
+      v = _ref2[i];
       if (i > 0) varOut += ",";
       varOut += " " + (Parse.nameSub(v));
     }
@@ -256,7 +275,7 @@
           console.log("Compiling function: " + (names.head()));
         }
         oldRest = rest;
-        _ref2 = Leisure.compileNext(rest, globals, null, check, nomacros, 'Parse.', debug), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+        _ref3 = Leisure.compileNext(rest, globals, null, check, nomacros, 'Parse.', debug), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
         if ((ast != null ? ast.leisureName : void 0) != null) {
           prev = ast.leisureName;
           names = names.tail();
@@ -271,10 +290,10 @@
           m = code.match(Leisure.linePat);
           nm = ast.leisureName;
           ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(Parse.print(ast))) + "\n" + (nm != null ? "/*root.defs." + (Parse.nameSub(nm)) + " =*/ " + (Parse.nameSub(nm)) + " = " : "") + ast.src;
-          src = ast.leisureName ? (!inCode ? (out += ".andThenCode(function(){\n", inCode = true) : initial ? out += "Prim.codeMonad(function(){\n" : void 0, defs.push(Parse.nameSub(ast.leisureName)), eval(ast.src), "" + ast.src + ";") : (inCode ? (!initial ? out += "})\n" : void 0, inCode = false) : void 0, Prim.runMonad(eval(ast.src), Prim.defaultEnv, function() {}), initial ? ast.src : ".andThen(\n" + ast.src + ")");
+          src = ast.leisureName ? (!inCode ? (out += ".andThenCode(function(){\n", inCode = true) : initial ? out += "Prim.codeMonad(function(){\n" : void 0, eval(ast.src), "" + ast.src + ";") : (inCode ? (!initial ? out += "})\n" : void 0, inCode = false) : void 0, Prim.runMonad(eval(ast.src), Prim.defaultEnv, function() {}), initial ? ast.src : ".andThen(\n" + ast.src + ")");
           initial = false;
           out += "" + src + "\n";
-          _ref3 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref3[0], c = _ref3[1], r = _ref3[2];
+          _ref4 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref4[0], c = _ref4[1], r = _ref4[2];
           if (handle) handlerFunc(ast, null, a, c, r, code);
         }
       } catch (err) {
@@ -301,14 +320,14 @@
   };
 
   findDefs = function findDefs(contents, nomacros, loud) {
-    var ast, auto, err, errs, globals, line, oldRest, prevName, rest, _ref;
+    var ast, auto, err, errs, globals, line, oldRest, prevName, rest, _ref2;
     auto = Parse.dlempty;
     errs = '';
     globals = Parse.Nil;
     rest = contents;
     while (rest) {
       oldRest = rest;
-      _ref = Leisure.compileNext(rest, globals, true, null, nomacros), ast = _ref[0], err = _ref[1], rest = _ref[2];
+      _ref2 = Leisure.compileNext(rest, globals, true, null, nomacros), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
       if (err) {
         if (ast != null ? ast.leisureName : void 0) {
           errs = "" + errs + "Error in " + ast.leisureName + (showAst(ast)) + ": " + err + "\n";
@@ -370,5 +389,7 @@
   root.errString = errString;
 
   root.setIncludeStd = setIncludeStd;
+
+  root.compileString = compileString;
 
 }).call(this);

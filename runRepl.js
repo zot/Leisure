@@ -1,5 +1,5 @@
 (function() {
-  var LZ, Prim, R, RC, U, action, debug, eaten, i, importFile, interactiveMode, loadStandardLimit, loadStd, next, nomacros, pos, processArgs, standard, _ref;
+  var LZ, Prim, R, RC, U, action, debug, eaten, i, importFile, interactiveMode, loadStandardLimit, loadStd, next, nomacros, pos, processArgs, standard, _i, _ref, _results;
 
   LZ = require('./leisure');
 
@@ -31,13 +31,14 @@
 
   loadStandardLimit = standard.length;
 
-  loadStd = function loadStd() {
-    var i, _results;
-    _results = [];
-    for (i = 0; 0 <= loadStandardLimit ? i < loadStandardLimit : i > loadStandardLimit; 0 <= loadStandardLimit ? i++ : i--) {
-      _results.push(Prim.runRequire("./" + standard[i]));
+  loadStd = function loadStd(std) {
+    if (std.length) {
+      console.log("LOADING STANDARD FILE: " + standard[std[0]]);
+      return Prim.runRequire("./" + standard[std[0]], function() {
+        console.log("LOADING NEXT: " + standard[std[1]]);
+        return loadStd(std.slice(1));
+      });
     }
-    return _results;
   };
 
   nomacros = false;
@@ -85,7 +86,11 @@
     pos = i + 1;
   }
 
-  loadStd();
+  loadStd((function() {
+    _results = [];
+    for (var _i = 0; 0 <= loadStandardLimit ? _i < loadStandardLimit : _i > loadStandardLimit; 0 <= loadStandardLimit ? _i++ : _i--){ _results.push(_i); }
+    return _results;
+  }).apply(this));
 
   processArgs = function processArgs(i) {
     if (eaten) {

@@ -1,4 +1,5 @@
-defaultEnv = {}
+defaultEnv =
+  handleError: (err, cont)-> console.log err.stack
 
 if window?
   # running in a browser
@@ -13,14 +14,19 @@ if window?
   window.Prim = root = {}
   Leisure = window.Leisure
   Parse = window.Parse
+  Notebook = window.Notebook
+  ReplCore = window.ReplCore = window.ReplCore ? {}
 else
   # running in node
   root = exports ? this
-  Parse = require('./parse')
-  Leisure = require('./leisure')
-  U = require('util')
-  RL = require('readline')
+  Parse = require './parse'
+  Leisure = require './leisure'
+  ReplCore = require './replCore'
+  U = require 'util'
+  RL = require 'readline'
   tty = null
+  fs = require 'fs'
+  path = require 'path'
   defaultEnv.write = (msg)-> process.stdout.write(msg)
   defaultEnv.prompt = (msg, cont)-> tty.question(msg, ->
     try
@@ -30,7 +36,8 @@ else
   )
   r = (file, cont)->
     if !(file.match /^\.\//) then file = "./#{file}"
-    require file
+    result = require file
+    if cont then cont(result)
   defaultEnv.require = r
 
 setTty = (rl)-> tty = rl
@@ -39,7 +46,10 @@ getType = Parse.getType
 throwError = Parse.throwError
 laz = Leisure.laz
 
-initFileSettings = -> defaultEnv.fileSettings = parseFilters: {}
+initFileSettings = (env)->
+  env.fileSettings =
+    parseFilters: {}
+  env
 
 define 'is', (->(value)-> (type)-> if value()?.type == type().dataType then `_true()` else `_false()`), 2
 define 'isFunc', ->(value)->if typeof value() == 'function' then `_true()` else `_false()`
@@ -193,18 +203,140 @@ define 'forward', ->(name)->
 define 'return', ->(v)->
   makeMonad (env, cont)->cont(v())
 
-define 'require', ->(file)->
+define 'dump', ->(file)->
+  makeMonad (env, cont)->
+    fs.readFile file(), (err, data)->
+      console.log (err ? data).toString()
+      cont()
+
+define 'fdump', ->(file)->
+  makeMonad (env, cont)->
+    Notebook.peer.value "peer/local-storage/public/storage#{file()}", null, false, ([x1, x2, x3, x4, x5, data])->
+      console.log data.toString()
+      cont()
+
+loadSource = (uri, data, cont, err)->
+  console.log "LOADING SOURCE FOR #{uri}"
+  try
+    if uri.path.match /\.lmd$|\.lsr$/
+      data = ReplCore.compileString uri.path, (uri.path.match /\.lmd$/), data, false, false, false
+    #console.log "LOADING SOURCE: #{data}"
+    console.log "LOADING SOURCE FOR #{uri}"
+    cont eval data
+  catch e
+    console.log "ERROR EVALUATING DATA: \n#{data}"
+    global.ERR = e
+    err e, cont
+
+loadHTTP = (uri, cont, errHandler, next)->
+  if window?
+    jQuery.ajax uri.toString(),
+      success: (data)-> loadSource uri, data, cont, errHandler
+      error: -> next()
+      dataType: 'text'
+  else (http.get uri.toString(), (data)-> loadSource uri, data, cont, errHandler).on 'error', next
+
+isStorageUri = (uri)-> uri.scheme in [Notebook?.xusServer.varStorage.values['leisure/storage'] ? []]
+
+loadXus = (uri, cont, err)->
+  f = "peer/#{uri.scheme}/public/storage#{uri.path}"
+  Notebook.peer.value f, null, false, ([x1, x2, x3, x4, x5, data])->
+    if data then loadSource uri, data, cont, err else cont null
+
+loadFile = (uri, cont, err, next)->
+  fs.stat uri.path, (e)->
+    if e then next()
+    else fs.readFile uri.path, (e2, data)->
+      if e2 then err e2
+      else loadSource uri, data.toString(), cont, err
+
+loadErr = (uri, cont, err, next)-> err new Error "No load handler for this uri, " + uri
+
+tryLoad = (endings, loadFunc, uri, cont, err)->
+  if !endings.length then err new Error "No loadable file found for #{uri}"
+  else loadFunc (uri.relative "#{uri.path}.#{endings[0]}"), cont, err, ->
+    tryLoad endings[1..], loadFunc, uri, cont, err
+  
+uriHandlerFor = (uri)-> if isStorageUri uri then loadXus else uriHandlers[uri.scheme] ? loadErr
+
+load = (uri, cont, err)->
+  if m = uri.path.match /$(.*\/[^/]*)\.([^/]*)$/
+    uri = m[1]
+    endings = [m[2]]
+  else endings = ['js', 'lmd', 'lsr']
+  if !required[uri.toString()]
+    console.log "REQUIRE #{uri}"
+    required[uri.toString()] = true
+    tryLoad endings, (uriHandlerFor uri), uri, cont, err
+  else cont null
+
+uriHandlers =
+  http: loadHTTP
+
+if !window? then uriHandlers.file = loadFile
+
+primRequire = ->(file)->
   makeMonad (env, cont)->
     fileSettings = env.fileSettings
-    env.fileSettings = {}
-    monad = env.require file()
-    if monad instanceof Monad
-      runMonad monad, env, ->
+    initFileSettings env
+    env.require file(), (monad)->
+      if monad instanceof Monad
+        runMonad monad, env, ->
+          env.fileSettings = fileSettings
+          cont()
+      else
         env.fileSettings = fileSettings
         cont()
+
+primRequire2 = ->(file)-> makeMonad (env, cont)->
+  console.log "REQUIRE MONAD"
+  uri = env.fileSettings.uri.relative file()
+  fileSettings = env.fileSettings
+  initFileSettings env
+  env.fileSettings.uri = uri
+  newCont = ->
+    env.fileSettings = fileSettings
+    cont()
+  load uri, ((monad)->
+    if monad instanceof Monad
+      console.log "REQUIRE: RUNNING MONAD FOR FILE: #{uri}"
+      runMonad monad, env, newCont
+    else newCont()), (err)->
+    console.log "ERROR: #{err.stack}"
+    env.fileSettings = fileSettings
+
+define 'require', primRequire2
+
+urlPat = /^(([^:/]+):\/\/([^/]*))?(\/(.*?))?(\?.*?)?(#.*)?$/
+dotPat = /\/\.(?=\/|$)/g
+parentPat = /^\/\.\.|\/[^/]+?\/\.\./g
+
+class URI
+  constructor: (src)->
+    if match = src.match urlPat
+      if match[2]
+        @scheme = match[2]
+        @host = match[3]
+      @path = if match[5] then @normalize ((if @scheme then '/' else '') + match[5]).replace dotPat, '' else '/'
+      @query = match[6] ? ''
+      @fragment = match[7] ? ''
+  normalize: (path)->
+    while true
+      replaced = false
+      path = path.replace parentPat, (match)->
+        replaced = true
+        ''
+      if !replaced then break
+    path
+  relative: (path)->
+    u = new URI path
+    if u.scheme then u
     else
-      env.fileSettings = fileSettings
-      cont()
+      new URI (if @scheme then "#{@scheme}://#{@host}" else '') + (
+        if path.match /^\// then path
+        else if @path.match /\/$/ then "#{@path}#{path}"
+        else "#{@path}/../#{path}")
+  toString: -> (if @scheme then "#{@scheme}://#{@host}" else "") + @path
 
 required = {}
 
@@ -213,11 +345,22 @@ loading = (file)->
   console.log "LOADING: #{file}"
   required[file.replace()] = true
 
-runRequire = (file)->
-  if !required[file]
-    console.log "REQUIRE #{file}"
-    required[file] = true
-    runMonad (_require() (->file)), defaultEnv, ->
+runRequire = (file, cont)->
+  console.log "RUN REQUIRE: CHECKING #{file}"
+  if !required["file://#{file}"]
+    console.log "RUN REQUIRE #{file}"
+    required["file://#{file}"] = true
+    #runMonad (_require() (->file)), defaultEnv, cont ? ->
+    m = require file
+    if !(m instanceof Monad) then console.log "REQUIRE #{file} WARNING: RESULT IS NOT A MONAD"
+    else console.log "REQUIRE: RUNNING MONAD FOR FILE: #{file}"
+    #runMonad m, defaultEnv, cont ? ->
+    runMonad m, defaultEnv, ->
+      console.log "CONTINUING RUN REQUIRE..."
+      (cont ? ->)()
+  else
+    console.log "ALREADY LOADED: #{file}"
+    (cont ? ->)()
 
 define 'print', ->(msg)->
   makeMonad (env, cont)->
@@ -308,6 +451,8 @@ define 'setS', ->(state)->(value)->
 define 'svgMeasureText', (->(text)->Notebook?.svgMeasureText(text)), 2
 define 'primSvgMeasure', (->(content)->Notebook?.svgMeasure(content)), 1
 
+initFileSettings defaultEnv
+
 root.setTty = setTty
 root.runMonad = runMonad
 root.makeMonad = makeMonad
@@ -317,5 +462,7 @@ root.defaultEnv = defaultEnv
 root.codeMonad = codeMonad
 root.runRequire = runRequire
 root.loading = loading
+root.initFileSettings = initFileSettings
+root.URI = URI
 
 if window? then window.leisureEvent = leisureEvent

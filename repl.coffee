@@ -24,6 +24,8 @@ print = (args...)-> process.stdout.write(U.format.apply(null, args))
 write = (args...)-> process.stdout.write args.join('')
 face = null
 
+Prim.defaultEnv.fileSettings.uri = new Prim.URI "file://#{process.cwd()}/"
+
 init = ->
   if !face?
     face = R.createInterface(process.stdin, process.stdout)
@@ -45,21 +47,21 @@ compile = (file, cont, nomacros, debug, force)->
     face?.prompt()
   else
     markdown = false
-    if !Path.existsSync(file)
+    if !FS.existsSync(file)
       oldfile = file
       file = oldfile + ".lsr"
-      if Path.existsSync(file)
+      if FS.existsSync(file)
         jsFile = "#{Path.basename file, '.lsr'}.js"
       else
         file = oldfile + '.lmd'
-        if Path.existsSync file
+        if FS.existsSync file
           markdown = true
           jsFile = "#{Path.basename file, '.lmd'}.js"
         else
           console.log("No file: #{file}")
           return cont()
     next = -> doCompile file, jsFile, markdown, cont, nomacros, debug
-    if Path.existsSync(jsFile)
+    if FS.existsSync(jsFile)
       FS.stat jsFile, (err, jsStats)->
         FS.stat file, (err, lsStats)->
           if lsStats.mtime.getTime() > jsStats.mtime.getTime()
@@ -74,14 +76,14 @@ doCompile = (file, jsFile, markdown, cont, nomacros, debug)->
   stream.on 'data', (data)-> contents += data
   stream.on 'end', ()->
     try
-      contents = contents.replace /\r\n?/g, "\n"
-      out = Core.generateCode(file, (substituteMarkdown markdown, contents), root.loud, null, nomacros, null, debug)
       str = FS.createWriteStream("#{jsFile}Tmp")
       str.on 'close', ->
         FS.renameSync("#{jsFile}Tmp", jsFile)
         cont()
       str.on 'error', -> cont()
-      str.end out
+      output = Core.compileString file, markdown, contents, root.loud, nomacros, debug
+      #console.log "OUTPUT: #{output}"
+      str.end output
       str.destroySoon()
     catch err
       console.log "ERROR: #{err}#{if err.leisureContext then formatLeisureStack(err) else ''}\n#{err.stack}"
@@ -90,17 +92,6 @@ doCompile = (file, jsFile, markdown, cont, nomacros, debug)->
   stream.on 'error', (ex)->
     console.log("Exception reading file: ", ex.stack)
     cont()
-
-substituteMarkdown = (markdown, contents)->
-  if !markdown then contents
-  else
-    c = ''
-    s = contents.split(/```[^\n]*\n/)
-    if s[0] == '' then s.shift()
-    while s.length
-      s.shift()
-      if s.length then c += s.shift()
-    c
 
 formatLeisureStack = (err)-> "\nLeisure Stack:\n  #{err.toArray().join("\n  ")}"
 
@@ -177,7 +168,7 @@ function req(name) {
 Core.setCompiler compile
 Core.setResetFunc ->
   createEnv()
-  Prim.runRequire './std'
+  Prim.runRequire './std', ->
 
 root.createEnv = createEnv
 root.print = print

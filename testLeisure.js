@@ -46,9 +46,9 @@ Tests for Leisure
 
   console.log('Testing');
 
-  Prim.runRequire('./prelude');
-
-  Prim.runRequire('./std');
+  Prim.runRequire('./prelude', function() {
+    return Prim.runRequire('./std');
+  });
 
   debug = false;
 
