@@ -207,19 +207,14 @@ module.exports =
 """
   names = globals
   prev = Parse.Nil
-  if err then throwError(err)
-  #defs = []
+  #if err then throwError(err)
   rest = contents
   inCode = true
   initial = true
-  varOut = '' #local
-  for v, i in globals.toArray()
-    if i > 0 then varOut += ","
-    varOut += " #{Parse.nameSub v}"
-  #if varOut then out += "\nvar#{varOut};\n"
   globals = globals.append(getGlobals())
-  #compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev
-  #compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev)->
+  compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
+
+compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out)->
   while rest and rest.trim()
     try
       if loud > 1 and prev != names and names != Parse.Nil then console.log "Compiling function: #{names.head()}"
@@ -237,17 +232,13 @@ module.exports =
         globals = ast.globals
         m = code.match(Leisure.linePat)
         nm = ast.leisureName
-        ast.src = """
-  //#{if nm? then nm + ' = ' else ''}#{escape(Parse.print(ast))}
-  #{if nm? then "/*root.defs.#{Parse.nameSub(nm)} =*/ #{Parse.nameSub(nm)} = " else ""}#{ast.src}
-  """
+        ast.src = "  #{if nm? then "#{Parse.nameSub(nm)} = " else ""}#{ast.src}"
         src = if ast.leisureName
           if !inCode
             out += ".andThenCode(function(){\n"
             inCode = true
           else if initial
             out += "Prim.codeMonad(function(){\n"
-          #defs.push Parse.nameSub(ast.leisureName)
           eval(ast.src)
           "#{ast.src};"
         else

@@ -31,8 +31,7 @@ var define = Parse.define;
 var wrapContext = Leisure.wrapContext;
 var markLeisureErrors = Leisure.markLeisureErrors;
 
-module.exports = //AST("nothing, yet")
-("nothing, yet")
+module.exports =   ("nothing, yet")
 ;
 if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});
 }).call(this)

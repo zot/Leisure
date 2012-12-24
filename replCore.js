@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Parse, Prim, U, compileFunc, compileString, errString, escape, findDefs, formatContexts, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, includeStd, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, runAutosThen, setCompiler, setHandler, setHelp, setIncludeStd, setNext, setResetFunc, showAst, substituteMarkdown, throwError, vars, write, _ref,
+  var Leisure, Parse, Prim, U, compileFunc, compileLines, compileString, errString, escape, findDefs, formatContexts, generate, generateCode, getGlobals, getType, handleVar, handlerFunc, helpFunc, includeStd, localPrelude, nextFunc, prelude, print, processLine, processResult, resetFunc, root, runAutosThen, setCompiler, setHandler, setHelp, setIncludeStd, setNext, setResetFunc, showAst, substituteMarkdown, throwError, vars, write, _ref,
     __slice = Array.prototype.slice;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
@@ -251,31 +251,28 @@
   };
 
   generate = function generate(file, contents, loud, handle, nomacros, check, globals, errs, debug) {
-    var a, ast, c, code, err, i, inCode, initial, m, names, nm, objName, oldRest, out, prev, r, rest, src, v, varOut, _len, _ref2, _ref3, _ref4;
+    var inCode, initial, names, objName, out, prev, rest;
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$|\.lmd$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
     out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.(lsr|lmd)/, '') + ' = ' : '') + "root = {};\n  global = window;\n  module = {};\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Parse = require('./parse');\n  Leisure = require('./leisure');\n  Prim = require('./prim');\n  " + (includeStd ? (console.log('INCLUDING STD'), "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;") : '') + "\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\n\nPrim.loading('" + file + "')\n\n" + localPrelude + "\n\nmodule.exports = ";
     names = globals;
     prev = Parse.Nil;
-    if (err) throwError(err);
     rest = contents;
     inCode = true;
     initial = true;
-    varOut = '';
-    _ref2 = globals.toArray();
-    for (i = 0, _len = _ref2.length; i < _len; i++) {
-      v = _ref2[i];
-      if (i > 0) varOut += ",";
-      varOut += " " + (Parse.nameSub(v));
-    }
     globals = globals.append(getGlobals());
+    return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out);
+  };
+
+  compileLines = function compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out) {
+    var a, ast, c, code, err, m, nm, oldRest, r, src, _ref2, _ref3;
     while (rest && rest.trim()) {
       try {
         if (loud > 1 && prev !== names && names !== Parse.Nil) {
           console.log("Compiling function: " + (names.head()));
         }
         oldRest = rest;
-        _ref3 = Leisure.compileNext(rest, globals, null, check, nomacros, 'Parse.', debug), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
+        _ref2 = Leisure.compileNext(rest, globals, null, check, nomacros, 'Parse.', debug), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
         if ((ast != null ? ast.leisureName : void 0) != null) {
           prev = ast.leisureName;
           names = names.tail();
@@ -289,11 +286,11 @@
           globals = ast.globals;
           m = code.match(Leisure.linePat);
           nm = ast.leisureName;
-          ast.src = "//" + (nm != null ? nm + ' = ' : '') + (escape(Parse.print(ast))) + "\n" + (nm != null ? "/*root.defs." + (Parse.nameSub(nm)) + " =*/ " + (Parse.nameSub(nm)) + " = " : "") + ast.src;
+          ast.src = "  " + (nm != null ? "" + (Parse.nameSub(nm)) + " = " : "") + ast.src;
           src = ast.leisureName ? (!inCode ? (out += ".andThenCode(function(){\n", inCode = true) : initial ? out += "Prim.codeMonad(function(){\n" : void 0, eval(ast.src), "" + ast.src + ";") : (inCode ? (!initial ? out += "})\n" : void 0, inCode = false) : void 0, Prim.runMonad(eval(ast.src), Prim.defaultEnv, function() {}), initial ? ast.src : ".andThen(\n" + ast.src + ")");
           initial = false;
           out += "" + src + "\n";
-          _ref4 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref4[0], c = _ref4[1], r = _ref4[2];
+          _ref3 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref3[0], c = _ref3[1], r = _ref3[2];
           if (handle) handlerFunc(ast, null, a, c, r, code);
         }
       } catch (err) {
