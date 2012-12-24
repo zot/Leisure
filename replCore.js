@@ -287,7 +287,7 @@
           m = code.match(Leisure.linePat);
           nm = ast.leisureName;
           ast.src = "  " + (nm != null ? "" + (Parse.nameSub(nm)) + " = " : "") + ast.src;
-          src = ast.leisureName ? (!inCode ? (out += ".andThenCode(function(){\n", inCode = true) : initial ? out += "Prim.codeMonad(function(){\n" : void 0, eval(ast.src), "" + ast.src + ";") : (inCode ? (!initial ? out += "})\n" : void 0, inCode = false) : void 0, Prim.runMonad(eval(ast.src), Prim.defaultEnv, function() {}), initial ? ast.src : ".andThen(\n" + ast.src + ")");
+          src = ast.leisureName ? (!inCode ? (out += ".andThenCode(function(){\n", inCode = true) : initial ? out += "Prim.codeMonad(function(){\n" : void 0, eval(ast.src), "" + ast.src + ";") : (inCode ? (!initial ? out += "})\n" : void 0, inCode = false) : void 0, initial ? ast.src : ".andThen(\n" + ast.src + ")");
           initial = false;
           out += "" + src + "\n";
           _ref3 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref3[0], c = _ref3[1], r = _ref3[2];
@@ -296,7 +296,13 @@
       } catch (err) {
         throw new Error("Error compiling " + file + (ast.leisureName ? "." + ast.leisureName : "") + ": code:\n" + out + "\n>>> ERROR: " + err.message + "\n>>> CODE: " + ast.src);
       }
-      return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out);
+      if (!ast.leisureName) {
+        return Prim.runMonad(eval(ast.src), Prim.defaultEnv, function() {
+          return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out);
+        });
+      } else {
+        return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out);
+      }
     } else {
       if (initial) return '';
       if (inCode) out += "\n})";

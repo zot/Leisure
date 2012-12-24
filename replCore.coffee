@@ -214,6 +214,11 @@ module.exports =
   globals = globals.append(getGlobals())
   compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
 
+#
+# Currently recurses for every function
+# Make it just monadic by using a while loop and continuing for functions so it
+# only exits on end or when it calls a monad
+# 
 compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out)->
   if rest and rest.trim()
     try
@@ -245,15 +250,17 @@ compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, de
           if inCode
             if !initial then out += "})\n"
             inCode = false
-          Prim.runMonad (eval ast.src), Prim.defaultEnv, ->
           if initial then ast.src else ".andThen(\n#{ast.src})"
         initial = false
         out += "#{src}\n"
         [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
         if handle then handlerFunc ast, null, a, c, r, code
+        #if !ast.leisureName then Prim.runMonad (eval ast.src), Prim.defaultEnv, ->
     catch err
       throw new Error "Error compiling #{file}#{if ast.leisureName then "." + ast.leisureName else ""}: code:\n#{out}\n>>> ERROR: #{err.message}\n>>> CODE: #{ast.src}"
-    compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
+    if !ast.leisureName then Prim.runMonad (eval ast.src), Prim.defaultEnv, ->
+      compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
+    else compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
   else
     if initial then return ''
     if inCode then out += "\n})"
