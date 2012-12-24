@@ -215,7 +215,7 @@ module.exports =
   compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
 
 compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out)->
-  while rest and rest.trim()
+  if rest and rest.trim()
     try
       if loud > 1 and prev != names and names != Parse.Nil then console.log "Compiling function: #{names.head()}"
       oldRest = rest
@@ -253,15 +253,17 @@ compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, de
         if handle then handlerFunc ast, null, a, c, r, code
     catch err
       throw new Error "Error compiling #{file}#{if ast.leisureName then "." + ast.leisureName else ""}: code:\n#{out}\n>>> ERROR: #{err.message}\n>>> CODE: #{ast.src}"
-  if initial then return ''
-  if inCode then out += "\n})"
-  out += """
+    compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
+  else
+    if initial then return ''
+    if inCode then out += "\n})"
+    out += """
 ;
 if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});
 }).call(this)
 """
-  if errs != '' then throwError("Errors compiling #{file}: #{errs}")
-  out
+    if errs != '' then throwError("Errors compiling #{file}: #{errs}")
+    out
 
 getGlobals = -> Leisure.eval 'leisureGetFuncs()'
 

@@ -266,7 +266,7 @@
 
   compileLines = function compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out) {
     var a, ast, c, code, err, m, nm, oldRest, r, src, _ref2, _ref3;
-    while (rest && rest.trim()) {
+    if (rest && rest.trim()) {
       try {
         if (loud > 1 && prev !== names && names !== Parse.Nil) {
           console.log("Compiling function: " + (names.head()));
@@ -296,12 +296,14 @@
       } catch (err) {
         throw new Error("Error compiling " + file + (ast.leisureName ? "." + ast.leisureName : "") + ": code:\n" + out + "\n>>> ERROR: " + err.message + "\n>>> CODE: " + ast.src);
       }
+      return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out);
+    } else {
+      if (initial) return '';
+      if (inCode) out += "\n})";
+      out += ";\nif (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});\n}).call(this)";
+      if (errs !== '') throwError("Errors compiling " + file + ": " + errs);
+      return out;
     }
-    if (initial) return '';
-    if (inCode) out += "\n})";
-    out += ";\nif (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});\n}).call(this)";
-    if (errs !== '') throwError("Errors compiling " + file + ": " + errs);
-    return out;
   };
 
   getGlobals = function getGlobals() {
