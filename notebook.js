@@ -2236,4 +2236,6 @@
 
   root.getAst = getAst;
 
+  root.insertControls = insertControls;
+
 }).call(this);

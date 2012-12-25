@@ -162,14 +162,14 @@ runMonad = (monad, env, cont)->
     console.log "ERROR RUNNING MONAD: #{err.stack}"
 
 class Monad
-  andThenCode: (func)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad (codeMonad func), env, cont
-  andThen: (monad)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad monad, env, cont
+  andThen: (func)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad (codeMonad func), env, cont
   toString: -> "Monad: #{@cmd.toString()}"
 
 codeMonad = (code)->
   makeMonad (env, cont)->
-    code env
-    cont _false()
+    result = code env
+    if result instanceof Monad then runMonad result, env, cont
+    else cont _false()
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code
@@ -239,7 +239,7 @@ loadHTTP = (uri, cont, errHandler, next)->
       dataType: 'text'
   else (http.get uri.toString(), (data)-> loadSource uri, data, cont, errHandler).on 'error', next
 
-isStorageUri = (uri)-> uri.scheme in [Notebook?.xusServer.varStorage.values['leisure/storage'] ? []]
+isStorageUri = (uri)-> uri.scheme in (Notebook?.xusServer?.varStorage.values['leisure/storage'] ? [])
 
 loadXus = (uri, cont, err)->
   f = "peer/#{uri.scheme}/public/storage#{uri.path}"
@@ -455,5 +455,6 @@ root.runRequire = runRequire
 root.loading = loading
 root.initFileSettings = initFileSettings
 root.URI = URI
+root.Monad = Monad
 
 if window? then window.leisureEvent = leisureEvent

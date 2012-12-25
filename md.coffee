@@ -46,6 +46,7 @@ window.markup = ->
       markupSlides el, md
     else
       markupElement el, md
+    Notebook.insertControls el
 
 lastSlide = null
 slideCount = 0

@@ -12,16 +12,12 @@ done
 
 if node_modules/coffee-script/bin/coffee -c storage.coffee parse.coffee leisure.coffee prim.coffee game.coffee md.coffee \
  && node_modules/coffee-script/bin/coffee -c repl.coffee runRepl.coffee testLeisure.coffee replCore.coffee browserRepl.coffee testing.coffee bootLeisure.coffee notebook.coffee scanner.coffee \
- && node runRepl $DEBUG -q -b 0 -c prelude \
- && node runRepl $DEBUG -q -b 1 -c std \
- && node runRepl $DEBUG -q -b 2 -c parsing \
- && node runRepl $DEBUG -q -b 3 -c pattern
+ && node runRepl $DEBUG -q -b 0 -c std
+
 then
     if [ -n "$ALL" ]; then
         node runRepl $DEBUG -c maps
-        #node runRepl $DEBUG -c -r maps svg
         node runRepl $DEBUG -c svg
-        #node runRepl $DEBUG -c -r maps -r svg parseAst
         node runRepl $DEBUG -c parseAst
         #node_modules/coffee-script/bin/coffee -c chippy.coffee
         #node runRepl -c -r chippy chip.lsr

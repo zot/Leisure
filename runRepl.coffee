@@ -17,12 +17,11 @@ importFile = (file, cont) ->
     LZ.eval "req('./#{file}')"
     cont()), nomacros, debug
 
-#standard = ['prelude', 'std', 'parsing', 'pattern']
-standard = ['prelude', 'std', 'parsing']
+standard = ['std']
 
 loadStandardLimit = standard.length
 
-loadStd = (std)-> if std.length then Prim.runRequire "./#{standard[std[0]]}", -> loadStd std[1..]
+loadStd = (n, lim)-> if n < lim then Prim.runRequire "./#{standard[n]}", -> loadStd n + 1, lim
 
 nomacros = false
 action = importFile
@@ -65,8 +64,7 @@ Usage: #{process.argv[0]} [[-r file]... [-c | -q | -b] file...]
   else break
   pos = i + 1
 
-
-loadStd [0...loadStandardLimit]
+loadStd 0, loadStandardLimit
 
 processArgs = (i)->
   if eaten then eaten--

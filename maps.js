@@ -10,8 +10,9 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Parse = require('./parse');
   Leisure = require('./leisure');
   Prim = require('./prim');
-  
-  Prim.runRequire('./prelude');
+  //Prim.runRequire('./prelude');
+  Prim.runRequire('./std')
+;
   Prim.runRequire('./std')
 ;
   ReplCore = require('./replCore');

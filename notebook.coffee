@@ -1457,6 +1457,7 @@ root.closeWindow = closeWindow
 root.markupButton = markupButton
 root.markupButtons = markupButtons
 root.getAst = getAst
+root.insertControls = insertControls
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

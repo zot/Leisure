@@ -36,7 +36,7 @@ Prim = require('./prim')
 
 console.log 'Testing'
 
-Prim.runRequire './prelude', -> Prim.runRequire './std'
+Prim.runRequire './std'
 
 debug = false
 
@@ -226,13 +226,13 @@ arrayToCons = (array)->
   res
 run 'test32', ->
   ast = (LZ.parseFull '_append pairF (tail l1) l2')[0]
-  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = _tail()(_l1))})})())(_l2)")
+  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)")
 run 'test33', ->
   ast = (LZ.parseFull 'pairF (head l1) (_append pairF (tail l1) l2)')[0]
-  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "_pairF()((function(){var $m; return (function(){return $m || ($m = _head()(_l1))})})())((function(){var $m; return (function(){return $m || ($m = __append()(_pairF)((function(){var $m; return (function(){return $m || ($m = _tail()(_l1))})})())(_l2))})})())")
+  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "_pairF()((function(){var $m; return (function(){return $m || ($m = (_head()(_l1)))})})())((function(){var $m; return (function(){return $m || ($m = (__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)))})})())")
 run 'test34', ->
   ast = LZ.getNthBody((LZ.parseFull '\\pairF . \\l1 . \\l2 . pairF (head l1) (_append pairF (tail l1) l2)')[0], 4)
-  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "_pairF()((function(){var $m; return (function(){return $m || ($m = _head()(_l1))})})())((function(){var $m; return (function(){return $m || ($m = __append()(_pairF)((function(){var $m; return (function(){return $m || ($m = _tail()(_l1))})})())(_l2))})})())")
+  assertEq(LZ.primGen(ast, 0, ast, new LZ.Code(), null, arrayToCons(['_append', 'pairF', 'tail', 'l1', 'l2']), true, 'test', "Parse.", true).main, "_pairF()((function(){var $m; return (function(){return $m || ($m = (_head()(_l1)))})})())((function(){var $m; return (function(){return $m || ($m = (__append()(_pairF)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l1)))})})())(_l2)))})})())")
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

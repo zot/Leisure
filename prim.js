@@ -1,5 +1,6 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, arrayRest, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, load, loadErr, loadFile, loadHTTP, loadSource, loadXus, loading, makeMonad, nextMonad, nextMonadOld, output, parentPat, path, primRequire, primRequire2, r, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tryLoad, tty, uriHandlerFor, uriHandlers, urlPat, values, _ref;
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, arrayRest, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, load, loadErr, loadFile, loadHTTP, loadSource, loadXus, loading, makeMonad, nextMonad, nextMonadOld, output, parentPat, path, primRequire, primRequire2, r, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tryLoad, tty, uriHandlerFor, uriHandlers, urlPat, values, _ref,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   defaultEnv = {
     handleError: function handleError(err, cont) {
@@ -459,20 +460,11 @@
 
     function Monad() {}
 
-    Monad.prototype.andThenCode = function andThenCode(func) {
+    Monad.prototype.andThen = function andThen(func) {
       var _this = this;
       return makeMonad(function(env, cont) {
         return runMonad(_this, env, function(value) {
           return runMonad(codeMonad(func), env, cont);
-        });
-      });
-    };
-
-    Monad.prototype.andThen = function andThen(monad) {
-      var _this = this;
-      return makeMonad(function(env, cont) {
-        return runMonad(_this, env, function(value) {
-          return runMonad(monad, env, cont);
         });
       });
     };
@@ -487,8 +479,13 @@
 
   codeMonad = function codeMonad(code) {
     return makeMonad(function(env, cont) {
-      code(env);
-      return cont(_false());
+      var result;
+      result = code(env);
+      if (result instanceof Monad) {
+        return runMonad(result, env, cont);
+      } else {
+        return cont(_false());
+      }
     });
   };
 
@@ -624,8 +621,8 @@
   };
 
   isStorageUri = function isStorageUri(uri) {
-    var _ref2, _ref3;
-    return (_ref2 = uri.scheme) === ((_ref3 = Notebook != null ? Notebook.xusServer.varStorage.values['leisure/storage'] : void 0) != null ? _ref3 : []);
+    var _ref2, _ref3, _ref4;
+    return _ref2 = uri.scheme, __indexOf.call((_ref3 = Notebook != null ? (_ref4 = Notebook.xusServer) != null ? _ref4.varStorage.values['leisure/storage'] : void 0 : void 0) != null ? _ref3 : [], _ref2) >= 0;
   };
 
   loadXus = function loadXus(uri, cont, err) {
@@ -1064,6 +1061,8 @@
   root.initFileSettings = initFileSettings;
 
   root.URI = URI;
+
+  root.Monad = Monad;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;

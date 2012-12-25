@@ -10,8 +10,9 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Parse = require('./parse');
   Leisure = require('./leisure');
   Prim = require('./prim');
-  
-  Prim.runRequire('./prelude');
+  //Prim.runRequire('./prelude');
+  Prim.runRequire('./std')
+;
   Prim.runRequire('./std')
 ;
   ReplCore = require('./replCore');
@@ -35,9 +36,8 @@ var wrapContext = Leisure.wrapContext;
 var markLeisureErrors = Leisure.markLeisureErrors;
 
 module.exports =   (_require()((function(){return "svg"})))
-.andThen(
-  (_bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "notebookSelection"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _forward()((function(){return "notebookAst"}));}))})})())))
-.andThenCode(function(){
+.andThen(function(){ return   (_bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "notebookSelection"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _forward()((function(){return "notebookAst"}));}))})})()))})
+.andThen(function(){
   _makeNode = Parse.define('makeNode', (function() {var f; return function _makeNode(){return f || (f = (Parse.setDataType(function(_svg){return function(_width){return function(_height){return function(_rootX){return function(_rootY){return Parse.setType(function(_f){return _f()(_svg)(_width)(_height)(_rootX)(_rootY);}, 'makeNode');};};};};}, 'makeNode')));}})(), 5, "\\svg width height rootX rootY . \\f . f svg width height rootX rootY");;
   _nodeSvg = Parse.define('nodeSvg', (function() {var f; return function _nodeSvg(){return f || (f = (function(_st){return _st()((function(){var $m; return (function(){return $m || ($m = (function(_svg){return function(_width){return function(_height){return function(_rootX){return function(_rootY){return _svg();};};};};}))})})());}));}})(), 1, "\\st . st \\svg width height rootX rootY . svg");;
   _nodeWidth = Parse.define('nodeWidth', (function() {var f; return function _nodeWidth(){return f || (f = (function(_st){return _st()((function(){var $m; return (function(){return $m || ($m = (function(_svg){return function(_width){return function(_height){return function(_rootX){return function(_rootY){return _width();};};};};}))})})());}));}})(), 1, "\\st . st \\svg width height rootX rootY . width");;

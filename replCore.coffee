@@ -4,9 +4,8 @@ if window? and (!global? or global == window)
   Parse = window.Parse
   Leisure = window.Leisure
   Prim = window.Prim
-else root = exports ? this
-
-if !Leisure? and require?
+else
+  root = exports ? this
   Parse = require('./parse')
   Leisure = require('./leisure')
   Prim = require('./prim')
@@ -93,7 +92,8 @@ write = (args...)-> writeFunc args.join('')
 
 processResult = (result, env, next)->
   next = next ? nextFunc
-  if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
+  #if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
+  if result instanceof Prim.Monad then Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
   else next()
 
 handleVar = (name, value, env)->
@@ -198,7 +198,8 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Parse = require('./parse');
   Leisure = require('./leisure');
   Prim = require('./prim');
-  #{if includeStd then "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;" else ''}
+  //#{if includeStd then "Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;" else ''}
+  #{if includeStd then "Prim.runRequire('./std')\n;" else ''}
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
@@ -238,7 +239,8 @@ compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, de
         ast.src = "  #{if nm? then "#{Parse.nameSub(nm)} = " else ""}#{ast.src}"
         src = if ast.leisureName
           if !inCode
-            out += ".andThenCode(function(){\n"
+            #out += ".andThenCode(function(){\n"
+            out += ".andThen(function(){\n"
             inCode = true
           else if initial
             out += "Prim.codeMonad(function(){\n"
@@ -252,7 +254,8 @@ compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, de
           if initial
             initial = false
             ast.src
-          else ".andThen(\n#{ast.src})"
+          #else ".andThen(\n#{ast.src})"
+          else ".andThen(function(){ return #{ast.src}})"
         else ''
         out += "#{src}\n"
         [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
@@ -261,8 +264,14 @@ compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, de
       else rest = ''
     catch err
       throw new Error "Error compiling #{file}#{if ast.leisureName then "." + ast.leisureName else ""}: code:\n#{out}\n>>> ERROR: #{err.message}\n>>> CODE: #{ast.src}"
-    if localAuto && !ast.leisureName then Prim.runMonad (eval ast.src), Prim.defaultEnv, ->
-      compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont
+    if localAuto && !ast.leisureName
+      result = eval ast.src
+      try
+        if result instanceof Prim.Monad then Prim.runMonad result, Prim.defaultEnv, ->
+          compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont
+        else compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont
+      catch err
+        console.log "ERR, typeof result: #{typeof result}, typeof Monad: #{Monad}, #{err.stack}"
     else compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont
   else
     if initial
