@@ -1,8 +1,8 @@
-var _parsing$Blsr = (function(){
+var parsing = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  _parsing$Blsr = root = {};
+  parsing = root = {};
   global = window;
   module = {};
 } else {
@@ -15,7 +15,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Repl = require('./repl');
 }
 
-Prim.loading('_parsing$Blsr')
+Prim.loading('parsing.lsr')
 
 
 var Nil = Parse.Nil;

@@ -28,7 +28,7 @@ Tests for Leisure
 */
 
 (function() {
-  var LZ, Parse, Prim, R, T, U, applyBrackets, arrayToCons, assertEq, assertEval, assertEvalPrint, assertParse, br, code, cons, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
+  var LZ, Parse, Prim, R, T, U, applyBrackets, arrayToCons, assertEq, assertEval, assertEvalPrint, assertParse, br, cons, debug, define, f, in1, in2, in3, in4, in5, in6, in7, in8, in9, out9_12, out9_30, run, setDataType, setType, _i, _len, _ref, _ref2;
 
   U = require('util');
 
@@ -52,9 +52,9 @@ Tests for Leisure
 
   debug = false;
 
-  code = R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\n#last l = l (\\h t D . null? t h (last t)) nil\nval = 2\ndivider = ['\\n' '-' '-' '-' '-' '-' '\\n']\ndiv = ['\\n' '-' '-' '-' '-' '-' '\\n']\n", false, null, null, null, debug);
-
-  LZ.eval(code);
+  R.generateCode(null, "#head l = l \\h t . h\n#tail l = l \\h t . t\n#null l = l (\\h t D . false) true\n#last l = l (\\h t D . null? t h (last t)) nil\nval = 2\ndivider = ['\\n' '-' '-' '-' '-' '-' '\\n']\ndiv = ['\\n' '-' '-' '-' '-' '-' '\\n']\n", false, null, null, null, debug, false, function(code) {
+    return LZ.eval(code);
+  });
 
   run('test1', function() {
     return assertParse("1", "lit 1");

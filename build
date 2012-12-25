@@ -19,8 +19,10 @@ if node_modules/coffee-script/bin/coffee -c storage.coffee parse.coffee leisure.
 then
     if [ -n "$ALL" ]; then
         node runRepl $DEBUG -c maps
-        node runRepl $DEBUG -c -r maps svg
-        node runRepl $DEBUG -c -r maps -r svg parseAst
+        #node runRepl $DEBUG -c -r maps svg
+        node runRepl $DEBUG -c svg
+        #node runRepl $DEBUG -c -r maps -r svg parseAst
+        node runRepl $DEBUG -c parseAst
         #node_modules/coffee-script/bin/coffee -c chippy.coffee
         #node runRepl -c -r chippy chip.lsr
         #node_modules/coffee-script/bin/coffee -c coaster.coffee

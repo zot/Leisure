@@ -17,16 +17,12 @@ importFile = (file, cont) ->
     LZ.eval "req('./#{file}')"
     cont()), nomacros, debug
 
-standard = ['prelude', 'std', 'parsing', 'pattern']
+#standard = ['prelude', 'std', 'parsing', 'pattern']
+standard = ['prelude', 'std', 'parsing']
 
 loadStandardLimit = standard.length
 
-loadStd = (std)->
-  if std.length
-    console.log "LOADING STANDARD FILE: #{standard[std[0]]}"
-    Prim.runRequire "./#{standard[std[0]]}", ->
-      console.log "LOADING NEXT: #{standard[std[1]]}"
-      loadStd std[1..]
+loadStd = (std)-> if std.length then Prim.runRequire "./#{standard[std[0]]}", -> loadStd std[1..]
 
 nomacros = false
 action = importFile

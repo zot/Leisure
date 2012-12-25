@@ -126,7 +126,7 @@
       return contents += data;
     });
     stream.on('end', function() {
-      var output, str;
+      var str;
       try {
         str = FS.createWriteStream("" + jsFile + "Tmp");
         str.on('close', function() {
@@ -136,9 +136,10 @@
         str.on('error', function() {
           return cont();
         });
-        output = Core.compileString(file, markdown, contents, root.loud, nomacros, debug);
-        str.end(output);
-        return str.destroySoon();
+        return Core.compileString(file, markdown, contents, root.loud, nomacros, debug, function(output) {
+          str.end(output);
+          return str.destroySoon();
+        });
       } catch (err) {
         console.log("ERROR: " + err + (err.leisureContext ? formatLeisureStack(err) : '') + "\n" + err.stack);
         write(err.stack + "\n");

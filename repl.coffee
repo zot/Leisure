@@ -81,10 +81,10 @@ doCompile = (file, jsFile, markdown, cont, nomacros, debug)->
         FS.renameSync("#{jsFile}Tmp", jsFile)
         cont()
       str.on 'error', -> cont()
-      output = Core.compileString file, markdown, contents, root.loud, nomacros, debug
-      #console.log "OUTPUT: #{output}"
-      str.end output
-      str.destroySoon()
+      Core.compileString file, markdown, contents, root.loud, nomacros, debug, (output)->
+        #console.log "OUTPUT: #{output}"
+        str.end output
+        str.destroySoon()
     catch err
       console.log "ERROR: #{err}#{if err.leisureContext then formatLeisureStack(err) else ''}\n#{err.stack}"
       write err.stack + "\n"

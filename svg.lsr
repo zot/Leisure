@@ -44,3 +44,5 @@ rotate elem r = svgNode (concat ['<g transform="rotate(', r, ')">', (elem id), '
 
 # bad compile doesnt delete old .js file
 # can you print out html as plain text in the console
+
+3

@@ -183,7 +183,7 @@
           process.exit(0);
         } else {
           _ref2 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref2[0], c = _ref2[1], r = _ref2[2];
-          _ref3 = Leisure.compileNext(line, getGlobals(), false, false, false, namespace, env.debug), ast = _ref3[0], err = _ref3[1];
+          _ref3 = Leisure.compileNext(line, getGlobals(), false, false, false, namespace, env.debug, true), ast = _ref3[0], err = _ref3[1];
           if (err != null) {
             if (ast != null) {
               ast.err = err;
@@ -212,12 +212,11 @@
 
   localPrelude = prelude.replace(/\n/g, "\nvar ");
 
-  generateCode = function generateCode(file, contents, loud, handle, nomacros, check, debug) {
+  generateCode = function generateCode(file, contents, loud, handle, nomacros, check, debug, allAuto, cont) {
     var auto, errs, globals, _ref2;
+    if (!cont) throw new Error("No continuation block");
     _ref2 = findDefs(contents, nomacros, loud), globals = _ref2[0], errs = _ref2[1], auto = _ref2[2];
-    return runAutosThen(auto, debug, function() {
-      return generate(file, contents, loud, handle, nomacros, check, globals, errs, debug);
-    });
+    return generate(file, contents, loud, handle, nomacros, check, globals, errs, debug, allAuto, cont);
   };
 
   substituteMarkdown = function substituteMarkdown(markdown, contents) {
@@ -226,18 +225,20 @@
       return contents;
     } else {
       c = '';
-      s = contents.split(/```[^\n]*\n/);
-      if (s[0] === '') s.shift();
+      s = contents.split(/(?:^|\n)```[^\n]*\n/);
       while (s.length) {
         s.shift();
-        if (s.length) c += s.shift();
+        if (s.length) c += s.shift() + "\n";
       }
       return c;
     }
   };
 
-  compileString = function compileString(filename, markdown, contents, loud, nomacros, debug) {
-    return generateCode(Parse.nameSub(filename), substituteMarkdown(markdown, contents.replace(/\r\n?/g, "\n")), loud, null, nomacros, null, debug);
+  compileString = function compileString(filename, markdown, contents, loud, nomacros, debug, cont) {
+    var match, n, suffix, _ref2;
+    if (!cont) throw new Error("No continuation block");
+    _ref2 = filename.match(/^(.*?)(\.[^/]*)?$/), match = _ref2[0], n = _ref2[1], suffix = _ref2[2];
+    return generateCode(filename, substituteMarkdown(markdown, contents.replace(/\r\n?/g, "\n")), loud, null, nomacros, null, debug, false, cont);
   };
 
   runAutosThen = function runAutosThen(autos, debug, cont) {
@@ -250,22 +251,18 @@
     }
   };
 
-  generate = function generate(file, contents, loud, handle, nomacros, check, globals, errs, debug) {
-    var inCode, initial, names, objName, out, prev, rest;
+  generate = function generate(file, contents, loud, handle, nomacros, check, globals, errs, debug, auto, cont) {
+    var objName, out;
+    if (!cont) throw new Error("No continuation block");
     if (loud) console.log("Compiling " + file + ":\n");
     objName = (file != null) && file.match(/\.lsr$|\.lmd$/) ? file.substring(0, file.length - 4) : file != null ? file : '_anonymous';
-    out = "var " + objName + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.(lsr|lmd)/, '') + ' = ' : '') + "root = {};\n  global = window;\n  module = {};\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Parse = require('./parse');\n  Leisure = require('./leisure');\n  Prim = require('./prim');\n  " + (includeStd ? (console.log('INCLUDING STD'), "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;") : '') + "\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\n\nPrim.loading('" + file + "')\n\n" + localPrelude + "\n\nmodule.exports = ";
-    names = globals;
-    prev = Parse.Nil;
-    rest = contents;
-    inCode = true;
-    initial = true;
-    globals = globals.append(getGlobals());
-    return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out);
+    out = "var " + (Parse.nameSub(objName).substring(1)) + " = (function(){\nvar root;\n\nif ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {\n  " + (file != null ? file.replace(/\.(lsr|lmd)/, '') + ' = ' : '') + "root = {};\n  global = window;\n  module = {};\n} else {\n  root = typeof exports !== 'undefined' && exports !== null ? exports : this;\n  Parse = require('./parse');\n  Leisure = require('./leisure');\n  Prim = require('./prim');\n  " + (includeStd ? "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;" : '') + "\n  ReplCore = require('./replCore');\n  Repl = require('./repl');\n}\n\nPrim.loading('" + file + "')\n\n" + localPrelude + "\n\nmodule.exports = ";
+    return compileLines(file, contents, loud, handle, nomacros, check, globals.append(getGlobals()), errs, debug, contents, globals, Parse.Nil, true, true, out, auto || (file != null ? file.match(/\.lsr$/) : void 0), cont);
   };
 
-  compileLines = function compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out) {
-    var a, ast, c, code, err, m, nm, oldRest, r, src, _ref2, _ref3;
+  compileLines = function compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont) {
+    var a, ast, c, code, err, leading, localAuto, matched, nm, oldRest, r, src, _ref2, _ref3, _ref4;
+    if (!cont) throw new Error("No continuation block");
     if (rest && rest.trim()) {
       try {
         if (loud > 1 && prev !== names && names !== Parse.Nil) {
@@ -278,37 +275,43 @@
           names = names.tail();
         }
         code = rest ? oldRest.substring(0, oldRest.length - rest.length) : '';
+        localAuto = auto || ((_ref3 = code.match(Leisure.linePat), matched = _ref3[0], leading = _ref3[1], _ref3) && leading.match(/(^|\n) *#@auto *\n/m));
         err = err != null ? err : ast != null ? ast.err : void 0;
         if (err) {
           errs = "" + errs + ((ast != null ? ast.leisureName : void 0) ? "Error in " + ast.leisureName + (showAst(ast)) : "") + err + "\n";
           rest = '';
         } else if (ast) {
           globals = ast.globals;
-          m = code.match(Leisure.linePat);
           nm = ast.leisureName;
           ast.src = "  " + (nm != null ? "" + (Parse.nameSub(nm)) + " = " : "") + ast.src;
-          src = ast.leisureName ? (!inCode ? (out += ".andThenCode(function(){\n", inCode = true) : initial ? out += "Prim.codeMonad(function(){\n" : void 0, eval(ast.src), "" + ast.src + ";") : (inCode ? (!initial ? out += "})\n" : void 0, inCode = false) : void 0, initial ? ast.src : ".andThen(\n" + ast.src + ")");
-          initial = false;
+          src = ast.leisureName ? (!inCode ? (out += ".andThenCode(function(){\n", inCode = true) : initial ? out += "Prim.codeMonad(function(){\n" : void 0, eval(ast.src), initial = false, "" + ast.src + ";") : localAuto ? (inCode ? (!initial ? out += "})\n" : void 0, inCode = false) : void 0, initial ? (initial = false, ast.src) : ".andThen(\n" + ast.src + ")") : '';
           out += "" + src + "\n";
-          _ref3 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref3[0], c = _ref3[1], r = _ref3[2];
+          _ref4 = [vars.a[0], vars.c[0], vars.r[0]], a = _ref4[0], c = _ref4[1], r = _ref4[2];
           if (handle) handlerFunc(ast, null, a, c, r, code);
+        } else {
+          rest = '';
         }
       } catch (err) {
         throw new Error("Error compiling " + file + (ast.leisureName ? "." + ast.leisureName : "") + ": code:\n" + out + "\n>>> ERROR: " + err.message + "\n>>> CODE: " + ast.src);
       }
-      if (!ast.leisureName) {
+      if (localAuto && !ast.leisureName) {
         return Prim.runMonad(eval(ast.src), Prim.defaultEnv, function() {
-          return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out);
+          return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont);
         });
       } else {
-        return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out);
+        return compileLines(file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont);
       }
     } else {
-      if (initial) return '';
-      if (inCode) out += "\n})";
-      out += ";\nif (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});\n}).call(this)";
-      if (errs !== '') throwError("Errors compiling " + file + ": " + errs);
-      return out;
+      if (initial) {
+        cont('');
+        return '';
+      } else {
+        if (inCode) out += "\n})";
+        out += ";\nif (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});\n}).call(this)";
+        if (errs !== '') throwError("Errors compiling " + file + ": " + errs);
+        cont(out);
+        return out;
+      }
     }
   };
 
@@ -396,5 +399,7 @@
   root.setIncludeStd = setIncludeStd;
 
   root.compileString = compileString;
+
+  root.substituteMarkdown = substituteMarkdown;
 
 }).call(this);

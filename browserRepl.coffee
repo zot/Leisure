@@ -125,9 +125,9 @@ handleFiles = (fileElement)->
     alert('error' + evt)
     fileElement.value = null
   reader.onload = ->
-    code = ReplCore.generateCode(files[0], reader.result, false, true)
-    eval(code)
-    fileElement.value = null
+    ReplCore.generateCode files[0], reader.result, false, true, false, false, false, false, (code)->
+      eval(code)
+      fileElement.value = null
   reader.readAsText(files[0])
   input.select()
 

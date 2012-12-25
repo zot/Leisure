@@ -412,7 +412,7 @@ gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, 
     when 'apply'
       func = getApplyFunc ast
       if getAstType(func) == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
-      else if !ignoreUnknownNames and freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}"
+      else if !ignoreUnknownNames and freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}, globals: #{global.leisureFuncNames.toArray().sort()}"
       else
         arg = getApplyArg ast
         funcCode = gen originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false, ignoreUnknownNames
@@ -441,7 +441,7 @@ firstConstrainedArgumentType = (ast)->
 freeVar = (ast, vars, globals)->
   if (getAstType ast) == 'ref'
     rv = getRefVar ast
-    !ctx[nameSub(rv)] and !vars.find((v)-> v == rv) and !globals.find((v)-> v == rv) and !forward[nameSub(rv)]
+    !ctx[nameSub(rv)] and !vars.find((v)-> v == rv) and !globals.find((v)-> v == rv) and !forward[nameSub(rv)] and !global.leisureFuncNames.find((v)-> v == rv)
   else false
 
 laz = (val)-> -> val
@@ -492,12 +492,12 @@ getNthBody = (ast, n)->
 defineForward = (name)-> forward[nameSub(name())] = true
 
 # returns [ast, err, rest]
-compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
+compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug, auto)->
   if line[0] == '='
     rest1 = line.substring 1
     ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = 0
-      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug), "Error compiling expr #{snip line}"
+      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug, auto), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     if name[0] == ' '

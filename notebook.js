@@ -1473,7 +1473,7 @@
   envFor = function envFor(box) {
     var exBox;
     exBox = getBox(box);
-    return initFileSettings({
+    return Prim.initFileSettings({
       debug: debug,
       finishedEvent: function finishedEvent(evt, channel) {
         return update(channel != null ? channel : 'app', this);
@@ -1896,22 +1896,23 @@
   };
 
   evalDocCode = function evalDocCode(el, pgm) {
-    var code, defs, node, _i, _len, _ref2, _results;
-    code = ReplCore.generateCode('_doc', pgm, false, false, false, null, debug);
-    try {
-      defs = Leisure.eval(code, global);
-    } catch (err) {
-      showError(err, "Error evaluating JS code: " + code);
-      throw err;
-    }
-    Leisure.processDefs(defs);
-    _ref2 = el.querySelectorAll('[codeMain]');
-    _results = [];
-    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-      node = _ref2[_i];
-      _results.push(getAst(node));
-    }
-    return _results;
+    return ReplCore.generateCode('_doc', pgm, false, false, false, null, debug, false, function(code) {
+      var defs, node, _i, _len, _ref2, _results;
+      try {
+        defs = Leisure.eval(code, global);
+      } catch (err) {
+        showError(err, "Error evaluating JS code: " + code);
+        throw err;
+      }
+      Leisure.processDefs(defs);
+      _ref2 = el.querySelectorAll('[codeMain]');
+      _results = [];
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        node = _ref2[_i];
+        _results.push(getAst(node));
+      }
+      return _results;
+    });
   };
 
   Parse.define('finishLoading', function() {

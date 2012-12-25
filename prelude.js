@@ -1,8 +1,8 @@
-var _prelude$Blsr = (function(){
+var prelude = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  _prelude$Blsr = root = {};
+  prelude = root = {};
   global = window;
   module = {};
 } else {
@@ -15,7 +15,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Repl = require('./repl');
 }
 
-Prim.loading('_prelude$Blsr')
+Prim.loading('prelude.lsr')
 
 
 var Nil = Parse.Nil;

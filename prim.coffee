@@ -6,11 +6,13 @@ if window?
   window.global = window
   output = null
   defaultEnv.write = (msg)->
-    if !output? then output = document.getElementById('output')
+    console.log msg
+    if !output? then output = document.getElementById 'output'
     if output?
       output.innerHTML += "<span>#{msg}</span>"
       output.lastChild.scrollIntoView()
-  defaultEnv.prompt = (msg, cont)-> cont(window.prompt(msg))
+    else console.log msg
+  defaultEnv.prompt = (msg, cont)-> cont window.prompt(msg)
   window.Prim = root = {}
   Leisure = window.Leisure
   Parse = window.Parse
@@ -137,17 +139,20 @@ leisureEvent = (leisureFuncName, evt, env, channel)->
 
 eventCont = []
 
-nextMonad = (cont)->
-  eventCont.unshift(cell = [false, null, cont])
+nextMonadOld = (cont)->
+  eventCont.push(cell = [false, null, cont])
   (value)->
     cell[0] = true
     cell[1] = value
-    while eventCont.length && eventCont[0][0]
+    while eventCont.length && eventCont[eventCont.length - 1][0]
       try
-        [ignore, val, cnt] = eventCont.shift()
+        [ignore, val, cnt] = eventCont.pop()
         cnt(val)
       catch err
         console.log "ERROR RUNNING MONAD: #{err.stack}"
+    null
+
+nextMonad = (cont)-> cont
 
 runMonad = (monad, env, cont)->
   try
@@ -216,15 +221,13 @@ define 'fdump', ->(file)->
       cont()
 
 loadSource = (uri, data, cont, err)->
-  console.log "LOADING SOURCE FOR #{uri}"
   try
     if uri.path.match /\.lmd$|\.lsr$/
-      data = ReplCore.compileString uri.path, (uri.path.match /\.lmd$/), data, false, false, false
-    #console.log "LOADING SOURCE: #{data}"
-    console.log "LOADING SOURCE FOR #{uri}"
-    cont eval data
+      ReplCore.compileString uri.path, (uri.path.match /\.lmd$/), data, false, false, false, -> cont null
+    else
+      cont eval "var module = {exports: {}};\n#{data};\nmodule.exports;"
   catch e
-    console.log "ERROR EVALUATING DATA: \n#{data}"
+    console.log "ERROR EVALUATING SOURCE FOR #{uri}: \n#{e.stack}\n#{data}"
     global.ERR = e
     err e, cont
 
@@ -265,7 +268,7 @@ load = (uri, cont, err)->
     endings = [m[2]]
   else endings = ['js', 'lmd', 'lsr']
   if !required[uri.toString()]
-    console.log "REQUIRE #{uri}"
+    console.log "LOADING #{uri}..."
     required[uri.toString()] = true
     tryLoad endings, (uriHandlerFor uri), uri, cont, err
   else cont null
@@ -289,7 +292,6 @@ primRequire = ->(file)->
         cont()
 
 primRequire2 = ->(file)-> makeMonad (env, cont)->
-  console.log "REQUIRE MONAD"
   uri = env.fileSettings.uri.relative file()
   fileSettings = env.fileSettings
   initFileSettings env
@@ -299,11 +301,10 @@ primRequire2 = ->(file)-> makeMonad (env, cont)->
     cont()
   load uri, ((monad)->
     if monad instanceof Monad
-      console.log "REQUIRE: RUNNING MONAD FOR FILE: #{uri}"
       runMonad monad, env, newCont
     else newCont()), (err)->
-    console.log "ERROR: #{err.stack}"
-    env.fileSettings = fileSettings
+      console.log "ERROR: #{err.stack}"
+      env.fileSettings = fileSettings
 
 define 'require', primRequire2
 
@@ -342,25 +343,15 @@ required = {}
 
 loading = (file)->
   file = file.replace /^(.*?)(\.lsr|\.lmd|)$/, '$1'
-  console.log "LOADING: #{file}"
   required[file.replace()] = true
 
 runRequire = (file, cont)->
-  console.log "RUN REQUIRE: CHECKING #{file}"
   if !required["file://#{file}"]
-    console.log "RUN REQUIRE #{file}"
     required["file://#{file}"] = true
-    #runMonad (_require() (->file)), defaultEnv, cont ? ->
     m = require file
     if !(m instanceof Monad) then console.log "REQUIRE #{file} WARNING: RESULT IS NOT A MONAD"
-    else console.log "REQUIRE: RUNNING MONAD FOR FILE: #{file}"
-    #runMonad m, defaultEnv, cont ? ->
-    runMonad m, defaultEnv, ->
-      console.log "CONTINUING RUN REQUIRE..."
-      (cont ? ->)()
-  else
-    console.log "ALREADY LOADED: #{file}"
-    (cont ? ->)()
+    runMonad m, defaultEnv, -> (cont ? ->)()
+  else (cont ? ->)()
 
 define 'print', ->(msg)->
   makeMonad (env, cont)->

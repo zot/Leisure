@@ -40,7 +40,7 @@ Prim.runRequire './prelude', -> Prim.runRequire './std'
 
 debug = false
 
-code = (R.generateCode null, """
+R.generateCode null, """
 #head l = l \\h t . h
 #tail l = l \\h t . t
 #null l = l (\\h t D . false) true
@@ -49,11 +49,9 @@ val = 2
 divider = ['\\n' '-' '-' '-' '-' '-' '\\n']
 div = ['\\n' '-' '-' '-' '-' '-' '\\n']
 
-""", false, null, null, null, debug)
-
-#console.log "CODE: #{code}"
-
-LZ.eval(code)
+""", false, null, null, null, debug, false, (code)->
+  #console.log "CODE: #{code}"
+  LZ.eval(code)
 
 run 'test1', -> assertParse("1", "lit 1")
 run 'test2', -> assertParse("\\x.x x y", "lambda x . apply (apply (ref x) (ref x)) (ref y)", "\\x.x x y")

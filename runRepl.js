@@ -27,15 +27,13 @@
     }), nomacros, debug);
   };
 
-  standard = ['prelude', 'std', 'parsing', 'pattern'];
+  standard = ['prelude', 'std', 'parsing'];
 
   loadStandardLimit = standard.length;
 
   loadStd = function loadStd(std) {
     if (std.length) {
-      console.log("LOADING STANDARD FILE: " + standard[std[0]]);
       return Prim.runRequire("./" + standard[std[0]], function() {
-        console.log("LOADING NEXT: " + standard[std[1]]);
         return loadStd(std.slice(1));
       });
     }

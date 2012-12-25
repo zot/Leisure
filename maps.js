@@ -1,8 +1,8 @@
-var _maps$Blsr = (function(){
+var maps = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
-  _maps$Blsr = root = {};
+  maps = root = {};
   global = window;
   module = {};
 } else {
@@ -18,7 +18,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Repl = require('./repl');
 }
 
-Prim.loading('_maps$Blsr')
+Prim.loading('maps.lsr')
 
 
 var Nil = Parse.Nil;

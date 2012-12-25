@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, arrayRest, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, load, loadErr, loadFile, loadHTTP, loadSource, loadXus, loading, makeMonad, nextMonad, output, parentPat, path, primRequire, primRequire2, r, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tryLoad, tty, uriHandlerFor, uriHandlers, urlPat, values, _ref;
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, arrayRest, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, load, loadErr, loadFile, loadHTTP, loadSource, loadXus, loading, makeMonad, nextMonad, nextMonadOld, output, parentPat, path, primRequire, primRequire2, r, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tryLoad, tty, uriHandlerFor, uriHandlers, urlPat, values, _ref;
 
   defaultEnv = {
     handleError: function handleError(err, cont) {
@@ -11,10 +11,13 @@
     window.global = window;
     output = null;
     defaultEnv.write = function write(msg) {
+      console.log(msg);
       if (!(output != null)) output = document.getElementById('output');
       if (output != null) {
         output.innerHTML += "<span>" + msg + "</span>";
         return output.lastChild.scrollIntoView();
+      } else {
+        return console.log(msg);
       }
     };
     defaultEnv.prompt = function prompt(msg, cont) {
@@ -417,24 +420,27 @@
 
   eventCont = [];
 
-  nextMonad = function nextMonad(cont) {
+  nextMonadOld = function nextMonadOld(cont) {
     var cell;
-    eventCont.unshift(cell = [false, null, cont]);
+    eventCont.push(cell = [false, null, cont]);
     return function(value) {
-      var cnt, ignore, val, _ref2, _results;
+      var cnt, ignore, val, _ref2;
       cell[0] = true;
       cell[1] = value;
-      _results = [];
-      while (eventCont.length && eventCont[0][0]) {
+      while (eventCont.length && eventCont[eventCont.length - 1][0]) {
         try {
-          _ref2 = eventCont.shift(), ignore = _ref2[0], val = _ref2[1], cnt = _ref2[2];
-          _results.push(cnt(val));
+          _ref2 = eventCont.pop(), ignore = _ref2[0], val = _ref2[1], cnt = _ref2[2];
+          cnt(val);
         } catch (err) {
-          _results.push(console.log("ERROR RUNNING MONAD: " + err.stack));
+          console.log("ERROR RUNNING MONAD: " + err.stack);
         }
       }
-      return _results;
+      return null;
     };
+  };
+
+  nextMonad = function nextMonad(cont) {
+    return cont;
   };
 
   runMonad = function runMonad(monad, env, cont) {
@@ -584,15 +590,16 @@
   });
 
   loadSource = function loadSource(uri, data, cont, err) {
-    console.log("LOADING SOURCE FOR " + uri);
     try {
       if (uri.path.match(/\.lmd$|\.lsr$/)) {
-        data = ReplCore.compileString(uri.path, uri.path.match(/\.lmd$/), data, false, false, false);
+        return ReplCore.compileString(uri.path, uri.path.match(/\.lmd$/), data, false, false, false, function() {
+          return cont(null);
+        });
+      } else {
+        return cont(eval("var module = {exports: {}};\n" + data + ";\nmodule.exports;"));
       }
-      console.log("LOADING SOURCE FOR " + uri);
-      return cont(eval(data));
     } catch (e) {
-      console.log("ERROR EVALUATING DATA: \n" + data);
+      console.log("ERROR EVALUATING SOURCE FOR " + uri + ": \n" + e.stack + "\n" + data);
       global.ERR = e;
       return err(e, cont);
     }
@@ -683,7 +690,7 @@
       endings = ['js', 'lmd', 'lsr'];
     }
     if (!required[uri.toString()]) {
-      console.log("REQUIRE " + uri);
+      console.log("LOADING " + uri + "...");
       required[uri.toString()] = true;
       return tryLoad(endings, uriHandlerFor(uri), uri, cont, err);
     } else {
@@ -724,7 +731,6 @@
     return function(file) {
       return makeMonad(function(env, cont) {
         var fileSettings, newCont, uri;
-        console.log("REQUIRE MONAD");
         uri = env.fileSettings.uri.relative(file());
         fileSettings = env.fileSettings;
         initFileSettings(env);
@@ -735,7 +741,6 @@
         };
         return load(uri, (function(monad) {
           if (monad instanceof Monad) {
-            console.log("REQUIRE: RUNNING MONAD FOR FILE: " + uri);
             return runMonad(monad, env, newCont);
           } else {
             return newCont();
@@ -806,28 +811,21 @@
 
   loading = function loading(file) {
     file = file.replace(/^(.*?)(\.lsr|\.lmd|)$/, '$1');
-    console.log("LOADING: " + file);
     return required[file.replace()] = true;
   };
 
   runRequire = function runRequire(file, cont) {
     var m;
-    console.log("RUN REQUIRE: CHECKING " + file);
     if (!required["file://" + file]) {
-      console.log("RUN REQUIRE " + file);
       required["file://" + file] = true;
       m = require(file);
       if (!(m instanceof Monad)) {
         console.log("REQUIRE " + file + " WARNING: RESULT IS NOT A MONAD");
-      } else {
-        console.log("REQUIRE: RUNNING MONAD FOR FILE: " + file);
       }
       return runMonad(m, defaultEnv, function() {
-        console.log("CONTINUING RUN REQUIRE...");
         return (cont != null ? cont : function() {})();
       });
     } else {
-      console.log("ALREADY LOADED: " + file);
       return (cont != null ? cont : function() {})();
     }
   };

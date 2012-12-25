@@ -994,7 +994,7 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
-  initFileSettings
+  Prim.initFileSettings
     debug: debug
     finishedEvent: (evt, channel)->update(channel ? 'app', this)
     owner: owner(box)
@@ -1270,16 +1270,15 @@ showError = (e, msg)->
   alert(e.stack)
 
 evalDocCode = (el, pgm)->
-  code = ReplCore.generateCode('_doc', pgm, false, false, false, null, debug)
-  try
-    defs = Leisure.eval(code, global)
-  catch err
-    showError err, "Error evaluating JS code: #{code}"
-    throw err
-  Leisure.processDefs(defs)
-  for node in el.querySelectorAll '[codeMain]'
-    getAst node
-  
+  ReplCore.generateCode '_doc', pgm, false, false, false, null, debug, false, (code)->
+    try
+      defs = Leisure.eval(code, global)
+    catch err
+      showError err, "Error evaluating JS code: #{code}"
+      throw err
+    Leisure.processDefs(defs)
+    for node in el.querySelectorAll '[codeMain]'
+      getAst node
 
 Parse.define 'finishLoading', ->(bubba)->
   Prim.makeMonad (env, cont)->

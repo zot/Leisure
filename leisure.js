@@ -613,7 +613,7 @@ misrepresented as being the original software.
         if (getAstType(func) === 'lit') {
           return code.addErr("Attempt to use lit as function: " + (getLitVal(func)));
         } else if (!ignoreUnknownNames && freeVar(func, vars, code.global)) {
-          return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
+          return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)) + ", globals: " + (global.leisureFuncNames.toArray().sort()));
         } else {
           arg = getApplyArg(ast);
           funcCode = gen(originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false, ignoreUnknownNames);
@@ -656,7 +656,9 @@ misrepresented as being the original software.
         return v === rv;
       }) && !globals.find(function(v) {
         return v === rv;
-      }) && !forward[nameSub(rv)];
+      }) && !forward[nameSub(rv)] && !global.leisureFuncNames.find(function(v) {
+        return v === rv;
+      });
     } else {
       return false;
     }
@@ -724,13 +726,13 @@ misrepresented as being the original software.
     return forward[nameSub(name())] = true;
   };
 
-  compileNext = function compileNext(line, globals, parseOnly, check, nomacros, namespace, debug) {
+  compileNext = function compileNext(line, globals, parseOnly, check, nomacros, namespace, debug, auto) {
     var def, defType, err, errPrefix, leading, matched, name, nm, pfx, rest1, scannedDecl, typeAssertions, _ref;
     if (line[0] === '=') {
       rest1 = line.substring(1);
       return ifParsed((nomacros ? parse(rest1) : parseFull(rest1)), (function(ast, rest) {
         ast.leisureCodeOffset = 0;
-        return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug);
+        return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug, auto);
       }), "Error compiling expr " + (snip(line)));
     } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];

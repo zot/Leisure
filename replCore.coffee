@@ -125,7 +125,7 @@ processLine = (line, env, namespace, next)->
       else if (line.trim() == ':q') then process.exit(0)
       else
         [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
-        [ast, err] = Leisure.compileNext(line, getGlobals(), false, false, false, namespace, env.debug)
+        [ast, err] = Leisure.compileNext(line, getGlobals(), false, false, false, namespace, env.debug, true)
         if err?
           if ast? then ast.err = err
           else ast = {err: err}
@@ -155,34 +155,38 @@ markLeisureErrors = Leisure.markLeisureErrors;
 
 localPrelude = prelude.replace(/\n/g, "\nvar ")
 
-generateCode = (file, contents, loud, handle, nomacros, check, debug)->
+generateCode = (file, contents, loud, handle, nomacros, check, debug, allAuto, cont)->
+  if !cont then throw new Error("No continuation block")
   [globals, errs, auto] = findDefs contents, nomacros, loud
-  runAutosThen auto, debug, -> generate file, contents, loud, handle, nomacros, check, globals, errs, debug
+  #runAutosThen auto, debug, -> generate file, contents, loud, handle, nomacros, check, globals, errs, debug, allAuto, cont
+  generate file, contents, loud, handle, nomacros, check, globals, errs, debug, allAuto, cont
 
 substituteMarkdown = (markdown, contents)->
   if !markdown then contents
   else
     c = ''
-    s = contents.split(/```[^\n]*\n/)
-    if s[0] == '' then s.shift()
+    s = contents.split(/(?:^|\n)```[^\n]*\n/)
     while s.length
       s.shift()
-      if s.length then c += s.shift()
+      if s.length then c += s.shift() + "\n"
     c
 
-compileString = (filename, markdown, contents, loud, nomacros, debug)->
-  generateCode Parse.nameSub(filename), (substituteMarkdown markdown, (contents.replace /\r\n?/g, "\n")), loud, null, nomacros, null, debug
+compileString = (filename, markdown, contents, loud, nomacros, debug, cont)->
+  if !cont then throw new Error("No continuation block")
+  [match, n, suffix] = filename.match /^(.*?)(\.[^/]*)?$/
+  generateCode filename, (substituteMarkdown markdown, (contents.replace /\r\n?/g, "\n")), loud, null, nomacros, null, debug, false, cont
 
 runAutosThen = (autos, debug, cont)->
   if autos == Parse.Nil then cont()
   else  processResult Leisure.evalNext(autos.head(), 'Parse.', debug)[1], {}, ->
     runAutosThen autos.tail(), debug, cont
 
-generate = (file, contents, loud, handle, nomacros, check, globals, errs, debug)->
+generate = (file, contents, loud, handle, nomacros, check, globals, errs, debug, auto, cont)->
+  if !cont then throw new Error("No continuation block")
   if loud then console.log("Compiling #{file}:\n")
   objName = if file? and file.match /\.lsr$|\.lmd$/ then file.substring(0, file.length - 4) else file ? '_anonymous'
   out = """
-var #{objName} = (function(){
+var #{Parse.nameSub(objName).substring 1} = (function(){
 var root;
 
 if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== 'undefined' && global !== null) || global === window)) {
@@ -194,7 +198,7 @@ if ((typeof window !== 'undefined' && window !== null) && (!(typeof global !== '
   Parse = require('./parse');
   Leisure = require('./leisure');
   Prim = require('./prim');
-  #{if includeStd then console.log 'INCLUDING STD'; "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;" else ''}
+  #{if includeStd then "\n  Prim.runRequire('./prelude');\n  Prim.runRequire('./std')\n;" else ''}
   ReplCore = require('./replCore');
   Repl = require('./repl');
 }
@@ -205,21 +209,15 @@ Prim.loading('#{file}')
 
 module.exports = 
 """
-  names = globals
-  prev = Parse.Nil
-  #if err then throwError(err)
-  rest = contents
-  inCode = true
-  initial = true
-  globals = globals.append(getGlobals())
-  compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
+  compileLines file, contents, loud, handle, nomacros, check, globals.append(getGlobals()), errs, debug, contents, globals, Parse.Nil, true, true, out, (auto || file?.match /\.lsr$/), cont
 
 #
 # Currently recurses for every function
 # Make it just monadic by using a while loop and continuing for functions so it
 # only exits on end or when it calls a monad
 # 
-compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out)->
+compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont)->
+  if !cont then throw new Error("No continuation block")
   if rest and rest.trim()
     try
       if loud > 1 and prev != names and names != Parse.Nil then console.log "Compiling function: #{names.head()}"
@@ -229,13 +227,13 @@ compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, de
         prev = ast.leisureName
         names = names.tail()
       code = if rest then oldRest.substring(0, oldRest.length - rest.length) else ''
+      localAuto = auto || (([matched, leading] = code.match(Leisure.linePat)) && leading.match /(^|\n) *#@auto *\n/m)
       err = err ? ast?.err
       if err
         errs = "#{errs}#{if ast?.leisureName then "Error in #{ast.leisureName}#{showAst ast}" else ""}#{err}\n"
         rest = ''
       else if ast
         globals = ast.globals
-        m = code.match(Leisure.linePat)
         nm = ast.leisureName
         ast.src = "  #{if nm? then "#{Parse.nameSub(nm)} = " else ""}#{ast.src}"
         src = if ast.leisureName
@@ -245,32 +243,41 @@ compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, de
           else if initial
             out += "Prim.codeMonad(function(){\n"
           eval(ast.src)
+          initial = false
           "#{ast.src};"
-        else
+        else if localAuto
           if inCode
             if !initial then out += "})\n"
             inCode = false
-          if initial then ast.src else ".andThen(\n#{ast.src})"
-        initial = false
+          if initial
+            initial = false
+            ast.src
+          else ".andThen(\n#{ast.src})"
+        else ''
         out += "#{src}\n"
         [a, c, r] = [vars.a[0], vars.c[0], vars.r[0]]
         if handle then handlerFunc ast, null, a, c, r, code
         #if !ast.leisureName then Prim.runMonad (eval ast.src), Prim.defaultEnv, ->
+      else rest = ''
     catch err
       throw new Error "Error compiling #{file}#{if ast.leisureName then "." + ast.leisureName else ""}: code:\n#{out}\n>>> ERROR: #{err.message}\n>>> CODE: #{ast.src}"
-    if !ast.leisureName then Prim.runMonad (eval ast.src), Prim.defaultEnv, ->
-      compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
-    else compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out
+    if localAuto && !ast.leisureName then Prim.runMonad (eval ast.src), Prim.defaultEnv, ->
+      compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont
+    else compileLines file, contents, loud, handle, nomacros, check, globals, errs, debug, rest, names, prev, inCode, initial, out, auto, cont
   else
-    if initial then return ''
-    if inCode then out += "\n})"
-    out += """
+    if initial
+      cont ''
+      ''
+    else
+      if inCode then out += "\n})"
+      out += """
 ;
 if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});
 }).call(this)
 """
-    if errs != '' then throwError("Errors compiling #{file}: #{errs}")
-    out
+      if errs != '' then throwError("Errors compiling #{file}: #{errs}")
+      cont out
+      out
 
 getGlobals = -> Leisure.eval 'leisureGetFuncs()'
 
@@ -315,3 +322,4 @@ root.prelude = prelude
 root.errString = errString
 root.setIncludeStd = setIncludeStd
 root.compileString = compileString
+root.substituteMarkdown = substituteMarkdown

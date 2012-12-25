@@ -172,10 +172,10 @@
       return fileElement.value = null;
     };
     reader.onload = function onload() {
-      var code;
-      code = ReplCore.generateCode(files[0], reader.result, false, true);
-      eval(code);
-      return fileElement.value = null;
+      return ReplCore.generateCode(files[0], reader.result, false, true, false, false, false, false, function(code) {
+        eval(code);
+        return fileElement.value = null;
+      });
     };
     reader.readAsText(files[0]);
     return input.select();
