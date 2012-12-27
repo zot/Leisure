@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, listFilesTMP, mimePart, mkdir, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, mimePart, mkdir, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -146,7 +146,7 @@
             return _results;
           });
         } else {
-          console.log("FILES: " + files);
+          console.log("FILES:", json);
           _results = [];
           for (_i = 0, _len = c.length; _i < _len; _i++) {
             cont = c[_i];
@@ -193,23 +193,6 @@
   };
 
   DONE = 2;
-
-  listFilesTMP = function listFilesTMP(query, cont) {
-    var xhr;
-    xhr = new XMLHttpRequest();
-    xhr.open('GET', "https://www.googleapis.com/drive/v2/files?maxResults=10000&q=" + (encodeURIComponent(query)));
-    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-    xhr.onreadystatechange = function onreadystatechange() {
-      if (xhr.readyState === DONE) {
-        if (xhr.responseText) {
-          return cont(null, JSON.parse(xhr.responseText));
-        } else {
-          return cont(xhr, null);
-        }
-      }
-    };
-    return xhr.send();
-  };
 
   listFiles = function listFiles(query, callback) {
     return (gapi.client.request({
