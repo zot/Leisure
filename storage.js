@@ -90,7 +90,11 @@
               } else {
                 document.boty.innerHTML = "<!--\n" + text + "\n-->";
               }
-              return callback();
+              if (file.fileExtension === 'lmd') {
+                window.leisureAutoRunAll = true;
+                window.markup();
+                return callback();
+              }
             });
           }
         });
