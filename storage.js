@@ -39,8 +39,7 @@
         return initGdrive(function() {
           return writeFile(uri.path.substring(1), data, [
             {
-              id: leisureDir.id,
-              kind: "drive#parentReference"
+              id: leisureDir.id
             }
           ], function(json) {
             if (json) {
@@ -282,9 +281,9 @@
     console.log("Parents:", parents);
     json = JSON.stringify({
       mimeType: 'text/plain',
-      title: name
+      title: name,
+      parents: parents != null ? parents : []
     });
-    if (parents) json.parents = parents;
     return gapi.client.request({
       'path': '/upload/drive/v2/files?uploadType=multipart',
       'method': 'POST',
