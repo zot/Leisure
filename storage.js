@@ -20,48 +20,50 @@
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
-          return listFiles("title = '" + (uri.path.substring(1)) + "'", function(json) {
-            if ((json != null ? json.items.length : void 0) === 1) {
-              return readFile(json.items[0], function(err, result) {
-                if (err) {
-                  return err(new Error("Error reading file " + uri + ": " + err.statusText));
-                } else {
-                  return cont(result);
-                }
-              });
-            } else if ((json != null ? json.items.length : void 0) === 0) {
-              return next();
-            } else {
-              return err(new Error("File not found: " + uri));
-            }
-          });
+          var files;
+          files = path2Ids[uri.path];
+          if (!files) {
+            return next();
+          } else if (files.length > 1) {
+            return err(new Error("More than one file for uri: " + uri));
+          } else {
+            return readFile(json.items[0], function(err, result) {
+              if (!err) {
+                return cont(result);
+              } else {
+                return new Error("Error reading file " + uri + ": " + err.statusText);
+              }
+            });
+          }
         });
       },
       write: function write(uri, data, cont, err) {
         return initGdrive(function() {
-          return listFiles("title = '" + (uri.path.substring(1)) + "'", function(json) {
-            if ((json != null ? json.items.length : void 0) === 1) {
-              return updateFile(json.items[0], data, function(json) {
-                if (json) {
-                  return cont();
-                } else {
-                  return err(new Error("Problem writing file"));
-                }
-              });
-            } else {
-              return writeFile(uri.path.substring(1), data, [
-                {
-                  id: leisureDir.id
-                }
-              ], function(json) {
-                if (json) {
-                  return cont();
-                } else {
-                  return err(new Error("Problem writing file"));
-                }
-              });
-            }
-          });
+          var files;
+          files = path2Ids[uri.path];
+          if (!files) {
+            return writeFile(uri.path.substring(1), data, [
+              {
+                id: leisureDir.id
+              }
+            ], function(json) {
+              if (json) {
+                return cont();
+              } else {
+                return err(new Error("Problem writing file"));
+              }
+            });
+          } else if ((files != null ? files.length : void 0) > 1) {
+            return err(new Error("More than one file for uri: " + uri));
+          } else {
+            return updateFile(json.items[0], data, function(json) {
+              if (json) {
+                return cont();
+              } else {
+                return err(new Error("Problem writing file"));
+              }
+            });
+          }
         });
       }
     });
