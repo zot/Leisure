@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, setLeisureDir, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, setLeisureDir, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -37,15 +37,27 @@
       },
       write: function write(uri, data, cont, err) {
         return initGdrive(function() {
-          return writeFile(uri.path.substring(1), data, [
-            {
-              id: leisureDir.id
-            }
-          ], function(json) {
-            if (json) {
-              return cont();
+          return listFiles("title = '" + (uri.path.substring(1)) + "'", function(json) {
+            if ((json != null ? json.items.length : void 0) === 1) {
+              return updateFile(json.items[0], data, function(json) {
+                if (json) {
+                  return cont();
+                } else {
+                  return err(new Error("Problem writing file"));
+                }
+              });
             } else {
-              return err(new Error("Problem writing file"));
+              return writeFile(uri.path.substring(1), data, [
+                {
+                  id: leisureDir.id
+                }
+              ], function(json) {
+                if (json) {
+                  return cont();
+                } else {
+                  return err(new Error("Problem writing file"));
+                }
+              });
             }
           });
         });
@@ -297,6 +309,25 @@
     });
     return gapi.client.request({
       'path': '/upload/drive/v2/files?uploadType=multipart',
+      'method': 'POST',
+      'headers': {
+        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
+        'Authorization': 'Bearer ' + auth.token
+      },
+      'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
+    }).execute(callback);
+  };
+
+  updateFile = function updateFile(file, contents, callback) {
+    var json;
+    console.log("Parents:", parents);
+    json = JSON.stringify({
+      mimeType: 'text/plain',
+      title: name,
+      parents: typeof parents !== "undefined" && parents !== null ? parents : []
+    });
+    return gapi.client.request({
+      'path': "/upload/drive/v2/files/" + file.id,
       'method': 'POST',
       'headers': {
         'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
