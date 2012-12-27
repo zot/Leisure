@@ -134,7 +134,12 @@
       return listFiles("title = 'LeisureStorage'", function(json, files) {
         var cont, _i, _len, _results;
         if (!json) {
-          console.log("NO DIR FOUND -- CREATNG ONE");
+          return auth = {
+            succeeded: false,
+            error: "Could not list files"
+          };
+        } else if (json.items.length === 0) {
+          console.log("No LeisureStorage directory.  Creating one");
           return mkdir('LeisureStorage', function(json, raw) {
             var cont, _i, _len, _results;
             console.log("CREATED DIR: " + raw);
@@ -146,7 +151,7 @@
             return _results;
           });
         } else {
-          console.log("FILES:", json);
+          console.log("FILES:", json.items);
           _results = [];
           for (_i = 0, _len = c.length; _i < _len; _i++) {
             cont = c[_i];
