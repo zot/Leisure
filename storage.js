@@ -319,13 +319,6 @@
   };
 
   updateFile = function updateFile(file, contents, callback) {
-    var json;
-    console.log("Parents:", parents);
-    json = JSON.stringify({
-      mimeType: 'text/plain',
-      title: name,
-      parents: typeof parents !== "undefined" && parents !== null ? parents : []
-    });
     return gapi.client.request({
       'path': "/upload/drive/v2/files/" + file.id,
       'method': 'POST',
@@ -333,7 +326,7 @@
         'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
         'Authorization': 'Bearer ' + auth.token
       },
-      'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
+      'body': [mimePart("END_OF_PART", "application/json", JSON.stringify(file)), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
     }).execute(callback);
   };
 
