@@ -353,7 +353,7 @@
 
   writeFile = function writeFile(name, contents, parents, callback) {
     var json;
-    console.log("Parents:", parents);
+    console.log("WRITE " + name + ", parents:", JSON.stringify(parents));
     json = JSON.stringify({
       mimeType: 'text/plain',
       title: name,
