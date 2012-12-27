@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, load, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, parentPat, path, primRequire, primRequire2, r, read, readSourceFile, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, urlPat, values, write, _ref, _ref2,
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, parentPat, path, primRequire, primRequire2, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, urlPat, values, write, _ref, _ref2,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   defaultEnv = {
@@ -591,37 +591,6 @@
     return _ref3 = uri.scheme, __indexOf.call((_ref4 = Notebook != null ? (_ref5 = Notebook.xusServer) != null ? _ref5.varStorage.values['leisure/storage'] : void 0 : void 0) != null ? _ref4 : [], _ref3) >= 0;
   };
 
-  tryRead = function tryRead(endings, handler, uri, cont, err) {
-    var newUri;
-    if (!endings.length) {
-      return err(new Error("No loadable file found for " + uri));
-    } else {
-      newUri = uri.relative("" + uri.path + "." + endings[0]);
-      return handler.read(newUri, (function(data) {
-        return cont(newUri, data);
-      }), err, function() {
-        return tryRead(endings.slice(1), handler, uri, cont, err);
-      });
-    }
-  };
-
-  readSourceFile = function readSourceFile(uri, cont, err) {
-    var endings, m;
-    if (m = uri.path.match(/$(.*\/[^/]*)\.([^/]*)$/)) {
-      uri = m[1];
-      endings = [m[2]];
-    } else {
-      endings = ['js', 'lmd', 'lsr'];
-    }
-    if (!required[uri.toString()]) {
-      console.log("LOADING " + uri + "...");
-      required[uri.toString()] = true;
-      return tryRead(endings, uriHandlerFor(uri), uri, cont, err);
-    } else {
-      return cont(null);
-    }
-  };
-
   URIHandler = (function() {
 
     function URIHandler(label) {
@@ -772,14 +741,53 @@
     return uriHandlerFor(uri).write(uri, data, cont, err);
   };
 
-  load = function load(uri, cont, err) {
-    return readSourceFile(uri, (function(uri2, data) {
-      if (uri2) {
-        return loadSource(uri2, data, cont, err);
-      } else {
-        return cont();
+  tryRead = function tryRead(label, choices, handler, cont, err) {
+    if (!choices.length) {
+      return err(new Error("No loadable file found for " + label));
+    } else {
+      return handler.read(choices[0], (function(data) {
+        return cont(choices[0], data);
+      }), err, function() {
+        return tryRead(label, choices.slice(1), handler, cont, err);
+      });
+    }
+  };
+
+  baseUriPat = /^(.*\/[^/]*)\.[^/.]*$/;
+
+  sourceChoices = function sourceChoices(uri) {
+    var ending, m, prefix, _i, _len, _ref3, _results;
+    if (m = uri.toString().match(baseUriPat)) {
+      return [uri];
+    } else {
+      prefix = uri.toString();
+      _ref3 = ['.js', '.lmd', '.lsr'];
+      _results = [];
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        ending = _ref3[_i];
+        _results.push(new URI(prefix + ending));
       }
+      return _results;
+    }
+  };
+
+  loadFile = function loadFile(uri, cont, err) {
+    return tryRead(uri, sourceChoices(uri), uriHandlerFor(uri), (function(chosenUri, data) {
+      return loadSource(chosenUri, data, cont, err);
     }), err);
+  };
+
+  requireFile = function requireFile(uri, cont, err) {
+    var baseUri, m, uString;
+    uString = uri.toString();
+    baseUri = (m = uString.match(baseUriPat)) ? m[1] : uString;
+    if (!required[baseUri]) {
+      console.log("LOADING " + uri + "...");
+      required[baseUri] = true;
+      return loadFile(uri, cont, err);
+    } else {
+      return cont();
+    }
   };
 
   primRequire = function primRequire() {
@@ -815,7 +823,7 @@
           env.fileSettings = fileSettings;
           return cont();
         };
-        return load(uri, (function(monad) {
+        return requireFile(uri, (function(monad) {
           if (monad instanceof Monad) {
             return runMonad(monad, env, newCont);
           } else {
