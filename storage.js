@@ -176,7 +176,6 @@
                 leisureDir = file;
                 console.log(file);
               } else {
-                leisureDirParent = (kind = leisureDir.kind, id = leisureDir.id, selfLink = leisureDir.selfLink, parentLink = leisureDir.parentLink, isRoot = leisureDir.isRoot, leisureDir);
                 auth.succeeded = false;
                 ({
                   error: "More than one LeisureStorage folder"
@@ -185,6 +184,7 @@
             }
           }
           if (leisureDir) {
+            leisureDirParent = (kind = leisureDir.kind, id = leisureDir.id, selfLink = leisureDir.selfLink, parentLink = leisureDir.parentLink, isRoot = leisureDir.isRoot, leisureDir);
             _results = [];
             for (_j = 0, _len2 = c.length; _j < _len2; _j++) {
               cont = c[_j];
@@ -209,7 +209,8 @@
   makeLeisureDir = function makeLeisureDir(conts) {
     console.log("No LeisureStorage directory.  Creating one");
     return mkdir('LeisureStorage', function(json, raw) {
-      var cont, _i, _len, _results;
+      var cont, id, isRoot, kind, parentLink, selfLink, _i, _len, _ref4, _results;
+      leisureDirParent = (_ref4 = leisureDir = json, kind = _ref4.kind, id = _ref4.id, selfLink = _ref4.selfLink, parentLink = _ref4.parentLink, isRoot = _ref4.isRoot, _ref4);
       console.log("CREATED DIR: " + raw, json);
       _results = [];
       for (_i = 0, _len = conts.length; _i < _len; _i++) {
