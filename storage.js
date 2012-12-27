@@ -93,16 +93,16 @@
               } else if (file.fileExtension === 'lmd') {
                 document.body.innerHTML = "<!--\n" + text + "\n-->";
                 window.leisureAutoRunAll = true;
-                return Notebook.delay(function() {
-                  window.markup();
-                  return callback();
-                });
+                window.markup();
+                return callback();
               }
             });
           }
         });
       }
     } else {
+      window.leisureAutoRunAll = true;
+      window.markup();
       return callback();
     }
   };
