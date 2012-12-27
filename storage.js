@@ -177,6 +177,7 @@
             err: "More than one LeisureStorage directory"
           });
         } else {
+          console.log("SETTING DIR TO " + dirs[0]);
           leisureDir = dirs[0];
         }
         return cont();
@@ -292,6 +293,7 @@
     console.log("No LeisureStorage directory.  Creating one");
     return mkdir('LeisureStorage', function(json, raw) {
       computePaths(json);
+      console.log("SETTING DIR TO " + json.id);
       leisureDir = json.id;
       console.log("CREATED DIR: " + raw, json);
       return cont();
