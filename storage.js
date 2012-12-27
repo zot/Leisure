@@ -267,7 +267,7 @@
     if (file.downloadUrl) {
       xhr = new XMLHttpRequest();
       xhr.open('GET', file.downloadUrl);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
         if (xhr.readyState === DONE) {
           if (xhr.status === 200) {
