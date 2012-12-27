@@ -203,7 +203,7 @@
     try {
       return gapi.auth.authorize({
         client_id: '270759921607',
-        scope: ['https://www.googleapis.com/auth/drive.file'].join(' '),
+        scope: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.install'].join(' '),
         immediate: immediate
       }, handleAuthResult);
     } catch (err) {
