@@ -1,5 +1,5 @@
 (function() {
-  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, mimePart, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, mimePart, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -125,9 +125,9 @@
   };
 
   replaceAuth = function replaceAuth(obj) {
-    var c, cont, _i, _len, _results;
+    var c, cont, _i, _len, _ref4, _results;
     if (auth.buttonDiv) document.body.removeChild(auth.buttonDiv);
-    c = auth.cont;
+    c = (_ref4 = auth.cont) != null ? _ref4 : [];
     auth = obj;
     auth.finished = true;
     if (auth.succeeded) {
@@ -184,6 +184,8 @@
   mimePart = function mimePart(boundary, mimeType, content) {
     return ["\r\n--", boundary, "\r\n", "Content-Type: ", mimeType, "\r\n", "Content-Length: ", content.length, "\r\n", "\r\n", content].join('');
   };
+
+  DONE = 2;
 
   listFiles = function listFiles(query, cont) {
     var xhr;
