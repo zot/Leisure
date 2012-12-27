@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, mimePart, mkdir, mkdirTMP, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, listFilesTMP, mimePart, mkdir, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -131,29 +131,22 @@
     auth = obj;
     auth.finished = true;
     if (auth.succeeded) {
-      return listFiles("title = 'LeisureStorage'", function(req, files) {
+      return listFiles("title = 'LeisureStorage'", function(json, files) {
         var cont, _i, _len, _results;
-        if (req) {
-          if (req.status === 200) {
-            console.log("NO DIR FOUND -- CREATNG ONE");
-            return mkdir('LeisureStorage', function(json, raw) {
-              var cont, _i, _len, _results;
-              console.log("CREATED DIR: " + raw);
-              _results = [];
-              for (_i = 0, _len = c.length; _i < _len; _i++) {
-                cont = c[_i];
-                _results.push(cont());
-              }
-              return _results;
-            });
-          } else {
-            return replaceAuth({
-              succeeded: false,
-              err: 'Error listing files'
-            });
-          }
+        if (!json) {
+          console.log("NO DIR FOUND -- CREATNG ONE");
+          return mkdir('LeisureStorage', function(json, raw) {
+            var cont, _i, _len, _results;
+            console.log("CREATED DIR: " + raw);
+            _results = [];
+            for (_i = 0, _len = c.length; _i < _len; _i++) {
+              cont = c[_i];
+              _results.push(cont());
+            }
+            return _results;
+          });
         } else {
-          console.log("FILES: " + (JSON.stringify(files)));
+          console.log("FILES: " + files);
           _results = [];
           for (_i = 0, _len = c.length; _i < _len; _i++) {
             cont = c[_i];
@@ -201,7 +194,7 @@
 
   DONE = 2;
 
-  listFiles = function listFiles(query, cont) {
+  listFilesTMP = function listFilesTMP(query, cont) {
     var xhr;
     xhr = new XMLHttpRequest();
     xhr.open('GET', "https://www.googleapis.com/drive/v2/files?maxResults=10000&q=" + (encodeURIComponent(query)));
@@ -218,28 +211,11 @@
     return xhr.send();
   };
 
-  mkdirTMP = function mkdirTMP(name, callback) {
-    var json, xhr;
-    json = JSON.stringify({
-      mimeType: 'application/vnd.google-apps.folder',
-      title: 'LeisureStorage'
-    });
-    xhr = new XMLHttpRequest();
-    xhr.open('POST', "https://www.googleapis.com/drive/v2/files?uploadType=multipart");
-    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-    xhr.setRequestHeader('Content-Type', 'multipart/mixed; boundary="END_OF_PART"');
-    return gapi.client.request({
-      'path': '/drive/v2/files',
-      'method': 'POST',
-      'params': {
-        'uploadType': 'multipart'
-      },
-      'headers': {
-        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + auth.token
-      },
-      'body': [mimePart("END_OF_PART", "application/json", '""'), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(callback);
+  listFiles = function listFiles(query, callback) {
+    return (gapi.client.request({
+      path: "/drive/v2/files?maxResults=10000&q=" + (encodeURIComponent(query)),
+      method: 'GET'
+    })).execute(callback);
   };
 
   mkdir = function mkdir(name, callback) {
