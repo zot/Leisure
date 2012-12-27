@@ -300,6 +300,7 @@
     console.log("No LeisureStorage directory.  Creating one");
     return mkdir('LeisureStorage', function(json, raw) {
       var cont, _i, _len, _results;
+      computePaths(json);
       setLeisureDir(json);
       console.log("CREATED DIR: " + raw, json);
       _results = [];
