@@ -266,11 +266,11 @@
 
   readFile = function readFile(file, callback) {
     var xhr;
-    if (file.webContentLink) {
+    if (file.downloadUrl) {
       console.log("File:", file);
       xhr = new XMLHttpRequest();
-      xhr.open('GET', file.webContentLink);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+      xhr.open('GET', file.downloadUrl);
+      xhr.setRequestHeader('Authorization', 'OAuth ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
         if (this.readyState === DONE) {
           if (this.status === 200) {
@@ -316,6 +316,9 @@
     return (gapi.client.request({
       path: '/drive/v2/files',
       method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + auth.token
+      },
       body: JSON.stringify({
         title: name,
         parents: [],
