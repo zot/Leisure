@@ -265,7 +265,7 @@
     });
     if (parents) json.parents = parents;
     return gapi.client.request({
-      'path': '/upload/drive/v2/files',
+      'path': '/upload/drive/v2/files?uploadType=multipart',
       'method': 'POST',
       'headers': {
         'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
