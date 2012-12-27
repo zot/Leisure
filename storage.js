@@ -76,6 +76,8 @@
 
   id2File = {};
 
+  leisureDir = null;
+
   addPath = function addPath(id, path) {
     if (path2Ids[path]) {
       path2Ids[path].push(id);
@@ -143,7 +145,7 @@
 
   initFileList = function initFileList(cont) {
     return listFiles(function(json) {
-      var dirs, item, key, leisureDir, name, names, _i, _j, _k, _len, _len2, _len3, _ref4, _ref5;
+      var dirs, item, key, name, names, _i, _j, _k, _len, _len2, _len3, _ref4, _ref5;
       _ref4 = json.items;
       for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
         item = _ref4[_i];
@@ -278,8 +280,6 @@
       }
     }
   };
-
-  leisureDir = null;
 
   replaceAuth = function replaceAuth(obj) {
     var _ref4, _ref5;
