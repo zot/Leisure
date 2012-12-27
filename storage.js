@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, setLeisureDir, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, setLeisureDir, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -128,45 +128,55 @@
     var script;
     if (auth.finished) {
       return cont();
+    } else if (auth.started) {
+      return auth.cont.push(cont);
     } else {
-      auth.cont.push(function() {
-        listFiles(function(json) {
-          var item, key, name, names, _i, _j, _k, _len, _len2, _len3, _ref4, _ref5, _results;
-          _ref4 = json.items;
-          for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-            item = _ref4[_i];
-            id2File[item.id] = item;
-          }
-          _ref5 = json.items;
-          for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
-            item = _ref5[_j];
-            computePaths(item);
-          }
-          names = (function() {
-            var _results;
-            _results = [];
-            for (key in path2Ids) {
-              _results.push(key);
-            }
-            return _results;
-          })();
-          names.sort();
-          _results = [];
-          for (_k = 0, _len3 = names.length; _k < _len3; _k++) {
-            name = names[_k];
-            _results.push(console.log(name));
-          }
-          return _results;
-        });
-        return cont();
-      });
-      if (!auth.started) {
-        auth.started = true;
-        script = document.createElement('script');
-        script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
-        return document.head.appendChild(script);
-      }
+      auth.started = true;
+      auth.cont.push(cont);
+      script = document.createElement('script');
+      script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
+      return document.head.appendChild(script);
     }
+  };
+
+  initFileList = function initFileList(cont) {
+    return listFiles(function(json) {
+      var item, key, name, names, _i, _j, _k, _len, _len2, _len3, _ref4, _ref5;
+      _ref4 = json.items;
+      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+        item = _ref4[_i];
+        if (!item.explicitlyTrashed) id2File[item.id] = item;
+      }
+      _ref5 = json.items;
+      for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
+        item = _ref5[_j];
+        computePaths(item);
+      }
+      names = (function() {
+        var _results;
+        _results = [];
+        for (key in path2Ids) {
+          _results.push(key);
+        }
+        return _results;
+      })();
+      names.sort();
+      for (_k = 0, _len3 = names.length; _k < _len3; _k++) {
+        name = names[_k];
+        console.log(name);
+      }
+      if (!path2Ids.LeisureStorage) {
+        return makeLeisureDir(cont);
+      } else {
+        if (path2Ids.LeisureStorage.length > 1) {
+          replaceAuth({
+            succeeded: false,
+            err: "More than one LeisureStorage directory"
+          });
+        }
+        return cont();
+      }
+    });
   };
 
   window.gapiClientLoaded = function gapiClientLoaded() {
@@ -237,7 +247,21 @@
   };
 
   finishAuth = function finishAuth(obj) {
-    if (!auth.finished) return replaceAuth(obj);
+    if (!auth.finished) {
+      replaceAuth(obj);
+      if (obj.succeeded) {
+        return initFileList(function() {
+          var cont, _i, _len, _ref4, _ref5, _results;
+          _ref5 = (_ref4 = auth.cont) != null ? _ref4 : [];
+          _results = [];
+          for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+            cont = _ref5[_i];
+            _results.push(cont());
+          }
+          return _results;
+        });
+      }
+    }
   };
 
   leisureDir = null;
@@ -245,59 +269,11 @@
   leisureDirParent = [];
 
   replaceAuth = function replaceAuth(obj) {
-    var c, cont, _i, _len, _ref4, _results;
+    var _ref4, _ref5;
     if (auth.buttonDiv) document.body.removeChild(auth.buttonDiv);
-    c = (_ref4 = auth.cont) != null ? _ref4 : [];
-    auth = obj;
-    auth.finished = true;
-    if (auth.succeeded) {
-      return listFiles("title = 'LeisureStorage'", function(json, files) {
-        var cont, dir, file, _i, _j, _len, _len2, _ref5, _results;
-        if (!json) {
-          return auth = {
-            succeeded: false,
-            error: "Could not list files"
-          };
-        } else if (json.items.length === 0) {
-          return makeLeisureDir(c);
-        } else {
-          dir = null;
-          _ref5 = json.items;
-          for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-            file = _ref5[_i];
-            if (!file.explicitlyTrashed) {
-              if (!dir) {
-                dir = file;
-                console.log(file);
-              } else {
-                auth.succeeded = false;
-                ({
-                  error: "More than one LeisureStorage folder"
-                });
-              }
-            }
-          }
-          if (dir) {
-            setLeisureDir(dir);
-            _results = [];
-            for (_j = 0, _len2 = c.length; _j < _len2; _j++) {
-              cont = c[_j];
-              _results.push(cont());
-            }
-            return _results;
-          } else {
-            return makeLeisureDir(c);
-          }
-        }
-      });
-    } else {
-      _results = [];
-      for (_i = 0, _len = c.length; _i < _len; _i++) {
-        cont = c[_i];
-        _results.push(cont(auth));
-      }
-      return _results;
-    }
+    obj.cont = ((_ref5 = auth.cont) != null ? _ref5 : []).concat((_ref4 = obj.cont) != null ? _ref4 : []);
+    obj.finished = true;
+    return auth = obj;
   };
 
   setLeisureDir = function setLeisureDir(dir) {
