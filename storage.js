@@ -29,6 +29,8 @@
                   return cont(result);
                 }
               });
+            } else if ((json != null ? json.items.length : void 0) === 0) {
+              return next();
             } else {
               return err(new Error("File not found: " + uri));
             }
