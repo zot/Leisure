@@ -83,7 +83,12 @@
     if (auth.finished) {
       return cont();
     } else {
-      auth.cont.push(cont);
+      auth.cont.push(function() {
+        listFiles(function(json) {
+          return console.log("ALL FILES:", json);
+        });
+        return cont();
+      });
       if (!auth.started) {
         auth.started = true;
         script = document.createElement('script');
@@ -333,8 +338,15 @@
   };
 
   listFiles = function listFiles(query, callback) {
+    var q;
+    if (!callback) {
+      callback = query;
+      q = '';
+    } else {
+      q = "&q=" + (encodeURIComponent(query));
+    }
     return (gapi.client.request({
-      path: "/drive/v2/files?maxResults=10000&q=" + (encodeURIComponent(query)),
+      path: "/drive/v2/files?maxResults=10000" + q,
       method: 'GET'
     })).execute(callback);
   };
