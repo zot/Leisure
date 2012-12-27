@@ -88,7 +88,7 @@
               if (err) {
                 document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
               } else {
-                document.boty.innerHTML = "<!--\n" + text + "\n-->";
+                document.body.innerHTML = "<!--\n" + text + "\n-->";
               }
               if (file.fileExtension === 'lmd') {
                 window.leisureAutoRunAll = true;
