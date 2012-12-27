@@ -68,7 +68,7 @@
         });
       }
     });
-    _ref4 = new URI(document.location.href).getSearchParams(), state = _ref4.state, code = _ref4.code;
+    _ref4 = new Prim.URI(document.location.href).getSearchParams(), state = _ref4.state, code = _ref4.code;
     if (state && code) {
       document.body.innerHTML = "<h1>LOADING... <br>state = " + state + "<br>code = " + code + "</h1>";
       return initGdrive(function() {
