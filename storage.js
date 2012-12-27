@@ -296,19 +296,13 @@
     };
   };
 
-  makeLeisureDir = function makeLeisureDir(conts) {
+  makeLeisureDir = function makeLeisureDir(cont) {
     console.log("No LeisureStorage directory.  Creating one");
     return mkdir('LeisureStorage', function(json, raw) {
-      var cont, _i, _len, _results;
       computePaths(json);
       setLeisureDir(json);
       console.log("CREATED DIR: " + raw, json);
-      _results = [];
-      for (_i = 0, _len = conts.length; _i < _len; _i++) {
-        cont = conts[_i];
-        _results.push(cont());
-      }
-      return _results;
+      return cont();
     });
   };
 
