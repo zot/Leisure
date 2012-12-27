@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, mimePart, mkdir, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, mimePart, mkdir, mkdirTMP, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -218,15 +218,18 @@
     return xhr.send();
   };
 
-  mkdir = function mkdir(name, callback) {
+  mkdirTMP = function mkdirTMP(name, callback) {
     var json, xhr;
     json = JSON.stringify({
       mimeType: 'application/vnd.google-apps.folder',
       title: 'LeisureStorage'
     });
     xhr = new XMLHttpRequest();
+    xhr.open('POST', "https://www.googleapis.com/drive/v2/files?uploadType=multipart");
+    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+    xhr.setRequestHeader('Content-Type', 'multipart/mixed; boundary="END_OF_PART"');
     return gapi.client.request({
-      'path': 'https://www.googleapis.com/drive/v2/files',
+      'path': '/drive/v2/files',
       'method': 'POST',
       'params': {
         'uploadType': 'multipart'
@@ -237,6 +240,18 @@
       },
       'body': [mimePart("END_OF_PART", "application/json", '""'), "\r\n--END_OF_PART--\r\n"].join('')
     }).execute(callback);
+  };
+
+  mkdir = function mkdir(name, callback) {
+    return (gapi.client.request({
+      path: '/drive/v2/files',
+      method: 'POST',
+      body: JSON.stringify({
+        title: name,
+        parents: [],
+        mimeType: "application/vnd.google-apps.folder"
+      })
+    })).execute(callback);
   };
 
   root.initStorage = initStorage;
