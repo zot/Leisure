@@ -39,7 +39,8 @@
         return initGdrive(function() {
           return writeFile(uri.path.substring(1), data, [
             {
-              id: leisureDir.id
+              id: leisureDir.id,
+              kind: "drive#parentReference"
             }
           ], function(json) {
             if (json) {
