@@ -262,7 +262,7 @@
     return ["\r\n--", boundary, "\r\n", "Content-Type: ", mimeType, "\r\n", "Content-Length: ", content.length, "\r\n", "\r\n", content].join('');
   };
 
-  DONE = 2;
+  DONE = 4;
 
   readFile = function readFile(file, callback) {
     var xhr;
