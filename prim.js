@@ -774,7 +774,11 @@
 
   load = function load(uri, cont, err) {
     return readSourceFile(uri, (function(uri2, data) {
-      return loadSource(uri2, data, cont, err);
+      if (uri2) {
+        return loadSource(uri2, data, cont, err);
+      } else {
+        return cont();
+      }
     }), err);
   };
 
