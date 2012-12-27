@@ -267,6 +267,7 @@
   readFile = function readFile(file, callback) {
     var xhr;
     if (file.downloadUrl) {
+      console.log("File:", file);
       xhr = new XMLHttpRequest();
       xhr.open('GET', file.downloadUrl);
       xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
