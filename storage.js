@@ -1,5 +1,5 @@
 (function() {
-  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -37,7 +37,11 @@
       },
       write: function write(uri, data, cont, err) {
         return initGdrive(function() {
-          return writeFile(uri.path.substring(1), data, [leisureDir.id], function(json) {
+          return writeFile(uri.path.substring(1), data, [
+            {
+              id: leisureDir.id
+            }
+          ], function(json) {
             if (json) {
               return cont();
             } else {
@@ -148,6 +152,8 @@
 
   leisureDir = null;
 
+  leisureDirParent = [];
+
   replaceAuth = function replaceAuth(obj) {
     var c, cont, _i, _len, _ref4, _results;
     if (auth.buttonDiv) document.body.removeChild(auth.buttonDiv);
@@ -156,7 +162,7 @@
     auth.finished = true;
     if (auth.succeeded) {
       return listFiles("title = 'LeisureStorage'", function(json, files) {
-        var cont, file, _i, _j, _len, _len2, _ref5, _results;
+        var cont, file, id, isRoot, kind, parentLink, selfLink, _i, _j, _len, _len2, _ref5, _results;
         if (!json) {
           return auth = {
             succeeded: false,
@@ -174,6 +180,7 @@
                 leisureDir = file;
                 console.log(file);
               } else {
+                leisureDirParent = (kind = leisureDir.kind, id = leisureDir.id, selfLink = leisureDir.selfLink, parentLink = leisureDir.parentLink, isRoot = leisureDir.isRoot, leisureDir);
                 auth.succeeded = false;
                 ({
                   error: "More than one LeisureStorage folder"
