@@ -142,9 +142,14 @@
             item = _ref5[_j];
             computePaths(item);
           }
-          for (key in path2Ids) {
-            names = key;
-          }
+          names = (function() {
+            var _results;
+            _results = [];
+            for (key in path2Ids) {
+              _results.push(key);
+            }
+            return _results;
+          })();
           names.sort();
           return console.log("Names:", names);
         });
