@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, mimePart, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, mimePart, mkdir, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -131,13 +131,15 @@
     auth = obj;
     auth.finished = true;
     if (auth.succeeded) {
-      return listFiles("title = 'LeisureStorage'", function(err, files) {
+      return listFiles("title = 'LeisureStorage'", function(req, files) {
         var cont, _i, _len, _results;
-        if (err) {
-          return replaceAuth({
-            succeeded: false,
-            err: 'Error listing files'
-          });
+        if (req) {
+          if (req.status === 200) {} else {
+            return replaceAuth({
+              succeeded: false,
+              err: 'Error listing files'
+            });
+          }
         } else {
           console.log("FILES: " + (JSON.stringify(files)));
           _results = [];
@@ -197,11 +199,34 @@
         if (xhr.responseText) {
           return cont(null, JSON.parse(xhr.responseText));
         } else {
-          return cont(xhr.statusText, null);
+          return cont(xhr, null);
         }
       }
     };
     return xhr.send();
+  };
+
+  mkdir = function mkdir(name, callback) {
+    var json, xhr;
+    json = JSON.stringify({
+      mimeType: 'application/vnd.google-apps.folder',
+      title: 'LeisureStorage'
+    });
+    xhr = new XMLHttpRequest();
+    return gapi.client.request({
+      'path': '/upload/drive/v1/files',
+      'method': 'POST',
+      'params': {
+        'uploadType': 'multipart'
+      },
+      'headers': {
+        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
+        'Authorization': 'Bearer ' + params.access_token
+      },
+      'body': [mimePart("END_OF_PART", "application/json", json), "\r\n--END_OF_PART--\r\n"].join('')
+    }).execute(function(file) {
+      return document.getElementById("result").innerHTML = "Uploaded file: " + file;
+    });
   };
 
   root.initStorage = initStorage;
