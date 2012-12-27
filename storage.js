@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, makeLeisureDir, mimePart, mkdir, replaceAuth, root, uploadTestFile, _ref, _ref2, _ref3;
+  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -19,10 +19,32 @@
   initStorage = function initStorage(callback) {
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
-        return initGdrive(function() {});
+        return initGdrive(function() {
+          return listFiles("title = '" + (uri.path.substring(1)) + "'", function(json) {
+            if ((json != null ? json.items.length : void 0) === 1) {
+              return readFile(json.items[0], function(result) {
+                if (result) {
+                  return cont();
+                } else {
+                  return err();
+                }
+              });
+            } else {
+              return err();
+            }
+          });
+        });
       },
       write: function write(uri, data, cont, err) {
-        return initGdrive(function() {});
+        return initGdrive(function() {
+          return writeFile(uri.path.substring(1), data, null, function(json) {
+            if (json) {
+              return cont();
+            } else {
+              return err();
+            }
+          });
+        });
       }
     });
     return callback();
@@ -187,12 +209,11 @@
   };
 
   uploadTestFile = function uploadTestFile() {
-    var json, xhr;
+    var json;
     json = JSON.stringify({
       mimeType: 'text/plain',
       title: 'leisureUpload'
     });
-    xhr = new XMLHttpRequest();
     return gapi.client.request({
       'path': '/upload/drive/v1/files',
       'method': 'POST',
@@ -213,7 +234,37 @@
     return ["\r\n--", boundary, "\r\n", "Content-Type: ", mimeType, "\r\n", "Content-Length: ", content.length, "\r\n", "\r\n", content].join('');
   };
 
-  DONE = 2;
+  readFile = function readFile(file, callback) {
+    if (file.downloadUrl) {
+      return (gapi.client.request({
+        path: file.downloadUrl,
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + auth.token
+        }
+      })).execute(callback);
+    } else {
+      return callback(null);
+    }
+  };
+
+  writeFile = function writeFile(name, contents, parents, callback) {
+    var json;
+    json = JSON.stringify({
+      mimeType: 'text/plain',
+      title: name
+    });
+    if (parents) json.parents = parents;
+    return gapi.client.request({
+      'path': '/upload/drive/v2/files',
+      'method': 'POST',
+      'headers': {
+        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
+        'Authorization': 'Bearer ' + auth.token
+      },
+      'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
+    }).execute(callback);
+  };
 
   listFiles = function listFiles(query, callback) {
     return (gapi.client.request({
