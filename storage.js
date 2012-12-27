@@ -88,12 +88,13 @@
             return readFile(file, function(err, text) {
               if (err) {
                 return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
-              } else if (file.fileExtension === 'lsr') {
-                return document.body.innerHTML = "<h1>Error loading " + file.title + "; can't load *.lsr files, yet.</h1>";
               } else if (file.fileExtension === 'lmd') {
                 document.body.innerHTML = "<!--\n" + text + "\n-->";
                 window.leisureAutoRunAll = true;
                 window.markup();
+                return callback();
+              } else {
+                document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
                 return callback();
               }
             });
