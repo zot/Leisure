@@ -139,7 +139,7 @@
             error: "Could not list files"
           };
         } else if (json.items.length === 0) {
-          return makeLeisureDir();
+          return makeLeisureDir(c);
         } else {
           found = false;
           _ref5 = json.items;
@@ -151,7 +151,7 @@
             }
           }
           if (!found) {
-            return makeLeisureDir();
+            return makeLeisureDir(c);
           } else {
             _results = [];
             for (_j = 0, _len2 = c.length; _j < _len2; _j++) {
@@ -172,14 +172,14 @@
     }
   };
 
-  makeLeisureDir = function makeLeisureDir() {
+  makeLeisureDir = function makeLeisureDir(conts) {
     console.log("No LeisureStorage directory.  Creating one");
     return mkdir('LeisureStorage', function(json, raw) {
       var cont, _i, _len, _results;
       console.log("CREATED DIR: " + raw);
       _results = [];
-      for (_i = 0, _len = c.length; _i < _len; _i++) {
-        cont = c[_i];
+      for (_i = 0, _len = conts.length; _i < _len; _i++) {
+        cont = conts[_i];
         _results.push(cont());
       }
       return _results;
