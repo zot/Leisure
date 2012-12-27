@@ -433,7 +433,7 @@ misrepresented as being the original software.
     var argNames, code, jsCode, methodCode, n, res, type, _ref;
     ast.lits = [];
     res = [];
-    code = gen(ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true);
+    code = gen(ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true, false);
     code = code.genTopLevelDebug(name, ast);
     if (code.err !== '') {
       ast.err = code.err;
@@ -445,7 +445,7 @@ misrepresented as being the original software.
       }
       ast.src = name != null ? "" + (code.method != null ? ((_ref = code.method, type = _ref[0], name = _ref[1], argNames = _ref[2], methodCode = _ref[3], _ref), "" + (checkClass(name, n, ast)) + ";\nLeisure.createMethod('" + type + "', '" + name + "', " + (src ? JSON.stringify(src) : "''") + ", function(" + (argNames.slice(1).map(function(n) {
         return nameSub(n);
-      }).join(", ")) + ") {return " + methodCode + ";})") : "" + (namespace != null ? namespace : '') + (defFunc(tokenDef)) + "('" + name + "', " + jsCode + ", " + (ast.leisurePrefixCount || 0) + ", " + (src ? JSON.stringify(src) : '""') + ");" + ((tokenDef != null) && tokenDef !== '=' ? "\nroot.tokenDefs.push('" + name + "', '" + tokenDef + "');" : '')) : jsCode;
+      }).join(", ")) + ") {return " + methodCode + ";})") : "" + (namespace != null ? namespace : '') + (defFunc(tokenDef)) + "('" + name + "', " + jsCode + ", " + (ast.leisurePrefixCount || 0) + ", " + (src ? JSON.stringify(src) : '""') + ");") : jsCode;
     }
     ast.globals = code.global;
     return ast;
@@ -613,7 +613,7 @@ misrepresented as being the original software.
         if (getAstType(func) === 'lit') {
           return code.addErr("Attempt to use lit as function: " + (getLitVal(func)));
         } else if (!ignoreUnknownNames && freeVar(func, vars, code.global)) {
-          return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)));
+          return code.addErr("Attempt to use free variable as function: " + (getRefVar(func)) + ", globals: " + (global.leisureFuncNames.toArray().sort()));
         } else {
           arg = getApplyArg(ast);
           funcCode = gen(originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false, ignoreUnknownNames);
@@ -656,7 +656,9 @@ misrepresented as being the original software.
         return v === rv;
       }) && !globals.find(function(v) {
         return v === rv;
-      }) && !forward[nameSub(rv)];
+      }) && !forward[nameSub(rv)] && !global.leisureFuncNames.find(function(v) {
+        return v === rv;
+      });
     } else {
       return false;
     }
@@ -828,9 +830,9 @@ misrepresented as being the original software.
     return tok instanceof Leisure_token && tok.tok() === '::';
   };
 
-  genCode = function genCode(ast, name, globals, defType, rest, parseOnly, namespace, src, debug) {
+  genCode = function genCode(ast, name, globals, defType, rest, parseOnly, namespace, src, debug, auto) {
     if (!parseOnly) {
-      dgen(ast, false, name, globals, defType, namespace, src, debug);
+      dgen(ast, false, name, globals, defType, namespace, src, debug, auto);
     }
     if ((ast.err != null) && (name != null)) {
       ast.err = "Error while compiling " + name + ": " + ast.err;

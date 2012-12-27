@@ -68,7 +68,9 @@ body {
   height: 32px;
 }
 
-.focused .leisure_bar_contents {
+.focused .leisure_bar_contents,
+.scroll .leisure_bar_contents
+ {
   display: block;
 }
 
@@ -77,11 +79,13 @@ body {
 }
 
 .leisure_bar {
-  display: inline-block;
-  width: 135px;
+  display: none;
+  /*width: 135px;*/
+  width: 100%;
 }
 
-.focused .leisure_bar {
+.focused .leisure_bar,
+.scroll .leisure_bar {
   display: block;
   width: 100%;
 }

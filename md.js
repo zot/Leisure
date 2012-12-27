@@ -17,10 +17,11 @@
       el = nodes[_i];
       md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*\n/m, '').trim();
       if (oneDoc) {
-        _results.push(markupSlides(el, md));
+        markupSlides(el, md);
       } else {
-        _results.push(markupElement(el, md));
+        markupElement(el, md);
       }
+      _results.push(Notebook.insertControls(el));
     }
     return _results;
   };

@@ -11,8 +11,6 @@
     <link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
     <link href='jquery-ui/css/cthulhu-theme/jquery-ui-1.9.1.custom.min.css' rel='stylesheet' type='text/css'>
     <script language="javascript">
-      //leisurePrep = ["do\n  require 'svg'\n  require 'parseAst'"]
-      leisurePrep = ["require 'parseAst'"]
       leisureFirst = function() {
           markup();
       };
@@ -181,6 +179,7 @@
 ## Evaluate expressions in the document
 
 ```
+prompt 'duh'
 3 + 4
 cons 1 (cons 2 nil)
 ['a' 'b' 1 'c']
@@ -287,6 +286,16 @@ f2 = 2
 ## Dropbox
 ## Eclipse Orion -- has simple CORS API for workspace and Git!
 ## Local files (requires an install)
+
+```
+do
+  x <- read 'local-storage:///code'
+  x (\d . print d) id
+
+do
+  x <- read 'googledrive:///test'
+  print x
+```
 ***
 -
 # Notebooks: Deploy your code...

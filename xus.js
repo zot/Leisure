@@ -621,7 +621,7 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
 
     Server.prototype.renamePeerKeys = function(con, oldName, newName) {
       var l, newCL, newPrefix, newVL, oldPrefixPat;
-      this.varStorage.keys = renameVars(this.varStorage.keys, this.varStorage.values, oldName, newName)[0];
+      this.varStorage.keys = renameVars(this.varStorage.keys, this.varStorage.values, this.varStorage.handlers, oldName, newName)[0];
       newCL = {};
       newVL = [];
       newPrefix = "peer/" + newName;
@@ -794,7 +794,7 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
       var key, match, num, peer, x;
       x = cmd[0], key = cmd[1];
       if (match = key.match(/^peer\/([^/]+)\//)) {
-        console.log("DELEGATING: " + (JSON.stringify(cmd)));
+        this.verbose("DELEGATING: " + (JSON.stringify(cmd)));
         peer = this.peers[match[1]];
         num = this.pendingRequestNum++;
         peer.requests[num] = true;
@@ -961,7 +961,6 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
         return _this.handlers[p];
       });
       handler = k ? this.handlers[k] : this;
-      this.verbose("STORAGE HANDLER FOR " + key + ": " + handler);
       return handler;
     };
 
@@ -1034,12 +1033,12 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
     };
 
     VarStorage.prototype.addHandler = function(path, obj) {
-      this.verbose("ADDING HANDLER FOR " + path);
       obj.__proto__ = this;
       obj.toString = function() {
         return "A Handler for " + path;
       };
       this.handlers[path] = obj;
+      this.addKey(path, 'handler');
       return obj;
     };
 
@@ -1165,7 +1164,7 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
 
   })();
 
-  exports.renameVars = renameVars = function(keys, values, oldName, newName) {
+  exports.renameVars = renameVars = function(keys, values, handlers, oldName, newName) {
     var k, key, newKey, newPrefix, oldPrefix, oldPrefixPat, trans, _i, _len, _ref;
     oldPrefix = "peer/" + oldName;
     newPrefix = "peer/" + newName;
@@ -1176,8 +1175,10 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
       key = _ref[_i];
       newKey = key.replace(oldPrefixPat, newPrefix);
       values[newKey] = values[key];
+      handlers[newKey] = handlers[key];
       trans[key] = newKey;
       delete values[key];
+      delete handlers[key];
     }
     keys = (function() {
       var _results;
@@ -1773,6 +1774,7 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
   exports.Peer = Peer = (function() {
 
     function Peer(con) {
+      var defaultHandler, peer;
       this.setConnection(con);
       this.inTransaction = false;
       this.changeListeners = {};
@@ -1780,7 +1782,13 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
       this.valueListeners = {};
       this.queuedListeners = [];
       this.name = null;
+      this.namePrefixPat = /^$/;
       this.varStorage = new VarStorage(this);
+      peer = this;
+      defaultHandler = this.varStorage.handlerFor;
+      this.varStorage.handlerFor = function(key) {
+        return defaultHandler.call(this, key.replace(peer.namePrefixPat, 'this/'));
+      };
       this.pendingBlocks = [];
     }
 
@@ -1796,7 +1804,7 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
       var _ref1, _ref2;
       this.con = con;
       this.verbose = ((_ref1 = this.con) != null ? _ref1.verbose : void 0) || (function() {});
-      return console.log("ADDED CONNECTION: " + this.con + ", verbose: " + ((((_ref2 = this.con) != null ? _ref2.verbose : void 0) || (function() {})).toString()));
+      return this.verbose("ADDED CONNECTION: " + this.con + ", verbose: " + ((((_ref2 = this.con) != null ? _ref2.verbose : void 0) || (function() {})).toString()));
     };
 
     Peer.prototype.transaction = function(block) {
@@ -1880,29 +1888,32 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
 
     Peer.prototype.rename = function(newName) {
       var c, k, listen, newPath, oldName, oldPat, t, thisPat, v, _ref1, _ref2, _ref3;
-      newPath = "peer/" + newName;
-      thisPat = new RegExp("^this(?=/|$)");
-      oldName = (_ref1 = this.name) != null ? _ref1 : 'this';
-      this.name = newName;
-      exports.renameVars(this.varStorage.keys, this.varStorage.values, oldName, newName);
-      t = {};
-      _ref2 = this.treeListeners;
-      for (k in _ref2) {
-        v = _ref2[k];
-        t[k.replace(thisPat, newPath)] = v;
-      }
-      this.treeListeners = t;
-      c = {};
-      _ref3 = this.changeListeners;
-      for (k in _ref3) {
-        v = _ref3[k];
-        c[k.replace(thisPat, newPath)] = v;
-      }
-      this.changeListeners = c;
-      listen = "peer/" + newName + "/listen";
-      if (this.varStorage.values[listen]) {
-        oldPat = new RegExp("^peer/" + oldName + "(?=/|$)");
-        return this.varStorage.values[listen] = (k.replace(oldPat, newPath)).replace(thisPat, newPath);
+      if (this.name !== newName) {
+        newPath = "peer/" + newName;
+        thisPat = new RegExp("^this(?=/|$)");
+        oldName = (_ref1 = this.name) != null ? _ref1 : 'this';
+        this.name = newName;
+        this.varStorage.sortKeys();
+        exports.renameVars(this.varStorage.keys, this.varStorage.values, this.varStorage.handlers, oldName, newName);
+        t = {};
+        _ref2 = this.treeListeners;
+        for (k in _ref2) {
+          v = _ref2[k];
+          t[k.replace(thisPat, newPath)] = v;
+        }
+        this.treeListeners = t;
+        c = {};
+        _ref3 = this.changeListeners;
+        for (k in _ref3) {
+          v = _ref3[k];
+          c[k.replace(thisPat, newPath)] = v;
+        }
+        this.changeListeners = c;
+        listen = "peer/" + newName + "/listen";
+        if (this.varStorage.values[listen]) {
+          oldPat = new RegExp("^peer/" + oldName + "(?=/|$)");
+          return this.varStorage.values[listen] = (k.replace(oldPat, newPath)).replace(thisPat, newPath);
+        }
       }
     };
 
@@ -1948,17 +1959,10 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
     };
 
     Peer.prototype.grabTree = function(key, callback) {
-      if (this.name) {
-        key = this.personalize(key);
-      }
       if (!this.treeListeners[key]) {
         this.treeListeners[key] = [];
       }
       return this.treeListeners[key].push(callback);
-    };
-
-    Peer.prototype.personalize = function(path) {
-      return path.replace(new RegExp('^this(?=\/|$)'), "peer/" + this.name);
     };
 
     Peer.prototype.addCmd = function(cmd) {
@@ -1994,7 +1998,11 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
     };
 
     Peer.prototype.addHandler = function(path, obj) {
-      return this.varStorage.addHandler(this.personalize(path), obj);
+      return this.varStorage.addHandler(path, obj);
+    };
+
+    Peer.prototype.personalize = function(path) {
+      return path.replace(new RegExp('^this(?=\/|$)'), "peer/" + this.name);
     };
 
     return Peer;
@@ -2009,6 +2017,9 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
       for (_i = 0, _len = batch.length; _i < _len; _i++) {
         cmd = batch[_i];
         name = cmd[0], key = cmd[1], value = cmd[2], index = cmd[3];
+        if (key.match(this.namePrefixPat)) {
+          key = key.replace(this.namePrefixPat, 'this/');
+        }
         if (__indexOf.call(setCmds, name) >= 0 && !this.varStorage.contains(key)) {
           this.varStorage.keys.push(key);
         }
@@ -2017,7 +2028,7 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
             console.log("ERROR '" + key + "': value");
             break;
           case 'request':
-            console.log("GOT REQUEST: " + (JSON.stringify(cmd)) + ", batch: " + (JSON.stringify(batch)));
+            this.verbose("GOT REQUEST: " + (JSON.stringify(cmd)) + ", batch: " + (JSON.stringify(batch)));
             x = cmd[0], name = cmd[1], num = cmd[2], dcmd = cmd[3];
             this.handleDelegation(name, num, dcmd);
             break;
@@ -2033,6 +2044,13 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
       for (_j = 0, _len1 = batch.length; _j < _len1; _j++) {
         cmd = batch[_j];
         name = cmd[0], key = cmd[1], value = cmd[2], index = cmd[3];
+        if (key.match(this.namePrefixPat)) {
+          key = key.replace(this.namePrefixPat, 'this/');
+        }
+        if (name === 'set' && key === 'this/name') {
+          this.name = value;
+          this.namePrefixPat = new RegExp("^peer/" + value + "/");
+        }
         if (__indexOf.call(setCmds, name) >= 0) {
           _ref1 = this.listenersFor(key);
           for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
@@ -2053,7 +2071,6 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
     listen: function(key, simulateSetsForTree, noChildren, callback) {
       var _ref1,
         _this = this;
-      key = key.replace(/^this\//, "peer/" + this.name + "/");
       if (typeof simulateSetsForTree === 'function') {
         noChildren = simulateSetsForTree;
         simulateSetsForTree = false;
@@ -2068,9 +2085,6 @@ require.define("/peer.js",function(require,module,exports,__dirname,__filename,p
             return callback(changedKey, value, oldValue, cmd, batch);
           }
         };
-      }
-      if (this.name != null) {
-        key = key.replace(new RegExp("^this(?=/|$)"), "peer/" + this.name);
       }
       if (!callback) {
         _ref1 = [null, simulateSetsForTree], simulateSetsForTree = _ref1[0], callback = _ref1[1];

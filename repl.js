@@ -1,5 +1,5 @@
 (function() {
-  var Buffer, Core, FS, L, Parse, Path, Prim, R, U, VM, compile, createEnv, face, formatLeisureStack, getType, init, print, processResult, repl, root, substituteMarkdown, vars, write,
+  var Buffer, Core, FS, L, Parse, Path, Prim, R, U, VM, compile, createEnv, doCompile, face, formatLeisureStack, getType, init, print, processResult, repl, root, vars, write,
     __slice = Array.prototype.slice;
 
   U = require('util');
@@ -48,6 +48,8 @@
 
   face = null;
 
+  Prim.defaultEnv.fileSettings.uri = new Prim.URI("file://" + (process.cwd()) + "/");
+
   init = function init() {
     if (!(face != null)) {
       face = R.createInterface(process.stdin, process.stdout);
@@ -72,22 +74,21 @@
     return face.prompt();
   };
 
-  compile = function compile(file, cont, nomacros, debug) {
-    var contents, jsFile, markdown, oldfile, stream;
+  compile = function compile(file, cont, nomacros, debug, force) {
+    var jsFile, markdown, next, oldfile;
     cont = cont != null ? cont : Core.next;
     if (!file) {
       return face != null ? face.prompt() : void 0;
     } else {
-      contents = '';
       markdown = false;
-      if (!Path.existsSync(file)) {
+      if (!FS.existsSync(file)) {
         oldfile = file;
         file = oldfile + ".lsr";
-        if (Path.existsSync(file)) {
+        if (FS.existsSync(file)) {
           jsFile = "" + (Path.basename(file, '.lsr')) + ".js";
         } else {
           file = oldfile + '.lmd';
-          if (Path.existsSync(file)) {
+          if (FS.existsSync(file)) {
             markdown = true;
             jsFile = "" + (Path.basename(file, '.lmd')) + ".js";
           } else {
@@ -96,45 +97,59 @@
           }
         }
       }
-      if (Path.existsSync(jsFile)) FS.unlink(jsFile);
-      stream = FS.createReadStream(file);
-      stream.on('data', function(data) {
-        return contents += data;
-      });
-      stream.on('end', function() {
-        var out, str;
-        try {
-          contents = contents.replace(/\r\n?/g, "\n");
-          out = Core.generateCode(file, substituteMarkdown(markdown, contents), root.loud, null, nomacros, null, debug);
-          str = FS.createWriteStream("" + jsFile + "Tmp");
-          str.on('close', function() {
-            FS.renameSync("" + jsFile + "Tmp", jsFile);
-            return cont();
+      next = function next() {
+        return doCompile(file, jsFile, markdown, cont, nomacros, debug);
+      };
+      if (FS.existsSync(jsFile)) {
+        return FS.stat(jsFile, function(err, jsStats) {
+          return FS.stat(file, function(err, lsStats) {
+            if (lsStats.mtime.getTime() > jsStats.mtime.getTime()) {
+              return FS.unlink(jsFile, next);
+            } else if (force) {
+              return next();
+            } else {
+              return cont();
+            }
           });
-          str.on('error', function() {
-            return cont();
-          });
-          str.end(out);
-          return str.destroySoon();
-        } catch (err) {
-          console.log("ERROR: " + err + (err.leisureContext ? formatLeisureStack(err) : '') + "\n" + err.stack);
-          write(err.stack + "\n");
-          return cont();
-        }
-      });
-      return stream.on('error', function(ex) {
-        console.log("Exception reading file: ", ex.stack);
-        return cont();
-      });
+        });
+      } else {
+        return next();
+      }
     }
   };
 
-  substituteMarkdown = function substituteMarkdown(markdown, contents) {
-    if (markdown) {
-      return contents.replace(/.*?\n```\n(.*?\n)```\n|.*\n/gm, '$1');
-    } else {
-      return contents;
-    }
+  doCompile = function doCompile(file, jsFile, markdown, cont, nomacros, debug) {
+    var contents, stream;
+    contents = '';
+    stream = FS.createReadStream(file);
+    stream.on('data', function(data) {
+      return contents += data;
+    });
+    stream.on('end', function() {
+      var str;
+      try {
+        str = FS.createWriteStream("" + jsFile + "Tmp");
+        str.on('close', function() {
+          FS.renameSync("" + jsFile + "Tmp", jsFile);
+          return cont();
+        });
+        str.on('error', function() {
+          return cont();
+        });
+        return Core.compileString(file, markdown, contents, root.loud, nomacros, debug, function(output) {
+          str.end(output);
+          return str.destroySoon();
+        });
+      } catch (err) {
+        console.log("ERROR: " + err + (err.leisureContext ? formatLeisureStack(err) : '') + "\n" + err.stack);
+        write(err.stack + "\n");
+        return cont();
+      }
+    });
+    return stream.on('error', function(ex) {
+      console.log("Exception reading file: ", ex.stack);
+      return cont();
+    });
   };
 
   formatLeisureStack = function formatLeisureStack(err) {
@@ -194,9 +209,8 @@
   Core.setCompiler(compile);
 
   Core.setResetFunc(function() {
-    write("Creating fresh environment");
     createEnv();
-    return L.eval("Leisure.req('./std')");
+    return Prim.runRequire('./std', function() {});
   });
 
   root.createEnv = createEnv;
