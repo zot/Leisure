@@ -92,7 +92,7 @@
     if (id2Paths[file.id]) {
       return id2Paths[file.id];
     } else {
-      ids2File[file.id] = file;
+      id2File[file.id] = file;
       if (file.parents.length === 0) {
         addPath(file.id, "/" + file.title);
       } else {
