@@ -26,22 +26,22 @@
                 if (result) {
                   return cont();
                 } else {
-                  return err();
+                  return err(new Error("File not found"));
                 }
               });
             } else {
-              return err();
+              return err(new Error("File not found"));
             }
           });
         });
       },
       write: function write(uri, data, cont, err) {
         return initGdrive(function() {
-          return writeFile(uri.path.substring(1), data, null, function(json) {
+          return writeFile(uri.path.substring(1), data, [leisureDir.id], function(json) {
             if (json) {
               return cont();
             } else {
-              return err();
+              return err(new Error("Problem writing file"));
             }
           });
         });

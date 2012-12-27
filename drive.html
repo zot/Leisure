@@ -35,6 +35,8 @@ do
   x <- read 'local-storage:///code'
   x (\d . print d) id
 
+write 'googledrive:///test' 'bubba'
+
 do
   x <- read 'googledrive:///test'
   print x
