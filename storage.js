@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, ids2Files, ids2Paths, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, paths2Ids, readFile, replaceAuth, root, setLeisureDir, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, setLeisureDir, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -68,31 +68,31 @@
     return callback();
   };
 
-  ids2Paths = {};
+  id2Paths = {};
 
-  paths2Ids = {};
+  path2Ids = {};
 
-  ids2Files = {};
+  id2File = {};
 
   addPath = function addPath(id, path) {
-    if (paths2Ids[path]) {
-      paths2Ids[path].push(id);
+    if (path2Ids[path]) {
+      path2Ids[path].push(id);
     } else {
-      paths2Ids[path] = [id];
+      path2Ids[path] = [id];
     }
-    if (ids2Paths[id]) {
-      return ids2Paths[id].push(path);
+    if (id2Paths[id]) {
+      return id2Paths[id].push(path);
     } else {
-      return ids2Paths[id] = [path];
+      return id2Paths[id] = [path];
     }
   };
 
   computePaths = function computePaths(file) {
     var parent, parentPath, _i, _j, _len, _len2, _ref4, _ref5;
-    if (pathsById[file.id]) {
-      return pathsById[file.id];
+    if (id2Paths[file.id]) {
+      return id2Paths[file.id];
     } else {
-      ids2Files[file.id] = file;
+      ids2File[file.id] = file;
       if (file.parents.length === 0) {
         addPath(file.id, "/" + file.title);
       } else {
@@ -106,7 +106,7 @@
           }
         }
       }
-      return ids2Paths[file.id];
+      return id2Paths[file.id];
     }
   };
 
@@ -131,7 +131,7 @@
           _ref4 = json.items;
           for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
             item = _ref4[_i];
-            filesById[item.id] = item;
+            id2File[item.id] = item;
           }
           _ref5 = json.items;
           for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
