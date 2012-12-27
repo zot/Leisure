@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, setLeisureDir, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -44,7 +44,7 @@
           if (!files) {
             return writeFile(uri.path.substring(1), data, [
               {
-                id: leisureDir.id
+                id: leisureDir
               }
             ], function(json) {
               if (json) {
@@ -143,7 +143,7 @@
 
   initFileList = function initFileList(cont) {
     return listFiles(function(json) {
-      var item, key, name, names, _i, _j, _k, _len, _len2, _len3, _ref4, _ref5;
+      var dirs, item, key, leisureDir, name, names, _i, _j, _k, _len, _len2, _len3, _ref4, _ref5;
       _ref4 = json.items;
       for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
         item = _ref4[_i];
@@ -167,14 +167,17 @@
         name = names[_k];
         console.log(name);
       }
-      if (!path2Ids.LeisureStorage) {
+      dirs = path2Ids["/LeisureStorage"];
+      if (!dirs) {
         return makeLeisureDir(cont);
       } else {
-        if (path2Ids.LeisureStorage.length > 1) {
+        if (dirs.length > 1) {
           replaceAuth({
             succeeded: false,
             err: "More than one LeisureStorage directory"
           });
+        } else {
+          leisureDir = dirs[0];
         }
         return cont();
       }
@@ -277,8 +280,6 @@
 
   leisureDir = null;
 
-  leisureDirParent = [];
-
   replaceAuth = function replaceAuth(obj) {
     var _ref4, _ref5;
     if (auth.buttonDiv) document.body.removeChild(auth.buttonDiv);
@@ -287,22 +288,11 @@
     return auth = obj;
   };
 
-  setLeisureDir = function setLeisureDir(dir) {
-    leisureDir = dir;
-    return leisureDirParent = {
-      kind: dir.kind,
-      id: dir.id,
-      selfLink: dir.selfLink,
-      parentLink: dir.parentLink,
-      isRoot: dir.isRoot
-    };
-  };
-
   makeLeisureDir = function makeLeisureDir(cont) {
     console.log("No LeisureStorage directory.  Creating one");
     return mkdir('LeisureStorage', function(json, raw) {
       computePaths(json);
-      setLeisureDir(json);
+      leisureDir = json.id;
       console.log("CREATED DIR: " + raw, json);
       return cont();
     });
