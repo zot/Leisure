@@ -131,7 +131,7 @@
     } else {
       auth.cont.push(function() {
         listFiles(function(json) {
-          var item, key, names, _i, _j, _len, _len2, _ref4, _ref5;
+          var item, key, name, names, _i, _j, _k, _len, _len2, _len3, _ref4, _ref5, _results;
           _ref4 = json.items;
           for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
             item = _ref4[_i];
@@ -151,7 +151,12 @@
             return _results;
           })();
           names.sort();
-          return console.log("Names:", names);
+          _results = [];
+          for (_k = 0, _len3 = names.length; _k < _len3; _k++) {
+            name = names[_k];
+            _results.push(console.log(name));
+          }
+          return _results;
         });
         return cont();
       });
