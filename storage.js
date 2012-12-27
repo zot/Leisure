@@ -134,7 +134,19 @@
       return listFiles("title = 'LeisureStorage'", function(req, files) {
         var cont, _i, _len, _results;
         if (req) {
-          if (req.status === 200) {} else {
+          if (req.status === 200) {
+            console.log("NO DIR FOUND -- CREATNG ONE");
+            return mkdir('LeisureStorage', function(json, raw) {
+              var cont, _i, _len, _results;
+              console.log("CREATED DIR: " + raw);
+              _results = [];
+              for (_i = 0, _len = c.length; _i < _len; _i++) {
+                cont = c[_i];
+                _results.push(cont());
+              }
+              return _results;
+            });
+          } else {
             return replaceAuth({
               succeeded: false,
               err: 'Error listing files'
@@ -224,9 +236,7 @@
         'Authorization': 'Bearer ' + params.access_token
       },
       'body': [mimePart("END_OF_PART", "application/json", json), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(function(file) {
-      return document.getElementById("result").innerHTML = "Uploaded file: " + file;
-    });
+    }).execute(callback);
   };
 
   root.initStorage = initStorage;
