@@ -99,7 +99,7 @@
         _ref4 = file.parents;
         for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
           parent = _ref4[_i];
-          _ref5 = computePaths(parent.id);
+          _ref5 = computePaths(id2File[parent.id]);
           for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
             parentPath = _ref5[_j];
             addPath(file.id, "" + parentPath + "/" + file.title);
