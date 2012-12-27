@@ -1,3 +1,8 @@
+#
+# Change this to keep attr lists and render items instead of rendering early
+# Remove use of <g> from transform
+#
+
 require 'maps'
 
 insertFields map = if (null? map) ''

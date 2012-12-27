@@ -280,7 +280,7 @@ dgen = (ast, lazy, name, globals, tokenDef, namespace, src, debug)->
   #debug = false
   ast.lits = []
   res = []
-  code = (gen ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true)
+  code = (gen ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals ? global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true, false)
   code = code.genTopLevelDebug(name, ast)
   if code.err != '' then ast.err = code.err
   else
@@ -492,12 +492,12 @@ getNthBody = (ast, n)->
 defineForward = (name)-> forward[nameSub(name())] = true
 
 # returns [ast, err, rest]
-compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug, auto)->
+compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
   if line[0] == '='
     rest1 = line.substring 1
     ifParsed (if nomacros then parse rest1 else parseFull rest1), ((ast, rest)->
       ast.leisureCodeOffset = 0
-      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug, auto), "Error compiling expr #{snip line}"
+      genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
     if name[0] == ' '
@@ -563,8 +563,8 @@ parseDecl = (name)->
 
 isAssertion = (tok)-> tok instanceof Leisure_token and tok.tok() == '::'
 
-genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src, debug)->
-  if !parseOnly then dgen ast, false, name, globals, defType, namespace, src, debug
+genCode = (ast, name, globals, defType, rest, parseOnly, namespace, src, debug, auto)->
+  if !parseOnly then dgen ast, false, name, globals, defType, namespace, src, debug, auto
   if ast.err? and name? then ast.err = "Error while compiling #{name}: #{ast.err}"
   [ast, ast.err, rest]
 

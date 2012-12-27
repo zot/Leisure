@@ -50,24 +50,282 @@
 ####
 
 if window? and (!global? or global == window)
-  root = window.Storage ? (window.Storage = {})
+  root = window.GdriveStorage ? (window.GdriveStorage = {})
+  Prim = window.Prim ? (window.Prim = {})
   Notebook = window.Notebook ? (window.Notebook = {})
-  Xus = window.Xus ? (window.Xus = {})
   window.global = window
 else
   root = exports ? this
+  Prim = require './prim'
 
-storageChoices = null
-peer = null
+if !window?
+  initStorage = ->
+  return
 
+# Google drive stuff for projects
+
+# callback function is giben one argument: either null or an error string
 initStorage = (callback)->
-  if peer then callback()
+  Prim.newUriHandler 'googledrive',
+    read: (uri, cont, err, next)->
+      initGdrive ->
+        files = path2Ids["/LeisureStorage#{uri.path}"]
+        if !files then next()
+        else if files.length > 1 then err new Error "More than one file for uri: #{uri}"
+        else readFile id2File[files[0]], (err, result)->
+          if !err then cont result else new Error "Error reading file #{uri}: #{err.statusText}"
+    write: (uri, data, cont, err)->
+      initGdrive ->
+        files = path2Ids["/LeisureStorage#{uri.path}"]
+        if !files then writeFile uri.path.substring(1), data, [{id: leisureDir}], (json)->
+          if json then cont() else err new Error "Problem writing file"
+        else if files?.length > 1 then err new Error "More than one file for uri: #{uri}"
+        else updateFile id2File[files[0]], data, (json)->
+          if json then cont() else err new Error "Problem writing file"
+  callback()
+
+#
+# directory cache
+#
+
+id2Paths = {}
+path2Ids = {}
+id2File = {}
+leisureDir = null
+
+addPath = (id, path)->
+  if path2Ids[path] then path2Ids[path].push id else path2Ids[path] = [id]
+  if id2Paths[id] then id2Paths[id].push path else id2Paths[id] = [path]
+
+computePaths = (file)->
+  if id2Paths[file.id] then id2Paths[file.id]
   else
-    peer = Xus.createDirectPeer Notebook.xusServer
-    peer.set 'this/name', 'docBase'
-    peer.set 'this/links', ['leisure/storage']
-    peer.listen 'leisure/storage', false, true, (cmd)->
-      storageChoices = peer.get 'leisure/storage'
-      callback()
+    id2File[file.id] = file
+    if file.parents.length == 0 then addPath file.id, "/#{file.title}"
+    else
+      for parent in file.parents
+        if parent.isRoot then addPath file.id, "/#{file.title}"
+        else for parentPath in computePaths id2File[parent.id]
+          addPath file.id, "#{parentPath}/#{file.title}"
+    id2Paths[file.id]
+
+#
+# BEGIN AUTHENTICATION CODE
+#
+
+auth =
+  finished: false
+  succeeded: false
+  started: false
+  cont: []
+  err: null
+  status: null
+  token: null
+
+initGdrive = (cont)->
+  if auth.finished then cont()
+  else if auth.started then auth.cont.push cont
+  else
+    auth.started = true
+    auth.cont.push cont
+    script = document.createElement('script');
+    script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
+    document.head.appendChild(script);
+
+initFileList = (cont)->
+  listFiles (json)->
+    id2File[item.id] = item for item in json.items when !item.explicitlyTrashed
+    computePaths item for item in json.items
+    names = (key for key of path2Ids)
+    names.sort()
+    for name in names
+      console.log name
+    dirs = path2Ids["/LeisureStorage"]
+    if !dirs then makeLeisureDir cont
+    else
+      if dirs.length > 1
+        replaceAuth
+          succeeded: false
+          err: "More than one LeisureStorage directory"
+      else
+        console.log "SETTING DIR TO #{dirs[0]}"
+        leisureDir = dirs[0]
+      cont()
+
+window.gapiClientLoaded = -> window.setTimeout (-> checkDriveAuth true), 100
+
+window.handleAuthClick = (event)->
+  checkDriveAuth false
+  false
+
+checkDriveAuth = (immediate)->
+  console.log "AUTH"
+  try
+    gapi.auth.authorize({
+      client_id: '270759921607',
+      scope: [
+          'https://www.googleapis.com/auth/drive',
+          'https://www.googleapis.com/auth/drive.file',
+          'https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/drive.readonly.metadata',
+          'https://www.googleapis.com/auth/drive.metadata.readonly'
+        ].join(' '),
+      immediate: immediate
+    }, handleAuthResult);
+  catch err
+    finishAuth
+      status: 'failed'
+      err: err
+    console.log("Authentication not allowed by security")
+
+handleAuthResult = (authResult)->
+  authorizeButton = document.getElementById('authorize-button')
+  if !authResult
+    console.log("Not authenticated, yet -- creating button")
+    createAuthButton()
+  else
+    if authResult.error
+      console.log "Authentication failed: #{authResult.error}"
+      finishAuth
+        succeeded: false
+        err:authResult?.error
+    else
+      console.log "Authenticated"
+      finishAuth
+        succeeded: true
+        token: authResult.access_token
+
+createAuthButton = ->
+  if !auth.buttonDiv
+    auth.buttonDiv = document.createElement 'div'
+    auth.buttonDiv.setAttribute 'style', 'z-index: 1; position: absolute; left: 0; top: 0; width: 100%; height: 100%'
+    auth.buttonDiv.innerHTML = '<span>Would you like to authorize Leisure to create files and access them in a LeisureStorage directory in your Google drive?  <button onclick="handleAuthClick()">Yes</button> <button onclick="denyAuth()">No</button></span>'
+    document.body.insertBefore auth.buttonDiv, document.body.firstChild
+
+window.denyAuth = ->
+  finishAuth
+    succeeded: false
+    err: 'User denied authorization'
+
+finishAuth = (obj)->
+  if !auth.finished
+    replaceAuth obj
+    if obj.succeeded then initFileList -> cont() for cont in (auth.cont ? [])
+    else cont() for cont in (auth.cont ? [])
+
+replaceAuth = (obj)->
+  if auth.buttonDiv then document.body.removeChild auth.buttonDiv
+  obj.cont = (auth.cont ? []).concat (obj.cont ? [])
+  obj.finished = true
+  auth = obj
+
+makeLeisureDir = (cont)->
+  console.log "No LeisureStorage directory.  Creating one"
+  mkdir 'LeisureStorage', (json, raw)->
+    computePaths json
+    console.log "SETTING DIR TO #{json.id}"
+    leisureDir = json.id
+    console.log "CREATED DIR: #{raw}", json
+    cont()
+
+#
+# END OF AUTHENTICATAION CODE
+# 
+
+uploadTestFile = ->
+  json = JSON.stringify
+    mimeType: 'text/plain'
+    title: 'leisureUpload'
+  gapi.client.request(
+    'path': '/upload/drive/v1/files'
+    'method': 'POST'
+    'params': {'uploadType': 'multipart'}
+    'headers':
+      'Content-Type': 'multipart/mixed; boundary="END_OF_PART"'
+      'Authorization': 'Bearer ' + auth.token
+    'body': [
+      mimePart("END_OF_PART", "application/json", json),
+      mimePart("END_OF_PART", "text/plain", "a\nb\n"),
+      "\r\n--END_OF_PART--\r\n",
+    ].join('')
+  ).execute (file)-> document.getElementById("result").innerHTML = "Uploaded file: " + file
+
+mimePart = (boundary, mimeType, content)->
+  return [
+    "\r\n--", boundary, "\r\n",
+    "Content-Type: ", mimeType, "\r\n",
+    "Content-Length: ", content.length, "\r\n",
+    "\r\n",
+    content,
+  ].join('');
+
+DONE = 4
+
+readFile = (file, callback)->
+  if file.downloadUrl
+    console.log "File:", file
+    xhr = new XMLHttpRequest();
+    xhr.open 'GET', file.downloadUrl
+    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+    xhr.onreadystatechange = ->
+      if @readyState == DONE
+        console.log "XHR", xhr
+        if @status == 200 then callback null, xhr.responseText
+        else callback xhr
+    xhr.send();
+  else callback null
+
+writeFile = (name, contents, parents, callback)->
+  console.log "WRITE #{name}, parents:", JSON.stringify parents
+  json = JSON.stringify
+    mimeType: 'text/plain'
+    title: name
+    parents: parents ? []
+  gapi.client.request(
+    'path': '/upload/drive/v2/files?uploadType=multipart'
+    'method': 'POST'
+    'headers':
+      'Content-Type': 'multipart/mixed; boundary="END_OF_PART"'
+      'Authorization': 'Bearer ' + auth.token
+    'body': [
+      mimePart("END_OF_PART", "application/json", json),
+      mimePart("END_OF_PART", "text/plain", contents),
+      "\r\n--END_OF_PART--\r\n",
+    ].join('')).execute (json)->
+      if json then computePaths json
+      callback json
+
+updateFile = (file, contents, callback)->
+  gapi.client.request(
+    'path': "/upload/drive/v2/files/#{file.id}?uploadType=multipart&alt=json"
+    'method': 'PUT'
+    'headers':
+      'Content-Type': 'multipart/mixed; boundary="END_OF_PART"'
+      'Authorization': 'Bearer ' + auth.token
+    'body': [
+      mimePart("END_OF_PART", "application/json", JSON.stringify file),
+      mimePart("END_OF_PART", "text/plain", contents),
+      "\r\n--END_OF_PART--\r\n",
+    ].join('')).execute callback
+
+listFiles = (query, callback)->
+  if !callback
+    callback = query
+    q = ''
+  else q = "&q=#{encodeURIComponent query}"
+  (gapi.client.request
+    path: "/drive/v2/files?maxResults=10000#{q}"
+    method: 'GET').execute callback
+
+mkdir = (name, callback)->
+  (gapi.client.request
+    path: '/drive/v2/files'
+    method: 'POST'
+    headers:
+      'Authorization': 'Bearer ' + auth.token
+    body: JSON.stringify
+      title: name
+      parents: []
+      mimeType: "application/vnd.google-apps.folder").execute callback
 
 root.initStorage = initStorage

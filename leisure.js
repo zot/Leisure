@@ -433,7 +433,7 @@ misrepresented as being the original software.
     var argNames, code, jsCode, methodCode, n, res, type, _ref;
     ast.lits = [];
     res = [];
-    code = gen(ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true);
+    code = gen(ast, ast.leisurePrefixCount, ast, new Code().setDebug(debug).setGlobal(cons(name, globals != null ? globals : global.leisureFuncNames)), ast.lits, Nil, true, name, namespace, true, false);
     code = code.genTopLevelDebug(name, ast);
     if (code.err !== '') {
       ast.err = code.err;
@@ -726,13 +726,13 @@ misrepresented as being the original software.
     return forward[nameSub(name())] = true;
   };
 
-  compileNext = function compileNext(line, globals, parseOnly, check, nomacros, namespace, debug, auto) {
+  compileNext = function compileNext(line, globals, parseOnly, check, nomacros, namespace, debug) {
     var def, defType, err, errPrefix, leading, matched, name, nm, pfx, rest1, scannedDecl, typeAssertions, _ref;
     if (line[0] === '=') {
       rest1 = line.substring(1);
       return ifParsed((nomacros ? parse(rest1) : parseFull(rest1)), (function(ast, rest) {
         ast.leisureCodeOffset = 0;
-        return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug, auto);
+        return genCode(ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug);
       }), "Error compiling expr " + (snip(line)));
     } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
@@ -830,9 +830,9 @@ misrepresented as being the original software.
     return tok instanceof Leisure_token && tok.tok() === '::';
   };
 
-  genCode = function genCode(ast, name, globals, defType, rest, parseOnly, namespace, src, debug) {
+  genCode = function genCode(ast, name, globals, defType, rest, parseOnly, namespace, src, debug, auto) {
     if (!parseOnly) {
-      dgen(ast, false, name, globals, defType, namespace, src, debug);
+      dgen(ast, false, name, globals, defType, namespace, src, debug, auto);
     }
     if ((ast.err != null) && (name != null)) {
       ast.err = "Error while compiling " + name + ": " + ast.err;

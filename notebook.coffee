@@ -370,7 +370,6 @@ showSliderButton = (parent, pos)->
       [sParent, sPos, sValue] = slider
       if parent != sParent || pos != sPos || m[1] != sValue
         hideSlider()
-        console.log "Show slider: [#{pos},#{pos + len}]"
         r = makeRange parent, pos, pos + m[1].length
         span = createNode "<span class='leisureRangeNumber ui-widget-content'></span>"
         wrapRange r, span
@@ -388,7 +387,6 @@ isSlider = (el)->
   false
 
 createSlider = ->
-  console.log "create slider..."
   [parent, pos, value, span, div] = slider
   if div then return
   d = createNode "<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider></div>"
@@ -404,10 +402,8 @@ createSlider = ->
     start: -> delay -> allowEvents = false
     stop: (event, ui)->
       setMinMax sl
-      console.log "STOP"
       allowEvents = true
     slide: (event, ui)->
-      console.log "Slider: ", sl
       span.firstChild.nodeValue = String(ui.value)
       if isDef parent
         parent.ast = null
@@ -429,7 +425,6 @@ psgn = (x)-> if x < 0 then -1 else 1
 
 setMinMax = (sl, value)->
   value = value || sl.slider("value")
-  console.log "VALUE: #{value}"
   #min = if value < 0 then value * 2 else value / 2
   min = 0
   max = if 1 <= Math.abs(value) < 50 or value == 0 then 100 * psgn(value) else value * 2
@@ -439,14 +434,12 @@ setMinMax = (sl, value)->
     step = step - step % (max - min)
   else
     step = (max - min) / 100
-  console.log "<#{min}, #{value}, #{max}>"
   sl.slider "option", "min", min
   sl.slider "option", "max", max
   sl.slider "option", "step", step
 
 hideSlider = ->
   if slider.length
-    console.log "Hide old slider"
     [parent, sPos, sValue, span, div] = slider
     unwrap span
     if div then remove div
@@ -478,7 +471,6 @@ checkMutateFromModification = (evt)->
   b = getBox evt.target
   b2 = getBox window.getSelection().focusNode
   if b and b == b2
-    console.log "MUTATE"
     if (isDef b) and b.classList.contains('codeMainExpr') then toDefBox b
     else if !(isDef b) and b.classList.contains('codeMain') then toExprBox b
     replicate b
@@ -535,7 +527,6 @@ showAst = (box)->
     node.setAttribute 'leisureOutput', ''
     box.parentNode.insertBefore node, box.nextSibling
     node.textContent = "#@update sel-#{name}\ntreeForNotebook #{name}"
-    console.log "SVG EVENT: #{node.textContent}"
     output = makeOutputBox node
     toggleEdit output
     evalOutput output, true
@@ -543,7 +534,6 @@ showAst = (box)->
 highlightNotebookFunction = (funcName, start, stop)->
   box = document.body.querySelector "[leisurefunc=#{funcName}]"
   offset = getAst(box).leisureCodeOffset ? 0
-  console.log "select #{start}-#{stop}"
   sel = window.getSelection()
   sel.removeAllRanges()
   sel.addRange makeRange box, start + offset, stop + offset
@@ -963,7 +953,6 @@ clickTest = (bx)->
 
 runTest = (bx)->
   test = bx.test
-  #console.log "RUNNING:\n #{test.expr}\nRESULT:\n #{test.result}"
   passed = true
   processLine(prepExpr(test.expr), (
     require: req
@@ -994,7 +983,7 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
-  Prim.initFileSettings
+  env = Prim.initFileSettings
     debug: debug
     finishedEvent: (evt, channel)->update(channel ? 'app', this)
     owner: owner(box)
@@ -1013,6 +1002,9 @@ envFor = (box)->
       btn = box.querySelector '[leisureId="makeTestCase"]'
       if btn then remove btn
       @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack ? ast.err}"
+  env.__proto__ = Prim.defaultEnv
+  env.fileSettings.uri = new Prim.URI document.location.href
+  env
 
 leisureContextString = (err)-> (linkSource func, offset for [func, offset] in err.leisureContext.toArray()).join('\n')
 
@@ -1226,7 +1218,6 @@ focusBox = (box)->
     old = codeFocus
     codeFocus = newCode
     if old then acceptCode old
-    #if newCode then console.log "Code box gained focus: #{newCode}"
 
 owner = (box)->
   while box and (box.nodeType != 1 or !isLeisureCode box)
@@ -1253,7 +1244,6 @@ evalDoc = (el)->
         evalDocCode el, pgm
         if el.autorunState then runTests el
       e = envFor(el)
-      console.log "ENV DEBUG: #{e.debug}"
       e.write = ->
       e.processError = (ast)->alert('bubba ' + ReplCore.errString ast.err)
       processLine(auto, e, 'Parse.')
@@ -1269,7 +1259,7 @@ showError = (e, msg)->
   console.log e.stack
   alert(e.stack)
 
-evalDocCode = (el, pgm)->
+evalDocCodeOld = (el, pgm)->
   ReplCore.generateCode '_doc', pgm, false, false, false, null, debug, false, (code)->
     try
       defs = Leisure.eval(code, global)
@@ -1277,6 +1267,11 @@ evalDocCode = (el, pgm)->
       showError err, "Error evaluating JS code: #{code}"
       throw err
     Leisure.processDefs(defs)
+    for node in el.querySelectorAll '[codeMain]'
+      getAst node
+
+evalDocCode = (el, pgm)->
+  ReplCore.generateCode '_doc', pgm, false, false, false, null, debug, true, (code)->
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 

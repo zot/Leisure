@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, replicate, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, showAst, showError, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, replicate, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, showAst, showError, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -574,7 +574,6 @@
         sParent = slider[0], sPos = slider[1], sValue = slider[2];
         if (parent !== sParent || pos !== sPos || m[1] !== sValue) {
           hideSlider();
-          console.log("Show slider: [" + pos + "," + (pos + len) + "]");
           r = makeRange(parent, pos, pos + m[1].length);
           span = createNode("<span class='leisureRangeNumber ui-widget-content'></span>");
           wrapRange(r, span);
@@ -600,7 +599,6 @@
 
   createSlider = function createSlider() {
     var d, div, max, min, parent, pos, sl, span, value;
-    console.log("create slider...");
     parent = slider[0], pos = slider[1], value = slider[2], span = slider[3], div = slider[4];
     if (div) return;
     d = createNode("<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider></div>");
@@ -620,12 +618,10 @@
       },
       stop: function stop(event, ui) {
         setMinMax(sl);
-        console.log("STOP");
         return allowEvents = true;
       },
       slide: function slide(event, ui) {
         var ast;
-        console.log("Slider: ", sl);
         span.firstChild.nodeValue = String(ui.value);
         if (isDef(parent)) {
           parent.ast = null;
@@ -659,7 +655,6 @@
   setMinMax = function setMinMax(sl, value) {
     var max, min, step, _ref2;
     value = value || sl.slider("value");
-    console.log("VALUE: " + value);
     min = 0;
     max = (1 <= (_ref2 = Math.abs(value)) && _ref2 < 50) || value === 0 ? 100 * psgn(value) : value * 2;
     if (Math.round(value) === value) {
@@ -668,7 +663,6 @@
     } else {
       step = (max - min) / 100;
     }
-    console.log("<" + min + ", " + value + ", " + max + ">");
     sl.slider("option", "min", min);
     sl.slider("option", "max", max);
     return sl.slider("option", "step", step);
@@ -677,7 +671,6 @@
   hideSlider = function hideSlider() {
     var div, parent, sPos, sValue, span;
     if (slider.length) {
-      console.log("Hide old slider");
       parent = slider[0], sPos = slider[1], sValue = slider[2], span = slider[3], div = slider[4];
       unwrap(span);
       if (div) remove(div);
@@ -721,7 +714,6 @@
     b = getBox(evt.target);
     b2 = getBox(window.getSelection().focusNode);
     if (b && b === b2) {
-      console.log("MUTATE");
       if ((isDef(b)) && b.classList.contains('codeMainExpr')) {
         toDefBox(b);
       } else if (!(isDef(b)) && b.classList.contains('codeMain')) {
@@ -821,7 +813,6 @@
       node.setAttribute('leisureOutput', '');
       box.parentNode.insertBefore(node, box.nextSibling);
       node.textContent = "#@update sel-" + name + "\ntreeForNotebook " + name;
-      console.log("SVG EVENT: " + node.textContent);
       output = makeOutputBox(node);
       toggleEdit(output);
       return evalOutput(output, true);
@@ -832,7 +823,6 @@
     var box, offset, sel, _ref2;
     box = document.body.querySelector("[leisurefunc=" + funcName + "]");
     offset = (_ref2 = getAst(box).leisureCodeOffset) != null ? _ref2 : 0;
-    console.log("select " + start + "-" + stop);
     sel = window.getSelection();
     sel.removeAllRanges();
     return sel.addRange(makeRange(box, start + offset, stop + offset));
@@ -1471,9 +1461,9 @@
   };
 
   envFor = function envFor(box) {
-    var exBox;
+    var env, exBox;
     exBox = getBox(box);
-    return Prim.initFileSettings({
+    env = Prim.initFileSettings({
       debug: debug,
       finishedEvent: function finishedEvent(evt, channel) {
         return update(channel != null ? channel : 'app', this);
@@ -1502,6 +1492,9 @@
         return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref2 = ast.err.stack) != null ? _ref2 : ast.err));
       }
     });
+    env.__proto__ = Prim.defaultEnv;
+    env.fileSettings.uri = new Prim.URI(document.location.href);
+    return env;
   };
 
   leisureContextString = function leisureContextString(err) {
@@ -1866,7 +1859,6 @@
           if (el.autorunState) return runTests(el);
         });
         e = envFor(el);
-        console.log("ENV DEBUG: " + e.debug);
         e.write = function write() {};
         e.processError = function processError(ast) {
           return alert('bubba ' + ReplCore.errString(ast.err));
@@ -1895,7 +1887,7 @@
     return alert(e.stack);
   };
 
-  evalDocCode = function evalDocCode(el, pgm) {
+  evalDocCodeOld = function evalDocCodeOld(el, pgm) {
     return ReplCore.generateCode('_doc', pgm, false, false, false, null, debug, false, function(code) {
       var defs, node, _i, _len, _ref2, _results;
       try {
@@ -1905,6 +1897,19 @@
         throw err;
       }
       Leisure.processDefs(defs);
+      _ref2 = el.querySelectorAll('[codeMain]');
+      _results = [];
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        node = _ref2[_i];
+        _results.push(getAst(node));
+      }
+      return _results;
+    });
+  };
+
+  evalDocCode = function evalDocCode(el, pgm) {
+    return ReplCore.generateCode('_doc', pgm, false, false, false, null, debug, true, function(code) {
+      var node, _i, _len, _ref2, _results;
       _ref2 = el.querySelectorAll('[codeMain]');
       _results = [];
       for (_i = 0, _len = _ref2.length; _i < _len; _i++) {

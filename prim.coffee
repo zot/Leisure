@@ -13,7 +13,7 @@ if window?
       output.lastChild.scrollIntoView()
     else console.log msg
   defaultEnv.prompt = (msg, cont)-> cont window.prompt(msg)
-  window.Prim = root = {}
+  window.Prim = root = window.Prim ? {}
   Leisure = window.Leisure
   Parse = window.Parse
   Notebook = window.Notebook
@@ -220,6 +220,59 @@ define 'fdump', ->(file)->
       console.log data.toString()
       cont()
 
+isStorageUri = (uri)-> uri.scheme in (Notebook?.xusServer?.varStorage.values['leisure/storage'] ? [])
+
+class URIHandler
+  constructor: (@label)->
+  read: (uri, cont, errHandler, next)-> errHandler new Error "Read not currently supported for #{@label} uris"
+  write: (uri, data, cont, errHandler)-> errHandler new Error "Write not currently supported for #{@label} uris"
+
+baseHandler = new URIHandler('base')
+
+uriHandlers = {}
+
+newUriHandler = (label, obj)->
+  obj.__proto__ = baseHandler
+  obj.label = label
+  uriHandlers[label] = obj
+
+newUriHandler 'err',
+  read: (uri, cont, errHandler, next)-> errHandler new Error "No uri handler for #{uri.scheme} uris"
+  write: (uri, data, cont, errHandler)-> errHandler new Error "No uri handler for #{uri.scheme} uris"
+
+newUriHandler 'http',
+  read: (uri, cont, errHandler, next)->
+    if window?
+      jQuery.ajax uri.toString(),
+        success: (data)-> cont data
+        error: -> next()
+        dataType: 'text'
+    else (http.get uri.toString(), (data)-> loadSource uri, data, cont, errHandler).on 'error', next
+
+newUriHandler 'xus',
+  read: (uri, cont, err, next)->
+    f = "peer/#{uri.scheme}/public/storage#{uri.path}"
+    Notebook.peer.value f, null, false, ([x1, x2, x3, x4, x5, data])->
+      if data then cont data else next()
+  write: (uri, data, cont, err, next)-> Notebook.peer.set "peer/#{uri.scheme}/public/storage#{uri.path}", data.toString()
+
+newUriHandler 'file',
+  read: (uri, cont, err, next)->
+    fs.stat uri.path, (e)->
+      if e then next()
+      else fs.readFile uri.path, (e2, data)->
+        if e2 then err e2 else cont data
+  write: (uri, data, cont, err)->
+    parent = new URI("#{uri}/..").path
+    fs.stat parent, (e)->
+      if e then err new Error "Parent directory of #{uri} does not exist"
+      else fs.writeFile uri.path, data, (e2)->
+        if e2 then err e2 else cont()
+
+uriHandlerFor = (uri)-> if isStorageUri uri then uriHandlers.xus else uriHandlers[uri.scheme] ? uriHandlers.err
+
+if window? then uriHandlers.file = new URIHandler 'file'
+
 loadSource = (uri, data, cont, err)->
   try
     if uri.path.match /\.lmd$|\.lsr$/
@@ -231,82 +284,67 @@ loadSource = (uri, data, cont, err)->
     global.ERR = e
     err e, cont
 
-loadHTTP = (uri, cont, errHandler, next)->
-  if window?
-    jQuery.ajax uri.toString(),
-      success: (data)-> loadSource uri, data, cont, errHandler
-      error: -> next()
-      dataType: 'text'
-  else (http.get uri.toString(), (data)-> loadSource uri, data, cont, errHandler).on 'error', next
+read = (uri, cont, err)-> uriHandlerFor(uri).read uri, cont, err, -> err new Error("File not found: #{uri}")
 
-isStorageUri = (uri)-> uri.scheme in (Notebook?.xusServer?.varStorage.values['leisure/storage'] ? [])
+write = (uri, data, cont, err)-> uriHandlerFor(uri).write uri, data, cont, err
 
-loadXus = (uri, cont, err)->
-  f = "peer/#{uri.scheme}/public/storage#{uri.path}"
-  Notebook.peer.value f, null, false, ([x1, x2, x3, x4, x5, data])->
-    if data then loadSource uri, data, cont, err else cont null
+tryRead = (label, choices, handler, cont, err)->
+  if !choices.length then err new Error "No loadable file found for #{label}"
+  else handler.read choices[0], ((data)-> cont choices[0], data), err, ->
+    tryRead label, choices[1..], handler, cont, err
 
-loadFile = (uri, cont, err, next)->
-  fs.stat uri.path, (e)->
-    if e then next()
-    else fs.readFile uri.path, (e2, data)->
-      if e2 then err e2
-      else loadSource uri, data.toString(), cont, err
+baseUriPat = /^(.*\/[^/]*)\.[^/.]*$/
 
-loadErr = (uri, cont, err, next)-> err new Error "No load handler for this uri, " + uri
+sourceChoices = (uri)->
+  if m = uri.toString().match baseUriPat then [uri]
+  else
+    prefix = uri.toString()
+    new URI(prefix + ending) for ending in ['.js', '.lmd', '.lsr']
 
-tryLoad = (endings, loadFunc, uri, cont, err)->
-  if !endings.length then err new Error "No loadable file found for #{uri}"
-  else loadFunc (uri.relative "#{uri.path}.#{endings[0]}"), cont, err, ->
-    tryLoad endings[1..], loadFunc, uri, cont, err
-  
-uriHandlerFor = (uri)-> if isStorageUri uri then loadXus else uriHandlers[uri.scheme] ? loadErr
+loadFile = (uri, cont, err)->
+  tryRead uri, sourceChoices(uri), (uriHandlerFor uri), ((chosenUri, data)->
+    loadSource chosenUri, data, cont, err), err
 
-load = (uri, cont, err)->
-  if m = uri.path.match /$(.*\/[^/]*)\.([^/]*)$/
-    uri = m[1]
-    endings = [m[2]]
-  else endings = ['js', 'lmd', 'lsr']
-  if !required[uri.toString()]
-    console.log "LOADING #{uri}..."
-    required[uri.toString()] = true
-    tryLoad endings, (uriHandlerFor uri), uri, cont, err
-  else cont null
-
-uriHandlers =
-  http: loadHTTP
-
-if !window? then uriHandlers.file = loadFile
-
-primRequire = ->(file)->
+define 'load', ->(file)->
   makeMonad (env, cont)->
+    uri = env.fileSettings.uri.relative file()
     fileSettings = env.fileSettings
     initFileSettings env
-    env.require file(), (monad)->
-      if monad instanceof Monad
-        runMonad monad, env, ->
-          env.fileSettings = fileSettings
-          cont()
-      else
-        env.fileSettings = fileSettings
-        cont()
-
-primRequire2 = ->(file)-> makeMonad (env, cont)->
-  uri = env.fileSettings.uri.relative file()
-  fileSettings = env.fileSettings
-  initFileSettings env
-  env.fileSettings.uri = uri
-  newCont = ->
-    env.fileSettings = fileSettings
-    cont()
-  load uri, ((monad)->
-    if monad instanceof Monad
-      runMonad monad, env, newCont
-    else newCont()), (err)->
-      console.log "ERROR: #{err.stack}"
+    env.fileSettings.uri = uri
+    newCont = ->
       env.fileSettings = fileSettings
+      cont()
+    loadFile uri, ((monad)->
+      if monad instanceof Monad
+        runMonad monad, env, newCont
+      else newCont()), (err)->
+        console.log "ERROR: #{err.stack}"
+        env.fileSettings = fileSettings
 
-define 'require', primRequire2
+requireFile = (uri, cont, err)->
+  uString = uri.toString()
+  baseUri = if m = uString.match baseUriPat then m[1] else uString
+  if !required[baseUri]
+    console.log "LOADING #{uri}..."
+    required[baseUri] = true
+    loadFile uri, cont, err
+  else cont()
+
+define 'require', ->(file)->
+  makeMonad (env, cont)->
+    uri = env.fileSettings.uri.relative file()
+    fileSettings = env.fileSettings
+    initFileSettings env
+    env.fileSettings.uri = uri
+    newCont = ->
+      env.fileSettings = fileSettings
+      cont()
+    requireFile uri, ((monad)->
+      if monad instanceof Monad
+        runMonad monad, env, newCont
+      else newCont()), (err)->
+        console.log "ERROR: #{err.stack}"
+        env.fileSettings = fileSettings
 
 urlPat = /^(([^:/]+):\/\/([^/]*))?(\/(.*?))?(\?.*?)?(#.*)?$/
 dotPat = /\/\.(?=\/|$)/g
@@ -316,8 +354,8 @@ class URI
   constructor: (src)->
     if match = src.match urlPat
       if match[2]
-        @scheme = match[2]
-        @host = match[3]
+        @scheme = match[2].toLowerCase()
+        @host = match[3].toLowerCase()
       @path = if match[5] then @normalize ((if @scheme then '/' else '') + match[5]).replace dotPat, '' else '/'
       @query = match[6] ? ''
       @fragment = match[7] ? ''
@@ -343,7 +381,7 @@ required = {}
 
 loading = (file)->
   file = file.replace /^(.*?)(\.lsr|\.lmd|)$/, '$1'
-  required[file.replace()] = true
+  if defaultEnv?.fileSettings?.uri then required[defaultEnv.fileSettings.uri.relative(file).toString()] = true
 
 runRequire = (file, cont)->
   if !required["file://#{file}"]
@@ -435,6 +473,14 @@ define 'setS', ->(state)->(value)->
     state().value = value()
     cont(_false())
 
+define 'read', ->(uri)->
+  makeMonad (env, cont)->
+    read new URI(uri()), ((data)-> cont _left()(laz data.toString())), (err)-> cont _right()(laz err.stack.toString())
+
+define 'write', ->(uri)->(data)->
+  makeMonad (env, cont)->
+    write new URI(uri()), data(), (-> cont _left()(laz "success")), (err)-> cont _right()(laz err.stack.toString())
+
 ################
 # BROWSER PRIMS
 ################
@@ -456,5 +502,6 @@ root.loading = loading
 root.initFileSettings = initFileSettings
 root.URI = URI
 root.Monad = Monad
+root.newUriHandler = newUriHandler
 
 if window? then window.leisureEvent = leisureEvent

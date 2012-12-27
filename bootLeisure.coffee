@@ -60,8 +60,9 @@ finishBoot = ->
   if window.leisureBoot? then bootFuncs.push window.leisureBoot
   while bootFuncs.length
     bootFuncs.shift()()
-  #Storage.start()
-  booted = true
+  window.GdriveStorage.initStorage ->
+    console.log "Finished initializing storage"
+    booted = true
 
 prepTools = ->
   div = document.createElement 'div'

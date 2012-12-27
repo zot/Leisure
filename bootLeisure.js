@@ -89,7 +89,10 @@
     while (bootFuncs.length) {
       bootFuncs.shift()();
     }
-    return booted = true;
+    return window.GdriveStorage.initStorage(function() {
+      console.log("Finished initializing storage");
+      return booted = true;
+    });
   };
 
   prepTools = function prepTools() {

@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, arrayRest, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, load, loadErr, loadFile, loadHTTP, loadSource, loadXus, loading, makeMonad, nextMonad, nextMonadOld, output, parentPat, path, primRequire, primRequire2, r, required, root, runMonad, runRequire, setTty, tail, throwError, tmpFalse, tryLoad, tty, uriHandlerFor, uriHandlers, urlPat, values, _ref,
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, parentPat, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, urlPat, values, write, _ref, _ref2,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   defaultEnv = {
@@ -24,11 +24,11 @@
     defaultEnv.prompt = function prompt(msg, cont) {
       return cont(window.prompt(msg));
     };
-    window.Prim = root = {};
+    window.Prim = root = (_ref = window.Prim) != null ? _ref : {};
     Leisure = window.Leisure;
     Parse = window.Parse;
     Notebook = window.Notebook;
-    ReplCore = window.ReplCore = (_ref = window.ReplCore) != null ? _ref : {};
+    ReplCore = window.ReplCore = (_ref2 = window.ReplCore) != null ? _ref2 : {};
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
     Parse = require('./parse');
@@ -82,8 +82,8 @@
   define('is', (function() {
     return function(value) {
       return function(type) {
-        var _ref2;
-        if (((_ref2 = value()) != null ? _ref2.type : void 0) === type().dataType) {
+        var _ref3;
+        if (((_ref3 = value()) != null ? _ref3.type : void 0) === type().dataType) {
           return _true();
         } else {
           return _false();
@@ -129,8 +129,8 @@
 
   define('parse', function() {
     return function(value) {
-      var ast, err, rest, _ref2;
-      _ref2 = Leisure.parseFull(value()), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+      var ast, err, rest, _ref3;
+      _ref3 = Leisure.parseFull(value()), ast = _ref3[0], err = _ref3[1], rest = _ref3[2];
       if (err != null) {
         return _right()(laz("Error: " + err));
       } else if (rest != null ? rest.trim() : void 0) {
@@ -425,12 +425,12 @@
     var cell;
     eventCont.push(cell = [false, null, cont]);
     return function(value) {
-      var cnt, ignore, val, _ref2;
+      var cnt, ignore, val, _ref3;
       cell[0] = true;
       cell[1] = value;
       while (eventCont.length && eventCont[eventCont.length - 1][0]) {
         try {
-          _ref2 = eventCont.pop(), ignore = _ref2[0], val = _ref2[1], cnt = _ref2[2];
+          _ref3 = eventCont.pop(), ignore = _ref3[0], val = _ref3[1], cnt = _ref3[2];
           cnt(val);
         } catch (err) {
           console.log("ERROR RUNNING MONAD: " + err.stack);
@@ -586,6 +586,135 @@
     };
   });
 
+  isStorageUri = function isStorageUri(uri) {
+    var _ref3, _ref4, _ref5;
+    return _ref3 = uri.scheme, __indexOf.call((_ref4 = Notebook != null ? (_ref5 = Notebook.xusServer) != null ? _ref5.varStorage.values['leisure/storage'] : void 0 : void 0) != null ? _ref4 : [], _ref3) >= 0;
+  };
+
+  URIHandler = (function() {
+
+    function URIHandler(label) {
+      this.label = label;
+    }
+
+    URIHandler.prototype.read = function read(uri, cont, errHandler, next) {
+      return errHandler(new Error("Read not currently supported for " + this.label + " uris"));
+    };
+
+    URIHandler.prototype.write = function write(uri, data, cont, errHandler) {
+      return errHandler(new Error("Write not currently supported for " + this.label + " uris"));
+    };
+
+    return URIHandler;
+
+  })();
+
+  baseHandler = new URIHandler('base');
+
+  uriHandlers = {};
+
+  newUriHandler = function newUriHandler(label, obj) {
+    obj.__proto__ = baseHandler;
+    obj.label = label;
+    return uriHandlers[label] = obj;
+  };
+
+  newUriHandler('err', {
+    read: function read(uri, cont, errHandler, next) {
+      return errHandler(new Error("No uri handler for " + uri.scheme + " uris"));
+    },
+    write: function write(uri, data, cont, errHandler) {
+      return errHandler(new Error("No uri handler for " + uri.scheme + " uris"));
+    }
+  });
+
+  newUriHandler('http', {
+    read: function read(uri, cont, errHandler, next) {
+      if (typeof window !== "undefined" && window !== null) {
+        return jQuery.ajax(uri.toString(), {
+          success: function success(data) {
+            return cont(data);
+          },
+          error: function error() {
+            return next();
+          },
+          dataType: 'text'
+        });
+      } else {
+        return (http.get(uri.toString(), function(data) {
+          return loadSource(uri, data, cont, errHandler);
+        })).on('error', next);
+      }
+    }
+  });
+
+  newUriHandler('xus', {
+    read: function read(uri, cont, err, next) {
+      var f;
+      f = "peer/" + uri.scheme + "/public/storage" + uri.path;
+      return Notebook.peer.value(f, null, false, function(_arg) {
+        var data, x1, x2, x3, x4, x5;
+        x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
+        if (data) {
+          return cont(data);
+        } else {
+          return next();
+        }
+      });
+    },
+    write: function write(uri, data, cont, err, next) {
+      return Notebook.peer.set("peer/" + uri.scheme + "/public/storage" + uri.path, data.toString());
+    }
+  });
+
+  newUriHandler('file', {
+    read: function read(uri, cont, err, next) {
+      return fs.stat(uri.path, function(e) {
+        if (e) {
+          return next();
+        } else {
+          return fs.readFile(uri.path, function(e2, data) {
+            if (e2) {
+              return err(e2);
+            } else {
+              return cont(data);
+            }
+          });
+        }
+      });
+    },
+    write: function write(uri, data, cont, err) {
+      var parent;
+      parent = new URI("" + uri + "/..").path;
+      return fs.stat(parent, function(e) {
+        if (e) {
+          return err(new Error("Parent directory of " + uri + " does not exist"));
+        } else {
+          return fs.writeFile(uri.path, data, function(e2) {
+            if (e2) {
+              return err(e2);
+            } else {
+              return cont();
+            }
+          });
+        }
+      });
+    }
+  });
+
+  uriHandlerFor = function uriHandlerFor(uri) {
+    var _ref3;
+    if (isStorageUri(uri)) {
+      return uriHandlers.xus;
+    } else {
+      return (_ref3 = uriHandlers[uri.scheme]) != null ? _ref3 : uriHandlers.err;
+    }
+  };
+
+  if (typeof window !== "undefined" && window !== null) {
+    uriHandlers.file = new URIHandler('file');
+  }
+
   loadSource = function loadSource(uri, data, cont, err) {
     try {
       if (uri.path.match(/\.lmd$|\.lsr$/)) {
@@ -602,129 +731,53 @@
     }
   };
 
-  loadHTTP = function loadHTTP(uri, cont, errHandler, next) {
-    if (typeof window !== "undefined" && window !== null) {
-      return jQuery.ajax(uri.toString(), {
-        success: function success(data) {
-          return loadSource(uri, data, cont, errHandler);
-        },
-        error: function error() {
-          return next();
-        },
-        dataType: 'text'
-      });
-    } else {
-      return (http.get(uri.toString(), function(data) {
-        return loadSource(uri, data, cont, errHandler);
-      })).on('error', next);
-    }
-  };
-
-  isStorageUri = function isStorageUri(uri) {
-    var _ref2, _ref3, _ref4;
-    return _ref2 = uri.scheme, __indexOf.call((_ref3 = Notebook != null ? (_ref4 = Notebook.xusServer) != null ? _ref4.varStorage.values['leisure/storage'] : void 0 : void 0) != null ? _ref3 : [], _ref2) >= 0;
-  };
-
-  loadXus = function loadXus(uri, cont, err) {
-    var f;
-    f = "peer/" + uri.scheme + "/public/storage" + uri.path;
-    return Notebook.peer.value(f, null, false, function(_arg) {
-      var data, x1, x2, x3, x4, x5;
-      x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
-      if (data) {
-        return loadSource(uri, data, cont, err);
-      } else {
-        return cont(null);
-      }
+  read = function read(uri, cont, err) {
+    return uriHandlerFor(uri).read(uri, cont, err, function() {
+      return err(new Error("File not found: " + uri));
     });
   };
 
-  loadFile = function loadFile(uri, cont, err, next) {
-    return fs.stat(uri.path, function(e) {
-      if (e) {
-        return next();
-      } else {
-        return fs.readFile(uri.path, function(e2, data) {
-          if (e2) {
-            return err(e2);
-          } else {
-            return loadSource(uri, data.toString(), cont, err);
-          }
-        });
+  write = function write(uri, data, cont, err) {
+    return uriHandlerFor(uri).write(uri, data, cont, err);
+  };
+
+  tryRead = function tryRead(label, choices, handler, cont, err) {
+    if (!choices.length) {
+      return err(new Error("No loadable file found for " + label));
+    } else {
+      return handler.read(choices[0], (function(data) {
+        return cont(choices[0], data);
+      }), err, function() {
+        return tryRead(label, choices.slice(1), handler, cont, err);
+      });
+    }
+  };
+
+  baseUriPat = /^(.*\/[^/]*)\.[^/.]*$/;
+
+  sourceChoices = function sourceChoices(uri) {
+    var ending, m, prefix, _i, _len, _ref3, _results;
+    if (m = uri.toString().match(baseUriPat)) {
+      return [uri];
+    } else {
+      prefix = uri.toString();
+      _ref3 = ['.js', '.lmd', '.lsr'];
+      _results = [];
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        ending = _ref3[_i];
+        _results.push(new URI(prefix + ending));
       }
-    });
-  };
-
-  loadErr = function loadErr(uri, cont, err, next) {
-    return err(new Error("No load handler for this uri, " + uri));
-  };
-
-  tryLoad = function tryLoad(endings, loadFunc, uri, cont, err) {
-    if (!endings.length) {
-      return err(new Error("No loadable file found for " + uri));
-    } else {
-      return loadFunc(uri.relative("" + uri.path + "." + endings[0]), cont, err, function() {
-        return tryLoad(endings.slice(1), loadFunc, uri, cont, err);
-      });
+      return _results;
     }
   };
 
-  uriHandlerFor = function uriHandlerFor(uri) {
-    var _ref2;
-    if (isStorageUri(uri)) {
-      return loadXus;
-    } else {
-      return (_ref2 = uriHandlers[uri.scheme]) != null ? _ref2 : loadErr;
-    }
+  loadFile = function loadFile(uri, cont, err) {
+    return tryRead(uri, sourceChoices(uri), uriHandlerFor(uri), (function(chosenUri, data) {
+      return loadSource(chosenUri, data, cont, err);
+    }), err);
   };
 
-  load = function load(uri, cont, err) {
-    var endings, m;
-    if (m = uri.path.match(/$(.*\/[^/]*)\.([^/]*)$/)) {
-      uri = m[1];
-      endings = [m[2]];
-    } else {
-      endings = ['js', 'lmd', 'lsr'];
-    }
-    if (!required[uri.toString()]) {
-      console.log("LOADING " + uri + "...");
-      required[uri.toString()] = true;
-      return tryLoad(endings, uriHandlerFor(uri), uri, cont, err);
-    } else {
-      return cont(null);
-    }
-  };
-
-  uriHandlers = {
-    http: loadHTTP
-  };
-
-  if (!(typeof window !== "undefined" && window !== null)) {
-    uriHandlers.file = loadFile;
-  }
-
-  primRequire = function primRequire() {
-    return function(file) {
-      return makeMonad(function(env, cont) {
-        var fileSettings;
-        fileSettings = env.fileSettings;
-        initFileSettings(env);
-        return env.require(file(), function(monad) {
-          if (monad instanceof Monad) {
-            return runMonad(monad, env, function() {
-              env.fileSettings = fileSettings;
-              return cont();
-            });
-          } else {
-            env.fileSettings = fileSettings;
-            return cont();
-          }
-        });
-      });
-    };
-  };
-
-  primRequire2 = function primRequire2() {
+  define('load', function() {
     return function(file) {
       return makeMonad(function(env, cont) {
         var fileSettings, newCont, uri;
@@ -736,7 +789,7 @@
           env.fileSettings = fileSettings;
           return cont();
         };
-        return load(uri, (function(monad) {
+        return loadFile(uri, (function(monad) {
           if (monad instanceof Monad) {
             return runMonad(monad, env, newCont);
           } else {
@@ -748,9 +801,46 @@
         });
       });
     };
+  });
+
+  requireFile = function requireFile(uri, cont, err) {
+    var baseUri, m, uString;
+    uString = uri.toString();
+    baseUri = (m = uString.match(baseUriPat)) ? m[1] : uString;
+    if (!required[baseUri]) {
+      console.log("LOADING " + uri + "...");
+      required[baseUri] = true;
+      return loadFile(uri, cont, err);
+    } else {
+      return cont();
+    }
   };
 
-  define('require', primRequire2);
+  define('require', function() {
+    return function(file) {
+      return makeMonad(function(env, cont) {
+        var fileSettings, newCont, uri;
+        uri = env.fileSettings.uri.relative(file());
+        fileSettings = env.fileSettings;
+        initFileSettings(env);
+        env.fileSettings.uri = uri;
+        newCont = function newCont() {
+          env.fileSettings = fileSettings;
+          return cont();
+        };
+        return requireFile(uri, (function(monad) {
+          if (monad instanceof Monad) {
+            return runMonad(monad, env, newCont);
+          } else {
+            return newCont();
+          }
+        }), function(err) {
+          console.log("ERROR: " + err.stack);
+          return env.fileSettings = fileSettings;
+        });
+      });
+    };
+  });
 
   urlPat = /^(([^:/]+):\/\/([^/]*))?(\/(.*?))?(\?.*?)?(#.*)?$/;
 
@@ -761,15 +851,15 @@
   URI = (function() {
 
     function URI(src) {
-      var match, _ref2, _ref3;
+      var match, _ref3, _ref4;
       if (match = src.match(urlPat)) {
         if (match[2]) {
-          this.scheme = match[2];
-          this.host = match[3];
+          this.scheme = match[2].toLowerCase();
+          this.host = match[3].toLowerCase();
         }
         this.path = match[5] ? this.normalize(((this.scheme ? '/' : '') + match[5]).replace(dotPat, '')) : '/';
-        this.query = (_ref2 = match[6]) != null ? _ref2 : '';
-        this.fragment = (_ref3 = match[7]) != null ? _ref3 : '';
+        this.query = (_ref3 = match[6]) != null ? _ref3 : '';
+        this.fragment = (_ref4 = match[7]) != null ? _ref4 : '';
       }
     }
 
@@ -807,8 +897,11 @@
   required = {};
 
   loading = function loading(file) {
+    var _ref3;
     file = file.replace(/^(.*?)(\.lsr|\.lmd|)$/, '$1');
-    return required[file.replace()] = true;
+    if (defaultEnv != null ? (_ref3 = defaultEnv.fileSettings) != null ? _ref3.uri : void 0 : void 0) {
+      return required[defaultEnv.fileSettings.uri.relative(file).toString()] = true;
+    }
   };
 
   runRequire = function runRequire(file, cont) {
@@ -973,8 +1066,8 @@
     return function(name) {
       return function(defaultValue) {
         return makeMonad(function(env, cont) {
-          var _ref2;
-          return cont((_ref2 = values[name()]) != null ? _ref2 : defaultValue());
+          var _ref3;
+          return cont((_ref3 = values[name()]) != null ? _ref3 : defaultValue());
         });
       };
     };
@@ -1026,6 +1119,32 @@
     };
   });
 
+  define('read', function() {
+    return function(uri) {
+      return makeMonad(function(env, cont) {
+        return read(new URI(uri()), (function(data) {
+          return cont(_left()(laz(data.toString())));
+        }), function(err) {
+          return cont(_right()(laz(err.stack.toString())));
+        });
+      });
+    };
+  });
+
+  define('write', function() {
+    return function(uri) {
+      return function(data) {
+        return makeMonad(function(env, cont) {
+          return write(new URI(uri()), data(), (function() {
+            return cont(_left()(laz("success")));
+          }), function(err) {
+            return cont(_right()(laz(err.stack.toString())));
+          });
+        });
+      };
+    };
+  });
+
   define('svgMeasureText', (function() {
     return function(text) {
       return Notebook != null ? Notebook.svgMeasureText(text) : void 0;
@@ -1063,6 +1182,8 @@
   root.URI = URI;
 
   root.Monad = Monad;
+
+  root.newUriHandler = newUriHandler;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;
