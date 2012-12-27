@@ -1,5 +1,5 @@
 (function() {
-  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, setLeisureDir, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -158,7 +158,7 @@
     auth.finished = true;
     if (auth.succeeded) {
       return listFiles("title = 'LeisureStorage'", function(json, files) {
-        var cont, file, id, isRoot, kind, parentLink, selfLink, _i, _j, _len, _len2, _ref5, _results;
+        var cont, dir, file, _i, _j, _len, _len2, _ref5, _results;
         if (!json) {
           return auth = {
             succeeded: false,
@@ -167,13 +167,13 @@
         } else if (json.items.length === 0) {
           return makeLeisureDir(c);
         } else {
-          leisureDir = null;
+          dir = null;
           _ref5 = json.items;
           for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
             file = _ref5[_i];
             if (!file.explicitlyTrashed) {
-              if (!leisureDir) {
-                leisureDir = file;
+              if (!dir) {
+                dir = file;
                 console.log(file);
               } else {
                 auth.succeeded = false;
@@ -183,8 +183,8 @@
               }
             }
           }
-          if (leisureDir) {
-            leisureDirParent = (kind = leisureDir.kind, id = leisureDir.id, selfLink = leisureDir.selfLink, parentLink = leisureDir.parentLink, isRoot = leisureDir.isRoot, leisureDir);
+          if (dir) {
+            setLeisureDir(dir);
             _results = [];
             for (_j = 0, _len2 = c.length; _j < _len2; _j++) {
               cont = c[_j];
@@ -206,11 +206,22 @@
     }
   };
 
+  setLeisureDir = function setLeisureDir(dir) {
+    leisureDir = dir;
+    return leisureDirParent = {
+      kind: dir.kind,
+      id: dir.id,
+      selfLink: dir.selfLink,
+      parentLink: dir.parentLink,
+      isRoot: dir.isRoot
+    };
+  };
+
   makeLeisureDir = function makeLeisureDir(conts) {
     console.log("No LeisureStorage directory.  Creating one");
     return mkdir('LeisureStorage', function(json, raw) {
-      var cont, id, isRoot, kind, parentLink, selfLink, _i, _len, _ref4, _results;
-      leisureDirParent = (_ref4 = leisureDir = json, kind = _ref4.kind, id = _ref4.id, selfLink = _ref4.selfLink, parentLink = _ref4.parentLink, isRoot = _ref4.isRoot, _ref4);
+      var cont, _i, _len, _results;
+      setLeisureDir(json);
       console.log("CREATED DIR: " + raw, json);
       _results = [];
       for (_i = 0, _len = conts.length; _i < _len; _i++) {
