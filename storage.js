@@ -21,7 +21,7 @@
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
           var files;
-          files = path2Ids["/LeisureStorage/" + uri.path];
+          files = path2Ids["/LeisureStorage" + uri.path];
           if (!files) {
             return next();
           } else if (files.length > 1) {
