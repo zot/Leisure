@@ -263,17 +263,13 @@
   };
 
   readFile = function readFile(file, callback) {
-    if (file.downloadUrl) {
-      return (gapi.client.request({
-        path: file.downloadUrl,
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + auth.token
-        }
-      })).execute(callback);
-    } else {
-      return callback(null);
-    }
+    return (gapi.client.request({
+      path: "/drive/v2/files/" + file.id,
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + auth.token
+      }
+    })).execute(callback);
   };
 
   writeFile = function writeFile(name, contents, parents, callback) {
