@@ -320,8 +320,8 @@
 
   updateFile = function updateFile(file, contents, callback) {
     return gapi.client.request({
-      'path': "/upload/drive/v2/files/" + file.id,
-      'method': 'POST',
+      'path': "/upload/drive/v2/files/" + file.id + "?uploadType=multipart&alt=json",
+      'method': 'PUT',
       'headers': {
         'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
         'Authorization': 'Bearer ' + auth.token
