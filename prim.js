@@ -592,10 +592,14 @@
   };
 
   tryRead = function tryRead(endings, handler, uri, cont, err) {
+    var newUri;
     if (!endings.length) {
       return err(new Error("No loadable file found for " + uri));
     } else {
-      return handler.read(uri.relative("" + uri.path + "." + endings[0]), cont, err, function() {
+      newUri = uri.relative("" + uri.path + "." + endings[0]);
+      return handler.read(newUri, (function(data) {
+        return cont(newUri, data);
+      }), err, function() {
         return tryRead(endings.slice(1), handler, uri, cont, err);
       });
     }
@@ -769,7 +773,7 @@
   };
 
   load = function load(uri, cont, err) {
-    return readSourceFile(uri, (function(data) {
+    return readSourceFile(uri, (function(uri, data) {
       return loadSource(uri, data, cont, err);
     }), err);
   };
