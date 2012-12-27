@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, parentPat, path, primRequire, primRequire2, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, urlPat, values, write, _ref, _ref2,
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, parentPat, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, urlPat, values, write, _ref, _ref2,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   defaultEnv = {
@@ -777,6 +777,32 @@
     }), err);
   };
 
+  define('load', function() {
+    return function(file) {
+      return makeMonad(function(env, cont) {
+        var fileSettings, newCont, uri;
+        uri = env.fileSettings.uri.relative(file());
+        fileSettings = env.fileSettings;
+        initFileSettings(env);
+        env.fileSettings.uri = uri;
+        newCont = function newCont() {
+          env.fileSettings = fileSettings;
+          return cont();
+        };
+        return loadFile(uri, (function(monad) {
+          if (monad instanceof Monad) {
+            return runMonad(monad, env, newCont);
+          } else {
+            return newCont();
+          }
+        }), function(err) {
+          console.log("ERROR: " + err.stack);
+          return env.fileSettings = fileSettings;
+        });
+      });
+    };
+  });
+
   requireFile = function requireFile(uri, cont, err) {
     var baseUri, m, uString;
     uString = uri.toString();
@@ -790,28 +816,7 @@
     }
   };
 
-  primRequire = function primRequire() {
-    return function(file) {
-      return makeMonad(function(env, cont) {
-        var fileSettings;
-        fileSettings = env.fileSettings;
-        initFileSettings(env);
-        return env.require(file(), function(monad) {
-          if (monad instanceof Monad) {
-            return runMonad(monad, env, function() {
-              env.fileSettings = fileSettings;
-              return cont();
-            });
-          } else {
-            env.fileSettings = fileSettings;
-            return cont();
-          }
-        });
-      });
-    };
-  };
-
-  primRequire2 = function primRequire2() {
+  define('require', function() {
     return function(file) {
       return makeMonad(function(env, cont) {
         var fileSettings, newCont, uri;
@@ -835,9 +840,7 @@
         });
       });
     };
-  };
-
-  define('require', primRequire2);
+  });
 
   urlPat = /^(([^:/]+):\/\/([^/]*))?(\/(.*?))?(\?.*?)?(#.*)?$/;
 
