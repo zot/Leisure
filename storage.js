@@ -27,7 +27,7 @@
           } else if (files.length > 1) {
             return err(new Error("More than one file for uri: " + uri));
           } else {
-            return readFile(json.items[0], function(err, result) {
+            return readFile(files[0], function(err, result) {
               if (!err) {
                 return cont(result);
               } else {
