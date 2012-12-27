@@ -1,5 +1,5 @@
 (function() {
-  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -146,6 +146,8 @@
     if (!auth.finished) return replaceAuth(obj);
   };
 
+  leisureDir = null;
+
   replaceAuth = function replaceAuth(obj) {
     var c, cont, _i, _len, _ref4, _results;
     if (auth.buttonDiv) document.body.removeChild(auth.buttonDiv);
@@ -154,7 +156,7 @@
     auth.finished = true;
     if (auth.succeeded) {
       return listFiles("title = 'LeisureStorage'", function(json, files) {
-        var cont, file, found, _i, _j, _len, _len2, _ref5, _results;
+        var cont, file, _i, _j, _len, _len2, _ref5, _results;
         if (!json) {
           return auth = {
             succeeded: false,
@@ -163,24 +165,31 @@
         } else if (json.items.length === 0) {
           return makeLeisureDir(c);
         } else {
-          found = false;
+          leisureDir = null;
           _ref5 = json.items;
           for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
             file = _ref5[_i];
             if (!file.explicitlyTrashed) {
-              found = true;
-              console.log(file);
+              if (!leisureDir) {
+                leisureDir = file;
+                console.log(file);
+              } else {
+                auth.succeeded = false;
+                ({
+                  error: "More than one LeisureStorage folder"
+                });
+              }
             }
           }
-          if (!found) {
-            return makeLeisureDir(c);
-          } else {
+          if (leisureDir) {
             _results = [];
             for (_j = 0, _len2 = c.length; _j < _len2; _j++) {
               cont = c[_j];
               _results.push(cont());
             }
             return _results;
+          } else {
+            return makeLeisureDir(c);
           }
         }
       });
@@ -198,7 +207,7 @@
     console.log("No LeisureStorage directory.  Creating one");
     return mkdir('LeisureStorage', function(json, raw) {
       var cont, _i, _len, _results;
-      console.log("CREATED DIR: " + raw);
+      console.log("CREATED DIR: " + raw, json);
       _results = [];
       for (_i = 0, _len = conts.length; _i < _len; _i++) {
         cont = conts[_i];
