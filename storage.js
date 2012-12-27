@@ -187,7 +187,7 @@
       },
       'headers': {
         'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + params.access_token
+        'Authorization': 'Bearer ' + auth.token
       },
       'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", "a\nb\n"), "\r\n--END_OF_PART--\r\n"].join('')
     }).execute(function(file) {
@@ -233,9 +233,9 @@
       },
       'headers': {
         'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + params.access_token
+        'Authorization': 'Bearer ' + auth.token
       },
-      'body': [mimePart("END_OF_PART", "application/json", json), "\r\n--END_OF_PART--\r\n"].join('')
+      'body': [mimePart("END_OF_PART", "application/json", '""'), "\r\n--END_OF_PART--\r\n"].join('')
     }).execute(callback);
   };
 
