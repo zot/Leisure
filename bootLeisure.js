@@ -48,18 +48,20 @@
       document.head.appendChild(style);
     }
     return loadThen(['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'md', 'maps', 'svg', 'parseAst'], function() {
-      if (typeof window.leisureFirst === "function") window.leisureFirst();
-      window.Leisure.restoreAutosave = restoreAutosave;
-      window.Leisure.backupAutosave = backupAutosave;
-      window.Leisure.deleteAutosave = deleteAutosave;
-      Repl.init();
-      return bootFs(function() {
-        Notebook.bootNotebook();
-        if (window.leisurePrep != null) {
-          return callPrepCode(window.leisurePrep, 0, finishBoot);
-        } else {
-          return finishBoot();
-        }
+      return window.GdriveStorage.initStorage(function() {
+        if (typeof window.leisureFirst === "function") window.leisureFirst();
+        window.Leisure.restoreAutosave = restoreAutosave;
+        window.Leisure.backupAutosave = backupAutosave;
+        window.Leisure.deleteAutosave = deleteAutosave;
+        Repl.init();
+        return bootFs(function() {
+          Notebook.bootNotebook();
+          if (window.leisurePrep != null) {
+            return callPrepCode(window.leisurePrep, 0, finishBoot);
+          } else {
+            return finishBoot();
+          }
+        });
       });
     });
   };
@@ -75,24 +77,22 @@
   };
 
   finishBoot = function finishBoot() {
-    return window.GdriveStorage.initStorage(function() {
-      var node, _i, _len, _ref;
-      console.log("Finished initializing storage");
-      _ref = document.querySelectorAll("[leisurenode='code']");
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        node = _ref[_i];
-        node.setAttribute('contentEditable', 'true');
-        Notebook.bindNotebook(node);
-        Notebook.changeTheme(node, 'thin');
-        Notebook.evalDoc(node);
-      }
-      checkBackup();
-      if (window.leisureBoot != null) bootFuncs.push(window.leisureBoot);
-      while (bootFuncs.length) {
-        bootFuncs.shift()();
-      }
-      return booted = true;
-    });
+    var node, _i, _len, _ref;
+    console.log("Finished initializing storage");
+    _ref = document.querySelectorAll("[leisurenode='code']");
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      node.setAttribute('contentEditable', 'true');
+      Notebook.bindNotebook(node);
+      Notebook.changeTheme(node, 'thin');
+      Notebook.evalDoc(node);
+    }
+    checkBackup();
+    if (window.leisureBoot != null) bootFuncs.push(window.leisureBoot);
+    while (bootFuncs.length) {
+      bootFuncs.shift()();
+    }
+    return booted = true;
   };
 
   prepTools = function prepTools() {

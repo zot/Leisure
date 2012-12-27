@@ -900,7 +900,7 @@
         for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
           param = _ref3[_i];
           _ref4 = param.match(/^([^=]+)=(.*)$/), m = _ref4[0], key = _ref4[1], value = _ref4[2];
-          params[key] = value;
+          params[key] = decodeURIComponent(value);
         }
         return params;
       }
