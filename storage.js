@@ -40,7 +40,7 @@
       write: function write(uri, data, cont, err) {
         return initGdrive(function() {
           var files;
-          files = path2Ids[uri.path];
+          files = path2Ids["/LeisureStorage" + uri.path];
           if (!files) {
             return writeFile(uri.path.substring(1), data, [
               {
