@@ -2243,4 +2243,6 @@
 
   root.insertControls = insertControls;
 
+  root.delay = delay;
+
 }).call(this);

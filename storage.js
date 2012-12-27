@@ -77,6 +77,7 @@
       if (!ids || ids.length !== 1) {
         return document.body.innerHTML = "<h1>More than one file to open</h1>";
       } else {
+        document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
         return initGdrive(function() {
           var file;
           file = id2File[ids[0]];
@@ -86,15 +87,17 @@
             document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
             return readFile(file, function(err, text) {
               if (err) {
-                document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
-              } else {
+                return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
+              } else if (file.fileExtension === 'lsr') {
+                return document.body.innerHTML = "<h1>Error loading " + file.title + "; can't load *.lsr files, yet.</h1>";
+              } else if (file.fileExtension === 'lmd') {
                 document.body.innerHTML = "<!--\n" + text + "\n-->";
-              }
-              if (file.fileExtension === 'lmd') {
                 window.leisureAutoRunAll = true;
-                window.markup();
+                return Notebook.delay(function() {
+                  window.markup();
+                  return callback();
+                });
               }
-              return callback();
             });
           }
         });
