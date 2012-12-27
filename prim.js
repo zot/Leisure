@@ -773,8 +773,8 @@
   };
 
   load = function load(uri, cont, err) {
-    return readSourceFile(uri, (function(uri, data) {
-      return loadSource(uri, data, cont, err);
+    return readSourceFile(uri, (function(uri2, data) {
+      return loadSource(uri2, data, cont, err);
     }), err);
   };
 
