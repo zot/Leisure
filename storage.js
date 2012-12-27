@@ -142,7 +142,7 @@
             item = _ref5[_j];
             computePaths(item);
           }
-          for (key in paths2Ids) {
+          for (key in path2Ids) {
             names = key;
           }
           names.sort();
