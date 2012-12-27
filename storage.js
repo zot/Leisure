@@ -56,7 +56,7 @@
           } else if ((files != null ? files.length : void 0) > 1) {
             return err(new Error("More than one file for uri: " + uri));
           } else {
-            return updateFile(files[0], data, function(json) {
+            return updateFile(id2File[files[0]], data, function(json) {
               if (json) {
                 return cont();
               } else {
