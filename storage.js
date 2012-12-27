@@ -247,6 +247,7 @@
   };
 
   finishAuth = function finishAuth(obj) {
+    var cont, _i, _len, _ref4, _ref5, _results;
     if (!auth.finished) {
       replaceAuth(obj);
       if (obj.succeeded) {
@@ -260,6 +261,14 @@
           }
           return _results;
         });
+      } else {
+        _ref5 = (_ref4 = auth.cont) != null ? _ref4 : [];
+        _results = [];
+        for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+          cont = _ref5[_i];
+          _results.push(cont());
+        }
+        return _results;
       }
     }
   };
