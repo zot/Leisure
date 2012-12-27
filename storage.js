@@ -273,6 +273,7 @@
       xhr.setRequestHeader('Authorization', 'OAuth ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
         if (this.readyState === DONE) {
+          console.log("XHR", xhr);
           if (this.status === 200) {
             return callback(null, xhr.responseText);
           } else {
