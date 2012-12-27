@@ -271,8 +271,8 @@
       xhr.open('GET', file.downloadUrl);
       xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
-        if (xhr.readyState === DONE) {
-          if (xhr.status === 200) {
+        if (this.readyState === DONE) {
+          if (this.status === 200) {
             return callback(null, xhr.responseText);
           } else {
             return callback(xhr);
