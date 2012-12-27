@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, setLeisureDir, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, ids2Files, ids2Paths, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, paths2Ids, readFile, replaceAuth, root, setLeisureDir, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -68,6 +68,48 @@
     return callback();
   };
 
+  ids2Paths = {};
+
+  paths2Ids = {};
+
+  ids2Files = {};
+
+  addPath = function addPath(id, path) {
+    if (paths2Ids[path]) {
+      paths2Ids[path].push(id);
+    } else {
+      paths2Ids[path] = [id];
+    }
+    if (ids2Paths[id]) {
+      return ids2Paths[id].push(path);
+    } else {
+      return ids2Paths[id] = [path];
+    }
+  };
+
+  computePaths = function computePaths(file) {
+    var parent, parentPath, _i, _j, _len, _len2, _ref4, _ref5;
+    if (pathsById[file.id]) {
+      return pathsById[file.id];
+    } else {
+      ids2Files[file.id] = file;
+      if (file.parents.length === 0) {
+        addPath(file.id, "/" + file.title);
+      } else {
+        _ref4 = file.parents;
+        for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+          parent = _ref4[_i];
+          _ref5 = computePaths(parent.id);
+          for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
+            parentPath = _ref5[_j];
+            addPath(file.id, "" + parentPath + "/" + file.title);
+          }
+        }
+      }
+      return ids2Paths[file.id];
+    }
+  };
+
   auth = {
     finished: false,
     succeeded: false,
@@ -85,7 +127,22 @@
     } else {
       auth.cont.push(function() {
         listFiles(function(json) {
-          return console.log("ALL FILES:", json);
+          var item, key, names, _i, _j, _len, _len2, _ref4, _ref5;
+          _ref4 = json.items;
+          for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+            item = _ref4[_i];
+            filesById[item.id] = item;
+          }
+          _ref5 = json.items;
+          for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
+            item = _ref5[_j];
+            computePaths(item);
+          }
+          for (key in paths2Ids) {
+            names = key;
+          }
+          names.sort();
+          return console.log("Names:", names);
         });
         return cont();
       });
