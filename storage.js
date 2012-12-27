@@ -226,7 +226,7 @@
     });
     xhr = new XMLHttpRequest();
     return gapi.client.request({
-      'path': '/upload/drive/v1/files',
+      'path': 'https://www.googleapis.com/drive/v2/files',
       'method': 'POST',
       'params': {
         'uploadType': 'multipart'
