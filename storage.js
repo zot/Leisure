@@ -360,7 +360,7 @@
       console.log("File:", file);
       xhr = new XMLHttpRequest();
       xhr.open('GET', file.downloadUrl);
-      xhr.setRequestHeader('Authorization', 'OAuth ' + auth.token);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
         if (this.readyState === DONE) {
           console.log("XHR", xhr);
@@ -393,7 +393,10 @@
         'Authorization': 'Bearer ' + auth.token
       },
       'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(callback);
+    }).execute(function(json) {
+      if (json) computePaths(json);
+      return callback(json);
+    });
   };
 
   updateFile = function updateFile(file, contents, callback) {
