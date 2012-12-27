@@ -37,9 +37,14 @@ do
 
 write 'googledrive:///test' 'bubba'
 
+write 'googledrive:///test.lsr' "write 'googledrive:///fred' 'duh'"
+
 do
   x <- read 'googledrive:///test'
   x (\d . print d) id
+
+require 'googledrive:///test'
+
 ```
 -->
 <script>start()</script>
