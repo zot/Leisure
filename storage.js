@@ -37,11 +37,7 @@
       },
       write: function write(uri, data, cont, err) {
         return initGdrive(function() {
-          return writeFile(uri.path.substring(1), data, [
-            {
-              id: leisureDir.id
-            }
-          ], function(json) {
+          return writeFile(uri.path.substring(1), data, [leisureDirParent], function(json) {
             if (json) {
               return cont();
             } else {
