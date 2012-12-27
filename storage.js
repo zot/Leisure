@@ -17,6 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
+    var code, state, _ref4;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -67,7 +68,15 @@
         });
       }
     });
-    return callback();
+    _ref4 = new URI(document.location.href).getSearchParams(), state = _ref4.state, code = _ref4.code;
+    if (state && code) {
+      document.body.innerHTML = "<h1>LOADING... <br>state = " + state + "<br>code = " + code + "</h1>";
+      return initGdrive(function() {
+        return callback();
+      });
+    } else {
+      return callback();
+    }
   };
 
   id2Paths = {};

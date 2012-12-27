@@ -75,22 +75,22 @@
   };
 
   finishBoot = function finishBoot() {
-    var node, _i, _len, _ref;
-    _ref = document.querySelectorAll("[leisurenode='code']");
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      node = _ref[_i];
-      node.setAttribute('contentEditable', 'true');
-      Notebook.bindNotebook(node);
-      Notebook.changeTheme(node, 'thin');
-      Notebook.evalDoc(node);
-    }
-    checkBackup();
-    if (window.leisureBoot != null) bootFuncs.push(window.leisureBoot);
-    while (bootFuncs.length) {
-      bootFuncs.shift()();
-    }
     return window.GdriveStorage.initStorage(function() {
+      var node, _i, _len, _ref;
       console.log("Finished initializing storage");
+      _ref = document.querySelectorAll("[leisurenode='code']");
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        node = _ref[_i];
+        node.setAttribute('contentEditable', 'true');
+        Notebook.bindNotebook(node);
+        Notebook.changeTheme(node, 'thin');
+        Notebook.evalDoc(node);
+      }
+      checkBackup();
+      if (window.leisureBoot != null) bootFuncs.push(window.leisureBoot);
+      while (bootFuncs.length) {
+        bootFuncs.shift()();
+      }
       return booted = true;
     });
   };

@@ -858,7 +858,7 @@
           this.host = match[3].toLowerCase();
         }
         this.path = match[5] ? this.normalize(((this.scheme ? '/' : '') + match[5]).replace(dotPat, '')) : '/';
-        this.query = (_ref3 = match[6]) != null ? _ref3 : '';
+        this.search = (_ref3 = match[6]) != null ? _ref3 : '';
         this.fragment = (_ref4 = match[7]) != null ? _ref4 : '';
       }
     }
@@ -888,6 +888,21 @@
 
     URI.prototype.toString = function toString() {
       return (this.scheme ? "" + this.scheme + "://" + this.host : "") + this.path;
+    };
+
+    URI.prototype.getSearchParams = function getSearchParams() {
+      var m, param, params, _i, _len, _ref3, _ref4;
+      if (!this.search) {
+        return {};
+      } else {
+        params = {};
+        _ref3 = this.search.substring(1).split('&');
+        for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+          param = _ref3[_i];
+          _ref4 = param.match(/^([^=]+)=(.*)$/), m = _ref4[0], params.key = _ref4[1], params.value = _ref4[2];
+        }
+        return params;
+      }
     };
 
     return URI;
