@@ -22,15 +22,15 @@
         return initGdrive(function() {
           return listFiles("title = '" + (uri.path.substring(1)) + "'", function(json) {
             if ((json != null ? json.items.length : void 0) === 1) {
-              return readFile(json.items[0], function(result) {
-                if (result) {
-                  return cont();
+              return readFile(json.items[0], function(err, result) {
+                if (err) {
+                  return err(new Error("Error reading file " + uri + ": " + err.statusText));
                 } else {
-                  return err(new Error("File not found"));
+                  return cont(result);
                 }
               });
             } else {
-              return err(new Error("File not found"));
+              return err(new Error("File not found: " + uri));
             }
           });
         });
@@ -263,13 +263,31 @@
   };
 
   readFile = function readFile(file, callback) {
-    return (gapi.client.request({
-      path: "/drive/v2/files/" + file.id,
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + auth.token
-      }
-    })).execute(callback);
+    var xhr;
+    if (file.downloadUrl) {
+      xhr = new XMLHttpRequest();
+      xhr.open('GET', file.downloadUrl);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+      xhr.onreadystatechange = function onreadystatechange() {
+        if (xhr.readyState === DONE) {
+          if (xhr.status === 200) {
+            return callback(null, xhr.responseText);
+          } else {
+            return callback(xhr);
+          }
+        }
+      };
+      xhr.send();
+      return (gapi.client.request({
+        path: file.downloadUrl,
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + auth.token
+        }
+      })).execute(callback);
+    } else {
+      return callback(null);
+    }
   };
 
   writeFile = function writeFile(name, contents, parents, callback) {
