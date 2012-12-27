@@ -1,5 +1,5 @@
 (function() {
-  var Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, setLeisureDir, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, auth, checkDriveAuth, createAuthButton, finishAuth, handleAuthResult, initGdrive, initStorage, leisureDir, leisureDirParent, listFiles, makeLeisureDir, mimePart, mkdir, readFile, replaceAuth, root, setLeisureDir, uploadTestFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -262,6 +262,8 @@
     return ["\r\n--", boundary, "\r\n", "Content-Type: ", mimeType, "\r\n", "Content-Length: ", content.length, "\r\n", "\r\n", content].join('');
   };
 
+  DONE = 2;
+
   readFile = function readFile(file, callback) {
     var xhr;
     if (file.downloadUrl) {
@@ -277,14 +279,7 @@
           }
         }
       };
-      xhr.send();
-      return (gapi.client.request({
-        path: file.downloadUrl,
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + auth.token
-        }
-      })).execute(callback);
+      return xhr.send();
     } else {
       return callback(null);
     }

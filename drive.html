@@ -39,7 +39,7 @@ write 'googledrive:///test' 'bubba'
 
 do
   x <- read 'googledrive:///test'
-  print x
+  x (\d . print d) id
 ```
 -->
 <script>start()</script>
