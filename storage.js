@@ -266,10 +266,10 @@
 
   readFile = function readFile(file, callback) {
     var xhr;
-    if (file.downloadUrl) {
+    if (file.webContentLink) {
       console.log("File:", file);
       xhr = new XMLHttpRequest();
-      xhr.open('GET', file.downloadUrl);
+      xhr.open('GET', file.webContentLink);
       xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
         if (this.readyState === DONE) {
