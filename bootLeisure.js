@@ -24,7 +24,17 @@
   };
 
   bootLeisure = function bootLeisure() {
-    return loadThen(['uri'], bootLeisureCont);
+    return loadThen(['uri'], function() {
+      var state;
+      state = uri.getSearchParams().state;
+      if (state) {
+        uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
+        uri.search = null;
+        return document.location.href = uri.toString();
+      } else {
+        return bootLeisureCont();
+      }
+    });
   };
 
   bootLeisureCont = function bootLeisureCont() {
