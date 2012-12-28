@@ -66,6 +66,14 @@
       }
     };
 
+    URI.prototype.pathName = function pathName() {
+      return (this.path.match(/\/[^/]*$/))[0];
+    };
+
+    URI.prototype.pathParent = function pathParent() {
+      return (this.path.match(/^.*\/(?=[^/]*$)/))[0];
+    };
+
     return URI;
 
   })();

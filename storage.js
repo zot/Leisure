@@ -110,7 +110,7 @@
                 window.leisureAutoRunAll = true;
                 window.markup();
                 callback();
-                return Notebook.setFilename(filename);
+                return Notebook.setFilename("googledrive://" + filename);
               } else {
                 document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
                 return callback();
