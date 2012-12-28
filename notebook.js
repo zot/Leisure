@@ -2264,4 +2264,6 @@
 
   root.delay = delay;
 
+  root.setFilename = setFilename;
+
 }).call(this);
