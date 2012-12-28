@@ -67,9 +67,6 @@
     return loadThen(['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'md', 'maps', 'svg', 'parseAst'], function() {
       return window.GdriveStorage.initStorage(function() {
         if (typeof window.leisureFirst === "function") window.leisureFirst();
-        window.Leisure.restoreAutosave = restoreAutosave;
-        window.Leisure.backupAutosave = backupAutosave;
-        window.Leisure.deleteAutosave = deleteAutosave;
         Repl.init();
         return bootFs(function() {
           Notebook.bootNotebook();
