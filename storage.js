@@ -17,7 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, ids, lstate, _ref4;
+    var action, frag, ids, lstate, _ref4, _ref5;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -68,9 +68,10 @@
         });
       }
     });
-    lstate = new Prim.URI(document.location.href + Boot.documentFragment).getSearchParams().lstate;
+    frag = ((_ref4 = Boot.documentFragment) != null ? _ref4 : '#').substring(1);
+    lstate = new Prim.URI("" + document.location.href + "?" + frag).getSearchParams().lstate;
     if (lstate) {
-      _ref4 = JSON.parse(lstate), ids = _ref4.ids, action = _ref4.action;
+      _ref5 = JSON.parse(lstate), ids = _ref5.ids, action = _ref5.action;
       if (action !== "open") {
         document.body.innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
       }
@@ -86,14 +87,14 @@
           } else {
             document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
             return readFile(file, function(err, text) {
-              var filename, path, _i, _len, _ref5;
+              var filename, path, _i, _len, _ref6;
               if (err) {
                 return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
               } else if (file.fileExtension === 'lmd') {
                 if (id2Paths[file.id].length > 1) {
-                  _ref5 = id2Paths[file.id];
-                  for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-                    path = _ref5[_i];
+                  _ref6 = id2Paths[file.id];
+                  for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+                    path = _ref6[_i];
                     if (path.match('^/LeisureStorage/')) {
                       if (filename) {
                         document.body.innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
