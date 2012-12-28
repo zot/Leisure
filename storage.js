@@ -17,7 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, ids, lstate, uri, _ref4;
+    var action, ids, lstate, _ref4;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -68,8 +68,7 @@
         });
       }
     });
-    uri = new Prim.URI(document.location.href);
-    lstate = uri.getSearchParams().lstate;
+    lstate = new Prim.URI(document.location.href).getSearchParams().lstate;
     if (lstate) {
       _ref4 = JSON.parse(lstate), ids = _ref4.ids, action = _ref4.action;
       if (action !== "open") {
