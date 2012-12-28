@@ -31,7 +31,7 @@
       if (state) {
         uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
         uri.search = null;
-        window.open(uri.toString);
+        window.open(uri.toString());
         return window.setTimeout((function() {
           console.log("CLOSING WINDOW");
           window.open('', '_self', '');
