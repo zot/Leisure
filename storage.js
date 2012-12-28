@@ -17,7 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, frag, ids, lstate, _ref4, _ref5;
+    var action, frag, ids, state, _ref4, _ref5;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -69,9 +69,9 @@
       }
     });
     frag = ((_ref4 = Boot.documentFragment) != null ? _ref4 : '#').substring(1);
-    lstate = new Prim.URI("" + document.location.href + "?" + frag).getSearchParams().lstate;
-    if (lstate) {
-      _ref5 = JSON.parse(lstate), ids = _ref5.ids, action = _ref5.action;
+    state = new Prim.URI("" + document.location.href + "?" + frag).getSearchParams().state;
+    if (state) {
+      _ref5 = JSON.parse(state), ids = _ref5.ids, action = _ref5.action;
       if (action !== "open") {
         document.body.innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
       }
