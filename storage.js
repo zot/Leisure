@@ -386,7 +386,7 @@
     }
   };
 
-  writeFileOld = function writeFileOld(name, contents, parents, callback) {
+  writeFile = function writeFile(name, contents, parents, callback) {
     var json;
     console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
     json = JSON.stringify({
@@ -408,7 +408,7 @@
     });
   };
 
-  writeFile = function writeFile(name, contents, parents, callback) {
+  writeFileOld = function writeFileOld(name, contents, parents, callback) {
     var json, xhr;
     console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
     json = JSON.stringify({
