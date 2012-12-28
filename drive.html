@@ -27,7 +27,9 @@
 Drive tests
 
 ```
-write 'googledrive:///test.lmd' "```\nwrite 'googledrive:///fred' 'duh'\n```\n"
+do
+  write 'googledrive:///test.lmd' "```\ndo\n  write 'googledrive:///fred' 'duh'\n  print 'done'\n```\n"
+  print 'done'
 
 require 'googledrive:///test'
 
