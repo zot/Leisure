@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, updateFile, writeFileOld, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, updateFile, writeFile, writeFileOld, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -391,7 +391,7 @@
     });
   };
 
-  writeFileOld = function writeFileOld(name, contents, parents, callback) {
+  writeFile = function writeFile(name, contents, parents, callback) {
     var json;
     console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
     json = JSON.stringify({
