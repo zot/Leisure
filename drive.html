@@ -27,19 +27,7 @@
 Drive tests
 
 ```
-do
-  x <- read 'local-storage:///code'
-  x (\d . print d) id
-
-write 'googledrive:///test' 'bubba'
-
 write 'googledrive:///test.lmd' "```\nwrite 'googledrive:///fred' 'duh'\n```\n"
-
-write 'googledrive:///test.lsr' "write 'googledrive:///fred' 'duh'"
-
-do
-  x <- read 'googledrive:///test'
-  x (\d . print d) id
 
 require 'googledrive:///test'
 
