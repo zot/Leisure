@@ -267,7 +267,7 @@
           err: authResult != null ? authResult.error : void 0
         });
       } else {
-        console.log("Authenticated");
+        console.log("Authenticated: " + (JSON.stringify(authResult)));
         return finishAuth({
           succeeded: true,
           token: authResult.access_token
