@@ -4,12 +4,12 @@
 */
 
 (function() {
-  var Boot, Leisure, addHashResult, backupAutosave, bootFs, bootFsX, bootFuncs, bootLeisure, booted, callPrepCode, checkBackup, deleteAutosave, dirEntry, docs, evalDoc, fileSystem, finishBoot, fsSnapper, handleError, hashForDocs, initNotebookProperties, loadThen, nextNameNumber, prepTools, properties, propsEntry, readFile, restoreAutosave, showDialog, withDirHash, writeFile,
+  var Boot, Leisure, addHashResult, backupAutosave, bootFs, bootFsX, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, checkBackup, deleteAutosave, dirEntry, docs, evalDoc, fileSystem, finishBoot, fsSnapper, handleError, hashForDocs, initNotebookProperties, loadThen, nextNameNumber, prepTools, properties, propsEntry, readFile, restoreAutosave, showDialog, withDirHash, writeFile, _ref, _ref2,
     __slice = Array.prototype.slice;
 
-  Leisure = {};
+  Leisure = (_ref = window.Leisure) != null ? _ref : (window.Leisure = {});
 
-  window.Boot = Boot = {};
+  Boot = (_ref2 = window.Boot) != null ? _ref2 : (window.Boot = {});
 
   booted = false;
 
@@ -24,7 +24,11 @@
   };
 
   bootLeisure = function bootLeisure() {
-    var body, i, pre, style, _i, _len, _ref;
+    return loadThen(['uri'], bootLeisureCont);
+  };
+
+  bootLeisureCont = function bootLeisureCont() {
+    var body, i, pre, style, _i, _len, _ref3;
     body = document.body;
     if ('code' === body.getAttribute('leisureNode')) {
       pre = document.createElement('pre');
@@ -38,9 +42,9 @@
       body.removeAttribute('leisureNode');
     }
     window.removeEventListener('load', bootLeisure);
-    _ref = ['leisure', 'gaudy', 'thin', 'cthulhu'];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      i = _ref[_i];
+    _ref3 = ['leisure', 'gaudy', 'thin', 'cthulhu'];
+    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+      i = _ref3[_i];
       style = document.createElement('link');
       style.setAttribute('type', "text/css");
       style.setAttribute('rel', "stylesheet");
@@ -77,11 +81,11 @@
   };
 
   finishBoot = function finishBoot() {
-    var node, _i, _len, _ref;
+    var node, _i, _len, _ref3;
     console.log("Finished initializing storage");
-    _ref = document.querySelectorAll("[leisurenode='code']");
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      node = _ref[_i];
+    _ref3 = document.querySelectorAll("[leisurenode='code']");
+    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+      node = _ref3[_i];
       node.setAttribute('contentEditable', 'true');
       Notebook.bindNotebook(node);
       Notebook.changeTheme(node, 'thin');
@@ -165,12 +169,12 @@
   };
 
   evalDoc = function evalDoc() {
-    var doc, _i, _len, _ref, _results;
+    var doc, _i, _len, _ref3, _results;
     Repl.clearEnv();
-    _ref = document.querySelectorAll(".leisure-notebook");
+    _ref3 = document.querySelectorAll(".leisure-notebook");
     _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      doc = _ref[_i];
+    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+      doc = _ref3[_i];
       _results.push(Notebook.evalDoc(doc));
     }
     return _results;
@@ -307,16 +311,16 @@
   };
 
   hashForDocs = function hashForDocs() {
-    var k, keys, pgm, v, _i, _len, _ref;
+    var k, keys, pgm, v, _i, _len, _ref3;
     pgm = '';
     keys = [];
     for (v in docs) {
       k = docs[v];
       keys.push(k);
     }
-    _ref = keys.sort;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      k = _ref[_i];
+    _ref3 = keys.sort;
+    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+      k = _ref3[_i];
       pgm += (JSON.stringify(k)) + (JSON.stringify(docsObj[k]));
     }
     return Sha256.hash(pgm);
