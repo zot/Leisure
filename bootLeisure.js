@@ -99,7 +99,6 @@
       Notebook.changeTheme(node, 'thin');
       Notebook.evalDoc(node);
     }
-    checkBackup();
     if (window.leisureBoot != null) bootFuncs.push(window.leisureBoot);
     while (bootFuncs.length) {
       bootFuncs.shift()();
