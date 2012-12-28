@@ -68,7 +68,8 @@
         });
       }
     });
-    _ref4 = uri = new Prim.URI(document.location.href).getSearchParams(), state = _ref4.state, lstate = _ref4.lstate;
+    uri = new Prim.URI(document.location.href);
+    _ref4 = uri.getSearchParams(), state = _ref4.state, lstate = _ref4.lstate;
     if (state) {
       uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
       uri.search = null;
