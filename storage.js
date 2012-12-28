@@ -17,7 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, ids, locationUri, state, _ref4;
+    var action, ids, lstate, state, uri, _ref4, _ref5;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -68,9 +68,13 @@
         });
       }
     });
-    state = (locationUri = new Prim.URI(document.location.href).getSearchParams()).state;
+    _ref4 = uri = new Prim.URI(document.location.href).getSearchParams(), state = _ref4.state, lstate = _ref4.lstate;
     if (state) {
-      _ref4 = JSON.parse(state), ids = _ref4.ids, action = _ref4.action;
+      uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
+      uri.search = null;
+      return document.location.href = uri.toString();
+    } else if (lstate) {
+      _ref5 = JSON.parse(lstate), ids = _ref5.ids, action = _ref5.action;
       if (action !== "open") {
         document.body.innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
       }
@@ -414,7 +418,7 @@
   };
 
   updateFile = function updateFile(file, contents, callback) {
-    console.log("UPDATING " + name + ", parents:", JSON.stringify(parents));
+    console.log("UPDATING " + name + ", parents:", JSON.stringify(file.parents));
     return gapi.client.request({
       'path': "/upload/drive/v2/files/" + file.id + "?uploadType=multipart&alt=json",
       'method': 'PUT',
