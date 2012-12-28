@@ -68,14 +68,12 @@
       return window.GdriveStorage.initStorage(function() {
         if (typeof window.leisureFirst === "function") window.leisureFirst();
         Repl.init();
-        return bootFs(function() {
-          Notebook.bootNotebook();
-          if (window.leisurePrep != null) {
-            return callPrepCode(window.leisurePrep, 0, finishBoot);
-          } else {
-            return finishBoot();
-          }
-        });
+        Notebook.bootNotebook();
+        if (window.leisurePrep != null) {
+          return callPrepCode(window.leisurePrep, 0, finishBoot);
+        } else {
+          return finishBoot();
+        }
       });
     });
   };
