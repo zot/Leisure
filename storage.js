@@ -68,7 +68,7 @@
         });
       }
     });
-    lstate = new Prim.URI(document.location.href).getSearchParams().lstate;
+    lstate = new Prim.URI(document.location.href + Boot.documentFragment).getSearchParams().lstate;
     if (lstate) {
       _ref4 = JSON.parse(lstate), ids = _ref4.ids, action = _ref4.action;
       if (action !== "open") {
