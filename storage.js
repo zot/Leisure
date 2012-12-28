@@ -411,11 +411,16 @@
   writeFile = function writeFile(name, contents, parents, callback) {
     var json, xhr;
     console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
-    return json = JSON.stringify({
+    json = JSON.stringify({
       mimeType: 'text/plain',
       title: name,
       parents: parents != null ? parents : []
-    }, xhr = new XMLHttpRequest(), xhr.open('POST', 'https://www.googleapis.com/upload/drive/v2/files?uploadType=multipart'), xhr.setRequestHeader('Content-Type', 'text/plain'), xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token), xhr.onreadystatechange = function onreadystatechange() {
+    });
+    xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://www.googleapis.com/upload/drive/v2/files?uploadType=multipart');
+    xhr.setRequestHeader('Content-Type', 'text/plain');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+    xhr.onreadystatechange = function onreadystatechange() {
       if (this.readyState === DONE) {
         console.log("XHR", xhr);
         if (this.status === 200) {
@@ -424,7 +429,8 @@
           return callback(xhr);
         }
       }
-    }, xhr.send([mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')));
+    };
+    return xhr.send([mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join(''));
   };
 
   updateFile = function updateFile(file, contents, callback) {
