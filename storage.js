@@ -241,7 +241,7 @@
     try {
       return gapi.auth.authorize({
         client_id: '270759921607',
-        scope: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.install', 'https://www.googleapis.com/auth/userinfo.profile'].join(' '),
+        scope: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.install'].join(' '),
         immediate: immediate
       }, handleAuthResult);
     } catch (err) {
@@ -391,7 +391,7 @@
 
   writeFile = function writeFile(name, contents, parents, callback) {
     var json;
-    console.log("WRITE " + name + ", parents:", JSON.stringify(parents));
+    console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
     json = JSON.stringify({
       mimeType: 'text/plain',
       title: name,
@@ -412,6 +412,7 @@
   };
 
   updateFile = function updateFile(file, contents, callback) {
+    console.log("UPDATING " + name + ", parents:", JSON.stringify(parents));
     return gapi.client.request({
       'path': "/upload/drive/v2/files/" + file.id + "?uploadType=multipart&alt=json",
       'method': 'PUT',
