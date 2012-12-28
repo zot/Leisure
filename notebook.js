@@ -129,9 +129,9 @@
     peer.set('leisure/document', peerGetDocument);
     peer.set('leisure/functions', peerGetFunctions);
     peer.set('leisure/storage', []);
-    if (document.location.hash) {
+    if (Boot.documentFragment) {
       params = {};
-      _ref2 = document.location.hash.substring(1).split('&');
+      _ref2 = Boot.documentFragment.substring(1).split('&');
       for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
         param = _ref2[_i];
         _ref3 = param.split('='), k = _ref3[0], v = _ref3[1];
