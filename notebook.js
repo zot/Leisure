@@ -935,7 +935,7 @@
 
   setFilename = function setFilename(newName) {
     var node, _i, _len, _ref2, _results;
-    filename = newName;
+    filename = newName instanceof URI ? newName : new URI(newName);
     _ref2 = document.body.querySelectorAll('[leisureId=saveButton]');
     _results = [];
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
