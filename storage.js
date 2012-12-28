@@ -86,13 +86,31 @@
           } else {
             document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
             return readFile(file, function(err, text) {
+              var filename, path, _i, _len, _ref5;
               if (err) {
                 return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
               } else if (file.fileExtension === 'lmd') {
+                if (id2Paths[file.id].length > 1) {
+                  _ref5 = id2Paths[file.id];
+                  for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+                    path = _ref5[_i];
+                    if (path.match('^/LeisureStorage/')) {
+                      if (filename) {
+                        document.body.innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
+                        return;
+                      } else {
+                        filename = path;
+                      }
+                    }
+                  }
+                } else {
+                  filename = id2Paths[file.id][0];
+                }
                 document.body.innerHTML = "<!--\n" + text + "\n-->";
                 window.leisureAutoRunAll = true;
                 window.markup();
-                return callback();
+                callback();
+                return Notebook.setFilename(filename);
               } else {
                 document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
                 return callback();

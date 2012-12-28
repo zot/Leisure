@@ -33,6 +33,8 @@
         uri.search = null;
         return document.location.href = uri.toString();
       } else {
+        Boot.documentFragment = document.location.hash;
+        document.location.hash = '';
         return bootLeisureCont();
       }
     });
