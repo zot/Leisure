@@ -123,6 +123,11 @@ body {
   overflow: visible;
 }
 
+.ui-corner-all {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 .fatControls {
   min-width: 72px;
 }
