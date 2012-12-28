@@ -71,7 +71,7 @@
   })();
 
   if (typeof window !== "undefined" && window !== null) {
-    window.Uri = URI;
+    window.URI = URI;
   } else {
     module.exports = URI;
   }

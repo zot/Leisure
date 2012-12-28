@@ -29,10 +29,10 @@
     Parse = window.Parse;
     Notebook = window.Notebook;
     ReplCore = window.ReplCore = (_ref2 = window.ReplCore) != null ? _ref2 : {};
-    URI = window.URI;
+    root.URI = URI = window.URI;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
-    URI = require('./uri');
+    root.URI = URI = require('./uri');
     Parse = require('./parse');
     Leisure = require('./leisure');
     ReplCore = require('./replCore');
