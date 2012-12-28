@@ -905,7 +905,7 @@
     el.insertBefore(controlDiv, el.firstChild);
     _ref2 = getElements(el, ['downloadLink', 'viewLink', 'filename', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref2[0], el.leisureViewLink = _ref2[1], filenameElement = _ref2[2], saveButton = _ref2[3], testButton = _ref2[4], el.testResults = _ref2[5], el.autorun = _ref2[6], themeSelect = _ref2[7], viewSelect = _ref2[8], processButton = _ref2[9];
     if (filename) showFilename(filenameElement);
-    loadButton.addEventListener('click', function(evt) {
+    saveButton.addEventListener('click', function(evt) {
       return saveProgram(el);
     });
     testButton.addEventListener('click', function() {
