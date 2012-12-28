@@ -328,7 +328,7 @@ misrepresented as being the original software.
   };
 
   throwError = function throwError(msg) {
-    throw new Error(msg);
+    throw (msg instanceof Error ? msg : new Error(String(msg)));
   };
 
   checkType = function checkType(value, type) {

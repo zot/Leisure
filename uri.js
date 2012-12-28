@@ -67,7 +67,7 @@
     };
 
     URI.prototype.pathName = function pathName() {
-      return (this.path.match(/\/[^/]*$/))[0];
+      return (this.path.match(/\/[^/]*$/))[0].substring(1);
     };
 
     URI.prototype.pathParent = function pathParent() {

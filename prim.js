@@ -740,7 +740,7 @@
   };
 
   write = function write(uri, data, cont, err) {
-    return uriHandlerFor(uri).write(uri, data, cont, err);
+    return uriHandlerFor(uri).write(uri, data, cont != null ? cont : (function() {}), err != null ? err : throwError);
   };
 
   tryRead = function tryRead(label, choices, handler, cont, err) {
@@ -1134,6 +1134,8 @@
   root.Monad = Monad;
 
   root.newUriHandler = newUriHandler;
+
+  root.write = write;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;

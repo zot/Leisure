@@ -186,7 +186,7 @@
     return (_.uniq(window.leisureFuncNames.toArray().sort(), true)).sort();
   };
 
-  getMDDocument = function getMDDocument(nodes) {
+  getMDDocument = function getMDDocument() {
     var doc, md, node, _i, _j, _len, _len2, _ref2, _ref3, _ref4;
     md = '';
     _ref2 = document.querySelectorAll('[doc]');
@@ -926,7 +926,15 @@
     return markupButtons(controlDiv);
   };
 
-  saveProgram = function saveProgram() {};
+  saveProgram = function saveProgram() {
+    return Prim.write(filename, getMDDocument(), (function() {
+      return alert("Saving " + filename);
+    }), function(err) {
+      console.log(err);
+      alert(err.stack);
+      throw err;
+    });
+  };
 
   showFilename = function showFilename(el) {
     el.innerHTML = "Save: " + (filename.pathName());
