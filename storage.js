@@ -127,7 +127,7 @@
               });
             }
           });
-        }), 100);
+        }), 1000);
       }
     } else {
       window.leisureAutoRunAll = true;
