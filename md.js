@@ -15,7 +15,7 @@
     _results = [];
     for (_i = 0, _len = nodes.length; _i < _len; _i++) {
       el = nodes[_i];
-      md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*\n/m, '').trim();
+      md = Notebook.md = el.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
       if (oneDoc) {
         markupSlides(el, md);
       } else {
