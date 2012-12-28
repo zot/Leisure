@@ -79,9 +79,9 @@
         return document.body.innerHTML = "<h1>More than one file to open</h1>";
       } else {
         callback();
+        document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
         return initGdrive(function() {
           var file;
-          document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
           file = id2File[ids[0]];
           if (!file) {
             return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
@@ -111,10 +111,10 @@
                 document.body.innerHTML = "<!--\n" + text + "\n-->";
                 window.leisureAutoRunAll = true;
                 window.markup();
+                Notebook.initNotebook(document.body);
                 return Notebook.setFilename("googledrive://" + filename);
               } else {
-                document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
-                return callback();
+                return document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
               }
             });
           }
