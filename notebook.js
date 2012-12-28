@@ -898,12 +898,12 @@
   };
 
   insertControls = function insertControls(el) {
-    var controlDiv, filenameElement, processButton, saveButton, spacer, testButton, themeSelect, viewSelect, _ref2, _ref3;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <button leisureId='saveButton' class=\"leisure_start\">Save</button>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <input type='checkbox' leisureId='autorunTests'><b>Auto</b></input>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button></div>\n</div>");
+    var controlDiv, saveButton, spacer, testButton, themeSelect, viewSelect, _ref2, _ref3;
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <button leisureId='saveButton' class=\"leisure_start\">Save</button>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <input type='checkbox' leisureId='autorunTests'><b>Auto</b></input>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n</div>");
     spacer = createNode("<div LeisureOutput  contentEditable='false' class='leisure_space'></div>");
     el.insertBefore(spacer, el.firstChild);
     el.insertBefore(controlDiv, el.firstChild);
-    _ref2 = getElements(el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref2[0], el.leisureViewLink = _ref2[1], filenameElement = _ref2[2], saveButton = _ref2[3], testButton = _ref2[4], el.testResults = _ref2[5], el.autorun = _ref2[6], themeSelect = _ref2[7], viewSelect = _ref2[8], processButton = _ref2[9];
+    _ref2 = getElements(el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect']), el.leisureDownloadLink = _ref2[0], el.leisureViewLink = _ref2[1], saveButton = _ref2[2], testButton = _ref2[3], el.testResults = _ref2[4], el.autorun = _ref2[5], themeSelect = _ref2[6], viewSelect = _ref2[7];
     if (filename) showFilename(filenameElement);
     saveButton.addEventListener('click', function(evt) {
       return saveProgram(el);
@@ -917,9 +917,6 @@
     });
     viewSelect.addEventListener('change', function(evt) {
       return changeView(el, evt.target.value);
-    });
-    processButton.addEventListener('click', function() {
-      return evalDoc(el);
     });
     el.autorun.checked = el.autorunState;
     el.autorun.addEventListener('change', function(evt) {
