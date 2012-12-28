@@ -279,7 +279,7 @@
   createAuthButton = function createAuthButton() {
     if (!auth.buttonDiv) {
       auth.buttonDiv = document.createElement('div');
-      auth.buttonDiv.setAttribute('style', 'z-index: 1; position: absolute; left: 0; top: 0; width: 100%; height: 100%');
+      auth.buttonDiv.setAttribute('style', 'background: white; z-index: 10000; position: absolute; left: 0; top: 0; width: 100%; height: 100%');
       auth.buttonDiv.innerHTML = '<span>Would you like to authorize Leisure to create files and access them in a LeisureStorage directory in your Google drive?  <button onclick="handleAuthClick()">Yes</button> <button onclick="denyAuth()">No</button></span>';
       return document.body.insertBefore(auth.buttonDiv, document.body.firstChild);
     }
