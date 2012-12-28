@@ -69,7 +69,7 @@
       }
     });
     frag = ((_ref4 = Boot.documentFragment) != null ? _ref4 : '#').substring(1);
-    state = new Prim.URI("" + (document.location.href.substring(0, document.location.href.length - 1)) + "?" + frag).getSearchParams().state;
+    state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
     if (state) {
       _ref5 = JSON.parse(state), ids = _ref5.ids, action = _ref5.action;
       if (action !== "open") {

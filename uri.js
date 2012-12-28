@@ -1,5 +1,5 @@
 (function() {
-  var URI, dotPat, parentPat, urlPat;
+  var URI, dotPat, getParams, parentPat, urlPat;
 
   urlPat = /^(([^:/]+):\/\/([^/]*))?(\/(.*?))?(\?.*?)?(#.*)?$/;
 
@@ -51,18 +51,18 @@
     };
 
     URI.prototype.getSearchParams = function getSearchParams() {
-      var key, m, param, params, value, _i, _len, _ref, _ref2;
       if (!this.search) {
         return {};
       } else {
-        params = {};
-        _ref = this.search.substring(1).split('&');
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          param = _ref[_i];
-          _ref2 = param.match(/^([^=]+)=(.*)$/), m = _ref2[0], key = _ref2[1], value = _ref2[2];
-          params[key] = decodeURIComponent(value);
-        }
-        return params;
+        return getParams(this.search);
+      }
+    };
+
+    URI.prototype.getFragParams = function getFragParams() {
+      if (!this.fragment) {
+        return {};
+      } else {
+        return getParams(this.fragment);
       }
     };
 
@@ -77,6 +77,18 @@
     return URI;
 
   })();
+
+  getParams = function getParams(str) {
+    var key, m, param, params, value, _i, _len, _ref, _ref2;
+    params = {};
+    _ref = str.substring(1).split('&');
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      param = _ref[_i];
+      _ref2 = param.match(/^([^=]+)=(.*)$/), m = _ref2[0], key = _ref2[1], value = _ref2[2];
+      params[key] = decodeURIComponent(value);
+    }
+    return params;
+  };
 
   if (typeof window !== "undefined" && window !== null) {
     window.URI = URI;
