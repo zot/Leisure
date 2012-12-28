@@ -17,7 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, file, frag, ids, state, _ref4, _ref5;
+    var action, frag, ids, state, _ref4, _ref5;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -78,13 +78,14 @@
       if (!ids || ids.length !== 1) {
         return document.body.innerHTML = "<h1>More than one file to open</h1>";
       } else {
-        document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
-        file = id2File[ids[0]];
-        if (!file) {
-          return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
-        } else {
-          callback();
-          return initGdrive(function() {
+        callback();
+        return initGdrive(function() {
+          var file;
+          document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
+          file = id2File[ids[0]];
+          if (!file) {
+            return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
+          } else {
             document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
             return readFile(file, function(err, text) {
               var filename, path, _i, _len, _ref6;
@@ -116,8 +117,8 @@
                 return callback();
               }
             });
-          });
-        }
+          }
+        });
       }
     } else {
       window.leisureAutoRunAll = true;
