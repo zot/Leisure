@@ -31,13 +31,7 @@
       if (state) {
         uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
         uri.search = null;
-        window.open(uri.toString());
-        return window.setTimeout((function() {
-          return;
-          console.log("CLOSING WINDOW");
-          window.open('', '_self', '');
-          return window.close();
-        }), 1);
+        return document.location.href = uri.toString();
       } else {
         Boot.documentFragment = document.location.hash;
         document.location.hash = '';

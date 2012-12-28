@@ -79,14 +79,17 @@
   })();
 
   getParams = function getParams(str) {
-    var key, m, param, params, value, _i, _len, _ref, _ref2;
+    var key, m, match, param, params, value, _i, _len, _ref;
     params = {};
     if (str !== '') {
       _ref = str.substring(1).split('&');
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         param = _ref[_i];
-        _ref2 = param.match(/^([^=]+)=(.*)$/), m = _ref2[0], key = _ref2[1], value = _ref2[2];
-        params[key] = decodeURIComponent(value);
+        match = param.match(/^([^=]+)=(.*)$/);
+        if (match) {
+          m = match[0], key = match[1], value = match[2];
+          params[key] = decodeURIComponent(value);
+        }
       }
     }
     return params;
