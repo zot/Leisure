@@ -17,7 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, frag, ids, state, _ref4, _ref5;
+    var action, file, frag, ids, state, _ref4, _ref5;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -79,12 +79,12 @@
         return document.body.innerHTML = "<h1>More than one file to open</h1>";
       } else {
         document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
-        return initGdrive(function() {
-          var file;
-          file = id2File[ids[0]];
-          if (!file) {
-            return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
-          } else {
+        file = id2File[ids[0]];
+        if (!file) {
+          return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
+        } else {
+          callback();
+          return initGdrive(function() {
             document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
             return readFile(file, function(err, text) {
               var filename, path, _i, _len, _ref6;
@@ -110,15 +110,14 @@
                 document.body.innerHTML = "<!--\n" + text + "\n-->";
                 window.leisureAutoRunAll = true;
                 window.markup();
-                callback();
                 return Notebook.setFilename("googledrive://" + filename);
               } else {
                 document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
                 return callback();
               }
             });
-          }
-        });
+          });
+        }
       }
     } else {
       window.leisureAutoRunAll = true;
