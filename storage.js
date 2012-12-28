@@ -80,51 +80,53 @@
       } else {
         callback();
         document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
-        return initGdrive(function() {
-          var file;
-          file = id2File[ids[0]];
-          if (!file) {
-            return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
-          } else {
-            document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
-            return readFile(file, function(err, text) {
-              var filename, node, path, _i, _j, _len, _len2, _ref6, _ref7;
-              if (err) {
-                return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
-              } else if (file.fileExtension === 'lmd') {
-                if (id2Paths[file.id].length > 1) {
-                  _ref6 = id2Paths[file.id];
-                  for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
-                    path = _ref6[_i];
-                    if (path.match('^/LeisureStorage/')) {
-                      if (filename) {
-                        document.body.innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
+        return Notebook.delay(function() {
+          return initGdrive(function() {
+            var file;
+            file = id2File[ids[0]];
+            if (!file) {
+              return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
+            } else {
+              document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
+              return readFile(file, function(err, text) {
+                var filename, node, path, _i, _j, _len, _len2, _ref6, _ref7;
+                if (err) {
+                  return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
+                } else if (file.fileExtension === 'lmd') {
+                  if (id2Paths[file.id].length > 1) {
+                    _ref6 = id2Paths[file.id];
+                    for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+                      path = _ref6[_i];
+                      if (path.match('^/LeisureStorage/')) {
+                        if (filename) {
+                          document.body.innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
+                        }
                         return;
                       } else {
                         filename = path;
                       }
                     }
+                  } else {
+                    filename = id2Paths[file.id][0];
                   }
+                  document.body.innerHTML = "<!--\n" + text + "\n-->";
+                  window.leisureAutoRunAll = true;
+                  window.markup();
+                  _ref7 = document.querySelectorAll("[leisurenode='code']");
+                  for (_j = 0, _len2 = _ref7.length; _j < _len2; _j++) {
+                    node = _ref7[_j];
+                    node.setAttribute('contentEditable', 'true');
+                    Notebook.bindNotebook(node);
+                    Notebook.changeTheme(node, 'thin');
+                    Notebook.evalDoc(node);
+                  }
+                  return Notebook.setFilename("googledrive://" + filename);
                 } else {
-                  filename = id2Paths[file.id][0];
+                  return document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
                 }
-                document.body.innerHTML = "<!--\n" + text + "\n-->";
-                window.leisureAutoRunAll = true;
-                window.markup();
-                _ref7 = document.querySelectorAll("[leisurenode='code']");
-                for (_j = 0, _len2 = _ref7.length; _j < _len2; _j++) {
-                  node = _ref7[_j];
-                  node.setAttribute('contentEditable', 'true');
-                  Notebook.bindNotebook(node);
-                  Notebook.changeTheme(node, 'thin');
-                  Notebook.evalDoc(node);
-                }
-                return Notebook.setFilename("googledrive://" + filename);
-              } else {
-                return document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
-              }
-            });
-          }
+              });
+            }
+          });
         });
       }
     } else {
