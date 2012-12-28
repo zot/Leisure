@@ -80,7 +80,7 @@
       } else {
         callback();
         document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
-        return Notebook.delay(function() {
+        return window.setTimeout((function() {
           return initGdrive(function() {
             var file;
             file = id2File[ids[0]];
@@ -127,7 +127,7 @@
               });
             }
           });
-        });
+        }), 100);
       }
     } else {
       window.leisureAutoRunAll = true;
