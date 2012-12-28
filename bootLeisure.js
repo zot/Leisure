@@ -33,6 +33,7 @@
         uri.search = null;
         window.open(uri.toString());
         return window.setTimeout((function() {
+          return;
           console.log("CLOSING WINDOW");
           window.open('', '_self', '');
           return window.close();
