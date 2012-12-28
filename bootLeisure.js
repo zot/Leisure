@@ -26,7 +26,7 @@
   bootLeisure = function bootLeisure() {
     return loadThen(['uri'], function() {
       var state, uri;
-      uri = new Prim.URI(document.location.href);
+      uri = new window.URI(document.location.href);
       state = uri.getSearchParams().state;
       if (state) {
         uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
