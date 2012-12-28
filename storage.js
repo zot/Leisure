@@ -396,14 +396,14 @@
   };
 
   writeFile = function writeFile(name, contents, parents, callback) {
-    var json;
+    var json, req;
     console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
     json = JSON.stringify({
       mimeType: 'text/plain',
       title: name,
       parents: parents != null ? parents : []
     });
-    return gapi.client.request({
+    req = gapi.client.request({
       'path': '/upload/drive/v2/files?uploadType=multipart',
       'method': 'POST',
       'headers': {
@@ -411,7 +411,8 @@
         'Authorization': 'Bearer ' + auth.token
       },
       'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(function(json) {
+    });
+    return req.execute(function(json) {
       if (json) computePaths(json);
       return callback(json);
     });
