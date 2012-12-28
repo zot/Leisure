@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, updateFile, writeFileOld, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -17,7 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, ids, state, _ref4;
+    var action, ids, locationUri, state, _ref4;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -68,7 +68,7 @@
         });
       }
     });
-    state = new Prim.URI(document.location.href).getSearchParams().state;
+    state = (locationUri = new Prim.URI(document.location.href).getSearchParams()).state;
     if (state) {
       _ref4 = JSON.parse(state), ids = _ref4.ids, action = _ref4.action;
       if (action !== "open") {
@@ -78,27 +78,29 @@
         return document.body.innerHTML = "<h1>More than one file to open</h1>";
       } else {
         document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
-        return initGdrive(function() {
-          var file;
-          file = id2File[ids[0]];
-          if (!file) {
-            return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
-          } else {
-            document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
-            return readFile(file, function(err, text) {
-              if (err) {
-                return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
-              } else if (file.fileExtension === 'lmd') {
-                document.body.innerHTML = "<!--\n" + text + "\n-->";
-                window.leisureAutoRunAll = true;
-                window.markup();
-                return callback();
-              } else {
-                document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
-                return callback();
-              }
-            });
-          }
+        return Notebook.delay(function() {
+          return initGdrive(function() {
+            var file;
+            file = id2File[ids[0]];
+            if (!file) {
+              return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
+            } else {
+              document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
+              return readFile(file, function(err, text) {
+                if (err) {
+                  return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
+                } else if (file.fileExtension === 'lmd') {
+                  document.body.innerHTML = "<!--\n" + text + "\n-->";
+                  window.leisureAutoRunAll = true;
+                  window.markup();
+                  return callback();
+                } else {
+                  document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
+                  return callback();
+                }
+              });
+            }
+          });
         });
       }
     } else {
@@ -338,28 +340,6 @@
     });
   };
 
-  uploadTestFile = function uploadTestFile() {
-    var json;
-    json = JSON.stringify({
-      mimeType: 'text/plain',
-      title: 'leisureUpload'
-    });
-    return gapi.client.request({
-      'path': '/upload/drive/v1/files',
-      'method': 'POST',
-      'params': {
-        'uploadType': 'multipart'
-      },
-      'headers': {
-        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + auth.token
-      },
-      'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", "a\nb\n"), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(function(file) {
-      return document.getElementById("result").innerHTML = "Uploaded file: " + file;
-    });
-  };
-
   mimePart = function mimePart(boundary, mimeType, content) {
     return ["\r\n--", boundary, "\r\n", "Content-Type: ", mimeType, "\r\n", "Content-Length: ", content.length, "\r\n", "\r\n", content].join('');
   };
@@ -389,7 +369,29 @@
     }
   };
 
-  writeFile = function writeFile(name, contents, parents, callback) {
+  writeFileOld = function writeFileOld(name, contents, parents, callback) {
+    var json;
+    console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
+    json = JSON.stringify({
+      mimeType: 'text/plain',
+      title: name,
+      parents: parents != null ? parents : []
+    });
+    return gapi.client.request({
+      'path': '/upload/drive/v2/files?uploadType=multipart',
+      'method': 'POST',
+      'headers': {
+        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
+        'Authorization': 'Bearer ' + auth.token
+      },
+      'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
+    }).execute(function(json) {
+      if (json) computePaths(json);
+      return callback(json);
+    });
+  };
+
+  writeFileOld = function writeFileOld(name, contents, parents, callback) {
     var json;
     console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
     json = JSON.stringify({

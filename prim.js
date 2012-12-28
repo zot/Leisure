@@ -887,7 +887,8 @@
     };
 
     URI.prototype.toString = function toString() {
-      return (this.scheme ? "" + this.scheme + "://" + this.host : "") + this.path;
+      var _ref3, _ref4;
+      return (this.scheme ? "" + this.scheme + "://" + this.host : "") + this.path + ((_ref3 = this.search) != null ? _ref3 : "") + ((_ref4 = this.fragment) != null ? _ref4 : "");
     };
 
     URI.prototype.getSearchParams = function getSearchParams() {
