@@ -108,7 +108,7 @@
 
   loadThen = function loadThen(files, nosuffix, cont, index) {
     var script;
-    if (typeof substitute === 'function') {
+    if (typeof nosuffix === 'function') {
       index = cont;
       cont = nosuffix;
       nosuffix = false;
