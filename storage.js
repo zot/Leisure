@@ -494,4 +494,6 @@
 
   root.initStorage = initStorage;
 
+  root.createPicker = createPicker;
+
 }).call(this);
