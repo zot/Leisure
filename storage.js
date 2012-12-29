@@ -17,8 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, frag, ids, state, _ref4, _ref5;
-    addOpenButton();
+    var action, cb, frag, ids, state, _ref4, _ref5;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -71,6 +70,10 @@
     });
     frag = ((_ref4 = Boot.documentFragment) != null ? _ref4 : '#').substring(1);
     state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
+    cb = function cb() {
+      callback();
+      return addOpenButton();
+    };
     if (state) {
       _ref5 = JSON.parse(state), ids = _ref5.ids, action = _ref5.action;
       if (action !== "open") {
@@ -79,13 +82,13 @@
       if (!ids || ids.length !== 1) {
         return document.body.innerHTML = "<h1>More than one file to open</h1>";
       } else {
-        callback();
+        cb();
         return loadFile(ids[0]);
       }
     } else {
       window.leisureAutoRunAll = true;
       window.markup();
-      return callback();
+      return cb();
     }
   };
 
