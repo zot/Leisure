@@ -106,14 +106,19 @@
     return booted = true;
   };
 
-  loadThen = function loadThen(files, cont, index) {
+  loadThen = function loadThen(files, nosuffix, cont, index) {
     var script;
+    if (typeof substitute === 'function') {
+      index = cont;
+      cont = nosuffix;
+      nosuffix = false;
+    }
     index = index != null ? index : 0;
     if (index === files.length) {
       return typeof cont === "function" ? cont() : void 0;
     } else {
       script = document.createElement('script');
-      script.setAttribute('src', "" + files[index] + ".js");
+      script.setAttribute('src', (nosuffix ? files[index] : "" + files[index] + ".js"));
       script.addEventListener('load', function() {
         return loadThen(files, cont, index + 1);
       });
