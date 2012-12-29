@@ -213,6 +213,9 @@
       auth.started = true;
       auth.cont.push(cont);
       return Boot.loadThen(["http://www.google.com/jsapi", "https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {
+        window.google.setOnLoadCallback(function() {
+          return console.log("LOADED");
+        });
         return window.google.load('picker', '1');
       });
     }
