@@ -1533,7 +1533,7 @@
         return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref2 = ast.err.stack) != null ? _ref2 : ast.err));
       },
       cleanup: function cleanup() {
-        destroyWidget();
+        this.destroyWidget();
         if (lastEnv === env) return root.lastEnv = null;
       }
     });
