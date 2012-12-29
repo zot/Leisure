@@ -18,6 +18,7 @@
 
   initStorage = function initStorage(callback) {
     var action, frag, ids, state, _ref4, _ref5;
+    addOpenButton();
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -129,7 +130,6 @@
               Notebook.changeTheme(node, 'thin');
               Notebook.evalDoc(node);
             }
-            addOpenButton();
             return Notebook.setFilename("googledrive://" + filename);
           } else {
             return document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
@@ -187,21 +187,6 @@
     }
   };
 
-  runOpen = function runOpen() {
-    var picker, view;
-    view = new google.picker.DocsView();
-    view.setParent(path2Ids["/LeisureStorage"]);
-    picker = new google.picker.PickerBuilder().addView(view).setCallback(openFile).build();
-    return picker.setVisible(true);
-  };
-
-  openFile = function openFile(json) {
-    var _ref4;
-    if ((json != null ? json.action : void 0) === 'picked' && (json != null ? (_ref4 = json.docs) != null ? _ref4.length : void 0 : void 0) > 0) {
-      return loadFile(json.docs[0].id);
-    }
-  };
-
   auth = {
     finished: false,
     succeeded: false,
@@ -235,23 +220,12 @@
       return Notebook.delay(function() {
         Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
         auth.started = true;
-        addOpenButton();
         return auth.cont.push(function() {
           if (typeof del === "function") del();
           return cont();
         });
       });
     }
-  };
-
-  addOpenButton = function addOpenButton() {
-    var open, save;
-    save = document.body.querySelector('[leisureId=saveButton]');
-    open = Notebook.createNode("<button>Open</button>");
-    save.parentNode.insertBefore(open, save.nextSibling);
-    return open.addEventListener('click', function() {
-      return runOpen();
-    });
   };
 
   initFileList = function initFileList(cont) {
@@ -409,6 +383,33 @@
       console.log("CREATED DIR: " + raw, json);
       return cont();
     });
+  };
+
+  addOpenButton = function addOpenButton() {
+    var open, save;
+    save = document.body.querySelector('[leisureId=saveButton]');
+    open = Notebook.createNode("<button>Open</button>");
+    save.parentNode.insertBefore(open, save.nextSibling);
+    return open.addEventListener('click', function() {
+      return runOpen();
+    });
+  };
+
+  runOpen = function runOpen() {
+    return initGDrive(function() {
+      var picker, view;
+      view = new google.picker.DocsView();
+      view.setParent(path2Ids["/LeisureStorage"]);
+      picker = new google.picker.PickerBuilder().addView(google.picker.ViewId.DOCS).setCallback(openFile).build();
+      return picker.setVisible(true);
+    });
+  };
+
+  openFile = function openFile(json) {
+    var _ref4;
+    if ((json != null ? json.action : void 0) === 'picked' && (json != null ? (_ref4 = json.docs) != null ? _ref4.length : void 0 : void 0) > 0) {
+      return loadFile(json.docs[0].id);
+    }
   };
 
   mimePart = function mimePart(boundary, mimeType, content) {
