@@ -232,13 +232,15 @@
       return auth.cont.push(cont);
     } else {
       del = showDelay();
-      auth.started = true;
-      addOpenButton();
-      auth.cont.push(function() {
-        if (typeof del === "function") del();
-        return cont();
+      return Notebook.delay(function() {
+        Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
+        auth.started = true;
+        addOpenButton();
+        return auth.cont.push(function() {
+          if (typeof del === "function") del();
+          return cont();
+        });
       });
-      return Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
     }
   };
 
@@ -416,25 +418,28 @@
   DONE = 4;
 
   readFile = function readFile(file, callback) {
-    var del, xhr;
+    var del;
     if (file.downloadUrl) {
       del = showDelay();
-      console.log("File:", file);
-      xhr = new XMLHttpRequest();
-      xhr.open('GET', file.downloadUrl);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-      xhr.onreadystatechange = function onreadystatechange() {
-        if (this.readyState === DONE) {
-          del();
-          console.log("XHR", xhr);
-          if (this.status === 200) {
-            return callback(null, xhr.responseText);
-          } else {
-            return callback(xhr);
+      return Notebook.delay(function() {
+        var xhr;
+        console.log("File:", file);
+        xhr = new XMLHttpRequest();
+        xhr.open('GET', file.downloadUrl);
+        xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+        xhr.onreadystatechange = function onreadystatechange() {
+          if (this.readyState === DONE) {
+            del();
+            console.log("XHR", xhr);
+            if (this.status === 200) {
+              return callback(null, xhr.responseText);
+            } else {
+              return callback(xhr);
+            }
           }
-        }
-      };
-      return xhr.send();
+        };
+        return xhr.send();
+      });
     } else {
       return callback(null);
     }
@@ -443,7 +448,7 @@
   writeFile = function writeFile(name, contents, parents, callback) {
     var del;
     del = showDelay();
-    return Notebook.dealy(function() {
+    return Notebook.delay(function() {
       var json, req;
       console.log("WRITING " + name + " (del: " + del + "), parents:", JSON.stringify(parents));
       json = JSON.stringify({
