@@ -399,7 +399,7 @@
   };
 
   runOpen = function runOpen() {
-    return initGDrive(function() {
+    return initGdrive(function() {
       var picker, view;
       view = new google.picker.DocsView();
       view.setParent(path2Ids["/LeisureStorage"]);
