@@ -1534,7 +1534,7 @@
       },
       cleanup: function cleanup() {
         this.destroyWidget();
-        if (lastEnv === env) return root.lastEnv = null;
+        if (root.lastEnv === env) return root.lastEnv = null;
       }
     });
     env.__proto__ = Prim.defaultEnv;
