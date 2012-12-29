@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, updateFile, writeFile, writeFileOld, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, updateFile, writeFile, writeFileOld, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -129,6 +129,7 @@
               Notebook.changeTheme(node, 'thin');
               Notebook.evalDoc(node);
             }
+            addOpenButton();
             return Notebook.setFilename("googledrive://" + filename);
           } else {
             return document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
@@ -212,22 +213,26 @@
   };
 
   initGdrive = function initGdrive(cont) {
-    var open, save;
     if (auth.finished) {
       return cont();
     } else if (auth.started) {
       return auth.cont.push(cont);
     } else {
       auth.started = true;
-      save = document.body.querySelector('[leisureId=saveButton]');
-      open = Notebook.createNode("<button>Open</button>");
-      save.parentNode.insertBefore(open, save.nextSibling);
-      open.addEventListener('click', function() {
-        return runOpen();
-      });
+      addOpenButton();
       auth.cont.push(cont);
       return Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
     }
+  };
+
+  addOpenButton = function addOpenButton() {
+    var open, save;
+    save = document.body.querySelector('[leisureId=saveButton]');
+    open = Notebook.createNode("<button>Open</button>");
+    save.parentNode.insertBefore(open, save.nextSibling);
+    return open.addEventListener('click', function() {
+      return runOpen();
+    });
   };
 
   initFileList = function initFileList(cont) {
