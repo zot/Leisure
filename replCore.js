@@ -119,9 +119,7 @@
   processResult = function processResult(result, env, next) {
     next = next != null ? next : nextFunc;
     if (result instanceof Prim.Monad) {
-      return Prim.runMonad(result, env != null ? env : Prim.defaultEnv, function() {
-        return next();
-      });
+      return Prim.runMonad(result, env != null ? env : Prim.defaultEnv, next);
     } else {
       return next();
     }

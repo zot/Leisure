@@ -119,11 +119,14 @@
     });
     peer.set('leisure/evalExpr', null, 'transient');
     peer.listen('leisure/evalExpr', false, function(key, value) {
-      var expr, result;
+      var env, expr, result;
       if (key === 'leisure/evalExpr' && (value != null)) {
         expr = value[0], result = value[1];
         console.log("EVAL: " + expr + ", RESULT: " + result);
-        return processLine(expr, xusEnv(result, expr), 'Parse.');
+        env = xusEnv(result, expr);
+        return processLine(expr, env, 'Parse.', function() {
+          return typeof env.cleanup === "function" ? env.cleanup() : void 0;
+        });
       }
     });
     peer.set('leisure/document', peerGetDocument);
@@ -1528,6 +1531,10 @@
         btn = box.querySelector('[leisureId="makeTestCase"]');
         if (btn) remove(btn);
         return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref2 = ast.err.stack) != null ? _ref2 : ast.err));
+      },
+      cleanup: function cleanup() {
+        destroyWidget();
+        if (lastEnv === env) return root.lastEnv = null;
       }
     });
     env.__proto__ = Prim.defaultEnv;
@@ -1874,7 +1881,11 @@
   };
 
   evalBox = function evalBox(box, envBox) {
-    processLine(box.textContent, (envBox != null ? envFor(envBox) : null), 'Parse.');
+    var env;
+    env = envBox != null ? envFor(envBox) : null;
+    processLine(box.textContent, env, 'Parse.', function() {
+      return env != null ? typeof env.cleanup === "function" ? env.cleanup() : void 0 : void 0;
+    });
     return getAst(box);
   };
 

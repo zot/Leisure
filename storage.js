@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, updateFile, writeFile, writeFileOld, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -212,21 +212,30 @@
     token: null
   };
 
+  showDelay = function showDelay() {
+    var widget, _ref4;
+    if (widget = (_ref4 = Notebook.lastEnv) != null ? _ref4.getWidget() : void 0) {
+      widget.appendChild(Notebook.createNode("<img src='loading.gif'>"));
+      return function() {
+        return Notebook.lastEnv.destroyWidget();
+      };
+    } else {
+      return function() {};
+    }
+  };
+
   initGdrive = function initGdrive(cont) {
-    var env, widget, _ref4;
+    var del;
     if (auth.finished) {
       return cont();
     } else if (auth.started) {
       return auth.cont.push(cont);
     } else {
-      if (widget = (_ref4 = Notebook.lastEnv) != null ? _ref4.getWidget() : void 0) {
-        env = Notebook.lastEnv;
-        widget.appendChild(Notebook.createNode("<img src='loading.gif'>"));
-      }
+      del = showDelay();
       auth.started = true;
       addOpenButton();
       auth.cont.push(function() {
-        if (env) env.destroyWidget();
+        if (typeof del === "function") del();
         return cont();
       });
       return Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
@@ -407,14 +416,16 @@
   DONE = 4;
 
   readFile = function readFile(file, callback) {
-    var xhr;
+    var del, xhr;
     if (file.downloadUrl) {
+      del = showDelay();
       console.log("File:", file);
       xhr = new XMLHttpRequest();
       xhr.open('GET', file.downloadUrl);
       xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
         if (this.readyState === DONE) {
+          del();
           console.log("XHR", xhr);
           if (this.status === 200) {
             return callback(null, xhr.responseText);
@@ -430,7 +441,8 @@
   };
 
   writeFile = function writeFile(name, contents, parents, callback) {
-    var json, req;
+    var del, json, req;
+    del = showDelay();
     console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
     json = JSON.stringify({
       mimeType: 'text/plain',
@@ -447,37 +459,15 @@
       'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
     });
     return req.execute(function(json) {
+      del();
       if (json) computePaths(json);
       return callback(json);
     });
   };
 
-  writeFileOld = function writeFileOld(name, contents, parents, callback) {
-    var json, xhr;
-    console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
-    json = JSON.stringify({
-      mimeType: 'text/plain',
-      title: name,
-      parents: parents != null ? parents : []
-    });
-    xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://www.googleapis.com/upload/drive/v2/files?uploadType=multipart');
-    xhr.setRequestHeader('Content-Type', 'text/plain');
-    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-    xhr.onreadystatechange = function onreadystatechange() {
-      if (this.readyState === DONE) {
-        console.log("XHR", xhr);
-        if (this.status === 200) {
-          return callback(JSON.parse(xhr.responseText));
-        } else {
-          return callback(xhr);
-        }
-      }
-    };
-    return xhr.send([mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join(''));
-  };
-
   updateFile = function updateFile(file, contents, callback) {
+    var del;
+    del = showDelay();
     console.log("UPDATING " + name + ", parents:", JSON.stringify(file.parents));
     return gapi.client.request({
       'path': "/upload/drive/v2/files/" + file.id + "?uploadType=multipart&alt=json",
@@ -487,7 +477,10 @@
         'Authorization': 'Bearer ' + auth.token
       },
       'body': [mimePart("END_OF_PART", "application/json", JSON.stringify(file)), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(callback);
+    }).execute(function(json) {
+      del();
+      return callback(json);
+    });
   };
 
   listFiles = function listFiles(query, callback) {
