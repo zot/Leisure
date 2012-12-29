@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, updateFile, writeFile, writeFileOld, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, createPicker, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, pickerCallback, readFile, replaceAuth, root, updateFile, writeFile, writeFileOld, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -184,6 +184,16 @@
     }
   };
 
+  createPicker = function createPicker() {
+    var picker;
+    picker = new google.picker.PickerBuilder().addView(google.picker.ViewId.DOCS).setCallback(pickerCallback).build();
+    return picker.setVisible(true);
+  };
+
+  pickerCallback = function pickerCallback(json) {
+    return console.log("RESPONSE:", json);
+  };
+
   auth = {
     finished: false,
     succeeded: false,
@@ -195,7 +205,6 @@
   };
 
   initGdrive = function initGdrive(cont) {
-    var script;
     if (auth.finished) {
       return cont();
     } else if (auth.started) {
@@ -203,9 +212,9 @@
     } else {
       auth.started = true;
       auth.cont.push(cont);
-      script = document.createElement('script');
-      script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
-      return document.head.appendChild(script);
+      return Boot.loadThen(["http://www.google.com/jsapi", "https://apis.google.com/js/client.js?onload=gapiClientLoaded"], function() {
+        return window.google.load('picker', '1');
+      });
     }
   };
 
