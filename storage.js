@@ -441,45 +441,50 @@
   };
 
   writeFile = function writeFile(name, contents, parents, callback) {
-    var del, json, req;
+    var del;
     del = showDelay();
-    console.log("WRITING " + name + ", parents:", JSON.stringify(parents));
-    json = JSON.stringify({
-      mimeType: 'text/plain',
-      title: name,
-      parents: parents != null ? parents : []
-    });
-    req = gapi.client.request({
-      'path': '/upload/drive/v2/files?uploadType=multipart',
-      'method': 'POST',
-      'headers': {
-        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + auth.token
-      },
-      'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
-    });
-    return req.execute(function(json) {
-      del();
-      if (json) computePaths(json);
-      return callback(json);
+    return Notebook.dealy(function() {
+      var json, req;
+      console.log("WRITING " + name + " (del: " + del + "), parents:", JSON.stringify(parents));
+      json = JSON.stringify({
+        mimeType: 'text/plain',
+        title: name,
+        parents: parents != null ? parents : []
+      });
+      req = gapi.client.request({
+        'path': '/upload/drive/v2/files?uploadType=multipart',
+        'method': 'POST',
+        'headers': {
+          'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
+          'Authorization': 'Bearer ' + auth.token
+        },
+        'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
+      });
+      return req.execute(function(json) {
+        del();
+        if (json) computePaths(json);
+        return callback(json);
+      });
     });
   };
 
   updateFile = function updateFile(file, contents, callback) {
     var del;
     del = showDelay();
-    console.log("UPDATING " + name + ", parents:", JSON.stringify(file.parents));
-    return gapi.client.request({
-      'path': "/upload/drive/v2/files/" + file.id + "?uploadType=multipart&alt=json",
-      'method': 'PUT',
-      'headers': {
-        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + auth.token
-      },
-      'body': [mimePart("END_OF_PART", "application/json", JSON.stringify(file)), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(function(json) {
-      del();
-      return callback(json);
+    return Notebook.delay(function() {
+      console.log("UPDATING " + name + ", parents:", JSON.stringify(file.parents));
+      return gapi.client.request({
+        'path': "/upload/drive/v2/files/" + file.id + "?uploadType=multipart&alt=json",
+        'method': 'PUT',
+        'headers': {
+          'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
+          'Authorization': 'Bearer ' + auth.token
+        },
+        'body': [mimePart("END_OF_PART", "application/json", JSON.stringify(file)), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
+      }).execute(function(json) {
+        del();
+        return callback(json);
+      });
     });
   };
 
