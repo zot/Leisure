@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, createPicker, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, pickerCallback, readFile, replaceAuth, root, updateFile, writeFile, writeFileOld, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, updateFile, writeFile, writeFileOld, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -184,14 +184,16 @@
     }
   };
 
-  createPicker = function createPicker() {
-    var picker;
-    picker = new google.picker.PickerBuilder().addView(google.picker.ViewId.DOCS).setCallback(pickerCallback).build();
+  runOpen = function runOpen() {
+    var picker, view;
+    view = new google.picker.DocsView();
+    view.setParent(path2Ids["/LeisureStorage"]);
+    picker = new google.picker.PickerBuilder().addView(view).setCallback(openFile).build();
     return picker.setVisible(true);
   };
 
-  pickerCallback = function pickerCallback(json) {
-    return console.log("RESPONSE:", json);
+  openFile = function openFile(json) {
+    return console.log("RESPONSE FOR OPEN:", json);
   };
 
   auth = {
@@ -205,12 +207,19 @@
   };
 
   initGdrive = function initGdrive(cont) {
+    var open, save;
     if (auth.finished) {
       return cont();
     } else if (auth.started) {
       return auth.cont.push(cont);
     } else {
       auth.started = true;
+      save = document.body.querySelector('[leisureId=saveButton]');
+      open = Notebook.createNode("<button>Open</button>");
+      save.parentNode.insertBefore(open, save.nextSibling);
+      open.addEventListener('click', function() {
+        return runOpen();
+      });
       auth.cont.push(cont);
       return Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
     }
@@ -493,7 +502,5 @@
   };
 
   root.initStorage = initStorage;
-
-  root.createPicker = createPicker;
 
 }).call(this);
