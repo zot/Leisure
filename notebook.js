@@ -1488,8 +1488,9 @@
   };
 
   envFor = function envFor(box) {
-    var env, exBox;
+    var env, exBox, widget;
     exBox = getBox(box);
+    widget = null;
     env = Prim.initFileSettings({
       debug: debug,
       finishedEvent: function finishedEvent(evt, channel) {
@@ -1503,6 +1504,16 @@
         div.innerHTML = "" + msg + "\n";
         exBox.appendChild(div);
         return checkHideSource(exBox);
+      },
+      getWidget: function getWidget() {
+        if (!widget) {
+          widget = document.createElement("DIV");
+          exBox.appendChild(widget);
+        }
+        return widget;
+      },
+      destroyWidget: function destroyWidget() {
+        if (widget) return remove(widget);
       },
       prompt: function prompt(msg, cont) {
         return cont(window.prompt(msg));
@@ -1521,6 +1532,7 @@
     });
     env.__proto__ = Prim.defaultEnv;
     env.fileSettings.uri = new Prim.URI(document.location.href);
+    root.lastEnv = env;
     return env;
   };
 

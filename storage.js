@@ -213,14 +213,22 @@
   };
 
   initGdrive = function initGdrive(cont) {
+    var env, widget, _ref4;
     if (auth.finished) {
       return cont();
     } else if (auth.started) {
       return auth.cont.push(cont);
     } else {
+      if (widget = (_ref4 = Notebook.lastEnv) != null ? _ref4.getWidget() : void 0) {
+        env = Notebook.lastEnv;
+        widget.appendChild(Notebook.createNode("<img src='loading.gif'>"));
+      }
       auth.started = true;
       addOpenButton();
-      auth.cont.push(cont);
+      auth.cont.push(function() {
+        if (env) env.destroyWidget();
+        return cont();
+      });
       return Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
     }
   };
