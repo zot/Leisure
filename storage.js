@@ -403,7 +403,7 @@
       var picker, view;
       view = new google.picker.DocsView();
       view.setParent(path2Ids["/LeisureStorage"]);
-      picker = new google.picker.PickerBuilder().addView(google.picker.ViewId.DOCS).setCallback(openFile).build();
+      picker = new google.picker.PickerBuilder().addView(view).setCallback(openFile).build();
       return picker.setVisible(true);
     });
   };
