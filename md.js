@@ -170,7 +170,7 @@
     for (i = 0, _ref2 = sections.length; 0 <= _ref2 ? i <= _ref2 : i >= _ref2; 0 <= _ref2 ? i++ : i--) {
       node = sections[i];
       next = sections[i + 1] || document.getElementById('channelList');
-      div = document.createNode("<div leisureSection=''></div>");
+      div = createNode("<div leisureSection=''></div>");
       node.parentNode.insertBefore(div, node);
       while (div.nextSibling !== next) {
         div.appendChild(div.nextSibling);
