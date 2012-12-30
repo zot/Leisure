@@ -197,7 +197,7 @@
       code.md = lex[codePos].text;
       if (code.parentNode.firstChild !== code) {
         if (prev === null) {
-          range.setStart(el, 0);
+          range.setStart(code.parentNode, 0);
         } else {
           range.setStartAfter(prev);
         }
