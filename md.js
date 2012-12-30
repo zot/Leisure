@@ -159,20 +159,25 @@
   };
 
   markupElement = function markupElement(el, md) {
-    var code, codePos, len, lex, node, prev, prevCodePos, range, slide, _i, _len, _ref, _ref2;
+    var code, codePos, len, lex, node, prev, prevCodePos, range, slide, _i, _j, _len, _len2, _ref, _ref2, _ref3;
     len = md.length;
     slide = md.match(/^\*\*\*\n(-\n)?|^-\n/);
     _ref = window.marked((slide ? md.slice(slide[0].length) : md), {
       saveLex: true,
       gfm: true
     }), el.innerHTML = _ref[0], lex = _ref[1];
+    _ref2 = el.querySelector('H1');
+    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+      node = _ref2[_i];
+      console.log("Section: " + node.innerHTML);
+    }
     prev = null;
     range = document.createRange();
     prevCodePos = -1;
     codePos = 0;
-    _ref2 = el.querySelectorAll('code');
-    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-      node = _ref2[_i];
+    _ref3 = el.querySelectorAll('code');
+    for (_j = 0, _len2 = _ref3.length; _j < _len2; _j++) {
+      node = _ref3[_j];
       while (lex[codePos].type !== 'code') {
         codePos++;
       }
