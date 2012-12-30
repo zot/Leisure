@@ -167,7 +167,7 @@
       gfm: true
     }), el.innerHTML = _ref[0], lex = _ref[1];
     sections = el.querySelectorAll('H1');
-    for (i = 0, _ref2 = sections.length; 0 <= _ref2 ? i <= _ref2 : i >= _ref2; 0 <= _ref2 ? i++ : i--) {
+    for (i = 0, _ref2 = sections.length; 0 <= _ref2 ? i < _ref2 : i > _ref2; 0 <= _ref2 ? i++ : i--) {
       node = sections[i];
       next = sections[i + 1] || document.getElementById('channelList');
       div = createNode("<div leisureSection=''></div>");
