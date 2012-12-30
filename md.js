@@ -172,7 +172,7 @@
       next = sections[i + 1] || document.getElementById('channelList');
       div = createNode("<div leisureSection=''></div>");
       node.parentNode.insertBefore(div, node);
-      while (div.nextSibling !== next) {
+      while (div.nextSibling && div.nextSibling !== next) {
         div.appendChild(div.nextSibling);
       }
     }
