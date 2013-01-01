@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Prim, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, makeLeisureDir, mimePart, mkdir, path2Ids, readFile, replaceAuth, root, updateFile, uploadTestFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -17,6 +17,7 @@
   }
 
   initStorage = function initStorage(callback) {
+    var action, cb, frag, ids, state, _ref4, _ref5;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -67,7 +68,78 @@
         });
       }
     });
-    return callback();
+    frag = ((_ref4 = Boot.documentFragment) != null ? _ref4 : '#').substring(1);
+    state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
+    cb = function cb() {
+      callback();
+      return addOpenButton();
+    };
+    if (state) {
+      _ref5 = JSON.parse(state), ids = _ref5.ids, action = _ref5.action;
+      if (action !== "open") {
+        document.body.innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
+      }
+      if (!ids || ids.length !== 1) {
+        return document.body.innerHTML = "<h1>More than one file to open</h1>";
+      } else {
+        cb();
+        return loadFile(ids[0]);
+      }
+    } else {
+      window.leisureAutoRunAll = true;
+      window.markup();
+      return cb();
+    }
+  };
+
+  loadFile = function loadFile(id) {
+    document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
+    return initGdrive(function() {
+      var file;
+      file = id2File[id];
+      if (!file) {
+        return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
+      } else {
+        document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
+        return readFile(file, function(err, text) {
+          var filename, node, path, _i, _j, _len, _len2, _ref4, _ref5;
+          if (err) {
+            return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
+          } else if (file.fileExtension === 'lmd') {
+            if (id2Paths[file.id].length > 1) {
+              _ref4 = id2Paths[file.id];
+              for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+                path = _ref4[_i];
+                if (path.match('^/LeisureStorage/')) {
+                  if (filename) {
+                    document.body.innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
+                  }
+                  return;
+                } else {
+                  filename = path;
+                }
+              }
+            } else {
+              filename = id2Paths[file.id][0];
+            }
+            document.body.innerHTML = "<!--\n" + text + "\n-->";
+            window.leisureAutoRunAll = true;
+            window.markup();
+            _ref5 = document.querySelectorAll("[leisurenode='code']");
+            for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
+              node = _ref5[_j];
+              node.setAttribute('contentEditable', 'true');
+              Notebook.bindNotebook(node);
+              Notebook.changeTheme(node, 'thin');
+              Notebook.evalDoc(node);
+            }
+            return Notebook.setFilename("googledrive://" + filename);
+          } else {
+            return document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
+          }
+        });
+      }
+    });
   };
 
   id2Paths = {};
@@ -128,18 +200,34 @@
     token: null
   };
 
+  showDelay = function showDelay() {
+    var widget, _ref4;
+    if (widget = (_ref4 = Notebook.lastEnv) != null ? _ref4.getWidget() : void 0) {
+      widget.appendChild(Notebook.createNode("<img src='loading.gif'>"));
+      return function() {
+        return Notebook.lastEnv.destroyWidget();
+      };
+    } else {
+      return function() {};
+    }
+  };
+
   initGdrive = function initGdrive(cont) {
-    var script;
+    var del;
     if (auth.finished) {
       return cont();
     } else if (auth.started) {
       return auth.cont.push(cont);
     } else {
-      auth.started = true;
-      auth.cont.push(cont);
-      script = document.createElement('script');
-      script.src = "https://apis.google.com/js/client.js?onload=gapiClientLoaded";
-      return document.head.appendChild(script);
+      del = showDelay();
+      return Notebook.delay(function() {
+        Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
+        auth.started = true;
+        return auth.cont.push(function() {
+          if (typeof del === "function") del();
+          return cont();
+        });
+      });
     }
   };
 
@@ -203,7 +291,7 @@
     try {
       return gapi.auth.authorize({
         client_id: '270759921607',
-        scope: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/drive.readonly.metadata', 'https://www.googleapis.com/auth/drive.metadata.readonly'].join(' '),
+        scope: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.install'].join(' '),
         immediate: immediate
       }, handleAuthResult);
     } catch (err) {
@@ -229,7 +317,7 @@
           err: authResult != null ? authResult.error : void 0
         });
       } else {
-        console.log("Authenticated");
+        console.log("Authenticated: " + (JSON.stringify(authResult)));
         return finishAuth({
           succeeded: true,
           token: authResult.access_token
@@ -241,7 +329,7 @@
   createAuthButton = function createAuthButton() {
     if (!auth.buttonDiv) {
       auth.buttonDiv = document.createElement('div');
-      auth.buttonDiv.setAttribute('style', 'z-index: 1; position: absolute; left: 0; top: 0; width: 100%; height: 100%');
+      auth.buttonDiv.setAttribute('style', 'background: white; z-index: 10000; position: absolute; left: 0; top: 0; width: 100%; height: 100%');
       auth.buttonDiv.innerHTML = '<span>Would you like to authorize Leisure to create files and access them in a LeisureStorage directory in your Google drive?  <button onclick="handleAuthClick()">Yes</button> <button onclick="denyAuth()">No</button></span>';
       return document.body.insertBefore(auth.buttonDiv, document.body.firstChild);
     }
@@ -300,26 +388,31 @@
     });
   };
 
-  uploadTestFile = function uploadTestFile() {
-    var json;
-    json = JSON.stringify({
-      mimeType: 'text/plain',
-      title: 'leisureUpload'
+  addOpenButton = function addOpenButton() {
+    var open, save;
+    save = document.body.querySelector('[leisureId=saveButton]');
+    open = Notebook.createNode("<button>Open</button>");
+    save.parentNode.insertBefore(open, save.nextSibling);
+    return open.addEventListener('click', function() {
+      return runOpen();
     });
-    return gapi.client.request({
-      'path': '/upload/drive/v1/files',
-      'method': 'POST',
-      'params': {
-        'uploadType': 'multipart'
-      },
-      'headers': {
-        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + auth.token
-      },
-      'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", "a\nb\n"), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(function(file) {
-      return document.getElementById("result").innerHTML = "Uploaded file: " + file;
+  };
+
+  runOpen = function runOpen() {
+    return initGdrive(function() {
+      var picker, view;
+      view = new google.picker.DocsView();
+      view.setParent(path2Ids["/LeisureStorage"]);
+      picker = new google.picker.PickerBuilder().addView(view).setCallback(openFile).build();
+      return picker.setVisible(true);
     });
+  };
+
+  openFile = function openFile(json) {
+    var _ref4;
+    if ((json != null ? json.action : void 0) === 'picked' && (json != null ? (_ref4 = json.docs) != null ? _ref4.length : void 0 : void 0) > 0) {
+      return loadFile(json.docs[0].id);
+    }
   };
 
   mimePart = function mimePart(boundary, mimeType, content) {
@@ -329,60 +422,79 @@
   DONE = 4;
 
   readFile = function readFile(file, callback) {
-    var xhr;
+    var del;
     if (file.downloadUrl) {
-      console.log("File:", file);
-      xhr = new XMLHttpRequest();
-      xhr.open('GET', file.downloadUrl);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-      xhr.onreadystatechange = function onreadystatechange() {
-        if (this.readyState === DONE) {
-          console.log("XHR", xhr);
-          if (this.status === 200) {
-            return callback(null, xhr.responseText);
-          } else {
-            return callback(xhr);
+      del = showDelay();
+      return Notebook.delay(function() {
+        var xhr;
+        console.log("File:", file);
+        xhr = new XMLHttpRequest();
+        xhr.open('GET', file.downloadUrl);
+        xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+        xhr.onreadystatechange = function onreadystatechange() {
+          if (this.readyState === DONE) {
+            del();
+            console.log("XHR", xhr);
+            if (this.status === 200) {
+              return callback(null, xhr.responseText);
+            } else {
+              return callback(xhr);
+            }
           }
-        }
-      };
-      return xhr.send();
+        };
+        return xhr.send();
+      });
     } else {
       return callback(null);
     }
   };
 
   writeFile = function writeFile(name, contents, parents, callback) {
-    var json;
-    console.log("WRITE " + name + ", parents:", JSON.stringify(parents));
-    json = JSON.stringify({
-      mimeType: 'text/plain',
-      title: name,
-      parents: parents != null ? parents : []
-    });
-    return gapi.client.request({
-      'path': '/upload/drive/v2/files?uploadType=multipart',
-      'method': 'POST',
-      'headers': {
-        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + auth.token
-      },
-      'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(function(json) {
-      if (json) computePaths(json);
-      return callback(json);
+    var del;
+    del = showDelay();
+    return Notebook.delay(function() {
+      var json, req;
+      console.log("WRITING " + name + " (del: " + del + "), parents:", JSON.stringify(parents));
+      json = JSON.stringify({
+        mimeType: 'text/plain',
+        title: name,
+        parents: parents != null ? parents : []
+      });
+      req = gapi.client.request({
+        'path': '/upload/drive/v2/files?uploadType=multipart',
+        'method': 'POST',
+        'headers': {
+          'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
+          'Authorization': 'Bearer ' + auth.token
+        },
+        'body': [mimePart("END_OF_PART", "application/json", json), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
+      });
+      return req.execute(function(json) {
+        del();
+        if (json) computePaths(json);
+        return callback(json);
+      });
     });
   };
 
   updateFile = function updateFile(file, contents, callback) {
-    return gapi.client.request({
-      'path': "/upload/drive/v2/files/" + file.id + "?uploadType=multipart&alt=json",
-      'method': 'PUT',
-      'headers': {
-        'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
-        'Authorization': 'Bearer ' + auth.token
-      },
-      'body': [mimePart("END_OF_PART", "application/json", JSON.stringify(file)), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
-    }).execute(callback);
+    var del;
+    del = showDelay();
+    return Notebook.delay(function() {
+      console.log("UPDATING " + name + ", parents:", JSON.stringify(file.parents));
+      return gapi.client.request({
+        'path': "/upload/drive/v2/files/" + file.id + "?uploadType=multipart&alt=json",
+        'method': 'PUT',
+        'headers': {
+          'Content-Type': 'multipart/mixed; boundary="END_OF_PART"',
+          'Authorization': 'Bearer ' + auth.token
+        },
+        'body': [mimePart("END_OF_PART", "application/json", JSON.stringify(file)), mimePart("END_OF_PART", "text/plain", contents), "\r\n--END_OF_PART--\r\n"].join('')
+      }).execute(function(json) {
+        del();
+        return callback(json);
+      });
+    });
   };
 
   listFiles = function listFiles(query, callback) {

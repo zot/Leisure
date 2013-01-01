@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, replicate, req, root, runTest, runTests, setAst, setMinMax, setSnapper, setUpdate, showAst, showError, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideControlSection, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -56,6 +56,8 @@
   peer = null;
 
   nextId = 0;
+
+  filename = null;
 
   snapshot = function snapshot(el, pgm) {};
 
@@ -117,19 +119,22 @@
     });
     peer.set('leisure/evalExpr', null, 'transient');
     peer.listen('leisure/evalExpr', false, function(key, value) {
-      var expr, result;
+      var env, expr, result;
       if (key === 'leisure/evalExpr' && (value != null)) {
         expr = value[0], result = value[1];
         console.log("EVAL: " + expr + ", RESULT: " + result);
-        return processLine(expr, xusEnv(result, expr), 'Parse.');
+        env = xusEnv(result, expr);
+        return processLine(expr, env, 'Parse.', function() {
+          return typeof env.cleanup === "function" ? env.cleanup() : void 0;
+        });
       }
     });
     peer.set('leisure/document', peerGetDocument);
     peer.set('leisure/functions', peerGetFunctions);
     peer.set('leisure/storage', []);
-    if (document.location.hash) {
+    if (Boot.documentFragment) {
       params = {};
-      _ref2 = document.location.hash.substring(1).split('&');
+      _ref2 = Boot.documentFragment.substring(1).split('&');
       for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
         param = _ref2[_i];
         _ref3 = param.split('='), k = _ref3[0], v = _ref3[1];
@@ -184,17 +189,13 @@
     return (_.uniq(window.leisureFuncNames.toArray().sort(), true)).sort();
   };
 
-  getMDDocument = function getMDDocument(nodes) {
-    var doc, md, node, _i, _j, _len, _len2, _ref2, _ref3, _ref4;
+  getMDDocument = function getMDDocument() {
+    var md, node, _i, _len, _ref2, _ref3;
     md = '';
-    _ref2 = document.querySelectorAll('[doc]');
+    _ref2 = document.querySelectorAll('[doc] [leisureNode]');
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-      doc = _ref2[_i];
-      _ref3 = doc.childNodes;
-      for (_j = 0, _len2 = _ref3.length; _j < _len2; _j++) {
-        node = _ref3[_j];
-        md += isLeisureCode(node) ? "```\n" + (getElementCode(node)) + "\n```\n" : (_ref4 = node.md) != null ? _ref4 : '';
-      }
+      node = _ref2[_i];
+      md += isLeisureCode(node) ? "```\n" + (getElementCode(node)) + "\n```\n" : (_ref3 = node.md) != null ? _ref3 : '';
     }
     return md;
   };
@@ -896,14 +897,22 @@
   };
 
   insertControls = function insertControls(el) {
-    var controlDiv, loadButton, processButton, spacer, testButton, themeSelect, viewSelect, _ref2, _ref3;
-    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <span class='leisure_load'>Load: </span>\n  <input type='file' leisureId='loadButton'></input>\n  <a download='program.lsr' leisureId='downloadLink'>Download</a>\n  <a target='_blank' leisureId='viewLink'>View</a>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <input type='checkbox' leisureId='autorunTests'><b>Auto</b></input>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n  <button leisureId='processButton' style=\"float: right\">Process</button></div>\n</div>");
+    var controlDiv, saveButton, spacer, testButton, themeSelect, viewSelect, _ref2, _ref3;
+    controlDiv = createNode("<div LeisureOutput contentEditable='false' class='leisure_bar'><div class=\"leisure_bar_contents\">\n  <button leisureId='saveButton' class=\"leisure_start\">Save</button>\n  <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class=\"notrun\"></span>\n  <input type='checkbox' leisureId='autorunTests'><b>Auto</b></input>\n  <span class=\"leisure_theme\">Theme: </span>\n  <select leisureId='themeSelect'>\n    <option value=thin>Thin</option>\n    <option value=gaudy>Gaudy</option>\n    <option value=cthulhu>Cthulhu</option>\n  </select>\n  <span>View: </span>\n  <select leisureId='viewSelect'>\n    <option value=coding>Coding</option>\n    <option value=debugging>Debugging</option>\n    <option value=testing>Testing</option>\n    <option value=running>Running</option>\n  </select>\n</div>");
     spacer = createNode("<div LeisureOutput  contentEditable='false' class='leisure_space'></div>");
     el.insertBefore(spacer, el.firstChild);
     el.insertBefore(controlDiv, el.firstChild);
-    _ref2 = getElements(el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect', 'processButton']), el.leisureDownloadLink = _ref2[0], el.leisureViewLink = _ref2[1], loadButton = _ref2[2], testButton = _ref2[3], el.testResults = _ref2[4], el.autorun = _ref2[5], themeSelect = _ref2[6], viewSelect = _ref2[7], processButton = _ref2[8];
-    loadButton.addEventListener('change', function(evt) {
-      return loadProgram(el, loadButton.files);
+    _ref2 = getElements(el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect']), el.leisureDownloadLink = _ref2[0], el.leisureViewLink = _ref2[1], saveButton = _ref2[2], testButton = _ref2[3], el.testResults = _ref2[4], el.autorun = _ref2[5], themeSelect = _ref2[6], viewSelect = _ref2[7];
+    if (filename) showFilename(filenameElement);
+    controlDiv.addEventListener('click', function(evt) {
+      if (document.body.classList.contains('hideControls')) {
+        return document.body.classList.remove('hideControls');
+      } else {
+        return document.body.classList.add('hideControls');
+      }
+    });
+    saveButton.addEventListener('click', function(evt) {
+      return saveProgram(el);
     });
     testButton.addEventListener('click', function() {
       return runTests(el);
@@ -915,15 +924,39 @@
     viewSelect.addEventListener('change', function(evt) {
       return changeView(el, evt.target.value);
     });
-    processButton.addEventListener('click', function() {
-      return evalDoc(el);
-    });
     el.autorun.checked = el.autorunState;
     el.autorun.addEventListener('change', function(evt) {
       el.autorunState = el.autorun.checked;
       if (el.autorunState) return runTests(el);
     });
     return markupButtons(controlDiv);
+  };
+
+  saveProgram = function saveProgram() {
+    return Prim.write(filename, getMDDocument(), (function() {
+      return alert("Saving " + filename);
+    }), function(err) {
+      console.log(err);
+      alert(err.stack);
+      throw err;
+    });
+  };
+
+  showFilename = function showFilename(el) {
+    el.innerHTML = "Save: " + (filename.pathName());
+    return el.title = filename.toString();
+  };
+
+  setFilename = function setFilename(newName) {
+    var node, _i, _len, _ref2, _results;
+    filename = newName instanceof URI ? newName : new URI(newName);
+    _ref2 = document.body.querySelectorAll('[leisureId=saveButton]');
+    _results = [];
+    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+      node = _ref2[_i];
+      _results.push(showFilename(node));
+    }
+    return _results;
   };
 
   markupButtons = function markupButtons(el) {
@@ -1461,8 +1494,9 @@
   };
 
   envFor = function envFor(box) {
-    var env, exBox;
+    var env, exBox, widget;
     exBox = getBox(box);
+    widget = null;
     env = Prim.initFileSettings({
       debug: debug,
       finishedEvent: function finishedEvent(evt, channel) {
@@ -1477,6 +1511,16 @@
         exBox.appendChild(div);
         return checkHideSource(exBox);
       },
+      getWidget: function getWidget() {
+        if (!widget) {
+          widget = document.createElement("DIV");
+          exBox.appendChild(widget);
+        }
+        return widget;
+      },
+      destroyWidget: function destroyWidget() {
+        if (widget) return remove(widget);
+      },
       prompt: function prompt(msg, cont) {
         return cont(window.prompt(msg));
       },
@@ -1490,10 +1534,15 @@
         btn = box.querySelector('[leisureId="makeTestCase"]');
         if (btn) remove(btn);
         return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref2 = ast.err.stack) != null ? _ref2 : ast.err));
+      },
+      cleanup: function cleanup() {
+        this.destroyWidget();
+        if (root.lastEnv === env) return root.lastEnv = null;
       }
     });
     env.__proto__ = Prim.defaultEnv;
     env.fileSettings.uri = new Prim.URI(document.location.href);
+    root.lastEnv = env;
     return env;
   };
 
@@ -1835,7 +1884,11 @@
   };
 
   evalBox = function evalBox(box, envBox) {
-    processLine(box.textContent, (envBox != null ? envFor(envBox) : null), 'Parse.');
+    var env;
+    env = envBox != null ? envFor(envBox) : null;
+    processLine(box.textContent, env, 'Parse.', function() {
+      return env != null ? typeof env.cleanup === "function" ? env.cleanup() : void 0 : void 0;
+    });
     return getAst(box);
   };
 
@@ -2143,6 +2196,19 @@
     return node != null ? node.nextSibling : void 0;
   };
 
+  hideControlSection = function hideControlSection() {
+    var controlSection;
+    controlSection = document.body.querySelector('[leisureSection=Leisure Controls]');
+    if (!controlSection) {
+      controlSection = document.createElement('DIV');
+      document.body.insertBefore(controlSection, document.body.firstChild);
+      root.markupElement(controlSection, "# Leisure Controls\n\n## File Save and Load\n```\nsaveFile\n\nsaveAs 'filename'\n\nsaveAs pickFile\n\nloadFile\n\nemptyFile\n```");
+      unwrap(controlSection);
+    }
+    controlSection.classList.add(leisure_controls);
+    return controlSection.classList.add(hidden);
+  };
+
   Prim.defaultEnv.require = req;
 
   root.svgMeasureText = svgMeasureText;
@@ -2242,5 +2308,15 @@
   root.getAst = getAst;
 
   root.insertControls = insertControls;
+
+  root.delay = delay;
+
+  root.setFilename = setFilename;
+
+  root.unwrap = unwrap;
+
+  root.remove = remove;
+
+  root.wrapRange = wrapRange;
 
 }).call(this);

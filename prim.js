@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, dotPat, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, parentPat, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, urlPat, values, write, _ref, _ref2,
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   defaultEnv = {
@@ -29,8 +29,10 @@
     Parse = window.Parse;
     Notebook = window.Notebook;
     ReplCore = window.ReplCore = (_ref2 = window.ReplCore) != null ? _ref2 : {};
+    root.URI = URI = window.URI;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
+    root.URI = URI = require('./uri');
     Parse = require('./parse');
     Leisure = require('./leisure');
     ReplCore = require('./replCore');
@@ -738,7 +740,7 @@
   };
 
   write = function write(uri, data, cont, err) {
-    return uriHandlerFor(uri).write(uri, data, cont, err);
+    return uriHandlerFor(uri).write(uri, data, cont != null ? cont : (function() {}), err != null ? err : throwError);
   };
 
   tryRead = function tryRead(label, choices, handler, cont, err) {
@@ -841,58 +843,6 @@
       });
     };
   });
-
-  urlPat = /^(([^:/]+):\/\/([^/]*))?(\/(.*?))?(\?.*?)?(#.*)?$/;
-
-  dotPat = /\/\.(?=\/|$)/g;
-
-  parentPat = /^\/\.\.|\/[^/]+?\/\.\./g;
-
-  URI = (function() {
-
-    function URI(src) {
-      var match, _ref3, _ref4;
-      if (match = src.match(urlPat)) {
-        if (match[2]) {
-          this.scheme = match[2].toLowerCase();
-          this.host = match[3].toLowerCase();
-        }
-        this.path = match[5] ? this.normalize(((this.scheme ? '/' : '') + match[5]).replace(dotPat, '')) : '/';
-        this.query = (_ref3 = match[6]) != null ? _ref3 : '';
-        this.fragment = (_ref4 = match[7]) != null ? _ref4 : '';
-      }
-    }
-
-    URI.prototype.normalize = function normalize(path) {
-      var replaced;
-      while (true) {
-        replaced = false;
-        path = path.replace(parentPat, function(match) {
-          replaced = true;
-          return '';
-        });
-        if (!replaced) break;
-      }
-      return path;
-    };
-
-    URI.prototype.relative = function relative(path) {
-      var u;
-      u = new URI(path);
-      if (u.scheme) {
-        return u;
-      } else {
-        return new URI((this.scheme ? "" + this.scheme + "://" + this.host : '') + (path.match(/^\//) ? path : this.path.match(/\/$/) ? "" + this.path + path : "" + this.path + "/../" + path));
-      }
-    };
-
-    URI.prototype.toString = function toString() {
-      return (this.scheme ? "" + this.scheme + "://" + this.host : "") + this.path;
-    };
-
-    return URI;
-
-  })();
 
   required = {};
 
@@ -1184,6 +1134,8 @@
   root.Monad = Monad;
 
   root.newUriHandler = newUriHandler;
+
+  root.write = write;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;

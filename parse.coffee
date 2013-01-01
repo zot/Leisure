@@ -157,7 +157,7 @@ mkProto = (protoFunc, value)->
   value
 
 throwError = (msg)->
-  throw new Error(msg)
+  throw (if msg instanceof Error then msg else new Error(String(msg)))
 
 checkType = (value, type)-> if !(value instanceof type) then throwError("Type error: expected type: #{type}, but got: #{jsType value}")
 

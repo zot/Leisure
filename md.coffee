@@ -38,43 +38,56 @@ Q = 81
 window.markup = ->
   nodes = document.querySelectorAll('[doc]')
   oneDoc = nodes.length == 1 && nodes[0] == document.body
+  document.body.classList.add 'hideControls'
   for el in nodes
     #console.log "source: ", el.innerHTML
-    md = Notebook.md = el.innerHTML.replace(/^\s<!--*/, '').replace(/-->\s*\n/m, '').trim();
+    md = Notebook.md = el.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
     #console.log "replaced: ", md
-    if oneDoc
-      markupSlides el, md
-    else
-      markupElement el, md
+    #if oneDoc
+    #  markupSlides el, md
+    #else
+    #  markupElement el, md
+    markupSlides el, md
     Notebook.insertControls el
 
 lastSlide = null
 slideCount = 0
 
+console?.error? new Error("Incompatibility: using -webkit-calc").stack
+
 markupSlides = (el, md)->
-  pages = md.split /^(?=\*\*\*\n)/m
+  pages = md.split /^\*\*\*([^\n]*)\n/m
   if pages.length > 1
+    console.log "PAGES:", JSON.stringify pages
     document.body.classList.add 'slide-container'
     document.body.innerHTML = ''
     bindSlider()
     el.removeAttribute 'doc'
-    for p in pages
-      continuation = p.match /-\n/m
-      lastSlide = div = document.createElement 'DIV'
-      el.appendChild div
-      div.classList.add 'slide'
-      div.classList.add 'ui-corner-all'
-      div.classList.add 'ui-widget'
-      div.classList.add 'ui-widget-content'
-      div.setAttribute 'doc', ''
-      if continuation then div.classList.add 'continuation'
-      div.setAttribute 'slide', ++slideCount
-      hideSlide $(div)
-      #document.body.appendChild div
-      #firstNode = document.createElement 'DIV'
-      #div.appendChild firstNode
-      #markupElement firstNode, p
-      markupElement div, p
+    for i in [0...pages.length] by 2
+      p = pages[i]
+      if p
+        continuation = p.match /-\n/m
+        lastSlide = div = Notebook.createNode "<div class='leisure_page'></fieldset>"
+        el.appendChild div
+        div.classList.add 'slide'
+        div.classList.add 'ui-corner-all'
+        div.classList.add 'ui-widget'
+        div.classList.add 'ui-widget-content'
+        div.setAttribute 'doc', ''
+        if continuation then div.classList.add 'continuation'
+        div.setAttribute 'slide', ++slideCount
+        hideSlide $(div)
+        content = Notebook.createNode "<div class='pageContent'></div>"
+        div.innerHTML = ''
+        div.appendChild content
+        if i > 0
+          title = pages[i - 1].trim()
+          div.setAttribute 'leisureSection', title
+          markupElement content, p
+          div.insertBefore Notebook.createNode("<span class='pageTitle'>#{title}</span>"), div.firstChild
+        else markupElement content, p
+    slides = el.querySelectorAll('[leisureSection]')
+    if slides.length <= (if el.querySelector '[leisureSection="Leisure Controls"]' then 2 else 1) then document.body.classList.add "oneSlide"
     div = createNode """
 <div class='slide-controls'>
   <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>
@@ -165,7 +178,7 @@ markupElement = (el, md)->
     code.setAttribute 'leisureNode', 'code'
     code.md = lex[codePos].text
     if code.parentNode.firstChild != code
-      if prev == null then range.setStart el, 0 else range.setStartAfter prev
+      if prev == null || prev.parentNode != code.parentNode then range.setStart code.parentNode, 0 else range.setStartAfter prev
       range.setEndBefore code
       makeMarkupDiv range, md.substring((if prevCodePos == -1 then 0 else len - lex[prevCodePos].remain), len - lex[codePos].remain - lex[codePos].textLen)
     prevCodePos = codePos
@@ -173,7 +186,8 @@ markupElement = (el, md)->
     prev = code
   if prevCodePos > -1
     if lex[prevCodePos].remain > 0
-      range.selectNodeContents el
+      #range.selectNodeContents el
+      range.selectNodeContents prev.parentNode
       range.setStartAfter prev
       makeMarkupDiv range, md.substring len - lex[prevCodePos].remain
   else
@@ -181,7 +195,40 @@ markupElement = (el, md)->
     range.selectNodeContents el
     makeMarkupDiv range, md
     #if !el.bound then bindMarkupDiv el
+  #handleInternalSections el
   prevCodePos > -1
+
+handleInternalSections = (el)->
+  innerSections = el.querySelectorAll '[leisureSection]'
+  parentSection = el.parentNode
+  parentTitle = parentSection.getAttribute 'leisureSection'
+  if !(el.firstChild.getAttribute 'leisureSection')
+    if !(parentSection.previousSibling?.getAttribute 'leisureSection')
+      prev = document.createElement 'DIV'
+      prev.setAttribute 'leisureSection', 'Main'
+      parentSection.parentSection.insertBefore prev, parentSection
+    else prev = parentSection.previousSibling
+    while !(el.firstChild.getAttribute 'leisureSection')
+      prev.appendChild el.firstChild
+  before = true
+  for node in innerSections
+    if node.getAttribute('leisureSection') == parentTitle
+      before = false
+      while node.firstChild
+        el.parentNode.insertBefore node.firstChild, el
+      Notebook.remove node
+    else if before then parentSection.parentNode.insertBefore node, parentSection
+    else parentSection.parentNode.insertBefore node, parentSection.nextSibling
+
+
+# make a section with the given title
+# put node-next into it (not including next -- null means include everthing after node)
+makeSection = (title, node, next)->
+  div = createNode "<div leisureSection='#{title}'></div>"
+  node.parentNode.insertBefore div, node
+  while div.nextSibling && div.nextSibling != next
+    div.appendChild div.nextSibling
+  div
 
 makeMarkupDiv = (range, md)->
   div = document.createElement 'div'
@@ -231,3 +278,5 @@ bindMarkupDiv = (div)->
         mergeLeisureCode previousSibling(first), first
         mergeLeisureCode last, nextSibling last
       else if div.textContent.trim() == '' then cleanEmptyNodes div
+
+Notebook.markupElement = markupElement

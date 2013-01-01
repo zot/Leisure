@@ -18,9 +18,11 @@ if window?
   Parse = window.Parse
   Notebook = window.Notebook
   ReplCore = window.ReplCore = window.ReplCore ? {}
+  root.URI = URI = window.URI
 else
   # running in node
   root = exports ? this
+  root.URI = URI = require './uri'
   Parse = require './parse'
   Leisure = require './leisure'
   ReplCore = require './replCore'
@@ -286,7 +288,7 @@ loadSource = (uri, data, cont, err)->
 
 read = (uri, cont, err)-> uriHandlerFor(uri).read uri, cont, err, -> err new Error("File not found: #{uri}")
 
-write = (uri, data, cont, err)-> uriHandlerFor(uri).write uri, data, cont, err
+write = (uri, data, cont, err)-> uriHandlerFor(uri).write uri, data, cont ? (->), err ? throwError
 
 tryRead = (label, choices, handler, cont, err)->
   if !choices.length then err new Error "No loadable file found for #{label}"
@@ -345,37 +347,6 @@ define 'require', ->(file)->
       else newCont()), (err)->
         console.log "ERROR: #{err.stack}"
         env.fileSettings = fileSettings
-
-urlPat = /^(([^:/]+):\/\/([^/]*))?(\/(.*?))?(\?.*?)?(#.*)?$/
-dotPat = /\/\.(?=\/|$)/g
-parentPat = /^\/\.\.|\/[^/]+?\/\.\./g
-
-class URI
-  constructor: (src)->
-    if match = src.match urlPat
-      if match[2]
-        @scheme = match[2].toLowerCase()
-        @host = match[3].toLowerCase()
-      @path = if match[5] then @normalize ((if @scheme then '/' else '') + match[5]).replace dotPat, '' else '/'
-      @query = match[6] ? ''
-      @fragment = match[7] ? ''
-  normalize: (path)->
-    while true
-      replaced = false
-      path = path.replace parentPat, (match)->
-        replaced = true
-        ''
-      if !replaced then break
-    path
-  relative: (path)->
-    u = new URI path
-    if u.scheme then u
-    else
-      new URI (if @scheme then "#{@scheme}://#{@host}" else '') + (
-        if path.match /^\// then path
-        else if @path.match /\/$/ then "#{@path}#{path}"
-        else "#{@path}/../#{path}")
-  toString: -> (if @scheme then "#{@scheme}://#{@host}" else "") + @path
 
 required = {}
 
@@ -503,5 +474,6 @@ root.initFileSettings = initFileSettings
 root.URI = URI
 root.Monad = Monad
 root.newUriHandler = newUriHandler
+root.write = write
 
 if window? then window.leisureEvent = leisureEvent

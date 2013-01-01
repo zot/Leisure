@@ -33,6 +33,7 @@ arrows = [37..40]
 updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
 peer = null
 nextId = 0
+filename = null
 
 snapshot = (el, pgm)->
 
@@ -85,13 +86,14 @@ createPeer = ->
     if key == 'leisure/evalExpr' && value?
       [expr, result] = value
       console.log "EVAL: #{expr}, RESULT: #{result}"
-      processLine expr, xusEnv(result, expr), 'Parse.'
+      env = xusEnv(result, expr)
+      processLine expr, env, 'Parse.', -> env.cleanup?()
   peer.set 'leisure/document', peerGetDocument
   peer.set 'leisure/functions', peerGetFunctions
   peer.set 'leisure/storage', []
-  if document.location.hash
+  if Boot.documentFragment
     params = {}
-    for param in document.location.hash.substring(1).split '&'
+    for param in Boot.documentFragment.substring(1).split '&'
       [k, v] = param.split '='
       params[k.toLowerCase()] = decodeURIComponent v
     if params.xusproxy? then Xus.xusToProxy(server, params.xusproxy)
@@ -123,12 +125,14 @@ peerGetDocument = ->
 
 peerGetFunctions = -> (_.uniq window.leisureFuncNames.toArray().sort(), true).sort()
 
-getMDDocument = (nodes)->
+getMDDocument = ->
   #Notebook.md.replace /<pre.*\/pre>/g, (match)-> '\n=>' + match.replace('\n', '\n->')
   md = ''
-  for doc in document.querySelectorAll '[doc]'
-    for node in doc.childNodes
-      md += if isLeisureCode node then "```\n#{getElementCode node}\n```\n" else node.md ? ''
+  #for doc in document.querySelectorAll '[doc]'
+  #  for node in doc.childNodes
+  #    md += if isLeisureCode node then "```\n#{getElementCode node}\n```\n" else node.md ? ''
+  for node in document.querySelectorAll '[doc] [leisureNode]'
+    md += if isLeisureCode node then "```\n#{getElementCode node}\n```\n" else node.md ? ''
   md
 
 makeId = (el)-> if !el.id then el.id = "Leisure-#{nextId++}"
@@ -591,10 +595,7 @@ createFragment = (txt)->
 insertControls = (el)->
   controlDiv = createNode """
 <div LeisureOutput contentEditable='false' class='leisure_bar'><div class="leisure_bar_contents">
-  <span class='leisure_load'>Load: </span>
-  <input type='file' leisureId='loadButton'></input>
-  <a download='program.lsr' leisureId='downloadLink'>Download</a>
-  <a target='_blank' leisureId='viewLink'>View</a>
+  <button leisureId='saveButton' class="leisure_start">Save</button>
   <button leisureId='testButton'>Run Tests</button> <span leisureId='testResults' class="notrun"></span>
   <input type='checkbox' leisureId='autorunTests'><b>Auto</b></input>
   <span class="leisure_theme">Theme: </span>
@@ -610,25 +611,43 @@ insertControls = (el)->
     <option value=testing>Testing</option>
     <option value=running>Running</option>
   </select>
-  <button leisureId='processButton' style="float: right">Process</button></div>
 </div>
 """
   spacer = createNode "<div LeisureOutput  contentEditable='false' class='leisure_space'></div>"
   el.insertBefore spacer, el.firstChild
   el.insertBefore controlDiv, el.firstChild
-  [el.leisureDownloadLink, el.leisureViewLink, loadButton, testButton, el.testResults, el.autorun, themeSelect, viewSelect, processButton] = getElements el, ['downloadLink', 'viewLink', 'loadButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect', 'processButton']
-  loadButton.addEventListener 'change', (evt)-> loadProgram el, loadButton.files
+  [el.leisureDownloadLink, el.leisureViewLink, saveButton, testButton, el.testResults, el.autorun, themeSelect, viewSelect] = getElements el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect']
+  if filename then showFilename filenameElement
+  controlDiv.addEventListener 'click', (evt)->
+    if document.body.classList.contains 'hideControls'
+      document.body.classList.remove 'hideControls'
+    else document.body.classList.add 'hideControls'
+  saveButton.addEventListener 'click', (evt)-> saveProgram el
   testButton.addEventListener 'click', -> runTests el
   themeSelect.value = el.leisureTheme ? 'thin'
   themeSelect.addEventListener 'change', (evt)-> changeTheme el, evt.target.value
   viewSelect.addEventListener 'change', (evt)-> changeView el, evt.target.value
-  processButton.addEventListener 'click', -> evalDoc el
   el.autorun.checked = el.autorunState
   el.autorun.addEventListener 'change', (evt)->
     el.autorunState = el.autorun.checked
     if el.autorunState then runTests el
   #configureSaveLink(el)
   markupButtons controlDiv
+
+saveProgram = ->
+  Prim.write filename, getMDDocument(), (-> alert "Saving #{filename}"), (err)->
+    console.log err
+    alert err.stack
+    throw err
+
+showFilename = (el)->
+  el.innerHTML = "Save: #{filename.pathName()}"
+  el.title = filename.toString()
+
+setFilename = (newName)->
+  filename = if newName instanceof URI then newName else new URI(newName)
+  for node in document.body.querySelectorAll '[leisureId=saveButton]'
+    showFilename node
 
 markupButtons = (el)->
   markupButton btn for btn in el.querySelectorAll 'button'
@@ -983,6 +1002,7 @@ prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
+  widget = null
   env = Prim.initFileSettings
     debug: debug
     finishedEvent: (evt, channel)->update(channel ? 'app', this)
@@ -993,6 +1013,12 @@ envFor = (box)->
       div.innerHTML = "#{msg}\n"
       exBox.appendChild(div)
       checkHideSource exBox
+    getWidget: ->
+      if !widget
+        widget = document.createElement "DIV"
+        exBox.appendChild widget
+      widget
+    destroyWidget: -> if widget then remove widget
     prompt:(msg, cont)-> cont(window.prompt(msg))
     processResult: (result, ast)->
       box.result = result
@@ -1002,8 +1028,12 @@ envFor = (box)->
       btn = box.querySelector '[leisureId="makeTestCase"]'
       if btn then remove btn
       @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack ? ast.err}"
+    cleanup: ->
+      @destroyWidget()
+      if root.lastEnv == env then root.lastEnv = null
   env.__proto__ = Prim.defaultEnv
   env.fileSettings.uri = new Prim.URI document.location.href
+  root.lastEnv = env
   env
 
 leisureContextString = (err)-> (linkSource func, offset for [func, offset] in err.leisureContext.toArray()).join('\n')
@@ -1225,7 +1255,8 @@ owner = (box)->
   box
 
 evalBox = (box, envBox)->
-  processLine box.textContent, (if envBox? then envFor(envBox) else null), 'Parse.'
+  env = if envBox? then envFor(envBox) else null
+  processLine box.textContent, env, 'Parse.', -> env?.cleanup?()
   getAst box
 
 acceptCode = (box)->
@@ -1402,6 +1433,39 @@ nextSibling = (node)->
     node = node.parentNode
   node?.nextSibling
 
+#
+# System pages
+#
+
+hideControlSection = ->
+  controlSection = document.body.querySelector '[leisureSection=Leisure Controls]'
+  if !controlSection
+    controlSection = document.createElement 'DIV'
+    document.body.insertBefore controlSection, document.body.firstChild
+    root.markupElement controlSection, """
+# Leisure Controls
+
+## File Save and Load
+```
+saveFile
+
+saveAs 'filename'
+
+saveAs pickFile
+
+loadFile
+
+emptyFile
+```
+"""
+    unwrap controlSection
+  controlSection.classList.add leisure_controls
+  controlSection.classList.add hidden
+
+#
+# Exports
+# 
+
 Prim.defaultEnv.require = req
 
 root.svgMeasureText = svgMeasureText
@@ -1453,6 +1517,11 @@ root.markupButton = markupButton
 root.markupButtons = markupButtons
 root.getAst = getAst
 root.insertControls = insertControls
+root.delay = delay
+root.setFilename = setFilename
+root.unwrap = unwrap
+root.remove = remove
+root.wrapRange = wrapRange
 
 #root.selection = -> window.getSelection().getRangeAt(0)
 #root.test = -> flatten(root.selection().cloneContents().childNodes[0])

@@ -92,8 +92,7 @@ write = (args...)-> writeFunc args.join('')
 
 processResult = (result, env, next)->
   next = next ? nextFunc
-  #if (getType result) == 'monad' then Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
-  if result instanceof Prim.Monad then Prim.runMonad result, (env ? Prim.defaultEnv), -> next()
+  if result instanceof Prim.Monad then Prim.runMonad result, (env ? Prim.defaultEnv), next
   else next()
 
 handleVar = (name, value, env)->

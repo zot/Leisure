@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
   	<style>
@@ -9,42 +10,108 @@
   		}
   	</style>
     <link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
-    <link href='jquery-ui/css/cthulhu-theme/jquery-ui-1.9.1.custom.min.css' rel='stylesheet' type='text/css'>
+    <link href='jquery-ui/css/cthulhu-theme/jquery-ui-1.9.1.custom.min.css'
+  			rel='stylesheet' type='text/css'>
+    <script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script>
     <script language="javascript">
-      leisureFirst = function() {
-          markup();
-      };
-      leisureAutoRunAll = true;
       function start() {
           if (navigator && navigator.appVersion && navigator.appVersion.match(/Chrome/)) {
               var script = document.createElement('script');
               script.src = "bootLeisure.js";
-              document.body.appendChild(script);
+              document.head.appendChild(script);
           } else {
               document.body.innerHTML = '<h1>This version of Leisure only supports Chrome</h1>';
           }
       }
     </script>
   </head>
-  <body class="thin" doc class="embedded">
+  <body doc class="thin embedded scroll">
 <!--
+*** Leisure Controls
+
+## File Save and Load
+```
+saveFile
+
+saveAs 'filename'
+
+saveAs pickFile
+
+loadFile
+
+emptyFile
+```
+
+asdf
+
+
+adsf
+
+
+
+asdfasd
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+asdf
+
+
+
+***One
+one
+
+*** Two
+two
+
+***Three
 Drive tests
 
 ```
 do
-  x <- read 'local-storage:///code'
-  x (\d . print d) id
-
-write 'googledrive:///test' 'bubba'
-
-write 'googledrive:///test.lsr' "write 'googledrive:///fred' 'duh'"
-
-do
-  x <- read 'googledrive:///test'
-  x (\d . print d) id
+  write 'googledrive:///test.lmd' "```\ndo\n  write 'googledrive:///fred' 'duh'\n  print 'done'\n```\n"
+  print 'done'
 
 require 'googledrive:///test'
 
+```
+*** Four
+four
+
+duh
+```
+3+4
 ```
 -->
 <script>start()</script>

@@ -41,6 +41,10 @@ body {
 }
 
 
+.leisure_page {
+  position: relative;
+}
+
 .leisure_bar {
   min-height: 28px;
   background-image: url(leisure_bar.gif);
@@ -48,9 +52,12 @@ body {
   color: black;
   position: fixed;
   z-index: 100;
-  width: 100%;
+  width: 135px;
+  /*width: 100%;*/
   white-space: normal;
+  display: none;
 }
+
 
 .embedded .leisure_bar {
   min-height: 28px;
@@ -64,30 +71,68 @@ body {
   white-space: normal;
 }
 
+.scroll .leisure_bar {
+  display: block;
+}
+
+.scroll.focused .leisure_bar {
+  width: 100%;
+}
+
 .leisure_space {
   height: 32px;
 }
 
-.focused .leisure_bar_contents,
-.scroll .leisure_bar_contents
+.scroll.focused .leisure_bar_contents
+/*, .scroll .leisure_bar_contents*/
  {
   display: block;
 }
 
+.scroll .slide[leisuresection] {
+  position: relative;
+  margin-top: 1em;
+}
+
+.pageTitle {
+  background: white;
+  padding-left: 5px;
+  padding-right: 5px;
+  position: absolute;
+  top: -webkit-calc(-0.5em - 2px);
+  top: calc(-0.5em - 2px);
+  z-index: 70;
+}
+
+.scroll .slide[leisuresection="Leisure Controls"] {
+  position: fixed !important;
+  z-index: 80;
+  top: 30px;
+  left: 0;
+  display: block !important;
+}
+
+.slide[leisuresection="Leisure Controls"] .pageTitleHolder {
+  z-index: 85;
+}
+
+.scroll .slide[leisuresection="Leisure Controls"] .pageContent {
+  position: absolute;
+  overflow: auto;
+  top: 10px;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+}
+
+.scroll.hideControls .slide[leisuresection="Leisure Controls"]
+, .slide[leisuresection="Leisure Controls"]
+{
+  display: none !important;
+}
+
 .leisure_bar_contents {
   display: none;
-}
-
-.leisure_bar {
-  display: none;
-  /*width: 135px;*/
-  width: 100%;
-}
-
-.focused .leisure_bar,
-.scroll .leisure_bar {
-  display: block;
-  width: 100%;
 }
 
 .leisure_bar span.passed, .leisure_bar span.failed, .leisure_bar span.notrun {
@@ -110,8 +155,8 @@ body {
   background: #f88;
 }
 
-.leisure_load {
-  padding-left: 150px
+.leisure_start {
+  margin-left: 150px
 }
 
 .leisure_theme {
@@ -121,6 +166,11 @@ body {
 .codeMain {
   position: relative;
   overflow: visible;
+}
+
+.ui-corner-all {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .fatControls {
@@ -175,6 +225,10 @@ body {
   border: solid black 1px;
   padding: 10px;
   margin: 5px;
+}
+
+.oneSlide.scroll .slide {
+  border: none;
 }
 
 .scroll .slide.continuation {
