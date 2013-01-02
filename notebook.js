@@ -2033,8 +2033,37 @@
 
   Parse.define('markupButtons', function() {
     return Prim.makeMonad(function(env, cont) {
-      if (env.box) return markupButtons(env.box);
+      if (env.box) markupButtons(env.box);
+      return cont(_false());
     });
+  });
+
+  Parse.define('alert', function() {
+    return function(str) {
+      return Prim.makeMonad(function(env, cont) {
+        window.alert(str());
+        return cont(_false());
+      });
+    };
+  });
+
+  Parse.define('bindEvent', function() {
+    return function(selector) {
+      return function(eventName) {
+        return function(func) {
+          return Prim.makeMonad(function(env, cont) {
+            var node;
+            node = env.box.querySelector(selector());
+            if (node) {
+              node.addEventListener(eventName(), function(e) {
+                return Prim.runMonad(func()(laz(e)), env, function() {});
+              });
+            }
+            return cont(_false());
+          });
+        };
+      };
+    };
   });
 
   Parse.define('quit', function() {

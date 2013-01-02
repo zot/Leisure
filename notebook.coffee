@@ -1335,10 +1335,23 @@ Parse.define 'finishLoading', ->(bubba)->
     for i in postLoadQueue
       i()
     postLoadQueue = []
-    cont(_false())
+    cont _false()
 
 Parse.define 'markupButtons', ->
-  Prim.makeMonad (env, cont)-> if env.box then markupButtons env.box
+  Prim.makeMonad (env, cont)->
+    if env.box then markupButtons env.box
+    cont _false()
+
+Parse.define 'alert', ->(str)->
+  Prim.makeMonad (env, cont)->
+    window.alert(str())
+    cont _false()
+
+Parse.define 'bindEvent', ->(selector)->(eventName)->(func)->
+  Prim.makeMonad (env, cont)->
+    node = env.box.querySelector selector()
+    if node then node.addEventListener eventName(), (e)-> Prim.runMonad func()(laz e), env, ->
+    cont _false()
 
 Parse.define 'quit', -> window.close()
 
