@@ -169,6 +169,10 @@ body {
   overflow: visible;
 }
 
+.errorDiv {
+  max-width: 600px;
+}
+
 .outputDiv {
   margin-right: 16px; /* space for show-source button */
 }

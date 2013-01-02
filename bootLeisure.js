@@ -25,12 +25,15 @@
 
   bootLeisure = function bootLeisure() {
     return loadThen(['uri'], function() {
-      var state, uri;
+      var params, uri, _ref3;
       uri = new window.URI(document.location.href);
-      state = uri.getSearchParams().state;
-      if (state) {
+      params = uri.getSearchParams();
+      if (params.state) {
         uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
         uri.search = null;
+        return document.location.href = uri.toString();
+      } else if (!params.uniq) {
+        uri.search = "" + ((_ref3 = uri.search) != null ? _ref3 : '') + (uri.search ? '&' : '?') + "uniq=" + (Math.random());
         return document.location.href = uri.toString();
       } else {
         Boot.documentFragment = document.location.hash;
