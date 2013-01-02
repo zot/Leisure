@@ -881,8 +881,10 @@ setUpdate = (el, channel, preserveSource)->
     r.insertNode textNode(channel)
     el.source.normalize()
 
+hasMonadOutput = (box)-> box.firstElementChild?.nextElementSibling?.nextElementSibling?
+
 checkHideSource = (box)->
-  if !box.hideOutputSource and box.firstElementChild?.nextElementSibling?.nextElementSibling?
+  if !box.hideOutputSource and hasMonadOutput box
     box.hideOutputSource = true
     hs = createNode "<button class='editToggle' style='float:right'></button>"
     markupButton hs
@@ -1021,6 +1023,7 @@ envFor = (box)->
       div.innerHTML = "#{msg}\n"
       exBox.appendChild(div)
       checkHideSource exBox
+      markupButtons exBox
     getWidget: ->
       if !widget
         widget = document.createElement "DIV"
