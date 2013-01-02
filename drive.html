@@ -34,7 +34,13 @@
 
 #@auto "mode": "notebook"
 #@hidden
-=printValue (html "<button onclick='alert(\"hello\")'>hello</button>")
+do
+  printValue (html concat[
+    "<button id='openButton'>Open</button><br>"
+    "<button id='saveButton'>Save</button><br>"
+    "Save as: <input id='saveAs' type='text'></input><br>"])
+  bindEvent '#openButton' 'click' \e . alert 'Open'
+  bindEvent '#saveButton' 'click' \e . alert 'Save'
 
 saveFile
 
