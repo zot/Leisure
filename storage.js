@@ -94,18 +94,18 @@
   };
 
   loadFile = function loadFile(id, cont) {
-    document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
+    $('[maindoc]')[0].innerHTML = "<h1>LOADING Google Drive file... </h1>";
     return initGdrive(function() {
       var file;
       file = id2File[id];
       if (!file) {
-        return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
+        return $('[maindoc]')[0].innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
       } else {
-        document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
+        $('[maindoc]')[0].innerHTML = "<h1>LOADING " + file.title + "... </h1>";
         return readFile(file, function(err, text) {
           var filename, node, path, _i, _j, _len, _len2, _ref5, _ref6;
           if (err) {
-            document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
+            $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
           } else if (file.fileExtension === 'lmd') {
             if (id2Paths[file.id].length > 1) {
               _ref5 = id2Paths[file.id];
@@ -113,7 +113,7 @@
                 path = _ref5[_i];
                 if (path.match('^/LeisureStorage/')) {
                   if (filename) {
-                    document.body.innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
+                    $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
                   }
                   return;
                 } else {
@@ -136,7 +136,7 @@
             }
             Notebook.setFilename("googledrive://" + filename);
           } else {
-            document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
+            $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
           }
           return (cont != null ? cont : function() {})();
         });
