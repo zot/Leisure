@@ -32,10 +32,13 @@
 #@auto "mode": "notebook"
 #@hidden
 do
+  filename <- getFilename
   printValue (html concat[
     "<button id='openButton'>Open</button><br>"
     "<button id='saveButton'>Save</button><br>"
-    "Save as: <input id='saveAs' type='text'></input><br>"])
+    "Save as: <input id='saveAs' type='text'>"
+    filename
+    "</input><br>"])
   bindEvent '#openButton' 'click' \e . gdriveOpen
   bindEvent '#saveButton' 'click' \e . alert 'Save'
 ```

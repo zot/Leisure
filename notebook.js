@@ -2031,6 +2031,13 @@
     });
   });
 
+  Parse.define('getFilename', function() {
+    return Prim.makeMonad(function(env, cont) {
+      var _ref2;
+      return cont((_ref2 = filename != null ? filename.pathName() : void 0) != null ? _ref2 : '');
+    });
+  });
+
   Parse.define('finishLoading', function() {
     return function(bubba) {
       return Prim.makeMonad(function(env, cont) {
