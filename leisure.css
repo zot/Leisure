@@ -123,6 +123,7 @@ body {
   bottom: 10px;
   left: 10px;
   right: 10px;
+  padding-left: 2px;
 }
 
 .scroll.hideControls .slide[leisuresection="Leisure Controls"]

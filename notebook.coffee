@@ -741,6 +741,7 @@ markupDefs = (el, defs)->
   pgm = ''
   auto = ''
   totalTests = 0
+  notebookAutoNodes = []
   for i in defs
     {main, name, def, body, tests} = i
     if name?
@@ -764,12 +765,14 @@ markupDefs = (el, defs)->
       s.appendChild textNode('\n')
       bx.appendChild s
       markPartialApplies bx
-      if main.leisureAuto then auto += "#{body}\n"
-      else makeOutputBox(bx)
+      if main.leisureAuto?.mode == 'silent' then auto += "#{body}\n"
+      else
+        if main.leisureAuto?.mode == 'notebook' then notebookAutoNodes.push bx
+        makeOutputBox(bx)
     for test in tests
       replaceRange test, makeTestBox test.leisureTest
       totalTests++
-  [pgm, auto, totalTests]
+  [pgm, auto, totalTests, notebookAutoNodes]
 
 getAst = (bx, def)->
   if bx.ast?
@@ -879,8 +882,8 @@ setUpdate = (el, channel, preserveSource)->
     el.source.normalize()
 
 checkHideSource = (box)->
-  if !box.hideSource and box.firstElementChild?.nextElementSibling?.nextElementSibling?
-    box.hideSource = true
+  if !box.hideOutputSource and box.firstElementChild?.nextElementSibling?.nextElementSibling?
+    box.hideOutputSource = true
     hs = createNode "<button class='editToggle' style='float:right'></button>"
     markupButton hs
     hs.addEventListener 'click', -> toggleEdit(hs)
@@ -893,14 +896,18 @@ makeOutputControls = (exBox)->
     markupButtons exBox
     exBox.classList.add 'fatControls'
 
+showOutputSource = (output)->
+  output.classList.remove 'hidingSource'
+  output.source.style.display = ''
+
+hideOutputSource = (output)-> 
+  output.classList.add 'hidingSource'
+  output.source.style.display = 'none'
+
 toggleEdit = (toggleButton)->
   output = getBox toggleButton
-  if output.classList.contains 'hidingSource'
-    output.classList.remove 'hidingSource'
-    output.source.style.display = ''
-  else
-    output.classList.add 'hidingSource'
-    output.source.style.display = 'none'
+  if output.classList.contains 'hidingSource' then showOutputSource output
+  else hideOutputSource output
 
 clearUpdates = (widget, preserveSource)->
   exBox = getBox widget
@@ -920,7 +927,7 @@ cleanOutput = (exBox, preserveControls)->
   exBox = getBox exBox
   exBox.classList.remove 'fatControls'
   if !preserveControls
-    exBox.hideSource = null
+    exBox.hideOutputSource = null
     fc = exBox.firstChild
     fc.removeChild fc.firstChild
     while fc.firstChild != fc.lastChild
@@ -1007,6 +1014,7 @@ envFor = (box)->
     debug: debug
     finishedEvent: (evt, channel)->update(channel ? 'app', this)
     owner: owner(box)
+    box: box
     require: req
     write: (msg)->
       div = document.createElement('div')
@@ -1144,9 +1152,14 @@ getRanges = (el, txt, rest, def, restOff)->
           #if leading? and (lm = leading.match /^[ \n]+/) then textStart += lm[0].length
           if t? and (lm = t.match /^[ \n]+/) then textStart += lm[0].length
           #if leading.match /@auto/
-          if t.match /@auto/
+          console.log "CHECKING AUTO..."
+          if m = t.match /(?:^|\n)#@auto( +[^\n]*)?(\n|$)/
             outerRange = makeRange el, textStart, exEnd
-            outerRange.leisureAuto = true
+            outerRange.leisureAuto = JSON.parse "{#{m[1] ? ''}}"
+            if outerRange.leisureAuto.mode == 'notebook'
+              outerRange.leisureNode = el
+              outerRange.leisureStart = textStart
+            console.log "Auto expr: #{txt.substring(textStart, exEnd)}, attrs: #{m[1]}"
             main: outerRange
             name: null
             def: null
@@ -1225,7 +1238,9 @@ req = (file, cont)->
 
 postLoadQueue = []
 
-queueAfterLoad = (func)-> postLoadQueue.push(func)
+loaded = false
+
+queueAfterLoad = (func)-> if loaded then func() else postLoadQueue.push(func)
 
 ###
 # handle focus manually, because grabbing focus and blur events doesn't seem to work for the parent
@@ -1258,6 +1273,7 @@ evalBox = (box, envBox)->
   env = if envBox? then envFor(envBox) else null
   processLine box.textContent, env, 'Parse.', -> env?.cleanup?()
   getAst box
+  if box.output && box.textContent.match /(^|\n)#@hidden *(\n|$)/ then hideOutputSource box.output
 
 acceptCode = (box)->
   if (box.getAttribute 'codemain')?
@@ -1266,14 +1282,17 @@ acceptCode = (box)->
     if owner(box).autorunState then runTests owner(box)
 
 evalDoc = (el)->
-  [pgm, auto] = initNotebook(el)
+  [pgm, auto, x, autoNodes] = initNotebook(el)
   try
-    if auto
-      auto = "do\n  #{auto.trim().replace /\n/g, '\n  '}\n  finishLoading 'fred'"
+    if auto || autoNodes
+      auto = "do\n  #{(auto ? '#\n').trim().replace /\n/g, '\n  '}\n  finishLoading 'fred'"
       global.noredefs = false
       Notebook.queueAfterLoad ->
         evalDocCode el, pgm
         if el.autorunState then runTests el
+        for node in autoNodes
+          console.log "evalOutput", node, node.output
+          evalOutput node.output
       e = envFor(el)
       e.write = ->
       e.processError = (ast)->alert('bubba ' + ReplCore.errString ast.err)
@@ -1308,10 +1327,14 @@ evalDocCode = (el, pgm)->
 
 Parse.define 'finishLoading', ->(bubba)->
   Prim.makeMonad (env, cont)->
+    loaded = true
     for i in postLoadQueue
       i()
     postLoadQueue = []
     cont(_false())
+
+Parse.define 'markupButtons', ->
+  Prim.makeMonad (env, cont)-> if env.box then markupButtons env.box
 
 Parse.define 'quit', -> window.close()
 
