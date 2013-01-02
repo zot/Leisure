@@ -390,6 +390,7 @@
 
   addOpenButton = function addOpenButton() {
     var open, save;
+    return;
     save = document.body.querySelector('[leisureId=saveButton]');
     open = Notebook.createNode("<button>Open</button>");
     save.parentNode.insertBefore(open, save.nextSibling);
