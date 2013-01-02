@@ -736,7 +736,7 @@ misrepresented as being the original software.
       }), "Error compiling expr " + (snip(line)));
     } else if ((def = line.match(linePat)) && def[1].length !== line.length) {
       matched = def[0], leading = def[1], name = def[2], defType = def[3];
-      if (name[0] === ' ') {
+      if (!name || name[0] === ' ') {
         name = null;
         defType = null;
         nm = null;
@@ -744,6 +744,7 @@ misrepresented as being the original software.
         _ref = defType ? parseDecl(name) : [], nm = _ref[0], typeAssertions = _ref[1], scannedDecl = _ref[2], err = _ref[3];
       }
       rest1 = line.substring((defType ? matched : leading).length);
+      if (rest1[0] === '=') rest1 = rest1.substring(1);
       if (err) {
         return [null, err];
       } else if (nm) {

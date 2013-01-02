@@ -169,6 +169,10 @@ body {
   overflow: visible;
 }
 
+.outputDiv {
+  margin-right: 16px; /* space for show-source button */
+}
+
 .ui-corner-all {
   padding-left: 10px;
   padding-right: 10px;

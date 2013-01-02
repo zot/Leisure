@@ -339,7 +339,7 @@
     rest = contents;
     while (rest) {
       oldRest = rest;
-      _ref2 = Leisure.compileNext(rest, globals, true, null, nomacros), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
+      _ref2 = Leisure.compileNext(rest.trim(), globals, true, null, nomacros), ast = _ref2[0], err = _ref2[1], rest = _ref2[2];
       if (err) {
         if (ast != null ? ast.leisureName : void 0) {
           errs = "" + errs + "Error in " + ast.leisureName + (showAst(ast)) + ": " + err + "\n";
