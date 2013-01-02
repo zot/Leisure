@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Boot, Leisure, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, finishBoot, handleError, loadThen, _ref, _ref2,
+  var Boot, Leisure, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, finishBoot, handleError, loadThen, uniquify, _ref, _ref2,
     __slice = Array.prototype.slice;
 
   Leisure = (_ref = window.Leisure) != null ? _ref : (window.Leisure = {});
@@ -43,6 +43,10 @@
     });
   };
 
+  uniquify = function uniquify(str) {
+    return "" + str + "?uniq=" + (new Date().getTime());
+  };
+
   bootLeisureCont = function bootLeisureCont() {
     var body, i, pre, style, _i, _len, _ref3;
     body = document.body;
@@ -64,7 +68,7 @@
       style = document.createElement('link');
       style.setAttribute('type', "text/css");
       style.setAttribute('rel', "stylesheet");
-      style.setAttribute('href', "" + i + ".css");
+      style.setAttribute('href', uniquify("" + i + ".css"));
       document.head.appendChild(style);
     }
     return loadThen(['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'md', 'maps', 'svg', 'parseAst'], function() {
@@ -121,7 +125,7 @@
       return typeof cont === "function" ? cont() : void 0;
     } else {
       script = document.createElement('script');
-      script.setAttribute('src', (nosuffix ? files[index] : "" + files[index] + ".js?uniq=" + (new Date().getTime())));
+      script.setAttribute('src', (nosuffix ? files[index] : uniquify("" + files[index] + ".js")));
       script.addEventListener('load', function() {
         return loadThen(files, cont, index + 1);
       });

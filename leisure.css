@@ -171,6 +171,7 @@ body {
 
 .errorDiv {
   max-width: 600px;
+  white-space: pre-wrap;
 }
 
 .outputDiv {
