@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, makeControlSection, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -904,6 +904,13 @@
     el.insertBefore(controlDiv, el.firstChild);
     _ref2 = getElements(el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect']), el.leisureDownloadLink = _ref2[0], el.leisureViewLink = _ref2[1], saveButton = _ref2[2], testButton = _ref2[3], el.testResults = _ref2[4], el.autorun = _ref2[5], themeSelect = _ref2[6], viewSelect = _ref2[7];
     if (filename) showFilename(filenameElement);
+    controlDiv.addEventListener('click', function(evt) {
+      if (document.body.classList.contains('hideControls')) {
+        return document.body.classList.remove('hideControls');
+      } else {
+        return document.body.classList.add('hideControls');
+      }
+    });
     saveButton.addEventListener('click', function(evt) {
       return saveProgram(el);
     });
@@ -1110,10 +1117,11 @@
   };
 
   markupDefs = function markupDefs(el, defs) {
-    var auto, bod, body, bx, def, i, main, name, pgm, s, test, tests, totalTests, _i, _j, _len, _len2;
+    var auto, bod, body, bx, def, i, main, name, notebookAutoNodes, pgm, s, test, tests, totalTests, _i, _j, _len, _len2, _ref2, _ref3;
     pgm = '';
     auto = '';
     totalTests = 0;
+    notebookAutoNodes = [];
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i.main, name = i.name, def = i.def, body = i.body, tests = i.tests;
@@ -1138,9 +1146,12 @@
         s.appendChild(textNode('\n'));
         bx.appendChild(s);
         markPartialApplies(bx);
-        if (main.leisureAuto) {
+        if (((_ref2 = main.leisureAuto) != null ? _ref2.mode : void 0) === 'silent') {
           auto += "" + body + "\n";
         } else {
+          if (((_ref3 = main.leisureAuto) != null ? _ref3.mode : void 0) === 'notebook') {
+            notebookAutoNodes.push(bx);
+          }
           makeOutputBox(bx);
         }
       }
@@ -1150,7 +1161,7 @@
         totalTests++;
       }
     }
-    return [pgm, auto, totalTests];
+    return [pgm, auto, totalTests, notebookAutoNodes];
   };
 
   getAst = function getAst(bx, def) {
@@ -1309,8 +1320,8 @@
 
   checkHideSource = function checkHideSource(box) {
     var hs, _ref2, _ref3;
-    if (!box.hideSource && (((_ref2 = box.firstElementChild) != null ? (_ref3 = _ref2.nextElementSibling) != null ? _ref3.nextElementSibling : void 0 : void 0) != null)) {
-      box.hideSource = true;
+    if (!box.hideOutputSource && (((_ref2 = box.firstElementChild) != null ? (_ref3 = _ref2.nextElementSibling) != null ? _ref3.nextElementSibling : void 0 : void 0) != null)) {
+      box.hideOutputSource = true;
       hs = createNode("<button class='editToggle' style='float:right'></button>");
       markupButton(hs);
       hs.addEventListener('click', function() {
@@ -1329,15 +1340,23 @@
     }
   };
 
+  showOutputSource = function showOutputSource(output) {
+    output.classList.remove('hidingSource');
+    return output.source.style.display = '';
+  };
+
+  hideOutputSource = function hideOutputSource(output) {
+    output.classList.add('hidingSource');
+    return output.source.style.display = 'none';
+  };
+
   toggleEdit = function toggleEdit(toggleButton) {
     var output;
     output = getBox(toggleButton);
     if (output.classList.contains('hidingSource')) {
-      output.classList.remove('hidingSource');
-      return output.source.style.display = '';
+      return showOutputSource(output);
     } else {
-      output.classList.add('hidingSource');
-      return output.source.style.display = 'none';
+      return hideOutputSource(output);
     }
   };
 
@@ -1370,7 +1389,7 @@
     exBox = getBox(exBox);
     exBox.classList.remove('fatControls');
     if (!preserveControls) {
-      exBox.hideSource = null;
+      exBox.hideOutputSource = null;
       fc = exBox.firstChild;
       fc.removeChild(fc.firstChild);
       while (fc.firstChild !== fc.lastChild) {
@@ -1496,6 +1515,7 @@
         return update(channel != null ? channel : 'app', this);
       },
       owner: owner(box),
+      box: box,
       require: req,
       write: function write(msg) {
         var div;
@@ -1643,7 +1663,7 @@
   testPat = /(#@test([^\n]*)\n#@expected([^\n]*))\n/m;
 
   getRanges = function getRanges(el, txt, rest, def, restOff) {
-    var body, bodyStart, defType, endPat, ex, exEnd, leadOff, leading, leadingSpaces, lm, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, textStart, _ref2, _ref3, _ref4;
+    var body, bodyStart, defType, endPat, ex, exEnd, leadOff, leading, leadingSpaces, lm, m, m2, mainEnd, mainStart, matchStart, matched, name, nameEnd, nameRaw, next, outerRange, r, rest1, t, tOff, tests, textStart, _ref2, _ref3, _ref4, _ref5;
     _ref2 = m = def, matched = _ref2[0], leading = _ref2[1], nameRaw = _ref2[2], defType = _ref2[3];
     if (!rest.trim()) {
       return null;
@@ -1698,9 +1718,15 @@
         if (body.trim()) {
           textStart = restOff + m.index + (t ? leading.length - t.length : 0);
           if ((t != null) && (lm = t.match(/^[ \n]+/))) textStart += lm[0].length;
-          if (t.match(/@auto/)) {
+          console.log("CHECKING AUTO...");
+          if (m = t.match(/(?:^|\n)#@auto( +[^\n]*)?(\n|$)/)) {
             outerRange = makeRange(el, textStart, exEnd);
-            outerRange.leisureAuto = true;
+            outerRange.leisureAuto = JSON.parse("{" + ((_ref5 = m[1]) != null ? _ref5 : '') + "}");
+            if (outerRange.leisureAuto.mode === 'notebook') {
+              outerRange.leisureNode = el;
+              outerRange.leisureStart = textStart;
+            }
+            console.log("Auto expr: " + (txt.substring(textStart, exEnd)) + ", attrs: " + m[1]);
             return {
               main: outerRange,
               name: null,
@@ -1831,8 +1857,14 @@
 
   postLoadQueue = [];
 
+  loaded = false;
+
   queueAfterLoad = function queueAfterLoad(func) {
-    return postLoadQueue.push(func);
+    if (loaded) {
+      return func();
+    } else {
+      return postLoadQueue.push(func);
+    }
   };
 
   /*
@@ -1882,7 +1914,10 @@
     processLine(box.textContent, env, 'Parse.', function() {
       return env != null ? typeof env.cleanup === "function" ? env.cleanup() : void 0 : void 0;
     });
-    return getAst(box);
+    getAst(box);
+    if (box.output && box.textContent.match(/(^|\n)#@hidden *(\n|$)/)) {
+      return hideOutputSource(box.output);
+    }
   };
 
   acceptCode = function acceptCode(box) {
@@ -1894,15 +1929,23 @@
   };
 
   evalDoc = function evalDoc(el) {
-    var auto, e, pgm, _ref2;
-    _ref2 = initNotebook(el), pgm = _ref2[0], auto = _ref2[1];
+    var auto, autoNodes, e, pgm, x, _ref2;
+    _ref2 = initNotebook(el), pgm = _ref2[0], auto = _ref2[1], x = _ref2[2], autoNodes = _ref2[3];
     try {
-      if (auto) {
-        auto = "do\n  " + (auto.trim().replace(/\n/g, '\n  ')) + "\n  finishLoading 'fred'";
+      if (auto || autoNodes) {
+        auto = "do\n  " + ((auto != null ? auto : '#\n').trim().replace(/\n/g, '\n  ')) + "\n  finishLoading 'fred'";
         global.noredefs = false;
         Notebook.queueAfterLoad(function() {
+          var node, _i, _len, _results;
           evalDocCode(el, pgm);
-          if (el.autorunState) return runTests(el);
+          if (el.autorunState) runTests(el);
+          _results = [];
+          for (_i = 0, _len = autoNodes.length; _i < _len; _i++) {
+            node = autoNodes[_i];
+            console.log("evalOutput", node, node.output);
+            _results.push(evalOutput(node.output));
+          }
+          return _results;
         });
         e = envFor(el);
         e.write = function write() {};
@@ -1970,6 +2013,7 @@
     return function(bubba) {
       return Prim.makeMonad(function(env, cont) {
         var i, _i, _len;
+        loaded = true;
         for (_i = 0, _len = postLoadQueue.length; _i < _len; _i++) {
           i = postLoadQueue[_i];
           i();
@@ -1978,6 +2022,12 @@
         return cont(_false());
       });
     };
+  });
+
+  Parse.define('markupButtons', function() {
+    return Prim.makeMonad(function(env, cont) {
+      if (env.box) return markupButtons(env.box);
+    });
   });
 
   Parse.define('quit', function() {
@@ -2189,7 +2239,18 @@
     return node != null ? node.nextSibling : void 0;
   };
 
-  makeControlSection = function makeControlSection() {};
+  hideControlSection = function hideControlSection() {
+    var controlSection;
+    controlSection = document.body.querySelector('[leisureSection=Leisure Controls]');
+    if (!controlSection) {
+      controlSection = document.createElement('DIV');
+      document.body.insertBefore(controlSection, document.body.firstChild);
+      root.markupElement(controlSection, "# Leisure Controls\n\n## File Save and Load\n```\nsaveFile\n\nsaveAs 'filename'\n\nsaveAs pickFile\n\nloadFile\n\nemptyFile\n```");
+      unwrap(controlSection);
+    }
+    controlSection.classList.add(leisure_controls);
+    return controlSection.classList.add(hidden);
+  };
 
   Prim.defaultEnv.require = req;
 
@@ -2294,5 +2355,11 @@
   root.delay = delay;
 
   root.setFilename = setFilename;
+
+  root.unwrap = unwrap;
+
+  root.remove = remove;
+
+  root.wrapRange = wrapRange;
 
 }).call(this);
