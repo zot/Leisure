@@ -121,7 +121,7 @@
       return typeof cont === "function" ? cont() : void 0;
     } else {
       script = document.createElement('script');
-      script.setAttribute('src', (nosuffix ? files[index] : "" + files[index] + ".js"));
+      script.setAttribute('src', (nosuffix ? files[index] : "" + files[index] + ".js?uniq=" + (new Date().getTime())));
       script.addEventListener('load', function() {
         return loadThen(files, cont, index + 1);
       });
