@@ -2016,6 +2016,21 @@
     });
   };
 
+  Parse.define('gdriveOpen', function() {
+    return Prim.makeMonad(function(env, cont) {
+      return GdriveStorage.runOpen(function(json) {
+        var _ref2;
+        if ((json != null ? json.action : void 0) === 'picked' && ((_ref2 = json.docs) != null ? _ref2.length : void 0) > 0) {
+          return GdriveStorage.loadFile(json.docs[0].id, function() {
+            return cont(laz(json.docs[0].title));
+          });
+        } else {
+          return cont(_false());
+        }
+      });
+    });
+  });
+
   Parse.define('finishLoading', function() {
     return function(bubba) {
       return Prim.makeMonad(function(env, cont) {
@@ -2056,7 +2071,7 @@
             node = env.box.querySelector(selector());
             if (node) {
               node.addEventListener(eventName(), function(e) {
-                return Prim.runMonad(func()(laz(e)), env, function() {});
+                return Prim.runMonad(func()(laz(e)), envFor(e.target), function() {});
               });
             }
             return cont(_false());

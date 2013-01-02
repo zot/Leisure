@@ -36,7 +36,7 @@ do
     "<button id='openButton'>Open</button><br>"
     "<button id='saveButton'>Save</button><br>"
     "Save as: <input id='saveAs' type='text'></input><br>"])
-  bindEvent '#openButton' 'click' \e . alert 'Open'
+  bindEvent '#openButton' 'click' \e . gdriveOpen
   bindEvent '#saveButton' 'click' \e . alert 'Save'
 ```
 ***One
