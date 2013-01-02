@@ -8,19 +8,20 @@
 
   Q = 81;
 
-  window.markup = function markup() {
-    var el, md, nodes, oneDoc, _i, _len, _results;
-    nodes = document.querySelectorAll('[doc]');
-    oneDoc = nodes.length === 1 && nodes[0] === document.body;
-    document.body.classList.add('hideControls');
-    _results = [];
-    for (_i = 0, _len = nodes.length; _i < _len; _i++) {
-      el = nodes[_i];
-      md = Notebook.md = el.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
-      markupSlides(el, md);
-      _results.push(Notebook.insertControls(el));
+  window.markup = function markup(md) {
+    var maindoc, nodes;
+    nodes = document.querySelectorAll('[maindoc]');
+    if (nodes.length === 0) {
+      maindoc = Notebook.createNode("<div maindoc></div>");
+      document.body.insertBefore(maindoc, document.body.firstChild);
+      nodes = [maindoc];
+    } else {
+      maindoc = nodes[0];
     }
-    return _results;
+    md = md != null ? md : maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
+    document.body.classList.add('hideControls');
+    markupSlides(maindoc, md);
+    return Notebook.insertControls(maindoc);
   };
 
   lastSlide = null;
@@ -39,7 +40,7 @@
     if (pages.length > 1) {
       console.log("PAGES:", JSON.stringify(pages));
       document.body.classList.add('slide-container');
-      document.body.innerHTML = '';
+      el.innerHTML = '';
       bindSlider();
       el.removeAttribute('doc');
       for (i = 0, _ref = pages.length; i < _ref; i += 2) {
@@ -75,7 +76,7 @@
       }
       div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; margin-right: 10px'></div>\n</div>");
       markupButtons(div);
-      document.body.appendChild(div);
+      el.appendChild(div);
       if (location.search && _.find(location.search.slice(1).split('&'), (function(p) {
         return p.match(/^slides=/);
       }))) {
@@ -97,7 +98,7 @@
     if (param) {
       return document.querySelector("[slide='" + (param.split('=')[1]) + "']");
     } else {
-      return document.body.firstElementChild;
+      return document.querySelector('[maindoc]').firstElementChild;
     }
   };
 

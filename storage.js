@@ -126,7 +126,7 @@
             document.body.innerHTML = "<!--\n" + text + "\n-->";
             document.body.setAttribute('doc', '');
             window.leisureAutoRunAll = true;
-            window.markup();
+            window.markup(text);
             _ref6 = document.querySelectorAll("[leisurenode='code']");
             for (_j = 0, _len2 = _ref6.length; _j < _len2; _j++) {
               node = _ref6[_j];
