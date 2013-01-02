@@ -500,12 +500,13 @@ compileNext = (line, globals, parseOnly, check, nomacros, namespace, debug)->
       genCode ast, null, globals, null, rest, parseOnly, namespace, rest1.substring(0, rest1.length - rest.length).trim(), debug), "Error compiling expr #{snip line}"
   else if (def = line.match linePat) and def[1].length != line.length
     [matched, leading, name, defType] = def
-    if name[0] == ' '
+    if !name || name[0] == ' '
       name = null
       defType = null
       nm = null
     else [nm, typeAssertions, scannedDecl, err] = if defType then parseDecl name else []
     rest1 = line.substring (if defType then matched else leading).length
+    if rest1[0] == '=' then rest1 = rest1.substring 1
     if err then [null, err]
     else if nm
       #console.log "DECL: [#{Patterns.parseDecl(name)[0].join ', '}]"

@@ -1125,7 +1125,7 @@
     for (_i = 0, _len = defs.length; _i < _len; _i++) {
       i = defs[_i];
       main = i.main, name = i.name, def = i.def, body = i.body, tests = i.tests;
-      if (name != null) {
+      if (name) {
         bx = box(main, 'codeMain', true);
         bx.appendChild(codeSpan(name, 'codeName'));
         bx.appendChild(textNode(def));
@@ -1525,6 +1525,7 @@
       write: function write(msg) {
         var div;
         div = document.createElement('div');
+        div.classList.add('outputDiv');
         div.innerHTML = "" + msg + "\n";
         exBox.appendChild(div);
         checkHideSource(exBox);
@@ -1684,7 +1685,7 @@
         name = null;
         defType = null;
       } else {
-        name = nameRaw.trim();
+        name = nameRaw.trim() || null;
       }
       rest1 = rest.substring((defType ? matched : leading).length);
       endPat = rest1.match(/\n+[^\s]|\n?$/);
@@ -1702,7 +1703,7 @@
         tOff += m2.index + m2[1].length;
         t = leading.substring(tOff - leadOff);
       }
-      if (name != null) {
+      if (name) {
         mainStart = matchStart + ((_ref3 = leading != null ? leading.length : void 0) != null ? _ref3 : 0);
         nameEnd = mainStart + name.length;
         leadingSpaces = (rest1.match(/^\s*/))[0].length;

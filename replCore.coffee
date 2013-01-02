@@ -299,7 +299,7 @@ findDefs = (contents, nomacros, loud)->
   rest = contents
   while rest
     oldRest = rest
-    [ast, err, rest] = Leisure.compileNext rest, globals, true, null, nomacros
+    [ast, err, rest] = Leisure.compileNext rest.trim(), globals, true, null, nomacros
     if err
       if ast?.leisureName then errs = "#{errs}Error in #{ast.leisureName}#{showAst ast}: #{err}\n"
       else if prevName? then errs = "#{errs}Error after #{prevName}: #{err}\n"

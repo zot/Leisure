@@ -744,7 +744,7 @@ markupDefs = (el, defs)->
   notebookAutoNodes = []
   for i in defs
     {main, name, def, body, tests} = i
-    if name?
+    if name
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode def)
@@ -1019,7 +1019,8 @@ envFor = (box)->
     box: box
     require: req
     write: (msg)->
-      div = document.createElement('div')
+      div = document.createElement 'div'
+      div.classList.add 'outputDiv'
       div.innerHTML = "#{msg}\n"
       exBox.appendChild(div)
       checkHideSource exBox
@@ -1120,7 +1121,7 @@ getRanges = (el, txt, rest, def, restOff)->
       else if nameRaw[0] == ' '
         name = null
         defType = null
-      else name = nameRaw.trim()
+      else name = (nameRaw.trim() || null)
       rest1 = rest.substring (if defType then matched else leading).length
       endPat = rest1.match /\n+[^\s]|\n?$/
       next = if endPat then rest1.substring(endPat.index) else rest1
@@ -1133,7 +1134,7 @@ getRanges = (el, txt, rest, def, restOff)->
         tests.push r
         tOff += m2.index + m2[1].length
         t = leading.substring tOff - leadOff
-      if name?
+      if name
         mainStart = matchStart + (leading?.length ? 0)
         nameEnd = mainStart + name.length
         leadingSpaces = (rest1.match /^\s*/)[0].length
