@@ -1039,7 +1039,7 @@ envFor = (box)->
     processError: (ast)->
       btn = box.querySelector '[leisureId="makeTestCase"]'
       if btn then remove btn
-      @write "ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack ? ast.err}"
+      @write  "<div class='errorDiv'>" + Repl.escapeHtml("ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack ? ast.err}") + "</div>"
     cleanup: ->
       @destroyWidget()
       if root.lastEnv == env then root.lastEnv = null
@@ -1277,7 +1277,7 @@ evalBox = (box, envBox)->
   env = if envBox? then envFor(envBox) else null
   processLine box.textContent, env, 'Parse.', -> env?.cleanup?()
   getAst box
-  if box.output && box.textContent.match /(^|\n)#@hidden *(\n|$)/ then hideOutputSource box.output
+  if box.output && hasMonadOutput(box.output) && box.textContent.match /(^|\n)#@hidden *(\n|$)/ then hideOutputSource box.output
 
 acceptCode = (box)->
   if (box.getAttribute 'codemain')?

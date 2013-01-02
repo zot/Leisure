@@ -16,15 +16,20 @@ Boot.onboot = (cont)->
 bootLeisure = ->
   loadThen ['uri'], ->
     uri = new window.URI(document.location.href)
-    {state} = uri.getSearchParams()
-    if state
+    params = uri.getSearchParams()
+    if params.state
       uri.fragment = (if uri.fragment then uri.fragment + '&' else '#') + uri.search.substring(1)
       uri.search = null
+      document.location.href = uri.toString()
+    else if !params.uniq
+      uri.search = "#{uri.search ? ''}#{if uri.search then '&' else '?'}uniq=#{Math.random()}"
       document.location.href = uri.toString()
     else
       Boot.documentFragment = document.location.hash
       document.location.hash = ''
       bootLeisureCont()
+
+uniquify = (str)-> "#{str}?uniq=#{new Date().getTime()}"
 
 bootLeisureCont = ->
   body = document.body
@@ -44,7 +49,7 @@ bootLeisureCont = ->
     style = document.createElement('link')
     style.setAttribute 'type', "text/css"
     style.setAttribute 'rel', "stylesheet"
-    style.setAttribute 'href', "#{i}.css"
+    style.setAttribute 'href', uniquify "#{i}.css"
     document.head.appendChild style
   loadThen ['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'md', 'maps', 'svg', 'parseAst'], ->
     window.GdriveStorage.initStorage ->
@@ -81,7 +86,7 @@ loadThen = (files, nosuffix, cont, index)->
   if index == files.length then cont?()
   else
     script = document.createElement('script')
-    script.setAttribute 'src', (if nosuffix then files[index] else "#{files[index]}.js")
+    script.setAttribute 'src', (if nosuffix then files[index] else uniquify "#{files[index]}.js")
     script.addEventListener 'load', -> loadThen files, cont, index + 1
     document.head.appendChild script
 

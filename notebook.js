@@ -1553,7 +1553,7 @@
         var btn, _ref2;
         btn = box.querySelector('[leisureId="makeTestCase"]');
         if (btn) remove(btn);
-        return this.write("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref2 = ast.err.stack) != null ? _ref2 : ast.err));
+        return this.write("<div class='errorDiv'>" + Repl.escapeHtml("ERROR: " + (ast.err.leisureContext ? "" + ast.err + ":\n" + (leisureContextString(ast.err)) + "\n" : '') + ((_ref2 = ast.err.stack) != null ? _ref2 : ast.err)) + "</div>");
       },
       cleanup: function cleanup() {
         this.destroyWidget();
@@ -1922,7 +1922,7 @@
       return env != null ? typeof env.cleanup === "function" ? env.cleanup() : void 0 : void 0;
     });
     getAst(box);
-    if (box.output && box.textContent.match(/(^|\n)#@hidden *(\n|$)/)) {
+    if (box.output && hasMonadOutput(box.output) && box.textContent.match(/(^|\n)#@hidden *(\n|$)/)) {
       return hideOutputSource(box.output);
     }
   };

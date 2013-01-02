@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var Boot, Leisure, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, finishBoot, handleError, loadThen, _ref, _ref2,
+  var Boot, Leisure, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, finishBoot, handleError, loadThen, uniquify, _ref, _ref2,
     __slice = Array.prototype.slice;
 
   Leisure = (_ref = window.Leisure) != null ? _ref : (window.Leisure = {});
@@ -25,12 +25,15 @@
 
   bootLeisure = function bootLeisure() {
     return loadThen(['uri'], function() {
-      var state, uri;
+      var params, uri, _ref3;
       uri = new window.URI(document.location.href);
-      state = uri.getSearchParams().state;
-      if (state) {
+      params = uri.getSearchParams();
+      if (params.state) {
         uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
         uri.search = null;
+        return document.location.href = uri.toString();
+      } else if (!params.uniq) {
+        uri.search = "" + ((_ref3 = uri.search) != null ? _ref3 : '') + (uri.search ? '&' : '?') + "uniq=" + (Math.random());
         return document.location.href = uri.toString();
       } else {
         Boot.documentFragment = document.location.hash;
@@ -38,6 +41,10 @@
         return bootLeisureCont();
       }
     });
+  };
+
+  uniquify = function uniquify(str) {
+    return "" + str + "?uniq=" + (new Date().getTime());
   };
 
   bootLeisureCont = function bootLeisureCont() {
@@ -61,7 +68,7 @@
       style = document.createElement('link');
       style.setAttribute('type', "text/css");
       style.setAttribute('rel', "stylesheet");
-      style.setAttribute('href', "" + i + ".css");
+      style.setAttribute('href', uniquify("" + i + ".css"));
       document.head.appendChild(style);
     }
     return loadThen(['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'md', 'maps', 'svg', 'parseAst'], function() {
@@ -118,7 +125,7 @@
       return typeof cont === "function" ? cont() : void 0;
     } else {
       script = document.createElement('script');
-      script.setAttribute('src', (nosuffix ? files[index] : "" + files[index] + ".js"));
+      script.setAttribute('src', (nosuffix ? files[index] : uniquify("" + files[index] + ".js")));
       script.addEventListener('load', function() {
         return loadThen(files, cont, index + 1);
       });
