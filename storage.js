@@ -124,6 +124,7 @@
               filename = id2Paths[file.id][0];
             }
             document.body.innerHTML = "<!--\n" + text + "\n-->";
+            document.body.setAttribute('doc', '');
             window.leisureAutoRunAll = true;
             window.markup();
             _ref6 = document.querySelectorAll("[leisurenode='code']");
