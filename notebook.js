@@ -2016,6 +2016,12 @@
     });
   };
 
+  Parse.define('getDocument', function() {
+    return Prim.makeMonad(function(env, cont) {
+      return cont(peerGetDocument());
+    });
+  });
+
   Parse.define('gdriveOpen', function() {
     return Prim.makeMonad(function(env, cont) {
       return GdriveStorage.runOpen(function(json) {
@@ -2035,6 +2041,13 @@
     return Prim.makeMonad(function(env, cont) {
       var _ref2;
       return cont((_ref2 = filename != null ? filename.pathName() : void 0) != null ? _ref2 : '');
+    });
+  });
+
+  Parse.define('getURI', function() {
+    return Prim.makeMonad(function(env, cont) {
+      var _ref2;
+      return cont((_ref2 = filename != null ? filename.toString() : void 0) != null ? _ref2 : '');
     });
   });
 
