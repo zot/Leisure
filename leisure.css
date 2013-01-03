@@ -242,7 +242,7 @@ body {
 }
 
 .scroll .slide.continuation {
-  display: none !important;
+  /*display: none !important;*/
 }
 
 .slide {
