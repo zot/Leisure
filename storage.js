@@ -167,7 +167,9 @@
 
   computePaths = function computePaths(file) {
     var parent, parentPath, _i, _j, _len, _len2, _ref5, _ref6;
-    if (id2Paths[file.id]) {
+    if (!file) {
+      return [];
+    } else if (id2Paths[file.id]) {
       return id2Paths[file.id];
     } else {
       id2File[file.id] = file;
