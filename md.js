@@ -358,15 +358,16 @@
       }
     });
     return div.addEventListener('blur', function(e) {
-      var first, frag, last, node, r, _i, _len, _ref;
+      var first, frag, last, node, prevSection, r, _i, _len, _ref, _ref2;
       if (editing) {
         div.style.whiteSpace = '';
         editing = false;
         div.setAttribute('contenteditable', 'false');
-        if (markupSlideContent(div, div.textContent, true)) {
-          _ref = div.querySelectorAll("[leisurenode='code']");
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            node = _ref[_i];
+        prevSection = (_ref = div.parentNode.parentNode.previousSibling) != null ? _ref.getAttribute('leisureSection') : void 0;
+        if (markupSlideContent(div, div.textContent, prevSection && prevSection !== 'Leisure Controls')) {
+          _ref2 = div.querySelectorAll("[leisurenode='code']");
+          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+            node = _ref2[_i];
             presentLeisureCode(node, true);
           }
           r = document.createRange();
