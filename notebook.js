@@ -109,7 +109,7 @@
         if (s.rangeCount && s.toString() !== value) {
           r = s.getRangeAt(0);
           r.deleteContents();
-          node = document.createTextNode(value.toString());
+          node = textNode(value.toString());
           r.insertNode(node);
           s.removeAllRanges();
           r.selectNode(node);
@@ -473,19 +473,21 @@
 
   mergeLeisureCode = function mergeLeisureCode(el1, el2) {
     var newCode, r;
-    if (el1.nodeType === 1 && el2.nodeType === 3) {
-      el1.appendChild(el2);
-      return el1.normalize();
-    } else if (el1.nodeType === 3 && el2.nodeType === 1) {
-      el2.insertBefore(el1, el2.firstChild);
-      return el2.normalize();
-    } else if (el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') === el2.getAttribute('leisureNode')) {
-      newCode = textNode(el1.md = el1.getAttribute('leisureNode') === 'code' ? "" + (getElementCode(el1)) + "\n" + (getElementCode(el2)) : "" + el1.md + "\n" + el2.md);
-      r = document.createRange();
-      r.selectNodeContents(el2);
-      el1.appendChild(textNode('\n'));
-      el1.appendChild(r.extractContents());
-      return el2.parentNode.removeChild(el2);
+    if (el1 && el2) {
+      if (el1.nodeType === 1 && el2.nodeType === 3) {
+        el1.appendChild(el2);
+        return el1.normalize();
+      } else if (el1.nodeType === 3 && el2.nodeType === 1) {
+        el2.insertBefore(el1, el2.firstChild);
+        return el2.normalize();
+      } else if (el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') === el2.getAttribute('leisureNode')) {
+        newCode = textNode(el1.md = el1.getAttribute('leisureNode') === 'code' ? "" + (getElementCode(el1)) + "\n" + (getElementCode(el2)) : "" + el1.md + "\n" + el2.md);
+        r = document.createRange();
+        r.selectNodeContents(el2);
+        el1.appendChild(textNode('\n'));
+        el1.appendChild(r.extractContents());
+        return el2.parentNode.removeChild(el2);
+      }
     }
   };
 
