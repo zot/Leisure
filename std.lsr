@@ -579,3 +579,14 @@ do
   defInfixToken '>' 'at' nil
   x = log 'filter' 2
   addParseFilter mainParseInfix
+  forward 'getURI'
+  forward 'getDocument'
+
+save = do
+  uri <- getURI
+  doc <- getDocument
+  write uri doc
+
+saveAs newUri = do
+  doc <- getDocument
+  write newUri doc

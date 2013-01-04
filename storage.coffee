@@ -52,6 +52,7 @@
 if window? and (!global? or global == window)
   root = window.GdriveStorage ? (window.GdriveStorage = {})
   Prim = window.Prim ? (window.Prim = {})
+  Parse = window.Parse ? (window.Parse = {})
   Notebook = window.Notebook ? (window.Notebook = {})
   window.global = window
 else
@@ -64,7 +65,7 @@ if !window?
 
 # Google drive stuff for projects
 
-# callback function is giben one argument: either null or an error string
+# callback function is given one argument: either null or an error string
 initStorage = (callback)->
   Prim.newUriHandler 'googledrive',
     read: (uri, cont, err, next)->
@@ -102,29 +103,29 @@ initStorage = (callback)->
     window.markup()
     cb()
 
-loadFile = (id)->
-  document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>"
+loadFile = (id, cont)->
+  $('[maindoc]')[0].innerHTML = "<h1>LOADING Google Drive file... </h1>"
   initGdrive ->
     file = id2File[id]
     if !file
-      document.body.innerHTML = "<h1>Unknown file id: #{ids[0]}</h1>"
+      $('[maindoc]')[0].innerHTML = "<h1>Unknown file id: #{ids[0]}</h1>"
     else
-      document.body.innerHTML = "<h1>LOADING #{file.title}... </h1>"
+      $('[maindoc]')[0].innerHTML = "<h1>LOADING #{file.title}... </h1>"
       readFile file, (err, text)->
         if err
-          document.body.innerHTML = "<h1>Error loading #{file.title}: #{err.statusText}</h1>"
+          $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}: #{err.statusText}</h1>"
         else if file.fileExtension == 'lmd'
           if id2Paths[file.id].length > 1
             for path in id2Paths[file.id]
               if path.match '^/LeisureStorage/'
                 if filename
-                    document.body.innerHTML = "<h1>Error loading #{file.title}: More than one path to file in LeisureStorage, #{JSON.stringify id2Paths[file.id]}</h1>"
+                    $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}: More than one path to file in LeisureStorage, #{JSON.stringify id2Paths[file.id]}</h1>"
                 return
               else filename = path
           else filename = id2Paths[file.id][0]
-          document.body.innerHTML = "<!--\n#{text}\n-->"
+          document.body.setAttribute 'doc', ''
           window.leisureAutoRunAll = true
-          window.markup()
+          window.markup text
           for node in document.querySelectorAll "[leisurenode='code']"
             node.setAttribute 'contentEditable', 'true'
             Notebook.bindNotebook node
@@ -132,7 +133,8 @@ loadFile = (id)->
             Notebook.evalDoc node
           Notebook.setFilename "googledrive://#{filename}"
         else
-          document.body.innerHTML = "<h1>Error loading #{file.title}; can only load *.lmd files.</h1>"
+          $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}; can only load *.lmd files.</h1>"
+        (cont ? -> )()
 
 #
 # directory cache
@@ -148,7 +150,8 @@ addPath = (id, path)->
   if id2Paths[id] then id2Paths[id].push path else id2Paths[id] = [path]
 
 computePaths = (file)->
-  if id2Paths[file.id] then id2Paths[file.id]
+  if !file then []
+  else if id2Paths[file.id] then id2Paths[file.id]
   else
     id2File[file.id] = file
     if file.parents.length == 0 then addPath file.id, "/#{file.title}"
@@ -288,24 +291,25 @@ makeLeisureDir = (cont)->
 # 
 
 addOpenButton = ->
+  return
   save = document.body.querySelector '[leisureId=saveButton]'
   open = Notebook.createNode "<button>Open</button>"
   save.parentNode.insertBefore open, save.nextSibling
   open.addEventListener 'click', -> runOpen()
 
-runOpen = ->
+runOpen = (arg)->
   initGdrive ->
     view = new google.picker.DocsView()
     view.setParent path2Ids["/LeisureStorage"]
     picker = new google.picker.PickerBuilder().
       #addView(google.picker.ViewId.DOCS).
       addView(view).
-      setCallback(openFile).
+      setCallback(arg ? openFile).
       build()
     picker.setVisible(true)
 
 openFile = (json)->
-  if json?.action == 'picked' and json?.docs?.length > 0
+  if json?.action == 'picked' and json.docs?.length > 0
     loadFile json.docs[0].id
 
 mimePart = (boundary, mimeType, content)->
@@ -399,3 +403,5 @@ mkdir = (name, callback)->
       mimeType: "application/vnd.google-apps.folder").execute callback
 
 root.initStorage = initStorage
+root.runOpen = runOpen
+root.loadFile = loadFile

@@ -25,27 +25,38 @@
       }
     </script>
   </head>
-  <body doc class="thin embedded scroll">
-<!--
+  <body class="thin embedded scroll">
+<div maindoc><!--
 *** Leisure Controls
 ```
 #@auto "mode": "notebook"
 #@hidden
 do
+  filename <- getFilename
   printValue (html concat[
     "<button id='openButton'>Open</button><br>"
     "<button id='saveButton'>Save</button><br>"
-    "Save as: <input id='saveAs' type='text'></input><br>"])
-  bindEvent '#openButton' 'click' \e . alert 'Open'
+    "Save as: <input id='saveAs' type='text'>"
+    filename
+    "</input><br>"])
+  bindEvent '#openButton' 'click' \e . gdriveOpen
   bindEvent '#saveButton' 'click' \e . alert 'Save'
 ```
 ***One
-
+-
 one
 
 *** Two
 two
 
+*** A
+a
+*** B
+b
+***C
+c
+***D
+d
 ***Three
 Drive tests
 
@@ -64,7 +75,7 @@ duh
 ```
 3+4
 ```
--->
+--></div>
 <script>start()</script>
   </body>
 </html>

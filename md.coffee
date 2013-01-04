@@ -13,6 +13,9 @@
 {ENTER,
   textNode,
   createNode,
+  remove,
+  unwrap,
+  insertControls,
   cleanEmptyNodes,
   isLeisureCode,
   getElementCode,
@@ -35,79 +38,117 @@
 
 Q = 81
 
-window.markup = ->
-  nodes = document.querySelectorAll('[doc]')
-  oneDoc = nodes.length == 1 && nodes[0] == document.body
+window.markup = (md)->
+  nodes = document.querySelectorAll('[maindoc]')
+  if nodes.length == 0
+    maindoc = createNode "<div maindoc></div>"
+    document.body.insertBefore maindoc, document.body.firstChild
+    nodes = [maindoc]
+  else maindoc = nodes[0]
+  md = md ? maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
   document.body.classList.add 'hideControls'
-  for el in nodes
-    #console.log "source: ", el.innerHTML
-    md = Notebook.md = el.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
-    #console.log "replaced: ", md
-    #if oneDoc
-    #  markupSlides el, md
-    #else
-    #  markupElement el, md
-    markupSlides el, md
-    Notebook.insertControls el
+  markupSlides maindoc, md
+  insertControls maindoc
 
 lastSlide = null
 slideCount = 0
 
 console?.error? new Error("Incompatibility: using -webkit-calc").stack
 
+slidePat = /^(\*\*\*[^\n]*\n(?:-\n)?)/m
+slideName = /^\*\*\*([^\n]*)\n(?:-\n)?/m
+
 markupSlides = (el, md)->
-  pages = md.split /^\*\*\*([^\n]*)\n/m
-  if pages.length > 1
-    console.log "PAGES:", JSON.stringify pages
-    document.body.classList.add 'slide-container'
-    document.body.innerHTML = ''
-    bindSlider()
-    el.removeAttribute 'doc'
-    for i in [0...pages.length] by 2
-      p = pages[i]
-      if p
-        continuation = p.match /-\n/m
-        lastSlide = div = Notebook.createNode "<div class='leisure_page'></fieldset>"
-        el.appendChild div
-        div.classList.add 'slide'
-        div.classList.add 'ui-corner-all'
-        div.classList.add 'ui-widget'
-        div.classList.add 'ui-widget-content'
-        div.setAttribute 'doc', ''
-        if continuation then div.classList.add 'continuation'
-        div.setAttribute 'slide', ++slideCount
-        hideSlide $(div)
-        content = Notebook.createNode "<div class='pageContent'></div>"
-        div.innerHTML = ''
-        div.appendChild content
-        if i > 0
-          title = pages[i - 1].trim()
-          div.setAttribute 'leisureSection', title
-          markupElement content, p
-          div.insertBefore Notebook.createNode("<span class='pageTitle'>#{title}</span>"), div.firstChild
-        else markupElement content, p
-    slides = el.querySelectorAll('[leisureSection]')
-    if slides.length <= (if el.querySelector '[leisureSection="Leisure Controls"]' then 2 else 1) then document.body.classList.add "oneSlide"
-    div = createNode """
+  hasCode = markupSlideContent el, md
+  slides = el.querySelectorAll('[leisureSection]')
+  if slides.length <= (if el.querySelector '[leisureSection="Leisure Controls"]' then 2 else 1) then document.body.classList.add "oneSlide"
+  div = createNode """
 <div class='slide-controls'>
   <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>
   <div id='slide-num' style='float: right; margin-right: 10px'></div>
 </div>
 """
-    markupButtons div
-    document.body.appendChild div
-    if location.search && _.find location.search[1..].split('&'), ((p)-> p.match /^slides=/)
-      showSlide $(chooseSlide())
-    else
-      document.body.classList.add 'scroll'
+  markupButtons div
+  el.appendChild div
+  if location.search && _.find location.search[1..].split('&'), ((p)-> p.match /^slides=/)
+    showSlide $(chooseSlide())
   else
-    markupElement el, md
+    document.body.classList.add 'scroll'
+  hasCode
+
+markupSlideContent = (el, md, noMain)->
+  pages = md.split slidePat
+  hasCode = false
+  if pages.length > 1
+    console.log "PAGES:", JSON.stringify pages
+    document.body.classList.add 'slide-container'
+    el.innerHTML = ''
+    bindSlider()
+    el.removeAttribute 'doc'
+    if pages.length == 3 && !pages[0] && !pages[2] then pages[2] = '\n'
+    for i in [0...pages.length] by 2
+      p = pages[i]
+      if p
+        continuation = i > 0 and (m = pages[i - 1].match(slidePat)?[1]) and m.substring(m.length - 3) == '\n-\n'
+        content = makeSlideDiv el, continuation, (if i > 0 then pages[i - 1].match(slideName)[1].trim() else 'Main')
+        if i > 0 then hasCode = (markupElement content, pages[i - 1] + p) || hasCode
+        else
+          hasCode = (markupElement content, '***\n' + p) || hasCode
+          if noMain then unwrapContent content
+        padSlide content, (if i > 0 then pages[i - 1] else '***\n')
+  else
+    content = makeSlideDiv el, false, 'Main'
+    while el.firstChild != content.parentNode
+      content.appendChild el.firstChild
+    hasCode = markupElement content, md
+    padSlide content, '***\n'
+    if noMain then unwrapContent content
+  hasCode
+
+padSlide = (content, header)->
+  if !content.firstChild || isLeisureCode content.firstChild
+    range = document.createRange()
+    range.setStart content, 0
+    range.setEnd content, 0
+    div = makeMarkupDiv range, header
+    div.appendChild createNode '<br>'
+  if isLeisureCode content.lastChild
+    range = document.createRange()
+    range.setStartAfter content.lastChild
+    range.setEndAfter content.lastChild
+    div = makeMarkupDiv range, '\n'
+    div.appendChild createNode '<br>'
+
+unwrapContent = (content)->
+  section = content.parentNode
+  el = section.parentNode
+  el.insertBefore content, section
+  remove section
+  unwrap content
+
+makeSlideDiv = (el, continuation, title)->
+  lastSlide = div = createNode "<div class='leisure_page'></div>"
+  div.setAttribute 'leisureSection', title
+  div.setAttribute 'doc', ''
+  div.setAttribute 'slide', ++slideCount
+  div.classList.add 'slide'
+  div.classList.add 'ui-corner-all'
+  div.classList.add 'ui-widget'
+  div.classList.add 'ui-widget-content'
+  if continuation then div.classList.add 'continuation'
+  el.appendChild div
+  sectionTitle = createNode("<span class='pageTitle'>#{title}</span>")
+  sectionTitle.setAttribute 'leisureoutput', ''
+  div.appendChild sectionTitle
+  content = createNode "<div class='pageContent'></div>"
+  div.appendChild content
+  content
 
 chooseSlide = ->
   param = _.find location.search[1..].split('&'), ((p)-> p.match /^slide=.*/)
   console.log param
   if param then document.querySelector "[slide='#{param.split('=')[1]}']"
-  else document.body.firstElementChild
+  else document.querySelector('[maindoc]').firstElementChild
 
 sliding = true
 
@@ -160,9 +201,10 @@ hideSlide = (el)-> el.addClass('hidden').removeClass('showing')
 
 markupElement = (el, md)->
   len = md.length
-  slide = md.match /^\*\*\*\n(-\n)?|^-\n/
+  slide = (md.match slidePat) ? ''
   #console.log "LEN: #{slide[0].length}, SLIDE: '#{md[0...20]}', SLICED '#{md[slide[0].length...20]}'"
-  [el.innerHTML, lex] = window.marked (if slide then md[slide[0].length..] else md), saveLex: true, gfm: true
+  [markup, lex] = window.marked (if slide then md[slide[0].length..] else md), saveLex: true, gfm: true
+  el.innerHTML = markup.trim() || '<br>'
   #console.log "Lex: ", JSON.stringify lex
   prev = null
   range = document.createRange()
@@ -195,31 +237,49 @@ markupElement = (el, md)->
     range.selectNodeContents el
     makeMarkupDiv range, md
     #if !el.bound then bindMarkupDiv el
-  #handleInternalSections el
   prevCodePos > -1
 
-handleInternalSections = (el)->
-  innerSections = el.querySelectorAll '[leisureSection]'
-  parentSection = el.parentNode
-  parentTitle = parentSection.getAttribute 'leisureSection'
-  if !(el.firstChild.getAttribute 'leisureSection')
-    if !(parentSection.previousSibling?.getAttribute 'leisureSection')
-      prev = document.createElement 'DIV'
-      prev.setAttribute 'leisureSection', 'Main'
-      parentSection.parentSection.insertBefore prev, parentSection
-    else prev = parentSection.previousSibling
-    while !(el.firstChild.getAttribute 'leisureSection')
-      prev.appendChild el.firstChild
-  before = true
-  for node in innerSections
-    if node.getAttribute('leisureSection') == parentTitle
-      before = false
-      while node.firstChild
-        el.parentNode.insertBefore node.firstChild, el
-      Notebook.remove node
-    else if before then parentSection.parentNode.insertBefore node, parentSection
-    else parentSection.parentNode.insertBefore node, parentSection.nextSibling
+handleInternalSections = (content)->
+  section = content.parentNode
+  sectionHolder = section.parentNode
+  innerSections = section.querySelectorAll '[leisureSection]'
+  if innerSections.length == 0
+    if !section.previousSibling then section.setAttribute('leisureSection', 'Main')
+    else
+      prev = section.previousSibling.querySelector '.pageContent'
+      while content.firstChild
+        prev.appendChild content.firstChild
+      remove section
+  else
+    title = section.getAttribute 'leisureSection'
+    firstSlide = !section.previousSibling || section.previousSibling.getAttribute('leisureSection') == 'Leisure Controls'
+    before = false
+    scroll = document.body.scrollOffset
+    for node in innerSections
+      if node.getAttribute('leisureSection') == title
+        before = true
+        break
+    before = before || (!innerSections[0].previousSibling)
+    for node in innerSections
+      nodeTitle = node.getAttribute 'leisureSection'
+      nodeContent = node.querySelector '.pageContent'
+      if nodeTitle == title or (node.previousSibling && nodeTitle == 'Main')
+        if nodeTitle == title then before = false
+        while nodeContent.firstChild
+          content.insertBefore nodeContent.firstChild, node
+        remove node
+      else
+        while node.nextSibling && !node.nextSibling.getAttribute('leisureSection')
+          mergeUp node.nextSibling, nodeContent
+        if before then section.parentNode.insertBefore node, section
+        else section.parentNode.insertBefore node, section.nextSibling
+    if !content.firstChild
+      remove section
+    document.body.scrollOffset = scroll
 
+mergeUp = (el, newParent)->
+  newParent.appendChild el
+  mergeLeisureCode newParent.lastChild.previousSibling, newParent.lastChild
 
 # make a section with the given title
 # put node-next into it (not including next -- null means include everthing after node)
@@ -235,6 +295,7 @@ makeMarkupDiv = (range, md)->
   range.surroundContents div
   div.md = md
   bindMarkupDiv div
+  div
 
 bindMarkupDiv = (div)->
   div.bound = true
@@ -266,17 +327,21 @@ bindMarkupDiv = (div)->
       div.style.whiteSpace = ''
       editing = false
       div.setAttribute 'contenteditable', 'false'
-      if markupElement div, div.textContent
+      #if markupElement div, div.textContent
+      prevSection = div.parentNode.parentNode.previousSibling?.getAttribute 'leisureSection'
+      parent = div.parentNode
+      if markupSlideContent div, div.textContent, (prevSection && prevSection != 'Leisure Controls')
         for node in div.querySelectorAll "[leisurenode='code']"
           presentLeisureCode node, true
-        r = document.createRange()
-        r.selectNodeContents div
-        frag = r.extractContents()
-        first = frag.childNodes[0]
-        last = frag.childNodes[frag.childNodes.length - 1]
-        div.parentNode.replaceChild frag, div
-        mergeLeisureCode previousSibling(first), first
-        mergeLeisureCode last, nextSibling last
       else if div.textContent.trim() == '' then cleanEmptyNodes div
+      r = document.createRange()
+      r.selectNodeContents div
+      frag = r.extractContents()
+      first = frag.childNodes[0]
+      last = frag.childNodes[frag.childNodes.length - 1]
+      parent.replaceChild frag, div
+      mergeLeisureCode previousSibling(first), first
+      mergeLeisureCode last, nextSibling last
+      handleInternalSections parent
 
 Notebook.markupElement = markupElement

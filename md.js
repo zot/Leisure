@@ -1,26 +1,27 @@
 (function() {
-  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, Q, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, chooseSlide, cleanEmptyNodes, closeWindow, createNode, getElementCode, handleInternalSections, hideSlide, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, makeSection, markupButtons, markupElement, markupSlides, mergeLeisureCode, nextSibling, oldSlide, presentLeisureCode, previousSibling, showSlide, slideControls, slideCount, slideKeyListener, sliding, textNode, _,
+  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, Q, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, chooseSlide, cleanEmptyNodes, closeWindow, createNode, getElementCode, handleInternalSections, hideSlide, insertControls, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, makeSection, makeSlideDiv, markupButtons, markupElement, markupSlideContent, markupSlides, mergeLeisureCode, mergeUp, nextSibling, oldSlide, padSlide, presentLeisureCode, previousSibling, remove, showSlide, slideControls, slideCount, slideKeyListener, slideName, slidePat, sliding, textNode, unwrap, unwrapContent, _,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   jQuery = window.jQuery, $ = window.$, _ = window._;
 
-  ENTER = Notebook.ENTER, textNode = Notebook.textNode, createNode = Notebook.createNode, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode, closeWindow = Notebook.closeWindow, markupButtons = Notebook.markupButtons, ESC = Notebook.ESC, HOME = Notebook.HOME, END = Notebook.END, PAGE_UP = Notebook.PAGE_UP, PAGE_DOWN = Notebook.PAGE_DOWN, LEFT_ARROW = Notebook.LEFT_ARROW, RIGHT_ARROW = Notebook.RIGHT_ARROW, UP_ARROW = Notebook.UP_ARROW, DOWN_ARROW = Notebook.DOWN_ARROW, arrows = Notebook.arrows;
+  ENTER = Notebook.ENTER, textNode = Notebook.textNode, createNode = Notebook.createNode, remove = Notebook.remove, unwrap = Notebook.unwrap, insertControls = Notebook.insertControls, cleanEmptyNodes = Notebook.cleanEmptyNodes, isLeisureCode = Notebook.isLeisureCode, getElementCode = Notebook.getElementCode, previousSibling = Notebook.previousSibling, nextSibling = Notebook.nextSibling, presentLeisureCode = Notebook.presentLeisureCode, mergeLeisureCode = Notebook.mergeLeisureCode, closeWindow = Notebook.closeWindow, markupButtons = Notebook.markupButtons, ESC = Notebook.ESC, HOME = Notebook.HOME, END = Notebook.END, PAGE_UP = Notebook.PAGE_UP, PAGE_DOWN = Notebook.PAGE_DOWN, LEFT_ARROW = Notebook.LEFT_ARROW, RIGHT_ARROW = Notebook.RIGHT_ARROW, UP_ARROW = Notebook.UP_ARROW, DOWN_ARROW = Notebook.DOWN_ARROW, arrows = Notebook.arrows;
 
   Q = 81;
 
-  window.markup = function markup() {
-    var el, md, nodes, oneDoc, _i, _len, _results;
-    nodes = document.querySelectorAll('[doc]');
-    oneDoc = nodes.length === 1 && nodes[0] === document.body;
-    document.body.classList.add('hideControls');
-    _results = [];
-    for (_i = 0, _len = nodes.length; _i < _len; _i++) {
-      el = nodes[_i];
-      md = Notebook.md = el.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
-      markupSlides(el, md);
-      _results.push(Notebook.insertControls(el));
+  window.markup = function markup(md) {
+    var maindoc, nodes;
+    nodes = document.querySelectorAll('[maindoc]');
+    if (nodes.length === 0) {
+      maindoc = createNode("<div maindoc></div>");
+      document.body.insertBefore(maindoc, document.body.firstChild);
+      nodes = [maindoc];
+    } else {
+      maindoc = nodes[0];
     }
-    return _results;
+    md = md != null ? md : maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
+    document.body.classList.add('hideControls');
+    markupSlides(maindoc, md);
+    return insertControls(maindoc);
   };
 
   lastSlide = null;
@@ -33,59 +34,112 @@
     }
   }
 
+  slidePat = /^(\*\*\*[^\n]*\n(?:-\n)?)/m;
+
+  slideName = /^\*\*\*([^\n]*)\n(?:-\n)?/m;
+
   markupSlides = function markupSlides(el, md) {
-    var content, continuation, div, i, p, pages, slides, title, _ref;
-    pages = md.split(/^\*\*\*([^\n]*)\n/m);
+    var div, hasCode, slides;
+    hasCode = markupSlideContent(el, md);
+    slides = el.querySelectorAll('[leisureSection]');
+    if (slides.length <= (el.querySelector('[leisureSection="Leisure Controls"]') ? 2 : 1)) {
+      document.body.classList.add("oneSlide");
+    }
+    div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; margin-right: 10px'></div>\n</div>");
+    markupButtons(div);
+    el.appendChild(div);
+    if (location.search && _.find(location.search.slice(1).split('&'), (function(p) {
+      return p.match(/^slides=/);
+    }))) {
+      showSlide($(chooseSlide()));
+    } else {
+      document.body.classList.add('scroll');
+    }
+    return hasCode;
+  };
+
+  markupSlideContent = function markupSlideContent(el, md, noMain) {
+    var content, continuation, hasCode, i, m, p, pages, _ref, _ref2;
+    pages = md.split(slidePat);
+    hasCode = false;
     if (pages.length > 1) {
       console.log("PAGES:", JSON.stringify(pages));
       document.body.classList.add('slide-container');
-      document.body.innerHTML = '';
+      el.innerHTML = '';
       bindSlider();
       el.removeAttribute('doc');
+      if (pages.length === 3 && !pages[0] && !pages[2]) pages[2] = '\n';
       for (i = 0, _ref = pages.length; i < _ref; i += 2) {
         p = pages[i];
         if (p) {
-          continuation = p.match(/-\n/m);
-          lastSlide = div = Notebook.createNode("<div class='leisure_page'></fieldset>");
-          el.appendChild(div);
-          div.classList.add('slide');
-          div.classList.add('ui-corner-all');
-          div.classList.add('ui-widget');
-          div.classList.add('ui-widget-content');
-          div.setAttribute('doc', '');
-          if (continuation) div.classList.add('continuation');
-          div.setAttribute('slide', ++slideCount);
-          hideSlide($(div));
-          content = Notebook.createNode("<div class='pageContent'></div>");
-          div.innerHTML = '';
-          div.appendChild(content);
+          continuation = i > 0 && (m = (_ref2 = pages[i - 1].match(slidePat)) != null ? _ref2[1] : void 0) && m.substring(m.length - 3) === '\n-\n';
+          content = makeSlideDiv(el, continuation, (i > 0 ? pages[i - 1].match(slideName)[1].trim() : 'Main'));
           if (i > 0) {
-            title = pages[i - 1].trim();
-            div.setAttribute('leisureSection', title);
-            markupElement(content, p);
-            div.insertBefore(Notebook.createNode("<span class='pageTitle'>" + title + "</span>"), div.firstChild);
+            hasCode = (markupElement(content, pages[i - 1] + p)) || hasCode;
           } else {
-            markupElement(content, p);
+            hasCode = (markupElement(content, '***\n' + p)) || hasCode;
+            if (noMain) unwrapContent(content);
           }
+          padSlide(content, (i > 0 ? pages[i - 1] : '***\n'));
         }
       }
-      slides = el.querySelectorAll('[leisureSection]');
-      if (slides.length <= (el.querySelector('[leisureSection="Leisure Controls"]') ? 2 : 1)) {
-        document.body.classList.add("oneSlide");
-      }
-      div = createNode("<div class='slide-controls'>\n  <div id='slide-killbutton' onclick='toggleSlideShow()' style='float: right'><button>Slides</button></div>\n  <div id='slide-num' style='float: right; margin-right: 10px'></div>\n</div>");
-      markupButtons(div);
-      document.body.appendChild(div);
-      if (location.search && _.find(location.search.slice(1).split('&'), (function(p) {
-        return p.match(/^slides=/);
-      }))) {
-        return showSlide($(chooseSlide()));
-      } else {
-        return document.body.classList.add('scroll');
-      }
     } else {
-      return markupElement(el, md);
+      content = makeSlideDiv(el, false, 'Main');
+      while (el.firstChild !== content.parentNode) {
+        content.appendChild(el.firstChild);
+      }
+      hasCode = markupElement(content, md);
+      padSlide(content, '***\n');
+      if (noMain) unwrapContent(content);
     }
+    return hasCode;
+  };
+
+  padSlide = function padSlide(content, header) {
+    var div, range;
+    if (!content.firstChild || isLeisureCode(content.firstChild)) {
+      range = document.createRange();
+      range.setStart(content, 0);
+      range.setEnd(content, 0);
+      div = makeMarkupDiv(range, header);
+      div.appendChild(createNode('<br>'));
+    }
+    if (isLeisureCode(content.lastChild)) {
+      range = document.createRange();
+      range.setStartAfter(content.lastChild);
+      range.setEndAfter(content.lastChild);
+      div = makeMarkupDiv(range, '\n');
+      return div.appendChild(createNode('<br>'));
+    }
+  };
+
+  unwrapContent = function unwrapContent(content) {
+    var el, section;
+    section = content.parentNode;
+    el = section.parentNode;
+    el.insertBefore(content, section);
+    remove(section);
+    return unwrap(content);
+  };
+
+  makeSlideDiv = function makeSlideDiv(el, continuation, title) {
+    var content, div, sectionTitle;
+    lastSlide = div = createNode("<div class='leisure_page'></div>");
+    div.setAttribute('leisureSection', title);
+    div.setAttribute('doc', '');
+    div.setAttribute('slide', ++slideCount);
+    div.classList.add('slide');
+    div.classList.add('ui-corner-all');
+    div.classList.add('ui-widget');
+    div.classList.add('ui-widget-content');
+    if (continuation) div.classList.add('continuation');
+    el.appendChild(div);
+    sectionTitle = createNode("<span class='pageTitle'>" + title + "</span>");
+    sectionTitle.setAttribute('leisureoutput', '');
+    div.appendChild(sectionTitle);
+    content = createNode("<div class='pageContent'></div>");
+    div.appendChild(content);
+    return content;
   };
 
   chooseSlide = function chooseSlide() {
@@ -97,7 +151,7 @@
     if (param) {
       return document.querySelector("[slide='" + (param.split('=')[1]) + "']");
     } else {
-      return document.body.firstElementChild;
+      return document.querySelector('[maindoc]').firstElementChild;
     }
   };
 
@@ -179,20 +233,21 @@
   };
 
   markupElement = function markupElement(el, md) {
-    var code, codePos, len, lex, node, prev, prevCodePos, range, slide, _i, _len, _ref, _ref2;
+    var code, codePos, len, lex, markup, node, prev, prevCodePos, range, slide, _i, _len, _ref, _ref2, _ref3;
     len = md.length;
-    slide = md.match(/^\*\*\*\n(-\n)?|^-\n/);
-    _ref = window.marked((slide ? md.slice(slide[0].length) : md), {
+    slide = (_ref = md.match(slidePat)) != null ? _ref : '';
+    _ref2 = window.marked((slide ? md.slice(slide[0].length) : md), {
       saveLex: true,
       gfm: true
-    }), el.innerHTML = _ref[0], lex = _ref[1];
+    }), markup = _ref2[0], lex = _ref2[1];
+    el.innerHTML = markup.trim() || '<br>';
     prev = null;
     range = document.createRange();
     prevCodePos = -1;
     codePos = 0;
-    _ref2 = el.querySelectorAll('code');
-    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-      node = _ref2[_i];
+    _ref3 = el.querySelectorAll('code');
+    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+      node = _ref3[_i];
       while (lex[codePos].type !== 'code') {
         codePos++;
       }
@@ -231,40 +286,63 @@
     return prevCodePos > -1;
   };
 
-  handleInternalSections = function handleInternalSections(el) {
-    var before, innerSections, node, parentSection, parentTitle, prev, _i, _len, _ref, _results;
-    innerSections = el.querySelectorAll('[leisureSection]');
-    parentSection = el.parentNode;
-    parentTitle = parentSection.getAttribute('leisureSection');
-    if (!(el.firstChild.getAttribute('leisureSection'))) {
-      if (!((_ref = parentSection.previousSibling) != null ? _ref.getAttribute('leisureSection') : void 0)) {
-        prev = document.createElement('DIV');
-        prev.setAttribute('leisureSection', 'Main');
-        parentSection.parentSection.insertBefore(prev, parentSection);
+  handleInternalSections = function handleInternalSections(content) {
+    var before, firstSlide, innerSections, node, nodeContent, nodeTitle, prev, scroll, section, sectionHolder, title, _i, _j, _len, _len2;
+    section = content.parentNode;
+    sectionHolder = section.parentNode;
+    innerSections = section.querySelectorAll('[leisureSection]');
+    if (innerSections.length === 0) {
+      if (!section.previousSibling) {
+        return section.setAttribute('leisureSection', 'Main');
       } else {
-        prev = parentSection.previousSibling;
-      }
-      while (!(el.firstChild.getAttribute('leisureSection'))) {
-        prev.appendChild(el.firstChild);
-      }
-    }
-    before = true;
-    _results = [];
-    for (_i = 0, _len = innerSections.length; _i < _len; _i++) {
-      node = innerSections[_i];
-      if (node.getAttribute('leisureSection') === parentTitle) {
-        before = false;
-        while (node.firstChild) {
-          el.parentNode.insertBefore(node.firstChild, el);
+        prev = section.previousSibling.querySelector('.pageContent');
+        while (content.firstChild) {
+          prev.appendChild(content.firstChild);
         }
-        _results.push(Notebook.remove(node));
-      } else if (before) {
-        _results.push(parentSection.parentNode.insertBefore(node, parentSection));
-      } else {
-        _results.push(parentSection.parentNode.insertBefore(node, parentSection.nextSibling));
+        return remove(section);
       }
+    } else {
+      title = section.getAttribute('leisureSection');
+      firstSlide = !section.previousSibling || section.previousSibling.getAttribute('leisureSection') === 'Leisure Controls';
+      before = false;
+      scroll = document.body.scrollOffset;
+      for (_i = 0, _len = innerSections.length; _i < _len; _i++) {
+        node = innerSections[_i];
+        if (node.getAttribute('leisureSection') === title) {
+          before = true;
+          break;
+        }
+      }
+      before = before || (!innerSections[0].previousSibling);
+      for (_j = 0, _len2 = innerSections.length; _j < _len2; _j++) {
+        node = innerSections[_j];
+        nodeTitle = node.getAttribute('leisureSection');
+        nodeContent = node.querySelector('.pageContent');
+        if (nodeTitle === title || (node.previousSibling && nodeTitle === 'Main')) {
+          if (nodeTitle === title) before = false;
+          while (nodeContent.firstChild) {
+            content.insertBefore(nodeContent.firstChild, node);
+          }
+          remove(node);
+        } else {
+          while (node.nextSibling && !node.nextSibling.getAttribute('leisureSection')) {
+            mergeUp(node.nextSibling, nodeContent);
+          }
+          if (before) {
+            section.parentNode.insertBefore(node, section);
+          } else {
+            section.parentNode.insertBefore(node, section.nextSibling);
+          }
+        }
+      }
+      if (!content.firstChild) remove(section);
+      return document.body.scrollOffset = scroll;
     }
-    return _results;
+  };
+
+  mergeUp = function mergeUp(el, newParent) {
+    newParent.appendChild(el);
+    return mergeLeisureCode(newParent.lastChild.previousSibling, newParent.lastChild);
   };
 
   makeSection = function makeSection(title, node, next) {
@@ -282,7 +360,8 @@
     div = document.createElement('div');
     range.surroundContents(div);
     div.md = md;
-    return bindMarkupDiv(div);
+    bindMarkupDiv(div);
+    return div;
   };
 
   bindMarkupDiv = function bindMarkupDiv(div) {
@@ -318,28 +397,31 @@
       }
     });
     return div.addEventListener('blur', function(e) {
-      var first, frag, last, node, r, _i, _len, _ref;
+      var first, frag, last, node, parent, prevSection, r, _i, _len, _ref, _ref2;
       if (editing) {
         div.style.whiteSpace = '';
         editing = false;
         div.setAttribute('contenteditable', 'false');
-        if (markupElement(div, div.textContent)) {
-          _ref = div.querySelectorAll("[leisurenode='code']");
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            node = _ref[_i];
+        prevSection = (_ref = div.parentNode.parentNode.previousSibling) != null ? _ref.getAttribute('leisureSection') : void 0;
+        parent = div.parentNode;
+        if (markupSlideContent(div, div.textContent, prevSection && prevSection !== 'Leisure Controls')) {
+          _ref2 = div.querySelectorAll("[leisurenode='code']");
+          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+            node = _ref2[_i];
             presentLeisureCode(node, true);
           }
-          r = document.createRange();
-          r.selectNodeContents(div);
-          frag = r.extractContents();
-          first = frag.childNodes[0];
-          last = frag.childNodes[frag.childNodes.length - 1];
-          div.parentNode.replaceChild(frag, div);
-          mergeLeisureCode(previousSibling(first), first);
-          return mergeLeisureCode(last, nextSibling(last));
         } else if (div.textContent.trim() === '') {
-          return cleanEmptyNodes(div);
+          cleanEmptyNodes(div);
         }
+        r = document.createRange();
+        r.selectNodeContents(div);
+        frag = r.extractContents();
+        first = frag.childNodes[0];
+        last = frag.childNodes[frag.childNodes.length - 1];
+        parent.replaceChild(frag, div);
+        mergeLeisureCode(previousSibling(first), first);
+        mergeLeisureCode(last, nextSibling(last));
+        return handleInternalSections(parent);
       }
     });
   };

@@ -76,7 +76,7 @@ createPeer = ->
       if s.rangeCount && s.toString() != value
         r = s.getRangeAt 0
         r.deleteContents()
-        node = document.createTextNode value.toString()
+        node = textNode value.toString()
         r.insertNode node
         s.removeAllRanges()
         r.selectNode node
@@ -291,24 +291,25 @@ presentLeisureCode = (node, doEval)->
   if doEval then Notebook.evalDoc node else Notebook.initNotebook node
 
 mergeLeisureCode = (el1, el2)->
-  if el1.nodeType == 1 && el2.nodeType == 3
-    el1.appendChild el2
-    el1.normalize()
-  else if el1.nodeType == 3 and el2.nodeType == 1
-    el2.insertBefore el1, el2.firstChild
-    el2.normalize()
-  else if el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') == el2.getAttribute('leisureNode')
-    newCode = textNode el1.md = if el1.getAttribute('leisureNode') == 'code' then "#{getElementCode(el1)}\n#{getElementCode el2}" else "#{el1.md}\n#{el2.md}"
-    #el1.innerHTML = ''
-    #el1.appendChild newCode
-    #el2.parentNode.removeChild el2
-    #presentLeisureCode el1, false
-    #if el1.autorunState then Notebook.runTests el1
-    r = document.createRange()
-    r.selectNodeContents el2
-    el1.appendChild textNode '\n'
-    el1.appendChild r.extractContents()
-    el2.parentNode.removeChild el2
+  if el1 && el2
+    if el1.nodeType == 1 && el2.nodeType == 3
+      el1.appendChild el2
+      el1.normalize()
+    else if el1.nodeType == 3 and el2.nodeType == 1
+      el2.insertBefore el1, el2.firstChild
+      el2.normalize()
+    else if el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') == el2.getAttribute('leisureNode')
+      newCode = textNode el1.md = if el1.getAttribute('leisureNode') == 'code' then "#{getElementCode(el1)}\n#{getElementCode el2}" else "#{el1.md}\n#{el2.md}"
+      #el1.innerHTML = ''
+      #el1.appendChild newCode
+      #el2.parentNode.removeChild el2
+      #presentLeisureCode el1, false
+      #if el1.autorunState then Notebook.runTests el1
+      r = document.createRange()
+      r.selectNodeContents el2
+      el1.appendChild textNode '\n'
+      el1.appendChild r.extractContents()
+      el2.parentNode.removeChild el2
 
 highlightPosition = (e)->
   parent = null
@@ -1329,6 +1330,19 @@ evalDocCode = (el, pgm)->
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 
+Parse.define 'getDocument', -> Prim.makeMonad (env, cont)-> cont peerGetDocument()
+
+Parse.define 'gdriveOpen', ->
+  Prim.makeMonad (env, cont)->
+    GdriveStorage.runOpen (json)->
+      if json?.action == 'picked' and json.docs?.length > 0
+        GdriveStorage.loadFile json.docs[0].id, -> cont laz json.docs[0].title
+      else cont _false()
+
+Parse.define 'getFilename', -> Prim.makeMonad (env, cont)-> cont filename?.pathName() ? ''
+
+Parse.define 'getURI', -> Prim.makeMonad (env, cont)-> cont filename?.toString() ? ''
+
 Parse.define 'finishLoading', ->(bubba)->
   Prim.makeMonad (env, cont)->
     loaded = true
@@ -1350,7 +1364,7 @@ Parse.define 'alert', ->(str)->
 Parse.define 'bindEvent', ->(selector)->(eventName)->(func)->
   Prim.makeMonad (env, cont)->
     node = env.box.querySelector selector()
-    if node then node.addEventListener eventName(), (e)-> Prim.runMonad func()(laz e), env, ->
+    if node then node.addEventListener eventName(), (e)-> Prim.runMonad func()(laz e), envFor(e.target), ->
     cont _false()
 
 Parse.define 'quit', -> window.close()

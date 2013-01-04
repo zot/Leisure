@@ -1,10 +1,11 @@
 (function() {
-  var DONE, Notebook, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
     Prim = (_ref2 = window.Prim) != null ? _ref2 : (window.Prim = {});
-    Notebook = (_ref3 = window.Notebook) != null ? _ref3 : (window.Notebook = {});
+    Parse = (_ref3 = window.Parse) != null ? _ref3 : (window.Parse = {});
+    Notebook = (_ref4 = window.Notebook) != null ? _ref4 : (window.Notebook = {});
     window.global = window;
   } else {
     root = typeof exports !== "undefined" && exports !== null ? exports : this;
@@ -17,7 +18,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, cb, frag, ids, state, _ref4, _ref5;
+    var action, cb, frag, ids, state, _ref5, _ref6;
     Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
@@ -68,14 +69,14 @@
         });
       }
     });
-    frag = ((_ref4 = Boot.documentFragment) != null ? _ref4 : '#').substring(1);
+    frag = ((_ref5 = Boot.documentFragment) != null ? _ref5 : '#').substring(1);
     state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
     cb = function cb() {
       callback();
       return addOpenButton();
     };
     if (state) {
-      _ref5 = JSON.parse(state), ids = _ref5.ids, action = _ref5.action;
+      _ref6 = JSON.parse(state), ids = _ref6.ids, action = _ref6.action;
       if (action !== "open") {
         document.body.innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
       }
@@ -92,27 +93,27 @@
     }
   };
 
-  loadFile = function loadFile(id) {
-    document.body.innerHTML = "<h1>LOADING Google Drive file... </h1>";
+  loadFile = function loadFile(id, cont) {
+    $('[maindoc]')[0].innerHTML = "<h1>LOADING Google Drive file... </h1>";
     return initGdrive(function() {
       var file;
       file = id2File[id];
       if (!file) {
-        return document.body.innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
+        return $('[maindoc]')[0].innerHTML = "<h1>Unknown file id: " + ids[0] + "</h1>";
       } else {
-        document.body.innerHTML = "<h1>LOADING " + file.title + "... </h1>";
+        $('[maindoc]')[0].innerHTML = "<h1>LOADING " + file.title + "... </h1>";
         return readFile(file, function(err, text) {
-          var filename, node, path, _i, _j, _len, _len2, _ref4, _ref5;
+          var filename, node, path, _i, _j, _len, _len2, _ref5, _ref6;
           if (err) {
-            return document.body.innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
+            $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
           } else if (file.fileExtension === 'lmd') {
             if (id2Paths[file.id].length > 1) {
-              _ref4 = id2Paths[file.id];
-              for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-                path = _ref4[_i];
+              _ref5 = id2Paths[file.id];
+              for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+                path = _ref5[_i];
                 if (path.match('^/LeisureStorage/')) {
                   if (filename) {
-                    document.body.innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
+                    $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": More than one path to file in LeisureStorage, " + (JSON.stringify(id2Paths[file.id])) + "</h1>";
                   }
                   return;
                 } else {
@@ -122,21 +123,22 @@
             } else {
               filename = id2Paths[file.id][0];
             }
-            document.body.innerHTML = "<!--\n" + text + "\n-->";
+            document.body.setAttribute('doc', '');
             window.leisureAutoRunAll = true;
-            window.markup();
-            _ref5 = document.querySelectorAll("[leisurenode='code']");
-            for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
-              node = _ref5[_j];
+            window.markup(text);
+            _ref6 = document.querySelectorAll("[leisurenode='code']");
+            for (_j = 0, _len2 = _ref6.length; _j < _len2; _j++) {
+              node = _ref6[_j];
               node.setAttribute('contentEditable', 'true');
               Notebook.bindNotebook(node);
               Notebook.changeTheme(node, 'thin');
               Notebook.evalDoc(node);
             }
-            return Notebook.setFilename("googledrive://" + filename);
+            Notebook.setFilename("googledrive://" + filename);
           } else {
-            return document.body.innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
+            $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
           }
+          return (cont != null ? cont : function() {})();
         });
       }
     });
@@ -164,23 +166,25 @@
   };
 
   computePaths = function computePaths(file) {
-    var parent, parentPath, _i, _j, _len, _len2, _ref4, _ref5;
-    if (id2Paths[file.id]) {
+    var parent, parentPath, _i, _j, _len, _len2, _ref5, _ref6;
+    if (!file) {
+      return [];
+    } else if (id2Paths[file.id]) {
       return id2Paths[file.id];
     } else {
       id2File[file.id] = file;
       if (file.parents.length === 0) {
         addPath(file.id, "/" + file.title);
       } else {
-        _ref4 = file.parents;
-        for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-          parent = _ref4[_i];
+        _ref5 = file.parents;
+        for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+          parent = _ref5[_i];
           if (parent.isRoot) {
             addPath(file.id, "/" + file.title);
           } else {
-            _ref5 = computePaths(id2File[parent.id]);
-            for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
-              parentPath = _ref5[_j];
+            _ref6 = computePaths(id2File[parent.id]);
+            for (_j = 0, _len2 = _ref6.length; _j < _len2; _j++) {
+              parentPath = _ref6[_j];
               addPath(file.id, "" + parentPath + "/" + file.title);
             }
           }
@@ -201,8 +205,8 @@
   };
 
   showDelay = function showDelay() {
-    var widget, _ref4;
-    if (widget = (_ref4 = Notebook.lastEnv) != null ? _ref4.getWidget() : void 0) {
+    var widget, _ref5;
+    if (widget = (_ref5 = Notebook.lastEnv) != null ? _ref5.getWidget() : void 0) {
       widget.appendChild(Notebook.createNode("<img src='loading.gif'>"));
       return function() {
         return Notebook.lastEnv.destroyWidget();
@@ -233,15 +237,15 @@
 
   initFileList = function initFileList(cont) {
     return listFiles(function(json) {
-      var dirs, item, key, name, names, _i, _j, _k, _len, _len2, _len3, _ref4, _ref5;
-      _ref4 = json.items;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        item = _ref4[_i];
+      var dirs, item, key, name, names, _i, _j, _k, _len, _len2, _len3, _ref5, _ref6;
+      _ref5 = json.items;
+      for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+        item = _ref5[_i];
         if (!item.explicitlyTrashed) id2File[item.id] = item;
       }
-      _ref5 = json.items;
-      for (_j = 0, _len2 = _ref5.length; _j < _len2; _j++) {
-        item = _ref5[_j];
+      _ref6 = json.items;
+      for (_j = 0, _len2 = _ref6.length; _j < _len2; _j++) {
+        item = _ref6[_j];
         computePaths(item);
       }
       names = (function() {
@@ -343,25 +347,25 @@
   };
 
   finishAuth = function finishAuth(obj) {
-    var cont, _i, _len, _ref4, _ref5, _results;
+    var cont, _i, _len, _ref5, _ref6, _results;
     if (!auth.finished) {
       replaceAuth(obj);
       if (obj.succeeded) {
         return initFileList(function() {
-          var cont, _i, _len, _ref4, _ref5, _results;
-          _ref5 = (_ref4 = auth.cont) != null ? _ref4 : [];
+          var cont, _i, _len, _ref5, _ref6, _results;
+          _ref6 = (_ref5 = auth.cont) != null ? _ref5 : [];
           _results = [];
-          for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-            cont = _ref5[_i];
+          for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+            cont = _ref6[_i];
             _results.push(cont());
           }
           return _results;
         });
       } else {
-        _ref5 = (_ref4 = auth.cont) != null ? _ref4 : [];
+        _ref6 = (_ref5 = auth.cont) != null ? _ref5 : [];
         _results = [];
-        for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-          cont = _ref5[_i];
+        for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+          cont = _ref6[_i];
           _results.push(cont());
         }
         return _results;
@@ -370,9 +374,9 @@
   };
 
   replaceAuth = function replaceAuth(obj) {
-    var _ref4, _ref5;
+    var _ref5, _ref6;
     if (auth.buttonDiv) document.body.removeChild(auth.buttonDiv);
-    obj.cont = ((_ref5 = auth.cont) != null ? _ref5 : []).concat((_ref4 = obj.cont) != null ? _ref4 : []);
+    obj.cont = ((_ref6 = auth.cont) != null ? _ref6 : []).concat((_ref5 = obj.cont) != null ? _ref5 : []);
     obj.finished = true;
     return auth = obj;
   };
@@ -390,6 +394,7 @@
 
   addOpenButton = function addOpenButton() {
     var open, save;
+    return;
     save = document.body.querySelector('[leisureId=saveButton]');
     open = Notebook.createNode("<button>Open</button>");
     save.parentNode.insertBefore(open, save.nextSibling);
@@ -398,19 +403,19 @@
     });
   };
 
-  runOpen = function runOpen() {
+  runOpen = function runOpen(arg) {
     return initGdrive(function() {
       var picker, view;
       view = new google.picker.DocsView();
       view.setParent(path2Ids["/LeisureStorage"]);
-      picker = new google.picker.PickerBuilder().addView(view).setCallback(openFile).build();
+      picker = new google.picker.PickerBuilder().addView(view).setCallback(arg != null ? arg : openFile).build();
       return picker.setVisible(true);
     });
   };
 
   openFile = function openFile(json) {
-    var _ref4;
-    if ((json != null ? json.action : void 0) === 'picked' && (json != null ? (_ref4 = json.docs) != null ? _ref4.length : void 0 : void 0) > 0) {
+    var _ref5;
+    if ((json != null ? json.action : void 0) === 'picked' && ((_ref5 = json.docs) != null ? _ref5.length : void 0) > 0) {
       return loadFile(json.docs[0].id);
     }
   };
@@ -527,5 +532,9 @@
   };
 
   root.initStorage = initStorage;
+
+  root.runOpen = runOpen;
+
+  root.loadFile = loadFile;
 
 }).call(this);
