@@ -89,11 +89,6 @@ body {
   display: block;
 }
 
-.scroll .slide[leisuresection] {
-  position: relative;
-  margin-top: 1em;
-}
-
 .pageTitle {
   background: white;
   padding-left: 5px;
@@ -104,12 +99,51 @@ body {
   z-index: 70;
 }
 
+.oneSlide.scroll .slide {
+  border: none;
+}
+
+.scroll .slide.continuation {
+  /*display: none !important;*/
+}
+
+.slide {
+  padding-left: 5px;
+  padding-right: 5px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  color: black;
+  background: white;
+}
+
+.scroll .slide[leisuresection] {
+  border: solid black 1px;
+  padding: 10px;
+  margin: 5px;
+  position: relative;
+  margin-top: 1em;
+}
+
+.slide,
+.scroll.hideControls .slide[leisuresection="Leisure Controls"]
+{
+  display: none;
+}
+
+.scroll.hideControls .slide,
+.scroll .slide[leisuresection="Leisure Controls"]
+{
+  display: block;
+}
+
 .scroll .slide[leisuresection="Leisure Controls"] {
   position: fixed !important;
   z-index: 80;
   top: 30px;
   left: 0;
-  display: block !important;
 }
 
 .slide[leisuresection="Leisure Controls"] .pageTitleHolder {
@@ -124,12 +158,6 @@ body {
   left: 10px;
   right: 10px;
   padding-left: 2px;
-}
-
-.scroll.hideControls .slide[leisuresection="Leisure Controls"]
-, .slide[leisuresection="Leisure Controls"]
-{
-  display: none !important;
 }
 
 .leisure_bar_contents {
@@ -227,34 +255,6 @@ body {
 
 .codeMainExpr {
   position: relative;
-}
-
-.scroll .slide {
-  position: relative !important;
-  display: block !important;
-  border: solid black 1px;
-  padding: 10px;
-  margin: 5px;
-}
-
-.oneSlide.scroll .slide {
-  border: none;
-}
-
-.scroll .slide.continuation {
-  /*display: none !important;*/
-}
-
-.slide {
-  padding-left: 5px;
-  padding-right: 5px;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  color: black;
-  background: white;
 }
 
 .slide .ui-button, .slide-container .ui-button {
