@@ -290,7 +290,7 @@ presentLeisureCode = (node, doEval)->
   Notebook.changeTheme node, 'thin'
   if doEval then Notebook.evalDoc node else Notebook.initNotebook node
 
-mergeLeisureCode = (el1, el2)->
+mergeLeisureCode = (el1, el2)-> # TODO: this should just take one arg and merge an element with the one after it
   if el1 && el2
     if el1.nodeType == 1 && el2.nodeType == 3
       el1.appendChild el2

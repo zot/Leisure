@@ -11,6 +11,7 @@
 {jQuery, $, _} = window
 
 {ENTER,
+  delay,
   textNode,
   createNode,
   remove,
@@ -57,6 +58,7 @@ console?.error? new Error("Incompatibility: using -webkit-calc").stack
 
 slidePat = /^(\*\*\*[^\n]*\n(?:-\n)?)/m
 slideName = /^\*\*\*([^\n]*)\n(?:-\n)?/m
+sliding = false
 
 markupSlides = (el, md)->
   hasCode = markupSlideContent el, md
@@ -71,9 +73,9 @@ markupSlides = (el, md)->
   markupButtons div
   el.appendChild div
   if location.search && _.find location.search[1..].split('&'), ((p)-> p.match /^slides=/)
+    sliding = true
     showSlide $(chooseSlide())
-  else
-    document.body.classList.add 'scroll'
+  else document.body.classList.add 'scroll'
   hasCode
 
 markupSlideContent = (el, md, noMain)->
@@ -94,7 +96,7 @@ markupSlideContent = (el, md, noMain)->
         if i > 0 then hasCode = (markupElement content, pages[i - 1] + p) || hasCode
         else
           hasCode = (markupElement content, '***\n' + p) || hasCode
-          if noMain then unwrapContent content
+          #if noMain then unwrapContent content
         padSlide content, (if i > 0 then pages[i - 1] else '***\n')
   else
     content = makeSlideDiv el, false, 'Main'
@@ -149,8 +151,6 @@ chooseSlide = ->
   console.log param
   if param then document.querySelector "[slide='#{param.split('=')[1]}']"
   else document.querySelector('[maindoc]').firstElementChild
-
-sliding = true
 
 oldSlide = 1
 
@@ -244,22 +244,23 @@ handleInternalSections = (content)->
   sectionHolder = section.parentNode
   innerSections = section.querySelectorAll '[leisureSection]'
   if innerSections.length == 0
-    if !section.previousSibling then section.setAttribute('leisureSection', 'Main')
-    else
-      prev = section.previousSibling.querySelector '.pageContent'
-      while content.firstChild
-        prev.appendChild content.firstChild
-      remove section
+    if !(content.firstChild.md?.match /^\*\*\*/)
+      if !section.previousSibling then section.setAttribute('leisureSection', 'Main')
+      else
+        prev = section.previousSibling.querySelector '.pageContent'
+        while content.firstChild
+          mergeUp content.firstChild, prev
+        remove section
   else
     title = section.getAttribute 'leisureSection'
     firstSlide = !section.previousSibling || section.previousSibling.getAttribute('leisureSection') == 'Leisure Controls'
     before = false
-    scroll = document.body.scrollOffset
     for node in innerSections
       if node.getAttribute('leisureSection') == title
         before = true
         break
     before = before || (!innerSections[0].previousSibling)
+    marker = section
     for node in innerSections
       nodeTitle = node.getAttribute 'leisureSection'
       nodeContent = node.querySelector '.pageContent'
@@ -267,15 +268,18 @@ handleInternalSections = (content)->
         if nodeTitle == title then before = false
         while nodeContent.firstChild
           content.insertBefore nodeContent.firstChild, node
+          mergeLeisureCode node.previousSibling, node
         remove node
       else
         while node.nextSibling && !node.nextSibling.getAttribute('leisureSection')
           mergeUp node.nextSibling, nodeContent
+        padSlide nodeContent, "***#{nodeTitle}\n"
         if before then section.parentNode.insertBefore node, section
-        else section.parentNode.insertBefore node, section.nextSibling
-    if !content.firstChild
-      remove section
-    document.body.scrollOffset = scroll
+        else
+          section.parentNode.insertBefore node, marker.nextSibling
+          marker = node
+    if !content.firstChild then remove section
+    else padSlide content, "***#{title}\n"
 
 mergeUp = (el, newParent)->
   newParent.appendChild el
@@ -324,6 +328,7 @@ bindMarkupDiv = (div)->
         e.preventDefault()
   div.addEventListener 'blur', (e)->
     if editing
+      scroll = document.body.scrollTop
       div.style.whiteSpace = ''
       editing = false
       div.setAttribute 'contenteditable', 'false'
@@ -343,5 +348,6 @@ bindMarkupDiv = (div)->
       mergeLeisureCode previousSibling(first), first
       mergeLeisureCode last, nextSibling last
       handleInternalSections parent
+      delay -> document.body.scrollTop = scroll
 
 Notebook.markupElement = markupElement
