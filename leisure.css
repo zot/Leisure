@@ -111,6 +111,7 @@ body {
   padding-left: 5px;
   padding-right: 5px;
   position: absolute;
+  margin-top: 1em;
   top: 0;
   bottom: 0;
   left: 0;
@@ -123,8 +124,8 @@ body {
   border: solid black 1px;
   padding: 10px;
   margin: 5px;
-  position: relative;
   margin-top: 1em;
+  position: relative;
 }
 
 .slide,
@@ -133,6 +134,7 @@ body {
   display: none;
 }
 
+.slide.showing,
 .scroll.hideControls .slide,
 .scroll .slide[leisuresection="Leisure Controls"]
 {
@@ -281,8 +283,11 @@ body {
 }
 
 .slide-container {
-  position: relative;;
+  position: absolute;
+  overflow: auto;
   margin: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }

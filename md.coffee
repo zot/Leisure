@@ -52,7 +52,6 @@ window.markup = (md)->
   insertControls maindoc
 
 lastSlide = null
-slideCount = 0
 
 console?.error? new Error("Incompatibility: using -webkit-calc").stack
 
@@ -132,7 +131,7 @@ makeSlideDiv = (el, continuation, title)->
   lastSlide = div = createNode "<div class='leisure_page'></div>"
   div.setAttribute 'leisureSection', title
   div.setAttribute 'doc', ''
-  div.setAttribute 'slide', ++slideCount
+  div.setAttribute 'slide', ''
   div.classList.add 'slide'
   div.classList.add 'ui-corner-all'
   div.classList.add 'ui-widget'
@@ -152,14 +151,14 @@ chooseSlide = ->
   if param then document.querySelector "[slide='#{param.split('=')[1]}']"
   else document.querySelector('[maindoc]').firstElementChild
 
-oldSlide = 1
+oldSlide = 0
 
 window.toggleSlideShow = ->
   sliding = $(document.body).is('.scroll')
   if sliding
     $(document.body).removeClass 'scroll'
     #showSlide $(document.body.firstElementChild)
-    showSlide $("[slide=#{oldSlide}]")
+    showSlide nthSlide oldSlide
   else
     oldSlide = $('.slide.showing').attr('slide')
     hideSlide $('.slide.showing')
@@ -182,22 +181,37 @@ slideKeyListener = (e)->
       else
         cur = $('.slide.showing')
         next = switch c
-          when HOME then $(document.body.firstElementChild)
-          when END then $(lastSlide)
+          when HOME then slides()
+          when END
+            s = slides().last()
           when LEFT_ARROW, PAGE_UP
-            n = cur.prev()
-            if n.length then n else $(document.body.firstElementChild)
+            n = cur.prev('[slide]').not('[leisureSection="Leisure Controls"]')
+            if n.length then n else slides()
           when RIGHT_ARROW, PAGE_DOWN
-            n = cur.next('.slide')
-            if n.length then n else $(lastSlide)
+            n = cur.next('[slide]').not('[leisureSection="Leisure Controls"]')
+            if n.length then n else slides().last()
         hideSlide cur
         showSlide next
 
-showSlide = (el)->
-  $('#slide-num').html "#{el[0].getAttribute('slide')} / #{slideCount}"
-  el.removeClass('hidden').addClass('showing')
+slides = -> $('[slide]').not('[leisureSection="Leisure Controls"]')
 
-hideSlide = (el)-> el.addClass('hidden').removeClass('showing')
+nthSlide = (n)-> slides()[n...]
+
+countSlide = (el)->
+  n = -1
+  count = 0
+  for slide in slides()
+    count++
+    if slide == el then n = count
+  [n, count]
+
+showSlide = (el)->
+  [n, count] = countSlide el[0]
+  oldSlide = n
+  $('#slide-num').html "#{n} / #{count}"
+  $(el).first().removeClass('hidden').addClass('showing')
+
+hideSlide = (el)-> $(el).first().addClass('hidden').removeClass('showing')
 
 markupElement = (el, md)->
   len = md.length
