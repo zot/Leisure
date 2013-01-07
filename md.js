@@ -1,5 +1,5 @@
 (function() {
-  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, Q, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, chooseSlide, cleanEmptyNodes, closeWindow, createNode, delay, getElementCode, handleInternalSections, hideSlide, insertControls, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, makeSection, makeSlideDiv, markupButtons, markupElement, markupSlideContent, markupSlides, mergeLeisureCode, mergeUp, nextSibling, oldSlide, padSlide, presentLeisureCode, previousSibling, remove, showSlide, slideControls, slideCount, slideKeyListener, slideName, slidePat, sliding, textNode, unwrap, unwrapContent, _,
+  var $, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, PAGE_DOWN, PAGE_UP, Q, RIGHT_ARROW, UP_ARROW, arrows, bindMarkupDiv, bindSlider, chooseSlide, cleanEmptyNodes, closeWindow, countSlide, createNode, delay, getElementCode, handleInternalSections, hideSlide, insertControls, isLeisureCode, jQuery, lastSlide, makeMarkupDiv, makeSection, makeSlideDiv, markupButtons, markupElement, markupSlideContent, markupSlides, mergeLeisureCode, mergeUp, nextSibling, nthSlide, oldSlide, padSlide, presentLeisureCode, previousSibling, remove, showSlide, slideControls, slideKeyListener, slideName, slidePat, slides, sliding, textNode, unwrap, unwrapContent, _,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   jQuery = window.jQuery, $ = window.$, _ = window._;
@@ -25,8 +25,6 @@
   };
 
   lastSlide = null;
-
-  slideCount = 0;
 
   if (typeof console !== "undefined" && console !== null) {
     if (typeof console.error === "function") {
@@ -129,7 +127,7 @@
     lastSlide = div = createNode("<div class='leisure_page'></div>");
     div.setAttribute('leisureSection', title);
     div.setAttribute('doc', '');
-    div.setAttribute('slide', ++slideCount);
+    div.setAttribute('slide', '');
     div.classList.add('slide');
     div.classList.add('ui-corner-all');
     div.classList.add('ui-widget');
@@ -157,13 +155,13 @@
     }
   };
 
-  oldSlide = 1;
+  oldSlide = 0;
 
   window.toggleSlideShow = function toggleSlideShow() {
     sliding = $(document.body).is('.scroll');
     if (sliding) {
       $(document.body).removeClass('scroll');
-      return showSlide($("[slide=" + oldSlide + "]"));
+      return showSlide(nthSlide(oldSlide));
     } else {
       oldSlide = $('.slide.showing').attr('slide');
       hideSlide($('.slide.showing'));
@@ -179,7 +177,7 @@
   slideControls = [Q, ESC, LEFT_ARROW, RIGHT_ARROW, HOME, END, PAGE_UP, PAGE_DOWN];
 
   slideKeyListener = function slideKeyListener(e) {
-    var c, cur, n, next;
+    var c, cur, n, next, s;
     if (sliding) {
       window.evt = e;
       c = e.charCode || e.keyCode || e.which;
@@ -194,25 +192,25 @@
           next = (function() {
             switch (c) {
               case HOME:
-                return $(document.body.firstElementChild);
+                return slides();
               case END:
-                return $(lastSlide);
+                return s = slides().last();
               case LEFT_ARROW:
               case PAGE_UP:
-                n = cur.prev();
+                n = cur.prev('[slide]').not('[leisureSection="Leisure Controls"]');
                 if (n.length) {
                   return n;
                 } else {
-                  return $(document.body.firstElementChild);
+                  return slides();
                 }
                 break;
               case RIGHT_ARROW:
               case PAGE_DOWN:
-                n = cur.next('.slide');
+                n = cur.next('[slide]').not('[leisureSection="Leisure Controls"]');
                 if (n.length) {
                   return n;
                 } else {
-                  return $(lastSlide);
+                  return slides().last();
                 }
             }
           })();
@@ -223,13 +221,37 @@
     }
   };
 
+  slides = function slides() {
+    return $('[slide]').not('[leisureSection="Leisure Controls"]');
+  };
+
+  nthSlide = function nthSlide(n) {
+    return slides().slice(n);
+  };
+
+  countSlide = function countSlide(el) {
+    var count, n, slide, _i, _len, _ref;
+    n = -1;
+    count = 0;
+    _ref = slides();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      slide = _ref[_i];
+      count++;
+      if (slide === el) n = count;
+    }
+    return [n, count];
+  };
+
   showSlide = function showSlide(el) {
-    $('#slide-num').html("" + (el[0].getAttribute('slide')) + " / " + slideCount);
-    return el.removeClass('hidden').addClass('showing');
+    var count, n, _ref;
+    _ref = countSlide(el[0]), n = _ref[0], count = _ref[1];
+    oldSlide = n;
+    $('#slide-num').html("" + n + " / " + count);
+    return $(el).first().removeClass('hidden').addClass('showing');
   };
 
   hideSlide = function hideSlide(el) {
-    return el.addClass('hidden').removeClass('showing');
+    return $(el).first().addClass('hidden').removeClass('showing');
   };
 
   markupElement = function markupElement(el, md) {
