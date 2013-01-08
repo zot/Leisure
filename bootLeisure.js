@@ -25,7 +25,7 @@
 
   bootLeisure = function bootLeisure() {
     return loadThen(['uri'], function() {
-      var params, uri, _ref3;
+      var params, state, uri, _ref3;
       uri = new window.URI(document.location.href);
       params = uri.getSearchParams();
       if (params.state) {
@@ -36,6 +36,10 @@
         uri.search = "" + ((_ref3 = uri.search) != null ? _ref3 : '') + (uri.search ? '&' : '?') + "uniq=" + (Math.random());
         return document.location.href = uri.toString();
       } else {
+        state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
+        if (state) {
+          $('[maindoc]')[0].innerHTML = "<h1>LOADING Google Drive file... </h1>";
+        }
         Boot.documentFragment = document.location.hash;
         document.location.hash = '';
         return bootLeisureCont();
