@@ -17,7 +17,7 @@
       function start() {
           if (navigator && navigator.appVersion && navigator.appVersion.match(/Chrome/)) {
               var script = document.createElement('script');
-              script.src = "bootLeisure.js?uniq=" + Math.random();
+              script.src = "bootLeisure.js#uniq=" + Math.random();
               document.head.appendChild(script);
           } else {
               document.body.innerHTML = '<h1>This version of Leisure only supports Chrome</h1>';
