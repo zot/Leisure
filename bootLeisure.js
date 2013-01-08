@@ -1,3 +1,8 @@
+(function(){
+var Boot = window.Boot = {};
+Boot.cssFiles = ['leisureFiles-99fd154299b10dba3016ea1d66824d9ad0688bae469acb0f5f41afc1a2e5db46.css'];
+Boot.jsFiles = ['leisureFiles-02fd4ed171f27fb8ed6cea30be26fe8bbb8433fa3219cdbda27c028ef78e76c8.js'];
+})();
 
 /*
 # put this in your browser and it boots the leisure envioronment
@@ -25,7 +30,7 @@
 
   bootLeisure = function bootLeisure() {
     return loadThen(['uri'], function() {
-      var params, uri, _ref3;
+      var params, state, uri, _ref3;
       uri = new window.URI(document.location.href);
       params = uri.getSearchParams();
       if (params.state) {
@@ -36,6 +41,10 @@
         uri.search = "" + ((_ref3 = uri.search) != null ? _ref3 : '') + (uri.search ? '&' : '?') + "uniq=" + (Math.random());
         return document.location.href = uri.toString();
       } else {
+        state = uri.getFragParams().state;
+        if (state) {
+          document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>";
+        }
         Boot.documentFragment = document.location.hash;
         document.location.hash = '';
         return bootLeisureCont();
@@ -62,16 +71,16 @@
       body.removeAttribute('leisureNode');
     }
     window.removeEventListener('load', bootLeisure);
-    _ref3 = ['leisure', 'gaudy', 'thin', 'cthulhu'];
+    _ref3 = Boot.cssFiles;
     for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
       i = _ref3[_i];
       style = document.createElement('link');
       style.setAttribute('type', "text/css");
       style.setAttribute('rel', "stylesheet");
-      style.setAttribute('href', uniquify("" + i + ".css"));
+      style.setAttribute('href', i);
       document.head.appendChild(style);
     }
-    return loadThen(['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'md', 'maps', 'svg', 'parseAst'], function() {
+    return loadThen(Boot.jsFiles, true, function() {
       return window.GdriveStorage.initStorage(function() {
         if (typeof window.leisureFirst === "function") window.leisureFirst();
         Repl.init();

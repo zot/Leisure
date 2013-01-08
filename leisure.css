@@ -90,6 +90,14 @@ body {
 }
 
 .pageTitle {
+  display: none;
+}
+
+.scroll .pageTitle {
+  display: block;
+}
+
+.pageTitle {
   background: white;
   padding-left: 5px;
   padding-right: 5px;
@@ -111,13 +119,16 @@ body {
   padding-left: 5px;
   padding-right: 5px;
   position: absolute;
-  margin-top: 1em;
   top: 0;
   bottom: 0;
   left: 0;
   right: 0;
   color: black;
   background: white;
+}
+
+.scroll .slide {
+  margin-top: 1em;
 }
 
 .scroll .slide[leisuresection] {
@@ -146,10 +157,6 @@ body {
   z-index: 80;
   top: 30px;
   left: 0;
-}
-
-.slide[leisuresection="Leisure Controls"] .pageTitleHolder {
-  z-index: 85;
 }
 
 .scroll .slide[leisuresection="Leisure Controls"] .pageContent {
