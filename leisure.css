@@ -89,6 +89,14 @@ body {
   display: block;
 }
 
+.pageTitleHolder {
+  display: none;
+}
+
+.scroll .pageTitleHolder {
+  display: block;
+}
+
 .pageTitle {
   background: white;
   padding-left: 5px;
