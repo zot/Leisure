@@ -36,7 +36,7 @@
         uri.search = "" + ((_ref3 = uri.search) != null ? _ref3 : '') + (uri.search ? '&' : '?') + "uniq=" + (Math.random());
         return document.location.href = uri.toString();
       } else {
-        state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
+        state = uri.getFragParams().state;
         if (state) {
           $('[maindoc]')[0].innerHTML = "<h1>LOADING Google Drive file... </h1>";
         }
