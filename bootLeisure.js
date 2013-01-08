@@ -38,7 +38,7 @@
       } else {
         state = uri.getFragParams().state;
         if (state) {
-          $('[maindoc]')[0].innerHTML = "<h1>LOADING Google Drive file... </h1>";
+          document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>";
         }
         Boot.documentFragment = document.location.hash;
         document.location.hash = '';
