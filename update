@@ -1,7 +1,9 @@
 #!/bin/sh
 for i in $(find * -type f); do
-	cp ../lambdaCalculus/$i $i
+        cp ../lambdaCalculus/$i $i
 done
+rm -f leisureFiles-*
+cp ../lambdaCalculus/leisureFiles-* .
 if [ "$1" != "-t" ]; then
     git add .
     git commit -m 'update from master'
