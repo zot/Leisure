@@ -119,19 +119,11 @@ loadFile = (id, cont)->
             for path in id2Paths[file.id]
               if path.match '^/LeisureStorage/'
                 if filename
-                    $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}: More than one path to file in LeisureStorage, #{JSON.stringify id2Paths[file.id]}</h1>"
+                  $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}: More than one path to file in LeisureStorage, #{JSON.stringify id2Paths[file.id]}</h1>"
                 return
               else filename = path
           else filename = id2Paths[file.id][0]
-          document.body.setAttribute 'doc', ''
-          window.leisureAutoRunAll = true
-          window.markup text
-          for node in document.querySelectorAll "[leisurenode='code']"
-            node.setAttribute 'contentEditable', 'true'
-            Notebook.bindNotebook node
-            Notebook.changeTheme node, 'thin'
-            Notebook.evalDoc node
-          Notebook.setFilename "googledrive://#{filename}"
+          Notebook.replaceContents "googledrive://#{filename}", text
         else
           $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}; can only load *.lmd files.</h1>"
         (cont ? -> )()

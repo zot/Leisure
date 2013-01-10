@@ -650,10 +650,10 @@
     }
   });
 
-  newUriHandler('xus', {
+  newUriHandler('local', {
     read: function read(uri, cont, err, next) {
       var f;
-      f = "peer/" + uri.scheme + "/public/storage" + uri.path;
+      f = "peer/local-storage/public/storage" + uri.path;
       return Notebook.peer.value(f, null, false, function(_arg) {
         var data, x1, x2, x3, x4, x5;
         x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
@@ -665,7 +665,7 @@
       });
     },
     write: function write(uri, data, cont, err, next) {
-      return Notebook.peer.set("peer/" + uri.scheme + "/public/storage" + uri.path, data.toString());
+      return Notebook.peer.set("peer/local-storage/public/storage" + uri.path, data.toString());
     }
   });
 
@@ -1134,6 +1134,8 @@
   root.Monad = Monad;
 
   root.newUriHandler = newUriHandler;
+
+  root.read = read;
 
   root.write = write;
 

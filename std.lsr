@@ -580,7 +580,9 @@ do
   x = log 'filter' 2
   addParseFilter mainParseInfix
   forward 'getURI'
+  forward 'setURI'
   forward 'getDocument'
+  forward 'replaceDocument'
 
 save = do
   uri <- getURI
@@ -590,3 +592,11 @@ save = do
 saveAs newUri = do
   doc <- getDocument
   write newUri doc
+
+open uri = do
+  contents? <- read uri
+  contents?
+    \data. do
+      replaceDocument data
+      setURI uri
+    \err . print concat['Error: ' err]

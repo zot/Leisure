@@ -3127,7 +3127,7 @@ require("/browser.js");
       } else {
         $('[maindoc]')[0].innerHTML = "<h1>LOADING " + file.title + "... </h1>";
         return readFile(file, function(err, text) {
-          var filename, node, path, _i, _j, _len, _len2, _ref5, _ref6;
+          var filename, path, _i, _len, _ref5;
           if (err) {
             $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
           } else if (file.fileExtension === 'lmd') {
@@ -3147,18 +3147,7 @@ require("/browser.js");
             } else {
               filename = id2Paths[file.id][0];
             }
-            document.body.setAttribute('doc', '');
-            window.leisureAutoRunAll = true;
-            window.markup(text);
-            _ref6 = document.querySelectorAll("[leisurenode='code']");
-            for (_j = 0, _len2 = _ref6.length; _j < _len2; _j++) {
-              node = _ref6[_j];
-              node.setAttribute('contentEditable', 'true');
-              Notebook.bindNotebook(node);
-              Notebook.changeTheme(node, 'thin');
-              Notebook.evalDoc(node);
-            }
-            Notebook.setFilename("googledrive://" + filename);
+            Notebook.replaceContents("googledrive://" + filename, text);
           } else {
             $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
           }
@@ -6748,10 +6737,10 @@ misrepresented as being the original software.
     }
   });
 
-  newUriHandler('xus', {
+  newUriHandler('local', {
     read: function read(uri, cont, err, next) {
       var f;
-      f = "peer/" + uri.scheme + "/public/storage" + uri.path;
+      f = "peer/local-storage/public/storage" + uri.path;
       return Notebook.peer.value(f, null, false, function(_arg) {
         var data, x1, x2, x3, x4, x5;
         x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
@@ -6763,7 +6752,7 @@ misrepresented as being the original software.
       });
     },
     write: function write(uri, data, cont, err, next) {
-      return Notebook.peer.set("peer/" + uri.scheme + "/public/storage" + uri.path, data.toString());
+      return Notebook.peer.set("peer/local-storage/public/storage" + uri.path, data.toString());
     }
   });
 
@@ -7232,6 +7221,8 @@ misrepresented as being the original software.
   root.Monad = Monad;
 
   root.newUriHandler = newUriHandler;
+
+  root.read = read;
 
   root.write = write;
 
@@ -8127,10 +8118,11 @@ Leisure.createMethod('token', 'collapseFirstTokens2', "\\tokens op next        r
 Leisure.createMethod('nil', 'getPrecedence', "\\index op tokens      . index", function(_index, _op, _tokens) {return _index();});
   _operatorIn = Parse.define('operatorIn', (function() {var f; return function _operatorIn(){return f || (f = (function(_op){return function(_tokens){return function(_opEq){return _any()((function(){var $m; return (function(){return $m || ($m = (function(_toks){return _any()(_opEq)(_toks);}))})})())(_tokens);}((function(){var $m; return (function(){return $m || ($m = (_eq()((function(){var $m; return (function(){return $m || ($m = (_tokString()(_op)))})})())))})})());};}));}})(), 2, "\\op tokens . do\n  opEq = eq (tokString op)\n  any (\\toks . any opEq toks) tokens");;
 })
-.andThen(function(){ return   (function(_x){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "*"}))((function(){return "before"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "/"}))((function(){return "at"}))((function(){return "*"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "+"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "-"}))((function(){return "at"}))((function(){return "+"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "<"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return ">"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return function(_x){return _bind()((function(){var $m; return (function(){return $m || ($m = (_addParseFilter()(_mainParseInfix)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "getURI"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _forward()((function(){return "getDocument"}));}))})})());}))})})());}((function(){var $m; return (function(){return $m || ($m = (_log()((function(){return "filter"}))((function(){return 2}))))})})());}))})})());}))})})());}))})})());}))})})());}))})})());}))})})());}((function(){var $m; return (function(){return $m || ($m = (_log()((function(){return "infix"}))((function(){return 1}))))})})()))})
+.andThen(function(){ return   (function(_x){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "*"}))((function(){return "before"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "/"}))((function(){return "at"}))((function(){return "*"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "+"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "-"}))((function(){return "at"}))((function(){return "+"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "<"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return ">"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return function(_x){return _bind()((function(){var $m; return (function(){return $m || ($m = (_addParseFilter()(_mainParseInfix)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "getURI"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "setURI"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "getDocument"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _forward()((function(){return "replaceDocument"}));}))})})());}))})})());}))})})());}))})})());}((function(){var $m; return (function(){return $m || ($m = (_log()((function(){return "filter"}))((function(){return 2}))))})})());}))})})());}))})})());}))})})());}))})})());}))})})());}))})})());}((function(){var $m; return (function(){return $m || ($m = (_log()((function(){return "infix"}))((function(){return 1}))))})})()))})
 .andThen(function(){
   _save = Parse.define('save', (function _save() {return ((_bind()(_getURI)((function(){var $m; return (function(){return $m || ($m = (function(_uri){return _bind()(_getDocument)((function(){var $m; return (function(){return $m || ($m = (function(_doc){return _write()(_uri)(_doc);}))})})());}))})})())));}), 0, "do\n  uri <- getURI\n  doc <- getDocument\n  write uri doc");;
   _saveAs = Parse.define('saveAs', (function() {var f; return function _saveAs(){return f || (f = (function(_newUri){return _bind()(_getDocument)((function(){var $m; return (function(){return $m || ($m = (function(_doc){return _write()(_newUri)(_doc);}))})})());}));}})(), 1, "\\newUri . do\n  doc <- getDocument\n  write newUri doc");;
+  _open = Parse.define('open', (function() {var f; return function _open(){return f || (f = (function(_uri){return _bind()((function(){var $m; return (function(){return $m || ($m = (_read()(_uri)))})})())((function(){var $m; return (function(){return $m || ($m = (function(_contents$e){return _contents$e()((function(){var $m; return (function(){return $m || ($m = (function(_data){return _bind()((function(){var $m; return (function(){return $m || ($m = (_replaceDocument()(_data)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _setURI()(_uri);}))})})());}))})})())((function(){var $m; return (function(){return $m || ($m = (function(_err){return _print()((function(){var $m; return (function(){return $m || ($m = (_concat()((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){return "Error: "}))((function(){var $m; return (function(){return $m || ($m = (_cons()(_err)(_nil)))})})())))})})())))})})());}))})})());}))})})());}));}})(), 1, "\\uri . do\n  contents? <- read uri\n  contents?\n    \\data. do\n      replaceDocument data\n      setURI uri\n    \\err . print concat['Error: ' err]");;
 
 });
 if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});
@@ -8141,7 +8133,7 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -8279,6 +8271,28 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
       }
       if (params.xusproxy != null) return Xus.xusToProxy(server, params.xusproxy);
     }
+  };
+
+  replaceContents = function replaceContents(uri, contents) {
+    var node, _i, _len, _ref2, _results;
+    if (!contents) {
+      contents = uri;
+    } else {
+      setFilename(uri.toString());
+    }
+    document.body.setAttribute('doc', '');
+    window.leisureAutoRunAll = true;
+    window.markup(contents);
+    _ref2 = document.querySelectorAll("[leisurenode='code']");
+    _results = [];
+    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+      node = _ref2[_i];
+      node.setAttribute('contentEditable', 'true');
+      bindNotebook(node);
+      changeTheme(node, 'thin');
+      _results.push(evalDoc(node));
+    }
+    return _results;
   };
 
   xusEnv = function xusEnv(resultVar, expr) {
@@ -10161,16 +10175,25 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
     });
   });
 
+  Parse.define('replaceDocument', function() {
+    return function(str) {
+      return Prim.makeMonad(function(env, cont) {
+        replaceContents(str());
+        return cont(_true());
+      });
+    };
+  });
+
   Parse.define('gdriveOpen', function() {
     return Prim.makeMonad(function(env, cont) {
       return GdriveStorage.runOpen(function(json) {
         var _ref2;
         if ((json != null ? json.action : void 0) === 'picked' && ((_ref2 = json.docs) != null ? _ref2.length : void 0) > 0) {
           return GdriveStorage.loadFile(json.docs[0].id, function() {
-            return cont(laz(json.docs[0].title));
+            return cont(_some()(laz(json.docs[0].title)));
           });
         } else {
-          return cont(_false());
+          return cont(_none());
         }
       });
     });
@@ -10181,6 +10204,15 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
       var _ref2;
       return cont((_ref2 = filename != null ? filename.pathName() : void 0) != null ? _ref2 : '');
     });
+  });
+
+  Parse.define('setURI', function() {
+    return function(uri) {
+      return Prim.makeMonad(function(env, cont) {
+        setFilename(uri());
+        return cont(_true());
+      });
+    };
   });
 
   Parse.define('getURI', function() {

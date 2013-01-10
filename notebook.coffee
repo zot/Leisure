@@ -98,6 +98,18 @@ createPeer = ->
       params[k.toLowerCase()] = decodeURIComponent v
     if params.xusproxy? then Xus.xusToProxy(server, params.xusproxy)
 
+replaceContents = (uri, contents)->
+  if !contents then contents = uri
+  else setFilename uri.toString()
+  document.body.setAttribute 'doc', ''
+  window.leisureAutoRunAll = true
+  window.markup contents
+  for node in document.querySelectorAll "[leisurenode='code']"
+    node.setAttribute 'contentEditable', 'true'
+    bindNotebook node
+    changeTheme node, 'thin'
+    evalDoc node
+
 xusEnv = (resultVar, expr)->
   result = ''
   env = Prim.initFileSettings
@@ -1330,16 +1342,33 @@ evalDocCode = (el, pgm)->
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 
-Parse.define 'getDocument', -> Prim.makeMonad (env, cont)-> cont peerGetDocument()
+Parse.define 'getDocument', ->
+  Prim.makeMonad (env, cont)-> cont peerGetDocument()
+
+Parse.define 'replaceDocument', ->(str)->
+  Prim.makeMonad (env, cont)->
+    replaceContents str()
+    cont _true()
+
+# Parse.define 'open', (uri)->
+#   Prim.makeMonad (env, cont)->
+#     (uri, cont, err)-> Prim.read uri, ((data)->
+#       replaceContents uri, data
+#       cont _left()(laz data)), -> cont _right()(laz "")
 
 Parse.define 'gdriveOpen', ->
   Prim.makeMonad (env, cont)->
     GdriveStorage.runOpen (json)->
       if json?.action == 'picked' and json.docs?.length > 0
-        GdriveStorage.loadFile json.docs[0].id, -> cont laz json.docs[0].title
-      else cont _false()
+        GdriveStorage.loadFile json.docs[0].id, -> cont _some()(laz json.docs[0].title)
+      else cont _none()
 
 Parse.define 'getFilename', -> Prim.makeMonad (env, cont)-> cont filename?.pathName() ? ''
+
+Parse.define 'setURI', ->(uri)->
+  Prim.makeMonad (env, cont)->
+    setFilename uri()
+    cont _true()
 
 Parse.define 'getURI', -> Prim.makeMonad (env, cont)-> cont filename?.toString() ? ''
 

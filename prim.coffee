@@ -251,12 +251,12 @@ newUriHandler 'http',
         dataType: 'text'
     else (http.get uri.toString(), (data)-> loadSource uri, data, cont, errHandler).on 'error', next
 
-newUriHandler 'xus',
+newUriHandler 'local',
   read: (uri, cont, err, next)->
-    f = "peer/#{uri.scheme}/public/storage#{uri.path}"
+    f = "peer/local-storage/public/storage#{uri.path}"
     Notebook.peer.value f, null, false, ([x1, x2, x3, x4, x5, data])->
       if data then cont data else next()
-  write: (uri, data, cont, err, next)-> Notebook.peer.set "peer/#{uri.scheme}/public/storage#{uri.path}", data.toString()
+  write: (uri, data, cont, err, next)-> Notebook.peer.set "peer/local-storage/public/storage#{uri.path}", data.toString()
 
 newUriHandler 'file',
   read: (uri, cont, err, next)->
@@ -474,6 +474,7 @@ root.initFileSettings = initFileSettings
 root.URI = URI
 root.Monad = Monad
 root.newUriHandler = newUriHandler
+root.read = read
 root.write = write
 
 if window? then window.leisureEvent = leisureEvent

@@ -1,0 +1,39 @@
+*** Leisure Controls
+
+New Controls
+
+* saveLocal -- uses a download link with the current contents
+
+```
+saveAs 'googledrive:///notes.lmd'
+do
+  d <- getDocument
+  print d
+```
+```
+#@auto "mode": "notebook"
+#@hidden
+do
+  filename <- getFilename
+  printValue (html concat[
+    "<button id='openButton'>Open</button><br>"
+    "<button id='saveButton'>Save</button><br>"
+    "Save as: "
+    filename
+    "<br>"])
+  bindEvent '#openButton' 'click' \e . gdriveOpen
+  bindEvent '#saveButton' 'click' \e . save
+```
+
+***
+See Leisure Controls for more notes
+
+* try implementing a setf-like function for state monads: [setf](http://landoflisp.com/trade_generic.png)
+* harvest operators from Arc
+
+
+Bugs
+
+* need response for successfull sets
+
+test
