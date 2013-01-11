@@ -94,6 +94,7 @@ Boot.jsFiles = ['leisureFiles-9d4cdc3d320816333c315f31225d293c16ba21d23675e3a843
         return $('[maindoc]').innerHTML = "<h1>ERROR LOADING " + load + ": " + err + "</h1>";
       });
     } : function(cont) {
+      window.markup();
       return cont();
     };
     return loadThen(Boot.jsFiles, true, function() {
