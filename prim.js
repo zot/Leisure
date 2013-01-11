@@ -1,6 +1,7 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
-    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    __slice = Array.prototype.slice;
 
   defaultEnv = {
     handleError: function handleError(err, cont) {
@@ -650,24 +651,69 @@
     }
   });
 
-  newUriHandler('xus', {
-    read: function read(uri, cont, err, next) {
-      var f;
-      f = "peer/" + uri.scheme + "/public/storage" + uri.path;
-      return Notebook.peer.value(f, null, false, function(_arg) {
-        var data, x1, x2, x3, x4, x5;
-        x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
-        if (data) {
-          return cont(data);
-        } else {
-          return next();
-        }
+  localHandler = {
+    read: function read() {
+      var args;
+      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return installRealLocalHandler(function() {
+        return localHandler.read.apply(localHandler, args);
       });
     },
-    write: function write(uri, data, cont, err, next) {
-      return Notebook.peer.set("peer/" + uri.scheme + "/public/storage" + uri.path, data.toString());
+    write: function write() {
+      var args;
+      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return installRealLocalHandler(function() {
+        return localHandler.write.apply(localHandler, args);
+      });
     }
-  });
+  };
+
+  localHandlerConts = [];
+
+  installRealLocalHandler = function installRealLocalHandler(cont) {
+    var installingLocalHandler, peer, _i, _j, _len, _len2, _ref3;
+    localHandlerConts.push(cont);
+    console.log("leisure/storage: " + (Notebook.peer.get('leisure/storage')));
+    _ref3 = Notebook.peer.get('leisure/storage');
+    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+      peer = _ref3[_i];
+      if (Notebook.peer.get('peer/#{peer}/name') === 'local-storage') {
+        console.log("Executing local-storage operations");
+        localHandler.read = function read(uri, cont, err, next) {
+          var f;
+          f = "peer/local-storage/public/storage" + uri.path;
+          Notebook.peer.value(f, null, false, function(_arg) {
+            var data, x1, x2, x3, x4, x5;
+            x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
+            if (data) {
+              return cont(data);
+            } else {
+              return next();
+            }
+          });
+          return localHandler.write = function write(uri, data, cont, err, next) {
+            return Notebook.peer.set("peer/local-storage/public/storage" + uri.path, data.toString());
+          };
+        };
+        for (_j = 0, _len2 = localHandlerConts.length; _j < _len2; _j++) {
+          cont = localHandlerConts[_j];
+          cont();
+        }
+        localHandlerConts = null;
+        return;
+      }
+    }
+    console.log("Deferring local-storage operation");
+    if (installRealLocalHandler.length === 1) {
+      console.log("Installing local handler");
+      installingLocalHandler = true;
+      return window.setTimeout((function() {
+        return installRealLocalHandler;
+      }), 100);
+    }
+  };
+
+  newUriHandler('local', localHandler);
 
   newUriHandler('file', {
     read: function read(uri, cont, err, next) {
@@ -1134,6 +1180,8 @@
   root.Monad = Monad;
 
   root.newUriHandler = newUriHandler;
+
+  root.read = read;
 
   root.write = write;
 

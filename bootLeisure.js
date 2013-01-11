@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-99fd154299b10dba3016ea1d66824d9ad0688bae469acb0f5f41afc1a2e5db46.css'];
-Boot.jsFiles = ['leisureFiles-02fd4ed171f27fb8ed6cea30be26fe8bbb8433fa3219cdbda27c028ef78e76c8.js'];
+Boot.jsFiles = ['leisureFiles-9d4cdc3d320816333c315f31225d293c16ba21d23675e3a8437fec7406c84fb6.js'];
 })();
 
 /*
@@ -30,7 +30,7 @@ Boot.jsFiles = ['leisureFiles-02fd4ed171f27fb8ed6cea30be26fe8bbb8433fa3219cdbda2
 
   bootLeisure = function bootLeisure() {
     return loadThen(['uri'], function() {
-      var params, state, uri, _ref3;
+      var load, params, state, uri, _ref3, _ref4;
       uri = new window.URI(document.location.href);
       params = uri.getSearchParams();
       if (params.state) {
@@ -41,13 +41,16 @@ Boot.jsFiles = ['leisureFiles-02fd4ed171f27fb8ed6cea30be26fe8bbb8433fa3219cdbda2
         uri.search = "" + ((_ref3 = uri.search) != null ? _ref3 : '') + (uri.search ? '&' : '?') + "uniq=" + (Math.random());
         return document.location.href = uri.toString();
       } else {
-        state = uri.getFragParams().state;
+        console.log("FRAG PARAMS: " + (JSON.stringify(uri.getFragParams())));
+        _ref4 = uri.getFragParams(), load = _ref4.load, state = _ref4.state;
         if (state) {
           document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>";
+        } else if (load) {
+          document.querySelector('[maindoc]').innerHTML = "<h1>LOADING " + load + "... </h1>";
         }
         Boot.documentFragment = document.location.hash;
         document.location.hash = '';
-        return bootLeisureCont();
+        return bootLeisureCont(load, state);
       }
     });
   };
@@ -56,32 +59,45 @@ Boot.jsFiles = ['leisureFiles-02fd4ed171f27fb8ed6cea30be26fe8bbb8433fa3219cdbda2
     return "" + str + "?uniq=" + (new Date().getTime());
   };
 
-  bootLeisureCont = function bootLeisureCont() {
-    var body, i, pre, style, _i, _len, _ref3;
-    body = document.body;
-    if ('code' === body.getAttribute('leisureNode')) {
-      pre = document.createElement('pre');
-      pre.setAttribute('leisureNode', 'code');
-      pre.setAttribute('contentEditable', 'true');
-      pre.innerHTML = body.innerHTML;
-      while (body.firstChild) {
-        body.removeChild(body.firstChild);
-      }
-      body.appendChild(pre);
-      body.removeAttribute('leisureNode');
-    }
+  bootLeisureCont = function bootLeisureCont(load, state) {
+    var body, f, i, pre, style, _i, _len, _ref3;
     window.removeEventListener('load', bootLeisure);
-    _ref3 = Boot.cssFiles;
-    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-      i = _ref3[_i];
-      style = document.createElement('link');
-      style.setAttribute('type', "text/css");
-      style.setAttribute('rel', "stylesheet");
-      style.setAttribute('href', i);
-      document.head.appendChild(style);
+    if (!(load || state)) {
+      body = document.body;
+      if ('code' === body.getAttribute('leisureNode')) {
+        pre = document.createElement('pre');
+        pre.setAttribute('leisureNode', 'code');
+        pre.setAttribute('contentEditable', 'true');
+        pre.innerHTML = body.innerHTML;
+        while (body.firstChild) {
+          body.removeChild(body.firstChild);
+        }
+        body.appendChild(pre);
+        body.removeAttribute('leisureNode');
+      }
+      _ref3 = Boot.cssFiles;
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        i = _ref3[_i];
+        style = document.createElement('link');
+        style.setAttribute('type', "text/css");
+        style.setAttribute('rel', "stylesheet");
+        style.setAttribute('href', i);
+        document.head.appendChild(style);
+      }
     }
+    f = state ? window.GdriveStorage.initStorage : load ? function(cont) {
+      console.log("LOADING " + load);
+      return Prim.read(load, (function(data) {
+        Notebook.replaceContents(load, data);
+        return cont();
+      }), function(err) {
+        return $('[maindoc]').innerHTML = "<h1>ERROR LOADING " + load + ": " + err + "</h1>";
+      });
+    } : function(cont) {
+      return cont();
+    };
     return loadThen(Boot.jsFiles, true, function() {
-      return window.GdriveStorage.initStorage(function() {
+      return f(function() {
         if (typeof window.leisureFirst === "function") window.leisureFirst();
         Repl.init();
         Notebook.bootNotebook();

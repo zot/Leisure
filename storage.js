@@ -103,7 +103,7 @@
       } else {
         $('[maindoc]')[0].innerHTML = "<h1>LOADING " + file.title + "... </h1>";
         return readFile(file, function(err, text) {
-          var filename, node, path, _i, _j, _len, _len2, _ref5, _ref6;
+          var filename, path, _i, _len, _ref5;
           if (err) {
             $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
           } else if (file.fileExtension === 'lmd') {
@@ -123,18 +123,7 @@
             } else {
               filename = id2Paths[file.id][0];
             }
-            document.body.setAttribute('doc', '');
-            window.leisureAutoRunAll = true;
-            window.markup(text);
-            _ref6 = document.querySelectorAll("[leisurenode='code']");
-            for (_j = 0, _len2 = _ref6.length; _j < _len2; _j++) {
-              node = _ref6[_j];
-              node.setAttribute('contentEditable', 'true');
-              Notebook.bindNotebook(node);
-              Notebook.changeTheme(node, 'thin');
-              Notebook.evalDoc(node);
-            }
-            Notebook.setFilename("googledrive://" + filename);
+            Notebook.replaceContents("googledrive://" + filename, text);
           } else {
             $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
           }
