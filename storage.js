@@ -529,4 +529,6 @@
 
   root.loadFile = loadFile;
 
+  root.openFromGdrive = openFromGdrive;
+
 }).call(this);
