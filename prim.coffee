@@ -251,12 +251,34 @@ newUriHandler 'http',
         dataType: 'text'
     else (http.get uri.toString(), (data)-> loadSource uri, data, cont, errHandler).on 'error', next
 
-newUriHandler 'local',
-  read: (uri, cont, err, next)->
-    f = "peer/local-storage/public/storage#{uri.path}"
-    Notebook.peer.value f, null, false, ([x1, x2, x3, x4, x5, data])->
-      if data then cont data else next()
-  write: (uri, data, cont, err, next)-> Notebook.peer.set "peer/local-storage/public/storage#{uri.path}", data.toString()
+localHandler =
+  read: (args...)-> installRealLocalHandler -> localHandler.read args...
+  write: (args...)-> installRealLocalHandler -> localHandler.write args...
+
+localHandlerConts = []
+
+installRealLocalHandler = (cont)->
+  localHandlerConts.push cont
+  console.log "leisure/storage: #{Notebook.xusServer.get 'leisure/storage'}"
+  if 'local-storage' in Notebook.xusServer.get 'leisure/storage'
+    console.log "Executing local-storage operations"
+    localHandler.read = (uri, cont, err, next)->
+      console.log "Reading local file: #{uri.path}, using path: peer/local-storage/public/storage#{uri.path}"
+      f = "peer/local-storage/public/storage#{uri.path}"
+      Notebook.peer.value f, null, false, ([x1, x2, x3, x4, x5, data])->
+        console.log "Got data for local file: #{uri.path}: #{data}"
+        if data then cont data else next()
+    localHandler.write = (uri, data, cont, err, next)-> Notebook.peer.set "peer/local-storage/public/storage#{uri.path}", data.toString()
+    for c in localHandlerConts
+      c()
+    localHandlerConts = null
+  else if installRealLocalHandler.length == 1
+    console.log "Deferring local-storage operation"
+    console.log "Installing local handler"
+    installingLocalHandler = true
+    window.setTimeout (-> installRealLocalHandler), 100
+
+newUriHandler 'local', localHandler
 
 newUriHandler 'file',
   read: (uri, cont, err, next)->

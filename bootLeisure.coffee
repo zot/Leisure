@@ -25,39 +25,53 @@ bootLeisure = ->
       uri.search = "#{uri.search ? ''}#{if uri.search then '&' else '?'}uniq=#{Math.random()}"
       document.location.href = uri.toString()
     else
-      {state} = uri.getFragParams()
+      console.log "FRAG PARAMS: #{JSON.stringify uri.getFragParams()}"
+      {load,state} = uri.getFragParams()
       if state then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>"
+      else if load then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING #{load}... </h1>"
       Boot.documentFragment = document.location.hash
       document.location.hash = ''
-      bootLeisureCont()
+      bootLeisureCont load, state
 
 uniquify = (str)-> "#{str}?uniq=#{new Date().getTime()}"
 
-bootLeisureCont = ->
-  body = document.body
-  # Gotta be able to stuff extra hidden things in the body
-  # so if it's a code container, copy it into a child
-  if 'code' == body.getAttribute 'leisureNode'
-    pre = document.createElement 'pre'
-    pre.setAttribute 'leisureNode', 'code'
-    pre.setAttribute 'contentEditable', 'true'
-    pre.innerHTML = body.innerHTML
-    while body.firstChild
-      body.removeChild body.firstChild
-    body.appendChild pre
-    body.removeAttribute 'leisureNode'
+bootLeisureCont = (load, state)->
   window.removeEventListener 'load', bootLeisure
-  #for i in ['leisure', 'gaudy', 'thin', 'cthulhu']
-  for i in Boot.cssFiles
-    style = document.createElement('link')
-    style.setAttribute 'type', "text/css"
-    style.setAttribute 'rel', "stylesheet"
-    #style.setAttribute 'href', uniquify "#{i}.css"
-    style.setAttribute 'href', i
-    document.head.appendChild style
+  if !(load || state)
+    body = document.body
+    # Gotta be able to stuff extra hidden things in the body
+    # so if it's a code container, copy it into a child
+    if 'code' == body.getAttribute 'leisureNode'
+      pre = document.createElement 'pre'
+      pre.setAttribute 'leisureNode', 'code'
+      pre.setAttribute 'contentEditable', 'true'
+      pre.innerHTML = body.innerHTML
+      while body.firstChild
+        body.removeChild body.firstChild
+      body.appendChild pre
+      body.removeAttribute 'leisureNode'
+    #for i in ['leisure', 'gaudy', 'thin', 'cthulhu']
+    for i in Boot.cssFiles
+      style = document.createElement('link')
+      style.setAttribute 'type', "text/css"
+      style.setAttribute 'rel', "stylesheet"
+      #style.setAttribute 'href', uniquify "#{i}.css"
+      style.setAttribute 'href', i
+      document.head.appendChild style
   #loadThen ['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'md', 'maps', 'svg', 'parseAst'], ->
+  f = if state then window.GdriveStorage.openFromGdrive
+  else if load then (cont)->
+    console.log "LOADING #{load}"
+    Prim.read load, ((data)->
+      Notebook.replaceContents load, data
+      cont()
+    ), (err)-> $('[maindoc]').innerHTML = "<h1>ERROR LOADING #{load}: #{err}</h1>"
+  else (cont)->
+    window.markup()
+    cont()
   loadThen Boot.jsFiles, true, ->
-    window.GdriveStorage.initStorage ->
+    window.GdriveStorage.initStorage()
+    f ->
       window.leisureFirst?()
       Repl.init()
       Notebook.bootNotebook()

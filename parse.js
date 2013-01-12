@@ -1277,6 +1277,10 @@ misrepresented as being the original software.
       return "UNDEFINED";
     } else if (f === null) {
       return 'NULL';
+    } else if (f === _true()) {
+      return 'true';
+    } else if (f === _false()) {
+      return 'false';
     } else {
       switch (getType(f)) {
         case 'lexCons':

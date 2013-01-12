@@ -1597,6 +1597,10 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
       }
     };
 
+    Server.prototype.get = function(key) {
+      return this.varStorage.values[key];
+    };
+
     Server.prototype.name = function(con, name) {
       if (!(name != null)) {
         return this.disconnect(con, error_bad_message, "No name given in name message");
@@ -3023,7 +3027,7 @@ require("/browser.js");
 })();
 ;
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -3042,8 +3046,7 @@ require("/browser.js");
   }
 
   initStorage = function initStorage(callback) {
-    var action, cb, frag, ids, state, _ref5, _ref6;
-    Prim.newUriHandler('googledrive', {
+    return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
           var files;
@@ -3093,6 +3096,10 @@ require("/browser.js");
         });
       }
     });
+  };
+
+  openFromGdrive = function openFromGdrive(callback) {
+    var action, cb, frag, ids, state, _ref5, _ref6;
     frag = ((_ref5 = Boot.documentFragment) != null ? _ref5 : '#').substring(1);
     state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
     cb = function cb() {
@@ -4831,6 +4838,10 @@ misrepresented as being the original software.
       return "UNDEFINED";
     } else if (f === null) {
       return 'NULL';
+    } else if (f === _true()) {
+      return 'true';
+    } else if (f === _false()) {
+      return 'false';
     } else {
       switch (getType(f)) {
         case 'lexCons':
@@ -6086,8 +6097,9 @@ misrepresented as being the original software.
 }).call(this);
 ;
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getType, head, initFileSettings, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
-    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    __slice = Array.prototype.slice;
 
   defaultEnv = {
     handleError: function handleError(err, cont) {
@@ -6737,24 +6749,65 @@ misrepresented as being the original software.
     }
   });
 
-  newUriHandler('local', {
-    read: function read(uri, cont, err, next) {
-      var f;
-      f = "peer/local-storage/public/storage" + uri.path;
-      return Notebook.peer.value(f, null, false, function(_arg) {
-        var data, x1, x2, x3, x4, x5;
-        x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
-        if (data) {
-          return cont(data);
-        } else {
-          return next();
-        }
+  localHandler = {
+    read: function read() {
+      var args;
+      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return installRealLocalHandler(function() {
+        return localHandler.read.apply(localHandler, args);
       });
     },
-    write: function write(uri, data, cont, err, next) {
-      return Notebook.peer.set("peer/local-storage/public/storage" + uri.path, data.toString());
+    write: function write() {
+      var args;
+      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return installRealLocalHandler(function() {
+        return localHandler.write.apply(localHandler, args);
+      });
     }
-  });
+  };
+
+  localHandlerConts = [];
+
+  installRealLocalHandler = function installRealLocalHandler(cont) {
+    var c, installingLocalHandler, _i, _len;
+    localHandlerConts.push(cont);
+    console.log("leisure/storage: " + (Notebook.xusServer.get('leisure/storage')));
+    if (__indexOf.call(Notebook.xusServer.get('leisure/storage'), 'local-storage') >= 0) {
+      console.log("Executing local-storage operations");
+      localHandler.read = function read(uri, cont, err, next) {
+        var f;
+        console.log("Reading local file: " + uri.path + ", using path: peer/local-storage/public/storage" + uri.path);
+        f = "peer/local-storage/public/storage" + uri.path;
+        return Notebook.peer.value(f, null, false, function(_arg) {
+          var data, x1, x2, x3, x4, x5;
+          x1 = _arg[0], x2 = _arg[1], x3 = _arg[2], x4 = _arg[3], x5 = _arg[4], data = _arg[5];
+          console.log("Got data for local file: " + uri.path + ": " + data);
+          if (data) {
+            return cont(data);
+          } else {
+            return next();
+          }
+        });
+      };
+      localHandler.write = function write(uri, data, cont, err, next) {
+        return Notebook.peer.set("peer/local-storage/public/storage" + uri.path, data.toString());
+      };
+      for (_i = 0, _len = localHandlerConts.length; _i < _len; _i++) {
+        c = localHandlerConts[_i];
+        c();
+      }
+      return localHandlerConts = null;
+    } else if (installRealLocalHandler.length === 1) {
+      console.log("Deferring local-storage operation");
+      console.log("Installing local handler");
+      installingLocalHandler = true;
+      return window.setTimeout((function() {
+        return installRealLocalHandler;
+      }), 100);
+    }
+  };
+
+  newUriHandler('local', localHandler);
 
   newUriHandler('file', {
     read: function read(uri, cont, err, next) {
@@ -8122,7 +8175,7 @@ Leisure.createMethod('nil', 'getPrecedence', "\\index op tokens      . index", f
 .andThen(function(){
   _save = Parse.define('save', (function _save() {return ((_bind()(_getURI)((function(){var $m; return (function(){return $m || ($m = (function(_uri){return _bind()(_getDocument)((function(){var $m; return (function(){return $m || ($m = (function(_doc){return _write()(_uri)(_doc);}))})})());}))})})())));}), 0, "do\n  uri <- getURI\n  doc <- getDocument\n  write uri doc");;
   _saveAs = Parse.define('saveAs', (function() {var f; return function _saveAs(){return f || (f = (function(_newUri){return _bind()(_getDocument)((function(){var $m; return (function(){return $m || ($m = (function(_doc){return _write()(_newUri)(_doc);}))})})());}));}})(), 1, "\\newUri . do\n  doc <- getDocument\n  write newUri doc");;
-  _open = Parse.define('open', (function() {var f; return function _open(){return f || (f = (function(_uri){return _bind()((function(){var $m; return (function(){return $m || ($m = (_read()(_uri)))})})())((function(){var $m; return (function(){return $m || ($m = (function(_contents$e){return _contents$e()((function(){var $m; return (function(){return $m || ($m = (function(_data){return _bind()((function(){var $m; return (function(){return $m || ($m = (_replaceDocument()(_data)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _setURI()(_uri);}))})})());}))})})())((function(){var $m; return (function(){return $m || ($m = (function(_err){return _print()((function(){var $m; return (function(){return $m || ($m = (_concat()((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){return "Error: "}))((function(){var $m; return (function(){return $m || ($m = (_cons()(_err)(_nil)))})})())))})})())))})})());}))})})());}))})})());}));}})(), 1, "\\uri . do\n  contents? <- read uri\n  contents?\n    \\data. do\n      replaceDocument data\n      setURI uri\n    \\err . print concat['Error: ' err]");;
+  _open = Parse.define('open', (function() {var f; return function _open(){return f || (f = (function(_uri){return _bind()((function(){var $m; return (function(){return $m || ($m = (_read()(_uri)))})})())((function(){var $m; return (function(){return $m || ($m = (function(_contents$e){return _contents$e()((function(){var $m; return (function(){return $m || ($m = (function(_data){return _bind()((function(){var $m; return (function(){return $m || ($m = (_setURI()(_uri)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _replaceDocument()(_data);}))})})());}))})})())((function(){var $m; return (function(){return $m || ($m = (function(_err){return _print()((function(){var $m; return (function(){return $m || ($m = (_concat()((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){return "Error: "}))((function(){var $m; return (function(){return $m || ($m = (_cons()(_err)(_nil)))})})())))})})())))})})());}))})})());}))})})());}));}})(), 1, "\\uri . do\n  contents? <- read uri\n  contents?\n    \\data. do\n      setURI uri\n      replaceDocument data\n    \\err . print concat['Error: ' err]");;
 
 });
 if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv, function(){});
@@ -8133,7 +8186,7 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showFilenames, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -8274,8 +8327,9 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
   };
 
   replaceContents = function replaceContents(uri, contents) {
-    var node, _i, _len, _ref2, _results;
-    if (!contents) {
+    var cont, node, _i, _len, _ref2;
+    if (!cont) {
+      cont = contents;
       contents = uri;
     } else {
       setFilename(uri.toString());
@@ -8284,15 +8338,14 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
     window.leisureAutoRunAll = true;
     window.markup(contents);
     _ref2 = document.querySelectorAll("[leisurenode='code']");
-    _results = [];
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
       node = _ref2[_i];
       node.setAttribute('contentEditable', 'true');
       bindNotebook(node);
       changeTheme(node, 'thin');
-      _results.push(evalDoc(node));
+      evalDoc(node);
     }
-    return _results;
+    return showFilenames();
   };
 
   xusEnv = function xusEnv(resultVar, expr) {
@@ -9056,7 +9109,6 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
     el.insertBefore(spacer, el.firstChild);
     el.insertBefore(controlDiv, el.firstChild);
     _ref2 = getElements(el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect']), el.leisureDownloadLink = _ref2[0], el.leisureViewLink = _ref2[1], saveButton = _ref2[2], testButton = _ref2[3], el.testResults = _ref2[4], el.autorun = _ref2[5], themeSelect = _ref2[6], viewSelect = _ref2[7];
-    if (filename) showFilename(filenameElement);
     controlDiv.addEventListener('click', function(evt) {
       if (document.body.classList.contains('hideControls')) {
         return document.body.classList.remove('hideControls');
@@ -9096,13 +9148,14 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
   };
 
   showFilename = function showFilename(el) {
-    el.innerHTML = "Save: " + (filename.pathName());
-    return el.title = filename.toString();
+    if (el) {
+      el.innerHTML = "Save: " + (filename.pathName());
+      return el.title = filename.toString();
+    }
   };
 
-  setFilename = function setFilename(newName) {
+  showFilenames = function showFilenames() {
     var node, _i, _len, _ref2, _results;
-    filename = newName instanceof URI ? newName : new URI(newName);
     _ref2 = document.body.querySelectorAll('[leisureId=saveButton]');
     _results = [];
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
@@ -9110,6 +9163,11 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
       _results.push(showFilename(node));
     }
     return _results;
+  };
+
+  setFilename = function setFilename(newName) {
+    filename = newName instanceof URI ? newName : new URI(newName);
+    return showFilenames();
   };
 
   markupButtons = function markupButtons(el) {
@@ -10650,9 +10708,9 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
     }
   }
 
-  slidePat = /^(\*\*\*[^\n]*\n(?:-\n)?)/m;
+  slidePat = /^(\*\*\*[^\n]*\n(?:--?\n)?)/m;
 
-  slideName = /^\*\*\*([^\n]*)\n(?:-\n)?/m;
+  slideName = /^\*\*\*([^\n]*)\n(?:--?\n)?/m;
 
   sliding = false;
 
@@ -10678,7 +10736,7 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
   };
 
   markupSlideContent = function markupSlideContent(el, md, noMain) {
-    var content, continuation, hasCode, i, m, p, pages, _ref, _ref2;
+    var content, hasCode, i, m, p, pageType, pages, _ref, _ref2;
     pages = md.split(slidePat);
     hasCode = false;
     if (pages.length > 1) {
@@ -10691,8 +10749,8 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
       for (i = 0, _ref = pages.length; i < _ref; i += 2) {
         p = pages[i];
         if (p) {
-          continuation = i > 0 && (m = (_ref2 = pages[i - 1].match(slidePat)) != null ? _ref2[1] : void 0) && m.substring(m.length - 3) === '\n-\n';
-          content = makeSlideDiv(el, continuation, (i > 0 ? pages[i - 1].match(slideName)[1].trim() : 'Main'));
+          pageType = i > 0 ? (m = (_ref2 = pages[i - 1].match(slidePat)) != null ? _ref2[1] : void 0, m.match(/\n-\n/) ? 'continuation' : m.match(/\n--\n/) ? 'hiddenPage' : null) : null;
+          content = makeSlideDiv(el, pageType, (i > 0 ? pages[i - 1].match(slideName)[1].trim() : 'Main'));
           if (i > 0) {
             hasCode = (markupElement(content, pages[i - 1] + p)) || hasCode;
           } else {
@@ -10702,7 +10760,7 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
         }
       }
     } else {
-      content = makeSlideDiv(el, false, 'Main');
+      content = makeSlideDiv(el, 'page', 'Main');
       while (el.firstChild !== content.parentNode) {
         content.appendChild(el.firstChild);
       }
@@ -10740,7 +10798,7 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
     return unwrap(content);
   };
 
-  makeSlideDiv = function makeSlideDiv(el, continuation, title) {
+  makeSlideDiv = function makeSlideDiv(el, pageType, title) {
     var content, div, sectionTitle;
     lastSlide = div = createNode("<div class='leisure_page'></div>");
     div.setAttribute('leisureSection', title);
@@ -10750,7 +10808,7 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
     div.classList.add('ui-corner-all');
     div.classList.add('ui-widget');
     div.classList.add('ui-widget-content');
-    if (continuation) div.classList.add('continuation');
+    if (pageType) div.classList.add(pageType);
     el.appendChild(div);
     sectionTitle = createNode("<span class='pageTitle'>" + title + "</span>");
     sectionTitle.setAttribute('leisureoutput', '');
@@ -10840,7 +10898,7 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
   };
 
   slides = function slides() {
-    return $('[slide]').not('[leisureSection="Leisure Controls"]');
+    return $('[slide]').not('[leisureSection="Leisure Controls"]').not('.hiddenPage');
   };
 
   nthSlide = function nthSlide(n) {

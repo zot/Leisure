@@ -536,6 +536,8 @@ print = (f)->
 subprint = (f)->
   if !f? then "UNDEFINED"
   else if f == null then 'NULL'
+  else if f == _true() then 'true'
+  else if f == _false() then 'false'
   else switch getType(f)
     #when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elements(f, true)}]"
     #when 'cons' then "[#{elements(f, true)}]"

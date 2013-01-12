@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showFilenames, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -145,8 +145,9 @@
   };
 
   replaceContents = function replaceContents(uri, contents) {
-    var node, _i, _len, _ref2, _results;
-    if (!contents) {
+    var cont, node, _i, _len, _ref2;
+    if (!cont) {
+      cont = contents;
       contents = uri;
     } else {
       setFilename(uri.toString());
@@ -155,15 +156,14 @@
     window.leisureAutoRunAll = true;
     window.markup(contents);
     _ref2 = document.querySelectorAll("[leisurenode='code']");
-    _results = [];
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
       node = _ref2[_i];
       node.setAttribute('contentEditable', 'true');
       bindNotebook(node);
       changeTheme(node, 'thin');
-      _results.push(evalDoc(node));
+      evalDoc(node);
     }
-    return _results;
+    return showFilenames();
   };
 
   xusEnv = function xusEnv(resultVar, expr) {
@@ -927,7 +927,6 @@
     el.insertBefore(spacer, el.firstChild);
     el.insertBefore(controlDiv, el.firstChild);
     _ref2 = getElements(el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect']), el.leisureDownloadLink = _ref2[0], el.leisureViewLink = _ref2[1], saveButton = _ref2[2], testButton = _ref2[3], el.testResults = _ref2[4], el.autorun = _ref2[5], themeSelect = _ref2[6], viewSelect = _ref2[7];
-    if (filename) showFilename(filenameElement);
     controlDiv.addEventListener('click', function(evt) {
       if (document.body.classList.contains('hideControls')) {
         return document.body.classList.remove('hideControls');
@@ -967,13 +966,14 @@
   };
 
   showFilename = function showFilename(el) {
-    el.innerHTML = "Save: " + (filename.pathName());
-    return el.title = filename.toString();
+    if (el) {
+      el.innerHTML = "Save: " + (filename.pathName());
+      return el.title = filename.toString();
+    }
   };
 
-  setFilename = function setFilename(newName) {
+  showFilenames = function showFilenames() {
     var node, _i, _len, _ref2, _results;
-    filename = newName instanceof URI ? newName : new URI(newName);
     _ref2 = document.body.querySelectorAll('[leisureId=saveButton]');
     _results = [];
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
@@ -981,6 +981,11 @@
       _results.push(showFilename(node));
     }
     return _results;
+  };
+
+  setFilename = function setFilename(newName) {
+    filename = newName instanceof URI ? newName : new URI(newName);
+    return showFilenames();
   };
 
   markupButtons = function markupButtons(el) {

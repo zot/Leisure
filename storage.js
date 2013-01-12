@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -18,8 +18,7 @@
   }
 
   initStorage = function initStorage(callback) {
-    var action, cb, frag, ids, state, _ref5, _ref6;
-    Prim.newUriHandler('googledrive', {
+    return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
           var files;
@@ -69,6 +68,10 @@
         });
       }
     });
+  };
+
+  openFromGdrive = function openFromGdrive(callback) {
+    var action, cb, frag, ids, state, _ref5, _ref6;
     frag = ((_ref5 = Boot.documentFragment) != null ? _ref5 : '#').substring(1);
     state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
     cb = function cb() {

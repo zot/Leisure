@@ -55,8 +55,8 @@ lastSlide = null
 
 console?.error? new Error("Incompatibility: using -webkit-calc").stack
 
-slidePat = /^(\*\*\*[^\n]*\n(?:-\n)?)/m
-slideName = /^\*\*\*([^\n]*)\n(?:-\n)?/m
+slidePat = /^(\*\*\*[^\n]*\n(?:--?\n)?)/m
+slideName = /^\*\*\*([^\n]*)\n(?:--?\n)?/m
 sliding = false
 
 markupSlides = (el, md)->
@@ -90,15 +90,20 @@ markupSlideContent = (el, md, noMain)->
     for i in [0...pages.length] by 2
       p = pages[i]
       if p
-        continuation = i > 0 and (m = pages[i - 1].match(slidePat)?[1]) and m.substring(m.length - 3) == '\n-\n'
-        content = makeSlideDiv el, continuation, (if i > 0 then pages[i - 1].match(slideName)[1].trim() else 'Main')
+        pageType = if i > 0
+          m = pages[i - 1].match(slidePat)?[1]
+          if m.match /\n-\n/ then 'continuation'
+          else if m.match /\n--\n/ then 'hiddenPage'
+          else null
+        else null
+        content = makeSlideDiv el, pageType, (if i > 0 then pages[i - 1].match(slideName)[1].trim() else 'Main')
         if i > 0 then hasCode = (markupElement content, pages[i - 1] + p) || hasCode
         else
           hasCode = (markupElement content, '***\n' + p) || hasCode
           #if noMain then unwrapContent content
         padSlide content, (if i > 0 then pages[i - 1] else '***\n')
   else
-    content = makeSlideDiv el, false, 'Main'
+    content = makeSlideDiv el, 'page', 'Main'
     while el.firstChild != content.parentNode
       content.appendChild el.firstChild
     hasCode = markupElement content, md
@@ -127,7 +132,7 @@ unwrapContent = (content)->
   remove section
   unwrap content
 
-makeSlideDiv = (el, continuation, title)->
+makeSlideDiv = (el, pageType, title)->
   lastSlide = div = createNode "<div class='leisure_page'></div>"
   div.setAttribute 'leisureSection', title
   div.setAttribute 'doc', ''
@@ -136,7 +141,7 @@ makeSlideDiv = (el, continuation, title)->
   div.classList.add 'ui-corner-all'
   div.classList.add 'ui-widget'
   div.classList.add 'ui-widget-content'
-  if continuation then div.classList.add 'continuation'
+  if pageType then div.classList.add pageType
   el.appendChild div
   sectionTitle = createNode("<span class='pageTitle'>#{title}</span>")
   sectionTitle.setAttribute 'leisureoutput', ''
@@ -193,7 +198,7 @@ slideKeyListener = (e)->
         hideSlide cur
         showSlide next
 
-slides = -> $('[slide]').not('[leisureSection="Leisure Controls"]')
+slides = -> $('[slide]').not('[leisureSection="Leisure Controls"]').not('.hiddenPage')
 
 nthSlide = (n)-> slides()[n...]
 

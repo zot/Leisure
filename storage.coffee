@@ -83,7 +83,8 @@ initStorage = (callback)->
         else if files?.length > 1 then err new Error "More than one file for uri: #{uri}"
         else updateFile id2File[files[0]], data, (json)->
           if json then cont() else err new Error "Problem writing file"
-  # writing doesn't work after a gdrive "open with," for some reason
+
+openFromGdrive = (callback)->
   frag = (Boot.documentFragment ? '#').substring 1
   {state} = new Prim.URI("#{document.location.href}#{frag}").getFragParams()
   cb = ->

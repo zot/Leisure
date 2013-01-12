@@ -99,7 +99,9 @@ createPeer = ->
     if params.xusproxy? then Xus.xusToProxy(server, params.xusproxy)
 
 replaceContents = (uri, contents)->
-  if !contents then contents = uri
+  if !cont
+    cont = contents
+    contents = uri
   else setFilename uri.toString()
   document.body.setAttribute 'doc', ''
   window.leisureAutoRunAll = true
@@ -109,6 +111,7 @@ replaceContents = (uri, contents)->
     bindNotebook node
     changeTheme node, 'thin'
     evalDoc node
+  showFilenames()
 
 xusEnv = (resultVar, expr)->
   result = ''
@@ -630,7 +633,7 @@ insertControls = (el)->
   el.insertBefore spacer, el.firstChild
   el.insertBefore controlDiv, el.firstChild
   [el.leisureDownloadLink, el.leisureViewLink, saveButton, testButton, el.testResults, el.autorun, themeSelect, viewSelect] = getElements el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect']
-  if filename then showFilename filenameElement
+  #if filename then showFilename filenameElement
   controlDiv.addEventListener 'click', (evt)->
     if document.body.classList.contains 'hideControls'
       document.body.classList.remove 'hideControls'
@@ -654,13 +657,17 @@ saveProgram = ->
     throw err
 
 showFilename = (el)->
-  el.innerHTML = "Save: #{filename.pathName()}"
-  el.title = filename.toString()
+  if el
+    el.innerHTML = "Save: #{filename.pathName()}"
+    el.title = filename.toString()
+
+showFilenames = ->
+  for node in document.body.querySelectorAll '[leisureId=saveButton]'
+    showFilename node
 
 setFilename = (newName)->
   filename = if newName instanceof URI then newName else new URI(newName)
-  for node in document.body.querySelectorAll '[leisureId=saveButton]'
-    showFilename node
+  showFilenames()
 
 markupButtons = (el)->
   markupButton btn for btn in el.querySelectorAll 'button'
@@ -1349,12 +1356,6 @@ Parse.define 'replaceDocument', ->(str)->
   Prim.makeMonad (env, cont)->
     replaceContents str()
     cont _true()
-
-# Parse.define 'open', (uri)->
-#   Prim.makeMonad (env, cont)->
-#     (uri, cont, err)-> Prim.read uri, ((data)->
-#       replaceContents uri, data
-#       cont _left()(laz data)), -> cont _right()(laz "")
 
 Parse.define 'gdriveOpen', ->
   Prim.makeMonad (env, cont)->

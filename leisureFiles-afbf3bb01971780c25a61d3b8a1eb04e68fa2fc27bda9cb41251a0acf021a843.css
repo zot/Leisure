@@ -131,32 +131,54 @@ body {
   margin-top: 1em;
 }
 
-.scroll .slide[leisuresection] {
+.scroll .slide[leisuresection]
+{
   border: solid black 1px;
   padding: 10px;
   margin: 5px;
   margin-top: 1em;
   position: relative;
+  border-width: 3px;
 }
 
 .slide,
+.scroll.hideControls .slide.hiddenPage,
 .scroll.hideControls .slide[leisuresection="Leisure Controls"]
 {
   display: none;
 }
 
+.slide.showing {
+  border: none;
+}
+
 .slide.showing,
 .scroll.hideControls .slide,
-.scroll .slide[leisuresection="Leisure Controls"]
+.scroll .slide[leisuresection="Leisure Controls"],
+.scroll.hideControls.showHidden .slide.hiddenPage,
+.scroll.hideControls.showHidden .slide[leisuresection="Leisure Controls"]
 {
   display: block;
 }
 
+.scroll.hideControls.showHidden .slide[leisuresection="Leisure Controls"]
+{
+  position: relative;
+  z-index: 0;
+  top: 0;
+}
+
 .scroll .slide[leisuresection="Leisure Controls"] {
-  position: fixed !important;
+  position: fixed;
   z-index: 80;
   top: 30px;
   left: 0;
+}
+
+.scroll.hideControls.showHidden .slide[leisuresection="Leisure Controls"] .pageContent
+{
+  position: static;
+  overflow: hidden;
 }
 
 .scroll .slide[leisuresection="Leisure Controls"] .pageContent {
