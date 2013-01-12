@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-afbf3bb01971780c25a61d3b8a1eb04e68fa2fc27bda9cb41251a0acf021a843.css'];
-Boot.jsFiles = ['leisureFiles-2cf8c16dd38775e60c3ca811d82acb31a746a00ae8326c60f20ab50ae2219fae.js'];
+Boot.jsFiles = ['leisureFiles-45b372f5f718e6f4ff31ec6e9746b4daa2b4a8e47d7c1e3243ff5303660fba13.js'];
 })();
 
 /*
@@ -85,7 +85,7 @@ Boot.jsFiles = ['leisureFiles-2cf8c16dd38775e60c3ca811d82acb31a746a00ae8326c60f2
         document.head.appendChild(style);
       }
     }
-    f = state ? window.GdriveStorage.initStorage : load ? function(cont) {
+    f = state ? window.GdriveStorage.openFromGdrive : load ? function(cont) {
       console.log("LOADING " + load);
       return Prim.read(load, (function(data) {
         Notebook.replaceContents(load, data);
@@ -98,6 +98,7 @@ Boot.jsFiles = ['leisureFiles-2cf8c16dd38775e60c3ca811d82acb31a746a00ae8326c60f2
       return cont();
     };
     return loadThen(Boot.jsFiles, true, function() {
+      window.GdriveStorage.initStorage();
       return f(function() {
         if (typeof window.leisureFirst === "function") window.leisureFirst();
         Repl.init();
