@@ -805,6 +805,10 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
       }
     };
 
+    Server.prototype.get = function(key) {
+      return this.varStorage.values[key];
+    };
+
     Server.prototype.name = function(con, name) {
       if (!(name != null)) {
         return this.disconnect(con, error_bad_message, "No name given in name message");

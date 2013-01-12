@@ -597,6 +597,6 @@ open uri = do
   contents? <- read uri
   contents?
     \data. do
-      replaceDocument data
       setURI uri
+      replaceDocument data
     \err . print concat['Error: ' err]

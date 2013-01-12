@@ -25,7 +25,7 @@
       }
     </script>
   </head>
-  <body class="thin embedded scroll">
+  <body class="thin scroll">
 <div maindoc><!--
 *** Leisure Controls
 ```
@@ -42,10 +42,15 @@ do
   bindEvent '#openButton' 'click' \e . gdriveOpen
   bindEvent '#saveButton' 'click' \e . alert 'Save'
 ```
+*** Hidden Page
+--
+Hello
 ***One
 -
 one
-
+```
+open 'local:///notes.lmd'
+```
 *** Two
 two
 
@@ -74,7 +79,6 @@ four
 duh
 ```
 3+4
-open 'local:///notes.lmd'
 saveAs 'googledrive:///drive.lmd'
 ```
 --></div>

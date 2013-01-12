@@ -32,9 +32,9 @@
     }
   }
 
-  slidePat = /^(\*\*\*[^\n]*\n(?:-\n)?)/m;
+  slidePat = /^(\*\*\*[^\n]*\n(?:--?\n)?)/m;
 
-  slideName = /^\*\*\*([^\n]*)\n(?:-\n)?/m;
+  slideName = /^\*\*\*([^\n]*)\n(?:--?\n)?/m;
 
   sliding = false;
 
@@ -60,7 +60,7 @@
   };
 
   markupSlideContent = function markupSlideContent(el, md, noMain) {
-    var content, continuation, hasCode, i, m, p, pages, _ref, _ref2;
+    var content, hasCode, i, m, p, pageType, pages, _ref, _ref2;
     pages = md.split(slidePat);
     hasCode = false;
     if (pages.length > 1) {
@@ -73,8 +73,8 @@
       for (i = 0, _ref = pages.length; i < _ref; i += 2) {
         p = pages[i];
         if (p) {
-          continuation = i > 0 && (m = (_ref2 = pages[i - 1].match(slidePat)) != null ? _ref2[1] : void 0) && m.substring(m.length - 3) === '\n-\n';
-          content = makeSlideDiv(el, continuation, (i > 0 ? pages[i - 1].match(slideName)[1].trim() : 'Main'));
+          pageType = i > 0 ? (m = (_ref2 = pages[i - 1].match(slidePat)) != null ? _ref2[1] : void 0, m.match(/\n-\n/) ? 'continuation' : m.match(/\n--\n/) ? 'hiddenPage' : null) : null;
+          content = makeSlideDiv(el, pageType, (i > 0 ? pages[i - 1].match(slideName)[1].trim() : 'Main'));
           if (i > 0) {
             hasCode = (markupElement(content, pages[i - 1] + p)) || hasCode;
           } else {
@@ -84,7 +84,7 @@
         }
       }
     } else {
-      content = makeSlideDiv(el, false, 'Main');
+      content = makeSlideDiv(el, 'page', 'Main');
       while (el.firstChild !== content.parentNode) {
         content.appendChild(el.firstChild);
       }
@@ -122,7 +122,7 @@
     return unwrap(content);
   };
 
-  makeSlideDiv = function makeSlideDiv(el, continuation, title) {
+  makeSlideDiv = function makeSlideDiv(el, pageType, title) {
     var content, div, sectionTitle;
     lastSlide = div = createNode("<div class='leisure_page'></div>");
     div.setAttribute('leisureSection', title);
@@ -132,7 +132,7 @@
     div.classList.add('ui-corner-all');
     div.classList.add('ui-widget');
     div.classList.add('ui-widget-content');
-    if (continuation) div.classList.add('continuation');
+    if (pageType) div.classList.add(pageType);
     el.appendChild(div);
     sectionTitle = createNode("<span class='pageTitle'>" + title + "</span>");
     sectionTitle.setAttribute('leisureoutput', '');
@@ -222,7 +222,7 @@
   };
 
   slides = function slides() {
-    return $('[slide]').not('[leisureSection="Leisure Controls"]');
+    return $('[slide]').not('[leisureSection="Leisure Controls"]').not('.hiddenPage');
   };
 
   nthSlide = function nthSlide(n) {
