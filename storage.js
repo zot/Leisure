@@ -76,7 +76,7 @@
   };
 
   openFromGdrive = function openFromGdrive(callback) {
-    var action, cb, frag, ids, state, _ref5, _ref6;
+    var action, cb, exportIds, frag, ids, state, _ref5, _ref6;
     frag = ((_ref5 = Boot.documentFragment) != null ? _ref5 : '#').substring(1);
     state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
     cb = function cb() {
@@ -84,10 +84,11 @@
       return addOpenButton();
     };
     if (state) {
-      _ref6 = JSON.parse(state), ids = _ref6.ids, action = _ref6.action;
+      _ref6 = JSON.parse(state), exportIds = _ref6.exportIds, ids = _ref6.ids, action = _ref6.action;
       if (action !== "open") {
         document.body.innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
       }
+      ids = ids != null ? ids : exportIds;
       if (!ids || ids.length !== 1) {
         return document.body.innerHTML = "<h1>More than one file to open: " + (JSON.stringify(ids)) + ", fragment: " + frag + "</h1>";
       } else {
