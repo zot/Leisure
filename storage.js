@@ -21,21 +21,26 @@
     return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
-          var files;
-          files = path2Ids["/LeisureStorage" + uri.path];
-          if (!files) {
-            return next();
-          } else if (files.length > 1) {
-            return err(new Error("More than one file for uri: " + uri));
+          var file, files, m, _ref5;
+          if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
+            file = id2File[m[1]];
           } else {
-            return readFile(id2File[files[0]], function(err, result) {
-              if (!err) {
-                return cont(result);
-              } else {
-                return new Error("Error reading file " + uri + ": " + err.statusText);
-              }
-            });
+            files = path2Ids["/LeisureStorage" + uri.path];
+            if (!files) {
+              next();
+            } else if (files.length > 1) {
+              err(new Error("More than one file for uri: " + uri));
+            } else {
+              file = id2File[files[0]];
+            }
           }
+          return readFile(file, function(err, result) {
+            if (!err) {
+              return cont(result);
+            } else {
+              return new Error("Error reading file " + uri + ": " + err.statusText);
+            }
+          });
         });
       },
       write: function write(uri, data, cont, err) {
@@ -84,7 +89,7 @@
         document.body.innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
       }
       if (!ids || ids.length !== 1) {
-        return document.body.innerHTML = "<h1>More than one file to open</h1>";
+        return document.body.innerHTML = "<h1>More than one file to open: " + (JSON.stringify(ids)) + "</h1>";
       } else {
         cb();
         return loadFile(ids[0]);
