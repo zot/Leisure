@@ -2480,4 +2480,6 @@
 
   root.wrapRange = wrapRange;
 
+  root.replaceContents = replaceContents;
+
 }).call(this);
