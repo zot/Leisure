@@ -145,6 +145,7 @@
   };
 
   replaceContents = function replaceContents(uri, contents) {
+    console.log(new Error("Replacing contents...").stack);
     if (!contents) {
       contents = uri;
       uri = null;
