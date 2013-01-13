@@ -966,7 +966,7 @@
   };
 
   showFilename = function showFilename(el) {
-    if (el) {
+    if (el && filename) {
       el.innerHTML = "Save: " + (filename.pathName());
       return el.title = filename.toString();
     }
