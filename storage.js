@@ -110,7 +110,7 @@
         return readFile(file, function(err, text) {
           var filename, path, _i, _len, _ref5;
           if (err) {
-            $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
+            return $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
           } else if (file.fileExtension === 'lmd' || file.title.match(/\.lmd$/)) {
             if (id2Paths[file.id].length > 1) {
               _ref5 = id2Paths[file.id];
@@ -129,10 +129,10 @@
               filename = id2Paths[file.id][0];
             }
             Notebook.replaceContents("googledrive://" + filename, text);
+            return (cont != null ? cont : function() {})();
           } else {
-            $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
+            return $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
           }
-          return (cont != null ? cont : function() {})();
         });
       }
     });
