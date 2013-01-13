@@ -432,7 +432,7 @@
         var xhr;
         console.log("File:", file);
         xhr = new XMLHttpRequest();
-        xhr.open('GET', file.downloadUrl);
+        xhr.open('GET', url);
         xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
         xhr.onreadystatechange = function onreadystatechange() {
           if (this.readyState === DONE) {
