@@ -62,7 +62,7 @@ Boot.jsFiles = ['leisureFiles-6100be89043e2547528db0834f940bcdf7e47102332df13260
   bootLeisureCont = function bootLeisureCont(load, state) {
     var body, f, i, pre, style, _i, _len, _ref3;
     window.removeEventListener('load', bootLeisure);
-    if (!(load || state)) {
+    if (true) {
       body = document.body;
       if ('code' === body.getAttribute('leisureNode')) {
         pre = document.createElement('pre');
