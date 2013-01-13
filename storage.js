@@ -92,8 +92,7 @@
       if (!ids || ids.length !== 1) {
         return document.body.innerHTML = "<h1>More than one file to open: " + (JSON.stringify(ids)) + ", fragment: " + frag + "</h1>";
       } else {
-        cb();
-        return loadFile(ids[0]);
+        return loadFile(ids[0], cb);
       }
     } else {
       window.leisureAutoRunAll = true;
