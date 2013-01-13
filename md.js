@@ -18,7 +18,7 @@
     } else {
       maindoc = nodes[0];
     }
-    md = (md != null ? md : maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '')).replace(/\r\n/, '\n').trim();
+    md = (md != null ? md : maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '')).replace(/\r$/, '').trim();
     document.body.classList.add('hideControls');
     markupSlides(maindoc, md);
     return insertControls(maindoc);
