@@ -4,7 +4,7 @@
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showFilenames, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindAll, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showFilenames, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -145,7 +145,6 @@
   };
 
   replaceContents = function replaceContents(uri, contents) {
-    var node, _i, _len, _ref2;
     if (!contents) {
       contents = uri;
       uri = null;
@@ -155,6 +154,11 @@
     document.body.setAttribute('doc', '');
     window.leisureAutoRunAll = true;
     window.markup(contents);
+    return bindAll();
+  };
+
+  bindAll = function bindAll() {
+    var node, _i, _len, _ref2;
     _ref2 = document.querySelectorAll("[leisurenode='code']");
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
       node = _ref2[_i];
@@ -2379,6 +2383,8 @@
   root.initNotebook = initNotebook;
 
   root.bindNotebook = bindNotebook;
+
+  root.bindAll = bindAll;
 
   root.evalOutput = evalOutput;
 

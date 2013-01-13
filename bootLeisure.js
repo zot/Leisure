@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-afbf3bb01971780c25a61d3b8a1eb04e68fa2fc27bda9cb41251a0acf021a843.css'];
-Boot.jsFiles = ['leisureFiles-dfa18a4290f17dcce6e10057d8cdcdc2f3514d45e6de039c0150c343460d5f4a.js'];
+Boot.jsFiles = ['leisureFiles-97fe52d1add1c4ff223fc12e14058fd4e67b65a35448214af76af45d6b119f19.js'];
 })();
 
 /*
@@ -96,15 +96,15 @@ Boot.jsFiles = ['leisureFiles-dfa18a4290f17dcce6e10057d8cdcdc2f3514d45e6de039c01
         return $('[maindoc]').innerHTML = "<h1>ERROR LOADING " + load + ": " + err + "</h1>";
       });
     } : function(cont) {
-      window.markup();
+      Notebook.replaceContents();
       return cont();
     };
     return loadThen(Boot.jsFiles, true, function() {
       window.GdriveStorage.initStorage();
+      Repl.init();
+      Notebook.bootNotebook();
       return f(function() {
         if (typeof window.leisureFirst === "function") window.leisureFirst();
-        Repl.init();
-        Notebook.bootNotebook();
         if (window.leisurePrep != null) {
           return callPrepCode(window.leisurePrep, 0, finishBoot);
         } else {
@@ -125,16 +125,7 @@ Boot.jsFiles = ['leisureFiles-dfa18a4290f17dcce6e10057d8cdcdc2f3514d45e6de039c01
   };
 
   finishBoot = function finishBoot() {
-    var node, _i, _len, _ref3;
     console.log("Finished initializing storage");
-    _ref3 = document.querySelectorAll("[leisurenode='code']");
-    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-      node = _ref3[_i];
-      node.setAttribute('contentEditable', 'true');
-      Notebook.bindNotebook(node);
-      Notebook.changeTheme(node, 'thin');
-      Notebook.evalDoc(node);
-    }
     if (window.leisureBoot != null) bootFuncs.push(window.leisureBoot);
     while (bootFuncs.length) {
       bootFuncs.shift()();
