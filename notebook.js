@@ -145,10 +145,10 @@
   };
 
   replaceContents = function replaceContents(uri, contents) {
-    var cont, node, _i, _len, _ref2;
-    if (!cont) {
-      cont = contents;
+    var node, _i, _len, _ref2;
+    if (!contents) {
       contents = uri;
+      uri = null;
     } else {
       setFilename(uri.toString());
     }
