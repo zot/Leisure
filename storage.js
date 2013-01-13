@@ -425,8 +425,8 @@
   DONE = 4;
 
   readFile = function readFile(file, callback) {
-    var del;
-    if (file.downloadUrl) {
+    var del, url, _ref5, _ref6;
+    if (url = (_ref5 = file.downloadUrl) != null ? _ref5 : (_ref6 = file.exportLinks) != null ? _ref6['text/plain'] : void 0) {
       del = showDelay();
       return Notebook.delay(function() {
         var xhr;
