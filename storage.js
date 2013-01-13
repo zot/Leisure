@@ -96,7 +96,7 @@
       }
     } else {
       window.leisureAutoRunAll = true;
-      window.markup();
+      Notebook.replaceContents();
       return cb();
     }
   };
