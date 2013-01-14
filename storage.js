@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -24,6 +24,22 @@
           var file, files, m, _ref5;
           if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
             file = id2File[m[1]];
+            if (!file) {
+              fetchFile(m[1], function(error, file) {
+                if (error) {
+                  return err(new Error("Error reading file " + uri + ": Couldn't load metadata"));
+                } else {
+                  return readFile(file, function(error, result) {
+                    if (!error) {
+                      return cont(result);
+                    } else {
+                      return err(new Error("Error reading file " + uri + ": " + error.statusText));
+                    }
+                  });
+                }
+              });
+              return;
+            }
           } else {
             files = path2Ids["/LeisureStorage" + uri.path];
             if (!files) {
@@ -34,11 +50,11 @@
               file = id2File[files[0]];
             }
           }
-          return readFile(file, function(err, result) {
-            if (!err) {
+          return readFile(file, function(error, result) {
+            if (!error) {
               return cont(result);
             } else {
-              return new Error("Error reading file " + uri + ": " + err.statusText);
+              return err(new Error("Error reading file " + uri + ": " + error.statusText));
             }
           });
         });
@@ -430,6 +446,26 @@
   };
 
   DONE = 4;
+
+  fetchFile = function fetchFile(id, callback) {
+    var xhr;
+    console.log("File:", file);
+    xhr = new XMLHttpRequest();
+    xhr.open('GET', "https://www.googleapis.com/drive/v2/files/" + id);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+    xhr.onreadystatechange = function onreadystatechange() {
+      if (this.readyState === DONE) {
+        del();
+        console.log("XHR", xhr);
+        if (this.status === 200) {
+          return callback(null, JSON.parse(xhr.responseText));
+        } else {
+          return callback(xhr);
+        }
+      }
+    };
+    return xhr.send();
+  };
 
   readFile = function readFile(file, callback) {
     var del, url, _ref5, _ref6;
