@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-afbf3bb01971780c25a61d3b8a1eb04e68fa2fc27bda9cb41251a0acf021a843.css'];
-Boot.jsFiles = ['leisureFiles-984a2fc8f87e54c3b0655c095544aa9dd41d09067b072ca268afe8b2eb56e7a9.js'];
+Boot.jsFiles = ['leisureFiles-d5383386e2a93da016a9c5d5e5751ab0183e4e323e1356f268815ecf771b0d78.js'];
 })();
 
 /*
@@ -86,6 +86,10 @@ Boot.jsFiles = ['leisureFiles-984a2fc8f87e54c3b0655c095544aa9dd41d09067b072ca268
     f = state ? function(cont) {
       return window.GdriveStorage.openFromGdrive(cont);
     } : load ? function(cont) {
+      var uri;
+      uri = new URI(document.location.href);
+      uri.fragment = "#" + load;
+      document.location.href = uri.toString();
       load = new URI(load);
       console.log("LOADING " + load);
       return Prim.read(load, (function(data) {

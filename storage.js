@@ -93,11 +93,15 @@
         var _this = this;
         return initGdrive(function() {
           var files;
-          files = path2Ids["/LeisureStorage" + uri.path];
-          if (!files) {
-            return null;
+          if (uri.host.match(/^id:.*/)) {
+            return _this.basicLink(uri);
           } else {
-            return _this.basicLink("googledrive://id:" + (encodeURIComponent(files[0])));
+            files = path2Ids["/LeisureStorage" + uri.path];
+            if (!files) {
+              return null;
+            } else {
+              return _this.basicLink("googledrive://id:" + (encodeURIComponent(files[0])));
+            }
           }
         });
       }
