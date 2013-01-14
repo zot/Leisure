@@ -448,22 +448,26 @@
   DONE = 4;
 
   fetchFile = function fetchFile(id, callback) {
-    var xhr;
-    xhr = new XMLHttpRequest();
-    xhr.open('GET', "https://www.googleapis.com/drive/v2/files/" + id);
-    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-    xhr.onreadystatechange = function onreadystatechange() {
-      if (this.readyState === DONE) {
-        del();
-        console.log("XHR", xhr);
-        if (this.status === 200) {
-          return callback(null, JSON.parse(xhr.responseText));
-        } else {
-          return callback(xhr);
+    var del;
+    del = showDelay();
+    return Notebook.delay(function() {
+      var xhr;
+      xhr = new XMLHttpRequest();
+      xhr.open('GET', "https://www.googleapis.com/drive/v2/files/" + id);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+      xhr.onreadystatechange = function onreadystatechange() {
+        if (this.readyState === DONE) {
+          del();
+          console.log("XHR", xhr);
+          if (this.status === 200) {
+            return callback(null, JSON.parse(xhr.responseText));
+          } else {
+            return callback(xhr);
+          }
         }
-      }
-    };
-    return xhr.send();
+      };
+      return xhr.send();
+    });
   };
 
   readFile = function readFile(file, callback) {
