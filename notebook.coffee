@@ -99,13 +99,17 @@ createPeer = ->
     if params.xusproxy? then Xus.xusToProxy(server, params.xusproxy)
 
 replaceContents = (uri, contents)->
-  if !cont
-    cont = contents
+  console.log new Error("Replacing contents...").stack
+  if !contents
     contents = uri
+    uri = null
   else setFilename uri.toString()
   document.body.setAttribute 'doc', ''
   window.leisureAutoRunAll = true
   window.markup contents
+  bindAll()
+
+bindAll = ->
   for node in document.querySelectorAll "[leisurenode='code']"
     node.setAttribute 'contentEditable', 'true'
     bindNotebook node
@@ -141,11 +145,7 @@ peerGetDocument = ->
 peerGetFunctions = -> (_.uniq window.leisureFuncNames.toArray().sort(), true).sort()
 
 getMDDocument = ->
-  #Notebook.md.replace /<pre.*\/pre>/g, (match)-> '\n=>' + match.replace('\n', '\n->')
   md = ''
-  #for doc in document.querySelectorAll '[doc]'
-  #  for node in doc.childNodes
-  #    md += if isLeisureCode node then "```\n#{getElementCode node}\n```\n" else node.md ? ''
   for node in document.querySelectorAll '[doc] [leisureNode]'
     md += if isLeisureCode node then "```\n#{getElementCode node}\n```\n" else node.md ? ''
   md
@@ -315,11 +315,6 @@ mergeLeisureCode = (el1, el2)-> # TODO: this should just take one arg and merge 
       el2.normalize()
     else if el1.hasAttribute('leisureNode') && el1.getAttribute('leisureNode') == el2.getAttribute('leisureNode')
       newCode = textNode el1.md = if el1.getAttribute('leisureNode') == 'code' then "#{getElementCode(el1)}\n#{getElementCode el2}" else "#{el1.md}\n#{el2.md}"
-      #el1.innerHTML = ''
-      #el1.appendChild newCode
-      #el2.parentNode.removeChild el2
-      #presentLeisureCode el1, false
-      #if el1.autorunState then Notebook.runTests el1
       r = document.createRange()
       r.selectNodeContents el2
       el1.appendChild textNode '\n'
@@ -370,7 +365,6 @@ highlightPosition = (e)->
         if changed
           window.EVT = e
           s.removeAllRanges()
-          #parent.normalize()
           s.addRange(makeRange parent, pos)
     if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
     peerNotifySelection parent, s.toString()
@@ -445,11 +439,9 @@ psgn = (x)-> if x < 0 then -1 else 1
 
 setMinMax = (sl, value)->
   value = value || sl.slider("value")
-  #min = if value < 0 then value * 2 else value / 2
   min = 0
   max = if 1 <= Math.abs(value) < 50 or value == 0 then 100 * psgn(value) else value * 2
   if Math.round(value) == value
-    #min = if value == 1 then 0 else Math.round(min)
     step = Math.round((max - min) / 100)
     step = step - step % (max - min)
   else
@@ -570,12 +562,6 @@ initNotebook = (el)->
   el.replacing = true
   removeOldDefs el
   pgm = markupDefs el, findDefs el
-  ###
-  if !(el?.lastChild?.nodeType == 3 and el.lastChild.data[el.lastChild.data.length - 1] == '\n')
-    el.appendChild textNode('\n')
-    el.appendChild textNode('\n')
-    el.appendChild textNode('\n')
-  ###
   el.normalize()
   el.replacing = false
   if !el.hasAttribute('noLeisureBar')
@@ -633,7 +619,6 @@ insertControls = (el)->
   el.insertBefore spacer, el.firstChild
   el.insertBefore controlDiv, el.firstChild
   [el.leisureDownloadLink, el.leisureViewLink, saveButton, testButton, el.testResults, el.autorun, themeSelect, viewSelect] = getElements el, ['downloadLink', 'viewLink', 'saveButton', 'testButton', 'testResults', 'autorunTests', 'themeSelect', 'viewSelect']
-  #if filename then showFilename filenameElement
   controlDiv.addEventListener 'click', (evt)->
     if document.body.classList.contains 'hideControls'
       document.body.classList.remove 'hideControls'
@@ -657,7 +642,7 @@ saveProgram = ->
     throw err
 
 showFilename = (el)->
-  if el
+  if el && filename
     el.innerHTML = "Save: #{filename.pathName()}"
     el.title = filename.toString()
 
@@ -768,7 +753,6 @@ markupDefs = (el, defs)->
       bx = box main, 'codeMain', true
       bx.appendChild (codeSpan name, 'codeName')
       bx.appendChild (textNode def)
-      #bod = codeSpan (markPartialApplies bx, body), 'codeBody'
       bod = codeSpan textNode(body), 'codeBody'
       bod.appendChild textNode('\n')
       bod.setAttribute('generatedNL', '')
@@ -779,7 +763,6 @@ markupDefs = (el, defs)->
       pgm += "#{name} #{def} #{body}\n"
     else if main?
       bx = box main, 'codeMainExpr', true
-      #s = codeSpan (markPartialApplies bx, body), 'codeExpr'
       s = codeSpan textNode(body), 'codeExpr'
       s.setAttribute('generatedNL', '')
       s.appendChild textNode('\n')
@@ -801,7 +784,6 @@ getAst = (bx, def)->
     bx.ast
   else
     def = def || bx.textContent
-    #setAst bx, (Leisure.compileNext def, Parse.Nil, true, null, true)[0]
     setAst bx, (Leisure.compileNext def, Parse.Nil, true, null)[0]
     bx.ast
 
@@ -1173,9 +1155,7 @@ getRanges = (el, txt, rest, def, restOff)->
         body = txt.substring mainStart, exEnd
         if body.trim()
           textStart = restOff + m.index + (if t then leading.length - t.length else 0)
-          #if leading? and (lm = leading.match /^[ \n]+/) then textStart += lm[0].length
           if t? and (lm = t.match /^[ \n]+/) then textStart += lm[0].length
-          #if leading.match /@auto/
           console.log "CHECKING AUTO..."
           if m = t.match /(?:^|\n)#@auto( +[^\n]*)?(\n|$)/
             outerRange = makeRange el, textStart, exEnd
@@ -1522,7 +1502,7 @@ nextSibling = (node)->
 #
 
 hideControlSection = ->
-  controlSection = document.body.querySelector '[leisureSection=Leisure Controls]'
+  controlSection = document.body.querySelector '[leisureSection="Leisure Controls"]'
   if !controlSection
     controlSection = document.createElement 'DIV'
     document.body.insertBefore controlSection, document.body.firstChild
@@ -1556,6 +1536,7 @@ root.svgMeasureText = svgMeasureText
 root.svgMeasure = svgMeasure
 root.initNotebook = initNotebook
 root.bindNotebook = bindNotebook
+root.bindAll = bindAll
 root.evalOutput = evalOutput
 root.makeTestCase = makeTestCase
 root.cleanOutput = cleanOutput
@@ -1606,6 +1587,4 @@ root.setFilename = setFilename
 root.unwrap = unwrap
 root.remove = remove
 root.wrapRange = wrapRange
-
-#root.selection = -> window.getSelection().getRangeAt(0)
-#root.test = -> flatten(root.selection().cloneContents().childNodes[0])
+root.replaceContents = replaceContents

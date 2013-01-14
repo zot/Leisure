@@ -3049,21 +3049,26 @@ require("/browser.js");
     return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
-          var files;
-          files = path2Ids["/LeisureStorage" + uri.path];
-          if (!files) {
-            return next();
-          } else if (files.length > 1) {
-            return err(new Error("More than one file for uri: " + uri));
+          var file, files, m, _ref5;
+          if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
+            file = id2File[m[1]];
           } else {
-            return readFile(id2File[files[0]], function(err, result) {
-              if (!err) {
-                return cont(result);
-              } else {
-                return new Error("Error reading file " + uri + ": " + err.statusText);
-              }
-            });
+            files = path2Ids["/LeisureStorage" + uri.path];
+            if (!files) {
+              next();
+            } else if (files.length > 1) {
+              err(new Error("More than one file for uri: " + uri));
+            } else {
+              file = id2File[files[0]];
+            }
           }
+          return readFile(file, function(err, result) {
+            if (!err) {
+              return cont(result);
+            } else {
+              return new Error("Error reading file " + uri + ": " + err.statusText);
+            }
+          });
         });
       },
       write: function write(uri, data, cont, err) {
@@ -3099,28 +3104,24 @@ require("/browser.js");
   };
 
   openFromGdrive = function openFromGdrive(callback) {
-    var action, cb, frag, ids, state, _ref5, _ref6;
+    var action, exportIds, frag, ids, state, _ref5, _ref6;
     frag = ((_ref5 = Boot.documentFragment) != null ? _ref5 : '#').substring(1);
     state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
-    cb = function cb() {
-      callback();
-      return addOpenButton();
-    };
     if (state) {
-      _ref6 = JSON.parse(state), ids = _ref6.ids, action = _ref6.action;
+      _ref6 = JSON.parse(state), exportIds = _ref6.exportIds, ids = _ref6.ids, action = _ref6.action;
       if (action !== "open") {
-        document.body.innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
+        $('[maindoc]')[0].innerHTML = "<h1>Unknwn action from Google Drive: " + action + "</h1>";
       }
+      ids = ids != null ? ids : exportIds;
       if (!ids || ids.length !== 1) {
-        return document.body.innerHTML = "<h1>More than one file to open</h1>";
+        return $('[maindoc]')[0].innerHTML = "<h1>More than one file to open: " + (JSON.stringify(ids)) + ", fragment: " + frag + "</h1>";
       } else {
-        cb();
-        return loadFile(ids[0]);
+        return loadFile(ids[0], callback);
       }
     } else {
       window.leisureAutoRunAll = true;
-      window.markup();
-      return cb();
+      Notebook.replaceContents();
+      return callback();
     }
   };
 
@@ -3136,8 +3137,8 @@ require("/browser.js");
         return readFile(file, function(err, text) {
           var filename, path, _i, _len, _ref5;
           if (err) {
-            $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
-          } else if (file.fileExtension === 'lmd') {
+            return $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + ": " + err.statusText + "</h1>";
+          } else if (file.fileExtension === 'lmd' || file.title.match(/\.lmd$/)) {
             if (id2Paths[file.id].length > 1) {
               _ref5 = id2Paths[file.id];
               for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
@@ -3155,10 +3156,10 @@ require("/browser.js");
               filename = id2Paths[file.id][0];
             }
             Notebook.replaceContents("googledrive://" + filename, text);
+            return (cont != null ? cont : function() {})();
           } else {
-            $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
+            return $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
           }
-          return (cont != null ? cont : function() {})();
         });
       }
     });
@@ -3447,14 +3448,14 @@ require("/browser.js");
   DONE = 4;
 
   readFile = function readFile(file, callback) {
-    var del;
-    if (file.downloadUrl) {
+    var del, url, _ref5, _ref6;
+    if (url = (_ref5 = file.downloadUrl) != null ? _ref5 : (_ref6 = file.exportLinks) != null ? _ref6['text/plain'] : void 0) {
       del = showDelay();
       return Notebook.delay(function() {
         var xhr;
         console.log("File:", file);
         xhr = new XMLHttpRequest();
-        xhr.open('GET', file.downloadUrl);
+        xhr.open('GET', url);
         xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
         xhr.onreadystatechange = function onreadystatechange() {
           if (this.readyState === DONE) {
@@ -3556,6 +3557,8 @@ require("/browser.js");
   root.runOpen = runOpen;
 
   root.loadFile = loadFile;
+
+  root.openFromGdrive = openFromGdrive;
 
 }).call(this);
 ;
@@ -8186,7 +8189,7 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
 */
 
 (function() {
-  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showFilenames, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
+  var BS, DEL, DOWN_ARROW, END, ENTER, ESC, HOME, LEFT_ARROW, Leisure, PAGE_DOWN, PAGE_UP, Prim, RIGHT_ARROW, Repl, ReplCore, TAB, UP_ARROW, Xus, acceptCode, addBoxClasses, addDefControls, addsLine, allowEvents, arrows, autoRun, baseElements, basePresentValue, baseStrokeWidth, bindAll, bindNotebook, bootNotebook, box, boxClasses, buttonClasses, c, changeTheme, changeView, checkDeleteExpr, checkHideSource, checkMutateFromModification, cleanEmptyNodes, cleanOutput, clearAst, clearOutputBox, clearUpdates, clickTest, closeWindow, codeBox, codeFocus, codeSpan, configureSaveLink, continueRangePosition, createFragment, createNode, createPeer, createSlider, debug, delay, docFocus, envFor, evalBox, evalDoc, evalDocCode, evalDocCodeOld, evalOutput, filename, findCurrentCodeHolder, findDefs, findUpdateSelector, focusBox, getAst, getBox, getElementCode, getElements, getExprSource, getMDDocument, getMaxStrokeWidth, getRangePosition, getRangeText, getRanges, getSvgElement, grp, handleKey, hasFunc, hasMonadOutput, head, hideControlSection, hideOutputSource, hideSlider, highlightNotebookFunction, highlightPosition, id, ignoreDeleteOutputBox, initNotebook, insertControls, isDef, isLeisureCode, isOutput, isSlider, laz, leisureContextString, linkSource, loadProgram, loaded, makeId, makeLabel, makeOption, makeOutputBox, makeOutputControls, makeRange, makeTestBox, makeTestCase, markPartialApplies, markupButton, markupButtons, markupDefs, mergeLeisureCode, nextId, nextSibling, nodeEnd, nodeFor, nonprintable, numberEnd, numberStart, oldBrackets, owner, patchFuncAst, peer, peerGetDocument, peerGetFunctions, peerNotifySelection, postLoadQueue, prepExpr, presentLeisureCode, presentValue, previousBoxRangeInternal, previousBoxRangeStart, previousSibling, primSvgMeasure, primconcatNodes, printable, printableControlCharacters, processLine, psgn, queueAfterLoad, remove, removeBoxClasses, removeOldDefs, replaceContents, replaceRange, replicate, req, root, runTest, runTests, saveProgram, setAst, setFilename, setMinMax, setSnapper, setUpdate, showAst, showError, showFilename, showFilenames, showOutputSource, showResult, showSliderButton, showSource, skipLeftOverOutputBox, slider, snapshot, svgBetterMeasure, svgMeasure, svgMeasureText, tail, testPat, textNode, toDefBox, toExprBox, toggleEdit, transformStrokeWidth, transformedPoint, unwrap, update, updatePat, wrapRange, xusEnv, _ref,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -8327,16 +8330,21 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
   };
 
   replaceContents = function replaceContents(uri, contents) {
-    var cont, node, _i, _len, _ref2;
-    if (!cont) {
-      cont = contents;
+    console.log(new Error("Replacing contents...").stack);
+    if (!contents) {
       contents = uri;
+      uri = null;
     } else {
       setFilename(uri.toString());
     }
     document.body.setAttribute('doc', '');
     window.leisureAutoRunAll = true;
     window.markup(contents);
+    return bindAll();
+  };
+
+  bindAll = function bindAll() {
+    var node, _i, _len, _ref2;
     _ref2 = document.querySelectorAll("[leisurenode='code']");
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
       node = _ref2[_i];
@@ -9053,12 +9061,6 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
     el.replacing = true;
     removeOldDefs(el);
     pgm = markupDefs(el, findDefs(el));
-    /*
-      if !(el?.lastChild?.nodeType == 3 and el.lastChild.data[el.lastChild.data.length - 1] == '\n')
-        el.appendChild textNode('\n')
-        el.appendChild textNode('\n')
-        el.appendChild textNode('\n')
-    */
     el.normalize();
     el.replacing = false;
     if (!el.hasAttribute('noLeisureBar')) {
@@ -9148,7 +9150,7 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
   };
 
   showFilename = function showFilename(el) {
-    if (el) {
+    if (el && filename) {
       el.innerHTML = "Save: " + (filename.pathName());
       return el.title = filename.toString();
     }
@@ -10541,7 +10543,7 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
 
   hideControlSection = function hideControlSection() {
     var controlSection;
-    controlSection = document.body.querySelector('[leisureSection=Leisure Controls]');
+    controlSection = document.body.querySelector('[leisureSection="Leisure Controls"]');
     if (!controlSection) {
       controlSection = document.createElement('DIV');
       document.body.insertBefore(controlSection, document.body.firstChild);
@@ -10561,6 +10563,8 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
   root.initNotebook = initNotebook;
 
   root.bindNotebook = bindNotebook;
+
+  root.bindAll = bindAll;
 
   root.evalOutput = evalOutput;
 
@@ -10662,6 +10666,8 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
 
   root.wrapRange = wrapRange;
 
+  root.replaceContents = replaceContents;
+
 }).call(this);
 ;
 /*! jQuery v1.7.2 jquery.com | jquery.org/license */
@@ -10685,7 +10691,7 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
   Q = 81;
 
   window.markup = function markup(md) {
-    var maindoc, nodes;
+    var maindoc, nodes, _ref;
     nodes = document.querySelectorAll('[maindoc]');
     if (nodes.length === 0) {
       maindoc = createNode("<div maindoc></div>");
@@ -10694,7 +10700,7 @@ a){var b=F.exec(a);b&&(b[1]=(b[1]||"").toLowerCase(),b[3]=b[3]&&new RegExp("(?:^
     } else {
       maindoc = nodes[0];
     }
-    md = md != null ? md : maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
+    md = ((_ref = md != null ? md.replace(/\r\n/mg, '\n') : void 0) != null ? _ref : maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '')).trim();
     document.body.classList.add('hideControls');
     markupSlides(maindoc, md);
     return insertControls(maindoc);

@@ -14,7 +14,7 @@ Boot.onboot = (cont)->
   else bootFuncs.push cont
 
 bootLeisure = ->
-  loadThen ['uri'], ->
+  loadThen [uniquify("uri.js")], ->
     uri = new window.URI(document.location.href)
     params = uri.getSearchParams()
     if params.state
@@ -37,29 +37,25 @@ uniquify = (str)-> "#{str}?uniq=#{new Date().getTime()}"
 
 bootLeisureCont = (load, state)->
   window.removeEventListener 'load', bootLeisure
-  if !(load || state)
-    body = document.body
-    # Gotta be able to stuff extra hidden things in the body
-    # so if it's a code container, copy it into a child
-    if 'code' == body.getAttribute 'leisureNode'
-      pre = document.createElement 'pre'
-      pre.setAttribute 'leisureNode', 'code'
-      pre.setAttribute 'contentEditable', 'true'
-      pre.innerHTML = body.innerHTML
-      while body.firstChild
-        body.removeChild body.firstChild
-      body.appendChild pre
-      body.removeAttribute 'leisureNode'
-    #for i in ['leisure', 'gaudy', 'thin', 'cthulhu']
-    for i in Boot.cssFiles
-      style = document.createElement('link')
-      style.setAttribute 'type', "text/css"
-      style.setAttribute 'rel', "stylesheet"
-      #style.setAttribute 'href', uniquify "#{i}.css"
-      style.setAttribute 'href', i
-      document.head.appendChild style
-  #loadThen ['marked', 'xus', 'storage', 'parse', 'leisure', 'prim', 'replCore', 'browserRepl', 'std', 'notebook', 'jquery-1.7.2.min', 'jquery-ui/js/jquery-ui-1.9.1.custom.min', 'md', 'maps', 'svg', 'parseAst'], ->
-  f = if state then window.GdriveStorage.openFromGdrive
+  body = document.body
+  # Gotta be able to stuff extra hidden things in the body
+  # so if it's a code container, copy it into a child
+  if 'code' == body.getAttribute 'leisureNode'
+    pre = document.createElement 'pre'
+    pre.setAttribute 'leisureNode', 'code'
+    pre.setAttribute 'contentEditable', 'true'
+    pre.innerHTML = body.innerHTML
+    while body.firstChild
+      body.removeChild body.firstChild
+    body.appendChild pre
+    body.removeAttribute 'leisureNode'
+  for i in Boot.cssFiles
+    style = document.createElement('link')
+    style.setAttribute 'type', "text/css"
+    style.setAttribute 'rel', "stylesheet"
+    style.setAttribute 'href', i
+    document.head.appendChild style
+  f = if state then (cont)-> window.GdriveStorage.openFromGdrive cont
   else if load then (cont)->
     console.log "LOADING #{load}"
     Prim.read load, ((data)->
@@ -67,14 +63,14 @@ bootLeisureCont = (load, state)->
       cont()
     ), (err)-> $('[maindoc]').innerHTML = "<h1>ERROR LOADING #{load}: #{err}</h1>"
   else (cont)->
-    window.markup()
+    Notebook.replaceContents()
     cont()
-  loadThen Boot.jsFiles, true, ->
+  loadThen Boot.jsFiles, ->
     window.GdriveStorage.initStorage()
+    Repl.init()
+    Notebook.bootNotebook()
     f ->
       window.leisureFirst?()
-      Repl.init()
-      Notebook.bootNotebook()
       if window.leisurePrep? then callPrepCode window.leisurePrep, 0, finishBoot
       else finishBoot()
 
@@ -86,26 +82,17 @@ callPrepCode = (preps, index, finishBoot)->
 
 finishBoot = ->
   console.log "Finished initializing storage"
-  for node in document.querySelectorAll "[leisurenode='code']"
-    node.setAttribute 'contentEditable', 'true'
-    Notebook.bindNotebook node
-    Notebook.changeTheme node, 'thin'
-    Notebook.evalDoc node
   if window.leisureBoot? then bootFuncs.push window.leisureBoot
   while bootFuncs.length
     bootFuncs.shift()()
   booted = true
 
-loadThen = (files, nosuffix, cont, index)->
-  if typeof nosuffix == 'function'
-    index = cont
-    cont = nosuffix
-    nosuffix = false
+loadThen = (files, cont, index)->
   index = index ? 0
   if index == files.length then cont?()
   else
     script = document.createElement('script')
-    script.setAttribute 'src', (if nosuffix then files[index] else uniquify "#{files[index]}.js")
+    script.setAttribute 'src', files[index]
     script.addEventListener 'load', -> loadThen files, cont, index + 1
     document.head.appendChild script
 

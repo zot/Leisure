@@ -70,10 +70,13 @@ initStorage = (callback)->
   Prim.newUriHandler 'googledrive',
     read: (uri, cont, err, next)->
       initGdrive ->
-        files = path2Ids["/LeisureStorage#{uri.path}"]
-        if !files then next()
-        else if files.length > 1 then err new Error "More than one file for uri: #{uri}"
-        else readFile id2File[files[0]], (err, result)->
+        if (m = uri.host?.match /^id:(.*)$/) then file = id2File[m[1]]
+        else
+          files = path2Ids["/LeisureStorage#{uri.path}"]
+          if !files then next()
+          else if files.length > 1 then err new Error "More than one file for uri: #{uri}"
+          else file = id2File[files[0]]
+        readFile file, (err, result)->
           if !err then cont result else new Error "Error reading file #{uri}: #{err.statusText}"
     write: (uri, data, cont, err)->
       initGdrive ->
@@ -87,22 +90,18 @@ initStorage = (callback)->
 openFromGdrive = (callback)->
   frag = (Boot.documentFragment ? '#').substring 1
   {state} = new Prim.URI("#{document.location.href}#{frag}").getFragParams()
-  cb = ->
-    callback()
-    addOpenButton()
   if state
-    {ids, action} = JSON.parse state
+    {exportIds, ids, action} = JSON.parse state
     if action != "open"
-      document.body.innerHTML = "<h1>Unknwn action from Google Drive: #{action}</h1>"
+      $('[maindoc]')[0].innerHTML = "<h1>Unknwn action from Google Drive: #{action}</h1>"
+    ids = ids ? exportIds
     if !ids || ids.length != 1
-      document.body.innerHTML = "<h1>More than one file to open</h1>"
-    else
-      cb()
-      loadFile ids[0]
+      $('[maindoc]')[0].innerHTML = "<h1>More than one file to open: #{JSON.stringify ids}, fragment: #{frag}</h1>"
+    else loadFile ids[0], callback
   else
     window.leisureAutoRunAll = true
-    window.markup()
-    cb()
+    Notebook.replaceContents()
+    callback()
 
 loadFile = (id, cont)->
   $('[maindoc]')[0].innerHTML = "<h1>LOADING Google Drive file... </h1>"
@@ -115,7 +114,7 @@ loadFile = (id, cont)->
       readFile file, (err, text)->
         if err
           $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}: #{err.statusText}</h1>"
-        else if file.fileExtension == 'lmd'
+        else if file.fileExtension == 'lmd' || file.title.match /\.lmd$/
           if id2Paths[file.id].length > 1
             for path in id2Paths[file.id]
               if path.match '^/LeisureStorage/'
@@ -125,9 +124,9 @@ loadFile = (id, cont)->
               else filename = path
           else filename = id2Paths[file.id][0]
           Notebook.replaceContents "googledrive://#{filename}", text
+          (cont ? -> )()
         else
           $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}; can only load *.lmd files.</h1>"
-        (cont ? -> )()
 
 #
 # directory cache
@@ -295,7 +294,6 @@ runOpen = (arg)->
     view = new google.picker.DocsView()
     view.setParent path2Ids["/LeisureStorage"]
     picker = new google.picker.PickerBuilder().
-      #addView(google.picker.ViewId.DOCS).
       addView(view).
       setCallback(arg ? openFile).
       build()
@@ -317,12 +315,12 @@ mimePart = (boundary, mimeType, content)->
 DONE = 4
 
 readFile = (file, callback)->
-  if file.downloadUrl
+  if url = (file.downloadUrl ? file.exportLinks?['text/plain'])
     del = showDelay()
     Notebook.delay ->
       console.log "File:", file
       xhr = new XMLHttpRequest();
-      xhr.open 'GET', file.downloadUrl
+      xhr.open 'GET', url
       xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
       xhr.onreadystatechange = ->
         if @readyState == DONE
@@ -398,3 +396,4 @@ mkdir = (name, callback)->
 root.initStorage = initStorage
 root.runOpen = runOpen
 root.loadFile = loadFile
+root.openFromGdrive = openFromGdrive

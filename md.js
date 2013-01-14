@@ -9,7 +9,7 @@
   Q = 81;
 
   window.markup = function markup(md) {
-    var maindoc, nodes;
+    var maindoc, nodes, _ref;
     nodes = document.querySelectorAll('[maindoc]');
     if (nodes.length === 0) {
       maindoc = createNode("<div maindoc></div>");
@@ -18,7 +18,7 @@
     } else {
       maindoc = nodes[0];
     }
-    md = md != null ? md : maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
+    md = ((_ref = md != null ? md.replace(/\r\n/mg, '\n') : void 0) != null ? _ref : maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '')).trim();
     document.body.classList.add('hideControls');
     markupSlides(maindoc, md);
     return insertControls(maindoc);

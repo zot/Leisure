@@ -46,7 +46,7 @@ window.markup = (md)->
     document.body.insertBefore maindoc, document.body.firstChild
     nodes = [maindoc]
   else maindoc = nodes[0]
-  md = md ? maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
+  md = (md?.replace(/\r\n/mg, '\n') ? maindoc.innerHTML.replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '')).trim();
   document.body.classList.add 'hideControls'
   markupSlides maindoc, md
   insertControls maindoc
