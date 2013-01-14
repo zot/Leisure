@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-afbf3bb01971780c25a61d3b8a1eb04e68fa2fc27bda9cb41251a0acf021a843.css'];
-Boot.jsFiles = ['leisureFiles-d5383386e2a93da016a9c5d5e5751ab0183e4e323e1356f268815ecf771b0d78.js'];
+Boot.jsFiles = ['leisureFiles-b5a6c635ececea42a7b378974f24dbcd001a72afca26abcf05e3b9d01568b5e2.js'];
 })();
 
 /*
@@ -9,7 +9,7 @@ Boot.jsFiles = ['leisureFiles-d5383386e2a93da016a9c5d5e5751ab0183e4e323e1356f268
 */
 
 (function() {
-  var Boot, Leisure, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, finishBoot, handleError, loadThen, uniquify, _ref, _ref2,
+  var Boot, Leisure, addLoadToDocument, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, finishBoot, handleError, loadThen, uniquify, _ref, _ref2,
     __slice = Array.prototype.slice;
 
   Leisure = (_ref = window.Leisure) != null ? _ref : (window.Leisure = {});
@@ -86,10 +86,7 @@ Boot.jsFiles = ['leisureFiles-d5383386e2a93da016a9c5d5e5751ab0183e4e323e1356f268
     f = state ? function(cont) {
       return window.GdriveStorage.openFromGdrive(cont);
     } : load ? function(cont) {
-      var uri;
-      uri = new URI(document.location.href);
-      uri.fragment = "#" + load;
-      document.location.href = uri.toString();
+      addLoadToDocument(load);
       load = new URI(load);
       console.log("LOADING " + load);
       return Prim.read(load, (function(data) {
@@ -115,6 +112,12 @@ Boot.jsFiles = ['leisureFiles-d5383386e2a93da016a9c5d5e5751ab0183e4e323e1356f268
         }
       });
     });
+  };
+
+  addLoadToDocument = function addLoadToDocument(uri) {
+    uri = new URI(document.location.href);
+    uri.fragment = "#load=" + load;
+    return document.location.href = uri.toString();
   };
 
   callPrepCode = function callPrepCode(preps, index, finishBoot) {
@@ -175,5 +178,7 @@ Boot.jsFiles = ['leisureFiles-d5383386e2a93da016a9c5d5e5751ab0183e4e323e1356f268
   Leisure.bootLeisure = bootLeisure;
 
   Boot.loadThen = loadThen;
+
+  Boot.addLoadToDocument = addLoadToDocument;
 
 }).call(this);

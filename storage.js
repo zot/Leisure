@@ -160,6 +160,7 @@
             } else {
               filename = id2Paths[file.id][0];
             }
+            Boot.addLoadToDocument("googledrive://id:" + file.id);
             Notebook.replaceContents("googledrive://" + (filename.substring('/LeisureStorage'.length)), text);
             return (cont != null ? cont : function() {})();
           } else {
