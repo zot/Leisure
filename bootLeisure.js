@@ -132,12 +132,16 @@ Boot.jsFiles = ['leisureFiles-2524963828f76431f1a6abee8a30c8f4f91eb7010c4306e8b5
   };
 
   loadThen = function loadThen(files, cont, index) {
-    var script;
+    var err, script;
     index = index != null ? index : 0;
     if (index === files.length) {
       return typeof cont === "function" ? cont() : void 0;
     } else {
-      console.log("LOADING: " + files[index]);
+      if (!files[index]) {
+        err = new Error("NO FILE AT INDEX " + index + " in " + (JSON.stringify(files)));
+        console.log(err.stack);
+        throw err;
+      }
       script = document.createElement('script');
       script.setAttribute('src', files[index]);
       script.addEventListener('load', function() {
