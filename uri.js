@@ -14,7 +14,7 @@
       if (match = src.match(urlPat)) {
         if (match[2]) {
           this.scheme = match[2].toLowerCase();
-          this.host = match[3].toLowerCase();
+          this.host = match[3];
         }
         this.path = match[5] ? this.normalize(((this.scheme ? '/' : '') + match[5]).replace(dotPat, '')) : '/';
         this.search = (_ref = match[6]) != null ? _ref : '';
