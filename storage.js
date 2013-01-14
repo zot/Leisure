@@ -73,13 +73,14 @@
         });
       },
       link: function link(uri) {
+        var _this = this;
         return initGdrive(function() {
           var files;
           files = path2Ids["/LeisureStorage" + uri.path];
           if (!files) {
             return null;
           } else {
-            return this.basicLink("googledrive://id:" + files[0]);
+            return _this.basicLink("googledrive://id:" + files[0]);
           }
         });
       }
