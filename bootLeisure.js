@@ -86,6 +86,7 @@ Boot.jsFiles = ['leisureFiles-522f40b80d672b4da704ba766c1642ee5ff954268e95d33246
     f = state ? function(cont) {
       return window.GdriveStorage.openFromGdrive(cont);
     } : load ? function(cont) {
+      load = new URI(load);
       console.log("LOADING " + load);
       return Prim.read(load, (function(data) {
         Notebook.replaceContents(load, data);
