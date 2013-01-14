@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-afbf3bb01971780c25a61d3b8a1eb04e68fa2fc27bda9cb41251a0acf021a843.css'];
-Boot.jsFiles = ['leisureFiles-6100be89043e2547528db0834f940bcdf7e47102332df132604ae32fc40ae728.js'];
+Boot.jsFiles = ['leisureFiles-2524963828f76431f1a6abee8a30c8f4f91eb7010c4306e8b5ce7216b8baba81.js'];
 })();
 
 /*
@@ -29,7 +29,7 @@ Boot.jsFiles = ['leisureFiles-6100be89043e2547528db0834f940bcdf7e47102332df13260
   };
 
   bootLeisure = function bootLeisure() {
-    return loadThen(['uri'], function() {
+    return loadThen([uniquify("uri.js")], function() {
       var load, params, state, uri, _ref3, _ref4;
       uri = new window.URI(document.location.href);
       params = uri.getSearchParams();
@@ -62,28 +62,26 @@ Boot.jsFiles = ['leisureFiles-6100be89043e2547528db0834f940bcdf7e47102332df13260
   bootLeisureCont = function bootLeisureCont(load, state) {
     var body, f, i, pre, style, _i, _len, _ref3;
     window.removeEventListener('load', bootLeisure);
-    if (true) {
-      body = document.body;
-      if ('code' === body.getAttribute('leisureNode')) {
-        pre = document.createElement('pre');
-        pre.setAttribute('leisureNode', 'code');
-        pre.setAttribute('contentEditable', 'true');
-        pre.innerHTML = body.innerHTML;
-        while (body.firstChild) {
-          body.removeChild(body.firstChild);
-        }
-        body.appendChild(pre);
-        body.removeAttribute('leisureNode');
+    body = document.body;
+    if ('code' === body.getAttribute('leisureNode')) {
+      pre = document.createElement('pre');
+      pre.setAttribute('leisureNode', 'code');
+      pre.setAttribute('contentEditable', 'true');
+      pre.innerHTML = body.innerHTML;
+      while (body.firstChild) {
+        body.removeChild(body.firstChild);
       }
-      _ref3 = Boot.cssFiles;
-      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-        i = _ref3[_i];
-        style = document.createElement('link');
-        style.setAttribute('type', "text/css");
-        style.setAttribute('rel', "stylesheet");
-        style.setAttribute('href', i);
-        document.head.appendChild(style);
-      }
+      body.appendChild(pre);
+      body.removeAttribute('leisureNode');
+    }
+    _ref3 = Boot.cssFiles;
+    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+      i = _ref3[_i];
+      style = document.createElement('link');
+      style.setAttribute('type', "text/css");
+      style.setAttribute('rel', "stylesheet");
+      style.setAttribute('href', i);
+      document.head.appendChild(style);
     }
     f = state ? function(cont) {
       return window.GdriveStorage.openFromGdrive(cont);
@@ -99,7 +97,7 @@ Boot.jsFiles = ['leisureFiles-6100be89043e2547528db0834f940bcdf7e47102332df13260
       Notebook.replaceContents();
       return cont();
     };
-    return loadThen(Boot.jsFiles, true, function() {
+    return loadThen(Boot.jsFiles, function() {
       window.GdriveStorage.initStorage();
       Repl.init();
       Notebook.bootNotebook();
@@ -133,19 +131,14 @@ Boot.jsFiles = ['leisureFiles-6100be89043e2547528db0834f940bcdf7e47102332df13260
     return booted = true;
   };
 
-  loadThen = function loadThen(files, nosuffix, cont, index) {
+  loadThen = function loadThen(files, cont, index) {
     var script;
-    if (typeof nosuffix === 'function') {
-      index = cont;
-      cont = nosuffix;
-      nosuffix = false;
-    }
     index = index != null ? index : 0;
     if (index === files.length) {
       return typeof cont === "function" ? cont() : void 0;
     } else {
       script = document.createElement('script');
-      script.setAttribute('src', (nosuffix ? files[index] : uniquify("" + files[index] + ".js")));
+      script.setAttribute('src', files[index]);
       script.addEventListener('load', function() {
         return loadThen(files, cont, index + 1);
       });

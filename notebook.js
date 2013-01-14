@@ -876,12 +876,6 @@
     el.replacing = true;
     removeOldDefs(el);
     pgm = markupDefs(el, findDefs(el));
-    /*
-      if !(el?.lastChild?.nodeType == 3 and el.lastChild.data[el.lastChild.data.length - 1] == '\n')
-        el.appendChild textNode('\n')
-        el.appendChild textNode('\n')
-        el.appendChild textNode('\n')
-    */
     el.normalize();
     el.replacing = false;
     if (!el.hasAttribute('noLeisureBar')) {
@@ -2364,7 +2358,7 @@
 
   hideControlSection = function hideControlSection() {
     var controlSection;
-    controlSection = document.body.querySelector('[leisureSection=Leisure Controls]');
+    controlSection = document.body.querySelector('[leisureSection="Leisure Controls"]');
     if (!controlSection) {
       controlSection = document.createElement('DIV');
       document.body.insertBefore(controlSection, document.body.firstChild);

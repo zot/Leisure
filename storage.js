@@ -76,10 +76,9 @@
   };
 
   openFromGdrive = function openFromGdrive(callback) {
-    var action, cb, exportIds, frag, ids, state, _ref5, _ref6;
+    var action, exportIds, frag, ids, state, _ref5, _ref6;
     frag = ((_ref5 = Boot.documentFragment) != null ? _ref5 : '#').substring(1);
     state = new Prim.URI("" + document.location.href + frag).getFragParams().state;
-    cb = callback;
     if (state) {
       _ref6 = JSON.parse(state), exportIds = _ref6.exportIds, ids = _ref6.ids, action = _ref6.action;
       if (action !== "open") {
@@ -89,12 +88,12 @@
       if (!ids || ids.length !== 1) {
         return $('[maindoc]')[0].innerHTML = "<h1>More than one file to open: " + (JSON.stringify(ids)) + ", fragment: " + frag + "</h1>";
       } else {
-        return loadFile(ids[0], cb);
+        return loadFile(ids[0], callback);
       }
     } else {
       window.leisureAutoRunAll = true;
       Notebook.replaceContents();
-      return cb();
+      return callback();
     }
   };
 
