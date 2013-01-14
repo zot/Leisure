@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-afbf3bb01971780c25a61d3b8a1eb04e68fa2fc27bda9cb41251a0acf021a843.css'];
-Boot.jsFiles = ['leisureFiles-2524963828f76431f1a6abee8a30c8f4f91eb7010c4306e8b5ce7216b8baba81.js'];
+Boot.jsFiles = ['leisureFiles-522f40b80d672b4da704ba766c1642ee5ff954268e95d3324695cb6372497d47.js'];
 })();
 
 /*
@@ -132,11 +132,16 @@ Boot.jsFiles = ['leisureFiles-2524963828f76431f1a6abee8a30c8f4f91eb7010c4306e8b5
   };
 
   loadThen = function loadThen(files, cont, index) {
-    var script;
+    var err, script;
     index = index != null ? index : 0;
     if (index === files.length) {
       return typeof cont === "function" ? cont() : void 0;
     } else {
+      if (!files[index]) {
+        err = new Error("NO FILE AT INDEX " + index + " in " + (JSON.stringify(files)));
+        console.log(err.stack);
+        throw err;
+      }
       script = document.createElement('script');
       script.setAttribute('src', files[index]);
       script.addEventListener('load', function() {

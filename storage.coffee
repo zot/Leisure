@@ -179,7 +179,7 @@ initGdrive = (cont)->
   else
     del = showDelay()
     Notebook.delay ->
-      Boot.loadThen ["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, ->
+      Boot.loadThen ["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], ->
       auth.started = true
       auth.cont.push ->
         del?()

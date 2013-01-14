@@ -91,6 +91,10 @@ loadThen = (files, cont, index)->
   index = index ? 0
   if index == files.length then cont?()
   else
+    if !files[index]
+      err = new Error("NO FILE AT INDEX #{index} in #{JSON.stringify files}")
+      console.log err.stack
+      throw err
     script = document.createElement('script')
     script.setAttribute 'src', files[index]
     script.addEventListener 'load', -> loadThen files, cont, index + 1
