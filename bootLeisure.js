@@ -115,9 +115,10 @@ Boot.jsFiles = ['leisureFiles-b5a6c635ececea42a7b378974f24dbcd001a72afca26abcf05
   };
 
   addLoadToDocument = function addLoadToDocument(uri) {
-    uri = new URI(document.location.href);
-    uri.fragment = "#load=" + load;
-    return document.location.href = uri.toString();
+    var u;
+    u = new URI(document.location.href);
+    u.fragment = "#load=" + uri;
+    return document.location.href = u.toString();
   };
 
   callPrepCode = function callPrepCode(preps, index, finishBoot) {
