@@ -633,8 +633,8 @@
     write: function write(uri, data, cont, errHandler) {
       return errHandler(new Error("No uri handler for " + (uri != null ? uri.scheme : void 0) + " uris"));
     },
-    link: function link(uri, data, cont, errHandler) {
-      return errHandler(new Error("No uri handler for " + (uri != null ? uri.scheme : void 0) + " uris"));
+    link: function link(uri) {
+      return '';
     }
   });
 
