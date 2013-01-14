@@ -138,7 +138,7 @@
             } else {
               filename = id2Paths[file.id][0];
             }
-            Notebook.replaceContents("googledrive://" + filename, text);
+            Notebook.replaceContents("googledrive://" + (filename.substring('/LeisureStorage'.length)), text);
             return (cont != null ? cont : function() {})();
           } else {
             return $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
