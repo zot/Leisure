@@ -149,8 +149,10 @@
     if (!contents) {
       contents = uri;
       uri = null;
-    } else {
+    }
+    if (uri) {
       setFilename(uri.toString());
+      setLink(prim.linkFor(uri));
     }
     document.body.setAttribute('doc', '');
     window.leisureAutoRunAll = true;
@@ -2047,6 +2049,12 @@
   Parse.define('getDocument', function() {
     return Prim.makeMonad(function(env, cont) {
       return cont(peerGetDocument());
+    });
+  });
+
+  Parse.define('getLink', function() {
+    return Prim.makeMonad(function(env, cont) {
+      return cont(Prim.linkFor(filename));
     });
   });
 

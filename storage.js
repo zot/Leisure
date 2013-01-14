@@ -71,6 +71,17 @@
             });
           }
         });
+      },
+      link: function link(uri) {
+        return initGdrive(function() {
+          var files;
+          files = path2Ids["/LeisureStorage" + uri.path];
+          if (!files) {
+            return null;
+          } else {
+            return "googledrive://id:" + files[0].id;
+          }
+        });
       }
     });
   };

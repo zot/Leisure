@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, linkFor, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -591,7 +591,7 @@
 
   isStorageUri = function isStorageUri(uri) {
     var _ref3, _ref4, _ref5;
-    return _ref3 = uri.scheme, __indexOf.call((_ref4 = Notebook != null ? (_ref5 = Notebook.xusServer) != null ? _ref5.varStorage.values['leisure/storage'] : void 0 : void 0) != null ? _ref4 : [], _ref3) >= 0;
+    return _ref3 = uri != null ? uri.scheme : void 0, __indexOf.call((_ref4 = Notebook != null ? (_ref5 = Notebook.xusServer) != null ? _ref5.varStorage.values['leisure/storage'] : void 0 : void 0) != null ? _ref4 : [], _ref3) >= 0;
   };
 
   URIHandler = (function() {
@@ -606,6 +606,10 @@
 
     URIHandler.prototype.write = function write(uri, data, cont, errHandler) {
       return errHandler(new Error("Write not currently supported for " + this.label + " uris"));
+    };
+
+    URIHandler.prototype.link = function link(uri) {
+      return uri;
     };
 
     return URIHandler;
@@ -624,10 +628,13 @@
 
   newUriHandler('err', {
     read: function read(uri, cont, errHandler, next) {
-      return errHandler(new Error("No uri handler for " + uri.scheme + " uris"));
+      return errHandler(new Error("No uri handler for " + (uri != null ? uri.scheme : void 0) + " uris"));
     },
     write: function write(uri, data, cont, errHandler) {
-      return errHandler(new Error("No uri handler for " + uri.scheme + " uris"));
+      return errHandler(new Error("No uri handler for " + (uri != null ? uri.scheme : void 0) + " uris"));
+    },
+    link: function link(uri, data, cont, errHandler) {
+      return errHandler(new Error("No uri handler for " + (uri != null ? uri.scheme : void 0) + " uris"));
     }
   });
 
@@ -751,7 +758,7 @@
     if (isStorageUri(uri)) {
       return uriHandlers.xus;
     } else {
-      return (_ref3 = uriHandlers[uri.scheme]) != null ? _ref3 : uriHandlers.err;
+      return (_ref3 = uri && uriHandlers[uri != null ? uri.scheme : void 0]) != null ? _ref3 : uriHandlers.err;
     }
   };
 
@@ -783,6 +790,10 @@
 
   write = function write(uri, data, cont, err) {
     return uriHandlerFor(uri).write(uri, data, cont != null ? cont : (function() {}), err != null ? err : throwError);
+  };
+
+  linkFor = function linkFor(uri) {
+    return uriHandlerFor(uri).link(uri);
   };
 
   tryRead = function tryRead(label, choices, handler, cont, err) {
@@ -1180,6 +1191,8 @@
   root.read = read;
 
   root.write = write;
+
+  root.linkFor = linkFor;
 
   if (typeof window !== "undefined" && window !== null) {
     window.leisureEvent = leisureEvent;
