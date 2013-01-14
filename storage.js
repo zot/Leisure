@@ -21,11 +21,12 @@
     return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         return initGdrive(function() {
-          var file, files, m, _ref5;
+          var file, files, id, m, _ref5;
           if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
-            file = id2File[m[1]];
+            id = decodeURIComponent(m[1]);
+            file = id2File[id];
             if (!file) {
-              fetchFile(m[1], function(error, file) {
+              fetchFile(id, function(error, file) {
                 if (error) {
                   return err(new Error("Error reading file " + uri + ": Couldn't load metadata"));
                 } else {
@@ -96,7 +97,7 @@
           if (!files) {
             return null;
           } else {
-            return _this.basicLink("googledrive://id:" + files[0]);
+            return _this.basicLink("googledrive://id:" + (encodeURIComponent(files[0])));
           }
         });
       }
