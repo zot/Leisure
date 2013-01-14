@@ -150,10 +150,7 @@
       contents = uri;
       uri = null;
     }
-    if (uri) {
-      setFilename(uri.toString());
-      setLink(Prim.linkFor(uri));
-    }
+    if (uri) setFilename(uri.toString());
     document.body.setAttribute('doc', '');
     window.leisureAutoRunAll = true;
     window.markup(contents);
