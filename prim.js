@@ -608,8 +608,16 @@
       return errHandler(new Error("Write not currently supported for " + this.label + " uris"));
     };
 
+    URIHandler.prototype.basicLink = function basicLink(uri) {
+      var u;
+      u = new URI(document.location.href);
+      u.search = null;
+      u.fragment = "#load=" + uri;
+      return u;
+    };
+
     URIHandler.prototype.link = function link(uri) {
-      return uri;
+      return this.basicLink(uri);
     };
 
     return URIHandler;

@@ -79,7 +79,7 @@
           if (!files) {
             return null;
           } else {
-            return "googledrive://id:" + files[0];
+            return this.basicLink("googledrive://id:" + files[0]);
           }
         });
       }
