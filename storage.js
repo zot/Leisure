@@ -218,7 +218,7 @@
     } else {
       del = showDelay();
       return Notebook.delay(function() {
-        Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], true, function() {});
+        Boot.loadThen(["https://apis.google.com/js/client.js?onload=gapiClientLoaded"], function() {});
         auth.started = true;
         return auth.cont.push(function() {
           if (typeof del === "function") del();
