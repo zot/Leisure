@@ -152,7 +152,7 @@
     }
     if (uri) {
       setFilename(uri.toString());
-      setLink(prim.linkFor(uri));
+      setLink(Prim.linkFor(uri));
     }
     document.body.setAttribute('doc', '');
     window.leisureAutoRunAll = true;
