@@ -449,7 +449,6 @@
 
   fetchFile = function fetchFile(id, callback) {
     var xhr;
-    console.log("File:", file);
     xhr = new XMLHttpRequest();
     xhr.open('GET', "https://www.googleapis.com/drive/v2/files/" + id);
     xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
