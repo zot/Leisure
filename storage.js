@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, download, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, apiKey, auth, checkDriveAuth, clientId, computePaths, createAuthButton, download, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -17,13 +17,17 @@
     return;
   }
 
+  clientId = '270759921607';
+
+  apiKey = 'AIzaSyCgr3jkxrcQBKfujp9URxVnjAG5OVqUg7U';
+
   initStorage = function initStorage(callback) {
     return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
         var file, files, id, m, _ref5;
         if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
           id = decodeURIComponent(m[1]);
-          return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(error, data) {
+          return readUrl("https://docs.google.com/uc?id=" + id + "&export=download&key=" + apiKey, function(error, data) {
             if (!error) {
               return cont(data);
             } else if (!auth.finished) {
@@ -325,7 +329,7 @@
     console.log("AUTH");
     try {
       return gapi.auth.authorize({
-        client_id: '270759921607',
+        client_id: clientId,
         scope: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.install'].join(' '),
         immediate: immediate
       }, handleAuthResult);
@@ -382,7 +386,7 @@
     if (!auth.finished) {
       replaceAuth(obj);
       if (obj.succeeded) {
-        gapi.client.setApiKey('AIzaSyCgr3jkxrcQBKfujp9URxVnjAG5OVqUg7U');
+        gapi.client.setApiKey(apiKey);
         return initFileList(function() {
           var cont, _i, _len, _ref5, _ref6, _results;
           _ref6 = (_ref5 = auth.cont) != null ? _ref5 : [];
