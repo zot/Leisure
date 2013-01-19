@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -20,44 +20,42 @@
   initStorage = function initStorage(callback) {
     return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
-        return initGdrive(function() {
-          var file, files, id, m, _ref5;
-          if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
-            id = decodeURIComponent(m[1]);
-            file = id2File[id];
-            if (!file) {
-              fetchFile(id, function(error, file) {
-                if (error) {
-                  return err(new Error("Error reading file " + uri + ": Couldn't load metadata"));
-                } else {
-                  return readFile(file, function(error, result) {
-                    if (!error) {
-                      return cont(result);
-                    } else {
-                      return err(new Error("Error reading file " + uri + ": " + error.statusText));
-                    }
-                  });
-                }
+        var file, files, id, m, _ref5;
+        if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
+          id = decodeURIComponent(m[1]);
+          readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(err, data) {
+            if (!err) {
+              return cont(data);
+            } else if (!auth.finished) {
+              return initGdrive(function() {
+                return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(err, data) {
+                  if (!err) {
+                    return cont(data);
+                  } else {
+                    return err("Error " + err.status + ": " + err.statusText);
+                  }
+                });
               });
-              return;
-            }
-          } else {
-            files = path2Ids["/LeisureStorage" + uri.path];
-            if (!files) {
-              next();
-            } else if (files.length > 1) {
-              err(new Error("More than one file for uri: " + uri));
             } else {
-              file = id2File[files[0]];
-            }
-          }
-          return readFile(file, function(error, result) {
-            if (!error) {
-              return cont(result);
-            } else {
-              return err(new Error("Error reading file " + uri + ": " + error.statusText));
+              return err("Error " + err.status + ": " + err.statusText);
             }
           });
+        } else {
+          files = path2Ids["/LeisureStorage" + uri.path];
+          if (!files) {
+            next();
+          } else if (files.length > 1) {
+            err(new Error("More than one file for uri: " + uri));
+          } else {
+            file = id2File[files[0]];
+          }
+        }
+        return readFile(file, function(error, result) {
+          if (!error) {
+            return cont(result);
+          } else {
+            return err(new Error("Error reading file " + uri + ": " + error.statusText));
+          }
         });
       },
       write: function write(uri, data, cont, err) {
@@ -477,31 +475,36 @@
   };
 
   readFile = function readFile(file, callback) {
-    var del, url, _ref5, _ref6;
+    var url, _ref5, _ref6;
     if (url = (_ref5 = file.downloadUrl) != null ? _ref5 : (_ref6 = file.exportLinks) != null ? _ref6['text/plain'] : void 0) {
-      del = showDelay();
-      return Notebook.delay(function() {
-        var xhr;
-        console.log("File:", file);
-        xhr = new XMLHttpRequest();
-        xhr.open('GET', url);
-        xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-        xhr.onreadystatechange = function onreadystatechange() {
-          if (this.readyState === DONE) {
-            del();
-            console.log("XHR", xhr);
-            if (this.status === 200) {
-              return callback(null, xhr.responseText);
-            } else {
-              return callback(xhr);
-            }
-          }
-        };
-        return xhr.send();
-      });
+      console.log("File:", file);
+      return readUrl(url, callback);
     } else {
       return callback(null);
     }
+  };
+
+  readUrl = function readUrl(url, callback) {
+    var del;
+    del = showDelay();
+    return Notebook.delay(function() {
+      var xhr;
+      xhr = new XMLHttpRequest();
+      xhr.open('GET', url);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+      xhr.onreadystatechange = function onreadystatechange() {
+        if (this.readyState === DONE) {
+          del();
+          console.log("XHR", xhr);
+          if (this.status === 200) {
+            return callback(null, xhr.responseText);
+          } else {
+            return callback(xhr);
+          }
+        }
+      };
+      return xhr.send();
+    });
   };
 
   writeFile = function writeFile(name, contents, parents, callback) {
