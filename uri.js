@@ -58,12 +58,40 @@
       }
     };
 
+    URI.prototype.setSearchParams = function setSearchParams(paramObj) {
+      var k, v;
+      return this.search = '?' + ((function() {
+        var _ref, _results;
+        _ref = this.getSearchParams();
+        _results = [];
+        for (k in _ref) {
+          v = _ref[k];
+          _results.push("" + k + "=" + v);
+        }
+        return _results;
+      }).call(this));
+    };
+
     URI.prototype.getFragParams = function getFragParams() {
       if (!this.fragment) {
         return {};
       } else {
         return getParams(this.fragment);
       }
+    };
+
+    URI.prototype.setFragParams = function setFragParams(paramObj) {
+      var k, v;
+      return this.fragment = '#' + ((function() {
+        var _ref, _results;
+        _ref = this.getFragParams();
+        _results = [];
+        for (k in _ref) {
+          v = _ref[k];
+          _results.push("" + k + "=" + v);
+        }
+        return _results;
+      }).call(this));
     };
 
     URI.prototype.pathName = function pathName() {

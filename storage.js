@@ -27,7 +27,7 @@
         var file, files, id, m, _ref5;
         if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
           id = decodeURIComponent(m[1]);
-          return readUrl("https://docs.google.com/uc?id=" + id + "&export=download&key=" + apiKey, function(error, data) {
+          return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(error, data) {
             if (!error) {
               return cont(data);
             } else if (!auth.finished) {
@@ -486,8 +486,12 @@
   };
 
   readFile = function readFile(file, callback) {
-    var url, _ref5, _ref6;
+    var params, uri, url, _ref5, _ref6;
     if (url = (_ref5 = file.downloadUrl) != null ? _ref5 : (_ref6 = file.exportLinks) != null ? _ref6['text/plain'] : void 0) {
+      uri = new URI(url);
+      params = uri.getSearchParams();
+      delete params.gd;
+      uri.setSearchParams(params);
       console.log("File:", file);
       return readUrl(url, callback);
     } else {
