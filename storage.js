@@ -24,7 +24,8 @@
   initStorage = function initStorage(callback) {
     return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
-        var file, files, id, m, _ref5;
+        var file, files, id, m, _ref5,
+          _this = this;
         if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
           id = decodeURIComponent(m[1]);
           return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(error, data) {
@@ -42,11 +43,11 @@
                           if (data) {
                             return cont(data);
                           } else {
-                            return err("Error: Could not download file " + id, this.fallbackHtml(file));
+                            return err("Error: Could not download file " + id, _this.fallbackHtml(file));
                           }
                         });
                       } else {
-                        return err("Error " + error.status + ": " + error.statusText, this.noFile(id));
+                        return err("Error " + error.status + ": " + error.statusText, _this.noFile(id));
                       }
                     });
                   });
