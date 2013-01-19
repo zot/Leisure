@@ -28,14 +28,18 @@
               return cont(data);
             } else if (!auth.finished) {
               return initGdrive(function() {
-                return fetchFile(id, function(file) {
-                  return readFile(file, function(err, data) {
-                    if (!err) {
-                      return cont(data);
-                    } else {
-                      return err("Error " + err.status + ": " + err.statusText);
-                    }
-                  });
+                return fetchFile(id, function(err, file) {
+                  if (!err) {
+                    return readFile(file, function(err, data) {
+                      if (!err) {
+                        return cont(data);
+                      } else {
+                        return err("Error " + err.status + ": " + err.statusText);
+                      }
+                    });
+                  } else {
+                    return err("Error " + err.status + ": " + err.statusText);
+                  }
                 });
               });
             } else {
