@@ -61,15 +61,14 @@
     URI.prototype.setSearchParams = function setSearchParams(paramObj) {
       var k, v;
       this.search = '?' + ((function() {
-        var _ref, _results;
-        _ref = this.getSearchParams();
+        var _results;
         _results = [];
-        for (k in _ref) {
-          v = _ref[k];
+        for (k in params) {
+          v = params[k];
           _results.push("" + k + "=" + v);
         }
         return _results;
-      }).call(this)).join('&');
+      })()).join('&');
       return this;
     };
 
@@ -84,15 +83,14 @@
     URI.prototype.setFragParams = function setFragParams(paramObj) {
       var k, v;
       this.fragment = '#' + ((function() {
-        var _ref, _results;
-        _ref = this.getFragParams();
+        var _results;
         _results = [];
-        for (k in _ref) {
-          v = _ref[k];
+        for (k in params) {
+          v = params[k];
           _results.push("" + k + "=" + v);
         }
         return _results;
-      }).call(this)).join('&');
+      })()).join('&');
       return this;
     };
 
