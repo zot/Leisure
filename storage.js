@@ -501,7 +501,7 @@
     return Notebook.delay(function() {
       var xhr;
       xhr = new XMLHttpRequest();
-      xhr.open('GET', url);
+      xhr.open('GET', "" + url + (url.match(/[?]/) ? '&' : '?') + "key=" + apiKey);
       xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
         if (this.readyState === DONE) {
