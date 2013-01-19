@@ -63,8 +63,8 @@
       this.search = '?' + ((function() {
         var _results;
         _results = [];
-        for (k in params) {
-          v = params[k];
+        for (k in paramObj) {
+          v = paramObj[k];
           _results.push("" + k + "=" + v);
         }
         return _results;
@@ -85,8 +85,8 @@
       this.fragment = '#' + ((function() {
         var _results;
         _results = [];
-        for (k in params) {
-          v = params[k];
+        for (k in paramObj) {
+          v = paramObj[k];
           _results.push("" + k + "=" + v);
         }
         return _results;
