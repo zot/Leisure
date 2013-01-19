@@ -491,7 +491,7 @@
       uri = new URI(url);
       params = uri.getSearchParams();
       delete params.gd;
-      uri.setSearchParams(params);
+      url = uri.setSearchParams(params).toString();
       console.log("File:", file);
       return readUrl(url, callback);
     } else {

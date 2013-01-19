@@ -60,7 +60,7 @@
 
     URI.prototype.setSearchParams = function setSearchParams(paramObj) {
       var k, v;
-      return this.search = '?' + ((function() {
+      this.search = '?' + ((function() {
         var _ref, _results;
         _ref = this.getSearchParams();
         _results = [];
@@ -70,6 +70,7 @@
         }
         return _results;
       }).call(this));
+      return this;
     };
 
     URI.prototype.getFragParams = function getFragParams() {
@@ -82,7 +83,7 @@
 
     URI.prototype.setFragParams = function setFragParams(paramObj) {
       var k, v;
-      return this.fragment = '#' + ((function() {
+      this.fragment = '#' + ((function() {
         var _ref, _results;
         _ref = this.getFragParams();
         _results = [];
@@ -92,6 +93,7 @@
         }
         return _results;
       }).call(this));
+      return this;
     };
 
     URI.prototype.pathName = function pathName() {
