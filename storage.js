@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, download, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -30,11 +30,11 @@
               return initGdrive(function() {
                 return fetchFile(id, function(err, file) {
                   if (!err) {
-                    return readFile(file, function(err, data) {
-                      if (!err) {
+                    return download(id, function(data) {
+                      if (data) {
                         return cont(data);
                       } else {
-                        return err("Error " + err.status + ": " + err.statusText);
+                        return err("Error: Could not download file " + id);
                       }
                     });
                   } else {
@@ -510,6 +510,26 @@
         }
       };
       return xhr.send();
+    });
+  };
+
+  download = function download(id, callback) {
+    var del;
+    del = showDelay();
+    return Notebook.delay(function() {
+      var req;
+      req = gapi.client.request({
+        'path': "uc=?id=" + id + "&export=download",
+        'method': 'GET',
+        'headers': {
+          'Authorization': 'Bearer ' + auth.token
+        }
+      });
+      return req.execute(function(json) {
+        del();
+        if (json) computePaths(json);
+        return callback(json);
+      });
     });
   };
 
