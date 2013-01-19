@@ -28,12 +28,14 @@
               return cont(data);
             } else if (!auth.finished) {
               return initGdrive(function() {
-                return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(err, data) {
-                  if (!err) {
-                    return cont(data);
-                  } else {
-                    return err("Error " + err.status + ": " + err.statusText);
-                  }
+                return fetchFile(id, function(file) {
+                  return readFile(file, function(err, data) {
+                    if (!err) {
+                      return cont(data);
+                    } else {
+                      return err("Error " + err.status + ": " + err.statusText);
+                    }
+                  });
                 });
               });
             } else {
