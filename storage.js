@@ -30,24 +30,30 @@
           return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(error, data) {
             if (!error) {
               return cont(data);
-            } else if (!auth.finished) {
-              return initGdrive(function() {
-                return fetchFile(id, function(error, file) {
-                  if (!error) {
-                    return readFile(file, function(error, data) {
-                      if (data) {
-                        return cont(data);
+            } else {
+              return readUrl("https://docs.google.com/feeds/download/documents/export/Export?id=" + id + "&exportFormat=txt", function(error, data) {
+                if (!error) {
+                  return cont(data);
+                } else if (!auth.finished) {
+                  return initGdrive(function() {
+                    return fetchFile(id, function(error, file) {
+                      if (!error) {
+                        return readFile(file, function(error, data) {
+                          if (data) {
+                            return cont(data);
+                          } else {
+                            return err("Error: Could not download file " + id);
+                          }
+                        });
                       } else {
-                        return err("Error: Could not download file " + id);
+                        return err("Error " + error.status + ": " + error.statusText);
                       }
                     });
-                  } else {
-                    return err("Error " + error.status + ": " + error.statusText);
-                  }
-                });
+                  });
+                } else {
+                  return err("Error " + error.status + ": " + error.statusText);
+                }
               });
-            } else {
-              return err("Error " + error.status + ": " + error.statusText);
             }
           });
         } else {
