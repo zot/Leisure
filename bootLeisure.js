@@ -44,9 +44,9 @@ Boot.jsFiles = ['leisureFiles-0b1008a4519f9b4d1b78332df487d972c38425c7819561230a
         console.log("FRAG PARAMS: " + (JSON.stringify(uri.getFragParams())));
         _ref4 = uri.getFragParams(), load = _ref4.load, state = _ref4.state;
         if (state) {
-          document.querySelector('[maindoc]').html("<h1>LOADING Google Drive file... </h1>");
+          document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>";
         } else if (load) {
-          document.querySelector('[maindoc]').html("<h1>LOADING " + load + "... </h1>");
+          document.querySelector('[maindoc]').innerHTML = "<h1>LOADING " + load + "... </h1>";
         }
         Boot.documentFragment = document.location.hash;
         document.location.hash = '';
