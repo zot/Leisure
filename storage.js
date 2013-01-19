@@ -382,6 +382,7 @@
     if (!auth.finished) {
       replaceAuth(obj);
       if (obj.succeeded) {
+        gapi.client.setApiKey('AIzaSyCgr3jkxrcQBKfujp9URxVnjAG5OVqUg7U');
         return initFileList(function() {
           var cont, _i, _len, _ref5, _ref6, _results;
           _ref6 = (_ref5 = auth.cont) != null ? _ref5 : [];
