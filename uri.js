@@ -69,7 +69,7 @@
           _results.push("" + k + "=" + v);
         }
         return _results;
-      }).call(this));
+      }).call(this)).join('&');
       return this;
     };
 
@@ -92,7 +92,7 @@
           _results.push("" + k + "=" + v);
         }
         return _results;
-      }).call(this));
+      }).call(this)).join('&');
       return this;
     };
 
