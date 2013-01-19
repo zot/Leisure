@@ -23,14 +23,14 @@
         var file, files, id, m, _ref5;
         if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
           id = decodeURIComponent(m[1]);
-          return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(err, data) {
-            if (!err) {
+          return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(error, data) {
+            if (!error) {
               return cont(data);
             } else if (!auth.finished) {
               return initGdrive(function() {
-                return fetchFile(id, function(err, file) {
-                  if (!err) {
-                    return readFile(file, function(err, data) {
+                return fetchFile(id, function(error, file) {
+                  if (!error) {
+                    return readFile(file, function(error, data) {
                       if (data) {
                         return cont(data);
                       } else {
@@ -38,12 +38,12 @@
                       }
                     });
                   } else {
-                    return err("Error " + err.status + ": " + err.statusText);
+                    return err("Error " + error.status + ": " + error.statusText);
                   }
                 });
               });
             } else {
-              return err("Error " + err.status + ": " + err.statusText);
+              return err("Error " + error.status + ": " + error.statusText);
             }
           });
         } else {
