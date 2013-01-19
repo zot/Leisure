@@ -23,7 +23,7 @@
         var file, files, id, m, _ref5;
         if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
           id = decodeURIComponent(m[1]);
-          readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(err, data) {
+          return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(err, data) {
             if (!err) {
               return cont(data);
             } else if (!auth.finished) {
@@ -49,14 +49,14 @@
           } else {
             file = id2File[files[0]];
           }
+          return readFile(file, function(error, result) {
+            if (!error) {
+              return cont(result);
+            } else {
+              return err(new Error("Error reading file " + uri + ": " + error.statusText));
+            }
+          });
         }
-        return readFile(file, function(error, result) {
-          if (!error) {
-            return cont(result);
-          } else {
-            return err(new Error("Error reading file " + uri + ": " + error.statusText));
-          }
-        });
       },
       write: function write(uri, data, cont, err) {
         return initGdrive(function() {
