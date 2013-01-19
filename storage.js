@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, apiKey, auth, checkDriveAuth, clientId, computePaths, createAuthButton, download, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, apiKey, auth, checkDriveAuth, clientId, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readFile2, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -36,15 +36,9 @@
                   return cont(data);
                 } else if (!auth.finished) {
                   return initGdrive(function() {
-                    return fetchFile(id, function(error, file) {
+                    return readFile2(id, function(error, data) {
                       if (!error) {
-                        return readFile(file, function(error, data) {
-                          if (data) {
-                            return cont(data);
-                          } else {
-                            return err("Error: Could not download file " + id);
-                          }
-                        });
+                        return cont(data);
                       } else {
                         return err("Error " + error.status + ": " + error.statusText);
                       }
@@ -491,6 +485,30 @@
     });
   };
 
+  readFile2 = function readFile2(fileID, callback) {
+    return gapi.client.request({
+      path: "/drive/v2/files/" + fileID,
+      method: 'GET',
+      callback: function callback(responseJson) {
+        var myToken, myXHR;
+        myToken = gapi.auth.getToken();
+        myXHR = new XMLHttpRequest();
+        myXHR.open('GET', responseJson.downloadUrl, true);
+        myXHR.setRequestHeader('Authorization', 'Bearer ' + myToken.access_token);
+        myXHR.onreadystatechange = function onreadystatechange() {
+          if (myXHR.readyState === 4) {
+            if (myXHR.status === 200) {
+              return callback(null, myXHR.responseText);
+            } else {
+              return callback(myxhR);
+            }
+          }
+        };
+        return myXHR.send();
+      }
+    });
+  };
+
   readFile = function readFile(file, callback) {
     var url, _ref5, _ref6;
     if (url = (_ref5 = file.downloadUrl) != null ? _ref5 : (_ref6 = file.exportLinks) != null ? _ref6['text/plain'] : void 0) {
@@ -521,26 +539,6 @@
         }
       };
       return xhr.send();
-    });
-  };
-
-  download = function download(id, callback) {
-    var del;
-    del = showDelay();
-    return Notebook.delay(function() {
-      var req;
-      req = gapi.client.request({
-        'path': "/uc=?id=" + id + "&export=download",
-        'method': 'GET',
-        'headers': {
-          'Authorization': 'Bearer ' + auth.token
-        }
-      });
-      return req.execute(function(json) {
-        del();
-        if (json) computePaths(json);
-        return callback(json);
-      });
     });
   };
 
