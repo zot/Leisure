@@ -121,10 +121,10 @@
         });
       },
       fallbackHtml: function fallbackHtml(file) {
-        return "In order to open " + file.title + ", you must first authorize Leisure to access it by opening it from your Google Drive Console.  Here's what to do:\n<ol><li>Click <a href='" + file.selfLink + "'>here</a> to view the file\n<li>Add the file to your 'starred files' by clicking the star at the top of the file's page\n<li>Open it from your Google Drive console by clicking the back arrow at the top of the file's page\n</ol>\nOpening it from Google Drive will allow you to use the Leisure link after that (<a href='" + document.location.href + "'>" + document.location.href + "</a>).";
+        return "<h1>Couldn't open " + file.title + "</h1>\n<h2>In order to open " + file.title + ", you must first authorize Leisure to access it by opening it from your Google Drive Console.</h2>\nHere's what to do:\n<ol><li>Click <a href='" + file.selfLink + "'>here</a> to view the file\n<li>Add the file to your 'starred files' by clicking the star at the top of the file's page\n<li>Open it from your Google Drive console by clicking the back arrow at the top of the file's page\n</ol>\nOpening it from Google Drive will allow you to use the Leisure link after that (<a href='" + document.location.href + "'>" + document.location.href + "</a>).";
       },
       noFile: function noFile(id) {
-        return "Couldn't find file for id, " + id + ".  Perhaps it has not been shared with you, it does not exist, or there is a mistake in the URL.";
+        return "<h1>Couldn't find file for id, " + id + "</h1><h2>Perhaps it has not been shared with you, it does not exist, or there is a mistake in the URL.</h2>";
       }
     });
   };
