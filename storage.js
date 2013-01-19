@@ -30,7 +30,7 @@
               return initGdrive(function() {
                 return fetchFile(id, function(err, file) {
                   if (!err) {
-                    return download(id, function(data) {
+                    return readFile(file, function(err, data) {
                       if (data) {
                         return cont(data);
                       } else {
