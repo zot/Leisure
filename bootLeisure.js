@@ -92,8 +92,12 @@ Boot.jsFiles = ['leisureFiles-0b1008a4519f9b4d1b78332df487d972c38425c7819561230a
       return Prim.read(load, (function(data) {
         Notebook.replaceContents(load, data);
         return cont();
-      }), function(err) {
-        return $('[maindoc]').innerHTML = "<h1>ERROR LOADING " + load + ": " + err + "</h1>";
+      }), function(err, html) {
+        if (html) {
+          return $('[maindoc]').innerHTML = html;
+        } else {
+          return $('[maindoc]').innerHTML = "<h1>ERROR LOADING " + load + ": " + err + "</h1>";
+        }
       });
     } : function(cont) {
       Notebook.replaceContents();
