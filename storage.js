@@ -486,12 +486,8 @@
   };
 
   readFile = function readFile(file, callback) {
-    var params, uri, url, _ref5, _ref6;
+    var url, _ref5, _ref6;
     if (url = (_ref5 = file.downloadUrl) != null ? _ref5 : (_ref6 = file.exportLinks) != null ? _ref6['text/plain'] : void 0) {
-      uri = new URI(url);
-      params = uri.getSearchParams();
-      delete params.gd;
-      url = uri.setSearchParams(params).toString();
       console.log("File:", file);
       return readUrl(url, callback);
     } else {
@@ -505,7 +501,7 @@
     return Notebook.delay(function() {
       var xhr;
       xhr = new XMLHttpRequest();
-      xhr.open('GET', "" + url + (url.match(/[?]/) ? '&' : '?') + "key=" + apiKey);
+      xhr.open('GET', url, true);
       xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
       xhr.onreadystatechange = function onreadystatechange() {
         if (this.readyState === DONE) {
