@@ -519,7 +519,7 @@
     return Notebook.delay(function() {
       var req;
       req = gapi.client.request({
-        'path': "uc=?id=" + id + "&export=download",
+        'path': "/uc=?id=" + id + "&export=download",
         'method': 'GET',
         'headers': {
           'Authorization': 'Bearer ' + auth.token
