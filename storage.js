@@ -500,7 +500,7 @@
             if (myXHR.status === 200) {
               return callback(null, myXHR.responseText);
             } else {
-              return callback(myxhR);
+              return callback(myXHR);
             }
           }
         };
