@@ -432,14 +432,17 @@ f4
 ```
 ***
 # The Language: It's lazy
+Here is an infinite sequence
+```
+ones = [1 | ones]
+take 5 ones
+```
+This discards its second argument, so it doesn't matter if there are errors in it
 ```
 ignore2nd a b = a
 ignore2nd (error 'an error') 1
 ignore2nd 1 (error 'an error')
-ones = [1 | ones]
-take 5 ones
 ```
-
 This works fine for positive numbers
 ```
 dbl x = eq x 0
