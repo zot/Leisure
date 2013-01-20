@@ -41,7 +41,7 @@ do
     "<input id='openUriText' type='text'><br>"
     "<button id='saveAsButton'>Save as</button>"
     "<input id='saveAsText' type='text'><br>"
-    "<button id='toggleHiddenPages' type='checkbox'>Show Hidden Pages</button><br>"
+    "<button id='toggleHiddenPages' type='checkbox'>Toggle Hidden Pages</button><br>"
     "<button id='openFromGdriveButton'>Open from Google Drive</button>"])
   bindEvent '#openFromGdriveButton' 'click' \e . gdriveOpen
   bindEvent '#saveButton' 'click' \e . save

@@ -73,7 +73,7 @@
       for (i = 0, _ref = pages.length; i < _ref; i += 2) {
         p = pages[i];
         if (p) {
-          pageType = i > 0 ? (m = (_ref2 = pages[i - 1].match(slidePat)) != null ? _ref2[1] : void 0, m.match(/\n-\n/) ? 'continuation' : m.match(/\n--\n/) ? 'hiddenPage' : null) : null;
+          pageType = i > 0 ? (m = (_ref2 = pages[i - 1].match(slidePat)) != null ? _ref2[1] : void 0, m.match(/\n-\n/) ? 'continuation' : m.match(/\n--?\n/) ? 'hiddenPage' : null) : null;
           content = makeSlideDiv(el, pageType, (i > 0 ? pages[i - 1].match(slideName)[1].trim() : 'Main'));
           if (i > 0) {
             hasCode = (markupElement(content, pages[i - 1] + p)) || hasCode;
