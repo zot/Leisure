@@ -443,6 +443,8 @@ ignore2nd a b = a
 ignore2nd (error 'an error') 1
 ignore2nd 1 (error 'an error')
 ```
+***
+# The Language: It's lazy
 This works fine for positive numbers
 ```
 dbl x = eq x 0
@@ -453,7 +455,9 @@ but it never terminates for negative numbers
 ```
 dbl (-1)
 ```
-b = dbl y looks dangerous if y is negative
+***
+# The Language: It's lazy
+b = dbl y looks dangerous, here, if y is negative
 ```
 f x y = do
   a = x
