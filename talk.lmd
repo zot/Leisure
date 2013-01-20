@@ -90,7 +90,6 @@ do
 
 <iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
 ***
--
 # Welcome to Leisure! (here's the [project page](https://github.com/zot/Leisure))
 
 ## Leisure is: a **Toy**
@@ -101,12 +100,14 @@ do
 ## Please use it to make cool stuff!
 ***
 # Programming should be:
+-
 ### Fun
 ### Easy
 ### Interesting
 ## There should be cool stuff for you to play with
 ## Leisure tries to make it that way
 ***
+-
 # Programming should be:
 ### Fun
 ### Easy
@@ -115,6 +116,7 @@ do
 ## Leisure tries to make it that way
 ## Leisure is targeted at kids with no programming experience
 ***
+-
 # Programming should be:
 ### Fun
 ### Easy
@@ -276,6 +278,7 @@ rotate (polygon nil) 90
 add3 a b c = a + b + c
 ```
 ***
+-
 # Notebooks: Develop interactively
 
 ## Updating
@@ -304,12 +307,13 @@ f1 = 1
 f2 = 2
 ```
 ***
-# Notebooks: Storage (in the works)
+# Notebooks: Storage
+## Local files (requires an install), urls: local:///...
+## Google Drive -- basic functionality working, urls: googledrive:///... and googledrive://id:...
+# To be done
 ## Import/export zip files
-## Google Drive (can already connect and create directories and files)
 ## Dropbox
 ## Eclipse Orion -- has simple CORS API for workspace and Git!
-## Local files (requires an install)
 
 ```
 do
@@ -421,10 +425,10 @@ f4
 ***
 # The Language: Syntax minimizes parentheses
 
-## commas are optional in lists (because [ is a macro and it can strain them out)
+## commas are optional in lists (because [ is a macro and it strains them out); subexpressions must be parenthesized or indented (at this point, commas don't help with grouping, they're just like whitespace)
 ```
-[1 2 3 4]
-[1,2,3,4]
+[1 2 3 4 (5 + 6)]
+[1,2,3,4,(5 + 6)]
 ```
 ***
 # The Language: It's lazy
@@ -531,15 +535,18 @@ do
     print concat["Hello, " x]
 ```
 ***
+-
 # The Language: Monads
 
 ## code that runs at load-time can use monads to affect the Leisure environment
 ***
+-
 # The Language: Monads
 
 ## code that runs at load-time can use monads to affect the Leisure environment
 ## import is a monad
 ***
+-
 # The Language: Monads
 
 ## code that runs at load-time can use monads to affect the Leisure environment
@@ -591,7 +598,6 @@ do
 ## Why are development environments so annoying to extend?
 ## Why are other things so annoying to extend? (web browsers, app servers, word processors, IDSs)
 ***
--
 # Xus: A Way to Communicate With Leisure
 
 ## Why can't you use command line tools easily with most development environments?
@@ -604,6 +610,7 @@ do
 
 ## leisure command (demonstrate)
 ***
+-
 # Xus
 
 ## leisure command
@@ -615,6 +622,7 @@ do
 ## extend notebooks in any language
 ## storage and other services will use Xus
 ***
+-
 # Xus: The Container Problem
 
 ![Compiler Flow](ContainerProblem1.svg)
@@ -623,7 +631,7 @@ do
 
 ![Compiler Flow](ContainerProblem2.svg)
 ***
-# Xus: Uh... COM/OLE/CORBA/DCE/RCP/SOAP/RMI?
+# Xus: Ummm... COM/OLE/CORBA/DCE/RCP/SOAP/RMI?
 ## Key differences
 * REALLY easy to use, simple, and flexible
    * This is very different from COM/OLE/CORBA/DCE/RCP/SOAP/RMI!
