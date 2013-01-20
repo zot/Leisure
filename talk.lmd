@@ -6,7 +6,10 @@ toggleHidden = do
   setHidden (not hidden)
 
 setHidden hide=do
-  js [(hide "$(document.body).removeClass('showHidden'); $(document.body).addClass('hideControls')" "$(document.body).addClass('showHidden hideControls')")]
+  js [
+    hide
+      "$(document.body).removeClass('showHidden'); $(document.body).addClass('hideControls')"
+      "$(document.body).addClass('showHidden hideControls')"]
   setValue 'hiddenPages' hide 
 
 openUriButton=do
