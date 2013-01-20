@@ -1,16 +1,13 @@
 *** Prelude Definitions
 --
 ```
-toggleHidden=do
+toggleHidden = do
   hidden <- getValue 'hiddenPages'
   setHidden (not hidden)
 
-setHidden hidden=do
-  js [
-    "$(document.body)."
-    hidden "removeClass" "addClass"
-    "('showHidden')"]
-  setValue 'hiddenPages' hidden 
+setHidden hide=do
+  js [(hide "$(document.body).removeClass('showHidden')" "$(document.body).addClass('showHidden hideControls')")]
+  setValue 'hiddenPages' hide 
 
 openUriButton=do
   fname <- js ["$('#saveAsText').val()"]
