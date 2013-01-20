@@ -9,8 +9,9 @@
 
   URI = (function() {
 
-    function URI(src) {
+    function URI(src, relative) {
       var match, _ref, _ref2;
+      if (relative) src = new URI(src).relativePath(relative);
       if (match = src.match(urlPat)) {
         if (match[2]) {
           this.scheme = match[2].toLowerCase();
@@ -36,12 +37,16 @@
     };
 
     URI.prototype.relative = function relative(path) {
+      return new URI(this.relativePath(path));
+    };
+
+    URI.prototype.relativePath = function relativePath(path) {
       var u;
       u = new URI(path);
       if (u.scheme) {
-        return u;
+        return u.toString();
       } else {
-        return new URI((this.scheme ? "" + this.scheme + "://" + this.host : '') + (path.match(/^\//) ? path : this.path.match(/\/$/) ? "" + this.path + path : "" + this.path + "/../" + path));
+        return (this.scheme ? "" + this.scheme + "://" + this.host : '') + (path.match(/^\//) ? path : this.path.match(/\/$/) ? "" + this.path + path : "" + this.path + "/../" + path);
       }
     };
 
