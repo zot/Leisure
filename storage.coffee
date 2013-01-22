@@ -63,21 +63,34 @@ if !window?
   initStorage = ->
   return
 
+clientId = '270759921607'
+
 # Google drive stuff for projects
 
 # callback function is given one argument: either null or an error string
 initStorage = (callback)->
   Prim.newUriHandler 'googledrive',
     read: (uri, cont, err, next)->
-      initGdrive ->
-        if (m = uri.host?.match /^id:(.*)$/) then file = id2File[m[1]]
-        else
-          files = path2Ids["/LeisureStorage#{uri.path}"]
-          if !files then next()
-          else if files.length > 1 then err new Error "More than one file for uri: #{uri}"
-          else file = id2File[files[0]]
-        readFile file, (err, result)->
-          if !err then cont result else new Error "Error reading file #{uri}: #{err.statusText}"
+      if (m = uri.host?.match /^id:(.*)$/)
+        id = decodeURIComponent m[1]
+        readUrl "https://docs.google.com/uc?id=#{id}&export=download", (error, data)=>
+          if !error then cont data
+          else readUrl "https://docs.google.com/feeds/download/documents/export/Export?id=#{id}&exportFormat=txt", (error, data)=>
+            if !error then cont data
+            else if !auth.finished then initGdrive =>
+              fetchFile id, (error, file)=>
+                if !error then readFile file, (error, data)=>
+                  if data then cont data
+                  else err "Error: Could not download file #{id}", @fallbackHtml file
+                else err "Error #{error.status}: #{error.statusText}", @noFile id
+            else err "Error #{error.status}: #{error.statusText}"
+      else
+        files = path2Ids["/LeisureStorage#{uri.path}"]
+        if !files then next()
+        else if files.length > 1 then err new Error "More than one file for uri: #{uri}"
+        else file = id2File[files[0]]
+        readFile file, (error, result)->
+          if !error then cont result else err new Error "Error reading file #{uri}: #{error.statusText}"
     write: (uri, data, cont, err)->
       initGdrive ->
         files = path2Ids["/LeisureStorage#{uri.path}"]
@@ -86,6 +99,27 @@ initStorage = (callback)->
         else if files?.length > 1 then err new Error "More than one file for uri: #{uri}"
         else updateFile id2File[files[0]], data, (json)->
           if json then cont() else err new Error "Problem writing file"
+    link: (uri)->
+      initGdrive =>
+        if uri.host.match /^id:.*/ then @basicLink uri
+        else
+          files = path2Ids["/LeisureStorage#{uri.path}"]
+          if !files then null
+          else @basicLink "googledrive://id:#{encodeURIComponent files[0]}"
+    fallbackHtml: (file)-> """
+      <h1>Couldn't open #{file.title}</h1>
+      <h2>In order to open #{file.title}, you must first authorize Leisure to access it by opening it from your Google Drive Console.</h2>
+      When you installe Leisure, it requrested the minimum privileges it could, in order to keep your documents safe.  In order to allow Leisure to open the file, you will have to open the file from your Google Drive console, once.  After that, the <a href='#{document.location.href}'>link for this page</a> will start to work.  Here's what to do:
+      <ol><li>Click <a href='#{file.alternateLink}'>here</a> to view the file
+      <li>Add the file to your 'starred files' by clicking the star at the top of the file's page
+      <li>Go to your 'starred' files in your <a href='https://drive.google.com/?authuser=0#starred'>Google Drive console</a>
+      <li>Click on #{file.title} to open it in Leisure
+      </ol>
+      After you do this, you can unstar the file and the normal Leisure link should work just fine.
+      """
+    noFile: (id)-> """
+      <h1>Couldn't find file for id, #{id}</h1><h2>Perhaps it has not been shared with you, it does not exist, or there is a mistake in the URL.</h2>
+      """
 
 openFromGdrive = (callback)->
   frag = (Boot.documentFragment ? '#').substring 1
@@ -123,7 +157,8 @@ loadFile = (id, cont)->
                 return
               else filename = path
           else filename = id2Paths[file.id][0]
-          Notebook.replaceContents "googledrive://#{filename}", text
+          Boot.addLoadToDocument "googledrive://id:#{file.id}"
+          Notebook.replaceContents "googledrive://#{filename.substring '/LeisureStorage'.length}", text
           (cont ? -> )()
         else
           $('[maindoc]')[0].innerHTML = "<h1>Error loading #{file.title}; can only load *.lmd files.</h1>"
@@ -215,7 +250,7 @@ checkDriveAuth = (immediate)->
   console.log "AUTH"
   try
     gapi.auth.authorize({
-      client_id: '270759921607',
+      client_id: clientId,
       scope: [
         'https://www.googleapis.com/auth/drive.file',
         'https://www.googleapis.com/auth/drive.install',
@@ -260,7 +295,8 @@ window.denyAuth = ->
 finishAuth = (obj)->
   if !auth.finished
     replaceAuth obj
-    if obj.succeeded then initFileList -> cont() for cont in (auth.cont ? [])
+    if obj.succeeded
+      initFileList -> cont() for cont in (auth.cont ? [])
     else cont() for cont in (auth.cont ? [])
 
 replaceAuth = (obj)->
@@ -314,22 +350,54 @@ mimePart = (boundary, mimeType, content)->
 
 DONE = 4
 
+fetchFile = (id, callback)->
+  del = showDelay()
+  Notebook.delay ->
+    xhr = new XMLHttpRequest();
+    xhr.open 'GET', "https://www.googleapis.com/drive/v2/files/#{id}"
+    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+    xhr.onreadystatechange = ->
+      if @readyState == DONE
+        del()
+        console.log "XHR", xhr
+        if @status == 200 then callback null, JSON.parse xhr.responseText
+        else callback xhr
+    xhr.send();
+
+readFile2 = (fileID, callback)->
+  gapi.client.request
+    path: "/drive/v2/files/#{fileID}"
+    method: 'GET'
+    callback: (responseJson)->
+      myToken = gapi.auth.getToken();
+      myXHR = new XMLHttpRequest();
+      myXHR.open('GET', responseJson.downloadUrl, true );
+      myXHR.setRequestHeader('Authorization', 'Bearer ' + myToken.access_token);
+      myXHR.onreadystatechange = ->
+        if myXHR.readyState == 4
+          if myXHR.status == 200 then callback null, myXHR.responseText
+          else callback myXHR
+      myXHR.send();
+
 readFile = (file, callback)->
   if url = (file.downloadUrl ? file.exportLinks?['text/plain'])
-    del = showDelay()
-    Notebook.delay ->
-      console.log "File:", file
-      xhr = new XMLHttpRequest();
-      xhr.open 'GET', url
-      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-      xhr.onreadystatechange = ->
-        if @readyState == DONE
-          del()
-          console.log "XHR", xhr
-          if @status == 200 then callback null, xhr.responseText
-          else callback xhr
-      xhr.send();
+    console.log "File:", file
+    readUrl url, callback
   else callback null
+
+readUrl = (url, callback)->
+  del = showDelay()
+  Notebook.delay ->
+    xhr = new XMLHttpRequest();
+    xhr.open 'GET', url, true
+    xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+    xhr.onreadystatechange = ->
+      if @readyState == DONE
+        del()
+        console.log "XHR", xhr
+        if @status == 200 then callback null, xhr.responseText
+        else callback xhr
+    xhr.send();
 
 writeFile = (name, contents, parents, callback)->
   del = showDelay()

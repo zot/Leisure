@@ -222,12 +222,18 @@ define 'fdump', ->(file)->
       console.log data.toString()
       cont()
 
-isStorageUri = (uri)-> uri.scheme in (Notebook?.xusServer?.varStorage.values['leisure/storage'] ? [])
+isStorageUri = (uri)-> uri?.scheme in (Notebook?.xusServer?.varStorage.values['leisure/storage'] ? [])
 
 class URIHandler
   constructor: (@label)->
   read: (uri, cont, errHandler, next)-> errHandler new Error "Read not currently supported for #{@label} uris"
   write: (uri, data, cont, errHandler)-> errHandler new Error "Write not currently supported for #{@label} uris"
+  basicLink: (uri)->
+    u = new URI(document.location.href)
+    u.search = null
+    u.fragment = "#load=#{uri}"
+    u
+  link: (uri)-> @basicLink uri
 
 baseHandler = new URIHandler('base')
 
@@ -239,8 +245,9 @@ newUriHandler = (label, obj)->
   uriHandlers[label] = obj
 
 newUriHandler 'err',
-  read: (uri, cont, errHandler, next)-> errHandler new Error "No uri handler for #{uri.scheme} uris"
-  write: (uri, data, cont, errHandler)-> errHandler new Error "No uri handler for #{uri.scheme} uris"
+  read: (uri, cont, errHandler, next)-> errHandler new Error "No uri handler for #{uri?.scheme} uris"
+  write: (uri, data, cont, errHandler)-> errHandler new Error "No uri handler for #{uri?.scheme} uris"
+  link: (uri) -> ''
 
 newUriHandler 'http',
   read: (uri, cont, errHandler, next)->
@@ -258,7 +265,7 @@ localHandler =
 localHandlerConts = []
 
 installRealLocalHandler = (cont)->
-  localHandlerConts.push cont
+  if cont then localHandlerConts.push cont
   console.log "leisure/storage: #{Notebook.xusServer.get 'leisure/storage'}"
   if 'local-storage' in Notebook.xusServer.get 'leisure/storage'
     console.log "Executing local-storage operations"
@@ -276,7 +283,7 @@ installRealLocalHandler = (cont)->
     console.log "Deferring local-storage operation"
     console.log "Installing local handler"
     installingLocalHandler = true
-    window.setTimeout (-> installRealLocalHandler), 100
+    window.setTimeout (-> installRealLocalHandler()), 100
 
 newUriHandler 'local', localHandler
 
@@ -293,7 +300,7 @@ newUriHandler 'file',
       else fs.writeFile uri.path, data, (e2)->
         if e2 then err e2 else cont()
 
-uriHandlerFor = (uri)-> if isStorageUri uri then uriHandlers.xus else uriHandlers[uri.scheme] ? uriHandlers.err
+uriHandlerFor = (uri)-> if isStorageUri uri then uriHandlers.xus else (uri && uriHandlers[uri?.scheme]) ? uriHandlers.err
 
 if window? then uriHandlers.file = new URIHandler 'file'
 
@@ -311,6 +318,8 @@ loadSource = (uri, data, cont, err)->
 read = (uri, cont, err)-> uriHandlerFor(uri).read uri, cont, err, -> err new Error("File not found: #{uri}")
 
 write = (uri, data, cont, err)-> uriHandlerFor(uri).write uri, data, cont ? (->), err ? throwError
+
+linkFor = (uri)-> uriHandlerFor(uri).link(uri)
 
 tryRead = (label, choices, handler, cont, err)->
   if !choices.length then err new Error "No loadable file found for #{label}"
@@ -498,5 +507,6 @@ root.Monad = Monad
 root.newUriHandler = newUriHandler
 root.read = read
 root.write = write
+root.linkFor = linkFor
 
 if window? then window.leisureEvent = leisureEvent

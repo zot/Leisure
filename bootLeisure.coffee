@@ -16,20 +16,18 @@ Boot.onboot = (cont)->
 bootLeisure = ->
   loadThen [uniquify("uri.js")], ->
     uri = new window.URI(document.location.href)
+    oldParams = uri.getSearchParams()
     params = uri.getSearchParams()
+    if !params.uniq then uri.appendSearch "uniq=#{Math.random()}"
     if params.state
-      uri.fragment = (if uri.fragment then uri.fragment + '&' else '#') + uri.search.substring(1)
+      uri.appendFragment uri.search.substring(1)
       uri.search = null
-      document.location.href = uri.toString()
-    else if !params.uniq
-      uri.search = "#{uri.search ? ''}#{if uri.search then '&' else '?'}uniq=#{Math.random()}"
-      document.location.href = uri.toString()
+    if oldParams.state || !oldParams.uniq then document.location.href = uri.toString()
     else
-      console.log "FRAG PARAMS: #{JSON.stringify uri.getFragParams()}"
       {load,state} = uri.getFragParams()
       if state then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>"
       else if load then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING #{load}... </h1>"
-      Boot.documentFragment = document.location.hash
+      Boot.documentFragment = uri.fragment
       document.location.hash = ''
       bootLeisureCont load, state
 
@@ -57,11 +55,15 @@ bootLeisureCont = (load, state)->
     document.head.appendChild style
   f = if state then (cont)-> window.GdriveStorage.openFromGdrive cont
   else if load then (cont)->
+    addLoadToDocument load
+    load = new URI(document.location.href, load)
     console.log "LOADING #{load}"
     Prim.read load, ((data)->
       Notebook.replaceContents load, data
       cont()
-    ), (err)-> $('[maindoc]').innerHTML = "<h1>ERROR LOADING #{load}: #{err}</h1>"
+    ), (err, html)->
+      if html then $('[maindoc]').html html
+      else $('[maindoc]').html "<h1>ERROR LOADING #{load}: #{err}</h1>"
   else (cont)->
     Notebook.replaceContents()
     cont()
@@ -73,6 +75,13 @@ bootLeisureCont = (load, state)->
       window.leisureFirst?()
       if window.leisurePrep? then callPrepCode window.leisurePrep, 0, finishBoot
       else finishBoot()
+
+addLoadToDocument = (uri)->
+  u = new URI(document.location.href)
+  p = u.getFragParams()
+  p.load = uri.toString()
+  u.setFragParams p
+  document.location.href = u.toString()
 
 callPrepCode = (preps, index, finishBoot)->
   if index < preps.length
@@ -108,3 +117,4 @@ handleError = (args...)->(e)->console.log 'Error: ', args..., e
 window.Leisure = Leisure
 Leisure.bootLeisure = bootLeisure
 Boot.loadThen = loadThen
+Boot.addLoadToDocument = addLoadToDocument

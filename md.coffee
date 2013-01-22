@@ -92,10 +92,10 @@ markupSlideContent = (el, md, noMain)->
       if p
         pageType = if i > 0
           m = pages[i - 1].match(slidePat)?[1]
-          if m.match /\n-\n/ then 'continuation'
-          else if m.match /\n--\n/ then 'hiddenPage'
-          else null
-        else null
+          if m.match /\n-\n/ then ['continuation', 'hiddenPage']
+          else if m.match /\n--\n/ then ['hiddenPage']
+          else []
+        else []
         content = makeSlideDiv el, pageType, (if i > 0 then pages[i - 1].match(slideName)[1].trim() else 'Main')
         if i > 0 then hasCode = (markupElement content, pages[i - 1] + p) || hasCode
         else
@@ -103,7 +103,7 @@ markupSlideContent = (el, md, noMain)->
           #if noMain then unwrapContent content
         padSlide content, (if i > 0 then pages[i - 1] else '***\n')
   else
-    content = makeSlideDiv el, 'page', 'Main'
+    content = makeSlideDiv el, ['page'], 'Main'
     while el.firstChild != content.parentNode
       content.appendChild el.firstChild
     hasCode = markupElement content, md
@@ -132,7 +132,7 @@ unwrapContent = (content)->
   remove section
   unwrap content
 
-makeSlideDiv = (el, pageType, title)->
+makeSlideDiv = (el, pageTypes, title)->
   lastSlide = div = createNode "<div class='leisure_page'></div>"
   div.setAttribute 'leisureSection', title
   div.setAttribute 'doc', ''
@@ -141,7 +141,7 @@ makeSlideDiv = (el, pageType, title)->
   div.classList.add 'ui-corner-all'
   div.classList.add 'ui-widget'
   div.classList.add 'ui-widget-content'
-  if pageType then div.classList.add pageType
+  div.classList.add pageType for pageType in pageTypes
   el.appendChild div
   sectionTitle = createNode("<span class='pageTitle'>#{title}</span>")
   sectionTitle.setAttribute 'leisureoutput', ''

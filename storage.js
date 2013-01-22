@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, computePaths, createAuthButton, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, clientId, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readFile2, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -17,31 +17,61 @@
     return;
   }
 
+  clientId = '270759921607';
+
   initStorage = function initStorage(callback) {
     return Prim.newUriHandler('googledrive', {
       read: function read(uri, cont, err, next) {
-        return initGdrive(function() {
-          var file, files, m, _ref5;
-          if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
-            file = id2File[m[1]];
-          } else {
-            files = path2Ids["/LeisureStorage" + uri.path];
-            if (!files) {
-              next();
-            } else if (files.length > 1) {
-              err(new Error("More than one file for uri: " + uri));
+        var file, files, id, m, _ref5,
+          _this = this;
+        if ((m = (_ref5 = uri.host) != null ? _ref5.match(/^id:(.*)$/) : void 0)) {
+          id = decodeURIComponent(m[1]);
+          return readUrl("https://docs.google.com/uc?id=" + id + "&export=download", function(error, data) {
+            if (!error) {
+              return cont(data);
             } else {
-              file = id2File[files[0]];
-            }
-          }
-          return readFile(file, function(err, result) {
-            if (!err) {
-              return cont(result);
-            } else {
-              return new Error("Error reading file " + uri + ": " + err.statusText);
+              return readUrl("https://docs.google.com/feeds/download/documents/export/Export?id=" + id + "&exportFormat=txt", function(error, data) {
+                if (!error) {
+                  return cont(data);
+                } else if (!auth.finished) {
+                  return initGdrive(function() {
+                    return fetchFile(id, function(error, file) {
+                      if (!error) {
+                        return readFile(file, function(error, data) {
+                          if (data) {
+                            return cont(data);
+                          } else {
+                            return err("Error: Could not download file " + id, _this.fallbackHtml(file));
+                          }
+                        });
+                      } else {
+                        return err("Error " + error.status + ": " + error.statusText, _this.noFile(id));
+                      }
+                    });
+                  });
+                } else {
+                  return err("Error " + error.status + ": " + error.statusText);
+                }
+              });
             }
           });
-        });
+        } else {
+          files = path2Ids["/LeisureStorage" + uri.path];
+          if (!files) {
+            next();
+          } else if (files.length > 1) {
+            err(new Error("More than one file for uri: " + uri));
+          } else {
+            file = id2File[files[0]];
+          }
+          return readFile(file, function(error, result) {
+            if (!error) {
+              return cont(result);
+            } else {
+              return err(new Error("Error reading file " + uri + ": " + error.statusText));
+            }
+          });
+        }
       },
       write: function write(uri, data, cont, err) {
         return initGdrive(function() {
@@ -71,6 +101,28 @@
             });
           }
         });
+      },
+      link: function link(uri) {
+        var _this = this;
+        return initGdrive(function() {
+          var files;
+          if (uri.host.match(/^id:.*/)) {
+            return _this.basicLink(uri);
+          } else {
+            files = path2Ids["/LeisureStorage" + uri.path];
+            if (!files) {
+              return null;
+            } else {
+              return _this.basicLink("googledrive://id:" + (encodeURIComponent(files[0])));
+            }
+          }
+        });
+      },
+      fallbackHtml: function fallbackHtml(file) {
+        return "<h1>Couldn't open " + file.title + "</h1>\n<h2>In order to open " + file.title + ", you must first authorize Leisure to access it by opening it from your Google Drive Console.</h2>\nWhen you installe Leisure, it requrested the minimum privileges it could, in order to keep your documents safe.  In order to allow Leisure to open the file, you will have to open the file from your Google Drive console, once.  After that, the <a href='" + document.location.href + "'>link for this page</a> will start to work.  Here's what to do:\n<ol><li>Click <a href='" + file.alternateLink + "'>here</a> to view the file\n<li>Add the file to your 'starred files' by clicking the star at the top of the file's page\n<li>Go to your 'starred' files in your <a href='https://drive.google.com/?authuser=0#starred'>Google Drive console</a>\n<li>Click on " + file.title + " to open it in Leisure\n</ol>\nAfter you do this, you can unstar the file and the normal Leisure link should work just fine.";
+      },
+      noFile: function noFile(id) {
+        return "<h1>Couldn't find file for id, " + id + "</h1><h2>Perhaps it has not been shared with you, it does not exist, or there is a mistake in the URL.</h2>";
       }
     });
   };
@@ -127,7 +179,8 @@
             } else {
               filename = id2Paths[file.id][0];
             }
-            Notebook.replaceContents("googledrive://" + filename, text);
+            Boot.addLoadToDocument("googledrive://id:" + file.id);
+            Notebook.replaceContents("googledrive://" + (filename.substring('/LeisureStorage'.length)), text);
             return (cont != null ? cont : function() {})();
           } else {
             return $('[maindoc]')[0].innerHTML = "<h1>Error loading " + file.title + "; can only load *.lmd files.</h1>";
@@ -287,7 +340,7 @@
     console.log("AUTH");
     try {
       return gapi.auth.authorize({
-        client_id: '270759921607',
+        client_id: clientId,
         scope: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.install'].join(' '),
         immediate: immediate
       }, handleAuthResult);
@@ -419,32 +472,84 @@
 
   DONE = 4;
 
-  readFile = function readFile(file, callback) {
-    var del, url, _ref5, _ref6;
-    if (url = (_ref5 = file.downloadUrl) != null ? _ref5 : (_ref6 = file.exportLinks) != null ? _ref6['text/plain'] : void 0) {
-      del = showDelay();
-      return Notebook.delay(function() {
-        var xhr;
-        console.log("File:", file);
-        xhr = new XMLHttpRequest();
-        xhr.open('GET', url);
-        xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
-        xhr.onreadystatechange = function onreadystatechange() {
-          if (this.readyState === DONE) {
-            del();
-            console.log("XHR", xhr);
-            if (this.status === 200) {
-              return callback(null, xhr.responseText);
+  fetchFile = function fetchFile(id, callback) {
+    var del;
+    del = showDelay();
+    return Notebook.delay(function() {
+      var xhr;
+      xhr = new XMLHttpRequest();
+      xhr.open('GET', "https://www.googleapis.com/drive/v2/files/" + id);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+      xhr.onreadystatechange = function onreadystatechange() {
+        if (this.readyState === DONE) {
+          del();
+          console.log("XHR", xhr);
+          if (this.status === 200) {
+            return callback(null, JSON.parse(xhr.responseText));
+          } else {
+            return callback(xhr);
+          }
+        }
+      };
+      return xhr.send();
+    });
+  };
+
+  readFile2 = function readFile2(fileID, callback) {
+    return gapi.client.request({
+      path: "/drive/v2/files/" + fileID,
+      method: 'GET',
+      callback: function callback(responseJson) {
+        var myToken, myXHR;
+        myToken = gapi.auth.getToken();
+        myXHR = new XMLHttpRequest();
+        myXHR.open('GET', responseJson.downloadUrl, true);
+        myXHR.setRequestHeader('Authorization', 'Bearer ' + myToken.access_token);
+        myXHR.onreadystatechange = function onreadystatechange() {
+          if (myXHR.readyState === 4) {
+            if (myXHR.status === 200) {
+              return callback(null, myXHR.responseText);
             } else {
-              return callback(xhr);
+              return callback(myXHR);
             }
           }
         };
-        return xhr.send();
-      });
+        return myXHR.send();
+      }
+    });
+  };
+
+  readFile = function readFile(file, callback) {
+    var url, _ref5, _ref6;
+    if (url = (_ref5 = file.downloadUrl) != null ? _ref5 : (_ref6 = file.exportLinks) != null ? _ref6['text/plain'] : void 0) {
+      console.log("File:", file);
+      return readUrl(url, callback);
     } else {
       return callback(null);
     }
+  };
+
+  readUrl = function readUrl(url, callback) {
+    var del;
+    del = showDelay();
+    return Notebook.delay(function() {
+      var xhr;
+      xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + auth.token);
+      xhr.onreadystatechange = function onreadystatechange() {
+        if (this.readyState === DONE) {
+          del();
+          console.log("XHR", xhr);
+          if (this.status === 200) {
+            return callback(null, xhr.responseText);
+          } else {
+            return callback(xhr);
+          }
+        }
+      };
+      return xhr.send();
+    });
   };
 
   writeFile = function writeFile(name, contents, parents, callback) {

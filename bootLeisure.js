@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-afbf3bb01971780c25a61d3b8a1eb04e68fa2fc27bda9cb41251a0acf021a843.css'];
-Boot.jsFiles = ['leisureFiles-522f40b80d672b4da704ba766c1642ee5ff954268e95d3324695cb6372497d47.js'];
+Boot.jsFiles = ['leisureFiles-e0c6e34c89fe4338fdeba1c878bf1bd8ccd1090905f36ff8dc76431de01f29f0.js'];
 })();
 
 /*
@@ -9,7 +9,7 @@ Boot.jsFiles = ['leisureFiles-522f40b80d672b4da704ba766c1642ee5ff954268e95d33246
 */
 
 (function() {
-  var Boot, Leisure, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, finishBoot, handleError, loadThen, uniquify, _ref, _ref2,
+  var Boot, Leisure, addLoadToDocument, bootFuncs, bootLeisure, bootLeisureCont, booted, callPrepCode, finishBoot, handleError, loadThen, uniquify, _ref, _ref2,
     __slice = Array.prototype.slice;
 
   Leisure = (_ref = window.Leisure) != null ? _ref : (window.Leisure = {});
@@ -30,25 +30,25 @@ Boot.jsFiles = ['leisureFiles-522f40b80d672b4da704ba766c1642ee5ff954268e95d33246
 
   bootLeisure = function bootLeisure() {
     return loadThen([uniquify("uri.js")], function() {
-      var load, params, state, uri, _ref3, _ref4;
+      var load, oldParams, params, state, uri, _ref3;
       uri = new window.URI(document.location.href);
+      oldParams = uri.getSearchParams();
       params = uri.getSearchParams();
+      if (!params.uniq) uri.appendSearch("uniq=" + (Math.random()));
       if (params.state) {
-        uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
+        uri.appendFragment(uri.search.substring(1));
         uri.search = null;
-        return document.location.href = uri.toString();
-      } else if (!params.uniq) {
-        uri.search = "" + ((_ref3 = uri.search) != null ? _ref3 : '') + (uri.search ? '&' : '?') + "uniq=" + (Math.random());
+      }
+      if (oldParams.state || !oldParams.uniq) {
         return document.location.href = uri.toString();
       } else {
-        console.log("FRAG PARAMS: " + (JSON.stringify(uri.getFragParams())));
-        _ref4 = uri.getFragParams(), load = _ref4.load, state = _ref4.state;
+        _ref3 = uri.getFragParams(), load = _ref3.load, state = _ref3.state;
         if (state) {
           document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>";
         } else if (load) {
           document.querySelector('[maindoc]').innerHTML = "<h1>LOADING " + load + "... </h1>";
         }
-        Boot.documentFragment = document.location.hash;
+        Boot.documentFragment = uri.fragment;
         document.location.hash = '';
         return bootLeisureCont(load, state);
       }
@@ -86,12 +86,18 @@ Boot.jsFiles = ['leisureFiles-522f40b80d672b4da704ba766c1642ee5ff954268e95d33246
     f = state ? function(cont) {
       return window.GdriveStorage.openFromGdrive(cont);
     } : load ? function(cont) {
+      addLoadToDocument(load);
+      load = new URI(document.location.href, load);
       console.log("LOADING " + load);
       return Prim.read(load, (function(data) {
         Notebook.replaceContents(load, data);
         return cont();
-      }), function(err) {
-        return $('[maindoc]').innerHTML = "<h1>ERROR LOADING " + load + ": " + err + "</h1>";
+      }), function(err, html) {
+        if (html) {
+          return $('[maindoc]').html(html);
+        } else {
+          return $('[maindoc]').html("<h1>ERROR LOADING " + load + ": " + err + "</h1>");
+        }
       });
     } : function(cont) {
       Notebook.replaceContents();
@@ -110,6 +116,15 @@ Boot.jsFiles = ['leisureFiles-522f40b80d672b4da704ba766c1642ee5ff954268e95d33246
         }
       });
     });
+  };
+
+  addLoadToDocument = function addLoadToDocument(uri) {
+    var p, u;
+    u = new URI(document.location.href);
+    p = u.getFragParams();
+    p.load = uri.toString();
+    u.setFragParams(p);
+    return document.location.href = u.toString();
   };
 
   callPrepCode = function callPrepCode(preps, index, finishBoot) {
@@ -170,5 +185,7 @@ Boot.jsFiles = ['leisureFiles-522f40b80d672b4da704ba766c1642ee5ff954268e95d33246
   Leisure.bootLeisure = bootLeisure;
 
   Boot.loadThen = loadThen;
+
+  Boot.addLoadToDocument = addLoadToDocument;
 
 }).call(this);

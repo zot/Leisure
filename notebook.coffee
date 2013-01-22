@@ -103,7 +103,7 @@ replaceContents = (uri, contents)->
   if !contents
     contents = uri
     uri = null
-  else setFilename uri.toString()
+  if uri then setFilename uri.toString()
   document.body.setAttribute 'doc', ''
   window.leisureAutoRunAll = true
   window.markup contents
@@ -1331,6 +1331,9 @@ evalDocCode = (el, pgm)->
 
 Parse.define 'getDocument', ->
   Prim.makeMonad (env, cont)-> cont peerGetDocument()
+
+Parse.define 'getLink', ->
+  Prim.makeMonad (env, cont)-> cont Prim.linkFor filename
 
 Parse.define 'replaceDocument', ->(str)->
   Prim.makeMonad (env, cont)->
