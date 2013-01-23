@@ -687,7 +687,7 @@
 
   installRealLocalHandler = function installRealLocalHandler(cont) {
     var c, installingLocalHandler, _i, _len;
-    localHandlerConts.push(cont);
+    if (cont) localHandlerConts.push(cont);
     console.log("leisure/storage: " + (Notebook.xusServer.get('leisure/storage')));
     if (__indexOf.call(Notebook.xusServer.get('leisure/storage'), 'local-storage') >= 0) {
       console.log("Executing local-storage operations");
@@ -719,7 +719,7 @@
       console.log("Installing local handler");
       installingLocalHandler = true;
       return window.setTimeout((function() {
-        return installRealLocalHandler;
+        return installRealLocalHandler();
       }), 100);
     }
   };

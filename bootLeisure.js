@@ -1,7 +1,7 @@
 (function(){
 var Boot = window.Boot = {};
 Boot.cssFiles = ['leisureFiles-afbf3bb01971780c25a61d3b8a1eb04e68fa2fc27bda9cb41251a0acf021a843.css'];
-Boot.jsFiles = ['leisureFiles-361e3757b6630d688f94e0bdf770c94702f26f3e859397f6bbcb24755fbe5abd.js'];
+Boot.jsFiles = ['leisureFiles-e0c6e34c89fe4338fdeba1c878bf1bd8ccd1090905f36ff8dc76431de01f29f0.js'];
 })();
 
 /*
@@ -30,25 +30,25 @@ Boot.jsFiles = ['leisureFiles-361e3757b6630d688f94e0bdf770c94702f26f3e859397f6bb
 
   bootLeisure = function bootLeisure() {
     return loadThen([uniquify("uri.js")], function() {
-      var load, params, state, uri, _ref3, _ref4;
+      var load, oldParams, params, state, uri, _ref3;
       uri = new window.URI(document.location.href);
+      oldParams = uri.getSearchParams();
       params = uri.getSearchParams();
+      if (!params.uniq) uri.appendSearch("uniq=" + (Math.random()));
       if (params.state) {
-        uri.fragment = (uri.fragment ? uri.fragment + '&' : '#') + uri.search.substring(1);
+        uri.appendFragment(uri.search.substring(1));
         uri.search = null;
-        return document.location.href = uri.toString();
-      } else if (!params.uniq) {
-        uri.search = "" + ((_ref3 = uri.search) != null ? _ref3 : '') + (uri.search ? '&' : '?') + "uniq=" + (Math.random());
+      }
+      if (oldParams.state || !oldParams.uniq) {
         return document.location.href = uri.toString();
       } else {
-        console.log("FRAG PARAMS: " + (JSON.stringify(uri.getFragParams())));
-        _ref4 = uri.getFragParams(), load = _ref4.load, state = _ref4.state;
+        _ref3 = uri.getFragParams(), load = _ref3.load, state = _ref3.state;
         if (state) {
           document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>";
         } else if (load) {
           document.querySelector('[maindoc]').innerHTML = "<h1>LOADING " + load + "... </h1>";
         }
-        Boot.documentFragment = document.location.hash;
+        Boot.documentFragment = uri.fragment;
         document.location.hash = '';
         return bootLeisureCont(load, state);
       }
@@ -119,9 +119,11 @@ Boot.jsFiles = ['leisureFiles-361e3757b6630d688f94e0bdf770c94702f26f3e859397f6bb
   };
 
   addLoadToDocument = function addLoadToDocument(uri) {
-    var u;
+    var p, u;
     u = new URI(document.location.href);
-    u.fragment = "#load=" + uri;
+    p = u.getFragParams();
+    p.load = uri.toString();
+    u.setFragParams(p);
     return document.location.href = u.toString();
   };
 

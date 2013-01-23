@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, apiKey, auth, checkDriveAuth, clientId, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readFile2, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, clientId, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readFile2, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -18,8 +18,6 @@
   }
 
   clientId = '270759921607';
-
-  apiKey = 'AIzaSyCgr3jkxrcQBKfujp9URxVnjAG5OVqUg7U';
 
   initStorage = function initStorage(callback) {
     return Prim.newUriHandler('googledrive', {
@@ -399,7 +397,6 @@
     if (!auth.finished) {
       replaceAuth(obj);
       if (obj.succeeded) {
-        gapi.client.setApiKey(apiKey);
         return initFileList(function() {
           var cont, _i, _len, _ref5, _ref6, _results;
           _ref6 = (_ref5 = auth.cont) != null ? _ref5 : [];

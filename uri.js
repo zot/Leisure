@@ -23,6 +23,18 @@
       }
     }
 
+    URI.prototype.appendParams = function appendParams(char, old, str) {
+      return "" + old + (old ? '&' : char) + str;
+    };
+
+    URI.prototype.appendSearch = function appendSearch(str) {
+      return this.search = this.appendParams('?', this.search, str);
+    };
+
+    URI.prototype.appendFragment = function appendFragment(str) {
+      return this.fragment = this.appendParams('#', this.fragment, str);
+    };
+
     URI.prototype.normalize = function normalize(path) {
       var replaced;
       while (true) {
@@ -56,38 +68,18 @@
     };
 
     URI.prototype.getSearchParams = function getSearchParams() {
-      if (!this.search) {
-        return {};
-      } else {
-        return getParams(this.search);
-      }
-    };
-
-    URI.prototype.setSearchParams = function setSearchParams(paramObj) {
-      var k, v;
-      this.search = '?' + ((function() {
-        var _results;
-        _results = [];
-        for (k in paramObj) {
-          v = paramObj[k];
-          _results.push("" + k + "=" + v);
-        }
-        return _results;
-      })()).join('&');
-      return this;
+      var _ref;
+      return getParams((_ref = this.search) != null ? _ref : '');
     };
 
     URI.prototype.getFragParams = function getFragParams() {
-      if (!this.fragment) {
-        return {};
-      } else {
-        return getParams(this.fragment);
-      }
+      var _ref;
+      return getParams((_ref = this.fragment) != null ? _ref : '');
     };
 
-    URI.prototype.setFragParams = function setFragParams(paramObj) {
+    URI.prototype.paramString = function paramString(paramObj) {
       var k, v;
-      this.fragment = '#' + ((function() {
+      return ((function() {
         var _results;
         _results = [];
         for (k in paramObj) {
@@ -96,6 +88,15 @@
         }
         return _results;
       })()).join('&');
+    };
+
+    URI.prototype.setSearchParams = function setSearchParams(paramObj) {
+      this.search = "?" + (this.paramString(paramObj));
+      return this;
+    };
+
+    URI.prototype.setFragParams = function setFragParams(paramObj) {
+      this.fragment = "#" + (this.paramString(paramObj));
       return this;
     };
 
