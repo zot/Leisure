@@ -1,5 +1,5 @@
 (function() {
-  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, clientId, computePaths, createAuthButton, fetchFile, finishAuth, getOpenLink, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readFile2, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
+  var DONE, Notebook, Parse, Prim, addOpenButton, addPath, auth, checkDriveAuth, clientId, computePaths, createAuthButton, fetchFile, finishAuth, handleAuthResult, id2File, id2Paths, initFileList, initGdrive, initStorage, leisureDir, listFiles, loadFile, makeLeisureDir, mimePart, mkdir, openFile, openFromGdrive, path2Ids, readFile, readFile2, readUrl, replaceAuth, root, runOpen, showDelay, updateFile, writeFile, _ref, _ref2, _ref3, _ref4;
 
   if ((typeof window !== "undefined" && window !== null) && (!(typeof global !== "undefined" && global !== null) || global === window)) {
     root = (_ref = window.GdriveStorage) != null ? _ref : (window.GdriveStorage = {});
@@ -119,20 +119,12 @@
         });
       },
       fallbackHtml: function fallbackHtml(file) {
-        return "<h1>Couldn't open " + file.title + "</h1>\n<h2>In order to open " + file.title + ", you must first authorize Leisure to access it by opening it from your Google Drive Console.</h2>\n" + (getOpenLink(file)) + "\nWhen you installe Leisure, it requrested the minimum privileges it could, in order to keep your documents safe.  In order to allow Leisure to open the file, you will have to open the file from your Google Drive console, once.  After that, the <a href='" + document.location.href + "'>link for this page</a> will start to work.  Here's what to do:\n<ol><li>Click <a href='" + file.alternateLink + "'>here</a> to view the file\n<li>Add the file to your 'starred files' by clicking the star at the top of the file's page\n<li>Go to your 'starred' files in your <a href='https://drive.google.com/?authuser=0#starred'>Google Drive console</a>\n<li>Click on " + file.title + " to open it in Leisure\n</ol>\nAfter you do this, you can unstar the file and the normal Leisure link should work just fine.";
+        return "<h1>Couldn't open " + file.title + "</h1>\n<h2>In order to open " + file.title + ", you must first authorize Leisure to access it by opening it from your Google Drive Console.</h2>\nWhen you install Leisure, it requrested the minimum privileges it could, in order to keep your documents safe.  In order to allow Leisure to open the file, you will have to open the file from your Google Drive console, once.  After that, the <a href='" + document.location.href + "'>link for this page</a> will start to work.  Here's what to do:\n<ol><li>Click <a href='" + file.alternateLink + "'>here</a> to view the file\n<li>Add the file to your 'starred files' by clicking the star at the top of the file's page\n<li>Go to your 'starred' files in your <a href='https://drive.google.com/?authuser=0#starred'>Google Drive console</a>\n<li>Click on " + file.title + " to open it in Leisure\n</ol>\nAfter you do this, you can unstar the file and the normal Leisure link should work just fine.";
       },
       noFile: function noFile(id) {
         return "<h1>Couldn't find file for id, " + id + "</h1><h2>Perhaps it has not been shared with you, it does not exist, or there is a mistake in the URL.</h2>";
       }
     });
-  };
-
-  getOpenLink = function getOpenLink(file) {
-    try {
-      return "<a onclick='window.GdriveStorage.runOpen(null, " + file.parents[0].id + ")'>Open From Google Drive</a>";
-    } catch (err) {
-      return "";
-    }
   };
 
   openFromGdrive = function openFromGdrive(callback) {
