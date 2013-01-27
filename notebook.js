@@ -637,15 +637,11 @@
     d.style.minTop = '0px';
     d.style.left = "" + (Math.max(0, (span.offsetLeft + span.offsetWidth) / 2 - 100)) + "px";
     d.addEventListener('mouseover', function(e) {
-      if (!inside) {
-        inside = true;
-        return console.log("SLIDER in", e);
-      }
+      if (!inside) return inside = true;
     });
     d.addEventListener('mouseout', function(e) {
       if (e.toElement !== d && !d.contains(e.toElement)) {
         inside = false;
-        console.log("SLIDER out", e);
         return hideSlider();
       }
     });
@@ -1664,26 +1660,13 @@
   };
 
   codeBox = function codeBox(boxType) {
-    var inside, node;
-    inside = false;
+    var node;
     node = document.createElement('div');
     addBoxClasses(node, boxType);
     node.setAttribute('LeisureBox', '');
     node.setAttribute('Leisure', '');
     node.addEventListener('compositionstart', function(e) {
       return checkMutateFromModification(e);
-    });
-    node.addEventListener('mouseover', function(e) {
-      if (!inside) {
-        inside = true;
-        return console.log("CODE in", e);
-      }
-    });
-    node.addEventListener('mouseout', function(e) {
-      if (e.toElement !== node && !node.contains(e.toElement)) {
-        inside = false;
-        return console.log("CODE out", e);
-      }
     });
     return node;
   };
