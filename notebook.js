@@ -627,14 +627,28 @@
   };
 
   createSlider = function createSlider() {
-    var d, div, max, min, parent, pos, sl, span, value;
+    var d, div, inside, max, min, parent, pos, sl, span, value;
     parent = slider[0], pos = slider[1], value = slider[2], span = slider[3], div = slider[4];
     if (div) return;
+    inside = false;
     d = createNode("<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider></div>");
     slider.push(d);
-    d.style.top = "" + (span.offsetTop + span.offsetHeight) + "px";
+    d.style.top = "" + (span.offsetTop + span.offsetHeight + 5) + "px";
     d.style.minTop = '0px';
     d.style.left = "" + (Math.max(0, (span.offsetLeft + span.offsetWidth) / 2 - 100)) + "px";
+    d.addEventListener('mouseover', function(e) {
+      if (!inside) {
+        inside = true;
+        return console.log("SLIDER in", e);
+      }
+    });
+    d.addEventListener('mouseout', function(e) {
+      if (e.toElement !== d && !d.contains(e.toElement)) {
+        inside = false;
+        console.log("SLIDER out", e);
+        return hideSlider();
+      }
+    });
     value = Number(value);
     min = value < 0 ? value * 2 : value / 2;
     max = value === 0 ? 10 : value * 2;
@@ -651,7 +665,7 @@
       },
       slide: function slide(event, ui) {
         var ast;
-        span.firstChild.nodeValue = String(ui.value);
+        if (span.firstChild) span.firstChild.nodeValue = String(ui.value);
         if (isDef(parent)) {
           parent.ast = null;
           acceptCode(parent);
@@ -1650,13 +1664,26 @@
   };
 
   codeBox = function codeBox(boxType) {
-    var node;
+    var inside, node;
+    inside = false;
     node = document.createElement('div');
     addBoxClasses(node, boxType);
     node.setAttribute('LeisureBox', '');
     node.setAttribute('Leisure', '');
     node.addEventListener('compositionstart', function(e) {
       return checkMutateFromModification(e);
+    });
+    node.addEventListener('mouseover', function(e) {
+      if (!inside) {
+        inside = true;
+        return console.log("CODE in", e);
+      }
+    });
+    node.addEventListener('mouseout', function(e) {
+      if (e.toElement !== node && !node.contains(e.toElement)) {
+        inside = false;
+        return console.log("CODE out", e);
+      }
     });
     return node;
   };
