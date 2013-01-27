@@ -90,21 +90,23 @@ body {
 }
 
 .pageTitle {
-  display: none;
-}
-
-.scroll .pageTitle {
-  display: block;
-}
-
-.pageTitle {
   background: white;
   padding-left: 5px;
   padding-right: 5px;
+  font-size: xx-large;
+  font-weight: bold;
+  text-align: center;
+}
+
+.scroll .pageTitle {
   position: absolute;
   top: -webkit-calc(-0.5em - 2px);
   top: calc(-0.5em - 2px);
   z-index: 70;
+  /*font-size: inherit;*/
+  font-weight: inherit;
+  text-align: left;
+  display: inline-block;
 }
 
 .oneSlide.scroll .slide {

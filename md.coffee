@@ -143,7 +143,7 @@ makeSlideDiv = (el, pageTypes, title)->
   div.classList.add 'ui-widget-content'
   div.classList.add pageType for pageType in pageTypes
   el.appendChild div
-  sectionTitle = createNode("<span class='pageTitle'>#{title}</span>")
+  sectionTitle = createNode("<div class='pageTitle'>#{title}</div>")
   sectionTitle.setAttribute 'leisureoutput', ''
   div.appendChild sectionTitle
   content = createNode "<div class='pageContent'></div>"

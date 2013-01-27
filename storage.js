@@ -119,7 +119,7 @@
         });
       },
       fallbackHtml: function fallbackHtml(file) {
-        return "<h1>Couldn't open " + file.title + "</h1>\n<h2>In order to open " + file.title + ", you must first authorize Leisure to access it by opening it from your Google Drive Console.</h2>\nWhen you installe Leisure, it requrested the minimum privileges it could, in order to keep your documents safe.  In order to allow Leisure to open the file, you will have to open the file from your Google Drive console, once.  After that, the <a href='" + document.location.href + "'>link for this page</a> will start to work.  Here's what to do:\n<ol><li>Click <a href='" + file.alternateLink + "'>here</a> to view the file\n<li>Add the file to your 'starred files' by clicking the star at the top of the file's page\n<li>Go to your 'starred' files in your <a href='https://drive.google.com/?authuser=0#starred'>Google Drive console</a>\n<li>Click on " + file.title + " to open it in Leisure\n</ol>\nAfter you do this, you can unstar the file and the normal Leisure link should work just fine.";
+        return "<h1>Couldn't open " + file.title + "</h1>\n<h2>Leisure needs your authorization to open " + file.title + " -- all you have to do is open it from your Google Drive Console, once.</h2>\nWhen you installed Leisure, it requrested the minimum privileges it could, in order to keep your documents safe.  To allow Leisure to open the file, you just have to open the file from your Google Drive console, once.  Here's what to do:\n<ol><li>Click <a href='" + file.alternateLink + "'>here</a> to view the file\n<li>Add the file to your 'starred files' by clicking the star at the top of the file's page\n<li>Go to your 'starred' files in your <a href='https://drive.google.com/?authuser=0#starred'>Google Drive console</a>\n<li>Click on " + file.title + " to open it in Leisure\n</ol>\nAfter you do this, you can unstar the file and the normal <a href='" + document.location.href + "'>Leisure link</a>, and it should work just fine.";
       },
       noFile: function noFile(id) {
         return "<h1>Couldn't find file for id, " + id + "</h1><h2>Perhaps it has not been shared with you, it does not exist, or there is a mistake in the URL.</h2>";
@@ -449,11 +449,11 @@
     });
   };
 
-  runOpen = function runOpen(arg) {
+  runOpen = function runOpen(arg, parent) {
     return initGdrive(function() {
       var picker, view;
       view = new google.picker.DocsView();
-      view.setParent(path2Ids["/LeisureStorage"]);
+      view.setParent(parent != null ? parent : path2Ids["/LeisureStorage"]);
       picker = new google.picker.PickerBuilder().addView(view).setCallback(arg != null ? arg : openFile).build();
       return picker.setVisible(true);
     });

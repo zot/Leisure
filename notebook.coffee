@@ -99,7 +99,7 @@ createPeer = ->
     if params.xusproxy? then Xus.xusToProxy(server, params.xusproxy)
 
 replaceContents = (uri, contents)->
-  console.log new Error("Replacing contents...").stack
+  #console.log new Error("Replacing contents...").stack
   if !contents
     contents = uri
     uri = null
@@ -359,7 +359,7 @@ highlightPosition = (e)->
             changed = true
         if e instanceof KeyboardEvent
           if hideSlider() then pos += 1
-        else if e instanceof MouseEvent and e.type == 'mousedown' and showSliderButton parent, pos
+        else if e instanceof MouseEvent and e.type == 'mousedown' and (e.target == parent or parent.contains e.target) and showSliderButton parent, pos, e
           changed = true
           pos += 1
         if changed
@@ -373,26 +373,30 @@ numberEnd = /(?:^|.*[^0-9.])([0-9]+\.?[0-9]*|\.[0-9]*)$/
 numberStart = /^([0-9]+\.[0-9]+|[0-9]+|\.[0-9]+)/
 slider = []
 
-showSliderButton = (parent, pos)->
-  text = parent.textContent
-  oldPos = pos
-  changed = 0
-  if m = text.substring(0, pos).match(numberEnd) then pos -= m[1].length
-  if m = text.substring(pos).match(numberStart)
-    len = m[1].length
-    if oldPos <= pos + len
-      [sParent, sPos, sValue] = slider
-      if parent != sParent || pos != sPos || m[1] != sValue
-        hideSlider()
-        r = makeRange parent, pos, pos + m[1].length
-        span = createNode "<span class='leisureRangeNumber ui-widget-content'></span>"
-        wrapRange r, span
-        changed = 1
-        span.normalize()
-        slider = [parent, pos, m[1], span]
-        createSlider()
-    changed
-  else hideSlider()
+showSliderButton = (parent, pos, e)->
+  if slider.length
+    hideSlider()
+    false
+  else
+    text = parent.textContent
+    oldPos = pos
+    changed = 0
+    if m = text.substring(0, pos).match(numberEnd) then pos -= m[1].length
+    if m = text.substring(pos).match(numberStart)
+      len = m[1].length
+      if oldPos <= pos + len
+        [sParent, sPos, sValue] = slider
+        if parent != sParent || pos != sPos || m[1] != sValue
+          hideSlider()
+          r = makeRange parent, pos, pos + m[1].length
+          span = createNode "<span class='leisureRangeNumber ui-widget-content'></span>"
+          wrapRange r, span
+          changed = 1
+          span.normalize()
+          slider = [parent, pos, m[1], span]
+          createSlider()
+      changed
+    else hideSlider()
 
 isSlider = (el)->
   while el != document
@@ -403,22 +407,34 @@ isSlider = (el)->
 createSlider = ->
   [parent, pos, value, span, div] = slider
   if div then return
-  d = createNode "<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider></div>"
+  inside = false
+  sliding = false
+  d = createNode "<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider contentEditable='false'></div>"
   slider.push d
-  d.style.top = "#{span.offsetTop + span.offsetHeight}px"
+  d.style.top = "#{span.offsetTop + span.offsetHeight + 5}px"
   d.style.minTop = '0px'
   d.style.left = "#{Math.max(0, (span.offsetLeft + span.offsetWidth)/2 - 100)}px"
+  d.addEventListener 'mouseover', (e)->
+    if !inside then inside = true
+  d.addEventListener 'mouseout', (e)->
+    if e.toElement != d && !d.contains e.toElement
+      inside = false
+      if !sliding then hideSlider()
   value = Number value
   min = if value < 0 then value * 2 else value / 2
   max = if value == 0 then 10 else value * 2
   sl = $(d).slider
     animate: 'fast'
-    start: -> delay -> allowEvents = false
+    start: ->
+      sliding = true
+      delay -> allowEvents = false
     stop: (event, ui)->
       setMinMax sl
       allowEvents = true
+      sliding = false
+      if !inside then hideSlider()
     slide: (event, ui)->
-      span.firstChild.nodeValue = String(ui.value)
+      if span.firstChild then span.firstChild.nodeValue = String(ui.value)
       if isDef parent
         parent.ast = null
         acceptCode parent

@@ -145,7 +145,6 @@
   };
 
   replaceContents = function replaceContents(uri, contents) {
-    console.log(new Error("Replacing contents...").stack);
     if (!contents) {
       contents = uri;
       uri = null;
@@ -567,7 +566,7 @@
           }
           if (e instanceof KeyboardEvent) {
             if (hideSlider()) pos += 1;
-          } else if (e instanceof MouseEvent && e.type === 'mousedown' && showSliderButton(parent, pos)) {
+          } else if (e instanceof MouseEvent && e.type === 'mousedown' && (e.target === parent || parent.contains(e.target)) && showSliderButton(parent, pos, e)) {
             changed = true;
             pos += 1;
           }
@@ -591,30 +590,35 @@
 
   slider = [];
 
-  showSliderButton = function showSliderButton(parent, pos) {
+  showSliderButton = function showSliderButton(parent, pos, e) {
     var changed, len, m, oldPos, r, sParent, sPos, sValue, span, text;
-    text = parent.textContent;
-    oldPos = pos;
-    changed = 0;
-    if (m = text.substring(0, pos).match(numberEnd)) pos -= m[1].length;
-    if (m = text.substring(pos).match(numberStart)) {
-      len = m[1].length;
-      if (oldPos <= pos + len) {
-        sParent = slider[0], sPos = slider[1], sValue = slider[2];
-        if (parent !== sParent || pos !== sPos || m[1] !== sValue) {
-          hideSlider();
-          r = makeRange(parent, pos, pos + m[1].length);
-          span = createNode("<span class='leisureRangeNumber ui-widget-content'></span>");
-          wrapRange(r, span);
-          changed = 1;
-          span.normalize();
-          slider = [parent, pos, m[1], span];
-          createSlider();
-        }
-      }
-      return changed;
+    if (slider.length) {
+      hideSlider();
+      return false;
     } else {
-      return hideSlider();
+      text = parent.textContent;
+      oldPos = pos;
+      changed = 0;
+      if (m = text.substring(0, pos).match(numberEnd)) pos -= m[1].length;
+      if (m = text.substring(pos).match(numberStart)) {
+        len = m[1].length;
+        if (oldPos <= pos + len) {
+          sParent = slider[0], sPos = slider[1], sValue = slider[2];
+          if (parent !== sParent || pos !== sPos || m[1] !== sValue) {
+            hideSlider();
+            r = makeRange(parent, pos, pos + m[1].length);
+            span = createNode("<span class='leisureRangeNumber ui-widget-content'></span>");
+            wrapRange(r, span);
+            changed = 1;
+            span.normalize();
+            slider = [parent, pos, m[1], span];
+            createSlider();
+          }
+        }
+        return changed;
+      } else {
+        return hideSlider();
+      }
     }
   };
 
@@ -627,31 +631,45 @@
   };
 
   createSlider = function createSlider() {
-    var d, div, max, min, parent, pos, sl, span, value;
+    var d, div, inside, max, min, parent, pos, sl, sliding, span, value;
     parent = slider[0], pos = slider[1], value = slider[2], span = slider[3], div = slider[4];
     if (div) return;
-    d = createNode("<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider></div>");
+    inside = false;
+    sliding = false;
+    d = createNode("<div style='z-index: 1; position: absolute; width: 200px; background: white; border: solid green 1px' slider contentEditable='false'></div>");
     slider.push(d);
-    d.style.top = "" + (span.offsetTop + span.offsetHeight) + "px";
+    d.style.top = "" + (span.offsetTop + span.offsetHeight + 5) + "px";
     d.style.minTop = '0px';
     d.style.left = "" + (Math.max(0, (span.offsetLeft + span.offsetWidth) / 2 - 100)) + "px";
+    d.addEventListener('mouseover', function(e) {
+      if (!inside) return inside = true;
+    });
+    d.addEventListener('mouseout', function(e) {
+      if (e.toElement !== d && !d.contains(e.toElement)) {
+        inside = false;
+        if (!sliding) return hideSlider();
+      }
+    });
     value = Number(value);
     min = value < 0 ? value * 2 : value / 2;
     max = value === 0 ? 10 : value * 2;
     sl = $(d).slider({
       animate: 'fast',
       start: function start() {
+        sliding = true;
         return delay(function() {
           return allowEvents = false;
         });
       },
       stop: function stop(event, ui) {
         setMinMax(sl);
-        return allowEvents = true;
+        allowEvents = true;
+        sliding = false;
+        if (!inside) return hideSlider();
       },
       slide: function slide(event, ui) {
         var ast;
-        span.firstChild.nodeValue = String(ui.value);
+        if (span.firstChild) span.firstChild.nodeValue = String(ui.value);
         if (isDef(parent)) {
           parent.ast = null;
           acceptCode(parent);

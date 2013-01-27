@@ -108,14 +108,14 @@ initStorage = (callback)->
           else @basicLink "googledrive://id:#{encodeURIComponent files[0]}"
     fallbackHtml: (file)-> """
       <h1>Couldn't open #{file.title}</h1>
-      <h2>In order to open #{file.title}, you must first authorize Leisure to access it by opening it from your Google Drive Console.</h2>
-      When you installe Leisure, it requrested the minimum privileges it could, in order to keep your documents safe.  In order to allow Leisure to open the file, you will have to open the file from your Google Drive console, once.  After that, the <a href='#{document.location.href}'>link for this page</a> will start to work.  Here's what to do:
+      <h2>Leisure needs your authorization to open #{file.title} -- all you have to do is open it from your Google Drive Console, once.</h2>
+      When you installed Leisure, it requrested the minimum privileges it could, in order to keep your documents safe.  To allow Leisure to open the file, you just have to open the file from your Google Drive console, once.  Here's what to do:
       <ol><li>Click <a href='#{file.alternateLink}'>here</a> to view the file
       <li>Add the file to your 'starred files' by clicking the star at the top of the file's page
       <li>Go to your 'starred' files in your <a href='https://drive.google.com/?authuser=0#starred'>Google Drive console</a>
       <li>Click on #{file.title} to open it in Leisure
       </ol>
-      After you do this, you can unstar the file and the normal Leisure link should work just fine.
+      After you do this, you can unstar the file and the normal <a href='#{document.location.href}'>Leisure link</a>, and it should work just fine.
       """
     noFile: (id)-> """
       <h1>Couldn't find file for id, #{id}</h1><h2>Perhaps it has not been shared with you, it does not exist, or there is a mistake in the URL.</h2>
@@ -325,10 +325,10 @@ addOpenButton = ->
   save.parentNode.insertBefore open, save.nextSibling
   open.addEventListener 'click', -> runOpen()
 
-runOpen = (arg)->
+runOpen = (arg, parent)->
   initGdrive ->
     view = new google.picker.DocsView()
-    view.setParent path2Ids["/LeisureStorage"]
+    view.setParent parent ? path2Ids["/LeisureStorage"]
     picker = new google.picker.PickerBuilder().
       addView(view).
       setCallback(arg ? openFile).
