@@ -103,7 +103,7 @@ body {
   top: -webkit-calc(-0.5em - 2px);
   top: calc(-0.5em - 2px);
   z-index: 70;
-  font-size: inherit;
+  /*font-size: inherit;*/
   font-weight: inherit;
   text-align: left;
   display: inline-block;
