@@ -1384,7 +1384,7 @@
   makeOutputControls = function makeOutputControls(exBox) {
     if (exBox.firstChild.firstChild === exBox.firstChild.lastChild) {
       exBox.firstChild.insertBefore(createFragment("<button onclick='Notebook.clearOutputBox(this)'>X</button>"), exBox.firstChild.firstChild);
-      exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test case</button><b>Update: </b><input type='text' placeholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button onclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Stop Updates</button>"));
+      exBox.firstChild.appendChild(createFragment("<button onclick='Notebook.makeTestCase(this)' leisureId='makeTestCase'>Make test\ncase</button><b>Update: </b><input type='text'\nplaceholder='Click for updating' list='channelList' leisureId='chooseUpdate'></input><button\nonclick='Notebook.clearUpdates(this)' leisureId='stopUpdates'>Stop Updates</button>"));
       markupButtons(exBox);
       return exBox.classList.add('fatControls');
     }
