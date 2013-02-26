@@ -110,7 +110,10 @@ odd? x = eq 1 (% x 2)
 max a b = (gt a b) a b
 min a b = (lt a b) a b
 
-# some basic list functions
+######################
+# Lists
+######################
+
 # some list functions are primitives, for the time being: cons, nil
 # cons a b = \f . f a b
 # nil = \a b . b
@@ -235,6 +238,10 @@ concat[ list =M= cons (token 'concat' (tokenStart list)) (cons (cons (token '[' 
 # isp item list rest = cons (cons item (cons (head list) (isp item (tail list) (tail rest)))) nil
 # isp item list rest::nil = list
 
+######################
+# Do
+######################
+
 doFilter parseDefs list = transformDo list
 
 transformDo list = list
@@ -269,6 +276,10 @@ listDoExtractVar list tokName = or (null? (tail list)) (neq tokName (tokString (
 
 #@auto
 addParseFilter doFilter
+
+######################
+# More list stuff
+######################
 
 #@auto
 do
@@ -383,6 +394,38 @@ count x l = countIf (eq x) l
 countIf f l = if (eq l nil) 0
   + (f (head l) 1 0) (countIf f (tail l))
 countIfNot f l = countIf (\x. not (f x)) l
+
+# list sorting
+# merge sort implemented according to http://www.haskell.org/haskellwiki/Performance/Laziness
+
+odds l = [(head l) | (evens (tail l))]
+odds l::nil = nil
+
+evens l = odds (tail l)
+evens l::nil = nil
+
+cleave l = [(evens l) | (odds l)]
+
+# boy, this sure would look better with less limited patterns...
+merge a b = submerge b a
+merge a b::nil = a
+
+submerge a b = lte (head a) (head b)
+  [(head a) | (merge (tail a) b)]
+  [(head b) | (merge a (tail b))]
+submerge a b::nil = a
+
+mergeSort l = eq (tail l) nil
+  l
+  do
+    cl = cleave l
+    e = head cl
+    o = tail cl
+    merge (mergeSort e) (mergeSort o)
+
+mergeSort l::nil = nil
+
+sort l = mergeSort l
 
 ###########
 # Assoc lists (from Roy's hashmap code)
