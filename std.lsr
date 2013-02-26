@@ -407,25 +407,25 @@ evens l::nil = nil
 cleave l = [(evens l) | (odds l)]
 
 # boy, this sure would look better with less limited patterns...
-merge a b = submerge b a
-merge a b::nil = a
+merge cmp a b = submerge cmp b a
+merge cmp a b::nil = a
 
-submerge a b = lte (head a) (head b)
+submerge cmp a b = cmp (head a) (head b)
   [(head a) | (merge (tail a) b)]
   [(head b) | (merge a (tail b))]
 submerge a b::nil = a
 
-mergeSort l = eq (tail l) nil
+mergeSort cmp l = eq (tail l) nil
   l
   do
     cl = cleave l
     e = head cl
     o = tail cl
-    merge (mergeSort e) (mergeSort o)
+    merge cmp (mergeSort cmp e) (mergeSort cmp o)
 
-mergeSort l::nil = nil
+mergeSort cmp l::nil = nil
 
-sort l = mergeSort l
+sort cmp l = mergeSort cmp l
 
 ###########
 # Assoc lists (from Roy's hashmap code)
