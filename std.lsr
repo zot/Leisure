@@ -1,5 +1,3 @@
-# Prelude is where we define macros that std.lsr uses
-#
 # primitives
 #
 # eq a b -> true if they are equal or false otherwise
@@ -49,6 +47,10 @@
 # apply func-ast body-ast -> an apply AST node, with func and body ASTs
 #
 # prim arg rest-ast -> a prim AST node, rest-ast should either be a ref or a prim
+#
+#    List functions
+#
+# MORE DOCUMETATION NEEDED :)
 #
 
 #@auto
@@ -319,6 +321,7 @@ _all pairF f l = null? l
 # find returns x if x is present inside l, otherwise returns nil.
 find x l = findIf (eq x) l
 
+# findIf returns the first element that satisfies f or nil is none do
 findIf f l = null? l
   nil
   f (head l)

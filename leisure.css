@@ -36,6 +36,10 @@ body {
   background: white;
 }
 
+[leisureid="makeTestCase"] {
+  white-space: nowrap;
+}
+
 [leisurecode] {
   white-space: pre-wrap;
 }
