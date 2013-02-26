@@ -28,6 +28,18 @@ body {
   -ms-user-select: none;
 }
 
+/*[leisurenode=markdown][contenteditable=true] {*/
+.pageContent[editing=true] {
+  z-index: 80;
+  position: relative;
+  top: 0;
+  background: white;
+}
+
+[leisureid="makeTestCase"] {
+  white-space: nowrap;
+}
+
 [leisurecode] {
   white-space: pre-wrap;
 }

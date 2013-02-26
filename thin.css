@@ -12,10 +12,13 @@
   padding-left: 15px;
   padding-right: 15px;
 }
+
+/*
 .thin .codeMain:hover {
   outline: blue solid 1px;
   margin-right: 28px;
 }
+*/
 
 .thin .output {
   border: green solid 2px;
@@ -46,9 +49,11 @@
   right: 5px;
 }
 
+/*
 .thin .codeMainExpr:hover {
   outline: red solid 1px;
 }
+*/
 
 .thin .partialApply {
   /*text-decoration: underline;*/
@@ -99,8 +104,14 @@ html {
   background-image: url(testCaseRed.png);
 }
 
+/*
 .thin .ui-widget-content:hover {
-  background: #777 url(images/ui-bg_inset-hover-soft_10_285c00_1x100.png) 50% bottom repeat-x;
+  background: #888 url(images/ui-bg_inset-hover-soft_10_285c00_1x100.png) 50% bottom repeat-x;
+}
+*/
+
+[leisurebox]:hover {
+  outline: solid red 2px;
 }
 
 .thin .ui-widget-content.slide:hover {

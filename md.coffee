@@ -96,7 +96,8 @@ markupSlideContent = (el, md, noMain)->
           else if m.match /\n--\n/ then ['hiddenPage']
           else []
         else []
-        content = makeSlideDiv el, pageType, (if i > 0 then pages[i - 1].match(slideName)[1].trim() else 'Main')
+        content = makeSlideDiv el, pageType, (
+          if i > 0 then pages[i - 1].match(slideName)[1].trim() else 'Main')
         if i > 0 then hasCode = (markupElement content, pages[i - 1] + p) || hasCode
         else
           hasCode = (markupElement content, '***\n' + p) || hasCode
@@ -332,6 +333,7 @@ bindMarkupDiv = (div)->
       div.style.whiteSpace = 'pre-wrap'
       div.setAttribute 'contenteditable', 'true'
       editing = true
+      div.parentNode.setAttribute 'editing', 'true'
       div.focus()
   div.addEventListener 'keypress', (e)->
     if editing
@@ -350,6 +352,7 @@ bindMarkupDiv = (div)->
       scroll = document.body.scrollTop
       div.style.whiteSpace = ''
       editing = false
+      div.parentNode.removeAttribute 'editing'
       div.setAttribute 'contenteditable', 'false'
       #if markupElement div, div.textContent
       prevSection = div.parentNode.parentNode.previousSibling?.getAttribute 'leisureSection'

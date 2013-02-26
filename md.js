@@ -410,6 +410,7 @@
         div.style.whiteSpace = 'pre-wrap';
         div.setAttribute('contenteditable', 'true');
         editing = true;
+        div.parentNode.setAttribute('editing', 'true');
         return div.focus();
       }
     });
@@ -435,6 +436,7 @@
         scroll = document.body.scrollTop;
         div.style.whiteSpace = '';
         editing = false;
+        div.parentNode.removeAttribute('editing');
         div.setAttribute('contenteditable', 'false');
         prevSection = (_ref = div.parentNode.parentNode.previousSibling) != null ? _ref.getAttribute('leisureSection') : void 0;
         parent = div.parentNode;

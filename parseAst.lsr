@@ -59,13 +59,13 @@ shouldHighlight ast start end = do
         rangeContainsRange aStart (aStart + (strlen (ast \v b . v))) start end
 
 highlight map = do
-  c = getHashValue 'fill' map
+  c = assocGetWithDefault 'fill' map nil
   eq c '#fcc'
-    addHash 'fill' 'red' map
+    assocSet 'fill' 'red' map
     eq c '#cfc'
-      addHash 'fill' 'green' map
+      assocSet 'fill' 'green' map
       eq c '#ccf'
-        addHash 'fill' 'blue' map
+        assocSet 'fill' 'blue' map
         map
 
 treeForFunc func = treeFor (parse (funcSource func id false) id false)
