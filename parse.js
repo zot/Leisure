@@ -822,7 +822,7 @@ misrepresented as being the original software.
     };
 
     Leisure_token.prototype.toString = function toString() {
-      return "Token('" + (this.tok()) + "', " + (this.start()) + "-" + (this.end()) + ")";
+      return "Token('" + (this.tok()) + "', " + (this.start()) + "-" + (this.end() - 1) + ")";
     };
 
     Leisure_token.prototype.zeroLen = function zeroLen() {

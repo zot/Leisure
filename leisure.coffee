@@ -26,12 +26,12 @@ if window? and (!global? or global == window)
   window.global = window
   window.Leisure = root = {}
   Parse = window.Parse
-  Patterns = window.Patterns
+  # Patterns = window.Patterns
   Storage = window.Storage
 else
   root = exports ? this
   Parse = require('./parse')
-  Patterns = require './patterns'
+  # Patterns = require './patterns'
   Storage = require './storage'
 
 {

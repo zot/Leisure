@@ -619,6 +619,18 @@ operatorIn op tokens = do
   opEq = eq (tokString op)
   any (\toks . any opEq toks) tokens
 
+##############
+# RegExp stuff
+##############
+
+matchIndex match=head (tail match)
+
+matchInput match=head (tail (tail match))
+
+matchMatched match=head (head match)
+
+matchGroups match=tail (head match)
+
 #@auto
 do
   x = log 'infix' 1

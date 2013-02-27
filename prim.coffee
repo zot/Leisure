@@ -124,7 +124,11 @@ define 'gte', ->(a)->(b)->if a() >= b() then `_true()` else `_false()`
 define 'lt', ->(a)->(b)->if a() < b() then `_true()` else `_false()`
 define 'lte', ->(a)->(b)->if a() <= b() then `_true()` else `_false()`
 
-define 'strlen', ->(a)->a().length
+define 'strlen', ->(s)->s().length
+
+define 'strtake', ->(s)->(count)-> s().substring 0, count()
+
+define 'strdrop', ->(s)->(count)-> s().substring count()
 
 define 'log', ->(msg)->(value)->
   if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
@@ -422,6 +426,17 @@ concatList = (l)->
 define 'concat', ->(l)-> concatList(l())
 
 define 'regexp', ->(s)-> new RegExp(s())
+
+# given a string and either a regexp or a string,
+# returns [[match group1 group2 ...] index input]
+define 'match', ->(s)->(r)->
+  m = s().match r()
+  if m
+    Parse.cons getMatches(m, 0), Parse.cons(m.index, Parse.cons(m.input, Parse.Nil))
+  else Parse.Nil
+
+getMatches = (m, index)->
+  if index < m.length then Parse.cons(m[index] ? Parse.Nil, getMatches(m, index + 1)) else Parse.Nil
 
 define 'js', ->(codeList)->
   makeMonad (env, cont)->

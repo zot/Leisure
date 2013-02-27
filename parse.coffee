@@ -340,7 +340,7 @@ class Leisure_token extends LeisureObject
   tok: -> @ ->(t)->(p)->t()
   start: -> @ ->(t)->(p)->p()
   end: -> @start() + @tok().length
-  toString: -> "Token('#{@tok()}', #{@start()}-#{@end()})"
+  toString: -> "Token('#{@tok()}', #{@start()}-#{@end() - 1})"
   zeroLen: ->
     @end = => @start()
     @
