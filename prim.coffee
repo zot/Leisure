@@ -421,6 +421,8 @@ concatList = (l)->
 
 define 'concat', ->(l)-> concatList(l())
 
+define 'regexp', ->(s)-> new RegExp(s())
+
 define 'js', ->(codeList)->
   makeMonad (env, cont)->
     cl = codeList()
