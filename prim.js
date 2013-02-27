@@ -387,8 +387,24 @@
   });
 
   define('strlen', function() {
-    return function(a) {
-      return a().length;
+    return function(s) {
+      return s().length;
+    };
+  });
+
+  define('strtake', function() {
+    return function(s) {
+      return function(count) {
+        return s().substring(0, count());
+      };
+    };
+  });
+
+  define('strdrop', function() {
+    return function(s) {
+      return function(count) {
+        return s().substring(count());
+      };
     };
   });
 
