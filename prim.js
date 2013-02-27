@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, linkFor, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getMatches, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, linkFor, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -1016,6 +1016,24 @@
       return new RegExp(s());
     };
   });
+
+  define('match', function() {
+    return function(s) {
+      return function(r) {
+        var m;
+        m = s().match(r());
+        return cons(getMatches(m, 0), cons(m.index, cons(m.input, _nil())));
+      };
+    };
+  });
+
+  getMatches = function getMatches(m, index) {
+    if (index < m.length) {
+      return cons(m[index], getMatches(m, index + 1));
+    } else {
+      return _nil();
+    }
+  };
 
   define('js', function() {
     return function(codeList) {
