@@ -1023,19 +1023,20 @@
         var m;
         m = s().match(r());
         if (m) {
-          return Parse.cons(getMatches(m, 0), Parse.cons(m.index, Parse.cons(m.input, _nil())));
+          return Parse.cons(getMatches(m, 0), Parse.cons(m.index, Parse.cons(m.input, Parse.Nil)));
         } else {
-          return _nil();
+          return Parse.Nil;
         }
       };
     };
   });
 
   getMatches = function getMatches(m, index) {
+    var _ref3;
     if (index < m.length) {
-      return Parse.cons(m[index], getMatches(m, index + 1));
+      return Parse.cons((_ref3 = m[index]) != null ? _ref3 : Nil, getMatches(m, index + 1));
     } else {
-      return _nil();
+      return Parse.Nil;
     }
   };
 
