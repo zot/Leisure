@@ -1022,14 +1022,14 @@
       return function(r) {
         var m;
         m = s().match(r());
-        return cons(getMatches(m, 0), cons(m.index, cons(m.input, _nil())));
+        return Parse.cons(getMatches(m, 0), Parse.cons(m.index, Parse.cons(m.input, _nil())));
       };
     };
   });
 
   getMatches = function getMatches(m, index) {
     if (index < m.length) {
-      return cons(m[index], getMatches(m, index + 1));
+      return Parse.cons(m[index], getMatches(m, index + 1));
     } else {
       return _nil();
     }
