@@ -23,5 +23,13 @@ Functional programming is quite foreign to newcomers, but what if you could
 instantly view the parse tree of the code you wrote? Or specify test arguments to your function and see the results live as you make
 changes to your code in real time?  Our goal is to show programmers there has to be a better way, and we've settled for the status quo for far too long.
 
+# Getting Started
+
+If you have [node.js](http://nodejs.org/) installed, you can run the command-line Leisure repl by cloning the git repo, changing directory into the top level, and running `node runRepl`.
+
+To create a notebook, just copy emptyNotebook.lmd to a new file (ending in .lmd).
+
+Launch a notebook named newFile.lmd like this: `launch drive.html#load=newFile.lmd`
+
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.

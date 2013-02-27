@@ -1,0 +1,60 @@
+*** Prelude Definitions
+--
+```
+toggleHidden=do
+  hidden <- getValue 'hiddenPages'
+  setHidden (not hidden)
+
+setHidden hide=do
+  js [
+    hide
+      "$(document.body).removeClass('showHidden'); $(document.body).addClass('hideControls')"
+      "$(document.body).addClass('showHidden hideControls')"]
+  setValue 'hiddenPages' hide 
+
+openUriButton=do
+  fname <- js ["$('#saveAsText').val()"]
+  open fname
+
+saveAsButton=do
+  fname <- js ["$('#saveAsText').val()"]
+  saveAs fname
+```
+
+*** Leisure Controls
+```
+#@auto "mode": "notebook"
+#@hidden
+do
+  setValue 'hiddenPages' true
+  setHidden true
+  uri <- getURI
+  link <- getLink
+  printValue (html concat[
+    "Share: <a href='"
+    link
+    "'>"
+    link
+    "</a><br>"
+    "<button id='saveButton'>Save</button><br>"
+    "<button id='openUriButton'>Open</button>"
+    "<input id='openUriText' type='text'><br>"
+    "<button id='saveAsButton'>Save as</button>"
+    "<input id='saveAsText' type='text'><br>"
+    "<button id='toggleHiddenPages' type='checkbox'>Toggle Hidden Pages</button><br>"
+    "<button id='openFromGdriveButton'>Open from Google Drive</button>"])
+  bindEvent '#openFromGdriveButton' 'click' \e . gdriveOpen
+  bindEvent '#saveButton' 'click' \e . save
+  bindEvent '#openUriButton' 'click' \e . openUriButton
+  bindEvent '#saveAsButton' 'click' \e . saveAsButton
+  bindEvent '#toggleHiddenPages' 'click' \e . toggleHidden
+  js ["$('#openUriText').val('" uri "')"]
+  js ["$('#saveAsText').val('" uri "')"]
+```
+
+*** Main
+Here is some text
+
+```
+Here is some code
+```
