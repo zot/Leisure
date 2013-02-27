@@ -417,7 +417,7 @@ merge cmp a b::nil = a
 submerge cmp a b = cmp (head a) (head b)
   [(head a) | (merge cmp (tail a) b)]
   [(head b) | (merge cmp a (tail b))]
-submerge a b::nil = a
+submerge cmp a b::nil = a
 
 mergeSort cmp l = eq (tail l) nil
   l
