@@ -1011,6 +1011,12 @@
     };
   });
 
+  define('regexp', function() {
+    return function(s) {
+      return new RegExp(s());
+    };
+  });
+
   define('js', function() {
     return function(codeList) {
       return makeMonad(function(env, cont) {

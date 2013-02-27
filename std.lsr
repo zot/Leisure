@@ -227,6 +227,10 @@ macroCons list =M= cons 'cons' (tail list)
 
 concat[ list =M= cons (token 'concat' (tokenStart list)) (cons (cons (token '[' (tokenStart (tail list))) (tail list)) nil)
 
+intersperse x l = or (eq l nil) (eq (tail l) nil) l [(head l) x | (intersperse x (tail l))]
+
+intercalate x l = concat (intersperse x l)
+
 # and[ list =M= intersperse (token 'and' (tokenStart (list))) (removeLast (tail list))
 # or[ list =M= intersperse (token 'or' (tokenStart (list))) (removeLast (tail list))
 # 
@@ -425,7 +429,8 @@ mergeSort cmp l = eq (tail l) nil
 
 mergeSort cmp l::nil = nil
 
-sort cmp l = mergeSort cmp l
+sort l = sortBy lte l
+sortBy cmp l = mergeSort cmp l
 
 ###########
 # Assoc lists (from Roy's hashmap code)
