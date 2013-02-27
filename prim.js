@@ -1022,7 +1022,11 @@
       return function(r) {
         var m;
         m = s().match(r());
-        return Parse.cons(getMatches(m, 0), Parse.cons(m.index, Parse.cons(m.input, _nil())));
+        if (m) {
+          return Parse.cons(getMatches(m, 0), Parse.cons(m.index, Parse.cons(m.input, _nil())));
+        } else {
+          return _nil();
+        }
       };
     };
   });
