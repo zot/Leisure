@@ -1,5 +1,5 @@
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getMatches, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, linkFor, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, agents, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getMatches, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, linkFor, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -46,9 +46,9 @@
       return process.stdout.write(msg);
     };
     defaultEnv.prompt = function prompt(msg, cont) {
-      return tty.question(msg, function() {
+      return tty.question(msg, function(x) {
         try {
-          return cont();
+          return cont(x);
         } catch (err) {
           return console.log("ERROR PRINTING VALUE: " + err.stack);
         }
@@ -408,24 +408,60 @@
     };
   });
 
-  define('log', function() {
-    return function(msg) {
-      return function(value) {
-        if (msg().type !== 'cons') {
-          defaultEnv.write("" + (msg()));
-        } else {
-          defaultEnv.write(concatList(msg()));
-        }
-        defaultEnv.write("\n");
-        return value();
-      };
-    };
-  });
-
   define('break', function() {
     return function(value) {
       console.log('breakpoint');
       return value();
+    };
+  });
+
+  agents = {};
+
+  agents.io = function io(old) {
+    return function(block) {
+      var _ref3;
+      return runMonad(block(), (_ref3 = Prim.currentEnv) != null ? _ref3 : defaultEnv, function() {});
+    };
+  };
+
+  define('primagent', function() {
+    return function(name) {
+      return function(startValue) {
+        return function(block) {
+          return makeMonad(function(env, cont) {
+            var agent;
+            agents[name()] = agent = block();
+            agent.value = startValue();
+            return cont(_false());
+          });
+        };
+      };
+    };
+  });
+
+  define('send', function() {
+    return function(value) {
+      return function(agentName) {
+        return function(input) {
+          var agent, env;
+          agent = agents[agentName()];
+          env = Prim.currentEnv;
+          setTimeout((function() {
+            var oldEnv, val;
+            try {
+              oldEnv = Prim.currentEnv;
+              Prim.currentEnv = env;
+              val = agent.value;
+              return agent.value = agent(function() {
+                return val;
+              })(input);
+            } finally {
+              Prim.currentEnv = oldEnv;
+            }
+          }), 1);
+          return value();
+        };
+      };
     };
   });
 

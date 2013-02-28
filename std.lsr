@@ -243,6 +243,23 @@ intercalate x l = concat (intersperse x l)
 # isp item list rest::nil = list
 
 ######################
+# Agents
+# 
+# An agent executes blocks asynchronously
+# The block takes as input the value of the previous block
+#
+# A primitive agent is defined with a block that takes as input
+# the previous value of the block and also the given input value
+# 
+######################
+
+agent name = primagent name nil \prev block . block prev
+
+sendMonad value monad = send value 'io' monad
+
+log value msg = sendMonad value (print msg)
+
+######################
 # Do
 ######################
 
@@ -633,14 +650,14 @@ matchGroups match=tail (head match)
 
 #@auto
 do
-  x = log 'infix' 1
+  x = log 1 'infix'
   defInfixToken '*' 'before' nil
   defInfixToken '/' 'at' '*'
   defInfixToken '+' 'at' nil
   defInfixToken '-' 'at' '+'
   defInfixToken '<' 'at' nil
   defInfixToken '>' 'at' nil
-  x = log 'filter' 2
+  x = log 2 'filter'
   addParseFilter mainParseInfix
   forward 'getURI'
   forward 'setURI'
