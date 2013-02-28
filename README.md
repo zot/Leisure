@@ -29,7 +29,7 @@ If you have [node.js](http://nodejs.org/) installed, you can run the command-lin
 
 To create a notebook, just copy emptyNotebook.lmd to a new file (ending in .lmd).
 
-Launch a notebook named newFile.lmd like this: `launch drive.html#load=newFile.lmd`
+Launch a notebook named newFile.lmd like this: `./launch drive.html#load=newFile.lmd`
 
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.

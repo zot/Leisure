@@ -6380,7 +6380,7 @@ misrepresented as being the original software.
 }).call(this);
 ;
 (function() {
-  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getMatches, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, linkFor, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
+  var Leisure, Monad, Notebook, Parse, RL, ReplCore, U, URI, URIHandler, agents, arrayRest, baseHandler, baseUriPat, codeMonad, concatList, defaultEnv, define, eventCont, fs, getMatches, getType, head, initFileSettings, installRealLocalHandler, isStorageUri, laz, leisureEvent, linkFor, loadFile, loadSource, loading, localHandler, localHandlerConts, makeMonad, newUriHandler, nextMonad, nextMonadOld, output, path, r, read, requireFile, required, root, runMonad, runRequire, setTty, sourceChoices, tail, throwError, tmpFalse, tryRead, tty, uriHandlerFor, uriHandlers, values, write, _ref, _ref2,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
@@ -6427,9 +6427,9 @@ misrepresented as being the original software.
       return process.stdout.write(msg);
     };
     defaultEnv.prompt = function prompt(msg, cont) {
-      return tty.question(msg, function() {
+      return tty.question(msg, function(x) {
         try {
-          return cont();
+          return cont(x);
         } catch (err) {
           return console.log("ERROR PRINTING VALUE: " + err.stack);
         }
@@ -6789,24 +6789,60 @@ misrepresented as being the original software.
     };
   });
 
-  define('log', function() {
-    return function(msg) {
-      return function(value) {
-        if (msg().type !== 'cons') {
-          defaultEnv.write("" + (msg()));
-        } else {
-          defaultEnv.write(concatList(msg()));
-        }
-        defaultEnv.write("\n");
-        return value();
-      };
-    };
-  });
-
   define('break', function() {
     return function(value) {
       console.log('breakpoint');
       return value();
+    };
+  });
+
+  agents = {};
+
+  agents.io = function io(old) {
+    return function(block) {
+      var _ref3;
+      return runMonad(block(), (_ref3 = Prim.currentEnv) != null ? _ref3 : defaultEnv, function() {});
+    };
+  };
+
+  define('primagent', function() {
+    return function(name) {
+      return function(startValue) {
+        return function(block) {
+          return makeMonad(function(env, cont) {
+            var agent;
+            agents[name()] = agent = block();
+            agent.value = startValue();
+            return cont(_false());
+          });
+        };
+      };
+    };
+  });
+
+  define('send', function() {
+    return function(value) {
+      return function(agentName) {
+        return function(input) {
+          var agent, env;
+          agent = agents[agentName()];
+          env = Prim.currentEnv;
+          setTimeout((function() {
+            var oldEnv, val;
+            try {
+              oldEnv = Prim.currentEnv;
+              Prim.currentEnv = env;
+              val = agent.value;
+              return agent.value = agent(function() {
+                return val;
+              })(input);
+            } finally {
+              Prim.currentEnv = oldEnv;
+            }
+          }), 1);
+          return value();
+        };
+      };
     };
   });
 
@@ -7788,8 +7824,9 @@ misrepresented as being the original software.
   };
 
   processLine = function processLine(line, env, namespace, next) {
-    var a, ast, c, err, m, r, result, _ref2, _ref3, _ref4;
-    env = env != null ? env : Prim.defaultEnv;
+    var a, ast, c, err, m, oldEnv, r, result, _ref2, _ref3, _ref4;
+    oldEnv = Prim.currentEnv;
+    Prim.currentEnv = env = env != null ? env : Prim.defaultEnv;
     try {
       if (line) {
         if (line[0] === '!') {
@@ -7831,6 +7868,7 @@ misrepresented as being the original software.
       }
     } catch (err) {
       env.write(errString(err));
+      Prim.currentEnv = oldEnv;
     }
     return (next != null ? next : nextFunc)();
   };
@@ -8391,6 +8429,9 @@ Leisure.createMethod('token', 'tokString', "\\t        . t \\t p . t", function(
   _concat$r = Parse.defineMacro('concat[', (function() {var f; return function _concat$r(){return f || (f = (function(_list){return _cons()((function(){var $m; return (function(){return $m || ($m = (_token()((function(){return "concat"}))((function(){var $m; return (function(){return $m || ($m = (_tokenStart()(_list)))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_token()((function(){return "["}))((function(){var $m; return (function(){return $m || ($m = (_tokenStart()((function(){var $m; return (function(){return $m || ($m = (_tail()(_list)))})})())))})})())))})})())((function(){var $m; return (function(){return $m || ($m = (_tail()(_list)))})})())))})})())(_nil)))})})());}));}})(), 1, "\\list . cons (token 'concat' (tokenStart list)) (cons (cons (token '[' (tokenStart (tail list))) (tail list)) nil)");;
   _intersperse = Parse.define('intersperse', (function() {var f; return function _intersperse(){return f || (f = (function(_x){return function(_l){return _or()((function(){var $m; return (function(){return $m || ($m = (_eq()(_l)(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (_eq()((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())(_nil)))})})())(_l)((function(){var $m; return (function(){return $m || ($m = (_cons()((function(){var $m; return (function(){return $m || ($m = (_head()(_l)))})})())((function(){var $m; return (function(){return $m || ($m = (_cons()(_x)((function(){var $m; return (function(){return $m || ($m = (_intersperse()(_x)((function(){var $m; return (function(){return $m || ($m = (_tail()(_l)))})})())))})})())))})})())))})})());};}));}})(), 2, "\\x l . or (eq l nil) (eq (tail l) nil) l [(head l) x | (intersperse x (tail l))]");;
   _intercalate = Parse.define('intercalate', (function() {var f; return function _intercalate(){return f || (f = (function(_x){return function(_l){return _concat()((function(){var $m; return (function(){return $m || ($m = (_intersperse()(_x)(_l)))})})());};}));}})(), 2, "\\x l . concat (intersperse x l)");;
+  _agent = Parse.define('agent', (function() {var f; return function _agent(){return f || (f = (function(_name){return _primagent()(_name)(_nil)((function(){var $m; return (function(){return $m || ($m = (function(_prev){return function(_block){return _block()(_prev);};}))})})());}));}})(), 1, "\\name . primagent name nil \\prev block . block prev");;
+  _sendMonad = Parse.define('sendMonad', (function() {var f; return function _sendMonad(){return f || (f = (function(_value){return function(_monad){return _send()(_value)((function(){return "io"}))(_monad);};}));}})(), 2, "\\value monad . send value 'io' monad");;
+  _log = Parse.define('log', (function() {var f; return function _log(){return f || (f = (function(_value){return function(_msg){return _sendMonad()(_value)((function(){var $m; return (function(){return $m || ($m = (_print()(_msg)))})})());};}));}})(), 2, "\\value msg . sendMonad value (print msg)");;
   _doFilter = Parse.define('doFilter', (function() {var f; return function _doFilter(){return f || (f = (function(_parseDefs){return function(_list){return _transformDo()(_list);};}));}})(), 2, "\\parseDefs list . transformDo list");;
   _transformDo = Parse.define('transformDo', (function() {var f; return function _transformDo(){return f || (f = (function(_list){return _list();}));}})(), 1, "\\list . list");;
   _transformDo = Leisure.makeDispatchFunction('transformDo', '_transformDo', '_list', ['_transformDo', '_list']);
@@ -8544,7 +8585,7 @@ Leisure.createMethod('nil', 'getPrecedence', "\\index op tokens      . index", f
   _matchMatched = Parse.define('matchMatched', (function() {var f; return function _matchMatched(){return f || (f = (function(_match){return _head()((function(){var $m; return (function(){return $m || ($m = (_head()(_match)))})})());}));}})(), 1, "\\match .head (head match)");;
   _matchGroups = Parse.define('matchGroups', (function() {var f; return function _matchGroups(){return f || (f = (function(_match){return _tail()((function(){var $m; return (function(){return $m || ($m = (_head()(_match)))})})());}));}})(), 1, "\\match .tail (head match)");;
 })
-.andThen(function(){ return   (function(_x){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "*"}))((function(){return "before"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "/"}))((function(){return "at"}))((function(){return "*"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "+"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "-"}))((function(){return "at"}))((function(){return "+"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "<"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return ">"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return function(_x){return _bind()((function(){var $m; return (function(){return $m || ($m = (_addParseFilter()(_mainParseInfix)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "getURI"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "setURI"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "getDocument"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _forward()((function(){return "replaceDocument"}));}))})})());}))})})());}))})})());}))})})());}((function(){var $m; return (function(){return $m || ($m = (_log()((function(){return "filter"}))((function(){return 2}))))})})());}))})})());}))})})());}))})})());}))})})());}))})})());}))})})());}((function(){var $m; return (function(){return $m || ($m = (_log()((function(){return "infix"}))((function(){return 1}))))})})()))})
+.andThen(function(){ return   (function(_x){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "*"}))((function(){return "before"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "/"}))((function(){return "at"}))((function(){return "*"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "+"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "-"}))((function(){return "at"}))((function(){return "+"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return "<"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_defInfixToken()((function(){return ">"}))((function(){return "at"}))(_nil)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return function(_x){return _bind()((function(){var $m; return (function(){return $m || ($m = (_addParseFilter()(_mainParseInfix)))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "getURI"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "setURI"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _bind()((function(){var $m; return (function(){return $m || ($m = (_forward()((function(){return "getDocument"}))))})})())((function(){var $m; return (function(){return $m || ($m = (function(__){return _forward()((function(){return "replaceDocument"}));}))})})());}))})})());}))})})());}))})})());}((function(){var $m; return (function(){return $m || ($m = (_log()((function(){return 2}))((function(){return "filter"}))))})})());}))})})());}))})})());}))})})());}))})})());}))})})());}))})})());}((function(){var $m; return (function(){return $m || ($m = (_log()((function(){return 1}))((function(){return "infix"}))))})})()))})
 .andThen(function(){
   _save = Parse.define('save', (function _save() {return ((_bind()(_getURI)((function(){var $m; return (function(){return $m || ($m = (function(_uri){return _bind()(_getDocument)((function(){var $m; return (function(){return $m || ($m = (function(_doc){return _write()(_uri)(_doc);}))})})());}))})})())));}), 0, "do\n  uri <- getURI\n  doc <- getDocument\n  write uri doc");;
   _saveAs = Parse.define('saveAs', (function() {var f; return function _saveAs(){return f || (f = (function(_newUri){return _bind()(_getDocument)((function(){var $m; return (function(){return $m || ($m = (function(_doc){return _write()(_newUri)(_doc);}))})})());}));}})(), 1, "\\newUri . do\n  doc <- getDocument\n  write newUri doc");;

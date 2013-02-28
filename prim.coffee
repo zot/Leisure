@@ -32,9 +32,9 @@ else
   fs = require 'fs'
   path = require 'path'
   defaultEnv.write = (msg)-> process.stdout.write(msg)
-  defaultEnv.prompt = (msg, cont)-> tty.question(msg, ->
+  defaultEnv.prompt = (msg, cont)-> tty.question(msg, (x)->
     try
-      cont()
+      cont x
     catch err
       console.log "ERROR PRINTING VALUE: #{err.stack}"
   )
@@ -130,12 +130,32 @@ define 'strtake', ->(s)->(count)-> s().substring 0, count()
 
 define 'strdrop', ->(s)->(count)-> s().substring count()
 
-define 'log', ->(msg)->(value)->
-  if (msg().type != 'cons') then defaultEnv.write("#{msg()}") else defaultEnv.write(concatList(msg()))
-  defaultEnv.write("\n")
-  value()
 define 'break', ->(value)->
   console.log 'breakpoint'
+  value()
+
+agents = {}
+
+agents.io = (old)->(block)-> runMonad block(), Prim.currentEnv ? defaultEnv, ->
+
+define 'primagent', ->(name)->(startValue)->(block)->
+  makeMonad (env, cont)->
+    agents[name()] = agent = block()
+    agent.value = startValue()
+    cont(_false())
+
+define 'send', ->(value)->(agentName)->(input)->
+  agent = agents[agentName()]
+  env = Prim.currentEnv
+  setTimeout (->
+    try
+      oldEnv = Prim.currentEnv
+      Prim.currentEnv = env
+      val = agent.value
+      agent.value = agent(->val)(input)
+    finally
+      Prim.currentEnv = oldEnv
+  ), 1
   value()
 
 leisureEvent = (leisureFuncName, evt, env, channel)->

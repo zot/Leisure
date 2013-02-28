@@ -105,7 +105,8 @@ handleVar = (name, value, env)->
 
 # rewrite in Leisure
 processLine = (line, env, namespace, next)->
-  env = env ? Prim.defaultEnv
+  oldEnv = Prim.currentEnv
+  Prim.currentEnv = env = env ? Prim.defaultEnv
   try
     if line
       if line[0] == '!'
@@ -132,6 +133,7 @@ processLine = (line, env, namespace, next)->
         return handlerFunc(ast, result, a, c, r, line, env, next)
   catch err
     env.write errString err
+    Prim.currentEnv = oldEnv
   (next ? nextFunc)()
 
 escape = (str)-> str.replace(/\n/g, '\\n')

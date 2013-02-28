@@ -152,8 +152,9 @@
   };
 
   processLine = function processLine(line, env, namespace, next) {
-    var a, ast, c, err, m, r, result, _ref2, _ref3, _ref4;
-    env = env != null ? env : Prim.defaultEnv;
+    var a, ast, c, err, m, oldEnv, r, result, _ref2, _ref3, _ref4;
+    oldEnv = Prim.currentEnv;
+    Prim.currentEnv = env = env != null ? env : Prim.defaultEnv;
     try {
       if (line) {
         if (line[0] === '!') {
@@ -195,6 +196,7 @@
       }
     } catch (err) {
       env.write(errString(err));
+      Prim.currentEnv = oldEnv;
     }
     return (next != null ? next : nextFunc)();
   };
