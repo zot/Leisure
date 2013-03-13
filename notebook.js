@@ -97,6 +97,9 @@
   createPeer = function createPeer() {
     var k, param, params, server, v, _i, _len, _ref2, _ref3;
     root.xusServer = server = new Xus.Server();
+    root.xusServer.verbose = function verbose(str) {
+      return console.log(str);
+    };
     server.exit = function exit() {
       return closeWindow();
     };
