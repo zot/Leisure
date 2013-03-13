@@ -1252,6 +1252,7 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
     Server.prototype.anonymousPeerCount = 0;
 
     function Server() {
+      console.log("NEW XUS SERVER");
       this.connections = [];
       this.peers = {};
       this.varStorage = new VarStorage(this);
@@ -1310,6 +1311,8 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
       var isMyPeerKey, key, name, tmpMsg, x, x1, x2,
         _this = this;
       name = _arg[0];
+      console.log("@@@@@");
+      console.log("*** processMsg: " + msg);
       if (con.isConnected()) {
         if (__indexOf.call(cmds, name) >= 0) {
           if (name === 'response') {
@@ -1348,6 +1351,7 @@ require.define("/proto.js",function(require,module,exports,__dirname,__filename,
               return this[name](con, msg, function() {
                 var c, _i, _len, _ref;
                 if (__indexOf.call(setCmds, name) >= 0) {
+                  _this.verbose("CMD: " + (JSON.stringify(msg)) + ", VALUE: " + (JSON.stringify(_this.varStorage.values[key])));
                   if (key === con.namePath) {
                     _this.name(con, msg[2]);
                   } else if (key === con.masterPath) {
@@ -2325,9 +2329,13 @@ require.define("/transport.js",function(require,module,exports,__dirname,__filen
       var _this = this;
       this.master = master;
       if (this.master) {
-        this.con.onopen = function(evt) {
-          return _this.sendPending();
-        };
+        if (this.con.readyState === 1) {
+          this.sendPending();
+        } else {
+          this.con.onopen = function(evt) {
+            return _this.sendPending();
+          };
+        }
         this.con.onmessage = function(evt) {
           console.log("MESSAGE: " + (JSON.stringify(evt.data)));
           return _this.newData(evt.data);
@@ -2363,7 +2371,8 @@ require.define("/transport.js",function(require,module,exports,__dirname,__filen
         msg = _ref[_i];
         this.write(msg);
       }
-      return this.pending = null;
+      this.pending = null;
+      return this.sendPending = function() {};
     };
 
     WebSocketConnection.prototype.basicClose = function() {
@@ -8693,6 +8702,9 @@ if (typeof window != 'undefined') Prim.runMonad(module.exports, Prim.defaultEnv,
   createPeer = function createPeer() {
     var k, param, params, server, v, _i, _len, _ref2, _ref3;
     root.xusServer = server = new Xus.Server();
+    root.xusServer.verbose = function verbose(str) {
+      return console.log(str);
+    };
     server.exit = function exit() {
       return closeWindow();
     };

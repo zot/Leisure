@@ -67,6 +67,7 @@ closeWindow = ->
 
 createPeer = ->
   root.xusServer = server = new Xus.Server()
+  root.xusServer.verbose = (str)-> console.log str
   server.exit = -> closeWindow()
   peer = root.peer = Xus.createDirectPeer server
   peer.server = server
