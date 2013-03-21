@@ -96,32 +96,12 @@ lapplyXY = json2Ast
         _type: "ref"
         value: "y"
 
-xlet3Ast = json2Ast
+let3Ast = json2Ast
   _type: 'let'
   varName: 'x'
   value:
     _type: 'lit'
     value: 3
-  body:
-    _type: 'ref'
-    value: 'x'
-
-let3Ast = json2Ast
-  _type: 'let'
-  varName: 'x'
-  value:
-    _type: 'apply'
-    func:
-      _type: 'apply'
-      func:
-        _type: 'ref'
-        value: 'log'
-      arg:
-        _type: 'lit'
-        value: "hello x"
-    arg:
-      _type: 'lit'
-      value: 3
   body:
     _type: 'let'
     varName: 'y'
@@ -140,7 +120,7 @@ let3Ast = json2Ast
         value: 4
     body:
       _type: 'ref'
-      value: 'y'
+      value: 'x'
 
 run 'test1', -> assertEq "1", "1"
 run 'test2', -> assertEq "#{LZ.Nil}", "Cons[]"
