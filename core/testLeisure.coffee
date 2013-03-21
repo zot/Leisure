@@ -33,6 +33,7 @@ U = require('util')
   cons,
   Nil,
   json2Ast,
+  ast2Json,
   getLitVal,
   getRefVar,
   getLambdaBody
@@ -134,12 +135,16 @@ run 'test8', ->
     _type: "lit"
     value: 3
   assertEq getLitVal(st), 3
+  assertEq getLitVal(json2Ast ast2Json st), 3
 run 'test9', ->
   st = json2Ast
     _type: "ref"
     value: 3
   assertEq getRefVar(st), 3
-run 'test10', -> assertEq getRefVar(getLambdaBody(lidAst)), 'x'
+  assertEq getRefVar(json2Ast ast2Json st), 3
+run 'test10', ->
+  assertEq getRefVar(getLambdaBody(lidAst)), 'x'
+  assertEq getRefVar(getLambdaBody(json2Ast ast2Json lidAst)), 'x'
 run 'test11', ->
   st = json2Ast
     _type: "cons"
@@ -147,6 +152,7 @@ run 'test11', ->
     tail:
       _type: "nil"
   assertEq "#{st}", "Cons[1]"
+  assertEq "#{json2Ast ast2Json st}", "Cons[1]"
 run 'test12', -> assertEq (gen lidAst), 'function(_x){return _x()}'
 run 'test13', -> assertEq (gen lapplyXY), 'function(_x){return function(_y){return _x()(_y)}}'
 run 'test14', -> assertEq (gen ltrueAst), 'function(_a){return function(_b){return _a()}}'

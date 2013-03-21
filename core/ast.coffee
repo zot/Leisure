@@ -287,94 +287,58 @@ getAnnoBody = (anno)-> anno -> (data)->(body)-> body()
 ###### JSON-to-AST
 ######
 
-json2AstTypes =
+json2AstEncodings =
   lit: (json)-> dispatch.lit json.value
   ref: (json)-> dispatch.ref json.value
   lambda: (json)-> dispatch.lambda json.varName, json2Ast json.body
   apply: (json)-> dispatch.apply json2Ast(json.func), json2Ast json.arg
   let: (json)-> dispatch.llet json.varName, json2Ast(json.value), json2Ast(json.body)
-  anno: (json)-> dispatch.anno json.string, json2Ast json.body
+  anno: (json)-> dispatch.anno json.data, json2Ast json.body
   cons: (json)-> dispatch.cons json2Ast(json.head), json2Ast(json.tail)
   nil: (json)-> Nil
 
 json2Ast = (json)->
   #console.log "json2Ast: #{JSON.stringify json}"
   if typeof json != 'object' then json
-  else json2AstTypes[json._type] json
+  else json2AstEncodings[json._type] json
 
-######
-###### Printing
-######
+ast2JsonEncodings =
+  Leisure_lit: (ast)->
+    _type: 'lit'
+    value: getLitVal ast
+  Leisure_ref: (ast)->
+    _type: 'ref'
+    value: getRefVar ast
+  Leisure_lambda: (ast)->
+    _type: 'lambda'
+    varName: getLambdaVar ast
+    body: ast2Json getLambdaBody ast
+  Leisure_apply: (ast)->
+    _type: 'apply'
+    func: ast2Json getApplyFunc ast
+    arg: ast2Json getApplyArg ast
+  Leisure_let: (ast)->
+    _type: 'let'
+    varName: getLetName ast
+    value: ast2Json getLetValue ast
+    body: ast2Json getLetBody ast
+  Leisure_anno: (ast)->
+    _type: 'anno'
+    data: ast2Json getAnnoData ast
+    body: ast2Json getAnnoBody ast
+  Leisure_cons: (ast)->
+    _type: 'cons'
+    head: ast2Json ast.head()
+    tail: ast2Json ast.tail()
+  Leisure_nil: (ast)->
+    _type: 'nil'
 
-print = (f)->
-  if !f? then "UNDEFINED"
-  else if f == null then 'NULL'
-  else switch getType(f)
-    when 'lit', 'ref', 'lambda', 'apply' then "AST(#{subprint f})"
-    else subprint f
+ast2Json = (ast)->
+  if ast2JsonEncodings[ast.constructor?.name] then ast2JsonEncodings[ast.constructor.name] ast else ast
 
-subprint = (f)->
-  if !f? then "UNDEFINED"
-  else if f == null then 'NULL'
-  else if f == _true() then 'true'
-  else if f == _false() then 'false'
-  else switch getType(f)
-    #when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elements(f, true)}]"
-    #when 'cons' then "[#{elements(f, true)}]"
-    #when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elementsTail(f, true, '')}]"
-    #when 'cons' then "[#{elementsTail(f, true, '')}]"
-    when 'lexCons' then "LexCons(#{f.start()}, #{f.end()})[#{elementsLoop(f)}]"
-    when 'cons' then "[#{elementsLoop(f)}]"
-    when 'nil' then "[]"
-    when 'token' then "#{f}"
-    when 'ioMonad' then "IO"
-    when 'lit' then f ->(v)->JSON.stringify(v())
-    when 'ref' then f ->(v)->v()
-    when 'lambda' then f ->(v)->(bod)-> "\u03BB#{printLambda v(), bod()}"
-    when 'apply' then f ->(func)->(arg)-> printApply(func(), arg())
-    when 'some' then f(->(v)-> "Some(#{print v()})")(null)
-    when 'some2' then f(->(a)->(b)-> "Some2(#{print a()}, #{print b()})")(null)
-    when 'left' then f(->(l)-> "Left(#{print l()})")(null)
-    when 'right' then f(null)(->(r)-> "Right(#{print r()})")
-    when 'html' then f ->(txt)-> "HTML(#{txt()})"
-    when 'svgNode' then f ->(txt)-> "SVG NODE(#{txt()})"
-    else
-      if f instanceof Error then f.stack
-      else f.leisureName ? (inspect ? (v)->"#{v}")(f)
-
-printLambda = (v, body)->
-  if body.type == 'lambda' then body ->(v2)->(b)-> "#{v} #{printLambda v2(), b()}"
-  else "#{v} . #{subprint(body)}"
-
-printApply = (func, arg)->
-  f = if func.type == 'lambda' then "(#{subprint func})" else subprint(func)
-  a = if arg.type == 'apply' then "(#{subprint arg})" else subprint(arg)
-  "#{f} #{a}"
-
-elements = (l, first, nosubs)->
-  if l == Nil then ''
-  else if !(l instanceof Leisure_cons) then " | #{print(l)}"
-  else "#{if first then '' else ' '}#{print(l.head()) + elements(l.tail(), false)}"
-
-# This still gets a stack overflow, even though it's a pure tail call
-elementsTail = (l, first, acc)->
-  if l == Nil then acc
-  else if !(l instanceof Leisure_cons) then "#{acc} | #{print(l)}"
-  else elementsTail l.tail(), false, "#{acc}#{if first then '' else ' '}#{print(l.head())}"
-
-# interative version that's not tail recursive'
-elementsLoop = (l, nosubs)->
-  result = ''
-  first = true
-  while l != Nil
-    if !(l instanceof Leisure_cons)
-      result += " | #{print (l)}"
-      break
-    if first then first = false
-    else result += ' '
-    result += print l.head()
-    l = l.tail()
-  result
+# Leisure interface to the JSON AST codec
+define 'json2Ast', (-> (json)-> json2Ast JSON.parse json())
+define 'ast2Json', (-> (ast)-> JSON.stringify ast2Json ast())
 
 root.nameSub = nameSub
 root.setDataType = setDataType
@@ -401,12 +365,12 @@ root.getApplyArg = getApplyArg
 root.getLetName = getLetName
 root.getLetValue = getLetValue
 root.getLetBody = getLetBody
-root.print = print
 root.throwError = throwError
 root.foldLeft = foldLeft
 root.LeisureObject = LeisureObject
 root.evalFunc = evalFunc
 root.json2Ast = json2Ast
+root.ast2Json = ast2Json
 root.Leisure_lit = Leisure_lit
 root.Leisure_ref = Leisure_ref
 root.Leisure_lambda = Leisure_lambda
