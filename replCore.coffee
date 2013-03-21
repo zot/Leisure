@@ -265,7 +265,7 @@ compileLines = (file, contents, loud, handle, nomacros, check, globals, errs, de
       else rest = ''
     catch err
       throw new Error "Error compiling #{file}#{if ast.leisureName then "." + ast.leisureName else ""}: code:\n#{out}\n>>> ERROR: #{err.message}\n>>> CODE: #{ast.src}"
-    if localAuto && !ast.leisureName
+    if localAuto && ast && !ast.leisureName
       result = eval ast.src
       try
         if result instanceof Prim.Monad then Prim.runMonad result, Prim.defaultEnv, ->

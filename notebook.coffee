@@ -944,7 +944,7 @@ clearUpdates = (widget, preserveSource)->
 
 update = (type, env)->
   env = env ? Prim.defaultEnv
-  for node in env.owner.querySelectorAll "[leisureUpdate~=#{type}]"
+  for node in env.owner.querySelectorAll "[leisureUpdate~='#{type}']"
     evalOutput node, true
 
 clearOutputBox = (exBox)->

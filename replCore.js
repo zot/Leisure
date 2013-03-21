@@ -291,7 +291,7 @@
       } catch (err) {
         throw new Error("Error compiling " + file + (ast.leisureName ? "." + ast.leisureName : "") + ": code:\n" + out + "\n>>> ERROR: " + err.message + "\n>>> CODE: " + ast.src);
       }
-      if (localAuto && !ast.leisureName) {
+      if (localAuto && ast && !ast.leisureName) {
         result = eval(ast.src);
         try {
           if (result instanceof Prim.Monad) {

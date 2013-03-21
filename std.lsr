@@ -225,7 +225,9 @@ macroCons list =M= cons 'cons' (tail list)
 
 #concat[ list =M= cons 'concat' (cons (cons '[' (tail list)) nil)
 
-concat[ list =M= cons (token 'concat' (tokenStart list)) (cons (cons (token '[' (tokenStart (tail list))) (tail list)) nil)
+#concat[ list =M= cons (token 'concat' (tokenStart list)) (cons (cons (token '[' (tokenStart (tail list))) (tail list)) nil)
+
+concat[ list =M= [(token 'concat' (tokenStart list)) [(token '[' (tokenStart (tail list))) | (tail list)]]
 
 intersperse x l = or (eq l nil) (eq (tail l) nil) l [(head l) x | (intersperse x (tail l))]
 

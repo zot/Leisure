@@ -1423,7 +1423,7 @@
   update = function update(type, env) {
     var node, _i, _len, _ref2, _results;
     env = env != null ? env : Prim.defaultEnv;
-    _ref2 = env.owner.querySelectorAll("[leisureUpdate~=" + type + "]");
+    _ref2 = env.owner.querySelectorAll("[leisureUpdate~='" + type + "']");
     _results = [];
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
       node = _ref2[_i];
