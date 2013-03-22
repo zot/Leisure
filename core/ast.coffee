@@ -64,8 +64,6 @@ charCodes =
   '%': '$A'
   '.': '$B'
 
-codeChars = new -> @[code.substring(1)] = char for char, code of charCodes; this
-
 nameSub = (name)->
   s = '_'
   for i in [0...name.length]
