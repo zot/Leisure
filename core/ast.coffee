@@ -265,7 +265,7 @@ save.anno = anno = (anno, body)-> _anno()(-> anno)(-> body)
 save.cons = cons
 getAstType = (f) -> f.type
 getLitVal = (lt)-> lt ->(v)-> v()
-getRefVar = (rf)-> rf ->(v)-> v()
+getRefName = (rf)-> rf ->(v)-> v()
 getLambdaVar = (lam)-> lam ->(v)->(b)-> v()
 getLambdaBody = (lam)-> lam ->(v)->(b)-> b()
 getApplyFunc = (apl)-> apl ->(a)->(b)-> a()
@@ -282,7 +282,7 @@ getAnnoBody = (anno)-> anno -> (data)->(body)-> body()
 
 json2AstEncodings =
   lit: (json)-> _lit()(-> json.value)
-  ref: (json)-> _ref()(-> json.value)
+  ref: (json)-> _ref()(-> json.varName)
   lambda: (json)-> _lambda()(-> json.varName)(-> json2Ast json.body)
   apply: (json)-> _apply()(-> json2Ast(json.func))(-> json2Ast json.arg)
   let: (json)-> _let()(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
@@ -310,7 +310,7 @@ ast2JsonEncodings =
     value: getLitVal ast
   Leisure_ref: (ast)->
     _type: 'ref'
-    value: getRefVar ast
+    varName: getRefName ast
   Leisure_lambda: (ast)->
     _type: 'lambda'
     varName: getLambdaVar ast
@@ -358,7 +358,7 @@ root.apply = apply
 root.anno = anno
 root.llet = llet
 root.getAstType = getAstType
-root.getRefVar = getRefVar
+root.getRefName = getRefName
 root.getLitVal = getLitVal
 root.getLambdaBody = getLambdaBody
 root.getLambdaVar = getLambdaVar

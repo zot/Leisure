@@ -49,7 +49,7 @@ else
   Nil,
   cons,
   getAstType,
-  getRefVar,
+  getRefName,
   getLitVal,
   getLambdaBody,
   getLambdaVar,
@@ -371,7 +371,7 @@ wrap = (name, ast, v, body, namespace, debug)->
 gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, top, ignoreUnknownNames)->
   switch getAstType ast
     when 'ref'
-      val = getRefVar ast
+      val = getRefName ast
       if val.lambda then code.addErr "attempt to use lambda as a variable"
       else
         code = code.copyWith(nameSub val).reffedValue(deref)
@@ -396,7 +396,7 @@ gen = (originalAst, prefixCount, ast, code, lits, vars, deref, name, namespace, 
     when 'apply'
       func = getApplyFunc ast
       if getAstType(func) == 'lit' then code.addErr "Attempt to use lit as function: #{getLitVal func}"
-      else if !ignoreUnknownNames and freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefVar func}, globals: #{global.leisureFuncNames.toArray().sort()}"
+      else if !ignoreUnknownNames and freeVar func, vars, code.global then code.addErr "Attempt to use free variable as function: #{getRefName func}, globals: #{global.leisureFuncNames.toArray().sort()}"
       else
         arg = getApplyArg ast
         funcCode = gen originalAst, prefixCount, func, code, lits, vars, true, name, namespace, false, ignoreUnknownNames
@@ -424,7 +424,7 @@ firstConstrainedArgumentType = (ast)->
 
 freeVar = (ast, vars, globals)->
   if (getAstType ast) == 'ref'
-    rv = getRefVar ast
+    rv = getRefName ast
     !ctx[nameSub(rv)] and !vars.find((v)-> v == rv) and !globals.find((v)-> v == rv) and !forward[nameSub(rv)] and !global.leisureFuncNames.find((v)-> v == rv)
   else false
 

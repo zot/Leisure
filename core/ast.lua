@@ -95,7 +95,7 @@ M.lockGlobals(
       -- JSON-to-AST
       --
       local dispatch = {
-         lit = lit,
+         lit = function(json) lit(json.value) end,
          ref = ref,
          lambda = lambda,
          apply = apply,

@@ -35,7 +35,7 @@ U = require('util')
   json2Ast,
   ast2Json,
   getLitVal,
-  getRefVar,
+  getRefName,
   getLambdaBody
 } = LZ = require './ast'
 {run, assertParse, assertEval, assertEvalPrint, assertEq} = T = require './testing'
@@ -63,7 +63,7 @@ ltrueAst = json2Ast
     varName: "b"
     body:
       _type: "ref"
-      value: "a"
+      varName: "a"
 
 lfalseAst = json2Ast
   _type: "lambda"
@@ -73,14 +73,14 @@ lfalseAst = json2Ast
     varName: "b"
     body:
       _type: "ref"
-      value: "b"
+      varName: "b"
 
 lidAst = json2Ast
   _type: "lambda"
   varName: "x"
   body:
     _type: "ref"
-    value: "x"
+    varName: "x"
 
 lapplyXY = json2Ast
   _type: "lambda"
@@ -92,10 +92,10 @@ lapplyXY = json2Ast
       _type: "apply"
       func:
         _type: "ref"
-        value: "x"
+        varName: "x"
       arg:
         _type: "ref"
-        value: "y"
+        varName: "y"
 
 let3Ast = json2Ast
   _type: 'let'
@@ -112,7 +112,7 @@ let3Ast = json2Ast
         _type: 'apply'
         func:
           _type: 'ref'
-          value: 'log'
+          varName: 'log'
         arg:
           _type: 'lit'
           value: "hello y"
@@ -121,7 +121,7 @@ let3Ast = json2Ast
         value: 4
     body:
       _type: 'ref'
-      value: 'x'
+      varName: 'x'
 
 run 'test1', -> assertEq "1", "1"
 run 'test2', -> assertEq "#{LZ.Nil}", "Cons[]"
@@ -139,12 +139,12 @@ run 'test8', ->
 run 'test9', ->
   st = json2Ast
     _type: "ref"
-    value: 3
-  assertEq getRefVar(st), 3
-  assertEq getRefVar(json2Ast ast2Json st), 3
+    varName: 3
+  assertEq getRefName(st), 3
+  assertEq getRefName(json2Ast ast2Json st), 3
 run 'test10', ->
-  assertEq getRefVar(getLambdaBody(lidAst)), 'x'
-  assertEq getRefVar(getLambdaBody(json2Ast ast2Json lidAst)), 'x'
+  assertEq getRefName(getLambdaBody(lidAst)), 'x'
+  assertEq getRefName(getLambdaBody(json2Ast ast2Json lidAst)), 'x'
 run 'test11', ->
   st = json2Ast
     _type: "cons"

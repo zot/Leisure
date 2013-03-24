@@ -29,7 +29,7 @@ else
   {
     nameSub,
     getLitVal,
-    getRefVar,
+    getRefName,
     getLambdaVar,
     getLambdaBody,
     getApplyFunc,
@@ -51,7 +51,7 @@ else
 gen = (ast)->
   switch ast.constructor
     when Leisure_lit then JSON.stringify getLitVal ast
-    when Leisure_ref then "#{nameSub getRefVar ast}()"
+    when Leisure_ref then "#{nameSub getRefName ast}()"
     when Leisure_lambda then "function(#{nameSub getLambdaVar ast}){return #{gen getLambdaBody ast}}"
     when Leisure_apply then "#{gen getApplyFunc ast}(#{genApplyArg getApplyArg ast})"
     when Leisure_let then "(function(){\n#{genLets ast}})()"
@@ -60,7 +60,7 @@ gen = (ast)->
 
 genApplyArg = (arg)->
   if arg instanceof Leisure_apply then "(function(){var $m; return function(){return $m || ($m = #{gen arg})}})()"
-  else if arg instanceof Leisure_ref then nameSub getRefVar arg
+  else if arg instanceof Leisure_ref then nameSub getRefName arg
   else if arg instanceof Leisure_let then "function(){#{genLets arg}}"
   else "function(){return #{gen arg}}"
   
