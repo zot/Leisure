@@ -27,8 +27,7 @@ Wimpy testing framework
 ###
 
 U = require('util')
-exports = module.exports = require './base'
-require './ast'
+exports = module.exports = require './ast'
 
 stats =
   successes: 0

@@ -65,7 +65,7 @@ charCodes =
   '.': '$B'
 
 nameSub = (name)->
-  s = '_'
+  s = ''
   for i in [0...name.length]
     code = charCodes[name[i]]
     s += code ? name[i]
@@ -89,7 +89,7 @@ class LeisureObject
 global.LeisureObject = LeisureObject
 
 ensureLeisureClass = (leisureClass)->
-  cl = "Leisure#{nameSub leisureClass}"
+  cl = "Leisure_#{nameSub leisureClass}"
   if !global[cl]?
     global[cl] = eval "(function #{cl}(){})"
     global[cl].prototype.__proto__ = LeisureObject.prototype
@@ -204,7 +204,7 @@ root.evalFunc = evalFunc = eval
 define = (name, func, arity, src, method) ->
   func.src = src
   func.leisureContexts = []
-  nm = nameSub(name)
+  nm = '_' + nameSub(name)
   func.leisureName = name
   func.leisureArity = arity
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
@@ -250,27 +250,22 @@ define 'apply', (->setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_
 define 'let', (->setDataType ((_n)-> (_v)-> (_b)-> setType ((_f)-> _f()(_n)(_v)(_b)), 'let'), 'let'), 3, '\\n v b . \\f . f n v b'
 define 'anno', (->setDataType ((_data)->(_body)-> setType ((_f)-> _f()(_data)(_body)), 'anno'), 'anno'), 2, '\\d b . \\f . f d b'
 
-tag = (ast, start, end)->
-  ast.leisureStart = start
-  ast.leisureEnd = end
-  ast
-
 getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{t}"
 
-dispatch = {}
+save = {}
 
-lit = dispatch.lit = (l)-> _lit()(-> l)
-ref = dispatch.ref = (r)-> _ref()(-> r)
-lambda = dispatch.lambda = (v, body)->_lambda()(-> v)(-> body)
-apply = dispatch.apply = (f, a)->_apply()(-> f)(-> a)
-llet = dispatch.llet = (n, v, b)->_let()(-> n)(-> v)(-> b)
-anno = dispatch.anno = (anno, body)-> _anno()(-> anno)(-> body)
-dispatch.cons = cons
+save.lit = lit = (l)-> _lit()(-> l)
+save.ref = ref = (r)-> _ref()(-> r)
+save.lambda = lambda = (v, body)->_lambda()(-> v)(-> body)
+save.apply = apply = (f, a)->_apply()(-> f)(-> a)
+save.llet = llet = (n, v, b)->_let()(-> n)(-> v)(-> b)
+save.anno = anno = (anno, body)-> _anno()(-> anno)(-> body)
+save.cons = cons
 getAstType = (f) -> f.type
-getRefVar = (rf)-> rf ->(a)-> a()
-getLitVal = (lt)-> lt ->(a)-> a()
+getLitVal = (lt)-> lt ->(v)-> v()
+getRefVar = (rf)-> rf ->(v)-> v()
 getLambdaVar = (lam)-> lam ->(v)->(b)-> v()
 getLambdaBody = (lam)-> lam ->(v)->(b)-> b()
 getApplyFunc = (apl)-> apl ->(a)->(b)-> a()
@@ -286,14 +281,23 @@ getAnnoBody = (anno)-> anno -> (data)->(body)-> body()
 ######
 
 json2AstEncodings =
-  lit: (json)-> dispatch.lit json.value
-  ref: (json)-> dispatch.ref json.value
-  lambda: (json)-> dispatch.lambda json.varName, json2Ast json.body
-  apply: (json)-> dispatch.apply json2Ast(json.func), json2Ast json.arg
-  let: (json)-> dispatch.llet json.varName, json2Ast(json.value), json2Ast(json.body)
-  anno: (json)-> dispatch.anno json.data, json2Ast json.body
-  cons: (json)-> dispatch.cons json2Ast(json.head), json2Ast(json.tail)
+  lit: (json)-> _lit()(-> json.value)
+  ref: (json)-> _ref()(-> json.value)
+  lambda: (json)-> _lambda()(-> json.varName)(-> json2Ast json.body)
+  apply: (json)-> _apply()(-> json2Ast(json.func))(-> json2Ast json.arg)
+  let: (json)-> _let()(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
+  anno: (json)-> _anno()(-> json.data)(-> json2Ast json.body)
+  cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
   nil: (json)-> Nil
+
+# need these because my CS mod names the above functions with the field names :-/
+lit = save.lit
+ref = save.ref
+lambda = save.lambda
+apply = save.apply
+llet = save.llet
+anno = save.anno
+cons = save.cons
 
 json2Ast = (json)->
   #console.log "json2Ast: #{JSON.stringify json}"
