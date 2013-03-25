@@ -11,6 +11,8 @@ M.lockGlobals(
       local Nil = M.Nil
       local ensureLeisureClass = M.ensureLeisureClass
       local cons = M.cons
+      local head = M.head
+      local tail = M.tail
       local getType = M.getType
       local setType = M.setType
       local setDataType = M.setDataType
@@ -133,12 +135,31 @@ M.lockGlobals(
          return 'AST ' .. json.stringify(ast2Json(f))
       end
 
+      M.define = define
       M.json2Ast = json2Ast
+      M.ast2Json = ast2Json
       M.lit = lit
       M.ref = ref
       M.lambda = lambda
       M.apply = apply
       M.let = let
       M.anno = anno
+      M.getLitVal = getLitVal
+      M.getRefName = getRefName
+      M.getLambdaName = getLambdaName
+      M.getLambdaBody = getLambdaBody
+      M.getApplyFunc = getApplyFunc
+      M.getApplyArg = getApplyArg
+      M.getAnnoData = getAnnoData
+      M.getAnnoBody = getAnnoBody
+      M.getLetName = getLetName
+      M.getLetValue = getLetValue
+      M.getLetBody = getLetBody
+      M.Leisure_lit = M.classes.lit
+      M.Leisure_ref = M.classes.ref
+      M.Leisure_lambda = M.classes.lambda
+      M.Leisure_apply = M.classes.apply
+      M.Leisure_let = M.classes.let
+      M.Leisure_anno = M.classes.anno
    end)
 return M

@@ -66,16 +66,16 @@ genApplyArg = (arg)->
   
 genLets = (ast)->
   lets = letList ast, []
-  if ast instanceof Leisure_let
-    decs = _.map(lets, (l)->nameSub getLetName l)
-    assigns = _.map(lets, (l)-> '\n' + nameSub(getLetName l) + ' = ' + genApplyArg(getLetValue l))
-    "\nvar #{decs.join(', ')};\n#{assigns.join(';\n')};\nreturn #{gen getLetBody ast}"
-  else "return #{gen ast}"
+  decs = _.map(lets, (l)->nameSub getLetName l)
+  assigns = _.map(lets, (l)-> '\n' + nameSub(getLetName l) + ' = ' + genApplyArg(getLetValue l))
+  "\nvar #{decs.join(', ')};\n#{assigns.join(';\n')};\nreturn #{gen getLastLetBody ast}"
 
 letList = (ast, buf)->
   if ast instanceof Leisure_let
     buf.push ast
     letList getLetBody(ast), buf
   else buf
+
+getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
 root.gen = gen

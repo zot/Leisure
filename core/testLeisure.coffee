@@ -45,7 +45,7 @@ consFrom = (array, i)->
   i = i || 0
   if i < array.length then cons array[i], consFrom(array, i + 1) else Nil
 
-console.log 'Testing'
+console.log 'Testing CoffeeScript'
 
 debug = false
 
@@ -153,12 +153,17 @@ run 'test11', ->
       _type: "nil"
   assertEq "#{st}", "Cons[1]"
   assertEq "#{json2Ast ast2Json st}", "Cons[1]"
-run 'test12', -> assertEq (gen lidAst), 'function(x){return x()}'
-run 'test13', -> assertEq (gen lapplyXY), 'function(x){return function(y){return x()(y)}}'
-run 'test14', -> assertEq (gen ltrueAst), 'function(a){return function(b){return a()}}'
-run 'test15', -> assertEq (eval "(#{gen ltrueAst})")(->5)(->6), 5
-run 'test16', -> assertEq (eval "(#{gen lfalseAst})")(->5)(->6), 6
-run 'test17', -> assertEq (eval "(#{gen let3Ast})"), 3
+run 'test12', ->
+  st = json2Ast
+    _type: "lit"
+    value: 3
+  assertEq (gen st), '3'
+run 'test13', -> assertEq (gen lidAst), 'function(x){return x()}'
+run 'test14', -> assertEq (gen lapplyXY), 'function(x){return function(y){return x()(y)}}'
+run 'test15', -> assertEq (gen ltrueAst), 'function(a){return function(b){return a()}}'
+run 'test16', -> assertEq (eval "(#{gen ltrueAst})")(->5)(->6), 5
+run 'test17', -> assertEq (eval "(#{gen lfalseAst})")(->5)(->6), 6
+run 'test18', -> assertEq (eval "(#{gen let3Ast})"), 3
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

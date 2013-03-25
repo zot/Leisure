@@ -210,33 +210,34 @@ M.lockGlobals(
       ----
 
       local charCodes = {
-         ["'"] = '$a',
-         [','] = '$b',
-         ['$'] = '$$',
-         ['@'] = '$d',
-         ['?'] = '$e',
-         ['/'] = '$f',
-         ['*'] = '$g',
-         ['&'] = '$h',
-         ['^'] = '$i',
-         ['!'] = '$k',
-         ['`'] = '$l',
-         ['~'] = '$m',
-         ['-'] = '$_',
-         ['+'] = '$o',
-         ['='] = '$p',
-         ['|'] = '$q',
-         ['['] = '$r',
-         [']'] = '$s',
-         ['{'] = '$t',
-         ['}'] = '$u',
-         ['"'] = '$v',
-         [':'] = '$w',
-         [';'] = '$x',
-         ['<'] = '$y',
-         ['>'] = '$z',
-         ['%'] = '$A',
-         ['.'] = '$B'
+         ["'"] = '_a',
+         [','] = '_b',
+         ['$'] = '_c',
+         ['@'] = '_d',
+         ['?'] = '_e',
+         ['/'] = '_f',
+         ['*'] = '_g',
+         ['&'] = '_h',
+         ['^'] = '_i',
+         ['!'] = '_k',
+         ['`'] = '_l',
+         ['~'] = '_m',
+         ['-'] = '_n',
+         ['+'] = '_o',
+         ['='] = '_p',
+         ['|'] = '_q',
+         ['['] = '_r',
+         [']'] = '_s',
+         ['{'] = '_t',
+         ['}'] = '_u',
+         ['"'] = '_v',
+         [':'] = '_w',
+         [';'] = '_x',
+         ['<'] = '_y',
+         ['>'] = '_z',
+         ['%'] = '_A',
+         ['.'] = '_B',
+         ['_'] = '__',
       }
 
       local function nameSub(name)
@@ -274,7 +275,7 @@ M.lockGlobals(
 
       local function instanceOf(obj, class)
          local t = types[obj]
-         return (t and t:instanceOf(class)) or (isObject(obj) and obj:instanceOf(class))
+         return (t and (t == class or t:instanceOf(class))) or (isObject(obj) and obj:instanceOf(class))
       end
 
       ----
@@ -369,6 +370,8 @@ M.lockGlobals(
       local function find(l, func) return types[l]:find(l, func) end
       local function removeAll(l, func) return types[l]:removeAll(l, func) end
       local function map(l, func) return types[l]:map(l, func) end
+      local function reverse(l) return types[l]:reverse(l) end
+      local function rev(l, res) return types[l]:rev(l, res) end
 
       function Cons:find(l, func)
          local h = self:head(l)
@@ -391,9 +394,22 @@ M.lockGlobals(
           )
       end
 
+      function Cons:reverse(l)
+         return self:rev(l, Nil)
+      end
+
+      function Cons:rev(l, res)
+         local h = self:head(l)
+         local t = self:tail(l)
+
+         return rev(t, cons(h, res))
+      end
+
       function NilClass:find(l) return l end
       function NilClass:removeAll(l) return l end
       function NilClass:map(l) return l end
+      function NilClass:reverse(l) return l end
+      function NilClass:rev(l, res) return res end
 
       function Cons:funcString(f)
          local out = {'Cons '}
@@ -413,7 +429,7 @@ M.lockGlobals(
 
       local function toTable(list)
          r = {}
-         while getmetatable(list) == Cons do
+         while list ~= Nil do
             push(r, head(list))
             list = tail(list)
          end
@@ -462,6 +478,7 @@ M.lockGlobals(
       M.join = join
       M.find = find
       M.map = map
+      M.reverse = reverse
       M.removeAll = removeAll
       M.dl = dl
       M.toTable = toTable
