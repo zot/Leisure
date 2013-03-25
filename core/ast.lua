@@ -64,19 +64,24 @@ M.lockGlobals(
 --
 -- let binds a name to a value in a body
 --   the body can be another let node and values can refer to any names in the let bindings
+--
+-- Annotations associate key-values pairs with code
+--  name, data, body -- associates a name and data with a body of code
+--  You can nest them, so body could be another annotation
+
       define('lit', lazy(setDataType(function(val) return setType(function(f) return f()(val) end, 'lit') end, 'lit')), 1, '\\val . \\f . f val')
       define('ref', lazy(setDataType(function(name) return setType(function(f) return f()(name) end, 'ref') end, 'ref')), 1, '\\name . \\f . f name')
       define('lambda', lazy(setDataType(function(name) return function(body) return setType(function(f) return f()(name)(body) end, 'lambda') end end, 'lambda')), 2, '\\name body . \\f . f name body')
       define('apply', lazy(setDataType(function(func) return function(arg) return setType(function(f) return f()(func)(arg) end, 'apply') end end, 'apply')), 2, '\\func arg . \\f . f func arg')
       define('let', lazy(setDataType(function(name) return function(value) return function(body) return setType(function(f) return f()(name)(value)(body) end, 'let') end end end, 'let')), 2, '\\name value body . \\f . f name value body')
-      define('anno', lazy(setDataType(function(data) return function(body) return setType(function(f) return f()(data)(body) end, 'anno') end end, 'anno')), 2, '\\data body . \\f . f data body')
+      define('anno', lazy(setDataType(function(name) return function(data) return function(body) return setType(function(f) return f()(name)(data)(body) end, 'anno') end end end, 'anno')), 2, '\\name data body . \\f . f name data body')
 
       local function lit(l) return L_lit()(lazy(l)) end
       local function ref(n) return L_ref()(lazy(n)) end
       local function lambda(n, b) return L_lambda()(lazy(n))(lazy(b)) end
       local function apply(f, a) return L_apply()(lazy(f))(lazy(a)) end
       local function let(n, v, b) return L_let()(lazy(n))(lazy(v))(lazy(b)) end
-      local function anno(d, b) return L_anno()(lazy(d))(lazy(b)) end
+      local function anno(n, d, b) return L_anno()(lazy(n))(lazy(d))(lazy(b)) end
 
       local function getAstType(ast) return getType(ast) end
       local function getLitVal(ast) return ast(lazy(function(v) return v() end)) end
@@ -88,8 +93,9 @@ M.lockGlobals(
       local function getLetName(ast) return ast(lazy(function(n) return function(v) return function(b) return n() end end end)) end
       local function getLetValue(ast) return ast(lazy(function(n) return function(v) return function(b) return v() end end end)) end
       local function getLetBody(ast) return ast(lazy(function(n) return function(v) return function(b) return b() end end end)) end
-      local function getAnnoData(ast) return ast(lazy(function(d) return function(b) return d() end end)) end
-      local function getAnnoBody(ast) return ast(lazy(function(d) return function(b) return b() end end)) end
+      local function getAnnoName(ast) return ast(lazy(function(n) return function(d) return function(b) return n() end end end)) end
+      local function getAnnoData(ast) return ast(lazy(function(n) return function(d) return function(b) return d() end end end)) end
+      local function getAnnoBody(ast) return ast(lazy(function(n) return function(d) return function(b) return b() end end end)) end
 
       --
       -- JSON-to-AST
@@ -106,7 +112,7 @@ M.lockGlobals(
       function dispatch.lambda(json) return lambda(json.varName, json2Ast(json.body)) end
       function dispatch.apply(json) return apply(json2Ast(json.func), json2Ast(json.arg)) end
       function dispatch.let(json) return let(json.varName, json2Ast(json.value), json2Ast(json.body)) end
-      function dispatch.anno(json) return anno(json2Ast(json.data), json2Ast(json.body)) end
+      function dispatch.anno(json) return anno(json.name, json2Ast(json.data), json2Ast(json.body)) end
       function dispatch.cons(json) return cons(json2Ast(json.head), json2Ast(json.tail)) end
       dispatch['nil'] = function(json) return Nil end
 
@@ -127,7 +133,7 @@ M.lockGlobals(
       function ast2JsonEncodings.lambda(ast) return {_type = 'lambda', varName = getLambdaName(ast), body = ast2Json(getLambdaBody(ast))} end
       function ast2JsonEncodings.apply(ast) return {_type = 'apply', func = ast2Json(getApplyFunc(ast)), arg = ast2Json(getApplyArg(ast))} end
       function ast2JsonEncodings.let(ast) return {_type = 'let', varName = getLetName(ast), value = ast2Json(getLetValue(ast)), body = ast2Json(getLetBody(ast))} end
-      function ast2JsonEncodings.anno(ast) return {_type = 'anno', data = ast2Json(getAnnoData(ast)), body = ast2Json(getAnnoBody(ast))} end
+      function ast2JsonEncodings.anno(ast) return {_type = 'anno', name = getAnnoName(ast), data = ast2Json(getAnnoData(ast)), body = ast2Json(getAnnoBody(ast))} end
       function ast2JsonEncodings.cons(ast) return {_type = 'cons', head = ast2Json(head(ast)), tail = ast2Json(tail(ast))} end
       ast2JsonEncodings['nil'] = function(ast) return {_type = 'nil'} end
 
@@ -150,6 +156,7 @@ M.lockGlobals(
       M.getLambdaBody = getLambdaBody
       M.getApplyFunc = getApplyFunc
       M.getApplyArg = getApplyArg
+      M.getAnnoName = getAnnoName
       M.getAnnoData = getAnnoData
       M.getAnnoBody = getAnnoBody
       M.getLetName = getLetName

@@ -242,13 +242,17 @@ define 'pattern', (->setDataType ((_pat)->setType ((_f)-> _f()(_pat)), 'pattern'
 #
 # let binds a name to a value in a body
 #   the body can be another let node and values can refer to any names in the let bindings
+#
+# Annotations associate key-values pairs with code
+#  name, data, body -- associates a name and data with a body of code
+#  You can nest them, so body could be another annotation
 
 define 'lit', (->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'), 1, '\\t . \\f . f t'
 define 'ref', (->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'), 1, '\\v . \\f . f v'
 define 'lambda', (->setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'), 2, '\\v f . \\g . f v f'
 define 'apply', (->setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'), 2, '\\f a . \\g . g f a'
 define 'let', (->setDataType ((_n)-> (_v)-> (_b)-> setType ((_f)-> _f()(_n)(_v)(_b)), 'let'), 'let'), 3, '\\n v b . \\f . f n v b'
-define 'anno', (->setDataType ((_data)->(_body)-> setType ((_f)-> _f()(_data)(_body)), 'anno'), 'anno'), 2, '\\d b . \\f . f d b'
+define 'anno', (->setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> _f()(_name)(_data)(_body)), 'anno'), 'anno'), 2, '\\n d b . \\f . f n d b'
 
 getType = (f)->
   t = typeof f
@@ -261,7 +265,7 @@ save.ref = ref = (r)-> _ref()(-> r)
 save.lambda = lambda = (v, body)->_lambda()(-> v)(-> body)
 save.apply = apply = (f, a)->_apply()(-> f)(-> a)
 save.llet = llet = (n, v, b)->_let()(-> n)(-> v)(-> b)
-save.anno = anno = (anno, body)-> _anno()(-> anno)(-> body)
+save.anno = anno = (name, data, body)-> _anno()(-> name)(-> data)(-> body)
 save.cons = cons
 getAstType = (f) -> f.type
 getLitVal = (lt)-> lt ->(v)-> v()
@@ -273,8 +277,9 @@ getApplyArg = (apl)-> apl ->(a)->(b)-> b()
 getLetName = (lt)-> lt -> (n)->(v)->(b)-> n()
 getLetValue = (lt)-> lt -> (n)->(v)->(b)-> v()
 getLetBody = (lt)-> lt -> (n)->(v)->(b)-> b()
-getAnnoData = (anno)-> anno -> (data)->(body)-> data()
-getAnnoBody = (anno)-> anno -> (data)->(body)-> body()
+getAnnoName = (anno)-> anno -> (name)->(data)->(body)-> name()
+getAnnoData = (anno)-> anno -> (name)->(data)->(body)-> data()
+getAnnoBody = (anno)-> anno -> (name)->(data)->(body)-> body()
 
 ######
 ###### JSON-to-AST
@@ -286,7 +291,7 @@ json2AstEncodings =
   lambda: (json)-> _lambda()(-> json.varName)(-> json2Ast json.body)
   apply: (json)-> _apply()(-> json2Ast(json.func))(-> json2Ast json.arg)
   let: (json)-> _let()(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
-  anno: (json)-> _anno()(-> json2Ast json.data)(-> json2Ast json.body)
+  anno: (json)-> _anno()(-> json.name)(-> json2Ast json.data)(-> json2Ast json.body)
   cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
   nil: (json)-> Nil
 
@@ -323,6 +328,7 @@ ast2JsonEncodings =
     body: ast2Json getLetBody ast
   Leisure_anno: (ast)->
     _type: 'anno'
+    name: getAnnoName ast
     data: ast2Json getAnnoData ast
     body: ast2Json getAnnoBody ast
   Leisure_cons: (ast)->
@@ -364,6 +370,9 @@ root.getApplyArg = getApplyArg
 root.getLetName = getLetName
 root.getLetValue = getLetValue
 root.getLetBody = getLetBody
+root.getAnnoName = getAnnoName
+root.getAnnoData = getAnnoData
+root.getAnnoBody = getAnnoBody
 root.throwError = throwError
 root.foldLeft = foldLeft
 root.LeisureObject = LeisureObject

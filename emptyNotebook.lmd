@@ -16,7 +16,12 @@ openUriButton=do
   fname <- js ["$('#saveAsText').val()"]
   open fname
 
+saveButton=do
+  setHidden true
+  save
+
 saveAsButton=do
+  setHidden true
   fname <- js ["$('#saveAsText').val()"]
   saveAs fname
 ```
@@ -44,7 +49,7 @@ do
     "<button id='toggleHiddenPages' type='checkbox'>Toggle Hidden Pages</button><br>"
     "<button id='openFromGdriveButton'>Open from Google Drive</button>"])
   bindEvent '#openFromGdriveButton' 'click' \e . gdriveOpen
-  bindEvent '#saveButton' 'click' \e . save
+  bindEvent '#saveButton' 'click' \e . saveButton
   bindEvent '#openUriButton' 'click' \e . openUriButton
   bindEvent '#saveAsButton' 'click' \e . saveAsButton
   bindEvent '#toggleHiddenPages' 'click' \e . toggleHidden
