@@ -39,7 +39,7 @@ U = require('util')
   getLambdaBody
 } = LZ = require './ast'
 {run, assertParse, assertEval, assertEvalPrint, assertEq} = T = require './testing'
-{gen} = require './newgen'
+{gen} = require './gen'
 
 consFrom = (array, i)->
   i = i || 0
