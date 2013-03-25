@@ -173,7 +173,13 @@ M.lockGlobals(
          if self:isClass() then
             return self.__classname .. ' class'
          end
-         return ((string.match(self.__classname, '^[AEIOUaeiou]') and 'An ') or 'A ') .. self.__classname
+         return instanceName(self)
+      end
+      local function instanceName(o)
+         return ((string.match(o.__classname, '^[AEIOUaeiou]') and 'An ') or 'A ') .. o.__classname
+      end
+      function Object:funcString(f)
+         return instanceName(self)
       end
       local metaObject = {__tostring = __tostring, __concat = __concat, __ancestors = {}}
       metaObject.__index = metaObject
@@ -263,7 +269,7 @@ M.lockGlobals(
       end
 
       local function getType(func)
-         return types[func]
+         return types[func] or (isObject(obj) and getmetatable(obj)) or nil
       end
 
       local function instanceOf(obj, class)

@@ -1,6 +1,6 @@
 local M = require('base')
-_ = require('underscore')
-json = require('j')
+local _ = require('underscore')
+local json = require('j')
 
 M.lockGlobals(
    function()
@@ -9,18 +9,16 @@ M.lockGlobals(
       local lazy = M.lazy
       local primCons = M.primCons
       local Nil = M.Nil
+      local ensureLeisureClass = M.ensureLeisureClass
+      local cons = M.cons
+      local getType = M.getType
+      local setType = M.setType
+      local setDataType = M.setDataType
 
-      ensureLeisureClass('lit')
-      ensureLeisureClass('ref')
-      ensureLeisureClass('lambda')
-      ensureLeisureClass('apply')
-      ensureLeisureClass('let')
-      ensureLeisureClass('anno')
-      ensureLeisureClass('doc')
-      ensureLeisureClass('srcLocation')
-      ensureLeisureClass('pattern')
-      ensureLeisureClass('pattern')
-      ensureLeisureClass('pattern')
+      local astClass = M.Object:subclass({}, 'ast')
+      for i, v in ipairs({'lit', 'ref', 'lambda', 'apply', 'let', 'anno', 'srcLocation', 'pattern'}) do
+         astClass:subclass({}, v)
+      end
 
       local definitions = weakTable()
 
@@ -71,12 +69,12 @@ M.lockGlobals(
       define('let', lazy(setDataType(function(name) return function(value) return function(body) return setType(function(f) return f()(name)(value)(body) end, 'let') end end end, 'let')), 2, '\\name value body . \\f . f name value body')
       define('anno', lazy(setDataType(function(data) return function(body) return setType(function(f) return f()(data)(body) end, 'anno') end end, 'anno')), 2, '\\data body . \\f . f data body')
 
-      function lit(l) L_lit()(lazy(l)) end
-      function ref(n) L_ref()(lazy(n)) end
-      function lambda(n, b) L_lambda()(lazy(n))(lazy(b)) end
-      function apply(f, a) L_apply()(lazy(f))(lazy(a)) end
-      function let(n, v, b) L_let()(lazy(n))(lazy(v))(lazy(b)) end
-      function anno(d, b) L_anno()(lazy(d))(lazy(b)) end
+      local function lit(l) return L_lit()(lazy(l)) end
+      local function ref(n) return L_ref()(lazy(n)) end
+      local function lambda(n, b) return L_lambda()(lazy(n))(lazy(b)) end
+      local function apply(f, a) return L_apply()(lazy(f))(lazy(a)) end
+      local function let(n, v, b) return L_let()(lazy(n))(lazy(v))(lazy(b)) end
+      local function anno(d, b) return L_anno()(lazy(d))(lazy(b)) end
 
       local function getAstType(ast) return getType(ast) end
       local function getLitVal(ast) return ast(lazy(function(v) return v() end)) end
@@ -94,15 +92,53 @@ M.lockGlobals(
       --
       -- JSON-to-AST
       --
-      local dispatch = {
-         lit = function(json) lit(json.value) end,
-         ref = ref,
-         lambda = lambda,
-         apply = apply,
-         let = let,
-         anno = anno,
-         cons = cons,
-      }
-      local function json2Ast
+      local dispatch = {}
+
+      local function json2Ast(json)
+         local func = type(json) == 'table' and dispatch[json._type]
+         return (func and func(json)) or json
+      end
+
+      function dispatch.lit(json) return lit(json.value) end
+      function dispatch.ref(json) return ref(json.varName) end
+      function dispatch.lambda(json) return lambda(json.varName, json2Ast(json.body)) end
+      function dispatch.apply(json) return apply(json2Ast(json.func), json2Ast(json.arg)) end
+      function dispatch.let(json) return let(json.varName, json2Ast(json.value), json2Ast(json.body)) end
+      function dispatch.anno(json) return anno(json2Ast(json.data), json2Ast(json.body)) end
+      function dispatch.cons(json) return cons(json2Ast(json.head), json2Ast(json.tail)) end
+      dispatch['nil'] = function(json) return Nil end
+
+      local ast2JsonEncodings = {}
+
+      local function ast2Json(ast)
+         local t = getType(ast)
+
+         if t then
+            local func = ast2JsonEncodings[t.__classname]
+            if func then return func(ast) end
+         end
+         return ast
+      end
+
+      function ast2JsonEncodings.lit(ast) return {_type = 'lit', value = getLitVal(ast)} end
+      function ast2JsonEncodings.ref(ast) return {_type = 'ref', varName = getRefName(ast)} end
+      function ast2JsonEncodings.lambda(ast) return {_type = 'lambda', varName = getLambdaName(ast), body = ast2Json(getLambdaBody(ast))} end
+      function ast2JsonEncodings.apply(ast) return {_type = 'apply', func = ast2Json(getApplyFunc(ast)), arg = ast2Json(getApplyArg(ast))} end
+      function ast2JsonEncodings.let(ast) return {_type = 'let', varName = getLetName(ast), value = ast2Json(getLetValue(ast)), body = ast2Json(getLetBody(ast))} end
+      function ast2JsonEncodings.anno(ast) return {_type = 'anno', data = ast2Json(getAnnoData(ast)), body = ast2Json(getAnnoBody(ast))} end
+      function ast2JsonEncodings.cons(ast) return {_type = 'cons', head = ast2Json(head(ast)), tail = ast2Json(tail(ast))} end
+      ast2JsonEncodings['nil'] = function(ast) return {_type = 'nil'} end
+
+      function astClass:funcString(f)
+         return 'AST ' .. json.stringify(ast2Json(f))
+      end
+
+      M.json2Ast = json2Ast
+      M.lit = lit
+      M.ref = ref
+      M.lambda = lambda
+      M.apply = apply
+      M.let = let
+      M.anno = anno
    end)
 return M

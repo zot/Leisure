@@ -286,7 +286,7 @@ json2AstEncodings =
   lambda: (json)-> _lambda()(-> json.varName)(-> json2Ast json.body)
   apply: (json)-> _apply()(-> json2Ast(json.func))(-> json2Ast json.arg)
   let: (json)-> _let()(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
-  anno: (json)-> _anno()(-> json.data)(-> json2Ast json.body)
+  anno: (json)-> _anno()(-> json2Ast json.data)(-> json2Ast json.body)
   cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
   nil: (json)-> Nil
 
@@ -299,10 +299,7 @@ llet = save.llet
 anno = save.anno
 cons = save.cons
 
-json2Ast = (json)->
-  #console.log "json2Ast: #{JSON.stringify json}"
-  if typeof json != 'object' then json
-  else json2AstEncodings[json._type] json
+json2Ast = (json)-> if typeof json == 'object' then json2AstEncodings[json._type] json else json
 
 ast2JsonEncodings =
   Leisure_lit: (ast)->
