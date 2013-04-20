@@ -1,5 +1,30 @@
+--[[
+Copyright (C) 2013, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
+
+(licensed with ZLIB license)
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+claim that you wrote the original software. If you use this software
+in a product, an acknowledgment in the product documentation would be
+appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source distribution.
+]]
+
 local M = require('testing')
 require('gen')
+require('runtime')
 json = require('json')
 
 local define = M.define
@@ -44,10 +69,7 @@ ltrueAst = json2Ast {
       varName = 'b',
       body = {
          _type = 'ref',
-         varName = 'a'
-      }
-   }
-}
+         varName = 'a'}}}
 
 lfalseAst = json2Ast {
    _type = 'lambda',
@@ -57,19 +79,14 @@ lfalseAst = json2Ast {
       varName = 'b',
       body = {
          _type = 'ref',
-         varName = 'b'
-      }
-   }
-}
+         varName = 'b'}}}
 
 lidAst = json2Ast {
    _type = 'lambda',
    varName = 'x',
    body = {
       _type = 'ref',
-      varName = 'x'
-   }
-}
+      varName = 'x'}}
 
 lapplyXY = json2Ast {
    _type = 'lambda',
@@ -81,23 +98,17 @@ lapplyXY = json2Ast {
          _type = 'apply',
          func = {
             _type = 'ref',
-            varName = 'x'
-         },
+            varName = 'x'},
          arg = {
             _type = 'ref',
-            varName = 'y'
-         }
-      }
-   }
-}
+            varName = 'y'}}}}
 
 let3Ast = json2Ast {
    _type = 'let',
    varName = 'x',
    value = {
       _type = 'lit',
-      value = 3
-   },
+      value = 3},
    body = {
       _type = 'let',
       varName = 'y',
@@ -107,24 +118,16 @@ let3Ast = json2Ast {
             _type = 'apply',
             func = {
                _type = 'ref',
-               varName = 'log'
-            },
+               varName = 'log'},
             arg = {
                _type = 'lit',
-               value = 'hello y'
-            }
-         },
+               value = 'hello y'}},
          arg = {
             _type = 'lit',
-            value = 4
-         }
-      },
+            value = 4}},
       body = {
          _type = 'ref',
-         varName = 'x'
-      }
-   }
-}
+         varName = 'x'}}}
 
 run('test1', function() assertEq('1', '1') end)
 run('test2', function() assertEq(tostring(M.Nil), 'Cons []') end)
@@ -137,8 +140,7 @@ run('test8',
     function()
        local st = json2Ast {
           _type = 'lit',
-          value = 3
-       }
+          value = 3}
 
        assertEq(getLitVal(st), 3)
        assertEq(getLitVal(json2Ast(ast2Json(st))), 3)
@@ -147,8 +149,7 @@ run('test9',
     function()
        local st = json2Ast {
           _type = 'ref',
-          varName = 'x'
-       }
+          varName = 'x'}
 
        assertEq(getRefName(st), 'x')
        assertEq(getRefName(json2Ast(ast2Json(st))), 'x')
@@ -164,9 +165,7 @@ run('test11',
           _type = 'cons',
           head = 1,
           tail = {
-             _type = 'nil'
-          }
-       }
+             _type = 'nil'}}
 
        assertEq(tostring(st), 'Cons [1]')
        assertEq(tostring(json2Ast(ast2Json(st))), 'Cons [1]')
@@ -175,19 +174,88 @@ run('test12',
     function()
        local st = json2Ast {
           _type = 'lit',
-          value = 3
-       }
+          value = 3}
 
        assertEq(gen(st), 'return 3')
     end)
-run('test13', function() assertEq(gen(lidAst), 'return function(x)\nreturn x()\nend') end)
-run('test14', function() assertEq(gen(lapplyXY), 'return function(x)\nreturn function(y)\nreturn x()(y)\nend\nend') end)
-run('test15', function() assertEq(gen(ltrueAst), 'return function(a)\nreturn function(b)\nreturn a()\nend\nend') end)
+run('test13', function() assertEq(gen(lidAst), 'return function(L_x)\nreturn L_x()\nend') end)
+run('test14', function() assertEq(gen(lapplyXY), 'return function(L_x)\nreturn function(L_y)\nreturn L_x()(L_y)\nend\nend') end)
+run('test15', function() assertEq(gen(ltrueAst), 'return function(L_a)\nreturn function(L_b)\nreturn L_a()\nend\nend') end)
 run('test16', function() assertEq(loadstring(gen(ltrueAst))()(lazy(5))(lazy(6)), 5) end)
 run('test17', function() assertEq(loadstring(gen(lfalseAst))()(lazy(5))(lazy(6)), 6) end)
 run('test18', function() assertEq(loadstring(gen(let3Ast))(), 3) end)
 
+local setXTo3Ast = json2Ast {
+   _type = 'apply',
+   func = {
+      _type = 'apply',
+      func = {
+         _type = 'ref',
+         varName = 'setValue'},
+      arg = {
+         _type = 'lit',
+         value = 'x'}},
+   arg = {
+      _type = 'lit',
+      value = 3}}
+
+run(
+   'test19',
+   function()
+      M.stateValues.x = 2
+      M.runMonad(loadstring(gen(setXTo3Ast))(), M.defaultEnv, M.lazy)
+      assertEq(M.stateValues.x, 3)
+   end)
+
+local setXTo3YTo4Ast = json2Ast {
+   _type = 'apply',
+   func = {
+      _type = 'apply',
+      func = {
+         _type = 'ref',
+         varName = 'bind'},
+      arg = {
+         _type = 'apply',
+         func = {
+            _type = 'apply',
+            func = {
+               _type = 'ref',
+               varName = 'setValue'},
+            arg = {
+               _type = 'lit',
+               value = 'x'}},
+         arg = {
+            _type = 'lit',
+            value = 3}}},
+   arg = {
+      _type = 'lambda',
+      varName = 'bubba',
+      body = {
+         _type = 'apply',
+         func = {
+            _type = 'apply',
+            func = {
+               _type = 'ref',
+               varName = 'setValue'},
+            arg = {
+               _type = 'lit',
+               value = 'y'}},
+         arg = {
+            _type = 'lit',
+            value = 4}}}}
+
+run(
+   'test20',
+   function()
+      M.stateValues.x = 2
+      M.stateValues.y = 2
+      M.runMonad(loadstring(gen(setXTo3YTo4Ast))(), M.defaultEnv, M.lazy)
+      assertEq(M.stateValues.x, 3)
+      assertEq(M.stateValues.y, 4)
+   end)
+
 print('\nDone')
+
 if M.testStats.failures == 0 then print("Succeeded all " .. M.testStats.successes .. ' tests.')
 else
    print("\nSucceeded " .. M.testStats.successes .. ' test' .. ((M.testStats.successes > 1 and 's') or ''))

@@ -1,3 +1,27 @@
+--[[
+Copyright (C) 2013, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
+
+(licensed with ZLIB license)
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+claim that you wrote the original software. If you use this software
+in a product, an acknowledgment in the product documentation would be
+appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source distribution.
+]]
+
 local M = require('base')
 require('ast')
 local _ = require('underscore')
@@ -46,14 +70,16 @@ M.lockGlobals(
          return ast
       end
 
+      local function varNameSub(n) return 'L_' .. nameSub(n) end
+
       local function genLets(ast)
          local lets = letList(ast, {})
-         local names = _.map(lets, function(l) return nameSub(getLetName(l)) end)
+         local names = _.map(lets, function(l) return varNameSub(getLetName(l)) end)
          return dl(
             '\nlocal ',
             table.concat(names, ', '),
             '\n',
-            dl(unpack(_.map(lets, function(l) return dl(nameSub(getLetName(l)), ' = ', genApplyArg(getLetValue(l)), '\n') end))),
+            dl(unpack(_.map(lets, function(l) return dl(varNameSub(getLetName(l)), ' = ', genApplyArg(getLetValue(l)), '\n') end))),
             '\nreturn ',
             gen(getLastLetBody(ast))
          )
@@ -72,7 +98,7 @@ gen(arg),
       return _m
    end
 end)()]])
-         elseif instanceOf(arg, Leisure_ref) then return nameSub(getRefName(arg))
+         elseif instanceOf(arg, Leisure_ref) then return varNameSub(getRefName(arg))
          elseif instanceOf(arg, Leisure_let) then return dl('function() ', genLets(arg), ' end')
          else
             return dl('function() return ', gen(arg), ' end')
@@ -81,11 +107,11 @@ end)()]])
 
       local genTable = {
          lit = function(ast) return json.stringify(getLitVal(ast)) end,
-         ref = function(ast) return dl(nameSub(getRefName(ast)), '()') end,
+         ref = function(ast) return dl(varNameSub(getRefName(ast)), '()') end,
          lambda = function(ast)
             return dl(
                'function(',
-               nameSub(getLambdaName(ast)),
+               varNameSub(getLambdaName(ast)),
                ')\nreturn ',
                gen(getLambdaBody(ast)),
                '\nend')
