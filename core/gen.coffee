@@ -48,11 +48,13 @@ else
   inspect = require('util').inspect # for testing
   _ = require('./lodash.min')
 
+varNameSub = (n)-> "L_#{nameSub n}"
+
 gen = (ast)->
   switch ast.constructor
     when Leisure_lit then JSON.stringify getLitVal ast
-    when Leisure_ref then "#{nameSub getRefName ast}()"
-    when Leisure_lambda then "function(#{nameSub getLambdaVar ast}){return #{gen getLambdaBody ast}}"
+    when Leisure_ref then "#{varNameSub getRefName ast}()"
+    when Leisure_lambda then "function(#{varNameSub getLambdaVar ast}){return #{gen getLambdaBody ast}}"
     when Leisure_apply then "#{gen getApplyFunc ast}(#{genApplyArg getApplyArg ast})"
     when Leisure_let then "(function(){\n#{genLets ast}})()"
     when Leisure_anno then gen getAnnoBody ast
@@ -60,14 +62,14 @@ gen = (ast)->
 
 genApplyArg = (arg)->
   if arg instanceof Leisure_apply then "(function(){var $m; return function(){return $m || ($m = #{gen arg})}})()"
-  else if arg instanceof Leisure_ref then nameSub getRefName arg
+  else if arg instanceof Leisure_ref then varNameSub getRefName arg
   else if arg instanceof Leisure_let then "function(){#{genLets arg}}"
   else "function(){return #{gen arg}}"
-  
+
 genLets = (ast)->
   lets = letList ast, []
-  decs = _.map(lets, (l)->nameSub getLetName l)
-  assigns = _.map(lets, (l)-> '\n' + nameSub(getLetName l) + ' = ' + genApplyArg(getLetValue l))
+  decs = _.map(lets, (l)->varNameSub getLetName l)
+  assigns = _.map(lets, (l)-> '\n' + varNameSub(getLetName l) + ' = ' + genApplyArg(getLetValue l))
   "\nvar #{decs.join(', ')};\n#{assigns.join(';\n')};\nreturn #{gen getLastLetBody ast}"
 
 letList = (ast, buf)->

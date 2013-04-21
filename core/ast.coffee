@@ -204,7 +204,7 @@ root.evalFunc = evalFunc = eval
 define = (name, func, arity, src, method) ->
   func.src = src
   func.leisureContexts = []
-  nm = '_' + nameSub(name)
+  nm = 'L_' + nameSub(name)
   func.leisureName = name
   func.leisureArity = arity
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
@@ -260,12 +260,12 @@ getType = (f)->
 
 save = {}
 
-save.lit = lit = (l)-> _lit()(-> l)
-save.ref = ref = (r)-> _ref()(-> r)
-save.lambda = lambda = (v, body)->_lambda()(-> v)(-> body)
-save.apply = apply = (f, a)->_apply()(-> f)(-> a)
-save.llet = llet = (n, v, b)->_let()(-> n)(-> v)(-> b)
-save.anno = anno = (name, data, body)-> _anno()(-> name)(-> data)(-> body)
+save.lit = lit = (l)-> L_lit()(-> l)
+save.ref = ref = (r)-> L_ref()(-> r)
+save.lambda = lambda = (v, body)->L_lambda()(-> v)(-> body)
+save.apply = apply = (f, a)->L_apply()(-> f)(-> a)
+save.llet = llet = (n, v, b)->L_let()(-> n)(-> v)(-> b)
+save.anno = anno = (name, data, body)-> L_anno()(-> name)(-> data)(-> body)
 save.cons = cons
 getAstType = (f) -> f.type
 getLitVal = (lt)-> lt ->(v)-> v()
@@ -286,12 +286,12 @@ getAnnoBody = (anno)-> anno -> (name)->(data)->(body)-> body()
 ######
 
 json2AstEncodings =
-  lit: (json)-> _lit()(-> json.value)
-  ref: (json)-> _ref()(-> json.varName)
-  lambda: (json)-> _lambda()(-> json.varName)(-> json2Ast json.body)
-  apply: (json)-> _apply()(-> json2Ast(json.func))(-> json2Ast json.arg)
-  let: (json)-> _let()(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
-  anno: (json)-> _anno()(-> json.name)(-> json2Ast json.data)(-> json2Ast json.body)
+  lit: (json)-> L_lit()(-> json.value)
+  ref: (json)-> L_ref()(-> json.varName)
+  lambda: (json)-> L_lambda()(-> json.varName)(-> json2Ast json.body)
+  apply: (json)-> L_apply()(-> json2Ast(json.func))(-> json2Ast json.arg)
+  let: (json)-> L_let()(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
+  anno: (json)-> L_anno()(-> json.name)(-> json2Ast json.data)(-> json2Ast json.body)
   cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
   nil: (json)-> Nil
 

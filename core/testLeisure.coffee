@@ -40,6 +40,10 @@ U = require('util')
 } = LZ = require './ast'
 {run, assertParse, assertEval, assertEvalPrint, assertEq} = T = require './testing'
 {gen} = require './gen'
+{
+  stateValues,
+  runMonad,
+} = require './runtime'
 
 consFrom = (array, i)->
   i = i || 0
@@ -158,12 +162,75 @@ run 'test12', ->
     _type: "lit"
     value: 3
   assertEq (gen st), '3'
-run 'test13', -> assertEq (gen lidAst), 'function(x){return x()}'
-run 'test14', -> assertEq (gen lapplyXY), 'function(x){return function(y){return x()(y)}}'
-run 'test15', -> assertEq (gen ltrueAst), 'function(a){return function(b){return a()}}'
+run 'test13', -> assertEq (gen lidAst), 'function(L_x){return L_x()}'
+run 'test14', -> assertEq (gen lapplyXY), 'function(L_x){return function(L_y){return L_x()(L_y)}}'
+run 'test15', -> assertEq (gen ltrueAst), 'function(L_a){return function(L_b){return L_a()}}'
 run 'test16', -> assertEq (eval "(#{gen ltrueAst})")(->5)(->6), 5
 run 'test17', -> assertEq (eval "(#{gen lfalseAst})")(->5)(->6), 6
 run 'test18', -> assertEq (eval "(#{gen let3Ast})"), 3
+
+setXTo3Ast = json2Ast
+  _type: 'apply'
+  func:
+    _type: 'apply'
+    func:
+      _type: 'ref'
+      varName: 'setValue'
+    arg:
+      _type: 'lit'
+      value: 'x'
+  arg:
+    _type: 'lit'
+    value: 3
+
+run 'test19', ->
+  stateValues.x = 2
+  runMonad eval("(#{gen setXTo3Ast})"), root.defaultEnv, ->
+  assertEq stateValues.x, 3
+
+setXTo3YTo4Ast = json2Ast
+  _type: 'apply'
+  func:
+    _type: 'apply'
+    func:
+      _type: 'ref'
+      varName: 'bind'
+    arg:
+      _type: 'apply'
+      func:
+        _type: 'apply'
+        func:
+          _type: 'ref'
+          varName: 'setValue'
+        arg:
+          _type: 'lit'
+          value: 'x'
+      arg:
+        _type: 'lit'
+        value: 3
+  arg:
+    _type: 'lambda'
+    varName: 'bubba'
+    body:
+      _type: 'apply'
+      func:
+        _type: 'apply'
+        func:
+          _type: 'ref'
+          varName: 'setValue'
+        arg:
+          _type: 'lit'
+          value: 'y'
+      arg:
+        _type: 'lit'
+        value: 4
+
+run 'test20', ->
+  stateValues.x = 2
+  stateValues.y = 2
+  runMonad eval("(#{gen setXTo3YTo4Ast})"), root.defaultEnv, ->
+  assertEq stateValues.x, 3
+  assertEq stateValues.y, 4
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
