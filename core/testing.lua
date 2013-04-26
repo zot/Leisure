@@ -58,6 +58,14 @@ M.lockGlobals(
          return a == b or eqTable(a, b)
       end
 
+      local function str(obj)
+         if type(obj) == 'table' then
+            return '{' .. table.concat(obj, ', ') .. '}'
+         else
+            return tostring(obj)
+         end
+      end
+
       function M.assertEq(actual, expected, desc)
          if not eq(expected, actual) then
             if desc then
@@ -65,7 +73,7 @@ M.lockGlobals(
             else
                desc = ''
             end
-            error(desc .. "Expected <" .. tostring(expected) .. '> but got <' .. tostring(actual) .. '>')
+            error(desc .. "Expected <" .. str(expected) .. '> but got <' .. str(actual) .. '>')
          end
       end
 

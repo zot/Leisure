@@ -6,7 +6,7 @@
 ## Note, the lua tests depend on lua5.1, luarocks, and these luarocks: underscore, luajson
 ## It uses lua5.1 to maintain compatibility with LuaJIT
 
-SRC=base ast testing gen runtime
+SRC=base ast testing gen runtime simpleParse
 TEST=testLeisure
 ALL=$(SRC) $(TEST)
 IN_FILES=$(ALL:%=core/%)

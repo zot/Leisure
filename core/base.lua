@@ -496,6 +496,27 @@ M.lockGlobals(
          return f
       end
 
+      local function consFrom(array, i)
+         i = i or 1
+         if i <= #array then
+            return cons(array[i], consFrom(array, i + 1))
+         else
+            return Nil
+         end
+      end
+
+      local function consToArray(cons, array)
+         array = array or {}
+         if cons == Nil then
+            return array
+         else
+            push(array, head(cons))
+            return consToArray(tail(cons), array)
+         end
+      end
+
+      M.consFrom = consFrom
+      M.consToArray = consToArray
       M.lazy = lazy
       M.Object = Object
       M.isObject = isObject

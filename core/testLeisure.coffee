@@ -36,7 +36,8 @@ U = require('util')
   ast2Json,
   getLitVal,
   getRefName,
-  getLambdaBody
+  getLambdaBody,
+  consFrom
 } = LZ = require './ast'
 {run, assertParse, assertEval, assertEvalPrint, assertEq} = T = require './testing'
 {gen} = require './gen'
@@ -44,10 +45,11 @@ U = require('util')
   stateValues,
   runMonad,
 } = require './runtime'
-
-consFrom = (array, i)->
-  i = i || 0
-  if i < array.length then cons array[i], consFrom(array, i + 1) else Nil
+{
+  splitTokens,
+  tokens,
+  parse,
+} = require './simpleParse'
 
 console.log 'Testing CoffeeScript'
 
@@ -231,6 +233,15 @@ run 'test20', ->
   runMonad eval("(#{gen setXTo3YTo4Ast})"), root.defaultEnv, ->
   assertEq stateValues.x, 3
   assertEq stateValues.y, 4
+
+run 'test21', -> assertEq splitTokens('a b').toArray(), ['a', ' ', 'b']
+run 'test22', -> assertEq splitTokens('a b  c').toArray(), ['a', ' ', 'b', '  ', 'c']
+run 'test23', -> assertEq String(tokens('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+run 'test24', -> assertEq String(parse('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+run 'test25', -> assertEq splitTokens('a (b)').toArray(), ['a', ' ', '(', 'b', ')']
+run 'test26', -> assertEq String(parse('a (b)')), 'Cons[Token("a", 0) Cons[Token("b", 3)]]'
+run 'test27', -> assertEq String(tokens('a ( (b  )   c) ')), 'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
+run 'test28', -> assertEq String(parse('a ( (b  )   c) ')), 'Cons[Token("a", 0) Cons[Cons[Token("b", 5)] Token("c", 12)]]'
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

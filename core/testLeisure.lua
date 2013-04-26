@@ -25,6 +25,7 @@ misrepresented as being the original software.
 local M = require('testing')
 require('gen')
 require('runtime')
+require('simpleParse')
 json = require('json')
 
 local define = M.define
@@ -252,6 +253,18 @@ run(
       M.runMonad(loadstring(gen(setXTo3YTo4Ast))(), M.defaultEnv, M.lazy)
       assertEq(M.stateValues.x, 3)
       assertEq(M.stateValues.y, 4)
+   end)
+
+run(
+   'test21',
+   function()
+      assertEq(M.consToArray(M.tokens('a b')), {'a', ' ', 'b'})
+   end)
+
+run(
+   'test22',
+   function()
+      assertEq(M.consToArray(M.tokens('a b  c')), {'a', ' ', 'b', '  ', 'c'})
    end)
 
 print('\nDone')

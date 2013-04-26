@@ -345,6 +345,17 @@ ast2Json = (ast)->
 define 'json2Ast', (-> (json)-> json2Ast JSON.parse json())
 define 'ast2Json', (-> (ast)-> JSON.stringify ast2Json ast())
 
+consFrom = (array, i)->
+  i = i || 0
+  if i < array.length then cons array[i], consFrom(array, i + 1) else Nil
+
+head = (l)-> l.head()
+
+tail = (l)-> l.tail()
+
+root.head = head
+root.tail = tail
+root.consFrom = consFrom
 root.nameSub = nameSub
 root.setDataType = setDataType
 root.setType = setType
@@ -385,3 +396,4 @@ root.Leisure_lambda = Leisure_lambda
 root.Leisure_apply = Leisure_apply
 root.Leisure_let = Leisure_let
 root.Leisure_anno = Leisure_anno
+root.ensureLeisureClass = ensureLeisureClass
