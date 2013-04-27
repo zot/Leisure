@@ -49,6 +49,7 @@ U = require('util')
   splitTokens,
   tokens,
   parse,
+  parseToAst,
 } = require './simpleParse'
 
 console.log 'Testing CoffeeScript'
@@ -239,9 +240,15 @@ run 'test22', -> assertEq splitTokens('a b  c').toArray(), ['a', ' ', 'b', '  ',
 run 'test23', -> assertEq String(tokens('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
 run 'test24', -> assertEq String(parse('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
 run 'test25', -> assertEq splitTokens('a (b)').toArray(), ['a', ' ', '(', 'b', ')']
-run 'test26', -> assertEq String(parse('a (b)')), 'Cons[Token("a", 0) Cons[Token("b", 3)]]'
+run 'test26', -> assertEq String(parse('a (b)')), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
 run 'test27', -> assertEq String(tokens('a ( (b  )   c) ')), 'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
-run 'test28', -> assertEq String(parse('a ( (b  )   c) ')), 'Cons[Token("a", 0) Cons[Cons[Token("b", 5)] Token("c", 12)]]'
+run 'test28', -> assertEq String(parse('a ( (b  )   c) ')), 'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
+run 'test29', -> assertEq String(parse('a.b')), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
+run 'test30', -> assertEq String(parseToAst('a')), 'ref(a)'
+run 'test31', -> assertEq String(parseToAst('a b')), 'apply(a b)'
+run 'test32', -> assertEq String(parseToAst('\\a . a')), 'lambda(\\a . a)'
+run 'test33', -> assertEq String(parseToAst('\\a b . a')), 'lambda(\\a . \\b . a)'
+run 'test34', -> assertEq String(parseToAst('\\a b . a b')), 'lambda(\\a . \\b . a b)'
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

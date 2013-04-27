@@ -481,9 +481,9 @@ tokenToAst = (tok, vars)->
 listToApply = (f, start, rest, vars)->
   if rest == Nil then [f]
   else if isLambdaToken rest.head()
-      ifParsed listToAst(rest), (a)-> [tag(apply(f, a), start, Math.max(f.leisureEnd, rest.end()))]
-    else ifParsed listToAst(rest.head()), (a)->
-      listToApply tag(apply(f, a), Math.min(start, f.leisureStart, rest.head().start()), Math.max(f.leisureEnd, rest.head().end())), start, rest.tail()
+    ifParsed listToAst(rest), (a)-> [tag(apply(f, a), start, Math.max(f.leisureEnd, rest.end()))]
+  else ifParsed listToAst(rest.head()), (a)->
+    listToApply tag(apply(f, a), Math.min(start, f.leisureStart, rest.head().start()), Math.max(f.leisureEnd, rest.head().end())), start, rest.tail()
 
 #minStart = (lc)-> if lc.tail() == Nil then lc.start() else Math.min(lc.start(), minStart lc.tail())
 #

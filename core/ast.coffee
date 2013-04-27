@@ -96,16 +96,36 @@ ensureLeisureClass = (leisureClass)->
   global[cl]
 
 ensureLeisureClass 'lit'
+Leisure_lit.prototype.toString = -> "lit(#{getLitVal @})"
 ensureLeisureClass 'ref'
+Leisure_ref.prototype.toString = -> "ref(#{getRefName @})"
 ensureLeisureClass 'lambda'
+Leisure_lambda.prototype.toString = -> "lambda(#{astString @})"
 ensureLeisureClass 'apply'
+Leisure_apply.prototype.toString = -> "apply(#{astString @})"
 ensureLeisureClass 'let'
+Leisure_let.prototype.toString = -> "let(#{astString @})"
 ensureLeisureClass 'anno'
+Leisure_anno.prototype.toString = -> "anno(#{astString @})"
 ensureLeisureClass 'cons'
 ensureLeisureClass 'nil'
 ensureLeisureClass 'doc'
 ensureLeisureClass 'srcLocation'
 ensureLeisureClass 'pattern'
+
+astString = (ast)->
+  switch getAstType ast
+    when 'lit' then getLitVal ast
+    when 'ref' then getRefName ast
+    when 'apply'
+      funcStr = astString getApplyFunc ast
+      if getAstType(getApplyFunc ast) in ['lambda', 'let'] then funcStr = "(#{funcStr})"
+      argStr = astString getApplyArg ast
+      if getAstType(getApplyArg ast) == 'apply' then argStr = "(#{argStr})"
+      "#{funcStr} #{argStr}"
+    when 'lambda' then "\\#{getLambdaVar ast} . #{astString getLambdaBody ast}"
+    when 'let' then "\\\\(#{getLetName ast} = #{astString getLetValue ast}) #{astString getLetBody ast}"
+    when 'anno' then "(@#{getAnnoName ast}: #{getAnnoData ast}, #{astString getAnnoBody ast})"
 
 #########
 ######### LISTS
@@ -153,7 +173,7 @@ class Leisure_cons extends Leisure_BaseCons
 global.Leisure_cons = Leisure_cons
 
 class Leisure_nil extends LeisureObject
-  find: -> false
+  find: -> @
   removeAll: -> @
   map: (func)-> Nil
   foldl: (func, arg)-> arg
