@@ -79,12 +79,9 @@ ensureLeisureClass 'token'
 Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
 
 tokenString = (t)-> t(->(txt)->(pos)-> txt())
-
 tokenPos = (t)-> t(->(txt)->(pos)-> pos())
-
 token = (str, pos)-> L_token()(->str)(->pos)
-
-isTok = (t)-> t instanceof Leisure_token
+isToken = (t)-> t instanceof Leisure_token
 
 define 'parens', (->setDataType ((left)->(right)->(content)-> setType ((f)-> f()(left)(right)(content)), 'parens'), 'parens'), 3, '\\left right ast . \\f . f left right ast'
 ensureLeisureClass 'parens'
@@ -98,11 +95,8 @@ parensFromToks = (left, right, content)->
   L_parens()(->start)(->end)(->content)
 
 parensStart = (p)-> p(->(s)->(e)->(l)-> s())
-
 parensEnd = (p)-> p(->(s)->(e)->(l)-> e())
-
 parensContent = (p)-> p(->(s)->(e)->(l)-> l())
-
 isParens = (p)-> p instanceof Leisure_parens
 
 define 'parseErr', (->setDataType ((msg)-> setType ((f)-> f()(msg)), 'parseErr'), 'parseErr'), 1, '\\msg . \\f . f msg'
@@ -110,7 +104,6 @@ ensureLeisureClass 'parseErr'
 Leisure_parseErr.prototype.toString = -> "ParseErr(#{JSON.stringify(parseErrMsg(@))})"
 
 parseErr = (msg)-> L_parseErr()(->msg)
-
 parseErrMsg = (e)-> e(->(msg)-> msg())
 
 makeTokens = (strings, start)->
@@ -126,29 +119,25 @@ tokens = (str)-> makeTokens splitTokens(str), 0
 ## Parsing
 #############
 
-isTokString = (t, str)-> isTok(t) && tokenString(t) == str
+isTokenString = (t, str)-> isToken(t) && tokenString(t) == str
+
+withCons = (l, nilCase, cont)-> if l instanceof Leisure_cons then cont head(l), tail(l) else nilCase()
 
 parseToks = (toks, cont)->
   if toks == Nil then cont Nil
-  else
-    parseTok toks, (h, t)->
-      parseToks t, (res)->
-        cont cons h, res
+  else parseTok toks, (h, t)->
+    parseToks t, (res)->
+      cont cons h, res
 
 parseTok = (toks, cont)->
-  if toks == Nil then Nil
-  else
-    h = head toks
-    t = tail toks
-    if isTokString(h, '(') then parseGroup h, t, Nil, cont
-    else if isTok(h) && tokenString(h)[0] == ' ' then parseTok t, cont
+  withCons toks, (->Nil), (h, t)->
+    if isTokenString(h, '(') then parseGroup h, t, Nil, cont
+    else if isToken(h) && tokenString(h)[0] == ' ' then parseTok t, cont
     else cont h, t
 
 parseGroup = (left, toks, gr, cont)->
-  if toks == Nil then parseErr "Unterminated group starting at #{tokenPos left}"
-  else
-    h = head toks
-    if isTokString(h, ')') then cont parensFromToks(left, h, gr.reverse()), tail(toks)
+  withCons toks, (->parseErr "Unterminated group starting at #{tokenPos left}"), (h, t)->
+    if isTokenString(h, ')') then cont parensFromToks(left, h, gr.reverse()), t
     else parseTok toks, (restH, restT)->
       parseGroup left, restT, cons(restH, gr), cont
 
@@ -167,27 +156,23 @@ parse = (str)-> parseToks tokens(str), identity
 
 parseToAst = (str)-> createAst parse(str), Nil, identity
 
-strip = (list, cont)-> if isParens list then strip parensContent(list), cont else cont list
+withToken = (tok, nonTokenCase, cont)-> if isToken tok then cont tokenString tok else nonTokenCase()
 
-isCons = (c)-> c instanceof Leisure_cons
+withParens = (p, err, cont)-> if !isParens p then err() else cont parensContent p
 
-withCons = (l, err, cont)-> if isCons l then cont head(l), tail(l) else err()
-
-withToken = (tok, err, cont)->
-  if isTok tok then cont tokenString tok
-  else err()
+strip = (list, cont)-> withParens list, (->cont list), (c)-> strip c, cont
 
 loc = (thing)->
-  if isTok thing then "at #{tokenPos thing}"
+  if isToken thing then "at #{tokenPos thing}"
   else if isParens thing then "at #{parensStart thing}"
   else ''
 
 createAst = (inList, names, cont)-> strip inList, (list)->
   if list == Nil then cont Nil
-  else if isTok(list) then createLitOrRef tokenString(list), names, cont
+  else if isToken(list) then createLitOrRef tokenString(list), names, cont
   else withCons list, (-> parseErr "Null list for AST#{loc inList}: #{inList}"), (h, t)->
-    if isTokString(h, '\\\\') then createLet h, t, names, cont
-    else if isTokString(h, '\\') then createLambda h, t, names, cont
+    if isTokenString(h, '\\\\') then createLet h, t, names, cont
+    else if isTokenString(h, '\\') then createLambda h, t, names, cont
     else createApply list, names, cont
 
 createLitOrRef = (tok, names, cont)->
@@ -202,7 +187,7 @@ createLambda = (start, list, names, cont)->
   withCons list, (-> parseErr "No variable or body for lambda at #{tokenPos start}"), (name, rest)->
     withCons rest, (-> parseErr "No body for lambda at #{tokenPos start}"), (dot, body)->
       withToken name, (-> parseErr "Expecting name for lambda at #{tokenPos start}"), (n)->
-        if isTokString dot, '.' then createAst body, cons(name, names), (bodyAst)->
+        if isTokenString dot, '.' then createAst body, cons(name, names), (bodyAst)->
           cont lambda n, bodyAst
         else createLambda start, rest, cons(name, names), (bodyAst)->
           cont lambda n, bodyAst
@@ -217,8 +202,6 @@ chainApply = (func, list, names, cont)->
   else withCons list, (-> parseErr "Expecting list#{loc inList}"), (argItem, rest)->
     createAst argItem, names, (arg)->
       chainApply apply(func, arg), rest, names, cont
-
-withParens = (p, err, cont)-> if !isParens p then err() else cont parensContent p
 
 # let structures allow mutual recursion
 # the syntax is similar to the top level
@@ -251,13 +234,13 @@ createSublets = (start, binding, body, names, cont)->
 
 getNameAndDef = (pos, binding, names, cont)->
   withCons tail(binding), (-> parseErr "Let expected binding at #{pos}"), (snd, sndT)->
-    if isTokString snd, '=' then createAst sndT, names, (def)-> cont head(binding), def
+    if isTokenString snd, '=' then createAst sndT, names, (def)-> cont head(binding), def
     else getLetLambda pos, tail(binding), Nil, names, (lamb)-> cont head(binding), lamb
 
 getLetLambda = (pos, def, args, names, cont)->
   withCons def, (-> parseErr "Let expected binding at #{pos}"), (arg, rest)->
     if !isToken arg then parseErr "Let expected binding at #{pos}"
-    else if isTokString arg, '=' then createAst cons(token('\\', pos), args.reverse()).append(cons(token('.', tokenPos(arg)), rest)), names, cont
+    else if isTokenString arg, '=' then createAst cons(token('\\', pos), args.reverse()).append(cons(token('.', tokenPos(arg)), rest)), names, cont
     else getLetLambda pos, rest, cons(arg, args), names, cont
 
 root.splitTokens = splitTokens
