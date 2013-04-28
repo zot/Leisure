@@ -124,8 +124,14 @@ astString = (ast)->
       if getAstType(getApplyArg ast) == 'apply' then argStr = "(#{argStr})"
       "#{funcStr} #{argStr}"
     when 'lambda' then "\\#{getLambdaVar ast} . #{astString getLambdaBody ast}"
-    when 'let' then "\\\\(#{getLetName ast} = #{astString getLetValue ast}) #{astString getLetBody ast}"
+    when 'let' then "\\\\#{letStr ast}"
     when 'anno' then "(@#{getAnnoName ast}: #{getAnnoData ast}, #{astString getAnnoBody ast})"
+
+letStr = (ast)->
+  body = getLetBody ast
+  binding = "(#{getLetName ast} = #{astString getLetValue ast})"
+  if body instanceof Leisure_let then "#{binding} #{letStr body}"
+  else "#{binding} (#{astString body})"
 
 #########
 ######### LISTS
