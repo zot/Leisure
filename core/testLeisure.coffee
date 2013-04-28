@@ -249,6 +249,7 @@ run 'test31', -> assertEq String(parseToAst('a b')), 'apply(a b)'
 run 'test32', -> assertEq String(parseToAst('\\a . a')), 'lambda(\\a . a)'
 run 'test33', -> assertEq String(parseToAst('\\a b . a')), 'lambda(\\a . \\b . a)'
 run 'test34', -> assertEq String(parseToAst('\\a b . a b')), 'lambda(\\a . \\b . a b)'
+run 'test35', -> assertEq String(parseToAst('\\\\(a = 1) a')), 'let(\\\\(a = 1) a)'
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

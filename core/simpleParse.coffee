@@ -40,6 +40,7 @@ else
     lit,
     apply,
     lambda,
+    llet,
   } = root = exports = module.exports = require './ast'
   inspect = require('util').inspect # for testing
   _ = require('./lodash.min')
@@ -159,6 +160,11 @@ parse = (str)-> parseToks tokens(str), identity
 ## Creating ASTs
 #################
 
+#
+# The CPS-like technique, here, seems very close to monads
+# if it's really just monads, maybe this could be done with do
+# Need to learn monads a little deeper, I think
+
 parseToAst = (str)-> createAst parse(str), Nil, identity
 
 strip = (list, cont)-> if isParens list then strip parensList(list), cont else cont list
@@ -212,6 +218,8 @@ chainApply = (func, list, names, cont)->
     createAst argItem, names, (arg)->
       chainApply apply(func, arg), rest, names, cont
 
+withParens = (p, err, cont)-> if !isParens p then err() else cont parensList p
+
 # let structures allow mutual recursion
 # the syntax is similar to the top level
 # they are a series of bindings followed by a single expression
@@ -222,17 +230,35 @@ chainApply = (func, list, names, cont)->
 # identity can be defined as: \\ (id x = x) id
 # but that's a little verbose
 createLet = (start, list, names, cont)->
-  if list == Nil then parseErr "No variable or body for let at #{tokenPos start}"
-  else createLets start, list, names, cont
+  withCons list, (-> parseErr "No variable or body for let at #{tokenPos start}"), (binding, body)->
+    if body == Nil then createAst binding, names, cont
+    else getLetNames start, list, names, (newNames)->
+      createSublets start, binding, body, newNames, cont
 
-createLets = (start, list, names, cont)->
-  def = head(list)
-  if def == Nil then parseErr "No variable for let at #{tokenPos start}"
-  else doCons def, -> getLetDefValue tail(def), names, (defValue)->
-    doCons tail(list), (body)-> doParsed createAst(body, names), (body)->
-      llet head(def), defValue, body
+getLetNames = (start, list, names, cont)->
+  withCons list, (-> cont names), (binding, body)->
+    if body == Nil then cont names
+    else withParens binding, (-> parseErr "Let expected binding at #{tokenPos start}"), (def)->
+      withCons def, (-> parseErr "Let expected binding at #{tokenPos start}"), (name, rest)->
+        withToken name, (-> parseErr "Let expected binding at #{tokenPos start}"), (str)->
+          getLetNames start, body, cons(str, names), cont
 
-getLetDefValue = (def, names, cont)-> "LET DEF"
+createSublets = (start, binding, body, names, cont)->
+  withCons body, (->createAst binding, names, cont), (bodyH, bodyT)->
+    getNameAndDef parensStart(binding), parensList(binding), names, (name, def)->
+      createSublets start, bodyH, bodyT, names, (bodyAst)->
+        cont llet tokenString(name), def, bodyAst
+
+getNameAndDef = (pos, binding, names, cont)->
+  withCons tail(binding), (-> parseErr "Let expected binding at #{pos}"), (snd, sndT)->
+    if isTokString snd, '=' then createAst sndT, names, (def)-> cont head(binding), def
+    else getLetLambda pos, tail(binding), Nil, names, (lamb)-> cont head(binding), lamb
+
+getLetLambda = (pos, def, args, names, cont)->
+  withCons def, (-> parseErr "Let expected binding at #{pos}"), (arg, rest)->
+    if !isToken arg then parseErr "Let expected binding at #{pos}"
+    else if isTokString arg, '=' then createAst cons(token('\\', pos), args.reverse()).append(cons(token('.', tokenPos(arg)), rest)), names, cont
+    else getLetLambda pos, rest, cons(arg, args), names, cont
 
 root.splitTokens = splitTokens
 root.tokens = tokens
