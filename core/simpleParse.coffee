@@ -86,22 +86,22 @@ token = (str, pos)-> L_token()(->str)(->pos)
 
 isTok = (t)-> t instanceof Leisure_token
 
-define 'parens', (->setDataType ((left)->(right)->(ast)-> setType ((f)-> f()(left)(right)(ast)), 'parens'), 'parens'), 3, '\\left right ast . \\f . f left right ast'
+define 'parens', (->setDataType ((left)->(right)->(content)-> setType ((f)-> f()(left)(right)(content)), 'parens'), 'parens'), 3, '\\left right ast . \\f . f left right ast'
 ensureLeisureClass 'parens'
-Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensList @})"
+Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
 
-parens = (start, end, list)-> L_parens()(->start)(->end)(->list)
+parens = (start, end, content)-> L_parens()(->start)(->end)(->content)
 
-parensFromToks = (left, right, list)->
+parensFromToks = (left, right, content)->
   start = tokenPos left
   end = tokenPos(right) + tokenString(right).length
-  L_parens()(->start)(->end)(->list)
+  L_parens()(->start)(->end)(->content)
 
 parensStart = (p)-> p(->(s)->(e)->(l)-> s())
 
 parensEnd = (p)-> p(->(s)->(e)->(l)-> e())
 
-parensList = (p)-> p(->(s)->(e)->(l)-> l())
+parensContent = (p)-> p(->(s)->(e)->(l)-> l())
 
 isParens = (p)-> p instanceof Leisure_parens
 
@@ -167,7 +167,7 @@ parse = (str)-> parseToks tokens(str), identity
 
 parseToAst = (str)-> createAst parse(str), Nil, identity
 
-strip = (list, cont)-> if isParens list then strip parensList(list), cont else cont list
+strip = (list, cont)-> if isParens list then strip parensContent(list), cont else cont list
 
 isCons = (c)-> c instanceof Leisure_cons
 
@@ -218,7 +218,7 @@ chainApply = (func, list, names, cont)->
     createAst argItem, names, (arg)->
       chainApply apply(func, arg), rest, names, cont
 
-withParens = (p, err, cont)-> if !isParens p then err() else cont parensList p
+withParens = (p, err, cont)-> if !isParens p then err() else cont parensContent p
 
 # let structures allow mutual recursion
 # the syntax is similar to the top level
@@ -245,7 +245,7 @@ getLetNames = (start, list, names, cont)->
 
 createSublets = (start, binding, body, names, cont)->
   withCons body, (->createAst binding, names, cont), (bodyH, bodyT)->
-    getNameAndDef parensStart(binding), parensList(binding), names, (name, def)->
+    getNameAndDef parensStart(binding), parensContent(binding), names, (name, def)->
       createSublets start, bodyH, bodyT, names, (bodyAst)->
         cont llet tokenString(name), def, bodyAst
 
