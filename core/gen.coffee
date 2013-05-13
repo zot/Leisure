@@ -63,6 +63,10 @@ gen = (ast)->
       switch name
         when 'type' then "setType(#{genned}, '#{data}')"
         when 'dataType' then "setDataType(#{genned}, '#{data}')"
+        when 'define'
+          #data: [name arity src]
+          [funcName, arity, src] = data.toArray()
+          "define('#{funcName}', (function(){return #{genned}}), #{arity}, #{JSON.stringify src})"
         else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
 

@@ -255,11 +255,6 @@ define = (name, func, arity, src, method) ->
   leisureAddFunc name
   func
 
-# expose cons and lexCons functions to Leisure
-
-define 'cons', (-> primCons), 2, '\\a b f . f a b'
-define 'nil', (-> Nil), 0, '\\a b . b'
-
 ######
 ###### Annotation structures
 ######

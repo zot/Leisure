@@ -38,6 +38,7 @@ misrepresented as being the original software.
   lambda,
   llet,
   anno,
+  ast2Json,
 } = root = module.exports = require './ast'
 {gen} = require './gen'
 _ = require('./lodash.min')
@@ -60,7 +61,6 @@ delimiterPat = null
 defPat = /^[^ ].*=/
 
 makeDelimterPat = ->
-  console.log "New delimiterPat: '(#{delimiterList.join('|')})'"
   delimiterPat = new RegExp "(#{delimiterList.join('|')})"
 
 addDelimiter = (del)->
@@ -271,7 +271,7 @@ getLetLambda = (pos, def, args, names, cont)->
 # Compiling
 ###############
 
-compile = (str, isDef, isExpr)->
+parseLine = (str, isDef, isExpr)->
   toks = tokens str
   if str.match defPat
     name = head toks
@@ -279,13 +279,23 @@ compile = (str, isDef, isExpr)->
       if isTokenString (head tail tail toks), '\\' then setTypeAnno (head tail tail toks), (tail tail toks), tokenString name
       else tail tail toks
     else cons token('\\', position(head tail toks) - 1), transformDef name, tail toks
-    parseToks checkSetDataType(func, toks, name), (list)->
+    parseToks setDefAnno(checkSetDataType(func, toks, name), name, arity(tail(toks), 0), str), (list)->
       createAst list, Nil, (ast)->
-        isDef eval "define('#{tokenString name}', (function(){return #{gen ast}}), #{arity tail(toks), 0}, #{tokListStr func})"
+        isDef ast
   else
     parseToks toks, (list)->
       createAst list, Nil, (ast)->
-        isExpr eval "(function(){return #{gen ast};})"
+        isExpr ast
+
+genLine = (str, isDef, isExpr)->
+  parseLine str,
+    ((ast)-> isDef "(#{gen ast});\n"),
+    (ast)-> isExpr "(function(){return #{gen ast};});\n"
+
+compileLine = (str, isDef, isExpr)->
+  genLine str,
+    ((code)-> isDef eval code),
+    (code)-> isExpr eval code
 
 transformDef = (name, toks)->
   if isTokenString head(toks), '='
@@ -295,7 +305,13 @@ transformDef = (name, toks)->
 
 setTypeAnno = (start, toks, name)->
   pos = position start
-  cons token('\\@', pos), cons token('type', pos), cons token(name, pos), cons token('.', pos), toks
+  tok = (str)-> token(str, pos)
+  cons tok('\\@'), cons tok('type'), cons tok(name), cons tok('.'), toks
+
+setDefAnno = (def, name, arity, src)->
+  pos = position def
+  tok = (str)-> token(str, pos)
+  cons tok('\\@'), cons tok('define'), cons cons(tok(tokenString name), cons tok(String(arity)), cons tok(src), Nil), cons tok('.'), def
 
 checkSetDataType = (toks, curToks, name)->
   if isTokenString(head(curToks), '=') then toks
@@ -315,8 +331,19 @@ arity = (toks, n)-> if isTokenString head(toks), '=' then n else arity tail(toks
 
 tokListStr = (toks)-> JSON.stringify toks.map((t)->tokenString t).join(' ')
 
+compileFile = (text)->
+  id = (x)-> x
+  _.map(text.split('\n'), (line)-> genLine line, id, id).join('')
+
+jsonForFile = (text)->
+  id = (x)-> x
+  _.map(text.split('\n'), (line)-> JSON.stringify ast2Json parseLine line, id, id).join('\n')
+
 root.splitTokens = splitTokens
 root.tokens = tokens
 root.parse = parse
 root.parseToAst = parseToAst
-root.compile = compile
+root.compileLine = compileLine
+root.parseLine = parseLine
+root.compileFile = compileFile
+root.jsonForFile = jsonForFile

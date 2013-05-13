@@ -52,7 +52,10 @@ U = require('util')
   tokens,
   parse,
   parseToAst,
-  compile,
+  parseLine,
+  compileLine,
+  compileFile,
+  jsonForFile,
 } = require './simpleParse'
 
 console.log 'Testing CoffeeScript'
@@ -184,6 +187,18 @@ setXTo3YTo4Ast = json2Ast
         _type: 'lit'
         value: 4
 
+text1 = """
+  v1 = 3
+  v2 = 4
+  v3 = + 3 4
+  """
+
+text2 = """
+  v4 = 5
+  v5 = 6
+  v6 = + 5 6
+  """
+
 lsr = (str)-> eval("(#{gen parseToAst(str)})")
 
 id = (x)->x
@@ -261,24 +276,34 @@ runTests
   test37: -> assertEq String(parseToAst('\\\\(a b = c) (c = 3) (a 5)')), 'let(\\\\(a = \\b . c) (c = 3) (a 5))'
   test38: -> assertEq lsr('\\x . x')(-> 7), 7
   test39: -> assertEq lsr('getType "hello"'), "*string"
-  test40: -> assertEq lsr('getType nil'), "nil"
-  test41: -> assertEq lsr('getType (cons 1 nil)'), "cons"
-  test42: -> assertEq compile('3', (->), id)(), 3
-  test43: -> assertEq compile('\\x . x', (->), id)()(->3), 3
+  test40: -> assertEq compileLine('3', (->), id)(), 3
+  test41: -> assertEq compileLine('\\x . x', (->), id)()(->3), 3
+  test42a: -> assertEq String(parseLine('id = \\x . x', id, ign)), 'anno(\\@define Cons[id 0 id = \\x . x] . \\@type id . \\x . x)'
+  test42b: ->
+    compileLine('id = \\x . x', id, id)
+    assertEq compileLine('id', (->), id)()(->3), 3
+  test43: -> assertEq compileLine('\\x y . + x y', (->), id)()(->3)(->4), 7
   test44: ->
-    compile('id = \\x . x', id, id)
-    assertEq compile('id', (->), id)()(->3), 3
-  test45: -> assertEq compile('\\x y . + x y', (->), id)()(->3)(->4), 7
-  test46: ->
-    compile('plus x y = + x y', id, id)
-    assertEq compile('plus', (->), id)()(->3)(->4), 7
-  test47: -> assertEq String(parseToAst('\\@ a b . c')), 'anno(\\@a b . c)'
-  test48: -> assertEq lsr('\\@ a b . 3'), 3
-  test49: -> assertEq lsr('(\\@ a b . \\x . x) 4'), 4
-  test50: -> assertEq String(parseToAst('(\\f . f 5) \\x . x')), 'apply((\\f . f 5) \\x . x)'
-  test51: -> assertEq lsr('(\\f . f 5) \\x . x'), 5
-  test52: -> assertEq lsr('(\\f . f 5) \\@ a b . \\x . x'), 5
-  test53: -> assertEq lsr('getType \\@ type fred . \\x . x'), 'fred'
+    compileLine('plus x y = + x y', id, id)
+    assertEq compileLine('plus', (->), id)()(->3)(->4), 7
+  test45: -> assertEq String(parseToAst('\\@ a b . c')), 'anno(\\@a b . c)'
+  test46: -> assertEq lsr('\\@ a b . 3'), 3
+  test47: -> assertEq lsr('(\\@ a b . \\x . x) 4'), 4
+  test48: -> assertEq String(parseToAst('(\\f . f 5) \\x . x')), 'apply((\\f . f 5) \\x . x)'
+  test49: -> assertEq lsr('(\\f . f 5) \\x . x'), 5
+  test50: -> assertEq lsr('(\\f . f 5) \\@ a b . \\x . x'), 5
+  test51: -> assertEq lsr('getType \\@ type fred . \\x . x'), 'fred'
+  test52: ->
+    eval compileFile text1
+    assertEq lsr('v1'), 3
+    assertEq lsr('v2'), 4
+    assertEq lsr('v3'), 7
+  test53: ->
+    for line in jsonForFile(text2).split('\n')
+      eval gen json2Ast(JSON.parse line)
+    assertEq lsr('v4'), 5
+    assertEq lsr('v5'), 6
+    assertEq lsr('v6'), 11
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
