@@ -22,14 +22,14 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-if window? and (!global? or global == window)
-  window.global = window
-  root = window.Leisure = window.Leisure || {}
-else
-  root = exports = module.exports = require './base'
-  {define} = require './ast'
-  inspect = require('util').inspect # for testing
-  _ = require('./lodash.min')
+root = module.exports = require './base'
+{define} = require './ast'
+_ = require('./lodash.min')
+
+define '+', ->(x)->(y)->x() + y()
+define '-', ->(x)->(y)->x() - y()
+define '*', ->(x)->(y)->x() * y()
+define '/', ->(x)->(y)->x() / y()
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code

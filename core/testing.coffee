@@ -44,7 +44,14 @@ eqArray = (a, b)->
     true
 
 assertEq = (actual, expected, desc)-> if !eq expected, actual
-  throw new Error("#{if desc then "[#{desc}] " else ""}Expected <#{expected}> but got <#{actual}>")
+  throw new Error "#{if desc then "[#{desc}] " else ""}Expected <#{expected}> but got <#{actual}>"
+
+assertFail = (block, msg, desc)->
+  try
+    block()
+    throw new Error "#{if desc then "[#{desc}] " else ""}Expected <failure #{msg}> but it succeeded"
+  catch err
+    if err.message != msg then throw new Error "#{if desc then "[#{desc}] " else ""}Expected <failure #{msg}> but got <failure #{err.message}>"
 
 log = (args...)->process.stdout.write(U.format.apply(null, args))
 
@@ -58,13 +65,12 @@ run = (name, func)->
     stats.failed.push name
     log "\nFailure, #{name}: #{err.stack}"
 
-runTests = (arg)->
-  args = if typeof arg == 'object' and arg.constructor == Array then arg else arguments
-  log "Running Tests...\n"
-  run(arg[i].name, arg[i]) for i in [0...args.length]
-  log "\nDone\n"
+runTests = (tests)->
+  for testName, testFunc of tests
+    run testName, testFunc
 
 exports.assertEq = assertEq
+exports.assertFail = assertEq
 exports.runTests = runTests
 exports.run = run
 exports.stats = stats

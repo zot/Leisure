@@ -22,28 +22,25 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-if window? and (!global? or global == window)
-  window.global = window
-  root = window.Leisure = window.Leisure || {}
-else
-  {
-    cons,
-    Nil,
-    consFrom,
-    head,
-    tail,
-    define,
-    setDataType,
-    setType,
-    ensureLeisureClass,
-    ref,
-    lit,
-    apply,
-    lambda,
-    llet,
-  } = root = exports = module.exports = require './ast'
-  inspect = require('util').inspect # for testing
-  _ = require('./lodash.min')
+{
+  cons,
+  Nil,
+  consFrom,
+  head,
+  tail,
+  define,
+  setDataType,
+  setType,
+  ensureLeisureClass,
+  ref,
+  lit,
+  apply,
+  lambda,
+  llet,
+  anno,
+} = root = module.exports = require './ast'
+{gen} = require './gen'
+_ = require('./lodash.min')
 
 delimiterList = [
   '\\n *',
@@ -52,12 +49,15 @@ delimiterList = [
   ' +',
   '\\.',
   '\\\\\\\\',
+  '\\\\@',
   '\\\\',
 ]
 
 delimiters = _.object(_.map(delimiterList, (x)->[x, true]))
 
 delimiterPat = null
+
+defPat = /^[^ ].*=/
 
 makeDelimterPat = ->
   console.log "New delimiterPat: '(#{delimiterList.join('|')})'"
@@ -74,20 +74,20 @@ addDelimiter = (del)->
 
 makeDelimterPat()
 
-define 'token', (->setDataType ((txt)->(pos)-> setType ((f)-> f()(txt)(pos)), 'token'), 'token'), 2, '\\txt pos . \\f . f txt pos'
+L_token = setDataType ((txt)->(pos)-> setType ((f)-> f()(txt)(pos)), 'token'), 'token'
 ensureLeisureClass 'token'
 Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
 
 tokenString = (t)-> t(->(txt)->(pos)-> txt())
 tokenPos = (t)-> t(->(txt)->(pos)-> pos())
-token = (str, pos)-> L_token()(->str)(->pos)
+token = (str, pos)-> L_token(->str)(->pos)
 isToken = (t)-> t instanceof Leisure_token
 
-define 'parens', (->setDataType ((left)->(right)->(content)-> setType ((f)-> f()(left)(right)(content)), 'parens'), 'parens'), 3, '\\left right ast . \\f . f left right ast'
+L_parens = ->setDataType ((left)->(right)->(content)-> setType ((f)-> f()(left)(right)(content)), 'parens'), 'parens'
 ensureLeisureClass 'parens'
 Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
 
-parens = (start, end, content)-> L_parens()(->start)(->end)(->content)
+parens = (start, end, content)-> L_parens(->start)(->end)(->content)
 
 parensFromToks = (left, right, content)->
   start = tokenPos left
@@ -99,11 +99,11 @@ parensEnd = (p)-> p(->(s)->(e)->(l)-> e())
 parensContent = (p)-> p(->(s)->(e)->(l)-> l())
 isParens = (p)-> p instanceof Leisure_parens
 
-define 'parseErr', (->setDataType ((msg)-> setType ((f)-> f()(msg)), 'parseErr'), 'parseErr'), 1, '\\msg . \\f . f msg'
+L_parseErr = setDataType ((msg)-> setType ((f)-> f()(msg)), 'parseErr'), 'parseErr'
 ensureLeisureClass 'parseErr'
 Leisure_parseErr.prototype.toString = -> "ParseErr(#{JSON.stringify(parseErrMsg(@))})"
 
-parseErr = (msg)-> L_parseErr()(->msg)
+parseErr = (msg)-> L_parseErr(->msg)
 parseErrMsg = (e)-> e(->(msg)-> msg())
 
 makeTokens = (strings, start)->
@@ -156,22 +156,28 @@ parse = (str)-> parseToks tokens(str), identity
 
 parseToAst = (str)-> createAst parse(str), Nil, identity
 
-withToken = (tok, nonTokenCase, cont)-> if isToken tok then cont tokenString tok else nonTokenCase()
+withToken = (tok, nonTokenCase, cont)-> if isToken tok then cont tokenString tok, tokenPos tok else nonTokenCase()
 
 withParens = (p, err, cont)-> if !isParens p then err() else cont parensContent p
 
 strip = (list, cont)-> withParens list, (->cont list), (c)-> strip c, cont
 
+position = (thing)->
+  if isToken thing then tokenPos thing
+  else if isParens thing then parensStart thing
+  else if thing instanceof Leisure_cons then position head thing
+  else -1
+
 loc = (thing)->
-  if isToken thing then "at #{tokenPos thing}"
-  else if isParens thing then "at #{parensStart thing}"
-  else ''
+  p = position thing
+  "at #{if p == -1 then 'an unknown location' else p}"
 
 createAst = (inList, names, cont)-> strip inList, (list)->
   if list == Nil then cont Nil
   else if isToken(list) then createLitOrRef tokenString(list), names, cont
-  else withCons list, (-> parseErr "Null list for AST#{loc inList}: #{inList}"), (h, t)->
+  else withCons list, (-> parseErr "Null list for AST #{loc inList}: #{inList}"), (h, t)->
     if isTokenString(h, '\\\\') then createLet h, t, names, cont
+    else if isTokenString(h, '\\@') then createAnno h, t, names, cont
     else if isTokenString(h, '\\') then createLambda h, t, names, cont
     else createApply list, names, cont
 
@@ -184,36 +190,54 @@ createLitOrRef = (tok, names, cont)->
       cont ref tok
 
 createLambda = (start, list, names, cont)->
-  withCons list, (-> parseErr "No variable or body for lambda at #{tokenPos start}"), (name, rest)->
-    withCons rest, (-> parseErr "No body for lambda at #{tokenPos start}"), (dot, body)->
-      withToken name, (-> parseErr "Expecting name for lambda at #{tokenPos start}"), (n)->
+  withCons list, (-> parseErr "No variable or body for lambda #{loc start}"), (name, rest)->
+    withCons rest, (-> parseErr "No body for lambda #{loc start}"), (dot, body)->
+      withToken name, (-> parseErr "Expecting name for lambda #{loc start}"), (n)->
         if isTokenString dot, '.' then createAst body, cons(name, names), (bodyAst)->
           cont lambda n, bodyAst
         else createLambda start, rest, cons(name, names), (bodyAst)->
           cont lambda n, bodyAst
 
+createAnno = (start, list, names, cont)->
+  withCons list, (-> parseErr "No annotation name or data in annotation #{loc start}"), (name, rest)->
+    withCons rest, (-> parseErr "No data for annotation #{loc start}"), (data, rest)->
+      withCons rest, (-> parseErr "No body for annotation #{loc start}"), (dot, body)->
+        if isTokenString dot, '.' then createAst body, names, (bodyAst)->
+          cleanTokens start, name, (name)->
+            cleanTokens start, data, (data)->
+              cont anno name, data, bodyAst
+        else parseErr "Annotation expected dot after name and data"
+
+cleanTokens = (start, toks, cont)->
+  if toks == Nil then cont toks
+  else if isToken toks then cont tokenString toks
+  else withCons toks, (->parseErr "Expected token or list but got #{toks} #{loc start}"), (head, tail)->
+    cleanTokens start, head, (head)->
+      cleanTokens start, tail, (tail)->
+        cont cons head, tail
+
 createApply = (inList, names, cont)-> strip inList, (list)->
-  withCons list, (-> parseErr "Expecting a non-empty list#{loc inList}"), (h, t)->
+  withCons list, (-> parseErr "Expecting a non-empty list #{loc inList}"), (h, t)->
     createAst h, names, (func)->
       chainApply func, t, names, cont
 
 chainApply = (func, list, names, cont)->
   if list == Nil then cont func
-  else withCons list, (-> parseErr "Expecting list#{loc inList}"), (argItem, rest)->
-    createAst argItem, names, (arg)->
-      chainApply apply(func, arg), rest, names, cont
+  else withCons list, (-> parseErr "Expecting list #{loc inList}"), (argItem, rest)->
+    if isToken(argItem) and tokenString(argItem) in ['\\', '\\\\', '\\@'] then createAst list, names, (arg)->
+      cont apply(func, arg)
+    else
+      createAst argItem, names, (arg)->
+        chainApply apply(func, arg), rest, names, cont
 
 # let structures allow mutual recursion
 # the syntax is similar to the top level
 # they are a series of bindings followed by a single expression
 # \\ (a = b) (d e f = g h) expr
-# the first case binds a variable to a value
+# the first case binds a variable to an expression
 # the second case binds a variable to a lambda
-# lets can be used in place of lambdas
-# identity can be defined as: \\ (id x = x) id
-# but that's a little verbose
 createLet = (start, list, names, cont)->
-  withCons list, (-> parseErr "No variable or body for let at #{tokenPos start}"), (binding, body)->
+  withCons list, (-> parseErr "No variable or body for let #{loc start}"), (binding, body)->
     if body == Nil then createAst binding, names, cont
     else getLetNames start, list, names, (newNames)->
       createSublets start, binding, body, newNames, cont
@@ -221,9 +245,9 @@ createLet = (start, list, names, cont)->
 getLetNames = (start, list, names, cont)->
   withCons list, (-> cont names), (binding, body)->
     if body == Nil then cont names
-    else withParens binding, (-> parseErr "Let expected binding at #{tokenPos start}"), (def)->
-      withCons def, (-> parseErr "Let expected binding at #{tokenPos start}"), (name, rest)->
-        withToken name, (-> parseErr "Let expected binding at #{tokenPos start}"), (str)->
+    else withParens binding, (-> parseErr "Let expected binding #{loc start}"), (def)->
+      withCons def, (-> parseErr "Let expected binding #{loc start}"), (name, rest)->
+        withToken name, (-> parseErr "Let expected binding #{loc start}"), (str)->
           getLetNames start, body, cons(str, names), cont
 
 createSublets = (start, binding, body, names, cont)->
@@ -240,10 +264,59 @@ getNameAndDef = (pos, binding, names, cont)->
 getLetLambda = (pos, def, args, names, cont)->
   withCons def, (-> parseErr "Let expected binding at #{pos}"), (arg, rest)->
     if !isToken arg then parseErr "Let expected binding at #{pos}"
-    else if isTokenString arg, '=' then createAst cons(token('\\', pos), args.reverse()).append(cons(token('.', tokenPos(arg)), rest)), names, cont
+    else if isTokenString arg, '=' then createAst cons(token('\\', pos), args.reverse()).append(cons(token('.', position(arg)), rest)), names, cont
     else getLetLambda pos, rest, cons(arg, args), names, cont
+
+###############
+# Compiling
+###############
+
+compile = (str, isDef, isExpr)->
+  toks = tokens str
+  if str.match defPat
+    name = head toks
+    func = if isTokenString (head tail toks), '='
+      if isTokenString (head tail tail toks), '\\' then setTypeAnno (head tail tail toks), (tail tail toks), tokenString name
+      else tail tail toks
+    else cons token('\\', position(head tail toks) - 1), transformDef name, tail toks
+    parseToks checkSetDataType(func, toks, name), (list)->
+      createAst list, Nil, (ast)->
+        isDef eval "define('#{tokenString name}', (function(){return #{gen ast}}), #{arity tail(toks), 0}, #{tokListStr func})"
+  else
+    parseToks toks, (list)->
+      createAst list, Nil, (ast)->
+        isExpr eval "(function(){return #{gen ast};})"
+
+transformDef = (name, toks)->
+  if isTokenString head(toks), '='
+    if isTokenString head(tail toks), '\\' then cons token('.', position(head toks)), setTypeAnno head(tail toks), tail(toks), tokenString name
+    else cons token('.', position(head toks)), tail toks
+  else cons head(toks), transformDef name, tail toks
+
+setTypeAnno = (start, toks, name)->
+  pos = position start
+  cons token('\\@', pos), cons token('type', pos), cons token(name, pos), cons token('.', pos), toks
+
+checkSetDataType = (toks, curToks, name)->
+  if isTokenString(head(curToks), '=') then toks
+  else checkSetDataTypeFurther toks, curToks, name
+
+checkSetDataTypeFurther = (toks, curToks, name)->
+  if isTokenString(head(curToks), '=')
+    if isTokenString (head tail curToks), '\\' then setDataTypeAnno toks, name
+    else toks
+  else checkSetDataType toks, tail(curToks), name
+
+setDataTypeAnno = (toks, name)->
+  pos = position toks
+  cons token('\\@', pos), cons token('dataType', pos), cons token(name, pos), cons token('.', pos), toks
+
+arity = (toks, n)-> if isTokenString head(toks), '=' then n else arity tail(toks), n + 1
+
+tokListStr = (toks)-> JSON.stringify toks.map((t)->tokenString t).join(' ')
 
 root.splitTokens = splitTokens
 root.tokens = tokens
 root.parse = parse
 root.parseToAst = parseToAst
+root.compile = compile

@@ -22,13 +22,8 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-if window? and (!global? or global == window)
-  window.global = window
-  root = window.Leisure = window.Leisure || {}
-else
-  root = exports = module.exports = require './base'
-  inspect = require('util').inspect # for testing
-  _ = require('./lodash.min')
+root = module.exports = require './base'
+_ = require('./lodash.min')
 
 
 ######
@@ -86,15 +81,32 @@ setType = (func, type)->
 
 class LeisureObject
 
-global.LeisureObject = LeisureObject
+LeisureObject.prototype.className = 'LeisureObject'
+
+global.Leisure_Object = LeisureObject
+
+supertypes = {}
+
+root.leisureClassChange = 0
 
 ensureLeisureClass = (leisureClass)->
   cl = "Leisure_#{nameSub leisureClass}"
   if !global[cl]?
     global[cl] = eval "(function #{cl}(){})"
-    global[cl].prototype.__proto__ = LeisureObject.prototype
+    supertypes[cl] = 'Leisure_Object'
+    root.leisureClassChange++
   global[cl]
 
+makeSuper = (type, supertype)->
+  supertypes["Leisure_#{nameSub type}"] = "Leisure_#{nameSub supertype}"
+  root.leisureClassChange++
+
+ensureLeisureClass 'cons'
+ensureLeisureClass 'nil'
+supertypes.Leisure_cons = 'Leisure_Object'
+supertypes.Leisure_nil = 'Leisure_Object'
+
+ensureLeisureClass 'ast'
 ensureLeisureClass 'lit'
 Leisure_lit.prototype.toString = -> "lit(#{getLitVal @})"
 ensureLeisureClass 'ref'
@@ -107,11 +119,16 @@ ensureLeisureClass 'let'
 Leisure_let.prototype.toString = -> "let(#{astString @})"
 ensureLeisureClass 'anno'
 Leisure_anno.prototype.toString = -> "anno(#{astString @})"
-ensureLeisureClass 'cons'
-ensureLeisureClass 'nil'
 ensureLeisureClass 'doc'
 ensureLeisureClass 'srcLocation'
 ensureLeisureClass 'pattern'
+
+makeSuper 'lit', 'ast'
+makeSuper 'ref', 'ast'
+makeSuper 'lambda', 'ast'
+makeSuper 'apply', 'ast'
+makeSuper 'let', 'ast'
+makeSuper 'anno', 'ast'
 
 astString = (ast)->
   switch getAstType ast
@@ -125,7 +142,7 @@ astString = (ast)->
       "#{funcStr} #{argStr}"
     when 'lambda' then "\\#{getLambdaVar ast} . #{astString getLambdaBody ast}"
     when 'let' then "\\\\#{letStr ast}"
-    when 'anno' then "(@#{getAnnoName ast}: #{getAnnoData ast}, #{astString getAnnoBody ast})"
+    when 'anno' then "\\@#{getAnnoName ast} #{getAnnoData ast} . #{astString getAnnoBody ast}"
 
 letStr = (ast)->
   body = getLetBody ast
@@ -264,10 +281,12 @@ define 'pattern', (->setDataType ((_pat)->setType ((_f)-> _f()(_pat)), 'pattern'
 # add node numder and source start and end into leisure structure
 # make lit, ref, lambda, apply, let, and anno subclasses of AST
 #
-#   LET syntax: \ x1 = y1 . x2 = y2 . expr
+#   LET syntax: \\ (f a1 a2 = body1) (var = value) . expr
 #
-# let binds a name to a value in a body
+# let binds a name to a value in a body and uses two backslashes in a row
 #   the body can be another let node and values can refer to any names in the let bindings
+#
+#   ANNOTATION syntax: \@ name1 value1 name2 value2 . body
 #
 # Annotations associate key-values pairs with code
 #  name, data, body -- associates a name and data with a body of code
@@ -283,6 +302,8 @@ define 'anno', (->setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> _f()(
 getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{t}"
+
+define 'getType', (->(value)-> getType value()), 1
 
 save = {}
 
@@ -423,3 +444,5 @@ root.Leisure_apply = Leisure_apply
 root.Leisure_let = Leisure_let
 root.Leisure_anno = Leisure_anno
 root.ensureLeisureClass = ensureLeisureClass
+root.makeSuper = makeSuper
+root.supertypes = supertypes

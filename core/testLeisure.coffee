@@ -37,9 +37,11 @@ U = require('util')
   getLitVal,
   getRefName,
   getLambdaBody,
-  consFrom
+  consFrom,
+  setType,
+  setDataType,
 } = LZ = require './ast'
-{run, assertParse, assertEval, assertEvalPrint, assertEq} = T = require './testing'
+{run, runTests, assertParse, assertEval, assertEvalPrint, assertEq} = T = require './testing'
 {gen} = require './gen'
 {
   stateValues,
@@ -50,6 +52,7 @@ U = require('util')
   tokens,
   parse,
   parseToAst,
+  compile,
 } = require './simpleParse'
 
 console.log 'Testing CoffeeScript'
@@ -130,48 +133,6 @@ let3Ast = json2Ast
       _type: 'ref'
       varName: 'x'
 
-run 'test1', -> assertEq "1", "1"
-run 'test2', -> assertEq "#{LZ.Nil}", "Cons[]"
-run 'test3', -> assertEq "#{cons 1, cons(2, Nil)}", "Cons[1 2]"
-run 'test4', -> assertEq "", ""
-run 'test5', -> assertEq "#{consFrom ('1 2 3').split(' ')}", "Cons[1 2 3]"
-run 'test6', -> assertEq "#{consFrom(('1 2 3').split(' ')).reverse()}", "Cons[3 2 1]"
-run 'test7', -> assertEq "#{cons 1, 2}", "Cons[1 | 2]"
-run 'test8', ->
-  st = json2Ast
-    _type: "lit"
-    value: 3
-  assertEq getLitVal(st), 3
-  assertEq getLitVal(json2Ast ast2Json st), 3
-run 'test9', ->
-  st = json2Ast
-    _type: "ref"
-    varName: 3
-  assertEq getRefName(st), 3
-  assertEq getRefName(json2Ast ast2Json st), 3
-run 'test10', ->
-  assertEq getRefName(getLambdaBody(lidAst)), 'x'
-  assertEq getRefName(getLambdaBody(json2Ast ast2Json lidAst)), 'x'
-run 'test11', ->
-  st = json2Ast
-    _type: "cons"
-    head: 1
-    tail:
-      _type: "nil"
-  assertEq "#{st}", "Cons[1]"
-  assertEq "#{json2Ast ast2Json st}", "Cons[1]"
-run 'test12', ->
-  st = json2Ast
-    _type: "lit"
-    value: 3
-  assertEq (gen st), '3'
-run 'test13', -> assertEq (gen lidAst), 'function(L_x){return L_x()}'
-run 'test14', -> assertEq (gen lapplyXY), 'function(L_x){return function(L_y){return L_x()(L_y)}}'
-run 'test15', -> assertEq (gen ltrueAst), 'function(L_a){return function(L_b){return L_a()}}'
-run 'test16', -> assertEq (eval "(#{gen ltrueAst})")(->5)(->6), 5
-run 'test17', -> assertEq (eval "(#{gen lfalseAst})")(->5)(->6), 6
-run 'test18', -> assertEq (eval "(#{gen let3Ast})"), 3
-
 setXTo3Ast = json2Ast
   _type: 'apply'
   func:
@@ -185,11 +146,6 @@ setXTo3Ast = json2Ast
   arg:
     _type: 'lit'
     value: 3
-
-run 'test19', ->
-  stateValues.x = 2
-  runMonad eval("(#{gen setXTo3Ast})"), root.defaultEnv, ->
-  assertEq stateValues.x, 3
 
 setXTo3YTo4Ast = json2Ast
   _type: 'apply'
@@ -228,30 +184,101 @@ setXTo3YTo4Ast = json2Ast
         _type: 'lit'
         value: 4
 
-run 'test20', ->
-  stateValues.x = 2
-  stateValues.y = 2
-  runMonad eval("(#{gen setXTo3YTo4Ast})"), root.defaultEnv, ->
-  assertEq stateValues.x, 3
-  assertEq stateValues.y, 4
+lsr = (str)-> eval("(#{gen parseToAst(str)})")
 
-run 'test21', -> assertEq splitTokens('a b').toArray(), ['a', ' ', 'b']
-run 'test22', -> assertEq splitTokens('a b  c').toArray(), ['a', ' ', 'b', '  ', 'c']
-run 'test23', -> assertEq String(tokens('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
-run 'test24', -> assertEq String(parse('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
-run 'test25', -> assertEq splitTokens('a (b)').toArray(), ['a', ' ', '(', 'b', ')']
-run 'test26', -> assertEq String(parse('a (b)')), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
-run 'test27', -> assertEq String(tokens('a ( (b  )   c) ')), 'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
-run 'test28', -> assertEq String(parse('a ( (b  )   c) ')), 'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
-run 'test29', -> assertEq String(parse('a.b')), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
-run 'test30', -> assertEq String(parseToAst('a')), 'ref(a)'
-run 'test31', -> assertEq String(parseToAst('a b')), 'apply(a b)'
-run 'test32', -> assertEq String(parseToAst('\\a . a')), 'lambda(\\a . a)'
-run 'test33', -> assertEq String(parseToAst('\\a b . a')), 'lambda(\\a . \\b . a)'
-run 'test34', -> assertEq String(parseToAst('\\a b . a b')), 'lambda(\\a . \\b . a b)'
-run 'test35', -> assertEq String(parseToAst('\\\\(a = 1) a')), 'let(\\\\(a = 1) (a))'
-run 'test36', -> assertEq String(parseToAst('\\\\(a b = 1) a')), 'let(\\\\(a = \\b . 1) (a))'
-run 'test37', -> assertEq String(parseToAst('\\\\(a b = c) (c = 3) (a 5)')), 'let(\\\\(a = \\b . c) (c = 3) (a 5))'
+id = (x)->x
+
+ign = ->
+
+runTests
+  test1: -> assertEq "1", "1"
+  test2: -> assertEq "#{LZ.Nil}", "Cons[]"
+  test3: -> assertEq "#{cons 1, cons(2, Nil)}", "Cons[1 2]"
+  test4: -> assertEq "", ""
+  test5: -> assertEq "#{consFrom ('1 2 3').split(' ')}", "Cons[1 2 3]"
+  test6: -> assertEq "#{consFrom(('1 2 3').split(' ')).reverse()}", "Cons[3 2 1]"
+  test7: -> assertEq "#{cons 1, 2}", "Cons[1 | 2]"
+  test8: ->
+    st = json2Ast
+      _type: "lit"
+      value: 3
+    assertEq getLitVal(st), 3
+    assertEq getLitVal(json2Ast ast2Json st), 3
+  test9: ->
+    st = json2Ast
+      _type: "ref"
+      varName: 3
+    assertEq getRefName(st), 3
+    assertEq getRefName(json2Ast ast2Json st), 3
+  test10: ->
+    assertEq getRefName(getLambdaBody(lidAst)), 'x'
+    assertEq getRefName(getLambdaBody(json2Ast ast2Json lidAst)), 'x'
+  test11: ->
+    st = json2Ast
+      _type: "cons"
+      head: 1
+      tail:
+        _type: "nil"
+    assertEq "#{st}", "Cons[1]"
+    assertEq "#{json2Ast ast2Json st}", "Cons[1]"
+  test12: ->
+    st = json2Ast
+      _type: "lit"
+      value: 3
+    assertEq (gen st), '3'
+  test13: -> assertEq (gen lidAst), 'function(L_x){return L_x()}'
+  test14: -> assertEq (gen lapplyXY), 'function(L_x){return function(L_y){return L_x()(L_y)}}'
+  test15: -> assertEq (gen ltrueAst), 'function(L_a){return function(L_b){return L_a()}}'
+  test16: -> assertEq (eval "(#{gen ltrueAst})")(->5)(->6), 5
+  test17: -> assertEq (eval "(#{gen lfalseAst})")(->5)(->6), 6
+  test18: -> assertEq (eval "(#{gen let3Ast})"), 3
+  test19: ->
+    stateValues.x = 2
+    runMonad eval("(#{gen setXTo3Ast})"), root.defaultEnv, ->
+    assertEq stateValues.x, 3
+  test20: ->
+    stateValues.x = 2
+    stateValues.y = 2
+    runMonad eval("(#{gen setXTo3YTo4Ast})"), root.defaultEnv, ->
+    assertEq stateValues.x, 3
+    assertEq stateValues.y, 4
+  test21: -> assertEq splitTokens('a b').toArray(), ['a', ' ', 'b']
+  test22: -> assertEq splitTokens('a b  c').toArray(), ['a', ' ', 'b', '  ', 'c']
+  test23: -> assertEq String(tokens('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+  test24: -> assertEq String(parse('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+  test25: -> assertEq splitTokens('a (b)').toArray(), ['a', ' ', '(', 'b', ')']
+  test26: -> assertEq String(parse('a (b)')), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
+  test27: -> assertEq String(tokens('a ( (b  )   c) ')), 'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
+  test28: -> assertEq String(parse('a ( (b  )   c) ')), 'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
+  test29: -> assertEq String(parse('a.b')), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
+  test30: -> assertEq String(parseToAst('a')), 'ref(a)'
+  test31: -> assertEq String(parseToAst('a b')), 'apply(a b)'
+  test32: -> assertEq String(parseToAst('\\a . a')), 'lambda(\\a . a)'
+  test33: -> assertEq String(parseToAst('\\a b . a')), 'lambda(\\a . \\b . a)'
+  test34: -> assertEq String(parseToAst('\\a b . a b')), 'lambda(\\a . \\b . a b)'
+  test35: -> assertEq String(parseToAst('\\\\(a = 1) a')), 'let(\\\\(a = 1) (a))'
+  test36: -> assertEq String(parseToAst('\\\\(a b = 1) a')), 'let(\\\\(a = \\b . 1) (a))'
+  test37: -> assertEq String(parseToAst('\\\\(a b = c) (c = 3) (a 5)')), 'let(\\\\(a = \\b . c) (c = 3) (a 5))'
+  test38: -> assertEq lsr('\\x . x')(-> 7), 7
+  test39: -> assertEq lsr('getType "hello"'), "*string"
+  test40: -> assertEq lsr('getType nil'), "nil"
+  test41: -> assertEq lsr('getType (cons 1 nil)'), "cons"
+  test42: -> assertEq compile('3', (->), id)(), 3
+  test43: -> assertEq compile('\\x . x', (->), id)()(->3), 3
+  test44: ->
+    compile('id = \\x . x', id, id)
+    assertEq compile('id', (->), id)()(->3), 3
+  test45: -> assertEq compile('\\x y . + x y', (->), id)()(->3)(->4), 7
+  test46: ->
+    compile('plus x y = + x y', id, id)
+    assertEq compile('plus', (->), id)()(->3)(->4), 7
+  test47: -> assertEq String(parseToAst('\\@ a b . c')), 'anno(\\@a b . c)'
+  test48: -> assertEq lsr('\\@ a b . 3'), 3
+  test49: -> assertEq lsr('(\\@ a b . \\x . x) 4'), 4
+  test50: -> assertEq String(parseToAst('(\\f . f 5) \\x . x')), 'apply((\\f . f 5) \\x . x)'
+  test51: -> assertEq lsr('(\\f . f 5) \\x . x'), 5
+  test52: -> assertEq lsr('(\\f . f 5) \\@ a b . \\x . x'), 5
+  test53: -> assertEq lsr('getType \\@ type fred . \\x . x'), 'fred'
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

@@ -22,31 +22,30 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-if window? and (!global? or global == window)
-  window.global = window
-  root = window.Leisure = window.Leisure || {}
-else
-  {
-    nameSub,
-    getLitVal,
-    getRefName,
-    getLambdaVar,
-    getLambdaBody,
-    getApplyFunc,
-    getApplyArg,
-    getAnnoBody,
-    getLetName,
-    getLetValue,
-    getLetBody,
-    Leisure_lit,
-    Leisure_ref,
-    Leisure_lambda,
-    Leisure_apply,
-    Leisure_let,
-    Leisure_anno,
-  } = root = exports = module.exports = require './ast'
-  inspect = require('util').inspect # for testing
-  _ = require('./lodash.min')
+{
+  nameSub,
+  getLitVal,
+  getRefName,
+  getLambdaVar,
+  getLambdaBody,
+  getApplyFunc,
+  getApplyArg,
+  getAnnoName,
+  getAnnoData,
+  getAnnoBody,
+  getLetName,
+  getLetValue,
+  getLetBody,
+  Leisure_lit,
+  Leisure_ref,
+  Leisure_lambda,
+  Leisure_apply,
+  Leisure_let,
+  Leisure_anno,
+  setType,
+  setDataType,
+} = root = module.exports = require './ast'
+_ = require('./lodash.min')
 
 varNameSub = (n)-> "L_#{nameSub n}"
 
@@ -57,7 +56,14 @@ gen = (ast)->
     when Leisure_lambda then "function(#{varNameSub getLambdaVar ast}){return #{gen getLambdaBody ast}}"
     when Leisure_apply then "#{gen getApplyFunc ast}(#{genApplyArg getApplyArg ast})"
     when Leisure_let then "(function(){\n#{genLets ast}})()"
-    when Leisure_anno then gen getAnnoBody ast
+    when Leisure_anno
+      name = getAnnoName ast
+      data = getAnnoData ast
+      genned = gen getAnnoBody ast
+      switch name
+        when 'type' then "setType(#{genned}, '#{data}')"
+        when 'dataType' then "setDataType(#{genned}, '#{data}')"
+        else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
 genApplyArg = (arg)->
