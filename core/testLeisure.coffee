@@ -28,6 +28,9 @@ Tests for Leisure
 
 U = require('util')
 {
+  readFile,
+} = require './base'
+{
   define,
   scan,
   cons,
@@ -249,12 +252,12 @@ runTests
   test18: -> assertEq (eval "(#{gen let3Ast})"), 3
   test19: ->
     stateValues.x = 2
-    runMonad eval("(#{gen setXTo3Ast})"), root.defaultEnv, ->
+    runMonad eval("(#{gen setXTo3Ast})"), LZ.defaultEnv, ->
     assertEq stateValues.x, 3
   test20: ->
     stateValues.x = 2
     stateValues.y = 2
-    runMonad eval("(#{gen setXTo3YTo4Ast})"), root.defaultEnv, ->
+    runMonad eval("(#{gen setXTo3YTo4Ast})"), LZ.defaultEnv, ->
     assertEq stateValues.x, 3
     assertEq stateValues.y, 4
   test21: -> assertEq splitTokens('a b').toArray(), ['a', ' ', 'b']
@@ -271,39 +274,53 @@ runTests
   test32: -> assertEq String(parseToAst('\\a . a')), 'lambda(\\a . a)'
   test33: -> assertEq String(parseToAst('\\a b . a')), 'lambda(\\a . \\b . a)'
   test34: -> assertEq String(parseToAst('\\a b . a b')), 'lambda(\\a . \\b . a b)'
-  test35: -> assertEq String(parseToAst('\\\\(a = 1) a')), 'let(\\\\(a = 1) (a))'
-  test36: -> assertEq String(parseToAst('\\\\(a b = 1) a')), 'let(\\\\(a = \\b . 1) (a))'
-  test37: -> assertEq String(parseToAst('\\\\(a b = c) (c = 3) (a 5)')), 'let(\\\\(a = \\b . c) (c = 3) (a 5))'
+  test35: -> assertEq String(parseToAst('\\\\(a = 1) . a')), 'let(\\\\(a = 1) . a)'
+  test36: -> assertEq String(parseToAst('\\\\(a b = 1) . a')), 'let(\\\\(a = \\b . 1) . a)'
+  test37: -> assertEq String(parseToAst('\\\\(a b = c) (c = 3) . a 5')), 'let(\\\\(a = \\b . c) (c = 3) . a 5)'
   test38: -> assertEq lsr('\\x . x')(-> 7), 7
   test39: -> assertEq lsr('getType "hello"'), "*string"
   test40: -> assertEq compileLine('3', (->), id)(), 3
   test41: -> assertEq compileLine('\\x . x', (->), id)()(->3), 3
-  test42a: -> assertEq String(parseLine('id = \\x . x', id, ign)), 'anno(\\@define Cons[id 0 id = \\x . x] . \\@type id . \\x . x)'
-  test42b: ->
+  test42: -> assertEq String(parseLine('id = \\x . x', id, ign)), 'anno(\\@define Cons[id 0 id = \\x . x] . \\@type id . \\x . x)'
+  test43: ->
     compileLine('id = \\x . x', id, id)
     assertEq compileLine('id', (->), id)()(->3), 3
-  test43: -> assertEq compileLine('\\x y . + x y', (->), id)()(->3)(->4), 7
-  test44: ->
+  test44: -> assertEq compileLine('\\x y . + x y', (->), id)()(->3)(->4), 7
+  test45: ->
     compileLine('plus x y = + x y', id, id)
     assertEq compileLine('plus', (->), id)()(->3)(->4), 7
-  test45: -> assertEq String(parseToAst('\\@ a b . c')), 'anno(\\@a b . c)'
-  test46: -> assertEq lsr('\\@ a b . 3'), 3
-  test47: -> assertEq lsr('(\\@ a b . \\x . x) 4'), 4
-  test48: -> assertEq String(parseToAst('(\\f . f 5) \\x . x')), 'apply((\\f . f 5) \\x . x)'
-  test49: -> assertEq lsr('(\\f . f 5) \\x . x'), 5
-  test50: -> assertEq lsr('(\\f . f 5) \\@ a b . \\x . x'), 5
-  test51: -> assertEq lsr('getType \\@ type fred . \\x . x'), 'fred'
-  test52: ->
+  test46: -> assertEq String(parseToAst('\\@ a b . c')), 'anno(\\@a b . c)'
+  test47: -> assertEq lsr('\\@ a b . 3'), 3
+  test48: -> assertEq lsr('(\\@ a b . \\x . x) 4'), 4
+  test49: -> assertEq String(parseToAst('(\\f . f 5) \\x . x')), 'apply((\\f . f 5) \\x . x)'
+  test50: -> assertEq lsr('(\\f . f 5) \\x . x'), 5
+  test51: -> assertEq lsr('(\\f . f 5) \\@ a b . \\x . x'), 5
+  test52: -> assertEq lsr('getType \\@ type fred . \\x . x'), 'fred'
+  test53: ->
     eval compileFile text1
     assertEq lsr('v1'), 3
     assertEq lsr('v2'), 4
     assertEq lsr('v3'), 7
-  test53: ->
+  test54: ->
     for line in jsonForFile(text2).split('\n')
       eval gen json2Ast(JSON.parse line)
     assertEq lsr('v4'), 5
     assertEq lsr('v5'), 6
     assertEq lsr('v6'), 11
+  test55: ->
+    code = compileFile readFile('core/simpleParse.lsr')
+    eval compileFile readFile('core/simpleParse.lsr')
+    assertEq String(lsr('nil')), 'Cons[]'
+  test56: -> assertEq lsr('"true"'), 'true'
+  test57: -> assertEq lsr("'true'"), 'true'
+  test58: -> assertEq lsr("getType 'true'"), '*string'
+  test59: -> assertEq lsr("eq 1 1 3 4"), 3
+  test60: -> assertEq lsr("eq 1 2 3 4"), 4
+  test61: -> assertEq lsr("eq (getType nil) 'nil' 1 2"), 1
+  test62: -> assertEq lsr("eq (getType (cons 1 nil)) 'cons' 1 2"), 1
+  test63: -> assertEq splitTokens("splitTokens 'a b' #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['splitTokens', ' ', "'a b'", ' ', JSON.stringify(LZ.delimiterPat.source)]
+  test64: ->
+    assertEq lsr("splitTokens 'a b' #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['a', ' ', 'b']
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

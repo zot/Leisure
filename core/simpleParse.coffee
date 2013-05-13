@@ -43,8 +43,9 @@ misrepresented as being the original software.
 {gen} = require './gen'
 _ = require('./lodash.min')
 
+delimiterListPrefix = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\n */.source
+
 delimiterList = [
-  '\\n *',
   '\\(',
   '\\)',
   ' +',
@@ -61,7 +62,7 @@ delimiterPat = null
 defPat = /^[^ ].*=/
 
 makeDelimterPat = ->
-  delimiterPat = new RegExp "(#{delimiterList.join('|')})"
+  root.delimiterPat = delimiterPat = new RegExp "(#{delimiterListPrefix}|#{delimiterList.join('|')})"
 
 addDelimiter = (del)->
   if !delimiters
@@ -108,7 +109,10 @@ parseErrMsg = (e)-> e(->(msg)-> msg())
 
 makeTokens = (strings, start)->
   if strings == Nil then Nil
-  else if head(strings)[0] == ' ' then makeTokens(tail(strings), start + head(strings).length)
+  else makeMoreTokens strings, start
+
+makeMoreTokens = (strings, start)->
+  if head(strings)[0] == ' ' then makeTokens(tail(strings), start + head(strings).length)
   else cons token(head(strings), start), makeTokens(tail(strings), start + head(strings).length)
 
 splitTokens = (str)-> consFrom(_.filter str.split(delimiterPat), (s)-> s.length)
@@ -185,9 +189,23 @@ createLitOrRef = (tok, names, cont)->
   if names.find((el)-> el == tok) != Nil then cont ref tok
   else
     try
-      cont lit JSON.parse tok
+      if tok[0] in "\"'" then cont lit scrub tok.substring 1, tok.length - 1
+      else if tok[0] >= '0' and tok[0] <= '9' then cont lit JSON.parse tok
+      else cont ref tok
     catch err
       cont ref tok
+
+scrub = (str)->
+  res = ''
+  i = 0
+  while i < str.length
+    if str[i] == '\\'
+      res += str[i] + str[i+1]
+      i++
+    else if str[i] == '"' then res += '\\"'
+    else res += str[i]
+    i++
+  JSON.parse "\"#{res}\""
 
 createLambda = (start, list, names, cont)->
   withCons list, (-> parseErr "No variable or body for lambda #{loc start}"), (name, rest)->
@@ -233,7 +251,7 @@ chainApply = (func, list, names, cont)->
 # let structures allow mutual recursion
 # the syntax is similar to the top level
 # they are a series of bindings followed by a single expression
-# \\ (a = b) (d e f = g h) expr
+# \\ (a = b) (d e f = g h) . expr
 # the first case binds a variable to an expression
 # the second case binds a variable to a lambda
 createLet = (start, list, names, cont)->
@@ -244,14 +262,15 @@ createLet = (start, list, names, cont)->
 
 getLetNames = (start, list, names, cont)->
   withCons list, (-> cont names), (binding, body)->
-    if body == Nil then cont names
+    if isTokenString binding, '.' then cont names
     else withParens binding, (-> parseErr "Let expected binding #{loc start}"), (def)->
       withCons def, (-> parseErr "Let expected binding #{loc start}"), (name, rest)->
         withToken name, (-> parseErr "Let expected binding #{loc start}"), (str)->
           getLetNames start, body, cons(str, names), cont
 
 createSublets = (start, binding, body, names, cont)->
-  withCons body, (->createAst binding, names, cont), (bodyH, bodyT)->
+  if isTokenString binding, '.' then createAst body, names, cont
+  else withCons body, (-> parseErr "Let expected a body"), (bodyH, bodyT)->
     getNameAndDef parensStart(binding), parensContent(binding), names, (name, def)->
       createSublets start, bodyH, bodyT, names, (bodyAst)->
         cont llet tokenString(name), def, bodyAst
@@ -333,7 +352,7 @@ tokListStr = (toks)-> JSON.stringify toks.map((t)->tokenString t).join(' ')
 
 compileFile = (text)->
   id = (x)-> x
-  _.map(text.split('\n'), (line)-> genLine line, id, id).join('')
+  _.map(_.filter(text.split('\n'), (line)-> not line.match /^[ \i]*\#|^[ \i]*$/), (line)-> genLine line, id, id).join('')
 
 jsonForFile = (text)->
   id = (x)-> x

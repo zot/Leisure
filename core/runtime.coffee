@@ -23,13 +23,36 @@ misrepresented as being the original software.
 ###
 
 root = module.exports = require './base'
-{define} = require './ast'
+{
+  define,
+  consFrom
+} = require './ast'
 _ = require('./lodash.min')
+
+############
+# LOGIC
+############
+
+booleanFor = (bool)-> if bool then L_true() else L_false()
+
+define 'eq', ->(a)->(b)-> booleanFor a() == b()
+
+############
+# MATH
+############
 
 define '+', ->(x)->(y)->x() + y()
 define '-', ->(x)->(y)->x() - y()
 define '*', ->(x)->(y)->x() * y()
 define '/', ->(x)->(y)->x() / y()
+
+############
+# STRINGS
+############
+
+define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().startsWith prefix()
+define 'strLen', ->(str)-> str().length
+define 'strSplit', ->(str)->(pat)-> consFrom str().split pat()
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code

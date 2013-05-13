@@ -1,0 +1,53 @@
+############
+# LOGIC
+############
+
+true = \a b . a
+false = \a b . b
+not b = b false true
+
+############
+# CONS
+############
+
+cons a b = \f . f a b
+# nil is the same as false, but it's useful separate as a marker
+nil = \a b . b
+filter func list = list (\h t D . \\ (rest = filter func t) . func h (cons h rest) rest) nil
+
+############
+# AST
+############
+
+lit value = \f . f value
+ref name = \f . f name
+lambda name body = \f . f name body
+apply func arg . \f . f func arg
+let name value body . \f . f name value body
+anno name data body . \f . f name data body
+
+############
+# PARSING
+############
+
+token txt pos = \f . f txt pos
+tokenString tok = tok \t p . t
+tokenPos tok = tok \t p . p
+isToken t = eq (getType t) 'token'
+
+parens start end content = \f . f start end content
+parensStart p = p \s e c . s
+parensEnd p = p \s e c . e
+parensContent p = p \s e c . c
+isParens p = eq (getType t) 'parens'
+parensFromToks left right content = \\(start = tokenPos left) (end = tokenPos right) . parens start end content
+
+parseErr msg = \f . f msg
+parseErrMsg err = err \m . m
+
+makeTokens strings start = strings (\h t D . makeMoreTokens h t start) nil
+makeMoreTokens h t start = \\ (next = makeTokens t (+ start (strLen h))) . strStartsWith h ' ' next (cons (token (head strings)) next)
+
+splitTokens str pat = filter (\s . not (eq (strLen s) 0)) (strSplit str pat)
+
+tokens str pat = makeTokens (splitTokens str pat) 0

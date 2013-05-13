@@ -148,7 +148,7 @@ letStr = (ast)->
   body = getLetBody ast
   binding = "(#{getLetName ast} = #{astString getLetValue ast})"
   if body instanceof Leisure_let then "#{binding} #{letStr body}"
-  else "#{binding} (#{astString body})"
+  else "#{binding} . #{astString body}"
 
 #########
 ######### LISTS
@@ -256,19 +256,6 @@ define = (name, func, arity, src, method) ->
   func
 
 ######
-###### Annotation structures
-######
-###### doc: code documentation
-###### srcLocation: source location information
-###### pattern: pattern for a lambda
-######   like in "length a::nil = 0" -- anno(pattern('nil'), lambda('a', lit(0)))
-######
-
-define 'doc', (->setDataType ((_text)->setType ((_f)-> _f()(_text)), 'doc'), 'doc'), 1, '\\t . \\f . f t'
-define 'srcLocation', (->setDataType ((_start)->(_len)->setType ((_f)-> _f()(_start)(_len)), 'srcLocation'), 'srcLocation'), 1, '\\start len . \\f . f start len'
-define 'pattern', (->setDataType ((_pat)->setType ((_f)-> _f()(_pat)), 'pattern'), 'pattern'), 1, '\\pat . \\f . f pat'
-
-######
 ###### ASTs
 ######
 
@@ -287,12 +274,12 @@ define 'pattern', (->setDataType ((_pat)->setType ((_f)-> _f()(_pat)), 'pattern'
 #  name, data, body -- associates a name and data with a body of code
 #  You can nest them, so body could be another annotation
 
-define 'lit', (->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'), 1, '\\t . \\f . f t'
-define 'ref', (->setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'), 1, '\\v . \\f . f v'
-define 'lambda', (->setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'), 2, '\\v f . \\g . f v f'
-define 'apply', (->setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'), 2, '\\f a . \\g . g f a'
-define 'let', (->setDataType ((_n)-> (_v)-> (_b)-> setType ((_f)-> _f()(_n)(_v)(_b)), 'let'), 'let'), 3, '\\n v b . \\f . f n v b'
-define 'anno', (->setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> _f()(_name)(_data)(_body)), 'anno'), 'anno'), 2, '\\n d b . \\f . f n d b'
+L_lit = setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
+L_ref = setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
+L_lambda = setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
+L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
+L_let = setDataType ((_n)-> (_v)-> (_b)-> setType ((_f)-> _f()(_n)(_v)(_b)), 'let'), 'let'
+L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> _f()(_name)(_data)(_body)), 'anno'), 'anno'
 
 getType = (f)->
   t = typeof f
@@ -302,12 +289,12 @@ define 'getType', (->(value)-> getType value()), 1
 
 save = {}
 
-save.lit = lit = (l)-> L_lit()(-> l)
-save.ref = ref = (r)-> L_ref()(-> r)
-save.lambda = lambda = (v, body)->L_lambda()(-> v)(-> body)
-save.apply = apply = (f, a)->L_apply()(-> f)(-> a)
-save.llet = llet = (n, v, b)->L_let()(-> n)(-> v)(-> b)
-save.anno = anno = (name, data, body)-> L_anno()(-> name)(-> data)(-> body)
+save.lit = lit = (l)-> L_lit(-> l)
+save.ref = ref = (r)-> L_ref(-> r)
+save.lambda = lambda = (v, body)->L_lambda(-> v)(-> body)
+save.apply = apply = (f, a)->L_apply(-> f)(-> a)
+save.llet = llet = (n, v, b)->L_let(-> n)(-> v)(-> b)
+save.anno = anno = (name, data, body)-> L_anno(-> name)(-> data)(-> body)
 save.cons = cons
 getAstType = (f) -> f.type
 getLitVal = (lt)-> lt ->(v)-> v()
@@ -328,12 +315,12 @@ getAnnoBody = (anno)-> anno -> (name)->(data)->(body)-> body()
 ######
 
 json2AstEncodings =
-  lit: (json)-> L_lit()(-> json.value)
-  ref: (json)-> L_ref()(-> json.varName)
-  lambda: (json)-> L_lambda()(-> json.varName)(-> json2Ast json.body)
-  apply: (json)-> L_apply()(-> json2Ast(json.func))(-> json2Ast json.arg)
-  let: (json)-> L_let()(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
-  anno: (json)-> L_anno()(-> json.name)(-> json2Ast json.data)(-> json2Ast json.body)
+  lit: (json)-> L_lit(-> json.value)
+  ref: (json)-> L_ref(-> json.varName)
+  lambda: (json)-> L_lambda(-> json.varName)(-> json2Ast json.body)
+  apply: (json)-> L_apply(-> json2Ast(json.func))(-> json2Ast json.arg)
+  let: (json)-> L_let(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
+  anno: (json)-> L_anno(-> json.name)(-> json2Ast json.data)(-> json2Ast json.body)
   cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
   nil: (json)-> Nil
 

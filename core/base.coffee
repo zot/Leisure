@@ -21,3 +21,11 @@ misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
 ###
+
+root = module.exports
+
+fs = require 'fs'
+
+readFile = (fileName)-> fs.readFileSync fileName, encoding: 'utf8'
+
+root.readFile = readFile
