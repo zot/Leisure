@@ -172,7 +172,7 @@ class Leisure_BaseCons extends LeisureObject
   join: (str)->@toArray().join(str)
   reverse: -> @rev Nil
   rev: (result)-> @tail().rev cons(@head(), result)
-  elementString: -> "#{@head()}#{if @tail() == Nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
+  elementString: -> "#{@head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
   equals: (other)-> @ == other or (other instanceof Leisure_BaseCons and consEq(@head(), other.head()) and consEq(@tail(), other.tail()))
   each: (block)->
     block(@head())
@@ -287,6 +287,10 @@ getType = (f)->
 
 define 'getType', (->(value)-> getType value()), 1
 
+getDataType = (f)-> (typeof f == 'function' && f.dataType) || ''
+
+define 'getDataType', (->(value)-> getDataType value()), 1
+
 save = {}
 
 save.lit = lit = (l)-> L_lit(-> l)
@@ -394,6 +398,7 @@ root.cons = cons
 root.primCons = primCons
 root.define = define
 root.getType = getType
+root.getDataType = getDataType
 root.lit = lit
 root.ref = ref
 root.lambda = lambda

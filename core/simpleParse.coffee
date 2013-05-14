@@ -290,7 +290,7 @@ getLetLambda = (pos, def, args, names, cont)->
 # Compiling
 ###############
 
-parseLine = (str, isDef, isExpr)->
+scanLine = (str, isDef, isExpr)->
   toks = tokens str
   if str.match defPat
     name = head toks
@@ -298,13 +298,15 @@ parseLine = (str, isDef, isExpr)->
       if isTokenString (head tail tail toks), '\\' then setTypeAnno (head tail tail toks), (tail tail toks), tokenString name
       else tail tail toks
     else cons token('\\', position(head tail toks) - 1), transformDef name, tail toks
-    parseToks setDefAnno(checkSetDataType(func, toks, name), name, arity(tail(toks), 0), str), (list)->
-      createAst list, Nil, (ast)->
-        isDef ast
+    parseToks setDefAnno(checkSetDataType(func, tail(toks), name), name, arity(tail(toks), 0), str), (list)->
+      isDef list
   else
     parseToks toks, (list)->
-      createAst list, Nil, (ast)->
-        isExpr ast
+      isExpr list
+
+parseLine = (str, isDef, isExpr)->
+  astCallback = (cb)-> (list)-> createAst list, Nil, (ast)-> cb ast
+  scanLine str, astCallback(isDef), astCallback(isExpr)
 
 genLine = (str, isDef, isExpr)->
   parseLine str,
@@ -334,25 +336,26 @@ setDefAnno = (def, name, arity, src)->
 
 checkSetDataType = (toks, curToks, name)->
   if isTokenString(head(curToks), '=') then toks
-  else checkSetDataTypeFurther toks, curToks, name
+  else checkSetDataTypeFurther toks, tail(curToks), name
 
 checkSetDataTypeFurther = (toks, curToks, name)->
   if isTokenString(head(curToks), '=')
-    if isTokenString (head tail curToks), '\\' then setDataTypeAnno toks, name
-    else toks
-  else checkSetDataType toks, tail(curToks), name
+    if isTokenString (head tail curToks), '\\' then setDataTypeAnno toks, name else toks
+  else checkSetDataTypeFurther toks, tail(curToks), name
 
 setDataTypeAnno = (toks, name)->
   pos = position toks
-  cons token('\\@', pos), cons token('dataType', pos), cons token(name, pos), cons token('.', pos), toks
+  cons token('\\@', pos), cons token('dataType', pos), cons token(tokenString(name), pos), cons token('.', pos), toks
 
 arity = (toks, n)-> if isTokenString head(toks), '=' then n else arity tail(toks), n + 1
 
 tokListStr = (toks)-> JSON.stringify toks.map((t)->tokenString t).join(' ')
 
+linesForFile = (text)-> _.filter text.split('\n'), (line)-> not line.match /^[ \i]*\#|^[ \i]*$/
+
 compileFile = (text)->
   id = (x)-> x
-  _.map(_.filter(text.split('\n'), (line)-> not line.match /^[ \i]*\#|^[ \i]*$/), (line)-> genLine line, id, id).join('')
+  _.map(linesForFile(text), (line)-> genLine line, id, id).join('')
 
 jsonForFile = (text)->
   id = (x)-> x
@@ -364,5 +367,8 @@ root.parse = parse
 root.parseToAst = parseToAst
 root.compileLine = compileLine
 root.parseLine = parseLine
+root.scanLine = scanLine
+root.genLine = genLine
 root.compileFile = compileFile
 root.jsonForFile = jsonForFile
+root.linesForFile = linesForFile

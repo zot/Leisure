@@ -25,7 +25,9 @@ misrepresented as being the original software.
 root = module.exports = require './base'
 {
   define,
-  consFrom
+  consFrom,
+  getType,
+  getDataType,
 } = require './ast'
 _ = require('./lodash.min')
 
@@ -36,6 +38,7 @@ _ = require('./lodash.min')
 booleanFor = (bool)-> if bool then L_true() else L_false()
 
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
+define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
 
 ############
 # MATH
@@ -50,9 +53,9 @@ define '/', ->(x)->(y)->x() / y()
 # STRINGS
 ############
 
-define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().startsWith prefix()
+define 'strStartsWith', ->(str)->(prefix)-> booleanFor (str().indexOf prefix()) == 0
 define 'strLen', ->(str)-> str().length
-define 'strSplit', ->(str)->(pat)-> consFrom str().split pat()
+define 'strSplit', ->(str)->(pat)-> consFrom str().split new RegExp pat()
 
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code

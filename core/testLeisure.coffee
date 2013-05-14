@@ -56,6 +56,7 @@ U = require('util')
   parse,
   parseToAst,
   parseLine,
+  genLine,
   compileLine,
   compileFile,
   jsonForFile,
@@ -309,6 +310,7 @@ runTests
     assertEq lsr('v6'), 11
   test55: ->
     code = compileFile readFile('core/simpleParse.lsr')
+    #console.log "code\n#{code}"
     eval compileFile readFile('core/simpleParse.lsr')
     assertEq String(lsr('nil')), 'Cons[]'
   test56: -> assertEq lsr('"true"'), 'true'
@@ -320,7 +322,14 @@ runTests
   test62: -> assertEq lsr("eq (getType (cons 1 nil)) 'cons' 1 2"), 1
   test63: -> assertEq splitTokens("splitTokens 'a b' #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['splitTokens', ' ', "'a b'", ' ', JSON.stringify(LZ.delimiterPat.source)]
   test64: ->
+    assertEq lsr("strSplit 'a b' #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['a', ' ', 'b']
+  test65: ->
     assertEq lsr("splitTokens 'a b' #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['a', ' ', 'b']
+  test66: ->
+    assertEq String(lsr("tokens 'a b' #{JSON.stringify LZ.delimiterPat.source}")), 'Cons[Token("a", 0) Token("b", 2)]'
+  test67: -> assertEq lsr('getType (cons 1 nil)'), 'cons'
+  test68: -> assertEq lsr('getDataType cons'), 'cons'
+  test69: -> assertEq lsr('hasType (cons 1 nil) cons 1 0'), 1
 
 console.log '\nDone'
 if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
