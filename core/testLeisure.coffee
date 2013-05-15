@@ -261,6 +261,9 @@ runTests
     runMonad eval("(#{gen setXTo3YTo4Ast})"), LZ.defaultEnv, ->
     assertEq stateValues.x, 3
     assertEq stateValues.y, 4
+  #######
+  # Parsing tests
+  #######
   test21: -> assertEq splitTokens('a b').toArray(), ['a', ' ', 'b']
   test22: -> assertEq splitTokens('a b  c').toArray(), ['a', ' ', 'b', '  ', 'c']
   test23: -> assertEq String(tokens('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'

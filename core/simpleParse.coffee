@@ -124,30 +124,35 @@ tokens = (str)-> makeTokens splitTokens(str), 0
 #############
 
 isTokenString = (t, str)-> isToken(t) && tokenString(t) == str
+isTokenStart = (t, str)-> isToken(t) && tokenString(t).indexOf(str) == 0
 
 withCons = (l, nilCase, cont)-> if l instanceof Leisure_cons then cont head(l), tail(l) else nilCase()
 
-parseToks = (toks, cont)->
+parseToks = (toks, indent, cont)->
   if toks == Nil then cont Nil
-  else parseTok toks, (h, t)->
-    parseToks t, (res)->
+  else parseTok toks, indent, (h, t)->
+    parseToks t, indent, (res)->
+      if !cont then throw new Error "No cont function!"
       cont cons h, res
 
-parseTok = (toks, cont)->
+parseTok = (toks, indent, cont)->
   withCons toks, (->Nil), (h, t)->
-    if isTokenString(h, '(') then parseGroup h, t, Nil, cont
-    else if isToken(h) && tokenString(h)[0] == ' ' then parseTok t, cont
+    if isTokenString(h, '(') then parseGroup h, t, indent, Nil, cont
+    else if isTokenStart(h, ' ') then parseTok t, indent, cont
+    #else if isTokenStart(h, '\n') then
     else cont h, t
 
-parseGroup = (left, toks, gr, cont)->
+#********** ADD INDENTATION TO PARSE GROUP ***********
+
+parseGroup = (left, toks, indent, gr, cont)->
   withCons toks, (->parseErr "Unterminated group starting at #{tokenPos left}"), (h, t)->
     if isTokenString(h, ')') then cont parensFromToks(left, h, gr.reverse()), t
-    else parseTok toks, (restH, restT)->
-      parseGroup left, restT, cons(restH, gr), cont
+    else parseTok toks, indent, (restH, restT)->
+      parseGroup left, restT, indent, cons(restH, gr), cont
 
 identity = (x)-> x
 
-parse = (str)-> parseToks tokens(str), identity
+parse = (str)-> parseToks tokens(str), 0, identity
 
 #################
 ## Creating ASTs
@@ -298,10 +303,10 @@ scanLine = (str, isDef, isExpr)->
       if isTokenString (head tail tail toks), '\\' then setTypeAnno (head tail tail toks), (tail tail toks), tokenString name
       else tail tail toks
     else cons token('\\', position(head tail toks) - 1), transformDef name, tail toks
-    parseToks setDefAnno(checkSetDataType(func, tail(toks), name), name, arity(tail(toks), 0), str), (list)->
+    parseToks setDefAnno(checkSetDataType(func, tail(toks), name), name, arity(tail(toks), 0), str), 0, (list)->
       isDef list
   else
-    parseToks toks, (list)->
+    parseToks toks, 0, (list)->
       isExpr list
 
 parseLine = (str, isDef, isExpr)->

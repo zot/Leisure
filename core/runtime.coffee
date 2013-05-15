@@ -57,6 +57,10 @@ define 'strStartsWith', ->(str)->(prefix)-> booleanFor (str().indexOf prefix()) 
 define 'strLen', ->(str)-> str().length
 define 'strSplit', ->(str)->(pat)-> consFrom str().split new RegExp pat()
 
+############
+# IO Monads
+############
+
 # Make a new function and hide func and binding in properties on it
 # making them inaccessible to pure Leisure code
 # so people won't accidentally fire off side effects

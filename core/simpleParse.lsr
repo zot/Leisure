@@ -27,13 +27,13 @@ let name value body . \f . f name value body
 anno name data body . \f . f name data body
 
 ############
-# PARSING
+# TOKENS
 ############
 
 token txt pos = \f . f txt pos
 tokenString tok = tok \t p . t
 tokenPos tok = tok \t p . p
-isToken t = eq (getType t) 'token'
+isToken t = hasType t token
 
 parens start end content = \f . f start end content
 parensStart p = p \s e c . s
@@ -51,3 +51,16 @@ makeMoreTokens h t start = \\ (next = makeTokens t (+ start (strLen h))) . strSt
 splitTokens str pat = filter (\s . not (eq s '')) (strSplit str pat)
 
 tokens str pat = makeTokens (splitTokens str pat) 0
+
+#############
+## Parsing
+#############
+
+isTokenString tok str = and (isToken tok) (eq (tokenString tok) str)
+withToken tok tokCase nonTokCase = isToken tok (tok tokcase) nonTokCase
+
+## withCons is like a safe version of a cons
+withCons l cont nilCase = hasType l cons (l \h t D . cont h t) nilCase
+
+parseToks toks cont = withCons toks (\h t . parseTok toks \h t . parseToks t \res . cont (cons h res)) nil
+parseTok toks cont -> withCons toks (\h t . isTokenString h '(' (parseGroup h t nil cont) (cont h t))

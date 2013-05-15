@@ -928,7 +928,7 @@ showOutputSource = (output)->
   output.classList.remove 'hidingSource'
   output.source.style.display = ''
 
-hideOutputSource = (output)-> 
+hideOutputSource = (output)->
   output.classList.add 'hidingSource'
   output.source.style.display = 'none'
 
@@ -1239,9 +1239,9 @@ getRangePosition = (node, charOffset, end)->
     if charOffset == (if end then 1 else 0) then [node]
     else continueRangePosition node, charOffset, end
   else if node.firstChild?
-      [newNode, newOff] = getRangePosition node.firstChild, charOffset, end
-      if newNode? then [newNode, newOff]
-      else continueRangePosition node, newOff, end
+    [newNode, newOff] = getRangePosition node.firstChild, charOffset, end
+    if newNode? then [newNode, newOff]
+    else continueRangePosition node, newOff, end
   else continueRangePosition node, charOffset, end
 
 continueRangePosition = (node, charOffset, end)->
@@ -1555,7 +1555,7 @@ emptyFile
 
 #
 # Exports
-# 
+#
 
 Prim.defaultEnv.require = req
 

@@ -4,3 +4,4 @@ old
 *~
 /node_modules/node-inspector
 /repl-port
+/tmp/
