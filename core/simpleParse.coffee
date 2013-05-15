@@ -84,27 +84,33 @@ tokenPos = (t)-> t(->(txt)->(pos)-> pos())
 token = (str, pos)-> L_token(->str)(->pos)
 isToken = (t)-> t instanceof Leisure_token
 
-L_parens = ->setDataType ((left)->(right)->(content)-> setType ((f)-> f()(left)(right)(content)), 'parens'), 'parens'
+L_parens = setDataType ((left)->(right)->(content)-> setType ((f)-> f()(left)(right)(content)), 'parens'), 'parens'
 ensureLeisureClass 'parens'
 Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
 
-parens = (start, end, content)-> L_parens(->start)(->end)(->content)
+parens = (start, end, content)->
+  if content instanceof Leisure_cons && tail(content) == Nil then parens start, end, head(content)
+  else if isToken content then content
+  else L_parens(->start)(->end)(->content)
 
 parensFromToks = (left, right, content)->
   start = tokenPos left
   end = tokenPos(right) + tokenString(right).length
-  L_parens()(->start)(->end)(->content)
+  L_parens(->start)(->end)(->content)
 
 parensStart = (p)-> p(->(s)->(e)->(l)-> s())
 parensEnd = (p)-> p(->(s)->(e)->(l)-> e())
 parensContent = (p)-> p(->(s)->(e)->(l)-> l())
 isParens = (p)-> p instanceof Leisure_parens
+stripParens = (p)-> if isParens p then parensContent p else p
 
 L_parseErr = setDataType ((msg)-> setType ((f)-> f()(msg)), 'parseErr'), 'parseErr'
 ensureLeisureClass 'parseErr'
 Leisure_parseErr.prototype.toString = -> "ParseErr(#{JSON.stringify(parseErrMsg(@))})"
 
-parseErr = (msg)-> L_parseErr(->msg)
+parseErr = (msg)->
+  #L_parseErr(->msg)
+  throw new Error msg
 parseErrMsg = (e)-> e(->(msg)-> msg())
 
 makeTokens = (strings, start)->
@@ -124,35 +130,40 @@ tokens = (str)-> makeTokens splitTokens(str), 0
 #############
 
 isTokenString = (t, str)-> isToken(t) && tokenString(t) == str
-isTokenStart = (t, str)-> isToken(t) && tokenString(t).indexOf(str) == 0
+isTokenStart = (t, str)-> isToken(t) && tokenString(t).substring(0, str.length) == str
 
 withCons = (l, nilCase, cont)-> if l instanceof Leisure_cons then cont head(l), tail(l) else nilCase()
 
-parseToks = (toks, indent, cont)->
+parseToks = (toks, cont)->
   if toks == Nil then cont Nil
-  else parseTok toks, indent, (h, t)->
-    parseToks t, indent, (res)->
-      if !cont then throw new Error "No cont function!"
+  else parseTok toks, (h, t)->
+    parseToks t, (res)->
       cont cons h, res
 
-parseTok = (toks, indent, cont)->
+parseTok = (toks, cont)->
   withCons toks, (->Nil), (h, t)->
-    if isTokenString(h, '(') then parseGroup h, t, indent, Nil, cont
-    else if isTokenStart(h, ' ') then parseTok t, indent, cont
-    #else if isTokenStart(h, '\n') then
+    if isTokenString(h, '(') then parseGroup h, t, Nil, cont
+    else if isTokenStart(h, ' ') then parseTok t, cont
+    else if isTokenStart h, '\n' then parseIndent h, t, Nil, cont
     else cont h, t
 
-#********** ADD INDENTATION TO PARSE GROUP ***********
-
-parseGroup = (left, toks, indent, gr, cont)->
+parseGroup = (left, toks, gr, cont)->
   withCons toks, (->parseErr "Unterminated group starting at #{tokenPos left}"), (h, t)->
     if isTokenString(h, ')') then cont parensFromToks(left, h, gr.reverse()), t
-    else parseTok toks, indent, (restH, restT)->
-      parseGroup left, restT, indent, cons(restH, gr), cont
+    else parseTok toks, (restH, restT)->
+      parseGroup left, restT, cons(restH, gr), cont
+
+parseIndent = (indent, toks, gr, cont)->
+  if toks == Nil then cont parens(tokenPos(indent), lexEnd(head gr), gr.reverse()), Nil
+  else withCons toks, (->parseErr "Bad list at #{tokenPos left}"), (h, t)->
+    if isTokenStart(h, '\n') && tokenString(h).length <= tokenString(indent).length then cont parens(tokenPos(indent), tokenPos(h), gr.reverse()), toks
+    else parseTok toks, (restH, restT)->
+      parseIndent indent, restT, cons(restH, gr), cont
 
 identity = (x)-> x
 
-parse = (str)-> parseToks tokens(str), 0, identity
+#parse = (str)-> parseToks tokens(str), identity
+parse = (str)-> parseIndent token('\n', 0), tokens(str), Nil, (h, t)-> stripParens h
 
 #################
 ## Creating ASTs
@@ -175,6 +186,12 @@ position = (thing)->
   if isToken thing then tokenPos thing
   else if isParens thing then parensStart thing
   else if thing instanceof Leisure_cons then position head thing
+  else -1
+
+lexEnd = (thing)->
+  if isToken thing then tokenPos(thing) + tokenString(thing).length
+  else if isParens thing then parensEnd(thing)
+  else if thing instanceof Leisure_cons then lexEnd thing.last()
   else -1
 
 loc = (thing)->
@@ -303,10 +320,10 @@ scanLine = (str, isDef, isExpr)->
       if isTokenString (head tail tail toks), '\\' then setTypeAnno (head tail tail toks), (tail tail toks), tokenString name
       else tail tail toks
     else cons token('\\', position(head tail toks) - 1), transformDef name, tail toks
-    parseToks setDefAnno(checkSetDataType(func, tail(toks), name), name, arity(tail(toks), 0), str), 0, (list)->
+    parseToks setDefAnno(checkSetDataType(func, tail(toks), name), name, arity(tail(toks), 0), str), (list)->
       isDef list
   else
-    parseToks toks, 0, (list)->
+    parseToks toks, (list)->
       isExpr list
 
 parseLine = (str, isDef, isExpr)->
@@ -356,11 +373,11 @@ arity = (toks, n)-> if isTokenString head(toks), '=' then n else arity tail(toks
 
 tokListStr = (toks)-> JSON.stringify toks.map((t)->tokenString t).join(' ')
 
-linesForFile = (text)-> _.filter text.split('\n'), (line)-> not line.match /^[ \i]*\#|^[ \i]*$/
+linesForFile = (text)-> _.filter text.split(/\n(?=[^ ])/), (line)-> not line.match /^[ \i]*\#|^[ \i]*$/
 
 compileFile = (text)->
   id = (x)-> x
-  _.map(linesForFile(text), (line)-> genLine line, id, id).join('')
+  _.map(linesForFile(text), (line)-> genLine line.trim(), id, id).join('')
 
 jsonForFile = (text)->
   id = (x)-> x

@@ -1,5 +1,6 @@
-###
-Copyright (C) 2013, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
+<html>
+<!--
+Copyright (C) 2013, Bill Burdick
 
 (licensed with ZLIB license)
 
@@ -20,12 +21,35 @@ appreciated but is not required.
 misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
-###
-
-root = module.exports
-
-fs = require 'fs'
-
-readFile = (fileName, cont)-> fs.readFile fileName, encoding: 'utf8', cont
-
-root.readFile = readFile
+-->
+  <head>
+    <script src="jquery-1.7.2.min.js"></script>
+    <script src="lib/lodash.min.js"></script>
+    <script src="lib/browser.js"></script>
+    <script src="lib/testing.js"></script>
+    <script src="lib/ast.js"></script>
+    <script src="lib/gen.js"></script>
+    <script src="lib/runtime.js"></script>
+    <script src="lib/simpleParse.js"></script>
+    <script src="lib/testLeisure.js"></script>
+    <style>
+      #results {
+        padding: 8px;
+        border: black solid 2px;
+      }
+      .succeeded {
+        background: #0f0;
+      }
+      .failed {
+        background: #f00;
+      }
+      #traces {
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body onload='Tests.loaded()'>
+    <div id='results'></div>
+    <div id='traces'></div>
+  </body>
+</html>

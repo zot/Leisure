@@ -1,5 +1,5 @@
 ###
-Copyright (C) 2013, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
+Copyright (C) 2013, Bill Burdick
 
 (licensed with ZLIB license)
 
@@ -26,13 +26,13 @@ misrepresented as being the original software.
 Wimpy testing framework
 ###
 
-U = require('util')
-exports = module.exports = require './ast'
+root = module.exports = require './base'
 
 stats =
   successes: 0
   failures: 0
   failed: []
+  traces: []
 
 eq = (a, b)-> a == b or (eqArray a, b)
 
@@ -51,26 +51,31 @@ assertFail = (block, msg, desc)->
     block()
     throw new Error "#{if desc then "[#{desc}] " else ""}Expected <failure #{msg}> but it succeeded"
   catch err
-    if err.message != msg then throw new Error "#{if desc then "[#{desc}] " else ""}Expected <failure #{msg}> but got <failure #{err.message}>"
+    if err.message != msg
+      throw new Error "#{if desc then "[#{desc}] " else ""}Expected <failure #{msg}> but got <failure #{err.message}>"
 
-log = (args...)->process.stdout.write(U.format.apply(null, args))
+log = (arg)->process.stdout.write(arg)
+
+ifNoBrowser = (cont)-> if typeof window == 'undefined' then cont()
 
 run = (name, func)->
   try
     func()
-    log '.'
+    ifNoBrowser -> log '.'
     stats.successes++
   catch err
     stats.failures++
     stats.failed.push name
+    stats.traces.push "#{name}: #{err.stack}"
     log "\nFailure, #{name}: #{err.stack}"
 
 runTests = (tests)->
   for testName, testFunc of tests
     run testName, testFunc
 
-exports.assertEq = assertEq
-exports.assertFail = assertEq
-exports.runTests = runTests
-exports.run = run
-exports.stats = stats
+root.assertEq = assertEq
+root.assertFail = assertFail
+root.run = run
+root.runTests = runTests
+root.stats = stats
+root.ifNoBrowser = ifNoBrowser

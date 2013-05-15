@@ -13,7 +13,9 @@ not b = b false true
 cons a b = \f . f a b
 # nil is the same as false, but it's useful separate as a marker
 nil = \a b . b
-filter func list = list (\h t D . \\ (rest = filter func t) . func h (cons h rest) rest) nil
+filter func list = list
+  (\h t D . \\ (rest = filter func t) . func h (cons h rest) rest)
+  nil
 
 ############
 # AST
@@ -40,7 +42,11 @@ parensStart p = p \s e c . s
 parensEnd p = p \s e c . e
 parensContent p = p \s e c . c
 isParens p = eq (getType t) 'parens'
-parensFromToks left right content = \\(start = tokenPos left) (end = tokenPos right) . parens start end content
+parensFromToks left right content = \\
+  start = tokenPos left
+  end = tokenPos right
+  .
+  parens start end content
 
 parseErr msg = \f . f msg
 parseErrMsg err = err \m . m
