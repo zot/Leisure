@@ -270,6 +270,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
       test22: -> assertEq splitTokens('a b  c').toArray(), ['a', ' ', 'b', '  ', 'c']
       test23: -> assertEq String(tokens('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
       test24: -> assertEq String(parse('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+
       test25: -> assertEq splitTokens('a (b)').toArray(), ['a', ' ', '(', 'b', ')']
       test26: -> assertEq String(parse('a (b)')), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
       test27: -> assertEq String(tokens('a ( (b  )   c) ')), 'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
@@ -350,6 +351,12 @@ readFile 'core/simpleParse.lsr', (err, code)->
           .
           b a
         """), 1
+      test79: -> assertEq lsr("splitTokens 'a b  c' #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['a', ' ', 'b', '  ', 'c']
+      test80: -> assertEq String(lsr("tokens 'a b  c' #{JSON.stringify LZ.delimiterPat.source}")), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+      test81: -> assertEq lsr("'\\n'"), '\n'
+      test82: -> assertEq String(lsr("reverse (cons 1 (cons 2 nil))")), 'Cons[2 1]'
+      test83: -> assertEq String(lsr("parse 'a' #{JSON.stringify LZ.delimiterPat.source}")), 'Cons[Token("a", 0)]'
+      test84: -> assertEq String(lsr("parse 'a b  c' #{JSON.stringify LZ.delimiterPat.source}")), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
     console.log '\nDone'
     if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
     else

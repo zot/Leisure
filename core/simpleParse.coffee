@@ -159,7 +159,7 @@ parseGroup = (left, toks, gr, cont)->
 
 parseIndent = (indent, toks, gr, cont)->
   if toks == Nil then cont parens(tokenPos(indent), lexEnd(head gr), gr.reverse()), Nil
-  else withCons toks, (->parseErr "Bad list at #{tokenPos left}"), (h, t)->
+  else withCons toks, (->parseErr "Bad list at #{tokenPos indent}"), (h, t)->
     if isTokenStart(h, '\n') && tokenString(h).length <= tokenString(indent).length then cont parens(tokenPos(indent), tokenPos(h), gr.reverse()), toks
     else parseTok toks, (restH, restT)->
       parseIndent indent, restT, cons(restH, gr), cont

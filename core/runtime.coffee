@@ -48,14 +48,19 @@ define '+', ->(x)->(y)->x() + y()
 define '-', ->(x)->(y)->x() - y()
 define '*', ->(x)->(y)->x() * y()
 define '/', ->(x)->(y)->x() / y()
+define 'lt', ->(x)->(y)->x() < y()
+define 'le', ->(x)->(y)->x() <= y()
+define 'gt', ->(x)->(y)->x() > y()
+define 'ge', ->(x)->(y)->x() >= y()
 
 ############
 # STRINGS
 ############
 
-define 'strStartsWith', ->(str)->(prefix)-> booleanFor (str().indexOf prefix()) == 0
+define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
 define 'strSplit', ->(str)->(pat)-> consFrom str().split new RegExp pat()
+define 'strcat', ->(list)-> list().toArray().join('')
 
 ############
 # IO Monads
