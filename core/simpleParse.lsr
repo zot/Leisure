@@ -47,6 +47,7 @@ parensFromToks left right content = \\
   end = tokenPos right
   .
   parens start end content
+stripParens p = isParens p (parensContent p) p
 
 parseErr msg = \f . f msg
 parseErrMsg err = err \m . m
@@ -66,7 +67,34 @@ isTokenString tok str = and (isToken tok) (eq (tokenString tok) str)
 withToken tok tokCase nonTokCase = isToken tok (tok tokcase) nonTokCase
 
 ## withCons is like a safe version of a cons
-withCons l cont nilCase = hasType l cons (l \h t D . cont h t) nilCase
+withCons l nilCase cont = hasType l cons (l \h t D . cont h t) nilCase
 
-parseToks toks cont = withCons toks (\h t . parseTok toks \h t . parseToks t \res . cont (cons h res)) nil
-parseTok toks cont -> withCons toks (\h t . isTokenString h '(' (parseGroup h t nil cont) (cont h t))
+parseToks toks cont = eq toks nil (cont nil)
+  parseTok toks \h t . parseToks t \res . cont (cons h res)
+
+parseTok toks cont = withCons toks nil \h t .
+  isTokenString h '('
+    parseGroup h t nil cont
+    isTokenStart h ' '
+      parseTok t cont
+      isTokenStart h '\n'
+        parseIndent h t nil cont
+        cont h t
+
+parseGroup left toks gr cont = withCons toks
+  parseErr (strcat (cons 'Unterminated group starting at ' (cons (tokenPos left) nil)))
+  \h t . isTokenString h ')'
+     cont (parensFromToks left h (reverse gr)) t
+     parseTok toks \restH restT . parseGroup left restT (cons restH gr) cont
+
+parseIndent indent toks gr cont = eq toks nil
+  cont (parens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil
+  withCons toks
+    parseErr (strcat (cons 'Bad list at' (cons (tokenPos left) nil)))
+    \h t . and (isTokenStart h '\n') (le (strlen (tokenString h)) (length (tokenString indent)))
+      cont (parens (tokenPos indent) (tokenPos h) (reverse gr)) toks
+      parseTok toks \restH restT . parseIndent indent restT (cons restH gr) cont
+
+id x = x
+
+parse str = parseIndent (token '\n' 0) (tokens str) nil \h t . stripParens hn

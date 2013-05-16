@@ -75,6 +75,10 @@ addDelimiter = (del)->
 
 makeDelimterPat()
 
+############
+# TOKENS
+############
+
 L_token = setDataType ((txt)->(pos)-> setType ((f)-> f()(txt)(pos)), 'token'), 'token'
 ensureLeisureClass 'token'
 Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
