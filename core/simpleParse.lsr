@@ -44,7 +44,7 @@ parens start end content = \f . f start end content
 parensStart p = p \s e c . s
 parensEnd p = p \s e c . e
 parensContent p = p \s e c . c
-isParens p = eq (getType t) 'parens'
+isParens p = eq (getType p) 'parens'
 parensFromToks left right content = \\
   start = tokenPos left
   end = tokenPos right
@@ -91,14 +91,12 @@ parseGroup left toks gr cont = withCons toks
      cont (parensFromToks left h (reverse gr)) t
      parseTok toks \restH restT . parseGroup left restT (cons restH gr) cont
 
-parseIndent indent toks gr cont = eq toks nil
+parseIndent indent toks gr cont = withCons toks
   cont (parens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil
-  withCons toks
-    parseErr (strcat (cons 'Bad list at ' (cons (tokenPos indent) nil)))
-    \h t . and (isTokenStart h '\n') (le (strlen (tokenString h)) (length (tokenString indent)))
-      cont (parens (tokenPos indent) (tokenPos h) (reverse gr)) toks
-      parseTok toks \restH restT . parseIndent indent restT (cons restH gr) cont
+  \h t . and (isTokenStart h '\n') (le (strlen (tokenString h)) (length (tokenString indent)))
+    cont (parens (tokenPos indent) (tokenPos h) (reverse gr)) toks
+    parseTok toks \restH restT . parseIndent indent restT (cons restH gr) cont
 
 id x = x
 
-parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens hn
+parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
