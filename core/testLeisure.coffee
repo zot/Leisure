@@ -276,6 +276,9 @@ readFile 'core/simpleParse.lsr', (err, code)->
       test27: -> assertEq String(tokens('a ( (b  )   c) ')), 'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
       test28: -> assertEq String(parse('a ( (b  )   c) ')), 'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
       test29: -> assertEq String(parse('a.b')), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
+      #######
+      # AST creation tests
+      #######
       test30: -> assertEq String(parseToAst('a')), 'ref(a)'
       test31: -> assertEq String(parseToAst('a b')), 'apply(a b)'
       test32: -> assertEq String(parseToAst('\\a . a')), 'lambda(\\a . a)'
@@ -325,6 +328,9 @@ readFile 'core/simpleParse.lsr', (err, code)->
       test61: -> assertEq lsr("eq (getType nil) 'nil' 1 2"), 1
       test62: -> assertEq lsr("eq (getType (cons 1 nil)) 'cons' 1 2"), 1
       test63: -> assertEq splitTokens("splitTokens 'a b' #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['splitTokens', ' ', "'a b'", ' ', JSON.stringify(LZ.delimiterPat.source)]
+      #######
+      # Leisure-based parser
+      #######
       test64: ->
         assertEq lsr("strSplit 'a b' #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['a', ' ', 'b']
       test65: ->
@@ -357,6 +363,20 @@ readFile 'core/simpleParse.lsr', (err, code)->
       test82: -> assertEq String(lsr("reverse (cons 1 (cons 2 nil))")), 'Cons[2 1]'
       test83: -> assertEq String(lsr("parse 'a' #{JSON.stringify LZ.delimiterPat.source}")), 'Cons[Token("a", 0)]'
       test84: -> assertEq String(lsr("parse 'a b  c' #{JSON.stringify LZ.delimiterPat.source}")), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+      test85: -> assertEq lsr("splitTokens 'a (b)'  #{JSON.stringify LZ.delimiterPat.source}").toArray(), ['a', ' ', '(', 'b', ')']
+      test86: -> assertEq String(lsr("parse 'a (b)'  #{JSON.stringify LZ.delimiterPat.source}")), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
+      test87: ->
+        assertEq String(lsr("tokens 'a ( (b  )   c) '  #{JSON.stringify LZ.delimiterPat.source}")),
+          'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
+      test88: ->
+        assertEq String(lsr("parse 'a ( (b  )   c) '  #{JSON.stringify LZ.delimiterPat.source}")),
+          'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
+      test89: -> assertEq String(lsr("parse 'a.b'  #{JSON.stringify LZ.delimiterPat.source}")), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
+      #######
+      # Leisure-based AST creation tests
+      #######
+      #test90: -> assertEq String(lsr("parseToAst 'a' #{JSON.stringify LZ.delimiterPat.source}")), 'ref(a)'
+
     console.log '\nDone'
     if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."
     else

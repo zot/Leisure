@@ -60,7 +60,7 @@ define 'ge', ->(x)->(y)->x() >= y()
 define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
 define 'strSplit', ->(str)->(pat)-> consFrom str().split new RegExp pat()
-define 'strcat', ->(list)-> list().toArray().join('')
+define 'strCat', ->(list)-> list().toArray().join('')
 
 ############
 # IO Monads

@@ -180,7 +180,7 @@ parse = (str)-> parseIndent token('\n', 0), tokens(str), Nil, (h, t)-> stripPare
 
 parseToAst = (str)-> createAst parse(str), Nil, identity
 
-withToken = (tok, nonTokenCase, cont)-> if isToken tok then cont tokenString tok, tokenPos tok else nonTokenCase()
+withToken = (tok, nonTokenCase, cont)-> if isToken tok then cont (tokenString tok) else nonTokenCase()
 
 withParens = (p, err, cont)-> if !isParens p then err() else cont parensContent p
 
@@ -377,7 +377,7 @@ arity = (toks, n)-> if isTokenString head(toks), '=' then n else arity tail(toks
 
 tokListStr = (toks)-> JSON.stringify toks.map((t)->tokenString t).join(' ')
 
-linesForFile = (text)-> _.filter text.split(/\n(?=[^ ])/), (line)-> not line.match /^[ \i]*\#|^[ \i]*$/
+linesForFile = (text)-> _.filter text.split(/\n(?=[^ ])/), (line)-> not line.match /^[ \i]*\#.*|^[ \i]*$/
 
 compileFile = (text)->
   id = (x)-> x

@@ -47,7 +47,7 @@ parensContent p = p \s e c . c
 isParens p = eq (getType p) 'parens'
 parensFromToks left right content = \\
   start = tokenPos left
-  end = tokenPos right
+  end = + (tokenPos right) (strLen (tokenString right))
   .
   parens start end content
 stripParens p = isParens p (parensContent p) p
@@ -86,7 +86,7 @@ parseTok toks cont = withCons toks nil \h t .
         cont h t
 
 parseGroup left toks gr cont = withCons toks
-  parseErr (strcat (cons 'Unterminated group starting at ' (cons (tokenPos left) nil)))
+  parseErr (strCat (cons 'Unterminated group starting at ' (cons (tokenPos left) nil)))
   \h t . isTokenString h ')'
      cont (parensFromToks left h (reverse gr)) t
      parseTok toks \restH restT . parseGroup left restT (cons restH gr) cont
@@ -100,3 +100,16 @@ parseIndent indent toks gr cont = withCons toks
 id x = x
 
 parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
+
+#################
+## Creating ASTs
+#################
+#parseToAst str pat = createAst (parse str pat) nil id
+#
+#withToken tok nonTokenCase cont = isToken tok
+#  cont (tokenString tok) (tokenPos tok)
+#  nonTokenCase
+#
+#withParens p err cont = not (isParens p)
+#  err
+#  cont (parensContent p)
