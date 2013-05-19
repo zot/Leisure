@@ -43,7 +43,7 @@ misrepresented as being the original software.
 {gen} = require './gen'
 _ = require('./lodash.min')
 
-delimiterListPrefix = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\n */.source
+delimiterListPrefix = /"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|\n *|#.*/.source
 
 delimiterList = [
   '\\(',
@@ -59,17 +59,17 @@ delimiters = _.object(_.map(delimiterList, (x)->[x, true]))
 
 delimiterPat = null
 
-defPat = /^[^ ].*=/
+defPat = /^([^ =]+).*=/
 
 makeDelimterPat = ->
+  # reverse sorting by length is important for tokens that prefixe other tokens
+  _.sortBy delimiters, (x)->-x.length
   root.delimiterPat = delimiterPat = new RegExp "(#{delimiterListPrefix}|#{delimiterList.join('|')})"
 
 addDelimiter = (del)->
   if !delimiters
     delimiters[del] = true
     delimiterList.push(del)
-    # reverse sorting by length is important for tokens that prefixe other tokens
-    _.sortBy delimiters, (x)->-x.length
     makeDelimterPat()
   end
 
@@ -122,8 +122,10 @@ makeTokens = (strings, start)->
   else makeMoreTokens strings, start
 
 makeMoreTokens = (strings, start)->
-  if head(strings)[0] == ' ' then makeTokens(tail(strings), start + head(strings).length)
-  else cons token(head(strings), start), makeTokens(tail(strings), start + head(strings).length)
+  first = head strings
+  if first[0] in ' #' then makeTokens(tail(strings), start + first.length)
+  else if first[0] == '\n' and (head tail strings)[0] == '#' then makeTokens(tail(tail strings), start + first.length + (head(tail strings).length))
+  else cons token(first, start), makeTokens(tail(strings), start + first.length)
 
 splitTokens = (str)-> consFrom(_.filter str.split(delimiterPat), (s)-> s.length)
 
@@ -182,7 +184,7 @@ parseToAst = (str)-> createAst parse(str), Nil, identity
 
 withToken = (tok, nonTokenCase, cont)-> if isToken tok then cont (tokenString tok) else nonTokenCase()
 
-withParens = (p, err, cont)-> if !isParens p then err() else cont parensContent p
+withParens = (p, err, cont)-> if isParens p then cont parensContent p else err()
 
 strip = (list, cont)-> withParens list, (->cont list), (c)-> strip c, cont
 
@@ -330,17 +332,19 @@ scanLine = (str, isDef, isExpr)->
     parseToks toks, (list)->
       isExpr list
 
-parseLine = (str, isDef, isExpr)->
-  astCallback = (cb)-> (list)-> createAst list, Nil, (ast)-> cb ast
+parseLine = (str, names, isDef, isExpr)->
+  astCallback = (cb)-> (list)-> createAst list, names, (ast)-> cb ast
   scanLine str, astCallback(isDef), astCallback(isExpr)
 
-genLine = (str, isDef, isExpr)->
+genLine = (str, names, isDef, isExpr)->
   parseLine str,
+    names,
     ((ast)-> isDef "(#{gen ast});\n"),
     (ast)-> isExpr "(function(){return #{gen ast};});\n"
 
-compileLine = (str, isDef, isExpr)->
+compileLine = (str, names, isDef, isExpr)->
   genLine str,
+    names,
     ((code)-> isDef eval code),
     (code)-> isExpr eval code
 
@@ -379,16 +383,25 @@ tokListStr = (toks)-> JSON.stringify toks.map((t)->tokenString t).join(' ')
 
 linesForFile = (text)-> _.filter text.split(/\n(?=[^ ])/), (line)-> not line.match /^[ \i]*\#.*|^[ \i]*$/
 
+namesForLines = (lines)-> _.foldl lines,
+  ((result, line)-> if m = line.match defPat then cons m[1], result else result),
+  Nil
+
 compileFile = (text)->
   id = (x)-> x
-  _.map(linesForFile(text), (line)-> genLine line.trim(), id, id).join('')
+  lines = linesForFile text
+  names = namesForLines lines
+  _.map(lines, (line)-> genLine line.trim(), names, id, id).join('')
 
 jsonForFile = (text)->
   id = (x)-> x
-  _.map(text.split('\n'), (line)-> JSON.stringify ast2Json parseLine line, id, id).join('\n')
+  lines = linesForFile text
+  names = namesForLines lines
+  _.map(lines, (line)-> JSON.stringify ast2Json parseLine line, names, id, id).join('\n')
 
 root.splitTokens = splitTokens
 root.tokens = tokens
+root.tokenString = tokenString
 root.parse = parse
 root.parseToAst = parseToAst
 root.compileLine = compileLine

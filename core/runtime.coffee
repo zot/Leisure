@@ -26,6 +26,10 @@ root = module.exports = require './base'
 {
   define,
   consFrom,
+  cons,
+  Nil,
+  head,
+  tail,
   getType,
   getDataType,
 } = require './ast'
@@ -59,8 +63,37 @@ define 'ge', ->(x)->(y)->x() >= y()
 
 define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
-define 'strSplit', ->(str)->(pat)-> consFrom str().split new RegExp pat()
+define 'strSubstring', ->(str)->(start)->(end) str().substring start(), end()
+define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
 define 'strCat', ->(list)-> list().toArray().join('')
+define 'strMatch', ->(str)->(pat)->
+  m = str.match if pat instanceof RegExp then pat() else new RegExp pat()
+  if m
+    groups = []
+    pos = 1
+    while m[1]
+      groups.push m[pos++]
+    consFrom [m[0], groups, m.index, m.input]
+  else Nil
+define 'strToList', ->(str)-> strToList str()
+strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
+define 'strFromList', ->(list)-> strFromList list()
+strFromList = (list)-> if list instanceof Leisure_nil then '' else head(list) + strFromList(tail list)
+define 'regexp', ->(str)-> new RegExp str
+define 'jsonParse', ->(str)->(failCont)->(successCont)->
+  try
+    p = JSON.parse str
+    successCont() p
+  catch err
+    failCont() err
+
+############
+# Diagnostics
+############
+
+define 'log', (str)->(res)->
+  console.log str()
+  res()
 
 ############
 # IO Monads
