@@ -160,8 +160,7 @@ parseGroup = (left, toks, gr, cont)->
       parseGroup left, restT, cons(restH, gr), cont
 
 parseIndent = (indent, toks, gr, cont)->
-  if toks == Nil then cont parens(tokenPos(indent), lexEnd(head gr), gr.reverse()), Nil
-  else withCons toks, (->parseErr "Bad list at #{tokenPos indent}"), (h, t)->
+  withCons toks, (-> cont parens(tokenPos(indent), lexEnd(head gr), gr.reverse()), Nil), (h, t)->
     if isTokenStart(h, '\n') && tokenString(h).length <= tokenString(indent).length then cont parens(tokenPos(indent), tokenPos(h), gr.reverse()), toks
     else parseTok toks, (restH, restT)->
       parseIndent indent, restT, cons(restH, gr), cont
@@ -205,9 +204,8 @@ loc = (thing)->
   "at #{if p == -1 then 'an unknown location' else p}"
 
 createAst = (inList, names, cont)-> strip inList, (list)->
-  if list == Nil then cont Nil
-  else if isToken(list) then createLitOrRef tokenString(list), names, cont
-  else withCons list, (-> parseErr "Null list for AST #{loc inList}: #{inList}"), (h, t)->
+  if isToken(list) then createLitOrRef tokenString(list), names, cont
+  else withCons list, (-> cont Nil), (h, t)->
     if isTokenString(h, '\\\\') then createLet h, t, names, cont
     else if isTokenString(h, '\\@') then createAnno h, t, names, cont
     else if isTokenString(h, '\\') then createLambda h, t, names, cont
@@ -255,21 +253,18 @@ createAnno = (start, list, names, cont)->
         else parseErr "Annotation expected dot after name and data"
 
 cleanTokens = (start, toks, cont)->
-  if toks == Nil then cont toks
-  else if isToken toks then cont tokenString toks
-  else withCons toks, (->parseErr "Expected token or list but got #{toks} #{loc start}"), (head, tail)->
+  if isToken toks then cont tokenString toks
+  else withCons toks, (->cont toks), (head, tail)->
     cleanTokens start, head, (head)->
       cleanTokens start, tail, (tail)->
         cont cons head, tail
 
 createApply = (inList, names, cont)-> strip inList, (list)->
   withCons list, (-> parseErr "Expecting a non-empty list #{loc inList}"), (h, t)->
-    createAst h, names, (func)->
-      chainApply func, t, names, cont
+    createAst h, names, (func)-> chainApply func, t, names, cont
 
 chainApply = (func, list, names, cont)->
-  if list == Nil then cont func
-  else withCons list, (-> parseErr "Expecting list #{loc inList}"), (argItem, rest)->
+  withCons list, (-> cont func), (argItem, rest)->
     if isToken(argItem) and tokenString(argItem) in ['\\', '\\\\', '\\@'] then createAst list, names, (arg)->
       cont apply(func, arg)
     else

@@ -67,7 +67,7 @@ define 'strSubstring', ->(str)->(start)->(end) str().substring start(), end()
 define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
 define 'strCat', ->(list)-> list().toArray().join('')
 define 'strMatch', ->(str)->(pat)->
-  m = str.match if pat instanceof RegExp then pat() else new RegExp pat()
+  m = str().match if pat() instanceof RegExp then pat() else new RegExp pat()
   if m
     groups = []
     pos = 1

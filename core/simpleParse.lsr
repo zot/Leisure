@@ -22,9 +22,9 @@ filter func list = list
   nil
 reverse l = rev l nil
 rev l result = withCons l result \h t . rev t (cons h result)
-find list predicate else = list
-  \h t D . predicate h h (find t predicate else)
-  else
+find list predicate foundCase elseCase = list
+  \h t D . predicate h (foundCase h) (find t predicate foundCase elseCase)
+  elseCase
 
 ############
 # TOKENS
@@ -39,7 +39,7 @@ parens start end content = \f . f start end content
 parensStart p = p \s e c . s
 parensEnd p = p \s e c . e
 parensContent p = p \s e c . c
-isParens p = eq (getType p) 'parens'
+isParens p = hasType p parens
 parensFromToks left right content = \\
   start = tokenPos left
   end = + (tokenPos right) (strLen (tokenString right))
@@ -47,7 +47,7 @@ parensFromToks left right content = \\
   parens start end content
 stripParens p = isParens p (parensContent p) p
 
-parseErr msg = \f . f msg
+parseErr msg1 msg2 = \f . f (strCat (cons msg1 (cons msg2 nil)))
 parseErrMsg err = err \m . m
 
 makeTokens strings start = strings (\h t D . makeMoreTokens h t start) nil
@@ -88,7 +88,7 @@ parseTok toks cont = withCons toks nil \h t .
         cont h t
 
 parseGroup left toks gr cont = withCons toks
-  parseErr (strCat (cons 'Unterminated group starting at ' (cons (tokenPos left) nil)))
+  parseErr 'Unterminated group starting ' (loc left)
   \h t . isTokenString h ')'
      cont (parensFromToks left h (reverse gr)) t
      parseTok toks \restH restT . parseGroup left restT (cons restH gr) cont
@@ -110,9 +110,9 @@ parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripPare
 lit value = \f . f value
 ref name = \f . f name
 lambda name body = \f . f name body
-apply func arg . \f . f func arg
-let name value body . \f . f name value body
-anno name data body . \f . f name data body
+apply func arg = \f . f func arg
+let name value body = \f . f name value body
+anno name data body = \f . f name data body
 
 withToken tok nonTokenCase cont = isToken tok
   cont (tokenString tok) (tokenPos tok)
@@ -151,38 +151,102 @@ scrubList list = list
 
 createAst inList names cont = strip inList \list .
   isToken list (createLitOrRef (tokenString list) names cont)
-  list
-    \h t D . 
-      isTokenString h '\\\\' (createLit h t names cont)
-        isTokenString h '\\@' (createAnno h t names cont)
-          isTokenString h '\\' (createLambda h t names cont)
-            createApply list names cont
-    cont list
+    list
+      \h t D .
+        isTokenString h '\\\\' (createLit h t names cont)
+          isTokenString h '\\@' (createAnno h t names cont)
+            isTokenString h '\\' (createLambda h t names cont)
+              createApply list names cont
+      cont list
+
+strMatches str pat = not (eq nil (strMatch str pat))
 
 digit = regexp '^[0-9]+$'
 
-createLitOrRef tokStr names cont = find names (\el . eq el tok) (cont ref tok)
-  or (strStartsWith tokStr '"') (strStartsWith tokStr "'")
-    cont (lit (scrub (strSubstring tokStr 1 (- (strLen tokStr) 1))))
-    strMatch n digit
-      jsonParse n
-        \err . cont ref tokStr
-        \json . lit json
+createLitOrRef tokStr names cont = find names (\el . eq el tokStr)
+  \el .
+    or (strStartsWith tokStr '"') (strStartsWith tokStr "'")
+      cont (lit (scrub (strSubstring tokStr 1 (- (strLen tokStr) 1))))
+      strMatches tokStr digit
+        jsonParse tokStr
+          \err . cont ref tokStr
+          \json . lit json
+  (cont ref tokStr)
 
-createLambda start list names cont = withCons list
-  parseErr (strCat (cons "No variable or body for lambda " (cons (loc start) nil)))
-  \name rest .
-    withCons rest
-      parseErr (strCat (cons "No body for lambda " (cons (loc start) nil)))
-      \dot body .
-        withToken name
-          parseErr (strCat (cons "Expecting name for lambda " (cons (loc start) nil)))
-          \n . \\
-            next = \bodyAst . cont (lambda n bodyAst)
-            .
-            # are these partial applications too hard to read?
-            isTokenString dot '.' (createAst body) (createLambda start rest) (cons name names) next
+createLambda start list names cont = \\
+  err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
+  .
+  withCons list err \name rest .
+    withCons rest err \dot body .
+      withToken name err \n .
+        # are these partial applications too hard to read?
+        isTokenString dot '.' (createAst body) (createLambda start rest) (cons name names) next
+          \bodyAst . cont (lambda n bodyAst)
 
-#createAnno start list names cont =
+createAnno start list names cont = \\
+  err = parseErr "Annotation needs a name, data, a dot, and a body " (loc start)
+  .
+  withCons list err \name rest .
+    withCons rest err \data rest .
+      withCons rest err \dot body .
+        isTokenString dot '.'
+          createAst body names \bodyAst .
+            cleanTokens start name \name .
+              cleanTokens start data \data .
+                cont (anno name data bodyAst)
+          err
+
+cleanTokens start toks cont = isToken toks
+  cont (tokenString toks)
+  withCons toks (cont toks) \head tail .
+    cleanTokens start head \head .
+      cleanTokens start tail \tail .
+        cont (cons head tail)
+
+createApply inList names cont = strip inList \list .
+  withCons list (parseErr "Expecting a non-empty list " (loc inList)) \h t .
+    createAst h names \func . chainApply func t names cont
+
+bodyStructPat = regexp '\\|\\\\|\\@'
+
+chainApply func list names cont = withCons list (cont func) \argItem rest .
+  and (isToken argItem) (strMatches (tokenString argItem) bodyStructPat)
+    createAst list names \arg . cont (apply func arg)
+    createAst argItem names \arg . chainApply (apply func arg) rest names cont
+
+createLet start list names cont = withCons list
+  parseErr "No variable or body for let " (loc start)
+  \binding body . eq body nil (createAst binding name cont)
+    getLetNames start list names \newNames .
+      createSublets start binding body newNames cont
+
+getLetNames start list names cont = \\
+  err = parseErr "Let expected binding " (loc start)
+  .
+  withCons list (cont names) \binding body .
+    isTokenString binding '.' (cont names)
+      withParens binding err \def .
+        withCons def err \name rest .
+          withToken name err \str .
+            getLetNames start body (cons str names) cont
+
+createSublets start binding body names cont =
+  isTokenString binding '.' (createAst body names cont)
+    withCons body (parseErr "Let expecetd a body " (loc start)) \bodyH bodyT .
+      getNameAndDef (parensStart binding) (parensContent binding) names \name def .
+        createSublets start bodyH bodyT names \bodyAst .
+          cont let (tokenString name) def bodyAst
+
+getNameAndDef pos binding names cont =
+  withCons (tail binding) (parseErr "Let expected binding at " pos) \snd sndT .
+    isTokenString snd '=' (createAst sndT names \def . cont (head binding) def)
+      getLetLambda pos (tail binding) nil names \lamb . cont (head binding) lamb
+
+getLetLambda pos def args names cont =
+  withCons def (parseErr "Let expected binding at " pos) \arg rest .
+    not (isToken arg) (parseErr "Let expected binding at " pos)
+      isTokenString arg '='
+        createAst (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names cont
+        getLetLambda pos rest (cons arg args) names cont
 
 parseToAst str pat = createAst (parse str pat) nil id
