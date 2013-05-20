@@ -30,6 +30,7 @@ window.module = {}
 
 window.Tests =
   readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
+  writeFile: ->
 
 window.require = (name)-> modules[name]()
 

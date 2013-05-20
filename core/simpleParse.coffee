@@ -34,7 +34,8 @@ misrepresented as being the original software.
   ensureLeisureClass,
   ref,
   lit,
-  apply,
+
+    apply,
   lambda,
   llet,
   anno,
@@ -360,13 +361,9 @@ setDefAnno = (def, name, arity, src)->
   cons tok('\\@'), cons tok('define'), cons cons(tok(tokenString name), cons tok(String(arity)), cons tok(src), Nil), cons tok('.'), def
 
 checkSetDataType = (toks, curToks, name)->
-  if isTokenString(head(curToks), '=') then toks
-  else checkSetDataTypeFurther toks, tail(curToks), name
-
-checkSetDataTypeFurther = (toks, curToks, name)->
   if isTokenString(head(curToks), '=')
     if isTokenString (head tail curToks), '\\' then setDataTypeAnno toks, name else toks
-  else checkSetDataTypeFurther toks, tail(curToks), name
+  else checkSetDataType toks, tail(curToks), name
 
 setDataTypeAnno = (toks, name)->
   pos = position toks

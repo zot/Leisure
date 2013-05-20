@@ -28,4 +28,7 @@ fs = require 'fs'
 
 readFile = (fileName, cont)-> fs.readFile fileName, encoding: 'utf8', cont
 
+writeFile = (fileName, data, cont)-> fs.writeFile fileName, data, (encoding: 'utf8'), cont
+
 root.readFile = readFile
+root.writeFile = writeFile
