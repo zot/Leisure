@@ -66,3 +66,18 @@ When new types are added, it can invalidate the dispatch cache by incrementing a
 }
 
 Multiple dispatch could create a dispatchers that return other dispatchers.
+
+
+
+TYPE INFERENCING
+
+Counting arguments would be really helpful.  This case in the parser was hard to debug:
+
+  token txt pos = \f . f txt pos
+  withToken tok nonTokCase tokCase = isToken tok (tok tokCase) nonTokCase
+
+  withToken name err \n . ...
+
+The function sent into withToken(), for tokCase only took one argument, but it was sent into tok() as f.  Tok then sent txt into tokCase and sent pos into the result of tokCase.
+
+Maybe marking arguments which will be partially applied would be good?

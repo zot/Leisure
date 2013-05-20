@@ -212,6 +212,8 @@ ign = ->
 
 delimiterPatStr = JSON.stringify LZ.delimiterPat.source
 
+s = (str)-> JSON.stringify str
+
 readFile 'core/simpleParse.lsr', (err, code)->
   if err then throw new Error err
   else
@@ -406,7 +408,9 @@ readFile 'core/simpleParse.lsr', (err, code)->
         test94: ->
           assertEq String(lsr("parse 'a b' #{delimiterPatStr}")), 'Cons[Token("a", 0) Token("b", 2)]'
           assertEq String(lsr("parseToAst 'a b' #{delimiterPatStr}")), 'apply(a b)'
-        #test90: -> assertEq String(lsr("parseToAst 'a' #{delimiterPatStr}")), 'ref(a)'
+        test95: ->
+          assertEq String(lsr("parse #{s '\\a . a'} #{delimiterPatStr}")), 'Cons[Token("\\\\", 0) Token("a", 1) Token(".", 3) Token("a", 5)]'
+          assertEq String(lsr("parseToAst #{s '\\a . a'} #{delimiterPatStr}")), 'lambda(\\a . a)'
 
       console.log '\nDone'
       if !T.stats.failures then console.log "Succeeded all #{T.stats.successes} tests."

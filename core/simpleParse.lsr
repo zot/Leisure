@@ -7,6 +7,8 @@ false = \a b . b
 not b = b false true
 and a b = a b false
 or a b = a true b
+some x = \someCase noneCase . someCase x
+none = \someCase noneCase . noneCase
 
 ############
 # CONS
@@ -20,12 +22,8 @@ tail l = l (\h t D . t) nil
 append a b = a (\h t D . cons h (append t b)) b
 reverse l = rev l nil
 rev l result = l (\h t D . rev t (cons h result)) result
-filter func list = list
-  (\h t D . \\ (rest = filter func t) . func h (cons h rest) rest)
-  nil
-find list predicate foundCase elseCase = list
-  \h t D . predicate h (foundCase h) (find t predicate foundCase elseCase)
-  elseCase
+filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
+find list predicate = list (\h t D . predicate h (some h) (find t predicate)) none
 
 ############
 # TOKENS
@@ -71,7 +69,7 @@ tokens str pat = makeTokens (splitTokens str pat) 0
 
 isTokenString tok str = and (isToken tok) (eq (tokenString tok) str)
 isTokenStart tok str = and (isToken tok) (strStartsWith (tokenString tok) str)
-withToken tok tokCase nonTokCase = isToken tok (tok tokcase) nonTokCase
+withToken tok nonTokCase tokCase = isToken tok (tok tokCase) nonTokCase
 
 ## withCons is like a safe version of a cons
 withCons l nilCase cont = hasType l cons (l (\h t D . cont h t) nilCase) nilCase
@@ -115,10 +113,6 @@ apply func arg = \f . f func arg
 let name value body = \f . f name value body
 anno name data body = \f . f name data body
 
-withToken tok nonTokenCase cont = isToken tok
-  cont (tokenString tok) (tokenPos tok)
-  nonTokenCase
-
 withParens p err cont = isParens p (cont (parensContent p)) err
 
 strip list cont = withParens list (cont list) \c . strip c cont
@@ -157,7 +151,7 @@ createAst inList names cont = strip inList \list .
         isTokenString h '\\\\' (createLit h t names cont)
           isTokenString h '\\@' (createAnno h t names cont)
             isTokenString h '\\' (createLambda h t names cont)
-              createApply list names cont
+              createAst h names \func . createApply func t names cont
       cont nil
 
 strMatches str pat = hasType (strMatch str pat) cons
@@ -170,20 +164,20 @@ createLitOrRef tokStr names cont = find names (\el . eq el tokStr)
       cont (lit (scrub (strSubstring tokStr 1 (- (strLen tokStr) 1))))
       strMatches tokStr digit
         jsonParse tokStr
-          \err . cont ref tokStr
+          \err . cont (ref tokStr)
           \json . lit json
-        cont ref tokStr
-  cont ref tokStr
+        cont (ref tokStr)
+  cont (ref tokStr)
 
 createLambda start list names cont = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
   .
   withCons list err \name rest .
-    withCons rest err \dot body .
-      withToken name err \n .
+    withToken name err \n p .
+      withCons rest err \dot body .
         # are these partial applications too hard to read?
         isTokenString dot '.' (createAst body) (createLambda start rest)
-          cons name names
+          cons n names
           \bodyAst . cont (lambda n bodyAst)
 
 createAnno start list names cont = \\
@@ -199,23 +193,19 @@ createAnno start list names cont = \\
                 cont (anno name data bodyAst)
           err
 
+bodyStructPat = regexp '\\|\\\\|\\@'
+
+createApply func list names cont = withCons list (cont func) \argItem rest .
+  and (isToken argItem) (strMatches (tokenString argItem) bodyStructPat)
+    createAst list names \arg . cont (apply func arg)
+    createAst argItem names \arg . createApply (apply func arg) rest names cont
+
 cleanTokens start toks cont = isToken toks
   cont (tokenString toks)
   withCons toks (cont toks) \head tail .
     cleanTokens start head \head .
       cleanTokens start tail \tail .
         cont (cons head tail)
-
-createApply inList names cont = strip inList \list .
-  withCons list (parseErr "Expecting a non-empty list " (loc inList)) \h t .
-    createAst h names \func . chainApply func t names cont
-
-bodyStructPat = regexp '\\|\\\\|\\@'
-
-chainApply func list names cont = withCons list (cont func) \argItem rest .
-  and (isToken argItem) (strMatches (tokenString argItem) bodyStructPat)
-    createAst list names \arg . cont (apply func arg)
-    createAst argItem names \arg . chainApply (apply func arg) rest names cont
 
 createLet start list names cont = withCons list
   parseErr "No variable or body for let " (loc start)
@@ -230,7 +220,7 @@ getLetNames start list names cont = \\
     isTokenString binding '.' (cont names)
       withParens binding err \def .
         withCons def err \name rest .
-          withToken name err \str .
+          withToken name err \str pos .
             getLetNames start body (cons str names) cont
 
 createSublets start binding body names cont =

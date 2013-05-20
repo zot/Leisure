@@ -131,14 +131,14 @@ makeSuper 'let', 'ast'
 makeSuper 'anno', 'ast'
 
 astString = (ast)->
-  switch getAstType ast
+  switch getType ast
     when 'lit' then getLitVal ast
     when 'ref' then getRefName ast
     when 'apply'
       funcStr = astString getApplyFunc ast
-      if getAstType(getApplyFunc ast) in ['lambda', 'let'] then funcStr = "(#{funcStr})"
+      if getType(getApplyFunc ast) in ['lambda', 'let'] then funcStr = "(#{funcStr})"
       argStr = astString getApplyArg ast
-      if getAstType(getApplyArg ast) == 'apply' then argStr = "(#{argStr})"
+      if getType(getApplyArg ast) == 'apply' then argStr = "(#{argStr})"
       "#{funcStr} #{argStr}"
     when 'lambda' then "\\#{getLambdaVar ast} . #{astString getLambdaBody ast}"
     when 'let' then "\\\\#{letStr ast}"
@@ -227,7 +227,7 @@ throwError = (msg)->
 checkType = (value, type)-> if !(value instanceof type) then throwError("Type error: expected type: #{type}, but got: #{jsType value}")
 
 primCons = setDataType(((a)->(b)-> mkProto Leisure_cons, setType ((f)-> f()(a)(b)), 'cons'), 'cons')
-Nil = mkProto Leisure_nil, setType(((a)->(b)->b()), 'nil')
+Nil = mkProto Leisure_nil, setDataType(setType(((a)->(b)->b()), 'nil'), 'nil')
 cons = (a, b)-> primCons(->a)(->b)
 
 foldLeft = (func, val, thing)->
@@ -300,7 +300,6 @@ save.apply = apply = (f, a)->L_apply(-> f)(-> a)
 save.llet = llet = (n, v, b)->L_let(-> n)(-> v)(-> b)
 save.anno = anno = (name, data, body)-> L_anno(-> name)(-> data)(-> body)
 save.cons = cons
-getAstType = (f) -> f.type
 getLitVal = (lt)-> lt ->(v)-> v()
 getRefName = (rf)-> rf ->(v)-> v()
 getLambdaVar = (lam)-> lam ->(v)->(b)-> v()
@@ -405,7 +404,6 @@ root.lambda = lambda
 root.apply = apply
 root.anno = anno
 root.llet = llet
-root.getAstType = getAstType
 root.getRefName = getRefName
 root.getLitVal = getLitVal
 root.getLambdaBody = getLambdaBody
