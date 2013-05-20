@@ -1,22 +1,32 @@
 Notes on New Leisure Core
 
+--------
+Contents
 
-Motivation
+MOTIVATION
+THE LET AST STRUCTURE
+THE ANNO AST STRUCTURE
+PATTERN MATCHING
+TYPE INFERENCE
+
+--------
+
+MOTIVATION
 
 The fundamental motivation of the new core is to reduce the amount of low-level code and simplify it, so it's easier to provide alternate backends and make improvements at the lowest level.  The new core doesn't parse Leisure, it operates directly on ASTs and JSON-encoded ASTs.  This allows Leisure itself to implement the parsing.  Leisure can send ASTs directly to the core or generate low-level, JSON-encoded *.last files which the core can understand.
 
 
-The Let AST structure
+THE LET AST STRUCTURE
 
 Let values can refer to all of the names defined by the let structure.  This allows for mutual recursion without polluting the name space.  It also allows do/let to do what programmers might expect when they define terms that reference each other.
 
 
-The Anno AST structure
+THE ANNO AST STRUCTURE
 
 Lets programmers associate runtime-accessible key-value pairs with code.  The system will use standard keys for things like definitions and patterns, which are kind of outside the scope of Lambda Calculus, anyway.
 
 
-Patterm matching
+PATTERM MATCHING
 
 length list = match list
   [] -> 0
@@ -69,7 +79,7 @@ Multiple dispatch could create a dispatchers that return other dispatchers.
 
 
 
-TYPE INFERENCING
+TYPE INFERENCE
 
 Counting arguments would be really helpful.  This case in the parser was hard to debug:
 
@@ -81,3 +91,12 @@ Counting arguments would be really helpful.  This case in the parser was hard to
 The function sent into withToken(), for tokCase only took one argument, but it was sent into tok() as f.  Tok then sent txt into tokCase and sent pos into the result of tokCase.
 
 Maybe marking arguments which will be partially applied would be good?
+
+Treat the number of args before a '.' or '=' as the "standard" number of arguments for a function and propagate these numbers around, by finding how a function is called in the code.
+
+Lists might be an interesting case:
+
+append a b = a (\h t D . cons h (append t b)) b  <--- This goes into the result
+                       ^
+                       |
+                       +--- this function is only partly applied by a (it returns \D . ...)
