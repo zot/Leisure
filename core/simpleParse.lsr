@@ -9,6 +9,7 @@ and a b = a b false
 or a b = a true b
 some x = \someCase noneCase . someCase x
 none = \someCase noneCase . noneCase
+id x = x
 
 ############
 # CONS
@@ -24,6 +25,13 @@ reverse l = rev l nil
 rev l result = l (\h t D . rev t (cons h result)) result
 filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
 find list predicate = list (\h t D . predicate h (some h) (find t predicate)) none
+map func l = l (\h t D . cons (func h) (map func t)) nil
+foldLeft func value l = l (\h t D . foldLeft func (func value h) t) value
+intersperse list element = list (\h t D .
+  hasType t nil
+    h
+    cons h (cons element (intersperse t element))) nil
+join list el = strCat (intersperse list el)
 
 ############
 # TOKENS
@@ -94,7 +102,8 @@ parseGroup left toks gr cont = withCons toks
 
 parseIndent indent toks gr cont = withCons toks
   cont (parens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil
-  \h t . and (isTokenStart h '\n') (le (strlen (tokenString h)) (length (tokenString indent)))
+  \h t . or (isTokenStart h ')')
+    and (isTokenStart h '\n') (le (strlen (tokenString h)) (length (tokenString indent)))
     cont (parens (tokenPos indent) (tokenPos h) (reverse gr)) toks
     parseTok toks \restH restT . parseIndent indent restT (cons restH gr) cont
 
@@ -185,13 +194,14 @@ createAnno start list names cont = \\
   .
   withCons list err \name rest .
     withCons rest err \data rest .
-      withCons rest err \dot body .
-        isTokenString dot '.'
-          createAst body names \bodyAst .
-            cleanTokens start name \name .
-              cleanTokens start data \data .
-                cont (anno name data bodyAst)
-          err
+      strip data \data .
+        withCons rest err \dot body .
+          isTokenString dot '.'
+            createAst body names \bodyAst .
+              cleanTokens start name \name .
+                cleanTokens start data \data .
+                  cont (anno name data bodyAst)
+            err
 
 bodyStructPat = regexp '\\|\\\\|\\@'
 
@@ -243,3 +253,91 @@ getLetLambda pos def args names cont =
         getLetLambda pos rest (cons arg args) names cont
 
 parseToAst str pat = createAst (parse str pat) nil id
+
+#################
+## Compiling
+#################
+
+#scanLine str pat isDef isExpr = \\
+#  toks = tokens str pat
+#  .
+#  strMatch str pat
+#    withCons toks (parseErr "No expression to compile" "") \name rest . \\
+#      func = isTokenString (head rest) '='
+#        isTokenString (head (tail rest)) '\\'
+#          setTypeAnno (head (tail rest)) (tail rest) (tokenString name)
+#          tail rest
+#        cons (token '\\' (- (position (head rest)) 1)) (transformDef name rest)
+#      .
+#      parseToks (setDefAnno (checkSetDataType func rest name) name (arity rest 0) str) \list .
+#        isDef list
+#    parseToks toks \list . isExpr list
+#
+#parseLine str pat names isDef isExpr = \\
+#  astCallback cb = \list . createAst list names \ast . cb ast
+#  .
+#  scanLine str (astCallback isDef) (astCallback isExpr)
+#
+#genLine str pat names isDef isExpr = parseLine
+#  str
+#  names
+#  \code . isDef (strCat (cons '(' (cons (gen ast) (cons ');\n' nil))))
+#  \ast . isExpr (strCat (cons '(function(){return ' (cons (gen ast) (cons ';});\n' nil))))
+#
+#transformDef name toks = withCons toks (parseErr "Bad definition, expecting tokens" "") \h t .
+#  isTokenString h '='
+#    isTokenString (head t) '\\'
+#      cons (token '.' (position h)) (setTypeAnno (head t) t (tokenString name))
+#      cons (token '.' (position h)) t
+#    cons h (transformDef name t)
+#
+setTypeAnno start toks name = \\
+  pos = position def
+  tok = \str . token str pos
+  .
+  cons (tok '\\@') (cons (tok 'type') (cons (tok name) (cons (tok '.') toks)))
+
+setDefAnno def name arity src = \\
+  pos = position def
+  tok = \str . token str pos
+  .
+  cons (tok '\\@') (cons (tok 'define') (cons (cons (tok (tokenString name)) (cons (tok (strString arity)) (cons (tok src) nil))) (cons (tok '.') def)))
+
+checkSetDataType toks curToks name = withCons curToks \h t .
+  isTokenString h '='
+    isTokenString (head t) '\\' (setDataType toks name) toks
+    checkSetDataType toks t name
+
+setDataTypeAnno toks name = \\
+  pos = position toks
+  .
+  cons (token '\\@' pos) (cons (token 'dataType' pos) (cons (token (tokenString name) pos) (cons (token '.' pos) toks)))
+
+arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
+
+tokListStr toks = jsonStringify (join (map (\t . tokenString t) toks) ' ')
+
+#linesForFile text = filter (\line . not (strMatch line '^[ \i]*#.*|^[ \i]*$')) (strSplit text '\n(?=[^ ])')
+
+defPat = regexp '^([^ =]+).*='
+
+#namesForLines lines = foldLeft Nil (\result line . \\
+#  m = strMatch line defPat
+#  .
+#  hasType m nil result (cons (head (tail m)) result)) lines
+
+# This is in JS, because it has to use eval
+#
+#compileLine str pat names isdef isExpr
+
+#jsonForFile text = \\
+#  lines = linesForFile text
+#  names = namesForLines lines
+#  .
+#  map (\lines . jsonStringify (ast2Json)) lines
+
+#################
+## Macros
+#################
+
+#macro m def = 

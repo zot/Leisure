@@ -86,6 +86,11 @@ define 'jsonParse', ->(str)->(failCont)->(successCont)->
     successCont() p
   catch err
     failCont() err
+define 'jsonStringify', ->(obj)->(failCont)->(successCont)->
+  try
+    successCont() JSON.stringify obj()
+  catch err
+    failCont() err
 
 ############
 # Diagnostics

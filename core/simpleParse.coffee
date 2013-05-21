@@ -149,20 +149,20 @@ parseToks = (toks, cont)->
 
 parseTok = (toks, cont)->
   withCons toks, (->Nil), (h, t)->
-    if isTokenString(h, '(') then parseGroup h, t, Nil, cont
-    else if isTokenStart(h, ' ') then parseTok t, cont
+    if isTokenString h, '(' then parseGroup h, t, Nil, cont
+    else if isTokenStart h, ' ' then parseTok t, cont
     else if isTokenStart h, '\n' then parseIndent h, t, Nil, cont
     else cont h, t
 
 parseGroup = (left, toks, gr, cont)->
   withCons toks, (->parseErr "Unterminated group starting at #{tokenPos left}"), (h, t)->
-    if isTokenString(h, ')') then cont parensFromToks(left, h, gr.reverse()), t
+    if isTokenString h, ')' then cont parensFromToks(left, h, gr.reverse()), t
     else parseTok toks, (restH, restT)->
       parseGroup left, restT, cons(restH, gr), cont
 
 parseIndent = (indent, toks, gr, cont)->
   withCons toks, (-> cont parens(tokenPos(indent), lexEnd(head gr), gr.reverse()), Nil), (h, t)->
-    if isTokenStart(h, '\n') && tokenString(h).length <= tokenString(indent).length then cont parens(tokenPos(indent), tokenPos(h), gr.reverse()), toks
+    if isTokenStart(h, ')') || (isTokenStart(h, '\n') && tokenString(h).length <= tokenString(indent).length) then cont parens(tokenPos(indent), tokenPos(h), gr.reverse()), toks
     else parseTok toks, (restH, restT)->
       parseIndent indent, restT, cons(restH, gr), cont
 
@@ -246,12 +246,13 @@ createLambda = (start, list, names, cont)->
 createAnno = (start, list, names, cont)->
   withCons list, (-> parseErr "No annotation name or data in annotation #{loc start}"), (name, rest)->
     withCons rest, (-> parseErr "No data for annotation #{loc start}"), (data, rest)->
-      withCons rest, (-> parseErr "No body for annotation #{loc start}"), (dot, body)->
-        if isTokenString dot, '.' then createAst body, names, (bodyAst)->
-          cleanTokens start, name, (name)->
-            cleanTokens start, data, (data)->
-              cont anno name, data, bodyAst
-        else parseErr "Annotation expected dot after name and data"
+      strip data, (data)->
+        withCons rest, (-> parseErr "No body for annotation #{loc start}"), (dot, body)->
+          if isTokenString dot, '.' then createAst body, names, (bodyAst)->
+            cleanTokens start, name, (name)->
+              cleanTokens start, data, (data)->
+                cont anno name, data, bodyAst
+          else parseErr "Annotation expected dot after name and data"
 
 cleanTokens = (start, toks, cont)->
   if isToken toks then cont tokenString toks

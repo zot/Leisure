@@ -8,25 +8,35 @@ THE LET AST STRUCTURE
 THE ANNO AST STRUCTURE
 PATTERN MATCHING
 TYPE INFERENCE
+REMOTE NOTEBOOK
 
 --------
 
+
+--------
 MOTIVATION
+--------
 
 The fundamental motivation of the new core is to reduce the amount of low-level code and simplify it, so it's easier to provide alternate backends and make improvements at the lowest level.  The new core doesn't parse Leisure, it operates directly on ASTs and JSON-encoded ASTs.  This allows Leisure itself to implement the parsing.  Leisure can send ASTs directly to the core or generate low-level, JSON-encoded *.last files which the core can understand.
 
 
+--------
 THE LET AST STRUCTURE
+--------
 
 Let values can refer to all of the names defined by the let structure.  This allows for mutual recursion without polluting the name space.  It also allows do/let to do what programmers might expect when they define terms that reference each other.
 
 
+--------
 THE ANNO AST STRUCTURE
+--------
 
 Lets programmers associate runtime-accessible key-value pairs with code.  The system will use standard keys for things like definitions and patterns, which are kind of outside the scope of Lambda Calculus, anyway.
 
 
+--------
 PATTERM MATCHING
+--------
 
 length list = match list
   [] -> 0
@@ -78,8 +88,9 @@ When new types are added, it can invalidate the dispatch cache by incrementing a
 Multiple dispatch could create a dispatchers that return other dispatchers.
 
 
-
+--------
 TYPE INFERENCE
+--------
 
 Counting arguments would be really helpful.  This case in the parser was hard to debug:
 
@@ -100,3 +111,10 @@ append a b = a (\h t D . cons h (append t b)) b  <--- This goes into the result
                        ^
                        |
                        +--- this function is only partly applied by a (it returns \D . ...)
+
+
+--------
+REMOTE NOTEBOOK
+--------
+
+The notebook should be able to hook up to a remote Leisure instance, like SLIME does.  The remote instance can use Xus and JSON.

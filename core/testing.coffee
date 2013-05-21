@@ -28,11 +28,14 @@ Wimpy testing framework
 
 root = module.exports = require './base'
 
-stats =
-  successes: 0
-  failures: 0
-  failed: []
-  traces: []
+stats = {}
+
+initStats = ->
+  root.stats = stats =
+    successes: 0
+    failures: 0
+    failed: []
+    traces: []
 
 eq = (a, b)-> a == b or (eqArray a, b)
 
@@ -56,6 +59,8 @@ assertFail = (block, msg, desc)->
 
 log = (arg)->process.stdout.write(arg)
 
+logln = (arg)-> log "#{arg}\n"
+
 ifNoBrowser = (cont)-> if typeof window == 'undefined' then cont()
 
 run = (name, func)->
@@ -67,11 +72,21 @@ run = (name, func)->
     stats.failures++
     stats.failed.push name
     stats.traces.push "#{name}: #{err.stack}"
-    log "\nFailure, #{name}: #{err.stack}"
+    #log "\nFailure, #{name}: #{err.stack}"
 
-runTests = (tests)->
+runTests = (name, tests)->
+  initStats()
+  log "Testing #{name}\n  "
   for testName, testFunc of tests
     run testName, testFunc
+  log '\n'
+  if !stats.successes then logln "Failed all #{stats.failures} #{name} tests"
+  else if !stats.failures then logln "Succeeded all #{stats.successes} #{name} tests"
+  else logln "Failed #{stats.failures} out of #{stats.successes + stats.failures} #{name} tests"
+  if stats.failures then log '\n'
+  for failure in stats.traces
+    logln failure
+  logln ''
 
 root.assertEq = assertEq
 root.assertFail = assertFail
