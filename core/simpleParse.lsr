@@ -258,39 +258,39 @@ parseToAst str pat = createAst (parse str pat) nil id
 ## Compiling
 #################
 
-#scanLine str pat isDef isExpr = \\
-#  toks = tokens str pat
-#  .
-#  strMatch str pat
-#    withCons toks (parseErr "No expression to compile" "") \name rest . \\
-#      func = isTokenString (head rest) '='
-#        isTokenString (head (tail rest)) '\\'
-#          setTypeAnno (head (tail rest)) (tail rest) (tokenString name)
-#          tail rest
-#        cons (token '\\' (- (position (head rest)) 1)) (transformDef name rest)
-#      .
-#      parseToks (setDefAnno (checkSetDataType func rest name) name (arity rest 0) str) \list .
-#        isDef list
-#    parseToks toks \list . isExpr list
-#
-#parseLine str pat names isDef isExpr = \\
-#  astCallback cb = \list . createAst list names \ast . cb ast
-#  .
-#  scanLine str (astCallback isDef) (astCallback isExpr)
-#
-#genLine str pat names isDef isExpr = parseLine
-#  str
-#  names
-#  \code . isDef (strCat (cons '(' (cons (gen ast) (cons ');\n' nil))))
-#  \ast . isExpr (strCat (cons '(function(){return ' (cons (gen ast) (cons ';});\n' nil))))
-#
-#transformDef name toks = withCons toks (parseErr "Bad definition, expecting tokens" "") \h t .
-#  isTokenString h '='
-#    isTokenString (head t) '\\'
-#      cons (token '.' (position h)) (setTypeAnno (head t) t (tokenString name))
-#      cons (token '.' (position h)) t
-#    cons h (transformDef name t)
-#
+scanLine str pat isDef isExpr = \\
+  toks = tokens str pat
+  .
+  strMatch str pat
+    withCons toks (parseErr "No expression to compile" "") \name rest . \\
+      func = isTokenString (head rest) '='
+        isTokenString (head (tail rest)) '\\'
+          setTypeAnno (head (tail rest)) (tail rest) (tokenString name)
+          tail rest
+        cons (token '\\' (- (position (head rest)) 1)) (transformDef name rest)
+      .
+      parseToks (setDefAnno (checkSetDataType func rest name) name (arity rest 0) str) \list .
+        isDef list
+    parseToks toks \list . isExpr list
+
+parseLine str pat names isDef isExpr = \\
+  astCallback cb = \list . createAst list names \ast . cb ast
+  .
+  scanLine str (astCallback isDef) (astCallback isExpr)
+
+genLine str pat names isDef isExpr = parseLine
+  str
+  names
+  \code . isDef (strCat (cons '(' (cons (gen ast) (cons ');\n' nil))))
+  \ast . isExpr (strCat (cons '(function(){return ' (cons (gen ast) (cons ';});\n' nil))))
+
+transformDef name toks = withCons toks (parseErr "Bad definition, expecting tokens" "") \h t .
+  isTokenString h '='
+    isTokenString (head t) '\\'
+      cons (token '.' (position h)) (setTypeAnno (head t) t (tokenString name))
+      cons (token '.' (position h)) t
+    cons h (transformDef name t)
+
 setTypeAnno start toks name = \\
   pos = position def
   tok = \str . token str pos
@@ -317,24 +317,24 @@ arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
 
 tokListStr toks = jsonStringify (join (map (\t . tokenString t) toks) ' ')
 
-#linesForFile text = filter (\line . not (strMatch line '^[ \i]*#.*|^[ \i]*$')) (strSplit text '\n(?=[^ ])')
+linesForFile text = filter (\line . not (strMatch line '^ *#.*|^ *$')) (strSplit text '\n(?=[^ ])')
 
 defPat = regexp '^([^ =]+).*='
 
-#namesForLines lines = foldLeft Nil (\result line . \\
-#  m = strMatch line defPat
-#  .
-#  hasType m nil result (cons (head (tail m)) result)) lines
+namesForLines lines = foldLeft Nil (\result line . \\
+  m = strMatch line defPat
+  .
+  hasType m nil result (cons (head (tail m)) result)) lines
 
 # This is in JS, because it has to use eval
 #
 #compileLine str pat names isdef isExpr
 
-#jsonForFile text = \\
-#  lines = linesForFile text
-#  names = namesForLines lines
-#  .
-#  map (\lines . jsonStringify (ast2Json)) lines
+jsonForFile text = \\
+  lines = linesForFile text
+  names = namesForLines lines
+  .
+  map (\lines . jsonStringify (ast2Json)) lines
 
 #################
 ## Macros

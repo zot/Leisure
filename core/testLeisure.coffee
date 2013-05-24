@@ -360,6 +360,11 @@ readFile 'core/simpleParse.lsr', (err, code)->
         ast33: -> assertEq lsr("eq (getType nil) 'nil' 1 2"), 1
         ast34: -> assertEq lsr("eq (getType (cons 1 nil)) 'cons' 1 2"), 1
         ast35: -> assertEq splitTokens("splitTokens 'a b' #{delimiterPatStr}").toArray(), ['splitTokens', ' ', "'a b'", ' ', JSON.stringify(LZ.delimiterPat.source)]
+        ast36: ->
+          assertEq String(splitTokens("'^[ \\t]*#.*|^[ \\t]*$'")), 'Cons[\'^[ \\t]*#.*|^[ \\t]*$\']'
+          assertEq String(parseToAst "'^[ \\t]*#.*|^[ \\t]*$'"), 'lit(^[ \t]*#.*|^[ \t]*$)'
+          assertEq gen(parseToAst "'^[ \\t]*#.*|^[ \\t]*$'"), '\"^[ \\t]*#.*|^[ \\t]*$\"'
+          assertEq lsr("'^[ \\t]*#.*|^[ \\t]*$'"), '^[ \t]*#.*|^[ \t]*$'
       runTests 'Leisure parser',
         leisureParse1: ->
           assertEq lsr("strSplit 'a b' #{delimiterPatStr}").toArray(), ['a', ' ', 'b']

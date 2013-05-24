@@ -216,23 +216,44 @@ createLitOrRef = (tok, names, cont)->
   if names.find((el)-> el == tok) != Nil then cont ref tok
   else
     try
-      if tok[0] in "\"'" then cont lit scrub tok.substring 1, tok.length - 1
+      if tok[0] in "\"'" then cont lit parseString tok.substring 1, tok.length - 1
       else if tok[0] >= '0' and tok[0] <= '9' then cont lit JSON.parse tok
       else cont ref tok
     catch err
       cont ref tok
 
-scrub = (str)->
+charCodes =
+  "b": '\b'
+  "f": '\f'
+  "n": '\n'
+  "r": '\r'
+  "t": '\t'
+  "v": '\v'
+  "'": '\''
+  "\"": '\"'
+  "\\": '\\'
+
+parseString = (str)->
   res = ''
   i = 0
+  parseCode = (pat, radix)->
+    code = str.substring(i).match(pat)[0]
+    res += String.fromCharCode parseInt code, radix
+    i += code.length
   while i < str.length
     if str[i] == '\\'
-      res += str[i] + str[i+1]
       i++
-    else if str[i] == '"' then res += '\\"'
-    else res += str[i]
-    i++
-  JSON.parse "\"#{res}\""
+      if str[i] >= '0' && str[i] <= '9' then parseCode /[0-9]+/, 8
+      else if str[i] == 'x'
+        i++
+        parseCode /[0-9a-fA-F][0-9a-fA-F]/, 16
+      else if str[i] == 'u'
+        i++
+        parseCode /[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]/, 16
+      else if !charCodes[str[i]] then throw new Error "Unknown character escape: \\#{str[i]}"
+      else res += charCodes[str[i++]]
+    else res += str[i++]
+  res
 
 createLambda = (start, list, names, cont)->
   withCons list, (-> parseErr "No variable or body for lambda #{loc start}"), (name, rest)->
