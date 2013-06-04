@@ -206,6 +206,10 @@ text2 = """
 
 lsr = (str)-> eval("(#{gen parseToAst(str)})")
 
+lsrD = (str)-> eval("(#{gen parseToAst(str + ' ' + delimiterPatStr)})")
+
+strLsrD = (str)-> String(lsrD str)
+
 id = (x)->x
 
 ign = ->
@@ -276,15 +280,18 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq splitTokens('a b\nc').toArray(), ['a', ' ', 'b', '\n', 'c']
           assertEq splitTokens('a b#\nc').toArray(), ['a', ' ', 'b', '#', '\n', 'c']
           assertEq splitTokens('a b#\nc\n #asdf\nd#l;kj').toArray(), ['a', ' ', 'b', '#', '\n', 'c', '\n ', '#asdf', '\n', 'd', '#l;kj']
-        parse2: -> assertEq splitTokens('a b  c').toArray(), ['a', ' ', 'b', '  ', 'c']
-        parse3: -> assertEq String(tokens('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
-        parse4: -> assertEq String(parse('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+        parse2: -> assertEq String(tokens 'a b'), 'Cons[Token("a", 0) Token("b", 2)]'
+        parse3: -> assertEq String(parse 'a\n b'), 'Cons[Token("a", 0) Token("b", 3)]'
+        parse4: -> assertEq String(parse 'a\n b c'), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
+        parse5: -> assertEq splitTokens('a b  c').toArray(), ['a', ' ', 'b', '  ', 'c']
+        parse6: -> assertEq String(tokens('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+        parse7: -> assertEq String(parse('a b  c')), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
 
-        parse5: -> assertEq splitTokens('a (b)').toArray(), ['a', ' ', '(', 'b', ')']
-        parse6: -> assertEq String(parse('a (b)')), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
-        parse7: -> assertEq String(tokens('a ( (b  )   c) ')), 'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
-        parse8: -> assertEq String(parse('a ( (b  )   c) ')), 'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
-        parse9: ->
+        parse8: -> assertEq splitTokens('a (b)').toArray(), ['a', ' ', '(', 'b', ')']
+        parse9: -> assertEq String(parse('a (b)')), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
+        parse10: -> assertEq String(tokens('a ( (b  )   c) ')), 'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
+        parse11: -> assertEq String(parse('a ( (b  )   c) ')), 'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
+        parse12: ->
           assertEq String(parse('a.b')), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
           assertEq String(parse('a.b#blorfl')), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
           assertEq String(tokens("""
@@ -369,19 +376,22 @@ readFile 'core/simpleParse.lsr', (err, code)->
         leisureParse1: ->
           assertEq lsr("strSplit 'a b' #{delimiterPatStr}").toArray(), ['a', ' ', 'b']
         leisureParse2: ->
-          assertEq lsr("splitTokens 'a b' #{delimiterPatStr}").toArray(), ['a', ' ', 'b']
-        leisureParse3: ->
-          assertEq String(lsr("tokens 'a b' #{delimiterPatStr}")), 'Cons[Token("a", 0) Token("b", 2)]'
+          assertEq lsrD("splitTokens 'a b'").toArray(), ['a', ' ', 'b']
+          assertEq lsrD("splitTokens 'a b\nc'").toArray(), ['a', ' ', 'b', '\n', 'c']
+          assertEq lsrD("splitTokens 'a b#\nc'").toArray(), ['a', ' ', 'b', '#', '\n', 'c']
+          assertEq lsrD("splitTokens 'a b#\nc\n #asdf\nd#l;kj'").toArray(), ['a', ' ', 'b', '#', '\n', 'c', '\n ', '#asdf', '\n', 'd', '#l;kj']
+        leisureParse3: -> assertEq strLsrD("tokens 'a b'"), 'Cons[Token("a", 0) Token("b", 2)]'
         leisureParse4: -> assertEq lsr('getType (cons 1 nil)'), 'cons'
         leisureParse5: -> assertEq lsr('getDataType cons'), 'cons'
         leisureParse6: -> assertEq lsr('hasType (cons 1 nil) cons 1 0'), 1
-        leisureParse7: -> assertEq String(parse 'a\n b'), 'Cons[Token("a", 0) Token("b", 3)]'
-        leisureParse8: -> assertEq String(parse 'a\n b c'), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
-        leisureParse9: -> assertEq String(parse 'a\nb'), 'Token("a", 0)'
-        leisureParse10: -> assertEq String(parse 'a\n b c\n d e'), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
-        leisureParse11: -> assertEq String(parse 'a\n b c\n d e\nf'), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
-        leisureParse12: -> assertEq String(parse 'a\n b c\n  d e'), 'Cons[Token("a", 0) Parens(1, 12, Cons[Token("b", 3) Token("c", 5) Parens(6, 12, Cons[Token("d", 9) Token("e", 11)])])]'
-        leisureParse13: -> assertEq String(parse 'a\n b c\n  d e\n f'),
+        leisureParse7: -> assertEq strLsrD("parse 'a\n b'"), 'Cons[Token("a", 0) Token("b", 3)]'
+        leisureParse8: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
+        leisureParse8_2: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
+        leisureParse9: -> assertEq strLsrD("parse 'a\nb'"), 'Cons[Token("a", 0)]'
+        leisureParse10: -> assertEq strLsrD("parse 'a\n b c\n d e'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
+        leisureParse11: -> assertEq strLsrD("parse 'a\n b c\n d e\nf'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
+        leisureParse12: -> assertEq strLsrD("parse 'a\n b c\n  d e'"), 'Cons[Token("a", 0) Parens(1, 12, Cons[Token("b", 3) Token("c", 5) Parens(6, 12, Cons[Token("d", 9) Token("e", 11)])])]'
+        leisureParse13: -> assertEq strLsrD("parse 'a\n b c\n  d e\n f'"),
           'Cons[Token("a", 0) Parens(1, 12, Cons[Token("b", 3) Token("c", 5) Parens(6, 12, Cons[Token("d", 9) Token("e", 11)])]) Token("f", 14)]'
         leisureParse14: -> assertEq lsr('\\\\(a = 1) (b x = x) . (b a)'), 1
         leisureParse15: ->
@@ -392,28 +402,34 @@ readFile 'core/simpleParse.lsr', (err, code)->
             .
             b a
           """), 1
-        leisureParse16: -> assertEq lsr("splitTokens 'a b  c' #{delimiterPatStr}").toArray(), ['a', ' ', 'b', '  ', 'c']
-        leisureParse17: -> assertEq String(lsr("tokens 'a b  c' #{delimiterPatStr}")), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+        leisureParse16: -> assertEq lsrD("splitTokens 'a b  c'").toArray(), ['a', ' ', 'b', '  ', 'c']
+        leisureParse17: -> assertEq strLsrD("tokens 'a b  c'"), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
         leisureParse18: -> assertEq lsr("'\\n'"), '\n'
         leisureParse19: -> assertEq String(lsr("reverse (cons 1 (cons 2 nil))")), 'Cons[2 1]'
-        leisureParse20: -> assertEq String(lsr("parse 'a' #{delimiterPatStr}")), 'Cons[Token("a", 0)]'
-        leisureParse21: -> assertEq String(lsr("parse 'a b  c' #{delimiterPatStr}")), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
-        leisureParse22: -> assertEq lsr("splitTokens 'a (b)' #{delimiterPatStr}").toArray(), ['a', ' ', '(', 'b', ')']
-        leisureParse23: -> assertEq String(lsr("parse 'a (b)' #{delimiterPatStr}")), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
+        leisureParse20: -> assertEq strLsrD("parse 'a'"), 'Cons[Token("a", 0)]'
+        leisureParse21: -> assertEq strLsrD("parse 'a b  c'"), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+        leisureParse22: -> assertEq lsrD("splitTokens 'a (b)'").toArray(), ['a', ' ', '(', 'b', ')']
+        leisureParse23: -> assertEq strLsrD("parse 'a (b)'"), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
         leisureParse24: ->
-          assertEq String(lsr("tokens 'a ( (b  )   c) ' #{delimiterPatStr}")),
+          assertEq strLsrD("tokens 'a ( (b  )   c) '"),
             'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
         leisureParse25: ->
-          assertEq String(lsr("parse 'a ( (b  )   c) ' #{delimiterPatStr}")),
+          assertEq strLsrD("parse 'a ( (b  )   c) '"),
             'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
         leisureParse26: ->
-          assertEq String(lsr("parse 'a.b' #{delimiterPatStr}")), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
-          assertEq String(parse('a.b#blorfl #{delimiterPatStr}')), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
+          assertEq strLsrD("parse 'a.b'"), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
+          assertEq strLsrD("parse 'a.b#blorfl'"), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
+          assertEq strLsrD("tokens 'a (\\\\b . c d (e f)) g'"),
+            'Cons[Token("a", 0) Token("(", 2) Token("\\\\", 3) Token("b", 4) Token(".", 6) Token("c", 8) Token("d", 10) Token("(", 12) Token("e", 13) Token("f", 15) Token(")", 16) Token(")", 17) Token("g", 19)]'
+          assertEq strLsrD("parse 'a (\\\\b . c d (e f)) g'"),
+            'Cons[Token("a", 0) Parens(2, 18, Cons[Token("\\\\", 3) Token("b", 4) Token(".", 6) Token("c", 8) Token("d", 10) Parens(12, 17, Cons[Token("e", 13) Token("f", 15)])]) Token("g", 19)]'
+          assertEq strLsrD("tokens 'a (\\\\b .\\n  c\\n  d (e f)) g'"),
+            'Cons[Token("a", 0) Token("(", 2) Token("\\\\", 3) Token("b", 4) Token(".", 6) Token("\\n  ", 7) Token("c", 10) Token("\\n  ", 11) Token("d", 14) Token("(", 16) Token("e", 17) Token("f", 19) Token(")", 20) Token(")", 21) Token("g", 23)]'
+          assertEq strLsrD("parse 'a (\\\\b .\\n  c\\n  d (e f)) g'"),
+            'Cons[Token("a", 0) Parens(2, 22, Cons[Token("\\\\", 3) Token("b", 4) Token(".", 6) Token("c", 10) Parens(11, 21, Cons[Token("d", 14) Parens(16, 21, Cons[Token("e", 17) Token("f", 19)])])]) Token("g", 23)]'
       runTests 'Leisure AST',
         leisureAst1: -> assertEq lsr("scrub '\"'"), "\\\""
-        leisureAst2: ->
-          assertEq String(lsr("parse 'a' #{delimiterPatStr}")), 'Cons[Token("a", 0)]'
-          assertEq String(lsr("parseToAst 'a' #{delimiterPatStr}")), 'ref(a)'
+        leisureAst2: -> assertEq strLsrD("parseToAst 'a'"), 'ref(a)'
         leisureAst3: ->
           assertEq lsr("strMatches 'a' 'a' 1 2"), 1
           assertEq String(lsr("strMatch 'a' 'b'")), "Cons[]"
@@ -421,11 +437,11 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(lsr("hasType (strMatch 'a' 'b') nil 1 2")), "1"
           assertEq lsr("strMatches 'a' 'b' 1 2"), 2
         leisureAst4: ->
-          assertEq String(lsr("parse 'a b' #{delimiterPatStr}")), 'Cons[Token("a", 0) Token("b", 2)]'
-          assertEq String(lsr("parseToAst 'a b' #{delimiterPatStr}")), 'apply(a b)'
+          assertEq strLsrD("parse 'a b'"), 'Cons[Token("a", 0) Token("b", 2)]'
+          assertEq strLsrD("parseToAst 'a b'"), 'apply(a b)'
         leisureAst5: ->
-          assertEq String(lsr("parse #{s '\\a . a'} #{delimiterPatStr}")), 'Cons[Token("\\\\", 0) Token("a", 1) Token(".", 3) Token("a", 5)]'
-          assertEq String(lsr("parseToAst #{s '\\a . a'} #{delimiterPatStr}")), 'lambda(\\a . a)'
+          assertEq strLsrD("parse #{s '\\a . a'}"), 'Cons[Token("\\\\", 0) Token("a", 1) Token(".", 3) Token("a", 5)]'
+          assertEq strLsrD("parseToAst #{s '\\a . a'}"), 'lambda(\\a . a)'
         leisureAst6: ->
           lsr("\\@define (duh 1 'duh x = x') . \\x . x")
           assertEq lsr("duh 3"), 3

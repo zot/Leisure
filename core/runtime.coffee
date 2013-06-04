@@ -52,15 +52,16 @@ define '+', ->(x)->(y)->x() + y()
 define '-', ->(x)->(y)->x() - y()
 define '*', ->(x)->(y)->x() * y()
 define '/', ->(x)->(y)->x() / y()
-define 'lt', ->(x)->(y)->x() < y()
-define 'le', ->(x)->(y)->x() <= y()
-define 'gt', ->(x)->(y)->x() > y()
-define 'ge', ->(x)->(y)->x() >= y()
+define 'lt', ->(x)->(y)->booleanFor x() < y()
+define 'le', ->(x)->(y)->booleanFor x() <= y()
+define 'gt', ->(x)->(y)->booleanFor x() > y()
+define 'ge', ->(x)->(y)->booleanFor x() >= y()
 
 ############
 # STRINGS
 ############
 
+define 'strAt', ->(str)->(index)-> str()[index()]
 define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
 define 'strSubstring', ->(str)->(start)->(end) str().substring start(), end()

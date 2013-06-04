@@ -18,13 +18,14 @@ id x = x
 cons a b = \f . f a b
 # nil is the same as false, but it's useful separate as a marker
 nil = \a b . b
+isNil n = hasType n nil
 head l = l \h t . h
 tail l = l \h t . t
 append a b = a (\h t D . cons h (append t b)) b
 reverse l = rev l nil
 rev l result = l (\h t D . rev t (cons h result)) result
 filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
-find list predicate = list (\h t D . predicate h (some h) (find t predicate)) none
+find predicate list = list (\h t D . predicate h (some h) (find predicate t)) none
 map func l = l (\h t D . cons (func h) (map func t)) nil
 foldLeft func value l = l (\h t D . foldLeft func (func value h) t) value
 intersperse list element = list (\h t D .
@@ -32,6 +33,8 @@ intersperse list element = list (\h t D .
     h
     cons h (cons element (intersperse t element))) nil
 join list el = strCat (intersperse list el)
+acons k v alist = cons (cons k v) alist
+assoc k alist = find (\el . eq k (head el)) alist
 
 ############
 # TOKENS
@@ -100,16 +103,31 @@ parseGroup left toks gr cont = withCons toks
      cont (parensFromToks left h (reverse gr)) t
      parseTok toks \restH restT . parseGroup left restT (cons restH gr) cont
 
+# cont takes the parsed group and the rest of the toks
 parseIndent indent toks gr cont = withCons toks
-  cont (parens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil
+  cont (optParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil
   \h t . or (isTokenStart h ')')
-    and (isTokenStart h '\n') (le (strlen (tokenString h)) (length (tokenString indent)))
-    cont (parens (tokenPos indent) (tokenPos h) (reverse gr)) toks
+    and (isTokenStart h '\n') (le (strLen (tokenString h)) (strLen (tokenString indent)))
+    cont (optParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
     parseTok toks \restH restT . parseIndent indent restT (cons restH gr) cont
+
+optParens start end group = \\
+  p = parens start end group
+  .
+  withCons group
+    p
+    \h t . isNil t
+      h
+      p
 
 id x = x
 
-parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
+parse str pat = \\
+  p = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
+  .
+  isToken p
+    cons p nil
+    p
 
 #################
 ## Creating ASTs
@@ -142,6 +160,31 @@ loc thing = \\
   .
   strCat (cons 'at ' (cons l nil))
 
+charCodes = acons 'b' '\b'
+  acons 'f' '\f'
+    acons 'n' '\n'
+      acons 'r' '\r'
+        acons 't' '\t'
+          acons 'v' '\v'
+            acons "'" "'"
+              acons '"' '"'
+                acons '\\' '\\'
+                  nil
+
+parseString start str cont = parseStringChars start str \strList . cont (strCat strList)
+
+parseStringChars start str cont = eq str '' (cont nil)
+  c = (strAt str 0)
+  .
+  eq c '\\'
+    \\
+      d = strAt str (+ 1 index)
+      .
+      assoc d charCodes
+        \char . cons char (parseStringChars str (+ 1 index))
+        parseErr (strCat (cons "Invalid character code: " (cons (strAt str (+ 1 index)) nil))) (loc start)
+    cons c (parseStringChars str (+ 1 index))
+
 scrub str = strFromList (scrubList (strToList str))
 
 scrubList list = list
@@ -154,10 +197,10 @@ scrubList list = list
   nil
 
 createAst inList names cont = strip inList \list .
-  isToken list (createLitOrRef (tokenString list) names cont)
+  isToken list (createLitOrRef list names cont)
     list
       \h t D .
-        isTokenString h '\\\\' (createLit h t names cont)
+        isTokenString h '\\\\' (createLet h t names cont)
           isTokenString h '\\@' (createAnno h t names cont)
             isTokenString h '\\' (createLambda h t names cont)
               createAst h names \func . createApply func t names cont
@@ -167,16 +210,19 @@ strMatches str pat = hasType (strMatch str pat) cons
 
 digit = regexp '^[0-9]+$'
 
-createLitOrRef tokStr names cont = find names (\el . eq el tokStr)
-  \el .
-    or (strStartsWith tokStr '"') (strStartsWith tokStr "'")
-      cont (lit (scrub (strSubstring tokStr 1 (- (strLen tokStr) 1))))
-      strMatches tokStr digit
-        jsonParse tokStr
-          \err . cont (ref tokStr)
-          \json . lit json
-        cont (ref tokStr)
-  cont (ref tokStr)
+createLitOrRef tok names cont = \\
+  tokStr = tokenString tok
+  .
+  find (\el . eq el tokStr) names
+    \el .
+      or (strStartsWith tokStr '"') (strStartsWith tokStr "'")
+        parseString tok (strSubstring tokStr 1 (- (strLen tokStr) 1)) \str . cont (lit str)
+        strMatches tokStr digit
+          jsonParse tokStr
+            \err . cont (ref tokStr)
+            \json . lit json
+          cont (ref tokStr)
+    cont (ref tokStr)
 
 createLambda start list names cont = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)

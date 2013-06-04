@@ -10,7 +10,7 @@ SRC=base ast testing gen runtime simpleParse browser
 TEST=testLeisure
 ALL=$(SRC) $(TEST)
 IN_FILES=$(ALL:%=core/%)
-OUT_FILES=$(ALL:%=lib/%.js)
+OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map)
 DIR=core
 LIB=lib
 
