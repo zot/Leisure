@@ -16,6 +16,7 @@ id x = x
 ############
 
 cons a b = \f . f a b
+isCons c = hasType c cons
 # nil is the same as false, but it's useful separate as a marker
 nil = \a b . b
 isNil n = hasType n nil
@@ -236,19 +237,19 @@ createLambda start list names cont = \\
           \bodyAst . cont (lambda n bodyAst)
 
 createAnno start list names cont = \\
-  err = parseErr "Annotation needs a name, data, a dot, and a body " (loc start)
+  err = parseErr "Annotation needs a name, optional data, a dot, and a body " (loc start)
   .
   withCons list err \name rest .
     withCons rest err \data rest .
-      strip data \data .
-        withCons rest err \dot body .
-          isTokenString dot '.'
-            createAst body names \bodyAst .
-              cleanTokens start name \name .
-                cleanTokens start data \data .
-                  cont (anno name data bodyAst)
-            err
-
+      not (or (isTokenString data '.') (and (isCons rest) (isTokenString (head rest) '.'))) err
+        \\
+          body = isTokenString data '.' rest (tail rest)
+          data = isTokenString data '.' nil (strip data id)
+          .
+          createAst body names \bodyAst .
+            cleanTokens start name \name .
+              cont (anno name data bodyAst)
+  
 bodyStructPat = regexp '\\|\\\\|\\@'
 
 createApply func list names cont = withCons list (cont func) \argItem rest .

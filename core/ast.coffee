@@ -187,7 +187,7 @@ class Leisure_BaseCons extends LeisureObject
 consEq = (a, b)-> a == b or (a instanceof Leisure_BaseCons and a.equals(b))
 
 # cons and Nil are Leisure-based so that Leisure code can work with it transparently
-# they look like ordinary JS classes, but the cons
+# they look like ordinary JS classes, but the "instances" are actually functions
 class Leisure_cons extends Leisure_BaseCons
   head: -> @ ->(a)->(b)->a()
   tail: -> @ ->(a)->(b)->b()

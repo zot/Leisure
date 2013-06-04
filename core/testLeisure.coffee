@@ -26,6 +26,8 @@ misrepresented as being the original software.
 Tests for Leisure
 ###
 
+Error.stackTraceLimit = Infinity
+
 {
   readFile,
   writeFile,
@@ -386,15 +388,15 @@ readFile 'core/simpleParse.lsr', (err, code)->
         leisureParse6: -> assertEq lsr('hasType (cons 1 nil) cons 1 0'), 1
         leisureParse7: -> assertEq strLsrD("parse 'a\n b'"), 'Cons[Token("a", 0) Token("b", 3)]'
         leisureParse8: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
-        leisureParse8_2: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
-        leisureParse9: -> assertEq strLsrD("parse 'a\nb'"), 'Cons[Token("a", 0)]'
-        leisureParse10: -> assertEq strLsrD("parse 'a\n b c\n d e'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
-        leisureParse11: -> assertEq strLsrD("parse 'a\n b c\n d e\nf'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
-        leisureParse12: -> assertEq strLsrD("parse 'a\n b c\n  d e'"), 'Cons[Token("a", 0) Parens(1, 12, Cons[Token("b", 3) Token("c", 5) Parens(6, 12, Cons[Token("d", 9) Token("e", 11)])])]'
-        leisureParse13: -> assertEq strLsrD("parse 'a\n b c\n  d e\n f'"),
+        leisureParse9: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
+        leisureParse10: -> assertEq strLsrD("parse 'a\nb'"), 'Cons[Token("a", 0)]'
+        leisureParse11: -> assertEq strLsrD("parse 'a\n b c\n d e'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
+        leisureParse12: -> assertEq strLsrD("parse 'a\n b c\n d e\nf'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
+        leisureParse13: -> assertEq strLsrD("parse 'a\n b c\n  d e'"), 'Cons[Token("a", 0) Parens(1, 12, Cons[Token("b", 3) Token("c", 5) Parens(6, 12, Cons[Token("d", 9) Token("e", 11)])])]'
+        leisureParse14: -> assertEq strLsrD("parse 'a\n b c\n  d e\n f'"),
           'Cons[Token("a", 0) Parens(1, 12, Cons[Token("b", 3) Token("c", 5) Parens(6, 12, Cons[Token("d", 9) Token("e", 11)])]) Token("f", 14)]'
-        leisureParse14: -> assertEq lsr('\\\\(a = 1) (b x = x) . (b a)'), 1
-        leisureParse15: ->
+        leisureParse15: -> assertEq lsr('\\\\(a = 1) (b x = x) . (b a)'), 1
+        leisureParse16: ->
           assertEq lsr("""
           \\\\
             a = 1
@@ -402,21 +404,21 @@ readFile 'core/simpleParse.lsr', (err, code)->
             .
             b a
           """), 1
-        leisureParse16: -> assertEq lsrD("splitTokens 'a b  c'").toArray(), ['a', ' ', 'b', '  ', 'c']
-        leisureParse17: -> assertEq strLsrD("tokens 'a b  c'"), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
-        leisureParse18: -> assertEq lsr("'\\n'"), '\n'
-        leisureParse19: -> assertEq String(lsr("reverse (cons 1 (cons 2 nil))")), 'Cons[2 1]'
-        leisureParse20: -> assertEq strLsrD("parse 'a'"), 'Cons[Token("a", 0)]'
-        leisureParse21: -> assertEq strLsrD("parse 'a b  c'"), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
-        leisureParse22: -> assertEq lsrD("splitTokens 'a (b)'").toArray(), ['a', ' ', '(', 'b', ')']
-        leisureParse23: -> assertEq strLsrD("parse 'a (b)'"), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
-        leisureParse24: ->
+        leisureParse17: -> assertEq lsrD("splitTokens 'a b  c'").toArray(), ['a', ' ', 'b', '  ', 'c']
+        leisureParse18: -> assertEq strLsrD("tokens 'a b  c'"), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+        leisureParse19: -> assertEq lsr("'\\n'"), '\n'
+        leisureParse20: -> assertEq String(lsr("reverse (cons 1 (cons 2 nil))")), 'Cons[2 1]'
+        leisureParse21: -> assertEq strLsrD("parse 'a'"), 'Cons[Token("a", 0)]'
+        leisureParse22: -> assertEq strLsrD("parse 'a b  c'"), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
+        leisureParse23: -> assertEq lsrD("splitTokens 'a (b)'").toArray(), ['a', ' ', '(', 'b', ')']
+        leisureParse24: -> assertEq strLsrD("parse 'a (b)'"), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
+        leisureParse25: ->
           assertEq strLsrD("tokens 'a ( (b  )   c) '"),
             'Cons[Token("a", 0) Token("(", 2) Token("(", 4) Token("b", 5) Token(")", 8) Token("c", 12) Token(")", 13)]'
-        leisureParse25: ->
+        leisureParse26: ->
           assertEq strLsrD("parse 'a ( (b  )   c) '"),
             'Cons[Token("a", 0) Parens(2, 14, Cons[Parens(4, 9, Cons[Token("b", 5)]) Token("c", 12)])]'
-        leisureParse26: ->
+        leisureParse27: ->
           assertEq strLsrD("parse 'a.b'"), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
           assertEq strLsrD("parse 'a.b#blorfl'"), 'Cons[Token("a", 0) Token(".", 1) Token("b", 2)]'
           assertEq strLsrD("tokens 'a (\\\\b . c d (e f)) g'"),
@@ -427,6 +429,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
             'Cons[Token("a", 0) Token("(", 2) Token("\\\\", 3) Token("b", 4) Token(".", 6) Token("\\n  ", 7) Token("c", 10) Token("\\n  ", 11) Token("d", 14) Token("(", 16) Token("e", 17) Token("f", 19) Token(")", 20) Token(")", 21) Token("g", 23)]'
           assertEq strLsrD("parse 'a (\\\\b .\\n  c\\n  d (e f)) g'"),
             'Cons[Token("a", 0) Parens(2, 22, Cons[Token("\\\\", 3) Token("b", 4) Token(".", 6) Token("c", 10) Parens(11, 21, Cons[Token("d", 14) Parens(16, 21, Cons[Token("e", 17) Token("f", 19)])])]) Token("g", 23)]'
+        leisureParse28: -> assertEq strLsrD("parse #{s '"a b"'}"), 'Cons[Token("\\\"a b\\\"", 0)]'
       runTests 'Leisure AST',
         leisureAst1: -> assertEq lsr("scrub '\"'"), "\\\""
         leisureAst2: -> assertEq strLsrD("parseToAst 'a'"), 'ref(a)'
@@ -445,6 +448,9 @@ readFile 'core/simpleParse.lsr', (err, code)->
         leisureAst6: ->
           lsr("\\@define (duh 1 'duh x = x') . \\x . x")
           assertEq lsr("duh 3"), 3
+        leisureAst7: -> assertEq strLsrD("parseToAst #{s '\\@ a . 1'}"), 'anno(\\@a Cons[] . 1)'
+        leisureAst8: -> assertEq strLsrD("parseToAst #{s '\\@ a b . 1'}"), 'anno(\\@a Token("b", 5) . 1)'
+        leisureAst9: -> assertEq lsr('\\\\ (x = 1) (x = + x 1) . x'), 2
 
       console.log '\nDone'
       process.exit(0)

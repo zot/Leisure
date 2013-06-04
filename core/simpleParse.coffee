@@ -259,9 +259,9 @@ createLambda = (start, list, names, cont)->
   withCons list, (-> parseErr "No variable or body for lambda #{loc start}"), (name, rest)->
     withCons rest, (-> parseErr "No body for lambda #{loc start}"), (dot, body)->
       withToken name, (-> parseErr "Expecting name for lambda #{loc start}"), (n)->
-        if isTokenString dot, '.' then createAst body, cons(name, names), (bodyAst)->
+        if isTokenString dot, '.' then createAst body, cons(n, names), (bodyAst)->
           cont lambda n, bodyAst
-        else createLambda start, rest, cons(name, names), (bodyAst)->
+        else createLambda start, rest, cons(n, names), (bodyAst)->
           cont lambda n, bodyAst
 
 createAnno = (start, list, names, cont)->
@@ -319,7 +319,7 @@ createSublets = (start, binding, body, names, cont)->
   else withCons body, (-> parseErr "Let expected a body"), (bodyH, bodyT)->
     getNameAndDef parensStart(binding), parensContent(binding), names, (name, def)->
       createSublets start, bodyH, bodyT, names, (bodyAst)->
-        cont llet tokenString(name), def, bodyAst
+        cont llet (tokenString name), def, bodyAst
 
 getNameAndDef = (pos, binding, names, cont)->
   withCons tail(binding), (-> parseErr "Let expected binding at #{pos}"), (snd, sndT)->
@@ -337,18 +337,23 @@ getLetLambda = (pos, def, args, names, cont)->
 ###############
 
 scanLine = (str, isDef, isExpr)->
-  toks = tokens str
-  if str.match defPat
-    name = head toks
-    func = if isTokenString (head tail toks), '='
-      if isTokenString (head tail tail toks), '\\' then setTypeAnno (head tail tail toks), (tail tail toks), tokenString name
-      else tail tail toks
-    else cons token('\\', position(head tail toks) - 1), transformDef name, tail toks
-    parseToks setDefAnno(checkSetDataType(func, tail(toks), name), name, arity(tail(toks), 0), str), (list)->
-      isDef list
-  else
-    parseToks toks, (list)->
-      isExpr list
+  try
+    toks = tokens str
+    if str.match defPat
+      name = head toks
+      func = if isTokenString (head tail toks), '='
+        if isTokenString (head tail tail toks), '\\' then setTypeAnno (head tail tail toks), (tail tail toks), tokenString name
+        else tail tail toks
+      else cons token('\\', position(head tail toks) - 1), transformDef name, tail toks
+      parseToks setDefAnno(checkSetDataType(func, tail(toks), name), name, arity(tail(toks), 0), str), (list)->
+        isDef list
+    else
+      parseToks toks, (list)->
+        isExpr list
+  catch err
+    console.log "Error parsing <#{str}>, #{err.message}"
+    err.message = "Error parsing <#{str}>, #{err.message}"
+    throw err
 
 parseLine = (str, names, isDef, isExpr)->
   astCallback = (cb)-> (list)-> createAst list, names, (ast)-> cb ast
