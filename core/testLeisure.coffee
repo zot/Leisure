@@ -209,13 +209,21 @@ text2 = """
   v6 = + 5 6
   """
 
+evalAst = (ast)-> eval("(#{gen ast})")
+
 lsr = (str)-> eval("(#{gen parseToAst(str)})")
 
 lsrD = (str)-> eval("(#{gen parseToAst(str + ' ' + delimiterPatStr)})")
 
 strLsrD = (str)-> String(lsrD str)
 
-lsrComp = (str)-> monad eval "(#{gen lsr("parseLine #{s str} #{delimiterPatStr} nil id id")})"
+lsrComp = (str, diag)->
+  if diag
+    console.log "COMPILE: #{str}: " + "parseLine #{s str} #{delimiterPatStr} nil id id"
+    console.log "AST: " + (lsr "parseLine #{s str} #{delimiterPatStr} nil id id")
+    console.log "JS: (" + gen(lsr "parseLine #{s str} #{delimiterPatStr} nil id id") + ")"
+    console.log "done"
+  monad eval "(#{gen lsr("parseLine #{s str} #{delimiterPatStr} nil id id")})"
 
 monad = (m)-> runMonad m, defaultEnv, id
 
@@ -483,25 +491,31 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq strLsrD("parseToAst #{s '\\\\(a b = c) (c = 3) . a 5'}"), 'let(\\\\(a = \\b . c) (c = 3) . a 5)'
         leisureAst16: ->
           assertEq strLsrD("parseToAst '3'"), 'lit(3)'
+        leisureAst17: ->
+          assertEq lsr("(\\x . x) 3"), 3
+        leisureAst18: ->
+          assertEq evalAst(lsrD("parseToAst '3'")), 3
         leisureAst19: ->
-          assertEq lsrComp("(\\x . x) 3"), 3
-        leisureAst20: -> #ast9
-          assertEq lsrComp("\\x . x")(->7), 7
-        leisureAst21: ->
-          console.log "(" + gen(parseToAst "'hello' #{delimiterPatStr} nil id id") + ")"
-          assertEq lsrComp('"hello"'), 'hello'
-        leisureAst22: -> #ast10
-          console.log lsrD("parseToAst #{s 'getType "hello"'}")
-          console.log gen lsrD("parseToAst #{s 'getType "hello"'}")
-          assertEq lsrComp('getType "hello"'), "*string"
-        leisureAst23: -> #ast11:
-          assertEq lsrComp('3'), 3
-        leisureAst24: -> #ast12:
-          assertEq lsrComp('\\x . x')(->3), 3
-        leisureAst25: -> #ast13:
-          console.log "(" + gen(parseToAst "parseLine 'id = \\x . x' #{delimiterPatStr} nil id id") + ")"
-          assertEq String(monad lsr("parseLine 'id = \\x . x' #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
-          #assertEq String(parseLine 'id x = x', Nil, id, ign), 'apply(define id 1 id x = x \\x . x)'
+          assertEq lsrComp("3"), 3
+        #leisureAst19: ->
+        #  assertEq lsrComp("(\\x . x) 3", true), 3
+        #leisureAst20: -> #ast9
+        #  assertEq lsrComp("\\x . x")(->7), 7
+        #leisureAst21: ->
+        #  console.log "(" + gen(parseToAst "'hello' #{delimiterPatStr} nil id id") + ")"
+        #  assertEq lsrComp('"hello"'), 'hello'
+        #leisureAst22: -> #ast10
+        #  console.log lsrD("parseToAst #{s 'getType "hello"'}")
+        #  console.log gen lsrD("parseToAst #{s 'getType "hello"'}")
+        #  assertEq lsrComp('getType "hello"'), "*string"
+        #leisureAst23: -> #ast11:
+        #  assertEq lsrComp('3'), 3
+        #leisureAst24: -> #ast12:
+        #  assertEq lsrComp('\\x . x')(->3), 3
+        #leisureAst25: -> #ast13:
+        #  console.log "(" + gen(parseToAst "parseLine 'id = \\x . x' #{delimiterPatStr} nil id id") + ")"
+        #  assertEq String(monad lsr("parseLine 'id = \\x . x' #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
+        #  assertEq String(parseLine 'id x = x', Nil, id, ign), 'apply(define id 1 id x = x \\x . x)'
         #ast14: ->
         #  compileLine('id = \\x . x', Nil, id, id)
         #  assertEq compileLine('id', Nil, (->), id)(->3), 3

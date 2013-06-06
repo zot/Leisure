@@ -86,8 +86,15 @@ withToken tok nonTokCase tokCase = isToken tok (tok tokCase) nonTokCase
 ## withCons is like a safe version of a cons
 withCons l nilCase cont = hasType l cons (l (\h t D . cont h t) nilCase) nilCase
 
-parseToks toks cont = eq toks nil (cont nil)
-  parseTok toks \h t . parseToks t \res . cont (cons h res)
+parseToks toks cont = parseIndent (token '\n' 0) toks nil \h t . \\
+  p = stripParens h
+  .
+  isNil t
+    cont
+      isToken p
+        cons p nil
+        p
+    parseErr (strCat (cons "Extra tokens: " (cons t (cons ", " nil)))) (loc t)
 
 parseTok toks cont = withCons toks nil \h t .
   isTokenString h '('
@@ -122,13 +129,6 @@ optParens start end group = \\
       p
 
 id x = x
-
-parse str pat = \\
-  p = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
-  .
-  isToken p
-    cons p nil
-    p
 
 #################
 ## Creating ASTs
@@ -298,38 +298,37 @@ getLetLambda pos def args names cont =
         createAst (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names cont
         getLetLambda pos rest (cons arg args) names cont
 
-parseToAst str pat = createAst (parse str pat) nil id
-
 #################
 ## Compiling
 #################
 
-scanLine str pat isDef isExpr = \\
+scanLine str pat onDef onExpr = \\
   toks = tokens str pat
   .
-  strMatch str pat
+  strMatches str pat
     withCons toks (parseErr "No expression to compile" "") \name rest . \\
-      func = isTokenString (head rest) '='
-        isTokenString (head (tail rest)) '\\'
-          setTypeAnno (head (tail rest)) (tail rest) (tokenString name)
-          tail rest
-        cons (token '\\' (- (position (head rest)) 1)) (transformDef name rest)
+      parseIt func = parseToks (checkSetDataType func rest name) \list .
+        onDef (createDef list name (arity rest 0) str)
       .
-      parseToks (checkSetDataType func rest name) \list .
-        isDef (createDef list name (arity rest 0) str)
-    parseToks toks \list . isExpr list
+      isTokenString (head rest) '='
+        isTokenString (head (tail rest)) '\\'
+          parseIt (setTypeAnno (head (tail rest)) (tail rest) (tokenString name))
+          parseIt (tail rest)
+        transformDef name rest \def .
+          parseIt (cons (token '\\' (- (position (head rest)) 1)) def)
+    parseToks toks \list . onExpr list
 
-parseLine str pat names isDef isExpr = \\
+parseLine str pat names onDef onExpr = \\
   astCallback cb = \list . createAst list names \ast . cb ast
   .
-  scanLine str (astCallback isDef) (astCallback isExpr)
+  scanLine str pat (astCallback onDef) (astCallback onExpr)
 
-transformDef name toks = withCons toks (parseErr "Bad definition, expecting tokens" "") \h t .
+transformDef name toks cont = withCons toks (parseErr "Bad definition, expecting tokens" (loc name)) \h t .
   isTokenString h '='
     isTokenString (head t) '\\'
-      cons (token '.' (position h)) (setTypeAnno (head t) t (tokenString name))
-      cons (token '.' (position h)) t
-    cons h (transformDef name t)
+      cont (cons (token '.' (position h)) (setTypeAnno (head t) t (tokenString name)))
+      cont (cons (token '.' (position h)) t)
+    transformDef name t \list . cont (cons h list)
 
 setTypeAnno start toks name = \\
   pos = position def
@@ -356,7 +355,7 @@ arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
 
 tokListStr toks = jsonStringify (join (map (\t . tokenString t) toks) ' ')
 
-linesForFile text = filter (\line . not (strMatch line '^ *#.*|^ *$')) (strSplit text '\n(?=[^ ])')
+linesForFile text = filter (\line . not (strMatches line '^ *#.*|^ *$')) (strSplit text '\n(?=[^ ])')
 
 defPat = regexp '^([^ =]+).*='
 
@@ -367,7 +366,7 @@ namesForLines lines = foldLeft Nil (\result line . \\
 
 # This is in JS, because it has to use eval
 #
-#compileLine str pat names isdef isExpr
+#compileLine str pat names isdef onExpr
 
 jsonForFile text = \\
   lines = linesForFile text
@@ -380,3 +379,19 @@ jsonForFile text = \\
 #################
 
 #macro m def = 
+
+
+#################
+## TESTING
+#################
+
+parse str pat = \\
+  p = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
+  .
+  isToken p
+    cons p nil
+    p
+
+parseToAst str pat = createAst (parse str pat) nil id
+
+d label value expr = log (strCat (cons label (cons value nil))) expr

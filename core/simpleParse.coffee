@@ -221,7 +221,7 @@ createLitOrRef = (tok, names, cont)->
   else
     try
       if tok[0] in "\"'" then cont lit parseString tok.substring 1, tok.length - 1
-      else if tok[0] >= '0' and tok[0] <= '9' then cont lit JSON.parse tok
+      else if (tok[0] >= '0' and tok[0] <= '9') or tok[0] == '-' then cont lit JSON.parse tok
       else cont ref tok
     catch err
       cont ref tok
