@@ -66,7 +66,8 @@ define 'ge', ->(x)->(y)->booleanFor x() >= y()
 define 'strAt', ->(str)->(index)-> str()[index()]
 define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
-define 'strSubstring', ->(str)->(start)->(end) str().substring start(), end()
+define 'strSubstring', ->(str)->(start)->(end)->
+  str().substring start(), (if end() < 1 then str().length + end() else end())
 define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
 define 'strCat', ->(list)-> list().toArray().join('')
 define 'strMatch', ->(str)->(pat)->
@@ -82,18 +83,19 @@ define 'strToList', ->(str)-> strToList str()
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
 define 'strFromList', ->(list)-> strFromList list()
 strFromList = (list)-> if list instanceof Leisure_nil then '' else head(list) + strFromList(tail list)
-define 'regexp', ->(str)-> new RegExp str
+define 'regexp', ->(str)-> new RegExp str()
 define 'jsonParse', ->(str)->(failCont)->(successCont)->
   try
-    p = JSON.parse str
-    successCont() p
+    p = JSON.parse str()
+    successCont() ->p
   catch err
-    failCont() err
+    failCont() ->err
 define 'jsonStringify', ->(obj)->(failCont)->(successCont)->
   try
-    successCont() JSON.stringify obj()
+    s = JSON.stringify obj()
+    successCont() ->s
   catch err
-    failCont() err
+    failCont() ->err
 
 ############
 # Diagnostics

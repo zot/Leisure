@@ -410,11 +410,13 @@ namesForLines = (lines)-> _.foldl lines,
   ((result, line)-> if m = line.match defPat then cons m[1], result else result),
   Nil
 
-compileFile = (text)->
+compileFile = (text, filename)->
   id = (x)-> x
   lines = linesForFile text
   names = namesForLines lines
-  _.map(lines, (line)-> "runMonad((#{genLine line.trim(), names, id, id}), defaultEnv, identity);\n").join('')
+  "require('source-map-support').install();\n" +
+     _.map(lines, (line)-> "runMonad((#{genLine line.trim(), names, id, id}), defaultEnv, identity);\n").join('') +
+    (if filename then "\n//@ sourceURL=#{filename}\n" else "")
 
 jsonForFile = (text)->
   id = (x)-> x

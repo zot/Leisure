@@ -174,17 +174,17 @@ charCodes = acons 'b' '\b'
 
 parseString start str cont = parseStringChars start str \strList . cont (strCat strList)
 
-parseStringChars start str cont = eq str '' (cont nil)
-  c = (strAt str 0)
+parseStringChars start str cont = eq str '' (cont nil) \\
+  c = strAt str 0
   .
   eq c '\\'
     \\
-      d = strAt str (+ 1 index)
+      d = strAt str 1
       .
       assoc d charCodes
-        \char . cons char (parseStringChars str (+ 1 index))
+        \char . parseStringChars start (strSubstring str 1 0) \s . cont (cons char s)
         parseErr (strCat (cons "Invalid character code: " (cons (strAt str (+ 1 index)) nil))) (loc start)
-    cons c (parseStringChars str (+ 1 index))
+    parseStringChars start (strSubstring str 1) \s . cont (cons c s)
 
 scrub str = strFromList (scrubList (strToList str))
 
@@ -215,15 +215,14 @@ createLitOrRef tok names cont = \\
   tokStr = tokenString tok
   .
   find (\el . eq el tokStr) names
-    \el .
-      or (strStartsWith tokStr '"') (strStartsWith tokStr "'")
-        parseString tok (strSubstring tokStr 1 (- (strLen tokStr) 1)) \str . cont (lit str)
-        strMatches tokStr digit
-          jsonParse tokStr
-            \err . cont (ref tokStr)
-            \json . lit json
-          cont (ref tokStr)
-    cont (ref tokStr)
+    \el . cont (ref tokStr)
+    or (strStartsWith tokStr '"') (strStartsWith tokStr "'")
+      parseString tok (strSubstring tokStr 1 (- (strLen tokStr) 1)) \str . cont (lit str)
+      strMatches tokStr digit
+        jsonParse tokStr
+          \err . cont (ref tokStr)
+          \json . cont (lit json)
+        cont (ref tokStr)
 
 createLambda start list names cont = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
@@ -282,10 +281,10 @@ getLetNames start list names cont = \\
 
 createSublets start binding body names cont =
   isTokenString binding '.' (createAst body names cont)
-    withCons body (parseErr "Let expecetd a body " (loc start)) \bodyH bodyT .
+    withCons body (parseErr "Let expected a body " (loc start)) \bodyH bodyT .
       getNameAndDef (parensStart binding) (parensContent binding) names \name def .
         createSublets start bodyH bodyT names \bodyAst .
-          cont let (tokenString name) def bodyAst
+          cont (let (tokenString name) def bodyAst)
 
 getNameAndDef pos binding names cont =
   withCons (tail binding) (parseErr "Let expected binding at " pos) \snd sndT .
@@ -324,12 +323,6 @@ parseLine str pat names isDef isExpr = \\
   astCallback cb = \list . createAst list names \ast . cb ast
   .
   scanLine str (astCallback isDef) (astCallback isExpr)
-
-genLine str pat names isDef isExpr = parseLine
-  str
-  names
-  \code . isDef (strCat (cons '(' (cons (gen ast) (cons ');\n' nil))))
-  \ast . isExpr (strCat (cons '(function(){return ' (cons (gen ast) (cons ';});\n' nil))))
 
 transformDef name toks = withCons toks (parseErr "Bad definition, expecting tokens" "") \h t .
   isTokenString h '='
