@@ -249,7 +249,7 @@ createAnno start list names cont = \\
           createAst body names \bodyAst .
             cleanTokens start name \name .
               cont (anno name data bodyAst)
-  
+
 bodyStructPat = regexp '\\|\\\\|\\@'
 
 createApply func list names cont = withCons list (cont func) \argItem rest .
@@ -316,8 +316,8 @@ scanLine str pat isDef isExpr = \\
           tail rest
         cons (token '\\' (- (position (head rest)) 1)) (transformDef name rest)
       .
-      parseToks (setDefAnno (checkSetDataType func rest name) name (arity rest 0) str) \list .
-        isDef list
+      parseToks (checkSetDataType func rest name) \list .
+        isDef (createDef list name (arity rest 0) str)
     parseToks toks \list . isExpr list
 
 parseLine str pat names isDef isExpr = \\
@@ -344,11 +344,10 @@ setTypeAnno start toks name = \\
   .
   cons (tok '\\@') (cons (tok 'type') (cons (tok name) (cons (tok '.') toks)))
 
-setDefAnno def name arity src = \\
-  pos = position def
-  tok = \str . token str pos
+createDef def name arity src = \\
+  tok str = token str (position def)
   .
-  cons (tok '\\@') (cons (tok 'define') (cons (cons (tok (tokenString name)) (cons (tok (strString arity)) (cons (tok src) nil))) (cons (tok '.') def)))
+  cons (tok 'define') (cons (tok (jsonStringify (tokenString name))) (cons (tok (strString arity)) (cons (tok (jsonStringify src)) (cons (cons def nil) nil))))
 
 checkSetDataType toks curToks name = withCons curToks \h t .
   isTokenString h '='

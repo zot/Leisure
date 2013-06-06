@@ -34,13 +34,17 @@ misrepresented as being the original software.
   ensureLeisureClass,
   ref,
   lit,
-
-    apply,
+  apply,
   lambda,
   llet,
   anno,
   ast2Json,
 } = root = module.exports = require './ast'
+{
+  runMonad,
+  defaultEnv,
+  identity,
+} = require './runtime'
 {gen} = require './gen'
 _ = require('./lodash.min')
 
@@ -309,9 +313,9 @@ createLet = (start, list, names, cont)->
 getLetNames = (start, list, names, cont)->
   withCons list, (-> cont names), (binding, body)->
     if isTokenString binding, '.' then cont names
-    else withParens binding, (-> parseErr "Let expected binding #{loc start}"), (def)->
-      withCons def, (-> parseErr "Let expected binding #{loc start}"), (name, rest)->
-        withToken name, (-> parseErr "Let expected binding #{loc start}"), (str)->
+    else withParens binding, (-> parseErr "Let expected binding, but no parens or indented line at #{loc start}"), (def)->
+      withCons def, (-> parseErr "Let expected binding, but no list #{loc start}"), (name, rest)->
+        withToken name, (-> parseErr "Let expected binding but no name #{loc start}"), (str)->
           getLetNames start, body, cons(str, names), cont
 
 createSublets = (start, binding, body, names, cont)->
@@ -345,8 +349,8 @@ scanLine = (str, isDef, isExpr)->
         if isTokenString (head tail tail toks), '\\' then setTypeAnno (head tail tail toks), (tail tail toks), tokenString name
         else tail tail toks
       else cons token('\\', position(head tail toks) - 1), transformDef name, tail toks
-      parseToks setDefAnno(checkSetDataType(func, tail(toks), name), name, arity(tail(toks), 0), str), (list)->
-        isDef list
+      parseToks checkSetDataType(func, tail(toks), name), (list)->
+        isDef createDef(list, name, arity(tail(toks), 0), str)
     else
       parseToks toks, (list)->
         isExpr list
@@ -362,14 +366,14 @@ parseLine = (str, names, isDef, isExpr)->
 genLine = (str, names, isDef, isExpr)->
   parseLine str,
     names,
-    ((ast)-> isDef "(#{gen ast});\n"),
-    (ast)-> isExpr "(function(){return #{gen ast};});\n"
+    ((ast)-> isDef gen ast),
+    ((ast)-> isExpr gen ast)
 
 compileLine = (str, names, isDef, isExpr)->
   genLine str,
     names,
-    ((code)-> isDef eval code),
-    (code)-> isExpr eval code
+    ((code)-> runMonad (eval "(#{code})"), defaultEnv, isDef),
+    ((code)-> runMonad (eval "(#{code})"), defaultEnv, isExpr)
 
 transformDef = (name, toks)->
   if isTokenString head(toks), '='
@@ -382,10 +386,10 @@ setTypeAnno = (start, toks, name)->
   tok = (str)-> token(str, pos)
   cons tok('\\@'), cons tok('type'), cons tok(name), cons tok('.'), toks
 
-setDefAnno = (def, name, arity, src)->
+createDef = (def, name, arity, src)->
   pos = position def
   tok = (str)-> token(str, pos)
-  cons tok('\\@'), cons tok('define'), cons cons(tok(tokenString name), cons tok(String(arity)), cons tok(src), Nil), cons tok('.'), def
+  cons tok('define'), cons tok(JSON.stringify tokenString name), cons tok(String(arity)), cons tok(JSON.stringify src), cons (cons def, Nil), Nil
 
 checkSetDataType = (toks, curToks, name)->
   if isTokenString(head(curToks), '=')
@@ -410,7 +414,7 @@ compileFile = (text)->
   id = (x)-> x
   lines = linesForFile text
   names = namesForLines lines
-  _.map(lines, (line)-> genLine line.trim(), names, id, id).join('')
+  _.map(lines, (line)-> "runMonad((#{genLine line.trim(), names, id, id}), defaultEnv, identity);\n").join('')
 
 jsonForFile = (text)->
   id = (x)-> x

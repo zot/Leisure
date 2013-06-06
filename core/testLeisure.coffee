@@ -51,6 +51,8 @@ Error.stackTraceLimit = Infinity
 {
   stateValues,
   runMonad,
+  identity,
+  defaultEnv,
 } = require './runtime'
 {
   splitTokens,
@@ -268,12 +270,12 @@ readFile 'core/simpleParse.lsr', (err, code)->
         basic18: -> assertEq (eval "(#{gen let3Ast})"), 3
         basic19: ->
           stateValues.x = 2
-          runMonad eval("(#{gen setXTo3Ast})"), LZ.defaultEnv, ->
+          runMonad eval("(#{gen setXTo3Ast})"), defaultEnv, ->
           assertEq stateValues.x, 3
         basic20: ->
           stateValues.x = 2
           stateValues.y = 2
-          runMonad eval("(#{gen setXTo3YTo4Ast})"), LZ.defaultEnv, ->
+          runMonad eval("(#{gen setXTo3YTo4Ast})"), defaultEnv, ->
           assertEq stateValues.x, 3
           assertEq stateValues.y, 4
       runTests 'Parsing',
@@ -323,18 +325,18 @@ readFile 'core/simpleParse.lsr', (err, code)->
         ast8: -> assertEq String(parseToAst('\\\\(a b = c) (c = 3) . a 5')), 'let(\\\\(a = \\b . c) (c = 3) . a 5)'
         ast9: -> assertEq lsr('\\x . x')(-> 7), 7
         ast10: -> assertEq lsr('getType "hello"'), "*string"
-        ast11: -> assertEq compileLine('3', Nil, (->), id)(), 3
-        ast12: -> assertEq compileLine('\\x . x', Nil, (->), id)()(->3), 3
+        ast11: -> assertEq compileLine('3', Nil, (->), id), 3
+        ast12: -> assertEq compileLine('\\x . x', Nil, (->), id)(->3), 3
         ast13: ->
-          assertEq String(parseLine 'id = \\x . x', Nil, id, ign), 'anno(\\@define Cons[id 0 id = \\x . x] . \\@dataType id . \\@type id . \\x . x)'
-          assertEq String(parseLine 'id x = x', Nil, id, ign), 'anno(\\@define Cons[id 1 id x = x] . \\x . x)'
+          assertEq String(parseLine 'id = \\x . x', Nil, id, ign), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
+          assertEq String(parseLine 'id x = x', Nil, id, ign), 'apply(define id 1 id x = x \\x . x)'
         ast14: ->
           compileLine('id = \\x . x', Nil, id, id)
-          assertEq compileLine('id', Nil, (->), id)()(->3), 3
-        ast15: -> assertEq compileLine('\\x y . + x y', Nil, (->), id)()(->3)(->4), 7
+          assertEq compileLine('id', Nil, (->), id)(->3), 3
+        ast15: -> assertEq compileLine('\\x y . + x y', Nil, (->), id)(->3)(->4), 7
         ast16: ->
           compileLine 'plus x y = + x y', Nil, id, id
-          assertEq compileLine('plus', Nil, (->), id)()(->3)(->4), 7
+          assertEq compileLine('plus', Nil, (->), id)(->3)(->4), 7
         ast17: -> assertEq String(parseToAst('\\@ a b . c')), 'anno(\\@a b . c)'
         ast18: -> assertEq lsr('\\@ a b . 3'), 3
         ast19: -> assertEq lsr('(\\@ a b . \\x . x) 4'), 4
@@ -349,7 +351,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq lsr('v3'), 7
         ast25: ->
           for line in jsonForFile(text2).split('\n')
-            eval gen json2Ast(JSON.parse line)
+            runMonad (eval gen json2Ast(JSON.parse line)), defaultEnv, id
           assertEq lsr('v4'), 5
           assertEq lsr('v5'), 6
           assertEq lsr('v6'), 11

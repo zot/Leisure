@@ -39,8 +39,10 @@ _ = require('./lodash.min')
 # LOGIC
 ############
 
-booleanFor = (bool)-> if bool then L_true() else L_false()
-
+identity = (x)-> x
+_true = (a)->(b)->a()
+_false = (a)->(b)->b()
+booleanFor = (bool)-> if bool then _true else _false
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
 
@@ -132,17 +134,18 @@ codeMonad = (code)->
   makeMonad (env, cont)->
     result = code env
     if result instanceof Monad then runMonad result, env, cont
-    else cont _false()
+    else cont _false
 
-define 'true', ->(a)->(b)->a()
-
-define 'false', ->(a)->(b)->b()
+define 'define', ->(name)->(arity)->(src)->(def)->
+  makeMonad (enf, cont)->
+    define name(), def, arity(), src()
+    cont _false
 
 define 'print', ->(msg)->
   makeMonad (env, cont)->
     m = msg()
     env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
-    cont(`L_false()`)
+    cont _false
 
 define 'bind', ->(m)->(binding)->
   makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
@@ -151,7 +154,7 @@ values = {}
 
 define 'hasValue', ->(name)->
   makeMonad (env, cont)->
-    cont (if values[name()]? then L_true() else L_false())
+    cont (if values[name()]? then _true else _false)
 
 define 'getValueOr', ->(name)->(defaultValue)->
   makeMonad (env, cont)->
@@ -164,7 +167,7 @@ define 'getValue', ->(name)->
 define 'setValue', ->(name)->(value)->
   makeMonad (env, cont)->
     values[name()] = value()
-    cont L_false()
+    cont _false
 
 define 'createS', ->
   makeMonad (env, cont)->
@@ -177,9 +180,10 @@ define 'getS', ->(state)->
 define 'setS', ->(state)->(value)->
   makeMonad (env, cont)->
     state().value = value()
-    cont(L_false())
+    cont _false
 
 root.stateValues = values
 root.runMonad = runMonad
+root.identity = identity
 root.defaultEnv =
   write: (str)-> process.stdout.write(str)

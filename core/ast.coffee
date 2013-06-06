@@ -179,7 +179,7 @@ class Leisure_BaseCons extends LeisureObject
     @tail().each(block)
   last: ->
     t = @tail()
-    if t == Nil then t else t.last()
+    if t == Nil then @head() else t.last()
   append: (l)->cons @head(), @tail().append(l)
   toString: -> "#{@stringName()}[#{@elementString()}]"
   stringName: -> "BaseCons"
