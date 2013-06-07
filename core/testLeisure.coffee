@@ -220,6 +220,8 @@ strLsrD = (str)-> String(lsrD str)
 lsrComp = (str, diag)->
   if diag
     console.log "COMPILE: #{str}: " + "parseLine #{s str} #{delimiterPatStr} nil id id"
+    console.log "TOKENS: " + (lsrD "tokens #{s str}")
+    console.log "LIST: " + (lsrD "parse #{s str}")
     console.log "AST: " + (lsr "parseLine #{s str} #{delimiterPatStr} nil id id")
     console.log "JS: (" + gen(lsr "parseLine #{s str} #{delimiterPatStr} nil id id") + ")"
     console.log "done"
@@ -404,7 +406,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
         leisureParse7: -> assertEq strLsrD("parse 'a\n b'"), 'Cons[Token("a", 0) Token("b", 3)]'
         leisureParse8: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
         leisureParse9: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)])]'
-        leisureParse10: -> assertEq strLsrD("parse 'a\nb'"), 'Cons[Token("a", 0)]'
+        leisureParse10: -> assertEq strLsrD("parse 'a\nb'"), 'Token("a", 0)'
         leisureParse11: -> assertEq strLsrD("parse 'a\n b c\n d e'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
         leisureParse12: -> assertEq strLsrD("parse 'a\n b c\n d e\nf'"), 'Cons[Token("a", 0) Parens(1, 6, Cons[Token("b", 3) Token("c", 5)]) Parens(6, 11, Cons[Token("d", 8) Token("e", 10)])]'
         leisureParse13: -> assertEq strLsrD("parse 'a\n b c\n  d e'"), 'Cons[Token("a", 0) Parens(1, 12, Cons[Token("b", 3) Token("c", 5) Parens(6, 12, Cons[Token("d", 9) Token("e", 11)])])]'
@@ -423,7 +425,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
         leisureParse18: -> assertEq strLsrD("tokens 'a b  c'"), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
         leisureParse19: -> assertEq lsr("'\\n'"), '\n'
         leisureParse20: -> assertEq String(lsr("reverse (cons 1 (cons 2 nil))")), 'Cons[2 1]'
-        leisureParse21: -> assertEq strLsrD("parse 'a'"), 'Cons[Token("a", 0)]'
+        leisureParse21: -> assertEq strLsrD("parse 'a'"), 'Token("a", 0)'
         leisureParse22: -> assertEq strLsrD("parse 'a b  c'"), 'Cons[Token("a", 0) Token("b", 2) Token("c", 5)]'
         leisureParse23: -> assertEq lsrD("splitTokens 'a (b)'").toArray(), ['a', ' ', '(', 'b', ')']
         leisureParse24: -> assertEq strLsrD("parse 'a (b)'"), 'Cons[Token("a", 0) Parens(2, 5, Cons[Token("b", 3)])]'
@@ -452,7 +454,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
               d (e f)) g
             """}"),
             'Cons[Token("a", 0) Parens(2, 22, Cons[Token("\\\\", 3) Token("b", 4) Token(".", 6) Token("c", 10) Parens(11, 21, Cons[Token("d", 14) Parens(16, 21, Cons[Token("e", 17) Token("f", 19)])])]) Token("g", 23)]'
-        leisureParse28: -> assertEq strLsrD("parse #{s '"a b"'}"), 'Cons[Token("\\\"a b\\\"", 0)]'
+        leisureParse28: -> assertEq strLsrD("parse #{s '"a b"'}"), 'Token("\\\"a b\\\"", 0)'
       runTests 'Leisure AST',
         leisureAst1: -> assertEq lsr("scrub '\"'"), "\\\""
         leisureAst2: -> assertEq strLsrD("parseToAst 'a'"), 'ref(a)'
@@ -496,26 +498,26 @@ readFile 'core/simpleParse.lsr', (err, code)->
         leisureAst18: ->
           assertEq evalAst(lsrD("parseToAst '3'")), 3
         leisureAst19: ->
-          assertEq lsrComp("3"), 3
-        #leisureAst19: ->
-        #  assertEq lsrComp("(\\x . x) 3", true), 3
-        #leisureAst20: -> #ast9
-        #  assertEq lsrComp("\\x . x")(->7), 7
-        #leisureAst21: ->
-        #  console.log "(" + gen(parseToAst "'hello' #{delimiterPatStr} nil id id") + ")"
-        #  assertEq lsrComp('"hello"'), 'hello'
-        #leisureAst22: -> #ast10
-        #  console.log lsrD("parseToAst #{s 'getType "hello"'}")
-        #  console.log gen lsrD("parseToAst #{s 'getType "hello"'}")
-        #  assertEq lsrComp('getType "hello"'), "*string"
-        #leisureAst23: -> #ast11:
-        #  assertEq lsrComp('3'), 3
-        #leisureAst24: -> #ast12:
-        #  assertEq lsrComp('\\x . x')(->3), 3
-        #leisureAst25: -> #ast13:
-        #  console.log "(" + gen(parseToAst "parseLine 'id = \\x . x' #{delimiterPatStr} nil id id") + ")"
-        #  assertEq String(monad lsr("parseLine 'id = \\x . x' #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
-        #  assertEq String(parseLine 'id x = x', Nil, id, ign), 'apply(define id 1 id x = x \\x . x)'
+          assertEq lsrComp("(\\x . x) 3"), 3
+        leisureAst20: -> #ast9
+          assertEq lsrComp("\\x . x")(->7), 7
+        leisureAst21: ->
+          assertEq lsr("\"hello\""), 'hello'
+          assertEq strLsrD("parseToAst #{s '"hello"'}"), 'lit(hello)'
+          assertEq lsrComp('"hello"'), 'hello'
+        leisureAst22: -> #ast10
+          assertEq lsrComp('getType "hello"'), "*string"
+        leisureAst23: -> #ast11:
+          assertEq lsrComp('3'), 3
+        leisureAst24: -> #ast12:
+          assertEq lsrComp('\\x . x')(->3), 3
+        leisureAst25: -> #ast13:
+          #console.log "(" + gen(parseToAst "parseLine 'id = \\x . x' #{delimiterPatStr} nil id id") + ")"
+          assertEq String(parseLine 'id = \\x . x', Nil, id, id), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
+          assertEq String(lsr("parseToAst #{s '\\x . x'} #{delimiterPatStr}")), 'lambda(\\x . x)'
+          console.log "DUR"
+          assertEq String(lsr("parseLine #{s 'id = \\x . x'} #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
+          #assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'apply(define id 1 id x = x \\x . x)'
         #ast14: ->
         #  compileLine('id = \\x . x', Nil, id, id)
         #  assertEq compileLine('id', Nil, (->), id)(->3), 3

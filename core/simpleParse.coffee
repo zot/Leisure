@@ -154,7 +154,6 @@ parseToks = (toks, cont)->
 parseTok = (toks, cont)->
   withCons toks, (->Nil), (h, t)->
     if isTokenString h, '(' then parseGroup h, t, Nil, cont
-    else if isTokenStart h, ' ' then parseTok t, cont
     else if isTokenStart h, '\n' then parseIndent h, t, Nil, cont
     else cont h, t
 
@@ -166,7 +165,7 @@ parseGroup = (left, toks, gr, cont)->
 
 parseIndent = (indent, toks, gr, cont)->
   withCons toks, (-> cont parens(tokenPos(indent), lexEnd(head gr), gr.reverse()), Nil), (h, t)->
-    if isTokenStart(h, ')') || (isTokenStart(h, '\n') && tokenString(h).length <= tokenString(indent).length) then cont parens(tokenPos(indent), tokenPos(h), gr.reverse()), toks
+    if isTokenString(h, ')') || (isTokenStart(h, '\n') && tokenString(h).length <= tokenString(indent).length) then cont parens(tokenPos(indent), tokenPos(h), gr.reverse()), toks
     else parseTok toks, (restH, restT)->
       parseIndent indent, restT, cons(restH, gr), cont
 
@@ -387,8 +386,7 @@ setTypeAnno = (start, toks, name)->
   cons tok('\\@'), cons tok('type'), cons tok(name), cons tok('.'), toks
 
 createDef = (def, name, arity, src)->
-  pos = position def
-  tok = (str)-> token(str, pos)
+  tok = (str)-> token(str, (position def))
   cons tok('define'), cons tok(JSON.stringify tokenString name), cons tok(String(arity)), cons tok(JSON.stringify src), cons (cons def, Nil), Nil
 
 checkSetDataType = (toks, curToks, name)->

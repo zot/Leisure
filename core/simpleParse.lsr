@@ -27,6 +27,7 @@ reverse l = rev l nil
 rev l result = l (\h t D . rev t (cons h result)) result
 filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
 find predicate list = list (\h t D . predicate h (some h) (find predicate t)) none
+contains item list = find (\el . eq el item) list (\x . true) false
 map func l = l (\h t D . cons (func h) (map func t)) nil
 foldLeft func value l = l (\h t D . foldLeft func (func value h) t) value
 intersperse list element = list (\h t D .
@@ -51,6 +52,12 @@ parensStart p = p \s e c . s
 parensEnd p = p \s e c . e
 parensContent p = p \s e c . c
 isParens p = hasType p parens
+makeParens start end content =
+  and (hasType content cons) (hasType (tail content) nil)
+    makeParens start end (head content)
+    or (isToken content) (isParens content)
+      content
+      parens start end content
 parensFromToks left right content = \\
   start = tokenPos left
   end = + (tokenPos right) (strLen (tokenString right))
@@ -86,47 +93,28 @@ withToken tok nonTokCase tokCase = isToken tok (tok tokCase) nonTokCase
 ## withCons is like a safe version of a cons
 withCons l nilCase cont = hasType l cons (l (\h t D . cont h t) nilCase) nilCase
 
-parseToks toks cont = parseIndent (token '\n' 0) toks nil \h t . \\
-  p = stripParens h
-  .
-  isNil t
-    cont
-      isToken p
-        cons p nil
-        p
-    parseErr (strCat (cons "Extra tokens: " (cons t (cons ", " nil)))) (loc t)
+parseToks toks cont =
+  isNil toks (cont nil)
+    parseTok toks \h t .
+      parseToks t \res .
+        cont (cons h res)
 
 parseTok toks cont = withCons toks nil \h t .
-  isTokenString h '('
-    parseGroup h t nil cont
-    isTokenStart h ' '
-      parseTok t cont
-      isTokenStart h '\n'
-        parseIndent h t nil cont
-        cont h t
+  isTokenString h '(' (parseGroup h t nil cont)
+    isTokenStart h '\n' (parseIndent h t nil cont)
+      cont h t
 
-parseGroup left toks gr cont = withCons toks
-  parseErr 'Unterminated group starting ' (loc left)
+parseGroup left toks gr cont = withCons toks (parseErr 'Unterminated group starting ' (loc left))
   \h t . isTokenString h ')'
-     cont (parensFromToks left h (reverse gr)) t
-     parseTok toks \restH restT . parseGroup left restT (cons restH gr) cont
+    cont (parensFromToks left h (reverse gr)) t
+    parseTok toks \restH restT . parseGroup left restT (cons restH gr) cont
 
-# cont takes the parsed group and the rest of the toks
-parseIndent indent toks gr cont = withCons toks
-  cont (optParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil
-  \h t . or (isTokenStart h ')')
+parseIndent indent toks gr cont =
+  withCons toks (cont (makeParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil) \h t .
+    or (isTokenString h ')')
     and (isTokenStart h '\n') (le (strLen (tokenString h)) (strLen (tokenString indent)))
-    cont (optParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
+    cont (makeParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
     parseTok toks \restH restT . parseIndent indent restT (cons restH gr) cont
-
-optParens start end group = \\
-  p = parens start end group
-  .
-  withCons group
-    p
-    \h t . isNil t
-      h
-      p
 
 id x = x
 
@@ -183,8 +171,8 @@ parseStringChars start str cont = eq str '' (cont nil) \\
       .
       assoc d charCodes
         \char . parseStringChars start (strSubstring str 1 0) \s . cont (cons char s)
-        parseErr (strCat (cons "Invalid character code: " (cons (strAt str (+ 1 index)) nil))) (loc start)
-    parseStringChars start (strSubstring str 1) \s . cont (cons c s)
+        parseStringChars start (strSubstring str 1 0) \s . cont (cons d s)
+    parseStringChars start (strSubstring str 1 0) \s . cont (cons c s)
 
 scrub str = strFromList (scrubList (strToList str))
 
@@ -305,14 +293,14 @@ getLetLambda pos def args names cont =
 scanLine str pat onDef onExpr = \\
   toks = tokens str pat
   .
-  strMatches str pat
+  strMatches str defPat
     withCons toks (parseErr "No expression to compile" "") \name rest . \\
       parseIt func = parseToks (checkSetDataType func rest name) \list .
         onDef (createDef list name (arity rest 0) str)
       .
       isTokenString (head rest) '='
         isTokenString (head (tail rest)) '\\'
-          parseIt (setTypeAnno (head (tail rest)) (tail rest) (tokenString name))
+          parseIt (setTypeAnno (tail rest) (tokenString name))
           parseIt (tail rest)
         transformDef name rest \def .
           parseIt (cons (token '\\' (- (position (head rest)) 1)) def)
@@ -326,30 +314,31 @@ parseLine str pat names onDef onExpr = \\
 transformDef name toks cont = withCons toks (parseErr "Bad definition, expecting tokens" (loc name)) \h t .
   isTokenString h '='
     isTokenString (head t) '\\'
-      cont (cons (token '.' (position h)) (setTypeAnno (head t) t (tokenString name)))
+      cont (cons (token '.' (position h)) (setTypeAnno t (tokenString name)))
       cont (cons (token '.' (position h)) t)
     transformDef name t \list . cont (cons h list)
 
-setTypeAnno start toks name = \\
-  pos = position def
-  tok = \str . token str pos
+setTypeAnno toks name = \\
+  tok = \str . token str (position toks)
   .
   cons (tok '\\@') (cons (tok 'type') (cons (tok name) (cons (tok '.') toks)))
+
+setDataTypeAnno toks name = \\
+  tok = \str . token str (position toks)
+  .
+  cons (tok '\\@') (cons (tok 'dataType') (cons (tok name) (cons (tok '.') toks)))
 
 createDef def name arity src = \\
   tok str = token str (position def)
   .
-  cons (tok 'define') (cons (tok (jsonStringify (tokenString name))) (cons (tok (strString arity)) (cons (tok (jsonStringify src)) (cons (cons def nil) nil))))
+  jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
+    jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
+      cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (cons def nil) nil))))
 
-checkSetDataType toks curToks name = withCons curToks \h t .
+checkSetDataType toks curToks name = withCons curToks toks \h t .
   isTokenString h '='
-    isTokenString (head t) '\\' (setDataType toks name) toks
+    isTokenString (head t) '\\' (setDataTypeAnno toks name) toks
     checkSetDataType toks t name
-
-setDataTypeAnno toks name = \\
-  pos = position toks
-  .
-  cons (token '\\@' pos) (cons (token 'dataType' pos) (cons (token (tokenString name) pos) (cons (token '.' pos) toks)))
 
 arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
 
@@ -377,20 +366,15 @@ jsonForFile text = \\
 #################
 ## Macros
 #################
-
+ 
 #macro m def = 
-
+ 
 
 #################
 ## TESTING
 #################
 
-parse str pat = \\
-  p = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
-  .
-  isToken p
-    cons p nil
-    p
+parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
 
 parseToAst str pat = createAst (parse str pat) nil id
 

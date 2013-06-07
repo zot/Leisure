@@ -63,6 +63,7 @@ define 'ge', ->(x)->(y)->booleanFor x() >= y()
 # STRINGS
 ############
 
+define 'strString', ->(data)-> String(data())
 define 'strAt', ->(str)->(index)-> str()[index()]
 define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
@@ -71,11 +72,11 @@ define 'strSubstring', ->(str)->(start)->(end)->
 define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
 define 'strCat', ->(list)-> list().toArray().join('')
 define 'strMatch', ->(str)->(pat)->
-  m = str().match if pat() instanceof RegExp then pat() else new RegExp pat()
+  m = str().match (if pat() instanceof RegExp then pat() else new RegExp pat())
   if m
     groups = []
     pos = 1
-    while m[1]
+    while m[pos]
       groups.push m[pos++]
     consFrom [m[0], groups, m.index, m.input]
   else Nil

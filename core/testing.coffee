@@ -78,6 +78,7 @@ runTests = (name, tests)->
   initStats()
   log "Testing #{name}\n  "
   for testName, testFunc of tests
+    #log "\nTEST: #{testName}\n"
     run testName, testFunc
   log '\n'
   if !stats.successes then logln "Failed all #{stats.failures} #{name} tests"
