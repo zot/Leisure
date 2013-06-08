@@ -186,13 +186,13 @@ scrubList list = list
   nil
 
 createAst inList names cont = strip inList \list .
-  isToken list (createLitOrRef list names cont)
+  isToken list (createLitOrRef (tokenString list) names cont)
     list
       \h t D .
         isTokenString h '\\\\' (createLet h t names cont)
           isTokenString h '\\@' (createAnno h t names cont)
             isTokenString h '\\' (createLambda h t names cont)
-              createAst h names \func . createApply func t names cont
+              createApply list names cont
       cont nil
 
 strMatches str pat = hasType (strMatch str pat) cons
@@ -200,17 +200,12 @@ strMatches str pat = hasType (strMatch str pat) cons
 digit = regexp '^[0-9]+$'
 
 createLitOrRef tok names cont = \\
-  tokStr = tokenString tok
-  .
-  find (\el . eq el tokStr) names
-    \el . cont (ref tokStr)
-    or (strStartsWith tokStr '"') (strStartsWith tokStr "'")
-      parseString tok (strSubstring tokStr 1 (- (strLen tokStr) 1)) \str . cont (lit str)
-      strMatches tokStr digit
-        jsonParse tokStr
-          \err . cont (ref tokStr)
-          \json . cont (lit json)
-        cont (ref tokStr)
+  contains tok names (cont (ref tok))
+    or (isTokenStart tok '"') (isTokenStart tok "'")
+      cont (lit (parseString (strSubstring tok 1 -1)))
+      or (ge (strAt tok 0) '0') (or (le (strAt tok 0) '9') (isTokenStart tok '-'))
+        jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
+        cont (ref tok)
 
 createLambda start list names cont = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
@@ -223,26 +218,34 @@ createLambda start list names cont = \\
           cons n names
           \bodyAst . cont (lambda n bodyAst)
 
-createAnno start list names cont = \\
-  err = parseErr "Annotation needs a name, optional data, a dot, and a body " (loc start)
-  .
-  withCons list err \name rest .
-    withCons rest err \data rest .
-      not (or (isTokenString data '.') (and (isCons rest) (isTokenString (head rest) '.'))) err
-        \\
-          body = isTokenString data '.' rest (tail rest)
-          data = isTokenString data '.' nil (strip data id)
-          .
-          createAst body names \bodyAst .
-            cleanTokens start name \name .
-              cont (anno name data bodyAst)
+createAnno start list names cont =
+  withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
+    withCons rest (parseErr "No data for annotation " (loc start)) \data rest . \\
+      finish data body = createAst body names \bodyAst .
+        cleanTokens start name \name .
+          cleanTokens start data \data .
+            cont (anno name data bodyAst)
+      .
+      isTokenString data '.'
+        finish nil rest
+        strip data \data .
+          withCons rest (parseErr "No body for annotation " (loc start)) \dot body .
+            isTokenString dot '.'
+              finish data body
+              parseErr "Annotation expects dot after name and data " (loc start)
 
 bodyStructPat = regexp '\\|\\\\|\\@'
 
-createApply func list names cont = withCons list (cont func) \argItem rest .
-  and (isToken argItem) (strMatches (tokenString argItem) bodyStructPat)
+createApply inList names cont = strip inList \list .
+  withCons list (parseErr "Funcion apply expecting a non-empty list " (loc inList)) \h t .
+    createAst h names \func . chainApply func t names cont
+
+blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
+
+chainApply func list names cont = withCons list (cont func) \argItem rest .
+  and (isToken argItem) (contains (tokenString argItem) blockStarts)
     createAst list names \arg . cont (apply func arg)
-    createAst argItem names \arg . createApply (apply func arg) rest names cont
+    createAst argItem names \arg . chainApply (apply func arg) rest names cont
 
 cleanTokens start toks cont = isToken toks
   cont (tokenString toks)

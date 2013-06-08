@@ -270,13 +270,16 @@ createLambda = (start, list, names, cont)->
 createAnno = (start, list, names, cont)->
   withCons list, (-> parseErr "No annotation name or data in annotation #{loc start}"), (name, rest)->
     withCons rest, (-> parseErr "No data for annotation #{loc start}"), (data, rest)->
-      strip data, (data)->
-        withCons rest, (-> parseErr "No body for annotation #{loc start}"), (dot, body)->
-          if isTokenString dot, '.' then createAst body, names, (bodyAst)->
-            cleanTokens start, name, (name)->
-              cleanTokens start, data, (data)->
-                cont anno name, data, bodyAst
-          else parseErr "Annotation expected dot after name and data"
+      finish = (data, body)-> createAst body, names, (bodyAst)->
+        cleanTokens start, name, (name)->
+          cleanTokens start, data, (data)->
+            cont anno(name, data, bodyAst)
+      if isTokenString data, '.' then finish Nil, rest
+      else
+        strip data, (data)->
+          withCons rest, (-> parseErr "No body for annotation #{loc start}"), (dot, body)->
+            if isTokenString dot, '.' then finish data, body
+            else parseErr "Annotation expected dot after name and data"
 
 cleanTokens = (start, toks, cont)->
   if isToken toks then cont tokenString toks

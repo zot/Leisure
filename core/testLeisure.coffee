@@ -476,7 +476,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
         leisureAst7: ->
           assertEq strLsrD("parseToAst #{s '\\@ a . 1'}"), 'anno(\\@a Cons[] . 1)'
         leisureAst8: ->
-          assertEq strLsrD("parseToAst #{s '\\@ a b . 1'}"), 'anno(\\@a Token("b", 5) . 1)'
+          assertEq strLsrD("parseToAst #{s '\\@ a b . 1'}"), 'anno(\\@a b . 1)'
         leisureAst9: ->
           assertEq lsr('\\\\ (x = 1) (x = + x 1) . x'), 2
         leisureAst10: -> #ast4
@@ -520,11 +520,10 @@ readFile 'core/simpleParse.lsr', (err, code)->
             Cons[Token("define", 5) Token("\\"id\\"", 5) Token("0", 5) Token("\\"id = \\\\\\\\x . x\\"", 5) Cons[Token("\\\\@", 5) Token("dataType", 5) Token("id", 5) Token(".", 5) Token("\\\\@", 5) Token("type", 5) Token("id", 5) Token(".", 5) Token("\\\\", 5) Token("x", 6) Token(".", 8) Token("x", 10)]]
           """
           assertEq String(lsr("parseLine #{s 'id = \\x . x'} #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
-          #assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'apply(define id 1 id x = x \\x . x)'
-        #ast14: ->
-        #  compileLine('id = \\x . x', Nil, id, id)
-        #  assertEq compileLine('id', Nil, (->), id)(->3), 3
-
+          assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'apply(define id 1 id x = x \\x . x)'
+        leisureAst26: -> #ast14: ->
+          lsrComp("id2 = \\x . x")
+          assertEq lsrComp('id2')(->3), 3
 
       console.log '\nDone'
       process.exit(0)
