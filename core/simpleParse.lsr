@@ -326,18 +326,20 @@ setTypeAnno toks name = \\
 setDataTypeAnno toks name = \\
   tok = \str . token str (position toks)
   .
-  cons (tok '\\@') (cons (tok 'dataType') (cons (tok name) (cons (tok '.') toks)))
+  cons (tok '\\@') (cons (tok 'dataType') (cons (tok (tokenString name)) (cons (tok '.') toks)))
 
 createDef def name arity src = \\
   tok str = token str (position def)
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
-      cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (cons def nil) nil))))
+      cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons def nil))))
 
 checkSetDataType toks curToks name = withCons curToks toks \h t .
   isTokenString h '='
-    isTokenString (head t) '\\' (setDataTypeAnno toks name) toks
+    isTokenString (head t) '\\'
+      setDataTypeAnno toks name
+      toks
     checkSetDataType toks t name
 
 arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
