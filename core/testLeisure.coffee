@@ -227,6 +227,8 @@ lsrComp = (str, diag)->
     console.log "done"
   monad eval "(#{gen lsr("parseLine #{s str} #{delimiterPatStr} nil id id")})"
 
+lsrParseToAst = (str)-> lsrComp("parseToAst #{s str} #{delimiterPatStr}")
+
 monad = (m)-> runMonad m, defaultEnv, id
 
 id = (x)->x
@@ -515,7 +517,6 @@ readFile 'core/simpleParse.lsr', (err, code)->
           #console.log "(" + gen(parseToAst "parseLine 'id = \\x . x' #{delimiterPatStr} nil id id") + ")"
           assertEq String(parseLine 'id = \\x . x', Nil, id, id), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
           assertEq String(lsr("parseToAst #{s '\\x . x'} #{delimiterPatStr}")), 'lambda(\\x . x)'
-          console.log "DUR"
           assertEq String(lsr("scanLine #{s 'id = \\x . x'} #{delimiterPatStr} id id")), """
             Cons[Token("define", 5) Token("\\"id\\"", 5) Token("0", 5) Token("\\"id = \\\\\\\\x . x\\"", 5) Cons[Token("\\\\@", 5) Token("dataType", 5) Token("id", 5) Token(".", 5) Token("\\\\@", 5) Token("type", 5) Token("id", 5) Token(".", 5) Token("\\\\", 5) Token("x", 6) Token(".", 8) Token("x", 10)]]
           """
@@ -524,6 +525,64 @@ readFile 'core/simpleParse.lsr', (err, code)->
         leisureAst26: -> #ast14: ->
           lsrComp("id2 = \\x . x")
           assertEq lsrComp('id2')(->3), 3
+        leisureAst27: -> #ast15: ->
+          assertEq lsrComp('\\x y . + x y')(->3)(->4), 7
+        leisureAst28: -> #ast16: ->
+          compileLine 'plus x y = + x y', Nil, id, id
+          assertEq compileLine('plus', Nil, (->), id)(->3)(->4), 7
+        leisureAst29: -> #ast17: -> assertEq String(parseToAst('\\@ a b . c')), 'anno(\\@a b . c)'
+          assertEq String(lsrParseToAst '\\@ a b . c'), 'anno(\\@a b . c)'
+        leisureAst30: -> #ast18: -> assertEq lsr('\\@ a b . 3'), 3
+          assertEq lsrComp('\\@ a b . 3'), 3
+        leisureAst31: -> #ast19: -> assertEq lsr('(\\@ a b . \\x . x) 4'), 4
+          assertEq lsrComp('(\\@ a b . \\x . x) 4'), 4
+        leisureAst32: -> #ast20: -> assertEq String(parseToAst('(\\f . f 5) \\x . x')), 'apply((\\f . f 5) \\x . x)'
+          assertEq String(lsrParseToAst '(\\f . f 5) \\x . x'), 'apply((\\f . f 5) \\x . x)'
+        leisureAst33: -> #ast21: -> assertEq lsr('(\\f . f 5) \\x . x'), 5
+          assertEq lsrComp('(\\f . f 5) \\x . x'), 5
+        leisureAst34: -> #ast22: -> assertEq lsr('(\\f . f 5) \\@ a b . \\x . x'), 5
+          assertEq lsrComp('(\\f . f 5) \\@ a b . \\x . x'), 5
+        leisureAst35: -> #ast23: -> assertEq lsr('getType \\@ type fred . \\x . x'), 'fred'
+          assertEq lsrComp('getType \\@ type fred . \\x . x'), 'fred'
+        leisureAst36: -> #ast24
+          assertEq lsrComp('v1'), 3
+          assertEq lsrComp('v2'), 4
+          assertEq lsrComp('v3'), 7
+        leisureAst37: -> #ast25: ->
+          #for line in jsonForFile(text2).split('\n')
+          #  runMonad (eval gen json2Ast(JSON.parse line)), defaultEnv, id
+          assertEq lsrComp('v4'), 5
+          assertEq lsrComp('v5'), 6
+          assertEq lsrComp('v6'), 11
+        leisureAst38: -> #ast26: -> # test some string escapes
+          assertEq lsrComp("strToList #{s '\"'}").toArray(), ['"']
+          assertEq lsrComp("eq #{s '1'} #{s '\\\\'} 1 2"), 2
+          assertEq lsrComp("eq #{s '1'} #{s '\"'} 1 2"), 2
+          assertEq lsrComp("tokenString (head (tail (tokens #{s "eq '\\\\' (eq 'b' nil) 1 2"} #{delimiterPatStr})))"), "'\\\\'"
+        leisureAst39: -> #ast27: ->
+          assertEq String(lsrComp('nil')), 'Cons[]'
+
+        leisureAst40: -> #ast28: -> assertEq lsr('"true"'), 'true'
+          assertEq lsrComp(s "true"), 'true'
+        leisureAst41: -> #ast29: -> assertEq lsr("'true'"), 'true'
+          assertEq lsrComp(s 'true'), 'true'
+        leisureAst42: -> #ast30: -> assertEq lsr("getType 'true'"), '*string'
+          assertEq lsr("getType #{s 'true'}"), '*string'
+        leisureAst43: -> #ast31: -> assertEq lsr("eq 1 1 3 4"), 3
+          assertEq lsrComp("eq 1 1 3 4"), 3
+        leisureAst44: -> #ast32: -> assertEq lsr("eq 1 2 3 4"), 4
+          assertEq lsrComp("eq 1 2 3 4"), 4
+        leisureAst45: -> #ast33: -> assertEq lsr("eq (getType nil) 'nil' 1 2"), 1
+          assertEq lsrComp("eq (getType nil) #{s 'nil'} 1 2"), 1
+        leisureAst46: -> #ast34: -> assertEq lsr("eq (getType (cons 1 nil)) 'cons' 1 2"), 1
+          assertEq lsrComp("eq (getType (cons 1 nil)) #{s 'cons'} 1 2"), 1
+        leisureAst47: -> #ast35: -> assertEq splitTokens("splitTokens 'a b' #{delimiterPatStr}").toArray(), ['splitTokens', ' ', "'a b'", ' ', JSON.stringify(LZ.delimiterPat.source)]
+          assertEq lsrComp("splitTokens #{s "splitTokens 'a b' #{delimiterPatStr}"} #{delimiterPatStr}").toArray(), ['splitTokens', ' ', "'a b'", ' ', JSON.stringify(LZ.delimiterPat.source)]
+        leisureAst48: -> #ast36
+          assertEq String(lsrComp("splitTokens #{s "'^[ \\t]*#.*|^[ \\t]*$'"} #{delimiterPatStr}")), 'Cons[\'^[ \\t]*#.*|^[ \\t]*$\']'
+          assertEq String(lsrParseToAst s '^[ \t]*#.*|^[ \t]*$'), 'lit(^[ \t]*#.*|^[ \t]*$)'
+          assertEq gen(lsrParseToAst s '^[ \t]*#.*|^[ \t]*$'), '\"^[ \\t]*#.*|^[ \\t]*$\"'
+          assertEq lsrComp(s '^[ \t]*#.*|^[ \t]*$'), '^[ \t]*#.*|^[ \t]*$'
 
       console.log '\nDone'
       process.exit(0)
