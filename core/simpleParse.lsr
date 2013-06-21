@@ -112,7 +112,12 @@ parseGroup left toks gr close groups cont = withCons toks (parseErr 'Unterminate
     eq close ')'
       cont (parensFromToks left h (reverse gr)) t
       cont (parensFromToks left h (cons left (reverse (cons h gr)))) t
-    parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
+    withToken h
+      parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
+      \txt pos .
+        rassoc txt groups
+          \open . parseErr (strCat (cons 'Mismatched group: ' (cons (tokenString left) (cons txt (cons ' ' nil))))) (loc left)
+          parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
 
 parseIndent indent toks gr groups cont =
   withCons toks (cont (makeParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil) \h t .
@@ -393,3 +398,10 @@ parseG str pat groups = parseIndent (token '\n' 0) (tokens str pat) nil groups \
 parseToAst str pat = createAst (parse str pat) nil id
 
 d label value expr = log (strCat (cons label (cons value nil))) expr
+
+parseM str =
+  bind
+    getValue 'tokenPat'
+    \tokPat . bind
+      getValue 'groups'
+      \groups . parseG str tokPat groups

@@ -167,6 +167,10 @@ define 'getValue', ->(name)->
   makeMonad (env, cont)->
     cont values[name()]
 
+setValue = (key, value)-> values[key] = value
+
+getValue = (key)-> values[key]
+
 define 'setValue', ->(name)->(value)->
   makeMonad (env, cont)->
     values[name()] = value()
@@ -190,3 +194,5 @@ root.runMonad = runMonad
 root.identity = identity
 root.defaultEnv =
   write: (str)-> process.stdout.write(str)
+root.setValue = setValue
+root.getValue = getValue
