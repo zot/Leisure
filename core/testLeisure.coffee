@@ -66,6 +66,9 @@ require('source-map-support').install()
   compileLine,
   compileFile,
   jsonForFile,
+  getDelimiterInfo,
+  setDelimiterInfo,
+  addDelimiter,
 } = require './simpleParse'
 
 console.log 'Testing CoffeeScript'
@@ -213,21 +216,21 @@ evalAst = (ast)-> eval("(#{gen ast})")
 
 lsr = (str)-> eval("(#{gen parseToAst(str)})")
 
-lsrD = (str)-> eval("(#{gen parseToAst(str + ' ' + delimiterPatStr)})")
+lsrD = (str)-> lsr "#{str} #{delimiterPatStr}"
 
 strLsrD = (str)-> String(lsrD str)
 
 lsrComp = (str, diag)->
   if diag
-    console.log "COMPILE: #{str}: " + "parseLine #{s str} #{delimiterPatStr} nil id id"
+    console.log "COMPILE: #{str}: " + "parseLine #{s str} #{s LZ.delimiterPat.source} nil id id"
     console.log "TOKENS: " + (lsrD "tokens #{s str}")
     console.log "LIST: " + (lsrD "parse #{s str}")
-    console.log "AST: " + (lsr "parseLine #{s str} #{delimiterPatStr} nil id id")
-    console.log "JS: (" + gen(lsr "parseLine #{s str} #{delimiterPatStr} nil id id") + ")"
+    console.log "AST: " + (lsr "parseLine #{s str} #{s LZ.delimiterPat.source} nil id id")
+    console.log "JS: (" + gen(lsr "parseLine #{s str} #{s LZ.delimiterPat.source} nil id id") + ")"
     console.log "done"
-  monad eval "(#{gen lsr("parseLine #{s str} #{delimiterPatStr} nil id id")})"
+  monad eval "(#{gen lsr("parseLine #{s str} #{s LZ.delimiterPat.source} nil id id")})"
 
-lsrParseToAst = (str)-> lsrComp("parseToAst #{s str} #{delimiterPatStr}")
+lsrParseToAst = (str)-> lsrComp("parseToAst #{s str} #{s LZ.delimiterPat.source}")
 
 monad = (m)-> runMonad m, defaultEnv, id
 
@@ -583,6 +586,15 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(lsrParseToAst s '^[ \t]*#.*|^[ \t]*$'), 'lit(^[ \t]*#.*|^[ \t]*$)'
           assertEq gen(lsrParseToAst s '^[ \t]*#.*|^[ \t]*$'), '\"^[ \\t]*#.*|^[ \\t]*$\"'
           assertEq lsrComp(s '^[ \t]*#.*|^[ \t]*$'), '^[ \t]*#.*|^[ \t]*$'
+        leisureAst49: ->
+          info = getDelimiterInfo()
+          addDelimiter '['
+          addDelimiter ']'
+          assertEq String(lsrComp("splitTokens #{s '[a]'} #{s LZ.delimiterPat.source}")), 'Cons[[ a ]]'
+          assertEq String(lsr("parseG #{s '[a] [b]'} #{s LZ.delimiterPat.source} (acons '[' ']' parenGroups)")),
+            'Cons[Parens(0, 3, Cons[Token("[", 0) Token("a", 1) Token("]", 2)]) Parens(4, 7, Cons[Token("[", 4) Token("b", 5) Token("]", 6)])]'
+          setDelimiterInfo info
+          assertEq String(lsrComp("splitTokens #{s '[a]'} #{s LZ.delimiterPat.source}")), 'Cons[[a]]'
 
       console.log '\nDone'
       process.exit(0)

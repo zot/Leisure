@@ -64,6 +64,13 @@ delimiters = _.object(_.map(delimiterList, (x)->[x, true]))
 
 delimiterPat = null
 
+getDelimiterInfo = -> _.clone delimiterList
+
+setDelimiterInfo = (info)->
+  delimiterList = info
+  delimiters = _.object(_.map(delimiterList, (x)->[x, true]))
+  makeDelimterPat()
+
 defPat = /^([^ =]+).*=/
 
 makeDelimterPat = ->
@@ -71,12 +78,13 @@ makeDelimterPat = ->
   _.sortBy delimiters, (x)->-x.length
   root.delimiterPat = delimiterPat = new RegExp "(#{delimiterListPrefix}|#{delimiterList.join('|')})"
 
+regexpEscapePat = /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g
+
 addDelimiter = (del)->
-  if !delimiters
+  if !delimiters[del]
     delimiters[del] = true
-    delimiterList.push(del)
+    delimiterList.push(del.replace regexpEscapePat, "\\$&")
     makeDelimterPat()
-  end
 
 makeDelimterPat()
 
@@ -437,3 +445,6 @@ root.genLine = genLine
 root.compileFile = compileFile
 root.jsonForFile = jsonForFile
 root.linesForFile = linesForFile
+root.getDelimiterInfo = getDelimiterInfo
+root.setDelimiterInfo = setDelimiterInfo
+root.addDelimiter = addDelimiter

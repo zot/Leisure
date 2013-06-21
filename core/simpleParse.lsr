@@ -36,7 +36,8 @@ intersperse list element = list (\h t D .
     cons h (cons element (intersperse t element))) nil
 join list el = strCat (intersperse list el)
 acons k v alist = cons (cons k v) alist
-assoc k alist = find (\el . eq k (head el)) alist
+assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
+rassoc v alist = find (\el . eq v (tail el)) alist (\cell . cell \head tail . some head) none
 
 ############
 # TOKENS
@@ -93,28 +94,32 @@ withToken tok nonTokCase tokCase = isToken tok (tok tokCase) nonTokCase
 ## withCons is like a safe version of a cons
 withCons l nilCase cont = hasType l cons (l (\h t D . cont h t) nilCase) nilCase
 
-parseToks toks cont =
+parseToks toks groups cont =
   isNil toks (cont nil)
-    parseTok toks \h t .
-      parseToks t \res .
+    parseTok toks groups \h t .
+      parseToks t groups \res .
         cont (cons h res)
 
-parseTok toks cont = withCons toks nil \h t .
-  isTokenString h '(' (parseGroup h t nil cont)
-    isTokenStart h '\n' (parseIndent h t nil cont)
-      cont h t
+parseTok toks groups cont = withCons toks nil \h t .
+  withToken h (cont h t) \txt pos .
+    assoc txt groups
+      \close . parseGroup h t nil close groups cont
+      isTokenStart h '\n' (parseIndent h t nil groups cont)
+        cont h t
 
-parseGroup left toks gr cont = withCons toks (parseErr 'Unterminated group starting ' (loc left))
-  \h t . isTokenString h ')'
-    cont (parensFromToks left h (reverse gr)) t
-    parseTok toks \restH restT . parseGroup left restT (cons restH gr) cont
+parseGroup left toks gr close groups cont = withCons toks (parseErr 'Unterminated group starting ' (loc left))
+  \h t . isTokenString h close
+    eq close ')'
+      cont (parensFromToks left h (reverse gr)) t
+      cont (parensFromToks left h (cons left (reverse (cons h gr)))) t
+    parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
 
-parseIndent indent toks gr cont =
+parseIndent indent toks gr groups cont =
   withCons toks (cont (makeParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil) \h t .
-    or (isTokenString h ')')
-    and (isTokenStart h '\n') (le (strLen (tokenString h)) (strLen (tokenString indent)))
-    cont (makeParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
-    parseTok toks \restH restT . parseIndent indent restT (cons restH gr) cont
+    or (withToken h false (\txt pos . rassoc txt groups (\open . true) false))
+      and (isTokenStart h '\n') (le (strLen (tokenString h)) (strLen (tokenString indent)))
+      cont (makeParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
+      parseTok toks groups \restH restT . parseIndent indent restT (cons restH gr) groups cont
 
 id x = x
 
@@ -293,12 +298,14 @@ getLetLambda pos def args names cont =
 ## Compiling
 #################
 
+parenGroups = cons (cons '(' ')') nil
+
 scanLine str pat onDef onExpr = \\
   toks = tokens str pat
   .
   strMatches str defPat
     withCons toks (parseErr "No expression to compile" "") \name rest . \\
-      parseIt func = parseToks (checkSetDataType func rest name) \list .
+      parseIt func = parseToks (checkSetDataType func rest name) parenGroups \list .
         onDef (createDef list name (arity rest 0) str)
       .
       isTokenString (head rest) '='
@@ -307,7 +314,7 @@ scanLine str pat onDef onExpr = \\
           parseIt (tail rest)
         transformDef name rest \def .
           parseIt (cons (token '\\' (- (position (head rest)) 1)) def)
-    parseToks toks \list . onExpr list
+    parseToks toks parenGroups \list . onExpr list
 
 parseLine str pat names onDef onExpr = \\
   astCallback cb = \list . createAst list names \ast . cb ast
@@ -379,7 +386,9 @@ jsonForFile text = \\
 ## TESTING
 #################
 
-parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil \h t . stripParens h
+parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil parenGroups \h t . stripParens h
+
+parseG str pat groups = parseIndent (token '\n' 0) (tokens str pat) nil groups \h t . stripParens h
 
 parseToAst str pat = createAst (parse str pat) nil id
 

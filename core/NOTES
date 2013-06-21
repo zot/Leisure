@@ -50,7 +50,7 @@ length list =
     0
     eq (getType list) 'cons'
       list (\a b . 1 + length b) false
-
+      false
 
 Dispatchers for simple pattern matching
 
