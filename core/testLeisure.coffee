@@ -599,7 +599,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
             'ParseErr("Mismatched group: (] at 0")'
           setDelimiterInfo info
           assertEq String(lsrComp("splitTokens #{s '[a]'} #{s LZ.delimiterPat.source}")), 'Cons[[a]]'
-        leisureAst50: ->
+        leisureAst50: -> #test monadic parsing
           info = getDelimiterInfo()
           addDelimiter '['
           addDelimiter ']'
@@ -608,6 +608,18 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(monad lsr "parseM 'a'"), 'Token("a", 0)'
           assertEq String(monad lsr "parseM '[a]'"), 'Cons[Token("[", 0) Token("a", 1) Token("]", 2)]'
           setDelimiterInfo info
+        leisureAst51: ->
+          oldMacs = getValue 'macros'
+          monad lsr "defMacro 'double' \\ex . withCons ex ex \\h t . cons h ex"
+          monad lsr "defMacro 'b' \\ex . token 'b' (position ex)"
+          assertEq String(monad lsr "macroParse 'double a'"), 'Cons[Token("a", 7) Token("a", 7)]'
+          assertEq String(monad lsr "macroParse 'double a b'"), 'Cons[Token("a", 7) Token("a", 7) Token("b", 9)]'
+          assertEq String(monad lsr "macroParse 'b 2'"), 'Token("b", 2)'
+          assertEq String(monad lsr "macroParse '(b 2) 3'"), 'Token("b", 6)'
+          assertEq String(monad lsr "macroParse 'double (b 2) 3 4'"), 'Token("b", 7)'
+          #assertEq String(monad lsr "tokensM 'double (b 2) 3 4'"), 'Token("b", 10)'
+          assertEq String(monad lsr "macroParse 'double (double a)'"), 'Cons[Cons[Token("a", 15) Token("a", 15)] Cons[Token("a", 15) Token("a", 15)]]'
+          setValue 'macros', oldMacs
 
       console.log '\nDone'
       process.exit(0)

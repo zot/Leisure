@@ -189,6 +189,13 @@ define 'setS', ->(state)->(value)->
     state().value = value()
     cont _false
 
+setValue 'macros', Nil
+
+define 'defMacro', ->(name)->(def)->
+  makeMonad (env, cont)->
+    values.macros = cons cons(name(), def()), values.macros
+    cont _false
+
 root.stateValues = values
 root.runMonad = runMonad
 root.identity = identity

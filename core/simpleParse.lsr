@@ -305,12 +305,12 @@ getLetLambda pos def args names cont =
 
 parenGroups = cons (cons '(' ')') nil
 
-scanLine str pat onDef onExpr = \\
+scanLineG str pat groups onDef onExpr = \\
   toks = tokens str pat
   .
   strMatches str defPat
     withCons toks (parseErr "No expression to compile" "") \name rest . \\
-      parseIt func = parseToks (checkSetDataType func rest name) parenGroups \list .
+      parseIt func = parseToks (checkSetDataType func rest name) groups \list .
         onDef (createDef list name (arity rest 0) str)
       .
       isTokenString (head rest) '='
@@ -319,12 +319,12 @@ scanLine str pat onDef onExpr = \\
           parseIt (tail rest)
         transformDef name rest \def .
           parseIt (cons (token '\\' (- (position (head rest)) 1)) def)
-    parseToks toks parenGroups \list . onExpr list
+    parseToks toks groups \list . onExpr list
 
-parseLine str pat names onDef onExpr = \\
+parseLineG str pat names groups onDef onExpr = \\
   astCallback cb = \list . createAst list names \ast . cb ast
   .
-  scanLine str pat (astCallback onDef) (astCallback onExpr)
+  scanLineG str pat groups (astCallback onDef) (astCallback onExpr)
 
 transformDef name toks cont = withCons toks (parseErr "Bad definition, expecting tokens" (loc name)) \h t .
   isTokenString h '='
@@ -384,8 +384,14 @@ jsonForFile text = \\
 ## Macros
 #################
  
-#macro m def = 
- 
+macroSub macs expr = \\
+  ex = stripParens expr
+  .
+  withCons ex ex \h t . \\
+    newH = macroSub macs h
+    unmod = cons newH (map (macroSub macs) t)
+    .
+    withToken newH unmod \txt pos . assoc txt macs (\def . macroSub macs (def t)) unmod
 
 #################
 ## TESTING
@@ -400,8 +406,22 @@ parseToAst str pat = createAst (parse str pat) nil id
 d label value expr = log (strCat (cons label (cons value nil))) expr
 
 parseM str =
-  bind
-    getValue 'tokenPat'
-    \tokPat . bind
-      getValue 'groups'
+  bind (getValue 'tokenPat')
+    \tokPat . bind (getValue 'groups')
       \groups . parseG str tokPat groups
+
+scanLine str pat onDef onExpr = scanLineG str pat parenGroups onDef onExpr
+
+parseLine str pat names onDef onExpr = parseLineG str pat names parenGroups onDef onExpr
+
+macroSubM expr =
+  bind (getValue 'macros')
+    \macs . macroSub macs expr
+
+macroParse str =
+  bind (parseM str)
+    \ex . macroSubM ex
+
+tokensM str =
+  bind (getValue 'tokenPat')
+    \tokenPat . tokens str tokenPat
