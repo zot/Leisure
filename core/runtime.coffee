@@ -67,6 +67,7 @@ define 'strString', ->(data)-> String(data())
 define 'strAt', ->(str)->(index)-> str()[index()]
 define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
+define 'strReplace', ->(str)->(pat)->(repl)-> str().replace pat(), repl()
 define 'strSubstring', ->(str)->(start)->(end)->
   str().substring start(), (if end() < 1 then str().length + end() else end())
 define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
@@ -85,6 +86,7 @@ strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substr
 define 'strFromList', ->(list)-> strFromList list()
 strFromList = (list)-> if list instanceof Leisure_nil then '' else head(list) + strFromList(tail list)
 define 'regexp', ->(str)-> new RegExp str()
+define 'regexpFlags', ->(str)->(flags)-> new RegExp str(), flags()
 define 'jsonParse', ->(str)->(failCont)->(successCont)->
   try
     p = JSON.parse str()
@@ -102,8 +104,9 @@ define 'jsonStringify', ->(obj)->(failCont)->(successCont)->
 # Diagnostics
 ############
 
-define 'log', (str)->(res)->
-  console.log str()
+define 'log', ->(str)->(res)->
+  global.LOG = String(str())
+  console.log String(str())
   res()
 
 ############

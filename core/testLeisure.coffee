@@ -79,10 +79,6 @@ debug = false
 
 parseJson = (str)-> json2Ast JSON.parse str
 
-define 'log', (-> (msg)->(val)->
-  console.log msg()
-  val())
-
 ltrueAst = json2Ast
   _type: "lambda"
   varName: "a"
@@ -600,14 +596,15 @@ readFile 'core/simpleParse.lsr', (err, code)->
           setDelimiterInfo info
           assertEq String(lsrComp("splitTokens #{s '[a]'} #{s LZ.delimiterPat.source}")), 'Cons[[a]]'
         leisureAst50: -> #test monadic parsing
-          info = getDelimiterInfo()
-          addDelimiter '['
-          addDelimiter ']'
-          setValue 'tokenPat', LZ.delimiterPat
-          setValue 'groups', cons cons('(', ')'), cons cons('[', ']'), Nil
+          dels = getValue 'delimiterList'
+          pat = getValue 'delimiterPat'
+          gr = getValue 'groups'
+          monad lsr "addGroup '[' ']'"
           assertEq String(monad lsr "parseM 'a'"), 'Token("a", 0)'
           assertEq String(monad lsr "parseM '[a]'"), 'Cons[Token("[", 0) Token("a", 1) Token("]", 2)]'
-          setDelimiterInfo info
+          setValue 'delimiterList', dels
+          setValue 'delimiterPat', pat
+          setValue 'groups', gr
         leisureAst51: ->
           oldMacs = getValue 'macros'
           monad lsr "defMacro 'double' \\ex . withCons ex ex \\h t . cons h ex"
@@ -620,6 +617,18 @@ readFile 'core/simpleParse.lsr', (err, code)->
           #assertEq String(monad lsr "tokensM 'double (b 2) 3 4'"), 'Token("b", 10)'
           assertEq String(monad lsr "macroParse 'double (double a)'"), 'Cons[Cons[Token("a", 15) Token("a", 15)] Cons[Token("a", 15) Token("a", 15)]]'
           setValue 'macros', oldMacs
+        leisureAst52: ->
+          assertEq String(lsr "postProcessMacro -1 -1 (cons (token 'hello' 15) nil)"), 'Cons[Token("hello", 15)]'
+          assertEq String(lsr "postProcessMacro -1 -1 (cons 'hello' (cons (token 'goodbye' 15) nil))"), 'Cons[Token("hello", 15) Token("goodbye", 15)]'
+          assertEq String(lsr "postProcessMacro -1 -1 (cons (token 'hello' 15) (cons 'goodbye' nil))"), 'Cons[Token("hello", 15) Token("goodbye", 21)]'
+          assertEq String(lsr "postProcessMacro -1 -1 (cons (cons (token 'hello' 15) nil) (cons 'goodbye' nil))"), 'Cons[Cons[Token("hello", 15)] Token("goodbye", 21)]'
+      runTests 'Leisure Utils',
+        leisureUtil1: ->
+          assertEq String(monad lsr "quicksort lt nil"), 'Cons[]'
+          assertEq String(monad lsr "quicksort lt (cons 1 nil)"), 'Cons[1]'
+          assertEq String(monad lsr "quicksort lt (cons 1 (cons 2 nil))"), 'Cons[1 2]'
+          assertEq String(monad lsr "quicksort lt (cons 2 (cons 1 nil))"), 'Cons[1 2]'
+          assertEq String(monad lsr "quicksort lt (cons 2 (cons 3 (cons 1 nil)))"), 'Cons[1 2 3]'
 
       console.log '\nDone'
       process.exit(0)

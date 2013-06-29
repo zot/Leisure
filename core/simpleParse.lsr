@@ -9,7 +9,12 @@ and a b = a b false
 or a b = a true b
 some x = \someCase noneCase . someCase x
 none = \someCase noneCase . noneCase
+
+############
+# FUNCTIONS
+############
 id x = x
+compose f g = \x . f (g x)
 
 ############
 # CONS
@@ -22,22 +27,47 @@ nil = \a b . b
 isNil n = hasType n nil
 head l = l \h t . h
 tail l = l \h t . t
+last l = isCons l
+  l \h t . isCons t (last t) h
+  nil
 append a b = a (\h t D . cons h (append t b)) b
 reverse l = rev l nil
 rev l result = l (\h t D . rev t (cons h result)) result
 filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
 find predicate list = list (\h t D . predicate h (some h) (find predicate t)) none
-contains item list = find (\el . eq el item) list (\x . true) false
+contains list item = find (\el . eq el item) list (\x . true) false
 map func l = l (\h t D . cons (func h) (map func t)) nil
 foldLeft func value l = l (\h t D . foldLeft func (func value h) t) value
 intersperse list element = list (\h t D .
   hasType t nil
-    h
+    list
     cons h (cons element (intersperse t element))) nil
 join list el = strCat (intersperse list el)
+
+############
+# ASSOC LISTS
+############
 acons k v alist = cons (cons k v) alist
 assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
 rassoc v alist = find (\el . eq v (tail el)) alist (\cell . cell \head tail . some head) none
+
+############
+# SORTING
+############
+quicksort less list = (qs less list) nil
+# qs is written using a difference list so it can append in linear time
+# sortedFunc must return whether the two args are in sorted order
+# \rest . (qs ... makes a difference list.  id is the empty difference list.
+qs sortedFunc list = list
+  \h t D . \\
+    greater = filter (sortedFunc h) t
+    lesser = filter (compose not (sortedFunc h)) t
+    .
+    \rest . (qs sortedFunc lesser) (cons h ((qs sortedFunc greater) rest))
+  id
+insertSorted sortFunc item list = list
+  \h t D . sortFunc item h (cons item list) (cons h (insertSorted sortFunc item t))
+  cons item nil
 
 ############
 # TOKENS
@@ -145,12 +175,12 @@ strip list cont = withParens list (cont list) \c . strip c cont
 
 position thing = isToken thing (tokenPos thing)
   isParens thing (parensStart thing)
-    hasType thing cons (position (head thing))
+    isCons thing (position (head thing))
       -1
 
 lexEnd thing = isToken thing (+ (tokenPos thing) (strLen (tokenString thing)))
   isParens thing (parensEnd thing)
-    hasType thing cons (lexEnd (last thing))
+    isCons thing (lexEnd (last thing))
       -1
 
 loc thing = \\
@@ -210,7 +240,7 @@ strMatches str pat = hasType (strMatch str pat) cons
 digit = regexp '^[0-9]+$'
 
 createLitOrRef tok names cont = \\
-  contains tok names (cont (ref tok))
+  contains names tok (cont (ref tok))
     or (isTokenStart tok '"') (isTokenStart tok "'")
       cont (lit (parseString (strSubstring tok 1 -1)))
       or (ge (strAt tok 0) '0') (or (le (strAt tok 0) '9') (isTokenStart tok '-'))
@@ -253,7 +283,7 @@ createApply inList names cont = strip inList \list .
 blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
 
 chainApply func list names cont = withCons list (cont func) \argItem rest .
-  and (isToken argItem) (contains (tokenString argItem) blockStarts)
+  and (isToken argItem) (contains blockStarts (tokenString argItem))
     createAst list names \arg . cont (apply func arg)
     createAst argItem names \arg . chainApply (apply func arg) rest names cont
 
@@ -381,17 +411,83 @@ jsonForFile text = \\
   map (\lines . jsonStringify (ast2Json)) lines
 
 #################
-## Macros
+## Macro system
 #################
- 
-macroSub macs expr = \\
+
+# alpha substitution to make the result hygenic
+# make some let-style macros that use gensyms?
+
+# macs is an assoc-list of (name . definition)
+# expr is the tail of the macro expression
+#macroSub macs expr = postProcessMacro (baseMacroSub macs expr)
+macroSub macs expr = baseMacroSub macs expr
+
+isString s = eq (getType s) '*string'
+
+postProcessMacro before after macro = isString macro
+  token macro (eq after -1 before after)
+  isParens macro
+    macro \start end contents . parens start end (postProcessMacro start end contents)
+    isCons macro
+      macro \h t .
+        isToken h
+          cons h (postProcessMacro (+ 1 (+ (tokenPos h) (strLen (tokenString h)))) -1 t)
+          \\
+            posStart = position h
+            posEnd = position t
+            t2 = postProcessMacro -1 after t
+            h2 = postProcessMacro before -1 h
+            .
+            eq posStart -1
+              cons (postProcessMacro before (position t2) h) t2
+              cons h2 (postProcessMacro (+ 1 (lexEnd h2)) after t)
+      macro
+
+baseMacroSub macs expr = \\
   ex = stripParens expr
   .
   withCons ex ex \h t . \\
-    newH = macroSub macs h
-    unmod = cons newH (map (macroSub macs) t)
+    newH = baseMacroSub macs h
+    unmod = cons newH (map (baseMacroSub macs) t)
     .
-    withToken newH unmod \txt pos . assoc txt macs (\def . macroSub macs (def t)) unmod
+    withToken newH unmod \txt pos . assoc txt macs (\def . baseMacroSub macs (def t)) unmod
+
+#################
+# Token Patterns
+#################
+
+delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\n *|#.*| +"
+
+regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
+
+setValue 'delimiterList' nil
+
+setValue 'delimiterPat' delimiterListPrefix
+
+addDelimiter del =
+  bind (getValue 'delimiterList')
+    \dels . contains dels del
+      false
+      \\
+        newDels = insertSorted (\a b . gt (strLen a) (strLen b)) del dels
+        delPats = map (\item . strReplace item regexpEscapePat "\\$&") newDels
+        .
+        bind (setValue 'delimiterList' newDels)
+          \_ . setValue 'delimiterPat' (strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil))))
+
+addDelimiter '('
+addDelimiter ')'
+addDelimiter '.'
+addDelimiter '\\'
+addDelimiter '\\\\'
+addDelimiter '\\@'
+
+setValue 'groups' (acons '(' ')' nil)
+
+addGroup open close = bind (addDelimiter open)
+  \_ . bind (addDelimiter close)
+    \_ . bind (getValue 'groups')
+      \gr .setValue 'groups' (acons open close gr)
 
 #################
 ## TESTING
@@ -406,7 +502,7 @@ parseToAst str pat = createAst (parse str pat) nil id
 d label value expr = log (strCat (cons label (cons value nil))) expr
 
 parseM str =
-  bind (getValue 'tokenPat')
+  bind (getValue 'delimiterPat')
     \tokPat . bind (getValue 'groups')
       \groups . parseG str tokPat groups
 
@@ -423,5 +519,5 @@ macroParse str =
     \ex . macroSubM ex
 
 tokensM str =
-  bind (getValue 'tokenPat')
-    \tokenPat . tokens str tokenPat
+  bind (getValue 'delimiterPat')
+    \delimiterPat . tokens str delimiterPat
