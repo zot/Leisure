@@ -239,11 +239,12 @@ strMatches str pat = hasType (strMatch str pat) cons
 
 digit = regexp '^[0-9]+$'
 
-createLitOrRef tok names cont = \\
+createLitOrRef tok names cont =
   contains names tok (cont (ref tok))
-    or (isTokenStart tok '"') (isTokenStart tok "'")
-      cont (lit (parseString (strSubstring tok 1 -1)))
-      or (ge (strAt tok 0) '0') (or (le (strAt tok 0) '9') (isTokenStart tok '-'))
+    or (strStartsWith tok '"') (strStartsWith tok "'")
+      jsonParse (strCat (cons '"' (cons (strSubstring tok 1 -1) (cons '"' nil)))) (\err. parseErr (strCat (cons "Error parsing json for " (cons tok (cons ': ' nil)))) err) \str .
+        cont (lit str)
+      or (ge (strAt tok 0) '0') (or (le (strAt tok 0) '9') (strStartsWith tok '-'))
         jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
         cont (ref tok)
 
@@ -456,13 +457,13 @@ baseMacroSub macs expr = \\
 # Token Patterns
 #################
 
-delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\n *|#.*| +"
+delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\n *|#.*| +"
 
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
 setValue 'delimiterList' nil
 
-setValue 'delimiterPat' delimiterListPrefix
+setValue 'delimiterPat' (strCat (cons '(' (cons delimiterListPrefix (cons ')' nil))))
 
 addDelimiter del =
   bind (getValue 'delimiterList')
@@ -509,6 +510,10 @@ parseM str =
 scanLine str pat onDef onExpr = scanLineG str pat parenGroups onDef onExpr
 
 parseLine str pat names onDef onExpr = parseLineG str pat names parenGroups onDef onExpr
+
+parseLineM str = bind (getValue 'delimiterPat')
+  \tokPat . bind (getValue 'groups')
+    \groups . parseLineG str tokPat nil groups id id
 
 macroSubM expr =
   bind (getValue 'macros')

@@ -228,6 +228,10 @@ lsrComp = (str, diag)->
     console.log "done"
   monad eval "(#{gen lsr("parseLine #{s str} #{s LZ.delimiterPat.source} nil id id")})"
 
+lsrM = (str)->
+  #console.log "FUNC: " + "(#{gen monad lsr("parseLineM #{s str}")})"
+  monad eval "(#{gen monad lsr("parseLineM #{s str}")})"
+
 lsrParseToAst = (str)-> lsrComp("parseToAst #{s str} #{s LZ.delimiterPat.source}")
 
 monad = (m)-> runMonad m, defaultEnv, id
@@ -506,7 +510,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq lsrComp("\\x . x")(->7), 7
         leisureAst21: ->
           assertEq lsr("\"hello\""), 'hello'
-          assertEq strLsrD("parseToAst #{s '"hello"'}"), 'lit(hello)'
+          assertEq strLsrD("parseToAst #{s '"hello"'}"), "lit(hello)"
           assertEq lsrComp('"hello"'), 'hello'
         leisureAst22: -> #ast10
           assertEq lsrComp('getType "hello"'), "*string"
@@ -524,6 +528,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(lsr("parseLine #{s 'id = \\x . x'} #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
           assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'apply(define id 1 id x = x \\x . x)'
         leisureAst26: -> #ast14: ->
+          lsrM("id2 = \\x . x")
           lsrComp("id2 = \\x . x")
           assertEq lsrComp('id2')(->3), 3
         leisureAst27: -> #ast15: ->
@@ -614,11 +619,12 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(monad lsr "macroParse 'b 2'"), 'Token("b", 2)'
           assertEq String(monad lsr "macroParse '(b 2) 3'"), 'Token("b", 6)'
           assertEq String(monad lsr "macroParse 'double (b 2) 3 4'"), 'Token("b", 7)'
-          #assertEq String(monad lsr "tokensM 'double (b 2) 3 4'"), 'Token("b", 10)'
           assertEq String(monad lsr "macroParse 'double (double a)'"), 'Cons[Cons[Token("a", 15) Token("a", 15)] Cons[Token("a", 15) Token("a", 15)]]'
           setValue 'macros', oldMacs
         leisureAst52: ->
           assertEq String(lsr "postProcessMacro -1 -1 (cons (token 'hello' 15) nil)"), 'Cons[Token("hello", 15)]'
+          assertEq String(lsrComp "postProcessMacro -1 -1 (cons (token 'hello' 15) nil)"), 'Cons[Token("hello", 15)]'
+          assertEq String(lsrM "postProcessMacro -1 -1 (cons (token 'hello' 15) nil)"), 'Cons[Token("hello", 15)]'
           assertEq String(lsr "postProcessMacro -1 -1 (cons 'hello' (cons (token 'goodbye' 15) nil))"), 'Cons[Token("hello", 15) Token("goodbye", 15)]'
           assertEq String(lsr "postProcessMacro -1 -1 (cons (token 'hello' 15) (cons 'goodbye' nil))"), 'Cons[Token("hello", 15) Token("goodbye", 21)]'
           assertEq String(lsr "postProcessMacro -1 -1 (cons (cons (token 'hello' 15) nil) (cons 'goodbye' nil))"), 'Cons[Cons[Token("hello", 15)] Token("goodbye", 21)]'
