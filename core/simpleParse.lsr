@@ -526,3 +526,18 @@ macroParse str =
 tokensM str =
   bind (getValue 'delimiterPat')
     \delimiterPat . tokens str delimiterPat
+
+linePat = regexp '\\n(?=[^ ])'
+
+emptyLinePat = regexp '^[ \\i]*\\#.*|^[ \\i]*$'
+
+linesForFile text = filter
+  \line . not (strMatch line emptyLinePat)
+  strSplit text linePat
+
+parseFile text = parseLines (linesForFile text) nil
+
+parseLines lines result = lines
+  \h t D . bind (parseM h)
+    \ast . parseLines t (cons ast result)
+  reverse result

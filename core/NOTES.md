@@ -3,16 +3,22 @@ Notes on New Leisure Core
 # Contents
 
 * MOTIVATION
+* THE REPL
 * THE LET AST STRUCTURE
 * THE ANNO AST STRUCTURE
-* PATTERN MATCHING
-* TYPE INFERENCE
-* REMOTE NOTEBOOK
+* FUTURE STUFF
+   * PATTERN MATCHING
+   * TYPE INFERENCE
+   * REMOTE NOTEBOOK
 
 
 # MOTIVATION
 
 The fundamental motivation of the new core is to reduce the amount of low-level code and simplify it, so it's easier to provide alternate backends and make improvements at the lowest level.  The new core doesn't parse Leisure, it operates directly on ASTs and JSON-encoded ASTs.  This allows Leisure itself to implement the parsing.  Leisure can send ASTs directly to the core or generate low-level, JSON-encoded *.last files which the core can understand.
+
+# RUNNING STUFF
+
+To run the tests, use `make`.  To run the repl, use `make repl`.
 
 # THE LET AST STRUCTURE
 
@@ -22,7 +28,9 @@ Let values can refer to all of the names defined by the let structure.  This all
 
 Lets programmers associate runtime-accessible key-value pairs with code.  The system will use standard keys for things like definitions and patterns, which are kind of outside the scope of Lambda Calculus, anyway.
 
-# PATTERN MATCHING
+# FUTURE STUFF
+
+## PATTERN MATCHING
 
 ```
 length list = match list
@@ -80,7 +88,7 @@ When new types are added, it can invalidate the dispatch cache by incrementing a
 
 Multiple dispatch could create a dispatchers that return other dispatchers.
 
-# TYPE INFERENCE
+## TYPE INFERENCE
 
 Counting arguments would be really helpful.  This case in the parser was hard to debug:
 
@@ -106,6 +114,6 @@ append a b = a (\h t D . cons h (append t b)) b  <--- This goes into the result
                        +--- this function is only partly applied by a (it returns \D . ...)
 ```
 
-# REMOTE NOTEBOOK
+## REMOTE NOTEBOOK
 
 The notebook should be able to hook up to a remote Leisure instance, like SLIME does.  The remote instance can use Xus and JSON.

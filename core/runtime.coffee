@@ -199,6 +199,11 @@ define 'defMacro', ->(name)->(def)->
     values.macros = cons cons(name(), def()), values.macros
     cont _false
 
+define 'funcs', ->
+  makeMonad (env, cont)->
+    console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
+    cont _false
+
 root.stateValues = values
 root.runMonad = runMonad
 root.identity = identity

@@ -25,11 +25,27 @@ readline = require('readline')
 
 evalInput = (text)-> if text
   if diag then console.log "Eval: (#{gen monad L_parseLineM()(->text)})"
-  console.log monad eval "(#{gen monad L_parseLineM()(->text)})"
+  result = eval "(#{gen monad L_parseLineM()(->text)})"
+  if result.cmd then monad result
+  else console.log result
 
 monad = (m)-> runMonad m, defaultEnv, (x)->x
 
+help = ->
+  console.log """
+  Welcome to the Leisure REPL!
+
+  Here are the commands:
+  :d -- toggle diagnostics
+  :{ -- start multiline input
+  :} -- end multiline input
+  :h -- print this message
+  funcs -- list all known functions
+  * -- evaluate Leisure code
+  """
+
 runRepl = ->
+  help()
   readFile 'core/simpleParse.lsr', (err, code)->
     js = compileFile code, "simpleParse.js"
     if err then throw new Error err
@@ -58,6 +74,7 @@ runRepl = ->
                 evalInput lines.join '\n'
                 lines = []
                 rl.setPrompt 'Leisure> '
+            when ':h' then help()
             else
               if multiline then lines.push line
               else evalInput line
