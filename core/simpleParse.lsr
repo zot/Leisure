@@ -244,7 +244,7 @@ createLitOrRef tok names cont =
     or (strStartsWith tok '"') (strStartsWith tok "'")
       jsonParse (strCat (cons '"' (cons (strSubstring tok 1 -1) (cons '"' nil)))) (\err. parseErr (strCat (cons "Error parsing json for " (cons tok (cons ': ' nil)))) err) \str .
         cont (lit str)
-      or (ge (strAt tok 0) '0') (or (le (strAt tok 0) '9') (strStartsWith tok '-'))
+      or (and (ge (strAt tok 0) '0') (le (strAt tok 0) '9')) (strStartsWith tok '-')
         jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
         cont (ref tok)
 

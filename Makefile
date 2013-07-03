@@ -6,7 +6,7 @@
 ## Note, the lua tests depend on lua5.1, luarocks, and these luarocks: underscore, luajson
 ## It uses lua5.1 to maintain compatibility with LuaJIT
 
-SRC=base ast testing gen runtime simpleParse browser
+SRC=base ast testing gen runtime simpleParse browser repl
 TEST=testLeisure
 ALL=$(SRC) $(TEST)
 IN_FILES=$(ALL:%=core/%)
@@ -15,6 +15,10 @@ DIR=core
 LIB=lib
 
 all: $(TEST) coffeescript-tests lua-tests
+
+repl:
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(DIR)
+	node -e "var r=require('./$(LIB)/repl');r.runRepl()"
 
 $(TEST):
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(DIR)
