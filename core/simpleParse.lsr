@@ -224,32 +224,31 @@ convertStringEscape char codes values =
     char
     eq char (strAt codes 0)
       strAt values 0
-      convertStringEscape char (strSubstring codes 1) (strSubstring values 1)
+      convertStringEscape char (strSubstring codes 1 0) (strSubstring values 1 0)
 
 convertStringEscapes orig str cont =
   eq str ''
     cont str
     eq (strAt str 0) '\\'
       eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
-        convertStringEscapes orig (strSubstring 2) \rest . cont
+        convertStringEscapes orig (strSubstring str 2 0) \rest . cont
           strAdd
             convertStringEscape (strAt str 1) backslashCodes backslashValues
             rest
-      convertStringEscapes orig (strSubstring 1) \rest . cont
+      convertStringEscapes orig (strSubstring str 1 0) \rest . cont
         strAdd
           strAt str 0
           rest
 
-parseString str err cont =
-  neq (strAt str 0) (strAt -1) err
-    convertStringEscapes str (strSubstring 1 -1) err cont
+parseString str cont =
+  neq (strAt str 0) (strAt str -1) (parseErr "Badly terminated string: " str)
+    convertStringEscapes str (strSubstring str 1 -1) cont
 
 createLitOrRef tok names cont =
   contains names tok
     cont (ref tok)
     or (strStartsWith tok '\"') (strStartsWith tok "'")
-      jsonParse (strCat (cons '\"' (cons (strSubstring tok 1 -1) (cons '\"' nil)))) (\err. parseErr (strCat (cons "Error parsing json for " (cons tok (cons ': ' nil)))) err) \str .
-        cont (lit str)
+      parseString tok \str . cont (lit str)
       or (and (ge (strAt tok 0) '0') (le (strAt tok 0) '9')) (strStartsWith tok '-')
         jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
         cont (ref tok)
