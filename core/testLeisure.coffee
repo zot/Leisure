@@ -71,7 +71,7 @@ require('source-map-support').install()
   getDelimiterInfo,
   setDelimiterInfo,
   addDelimiter,
-} = require './simpleParse'
+} = require './simpleParseJS'
 
 console.log 'Testing CoffeeScript'
 
@@ -638,4 +638,3 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(monad lsr "quicksort lt (cons 2 (cons 3 (cons 1 nil)))"), 'Cons[1 2 3]'
 
       console.log '\nDone'
-      process.exit(0)

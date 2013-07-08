@@ -46,7 +46,7 @@ modules =
   './base': tests
   './gen': tests
   './runtime': tests
-  './simpleParse': tests
+  './simpleParseJS': tests
   './testing': ->
     console.log "Accessing ./testing"
     oldRunTests = window.Tests.runTests

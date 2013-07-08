@@ -9,6 +9,7 @@ and a b = a b false
 or a b = a true b
 some x = \someCase noneCase . someCase x
 none = \someCase noneCase . noneCase
+neq a b = not (eq a b)
 
 ############
 # FUNCTIONS
@@ -37,7 +38,7 @@ filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
 find predicate list = list (\h t D . predicate h (some h) (find predicate t)) none
 contains list item = find (\el . eq el item) list (\x . true) false
 map func l = l (\h t D . cons (func h) (map func t)) nil
-foldLeft func value l = l (\h t D . foldLeft func (func value h) t) value
+foldl func value l = l (\h t D . foldl func (func value h) t) value
 intersperse list element = list (\h t D .
   hasType t nil
     list
@@ -189,31 +190,6 @@ loc thing = \\
   .
   strCat (cons 'at ' (cons l nil))
 
-charCodes = acons 'b' '\b'
-  acons 'f' '\f'
-    acons 'n' '\n'
-      acons 'r' '\r'
-        acons 't' '\t'
-          acons 'v' '\v'
-            acons "'" "'"
-              acons '"' '"'
-                acons '\\' '\\'
-                  nil
-
-parseString start str cont = parseStringChars start str \strList . cont (strCat strList)
-
-parseStringChars start str cont = eq str '' (cont nil) \\
-  c = strAt str 0
-  .
-  eq c '\\'
-    \\
-      d = strAt str 1
-      .
-      assoc d charCodes
-        \char . parseStringChars start (strSubstring str 1 0) \s . cont (cons char s)
-        parseStringChars start (strSubstring str 1 0) \s . cont (cons d s)
-    parseStringChars start (strSubstring str 1 0) \s . cont (cons c s)
-
 scrub str = strFromList (scrubList (strToList str))
 
 scrubList list = list
@@ -221,7 +197,7 @@ scrubList list = list
     next = scrubList t
     .
     eq h '\\' (cons h (cons (head t) (scrubList (tail t))))
-      eq h '"' (cons '\\' (cons '"' next))
+      eq h '\"' (cons '\\' (cons '\"' next))
         cons h next
   nil
 
@@ -239,10 +215,40 @@ strMatches str pat = hasType (strMatch str pat) cons
 
 digit = regexp '^[0-9]+$'
 
+backslashCodes = 'bfnrt'
+
+backslashValues = '\b\f\n\r\t'
+
+convertStringEscape char codes values =
+  eq codes ''
+    char
+    eq char (strAt codes 0)
+      strAt values 0
+      convertStringEscape char (strSubstring codes 1) (strSubstring values 1)
+
+convertStringEscapes orig str cont =
+  eq str ''
+    cont str
+    eq (strAt str 0) '\\'
+      eq (strLen str) 1 (parseErr "Error, backslash without character in string: " orig)
+        convertStringEscapes orig (strSubstring 2) \rest . cont
+          strAdd
+            convertStringEscape (strAt str 1) backslashCodes backslashValues
+            rest
+      convertStringEscapes orig (strSubstring 1) \rest . cont
+        strAdd
+          strAt str 0
+          rest
+
+parseString str err cont =
+  neq (strAt str 0) (strAt -1) err
+    convertStringEscapes str (strSubstring 1 -1) err cont
+
 createLitOrRef tok names cont =
-  contains names tok (cont (ref tok))
-    or (strStartsWith tok '"') (strStartsWith tok "'")
-      jsonParse (strCat (cons '"' (cons (strSubstring tok 1 -1) (cons '"' nil)))) (\err. parseErr (strCat (cons "Error parsing json for " (cons tok (cons ': ' nil)))) err) \str .
+  contains names tok
+    cont (ref tok)
+    or (strStartsWith tok '\"') (strStartsWith tok "'")
+      jsonParse (strCat (cons '\"' (cons (strSubstring tok 1 -1) (cons '\"' nil)))) (\err. parseErr (strCat (cons "Error parsing json for " (cons tok (cons ': ' nil)))) err) \str .
         cont (lit str)
       or (and (ge (strAt tok 0) '0') (le (strAt tok 0) '9')) (strStartsWith tok '-')
         jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
@@ -396,7 +402,7 @@ linesForFile text = filter (\line . not (strMatches line '^ *#.*|^ *$')) (strSpl
 
 defPat = regexp '^([^ =]+).*='
 
-namesForLines lines = foldLeft Nil (\result line . \\
+namesForLines lines = foldl Nil (\result line . \\
   m = strMatch line defPat
   .
   hasType m nil result (cons (head (tail m)) result)) lines
@@ -502,6 +508,8 @@ parseToAst str pat = createAst (parse str pat) nil id
 
 d label value expr = log (strCat (cons label (cons value nil))) expr
 
+dd label arg = d label arg arg
+
 parseM str =
   bind (getValue 'delimiterPat')
     \tokPat . bind (getValue 'groups')
@@ -527,17 +535,18 @@ tokensM str =
   bind (getValue 'delimiterPat')
     \delimiterPat . tokens str delimiterPat
 
-linePat = regexp '\\n(?=[^ ])'
+linePat = regexp '\\n(?=[^ ]|$)'
 
-emptyLinePat = regexp '^[ \\i]*\\#.*|^[ \\i]*$'
+emptyLinePat = regexp '^[ \\i]*\\#.*|^[ \\i]*$|^\n[ \\i]*$'
 
 linesForFile text = filter
-  \line . not (strMatch line emptyLinePat)
+  \line . isNil (strMatch line emptyLinePat)
   strSplit text linePat
+
+parseLines lines result = lines
+  \h t D . bind (parseLineM h)
+    \ast . parseLines t (cons ast result)
+  reverse result
 
 parseFile text = parseLines (linesForFile text) nil
 
-parseLines lines result = lines
-  \h t D . bind (parseM h)
-    \ast . parseLines t (cons ast result)
-  reverse result

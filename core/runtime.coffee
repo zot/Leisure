@@ -64,14 +64,19 @@ define 'ge', ->(x)->(y)->booleanFor x() >= y()
 ############
 
 define 'strString', ->(data)-> String(data())
-define 'strAt', ->(str)->(index)-> str()[index()]
+define 'strAt', ->(str)->(index)-> str()[strCoord(str(), index())]
 define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
 define 'strReplace', ->(str)->(pat)->(repl)-> str().replace pat(), repl()
+strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
 define 'strSubstring', ->(str)->(start)->(end)->
-  str().substring start(), (if end() < 1 then str().length + end() else end())
+  a = strCoord(str(), start())
+  b = strCoord(str(), end())
+  if b < a && end() == 0 then b = str().length
+  str().substring a, b
 define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
 define 'strCat', ->(list)-> list().toArray().join('')
+define 'strAdd', ->(s1)->(s2)-> s1() + s2()
 define 'strMatch', ->(str)->(pat)->
   m = str().match (if pat() instanceof RegExp then pat() else new RegExp pat())
   if m
@@ -127,7 +132,7 @@ nextMonad = (cont)-> cont
 
 runMonad = (monad, env, cont)->
   try
-    if monad.cmd? then monad.cmd(env, nextMonad(cont))
+    if monad.cmd? then monad.cmd(env ? root.defaultEnv, nextMonad(cont ? (x)->x))
     else cont(monad)
   catch err
     console.log "ERROR RUNNING MONAD: #{err.stack}"
