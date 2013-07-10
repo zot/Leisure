@@ -47,8 +47,12 @@ misrepresented as being the original software.
   cons,
   Nil,
   consFrom,
+  define,
 } = root = module.exports = require './ast'
-_ = require('./lodash.min')
+{
+  makeMonad,
+} = require './runtime'
+_ = require './lodash.min'
 
 varNameSub = (n)-> "L_#{nameSub n}"
 
@@ -113,5 +117,11 @@ letList = (ast, buf)->
   else buf
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
+
+define 'runAst', ->(ast)->
+  makeMonad (env, cont)->
+    #console.log "AST: #{ast()}"
+    #console.log "CODE: (#{gen ast()})"
+    cont runMonad eval "(#{gen ast()})"
 
 root.gen = gen

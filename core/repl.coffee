@@ -1,3 +1,4 @@
+require('source-map-support').install()
 root = module.exports = require './base'
 _ = require './lodash.min'
 path = require 'path'
@@ -13,10 +14,6 @@ path = require 'path'
   readFile,
   writeFile,
 } = require './base'
-{
-  parseLine,
-  compileFile,
-} = require './simpleParseJS'
 {
   identity,
   runMonad,
@@ -85,31 +82,68 @@ gennedJs = false
 newOptions = true
 action = null
 outDir = null
-recompileParser = false
+recompiled = false
+loadedParser = false
 processedFiles = false
+createAstFile = false
+createJsFile = false
 
-genAst = (file, cont)->
+compile = (file, cont)->
   ext = path.extname file
-  outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
-  if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-  console.log "OUTPUT FILE: #{outputFile}"
   readFile file, (err, contents)->
     if !err
-      asts = monad(L_parseFile()(-> contents)).toArray()
-      writeFile outputFile, "[\n  #{_(asts).map((item)-> JSON.stringify ast2Json item).join ',\n  '}\n]", (err)-> if !err then cont(asts)
+      lines = monad L_linesForFile()(-> contents)
+      names = monad L_namesForLines()(-> lines)
+      asts = []
+      for line in lines.toArray()
+        asts.push monad L_runLine()(->names)(->line)
+      if createAstFile
+        outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
+        if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+        console.log "AST FILE: #{outputFile}"
+        writeFile outputFile, "[\n  #{_(asts).map((item)-> JSON.stringify ast2Json item).join ',\n  '}\n]", (err)-> if !err then cont(asts)
+      if createJsFile
+        outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
+        if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+        console.log "JS FILE: #{outputFile}"
+        writeFile outputFile, _(asts).map((item)-> "runMonad((#{gen item}), defaultEnv, identity)").join(';\n  ') + ";\n", (err)-> if !err then cont(asts)
 
-genJs = (file, asts, cont)->
+primCompile = (file, cont)->
+  {
+    parseLine,
+    compileFile,
+  } = require './simpleParseJS'
   ext = path.extname file
-  outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
-  if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-  writeFile outputFile, _(asts).map((ast)-> "runMonad(#{gen ast});").join '\n', (err)-> if !err then cont(asts)
+  readFile file, (err, contents)->
+    if !err
+      compiled = compileFile contents, file
+      outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
+      if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+      console.log "JS FILE: #{outputFile}"
+      writeFile outputFile, compiled, (err)-> if !err then cont(compiled)
+
+#genAst = (file, cont)->
+#  ext = path.extname file
+#  outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
+#  if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+#  console.log "OUTPUT FILE: #{outputFile}"
+#  readFile file, (err, contents)->
+#    if !err
+#      asts = monad(L_parseFile()(-> contents)).toArray()
+#      writeFile outputFile, "[\n  #{_(asts).map((item)-> JSON.stringify ast2Json item).join ',\n  '}\n]", (err)-> if !err then cont(asts)
+#
+#genJs = (file, asts, cont)->
+#  ext = path.extname file
+#  outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
+#  if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+#  writeFile outputFile, _(asts).map((ast)-> "runMonad(#{gen ast});").join '\n', (err)-> if !err then cont(asts)
 
 genJsFromAst = (file, cont)->
   readFile file, (err, contents)->
     if !err then genJs _(JSON.parse(contents)).map((json)-> json2Ast json), cont
 
 processArg = (pos)->
-  console.log "Process Arg: #{process.argv.join ', '}, pos: #{pos}"
+  #console.log "Process Arg: #{process.argv.join ', '}, pos: #{pos}"
   if pos >= process.argv.length
     if processedFiles then process.exit 1
     else
@@ -122,42 +156,56 @@ processArg = (pos)->
   switch process.argv[pos]
     when '-v'
       verbose = true
+    #when '-a'
+    #  action = genAst
+    #  gennedAst = true
+    #when '-c'
+    #  if !gennedAst then action = (file, cont)-> genAst file, (asts)-> genJs file, asts, cont
+    #  else action = genJsFromAst
+    #  gennedJs = gennedAst = true
     when '-a'
-      action = genAst
-      gennedAst = true
+      action = compile
+      createAstFile = true
     when '-c'
-      if !gennedAst then action = (file, cont)-> genAst file, (asts)-> genJs file, asts, cont
-      else action = genJsFromAst
-      gennedJs = gennedAst = true
+      action = compile
+      createAstFile = createJsFile = true
     when '-d'
       outDir = process.argv[pos + 1]
       pos++
     when '-p'
-      readFile 'core/simpleParse.lsr', (err, code)->
-        js = compileFile code, "simpleParse.js"
-        if err then throw new Error err
-        else
-          writeFile '/tmp/simpleParse.js', js, (err)->
-            eval js
-            if process.argv.length == 2 then repl()
-            else processArg pos + 1
-      return
+      action = primCompile
+      loadedParser = true
+      #readFile 'core/simpleParse.lsr', (err, code)->
+      #  recompiled = true
+      #  js = compileFile code, "simpleParse.js"
+      #  if err then throw new Error err
+      #  else
+      #    writeFile '/tmp/simpleParse.js', js, (err)->
+      #      eval js
+      #      loadedParser = true
+      #      if process.argv.length == 2 then repl()
+      #      else processArg pos + 1
+      #return
+    when '-v' then verbose = true
     else
       newOptions = true
-      console.log "Process #{process.argv.join ', '}"
+      #console.log "Process #{process.argv.join ', '}"
       if process.argv[pos][0] == '-' then usage()
       else
         processedFiles = true
+        if !loadedParser then require './simpleParse'
         action process.argv[pos], -> processArg pos + 1
       return
   processArg pos + 1
 
 run = ->
-  console.log "Run: #{process.argv.join ', '}"
+  global.runMonad = runMonad
+  global.setType = setType
+  global.setDataType = setDataType
+  global.defaultEnv = defaultEnv
+  global.identity = identity
+  #console.log "Run: #{process.argv.join ', '}"
   if process.argv.length == 2
-    global.runMonad = runMonad
-    global.setType = setType
-    global.setDataType = setDataType
     require './simpleParse'
     repl()
   else processArg 2

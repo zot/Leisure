@@ -32,8 +32,9 @@ root = module.exports = require './base'
   tail,
   getType,
   getDataType,
+  ast2Json,
 } = require './ast'
-_ = require('./lodash.min')
+_ = require './lodash.min'
 
 ############
 # LOGIC
@@ -209,6 +210,8 @@ define 'funcs', ->
     console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
     cont _false
 
+define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
+
 root.stateValues = values
 root.runMonad = runMonad
 root.identity = identity
@@ -216,3 +219,4 @@ root.defaultEnv =
   write: (str)-> process.stdout.write(str)
 root.setValue = setValue
 root.getValue = getValue
+root.makeMonad = makeMonad
