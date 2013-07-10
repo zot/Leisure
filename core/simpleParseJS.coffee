@@ -424,7 +424,7 @@ compileFile = (text, filename)->
   lines = linesForFile text
   names = namesForLines lines
   "require('source-map-support').install();\n" +
-     _.map(lines, (line)-> "runMonad((#{genLine line.trim(), names, id, id}), defaultEnv, identity);\n").join('') +
+     _.map(lines, (line)-> "runMonad(#{genLine line.trim(), names, id, id});\n").join('') +
     (if filename then "\n//@ sourceURL=#{filename}\n" else "")
 
 jsonForFile = (text)->

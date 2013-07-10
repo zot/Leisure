@@ -20,6 +20,12 @@ path = require 'path'
   defaultEnv,
 } = require './runtime'
 
+global.runMonad = runMonad
+global.setType = setType
+global.setDataType = setDataType
+global.defaultEnv = defaultEnv
+global.identity = identity
+
 diag = false
 
 readline = require('readline')
@@ -72,7 +78,11 @@ repl = ->
       when ':h' then help()
       else
         if multiline then lines.push line
-        else evalInput line
+        else
+          try
+            evalInput line
+          catch err
+            console.log "ERROR: #{err.stack}"
     rl.prompt()
   rl.on 'close', -> process.exit 0
 
@@ -100,13 +110,13 @@ compile = (file, cont)->
       if createAstFile
         outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
         if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-        console.log "AST FILE: #{outputFile}"
+        if verbose then console.log "AST FILE: #{outputFile}"
         writeFile outputFile, "[\n  #{_(asts).map((item)-> JSON.stringify ast2Json item).join ',\n  '}\n]", (err)-> if !err then cont(asts)
       if createJsFile
         outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
         if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-        console.log "JS FILE: #{outputFile}"
-        writeFile outputFile, _(asts).map((item)-> "runMonad((#{gen item}), defaultEnv, identity)").join(';\n  ') + ";\n", (err)-> if !err then cont(asts)
+        if verbose then console.log "JS FILE: #{outputFile}"
+        writeFile outputFile, _(asts).map((item)-> "runMonad(#{gen item})").join(';\n') + ";\n", (err)-> if !err then cont(asts)
 
 primCompile = (file, cont)->
   {
@@ -119,7 +129,7 @@ primCompile = (file, cont)->
       compiled = compileFile contents, file
       outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
       if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-      console.log "JS FILE: #{outputFile}"
+      if verbose then console.log "JS FILE: #{outputFile}"
       writeFile outputFile, compiled, (err)-> if !err then cont(compiled)
 
 #genAst = (file, cont)->
@@ -199,11 +209,6 @@ processArg = (pos)->
   processArg pos + 1
 
 run = ->
-  global.runMonad = runMonad
-  global.setType = setType
-  global.setDataType = setDataType
-  global.defaultEnv = defaultEnv
-  global.identity = identity
   #console.log "Run: #{process.argv.join ', '}"
   if process.argv.length == 2
     require './simpleParse'

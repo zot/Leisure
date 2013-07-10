@@ -465,13 +465,8 @@ delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\n *|#.*| +"
 
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
-setValue 'delimiterList' nil
 
-setValue 'delimiterPat' (strCat (cons '(' (cons delimiterListPrefix (cons ')' nil))))
-
-smeg newDels = map ( \ item . strReplace item regexpEscapePat "\\$&") newDels
-
-fred = 2
+#smeg newDels = map ( \ item . strReplace item regexpEscapePat "\\$&") newDels
 
 addDelimiter del =
   bind (getValue 'delimiterList')
@@ -483,15 +478,6 @@ addDelimiter del =
         .
         bind (setValue 'delimiterList' newDels)
           \ _ . setValue 'delimiterPat' (strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil))))
-
-addDelimiter '('
-addDelimiter ')'
-addDelimiter '.'
-addDelimiter '\\'
-addDelimiter '\\\\'
-addDelimiter '\\@'
-
-setValue 'groups' (acons '(' ')' nil)
 
 addGroup open close = bind (addDelimiter open)
   \_ . bind (addDelimiter close)
@@ -508,10 +494,6 @@ parseG str pat groups = parseIndent (token '\n' 0) (tokens str pat) nil groups \
 
 parseToAst str pat = createAst (parse str pat) nil id
 
-d label value expr = log (strCat (cons label (cons value nil))) expr
-
-dd label arg = d label arg arg
-
 parseM str =
   bind (getValue 'delimiterPat')
     \tokPat . bind (getValue 'groups')
@@ -524,8 +506,6 @@ parseLine str pat names onDef onExpr = parseLineG str pat names parenGroups onDe
 parseLineM str = bind (getValue 'delimiterPat')
   \tokPat . bind (getValue 'groups')
     \groups . parseLineG str tokPat nil groups id id
-
-setValue 'macros' nil
 
 macroSubM expr =
   bind (getValue 'macros')
@@ -568,3 +548,27 @@ runFile text = \\
   runLines names lines
 
 TEST = runLine nil 'h x = x'
+
+############
+# DIAG
+############
+
+d label value expr = log (strCat (cons label (cons value nil))) expr
+
+dd label arg = d label arg arg
+
+############
+## ACTIONS
+############
+
+setValue 'groups' (acons '(' ')' nil)
+setValue 'delimiterList' nil
+setValue 'delimiterPat' (strCat (cons '(' (cons delimiterListPrefix (cons ')' nil))))
+setValue 'macros' nil
+
+addDelimiter '('
+addDelimiter ')'
+addDelimiter '.'
+addDelimiter '\\'
+addDelimiter '\\\\'
+addDelimiter '\\@'

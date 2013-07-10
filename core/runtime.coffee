@@ -132,11 +132,13 @@ makeMonad = (guts)->
 nextMonad = (cont)-> cont
 
 runMonad = (monad, env, cont)->
+  env = env ? root.defaultEnv
+  cont = cont ? identity
   try
-    if monad.cmd? then monad.cmd(env ? root.defaultEnv, nextMonad(cont ? (x)->x))
+    if typeof monad == 'function' && monad.cmd? then monad.cmd(env, nextMonad(cont))
     else cont(monad)
   catch err
-    console.log "ERROR RUNNING MONAD: #{err.stack}"
+    console.log "ERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}, CONT: #{cont}: #{err.stack}"
 
 class Monad
   andThen: (func)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad (codeMonad func), env, cont

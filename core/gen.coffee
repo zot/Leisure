@@ -122,6 +122,11 @@ define 'runAst', ->(ast)->
   makeMonad (env, cont)->
     #console.log "AST: #{ast()}"
     #console.log "CODE: (#{gen ast()})"
-    cont runMonad eval "(#{gen ast()})"
+    try
+      value = runMonad eval "(#{gen ast()})"
+      cont value
+    catch err
+      console.log "Error running code: (#{gen ast()})"
+      cont _false
 
 root.gen = gen
