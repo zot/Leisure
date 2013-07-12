@@ -32,6 +32,7 @@ path = require 'path'
   setDataType,
   ast2Json,
   json2Ast,
+  Nil,
 } = require './ast'
 {gen} = require './gen'
 {
@@ -54,13 +55,14 @@ diag = false
 
 readline = require('readline')
 
-evalInput = (text)-> if text
-  if diag then console.log "Eval: (#{gen monad L_parseLineM()(->text)})"
-  result = eval "(#{gen monad L_parseLineM()(->text)})"
-  if result.cmd then console.log monad result
-  else console.log String(result)
-
-monad = (m)-> runMonad m, defaultEnv, (x)->x
+evalInput = (text, cont)->
+  if text
+    runMonad L_newParseLine()(->Nil)(->text), defaultEnv, (ast)->
+      if diag
+        console.log "AST: #{ast}"
+        console.log "CODE: (#{gen ast})"
+      runMonad (eval "(#{gen ast})"), defaultEnv, cont
+  else cont ''
 
 help = ->
   console.log """
@@ -96,17 +98,28 @@ repl = ->
       when ':}'
         if ! multiline then console.log "Not reading multiline input."
         else
-          evalInput lines.join '\n'
+          l = lines
           lines = []
-          rl.setPrompt 'Leisure> '
+          try
+            evalInput (l.join '\n'), (result)->
+              console.log String result
+              rl.setPrompt 'Leisure> '
+              rl.prompt()
+            return
+          catch err
+            console.log "ERROR: #{err.stack}"
       when ':h' then help()
       else
         if multiline then lines.push line
         else
           try
-            evalInput line
+            evalInput line, (result)->
+              console.log String result
+              rl.prompt()
+            return
           catch err
             console.log "ERROR: #{err.stack}"
+    console.log "BEEP"
     rl.prompt()
   rl.on 'close', -> process.exit 0
 
@@ -126,11 +139,11 @@ compile = (file, cont)->
   ext = path.extname file
   readFile file, (err, contents)->
     if !err
-      lines = monad L_linesForFile()(-> contents)
-      names = monad L_namesForLines()(-> lines)
+      lines = runMonad L_linesForFile()(-> contents)
+      names = runMonad L_namesForLines()(-> lines)
       asts = []
       for line in lines.toArray()
-        asts.push monad L_runLine()(->names)(->line)
+        asts.push runMonad L_runLine()(->names)(->line)
       if createAstFile
         outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
         if outDir then outputFile = path.join(outDir, path.basename(outputFile))
@@ -156,22 +169,6 @@ primCompile = (file, cont)->
       if verbose then console.log "JS FILE: #{outputFile}"
       writeFile outputFile, compiled, (err)-> if !err then cont(compiled)
 
-#genAst = (file, cont)->
-#  ext = path.extname file
-#  outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
-#  if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-#  console.log "OUTPUT FILE: #{outputFile}"
-#  readFile file, (err, contents)->
-#    if !err
-#      asts = monad(L_parseFile()(-> contents)).toArray()
-#      writeFile outputFile, "[\n  #{_(asts).map((item)-> JSON.stringify ast2Json item).join ',\n  '}\n]", (err)-> if !err then cont(asts)
-#
-#genJs = (file, asts, cont)->
-#  ext = path.extname file
-#  outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
-#  if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-#  writeFile outputFile, _(asts).map((ast)-> "runMonad(#{gen ast});").join '\n', (err)-> if !err then cont(asts)
-
 genJsFromAst = (file, cont)->
   readFile file, (err, contents)->
     if !err then genJs _(JSON.parse(contents)).map((json)-> json2Ast json), cont
@@ -190,13 +187,6 @@ processArg = (pos)->
   switch process.argv[pos]
     when '-v'
       verbose = true
-    #when '-a'
-    #  action = genAst
-    #  gennedAst = true
-    #when '-c'
-    #  if !gennedAst then action = (file, cont)-> genAst file, (asts)-> genJs file, asts, cont
-    #  else action = genJsFromAst
-    #  gennedJs = gennedAst = true
     when '-a'
       action = compile
       createAstFile = true
@@ -209,17 +199,6 @@ processArg = (pos)->
     when '-p'
       action = primCompile
       loadedParser = true
-      #readFile 'core/simpleParse.lsr', (err, code)->
-      #  recompiled = true
-      #  js = compileFile code, "simpleParse.js"
-      #  if err then throw new Error err
-      #  else
-      #    writeFile '/tmp/simpleParse.js', js, (err)->
-      #      eval js
-      #      loadedParser = true
-      #      if process.argv.length == 2 then repl()
-      #      else processArg pos + 1
-      #return
     when '-v' then verbose = true
     else
       newOptions = true

@@ -629,6 +629,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(lsr "postProcessMacro -1 -1 (cons (token 'hello' 15) (cons 'goodbye' nil))"), 'Cons[Token("hello", 15) Token("goodbye", 21)]'
           assertEq String(lsr "postProcessMacro -1 -1 (cons (cons (token 'hello' 15) nil) (cons 'goodbye' nil))"), 'Cons[Cons[Token("hello", 15)] Token("goodbye", 21)]'
         leisureAst53: -> assertEq lsrM("true 3 4"), 3
+        leisureAst54: -> assertEq lsrM("eq true true 3 4"), 3
       runTests 'Leisure Utils',
         leisureUtil1: ->
           assertEq String(monad lsr "quicksort lt nil"), 'Cons[]'

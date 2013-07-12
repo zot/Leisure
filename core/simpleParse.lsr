@@ -10,6 +10,8 @@ or a b = a true b
 some x = \someCase noneCase . someCase x
 none = \someCase noneCase . noneCase
 neq a b = not (eq a b)
+left x = \lCase rCase . lCase x
+right x = \lCase rCase . rCase x
 
 ############
 # FUNCTIONS
@@ -540,12 +542,20 @@ parseLines lines result = lines
 
 parseFile text = parseLines (linesForFile text) nil
 
+newParseLine names line = bind (getValue 'delimiterPat')
+  \delimiterPat . bind (getValue 'groups')
+    \groups . bind (getValue 'macros')
+      \macros . \\
+        astCallback scanned = createAst (macroSub macros scanned) names \ast . ast
+        .
+        scanLineG line delimiterPat groups astCallback astCallback
+
 runLine names line = bind (getValue 'delimiterPat')
   \delimiterPat . bind (getValue 'groups')
     \groups . bind (getValue 'macros')
       \macros . \\
-        astCallback scanned = createAst scanned names \ast . bind (runAst ast)
-        #astCallback scanned = createAst (macroSub macros scanned) names \ast . bind (runAst ast)
+        #astCallback scanned = createAst scanned names \ast . bind (runAst ast)
+        astCallback scanned = createAst (macroSub macros scanned) names \ast . bind (runAst ast)
           \_ . ast
         .
         scanLineG line delimiterPat groups astCallback astCallback

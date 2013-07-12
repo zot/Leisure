@@ -88,6 +88,10 @@ When new types are added, it can invalidate the dispatch cache by incrementing a
 
 Multiple dispatch could create a dispatchers that return other dispatchers.
 
+### Notebook Function Signature Summaries
+
+Since you can add cases in different files, it would be nice to be able to see all of the cases in one place.  Maybe a popup button or a box to the side?
+
 ## TYPE INFERENCE
 
 Counting arguments would be really helpful.  This case in the parser was hard to debug:

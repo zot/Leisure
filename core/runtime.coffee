@@ -22,7 +22,9 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-root = module.exports = require './base'
+{
+  readFile,
+} = root = module.exports = require './base'
 {
   define,
   consFrom,
@@ -43,8 +45,11 @@ _ = require './lodash.min'
 ############
 
 identity = (x)-> x
+_identity = (x)-> x()
 _true = setType ((a)->(b)->a()), 'true'
 _false = setType ((a)->(b)->b()), 'false'
+left = (x)-> setType ((lCase)->(rCase)-> lCase()(->x)), 'left'
+right = (x)-> setType ((lCase)->(rCase)-> rCase()(->x)), 'right'
 booleanFor = (bool)-> if bool then _true else _false
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
@@ -157,12 +162,6 @@ define 'define', ->(name)->(arity)->(src)->(def)->
     define name(), def, arity(), src()
     cont _false
 
-define 'print', ->(msg)->
-  makeMonad (env, cont)->
-    m = msg()
-    env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
-    cont _false
-
 define 'bind', ->(m)->(binding)->
   makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
 
@@ -220,6 +219,21 @@ define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
 # Classes for Printing
 #######################
 
+define 'print', ->(msg)->
+  makeMonad (env, cont)->
+    m = msg()
+    env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
+    cont _false
+
+define 'readFile', ->(name)->
+  makeMonad (env, cont)->
+    readFile name(), (err, contents)->
+      cont (if err then left err.stack else right contents)
+
+#######################
+# Classes for Printing
+#######################
+
 ensureLeisureClass 'token'
 Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
 
@@ -238,6 +252,12 @@ Leisure_true.prototype.toString = -> "true"
 
 ensureLeisureClass 'false'
 Leisure_false.prototype.toString = -> "false"
+
+ensureLeisureClass 'left'
+Leisure_left.prototype.toString = -> "Left(#{@(->_identity)(->_identity)})"
+
+ensureLeisureClass 'right'
+Leisure_right.prototype.toString = -> "Right(#{@(->_identity)(->_identity)})"
 
 #######################
 # Exports
