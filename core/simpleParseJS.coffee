@@ -93,8 +93,8 @@ makeDelimterPat()
 ############
 
 L_token = setDataType ((txt)->(pos)-> setType ((f)-> f()(txt)(pos)), 'token'), 'token'
-ensureLeisureClass 'token'
-Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
+#ensureLeisureClass 'token'
+#Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
 
 tokenString = (t)-> t(->(txt)->(pos)-> txt())
 tokenPos = (t)-> t(->(txt)->(pos)-> pos())
@@ -102,8 +102,8 @@ token = (str, pos)-> L_token(->str)(->pos)
 isToken = (t)-> t instanceof Leisure_token
 
 L_parens = setDataType ((left)->(right)->(content)-> setType ((f)-> f()(left)(right)(content)), 'parens'), 'parens'
-ensureLeisureClass 'parens'
-Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
+#ensureLeisureClass 'parens'
+#Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
 
 parens = (start, end, content)->
   if content instanceof Leisure_cons && tail(content) == Nil then parens start, end, head(content)

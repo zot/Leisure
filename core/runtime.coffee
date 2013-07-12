@@ -33,6 +33,8 @@ root = module.exports = require './base'
   getType,
   getDataType,
   ast2Json,
+  ensureLeisureClass,
+  setType,
 } = require './ast'
 _ = require './lodash.min'
 
@@ -41,8 +43,8 @@ _ = require './lodash.min'
 ############
 
 identity = (x)-> x
-_true = (a)->(b)->a()
-_false = (a)->(b)->b()
+_true = setType ((a)->(b)->a()), 'true'
+_false = setType ((a)->(b)->b()), 'false'
 booleanFor = (bool)-> if bool then _true else _false
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
@@ -214,6 +216,34 @@ define 'funcs', ->
 
 define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
 
+#######################
+# Classes for Printing
+#######################
+
+ensureLeisureClass 'token'
+Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
+
+tokenString = (t)-> t(->(txt)->(pos)-> txt())
+tokenPos = (t)-> t(->(txt)->(pos)-> pos())
+
+ensureLeisureClass 'parens'
+Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
+
+parensStart = (p)-> p(->(s)->(e)->(l)-> s())
+parensEnd = (p)-> p(->(s)->(e)->(l)-> e())
+parensContent = (p)-> p(->(s)->(e)->(l)-> l())
+
+ensureLeisureClass 'true'
+Leisure_true.prototype.toString = -> "true"
+
+ensureLeisureClass 'false'
+Leisure_false.prototype.toString = -> "false"
+
+#######################
+# Exports
+#######################
+
+root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
 root.identity = identity

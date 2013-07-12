@@ -38,6 +38,15 @@ filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
 find predicate list = list (\h t D . predicate h (some h) (find predicate t)) none
 contains list item = find (\el . eq el item) list (\x . true) false
 map func l = l (\h t D . cons (func h) (map func t)) nil
+mapSave func l = l
+  \h t D . \\
+    newH = func h
+    newT = mapSave func t
+    .
+    and (eq newH h) (eq newT t)
+      l
+      cons newH newT
+  nil
 foldl func value l = l (\h t D . foldl func (func value h) t) value
 intersperse list element = list (\h t D .
   hasType t nil
@@ -422,12 +431,24 @@ namesForLines lines = foldl
 # alpha substitution to make the result hygenic
 # make some let-style macros that use gensyms?
 
-# macs is an assoc-list of (name . definition)
+# macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
 #macroSub macs expr = postProcessMacro (baseMacroSub macs expr)
 macroSub macs expr = baseMacroSub macs expr
 
 isString s = eq (getType s) '*string'
+
+baseMacroSub macs expr =
+  withCons (stripParens expr) expr \h t . \\
+    #newH = baseMacroSub macs h
+    strippedH = stripParens h
+    newH = stripParens (baseMacroSub macs strippedH)
+    subTail = mapSave (baseMacroSub macs) t
+    unmod = and (eq strippedH newH) (eq t subTail)
+      expr
+      cons newH subTail
+    .
+    withToken newH unmod \txt pos . assoc txt macs (\def . baseMacroSub macs (def t)) unmod
 
 postProcessMacro before after macro = isString macro
   token macro (eq after -1 before after)
@@ -448,14 +469,7 @@ postProcessMacro before after macro = isString macro
               cons h2 (postProcessMacro (+ 1 (lexEnd h2)) after t)
       macro
 
-baseMacroSub macs expr = \\
-  ex = stripParens expr
-  .
-  withCons ex ex \h t . \\
-    newH = baseMacroSub macs h
-    unmod = cons newH (map (baseMacroSub macs) t)
-    .
-    withToken newH unmod \txt pos . assoc txt macs (\def . baseMacroSub macs (def t)) unmod
+defMacro name def = bind (getValue 'macros') \macs . setValue 'macros' (acons name def macs)
 
 #################
 # Token Patterns
@@ -531,6 +545,7 @@ runLine names line = bind (getValue 'delimiterPat')
     \groups . bind (getValue 'macros')
       \macros . \\
         astCallback scanned = createAst scanned names \ast . bind (runAst ast)
+        #astCallback scanned = createAst (macroSub macros scanned) names \ast . bind (runAst ast)
           \_ . ast
         .
         scanLineG line delimiterPat groups astCallback astCallback

@@ -51,6 +51,7 @@ misrepresented as being the original software.
 } = root = module.exports = require './ast'
 {
   makeMonad,
+  _false,
 } = require './runtime'
 _ = require './lodash.min'
 
@@ -81,10 +82,16 @@ genUniq = (ast, names, uniq)->
         else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
+memoize = (func)-> "(function(){var $m; return function(){return $m || ($m = #{func})}})()"
+
+dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
+
 genApplyArg = (arg, names, uniq)->
-  if arg instanceof Leisure_apply then "(function(){var $m; return function(){return $m || ($m = #{genUniq arg, names, uniq})}})()"
+  #if arg instanceof Leisure_apply then "(function(){var $m; return function(){return $m || ($m = #{genUniq arg, names, uniq})}})()"
+  if dumpAnno(arg) instanceof Leisure_apply then memoize genUniq arg, names, uniq
   else if arg instanceof Leisure_ref then uniqName (getRefName arg), uniq
   else if arg instanceof Leisure_let then "function(){#{genLets arg, names, uniq}}"
+  else if dumpAnno(arg) instanceof Leisure_lambda then memoize genUniq arg, names, uniq
   else "function(){return #{genUniq arg, names, uniq}}"
 
 genLets = (ast, names, uniq)->
