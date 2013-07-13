@@ -1,0 +1,21 @@
+#################
+# Utilities
+#################
+
+addDelimiterGroup '[' ']'
+addDelimiter '|'
+
+foldrButLast func init list = list
+  \h t D . fbl func init list
+  init
+
+fbl func init list = list \h t . isCons t
+  func h (foldrButLast func init t)
+  init
+
+defMacro '[' \list . foldrButLast
+  \el result . isTokenString el '|'
+    head (tail result)
+    cons 'cons' (cons (cons el nil) (cons result nil))
+  cons 'nil' nil
+  list

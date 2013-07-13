@@ -604,7 +604,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           dels = getValue 'delimiterList'
           pat = getValue 'delimiterPat'
           gr = getValue 'groups'
-          monad lsr "addGroup '[' ']'"
+          monad lsr "addDelimiterGroup '[' ']'"
           assertEq String(monad lsr "parseM 'a'"), 'Token("a", 0)'
           assertEq String(monad lsr "parseM '[a]'"), 'Cons[Token("[", 0) Token("a", 1) Token("]", 2)]'
           setValue 'delimiterList', dels

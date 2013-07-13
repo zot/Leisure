@@ -216,7 +216,7 @@ define 'funcs', ->
 define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
 
 #######################
-# Classes for Printing
+# IO
 #######################
 
 define 'print', ->(msg)->

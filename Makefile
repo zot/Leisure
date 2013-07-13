@@ -8,17 +8,25 @@
 
 SRC=base ast testing gen runtime simpleParseJS browser repl
 TEST=testLeisure
-ALL=$(SRC) $(TEST)
-IN_FILES=$(ALL:%=core/%)
-OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map)
+ALL=$(SRC) $(TEST) generatedPrelude simpleParse
 DIR=core
 LIB=lib
+PRELUDE_INPUT=simpleParse simpleParse2
+PRELUDE_FILES=$(PRELUDE_INPUT:%=core/%.lsr)
+PRELUDE=lib/generatedPrelude.js
+OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
 
-all: $(TEST) coffeescript-tests lua-tests
+all: $(TEST) coffeescript-tests lua-tests $(PRELUDE)
+#all: $(TEST) coffeescript-tests lua-tests $(PRELUDE)
 
 repl:
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(DIR)
 	node -e "var r=require('./$(LIB)/repl');r.run()"
+
+$(PRELUDE): $(PRELUDE_FILES)
+	cat $^ > core/generatedPrelude.lsr
+	node lib/repl -0 -c -d lib core/simpleParse.lsr
+	node lib/repl -1 -c -d lib core/generatedPrelude.lsr
 
 $(TEST):
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(DIR)
