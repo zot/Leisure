@@ -16,23 +16,20 @@ PRELUDE_FILES=$(PRELUDE_INPUT:%=core/%.lsr)
 PRELUDE=lib/generatedPrelude.js
 OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
 
-all: $(TEST) coffeescript-tests lua-tests $(PRELUDE)
-#all: $(TEST) coffeescript-tests lua-tests $(PRELUDE)
+all: .tested $(PRELUDE)
 
-repl:
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(DIR)
-	node -e "var r=require('./$(LIB)/repl');r.run()"
+repl: all
+	core/repl
 
 $(PRELUDE): $(PRELUDE_FILES)
 	cat $^ > core/generatedPrelude.lsr
 	node lib/repl -0 -c -d lib core/simpleParse.lsr
 	node lib/repl -1 -c -d lib core/generatedPrelude.lsr
 
-$(TEST):
+.tested: core/*.coffee
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(DIR)
-
-coffeescript-tests: FRC
 	node $(LIB)/$(TEST)
+	touch $@
 
 lua-tests: FRC
 	(cd core; eval $(luarocks path) ; lua5.1 -lluarocks.loader testLeisure.lua)
