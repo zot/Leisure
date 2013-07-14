@@ -2,8 +2,11 @@
 # Utilities
 #################
 
-addTokenGroup '[' ']'
-addToken '|'
+defTokenPack 'prelude' (cons (cons '|' nil) (acons '[' ']' nil))
+useTokenPack 'prelude'
+
+bind (getValue 'tokenGroups')
+  \groups . getValue 'tokenList'
 
 foldrButLast func init list = list
   \h t D . fbl func init list
@@ -19,3 +22,4 @@ defMacro '[' \list . foldrButLast
     cons 'cons' (cons (cons el nil) (cons result nil))
   cons 'nil' nil
   list
+

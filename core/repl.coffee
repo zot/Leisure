@@ -82,9 +82,11 @@ help = ->
   :{ -- start multiline input
   :} -- end multiline input
   :h -- print this message
-  funcs -- list all known functions
-  * -- evaluate Leisure code
-  """
+  ! -- evaluate JavaScript expression (after the !)
+  funcs -- list all known functions (this is really just a monad)
+  (anything else) -- evaluate Leisure code
+
+"""
 
 repl = ->
   lines = null

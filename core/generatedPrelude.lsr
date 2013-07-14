@@ -480,20 +480,20 @@ delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\n *|#.*| +"
 
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
-addToken del =
-  bind (getValue 'tokenList')
-    \ dels . contains dels del
-      false
-      \\
-        newDels = insertSorted ( \ a b . gt (strLen a) (strLen b)) del dels
-        .
-        bind (setValue 'tokenList' newDels)
-          \_ . computeTokenPat newDels
+addToken del = bind (getValue 'tokenList')
+  \dels . contains dels del
+    false
+    \\
+      newDels = insertSorted (\a b . gt (strLen a) (strLen b)) del dels
+      .
+      bind (setValue 'tokenList' newDels)
+        \_ . computeTokenPat newDels
 
 computeTokenPat dels = \\
-  delPats = map ( \ item . strReplace item regexpEscapePat "\\$&") dels
+  delPats = map (\item . strReplace item regexpEscapePat "\\$&") dels
+  newPat = strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil)))
   .
-  setValue 'tokenPat' (strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil))))
+  setValue 'tokenPat' newPat
 
 addTokenGroup open close = bind (addToken open)
   \_ . bind (addToken close)
@@ -574,7 +574,7 @@ runFile text = \\
 load file = bind (readFile file)
   \result . result
     \err . err
-    \contents . d "READ FILE: " contents bind (runFile contents)
+    \contents . bind (runFile contents)
       \_ . nil
 
 require file = bind (getValue 'requiredFiles')
@@ -591,19 +591,21 @@ defTokenPack name pack = bind (getValue 'tokenPacks')
   \packs . setValue 'tokenPacks' (acons name pack packs)
 
 useTokenPack name = bind (getValue 'tokenPacks')
-  \packs . assoc name packs
-    \pack . bind (getValue 'tokenGroups')
-      \groups . bind (getValue 'tokenList')
-        \tokens . \\
-          newToks = append (head packs) tokens
+  \packs . bind (getValue 'tokenGroups')
+    \groups . bind (getValue 'tokenList')
+      \tokens . assoc name packs
+        \pack . \\
+          groupToks = foldl (\value el . el \h t . cons h (cons t value)) nil (tail pack)
+          newToks = quicksort (\a b . gt (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
           .
           bind (setValue 'tokenList' newToks)
-            \_ . bind (setValue 'tokenGroups' (append (tail packs) groups))
-              \_ . bind (computeTokenPat newToks)
-    nil
+            \_ . bind (setValue 'tokenGroups' (append (tail pack) groups))
+              \_ . computeTokenPat newToks
+        nil
 
-clearTokens = bind (setValue 'tokenGroups' nil)
-  \_ . setValue 'tokenList' nil
+resetTokenPacks = bind (setValue 'tokenGroups' nil)
+  \_ . bind (setValue 'tokenList' nil)
+    \_ . useTokenPack 'std'
 
 ############
 # DIAG
@@ -620,21 +622,19 @@ setValue 'macroDefs' nil
 setValue 'requiredFiles' nil
 setValue 'tokenPacks' nil
 
-clearTokens
-addTokenGroup '(' ')'
-addToken '.'
-addToken '\\'
-addToken '\\\\'
-addToken '\\@'
+defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (acons '(' ')' nil))
 
-#defTokenPack 'std' (cons (cons '(' (cons ')' (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))))) (acons '(' ')' nil))
-#useTokenPack 'std'
+resetTokenPacks
 #################
 # Utilities
 #################
 
-addTokenGroup '[' ']'
-addToken '|'
+defTokenPack 'prelude' (cons (cons '|' nil) (acons '[' ']' nil))
+
+useTokenPack 'prelude'
+
+bind (getValue 'tokenGroups')
+  \groups . getValue 'tokenList'
 
 foldrButLast func init list = list
   \h t D . fbl func init list
