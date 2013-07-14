@@ -27,11 +27,10 @@ $(PRELUDE): $(PRELUDE_FILES)
 	node lib/repl -0 -c -d lib core/simpleParse.lsr
 	node lib/repl -1 -c -d lib core/generatedPrelude.lsr
 
-#node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
+#node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
 
 .tested: $(COFFEE_FILES)
-	echo COMPILING: ?
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
 	node $(LIB)/$(TEST)
 	touch $@
 
@@ -39,6 +38,6 @@ lua-tests: FRC
 	(cd core; eval $(luarocks path) ; lua5.1 -lluarocks.loader testLeisure.lua)
 
 clean:
-	rm -f $(OUT_FILES)
+	rm -f $(OUT_FILES) .tested
 
 FRC:

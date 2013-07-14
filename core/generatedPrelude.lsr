@@ -498,7 +498,7 @@ computeTokenPat dels = \\
 addTokenGroup open close = bind (addToken open)
   \_ . bind (addToken close)
     \_ . bind (getValue 'tokenGroups')
-      \gr .setValue 'tokenGroups' (acons open close gr)
+      \gr . setValue 'tokenGroups' (acons open close gr)
 
 #################
 ## TESTING
@@ -592,45 +592,43 @@ defTokenPack name pack = bind (getValue 'tokenPacks')
 
 useTokenPack name = bind (getValue 'tokenPacks')
   \packs . assoc name packs
-    \pack .bind (getValue 'tokenGroups')
+    \pack . bind (getValue 'tokenGroups')
       \groups . bind (getValue 'tokenList')
         \tokens . \\
           newToks = append (head packs) tokens
           .
           bind (setValue 'tokenList' newToks)
-            \_ . setValue 'tokenGroups' (append (tail packs) groups)
-              \_ . computeTokenPat newToks
-                \_ . nil
-  nil
+            \_ . bind (setValue 'tokenGroups' (append (tail packs) groups))
+              \_ . bind (computeTokenPat newToks)
+    nil
+
+clearTokens = bind (setValue 'tokenGroups' nil)
+  \_ . setValue 'tokenList' nil
 
 ############
 # DIAG
 ############
 
 d label value expr = log (strCat (cons label (cons value nil))) expr
-
 dd label arg = d label arg arg
 
 ############
 ## ACTIONS
 ############
 
-setValue 'tokenGroups' (acons '(' ')' nil)
-setValue 'tokenList' nil
-
-setValue 'tokenPat' (strCat (cons '(' (cons delimiterListPrefix (cons ')' nil))))
-setValue 'tokenPacks' nil
 setValue 'macroDefs' nil
 setValue 'requiredFiles' nil
+setValue 'tokenPacks' nil
 
-addToken '('
-addToken ')'
+clearTokens
+addTokenGroup '(' ')'
 addToken '.'
 addToken '\\'
 addToken '\\\\'
 addToken '\\@'
 
-#defTokenPack 'std' (cons (cons '.' nil) (acons '(' ')' nil))
+#defTokenPack 'std' (cons (cons '(' (cons ')' (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))))) (acons '(' ')' nil))
+#useTokenPack 'std'
 #################
 # Utilities
 #################
