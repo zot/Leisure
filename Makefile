@@ -15,6 +15,7 @@ PRELUDE_INPUT=simpleParse simpleParse2
 PRELUDE_FILES=$(PRELUDE_INPUT:%=core/%.lsr)
 PRELUDE=lib/generatedPrelude.js
 OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
+COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 
 all: .tested $(PRELUDE)
 
@@ -26,8 +27,11 @@ $(PRELUDE): $(PRELUDE_FILES)
 	node lib/repl -0 -c -d lib core/simpleParse.lsr
 	node lib/repl -1 -c -d lib core/generatedPrelude.lsr
 
-.tested: core/*.coffee
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(DIR)
+#node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
+
+.tested: $(COFFEE_FILES)
+	echo COMPILING: ?
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
 	node $(LIB)/$(TEST)
 	touch $@
 

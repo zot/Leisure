@@ -2,8 +2,8 @@
 # Utilities
 #################
 
-addDelimiterGroup '[' ']'
-addDelimiter '|'
+addTokenGroup '[' ']'
+addToken '|'
 
 foldrButLast func init list = list
   \h t D . fbl func init list

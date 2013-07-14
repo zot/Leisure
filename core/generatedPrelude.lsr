@@ -480,21 +480,25 @@ delimiterListPrefix = "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'|\\n *|#.*| +"
 
 regexpEscapePat = regexpFlags '[\\-\\[\\]/\\{\\}\\(\\)\\*\\+\\?\\.\\\\\\^\\$\\|]' 'g'
 
-addDelimiter del =
-  bind (getValue 'delimiterList')
+addToken del =
+  bind (getValue 'tokenList')
     \ dels . contains dels del
       false
       \\
         newDels = insertSorted ( \ a b . gt (strLen a) (strLen b)) del dels
-        delPats = map ( \ item . strReplace item regexpEscapePat "\\$&") newDels
         .
-        bind (setValue 'delimiterList' newDels)
-          \ _ . setValue 'delimiterPat' (strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil))))
+        bind (setValue 'tokenList' newDels)
+          \_ . computeTokenPat newDels
 
-addDelimiterGroup open close = bind (addDelimiter open)
-  \_ . bind (addDelimiter close)
-    \_ . bind (getValue 'delimiterGroups')
-      \gr .setValue 'delimiterGroups' (acons open close gr)
+computeTokenPat dels = \\
+  delPats = map ( \ item . strReplace item regexpEscapePat "\\$&") dels
+  .
+  setValue 'tokenPat' (strCat (cons '(' (cons (join (cons delimiterListPrefix delPats) '|') (cons ')' nil))))
+
+addTokenGroup open close = bind (addToken open)
+  \_ . bind (addToken close)
+    \_ . bind (getValue 'tokenGroups')
+      \gr .setValue 'tokenGroups' (acons open close gr)
 
 #################
 ## TESTING
@@ -507,16 +511,16 @@ parseG str pat groups = parseIndent (token '\n' 0) (tokens str pat) nil groups \
 parseToAst str pat = createAst (parse str pat) nil id
 
 parseM str =
-  bind (getValue 'delimiterPat')
-    \tokPat . bind (getValue 'delimiterGroups')
+  bind (getValue 'tokenPat')
+    \tokPat . bind (getValue 'tokenGroups')
       \groups . parseG str tokPat groups
 
 scanLine str pat onDef onExpr = scanLineG str pat parenGroups onDef onExpr
 
 parseLine str pat names onDef onExpr = parseLineG str pat names parenGroups onDef onExpr
 
-parseLineM str = bind (getValue 'delimiterPat')
-  \tokPat . bind (getValue 'delimiterGroups')
+parseLineM str = bind (getValue 'tokenPat')
+  \tokPat . bind (getValue 'tokenGroups')
     \groups . parseLineG str tokPat nil groups id id
 
 macroSubM expr =
@@ -528,7 +532,7 @@ macroParse str =
     \ex . macroSubM ex
 
 tokensM str =
-  bind (getValue 'delimiterPat')
+  bind (getValue 'tokenPat')
     \delimiterPat . tokens str delimiterPat
 
 parseLines lines result = lines
@@ -538,16 +542,16 @@ parseLines lines result = lines
 
 parseFile text = parseLines (linesForFile text) nil
 
-newParseLine names line = bind (getValue 'delimiterPat')
-  \delimiterPat . bind (getValue 'delimiterGroups')
+newParseLine names line = bind (getValue 'tokenPat')
+  \delimiterPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'macroDefs')
       \macros . \\
         astCallback scanned = createAst (macroSub macros scanned) names \ast . ast
         .
         scanLineG line delimiterPat groups astCallback astCallback
 
-runLine names line = bind (getValue 'delimiterPat')
-  \delimiterPat . bind (getValue 'delimiterGroups')
+runLine names line = bind (getValue 'tokenPat')
+  \delimiterPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'macroDefs')
       \macros . \\
         astCallback scanned = createAst (macroSub macros scanned) names \ast . bind (runAst ast)
@@ -579,6 +583,26 @@ require file = bind (getValue 'requiredFiles')
       \_ . bind (setValue 'requiredFiles' (cons file files))
         \_ . nil
 
+################
+# Token Packs
+################
+
+defTokenPack name pack = bind (getValue 'tokenPacks')
+  \packs . setValue 'tokenPacks' (acons name pack packs)
+
+useTokenPack name = bind (getValue 'tokenPacks')
+  \packs . assoc name packs
+    \pack .bind (getValue 'tokenGroups')
+      \groups . bind (getValue 'tokenList')
+        \tokens . \\
+          newToks = append (head packs) tokens
+          .
+          bind (setValue 'tokenList' newToks)
+            \_ . setValue 'tokenGroups' (append (tail packs) groups)
+              \_ . computeTokenPat newToks
+                \_ . nil
+  nil
+
 ############
 # DIAG
 ############
@@ -591,24 +615,28 @@ dd label arg = d label arg arg
 ## ACTIONS
 ############
 
-setValue 'delimiterGroups' (acons '(' ')' nil)
-setValue 'delimiterList' nil
-setValue 'delimiterPat' (strCat (cons '(' (cons delimiterListPrefix (cons ')' nil))))
+setValue 'tokenGroups' (acons '(' ')' nil)
+setValue 'tokenList' nil
+
+setValue 'tokenPat' (strCat (cons '(' (cons delimiterListPrefix (cons ')' nil))))
+setValue 'tokenPacks' nil
 setValue 'macroDefs' nil
 setValue 'requiredFiles' nil
 
-addDelimiter '('
-addDelimiter ')'
-addDelimiter '.'
-addDelimiter '\\'
-addDelimiter '\\\\'
-addDelimiter '\\@'
+addToken '('
+addToken ')'
+addToken '.'
+addToken '\\'
+addToken '\\\\'
+addToken '\\@'
+
+#defTokenPack 'std' (cons (cons '.' nil) (acons '(' ')' nil))
 #################
 # Utilities
 #################
 
-addDelimiterGroup '[' ']'
-addDelimiter '|'
+addTokenGroup '[' ']'
+addToken '|'
 
 foldrButLast func init list = list
   \h t D . fbl func init list
