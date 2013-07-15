@@ -13,14 +13,6 @@ listify list = list \h t . isNil t
 
 defMacro '[' listify
 
-removeParens code = withParens code
-  withCons code
-    code
-    \h t . and (isNil t) (isParens h)
-      removeParens h
-      code
-  \start end contents . removeParens contents
-
 listFilter code = filterApplies code \list . list \h t .
   isTokenString h '['
     listFilterTail list
@@ -61,6 +53,10 @@ filterBody code func = code \h t . cons h
   isTokenString h '.'
     filterApplies t func
     filterBody t func
+
+addParseFilter listFilter
+
+## Yay!  From here down, we can use list constructors!
 
 #infix code = bind (getValue 'infixPrecedence')
 #  \prec . filterExpr code (infixDo prec)
@@ -113,6 +109,6 @@ setValue 'infixPrecedence' nil
 
 #defTokenPack 'infix' [['+' '-' '*' '/'] [] [infix]]
 
-defTokenPack 'list' [['|'] [['[' | ']'] ['{' | '}']] [listFilter]]
+defTokenPack 'list' [['|'] [['[' | ']']] [listFilter]]
 resetTokenPacks ['std' 'list']
 #resetTokenPacks ['std' 'list' 'infix']

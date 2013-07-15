@@ -575,11 +575,12 @@ newParseLine names line = bind (getValue 'tokenPat')
 runLine names line = bind (getValue 'tokenPat')
   \delimiterPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'macroDefs')
-      \macros . \\
-        astCallback scanned = createAst (macroSub macros scanned) names \ast . bind (runAst ast)
-          \_ . ast
-        .
-        scanLineG line delimiterPat groups astCallback astCallback
+      \macros . bind (getValue 'parseFilters')
+        \filters . \\
+          astCallback scanned = createAst (macroSub macros (runParseFilters filters scanned)) names \ast . bind (runAst ast)
+            \_ . ast
+          .
+          scanLineG line delimiterPat groups astCallback astCallback
 
 runLines names lines = lines
   \h t D . bind (runLine names h)
@@ -638,8 +639,8 @@ resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
       \_ . bind (setValue 'parseFilters' nil)
         \_ . foldl (\result pack . bind (useTokenPack pack) \_ . result) nil packs
 
-defParseFilter name def = bind (getValue 'parseFilters')
-  \filters . setValue 'parseFilters' (append filters (cons (cons name def)))
+addParseFilter filt = bind (getValue 'parseFilters')
+  \filters . setValue 'parseFilters' (append filters (cons filt nil))
 
 ############
 # DIAG
