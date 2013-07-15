@@ -34,6 +34,12 @@ tail l = l \h t . t
 last l = isCons l
   l \h t . isCons t (last t) h
   nil
+removeLast l = isCons l
+  l \h t . isCons t (cons h (removeLast t)) nil
+  nil
+length list = list
+  \h t D . + 1 (length t)
+  0
 append a b = a (\h t D . cons h (append t b)) b
 reverse l = rev l nil
 rev l result = l (\h t D . rev t (cons h result)) result
@@ -56,6 +62,12 @@ intersperse list element = list (\h t D .
     list
     cons h (cons element (intersperse t element))) nil
 join list el = strCat (intersperse list el)
+index list el = idx list el 0
+idx list el pos = list
+  \h t D . eq el h
+    pos
+    idx list el (+ 1 pos)
+  -1
 
 ############
 # ASSOC LISTS
@@ -165,7 +177,7 @@ parseGroup left toks gr close groups cont = withCons toks (parseErr 'Unterminate
 parseIndent indent toks gr groups cont =
   withCons toks (cont (makeParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil) \h t .
     or (withToken h false (\txt pos . rassoc txt groups (\open . true) false))
-      and (isTokenStart h '\n') (le (strLen (tokenString h)) (strLen (tokenString indent)))
+      and (isTokenStart h '\n') (<= (strLen (tokenString h)) (strLen (tokenString indent)))
       cont (makeParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
       parseTok toks groups \restH restT . parseIndent indent restT (cons restH gr) groups cont
 
@@ -261,7 +273,7 @@ createLitOrRef tok names cont =
     cont (ref tok)
     or (strStartsWith tok '\"') (strStartsWith tok "'")
       parseString tok \str . cont (lit str)
-      or (and (ge (strAt tok 0) '0') (le (strAt tok 0) '9')) (strStartsWith tok '-')
+      or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
         jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
         cont (ref tok)
 
@@ -356,7 +368,7 @@ parenGroups = cons (cons '(' ')') nil
 scanLineG str pat groups onDef onExpr = \\
   toks = tokens str pat
   .
-  strMatches str defPat
+  find (\tok . isTokenString tok '=') toks (\_ . true) false
     withCons toks (parseErr "No expression to compile" "") \name rest . \\
       parseIt func = parseToks (checkSetDataType func rest name) groups \list .
         onDef (createDef list name (arity rest 0) str)
@@ -417,15 +429,24 @@ linesForFile text = filter
   \line . isNil (strMatch line emptyLinePat)
   strSplit text linePat
 
-defPat = regexp '^([^ =]+).*='
+defPat = regexp '^([^ =]+).*(?:[a-zA-Z0-9 ])='
 
 namesForLines lines = foldl
   \result line . \\
     m = strMatch line defPat
     .
-    hasType m nil result (cons (head (tail m)) result)
+    isNil m result (cons (head (tail m)) result)
   nil
   lines
+
+#################
+## Parse Filters
+#################
+
+runParseFilters filters line = foldl
+  \result filt . postProcessMacro -1 -1 (filt result)
+  line
+  filters
 
 #################
 ## Macro system
@@ -484,7 +505,7 @@ addToken del = bind (getValue 'tokenList')
   \dels . contains dels del
     false
     \\
-      newDels = insertSorted (\a b . gt (strLen a) (strLen b)) del dels
+      newDels = insertSorted (\a b . > (strLen a) (strLen b)) del dels
       .
       bind (setValue 'tokenList' newDels)
         \_ . computeTokenPat newDels
@@ -544,11 +565,12 @@ parseFile text = parseLines (linesForFile text) nil
 
 newParseLine names line = bind (getValue 'tokenPat')
   \delimiterPat . bind (getValue 'tokenGroups')
-    \groups . bind (getValue 'macroDefs')
-      \macros . \\
-        astCallback scanned = createAst (macroSub macros scanned) names \ast . ast
-        .
-        scanLineG line delimiterPat groups astCallback astCallback
+    \groups . bind (getValue 'parseFilters')
+      \filters . bind (getValue 'macroDefs')
+        \macros . \\
+          astCallback scanned = createAst (macroSub macros (runParseFilters filters scanned)) names \ast . ast
+          .
+          scanLineG line delimiterPat groups astCallback astCallback
 
 runLine names line = bind (getValue 'tokenPat')
   \delimiterPat . bind (getValue 'tokenGroups')
@@ -574,8 +596,10 @@ runFile text = \\
 load file = bind (readFile file)
   \result . result
     \err . err
-    \contents . bind (runFile contents)
-      \_ . nil
+    \contents . bind (getValue 'activeTokenPacks')
+      \activePacks . bind (resetTokenPacks (cons 'std' (cons 'list' nil)))
+        \_ . bind (runFile contents)
+          \_ . resetTokenPacks activePacks
 
 require file = bind (getValue 'requiredFiles')
   \files . contains files file nil
@@ -587,25 +611,35 @@ require file = bind (getValue 'requiredFiles')
 # Token Packs
 ################
 
+# pack is (tokens groups filters)
 defTokenPack name pack = bind (getValue 'tokenPacks')
   \packs . setValue 'tokenPacks' (acons name pack packs)
 
 useTokenPack name = bind (getValue 'tokenPacks')
   \packs . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'tokenList')
-      \tokens . assoc name packs
-        \pack . \\
-          groupToks = foldl (\value el . el \h t . cons h (cons t value)) nil (tail pack)
-          newToks = quicksort (\a b . gt (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
-          .
-          bind (setValue 'tokenList' newToks)
-            \_ . bind (setValue 'tokenGroups' (append (tail pack) groups))
-              \_ . computeTokenPat newToks
-        nil
+      \tokens . bind (getValue 'activeTokenPacks')
+        \activePacks . bind (getValue 'parseFilters')
+          \filters . assoc name packs
+            \pack . \\
+              groupToks = foldl (\value el . el \h t . cons h (cons t value)) nil (head (tail pack))
+              newToks = quicksort (\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
+              .
+              bind (setValue 'tokenList' newToks)
+                \_ . bind (setValue 'tokenGroups' (append (head (tail pack)) groups))
+                  \_ . bind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))
+                    \_ . bind (computeTokenPat newToks)
+                      \_ . setValue 'activeTokenPacks' (cons name activePacks)
+            nil
 
-resetTokenPacks = bind (setValue 'tokenGroups' nil)
+resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
   \_ . bind (setValue 'tokenList' nil)
-    \_ . useTokenPack 'std'
+    \_ . bind (setValue 'activeTokenPacks' nil)
+      \_ . bind (setValue 'parseFilters' nil)
+        \_ . foldl (\result pack . bind (useTokenPack pack) \_ . result) nil packs
+
+defParseFilter name def = bind (getValue 'parseFilters')
+  \filters . setValue 'parseFilters' (append filters (cons (cons name def)))
 
 ############
 # DIAG
@@ -615,38 +649,131 @@ d label value expr = log (strCat (cons label (cons value nil))) expr
 dd label arg = d label arg arg
 
 ############
-## ACTIONS
+## SETTINGS
 ############
 
 setValue 'macroDefs' nil
 setValue 'requiredFiles' nil
 setValue 'tokenPacks' nil
+setValue 'activeTokenPacks' nil
 
-defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (acons '(' ')' nil))
-
-resetTokenPacks
+defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
+resetTokenPacks (cons 'std' nil)
 #################
 # Utilities
 #################
 
-defTokenPack 'prelude' (cons (cons '|' nil) (acons '[' ']' nil))
+addTokenGroup '[' ']'
+addToken '|'
 
-useTokenPack 'prelude'
-
-bind (getValue 'tokenGroups')
-  \groups . getValue 'tokenList'
-
-foldrButLast func init list = list
-  \h t D . fbl func init list
-  init
-
-fbl func init list = list \h t . isCons t
-  func h (foldrButLast func init t)
-  init
-
-defMacro '[' \list . foldrButLast
-  \el result . isTokenString el '|'
-    head (tail result)
-    cons 'cons' (cons (cons el nil) (cons result nil))
+listify list = list \h t . isNil t
   cons 'nil' nil
-  list
+  isTokenString h '|'
+    removeLast t
+    cons (cons 'cons' (cons h (listify t))) nil
+
+defMacro '[' listify
+
+removeParens code = withParens code
+  withCons code
+    code
+    \h t . and (isNil t) (isParens h)
+      removeParens h
+      code
+  \start end contents . removeParens contents
+
+listFilter code = filterApplies code \list . list \h t .
+  isTokenString h '['
+    listFilterTail list
+    list
+
+listFilterTail list = list
+  \h t D . isTokenString h '|'
+    > (length t) 2
+      cons h (cons (removeLast t) (cons (last t) nil))
+      list
+    cons h (listFilterTail t)
+  nil
+
+bodyStarts = cons '\\' (cons '\\@' (cons '\\\\' nil))
+
+isBodyStart tok = and
+  isToken tok
+  contains bodyStarts (tokenString tok)
+
+filterApplies code func = isParens code
+  code \start end contents . parens start end (filterApplies contents func)
+  isCons code
+    \\
+      filtered = filterApplyElements code func
+      .
+      and (isCons filtered) (isBodyStart (head filtered))
+        filtered
+        postProcessMacro -1 -1 (func filtered)
+    code
+
+filterApplyElements code func = code
+  \h t D . isBodyStart h
+    cons h (filterBody t func)
+    cons (filterApplies h func) (filterApplyElements t func)
+  nil
+
+filterBody code func = code \h t . cons h
+  isTokenString h '.'
+    filterApplies t func
+    filterBody t func
+
+#infix code = bind (getValue 'infixPrecedence')
+#  \prec . filterExpr code (infixDo prec)
+
+notInfix prec tail1 head2 tail2 = or
+  isNil tail1
+  or
+    isBodyStart head2
+    or
+      isNil tail2
+      or
+        not (isToken head2)
+        not (contains prec head2)
+
+#infixDo prec list = infixRearrange prec list (length list)
+#
+#infixRearrange prec list length = < length 3
+#  list
+#  \\
+#    head1 = head list
+#    tail1 = tail list
+#    head2 = first tail1
+#    tail2 = tail tail1
+#    head3 = first tail2
+#    tail3 = tail tail2
+#    opPrec = index prec (tokenString head2)
+#    .
+#    notInfx prec tail1 head2 tail2
+#      cons head1 (infixRearrange prec tail2 (- length 1))
+#
+#
+#    or
+#      isNil tail1
+#      or
+#        isBodyStart head2
+#        or
+#          isNil tail2
+#          or
+#            not (isToken head2)
+#            eq opPrec -1
+#      code
+#      higherPrec opPrec prec tail3
+#        doInfix prec [[head2 head1 head3] | tail3]
+#        [head2 head1 (doInfix prec tail3)]
+
+#higherPrec precedence prec code = or
+#  or (isNil code) (not (isToken (head code)))
+
+setValue 'infixPrecedence' nil
+
+#defTokenPack 'infix' [['+' '-' '*' '/'] [] [infix]]
+
+defTokenPack 'list' [['|'] [['[' | ']'] ['{' | '}']] [listFilter]]
+resetTokenPacks ['std' 'list']
+#resetTokenPacks ['std' 'list' 'infix']

@@ -2,24 +2,117 @@
 # Utilities
 #################
 
-defTokenPack 'prelude' (cons (cons '|' nil) (acons '[' ']' nil))
-useTokenPack 'prelude'
+addTokenGroup '[' ']'
+addToken '|'
 
-bind (getValue 'tokenGroups')
-  \groups . getValue 'tokenList'
-
-foldrButLast func init list = list
-  \h t D . fbl func init list
-  init
-
-fbl func init list = list \h t . isCons t
-  func h (foldrButLast func init t)
-  init
-
-defMacro '[' \list . foldrButLast
-  \el result . isTokenString el '|'
-    head (tail result)
-    cons 'cons' (cons (cons el nil) (cons result nil))
+listify list = list \h t . isNil t
   cons 'nil' nil
-  list
+  isTokenString h '|'
+    removeLast t
+    cons (cons 'cons' (cons h (listify t))) nil
 
+defMacro '[' listify
+
+removeParens code = withParens code
+  withCons code
+    code
+    \h t . and (isNil t) (isParens h)
+      removeParens h
+      code
+  \start end contents . removeParens contents
+
+listFilter code = filterApplies code \list . list \h t .
+  isTokenString h '['
+    listFilterTail list
+    list
+
+listFilterTail list = list
+  \h t D . isTokenString h '|'
+    > (length t) 2
+      cons h (cons (removeLast t) (cons (last t) nil))
+      list
+    cons h (listFilterTail t)
+  nil
+
+bodyStarts = cons '\\' (cons '\\@' (cons '\\\\' nil))
+
+isBodyStart tok = and
+  isToken tok
+  contains bodyStarts (tokenString tok)
+
+filterApplies code func = isParens code
+  code \start end contents . parens start end (filterApplies contents func)
+  isCons code
+    \\
+      filtered = filterApplyElements code func
+      .
+      and (isCons filtered) (isBodyStart (head filtered))
+        filtered
+        postProcessMacro -1 -1 (func filtered)
+    code
+
+filterApplyElements code func = code
+  \h t D . isBodyStart h
+    cons h (filterBody t func)
+    cons (filterApplies h func) (filterApplyElements t func)
+  nil
+
+filterBody code func = code \h t . cons h
+  isTokenString h '.'
+    filterApplies t func
+    filterBody t func
+
+#infix code = bind (getValue 'infixPrecedence')
+#  \prec . filterExpr code (infixDo prec)
+
+notInfix prec tail1 head2 tail2 = or
+  isNil tail1
+  or
+    isBodyStart head2
+    or
+      isNil tail2
+      or
+        not (isToken head2)
+        not (contains prec head2)
+
+#infixDo prec list = infixRearrange prec list (length list)
+#
+#infixRearrange prec list length = < length 3
+#  list
+#  \\
+#    head1 = head list
+#    tail1 = tail list
+#    head2 = first tail1
+#    tail2 = tail tail1
+#    head3 = first tail2
+#    tail3 = tail tail2
+#    opPrec = index prec (tokenString head2)
+#    .
+#    notInfx prec tail1 head2 tail2
+#      cons head1 (infixRearrange prec tail2 (- length 1))
+#
+#
+#    or
+#      isNil tail1
+#      or
+#        isBodyStart head2
+#        or
+#          isNil tail2
+#          or
+#            not (isToken head2)
+#            eq opPrec -1
+#      code
+#      higherPrec opPrec prec tail3
+#        doInfix prec [[head2 head1 head3] | tail3]
+#        [head2 head1 (doInfix prec tail3)]
+
+#higherPrec precedence prec code = or
+#  or (isNil code) (not (isToken (head code)))
+
+setValue 'infixPrecedence' nil
+
+#defTokenPack 'infix' [['+' '-' '*' '/'] [] [infix]]
+
+defTokenPack 'list' [['|'] [['[' | ']'] ['{' | '}']] [listFilter]]
+resetTokenPacks ['std' 'list']
+#resetTokenPacks ['std' 'list' 'infix']

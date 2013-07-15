@@ -62,10 +62,10 @@ define '+', ->(x)->(y)->x() + y()
 define '-', ->(x)->(y)->x() - y()
 define '*', ->(x)->(y)->x() * y()
 define '/', ->(x)->(y)->x() / y()
-define 'lt', ->(x)->(y)->booleanFor x() < y()
-define 'le', ->(x)->(y)->booleanFor x() <= y()
-define 'gt', ->(x)->(y)->booleanFor x() > y()
-define 'ge', ->(x)->(y)->booleanFor x() >= y()
+define '<', ->(x)->(y)->booleanFor x() < y()
+define '<=', ->(x)->(y)->booleanFor x() <= y()
+define '>', ->(x)->(y)->booleanFor x() > y()
+define '>=', ->(x)->(y)->booleanFor x() >= y()
 
 ############
 # STRINGS

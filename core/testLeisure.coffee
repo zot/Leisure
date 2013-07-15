@@ -523,7 +523,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(parseLine 'id = \\x . x', Nil, id, id), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
           assertEq String(lsr("parseToAst #{s '\\x . x'} #{delimiterPatStr}")), 'lambda(\\x . x)'
           assertEq String(lsr("scanLine #{s 'id = \\x . x'} #{delimiterPatStr} id id")), """
-            Cons[Token("define", 5) Token("\\"id\\"", 5) Token("0", 5) Token("\\"id = \\\\\\\\x . x\\"", 5) Cons[Token("\\\\@", 5) Token("dataType", 5) Token("id", 5) Token(".", 5) Token("\\\\@", 5) Token("type", 5) Token("id", 5) Token(".", 5) Token("\\\\", 5) Token("x", 6) Token(".", 8) Token("x", 10)]]
+            Cons[Token("define", 5) Token("\\"id\\"", 5) Token("0", 5) Token("\\"id = \\\\\\\\x . x\\"", 5) [Token("\\\\@", 5) Token("dataType", 5) Token("id", 5) Token(".", 5) Token("\\\\@", 5) Token("type", 5) Token("id", 5) Token(".", 5) Token("\\\\", 5) Token("x", 6) Token(".", 8) Token("x", 10)]]
           """
           assertEq String(lsr("parseLine #{s 'id = \\x . x'} #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
           assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'apply(define id 1 id x = x \\x . x)'
@@ -619,7 +619,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(monad lsr "macroParse 'b 2'"), 'Token("b", 2)'
           assertEq String(monad lsr "macroParse '(b 2) 3'"), 'Token("b", 6)'
           assertEq String(monad lsr "macroParse 'double (b 2) 3 4'"), 'Token("b", 7)'
-          assertEq String(monad lsr "macroParse 'double (double a)'"), 'Cons[Cons[Token("a", 15) Token("a", 15)] Cons[Token("a", 15) Token("a", 15)]]'
+          assertEq String(monad lsr "macroParse 'double (double a)'"), 'Cons[[Token("a", 15) Token("a", 15)] [Token("a", 15) Token("a", 15)]]'
           setValue 'macros', oldMacs
         leisureAst52: ->
           assertEq String(lsr "postProcessMacro -1 -1 (cons (token 'hello' 15) nil)"), 'Cons[Token("hello", 15)]'
@@ -627,15 +627,15 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(lsrM "postProcessMacro -1 -1 (cons (token 'hello' 15) nil)"), 'Cons[Token("hello", 15)]'
           assertEq String(lsr "postProcessMacro -1 -1 (cons 'hello' (cons (token 'goodbye' 15) nil))"), 'Cons[Token("hello", 15) Token("goodbye", 15)]'
           assertEq String(lsr "postProcessMacro -1 -1 (cons (token 'hello' 15) (cons 'goodbye' nil))"), 'Cons[Token("hello", 15) Token("goodbye", 21)]'
-          assertEq String(lsr "postProcessMacro -1 -1 (cons (cons (token 'hello' 15) nil) (cons 'goodbye' nil))"), 'Cons[Cons[Token("hello", 15)] Token("goodbye", 21)]'
+          assertEq String(lsr "postProcessMacro -1 -1 (cons (cons (token 'hello' 15) nil) (cons 'goodbye' nil))"), 'Cons[[Token("hello", 15)] Token("goodbye", 21)]'
         leisureAst53: -> assertEq lsrM("true 3 4"), 3
         leisureAst54: -> assertEq lsrM("eq true true 3 4"), 3
       runTests 'Leisure Utils',
         leisureUtil1: ->
-          assertEq String(monad lsr "quicksort lt nil"), 'Cons[]'
-          assertEq String(monad lsr "quicksort lt (cons 1 nil)"), 'Cons[1]'
-          assertEq String(monad lsr "quicksort lt (cons 1 (cons 2 nil))"), 'Cons[1 2]'
-          assertEq String(monad lsr "quicksort lt (cons 2 (cons 1 nil))"), 'Cons[1 2]'
-          assertEq String(monad lsr "quicksort lt (cons 2 (cons 3 (cons 1 nil)))"), 'Cons[1 2 3]'
+          assertEq String(monad lsr "quicksort < nil"), 'Cons[]'
+          assertEq String(monad lsr "quicksort < (cons 1 nil)"), 'Cons[1]'
+          assertEq String(monad lsr "quicksort < (cons 1 (cons 2 nil))"), 'Cons[1 2]'
+          assertEq String(monad lsr "quicksort < (cons 2 (cons 1 nil))"), 'Cons[1 2]'
+          assertEq String(monad lsr "quicksort < (cons 2 (cons 3 (cons 1 nil)))"), 'Cons[1 2 3]'
 
       console.log '\nDone'
