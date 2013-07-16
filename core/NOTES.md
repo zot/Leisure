@@ -8,6 +8,7 @@ Notes on New Leisure Core
 * THE ANNO AST STRUCTURE
 * FUTURE STUFF
    * PATTERN MATCHING
+   * NAME SPACES
    * TYPE INFERENCE
    * REMOTE NOTEBOOK
 
@@ -91,6 +92,10 @@ Multiple dispatch could create a dispatchers that return other dispatchers.
 ### Notebook Function Signature Summaries
 
 Since you can add cases in different files, it would be nice to be able to see all of the cases in one place.  Maybe a popup button or a box to the side?
+
+## NAME SPACES
+
+Gotta have 'em.
 
 ## TYPE INFERENCE
 

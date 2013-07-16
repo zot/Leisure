@@ -13,10 +13,11 @@ listify list = list \h t . isNil t
 
 defMacro '[' listify
 
-listFilter code = filterApplies code \list . list \h t .
-  isTokenString h '['
-    listFilterTail list
-    list
+listFilter code = bind (getValue 'listMacros')
+  \listMacros . filterApplies code \list . list \h t .
+    and (isToken h) (contains listMacros (tokenString h))
+      listFilterTail list
+      list
 
 listFilterTail list = list
   \h t D . isTokenString h '|'
@@ -54,25 +55,37 @@ filterBody code func = code \h t . cons h
     filterApplies t func
     filterBody t func
 
+setValue 'listMacros' ['[']
+
 addParseFilter listFilter
 
 ## Yay!  From here down, we can use list constructors!
 
-#infix code = bind (getValue 'infixPrecedence')
-#  \prec . filterExpr code (infixDo prec)
+addTokenGroup 'or[' ']'
 
-notInfix prec tail1 head2 tail2 = or
-  isNil tail1
+addTokenGroup 'and[' ']'
+
+listMacroFoldOp op list = foldr1
+  \result case . [op result case]
+  removeLast list
+
+defMacro 'or[' \list . listMacroFoldOp 'or' list
+
+defMacro 'and[' \list . listMacroFoldOp 'and' list
+
+#infix code = bind (getValue 'infixPrecedence')
+#  \prec . filterApplies code (infixDo prec)
+
+notInfix prec head1 head2 = or
+  isBodyStart head1
   or
     isBodyStart head2
     or
-      isNil tail2
-      or
-        not (isToken head2)
-        not (contains prec head2)
+      not (isToken head2)
+      not (contains prec (tokenString head2))
 
 #infixDo prec list = infixRearrange prec list (length list)
-#
+
 #infixRearrange prec list length = < length 3
 #  list
 #  \\
@@ -84,9 +97,15 @@ notInfix prec tail1 head2 tail2 = or
 #    tail3 = tail tail2
 #    opPrec = index prec (tokenString head2)
 #    .
-#    notInfx prec tail1 head2 tail2
-#      cons head1 (infixRearrange prec tail2 (- length 1))
-#
+#    notInfx prec head1 head2
+#      [head1 | infixRearrange prec tail1 (- length 1)]
+#      or
+#        < length 5
+#        or
+#          isBodyStart head3
+#          notInfx prec head3 head4
+#          [head2 head1 | tail2]
+#          
 #
 #    or
 #      isNil tail1
@@ -102,13 +121,16 @@ notInfix prec tail1 head2 tail2 = or
 #        doInfix prec [[head2 head1 head3] | tail3]
 #        [head2 head1 (doInfix prec tail3)]
 
-#higherPrec precedence prec code = or
-#  or (isNil code) (not (isToken (head code)))
+higherPrec precedence prec code = or
+  or (isNil code) (not (isToken (head code)))
 
 setValue 'infixPrecedence' nil
 
 #defTokenPack 'infix' [['+' '-' '*' '/'] [] [infix]]
 
-defTokenPack 'list' [['|'] [['[' | ']']] [listFilter]]
+defTokenPack 'list' [
+  ['|']
+  [['[' | ']'] ['or[' | ']'] ['and[' | ']']]
+  [listFilter]]
 resetTokenPacks ['std' 'list']
 #resetTokenPacks ['std' 'list' 'infix']

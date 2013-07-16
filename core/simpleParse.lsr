@@ -56,7 +56,14 @@ mapSave func l = l
       l
       cons newH newT
   nil
-foldl func value l = l (\h t D . foldl func (func value h) t) value
+foldl func initialValue l = l (\h t D . foldl func (func initialValue h) t) initialValue
+foldl1 func l = l \h t . foldl func h t
+foldr func initialValue list = list
+  \h t D . func h (foldr func initialValue t)
+  initialValue
+foldr1 func list = list \h t . isNil t
+  h
+  func h (foldr1 func t)
 intersperse list element = list (\h t D .
   hasType t nil
     list
@@ -440,20 +447,17 @@ namesForLines lines = foldl
   lines
 
 #################
-## Parse Filters
-#################
-
-runParseFilters filters line = foldl
-  \result filt . postProcessMacro -1 -1 (filt result)
-  line
-  filters
-
-#################
 ## Macro system
 #################
 
-# alpha substitution to make the result hygenic
+# what about alpha substitution to make the result hygenic?
 # make some let-style macros that use gensyms?
+
+runParseFilters filters line = foldl
+  \result filt . bind (filt result)
+    \filtered . postProcessMacro -1 -1 filtered
+  line
+  filters
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
@@ -564,23 +568,22 @@ parseLines lines result = lines
 parseFile text = parseLines (linesForFile text) nil
 
 newParseLine names line = bind (getValue 'tokenPat')
-  \delimiterPat . bind (getValue 'tokenGroups')
+  \tokenPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'parseFilters')
       \filters . bind (getValue 'macroDefs')
-        \macros . \\
-          astCallback scanned = createAst (macroSub macros (runParseFilters filters scanned)) names \ast . ast
-          .
-          scanLineG line delimiterPat groups astCallback astCallback
+        \macros . finalParseLine tokenPat groups macros filters names line
+
+finalParseLine tokenPat groups macros filters names line =
+  bind (runParseFilters filters (scanLineG line tokenPat groups id id))
+    \scanned . createAst (macroSub macros scanned) names \ast . ast
 
 runLine names line = bind (getValue 'tokenPat')
-  \delimiterPat . bind (getValue 'tokenGroups')
+  \tokenPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'macroDefs')
       \macros . bind (getValue 'parseFilters')
-        \filters . \\
-          astCallback scanned = createAst (macroSub macros (runParseFilters filters scanned)) names \ast . bind (runAst ast)
+        \filters . bind (finalParseLine tokenPat groups macros filters names line)
+          \ast . bind (runAst ast)
             \_ . ast
-          .
-          scanLineG line delimiterPat groups astCallback astCallback
 
 runLines names lines = lines
   \h t D . bind (runLine names h)
