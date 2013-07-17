@@ -13,13 +13,13 @@ Notes on New Leisure Core
    * REMOTE NOTEBOOK
 
 
+# RUNNING STUFF
+
+To run the repl, cd to the top directory and use `make repl`
+
 # MOTIVATION
 
 The fundamental motivation of the new core is to reduce the amount of low-level code and simplify it, so it's easier to provide alternate backends and make improvements at the lowest level.  The new core doesn't parse Leisure, it operates directly on ASTs and JSON-encoded ASTs.  This allows Leisure itself to implement the parsing.  Leisure can send ASTs directly to the core or generate low-level, JSON-encoded *.last files which the core can understand.
-
-# RUNNING STUFF
-
-To run the tests, use `make`.  To run the repl, use `make repl`.
 
 # THE LET AST STRUCTURE
 

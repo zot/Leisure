@@ -76,6 +76,8 @@ define 'strString', ->(data)-> String(data())
 define 'strAt', ->(str)->(index)-> str()[strCoord(str(), index())]
 define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define 'strLen', ->(str)-> str().length
+define 'strToLowerCase', ->(str)-> str().toLowerCase()
+define 'strToUpperCase', ->(str)-> str().toUpperCase()
 define 'strReplace', ->(str)->(pat)->(repl)-> str().replace pat(), repl()
 strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
 define 'strSubstring', ->(str)->(start)->(end)->

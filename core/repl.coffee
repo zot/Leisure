@@ -97,12 +97,19 @@ updateCompleter = (rl)->
     leisureFunctions = global.leisureFuncNames.toArray()
 
 tokenString = (t)-> t(->(txt)->(pos)-> txt())
+rl = null
 
 leisureCompleter = (line)->
   tokens = L_tokens()(->line)(->root.getValue 'tokenPat').toArray()
   if tokens.length > 0
-    last = tokenString tokens[tokens.length - 1]
-    [_.filter(leisureFunctions, (el)->el.indexOf(last) == 0), last]
+    origLast = tokenString(tokens[tokens.length - 1])
+    last = origLast.toLowerCase()
+    completions = _.filter(leisureFunctions, (el)->el.toLowerCase().indexOf(last) == 0)
+    if completions.length == 1
+      newLast = completions[0].substring 0, last.length
+      rl.line = line.substring(0, line.length - last.length) + newLast
+      [completions, newLast]
+    else [_.filter(leisureFunctions, (el)->el.toLowerCase().indexOf(last) == 0), origLast]
   else [[], line]
 
 repl = ->
