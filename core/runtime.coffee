@@ -52,6 +52,7 @@ left = (x)-> setType ((lCase)->(rCase)-> lCase()(->x)), 'left'
 right = (x)-> setType ((lCase)->(rCase)-> rCase()(->x)), 'right'
 booleanFor = (bool)-> if bool then _true else _false
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
+define '==', ->(a)->(b)-> booleanFor a() == b()
 define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
 
 ############

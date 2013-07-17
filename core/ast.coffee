@@ -243,6 +243,8 @@ global.leisureFuncNames = Nil
 leisureAddFunc = global.leisureAddFunc = (nm)-> global.leisureFuncNames = cons(nm, global.leisureFuncNames)
 root.evalFunc = evalFunc = eval
 
+root.functionCount = 0
+
 # use AST, instead of arity?
 define = (name, func, arity, src, method) ->
   func.src = src
@@ -253,6 +255,7 @@ define = (name, func, arity, src, method) ->
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
   global[nm] = global.leisureFuncs[nm] = func
   leisureAddFunc name
+  root.functionCount++
   func
 
 ######

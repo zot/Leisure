@@ -88,11 +88,29 @@ help = ->
 
 """
 
+oldFunctionCount = 0
+leisureFunctions = null
+
+updateCompleter = (rl)->
+  if root.functionCount != oldFunctionCount
+    oldFunctionCount = root.functionCount
+    leisureFunctions = global.leisureFuncNames.toArray()
+
+tokenString = (t)-> t(->(txt)->(pos)-> txt())
+
+leisureCompleter = (line)->
+  tokens = L_tokens()(->line)(->root.getValue 'tokenPat').toArray()
+  if tokens.length > 0
+    last = tokenString tokens[tokens.length - 1]
+    [_.filter(leisureFunctions, (el)->el.indexOf(last) == 0), last]
+  else [[], line]
+
 repl = ->
   lines = null
   leisureDir = path.join process.env.HOME, '.leisure'
   historyFile = path.join(leisureDir, 'history')
-  rl = readline.createInterface process.stdin, process.stdout
+  rl = readline.createInterface process.stdin, process.stdout, leisureCompleter
+  updateCompleter()
   fs.exists historyFile, (exists)->
     ((cont)->
       if exists then readFile historyFile, (err, contents)->
@@ -170,7 +188,7 @@ compile = (file, cont)->
       names = runMonad L_namesForLines()(-> lines)
       asts = []
       for line in lines.toArray()
-        asts.push runMonad L_runLine()(->names)(->line)
+        asts.push (runMonad L_runLine()(->names)(->line)).head()
       if createAstFile
         outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
         if outDir then outputFile = path.join(outDir, path.basename(outputFile))

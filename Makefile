@@ -8,7 +8,8 @@
 
 SRC=base ast testing gen runtime simpleParseJS browser repl
 TEST=testLeisure
-ALL=$(SRC) $(TEST) generatedPrelude simpleParse
+TEST_PARSER=testParser
+ALL=$(SRC) $(TEST) $(TEST_PARSER) generatedPrelude simpleParse
 DIR=core
 LIB=lib
 PRELUDE_INPUT=simpleParse simpleParse2
@@ -17,7 +18,7 @@ PRELUDE=lib/generatedPrelude.js
 OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
 COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 
-all: .tested $(PRELUDE)
+all: .tested $(PRELUDE) .parserTested
 
 repl: all
 	core/repl
@@ -33,6 +34,10 @@ $(PRELUDE): $(PRELUDE_FILES)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
 	node $(LIB)/$(TEST)
 	touch $@
+
+.parserTested: $(TEST_PARSER:%=core/%.coffee)
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
+	node $(LIB)/$(TEST_PARSER) && touch $@
 
 lua-tests: FRC
 	(cd core; eval $(luarocks path) ; lua5.1 -lluarocks.loader testLeisure.lua)

@@ -436,7 +436,7 @@ linesForFile text = filter
   \line . isNil (strMatch line emptyLinePat)
   strSplit text linePat
 
-defPat = regexp '^([^ =]+).*(?:[a-zA-Z0-9 ])='
+defPat = regexp '^[^ =]+.* =( |$)'
 
 namesForLines lines = foldl
   \result line . \\
@@ -577,13 +577,20 @@ finalParseLine tokenPat groups macros filters names line =
   bind (runParseFilters filters (scanLineG line tokenPat groups id id))
     \scanned . createAst (macroSub macros scanned) names \ast . ast
 
+scanLineM line = bind (getValue 'tokenPat')
+  \tokenPat . bind (getValue 'tokenGroups')
+    \groups . bind (getValue 'parseFilters')
+      \filters . bind (getValue 'macroDefs')
+        \macros . bind (runParseFilters filters (scanLineG line tokenPat groups id id))
+          \scanned . macroSub macros scanned
+
 runLine names line = bind (getValue 'tokenPat')
   \tokenPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'macroDefs')
       \macros . bind (getValue 'parseFilters')
         \filters . bind (finalParseLine tokenPat groups macros filters names line)
           \ast . bind (runAst ast)
-            \_ . ast
+            \result . cons ast result
 
 runLines names lines = lines
   \h t D . bind (runLine names h)

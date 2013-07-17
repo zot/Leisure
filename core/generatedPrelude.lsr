@@ -436,7 +436,7 @@ linesForFile text = filter
   \line . isNil (strMatch line emptyLinePat)
   strSplit text linePat
 
-defPat = regexp '^([^ =]+).*(?:[a-zA-Z0-9 ])='
+defPat = regexp '^[^ =]+.* =( |$)'
 
 namesForLines lines = foldl
   \result line . \\
@@ -577,13 +577,20 @@ finalParseLine tokenPat groups macros filters names line =
   bind (runParseFilters filters (scanLineG line tokenPat groups id id))
     \scanned . createAst (macroSub macros scanned) names \ast . ast
 
+scanLineM line = bind (getValue 'tokenPat')
+  \tokenPat . bind (getValue 'tokenGroups')
+    \groups . bind (getValue 'parseFilters')
+      \filters . bind (getValue 'macroDefs')
+        \macros . bind (runParseFilters filters (scanLineG line tokenPat groups id id))
+          \scanned . macroSub macros scanned
+
 runLine names line = bind (getValue 'tokenPat')
   \tokenPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'macroDefs')
       \macros . bind (getValue 'parseFilters')
         \filters . bind (finalParseLine tokenPat groups macros filters names line)
           \ast . bind (runAst ast)
-            \_ . ast
+            \result . cons ast result
 
 runLines names lines = lines
   \h t D . bind (runLine names h)
@@ -738,58 +745,49 @@ defMacro 'or[' \list . listMacroFoldOp 'or' list
 
 defMacro 'and[' \list . listMacroFoldOp 'and' list
 
-#infix code = bind (getValue 'infixPrecedence')
-#  \prec . filterApplies code (infixDo prec)
+infix code = bind (getValue 'infixPrecedence')
+  \prec . bind (getValue 'tokenGroups')
+    \groups . filterApplies
+      code
+      \expr . infixRearrange prec (map (\cell . tail cell) groups) expr (length expr)
 
-notInfix prec head1 head2 = or
-  isBodyStart head1
-  or
-    isBodyStart head2
-    or
-      not (isToken head2)
-      not (contains prec (tokenString head2))
+isInfix prec head1 head2 = and[
+  not (isBodyStart head1)
+  isToken head2
+  contains prec (tokenString head2)]
 
-#infixDo prec list = infixRearrange prec list (length list)
+infixRearrange prec closes list length = < length 2
+  log "X" list
+  \\
+    head1 = head list
+    tail1 = tail list
+    head2 = head tail1
+    tail2 = tail tail1
+    head3 = head tail2
+    tail3 = tail tail2
+    head4 = head tail3
+    opPrec = index prec (tokenString head2)
+    .
+    isInfix prec head1 head2
+      or (== length 2) (contains closes head3) ## partial application
+        log "0" [[head2 head1] | tail2]
+        higherPrec opPrec prec head4 length
+          log "1" infixRearrange prec closes [[head2 head1 head3] | tail3] (- length 2)
+          \\
+            rearrangedArg = infixRearrange prec closes tail2 (- length 2)
+            .
+            log "2" [[head2 head1 (head rearrangedArg)] | (tail rearrangedArg)]
+      d "3: " head1 [head1 | (infixRearrange prec closes tail1 (- length 1))]
 
-#infixRearrange prec list length = < length 3
-#  list
-#  \\
-#    head1 = head list
-#    tail1 = tail list
-#    head2 = first tail1
-#    tail2 = tail tail1
-#    head3 = first tail2
-#    tail3 = tail tail2
-#    opPrec = index prec (tokenString head2)
-#    .
-#    notInfx prec head1 head2
-#      [head1 | infixRearrange prec tail1 (- length 1)]
-#      or
-#        < length 5
-#        or
-#          isBodyStart head3
-#          notInfx prec head3 head4
-#          [head2 head1 | tail2]
-#          
-#
-#    or
-#      isNil tail1
-#      or
-#        isBodyStart head2
-#        or
-#          isNil tail2
-#          or
-#            not (isToken head2)
-#            eq opPrec -1
-#      code
-#      higherPrec opPrec prec tail3
-#        doInfix prec [[head2 head1 head3] | tail3]
-#        [head2 head1 (doInfix prec tail3)]
-
-higherPrec precedence prec code = or
-  or (isNil code) (not (isToken (head code)))
+higherPrec opPrec prec nextOp length = and[
+  > length 3
+  > (index prec nextOp) opPrec]
 
 setValue 'infixPrecedence' nil
+
+#testInfix line = bind (setValue 'infixPrecedence' ['+' '-' '*' '/'])
+#  \_ . bind (scanLineM line)
+#    \code . infix code
 
 #defTokenPack 'infix' [['+' '-' '*' '/'] [] [infix]]
 

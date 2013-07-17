@@ -228,6 +228,8 @@ lsrComp = (str, diag)->
     console.log "done"
   monad eval "(#{gen lsr("parseLine #{s str} #{s LZ.delimiterPat.source} nil id id")})"
 
+global.runMonad = runMonad
+
 lsrM = (str)->
   #console.log "FUNC: " + "(#{gen monad lsr("parseLineM #{s str}")})"
   monad eval "(#{gen monad lsr("parseLineM #{s str}")})"
@@ -637,5 +639,4 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(monad lsr "quicksort < (cons 1 (cons 2 nil))"), 'Cons[1 2]'
           assertEq String(monad lsr "quicksort < (cons 2 (cons 1 nil))"), 'Cons[1 2]'
           assertEq String(monad lsr "quicksort < (cons 2 (cons 3 (cons 1 nil)))"), 'Cons[1 2 3]'
-
       console.log '\nDone'
