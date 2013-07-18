@@ -23,6 +23,8 @@ misrepresented as being the original software.
 ###
 
 require('source-map-support').install()
+#Error.stackTraceLimit = Infinity
+Error.stackTraceLimit = 50
 root = module.exports = require './base'
 _ = require './lodash.min'
 path = require 'path'

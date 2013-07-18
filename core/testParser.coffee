@@ -26,7 +26,7 @@ misrepresented as being the original software.
 Tests for Leisure
 ###
 
-Error.stackTraceLimit = Infinity
+Error.stackTraceLimit = 20
 
 require('source-map-support').install()
 {
@@ -68,13 +68,8 @@ global.identity = identity
 require './generatedPrelude'
 runTests 'Leisure Full Parser',
   fullParse1: ->
-    runLsr """
-    testInfix line = bind (setValue 'infixPrecedence' ['+' '-' '*' '/'])
-        \\_ . bind (scanLineM line)
-          \\code . infix code
-    """
-    assertEq String(runLsr "testInfix 'a + b'"), 'Cons[[Token("+", 2) Token("a", 0) Token("b", 4)]]'
-    assertEq String(runLsr "testInfix 'a +'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
+    assertEq String(runLsr "scanLineM 'a +'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
+    #assertEq String(runLsr "scanLineM 'a + b'"), 'Cons[[Token("+", 2) Token("a", 0) Token("b", 4)]]'
   #fullParse2: ->
   #  assertEq String(runLsr "testInfix 'a + b + c'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
 

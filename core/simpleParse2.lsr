@@ -47,7 +47,10 @@ filterApplies code func = isParens code
 filterApplyElements code func = code
   \h t D . isBodyStart h
     cons h (filterBody t func)
-    cons (filterApplies h func) (filterApplyElements t func)
+    cons (filterApplies h func)
+      and (isCons t) (isBodyStart (head t))
+        cons (filterApplyElements t func) nil
+        filterApplyElements t func
   nil
 
 filterBody code func = code \h t . cons h
@@ -77,51 +80,69 @@ infix code = bind (getValue 'infixPrecedence')
   \prec . bind (getValue 'tokenGroups')
     \groups . filterApplies
       code
-      \expr . infixRearrange prec (map (\cell . tail cell) groups) expr (length expr)
+      \expr . infixRearrange prec (map (\cell . tail cell) groups) expr
 
-isInfix prec head1 head2 = and[
-  not (isBodyStart head1)
-  isToken head2
-  contains prec (tokenString head2)]
+infixRearrange prec closes list = \\
+  len = length list
+  head1 = head list
+  tail1 = tail list
+  head2 = head tail1
+  tail2 = tail tail1
+  head3 = head tail2
+  tail3 = tail tail2
+  head4 = head tail3
+  tail4 = tail tail3
+  head5 = head tail4
+  opPrec = getPrec prec head2
+  .
+  < len 2
+    dd "LESS THAN 2 ITEMS: " list
+    isInfix opPrec head1 head2 len
+      log "INFIX" or (== len 2) (not (isInfixArg head3))
+        [[head2 head1] | tail2]
+        infixRearrange prec closes
+          infixShouldEatNext opPrec prec head3 head4 head5 closes (- len 2)
+            dd "EAT: " [head1 head2 | infixRearrange prec closes tail2]
+            dd "DON'T EAT: " [[head2 head1 head3] | tail3]
+      log "NOT INFIX" [head1 | infixRearrange prec closes tail1]
 
-infixRearrange prec closes list length = < length 2
-  log "X" list
-  \\
-    head1 = head list
-    tail1 = tail list
-    head2 = head tail1
-    tail2 = tail tail1
-    head3 = head tail2
-    tail3 = tail tail2
-    head4 = head tail3
-    opPrec = index prec (tokenString head2)
-    .
-    isInfix prec head1 head2
-      or (== length 2) (contains closes head3) ## partial application
-        log "0" [[head2 head1] | tail2]
-        higherPrec opPrec prec head4 length
-          log "1" infixRearrange prec closes [[head2 head1 head3] | tail3] (- length 2)
-          \\
-            rearrangedArg = infixRearrange prec closes tail2 (- length 2)
-            .
-            log "2" [[head2 head1 (head rearrangedArg)] | (tail rearrangedArg)]
-      d "3: " head1 [head1 | (infixRearrange prec closes tail1 (- length 1))]
+isInfixArg closes item = or[
+  isParens item
+  isCons item
+  and[
+    isToken item
+    not (contains closes (tokenString item))
+    not (contains bodyStarts (tokenString item))]]
 
-higherPrec opPrec prec nextOp length = and[
-  > length 3
-  > (index prec nextOp) opPrec]
+isInfix opPrec head1 head2 len = and[
+  > len 1
+  > opPrec -1
+  isInfixArg nil head1]
 
-setValue 'infixPrecedence' nil
+getPrec prec token = \\
+  str = tokenString token
+  .
+  isToken token
+    findIndex (\level . contains level str) prec
+    -1
 
-#testInfix line = bind (setValue 'infixPrecedence' ['+' '-' '*' '/'])
-#  \_ . bind (scanLineM line)
-#    \code . infix code
+infixShouldEatNext opPrec prec curArg nextOp nextArg closes len = \\
+  nextPrec = getPrec prec nextOp
+  .
+  and[
+    > len 2
+    isInfix nextPrec curArg nextOp len
+    > opPrec nextPrec
+    isInfixArg closes nextArg]
 
-#defTokenPack 'infix' [['+' '-' '*' '/'] [] [infix]]
+iprec = [['*' '/' '%'] ['+' '-'] ['<' '>' '<=' '>='] ['==' '!=']]
+
+setValue 'infixPrecedence' iprec
+defTokenPack 'infix' [(flatten iprec) [] [infix]]
 
 defTokenPack 'list' [
   ['|']
   [['[' | ']'] ['or[' | ']'] ['and[' | ']']]
   [listFilter]]
-resetTokenPacks ['std' 'list']
-#resetTokenPacks ['std' 'list' 'infix']
+
+resetTokenPacks ['std' 'list' 'infix']

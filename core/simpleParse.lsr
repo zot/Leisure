@@ -41,6 +41,14 @@ length list = list
   \h t D . + 1 (length t)
   0
 append a b = a (\h t D . cons h (append t b)) b
+flatten list = isCons list
+  subflatten list nil
+  list
+subflatten list result = isNil list
+  result
+  isCons list
+    list \h t . subflatten h (subflatten t result)
+    cons list result
 reverse l = rev l nil
 rev l result = l (\h t D . rev t (cons h result)) result
 filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
@@ -65,15 +73,16 @@ foldr1 func list = list \h t . isNil t
   h
   func h (foldr1 func t)
 intersperse list element = list (\h t D .
-  hasType t nil
+  isNil t
     list
     cons h (cons element (intersperse t element))) nil
 join list el = strCat (intersperse list el)
-index list el = idx list el 0
-idx list el pos = list
-  \h t D . eq el h
+findIndex func list = idx list func 0
+index list el = idx list (\item . == el item) 0
+idx list func pos = list
+  \h t D . func h
     pos
-    idx list el (+ 1 pos)
+    idx t func (+ 1 pos)
   -1
 
 ############
@@ -116,7 +125,7 @@ parensEnd p = p \s e c . e
 parensContent p = p \s e c . c
 isParens p = hasType p parens
 makeParens start end content =
-  and (hasType content cons) (hasType (tail content) nil)
+  and (isCons content) (isNil (tail content))
     makeParens start end (head content)
     or (isToken content) (isParens content)
       content
@@ -154,7 +163,7 @@ isTokenStart tok str = and (isToken tok) (strStartsWith (tokenString tok) str)
 withToken tok nonTokCase tokCase = isToken tok (tok tokCase) nonTokCase
 
 ## withCons is like a safe version of a cons
-withCons l nilCase cont = hasType l cons (l (\h t D . cont h t) nilCase) nilCase
+withCons l nilCase cont = isCons l (l (\h t D . cont h t) nilCase) nilCase
 
 parseToks toks groups cont =
   isNil toks (cont nil)
@@ -242,7 +251,7 @@ createAst inList names cont = strip inList \list .
               createApply list names cont
       cont nil
 
-strMatches str pat = hasType (strMatch str pat) cons
+strMatches str pat = isCons (strMatch str pat)
 
 digit = regexp '^[0-9]+$'
 
@@ -453,11 +462,9 @@ namesForLines lines = foldl
 # what about alpha substitution to make the result hygenic?
 # make some let-style macros that use gensyms?
 
-runParseFilters filters line = foldl
-  \result filt . bind (filt result)
-    \filtered . postProcessMacro -1 -1 filtered
+runParseFilters filters line = filters
+  \h t D . bind (h line) \filtered . runParseFilters t filtered
   line
-  filters
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
@@ -608,7 +615,7 @@ load file = bind (readFile file)
   \result . result
     \err . err
     \contents . bind (getValue 'activeTokenPacks')
-      \activePacks . bind (resetTokenPacks (cons 'std' (cons 'list' nil)))
+      \activePacks . bind (resetTokenPacks (cons 'std' (cons 'list' (cons 'infix' nil))))
         \_ . bind (runFile contents)
           \_ . resetTokenPacks activePacks
 
@@ -647,7 +654,7 @@ resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
   \_ . bind (setValue 'tokenList' nil)
     \_ . bind (setValue 'activeTokenPacks' nil)
       \_ . bind (setValue 'parseFilters' nil)
-        \_ . foldl (\result pack . bind (useTokenPack pack) \_ . result) nil packs
+        \_ . foldr (\pack result . bind (useTokenPack pack) \_ . result) nil packs
 
 addParseFilter filt = bind (getValue 'parseFilters')
   \filters . setValue 'parseFilters' (append filters (cons filt nil))

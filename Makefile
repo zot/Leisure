@@ -20,7 +20,7 @@ COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 
 all: .tested $(PRELUDE) .parserTested
 
-repl: all
+repl: all FRC
 	core/repl
 
 $(PRELUDE): $(PRELUDE_FILES)
@@ -30,19 +30,19 @@ $(PRELUDE): $(PRELUDE_FILES)
 
 #node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
 
-.tested: $(COFFEE_FILES)
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
+.tested: $(COFFEE_FILES) $(PRELUDE)
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee
 	node $(LIB)/$(TEST)
 	touch $@
 
-.parserTested: $(TEST_PARSER:%=core/%.coffee)
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
+.parserTested: $(TEST_PARSER:%=core/%.coffee) $(PRELUDE)
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testParser.coffee
 	node $(LIB)/$(TEST_PARSER) && touch $@
 
 lua-tests: FRC
 	(cd core; eval $(luarocks path) ; lua5.1 -lluarocks.loader testLeisure.lua)
 
 clean:
-	rm -f $(OUT_FILES) .tested
+	rm -f $(OUT_FILES) .tested .parserTested
 
 FRC:

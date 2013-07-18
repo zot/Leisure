@@ -172,7 +172,7 @@ class Leisure_BaseCons extends LeisureObject
   join: (str)->@toArray().join(str)
   reverse: -> @rev Nil
   rev: (result)-> @tail().rev cons(@head(), result)
-  elementString: -> "#{if @head().constructor == @.constructor then '[' + @head().elementString() + ']' else @head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
+  elementString: -> "#{if @head().constructor == @.constructor || @head() instanceof Leisure_nil then '[' + @head().elementString() + ']' else @head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
   equals: (other)-> @ == other or (other instanceof Leisure_BaseCons and consEq(@head(), other.head()) and consEq(@tail(), other.tail()))
   each: (block)->
     block(@head())
@@ -209,6 +209,7 @@ class Leisure_nil extends LeisureObject
   join: -> ''
   append: (l)-> l
   toString: -> "Cons[]"
+  elementString: -> ''
 
 global.Leisure_nil = Leisure_nil
 
