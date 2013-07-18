@@ -50,6 +50,8 @@ _true = setType ((a)->(b)->a()), 'true'
 _false = setType ((a)->(b)->b()), 'false'
 left = (x)-> setType ((lCase)->(rCase)-> lCase()(->x)), 'left'
 right = (x)-> setType ((lCase)->(rCase)-> rCase()(->x)), 'right'
+some = (x)-> setType ((someCase)->(noneCase)-> someCase()(->x)), 'some'
+none = setType ((someCase)->(noneCase)-> noneCase()), 'none'
 booleanFor = (bool)-> if bool then _true else _false
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define '==', ->(a)->(b)-> booleanFor a() == b()
@@ -121,7 +123,6 @@ define 'jsonStringify', ->(obj)->(failCont)->(successCont)->
 ############
 
 define 'log', ->(str)->(res)->
-  global.LOG = String(str())
   console.log String(str())
   res()
 
@@ -215,6 +216,9 @@ define 'funcs', ->
   makeMonad (env, cont)->
     console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
     cont _false
+
+define 'funcSrc', ->(func)->
+  if typeof func() == 'function' && func().src then some func().src else none
 
 define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
 

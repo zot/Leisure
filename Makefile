@@ -15,7 +15,8 @@ LIB=lib
 PRELUDE_INPUT=simpleParse simpleParse2
 PRELUDE_FILES=$(PRELUDE_INPUT:%=core/%.lsr)
 PRELUDE=lib/generatedPrelude.js
-OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
+JS_FILES=$(ALL:%=lib/%.js)
+OUT_FILES=$(JS_FILES) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
 COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 
 all: .tested $(PRELUDE) .parserTested
@@ -23,19 +24,20 @@ all: .tested $(PRELUDE) .parserTested
 repl: all FRC
 	core/repl
 
-$(PRELUDE): $(PRELUDE_FILES)
-	cat $^ > core/generatedPrelude.lsr
+$(PRELUDE): $(PRELUDE_FILES) $(coffee_files)
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
+	cat $(PRELUDE_FILES) > core/generatedPrelude.lsr
 	node lib/repl -0 -c -d lib core/simpleParse.lsr
 	node lib/repl -1 -c -d lib core/generatedPrelude.lsr
 
-#node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
-
 .tested: $(COFFEE_FILES) $(PRELUDE)
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee
 	node $(LIB)/$(TEST)
 	touch $@
 
 .parserTested: $(TEST_PARSER:%=core/%.coffee) $(PRELUDE)
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testParser.coffee
 	node $(LIB)/$(TEST_PARSER) && touch $@
 

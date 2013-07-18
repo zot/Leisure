@@ -69,7 +69,7 @@ require './generatedPrelude'
 runTests 'Leisure Full Parser',
   fullParse1: ->
     assertEq String(runLsr "scanLineM 'a +'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
-    #assertEq String(runLsr "scanLineM 'a + b'"), 'Cons[[Token("+", 2) Token("a", 0) Token("b", 4)]]'
+    assertEq String(runLsr "scanLineM 'a + b'"), 'Cons[[Token("+", 2) Token("a", 0) Token("b", 4)]]'
   #fullParse2: ->
   #  assertEq String(runLsr "testInfix 'a + b + c'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
 

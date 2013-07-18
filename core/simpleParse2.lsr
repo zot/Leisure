@@ -41,7 +41,7 @@ filterApplies code func = isParens code
       .
       and (isCons filtered) (isBodyStart (head filtered))
         filtered
-        postProcessMacro -1 -1 (func filtered)
+        func filtered
     code
 
 filterApplyElements code func = code
@@ -96,15 +96,15 @@ infixRearrange prec closes list = \\
   opPrec = getPrec prec head2
   .
   < len 2
-    dd "LESS THAN 2 ITEMS: " list
+    list
     isInfix opPrec head1 head2 len
-      log "INFIX" or (== len 2) (not (isInfixArg head3))
+      or (== len 2) (not (isInfixArg closes head3))
         [[head2 head1] | tail2]
         infixRearrange prec closes
           infixShouldEatNext opPrec prec head3 head4 head5 closes (- len 2)
-            dd "EAT: " [head1 head2 | infixRearrange prec closes tail2]
-            dd "DON'T EAT: " [[head2 head1 head3] | tail3]
-      log "NOT INFIX" [head1 | infixRearrange prec closes tail1]
+            [head1 head2 | infixRearrange prec closes tail2]
+            [[head2 head1 head3] | tail3]
+      [head1 | infixRearrange prec closes tail1]
 
 isInfixArg closes item = or[
   isParens item
