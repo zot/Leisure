@@ -52,7 +52,7 @@ left = (x)-> setType ((lCase)->(rCase)-> lCase()(->x)), 'left'
 right = (x)-> setType ((lCase)->(rCase)-> rCase()(->x)), 'right'
 some = (x)-> setType ((someCase)->(noneCase)-> someCase()(->x)), 'some'
 none = setType ((someCase)->(noneCase)-> noneCase()), 'none'
-booleanFor = (bool)-> if bool then _true else _false
+booleanFor = (bool)-> if bool then L_true() else L_false()
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define '==', ->(a)->(b)-> booleanFor a() == b()
 define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
@@ -159,12 +159,12 @@ codeMonad = (code)->
   makeMonad (env, cont)->
     result = code env
     if result instanceof Monad then runMonad result, env, cont
-    else cont _false
+    else cont L_false ? _false
 
 define 'define', ->(name)->(arity)->(src)->(def)->
   makeMonad (enf, cont)->
     define name(), def, arity(), src()
-    cont _false
+    cont L_false ? _false
 
 define 'bind', ->(m)->(binding)->
   makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
@@ -173,7 +173,7 @@ values = {}
 
 define 'hasValue', ->(name)->
   makeMonad (env, cont)->
-    cont (if values[name()]? then _true else _false)
+    cont booleanFor values[name()]?
 
 define 'getValueOr', ->(name)->(defaultValue)->
   makeMonad (env, cont)->

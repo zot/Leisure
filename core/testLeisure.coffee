@@ -379,14 +379,14 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq lsr('v4'), 5
           assertEq lsr('v5'), 6
           assertEq lsr('v6'), 11
-        ast26: -> # test some string escapes
+        ast26: ->
+          eval compileFile code
+          assertEq String(lsr('nil')), 'Cons[]'
+        ast27: -> # test some string escapes
           assertEq lsr("strToList '\"'").toArray(), ['"']
           assertEq lsr("eq '1' '\\\\' 1 2"), 2
           assertEq lsr("eq '1' '\"' 1 2"), 2
           assertEq tokenString(tokens("eq '\\\\' (eq 'b' nil) 1 2").tail().head()), "'\\\\'"
-        ast27: ->
-          eval compileFile code
-          assertEq String(lsr('nil')), 'Cons[]'
         ast28: -> assertEq lsr('"true"'), 'true'
         ast29: -> assertEq lsr("'true'"), 'true'
         ast30: -> assertEq lsr("getType 'true'"), '*string'

@@ -70,7 +70,9 @@ runTests 'Leisure Full Parser',
   fullParse1: ->
     assertEq String(runLsr "scanLineM 'a +'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
     assertEq String(runLsr "scanLineM 'a + b'"), 'Cons[[Token("+", 2) Token("a", 0) Token("b", 4)]]'
-  #fullParse2: ->
-  #  assertEq String(runLsr "testInfix 'a + b + c'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
+  fullParse2: ->
+    assertEq String(runLsr "scanLineM 'a + b + c'"), 'Cons[[Token("+", 6) [Token("+", 2) Token("a", 0) Token("b", 4)] Token("c", 8)]]'
+  fullParse3: ->
+    assertEq runLsr("1+2*3 >= 7 == true"), L_true()
 
 process.exit T.stats.failures
