@@ -148,6 +148,21 @@ defTokenPack 'list' [
   [['[' | ']'] ['or[' | ']'] ['and[' | ']']]
   [listFilter]]
 
-addStdTokenPacks ['list' 'infix']
+useTokenPack 'infix'
 
+#do
+
+#defMacro 'do' \list . handleDo list false
+#
+#handleDo list inLet . list
+#  \h t D . isNil t
+#    inLet
+#      ['.' h]
+#      h
+#    doClause h t inLet
+#  nil
+#
+#doClause h t inLet =
+
+addStdTokenPacks ['list' 'infix']
 resetStdTokenPacks

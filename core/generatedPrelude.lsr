@@ -690,6 +690,7 @@ setValue 'stdTokenPacks' (cons 'std' nil)
 defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
 
 resetStdTokenPacks
+
 #################
 # Utilities
 #################
@@ -840,7 +841,22 @@ defTokenPack 'list' [
   [['[' | ']'] ['or[' | ']'] ['and[' | ']']]
   [listFilter]]
 
-addStdTokenPacks ['list' 'infix']
+useTokenPack 'infix'
 
+#do
+
+#defMacro 'do' \list . handleDo list false
+#
+#handleDo list inLet . list
+#  \h t D . isNil t
+#    inLet
+#      ['.' h]
+#      h
+#    doClause h t inLet
+#  nil
+#
+#doClause h t inLet =
+
+addStdTokenPacks ['list' 'infix']
 resetStdTokenPacks
 
