@@ -148,4 +148,6 @@ defTokenPack 'list' [
   [['[' | ']'] ['or[' | ']'] ['and[' | ']']]
   [listFilter]]
 
-resetTokenPacks ['std' 'list' 'infix']
+addStdTokenPacks ['list' 'infix']
+
+resetStdTokenPacks

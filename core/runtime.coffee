@@ -181,6 +181,7 @@ define 'getValueOr', ->(name)->(defaultValue)->
 
 define 'getValue', ->(name)->
   makeMonad (env, cont)->
+    if !(name() of values) then throw new Error "No value named '#{name()}'"
     cont values[name()]
 
 setValue = (key, value)-> values[key] = value

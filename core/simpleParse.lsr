@@ -614,10 +614,14 @@ runFile text = \\
 load file = bind (readFile file)
   \result . result
     \err . err
-    \contents . bind (getValue 'activeTokenPacks')
-      \activePacks . bind (resetTokenPacks (cons 'std' (cons 'list' (cons 'infix' nil))))
-        \_ . bind (runFile contents)
-          \_ . resetTokenPacks activePacks
+    \contents . bind (getValue 'stdTokenPacks')
+      \stds . bind (getValue 'activeTokenPacks')
+        \activePacks . bind (resetTokenPacks stds)
+          \_ . bind (runFile contents)
+            \_ . isNil activePacks
+              bind (getValue 'stdTokenPacks')
+                \stds . resetTokenPacks stds
+              resetTokenPacks activePacks
 
 require file = bind (getValue 'requiredFiles')
   \files . contains files file nil
@@ -656,6 +660,13 @@ resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
       \_ . bind (setValue 'parseFilters' nil)
         \_ . foldr (\pack result . bind (useTokenPack pack) \_ . result) nil packs
 
+resetStdTokenPacks = bind (getValue 'stdTokenPacks')
+  \stds . bind (resetTokenPacks stds)
+    \_ . setValue 'activeTokenPacks' nil
+
+addStdTokenPacks morePacks = bind (getValue 'stdTokenPacks')
+  \stds . setValue 'stdTokenPacks' (append stds morePacks)
+
 addParseFilter filt = bind (getValue 'parseFilters')
   \filters . setValue 'parseFilters' (append filters (cons filt nil))
 
@@ -674,6 +685,8 @@ setValue 'macroDefs' nil
 setValue 'requiredFiles' nil
 setValue 'tokenPacks' nil
 setValue 'activeTokenPacks' nil
+setValue 'stdTokenPacks' (cons 'std' nil)
 
 defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
-resetTokenPacks (cons 'std' nil)
+
+resetStdTokenPacks

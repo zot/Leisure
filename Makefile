@@ -26,18 +26,17 @@ repl: all FRC
 
 $(PRELUDE): $(PRELUDE_FILES) $(coffee_files)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
-	cat $(PRELUDE_FILES) > core/generatedPrelude.lsr
+	rm -f core/generatedPrelude.lsr
+	for i in $(PRELUDE_FILES); do cat $$i >> core/generatedPrelude.lsr; echo >> core/generatedPrelude.lsr; done
 	node lib/repl -0 -c -d lib core/simpleParse.lsr
 	node lib/repl -1 -c -d lib core/generatedPrelude.lsr
 
 .tested: $(COFFEE_FILES) $(PRELUDE)
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee
 	node $(LIB)/$(TEST)
 	touch $@
 
 .parserTested: $(TEST_PARSER:%=core/%.coffee) $(PRELUDE)
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testParser.coffee
 	node $(LIB)/$(TEST_PARSER) && touch $@
 

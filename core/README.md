@@ -31,6 +31,10 @@ Lets programmers associate runtime-accessible key-value pairs with code.  The sy
 
 # FUTURE STUFF
 
+## PARSER HACKS
+
+Integrate infix precedence list with tokenPacks -- maybe make tokenPacks be assoc lists
+
 ## PATTERN MATCHING
 
 ```
