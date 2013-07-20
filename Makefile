@@ -19,7 +19,7 @@ JS_FILES=$(ALL:%=lib/%.js)
 OUT_FILES=$(JS_FILES) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
 COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 
-all: .tested $(PRELUDE) .parserTested
+all: .tested .parserTested
 
 repl: all FRC
 	core/repl
@@ -31,7 +31,7 @@ $(PRELUDE): $(PRELUDE_FILES) $(coffee_files)
 	node lib/repl -0 -c -d lib core/simpleParse.lsr
 	node lib/repl -1 -c -d lib core/generatedPrelude.lsr
 
-.tested: $(COFFEE_FILES) $(PRELUDE)
+.tested: $(TEST:%=core/%.coffee) $(PRELUDE)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee
 	node $(LIB)/$(TEST)
 	touch $@

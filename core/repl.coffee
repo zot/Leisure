@@ -197,7 +197,10 @@ compile = (file, cont)->
       names = runMonad L_namesForLines()(-> lines)
       asts = []
       for line in lines.toArray()
-        asts.push (runMonad L_runLine()(->names)(->line)).head()
+        try
+          asts.push (runMonad L_runLine()(->names)(->line)).head()
+        catch err
+          console.log "Error running line: #{line}\n#{err.stack}"
       if createAstFile
         outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
         if outDir then outputFile = path.join(outDir, path.basename(outputFile))

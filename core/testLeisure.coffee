@@ -597,7 +597,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           addDelimiter ']'
           assertEq String(lsrComp("splitTokens #{s '[a]'} #{s LZ.delimiterPat.source}")), 'Cons[[ a ]]'
           assertEq String(lsr("parseG #{s '[a] [b]'} #{s LZ.delimiterPat.source} (acons '[' ']' parenGroups)")),
-            'Cons[Parens(0, 3, Cons[Token("[", 0) Token("a", 1) Token("]", 2)]) Parens(4, 7, Cons[Token("[", 4) Token("b", 5) Token("]", 6)])]'
+            'Cons[[Token("[", 0) [Token("a", 1)] Token("]", 2)] [Token("[", 4) [Token("b", 5)] Token("]", 6)]]'
           assertEq String(lsr("parseG #{s '(a]'} #{s LZ.delimiterPat.source} (acons '[' ']' parenGroups)")),
             'ParseErr("Mismatched group: (] at 0")'
           setDelimiterInfo info
@@ -608,7 +608,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           gr = getValue 'groups'
           monad lsr "addTokenGroup '[' ']'"
           assertEq String(monad lsr "parseM 'a'"), 'Token("a", 0)'
-          assertEq String(monad lsr "parseM '[a]'"), 'Cons[Token("[", 0) Token("a", 1) Token("]", 2)]'
+          assertEq String(monad lsr "parseM '[a]'"), 'Cons[Token("[", 0) [Token("a", 1)] Token("]", 2)]'
           setValue 'delimiterList', dels
           setValue 'delimiterPat', pat
           setValue 'groups', gr

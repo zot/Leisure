@@ -5,13 +5,13 @@
 addTokenGroup '[' ']'
 addToken '|'
 
-listify list = list \h t . isNil t
-  cons 'nil' nil
-  isTokenString h '|'
-    removeLast t
+listify list = list
+  \h t D . isTokenString h '|'
+    cons t nil
     cons (cons 'cons' (cons h (listify t))) nil
+  cons 'nil' nil
 
-defMacro '[' listify
+defMacro '[' \list . list \h t . listify h
 
 listFilter code = bind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
@@ -26,12 +26,6 @@ listFilterTail list = list
       list
     cons h (listFilterTail t)
   nil
-
-bodyStarts = cons '\\' (cons '\\@' (cons '\\\\' nil))
-
-isBodyStart tok = and
-  isToken tok
-  contains bodyStarts (tokenString tok)
 
 filterApplies code func = isParens code
   code \start end contents . parens start end (filterApplies contents func)
@@ -59,22 +53,24 @@ filterBody code func = code \h t . cons h
     filterBody t func
 
 setValue 'listMacros' ['[']
+setValue 'listMacros' (cons '[' nil)
 
 addParseFilter listFilter
 
-## Yay!  From here down, we can use list constructors!
+### Yay!  From here down, we can use list constructors!
 
 addTokenGroup 'or[' ']'
 
 addTokenGroup 'and[' ']'
 
-listMacroFoldOp op list = foldr1
-  \result case . [op result case]
-  removeLast list
+listMacroFoldOp op emptyCase list = list \h t . foldr
+    \case result . [op case result]
+    emptyCase
+    h
 
-defMacro 'or[' \list . listMacroFoldOp 'or' list
+defMacro 'or[' \list . listMacroFoldOp 'or' 'false' list
 
-defMacro 'and[' \list . listMacroFoldOp 'and' list
+defMacro 'and[' \list . listMacroFoldOp 'and' 'true' list
 
 infix code = bind (getValue 'infixPrecedence')
   \prec . bind (getValue 'tokenGroups')
@@ -115,7 +111,7 @@ isInfixArg closes item = or[
   and[
     isToken item
     not (contains closes (tokenString item))
-    not (contains bodyStarts (tokenString item))]]
+    not (isBodyStart item)]]
 
 isInfix opPrec head1 head2 len = and[
   > len 1
@@ -150,19 +146,41 @@ defTokenPack 'list' [
 
 useTokenPack 'infix'
 
-#do
 
-#defMacro 'do' \list . handleDo list false
+################
+## DO
+################
 #
-#handleDo list inLet . list
-#  \h t D . isNil t
-#    inLet
-#      ['.' h]
-#      h
-#    doClause h t inLet
-#  nil
+##defMacro 'do' \list . handleDo list false id
+##
+##handleDo list inLet cont . list
+##  \h t D . isNil t
+##    inLet
+##      cont ['.' h]
+##      cont h
+##    doClause list nil list inLet \newInLet chain .
+##      handleDo t newInLet \rest . cont (chain rest)
+##  cont nil
 #
-#doClause h t inLet =
-
-addStdTokenPacks ['list' 'infix']
-resetStdTokenPacks
+##doClause steppingClause clause prefix inLet cont = \\
+##  makeBind var monad =
+##    cont false \rest . inLet (cons '.') id ['bind' monad '\\' var '.' | rest]
+##  .
+##  steppingClause
+##    \h t D . isTokenString h '='
+##      inLet
+##        cont true \rest . [clause | rest]
+##        cont true \rest . ['\\\\' clause | rest]
+##      isTokenString h '<-'
+##        isNil t
+##          parseErr "No monad for in do-clause: " clause
+##          prefix
+##            \ph pt D . isNil pt
+##              makeBind (isNil prefix '_' (head prefix)) (tail t)
+##              parseErr "More than one variable in do-clause: " clause
+##            makeBind '_' t
+##        doClause t clause [h | prefix] inLet cont
+##    makeBind '_' clause
+#
+#addStdTokenPacks ['list' 'infix']
+#resetStdTokenPacks

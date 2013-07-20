@@ -182,7 +182,8 @@ parseGroup left toks gr close groups cont = withCons toks (parseErr 'Unterminate
   \h t . isTokenString h close
     eq close ')'
       cont (parensFromToks left h (reverse gr)) t
-      cont (parensFromToks left h (cons left (reverse (cons h gr)))) t
+      #cont (parensFromToks left h (cons left (reverse (cons h gr)))) t
+      cont (cons left (cons (reverse gr) (cons h nil))) t
     withToken h
       parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
       \txt pos .
@@ -383,9 +384,11 @@ parenGroups = cons (cons '(' ')') nil
 
 scanLineG str pat groups onDef onExpr = \\
   toks = tokens str pat
+  groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' bodyStarts) groups
   .
-  find (\tok . isTokenString tok '=') toks (\_ . true) false
-    withCons toks (parseErr "No expression to compile" "") \name rest . \\
+  # check if it's a definition
+  find (\tok . or (contains groupToks (tokenString tok)) (strMatch (tokenString tok) '^\n')) toks (\item . isTokenString item '=') false
+    toks \name rest . \\
       parseIt func = parseToks (checkSetDataType func rest name) groups \list .
         onDef (createDef list name (arity rest 0) str)
       .
@@ -466,11 +469,58 @@ runParseFilters filters line = filters
   \h t D . bind (h line) \filtered . runParseFilters t filtered
   line
 
+bodyStarts = cons '\\' (cons '\\@' (cons '\\\\' nil))
+
+isBodyStart tok = and
+  isToken tok
+  contains bodyStarts (tokenString tok)
+
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
 macroSub macs expr = postProcessMacro -1 -1 (baseMacroSub macs expr)
+#macroSub macs expr = postProcessMacro -1 -1 (newMacroSub macs expr)
 
 isString s = eq (getType s) '*string'
+
+foldrArgs func value list = list
+  \h t D . isBodyStart h
+    func list value
+    func h (foldrArgs func value t)
+  value
+
+foldlArgs func value list = list
+  \h t D . isBodyStart h
+    func value list
+    foldlArgs func (func value h) t
+ value
+
+mapArgs func list = foldrArgs (\el value . cons (func el) value) nil list
+
+fixMacroValue value = isCons value value (cons value nil)
+
+newMacroSub macs expr = isToken expr
+  expr
+  isParens expr
+    expr \start end content . parens start end (fixMacroValue (newMacroSub macs content))
+    withCons expr expr \h t . fixMacroValue
+      isBodyStart h
+        cons h
+          isTokenString h '\\\\'
+            macroSubLet macs t
+            macroSubBody macs t '.'
+        withToken (stripParens h)
+          mapArgs (newMacroSub macs) expr
+          \tok pos . assoc tok macs
+            \def . newMacroSub macs (def t)
+            cons h (mapArgs (newMacroSub macs) t)
+
+macroSubLet macs list = list \h t . isTokenString h '.'
+  cons h (newMacroSub macs t)
+  cons (macroSubBody macs list '=') (macroSubLet macs t)
+
+macroSubBody macs list char = list \h t . isTokenString h char
+  cons h (newMacroSub macs t)
+  cons h (macroSubBody macs t char)
 
 baseMacroSub macs expr =
   withCons (stripParens expr) expr \h t . \\

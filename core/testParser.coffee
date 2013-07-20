@@ -74,5 +74,7 @@ runTests 'Leisure Full Parser',
     assertEq String(runLsr "scanLineM 'a + b + c'"), 'Cons[[Token("+", 6) [Token("+", 2) Token("a", 0) Token("b", 4)] Token("c", 8)]]'
   fullParse3: ->
     assertEq runLsr("1+2*3 >= 7 == true"), L_true()
+  fullParse4: ->
+    #assertEq runLsr("\\ (a = []) . isNil a"), L_true()
 
 process.exit T.stats.failures

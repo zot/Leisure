@@ -182,7 +182,8 @@ parseGroup left toks gr close groups cont = withCons toks (parseErr 'Unterminate
   \h t . isTokenString h close
     eq close ')'
       cont (parensFromToks left h (reverse gr)) t
-      cont (parensFromToks left h (cons left (reverse (cons h gr)))) t
+      #cont (parensFromToks left h (cons left (reverse (cons h gr)))) t
+      cont (cons left (cons (reverse gr) (cons h nil))) t
     withToken h
       parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
       \txt pos .
@@ -383,9 +384,11 @@ parenGroups = cons (cons '(' ')') nil
 
 scanLineG str pat groups onDef onExpr = \\
   toks = tokens str pat
+  groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' bodyStarts) groups
   .
-  find (\tok . isTokenString tok '=') toks (\_ . true) false
-    withCons toks (parseErr "No expression to compile" "") \name rest . \\
+  # check if it's a definition
+  find (\tok . or (contains groupToks (tokenString tok)) (strMatch (tokenString tok) '^\n')) toks (\item . isTokenString item '=') false
+    toks \name rest . \\
       parseIt func = parseToks (checkSetDataType func rest name) groups \list .
         onDef (createDef list name (arity rest 0) str)
       .
@@ -466,11 +469,58 @@ runParseFilters filters line = filters
   \h t D . bind (h line) \filtered . runParseFilters t filtered
   line
 
+bodyStarts = cons '\\' (cons '\\@' (cons '\\\\' nil))
+
+isBodyStart tok = and
+  isToken tok
+  contains bodyStarts (tokenString tok)
+
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
 macroSub macs expr = postProcessMacro -1 -1 (baseMacroSub macs expr)
+#macroSub macs expr = postProcessMacro -1 -1 (newMacroSub macs expr)
 
 isString s = eq (getType s) '*string'
+
+foldrArgs func value list = list
+  \h t D . isBodyStart h
+    func list value
+    func h (foldrArgs func value t)
+  value
+
+foldlArgs func value list = list
+  \h t D . isBodyStart h
+    func value list
+    foldlArgs func (func value h) t
+ value
+
+mapArgs func list = foldrArgs (\el value . cons (func el) value) nil list
+
+fixMacroValue value = isCons value value (cons value nil)
+
+newMacroSub macs expr = isToken expr
+  expr
+  isParens expr
+    expr \start end content . parens start end (fixMacroValue (newMacroSub macs content))
+    withCons expr expr \h t . fixMacroValue
+      isBodyStart h
+        cons h
+          isTokenString h '\\\\'
+            macroSubLet macs t
+            macroSubBody macs t '.'
+        withToken (stripParens h)
+          mapArgs (newMacroSub macs) expr
+          \tok pos . assoc tok macs
+            \def . newMacroSub macs (def t)
+            cons h (mapArgs (newMacroSub macs) t)
+
+macroSubLet macs list = list \h t . isTokenString h '.'
+  cons h (newMacroSub macs t)
+  cons (macroSubBody macs list '=') (macroSubLet macs t)
+
+macroSubBody macs list char = list \h t . isTokenString h char
+  cons h (newMacroSub macs t)
+  cons h (macroSubBody macs t char)
 
 baseMacroSub macs expr =
   withCons (stripParens expr) expr \h t . \\
@@ -698,13 +748,13 @@ resetStdTokenPacks
 addTokenGroup '[' ']'
 addToken '|'
 
-listify list = list \h t . isNil t
-  cons 'nil' nil
-  isTokenString h '|'
-    removeLast t
+listify list = list
+  \h t D . isTokenString h '|'
+    cons t nil
     cons (cons 'cons' (cons h (listify t))) nil
+  cons 'nil' nil
 
-defMacro '[' listify
+defMacro '[' \list . list \h t . listify h
 
 listFilter code = bind (getValue 'listMacros')
   \listMacros . filterApplies code \list . list \h t .
@@ -719,12 +769,6 @@ listFilterTail list = list
       list
     cons h (listFilterTail t)
   nil
-
-bodyStarts = cons '\\' (cons '\\@' (cons '\\\\' nil))
-
-isBodyStart tok = and
-  isToken tok
-  contains bodyStarts (tokenString tok)
 
 filterApplies code func = isParens code
   code \start end contents . parens start end (filterApplies contents func)
@@ -752,22 +796,24 @@ filterBody code func = code \h t . cons h
     filterBody t func
 
 setValue 'listMacros' ['[']
+setValue 'listMacros' (cons '[' nil)
 
 addParseFilter listFilter
 
-## Yay!  From here down, we can use list constructors!
+### Yay!  From here down, we can use list constructors!
 
 addTokenGroup 'or[' ']'
 
 addTokenGroup 'and[' ']'
 
-listMacroFoldOp op list = foldr1
-  \result case . [op result case]
-  removeLast list
+listMacroFoldOp op emptyCase list = list \h t . foldr
+    \case result . [op case result]
+    emptyCase
+    h
 
-defMacro 'or[' \list . listMacroFoldOp 'or' list
+defMacro 'or[' \list . listMacroFoldOp 'or' 'false' list
 
-defMacro 'and[' \list . listMacroFoldOp 'and' list
+defMacro 'and[' \list . listMacroFoldOp 'and' 'true' list
 
 infix code = bind (getValue 'infixPrecedence')
   \prec . bind (getValue 'tokenGroups')
@@ -808,7 +854,7 @@ isInfixArg closes item = or[
   and[
     isToken item
     not (contains closes (tokenString item))
-    not (contains bodyStarts (tokenString item))]]
+    not (isBodyStart item)]]
 
 isInfix opPrec head1 head2 len = and[
   > len 1
@@ -843,20 +889,42 @@ defTokenPack 'list' [
 
 useTokenPack 'infix'
 
-#do
 
-#defMacro 'do' \list . handleDo list false
+################
+## DO
+################
 #
-#handleDo list inLet . list
-#  \h t D . isNil t
-#    inLet
-#      ['.' h]
-#      h
-#    doClause h t inLet
-#  nil
+##defMacro 'do' \list . handleDo list false id
+##
+##handleDo list inLet cont . list
+##  \h t D . isNil t
+##    inLet
+##      cont ['.' h]
+##      cont h
+##    doClause list nil list inLet \newInLet chain .
+##      handleDo t newInLet \rest . cont (chain rest)
+##  cont nil
 #
-#doClause h t inLet =
-
-addStdTokenPacks ['list' 'infix']
-resetStdTokenPacks
+##doClause steppingClause clause prefix inLet cont = \\
+##  makeBind var monad =
+##    cont false \rest . inLet (cons '.') id ['bind' monad '\\' var '.' | rest]
+##  .
+##  steppingClause
+##    \h t D . isTokenString h '='
+##      inLet
+##        cont true \rest . [clause | rest]
+##        cont true \rest . ['\\\\' clause | rest]
+##      isTokenString h '<-'
+##        isNil t
+##          parseErr "No monad for in do-clause: " clause
+##          prefix
+##            \ph pt D . isNil pt
+##              makeBind (isNil prefix '_' (head prefix)) (tail t)
+##              parseErr "More than one variable in do-clause: " clause
+##            makeBind '_' t
+##        doClause t clause [h | prefix] inLet cont
+##    makeBind '_' clause
+#
+#addStdTokenPacks ['list' 'infix']
+#resetStdTokenPacks
 
