@@ -75,6 +75,7 @@ runTests 'Leisure Full Parser',
   fullParse3: ->
     assertEq runLsr("1+2*3 >= 7 == true"), L_true()
   fullParse4: ->
-    #assertEq runLsr("\\ (a = []) . isNil a"), L_true()
+    assertEq runLsr("\\\\ (a = []) . isNil a"), L_true()
+    assertEq runLsr("\\\\ (a = [1 2 3]) . (head a) == 1"), L_true()
 
 process.exit T.stats.failures

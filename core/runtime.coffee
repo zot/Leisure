@@ -230,7 +230,8 @@ define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
 define 'print', ->(msg)->
   makeMonad (env, cont)->
     m = msg()
-    env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
+    #env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
+    env.write ("#{m}\n")
     cont _false
 
 define 'readFile', ->(name)->

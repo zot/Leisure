@@ -53,7 +53,6 @@ filterBody code func = code \h t . cons h
     filterBody t func
 
 setValue 'listMacros' ['[']
-setValue 'listMacros' (cons '[' nil)
 
 addParseFilter listFilter
 

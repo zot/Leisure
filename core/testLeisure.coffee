@@ -621,7 +621,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(monad lsr "macroParse 'b 2'"), 'Token("b", 2)'
           assertEq String(monad lsr "macroParse '(b 2) 3'"), 'Token("b", 6)'
           assertEq String(monad lsr "macroParse 'double (b 2) 3 4'"), 'Token("b", 7)'
-          assertEq String(monad lsr "macroParse 'double (double a)'"), 'Cons[[Token("a", 15) Token("a", 15)] [Token("a", 15) Token("a", 15)]]'
+          assertEq String(monad lsr "macroParse 'double (double a)'"), 'Cons[Parens(7, 17, Cons[Token("a", 15) Token("a", 15)]) Parens(7, 17, Cons[Token("a", 15) Token("a", 15)])]'
           setValue 'macros', oldMacs
         leisureAst52: ->
           assertEq String(lsr "postProcessMacro -1 -1 (cons (token 'hello' 15) nil)"), 'Cons[Token("hello", 15)]'

@@ -127,14 +127,12 @@ getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLe
 
 define 'runAst', ->(ast)->
   makeMonad (env, cont)->
-    #console.log "AST: #{ast()}"
-    #console.log "CODE: (#{gen ast()})"
-    #try
-    #  value = runMonad eval "(#{gen ast()})"
-    #  cont value
-    #catch err
-    #  console.log "Error running code: (#{gen ast()})"
-    #  cont _false
-    runMonad (eval "(#{gen ast()})"), env, cont
+    code = "(#{gen ast()})"
+    try
+      result = eval code
+    catch err
+      err.message = "\nError running ast: #{ast()}\ncode: #{code}\nerror: #{err.message}"
+      throw err
+    runMonad result, env, cont
 
 root.gen = gen

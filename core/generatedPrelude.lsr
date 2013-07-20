@@ -158,9 +158,18 @@ tokens str pat = makeTokens (splitTokens str pat) 0
 ## Parsing
 #############
 
-isTokenString tok str = and (isToken tok) (eq (tokenString tok) str)
-isTokenStart tok str = and (isToken tok) (strStartsWith (tokenString tok) str)
-withToken tok nonTokCase tokCase = isToken tok (tok tokCase) nonTokCase
+isString s = == (getType s) '*string'
+isTokenString tok str = or
+  and (isToken tok) (eq (tokenString tok) str)
+  and (isString tok) (eq tok str)
+isTokenStart tok str = or
+  and (isToken tok) (strStartsWith (tokenString tok) str)
+  and (isString tok) (strStartsWith tok str)
+withToken tok nonTokCase tokCase = isToken tok
+  tok tokCase
+  isString tok
+    tokCase tok -1
+    nonTokCase
 
 ## withCons is like a safe version of a cons
 withCons l nilCase cont = isCons l (l (\h t D . cont h t) nilCase) nilCase
@@ -213,9 +222,12 @@ apply func arg = \f . f func arg
 let name value body = \f . f name value body
 anno name data body = \f . f name data body
 
-withParens p err cont = isParens p (cont (parensContent p)) err
+withParens p err cont = isParens p (p cont) err
+setParens p func = isParens p
+  p \start end content . parens start end (func content)
+  func p
 
-strip list cont = withParens list (cont list) \c . strip c cont
+withStripped list cont = withParens list (cont list) \start end content . withStripped content cont
 
 position thing = isToken thing (tokenPos thing)
   isParens thing (parensStart thing)
@@ -244,7 +256,7 @@ scrubList list = list
         cons h next
   nil
 
-createAst inList names cont = strip inList \list .
+createAst inList names cont = withStripped inList \list .
   isToken list (createLitOrRef (tokenString list) names cont)
     list
       \h t D .
@@ -317,7 +329,7 @@ createAnno start list names cont =
       .
       isTokenString data '.'
         finish nil rest
-        strip data \data .
+        withStripped data \data .
           withCons rest (parseErr "No body for annotation " (loc start)) \dot body .
             isTokenString dot '.'
               finish data body
@@ -325,7 +337,7 @@ createAnno start list names cont =
 
 bodyStructPat = regexp '\\|\\\\|\\@'
 
-createApply inList names cont = strip inList \list .
+createApply inList names cont = withStripped inList \list .
   withCons list (parseErr "Funcion apply expecting a non-empty list " (loc inList)) \h t .
     createAst h names \func . chainApply func t names cont
 
@@ -354,7 +366,7 @@ getLetNames start list names cont = \\
   .
   withCons list (cont names) \binding body .
     isTokenString binding '.' (cont names)
-      withParens binding err \def .
+      withParens binding err \start end def .
         withCons def err \name rest .
           withToken name err \str pos .
             getLetNames start body (cons str names) cont
@@ -480,61 +492,47 @@ isBodyStart tok = and
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
 macroSub macs expr = postProcessMacro -1 -1 (baseMacroSub macs expr)
-#macroSub macs expr = postProcessMacro -1 -1 (newMacroSub macs expr)
-
-isString s = eq (getType s) '*string'
-
-foldrArgs func value list = list
-  \h t D . isBodyStart h
-    func list value
-    func h (foldrArgs func value t)
-  value
-
-foldlArgs func value list = list
-  \h t D . isBodyStart h
-    func value list
-    foldlArgs func (func value h) t
- value
-
-mapArgs func list = foldrArgs (\el value . cons (func el) value) nil list
 
 consifyMacroValue value = isCons value value (cons value nil)
 
-newMacroSub macs expr = isToken expr
+baseMacroSub macs expr = isToken expr
   expr
   isParens expr
-    expr \start end content . parens start end (consifyMacroValue (newMacroSub macs content))
-    withCons expr expr \h t . consifyMacroValue
+    expr \start end content . \\
+      result = baseMacroSub macs content
+      .
+      isToken result result (parens start end result)
+    withCons expr expr \h t .
       isBodyStart h
         cons h
           isTokenString h '\\\\'
             macroSubLet macs t
             macroSubBody '.' macs t
-        withToken (stripParens h)
-          mapArgs (newMacroSub macs) expr
+        withToken h
+          \\
+            subH = baseMacroSub macs h
+            .
+            withToken subH
+              cons subH (map (baseMacroSub macs) t)
+              \tok pos . baseMacroSub macs (cons subH t)
+          #d "TOK: " h (\tok pos . assoc tok macs
           \tok pos . assoc tok macs
-            \def . newMacroSub macs (def t)
-            cons h (mapArgs (newMacroSub macs) t)
+            \def . baseMacroSub macs (def t)
+            cons h (map (baseMacroSub macs) t)
 
-macroSubLet macs list = list \h t . isTokenString h '.'
-  cons h (newMacroSub macs t)
-  cons (macroSubBody '=' macs list) (macroSubLet macs t)
+macroSubLet macs list = list
+  \h t D . isTokenString h '.'
+    cons h (baseMacroSub macs t)
+    cons (setParens h \content . macroSubBody '=' macs content) (macroSubLet macs t)
+  # Don't bother with parse errors at this point -- ast generator will detect them
+  nil
 
-macroSubBody char macs list  = list \h t . cons h
-  isTokenString h char newMacroSub (macroSubBody char)
-    macs
-    t
-
-baseMacroSub macs expr =
-  withCons (stripParens expr) expr \h t . \\
-    strippedH = stripParens h
-    newH = stripParens (baseMacroSub macs strippedH)
-    subTail = mapSave (baseMacroSub macs) t
-    unmod = and (eq strippedH newH) (eq t subTail)
-      expr
-      cons newH subTail
-    .
-    withToken newH unmod \txt pos . assoc txt macs (\def . baseMacroSub macs (def t)) unmod
+macroSubBody char macs list = list
+  \h t D . cons h
+    isTokenString h char baseMacroSub (macroSubBody char)
+      macs
+      t
+  nil
 
 postProcessMacro before after expr = isString expr
   token expr (eq after -1 before after)
@@ -799,7 +797,6 @@ filterBody code func = code \h t . cons h
     filterBody t func
 
 setValue 'listMacros' ['[']
-setValue 'listMacros' (cons '[' nil)
 
 addParseFilter listFilter
 
