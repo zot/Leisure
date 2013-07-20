@@ -169,7 +169,10 @@ parseToks toks groups cont =
   isNil toks (cont nil)
     parseTok toks groups \h t .
       parseToks t groups \res .
-        cont (cons h res)
+        cont (cons h
+          and (isCons res) (isBodyStart (head res))
+            cons res nil
+            res)
 
 parseTok toks groups cont = withCons toks nil \h t .
   withToken h (cont h t) \txt pos .
@@ -182,7 +185,6 @@ parseGroup left toks gr close groups cont = withCons toks (parseErr 'Unterminate
   \h t . isTokenString h close
     eq close ')'
       cont (parensFromToks left h (reverse gr)) t
-      #cont (parensFromToks left h (cons left (reverse (cons h gr)))) t
       cont (cons left (cons (reverse gr) (cons h nil))) t
     withToken h
       parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
@@ -496,18 +498,18 @@ foldlArgs func value list = list
 
 mapArgs func list = foldrArgs (\el value . cons (func el) value) nil list
 
-fixMacroValue value = isCons value value (cons value nil)
+consifyMacroValue value = isCons value value (cons value nil)
 
 newMacroSub macs expr = isToken expr
   expr
   isParens expr
-    expr \start end content . parens start end (fixMacroValue (newMacroSub macs content))
-    withCons expr expr \h t . fixMacroValue
+    expr \start end content . parens start end (consifyMacroValue (newMacroSub macs content))
+    withCons expr expr \h t . consifyMacroValue
       isBodyStart h
         cons h
           isTokenString h '\\\\'
             macroSubLet macs t
-            macroSubBody macs t '.'
+            macroSubBody '.' macs t
         withToken (stripParens h)
           mapArgs (newMacroSub macs) expr
           \tok pos . assoc tok macs
@@ -516,11 +518,12 @@ newMacroSub macs expr = isToken expr
 
 macroSubLet macs list = list \h t . isTokenString h '.'
   cons h (newMacroSub macs t)
-  cons (macroSubBody macs list '=') (macroSubLet macs t)
+  cons (macroSubBody '=' macs list) (macroSubLet macs t)
 
-macroSubBody macs list char = list \h t . isTokenString h char
-  cons h (newMacroSub macs t)
-  cons h (macroSubBody macs t char)
+macroSubBody char macs list  = list \h t . cons h
+  isTokenString h char newMacroSub (macroSubBody char)
+    macs
+    t
 
 baseMacroSub macs expr =
   withCons (stripParens expr) expr \h t . \\
