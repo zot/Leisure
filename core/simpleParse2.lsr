@@ -56,6 +56,11 @@ setValue 'listMacros' ['[']
 
 addParseFilter listFilter
 
+defTokenPack 'list' [
+  ['|' '='] #adding = here so so we don't need spaces around = in definitions
+  [['[' | ']'] ['or[' | ']'] ['and[' | ']']]
+  [listFilter]]
+
 ### Yay!  From here down, we can use list constructors!
 
 addTokenGroup 'or[' ']'
@@ -137,11 +142,6 @@ iprec = [['*' '/' '%'] ['+' '-'] ['<' '>' '<=' '>='] ['==' '!=']]
 
 setValue 'infixPrecedence' iprec
 defTokenPack 'infix' [(flatten iprec) [] [infix]]
-
-defTokenPack 'list' [
-  ['|']
-  [['[' | ']'] ['or[' | ']'] ['and[' | ']']]
-  [listFilter]]
 
 useTokenPack 'infix'
 
