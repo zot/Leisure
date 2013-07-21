@@ -77,5 +77,15 @@ runTests 'Leisure Full Parser',
   fullParse4: ->
     assertEq runLsr("\\\\ (a = []) . isNil a"), L_true()
     assertEq runLsr("\\\\ (a = [1 2 3]) . (head a) == 1"), L_true()
+  fullParse5: ->
+    assertEq runLsr("do (a = 3) a"), 3
+    setValue 'fred', 5
+    assertEq runLsr("do (a <- getValue 'fred') (a + 2)"), 7
+  fullParse6: ->
+    assertEq runLsr("\\\\\n  a = 3\n  .\n  a"), 3
+  fullParse7: ->
+    assertEq String(runLsr("simpleScanLine '\\\\\n  a = 3\n  .\n  a'")), 'Cons[Token("\\\\", 0) Parens(1, 9, Cons[Token("a", 4) Token("=", 6) Token("3", 8)]) Token(".", 12) Token("a", 16)]'
+    assertEq String(runLsr("simpleScanLine 'head\n  cons\n    1\n    nil'")), 'Cons[Token("head", 0) Parens(4, 25, Cons[Token("cons", 7) Token("1", 16) Token("nil", 22)])]'
+    assertEq runLsr("head\n  cons\n    1\n    nil"), 1
 
 process.exit T.stats.failures

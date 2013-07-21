@@ -68,11 +68,17 @@ readline = require('readline')
 
 evalInput = (text, cont)->
   if text
-    runMonad L_newParseLine()(->Nil)(->text), defaultEnv, (ast)->
-      if diag
-        console.log "AST: #{ast}"
-        console.log "CODE: (#{gen ast})"
-      runMonad (eval "(#{gen ast})"), defaultEnv, cont
+    try
+      runMonad L_newParseLine()(->Nil)(->text), defaultEnv, (ast)->
+        try
+          if diag
+            console.log "AST: #{ast}"
+            console.log "CODE: (#{gen ast})"
+          runMonad (eval "(#{gen ast})"), defaultEnv, cont
+        catch err
+          cont err.stack
+    catch err
+      cont err.stack
   else cont ''
 
 help = ->
@@ -114,6 +120,8 @@ leisureCompleter = (line)->
     else [_.filter(leisureFunctions, (el)->el.toLowerCase().indexOf(last) == 0), origLast]
   else [[], line]
 
+interrupted = false
+
 repl = ->
   lines = null
   leisureDir = path.join process.env.HOME, '.leisure'
@@ -136,7 +144,30 @@ repl = ->
       multiline = false
       rl.setPrompt 'Leisure> '
       rl.prompt()
+      startMultiline = ->
+        if multiline then console.log "Already reading multiline input"
+        else
+          multiline = true
+          lines = []
+          rl.setPrompt '... '
+      finishMultiline = (dumpInput)->
+        multiline = false
+        l = lines
+        lines = []
+        if dumpInput
+          rl.setPrompt 'Leisure> '
+          rl.prompt()
+        else
+          try
+            #console.log "EVAL: #{JSON.stringify l.join '\n'}"
+            evalInput (l.join '\n'), (result)->
+              console.log String result
+              rl.setPrompt 'Leisure> '
+              rl.prompt()
+          catch err
+            console.log "ERROR: #{err.stack}"
       rl.on 'line', (line)->
+        interrupted = false
         if rl.history[0] == rl.history[1] then rl.history.shift()
         else if line.trim() then fs.appendFile historyFile, "#{line}\n", (->)
         switch line.trim()
@@ -144,28 +175,20 @@ repl = ->
             diag = !diag
             console.log "Diag: #{if diag then 'on' else 'off'}"
           when ':{'
-            if multiline then console.log "Already reading multiline input"
-            else
-              multiline = true
-              lines = []
-              rl.setPrompt 'Leisure {> '
+            startMultiline()
           when ':}'
             if ! multiline then console.log "Not reading multiline input."
             else
-              l = lines
-              lines = []
-              try
-                evalInput (l.join '\n'), (result)->
-                  console.log String result
-                  rl.setPrompt 'Leisure> '
-                  rl.prompt()
-                return
-              catch err
-                console.log "ERROR: #{err.stack}"
+              finishMultiline()
           when ':h' then help()
           else
-            if line.match /^!/ then console.log eval line.substring 1
-            else if multiline then lines.push line
+            if m = line.match /^:{(.*)$/
+              startMultiline()
+              if m[1] then lines.push m[1]
+            else if line.match /^!/ then console.log eval line.substring 1
+            else if multiline
+              if !line then finishMultiline()
+              else lines.push line
             else
               try
                 evalInput line, (result)->
@@ -176,6 +199,12 @@ repl = ->
                 console.log "ERROR: #{err.stack}"
         rl.prompt()
       rl.on 'close', -> process.exit 0
+      rl.on 'SIGINT', ->
+        if interrupted then rl.pause()
+        else if multiline then finishMultiline true
+        else
+          console.log "\n(^C again to quit)"
+          interrupted = true
 
 verbose = false
 gennedAst = false

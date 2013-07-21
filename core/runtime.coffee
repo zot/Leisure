@@ -150,6 +150,7 @@ runMonad = (monad, env, cont)->
     else cont(monad)
   catch err
     console.log "ERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}, CONT: #{cont}: #{err.stack}"
+    cont(err.stack)
 
 class Monad
   andThen: (func)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad (codeMonad func), env, cont

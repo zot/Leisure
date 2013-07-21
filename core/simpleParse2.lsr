@@ -33,16 +33,16 @@ filterApplies code func = isParens code
     \\
       filtered = filterApplyElements code func
       .
-      and (isCons filtered) (isBodyStart (head filtered))
+      and (isCons filtered) (isBlockStart (head filtered))
         filtered
         func filtered
     code
 
 filterApplyElements code func = code
-  \h t D . isBodyStart h
+  \h t D . isBlockStart h
     cons h (filterBody t func)
     cons (filterApplies h func)
-      and (isCons t) (isBodyStart (head t))
+      and (isCons t) (isBlockStart (head t))
         cons (filterApplyElements t func) nil
         filterApplyElements t func
   nil
@@ -110,7 +110,7 @@ isInfixArg closes item = or[
   and[
     isToken item
     not (contains closes (tokenString item))
-    not (isBodyStart item)]]
+    not (isBlockStart item)]]
 
 isInfix opPrec head1 head2 len = and[
   > len 1
@@ -149,37 +149,37 @@ useTokenPack 'infix'
 ################
 ## DO
 ################
-#
-##defMacro 'do' \list . handleDo list false id
-##
-##handleDo list inLet cont . list
-##  \h t D . isNil t
-##    inLet
-##      cont ['.' h]
-##      cont h
-##    doClause list nil list inLet \newInLet chain .
-##      handleDo t newInLet \rest . cont (chain rest)
-##  cont nil
-#
-##doClause steppingClause clause prefix inLet cont = \\
-##  makeBind var monad =
-##    cont false \rest . inLet (cons '.') id ['bind' monad '\\' var '.' | rest]
-##  .
-##  steppingClause
-##    \h t D . isTokenString h '='
-##      inLet
-##        cont true \rest . [clause | rest]
-##        cont true \rest . ['\\\\' clause | rest]
-##      isTokenString h '<-'
-##        isNil t
-##          parseErr "No monad for in do-clause: " clause
-##          prefix
-##            \ph pt D . isNil pt
-##              makeBind (isNil prefix '_' (head prefix)) (tail t)
-##              parseErr "More than one variable in do-clause: " clause
-##            makeBind '_' t
-##        doClause t clause [h | prefix] inLet cont
-##    makeBind '_' clause
-#
-#addStdTokenPacks ['list' 'infix']
-#resetStdTokenPacks
+
+defMacro 'do' \list . handleDo list false id
+
+handleDo list inLet cont = list
+  \h t D . isNil t
+    cont (inLet ['.' h] [h])
+    doClause (stripParens h) h nil inLet \newInLet chain .
+      handleDo t newInLet \rest . cont (chain rest)
+  cont nil
+
+doClause steppingClause clause prefix inLet cont = \\
+  makeBind var monad = cont false \rest . inLet (cons '.') id
+    ['bind' monad ['\\' var '.' | rest]]
+  .
+  steppingClause
+    \h t D . isTokenString h '='
+      inLet
+        cont true \rest . [clause | rest]
+        cont true \rest . ['\\\\' clause | rest]
+      isTokenString h '<-'
+        isNil t
+          parseErr "No monad in do-clause: " clause
+          prefix
+            \ph pt D . isNil pt
+              makeBind (isNil prefix '_' (head prefix)) t
+              parseErr "More than one variable in do-clause: " clause
+            makeBind '_' t
+        doClause t clause [h | prefix] inLet cont
+    makeBind '_' clause
+
+defTokenPack 'do' [['<-'] [] []]
+
+addStdTokenPacks ['list' 'infix' 'do']
+resetStdTokenPacks

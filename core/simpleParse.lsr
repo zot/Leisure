@@ -179,7 +179,7 @@ parseToks toks groups cont =
     parseTok toks groups \h t .
       parseToks t groups \res .
         cont (cons h
-          and (isCons res) (isBodyStart (head res))
+          and (isCons res) (isBlockStart (head res))
             cons res nil
             res)
 
@@ -398,10 +398,10 @@ parenGroups = cons (cons '(' ')') nil
 
 scanLineG str pat groups onDef onExpr = \\
   toks = tokens str pat
-  groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' bodyStarts) groups
+  groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
   .
   # check if it's a definition
-  find (\tok . or (contains groupToks (tokenString tok)) (strMatch (tokenString tok) '^\n')) toks (\item . isTokenString item '=') false
+  find (\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\n'))) toks (\item . isTokenString item '=') false
     toks \name rest . \\
       parseIt func = parseToks (checkSetDataType func rest name) groups \list .
         onDef (createDef list name (arity rest 0) str)
@@ -483,11 +483,9 @@ runParseFilters filters line = filters
   \h t D . bind (h line) \filtered . runParseFilters t filtered
   line
 
-bodyStarts = cons '\\' (cons '\\@' (cons '\\\\' nil))
-
-isBodyStart tok = and
+isBlockStart tok = and
   isToken tok
-  contains bodyStarts (tokenString tok)
+  contains blockStarts (tokenString tok)
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
@@ -503,7 +501,7 @@ baseMacroSub macs expr = isToken expr
       .
       isToken result result (parens start end result)
     withCons expr expr \h t .
-      isBodyStart h
+      isBlockStart h
         cons h
           isTokenString h '\\\\'
             macroSubLet macs t
@@ -625,15 +623,9 @@ parseLines lines result = lines
 
 parseFile text = parseLines (linesForFile text) nil
 
-newParseLine names line = bind (getValue 'tokenPat')
+simpleScanLine line = bind (getValue 'tokenPat')
   \tokenPat . bind (getValue 'tokenGroups')
-    \groups . bind (getValue 'parseFilters')
-      \filters . bind (getValue 'macroDefs')
-        \macros . finalParseLine tokenPat groups macros filters names line
-
-finalParseLine tokenPat groups macros filters names line =
-  bind (runParseFilters filters (scanLineG line tokenPat groups id id))
-    \scanned . createAst (macroSub macros scanned) names \ast . ast
+    \groups . scanLineG line tokenPat groups id id
 
 scanLineM line = bind (getValue 'tokenPat')
   \tokenPat . bind (getValue 'tokenGroups')
@@ -642,13 +634,12 @@ scanLineM line = bind (getValue 'tokenPat')
         \macros . bind (runParseFilters filters (scanLineG line tokenPat groups id id))
           \scanned . macroSub macros scanned
 
-runLine names line = bind (getValue 'tokenPat')
-  \tokenPat . bind (getValue 'tokenGroups')
-    \groups . bind (getValue 'macroDefs')
-      \macros . bind (getValue 'parseFilters')
-        \filters . bind (finalParseLine tokenPat groups macros filters names line)
-          \ast . bind (runAst ast)
-            \result . cons ast result
+newParseLine names line = bind (scanLineM line)
+  \scanned . createAst scanned names \ast . ast
+
+runLine names line = bind (newParseLine names line)
+  \ast . bind (runAst ast)
+    \result . cons ast result
 
 runLines names lines = lines
   \h t D . bind (runLine names h)
