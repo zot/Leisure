@@ -8,6 +8,7 @@ not b = b false true
 and a b = a b false
 or a b = a true b
 some x = \someCase noneCase . someCase x
+some2 a b = \someCase noneCase . someCase a b
 none = \someCase noneCase . noneCase
 neq a b = not (eq a b)
 left x = \lCase rCase . lCase x
@@ -18,7 +19,15 @@ right x = \lCase rCase . rCase x
 ############
 id x = x
 compose f g = \x . f (g x)
-flip func = \x y . f y x
+
+# make a new function that takes two args in opposite order than the original function
+# eq. flip cons nil 1 gives cons: [1]
+flip func = \x y . func y x
+
+# The Y combinator, for reference
+#
+# Y = \g  .  (\x  .  g (x x)) \x  .  g (x x)
+# rec = \f . f (Y f)
 
 ##############
 # CONS LISTS
@@ -54,7 +63,12 @@ rev l result = l (\h t D . rev t (cons h result)) result
 filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
 find predicate list = list (\h t D . predicate h (some h) (find predicate t)) none
 contains list item = find (\el . eq el item) list (\x . true) false
+
+# make a new list by applying func (which takes exactly 1 arg) to each element of list
+# eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
 map func l = l (\h t D . cons (func h) (map func t)) nil
+
+# map, but preserve the old list where possible, so that == works on it
 mapSave func l = l
   \h t D . \\
     newH = func h
@@ -64,6 +78,13 @@ mapSave func l = l
       l
       cons newH newT
   nil
+
+# foldl (\prev el . ...) list
+# foldr (\el prev . ...) list
+# call func on list items and previous result of fold
+# foldl uses the head of the list for the previous results
+# foldr uses the tail of the list for the previous results
+# foldr can work on infinite lists, but foldl cannot
 foldl func initialValue l = l (\h t D . foldl func (func initialValue h) t) initialValue
 foldl1 func l = l \h t . foldl func h t
 foldr func initialValue list = list
@@ -72,18 +93,20 @@ foldr func initialValue list = list
 foldr1 func list = list \h t . isNil t
   h
   func h (foldr1 func t)
+
 intersperse list element = list (\h t D .
   isNil t
     list
     cons h (cons element (intersperse t element))) nil
+
 join list el = strCat (intersperse list el)
 findIndex func list = idx list func 0
-index list el = idx list (\item . == el item) 0
 idx list func pos = list
   \h t D . func h
     pos
     idx t func (+ 1 pos)
   -1
+index list el = find (\item . == el item) list
 
 ############
 # ASSOC LISTS
@@ -165,6 +188,7 @@ isTokenString tok str = or
 isTokenStart tok str = or
   and (isToken tok) (strStartsWith (tokenString tok) str)
   and (isString tok) (strStartsWith tok str)
+strTokenString tok = withToken tok nil \str pos . str
 withToken tok nonTokCase tokCase = isToken tok
   tok tokCase
   isString tok
@@ -793,7 +817,7 @@ addParseFilter listFilter
 
 defTokenPack 'list' [
   ['|' '='] #adding = here so so we don't need spaces around = in definitions
-  [['[' | ']'] ['or[' | ']'] ['and[' | ']']]
+  [['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']']]
   [listFilter]]
 
 ### Yay!  From here down, we can use list constructors!
@@ -801,6 +825,8 @@ defTokenPack 'list' [
 addTokenGroup 'or[' ']'
 
 addTokenGroup 'and[' ']'
+
+addTokenGroup 'concat[' ']'
 
 listMacroFoldOp op emptyCase list = list \h t . foldr
     \case result . [op case result]
@@ -811,13 +837,16 @@ defMacro 'or[' \list . listMacroFoldOp 'or' 'false' list
 
 defMacro 'and[' \list . listMacroFoldOp 'and' 'true' list
 
-infix code = bind (getValue 'infixPrecedence')
-  \prec . bind (getValue 'tokenGroups')
-    \groups . filterApplies
-      code
-      \expr . infixRearrange prec (map (\cell . tail cell) groups) expr
+defMacro 'concat[' \list . ['strCat' (listify (head list))]
 
-infixRearrange prec closes list = \\
+infix code = bind (getValue 'infixPrecedence')
+  \prec . bind (getValue 'infixRightAssociative')
+    \right . bind (getValue 'tokenGroups')
+      \groups . filterApplies
+        code
+        \expr . infixRearrange prec right (map (\cell . tail cell) groups) expr
+
+infixRearrange prec right closes list = \\
   len = length list
   head1 = head list
   tail1 = tail list
@@ -831,17 +860,17 @@ infixRearrange prec closes list = \\
     isInfix opPrec head1 head2 len
       or (== len 2) (not (isInfixArg closes head3))
         [[head2 head1] | tail2]
-        infixRearrange prec closes (absorbArgument opPrec prec closes head1 head2 tail2 head3 (- len 2))
-      [head1 | infixRearrange prec closes tail1]
+        infixRearrange prec right closes (absorbArgument opPrec prec right closes head1 head2 tail2 head3 (- len 2))
+      [head1 | infixRearrange prec right closes tail1]
 
-absorbArgument opPrec prec closes head1 head2 tail2 head3 len = \\
+absorbArgument opPrec prec right closes head1 head2 tail2 head3 len = \\
   tail3 = tail tail2
   head4 = head tail3
   tail4 = tail tail3
   head5 = head tail4
   .
-  infixShouldEatNext opPrec prec head3 head4 head5 closes len
-    [head1 head2 | absorbArgument (getPrec prec head4) prec closes head3 head4 tail4 head5 (- len 2)]
+  infixShouldEatNext opPrec prec (contains right (strTokenString head2)) head3 head4 head5 closes len
+    [head1 head2 | absorbArgument (getPrec prec head4) prec right closes head3 head4 tail4 head5 (- len 2)]
     [[head2 head1 head3] | tail3]
 
 isInfixArg closes item = or[
@@ -864,18 +893,22 @@ getPrec prec token = \\
     findIndex (\level . contains level str) prec
     -1
 
-infixShouldEatNext opPrec prec curArg nextOp nextArg closes len = \\
+infixShouldEatNext opPrec prec isRight curArg nextOp nextArg closes len = \\
   nextPrec = getPrec prec nextOp
   .
   and[
     > len 2
     isInfix nextPrec curArg nextOp len
-    > opPrec nextPrec
+    or (> opPrec nextPrec) (and (== opPrec nextPrec) isRight)
     isInfixArg closes nextArg]
 
-iprec = [['*' '/' '%'] ['+' '-'] ['<' '>' '<=' '>='] ['==' '!=']]
+: x y = cons x y
+
+iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!=']]
+rightAssoc = [':']
 
 setValue 'infixPrecedence' iprec
+setValue 'infixRightAssociative' rightAssoc
 defTokenPack 'infix' [(flatten iprec) [] [infix]]
 
 useTokenPack 'infix'
