@@ -212,3 +212,5 @@ html x = \f . f x
 #      replaceDocument data
 #    \err . print concat['Error: ' err]
 
+defTokenPack 'util' [['--' '++'] [] []]
+addStdTokenPacks ['util']
