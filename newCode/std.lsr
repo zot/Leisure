@@ -136,6 +136,10 @@ dropWhile predicate list = list
 
 dropLast n list = reverse (drop n (reverse list))
 
+box n list = list == nil
+  nil
+  [(take n list) | box n (drop n list)]
+
 series func n = [n | (series func (func n))]
 from n = series ++ n
 fromBy n inc = series ((+) inc) n

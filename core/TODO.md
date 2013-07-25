@@ -21,10 +21,9 @@ name (person [name:n addr:a])
 
 # Anonymous _ variable
 
-# List filter
+# Commas with list filter
 
 group things between commas so you don't need parens
-
 
 # Notebook
 
