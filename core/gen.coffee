@@ -51,6 +51,8 @@ misrepresented as being the original software.
 } = root = module.exports = require './ast'
 {
   makeMonad,
+  runMonad,
+  basicRunMonad,
   _false,
 } = require './runtime'
 _ = require './lodash.min'
@@ -134,6 +136,6 @@ define 'runAst', ->(ast)->
       err.message = "\nError running ast: #{ast()}\ncode: #{code}\nerror: #{err.message}"
       console.log err.stack
       throw err
-    runMonad result, env, cont
+    basicRunMonad result, env, cont
 
 root.gen = gen

@@ -150,30 +150,49 @@ defaultEnv =
   write: (str)-> process.stdout.write(str)
   err: (err)-> @write "Error: #{err.stack ? err}"
   asyncBind: (state)->
-    @wrapCont = if state then(cont)-> wrapContAsync @, cont
-    else (cont)-> wrapCont @, cont
+    if state then @wrapCont = (cont)-> wrapContAsync @, cont
+    else @wrapCont = (cont)-> wrapCont @, cont
 
-wrapCont = (env, cont)-> (args...)->
-  try
-    cont args...
-  catch err
-    env.err err
+wrapCont = (env, cont)->
+  if cont.wrap
+    #console.log (new Error("CONTINUATION BLOCK ALREADY WRAPPED...")).stack
+    cont
+  else
+    cont.wrap = true
+    (args...)->
+      try
+        cont args...
+      catch err
+        env.err err
 
-wrapContAsync = (env, cont)-> (args...)->
-  setTimeout (->
-    try
-      cont args...
-    catch err
-      env.err err
-  ), 0
+wrapContAsync = (env, cont)->
+  if cont.wrap
+    #console.log (new Error("CONTINUATION BLOCK ALREADY WRAPPED...")).stack
+    cont
+  else
+    cont.wrap = true
+    (args...)->
+      setTimeout (->
+        try
+          cont args...
+        catch err
+          env.err err
+      ), 0
 
 defaultEnv.asyncBind true
 
 runMonad = (monad, env, cont)->
   env = env ? root.defaultEnv
+  basicRunMonad monad, env, cont ? identity
+  #basicRunMonad monad, env, env.wrapCont(cont ? identity)
+
+#runMonad = (monad, env, cont)->
+basicRunMonad = (monad, env, cont)->
+  env = env ? root.defaultEnv
   cont = cont ? identity
   try
     if typeof monad == 'function' && monad.cmd? then monad.cmd(env, nextMonad(cont))
+    #if typeof monad == 'function' && monad.cmd? then monad.cmd(env, nextMonad(env.wrapCont cont))
     else cont monad
   catch err
     err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}, CONT: #{cont}...\n#{err.message}"
@@ -181,14 +200,7 @@ runMonad = (monad, env, cont)->
     cont err
 
 class Monad
-  andThen: (func)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad (codeMonad func), env, cont
   toString: -> "Monad: #{@cmd.toString()}"
-
-codeMonad = (code)->
-  makeMonad (env, cont)->
-    result = code env
-    if result instanceof Monad then runMonad result, env, cont
-    else cont L_false ? _false
 
 define 'define', ->(name)->(arity)->(src)->(def)->
   makeMonad (enf, cont)->
@@ -197,7 +209,9 @@ define 'define', ->(name)->(arity)->(src)->(def)->
 
 define 'bind', ->(m)->(binding)->
   #makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
-  makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, env.wrapCont(cont)
+  #makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, env.wrapCont(cont)
+  #makeMonad (env, cont)-> runMonad m(), env, (value)->basicRunMonad binding()(->value), env, cont
+  makeMonad (env, cont)-> runMonad m(), env, (value)->basicRunMonad binding()(->value), env, env.wrapCont(cont)
 
 values = {}
 
@@ -306,6 +320,7 @@ Leisure_right.prototype.toString = -> "Right(#{@(->_identity)(->_identity)})"
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
+root.basicRunMonad = basicRunMonad
 root.identity = identity
 root.defaultEnv = defaultEnv
 root.setValue = setValue
