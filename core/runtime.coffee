@@ -235,10 +235,17 @@ define 'print', ->(msg)->
     env.write ("#{m}\n")
     cont _false
 
+runCont = (env, cont, args...)->
+  try
+    cont args...
+  catch err
+    env.err err
+
 define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->
-      cont (if err then left err.stack else right contents)
+      #cont (if err then left err.stack else right contents)
+      runCont env, cont, (if err then left err.stack else right contents)
 
 #######################
 # Classes for Printing
@@ -279,6 +286,7 @@ root.runMonad = runMonad
 root.identity = identity
 root.defaultEnv =
   write: (str)-> process.stdout.write(str)
+  err: (err)-> @write "Error: #{err.stack}"
 root.setValue = setValue
 root.getValue = getValue
 root.makeMonad = makeMonad

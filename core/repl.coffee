@@ -144,6 +144,11 @@ repl = ->
       multiline = false
       rl.setPrompt 'Leisure> '
       rl.prompt()
+      root.defaultEnv.err = (err)->
+        console.log "Error: #{err.stack}"
+        multiline = false
+        rl.setPrompt 'Leisure> '
+        rl.prompt()
       startMultiline = ->
         if multiline then console.log "Already reading multiline input"
         else
