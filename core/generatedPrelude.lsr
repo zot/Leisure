@@ -482,7 +482,7 @@ linePat = regexp '\\r?\\n(?=[^ ]|$)'
 
 emptyLinePat = regexp '^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$'
 
-lineScrub = regexpFlags '^\\r\\n' 'g'
+lineScrub = regexpFlags '\\r\\n' 'g'
 
 linesForFile text = filter
   \line . isNil (strMatch line emptyLinePat)
