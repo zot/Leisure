@@ -1,0 +1,214 @@
+# primitives
+#
+# eq a b -> true if they are equal or false otherwise
+#
+# getType value -> an option containing the type
+# 
+# is value type -> true if the value has type type, false otherwise
+#
+# eval ast -> evaluates ast and returns the result
+#
+# parse string -> an Either with ast or error msg (give it two functions)
+#
+# pretty value -> pretty print a value
+#
+# funcSource func -> option with function's src or none if no source (e.g. primitive or lambda)
+#
+#    MONADS
+#
+# bind m binding -> transform a monad with a function and continue with result of function
+#
+# print string -> print a string and continue with false
+#
+# prompt string -> ask user for input and continue with value
+#
+# return value -> continus with value
+#
+# js string -> run JS code and continue with value
+#
+# createS -> create a new state variable and continue with it
+#
+# getS var -> get the value from the state variable var and continue with it
+#
+# setS var val -> set the state variable var to val and continue with false
+#
+#    STRING functions
+#
+# concat list -> string
+#
+#    AST-constructors
+#
+# lit value -> a lit AST node, containing value
+#
+# ref var-name -> a ref AST node, containing var-name
+#
+# lambda var-name body-ast -> a lambda AST node, with var-name and the body AST
+#
+# apply func-ast body-ast -> an apply AST node, with func and body ASTs
+#
+# prim arg rest-ast -> a prim AST node, rest-ast should either be a ref or a prim
+#
+#    List functions
+#
+# MORE DOCUMETATION NEEDED :)
+#
+
+if = id
+
+# numerics
+
+iszero = eq 0
+positive = 0 <
+
+addToken '--'
+addToken '++'
+
+-- = (flip (-)) 1
+++ = (1 +)
+
+#intersperse x l = or (eq l nil) (eq (tail l) nil) l [(head l) x | (intersperse x (tail l))]
+
+intercalate x l = strC (intersperse x l)
+
+#######################
+## Agents
+## 
+## An agent executes blocks asynchronously
+## The block takes as input the value of the previous block
+##
+## A primitive agent is defined with a block that takes as input
+## the previous value of the block and also the given input value
+## 
+#######################
+#
+#agent name = primagent name nil \prev block . block prev
+#
+#sendMonad value monad = send value 'io' monad
+#
+#log value msg = sendMonad value (print msg)
+
+#######################
+## More list stuff
+#######################
+
+## difference lists
+dlempty = id
+dl item = \rest . [item | rest]
+dlPush list item = dlAppend list (dl item)
+dlAppend a b = \rest . a (b rest)
+
+# remove any x's found in list
+remove x l = removeIf (eq x) l
+
+# remove any elements where f evals to true, f must take exactly one argument
+removeIf f l = filter (compose not f) l
+
+## return true if any elements of l satisfy f, which takes exactly one arg
+## eg. any (eq 0) [1 2 0] gives true: true
+any f l = find f l (\el . true) false
+
+## return true if ALL elements of l satisfy f, which takes exactly one arg
+## eg. all (eq 0) [0 0 0] gives true: true
+## caveat!  return true for nil lists
+all f l = not any (compose not f) l
+
+take n list = positive n
+  list
+    \h t D . cons h (take (-- n) t)
+    nil
+  nil
+
+takeWhile predicate list = list
+  \h t D . predicate (head list)
+    cons h (takeWhile predicate t)
+    nil
+  nil
+
+drop x list = positive x
+  list
+    \h t D . drop (-- x) t
+    nil
+  list
+
+dropWhile predicate list = list
+  \h t D . predicate h
+    dropWhile predicate t
+    list
+  nil
+
+dropLast n list = reverse (drop n (reverse list))
+
+series func n = [n | (series func (func n))]
+from n = series ++ n
+fromBy n inc = series ((+) inc) n
+fromTo n m = takeWhile ((>) m) (from n)
+fromToBy n m inc = takeWhile ((>) m) (fromBy n inc)
+
+# count returns the number of times x appears in l
+count x l = countIf (eq x) l
+
+# countIf returns the number of times x satifies f in l, f must take a single argument
+# eg. countIf odd? [3 1] gives number: 2
+countIf f l = (eq l nil) 0
+  + (f (head l) 1 0) (countIf f (tail l))
+countIfNot f l = countIf (\x. not (f x)) l
+
+# list sorting
+# merge sort implemented according to http://www.haskell.org/haskellwiki/Performance/Laziness
+
+odds l = l
+  \h t D . [h | evens t]
+  nil
+
+evens l = l
+  \h t D . odds t
+  nil
+
+cleave l = [(evens l) | (odds l)]
+
+merge cmp a b = a
+  \ah at D . b
+    \bh bt D . cmp ah bh
+      [ah | (merge cmp at b)]
+      [bh | (merge cmp a bt)]
+    a
+  b
+
+mergeSort cmp l = l
+  \h t D . eq (tail l) nil
+    l
+    do
+      cl = cleave l
+      e = head cl
+      o = tail cl
+      merge cmp (mergeSort cmp e) (mergeSort cmp o)
+  nil
+
+sort l = sortBy lte l
+sortBy cmp l = mergeSort cmp l
+
+#######################
+## output tag functions
+#######################
+
+html x = \f . f x
+
+#forward 'getURI'
+#
+#save = do
+#  uri <- getURI
+#  doc <- getDocument
+#  write uri doc
+#
+#saveAs newUri = do
+#  doc <- getDocument
+#  write newUri doc
+#
+#open uri = do
+#  contents? <- read uri
+#  contents?
+#    \data. do
+#      setURI uri
+#      replaceDocument data
+#    \err . print concat['Error: ' err]
+
