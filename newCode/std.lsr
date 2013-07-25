@@ -140,6 +140,8 @@ box n list = list == nil
   nil
   [(take n list) | box n (drop n list)]
 
+at l x = (x == 0) (head l) (at (tail l) (-- (x) ) )
+
 series func n = [n | (series func (func n))]
 from n = series ++ n
 fromBy n inc = series ((+) inc) n

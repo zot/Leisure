@@ -142,15 +142,43 @@ makeMonad = (guts)->
 
 nextMonad = (cont)-> cont
 
+replaceErr = (err, msg)->
+  err.message = msg
+  err
+
+defaultEnv =
+  write: (str)-> process.stdout.write(str)
+  err: (err)-> @write "Error: #{err.stack ? err}"
+  asyncBind: (state)->
+    @wrapCont = if state then(cont)-> wrapContAsync @, cont
+    else (cont)-> wrapCont @, cont
+
+wrapCont = (env, cont)-> (args...)->
+  try
+    cont args...
+  catch err
+    env.err err
+
+wrapContAsync = (env, cont)-> (args...)->
+  setTimeout (->
+    try
+      cont args...
+    catch err
+      env.err err
+  ), 0
+
+defaultEnv.asyncBind true
+
 runMonad = (monad, env, cont)->
   env = env ? root.defaultEnv
   cont = cont ? identity
   try
     if typeof monad == 'function' && monad.cmd? then monad.cmd(env, nextMonad(cont))
-    else cont(monad)
+    else cont monad
   catch err
-    console.log "ERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}, CONT: #{cont}: #{err.stack}"
-    cont(err.stack)
+    err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}, CONT: #{cont}...\n#{err.message}"
+    console.log err.stack
+    cont err
 
 class Monad
   andThen: (func)-> makeMonad (env, cont)=> runMonad @, env, (value)-> runMonad (codeMonad func), env, cont
@@ -168,7 +196,8 @@ define 'define', ->(name)->(arity)->(src)->(def)->
     cont L_false ? _false
 
 define 'bind', ->(m)->(binding)->
-  makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
+  #makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
+  makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, env.wrapCont(cont)
 
 values = {}
 
@@ -235,17 +264,11 @@ define 'print', ->(msg)->
     env.write ("#{m}\n")
     cont _false
 
-runCont = (env, cont, args...)->
-  try
-    cont args...
-  catch err
-    env.err err
-
 define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->
       #cont (if err then left err.stack else right contents)
-      runCont env, cont, (if err then left err.stack else right contents)
+      wrapCont(env, cont) (if err then left err.stack else right contents)
 
 #######################
 # Classes for Printing
@@ -284,9 +307,7 @@ root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
 root.identity = identity
-root.defaultEnv =
-  write: (str)-> process.stdout.write(str)
-  err: (err)-> @write "Error: #{err.stack}"
+root.defaultEnv = defaultEnv
 root.setValue = setValue
 root.getValue = getValue
 root.makeMonad = makeMonad

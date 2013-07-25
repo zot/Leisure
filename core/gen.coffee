@@ -132,6 +132,7 @@ define 'runAst', ->(ast)->
       result = eval code
     catch err
       err.message = "\nError running ast: #{ast()}\ncode: #{code}\nerror: #{err.message}"
+      console.log err.stack
       throw err
     runMonad result, env, cont
 

@@ -157,6 +157,7 @@ letStr = (ast)->
 class Leisure_BaseCons extends LeisureObject
   head: -> throw new Error("Not Implemented")
   tail: -> throw new Error("Not Implemented")
+  isNil: -> false
   find: (func)-> if func(@head()) then @head() else @tail().find(func)
   removeAll: (func)->
     t = @tail().removeAll(func)
@@ -177,6 +178,7 @@ class Leisure_BaseCons extends LeisureObject
   each: (block)->
     block(@head())
     @tail().each(block)
+  length: -> @foldl ((i, el)-> i + 1), 0
   last: ->
     t = @tail()
     if t == Nil then @head() else t.last()
@@ -196,6 +198,7 @@ class Leisure_cons extends Leisure_BaseCons
 global.Leisure_cons = Leisure_cons
 
 class Leisure_nil extends LeisureObject
+  isNil: -> true
   find: -> @
   removeAll: -> @
   map: (func)-> Nil

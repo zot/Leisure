@@ -60,6 +60,8 @@ require('source-map-support').install()
 
 runLsr = (str)-> (runMonad L_runLine()(L_nil)(-> str)).tail()
 
+defaultEnv.asyncBind false
+
 global.runMonad = runMonad
 global.setType = setType
 global.setDataType = setDataType

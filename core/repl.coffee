@@ -145,7 +145,7 @@ repl = ->
       rl.setPrompt 'Leisure> '
       rl.prompt()
       root.defaultEnv.err = (err)->
-        console.log "Error: #{err.stack}"
+        console.log "Error: #{err.stack ? err}"
         multiline = false
         rl.setPrompt 'Leisure> '
         rl.prompt()
@@ -233,25 +233,47 @@ compile = (file, cont)->
       lines = runMonad L_linesForFile()(-> contents)
       names = runMonad L_namesForLines()(-> lines)
       asts = []
-      for line in lines.toArray()
-        try
-          asts.push (runMonad L_runLine()(->names)(->line)).head()
-        catch err
-          console.log "Error running line: #{line}\n#{err.stack}"
-      if createAstFile
-        outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
-        if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-        if verbose then console.log "AST FILE: #{outputFile}"
-        writeFile outputFile, "[\n  #{_(asts).map((item)-> JSON.stringify ast2Json item).join ',\n  '}\n]", (err)-> if !err then cont(asts)
-      if createJsFile
-        outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
-        if outDir then outputFile = path.join(outDir, path.basename(outputFile))
-        if verbose then console.log "JS FILE: #{outputFile}"
-        writeFile outputFile, _(asts).map((item)-> "runMonad(#{gen item})").join(';\n') + ";\n", (err)->
-          if !err then cont(asts)
-          else
-            console.log "Error writing file: #{outputFile}"
-            cont()
+
+      #for line in lines.toArray()
+      #  try
+      #    asts.push (runMonad L_runLine()(->names)(->line)).head()
+      #  catch err
+      #    console.log "Error running line: #{line}\n#{err.stack}"
+      #if true
+
+      compileLines lines, names, asts, (asts)->
+        if asts instanceof Error then cont asts
+        else
+          if createAstFile
+            outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".ast"
+            if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+            if verbose then console.log "AST FILE: #{outputFile}"
+            writeFile outputFile, "[\n  #{_(asts).map((item)-> JSON.stringify ast2Json item).join ',\n  '}\n]", (err)->
+              if err
+                console.log "Error writing AST file: #{outputFile}"
+                cont replaceErr err, "Error writing AST file: #{outputFile}...\n#{err.message}"
+              else if !createJsFile then cont(asts)
+          if createJsFile
+            outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
+            if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+            if verbose then console.log "JS FILE: #{outputFile}"
+            writeFile outputFile, _(asts).map((item)-> "runMonad(#{gen item})").join(';\n') + ";\n", (err)->
+              if !err then cont(asts)
+              else
+                console.log "Error writing JS file: #{outputFile}"
+                cont replaceErr err, "Error writing JS file: #{outputFile}...\n#{err.message}"
+          else cont []
+
+compileLines = (lines, names, asts, cont)->
+  if lines.isNil() then cont asts
+  else
+    runMonad L_runLine()(->names)(->lines.head()), null, (ast)->
+      #console.log "@@@ AST #{if typeof ast == 'function' then ast.constructor.name else ast}..."
+      #console.log "@@@ #{ast.head()}"
+      if ast instanceof Error then cont replaceErr ast, "Error compiling line: #{lines.head()}...\n#{ast.message}"
+      else
+        asts.push ast.head()
+        compileLines lines.tail(), names, asts, cont
 
 primCompile = (file, cont)->
   {

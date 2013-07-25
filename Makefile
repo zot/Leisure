@@ -39,7 +39,7 @@ $(PRELUDE): $(COFFEE_JS) $(PRELUDE_FILES)
 	rm -f core/generatedPrelude.lsr
 	for i in $(PRELUDE_FILES); do cat $$i >> core/generatedPrelude.lsr; echo >> core/generatedPrelude.lsr; done
 	node lib/repl -0 -c -d lib core/simpleParse.lsr
-	node lib/repl -1 -c -d lib core/generatedPrelude.lsr
+	node lib/repl -v -1 -c -d lib core/generatedPrelude.lsr
 
 .tested: $(TEST:%=core/%.coffee) $(PRELUDE)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee

@@ -210,6 +210,8 @@ text2 = """
   v6 = + 5 6
   """
 
+defaultEnv.asyncBind false
+
 evalAst = (ast)-> eval("(#{gen ast})")
 
 lsr = (str)-> eval("(#{gen parseToAst(str)})")

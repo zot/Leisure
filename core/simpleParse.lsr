@@ -486,8 +486,6 @@ lineScrub = regexpFlags '\\r\\n' 'g'
 
 linesForFile text = filter
   \line . isNil (strMatch line emptyLinePat)
-  #strSplit text linePat
-  #map (\s . strReplace s lineScrub '\n') (strSplit text linePat)
   strSplit (strReplace text lineScrub '\n') linePat
 
 defPat = regexp '^[^ =]+.* =( |$)'
