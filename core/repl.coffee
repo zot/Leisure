@@ -221,7 +221,10 @@ createJsFile = false
 compile = (file, cont)->
   ext = path.extname file
   readFile file, (err, contents)->
-    if !err
+    if err
+      console.log "Error reading file: #{file}"
+      cont()
+    else
       lines = runMonad L_linesForFile()(-> contents)
       names = runMonad L_namesForLines()(-> lines)
       asts = []
@@ -239,7 +242,11 @@ compile = (file, cont)->
         outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
         if outDir then outputFile = path.join(outDir, path.basename(outputFile))
         if verbose then console.log "JS FILE: #{outputFile}"
-        writeFile outputFile, _(asts).map((item)-> "runMonad(#{gen item})").join(';\n') + ";\n", (err)-> if !err then cont(asts)
+        writeFile outputFile, _(asts).map((item)-> "runMonad(#{gen item})").join(';\n') + ";\n", (err)->
+          if !err then cont(asts)
+          else
+            console.log "Error writing file: #{outputFile}"
+            cont()
 
 primCompile = (file, cont)->
   {
@@ -312,7 +319,10 @@ processArg = (pos)->
       if process.argv[pos][0] == '-' then usage()
       else
         processedFiles = true
-        if !loadedParser then require stages[stage]
+        if !loadedParser
+          #console.log "REQUIRING #{stages[stage]}"
+          require stages[stage]
+        #console.log "PROCESSING #{process.argv[pos]} with #{action}"
         action process.argv[pos], -> processArg pos + 1
       return
   processArg pos + 1

@@ -27,3 +27,10 @@ group things between commas so you don't need parens
 # Notebook
 
 Fixup theme stuff -- use icons instead of X and -> (transfer changes from implementationTalk.lmd into notebook-proper)
+
+
+# custom data in tokenPacks
+
+Extend tokenPack to be [customMonad tokens groups filters]
+
+That way, filters can store custom, changable data (like precedence lists)

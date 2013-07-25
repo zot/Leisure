@@ -478,13 +478,16 @@ arity toks n = isTokenString (head toks) '=' n (arity (tail toks) (+ n 1))
 
 tokListStr toks = jsonStringify (join (map (\t . tokenString t) toks) ' ')
 
-linePat = regexp '\\n(?=[^ ]|$)'
+linePat = regexp '\\r?\\n(?=[^ ]|$)'
 
-emptyLinePat = regexp '^[ \\i]*\\#.*|^[ \\i]*$|^\n[ \\i]*$'
+emptyLinePat = regexp '^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$'
+
+lineScrub = regexp '^\\r\\n'
 
 linesForFile text = filter
   \line . isNil (strMatch line emptyLinePat)
-  strSplit text linePat
+  #strSplit text linePat
+  map (\s . strReplace s lineScrub '\n') (strSplit text linePat)
 
 defPat = regexp '^[^ =]+.* =( |$)'
 
