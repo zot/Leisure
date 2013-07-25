@@ -66,9 +66,7 @@ addToken '++'
 -- = (flip (-)) 1
 ++ = (1 +)
 
-#intersperse x l = or (eq l nil) (eq (tail l) nil) l [(head l) x | (intersperse x (tail l))]
-
-intercalate x l = strC (intersperse x l)
+intercalate x l = concat (intersperse x l)
 
 #######################
 ## Agents

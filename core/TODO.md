@@ -17,6 +17,8 @@ last [h | t] = last t
 name (person [name:n addr:a])
 ```
 
+# Namespaces
+
 # Anonymous _ variable
 
 # List filter
