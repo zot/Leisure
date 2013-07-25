@@ -259,6 +259,22 @@ genJsFromAst = (file, cont)->
   readFile file, (err, contents)->
     if !err then genJs _(JSON.parse(contents)).map((json)-> json2Ast json), cont
 
+usage = ->
+  console.log """
+  Usage repl [-v | -a | -0 | -1 | -c | -d DIR] [FILE ...]
+
+  -v            verbose
+  -a            only parse to AST
+  -0            use CoffeeScript parser
+  -1            use simple Leisure parser
+  -c            for -0, compile to JS using CoffeeScript compiler
+                for -1, or normal case, create AST and JS file
+  -d DIR        specify output directory for .ast and .js files
+
+  Without no FILE arguments, runs interactive REPL
+  """
+  process.exit 0
+
 processArg = (pos)->
   #console.log "Process Arg: #{process.argv.join ', '}, pos: #{pos}"
   if pos >= process.argv.length
@@ -290,7 +306,6 @@ processArg = (pos)->
       stage = 0
     when '-1'
       stage = 1
-    when '-v' then verbose = true
     else
       newOptions = true
       #console.log "Process #{process.argv.join ', '}"
