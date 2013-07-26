@@ -136,6 +136,6 @@ define 'runAst', ->(ast)->
       err.message = "\nError running ast: #{ast()}\ncode: #{code}\nerror: #{err.message}"
       console.log err.stack
       throw err
-    basicRunMonad result, env, cont
+    runMonad result, env, cont
 
 root.gen = gen

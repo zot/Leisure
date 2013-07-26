@@ -150,7 +150,8 @@ defaultEnv =
   write: (str)-> process.stdout.write(str)
   err: (err)-> @write "Error: #{err.stack ? err}"
   asyncBind: (state)->
-    if state then @wrapCont = (cont)-> wrapContAsync @, cont
+    if state then @wrapCont = (cont)-> wrapContAsyncTimeout @, cont
+    #if state then @wrapCont = (cont)-> wrapContAsyncQueue @, cont
     else @wrapCont = (cont)-> wrapCont @, cont
 
 wrapCont = (env, cont)->
@@ -165,7 +166,7 @@ wrapCont = (env, cont)->
       catch err
         env.err err
 
-wrapContAsync = (env, cont)->
+wrapContAsyncTimeout = (env, cont)->
   if cont.wrap
     #console.log (new Error("CONTINUATION BLOCK ALREADY WRAPPED...")).stack
     cont
@@ -179,12 +180,29 @@ wrapContAsync = (env, cont)->
           env.err err
       ), 0
 
+monadQueue = []
+
+wrapContAsyncQueue = (env, cont)->
+  if cont.wrap
+    #console.log (new Error("CONTINUATION BLOCK ALREADY WRAPPED...")).stack
+    cont
+  else
+    cont.wrap = true
+    (args...)->
+      monadQueue.push cont, args
+
 defaultEnv.asyncBind true
 
 runMonad = (monad, env, cont)->
   env = env ? root.defaultEnv
-  basicRunMonad monad, env, cont ? identity
   #basicRunMonad monad, env, env.wrapCont(cont ? identity)
+  ret = basicRunMonad monad, env, cont ? identity
+  if monadQueue.length
+    while monadQueue.length
+      newCont = monadQueue.shift()
+      args = monadQueue.shift()
+      newCont args...
+  else ret
 
 #runMonad = (monad, env, cont)->
 basicRunMonad = (monad, env, cont)->
@@ -209,9 +227,9 @@ define 'define', ->(name)->(arity)->(src)->(def)->
 
 define 'bind', ->(m)->(binding)->
   #makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
-  #makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, env.wrapCont(cont)
+  makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, env.wrapCont(cont)
   #makeMonad (env, cont)-> runMonad m(), env, (value)->basicRunMonad binding()(->value), env, cont
-  makeMonad (env, cont)-> runMonad m(), env, (value)->basicRunMonad binding()(->value), env, env.wrapCont(cont)
+  #makeMonad (env, cont)-> runMonad m(), env, (value)->basicRunMonad binding()(->value), env, env.wrapCont(cont)
 
 values = {}
 

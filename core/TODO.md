@@ -1,3 +1,7 @@
+# monad continuation queue
+
+Use a queue instead of setTimeout
+
 # Case expr
 
 case x
