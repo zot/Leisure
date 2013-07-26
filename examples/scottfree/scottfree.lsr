@@ -1,4 +1,3 @@
-
 require '../../newCode/std.lsr'
 
 GH_MAGIC = 0
