@@ -1,0 +1,89 @@
+
+require '../../newCode/std.lsr'
+
+GH_MAGIC = 0
+GH_NUM_ITEMS = 1
+GM_NUM_ACTIONS = 2
+GH_NUM_WORDS = 3  # shorter list of nouns and verbs is padded
+GH_NUM_ROOMS = 4
+GH_MAX_CARRY = 5
+GH_PLAYER_ROOM = 6
+GH_NUM_TREASURES = 7
+GH_WORD_LENGTH = 8
+GH_LIGH_TTIME = 9
+GH_NUM_MESSAGES = 10
+GH_TREASURE_ROOM = 11
+GH_SIZEOF = 12
+
+GameHeader = [ ]
+
+Verbs = [ ]
+Nouns = [ ]
+Rooms = [ ]
+Items = [ ]
+Messages = [ ]
+Comments = [ ]
+Actions = [ ]
+LightRefill = 0
+
+GameTail = [ 'Version':0 'AdventureNumber':0 'Magic':0 ]
+
+conditions = [ '' 'HAS' 'IS_in_AR' 'IS_AVAIL' 'PLAYER_IN' 'IS_NOT_in_AR' 'HAS_NOT' 'PLAYER_NOT_IN' 'SET_BIT' 'CLEARED_BIT' 'HAS_SOMETHING' 'HAS_NOTHING' 'IS_NOT_AVAIL' 'IS_NOT_in_ROOM0' 'IS_in_ROOM0' 'COUNTER <=' 'COUNTER >' 'IS_in_OrigROOM' 'IS_NOT_in_OrigROOM' 'COUNTER ==' ]
+
+NONE = 1
+ACTION = 2
+ITEM = 3
+ROOM = 4
+NUMBER = 5
+BITFLAG = 6
+
+conddata = [  ACTION ITEM ITEM ITEM ROOM ITEM ITEM ROOM BITFLAG BITFLAG NONE NONE ITEM ITEM ITEM NUMBER NUMBER ITEM ITEM NUMBER ]
+
+acts = [ 'GET' 'MOVE_INTO_AR' 'GOTO' 'REMOVE' 'SET_NIGHT'
+  'SET_DAY' 'SET_BIT' 'REMOVE' 'CLEAR_BIT' 'KILL_PLAYER'
+  'MOVE_X_INTO_Y' 'QUIT' 'LOOK' 'SCORE' 'INVENTORY'
+  'SET_BIT (0)' 'CLEAR_BIT (0)' 'FILL_LAMP' 'CLS' 'SAVE'
+  'SWAP_ITEMS' 'CONTINUE:' 'GET_ALWAYS' 'PUT_X_WITH_Y' 'LOOK'
+  'COUNTER -= 1' 'PRINT_COUNTER' 'COUNTER =' 'SWAP_LOC_RV' 'SWAP_COUNTER'
+  'COUNTER +=' 'COUNTER -=' 'ECHO_NOUN' 'ECHO_NOUN_CR' 'CR'
+  'SELECT_RV' 'DELAY' 'SHOW_PIC' 'COMM90' 'COMM91'
+  'COMM92' 'COMM93' 'COMM94' 'COMM95' 'COMM96'
+  'COMM97' 'COMM98' 'COMM99' 'COMM100' 'COMM101' ]
+
+NOT = 0
+IT = 1
+RO = 2
+FL = 3
+IT_RO = 4
+IT_IT = 5
+NUM = 6
+
+actdata = [ IT IT RO IT NOT NOT FL IT FL NOT
+  IT_RO NOT NOT NOT NOT NOT NOT NOT NOT NOT
+  IT_IT NOT IT IT_IT NOT NOT NOT NUM NOT FL
+  NUM NUM NOT NOT NOT FL NOT FL NOT NOT
+  NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT ]
+
+direct = [ 'north' 'south' 'east' 'west' 'up' 'down' ]
+
+loadGame filename = do
+  result <- readFile filename
+  result
+    \err . print concat[ 'Error: ' err ]
+    \contents . processFile (parseFile contents)
+
+processFile contents = do
+  GameHeader = (take GH_SIZEOF contents)
+  setValue 'GameHeader' GameHeader
+  after_header = (drop GH_SIZEOF contents)
+  num_actions = at GameHeader GM_NUM_ACTIONS
+  Actions = box 8 (take (num_actions * 8) after_header)
+  setValue 'actions' Actions
+  after_actions = drop (num_actions * 8) after_header
+  #print contents
+  "Data File Loaded."
+  
+debugGame = do
+  GameHeader <- getValue 'GameHeader'
+  print GameHeader
+
