@@ -2,16 +2,17 @@
 require '../../newCode/std.lsr'
 
 GH_MAGIC = 0
-GH_NUM_ITEMLS = 1
-GH_NUM_WORDS = 2  # shorter list of nouns and verbs is padded
-GH_NUM_ROOMS = 3
-GH_MAX_CARRY = 4
-GH_PLAYER_ROOM = 5
-GH_NUM_TREASURES = 6
-GH_WORD_LENGTH = 7
-GH_LIGH_TTIME = 8
-GH_NUM_MESSAGES = 9
-GH_TREASURE_ROOM = 10
+GH_NUM_ITEMS = 1
+GM_NUM_ACTIONS = 2
+GH_NUM_WORDS = 3  # shorter list of nouns and verbs is padded
+GH_NUM_ROOMS = 4
+GH_MAX_CARRY = 5
+GH_PLAYER_ROOM = 6
+GH_NUM_TREASURES = 7
+GH_WORD_LENGTH = 8
+GH_LIGH_TTIME = 9
+GH_NUM_MESSAGES = 10
+GH_TREASURE_ROOM = 11
 GH_SIZEOF = 12
 
 GameHeader = [ ]
@@ -68,19 +69,21 @@ direct = [ 'north' 'south' 'east' 'west' 'up' 'down' ]
 loadGame filename = do
   result <- readFile filename
   result
-    \err . print concat['Error: ' err]
-    \contents . processFile (linesForFile contents)
+    \err . print concat[ 'Error: ' err ]
+    \contents . processFile (parseFile contents)
 
 processFile contents = do
-  setValue 'contents' contents
-  #setValue 'header' (take GH_SIZEOF contents)
   GameHeader = (take GH_SIZEOF contents)
   setValue 'GameHeader' GameHeader
   after_header = (drop GH_SIZEOF contents)
-  num_actions = at GameHeader GH_NUM_WORDS
+  num_actions = at GameHeader GM_NUM_ACTIONS
   Actions = box 8 (take (num_actions * 8) after_header)
   setValue 'actions' Actions
   after_actions = drop (num_actions * 8) after_header
-  print GameHeader
+  #print contents
   "Data File Loaded."
+  
+debugGame = do
+  GameHeader <- getValue 'GameHeader'
+  print GameHeader
 
