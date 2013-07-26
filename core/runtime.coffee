@@ -140,6 +140,11 @@ makeMonad = (guts)->
   m.type = 'monad'
   m
 
+makeSyncMonad = (guts)->
+  m = makeMonad guts
+  m.sync = true
+  m
+
 nextMonad = (cont)-> cont
 
 replaceErr = (err, msg)->
@@ -149,100 +154,60 @@ replaceErr = (err, msg)->
 defaultEnv =
   write: (str)-> process.stdout.write(str)
   err: (err)-> @write "Error: #{err.stack ? err}"
-  asyncBind: (state)->
-    if state then @wrapCont = (cont)-> wrapContAsyncTimeout @, cont
-    #if state then @wrapCont = (cont)-> wrapContAsyncQueue @, cont
-    else @wrapCont = (cont)-> wrapCont @, cont
-
-wrapCont = (env, cont)->
-  if cont.wrap
-    #console.log (new Error("CONTINUATION BLOCK ALREADY WRAPPED...")).stack
-    cont
-  else
-    cont.wrap = true
-    (args...)->
-      try
-        cont args...
-      catch err
-        env.err err
-
-wrapContAsyncTimeout = (env, cont)->
-  if cont.wrap
-    #console.log (new Error("CONTINUATION BLOCK ALREADY WRAPPED...")).stack
-    cont
-  else
-    cont.wrap = true
-    (args...)->
-      setTimeout (->
-        try
-          cont args...
-        catch err
-          env.err err
-      ), 0
-
-monadQueue = []
-
-wrapContAsyncQueue = (env, cont)->
-  if cont.wrap
-    #console.log (new Error("CONTINUATION BLOCK ALREADY WRAPPED...")).stack
-    cont
-  else
-    cont.wrap = true
-    (args...)->
-      monadQueue.push cont, args
-
-defaultEnv.asyncBind true
 
 runMonad = (monad, env, cont)->
   env = env ? root.defaultEnv
-  #basicRunMonad monad, env, env.wrapCont(cont ? identity)
-  ret = basicRunMonad monad, env, cont ? identity
-  if monadQueue.length
-    while monadQueue.length
-      newCont = monadQueue.shift()
-      args = monadQueue.shift()
-      newCont args...
-  else ret
+  ret = newRunMonad monad, env, cont, []
 
-#runMonad = (monad, env, cont)->
-basicRunMonad = (monad, env, cont)->
-  env = env ? root.defaultEnv
-  cont = cont ? identity
+isMonad = (m)-> typeof m == 'function' && m.cmd?
+
+continueMonads = (contStack, env)-> (result)-> newRunMonad result, env, null, contStack
+
+newRunMonad = (monad, env, cont, contStack)->
+  if cont then contStack.push cont
   try
-    if typeof monad == 'function' && monad.cmd? then monad.cmd(env, nextMonad(cont))
-    #if typeof monad == 'function' && monad.cmd? then monad.cmd(env, nextMonad(env.wrapCont cont))
-    else cont monad
+    while true
+      if isMonad monad
+        if monad.binding
+          contStack.push ((bnd)->(x)->bnd(->x))(monad.binding())
+          monad = monad.monad()
+          continue
+        else if !monad.sync then return monad.cmd(env, continueMonads(contStack, env))
+        result = monad.cmd(env, identity)
+      else result = monad
+      if !contStack.length then return result
+      monad = contStack.pop()(result)
   catch err
-    err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}, CONT: #{cont}...\n#{err.message}"
+    err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}...\n#{err.message}"
     console.log err.stack
-    cont err
+    (cont ? identity) err
 
 class Monad
   toString: -> "Monad: #{@cmd.toString()}"
 
 define 'define', ->(name)->(arity)->(src)->(def)->
-  makeMonad (enf, cont)->
+  makeSyncMonad (env, cont)->
     define name(), def, arity(), src()
     cont L_false ? _false
 
 define 'bind', ->(m)->(binding)->
-  #makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, cont
-  makeMonad (env, cont)-> runMonad m(), env, (value)->runMonad binding()(->value), env, env.wrapCont(cont)
-  #makeMonad (env, cont)-> runMonad m(), env, (value)->basicRunMonad binding()(->value), env, cont
-  #makeMonad (env, cont)-> runMonad m(), env, (value)->basicRunMonad binding()(->value), env, env.wrapCont(cont)
+  bindMonad = makeMonad (env, cont)->
+  bindMonad.monad = m
+  bindMonad.binding = binding
+  bindMonad
 
 values = {}
 
 define 'hasValue', ->(name)->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     cont booleanFor values[name()]?
 
 define 'getValueOr', ->(name)->(defaultValue)->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     cont(values[name()] ? defaultValue())
 
 define 'getValue', ->(name)->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     if !(name() of values) then throw new Error "No value named '#{name()}'"
     cont values[name()]
 
@@ -251,32 +216,32 @@ setValue = (key, value)-> values[key] = value
 getValue = (key)-> values[key]
 
 define 'setValue', ->(name)->(value)->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     values[name()] = value()
     cont _false
 
 define 'createS', ->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     cont {value: null}
 
 define 'getS', ->(state)->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     cont state().value
 
 define 'setS', ->(state)->(value)->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     state().value = value()
     cont _false
 
 setValue 'macros', Nil
 
 define 'defMacro', ->(name)->(def)->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     values.macros = cons cons(name(), def()), values.macros
     cont _false
 
 define 'funcs', ->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
     cont _false
 
@@ -290,7 +255,7 @@ define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
 #######################
 
 define 'print', ->(msg)->
-  makeMonad (env, cont)->
+  makeSyncMonad (env, cont)->
     m = msg()
     #env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
     env.write ("#{m}\n")
@@ -299,8 +264,7 @@ define 'print', ->(msg)->
 define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->
-      #cont (if err then left err.stack else right contents)
-      wrapCont(env, cont) (if err then left err.stack else right contents)
+      cont (if err then left err.stack else right contents)
 
 #######################
 # Classes for Printing
@@ -338,9 +302,10 @@ Leisure_right.prototype.toString = -> "Right(#{@(->_identity)(->_identity)})"
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
-root.basicRunMonad = basicRunMonad
 root.identity = identity
 root.defaultEnv = defaultEnv
 root.setValue = setValue
 root.getValue = getValue
 root.makeMonad = makeMonad
+root.makeSyncMonad = makeSyncMonad
+root.replaceErr = replaceErr

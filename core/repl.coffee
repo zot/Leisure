@@ -45,12 +45,11 @@ fs = require 'fs'
 {
   identity,
   runMonad,
-  basicRunMonad,
   defaultEnv,
+  replaceErr,
 } = require './runtime'
 
 global.runMonad = runMonad
-global.basicRunMonad = basicRunMonad
 global.setType = setType
 global.setDataType = setDataType
 global.defaultEnv = defaultEnv

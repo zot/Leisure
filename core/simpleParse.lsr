@@ -163,15 +163,19 @@ stripParens p = isParens p (parensContent p) p
 parseErr msg1 msg2 = \f . f (strCat (cons msg1 (cons msg2 nil)))
 parseErrMsg err = err \m . m
 
+emptyToken = regexp '^\\n[ \\i]*(#|$)'
+
 makeTokens strings start = strings (\h t D . makeMoreTokens h t start) nil
 makeMoreTokens h t start = \\
   next = makeTokens t (+ start (strLen h))
   .
-  or (strStartsWith h ' ') (strStartsWith h '#')
-    next
-    and (strStartsWith h '\n') (strStartsWith (head t) '#')
-      makeTokens (tail t) (+ start (+ (strLen h) (strLen (head t))))
-      cons (token h start) next
+  and (strMatches h emptyToken) (or (isNil t) (strStartsWith (head t) '\n'))
+    makeTokens t (+ start (strLen h))
+    or (strStartsWith h ' ') (strStartsWith h '#')
+      next
+      and (strStartsWith h '\n') (strStartsWith (head t) '#')
+        makeTokens (tail t) (+ start (+ (strLen h) (strLen (head t))))
+        cons (token h start) next
 
 splitTokens str pat = filter (\s . not (eq s '')) (strSplit str pat)
 
@@ -730,7 +734,9 @@ resetTokenPacks packs = bind (setValue 'tokenGroups' nil)
   \_ . bind (setValue 'tokenList' nil)
     \_ . bind (setValue 'activeTokenPacks' nil)
       \_ . bind (setValue 'parseFilters' nil)
-        \_ . foldr (\pack result . bind (useTokenPack pack) \_ . result) nil packs
+        \_ . foldr1
+          \packCmd result . bind packCmd \_ . result
+          map useTokenPack packs
 
 resetStdTokenPacks = bind (getValue 'stdTokenPacks')
   \stds . bind (resetTokenPacks stds)

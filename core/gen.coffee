@@ -52,7 +52,6 @@ misrepresented as being the original software.
 {
   makeMonad,
   runMonad,
-  basicRunMonad,
   _false,
 } = require './runtime'
 _ = require './lodash.min'
