@@ -268,12 +268,17 @@ compile = (file, cont)->
 compileLines = (lines, names, asts, cont)->
   if lines.isNil() then cont asts
   else
-    runMonad L_runLine()(->names)(->lines.head()), null, (ast)->
+    runMonad L_runLine()(->names)(->lines.head()), null, (lineData)->
+      ast = lineData.head()
+      result = lineData.tail()(->(x)->x())(->(x)->x())
       #console.log "@@@ AST #{if typeof ast == 'function' then ast.constructor.name else ast}..."
       #console.log "@@@ #{ast.head()}"
-      if ast instanceof Error then cont replaceErr ast, "Error compiling line: #{lines.head()}...\n#{ast.message}"
+      if result instanceof Error
+        result = replaceErr result, "Error compiling line: #{lines.head()}...\n#{ast.message}"
+        console.log result.stack
+        cont result
       else
-        asts.push ast.head()
+        asts.push ast
         compileLines lines.tail(), names, asts, cont
 
 primCompile = (file, cont)->
