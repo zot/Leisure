@@ -3,7 +3,7 @@ require '../../newCode/std.lsr'
 GH_MAGIC = 0
 GH_NUM_ITEMS = 1
 GM_NUM_ACTIONS = 2
-GH_NUM_WORDS = 3  # shorter list of nouns and verbs is padded
+GH_NUM_WORDS = 3   # shorter list of nouns and verbs is padded
 GH_NUM_ROOMS = 4
 GH_MAX_CARRY = 5
 GH_PLAYER_ROOM = 6
@@ -70,20 +70,64 @@ direct = [ 'north' 'south' 'east' 'west' 'up' 'down' ]
 loadGame filename = do
   result <- readFile filename
   result
-    \err . print concat[ 'Error: ' err ]
-    \contents . processFile (parseFile contents)
+	\err . print concat[ 'Error: ' err ]
+	\contents . processFile (everyLinesForFile contents)
 
+everyLinesForFile text =  collapseStrings strSplit (strReplace text lineScrub '\n') '\\r?\\n'
+
+# TODO: for every string that starts with " and doesn't end, combine following strings into a single string element 
+collapseStrings list = isNil list
+   list
+   isPartialString (head list)
+     collapseStrings (cons ((head list) + (head (tail list))) (tail (tail list)))
+     cons (head list) (collapseStrings (tail list))
+
+# return true if the string starts with " but doesn't end in one	 
+isPartialString string = strMatches string '^".*[^"]$'
+	 
 processFile contents = do
-  GameHeader = (take GH_SIZEOF contents)
-  setValue 'GameHeader' GameHeader
-  after_header = (drop GH_SIZEOF contents)
-  num_actions = at GameHeader GM_NUM_ACTIONS
-  Actions = box 8 (take (num_actions * 8) after_header)
-  setValue 'actions' Actions
-  after_actions = drop (num_actions * 8) after_header
   #print contents
+  #print (at contents 0)
+  GameHeader <- (take GH_SIZEOF contents)
+  setValue 'GameHeader' GameHeader
+  after_header <- (drop GH_SIZEOF contents)
+  num_actions <- (at GameHeader GM_NUM_ACTIONS)
+  max_actions <- (num_actions * 1 + 1) * 8
+  print concat[ 'num actions: ' num_actions ' max actions: ' max_actions]
+  Actions <- box 8 (take max_actions after_header)
+  setValue 'Actions' Actions
+  after_actions <- drop max_actions after_header
+  num_words <- at GameHeader GH_NUM_WORDS
+  max_words <- (num_words * 1 + 1) * 2
+  Words <- take max_words after_actions
+  setValue 'Nouns' (evens Words)
+  setValue 'Verbs' (odds Words)
+  after_words <- drop max_words after_actions
+  num_rooms <- at GameHeader GH_NUM_ROOMS
+  max_rooms <- (num_rooms * 1 + 1) * 7
+  Rooms <- box 7 (take max_rooms after_words)
+  setValue 'Rooms' Rooms
+  after_rooms <- drop max_rooms after_words
   "Data File Loaded."
 
+merge list1 list2 = isNil list1
+  nil
+  isNil list2
+	nil
+	append [ (head list1) (head list2) ] (merge (tail list1) (tail list2))
+  
 debugGame = do
   GameHeader <- getValue 'GameHeader'
-  print GameHeader
+  print (merge [ '\nmagic: ' '\nnum items: ' '\nnum actions: ' '\nnum words: ' '\nnum rooms: ' '\nmax carry: ' '\nplayer room: ' '\ntreasures: ' '\nword len: ' '\nlight time: ' '\nnum msgs: ' '\ntreasure room: '] GameHeader)
+  #print (length GameHeader)
+  #print (at GameHeader 1)
+  Actions <- getValue 'Actions'
+  print concat[ "Num Actions: " (length Actions) "\nFirst Action: " (at Actions 0) "\nLast Action: " (last Actions) ]
+  Nouns <- getValue 'Nouns'
+  print concat[ "Num Nouns: " (length Nouns) " Nouns: " Nouns]
+  Verbs <- getValue 'Verbs'
+  print concat[ "Num Verbs: " (length Verbs) " Verbs: " Verbs]
+  Rooms <- getValue 'Rooms'
+  print concat[ "Num Rooms: " (length Rooms) '\nFirst Room: ' (at Rooms 0) '\nLast Room: ' (last Rooms)]
+  print concat[ "All Rooms: " Rooms ]
+  "Debug finished."
