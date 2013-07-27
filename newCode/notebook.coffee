@@ -3,6 +3,19 @@
 # Only runs in the context of a browser
 ###
 
+{
+  nameSub,
+  getRefName,
+  define,
+  foldLeft,
+  Nil,
+} = root = require './ast'
+{
+  makeMonad,
+  makeSyncMonad,
+} = require './runtime'
+URI = require './uri'
+
 #debug = true
 debug = false
 
@@ -110,7 +123,7 @@ bindAll = ->
 
 xusEnv = (resultVar, expr)->
   result = ''
-  env = Prim.initFileSettings
+  env =
     debug: debug
     finishedEvent: ->
     owner: null
@@ -121,11 +134,13 @@ xusEnv = (resultVar, expr)->
       result += res
       peer.set resultVar, JSON.stringify result
     presentValue: (x)-> x
-    processError: (ast)->
-      result += if ast.err.leisureContext then "ERROR: #{ast.err}:\n#{leisureContextString(ast.err)}\n#{ast.err.stack}" else "Couldn't parse: #{expr}"
+    fileSettings:
+      uri: new URI document.location.href
+    err: (err)->
+      result += if err.leisureContext then "ERROR: #{err}:\n#{leisureContextString(err)}\n#{err.stack}" else "Couldn't parse: #{expr}"
       peer.set resultVar, result
-  env.__proto__ = Prim.defaultEnv
-  env.fileSettings.uri = new Prim.URI document.location.href
+  # MARK
+  env.__proto__ = root.defaultEnv
   env
 
 peerGetDocument = ->
@@ -147,6 +162,7 @@ allowEvents = true
 
 bindNotebook = (el)->
   if !basePresentValue
+    # MARK
     basePresentValue = Prim.defaultEnv.presentValue
     Prim.defaultEnv.presentValue = presentValue
     Prim.defaultEnv.write = (msg)->console.log msg
@@ -322,6 +338,7 @@ highlightPosition = (e)->
     if s.getRangeAt(0)?.collapsed
       if !parent or isOutput parent then return
       if parent.parentNode and ast = getAst parent
+        # MARK
         offset = ast.leisureCodeOffset ? 0
         r = s.getRangeAt(0)
         r.setStart parent, 0
@@ -357,6 +374,7 @@ highlightPosition = (e)->
           window.EVT = e
           s.removeAllRanges()
           s.addRange(makeRange parent, pos)
+    # MARK
     if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
     peerNotifySelection parent, s.toString()
 
@@ -430,6 +448,7 @@ createSlider = ->
         parent.ast = null
         acceptCode parent
         ast = getAst parent
+        # MARK
         update "sel-#{parent.ast.leisureName}"
       else
         makeId parent
@@ -535,6 +554,7 @@ addDefControls = (box)->
 remove = (node)->node.parentNode?.removeChild node
 
 showAst = (box)->
+  # MARK
   name = (getAst box).leisureName
   if box.astOut?
     remove box.astOut.output
@@ -552,6 +572,7 @@ showAst = (box)->
 
 highlightNotebookFunction = (funcName, start, stop)->
   box = document.body.querySelector "[leisurefunc=#{funcName}]"
+  # MARK
   offset = getAst(box).leisureCodeOffset ? 0
   sel = window.getSelection()
   sel.removeAllRanges()
@@ -565,7 +586,6 @@ isDef = (box)->
   false
 
 initNotebook = (el)->
-  ReplCore.setNext ->3
   el.replacing = true
   removeOldDefs el
   pgm = markupDefs el, findDefs el
@@ -643,6 +663,7 @@ insertControls = (el)->
   markupButtons controlDiv
 
 saveProgram = ->
+  # MARK
   Prim.write filename, getMDDocument(), (-> alert "Saving #{filename}"), (err)->
     console.log err
     alert err.stack
@@ -673,11 +694,18 @@ getElements = (el, ids)->
     els[node.getAttribute 'leisureId'] = node
   els[id] for id in ids
 
+escapeHtml = (str)->
+  if typeof str == 'string' then str.replace /[<>]/g, (c)->
+    switch c
+      when '<' then '&lt;'
+      when '>' then '&gt;'
+  else str
+
 loadProgram = (el, files)->
   el = getBox
   fr = new FileReader()
   fr.onloadend = (evt)->
-    el.innerHTML = Repl.escapeHtml(fr.result)
+    el.innerHTML = escapeHtml(fr.result)
     initNotebook el
   fr.readAsBinaryString(files.item(0))
 
@@ -787,10 +815,12 @@ markupDefs = (el, defs)->
 getAst = (bx, def)->
   if bx.ast?
     patchFuncAst bx.ast
+    # MARK
     bx.setAttribute 'leisureFunc', (bx.ast.leisureName ? '')
     bx.ast
   else
     def = def || bx.textContent
+    # MARK
     setAst bx, (Leisure.compileNext def, Parse.Nil, true, null)[0]
     bx.ast
 
@@ -799,11 +829,14 @@ setAst = (bx, ast)->
   patchFuncAst ast
 
 patchFuncAst = (ast)->
+  # MARK
   if ast?.leisureName?
-    parent = window[Parse.nameSub(ast.leisureName)]
+    # MARK
+    parent = window[nameSub(ast.leisureName)]
     if parent?
       parent.ast = ast
       parent.src = ast.leisureSource
+      # MARK
       update "ast-#{ast.leisureName}"
 
 # mark partial applies within bx
@@ -813,13 +846,15 @@ markPartialApplies = (bx, def)->
   def = def ? bx.textContent
   ast = getAst bx, def
   partial = []
-  ((Leisure.findFuncs(ast)) Parse.Nil).each (f)->
-    name = Parse.getRefVar(f.head())
-    arity = global[Parse.nameSub(name)]?()?.leisureArity
+  # MARK
+  ((Leisure.findFuncs(ast)) Nil).each (f)->
+    name = getRefName(f.head())
+    arity = global[nameSub(name)]?()?.leisureArity
     if (arity and f.tail().head() < arity)
       partial.push [f.head(), arity, f.tail().head()]
   if partial.length
     ranges = []
+    # MARK
     offset = ast.leisureCodeOffset ? 0
     t = bx.lastChild.firstChild
     for info in partial
@@ -933,6 +968,7 @@ clearUpdates = (widget, preserveSource)->
   setUpdate exBox, '', preserveSource
 
 update = (type, env)->
+  # MARK
   env = env ? Prim.defaultEnv
   for node in env.owner.querySelectorAll "[leisureUpdate~='#{type}']"
     evalOutput node, true
@@ -958,7 +994,7 @@ makeTestCase = (exBox)->
   source = output.source
   test =
     expr: source.textContent.trim()
-    expected: Repl.escapeHtml(Parse.print(output.result))
+    expected: escapeHtml(Parse.print(output.result))
   box = makeTestBox test, owner(exBox)
   source.parentNode.insertBefore box, source
   remove source
@@ -1003,8 +1039,9 @@ runTest = (bx)->
     write: (str)-> console.log str
     debug: debug
     prompt: (msg, cont)-> cont(null)
-    processResult: (result, ast)-> passed = showResult bx, Repl.escapeHtml(Parse.print(result)), Repl.escapeHtml(test.expected)
-    processError: passed = false
+    # MARK Parse.print
+    processResult: (result, ast)-> passed = showResult bx, escapeHtml(Parse.print(result)), escapeHtml(test.expected)
+    err: -> passed = false
     presentValue: (x)-> x
   ))
   passed
@@ -1023,11 +1060,13 @@ showResult = (bx, actual, expected)->
     console.log "expected <#{expected}> but got <#{actual}>"
   actual == expected
 
+# MARK -- precede exprs with =
 prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
 
 envFor = (box)->
   exBox = getBox box
   widget = null
+  # MARK
   env = Prim.initFileSettings
     debug: debug
     finishedEvent: (evt, channel)->update(channel ? 'app', this)
@@ -1052,25 +1091,28 @@ envFor = (box)->
       box.result = result
       setAst box, ast
     presentValue: presentValue
-    processError: (ast)->
+    err: (err)->
       btn = box.querySelector '[leisureId="makeTestCase"]'
       if btn then remove btn
-      @write  "<div class='errorDiv'>" + Repl.escapeHtml("ERROR: #{if ast.err.leisureContext then "#{ast.err}:\n#{leisureContextString(ast.err)}\n" else ''}#{ast.err.stack ? ast.err}") + "</div>"
+      @write  "<div class='errorDiv'>" + escapeHtml("ERROR: #{if err.leisureContext then "#{err}:\n#{leisureContextString(err)}\n" else ''}#{err.stack ? err}") + "</div>"
     cleanup: ->
       @destroyWidget()
       if root.lastEnv == env then root.lastEnv = null
+  # MARK
   env.__proto__ = Prim.defaultEnv
-  env.fileSettings.uri = new Prim.URI document.location.href
+  env.fileSettings.uri = new URI document.location.href
   root.lastEnv = env
   env
 
 leisureContextString = (err)-> (linkSource func, offset for [func, offset] in err.leisureContext.toArray()).join('\n')
 
 linkSource = (funcName, offset)->
+  # MARK
   [src, start, end] = Leisure.funcContextSource funcName, offset
   "  <a href='javascript:void(Notebook.showSource(\"#{funcName}\", #{offset}))'>#{funcName}:#{start},#{end}</a>"
 
 showSource = (funcName, offset)->
+  # MARK
   [src, start, end] = Leisure.funcContextSource funcName, offset
   alert("#{funcName} = #{src.substring(0, start)} << #{src.substring(start, end)} >> #{src.substring(end)}")
 
@@ -1115,6 +1157,7 @@ findDefs = (el)->
   txt = el.textContent
   rest = txt
   ranges = []
+  # MARK Leisure.linePat
   while (def = rest.match Leisure.linePat) and def[1].length != rest.length
     rng = getRanges(el, txt, rest, def, txt.length - rest.length)
     if rng
@@ -1127,79 +1170,79 @@ findDefs = (el)->
 testPat = /(#@test([^\n]*)\n#@expected([^\n]*))\n/m
 
 getRanges = (el, txt, rest, def, restOff)->
-    [matched, leading, nameRaw, defType] = m = def
-    if !rest.trim() then null
-    else if !m? then [(makeRange el, restOff, txt.length), null, null, [], '']
+  [matched, leading, nameRaw, defType] = m = def
+  if !rest.trim() then null
+  else if !m? then [(makeRange el, restOff, txt.length), null, null, [], '']
+  else
+    tests = []
+    matchStart = restOff + m.index
+    if !defType? then name = null
+    else if nameRaw[0] == ' '
+      name = null
+      defType = null
+    else name = (nameRaw.trim() || null)
+    rest1 = rest.substring (if defType then matched else leading).length
+    endPat = rest1.match /\n+[^\s]|\n?$/
+    next = if endPat then rest1.substring(endPat.index) else rest1
+    mainEnd = txt.length - next.length
+    t = leading
+    leadOff = tOff = restOff
+    while m2 = t.match testPat
+      r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[1].length)
+      r.leisureTest = expr: JSON.parse(m2[2]), expected: JSON.parse(m2[3])
+      tests.push r
+      tOff += m2.index + m2[1].length
+      t = leading.substring tOff - leadOff
+    if name
+      mainStart = matchStart + (leading?.length ? 0)
+      nameEnd = mainStart + name.length
+      leadingSpaces = (rest1.match /^\s*/)[0].length
+      bodyStart = txt.length - (rest1.length - leadingSpaces)
+      outerRange = makeRange el, mainStart, mainEnd
+      main: outerRange
+      name: txt.substring(mainStart, nameEnd)
+      def: defType
+      body: txt.substring(bodyStart, mainEnd)
+      tests: tests
+      next: next
     else
-      tests = []
-      matchStart = restOff + m.index
-      if !defType? then name = null
-      else if nameRaw[0] == ' '
-        name = null
-        defType = null
-      else name = (nameRaw.trim() || null)
-      rest1 = rest.substring (if defType then matched else leading).length
-      endPat = rest1.match /\n+[^\s]|\n?$/
-      next = if endPat then rest1.substring(endPat.index) else rest1
-      mainEnd = txt.length - next.length
-      t = leading
-      leadOff = tOff = restOff
-      while m2 = t.match testPat
-        r = makeRange(el, tOff + m2.index, tOff + m2.index + m2[1].length)
-        r.leisureTest = expr: JSON.parse(m2[2]), expected: JSON.parse(m2[3])
-        tests.push r
-        tOff += m2.index + m2[1].length
-        t = leading.substring tOff - leadOff
-      if name
-        mainStart = matchStart + (leading?.length ? 0)
-        nameEnd = mainStart + name.length
-        leadingSpaces = (rest1.match /^\s*/)[0].length
-        bodyStart = txt.length - (rest1.length - leadingSpaces)
-        outerRange = makeRange el, mainStart, mainEnd
-        main: outerRange
-        name: txt.substring(mainStart, nameEnd)
-        def: defType
-        body: txt.substring(bodyStart, mainEnd)
-        tests: tests
-        next: next
-      else
-        mainStart = if defType == '=' then restOff + m.index + m[0].length else matchStart + (leading?.length ? 0)
-        ex = txt.substring(mainStart, mainEnd).match /^(.*[^ \n])[ \n]*$/
-        exEnd = if ex then mainStart + ex[1].length else mainEnd
-        body = txt.substring mainStart, exEnd
-        if body.trim()
-          textStart = restOff + m.index + (if t then leading.length - t.length else 0)
-          if t? and (lm = t.match /^[ \n]+/) then textStart += lm[0].length
-          console.log "CHECKING AUTO..."
-          if m = t.match /(?:^|\n)#@auto( +[^\n]*)?(\n|$)/
-            outerRange = makeRange el, textStart, exEnd
-            outerRange.leisureAuto = JSON.parse "{#{m[1] ? ''}}"
-            if outerRange.leisureAuto.mode == 'notebook'
-              outerRange.leisureNode = el
-              outerRange.leisureStart = textStart
-            console.log "Auto expr: #{txt.substring(textStart, exEnd)}, attrs: #{m[1]}"
-            main: outerRange
-            name: null
-            def: null
-            body: txt.substring(textStart, exEnd)
-            tests: tests
-            fullText: txt.substring(textStart, exEnd)
-            next: next
-          else
-            outerRange = makeRange el, textStart, exEnd
-            main: outerRange
-            name: null
-            def: null
-            body: txt.substring(textStart, exEnd)
-            tests: tests
-            next: next
-        else
-          main: null
+      mainStart = if defType == '=' then restOff + m.index + m[0].length else matchStart + (leading?.length ? 0)
+      ex = txt.substring(mainStart, mainEnd).match /^(.*[^ \n])[ \n]*$/
+      exEnd = if ex then mainStart + ex[1].length else mainEnd
+      body = txt.substring mainStart, exEnd
+      if body.trim()
+        textStart = restOff + m.index + (if t then leading.length - t.length else 0)
+        if t? and (lm = t.match /^[ \n]+/) then textStart += lm[0].length
+        console.log "CHECKING AUTO..."
+        if m = t.match /(?:^|\n)#@auto( +[^\n]*)?(\n|$)/
+          outerRange = makeRange el, textStart, exEnd
+          outerRange.leisureAuto = JSON.parse "{#{m[1] ? ''}}"
+          if outerRange.leisureAuto.mode == 'notebook'
+            outerRange.leisureNode = el
+            outerRange.leisureStart = textStart
+          console.log "Auto expr: #{txt.substring(textStart, exEnd)}, attrs: #{m[1]}"
+          main: outerRange
           name: null
           def: null
-          body: null
+          body: txt.substring(textStart, exEnd)
+          tests: tests
+          fullText: txt.substring(textStart, exEnd)
+          next: next
+        else
+          outerRange = makeRange el, textStart, exEnd
+          main: outerRange
+          name: null
+          def: null
+          body: txt.substring(textStart, exEnd)
           tests: tests
           next: next
+      else
+        main: null
+        name: null
+        def: null
+        body: null
+        tests: tests
+        next: next
 
 makeRange = (el, off1, off2)->
   range = document.createRange()
@@ -1250,6 +1293,7 @@ req = (file, cont)->
   s = document.createElement 'script'
   s.setAttribute 'src', file
   s.addEventListener 'load', ->
+    # MARK
     Leisure.processDefs global[name], global
     if cont then cont(_false())
   document.head.appendChild s
@@ -1299,6 +1343,8 @@ acceptCode = (box)->
     update 'compile'
     if owner(box).autorunState then runTests owner(box)
 
+errString = (err)-> err.stack
+
 evalDoc = (el)->
   [pgm, auto, x, autoNodes] = initNotebook(el)
   try
@@ -1313,12 +1359,13 @@ evalDoc = (el)->
           evalOutput node.output
       e = envFor(el)
       e.write = ->
-      e.processError = (ast)->alert('bubba ' + ReplCore.errString ast.err)
+      e.err = (err)->alert('bubba ' + errString err)
       processLine(auto, e, 'Parse.')
     else evalDocCode el, pgm
   catch err
     showError err, "Error compiling #{pgm}"
 
+# MARK
 processLine = (args...)-> Leisure.allowRedefsIn -> ReplCore.processLine(args...)
 
 showError = (e, msg)->
@@ -1328,85 +1375,94 @@ showError = (e, msg)->
   alert(e.stack)
 
 evalDocCodeOld = (el, pgm)->
+  # MARK
   ReplCore.generateCode '_doc', pgm, false, false, false, null, debug, false, (code)->
     try
+      # MARK
       defs = Leisure.eval(code, global)
     catch err
       showError err, "Error evaluating JS code: #{code}"
       throw err
+    # MARK
     Leisure.processDefs(defs)
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 
 evalDocCode = (el, pgm)->
+  # MARK
   ReplCore.generateCode '_doc', pgm, false, false, false, null, debug, true, (code)->
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 
-Parse.define 'getDocument', ->
-  Prim.makeMonad (env, cont)-> cont peerGetDocument()
+define 'getDocument', ->
+  makeSyncMonad (env, cont)-> cont peerGetDocument()
 
-Parse.define 'getLink', ->
-  Prim.makeMonad (env, cont)-> cont Prim.linkFor filename
+define 'getLink', ->
+  # MARK
+  makeSyncMonad (env, cont)-> cont Prim.linkFor filename
 
-Parse.define 'replaceDocument', ->(str)->
-  Prim.makeMonad (env, cont)->
+define 'replaceDocument', ->(str)->
+  makeSyncMonad (env, cont)->
     replaceContents str()
     cont _true()
 
-Parse.define 'gdriveOpen', ->
-  Prim.makeMonad (env, cont)->
+define 'gdriveOpen', ->
+  makeMonad (env, cont)->
     GdriveStorage.runOpen (json)->
       if json?.action == 'picked' and json.docs?.length > 0
         GdriveStorage.loadFile json.docs[0].id, -> cont _some()(laz json.docs[0].title)
       else cont _none()
 
-Parse.define 'getFilename', -> Prim.makeMonad (env, cont)-> cont filename?.pathName() ? ''
+define 'getFilename', -> makeSyncMonad (env, cont)-> cont filename?.pathName() ? ''
 
-Parse.define 'setURI', ->(uri)->
-  Prim.makeMonad (env, cont)->
+define 'setURI', ->(uri)->
+  makeSyncMonad (env, cont)->
     setFilename uri()
     cont _true()
 
-Parse.define 'getURI', -> Prim.makeMonad (env, cont)-> cont filename?.toString() ? ''
+define 'getURI', ->
+  # MARK
+  Prim.makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
 
-Parse.define 'finishLoading', ->(bubba)->
-  Prim.makeMonad (env, cont)->
+define 'finishLoading', ->(bubba)->
+  makeSyncMonad (env, cont)->
     loaded = true
     for i in postLoadQueue
       i()
     postLoadQueue = []
     cont _false()
 
-Parse.define 'markupButtons', ->
-  Prim.makeMonad (env, cont)->
+define 'markupButtons', ->
+  makeSyncMonad (env, cont)->
     if env.box then markupButtons env.box
     cont _false()
 
-Parse.define 'alert', ->(str)->
-  Prim.makeMonad (env, cont)->
+define 'alert', ->(str)->
+  makeSyncMonad (env, cont)->
     window.alert(str())
     cont _false()
 
-Parse.define 'bindEvent', ->(selector)->(eventName)->(func)->
-  Prim.makeMonad (env, cont)->
+define 'bindEvent', ->(selector)->(eventName)->(func)->
+  makeSyncMonad (env, cont)->
     node = env.box.querySelector selector()
+    # MARK Prim.runMonad
     if node then node.addEventListener eventName(), (e)-> Prim.runMonad func()(laz e), envFor(e.target), ->
     cont _false()
 
-Parse.define 'quit', -> window.close()
+define 'quit', -> window.close()
 
-Parse.define 'config', ->(expr)->
-  Prim.makeMonad (env, cont)->
+define 'config', ->(expr)->
+  makeSyncMonad (env, cont)->
     switch expr()
       when 'autoTest' then autoRun(env.owner, true)
     cont(_false())
 
-Parse.define 'notebookSelection', ->(func)->
-  Prim.makeMonad (env, cont)->
+define 'notebookSelection', ->(func)->
+  makeSyncMonad (env, cont)->
     sel = window.getSelection()
     bx = getBox sel.focusNode
     if bx? and hasFunc bx, func
+      # MARK
       offset = (bx.ast.leisureCodeOffset ? 0)
       r = sel.getRangeAt(0)
       window.r = r
@@ -1423,9 +1479,11 @@ hasFunc = (bx, func)->
   ast = getAst(bx)
   ast == func().ast || ast == func.ast
 
-Parse.define 'notebookAst', ->(func)->
-  Prim.makeMonad (env, cont)->
+define 'notebookAst', ->(func)->
+  makeSyncMonad (env, cont)->
+    # MARK
     if func.leisureName?
+      # MARK
       node = document.querySelector "[LeisureFunc=#{func.leisureName}]"
       if node?
         ast = getAst node
@@ -1489,7 +1547,7 @@ getMaxStrokeWidth = (el, base, svg, transformFunc)->
     transformFunc el, svg.width.baseVal.value
   else if base.nodeName == 'use' then getMaxStrokeWidth base, base.instanceRoot.correspondingElement, svg, transformFunc
   else if base.nodeName == 'g'
-    Parse.foldLeft ((v, n)-> Math.max v, (getMaxStrokeWidth n, n, svg, transformFunc)), 0, el.childNodes
+    foldLeft ((v, n)-> Math.max v, (getMaxStrokeWidth n, n, svg, transformFunc)), 0, el.childNodes
   else 0
 
 baseStrokeWidth = (el, w)-> w
@@ -1547,6 +1605,7 @@ emptyFile
 # Exports
 #
 
+# MARK
 Prim.defaultEnv.require = req
 
 root.svgMeasureText = svgMeasureText

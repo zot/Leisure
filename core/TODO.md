@@ -1,6 +1,9 @@
-# monad continuation queue
+# Bugs
 
-Use a queue instead of setTimeout
+barf if there are tabs
+
+REPL can't handle comments
+
 
 # Case expr
 
