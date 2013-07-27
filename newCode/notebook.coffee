@@ -9,11 +9,17 @@
   define,
   foldLeft,
   Nil,
+  getType,
 } = root = require './ast'
 {
+  runMonad,
   makeMonad,
   makeSyncMonad,
+  identity,
 } = require './runtime'
+{
+  gen,
+} = require './gen'
 URI = require './uri'
 
 #debug = true
@@ -47,7 +53,7 @@ delay = (func)-> window.setTimeout func, 1
 basePresentValue = null
 
 presentValue = (v)->
-  if (ReplCore.getType v) == 'svgNode'
+  if (getType v) == 'svgNode'
     content = v(laz(id))
     _svgPresent()(laz(content))(laz(id))
   else basePresentValue(v)
@@ -91,7 +97,7 @@ createPeer = ->
       [expr, result] = value
       console.log "EVAL: #{expr}, RESULT: #{result}"
       env = xusEnv(result, expr)
-      processLine expr, env, 'Parse.', -> env.cleanup?()
+      processLine expr, env, -> env.cleanup?()
   peer.set 'leisure/document', peerGetDocument
   peer.set 'leisure/functions', peerGetFunctions
   peer.set 'leisure/storage', []
@@ -163,7 +169,7 @@ allowEvents = true
 bindNotebook = (el)->
   if !basePresentValue
     # MARK
-    basePresentValue = Prim.defaultEnv.presentValue
+    basePresentValue = (value)-> String value
     Prim.defaultEnv.presentValue = presentValue
     Prim.defaultEnv.write = (msg)->console.log msg
     Prim.defaultEnv.owner = document.body
@@ -1034,7 +1040,7 @@ clickTest = (bx)->
 runTest = (bx)->
   test = bx.test
   passed = true
-  processLine(prepExpr(test.expr), (
+  processLine prepExpr(test.expr), (
     require: req
     write: (str)-> console.log str
     debug: debug
@@ -1043,7 +1049,7 @@ runTest = (bx)->
     processResult: (result, ast)-> passed = showResult bx, escapeHtml(Parse.print(result)), escapeHtml(test.expected)
     err: -> passed = false
     presentValue: (x)-> x
-  ))
+  ), identity
   passed
 
 showResult = (bx, actual, expected)->
@@ -1333,7 +1339,7 @@ owner = (box)->
 
 evalBox = (box, envBox)->
   env = if envBox? then envFor(envBox) else null
-  processLine box.textContent, env, 'Parse.', -> env?.cleanup?()
+  processLine box.textContent, env, -> env?.cleanup?()
   getAst box
   if box.output && hasMonadOutput(box.output) && box.textContent.match /(^|\n)#@hidden *(\n|$)/ then hideOutputSource box.output
 
@@ -1360,13 +1366,22 @@ evalDoc = (el)->
       e = envFor(el)
       e.write = ->
       e.err = (err)->alert('bubba ' + errString err)
-      processLine(auto, e, 'Parse.')
+      processLine auto, e, identity
     else evalDocCode el, pgm
   catch err
     showError err, "Error compiling #{pgm}"
 
-# MARK
-processLine = (args...)-> Leisure.allowRedefsIn -> ReplCore.processLine(args...)
+processLine = (text, env, cont)->
+  if text
+    try
+      runMonad L_newParseLine()(->Nil)(->text), env, (ast)->
+        try
+          runMonad (eval "(#{gen ast})"), env, cont
+        catch err
+          cont err.stack
+    catch err
+      cont err.stack
+  else cont ''
 
 showError = (e, msg)->
   console.log msg
@@ -1374,23 +1389,8 @@ showError = (e, msg)->
   console.log e.stack
   alert(e.stack)
 
-evalDocCodeOld = (el, pgm)->
-  # MARK
-  ReplCore.generateCode '_doc', pgm, false, false, false, null, debug, false, (code)->
-    try
-      # MARK
-      defs = Leisure.eval(code, global)
-    catch err
-      showError err, "Error evaluating JS code: #{code}"
-      throw err
-    # MARK
-    Leisure.processDefs(defs)
-    for node in el.querySelectorAll '[codeMain]'
-      getAst node
-
 evalDocCode = (el, pgm)->
-  # MARK
-  ReplCore.generateCode '_doc', pgm, false, false, false, null, debug, true, (code)->
+  runMonad L_runFile(->pgm), defaultEnv, (result)->
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 
@@ -1421,8 +1421,7 @@ define 'setURI', ->(uri)->
     cont _true()
 
 define 'getURI', ->
-  # MARK
-  Prim.makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
+  makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
 
 define 'finishLoading', ->(bubba)->
   makeSyncMonad (env, cont)->
@@ -1445,8 +1444,7 @@ define 'alert', ->(str)->
 define 'bindEvent', ->(selector)->(eventName)->(func)->
   makeSyncMonad (env, cont)->
     node = env.box.querySelector selector()
-    # MARK Prim.runMonad
-    if node then node.addEventListener eventName(), (e)-> Prim.runMonad func()(laz e), envFor(e.target), ->
+    if node then node.addEventListener eventName(), (e)-> runMonad func()(laz e), envFor(e.target), ->
     cont _false()
 
 define 'quit', -> window.close()

@@ -4,6 +4,9 @@ barf if there are tabs
 
 REPL can't handle comments
 
+make regexp literals
+
+undefine names which don't compile successfully
 
 # Case expr
 
@@ -36,6 +39,7 @@ group things between commas so you don't need parens
 
 Fixup theme stuff -- use icons instead of X and -> (transfer changes from implementationTalk.lmd into notebook-proper)
 
+show indentation in different colors
 
 # custom data in tokenPacks
 

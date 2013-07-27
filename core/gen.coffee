@@ -53,6 +53,8 @@ misrepresented as being the original software.
   makeMonad,
   runMonad,
   _false,
+  left,
+  right,
 } = require './runtime'
 _ = require './lodash.min'
 
@@ -133,8 +135,9 @@ define 'runAst', ->(ast)->
       result = eval code
     catch err
       err.message = "\nError running ast: #{ast()}\ncode: #{code}\nerror: #{err.message}"
-      console.log err.stack
-      throw err
-    runMonad result, env, cont
+      #console.log err.stack
+      #throw err
+      cont left err
+    runMonad result, env, (result)-> cont right result
 
 root.gen = gen

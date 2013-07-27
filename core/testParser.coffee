@@ -58,7 +58,7 @@ require('source-map-support').install()
   getValue,
 } = require './runtime'
 
-runLsr = (str)-> (runMonad L_runLine()(L_nil)(-> str)).tail()
+runLsr = (str)-> (runMonad L_runLine()(L_nil)(-> str)).tail()(->(x)-> throw x())(->(x)-> x())
 
 global.runMonad = runMonad
 global.setType = setType

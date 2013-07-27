@@ -309,3 +309,5 @@ root.getValue = getValue
 root.makeMonad = makeMonad
 root.makeSyncMonad = makeSyncMonad
 root.replaceErr = replaceErr
+root.left = left
+root.right = right
