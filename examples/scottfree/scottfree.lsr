@@ -77,10 +77,28 @@ isPartialString string = strMatches string '^".*"\\s+[0-9]+\\s*$'
   false
   strMatches string '^".*[^"]\\s*$'
 
+# convert a list of strings into integers by multiplying each element by 1
+asInts list = map (* 1) list
+  
+# convert all but last element into an int for a room list
+asRoom list = append (asInts (removeLast list)) (tail list)
+asRooms list = map (asRoom) list
+
+# convert into an item list which is name, room#, and autoget string
+asItem string = do
+  matches = strMatch string '^(".*")\\s+([0-9]+)\\s*$'
+  name = head (at matches 1)
+  room = 1 * (at (at matches 1) 1)
+  agmatch = strMatch name '/(.*)/'
+  isCons agmatch
+    [ (strReplace name (regexp '/.*/') '') room (head (at agmatch 1)) ]
+    [ name room '' ]
+asItems list = map (asItem) list  
+  
 processFile contents = do
   #print contents
   #print (at contents 0)
-  GameHeader = (take GH_SIZEOF contents)
+  GameHeader = asInts (take GH_SIZEOF contents)
   setValue 'GameHeader' GameHeader
   after_header = (drop GH_SIZEOF contents)
   num_actions = (at GameHeader GM_NUM_ACTIONS)
@@ -97,7 +115,7 @@ processFile contents = do
   after_words = drop max_words after_actions
   num_rooms = at GameHeader GH_NUM_ROOMS
   max_rooms = (num_rooms * 1 + 1) * 7
-  Rooms = box 7 (take max_rooms after_words)
+  Rooms = asRooms (box 7 (take max_rooms after_words))
   setValue 'Rooms' Rooms
   after_rooms = drop max_rooms after_words
   num_msgs = (at GameHeader GH_NUM_MESSAGES)
@@ -107,13 +125,13 @@ processFile contents = do
   after_msgs = drop max_msgs after_rooms
   num_items = at GameHeader GH_NUM_ITEMS
   max_items = num_items * 1 + 1
-  Items = take max_items after_msgs
+  Items = asItems (take max_items after_msgs)
   setValue 'Items' Items
   after_items = drop max_items after_msgs
   Comments = take (num_actions * 1 + 1) after_items
   setValue 'Comments' Comments
   after_comments = drop (num_actions * 1 + 1) after_items
-  GameFooter = take 3 after_comments
+  GameFooter = asInts (take 3 after_comments)
   setValue 'GameFooter' GameFooter
   "Data File Loaded."
 
@@ -139,8 +157,10 @@ debugGame = do
   print concat[ "\nNum Messsages: " (length Messages) " All Messages: " Messages ]
   Items <- getValue 'Items'
   print concat[ "\nNum Items: " (length Items) " All Items: " Items ]
-  Comments <- getValue 'Comments'
-  print concat[ "\nNum Comments: " (length Comments) " All Comments: " Comments ]
   GameFooter <- getValue 'GameFooter'
   print (merge [ '\nversion: ' '\nnadv number: ' '\nunknown: '] GameFooter)
   "Debug finished."
+# can't put these inside the function or it craps out  
+#  Comments <- getValue 'Comments'
+#  print concat[ "\nNum Comments: " (length Comments) " All Comments: " Comments ]
+  
