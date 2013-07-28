@@ -97,7 +97,7 @@ define 'strMatch', ->(str)->(pat)->
     pos = 1
     while m[pos]
       groups.push m[pos++]
-    consFrom [m[0], groups, m.index, m.input]
+    consFrom [m[0], consFrom(groups), m.index, m.input]
   else Nil
 define 'strToList', ->(str)-> strToList str()
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
@@ -155,13 +155,26 @@ defaultEnv =
   write: (str)-> process.stdout.write(str)
   err: (err)-> @write "Error: #{err.stack ? err}"
 
+monadModeSync = false
+
+getMonadSyncMode = -> monadModeSync
+
+withSyncModeDo = (newMode, block)->
+  oldMode = monadModeSync
+  monadModeSync = newMode
+  try
+    block()
+  finally
+    monadModeSync = oldMode
+
 runMonad = (monad, env, cont)->
   env = env ? root.defaultEnv
-  ret = newRunMonad monad, env, cont, []
+  withSyncModeDo true, -> newRunMonad monad, env, cont, []
 
 isMonad = (m)-> typeof m == 'function' && m.cmd?
 
-continueMonads = (contStack, env)-> (result)-> newRunMonad result, env, null, contStack
+continueMonads = (contStack, env)->
+  (result)-> withSyncModeDo false, -> newRunMonad result, env, null, contStack
 
 newRunMonad = (monad, env, cont, contStack)->
   if cont then contStack.push cont
@@ -172,7 +185,9 @@ newRunMonad = (monad, env, cont, contStack)->
           contStack.push ((bnd)->(x)->bnd(->x))(monad.binding())
           monad = monad.monad()
           continue
-        else if !monad.sync then return monad.cmd(env, continueMonads(contStack, env))
+        else if !monad.sync
+          monadModeSync = false
+          return monad.cmd(env, continueMonads(contStack, env))
         result = monad.cmd(env, identity)
       else result = monad
       if !contStack.length then return result
@@ -311,3 +326,4 @@ root.makeSyncMonad = makeSyncMonad
 root.replaceErr = replaceErr
 root.left = left
 root.right = right
+root.getMonadSyncMode = getMonadSyncMode
