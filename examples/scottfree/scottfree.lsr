@@ -110,7 +110,7 @@ isPartialString string = strMatches string '^".*"\\s+[0-9]+\\s*$'
 asInts list = map (* 1) list
 
 # convert all but last element into an int for a room list
-asRoom list = append (asInts (removeLast list)) (tail list)
+asRoom list = append (asInts (removeLast list)) [ (last list) ]
 asRooms list = map (asRoom) list
 
 # convert into an item list which is name, room#, and autoget string
@@ -145,6 +145,11 @@ processFile contents = do
   setValue 'Nouns' (evens Words)
   setValue 'Verbs' (odds Words)
   after_words = drop max_words after_actions
+  processFile2 after_words
+  
+processFile2 after_words = do 
+  GameHeader <- getValue 'GameHeader'
+  num_actions = (at GameHeader GM_NUM_ACTIONS)  
   num_rooms = at GameHeader GH_NUM_ROOMS
   max_rooms = (num_rooms * 1 + 1) * 7
   Rooms = asRooms (box 7 (take max_rooms after_words))
@@ -184,6 +189,9 @@ debugGame = do
   print concat[ "\nNum Nouns: " (length Nouns) " Nouns: " Nouns]
   Verbs <- getValue 'Verbs'
   print concat[ "\nNum Verbs: " (length Verbs) " Verbs: " Verbs]
+  debugGame2
+  
+debugGame2 = do    
   Rooms <- getValue 'Rooms'
   print concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (at Rooms 0) '\nLast Room: ' (last Rooms)]
   print concat[ "\nAll Rooms: " Rooms ]
@@ -194,14 +202,10 @@ debugGame = do
   GameFooter <- getValue 'GameFooter'
   print (merge [ '\nversion: ' '\nnadv number: ' '\nunknown: '] GameFooter)
   "Debug finished."
-# can't put these inside the function or it craps out  
-#  Comments <- getValue 'Comments'
-#  print concat[ "\nNum Comments: " (length Comments) " All Comments: " Comments ]
-
 
 # lets do this!
 playGame = do
-  look
+  look 0
   performActions 0 0
   print concat[ "\nTell me what to do ? " ]
   input = getInput
@@ -216,17 +220,18 @@ playGame = do
 
 # decrement the light this turn if needed  
 processLight = do
-  timeleft = peek 'GameHeader' GH_LIGHT_TIME
-  light = peek 'Items' LIGHT_SOURCE
+  timeleft <- peek 'GameHeader' GH_LIGHT_TIME
+  light <- peek 'Items' LIGHT_SOURCE
   where = at light 1
   or (eq where DESTROYED) (eq timeleft -1) # -1 means lasts forever, nothing to do
     nil         
     lightTick
-
+  nil
+  
 # we need to decrement the light
 lightTick = do
-  timeleft = (peek 'GameHeader' GH_LIGHT_TIME) - 1
-  myloc = peek 'GameHeader' GH_PLAYER_ROOM
+  timeleft <- (peek 'GameHeader' GH_LIGHT_TIME) - 1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   >= timeleft 0  # save it back if not negative
     poke 'GameHeader' GH_LIGHT_TIME timeleft
     nil
@@ -241,15 +246,16 @@ lightTick = do
       nil
       
 # take a looksy  
-look = do
-  myloc = peek 'GameHeader' GH_PLAYER_ROOM
-  and (eq (peek 'BitFlags' DARKBIT) 1) (not (isLightPresent myloc))
+look ignore = do
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+  darkbit <- peek 'BitFlags' DARKBIT
+  and (eq darkbit 1) (not (isLightPresent myloc))
     print "You can't see. It is too dark!\n"
     basicLook myloc
 
 basicLook myloc = do
-  room = peek 'Rooms' myloc
-  name = strReplace (at room 7) (regexp '\\{nl\\}') '\n'  # swap out any {nl} for real newlines
+  room <- peek 'Rooms' myloc
+  name = strReplace (at room 6) (regexp '\\{nl\\}') '\n'  # swap out any {nl} for real newlines
   strMatches name '^\\*'
     print name
     print concat[ "You are in a " name ]
@@ -268,7 +274,7 @@ printItems myloc = do
 
 # check to see if the light is either in the given room or carried by the player
 isLightPresent myloc = do
-  light = peek 'Items' LIGHT_SOURCE
+  light <- peek 'Items' LIGHT_SOURCE
   where = at light 1
   or (eq where myloc) (eq where CARRIED)
 
