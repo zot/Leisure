@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "browserMain.js",
+  "sourceRoot": "..",
+  "sources": [
+    "newCode/browserMain.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;CAAA,KAAA,CAAA;;CAAA,CAAA,CAAiB,GAAX,CAAN,CAA4C;;CAA5C,CACA,KAAA;;CADA,CAEA,KAAA;;CAFA,CAGA,KAAA,IAAA;;CAHA,CAIA,KAAA,aAAA;;CAJA,CAKA,KAAA;;CALA,CAMA,KAAA;CANA"
+}

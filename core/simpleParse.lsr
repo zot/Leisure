@@ -202,42 +202,43 @@ withToken tok nonTokCase tokCase = isToken tok
 ## withCons is like a safe version of a cons
 withCons l nilCase cont = isCons l (l (\h t D . cont h t) nilCase) nilCase
 
-parseToks toks groups cont =
-  isNil toks (cont nil)
-    parseTok toks groups \h t .
-      parseToks t groups \res .
-        cont (cons h
+ifNotErr thing cont = hasType thing parseErr thing (cont thing)
+
+parseToks toks groups =
+  isNil toks nil
+    ifNotErr (parseTok toks groups) \list . list \h t .
+      ifNotErr (parseToks t groups) \res .
+        cons h
           and (isCons res) (isBlockStart (head res))
             cons res nil
-            res)
+            res
 
-parseTok toks groups cont = withCons toks nil \h t .
-  withToken h (cont h t) \txt pos .
+parseTok toks groups = withCons toks nil \h t .
+  withToken h toks \txt pos .
     assoc txt groups
-      \close . parseGroup h t nil close groups cont
-      isTokenStart h '\n' (parseIndent h t nil groups cont)
-        cont h t
+      \close . parseGroup h t nil close groups
+      isTokenStart h '\n' (parseIndent h t nil groups)
+        toks
 
-parseGroup left toks gr close groups cont = withCons toks (parseErr 'Unterminated group starting ' (loc left))
+parseGroup left toks gr close groups = withCons toks (parseErr 'Unterminated group starting ' (loc left))
   \h t . isTokenString h close
     eq close ')'
-      cont (parensFromToks left h (reverse gr)) t
-      cont (cons left (cons (reverse gr) (cons h nil))) t
+      cons (parensFromToks left h (reverse gr)) t
+      cons (cons left (cons (reverse gr) (cons h nil))) t
     withToken h
-      parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
+      ifNotErr (parseTok toks groups) \list . list \restH restT .
+        parseGroup left restT (cons restH gr) close groups
       \txt pos .
         rassoc txt groups
           \open . parseErr (strCat (cons 'Mismatched group: ' (cons (tokenString left) (cons txt (cons ' ' nil))))) (loc left)
-          parseTok toks groups \restH restT . parseGroup left restT (cons restH gr) close groups cont
+          ifNotErr (parseTok toks groups) \list . list \restH restT . parseGroup left restT (cons restH gr) close groups
 
-parseIndent indent toks gr groups cont =
-  withCons toks (cont (makeParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil) \h t .
-    or (withToken h false (\txt pos . rassoc txt groups (\open . true) false))
+parseIndent indent toks gr groups =
+  withCons toks (cons (makeParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil)
+    \h t . or (withToken h false (\txt pos . rassoc txt groups (\open . true) false))
       and (isTokenStart h '\n') (<= (strLen (tokenString h)) (strLen (tokenString indent)))
-      cont (makeParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
-      parseTok toks groups \restH restT . parseIndent indent restT (cons restH gr) groups cont
-
-id x = x
+      cons (makeParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
+      ifNotErr (parseTok toks groups) \list . list \restH restT . parseIndent indent restT (cons restH gr) groups
 
 #################
 ## Creating ASTs
@@ -431,7 +432,7 @@ scanLineG str pat groups onDef onExpr = \\
   # check if it's a definition
   find (\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\n'))) toks (\item . isTokenString item '=') false
     toks \name rest . \\
-      parseIt func = parseToks (checkSetDataType func rest name) groups \list .
+      parseIt func = ifNotErr (parseToks (checkSetDataType func rest name) groups) \list .
         onDef (createDef list name (arity rest 0) str)
       .
       isTokenString (head rest) '='
@@ -440,7 +441,7 @@ scanLineG str pat groups onDef onExpr = \\
           parseIt (tail rest)
         transformDef name rest \def .
           parseIt (cons (token '\\' (- (position (head rest)) 1)) def)
-    parseToks toks groups \list . onExpr list
+    ifNotErr (parseToks toks groups) \list . onExpr list
 
 parseLineG str pat names groups onDef onExpr = \\
   astCallback cb = \list . createAst list names \ast . cb ast
@@ -619,9 +620,9 @@ addTokenGroup open close = bind (addToken open)
 ## TESTING
 #################
 
-parse str pat = parseIndent (token '\n' 0) (tokens str pat) nil parenGroups \h t . stripParens h
+parse str pat = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil parenGroups) \list . list \h t . stripParens h
 
-parseG str pat groups = parseIndent (token '\n' 0) (tokens str pat) nil groups \h t . stripParens h
+parseG str pat groups = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil groups) \list . list \h t . stripParens h
 
 parseToAst str pat = createAst (parse str pat) nil id
 
@@ -671,6 +672,7 @@ scanLineM line = bind (getValue 'tokenPat')
 newParseLine names line = bind (scanLineM line)
   \scanned . createAst scanned names \ast . ast
 
+#runLine names line = d "LSR LINE: " line bind (newParseLine names line)
 runLine names line = bind (newParseLine names line)
   \ast . bind (runAst ast)
     \result . cons ast result

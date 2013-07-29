@@ -50,7 +50,7 @@ misrepresented as being the original software.
   define,
 } = root = module.exports = require './ast'
 {
-  makeMonad,
+  makeSyncMonad,
   runMonad,
   _false,
   left,
@@ -129,15 +129,18 @@ letList = (ast, buf)->
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
 define 'runAst', ->(ast)->
-  makeMonad (env, cont)->
-    code = "(#{gen ast()})"
+  makeSyncMonad (env, cont)->
+    code = null
     try
-      result = eval code
+      code = "(#{gen ast()})"
+      #console.log "RUN AST: #{ast()}\nCODE: #{code}"
+      runMonad eval(code), env, (result)->
+        #console.log "RESULT: #{result}"
+        cont right result
     catch err
       err.message = "\nError running ast: #{ast()}\ncode: #{code}\nerror: #{err.message}"
       #console.log err.stack
       #throw err
       cont left err
-    runMonad result, env, (result)-> cont right result
 
 root.gen = gen
