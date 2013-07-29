@@ -154,7 +154,7 @@ processFile contents = do
   after_actions = drop max_actions after_header
   num_words = at GameHeader GH_NUM_WORDS
   max_words = (num_words * 1 + 1) * 2
-  Words = take max_words after_actions
+  Words = map unquote (take max_words after_actions)
   setValue 'Nouns' (evens Words)
   setValue 'Verbs' (odds Words)
   after_words = drop max_words after_actions
@@ -170,7 +170,7 @@ processFile2 after_words = do
   after_rooms = drop max_rooms after_words
   num_msgs = (at GameHeader GH_NUM_MESSAGES)
   max_msgs = num_msgs * 1 + 1
-  Messages = take max_msgs after_rooms
+  Messages = map unquote (take max_msgs after_rooms)
   setValue 'Messages' Messages
   after_msgs = drop max_msgs after_rooms
   num_items = at GameHeader GH_NUM_ITEMS
@@ -178,7 +178,7 @@ processFile2 after_words = do
   Items = asItems (take max_items after_msgs)
   setValue 'Items' Items
   after_items = drop max_items after_msgs
-  Comments = take (num_actions * 1 + 1) after_items
+  Comments = map unquote (take (num_actions * 1 + 1) after_items)
   setValue 'Comments' Comments
   after_comments = drop (num_actions * 1 + 1) after_items
   GameFooter = asInts (take 3 after_comments)
@@ -309,10 +309,14 @@ printItems myloc = do
     print concat[ "You can also see: " | (intersperse (map (\x . (at x 0)) items) ',') ]  #have to extract the name from each item
 
 # return a list of items that are in this location    
+#  and (> (length (head items)) 1) (eq (safeat (head items) 1) myloc)
 findItemsInLocation myloc items = isNil items
   items
   eq (safeat (head items) 1) myloc
-    cons (head items) findItemsInLocation myloc (tail items)
+    do
+      print (head items)
+      print (tail items)
+      cons (head items) (findItemsInLocation myloc (tail items))
     do
       print myloc
       print (head items)
