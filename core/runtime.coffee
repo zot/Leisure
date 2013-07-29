@@ -203,7 +203,7 @@ class Monad
 define 'define', ->(name)->(arity)->(src)->(def)->
   makeSyncMonad (env, cont)->
     define name(), def, arity(), src()
-    cont L_false ? _false
+    cont L_true ? _true
 
 define 'bind', ->(m)->(binding)->
   bindMonad = makeMonad (env, cont)->
@@ -317,6 +317,7 @@ Leisure_right.prototype.toString = -> "Right(#{@(->_identity)(->_identity)})"
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
+root.isMonad = isMonad
 root.identity = identity
 root.defaultEnv = defaultEnv
 root.setValue = setValue

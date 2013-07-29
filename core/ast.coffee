@@ -251,11 +251,12 @@ root.functionCount = 0
 
 # use AST, instead of arity?
 define = (name, func, arity, src, method) ->
-  if typeof func() == 'function'
-    func().src = src
-    func().leisureContexts = []
-    func().leisureName = name
-    func().leisureArity = arity
+  #can't use func(), because it might do something or might fail
+  #if typeof func() == 'function'
+  #  func().src = src
+  #  func().leisureContexts = []
+  #  func().leisureName = name
+  #  func().leisureArity = arity
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
   global[nm] = global.leisureFuncs[nm] = func

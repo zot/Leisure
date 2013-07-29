@@ -853,7 +853,10 @@ defMacro 'or[' \list . listMacroFoldOp 'or' 'false' list
 
 defMacro 'and[' \list . listMacroFoldOp 'and' 'true' list
 
-defMacro 'concat[' \list . ['strCat' (listify (head list))]
+defMacro 'concat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
+
+bind (getValue 'listMacros')
+  \lm . ['concat[' | lm]
 
 infix code = bind (getValue 'infixPrecedence')
   \prec . bind (getValue 'infixRightAssociative')
@@ -947,8 +950,8 @@ doClause steppingClause clause prefix inLet cont = \\
   makeBind var monad = cont false \rest . inLet (cons '.') id
     ['bind' monad ['\\' var '.' | rest]]
   .
-  steppingClause
-    \h t D . isTokenString h '='
+  isCons steppingClause
+    steppingClause \h t . isTokenString h '='
       inLet
         cont true \rest . [clause | rest]
         cont true \rest . ['\\\\' clause | rest]

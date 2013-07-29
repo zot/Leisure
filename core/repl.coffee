@@ -45,6 +45,7 @@ fs = require 'fs'
 {
   identity,
   runMonad,
+  isMonad,
   defaultEnv,
   replaceErr,
 } = require './runtime'
@@ -70,7 +71,9 @@ readline = require('readline')
 evalInput = (text, cont)->
   if text
     try
-      runMonad L_newParseLine()(->Nil)(->text), defaultEnv, (ast)->
+      result = L_newParseLine()(->Nil)(->text)
+      if isMonad result then console.log "(processing IO monad)"
+      runMonad result, defaultEnv, (ast)->
         try
           if diag
             console.log "AST: #{ast}"

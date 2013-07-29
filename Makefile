@@ -6,7 +6,8 @@
 ## Note, the lua tests depend on lua5.1, luarocks, and these luarocks: underscore, luajson
 ## It uses lua5.1 to maintain compatibility with LuaJIT
 
-SRC=base ast testing gen runtime simpleParseJS browser repl
+SHARED_SRC=base ast gen runtime
+SRC=$(SHARED_SRC) testing simpleParseJS repl
 TEST=testLeisure
 TEST_PARSER=testParser
 ALL=$(SRC) $(TEST) $(TEST_PARSER) generatedPrelude simpleParse
@@ -17,14 +18,23 @@ PRELUDE=lib/generatedPrelude.js
 OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
 COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 COFFEE_JS=$(SRC:%=lib/%.js)
-NEW_COFFEE_SRC=uri prims
+NEW_COFFEE_SRC=uri prims browserMain
 NEW_COFFEE=$(NEW_COFFEE_SRC:%=newCode/%.coffee)
 NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
-NEW_LSR_SRC=std
+NEW_LSR_SRC=std svg
 NEW_LSR=$(NEW_LSR_SRC:%=newCode/%.lsr)
 NEW_LSR_JS=$(NEW_LSR_SRC:%=lib/%.js)
+BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC)
+BROWSER_INPUT=$(BROWSER_SRC:%=lib/%.js)
+BROWSER_JS=lib/browser.js
 
-all: .tested .parserTested $(NEW_LSR_JS)
+all: .tested .parserTested $(NEW_LSR_JS) $(BROWSER_JS)
+
+$(BROWSER_JS): $(BROWSER_INPUT)
+	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
+	node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@
+	rm -f lib/browser-*.js
+	cp $@ "lib/browser-$$(sha256sum $@|awk '{print $$1}').js"
 
 repl: all FRC
 	core/repl
