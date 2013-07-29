@@ -218,7 +218,7 @@ debugGame2 = do
 
 # lets do this!
 playGame = do
-  look 0
+  look
   performActions 0 0
   print concat[ "\nTell me what to do ? " ]
   input = getInput
@@ -239,7 +239,6 @@ processLight = do
   or (eq where DESTROYED) (eq timeleft -1) # -1 means lasts forever, nothing to do
     nil         
     lightTick
-  nil
   
 # we need to decrement the light
 lightTick = do
@@ -259,7 +258,7 @@ lightTick = do
       nil
       
 # take a looksy  
-look ignore = do
+look = do
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   darkbit <- peek 'BitFlags' DARKBIT
   and (eq darkbit 1) (not (isLightPresent myloc))
@@ -319,7 +318,7 @@ findItemsInLocation myloc items = isNil items
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
-  look 0
+  look
   
 # check to see if the light is either in the given room or carried by the player
 isLightPresent myloc = do
