@@ -162,6 +162,7 @@ stripParens p = isParens p (parensContent p) p
 
 parseErr msg1 msg2 = \f . f (strCat (cons msg1 (cons msg2 nil)))
 parseErrMsg err = err \m . m
+isParseErr thing = hasType thing parseErr
 
 emptyToken = regexp '^\\n[ \\i]*(#|$)'
 
@@ -546,7 +547,6 @@ baseMacroSub macs expr = isToken expr
             withToken subH
               cons subH (map (baseMacroSub macs) t)
               \tok pos . baseMacroSub macs (cons subH t)
-          #d "TOK: " h (\tok pos . assoc tok macs
           \tok pos . assoc tok macs
             \def . baseMacroSub macs (def t)
             cons h (map (baseMacroSub macs) t)
@@ -674,10 +674,13 @@ scanLineM line = bind (getValue 'tokenPat')
 newParseLine names line = bind (scanLineM line)
   \scanned . createAst scanned names \ast . ast
 
-#runLine names line = d "LSR LINE: " line bind (newParseLine names line)
 runLine names line = bind (newParseLine names line)
   \ast . bind (runAst ast)
-    \result . cons ast result
+    \result . cons
+      ast
+      isParseErr result
+        left (parseErrMsg result)
+        right result
 
 runLines names lines = lines
   \h t D . bind (runLine names h)
@@ -704,10 +707,11 @@ load file = bind (readFile file)
               resetTokenPacks activePacks
 
 require file = bind (getValue 'requiredFiles')
-  \files . contains files file nil
+  \files . contains files file
+    false
     bind (load file)
       \_ . bind (setValue 'requiredFiles' (cons file files))
-        \_ . nil
+        \_ . true
 
 ################
 # Token Packs

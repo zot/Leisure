@@ -46,8 +46,10 @@ fs = require 'fs'
   identity,
   runMonad,
   isMonad,
+  asyncMonad,
   defaultEnv,
   replaceErr,
+  getMonadSyncMode,
 } = require './runtime'
 
 global.runMonad = runMonad
@@ -237,14 +239,6 @@ compile = (file, cont)->
       lines = runMonad L_linesForFile()(-> contents)
       names = runMonad L_namesForLines()(-> lines)
       asts = []
-
-      #for line in lines.toArray()
-      #  try
-      #    asts.push (runMonad L_runLine()(->names)(->line)).head()
-      #  catch err
-      #    console.log "Error running line: #{line}\n#{err.stack}"
-      #if true
-
       compileLines lines, names, asts, (asts)->
         if asts instanceof Error then cont asts
         else
@@ -261,28 +255,42 @@ compile = (file, cont)->
             outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
             if outDir then outputFile = path.join(outDir, path.basename(outputFile))
             if verbose then console.log "JS FILE: #{outputFile}"
-            writeFile outputFile, _(asts).map((item)-> "runMonad(#{gen item})").join(';\n') + ";\n", (err)->
+            writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
               if !err then cont(asts)
               else
                 console.log "Error writing JS file: #{outputFile}"
                 cont replaceErr err, "Error writing JS file: #{outputFile}...\n#{err.message}"
           else cont []
 
-compileLines = (lines, names, asts, cont)->
-  if lines.isNil() then cont asts
-  else
-    runMonad L_runLine()(->names)(->lines.head()), null, (lineData)->
-      ast = lineData.head()
-      result = lineData.tail()(->(x)->x())(->(x)->x())
-      #console.log "@@@ AST #{if typeof ast == 'function' then ast.constructor.name else ast}..."
-      #console.log "@@@ #{ast.head()}"
-      if result instanceof Error
-        result = replaceErr result, "Error compiling line: #{lines.head()}...\n#{ast.message}"
-        console.log result.stack
-        cont result
+newCompileLines = (lines, names, asts, cont)->
+  while !lines.isNil()
+    lineData = runMonad L_runLine()(->names)(->lines.head()), null, (data)->
+      if getMonadSyncMode() then data
       else
-        asts.push ast
-        compileLines lines.tail(), names, asts, cont
+        res = compileResult lineData, asts
+        if res then cont res
+        else newCompileLines lines.tail(), names, asts, cont
+    if lineData == asyncMonad then return
+    res = compileResult lineData, asts
+    if res then return cont res
+    lines = lines.tail()
+  cont asts
+
+compileResult = (lineData, asts)->
+  ast = lineData.head()
+  result = lineData.tail()(->(x)->x())(->(x)->x())
+  #console.log "@@@ AST #{if typeof ast == 'function' then ast.constructor.name else ast}..."
+  #console.log "@@@ #{ast.head()}"
+  if result instanceof Error
+    result = replaceErr result, "Error compiling line: #{lines.head()}...\n#{ast.message}"
+    console.log result.stack
+    return result
+  else
+    asts.push ast
+  null
+
+#compileLines = oldCompileLines
+compileLines = newCompileLines
 
 primCompile = (file, cont)->
   {
