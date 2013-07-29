@@ -328,8 +328,20 @@ isLightPresent myloc = do
 
 # return a pair of ints for the intended verb/noun combo   
 getInput = do
-  move <- prompt (concat[ "Tell me what to do?" ])
-  [ 0 0 ]
+  str <- prompt (concat[ "Tell me what to do?" ])
+  basicGetInput str
 
+basicGetInput str = do
+  verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
+  isCons verb_noun
+    do
+      wordlen <- peek 'GameHeader' GH_WORD_LENGTH
+      m = at verb_noun 1
+      v = strToUpperCase (strSubstring (at m 0) 0 wordlen)
+      n = (eq 1 (length m)) ('') (strToUpperCase (strSubstring (at m 1) 0 wordlen))
+      n = "DERP"
+      log concat[ "M: " m " V: " v " N: " n] nil
+    print "You use words I don't know"
+  
 performActions verb noun = do
   -1
