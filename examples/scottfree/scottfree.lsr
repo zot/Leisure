@@ -297,12 +297,27 @@ hasExit exit idx = eq exit 0
 # chop off the last element (its name) from the room and compute the valid exits    
 printExits room = do
   exits = removeIf (eq '') (mapIndex (hasExit) (removeLast room))
-  eq exits nil
+  isNil exits
     print "Obvious exits: none."
     print concat[ "Obvious exits: "  | (intersperse exits ", ") ]
 
 printItems myloc = do
-  print "Items:\n"  
+  allitems <- getValue 'Items'
+  items <- findItemsInLocation myloc allitems
+  isNil items
+    items
+    print concat[ "You can also see: " | (intersperse (map (\x . (at x 0)) items) ',') ]  #have to extract the name from each item
+
+# return a list of items that are in this location    
+findItemsInLocation myloc items = isNil items
+  items
+  eq (safeat (head items) 1) myloc
+    cons (head items) findItemsInLocation myloc (tail items)
+    do
+      print myloc
+      print (head items)
+      print (safeat (head (tail items)) 1)
+      findItemsInLocation myloc (tail items)
 
 # quick debug function for checking out the diff rooms
 tp room = do
