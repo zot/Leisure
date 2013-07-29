@@ -268,7 +268,7 @@ look ignore = do
 
 basicLook myloc = do
   room <- peek 'Rooms' myloc
-  name = strReplace (at room 6) (regexp '\\{nl\\}') '\n'  # swap out any {nl} for real newlines
+  name = strReplace (at room 6) (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
   strMatches name '^\\*'
     print name
     print concat[ "You are in a " name ]
@@ -299,29 +299,22 @@ printExits room = do
   exits = removeIf (eq '') (mapIndex (hasExit) (removeLast room))
   isNil exits
     print "Obvious exits: none."
-    print concat[ "Obvious exits: "  | (intersperse exits ", ") ]
+    print concat[ "Obvious exits: "  (intersperse exits ", ") "."]
 
 printItems myloc = do
   allitems <- getValue 'Items'
   items <- findItemsInLocation myloc allitems
   isNil items
     items
-    print concat[ "You can also see: " | (intersperse (map (\x . (at x 0)) items) ',') ]  #have to extract the name from each item
+    print concat[ "You can also see: " (intersperse (map (\x . strReplace (at x 0) (regexpFlags '\\{nl\\}' 'g' ) '\n' ) items) ', ') "." ]  #have to extract the name from each item
 
 # return a list of items that are in this location    
 #  and (> (length (head items)) 1) (eq (safeat (head items) 1) myloc)
 findItemsInLocation myloc items = isNil items
-  items
-  eq (safeat (head items) 1) myloc
-    do
-      print (head items)
-      print (tail items)
-      cons (head items) (findItemsInLocation myloc (tail items))
-    do
-      print myloc
-      print (head items)
-      print (safeat (head (tail items)) 1)
-      findItemsInLocation myloc (tail items)
+  nil
+  eq (at (head items) 1) myloc
+    cons (head items) (findItemsInLocation myloc (tail items))
+    findItemsInLocation myloc (tail items)
 
 # quick debug function for checking out the diff rooms
 tp room = do
@@ -336,7 +329,7 @@ isLightPresent myloc = do
 
 # return a pair of ints for the intended verb/noun combo   
 getInput = do
-  move <- prompt (concat ["Tell me what to do?" ])
+  move <- prompt (concat[ "Tell me what to do?" ])
   [ 0 0 ]
 
 performActions verb noun = do
