@@ -154,6 +154,8 @@ replaceErr = (err, msg)->
 defaultEnv =
   write: (str)-> process.stdout.write(str)
   err: (err)-> @write "Error: #{err.stack ? err}"
+  prompt: ->throw new Error "Environment does not support prompting!"
+
 
 monadModeSync = false
 
@@ -292,6 +294,10 @@ define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->
       cont (if err then left err.stack else right contents)
+
+define 'prompt', ->(msg)->
+  makeMonad (env, cont)->
+    env.prompt(String(msg()), (input)-> cont(input))
 
 #######################
 # Classes for Printing
