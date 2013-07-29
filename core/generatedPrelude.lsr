@@ -432,8 +432,10 @@ scanLineG str pat groups onDef onExpr = \\
   # check if it's a definition
   find (\tok . or (contains groupToks (tokenString tok)) (isCons (strMatch (tokenString tok) '^\n'))) toks (\item . isTokenString item '=') false
     toks \name rest . \\
-      parseIt func = ifNotErr (parseToks (checkSetDataType func rest name) groups) \list .
-        onDef (createDef list name (arity rest 0) str)
+      parseIt func = \\
+        parsed = parseToks (checkSetDataType func rest name) groups
+        .
+        onDef (ifNotErr parsed \list . createDef list name (arity rest 0) str)
       .
       isTokenString (head rest) '='
         isTokenString (head (tail rest)) '\\'
