@@ -317,6 +317,7 @@ Leisure_right.prototype.toString = -> "Right(#{@(->_identity)(->_identity)})"
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
+root.isMonad = isMonad
 root.identity = identity
 root.defaultEnv = defaultEnv
 root.setValue = setValue
