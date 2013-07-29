@@ -154,7 +154,7 @@ processFile contents = do
   after_actions = drop max_actions after_header
   num_words = at GameHeader GH_NUM_WORDS
   max_words = (num_words * 1 + 1) * 2
-  Words = take max_words after_actions
+  Words = map unquote (take max_words after_actions)
   setValue 'Nouns' (evens Words)
   setValue 'Verbs' (odds Words)
   after_words = drop max_words after_actions
@@ -170,7 +170,7 @@ processFile2 after_words = do
   after_rooms = drop max_rooms after_words
   num_msgs = (at GameHeader GH_NUM_MESSAGES)
   max_msgs = num_msgs * 1 + 1
-  Messages = take max_msgs after_rooms
+  Messages = map unquote (take max_msgs after_rooms)
   setValue 'Messages' Messages
   after_msgs = drop max_msgs after_rooms
   num_items = at GameHeader GH_NUM_ITEMS
@@ -178,7 +178,7 @@ processFile2 after_words = do
   Items = asItems (take max_items after_msgs)
   setValue 'Items' Items
   after_items = drop max_items after_msgs
-  Comments = take (num_actions * 1 + 1) after_items
+  Comments = map unquote (take (num_actions * 1 + 1) after_items)
   setValue 'Comments' Comments
   after_comments = drop (num_actions * 1 + 1) after_items
   GameFooter = asInts (take 3 after_comments)
@@ -218,7 +218,7 @@ debugGame2 = do
 
 # lets do this!
 playGame = do
-  look 0
+  look
   performActions 0 0
   print concat[ "\nTell me what to do ? " ]
   input = getInput
@@ -239,7 +239,6 @@ processLight = do
   or (eq where DESTROYED) (eq timeleft -1) # -1 means lasts forever, nothing to do
     nil         
     lightTick
-  nil
   
 # we need to decrement the light
 lightTick = do
@@ -259,7 +258,7 @@ lightTick = do
       nil
       
 # take a looksy  
-look ignore = do
+look = do
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   darkbit <- peek 'BitFlags' DARKBIT
   and (eq darkbit 1) (not (isLightPresent myloc))
@@ -268,7 +267,7 @@ look ignore = do
 
 basicLook myloc = do
   room <- peek 'Rooms' myloc
-  name = strReplace (at room 6) (regexp '\\{nl\\}') '\n'  # swap out any {nl} for real newlines
+  name = strReplace (at room 6) (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
   strMatches name '^\\*'
     print name
     print concat[ "You are in a " name ]
@@ -297,17 +296,29 @@ hasExit exit idx = eq exit 0
 # chop off the last element (its name) from the room and compute the valid exits    
 printExits room = do
   exits = removeIf (eq '') (mapIndex (hasExit) (removeLast room))
-  eq exits nil
+  isNil exits
     print "Obvious exits: none."
-    print concat[ "Obvious exits: "  | (intersperse exits ", ") ]
+    print concat[ "Obvious exits: "  (intersperse exits ", ") "."]
 
 printItems myloc = do
-  print "Items:\n"  
+  allitems <- getValue 'Items'
+  items <- findItemsInLocation myloc allitems
+  isNil items
+    items
+    print concat[ "You can also see: " (intersperse (map (\x . strReplace (at x 0) (regexpFlags '\\{nl\\}' 'g' ) '\n' ) items) ', ') "." ]  #have to extract the name from each item
+
+# return a list of items that are in this location    
+#  and (> (length (head items)) 1) (eq (safeat (head items) 1) myloc)
+findItemsInLocation myloc items = isNil items
+  nil
+  eq (at (head items) 1) myloc
+    cons (head items) (findItemsInLocation myloc (tail items))
+    findItemsInLocation myloc (tail items)
 
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
-  look 0
+  look
   
 # check to see if the light is either in the given room or carried by the player
 isLightPresent myloc = do
@@ -317,7 +328,7 @@ isLightPresent myloc = do
 
 # return a pair of ints for the intended verb/noun combo   
 getInput = do
-  move <- prompt (concat ["Tell me what to do?" ])
+  move <- prompt (concat[ "Tell me what to do?" ])
   [ 0 0 ]
 
 performActions verb noun = do

@@ -162,6 +162,7 @@ stripParens p = isParens p (parensContent p) p
 
 parseErr msg1 msg2 = \f . f (strCat (cons msg1 (cons msg2 nil)))
 parseErrMsg err = err \m . m
+isParseErr thing = hasType thing parseErr
 
 emptyToken = regexp '^\\n[ \\i]*(#|$)'
 
@@ -546,7 +547,6 @@ baseMacroSub macs expr = isToken expr
             withToken subH
               cons subH (map (baseMacroSub macs) t)
               \tok pos . baseMacroSub macs (cons subH t)
-          #d "TOK: " h (\tok pos . assoc tok macs
           \tok pos . assoc tok macs
             \def . baseMacroSub macs (def t)
             cons h (map (baseMacroSub macs) t)
@@ -674,10 +674,13 @@ scanLineM line = bind (getValue 'tokenPat')
 newParseLine names line = bind (scanLineM line)
   \scanned . createAst scanned names \ast . ast
 
-#runLine names line = d "LSR LINE: " line bind (newParseLine names line)
 runLine names line = bind (newParseLine names line)
   \ast . bind (runAst ast)
-    \result . cons ast result
+    \result . cons
+      ast
+      isParseErr result
+        left (parseErrMsg result)
+        right result
 
 runLines names lines = lines
   \h t D . bind (runLine names h)
@@ -691,23 +694,36 @@ runFile text = \\
   .
   runLines names lines
 
-load file = bind (readFile file)
+baseLoad file = bind (readFile file)
   \result . result
     \err . err
     \contents . bind (getValue 'stdTokenPacks')
       \stds . bind (getValue 'activeTokenPacks')
         \activePacks . bind (resetTokenPacks stds)
           \_ . bind (runFile contents)
-            \_ . isNil activePacks
+            \result . isNil activePacks
               bind (getValue 'stdTokenPacks')
-                \stds . resetTokenPacks stds
-              resetTokenPacks activePacks
+                \stds . bind (resetTokenPacks stds)
+                  \_ . result
+              bind (resetTokenPacks activePacks)
+                \_ . result
+
+load file = bind (baseLoad file)
+  \result . \\
+    errs = filter (\line . tail line (\_ . true) (\_ . false)) result
+    .
+    isNil errs
+      right true
+      left (map (\el . el \h t . cons h (t id id)) errs)
 
 require file = bind (getValue 'requiredFiles')
-  \files . contains files file nil
+  \files . contains files file
+    false
     bind (load file)
-      \_ . bind (setValue 'requiredFiles' (cons file files))
-        \_ . nil
+      \result . result
+        \x . left x
+        \_ . bind (setValue 'requiredFiles' (cons file files))
+          \_ . right true
 
 ################
 # Token Packs

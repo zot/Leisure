@@ -154,6 +154,8 @@ replaceErr = (err, msg)->
 defaultEnv =
   write: (str)-> process.stdout.write(str)
   err: (err)-> @write "Error: #{err.stack ? err}"
+  prompt: ->throw new Error "Environment does not support prompting!"
+
 
 monadModeSync = false
 
@@ -165,7 +167,8 @@ withSyncModeDo = (newMode, block)->
   try
     block()
   finally
-    monadModeSync = oldMode
+    #if !monadModeSync && oldMode then console.log "REENABLING SYNC"
+    #monadModeSync = oldMode
 
 runMonad = (monad, env, cont)->
   env = env ? root.defaultEnv
@@ -175,6 +178,8 @@ isMonad = (m)-> typeof m == 'function' && m.cmd?
 
 continueMonads = (contStack, env)->
   (result)-> withSyncModeDo false, -> newRunMonad result, env, null, contStack
+
+asyncMonad = {toString: -> "<asyncMonadResult>"}
 
 newRunMonad = (monad, env, cont, contStack)->
   if cont then contStack.push cont
@@ -187,9 +192,13 @@ newRunMonad = (monad, env, cont, contStack)->
           continue
         else if !monad.sync
           monadModeSync = false
-          return monad.cmd(env, continueMonads(contStack, env))
+          #console.log "turned off sync"
+          monad.cmd(env, continueMonads(contStack, env))
+          return asyncMonad
         result = monad.cmd(env, identity)
-      else result = monad
+      else
+        monadModeSync = true
+        result = monad
       if !contStack.length then return result
       monad = contStack.pop()(result)
   catch err
@@ -199,6 +208,11 @@ newRunMonad = (monad, env, cont, contStack)->
 
 class Monad
   toString: -> "Monad: #{@cmd.toString()}"
+
+global.L_runMonads = (monadArray)->
+  #console.log "RUNNING MONADS"
+  monadArray.reverse()
+  newRunMonad 0, defaultEnv, null, monadArray
 
 define 'define', ->(name)->(arity)->(src)->(def)->
   makeSyncMonad (env, cont)->
@@ -233,11 +247,11 @@ getValue = (key)-> values[key]
 define 'setValue', ->(name)->(value)->
   makeSyncMonad (env, cont)->
     values[name()] = value()
-    cont _false
+    cont _true
 
 define 'createS', ->
   makeSyncMonad (env, cont)->
-    cont {value: null}
+    cont _true
 
 define 'getS', ->(state)->
   makeSyncMonad (env, cont)->
@@ -280,6 +294,10 @@ define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->
       cont (if err then left err.stack else right contents)
+
+define 'prompt', ->(msg)->
+  makeMonad (env, cont)->
+    env.prompt(String(msg()), (input)-> cont(input))
 
 #######################
 # Classes for Printing
@@ -328,3 +346,4 @@ root.replaceErr = replaceErr
 root.left = left
 root.right = right
 root.getMonadSyncMode = getMonadSyncMode
+root.asyncMonad = asyncMonad
