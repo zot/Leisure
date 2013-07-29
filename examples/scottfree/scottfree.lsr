@@ -83,7 +83,7 @@ actdata = flatten [
   [NUM NUM NOT NOT NOT FL NOT FL NOT NOT]
   [NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT] ]
 
-direct = [ 'north' 'south' 'east' 'west' 'up' 'down' ]
+Exits = [ 'North' 'South' 'East' 'West' 'Up' 'Down' ]
 
 loadGame filename = do
   result <- readFile filename
@@ -109,19 +109,32 @@ isPartialString string = strMatches string '^".*"\\s+[0-9]+\\s*$'
 # convert a list of strings into integers by multiplying each element by 1
 asInts list = map (* 1) list
 
+extract str pattern = do
+  matches = strMatch str pattern
+  isCons matches
+    isNil (at matches 1)
+      ''
+      head (at matches 1)
+    str
+
+unquote str = extract str (regexp '^"(.*)"$')
+    
 # convert all but last element into an int for a room list
-asRoom list = append (asInts (removeLast list)) [ (last list) ]
+asRoom list = append (asInts (removeLast list)) [ (unquote (last list)) ]
 asRooms list = map (asRoom) list
 
 # convert into an item list which is name, room#, and autoget string
 asItem string = do
-  matches = strMatch string '^(".*")\\s+([0-9]+)\\s*$'
-  name = head (at matches 1)
-  room = 1 * (at (at matches 1) 1)
-  agmatch = strMatch name '/(.*)/'
-  isCons agmatch
-    [ (strReplace name (regexp '/.*/') '') room (head (at agmatch 1)) ]
-    [ name room '' ]
+  matches = strMatch string '^("?.*"?)\\s+([0-9]+)\\s*$'
+  isCons matches
+    do
+      name = unquote (head (at matches 1))
+      room = 1 * (at (at matches 1) 1)
+      agmatch = strMatch name '/(.*)/'
+      isCons agmatch
+        [ (strReplace name (regexp '/.*/') '') room (head (at agmatch 1)) ]
+        [ name room '' ]
+    [ string 0 'BAD REGEXP' ]      
 asItems list = map (asItem) list  
 
 processFile contents = do
@@ -263,15 +276,39 @@ basicLook myloc = do
   printItems myloc
   print "\n"
 
+isNumber i = == (getType i) '*number'
+
+safeat list idx = isCons list
+  isNumber idx
+    > (length list) idx
+      at list idx
+      'OOB LIST'
+    'IDX NOT NUM'  
+  'LIST NOT LIST'
+
+#map func l = l (\h t D . cons (func h) (map func t)) nil
+mapIndex func l = _mapIndex 0 func l
+_mapIndex idx func l = l (\h t D . cons (func h idx) (_mapIndex (+ 1 idx) func t)) nil
+
+hasExit exit idx = eq exit 0
+  ''
+  safeat Exits idx
+
+# chop off the last element (its name) from the room and compute the valid exits    
 printExits room = do
-  exits = nil
+  exits = removeIf (eq '') (mapIndex (hasExit) (removeLast room))
   eq exits nil
-    print "Obvious exits: none.\n"
-    print concat [ "Obvious exits: "  (intersperse exits ", ")  ".\n" ]
-    
+    print "Obvious exits: none."
+    print concat[ "Obvious exits: "  | (intersperse exits ", ") ]
+
 printItems myloc = do
   print "Items:\n"  
 
+# quick debug function for checking out the diff rooms
+tp room = do
+  poke 'GameHeader' GH_PLAYER_ROOM room
+  look 0
+  
 # check to see if the light is either in the given room or carried by the player
 isLightPresent myloc = do
   light <- peek 'Items' LIGHT_SOURCE
