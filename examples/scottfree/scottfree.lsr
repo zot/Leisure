@@ -328,7 +328,7 @@ isLightPresent myloc = do
 
 # return a pair of ints for the intended verb/noun combo   
 getInput = do
-  str <- prompt (concat[ "Tell me what to do?" ])
+  str <- prompt (concat[ "Tell me what to do? " ])
   basicGetInput str
 
 basicGetInput str = do
@@ -343,5 +343,29 @@ basicGetInput str = do
       log concat[ "M: " m " V: " v " N: " n] nil
     print "You use words I don't know"
   
+testWhichNoun noun = do
+  nouns <- getValue 'Nouns'
+  whichWord noun nouns
+  
+testWhichVerb verb = do
+  verbs <- getValue 'Verbs'
+  whichWord verb verbs
+  
+# loop over the list of words, any words that start with * should return the index of the last non-* word before it. return -1 if no match found  
+whichWord word list = basicWhichWord 0 0 word list  
+basicWhichWord idx result word list = isNil list
+  -1
+  do
+    w = head list
+    star = (strStartsWith w '*')
+    w = (star) (strSubstring w 1 99) w
+    log ("w: " + w + " star: "  + star + " idx: " + idx + " result: " + result) 0
+    eq word w
+      result
+      star
+         basicWhichWord (++ idx) result word (tail list)
+         basicWhichWord (++ idx) (++ idx) word (tail list)
+
+         
 performActions verb noun = do
   -1
