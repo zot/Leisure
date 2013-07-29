@@ -172,8 +172,8 @@ doClause steppingClause clause prefix inLet cont = \\
   makeBind var monad = cont false \rest . inLet (cons '.') id
     ['bind' monad ['\\' var '.' | rest]]
   .
-  steppingClause
-    \h t D . isTokenString h '='
+  isCons steppingClause
+    steppingClause \h t . isTokenString h '='
       inLet
         cont true \rest . [clause | rest]
         cont true \rest . ['\\\\' clause | rest]
