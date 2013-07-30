@@ -1,5 +1,17 @@
 require '../../newCode/std.lsr'
 
+# create a comma sep list for pretty printing
+csv list = flatten [ "[ " (intersperse list ', ') " ]" ]
+
+# create a list of duplicate values
+duplicate value times = <= times 0
+  nil
+  [ value | (duplicate value (--times))]
+
+# is this value between lower & upper bounds inclusively?  
+between value low up = and (>= value low) (<= value up)
+betweenEx value low up = and (> value low) (< value up)
+
 # extract an element from one of the global lists
 peek name idx = do
   global <- getValue name
@@ -12,10 +24,13 @@ poke name idx value = do
   global <- getValue name
   > (length global) idx
     do 
-      new_global = append (take idx global) (append [ value ] (drop (++ idx) global) )
+      new_global = pokeList global idx value #append (take idx global) (append [ value ] (drop (++ idx) global) )
       setValue name new_global
       value
     print "ERROR: POKE OUT OF BOUNDS"
+
+# poke a new element into the middle of a list
+pokeList list idx value = append (take idx list) (append [ value ] (drop (++ idx) list) )
 
 # constants
 LIGHT_SOURCE = 9  # light is always at index 9
@@ -118,7 +133,7 @@ extract str pattern = do
     str
 
 unquote str = extract str (regexp '^"(.*)"$')
-    
+
 # convert all but last element into an int for a room list
 asRoom list = append (asInts (removeLast list)) [ (unquote (last list)) ]
 asRooms list = map (asRoom) list
@@ -140,7 +155,7 @@ asItems list = map (asItem) list
 processFile contents = do
   #print contents
   #print (at contents 0)
-  setValue 'BitFlags' [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]  # up to 32 bits of flags supported
+  setValue 'BitFlags' (duplicate false 32)  # up to 32 bits of flags supported
   GameHeader = asInts (take GH_SIZEOF contents)
   setValue 'GameHeader' GameHeader
   GlobalVars = [ (at GameHeader GH_LIGHT_TIME) 0 ]  # store light time in refill time for later use
@@ -149,7 +164,7 @@ processFile contents = do
   num_actions = (at GameHeader GM_NUM_ACTIONS)
   max_actions = (num_actions * 1 + 1) * 8
   #print concat[ 'num actions: ' num_actions ' max actions: ' max_actions]
-  Actions = asInts (box 8 (take max_actions after_header))
+  Actions = box 8 (asInts (take max_actions after_header))
   setValue 'Actions' Actions
   after_actions = drop max_actions after_header
   num_words = at GameHeader GH_NUM_WORDS
@@ -159,7 +174,7 @@ processFile contents = do
   setValue 'Verbs' (odds Words)
   after_words = drop max_words after_actions
   processFile2 after_words
-  
+
 processFile2 after_words = do 
   GameHeader <- getValue 'GameHeader'
   num_actions = (at GameHeader GM_NUM_ACTIONS)  
@@ -197,21 +212,21 @@ debugGame = do
   GlobalVars <- getValue 'GlobalVars'
   print (merge [ '\nlight refill: ' '\nredraw: ' ] GlobalVars)
   Actions <- getValue 'Actions'
-  print concat[ "\nNum Actions: " (length Actions) "\nFirst Action: " (at Actions 0) "\nLast Action: " (last Actions) ]
+  print concat[ "\nNum Actions: " (length Actions) "\nFirst Action: "  (csv (at Actions 0)) "\nLast Action: " (csv (last Actions)) ]
   Nouns <- getValue 'Nouns'
-  print concat[ "\nNum Nouns: " (length Nouns) " Nouns: " Nouns]
+  print concat[ "\nNum Nouns: " (length Nouns) " Nouns: " (csv Nouns) ]
   Verbs <- getValue 'Verbs'
-  print concat[ "\nNum Verbs: " (length Verbs) " Verbs: " Verbs]
+  print concat[ "\nNum Verbs: " (length Verbs) " Verbs: " (csv Verbs) ]
   debugGame2
-  
+
 debugGame2 = do    
   Rooms <- getValue 'Rooms'
-  print concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (at Rooms 0) '\nLast Room: ' (last Rooms)]
-  print concat[ "\nAll Rooms: " Rooms ]
+  print concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (csv (at Rooms 0)) '\nLast Room: ' (csv (last Rooms)) ]
+  print concat[ "\nAll Rooms: " (csv Rooms) ]
   Messages <- getValue 'Messages'
-  print concat[ "\nNum Messsages: " (length Messages) " All Messages: " Messages ]
+  print concat[ "\nNum Messsages: " (length Messages) " All Messages: " (csv Messages) ]
   Items <- getValue 'Items'
-  print concat[ "\nNum Items: " (length Items) " All Items: " Items ]
+  print concat[ "\nNum Items: " (length Items) " All Items: " (csv Items) ]
   GameFooter <- getValue 'GameFooter'
   print (merge [ '\nversion: ' '\nnadv number: ' '\nunknown: '] GameFooter)
   "Debug finished."
@@ -219,17 +234,9 @@ debugGame2 = do
 # lets do this!
 playGame = do
   look
-  performActions 0 0
-  print concat[ "\nTell me what to do ? " ]
-  input = getInput
-  result = performActions (at input 0) (at input 1)
-  eq result -1
-    print concat[ "I don't understand your command.\n" ]
-    eq result -2
-      print concat[ "You can't do that yet.\n" ]
-      nil
+  getInput
   processLight
-  #playGame
+  playGame
 
 # decrement the light this turn if needed  
 processLight = do
@@ -239,7 +246,7 @@ processLight = do
   or (eq where DESTROYED) (eq timeleft -1) # -1 means lasts forever, nothing to do
     nil         
     lightTick
-  
+
 # we need to decrement the light
 lightTick = do
   timeleft <- (peek 'GameHeader' GH_LIGHT_TIME) - 1
@@ -247,21 +254,23 @@ lightTick = do
   >= timeleft 0  # save it back if not negative
     poke 'GameHeader' GH_LIGHT_TIME timeleft
     nil
+  light <- isLightPresent myloc
   eq timeleft 0
     do
-      poke 'BitFlags' LIGHTOUTBIT 1
-      isLightPresent myloc
+      poke 'BitFlags' LIGHTOUTBIT true
+      light
         print "Your light has run out.\n"
         nil
-    and (< timeleft 25) (isLightPresent myloc)
+    and (< timeleft 25) light
       print concat[ "You light runs out in " timeleft " turns.\n"]
       nil
-      
+
 # take a looksy  
 look = do
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   darkbit <- peek 'BitFlags' DARKBIT
-  and (eq darkbit 1) (not (isLightPresent myloc))
+  light <- false #isLightPresent myloc
+  and darkbit (not light)
     print "You can't see. It is too dark!\n"
     basicLook myloc
 
@@ -315,11 +324,28 @@ findItemsInLocation myloc items = isNil items
     cons (head items) (findItemsInLocation myloc (tail items))
     findItemsInLocation myloc (tail items)
 
+# return the number of items in the given location, you must pass in all items list to start    
+countItemsInLocation myloc items = isNil items
+  0
+  eq (at (head items) 1) myloc
+    1 + (countItemsInLocation myloc (tail items))
+    countItemsInLocation myloc (tail items)
+
+countCarried = do
+  allitems <- getValue 'Items'
+  countItemsInLocation CARRIED allitems
+
+# quick debug function to move items around
+moveItem idx newloc = do
+  item <- peek 'Items' idx
+  newitem = pokeList item 1 newloc
+  poke 'Items' idx newitem
+
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
   look
-  
+
 # check to see if the light is either in the given room or carried by the player
 isLightPresent myloc = do
   light <- peek 'Items' LIGHT_SOURCE
@@ -328,8 +354,100 @@ isLightPresent myloc = do
 
 # return a pair of ints for the intended verb/noun combo   
 getInput = do
-  move <- prompt (concat[ "Tell me what to do?" ])
-  [ 0 0 ]
+  str <- prompt (concat[ "Tell me what to do? " ])
+  n_v <- basicGetInput str
+  v = at n_v 0
+  n = at n_v 1
+  log concat['n_v ' (csv n_v) ] 0
+  eq v (0-1)
+    print "You use word(s) I don't know"
+    do
+      x <- performActions v n
+      eq x (0-1)
+        print "I don't understand your command."
+        eq x (0-2)
+          print "You can't do that yet."
+          eq x (0-3)
+            print "* GAME OVER*"
+            nil
 
-performActions verb noun = do
-  -1
+basicGetInput str = do
+  verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
+  isCons verb_noun
+    do
+      nc = (0-1)
+      vc = (0-1)
+      wordlen <- peek 'GameHeader' GH_WORD_LENGTH
+      m = at verb_noun 1
+      verb = strToUpperCase (strSubstring (at m 0) 0 wordlen)
+      noun = (eq 1 (length m)) ('') (strToUpperCase (strSubstring (at m 1) 0 wordlen))
+      verb = verbShortcuts verb noun
+      go <- whichNoun verb
+      isDir = between go 1 6
+      vc <- (isDir) 1 (whichVerb verb)
+      nc <- (isDir) nc (whichNoun noun)
+      log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
+      isDir
+        [ vc go ]
+        [ vc nc ]
+    [ (0-1) (0-1) ]  
+#    print "You use word(s) I don't know"
+
+verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
+  do
+    i = findIndex (eq (strToUpperCase v)) [ 'N' 'S' 'E' 'W' 'U' 'D' 'I' ]
+    >= i 0
+      at [ 'NOR' 'SOU' 'EAS' 'WES' 'UP' 'DOWN' 'INV' ] i
+      v
+  v
+
+whichNoun noun = do
+  nouns <- getValue 'Nouns'
+  whichWord noun nouns
+
+whichVerb verb = do
+  verbs <- getValue 'Verbs'
+  whichWord verb verbs
+
+# loop over the list of words, any words that start with * should return the index of the last non-* word before it. return -1 if no match found  
+whichWord word list = basicWhichWord 0 0 word list  
+basicWhichWord idx result word list = isNil list
+  (0-1)
+  do
+    w = head list
+    star = (strStartsWith w '*')
+    w = (star) (strSubstring w 1 99) w
+    w = (> (strLen w) (strLen word)) (strSubstring w 0 (strLen word)) w
+    result = (star) result idx #log ("w: " + w + " star: "  + star + " idx: " + idx + " result: " + result) 0
+    eq word w
+      result
+      basicWhichWord (++ idx) result word (tail list)
+      #   basicWhichWord (++ idx) result word (tail list)
+
+performActions verb noun = eq verb 1
+  performMove verb noun
+  (0-1)  # TODO a whooole ton of stuffs
+
+printReturn msg value = do
+  print msg
+  value
+
+performMove verb noun = do
+  eq noun (0-1)
+    printReturn "Give me a direction too." 0
+    not (between noun 1 6)
+      (0-1)
+      do      
+        myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+        light <- isLightPresent myloc
+        dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
+        dark (print "Dangerous to move in the dark!") nil
+        room <- peek 'Rooms' myloc
+        ridx = at room (noun - 1)  #log concat[ "room " (csv room) " ridx: " ridx ] 0
+        eq ridx 0
+          dark
+            printReturn "You fell down and broke your neck." (0-3)
+            printReturn "You can't go in that direction." 0
+         do
+           tp ridx
+           0

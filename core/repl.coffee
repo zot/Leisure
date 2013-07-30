@@ -50,6 +50,7 @@ fs = require 'fs'
   defaultEnv,
   replaceErr,
   getMonadSyncMode,
+  setWarnAsync,
 } = require './runtime'
 
 global.runMonad = runMonad
@@ -322,6 +323,7 @@ processArg = (pos)->
   switch process.argv[pos]
     when '-v'
       verbose = true
+      setWarnAsync true
     when '-a'
       action = compile
       createAstFile = true

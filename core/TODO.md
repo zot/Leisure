@@ -8,6 +8,8 @@ make regexp literals
 
 undefine names which don't compile successfully
 
+# handle test comments in *.lsr files
+
 # Case expr
 
 case x
@@ -28,6 +30,14 @@ name (person [name:n addr:a])
 ```
 
 # Namespaces
+
+# Data structures
+
+need a HAMT-based vector and map
+
+# UNKNOWN macro
+
+gets `name expr` for exprs that have unknown starts
 
 # Anonymous _ variable
 

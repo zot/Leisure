@@ -698,15 +698,13 @@ runFile text = \\
 baseLoad file = bind (readFile file)
   \result . result
     \err . err
-    \contents . bind (getValue 'stdTokenPacks')
-      \stds . bind (getValue 'activeTokenPacks')
-        \activePacks . bind (resetTokenPacks stds)
-          \_ . bind (runFile contents)
-            \result . isNil activePacks
-              bind (getValue 'stdTokenPacks')
-                \stds . bind (resetTokenPacks stds)
-                  \_ . result
-              bind (resetTokenPacks activePacks)
+    \contents . bind (getValue 'activeTokenPacks')
+      \activePacks . bind resetStdTokenPacks
+        \_ . bind (runFile contents)
+          \result . isNil activePacks
+            bind resetStdTokenPacks
+              \_ . result
+            bind (resetTokenPacks activePacks)
                 \_ . result
 
 load file = bind (baseLoad file)
