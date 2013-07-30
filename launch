@@ -5,12 +5,15 @@ app=""
 
 while [ $# != 0 ]; do
     case "$1" in
-    -w) WAIT=wait
-    ;;
-    --app) app="--app="
-    ;;
-    *) args="$args $1"
-    ;;
+        -w) WAIT=wait
+            ;;
+        --app) app="--app="
+            ;;
+        -d) statifyArgs="$statifyArgs $1 $2"
+            shift
+            ;;
+        *) args="$args $1"
+            ;;
     esac
     shift
 done
@@ -24,7 +27,8 @@ if [ $# != 0 ]; then
 fi
 
 #delegated -f -P8080 SERVER=http MOUNT="/* $(pwd)/*" REMITTABLE=file ADMIN=a@b FILETYPE=".svg:I:SVG:image:image/svg+xml"
-node node_modules/statify/statify &
+echo node node_modules/statify/statify $statifyArgs
+node node_modules/statify/statify $statifyArgs &
 pid=$!
 $WAIT
 kill $pid
