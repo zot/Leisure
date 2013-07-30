@@ -1,0 +1,8 @@
+window.Leisure = exports = module.exports = require './base'
+require './ast'
+require './gen'
+require './runtime'
+require './generatedPrelude'
+require './uri'
+require './std'
+window.Notebook = require './notebook'

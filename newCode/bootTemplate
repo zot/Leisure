@@ -1,0 +1,5 @@
+(function(){
+var Boot = window.Boot = {};
+Boot.cssFiles = ['leisureCSS-CSSHASH.css'];
+Boot.jsFiles = ['leisureJS-JSHASH.js'];
+})();
