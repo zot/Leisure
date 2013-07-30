@@ -1,6 +1,16 @@
 require '../../newCode/std.lsr'
 
+# create a comma sep list for pretty printing
 csv list = flatten [ "[ " (intersperse list ', ') " ]" ]
+
+# create a list of duplicate values
+duplicate value times = <= times 0
+  nil
+  [ value | (duplicate value (--times))]
+
+# is this value between lower & upper bounds inclusively?  
+between value low up = and (>= value low) (<= value up)
+betweenEx value low up = and (> value low) (< value up)
 
 # extract an element from one of the global lists
 peek name idx = do
@@ -14,11 +24,14 @@ poke name idx value = do
   global <- getValue name
   > (length global) idx
     do 
-      new_global = append (take idx global) (append [ value ] (drop (++ idx) global) )
+      new_global = pokeList global idx value #append (take idx global) (append [ value ] (drop (++ idx) global) )
       setValue name new_global
       value
     print "ERROR: POKE OUT OF BOUNDS"
 
+# poke a new element into the middle of a list
+pokeList list idx value = append (take idx list) (append [ value ] (drop (++ idx) list) )
+    
 # constants
 LIGHT_SOURCE = 9  # light is always at index 9
 DESTROYED = 0     # room location for 'destroyed' items
@@ -139,10 +152,11 @@ asItem string = do
     [ string 0 'BAD REGEXP' ]      
 asItems list = map (asItem) list  
 
+  
 processFile contents = do
   #print contents
   #print (at contents 0)
-  setValue 'BitFlags' [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]  # up to 32 bits of flags supported
+  setValue 'BitFlags' (duplicate false 32)  # up to 32 bits of flags supported
   GameHeader = asInts (take GH_SIZEOF contents)
   setValue 'GameHeader' GameHeader
   GlobalVars = [ (at GameHeader GH_LIGHT_TIME) 0 ]  # store light time in refill time for later use
@@ -221,7 +235,7 @@ debugGame2 = do
 # lets do this!
 playGame = do
   look
-  performActions 0 0
+  getInput
   print concat[ "\nTell me what to do ? " ]
   input = getInput
   result = performActions (at input 0) (at input 1)
@@ -249,13 +263,14 @@ lightTick = do
   >= timeleft 0  # save it back if not negative
     poke 'GameHeader' GH_LIGHT_TIME timeleft
     nil
+  light <- isLightPresent myloc
   eq timeleft 0
     do
-      poke 'BitFlags' LIGHTOUTBIT 1
-      isLightPresent myloc
+      poke 'BitFlags' LIGHTOUTBIT true
+      light
         print "Your light has run out.\n"
         nil
-    and (< timeleft 25) (isLightPresent myloc)
+    and (< timeleft 25) light
       print concat[ "You light runs out in " timeleft " turns.\n"]
       nil
       
@@ -263,7 +278,8 @@ lightTick = do
 look = do
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   darkbit <- peek 'BitFlags' DARKBIT
-  and (eq darkbit 1) (not (isLightPresent myloc))
+  light <- isLightPresent myloc
+  and darkbit (not light)
     print "You can't see. It is too dark!\n"
     basicLook myloc
 
@@ -317,6 +333,23 @@ findItemsInLocation myloc items = isNil items
     cons (head items) (findItemsInLocation myloc (tail items))
     findItemsInLocation myloc (tail items)
 
+# return the number of items in the given location, you must pass in all items list to start    
+countItemsInLocation myloc items = isNil items
+  0
+  eq (at (head items) 1) myloc
+    1 + (countItemsInLocation myloc (tail items))
+    countItemsInLocation myloc (tail items)
+
+countCarried = do
+  allitems <- getValue 'Items'
+  countItemsInLocation CARRIED allitems
+  
+# quick debug function to move items around
+moveItem idx newloc = do
+  item <- peek 'Items' idx
+  newitem = pokeList item 1 newloc
+  poke 'Items' idx newitem
+  
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
@@ -331,8 +364,22 @@ isLightPresent myloc = do
 # return a pair of ints for the intended verb/noun combo   
 getInput = do
   str <- prompt (concat[ "Tell me what to do? " ])
-  basicGetInput str
-
+  n_v <- basicGetInput str
+  v = at n_v 0
+  n = at n_v 1
+  log concat['n_v ' (csv n_v) ] 0
+  eq v (0-1)
+    print "You use word(s) I don't know"
+    do
+      x <- performActions v n
+      eq x (0-1)
+        print "I don't understand your command."
+        eq x (0-2)
+          print "You can't do that yet."
+          eq x (0-3)
+            print "* GAME OVER*"
+            nil
+          
 basicGetInput str = do
   verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
   isCons verb_noun
@@ -345,7 +392,7 @@ basicGetInput str = do
       noun = (eq 1 (length m)) ('') (strToUpperCase (strSubstring (at m 1) 0 wordlen))
       verb = verbShortcuts verb noun
       go <- whichNoun verb
-      isDir = and (>= go 1) (<= go 6)
+      isDir = between go 1 6
       vc <- (isDir) 1 (whichVerb verb)
       nc <- (isDir) nc (whichNoun noun)
       log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
@@ -353,7 +400,7 @@ basicGetInput str = do
         [ vc go ]
         [ vc nc ]
     [ (0-1) (0-1) ]  
-#    print "You use words I don't know"
+#    print "You use word(s) I don't know"
 
 verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
   do
@@ -392,5 +439,33 @@ basicWhichWord idx result word list = isNil list
       basicWhichWord (++ idx) result word (tail list)
       #   basicWhichWord (++ idx) result word (tail list)
 
-performActions verb noun = do
-  (0-1)
+performActions verb noun = eq verb 1
+  performMove verb noun
+  (0-1)  # TODO a whooole ton of stuffs
+  
+printReturn msg value = do
+  print msg
+  value
+  
+#         dark <- (isLightPresent myloc) false (peek 'BitFlags' DARKBIT)
+  
+performMove verb noun = do
+  eq noun (0-1)
+    printReturn "Give me a direction too." 0
+    not (between noun 1 6)
+      (0-1)
+      do      
+        myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+        light <- isLightPresent myloc
+        dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
+        dark (print "Dangerous to move in the dark!") nil
+        room <- peek 'Rooms' myloc
+        ridx = at room (noun - 1)  #log concat[ "room " (csv room) " ridx: " ridx ] 0
+        eq ridx 0
+          dark
+            printReturn "You fell down and broke your neck." (0-3)
+            printReturn "You can't go in that direction." 0
+         do
+           tp ridx
+           0
+           
