@@ -235,16 +235,8 @@ debugGame2 = do
 playGame = do
   look
   getInput
-  print concat[ "\nTell me what to do ? " ]
-  input = getInput
-  result = performActions (at input 0) (at input 1)
-  eq result (0-1)
-    print concat[ "I don't understand your command.\n" ]
-    eq result (0-2)
-      print concat[ "You can't do that yet.\n" ]
-      nil
   processLight
-  #playGame
+  playGame
 
 # decrement the light this turn if needed  
 processLight = do
