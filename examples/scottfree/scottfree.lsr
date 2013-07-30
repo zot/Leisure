@@ -1,5 +1,7 @@
 require '../../newCode/std.lsr'
 
+csv list = flatten [ "[ " (intersperse list ', ') " ]" ]
+
 # extract an element from one of the global lists
 peek name idx = do
   global <- getValue name
@@ -149,7 +151,7 @@ processFile contents = do
   num_actions = (at GameHeader GM_NUM_ACTIONS)
   max_actions = (num_actions * 1 + 1) * 8
   #print concat[ 'num actions: ' num_actions ' max actions: ' max_actions]
-  Actions = asInts (box 8 (take max_actions after_header))
+  Actions = box 8 (asInts (take max_actions after_header))
   setValue 'Actions' Actions
   after_actions = drop max_actions after_header
   num_words = at GameHeader GH_NUM_WORDS
@@ -197,21 +199,21 @@ debugGame = do
   GlobalVars <- getValue 'GlobalVars'
   print (merge [ '\nlight refill: ' '\nredraw: ' ] GlobalVars)
   Actions <- getValue 'Actions'
-  print concat[ "\nNum Actions: " (length Actions) "\nFirst Action: " (at Actions 0) "\nLast Action: " (last Actions) ]
+  print concat[ "\nNum Actions: " (length Actions) "\nFirst Action: "  (csv (at Actions 0)) "\nLast Action: " (csv (last Actions)) ]
   Nouns <- getValue 'Nouns'
-  print concat[ "\nNum Nouns: " (length Nouns) " Nouns: " Nouns]
+  print concat[ "\nNum Nouns: " (length Nouns) " Nouns: " (csv Nouns) ]
   Verbs <- getValue 'Verbs'
-  print concat[ "\nNum Verbs: " (length Verbs) " Verbs: " Verbs]
+  print concat[ "\nNum Verbs: " (length Verbs) " Verbs: " (csv Verbs) ]
   debugGame2
   
 debugGame2 = do    
   Rooms <- getValue 'Rooms'
-  print concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (at Rooms 0) '\nLast Room: ' (last Rooms)]
-  print concat[ "\nAll Rooms: " Rooms ]
+  print concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (csv (at Rooms 0)) '\nLast Room: ' (csv (last Rooms)) ]
+  print concat[ "\nAll Rooms: " (csv Rooms) ]
   Messages <- getValue 'Messages'
-  print concat[ "\nNum Messsages: " (length Messages) " All Messages: " Messages ]
+  print concat[ "\nNum Messsages: " (length Messages) " All Messages: " (csv Messages) ]
   Items <- getValue 'Items'
-  print concat[ "\nNum Items: " (length Items) " All Items: " Items ]
+  print concat[ "\nNum Items: " (length Items) " All Items: " (csv Items) ]
   GameFooter <- getValue 'GameFooter'
   print (merge [ '\nversion: ' '\nnadv number: ' '\nunknown: '] GameFooter)
   "Debug finished."
@@ -223,9 +225,9 @@ playGame = do
   print concat[ "\nTell me what to do ? " ]
   input = getInput
   result = performActions (at input 0) (at input 1)
-  eq result -1
+  eq result (0-1)
     print concat[ "I don't understand your command.\n" ]
-    eq result -2
+    eq result (0-2)
       print concat[ "You can't do that yet.\n" ]
       nil
   processLight
@@ -335,37 +337,60 @@ basicGetInput str = do
   verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
   isCons verb_noun
     do
+      nc = (0-1)
+      vc = (0-1)
       wordlen <- peek 'GameHeader' GH_WORD_LENGTH
       m = at verb_noun 1
-      v = strToUpperCase (strSubstring (at m 0) 0 wordlen)
-      n = (eq 1 (length m)) ('') (strToUpperCase (strSubstring (at m 1) 0 wordlen))
-      n = "DERP"
-      log concat[ "M: " m " V: " v " N: " n] nil
-    print "You use words I don't know"
+      verb = strToUpperCase (strSubstring (at m 0) 0 wordlen)
+      noun = (eq 1 (length m)) ('') (strToUpperCase (strSubstring (at m 1) 0 wordlen))
+      verb = verbShortcuts verb noun
+      go <- whichNoun verb
+      isDir = and (>= go 1) (<= go 6)
+      vc <- (isDir) 1 (whichVerb verb)
+      nc <- (isDir) nc (whichNoun noun)
+      log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
+      isDir
+        [ vc go ]
+        [ vc nc ]
+    [ (0-1) (0-1) ]  
+#    print "You use words I don't know"
+
+verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
+  do
+    i = findIndex (eq (strToUpperCase v)) [ 'N' 'S' 'E' 'W' 'U' 'D' 'I' ]
+    >= i 0
+      at [ 'NOR' 'SOU' 'EAS' 'WES' 'UP' 'DOWN' 'INV' ] i
+      v
+  v
   
-testWhichNoun noun = do
+whichNoun noun = do
   nouns <- getValue 'Nouns'
   whichWord noun nouns
-  
-testWhichVerb verb = do
+
+whichVerb verb = do
   verbs <- getValue 'Verbs'
   whichWord verb verbs
+
+testZZ = do
+  zz = 1
+  zz = (eq 0 0) 2 4
+  log ("zz : " + zz) 0
+  nil
   
 # loop over the list of words, any words that start with * should return the index of the last non-* word before it. return -1 if no match found  
 whichWord word list = basicWhichWord 0 0 word list  
 basicWhichWord idx result word list = isNil list
-  -1
+  (0-1)
   do
     w = head list
     star = (strStartsWith w '*')
     w = (star) (strSubstring w 1 99) w
-    log ("w: " + w + " star: "  + star + " idx: " + idx + " result: " + result) 0
+    w = (> (strLen w) (strLen word)) (strSubstring w 0 (strLen word)) w
+    result = (star) result idx #log ("w: " + w + " star: "  + star + " idx: " + idx + " result: " + result) 0
     eq word w
       result
-      star
-         basicWhichWord (++ idx) result word (tail list)
-         basicWhichWord (++ idx) (++ idx) word (tail list)
+      basicWhichWord (++ idx) result word (tail list)
+      #   basicWhichWord (++ idx) result word (tail list)
 
-         
 performActions verb noun = do
-  -1
+  (0-1)
