@@ -181,6 +181,10 @@ continueMonads = (contStack, env)->
 
 asyncMonad = {toString: -> "<asyncMonadResult>"}
 
+warnAsync = false
+
+setWarnAsync = (state)-> warnAsync = state
+
 newRunMonad = (monad, env, cont, contStack)->
   if cont then contStack.push cont
   try
@@ -193,6 +197,7 @@ newRunMonad = (monad, env, cont, contStack)->
         else if !monad.sync
           monadModeSync = false
           #console.log "turned off sync"
+          if warnAsync then console.log "async monad"
           monad.cmd(env, continueMonads(contStack, env))
           return asyncMonad
         result = monad.cmd(env, identity)
@@ -347,3 +352,4 @@ root.left = left
 root.right = right
 root.getMonadSyncMode = getMonadSyncMode
 root.asyncMonad = asyncMonad
+root.setWarnAsync = setWarnAsync

@@ -29,6 +29,10 @@ name (person [name:n addr:a])
 
 # Namespaces
 
+# Data structures
+
+need a HAMT-based vector and map
+
 # Anonymous _ variable
 
 # Commas with list filter
