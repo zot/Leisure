@@ -18,26 +18,44 @@ PRELUDE=lib/generatedPrelude.js
 OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast)
 COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 COFFEE_JS=$(SRC:%=lib/%.js)
-NEW_COFFEE_SRC=uri prims browserMain
+NEW_COFFEE_SRC=uri prims browserMain notebook
 NEW_COFFEE=$(NEW_COFFEE_SRC:%=newCode/%.coffee)
 NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
 NEW_LSR_SRC=std svg
 NEW_LSR=$(NEW_LSR_SRC:%=newCode/%.lsr)
 NEW_LSR_JS=$(NEW_LSR_SRC:%=lib/%.js)
-BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC)
+BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus
 BROWSER_INPUT=$(BROWSER_SRC:%=lib/%.js)
 BROWSER_JS=lib/browser.js
+WEB_SRC=bootLeisure
+WEB_COFFEE=$(WEB_SRC:%=newCode/%.coffee)
+WEB_JS=$(WEB_SRC:%=www/%.js)
+CSS_SRC=leisure gaudy thin cthulhu
+CSS_FILES=$(CSS_SRC:%=%.css)
+CSS_OUT=lib/all.css
 
-all: .tested .parserTested $(NEW_LSR_JS) $(BROWSER_JS)
+all: .tested .parserTested $(NEW_LSR_JS) $(BROWSER_JS) $(WEB_JS)
 
 $(BROWSER_JS): $(BROWSER_INPUT)
 	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
 	node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@
-	rm -f lib/browser-*.js
-	cp $@ "lib/browser-$$(sha256sum $@|awk '{print $$1}').js"
+
+$(CSS_OUT): $(CSS_FILES)
+	cat $(CSS_SRC) > $(CSS_OUT)
 
 repl: all FRC
 	core/repl
+
+#cp lib/browser.map "www/leisureJS-$$(sha256sum lib/browser.js|awk '{print $$1}').map"
+
+$(WEB_JS): $(BROWSER_JS) $(WEB_COFFEE) $(CSS_OUT)
+	node_modules/coffee-script/bin/coffee -o $(LIB) -mc newCode/bootLeisure.coffee
+	rm -f www/leisureJS-* www/leisureCSS-*
+	cp lib/browser.js "www/leisureJS-$$(sha256sum lib/browser.js|awk '{print $$1}').js"
+	cp lib/all.css "www/leisureCSS-$$(sha256sum lib/all.css|awk '{print $$1}').js"
+	sed -e "s/JSHASH/$$(sha256sum lib/browser.js|awk '{print $$1}')/;s/CSSHASH/$$(sha256sum lib/all.css|awk '{print $$1}')/" newCode/bootTemplate > www/bootLeisure.js
+	cat lib/bootLeisure.js >> www/bootLeisure.js
+	cp lib/uri.* www
 
 $(NEW_COFFEE_JS): $(NEW_COFFEE)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)

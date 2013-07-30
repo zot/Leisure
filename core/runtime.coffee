@@ -37,6 +37,7 @@ misrepresented as being the original software.
   ast2Json,
   ensureLeisureClass,
   setType,
+  setDataType,
 } = require './ast'
 _ = require './lodash.min'
 
@@ -347,3 +348,10 @@ root.left = left
 root.right = right
 root.getMonadSyncMode = getMonadSyncMode
 root.asyncMonad = asyncMonad
+
+if window?
+  window.runMonad = runMonad
+  window.setType = setType
+  window.setDataType = setDataType
+  window.defaultEnv = defaultEnv
+  window.identity = identity

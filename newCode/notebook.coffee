@@ -10,12 +10,17 @@
   foldLeft,
   Nil,
   getType,
+  getAnnoName,
+  getAnnoData,
+  getAnnoBody,
+  Leisure_anno,
 } = root = require './ast'
 {
   runMonad,
   makeMonad,
   makeSyncMonad,
   identity,
+  defaultEnv,
 } = require './runtime'
 {
   gen,
@@ -145,7 +150,6 @@ xusEnv = (resultVar, expr)->
     err: (err)->
       result += if err.leisureContext then "ERROR: #{err}:\n#{leisureContextString(err)}\n#{err.stack}" else "Couldn't parse: #{expr}"
       peer.set resultVar, result
-  # MARK
   env.__proto__ = root.defaultEnv
   env
 
@@ -168,13 +172,13 @@ allowEvents = true
 
 bindNotebook = (el)->
   if !basePresentValue
-    # MARK
+    # MARK CHECK
     basePresentValue = (value)-> String value
-    Prim.defaultEnv.presentValue = presentValue
-    Prim.defaultEnv.write = (msg)->console.log msg
-    Prim.defaultEnv.owner = document.body
-    Prim.defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', Prim.defaultEnv)
-    Prim.defaultEnv.debug = debug
+    defaultEnv.presentValue = presentValue
+    defaultEnv.write = (msg)->console.log msg
+    defaultEnv.owner = document.body
+    defaultEnv.finishedEvent = (evt, channel)->update(channel ? 'app', defaultEnv)
+    defaultEnv.debug = debug
   if !el.bound?
     makeId el
     el.bound = true
@@ -184,46 +188,46 @@ bindNotebook = (el)->
     el.addEventListener 'mousemove', ((e)-> if !isSlider e.srcElement then delay -> highlightPosition e), true
     el.addEventListener 'mouseup', ((e)-> if !isSlider e.srcElement then delay -> highlightPosition e), true
     el.addEventListener 'keydown', (e)->
-        #if allowEvents
-        c = (e.charCode || e.keyCode || e.which)
-        if c == DEL || c == BS
-          s = window.getSelection()
-          r = s.getRangeAt(0)
-          if c == BS
-            checkDeleteExpr getBox r.startContainer
-            if skipLeftOverOutputBox el, r then return e.preventDefault()
-          else if c == DEL
-            checkDeleteExpr getBox r.startContainer
-            if ignoreDeleteOutputBox el, r then return e.preventDefault()
-        if printable c then clearAst getBox window.getSelection().focusNode
-        if (c in arrows) or printable c then delay -> highlightPosition e
-        if e.ctrlKey and c == ENTER then handleKey "C-ENTER"
-        else if e.altKey and c == ENTER then handleKey "M-ENTER"
-        else if c == TAB
-          handleKey("TAB")
-          e.preventDefault()
-    el.addEventListener 'keypress', (e)->
-        #if allowEvents
+      #if allowEvents
+      c = (e.charCode || e.keyCode || e.which)
+      if c == DEL || c == BS
         s = window.getSelection()
         r = s.getRangeAt(0)
-        if (e.charCode || e.keyCode || e.which) == ENTER
-          br = textNode('\n')
-          r.insertNode(br)
-          r = document.createRange()
-          r.setStart(br, 1)
-          s.removeAllRanges()
-          s.addRange(r)
-          e.preventDefault()
-        else if r.startContainer.parentNode == el
-          sp = codeSpan '\n', 'codeExpr'
-          sp.setAttribute('generatedNL', '')
-          bx = box s.getRangeAt(0), 'codeMainExpr', true
-          bx.appendChild sp
-          makeOutputBox bx
-          r = document.createRange()
-          r.setStart(sp, 0)
-          s.removeAllRanges()
-          s.addRange(r)
+        if c == BS
+          checkDeleteExpr getBox r.startContainer
+          if skipLeftOverOutputBox el, r then return e.preventDefault()
+        else if c == DEL
+          checkDeleteExpr getBox r.startContainer
+          if ignoreDeleteOutputBox el, r then return e.preventDefault()
+      if printable c then clearAst getBox window.getSelection().focusNode
+      if (c in arrows) or printable c then delay -> highlightPosition e
+      if e.ctrlKey and c == ENTER then handleKey "C-ENTER"
+      else if e.altKey and c == ENTER then handleKey "M-ENTER"
+      else if c == TAB
+        handleKey("TAB")
+        e.preventDefault()
+    el.addEventListener 'keypress', (e)->
+      #if allowEvents
+      s = window.getSelection()
+      r = s.getRangeAt(0)
+      if (e.charCode || e.keyCode || e.which) == ENTER
+        br = textNode('\n')
+        r.insertNode(br)
+        r = document.createRange()
+        r.setStart(br, 1)
+        s.removeAllRanges()
+        s.addRange(r)
+        e.preventDefault()
+      else if r.startContainer.parentNode == el
+        sp = codeSpan '\n', 'codeExpr'
+        sp.setAttribute('generatedNL', '')
+        bx = box s.getRangeAt(0), 'codeMainExpr', true
+        bx.appendChild sp
+        makeOutputBox bx
+        r = document.createRange()
+        r.setStart(sp, 0)
+        s.removeAllRanges()
+        s.addRange(r)
     el.addEventListener 'focus', (-> if allowEvents then findCurrentCodeHolder()), true
     el.addEventListener 'blur', (-> if allowEvents then findCurrentCodeHolder()), true
     if window.leisureAutoRunAll
@@ -344,14 +348,12 @@ highlightPosition = (e)->
     if s.getRangeAt(0)?.collapsed
       if !parent or isOutput parent then return
       if parent.parentNode and ast = getAst parent
-        # MARK
-        offset = ast.leisureCodeOffset ? 0
         r = s.getRangeAt(0)
         r.setStart parent, 0
         pos = getRangeText(r).length
         changed = false
         if false
-          brackets = Leisure.bracket ast.leisureBase, pos - offset
+          brackets = Leisure.bracket ast.leisureBase, pos
           if oldBrackets[0] != parent or !oldBrackets[1].equals(brackets)
             oldBrackets = [parent, brackets]
             for node in document.querySelectorAll "[LeisureBrackets]"
@@ -362,8 +364,8 @@ highlightPosition = (e)->
             markPartialApplies parent
             b = brackets
             ranges = []
-            while b != Parse.Nil
-                ranges.push (makeRange parent, b.head().head() + offset, b.head().tail().head() + offset)
+            while b != Nil
+              ranges.push (makeRange parent, b.head().head(), b.head().tail().head())
               b = b.tail()
             for r, i in ranges
               span = document.createElement 'span'
@@ -380,8 +382,8 @@ highlightPosition = (e)->
           window.EVT = e
           s.removeAllRanges()
           s.addRange(makeRange parent, pos)
-    # MARK
-    if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
+    # MARK TODO
+    #if parent?.ast?.leisureName? then update "sel-#{parent.ast.leisureName}"
     peerNotifySelection parent, s.toString()
 
 numberEnd = /(?:^|.*[^0-9.])([0-9]+\.?[0-9]*|\.[0-9]*)$/
@@ -454,8 +456,9 @@ createSlider = ->
         parent.ast = null
         acceptCode parent
         ast = getAst parent
-        # MARK
-        update "sel-#{parent.ast.leisureName}"
+        # MARK CHECK
+        if parent.ast?.leisureName
+          update "sel-#{parent.ast.leisureName}"
       else
         makeId parent
         if !parent.getAttribute parent.output, 'leisureUpdate'
@@ -560,7 +563,7 @@ addDefControls = (box)->
 remove = (node)->node.parentNode?.removeChild node
 
 showAst = (box)->
-  # MARK
+  # MARK CHECK
   name = (getAst box).leisureName
   if box.astOut?
     remove box.astOut.output
@@ -578,8 +581,9 @@ showAst = (box)->
 
 highlightNotebookFunction = (funcName, start, stop)->
   box = document.body.querySelector "[leisurefunc=#{funcName}]"
-  # MARK
-  offset = getAst(box).leisureCodeOffset ? 0
+  # MARK CHECK
+  # offset = getAst(box).leisureCodeOffset ? 0
+  offset = 0
   sel = window.getSelection()
   sel.removeAllRanges()
   sel.addRange makeRange box, start + offset, stop + offset
@@ -668,9 +672,9 @@ insertControls = (el)->
   #configureSaveLink(el)
   markupButtons controlDiv
 
+# MARK TODO
 saveProgram = ->
-  # MARK
-  Prim.write filename, getMDDocument(), (-> alert "Saving #{filename}"), (err)->
+  write filename, getMDDocument(), (-> alert "Saving #{filename}"), (err)->
     console.log err
     alert err.stack
     throw err
@@ -818,16 +822,22 @@ markupDefs = (el, defs)->
       totalTests++
   [pgm, auto, totalTests, notebookAutoNodes]
 
+getDefName = (ast)->
+  if ast instanceof Leisure_anno && getAnnoName(ast) == 'definition' then getAnnoData(ast)
+  else null
+
 getAst = (bx, def)->
   if bx.ast?
     patchFuncAst bx.ast
-    # MARK
+    # MARK CHECK
     bx.setAttribute 'leisureFunc', (bx.ast.leisureName ? '')
     bx.ast
   else
     def = def || bx.textContent
-    # MARK
-    setAst bx, (Leisure.compileNext def, Parse.Nil, true, null)[0]
+    # MARK CHECK
+    # setAst bx, (Leisure.compileNext def, Parse.Nil, true, null)[0]
+    defName = getDefName runMonad L_newParseLine()(->Nil)(->def)
+    setAst bx, (if defName then {leisureName: defName, leisureSource: def} else {})
     bx.ast
 
 setAst = (bx, ast)->
@@ -835,51 +845,50 @@ setAst = (bx, ast)->
   patchFuncAst ast
 
 patchFuncAst = (ast)->
-  # MARK
   if ast?.leisureName?
-    # MARK
     parent = window[nameSub(ast.leisureName)]
     if parent?
       parent.ast = ast
       parent.src = ast.leisureSource
-      # MARK
       update "ast-#{ast.leisureName}"
 
 # mark partial applies within bx
 # the last child of bx should be a fresh expr span with the full code in it
 markPartialApplies = (bx, def)->
-  bx.normalize()
-  def = def ? bx.textContent
-  ast = getAst bx, def
-  partial = []
-  # MARK
-  ((Leisure.findFuncs(ast)) Nil).each (f)->
-    name = getRefName(f.head())
-    arity = global[nameSub(name)]?()?.leisureArity
-    if (arity and f.tail().head() < arity)
-      partial.push [f.head(), arity, f.tail().head()]
-  if partial.length
-    ranges = []
-    # MARK
-    offset = ast.leisureCodeOffset ? 0
-    t = bx.lastChild.firstChild
-    for info in partial
-      p = info[0]
-      r = document.createRange()
-      r.setStart t, p.leisureStart + offset
-      r.setEnd t, p.leisureEnd + offset
-      r.expected = info[1]
-      r.actual = info[2]
-      ranges.push r
-    for r in ranges
-      c = r.extractContents()
-      s = document.createElement 'span'
-      s.setAttribute 'Leisure', ''
-      s.setAttribute 'expected', String(r.expected)
-      s.setAttribute 'actual', String(r.actual)
-      s.classList.add 'partialApply'
-      s.appendChild c
-      r.insertNode s
+# MARK TODO
+#
+#  bx.normalize()
+#  def = def ? bx.textContent
+#  ast = getAst bx, def
+#  partial = []
+#  # MARK
+#  ((Leisure.findFuncs(ast)) Nil).each (f)->
+#    name = getRefName(f.head())
+#    arity = global[nameSub(name)]?()?.leisureArity
+#    if (arity and f.tail().head() < arity)
+#      partial.push [f.head(), arity, f.tail().head()]
+#  if partial.length
+#    ranges = []
+#    # MARK
+#    offset = ast.leisureCodeOffset ? 0
+#    t = bx.lastChild.firstChild
+#    for info in partial
+#      p = info[0]
+#      r = document.createRange()
+#      r.setStart t, p.leisureStart + offset
+#      r.setEnd t, p.leisureEnd + offset
+#      r.expected = info[1]
+#      r.actual = info[2]
+#      ranges.push r
+#    for r in ranges
+#      c = r.extractContents()
+#      s = document.createElement 'span'
+#      s.setAttribute 'Leisure', ''
+#      s.setAttribute 'expected', String(r.expected)
+#      s.setAttribute 'actual', String(r.actual)
+#      s.classList.add 'partialApply'
+#      s.appendChild c
+#      r.insertNode s
 
 textNode = (text)-> document.createTextNode(text)
 
@@ -974,8 +983,8 @@ clearUpdates = (widget, preserveSource)->
   setUpdate exBox, '', preserveSource
 
 update = (type, env)->
-  # MARK
-  env = env ? Prim.defaultEnv
+  # MARK DONE
+  env = env ? defaultEnv
   for node in env.owner.querySelectorAll "[leisureUpdate~='#{type}']"
     evalOutput node, true
 
@@ -1045,8 +1054,9 @@ runTest = (bx)->
     write: (str)-> console.log str
     debug: debug
     prompt: (msg, cont)-> cont(null)
-    # MARK Parse.print
-    processResult: (result, ast)-> passed = showResult bx, escapeHtml(Parse.print(result)), escapeHtml(test.expected)
+    # MARK CHECK
+    # processResult: (result, ast)-> passed = showResult bx, escapeHtml(Parse.print(result)), escapeHtml(test.expected)
+    processResult: (result, ast)-> passed = showResult bx, escapeHtml(String(result)), escapeHtml(test.expected)
     err: -> passed = false
     presentValue: (x)-> x
   ), identity
@@ -1066,14 +1076,16 @@ showResult = (bx, actual, expected)->
     console.log "expected <#{expected}> but got <#{actual}>"
   actual == expected
 
-# MARK -- precede exprs with =
-prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
+# MARK CHECK -- used to precede exprs with =
+# prepExpr = (txt)-> if txt[0] in '=!' then txt else "=#{txt}"
+prepExpr = (txt)-> txt
 
 envFor = (box)->
   exBox = getBox box
   widget = null
-  # MARK
-  env = Prim.initFileSettings
+  # MARK CHECK
+  # env = Prim.initFileSettings
+  env =
     debug: debug
     finishedEvent: (evt, channel)->update(channel ? 'app', this)
     owner: owner(box)
@@ -1104,23 +1116,23 @@ envFor = (box)->
     cleanup: ->
       @destroyWidget()
       if root.lastEnv == env then root.lastEnv = null
-  # MARK
-  env.__proto__ = Prim.defaultEnv
+  # MARK DONE
+  env.__proto__ = defaultEnv
   env.fileSettings.uri = new URI document.location.href
   root.lastEnv = env
   env
 
 leisureContextString = (err)-> (linkSource func, offset for [func, offset] in err.leisureContext.toArray()).join('\n')
 
+# MARK TODO
 linkSource = (funcName, offset)->
-  # MARK
-  [src, start, end] = Leisure.funcContextSource funcName, offset
-  "  <a href='javascript:void(Notebook.showSource(\"#{funcName}\", #{offset}))'>#{funcName}:#{start},#{end}</a>"
+#  [src, start, end] = Leisure.funcContextSource funcName, offset
+#  "  <a href='javascript:void(Notebook.showSource(\"#{funcName}\", #{offset}))'>#{funcName}:#{start},#{end}</a>"
 
+# MARK TODO
 showSource = (funcName, offset)->
-  # MARK
-  [src, start, end] = Leisure.funcContextSource funcName, offset
-  alert("#{funcName} = #{src.substring(0, start)} << #{src.substring(start, end)} >> #{src.substring(end)}")
+#  [src, start, end] = Leisure.funcContextSource funcName, offset
+#  alert("#{funcName} = #{src.substring(0, start)} << #{src.substring(start, end)} >> #{src.substring(end)}")
 
 makeOutputBox = (source)->
   node = document.createElement 'div'
@@ -1163,7 +1175,7 @@ findDefs = (el)->
   txt = el.textContent
   rest = txt
   ranges = []
-  # MARK Leisure.linePat
+  # MARK TODO Leisure.linePat
   while (def = rest.match Leisure.linePat) and def[1].length != rest.length
     rng = getRanges(el, txt, rest, def, txt.length - rest.length)
     if rng
@@ -1299,7 +1311,7 @@ req = (file, cont)->
   s = document.createElement 'script'
   s.setAttribute 'src', file
   s.addEventListener 'load', ->
-    # MARK
+    # MARK TODO
     Leisure.processDefs global[name], global
     if cont then cont(_false())
   document.head.appendChild s
@@ -1397,9 +1409,10 @@ evalDocCode = (el, pgm)->
 define 'getDocument', ->
   makeSyncMonad (env, cont)-> cont peerGetDocument()
 
+# MARK TODO
 define 'getLink', ->
-  # MARK
-  makeSyncMonad (env, cont)-> cont Prim.linkFor filename
+  # makeSyncMonad (env, cont)-> cont Prim.linkFor filename
+  0
 
 define 'replaceDocument', ->(str)->
   makeSyncMonad (env, cont)->
@@ -1460,8 +1473,9 @@ define 'notebookSelection', ->(func)->
     sel = window.getSelection()
     bx = getBox sel.focusNode
     if bx? and hasFunc bx, func
-      # MARK
-      offset = (bx.ast.leisureCodeOffset ? 0)
+      # MARK CHECK
+      # offset = (bx.ast.leisureCodeOffset ? 0)
+      offset = 0
       r = sel.getRangeAt(0)
       window.r = r
       r2 = document.createRange()
@@ -1479,9 +1493,9 @@ hasFunc = (bx, func)->
 
 define 'notebookAst', ->(func)->
   makeSyncMonad (env, cont)->
-    # MARK
+    # MARK CHECK
     if func.leisureName?
-      # MARK
+      # MARK CHECK
       node = document.querySelector "[LeisureFunc=#{func.leisureName}]"
       if node?
         ast = getAst node
