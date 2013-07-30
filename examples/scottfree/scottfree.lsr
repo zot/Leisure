@@ -31,7 +31,7 @@ poke name idx value = do
 
 # poke a new element into the middle of a list
 pokeList list idx value = append (take idx list) (append [ value ] (drop (++ idx) list) )
-    
+
 # constants
 LIGHT_SOURCE = 9  # light is always at index 9
 DESTROYED = 0     # room location for 'destroyed' items
@@ -133,7 +133,7 @@ extract str pattern = do
     str
 
 unquote str = extract str (regexp '^"(.*)"$')
-    
+
 # convert all but last element into an int for a room list
 asRoom list = append (asInts (removeLast list)) [ (unquote (last list)) ]
 asRooms list = map (asRoom) list
@@ -152,7 +152,6 @@ asItem string = do
     [ string 0 'BAD REGEXP' ]      
 asItems list = map (asItem) list  
 
-  
 processFile contents = do
   #print contents
   #print (at contents 0)
@@ -175,7 +174,7 @@ processFile contents = do
   setValue 'Verbs' (odds Words)
   after_words = drop max_words after_actions
   processFile2 after_words
-  
+
 processFile2 after_words = do 
   GameHeader <- getValue 'GameHeader'
   num_actions = (at GameHeader GM_NUM_ACTIONS)  
@@ -219,7 +218,7 @@ debugGame = do
   Verbs <- getValue 'Verbs'
   print concat[ "\nNum Verbs: " (length Verbs) " Verbs: " (csv Verbs) ]
   debugGame2
-  
+
 debugGame2 = do    
   Rooms <- getValue 'Rooms'
   print concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (csv (at Rooms 0)) '\nLast Room: ' (csv (last Rooms)) ]
@@ -255,7 +254,7 @@ processLight = do
   or (eq where DESTROYED) (eq timeleft -1) # -1 means lasts forever, nothing to do
     nil         
     lightTick
-  
+
 # we need to decrement the light
 lightTick = do
   timeleft <- (peek 'GameHeader' GH_LIGHT_TIME) - 1
@@ -273,12 +272,12 @@ lightTick = do
     and (< timeleft 25) light
       print concat[ "You light runs out in " timeleft " turns.\n"]
       nil
-      
+
 # take a looksy  
 look = do
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   darkbit <- peek 'BitFlags' DARKBIT
-  light <- isLightPresent myloc
+  light <- false #isLightPresent myloc
   and darkbit (not light)
     print "You can't see. It is too dark!\n"
     basicLook myloc
@@ -343,18 +342,18 @@ countItemsInLocation myloc items = isNil items
 countCarried = do
   allitems <- getValue 'Items'
   countItemsInLocation CARRIED allitems
-  
+
 # quick debug function to move items around
 moveItem idx newloc = do
   item <- peek 'Items' idx
   newitem = pokeList item 1 newloc
   poke 'Items' idx newitem
-  
+
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
   look
-  
+
 # check to see if the light is either in the given room or carried by the player
 isLightPresent myloc = do
   light <- peek 'Items' LIGHT_SOURCE
@@ -379,7 +378,7 @@ getInput = do
           eq x (0-3)
             print "* GAME OVER*"
             nil
-          
+
 basicGetInput str = do
   verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
   isCons verb_noun
@@ -409,7 +408,7 @@ verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
       at [ 'NOR' 'SOU' 'EAS' 'WES' 'UP' 'DOWN' 'INV' ] i
       v
   v
-  
+
 whichNoun noun = do
   nouns <- getValue 'Nouns'
   whichWord noun nouns
@@ -418,12 +417,6 @@ whichVerb verb = do
   verbs <- getValue 'Verbs'
   whichWord verb verbs
 
-testZZ = do
-  zz = 1
-  zz = (eq 0 0) 2 4
-  log ("zz : " + zz) 0
-  nil
-  
 # loop over the list of words, any words that start with * should return the index of the last non-* word before it. return -1 if no match found  
 whichWord word list = basicWhichWord 0 0 word list  
 basicWhichWord idx result word list = isNil list
@@ -442,13 +435,11 @@ basicWhichWord idx result word list = isNil list
 performActions verb noun = eq verb 1
   performMove verb noun
   (0-1)  # TODO a whooole ton of stuffs
-  
+
 printReturn msg value = do
   print msg
   value
-  
-#         dark <- (isLightPresent myloc) false (peek 'BitFlags' DARKBIT)
-  
+
 performMove verb noun = do
   eq noun (0-1)
     printReturn "Give me a direction too." 0
@@ -468,4 +459,3 @@ performMove verb noun = do
          do
            tp ridx
            0
-           
