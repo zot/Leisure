@@ -738,11 +738,11 @@ baseLoad file = bind (readFile file)
 
 load file = bind (baseLoad file)
   \result . \\
-    errs = filter (\line . tail line (\_ . true) (\_ . false)) result
+    errs = foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
     .
     isNil errs
       right true
-      left (map (\el . el \h t . cons h (t id id)) errs)
+      left errs
 
 require file = bind (getValue 'requiredFiles')
   \files . contains files file
