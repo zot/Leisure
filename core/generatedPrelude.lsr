@@ -178,11 +178,6 @@ makeMoreTokens h t start = \\
         makeTokens (tail t) (+ start (+ (strLen h) (strLen (head t))))
         cons (token h start) next
 
-oldSplitTokens str pat = filter (\s . not (eq s '')) (strSplit str pat)
-
-newSplitTokensM str = bind (getValue 'tokenPat')
-  \tokenPat . splitTokens str tokenPat
-
 splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
 
 numberPat = regexp '-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)'
