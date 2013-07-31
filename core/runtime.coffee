@@ -71,8 +71,27 @@ define '<', ->(x)->(y)->booleanFor x() < y()
 define '<=', ->(x)->(y)->booleanFor x() <= y()
 define '>', ->(x)->(y)->booleanFor x() > y()
 define '>=', ->(x)->(y)->booleanFor x() >= y()
-define 'floor', (x)-> Math.floor(x())
+define 'floor', ->(x)-> Math.floor(x())
+define 'ceil', ->(x)-> Math.ceil(x())
+define 'round', ->(x)-> Math.round(x())
+define 'abs', ->(x)-> Math.abs(x())
+define 'sqrt', ->(x)-> Math.sqrt(x())
 
+define 'acos', ->(x)-> Math.acos(x())
+define 'asin', ->(x)-> Math.asin(x())
+define 'atan', ->(x)-> Math.atan(x())
+define 'atan2', ->(x)->(y)-> Math.atan2(x(), y())
+define 'cos', ->(x)-> Math.cos(x())
+define 'log', ->(x)-> Math.log(x())
+define 'sin', ->(x)-> Math.sin(x())
+define 'tan', ->(x)-> Math.tan(x())
+
+define 'rand', ->makeSyncMonad (env, cont)->
+    cont (Math.random())
+define 'randInt', ->(low)->(high)->makeSyncMonad (env, cont)->
+    cont (Math.floor(low() + Math.random() * high()))
+define '^', ->(x)->(y)->Math.pow(x(), y())
+    
 ############
 # STRINGS
 ############
