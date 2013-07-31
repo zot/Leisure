@@ -8,6 +8,19 @@ duplicate value times = <= times 0
   nil
   [ value | (duplicate value (--times))]
 
+aconsf key value list = [[key | value] | removeIf (\el . el \h t . h == key) list]
+  
+afetch k list = assoc k list
+  \x. x
+  nil
+
+test = do
+  world = aconsf 'Rooms' 5 nil
+  world = aconsf 'Rooms' 6 world
+  world = aconsf 'Rooms' 8 world
+  print world
+  world
+
 # is this value between lower & upper bounds inclusively?  
 between value low up = and (>= value low) (<= value up)
 betweenEx value low up = and (> value low) (< value up)
@@ -269,7 +282,7 @@ lightTick = do
 look = do
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   darkbit <- peek 'BitFlags' DARKBIT
-  light <- false #isLightPresent myloc
+  light <- isLightPresent myloc
   and darkbit (not light)
     print "You can't see. It is too dark!\n"
     basicLook myloc
@@ -358,11 +371,12 @@ getInput = do
   n_v <- basicGetInput str
   v = at n_v 0
   n = at n_v 1
+  wasAll = at n_v 2
   log concat['n_v ' (csv n_v) ] 0
   eq v (0-1)
     print "You use word(s) I don't know"
     do
-      x <- performActions v n
+      x <- performActions v n wasAll 0
       eq x (0-1)
         print "I don't understand your command."
         eq x (0-2)
@@ -371,6 +385,7 @@ getInput = do
             print "* GAME OVER*"
             nil
 
+# returns a list of [ verb_index noun_index wasAll ]  wasAll is a boolean that says whether they typed in 'ALL' which is special cased      
 basicGetInput str = do
   verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
   isCons verb_noun
@@ -388,9 +403,9 @@ basicGetInput str = do
       nc <- (isDir) nc (whichNoun noun)
       log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
       isDir
-        [ vc go ]
-        [ vc nc ]
-    [ (0-1) (0-1) ]  
+        [ vc go false ]
+        [ vc nc (eq noun 'ALL') ]
+    [ (0-1) (0-1) false ]  
 #    print "You use word(s) I don't know"
 
 verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
@@ -422,11 +437,123 @@ basicWhichWord idx result word list = isNil list
     eq word w
       result
       basicWhichWord (++ idx) result word (tail list)
-      #   basicWhichWord (++ idx) result word (tail list)
 
-performActions verb noun = eq verb 1
+performActions verb noun wasAll disable_sysfunc = eq verb 1
   performMove verb noun
-  (0-1)  # TODO a whooole ton of stuffs
+  do
+    actions <- getValue 'Actions'
+    f1 <- crazyLoopHere verb noun 0 0 0 false disable_sysfunc actions
+    eq f1 (0-4)
+      f1
+      and (neq f1 0) (eq 0 disable_sysfunc)
+        eq verb 18
+          f1 <- getAll verb noun wasAll disable_sysfunc
+          eq verb 10
+            f1 <- dropAll verb noun wasAll disable_sysfunc
+            f1
+
+# whole lotta code to process actions    
+crazyLoopHere vb no ct vv nv doagain disable_sysfunc actions = isNil actions
+    f1 <- (0-1)
+    action <- head actions
+    vv <- at action 0
+    and (neq vb 0) (and doagain (neq vv 0))
+      f1
+      and (neq vb 0) (and (not doagain) (eq f1 0))
+        f1
+        do
+          nv = vv % 150
+          vv = vv / 150
+          rand <- randomPercent nv
+          or (eq vv vb) (and doagain (eq (at action 0) 0))
+            or doagain (or (and (eq vv 0) rand) (and (neq vv 0) (or (eq nv no) (eq nv 0))))
+              do
+                f2 <- 0
+                f1 <- (eq f1 (0-1)) (0-2) f1
+                f2 <- performLine ct
+                > f2 0
+                  do
+                    f1 <- 0
+                    doagain <- (eq f2 2) true doagain
+                    and (neq vb 0) (not doagain)
+                      (0-4)   # using -4 to mean abort looping and get/drop ALL
+                      crazyLoopHere vb no (++ ct) vv nv ((eq (at action 0) 0) 0 doagain) disable_sysfunc (tail actions)
+                  crazyLoopHere vb no (++ ct) vv nv ((eq (at action 0) 0) 0 doagain) disable_sysfunc (tail actions)
+              crazyLoopHere vb no (++ ct) vv nv ((eq (at action 0) 0) 0 doagain) disable_sysfunc (tail actions)
+            crazyLoopHere vb no (++ ct) vv nv ((eq (at action 0) 0) 0 doagain) disable_sysfunc (tail actions)
+        
+performLine ct = do
+   action <- peek 'Actions' ct
+   results <- meetsConditions [ 0 0 0 0 0 ] (take 5 action))
+   not (at results 0)
+     0
+     do
+       param <- at results 1
+       pptr <- at results 2
+       'placeholder'
+     
+# takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
+meetsConditions param pptr conds = isNil conds
+  [ true param pptr ]
+  do
+    cv <- head conds
+    dv = cv / 20
+    cv <- cv % 20
+    keep = true
+    and keep (eq cv 0)
+      do
+        param <- pokeList param pptr dv
+        pptr = ++ pptr
+      keep = false
+    and keep (eq cv 1)
+      do
+        item <- peek 'Items' dv
+        keep = eq (at item 1) CARRIED
+      keep = false
+      
+      
+    
+# return true if a random percent is less than the value passed in
+randomPercent n = do
+  r <- randInt 0 99
+  < r n
+            
+getAll verb noun wasAll disable_sysfunc = do
+    eq wasAll 'ALL'
+      do
+        myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+        light <- isLightPresent myloc
+        dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
+        dark
+          printReturn "It is dark." 0
+          nil          
+      0
+      
+dropAll verb noun wasAll disable_sysfunc = 'placeholder'    
+
+# given an item name to any AUTOGETs, see if it's in the same room as the player for picking up
+matchUpItem name myloc = do
+  wordlen <- peek 'GameHeader' GH_WORD_LENGTH
+  name <- strToUpperCase (strSubstring name 0 wordlen)
+  match <- mapSynonym name
+  allitems <- getValue 'Items'
+  basicMatchUpItem match myloc 0 allitems
+  
+basicMatchUpItem name myloc idx allitems = isNil allitems
+  (0-1)
+  do
+    i = head allitems  #    log concat[ 'testing item: ' i ] 0
+    and (eq (at i 2) name) (eq (at i 1) myloc)
+      idx
+      basicMatchUpItem name myloc (++ idx) (tail allitems)
+ 
+# the name the player gives may be a synonym, if so return the original item name, if not return the original name passed in
+# refactored from original to use WhichWords call  
+mapSynonym noun = do
+  idx <- whichNoun noun
+  eq idx (0-1)
+    noun
+    peek 'Nouns' idx
 
 printReturn msg value = do
   print msg
