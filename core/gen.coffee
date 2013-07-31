@@ -132,6 +132,6 @@ define 'runAst', ->(ast)->
   try
     eval "(#{gen ast()})"
   catch err
-    L_parseErr()(->"Error running ast: " + ast())(->err.toString())
+    L_parseErr()(->"\n\nParse error: " + err.toString() + "\nAST: ")(ast)
 
 root.gen = gen
