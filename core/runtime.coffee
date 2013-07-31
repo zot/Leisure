@@ -71,6 +71,7 @@ define '<', ->(x)->(y)->booleanFor x() < y()
 define '<=', ->(x)->(y)->booleanFor x() <= y()
 define '>', ->(x)->(y)->booleanFor x() > y()
 define '>=', ->(x)->(y)->booleanFor x() >= y()
+define 'floor', (x)-> Math.floor(x())
 
 ############
 # STRINGS
