@@ -71,8 +71,6 @@ define '<=', ->(x)->(y)->booleanFor x() <= y()
 define '>', ->(x)->(y)->booleanFor x() > y()
 define '>=', ->(x)->(y)->booleanFor x() >= y()
 
-define 'floor', (x)-> Math.floor(x())
-
 ############
 # STRINGS
 ############
@@ -247,10 +245,6 @@ define 'getValue', ->(name)->
   makeSyncMonad (env, cont)->
     if !(name() of values) then throw new Error "No value named '#{name()}'"
     cont values[name()]
-
-define 'rand', ->()->
-  makeSyncMonad (env, cont)->
-    Math.random()
     
 setValue = (key, value)-> values[key] = value
 
