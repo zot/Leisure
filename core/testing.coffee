@@ -69,6 +69,7 @@ run = (name, func)->
     ifNoBrowser -> log '.'
     stats.successes++
   catch err
+    root.totalFailures++
     stats.failures++
     stats.failed.push name
     stats.traces.push "#{name}: #{err.stack}"
@@ -89,6 +90,7 @@ runTests = (name, tests)->
     logln failure
   logln ''
 
+root.totalFailures = 0
 root.assertEq = assertEq
 root.assertFail = assertFail
 root.run = run

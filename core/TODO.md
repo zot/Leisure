@@ -8,16 +8,34 @@ make regexp literals
 
 undefine names which don't compile successfully
 
+uniquify top-level names so this works:
+
+  x = 3
+  x = x + 1
+
 # handle test comments in *.lsr files
 
-# Case expr
+# Match expr
 
-case x
+(match
   pattern-expr -> result
-  ...
+  pattern-expr
+  ...) x
+
+## fancy patterns
+
+pattern-exprs without (-> result) can just return true or false (or maybe use match for those and case for pattern-exprs with actions)
+
+allow existing variables in pattern-exprs, so this works
+
+assoc key list = find (match [key | _]) list
+
+## pattern notation
 
 pattern
 varname @ pattern
+
+## misc
 
 The 'patternDefs' value contains named pattern matchers
 

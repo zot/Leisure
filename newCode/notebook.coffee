@@ -3,6 +3,8 @@
 # Only runs in the context of a browser
 ###
 
+console.log "LOADING NOTEBOOK"
+
 {
   nameSub,
   getRefName,
@@ -14,7 +16,7 @@
   getAnnoData,
   getAnnoBody,
   Leisure_anno,
-} = root = require './ast'
+} = root = module.exports = require './ast'
 {
   runMonad,
   makeMonad,
@@ -25,7 +27,8 @@
 {
   gen,
 } = require './gen'
-URI = require './uri'
+URI = window.URI
+Xus = window.Xus
 
 #debug = true
 debug = false
@@ -305,7 +308,7 @@ clearAst = (box)->
   cbox?.ast = null
 
 #[node, positions]
-oldBrackets = [null, Parse.Nil]
+oldBrackets = [null, Nil]
 
 cleanEmptyNodes = (el)->
   if el.nodeType == 3 and el.parentNode? then cleanEmptyNodes el.parentNode
@@ -590,7 +593,9 @@ highlightNotebookFunction = (funcName, start, stop)->
 
 isDef = (box)->
   txt = box.textContent
-  if (m = txt.match Leisure.linePat)
+  # MARK CHECK
+  #if (m = txt.match Leisure.linePat)
+  if (m = txt.match L_defPat())
     [matched, leading, name, defType] = m
     return defType?.length > 0
   false
@@ -913,7 +918,9 @@ evalOutput = (exBox, nofocus)->
   evalBox exBox.source, exBox
 
 findUpdateSelector = (box)->
-  if def = box.textContent.match Leisure.linePat
+  # MARK CHECK
+  #if def = box.textContent.match Leisure.linePat
+  if def = box.textContent.match L_defPat()
     [matched, leading, name, defType] = def
     if u = leading.match updatePat then u[3]
 
@@ -929,7 +936,9 @@ setUpdate = (el, channel, preserveSource)->
   else el.classList.remove 'ui-state-highlight'
   ast = getAst el.source
   txt = el.source.textContent
-  if !preserveSource and def = txt.match Leisure.linePat
+  # MARK CHECK
+  #if !preserveSource and def = txt.match Leisure.linePat
+  if !preserveSource and def = txt.match L_defPat()
     [matched, leading, name, defType] = def
     index = def.index
     if u = leading.match updatePat
@@ -1086,6 +1095,7 @@ envFor = (box)->
   # MARK CHECK
   # env = Prim.initFileSettings
   env =
+    fileSettings: {}
     debug: debug
     finishedEvent: (evt, channel)->update(channel ? 'app', this)
     owner: owner(box)
@@ -1118,6 +1128,7 @@ envFor = (box)->
       if root.lastEnv == env then root.lastEnv = null
   # MARK DONE
   env.__proto__ = defaultEnv
+  console.log "URI: #{URI}"
   env.fileSettings.uri = new URI document.location.href
   root.lastEnv = env
   env
@@ -1171,19 +1182,40 @@ box = (range, boxType, empty)->
   range.insertNode(node)
   node
 
+linePat = new RegExp "(#{L_linePat().source})"
+
 findDefs = (el)->
   txt = el.textContent
-  rest = txt
+  exprs = txt.split linePat
+  offset = 0
   ranges = []
-  # MARK TODO Leisure.linePat
-  while (def = rest.match Leisure.linePat) and def[1].length != rest.length
-    rng = getRanges(el, txt, rest, def, txt.length - rest.length)
-    if rng
-      rest = rng.next
-      if rng then ranges.push(rng)
-      else break
-    else break
-  ranges
+  for i in [0..exprs.length] by 2
+    start = offset
+    offset += exprs[i]
+    if i + 1 < exprs.length then offset += exprs[i + 1]
+    range = makeRange el, start, offset
+    span = createNode "<span style='outline: solid black 1px'></span>"
+    wrapRange range, span
+  []
+
+#findDefs = (el)->
+#  txt = el.textContent
+#  console.log "LINE EXP: #{linePat.source}"
+#  console.log "LINES: [#{txt.split(linePat).join ']\n['}]"
+#  rest = txt
+#  ranges = []
+#  # MARK TODO Leisure.linePat
+#  #while (def = rest.match Leisure.linePat) and def[1].length != rest.length
+#  console.log "FIND DEFS IN #{txt}"
+#  while (def = rest.match L_defPat()) and def[1].length != rest.length
+#    console.log "def: #{def}"
+#    rng = getRanges(el, txt, rest, def, txt.length - rest.length)
+#    if rng
+#      rest = rng.next
+#      if rng then ranges.push(rng)
+#      else break
+#    else break
+#  ranges
 
 testPat = /(#@test([^\n]*)\n#@expected([^\n]*))\n/m
 
@@ -1313,7 +1345,7 @@ req = (file, cont)->
   s.addEventListener 'load', ->
     # MARK TODO
     Leisure.processDefs global[name], global
-    if cont then cont(_false())
+    if cont then cont(L_false())
   document.head.appendChild s
 
 postLoadQueue = []
@@ -1417,7 +1449,7 @@ define 'getLink', ->
 define 'replaceDocument', ->(str)->
   makeSyncMonad (env, cont)->
     replaceContents str()
-    cont _true()
+    cont L_true()
 
 define 'gdriveOpen', ->
   makeMonad (env, cont)->
@@ -1431,7 +1463,7 @@ define 'getFilename', -> makeSyncMonad (env, cont)-> cont filename?.pathName() ?
 define 'setURI', ->(uri)->
   makeSyncMonad (env, cont)->
     setFilename uri()
-    cont _true()
+    cont L_true()
 
 define 'getURI', ->
   makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
@@ -1442,23 +1474,23 @@ define 'finishLoading', ->(bubba)->
     for i in postLoadQueue
       i()
     postLoadQueue = []
-    cont _false()
+    cont L_false()
 
 define 'markupButtons', ->
   makeSyncMonad (env, cont)->
     if env.box then markupButtons env.box
-    cont _false()
+    cont L_false()
 
 define 'alert', ->(str)->
   makeSyncMonad (env, cont)->
     window.alert(str())
-    cont _false()
+    cont L_false()
 
 define 'bindEvent', ->(selector)->(eventName)->(func)->
   makeSyncMonad (env, cont)->
     node = env.box.querySelector selector()
     if node then node.addEventListener eventName(), (e)-> runMonad func()(laz e), envFor(e.target), ->
-    cont _false()
+    cont L_false()
 
 define 'quit', -> window.close()
 
@@ -1466,7 +1498,7 @@ define 'config', ->(expr)->
   makeSyncMonad (env, cont)->
     switch expr()
       when 'autoTest' then autoRun(env.owner, true)
-    cont(_false())
+    cont(L_false())
 
 define 'notebookSelection', ->(func)->
   makeSyncMonad (env, cont)->
@@ -1617,8 +1649,8 @@ emptyFile
 # Exports
 #
 
-# MARK
-Prim.defaultEnv.require = req
+# MARK CHECK
+defaultEnv.require = req
 
 root.svgMeasureText = svgMeasureText
 root.svgMeasure = svgMeasure
