@@ -71,6 +71,10 @@ define '<', ->(x)->(y)->booleanFor x() < y()
 define '<=', ->(x)->(y)->booleanFor x() <= y()
 define '>', ->(x)->(y)->booleanFor x() > y()
 define '>=', ->(x)->(y)->booleanFor x() >= y()
+define 'floor', ->(x)-> Math.floor x()
+define 'ceiling', ->(x)-> Math.ceiling x()
+define 'min', ->(x)->(y)-> Math.min x(), y()
+define 'max', ->(x)->(y)-> Math.max x(), y()
 
 ############
 # STRINGS
@@ -99,7 +103,8 @@ define 'strMatch', ->(str)->(pat)->
     pos = 1
     while m[pos]
       groups.push m[pos++]
-    consFrom [m[0], consFrom(groups), m.index, m.input]
+    if typeof m.index != 'undefined' then consFrom [m[0], consFrom(groups), m.index, m.input]
+    else consFrom [m[0], consFrom(groups)]
   else Nil
 define 'strToList', ->(str)-> strToList str()
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
@@ -305,6 +310,10 @@ define 'readFile', ->(name)->
 define 'prompt', ->(msg)->
   makeMonad (env, cont)->
     env.prompt(String(msg()), (input)-> cont(input))
+
+define 'rand', ->
+  makeSyncMonad (env, cont)->
+    cont(Math.random())
 
 #######################
 # Classes for Printing

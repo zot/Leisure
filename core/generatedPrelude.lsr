@@ -178,7 +178,39 @@ makeMoreTokens h t start = \\
         makeTokens (tail t) (+ start (+ (strLen h) (strLen (head t))))
         cons (token h start) next
 
-splitTokens str pat = filter (\s . not (eq s '')) (strSplit str pat)
+oldSplitTokens str pat = filter (\s . not (eq s '')) (strSplit str pat)
+
+newSplitTokensM str = bind (getValue 'tokenPat')
+  \tokenPat . splitTokens str tokenPat
+
+splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
+
+numberPat = regexp '-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)'
+
+matchOffset str match = isNil match
+  strLen str
+  head (tail (tail match))
+
+basicSplitTokens str pat prevIsDel = == str ''
+  nil
+  \\
+    num = strMatch str numberPat
+    del = strMatch str pat
+    numOffset = matchOffset str num
+    delOffset = matchOffset str del
+    select = and (== numOffset 0) prevIsDel
+      \del num first . num
+      == delOffset 0
+        \del num first . del
+        \del num first . first
+    first = select (head del) (head num) (strSubstring str 0 delOffset)
+    .
+    cons
+      first
+      basicSplitTokens
+        strSubstring str (strLen first) 0
+        pat
+        select true false false
 
 tokens str pat = makeTokens (splitTokens str pat) 0
 
@@ -334,9 +366,11 @@ createLitOrRef tok names cont =
     cont (ref tok)
     or (strStartsWith tok '\"') (strStartsWith tok "'")
       parseString tok \str . cont (lit str)
-      or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
-        jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
-        cont (ref tok)
+      strStartsWith tok '.'
+        jsonParse (strCat (cons '0' (cons tok nil))) (\err . cont (ref tok)) (\item . cont (lit item))
+        or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
+          jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
+          cont (ref tok)
 
 createLambda start list names cont = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
@@ -489,7 +523,7 @@ tokListStr toks = jsonStringify (join (map (\t . tokenString t) toks) ' ')
 
 linePat = regexp '\\r?\\n(?=[^ ]|$)'
 
-emptyLinePat = regexp '^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$'
+emptyLinePat = regexp '(^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$)'
 
 lineScrub = regexpFlags '\\r\\n' 'g'
 

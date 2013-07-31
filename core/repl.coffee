@@ -85,13 +85,14 @@ evalInput = (text, cont)->
   if text
     try
       result = L_newParseLine()(->Nil)(->text)
-      if isMonad result then console.log "(processing IO monad)"
       runMonad result, replEnv, (ast)->
         try
           if diag
             console.log "AST: #{ast}"
             console.log "CODE: (#{gen ast})"
-          runMonad (eval "(#{gen ast})"), replEnv, cont
+          result = eval "(#{gen ast})"
+          if isMonad result then console.log "(processing IO monad)"
+          runMonad result, replEnv, cont
         catch err
           cont err.stack
     catch err

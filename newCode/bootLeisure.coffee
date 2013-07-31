@@ -58,19 +58,20 @@ bootLeisureCont = (load, state)->
     addLoadToDocument load
     load = new URI(document.location.href, load)
     console.log "LOADING #{load}"
-    Prim.read load, ((data)->
-      Notebook.replaceContents load, data
+    window.Leisure.read load, ((data)->
+      window.Notebook.replaceContents load, data
       cont()
     ), (err, html)->
       if html then $('[maindoc]').html html
       else $('[maindoc]').html "<h1>ERROR LOADING #{load}: #{err}</h1>"
   else (cont)->
-    Notebook.replaceContents()
+    window.Notebook.replaceContents()
     cont()
   loadThen Boot.jsFiles, ->
     #window.GdriveStorage.initStorage()
     #Repl.init()
-    Notebook.bootNotebook()
+    console.log "LOADED: #{Boot.jsFiles}"
+    window.Notebook.bootNotebook()
     f ->
       window.leisureFirst?()
       if window.leisurePrep? then callPrepCode window.leisurePrep, 0, finishBoot
@@ -114,7 +115,8 @@ else window.addEventListener 'load', bootLeisure
 
 handleError = (args...)->(e)->console.log 'Error: ', args..., e
 
-window.Leisure = Leisure
+#window.Leisure = Leisure
+#window.Notebook = Notebook
 Leisure.bootLeisure = bootLeisure
 Boot.loadThen = loadThen
 Boot.addLoadToDocument = addLoadToDocument

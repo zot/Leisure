@@ -35,7 +35,7 @@
   RIGHT_ARROW,
   UP_ARROW,
   DOWN_ARROW,
-  arrows} = Notebook
+  arrows} = Notebook = require './notebook'
 
 Q = 81
 
@@ -53,7 +53,7 @@ window.markup = (md)->
 
 lastSlide = null
 
-console?.error? new Error("Incompatibility: using -webkit-calc").stack
+console?.error? new Error("REMINDER: Incompatibility: using -webkit-calc").stack
 
 slidePat = /^(\*\*\*[^\n]*\n(?:--?\n)?)/m
 slideName = /^\*\*\*([^\n]*)\n(?:--?\n)?/m

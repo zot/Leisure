@@ -88,4 +88,4 @@ runTests 'Leisure Full Parser',
     assertEq String(runLsr("simpleScanLine 'head\n  cons\n    1\n    nil'")), 'Cons[Token("head", 0) Parens(4, 25, Cons[Token("cons", 7) Token("1", 16) Token("nil", 22)])]'
     assertEq runLsr("head\n  cons\n    1\n    nil"), 1
 
-process.exit T.stats.failures
+process.exit T.totalFailures
