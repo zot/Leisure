@@ -55,6 +55,8 @@
 
 if = id
 
+defMacro 'when' \line . line \cond rest . [cond ['do' | rest] 'nil']
+
 # numerics
 
 iszero = eq 0
@@ -67,6 +69,17 @@ addToken '++'
 ++ = (1 +)
 
 intercalate x l = concat (intersperse x l)
+
+visit func l = \\
+  result = func func l
+  .
+  isCons result
+    result \h t . cons (visit func h) (visit func t)
+    result
+
+simplify exprString = do
+  list <- scanLineM exprString
+  visit (\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list
 
 #######################
 ## Agents
