@@ -88,8 +88,9 @@ evalInput = (text, cont)->
       runMonad result, replEnv, (ast)->
         try
           if diag
-            console.log "AST: #{ast}"
-            console.log "CODE: (#{gen ast})"
+            if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad L_simplify() ->text}"
+            console.log "\nAST: #{ast}"
+            console.log "\nCODE: (#{gen ast})"
           result = eval "(#{gen ast})"
           if isMonad result then console.log "(processing IO monad)"
           runMonad result, replEnv, cont
@@ -105,6 +106,7 @@ help = ->
 
   Here are the commands:
   :d -- toggle diagnostics
+  :s expr -- simplify an expression
   :{ -- start multiline input
   :} -- end multiline input
   :h -- print this message
@@ -205,7 +207,10 @@ repl = ->
               finishMultiline()
           when ':h' then help()
           else
-            if m = line.match /^:{(.*)$/
+            if line.substring(0,2) == ':s'
+              if L_simplify? then console.log "\n#{runMonad L_simplify() ->line.substring(2)}\n"
+              else console.log "No simplify function.  Load std.lsr"
+            else if m = line.match /^:{(.*)$/
               startMultiline()
               if m[1] then lines.push m[1]
             else if line.match /^!/ then console.log eval line.substring 1
