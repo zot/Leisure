@@ -72,7 +72,8 @@ GH_SIZEOF = 12
 # indexes into the GlobalVars list
 GV_LIGHT_REFILL = 0
 GV_REDRAW = 1
-GV_CURRENTCOUNTER = 2
+GV_CURRENT_COUNTER = 2
+GV_SAVED_ROOM = 3
 
 # indexes into an Item
 ITEM_NAME = 0
@@ -134,18 +135,21 @@ asItem string = do
     [ string 0 0 'BAD REGEXP' ]      
 asItems list = map (asItem) list  
 
+
 processFile contents = do
-  #print contents
-  #print (at contents 0)
-  setValue 'BitFlags' (duplicate false 32)  # up to 32 bits of flags supported
+  setValue 'BitFlags' (duplicate false 32)   # up to 32 bits of flags supported
+  setValue 'Counters' (duplicate 0 16)       # up to 16 counters
+  setValue 'RoomSaved' (duplicate 0 16)      # up to 16 saved rooms
+  log "Globals Set." (processFileNext contents)
+  
+processFileNext contents = do
   GameHeader = asInts (take GH_SIZEOF contents)
   setValue 'GameHeader' GameHeader
-  GlobalVars = [ (at GameHeader GH_LIGHT_TIME) 0 0 ]  # store light time in refill time for later use
+  GlobalVars = [ (at GameHeader GH_LIGHT_TIME) 0 0 0 ]  # store light time in refill time for later use
   setValue 'GlobalVars' GlobalVars
   after_header = (drop GH_SIZEOF contents)
   num_actions = (at GameHeader GM_NUM_ACTIONS)
-  max_actions = (num_actions * 1 + 1) * 8
-  #print concat[ 'num actions: ' num_actions ' max actions: ' max_actions]
+  max_actions = (num_actions * 1 + 1) * 8     #log concat[ 'num actions: ' num_actions ' max actions: ' max_actions] 0
   Actions = box 8 (asInts (take max_actions after_header))
   setValue 'Actions' Actions
   after_actions = drop max_actions after_header
@@ -192,7 +196,7 @@ debugGame = do
   GameHeader <- getValue 'GameHeader'
   print (merge [ '\nmagic: ' '\nnum items: ' '\nnum actions: ' '\nnum words: ' '\nnum rooms: ' '\nmax carry: ' '\nplayer room: ' '\ntreasures: ' '\nword len: ' '\nlight time: ' '\nnum msgs: ' '\ntreasure room: ' ] GameHeader)
   GlobalVars <- getValue 'GlobalVars'
-  print (merge [ '\nlight refill: ' '\nredraw: ' '\ncurrent counter: ' ] GlobalVars)
+  print (merge [ '\nlight refill: ' '\nredraw: ' '\ncurrent counter: ' '\nsaved room: ' ] GlobalVars)
   Actions <- getValue 'Actions'
   print concat[ "\nNum Actions: " (length Actions) "\nFirst Action: "  (csv (at Actions 0)) "\nLast Action: " (csv (last Actions)) ]
   Nouns <- getValue 'Nouns'
@@ -212,6 +216,26 @@ debugGame2 = do
   GameFooter <- getValue 'GameFooter'
   print (merge [ '\nversion: ' '\nnadv number: ' '\nunknown: '] GameFooter)
   "Debug finished."
+
+inventory = do
+  print "You are carrying:"
+  allitems <- getValue 'Items'
+  items <- findItemsInLocation CARRIED allitems
+  isNil items
+    print "Nothing."
+    print concat[ (intersperse (map (\x . strReplace (at x 0) (regexpFlags '\\{nl\\}' 'g' ) '\n' ) items) ', ') "." ]  #have to extract the name from each item
+          
+score = do
+  allitems <- getValue 'Items'
+  treasure_room <- peek 'GameHeader' GH_TREASURE_ROOM
+  max_treasures <- peek 'GameHeader' GH_NUM_TREASURES
+  items <- findTreasuresInLocation treasure_room allitems           
+  n = length items
+  percent = (n * 100) / max_treasures
+  print concat[ "You have stored " n " treasures.  On a scale of 0 to 100, that rates " percent "% ." ]
+  eq n max_treasures
+    print "Well Done!"  # TODO - somehow end the game?
+    nil
 
 # lets do this!
 playGame = do
@@ -243,7 +267,7 @@ lightTick = do
       light
         print "Your light has run out.\n"
         nil
-    and (< timeleft 25) light
+    and (< timeleft 25) light  # only inform them the light is running out if they can see the light
       print concat[ "You light runs out in " timeleft " turns.\n"]
       nil
 
@@ -305,6 +329,13 @@ findItemsInLocation myloc items = isNil items
   eq (at (head items) ITEM_LOCATION) myloc
     cons (head items) (findItemsInLocation myloc (tail items))
     findItemsInLocation myloc (tail items)
+    
+# like findItems, but only add treasure items (name starts with *)    
+findTreasuresInLocation myloc items = isNil items
+  nil
+  and (eq (at (head items) ITEM_LOCATION) myloc) (strMatches (at (head items) ITEM_NAME) '^\\*')
+    cons (head items) (findTreasuresInLocation myloc (tail items))
+    findTreasuresInLocation myloc (tail items)
 
 # return the number of items in the given location, you must pass in all items list to start    
 countItemsInLocation myloc items = isNil items
@@ -320,7 +351,7 @@ countCarried = do
 # quick debug function to move items around
 moveItem idx newloc = do
   item <- peek 'Items' idx
-  newitem = pokeList item 1 newloc
+  newitem = pokeList item ITEM_LOCATION newloc
   poke 'Items' idx newitem
 
 # quick debug function for checking out the diff rooms
@@ -369,8 +400,7 @@ basicGetInput str = do
       go <- whichNoun verb
       isDir = between go 1 6
       vc <- (isDir) 1 (whichVerb verb)
-      nc <- (isDir) nc (whichNoun noun)
-      log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
+      nc <- (isDir) nc (whichNoun noun)   #log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
       isDir
         [ vc go false ]
         [ vc nc (eq noun 'ALL') ]
@@ -412,21 +442,23 @@ performActions verb noun wasAll disable_sysfunc = eq verb 1
   do
     actions <- getValue 'Actions'
     f1 <- crazyLoopHere verb noun 0 0 0 false disable_sysfunc actions
-    eq f1 (0-4)
+    f1 <- eq f1 -4
       f1
       and (neq f1 0) (eq 0 disable_sysfunc)
         eq verb 18
-          f1 <- getAll verb noun wasAll disable_sysfunc
+          getAll verb noun wasAll disable_sysfunc
           eq verb 10
-            f1 <- dropAll verb noun wasAll disable_sysfunc
+            dropAll verb noun wasAll disable_sysfunc
             f1
-
+        f1
+    f1
+    
 # whole lotta code to process actions    
 crazyLoopHere vb no ct vv nv doagain disable_sysfunc actions = isNil actions
     f1 <- -1
     action <- head actions
     vv <- at action 0
-    and (neq vb 0) (and doagain (neq vv 0))
+    f1 <- and (neq vb 0) (and doagain (neq vv 0))
       f1
       and (neq vb 0) (and (not doagain) (eq f1 0))
         f1
@@ -446,31 +478,218 @@ crazyLoopHere vb no ct vv nv doagain disable_sysfunc actions = isNil actions
                     doagain <- (eq f2 2) true doagain
                     and (neq vb 0) (not doagain)
                       (0-4)   # using -4 to mean abort looping and get/drop ALL
-                      nil
-                  nil
-              nil
+                      f1
+                  f1
+              f1
+          f1    
     crazyLoopHere vb no (++ ct) vv nv ((eq (at action 0) 0) 0 doagain) disable_sysfunc (tail actions)
 
+# the Vocab matched for this action, so test the 5 conditions to see if we should do the four actions    
 performLine ct = do
    action <- peek 'Actions' ct
-   results <- meetsConditions [ 0 0 0 0 0 ] (take 5 action)
+   results <- meetsConditions [ 0 0 0 0 0 ] (take 5 (drop 1 action))  # drop off the first value (vocab) and take the next 5
    not (at results 0)
      0
      do
-       param <- at results 1
-       pptr <- at results 2
-       'placeholder'
+       param = at results 1
+       pptr = at results 2
+       basicPerformActions param pptr 0 (buildActionList action)
+       
+# loop over the four possible actions to do them all in order
+actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action56] [action57] [action58 1] [ action59 1] [action60 1] [action61] [action62 2] [action63] [action64] [action65] [action66] [action67] [action68] [action60] [action69] [action70] [action71] [action72 2] [action73] [action74 2] [action75 2] [action76] [action77] [action78] [action79 1] [action80] [action81 1] [action82 1] [action83 1] [action84] [action85] [action86] [action87 1] [action88] [action89 1] ]
+basicPerformActions param pptr continuation actions = isNil actions
+  (1 + continuation)
+  do
+    act = head actions
+    continuation = (eq act 73) (++ continuation) continuation
+    bump <- between act 1 52
+      printReturn (peek 'Messages' act) 0
+      > act 101
+        printReturn (peek 'Messages' (act - 50)) 0
+        eq act 0
+          0
+          do
+            idx = act - 52
+            cell = (< idx (length actionsFuncList)) (at actionsFuncList idx) 0
+            eq cell 0
+              printReturn concat[ "No action found for: " act ] 0   # called when find fails
+              do
+                executeAction act cell param pptr          
+                eq (length cell) 3
+                  (at cell 2)    # finally return the amount to bump pptr by!
+                  0            # printReturn concat[ "No action found for: " act ] 0   # called when find fails
+    pptr = pptr + bump      
+    basicPerformActions param pptr continuation (tail actions)
+    
+# call the action function that matches the action index
+executeAction act cell param pptr = do
+  param_count = (> (length cell) 2) (at cell 2) 0
+  eq 0 param_count
+    (at cell 1)
+    eq 1 param_count
+      (at cell 1) (safeat param pptr)
+      eq 2 param_count
+        (at cell 2) (safeat param pptr) (safeat param (pptr + 1))
+        nil        
+    
+DERPXXX = 1
+    
+# GET takes 1 param    
+action52 p1 = do
+  c <- countCarried
+  max <- peek 'GameHeader' GH_MAX_CARRY
+  eq c max
+    print "You are carrying too much."
+    do
+      item <- peek 'Items' p1
+      myloc <- peek 'GameHeader' GH_PLAYER_ROOM      
+      eq (at item ITEM_LOCATION) myloc
+        setRedrawOn
+        nil
+      moveItem p1 CARRIED
+action53 p1 = do  # DROP takes 1
+  setRedrawOn
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  moveItem p1 myloc
+# warp player  
+action54 p1 = do
+  setRedrawOn
+  poke 'GameHeader' GH_PLAYER_ROOM p1
+action55 p1 = do  # destroy an item
+  item <- peek 'Items' p1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  eq (at item ITEM_LOCATION) myloc
+    setRedrawOn
+    nil
+  moveItem p1 0
+action56 = poke 'BitFlags' DARKBIT true
+action57 = poke 'BitFlags' DARKBIT false
+action58 p1 = poke 'BitFlags' p1 true
+# same as 55 ????
+action59 p1 = do
+  item <- peek 'Items' p1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  eq (at item ITEM_LOCATION) myloc
+    setRedrawOn
+    nil
+  moveItem p1 0
+action60 p1 = poke 'BitFlags' p1 false
+action61 = do
+  print "You are dead."
+  poke 'BitFlags' DARKBIT false
+  tp (peek 'GameHeader' GH_NUMROOMS)
+action62 p1 p2 = do  # Bug fix for some systems - before it could get parameters wrong */
+  item <- peek 'Items' p1
+  moveItem item p2
+  setRedrawOn
+action63 = do
+  print "The game is now over.\n"  # exit()0
+action64 = look
+action65 = score 
+action66 = inventory
+action67 = poke 'BitFlags' 1 true
+action68 = poke 'BitFlags' 1 false
+action69 = do  # refill the lamp
+  refill <- peek 'GlobalVars' GV_LIGHT_REFILL
+  poke 'GameHeader' GH_LIGHT_TIME refill
+  item <- peek 'Items' LIGHT_SOURCE
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  eq (at item ITEM_LOCATION) myloc
+    setRedrawOn
+    nil
+  moveItem item CARRIED
+  poke 'BitFlags' LIGHTOUTBIT false
+action70 = nil # ClearScreen()
+action71 = print "Save not implemented"  #SaveGame()
+action72 p1 p2 = do  # swap the location of the two items
+  item1 <- peek 'Items' p1
+  item2 <- peek 'Items' p2
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+  loc1 = at item1 ITEM_LOCATION  
+  loc2 = at item2 ITEM_LOCATION  
+  or (eq loc1 myloc) (eq loc2 myloc)  
+    setRedrawOn
+    nil
+  moveItem item1 loc2
+  moveItem item2 loc1
+action73 = nil   # nop here, its the continuation action handled above  
+action74 p1 = do  # pickup an item but ignore MAX_CARRY
+  item <- peek 'Items' p1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM      
+  eq (at item ITEM_LOCATION) myloc
+    setRedrawOn
+    nil
+  moveItem p1 CARRIED
+action75 p1 p2 = do  # move item1 to whereever item2 is
+  item1 <- peek 'Items' p1
+  item2 <- peek 'Items' p2
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+  loc1 = at item1 ITEM_LOCATION  
+  loc2 = at item2 ITEM_LOCATION  
+  or (eq loc1 myloc) (eq loc2 myloc)  
+    setRedrawOn
+    nil
+  moveItem item1 loc2
+action76 = look
+action77 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  >= cc 0
+    poke 'GlobalVars' GV_CURRENT_COUNTER (-- cc)
+    nil
+action78 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  print concat[ cc " " ]
+action79 p1 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  poke 'GlobalVars' GV_CURRENT_COUNTER (++ cc)
+action80 = do  # move the player into the saved room and swap out saved room for their old location
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM  
+  saved <- peek 'GlobalVars' GV_SAVED_ROOM
+  poke 'GameHeader' GH_PLAYER_ROOM saved
+  poke 'GlobalVars' GV_SAVED_ROOM myloc
+  setRedrawOn
+action81 p1 = do  # swap out the current counter with a saved one
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  sc <- peek 'Counters' p1
+  poke 'GlobalVars' GV_CURRENT_COUNTER sc
+  poke 'Counters' p1 cc
+action82 p1 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  poke 'GlobalVars' GV_CURRENT_COUNTER (cc + p1)
+action83 p1 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  cc <- (< (cc - p1) -1) -1 (cc - p1)
+  poke 'GlobalVars' GV_CURRENT_COUNTER cc
+action84 = do
+  nountext <- getValue 'NounText'
+  write nountext
+action85 = do
+  nountext <- getValue 'NounText'
+  print nountext
+action86 = print ''
+action87 p1 = do  # swap the player with the saved room in p1
+  sr <- peek 'RoomSaved' p1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  poke 'RoomSaved' p1 myloc
+  tp sr
+action88 = nil  # nop
+action89 = nil  # only increments pptr
+        
+setRedrawOn = poke 'GlobalVars' GV_REDRAW true
+setRedrawOff = poke 'GlobalVars' GV_REDRAW false
+        
+#  compute the four action ints from the action which has packed 2 per int
+buildActionList action = [ (floor ((at action 6) / 150)) ((at action 6) % 150) (floor ((at action 7) / 150)) ((at action 7) % 150) ]       
 
-     
 # takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
 meetsConditions param pptr conds = do
-    myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
-    item <- peek 'Items' dv
-    carryCount <- countCarried
-    bf <- getValue 'BitFlags'
-    counter <- peek 'GlobalVars' GV_CURRENTCOUNTER
-    basicMeetsConditions param pptr conds myloc item carryCount bf counter  # pull out all the monad calls and call the basic version
-       
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+  item <- peek 'Items' dv
+  carryCount <- countCarried
+  bf <- getValue 'BitFlags'
+  counter <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  basicMeetsConditions param pptr conds myloc item carryCount bf counter  # pull out all the monad calls and call the basic version
+
 # takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
 basicMeetsConditions param pptr conds myloc item carryCount bf counter = isNil conds
   [ true param pptr ]
@@ -483,7 +702,7 @@ basicMeetsConditions param pptr conds myloc item carryCount bf counter = isNil c
     and (testSingleCondition cv dv item myloc bf carryCount counter) (testSingleCondition2 cv dv item myloc bf carryCount counter)
       basicMeetsConditions param pptr (tail conds) myloc item carryCount bf counter
       [ false param pptr]
-      
+
 testSingleCondition cv dv item myloc bf carryCount counter = do     
   keep =           (eq cv 1)   (neq (at item ITEM_LOCATION) CARRIED) true   # player has an item     #if(Items[dv].Location!=CARRIED) return(0);
   keep = (and keep (eq cv 2))  (neq (at item ITEM_LOCATION) myloc) true   # item is in room   # if(Items[dv].Location!=MyLoc) return(0);
@@ -496,7 +715,7 @@ testSingleCondition cv dv item myloc bf carryCount counter = do
   keep = (and keep (eq cv 9))  (eq (at bf dv) true) true  #is bit clear   # if(BitFlags&(1<<dv)) return(0);      
   keep = (and keep (eq cv 10)) (eq carryCount 0) true  # if player has something  #if(CountCarried()==0) return(0);
   keep
-  
+
 testSingleCondition2 cv dv item myloc bf carryCount counter = do     
   keep = (and keep (eq cv 11)) (neq carryCount 0) true  #if player has nothing  #if(CountCarried()) return(0);
   keep = (and keep (eq cv 12)) (or (eq (at item ITEM_LOCATION) CARRIED) (eq (at item ITEM_LOCATION) myloc)) true  # item is not 'available' to player  # if(Items[dv].Location==CARRIED||Items[dv].Location==MyLoc) return(0);
@@ -508,7 +727,7 @@ testSingleCondition2 cv dv item myloc bf carryCount counter = do
   keep = (and keep (eq cv 18)) (eq (at item ITEM_INITIALLOC) (at item ITEM_LOCATION)) true # item is not in original room  #  if(Items[dv].Location ==Items[dv].InitialLoc) return(0);    
   keep = (and keep (eq cv 19)) (neq counter dv) true   # is COUNTER  ==   # if(CurrentCounter!=dv) 	return(0);
   keep
-     
+
 # return true if a random percent is less than the value passed in
 randomPercent n = do
   r <- randInt 0 99
@@ -524,7 +743,7 @@ getAll verb noun wasAll disable_sysfunc = do
           printReturn "It is dark." 0
           nil          
       0
-      
+
 dropAll verb noun wasAll disable_sysfunc = 'placeholder'    
 
 # given an item name to any AUTOGETs, see if it's in the same room as the player for picking up
@@ -534,7 +753,7 @@ matchUpItem name myloc = do
   match <- mapSynonym name
   allitems <- getValue 'Items'
   basicMatchUpItem match myloc 0 allitems
-  
+
 basicMatchUpItem name myloc idx allitems = isNil allitems
   -1
   do
@@ -542,7 +761,7 @@ basicMatchUpItem name myloc idx allitems = isNil allitems
     and (eq (at i ITEM_AUTOGET) name) (eq (at i ITEM_LOCATION) myloc)
       idx
       basicMatchUpItem name myloc (++ idx) (tail allitems)
- 
+
 # the name the player gives may be a synonym, if so return the original item name, if not return the original name passed in
 # refactored from original to use WhichWords call  
 mapSynonym noun = do
@@ -571,9 +790,9 @@ performMove verb noun = do
           dark
             printReturn "You fell down and broke your neck." (0-3)
             printReturn "You can't go in that direction." 0
-         do
-           tp ridx
-           0
-
+          do
+            tp ridx
+            0
+          
+ 
 DERP = 1
-           
