@@ -100,9 +100,12 @@ collapseStrings list = isNil list
      cons (head list) (collapseStrings (tail list))
 
 # return true if the string starts with " but doesn't end in one, but we need special case for item lines that have an extra int at the end of the line
+# wacky special case for a line with a double quote by itself which the regexp doesn't yet account for.
 isPartialString string = strMatches string '^".*"\\s+[0-9]+\\s*$'
   false
-  strMatches string '^".*[^"]\\s*$'
+  eq string '"'
+    true
+    strMatches string '^"[^"]+\\s*$'
 
 # convert a list of strings into integers by multiplying each element by 1
 asInts list = map (* 1) list
@@ -214,7 +217,7 @@ debugGame2 = do
   Items <- getValue 'Items'
   print concat[ "\nNum Items: " (length Items) " All Items: " (csv Items) ]
   GameFooter <- getValue 'GameFooter'
-  print (merge [ '\nversion: ' '\nnadv number: ' '\nunknown: '] GameFooter)
+  print (merge [ '\nversion: ' '\nadv number: ' '\nunknown: '] GameFooter)
   "Debug finished."
 
 inventory = do
