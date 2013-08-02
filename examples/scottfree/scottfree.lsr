@@ -243,9 +243,11 @@ score = do
 # lets do this!
 playGame = do
   look
-  getInput
+  over <- getInput
   processLight
-  playGame
+  eq over 'game over'
+   nil
+   playGame
 
 # decrement the light this turn if needed  
 processLight = do
@@ -371,22 +373,25 @@ isLightPresent myloc = do
 # return a pair of ints for the intended verb/noun combo   
 getInput = do
   str <- prompt (concat[ "Tell me what to do? " ])
-  n_v <- basicGetInput str
-  v = at n_v 0
-  n = at n_v 1
-  wasAll = at n_v 2
-  log concat['n_v ' (csv n_v) ] 0
-  eq v -1
-    print "You use word(s) I don't know"
-    do
-      x <- performActions v n wasAll 0
-      eq x -1
-        print "I don't understand your command."
-        eq x (0-2)
-          print "You can't do that yet."
-          eq x (0-3)
-            print "* GAME OVER*"
-            nil
+  eq str "game over"
+    "game over"
+    do 
+      v_n <- basicGetInput str
+      v = at v_n 0
+      n = at v_n 1
+      wasAll = at v_n 2
+      log concat['v_n ' (csv v_n) ] 0
+      eq v -1
+        print "You use word(s) I don't know"
+        do
+          x <- performActions v n wasAll
+          eq x -1
+            print "I don't understand your command."
+            eq x (0-2)
+              print "You can't do that yet."
+              eq x (0-4)
+                print "* GAME OVER*"
+                nil
 
 # returns a list of [ verb_index noun_index wasAll ]  wasAll is a boolean that says whether they typed in 'ALL' which is special cased      
 basicGetInput str = do
@@ -440,57 +445,70 @@ basicWhichWord idx result word list = isNil list
       result
       basicWhichWord (++ idx) result word (tail list)
 
-performActions verb noun wasAll disable_sysfunc = eq verb 1
+performActions verb noun wasAll = eq verb 1
   performMove verb noun
   do
     actions <- getValue 'Actions'
-    f1 <- crazyLoopHere verb noun 0 0 0 false disable_sysfunc actions
+    log "crazy loop started" 0
+    f1 <- crazyLoopHere verb noun actions
+    log concat[ "crazy loop finished: f1: " f1 ] 0
     f1 <- eq f1 -4
       f1
-      and (neq f1 0) (eq 0 disable_sysfunc)
-        eq verb 18
-          getAll verb noun wasAll disable_sysfunc
-          eq verb 10
-            dropAll verb noun wasAll disable_sysfunc
+      neq f1 0
+        eq verb 10
+          getItem verb noun wasAll        # if nothing stopped the GET from happening, do it now
+          eq verb 18
+            dropItem verb noun wasAll     # if nothing stopped the DROP from happening, do it now
             f1
         f1
     f1
     
-# whole lotta code to process actions    
-crazyLoopHere vb no ct vv nv doagain disable_sysfunc actions = isNil actions
-    f1 <- -1
-    action <- head actions
-    vv <- at action 0
-    f1 <- and (neq vb 0) (and doagain (neq vv 0))
-      f1
-      and (neq vb 0) (and (not doagain) (eq f1 0))
-        f1
-        do
-          nv = vv % 150
-          vv = floor (vv / 150)
-          rand <- randomPercent nv
-          or (eq vv vb) (and doagain (eq (at action 0) 0))
-            or doagain (or (and (eq vv 0) rand) (and (neq vv 0) (or (eq nv no) (eq nv 0))))
-              do
-                f2 <- 0
-                f1 <- (eq f1 -1) (0-2) f1
-                f2 <- performLine ct
-                > f2 0
-                  do
-                    f1 <- 0
-                    doagain <- (eq f2 2) true doagain
-                    and (neq vb 0) (not doagain)
-                      (0-4)   # using -4 to mean abort looping and get/drop ALL
-                      f1
-                  f1
-              f1
-          f1    
-    crazyLoopHere vb no (++ ct) vv nv ((eq (at action 0) 0) 0 doagain) disable_sysfunc (tail actions)
-
-# the Vocab matched for this action, so test the 5 conditions to see if we should do the four actions    
-performLine ct = do
-   action <- peek 'Actions' ct
-   results <- meetsConditions [ 0 0 0 0 0 ] (take 5 (drop 1 action))  # drop off the first value (vocab) and take the next 5
+# whole lotta code to process actions 
+# action is: [ vv&nv, five condtions, and two action ints ]   
+# if vv is 0 then nv is a percent chance the rule should fire
+# if vv matches the verb and nv matches the noun OR nv is 0, the rule should fire
+# action73 is a special case that says any following actions with vvact of 0 should continue to be executed
+# we can stop the moment we did something, unless its a continuation, we should keep going in that case
+# returns  -1 means we did nothing
+# returns -2 means the noun & verb matched, but the action performed returned 0, AKA "you cant do that yet"
+# return -4 means the game should exit
+# return 0 means we did something and should stop
+crazyLoopHere vb no actions = isNil actions
+  -1
+  do
+    action = head actions
+    vocabMatch <- doesVocabMatch vb no action
+    f1 <- vocabMatch
+      do
+        log concat[ "going to run action: " (csv action) ] 0
+        f2 <- performLine action
+        eq f2 0         # condtions not met for this action, we should report you can't do that yet
+          -2
+          eq f2 1       # action ran normally we should end successfully
+            0
+            eq f2 -4    # game should quit
+              -4
+              eq f2 2   # we should continue execution of additional actions of vocab of 0
+                additionalRules vb no (tail actions)
+                printReturn concat[ "Unknown return value from peformLine: " f2 ] 0
+      crazyLoopHere vb no (tail actions)      # vocab didn't match, keep reading actions        
+    f1
+    
+additionalRules nv no actions = -4  # TODO, keep executing actions with vocab of 0 until you run out
+  
+# the vocab matches based on the verb and an optional noun provided by the rule not the player
+doesVocabMatch vb no action = do
+  vvact = at action 0
+  nv = vvact % 150
+  vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
+  and (eq vv vb) (or (eq no nv) (eq nv 0)) true false
+        
+# the Vocab matched for this action, so test the 5 conditions to see if we should do the four actions 
+# return 0 for "You can't do that yet" because conditions weren't all met
+# return 1 for normal execution of rule
+# return 2 means we executed and should continue executing additional actions because of action73   
+performLine action = do
+   results <- meetsConditions [ 0 0 0 0 0 ] 0 (take 5 (drop 1 action))  # drop off the first value (vocab) and take the next 5
    not (at results 0)
      0
      do
@@ -499,11 +517,11 @@ performLine ct = do
        basicPerformActions param pptr 0 (buildActionList action)
        
 # loop over the four possible actions to do them all in order
-actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action56] [action57] [action58 1] [ action59 1] [action60 1] [action61] [action62 2] [action63] [action64] [action65] [action66] [action67] [action68] [action60] [action69] [action70] [action71] [action72 2] [action73] [action74 2] [action75 2] [action76] [action77] [action78] [action79 1] [action80] [action81 1] [action82 1] [action83 1] [action84] [action85] [action86] [action87 1] [action88] [action89 1] ]
 basicPerformActions param pptr continuation actions = isNil actions
   (1 + continuation)
   do
     act = head actions
+    log concat[ "Firing act #" act " Remaining actions: " (csv actions) ] 0
     continuation = (eq act 73) (++ continuation) continuation
     bump <- between act 1 52
       printReturn (peek 'Messages' act) 0
@@ -517,7 +535,8 @@ basicPerformActions param pptr continuation actions = isNil actions
             eq cell 0
               printReturn concat[ "No action found for: " act ] 0   # called when find fails
               do
-                executeAction act cell param pptr          
+                log concat[ "Executing Action: " act " idx" idx " param " (csv param) " pptr " pptr] 0
+                executeAction cell param pptr          
                 eq (length cell) 3
                   (at cell 2)    # finally return the amount to bump pptr by!
                   0            # printReturn concat[ "No action found for: " act ] 0   # called when find fails
@@ -525,18 +544,20 @@ basicPerformActions param pptr continuation actions = isNil actions
     basicPerformActions param pptr continuation (tail actions)
     
 # call the action function that matches the action index
-executeAction act cell param pptr = do
-  param_count = (> (length cell) 2) (at cell 2) 0
+executeAction cell param pptr = do
+  param_count <- (> (length cell) 2) (at cell 2) 0
   eq 0 param_count
-    (at cell 1)
+    (head cell)
     eq 1 param_count
-      (at cell 1) (safeat param pptr)
+      (head cell) (safeat param pptr)
       eq 2 param_count
-        (at cell 2) (safeat param pptr) (safeat param (pptr + 1))
+        (head cell) (safeat param pptr) (safeat param (pptr + 1))
         nil        
-    
-DERPXXX = 1
-    
+
+testScoreExecute = do
+  cell <- at actionsFuncList (65 - 52)
+  executeAction cell [ 0 0 0 0 0] 0
+
 # GET takes 1 param    
 action52 p1 = do
   c <- countCarried
@@ -677,6 +698,7 @@ action87 p1 = do  # swap the player with the saved room in p1
   tp sr
 action88 = nil  # nop
 action89 = nil  # only increments pptr
+actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action56] [action57] [action58 1] [ action59 1] [action60 1] [action61] [action62 2] [action63] [action64] [action65] [action66] [action67] [action68] [action60] [action69] [action70] [action71] [action72 2] [action73] [action74 2] [action75 2] [action76] [action77] [action78] [action79 1] [action80] [action81 1] [action82 1] [action83 1] [action84] [action85] [action86] [action87 1] [action88] [action89 1] ]
         
 setRedrawOn = poke 'GlobalVars' GV_REDRAW true
 setRedrawOff = poke 'GlobalVars' GV_REDRAW false
@@ -687,25 +709,30 @@ buildActionList action = [ (floor ((at action 6) / 150)) ((at action 6) % 150) (
 # takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
 meetsConditions param pptr conds = do
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
-  item <- peek 'Items' dv
   carryCount <- countCarried
   bf <- getValue 'BitFlags'
   counter <- peek 'GlobalVars' GV_CURRENT_COUNTER
-  basicMeetsConditions param pptr conds myloc item carryCount bf counter  # pull out all the monad calls and call the basic version
-
+  log concat[ "Testing Conditions: " (csv conds) ] 0
+  met <- basicMeetsConditions param pptr conds myloc carryCount bf counter  # pull out all the monad calls and call the basic version
+  log concat[ "Conditions: " (csv conds) " met? " met] 0
+  met
+  
 # takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
-basicMeetsConditions param pptr conds myloc item carryCount bf counter = isNil conds
+basicMeetsConditions param pptr conds myloc carryCount bf counter = isNil conds
   [ true param pptr ]
   do
-    cv = head conds
-    dv = floor (cv / 20)
-    cv = cv % 20
-    param = (eq cv 0) (pokeList param pptr dv) param  # save a param for case 0
+    cv_dv = head conds
+    dv = floor (cv_dv / 20)
+    cv = cv_dv % 20
+    item <- peek 'Items' dv
+    param = (eq cv 0) (pokeList param pptr dv) param  # save dv param for case 0
     pptr = (eq cv 0) (++ pptr) pptr                   # inc the pptr for case 0
-    and (testSingleCondition cv dv item myloc bf carryCount counter) (testSingleCondition2 cv dv item myloc bf carryCount counter)
-      basicMeetsConditions param pptr (tail conds) myloc item carryCount bf counter
+    log concat[ "cv_dv " cv_dv " cv " cv " dv " dv " param " (csv param) " pptr" pptr ] 0
+    met <- or (eq cv 0) (and (testSingleCondition cv dv item myloc bf carryCount counter) (testSingleCondition2 cv dv item myloc bf carryCount counter))
+      basicMeetsConditions param pptr (tail conds) myloc carryCount bf counter
       [ false param pptr]
-
+    met
+    
 testSingleCondition cv dv item myloc bf carryCount counter = do     
   keep =           (eq cv 1)   (neq (at item ITEM_LOCATION) CARRIED) true   # player has an item     #if(Items[dv].Location!=CARRIED) return(0);
   keep = (and keep (eq cv 2))  (neq (at item ITEM_LOCATION) myloc) true   # item is in room   # if(Items[dv].Location!=MyLoc) return(0);
@@ -736,18 +763,53 @@ randomPercent n = do
   r <- randInt 0 99
   < r n
 
-getAll verb noun wasAll disable_sysfunc = do
-    eq wasAll 'ALL'
+# get an item, TODO - support get all              
+getItem verb noun wasAll = do
+  wasAll
+    do
+      myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+      light <- isLightPresent myloc
+      dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
+      dark
+        printReturn "It is dark." 0
+        nil
+      'TODO'        
+    eq noun -1
+      printReturn "What?" 0
       do
-        myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
-        light <- isLightPresent myloc
-        dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
-        dark
-          printReturn "It is dark." 0
-          nil          
-      0
-
-dropAll verb noun wasAll disable_sysfunc = 'placeholder'    
+        c <- countCarried
+        max <- peek 'GameHeader' GH_MAX_CARRY
+        eq c max
+          printReturn "You are carrying too much." 0
+          do
+            myloc <- peek 'GameHeader' GH_PLAYER_ROOM 
+            getname <- peek 'Nouns' noun
+            idx <- matchUpItem getname myloc
+            eq idx -1
+              printReturn "It is beyond your power to do that. " 0
+              do
+                moveItem idx CARRIED
+                setRedrawOn
+                printReturn "O.K." 0
+                
+# drop an item, TODO - support drop all            
+dropItem verb noun wasAll = do
+  wasAll
+    do
+      myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+      'TODO'
+    eq noun -1
+      printReturn "What?" 0
+      do
+        myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+        dropname <- peek 'Nouns' noun
+        idx <- matchUpItem dropname CARRIED
+        eq idx -1
+          printReturn "It is beyond your power to do that. " 0
+          do
+            moveItem idx myloc
+            setRedrawOn
+            printReturn "O.K." 0
 
 # given an item name to any AUTOGETs, see if it's in the same room as the player for picking up
 matchUpItem name myloc = do
