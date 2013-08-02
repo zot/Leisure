@@ -404,6 +404,9 @@ basicGetInput str = do
       m = at verb_noun 1
       verb = strToUpperCase (strSubstring (at m 0) 0 wordlen)
       noun = (eq 1 (length m)) ('') (strToUpperCase (strSubstring (at m 1) 0 wordlen))
+      > (length m) 1
+        setValue 'NounText' (at m 1)
+        nil
       verb = verbShortcuts verb noun
       go <- whichNoun verb
       isDir = between go 1 6
@@ -476,11 +479,12 @@ crazyLoopHere vb no actions = isNil actions
   -1
   do
     action = head actions
-    vocabMatch <- doesVocabMatch vb no action
-    f1 <- vocabMatch
+    vocabMatch <- doesVocabMatch vb no action  #log concat[ "vocabMatch: " vocabMatch ] 0
+    f3 <- vocabMatch
       do
         debugAction action
         f2 <- performLine action
+        log concat[ "f2: " f2 ] 0
         eq f2 0         # condtions not met for this action, we should report you can't do that yet
           -2
           eq f2 1       # action ran normally we should end successfully
@@ -490,7 +494,15 @@ crazyLoopHere vb no actions = isNil actions
               eq f2 2   # we should continue execution of additional actions of vocab of 0
                 additionalRules vb no (tail actions)
                 printReturn concat[ "Unknown return value from peformLine: " f2 ] 0
-      crazyLoopHere vb no (tail actions)      # vocab didn't match, keep reading actions        
+      -1      # vocab didn't match, keep reading actions 
+    f1 <- (or (eq f3 -1) (eq f3 -2))   # in the event the rule matched but yet didn't fire, keep processing for more possibilities
+      do
+        eq f3 -2
+          log concat[ "\nVocab matched, but didn't fire! Will keep trying " (length (tail actions)) " more actions" ] 0
+          nil
+        more <- crazyLoopHere vb no (tail actions)    
+        (and (eq more -1) (eq f3 -2)) f3 more    # if we had a -2, try to preserve that in the event nothing more special happens
+      f3  
     f1
     
 additionalRules nv no actions = -4  # TODO, keep executing actions with vocab of 0 until you run out
@@ -511,8 +523,9 @@ performLine action = do
    not (at results 0)
      0
      do
+       log concat[ "Conditions were met: " (csv results) ] 0
        param = at results 1
-       pptr = at results 2
+       pptr = 0   # reset this back to 0 now they are loaded
        basicPerformActions param pptr 0 (buildActionList action)
        
 # loop over the four possible actions to do them all in order
@@ -520,7 +533,7 @@ basicPerformActions param pptr continuation actions = isNil actions
   (1 + continuation)
   do
     act = head actions
-    log concat[ "Firing act #" act " Remaining actions: " (csv actions) ] 0
+    (neq 0 act) (log concat[ "Firing act #" act " Remaining actions: " (csv actions) ] 0) nil
     continuation = (eq act 73) (++ continuation) continuation
     bump <- between act 1 52
       do
@@ -538,7 +551,7 @@ basicPerformActions param pptr continuation actions = isNil actions
             eq cell 0
               printReturn concat[ "No action found for: " act ] 0   # called when find fails
               do
-                log concat[ "Executing Action: " act " idx" idx " param " (csv param) " pptr " pptr] 0
+                log concat[ "Executing Action: " act " idx: " idx " param " (csv param) " pptr " pptr] 0
                 executeAction cell param pptr          
                 eq (length cell) 3
                   (at cell 2)    # finally return the amount to bump pptr by!
@@ -605,9 +618,9 @@ action61 = do
   print "You are dead."
   poke 'BitFlags' DARKBIT false
   tp (peek 'GameHeader' GH_NUMROOMS)
-action62 p1 p2 = do  # Bug fix for some systems - before it could get parameters wrong */
-  item <- peek 'Items' p1
-  moveItem item p2
+action62 p1 p2 = do
+  log concat[ "\n\nExecuting action #62 with item " p1 " and room " p2 ] 0
+  moveItem p1 p2
   setRedrawOn
 action63 = do
   print "The game is now over.\n"  # exit()0
@@ -624,7 +637,7 @@ action69 = do  # refill the lamp
   eq (at item ITEM_LOCATION) myloc
     setRedrawOn
     nil
-  moveItem item CARRIED
+  moveItem LIGHT_SOURCE CARRIED
   poke 'BitFlags' LIGHTOUTBIT false
 action70 = nil # ClearScreen()
 action71 = print "Save not implemented"  #SaveGame()
@@ -637,8 +650,8 @@ action72 p1 p2 = do  # swap the location of the two items
   or (eq loc1 myloc) (eq loc2 myloc)  
     setRedrawOn
     nil
-  moveItem item1 loc2
-  moveItem item2 loc1
+  moveItem p1 loc2
+  moveItem p2 loc1
 action73 = nil   # nop here, its the continuation action handled above  
 action74 p1 = do  # pickup an item but ignore MAX_CARRY
   item <- peek 'Items' p1
@@ -656,7 +669,7 @@ action75 p1 p2 = do  # move item1 to whereever item2 is
   or (eq loc1 myloc) (eq loc2 myloc)  
     setRedrawOn
     nil
-  moveItem item1 loc2
+  moveItem p1 loc2
 action76 = look
 action77 = do
   cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
@@ -730,38 +743,62 @@ basicMeetsConditions param pptr conds myloc carryCount bf counter = isNil conds
     item <- peek 'Items' dv
     param = (eq cv 0) (pokeList param pptr dv) param  # save dv param for case 0
     pptr = (eq cv 0) (++ pptr) pptr                   # inc the pptr for case 0
-    log concat[ "cv_dv " cv_dv " cv " cv " dv " dv " param " (csv param) " pptr" pptr ] 0
-    met <- or (eq cv 0) (and (testSingleCondition cv dv item myloc bf carryCount counter) (testSingleCondition2 cv dv item myloc bf carryCount counter))
+    log concat[ "cv_dv " cv_dv " cv " cv " dv " dv " param " (csv param) " pptr" pptr " item " (csv item) ] 0
+    or (eq cv 0) (testSingleCondition cv dv item myloc bf carryCount counter)
       basicMeetsConditions param pptr (tail conds) myloc carryCount bf counter
       [ false param pptr]
-    met
     
-testSingleCondition cv dv item myloc bf carryCount counter = do     
-  keep =           (eq cv 1)   (eq (at item ITEM_LOCATION) CARRIED) true   # player has an item     #if(Items[dv].Location!=CARRIED) return(0);
-  keep = (and keep (eq cv 2))  (eq (at item ITEM_LOCATION) myloc) true   # item is in room   # if(Items[dv].Location!=MyLoc) return(0);
-  keep = (and keep (eq cv 3))  (or (eq (at item ITEM_LOCATION) CARRIED) (eq (at item ITEM_LOCATION) myloc)) true    # item is 'available' to player # if(Items[dv].Location!=CARRIED&& Items[dv].Location!=MyLoc) return(0);
-  keep = (and keep (eq cv 4))  (eq myloc dv) true   # is player in room  # if(MyLoc!=dv) return(0);
-  keep = (and keep (eq cv 5))  (neq (at items ITEM_LOCATION) myloc) true  # is item not in this room   # if(Items[dv].Location==MyLoc) return(0);
-  keep = (and keep (eq cv 6))  (neq (at item ITEM_LOCATION) CARRIED) true  # if player doesn't have the item # if(Items[dv].Location==CARRIED) return(0);
-  keep = (and keep (eq cv 7))  (neq myloc dv) true # is player is not in room # if(MyLoc==dv) return(0);
-  keep = (and keep (eq cv 8))  (at bf dv) true   # is bit set   # if((BitFlags&(1<<dv))==0) return(0);     
-  keep = (and keep (eq cv 9))  (not (at bf dv)) true  #is bit clear   # if(BitFlags&(1<<dv)) return(0);      
-  keep = (and keep (eq cv 10)) (neq carryCount 0) true  # if player has something  #if(CountCarried()==0) return(0);
-  keep
-
-testSingleCondition2 cv dv item myloc bf carryCount counter = do     
-  keep = (and keep (eq cv 11)) (eq carryCount 0) true  # if player has nothing  #if(CountCarried()) return(0);
-  keep = (and keep (eq cv 12)) (not (or (eq (at item ITEM_LOCATION) CARRIED) (eq (at item ITEM_LOCATION) myloc))) true  # item is not 'available' to player  # if(Items[dv].Location==CARRIED||Items[dv].Location==MyLoc) return(0);
-  keep = (and keep (eq cv 13)) (eq (at item ITEM_LOCATION) 0) true  # is item in room 0   # if(Items[dv].Location==0) return(0);
-  keep = (and keep (eq cv 14)) (neq (at item ITEM_LOCATION) 0) true  # is item not in room 0   # if(Items[dv].Location) return(0);
-  keep = (and keep (eq cv 15)) (<= counter dv) true  # is COUNTER <=  # if(CurrentCounter>dv) return(0);
-  keep = (and keep (eq cv 16)) (> counter dv) true  # is COUNTER >    # if(CurrentCounter<=dv) return(0);
-  keep = (and keep (eq cv 17)) (eq (at item ITEM_INITIALLOC) (at item ITEM_LOCATION)) true  # item is in original room #  if(Items[dv].Location !=Items[dv].InitialLoc) return(0);    
-  keep = (and keep (eq cv 18)) (neq (at item ITEM_INITIALLOC) (at item ITEM_LOCATION)) true # item is not in original room  #  if(Items[dv].Location ==Items[dv].InitialLoc) return(0);    
-  keep = (and keep (eq cv 19)) (eq counter dv) true   # is COUNTER  ==   # if(CurrentCounter!=dv) 	return(0);
-  keep
+testSingleCondition cv dv item myloc bf carryCount counter =
+  (eq cv 1)
+    (eq (at item ITEM_LOCATION) CARRIED)   # player has an item     #if(Items[dv].Location!=CARRIED) return(0);
+    (eq cv 2)
+      (eq (at item ITEM_LOCATION) myloc)   # item is in room   # if(Items[dv].Location!=MyLoc) return(0);
+      (eq cv 3)
+        (or (eq (at item ITEM_LOCATION) CARRIED) (eq (at item ITEM_LOCATION) myloc))    # item is 'available' to player # if(Items[dv].Location!=CARRIED&& Items[dv].Location!=MyLoc) return(0);
+        (eq cv 4)
+          (eq myloc dv)   # is player in room  # if(MyLoc!=dv) return(0);
+          (eq cv 5)
+            (neq (at items ITEM_LOCATION) myloc)  # is item not in this room   # if(Items[dv].Location==MyLoc) return(0);
+            (eq cv 6)
+              (neq (at item ITEM_LOCATION) CARRIED)   # if player doesn't have the item # if(Items[dv].Location==CARRIED) return(0);
+              (eq cv 7)
+                (neq myloc dv)  # is player is not in room # if(MyLoc==dv) return(0);
+                (eq cv 8)
+                  (at bf dv)    # is bit set   # if((BitFlags&(1<<dv))==0) return(0);     
+                  (eq cv 9)
+                    (not (at bf dv))   #is bit clear   # if(BitFlags&(1<<dv)) return(0);      
+                    (eq cv 10)
+                      (neq carryCount 0)   # if player has something  #if(CountCarried()==0) return(0);
+                      testSingleCondition2 cv dv item myloc bf carryCount counter
+                                        
+testSingleCondition2 cv dv item myloc bf carryCount counter =     
+  (eq cv 11)
+    (eq carryCount 0)   # if player has nothing  #if(CountCarried()) return(0);
+    (eq cv 12)
+      (not (or (eq (at item ITEM_LOCATION) CARRIED) (eq (at item ITEM_LOCATION) myloc)))   # item is not 'available' to player  # if(Items[dv].Location==CARRIED||Items[dv].Location==MyLoc) return(0);
+      (eq cv 13)
+        (eq (at item ITEM_LOCATION) 0)   # is item in room 0   # if(Items[dv].Location==0) return(0);
+        (eq cv 14)
+          (neq (at item ITEM_LOCATION) 0)   # is item not in room 0   # if(Items[dv].Location) return(0);
+          (eq cv 15)
+            (<= counter dv)   # is COUNTER <=  # if(CurrentCounter>dv) return(0);
+            (eq cv 16)
+              (> counter dv)   # is COUNTER >    # if(CurrentCounter<=dv) return(0);
+              (eq cv 17)
+                (eq (at item ITEM_INITIALLOC) (at item ITEM_LOCATION))   # item is in original room #  if(Items[dv].Location !=Items[dv].InitialLoc) return(0);    
+                (eq cv 18)
+                  (neq (at item ITEM_INITIALLOC) (at item ITEM_LOCATION))  # item is not in original room  #  if(Items[dv].Location ==Items[dv].InitialLoc) return(0);    
+                  (eq cv 19)
+                    (eq counter dv)    # is COUNTER  ==   # if(CurrentCounter!=dv) 	return(0);
+                    false              # should in theory never get here!
   
 
+debugSearchActions vvact = do
+  all <- getValue 'Actions'
+  find (\x . (eq (head x) vvact)) all
+    (\a . debugAction a)
+    false
+  
 debugActionIndex act = do
   action <- peek 'Actions' act
   debugAction action
