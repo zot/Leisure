@@ -528,6 +528,10 @@ linesForFile text = filter
 
 defPat = regexp '^[^ =]+.* =( |$)'
 
+#unanchoredDefPat = regexp '(^|\\n)[^ =]+.* =([ \\n]|$)'
+
+unanchoredDefPat = regexp '^((?:\\s*\\n|#[^\\n]*\\n)*)([^=\\n]*)(=\\([^=]+=|=)?'
+
 namesForLines lines = foldl
   \result line . \\
     m = strMatch line defPat

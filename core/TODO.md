@@ -1,5 +1,11 @@
 # Bugs
 
+convert code generation not to use the continuation pattern
+
+make leisure -c show error messages
+
+make sure blanks are OK
+
 barf if there are tabs
 
 REPL can't handle comments
@@ -8,19 +14,48 @@ make regexp literals
 
 undefine names which don't compile successfully
 
-uniquify top-level names so this works:
+uniqify top-level names so this works:
 
   x = 3
   x = x + 1
 
+# doc strings
+
 # handle test comments in *.lsr files
 
-# Match expr
+# Pattern exprs
 
-(match
+Case works like Haskell's
+
+```
+case x
   pattern-expr -> result
+  ...
+```
+
+Cases returns a function of one arg
+
+```
+(cases
+  pattern-expr -> result
+  ...) x
+
+map
+  cases
+    ['single' x] -> x
+    ['double' x] -> x * 2
+    ['triple' x] -> x * 3
+  [['single' 1] ['single' 2] ['double' 3] ['triple' 4]]
+```
+
+Match returns a boolean
+
+```
+(match
+  pattern-expr
   pattern-expr
   ...) x
+```
 
 ## fancy patterns
 
@@ -59,7 +94,9 @@ gets `name expr` for exprs that have unknown starts
 
 # Anonymous _ variable
 
-# Commas with list filter
+# LISTS
+
+## Commas with list filter
 
 group things between commas so you don't need parens
 
@@ -68,6 +105,10 @@ group things between commas so you don't need parens
 Fixup theme stuff -- use icons instead of X and -> (transfer changes from implementationTalk.lmd into notebook-proper)
 
 show indentation in different colors
+
+Show AST portion on hover?
+
+Button to show simplified expr
 
 # custom data in tokenPacks
 

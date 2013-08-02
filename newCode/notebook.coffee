@@ -18,6 +18,7 @@ console.log "LOADING NOTEBOOK"
   Leisure_anno,
 } = root = module.exports = require './ast'
 {
+  isMonad,
   runMonad,
   makeMonad,
   makeSyncMonad,
@@ -29,6 +30,7 @@ console.log "LOADING NOTEBOOK"
 } = require './gen'
 URI = window.URI
 Xus = window.Xus
+$ = window.$
 
 #debug = true
 debug = false
@@ -279,8 +281,8 @@ isOutput = (el)-> el?.nodeType == 1 && el.hasAttribute 'LeisureOutput'
 isLeisureCode = (el)-> el?.nodeType == 1 && el.getAttribute('leisureNode') == 'code'
 
 peerNotifySelection = (el, str)->
-  peer.set 'leisure/selection/id', (if el then el.id else null)
-  peer.set 'leisure/selection/contents', str
+  #peer.set 'leisure/selection/id', (if el then el.id else null)
+  #peer.set 'leisure/selection/contents', str
 
 printableControlCharacters = (c.charCodeAt(0) for c in "\r\i\n\b")
 printable = (code)-> (code > 0xf and code < 37) or code > 40 or code in printableControlCharacters
@@ -1128,7 +1130,6 @@ envFor = (box)->
       if root.lastEnv == env then root.lastEnv = null
   # MARK DONE
   env.__proto__ = defaultEnv
-  console.log "URI: #{URI}"
   env.fileSettings.uri = new URI document.location.href
   root.lastEnv = env
   env
@@ -1184,38 +1185,41 @@ box = (range, boxType, empty)->
 
 linePat = new RegExp "(#{L_linePat().source})"
 
+#findDefs = (el)->
+#  console.log "\n\n@@@@@ FINDING DEFS"
+#  txt = el.textContent
+#  exprs = txt.split linePat
+#  offset = 0
+#  ranges = []
+#  for i in [0..exprs.length] by 2
+#    start = offset
+#    offset += exprs[i].length
+#    console.log "\n\n@@@@@ RANGE: #{start}, #{offset}"
+#    range = makeRange el, start, offset
+#    ranges.push range
+#    #span = createNode "<span class='ui-widget-content'></span>"
+#    #wrapRange range, span
+#    if i + 1 < exprs.length then offset += exprs[i + 1].length
+#  ranges
+
 findDefs = (el)->
   txt = el.textContent
-  exprs = txt.split linePat
-  offset = 0
+  #console.log "LINE EXP: #{linePat.source}"
+  #console.log "LINES: [#{txt.split(linePat).join ']\n['}]"
+  rest = txt
   ranges = []
-  for i in [0..exprs.length] by 2
-    start = offset
-    offset += exprs[i]
-    if i + 1 < exprs.length then offset += exprs[i + 1]
-    range = makeRange el, start, offset
-    span = createNode "<span style='outline: solid black 1px'></span>"
-    wrapRange range, span
-  []
-
-#findDefs = (el)->
-#  txt = el.textContent
-#  console.log "LINE EXP: #{linePat.source}"
-#  console.log "LINES: [#{txt.split(linePat).join ']\n['}]"
-#  rest = txt
-#  ranges = []
-#  # MARK TODO Leisure.linePat
-#  #while (def = rest.match Leisure.linePat) and def[1].length != rest.length
-#  console.log "FIND DEFS IN #{txt}"
-#  while (def = rest.match L_defPat()) and def[1].length != rest.length
-#    console.log "def: #{def}"
-#    rng = getRanges(el, txt, rest, def, txt.length - rest.length)
-#    if rng
-#      rest = rng.next
-#      if rng then ranges.push(rng)
-#      else break
-#    else break
-#  ranges
+  # MARK TODO Leisure.linePat
+  #while (def = rest.match Leisure.linePat) and def[1].length != rest.length
+  console.log "FIND DEFS IN #{txt}"
+  while (def = rest.match L_unanchoredDefPat()) and def[1].length != rest.length
+    console.log "def: #{def}"
+    rng = getRanges(el, txt, rest, def, txt.length - rest.length)
+    if rng
+      rest = rng.next
+      if rng then ranges.push(rng)
+      else break
+    else break
+  ranges
 
 testPat = /(#@test([^\n]*)\n#@expected([^\n]*))\n/m
 
@@ -1335,7 +1339,7 @@ continueRangePosition = (node, charOffset, end)->
 
 nodeEnd = (node)-> [node, if node.nodeType == 3 then node.length else node.childNodes.length - 1]
 
-addsLine = (node)-> node.nodeName == 'BR' or (node.nodeType == 1 and getComputedStyle(node, null).display == 'block' and node.childNodes.length > 0)
+addsLine = (node)-> node?.nodeType == 1 and (node.nodeName == 'BR' or (getComputedStyle(node, null).display == 'block' and node.childNodes.length > 0))
 
 req = (file, cont)->
   if !(file.match /\.js$/) then file = "#{file}.js"
@@ -1420,7 +1424,18 @@ processLine = (text, env, cont)->
     try
       runMonad L_newParseLine()(->Nil)(->text), env, (ast)->
         try
-          runMonad (eval "(#{gen ast})"), env, cont
+          result = eval "(#{gen ast})"
+          if isMonad result
+            console.log "INTERMEDIATE RESULT"
+            runMonad result, env, (result)->
+              console.log "RESULT: #{result}"
+              env.processResult result
+              cont result
+          else
+            console.log "DIRECT RESULT: #{result}"
+            env.write env.presentValue result
+            env.processResult? result
+            cont result
         catch err
           cont err.stack
     catch err
@@ -1644,6 +1659,15 @@ emptyFile
     unwrap controlSection
   controlSection.classList.add leisure_controls
   controlSection.classList.add hidden
+
+#
+# Notebook prims
+#
+
+define 'printValue', ->(value)->
+  makeMonad (env, cont)->
+    if value() != L_nil() then env.write("#{env.presentValue value()}\n")
+    cont L_false()
 
 #
 # Exports
