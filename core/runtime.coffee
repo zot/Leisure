@@ -319,7 +319,13 @@ define 'print', ->(msg)->
     #env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
     env.write ("#{m}\n")
     cont _false
-
+    
+define 'write', ->(msg)->
+  makeSyncMonad (env, cont)->
+    m = msg()
+    env.write ("#{m}")
+    cont _false
+    
 define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->
