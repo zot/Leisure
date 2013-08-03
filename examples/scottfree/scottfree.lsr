@@ -530,6 +530,7 @@ performActions verb noun wasAll = (and (eq verb 1) (between noun 1 6))
         f1
     f1
     
+CONTINUE = -54    
 # whole lotta code to process actions 
 # action is: [ vv&nv, five condtions, and two action ints ]   
 # if vv is 0 then nv is a percent chance the rule should fire
@@ -554,9 +555,9 @@ crazyLoopHere vb no actions = isNil actions
             0
             eq f2 -4    # game should quit
               -4
-              eq f2 2   # we should continue execution of additional actions of vocab of 0
-                additionalRules vb no (tail actions)
-                printReturn concat[ "Unknown return value from peformLine: " f2 ] 0
+              eq f2 2   # we should continue execution of additional actions of vocab of 0 0
+                crazyLoopHere CONTINUE CONTINUE (tail actions)
+                printReturn concat[ "Unknown return value from performLine: " f2 ] 0 
       -1      # vocab didn't match, keep reading actions 
     f1 <- (or (eq f3 -1) (eq f3 -2))   # in the event the rule matched but yet didn't fire, keep processing for more possibilities
       do      #   (eq f3 -2  )        (log concat[ "\nVocab matched, but didn't fire! Will keep trying " (length (tail actions)) " more actions" ] 0)      nil
@@ -564,21 +565,21 @@ crazyLoopHere vb no actions = isNil actions
         (and (eq more -1) (eq f3 -2)) f3 more    # if we had a -2, try to preserve that in the event nothing more special happens
       f3  
     f1
-    
-additionalRules nv no actions = -4  # TODO, keep executing actions with vocab of 0 until you run out
-  
+ 
 # the vocab matches based on the verb and an optional noun provided by the rule not the player
 doesVocabMatch vb no action = do
   vvact = at action 0
   nv = vvact % 150               # if vv is 0, this is used as a random percent chance to trigger, not an actual noun
   vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
-  and (eq vv 0) (eq vb 0)        # only fire global rules (vb == 0 if asked for specifically asked for!
-    > nv 0                       # this should never match vv nv of 0 0, that will only be processed by an action73 continuation  
-      do
-        rand <- (eq nv 100) true (randomPercent nv)  # if nv is 100, its not really random!
-        rand
-      false
-    and (eq vv vb) (or (eq no nv) (eq nv 0)) 
+  and (eq vvact 0) (and (eq vb CONTINUE) (eq no CONTINUE))
+    true
+    and (eq vv 0) (eq vb 0)        # only fire global rules (vb == 0 if asked for specifically asked for!
+      > nv 0                       # this should never match vv nv of 0 0, that will only be processed by an action73 continuation  
+        do
+          rand <- (eq nv 100) true (randomPercent nv)  # if nv is 100, its not really random!
+          rand
+        false
+      and (eq vv vb) (or (eq no nv) (eq nv 0)) 
 
 # the Vocab matched for this action, so test the 5 conditions to see if we should do the four actions 
 # return 0 for "You can't do that yet" because conditions weren't all met
