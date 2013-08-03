@@ -451,9 +451,9 @@ basicGetInput str = do
 
 verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
   do
-    i = findIndex (eq (strToUpperCase v)) [ 'N' 'S' 'E' 'W' 'U' 'D' 'I' ]
+    i = findIndex (eq (strToUpperCase v)) [ 'N' 'S' 'E' 'W' 'U' 'D' 'I' 'L' ]
     >= i 0
-      at [ 'NOR' 'SOU' 'EAS' 'WES' 'UP' 'DOWN' 'INV' ] i
+      at [ 'NOR' 'SOU' 'EAS' 'WES' 'UP' 'DOWN' 'INV' 'LOO' ] i
       v
   v
 
@@ -465,6 +465,16 @@ whichVerb verb = do
   verbs <- getValue 'Verbs'
   whichWord verb verbs
 
+hintVerbs = do
+  verbs <- getValue 'Verbs'
+  hintv = map (\v . (eq v '.') '' ((strStartsWith v '*') ('/' + (strSubstring v 1 99)) ('\n' + v))) (drop 1 verbs)
+  print concat[ "Verbs I know: " hintv  ]
+
+hintNouns = do
+  nouns <- getValue 'Nouns'
+  hintn = map (\n . (eq n '.') '' ((strStartsWith n '*') ('/' + (strSubstring n 1 99)) ('\n' + n))) (drop 1 nouns)
+  print concat[ "Nouns I know: " hintn  ]
+  
 # loop over the list of words, any words that start with * should return the index of the last non-* word before it. return -1 if no match found  
 whichWord word list = basicWhichWord 0 0 word list  
 basicWhichWord idx result word list = isNil list
