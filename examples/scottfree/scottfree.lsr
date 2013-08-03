@@ -16,8 +16,8 @@ afetch k list = assoc k list
 
 test = do
   world = aconsf 'Rooms' 5 nil
-  world = aconsf 'Rooms' 6 world
-  world = aconsf 'Rooms' 8 world
+  world = aconsf 'Rooms2' 6 world
+  world = aconsf 'Rooms3' 8 world
   print world
   world
 
@@ -251,10 +251,14 @@ score = do
 
 # lets do this!
 playGame = do
-  setValue 'GameOver' false
-  setRedrawOn  # force a look to begin
-  playGameLoop
-  
+  loaded <- hasValue 'GameHeader'
+  loaded
+    do
+      setValue 'GameOver' false
+      setRedrawOn  # force a look to begin
+      playGameLoop
+    print "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
+    
 playGameLoop = do 
   doRedraw
   performActions 0 0 false
@@ -414,7 +418,7 @@ getInput = do
   str <- prompt (concat[ "Tell me what to do? " ])
   print ""
   eq str ""  # ignore empty lines
-    nil
+    getInput
     eq 'DEBUG' (strToUpperCase str)
       toggleDebug
       do 
@@ -1049,7 +1053,7 @@ doAllNouns verb allnouns = isNil allnouns
       doAllNouns verb (tail allnouns)
       nil
       
-# drop an item, TODO - support drop all            
+# drop an item         
 dropItem verb noun wasAll = do
   wasAll
     do
