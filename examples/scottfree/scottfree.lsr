@@ -424,18 +424,21 @@ getInput = do
         wasAll = at v_n 2  # log concat['v_n ' (csv v_n) ] 0
         eq v -1
           print "You use word(s) I don't know"
-          do
-            x <- performActions v n wasAll
-            eq x -1
-              print "I don't understand your command."
-              eq x (0-2)
-                print "You can't do that yet."
-                eq x -4
-                  do
-                    setValue 'GameOver' true
-                    print "* GAME OVER*"
-                  nil
-
+          performActionsWithMsg v n wasAll
+          
+performActionsWithMsg v n wasAll = do
+  x <- performActions v n wasAll
+  eq x -1
+    print "I don't understand your command."
+    eq x (0-2)
+      print "You can't do that yet."
+      eq x -4
+        do
+          setValue 'GameOver' true
+          print "* GAME OVER*"
+        nil
+                  
+                  
 toggleDebug = do
   debug <- getValue 'DEBUG'
   setValue 'DEBUG' (not debug)
@@ -992,7 +995,10 @@ getItem verb noun wasAll = do
       dark
         printReturn "It is dark." 0
         nil
-      'TODO'        
+      allitems <- getValue 'Items'  
+      nouns <- getValue 'Nouns'      
+      getall <- findAllMatchingNouns myloc nouns allitems  # log concat[ "get all noun list: " (csv getall) ] 0
+      isNil (getall) (print "Nothing to get!") (doAllNouns verb getall)      
     eq noun -1
       printReturn "What?" 0
       do
@@ -1011,12 +1017,47 @@ getItem verb noun wasAll = do
                 setRedrawOn
                 printReturn "O.K." 0
                 
+# find all the items in the place passed in that have autoget strings and aren't synonyms                
+findAllMatchingNouns where nouns allitems = isNil allitems
+  nil
+  do
+    item = head allitems
+    autoget = at item ITEM_AUTOGET
+    autoget = (strStartsWith autoget '*') '' autoget    # ignore synonyms
+    noun = (neq autoget '') (whichWord autoget nouns) -1 #log concat[ "item: " (csv item) " autoget: " autoget " noun: " noun  ] 0
+    and (eq (at item ITEM_LOCATION) where) (neq noun -1)
+      cons noun (findAllMatchingNouns where nouns (tail allitems))
+      findAllMatchingNouns where nouns (tail allitems)
+
+testFindAllMatchingNouns where = do
+  allitems <- getValue 'Items'    
+  nouns <- getValue 'Nouns'     
+  findAllMatchingNouns where nouns allitems
+  
+# execute verb for every noun passed in, this should be either 10 for get or 18 for drop  
+doAllNouns verb allnouns = isNil allnouns
+  nil
+  do
+    noun = head allnouns
+    text <- peek 'Nouns' noun
+    setValue 'NounText' text
+    v <- peek 'Verbs' verb
+    print concat[ "> " v " " text ]   #   log concat["doing verb: " verb " for noun: " noun " nountext: " text ] 0
+    performActionsWithMsg verb noun false
+    over <- getValue 'GameOver'
+    not over
+      doAllNouns verb (tail allnouns)
+      nil
+      
 # drop an item, TODO - support drop all            
 dropItem verb noun wasAll = do
   wasAll
     do
       myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
-      'TODO'
+      allitems <- getValue 'Items'
+      nouns <- getValue 'Nouns'
+      getall <- findAllMatchingNouns CARRIED nouns allitems   # log concat[ "get all noun list: " (csv getall) ] 0
+      isNil (getall) (print "Nothing to drop!") (doAllNouns verb getall)      
     eq noun -1
       printReturn "What?" 0
       do
