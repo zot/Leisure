@@ -42,8 +42,9 @@ clean:
 
 $(BROWSER_JS): $(BROWSER_INPUT)
 	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
-	node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@.tmp
-	sed -e '/\/\/@/d' $@.tmp > $@
+	cp -f $(BROWSER_SRC:%=lib/%.js) $(SHARED_SRC:%=lib/%.map) $(NEW_COFFEE_SRC:%=lib/%.map) www
+	node_modules/browserify/bin/cmd.js lib/browserMain.js -d -o $@.tmp
+	sed -e '/\/\/@.*=data/n;/\/\/@/d' $@.tmp > $@
 
 $(CSS_OUT): $(CSS_FILES)
 	cat $(CSS_FILES) > $(CSS_OUT)
