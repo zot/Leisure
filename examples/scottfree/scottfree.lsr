@@ -83,6 +83,7 @@ ITEM_AUTOGET = 3
 
 Exits = [ 'North' 'South' 'East' 'West' 'Up' 'Down' ]
 
+
 loadGame filename = do
   result <- readFile filename
   result
@@ -143,6 +144,7 @@ processFile contents = do
   setValue 'BitFlags' (duplicate false 32)   # up to 32 bits of flags supported
   setValue 'Counters' (duplicate 0 16)       # up to 16 counters
   setValue 'RoomSaved' (duplicate 0 16)      # up to 16 saved rooms
+  setValue 'DEBUG' false  
   processFileNext contents
   
 processFileNext contents = do
@@ -392,25 +394,34 @@ isLightPresent myloc = do
 getInput = do
   str <- prompt (concat[ "Tell me what to do? " ])
   print ""
-  do 
-    v_n <- basicGetInput str
-    v = at v_n 0
-    n = at v_n 1
-    wasAll = at v_n 2  # log concat['v_n ' (csv v_n) ] 0
-    eq v -1
-      print "You use word(s) I don't know"
-      do
-        x <- performActions v n wasAll
-        eq x -1
-          print "I don't understand your command."
-          eq x (0-2)
-            print "You can't do that yet."
-            eq x -4
-              do
-                setValue 'GameOver' true
-                print "* GAME OVER*"
-              nil
+  eq 'DEBUG' (strToUpperCase str)
+    toggleDebug
+    do 
+      v_n <- basicGetInput str
+      v = at v_n 0
+      n = at v_n 1
+      wasAll = at v_n 2  # log concat['v_n ' (csv v_n) ] 0
+      eq v -1
+        print "You use word(s) I don't know"
+        do
+          x <- performActions v n wasAll
+          eq x -1
+            print "I don't understand your command."
+            eq x (0-2)
+              print "You can't do that yet."
+              eq x -4
+                do
+                  setValue 'GameOver' true
+                  print "* GAME OVER*"
+                nil
 
+toggleDebug = do
+  debug <- getValue 'DEBUG'
+  setValue 'DEBUG' (not debug)
+  not debug
+    print "\n ** ACTION DEBUGGING ENABLED **\n"
+    print "\n ** ACTION DEBUGGING DISABLED **\n"
+    
 # returns a list of [ verb_index noun_index wasAll ]  wasAll is a boolean that says whether they typed in 'ALL' which is special cased      
 basicGetInput str = do
   verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
@@ -523,10 +534,10 @@ doesVocabMatch vb no action = do
   vvact = at action 0
   nv = vvact % 150
   vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
-  and (eq vv vb) (or (eq no nv) (eq nv 0)) true 
+  and (eq vv vb) (and (neq vv 0) (or (eq no nv) (eq nv 0))) true 
     eq vv 0
       do
-        rand <- randomPercent nv
+        rand <- (eq nv 100) true (randomPercent nv)  # if nv is 100, its not really random!
         rand
       false
 
@@ -541,6 +552,8 @@ performLine action = do
      do #       log concat[ "Conditions were met: " (csv results) ] 0
        param = at results 1
        pptr = 0   # reset this back to 0 now they are loaded
+       debug <- getValue 'DEBUG'
+       debug (debugAction action) nil
        basicPerformActions param pptr 0 (buildActionList action)
        
 # loop over the four possible actions to do them all in order
@@ -642,7 +655,9 @@ action62 p1 p2 = do   # log concat[ "\n\nExecuting action #62 with item " p1 " a
 action63 = do
   print "The game is now over.\n"  # exit()0
   setValue 'GameOver' true
-action64 = look
+action64 = do
+  look
+  setRedrawOff
 action65 = score 
 action66 = inventory
 action67 = poke 'BitFlags' 1 true
@@ -937,7 +952,7 @@ describeAction act = between act 1 51    # 52 is the grab a param
       
 # return true if a random percent is less than the value passed in
 randomPercent n = do
-  r <- randInt 0 99
+  r <- randInt 0 99  # log concat[ "rnd: " r " n " n " trigger? " (< r n)] 0
   < r n
 
 # get an item, TODO - support get all              
