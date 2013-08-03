@@ -82,6 +82,12 @@ simplify exprString = do
   visit (\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list
 
 #######################
+## Monads
+#######################
+
+doall = foldr1 (\el res . bind el \_ . res)
+
+#######################
 ## Agents
 ## 
 ## An agent executes blocks asynchronously

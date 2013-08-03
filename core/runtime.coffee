@@ -93,7 +93,7 @@ define 'rand', ->makeSyncMonad (env, cont)->
 define 'randInt', ->(low)->(high)->makeSyncMonad (env, cont)->
     cont (Math.floor(low() + Math.random() * high()))
 define '^', ->(x)->(y)->Math.pow(x(), y())
-    
+
 ############
 # STRINGS
 ############
@@ -269,7 +269,7 @@ define 'getValue', ->(name)->
   makeSyncMonad (env, cont)->
     if !(name() of values) then throw new Error "No value named '#{name()}'"
     cont values[name()]
-    
+
 setValue = (key, value)-> values[key] = value
 
 getValue = (key)-> values[key]
@@ -319,13 +319,12 @@ define 'print', ->(msg)->
     #env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
     env.write ("#{m}\n")
     cont _false
-    
+
 define 'write', ->(msg)->
   makeSyncMonad (env, cont)->
-    m = msg()
-    env.write ("#{m}")
+    env.write (msg())
     cont _false
-    
+
 define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->

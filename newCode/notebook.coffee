@@ -86,7 +86,7 @@ closeWindow = ->
 
 createPeer = ->
   root.xusServer = server = new Xus.Server()
-  root.xusServer.verbose = (str)-> console.log str
+  #root.xusServer.verbose = (str)-> console.log str
   server.exit = -> closeWindow()
   peer = root.peer = Xus.createDirectPeer server
   peer.server = server
@@ -325,7 +325,7 @@ presentLeisureCode = (node, doEval)->
   node.setAttribute 'contentEditable', 'true'
   Notebook.bindNotebook node
   Notebook.changeTheme node, 'thin'
-  if doEval then Notebook.evalDoc node else Notebook.initNotebook node
+  if doEval then evalDoc node else initNotebook node
 
 mergeLeisureCode = (el1, el2)-> # TODO: this should just take one arg and merge an element with the one after it
   if el1 && el2
@@ -1449,7 +1449,7 @@ showError = (e, msg)->
   alert(e.stack)
 
 evalDocCode = (el, pgm)->
-  runMonad L_runFile(->pgm), defaultEnv, (result)->
+  runMonad L_runFile()(->pgm), defaultEnv, (result)->
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 
