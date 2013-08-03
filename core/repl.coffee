@@ -31,6 +31,7 @@ path = require 'path'
 fs = require 'fs'
 
 {
+  getType,
   setType,
   setDataType,
   ast2Json,
@@ -41,7 +42,7 @@ fs = require 'fs'
 {
   readFile,
   writeFile,
-} = require './base'
+} = require './node'
 {
   identity,
   runMonad,
@@ -81,19 +82,24 @@ replEnv =
     )
 replEnv.__proto__ = defaultEnv
 
+getParseErr = (x)-> x ->(value)->value()
+
 evalInput = (text, cont)->
   if text
     try
       result = L_newParseLine()(->Nil)(->text)
       runMonad result, replEnv, (ast)->
         try
-          if diag
-            if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad L_simplify() ->text}"
-            console.log "\nAST: #{ast}"
-            console.log "\nCODE: (#{gen ast})"
-          result = eval "(#{gen ast})"
-          if isMonad result then console.log "(processing IO monad)"
-          runMonad result, replEnv, cont
+          if getType(ast) == 'parseErr'
+            cont "PARSE ERORR: #{getParseErr ast}"
+          else
+            if diag
+              if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad L_simplify() ->text}"
+              console.log "\nAST: #{ast}"
+              console.log "\nCODE: (#{gen ast})"
+            result = eval "(#{gen ast})"
+            if isMonad result then console.log "(processing IO monad)"
+            runMonad result, replEnv, cont
         catch err
           cont err.stack
     catch err

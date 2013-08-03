@@ -969,7 +969,7 @@ infixShouldEatNext opPrec prec isRight curArg nextOp nextArg closes len = \\
     or (> opPrec nextPrec) (and (== opPrec nextPrec) isRight)
     isInfixArg closes nextArg]
 
-: x y = cons x y
+defMacro ':' \list . ['cons' | list]
 
 iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!=']]
 rightAssoc = [':']

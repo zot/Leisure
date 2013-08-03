@@ -31,6 +31,7 @@ console.log "LOADING NOTEBOOK"
 URI = window.URI
 Xus = window.Xus
 $ = window.$
+_ = require './lodash.min'
 
 #debug = true
 debug = false
@@ -54,19 +55,37 @@ peer = null
 nextId = 0
 filename = null
 
+defaultEnv.readFile = (fileName, cont)->
+  uri = new URI(document.location.href, fileName)
+  console.log "\n\n@@@@READ FILE: #{uri}\n\n"
+  $.get(String(uri))
+    .done((data)-> cont(null, data))
+    .fail((err)-> cont(err, null))
+
+defaultEnv.writeFile = (fileName, data, cont)->
+
 snapshot = (el, pgm)->
 
 setSnapper = (snapFunc)-> snapshot = snapFunc
 
 delay = (func)-> window.setTimeout func, 1
 
-basePresentValue = null
+getParseErr = getHtml = (x)-> x ->(value)->value()
+
+escapeHtml = (str)->
+  if typeof str == 'string' then str.replace /[<>]/g, (c)->
+    switch c
+      when '<' then '&lt;'
+      when '>' then '&gt;'
+  else str
 
 presentValue = (v)->
   if (getType v) == 'svgNode'
     content = v(laz(id))
     _svgPresent()(laz(content))(laz(id))
-  else basePresentValue(v)
+  else if (getType v) == 'html' then getHtml v
+  else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
+  else escapeHtml String(v)
 
 bootNotebook = (el)->
   if !(document.getElementById 'channelList')?
@@ -175,10 +194,12 @@ makeId = (el)-> if !el.id then el.id = "Leisure-#{nextId++}"
 
 allowEvents = true
 
+init = false
+
 bindNotebook = (el)->
-  if !basePresentValue
+  if !init
+    init = true
     # MARK CHECK
-    basePresentValue = (value)-> String value
     defaultEnv.presentValue = presentValue
     defaultEnv.write = (msg)->console.log msg
     defaultEnv.owner = document.body
@@ -535,7 +556,8 @@ boxClasses =
   codeMainExpr: ['codeMainExpr', 'ui-widget', 'ui-widget-content', 'ui-corner-all']
   codeMain: ['codeMain', 'ui-widget', 'ui-widget-content', 'ui-corner-all']
   codeMainTest: ['codeMainTest']
-  output: ['output', 'ui-widget', 'ui-widget-content', 'ui-corner-all']
+  #output: ['output', 'ui-widget', 'ui-widget-content', 'ui-corner-all']
+  output: ['output', 'ui-corner-all']
 
 addBoxClasses = (box, type)->
   box.setAttribute type, ''
@@ -1210,9 +1232,9 @@ findDefs = (el)->
   ranges = []
   # MARK TODO Leisure.linePat
   #while (def = rest.match Leisure.linePat) and def[1].length != rest.length
-  console.log "FIND DEFS IN #{txt}"
+  #console.log "FIND DEFS IN #{txt}"
   while (def = rest.match L_unanchoredDefPat()) and def[1].length != rest.length
-    console.log "def: #{def}"
+    #console.log "def: #{def}"
     rng = getRanges(el, txt, rest, def, txt.length - rest.length)
     if rng
       rest = rng.next
@@ -1267,14 +1289,14 @@ getRanges = (el, txt, rest, def, restOff)->
       if body.trim()
         textStart = restOff + m.index + (if t then leading.length - t.length else 0)
         if t? and (lm = t.match /^[ \n]+/) then textStart += lm[0].length
-        console.log "CHECKING AUTO..."
+        #console.log "CHECKING AUTO..."
         if m = t.match /(?:^|\n)#@auto( +[^\n]*)?(\n|$)/
           outerRange = makeRange el, textStart, exEnd
           outerRange.leisureAuto = JSON.parse "{#{m[1] ? ''}}"
           if outerRange.leisureAuto.mode == 'notebook'
             outerRange.leisureNode = el
             outerRange.leisureStart = textStart
-          console.log "Auto expr: #{txt.substring(textStart, exEnd)}, attrs: #{m[1]}"
+          #console.log "Auto expr: #{txt.substring(textStart, exEnd)}, attrs: #{m[1]}"
           main: outerRange
           name: null
           def: null
@@ -1403,6 +1425,7 @@ evalDoc = (el)->
   [pgm, auto, x, autoNodes] = initNotebook(el)
   try
     if auto || autoNodes
+      #console.log "\n\n@@@@ AUTO: #{auto}, AUTONODES: #{_(autoNodes ? []).map (el)->'\n' + el.innerHTML}\n\n"
       auto = "do\n  #{(auto ? '#\n').trim().replace /\n/g, '\n  '}\n  finishLoading 'fred'"
       global.noredefs = false
       Notebook.queueAfterLoad ->
@@ -1424,21 +1447,32 @@ processLine = (text, env, cont)->
     try
       runMonad L_newParseLine()(->Nil)(->text), env, (ast)->
         try
-          result = eval "(#{gen ast})"
-          if isMonad result
-            console.log "INTERMEDIATE RESULT"
-            runMonad result, env, (result)->
-              console.log "RESULT: #{result}"
-              env.processResult result
-              cont result
+          if getType(ast) == 'parseErr'
+            env.write env.presentValue ast
+            env.processResult? ast
+            cont ast
           else
-            console.log "DIRECT RESULT: #{result}"
-            env.write env.presentValue result
-            env.processResult? result
-            cont result
+            result = eval "(#{gen ast})"
+            if isMonad result
+              #console.log "INTERMEDIATE RESULT"
+              runMonad result, env, (result)->
+                #console.log "RESULT: #{result}"
+                env.processResult result
+                cont result
+            else
+              #console.log "DIRECT RESULT: #{result}"
+              env.write env.presentValue result
+              env.processResult? result
+              cont result
         catch err
+          console.log "ERROR: #{err.stack}"
+          env.write env.presentValue err.stack
+          env.processResult? err.stack
           cont err.stack
     catch err
+      console.log "ERROR: #{err.stack}"
+      env.write env.presentValue err.stack
+      env.processResult? err.stack
       cont err.stack
   else cont ''
 

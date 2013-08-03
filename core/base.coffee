@@ -24,11 +24,13 @@ misrepresented as being the original software.
 
 root = module.exports
 
-fs = require 'fs'
+defaultEnv =
+  presentValue: (x)-> x
 
-readFile = (fileName, cont)-> fs.readFile fileName, encoding: 'utf8', cont
+readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
 
-writeFile = (fileName, data, cont)-> fs.writeFile fileName, data, (encoding: 'utf8'), cont
+writeFile = (fileName, data, cont)-> defaultEnv.writeFile fileName, data, cont
 
+root.defaultEnv = defaultEnv
 root.readFile = readFile
 root.writeFile = writeFile

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  	<style>
+  		pre[leisureNode='code'] {
+  			outline: solid black 2px;
+  			display: inline-block;
+  			padding: 10px;
+  			position: relative;
+  		}
+  	</style>
+    <link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
+    <!--link href='jquery-ui/css/cthulhu-theme/jquery-ui-1.9.1.custom.min.css' rel='stylesheet' type='text/css'-->
+    <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
+    <script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script>
+    <script src="jquery-ui/js/jquery-1.8.2.js"></script>
+    <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
+    <script src="xus.js"></script>
+    <script src="aux.js"></script>
+    <script language="javascript">
+      function start() {
+          if (navigator && navigator.appVersion && navigator.appVersion.match(/Chrome/)) {
+              var script = document.createElement('script');
+              script.src = "bootLeisure.js?uniq=" + Math.random();
+              document.head.appendChild(script);
+          } else {
+              document.body.innerHTML = '<h1>This version of Leisure only supports Chrome</h1>';
+          }
+      }
+    </script>
+  </head>
+  <body class="thin scroll">
+<div maindoc><!--
+*** Basic defs
+-
+```
+html x = \f . f x
+```
+*** Leisure Controls
+```
+#@auto "mode": "notebook"
+#@hidden
+do
+  filename <- getFilename
+  printValue (html concat[
+    "<button id='openButton'>Open</button><br>"
+    "<button id='saveButton'>Save</button><br>"
+    "Save as: <input id='saveAs' type='text'>"
+    filename
+    "</input><br>"])
+  bindEvent '#openButton' 'click' \e . gdriveOpen
+  bindEvent '#saveButton' 'click' \e . alert 'Save'
+```
+*** Hidden Page
+--
+Hello
+***Scottfree
+```
+do
+  print 'LOADING CODE...'
+  require 'scottfree.lsr'
+  print 'LOADING DATA...'
+  loadGame 'adv01.dat'
+  print 'DONE.'
+
+playGame
+```
+--></div>
+<script>start()</script>
+  </body>
+</html>
