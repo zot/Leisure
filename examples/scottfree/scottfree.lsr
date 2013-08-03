@@ -227,8 +227,9 @@ debugGame2 = do
   "Debug finished."
 
 inventory = do
-  print "You are carrying:"
+  max_carry <- peek 'GameHeader' GH_MAX_CARRY
   allitems <- getValue 'Items'
+  print concat[ "You are carrying " (countItemsInLocation CARRIED allitems) " out of " max_carry " items." ]
   items <- findItemsInLocation CARRIED allitems
   isNil items
     print "Nothing."
@@ -258,8 +259,10 @@ playGameLoop = do
   doRedraw
   performActions 0 0 false
   doRedraw
-  getInput
-  processLight
+  over <- getValue 'GameOver'
+  when (not over)
+    getInput
+    processLight
   over <- getValue 'GameOver'
   over
    nil
@@ -282,7 +285,8 @@ processLight = do
     nil         
     lightTick
 
-# we need to decrement the light
+# we need to decrement the light. note: this just sets a flag that says when the lamp has gone empty
+# light vs dark is controlled by the game rules
 lightTick = do
   timeleft <- peek 'GameHeader' GH_LIGHT_TIME
   timeleft = -- timeleft    # log concat[ " light time left: " timeleft ] 0
@@ -356,8 +360,7 @@ printItems myloc = do
     items
     print concat[ "You can also see: " (intersperse (map func items) ', ') "." ]  #have to extract the name from each item
 
-prettyPrintItem item = do
-  name = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'   
+prettyPrintItem item = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'   
 
 debugPrintItem item = do
   name = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'   
@@ -562,12 +565,13 @@ doesVocabMatch vb no action = do
   vvact = at action 0
   nv = vvact % 150               # if vv is 0, this is used as a random percent chance to trigger, not an actual noun
   vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
-  and (eq vv vb) (and (neq vv 0) (or (eq no nv) (eq nv 0))) true    # this should never match vv nv of 0 0, that will only be processed by an action73 continuation
-    eq vv 0
+  and (eq vv 0) (eq vb 0)        # only fire global rules (vb == 0 if asked for specifically asked for!
+    > nv 0                       # this should never match vv nv of 0 0, that will only be processed by an action73 continuation  
       do
         rand <- (eq nv 100) true (randomPercent nv)  # if nv is 100, its not really random!
         rand
       false
+    and (eq vv vb) (or (eq no nv) (eq nv 0)) 
 
 # the Vocab matched for this action, so test the 5 conditions to see if we should do the four actions 
 # return 0 for "You can't do that yet" because conditions weren't all met
@@ -581,7 +585,9 @@ performLine action = do
        param = at results 1
        pptr = 0   # reset this back to 0 now they are loaded
        debug <- getValue 'DEBUG'
-       debug (debugAction action) nil
+       when debug
+         bf <- getValue 'BitFlags'   # log concat[ "Bitflags: " (csv bf) ] 0
+         debugAction action
        basicPerformActions param pptr 0 (buildActionList action)
        
 # loop over the four possible actions to do them all in order
@@ -688,8 +694,8 @@ action64 = do
   setRedrawOff
 action65 = score 
 action66 = inventory
-action67 = poke 'BitFlags' 1 true
-action68 = poke 'BitFlags' 1 false
+action67 = poke 'BitFlags' 0 true
+action68 = poke 'BitFlags' 0 false
 action69 = do  # refill the lamp
   refill <- peek 'GlobalVars' GV_LIGHT_REFILL
   poke 'GameHeader' GH_LIGHT_TIME refill
@@ -926,15 +932,15 @@ debugCondData cv dv = do
   eq type NONE
     ''
     eq type ACTION
-      'ARG: ' + dv
+      'SAVE_ARG: ' + dv
       eq type ITEM
         safeItemName dv
         eq type ROOM
           safeRoomName dv
           eq type NUMBER
-            'NUMBER'
+            'NUMBER: ' + dv
             eq type BITFLAG
-              'BITFLAG'
+              'BITFLAG: ' + dv
               '???'
     
 debugActions actions = isNil actions
