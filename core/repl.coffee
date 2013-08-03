@@ -190,7 +190,6 @@ repl = ->
               else console.log "No simplify function.  Load std.lsr"
             else if line.match /^!/ then console.log eval line.substring 1
             else
-              console.log "EVAL: #{JSON.stringify line}"
               evalInput line, (result)->
                 console.log String result
                 rl.setPrompt 'Leisure> '
@@ -225,7 +224,6 @@ repl = ->
             else
               lines = [line]
               finishMultiline()
-        rl.prompt()
       rl.on 'close', -> process.exit 0
       rl.on 'SIGINT', ->
         if interrupted then rl.pause()
