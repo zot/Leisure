@@ -142,12 +142,16 @@ leisureCompleter = (line)->
 
 interrupted = false
 
+prompt = ->
+  updateCompleter()
+  rl.setPrompt 'Leisure> '
+  rl.prompt()
+
 repl = ->
   lines = null
   leisureDir = path.join process.env.HOME, '.leisure'
   historyFile = path.join(leisureDir, 'history')
   rl = readline.createInterface process.stdin, process.stdout, leisureCompleter
-  updateCompleter()
   fs.exists historyFile, (exists)->
     ((cont)->
       if exists then readFile historyFile, (err, contents)->
@@ -162,13 +166,11 @@ repl = ->
           cont()) ()->
       help()
       multiline = false
-      rl.setPrompt 'Leisure> '
-      rl.prompt()
+      prompt()
       root.defaultEnv.err = (err)->
         console.log "Error: #{err.stack ? err}"
         multiline = false
-        rl.setPrompt 'Leisure> '
-        rl.prompt()
+        prompt()
       startMultiline = ->
         if multiline then console.log "Already reading multiline input"
         else
@@ -181,8 +183,7 @@ repl = ->
         l = lines
         lines = []
         if dumpInput
-          rl.setPrompt 'Leisure> '
-          rl.prompt()
+          prompt()
         else
           try
             if line.substring(0,2) == ':s'
@@ -192,13 +193,11 @@ repl = ->
             else
               evalInput line, (result)->
                 console.log String result
-                rl.setPrompt 'Leisure> '
-                rl.prompt()
+                prompt()
               return
           catch err
             console.log "ERROR: #{err.stack}"
-          rl.setPrompt 'Leisure> '
-          rl.prompt()
+          prompt()
       rl.on 'line', (line)->
         interrupted = false
         if rl.history[0] == rl.history[1] then rl.history.shift()
