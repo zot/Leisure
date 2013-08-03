@@ -80,6 +80,7 @@ ITEM_NAME = 0
 ITEM_LOCATION = 1
 ITEM_INITIALLOC = 2
 ITEM_AUTOGET = 3
+ITEM_IDX = 4
 
 Exits = [ 'North' 'South' 'East' 'West' 'Up' 'Down' ]
 
@@ -122,11 +123,14 @@ extract str pattern = do
 unquote str = extract str (regexp '^"(.*)"$')
 
 # convert all but last element into an int for a room list
-asRoom list = append (asInts (removeLast list)) [ (unquote (last list)) ]
+asRoom list = append (asInts (removeLast list)) [ (extractRoomName (last list)) ]
+extractRoomName name = do
+  name = unquote name
+  (eq name '') 'LIMBO' name
 asRooms list = map (asRoom) list
 
-# convert into an item list which is name, room#, and autoget string
-asItem string = do
+# convert into an item list which is name, room#, initial location, autoget string, and finally its index for debugging
+asItem string idx = do
   matches = strMatch string '^("?.*"?)\\s+([0-9]+)\\s*$'
   isCons matches
     do
@@ -134,10 +138,10 @@ asItem string = do
       room = 1 * (at (at matches 1) 1)
       agmatch = strMatch name '/(.*)/'
       isCons agmatch
-        [ (strReplace name (regexp '/.*/') '') room room (head (at agmatch 1)) ]
-        [ name room room '' ]
-    [ string 0 0 'BAD REGEXP' ]      
-asItems list = map (asItem) list  
+        [ (strReplace name (regexp '/.*/') '') room room (head (at agmatch 1)) idx ]
+        [ name room room '' idx ]
+    [ string 0 0 'BAD REGEXP' idx ]      
+asItems list = mapIndex (asItem) list  
 
 
 processFile contents = do
@@ -307,8 +311,10 @@ look = do
     basicLook myloc
 
 basicLook myloc = do
+  debug <- getValue 'DEBUG'
   room <- peek 'Rooms' myloc
   name = strReplace (at room 6) (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
+  name = (debug) (name + " #" + myloc) name
   strMatches name '^\\*'
     print name
     print concat[ "You are in a " name ]
@@ -344,10 +350,19 @@ printExits room = do
 printItems myloc = do
   allitems <- getValue 'Items'
   items <- findItemsInLocation myloc allitems
+  debug <- getValue 'DEBUG'
+  func = debug debugPrintItem prettyPrintItem
   isNil items
     items
-    print concat[ "You can also see: " (intersperse (map (\x . strReplace (at x 0) (regexpFlags '\\{nl\\}' 'g' ) '\n' ) items) ', ') "." ]  #have to extract the name from each item
+    print concat[ "You can also see: " (intersperse (map func items) ', ') "." ]  #have to extract the name from each item
 
+prettyPrintItem item = do
+  name = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'   
+
+debugPrintItem item = do
+  name = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'   
+  name + " #" + (at item ITEM_IDX)
+  
 # return a list of items that are in this location    
 #  and (> (length (head items)) 1) (eq (safeat (head items) 1) myloc)
 findItemsInLocation myloc items = isNil items
@@ -545,9 +560,9 @@ additionalRules nv no actions = -4  # TODO, keep executing actions with vocab of
 # the vocab matches based on the verb and an optional noun provided by the rule not the player
 doesVocabMatch vb no action = do
   vvact = at action 0
-  nv = vvact % 150
+  nv = vvact % 150               # if vv is 0, this is used as a random percent chance to trigger, not an actual noun
   vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
-  and (eq vv vb) (and (neq vv 0) (or (eq no nv) (eq nv 0))) true 
+  and (eq vv vb) (and (neq vv 0) (or (eq no nv) (eq nv 0))) true    # this should never match vv nv of 0 0, that will only be processed by an action73 continuation
     eq vv 0
       do
         rand <- (eq nv 100) true (randomPercent nv)  # if nv is 100, its not really random!
@@ -760,7 +775,7 @@ action87 p1 = do  # swap the player with the saved room in p1
   tp sr
 action88 = nil  # nop
 action89 = nil  # only increments pptr
-actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action56] [action57] [action58 1] [ action59 1] [action60 1] [action61] [action62 2] [action63] [action64] [action65] [action66] [action67] [action68] [action69] [action70] [action71] [action72 2] [action73] [action74 2] [action75 2] [action76] [action77] [action78] [action79 1] [action80] [action81 1] [action82 1] [action83 1] [action84] [action85] [action86] [action87 1] [action88] [action89 1] ]
+actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action56] [action57] [action58 1] [ action59 1] [action60 1] [action61] [action62 2] [action63] [action64] [action65] [action66] [action67] [action68] [action69] [action70] [action71] [action72 2] [action73] [action74 1] [action75 2] [action76] [action77] [action78] [action79 1] [action80] [action81 1] [action82 1] [action83 1] [action84] [action85] [action86] [action87 1] [action88] [action89 1] ]
         
 setRedrawOn = poke 'GlobalVars' GV_REDRAW true
 setRedrawOff = poke 'GlobalVars' GV_REDRAW false
@@ -861,7 +876,8 @@ debugAction action = do
   vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
   verb <- safeVerb vv
   noun <- safeNoun nv
-  print concat["Vocab vv " vv " nv " nv  " verb: " verb " noun: " noun ]
+  smart = (eq vv 0) (' CHANCE: ' + nv + '%') (" noun: " + noun)
+  print concat["Vocab vv " vv " nv " nv  " verb: " verb smart ]
   debugConditions (take 5 (drop 1 action))
   debugActions (buildActionList action)
   print '\nFinished.'
@@ -880,11 +896,11 @@ safeNoun nv = do
 
 safeItemName idx = do
   item <- peek 'Items' idx
-  safeat item ITEM_NAME
+  (safeat item ITEM_NAME) + ' #' + idx
 
 safeRoomName idx = do
   room <- peek 'Rooms' idx
-  safeat room 6
+  (safeat room 6) + ' #' + idx
   
 NONE = 1
 ACTION = 2
@@ -932,17 +948,9 @@ debugActions actions = isNil actions
         print concat[ "  Action# " act " What: " what ]
     debugActions (tail actions)
 
-NOT = 0
-IT = 1
-RO = 2
-FL = 3
-IT_RO = 4
-IT_IT = 5
-NUM = 6
-
 acts = flatten [
-  ['GET' 'MOVE_INTO_AR' 'GOTO' 'REMOVE' 'SET_NIGHT']
-  ['SET_DAY' 'SET_BIT X' 'REMOVE' 'CLEAR_BIT' 'KILL_PLAYER']
+  ['GET' 'MOVE_INTO_HERE' 'GOTO' 'DESTROY_ITEM' 'SET_NIGHT']
+  ['SET_DAY' 'SET_BIT X' 'DESTROY_ITEM2' 'CLEAR_BIT' 'KILL_PLAYER']
   ['MOVE_X_INTO_Y' 'QUIT' 'LOOK' 'SCORE' 'INVENTORY']
   ['SET_BIT (0)' 'CLEAR_BIT (0)' 'FILL_LAMP' 'CLS' 'SAVE']
   ['SWAP_ITEMS' 'CONTINUE:' 'GET_ALWAYS' 'PUT_X_WITH_Y' 'LOOK']
