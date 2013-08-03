@@ -7,7 +7,7 @@
 ## It uses lua5.1 to maintain compatibility with LuaJIT
 
 SHARED_SRC=base ast gen runtime
-SRC=$(SHARED_SRC) testing simpleParseJS repl
+SRC=$(SHARED_SRC) node testing simpleParseJS repl
 TEST=testLeisure
 TEST_PARSER=testParser
 LIB=lib

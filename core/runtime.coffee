@@ -24,6 +24,7 @@ misrepresented as being the original software.
 
 {
   readFile,
+  defaultEnv,
 } = root = module.exports = require './base'
 {
   define,
@@ -176,11 +177,9 @@ replaceErr = (err, msg)->
   err.message = msg
   err
 
-defaultEnv =
-  write: (str)-> process.stdout.write(str)
-  err: (err)-> @write "Error: #{err.stack ? err}"
-  prompt: ->throw new Error "Environment does not support prompting!"
-
+defaultEnv.write = (str)-> process.stdout.write(str)
+defaultEnv.err = (err)-> @write "Error: #{err.stack ? err}"
+defaultEnv.prompt = ->throw new Error "Environment does not support prompting!"
 
 monadModeSync = false
 
@@ -317,12 +316,12 @@ define 'print', ->(msg)->
   makeSyncMonad (env, cont)->
     m = msg()
     #env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
-    env.write ("#{m}\n")
+    env.write ("#{env.presentValue m}\n")
     cont _false
 
 define 'write', ->(msg)->
   makeSyncMonad (env, cont)->
-    env.write (msg())
+    env.write env.presentValue msg()
     cont _false
 
 define 'readFile', ->(name)->
@@ -337,6 +336,14 @@ define 'prompt', ->(msg)->
 define 'rand', ->
   makeSyncMonad (env, cont)->
     cont(Math.random())
+
+define 'js', ->(str)->
+  makeSyncMonad (env, cont)->
+    try
+      result = eval str()
+      cont right result
+    catch err
+      cont left err
 
 #######################
 # Classes for Printing
@@ -376,7 +383,6 @@ root.stateValues = values
 root.runMonad = runMonad
 root.isMonad = isMonad
 root.identity = identity
-root.defaultEnv = defaultEnv
 root.setValue = setValue
 root.getValue = getValue
 root.makeMonad = makeMonad

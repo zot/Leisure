@@ -32,7 +32,7 @@ require('source-map-support').install()
 {
   readFile,
   writeFile,
-} = require './base'
+} = require './node'
 {
   define,
   scan,
