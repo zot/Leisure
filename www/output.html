@@ -51,12 +51,17 @@ do
   bindEvent '#openButton' 'click' \e . gdriveOpen
   bindEvent '#saveButton' 'click' \e . alert 'Save'
 ```
-*** Examples
--
+*** Hidden Page
+--
+Hello
+***Examples
+
 ```
 #@auto "mode": "notebook"
 require 'gamePrep.lsr'
 
+js[
+  "$('[maindoc]')[0].innerHTML += '<div style=\"\">DUH</div>'" ]
 ```
 --></div>
 <script>start()</script>
