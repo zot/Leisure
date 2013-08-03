@@ -1,0 +1,9 @@
+#!/bin/sh
+
+#exec google-chrome --app=http://zot.github.io/Leisure/drive.html#load=googledrive://id:0B32MRkbkRMqbcFlSa2JJX25GV1k
+#LEISURE_DIR=/home/bill/lc/test-old exec $XUS_DIR/examples/leisure start presentation -u drive.html#load=/storage/implementationTalk.lmd
+
+#LEISURE_STORAGE=/home/bill/Insync/bill.burdick@gmail.com/LeisureStorage LEISURE_DIR=/home/bill/lc/lambdaCalculus/www exec $XUS_DIR/examples/leisure start presentation -u leisure.html#load=/storage/empty.lmd
+
+cd ~/lc/lambdaCalculus
+./launch -w -d www leisure.html

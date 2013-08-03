@@ -50,6 +50,7 @@ fs = require 'fs'
   defaultEnv,
   replaceErr,
   getMonadSyncMode,
+  setWarnAsync,
 } = require './runtime'
 
 global.runMonad = runMonad
@@ -84,13 +85,15 @@ evalInput = (text, cont)->
   if text
     try
       result = L_newParseLine()(->Nil)(->text)
-      if isMonad result then console.log "(processing IO monad)"
       runMonad result, replEnv, (ast)->
         try
           if diag
-            console.log "AST: #{ast}"
-            console.log "CODE: (#{gen ast})"
-          runMonad (eval "(#{gen ast})"), replEnv, cont
+            if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad L_simplify() ->text}"
+            console.log "\nAST: #{ast}"
+            console.log "\nCODE: (#{gen ast})"
+          result = eval "(#{gen ast})"
+          if isMonad result then console.log "(processing IO monad)"
+          runMonad result, replEnv, cont
         catch err
           cont err.stack
     catch err
@@ -103,6 +106,7 @@ help = ->
 
   Here are the commands:
   :d -- toggle diagnostics
+  :s expr -- simplify an expression
   :{ -- start multiline input
   :} -- end multiline input
   :h -- print this message
@@ -173,6 +177,7 @@ repl = ->
           rl.setPrompt '... '
       finishMultiline = (dumpInput)->
         multiline = false
+        line = lines.join '\n'
         l = lines
         lines = []
         if dumpInput
@@ -180,13 +185,20 @@ repl = ->
           rl.prompt()
         else
           try
-            #console.log "EVAL: #{JSON.stringify l.join '\n'}"
-            evalInput (l.join '\n'), (result)->
-              console.log String result
-              rl.setPrompt 'Leisure> '
-              rl.prompt()
+            if line.substring(0,2) == ':s'
+              if L_simplify? then console.log "\n#{runMonad L_simplify() ->line.substring(2)}\n"
+              else console.log "No simplify function.  Load std.lsr"
+            else if line.match /^!/ then console.log eval line.substring 1
+            else
+              evalInput line, (result)->
+                console.log String result
+                rl.setPrompt 'Leisure> '
+                rl.prompt()
+              return
           catch err
             console.log "ERROR: #{err.stack}"
+          rl.setPrompt 'Leisure> '
+          rl.prompt()
       rl.on 'line', (line)->
         interrupted = false
         if rl.history[0] == rl.history[1] then rl.history.shift()
@@ -206,19 +218,12 @@ repl = ->
             if m = line.match /^:{(.*)$/
               startMultiline()
               if m[1] then lines.push m[1]
-            else if line.match /^!/ then console.log eval line.substring 1
             else if multiline
               if !line then finishMultiline()
               else lines.push line
             else
-              try
-                evalInput line, (result)->
-                  console.log String result
-                  rl.prompt()
-                return
-              catch err
-                console.log "ERROR: #{err.stack}"
-        rl.prompt()
+              lines = [line]
+              finishMultiline()
       rl.on 'close', -> process.exit 0
       rl.on 'SIGINT', ->
         if interrupted then rl.pause()
@@ -322,6 +327,7 @@ processArg = (pos)->
   switch process.argv[pos]
     when '-v'
       verbose = true
+      setWarnAsync true
     when '-a'
       action = compile
       createAstFile = true

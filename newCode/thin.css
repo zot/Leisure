@@ -1,0 +1,133 @@
+.thin .codeExpr {
+  font-style: italic;
+  font-weight: bold;
+  margin: 3px;
+}
+.thin .codeMain {
+  vertical-align: top;
+  display: inline-block;
+  margin: 0;
+  margin-right: 28px;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/*
+.thin .codeMain:hover {
+  outline: blue solid 1px;
+  margin-right: 28px;
+}
+*/
+
+.thin .output {
+  border: green solid 2px;
+  margin: 3px;
+  left-margin: 10px;
+  display: inline-block;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+.thin .output span {
+  vertical-align: top;
+}
+.thin .codeMainExpr {
+  vertical-align: top;
+  margin: 0;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  margin: 0;
+  display: inline-block;
+}
+
+.thin .hidingSource .controls {
+  position: absolute;
+  top: 5px;
+  /*left: 5px;*/
+  right: 5px;
+}
+
+/*
+.thin .codeMainExpr:hover {
+  outline: red solid 1px;
+}
+*/
+
+.thin .partialApply {
+  /*text-decoration: underline;*/
+  outline: solid black 1px;
+}
+
+html {
+  /*cursor: url(tentacles.png) 5 5;*/
+  /*cursor: url(bigCursor.png) 13 9;*/
+}
+
+.thin .codeMainTest {
+  vertical-align: top;
+  margin: 0;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  margin: 0;
+  display: inline-block;
+  border: green solid 1px;
+  min-width: 30px;
+  min-height: 30px;
+  border: 0px;
+}
+
+.thin .codeMainTest * {
+  display: block;
+  margin-left: 40px;
+  font-weight: bold;
+}
+
+/*
+.thin .codeMainTest.passed * {
+  display: none;
+}
+*/
+.thin .codeMainTest {
+  background-repeat: no-repeat;
+  background-position: 0%, 50%;
+}
+.thin .codeMainTest.notrun {
+  background-image: url(testCaseWhite.png);
+}
+.thin .codeMainTest.passed {
+  background-image: url(testCaseGreen.png);
+}
+.thin .codeMainTest {
+  background-image: url(testCaseRed.png);
+}
+
+/*
+.thin .ui-widget-content:hover {
+  background: #888 url(images/ui-bg_inset-hover-soft_10_285c00_1x100.png) 50% bottom repeat-x;
+}
+*/
+
+[leisurebox]:hover {
+  outline: solid red 2px;
+}
+
+.thin .ui-widget-content.slide:hover {
+  background: white;
+}
+
+.thin .codeName {
+  /*color: blue;*/
+  /*color: #404;*/
+  color: #DD0;
+  font-weight: bold;
+  margin: 3px;
+}
+.thin .codeBody {
+  font-style: italic;
+  font-weight: bold;
+  margin: 3px;
+}
+

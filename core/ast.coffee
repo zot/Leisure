@@ -173,7 +173,7 @@ class Leisure_BaseCons extends LeisureObject
   join: (str)->@toArray().join(str)
   reverse: -> @rev Nil
   rev: (result)-> @tail().rev cons(@head(), result)
-  elementString: -> "#{if @head().constructor == @.constructor || @head() instanceof Leisure_nil then '[' + @head().elementString() + ']' else @head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
+  elementString: -> "#{if @head()?.constructor == @.constructor || @head() instanceof Leisure_nil then '[' + @head().elementString() + ']' else @head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
   equals: (other)-> @ == other or (other instanceof Leisure_BaseCons and consEq(@head(), other.head()) and consEq(@tail(), other.tail()))
   each: (block)->
     block(@head())
@@ -249,6 +249,18 @@ root.evalFunc = evalFunc = eval
 
 root.functionCount = 0
 
+functionInfo = {}
+
+# name a function on the first access
+nameFunc = (func, name)->
+  f = null
+  ->
+    if f == null
+      f = func()
+      if typeof f == 'function' then f.leisureName = name
+      f
+    else f
+
 # use AST, instead of arity?
 define = (name, func, arity, src, method) ->
   #can't use func(), because it might do something or might fail
@@ -257,9 +269,13 @@ define = (name, func, arity, src, method) ->
   #  func().leisureContexts = []
   #  func().leisureName = name
   #  func().leisureArity = arity
+  functionInfo[name] =
+    src: src
+    arity: arity
+    leisureName: name
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
-  global[nm] = global.leisureFuncs[nm] = func
+  global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
   leisureAddFunc name
   root.functionCount++
   func
@@ -440,3 +456,4 @@ root.Leisure_anno = Leisure_anno
 root.ensureLeisureClass = ensureLeisureClass
 root.makeSuper = makeSuper
 root.supertypes = supertypes
+root.functionInfo = functionInfo

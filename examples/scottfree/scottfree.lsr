@@ -1,5 +1,30 @@
 require '../../newCode/std.lsr'
 
+# create a comma sep list for pretty printing
+csv list = flatten [ "[ " (intersperse list ', ') " ]" ]
+
+# create a list of duplicate values
+duplicate value times = <= times 0
+  nil
+  [ value | (duplicate value (--times))]
+
+aconsf key value list = [[key | value] | removeIf (\el . el \h t . h == key) list]
+  
+afetch k list = assoc k list
+  \x. x
+  nil
+
+test = do
+  world = aconsf 'Rooms' 5 nil
+  world = aconsf 'Rooms' 6 world
+  world = aconsf 'Rooms' 8 world
+  print world
+  world
+
+# is this value between lower & upper bounds inclusively?  
+between value low up = and (>= value low) (<= value up)
+betweenEx value low up = and (> value low) (< value up)
+
 # extract an element from one of the global lists
 peek name idx = do
   global <- getValue name
@@ -12,10 +37,13 @@ poke name idx value = do
   global <- getValue name
   > (length global) idx
     do 
-      new_global = append (take idx global) (append [ value ] (drop (++ idx) global) )
+      new_global = pokeList global idx value #append (take idx global) (append [ value ] (drop (++ idx) global) )
       setValue name new_global
       value
     print "ERROR: POKE OUT OF BOUNDS"
+
+# poke a new element into the middle of a list
+pokeList list idx value = append (take idx list) (append [ value ] (drop (++ idx) list) )
 
 # constants
 LIGHT_SOURCE = 9  # light is always at index 9
@@ -42,48 +70,19 @@ GH_TREASURE_ROOM = 11
 GH_SIZEOF = 12
 
 # indexes into the GlobalVars list
-LIGHT_REFILL = 0
-REDRAW = 1
+GV_LIGHT_REFILL = 0
+GV_REDRAW = 1
+GV_CURRENT_COUNTER = 2
+GV_SAVED_ROOM = 3
 
-conditions = [ '' 'HAS' 'IS_in_AR' 'IS_AVAIL' 'PLAYER_IN' 'IS_NOT_in_AR' 'HAS_NOT' 'PLAYER_NOT_IN' 'SET_BIT' 'CLEARED_BIT' 'HAS_SOMETHING' 'HAS_NOTHING' 'IS_NOT_AVAIL' 'IS_NOT_in_ROOM0' 'IS_in_ROOM0' 'COUNTER <=' 'COUNTER >' 'IS_in_OrigROOM' 'IS_NOT_in_OrigROOM' 'COUNTER ==' ]
-
-NONE = 1
-ACTION = 2
-ITEM = 3
-ROOM = 4
-NUMBER = 5
-BITFLAG = 6
-
-conddata = [  ACTION ITEM ITEM ITEM ROOM ITEM ITEM ROOM BITFLAG BITFLAG NONE NONE ITEM ITEM ITEM NUMBER NUMBER ITEM ITEM NUMBER ]
-
-acts = flatten [
-  ['GET' 'MOVE_INTO_AR' 'GOTO' 'REMOVE' 'SET_NIGHT']
-  ['SET_DAY' 'SET_BIT' 'REMOVE' 'CLEAR_BIT' 'KILL_PLAYER']
-  ['MOVE_X_INTO_Y' 'QUIT' 'LOOK' 'SCORE' 'INVENTORY']
-  ['SET_BIT (0)' 'CLEAR_BIT (0)' 'FILL_LAMP' 'CLS' 'SAVE']
-  ['SWAP_ITEMS' 'CONTINUE:' 'GET_ALWAYS' 'PUT_X_WITH_Y' 'LOOK']
-  ['COUNTER -= 1' 'PRINT_COUNTER' 'COUNTER =' 'SWAP_LOC_RV' 'SWAP_COUNTER']
-  ['COUNTER +=' 'COUNTER -=' 'ECHO_NOUN' 'ECHO_NOUN_CR' 'CR']
-  ['SELECT_RV' 'DELAY' 'SHOW_PIC' 'COMM90' 'COMM91']
-  ['COMM92' 'COMM93' 'COMM94' 'COMM95' 'COMM96']
-  ['COMM97' 'COMM98' 'COMM99' 'COMM100' 'COMM101'] ]
-
-NOT = 0
-IT = 1
-RO = 2
-FL = 3
-IT_RO = 4
-IT_IT = 5
-NUM = 6
-
-actdata = flatten [
-  [IT IT RO IT NOT NOT FL IT FL NOT]
-  [IT_RO NOT NOT NOT NOT NOT NOT NOT NOT NOT]
-  [IT_IT NOT IT IT_IT NOT NOT NOT NUM NOT FL]
-  [NUM NUM NOT NOT NOT FL NOT FL NOT NOT]
-  [NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT] ]
+# indexes into an Item
+ITEM_NAME = 0
+ITEM_LOCATION = 1
+ITEM_INITIALLOC = 2
+ITEM_AUTOGET = 3
 
 Exits = [ 'North' 'South' 'East' 'West' 'Up' 'Down' ]
+
 
 loadGame filename = do
   result <- readFile filename
@@ -102,9 +101,12 @@ collapseStrings list = isNil list
      cons (head list) (collapseStrings (tail list))
 
 # return true if the string starts with " but doesn't end in one, but we need special case for item lines that have an extra int at the end of the line
+# wacky special case for a line with a double quote by itself which the regexp doesn't yet account for.
 isPartialString string = strMatches string '^".*"\\s+[0-9]+\\s*$'
   false
-  strMatches string '^".*[^"]\\s*$'
+  eq string '"'
+    true
+    strMatches string '^"[^"]+\\s*$'
 
 # convert a list of strings into integers by multiplying each element by 1
 asInts list = map (* 1) list
@@ -118,7 +120,7 @@ extract str pattern = do
     str
 
 unquote str = extract str (regexp '^"(.*)"$')
-    
+
 # convert all but last element into an int for a room list
 asRoom list = append (asInts (removeLast list)) [ (unquote (last list)) ]
 asRooms list = map (asRoom) list
@@ -132,24 +134,28 @@ asItem string = do
       room = 1 * (at (at matches 1) 1)
       agmatch = strMatch name '/(.*)/'
       isCons agmatch
-        [ (strReplace name (regexp '/.*/') '') room (head (at agmatch 1)) ]
-        [ name room '' ]
-    [ string 0 'BAD REGEXP' ]      
+        [ (strReplace name (regexp '/.*/') '') room room (head (at agmatch 1)) ]
+        [ name room room '' ]
+    [ string 0 0 'BAD REGEXP' ]      
 asItems list = map (asItem) list  
 
+
 processFile contents = do
-  #print contents
-  #print (at contents 0)
-  setValue 'BitFlags' [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]  # up to 32 bits of flags supported
+  setValue 'BitFlags' (duplicate false 32)   # up to 32 bits of flags supported
+  setValue 'Counters' (duplicate 0 16)       # up to 16 counters
+  setValue 'RoomSaved' (duplicate 0 16)      # up to 16 saved rooms
+  setValue 'DEBUG' false  
+  processFileNext contents
+  
+processFileNext contents = do
   GameHeader = asInts (take GH_SIZEOF contents)
   setValue 'GameHeader' GameHeader
-  GlobalVars = [ (at GameHeader GH_LIGHT_TIME) 0 ]  # store light time in refill time for later use
+  GlobalVars = [ (at GameHeader GH_LIGHT_TIME) 0 0 0 ]  # store light time in refill time for later use
   setValue 'GlobalVars' GlobalVars
   after_header = (drop GH_SIZEOF contents)
   num_actions = (at GameHeader GM_NUM_ACTIONS)
-  max_actions = (num_actions * 1 + 1) * 8
-  #print concat[ 'num actions: ' num_actions ' max actions: ' max_actions]
-  Actions = asInts (box 8 (take max_actions after_header))
+  max_actions = (num_actions * 1 + 1) * 8     #log concat[ 'num actions: ' num_actions ' max actions: ' max_actions] 0
+  Actions = box 8 (asInts (take max_actions after_header))
   setValue 'Actions' Actions
   after_actions = drop max_actions after_header
   num_words = at GameHeader GH_NUM_WORDS
@@ -159,7 +165,7 @@ processFile contents = do
   setValue 'Verbs' (odds Words)
   after_words = drop max_words after_actions
   processFile2 after_words
-  
+
 processFile2 after_words = do 
   GameHeader <- getValue 'GameHeader'
   num_actions = (at GameHeader GM_NUM_ACTIONS)  
@@ -195,74 +201,109 @@ debugGame = do
   GameHeader <- getValue 'GameHeader'
   print (merge [ '\nmagic: ' '\nnum items: ' '\nnum actions: ' '\nnum words: ' '\nnum rooms: ' '\nmax carry: ' '\nplayer room: ' '\ntreasures: ' '\nword len: ' '\nlight time: ' '\nnum msgs: ' '\ntreasure room: ' ] GameHeader)
   GlobalVars <- getValue 'GlobalVars'
-  print (merge [ '\nlight refill: ' '\nredraw: ' ] GlobalVars)
+  print (merge [ '\nlight refill: ' '\nredraw: ' '\ncurrent counter: ' '\nsaved room: ' ] GlobalVars)
   Actions <- getValue 'Actions'
-  print concat[ "\nNum Actions: " (length Actions) "\nFirst Action: " (at Actions 0) "\nLast Action: " (last Actions) ]
+  print concat[ "\nNum Actions: " (length Actions) "\nFirst Action: "  (csv (at Actions 0)) "\nLast Action: " (csv (last Actions)) ]
   Nouns <- getValue 'Nouns'
-  print concat[ "\nNum Nouns: " (length Nouns) " Nouns: " Nouns]
+  print concat[ "\nNum Nouns: " (length Nouns) " Nouns: " (csv Nouns) ]
   Verbs <- getValue 'Verbs'
-  print concat[ "\nNum Verbs: " (length Verbs) " Verbs: " Verbs]
+  print concat[ "\nNum Verbs: " (length Verbs) " Verbs: " (csv Verbs) ]
   debugGame2
-  
+
 debugGame2 = do    
   Rooms <- getValue 'Rooms'
-  print concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (at Rooms 0) '\nLast Room: ' (last Rooms)]
-  print concat[ "\nAll Rooms: " Rooms ]
+  print concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (csv (at Rooms 0)) '\nLast Room: ' (csv (last Rooms)) ]
+  print concat[ "\nAll Rooms: " (csv Rooms) ]
   Messages <- getValue 'Messages'
-  print concat[ "\nNum Messsages: " (length Messages) " All Messages: " Messages ]
+  print concat[ "\nNum Messsages: " (length Messages) " All Messages: " (csv Messages) ]
   Items <- getValue 'Items'
-  print concat[ "\nNum Items: " (length Items) " All Items: " Items ]
+  print concat[ "\nNum Items: " (length Items) " All Items: " (csv Items) ]
   GameFooter <- getValue 'GameFooter'
-  print (merge [ '\nversion: ' '\nnadv number: ' '\nunknown: '] GameFooter)
+  print (merge [ '\nversion: ' '\nadv number: ' '\nunknown: '] GameFooter)
   "Debug finished."
+
+inventory = do
+  print "You are carrying:"
+  allitems <- getValue 'Items'
+  items <- findItemsInLocation CARRIED allitems
+  isNil items
+    print "Nothing."
+    print concat[ (intersperse (map (\x . strReplace (at x 0) (regexpFlags '\\{nl\\}' 'g' ) '\n' ) items) ', ') "." ]  #have to extract the name from each item
+          
+score = do
+  allitems <- getValue 'Items'
+  treasure_room <- peek 'GameHeader' GH_TREASURE_ROOM
+  max_treasures <- peek 'GameHeader' GH_NUM_TREASURES
+  items <- findTreasuresInLocation treasure_room allitems           
+  n = length items
+  percent = round((n * 100) / max_treasures)
+  print concat[ "You have stored " n " / " max_treasures " treasures.  On a scale of 0 to 100, that rates " percent "% ." ]
+  eq n max_treasures
+    do
+      setValue 'GameOver' true
+      print "Well Done!"
+    nil
 
 # lets do this!
 playGame = do
-  look
-  performActions 0 0
-  print concat[ "\nTell me what to do ? " ]
-  input = getInput
-  result = performActions (at input 0) (at input 1)
-  eq result -1
-    print concat[ "I don't understand your command.\n" ]
-    eq result -2
-      print concat[ "You can't do that yet.\n" ]
-      nil
+  setValue 'GameOver' false
+  setRedrawOn  # force a look to begin
+  playGameLoop
+  
+playGameLoop = do 
+  doRedraw
+  performActions 0 0 false
+  doRedraw
+  getInput
   processLight
-  #playGame
+  over <- getValue 'GameOver'
+  over
+   nil
+   playGameLoop
 
+doRedraw = do
+  redraw <- peek 'GlobalVars' GV_REDRAW
+  redraw
+    do
+      look
+      setRedrawOff
+    nil    
+  
 # decrement the light this turn if needed  
 processLight = do
   timeleft <- peek 'GameHeader' GH_LIGHT_TIME
   light <- peek 'Items' LIGHT_SOURCE
-  where = at light 1
+  where = at light ITEM_LOCATION
   or (eq where DESTROYED) (eq timeleft -1) # -1 means lasts forever, nothing to do
     nil         
     lightTick
-  
+
 # we need to decrement the light
 lightTick = do
-  timeleft <- (peek 'GameHeader' GH_LIGHT_TIME) - 1
+  timeleft <- peek 'GameHeader' GH_LIGHT_TIME
+  timeleft = -- timeleft    # log concat[ " light time left: " timeleft ] 0
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   >= timeleft 0  # save it back if not negative
     poke 'GameHeader' GH_LIGHT_TIME timeleft
     nil
+  light <- isLightPresent myloc
   eq timeleft 0
     do
-      poke 'BitFlags' LIGHTOUTBIT 1
-      isLightPresent myloc
-        print "Your light has run out.\n"
+      poke 'BitFlags' LIGHTOUTBIT true
+      light
+        print "Your light has run out."
         nil
-    and (< timeleft 25) (isLightPresent myloc)
-      print concat[ "You light runs out in " timeleft " turns.\n"]
+    and (< timeleft 25) light  # only inform them the light is running out if they can see the light
+      print concat[ "Your light runs out in " timeleft ((eq timeleft 1) " turn" " turns") "." ]
       nil
-      
+
 # take a looksy  
 look = do
   myloc <- peek 'GameHeader' GH_PLAYER_ROOM
   darkbit <- peek 'BitFlags' DARKBIT
-  and (eq darkbit 1) (not (isLightPresent myloc))
-    print "You can't see. It is too dark!\n"
+  light <- isLightPresent myloc
+  and darkbit (not light)
+    print "You can't see. It is too dark!"
     basicLook myloc
 
 basicLook myloc = do
@@ -311,25 +352,710 @@ printItems myloc = do
 #  and (> (length (head items)) 1) (eq (safeat (head items) 1) myloc)
 findItemsInLocation myloc items = isNil items
   nil
-  eq (at (head items) 1) myloc
+  eq (at (head items) ITEM_LOCATION) myloc
     cons (head items) (findItemsInLocation myloc (tail items))
     findItemsInLocation myloc (tail items)
+    
+# like findItems, but only add treasure items (name starts with *)    
+findTreasuresInLocation myloc items = isNil items
+  nil
+  and (eq (at (head items) ITEM_LOCATION) myloc) (strMatches (at (head items) ITEM_NAME) '^\\*')
+    cons (head items) (findTreasuresInLocation myloc (tail items))
+    findTreasuresInLocation myloc (tail items)
+
+# return the number of items in the given location, you must pass in all items list to start    
+countItemsInLocation myloc items = isNil items
+  0
+  eq (at (head items) ITEM_LOCATION) myloc
+    1 + (countItemsInLocation myloc (tail items))
+    countItemsInLocation myloc (tail items)
+
+countCarried = do
+  allitems <- getValue 'Items'
+  countItemsInLocation CARRIED allitems
+
+# quick debug function to move items around
+moveItem idx newloc = do
+  item <- peek 'Items' idx
+  newitem = pokeList item ITEM_LOCATION newloc
+  poke 'Items' idx newitem
 
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
   look
-  
+
 # check to see if the light is either in the given room or carried by the player
 isLightPresent myloc = do
   light <- peek 'Items' LIGHT_SOURCE
-  where = at light 1
+  where = at light ITEM_LOCATION
   or (eq where myloc) (eq where CARRIED)
 
 # return a pair of ints for the intended verb/noun combo   
 getInput = do
-  move <- prompt (concat[ "Tell me what to do?" ])
-  [ 0 0 ]
+  str <- prompt (concat[ "Tell me what to do? " ])
+  print ""
+  eq str ""  # ignore empty lines
+    nil
+    eq 'DEBUG' (strToUpperCase str)
+      toggleDebug
+      do 
+        v_n <- basicGetInput str
+        v = at v_n 0
+        n = at v_n 1
+        wasAll = at v_n 2  # log concat['v_n ' (csv v_n) ] 0
+        eq v -1
+          print "You use word(s) I don't know"
+          do
+            x <- performActions v n wasAll
+            eq x -1
+              print "I don't understand your command."
+              eq x (0-2)
+                print "You can't do that yet."
+                eq x -4
+                  do
+                    setValue 'GameOver' true
+                    print "* GAME OVER*"
+                  nil
 
-performActions verb noun = do
+toggleDebug = do
+  debug <- getValue 'DEBUG'
+  setValue 'DEBUG' (not debug)
+  not debug
+    print "\n ** ACTION DEBUGGING ENABLED **\n"
+    print "\n ** ACTION DEBUGGING DISABLED **\n"
+    
+# returns a list of [ verb_index noun_index wasAll ]  wasAll is a boolean that says whether they typed in 'ALL' which is special cased      
+basicGetInput str = do
+  verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
+  isCons verb_noun
+    do
+      nc = -1
+      vc = -1
+      wordlen <- peek 'GameHeader' GH_WORD_LENGTH
+      m = at verb_noun 1
+      verb = strToUpperCase (strSubstring (at m 0) 0 wordlen)
+      noun = (eq 1 (length m)) ('') (strToUpperCase (strSubstring (at m 1) 0 wordlen))
+      > (length m) 1
+        setValue 'NounText' (at m 1)
+        nil
+      verb = verbShortcuts verb noun
+      go <- whichNoun verb
+      isDir = between go 1 6
+      vc <- (isDir) 1 (whichVerb verb)
+      nc <- (isDir) nc (whichNoun noun)   #log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
+      isDir
+        [ vc go false ]
+        [ vc nc (eq noun 'ALL') ]
+    [ -1 -1 false ]  
+
+verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
+  do
+    i = findIndex (eq (strToUpperCase v)) [ 'N' 'S' 'E' 'W' 'U' 'D' 'I' ]
+    >= i 0
+      at [ 'NOR' 'SOU' 'EAS' 'WES' 'UP' 'DOWN' 'INV' ] i
+      v
+  v
+
+whichNoun noun = do
+  nouns <- getValue 'Nouns'
+  whichWord noun nouns
+
+whichVerb verb = do
+  verbs <- getValue 'Verbs'
+  whichWord verb verbs
+
+# loop over the list of words, any words that start with * should return the index of the last non-* word before it. return -1 if no match found  
+whichWord word list = basicWhichWord 0 0 word list  
+basicWhichWord idx result word list = isNil list
   -1
+  do
+    w = head list
+    star = (strStartsWith w '*')
+    w = (star) (strSubstring w 1 99) w
+    w = (> (strLen w) (strLen word)) (strSubstring w 0 (strLen word)) w
+    result = (star) result idx #log ("w: " + w + " star: "  + star + " idx: " + idx + " result: " + result) 0
+    eq word w
+      result
+      basicWhichWord (++ idx) result word (tail list)
+
+performActions verb noun wasAll = (and (eq verb 1) (between noun 1 6))
+  performMove verb noun
+  do
+    actions <- getValue 'Actions'  #    log "crazy loop started" 0
+    f1 <- crazyLoopHere verb noun actions   #    log concat[ "crazy loop finished: f1: " f1 ] 0
+    f1 <- eq f1 -4
+      f1
+      neq f1 0
+        eq verb 10
+          getItem verb noun wasAll        # if nothing stopped the GET from happening, do it now
+          eq verb 18
+            dropItem verb noun wasAll     # if nothing stopped the DROP from happening, do it now
+            f1
+        f1
+    f1
+    
+# whole lotta code to process actions 
+# action is: [ vv&nv, five condtions, and two action ints ]   
+# if vv is 0 then nv is a percent chance the rule should fire
+# if vv matches the verb and nv matches the noun OR nv is 0, the rule should fire
+# action73 is a special case that says any following actions with vvact of 0 should continue to be executed
+# we can stop the moment we did something, unless its a continuation, we should keep going in that case
+# returns  -1 means we did nothing
+# returns -2 means the noun & verb matched, but the action performed returned 0, AKA "you cant do that yet"
+# return -4 means the game should exit
+# return 0 means we did something and should stop
+crazyLoopHere vb no actions = isNil actions
+  -1
+  do
+    action = head actions
+    vocabMatch <- doesVocabMatch vb no action  #log concat[ "vocabMatch: " vocabMatch ] 0
+    f3 <- vocabMatch
+      do   # debugAction action
+        f2 <- performLine action   #        log concat[ "f2: " f2 ] 0
+        eq f2 0         # condtions not met for this action, we should report you can't do that yet
+          -2
+          eq f2 1       # action ran normally we should end successfully
+            0
+            eq f2 -4    # game should quit
+              -4
+              eq f2 2   # we should continue execution of additional actions of vocab of 0
+                additionalRules vb no (tail actions)
+                printReturn concat[ "Unknown return value from peformLine: " f2 ] 0
+      -1      # vocab didn't match, keep reading actions 
+    f1 <- (or (eq f3 -1) (eq f3 -2))   # in the event the rule matched but yet didn't fire, keep processing for more possibilities
+      do      #   (eq f3 -2  )        (log concat[ "\nVocab matched, but didn't fire! Will keep trying " (length (tail actions)) " more actions" ] 0)      nil
+        more <- crazyLoopHere vb no (tail actions)    
+        (and (eq more -1) (eq f3 -2)) f3 more    # if we had a -2, try to preserve that in the event nothing more special happens
+      f3  
+    f1
+    
+additionalRules nv no actions = -4  # TODO, keep executing actions with vocab of 0 until you run out
+  
+# the vocab matches based on the verb and an optional noun provided by the rule not the player
+doesVocabMatch vb no action = do
+  vvact = at action 0
+  nv = vvact % 150
+  vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
+  and (eq vv vb) (and (neq vv 0) (or (eq no nv) (eq nv 0))) true 
+    eq vv 0
+      do
+        rand <- (eq nv 100) true (randomPercent nv)  # if nv is 100, its not really random!
+        rand
+      false
+
+# the Vocab matched for this action, so test the 5 conditions to see if we should do the four actions 
+# return 0 for "You can't do that yet" because conditions weren't all met
+# return 1 for normal execution of rule
+# return 2 means we executed and should continue executing additional actions because of action73   
+performLine action = do
+   results <- meetsConditions [ 0 0 0 0 0 ] 0 (take 5 (drop 1 action))  # drop off the first value (vocab) and take the next 5
+   not (at results 0)
+     0
+     do #       log concat[ "Conditions were met: " (csv results) ] 0
+       param = at results 1
+       pptr = 0   # reset this back to 0 now they are loaded
+       debug <- getValue 'DEBUG'
+       debug (debugAction action) nil
+       basicPerformActions param pptr 0 (buildActionList action)
+       
+# loop over the four possible actions to do them all in order
+basicPerformActions param pptr continuation actions = isNil actions
+  (1 + continuation)
+  do
+    act = head actions  #    (neq 0 act) (log concat[ "Firing act #" act " Remaining actions: " (csv actions) ] 0) nil
+    continuation = (eq act 73) (++ continuation) continuation
+    bump <- between act 1 51   # its < 52
+      do
+        msg <- peek 'Messages' act
+        printReturn msg 0
+      > act 101
+        do 
+          msg <- peek 'Messages' (act - 50)
+          printReturn msg 0
+        eq act 0
+          0
+          do
+            idx = act - 52
+            cell = (< idx (length actionsFuncList)) (at actionsFuncList idx) 0
+            eq cell 0
+              printReturn concat[ "No action found for: " act ] 0   # called when find fails
+              executeAction act cell param pptr  #log concat[ "Executing Action: " act " idx: " idx " param " (csv param) " pptr " pptr] 0
+    pptr = pptr + bump   # log concat[ "Action #" act " consumed " bump " params!" ] 0    
+    basicPerformActions param pptr continuation (tail actions)
+    
+# call the action function that matches the action index, return the number of params we used up
+executeAction act cell param pptr = do
+  param_count <- (> (length cell) 1) (at cell 1) 0    # log concat[ "Executing Action#" act " with " param_count " params." ] 0
+  eq 0 param_count
+    (head cell)
+    eq 1 param_count
+      (\x . (head cell) x) (safeat param pptr)
+      eq 2 param_count
+        (head cell) (safeat param pptr) (safeat param (pptr + 1))
+        nil        
+  param_count
+  
+testScoreExecute = do
+  cell <- at actionsFuncList (65 - 52)
+  executeAction 65 cell [ 0 0 0 0 0] 0
+  
+testLookExecute = do
+  cell <- at actionsFuncList (76 - 52)
+  executeAction 76 cell [ 0 0 0 0 0] 0
+  
+testWarpExecute = do
+  cell <- at actionsFuncList (54 - 52)
+  executeAction 54 cell [ 28 0 0 0 0] 0
+
+# GET takes 1 param    
+action52 p1 = do
+  c <- countCarried
+  max <- peek 'GameHeader' GH_MAX_CARRY
+  eq c max
+    print "You are carrying too much."
+    do
+      item <- peek 'Items' p1
+      myloc <- peek 'GameHeader' GH_PLAYER_ROOM      
+      eq (at item ITEM_LOCATION) myloc
+        setRedrawOn
+        nil
+      moveItem p1 CARRIED
+action53 p1 = do  # DROP takes 1
+  setRedrawOn
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  moveItem p1 myloc
+# warp player  
+action54 p1 = do
+  setRedrawOn  # log concat[ "Warping player to room #" p1 ] 0
+  poke 'GameHeader' GH_PLAYER_ROOM p1
+action55 p1 = do  # destroy an item
+  item <- peek 'Items' p1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  eq (at item ITEM_LOCATION) myloc
+    setRedrawOn
+    nil
+  moveItem p1 0
+action56 = poke 'BitFlags' DARKBIT true
+action57 = poke 'BitFlags' DARKBIT false
+action58 p1 = poke 'BitFlags' p1 true
+# same as 55 ????
+action59 p1 = do
+  item <- peek 'Items' p1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  eq (at item ITEM_LOCATION) myloc
+    setRedrawOn
+    nil
+  moveItem p1 0
+action60 p1 = poke 'BitFlags' p1 false
+action61 = do
+  print "You are dead."
+  poke 'BitFlags' DARKBIT false
+  tp (peek 'GameHeader' GH_NUM_ROOMS)
+action62 p1 p2 = do   # log concat[ "\n\nExecuting action #62 with item " p1 " and room " p2 ] 0
+  moveItem p1 p2
+  setRedrawOn
+action63 = do
+  print "The game is now over.\n"  # exit()0
+  setValue 'GameOver' true
+action64 = do
+  look
+  setRedrawOff
+action65 = score 
+action66 = inventory
+action67 = poke 'BitFlags' 1 true
+action68 = poke 'BitFlags' 1 false
+action69 = do  # refill the lamp
+  refill <- peek 'GlobalVars' GV_LIGHT_REFILL
+  poke 'GameHeader' GH_LIGHT_TIME refill
+  item <- peek 'Items' LIGHT_SOURCE
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  eq (at item ITEM_LOCATION) myloc
+    setRedrawOn
+    nil
+  moveItem LIGHT_SOURCE CARRIED
+  poke 'BitFlags' LIGHTOUTBIT false
+action70 = nil # ClearScreen()
+action71 = print "Save not implemented"  #SaveGame()
+action72 p1 p2 = do  # swap the location of the two items
+  item1 <- peek 'Items' p1
+  item2 <- peek 'Items' p2
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+  loc1 = at item1 ITEM_LOCATION  
+  loc2 = at item2 ITEM_LOCATION  
+  or (eq loc1 myloc) (eq loc2 myloc)  
+    setRedrawOn
+    nil
+  moveItem p1 loc2
+  moveItem p2 loc1
+action73 = nil   # nop here, its the continuation action handled above  
+action74 p1 = do  # pickup an item but ignore MAX_CARRY
+  item <- peek 'Items' p1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM      
+  eq (at item ITEM_LOCATION) myloc
+    setRedrawOn
+    nil
+  moveItem p1 CARRIED
+action75 p1 p2 = do  # move item1 to whereever item2 is
+  item1 <- peek 'Items' p1
+  item2 <- peek 'Items' p2
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+  loc1 = at item1 ITEM_LOCATION  
+  loc2 = at item2 ITEM_LOCATION  
+  or (eq loc1 myloc) (eq loc2 myloc)  
+    setRedrawOn
+    nil
+  moveItem p1 loc2
+action76 = look
+action77 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  >= cc 0
+    poke 'GlobalVars' GV_CURRENT_COUNTER (-- cc)
+    nil
+action78 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  print concat[ cc " " ]
+action79 p1 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  poke 'GlobalVars' GV_CURRENT_COUNTER (++ cc)
+action80 = do  # move the player into the saved room and swap out saved room for their old location
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM  
+  saved <- peek 'GlobalVars' GV_SAVED_ROOM
+  poke 'GameHeader' GH_PLAYER_ROOM saved
+  poke 'GlobalVars' GV_SAVED_ROOM myloc
+  setRedrawOn
+action81 p1 = do  # swap out the current counter with a saved one
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  sc <- peek 'Counters' p1
+  poke 'GlobalVars' GV_CURRENT_COUNTER sc
+  poke 'Counters' p1 cc
+action82 p1 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  poke 'GlobalVars' GV_CURRENT_COUNTER (cc + p1)
+action83 p1 = do
+  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  cc <- (< (cc - p1) -1) -1 (cc - p1)
+  poke 'GlobalVars' GV_CURRENT_COUNTER cc
+action84 = do
+  nountext <- getValue 'NounText'
+  write nountext
+action85 = do
+  nountext <- getValue 'NounText'
+  print nountext
+action86 = print ''
+action87 p1 = do  # swap the player with the saved room in p1
+  sr <- peek 'RoomSaved' p1
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
+  poke 'RoomSaved' p1 myloc
+  tp sr
+action88 = nil  # nop
+action89 = nil  # only increments pptr
+actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action56] [action57] [action58 1] [ action59 1] [action60 1] [action61] [action62 2] [action63] [action64] [action65] [action66] [action67] [action68] [action69] [action70] [action71] [action72 2] [action73] [action74 2] [action75 2] [action76] [action77] [action78] [action79 1] [action80] [action81 1] [action82 1] [action83 1] [action84] [action85] [action86] [action87 1] [action88] [action89 1] ]
+        
+setRedrawOn = poke 'GlobalVars' GV_REDRAW true
+setRedrawOff = poke 'GlobalVars' GV_REDRAW false
+        
+#  compute the four action ints from the action which has packed 2 per int
+buildActionList action = [ (floor ((at action 6) / 150)) ((at action 6) % 150) (floor ((at action 7) / 150)) ((at action 7) % 150) ]       
+
+# takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
+meetsConditions param pptr conds = do
+  myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+  carryCount <- countCarried
+  bf <- getValue 'BitFlags'
+  counter <- peek 'GlobalVars' GV_CURRENT_COUNTER  #  log concat[ "Testing Conditions: " (csv conds) ] 0
+  met <- basicMeetsConditions param pptr conds myloc carryCount bf counter  # pull out all the monad calls and call the basic version  # log concat[ "Conditions: " (csv conds) " met? " met] 0
+  met
+  
+# takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
+basicMeetsConditions param pptr conds myloc carryCount bf counter = isNil conds
+  [ true param pptr ]
+  do
+    cv_dv = head conds
+    dv = floor (cv_dv / 20)
+    cv = cv_dv % 20
+    item <- peek 'Items' dv
+    param = (eq cv 0) (pokeList param pptr dv) param  # save dv param for case 0
+    pptr = (eq cv 0) (++ pptr) pptr                   # inc the pptr for case 0   #  # log concat[ "cv_dv " cv_dv " cv " cv " dv " dv " param " (csv param) " pptr" pptr " item " (csv item) ] 0
+    or (eq cv 0) (testSingleCondition cv dv item myloc bf carryCount counter)
+      basicMeetsConditions param pptr (tail conds) myloc carryCount bf counter
+      [ false param pptr]
+    
+testSingleCondition cv dv item myloc bf carryCount counter =
+  (eq cv 1)
+    (eq (at item ITEM_LOCATION) CARRIED)   # player has an item     #if(Items[dv].Location!=CARRIED) return(0);
+    (eq cv 2)
+      (eq (at item ITEM_LOCATION) myloc)   # item is in room   # if(Items[dv].Location!=MyLoc) return(0);
+      (eq cv 3)
+        (or (eq (at item ITEM_LOCATION) CARRIED) (eq (at item ITEM_LOCATION) myloc))    # item is 'available' to player # if(Items[dv].Location!=CARRIED&& Items[dv].Location!=MyLoc) return(0);
+        (eq cv 4)
+          (eq myloc dv)   # is player in room  # if(MyLoc!=dv) return(0);
+          (eq cv 5)
+            (neq (at item ITEM_LOCATION) myloc)  # is item not in this room   # if(Items[dv].Location==MyLoc) return(0);
+            (eq cv 6)
+              (neq (at item ITEM_LOCATION) CARRIED)   # if player doesn't have the item # if(Items[dv].Location==CARRIED) return(0);
+              (eq cv 7)
+                (neq myloc dv)  # is player is not in room # if(MyLoc==dv) return(0);
+                (eq cv 8)
+                  (at bf dv)    # is bit set   # if((BitFlags&(1<<dv))==0) return(0);     
+                  (eq cv 9)
+                    (not (at bf dv))   #is bit clear   # if(BitFlags&(1<<dv)) return(0);      
+                    (eq cv 10)
+                      (neq carryCount 0)   # if player has something  #if(CountCarried()==0) return(0);
+                      testSingleCondition2 cv dv item myloc bf carryCount counter
+                                        
+testSingleCondition2 cv dv item myloc bf carryCount counter =     
+  (eq cv 11)
+    (eq carryCount 0)   # if player has nothing  #if(CountCarried()) return(0);
+    (eq cv 12)
+      (not (or (eq (at item ITEM_LOCATION) CARRIED) (eq (at item ITEM_LOCATION) myloc)))   # item is not 'available' to player  # if(Items[dv].Location==CARRIED||Items[dv].Location==MyLoc) return(0);
+      (eq cv 13)
+        (eq (at item ITEM_LOCATION) 0)   # is item in room 0   # if(Items[dv].Location==0) return(0);
+        (eq cv 14)
+          (neq (at item ITEM_LOCATION) 0)   # is item not in room 0   # if(Items[dv].Location) return(0);
+          (eq cv 15)
+            (<= counter dv)   # is COUNTER <=  # if(CurrentCounter>dv) return(0);
+            (eq cv 16)
+              (> counter dv)   # is COUNTER >    # if(CurrentCounter<=dv) return(0);
+              (eq cv 17)
+                (eq (at item ITEM_INITIALLOC) (at item ITEM_LOCATION))   # item is in original room #  if(Items[dv].Location !=Items[dv].InitialLoc) return(0);    
+                (eq cv 18)
+                  (neq (at item ITEM_INITIALLOC) (at item ITEM_LOCATION))  # item is not in original room  #  if(Items[dv].Location ==Items[dv].InitialLoc) return(0);    
+                  (eq cv 19)
+                    (eq counter dv)    # is COUNTER  ==   # if(CurrentCounter!=dv) 	return(0);
+                    false              # should in theory never get here!
+
+debugSearchActions vvact = do
+  all <- getValue 'Actions'
+  grrrLoop vvact 0 all
+  
+grrrLoop vvact idx all = isNil all
+  nil
+  do
+    h = head all
+    eq (head h) vvact
+      do
+        log concat[ "vvact: " vvact " idx: " idx ] 0
+        debugAction h
+      false
+    grrrLoop vvact (++idx) (tail all)
+   
+debugActionIndex act = do
+  action <- peek 'Actions' act
+  debugAction action
+  
+debugAction action = do
+  print concat[ "\nAction# " (csv action)  ]
+  vvact = at action 0
+  nv = vvact % 150
+  vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
+  verb <- safeVerb vv
+  noun <- safeNoun nv
+  print concat["Vocab vv " vv " nv " nv  " verb: " verb " noun: " noun ]
+  debugConditions (take 5 (drop 1 action))
+  debugActions (buildActionList action)
+  print '\nFinished.'
+
+safeVerb vv = do
+  verbs <- getValue 'Verbs'
+  max_verbs = length verbs
+  verb <- (eq vv 0) '*automatic*' ((betweenEx vv -1 max_verbs) (peek 'Verbs' vv) ('??? (' + vv + ')'))
+  verb
+  
+safeNoun nv = do
+  nouns <- getValue 'Nouns'
+  max_nouns = length nouns
+  noun <- (eq nv 0) '*any*' ((betweenEx nv -1 max_nouns) (peek 'Nouns' nv) ('??? (' + nv + ")" ))
+  noun
+
+safeItemName idx = do
+  item <- peek 'Items' idx
+  safeat item ITEM_NAME
+
+safeRoomName idx = do
+  room <- peek 'Rooms' idx
+  safeat room 6
+  
+NONE = 1
+ACTION = 2
+ITEM = 3
+ROOM = 4
+NUMBER = 5
+BITFLAG = 6
+
+cond_data = [  ACTION ITEM ITEM ITEM ROOM ITEM ITEM ROOM BITFLAG BITFLAG NONE NONE ITEM ITEM ITEM NUMBER NUMBER ITEM ITEM NUMBER ]
+cond_meanings = [ '' 'player has an item' 'item is in this room' 'item is "available" to player' 'is player in room' 'is item not in this room' 'if player doesn\'t have the item' 'is player is not in room'  'is bit set' 'is bit clear' 'if player has anything' 'if player has nothing' 'item is not "available" to player' 'is item in room 0' 'is item not in room 0' 'is COUNTER <=' 'is COUNTER >' 'item is in original room' 'item is not in original room' 'is COUNTER ==' ]    
+debugConditions conds = isNil conds
+  nil
+  do
+    cv_dv = head conds
+    dv = floor (cv_dv / 20)
+    cv = cv_dv % 20
+    what <- debugCondData cv dv
+    print concat[ "  Condition: " cv " : " (safeat cond_meanings cv) ": " what ]
+    debugConditions (tail conds)
+
+debugCondData cv dv = do
+  type = safeat cond_data cv
+  eq type NONE
+    ''
+    eq type ACTION
+      'ARG: ' + dv
+      eq type ITEM
+        safeItemName dv
+        eq type ROOM
+          safeRoomName dv
+          eq type NUMBER
+            'NUMBER'
+            eq type BITFLAG
+              'BITFLAG'
+              '???'
+    
+debugActions actions = isNil actions
+  nil
+  do
+    act = head actions
+    eq act 0
+      nil
+      do 
+        what <- describeAction act
+        print concat[ "  Action# " act " What: " what ]
+    debugActions (tail actions)
+
+NOT = 0
+IT = 1
+RO = 2
+FL = 3
+IT_RO = 4
+IT_IT = 5
+NUM = 6
+
+acts = flatten [
+  ['GET' 'MOVE_INTO_AR' 'GOTO' 'REMOVE' 'SET_NIGHT']
+  ['SET_DAY' 'SET_BIT X' 'REMOVE' 'CLEAR_BIT' 'KILL_PLAYER']
+  ['MOVE_X_INTO_Y' 'QUIT' 'LOOK' 'SCORE' 'INVENTORY']
+  ['SET_BIT (0)' 'CLEAR_BIT (0)' 'FILL_LAMP' 'CLS' 'SAVE']
+  ['SWAP_ITEMS' 'CONTINUE:' 'GET_ALWAYS' 'PUT_X_WITH_Y' 'LOOK']
+  ['COUNTER -= 1' 'PRINT_COUNTER' 'COUNTER =' 'SWAP_LOC_RV' 'SWAP_COUNTER']
+  ['COUNTER +=' 'COUNTER -=' 'ECHO_NOUN' 'ECHO_NOUN_CR' 'CR']
+  ['SELECT_RV' 'DELAY' 'SHOW_PIC' 'COMM90' 'COMM91']
+  ['COMM92' 'COMM93' 'COMM94' 'COMM95' 'COMM96']
+  ['COMM97' 'COMM98' 'COMM99' 'COMM100' 'COMM101'] ]    
+describeAction act = between act 1 51    # 52 is the grab a param
+  do
+    msg <- peek 'Messages' act
+    "Message: " + msg
+  > act 101
+    do
+      msg <- peek 'Messages' (act - 50)
+      "Message: " + msg
+    eq act 0 
+      "Nothing."
+      safeat acts (act - 52)
+      
+# return true if a random percent is less than the value passed in
+randomPercent n = do
+  r <- randInt 0 99  # log concat[ "rnd: " r " n " n " trigger? " (< r n)] 0
+  < r n
+
+# get an item, TODO - support get all              
+getItem verb noun wasAll = do
+  wasAll
+    do
+      myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+      light <- isLightPresent myloc
+      dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
+      dark
+        printReturn "It is dark." 0
+        nil
+      'TODO'        
+    eq noun -1
+      printReturn "What?" 0
+      do
+        c <- countCarried
+        max <- peek 'GameHeader' GH_MAX_CARRY
+        eq c max
+          printReturn "You are carrying too much." 0
+          do
+            myloc <- peek 'GameHeader' GH_PLAYER_ROOM 
+            getname <- peek 'Nouns' noun
+            idx <- matchUpItem getname myloc
+            eq idx -1
+              printReturn "It is beyond your power to do that." 0
+              do
+                moveItem idx CARRIED
+                setRedrawOn
+                printReturn "O.K." 0
+                
+# drop an item, TODO - support drop all            
+dropItem verb noun wasAll = do
+  wasAll
+    do
+      myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+      'TODO'
+    eq noun -1
+      printReturn "What?" 0
+      do
+        myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+        dropname <- peek 'Nouns' noun
+        idx <- matchUpItem dropname CARRIED
+        eq idx -1
+          printReturn "It is beyond your power to do that." 0
+          do
+            moveItem idx myloc
+            setRedrawOn
+            printReturn "O.K." 0
+
+# given an item name to any AUTOGETs, see if it's in the same room as the player for picking up
+matchUpItem name myloc = do
+  wordlen <- peek 'GameHeader' GH_WORD_LENGTH
+  name <- strToUpperCase (strSubstring name 0 wordlen)
+  match <- mapSynonym name
+  allitems <- getValue 'Items'
+  basicMatchUpItem match myloc 0 allitems
+
+basicMatchUpItem name myloc idx allitems = isNil allitems
+  -1
+  do
+    i = head allitems  #    log concat[ 'testing item: ' i ] 0
+    and (eq (at i ITEM_AUTOGET) name) (eq (at i ITEM_LOCATION) myloc)
+      idx
+      basicMatchUpItem name myloc (++ idx) (tail allitems)
+
+# the name the player gives may be a synonym, if so return the original item name, if not return the original name passed in
+# refactored from original to use WhichWords call  
+mapSynonym noun = do
+  idx <- whichNoun noun
+  eq idx -1
+    noun
+    peek 'Nouns' idx
+
+printReturn msg value = do
+  msg = strReplace msg (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
+  print msg
+  value
+
+performMove verb noun = do
+  eq noun -1
+    printReturn "Give me a direction too." 0
+    not (between noun 1 6)
+      -1
+      do      
+        myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+        light <- isLightPresent myloc
+        dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
+        dark (print "Dangerous to move in the dark!") nil
+        room <- peek 'Rooms' myloc
+        ridx = at room (noun - 1)  #log concat[ "room " (csv room) " ridx: " ridx ] 0
+        eq ridx 0
+          dark
+            do
+              setValue 'GameOver' true
+              printReturn "You fell down and broke your neck." (0-3)
+            printReturn "You can't go in that direction." 0
+          do
+            tp ridx
+            0
+          
+ 
+DERP = 1

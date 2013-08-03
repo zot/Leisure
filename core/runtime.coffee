@@ -37,6 +37,7 @@ misrepresented as being the original software.
   ast2Json,
   ensureLeisureClass,
   setType,
+  setDataType,
 } = require './ast'
 _ = require './lodash.min'
 
@@ -65,10 +66,33 @@ define '+', ->(x)->(y)->x() + y()
 define '-', ->(x)->(y)->x() - y()
 define '*', ->(x)->(y)->x() * y()
 define '/', ->(x)->(y)->x() / y()
+define '%', ->(x)->(y)->x() % y()
 define '<', ->(x)->(y)->booleanFor x() < y()
 define '<=', ->(x)->(y)->booleanFor x() <= y()
 define '>', ->(x)->(y)->booleanFor x() > y()
 define '>=', ->(x)->(y)->booleanFor x() >= y()
+define 'floor', ->(x)-> Math.floor(x())
+define 'ceil', ->(x)-> Math.ceil(x())
+define 'min', ->(x)->(y)-> Math.min x(), y()
+define 'max', ->(x)->(y)-> Math.max x(), y()
+define 'round', ->(x)-> Math.round(x())
+define 'abs', ->(x)-> Math.abs(x())
+define 'sqrt', ->(x)-> Math.sqrt(x())
+
+define 'acos', ->(x)-> Math.acos(x())
+define 'asin', ->(x)-> Math.asin(x())
+define 'atan', ->(x)-> Math.atan(x())
+define 'atan2', ->(x)->(y)-> Math.atan2(x(), y())
+define 'cos', ->(x)-> Math.cos(x())
+define 'log', ->(x)-> Math.log(x())
+define 'sin', ->(x)-> Math.sin(x())
+define 'tan', ->(x)-> Math.tan(x())
+
+define 'rand', ->makeSyncMonad (env, cont)->
+    cont (Math.random())
+define 'randInt', ->(low)->(high)->makeSyncMonad (env, cont)->
+    cont (Math.floor(low() + Math.random() * high()))
+define '^', ->(x)->(y)->Math.pow(x(), y())
 
 ############
 # STRINGS
@@ -97,7 +121,8 @@ define 'strMatch', ->(str)->(pat)->
     pos = 1
     while m[pos]
       groups.push m[pos++]
-    consFrom [m[0], consFrom(groups), m.index, m.input]
+    if typeof m.index != 'undefined' then consFrom [m[0], consFrom(groups), m.index, m.input]
+    else consFrom [m[0], consFrom(groups)]
   else Nil
 define 'strToList', ->(str)-> strToList str()
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
@@ -181,6 +206,10 @@ continueMonads = (contStack, env)->
 
 asyncMonad = {toString: -> "<asyncMonadResult>"}
 
+warnAsync = false
+
+setWarnAsync = (state)-> warnAsync = state
+
 newRunMonad = (monad, env, cont, contStack)->
   if cont then contStack.push cont
   try
@@ -193,6 +222,7 @@ newRunMonad = (monad, env, cont, contStack)->
         else if !monad.sync
           monadModeSync = false
           #console.log "turned off sync"
+          if warnAsync then console.log "async monad"
           monad.cmd(env, continueMonads(contStack, env))
           return asyncMonad
         result = monad.cmd(env, identity)
@@ -290,6 +320,11 @@ define 'print', ->(msg)->
     env.write ("#{m}\n")
     cont _false
 
+define 'write', ->(msg)->
+  makeSyncMonad (env, cont)->
+    env.write (msg())
+    cont _false
+
 define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->
@@ -298,6 +333,10 @@ define 'readFile', ->(name)->
 define 'prompt', ->(msg)->
   makeMonad (env, cont)->
     env.prompt(String(msg()), (input)-> cont(input))
+
+define 'rand', ->
+  makeSyncMonad (env, cont)->
+    cont(Math.random())
 
 #######################
 # Classes for Printing
@@ -347,3 +386,11 @@ root.left = left
 root.right = right
 root.getMonadSyncMode = getMonadSyncMode
 root.asyncMonad = asyncMonad
+root.setWarnAsync = setWarnAsync
+
+if window?
+  window.runMonad = runMonad
+  window.setType = setType
+  window.setDataType = setDataType
+  window.defaultEnv = defaultEnv
+  window.identity = identity

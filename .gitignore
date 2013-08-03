@@ -3,5 +3,6 @@ doc.local
 old
 *~
 /node_modules/node-inspector
+/node_modules/browserify
 /repl-port
 /tmp/

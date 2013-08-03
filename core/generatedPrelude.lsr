@@ -178,7 +178,34 @@ makeMoreTokens h t start = \\
         makeTokens (tail t) (+ start (+ (strLen h) (strLen (head t))))
         cons (token h start) next
 
-splitTokens str pat = filter (\s . not (eq s '')) (strSplit str pat)
+splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
+
+numberPat = regexp '-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)'
+
+matchOffset str match = isNil match
+  strLen str
+  head (tail (tail match))
+
+basicSplitTokens str pat prevIsDel = == str ''
+  nil
+  \\
+    num = strMatch str numberPat
+    del = strMatch str pat
+    numOffset = matchOffset str num
+    delOffset = matchOffset str del
+    select = and (== numOffset 0) prevIsDel
+      \del num first . num
+      == delOffset 0
+        \del num first . del
+        \del num first . first
+    first = select (head del) (head num) (strSubstring str 0 delOffset)
+    .
+    cons
+      first
+      basicSplitTokens
+        strSubstring str (strLen first) 0
+        pat
+        select true false false
 
 tokens str pat = makeTokens (splitTokens str pat) 0
 
@@ -334,9 +361,11 @@ createLitOrRef tok names cont =
     cont (ref tok)
     or (strStartsWith tok '\"') (strStartsWith tok "'")
       parseString tok \str . cont (lit str)
-      or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
-        jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
-        cont (ref tok)
+      strStartsWith tok '.'
+        jsonParse (strCat (cons '0' (cons tok nil))) (\err . cont (ref tok)) (\item . cont (lit item))
+        or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
+          jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
+          cont (ref tok)
 
 createLambda start list names cont = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
@@ -473,7 +502,8 @@ createDef def name arity src = \\
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
-      cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons def nil))))
+      #cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons def nil))))
+      cons (tok '\\@') (cons (cons (tok 'definition') (cons (tok name) nil)) (cons (tok '.') (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons def nil)))))))
 
 checkSetDataType toks curToks name = withCons curToks toks \h t .
   isTokenString h '='
@@ -488,7 +518,7 @@ tokListStr toks = jsonStringify (join (map (\t . tokenString t) toks) ' ')
 
 linePat = regexp '\\r?\\n(?=[^ ]|$)'
 
-emptyLinePat = regexp '^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$'
+emptyLinePat = regexp '(^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$)'
 
 lineScrub = regexpFlags '\\r\\n' 'g'
 
@@ -497,6 +527,10 @@ linesForFile text = filter
   strSplit (strReplace text lineScrub '\n') linePat
 
 defPat = regexp '^[^ =]+.* =( |$)'
+
+#unanchoredDefPat = regexp '(^|\\n)[^ =]+.* =([ \\n]|$)'
+
+unanchoredDefPat = regexp '^((?:\\s*\\n|#[^\\n]*\\n)*)([^=\\n]*)(=\\([^=]+=|=)?'
 
 namesForLines lines = foldl
   \result line . \\
@@ -697,24 +731,22 @@ runFile text = \\
 baseLoad file = bind (readFile file)
   \result . result
     \err . err
-    \contents . bind (getValue 'stdTokenPacks')
-      \stds . bind (getValue 'activeTokenPacks')
-        \activePacks . bind (resetTokenPacks stds)
-          \_ . bind (runFile contents)
-            \result . isNil activePacks
-              bind (getValue 'stdTokenPacks')
-                \stds . bind (resetTokenPacks stds)
-                  \_ . result
-              bind (resetTokenPacks activePacks)
+    \contents . bind (getValue 'activeTokenPacks')
+      \activePacks . bind resetStdTokenPacks
+        \_ . bind (runFile contents)
+          \result . isNil activePacks
+            bind resetStdTokenPacks
+              \_ . result
+            bind (resetTokenPacks activePacks)
                 \_ . result
 
 load file = bind (baseLoad file)
   \result . \\
-    errs = filter (\line . tail line (\_ . true) (\_ . false)) result
+    errs = foldr (\line results . tail line (\er . cons er results) (\x . results)) nil result
     .
     isNil errs
       right true
-      left (map (\el . el \h t . cons h (t id id)) errs)
+      left errs
 
 require file = bind (getValue 'requiredFiles')
   \files . contains files file

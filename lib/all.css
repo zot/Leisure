@@ -1,0 +1,647 @@
+body {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.leisure-notebook {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 5px;
+}
+
+.leisure-notebook-holder {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.noselect, .noselect * {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+
+/*[leisurenode=markdown][contenteditable=true] {*/
+.pageContent[editing=true] {
+  z-index: 80;
+  position: relative;
+  top: 0;
+  background: white;
+}
+
+[leisureid="makeTestCase"] {
+  white-space: nowrap;
+}
+
+[leisurecode] {
+  white-space: pre-wrap;
+}
+
+.LeisureFunc {
+  background: #fcc;
+}
+
+.LeisureArg {
+  background: #ccf;
+}
+
+
+.leisure_page {
+  position: relative;
+}
+
+.leisure_bar {
+  min-height: 28px;
+  background-image: url(leisure_bar.gif);
+  background-repeat: no-repeat;
+  color: black;
+  position: fixed;
+  z-index: 100;
+  width: 135px;
+  /*width: 100%;*/
+  white-space: normal;
+  display: none;
+}
+
+
+.embedded .leisure_bar {
+  min-height: 28px;
+  background-image: url(leisure_bar.gif);
+  background-repeat: no-repeat;
+  color: black;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  white-space: normal;
+}
+
+.scroll .leisure_bar {
+  display: block;
+}
+
+.scroll.focused .leisure_bar {
+  width: 100%;
+}
+
+.leisure_space {
+  height: 32px;
+}
+
+.scroll.focused .leisure_bar_contents
+/*, .scroll .leisure_bar_contents*/
+ {
+  display: block;
+}
+
+.pageTitle {
+  background: white;
+  padding-left: 5px;
+  padding-right: 5px;
+  font-size: xx-large;
+  font-weight: bold;
+  text-align: center;
+}
+
+.scroll .pageTitle {
+  position: absolute;
+  top: -webkit-calc(-0.5em - 2px);
+  top: calc(-0.5em - 2px);
+  z-index: 70;
+  /*font-size: inherit;*/
+  font-weight: inherit;
+  text-align: left;
+  display: inline-block;
+}
+
+.slide > * {
+    text-align: start;
+}
+
+.slide {
+    text-align: center;
+}
+
+.scroll .slide {
+    text-align: start;
+}
+
+.slide > div.pageContent {
+    display: table-cell;
+}
+
+.scroll .slide > div.pageContent {
+    display: block;
+}
+
+.oneSlide.scroll .slide {
+  border: none;
+}
+
+.scroll .slide.continuation {
+  /*display: none !important;*/
+}
+
+.slide {
+  padding-left: 5px;
+  padding-right: 5px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  color: black;
+  background: white;
+}
+
+.scroll .slide {
+  margin-top: 1em;
+}
+
+.scroll .slide[leisuresection]
+{
+  border: solid black 1px;
+  padding: 10px;
+  margin: 5px;
+  margin-top: 1em;
+  position: relative;
+  border-width: 3px;
+}
+
+.slide,
+.scroll.hideControls .slide.hiddenPage,
+.scroll.hideControls .slide[leisuresection="Leisure Controls"]
+{
+  display: none;
+}
+
+.slide.showing {
+  border: none;
+}
+
+.slide.showing,
+.scroll.hideControls .slide,
+.scroll .slide[leisuresection="Leisure Controls"],
+.scroll.hideControls.showHidden .slide.hiddenPage,
+.scroll.hideControls.showHidden .slide[leisuresection="Leisure Controls"]
+{
+  display: block;
+}
+
+.scroll.hideControls.showHidden .slide[leisuresection="Leisure Controls"]
+{
+  position: relative;
+  z-index: 0;
+  top: 0;
+}
+
+.scroll .slide[leisuresection="Leisure Controls"] {
+  position: fixed;
+  z-index: 80;
+  top: 30px;
+  left: 0;
+}
+
+.scroll.hideControls.showHidden .slide[leisuresection="Leisure Controls"] .pageContent
+{
+  position: static;
+  overflow: hidden;
+}
+
+.scroll .slide[leisuresection="Leisure Controls"] .pageContent {
+  position: absolute;
+  overflow: auto;
+  top: 10px;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  padding-left: 2px;
+}
+
+.leisure_bar_contents {
+  display: none;
+}
+
+.leisure_bar span.passed, .leisure_bar span.failed, .leisure_bar span.notrun {
+  font-weight: bold;
+  border-radius: 8px;
+  padding-left: 10px;
+  padding-right: 10px;
+  border: solid black 2px;
+}
+
+.leisure_bar span.notrun {
+  background: #fff;
+}
+
+.leisure_bar span.passed {
+  background: #8f8;
+}
+
+.leisure_bar span.failed {
+  background: #f88;
+}
+
+.leisure_start {
+  margin-left: 150px
+}
+
+.leisure_theme {
+  padding-left: 10px
+}
+
+.codeMain {
+  position: relative;
+  overflow: visible;
+}
+
+.errorDiv {
+  max-width: 600px;
+  white-space: pre-wrap;
+}
+
+.outputDiv {
+  margin-right: 16px; /* space for show-source button */
+}
+
+.ui-corner-all {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.fatControls {
+  min-width: 72px;
+}
+
+.astbutton {
+  position: absolute;
+  top: 0;
+  right: -28px;
+  background: url(ast.png) no-repeat !important;
+  width: 24px;
+  height: 24px;
+}
+
+.hidingSource {
+  position: relative;
+}
+
+.hidingSource .controls {
+  position: absolute;
+  top: 0;
+  /*left: 0;*/
+  right: 0;
+}
+
+.hidingSource .controls *, .hidingSource .controls + * {
+  display: none;
+}
+
+.editToggle {
+  background: url(edit.png) center no-repeat;
+  width: 24px;
+  height: 26px;
+  display: block;
+}
+
+.hidingSource .editToggle {
+  background: url(noedit.png) center no-repeat;
+  width: 24px;
+  height: 26px;
+  display: block;
+}
+
+.codeMainExpr {
+  position: relative;
+}
+
+.slide .ui-button, .slide-container .ui-button {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.slide a {
+  color: blue;
+}
+
+.leisureRangeNumber {
+  outline: solid green 1px;
+}
+
+.slide.hidden {
+  display: none;
+}
+
+.slide-controls {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+}
+
+.slide-container {
+  position: absolute;
+  overflow: auto;
+  margin: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+.gaudy .codeExpr {
+  font-style: italic;
+  font-weight: bold;
+  margin: 3px;
+}
+.gaudy .codeMain {
+  vertical-align: top;
+  margin: 3px;
+  display: inline-block;
+  border-width: 29px 24px 30px 34px;
+  -moz-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
+  -webkit-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
+  -o-border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
+  border-image: url(Stock_Photo___Blackboard_by_shigeoARAI.jpg) 29 24 30 34 stretch;
+}
+.gaudy .output {
+  border: red solid 2px;
+  margin: 3px;
+  left-margin: 10px;
+  display: inline-block;
+  padding: 5px;
+}
+.gaudy .partialApply {
+  /*text-decoration: underline;*/
+  outline: solid black 1px;
+}
+.gaudy .output span {
+  vertical-align: top;
+}
+.gaudy .codeMainExpr {
+  vertical-align: top;
+  border-width: 29px 30px 37px 34px;
+  -moz-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
+  -webkit-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
+  -o-border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
+  border-image: url(whiteboardTestWithShadow.png) 29 30 37 34 stretch;
+  margin: 3px;
+  display: inline-block;
+}
+.gaudy .codeName {
+  color: blue;
+  font-weight: bold;
+  margin: 3px;
+}
+.gaudy .codeBody {
+  font-style: italic;
+  font-weight: bold;
+  margin: 3px;
+}
+.gaudy .noselect, .gaudy output, .gaudy output * {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+.thin .codeExpr {
+  font-style: italic;
+  font-weight: bold;
+  margin: 3px;
+}
+.thin .codeMain {
+  vertical-align: top;
+  display: inline-block;
+  margin: 0;
+  margin-right: 28px;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/*
+.thin .codeMain:hover {
+  outline: blue solid 1px;
+  margin-right: 28px;
+}
+*/
+
+.thin .output {
+  border: green solid 2px;
+  margin: 3px;
+  left-margin: 10px;
+  display: inline-block;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+.thin .output span {
+  vertical-align: top;
+}
+.thin .codeMainExpr {
+  vertical-align: top;
+  margin: 0;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  margin: 0;
+  display: inline-block;
+}
+
+.thin .hidingSource .controls {
+  position: absolute;
+  top: 5px;
+  /*left: 5px;*/
+  right: 5px;
+}
+
+/*
+.thin .codeMainExpr:hover {
+  outline: red solid 1px;
+}
+*/
+
+.thin .partialApply {
+  /*text-decoration: underline;*/
+  outline: solid black 1px;
+}
+
+html {
+  /*cursor: url(tentacles.png) 5 5;*/
+  /*cursor: url(bigCursor.png) 13 9;*/
+}
+
+.thin .codeMainTest {
+  vertical-align: top;
+  margin: 0;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  margin: 0;
+  display: inline-block;
+  border: green solid 1px;
+  min-width: 30px;
+  min-height: 30px;
+  border: 0px;
+}
+
+.thin .codeMainTest * {
+  display: block;
+  margin-left: 40px;
+  font-weight: bold;
+}
+
+/*
+.thin .codeMainTest.passed * {
+  display: none;
+}
+*/
+.thin .codeMainTest {
+  background-repeat: no-repeat;
+  background-position: 0%, 50%;
+}
+.thin .codeMainTest.notrun {
+  background-image: url(testCaseWhite.png);
+}
+.thin .codeMainTest.passed {
+  background-image: url(testCaseGreen.png);
+}
+.thin .codeMainTest {
+  background-image: url(testCaseRed.png);
+}
+
+/*
+.thin .ui-widget-content:hover {
+  background: #888 url(images/ui-bg_inset-hover-soft_10_285c00_1x100.png) 50% bottom repeat-x;
+}
+*/
+
+[leisurebox]:hover {
+  outline: solid red 2px;
+}
+
+.thin .ui-widget-content.slide:hover {
+  background: white;
+}
+
+.thin .codeName {
+  /*color: blue;*/
+  /*color: #404;*/
+  color: #DD0;
+  font-weight: bold;
+  margin: 3px;
+}
+.thin .codeBody {
+  font-style: italic;
+  font-weight: bold;
+  margin: 3px;
+}
+
+.cthulhu {
+  background-image: url(Cthulhu_Rising_by_somniturne.jpg);
+  background-repeat: no-repeat;
+  background-attachment:fixed;
+  color: yellow;
+}
+
+.cthulhu .codeExpr {
+  font-family: 'Audiowide', cursive;
+  font-style: italic;
+  font-weight: bold;
+  margin: 3px;
+}
+.cthulhu .codeMain {
+  vertical-align: top;
+  display: inline-block;
+  margin: 0;
+  padding: 5px;
+  background-color: rgba(0,0,0, 0.5);
+}
+.cthulhu .codeMain:hover {
+  border: yellow solid 2px;
+  margin: -2px;
+}
+
+.cthulhu .output {
+  border: green solid 2px;
+  margin: 3px;
+  left-margin: 10px;
+  display: inline-block;
+  padding: 5px;
+  background-color: rgba(0,0,0, 0.5);
+}
+.cthulhu .output span {
+  vertical-align: top;
+}
+.cthulhu .codeMainExpr {
+  vertical-align: top;
+  margin: 0;
+  padding: 5px;
+  margin: 0;
+  display: inline-block;
+  font-family: 'Audiowide', cursive;
+  background-color: rgba(0,0,0, 0.5);
+}
+.cthulhu .codeMainExpr:hover {
+  border: green solid 2px;
+  margin: -2px;
+}
+
+.cthulhu .codeMainTest {
+  vertical-align: top;
+  margin: 0;
+  padding: 5px;
+  margin: 0;
+  display: inline-block;
+  border: green solid 1px;
+  min-width: 30px;
+  min-height: 30px;
+}
+.cthulhu .partialApply {
+  /*text-decoration: underline;*/
+  outline: solid black 1px;
+}
+.cthulhu .codeMainTest * {
+  display: none;
+}
+.cthulhu .codeMainTest.notrun {
+  border: 0px;
+  background-image: url(tiny_cthulhu_white.png);
+  background-repeat: no-repeat;
+}
+.cthulhu .codeMainTest.passed {
+  border: 0px;
+  background-image: url(tiny_cthulhu_yellow.png);
+  background-repeat: no-repeat;
+}
+.cthulhu .codeMainTest.failed {
+  border: 0px;
+  background-image: url(tiny_cthulhu_red.png);
+  background-repeat: no-repeat;
+}
+
+.cthulhu .codeName {
+  color: blue;
+  font-family: 'Audiowide', cursive;
+  font-weight: bold;
+  margin: 3px;
+}
+.cthulhu .codeBody {
+  font-family: 'Audiowide', cursive;
+  font-style: italic;
+  font-weight: bold;
+  margin: 3px;
+}
+
+.cthulhu .LeisureFunc {
+  background: green;
+}
+
+.cthulhu .LeisureArg {
+  background: brown;
+}
+
