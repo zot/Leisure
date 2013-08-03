@@ -59,8 +59,8 @@ defaultEnv.readFile = (fileName, cont)->
   uri = new URI(document.location.href, fileName)
   console.log "\n\n@@@@READ FILE: #{uri}\n\n"
   $.get(String(uri))
-    .done((data)-> breakPoint(); cont(null, data))
-    .fail((err)-> breakPoint(); cont(err, null))
+    .done((data)-> cont(null, data))
+    .fail((err)-> cont(err, null))
 
 defaultEnv.writeFile = (fileName, data, cont)->
 
