@@ -525,10 +525,10 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(parseLine 'id = \\x . x', Nil, id, id), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
           assertEq String(lsr("parseToAst #{s '\\x . x'} #{delimiterPatStr}")), 'lambda(\\x . x)'
           assertEq String(lsr("scanLine #{s 'id = \\x . x'} #{delimiterPatStr} id id")), """
-            Cons[Token("define", 5) Token("\\"id\\"", 5) Token("0", 5) Token("\\"id = \\\\\\\\x . x\\"", 5) [Token("\\\\@", 5) Token("dataType", 5) Token("id", 5) Token(".", 5) [Token("\\\\@", 5) Token("type", 5) Token("id", 5) Token(".", 5) [Token("\\\\", 5) Token("x", 6) Token(".", 8) Token("x", 10)]]]]
+            Cons[Token("\\\\@", 5) [Token("definition", 5) Token(undefined, 5)] Token(".", 5) Token("define", 5) Token("\\"id\\"", 5) Token("0", 5) Token("\\"id = \\\\\\\\x . x\\"", 5) [Token("\\\\@", 5) Token("dataType", 5) Token("id", 5) Token(".", 5) [Token("\\\\@", 5) Token("type", 5) Token("id", 5) Token(".", 5) [Token("\\\\", 5) Token("x", 6) Token(".", 8) Token("x", 10)]]]]
           """
-          assertEq String(lsr("parseLine #{s 'id = \\x . x'} #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
-          assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'apply(define id 1 id x = x \\x . x)'
+          assertEq String(lsr("parseLine #{s 'id = \\x . x'} #{delimiterPatStr} nil id id")), 'anno(\\@Cons[definition Token("id", 0)] Cons[] . define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
+          assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'anno(\\@Cons[definition Token("id", 0)] Cons[] . define id 1 id x = x \\x . x)'
         leisureAst26: -> #ast14: ->
           lsrM("id2 = \\x . x")
           lsrComp("id2 = \\x . x")

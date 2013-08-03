@@ -35,14 +35,15 @@ CSS_OUT=lib/all.css
 ALL=$(SRC) $(TEST) $(TEST_PARSER) generatedPrelude simpleParse $(NEW_LSR) $(NEW_COFFEE_SRC) $(WEB_SRC)
 OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast) $(CSS_OUT) $(WEB_JS) $(ALL:%=www/*.js) $(ALL:%=www/*.map)
 
-all: .tested .parserTested $(NEW_LSR_JS) $(BROWSER_JS) $(WEB_JS)
+all: $(PRELUDE) $(NEW_LSR_JS) $(BROWSER_JS) $(WEB_JS) .tested .parserTested
 
 clean:
 	rm -f $(OUT_FILES) .tested .parserTested www/leisureJS-* www/leisureCSS-*
 
 $(BROWSER_JS): $(BROWSER_INPUT)
 	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
-	node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@
+	node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@.tmp
+	sed -e '/\/\/@/d' $@.tmp > $@
 
 $(CSS_OUT): $(CSS_FILES)
 	cat $(CSS_FILES) > $(CSS_OUT)
@@ -84,7 +85,7 @@ $(TEST:%=lib/%.js): $(TEST:%=core/%.coffee)
 $(TEST_PARSER:%=lib/%.js): $(TEST_PARSER:%=core/%.coffee)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testParser.coffee
 
-.parserTested: $(TEST_PARSER:%=core/%.coffee) $(PRELUDE)
+.parserTested: $(TEST_PARSER:%=lib/%.js) $(PRELUDE)
 	node $(LIB)/$(TEST_PARSER) && touch $@
 
 lib/%.js: core/%.coffee
