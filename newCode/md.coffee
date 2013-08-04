@@ -176,11 +176,15 @@ bindSlider = ->
 
 slideControls = [Q, ESC, LEFT_ARROW, RIGHT_ARROW, HOME, END, PAGE_UP, PAGE_DOWN]
 
+slideControlsEnabled = true
+
+enableSlideControls = (state)-> slideControlsEnabled = state
+
 slideKeyListener = (e)->
   if sliding
     window.evt = e
     c = (e.charCode || e.keyCode || e.which)
-    if (c in slideControls) && !$(e.target).is('[leisurenode=code],[leisurenode=code] *')
+    if (c in slideControls) && !$(e.target).is('[leisurenode=code],[leisurenode=code] *') && slideControlsEnabled
       e.preventDefault()
       if c == ESC then toggleSlideShow()
       else if c == Q then closeWindow()
@@ -373,3 +377,4 @@ bindMarkupDiv = (div)->
       delay -> document.body.scrollTop = scroll
 
 Notebook.markupElement = markupElement
+Notebook.enableSlideControls = enableSlideControls
