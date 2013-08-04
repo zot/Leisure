@@ -93,7 +93,7 @@ webDoSomething what = do
 webGetInput str = do
   output ""
   eq str ""  # ignore empty lines
-    getInput
+    nil      # for web version, just return
     eq 'DEBUG' (strToUpperCase str)
       toggleDebug
       do 
