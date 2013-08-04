@@ -61,6 +61,8 @@ addTokenGroup 'js[' ']'
 
 defMacro 'js[' \list . ['js' ['strCat' ['flatten' [(listify (head list))]]]]
 
+html x = \f . f x
+
 # numerics
 
 iszero = eq 0
