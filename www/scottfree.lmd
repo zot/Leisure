@@ -55,6 +55,10 @@ Hello
 -
 ```
 #@auto "mode": "notebook"
+
+ js[" toggleSlideShow(); $('#something')[0].focus();"]
+
+
 require 'scottfree.lsr'
 
 output msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
@@ -108,7 +112,6 @@ webGameOver = 'TODO'
 
 
 # start the game up now  
-js["$('#something')[0].focus(); "] 
 webPlayGame
 
 ```
