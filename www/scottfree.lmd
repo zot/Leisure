@@ -145,9 +145,8 @@ do
 *** Adventureland - ScottFree
 <div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px; white-space: pre; position: relative; overflow: hidden" id="outputContainer">
   <div id="gameOutput" style="position: absolute; bottom: 1.5em; width: 100%">
-  PLEASE WAIT
 
-  LOADING...
+  LOADING, PLEASE WAIT...
   </div>
   <div style="position: absolute; width: 100%; bottom: 0"><span id='prompt'></span> <input type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input></div></div></div>
 
