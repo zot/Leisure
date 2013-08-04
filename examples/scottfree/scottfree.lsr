@@ -16,6 +16,8 @@ afetch k list = assoc k list
 
 output msg = print msg
 
+outputNoNl msg = write msg
+
 # is this value between lower & upper bounds inclusively?  
 between value low up = and (>= value low) (<= value up)
 betweenEx value low up = and (> value low) (< value up)
@@ -319,7 +321,7 @@ basicLook myloc = do
   name = strReplace (at room 6) (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
   name = (debug) (name + " #" + myloc) name
   strMatches name '^\\*'
-    output name
+    output strSubstring name 1 999
     output concat[ "You are in a " name ]
   printExits room
   printItems myloc
@@ -400,6 +402,7 @@ moveItem idx newloc = do
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
+  clearScreen
   look
 
 # check to see if the light is either in the given room or carried by the player
@@ -772,7 +775,7 @@ action83 p1 = do
   poke 'GlobalVars' GV_CURRENT_COUNTER cc
 action84 = do
   nountext <- getValue 'NounText'
-  write nountext
+  outputNoNl nountext
 action85 = do
   nountext <- getValue 'NounText'
   output nountext

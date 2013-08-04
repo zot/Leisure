@@ -65,6 +65,7 @@ webPlayGame = do
   loaded
     do
       setValue 'GameOver' false
+      clearScreen
       setRedrawOn  # force a look to begin
       doRedraw
       performActions 0 0 false
@@ -77,6 +78,7 @@ webDoSomething what = do
     do
       over <- getValue 'GameOver'
       when (not over)
+        clearScreen
         webGetInput what
         processLight
         doRedraw
@@ -139,10 +141,7 @@ do
 </style>
 *** Adventureland - ScottFree
 <div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px;" id="outputContainer">
-  <div id="gameOutput" style="height: 300px">
-  this is just a bunch of sample text<br>
-  to see how it looks<p>
-  *AWESOME*<p>
+  <div id="gameOutput" style="height: 300px; overflow:auto;">
   </div>
   <br>
   <div id="inputDif">

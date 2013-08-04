@@ -1,6 +1,4 @@
-#require '../../newCode/std.lsr'
 require 'std.lsr'
-
 
 # create a comma sep list for pretty printing
 csv list = flatten [ "[ " (intersperse list ', ') " ]" ]
@@ -323,7 +321,7 @@ basicLook myloc = do
   name = strReplace (at room 6) (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
   name = (debug) (name + " #" + myloc) name
   strMatches name '^\\*'
-    output name
+    output strSubstring name 1 999
     output concat[ "You are in a " name ]
   printExits room
   printItems myloc
@@ -404,6 +402,7 @@ moveItem idx newloc = do
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
+  clearScreen
   look
 
 # check to see if the light is either in the given room or carried by the player
