@@ -59,9 +59,6 @@ do
 ***Examples
 -
 ```
-# override these functions to redirect output to the HTML page
-output msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
-clearScreen = js["$('#gameOutput')[0].innerHTML = '' "]
 
 webPlayGame = do
   loaded <- hasValue 'GameHeader'
@@ -113,6 +110,7 @@ do
   js[" toggleSlideShow(); $('#something')[0].focus();"]
   print 'loading'
   load 'scottfree.lsr'
+  load 'scottfreeNotebook.lsr'
   print 'done'
   loadGame 'adv01.dat'
   webPlayGame

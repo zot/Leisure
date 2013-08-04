@@ -1,0 +1,3 @@
+# override these functions to redirect output to the HTML page
+output msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
+clearScreen = js["$('#gameOutput')[0].innerHTML = '' "]
