@@ -143,7 +143,7 @@ do
 }
 </style>
 *** Adventureland - ScottFree
-<div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px; white-space: pre; position: relative; overflow: hidden" id="outputContainer">
+<div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer">
   <div id="gameOutput" style="position: absolute; bottom: 1.5em; width: 100%">
 
   LOADING, PLEASE WAIT...
