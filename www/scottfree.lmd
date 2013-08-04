@@ -151,6 +151,13 @@ webPlayGame
     </div>
   </div>  
 </div>
+
+<h3>Game Credits:</h3><P>
+Leisure Scottfree Interpreter: <a href="http://www.teamcthulhu.com" target="_blank">TEAM CTHULHU</a><p>
+Based on C Scottfree: <a href="http://www.ifarchive.org/indexes/if-archiveXscott-adamsXinterpretersXscottfree.html" target="_blank">Scottfree found at IF Archives</a><p>
+Scott Adams Adventure Files: <a href="http://www.msadams.com/" target="_blank">SAGA - Scott Adams Grand Adventures</a><p>
+C64 Proportional Font: <a href="http://style64.org/c64-truetype" target="_blank">Style 64</a><p>
+
 *** Secret stuff
 -
 Stop double-click grabbing
