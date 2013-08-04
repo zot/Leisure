@@ -55,6 +55,8 @@
 
 if = id
 
+aconsf key value list = acons key value (removeIf (\pair . pair \h t . h == key) list)
+
 defMacro 'when' \line . line \cond rest . [cond 'do':rest 'nil']
 
 addTokenGroup 'js[' ']'
