@@ -57,9 +57,6 @@ Hello
 #@auto "mode": "notebook"
 require 'scottfree.lsr'
 
-# make enter on the text input field act like a button press
-js["$('something').keyup(function(event){ if(event.keyCode == 13){ $('doit').click(); } }); "]
-
 output msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
 clearScreen = js["$('#gameOutput')[0].innerHTML = '' "]
 
@@ -109,14 +106,47 @@ webGetInput str = do
           
 webGameOver = 'TODO'
 
-# start the game up now   
+
+# start the game up now  
+js["$('#something')[0].focus(); "] 
 webPlayGame
 
 ```
-*** ScottFree - Adventureland
-<div style="margin-top: 24px; border: blue solid 2px; width: 800px" id="outputContainer">
-  <button id="doit" onclick="Leisure.event(this, 'webDoSomething', $('something').value)">Tell me what to do?</button><input type="text" id="something"></input>
-  <div id="gameOutput"></div>
+<style>
+@font-face
+{
+  font-family: C64;
+  src: url(C64_User_v1.0-STYLE.woff);
+}
+#outputContainer
+{
+  font-family:C64;
+  color: #7c70da;
+  background-color: #3e31a2;
+}
+#something
+{
+  font-family:C64;
+  color: #7c70da;
+  background-color: #3e31a2;
+  border: none;
+  outline: none;  
+}
+</style>
+*** Adventureland - ScottFree
+<div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px;" id="outputContainer">
+  <div id="gameOutput" style="height: 300px">
+  this is just a bunch of sample text<br>
+  to see how it looks<p>
+  AWESOME*<p>
+  </div>
+  <br>
+  <div id="inputDif">
+    <!-- <button id="doit" onclick="Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' ">Tell me what to do?</button> -->
+    <div id="doit">Tell me what to do?
+      <input type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input>
+    </div>
+  </div>  
 </div>
 *** Secret stuff
 -
