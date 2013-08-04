@@ -57,9 +57,11 @@ Hello
 #@auto "mode": "notebook"
 require 'scottfree.lsr'
 
-#load 'gamePrep.lsr'
+# make enter on the text input field act like a button press
+js["$('something').keyup(function(event){ if(event.keyCode == 13){ $('doit').click(); } }); "]
 
 output msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
+clearScreen = js["$('#gameOutput')[0].innerHTML = '' "]
 
 loadGame 'adv01.dat'
 
@@ -75,17 +77,20 @@ webPlayGame = do
     output "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
     
 webDoSomething what = do 
-  over <- getValue 'GameOver'
-  when (not over)
-    webGetInput what
-    processLight
-    doRedraw
-    performActions 0 0 false
-    doRedraw   
-  over <- getValue 'GameOver'
-  when over
-    webGameOver
-
+  loaded <- hasValue 'GameOver'
+  loaded
+    do
+      over <- getValue 'GameOver'
+      when (not over)
+        webGetInput what
+        processLight
+        doRedraw
+        performActions 0 0 false
+        doRedraw   
+      over <- getValue 'GameOver'
+      when over
+        webGameOver
+    output 'Game never loaded'
    
 webGetInput str = do
   output ""
@@ -110,7 +115,7 @@ webPlayGame
 ```
 *** ScottFree - Adventureland
 <div style="margin-top: 24px; border: blue solid 2px; width: 800px" id="outputContainer">
-  <button onclick="Leisure.event(this, 'webDoSomething', 'score')">Tell me what to do?</button>
+  <button id="doit" onclick="Leisure.event(this, 'webDoSomething', $('something').value)">Tell me what to do?</button><input type="text" id="something"></input>
   <div id="gameOutput"></div>
 </div>
 *** Secret stuff
