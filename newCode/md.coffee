@@ -161,6 +161,9 @@ oldSlide = 0
 
 window.toggleSlideShow = ->
   sliding = $(document.body).is('.scroll')
+  #restore normal settings
+  enableSlideControls true
+  enableEditing true
   if sliding
     $(document.body).removeClass 'scroll'
     #showSlide $(document.body.firstElementChild)
@@ -325,13 +328,17 @@ makeMarkupDiv = (range, md)->
   bindMarkupDiv div
   div
 
+editingEnabled = true
+
+enableEditing = (state)-> editingEnabled = state
+
 bindMarkupDiv = (div)->
   div.bound = true
   div.setAttribute 'leisureNode', 'markdown'
   div.setAttribute 'contenteditable', 'false'
   editing = false
   div.addEventListener 'dblclick', (e)->
-    if !editing
+    if !editing && editingEnabled
       div.innerHTML = ''
       div.appendChild textNode div.md
       div.style.whiteSpace = 'pre-wrap'
@@ -378,3 +385,4 @@ bindMarkupDiv = (div)->
 
 Notebook.markupElement = markupElement
 Notebook.enableSlideControls = enableSlideControls
+Notebook.enableEditing = enableEditing

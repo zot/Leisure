@@ -26,6 +26,12 @@ saveAsButton=do
   fname <- js "$('#saveAsText').val()"
   saveAs fname
 
+presentPage pageName = do
+  js["$('.presentPage').removeClass('.presentPage'); $('[leisuresection=\"" pageName  "\"]').addClass('.presentPage'); Notebook.enableEditing(false)"]
+
+hidePage = do
+  js["$('.presentPage').removeClass('.presentPage'); Notebook.enableEditing(true)"]
+
 ```
 *** Leisure Controls
 <button style='margin-top: 24px' id='saveButton'>Save</button><br>
@@ -112,8 +118,7 @@ webGameOver = 'TODO'
 do
   delay 10
   delay 10
-  js[" toggleSlideShow(); $('#something')[0].focus();"]
-  js "Notebook.enableSlideControls(false)"
+  js[" toggleSlideShow(); Notebook.enableEditing(false); Notebook.enableSlideControls(false); $('#something')[0].focus();"]
   print 'loading'
   load 'scottfree.lsr'
   load 'scottfreeNotebook.lsr'
