@@ -113,6 +113,7 @@ do
   delay 10
   delay 10
   js[" toggleSlideShow(); $('#something')[0].focus();"]
+  js "Notebook.enableSlideControls(false)"
   print 'loading'
   load 'scottfree.lsr'
   load 'scottfreeNotebook.lsr'
