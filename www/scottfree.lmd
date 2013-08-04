@@ -56,11 +56,11 @@ Hello
 ```
 #@auto "mode": "notebook"
 
- js[" toggleSlideShow(); $('#something')[0].focus();"]
+js[" toggleSlideShow(); $('#something')[0].focus();"]
 
+load './scottfree.lsr'
 
-require 'scottfree.lsr'
-
+# override these functions to redirect output to the HTML page
 output msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
 clearScreen = js["$('#gameOutput')[0].innerHTML = '' "]
 
@@ -78,7 +78,7 @@ webPlayGame = do
     output "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
     
 webDoSomething what = do 
-  loaded <- hasValue 'GameOver'
+  loaded <- hasValue 'GameHeader'
   loaded
     do
       over <- getValue 'GameOver'
@@ -141,7 +141,7 @@ webPlayGame
   <div id="gameOutput" style="height: 300px">
   this is just a bunch of sample text<br>
   to see how it looks<p>
-  AWESOME*<p>
+  *AWESOME*<p>
   </div>
   <br>
   <div id="inputDif">
