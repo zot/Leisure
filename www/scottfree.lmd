@@ -1,0 +1,168 @@
+*** Leisure Controls
+<button style='margin-top: 24px' id='saveButton'>Save</button><br>
+<button id='openUriButton'>Open</button>
+<input id='openUriText' type='text'><br>
+<button id='saveAsButton'>Save as</button>
+<input id='saveAsText' type='text'><br>
+<button id='toggleHiddenPages' type='checkbox'>Toggle Hidden Pages</button><br>
+<button id='openFromGdriveButton'>Open from Google Drive</button>
+*** Leisure control code
+-
+```
+toggleHidden = do
+  hidden <- getValue 'hiddenPages'
+  setHidden (not hidden)
+
+setHidden hide=do
+  js hide
+    "$(document.body).removeClass('showHidden'); $(document.body).addClass('hideControls')"
+    "$(document.body).addClass('showHidden hideControls')"
+  setValue 'hiddenPages' hide
+
+openUriButton=do
+  fname <- js "$('#saveAsText').val()"
+  open fname
+
+saveButton=do
+  setHidden true
+  save
+
+saveAsButton=do
+  setHidden true
+  fname <- js "$('#saveAsText').val()"
+  saveAs fname
+
+#@auto "mode": "notebook"
+do
+  require 'std.lsr'
+  bindEvent '#openFromGdriveButton' 'click' \e . gdriveOpen
+  bindEvent '#saveButton' 'click' \e . saveButton
+  bindEvent '#openUriButton' 'click' \e . openUriButton
+  bindEvent '#saveAsButton' 'click' \e . saveAsButton
+  bindEvent '#toggleHiddenPages' 'click' \e . toggleHidden
+  js["$('#openUriText').val('" uri "')"]
+  js["$('#saveAsText').val('" uri "')"]
+  js["window.setTimeout(function(){$('[leisurenode=code]').addClass('ui-widget-overlay ui-corner-all').attr('style', 'width: auto; opacity: 1')}, 1)"]
+  js["window.initButton = function(btn){window.setTimeout(function(){var p = btn[0].parentElement; if (p.firstChild != p.lastChild && !p.firstChild.initialized){p.firstChild.initialized = true; $(p.firstChild).attr('class', 'kill-button').html('').button({icons: {primary: 'ui-icon-circle-close'}, text: false}); $([p.firstChild.nextSibling.nextSibling, p.lastChild]).css('padding', '1px').css('margin-top', '1px')}}, 1)}"]
+  js["window.setTimeout(function(){$('.controls').each(function(index, c){if (c.firstChild==c.lastChild){$(c.firstChild).attr('class', 'arrow-button').html('').button({icons: {primary: 'ui-icon-arrowthick-1-e'}, text: false}).on('click', function(){initButton($(this))})}})}, 1)"]
+  js["window.setTimeout(function(){$('.ui-state-error').removeClass('.ui-state-error')}, 100)"]
+  js["$('[maindoc]').append($('#header'))"]
+```
+*** Hidden Page
+--
+Hello
+***Examples
+-
+```
+#@auto "mode": "notebook"
+
+js[" toggleSlideShow(); $('#something')[0].focus();"]
+
+load './scottfree.lsr'
+
+# override these functions to redirect output to the HTML page
+output msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
+clearScreen = js["$('#gameOutput')[0].innerHTML = '' "]
+
+loadGame 'adv01.dat'
+
+webPlayGame = do
+  loaded <- hasValue 'GameHeader'
+  loaded
+    do
+      setValue 'GameOver' false
+      setRedrawOn  # force a look to begin
+      doRedraw
+      performActions 0 0 false
+      doRedraw
+    output "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
+    
+webDoSomething what = do 
+  loaded <- hasValue 'GameHeader'
+  loaded
+    do
+      over <- getValue 'GameOver'
+      when (not over)
+        webGetInput what
+        processLight
+        doRedraw
+        performActions 0 0 false
+        doRedraw   
+      over <- getValue 'GameOver'
+      when over
+        webGameOver
+    output 'Game never loaded'
+   
+webGetInput str = do
+  output ""
+  eq str ""  # ignore empty lines
+    getInput
+    eq 'DEBUG' (strToUpperCase str)
+      toggleDebug
+      do 
+        v_n <- basicGetInput str
+        v = at v_n 0
+        n = at v_n 1
+        wasAll = at v_n 2  # log concat['v_n ' (csv v_n) ] 0
+        eq v -1
+          output "You use word(s) I don't know"
+          performActionsWithMsg v n wasAll
+          
+webGameOver = 'TODO'
+
+
+# start the game up now  
+webPlayGame
+
+```
+<style>
+@font-face
+{
+  font-family: C64;
+  src: url(C64_User_v1.0-STYLE.woff);
+}
+#outputContainer
+{
+  font-family:C64;
+  color: #7c70da;
+  background-color: #3e31a2;
+}
+#something
+{
+  font-family:C64;
+  color: #7c70da;
+  background-color: #3e31a2;
+  border: none;
+  outline: none;  
+}
+</style>
+*** Adventureland - ScottFree
+<div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px;" id="outputContainer">
+  <div id="gameOutput" style="height: 300px">
+  this is just a bunch of sample text<br>
+  to see how it looks<p>
+  *AWESOME*<p>
+  </div>
+  <br>
+  <div id="inputDif">
+    <!-- <button id="doit" onclick="Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' ">Tell me what to do?</button> -->
+    <div id="doit">Tell me what to do?
+      <input type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input>
+    </div>
+  </div>  
+</div>
+
+<h3>Game Credits:</h3><P>
+Leisure Scottfree Interpreter: <a href="http://www.teamcthulhu.com" target="_blank">TEAM CTHULHU</a><p>
+Based on C Scottfree: <a href="http://www.ifarchive.org/indexes/if-archiveXscott-adamsXinterpretersXscottfree.html" target="_blank">Scottfree found at IF Archives</a><p>
+Scott Adams Adventure Files: <a href="http://www.msadams.com/" target="_blank">SAGA - Scott Adams Grand Adventures</a><p>
+C64 Proportional Font: <a href="http://style64.org/c64-truetype" target="_blank">Style 64</a><p>
+
+*** Secret stuff
+-
+Stop double-click grabbing
+
+```
+#@auto "mode": "notebook"
+js "$('#outputContainer').dblclick(function(evt){evt.stopPropagation()})"
+```
