@@ -324,7 +324,7 @@ basicLook myloc = do
   name = strReplace (at room 6) (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
   name = (debug) (name + " #" + myloc) name
   strMatches name '^\\*'
-    output strSubstring name 1 999
+    output (strSubstring name 1 999)
     output concat[ "You are in a " name ]
   printExits room
   printItems myloc
