@@ -38,8 +38,12 @@ class URI
   paramString: (paramObj)-> ("#{k}=#{v}" for k, v of paramObj).join('&')
   setSearchParams: (paramObj)-> @search = "?#{@paramString paramObj}"; @
   setFragParams: (paramObj)-> @fragment = "##{@paramString paramObj}"; @
-  pathName: -> (@path.match /\/[^/]*$/)[0].substring 1
-  pathParent: -> (@path.match /^.*\/(?=[^/]*$)/)[0]
+  pathName: ->
+    if !@path then console.log (new Error()).stack
+    (@path.match /\/[^/]*$/)[0].substring 1
+  pathParent: ->
+    if !@path then console.log (new Error()).stack
+    (@path.match /^.*\/(?=[^/]*$)/)[0]
 
 getParams = (str)->
   params = {}

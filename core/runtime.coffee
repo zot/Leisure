@@ -355,6 +355,11 @@ define 'js', ->(str)->
     catch err
       cont left err
 
+define 'delay', ->(func)->
+  makeSyncMonad (env, cont)->
+    setTimeout (->runMonad func(), env, identity), 1
+    cont _true
+
 #######################
 # Classes for Printing
 #######################

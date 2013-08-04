@@ -85,8 +85,8 @@ escapeHtml = (str)->
 
 presentValue = (v)->
   if (getType v) == 'svgNode'
-    content = v(laz(id))
-    _svgPresent()(laz(content))(laz(id))
+    content = v(-> id)
+    _svgPresent()(-> content)(-> id)
   else if (getType v) == 'html' then getHtml v
   else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
   else escapeHtml String(v)
@@ -722,7 +722,8 @@ showFilenames = ->
     showFilename node
 
 setFilename = (newName)->
-  filename = if newName instanceof URI then newName else new URI(newName)
+  console.log "SET FILENAME: #{newName}"
+  filename = if newName instanceof URI then newName else new URI(document.location.href, newName)
   showFilenames()
 
 markupButtons = (el)->
@@ -979,6 +980,8 @@ setUpdate = (el, channel, preserveSource)->
 
 hasMonadOutput = (box)-> box.firstElementChild?.nextElementSibling?.nextElementSibling?
 
+#hasMonadOutput = (box)-> $(box).find('.outputDiv').length
+
 checkHideSource = (box)->
   if !box.hideOutputSource and hasMonadOutput box
     box.hideOutputSource = true
@@ -1006,6 +1009,7 @@ showOutputSource = (output)->
   output.source.style.display = ''
 
 hideOutputSource = (output)->
+  console.log "HIDE: #{output}"
   output.classList.add 'hidingSource'
   output.source.style.display = 'none'
 
@@ -1411,11 +1415,14 @@ owner = (box)->
     box = box.parentNode
   box
 
+hiddenPat = /(^|\n)#@hidden *(\n|$)/
+
 evalBox = (box, envBox)->
   env = if envBox? then envFor(envBox) else null
   processLine box.textContent, env, -> env?.cleanup?()
   getAst box
-  if box.output && hasMonadOutput(box.output) && box.textContent.match /(^|\n)#@hidden *(\n|$)/ then hideOutputSource box.output
+  if box.output && hasMonadOutput(box.output) && box.textContent.match hiddenPat then hideOutputSource box.output
+  else if box.textContent.match hiddenPat then console.log "NO MONAD, BUT MATCHES HIDDEN"
 
 acceptCode = (box)->
   if (box.getAttribute 'codemain')?
@@ -1457,6 +1464,7 @@ processLine = (text, env, cont)->
             cont ast
           else
             result = eval "(#{gen ast})"
+            env.write env.presentValue result
             if isMonad result
               #console.log "INTERMEDIATE RESULT"
               runMonad result, env, (result)->
@@ -1465,7 +1473,7 @@ processLine = (text, env, cont)->
                 cont result
             else
               #console.log "DIRECT RESULT: #{result}"
-              env.write env.presentValue result
+              #env.write env.presentValue result
               env.processResult? result
               cont result
         catch err
@@ -1508,7 +1516,7 @@ define 'gdriveOpen', ->
   makeMonad (env, cont)->
     GdriveStorage.runOpen (json)->
       if json?.action == 'picked' and json.docs?.length > 0
-        GdriveStorage.loadFile json.docs[0].id, -> cont _some()(laz json.docs[0].title)
+        GdriveStorage.loadFile json.docs[0].id, -> cont _some()(-> json.docs[0].title)
       else cont _none()
 
 define 'getFilename', -> makeSyncMonad (env, cont)-> cont filename?.pathName() ? ''
@@ -1542,7 +1550,11 @@ define 'alert', ->(str)->
 define 'bindEvent', ->(selector)->(eventName)->(func)->
   makeSyncMonad (env, cont)->
     node = env.box.querySelector selector()
-    if node then node.addEventListener eventName(), (e)-> runMonad func()(laz e), envFor(e.target), ->
+    if !node then node = document.body.querySelector selector()
+    console.log "ADDING EVENT: #{selector()} #{eventName()} NODE: #{node}"
+    if node then node.addEventListener eventName(), (e)->
+      console.log "EVENT: #{selector()} #{eventName()} #{func()}"
+      runMonad func()(-> e), envFor(e.target), ->
     cont L_false()
 
 define 'quit', -> window.close()
@@ -1594,7 +1606,6 @@ autoRun = (el, state)->
 head = (l)->l ->(hh)->(tt)->hh()
 tail = (l)->l ->(hh)->(tt)->tt()
 id = (v)->v()
-laz = Leisure.laz
 
 getSvgElement = (id)->
   if (el = document.getElementById id) then el
@@ -1608,7 +1619,7 @@ svgMeasureText = (text)->(style)->(f)->
   if style() then txt.setAttribute 'style', style()
   txt.lastChild.textContent = text()
   bx = txt.getBBox()
-  f()(laz(bx.width))(laz(bx.height))
+  f()(-> bx.width)(-> bx.height)
 
 primconcatNodes = (nodes)->
   if nodes == _nil() then ""
@@ -1633,7 +1644,7 @@ primSvgMeasure = (content, transformFunc)->(f)->
   bbox = g.getBBox()
   pad = getMaxStrokeWidth g, g, svg, transformFunc
   document.body.removeChild(svg)
-  f()(laz(bbox.x - Math.ceil(pad/2)))(laz(bbox.y - Math.ceil(pad/2)))(laz(bbox.width + pad))(laz(bbox.height + pad))
+  f()(-> bbox.x - Math.ceil(pad/2))(-> bbox.y - Math.ceil(pad/2))(-> bbox.width + pad)(-> bbox.height + pad)
 
 baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']
 
