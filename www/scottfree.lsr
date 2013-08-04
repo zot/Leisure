@@ -18,6 +18,8 @@ afetch k list = assoc k list
 
 output msg = print msg
 
+outputNoNl msg = write msg
+
 # is this value between lower & upper bounds inclusively?  
 between value low up = and (>= value low) (<= value up)
 betweenEx value low up = and (> value low) (< value up)
@@ -774,7 +776,7 @@ action83 p1 = do
   poke 'GlobalVars' GV_CURRENT_COUNTER cc
 action84 = do
   nountext <- getValue 'NounText'
-  write nountext
+  outputNoNl nountext
 action85 = do
   nountext <- getValue 'NounText'
   output nountext
