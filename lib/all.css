@@ -353,6 +353,13 @@ body {
   top: 0;
 }
 
+.presentPage {
+  position: fixed;
+  z-index: 70;
+  top: 30px;
+  left: 0;
+}
+
 .scroll .slide[leisuresection="Leisure Controls"] {
   position: fixed;
   z-index: 80;
