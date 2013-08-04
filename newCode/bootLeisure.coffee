@@ -56,13 +56,13 @@ bootLeisureCont = (load, state)->
   f = if state then (cont)-> window.GdriveStorage.openFromGdrive cont
   else if load then (cont)->
     addLoadToDocument load
-    load = new URI(document.location.href, load)
+    #load = new URI(document.location.href, load)
     console.log "LOADING #{load}"
-    window.Leisure.read load, ((data)->
-      window.Notebook.replaceContents load, data
-      cont()
-    ), (err, html)->
-      if html then $('[maindoc]').html html
+    window.Leisure.readFile load, (err, data)->
+      if !err
+        window.Notebook.replaceContents load, data
+        cont()
+      else if data then $('[maindoc]').html data
       else $('[maindoc]').html "<h1>ERROR LOADING #{load}: #{err}</h1>"
   else (cont)->
     window.Notebook.replaceContents()

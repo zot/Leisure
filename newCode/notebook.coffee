@@ -24,6 +24,7 @@ console.log "LOADING NOTEBOOK"
   makeSyncMonad,
   identity,
   defaultEnv,
+  basicCall,
 } = require './runtime'
 {
   gen,
@@ -32,6 +33,7 @@ URI = window.URI
 Xus = window.Xus
 $ = window.$
 _ = require './lodash.min'
+window.global = window
 
 #debug = true
 debug = false
@@ -54,6 +56,8 @@ updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
 peer = null
 nextId = 0
 filename = null
+
+event = (widget, args...)-> basicCall args, envFor(widget), identity
 
 defaultEnv.readFile = (fileName, cont)->
   uri = new URI(document.location.href, fileName)
@@ -1766,3 +1770,4 @@ root.unwrap = unwrap
 root.remove = remove
 root.wrapRange = wrapRange
 root.replaceContents = replaceContents
+root.event = event

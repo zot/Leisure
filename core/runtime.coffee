@@ -42,6 +42,16 @@ misrepresented as being the original software.
 } = require './ast'
 _ = require './lodash.min'
 
+call = (args...)-> basicCall(args, defaultEnv, identity)
+
+callMonad = (args..., env, cont)-> basicCall(args, env, cont)
+
+basicCall = (args, env, cont)->
+  res = global["L_#{args[0]}"]()
+  for arg in args[1..]
+    res = do (arg)-> res(->arg)
+  runMonad res, env, cont
+
 ############
 # LOGIC
 ############
@@ -393,6 +403,9 @@ root.right = right
 root.getMonadSyncMode = getMonadSyncMode
 root.asyncMonad = asyncMonad
 root.setWarnAsync = setWarnAsync
+root.call = call
+root.callMonad = callMonad
+root.basicCall = basicCall
 
 if window?
   window.runMonad = runMonad
