@@ -369,7 +369,19 @@ prettyPrintItem item = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'
 debugPrintItem item = do
   name = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'   
   name + " #" + (at item ITEM_IDX)
-  
+
+# this wasn't in the original code, but if we die, put everrything back in its starting room  
+returnCarriedItems = do
+  allitems <- getValue 'Items'
+  items <- findItemsInLocation CARRIED allitems
+  returnAll items
+returnAll items = isNil items
+  nil
+  do
+    x = head items
+    moveItem (at x ITEM_IDX) (at x ITEM_INITIALLOC)
+    returnAll (tail items)
+    
 # return a list of items that are in this location    
 #  and (> (length (head items)) 1) (eq (safeat (head items) 1) myloc)
 findItemsInLocation myloc items = isNil items
@@ -689,6 +701,7 @@ action59 p1 = do
 action60 p1 = poke 'BitFlags' p1 false
 action61 = do
   output "You are dead."
+  returnCarriedItems
   poke 'BitFlags' DARKBIT false
   tp (peek 'GameHeader' GH_NUM_ROOMS)
 action62 p1 p2 = do   # log concat[ "\n\nExecuting action #62 with item " p1 " and room " p2 ] 0
