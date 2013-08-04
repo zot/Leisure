@@ -10,6 +10,6 @@ mainDiv = concat[
 
 #js[ "console.log(" (jsonStringify mainDiv id id) ")"]
 
-js[ "$('body').append(" (jsonStringify mainDiv id id) ")"]
+#js[ "$('body').append(" (jsonStringify mainDiv id id) ")"]
 
 #js["console.log($('body')[0].innerHTML)"]

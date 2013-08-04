@@ -55,13 +55,26 @@ do
 --
 Hello
 ***Examples
-
+-
 ```
 #@auto "mode": "notebook"
 require 'gamePrep.lsr'
 
 js[
   "$('[maindoc]')[0].innerHTML += '<div style=\"\">DUH</div>'" ]
+```
+*** Game
+<div style="margin-top: 16px; border: blue solid 2px; width: 800px" id="outputContainer">
+  <button onclick="Leisure.event(this, 'output', 'hello')">Print Hello</button>
+  <div id="gameOutput"></div>
+</div>
+*** Secret stuff
+-
+Stop double-click grabbing
+
+```
+#@auto "mode": "notebook"
+js "$('#outputContainer').dblclick(function(evt){evt.stopPropagation()})"
 ```
 --></div>
 <script>start()</script>
