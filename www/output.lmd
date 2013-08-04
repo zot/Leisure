@@ -1,22 +1,52 @@
-*** Basic defs
+*** Leisure Controls
+<button style='margin-top: 24px' id='saveButton'>Save</button><br>
+<button id='openUriButton'>Open</button>
+<input id='openUriText' type='text'><br>
+<button id='saveAsButton'>Save as</button>
+<input id='saveAsText' type='text'><br>
+<button id='toggleHiddenPages' type='checkbox'>Toggle Hidden Pages</button><br>
+<button id='openFromGdriveButton'>Open from Google Drive</button>
+*** Leisure control code
 -
 ```
-html x = \f . f x
-```
-*** Leisure Controls
-```
+toggleHidden = do
+  hidden <- getValue 'hiddenPages'
+  setHidden (not hidden)
+
+setHidden hide=do
+  js hide
+    "$(document.body).removeClass('showHidden'); $(document.body).addClass('hideControls')"
+    "$(document.body).addClass('showHidden hideControls')"
+  setValue 'hiddenPages' hide
+
+openUriButton=do
+  fname <- js "$('#saveAsText').val()"
+  open fname
+
+saveButton=do
+  setHidden true
+  save
+
+saveAsButton=do
+  setHidden true
+  fname <- js "$('#saveAsText').val()"
+  saveAs fname
+
 #@auto "mode": "notebook"
-#@hidden
 do
-  filename <- getFilename
-  printValue (html concat[
-    "<button id='openButton'>Open</button><br>"
-    "<button id='saveButton'>Save</button><br>"
-    "Save as: <input id='saveAs' type='text'>"
-    filename
-    "</input><br>"])
-  bindEvent '#openButton' 'click' \e . gdriveOpen
-  bindEvent '#saveButton' 'click' \e . alert 'Save'
+  require 'std.lsr'
+  bindEvent '#openFromGdriveButton' 'click' \e . gdriveOpen
+  bindEvent '#saveButton' 'click' \e . saveButton
+  bindEvent '#openUriButton' 'click' \e . openUriButton
+  bindEvent '#saveAsButton' 'click' \e . saveAsButton
+  bindEvent '#toggleHiddenPages' 'click' \e . toggleHidden
+  js["$('#openUriText').val('" uri "')"]
+  js["$('#saveAsText').val('" uri "')"]
+  js["window.setTimeout(function(){$('[leisurenode=code]').addClass('ui-widget-overlay ui-corner-all').attr('style', 'width: auto; opacity: 1')}, 1)"]
+  js["window.initButton = function(btn){window.setTimeout(function(){var p = btn[0].parentElement; if (p.firstChild != p.lastChild && !p.firstChild.initialized){p.firstChild.initialized = true; $(p.firstChild).attr('class', 'kill-button').html('').button({icons: {primary: 'ui-icon-circle-close'}, text: false}); $([p.firstChild.nextSibling.nextSibling, p.lastChild]).css('padding', '1px').css('margin-top', '1px')}}, 1)}"]
+  js["window.setTimeout(function(){$('.controls').each(function(index, c){if (c.firstChild==c.lastChild){$(c.firstChild).attr('class', 'arrow-button').html('').button({icons: {primary: 'ui-icon-arrowthick-1-e'}, text: false}).on('click', function(){initButton($(this))})}})}, 1)"]
+  js["window.setTimeout(function(){$('.ui-state-error').removeClass('.ui-state-error')}, 100)"]
+  js["$('[maindoc]').append($('#header'))"]
 ```
 *** Hidden Page
 --
@@ -31,7 +61,7 @@ js[
   "$('[maindoc]')[0].innerHTML += '<div style=\"\">DUH</div>'" ]
 ```
 *** Game
-<div style="margin-top: 16px; border: blue solid 2px; width: 800px" id="outputContainer">
+<div style="margin-top: 24px; border: blue solid 2px; width: 800px" id="outputContainer">
   <button onclick="Leisure.event(this, 'output', 'hello')">Print Hello</button>
   <div id="gameOutput"></div>
 </div>
