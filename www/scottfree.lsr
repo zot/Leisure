@@ -20,7 +20,7 @@ outputNoNl msg = write msg
 
 clearScreen = do   # nothing to do for REPL version
   nil
- 
+  
 # is this value between lower & upper bounds inclusively?  
 between value low up = and (>= value low) (<= value up)
 betweenEx value low up = and (> value low) (< value up)
@@ -405,7 +405,6 @@ moveItem idx newloc = do
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
-  clearScreen
   look
 
 # check to see if the light is either in the given room or carried by the player
@@ -795,7 +794,7 @@ actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action5
         
 setRedrawOn = poke 'GlobalVars' GV_REDRAW true
 setRedrawOff = poke 'GlobalVars' GV_REDRAW false
- 
+
 #  compute the four action ints from the action which has packed 2 per int
 buildActionList action = [ (floor ((at action 6) / 150)) ((at action 6) % 150) (floor ((at action 7) / 150)) ((at action 7) % 150) ]       
 
@@ -1126,6 +1125,7 @@ performMove verb noun = do
               printReturn "You fell down and broke your neck." (0-3)
             printReturn "You can't go in that direction." 0
           do
+            clearScreen
             tp ridx
             0
           

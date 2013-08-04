@@ -405,7 +405,6 @@ moveItem idx newloc = do
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
-  clearScreen
   look
 
 # check to see if the light is either in the given room or carried by the player
@@ -1126,6 +1125,7 @@ performMove verb noun = do
               printReturn "You fell down and broke your neck." (0-3)
             printReturn "You can't go in that direction." 0
           do
+            clearScreen
             tp ridx
             0
           
