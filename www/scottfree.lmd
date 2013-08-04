@@ -64,6 +64,7 @@ webPlayGame = do
   loaded <- hasValue 'GameHeader'
   loaded
     do
+      js "$('#prompt').html('Tell me what to do?')"
       setValue 'GameOver' false
       setRedrawOn  # force a look to begin
       doRedraw
@@ -107,6 +108,8 @@ webGameOver = 'TODO'
 # start the game up now  
 #@auto "mode": "notebook"
 do
+  delay 10
+  delay 10
   js[" toggleSlideShow(); $('#something')[0].focus();"]
   print 'loading'
   load 'scottfree.lsr'
@@ -138,20 +141,13 @@ do
 }
 </style>
 *** Adventureland - ScottFree
-<div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px;" id="outputContainer">
-  <div id="gameOutput" style="height: 300px">
-  this is just a bunch of sample text<br>
-  to see how it looks<p>
-  *AWESOME*<p>
+<div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px; white-space: pre; position: relative; overflow: hidden" id="outputContainer">
+  <div id="gameOutput" style="position: absolute; bottom: 1.5em; width: 100%">
+  PLEASE WAIT
+
+  LOADING...
   </div>
-  <br>
-  <div id="inputDif">
-    <!-- <button id="doit" onclick="Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' ">Tell me what to do?</button> -->
-    <div id="doit">Tell me what to do?
-      <input type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input>
-    </div>
-  </div>  
-</div>
+  <div style="position: absolute; width: 100%; bottom: 0"><span id='prompt'></span> <input type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input></div></div></div>
 
 <h3>Game Credits:</h3><P>
 Leisure Scottfree Interpreter: <a href="http://www.teamcthulhu.com" target="_blank">TEAM CTHULHU</a><p>
