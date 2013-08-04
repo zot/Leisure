@@ -1,0 +1,45 @@
+*** Basic defs
+-
+```
+html x = \f . f x
+```
+*** Leisure Controls
+```
+#@auto "mode": "notebook"
+#@hidden
+do
+  filename <- getFilename
+  printValue (html concat[
+    "<button id='openButton'>Open</button><br>"
+    "<button id='saveButton'>Save</button><br>"
+    "Save as: <input id='saveAs' type='text'>"
+    filename
+    "</input><br>"])
+  bindEvent '#openButton' 'click' \e . gdriveOpen
+  bindEvent '#saveButton' 'click' \e . alert 'Save'
+```
+*** Hidden Page
+--
+Hello
+***Examples
+-
+```
+#@auto "mode": "notebook"
+require 'gamePrep.lsr'
+
+js[
+  "$('[maindoc]')[0].innerHTML += '<div style=\"\">DUH</div>'" ]
+```
+*** Game
+<div style="margin-top: 16px; border: blue solid 2px; width: 800px" id="outputContainer">
+  <button onclick="Leisure.event(this, 'output', 'hello')">Print Hello</button>
+  <div id="gameOutput"></div>
+</div>
+*** Secret stuff
+-
+Stop double-click grabbing
+
+```
+#@auto "mode": "notebook"
+js "$('#outputContainer').dblclick(function(evt){evt.stopPropagation()})"
+```

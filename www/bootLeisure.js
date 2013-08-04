@@ -92,14 +92,13 @@ Boot.jsFiles = ['leisureJS-543f4eb7a05ccd665879d26217e8bc7a9b0d4bb70f289584f280c
       return window.GdriveStorage.openFromGdrive(cont);
     } : load ? function(cont) {
       addLoadToDocument(load);
-      load = new URI(document.location.href, load);
       console.log("LOADING " + load);
-      return window.Leisure.read(load, (function(data) {
-        window.Notebook.replaceContents(load, data);
-        return cont();
-      }), function(err, html) {
-        if (html) {
-          return $('[maindoc]').html(html);
+      return window.Leisure.readFile(load, function(err, data) {
+        if (!err) {
+          window.Notebook.replaceContents(load, data);
+          return cont();
+        } else if (data) {
+          return $('[maindoc]').html(data);
         } else {
           return $('[maindoc]').html("<h1>ERROR LOADING " + load + ": " + err + "</h1>");
         }
