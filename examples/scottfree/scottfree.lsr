@@ -18,6 +18,9 @@ output msg = print msg
 
 outputNoNl msg = write msg
 
+clearScreen = do   # nothing to do for REPL version
+  nil
+  
 # is this value between lower & upper bounds inclusively?  
 between value low up = and (>= value low) (<= value up)
 betweenEx value low up = and (> value low) (< value up)
@@ -321,7 +324,7 @@ basicLook myloc = do
   name = strReplace (at room 6) (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
   name = (debug) (name + " #" + myloc) name
   strMatches name '^\\*'
-    output strSubstring name 1 999
+    output (strSubstring name 1 999)
     output concat[ "You are in a " name ]
   printExits room
   printItems myloc
@@ -366,7 +369,19 @@ prettyPrintItem item = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'
 debugPrintItem item = do
   name = strReplace (at item 0) (regexpFlags '\\{nl\\}' 'g' ) '\n'   
   name + " #" + (at item ITEM_IDX)
-  
+
+# this wasn't in the original code, but if we die, put everrything back in its starting room  
+returnCarriedItems = do
+  allitems <- getValue 'Items'
+  items <- findItemsInLocation CARRIED allitems
+  returnAll items
+returnAll items = isNil items
+  nil
+  do
+    x = head items
+    moveItem (at x ITEM_IDX) (at x ITEM_INITIALLOC)
+    returnAll (tail items)
+    
 # return a list of items that are in this location    
 #  and (> (length (head items)) 1) (eq (safeat (head items) 1) myloc)
 findItemsInLocation myloc items = isNil items
@@ -402,7 +417,6 @@ moveItem idx newloc = do
 # quick debug function for checking out the diff rooms
 tp room = do
   poke 'GameHeader' GH_PLAYER_ROOM room
-  clearScreen
   look
 
 # check to see if the light is either in the given room or carried by the player
@@ -687,6 +701,7 @@ action59 p1 = do
 action60 p1 = poke 'BitFlags' p1 false
 action61 = do
   output "You are dead."
+  returnCarriedItems
   poke 'BitFlags' DARKBIT false
   tp (peek 'GameHeader' GH_NUM_ROOMS)
 action62 p1 p2 = do   # log concat[ "\n\nExecuting action #62 with item " p1 " and room " p2 ] 0
@@ -712,7 +727,8 @@ action69 = do  # refill the lamp
     nil
   moveItem LIGHT_SOURCE CARRIED
   poke 'BitFlags' LIGHTOUTBIT false
-action70 = clearScreen # ClearScreen()
+action70 = do
+  clearScreen # ClearScreen()
 action71 = output "Save not implemented"  #SaveGame()
 action72 p1 p2 = do  # swap the location of the two items
   item1 <- peek 'Items' p1
@@ -791,9 +807,7 @@ actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action5
         
 setRedrawOn = poke 'GlobalVars' GV_REDRAW true
 setRedrawOff = poke 'GlobalVars' GV_REDRAW false
-clearScreen = do
-  nil
-  
+
 #  compute the four action ints from the action which has packed 2 per int
 buildActionList action = [ (floor ((at action 6) / 150)) ((at action 6) % 150) (floor ((at action 7) / 150)) ((at action 7) % 150) ]       
 
@@ -1124,6 +1138,7 @@ performMove verb noun = do
               printReturn "You fell down and broke your neck." (0-3)
             printReturn "You can't go in that direction." 0
           do
+            clearScreen
             tp ridx
             0
           
