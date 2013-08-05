@@ -1,5 +1,9 @@
 # Bugs
 
+get svg.lsr working, again
+
+clean up old files
+
 clean up leisureFuncs, leisureFuncNames (multiple entries from reloads), functionInfo, etc.
 
 convert code generation not to use the continuation pattern
@@ -20,6 +24,12 @@ uniqify top-level names so this works:
 
   x = 3
   x = x + 1
+
+# Alternate function definitions, keyed by name
+
+altdef name.alt func
+
+* uses alist for defs -- overrides previous alt if there is one. works with uniqification
 
 # doc strings
 

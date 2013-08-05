@@ -93,7 +93,7 @@ markupSlideContent = (el, md, noMain)->
         pageType = if i > 0
           m = pages[i - 1].match(slidePat)?[1]
           if m.match /\n-\n/ then ['continuation', 'hiddenPage']
-          else if m.match /\n--\n/ then ['hiddenPage']
+          else if m.match /\n--\n/ then ['hiddenPage', 'secretPage']
           else []
         else []
         content = makeSlideDiv el, pageType, (
@@ -183,6 +183,21 @@ slideControlsEnabled = true
 
 enableSlideControls = (state)-> slideControlsEnabled = state
 
+presentSlide = (s)->
+  hideSlide $('.slide.showing')
+  showSlide s
+
+firstSlide = -> slides()
+lastSlide = -> slides().last()
+prevSlide = ->
+  #n = $('.slide.showing').prev('[slide]')
+  n = $('.slide.showing').prevAll('[slide]').not('[leisureSection="Leisure Controls"]').not('.hiddenPage').not('.secretPage')
+  if n.length then n else slides()
+nextSlide = ->
+  #n = $('.slide.showing').next('[slide]')
+  n = $('.slide.showing').nextAll('[slide]').not('[leisureSection="Leisure Controls"]').not('.hiddenPage').not('.secretPage')
+  if n.length then n else $('.slide.showing')
+
 slideKeyListener = (e)->
   if sliding
     window.evt = e
@@ -191,22 +206,13 @@ slideKeyListener = (e)->
       e.preventDefault()
       if c == ESC then toggleSlideShow()
       else if c == Q then closeWindow()
-      else
-        cur = $('.slide.showing')
-        next = switch c
-          when HOME then slides()
-          when END
-            s = slides().last()
-          when LEFT_ARROW, PAGE_UP
-            n = cur.prev('[slide]').not('[leisureSection="Leisure Controls"]')
-            if n.length then n else slides()
-          when RIGHT_ARROW, PAGE_DOWN
-            n = cur.next('[slide]').not('[leisureSection="Leisure Controls"]')
-            if n.length then n else slides().last()
-        hideSlide cur
-        showSlide next
+      else presentSlide (switch c
+        when HOME then firstSlide()
+        when END then lastSlide()
+        when LEFT_ARROW, PAGE_UP then prevSlide()
+        when RIGHT_ARROW, PAGE_DOWN then nextSlide())
 
-slides = -> $('[slide]').not('[leisureSection="Leisure Controls"]').not('.hiddenPage')
+slides = -> $('[slide]').not('[leisureSection="Leisure Controls"]').not('.hiddenPage').not('.secretPage')
 
 nthSlide = (n)-> slides()[n...]
 
@@ -280,7 +286,7 @@ handleInternalSections = (content)->
         remove section
   else
     title = section.getAttribute 'leisureSection'
-    firstSlide = !section.previousSibling || section.previousSibling.getAttribute('leisureSection') == 'Leisure Controls'
+    #firstSlide = !section.previousSibling || section.previousSibling.getAttribute('leisureSection') == 'Leisure Controls'
     before = false
     for node in innerSections
       if node.getAttribute('leisureSection') == title
@@ -386,3 +392,8 @@ bindMarkupDiv = (div)->
 Notebook.markupElement = markupElement
 Notebook.enableSlideControls = enableSlideControls
 Notebook.enableEditing = enableEditing
+Notebook.presentSlide = presentSlide
+Notebook.firstSlide = firstSlide
+Notebook.lastSlide = lastSlide
+Notebook.prevSlide = prevSlide
+Notebook.nextSlide = nextSlide
