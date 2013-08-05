@@ -1,4 +1,5 @@
 # override these functions to redirect output to the HTML page
-output msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
-outputNoNl msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) ]
+# where must be one of the following: 'DEBUG' 'INV' 'SCORE' 'LOOK' 'MSGS' 'HINTV' 'HINTN'
+output where msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) " + '<br>'"]
+outputNoNl where msg = js["$('#gameOutput')[0].innerHTML += " (jsonStringify msg id id) ]
 clearScreen = js["$('#gameOutput')[0].innerHTML = '' "]

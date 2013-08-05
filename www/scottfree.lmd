@@ -77,7 +77,7 @@ webPlayGame = do
       doRedraw
       performActions 0 0 false
       doRedraw
-    output "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
+    output 'LOOK' "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
     
 webDoSomething what = do 
   loaded <- hasValue 'GameHeader'
@@ -96,10 +96,10 @@ webDoSomething what = do
         over <- getValue 'GameOver'
         when over
           webGameOver
-    output 'Game never loaded'
+    output 'LOOK' 'Game never loaded'
    
 webGetInput str = do
-  output ""
+  output 'MSGS' ""
   eq str ""  # ignore empty lines
     nil      # for web version, just return
     eq 'DEBUG' (strToUpperCase str)
@@ -110,7 +110,7 @@ webGetInput str = do
         n = at v_n 1
         wasAll = at v_n 2  # log concat['v_n ' (csv v_n) ] 0
         eq v -1
-          output "You use word(s) I don't know"
+          output 'MSGS' "You use word(s) I don't know"
           performActionsWithMsg v n wasAll
           
 webGameOver = 'TODO'
