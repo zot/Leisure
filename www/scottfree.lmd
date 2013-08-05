@@ -82,18 +82,20 @@ webPlayGame = do
 webDoSomething what = do 
   loaded <- hasValue 'GameHeader'
   loaded
-    do
-      over <- getValue 'GameOver'
-      when (not over)
-        clearScreen
-        webGetInput what
-        processLight
-        doRedraw
-        performActions 0 0 false
-        doRedraw   
-      over <- getValue 'GameOver'
-      when over
-        webGameOver
+    eq what ''
+      nil
+      do
+        over <- getValue 'GameOver'
+        when (not over)
+          clearScreen
+          webGetInput what
+          processLight
+          doRedraw
+          performActions 0 0 false
+          doRedraw   
+        over <- getValue 'GameOver'
+        when over
+          webGameOver
     output 'Game never loaded'
    
 webGetInput str = do
