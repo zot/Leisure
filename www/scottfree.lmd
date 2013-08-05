@@ -150,7 +150,7 @@ do
   outline: none;  
 }
 </style>
-*** Adventureland - ScottFree
+*** Adventureland - C64 Retro Look
 <!--div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer"-->
 <div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 60ex; height: 25em; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer">
   <div id="gameOutput" style="position: absolute; bottom: 1.5em; width: 100%">
@@ -159,11 +159,29 @@ do
   </div>
   <div style="position: absolute; width: 100%; bottom: 0"><span id='prompt'></span> <input type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input></div></div></div>
 
+<a href="#" onclick="showSlide(nthSlide(2)); hideSlide(nthSlide(1));">Switch to Futureproof Theme</a>
 <h3>Game Credits:</h3><P>
 Leisure Scottfree Interpreter: <a href="http://www.teamcthulhu.com" target="_blank">TEAM CTHULHU</a><p>
 Based on C Scottfree: <a href="http://www.ifarchive.org/indexes/if-archiveXscott-adamsXinterpretersXscottfree.html" target="_blank">Scottfree found at IF Archives</a><p>
 Scott Adams Adventure Files: <a href="http://www.msadams.com/" target="_blank">SAGA - Scott Adams Grand Adventures</a><p>
 C64 Proportional Font: <a href="http://style64.org/c64-truetype" target="_blank">Style 64</a><p>
+
+*** Adventureland - Futureproof
+<!--div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer"-->
+<div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 60ex; height: 25em; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer">
+  <div id="gameOutput" style="position: absolute; bottom: 1.5em; width: 100%">
+
+  LOADING, PLEASE WAIT...
+  </div>
+  <div style="position: absolute; width: 100%; bottom: 0"><span id='prompt'></span> <input type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input></div></div></div>
+
+<a href="#" onclick="showSlide(nthSlide(1)); hideSlide(nthSlide(2));">Switch to C64 Retro Theme</a>
+<h3>Game Credits:</h3><P>
+Leisure Scottfree Interpreter: <a href="http://www.teamcthulhu.com" target="_blank">TEAM CTHULHU</a><p>
+Based on C Scottfree: <a href="http://www.ifarchive.org/indexes/if-archiveXscott-adamsXinterpretersXscottfree.html" target="_blank">Scottfree found at IF Archives</a><p>
+Scott Adams Adventure Files: <a href="http://www.msadams.com/" target="_blank">SAGA - Scott Adams Grand Adventures</a><p>
+C64 Proportional Font: <a href="http://style64.org/c64-truetype" target="_blank">Style 64</a><p>
+
 
 *** Secret stuff
 -
