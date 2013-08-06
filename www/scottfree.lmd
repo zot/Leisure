@@ -192,7 +192,7 @@ Scott Adams Adventure Files: <a href="http://www.msadams.com/" target="_blank">S
 C64 Proportional Font: <a href="http://style64.org/c64-truetype" target="_blank">Style 64</a><p>
 
 *** Adventureland - Futureproof
-<div class="futureproof" style="margin-top: 24px; padding: 4px; border: #666666 solid 20px; width: 70ex; height: 30em; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer">
+<div class="futureproof" style="margin-top: 24px; padding: 4px; border: #666666 solid 20px; width: 70ex; height: 30em; position: relative; overflow: hidden" id="outputContainer">
   <div class="look" id="gameOutput" style="margin-top: 0px; height: 5em; width: 100%"></div>
   <div class="inv" style="height: 7em; width: 100%"></div>
   <div class="score" style="height: 2em; width: 100%"></div>
