@@ -14,15 +14,22 @@ afetch k list = assoc k list
   \x. x
   nil
 
-randIntList min max count = eq count 0
-  nil
-  do
-    r <- randInt min max
-    [ r | (randIntList min max (-- count)) ]
+randIntList min max = do
+  r1 <- randInt min max
+  r2 <- randInt min max
+  r3 <- randInt min max
+  r4 <- randInt min max
+  r5 <- randInt min max
+  r6 <- randInt min max
+  r7 <- randInt min max
+  r8 <- randInt min max
+  r9 <- randInt min max
+  r10 <- randInt min max
+  [ r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 ]
     
 testRand = do
-  list <- randIntList 0 99 25
-  print concat[  "all ints: " (csv list) ]
+  list <- randIntList 0 99
+  print concat[  "all ints: " (csv list) " hehe " (at list 3) ]
   
 output where msg = print msg
 
@@ -86,6 +93,8 @@ GV_SAVED_ROOM = 3
 GV_GAME_OVER = 4
 GV_DEBUG = 5
 GV_NOUN_TEXT = 6
+GV_RAND_IDX = 7
+GV_RAND_INTS = 8
 
 # indexes into an Item
 ITEM_NAME = 0
@@ -277,10 +286,15 @@ playGame = do
       setValue 'World' world
       playGameLoop
     output 'LOOK' "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
-    
+
 playGameLoop = do 
-  world <- getValue 'World'
-  world = doRedraw world
+  world2 <- getValue 'World'
+  world = doRedraw world2
+  print "here2"
+  rnds <- randIntList 0 99
+  world = poke world 'GlobalVars' GV_RAND_IDX 0
+  world = poke world 'GlobalVars' GV_RAND_INTS rnds
+  print "here"
   w_x = performActions world 0 0 false
   world = at w_x 0
   world = doRedraw world
@@ -294,8 +308,19 @@ playGameLoop = do
    nil
    playGameLoop
 
+   
+testRedraw = do
+  world2 <- getValue 'World'
+  world3 = poke world2 'GlobalVars' GV_REDRAW true
+  world4 = doRedraw world3
+  print "here2"
+   
+# shows the player updates if the redraw bit flag is set
+# returns a new world with the redraw bit cleared   
 doRedraw world = do
+  print concat[ "wtf " ]
   redraw = peek world 'GlobalVars' GV_REDRAW
+  print concat[ "redraw: " redraw ]
   redraw
     do
       look world
@@ -460,7 +485,7 @@ getInput world = do
     eq 'DEBUG' (strToUpperCase str)
       world = toggleDebug world
       do 
-        v_n_a_n <- basicGetInput world str
+        v_n_a_n = basicGetInput world str   # no longer modifies the world
         v = at v_n_a 0
         n = at v_n_a 1
         wasAll = at v_n_a 2  # log concat['v_n_a ' (csv v_n_a) ] 0
@@ -585,7 +610,10 @@ crazyLoopHere world vb no actions = isNil actions
   -1
   do
     action = head actions   # leaving vocab as a monad for now due to random numbers
-    randPercent <- randInt 0 99
+    rnd_idx = peek world 'GlobalVars' GV_RAND_IDX
+    rnd_list = peek world 'GlobalVars' GV_RAND_INTS
+    randPercent = at rnd_list (rnd_idx % (length rnd_list))
+    world = poke world 'GlobalVars' GV_RAND_IDX (++ rnd_idx)
     vocabMatch = doesVocabMatch vb no action randPercent # this MUST be a monad due to random number #log concat[ "vocabMatch: " vocabMatch ] 0
     f3 <- vocabMatch
       do   # debugAction action
@@ -681,17 +709,17 @@ executeAction world act cell param pptr = do
   [ world param_count ]
   
 testScoreExecute = do
-  cell <- at actionsFuncList (65 - 52)
+  cell = at actionsFuncList (65 - 52)
   world <- getValue 'World'
   executeAction world 65 cell [ 0 0 0 0 0] 0
   
 testLookExecute = do
-  cell <- at actionsFuncList (76 - 52)
+  cell = at actionsFuncList (76 - 52)
   world <- getValue 'World'
   executeAction world 76 cell [ 0 0 0 0 0] 0
   
 testWarpExecute = do
-  cell <- at actionsFuncList (54 - 52)
+  cell = at actionsFuncList (54 - 52)
   world <- getValue 'World'
   executeAction world 54 cell [ 28 0 0 0 0] 0
 
@@ -944,8 +972,8 @@ debugAction world action = do
   vvact = at action 0
   nv = vvact % 150
   vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
-  verb <- safeVerb world vv
-  noun <- safeNoun world nv
+  verb = safeVerb world vv
+  noun = safeNoun world nv
   smart = (eq vv 0) (' CHANCE: ' + nv + '%') (" noun: " + noun)
   output 'DEBUG' concat["Vocab vv " vv " nv " nv  " verb: " verb smart ]
   debugConditions world (take 5 (drop 1 action))
@@ -987,7 +1015,7 @@ debugConditions world conds = isNil conds
     cv_dv = head conds
     dv = floor (cv_dv / 20)
     cv = cv_dv % 20
-    what <- debugCondData world cv dv
+    what = debugCondData world cv dv
     output 'DEBUG' concat[ "  Condition: " cv " : " (safeat cond_meanings cv) ": " what ]
     debugConditions world (tail conds)
 
@@ -1014,7 +1042,7 @@ debugActions world actions = isNil actions
     eq act 0
       nil
       do 
-        what <- describeAction world act
+        what = describeAction world act
         output 'DEBUG' concat[ "  Action# " act " What: " what ]
     debugActions world (tail actions)
 
@@ -1150,7 +1178,7 @@ basicMatchUpItem name myloc idx allitems = isNil allitems
 # the name the player gives may be a synonym, if so return the original item name, if not return the original name passed in
 # refactored from original to use WhichWords call  
 mapSynonym world noun = do
-  idx <- whichNoun world noun
+  idx = whichNoun world noun
   eq idx -1
     noun
     peek world 'Nouns' idx
