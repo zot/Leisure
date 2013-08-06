@@ -70,34 +70,36 @@ webPlayGame = do
   loaded <- hasValue 'GameHeader'
   loaded
     do
-      js "$('#prompt').html('Tell me what to do?')"
+      js "$('.prompt').html('Tell me what to do?')"
       setValue 'GameOver' false
       clearScreen
       setRedrawOn  # force a look to begin
       doRedraw
       performActions 0 0 false
       doRedraw
-    output "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
+    output 'LOOK' "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
     
 webDoSomething what = do 
   loaded <- hasValue 'GameHeader'
   loaded
-    do
-      over <- getValue 'GameOver'
-      when (not over)
-        clearScreen
-        webGetInput what
-        processLight
-        doRedraw
-        performActions 0 0 false
-        doRedraw   
-      over <- getValue 'GameOver'
-      when over
-        webGameOver
-    output 'Game never loaded'
+    eq what ''
+      nil
+      do
+        over <- getValue 'GameOver'
+        when (not over)
+          clearScreen
+          webGetInput what
+          processLight
+          doRedraw
+          performActions 0 0 false
+          doRedraw   
+        over <- getValue 'GameOver'
+        when over
+          webGameOver
+    output 'LOOK' 'Game never loaded'
    
 webGetInput str = do
-  output ""
+  output 'MSGS' ""
   eq str ""  # ignore empty lines
     nil      # for web version, just return
     eq 'DEBUG' (strToUpperCase str)
@@ -108,7 +110,7 @@ webGetInput str = do
         n = at v_n 1
         wasAll = at v_n 2  # log concat['v_n ' (csv v_n) ] 0
         eq v -1
-          output "You use word(s) I don't know"
+          output 'MSGS' "You use word(s) I don't know"
           performActionsWithMsg v n wasAll
           
 webGameOver = 'TODO'
@@ -130,16 +132,16 @@ do
 <style>
 @font-face
 {
-  font-family: C64;
-  src: url(C64_User_v1.0-STYLE.woff);
+  font-family:C64;
+  src: url(C64_User_v1.0-STYLE.woff); format('woff');
 }
-#outputContainer
+div.c64retro
 {
   font-family:C64;
   color: #7c70da;
   background-color: #3e31a2;
 }
-#something
+input.c64retro
 {
   font-family:C64;
   color: #7c70da;
@@ -147,21 +149,66 @@ do
   border: none;
   outline: none;  
 }
+@font-face
+{
+  font-family:Audiowide;
+  font-style: normal;
+  font-weight: 400;
+  src: local('Audiowide'), local('Audiowide-Regular'), url(https://themes.googleusercontent.com/static/fonts/audiowide/v1/8XtYtNKEyyZh481XVWfVOj8E0i7KZn-EPnyo3HZu7kw.woff) format('woff');
+}
+div.futureproof
+{
+  font-family:Audiowide;
+  font-size: 16pt;
+  font-weight: bold;
+  color: #4c8efc;
+  background-color: #333333;
+}
+input.futureproof
+{
+  font-family:Audiowide;
+  font-size: 16pt;
+  font-weight: bold;
+  color: #4c8efc;
+  background-color: #333333;
+  border: none;
+  outline: none;  
+}
 </style>
-*** Adventureland - ScottFree
+*** Adventureland - C64 Retro Look
 <!--div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 800px; height: 350px; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer"-->
-<div style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 60ex; height: 25em; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer">
-  <div id="gameOutput" style="position: absolute; bottom: 1.5em; width: 100%">
+<div class="c64retro" style="margin-top: 24px; padding: 4px; border: #7c70da solid 20px; width: 60ex; height: 25em; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer">
+  <div class="look msgs inv score" id="gameOutput" style="position: absolute; bottom: 1.5em; width: 100%">
 
   LOADING, PLEASE WAIT...
   </div>
-  <div style="position: absolute; width: 100%; bottom: 0"><span id='prompt'></span> <input type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input></div></div></div>
+  <div style="position: absolute; width: 100%; bottom: 0"><span class='prompt'></span> <input class="c64retro" type="text" id="something" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something')[0].value);  $('#something')[0].value = '' } "></input></div></div></div>
 
+<a href="#" onclick="Notebook.presentSlide(Notebook.nextSlide())">Switch to Futureproof Theme</a>
 <h3>Game Credits:</h3><P>
 Leisure Scottfree Interpreter: <a href="http://www.teamcthulhu.com" target="_blank">TEAM CTHULHU</a><p>
 Based on C Scottfree: <a href="http://www.ifarchive.org/indexes/if-archiveXscott-adamsXinterpretersXscottfree.html" target="_blank">Scottfree found at IF Archives</a><p>
 Scott Adams Adventure Files: <a href="http://www.msadams.com/" target="_blank">SAGA - Scott Adams Grand Adventures</a><p>
 C64 Proportional Font: <a href="http://style64.org/c64-truetype" target="_blank">Style 64</a><p>
+
+*** Adventureland - Futureproof
+<div class="futureproof" style="margin-top: 24px; padding: 4px; border: #666666 solid 20px; width: 70ex; height: 30em; white-space: pre-wrap; position: relative; overflow: hidden" id="outputContainer">
+  <div class="look" id="gameOutput" style="margin-top: 0px; height: 5em; width: 100%"></div>
+  <div class="inv" style="height: 7em; width: 100%"></div>
+  <div class="score" style="height: 2em; width: 100%"></div>
+  <div class="msgs" id="gameOutput2" style="height: 10em; width: 100%">
+  LOADING, PLEASE WAIT...
+  </div>
+  <div style="position: absolute; width: 100%; bottom: 0"><span class='prompt'></span> <input class="futureproof" type="text" id="something2" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something2')[0].value);  $('#something2')[0].value = '' } "></input></div>
+  </div></div>
+
+<a href="#" onclick="Notebook.presentSlide(Notebook.prevSlide())">Switch to C64 Retro Theme</a>
+<h3>Game Credits:</h3><P>
+Leisure Scottfree Interpreter: <a href="http://www.teamcthulhu.com" target="_blank">TEAM CTHULHU</a><p>
+Based on C Scottfree: <a href="http://www.ifarchive.org/indexes/if-archiveXscott-adamsXinterpretersXscottfree.html" target="_blank">Scottfree found at IF Archives</a><p>
+Scott Adams Adventure Files: <a href="http://www.msadams.com/" target="_blank">SAGA - Scott Adams Grand Adventures</a><p>
+C64 Proportional Font: <a href="http://style64.org/c64-truetype" target="_blank">Style 64</a><p>
+
 
 *** Secret stuff
 -
