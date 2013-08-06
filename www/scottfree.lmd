@@ -135,6 +135,16 @@ do
   font-family:C64;
   src: url(C64_User_v1.0-STYLE.woff); format('woff');
 }
+.label {
+  text-align: center;
+  height: 1em;
+  font-style: italic;
+  margin-bottom: 3px;
+}
+.info {
+  outline: solid white 2px;
+  border-radius: 10px;
+}
 div.c64retro
 {
   font-family:C64;
@@ -193,10 +203,14 @@ C64 Proportional Font: <a href="http://style64.org/c64-truetype" target="_blank"
 
 *** Adventureland - Futureproof
 <div class="futureproof" style="margin-top: 24px; padding: 4px; border: #666666 solid 20px; width: 70ex; height: 30em; position: relative; overflow: hidden" id="outputContainer">
-  <div class="look" id="gameOutput" style="margin-top: 0px; height: 5em; width: 100%"></div>
-  <div class="inv" style="height: 7em; width: 100%"></div>
-  <div class="score" style="height: 2em; width: 100%"></div>
-  <div class="msgs" id="gameOutput2" style="height: 10em; width: 100%">
+  <div class="label">Location</div>
+  <div class="look info" id="gameOutput" style="margin-top: 0px; height: 5em; width: 100%"></div>
+  <div class="label">Inventory</div>
+  <div class="inv info" style="height: 7em; width: 100%"></div>
+  <div class="label">Score</div>
+  <div class="score info" style="height: 2em; width: 100%"></div>
+  <div class="label">Messages</div>
+  <div class="msgs info" id="gameOutput2" style="height: 10em; width: 100%; overflow: auto">
   LOADING, PLEASE WAIT...
   </div>
   <div style="position: absolute; width: 100%; bottom: 0"><span class='prompt'></span> <input class="futureproof" type="text" id="something2" onkeydown="if (event.keyCode == 13) { Leisure.event(this, 'webDoSomething', $('#something2')[0].value);  $('#something2')[0].value = '' } "></input></div>

@@ -1,5 +1,5 @@
 # override these functions to redirect output to the HTML page
 # where must be one of the following: 'DEBUG' 'INV' 'SCORE' 'LOOK' 'MSGS' 'HINTV' 'HINTN'
-output where msg = js["$('.' + " (jsonStringify where id id) ".toLowerCase()).each(function(i, v) { v.innerHTML += " (jsonStringify msg id id) " + '<br>'; });"]
-outputNoNl where msg = js["$('.' + " (jsonStringify where id id) ".toLowerCase()).each(function(i, v) { v.innerHTML += " (jsonStringify msg id id) "; });"]
+output where msg = js["$('.' + " (jsonStringify where id id) ".toLowerCase()).each(function(i, v) { v.innerHTML += " (jsonStringify msg id id) " + '<br>'; v.scrollTop = v.scrollHeight;});"]
+outputNoNl where msg = js["$('.' + " (jsonStringify where id id) ".toLowerCase()).each(function(i, v) { v.innerHTML += " (jsonStringify msg id id) "; v.scrollTop = v.scrollHeight;});"]
 clearScreen = js["$('.look').each(function(i, v) { v.innerHTML = ''; });"]
