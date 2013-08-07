@@ -1,3 +1,5 @@
+js "console.log('INSIDE STD')"
+
 # primitives
 #
 # eq a b -> true if they are equal or false otherwise
@@ -94,6 +96,20 @@ simplify exprString = do
 #######################
 
 doall = foldr1 (\el res . bind el \_ . res)
+
+requireJS file = bind (getValue 'requiredFiles')
+  \files . contains files file
+    false
+    bind (loadJS file)
+      \result . result
+        \x . left x
+        \_ . bind (setValue 'requiredFiles' (cons file files))
+          \_ . right true
+
+load file = bind (readFile file)
+  \result . result
+    \err . err
+    \contents . js contents
 
 #######################
 ## Agents

@@ -928,7 +928,7 @@ textNode = (text)-> document.createTextNode(text)
 
 nodeFor = (text)-> if typeof text == 'string' then textNode(text) else text
 
-evalOutput = (exBox, nofocus)->
+evalOutput = (exBox, nofocus, cont)->
   exBox = getBox exBox
   if !nofocus then focusBox exBox
   cleanOutput exBox, true
@@ -944,7 +944,7 @@ evalOutput = (exBox, nofocus)->
       updateSelector.blur()
   updateSelector.value = (exBox.getAttribute 'leisureUpdate') or ''
   exBox.updateSelector = updateSelector
-  evalBox exBox.source, exBox
+  evalBox exBox.source, exBox, cont
 
 findUpdateSelector = (box)->
   # MARK CHECK
@@ -1417,9 +1417,11 @@ owner = (box)->
 
 hiddenPat = /(^|\n)#@hidden *(\n|$)/
 
-evalBox = (box, envBox)->
+evalBox = (box, envBox, cont)->
   env = if envBox? then envFor(envBox) else null
-  processLine box.textContent, env, -> env?.cleanup?()
+  processLine box.textContent, env, (result)->
+    env?.cleanup?()
+    (cont ? (x)->x) result
   getAst box
   if box.output && hasMonadOutput(box.output) && box.textContent.match hiddenPat then hideOutputSource box.output
   else if box.textContent.match hiddenPat then console.log "NO MONAD, BUT MATCHES HIDDEN"
@@ -1432,19 +1434,35 @@ acceptCode = (box)->
 
 errString = (err)-> err.stack
 
+evaluating = false
+
+evaluationQueue = []
+
+evalNodes = (nodes)->
+  if evaluating then evaluationQueue.push nodes
+  else chainEvalNodes nodes
+
+chainEvalNodes = (nodes)->
+  evaluating = true
+  runAuto nodes, 0, ->
+    if evaluationQueue.length then chainEvalNodes evaluationQueue.shift()
+    else evaluating = false
+
 evalDoc = (el)->
   [pgm, auto, x, autoNodes] = initNotebook(el)
   try
     if auto || autoNodes
       #console.log "\n\n@@@@ AUTO: #{auto}, AUTONODES: #{_(autoNodes ? []).map (el)->'\n' + el.innerHTML}\n\n"
-      auto = "do\n  #{(auto ? '#\n').trim().replace /\n/g, '\n  '}\n  finishLoading 'fred'"
+      auto = "do\n  #{(auto ? '#').trim().replace /\n/g, '\n  '}\n  delay\n  finishLoading"
       global.noredefs = false
       Notebook.queueAfterLoad ->
         evalDocCode el, pgm
         if el.autorunState then runTests el
-        for node in autoNodes
-          console.log "evalOutput", node, node.output
-          evalOutput node.output
+        evalNodes autoNodes
+        #runAuto autoNodes, 0
+        #for node in autoNodes
+        #  console.log "evalOutput", node, node.output
+        #  evalOutput node.output
       e = envFor(el)
       e.write = ->
       e.err = (err)->alert('bubba ' + errString err)
@@ -1452,6 +1470,14 @@ evalDoc = (el)->
     else evalDocCode el, pgm
   catch err
     showError err, "Error compiling #{pgm}"
+
+runAuto = (nodes, index, cont)->
+  if index < nodes.length
+    console.log "RUNNING AUTO: #{index}"
+    node = nodes[index]
+    console.log "evalOutput", node, node.output
+    evalOutput node.output, false, -> runAuto nodes, index + 1, cont
+  else (cont ? ()->)()
 
 processLine = (text, env, cont)->
   if text
@@ -1529,8 +1555,8 @@ define 'setURI', ->(uri)->
 define 'getURI', ->
   makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
 
-define 'finishLoading', ->(bubba)->
-  makeSyncMonad (env, cont)->
+define 'finishLoading', ->
+  makeMonad (env, cont)->
     loaded = true
     for i in postLoadQueue
       i()
