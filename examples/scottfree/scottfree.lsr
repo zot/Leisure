@@ -9,7 +9,12 @@ duplicate value times = <= times 0
   [ value | (duplicate value (--times))]
 
 aconsf key value list = [[key | value] | removeIf (\el . el \h t . h == key) list]
-  
+afilter key valueFilter list = list
+  \h t D . h \akey avalue . eq akey key
+    [[akey | valueFilter avalue] | t]
+    [h | afilter key valueFilter list]
+  nil
+
 afetch k list = assoc k list
   \x. x
   nil
@@ -31,6 +36,16 @@ testRand = do
   list <- randIntList 0 99
   print concat[  "all ints: " (csv list) " hehe " (at list 3) ]
   
+outputW where msg world = afilter
+  'output'
+  \oldOutput . cons (output where msg) oldOutput
+  world
+
+outputNoNlW where msg world = afilter
+  'output'
+  \oldOutput . cons (outputNoNl where msg) oldOutput
+  world
+
 output where msg = print msg
 
 outputNoNl where msg = write msg
@@ -45,18 +60,14 @@ betweenEx value low up = and (> value low) (< value up)
 # extract an element from one of the global lists
 peek world name idx = do
   global = afetch name world
-  and (neq global nil) (> (length global) idx)
-    at global idx
-    output 'DEBUG' "ERROR: PEEK OUT OF BOUNDS"
+  at global idx
 
 # save an element into one of the global lists
 poke world name idx value = do
   global = afetch name world
-  and (neq global nil) (> (length global) idx)
-    do 
-      new_global = pokeList global idx value #append (take idx global) (append [ value ] (drop (++ idx) global) )
-      aconsf name new_global world
-    output 'DEBUG' "ERROR: POKE OUT OF BOUNDS"
+  do 
+    new_global = pokeList global idx value #append (take idx global) (append [ value ] (drop (++ idx) global) )
+    aconsf name new_global world
 
 # poke a new element into the middle of a list
 pokeList list idx value = append (take idx list) (append [ value ] (drop (++ idx) list) )
