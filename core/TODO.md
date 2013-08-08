@@ -25,6 +25,10 @@ uniqify top-level names so this works:
   x = 3
   x = x + 1
 
+# Trampolines
+
+Look at trampolines to handle continuation-pattern
+
 # Alternate function definitions, keyed by name
 
 altdef name.alt func

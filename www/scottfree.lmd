@@ -47,7 +47,9 @@ hidePage = do
 #@auto "mode": "notebook"
 #@hidden
 do
+  js "console.log('loading std')"
   require 'std.lsr'
+  js "console.log('done loading std')"
   setValue 'hiddenPages' true
   bindEvent '#openFromGdriveButton' 'click' \e . gdriveOpen
   bindEvent '#saveButton' 'click' \e . saveButton
@@ -118,12 +120,15 @@ webGameOver = 'TODO'
 # start the game up now  
 #@auto "mode": "notebook"
 do
+  js "console.log('load scottfree')"
   delay 10
   delay 10
   js[" toggleSlideShow(); Notebook.enableEditing(false); Notebook.enableSlideControls(false); $('#something')[0].focus();"]
   print 'loading'
   load 'scottfree.lsr'
+  #loadJS 'scottfree.js'
   load 'scottfreeNotebook.lsr'
+  js "console.log('done loading scottfree')"
   print 'done'
   loadGame 'adv01.dat'
   webPlayGame

@@ -1,3 +1,4 @@
+js "console.log('INSIDE SCOTTFREE')"
 require 'std.lsr'
 
 # create a comma sep list for pretty printing
