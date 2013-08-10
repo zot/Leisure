@@ -266,6 +266,24 @@ define 'bind', ->(m)->(binding)->
 
 values = {}
 
+#
+# ACTORS
+#
+# To create an actor:
+#   actor name function
+#     -- function takes one arg, to process messages
+#     -- if function returns a monad, it executes the monad
+#
+# To send a message:
+#   send name message
+#     -- send message to the named actor
+#
+actors = {}
+
+define 'actor', ->(name)->(func)-> actors[name] = func
+
+define 'send', ->(name)->(msg)-> setTimeout (-> runMonad (actors[name]()(msg))), 1
+
 define 'hasValue', ->(name)->
   makeSyncMonad (env, cont)->
     cont booleanFor values[name()]?
@@ -279,13 +297,31 @@ define 'getValue', ->(name)->
     if !(name() of values) then throw new Error "No value named '#{name()}'"
     cont values[name()]
 
+define 'setValue', ->(name)->(value)->
+  makeSyncMonad (env, cont)->
+    values[name()] = value()
+    cont _true
+
 setValue = (key, value)-> values[key] = value
 
 getValue = (key)-> values[key]
 
-define 'setValue', ->(name)->(value)->
+define 'envHas', ->(name)->
   makeSyncMonad (env, cont)->
-    values[name()] = value()
+    cont booleanFor env.values[name()]?
+
+define 'envGetOr', ->(name)->(defaultValue)->
+  makeSyncMonad (env, cont)->
+    cont(env.values[name()] ? defaultValue())
+
+define 'envGet', ->(name)->
+  makeSyncMonad (env, cont)->
+    if !(name() of env.values) then throw new Error "No value named '#{name()}'"
+    cont env.values[name()]
+
+define 'envSet', ->(name)->(value)->
+  makeSyncMonad (env, cont)->
+    env.values[name()] = value()
     cont _true
 
 define 'createS', ->

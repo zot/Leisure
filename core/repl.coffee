@@ -250,6 +250,10 @@ processedFiles = false
 createAstFile = false
 createJsFile = false
 
+runFile = (file, cont)->
+  runMonad L_require()(->file), defaultEnv, (result)->
+    cont []
+
 compile = (file, cont)->
   ext = path.extname file
   runMonad L_baseLoad()(->file), defaultEnv, (result)->
@@ -366,6 +370,7 @@ processArg = (pos)->
   processArg pos + 1
 
 run = ->
+  action = runFile
   #console.log "Run: #{process.argv.join ', '}"
   if process.argv.length == 2
     require stages[stage]

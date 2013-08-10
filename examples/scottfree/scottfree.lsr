@@ -9,10 +9,42 @@ duplicate value times = <= times 0
   [ value | (duplicate value (--times))]
 
 aconsf key value list = [[key | value] | removeIf (\el . el \h t . h == key) list]
-  
+afilter key valueFilter list = list
+  \h t D . h \akey avalue . eq akey key
+    [[akey | valueFilter avalue] | t]
+    [h | afilter key valueFilter list]
+  nil
+
 afetch k list = assoc k list
   \x. x
   nil
+
+randIntList min max = do
+  r1 <- randInt min max
+  r2 <- randInt min max
+  r3 <- randInt min max
+  r4 <- randInt min max
+  r5 <- randInt min max
+  r6 <- randInt min max
+  r7 <- randInt min max
+  r8 <- randInt min max
+  r9 <- randInt min max
+  r10 <- randInt min max
+  [ r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 ]
+    
+testRand = do
+  list <- randIntList 0 99
+  print concat[  "all ints: " (csv list) " hehe " (at list 3) ]
+  
+outputW where msg world = afilter
+  'output'
+  \oldOutput . cons (output where msg) oldOutput
+  world
+
+outputNoNlW where msg world = afilter
+  'output'
+  \oldOutput . cons (outputNoNl where msg) oldOutput
+  world
 
 output where msg = print msg
 
@@ -26,21 +58,16 @@ between value low up = and (>= value low) (<= value up)
 betweenEx value low up = and (> value low) (< value up)
 
 # extract an element from one of the global lists
-peek name idx = do
-  global <- getValue name
-  > (length global) idx
-    at global idx
-    output 'DEBUG' "ERROR: PEEK OUT OF BOUNDS"
+peek world name idx = do
+  global = afetch name world
+  at global idx
 
 # save an element into one of the global lists
-poke name idx value = do
-  global <- getValue name
-  > (length global) idx
-    do 
-      new_global = pokeList global idx value #append (take idx global) (append [ value ] (drop (++ idx) global) )
-      setValue name new_global
-      value
-    output 'DEBUG' "ERROR: POKE OUT OF BOUNDS"
+poke world name idx value = do
+  global = afetch name world
+  do 
+    new_global = pokeList global idx value #append (take idx global) (append [ value ] (drop (++ idx) global) )
+    aconsf name new_global world
 
 # poke a new element into the middle of a list
 pokeList list idx value = append (take idx list) (append [ value ] (drop (++ idx) list) )
@@ -74,6 +101,11 @@ GV_LIGHT_REFILL = 0
 GV_REDRAW = 1
 GV_CURRENT_COUNTER = 2
 GV_SAVED_ROOM = 3
+GV_GAME_OVER = 4
+GV_DEBUG = 5
+GV_NOUN_TEXT = 6
+GV_RAND_IDX = 7
+GV_RAND_INTS = 8
 
 # indexes into an Item
 ITEM_NAME = 0
@@ -89,7 +121,7 @@ loadGame filename = do
   result <- readFile filename
   result
     \err . output 'DEBUG' concat[ 'Error: ' err ]
-    \contents . processFile (everyLinesForFile contents)
+    \contents . setValue 'World' (processFile nil (everyLinesForFile contents))
 
 #everyLinesForFile text =  collapseStrings (strSplit (strReplace text lineScrub '\n') '\\r?\\n')
 everyLinesForFile text =  collapseStrings (strSplit text '\\r?\\n')
@@ -144,56 +176,56 @@ asItem string idx = do
 asItems list = mapIndex (asItem) list  
 
 
-processFile contents = do
-  setValue 'BitFlags' (duplicate false 32)   # up to 32 bits of flags supported
-  setValue 'Counters' (duplicate 0 16)       # up to 16 counters
-  setValue 'RoomSaved' (duplicate 0 16)      # up to 16 saved rooms
-  setValue 'DEBUG' false  
-  processFileNext contents
+processFile world contents = do
+  world = aconsf 'BitFlags' (duplicate false 32) world  # up to 32 bits of flags supported
+  world = aconsf 'Counters' (duplicate 0 16) world      # up to 16 counters
+  world = aconsf 'RoomSaved' (duplicate 0 16) world     # up to 16 saved rooms
+  world = aconsf 'DEBUG' false world 
+  processFileNext world contents
   
-processFileNext contents = do
+processFileNext world contents = do
   GameHeader = asInts (take GH_SIZEOF contents)
-  setValue 'GameHeader' GameHeader
-  GlobalVars = [ (at GameHeader GH_LIGHT_TIME) 0 0 0 ]  # store light time in refill time for later use
-  setValue 'GlobalVars' GlobalVars
+  world = aconsf 'GameHeader' GameHeader world
+  GlobalVars = [ (at GameHeader GH_LIGHT_TIME) false 0 0 false false '' ]  # store light time in refill time for later use
+  world = aconsf 'GlobalVars' GlobalVars world
   after_header = (drop GH_SIZEOF contents)
   num_actions = (at GameHeader GM_NUM_ACTIONS)
   max_actions = (num_actions * 1 + 1) * 8     #log concat[ 'num actions: ' num_actions ' max actions: ' max_actions] 0
   Actions = box 8 (asInts (take max_actions after_header))
-  setValue 'Actions' Actions
+  world = aconsf 'Actions' Actions world
   after_actions = drop max_actions after_header
   num_words = at GameHeader GH_NUM_WORDS
   max_words = (num_words * 1 + 1) * 2
   Words = map unquote (take max_words after_actions)
-  setValue 'Nouns' (evens Words)
-  setValue 'Verbs' (odds Words)
+  world = aconsf 'Nouns' (evens Words) world
+  world = aconsf 'Verbs' (odds Words) world
   after_words = drop max_words after_actions
-  processFile2 after_words
+  processFile2 world after_words
 
-processFile2 after_words = do 
-  GameHeader <- getValue 'GameHeader'
+processFile2 world after_words = do 
+  GameHeader = afetch 'GameHeader' world
   num_actions = (at GameHeader GM_NUM_ACTIONS)  
   num_rooms = at GameHeader GH_NUM_ROOMS
   max_rooms = (num_rooms * 1 + 1) * 7
   Rooms = asRooms (box 7 (take max_rooms after_words))
-  setValue 'Rooms' Rooms
+  world = aconsf 'Rooms' Rooms world
   after_rooms = drop max_rooms after_words
   num_msgs = (at GameHeader GH_NUM_MESSAGES)
   max_msgs = num_msgs * 1 + 1
   Messages = map unquote (take max_msgs after_rooms)
-  setValue 'Messages' Messages
+  world = aconsf 'Messages' Messages world
   after_msgs = drop max_msgs after_rooms
   num_items = at GameHeader GH_NUM_ITEMS
   max_items = num_items * 1 + 1
   Items = asItems (take max_items after_msgs)
-  setValue 'Items' Items
+  world = aconsf 'Items' Items world
   after_items = drop max_items after_msgs
   Comments = map unquote (take (num_actions * 1 + 1) after_items)
-  setValue 'Comments' Comments
+  world = aconsf 'Comments' Comments world
   after_comments = drop (num_actions * 1 + 1) after_items
   GameFooter = asInts (take 3 after_comments)
-  setValue 'GameFooter' GameFooter
-  "Data File Loaded."
+  world = aconsf 'GameFooter' GameFooter world
+  world
 
 merge list1 list2 = isNil list1
   nil
@@ -202,132 +234,158 @@ merge list1 list2 = isNil list1
     append [ (head list1) (head list2) ] (merge (tail list1) (tail list2))
 
 debugGame = do
-  GameHeader <- getValue 'GameHeader'
+  world <- getValue 'World'
+  basicDebugGame world
+  
+basicDebugGame world = do
+  GameHeader = afetch 'GameHeader' world
   output 'DEBUG' (merge [ '\nmagic: ' '\nnum items: ' '\nnum actions: ' '\nnum words: ' '\nnum rooms: ' '\nmax carry: ' '\nplayer room: ' '\ntreasures: ' '\nword len: ' '\nlight time: ' '\nnum msgs: ' '\ntreasure room: ' ] GameHeader)
-  GlobalVars <- getValue 'GlobalVars'
-  output 'DEBUG' (merge [ '\nlight refill: ' '\nredraw: ' '\ncurrent counter: ' '\nsaved room: ' ] GlobalVars)
-  Actions <- getValue 'Actions'
+  GlobalVars = afetch 'GlobalVars' world
+  output 'DEBUG' (merge [ '\nlight refill: ' '\nredraw: ' '\ncurrent counter: ' '\nsaved room: ' '\ngame over: ' '\ndebug: ' '\nnountext: ' ] GlobalVars)
+  Actions = afetch 'Actions' world
   output 'DEBUG' concat[ "\nNum Actions: " (length Actions) "\nFirst Action: "  (csv (at Actions 0)) "\nLast Action: " (csv (last Actions)) ]
-  Nouns <- getValue 'Nouns'
+  Nouns = afetch 'Nouns' world
   output 'DEBUG' concat[ "\nNum Nouns: " (length Nouns) " Nouns: " (csv Nouns) ]
-  Verbs <- getValue 'Verbs'
+  Verbs = afetch 'Verbs' world
   output 'DEBUG' concat[ "\nNum Verbs: " (length Verbs) " Verbs: " (csv Verbs) ]
-  debugGame2
+  basicDebugGame2 world
 
-debugGame2 = do    
-  Rooms <- getValue 'Rooms'
+basicDebugGame2 world = do    
+  Rooms = afetch 'Rooms' world
   output 'DEBUG' concat[ "\nNum Rooms: " (length Rooms) '\nFirst Room: ' (csv (at Rooms 0)) '\nLast Room: ' (csv (last Rooms)) ]
   output 'DEBUG' concat[ "\nAll Rooms: " (csv Rooms) ]
-  Messages <- getValue 'Messages'
+  Messages = afetch 'Messages' world
   output 'DEBUG' concat[ "\nNum Messsages: " (length Messages) " All Messages: " (csv Messages) ]
-  Items <- getValue 'Items'
+  Items = afetch 'Items' world
   output 'DEBUG' concat[ "\nNum Items: " (length Items) " All Items: " (csv Items) ]
-  GameFooter <- getValue 'GameFooter'
+  GameFooter = afetch 'GameFooter' world
   output 'DEBUG' (merge [ '\nversion: ' '\nadv number: ' '\nunknown: '] GameFooter)
   "Debug finished."
 
-inventory = do
-  max_carry <- peek 'GameHeader' GH_MAX_CARRY
-  allitems <- getValue 'Items'
+inventory world = do
+  max_carry = peek world 'GameHeader' GH_MAX_CARRY
+  allitems = afetch 'Items' world
   output 'INV' concat[ "You are carrying " (countItemsInLocation CARRIED allitems) " out of " max_carry " items." ]
-  items <- findItemsInLocation CARRIED allitems
+  items = findItemsInLocation world CARRIED allitems
   isNil items
     output 'INV' "Nothing."
     output 'INV' concat[ (intersperse (map (\x . strReplace (at x 0) (regexpFlags '\\{nl\\}' 'g' ) '\n' ) items) ', ') "." ]  #have to extract the name from each item
-          
-score = do
-  allitems <- getValue 'Items'
-  treasure_room <- peek 'GameHeader' GH_TREASURE_ROOM
-  max_treasures <- peek 'GameHeader' GH_NUM_TREASURES
-  items <- findTreasuresInLocation treasure_room allitems           
+
+# does not modify world, but returns true/false if the game should be over because the player won    
+score world = do
+  allitems = afetch 'Items' world
+  treasure_room = peek world 'GameHeader' GH_TREASURE_ROOM
+  max_treasures = peek world 'GameHeader' GH_NUM_TREASURES
+  items = findTreasuresInLocation world treasure_room allitems           
   n = length items
   percent = round((n * 100) / max_treasures)
   output 'SCORE' concat[ "You have stored " n " / " max_treasures " treasures.  On a scale of 0 to 100, that rates " percent "% ." ]
   eq n max_treasures
     do
-      setValue 'GameOver' true
       output 'SCORE' "Well Done!"
-    nil
+      true 
+    false
 
 # lets do this!
 playGame = do
-  loaded <- hasValue 'GameHeader'
+  loaded <- hasValue 'World'
   loaded
     do
-      setValue 'GameOver' false
-      setRedrawOn  # force a look to begin
+      world <- getValue 'World'
+      world = poke world 'GlobalVars' GV_GAME_OVER false
+      world = setRedrawOn world  # force a look to begin
+      setValue 'World' world
       playGameLoop
     output 'LOOK' "Looks like you haven't loaded an adventure yet!  Try: loadGame 'advXX.dat' "  
-    
+
 playGameLoop = do 
-  doRedraw
-  performActions 0 0 false
-  doRedraw
-  over <- getValue 'GameOver'
+  world2 <- getValue 'World'
+  world = doRedraw world2
+  print "here2"
+  rnds <- randIntList 0 99
+  world = poke world 'GlobalVars' GV_RAND_IDX 0
+  world = poke world 'GlobalVars' GV_RAND_INTS rnds
+  print "here"
+  w_x = performActions world 0 0 false
+  world = at w_x 0
+  world = doRedraw world
+  over = peek world 'GlobalVars' GV_GAME_OVER
   when (not over)
-    getInput
-    processLight
-  over <- getValue 'GameOver'
+    world = getInput world
+    world = processLight world
+    setValue 'World' world  
+  over = peek world 'GlobalVars' GV_GAME_OVER
   over
    nil
    playGameLoop
 
-doRedraw = do
-  redraw <- peek 'GlobalVars' GV_REDRAW
+   
+testRedraw = do
+  world2 <- getValue 'World'
+  world3 = poke world2 'GlobalVars' GV_REDRAW true
+  world4 = doRedraw world3
+  print "here2"
+   
+# shows the player updates if the redraw bit flag is set
+# returns a new world with the redraw bit cleared   
+doRedraw world = do
+  print concat[ "wtf " ]
+  redraw = peek world 'GlobalVars' GV_REDRAW
+  print concat[ "redraw: " redraw ]
   redraw
     do
-      look
-      setRedrawOff
-    nil    
+      look world
+      setRedrawOff world
+    world    
   
 # decrement the light this turn if needed  
-processLight = do
-  timeleft <- peek 'GameHeader' GH_LIGHT_TIME
-  light <- peek 'Items' LIGHT_SOURCE
+processLight world = do
+  timeleft = peek world 'GameHeader' GH_LIGHT_TIME
+  light = peek world 'Items' LIGHT_SOURCE
   where = at light ITEM_LOCATION
   or (eq where DESTROYED) (eq timeleft -1) # -1 means lasts forever, nothing to do
     nil         
-    lightTick
+    lightTick world
 
 # we need to decrement the light. note: this just sets a flag that says when the lamp has gone empty
 # light vs dark is controlled by the game rules
-lightTick = do
-  timeleft <- peek 'GameHeader' GH_LIGHT_TIME
+lightTick world = do
+  timeleft = peek world 'GameHeader' GH_LIGHT_TIME
   timeleft = -- timeleft    # log concat[ " light time left: " timeleft ] 0
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
-  >= timeleft 0  # save it back if not negative
-    poke 'GameHeader' GH_LIGHT_TIME timeleft
-    nil
-  light <- isLightPresent myloc
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM
+  world = >= timeleft 0  # save it back if not negative
+    poke world 'GameHeader' GH_LIGHT_TIME timeleft
+    world
+  light = isLightPresent world myloc
   eq timeleft 0
     do
-      poke 'BitFlags' LIGHTOUTBIT true
       light
         output 'MSGS' "Your light has run out."
         nil
+      poke world 'BitFlags' LIGHTOUTBIT true
     and (< timeleft 25) light  # only inform them the light is running out if they can see the light
-      output 'MSGS' concat[ "Your light runs out in " timeleft ((eq timeleft 1) " turn" " turns") "." ]
-      nil
+      printReturn 'MSGS' concat[ "Your light runs out in " timeleft ((eq timeleft 1) " turn" " turns") "." ] world
+      world
 
 # take a looksy  
-look = do
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
-  darkbit <- peek 'BitFlags' DARKBIT
-  light <- isLightPresent myloc
+look world = do
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM
+  darkbit = peek world 'BitFlags' DARKBIT
+  light = isLightPresent world myloc
   and darkbit (not light)
     output 'LOOK' "You can't see. It is too dark!"
-    basicLook myloc
+    basicLook world myloc
 
-basicLook myloc = do
-  debug <- getValue 'DEBUG'
-  room <- peek 'Rooms' myloc
+basicLook world myloc = do
+  debug = peek world 'GlobalVars' GV_DEBUG
+  room = peek world 'Rooms' myloc
   name = strReplace (at room 6) (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
   name = (debug) (name + " #" + myloc) name
   strMatches name '^\\*'
     output 'LOOK' (strSubstring name 1 999)
     output 'LOOK' concat[ "You are in a " name ]
-  printExits room
-  printItems myloc
+  printExits world room
+  printItems world myloc
   output 'LOOK' "\n"
 
 isNumber i = == (getType i) '*number'
@@ -349,16 +407,16 @@ hasExit exit idx = eq exit 0
   safeat Exits idx
 
 # chop off the last element (its name) from the room and compute the valid exits    
-printExits room = do
+printExits world room = do
   exits = removeIf (eq '') (mapIndex (hasExit) (removeLast room))
   isNil exits
     output 'LOOK' "Obvious exits: none."
     output 'LOOK' concat[ "Obvious exits: "  (intersperse exits ", ") "."]
 
-printItems myloc = do
-  allitems <- getValue 'Items'
-  items <- findItemsInLocation myloc allitems
-  debug <- getValue 'DEBUG'
+printItems world myloc = do
+  allitems = afetch 'Items' world
+  items = findItemsInLocation myloc allitems
+  debug = peek world 'GlobalVars' GV_DEBUG
   func = debug debugPrintItem prettyPrintItem
   isNil items
     items
@@ -371,16 +429,17 @@ debugPrintItem item = do
   name + " #" + (at item ITEM_IDX)
 
 # this wasn't in the original code, but if we die, put everrything back in its starting room  
-returnCarriedItems = do
-  allitems <- getValue 'Items'
-  items <- findItemsInLocation CARRIED allitems
-  returnAll items
-returnAll items = isNil items
-  nil
+# returns new world!!
+returnCarriedItems world = do
+  allitems = afetch 'Items' world
+  items = findItemsInLocation CARRIED allitems
+  returnAll world items
+returnAll world items = isNil items
+  world
   do
     x = head items
-    moveItem (at x ITEM_IDX) (at x ITEM_INITIALLOC)
-    returnAll (tail items)
+    world = moveItem world (at x ITEM_IDX) (at x ITEM_INITIALLOC)
+    returnAll world (tail items)
     
 # return a list of items that are in this location    
 #  and (> (length (head items)) 1) (eq (safeat (head items) 1) myloc)
@@ -404,87 +463,91 @@ countItemsInLocation myloc items = isNil items
     1 + (countItemsInLocation myloc (tail items))
     countItemsInLocation myloc (tail items)
 
-countCarried = do
-  allitems <- getValue 'Items'
+countCarried world = do
+  allitems = afetch 'Items' world
   countItemsInLocation CARRIED allitems
 
 # quick debug function to move items around
-moveItem idx newloc = do
-  item <- peek 'Items' idx
+# returns a new world
+moveItem world idx newloc = do
+  item = peek world 'Items' idx
   newitem = pokeList item ITEM_LOCATION newloc
-  poke 'Items' idx newitem
+  poke world 'Items' idx newitem
 
 # quick debug function for checking out the diff rooms
-tp room = do
-  poke 'GameHeader' GH_PLAYER_ROOM room
-  look
+# returns a new world
+tp world room = do
+  world = poke world 'GameHeader' GH_PLAYER_ROOM room
+  look world
+  world
 
 # check to see if the light is either in the given room or carried by the player
-isLightPresent myloc = do
-  light <- peek 'Items' LIGHT_SOURCE
+isLightPresent world myloc = do
+  light = peek world 'Items' LIGHT_SOURCE
   where = at light ITEM_LOCATION
   or (eq where myloc) (eq where CARRIED)
 
-# return a pair of ints for the intended verb/noun combo   
-getInput = do
+# return a new world after getting player input and applying it   
+getInput world = do
   str <- prompt (concat[ "Tell me what to do? " ])
   output 'MSGS' ""
   eq str ""  # ignore empty lines
-    getInput
+    world = getInput world
     eq 'DEBUG' (strToUpperCase str)
-      toggleDebug
+      world = toggleDebug world
       do 
-        v_n <- basicGetInput str
-        v = at v_n 0
-        n = at v_n 1
-        wasAll = at v_n 2  # log concat['v_n ' (csv v_n) ] 0
+        v_n_a_n = basicGetInput world str   # no longer modifies the world
+        v = at v_n_a 0
+        n = at v_n_a 1
+        wasAll = at v_n_a 2  # log concat['v_n_a ' (csv v_n_a) ] 0
+        nountext = at v_n_a 3 
+        world = poke world 'GlobalVars' GV_NOUN_TEXT nountext
         eq v -1
-          output 'MSGS' "You use word(s) I don't know"
-          performActionsWithMsg v n wasAll
-          
-performActionsWithMsg v n wasAll = do
-  x <- performActions v n wasAll
+          printReturn 'MSGS' "You use word(s) I don't know" world
+          performActionsWithMsg world v n wasAll
+        
+# return just a new world after applying input        
+performActionsWithMsg world v n wasAll = do
+  w_x <- performActions world v n wasAll
+  world = at w_x 0
+  x = at w_x 1
   eq x -1
     output 'MSGS' "I don't understand your command."
     eq x (0-2)
       output 'MSGS' "You can't do that yet."
       eq x -4
-        do
-          setValue 'GameOver' true
-          output 'MSGS' "* GAME OVER*"
+        output 'MSGS' "* GAME OVER*"
         nil
+  (eq x -4) (poke world 'GlobalVars' GV_GAME_OVER true) world                   
                   
-                  
-toggleDebug = do
-  debug <- getValue 'DEBUG'
-  setValue 'DEBUG' (not debug)
+toggleDebug world = do
+  debug = peek world 'GlobalVars' GV_DEBUG
   not debug
     output 'DEBUG' "\n ** ACTION DEBUGGING ENABLED **\n"
     output 'DEBUG' "\n ** ACTION DEBUGGING DISABLED **\n"
-    
-# returns a list of [ verb_index noun_index wasAll ]  wasAll is a boolean that says whether they typed in 'ALL' which is special cased      
-basicGetInput str = do
+  poke world 'GlobalVars' GV_DEBUG (not debug)
+  
+# returns a list of [ verb_index noun_index wasAll noun_text]  wasAll is a boolean that says whether they typed in 'ALL' which is special cased     
+basicGetInput world str = do
   verb_noun = strMatch str (regexp '(\\w+)\\s*(\\w*)')
   isCons verb_noun
     do
       nc = -1
       vc = -1
-      wordlen <- peek 'GameHeader' GH_WORD_LENGTH
+      wordlen = peek world 'GameHeader' GH_WORD_LENGTH
       m = at verb_noun 1
       verb = strToUpperCase (strSubstring (at m 0) 0 wordlen)
       noun = (eq 1 (length m)) ('') (strToUpperCase (strSubstring (at m 1) 0 wordlen))
-      > (length m) 1
-        setValue 'NounText' (at m 1)
-        nil
+      nountext = (> (length m) 1) (at m 1) ''
       verb = verbShortcuts verb noun
-      go <- whichNoun verb
+      go = whichNoun world verb
       isDir = between go 1 6
-      vc <- (isDir) 1 (whichVerb verb)
-      nc <- (isDir) nc (whichNoun noun)   #log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
+      vc = (isDir) 1 (whichVerb world verb)
+      nc = (isDir) nc (whichNoun world noun)   #log concat[ "M: " (csv m) " V: " verb " N: " noun " isDir: " isDir " vc: " vc " nc: " nc " go: " go ] nil
       isDir
-        [ vc go false ]
-        [ vc nc (eq noun 'ALL') ]
-    [ -1 -1 false ]  
+        [ vc go false nountext ]
+        [ vc nc (eq noun 'ALL') nountext ]
+    [ -1 -1 false '' ]  
 
 verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
   do
@@ -494,21 +557,21 @@ verbShortcuts v n = and (eq 1 (strLen v)) (eq 0 (strLen n))
       v
   v
 
-whichNoun noun = do
-  nouns <- getValue 'Nouns'
+whichNoun world noun = do
+  nouns = afetch 'Nouns' world
   whichWord noun nouns
 
-whichVerb verb = do
-  verbs <- getValue 'Verbs'
+whichVerb world verb = do
+  verbs = afetch 'Verbs' world
   whichWord verb verbs
 
-hintVerbs = do
-  verbs <- getValue 'Verbs'
+hintVerbs world = do
+  verbs = afetch 'Verbs' world
   hintv = map (\v . (eq v '.') '' ((strStartsWith v '*') ('/' + (strSubstring v 1 99)) ('\n' + v))) (drop 1 verbs)
   output 'HINTV' concat[ "Verbs I know: " hintv  ]
 
 hintNouns = do
-  nouns <- getValue 'Nouns'
+  nouns = afetch 'Nouns' world
   hintn = map (\n . (eq n '.') '' ((strStartsWith n '*') ('/' + (strSubstring n 1 99)) ('\n' + n))) (drop 1 nouns)
   output 'HINTN' concat[ "Nouns I know: " hintn  ]
   
@@ -526,21 +589,22 @@ basicWhichWord idx result word list = isNil list
       result
       basicWhichWord (++ idx) result word (tail list)
 
-performActions verb noun wasAll = (and (eq verb 1) (between noun 1 6))
-  performMove verb noun
+# returns a [ new world  ret_val ]
+performActions world verb noun wasAll = (and (eq verb 1) (between noun 1 6))
+  performMove world verb noun
   do
-    actions <- getValue 'Actions'  #    log "crazy loop started" 0
-    f1 <- crazyLoopHere verb noun actions   #    log concat[ "crazy loop finished: f1: " f1 ] 0
-    f1 <- eq f1 -4
-      f1
+    actions = afetch 'Actions' world  #    log "crazy loop started" 0
+    f1 = crazyLoopHere world verb noun actions   #    log concat[ "crazy loop finished: f1: " f1 ] 0
+    eq f1 -4
+      [ world f1 ]
       neq f1 0
         eq verb 10
-          getItem verb noun wasAll        # if nothing stopped the GET from happening, do it now
+          [ getItem world verb noun wasAll 0 ]       # if nothing stopped the GET from happening, do it now
           eq verb 18
-            dropItem verb noun wasAll     # if nothing stopped the DROP from happening, do it now
-            f1
-        f1
-    f1
+            [ dropItem world verb noun wasAll 0 ]    # if nothing stopped the DROP from happening, do it now
+            [ world f1 ]
+        [ world f1 ]
+    [ world f1 ]
     
 CONTINUE = -54    
 # whole lotta code to process actions 
@@ -553,14 +617,20 @@ CONTINUE = -54
 # returns -2 means the noun & verb matched, but the action performed returned 0, AKA "you cant do that yet"
 # return -4 means the game should exit
 # return 0 means we did something and should stop
-crazyLoopHere vb no actions = isNil actions
+crazyLoopHere world vb no actions = isNil actions
   -1
   do
-    action = head actions
-    vocabMatch <- doesVocabMatch vb no action  #log concat[ "vocabMatch: " vocabMatch ] 0
+    action = head actions   # leaving vocab as a monad for now due to random numbers
+    rnd_idx = peek world 'GlobalVars' GV_RAND_IDX
+    rnd_list = peek world 'GlobalVars' GV_RAND_INTS
+    randPercent = at rnd_list (rnd_idx % (length rnd_list))
+    world = poke world 'GlobalVars' GV_RAND_IDX (++ rnd_idx)
+    vocabMatch = doesVocabMatch vb no action randPercent # this MUST be a monad due to random number #log concat[ "vocabMatch: " vocabMatch ] 0
     f3 <- vocabMatch
       do   # debugAction action
-        f2 <- performLine action   #        log concat[ "f2: " f2 ] 0
+        w_f <- performLine world action
+        world = at w_f 0
+        f2 = at w_f 1   #        log concat[ "f2: " f2 ] 0
         eq f2 0         # condtions not met for this action, we should report you can't do that yet
           -2
           eq f2 1       # action ran normally we should end successfully
@@ -568,18 +638,18 @@ crazyLoopHere vb no actions = isNil actions
             eq f2 -4    # game should quit
               -4
               eq f2 2   # we should continue execution of additional actions of vocab of 0 0
-                crazyLoopHere CONTINUE CONTINUE (tail actions)
-                printReturn 'DEBUG' concat[ "Unknown return value from performLine: " f2 ] 0 
+                crazyLoopHere world CONTINUE CONTINUE (tail actions)
+                printReturn 'DEBUG' concat[ "Unknown return value from performLine: " f2 ] world 
       -1      # vocab didn't match, keep reading actions 
     f1 <- (or (eq f3 -1) (eq f3 -2))   # in the event the rule matched but yet didn't fire, keep processing for more possibilities
       do      #   (eq f3 -2  )        (log concat[ "\nVocab matched, but didn't fire! Will keep trying " (length (tail actions)) " more actions" ] 0)      nil
-        more <- crazyLoopHere vb no (tail actions)    
+        more <- crazyLoopHere world vb no (tail actions)    
         (and (eq more -1) (eq f3 -2)) f3 more    # if we had a -2, try to preserve that in the event nothing more special happens
       f3  
     f1
  
 # the vocab matches based on the verb and an optional noun provided by the rule not the player
-doesVocabMatch vb no action = do
+doesVocabMatch vb no action randPercent = do
   vvact = at action 0
   nv = vvact % 150               # if vv is 0, this is used as a random percent chance to trigger, not an actual noun
   vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
@@ -587,9 +657,7 @@ doesVocabMatch vb no action = do
     true
     and (eq vv 0) (eq vb 0)        # only fire global rules (vb == 0 if asked for specifically asked for!
       > nv 0                       # this should never match vv nv of 0 0, that will only be processed by an action73 continuation  
-        do
-          rand <- (eq nv 100) true (randomPercent nv)  # if nv is 100, its not really random!
-          rand
+        (eq nv 100) true (< randPercent nv)  # if nv is 100, its not really random!
         false
       and (eq vv vb) (or (eq no nv) (eq nv 0)) 
 
@@ -597,242 +665,253 @@ doesVocabMatch vb no action = do
 # return 0 for "You can't do that yet" because conditions weren't all met
 # return 1 for normal execution of rule
 # return 2 means we executed and should continue executing additional actions because of action73   
-performLine action = do
-   results <- meetsConditions [ 0 0 0 0 0 ] 0 (take 5 (drop 1 action))  # drop off the first value (vocab) and take the next 5
+# returns [ new_world and ret_val ]
+performLine world action = do
+   results = meetsConditions world [ 0 0 0 0 0 ] 0 (take 5 (drop 1 action))  # drop off the first value (vocab) and take the next 5
    not (at results 0)
-     0
+     [ world 0 ]
      do #       log concat[ "Conditions were met: " (csv results) ] 0
        param = at results 1
        pptr = 0   # reset this back to 0 now they are loaded
-       debug <- getValue 'DEBUG'
+       debug = peek world 'GlobalVars' GV_DEBUG
        when debug
-         bf <- getValue 'BitFlags'   # log concat[ "Bitflags: " (csv bf) ] 0
-         debugAction action
-       basicPerformActions param pptr 0 (buildActionList action)
+         debugAction world action
+       basicPerformActions world param pptr 0 (buildActionList action)
        
 # loop over the four possible actions to do them all in order
-basicPerformActions param pptr continuation actions = isNil actions
-  (1 + continuation)
+# returns [ new_world and ret_val ]
+basicPerformActions world param pptr continuation actions = isNil actions
+  [ world (1 + continuation) ]
   do
     act = head actions  #    (neq 0 act) (log concat[ "Firing act #" act " Remaining actions: " (csv actions) ] 0) nil
     continuation = (eq act 73) (++ continuation) continuation
-    bump <- between act 1 51   # its < 52
+    w_b = between act 1 51   # its < 52
       do
-        msg <- peek 'Messages' act
-        printReturn 'MSGS' msg 0
+        msg = peek world 'Messages' act
+        printReturn 'MSGS' msg [ world 0 ]
       > act 101
         do 
-          msg <- peek 'Messages' (act - 50)
-          printReturn 'MSGS' msg 0
+          msg = peek world 'Messages' (act - 50)
+          printReturn 'MSGS' msg [ world 0 ]
         eq act 0
           0
           do
             idx = act - 52
             cell = (< idx (length actionsFuncList)) (at actionsFuncList idx) 0
             eq cell 0
-              printReturn 'DEBUG' concat[ "No action found for: " act ] 0   # called when find fails
-              executeAction act cell param pptr  #log concat[ "Executing Action: " act " idx: " idx " param " (csv param) " pptr " pptr] 0
+              printReturn 'DEBUG' concat[ "No action found for: " act ] [ world 0]   # called when find fails
+              executeAction world act cell param pptr  #log concat[ "Executing Action: " act " idx: " idx " param " (csv param) " pptr " pptr] 0
+    world = at w_b 0
+    bump = at w_b 1    
     pptr = pptr + bump   # log concat[ "Action #" act " consumed " bump " params!" ] 0    
-    basicPerformActions param pptr continuation (tail actions)
+    basicPerformActions world param pptr continuation (tail actions)
     
-# call the action function that matches the action index, return the number of params we used up
-executeAction act cell param pptr = do
-  param_count <- (> (length cell) 1) (at cell 1) 0    # log concat[ "Executing Action#" act " with " param_count " params." ] 0
-  eq 0 param_count
-    (head cell)
+# call the action function that matches the action index
+# returns [ new_world , number of params ]  we used up
+executeAction world act cell param pptr = do
+  param_count = (> (length cell) 1) (at cell 1) 0    # log concat[ "Executing Action#" act " with " param_count " params." ] 0
+  world = eq 0 param_count
+    (head cell) world
     eq 1 param_count
-      (\x . (head cell) x) (safeat param pptr)
+      (\x . (head cell) x) world (safeat param pptr)
       eq 2 param_count
-        (head cell) (safeat param pptr) (safeat param (pptr + 1))
-        nil        
-  param_count
+        (head cell) world (safeat param pptr) (safeat param (pptr + 1))
+        world        
+  [ world param_count ]
   
 testScoreExecute = do
-  cell <- at actionsFuncList (65 - 52)
-  executeAction 65 cell [ 0 0 0 0 0] 0
+  cell = at actionsFuncList (65 - 52)
+  world <- getValue 'World'
+  executeAction world 65 cell [ 0 0 0 0 0] 0
   
 testLookExecute = do
-  cell <- at actionsFuncList (76 - 52)
-  executeAction 76 cell [ 0 0 0 0 0] 0
+  cell = at actionsFuncList (76 - 52)
+  world <- getValue 'World'
+  executeAction world 76 cell [ 0 0 0 0 0] 0
   
 testWarpExecute = do
-  cell <- at actionsFuncList (54 - 52)
-  executeAction 54 cell [ 28 0 0 0 0] 0
+  cell = at actionsFuncList (54 - 52)
+  world <- getValue 'World'
+  executeAction world 54 cell [ 28 0 0 0 0] 0
 
 # GET takes 1 param    
-action52 p1 = do
-  c <- countCarried
-  max <- peek 'GameHeader' GH_MAX_CARRY
-  eq c max
+action52 world p1 = do
+  c = countCarried world
+  max = peek world 'GameHeader' GH_MAX_CARRY
+  world = eq c max
     output 'MSGS' "You are carrying too much."
     do
-      item <- peek 'Items' p1
-      myloc <- peek 'GameHeader' GH_PLAYER_ROOM      
-      eq (at item ITEM_LOCATION) myloc
-        setRedrawOn
-        nil
-      moveItem p1 CARRIED
-action53 p1 = do  # DROP takes 1
-  setRedrawOn
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
-  moveItem p1 myloc
+      item = peek world 'Items' p1
+      myloc = peek world 'GameHeader' GH_PLAYER_ROOM      
+      w = eq (at item ITEM_LOCATION) myloc
+        setRedrawOn world
+        world
+      moveItem w p1 CARRIED
+  world      
+action53 world p1 = do  # DROP takes 1
+  world = setRedrawOn world
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM   
+  moveItem world p1 myloc
 # warp player  
-action54 p1 = do
-  setRedrawOn  # log concat[ "Warping player to room #" p1 ] 0
-  poke 'GameHeader' GH_PLAYER_ROOM p1
-action55 p1 = do  # destroy an item
-  item <- peek 'Items' p1
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
-  eq (at item ITEM_LOCATION) myloc
-    setRedrawOn
-    nil
-  moveItem p1 0
-action56 = poke 'BitFlags' DARKBIT true
-action57 = poke 'BitFlags' DARKBIT false
-action58 p1 = poke 'BitFlags' p1 true
+action54 world p1 = do
+  world = setRedrawOn world  # log concat[ "Warping player to room #" p1 ] 0
+  poke world 'GameHeader' GH_PLAYER_ROOM p1
+action55 world p1 = do  # destroy an item
+  item = peek world 'Items' p1
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM   
+  world = eq (at item ITEM_LOCATION) myloc
+    world = setRedrawOn world
+    world
+  moveItem world p1 0
+action56 world = poke world 'BitFlags' DARKBIT true
+action57 world = poke world 'BitFlags' DARKBIT false
+action58 world p1 = poke world 'BitFlags' p1 true
 # same as 55 ????
-action59 p1 = do
-  item <- peek 'Items' p1
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
-  eq (at item ITEM_LOCATION) myloc
-    setRedrawOn
-    nil
-  moveItem p1 0
-action60 p1 = poke 'BitFlags' p1 false
-action61 = do
+action59 world p1 = action55 world p1
+action60 world p1 = poke world 'BitFlags' p1 false
+action61 world = do
   output 'MSGS' "You are dead."
-  returnCarriedItems
-  poke 'BitFlags' DARKBIT false
-  tp (peek 'GameHeader' GH_NUM_ROOMS)
-action62 p1 p2 = do   # log concat[ "\n\nExecuting action #62 with item " p1 " and room " p2 ] 0
-  moveItem p1 p2
-  setRedrawOn
-action63 = do
+  world = returnCarriedItems world 
+  world = poke world 'BitFlags' DARKBIT false
+  tp world (peek world 'GameHeader' GH_NUM_ROOMS)
+action62 world p1 p2 = do   # log concat[ "\n\nExecuting action #62 with item " p1 " and room " p2 ] 0
+  world = moveItem world p1 p2
+  setRedrawOn world
+action63 world = do
   output 'MSGS' "The game is now over.\n"  # exit()0
-  setValue 'GameOver' true
-action64 = do
-  look
-  setRedrawOff
-action65 = score 
-action66 = inventory
-action67 = poke 'BitFlags' 0 true
-action68 = poke 'BitFlags' 0 false
-action69 = do  # refill the lamp
-  refill <- peek 'GlobalVars' GV_LIGHT_REFILL
-  poke 'GameHeader' GH_LIGHT_TIME refill
-  item <- peek 'Items' LIGHT_SOURCE
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
-  eq (at item ITEM_LOCATION) myloc
-    setRedrawOn
-    nil
-  moveItem LIGHT_SOURCE CARRIED
-  poke 'BitFlags' LIGHTOUTBIT false
-action70 = do
+  poke world 'GlobalVars' GV_GAME_OVER true
+action64 world = do
+  look world
+  setRedrawOff world
+action65 world = do
+  over = score world
+  poke world 'GlobalVars' GV_GAME_OVER over
+action66 world = inventory world
+action67 world = poke world 'BitFlags' 0 true
+action68 world = poke world 'BitFlags' 0 false
+action69 world = do  # refill the lamp
+  refill = peek world 'GlobalVars' GV_LIGHT_REFILL
+  world = poke world 'GameHeader' GH_LIGHT_TIME refill
+  item = peek world 'Items' LIGHT_SOURCE
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM   
+  world = eq (at item ITEM_LOCATION) myloc
+    world = setRedrawOn world
+    world
+  world = moveItem world LIGHT_SOURCE CARRIED
+  poke world 'BitFlags' LIGHTOUTBIT false
+action70 world = do
   clearScreen # ClearScreen()
-action71 = output 'DEBUG' "Save not implemented"  #SaveGame()
-action72 p1 p2 = do  # swap the location of the two items
-  item1 <- peek 'Items' p1
-  item2 <- peek 'Items' p2
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+  world
+action71 world = do
+  output 'DEBUG' "Save not implemented"  #SaveGame()
+  world
+action72 world p1 p2 = do  # swap the location of the two items
+  item1 = peek world 'Items' p1
+  item2 = peek world 'Items' p2
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM
   loc1 = at item1 ITEM_LOCATION  
   loc2 = at item2 ITEM_LOCATION  
-  or (eq loc1 myloc) (eq loc2 myloc)  
-    setRedrawOn
-    nil
-  moveItem p1 loc2
-  moveItem p2 loc1
-action73 = nil   # nop here, its the continuation action handled above  
-action74 p1 = do  # pickup an item but ignore MAX_CARRY
-  item <- peek 'Items' p1
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM      
-  eq (at item ITEM_LOCATION) myloc
-    setRedrawOn
-    nil
-  moveItem p1 CARRIED
-action75 p1 p2 = do  # move item1 to whereever item2 is
-  item1 <- peek 'Items' p1
-  item2 <- peek 'Items' p2
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM
+  world = or (eq loc1 myloc) (eq loc2 myloc)  
+    setRedrawOn world
+    world
+  world = moveItem world p1 loc2
+  moveItem world p2 loc1
+action73 world = world   # nop here, its the continuation action handled above  
+action74 world p1 = do  # pickup an item but ignore MAX_CARRY
+  item = peek world 'Items' p1
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM      
+  world = eq (at item ITEM_LOCATION) myloc
+    world = setRedrawOn world
+    world
+  moveItem world p1 CARRIED
+action75 world p1 p2 = do  # move item1 to whereever item2 is
+  item1 = peek world 'Items' p1
+  item2 = peek world 'Items' p2
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM
   loc1 = at item1 ITEM_LOCATION  
   loc2 = at item2 ITEM_LOCATION  
-  or (eq loc1 myloc) (eq loc2 myloc)  
-    setRedrawOn
-    nil
-  moveItem p1 loc2
-action76 = look
-action77 = do
-  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+  world = or (eq loc1 myloc) (eq loc2 myloc)  
+    world = setRedrawOn world
+    world
+  moveItem world p1 loc2
+action76 world = do
+  look world
+  world
+action77 world = do
+  cc = peek world 'GlobalVars' GV_CURRENT_COUNTER
   >= cc 0
-    poke 'GlobalVars' GV_CURRENT_COUNTER (-- cc)
-    nil
-action78 = do
-  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
+    poke world 'GlobalVars' GV_CURRENT_COUNTER (-- cc)
+    world
+action78 world = do
+  cc = peek world 'GlobalVars' GV_CURRENT_COUNTER
   output 'MSGS' concat[ cc " " ]
-action79 p1 = do
-  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
-  poke 'GlobalVars' GV_CURRENT_COUNTER (++ cc)
-action80 = do  # move the player into the saved room and swap out saved room for their old location
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM  
-  saved <- peek 'GlobalVars' GV_SAVED_ROOM
-  poke 'GameHeader' GH_PLAYER_ROOM saved
-  poke 'GlobalVars' GV_SAVED_ROOM myloc
-  setRedrawOn
-action81 p1 = do  # swap out the current counter with a saved one
-  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
-  sc <- peek 'Counters' p1
-  poke 'GlobalVars' GV_CURRENT_COUNTER sc
-  poke 'Counters' p1 cc
-action82 p1 = do
-  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
-  poke 'GlobalVars' GV_CURRENT_COUNTER (cc + p1)
-action83 p1 = do
-  cc <- peek 'GlobalVars' GV_CURRENT_COUNTER
-  cc <- (< (cc - p1) -1) -1 (cc - p1)
-  poke 'GlobalVars' GV_CURRENT_COUNTER cc
-action84 = do
-  nountext <- getValue 'NounText'
+  world
+action79 world p1 = do
+  cc = peek world 'GlobalVars' GV_CURRENT_COUNTER
+  poke world 'GlobalVars' GV_CURRENT_COUNTER (++ cc)
+action80 world = do  # move the player into the saved room and swap out saved room for their old location
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM  
+  saved = peek world 'GlobalVars' GV_SAVED_ROOM
+  world = poke world 'GameHeader' GH_PLAYER_ROOM saved
+  world = poke world 'GlobalVars' GV_SAVED_ROOM myloc
+  setRedrawOn world
+action81 world p1 = do  # swap out the current counter with a saved one
+  cc = peek world 'GlobalVars' GV_CURRENT_COUNTER
+  sc = peek world 'Counters' p1
+  world = poke world 'GlobalVars' GV_CURRENT_COUNTER sc
+  poke world 'Counters' p1 cc
+action82 world p1 = do
+  cc = peek world 'GlobalVars' GV_CURRENT_COUNTER
+  poke world 'GlobalVars' GV_CURRENT_COUNTER (cc + p1)
+action83 world p1 = do
+  cc = peek world 'GlobalVars' GV_CURRENT_COUNTER
+  cc = (< (cc - p1) -1) -1 (cc - p1)
+  poke world 'GlobalVars' GV_CURRENT_COUNTER cc
+action84 world = do
+  nountext = peek world 'GlobalVars' GV_NOUN_TEXT
   outputNoNl 'MSGS' nountext
-action85 = do
-  nountext <- getValue 'NounText'
-  output 'MSGS' nountext
-action86 = output 'MSGS' ''
-action87 p1 = do  # swap the player with the saved room in p1
-  sr <- peek 'RoomSaved' p1
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM   
-  poke 'RoomSaved' p1 myloc
-  tp sr
-action88 = nil  # nop
-action89 p1 = nil  # only increments pptr
+  world
+action85 world = do
+  nountext = peek world 'GlobalVars' GV_NOUN_TEXT
+  printReturn 'MSGS' nountext world
+action86 world = printReturn 'MSGS' '' world
+action87 world p1 = do  # swap the player with the saved room in p1
+  sr = peek world 'RoomSaved' p1
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM   
+  poke world 'RoomSaved' p1 myloc
+  tp world sr
+action88 world = world  # nop
+action89 world p1 = world  # only increments pptr
 actionsFuncList = [ [action52 1] [action53 1] [action54 1] [action55 1] [action56] [action57] [action58 1] [ action59 1] [action60 1] [action61] [action62 2] [action63] [action64] [action65] [action66] [action67] [action68] [action69] [action70] [action71] [action72 2] [action73] [action74 1] [action75 2] [action76] [action77] [action78] [action79 1] [action80] [action81 1] [action82 1] [action83 1] [action84] [action85] [action86] [action87 1] [action88] [action89 1] ]
         
-setRedrawOn = poke 'GlobalVars' GV_REDRAW true
-setRedrawOff = poke 'GlobalVars' GV_REDRAW false
+setRedrawOn world = poke world 'GlobalVars' GV_REDRAW true
+setRedrawOff world = poke world 'GlobalVars' GV_REDRAW false
 
 #  compute the four action ints from the action which has packed 2 per int
 buildActionList action = [ (floor ((at action 6) / 150)) ((at action 6) % 150) (floor ((at action 7) / 150)) ((at action 7) % 150) ]       
 
-# takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
-meetsConditions param pptr conds = do
-  myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
-  carryCount <- countCarried
-  bf <- getValue 'BitFlags'
-  counter <- peek 'GlobalVars' GV_CURRENT_COUNTER  #  log concat[ "Testing Conditions: " (csv conds) ] 0
-  met <- basicMeetsConditions param pptr conds myloc carryCount bf counter  # pull out all the monad calls and call the basic version  # log concat[ "Conditions: " (csv conds) " met? " met] 0
+# takes param list, pptr, and list of conditions to test - returns a list of the final return value param and pptr
+meetsConditions world param pptr conds = do
+  myloc = peek world 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+  carryCount = countCarried world
+  bf = afetch 'BitFlags' world
+  counter = peek world 'GlobalVars' GV_CURRENT_COUNTER  #  log concat[ "Testing Conditions: " (csv conds) ] 0
+  met = basicMeetsConditions world param pptr conds myloc carryCount bf counter  # pull out all the monad calls and call the basic version  # log concat[ "Conditions: " (csv conds) " met? " met] 0
   met
   
 # takes param list, pptr, and list of conditions to test - returns a list of the final return value param pptr and
-basicMeetsConditions param pptr conds myloc carryCount bf counter = isNil conds
+basicMeetsConditions world param pptr conds myloc carryCount bf counter = isNil conds
   [ true param pptr ]
   do
     cv_dv = head conds
     dv = floor (cv_dv / 20)
     cv = cv_dv % 20
-    item <- peek 'Items' dv
+    item = peek world 'Items' dv
     param = (eq cv 0) (pokeList param pptr dv) param  # save dv param for case 0
     pptr = (eq cv 0) (++ pptr) pptr                   # inc the pptr for case 0   #  # log concat[ "cv_dv " cv_dv " cv " cv " dv " dv " param " (csv param) " pptr" pptr " item " (csv item) ] 0
     or (eq cv 0) (testSingleCondition cv dv item myloc bf carryCount counter)
-      basicMeetsConditions param pptr (tail conds) myloc carryCount bf counter
-      [ false param pptr]
+      basicMeetsConditions world param pptr (tail conds) myloc carryCount bf counter
+      [ false param pptr ]
     
 testSingleCondition cv dv item myloc bf carryCount counter =
   (eq cv 1)
@@ -879,55 +958,57 @@ testSingleCondition2 cv dv item myloc bf carryCount counter =
                     false              # should in theory never get here!
 
 debugSearchActions vvact = do
-  all <- getValue 'Actions'
-  grrrLoop vvact 0 all
+  world <- getValue 'World'
+  all = afetch 'Actions' World
+  grrrLoop world vvact 0 all
   
-grrrLoop vvact idx all = isNil all
+grrrLoop world vvact idx all = isNil all
   nil
   do
     h = head all
     eq (head h) vvact
       do
         log concat[ "vvact: " vvact " idx: " idx ] 0
-        debugAction h
+        debugAction world h
       false
-    grrrLoop vvact (++idx) (tail all)
+    grrrLoop world vvact (++idx) (tail all)
    
 debugActionIndex act = do
-  action <- peek 'Actions' act
-  debugAction action
+  world <- getValue 'World'
+  action = peek world 'Actions' act
+  debugAction world action
   
-debugAction action = do
+debugAction world action = do
   output 'DEBUG' concat[ "\nAction# " (csv action)  ]
   vvact = at action 0
   nv = vvact % 150
   vv = floor (vvact / 150)       # verb & noun combo are packed into the same int. if  noun is 0, is should always apply   # log concat[ "action: " (csv action) " vvact: " vvact " vv: " vv " nv: " nv " vb: " vb " no: " no ] 0
-  verb <- safeVerb vv
-  noun <- safeNoun nv
+  verb = safeVerb world vv
+  noun = safeNoun world nv
   smart = (eq vv 0) (' CHANCE: ' + nv + '%') (" noun: " + noun)
   output 'DEBUG' concat["Vocab vv " vv " nv " nv  " verb: " verb smart ]
-  debugConditions (take 5 (drop 1 action))
-  debugActions (buildActionList action)
+  debugConditions world (take 5 (drop 1 action))
+  debugActions world (buildActionList action)
   output 'DEBUG' '\nFinished.'
 
-safeVerb vv = do
-  verbs <- getValue 'Verbs'
+safeVerb world vv = do
+  verbs = afetch 'Verbs' world
   max_verbs = length verbs
-  verb <- (eq vv 0) '*automatic*' ((betweenEx vv -1 max_verbs) (peek 'Verbs' vv) ('??? (' + vv + ')'))
+  verb = (eq vv 0) '*automatic*' ((betweenEx vv -1 max_verbs) (peek world 'Verbs' vv) ('??? (' + vv + ')'))
   verb
   
-safeNoun nv = do
-  nouns <- getValue 'Nouns'
+safeNoun world nv = do
+  nouns = afetch 'Nouns' world
   max_nouns = length nouns
-  noun <- (eq nv 0) '*any*' ((betweenEx nv -1 max_nouns) (peek 'Nouns' nv) ('??? (' + nv + ")" ))
+  noun = (eq nv 0) '*any*' ((betweenEx nv -1 max_nouns) (peek world 'Nouns' nv) ('??? (' + nv + ")" ))
   noun
 
-safeItemName idx = do
-  item <- peek 'Items' idx
+safeItemName world idx = do
+  item = peek world 'Items' idx
   (safeat item ITEM_NAME) + ' #' + idx
 
-safeRoomName idx = do
-  room <- peek 'Rooms' idx
+safeRoomName world idx = do
+  room = peek world 'Rooms' idx
   (safeat room 6) + ' #' + idx
   
 NONE = 1
@@ -939,42 +1020,42 @@ BITFLAG = 6
 
 cond_data = [  ACTION ITEM ITEM ITEM ROOM ITEM ITEM ROOM BITFLAG BITFLAG NONE NONE ITEM ITEM ITEM NUMBER NUMBER ITEM ITEM NUMBER ]
 cond_meanings = [ '' 'player has an item' 'item is in this room' 'item is "available" to player' 'is player in room' 'is item not in this room' 'if player doesn\'t have the item' 'is player is not in room'  'is bit set' 'is bit clear' 'if player has anything' 'if player has nothing' 'item is not "available" to player' 'is item in room 0' 'is item not in room 0' 'is COUNTER <=' 'is COUNTER >' 'item is in original room' 'item is not in original room' 'is COUNTER ==' ]    
-debugConditions conds = isNil conds
+debugConditions world conds = isNil conds
   nil
   do
     cv_dv = head conds
     dv = floor (cv_dv / 20)
     cv = cv_dv % 20
-    what <- debugCondData cv dv
+    what = debugCondData world cv dv
     output 'DEBUG' concat[ "  Condition: " cv " : " (safeat cond_meanings cv) ": " what ]
-    debugConditions (tail conds)
+    debugConditions world (tail conds)
 
-debugCondData cv dv = do
+debugCondData world cv dv = do
   type = safeat cond_data cv
   eq type NONE
     ''
     eq type ACTION
       'SAVE_ARG: ' + dv
       eq type ITEM
-        safeItemName dv
+        safeItemName world dv
         eq type ROOM
-          safeRoomName dv
+          safeRoomName world dv
           eq type NUMBER
             'NUMBER: ' + dv
             eq type BITFLAG
               'BITFLAG: ' + dv
               '???'
     
-debugActions actions = isNil actions
+debugActions world actions = isNil actions
   nil
   do
     act = head actions
     eq act 0
       nil
       do 
-        what <- describeAction act
+        what = describeAction world act
         output 'DEBUG' concat[ "  Action# " act " What: " what ]
-    debugActions (tail actions)
+    debugActions world (tail actions)
 
 acts = flatten [
   ['GET' 'MOVE_INTO_HERE' 'GOTO' 'DESTROY_ITEM' 'SET_NIGHT']
@@ -987,57 +1068,53 @@ acts = flatten [
   ['SELECT_RV' 'DELAY' 'SHOW_PIC' 'COMM90' 'COMM91']
   ['COMM92' 'COMM93' 'COMM94' 'COMM95' 'COMM96']
   ['COMM97' 'COMM98' 'COMM99' 'COMM100' 'COMM101'] ]    
-describeAction act = between act 1 51    # 52 is the grab a param
+describeAction world act = between act 1 51    # 52 is the grab a param
   do
-    msg <- peek 'Messages' act
+    msg = peek world 'Messages' act
     "Message: " + msg
   > act 101
     do
-      msg <- peek 'Messages' (act - 50)
+      msg = peek world 'Messages' (act - 50)
       "Message: " + msg
     eq act 0 
       "Nothing."
       safeat acts (act - 52)
       
-# return true if a random percent is less than the value passed in
-randomPercent n = do
-  r <- randInt 0 99  # log concat[ "rnd: " r " n " n " trigger? " (< r n)] 0
-  < r n
-
-# get an item, TODO - support get all              
-getItem verb noun wasAll = do
-  wasAll
+# get an item, support get all              
+# returns a new world
+getItem world verb noun wasAll = do
+  world = wasAll
     do
-      myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
-      light <- isLightPresent myloc
-      dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
+      myloc = peek world 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+      light = isLightPresent world myloc
+      dark = light false (peek world 'BitFlags' DARKBIT) #log "here1" 9
       dark
         printReturn 'MSGS' "It is dark." 0
         nil
-      allitems <- getValue 'Items'  
-      nouns <- getValue 'Nouns'      
-      getall <- findAllMatchingNouns myloc nouns allitems  # log concat[ "get all noun list: " (csv getall) ] 0
-      isNil (getall) (output 'MSGS' "Nothing to get!") (doAllNouns verb getall)      
+      allitems = afetch 'Items' world
+      nouns = afetch 'Nouns' world
+      getall = findAllMatchingNouns world myloc nouns allitems  # log concat[ "get all noun list: " (csv getall) ] 0
+      isNil (getall) (printReturn 'MSGS' "Nothing to get!" world) (doAllNouns world verb getall)      
     eq noun -1
-      printReturn 'MSGS' "What?" 0
+      printReturn 'MSGS' "What?" world
       do
-        c <- countCarried
-        max <- peek 'GameHeader' GH_MAX_CARRY
+        c = countCarried world
+        max = peek world 'GameHeader' GH_MAX_CARRY
         eq c max
-          printReturn 'MSGS' "You are carrying too much." 0
+          printReturn 'MSGS' "You are carrying too much." world
           do
-            myloc <- peek 'GameHeader' GH_PLAYER_ROOM 
-            getname <- peek 'Nouns' noun
-            idx <- matchUpItem getname myloc
+            myloc = peek world 'GameHeader' GH_PLAYER_ROOM 
+            getname = peek world 'Nouns' noun
+            idx = matchUpItem world getname myloc
             eq idx -1
-              printReturn 'MSGS' "It is beyond your power to do that." 0
+              printReturn 'MSGS' "It is beyond your power to do that." world
               do
-                moveItem idx CARRIED
-                setRedrawOn
+                world = moveItem world idx CARRIED
                 printReturn 'MSGS' "O.K." 0
+                setRedrawOn world
                 
 # find all the items in the place passed in that have autoget strings and aren't synonyms                
-findAllMatchingNouns where nouns allitems = isNil allitems
+findAllMatchingNouns world where nouns allitems = isNil allitems
   nil
   do
     item = head allitems
@@ -1045,57 +1122,60 @@ findAllMatchingNouns where nouns allitems = isNil allitems
     autoget = (strStartsWith autoget '*') '' autoget    # ignore synonyms
     noun = (neq autoget '') (whichWord autoget nouns) -1 #log concat[ "item: " (csv item) " autoget: " autoget " noun: " noun  ] 0
     and (eq (at item ITEM_LOCATION) where) (neq noun -1)
-      cons noun (findAllMatchingNouns where nouns (tail allitems))
-      findAllMatchingNouns where nouns (tail allitems)
+      cons noun (findAllMatchingNouns world where nouns (tail allitems))
+      findAllMatchingNouns world where nouns (tail allitems)
 
 testFindAllMatchingNouns where = do
-  allitems <- getValue 'Items'    
-  nouns <- getValue 'Nouns'     
-  findAllMatchingNouns where nouns allitems
+  world <- getValue 'World'
+  allitems = afetch 'Items' world 
+  nouns = afetch 'Nouns' world    
+  findAllMatchingNouns world where nouns allitems
   
 # execute verb for every noun passed in, this should be either 10 for get or 18 for drop  
-doAllNouns verb allnouns = isNil allnouns
-  nil
+# returns a new world each time
+doAllNouns world verb allnouns = isNil allnouns
+  world
   do
     noun = head allnouns
-    text <- peek 'Nouns' noun
-    setValue 'NounText' text
-    v <- peek 'Verbs' verb
+    text = peek world 'Nouns' noun
+    world = poke world 'GlobalVars' GV_NOUN_TEXT text
+    v = peek world 'Verbs' verb
     output 'MSGS' concat[ "> " v " " text ]   #   log concat["doing verb: " verb " for noun: " noun " nountext: " text ] 0
-    performActionsWithMsg verb noun false
-    over <- getValue 'GameOver'
+    world = performActionsWithMsg world verb noun false
+    over = peek world 'GlobalVars' GV_GAME_OVER
     not over
-      doAllNouns verb (tail allnouns)
-      nil
+      doAllNouns world verb (tail allnouns)
+      world
       
 # drop an item         
-dropItem verb noun wasAll = do
+# returns a new world
+dropItem world verb noun wasAll = do
   wasAll
     do
-      myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
-      allitems <- getValue 'Items'
-      nouns <- getValue 'Nouns'
-      getall <- findAllMatchingNouns CARRIED nouns allitems   # log concat[ "get all noun list: " (csv getall) ] 0
-      isNil (getall) (output 'MSGS' "Nothing to drop!") (doAllNouns verb getall)      
+      myloc = peek world 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+      allitems = afetch 'Items' world
+      nouns = afetch 'Nouns' world
+      getall = findAllMatchingNouns world CARRIED nouns allitems   # log concat[ "get all noun list: " (csv getall) ] 0
+      isNil (getall) (printReturn 'MSGS' "Nothing to drop!" world) (doAllNouns world verb getall)      
     eq noun -1
-      printReturn 'MSGS' "What?" 0
+      printReturn 'MSGS' "What?" world
       do
-        myloc <- peek 'GameHeader' GH_PLAYER_ROOM
-        dropname <- peek 'Nouns' noun
-        idx <- matchUpItem dropname CARRIED
+        myloc = peek world 'GameHeader' GH_PLAYER_ROOM
+        dropname = peek world 'Nouns' noun
+        idx = matchUpItem world dropname CARRIED
         eq idx -1
-          printReturn 'MSGS' "It is beyond your power to do that." 0
+          printReturn 'MSGS' "It is beyond your power to do that." world
           do
-            moveItem idx myloc
-            setRedrawOn
-            printReturn 'MSGS' "O.K." 0
+            world = moveItem world idx myloc
+            output 'MSGS' "O.K."
+            setRedrawOn world
 
 # given an item name to any AUTOGETs, see if it's in the same room as the player for picking up
-matchUpItem name myloc = do
-  wordlen <- peek 'GameHeader' GH_WORD_LENGTH
-  name <- strToUpperCase (strSubstring name 0 wordlen)
-  match <- mapSynonym name
-  allitems <- getValue 'Items'
+matchUpItem world name myloc = do
+  wordlen = peek world 'GameHeader' GH_WORD_LENGTH
+  name = strToUpperCase (strSubstring name 0 wordlen)
+  match = mapSynonym world name
+  allitems = afetch 'Items' world
   basicMatchUpItem match myloc 0 allitems
 
 basicMatchUpItem name myloc idx allitems = isNil allitems
@@ -1108,39 +1188,39 @@ basicMatchUpItem name myloc idx allitems = isNil allitems
 
 # the name the player gives may be a synonym, if so return the original item name, if not return the original name passed in
 # refactored from original to use WhichWords call  
-mapSynonym noun = do
-  idx <- whichNoun noun
+mapSynonym world noun = do
+  idx = whichNoun world noun
   eq idx -1
     noun
-    peek 'Nouns' idx
+    peek world 'Nouns' idx
 
 printReturn where msg value = do
   msg = strReplace msg (regexpFlags '\\{nl\\}' 'g' ) '\n'  # swap out any {nl} for real newlines
   output where msg
   value
 
-performMove verb noun = do
+# returns a [ new world - ret val ] list
+performMove world verb noun = do
   eq noun -1
-    printReturn 'MSGS' "Give me a direction too." 0
+    printReturn 'MSGS' "Give me a direction too." [ world 0]
     not (between noun 1 6)
-      -1
+      [ world -1 ]
       do      
-        myloc <- peek 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
-        light <- isLightPresent myloc
-        dark <- light false (peek 'BitFlags' DARKBIT) #log "here1" 9
+        myloc = peek world 'GameHeader' GH_PLAYER_ROOM  #log "here0" 9
+        light = isLightPresent world myloc
+        dark = light false (peek world 'BitFlags' DARKBIT) #log "here1" 9
         dark (output 'MSGS' "Dangerous to move in the dark!") nil
-        room <- peek 'Rooms' myloc
+        room = peek world 'Rooms' myloc
         ridx = at room (noun - 1)  #log concat[ "room " (csv room) " ridx: " ridx ] 0
         eq ridx 0
           dark
             do
-              setValue 'GameOver' true
-              printReturn 'MSGS' "You fell down and broke your neck." (0-3)
-            printReturn 'MSGS' "You can't go in that direction." 0
+              world = poke world 'GlobalVars' GV_GAME_OVER true
+              printReturn 'MSGS' "You fell down and broke your neck." [ world -3 ]
+            printReturn 'MSGS' "You can't go in that direction." [ world 0 ]
           do
             clearScreen
-            tp ridx
-            0
+            [ (tp world ridx) 0 ]
           
  
 DERP = 1

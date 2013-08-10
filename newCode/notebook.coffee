@@ -1091,6 +1091,7 @@ runTest = (bx)->
   test = bx.test
   passed = true
   processLine prepExpr(test.expr), (
+    values: {}
     require: req
     write: (str)-> console.log str
     debug: debug
