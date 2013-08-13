@@ -24,6 +24,8 @@ misrepresented as being the original software.
 
 {
   readFile,
+  statFile,
+  readDir,
   defaultEnv,
 } = root = module.exports = require './base'
 {
@@ -39,6 +41,8 @@ misrepresented as being the original software.
   ensureLeisureClass,
   setType,
   setDataType,
+  functionInfo,
+  nameSub,
 } = require './ast'
 _ = require './lodash.min'
 
@@ -100,9 +104,9 @@ define 'sin', ->(x)-> Math.sin(x())
 define 'tan', ->(x)-> Math.tan(x())
 
 define 'rand', ->makeSyncMonad (env, cont)->
-    cont (Math.random())
+  cont (Math.random())
 define 'randInt', ->(low)->(high)->makeSyncMonad (env, cont)->
-    cont (Math.floor(low() + Math.random() * high()))
+  cont (Math.floor(low() + Math.random() * high()))
 define '^', ->(x)->(y)->Math.pow(x(), y())
 
 ############
@@ -375,6 +379,16 @@ define 'readFile', ->(name)->
     readFile name(), (err, contents)->
       cont (if err then left err.stack else right contents)
 
+define 'readDir', ->(dir)->
+  makeMonad (env, cont)->
+    readDir dir(), (err, files)->
+      cont (if err then left err.stack else right files)
+
+define 'statFile', ->(file)->
+  makeMonad (env, cont)->
+    statFile file(), (err, stats)->
+      cont (if err then left err.stack else right stats)
+
 define 'prompt', ->(msg)->
   makeMonad (env, cont)->
     env.prompt(String(msg()), (input)-> cont(input))
@@ -394,6 +408,42 @@ define 'js', ->(str)->
 define 'delay', ->(timeout)->
   makeMonad (env, cont)->
     setTimeout (-> cont _true), timeout()
+
+################
+# Function alts
+################
+
+define 'altDef', ->(name)->(alt)->(arity)->(def)->
+  makeMonad (env, cont)->
+    info = functionInfo[name()]
+    if !info then functionInfo[name()] =
+      src: ''
+      arity: -1
+      arts: {}
+      altList: []
+    if !info.alts[alt()] then info.altList.push alt()
+    info.alts[alt()] = def
+    alts = info.alts[i] for i in info.altList
+    nm = "L_#{nameSub name()}"
+    global[nm] = global.leisureFuncNames[nm] = curry arity(), (args)->
+      for alt in alts
+        opt = alt()
+        for arg in args
+          opt = opt arg
+        if getType(opt) == 'some' then return opt(->identity)
+      if info.mainDef
+        res = info.mainDef()
+        for arg in args
+          res = res arg
+        return res
+      throw new Error "No default definition for #{name()}"
+    cont def
+
+curry = (arity, func, args=[])->
+  if arity == 0 then func(args)
+  else (arg)->
+    args.push arg
+    curry arity - 1, func, args
 
 #######################
 # Classes for Printing
@@ -428,6 +478,7 @@ Leisure_right.prototype.toString = -> "Right(#{@(->_identity)(->_identity)})"
 # Exports
 #######################
 
+root._true = _true
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
@@ -446,6 +497,7 @@ root.setWarnAsync = setWarnAsync
 root.call = call
 root.callMonad = callMonad
 root.basicCall = basicCall
+root.booleanFor = booleanFor
 
 if window?
   window.runMonad = runMonad

@@ -5,11 +5,13 @@
 addTokenGroup '[' ']'
 addToken '|'
 
-listify list = list
+listifyOp op list = list
   \h t D . isTokenString h '|'
     cons t nil
-    cons (cons 'cons' (cons h (listify t))) nil
+    cons (cons op (cons h (listifyOp op t))) nil
   cons 'nil' nil
+
+listify list = listifyOp 'cons' list
 
 defMacro '[' \list . list \h t . listify h
 

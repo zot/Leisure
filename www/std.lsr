@@ -1,4 +1,4 @@
-js "console.log('INSIDE STD')"
+#js "console.log('INSIDE STD')"
 
 # primitives
 #

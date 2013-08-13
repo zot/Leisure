@@ -273,9 +273,11 @@ define = (name, func, arity, src, method) ->
     src: src
     arity: arity
     leisureName: name
+    alts: {}
+    altList: []
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
-  global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
+  functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
   leisureAddFunc name
   root.functionCount++
   func

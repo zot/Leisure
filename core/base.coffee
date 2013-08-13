@@ -32,6 +32,12 @@ readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
 
 writeFile = (fileName, data, cont)-> defaultEnv.writeFile fileName, data, cont
 
+readDir = (fileName, cont)-> defaultEnv.readDir fileName, cont
+
+statFile = (fileName, cont)-> defaultEnv.statFile fileName, cont
+
 root.defaultEnv = defaultEnv
 root.readFile = readFile
+root.readDir = readDir
 root.writeFile = writeFile
+root.statFile = statFile
