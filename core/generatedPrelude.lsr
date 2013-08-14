@@ -15,8 +15,15 @@ left x = \lCase rCase . lCase x
 right x = \lCase rCase . rCase x
 
 ############
+# UTILS
+############
+
+show x = strString x
+
+############
 # FUNCTIONS
 ############
+
 id x = x
 compose f g = \x . f (g x)
 
@@ -214,6 +221,7 @@ tokens str pat = makeTokens (splitTokens str pat) 0
 #############
 
 isString s = == (getType s) '*string'
+isNumber s = == (getType s) '*number'
 isTokenString tok str = or
   and (isToken tok) (eq (tokenString tok) str)
   and (isString tok) (eq tok str)
@@ -616,7 +624,9 @@ postProcessMacro before after expr = isString expr
             eq posStart -1
               cons (postProcessMacro before (position t2) h) t2
               cons h2 (postProcessMacro (+ 1 (lexEnd h2)) after t)
-      expr
+      isNumber expr
+        token (strString expr) (eq after -1 before after)
+        expr
 
 defMacro name def = bind (getValue 'macroDefs') \macs . setValue 'macroDefs' (acons name def macs)
 

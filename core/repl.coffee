@@ -199,7 +199,7 @@ repl = ->
             else if line.match /^!/ then console.log eval line.substring 1
             else
               evalInput line, (result)->
-                console.log String result
+                console.log L_show()(-> result)
                 prompt()
               return
           catch err

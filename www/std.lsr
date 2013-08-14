@@ -113,13 +113,13 @@ load file = bind (readFile file)
 
 #######################
 ## Agents
-## 
+##
 ## An agent executes blocks asynchronously
 ## The block takes as input the value of the previous block
 ##
 ## A primitive agent is defined with a block that takes as input
 ## the previous value of the block and also the given input value
-## 
+##
 #######################
 #
 #agent name = primagent name nil \prev block . block prev

@@ -127,7 +127,7 @@ define 'strSubstring', ->(str)->(start)->(end)->
   if b < a && end() == 0 then b = str().length
   str().substring a, b
 define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
-define 'strCat', ->(list)-> list().toArray().join('')
+define 'strCat', ->(list)-> _.map(list().toArray(), (el)->L_show()(->el)).join('')
 define 'strAdd', ->(s1)->(s2)-> s1() + s2()
 define 'strMatch', ->(str)->(pat)->
   m = str().match (if pat() instanceof RegExp then pat() else new RegExp pat())
@@ -416,34 +416,43 @@ define 'delay', ->(timeout)->
 define 'altDef', ->(name)->(alt)->(arity)->(def)->
   makeMonad (env, cont)->
     info = functionInfo[name()]
-    if !info then functionInfo[name()] =
+    if !info then info = functionInfo[name()] =
       src: ''
       arity: -1
-      arts: {}
+      alts: {}
       altList: []
     if !info.alts[alt()] then info.altList.push alt()
     info.alts[alt()] = def
-    alts = info.alts[i] for i in info.altList
-    nm = "L_#{nameSub name()}"
-    global[nm] = global.leisureFuncNames[nm] = curry arity(), (args)->
+    #console.log "ALT LIST: #{info.altList.join ', '}"
+    alts = (info.alts[i] for i in info.altList)
+    newDef = curry arity(), (args)->
+      #console.log "CALLED #{name()} with #{args.length} args #{_.map(args, (a)->a()).join ', '}, #{alts.length} alts: #{alts.join ', '}"
       for alt in alts
+        #console.log "TRYING ALT: #{alt}"
         opt = alt()
         for arg in args
+          #console.log "SENDING ARG: #{arg()} TO OPT: #{opt}"
           opt = opt arg
-        if getType(opt) == 'some' then return opt(->identity)
+        #console.log "OPT TYPE: #{getType opt}, OPT: #{opt}"
+        if getType(opt) == 'some' then return opt(->(x)->x())(->_false)
       if info.mainDef
         res = info.mainDef()
         for arg in args
           res = res arg
         return res
       throw new Error "No default definition for #{name()}"
+    nm = "L_#{nameSub name()}"
+    global[nm] = global.leisureFuncNames[nm] = newDef
     cont def
 
-curry = (arity, func, args=[])->
-  if arity == 0 then func(args)
-  else (arg)->
+curry = (arity, func)-> ->subcurry arity, func, []
+
+subcurry = (arity, func, args)->
+  (arg)->
+    #console.log "Got arg # #{arity}: #{arg()}"
+    args = args ? []
     args.push arg
-    curry arity - 1, func, args
+    if arity == 1 then func(args) else subcurry arity - 1, func, args
 
 #######################
 # Classes for Printing
