@@ -81,7 +81,7 @@ markupSlideContent = (el, md, noMain)->
   pages = md.split slidePat
   hasCode = false
   if pages.length > 1
-    console.log "PAGES:", JSON.stringify pages
+    #console.log "PAGES:", JSON.stringify pages
     document.body.classList.add 'slide-container'
     el.innerHTML = ''
     bindSlider()

@@ -1,5 +1,7 @@
 # Bugs
 
+clean up leisureFuncs, leisureFuncNames (multiple entries from reloads), functionInfo, etc.
+
 convert code generation not to use the continuation pattern
 
 make leisure -c show error messages
