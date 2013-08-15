@@ -20,7 +20,7 @@ defaultEnv.readDir = (fileName, cont)-> fs.readdir fileName, (err, files)->
   if !err then files = consFrom files
   cont err, files
 
-addStats = (name, stats, result) -> cons (cons name, booleanFor stats[name]), result
+addStats = (name, stats, result) -> cons (cons name, booleanFor stats[name]()), result
 
 defaultEnv.statFile = (fileName, cont)-> fs.stat fileName, (err, stats)->
   if !err
