@@ -114,6 +114,7 @@ index list el = find (\item . == el item) list
 acons k v alist = cons (cons k v) alist
 assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
 rassoc v alist = find (\el . eq v (tail el)) alist (\cell . cell \head tail . some head) none
+keys list = map (\l . head l) list
 
 ############
 # SORTING
