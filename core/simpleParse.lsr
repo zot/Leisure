@@ -333,7 +333,7 @@ scrubList list = list
   nil
 
 createAst inList names cont = withStripped inList \list .
-  isToken list (createLitOrRef (tokenString list) names cont)
+  isToken list (cont (createLitOrRef (tokenString list) names))
     list
       \h t D .
         isTokenString h '\\\\' (cont (createLet h t names))
@@ -375,16 +375,16 @@ parseString str cont =
   neq (strAt str 0) (strAt str -1) (parseErr "Badly terminated string: " str)
     convertStringEscapes str (strSubstring str 1 -1) cont
 
-createLitOrRef tok names cont =
+createLitOrRef tok names =
   contains names tok
-    cont (ref tok)
+    ref tok
     or (strStartsWith tok '\"') (strStartsWith tok "'")
-      parseString tok \str . cont (lit str)
+      parseString tok \str . lit str
       strStartsWith tok '.'
-        jsonParse (strCat (cons '0' (cons tok nil))) (\err . cont (ref tok)) (\item . cont (lit item))
+        jsonParse (strCat (cons '0' (cons tok nil))) (\err . ref tok) (\item . lit item)
         or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
-          jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
-          cont (ref tok)
+          jsonParse tok (\err . ref tok) (\item . lit item)
+          ref tok
 
 createLambda start list names = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
