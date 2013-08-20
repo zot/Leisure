@@ -339,7 +339,7 @@ createAst inList names cont = withStripped inList \list .
         isTokenString h '\\\\' (cont (createLet h t names))
           isTokenString h '\\@' (cont (createAnno h t names))
             isTokenString h '\\' (createLambda h t names cont)
-              createApply list names cont
+              cont (createApply list names)
       cont nil
 
 strMatches str pat = isCons (strMatch str pat)
@@ -393,9 +393,9 @@ createLambda start list names cont = \\
     withToken name err \n p .
       withCons rest err \dot body .
         # are these partial applications too hard to read?
-        isTokenString dot '.' (createAst body) (createLambda start rest)
-          cons n names
-          \bodyAst . cont (lambda n bodyAst)
+        isTokenString dot '.'
+          (createAst body) (cons n names) \bodyAst . cont (lambda n bodyAst)
+          (createLambda start rest) (cons n names) \bodyAst . cont (lambda n bodyAst)
 
 createAnno start list names =
   withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
@@ -415,16 +415,16 @@ createAnno start list names =
 
 bodyStructPat = regexp '\\|\\\\|\\@'
 
-createApply inList names cont = withStripped inList \list .
+createApply inList names = withStripped inList \list .
   withCons list (parseErr "Funcion apply expecting a non-empty list " (loc inList)) \h t .
-    createAst h names \func . chainApply func t names cont
+    createAst h names \func . chainApply func t names
 
 blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
 
-chainApply func list names cont = withCons list (cont func) \argItem rest .
+chainApply func list names = withCons list func \argItem rest .
   and (isToken argItem) (contains blockStarts (tokenString argItem))
-    createAst list names \arg . cont (apply func arg)
-    createAst argItem names \arg . chainApply (apply func arg) rest names cont
+    createAst list names \arg . apply func arg
+    createAst argItem names \arg . chainApply (apply func arg) rest names
 
 cleanTokens start toks cont = isToken toks
   cont (tokenString toks)
