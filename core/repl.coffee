@@ -149,9 +149,11 @@ leisureCompleter = (line)->
 
 interrupted = false
 
+promptText = 'Leisure> '
+
 prompt = ->
   updateCompleter()
-  rl.setPrompt 'Leisure> '
+  rl.setPrompt promptText
   rl.prompt()
 
 repl = ->
@@ -323,10 +325,12 @@ usage = ->
   """
   process.exit 0
 
+interactive = false
+
 processArg = (pos)->
   #console.log "Process Arg: #{process.argv.join ', '}, pos: #{pos}"
   if pos >= process.argv.length
-    if processedFiles then process.exit 0
+    if processedFiles && !interactive then process.exit 0
     else
       repl()
       return
@@ -335,6 +339,9 @@ processArg = (pos)->
     newOptions = true
     gennedAst = gennedJs = false
   switch process.argv[pos]
+    when '-p'
+      promptText = process.argv[pos + 1]
+      pos++
     when '-v'
       verbose = true
       setWarnAsync true
@@ -355,6 +362,8 @@ processArg = (pos)->
       stage = 0
     when '-1'
       stage = 1
+    when '-i'
+      interactive = true
     else
       newOptions = true
       #console.log "Process #{process.argv.join ', '}"

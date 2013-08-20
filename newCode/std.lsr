@@ -104,7 +104,7 @@ requireJS file = bind (getValue 'requiredFiles')
         \_ . bind (setValue 'requiredFiles' (cons file files))
           \_ . right true
 
-load file = bind (readFile file)
+loadJS file = bind (readFile file)
   \result . result
     \err . err
     \contents . js contents
@@ -259,6 +259,16 @@ defCase show.none obj | hasType obj none -> "None"
 defCase show.left obj | hasType obj left -> concat["Left(" (obj id id) ")"]
 
 defCase show.right obj | hasType obj right -> concat["Right(" (obj id id) ")"]
+
+defCase show.nil obj | hasType obj nil -> 'nil'
+
+defCase show.cons obj | hasType obj cons -> concat['[' (show (head obj)) (showConsElements (tail obj))  ']']
+
+showConsElements list = isCons list
+  [' ' (show (head list)) (showConsElements (tail list))]
+  isNil list
+    ''
+    [' | ' (show list)]
 
 # bind
 defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt

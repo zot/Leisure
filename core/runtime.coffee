@@ -72,6 +72,7 @@ booleanFor = (bool)-> if bool then L_true() else L_false()
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define '==', ->(a)->(b)-> booleanFor a() == b()
 define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
+define 'assert', ->(bool)->(msg)->(expr)-> bool()(->expr())(-> throw new Error(msg()))
 
 ############
 # MATH
@@ -306,6 +307,11 @@ define 'setValue', ->(name)->(value)->
     values[name()] = value()
     cont _true
 
+define 'deleteValue', ->(name)->
+  makeSyncMonad (env, cont)->
+    delete values[name()]
+    cont _true
+
 setValue = (key, value)-> values[key] = value
 
 getValue = (key)-> values[key]
@@ -326,6 +332,11 @@ define 'envGet', ->(name)->
 define 'envSet', ->(name)->(value)->
   makeSyncMonad (env, cont)->
     env.values[name()] = value()
+    cont _true
+
+define 'envDelete', ->(name)->
+  makeSyncMonad (env, cont)->
+    delete env.values[name()]
     cont _true
 
 define 'createS', ->

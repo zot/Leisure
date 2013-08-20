@@ -42,49 +42,60 @@ flip func = \x y . func y x
 
 cons a b = \f . f a b
 isCons c = hasType c cons
+assertCons msg value = assert (hasType value cons) (strCat (cons msg (cons ' expected a cons, but given a ' (cons (getType value) nil)))) value
 # nil is the same as false, but it's useful separate as a marker
 nil = \a b . b
 isNil n = hasType n nil
-head l = l \h t . h
-tail l = l \h t . t
-last l = isCons l
-  l \h t . isCons t (last t) h
+head l = assertCons 'Head' l \h t . h
+tail l = assertCons 'Tail' l \h t . t
+last l = isNil (tail l)
+  head l
+  last (tail l)
+removeLast l = isNil (tail l)
   nil
-removeLast l = isCons l
-  l \h t . isCons t (cons h (removeLast t)) nil
-  nil
-length list = list
-  \h t D . + 1 (length t)
+  cons (head l) (removeLast (tail l))
+length list = isCons list
+  + 1 (length (tail list))
   0
-append a b = a (\h t D . cons h (append t b)) b
+append a b = isNil a
+  b
+  cons (head a) (append (tail a) b)
 flatten list = isCons list
   subflatten list nil
   list
 subflatten list result = isNil list
   result
   isCons list
-    list \h t . subflatten h (subflatten t result)
+    subflatten (head list) (subflatten (tail list) result)
     cons list result
 reverse l = rev l nil
-rev l result = l (\h t D . rev t (cons h result)) result
-filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
-find predicate list = list (\h t D . predicate h (some h) (find predicate t)) none
+rev l result = isNil l
+  result
+  rev (tail l) (cons (head l) result)
+filter func list = isNil list
+  nil
+  func (head list) (cons (head list)) id (filter func (tail list))
+find predicate list = isNil list
+  none
+  predicate (head list) (some (head list)) (find predicate (tail list))
 contains list item = find (\el . eq el item) list (\x . true) false
 
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
 # eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
-map func l = l (\h t D . cons (func h) (map func t)) nil
+map func l = isNil l
+  nil
+  cons (func (head l)) (map func (tail l))
 
 # map, but preserve the old list where possible, so that == works on it
-mapSave func l = l
-  \h t D . \\
-    newH = func h
-    newT = mapSave func t
+mapSave func l = isNil l
+  nil
+  \\
+    newH = func (head l)
+    newT = mapSave func (tail l)
     .
-    and (eq newH h) (eq newT t)
+    and (eq newH (head l)) (eq newT (tail l))
       l
       cons newH newT
-  nil
 
 # foldl (\prev el . ...) list
 # foldr (\el prev . ...) list
