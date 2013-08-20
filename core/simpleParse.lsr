@@ -336,8 +336,8 @@ createAst inList names cont = withStripped inList \list .
   isToken list (createLitOrRef (tokenString list) names cont)
     list
       \h t D .
-        isTokenString h '\\\\' (createLet h t names cont)
-          isTokenString h '\\@' (createAnno h t names cont)
+        isTokenString h '\\\\' (cont (createLet h t names))
+          isTokenString h '\\@' (cont (createAnno h t names))
             isTokenString h '\\' (createLambda h t names cont)
               createApply list names cont
       cont nil
@@ -397,13 +397,13 @@ createLambda start list names cont = \\
           cons n names
           \bodyAst . cont (lambda n bodyAst)
 
-createAnno start list names cont =
+createAnno start list names =
   withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
     withCons rest (parseErr "No data for annotation " (loc start)) \data rest . \\
       finish data body = createAst body names \bodyAst .
         cleanTokens start name \name .
           cleanTokens start data \data .
-            cont (anno name data bodyAst)
+            anno name data bodyAst
       .
       isTokenString data '.'
         finish nil rest
@@ -433,11 +433,11 @@ cleanTokens start toks cont = isToken toks
       cleanTokens start tail \tail .
         cont (cons head tail)
 
-createLet start list names cont = withCons list
+createLet start list names = withCons list
   parseErr "No variable or body for let " (loc start)
-  \binding body . eq body nil (createAst binding name cont)
+  \binding body . eq body nil (createAst binding name id)
     getLetNames start list names \newNames .
-      createSublets start binding body newNames cont
+      createSublets start binding body newNames id
 
 getLetNames start list names cont = \\
   err = parseErr "Let expected binding " (loc start)
