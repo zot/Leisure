@@ -572,7 +572,7 @@ runParseFilters filters line = filters
 
 isBlockStart tok = and
   isToken tok
-  contains blockStarts (tokenString tok)
+  contains blockStarts (strTokenString tok)
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression

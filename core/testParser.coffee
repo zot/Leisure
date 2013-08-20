@@ -66,6 +66,21 @@ global.setDataType = setDataType
 global.defaultEnv = defaultEnv
 global.identity = identity
 require './generatedPrelude'
+runLsr """
+simplify exprString = do
+  list <- scanLineM exprString
+  visit (\\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list
+"""
+
+runLsr """
+visit func l = \\\\
+  result = func func l
+  .
+  isCons result
+    result \\h t . cons (visit func h) (visit func t)
+    result
+"""
+
 runTests 'Leisure Full Parser',
   fullParse1: ->
     assertEq String(runLsr "scanLineM 'a +'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
@@ -87,5 +102,8 @@ runTests 'Leisure Full Parser',
     assertEq String(runLsr("simpleScanLine '\\\\\n  a = 3\n  .\n  a'")), 'Cons[Token("\\\\", 0) Parens(1, 9, Cons[Token("a", 4) Token("=", 6) Token("3", 8)]) Token(".", 12) Token("a", 16)]'
     assertEq String(runLsr("simpleScanLine 'head\n  cons\n    1\n    nil'")), 'Cons[Token("head", 0) Parens(4, 25, Cons[Token("cons", 7) Token("1", 16) Token("nil", 22)])]'
     assertEq runLsr("head\n  cons\n    1\n    nil"), 1
+  fullParse7: ->
+    assertEq String(runLsr("simplify '\\\\\\\\ (a = 1 : nil) . 3'")),
+      'Cons[\\\\ [a = [cons 1 nil]] . 3]'
 
 process.exit T.totalFailures
