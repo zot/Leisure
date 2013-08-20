@@ -338,7 +338,7 @@ createAst inList names cont = withStripped inList \list .
       \h t D .
         isTokenString h '\\\\' (cont (createLet h t names))
           isTokenString h '\\@' (cont (createAnno h t names))
-            isTokenString h '\\' (createLambda h t names cont)
+            isTokenString h '\\' (cont (createLambda h t names))
               cont (createApply list names)
       cont nil
 
@@ -386,7 +386,7 @@ createLitOrRef tok names cont =
           jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
           cont (ref tok)
 
-createLambda start list names cont = \\
+createLambda start list names = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
   .
   withCons list err \name rest .
@@ -394,8 +394,8 @@ createLambda start list names cont = \\
       withCons rest err \dot body .
         # are these partial applications too hard to read?
         isTokenString dot '.'
-          (createAst body) (cons n names) \bodyAst . cont (lambda n bodyAst)
-          (createLambda start rest) (cons n names) \bodyAst . cont (lambda n bodyAst)
+          createAst body (cons n names) \bodyAst . lambda n bodyAst
+          ifNotErr (createLambda start rest (cons n names)) \bodyAst . lambda n bodyAst
 
 createAnno start list names =
   withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
