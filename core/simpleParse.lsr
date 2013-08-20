@@ -332,15 +332,15 @@ scrubList list = list
         cons h next
   nil
 
-createAst inList names cont = withStripped inList \list .
-  isToken list (cont (createLitOrRef (tokenString list) names))
+createAst inList names = withStripped inList \list .
+  isToken list (createLitOrRef (tokenString list) names)
     list
       \h t D .
-        isTokenString h '\\\\' (cont (createLet h t names))
-          isTokenString h '\\@' (cont (createAnno h t names))
-            isTokenString h '\\' (cont (createLambda h t names))
-              cont (createApply list names)
-      cont nil
+        isTokenString h '\\\\' (createLet h t names)
+          isTokenString h '\\@' (createAnno h t names)
+            isTokenString h '\\' (createLambda h t names)
+              createApply list names
+      nil
 
 strMatches str pat = isCons (strMatch str pat)
 
@@ -394,13 +394,13 @@ createLambda start list names = \\
       withCons rest err \dot body .
         # are these partial applications too hard to read?
         isTokenString dot '.'
-          createAst body (cons n names) \bodyAst . lambda n bodyAst
+          ifNotErr (createAst body (cons n names)) \bodyAst . lambda n bodyAst
           ifNotErr (createLambda start rest (cons n names)) \bodyAst . lambda n bodyAst
 
 createAnno start list names =
   withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
     withCons rest (parseErr "No data for annotation " (loc start)) \data rest . \\
-      finish data body = createAst body names \bodyAst .
+      finish data body = ifNotErr (createAst body names) \bodyAst .
         cleanTokens start name \name .
           cleanTokens start data \data .
             anno name data bodyAst
@@ -417,14 +417,14 @@ bodyStructPat = regexp '\\|\\\\|\\@'
 
 createApply inList names = withStripped inList \list .
   withCons list (parseErr "Funcion apply expecting a non-empty list " (loc inList)) \h t .
-    createAst h names \func . chainApply func t names
+    ifNotErr (createAst h names) \func . chainApply func t names
 
 blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
 
 chainApply func list names = withCons list func \argItem rest .
   and (isToken argItem) (contains blockStarts (tokenString argItem))
-    createAst list names \arg . apply func arg
-    createAst argItem names \arg . chainApply (apply func arg) rest names
+    ifNotErr (createAst list names) \arg . apply func arg
+    ifNotErr (createAst argItem names) \arg . chainApply (apply func arg) rest names
 
 cleanTokens start toks cont = isToken toks
   cont (tokenString toks)
@@ -435,7 +435,7 @@ cleanTokens start toks cont = isToken toks
 
 createLet start list names = withCons list
   parseErr "No variable or body for let " (loc start)
-  \binding body . eq body nil (createAst binding name id)
+  \binding body . eq body nil (createAst binding name)
     getLetNames start list names \newNames .
       createSublets start binding body newNames id
 
@@ -450,7 +450,7 @@ getLetNames start list names cont = \\
             getLetNames start body (cons str names) cont
 
 createSublets start binding body names cont =
-  isTokenString binding '.' (createAst body names cont)
+  isTokenString binding '.' (ifNotErr (createAst body names) cont)
     withCons body (parseErr "Let expected a body " (loc start)) \bodyH bodyT .
       getNameAndDef (parensStart binding) (parensContent binding) names \name def .
         createSublets start bodyH bodyT names \bodyAst .
@@ -458,14 +458,14 @@ createSublets start binding body names cont =
 
 getNameAndDef pos binding names cont =
   withCons (tail binding) (parseErr "Let expected binding at " pos) \snd sndT .
-    isTokenString snd '=' (createAst sndT names \def . cont (head binding) def)
+    isTokenString snd '=' (ifNotErr (createAst sndT names) \def . cont (head binding) def)
       getLetLambda pos (tail binding) nil names \lamb . cont (head binding) lamb
 
 getLetLambda pos def args names cont =
   withCons def (parseErr "Let expected binding at " pos) \arg rest .
     not (isToken arg) (parseErr "Let expected binding at " pos)
       isTokenString arg '='
-        createAst (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names cont
+        ifNotErr (createAst (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names) cont
         getLetLambda pos rest (cons arg args) names cont
 
 #################
@@ -495,7 +495,7 @@ scanLineG str pat groups onDef onExpr = \\
     ifNotErr (parseToks toks groups) \list . onExpr list
 
 parseLineG str pat names groups onDef onExpr = \\
-  astCallback cb = \list . createAst list names \ast . cb ast
+  astCallback cb = \list . ifNotErr (createAst list names) \ast . cb ast
   .
   scanLineG str pat groups (astCallback onDef) (astCallback onExpr)
 
@@ -681,7 +681,7 @@ parse str pat = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil parenG
 
 parseG str pat groups = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil groups) \list . list \h t . stripParens h
 
-parseToAst str pat = createAst (parse str pat) nil id
+parseToAst str pat = createAst (parse str pat) nil
 
 parseM str =
   bind (getValue 'tokenPat')
@@ -727,7 +727,7 @@ scanLineM line = bind (getValue 'tokenPat')
           \scanned . macroSub macros scanned
 
 newParseLine names line = bind (scanLineM line)
-  \scanned . createAst scanned names \ast . ast
+  \scanned . ifNotErr (createAst scanned names) \ast . ast
 
 runLine names line = bind (newParseLine names line)
   \ast . bind (runAst ast)
