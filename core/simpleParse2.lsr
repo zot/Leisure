@@ -5,11 +5,13 @@
 addTokenGroup '[' ']'
 addToken '|'
 
-listify list = list
+listifyOp op list = list
   \h t D . isTokenString h '|'
     cons t nil
-    cons (cons 'cons' (cons h (listify t))) nil
+    cons (cons op (cons h (listifyOp op t))) nil
   cons 'nil' nil
+
+listify list = listifyOp 'cons' list
 
 defMacro '[' \list . list \h t . listify h
 
@@ -40,17 +42,35 @@ filterApplies code func = isParens code
 
 filterApplyElements code func = code
   \h t D . isBlockStart h
-    cons h (filterBody t func)
+    cons h (filterBlock h t func)
     cons (filterApplies h func)
       and (isCons t) (isBlockStart (head t))
         cons (filterApplyElements t func) nil
         filterApplyElements t func
   nil
 
-filterBody code func = code \h t . cons h
+filterBlock type code func = isTokenString type '\\'
+  filterLambda code func
+  filterLet code func
+
+filterLet code func = code \h t . isTokenString h '.'
+  cons h (filterApplies t func)
+  cons (filterLetBinding h func)
+    filterLet t func
+
+filterLetBinding code func = isParens code
+  setParens code \contents . filterLetBinding contents func
+  isCons code
+    code \h t . cons h
+      isTokenString h '='
+        filterApplies t func
+        filterLetBinding t func
+    code
+
+filterLambda code func = code \h t . cons h
   isTokenString h '.'
     filterApplies t func
-    filterBody t func
+    filterLambda t func
 
 setValue 'listMacros' ['[']
 

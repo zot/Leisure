@@ -24,6 +24,8 @@ misrepresented as being the original software.
 
 {
   readFile,
+  statFile,
+  readDir,
   defaultEnv,
 } = root = module.exports = require './base'
 {
@@ -39,6 +41,8 @@ misrepresented as being the original software.
   ensureLeisureClass,
   setType,
   setDataType,
+  functionInfo,
+  nameSub,
 } = require './ast'
 _ = require './lodash.min'
 
@@ -68,6 +72,7 @@ booleanFor = (bool)-> if bool then L_true() else L_false()
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define '==', ->(a)->(b)-> booleanFor a() == b()
 define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
+define 'assert', ->(bool)->(msg)->(expr)-> bool()(->expr())(-> throw new Error(msg()))
 
 ############
 # MATH
@@ -100,9 +105,9 @@ define 'sin', ->(x)-> Math.sin(x())
 define 'tan', ->(x)-> Math.tan(x())
 
 define 'rand', ->makeSyncMonad (env, cont)->
-    cont (Math.random())
+  cont (Math.random())
 define 'randInt', ->(low)->(high)->makeSyncMonad (env, cont)->
-    cont (Math.floor(low() + Math.random() * high()))
+  cont (Math.floor(low() + Math.random() * high()))
 define '^', ->(x)->(y)->Math.pow(x(), y())
 
 ############
@@ -123,7 +128,7 @@ define 'strSubstring', ->(str)->(start)->(end)->
   if b < a && end() == 0 then b = str().length
   str().substring a, b
 define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
-define 'strCat', ->(list)-> list().toArray().join('')
+define 'strCat', ->(list)-> _.map(list().toArray(), (el)->L_show()(->el)).join('')
 define 'strAdd', ->(s1)->(s2)-> s1() + s2()
 define 'strMatch', ->(str)->(pat)->
   m = str().match (if pat() instanceof RegExp then pat() else new RegExp pat())
@@ -266,6 +271,24 @@ define 'bind', ->(m)->(binding)->
 
 values = {}
 
+#
+# ACTORS
+#
+# To create an actor:
+#   actor name function
+#     -- function takes one arg, to process messages
+#     -- if function returns a monad, it executes the monad
+#
+# To send a message:
+#   send name message
+#     -- send message to the named actor
+#
+actors = {}
+
+define 'actor', ->(name)->(func)-> actors[name] = func
+
+define 'send', ->(name)->(msg)-> setTimeout (-> runMonad (actors[name]()(msg))), 1
+
 define 'hasValue', ->(name)->
   makeSyncMonad (env, cont)->
     cont booleanFor values[name()]?
@@ -279,13 +302,41 @@ define 'getValue', ->(name)->
     if !(name() of values) then throw new Error "No value named '#{name()}'"
     cont values[name()]
 
+define 'setValue', ->(name)->(value)->
+  makeSyncMonad (env, cont)->
+    values[name()] = value()
+    cont _true
+
+define 'deleteValue', ->(name)->
+  makeSyncMonad (env, cont)->
+    delete values[name()]
+    cont _true
+
 setValue = (key, value)-> values[key] = value
 
 getValue = (key)-> values[key]
 
-define 'setValue', ->(name)->(value)->
+define 'envHas', ->(name)->
   makeSyncMonad (env, cont)->
-    values[name()] = value()
+    cont booleanFor env.values[name()]?
+
+define 'envGetOr', ->(name)->(defaultValue)->
+  makeSyncMonad (env, cont)->
+    cont(env.values[name()] ? defaultValue())
+
+define 'envGet', ->(name)->
+  makeSyncMonad (env, cont)->
+    if !(name() of env.values) then throw new Error "No value named '#{name()}'"
+    cont env.values[name()]
+
+define 'envSet', ->(name)->(value)->
+  makeSyncMonad (env, cont)->
+    env.values[name()] = value()
+    cont _true
+
+define 'envDelete', ->(name)->
+  makeSyncMonad (env, cont)->
+    delete env.values[name()]
     cont _true
 
 define 'createS', ->
@@ -339,6 +390,16 @@ define 'readFile', ->(name)->
     readFile name(), (err, contents)->
       cont (if err then left err.stack else right contents)
 
+define 'readDir', ->(dir)->
+  makeMonad (env, cont)->
+    readDir dir(), (err, files)->
+      cont (if err then left err.stack else right files)
+
+define 'statFile', ->(file)->
+  makeMonad (env, cont)->
+    statFile file(), (err, stats)->
+      cont (if err then left err.stack else right stats)
+
 define 'prompt', ->(msg)->
   makeMonad (env, cont)->
     env.prompt(String(msg()), (input)-> cont(input))
@@ -358,6 +419,51 @@ define 'js', ->(str)->
 define 'delay', ->(timeout)->
   makeMonad (env, cont)->
     setTimeout (-> cont _true), timeout()
+
+################
+# Function alts
+################
+
+define 'altDef', ->(name)->(alt)->(arity)->(def)->
+  makeMonad (env, cont)->
+    info = functionInfo[name()]
+    if !info then info = functionInfo[name()] =
+      src: ''
+      arity: -1
+      alts: {}
+      altList: []
+    if !info.alts[alt()] then info.altList.push alt()
+    info.alts[alt()] = def
+    #console.log "ALT LIST: #{info.altList.join ', '}"
+    alts = (info.alts[i] for i in info.altList)
+    newDef = curry arity(), (args)->
+      #console.log "CALLED #{name()} with #{args.length} args #{_.map(args, (a)->a()).join ', '}, #{alts.length} alts: #{alts.join ', '}"
+      for alt in alts
+        #console.log "TRYING ALT: #{alt}"
+        opt = alt()
+        for arg in args
+          #console.log "SENDING ARG: #{arg()} TO OPT: #{opt}"
+          opt = opt arg
+        #console.log "OPT TYPE: #{getType opt}, OPT: #{opt}"
+        if getType(opt) == 'some' then return opt(->(x)->x())(->_false)
+      if info.mainDef
+        res = info.mainDef()
+        for arg in args
+          res = res arg
+        return res
+      throw new Error "No default definition for #{name()}"
+    nm = "L_#{nameSub name()}"
+    global[nm] = global.leisureFuncNames[nm] = newDef
+    cont def
+
+curry = (arity, func)-> ->subcurry arity, func, []
+
+subcurry = (arity, func, args)->
+  (arg)->
+    #console.log "Got arg # #{arity}: #{arg()}"
+    args = args ? []
+    args.push arg
+    if arity == 1 then func(args) else subcurry arity - 1, func, args
 
 #######################
 # Classes for Printing
@@ -392,6 +498,7 @@ Leisure_right.prototype.toString = -> "Right(#{@(->_identity)(->_identity)})"
 # Exports
 #######################
 
+root._true = _true
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
@@ -410,6 +517,7 @@ root.setWarnAsync = setWarnAsync
 root.call = call
 root.callMonad = callMonad
 root.basicCall = basicCall
+root.booleanFor = booleanFor
 
 if window?
   window.runMonad = runMonad

@@ -25,15 +25,24 @@ uniqify top-level names so this works:
   x = 3
   x = x + 1
 
+# Alternate function definitions, keyed by name
+
+defAlt name.case def
+
+case 'default' is the default case (the one defined by define)
+
+```
+defAlt bind.either \either cont . hasType either right
+  either
+  bind.default either cont
+```
+
+
+* uses alist for defs -- overrides previous alt if there is one. works with uniqification
+
 # Trampolines
 
 Look at trampolines to handle continuation-pattern
-
-# Alternate function definitions, keyed by name
-
-altdef name.alt func
-
-* uses alist for defs -- overrides previous alt if there is one. works with uniqification
 
 # doc strings
 

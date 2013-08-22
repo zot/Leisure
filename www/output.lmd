@@ -1,5 +1,5 @@
 *** Leisure control code
--
+--
 ```
 
 
@@ -36,7 +36,7 @@ saveAsButton=do
 <button id='toggleHiddenPages' type='checkbox'>Toggle Hidden Pages</button><br>
 <button id='openFromGdriveButton'>Open from Google Drive</button>
 *** Leisure Control Code
--
+--
 ```
 #@auto "mode": "notebook"
 #@hidden
@@ -73,8 +73,12 @@ js[
   <button onclick="Leisure.event(this, 'output', 'hello')">Print Hello</button>
   <div id="gameOutput"></div>
 </div>
+***A
+duh
+***B
+dur
 *** Secret stuff
--
+--
 Stop double-click grabbing
 
 ```

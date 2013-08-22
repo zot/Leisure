@@ -1,5 +1,3 @@
-js "console.log('INSIDE STD')"
-
 # primitives
 #
 # eq a b -> true if they are equal or false otherwise
@@ -106,27 +104,10 @@ requireJS file = bind (getValue 'requiredFiles')
         \_ . bind (setValue 'requiredFiles' (cons file files))
           \_ . right true
 
-load file = bind (readFile file)
+loadJS file = bind (readFile file)
   \result . result
     \err . err
     \contents . js contents
-
-#######################
-## Agents
-## 
-## An agent executes blocks asynchronously
-## The block takes as input the value of the previous block
-##
-## A primitive agent is defined with a block that takes as input
-## the previous value of the block and also the given input value
-## 
-#######################
-#
-#agent name = primagent name nil \prev block . block prev
-#
-#sendMonad value monad = send value 'io' monad
-#
-#log value msg = sendMonad value (print msg)
 
 #######################
 ## More list stuff
@@ -235,6 +216,70 @@ sort l = sortBy lte l
 sortBy cmp l = mergeSort cmp l
 
 #######################
+## Cases
+#######################
+
+addToken '->'
+
+mkStr tok = concat['"' (tokenString tok) '"']
+
+defMacro 'defCase' \list . \\
+  h1 = head list
+  t1 = tail list
+  h2 = head t1
+  t2 = tail t1
+  h3 = head t2
+  t3 = tail t2
+  .
+  and[
+    isCons list
+    isCons t1
+    isCons t2
+    isTokenString h2 '.']
+      makeCaseArgs list (mkStr h1) (mkStr h3) t3 id
+      parseErr "Error in case definition -- expected func.name args | condition -> action, but got " list
+
+makeCaseArgs orig funcName altName rest args = rest
+  \h t D . isTokenString h '|'
+    makeCaseCondition orig funcName altName (args nil) t id
+    makeCaseArgs orig funcName altName t (dlPush args h)
+  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
+
+makeCaseCondition orig funcName altName args rest cond = rest
+  \h t D . isTokenString h '->'
+    foldr1 append [['altDef' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]
+    makeCaseCondition orig funcName altName args t (dlPush cond h)
+ parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
+
+# show
+defCase show.some obj | hasType obj some -> concat["Some(" (obj id false) ")"]
+
+defCase show.none obj | hasType obj none -> "None"
+
+defCase show.left obj | hasType obj left -> concat["Left(" (obj id id) ")"]
+
+defCase show.right obj | hasType obj right -> concat["Right(" (obj id id) ")"]
+
+defCase show.nil obj | hasType obj nil -> 'nil'
+
+defCase show.cons obj | hasType obj cons -> concat['[' (show (head obj)) (showConsElements (tail obj))  ']']
+
+showConsElements list = isCons list
+  [' ' (show (head list)) (showConsElements (tail list))]
+  isNil list
+    ''
+    [' | ' (show list)]
+
+# bind
+defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt
+  \value . cont value
+  none
+
+defCase bind.either either cont | or (hasType either left) (hasType either right) -> either
+  \_ . either
+  \value . cont value
+
+#######################
 ## output tag functions
 #######################
 
@@ -259,5 +304,5 @@ html x = \f . f x
 #      replaceDocument data
 #    \err . print concat['Error: ' err]
 
-defTokenPack 'util' [['--' '++'] ['js[':']'] []]
+defTokenPack 'util' [['->' '--' '++'] ['js[':']'] []]
 addStdTokenPacks ['util']
