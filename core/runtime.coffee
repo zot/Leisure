@@ -26,6 +26,7 @@ misrepresented as being the original software.
   readFile,
   statFile,
   readDir,
+  writeFile,
   defaultEnv,
 } = root = module.exports = require './base'
 {
@@ -394,6 +395,11 @@ define 'readDir', ->(dir)->
   makeMonad (env, cont)->
     readDir dir(), (err, files)->
       cont (if err then left err.stack else right files)
+
+define 'writeFile', ->(name)->(data)->
+  makeMonad (env, cont)->
+    writeFile name(), data(), (err, contents)->
+      cont (if err then left err.stack else right contents)
 
 define 'statFile', ->(file)->
   makeMonad (env, cont)->
