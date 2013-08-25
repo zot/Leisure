@@ -10,9 +10,56 @@ or a b = a true b
 some x = \someCase noneCase . someCase x
 some2 a b = \someCase noneCase . someCase a b
 none = \someCase noneCase . noneCase
+isNone obj = hasType obj none
+isSome obj = hasType obj some
+isSome2 obj = hasType obj some2
 neq a b = not (eq a b)
 left x = \lCase rCase . lCase x
 right x = \lCase rCase . rCase x
+
+######################
+# STRING TYPE CHECKS
+######################
+
+strAsc string = _strAsc (assertType 'strAsc string' '*string' string)
+strChr ascii = _strChr (assertType 'strChr string' '*number' ascii)
+strAt string index = _strAt
+  assertType 'strAt string' '*string' string
+  assertType 'strAt index' '*number' index
+strStartsWith string prefix = _strStartsWith
+  assertType 'strStartsWith string' '*string' string
+  assertType 'strStartsWith prefix' '*string' prefix
+strLen string = _strLen (assertType 'strLen string' '*string' string)
+strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' '*string' string)
+strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' '*string' string)
+strReplace string pat repl = _strReplace
+  assertType 'strReplace string' '*string' string
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+  assertType 'strReplace repl' '*string' repl
+strSubstring str start end = _strSubstring
+  assertType 'strSubstring str' '*string' str
+  assertType 'strSubstring start' '*number' start
+  assertType 'strSubstring end' '*number' end
+strSplit str pat = _strSplit
+  assertType 'strSplit str' '*string' str
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+strCat list = _strCat
+  assert (isList list) (strCat (cons 'strCat list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
+strAdd str1 str2 = _strAdd (assertType 'strAdd str1' '*string' str1) (assertType 'strAdd str2' '*string' str2)
+strMatch str pat = _strMatch
+  assertType 'strMatch str' '*string' str
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+strToList str = _strToList (assertType 'strToList str' '*string' str)
+strFromList list = _strFromList
+  assert (isList list) (strCat (cons 'strFromList list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
+regexp str = _regexp (assertType 'regexp str' '*string' str)
+regexpFlags str flags = _regexpFlags
+  assertType 'regexp str' '*string' str
+  assertType 'regexp flags' '*string' flags
+jsonParse str failure success = _jsonParse
+  assertType 'jsonParse str' '*string' str
+  failure
+  success
 
 ############
 # UTILS
@@ -42,12 +89,13 @@ flip func = \x y . func y x
 
 cons a b = \f . f a b
 isCons c = hasType c cons
-assertCons msg value = assert (hasType value cons) (strCat (cons msg (cons ' expected a cons, but given a ' (cons (getType value) nil)))) value
+isList l = or (hasType l cons) (hasType l nil)
+assertType msg type value = assert (hasType value type) (strCat (cons msg (cons ' should be type ' (cons (getDataType type) (cons ', but its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))))) value
 # nil is the same as false, but it's useful separate as a marker
 nil = \a b . b
 isNil n = hasType n nil
-head l = assertCons 'Head' l \h t . h
-tail l = assertCons 'Tail' l \h t . t
+head l = assertType 'head argument' cons l \h t . h
+tail l = assertType 'tail argument' cons l \h t . t
 last l = isNil (tail l)
   head l
   last (tail l)
@@ -129,9 +177,23 @@ index list el = find (\item . == el item) list
 ############
 # ASSOC LISTS
 ############
-acons k v alist = cons (cons k v) alist
+assertAlist msg value result = assert (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result
+acons k v alist = assertAlist "acons alist" alist (\@ type cons . \f . \@ assoc true . f (cons k v) alist)
 assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
 rassoc v alist = find (\el . eq v (tail el)) alist (\cell . cell \head tail . some head) none
+isAlist obj = or (isNil obj) (hasProperty obj 'assoc')
+aconsPair keyValue list = \@ type cons . \f . \@ assoc true . f keyValue list
+appendAlist a b = isNil a
+  b
+  aconsPair (head a) (appendAlist (tail a) b)
+
+getProperty func prop = getProperties func
+  \props . assoc prop props
+  none
+
+hasProperty func prop = getProperty func prop
+  \_ . true
+  false
 
 ############
 # SORTING
@@ -472,8 +534,6 @@ getLetLambda pos def args names cont =
 ## Compiling
 #################
 
-parenGroups = cons (cons '(' ')') nil
-
 scanLineG str pat groups onDef onExpr = \\
   toks = tokens str pat
   groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
@@ -576,6 +636,7 @@ isBlockStart tok = and
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
+# macros can be IO monads
 macroSub macs expr = postProcessMacro -1 -1 (baseMacroSub macs expr)
 
 consifyMacroValue value = isCons value value (cons value nil)
@@ -676,6 +737,8 @@ addTokenGroup open close = bind (addToken open)
 #################
 ## TESTING
 #################
+
+parenGroups = acons '(' ')' nil
 
 parse str pat = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil parenGroups) \list . list \h t . stripParens h
 
@@ -797,7 +860,7 @@ useTokenPack name = bind (getValue 'tokenPacks')
               newToks = quicksort (\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
               .
               bind (setValue 'tokenList' newToks)
-                \_ . bind (setValue 'tokenGroups' (append (head (tail pack)) groups))
+                \_ . bind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))
                   \_ . bind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))
                     \_ . bind (computeTokenPat newToks)
                       \_ . setValue 'activeTokenPacks' (cons name activePacks)

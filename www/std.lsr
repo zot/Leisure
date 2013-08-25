@@ -55,7 +55,13 @@
 
 if = id
 
-aconsf key value list = acons key value (removeIf (\pair . pair \h t . h == key) list)
+afetch k alist  = alist (\h t D . h \key value . eq key k value (afetch k t)) nil
+aconsf key value list = acons key value (aremove key list)
+aremove key list = isNil list
+  nil
+  eq (head (head list)) key
+    aremove key (tail list)
+    aconsPair (head list) (aremove key (tail list))
 
 defMacro 'when' \line . line \cond rest . [cond 'do':rest 'nil']
 
@@ -112,6 +118,14 @@ loadJS file = bind (readFile file)
 #######################
 ## More list stuff
 #######################
+
+findOption func list = do
+  result = func (head list)
+  isNil list
+    none
+    isNone result
+      findOption func (tail list)
+      result
 
 ## difference lists
 dlempty = id
@@ -254,6 +268,8 @@ makeCaseCondition orig funcName altName args rest cond = rest
 # show
 defCase show.some obj | hasType obj some -> concat["Some(" (obj id false) ")"]
 
+defCase show.some2 obj | hasType obj some2 -> concat["Some2(" (obj (\a b . [a ', ' b]) false) ")"]
+
 defCase show.none obj | hasType obj none -> "None"
 
 defCase show.left obj | hasType obj left -> concat["Left(" (obj id id) ")"]
@@ -262,7 +278,12 @@ defCase show.right obj | hasType obj right -> concat["Right(" (obj id id) ")"]
 
 defCase show.nil obj | hasType obj nil -> 'nil'
 
-defCase show.cons obj | hasType obj cons -> concat['[' (show (head obj)) (showConsElements (tail obj))  ']']
+defCase show.assoc obj | isAlist obj -> concatFlat[
+  '{'
+  intersperse (map (\item . [(show (head item)) ':' (show (tail item))]) obj) ' '
+  '}']
+
+defCase show.cons obj | hasType obj cons -> concatFlat['[' (show (head obj)) (showConsElements (tail obj))  ']']
 
 showConsElements list = isCons list
   [' ' (show (head list)) (showConsElements (tail list))]
@@ -304,5 +325,5 @@ html x = \f . f x
 #      replaceDocument data
 #    \err . print concat['Error: ' err]
 
-defTokenPack 'util' [['->' '--' '++'] ['js[':']'] []]
+defTokenPack 'util' [['->' '--' '++'] ['js[':']' '{':'}'] []]
 addStdTokenPacks ['util']

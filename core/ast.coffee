@@ -310,7 +310,7 @@ L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> _f()(_name)(_d
 
 getType = (f)->
   t = typeof f
-  (t == 'function' and f?.type) or "*#{t}"
+  (t == 'function' and f?.type) or "*#{(t == 'object' && f.constructor?.name) || t}"
 
 define 'getType', (->(value)-> getType value()), 1
 

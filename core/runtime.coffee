@@ -30,7 +30,6 @@ misrepresented as being the original software.
 } = root = module.exports = require './base'
 {
   define,
-  consFrom,
   cons,
   Nil,
   head,
@@ -56,6 +55,10 @@ basicCall = (args, env, cont)->
     res = do (arg)-> res(->arg)
   runMonad res, env, cont
 
+consFrom = (array, i)->
+  i = i || 0
+  if i < array.length then cons array[i], consFrom(array, i + 1) else L_nil()
+
 ############
 # LOGIC
 ############
@@ -71,8 +74,15 @@ none = setType ((someCase)->(noneCase)-> noneCase()), 'none'
 booleanFor = (bool)-> if bool then L_true() else L_false()
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define '==', ->(a)->(b)-> booleanFor a() == b()
-define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
+define 'hasType', ->(data)->(func)->
+  if typeof func() == 'string' then booleanFor getType(data()) == func()
+  else booleanFor getType(data()) == getDataType(func())
+define 'getDataType', ->(func)-> if typeof func() == 'string' then func() else getDataType(func())
 define 'assert', ->(bool)->(msg)->(expr)-> bool()(->expr())(-> throw new Error(msg()))
+define 'assertLog', ->(bool)->(msg)->(expr)-> bool()(->expr())(->
+  console.log new Error(msg()).stack
+  console.log "LOGGED ERROR -- RESUMING EXECUTION..."
+  expr())
 
 ############
 # MATH
@@ -115,22 +125,24 @@ define '^', ->(x)->(y)->Math.pow(x(), y())
 ############
 
 define 'strString', ->(data)-> String(data())
-define 'strAt', ->(str)->(index)-> str()[strCoord(str(), index())]
-define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
-define 'strLen', ->(str)-> str().length
-define 'strToLowerCase', ->(str)-> str().toLowerCase()
-define 'strToUpperCase', ->(str)-> str().toUpperCase()
-define 'strReplace', ->(str)->(pat)->(repl)-> str().replace pat(), repl()
+define '_strAsc', ->(str)-> str().charCodeAt(0)
+define '_strChr', ->(i)-> String.fromCharCode(i())
+define '_strAt', ->(str)->(index)-> str()[strCoord(str(), index())]
+define '_strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
+define '_strLen', ->(str)-> str().length
+define '_strToLowerCase', ->(str)-> str().toLowerCase()
+define '_strToUpperCase', ->(str)-> str().toUpperCase()
+define '_strReplace', ->(str)->(pat)->(repl)-> str().replace pat(), repl()
 strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
-define 'strSubstring', ->(str)->(start)->(end)->
+define '_strSubstring', ->(str)->(start)->(end)->
   a = strCoord(str(), start())
   b = strCoord(str(), end())
   if b < a && end() == 0 then b = str().length
   str().substring a, b
-define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
-define 'strCat', ->(list)-> _.map(list().toArray(), (el)->L_show()(->el)).join('')
-define 'strAdd', ->(s1)->(s2)-> s1() + s2()
-define 'strMatch', ->(str)->(pat)->
+define '_strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
+define '_strCat', ->(list)-> _.map(list().toArray(), (el)->L_show()(->el)).join('')
+define '_strAdd', ->(s1)->(s2)-> s1() + s2()
+define '_strMatch', ->(str)->(pat)->
   m = str().match (if pat() instanceof RegExp then pat() else new RegExp pat())
   if m
     groups = []
@@ -140,13 +152,13 @@ define 'strMatch', ->(str)->(pat)->
     if typeof m.index != 'undefined' then consFrom [m[0], consFrom(groups), m.index, m.input]
     else consFrom [m[0], consFrom(groups)]
   else Nil
-define 'strToList', ->(str)-> strToList str()
+define '_strToList', ->(str)-> strToList str()
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
-define 'strFromList', ->(list)-> strFromList list()
+define '_strFromList', ->(list)-> strFromList list()
 strFromList = (list)-> if list instanceof Leisure_nil then '' else head(list) + strFromList(tail list)
-define 'regexp', ->(str)-> new RegExp str()
-define 'regexpFlags', ->(str)->(flags)-> new RegExp str(), flags()
-define 'jsonParse', ->(str)->(failCont)->(successCont)->
+define '_regexp', ->(str)-> new RegExp str()
+define '_regexpFlags', ->(str)->(flags)-> new RegExp str(), flags()
+define '_jsonParse', ->(str)->(failCont)->(successCont)->
   try
     p = JSON.parse str()
     successCont() ->p
@@ -158,6 +170,12 @@ define 'jsonStringify', ->(obj)->(failCont)->(successCont)->
     successCont() ->s
   catch err
     failCont() ->err
+
+############
+# properties
+############
+
+define 'getProperties', ->(func)-> if func().properties then L_some()(->func().properties) else L_none()
 
 ############
 # Diagnostics
@@ -285,9 +303,12 @@ values = {}
 #
 actors = {}
 
-define 'actor', ->(name)->(func)-> actors[name] = func
+define 'actor', ->(name)->(func)->
+  actors[name] = func
+  func.env = values: {}
+  func.env.__proto__ = defaultEnv
 
-define 'send', ->(name)->(msg)-> setTimeout (-> runMonad (actors[name]()(msg))), 1
+define 'send', ->(name)->(msg)-> setTimeout (-> runMonad (actors[name]()(msg)), actors[name]().env), 1
 
 define 'hasValue', ->(name)->
   makeSyncMonad (env, cont)->
@@ -518,6 +539,7 @@ root.call = call
 root.callMonad = callMonad
 root.basicCall = basicCall
 root.booleanFor = booleanFor
+root.newConsFrom = consFrom
 
 if window?
   window.runMonad = runMonad

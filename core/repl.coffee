@@ -234,7 +234,7 @@ repl = ->
               finishMultiline()
       rl.on 'close', -> process.exit 0
       rl.on 'SIGINT', ->
-        if interrupted then rl.pause()
+        if interrupted then process.exit()
         else if multiline then finishMultiline true
         else
           console.log "\n(^C again to quit)"

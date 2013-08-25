@@ -69,7 +69,7 @@ genUniq = (ast, names, uniq)->
       name = getLambdaVar ast
       u = addUniq name, names, uniq
       n = cons name, names
-      "function(#{uniqName name, u}){return #{genUniq (getLambdaBody ast), n, u}}"
+      addLambdaProperties ast, "function(#{uniqName name, u}){return #{genUniq (getLambdaBody ast), n, u}}"
     when Leisure_apply then "#{genUniq (getApplyFunc ast), names, uniq}(#{genApplyArg (getApplyArg ast), names, uniq})"
     when Leisure_let then "(function(){\n#{genLets ast, names, uniq}})()"
     when Leisure_anno
@@ -84,6 +84,58 @@ genUniq = (ast, names, uniq)->
           "define('#{funcName}', (function(){return #{genned}}), #{arity}, #{JSON.stringify src})"
         else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
+
+specialAnnotations = ['type', 'dataType', 'define']
+
+arrayify = (cons)->
+  if cons instanceof Leisure_cons then cons.map((el)-> arrayify el).toArray()
+  else cons
+
+getLambdaProperties = (body, props)->
+  if body instanceof Leisure_anno
+    if !_.contains specialAnnotations, getAnnoName(body)
+      if !props then props = {}
+      value = getAnnoData body
+      props[getAnnoName body] = arrayify value
+    getLambdaProperties getAnnoBody(body), props
+  props
+
+addLambdaProperties = (ast, def)->
+  props = getLambdaProperties getLambdaBody ast
+  if props
+    "setLambdaProperties(#{def}, #{JSON.stringify props})"
+  else def
+
+lcons = (a, b)-> L_cons()(->a)(->b)
+
+lconsFrom = (array)->
+  if array instanceof Array
+    p = L_nil()
+    for el in array.reverse()
+      p = lcons lconsFrom(el), p
+    p
+  else array
+
+assocListProps = null
+
+getAssocListProps = ->
+  if !assocListProps
+    assocListProps = lcons lcons('assoc', 'true'), L_nil()
+    assocListProps.properties = assocListProps
+  assocListProps
+
+lacons = (key, value, list)->
+  alist = lcons lcons(key, value), list
+  alist.properties = getAssocListProps()
+  alist
+
+global.setLambdaProperties = (def, props)->
+  p = L_nil()
+  for k, v of props
+    #p = lcons lcons(k, lconsFrom(v)), p
+    p = lacons k, lconsFrom(v), p
+  def.properties = p
+  def
 
 memoize = (func)-> "(function(){var $m; return function(){return $m || ($m = #{func})}})()"
 

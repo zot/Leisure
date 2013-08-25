@@ -76,9 +76,13 @@ setValue 'listMacros' ['[']
 
 addParseFilter listFilter
 
+addTokenGroup '{' '}'
+
+defMacro '{' \list . list \h t . listifyOp 'aconsPair' h
+
 defTokenPack 'list' [
   ['|' '='] #adding = here so so we don't need spaces around = in definitions
-  [['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']']]
+  {['{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['concatFlat[' | ']']}
   [listFilter]]
 
 ### Yay!  From here down, we can use list constructors!
@@ -89,6 +93,8 @@ addTokenGroup 'and[' ']'
 
 addTokenGroup 'concat[' ']'
 
+addTokenGroup 'concatFlat[' ']'
+
 listMacroFoldOp op emptyCase list = list \h t . foldr
     \case result . [op case result]
     emptyCase
@@ -98,7 +104,9 @@ defMacro 'or[' \list . listMacroFoldOp 'or' 'false' list
 
 defMacro 'and[' \list . listMacroFoldOp 'and' 'true' list
 
-defMacro 'concat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
+defMacro 'concat[' \list . ['strCat' [(listify (head list))]]
+
+defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
 
 bind (getValue 'listMacros')
   \lm . ['concat[' | lm]
