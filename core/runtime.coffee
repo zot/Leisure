@@ -125,6 +125,9 @@ define '^', ->(x)->(y)->Math.pow(x(), y())
 # STRINGS
 ############
 
+define '_show', ->(data)->
+  if typeof data() in ['string', 'number', 'boolean'] then JSON.stringify data()
+  else String(data())
 define 'strString', ->(data)-> String(data())
 define '_strAsc', ->(str)-> str().charCodeAt(0)
 define '_strChr', ->(i)-> String.fromCharCode(i())
@@ -141,7 +144,7 @@ define '_strSubstring', ->(str)->(start)->(end)->
   if b < a && end() == 0 then b = str().length
   str().substring a, b
 define '_strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
-define '_strCat', ->(list)-> _.map(list().toArray(), (el)->L_show()(->el)).join('')
+define '_strCat', ->(list)-> _.map(list().toArray(), (el)-> if typeof el == 'string' then el else L_show()(->el)).join('')
 define '_strAdd', ->(s1)->(s2)-> s1() + s2()
 define '_strMatch', ->(str)->(pat)->
   m = str().match (if pat() instanceof RegExp then pat() else new RegExp pat())
