@@ -66,7 +66,6 @@ jsonParse str failure success = _jsonParse
 ############
 
 show x = _show x
-#show x = strString x
 
 ############
 # FUNCTIONS
