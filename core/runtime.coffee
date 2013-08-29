@@ -562,7 +562,7 @@ nextNode = (stack)->
       when 'trie'
         for k, child of node.children
           do (c = child, s = stack)-> stack = L_cons()(->c)(->s)
-      when 'value' then return L_cons()(->L_cons()(->node.key)(->node.value))(->nextNode stack)
+      when 'value' then return L_acons()(->node.key)(->node.value)(->nextNode stack)
       when 'hashmap'
         for key, value of node.values
           do (v = value, s = stack)-> stack = L_cons()(->v)(->s)
