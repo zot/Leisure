@@ -55,11 +55,21 @@
 
 if = id
 
+afetch k alist  = alist (\h t D . h \key value . eq key k value (afetch k t)) nil
+aconsf key value list = acons key value (aremove key list)
+aremove key list = isNil list
+  nil
+  eq (head (head list)) key
+    aremove key (tail list)
+    aconsPair (head list) (aremove key (tail list))
+
 defMacro 'when' \line . line \cond rest . [cond 'do':rest 'nil']
 
 addTokenGroup 'js[' ']'
 
 defMacro 'js[' \list . ['js' ['strCat' ['flatten' [(listify (head list))]]]]
+
+html x = \f . f x
 
 # numerics
 
@@ -91,26 +101,31 @@ simplify exprString = do
 
 doall = foldr1 (\el res . bind el \_ . res)
 
-#######################
-## Agents
-## 
-## An agent executes blocks asynchronously
-## The block takes as input the value of the previous block
-##
-## A primitive agent is defined with a block that takes as input
-## the previous value of the block and also the given input value
-## 
-#######################
-#
-#agent name = primagent name nil \prev block . block prev
-#
-#sendMonad value monad = send value 'io' monad
-#
-#log value msg = sendMonad value (print msg)
+requireJS file = bind (getValue 'requiredFiles')
+  \files . contains files file
+    false
+    bind (loadJS file)
+      \result . result
+        \x . left x
+        \_ . bind (setValue 'requiredFiles' (cons file files))
+          \_ . right true
+
+loadJS file = bind (readFile file)
+  \result . result
+    \err . err
+    \contents . js contents
 
 #######################
 ## More list stuff
 #######################
+
+findOption func list = do
+  result = func (head list)
+  isNil list
+    none
+    isNone result
+      findOption func (tail list)
+      result
 
 ## difference lists
 dlempty = id
@@ -215,6 +230,101 @@ sort l = sortBy lte l
 sortBy cmp l = mergeSort cmp l
 
 #######################
+## Cases
+#######################
+
+addToken '->'
+
+mkStr tok = concat['"' (tokenString tok) '"']
+
+defMacro 'defCase' \list . \\
+  h1 = head list
+  t1 = tail list
+  h2 = head t1
+  t2 = tail t1
+  h3 = head t2
+  t3 = tail t2
+  .
+  and[
+    isCons list
+    isCons t1
+    isCons t2
+    isTokenString h2 '.']
+      makeCaseArgs list (mkStr h1) (mkStr h3) t3 id
+      parseErr "Error in case definition -- expected func.name args | condition -> action, but got " list
+
+makeCaseArgs orig funcName altName rest args = rest
+  \h t D . isTokenString h '|'
+    makeCaseCondition orig funcName altName (args nil) t id
+    makeCaseArgs orig funcName altName t (dlPush args h)
+  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
+
+makeCaseCondition orig funcName altName args rest cond = rest
+  \h t D . isTokenString h '->'
+    foldr1 append [['altDef' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]
+    makeCaseCondition orig funcName altName args t (dlPush cond h)
+ parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
+
+# show
+defCase show.some obj | hasType obj some -> concat["Some(" (obj id false) ")"]
+
+defCase show.some2 obj | hasType obj some2 -> concat["Some2(" (obj (\a b . [a ', ' b]) false) ")"]
+
+defCase show.none obj | hasType obj none -> "None"
+
+defCase show.left obj | hasType obj left -> concat["Left(" (obj id id) ")"]
+
+defCase show.right obj | hasType obj right -> concat["Right(" (obj id id) ")"]
+
+defCase show.nil obj | hasType obj nil -> 'nil'
+
+defCase show.assoc obj | isAlist obj -> concatFlat[
+  '{'
+  intersperse (map (\item . [(show (head item)) ':' (show (tail item))]) obj) ' '
+  '}']
+
+defCase show.hamt obj | hasType obj hamt -> concatFlat[
+  'hamt{'
+  intersperse (map (\item . [(show (head item)) ':' (show (tail item))]) (hamtPairs obj)) ' '
+  '}']
+
+defCase show.cons obj | hasType obj cons -> concatFlat['[' (show (head obj)) (showConsElements (tail obj))  ']']
+
+showConsElements list = isCons list
+  [' ' (show (head list)) (showConsElements (tail list))]
+  isNil list
+    ''
+    [' | ' (show list)]
+
+# bind
+defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt
+  \value . cont value
+  none
+
+defCase bind.either either cont | or (hasType either left) (hasType either right) -> either
+  \_ . either
+  \value . cont value
+
+#######################
+## pre/postconditions
+#######################
+
+# defWrapper func realFunc x y -> log "Calling func" realFunc x y
+defMacro 'defWrapper' \list . grabLeftOfArrow list nil \left right .
+  ['override' concat["'" (strTokenString (head left)) "'"] (append ['\\' | tail left] ['.' | right])]
+
+grabLeftOfArrow list left cont = isTokenString (head list) '->'
+  cont (reverse left) (tail list)
+  grabLeftOfArrow (tail list) (head list) : left cont
+
+defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
+defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
+defWrapper hamtWith oldHamtWith key value hamt -> oldHamtWith
+  assertType 'hamtWith key' '*string' key
+  value
+  hamt
+
+#######################
 ## output tag functions
 #######################
 
@@ -239,5 +349,5 @@ html x = \f . f x
 #      replaceDocument data
 #    \err . print concat['Error: ' err]
 
-defTokenPack 'util' [['--' '++'] ['js[':']'] []]
+defTokenPack 'util' [['->' '--' '++'] ['js[':']'] []]
 addStdTokenPacks ['util']

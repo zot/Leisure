@@ -10,13 +10,67 @@ or a b = a true b
 some x = \someCase noneCase . someCase x
 some2 a b = \someCase noneCase . someCase a b
 none = \someCase noneCase . noneCase
+isNone obj = hasType obj none
+isSome obj = hasType obj some
+isSome2 obj = hasType obj some2
 neq a b = not (eq a b)
 left x = \lCase rCase . lCase x
 right x = \lCase rCase . rCase x
 
+######################
+# STRING TYPE CHECKS
+######################
+
+strAsc string = _strAsc (assertType 'strAsc string' '*string' string)
+strChr ascii = _strChr (assertType 'strChr string' '*number' ascii)
+strAt string index = _strAt
+  assertType 'strAt string' '*string' string
+  assertType 'strAt index' '*number' index
+strStartsWith string prefix = _strStartsWith
+  assertType 'strStartsWith string' '*string' string
+  assertType 'strStartsWith prefix' '*string' prefix
+strLen string = _strLen (assertType 'strLen string' '*string' string)
+strToLowerCase string = _strToLowerCase (assertType 'strToLowerCase string' '*string' string)
+strToUpperCase string = _strToUpperCase (assertType 'strToUpperCase string' '*string' string)
+strReplace string pat repl = _strReplace
+  assertType 'strReplace string' '*string' string
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strStartsWith pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+  assertType 'strReplace repl' '*string' repl
+strSubstring str start end = _strSubstring
+  assertType 'strSubstring str' '*string' str
+  assertType 'strSubstring start' '*number' start
+  assertType 'strSubstring end' '*number' end
+strSplit str pat = _strSplit
+  assertType 'strSplit str' '*string' str
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strSplit pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+strCat list = _strCat
+  assert (isList list) (strCat (cons 'strCat list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
+strAdd str1 str2 = _strAdd (assertType 'strAdd str1' '*string' str1) (assertType 'strAdd str2' '*string' str2)
+strMatch str pat = _strMatch
+  assertType 'strMatch str' '*string' str
+  assert (or (hasType pat '*string') (hasType pat '*RegExp')) (strCat (cons 'strMatch pat should be type string or RegExp but it is type ' (cons (getType pat) (cons ': ' (cons (show pat) nil))))) pat
+strToList str = _strToList (assertType 'strToList str' '*string' str)
+strFromList list = _strFromList
+  assert (isList list) (strCat (cons 'strFromList list should be type cons or nil but it is type ' (cons (getType list) (cons ': ' (cons list))))) list
+regexp str = _regexp (assertType 'regexp str' '*string' str)
+regexpFlags str flags = _regexpFlags
+  assertType 'regexp str' '*string' str
+  assertType 'regexp flags' '*string' flags
+jsonParse str failure success = _jsonParse
+  assertType 'jsonParse str' '*string' str
+  failure
+  success
+
+############
+# UTILS
+############
+
+show x = _show x
+
 ############
 # FUNCTIONS
 ############
+
 id x = x
 compose f g = \x . f (g x)
 
@@ -35,49 +89,61 @@ flip func = \x y . func y x
 
 cons a b = \f . f a b
 isCons c = hasType c cons
+isList l = or (hasType l cons) (hasType l nil)
+assertType msg type value = assert (hasType value type) (strCat (cons msg (cons ' should be type ' (cons (getDataType type) (cons ', but its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))))) value
 # nil is the same as false, but it's useful separate as a marker
 nil = \a b . b
 isNil n = hasType n nil
 head l = l \h t . h
 tail l = l \h t . t
-last l = isCons l
-  l \h t . isCons t (last t) h
+last l = isNil (tail l)
+  head l
+  last (tail l)
+removeLast l = isNil (tail l)
   nil
-removeLast l = isCons l
-  l \h t . isCons t (cons h (removeLast t)) nil
-  nil
-length list = list
-  \h t D . + 1 (length t)
+  cons (head l) (removeLast (tail l))
+length list = isCons list
+  + 1 (length (tail list))
   0
-append a b = a (\h t D . cons h (append t b)) b
+append a b = isNil a
+  b
+  cons (head a) (append (tail a) b)
 flatten list = isCons list
   subflatten list nil
   list
 subflatten list result = isNil list
   result
   isCons list
-    list \h t . subflatten h (subflatten t result)
+    subflatten (head list) (subflatten (tail list) result)
     cons list result
 reverse l = rev l nil
-rev l result = l (\h t D . rev t (cons h result)) result
-filter func list = list (\h t D . func h (cons h) id (filter func t)) nil
-find predicate list = list (\h t D . predicate h (some h) (find predicate t)) none
+rev l result = isNil l
+  result
+  rev (tail l) (cons (head l) result)
+filter func list = isNil list
+  nil
+  func (head list) (cons (head list)) id (filter func (tail list))
+find predicate list = isNil list
+  none
+  predicate (head list) (some (head list)) (find predicate (tail list))
 contains list item = find (\el . eq el item) list (\x . true) false
 
 # make a new list by applying func (which takes exactly 1 arg) to each element of list
 # eg. map (+ 1) [4 27 54] gives cons: [5 28 55]
-map func l = l (\h t D . cons (func h) (map func t)) nil
+map func l = isNil l
+  nil
+  cons (func (head l)) (map func (tail l))
 
 # map, but preserve the old list where possible, so that == works on it
-mapSave func l = l
-  \h t D . \\
-    newH = func h
-    newT = mapSave func t
+mapSave func l = isNil l
+  nil
+  \\
+    newH = func (head l)
+    newT = mapSave func (tail l)
     .
-    and (eq newH h) (eq newT t)
+    and (eq newH (head l)) (eq newT (tail l))
       l
       cons newH newT
-  nil
 
 # foldl (\prev el . ...) list
 # foldr (\el prev . ...) list
@@ -111,9 +177,24 @@ index list el = find (\item . == el item) list
 ############
 # ASSOC LISTS
 ############
-acons k v alist = cons (cons k v) alist
+assertAlist msg value result = assert (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result
+acons k v alist = assertAlist "acons alist" alist (\@ type cons . \f . \@ assoc true . f (cons k v) alist)
 assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
 rassoc v alist = find (\el . eq v (tail el)) alist (\cell . cell \head tail . some head) none
+isAlist obj = or (isNil obj) (hasProperty obj 'assoc')
+aconsPair keyValue list = \@ type cons . \f . \@ assoc true . f keyValue list
+appendAlist a b = isNil a
+  b
+  aconsPair (head a) (appendAlist (tail a) b)
+keys list = map (\l . head l) list
+
+getProperty func prop = getProperties func
+  \props . assoc prop props
+  none
+
+hasProperty func prop = getProperty func prop
+  \_ . true
+  false
 
 ############
 # SORTING
@@ -214,6 +295,7 @@ tokens str pat = makeTokens (splitTokens str pat) 0
 #############
 
 isString s = == (getType s) '*string'
+isNumber s = == (getType s) '*number'
 isTokenString tok str = or
   and (isToken tok) (eq (tokenString tok) str)
   and (isString tok) (eq tok str)
@@ -313,15 +395,15 @@ scrubList list = list
         cons h next
   nil
 
-createAst inList names cont = withStripped inList \list .
-  isToken list (createLitOrRef (tokenString list) names cont)
+createAst inList names = withStripped inList \list .
+  isToken list (createLitOrRef (tokenString list) names)
     list
       \h t D .
-        isTokenString h '\\\\' (createLet h t names cont)
-          isTokenString h '\\@' (createAnno h t names cont)
-            isTokenString h '\\' (createLambda h t names cont)
-              createApply list names cont
-      cont nil
+        isTokenString h '\\\\' (createLet h t names)
+          isTokenString h '\\@' (createAnno h t names)
+            isTokenString h '\\' (createLambda h t names)
+              createApply list names
+      nil
 
 strMatches str pat = isCons (strMatch str pat)
 
@@ -356,35 +438,35 @@ parseString str cont =
   neq (strAt str 0) (strAt str -1) (parseErr "Badly terminated string: " str)
     convertStringEscapes str (strSubstring str 1 -1) cont
 
-createLitOrRef tok names cont =
+createLitOrRef tok names =
   contains names tok
-    cont (ref tok)
+    ref tok
     or (strStartsWith tok '\"') (strStartsWith tok "'")
-      parseString tok \str . cont (lit str)
+      parseString tok \str . lit str
       strStartsWith tok '.'
-        jsonParse (strCat (cons '0' (cons tok nil))) (\err . cont (ref tok)) (\item . cont (lit item))
+        jsonParse (strCat (cons '0' (cons tok nil))) (\err . ref tok) (\item . lit item)
         or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
-          jsonParse tok (\err . cont (ref tok)) (\item . cont (lit item))
-          cont (ref tok)
+          jsonParse tok (\err . ref tok) (\item . lit item)
+          ref tok
 
-createLambda start list names cont = \\
+createLambda start list names = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
   .
   withCons list err \name rest .
     withToken name err \n p .
       withCons rest err \dot body .
         # are these partial applications too hard to read?
-        isTokenString dot '.' (createAst body) (createLambda start rest)
-          cons n names
-          \bodyAst . cont (lambda n bodyAst)
+        isTokenString dot '.'
+          ifNotErr (createAst body (cons n names)) \bodyAst . lambda n bodyAst
+          ifNotErr (createLambda start rest (cons n names)) \bodyAst . lambda n bodyAst
 
-createAnno start list names cont =
+createAnno start list names =
   withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
     withCons rest (parseErr "No data for annotation " (loc start)) \data rest . \\
-      finish data body = createAst body names \bodyAst .
+      finish data body = ifNotErr (createAst body names) \bodyAst .
         cleanTokens start name \name .
           cleanTokens start data \data .
-            cont (anno name data bodyAst)
+            anno name data bodyAst
       .
       isTokenString data '.'
         finish nil rest
@@ -396,16 +478,16 @@ createAnno start list names cont =
 
 bodyStructPat = regexp '\\|\\\\|\\@'
 
-createApply inList names cont = withStripped inList \list .
+createApply inList names = withStripped inList \list .
   withCons list (parseErr "Funcion apply expecting a non-empty list " (loc inList)) \h t .
-    createAst h names \func . chainApply func t names cont
+    ifNotErr (createAst h names) \func . chainApply func t names
 
 blockStarts = cons '\\' (cons '\\\\' (cons '\\@' nil))
 
-chainApply func list names cont = withCons list (cont func) \argItem rest .
+chainApply func list names = withCons list func \argItem rest .
   and (isToken argItem) (contains blockStarts (tokenString argItem))
-    createAst list names \arg . cont (apply func arg)
-    createAst argItem names \arg . chainApply (apply func arg) rest names cont
+    ifNotErr (createAst list names) \arg . apply func arg
+    ifNotErr (createAst argItem names) \arg . chainApply (apply func arg) rest names
 
 cleanTokens start toks cont = isToken toks
   cont (tokenString toks)
@@ -414,11 +496,11 @@ cleanTokens start toks cont = isToken toks
       cleanTokens start tail \tail .
         cont (cons head tail)
 
-createLet start list names cont = withCons list
+createLet start list names = withCons list
   parseErr "No variable or body for let " (loc start)
-  \binding body . eq body nil (createAst binding name cont)
+  \binding body . eq body nil (createAst binding name)
     getLetNames start list names \newNames .
-      createSublets start binding body newNames cont
+      createSublets start binding body newNames id
 
 getLetNames start list names cont = \\
   err = parseErr "Let expected binding " (loc start)
@@ -431,7 +513,7 @@ getLetNames start list names cont = \\
             getLetNames start body (cons str names) cont
 
 createSublets start binding body names cont =
-  isTokenString binding '.' (createAst body names cont)
+  isTokenString binding '.' (ifNotErr (createAst body names) cont)
     withCons body (parseErr "Let expected a body " (loc start)) \bodyH bodyT .
       getNameAndDef (parensStart binding) (parensContent binding) names \name def .
         createSublets start bodyH bodyT names \bodyAst .
@@ -439,21 +521,19 @@ createSublets start binding body names cont =
 
 getNameAndDef pos binding names cont =
   withCons (tail binding) (parseErr "Let expected binding at " pos) \snd sndT .
-    isTokenString snd '=' (createAst sndT names \def . cont (head binding) def)
+    isTokenString snd '=' (ifNotErr (createAst sndT names) \def . cont (head binding) def)
       getLetLambda pos (tail binding) nil names \lamb . cont (head binding) lamb
 
 getLetLambda pos def args names cont =
   withCons def (parseErr "Let expected binding at " pos) \arg rest .
     not (isToken arg) (parseErr "Let expected binding at " pos)
       isTokenString arg '='
-        createAst (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names cont
+        ifNotErr (createAst (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names) cont
         getLetLambda pos rest (cons arg args) names cont
 
 #################
 ## Compiling
 #################
-
-parenGroups = cons (cons '(' ')') nil
 
 scanLineG str pat groups onDef onExpr = \\
   toks = tokens str pat
@@ -476,7 +556,7 @@ scanLineG str pat groups onDef onExpr = \\
     ifNotErr (parseToks toks groups) \list . onExpr list
 
 parseLineG str pat names groups onDef onExpr = \\
-  astCallback cb = \list . createAst list names \ast . cb ast
+  astCallback cb = \list . ifNotErr (createAst list names) \ast . cb ast
   .
   scanLineG str pat groups (astCallback onDef) (astCallback onExpr)
 
@@ -552,11 +632,12 @@ runParseFilters filters line = filters
   line
 
 isBlockStart tok = and
-  isToken tok
-  contains blockStarts (tokenString tok)
+  or (isToken tok) (isString tok)
+  contains blockStarts (strTokenString tok)
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
+# macros can be IO monads
 macroSub macs expr = postProcessMacro -1 -1 (baseMacroSub macs expr)
 
 consifyMacroValue value = isCons value value (cons value nil)
@@ -616,7 +697,9 @@ postProcessMacro before after expr = isString expr
             eq posStart -1
               cons (postProcessMacro before (position t2) h) t2
               cons h2 (postProcessMacro (+ 1 (lexEnd h2)) after t)
-      expr
+      isNumber expr
+        token (strString expr) (eq after -1 before after)
+        expr
 
 defMacro name def = bind (getValue 'macroDefs') \macs . setValue 'macroDefs' (acons name def macs)
 
@@ -656,11 +739,13 @@ addTokenGroup open close = bind (addToken open)
 ## TESTING
 #################
 
+parenGroups = acons '(' ')' nil
+
 parse str pat = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil parenGroups) \list . list \h t . stripParens h
 
 parseG str pat groups = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil groups) \list . list \h t . stripParens h
 
-parseToAst str pat = createAst (parse str pat) nil id
+parseToAst str pat = createAst (parse str pat) nil
 
 parseM str =
   bind (getValue 'tokenPat')
@@ -706,7 +791,7 @@ scanLineM line = bind (getValue 'tokenPat')
           \scanned . macroSub macros scanned
 
 newParseLine names line = bind (scanLineM line)
-  \scanned . createAst scanned names \ast . ast
+  \scanned . ifNotErr (createAst scanned names) \ast . ast
 
 runLine names line = bind (newParseLine names line)
   \ast . bind (runAst ast)
@@ -776,7 +861,7 @@ useTokenPack name = bind (getValue 'tokenPacks')
               newToks = quicksort (\a b . > (strLen a) (strLen b)) (append (head pack) (append groupToks tokens))
               .
               bind (setValue 'tokenList' newToks)
-                \_ . bind (setValue 'tokenGroups' (append (head (tail pack)) groups))
+                \_ . bind (setValue 'tokenGroups' (appendAlist (head (tail pack)) groups))
                   \_ . bind (setValue 'parseFilters' (append filters (head (tail (tail pack)))))
                     \_ . bind (computeTokenPat newToks)
                       \_ . setValue 'activeTokenPacks' (cons name activePacks)

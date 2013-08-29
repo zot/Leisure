@@ -1,0 +1,46 @@
+
+{
+  "name": "persistent-hash-trie",
+  "description": "Pure string:val storage, using structural sharing",
+  "version": "0.3.0",
+  "main": "src/persistent-hash-trie.js",
+  "scripts": {
+    "test": "mocha",
+    "prepublish": "npm test",
+    "benchmark": "node benchmark/benchmarks.js"
+  },
+  "devDependencies": {
+    "mocha": "1.8.1",
+    "lodash": "1.0.1",
+    "benchmark": "1.0.0",
+    "microtime": "0.3.3",
+    "better-stack-traces": "0.0.4",
+    "string-hash": "1.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hughfdjackson/persistent-hash-trie.git"
+  },
+  "testling": {
+    "files": "test/*-test.js",
+    "browsers": [
+      "iexplore/6.0",
+      "iexplore/7.0",
+      "iexplore/8.0",
+      "iexplore/9.0",
+      "iexplore/10.0",
+      "chrome/4.0",
+      "chrome/23.0",
+      "firefox/3.0",
+      "firefox/17.0",
+      "opera/10.0",
+      "opera/12.0",
+      "safari/5.0.5",
+      "safari/5.1"
+    ],
+    "harness": "mocha"
+  },
+  "keywords": ["persistent", "hash", "trie", "pure", "functional", "datastructure", "bagwell", "clojure", "immutability"],
+  "author": "hughfdjackson",
+  "license": "BSD"
+}

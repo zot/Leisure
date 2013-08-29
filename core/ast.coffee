@@ -273,9 +273,11 @@ define = (name, func, arity, src, method) ->
     src: src
     arity: arity
     leisureName: name
+    alts: {}
+    altList: []
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
-  global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
+  functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
   leisureAddFunc name
   root.functionCount++
   func
@@ -308,7 +310,7 @@ L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> _f()(_name)(_d
 
 getType = (f)->
   t = typeof f
-  (t == 'function' and f?.type) or "*#{t}"
+  (t == 'function' and f?.type) or "*#{(t == 'object' && f.constructor?.name) || t}"
 
 define 'getType', (->(value)-> getType value()), 1
 

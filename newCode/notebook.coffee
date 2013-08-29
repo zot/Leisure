@@ -24,6 +24,7 @@ console.log "LOADING NOTEBOOK"
   makeSyncMonad,
   identity,
   defaultEnv,
+  basicCall,
 } = require './runtime'
 {
   gen,
@@ -32,6 +33,7 @@ URI = window.URI
 Xus = window.Xus
 $ = window.$
 _ = require './lodash.min'
+window.global = window
 
 #debug = true
 debug = false
@@ -54,6 +56,8 @@ updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
 peer = null
 nextId = 0
 filename = null
+
+event = (widget, args...)-> basicCall args, envFor(widget), identity
 
 defaultEnv.readFile = (fileName, cont)->
   uri = new URI(document.location.href, fileName)
@@ -81,8 +85,8 @@ escapeHtml = (str)->
 
 presentValue = (v)->
   if (getType v) == 'svgNode'
-    content = v(laz(id))
-    _svgPresent()(laz(content))(laz(id))
+    content = v(-> id)
+    _svgPresent()(-> content)(-> id)
   else if (getType v) == 'html' then getHtml v
   else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
   else escapeHtml String(v)
@@ -718,7 +722,8 @@ showFilenames = ->
     showFilename node
 
 setFilename = (newName)->
-  filename = if newName instanceof URI then newName else new URI(newName)
+  console.log "SET FILENAME: #{newName}"
+  filename = if newName instanceof URI then newName else new URI(document.location.href, newName)
   showFilenames()
 
 markupButtons = (el)->
@@ -923,7 +928,7 @@ textNode = (text)-> document.createTextNode(text)
 
 nodeFor = (text)-> if typeof text == 'string' then textNode(text) else text
 
-evalOutput = (exBox, nofocus)->
+evalOutput = (exBox, nofocus, cont)->
   exBox = getBox exBox
   if !nofocus then focusBox exBox
   cleanOutput exBox, true
@@ -939,7 +944,7 @@ evalOutput = (exBox, nofocus)->
       updateSelector.blur()
   updateSelector.value = (exBox.getAttribute 'leisureUpdate') or ''
   exBox.updateSelector = updateSelector
-  evalBox exBox.source, exBox
+  evalBox exBox.source, exBox, cont
 
 findUpdateSelector = (box)->
   # MARK CHECK
@@ -975,6 +980,8 @@ setUpdate = (el, channel, preserveSource)->
 
 hasMonadOutput = (box)-> box.firstElementChild?.nextElementSibling?.nextElementSibling?
 
+#hasMonadOutput = (box)-> $(box).find('.outputDiv').length
+
 checkHideSource = (box)->
   if !box.hideOutputSource and hasMonadOutput box
     box.hideOutputSource = true
@@ -1002,6 +1009,7 @@ showOutputSource = (output)->
   output.source.style.display = ''
 
 hideOutputSource = (output)->
+  console.log "HIDE: #{output}"
   output.classList.add 'hidingSource'
   output.source.style.display = 'none'
 
@@ -1083,6 +1091,7 @@ runTest = (bx)->
   test = bx.test
   passed = true
   processLine prepExpr(test.expr), (
+    values: {}
     require: req
     write: (str)-> console.log str
     debug: debug
@@ -1407,11 +1416,16 @@ owner = (box)->
     box = box.parentNode
   box
 
-evalBox = (box, envBox)->
+hiddenPat = /(^|\n)#@hidden *(\n|$)/
+
+evalBox = (box, envBox, cont)->
   env = if envBox? then envFor(envBox) else null
-  processLine box.textContent, env, -> env?.cleanup?()
+  processLine box.textContent, env, (result)->
+    env?.cleanup?()
+    (cont ? (x)->x) result
   getAst box
-  if box.output && hasMonadOutput(box.output) && box.textContent.match /(^|\n)#@hidden *(\n|$)/ then hideOutputSource box.output
+  if box.output && hasMonadOutput(box.output) && box.textContent.match hiddenPat then hideOutputSource box.output
+  else if box.textContent.match hiddenPat then console.log "NO MONAD, BUT MATCHES HIDDEN"
 
 acceptCode = (box)->
   if (box.getAttribute 'codemain')?
@@ -1421,19 +1435,35 @@ acceptCode = (box)->
 
 errString = (err)-> err.stack
 
+evaluating = false
+
+evaluationQueue = []
+
+evalNodes = (nodes)->
+  if evaluating then evaluationQueue.push nodes
+  else chainEvalNodes nodes
+
+chainEvalNodes = (nodes)->
+  evaluating = true
+  runAuto nodes, 0, ->
+    if evaluationQueue.length then chainEvalNodes evaluationQueue.shift()
+    else evaluating = false
+
 evalDoc = (el)->
   [pgm, auto, x, autoNodes] = initNotebook(el)
   try
     if auto || autoNodes
       #console.log "\n\n@@@@ AUTO: #{auto}, AUTONODES: #{_(autoNodes ? []).map (el)->'\n' + el.innerHTML}\n\n"
-      auto = "do\n  #{(auto ? '#\n').trim().replace /\n/g, '\n  '}\n  finishLoading 'fred'"
+      auto = "do\n  #{(auto ? '#').trim().replace /\n/g, '\n  '}\n  delay\n  finishLoading"
       global.noredefs = false
       Notebook.queueAfterLoad ->
         evalDocCode el, pgm
         if el.autorunState then runTests el
-        for node in autoNodes
-          console.log "evalOutput", node, node.output
-          evalOutput node.output
+        evalNodes autoNodes
+        #runAuto autoNodes, 0
+        #for node in autoNodes
+        #  console.log "evalOutput", node, node.output
+        #  evalOutput node.output
       e = envFor(el)
       e.write = ->
       e.err = (err)->alert('bubba ' + errString err)
@@ -1441,6 +1471,14 @@ evalDoc = (el)->
     else evalDocCode el, pgm
   catch err
     showError err, "Error compiling #{pgm}"
+
+runAuto = (nodes, index, cont)->
+  if index < nodes.length
+    console.log "RUNNING AUTO: #{index}"
+    node = nodes[index]
+    console.log "evalOutput", node, node.output
+    evalOutput node.output, false, -> runAuto nodes, index + 1, cont
+  else (cont ? ()->)()
 
 processLine = (text, env, cont)->
   if text
@@ -1453,6 +1491,7 @@ processLine = (text, env, cont)->
             cont ast
           else
             result = eval "(#{gen ast})"
+            env.write env.presentValue result
             if isMonad result
               #console.log "INTERMEDIATE RESULT"
               runMonad result, env, (result)->
@@ -1461,7 +1500,7 @@ processLine = (text, env, cont)->
                 cont result
             else
               #console.log "DIRECT RESULT: #{result}"
-              env.write env.presentValue result
+              #env.write env.presentValue result
               env.processResult? result
               cont result
         catch err
@@ -1504,7 +1543,7 @@ define 'gdriveOpen', ->
   makeMonad (env, cont)->
     GdriveStorage.runOpen (json)->
       if json?.action == 'picked' and json.docs?.length > 0
-        GdriveStorage.loadFile json.docs[0].id, -> cont _some()(laz json.docs[0].title)
+        GdriveStorage.loadFile json.docs[0].id, -> cont _some()(-> json.docs[0].title)
       else cont _none()
 
 define 'getFilename', -> makeSyncMonad (env, cont)-> cont filename?.pathName() ? ''
@@ -1517,8 +1556,8 @@ define 'setURI', ->(uri)->
 define 'getURI', ->
   makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
 
-define 'finishLoading', ->(bubba)->
-  makeSyncMonad (env, cont)->
+define 'finishLoading', ->
+  makeMonad (env, cont)->
     loaded = true
     for i in postLoadQueue
       i()
@@ -1538,7 +1577,11 @@ define 'alert', ->(str)->
 define 'bindEvent', ->(selector)->(eventName)->(func)->
   makeSyncMonad (env, cont)->
     node = env.box.querySelector selector()
-    if node then node.addEventListener eventName(), (e)-> runMonad func()(laz e), envFor(e.target), ->
+    if !node then node = document.body.querySelector selector()
+    console.log "ADDING EVENT: #{selector()} #{eventName()} NODE: #{node}"
+    if node then node.addEventListener eventName(), (e)->
+      console.log "EVENT: #{selector()} #{eventName()} #{func()}"
+      runMonad func()(-> e), envFor(e.target), ->
     cont L_false()
 
 define 'quit', -> window.close()
@@ -1590,7 +1633,6 @@ autoRun = (el, state)->
 head = (l)->l ->(hh)->(tt)->hh()
 tail = (l)->l ->(hh)->(tt)->tt()
 id = (v)->v()
-laz = Leisure.laz
 
 getSvgElement = (id)->
   if (el = document.getElementById id) then el
@@ -1604,7 +1646,7 @@ svgMeasureText = (text)->(style)->(f)->
   if style() then txt.setAttribute 'style', style()
   txt.lastChild.textContent = text()
   bx = txt.getBBox()
-  f()(laz(bx.width))(laz(bx.height))
+  f()(-> bx.width)(-> bx.height)
 
 primconcatNodes = (nodes)->
   if nodes == _nil() then ""
@@ -1629,7 +1671,7 @@ primSvgMeasure = (content, transformFunc)->(f)->
   bbox = g.getBBox()
   pad = getMaxStrokeWidth g, g, svg, transformFunc
   document.body.removeChild(svg)
-  f()(laz(bbox.x - Math.ceil(pad/2)))(laz(bbox.y - Math.ceil(pad/2)))(laz(bbox.width + pad))(laz(bbox.height + pad))
+  f()(-> bbox.x - Math.ceil(pad/2))(-> bbox.y - Math.ceil(pad/2))(-> bbox.width + pad)(-> bbox.height + pad)
 
 baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']
 
@@ -1766,3 +1808,4 @@ root.unwrap = unwrap
 root.remove = remove
 root.wrapRange = wrapRange
 root.replaceContents = replaceContents
+root.event = event

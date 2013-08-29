@@ -24,11 +24,13 @@ misrepresented as being the original software.
 
 {
   readFile,
+  statFile,
+  readDir,
+  writeFile,
   defaultEnv,
 } = root = module.exports = require './base'
 {
   define,
-  consFrom,
   cons,
   Nil,
   head,
@@ -39,8 +41,25 @@ misrepresented as being the original software.
   ensureLeisureClass,
   setType,
   setDataType,
+  functionInfo,
+  nameSub,
 } = require './ast'
 _ = require './lodash.min'
+amt = require('persistent-hash-trie')
+
+call = (args...)-> basicCall(args, defaultEnv, identity)
+
+callMonad = (args..., env, cont)-> basicCall(args, env, cont)
+
+basicCall = (args, env, cont)->
+  res = global["L_#{args[0]}"]()
+  for arg in args[1..]
+    res = do (arg)-> res(->arg)
+  runMonad res, env, cont
+
+consFrom = (array, i)->
+  i = i || 0
+  if i < array.length then cons array[i], consFrom(array, i + 1) else L_nil()
 
 ############
 # LOGIC
@@ -57,7 +76,15 @@ none = setType ((someCase)->(noneCase)-> noneCase()), 'none'
 booleanFor = (bool)-> if bool then L_true() else L_false()
 define 'eq', ->(a)->(b)-> booleanFor a() == b()
 define '==', ->(a)->(b)-> booleanFor a() == b()
-define 'hasType', ->(data)->(func)-> booleanFor getType(data()) == getDataType(func())
+define 'hasType', ->(data)->(func)->
+  if typeof func() == 'string' then booleanFor getType(data()) == func()
+  else booleanFor getType(data()) == getDataType(func())
+define 'getDataType', ->(func)-> if typeof func() == 'string' then func() else getDataType(func())
+define 'assert', ->(bool)->(msg)->(expr)-> bool()(->expr())(-> throw new Error(msg()))
+define 'assertLog', ->(bool)->(msg)->(expr)-> bool()(->expr())(->
+  console.log new Error(msg()).stack
+  console.log "LOGGED ERROR -- RESUMING EXECUTION..."
+  expr())
 
 ############
 # MATH
@@ -90,32 +117,37 @@ define 'sin', ->(x)-> Math.sin(x())
 define 'tan', ->(x)-> Math.tan(x())
 
 define 'rand', ->makeSyncMonad (env, cont)->
-    cont (Math.random())
+  cont (Math.random())
 define 'randInt', ->(low)->(high)->makeSyncMonad (env, cont)->
-    cont (Math.floor(low() + Math.random() * high()))
+  cont (Math.floor(low() + Math.random() * high()))
 define '^', ->(x)->(y)->Math.pow(x(), y())
 
 ############
 # STRINGS
 ############
 
+define '_show', ->(data)->
+  if typeof data() in ['string', 'number', 'boolean'] then JSON.stringify data()
+  else String(data())
 define 'strString', ->(data)-> String(data())
-define 'strAt', ->(str)->(index)-> str()[strCoord(str(), index())]
-define 'strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
-define 'strLen', ->(str)-> str().length
-define 'strToLowerCase', ->(str)-> str().toLowerCase()
-define 'strToUpperCase', ->(str)-> str().toUpperCase()
-define 'strReplace', ->(str)->(pat)->(repl)-> str().replace pat(), repl()
+define '_strAsc', ->(str)-> str().charCodeAt(0)
+define '_strChr', ->(i)-> String.fromCharCode(i())
+define '_strAt', ->(str)->(index)-> str()[strCoord(str(), index())]
+define '_strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
+define '_strLen', ->(str)-> str().length
+define '_strToLowerCase', ->(str)-> str().toLowerCase()
+define '_strToUpperCase', ->(str)-> str().toUpperCase()
+define '_strReplace', ->(str)->(pat)->(repl)-> str().replace pat(), repl()
 strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
-define 'strSubstring', ->(str)->(start)->(end)->
+define '_strSubstring', ->(str)->(start)->(end)->
   a = strCoord(str(), start())
   b = strCoord(str(), end())
   if b < a && end() == 0 then b = str().length
   str().substring a, b
-define 'strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
-define 'strCat', ->(list)-> list().toArray().join('')
-define 'strAdd', ->(s1)->(s2)-> s1() + s2()
-define 'strMatch', ->(str)->(pat)->
+define '_strSplit', ->(str)->(pat)-> consFrom str().split if pat() instanceof RegExp then pat() else new RegExp pat()
+define '_strCat', ->(list)-> _.map(list().toArray(), (el)-> if typeof el == 'string' then el else L_show()(->el)).join('')
+define '_strAdd', ->(s1)->(s2)-> s1() + s2()
+define '_strMatch', ->(str)->(pat)->
   m = str().match (if pat() instanceof RegExp then pat() else new RegExp pat())
   if m
     groups = []
@@ -125,13 +157,13 @@ define 'strMatch', ->(str)->(pat)->
     if typeof m.index != 'undefined' then consFrom [m[0], consFrom(groups), m.index, m.input]
     else consFrom [m[0], consFrom(groups)]
   else Nil
-define 'strToList', ->(str)-> strToList str()
+define '_strToList', ->(str)-> strToList str()
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
-define 'strFromList', ->(list)-> strFromList list()
+define '_strFromList', ->(list)-> strFromList list()
 strFromList = (list)-> if list instanceof Leisure_nil then '' else head(list) + strFromList(tail list)
-define 'regexp', ->(str)-> new RegExp str()
-define 'regexpFlags', ->(str)->(flags)-> new RegExp str(), flags()
-define 'jsonParse', ->(str)->(failCont)->(successCont)->
+define '_regexp', ->(str)-> new RegExp str()
+define '_regexpFlags', ->(str)->(flags)-> new RegExp str(), flags()
+define '_jsonParse', ->(str)->(failCont)->(successCont)->
   try
     p = JSON.parse str()
     successCont() ->p
@@ -143,6 +175,12 @@ define 'jsonStringify', ->(obj)->(failCont)->(successCont)->
     successCont() ->s
   catch err
     failCont() ->err
+
+############
+# properties
+############
+
+define 'getProperties', ->(func)-> if func()?.properties then L_some()(->func().properties) else L_none()
 
 ############
 # Diagnostics
@@ -178,7 +216,7 @@ replaceErr = (err, msg)->
   err
 
 defaultEnv.write = (str)-> process.stdout.write(str)
-defaultEnv.err = (err)-> @write "Error: #{err.stack ? err}"
+defaultEnv.err = (err)-> @write "ENV Error: #{err.stack ? err}"
 defaultEnv.prompt = ->throw new Error "Environment does not support prompting!"
 
 monadModeSync = false
@@ -190,6 +228,8 @@ withSyncModeDo = (newMode, block)->
   monadModeSync = newMode
   try
     block()
+  catch err
+    console.log "ERR: #{err.stack}"
   finally
     #if !monadModeSync && oldMode then console.log "REENABLING SYNC"
     #monadModeSync = oldMode
@@ -233,7 +273,7 @@ newRunMonad = (monad, env, cont, contStack)->
   catch err
     err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}...\n#{err.message}"
     console.log err.stack
-    (cont ? identity) err
+    if env.errorHandlers.length then env.errorHandlers.pop() err
 
 class Monad
   toString: -> "Monad: #{@cmd.toString()}"
@@ -256,6 +296,45 @@ define 'bind', ->(m)->(binding)->
 
 values = {}
 
+#
+# Error handling
+#
+define 'protect', ->(value)->
+  makeMonad (env, cont)->
+    hnd = (err)->
+      console.log "PROTECTED ERROR: #{err.stack}"
+      cont left err.stack
+    env.errorHandlers.push hnd
+    runMonad value(), env, ((result)->
+      #console.log "PROTECT CONTINUING WITH RESULT: #{result}"
+      if env.errorHandlers.length
+        if env.errorHandlers[env.errorHandlers.length - 1] == hnd then env.errorHandlers.pop()
+        else if _.contains(env.errorHandlers, hnd)
+          while env.errorHandlers[env.errorHandlers.length - 1] != hnd
+            env.errorHandlers.pop()
+      cont right result), []
+
+#
+# ACTORS
+#
+# To create an actor:
+#   actor name function
+#     -- function takes one arg, to process messages
+#     -- if function returns a monad, it executes the monad
+#
+# To send a message:
+#   send name message
+#     -- send message to the named actor
+#
+actors = {}
+
+define 'actor', ->(name)->(func)->
+  actors[name] = func
+  func.env = values: {}
+  func.env.__proto__ = defaultEnv
+
+define 'send', ->(name)->(msg)-> setTimeout (-> runMonad (actors[name]()(msg)), actors[name]().env), 1
+
 define 'hasValue', ->(name)->
   makeSyncMonad (env, cont)->
     cont booleanFor values[name()]?
@@ -269,13 +348,41 @@ define 'getValue', ->(name)->
     if !(name() of values) then throw new Error "No value named '#{name()}'"
     cont values[name()]
 
+define 'setValue', ->(name)->(value)->
+  makeSyncMonad (env, cont)->
+    values[name()] = value()
+    cont _true
+
+define 'deleteValue', ->(name)->
+  makeSyncMonad (env, cont)->
+    delete values[name()]
+    cont _true
+
 setValue = (key, value)-> values[key] = value
 
 getValue = (key)-> values[key]
 
-define 'setValue', ->(name)->(value)->
+define 'envHas', ->(name)->
   makeSyncMonad (env, cont)->
-    values[name()] = value()
+    cont booleanFor env.values[name()]?
+
+define 'envGetOr', ->(name)->(defaultValue)->
+  makeSyncMonad (env, cont)->
+    cont(env.values[name()] ? defaultValue())
+
+define 'envGet', ->(name)->
+  makeSyncMonad (env, cont)->
+    if !(name() of env.values) then throw new Error "No value named '#{name()}'"
+    cont env.values[name()]
+
+define 'envSet', ->(name)->(value)->
+  makeSyncMonad (env, cont)->
+    env.values[name()] = value()
+    cont _true
+
+define 'envDelete', ->(name)->
+  makeSyncMonad (env, cont)->
+    delete env.values[name()]
     cont _true
 
 define 'createS', ->
@@ -289,24 +396,32 @@ define 'getS', ->(state)->
 define 'setS', ->(state)->(value)->
   makeSyncMonad (env, cont)->
     state().value = value()
-    cont _false
+    cont _true
 
 setValue 'macros', Nil
 
 define 'defMacro', ->(name)->(def)->
   makeSyncMonad (env, cont)->
     values.macros = cons cons(name(), def()), values.macros
-    cont _false
+    cont _true
 
 define 'funcs', ->
   makeSyncMonad (env, cont)->
     console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
-    cont _false
+    cont _true
 
 define 'funcSrc', ->(func)->
   if typeof func() == 'function' && func().src then some func().src else none
 
 define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
+
+define 'override', ->(name)->(newFunc)->
+  makeSyncMonad (env, cont)->
+    n = "L_#{nameSub name()}"
+    oldDef = global[n]
+    if !oldDef then throw new Error("No definition for #{name()}")
+    global[n] = -> newFunc()(oldDef)
+    cont _true
 
 #######################
 # IO
@@ -317,17 +432,32 @@ define 'print', ->(msg)->
     m = msg()
     #env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
     env.write ("#{env.presentValue m}\n")
-    cont _false
+    cont _true
 
 define 'write', ->(msg)->
   makeSyncMonad (env, cont)->
     env.write env.presentValue msg()
-    cont _false
+    cont _true
 
 define 'readFile', ->(name)->
   makeMonad (env, cont)->
     readFile name(), (err, contents)->
       cont (if err then left err.stack else right contents)
+
+define 'readDir', ->(dir)->
+  makeMonad (env, cont)->
+    readDir dir(), (err, files)->
+      cont (if err then left err.stack else right files)
+
+define 'writeFile', ->(name)->(data)->
+  makeMonad (env, cont)->
+    writeFile name(), data(), (err, contents)->
+      cont (if err then left err.stack else right contents)
+
+define 'statFile', ->(file)->
+  makeMonad (env, cont)->
+    statFile file(), (err, stats)->
+      cont (if err then left err.stack else right stats)
 
 define 'prompt', ->(msg)->
   makeMonad (env, cont)->
@@ -344,6 +474,108 @@ define 'js', ->(str)->
       cont right result
     catch err
       cont left err
+
+define 'delay', ->(timeout)->
+  makeMonad (env, cont)->
+    setTimeout (-> cont _true), timeout()
+
+################
+# Function alts
+################
+
+define 'altDef', ->(name)->(alt)->(arity)->(def)->
+  makeMonad (env, cont)->
+    info = functionInfo[name()]
+    if !info then info = functionInfo[name()] =
+      src: ''
+      arity: -1
+      alts: {}
+      altList: []
+    if !info.alts[alt()] then info.altList.push alt()
+    info.alts[alt()] = def
+    #console.log "ALT LIST: #{info.altList.join ', '}"
+    alts = (info.alts[i] for i in info.altList)
+    newDef = curry arity(), (args)->
+      #console.log "CALLED #{name()} with #{args.length} args #{_.map(args, (a)->a()).join ', '}, #{alts.length} alts: #{alts.join ', '}"
+      for alt in alts
+        #console.log "TRYING ALT: #{alt}"
+        opt = alt()
+        for arg in args
+          #console.log "SENDING ARG: #{arg()} TO OPT: #{opt}"
+          opt = opt arg
+        #console.log "OPT TYPE: #{getType opt}, OPT: #{opt}"
+        if getType(opt) == 'some' then return opt(->(x)->x())(->_false)
+      if info.mainDef
+        res = info.mainDef()
+        for arg in args
+          res = res arg
+        return res
+      throw new Error "No default definition for #{name()}"
+    nm = "L_#{nameSub name()}"
+    global[nm] = global.leisureFuncNames[nm] = newDef
+    cont def
+
+curry = (arity, func)-> ->subcurry arity, func, []
+
+subcurry = (arity, func, args)->
+  (arg)->
+    #console.log "Got arg # #{arity}: #{arg()}"
+    args = args ? []
+    args.push arg
+    if arity == 1 then func(args) else subcurry arity - 1, func, args
+
+#######################
+# AMTs
+#######################
+
+makeHamt = (hamt)->
+  t = setDataType (->), 'hamt'
+  t.hamt = hamt
+  t.type = 'hamt'
+  t
+
+hamt = makeHamt amt.Trie()
+
+define 'hamt', -> hamt
+
+define 'hamtWith', ->(key)->(value)->(hamt)-> makeHamt amt.assoc hamt().hamt, key(), value()
+
+define 'hamtFetch', ->(key)->(hamt)-> amt.get hamt().hamt, key()
+
+define 'hamtGet', ->(key)->(hamt)->
+  v = amt.get hamt().hamt, key()
+  if v != undefined then some v else none
+
+define 'hamtWithout', ->(key)->(hamt)-> makeHamt amt.dissoc hamt().hamt, key()
+
+#define 'hamtOpts', ->(eq)->(hash)->
+#
+#define 'hamtAssocOpts', ->(hamt)->(key)->(value)->(opts)-> amt.assoc(hamt(), key(), value(), opts())
+#
+#define 'hamtFetchOpts', ->(hamt)->(key)->(opts)-> amt.get(hamt(), key(), opts())
+#
+#define 'hamtGetOpts', ->(hamt)->(key)->(opts)->
+#  v = amt.get(hamt(), key(), opts())
+#  if v != null then some v else none
+#
+#define 'hamtDissocOpts', ->(hamt)->(key)->(opts)-> amt.dissoc(hamt(), key(), opts())
+
+define 'hamtPairs', ->(hamt)-> nextNode L_cons()(->hamt().hamt)(->L_nil())
+
+nextNode = (stack)->
+  while true
+    if stack == L_nil() then return stack
+    node = L_head()(->stack)
+    stack = L_tail()(->stack)
+    switch node.type
+      when 'trie'
+        for k, child of node.children
+          do (c = child, s = stack)-> stack = L_cons()(->c)(->s)
+      when 'value' then return L_acons()(->node.key)(->node.value)(->nextNode stack)
+      when 'hashmap'
+        for key, value of node.values
+          do (v = value, s = stack)-> stack = L_cons()(->v)(->s)
+      else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
 
 #######################
 # Classes for Printing
@@ -378,9 +610,11 @@ Leisure_right.prototype.toString = -> "Right(#{@(->_identity)(->_identity)})"
 # Exports
 #######################
 
+root._true = _true
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
+root.newRunMonad = newRunMonad
 root.isMonad = isMonad
 root.identity = identity
 root.setValue = setValue
@@ -393,6 +627,11 @@ root.right = right
 root.getMonadSyncMode = getMonadSyncMode
 root.asyncMonad = asyncMonad
 root.setWarnAsync = setWarnAsync
+root.call = call
+root.callMonad = callMonad
+root.basicCall = basicCall
+root.booleanFor = booleanFor
+root.newConsFrom = consFrom
 
 if window?
   window.runMonad = runMonad

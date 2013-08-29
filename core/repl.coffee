@@ -46,6 +46,7 @@ fs = require 'fs'
 {
   identity,
   runMonad,
+  newRunMonad,
   isMonad,
   asyncMonad,
   defaultEnv,
@@ -59,6 +60,7 @@ global.setType = setType
 global.setDataType = setDataType
 global.defaultEnv = defaultEnv
 global.identity = identity
+global.Leisure = root
 
 # compilation stage
 # 0: use CoffeeScript Leisure compiler
@@ -148,9 +150,11 @@ leisureCompleter = (line)->
 
 interrupted = false
 
+promptText = 'Leisure> '
+
 prompt = ->
   updateCompleter()
-  rl.setPrompt 'Leisure> '
+  rl.setPrompt promptText
   rl.prompt()
 
 repl = ->
@@ -174,7 +178,7 @@ repl = ->
       multiline = false
       prompt()
       root.defaultEnv.err = (err)->
-        console.log "Error: #{err.stack ? err}"
+        console.log "REPL Error: #{err.stack ? err}"
         multiline = false
         prompt()
       startMultiline = ->
@@ -193,12 +197,12 @@ repl = ->
         else
           try
             if line.substring(0,2) == ':s'
-              if L_simplify? then console.log "\n#{runMonad L_simplify() ->line.substring(2)}\n"
+              if L_simplify? then console.log "\n#{L_show()(->runMonad L_simplify() ->line.substring(2))}\n"
               else console.log "No simplify function.  Load std.lsr"
             else if line.match /^!/ then console.log eval line.substring 1
             else
               evalInput line, (result)->
-                console.log String result
+                console.log L_show()(-> result)
                 prompt()
               return
           catch err
@@ -229,9 +233,11 @@ repl = ->
             else
               lines = [line]
               finishMultiline()
-      rl.on 'close', -> process.exit 0
+      rl.on 'close', ->
+        #console.log "EXITING 1"
+        process.exit 0
       rl.on 'SIGINT', ->
-        if interrupted then rl.pause()
+        if interrupted then process.exit()
         else if multiline then finishMultiline true
         else
           console.log "\n(^C again to quit)"
@@ -248,6 +254,16 @@ loadedParser = false
 processedFiles = false
 createAstFile = false
 createJsFile = false
+
+runFile = (file, cont)->
+  try
+    runMonad L_protect()(->L_require()(->file)), defaultEnv, (result)->
+    #runMonad L_require()(->file), defaultEnv, (result)->
+      #console.log "FILE LOADED: #{file}, result: #{result}"
+      cont []
+  catch err
+    console.log "ERROR LOADING FILE: #{file}...\n#{err.stack}"
+    cont []
 
 compile = (file, cont)->
   ext = path.extname file
@@ -318,18 +334,26 @@ usage = ->
   """
   process.exit 0
 
+interactive = false
+
 processArg = (pos)->
-  #console.log "Process Arg: #{process.argv.join ', '}, pos: #{pos}"
+  #console.log "Process args: #{process.argv.join ', '}, pos: #{pos}"
   if pos >= process.argv.length
-    if processedFiles then process.exit 0
+    if processedFiles && !interactive
+      #console.log "EXITING 2"
+      process.exit 0
     else
       repl()
       return
+  #console.log "Processing arg: #{process.argv[pos]}"
   if process.argv[pos][0] == '-' and !newOptions
     actions = []
     newOptions = true
     gennedAst = gennedJs = false
   switch process.argv[pos]
+    when '-p'
+      promptText = process.argv[pos + 1]
+      pos++
     when '-v'
       verbose = true
       setWarnAsync true
@@ -350,6 +374,8 @@ processArg = (pos)->
       stage = 0
     when '-1'
       stage = 1
+    when '-i'
+      interactive = true
     else
       newOptions = true
       #console.log "Process #{process.argv.join ', '}"
@@ -365,6 +391,7 @@ processArg = (pos)->
   processArg pos + 1
 
 run = ->
+  action = runFile
   #console.log "Run: #{process.argv.join ', '}"
   if process.argv.length == 2
     require stages[stage]

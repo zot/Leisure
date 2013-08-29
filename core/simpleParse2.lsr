@@ -5,11 +5,13 @@
 addTokenGroup '[' ']'
 addToken '|'
 
-listify list = list
+listifyOp op list = list
   \h t D . isTokenString h '|'
     cons t nil
-    cons (cons 'cons' (cons h (listify t))) nil
+    cons (cons op (cons h (listifyOp op t))) nil
   cons 'nil' nil
+
+listify list = listifyOp 'cons' list
 
 defMacro '[' \list . list \h t . listify h
 
@@ -40,25 +42,61 @@ filterApplies code func = isParens code
 
 filterApplyElements code func = code
   \h t D . isBlockStart h
-    cons h (filterBody t func)
+    cons h (filterBlock h t func)
     cons (filterApplies h func)
       and (isCons t) (isBlockStart (head t))
         cons (filterApplyElements t func) nil
         filterApplyElements t func
   nil
 
-filterBody code func = code \h t . cons h
+filterBlock type code func = isTokenString type '\\'
+  filterLambda code func
+  filterLet code func
+
+filterLet code func = code \h t . isTokenString h '.'
+  cons h (filterApplies t func)
+  cons (filterLetBinding h func)
+    filterLet t func
+
+filterLetBinding code func = isParens code
+  setParens code \contents . filterLetBinding contents func
+  isCons code
+    code \h t . cons h
+      isTokenString h '='
+        filterApplies t func
+        filterLetBinding t func
+    code
+
+filterLambda code func = code \h t . cons h
   isTokenString h '.'
     filterApplies t func
-    filterBody t func
+    filterLambda t func
 
-setValue 'listMacros' ['[']
+setValue 'listMacros' ['[' '{' 'hamt{']
 
 addParseFilter listFilter
 
+addTokenGroup '{' '}'
+
+defMacro '{' \list . list \h t . listifyOp 'aconsPair' h
+
+addTokenGroup 'hamt{' '}'
+
+defMacro 'hamt{' \list . list \h t . hamtify h
+
+hamtWithPair pair t = hamtWith (head pair) (tail pair) t
+
+hamtify list = list
+  \h t D . isTokenString h '|'
+    cons t nil
+    and (isCons h) (or (isTokenString (head h) 'cons') (isTokenString (head h) ':'))
+      [['hamtWith' (head (tail h)) (head (tail (tail h))) | hamtify t]]
+      [['hamtWithPair' h | hamtify t]]
+  ['hamt']
+
 defTokenPack 'list' [
   ['|' '='] #adding = here so so we don't need spaces around = in definitions
-  [['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']']]
+  {['{' | '}'] ['hamt{' | '}'] ['[' | ']'] ['or[' | ']'] ['and[' | ']'] ['concat[' | ']'] ['concatFlat[' | ']']}
   [listFilter]]
 
 ### Yay!  From here down, we can use list constructors!
@@ -69,6 +107,8 @@ addTokenGroup 'and[' ']'
 
 addTokenGroup 'concat[' ']'
 
+addTokenGroup 'concatFlat[' ']'
+
 listMacroFoldOp op emptyCase list = list \h t . foldr
     \case result . [op case result]
     emptyCase
@@ -78,7 +118,9 @@ defMacro 'or[' \list . listMacroFoldOp 'or' 'false' list
 
 defMacro 'and[' \list . listMacroFoldOp 'and' 'true' list
 
-defMacro 'concat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
+defMacro 'concat[' \list . ['strCat' [(listify (head list))]]
+
+defMacro 'concatFlat[' \list . ['strCat' ['flatten' [(listify (head list))]]]
 
 bind (getValue 'listMacros')
   \lm . ['concat[' | lm]
