@@ -319,6 +319,10 @@ grabLeftOfArrow list left cont = isTokenString (head list) '->'
 
 defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
 defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
+defWrapper hamtWith oldHamtWith key value hamt -> oldHamtWith
+  assertType 'hamtWith key' '*string' key
+  value
+  hamt
 
 #######################
 ## output tag functions

@@ -84,14 +84,14 @@ addTokenGroup 'hamt{' '}'
 
 defMacro 'hamt{' \list . list \h t . hamtify h
 
-hamtPair pair t = hamtAssoc (head pair) (tail pair) t
+hamtWithPair pair t = hamtWith (head pair) (tail pair) t
 
 hamtify list = list
   \h t D . isTokenString h '|'
     cons t nil
     and (isCons h) (or (isTokenString (head h) 'cons') (isTokenString (head h) ':'))
-      [['hamtAssoc' (head (tail h)) (head (tail (tail h))) | hamtify t]]
-      [['hamtPair' h | hamtify t]]
+      [['hamtWith' (head (tail h)) (head (tail (tail h))) | hamtify t]]
+      [['hamtWithPair' h | hamtify t]]
   ['hamt']
 
 defTokenPack 'list' [

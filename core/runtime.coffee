@@ -529,15 +529,15 @@ hamt = makeHamt amt.Trie()
 
 define 'hamt', -> hamt
 
-define 'hamtAssoc', ->(key)->(value)->(hamt)-> makeHamt amt.assoc hamt().hamt, key(), value()
+define 'hamtWith', ->(key)->(value)->(hamt)-> makeHamt amt.assoc hamt().hamt, key(), value()
 
 define 'hamtFetch', ->(key)->(hamt)-> amt.get hamt().hamt, key()
 
 define 'hamtGet', ->(key)->(hamt)->
   v = amt.get hamt().hamt, key()
-  if v != null then some v else none
+  if v != undefined then some v else none
 
-define 'hamtDissoc', ->(key)->(hamt)-> makeHamt amt.dissoc hamt().hamt, key()
+define 'hamtWithout', ->(key)->(hamt)-> makeHamt amt.dissoc hamt().hamt, key()
 
 #define 'hamtOpts', ->(eq)->(hash)->
 #
