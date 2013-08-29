@@ -21,6 +21,7 @@ defaultEnv.readDir = (fileName, cont)-> fs.readdir fileName, (err, files)->
   cont err, files
 
 addStats = (name, stats, result) -> cons (cons name, booleanFor stats[name]()), result
+addDateStats = (name, stats, result) -> cons (cons name, stats[name].getTime()), result
 
 defaultEnv.statFile = (fileName, cont)-> fs.stat fileName, (err, stats)->
   if !err
@@ -32,6 +33,9 @@ defaultEnv.statFile = (fileName, cont)-> fs.stat fileName, (err, stats)->
     res = addStats 'isSymbolicLink', stats, res
     res = addStats 'isFile', stats, res
     res = addStats 'isDirectory', stats, res
+    res = addDateStats 'atime', stats, res
+    res = addDateStats 'mtime', stats, res
+    res = addDateStats 'ctime', stats, res
     cont err, res
   else cont err, null
 
