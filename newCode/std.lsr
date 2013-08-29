@@ -283,6 +283,11 @@ defCase show.assoc obj | isAlist obj -> concatFlat[
   intersperse (map (\item . [(show (head item)) ':' (show (tail item))]) obj) ' '
   '}']
 
+defCase show.hamt obj | hasType obj hamt -> concatFlat[
+  'hamt{'
+  intersperse (map (\item . [(show (head item)) ':' (show (tail item))]) (hamtPairs obj)) ' '
+  '}']
+
 defCase show.cons obj | hasType obj cons -> concatFlat['[' (show (head obj)) (showConsElements (tail obj))  ']']
 
 showConsElements list = isCons list
@@ -299,6 +304,21 @@ defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt
 defCase bind.either either cont | or (hasType either left) (hasType either right) -> either
   \_ . either
   \value . cont value
+
+#######################
+## pre/postconditions
+#######################
+
+# defWrapper func realFunc x y -> log "Calling func" realFunc x y
+defMacro 'defWrapper' \list . grabLeftOfArrow list nil \left right .
+  ['override' concat["'" (strTokenString (head left)) "'"] (append ['\\' | tail left] ['.' | right])]
+
+grabLeftOfArrow list left cont = isTokenString (head list) '->'
+  cont (reverse left) (tail list)
+  grabLeftOfArrow (tail list) (head list) : left cont
+
+defWrapper head oldHead list -> assertType 'head argument' cons list \h t . h
+defWrapper tail oldTail list -> assertType 'tail argument' cons list \h t . t
 
 #######################
 ## output tag functions
@@ -325,5 +345,5 @@ html x = \f . f x
 #      replaceDocument data
 #    \err . print concat['Error: ' err]
 
-defTokenPack 'util' [['->' '--' '++'] ['js[':']' '{':'}'] []]
+defTokenPack 'util' [['->' '--' '++'] ['js[':']'] []]
 addStdTokenPacks ['util']

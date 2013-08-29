@@ -44,6 +44,7 @@ misrepresented as being the original software.
   nameSub,
 } = require './ast'
 _ = require './lodash.min'
+amt = require('persistent-hash-trie')
 
 call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -175,7 +176,7 @@ define 'jsonStringify', ->(obj)->(failCont)->(successCont)->
 # properties
 ############
 
-define 'getProperties', ->(func)-> if func().properties then L_some()(->func().properties) else L_none()
+define 'getProperties', ->(func)-> if func()?.properties then L_some()(->func().properties) else L_none()
 
 ############
 # Diagnostics
@@ -211,7 +212,7 @@ replaceErr = (err, msg)->
   err
 
 defaultEnv.write = (str)-> process.stdout.write(str)
-defaultEnv.err = (err)-> @write "Error: #{err.stack ? err}"
+defaultEnv.err = (err)-> @write "ENV Error: #{err.stack ? err}"
 defaultEnv.prompt = ->throw new Error "Environment does not support prompting!"
 
 monadModeSync = false
@@ -223,6 +224,8 @@ withSyncModeDo = (newMode, block)->
   monadModeSync = newMode
   try
     block()
+  catch err
+    console.log "ERR: #{err.stack}"
   finally
     #if !monadModeSync && oldMode then console.log "REENABLING SYNC"
     #monadModeSync = oldMode
@@ -266,7 +269,7 @@ newRunMonad = (monad, env, cont, contStack)->
   catch err
     err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}...\n#{err.message}"
     console.log err.stack
-    (cont ? identity) err
+    if env.errorHandlers.length then env.errorHandlers.pop() err
 
 class Monad
   toString: -> "Monad: #{@cmd.toString()}"
@@ -288,6 +291,24 @@ define 'bind', ->(m)->(binding)->
   bindMonad
 
 values = {}
+
+#
+# Error handling
+#
+define 'protect', ->(value)->
+  makeMonad (env, cont)->
+    hnd = (err)->
+      console.log "PROTECTED ERROR: #{err.stack}"
+      cont left err.stack
+    env.errorHandlers.push hnd
+    runMonad value(), env, ((result)->
+      #console.log "PROTECT CONTINUING WITH RESULT: #{result}"
+      if env.errorHandlers.length
+        if env.errorHandlers[env.errorHandlers.length - 1] == hnd then env.errorHandlers.pop()
+        else if _.contains(env.errorHandlers, hnd)
+          while env.errorHandlers[env.errorHandlers.length - 1] != hnd
+            env.errorHandlers.pop()
+      cont right result), []
 
 #
 # ACTORS
@@ -371,24 +392,32 @@ define 'getS', ->(state)->
 define 'setS', ->(state)->(value)->
   makeSyncMonad (env, cont)->
     state().value = value()
-    cont _false
+    cont _true
 
 setValue 'macros', Nil
 
 define 'defMacro', ->(name)->(def)->
   makeSyncMonad (env, cont)->
     values.macros = cons cons(name(), def()), values.macros
-    cont _false
+    cont _true
 
 define 'funcs', ->
   makeSyncMonad (env, cont)->
     console.log "Leisure functions:\n#{_(global.leisureFuncNames.toArray()).sort().join '\n'}"
-    cont _false
+    cont _true
 
 define 'funcSrc', ->(func)->
   if typeof func() == 'function' && func().src then some func().src else none
 
 define 'ast2Json', ->(ast)-> JSON.stringify ast2Json ast()
+
+define 'override', ->(name)->(newFunc)->
+  makeSyncMonad (env, cont)->
+    n = "L_#{nameSub name()}"
+    oldDef = global[n]
+    if !oldDef then throw new Error("No definition for #{name()}")
+    global[n] = -> newFunc()(oldDef)
+    cont _true
 
 #######################
 # IO
@@ -399,12 +428,12 @@ define 'print', ->(msg)->
     m = msg()
     #env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
     env.write ("#{env.presentValue m}\n")
-    cont _false
+    cont _true
 
 define 'write', ->(msg)->
   makeSyncMonad (env, cont)->
     env.write env.presentValue msg()
-    cont _false
+    cont _true
 
 define 'readFile', ->(name)->
   makeMonad (env, cont)->
@@ -487,6 +516,59 @@ subcurry = (arity, func, args)->
     if arity == 1 then func(args) else subcurry arity - 1, func, args
 
 #######################
+# AMTs
+#######################
+
+makeHamt = (hamt)->
+  t = setDataType (->), 'hamt'
+  t.hamt = hamt
+  t.type = 'hamt'
+  t
+
+hamt = makeHamt amt.Trie()
+
+define 'hamt', -> hamt
+
+define 'hamtAssoc', ->(key)->(value)->(hamt)-> makeHamt amt.assoc hamt().hamt, key(), value()
+
+define 'hamtFetch', ->(key)->(hamt)-> amt.get hamt().hamt, key()
+
+define 'hamtGet', ->(key)->(hamt)->
+  v = amt.get hamt().hamt, key()
+  if v != null then some v else none
+
+define 'hamtDissoc', ->(key)->(hamt)-> makeHamt amt.dissoc hamt().hamt, key()
+
+#define 'hamtOpts', ->(eq)->(hash)->
+#
+#define 'hamtAssocOpts', ->(hamt)->(key)->(value)->(opts)-> amt.assoc(hamt(), key(), value(), opts())
+#
+#define 'hamtFetchOpts', ->(hamt)->(key)->(opts)-> amt.get(hamt(), key(), opts())
+#
+#define 'hamtGetOpts', ->(hamt)->(key)->(opts)->
+#  v = amt.get(hamt(), key(), opts())
+#  if v != null then some v else none
+#
+#define 'hamtDissocOpts', ->(hamt)->(key)->(opts)-> amt.dissoc(hamt(), key(), opts())
+
+define 'hamtPairs', ->(hamt)-> nextNode L_cons()(->hamt().hamt)(->L_nil())
+
+nextNode = (stack)->
+  while true
+    if stack == L_nil() then return stack
+    node = L_head()(->stack)
+    stack = L_tail()(->stack)
+    switch node.type
+      when 'trie'
+        for k, child of node.children
+          do (c = child, s = stack)-> stack = L_cons()(->c)(->s)
+      when 'value' then return L_cons()(->L_cons()(->node.key)(->node.value))(->nextNode stack)
+      when 'hashmap'
+        for key, value of node.values
+          do (v = value, s = stack)-> stack = L_cons()(->v)(->s)
+      else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
+
+#######################
 # Classes for Printing
 #######################
 
@@ -523,6 +605,7 @@ root._true = _true
 root._false = _false
 root.stateValues = values
 root.runMonad = runMonad
+root.newRunMonad = newRunMonad
 root.isMonad = isMonad
 root.identity = identity
 root.setValue = setValue

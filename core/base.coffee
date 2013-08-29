@@ -27,6 +27,7 @@ root = module.exports
 defaultEnv =
   presentValue: (x)-> x
   values: {}
+  errorHandlers: []
 
 readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
 

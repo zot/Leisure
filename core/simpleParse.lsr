@@ -94,8 +94,8 @@ assertType msg type value = assert (hasType value type) (strCat (cons msg (cons 
 # nil is the same as false, but it's useful separate as a marker
 nil = \a b . b
 isNil n = hasType n nil
-head l = assertType 'head argument' cons l \h t . h
-tail l = assertType 'tail argument' cons l \h t . t
+head l = l \h t . h
+tail l = l \h t . t
 last l = isNil (tail l)
   head l
   last (tail l)
@@ -631,7 +631,7 @@ runParseFilters filters line = filters
   line
 
 isBlockStart tok = and
-  isToken tok
+  or (isToken tok) (isString tok)
   contains blockStarts (strTokenString tok)
 
 # macs is an assoc-list (list of (name . definition))
