@@ -979,7 +979,7 @@ filterLambda code func = code \h t . cons h
     filterApplies t func
     filterLambda t func
 
-setValue 'listMacros' ['[']
+setValue 'listMacros' ['[' '{' 'hamt{']
 
 addParseFilter listFilter
 
