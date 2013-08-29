@@ -177,7 +177,7 @@ index list el = find (\item . == el item) list
 ############
 # ASSOC LISTS
 ############
-assertAlist msg value result = assertLog (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result
+assertAlist msg value result = assert (isAlist value) (strCat (cons msg (cons ' should be a association list, but it is not; its type is ' (cons (getType value) (cons ': ' (cons (show value) nil)))))) result
 acons k v alist = assertAlist "acons alist" alist (\@ type cons . \f . \@ assoc true . f (cons k v) alist)
 assoc k alist  = find (\el . eq k (head el)) alist (\cell . cell \head tail . some tail) none
 rassoc v alist = find (\el . eq v (tail el)) alist (\cell . cell \head tail . some head) none
@@ -994,10 +994,11 @@ defMacro 'hamt{' \list . list \h t . hamtify h
 hamtPair pair t = hamtAssoc (head pair) (tail pair) t
 
 hamtify list = list
-  #\h t D . [['hamtPair' h | hamtify t]]
-  \h t D . and (isCons h) (or (isTokenString (head h) 'cons') (isTokenString (head h) ':'))
-    [['hamtAssoc' (head (tail h)) (head (tail (tail h))) | hamtify t]]
-    [['hamtPair' h | hamtify t]]
+  \h t D . isTokenString h '|'
+    cons t nil
+    and (isCons h) (or (isTokenString (head h) 'cons') (isTokenString (head h) ':'))
+      [['hamtAssoc' (head (tail h)) (head (tail (tail h))) | hamtify t]]
+      [['hamtPair' h | hamtify t]]
   ['hamt']
 
 defTokenPack 'list' [
