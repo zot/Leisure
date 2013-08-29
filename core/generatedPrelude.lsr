@@ -186,6 +186,7 @@ aconsPair keyValue list = \@ type cons . \f . \@ assoc true . f keyValue list
 appendAlist a b = isNil a
   b
   aconsPair (head a) (appendAlist (tail a) b)
+keys list = map (\l . head l) list
 
 getProperty func prop = getProperties func
   \props . assoc prop props

@@ -1103,6 +1103,7 @@ misrepresented as being the original software.
 }).call(this);
 
 /*
+//@ sourceMappingURL=ast.map
 */
 
 })(self)
@@ -1175,6 +1176,7 @@ misrepresented as being the original software.
 }).call(this);
 
 /*
+//@ sourceMappingURL=base.map
 */
 
 },{}],3:[function(require,module,exports){
@@ -1211,6 +1213,7 @@ misrepresented as being the original software.
 }).call(this);
 
 /*
+//@ sourceMappingURL=browserMain.map
 */
 
 },{"./ast":1,"./base":2,"./gen":4,"./generatedPrelude":5,"./marked":7,"./md":8,"./notebook":9,"./runtime":10,"./std":11}],4:[function(require,module,exports){
@@ -1488,6 +1491,7 @@ misrepresented as being the original software.
 }).call(this);
 
 /*
+//@ sourceMappingURL=gen.map
 */
 
 })(self)
@@ -3349,6 +3353,7 @@ if (typeof module !== 'undefined') {
 }).call(this);
 
 /*
+//@ sourceMappingURL=md.map
 */
 
 },{"./notebook":9}],9:[function(require,module,exports){
@@ -6201,6 +6206,7 @@ if (typeof module !== 'undefined') {
 }).call(this);
 
 /*
+//@ sourceMappingURL=notebook.map
 */
 
 })(self)
@@ -7767,6 +7773,7 @@ misrepresented as being the original software.
 }).call(this);
 
 /*
+//@ sourceMappingURL=runtime.map
 */
 
 })(require("__browserify_process"),self)
