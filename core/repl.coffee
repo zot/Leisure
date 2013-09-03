@@ -103,9 +103,9 @@ evalInput = (text, cont)->
             if isMonad result then console.log "(processing IO monad)"
             runMonad result, replEnv, cont
         catch err
-          cont err.stack
+          cont "ERROR: #{err.stack ? err}"
     catch err
-      cont err.stack
+      cont "ERROR: #{err.stack ? err}"
   else cont ''
 
 help = ->
@@ -202,7 +202,7 @@ repl = ->
             else if line.match /^!/ then console.log eval line.substring 1
             else
               evalInput line, (result)->
-                console.log L_show()(-> result)
+                console.log "RESULT: " + L_show()(-> result)
                 prompt()
               return
           catch err
