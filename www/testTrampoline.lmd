@@ -68,18 +68,27 @@ do
 *** Tests
 
 ```
+increasing x = [x | increasing x + 1]
+naturals = increasing 1
+
 tNth l n = trampolineCall (trampNth l n)
 trampNth l n = n == 0
   head l
-  trampoline
-    trampNth (tail l) n - 1
-increasing x = [x | increasing x + 1]
-naturals = increasing 1
+  trampoline trampNth (tail l) n - 1
+
+tNthTail l n = trampolineCall (trampNthTail l n)
+trampNthTail l n = n == 0
+  l
+  trampoline trampNthTail t n - 1
 
 at [1 2 3 4] 2
 tNth [1 2 3 4] 2
 at naturals 1000
 tNth naturals 1000
+at naturals 2000
+tNth naturals 2000
+at naturals 3000
+tNth naturals 3000
 at naturals 10000
 tNth naturals 10000
 ```

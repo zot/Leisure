@@ -39,9 +39,13 @@ statFile = (fileName, cont)-> defaultEnv.statFile fileName, cont
 
 class SimpyCons
   constructor: (@head, @tail)->
-  toArray: (len, array)->
-    array[len] = @head
-    if len == 0 then array else @tail.toArray len - 1, array
+  toArray: ->
+    h = @
+    array = []
+    while h != null
+      array.push h.head
+      h = h.tail
+    array
 simpyCons = (a, b)-> new SimpyCons a, b
 
 root.defaultEnv = defaultEnv

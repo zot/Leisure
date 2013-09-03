@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, left, makeHamt, makeMonad, makeSyncMonad, memo, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, right, root, runMonad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, left, makeHamt, makeMonad, makeSyncMonad, memo, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, right, root, runMonad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
     __slice = [].slice;
 
   _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons;
@@ -1389,17 +1389,14 @@ misrepresented as being the original software.
 
   define('trampolineCall', function() {
     return function(func) {
-      var count, f, ret;
+      var f, ret;
 
       f = func();
-      count = 0;
       while (true) {
         ret = f();
         if (typeof ret === 'function' && ret.trampoline) {
-          count++;
           f = f();
         } else {
-          console.log("TRAMPOLINE COUNT " + count);
           return ret;
         }
       }
@@ -1407,11 +1404,35 @@ misrepresented as being the original software.
   });
 
   define('trampoline', function() {
-    return function(cont) {
-      cont.trampoline = true;
-      return cont;
+    return function(func) {
+      var arity, f;
+
+      f = func();
+      arity = functionInfo[f.leisureName].arity;
+      return trampCurry(f, arity);
     };
   });
+
+  trampCurry = function(func, arity) {
+    return function(arg) {
+      var a, result;
+
+      a = arg();
+      if (arity > 1) {
+        return trampCurry(func(function() {
+          return a;
+        }), arity - 1);
+      } else {
+        result = function() {
+          return func(function() {
+            return a;
+          });
+        };
+        result.trampoline = true;
+        return result;
+      }
+    };
+  };
 
   ensureLeisureClass('token');
 

@@ -59,13 +59,16 @@ misrepresented as being the original software.
       this.tail = tail;
     }
 
-    SimpyCons.prototype.toArray = function(len, array) {
-      array[len] = this.head;
-      if (len === 0) {
-        return array;
-      } else {
-        return this.tail.toArray(len - 1, array);
+    SimpyCons.prototype.toArray = function() {
+      var array, h;
+
+      h = this;
+      array = [];
+      while (h !== null) {
+        array.push(h.head);
+        h = h.tail;
       }
+      return array;
     };
 
     return SimpyCons;

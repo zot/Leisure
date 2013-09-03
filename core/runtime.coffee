@@ -588,19 +588,24 @@ nextNode = (stack)->
 
 define 'trampolineCall', ->(func)->
   f = func()
-  count = 0
   while true
     ret = f()
     if typeof ret == 'function' && ret.trampoline
-      count++
       f = f()
-    else
-      console.log "TRAMPOLINE COUNT #{count}"
-      return ret
+    else return ret
 
-define 'trampoline', ->(cont)->
-  cont.trampoline = true
-  cont
+define 'trampoline', ->(func)->
+  f = func()
+  arity = functionInfo[f.leisureName].arity
+  trampCurry f, arity
+
+trampCurry = (func, arity)-> (arg)->
+  a = arg()
+  if arity > 1 then trampCurry (func ->a), arity - 1
+  else
+    result = -> func ->a
+    result.trampoline = true
+    result
 
 #######################
 # Classes for Printing
