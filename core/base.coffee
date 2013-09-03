@@ -37,8 +37,17 @@ readDir = (fileName, cont)-> defaultEnv.readDir fileName, cont
 
 statFile = (fileName, cont)-> defaultEnv.statFile fileName, cont
 
+class SimpyCons
+  constructor: (@head, @tail)->
+  toArray: (len, array)->
+    array[len] = @head
+    if len == 0 then array else @tail.toArray len - 1, array
+simpyCons = (a, b)-> new SimpyCons a, b
+
 root.defaultEnv = defaultEnv
 root.readFile = readFile
 root.readDir = readDir
 root.writeFile = writeFile
 root.statFile = statFile
+root.SimpyCons = SimpyCons
+root.simpyCons = simpyCons

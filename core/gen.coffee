@@ -23,6 +23,9 @@ misrepresented as being the original software.
 ###
 
 {
+  simpyCons,
+} = require './base'
+{
   nameSub,
   getLitVal,
   getRefName,
@@ -65,11 +68,7 @@ genUniq = (ast, names, uniq)->
   switch ast.constructor
     when Leisure_lit then JSON.stringify getLitVal ast
     when Leisure_ref then "#{uniqName (getRefName ast), uniq}()"
-    when Leisure_lambda
-      name = getLambdaVar ast
-      u = addUniq name, names, uniq
-      n = cons name, names
-      addLambdaProperties ast, "function(#{uniqName name, u}){return #{genUniq (getLambdaBody ast), n, u}}"
+    when Leisure_lambda then genLambda ast, names, uniq, 0
     when Leisure_apply then "#{genUniq (getApplyFunc ast), names, uniq}(#{genApplyArg (getApplyArg ast), names, uniq})"
     when Leisure_let then "(function(){\n#{genLets ast, names, uniq}})()"
     when Leisure_anno
@@ -84,6 +83,12 @@ genUniq = (ast, names, uniq)->
           "define('#{funcName}', (function(){return #{genned}}), #{arity}, #{JSON.stringify src})"
         else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
+
+genLambda = (ast, names, uniq, count)->
+  name = getLambdaVar ast
+  u = addUniq name, names, uniq
+  n = cons name, names
+  addLambdaProperties ast, "function(#{uniqName name, u}){return #{genUniq (getLambdaBody ast), n, u}}"
 
 specialAnnotations = ['type', 'dataType', 'define']
 
@@ -186,4 +191,9 @@ define 'runAst', ->(ast)->
   catch err
     L_parseErr()(->"\n\nParse error: " + err.toString() + "\nAST: ")(ast)
 
+curry = (func, args, pos)->
+  if pos == func.length then func args.toArray(func.length - 1, [])...
+  else (arg)-> curry func, simpyCons(arg, args), pos + 1
+
 root.gen = gen
+root.curry = curry

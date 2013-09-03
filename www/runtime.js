@@ -25,10 +25,10 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Monad, Nil, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, left, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, right, root, runMonad, setDataType, setType, setValue, setWarnAsync, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, left, makeHamt, makeMonad, makeSyncMonad, memo, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, right, root, runMonad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
     __slice = [].slice;
 
-  _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv;
+  _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons;
 
   _ref1 = require('./ast'), define = _ref1.define, cons = _ref1.cons, Nil = _ref1.Nil, head = _ref1.head, tail = _ref1.tail, getType = _ref1.getType, getDataType = _ref1.getDataType, ast2Json = _ref1.ast2Json, ensureLeisureClass = _ref1.ensureLeisureClass, setType = _ref1.setType, setDataType = _ref1.setDataType, functionInfo = _ref1.functionInfo, nameSub = _ref1.nameSub;
 
@@ -1339,71 +1339,79 @@ misrepresented as being the original software.
     };
   });
 
+  memo = function(func) {
+    return function() {
+      return func.memo || (func.memo = func());
+    };
+  };
+
   define('hamtPairs', function() {
     return function(hamt) {
-      return nextNode(L_cons()(function() {
-        return hamt().hamt;
-      })(function() {
-        return L_nil();
-      }));
+      return nextNode(simpyCons(hamt().hamt, null));
     };
   });
 
   nextNode = function(stack) {
-    var child, k, key, node, value, _fn, _fn1, _ref2, _ref3;
+    var child, k, key, node, value, _ref2, _ref3;
 
-    while (true) {
-      if (stack === L_nil()) {
-        return stack;
-      }
-      node = L_head()(function() {
-        return stack;
-      });
-      stack = L_tail()(function() {
-        return stack;
-      });
-      switch (node.type) {
-        case 'trie':
-          _ref2 = node.children;
-          _fn = function(c, s) {
-            return stack = L_cons()(function() {
-              return c;
-            })(function() {
-              return s;
-            });
-          };
-          for (k in _ref2) {
-            child = _ref2[k];
-            _fn(child, stack);
-          }
-          break;
-        case 'value':
-          return L_acons()(function() {
-            return node.key;
-          })(function() {
-            return node.value;
-          })(function() {
-            return nextNode(stack);
-          });
-        case 'hashmap':
-          _ref3 = node.values;
-          _fn1 = function(v, s) {
-            return stack = L_cons()(function() {
-              return v;
-            })(function() {
-              return s;
-            });
-          };
-          for (key in _ref3) {
-            value = _ref3[key];
-            _fn1(value, stack);
-          }
-          break;
-        default:
-          console.log("UNKNOWN HAMT NODE TYPE: " + node.type);
-      }
+    if (stack === null) {
+      return L_nil();
+    }
+    node = stack.head;
+    stack = stack.tail;
+    switch (node.type) {
+      case 'trie':
+        _ref2 = node.children;
+        for (k in _ref2) {
+          child = _ref2[k];
+          stack = simpyCons(child, stack);
+        }
+        return nextNode(stack);
+      case 'value':
+        return L_acons()(function() {
+          return node.key;
+        })(function() {
+          return node.value;
+        })(memo(function() {
+          return nextNode(stack);
+        }));
+      case 'hashmap':
+        _ref3 = node.values;
+        for (key in _ref3) {
+          value = _ref3[key];
+          stack = simpyCons(value, stack);
+        }
+        return nextNode(stack);
+      default:
+        return console.log("UNKNOWN HAMT NODE TYPE: " + node.type);
     }
   };
+
+  define('trampolineCall', function() {
+    return function(func) {
+      var count, f, ret;
+
+      f = func();
+      count = 0;
+      while (true) {
+        ret = f();
+        if (typeof ret === 'function' && ret.trampoline) {
+          count++;
+          f = f();
+        } else {
+          console.log("TRAMPOLINE COUNT " + count);
+          return ret;
+        }
+      }
+    };
+  });
+
+  define('trampoline', function() {
+    return function(cont) {
+      cont.trampoline = true;
+      return cont;
+    };
+  });
 
   ensureLeisureClass('token');
 

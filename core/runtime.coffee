@@ -28,6 +28,8 @@ misrepresented as being the original software.
   readDir,
   writeFile,
   defaultEnv,
+  SimpyCons,
+  simpyCons,
 } = root = module.exports = require './base'
 {
   define,
@@ -560,22 +562,45 @@ define 'hamtWithout', ->(key)->(hamt)-> makeHamt amt.dissoc hamt().hamt, key()
 #
 #define 'hamtDissocOpts', ->(hamt)->(key)->(opts)-> amt.dissoc(hamt(), key(), opts())
 
-define 'hamtPairs', ->(hamt)-> nextNode L_cons()(->hamt().hamt)(->L_nil())
+memo = (func)-> ->func.memo || (func.memo = func())
+
+define 'hamtPairs', ->(hamt)-> nextNode simpyCons hamt().hamt, null
 
 nextNode = (stack)->
+  if stack == null then return L_nil()
+  node = stack.head
+  stack = stack.tail
+  switch node.type
+    when 'trie'
+      for k, child of node.children
+        stack = simpyCons child, stack
+      return nextNode stack
+    when 'value' then return L_acons()(->node.key)(->node.value)(memo ->nextNode stack)
+    when 'hashmap'
+      for key, value of node.values
+        stack = simpyCons value, stack
+      return nextNode stack
+    else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
+
+#######################
+# Trampolines
+#######################
+
+define 'trampolineCall', ->(func)->
+  f = func()
+  count = 0
   while true
-    if stack == L_nil() then return stack
-    node = L_head()(->stack)
-    stack = L_tail()(->stack)
-    switch node.type
-      when 'trie'
-        for k, child of node.children
-          do (c = child, s = stack)-> stack = L_cons()(->c)(->s)
-      when 'value' then return L_acons()(->node.key)(->node.value)(->nextNode stack)
-      when 'hashmap'
-        for key, value of node.values
-          do (v = value, s = stack)-> stack = L_cons()(->v)(->s)
-      else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
+    ret = f()
+    if typeof ret == 'function' && ret.trampoline
+      count++
+      f = f()
+    else
+      console.log "TRAMPOLINE COUNT #{count}"
+      return ret
+
+define 'trampoline', ->(cont)->
+  cont.trampoline = true
+  cont
 
 #######################
 # Classes for Printing

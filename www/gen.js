@@ -25,7 +25,9 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, define, dumpAnno, gen, genApplyArg, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lcons, lconsFrom, left, letList, makeSyncMonad, memoize, nameSub, right, root, runMonad, setDataType, setType, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1;
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, curry, define, dumpAnno, gen, genApplyArg, genLambda, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lcons, lconsFrom, left, letList, makeSyncMonad, memoize, nameSub, right, root, runMonad, setDataType, setType, simpyCons, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1;
+
+  simpyCons = require('./base').simpyCons;
 
   _ref = root = module.exports = require('./ast'), nameSub = _ref.nameSub, getLitVal = _ref.getLitVal, getRefName = _ref.getRefName, getLambdaVar = _ref.getLambdaVar, getLambdaBody = _ref.getLambdaBody, getApplyFunc = _ref.getApplyFunc, getApplyArg = _ref.getApplyArg, getAnnoName = _ref.getAnnoName, getAnnoData = _ref.getAnnoData, getAnnoBody = _ref.getAnnoBody, getLetName = _ref.getLetName, getLetValue = _ref.getLetValue, getLetBody = _ref.getLetBody, Leisure_lit = _ref.Leisure_lit, Leisure_ref = _ref.Leisure_ref, Leisure_lambda = _ref.Leisure_lambda, Leisure_apply = _ref.Leisure_apply, Leisure_let = _ref.Leisure_let, Leisure_anno = _ref.Leisure_anno, setType = _ref.setType, setDataType = _ref.setDataType, cons = _ref.cons, Nil = _ref.Nil, consFrom = _ref.consFrom, define = _ref.define;
 
@@ -42,7 +44,7 @@ misrepresented as being the original software.
   };
 
   genUniq = function(ast, names, uniq) {
-    var arity, data, funcName, genned, n, name, src, u, _ref2;
+    var arity, data, funcName, genned, name, src, _ref2;
 
     switch (ast.constructor) {
       case Leisure_lit:
@@ -50,10 +52,7 @@ misrepresented as being the original software.
       case Leisure_ref:
         return "" + (uniqName(getRefName(ast), uniq)) + "()";
       case Leisure_lambda:
-        name = getLambdaVar(ast);
-        u = addUniq(name, names, uniq);
-        n = cons(name, names);
-        return addLambdaProperties(ast, "function(" + (uniqName(name, u)) + "){return " + (genUniq(getLambdaBody(ast), n, u)) + "}");
+        return genLambda(ast, names, uniq, 0);
       case Leisure_apply:
         return "" + (genUniq(getApplyFunc(ast), names, uniq)) + "(" + (genApplyArg(getApplyArg(ast), names, uniq)) + ")";
       case Leisure_let:
@@ -77,6 +76,15 @@ misrepresented as being the original software.
       default:
         return "DUR? " + ast + ", " + ast.constructor + " " + Leisure_lambda;
     }
+  };
+
+  genLambda = function(ast, names, uniq, count) {
+    var n, name, u;
+
+    name = getLambdaVar(ast);
+    u = addUniq(name, names, uniq);
+    n = cons(name, names);
+    return addLambdaProperties(ast, "function(" + (uniqName(name, u)) + "){return " + (genUniq(getLambdaBody(ast), n, u)) + "}");
   };
 
   specialAnnotations = ['type', 'dataType', 'define'];
@@ -267,7 +275,19 @@ misrepresented as being the original software.
     };
   });
 
+  curry = function(func, args, pos) {
+    if (pos === func.length) {
+      return func.apply(null, args.toArray(func.length - 1, []));
+    } else {
+      return function(arg) {
+        return curry(func, simpyCons(arg, args), pos + 1);
+      };
+    }
+  };
+
   root.gen = gen;
+
+  root.curry = curry;
 
 }).call(this);
 
