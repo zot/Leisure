@@ -25,13 +25,17 @@ misrepresented as being the original software.
 
 
 (function() {
-  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, ensureLeisureClass, evalFunc, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getDataType, getLambdaBody, getLambdaVar, getLetBody, getLetName, getLetValue, getLitVal, getRefName, getType, head, jsType, json2Ast, json2AstEncodings, lambda, leisureAddFunc, letStr, lit, llet, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, root, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2,
+  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, ensureLeisureClass, evalFunc, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getDataType, getLambdaBody, getLambdaVar, getLetBody, getLetName, getLetValue, getLitVal, getRefName, getType, head, jsType, json2Ast, json2AstEncodings, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  root = module.exports = require('./base');
+  _ref = root = module.exports = require('./base'), resolve = _ref.resolve, lazy = _ref.lazy;
 
   _ = require('./lodash.min');
+
+  rz = resolve;
+
+  lz = lazy;
 
   charCodes = {
     "'": '$a',
@@ -64,10 +68,10 @@ misrepresented as being the original software.
   };
 
   nameSub = function(name) {
-    var code, i, s, _i, _ref;
+    var code, i, s, _i, _ref1;
 
     s = '';
-    for (i = _i = 0, _ref = name.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+    for (i = _i = 0, _ref1 = name.length; 0 <= _ref1 ? _i < _ref1 : _i > _ref1; i = 0 <= _ref1 ? ++_i : --_i) {
       code = charCodes[name[i]];
       s += code != null ? code : name[i];
     }
@@ -186,7 +190,7 @@ misrepresented as being the original software.
   makeSuper('anno', 'ast');
 
   astString = function(ast) {
-    var argStr, funcStr, _ref;
+    var argStr, funcStr, _ref1;
 
     switch (getType(ast)) {
       case 'lit':
@@ -195,7 +199,7 @@ misrepresented as being the original software.
         return getRefName(ast);
       case 'apply':
         funcStr = astString(getApplyFunc(ast));
-        if ((_ref = getType(getApplyFunc(ast))) === 'lambda' || _ref === 'let') {
+        if ((_ref1 = getType(getApplyFunc(ast))) === 'lambda' || _ref1 === 'let') {
           funcStr = "(" + funcStr + ")";
         }
         argStr = astString(getApplyArg(ast));
@@ -228,8 +232,8 @@ misrepresented as being the original software.
     __extends(Leisure_BaseCons, _super);
 
     function Leisure_BaseCons() {
-      _ref = Leisure_BaseCons.__super__.constructor.apply(this, arguments);
-      return _ref;
+      _ref1 = Leisure_BaseCons.__super__.constructor.apply(this, arguments);
+      return _ref1;
     }
 
     Leisure_BaseCons.prototype.head = function() {
@@ -309,9 +313,9 @@ misrepresented as being the original software.
     };
 
     Leisure_BaseCons.prototype.elementString = function() {
-      var _ref1;
+      var _ref2;
 
-      return "" + (((_ref1 = this.head()) != null ? _ref1.constructor : void 0) === this.constructor || this.head() instanceof Leisure_nil ? '[' + this.head().elementString() + ']' : this.head()) + (this.tail() instanceof Leisure_nil ? '' : this.tail() instanceof Leisure_BaseCons ? " " + (this.tail().elementString()) : " | " + (this.tail()));
+      return "" + (((_ref2 = this.head()) != null ? _ref2.constructor : void 0) === this.constructor || this.head() instanceof Leisure_nil ? '[' + this.head().elementString() + ']' : this.head()) + (this.tail() instanceof Leisure_nil ? '' : this.tail() instanceof Leisure_BaseCons ? " " + (this.tail().elementString()) : " | " + (this.tail()));
     };
 
     Leisure_BaseCons.prototype.equals = function(other) {
@@ -364,8 +368,8 @@ misrepresented as being the original software.
     __extends(Leisure_cons, _super);
 
     function Leisure_cons() {
-      _ref1 = Leisure_cons.__super__.constructor.apply(this, arguments);
-      return _ref1;
+      _ref2 = Leisure_cons.__super__.constructor.apply(this, arguments);
+      return _ref2;
     }
 
     Leisure_cons.prototype.head = function() {
@@ -402,8 +406,8 @@ misrepresented as being the original software.
     __extends(Leisure_nil, _super);
 
     function Leisure_nil() {
-      _ref2 = Leisure_nil.__super__.constructor.apply(this, arguments);
-      return _ref2;
+      _ref3 = Leisure_nil.__super__.constructor.apply(this, arguments);
+      return _ref3;
     }
 
     Leisure_nil.prototype.isNil = function() {
@@ -499,23 +503,19 @@ misrepresented as being the original software.
   primCons = setDataType((function(a) {
     return function(b) {
       return mkProto(Leisure_cons, setType((function(f) {
-        return f()(a)(b);
+        return rz(f)(a)(b);
       }), 'cons'));
     };
   }), 'cons');
 
   Nil = mkProto(Leisure_nil, setDataType(setType((function(a) {
     return function(b) {
-      return b();
+      return rz(b);
     };
   }), 'nil'), 'nil'));
 
   cons = function(a, b) {
-    return primCons(function() {
-      return a;
-    })(function() {
-      return b;
-    });
+    return primCons(lz(a))(lz(b));
   };
 
   foldLeft = function(func, val, thing) {
@@ -587,20 +587,20 @@ misrepresented as being the original software.
 
   L_lit = setDataType((function(_x) {
     return setType((function(_f) {
-      return _f()(_x);
+      return rz(_f)(_x);
     }), 'lit');
   }), 'lit');
 
   L_ref = setDataType((function(_x) {
     return setType((function(_f) {
-      return _f()(_x);
+      return rz(_f)(_x);
     }), 'ref');
   }), 'ref');
 
   L_lambda = setDataType((function(_v) {
     return function(_f) {
       return setType((function(_g) {
-        return _g()(_v)(_f);
+        return rz(_g)(_v)(_f);
       }), 'lambda');
     };
   }), 'lambda');
@@ -608,7 +608,7 @@ misrepresented as being the original software.
   L_apply = setDataType((function(_func) {
     return function(_arg) {
       return setType((function(_f) {
-        return _f()(_func)(_arg);
+        return rz(_f)(_func)(_arg);
       }), 'apply');
     };
   }), 'apply');
@@ -617,7 +617,7 @@ misrepresented as being the original software.
     return function(_v) {
       return function(_b) {
         return setType((function(_f) {
-          return _f()(_n)(_v)(_b);
+          return rz(_f)(_n)(_v)(_b);
         }), 'let');
       };
     };
@@ -627,213 +627,161 @@ misrepresented as being the original software.
     return function(_data) {
       return function(_body) {
         return setType((function(_f) {
-          return _f()(_name)(_data)(_body);
+          return rz(_f)(_name)(_data)(_body);
         }), 'anno');
       };
     };
   }), 'anno');
 
   getType = function(f) {
-    var t, _ref3;
+    var t, _ref4;
 
     t = typeof f;
-    return (t === 'function' && (f != null ? f.type : void 0)) || ("*" + ((t === 'object' && ((_ref3 = f.constructor) != null ? _ref3.name : void 0)) || t));
+    return (t === 'function' && (f != null ? f.type : void 0)) || ("*" + ((t === 'object' && ((_ref4 = f.constructor) != null ? _ref4.name : void 0)) || t));
   };
 
-  define('getType', (function() {
-    return function(value) {
-      return getType(value());
-    };
+  define('getType', lz(function(value) {
+    return getType(rz(value));
   }), 1);
 
   getDataType = function(f) {
     return (typeof f === 'function' && f.dataType) || '';
   };
 
-  define('getDataType', (function() {
-    return function(value) {
-      return getDataType(value());
-    };
+  define('getDataType', lz(function(value) {
+    return getDataType(rz(value));
   }), 1);
 
   save = {};
 
   save.lit = lit = function(l) {
-    return L_lit(function() {
-      return l;
-    });
+    return L_lit(lz(l));
   };
 
   save.ref = ref = function(r) {
-    return L_ref(function() {
-      return r;
-    });
+    return L_ref(lz(r));
   };
 
   save.lambda = lambda = function(v, body) {
-    return L_lambda(function() {
-      return v;
-    })(function() {
-      return body;
-    });
+    return L_lambda(lz(v))(lz(body));
   };
 
   save.apply = apply = function(f, a) {
-    return L_apply(function() {
-      return f;
-    })(function() {
-      return a;
-    });
+    return L_apply(lz(f))(lz(a));
   };
 
   save.llet = llet = function(n, v, b) {
-    return L_let(function() {
-      return n;
-    })(function() {
-      return v;
-    })(function() {
-      return b;
-    });
+    return L_let(lz(n))(lz(v))(lz(b));
   };
 
   save.anno = anno = function(name, data, body) {
-    return L_anno(function() {
-      return name;
-    })(function() {
-      return data;
-    })(function() {
-      return body;
-    });
+    return L_anno(lz(name))(lz(data))(lz(body));
   };
 
   save.cons = cons;
 
   getLitVal = function(lt) {
-    return lt(function() {
-      return function(v) {
-        return v();
-      };
-    });
+    return lt(lz(function(v) {
+      return rz(v);
+    }));
   };
 
   getRefName = function(rf) {
-    return rf(function() {
-      return function(v) {
-        return v();
-      };
-    });
+    return rf(lz(function(v) {
+      return rz(v);
+    }));
   };
 
   getLambdaVar = function(lam) {
-    return lam(function() {
-      return function(v) {
-        return function(b) {
-          return v();
-        };
+    return lam(lz(function(v) {
+      return function(b) {
+        return rz(v);
       };
-    });
+    }));
   };
 
   getLambdaBody = function(lam) {
-    return lam(function() {
-      return function(v) {
-        return function(b) {
-          return b();
-        };
+    return lam(lz(function(v) {
+      return function(b) {
+        return rz(b);
       };
-    });
+    }));
   };
 
   getApplyFunc = function(apl) {
-    return apl(function() {
-      return function(a) {
-        return function(b) {
-          return a();
-        };
+    return apl(lz(function(a) {
+      return function(b) {
+        return rz(a);
       };
-    });
+    }));
   };
 
   getApplyArg = function(apl) {
-    return apl(function() {
-      return function(a) {
-        return function(b) {
-          return b();
-        };
+    return apl(lz(function(a) {
+      return function(b) {
+        return rz(b);
       };
-    });
+    }));
   };
 
   getLetName = function(lt) {
-    return lt(function() {
-      return function(n) {
-        return function(v) {
-          return function(b) {
-            return n();
-          };
+    return lt(lz(function(n) {
+      return function(v) {
+        return function(b) {
+          return rz(n);
         };
       };
-    });
+    }));
   };
 
   getLetValue = function(lt) {
-    return lt(function() {
-      return function(n) {
-        return function(v) {
-          return function(b) {
-            return v();
-          };
+    return lt(lz(function(n) {
+      return function(v) {
+        return function(b) {
+          return rz(v);
         };
       };
-    });
+    }));
   };
 
   getLetBody = function(lt) {
-    return lt(function() {
-      return function(n) {
-        return function(v) {
-          return function(b) {
-            return b();
-          };
+    return lt(lz(function(n) {
+      return function(v) {
+        return function(b) {
+          return rz(b);
         };
       };
-    });
+    }));
   };
 
   getAnnoName = function(anno) {
-    return anno(function() {
-      return function(name) {
-        return function(data) {
-          return function(body) {
-            return name();
-          };
+    return anno(lz(function(name) {
+      return function(data) {
+        return function(body) {
+          return rz(name);
         };
       };
-    });
+    }));
   };
 
   getAnnoData = function(anno) {
-    return anno(function() {
-      return function(name) {
-        return function(data) {
-          return function(body) {
-            return data();
-          };
+    return anno(lz(function(name) {
+      return function(data) {
+        return function(body) {
+          return rz(data);
         };
       };
-    });
+    }));
   };
 
   getAnnoBody = function(anno) {
-    return anno(function() {
-      return function(name) {
-        return function(data) {
-          return function(body) {
-            return body();
-          };
+    return anno(lz(function(name) {
+      return function(data) {
+        return function(body) {
+          return rz(body);
         };
       };
-    });
+    }));
   };
 
   json2AstEncodings = {
@@ -967,9 +915,9 @@ misrepresented as being the original software.
   };
 
   ast2Json = function(ast) {
-    var _ref3;
+    var _ref4;
 
-    if (ast2JsonEncodings[(_ref3 = ast.constructor) != null ? _ref3.name : void 0]) {
+    if (ast2JsonEncodings[(_ref4 = ast.constructor) != null ? _ref4.name : void 0]) {
       return ast2JsonEncodings[ast.constructor.name](ast);
     } else {
       return ast;
@@ -978,13 +926,13 @@ misrepresented as being the original software.
 
   define('json2Ast', (function() {
     return function(json) {
-      return json2Ast(JSON.parse(json()));
+      return json2Ast(JSON.parse(rz(json)));
     };
   }));
 
   define('ast2Json', (function() {
     return function(ast) {
-      return JSON.stringify(ast2Json(ast()));
+      return JSON.stringify(ast2Json(rz(ast)));
     };
   }));
 

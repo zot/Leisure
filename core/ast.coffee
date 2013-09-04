@@ -22,8 +22,14 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-root = module.exports = require './base'
+{
+  resolve,
+  lazy,
+} = root = module.exports = require './base'
 _ = require('./lodash.min')
+
+rz = resolve
+lz = lazy
 
 
 ######
@@ -230,9 +236,9 @@ throwError = (msg)->
 
 checkType = (value, type)-> if !(value instanceof type) then throwError("Type error: expected type: #{type}, but got: #{jsType value}")
 
-primCons = setDataType(((a)->(b)-> mkProto Leisure_cons, setType ((f)-> f()(a)(b)), 'cons'), 'cons')
-Nil = mkProto Leisure_nil, setDataType(setType(((a)->(b)->b()), 'nil'), 'nil')
-cons = (a, b)-> primCons(->a)(->b)
+primCons = setDataType(((a)->(b)-> mkProto Leisure_cons, setType ((f)-> rz(f)(a)(b)), 'cons'), 'cons')
+Nil = mkProto Leisure_nil, setDataType(setType(((a)->(b)->rz b), 'nil'), 'nil')
+cons = (a, b)-> primCons(lz a)(lz b)
 
 foldLeft = (func, val, thing)->
   if thing instanceof Leisure_cons then thing.foldl func, val
@@ -301,44 +307,44 @@ define = (name, func, arity, src, method) ->
 #  name, data, body -- associates a name and data with a body of code
 #  You can nest them, so body could be another annotation
 
-L_lit = setDataType ((_x)->setType ((_f)-> _f()(_x)), 'lit'), 'lit'
-L_ref = setDataType ((_x)->setType ((_f)-> _f()(_x)), 'ref'), 'ref'
-L_lambda = setDataType ((_v)-> (_f)-> setType ((_g)-> _g()(_v)(_f)), 'lambda'), 'lambda'
-L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> _f()(_func)(_arg)), 'apply'), 'apply'
-L_let = setDataType ((_n)-> (_v)-> (_b)-> setType ((_f)-> _f()(_n)(_v)(_b)), 'let'), 'let'
-L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> _f()(_name)(_data)(_body)), 'anno'), 'anno'
+L_lit = setDataType ((_x)->setType ((_f)-> rz(_f)(_x)), 'lit'), 'lit'
+L_ref = setDataType ((_x)->setType ((_f)-> rz(_f)(_x)), 'ref'), 'ref'
+L_lambda = setDataType ((_v)-> (_f)-> setType ((_g)-> rz(_g)(_v)(_f)), 'lambda'), 'lambda'
+L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
+L_let = setDataType ((_n)-> (_v)-> (_b)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)), 'let'), 'let'
+L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
 
 getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{(t == 'object' && f.constructor?.name) || t}"
 
-define 'getType', (->(value)-> getType value()), 1
+define 'getType', (lz (value)-> getType rz value), 1
 
 getDataType = (f)-> (typeof f == 'function' && f.dataType) || ''
 
-define 'getDataType', (->(value)-> getDataType value()), 1
+define 'getDataType', (lz (value)-> getDataType rz value), 1
 
 save = {}
 
-save.lit = lit = (l)-> L_lit(-> l)
-save.ref = ref = (r)-> L_ref(-> r)
-save.lambda = lambda = (v, body)->L_lambda(-> v)(-> body)
-save.apply = apply = (f, a)->L_apply(-> f)(-> a)
-save.llet = llet = (n, v, b)->L_let(-> n)(-> v)(-> b)
-save.anno = anno = (name, data, body)-> L_anno(-> name)(-> data)(-> body)
+save.lit = lit = (l)-> L_lit(lz l)
+save.ref = ref = (r)-> L_ref(lz r)
+save.lambda = lambda = (v, body)->L_lambda(lz v)(lz body)
+save.apply = apply = (f, a)->L_apply(lz f)(lz a)
+save.llet = llet = (n, v, b)->L_let(lz n)(lz v)(lz b)
+save.anno = anno = (name, data, body)-> L_anno(lz name)(lz data)(lz body)
 save.cons = cons
-getLitVal = (lt)-> lt ->(v)-> v()
-getRefName = (rf)-> rf ->(v)-> v()
-getLambdaVar = (lam)-> lam ->(v)->(b)-> v()
-getLambdaBody = (lam)-> lam ->(v)->(b)-> b()
-getApplyFunc = (apl)-> apl ->(a)->(b)-> a()
-getApplyArg = (apl)-> apl ->(a)->(b)-> b()
-getLetName = (lt)-> lt -> (n)->(v)->(b)-> n()
-getLetValue = (lt)-> lt -> (n)->(v)->(b)-> v()
-getLetBody = (lt)-> lt -> (n)->(v)->(b)-> b()
-getAnnoName = (anno)-> anno -> (name)->(data)->(body)-> name()
-getAnnoData = (anno)-> anno -> (name)->(data)->(body)-> data()
-getAnnoBody = (anno)-> anno -> (name)->(data)->(body)-> body()
+getLitVal = (lt)-> lt lz (v)-> rz v
+getRefName = (rf)-> rf lz (v)-> rz v
+getLambdaVar = (lam)-> lam lz (v)->(b)-> rz v
+getLambdaBody = (lam)-> lam lz (v)->(b)-> rz b
+getApplyFunc = (apl)-> apl lz (a)->(b)-> rz a
+getApplyArg = (apl)-> apl lz (a)->(b)-> rz b
+getLetName = (lt)-> lt lz (n)->(v)->(b)-> rz n
+getLetValue = (lt)-> lt lz (n)->(v)->(b)-> rz v
+getLetBody = (lt)-> lt lz (n)->(v)->(b)-> rz b
+getAnnoName = (anno)-> anno lz (name)->(data)->(body)-> rz name
+getAnnoData = (anno)-> anno lz (name)->(data)->(body)-> rz data
+getAnnoBody = (anno)-> anno lz (name)->(data)->(body)-> rz body
 
 ######
 ###### JSON-to-AST
@@ -401,8 +407,8 @@ ast2Json = (ast)->
   if ast2JsonEncodings[ast.constructor?.name] then ast2JsonEncodings[ast.constructor.name] ast else ast
 
 # Leisure interface to the JSON AST codec
-define 'json2Ast', (-> (json)-> json2Ast JSON.parse json())
-define 'ast2Json', (-> (ast)-> JSON.stringify ast2Json ast())
+define 'json2Ast', (-> (json)-> json2Ast JSON.parse rz json)
+define 'ast2Json', (-> (ast)-> JSON.stringify ast2Json rz ast)
 
 consFrom = (array, i)->
   i = i || 0

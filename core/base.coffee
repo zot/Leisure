@@ -31,6 +31,8 @@ defaultEnv =
 
 global.resolve = (value)-> if typeof value == 'function' then value() else value
 
+lazy = (l)-> ->l
+
 readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
 
 writeFile = (fileName, data, cont)-> defaultEnv.writeFile fileName, data, cont
@@ -57,3 +59,5 @@ root.writeFile = writeFile
 root.statFile = statFile
 root.SimpyCons = SimpyCons
 root.simpyCons = simpyCons
+root.resolve = global.resolve
+root.lazy = lazy

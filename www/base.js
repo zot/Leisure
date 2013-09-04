@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var SimpyCons, defaultEnv, readDir, readFile, root, simpyCons, statFile, writeFile;
+  var SimpyCons, defaultEnv, lazy, readDir, readFile, root, simpyCons, statFile, writeFile;
 
   root = module.exports;
 
@@ -43,6 +43,12 @@ misrepresented as being the original software.
     } else {
       return value;
     }
+  };
+
+  lazy = function(l) {
+    return function() {
+      return l;
+    };
   };
 
   readFile = function(fileName, cont) {
@@ -100,6 +106,10 @@ misrepresented as being the original software.
   root.SimpyCons = SimpyCons;
 
   root.simpyCons = simpyCons;
+
+  root.resolve = global.resolve;
+
+  root.lazy = lazy;
 
 }).call(this);
 

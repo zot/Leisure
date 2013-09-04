@@ -25,10 +25,10 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, left, makeHamt, makeMonad, makeSyncMonad, memo, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, memo, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
     __slice = [].slice;
 
-  _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons;
+  _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
 
   _ref1 = require('./ast'), define = _ref1.define, cons = _ref1.cons, Nil = _ref1.Nil, head = _ref1.head, tail = _ref1.tail, getType = _ref1.getType, getDataType = _ref1.getDataType, ast2Json = _ref1.ast2Json, ensureLeisureClass = _ref1.ensureLeisureClass, setType = _ref1.setType, setDataType = _ref1.setDataType, functionInfo = _ref1.functionInfo, nameSub = _ref1.nameSub;
 
@@ -37,6 +37,8 @@ misrepresented as being the original software.
   amt = require('persistent-hash-trie');
 
   rz = resolve;
+
+  lz = lazy;
 
   call = function() {
     var args;
@@ -60,9 +62,7 @@ misrepresented as being the original software.
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
       arg = _ref2[_i];
       res = (function(arg) {
-        return res(function() {
-          return arg;
-        });
+        return res(lz(arg));
       })(arg);
     }
     return runMonad(res, env, cont);
@@ -82,27 +82,25 @@ misrepresented as being the original software.
   };
 
   _identity = function(x) {
-    return x();
+    return rz(x);
   };
 
   _true = setType((function(a) {
     return function(b) {
-      return a();
+      return rz(a);
     };
   }), 'true');
 
   _false = setType((function(a) {
     return function(b) {
-      return b();
+      return rz(b);
     };
   }), 'false');
 
   left = function(x) {
     return setType((function(lCase) {
       return function(rCase) {
-        return lCase()(function() {
-          return x;
-        });
+        return rz(lCase)(lz(x));
       };
     }), 'left');
   };
@@ -110,9 +108,7 @@ misrepresented as being the original software.
   right = function(x) {
     return setType((function(lCase) {
       return function(rCase) {
-        return rCase()(function() {
-          return x;
-        });
+        return rz(rCase)(lz(x));
       };
     }), 'right');
   };
@@ -120,258 +116,196 @@ misrepresented as being the original software.
   some = function(x) {
     return setType((function(someCase) {
       return function(noneCase) {
-        return someCase()(function() {
-          return x;
-        });
+        return rz(someCase)(lz(x));
       };
     }), 'some');
   };
 
   none = setType((function(someCase) {
     return function(noneCase) {
-      return noneCase();
+      return rz(noneCase);
     };
   }), 'none');
 
   booleanFor = function(bool) {
     if (bool) {
-      return L_true();
+      return rz(L_true);
     } else {
-      return L_false();
+      return rz(L_false);
     }
   };
 
-  define('eq', function() {
-    return function(a) {
-      return function(b) {
-        return booleanFor(rz(a) === rz(b));
-      };
+  define('eq', lz(function(a) {
+    return function(b) {
+      return booleanFor(rz(a) === rz(b));
     };
-  });
+  }));
 
-  define('==', function() {
-    return function(a) {
-      return function(b) {
-        return booleanFor(rz(a) === rz(b));
-      };
+  define('==', lz(function(a) {
+    return function(b) {
+      return booleanFor(rz(a) === rz(b));
     };
-  });
+  }));
 
-  define('hasType', function() {
-    return function(data) {
-      return function(func) {
-        if (typeof rz(func) === 'string') {
-          return booleanFor(getType(rz(data)) === rz(func));
-        } else {
-          return booleanFor(getType(data()) === getDataType(func()));
-        }
-      };
-    };
-  });
-
-  define('getDataType', function() {
+  define('hasType', lz(function(data) {
     return function(func) {
       if (typeof rz(func) === 'string') {
-        return rz(func);
+        return booleanFor(getType(rz(data)) === rz(func));
       } else {
-        return getDataType(rz(func));
+        return booleanFor(getType(rz(data)) === getDataType(rz(func)));
       }
     };
-  });
+  }));
 
-  define('assert', function() {
-    return function(bool) {
-      return function(msg) {
-        return function(expr) {
-          return rz(bool)(expr)(function() {
-            throw new Error(rz(msg));
-          });
-        };
+  define('getDataType', lz(function(func) {
+    if (typeof rz(func) === 'string') {
+      return rz(func);
+    } else {
+      return getDataType(rz(func));
+    }
+  }));
+
+  define('assert', lz(function(bool) {
+    return function(msg) {
+      return function(expr) {
+        return rz(bool)(expr)(function() {
+          throw new Error(rz(msg));
+        });
       };
     };
-  });
+  }));
 
-  define('assertLog', function() {
-    return function(bool) {
-      return function(msg) {
-        return function(expr) {
-          return rz(bool)(expr)(function() {
-            console.log(new Error(msg()).stack);
-            console.log("LOGGED ERROR -- RESUMING EXECUTION...");
-            return rz(expr);
-          });
-        };
+  define('assertLog', lz(function(bool) {
+    return function(msg) {
+      return function(expr) {
+        return rz(bool)(expr)(function() {
+          console.log(new Error(rz(msg)).stack);
+          console.log("LOGGED ERROR -- RESUMING EXECUTION...");
+          return rz(expr);
+        });
       };
     };
-  });
+  }));
 
-  define('+', function() {
-    return function(x) {
-      return function(y) {
-        return rz(x) + rz(y);
-      };
+  define('+', lz(function(x) {
+    return function(y) {
+      return rz(x) + rz(y);
     };
-  });
+  }));
 
-  define('-', function() {
-    return function(x) {
-      return function(y) {
-        return rz(x) - rz(y);
-      };
+  define('-', lz(function(x) {
+    return function(y) {
+      return rz(x) - rz(y);
     };
-  });
+  }));
 
-  define('*', function() {
-    return function(x) {
-      return function(y) {
-        return rz(x) * rz(y);
-      };
+  define('*', lz(function(x) {
+    return function(y) {
+      return rz(x) * rz(y);
     };
-  });
+  }));
 
-  define('/', function() {
-    return function(x) {
-      return function(y) {
-        return rz(x) / rz(y);
-      };
+  define('/', lz(function(x) {
+    return function(y) {
+      return rz(x) / rz(y);
     };
-  });
+  }));
 
-  define('%', function() {
-    return function(x) {
-      return function(y) {
-        return rz(x) % rz(y);
-      };
+  define('%', lz(function(x) {
+    return function(y) {
+      return rz(x) % rz(y);
     };
-  });
+  }));
 
-  define('<', function() {
-    return function(x) {
-      return function(y) {
-        return booleanFor(rz(x) < rz(y));
-      };
+  define('<', lz(function(x) {
+    return function(y) {
+      return booleanFor(rz(x) < rz(y));
     };
-  });
+  }));
 
-  define('<=', function() {
-    return function(x) {
-      return function(y) {
-        return booleanFor(rz(x) <= rz(y));
-      };
+  define('<=', lz(function(x) {
+    return function(y) {
+      return booleanFor(rz(x) <= rz(y));
     };
-  });
+  }));
 
-  define('>', function() {
-    return function(x) {
-      return function(y) {
-        return booleanFor(rz(x) > rz(y));
-      };
+  define('>', lz(function(x) {
+    return function(y) {
+      return booleanFor(rz(x) > rz(y));
     };
-  });
+  }));
 
-  define('>=', function() {
-    return function(x) {
-      return function(y) {
-        return booleanFor(rz(x) >= rz(y));
-      };
+  define('>=', lz(function(x) {
+    return function(y) {
+      return booleanFor(rz(x) >= rz(y));
     };
-  });
+  }));
 
-  define('floor', function() {
-    return function(x) {
-      return Math.floor(rz(x));
-    };
-  });
+  define('floor', lz(function(x) {
+    return Math.floor(rz(x));
+  }));
 
-  define('ceil', function() {
-    return function(x) {
-      return Math.ceil(rz(x));
-    };
-  });
+  define('ceil', lz(function(x) {
+    return Math.ceil(rz(x));
+  }));
 
-  define('min', function() {
-    return function(x) {
-      return function(y) {
-        return Math.min(rz(x), rz(y));
-      };
+  define('min', lz(function(x) {
+    return function(y) {
+      return Math.min(rz(x), rz(y));
     };
-  });
+  }));
 
-  define('max', function() {
-    return function(x) {
-      return function(y) {
-        return Math.max(rz(x), rz(y));
-      };
+  define('max', lz(function(x) {
+    return function(y) {
+      return Math.max(rz(x), rz(y));
     };
-  });
+  }));
 
-  define('round', function() {
-    return function(x) {
-      return Math.round(rz(x));
-    };
-  });
+  define('round', lz(function(x) {
+    return Math.round(rz(x));
+  }));
 
-  define('abs', function() {
-    return function(x) {
-      return Math.abs(rz(x));
-    };
-  });
+  define('abs', lz(function(x) {
+    return Math.abs(rz(x));
+  }));
 
-  define('sqrt', function() {
-    return function(x) {
-      return Math.sqrt(rz(x));
-    };
-  });
+  define('sqrt', lz(function(x) {
+    return Math.sqrt(rz(x));
+  }));
 
-  define('acos', function() {
-    return function(x) {
-      return Math.acos(rz(x));
-    };
-  });
+  define('acos', lz(function(x) {
+    return Math.acos(rz(x));
+  }));
 
-  define('asin', function() {
-    return function(x) {
-      return Math.asin(rz(x));
-    };
-  });
+  define('asin', lz(function(x) {
+    return Math.asin(rz(x));
+  }));
 
-  define('atan', function() {
-    return function(x) {
-      return Math.atan(rz(x));
-    };
-  });
+  define('atan', lz(function(x) {
+    return Math.atan(rz(x));
+  }));
 
-  define('atan2', function() {
-    return function(x) {
-      return function(y) {
-        return Math.atan2(rz(x), rz(y));
-      };
+  define('atan2', lz(function(x) {
+    return function(y) {
+      return Math.atan2(rz(x), rz(y));
     };
-  });
+  }));
 
-  define('cos', function() {
-    return function(x) {
-      return Math.cos(rz(x));
-    };
-  });
+  define('cos', lz(function(x) {
+    return Math.cos(rz(x));
+  }));
 
-  define('log', function() {
-    return function(x) {
-      return Math.log(rz(x));
-    };
-  });
+  define('log', lz(function(x) {
+    return Math.log(rz(x));
+  }));
 
-  define('sin', function() {
-    return function(x) {
-      return Math.sin(rz(x));
-    };
-  });
+  define('sin', lz(function(x) {
+    return Math.sin(rz(x));
+  }));
 
-  define('tan', function() {
-    return function(x) {
-      return Math.tan(rz(x));
-    };
-  });
+  define('tan', lz(function(x) {
+    return Math.tan(rz(x));
+  }));
 
   define('rand', function() {
     return makeSyncMonad(function(env, cont) {
@@ -379,97 +313,73 @@ misrepresented as being the original software.
     });
   });
 
-  define('randInt', function() {
-    return function(low) {
-      return function(high) {
-        return makeSyncMonad(function(env, cont) {
-          return cont(Math.floor(rz(low) + Math.random() * rz(high)));
-        });
-      };
+  define('randInt', lz(function(low) {
+    return function(high) {
+      return makeSyncMonad(function(env, cont) {
+        return cont(Math.floor(rz(low) + Math.random() * rz(high)));
+      });
     };
-  });
+  }));
 
-  define('^', function() {
-    return function(x) {
-      return function(y) {
-        return Math.pow(rz(x), rz(y));
-      };
+  define('^', lz(function(x) {
+    return function(y) {
+      return Math.pow(rz(x), rz(y));
     };
-  });
+  }));
 
-  define('_show', function() {
-    return function(data) {
-      var _ref2;
+  define('_show', lz(function(data) {
+    var _ref2;
 
-      if ((_ref2 = typeof rz(data)) === 'string' || _ref2 === 'number' || _ref2 === 'boolean') {
-        return JSON.stringify(rz(data));
-      } else {
-        return String(rz(data));
-      }
-    };
-  });
-
-  define('strString', function() {
-    return function(data) {
+    if ((_ref2 = typeof rz(data)) === 'string' || _ref2 === 'number' || _ref2 === 'boolean') {
+      return JSON.stringify(rz(data));
+    } else {
       return String(rz(data));
-    };
-  });
+    }
+  }));
 
-  define('_strAsc', function() {
-    return function(str) {
-      return rz(str).charCodeAt(0);
-    };
-  });
+  define('strString', lz(function(data) {
+    return String(rz(data));
+  }));
 
-  define('_strChr', function() {
-    return function(i) {
-      return String.fromCharCode(rz(i));
-    };
-  });
+  define('_strAsc', lz(function(str) {
+    return rz(str).charCodeAt(0);
+  }));
 
-  define('_strAt', function() {
-    return function(str) {
-      return function(index) {
-        return str()[strCoord(str(), index())];
+  define('_strChr', lz(function(i) {
+    return String.fromCharCode(rz(i));
+  }));
+
+  define('_strAt', lz(function(str) {
+    return function(index) {
+      return rz(str)[strCoord(rz(str), rz(index))];
+    };
+  }));
+
+  define('_strStartsWith', lz(function(str) {
+    return function(prefix) {
+      return booleanFor(rz(str).substring(0, rz(prefix).length) === rz(prefix));
+    };
+  }));
+
+  define('_strLen', lz(function(str) {
+    return rz(str).length;
+  }));
+
+  define('_strToLowerCase', lz(function(str) {
+    return rz(str).toLowerCase();
+  }));
+
+  define('_strToUpperCase', lz(function(str) {
+    return rz(str).toUpperCase();
+  }));
+
+  define('_strReplace', lz(function(str) {
+    return function(pat) {
+      return function(repl) {
+        return rz(str).replace(rz(pat), rz(repl));
       };
     };
-  });
-
-  define('_strStartsWith', function() {
-    return function(str) {
-      return function(prefix) {
-        return booleanFor(str().substring(0, prefix().length) === prefix());
-      };
-    };
-  });
-
-  define('_strLen', function() {
-    return function(str) {
-      return str().length;
-    };
-  });
-
-  define('_strToLowerCase', function() {
-    return function(str) {
-      return str().toLowerCase();
-    };
-  });
-
-  define('_strToUpperCase', function() {
-    return function(str) {
-      return str().toUpperCase();
-    };
-  });
-
-  define('_strReplace', function() {
-    return function(str) {
-      return function(pat) {
-        return function(repl) {
-          return str().replace(pat(), repl());
-        };
-      };
-    };
-  });
+  }));
 
   strCoord = function(str, coord) {
     if (coord < 0) {
@@ -479,82 +389,68 @@ misrepresented as being the original software.
     }
   };
 
-  define('_strSubstring', function() {
-    return function(str) {
-      return function(start) {
-        return function(end) {
-          var a, b;
+  define('_strSubstring', lz(function(str) {
+    return function(start) {
+      return function(end) {
+        var a, b;
 
-          a = strCoord(str(), start());
-          b = strCoord(str(), end());
-          if (b < a && end() === 0) {
-            b = str().length;
-          }
-          return str().substring(a, b);
-        };
-      };
-    };
-  });
-
-  define('_strSplit', function() {
-    return function(str) {
-      return function(pat) {
-        return consFrom(str().split(pat() instanceof RegExp ? pat() : new RegExp(pat())));
-      };
-    };
-  });
-
-  define('_strCat', function() {
-    return function(list) {
-      return _.map(list().toArray(), function(el) {
-        if (typeof el === 'string') {
-          return el;
-        } else {
-          return L_show()(function() {
-            return el;
-          });
+        a = strCoord(rz(str), rz(start));
+        b = strCoord(rz(str), rz(end));
+        if (b < a && rz(end) === 0) {
+          b = rz(str).length;
         }
-      }).join('');
-    };
-  });
-
-  define('_strAdd', function() {
-    return function(s1) {
-      return function(s2) {
-        return s1() + s2();
+        return rz(str).substring(a, b);
       };
     };
-  });
+  }));
 
-  define('_strMatch', function() {
-    return function(str) {
-      return function(pat) {
-        var groups, m, pos;
+  define('_strSplit', lz(function(str) {
+    return function(pat) {
+      return consFrom(rz(str).split(rz(pat) instanceof RegExp ? rz(pat) : new RegExp(rz(pat))));
+    };
+  }));
 
-        m = str().match((pat() instanceof RegExp ? pat() : new RegExp(pat())));
-        if (m) {
-          groups = [];
-          pos = 1;
-          while (m[pos]) {
-            groups.push(m[pos++]);
-          }
-          if (typeof m.index !== 'undefined') {
-            return consFrom([m[0], consFrom(groups), m.index, m.input]);
-          } else {
-            return consFrom([m[0], consFrom(groups)]);
-          }
-        } else {
-          return Nil;
+  define('_strCat', lz(function(list) {
+    return _.map(rz(list).toArray(), function(el) {
+      if (typeof el === 'string') {
+        return el;
+      } else {
+        return rz(L_show)(lz(el));
+      }
+    }).join('');
+  }));
+
+  define('_strAdd', lz(function(s1) {
+    return function(s2) {
+      return rz(s1) + rz(s2);
+    };
+  }));
+
+  define('_strMatch', lz(function(str) {
+    return function(pat) {
+      var groups, m, pos;
+
+      m = rz(str).match((rz(pat) instanceof RegExp ? rz(pat) : new RegExp(rz(pat))));
+      if (m) {
+        groups = [];
+        pos = 1;
+        while (m[pos]) {
+          groups.push(m[pos++]);
         }
-      };
+        if (typeof m.index !== 'undefined') {
+          return consFrom([m[0], consFrom(groups), m.index, m.input]);
+        } else {
+          return consFrom([m[0], consFrom(groups)]);
+        }
+      } else {
+        return Nil;
+      }
     };
-  });
+  }));
 
-  define('_strToList', function() {
-    return function(str) {
-      return strToList(str());
-    };
-  });
+  define('_strToList', lz(function(str) {
+    return strToList(rz(str));
+  }));
 
   strToList = function(str) {
     if (str === '') {
@@ -564,11 +460,9 @@ misrepresented as being the original software.
     }
   };
 
-  define('_strFromList', function() {
-    return function(list) {
-      return strFromList(list());
-    };
-  });
+  define('_strFromList', lz(function(list) {
+    return strFromList(rz(list));
+  }));
 
   strFromList = function(list) {
     if (list instanceof Leisure_nil) {
@@ -578,86 +472,64 @@ misrepresented as being the original software.
     }
   };
 
-  define('_regexp', function() {
-    return function(str) {
-      return new RegExp(str());
-    };
-  });
+  define('_regexp', lz(function(str) {
+    return new RegExp(rz(str));
+  }));
 
-  define('_regexpFlags', function() {
-    return function(str) {
-      return function(flags) {
-        return new RegExp(str(), flags());
+  define('_regexpFlags', lz(function(str) {
+    return function(flags) {
+      return new RegExp(rz(str), rz(flags));
+    };
+  }));
+
+  define('_jsonParse', lz(function(str) {
+    return function(failCont) {
+      return function(successCont) {
+        var err, p;
+
+        try {
+          p = JSON.parse(rz(str));
+          return rz(successCont)(lz(p));
+        } catch (_error) {
+          err = _error;
+          return rz(failCont)(lz(err));
+        }
       };
     };
-  });
+  }));
 
-  define('_jsonParse', function() {
-    return function(str) {
-      return function(failCont) {
-        return function(successCont) {
-          var err, p;
+  define('jsonStringify', lz(function(obj) {
+    return function(failCont) {
+      return function(successCont) {
+        var err, s;
 
-          try {
-            p = JSON.parse(str());
-            return successCont()(function() {
-              return p;
-            });
-          } catch (_error) {
-            err = _error;
-            return failCont()(function() {
-              return err;
-            });
-          }
-        };
+        try {
+          s = JSON.stringify(rz(obj));
+          return rz(successCont)(lz(s));
+        } catch (_error) {
+          err = _error;
+          return rz(failCont)(lz(err));
+        }
       };
     };
-  });
+  }));
 
-  define('jsonStringify', function() {
-    return function(obj) {
-      return function(failCont) {
-        return function(successCont) {
-          var err, s;
+  define('getProperties', lz(function(func) {
+    var _ref2;
 
-          try {
-            s = JSON.stringify(obj());
-            return successCont()(function() {
-              return s;
-            });
-          } catch (_error) {
-            err = _error;
-            return failCont()(function() {
-              return err;
-            });
-          }
-        };
-      };
+    if ((_ref2 = rz(func)) != null ? _ref2.properties : void 0) {
+      return rz(L_some)(lz(rz(func).properties));
+    } else {
+      return rz(L_none);
+    }
+  }));
+
+  define('log', lz(function(str) {
+    return function(res) {
+      console.log(String(rz(str)));
+      return rz(res);
     };
-  });
-
-  define('getProperties', function() {
-    return function(func) {
-      var _ref2;
-
-      if ((_ref2 = func()) != null ? _ref2.properties : void 0) {
-        return L_some()(function() {
-          return func().properties;
-        });
-      } else {
-        return L_none();
-      }
-    };
-  });
-
-  define('log', function() {
-    return function(str) {
-      return function(res) {
-        console.log(String(str()));
-        return res();
-      };
-    };
-  });
+  }));
 
   makeMonad = function(guts) {
     var m;
@@ -764,12 +636,10 @@ misrepresented as being the original software.
           if (monad.binding) {
             contStack.push((function(bnd) {
               return function(x) {
-                return bnd(function() {
-                  return x;
-                });
+                return bnd(lz(x));
               };
-            })(monad.binding()));
-            monad = monad.monad();
+            })(rz(monad.binding)));
+            monad = rz(monad.monad);
             continue;
           } else if (!monad.sync) {
             monadModeSync = false;
@@ -815,136 +685,116 @@ misrepresented as being the original software.
     return newRunMonad(0, defaultEnv, null, monadArray);
   };
 
-  define('define', function() {
-    return function(name) {
-      return function(arity) {
-        return function(src) {
-          return function(def) {
-            return makeSyncMonad(function(env, cont) {
-              define(name(), def, arity(), src());
-              return cont(typeof L_true !== "undefined" && L_true !== null ? L_true : _true);
-            });
-          };
+  define('define', lz(function(name) {
+    return function(arity) {
+      return function(src) {
+        return function(def) {
+          return makeSyncMonad(function(env, cont) {
+            define(rz(name), def, rz(arity), rz(src));
+            return cont((typeof L_true !== "undefined" && L_true !== null ? rz(L_true) : _true));
+          });
         };
       };
     };
-  });
+  }));
 
-  define('bind', function() {
-    return function(m) {
-      return function(binding) {
-        var bindMonad;
+  define('bind', lz(function(m) {
+    return function(binding) {
+      var bindMonad;
 
-        bindMonad = makeMonad(function(env, cont) {});
-        bindMonad.monad = m;
-        bindMonad.binding = binding;
-        return bindMonad;
-      };
+      bindMonad = makeMonad(function(env, cont) {});
+      bindMonad.monad = m;
+      bindMonad.binding = binding;
+      return bindMonad;
     };
-  });
+  }));
 
   values = {};
 
-  define('protect', function() {
-    return function(value) {
-      return makeMonad(function(env, cont) {
-        var hnd;
+  define('protect', lz(function(value) {
+    return makeMonad(function(env, cont) {
+      var hnd;
 
-        hnd = function(err) {
-          console.log("PROTECTED ERROR: " + err.stack);
-          return cont(left(err.stack));
-        };
-        env.errorHandlers.push(hnd);
-        return runMonad(value(), env, (function(result) {
-          if (env.errorHandlers.length) {
-            if (env.errorHandlers[env.errorHandlers.length - 1] === hnd) {
+      hnd = function(err) {
+        console.log("PROTECTED ERROR: " + err.stack);
+        return cont(left(err.stack));
+      };
+      env.errorHandlers.push(hnd);
+      return runMonad(rz(value), env, (function(result) {
+        if (env.errorHandlers.length) {
+          if (env.errorHandlers[env.errorHandlers.length - 1] === hnd) {
+            env.errorHandlers.pop();
+          } else if (_.contains(env.errorHandlers, hnd)) {
+            while (env.errorHandlers[env.errorHandlers.length - 1] !== hnd) {
               env.errorHandlers.pop();
-            } else if (_.contains(env.errorHandlers, hnd)) {
-              while (env.errorHandlers[env.errorHandlers.length - 1] !== hnd) {
-                env.errorHandlers.pop();
-              }
             }
           }
-          return cont(right(result));
-        }), []);
-      });
-    };
-  });
+        }
+        return cont(right(result));
+      }), []);
+    });
+  }));
 
   actors = {};
 
-  define('actor', function() {
-    return function(name) {
-      return function(func) {
-        actors[name] = func;
-        func.env = {
-          values: {}
-        };
-        return func.env.__proto__ = defaultEnv;
+  define('actor', lz(function(name) {
+    return function(func) {
+      actors[name] = func;
+      func.env = {
+        values: {}
       };
+      return func.env.__proto__ = defaultEnv;
     };
-  });
+  }));
 
-  define('send', function() {
-    return function(name) {
-      return function(msg) {
-        return setTimeout((function() {
-          return runMonad(actors[name]()(msg), actors[name]().env);
-        }), 1);
-      };
+  define('send', lz(function(name) {
+    return function(msg) {
+      return setTimeout((function() {
+        return runMonad(rz(actors[name])(msg), rz(actors[name]).env);
+      }), 1);
     };
-  });
+  }));
 
-  define('hasValue', function() {
-    return function(name) {
+  define('hasValue', lz(function(name) {
+    return makeSyncMonad(function(env, cont) {
+      return cont(booleanFor(values[rz(name)] != null));
+    });
+  }));
+
+  define('getValueOr', lz(function(name) {
+    return function(defaultValue) {
       return makeSyncMonad(function(env, cont) {
-        return cont(booleanFor(values[name()] != null));
+        var _ref2;
+
+        return cont((_ref2 = values[rz(name)]) != null ? _ref2 : rz(defaultValue));
       });
     };
-  });
+  }));
 
-  define('getValueOr', function() {
-    return function(name) {
-      return function(defaultValue) {
-        return makeSyncMonad(function(env, cont) {
-          var _ref2;
+  define('getValue', lz(function(name) {
+    return makeSyncMonad(function(env, cont) {
+      if (!(rz(name) in values)) {
+        throw new Error("No value named '" + (rz(name)) + "'");
+      }
+      return cont(values[rz(name)]);
+    });
+  }));
 
-          return cont((_ref2 = values[name()]) != null ? _ref2 : defaultValue());
-        });
-      };
-    };
-  });
-
-  define('getValue', function() {
-    return function(name) {
+  define('setValue', lz(function(name) {
+    return function(value) {
       return makeSyncMonad(function(env, cont) {
-        if (!(name() in values)) {
-          throw new Error("No value named '" + (name()) + "'");
-        }
-        return cont(values[name()]);
-      });
-    };
-  });
-
-  define('setValue', function() {
-    return function(name) {
-      return function(value) {
-        return makeSyncMonad(function(env, cont) {
-          values[name()] = value();
-          return cont(_true);
-        });
-      };
-    };
-  });
-
-  define('deleteValue', function() {
-    return function(name) {
-      return makeSyncMonad(function(env, cont) {
-        delete values[name()];
+        values[rz(name)] = rz(value);
         return cont(_true);
       });
     };
-  });
+  }));
+
+  define('deleteValue', lz(function(name) {
+    return makeSyncMonad(function(env, cont) {
+      delete values[rz(name)];
+      return cont(_true);
+    });
+  }));
 
   setValue = function(key, value) {
     return values[key] = value;
@@ -954,314 +804,243 @@ misrepresented as being the original software.
     return values[key];
   };
 
-  define('envHas', function() {
-    return function(name) {
+  define('envHas', lz(function(name) {
+    return makeSyncMonad(function(env, cont) {
+      return cont(booleanFor(env.values[rz(name)] != null));
+    });
+  }));
+
+  define('envGetOr', lz(function(name) {
+    return function(defaultValue) {
       return makeSyncMonad(function(env, cont) {
-        return cont(booleanFor(env.values[name()] != null));
+        var _ref2;
+
+        return cont((_ref2 = env.values[rz(name)]) != null ? _ref2 : rz(defaultValue));
       });
     };
-  });
+  }));
 
-  define('envGetOr', function() {
-    return function(name) {
-      return function(defaultValue) {
-        return makeSyncMonad(function(env, cont) {
-          var _ref2;
+  define('envGet', lz(function(name) {
+    return makeSyncMonad(function(env, cont) {
+      if (!(rz(name) in env.values)) {
+        throw new Error("No value named '" + (rz(name)) + "'");
+      }
+      return cont(env.values[rz(name)]);
+    });
+  }));
 
-          return cont((_ref2 = env.values[name()]) != null ? _ref2 : defaultValue());
-        });
-      };
-    };
-  });
-
-  define('envGet', function() {
-    return function(name) {
+  define('envSet', lz(function(name) {
+    return function(value) {
       return makeSyncMonad(function(env, cont) {
-        if (!(name() in env.values)) {
-          throw new Error("No value named '" + (name()) + "'");
-        }
-        return cont(env.values[name()]);
-      });
-    };
-  });
-
-  define('envSet', function() {
-    return function(name) {
-      return function(value) {
-        return makeSyncMonad(function(env, cont) {
-          env.values[name()] = value();
-          return cont(_true);
-        });
-      };
-    };
-  });
-
-  define('envDelete', function() {
-    return function(name) {
-      return makeSyncMonad(function(env, cont) {
-        delete env.values[name()];
+        env.values[rz(name)] = rz(value);
         return cont(_true);
       });
     };
-  });
+  }));
 
-  define('createS', function() {
+  define('envDelete', lz(function(name) {
     return makeSyncMonad(function(env, cont) {
+      delete env.values[rz(name)];
       return cont(_true);
     });
-  });
-
-  define('getS', function() {
-    return function(state) {
-      return makeSyncMonad(function(env, cont) {
-        return cont(state().value);
-      });
-    };
-  });
-
-  define('setS', function() {
-    return function(state) {
-      return function(value) {
-        return makeSyncMonad(function(env, cont) {
-          state().value = value();
-          return cont(_true);
-        });
-      };
-    };
-  });
+  }));
 
   setValue('macros', Nil);
 
-  define('defMacro', function() {
-    return function(name) {
-      return function(def) {
-        return makeSyncMonad(function(env, cont) {
-          values.macros = cons(cons(name(), def()), values.macros);
-          return cont(_true);
-        });
-      };
+  define('defMacro', lz(function(name) {
+    return function(def) {
+      return makeSyncMonad(function(env, cont) {
+        values.macros = cons(cons(rz(name), rz(def)), values.macros);
+        return cont(_true);
+      });
     };
-  });
+  }));
 
-  define('funcs', function() {
+  define('funcs', lz(makeSyncMonad(function(env, cont) {
+    console.log("Leisure functions:\n" + (_(global.leisureFuncNames.toArray()).sort().join('\n')));
+    return cont(_true);
+  })));
+
+  define('funcSrc', lz(function(func) {
+    if (typeof rz(func) === 'function' && rz(func).src) {
+      return some(rz(func).src);
+    } else {
+      return none;
+    }
+  }));
+
+  define('ast2Json', lz(function(ast) {
+    return JSON.stringify(ast2Json(rz(ast)));
+  }));
+
+  define('override', lz(function(name) {
+    return function(newFunc) {
+      return makeSyncMonad(function(env, cont) {
+        var n, oldDef;
+
+        n = "L_" + (nameSub(rz(name)));
+        oldDef = global[n];
+        if (!oldDef) {
+          throw new Error("No definition for " + (rz(name)));
+        }
+        global[n] = function() {
+          return rz(newFunc)(oldDef);
+        };
+        return cont(_true);
+      });
+    };
+  }));
+
+  define('print', lz(function(msg) {
     return makeSyncMonad(function(env, cont) {
-      console.log("Leisure functions:\n" + (_(global.leisureFuncNames.toArray()).sort().join('\n')));
+      var m;
+
+      m = rz(msg);
+      env.write("" + (env.presentValue(m)) + "\n");
       return cont(_true);
     });
-  });
+  }));
 
-  define('funcSrc', function() {
-    return function(func) {
-      if (typeof func() === 'function' && func().src) {
-        return some(func().src);
-      } else {
-        return none;
-      }
-    };
-  });
+  define('write', lz(function(msg) {
+    return makeSyncMonad(function(env, cont) {
+      env.write(env.presentValue(rz(msg)));
+      return cont(_true);
+    });
+  }));
 
-  define('ast2Json', function() {
-    return function(ast) {
-      return JSON.stringify(ast2Json(ast()));
-    };
-  });
-
-  define('override', function() {
-    return function(name) {
-      return function(newFunc) {
-        return makeSyncMonad(function(env, cont) {
-          var n, oldDef;
-
-          n = "L_" + (nameSub(name()));
-          oldDef = global[n];
-          if (!oldDef) {
-            throw new Error("No definition for " + (name()));
-          }
-          global[n] = function() {
-            return newFunc()(oldDef);
-          };
-          return cont(_true);
-        });
-      };
-    };
-  });
-
-  define('print', function() {
-    return function(msg) {
-      return makeSyncMonad(function(env, cont) {
-        var m;
-
-        m = msg();
-        env.write("" + (env.presentValue(m)) + "\n");
-        return cont(_true);
+  define('readFile', lz(function(name) {
+    return makeMonad(function(env, cont) {
+      return readFile(rz(name), function(err, contents) {
+        return cont((err ? left(err.stack) : right(contents)));
       });
-    };
-  });
+    });
+  }));
 
-  define('write', function() {
-    return function(msg) {
-      return makeSyncMonad(function(env, cont) {
-        env.write(env.presentValue(msg()));
-        return cont(_true);
+  define('readDir', lz(function(dir) {
+    return makeMonad(function(env, cont) {
+      return readDir(rz(dir), function(err, files) {
+        return cont((err ? left(err.stack) : right(files)));
       });
-    };
-  });
+    });
+  }));
 
-  define('readFile', function() {
-    return function(name) {
+  define('writeFile', lz(function(name) {
+    return function(data) {
       return makeMonad(function(env, cont) {
-        return readFile(name(), function(err, contents) {
+        return writeFile(rz(name), rz(data), function(err, contents) {
           return cont((err ? left(err.stack) : right(contents)));
         });
       });
     };
-  });
+  }));
 
-  define('readDir', function() {
-    return function(dir) {
-      return makeMonad(function(env, cont) {
-        return readDir(dir(), function(err, files) {
-          return cont((err ? left(err.stack) : right(files)));
-        });
+  define('statFile', lz(function(file) {
+    return makeMonad(function(env, cont) {
+      return statFile(rz(file), function(err, stats) {
+        return cont((err ? left(err.stack) : right(stats)));
       });
-    };
-  });
-
-  define('writeFile', function() {
-    return function(name) {
-      return function(data) {
-        return makeMonad(function(env, cont) {
-          return writeFile(name(), data(), function(err, contents) {
-            return cont((err ? left(err.stack) : right(contents)));
-          });
-        });
-      };
-    };
-  });
-
-  define('statFile', function() {
-    return function(file) {
-      return makeMonad(function(env, cont) {
-        return statFile(file(), function(err, stats) {
-          return cont((err ? left(err.stack) : right(stats)));
-        });
-      });
-    };
-  });
-
-  define('prompt', function() {
-    return function(msg) {
-      return makeMonad(function(env, cont) {
-        return env.prompt(String(msg()), function(input) {
-          return cont(input);
-        });
-      });
-    };
-  });
-
-  define('rand', function() {
-    return makeSyncMonad(function(env, cont) {
-      return cont(Math.random());
     });
-  });
+  }));
 
-  define('js', function() {
-    return function(str) {
-      return makeSyncMonad(function(env, cont) {
-        var err, result;
-
-        try {
-          result = eval(str());
-          return cont(right(result));
-        } catch (_error) {
-          err = _error;
-          return cont(left(err));
-        }
+  define('prompt', lz(function(msg) {
+    return makeMonad(function(env, cont) {
+      return env.prompt(String(rz(msg)), function(input) {
+        return cont(input);
       });
-    };
-  });
+    });
+  }));
 
-  define('delay', function() {
-    return function(timeout) {
-      return makeMonad(function(env, cont) {
-        return setTimeout((function() {
-          return cont(_true);
-        }), timeout());
-      });
-    };
-  });
+  define('rand', lz(makeSyncMonad(function(env, cont) {
+    return cont(Math.random());
+  })));
 
-  define('altDef', function() {
-    return function(name) {
-      return function(alt) {
-        return function(arity) {
-          return function(def) {
-            return makeMonad(function(env, cont) {
-              var alts, i, info, newDef, nm;
+  define('js', lz(function(str) {
+    return makeSyncMonad(function(env, cont) {
+      var err, result;
 
-              info = functionInfo[name()];
-              if (!info) {
-                info = functionInfo[name()] = {
-                  src: '',
-                  arity: -1,
-                  alts: {},
-                  altList: []
-                };
+      try {
+        result = eval(rz(str));
+        return cont(right(result));
+      } catch (_error) {
+        err = _error;
+        return cont(left(err));
+      }
+    });
+  }));
+
+  define('delay', lz(function(timeout) {
+    return makeMonad(function(env, cont) {
+      return setTimeout((function() {
+        return cont(_true);
+      }), rz(timeout));
+    });
+  }));
+
+  define('altDef', lz(function(name) {
+    return function(alt) {
+      return function(arity) {
+        return function(def) {
+          return makeMonad(function(env, cont) {
+            var alts, i, info, newDef, nm;
+
+            info = functionInfo[rz(name)];
+            if (!info) {
+              info = functionInfo[rz(name)] = {
+                src: '',
+                arity: -1,
+                alts: {},
+                altList: []
+              };
+            }
+            if (!info.alts[rz(alt)]) {
+              info.altList.push(rz(alt));
+            }
+            info.alts[rz(alt)] = def;
+            alts = (function() {
+              var _i, _len, _ref2, _results;
+
+              _ref2 = info.altList;
+              _results = [];
+              for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+                i = _ref2[_i];
+                _results.push(info.alts[i]);
               }
-              if (!info.alts[alt()]) {
-                info.altList.push(alt());
+              return _results;
+            })();
+            newDef = curry(rz(arity), function(args) {
+              var arg, opt, res, _i, _j, _k, _len, _len1, _len2;
+
+              for (_i = 0, _len = alts.length; _i < _len; _i++) {
+                alt = alts[_i];
+                opt = rz(alt);
+                for (_j = 0, _len1 = args.length; _j < _len1; _j++) {
+                  arg = args[_j];
+                  opt = opt(arg);
+                }
+                if (getType(opt) === 'some') {
+                  return opt(lz(function(x) {
+                    return rz(x);
+                  }))(lz(_false));
+                }
               }
-              info.alts[alt()] = def;
-              alts = (function() {
-                var _i, _len, _ref2, _results;
-
-                _ref2 = info.altList;
-                _results = [];
-                for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-                  i = _ref2[_i];
-                  _results.push(info.alts[i]);
+              if (info.mainDef) {
+                res = rz(info.mainDef);
+                for (_k = 0, _len2 = args.length; _k < _len2; _k++) {
+                  arg = args[_k];
+                  res = res(arg);
                 }
-                return _results;
-              })();
-              newDef = curry(arity(), function(args) {
-                var arg, opt, res, _i, _j, _k, _len, _len1, _len2;
-
-                for (_i = 0, _len = alts.length; _i < _len; _i++) {
-                  alt = alts[_i];
-                  opt = alt();
-                  for (_j = 0, _len1 = args.length; _j < _len1; _j++) {
-                    arg = args[_j];
-                    opt = opt(arg);
-                  }
-                  if (getType(opt) === 'some') {
-                    return opt(function() {
-                      return function(x) {
-                        return x();
-                      };
-                    })(function() {
-                      return _false;
-                    });
-                  }
-                }
-                if (info.mainDef) {
-                  res = info.mainDef();
-                  for (_k = 0, _len2 = args.length; _k < _len2; _k++) {
-                    arg = args[_k];
-                    res = res(arg);
-                  }
-                  return res;
-                }
-                throw new Error("No default definition for " + (name()));
-              });
-              nm = "L_" + (nameSub(name()));
-              global[nm] = global.leisureFuncNames[nm] = newDef;
-              return cont(def);
+                return res;
+              }
+              throw new Error("No default definition for " + (rz(name)));
             });
-          };
+            nm = "L_" + (nameSub(rz(name)));
+            global[nm] = global.leisureFuncNames[nm] = newDef;
+            return cont(def);
+          });
         };
       };
     };
-  });
+  }));
 
   curry = function(arity, func) {
     return function() {
@@ -1292,50 +1071,40 @@ misrepresented as being the original software.
 
   hamt = makeHamt(amt.Trie());
 
-  define('hamt', function() {
-    return hamt;
-  });
+  define('hamt', lz(hamt));
 
-  define('hamtWith', function() {
-    return function(key) {
-      return function(value) {
-        return function(hamt) {
-          return makeHamt(amt.assoc(hamt().hamt, key(), value()));
-        };
-      };
-    };
-  });
-
-  define('hamtFetch', function() {
-    return function(key) {
+  define('hamtWith', lz(function(key) {
+    return function(value) {
       return function(hamt) {
-        return amt.get(hamt().hamt, key());
+        return makeHamt(amt.assoc(rz(hamt).hamt, rz(key), rz(value)));
       };
     };
-  });
+  }));
 
-  define('hamtGet', function() {
-    return function(key) {
-      return function(hamt) {
-        var v;
-
-        v = amt.get(hamt().hamt, key());
-        if (v !== void 0) {
-          return some(v);
-        } else {
-          return none;
-        }
-      };
+  define('hamtFetch', lz(function(key) {
+    return function(hamt) {
+      return amt.get(rz(hamt).hamt, rz(key));
     };
-  });
+  }));
 
-  define('hamtWithout', function() {
-    return function(key) {
-      return function(hamt) {
-        return makeHamt(amt.dissoc(hamt().hamt, key()));
-      };
+  define('hamtGet', lz(function(key) {
+    return function(hamt) {
+      var v;
+
+      v = amt.get(rz(hamt).hamt, rz(key));
+      if (v !== void 0) {
+        return some(v);
+      } else {
+        return none;
+      }
     };
-  });
+  }));
+
+  define('hamtWithout', lz(function(key) {
+    return function(hamt) {
+      return makeHamt(amt.dissoc(rz(hamt).hamt, rz(key)));
+    };
+  }));
 
   memo = function(func) {
     return function() {
@@ -1343,17 +1112,15 @@ misrepresented as being the original software.
     };
   };
 
-  define('hamtPairs', function() {
-    return function(hamt) {
-      return nextNode(simpyCons(hamt().hamt, null));
-    };
-  });
+  define('hamtPairs', lz(function(hamt) {
+    return nextNode(simpyCons(rz(hamt).hamt, null));
+  }));
 
   nextNode = function(stack) {
     var child, k, key, node, value, _ref2, _ref3;
 
     if (stack === null) {
-      return L_nil();
+      return rz(L_nil);
     }
     node = stack.head;
     stack = stack.tail;
@@ -1366,11 +1133,7 @@ misrepresented as being the original software.
         }
         return nextNode(stack);
       case 'value':
-        return L_acons()(function() {
-          return node.key;
-        })(function() {
-          return node.value;
-        })(memo(function() {
+        return rz(L_acons)(lz(node.key))(lz(node.value))(memo(function() {
           return nextNode(stack);
         }));
       case 'hashmap':
@@ -1385,37 +1148,32 @@ misrepresented as being the original software.
     }
   };
 
-  define('trampolineCall', function() {
-    return function(func) {
-      var f, ret;
+  define('trampolineCall', lz(function(func) {
+    var ret;
 
-      f = func();
-      while (true) {
-        ret = f();
-        if (typeof ret === 'function' && ret.trampoline) {
-          f = f();
-        } else {
-          return ret;
-        }
+    ret = rz(func);
+    while (true) {
+      if (typeof ret === 'function' && ret.trampoline) {
+        ret = ret();
+      } else {
+        return ret;
       }
-    };
-  });
+    }
+  }));
 
-  define('trampoline', function() {
-    return function(func) {
-      var arity, f;
+  define('trampoline', lz(function(func) {
+    var arity, f;
 
-      f = func();
-      arity = functionInfo[f.leisureName].arity;
-      return trampCurry(f, arity);
-    };
-  });
+    f = rz(func);
+    arity = functionInfo[f.leisureName].arity;
+    return trampCurry(f, arity);
+  }));
 
   trampCurry = function(func, arity) {
     return function(arg) {
       var a, result;
 
-      a = arg();
+      a = rz(arg);
       if (arity > 1) {
         return trampCurry(func(function() {
           return a;
@@ -1439,23 +1197,19 @@ misrepresented as being the original software.
   };
 
   tokenString = function(t) {
-    return t(function() {
-      return function(txt) {
-        return function(pos) {
-          return txt();
-        };
+    return t(lz(function(txt) {
+      return function(pos) {
+        return rz(txt);
       };
-    });
+    }));
   };
 
   tokenPos = function(t) {
-    return t(function() {
-      return function(txt) {
-        return function(pos) {
-          return pos();
-        };
+    return t(lz(function(txt) {
+      return function(pos) {
+        return rz(pos);
       };
-    });
+    }));
   };
 
   ensureLeisureClass('parens');
@@ -1465,39 +1219,33 @@ misrepresented as being the original software.
   };
 
   parensStart = function(p) {
-    return p(function() {
-      return function(s) {
-        return function(e) {
-          return function(l) {
-            return s();
-          };
+    return p(lz(function(s) {
+      return function(e) {
+        return function(l) {
+          return rz(s);
         };
       };
-    });
+    }));
   };
 
   parensEnd = function(p) {
-    return p(function() {
-      return function(s) {
-        return function(e) {
-          return function(l) {
-            return e();
-          };
+    return p(lz(function(s) {
+      return function(e) {
+        return function(l) {
+          return rz(e);
         };
       };
-    });
+    }));
   };
 
   parensContent = function(p) {
-    return p(function() {
-      return function(s) {
-        return function(e) {
-          return function(l) {
-            return l();
-          };
+    return p(lz(function(s) {
+      return function(e) {
+        return function(l) {
+          return rz(l);
         };
       };
-    });
+    }));
   };
 
   ensureLeisureClass('true');
@@ -1515,21 +1263,13 @@ misrepresented as being the original software.
   ensureLeisureClass('left');
 
   Leisure_left.prototype.toString = function() {
-    return "Left(" + (this(function() {
-      return _identity;
-    })(function() {
-      return _identity;
-    })) + ")";
+    return "Left(" + (this(lz(_identity))(lz(_identity))) + ")";
   };
 
   ensureLeisureClass('right');
 
   Leisure_right.prototype.toString = function() {
-    return "Right(" + (this(function() {
-      return _identity;
-    })(function() {
-      return _identity;
-    })) + ")";
+    return "Right(" + (this(lz(_identity))(lz(_identity))) + ")";
   };
 
   root._true = _true;
