@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, left, makeHamt, makeMonad, makeSyncMonad, memo, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, right, root, runMonad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, left, makeHamt, makeMonad, makeSyncMonad, memo, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
     __slice = [].slice;
 
   _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons;
@@ -35,6 +35,8 @@ misrepresented as being the original software.
   _ = require('./lodash.min');
 
   amt = require('persistent-hash-trie');
+
+  rz = resolve;
 
   call = function() {
     var args;
@@ -142,7 +144,7 @@ misrepresented as being the original software.
   define('eq', function() {
     return function(a) {
       return function(b) {
-        return booleanFor(a() === b());
+        return booleanFor(rz(a) === rz(b));
       };
     };
   });
@@ -150,7 +152,7 @@ misrepresented as being the original software.
   define('==', function() {
     return function(a) {
       return function(b) {
-        return booleanFor(a() === b());
+        return booleanFor(rz(a) === rz(b));
       };
     };
   });
@@ -158,8 +160,8 @@ misrepresented as being the original software.
   define('hasType', function() {
     return function(data) {
       return function(func) {
-        if (typeof func() === 'string') {
-          return booleanFor(getType(data()) === func());
+        if (typeof rz(func) === 'string') {
+          return booleanFor(getType(rz(data)) === rz(func));
         } else {
           return booleanFor(getType(data()) === getDataType(func()));
         }
@@ -169,10 +171,10 @@ misrepresented as being the original software.
 
   define('getDataType', function() {
     return function(func) {
-      if (typeof func() === 'string') {
-        return func();
+      if (typeof rz(func) === 'string') {
+        return rz(func);
       } else {
-        return getDataType(func());
+        return getDataType(rz(func));
       }
     };
   });
@@ -181,10 +183,8 @@ misrepresented as being the original software.
     return function(bool) {
       return function(msg) {
         return function(expr) {
-          return bool()(function() {
-            return expr();
-          })(function() {
-            throw new Error(msg());
+          return rz(bool)(expr)(function() {
+            throw new Error(rz(msg));
           });
         };
       };
@@ -195,12 +195,10 @@ misrepresented as being the original software.
     return function(bool) {
       return function(msg) {
         return function(expr) {
-          return bool()(function() {
-            return expr();
-          })(function() {
+          return rz(bool)(expr)(function() {
             console.log(new Error(msg()).stack);
             console.log("LOGGED ERROR -- RESUMING EXECUTION...");
-            return expr();
+            return rz(expr);
           });
         };
       };
@@ -210,7 +208,7 @@ misrepresented as being the original software.
   define('+', function() {
     return function(x) {
       return function(y) {
-        return x() + y();
+        return rz(x) + rz(y);
       };
     };
   });
@@ -218,7 +216,7 @@ misrepresented as being the original software.
   define('-', function() {
     return function(x) {
       return function(y) {
-        return x() - y();
+        return rz(x) - rz(y);
       };
     };
   });
@@ -226,7 +224,7 @@ misrepresented as being the original software.
   define('*', function() {
     return function(x) {
       return function(y) {
-        return x() * y();
+        return rz(x) * rz(y);
       };
     };
   });
@@ -234,7 +232,7 @@ misrepresented as being the original software.
   define('/', function() {
     return function(x) {
       return function(y) {
-        return x() / y();
+        return rz(x) / rz(y);
       };
     };
   });
@@ -242,7 +240,7 @@ misrepresented as being the original software.
   define('%', function() {
     return function(x) {
       return function(y) {
-        return x() % y();
+        return rz(x) % rz(y);
       };
     };
   });
@@ -250,7 +248,7 @@ misrepresented as being the original software.
   define('<', function() {
     return function(x) {
       return function(y) {
-        return booleanFor(x() < y());
+        return booleanFor(rz(x) < rz(y));
       };
     };
   });
@@ -258,7 +256,7 @@ misrepresented as being the original software.
   define('<=', function() {
     return function(x) {
       return function(y) {
-        return booleanFor(x() <= y());
+        return booleanFor(rz(x) <= rz(y));
       };
     };
   });
@@ -266,7 +264,7 @@ misrepresented as being the original software.
   define('>', function() {
     return function(x) {
       return function(y) {
-        return booleanFor(x() > y());
+        return booleanFor(rz(x) > rz(y));
       };
     };
   });
@@ -274,27 +272,27 @@ misrepresented as being the original software.
   define('>=', function() {
     return function(x) {
       return function(y) {
-        return booleanFor(x() >= y());
+        return booleanFor(rz(x) >= rz(y));
       };
     };
   });
 
   define('floor', function() {
     return function(x) {
-      return Math.floor(x());
+      return Math.floor(rz(x));
     };
   });
 
   define('ceil', function() {
     return function(x) {
-      return Math.ceil(x());
+      return Math.ceil(rz(x));
     };
   });
 
   define('min', function() {
     return function(x) {
       return function(y) {
-        return Math.min(x(), y());
+        return Math.min(rz(x), rz(y));
       };
     };
   });
@@ -302,76 +300,76 @@ misrepresented as being the original software.
   define('max', function() {
     return function(x) {
       return function(y) {
-        return Math.max(x(), y());
+        return Math.max(rz(x), rz(y));
       };
     };
   });
 
   define('round', function() {
     return function(x) {
-      return Math.round(x());
+      return Math.round(rz(x));
     };
   });
 
   define('abs', function() {
     return function(x) {
-      return Math.abs(x());
+      return Math.abs(rz(x));
     };
   });
 
   define('sqrt', function() {
     return function(x) {
-      return Math.sqrt(x());
+      return Math.sqrt(rz(x));
     };
   });
 
   define('acos', function() {
     return function(x) {
-      return Math.acos(x());
+      return Math.acos(rz(x));
     };
   });
 
   define('asin', function() {
     return function(x) {
-      return Math.asin(x());
+      return Math.asin(rz(x));
     };
   });
 
   define('atan', function() {
     return function(x) {
-      return Math.atan(x());
+      return Math.atan(rz(x));
     };
   });
 
   define('atan2', function() {
     return function(x) {
       return function(y) {
-        return Math.atan2(x(), y());
+        return Math.atan2(rz(x), rz(y));
       };
     };
   });
 
   define('cos', function() {
     return function(x) {
-      return Math.cos(x());
+      return Math.cos(rz(x));
     };
   });
 
   define('log', function() {
     return function(x) {
-      return Math.log(x());
+      return Math.log(rz(x));
     };
   });
 
   define('sin', function() {
     return function(x) {
-      return Math.sin(x());
+      return Math.sin(rz(x));
     };
   });
 
   define('tan', function() {
     return function(x) {
-      return Math.tan(x());
+      return Math.tan(rz(x));
     };
   });
 
@@ -385,7 +383,7 @@ misrepresented as being the original software.
     return function(low) {
       return function(high) {
         return makeSyncMonad(function(env, cont) {
-          return cont(Math.floor(low() + Math.random() * high()));
+          return cont(Math.floor(rz(low) + Math.random() * rz(high)));
         });
       };
     };
@@ -394,7 +392,7 @@ misrepresented as being the original software.
   define('^', function() {
     return function(x) {
       return function(y) {
-        return Math.pow(x(), y());
+        return Math.pow(rz(x), rz(y));
       };
     };
   });
@@ -403,29 +401,29 @@ misrepresented as being the original software.
     return function(data) {
       var _ref2;
 
-      if ((_ref2 = typeof data()) === 'string' || _ref2 === 'number' || _ref2 === 'boolean') {
-        return JSON.stringify(data());
+      if ((_ref2 = typeof rz(data)) === 'string' || _ref2 === 'number' || _ref2 === 'boolean') {
+        return JSON.stringify(rz(data));
       } else {
-        return String(data());
+        return String(rz(data));
       }
     };
   });
 
   define('strString', function() {
     return function(data) {
-      return String(data());
+      return String(rz(data));
     };
   });
 
   define('_strAsc', function() {
     return function(str) {
-      return str().charCodeAt(0);
+      return rz(str).charCodeAt(0);
     };
   });
 
   define('_strChr', function() {
     return function(i) {
-      return String.fromCharCode(i());
+      return String.fromCharCode(rz(i));
     };
   });
 

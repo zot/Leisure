@@ -48,6 +48,7 @@ misrepresented as being the original software.
 } = require './ast'
 _ = require './lodash.min'
 amt = require('persistent-hash-trie')
+rz=resolve
 
 call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -76,64 +77,64 @@ right = (x)-> setType ((lCase)->(rCase)-> rCase()(->x)), 'right'
 some = (x)-> setType ((someCase)->(noneCase)-> someCase()(->x)), 'some'
 none = setType ((someCase)->(noneCase)-> noneCase()), 'none'
 booleanFor = (bool)-> if bool then L_true() else L_false()
-define 'eq', ->(a)->(b)-> booleanFor a() == b()
-define '==', ->(a)->(b)-> booleanFor a() == b()
+define 'eq', ->(a)->(b)-> booleanFor rz(a) == rz(b)
+define '==', ->(a)->(b)-> booleanFor rz(a) == rz(b)
 define 'hasType', ->(data)->(func)->
-  if typeof func() == 'string' then booleanFor getType(data()) == func()
+  if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
   else booleanFor getType(data()) == getDataType(func())
-define 'getDataType', ->(func)-> if typeof func() == 'string' then func() else getDataType(func())
-define 'assert', ->(bool)->(msg)->(expr)-> bool()(->expr())(-> throw new Error(msg()))
-define 'assertLog', ->(bool)->(msg)->(expr)-> bool()(->expr())(->
+define 'getDataType', ->(func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
+define 'assert', ->(bool)->(msg)->(expr)-> rz(bool)(expr)(-> throw new Error(rz msg))
+define 'assertLog', ->(bool)->(msg)->(expr)-> rz(bool)(expr)(->
   console.log new Error(msg()).stack
   console.log "LOGGED ERROR -- RESUMING EXECUTION..."
-  expr())
+  rz expr)
 
 ############
 # MATH
 ############
 
-define '+', ->(x)->(y)->x() + y()
-define '-', ->(x)->(y)->x() - y()
-define '*', ->(x)->(y)->x() * y()
-define '/', ->(x)->(y)->x() / y()
-define '%', ->(x)->(y)->x() % y()
-define '<', ->(x)->(y)->booleanFor x() < y()
-define '<=', ->(x)->(y)->booleanFor x() <= y()
-define '>', ->(x)->(y)->booleanFor x() > y()
-define '>=', ->(x)->(y)->booleanFor x() >= y()
-define 'floor', ->(x)-> Math.floor(x())
-define 'ceil', ->(x)-> Math.ceil(x())
-define 'min', ->(x)->(y)-> Math.min x(), y()
-define 'max', ->(x)->(y)-> Math.max x(), y()
-define 'round', ->(x)-> Math.round(x())
-define 'abs', ->(x)-> Math.abs(x())
-define 'sqrt', ->(x)-> Math.sqrt(x())
+define '+', ->(x)->(y)->rz(x) + rz(y)
+define '-', ->(x)->(y)->rz(x) - rz(y)
+define '*', ->(x)->(y)->rz(x) * rz(y)
+define '/', ->(x)->(y)->rz(x) / rz(y)
+define '%', ->(x)->(y)->rz(x) % rz(y)
+define '<', ->(x)->(y)->booleanFor rz(x) < rz(y)
+define '<=', ->(x)->(y)->booleanFor rz(x) <= rz(y)
+define '>', ->(x)->(y)->booleanFor rz(x) > rz(y)
+define '>=', ->(x)->(y)->booleanFor rz(x) >= rz(y)
+define 'floor', ->(x)-> Math.floor(rz x)
+define 'ceil', ->(x)-> Math.ceil(rz x)
+define 'min', ->(x)->(y)-> Math.min rz(x), rz(y)
+define 'max', ->(x)->(y)-> Math.max rz(x), rz(y)
+define 'round', ->(x)-> Math.round(rz x)
+define 'abs', ->(x)-> Math.abs(rz x)
+define 'sqrt', ->(x)-> Math.sqrt(rz x)
 
-define 'acos', ->(x)-> Math.acos(x())
-define 'asin', ->(x)-> Math.asin(x())
-define 'atan', ->(x)-> Math.atan(x())
-define 'atan2', ->(x)->(y)-> Math.atan2(x(), y())
-define 'cos', ->(x)-> Math.cos(x())
-define 'log', ->(x)-> Math.log(x())
-define 'sin', ->(x)-> Math.sin(x())
-define 'tan', ->(x)-> Math.tan(x())
+define 'acos', ->(x)-> Math.acos(rz x)
+define 'asin', ->(x)-> Math.asin(rz x)
+define 'atan', ->(x)-> Math.atan(rz x)
+define 'atan2', ->(x)->(y)-> Math.atan2(rz(x), rz(y))
+define 'cos', ->(x)-> Math.cos(rz x)
+define 'log', ->(x)-> Math.log(rz x)
+define 'sin', ->(x)-> Math.sin(rz x)
+define 'tan', ->(x)-> Math.tan(rz x)
 
 define 'rand', ->makeSyncMonad (env, cont)->
   cont (Math.random())
 define 'randInt', ->(low)->(high)->makeSyncMonad (env, cont)->
-  cont (Math.floor(low() + Math.random() * high()))
-define '^', ->(x)->(y)->Math.pow(x(), y())
+  cont (Math.floor(rz(low) + Math.random() * rz(high)))
+define '^', ->(x)->(y)->Math.pow(rz(x), rz(y))
 
 ############
 # STRINGS
 ############
 
 define '_show', ->(data)->
-  if typeof data() in ['string', 'number', 'boolean'] then JSON.stringify data()
-  else String(data())
-define 'strString', ->(data)-> String(data())
-define '_strAsc', ->(str)-> str().charCodeAt(0)
-define '_strChr', ->(i)-> String.fromCharCode(i())
+  if typeof rz(data) in ['string', 'number', 'boolean'] then JSON.stringify rz data
+  else String rz data
+define 'strString', ->(data)-> String rz data
+define '_strAsc', ->(str)-> rz(str).charCodeAt(0)
+define '_strChr', ->(i)-> String.fromCharCode(rz i)
 define '_strAt', ->(str)->(index)-> str()[strCoord(str(), index())]
 define '_strStartsWith', ->(str)->(prefix)-> booleanFor str().substring(0, prefix().length) == prefix()
 define '_strLen', ->(str)-> str().length

@@ -67,7 +67,8 @@ gen = (ast)-> genUniq ast, Nil, [Nil, 0]
 genUniq = (ast, names, uniq)->
   switch ast.constructor
     when Leisure_lit then JSON.stringify getLitVal ast
-    when Leisure_ref then "#{uniqName (getRefName ast), uniq}()"
+    #when Leisure_ref then "#{uniqName (getRefName ast), uniq}()"
+    when Leisure_ref then "resolve(#{uniqName (getRefName ast), uniq})"
     when Leisure_lambda then genLambda ast, names, uniq, 0
     when Leisure_apply then "#{genUniq (getApplyFunc ast), names, uniq}(#{genApplyArg (getApplyArg ast), names, uniq})"
     when Leisure_let then "(function(){\n#{genLets ast, names, uniq}})()"
@@ -150,6 +151,7 @@ genApplyArg = (arg, names, uniq)->
   #if arg instanceof Leisure_apply then "(function(){var $m; return function(){return $m || ($m = #{genUniq arg, names, uniq})}})()"
   if dumpAnno(arg) instanceof Leisure_apply then memoize genUniq arg, names, uniq
   else if arg instanceof Leisure_ref then uniqName (getRefName arg), uniq
+  #else if arg instanceof Leisure_lit then JSON.stringify getLitVal arg
   else if arg instanceof Leisure_let then "function(){#{genLets arg, names, uniq}}"
   else if dumpAnno(arg) instanceof Leisure_lambda then memoize genUniq arg, names, uniq
   else "function(){return #{genUniq arg, names, uniq}}"

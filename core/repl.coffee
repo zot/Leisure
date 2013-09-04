@@ -157,9 +157,9 @@ prompt = ->
   rl.setPrompt promptText
   rl.prompt()
 
-repl = ->
+repl = (args, config)->
   lines = null
-  leisureDir = path.join process.env.HOME, '.leisure'
+  leisureDir = path.join config.home, '.leisure'
   historyFile = path.join(leisureDir, 'history')
   rl = readline.createInterface process.stdin, process.stdout, leisureCompleter
   fs.exists historyFile, (exists)->
@@ -256,6 +256,7 @@ createAstFile = false
 createJsFile = false
 
 runFile = (file, cont)->
+  console "RUN FILE: #{file}"
   try
     runMonad L_protect()(->L_require()(->file)), defaultEnv, (result)->
     #runMonad L_require()(->file), defaultEnv, (result)->
@@ -390,12 +391,22 @@ processArg = (pos)->
       return
   processArg pos + 1
 
-run = ->
+run = (args, config)->
   action = runFile
-  #console.log "Run: #{process.argv.join ', '}"
-  if process.argv.length == 2
+  #console.log "Run: #{args.join ', '}"
+  if args.length == 2
     require stages[stage]
-    repl()
+    repl args, config
   else processArg 2
 
-run()
+root.runFile = runFile
+
+console.log "ARGS: #{JSON.stringify process.argv}"
+
+prog = path.basename(process.argv[1])
+
+if prog == 'repl' || prog == 'leisure'
+  console.log "RUNNING REPL"
+  run process.argv,
+    home: process.env.HOME
+else require stages[stage]

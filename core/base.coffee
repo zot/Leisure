@@ -29,6 +29,8 @@ defaultEnv =
   values: {}
   errorHandlers: []
 
+global.resolve = (value)-> if typeof value == 'function' then value() else value
+
 readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
 
 writeFile = (fileName, data, cont)-> defaultEnv.writeFile fileName, data, cont
