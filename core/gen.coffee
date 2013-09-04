@@ -24,7 +24,11 @@ misrepresented as being the original software.
 
 {
   simpyCons,
+  resolve,
+  lazy,
 } = require './base'
+rz = resolve
+lz = lazy
 {
   nameSub,
   getLitVal,
@@ -112,11 +116,11 @@ addLambdaProperties = (ast, def)->
     "setLambdaProperties(#{def}, #{JSON.stringify props})"
   else def
 
-lcons = (a, b)-> L_cons()(->a)(->b)
+lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
 
 lconsFrom = (array)->
   if array instanceof Array
-    p = L_nil()
+    p = rz L_nil
     for el in array.reverse()
       p = lcons lconsFrom(el), p
     p
@@ -126,7 +130,7 @@ assocListProps = null
 
 getAssocListProps = ->
   if !assocListProps
-    assocListProps = lcons lcons('assoc', 'true'), L_nil()
+    assocListProps = lcons lcons('assoc', 'true'), rz(L_nil)
     assocListProps.properties = assocListProps
   assocListProps
 
@@ -136,7 +140,7 @@ lacons = (key, value, list)->
   alist
 
 global.setLambdaProperties = (def, props)->
-  p = L_nil()
+  p = rz L_nil
   for k, v of props
     #p = lcons lcons(k, lconsFrom(v)), p
     p = lacons k, lconsFrom(v), p
@@ -187,11 +191,11 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', ->(ast)->
+define 'runAst', lz (ast)->
   try
-    eval "(#{gen ast()})"
+    eval "(#{gen rz ast})"
   catch err
-    L_parseErr()(->"\n\nParse error: " + err.toString() + "\nAST: ")(ast)
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast)
 
 curry = (func, args, pos)->
   if pos == func.length then func args.toArray(func.length - 1, [])...

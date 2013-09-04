@@ -25,13 +25,17 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, curry, define, dumpAnno, gen, genApplyArg, genLambda, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lcons, lconsFrom, left, letList, makeSyncMonad, memoize, nameSub, right, root, runMonad, setDataType, setType, simpyCons, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1;
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, curry, define, dumpAnno, gen, genApplyArg, genLambda, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, lz, makeSyncMonad, memoize, nameSub, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2;
 
-  simpyCons = require('./base').simpyCons;
+  _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
 
-  _ref = root = module.exports = require('./ast'), nameSub = _ref.nameSub, getLitVal = _ref.getLitVal, getRefName = _ref.getRefName, getLambdaVar = _ref.getLambdaVar, getLambdaBody = _ref.getLambdaBody, getApplyFunc = _ref.getApplyFunc, getApplyArg = _ref.getApplyArg, getAnnoName = _ref.getAnnoName, getAnnoData = _ref.getAnnoData, getAnnoBody = _ref.getAnnoBody, getLetName = _ref.getLetName, getLetValue = _ref.getLetValue, getLetBody = _ref.getLetBody, Leisure_lit = _ref.Leisure_lit, Leisure_ref = _ref.Leisure_ref, Leisure_lambda = _ref.Leisure_lambda, Leisure_apply = _ref.Leisure_apply, Leisure_let = _ref.Leisure_let, Leisure_anno = _ref.Leisure_anno, setType = _ref.setType, setDataType = _ref.setDataType, cons = _ref.cons, Nil = _ref.Nil, consFrom = _ref.consFrom, define = _ref.define;
+  rz = resolve;
 
-  _ref1 = require('./runtime'), makeSyncMonad = _ref1.makeSyncMonad, runMonad = _ref1.runMonad, _false = _ref1._false, left = _ref1.left, right = _ref1.right;
+  lz = lazy;
+
+  _ref1 = root = module.exports = require('./ast'), nameSub = _ref1.nameSub, getLitVal = _ref1.getLitVal, getRefName = _ref1.getRefName, getLambdaVar = _ref1.getLambdaVar, getLambdaBody = _ref1.getLambdaBody, getApplyFunc = _ref1.getApplyFunc, getApplyArg = _ref1.getApplyArg, getAnnoName = _ref1.getAnnoName, getAnnoData = _ref1.getAnnoData, getAnnoBody = _ref1.getAnnoBody, getLetName = _ref1.getLetName, getLetValue = _ref1.getLetValue, getLetBody = _ref1.getLetBody, Leisure_lit = _ref1.Leisure_lit, Leisure_ref = _ref1.Leisure_ref, Leisure_lambda = _ref1.Leisure_lambda, Leisure_apply = _ref1.Leisure_apply, Leisure_let = _ref1.Leisure_let, Leisure_anno = _ref1.Leisure_anno, setType = _ref1.setType, setDataType = _ref1.setDataType, cons = _ref1.cons, Nil = _ref1.Nil, consFrom = _ref1.consFrom, define = _ref1.define;
+
+  _ref2 = require('./runtime'), makeSyncMonad = _ref2.makeSyncMonad, runMonad = _ref2.runMonad, _false = _ref2._false, left = _ref2.left, right = _ref2.right;
 
   _ = require('./lodash.min');
 
@@ -44,7 +48,7 @@ misrepresented as being the original software.
   };
 
   genUniq = function(ast, names, uniq) {
-    var arity, data, funcName, genned, name, src, _ref2;
+    var arity, data, funcName, genned, name, src, _ref3;
 
     switch (ast.constructor) {
       case Leisure_lit:
@@ -67,7 +71,7 @@ misrepresented as being the original software.
           case 'dataType':
             return "setDataType(" + genned + ", '" + data + "')";
           case 'define':
-            _ref2 = data.toArray(), funcName = _ref2[0], arity = _ref2[1], src = _ref2[2];
+            _ref3 = data.toArray(), funcName = _ref3[0], arity = _ref3[1], src = _ref3[2];
             return "define('" + funcName + "', (function(){return " + genned + "}), " + arity + ", " + (JSON.stringify(src)) + ")";
           default:
             return genned;
@@ -127,21 +131,17 @@ misrepresented as being the original software.
   };
 
   lcons = function(a, b) {
-    return L_cons()(function() {
-      return a;
-    })(function() {
-      return b;
-    });
+    return rz(L_cons)(lz(a))(lz(b));
   };
 
   lconsFrom = function(array) {
-    var el, p, _i, _len, _ref2;
+    var el, p, _i, _len, _ref3;
 
     if (array instanceof Array) {
-      p = L_nil();
-      _ref2 = array.reverse();
-      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-        el = _ref2[_i];
+      p = rz(L_nil);
+      _ref3 = array.reverse();
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        el = _ref3[_i];
         p = lcons(lconsFrom(el), p);
       }
       return p;
@@ -154,7 +154,7 @@ misrepresented as being the original software.
 
   getAssocListProps = function() {
     if (!assocListProps) {
-      assocListProps = lcons(lcons('assoc', 'true'), L_nil());
+      assocListProps = lcons(lcons('assoc', 'true'), rz(L_nil));
       assocListProps.properties = assocListProps;
     }
     return assocListProps;
@@ -171,7 +171,7 @@ misrepresented as being the original software.
   global.setLambdaProperties = function(def, props) {
     var k, p, v;
 
-    p = L_nil();
+    p = rz(L_nil);
     for (k in props) {
       v = props[k];
       p = lacons(k, lconsFrom(v), p);
@@ -207,16 +207,16 @@ misrepresented as being the original software.
   };
 
   genLets = function(ast, names, uniq) {
-    var assigns, decs, _ref2;
+    var assigns, decs, _ref3;
 
-    _ref2 = _.foldl(letList(ast, []), (function(result, l) {
+    _ref3 = _.foldl(letList(ast, []), (function(result, l) {
       var code, letName, letNames, n, newU, u;
 
       n = result[0], u = result[1], letNames = result[2], code = result[3];
       newU = addUniq(getLetName(l), n, u);
       letName = uniqName(getLetName(l), newU);
       return [cons(getLetName(l), n), newU, cons(letName, letNames), cons('\n' + letName + ' = ' + genApplyArg(getLetValue(l), n, u), code)];
-    }), [names, uniq, Nil, Nil]), names = _ref2[0], uniq = _ref2[1], decs = _ref2[2], assigns = _ref2[3];
+    }), [names, uniq, Nil, Nil]), names = _ref3[0], uniq = _ref3[1], decs = _ref3[2], assigns = _ref3[3];
     return "\nvar " + (decs.join(', ')) + ";\n" + (assigns.join(';\n')) + ";\nreturn " + (genUniq(getLastLetBody(ast), names, uniq));
   };
 
@@ -260,20 +260,16 @@ misrepresented as being the original software.
     }
   };
 
-  define('runAst', function() {
-    return function(ast) {
-      var err;
+  define('runAst', lz(function(ast) {
+    var err;
 
-      try {
-        return eval("(" + (gen(ast())) + ")");
-      } catch (_error) {
-        err = _error;
-        return L_parseErr()(function() {
-          return "\n\nParse error: " + err.toString() + "\nAST: ";
-        })(ast);
-      }
-    };
-  });
+    try {
+      return eval("(" + (gen(rz(ast))) + ")");
+    } catch (_error) {
+      err = _error;
+      return rz(L_parseErr)(lz("\n\nParse error: " + err.toString() + "\nAST: "))(ast);
+    }
+  }));
 
   curry = function(func, args, pos) {
     if (pos === func.length) {

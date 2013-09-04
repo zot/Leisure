@@ -351,12 +351,12 @@ getAnnoBody = (anno)-> anno lz (name)->(data)->(body)-> rz body
 ######
 
 json2AstEncodings =
-  lit: (json)-> L_lit(-> json.value)
-  ref: (json)-> L_ref(-> json.varName)
-  lambda: (json)-> L_lambda(-> json.varName)(-> json2Ast json.body)
-  apply: (json)-> L_apply(-> json2Ast(json.func))(-> json2Ast json.arg)
-  let: (json)-> L_let(-> json.varName)(-> json2Ast(json.value))(-> json2Ast(json.body))
-  anno: (json)-> L_anno(-> json.name)(-> json2Ast json.data)(-> json2Ast json.body)
+  lit: (json)-> L_lit(lz  json.value)
+  ref: (json)-> L_ref(lz json.varName)
+  lambda: (json)-> L_lambda(lz json.varName)(lz json2Ast json.body)
+  apply: (json)-> L_apply(lz json2Ast(json.func))(lz json2Ast json.arg)
+  let: (json)-> L_let(lz json.varName)(lz json2Ast(json.value))(lz json2Ast(json.body))
+  anno: (json)-> L_anno(lz json.name)(lz json2Ast json.data)(lz json2Ast json.body)
   cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
   nil: (json)-> Nil
 
@@ -407,8 +407,8 @@ ast2Json = (ast)->
   if ast2JsonEncodings[ast.constructor?.name] then ast2JsonEncodings[ast.constructor.name] ast else ast
 
 # Leisure interface to the JSON AST codec
-define 'json2Ast', (-> (json)-> json2Ast JSON.parse rz json)
-define 'ast2Json', (-> (ast)-> JSON.stringify ast2Json rz ast)
+define 'json2Ast', (lz (json)-> json2Ast JSON.parse rz json)
+define 'ast2Json', (lz (ast)-> JSON.stringify ast2Json rz ast)
 
 consFrom = (array, i)->
   i = i || 0

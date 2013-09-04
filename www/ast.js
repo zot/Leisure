@@ -786,46 +786,22 @@ misrepresented as being the original software.
 
   json2AstEncodings = {
     lit: function(json) {
-      return L_lit(function() {
-        return json.value;
-      });
+      return L_lit(lz(json.value));
     },
     ref: function(json) {
-      return L_ref(function() {
-        return json.varName;
-      });
+      return L_ref(lz(json.varName));
     },
     lambda: function(json) {
-      return L_lambda(function() {
-        return json.varName;
-      })(function() {
-        return json2Ast(json.body);
-      });
+      return L_lambda(lz(json.varName))(lz(json2Ast(json.body)));
     },
     apply: function(json) {
-      return L_apply(function() {
-        return json2Ast(json.func);
-      })(function() {
-        return json2Ast(json.arg);
-      });
+      return L_apply(lz(json2Ast(json.func)))(lz(json2Ast(json.arg)));
     },
     "let": function(json) {
-      return L_let(function() {
-        return json.varName;
-      })(function() {
-        return json2Ast(json.value);
-      })(function() {
-        return json2Ast(json.body);
-      });
+      return L_let(lz(json.varName))(lz(json2Ast(json.value)))(lz(json2Ast(json.body)));
     },
     anno: function(json) {
-      return L_anno(function() {
-        return json.name;
-      })(function() {
-        return json2Ast(json.data);
-      })(function() {
-        return json2Ast(json.body);
-      });
+      return L_anno(lz(json.name))(lz(json2Ast(json.data)))(lz(json2Ast(json.body)));
     },
     cons: function(json) {
       return save.cons(json2Ast(json.head), json2Ast(json.tail));
@@ -924,16 +900,12 @@ misrepresented as being the original software.
     }
   };
 
-  define('json2Ast', (function() {
-    return function(json) {
-      return json2Ast(JSON.parse(rz(json)));
-    };
+  define('json2Ast', lz(function(json) {
+    return json2Ast(JSON.parse(rz(json)));
   }));
 
-  define('ast2Json', (function() {
-    return function(ast) {
-      return JSON.stringify(ast2Json(rz(ast)));
-    };
+  define('ast2Json', lz(function(ast) {
+    return JSON.stringify(ast2Json(rz(ast)));
   }));
 
   consFrom = function(array, i) {

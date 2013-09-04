@@ -6,6 +6,14 @@
 console.log "LOADING NOTEBOOK"
 
 {
+  resolve,
+  lazy,
+} = root = module.exports = require './base'
+
+rz = resolve
+lz = lazy
+
+{
   nameSub,
   getRefName,
   define,
@@ -74,7 +82,7 @@ setSnapper = (snapFunc)-> snapshot = snapFunc
 
 delay = (func)-> window.setTimeout func, 1
 
-getParseErr = getHtml = (x)-> x ->(value)->value()
+getParseErr = getHtml = (x)-> x lz (value)-> rz value
 
 escapeHtml = (str)->
   if typeof str == 'string' then str.replace /[<>]/g, (c)->
@@ -870,7 +878,7 @@ getAst = (bx, def)->
     def = def || bx.textContent
     # MARK CHECK
     # setAst bx, (Leisure.compileNext def, Parse.Nil, true, null)[0]
-    defName = getDefName runMonad L_newParseLine()(->Nil)(->def)
+    defName = getDefName runMonad rz(L_newParseLine)(lz Nil)(lz def)
     setAst bx, (if defName then {leisureName: defName, leisureSource: def} else {})
     bx.ast
 
@@ -949,7 +957,7 @@ evalOutput = (exBox, nofocus, cont)->
 findUpdateSelector = (box)->
   # MARK CHECK
   #if def = box.textContent.match Leisure.linePat
-  if def = box.textContent.match L_defPat()
+  if def = box.textContent.match rz(L_defPat)
     [matched, leading, name, defType] = def
     if u = leading.match updatePat then u[3]
 
@@ -967,7 +975,7 @@ setUpdate = (el, channel, preserveSource)->
   txt = el.source.textContent
   # MARK CHECK
   #if !preserveSource and def = txt.match Leisure.linePat
-  if !preserveSource and def = txt.match L_defPat()
+  if !preserveSource and def = txt.match rz(L_defPat)
     [matched, leading, name, defType] = def
     index = def.index
     if u = leading.match updatePat
@@ -1214,7 +1222,7 @@ box = (range, boxType, empty)->
   range.insertNode(node)
   node
 
-linePat = new RegExp "(#{L_linePat().source})"
+linePat = new RegExp "(#{rz(L_linePat).source})"
 
 #findDefs = (el)->
 #  console.log "\n\n@@@@@ FINDING DEFS"
@@ -1242,7 +1250,7 @@ findDefs = (el)->
   # MARK TODO Leisure.linePat
   #while (def = rest.match Leisure.linePat) and def[1].length != rest.length
   #console.log "FIND DEFS IN #{txt}"
-  while (def = rest.match L_unanchoredDefPat()) and def[1].length != rest.length
+  while (def = rest.match rz(L_unanchoredDefPat)) and def[1].length != rest.length
     #console.log "def: #{def}"
     rng = getRanges(el, txt, rest, def, txt.length - rest.length)
     if rng
@@ -1380,7 +1388,7 @@ req = (file, cont)->
   s.addEventListener 'load', ->
     # MARK TODO
     Leisure.processDefs global[name], global
-    if cont then cont(L_false())
+    if cont then cont(rz L_false)
   document.head.appendChild s
 
 postLoadQueue = []
@@ -1478,12 +1486,12 @@ runAuto = (nodes, index, cont)->
     node = nodes[index]
     console.log "evalOutput", node, node.output
     evalOutput node.output, false, -> runAuto nodes, index + 1, cont
-  else (cont ? ()->)()
+  else (cont ? ->)()
 
 processLine = (text, env, cont)->
   if text
     try
-      runMonad L_newParseLine()(->Nil)(->text), env, (ast)->
+      runMonad rz(L_newParseLine)(lz Nil)(lz text), env, (ast)->
         try
           if getType(ast) == 'parseErr'
             env.write env.presentValue ast
@@ -1522,77 +1530,72 @@ showError = (e, msg)->
   alert(e.stack)
 
 evalDocCode = (el, pgm)->
-  runMonad L_runFile()(->pgm), defaultEnv, (result)->
+  runMonad rz(L_runFile)(lz pgm), defaultEnv, (result)->
     for node in el.querySelectorAll '[codeMain]'
       getAst node
 
-define 'getDocument', ->
-  makeSyncMonad (env, cont)-> cont peerGetDocument()
+define 'getDocument', lz makeSyncMonad (env, cont)-> cont peerGetDocument()
 
 # MARK TODO
 define 'getLink', ->
   # makeSyncMonad (env, cont)-> cont Prim.linkFor filename
   0
 
-define 'replaceDocument', ->(str)->
+define 'replaceDocument', lz (str)->
   makeSyncMonad (env, cont)->
-    replaceContents str()
-    cont L_true()
+    replaceContents rz str
+    cont rz L_true
 
-define 'gdriveOpen', ->
-  makeMonad (env, cont)->
-    GdriveStorage.runOpen (json)->
-      if json?.action == 'picked' and json.docs?.length > 0
-        GdriveStorage.loadFile json.docs[0].id, -> cont _some()(-> json.docs[0].title)
-      else cont _none()
+define 'gdriveOpen', lz makeMonad (env, cont)->
+  GdriveStorage.runOpen (json)->
+    if json?.action == 'picked' and json.docs?.length > 0
+      GdriveStorage.loadFile json.docs[0].id, -> cont rz(_some)(lz json.docs[0].title)
+    else cont rz _none
 
-define 'getFilename', -> makeSyncMonad (env, cont)-> cont filename?.pathName() ? ''
+define 'getFilename', lz makeSyncMonad (env, cont)-> cont filename?.pathName() ? ''
 
-define 'setURI', ->(uri)->
+define 'setURI', lz (uri)->
   makeSyncMonad (env, cont)->
-    setFilename uri()
-    cont L_true()
+    setFilename rz uri
+    cont rz L_true
 
-define 'getURI', ->
-  makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
+define 'getURI', lz makeSyncMonad (env, cont)-> cont filename?.toString() ? ''
 
-define 'finishLoading', ->
-  makeMonad (env, cont)->
-    loaded = true
-    for i in postLoadQueue
-      i()
-    postLoadQueue = []
-    cont L_false()
+define 'finishLoading', lz makeMonad (env, cont)->
+  loaded = true
+  for i in postLoadQueue
+    rz i
+  postLoadQueue = []
+  cont rz L_false
 
-define 'markupButtons', ->
+define 'markupButtons', lz makeSyncMonad (env, cont)->
+  if env.box then markupButtons env.box
+  cont rz L_false
+
+define 'alert', lz (str)->
   makeSyncMonad (env, cont)->
-    if env.box then markupButtons env.box
-    cont L_false()
+    window.alert(rz str)
+    cont rz L_false
 
-define 'alert', ->(str)->
+define 'bindEvent', lz (selector)->(eventName)->(func)->
   makeSyncMonad (env, cont)->
-    window.alert(str())
-    cont L_false()
-
-define 'bindEvent', ->(selector)->(eventName)->(func)->
-  makeSyncMonad (env, cont)->
-    node = env.box.querySelector selector()
-    if !node then node = document.body.querySelector selector()
-    console.log "ADDING EVENT: #{selector()} #{eventName()} NODE: #{node}"
+    node = env.box.querySelector rz selector
+    if !node then node = document.body.querySelector rz selector
+    console.log "ADDING EVENT: #{rz selector} #{rz eventName} NODE: #{node}"
     if node then node.addEventListener eventName(), (e)->
-      console.log "EVENT: #{selector()} #{eventName()} #{func()}"
-      runMonad func()(-> e), envFor(e.target), ->
-    cont L_false()
+      console.log "EVENT: #{rz selector} #{rz eventName} #{rz func}"
+      runMonad rz(func)(lz e), envFor(e.target), ->
+    cont rz L_false
 
-define 'quit', -> window.close()
+define 'quit', lz window.close()
 
-define 'config', ->(expr)->
+define 'config', lz (expr)->
   makeSyncMonad (env, cont)->
-    switch expr()
+    switch rz expr
       when 'autoTest' then autoRun(env.owner, true)
-    cont(L_false())
+    cont(rz L_false)
 
-define 'notebookSelection', ->(func)->
+define 'notebookSelection', lz (func)->
   makeSyncMonad (env, cont)->
     sel = window.getSelection()
     bx = getBox sel.focusNode
@@ -1608,14 +1611,14 @@ define 'notebookSelection', ->(func)->
       p1 = r2.cloneContents().textContent.length - offset
       if !r.collapsed then r2.setEnd r.endContainer, r.endOffset
       p2 = r2.cloneContents().textContent.length - offset
-      cont(_some2()(->p1)(->p2))
-    else cont(_none())
+      cont(rz(_some2)(lz p1)(lz p2))
+    else cont(rz _none)
 
 hasFunc = (bx, func)->
   ast = getAst(bx)
   ast == func().ast || ast == func.ast
 
-define 'notebookAst', ->(func)->
+define 'notebookAst', lz (func)->
   makeSyncMonad (env, cont)->
     # MARK CHECK
     if func.leisureName?
@@ -1623,16 +1626,16 @@ define 'notebookAst', ->(func)->
       node = document.querySelector "[LeisureFunc=#{func.leisureName}]"
       if node?
         ast = getAst node
-        return cont(_some()(->ast))
-    cont(_none())
+        return cont(rz(_some)(lz ast))
+    cont(rz _none)
 
 autoRun = (el, state)->
   el.autorunState = state
   el.autorun?.checked = state
 
-head = (l)->l ->(hh)->(tt)->hh()
-tail = (l)->l ->(hh)->(tt)->tt()
-id = (v)->v()
+head = (l)->l lz (hh)->(tt)->rz hh
+tail = (l)->l lz (hh)->(tt)->rz tt
+id = (v)->rz v
 
 getSvgElement = (id)->
   if (el = document.getElementById id) then el
@@ -1643,13 +1646,13 @@ getSvgElement = (id)->
 
 svgMeasureText = (text)->(style)->(f)->
   txt = getSvgElement('HIDDEN_TEXT')
-  if style() then txt.setAttribute 'style', style()
-  txt.lastChild.textContent = text()
+  if rz style then txt.setAttribute 'style', rz style
+  txt.lastChild.textContent = rz text
   bx = txt.getBBox()
-  f()(-> bx.width)(-> bx.height)
+  rz(f)(lz bx.width)(lz bx.height)
 
 primconcatNodes = (nodes)->
-  if nodes == _nil() then ""
+  if nodes == rz(_nil) then ""
   else (head nodes)(id) + concatNodes tail nodes
 
 transformedPoint = (pt, x, y, ctm, ictm)->
@@ -1671,7 +1674,7 @@ primSvgMeasure = (content, transformFunc)->(f)->
   bbox = g.getBBox()
   pad = getMaxStrokeWidth g, g, svg, transformFunc
   document.body.removeChild(svg)
-  f()(-> bbox.x - Math.ceil(pad/2))(-> bbox.y - Math.ceil(pad/2))(-> bbox.width + pad)(-> bbox.height + pad)
+  rz(f)(lz bbox.x - Math.ceil(pad/2))(lz bbox.y - Math.ceil(pad/2))(lz bbox.width + pad)(lz bbox.height + pad)
 
 baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']
 
@@ -1740,9 +1743,9 @@ emptyFile
 # Notebook prims
 #
 
-define 'printValue', ->(value)->
+define 'printValue', lz (value)->
   makeMonad (env, cont)->
-    if value() != L_nil() then env.write("#{env.presentValue value()}\n")
+    if rz(value) != rz(L_nil) then env.write("#{env.presentValue rz value}\n")
     cont L_false()
 
 #

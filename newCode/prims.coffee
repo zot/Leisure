@@ -1,14 +1,22 @@
+{
+  resolve,
+  lazy,
+} = root = module.exports = require './base'
+
+rz = resolve
+lz = lazy
+
 URI = require './uri'
 
-define 'read', ->(uri)->
+define 'read', lz (uri)->
   makeMonad (env, cont)->
-    read new URI(uri()), ((data)-> cont _left()(laz data.toString())), (err)-> cont _right()(laz err.stack.toString())
+    read new URI(rz uri), ((data)-> cont rz(_left)(lz data.toString())), (err)-> cont _right()(lz err.stack.toString())
 
-define 'write', ->(uri)->(data)->
+define 'write', lz (uri)->(data)->
   makeMonad (env, cont)->
-    write new URI(uri()), data(), (-> cont _left()(laz "success")), (err)-> cont _right()(laz err.stack.toString())
+    write new URI(rz uri), rz(data), (-> cont rz(_left)(lz "success")), (err)-> cont rz(_right)(lz err.stack.toString())
 
-define 'forward', ->(name)->
+define 'forward', lz (name)->
   makeMonad (env, cont)->
     Leisure.defineForward name
-    cont `_false()`
+    cont rz _false
