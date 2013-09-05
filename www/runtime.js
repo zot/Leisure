@@ -579,7 +579,7 @@ misrepresented as being the original software.
   };
 
   withSyncModeDo = function(newMode, block) {
-    var err, oldMode;
+    var err, oldMode, _ref2;
 
     oldMode = monadModeSync;
     monadModeSync = newMode;
@@ -587,7 +587,7 @@ misrepresented as being the original software.
       return block();
     } catch (_error) {
       err = _error;
-      return console.log("ERR: " + err.stack);
+      return console.log("ERR: " + ((_ref2 = err.stack) != null ? _ref2 : err));
     } finally {
 
     }
@@ -625,7 +625,7 @@ misrepresented as being the original software.
   };
 
   newRunMonad = function(monad, env, cont, contStack) {
-    var err, result;
+    var err, result, _ref2;
 
     if (cont) {
       contStack.push(cont);
@@ -662,7 +662,7 @@ misrepresented as being the original software.
     } catch (_error) {
       err = _error;
       err = replaceErr(err, "\nERROR RUNNING MONAD, MONAD: " + monad + ", ENV: " + env + "...\n" + err.message);
-      console.log(err.stack);
+      console.log((_ref2 = err.stack) != null ? _ref2 : err);
       if (env.errorHandlers.length) {
         return env.errorHandlers.pop()(err);
       }
@@ -716,8 +716,10 @@ misrepresented as being the original software.
       var hnd;
 
       hnd = function(err) {
-        console.log("PROTECTED ERROR: " + err.stack);
-        return cont(left(err.stack));
+        var _ref2, _ref3;
+
+        console.log("PROTECTED ERROR: " + ((_ref2 = err.stack) != null ? _ref2 : err));
+        return cont(left((_ref3 = err.stack) != null ? _ref3 : err));
       };
       env.errorHandlers.push(hnd);
       return runMonad(rz(value), env, (function(result) {
@@ -911,7 +913,9 @@ misrepresented as being the original software.
   define('readFile', lz(function(name) {
     return makeMonad(function(env, cont) {
       return readFile(rz(name), function(err, contents) {
-        return cont((err ? left(err.stack) : right(contents)));
+        var _ref2;
+
+        return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(contents)));
       });
     });
   }));
@@ -919,7 +923,9 @@ misrepresented as being the original software.
   define('readDir', lz(function(dir) {
     return makeMonad(function(env, cont) {
       return readDir(rz(dir), function(err, files) {
-        return cont((err ? left(err.stack) : right(files)));
+        var _ref2;
+
+        return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(files)));
       });
     });
   }));
@@ -928,7 +934,9 @@ misrepresented as being the original software.
     return function(data) {
       return makeMonad(function(env, cont) {
         return writeFile(rz(name), rz(data), function(err, contents) {
-          return cont((err ? left(err.stack) : right(contents)));
+          var _ref2;
+
+          return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(contents)));
         });
       });
     };
@@ -937,7 +945,9 @@ misrepresented as being the original software.
   define('statFile', lz(function(file) {
     return makeMonad(function(env, cont) {
       return statFile(rz(file), function(err, stats) {
-        return cont((err ? left(err.stack) : right(stats)));
+        var _ref2;
+
+        return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(stats)));
       });
     });
   }));

@@ -235,7 +235,7 @@ withSyncModeDo = (newMode, block)->
   try
     block()
   catch err
-    console.log "ERR: #{err.stack}"
+    console.log "ERR: #{err.stack ? err}"
   finally
     #if !monadModeSync && oldMode then console.log "REENABLING SYNC"
     #monadModeSync = oldMode
@@ -278,7 +278,7 @@ newRunMonad = (monad, env, cont, contStack)->
       monad = contStack.pop()(result)
   catch err
     err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}...\n#{err.message}"
-    console.log err.stack
+    console.log err.stack ? err
     if env.errorHandlers.length then env.errorHandlers.pop() err
 
 class Monad
@@ -308,8 +308,8 @@ values = {}
 define 'protect', lz (value)->
   makeMonad (env, cont)->
     hnd = (err)->
-      console.log "PROTECTED ERROR: #{err.stack}"
-      cont left err.stack
+      console.log "PROTECTED ERROR: #{err.stack ? err}"
+      cont left err.stack ? err
     env.errorHandlers.push hnd
     runMonad rz(value), env, ((result)->
       #console.log "PROTECT CONTINUING WITH RESULT: #{result}"
@@ -434,22 +434,22 @@ define 'write', lz (msg)->
 define 'readFile', lz (name)->
   makeMonad (env, cont)->
     readFile rz(name), (err, contents)->
-      cont (if err then left err.stack else right contents)
+      cont (if err then left err.stack ? err else right contents)
 
 define 'readDir', lz (dir)->
   makeMonad (env, cont)->
     readDir rz(dir), (err, files)->
-      cont (if err then left err.stack else right files)
+      cont (if err then left err.stack ? err else right files)
 
 define 'writeFile', lz (name)->(data)->
   makeMonad (env, cont)->
     writeFile rz(name), rz(data), (err, contents)->
-      cont (if err then left err.stack else right contents)
+      cont (if err then left err.stack ? err else right contents)
 
 define 'statFile', lz (file)->
   makeMonad (env, cont)->
     statFile rz(file), (err, stats)->
-      cont (if err then left err.stack else right stats)
+      cont (if err then left err.stack ? err else right stats)
 
 define 'prompt', lz (msg)->
   makeMonad (env, cont)->

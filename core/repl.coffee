@@ -157,7 +157,7 @@ prompt = ->
   rl.setPrompt promptText
   rl.prompt()
 
-repl = (args, config)->
+repl = (config)->
   lines = null
   leisureDir = path.join config.home, '.leisure'
   historyFile = path.join(leisureDir, 'history')
@@ -340,14 +340,15 @@ interactive = false
 
 requireList = []
 
-processArg = (pos)->
+processArg = (config, pos)->
   #console.log "Process args: #{process.argv.join ', '}, pos: #{pos}"
   if pos >= process.argv.length
     if processedFiles && !interactive
       #console.log "EXITING 2"
       process.exit 0
     else
-      repl()
+      console.log "STARTING REPL"
+      repl config
       return
   #console.log "Processing arg: #{process.argv[pos]}"
   if process.argv[pos][0] == '-' and !newOptions
@@ -395,17 +396,17 @@ processArg = (pos)->
           for f in requireList
             require f
         #console.log "PROCESSING #{process.argv[pos]} with #{action}"
-        action process.argv[pos], -> processArg pos + 1
+        action process.argv[pos], -> processArg config, pos + 1
       return
-  processArg pos + 1
+  processArg config, pos + 1
 
 run = (args, config)->
   action = runFile
   #console.log "Run: #{args.join ', '}"
   if args.length == 2
     require stages[stage]
-    repl args, config
-  else processArg 2
+    repl config
+  else processArg config, 2
 
 root.runFile = runFile
 
