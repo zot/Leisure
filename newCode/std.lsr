@@ -226,7 +226,7 @@ mergeSort cmp l = l
       merge cmp (mergeSort cmp e) (mergeSort cmp o)
   nil
 
-sort l = sortBy lte l
+sort l = sortBy (<=) l
 sortBy cmp l = mergeSort cmp l
 
 #######################
@@ -296,7 +296,7 @@ showConsElements list = isCons list
     ''
     [' | ' (show list)]
 
-# bind
+## bind
 defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt
   \value . cont value
   none

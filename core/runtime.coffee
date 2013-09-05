@@ -483,14 +483,14 @@ define 'altDef', lz (name)->(alt)->(arity)->(def)->
       alts: {}
       altList: []
     if !info.alts[rz alt] then info.altList.push rz alt
-    info.alts[rz alt] = def
+    info.alts[rz alt] = rz def
     #console.log "ALT LIST: #{info.altList.join ', '}"
     alts = (info.alts[i] for i in info.altList)
     newDef = curry rz(arity), (args)->
       #console.log "CALLED #{rz name} with #{args.length} args #{_.map(args, (a)->rz a).join ', '}, #{alts.length} alts: #{alts.join ', '}"
       for alt in alts
-        #console.log "TRYING ALT: #{alt}"
-        opt = rz alt
+        #console.log "TRYING ALT: #{rz alt}"
+        opt = alt
         for arg in args
           #console.log "SENDING ARG: #{rz arg} TO OPT: #{opt}"
           opt = opt arg
@@ -506,7 +506,8 @@ define 'altDef', lz (name)->(alt)->(arity)->(def)->
     global[nm] = global.leisureFuncNames[nm] = newDef
     cont def
 
-curry = (arity, func)-> ->subcurry arity, func, []
+#curry = (arity, func)-> ->subcurry arity, func, []
+curry = (arity, func)-> -> (arg)-> (subcurry arity, func, []) arg
 
 subcurry = (arity, func, args)->
   (arg)->
