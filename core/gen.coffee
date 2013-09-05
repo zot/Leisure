@@ -147,7 +147,8 @@ global.setLambdaProperties = (def, props)->
   def.properties = p
   def
 
-memoize = (func)-> "(function(){var $m; return function(){return $m || ($m = #{func})}})()"
+#memoize = (func)-> "(function(){var $m; return function(){return $m || ($m = #{func})}})()"
+memoize = (func)-> "(function(){return #{func}})"
 
 dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
 
@@ -155,6 +156,7 @@ genApplyArg = (arg, names, uniq)->
   #if arg instanceof Leisure_apply then "(function(){var $m; return function(){return $m || ($m = #{genUniq arg, names, uniq})}})()"
   if dumpAnno(arg) instanceof Leisure_apply then memoize genUniq arg, names, uniq
   else if arg instanceof Leisure_ref then uniqName (getRefName arg), uniq
+  else if arg instanceof Leisure_lit then "lazy(#{JSON.stringify getLitVal arg})"
   #else if arg instanceof Leisure_lit then JSON.stringify getLitVal arg
   else if arg instanceof Leisure_let then "function(){#{genLets arg, names, uniq}}"
   else if dumpAnno(arg) instanceof Leisure_lambda then memoize genUniq arg, names, uniq

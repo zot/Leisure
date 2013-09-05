@@ -197,8 +197,8 @@ consEq = (a, b)-> a == b or (a instanceof Leisure_BaseCons and a.equals(b))
 # cons and Nil are Leisure-based so that Leisure code can work with it transparently
 # they look like ordinary JS classes, but the "instances" are actually functions
 class Leisure_cons extends Leisure_BaseCons
-  head: -> @ ->(a)->(b)->a()
-  tail: -> @ ->(a)->(b)->b()
+  head: -> @ ->(a)->(b)->rz a
+  tail: -> @ ->(a)->(b)->rz b
   stringName: -> "Cons"
 
 global.Leisure_cons = Leisure_cons
@@ -262,7 +262,7 @@ nameFunc = (func, name)->
   f = null
   ->
     if f == null
-      f = func()
+      f = rz func
       if typeof f == 'function' then f.leisureName = name
       f
     else f

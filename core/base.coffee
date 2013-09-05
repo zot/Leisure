@@ -29,9 +29,11 @@ defaultEnv =
   values: {}
   errorHandlers: []
 
-global.resolve = (value)-> if typeof value == 'function' then value() else value
+global.resolve = (value)-> if typeof value == 'function' then value.memo || (value.memo = value()) else value
 
-lazy = (l)-> ->l
+#global.lazy = (l)-> ->l
+global.lazy = (l)-> if typeof l == 'function' then ->l else l
+#global.lazy = (l)-> if typeof l == 'function' then l.memo = l else l
 
 readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
 
@@ -60,4 +62,4 @@ root.statFile = statFile
 root.SimpyCons = SimpyCons
 root.simpyCons = simpyCons
 root.resolve = global.resolve
-root.lazy = lazy
+root.lazy = global.lazy

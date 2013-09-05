@@ -181,7 +181,7 @@ misrepresented as being the original software.
   };
 
   memoize = function(func) {
-    return "(function(){var $m; return function(){return $m || ($m = " + func + ")}})()";
+    return "(function(){return " + func + "})";
   };
 
   dumpAnno = function(ast) {
@@ -197,6 +197,8 @@ misrepresented as being the original software.
       return memoize(genUniq(arg, names, uniq));
     } else if (arg instanceof Leisure_ref) {
       return uniqName(getRefName(arg), uniq);
+    } else if (arg instanceof Leisure_lit) {
+      return "lazy(" + (JSON.stringify(getLitVal(arg))) + ")";
     } else if (arg instanceof Leisure_let) {
       return "function(){" + (genLets(arg, names, uniq)) + "}";
     } else if (dumpAnno(arg) instanceof Leisure_lambda) {
