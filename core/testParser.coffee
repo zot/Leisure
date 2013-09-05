@@ -34,6 +34,12 @@ require('source-map-support').install()
   writeFile,
 } = require './node'
 {
+  resolve,
+  lazy,
+} = root = module.exports = require './base'
+rz = resolve
+lz = lazy
+{
   define,
   scan,
   cons,
@@ -58,7 +64,7 @@ require('source-map-support').install()
   getValue,
 } = require './runtime'
 
-runLsr = (str)-> (runMonad L_runLine()(L_nil)(-> str)).tail()(->(x)-> throw x())(->(x)-> x())
+runLsr = (str)-> (runMonad rz(L_runLine)(L_nil)(lz str)).tail()(lz (x)-> throw rz(x))(lz (x)-> rz(x))
 
 global.runMonad = runMonad
 global.setType = setType
@@ -88,10 +94,10 @@ runTests 'Leisure Full Parser',
   fullParse2: ->
     assertEq String(runLsr "scanLineM 'a + b + c'"), 'Cons[[Token("+", 6) [Token("+", 2) Token("a", 0) Token("b", 4)] Token("c", 8)]]'
   fullParse3: ->
-    assertEq runLsr("1+2*3 >= 7 == true"), L_true()
+    assertEq runLsr("1+2*3 >= 7 == true"), rz L_true
   fullParse4: ->
-    assertEq runLsr("\\\\ (a = []) . isNil a"), L_true()
-    assertEq runLsr("\\\\ (a = [1 2 3]) . (head a) == 1"), L_true()
+    assertEq runLsr("\\\\ (a = []) . isNil a"), rz L_true
+    assertEq runLsr("\\\\ (a = [1 2 3]) . (head a) == 1"), rz L_true
   fullParse5: ->
     assertEq runLsr("do (a = 3) a"), 3
     setValue 'fred', 5

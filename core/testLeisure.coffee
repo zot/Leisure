@@ -286,9 +286,9 @@ readFile 'core/simpleParse.lsr', (err, code)->
             _type: "lit"
             value: 3
           assertEq (gen st), '3'
-        basic13: -> assertEq (gen lidAst), 'function(L_x){return L_x()}'
-        basic14: -> assertEq (gen lapplyXY), 'function(L_x){return function(L_y){return L_x()(L_y)}}'
-        basic15: -> assertEq (gen ltrueAst), 'function(L_a){return function(L_b){return L_a()}}'
+        basic13: -> assertEq (gen lidAst), 'function(L_x){return resolve(L_x)}'
+        basic14: -> assertEq (gen lapplyXY), 'function(L_x){return function(L_y){return resolve(L_x)(L_y)}}'
+        basic15: -> assertEq (gen ltrueAst), 'function(L_a){return function(L_b){return resolve(L_a)}}'
         basic16: -> assertEq (eval "(#{gen ltrueAst})")(->5)(->6), 5
         basic17: -> assertEq (eval "(#{gen lfalseAst})")(->5)(->6), 6
         basic18: -> assertEq (eval "(#{gen let3Ast})"), 3

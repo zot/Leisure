@@ -256,7 +256,7 @@ createAstFile = false
 createJsFile = false
 
 runFile = (file, cont)->
-  console "RUN FILE: #{file}"
+  console.log "RUN FILE: #{file}"
   try
     runMonad L_protect()(->L_require()(->file)), defaultEnv, (result)->
     #runMonad L_require()(->file), defaultEnv, (result)->
@@ -329,6 +329,7 @@ usage = ->
   -1            use simple Leisure parser
   -c            for -0, compile to JS using CoffeeScript compiler
                 for -1, or normal case, create AST and JS file
+  -r FILE       require JS FILE
   -d DIR        specify output directory for .ast and .js files
 
   Without no FILE arguments, runs interactive REPL
@@ -336,6 +337,8 @@ usage = ->
   process.exit 0
 
 interactive = false
+
+requireList = []
 
 processArg = (pos)->
   #console.log "Process args: #{process.argv.join ', '}, pos: #{pos}"
@@ -377,6 +380,9 @@ processArg = (pos)->
       stage = 1
     when '-i'
       interactive = true
+    when '-r'
+      requireList.push process.argv[pos + 1]
+      pos++
     else
       newOptions = true
       #console.log "Process #{process.argv.join ', '}"
@@ -386,6 +392,8 @@ processArg = (pos)->
         if !loadedParser
           #console.log "REQUIRING #{stages[stage]}"
           require stages[stage]
+          for f in requireList
+            require f
         #console.log "PROCESSING #{process.argv[pos]} with #{action}"
         action process.argv[pos], -> processArg pos + 1
       return
