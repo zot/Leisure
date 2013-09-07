@@ -87,6 +87,7 @@ setType = (func, type)->
 
 class LeisureObject
 
+LeisureObject.prototype.__proto__ = Function.prototype
 LeisureObject.prototype.className = 'LeisureObject'
 
 global.Leisure_Object = LeisureObject
@@ -100,6 +101,7 @@ ensureLeisureClass = (leisureClass)->
   if !global[cl]?
     global[cl] = eval "(function #{cl}(){})"
     supertypes[cl] = 'Leisure_Object'
+    global[cl].prototype.__proto__ = LeisureObject.prototype
     root.leisureClassChange++
   global[cl]
 

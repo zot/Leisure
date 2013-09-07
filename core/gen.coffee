@@ -75,6 +75,7 @@ genUniq = (ast, names, uniq)->
     when Leisure_ref then "resolve(#{uniqName (getRefName ast), uniq})"
     when Leisure_lambda then genLambda ast, names, uniq, 0
     when Leisure_apply then "#{genUniq (getApplyFunc ast), names, uniq}(#{genApplyArg (getApplyArg ast), names, uniq})"
+    #when Leisure_apply then genApply ast, names, uniq
     when Leisure_let then "(function(){\n#{genLets ast, names, uniq}})()"
     when Leisure_anno
       name = getAnnoName ast
@@ -152,11 +153,19 @@ memoize = (func)-> "function(){return #{func}}"
 
 dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
 
+genApply = (ast, names, uniq)->
+  args = []
+  while dumpAnno(ast) instanceof Leisure_apply
+    args.push "(#{genApplyArg (getApplyArg dumpAnno ast), names, uniq})"
+    ast = getApplyFunc dumpAnno ast
+  args.reverse()
+  "#{genUniq ast, names, uniq}.leisureCall(#{args.join ', '})"
+
 genApplyArg = (arg, names, uniq)->
   #if arg instanceof Leisure_apply then "(function(){var $m; return function(){return $m || ($m = #{genUniq arg, names, uniq})}})()"
   if dumpAnno(arg) instanceof Leisure_apply then memoize genUniq arg, names, uniq
   else if arg instanceof Leisure_ref then uniqName (getRefName arg), uniq
-  else if arg instanceof Leisure_lit then "lazy(#{JSON.stringify getLitVal arg})"
+  else if arg instanceof Leisure_lit then "#{JSON.stringify getLitVal arg}"
   else if arg instanceof Leisure_let then "function(){#{genLets arg, names, uniq}}"
   #else if dumpAnno(arg) instanceof Leisure_lambda then memoize genUniq arg, names, uniq
   else if dumpAnno(arg) instanceof Leisure_lambda then "lazy(#{genUniq arg, names, uniq})"
@@ -202,6 +211,20 @@ define 'runAst', lz (ast)->
 curry = (func, args, pos)->
   if pos == func.length then func args.toArray(func.length - 1, [])...
   else (arg)-> curry func, simpyCons(arg, args), pos + 1
+
+Function.prototype.leisureCall = (args...)->
+  if args.length == @length then @apply null, args
+  else
+    pos = 0
+    f = @
+    while pos < args.length
+      next = pos + f.length
+      if next <= args.length then f = f.apply null, args[pos...next]
+      else
+        a = args[pos...]
+        return (newArgs...)-> f.leisureCall a.concat(newArgs)...
+      pos = next
+    f
 
 root.gen = gen
 root.curry = curry

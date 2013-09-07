@@ -25,7 +25,8 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, curry, define, dumpAnno, gen, genApplyArg, genLambda, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, lz, makeSyncMonad, memoize, nameSub, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2;
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, lz, makeSyncMonad, memoize, nameSub, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2,
+    __slice = [].slice;
 
   _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
 
@@ -192,13 +193,25 @@ misrepresented as being the original software.
     }
   };
 
+  genApply = function(ast, names, uniq) {
+    var args;
+
+    args = [];
+    while (dumpAnno(ast) instanceof Leisure_apply) {
+      args.push("(" + (genApplyArg(getApplyArg(dumpAnno(ast)), names, uniq)) + ")");
+      ast = getApplyFunc(dumpAnno(ast));
+    }
+    args.reverse();
+    return "" + (genUniq(ast, names, uniq)) + ".leisureCall(" + (args.join(', ')) + ")";
+  };
+
   genApplyArg = function(arg, names, uniq) {
     if (dumpAnno(arg) instanceof Leisure_apply) {
       return memoize(genUniq(arg, names, uniq));
     } else if (arg instanceof Leisure_ref) {
       return uniqName(getRefName(arg), uniq);
     } else if (arg instanceof Leisure_lit) {
-      return "lazy(" + (JSON.stringify(getLitVal(arg))) + ")";
+      return "" + (JSON.stringify(getLitVal(arg)));
     } else if (arg instanceof Leisure_let) {
       return "function(){" + (genLets(arg, names, uniq)) + "}";
     } else if (dumpAnno(arg) instanceof Leisure_lambda) {
@@ -280,6 +293,34 @@ misrepresented as being the original software.
       return function(arg) {
         return curry(func, simpyCons(arg, args), pos + 1);
       };
+    }
+  };
+
+  Function.prototype.leisureCall = function() {
+    var a, args, f, next, pos;
+
+    args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+    if (args.length === this.length) {
+      return this.apply(null, args);
+    } else {
+      pos = 0;
+      f = this;
+      while (pos < args.length) {
+        next = pos + f.length;
+        if (next <= args.length) {
+          f = f.apply(null, args.slice(pos, next));
+        } else {
+          a = args.slice(pos);
+          return function() {
+            var newArgs;
+
+            newArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            return f.leisureCall.apply(f, a.concat(newArgs));
+          };
+        }
+        pos = next;
+      }
+      return f;
     }
   };
 
