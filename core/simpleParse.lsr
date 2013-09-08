@@ -500,7 +500,7 @@ createLet start list names = withCons list
   parseErr "No variable or body for let " (loc start)
   \binding body . eq body nil (createAst binding name)
     ifNotErr (getLetNames start list names) \newNames .
-      createSublets start binding body newNames id
+      createSublets start binding body newNames
 
 getLetNames start list names = \\
   err = parseErr "Let expected binding " (loc start)
@@ -512,24 +512,24 @@ getLetNames start list names = \\
           withToken name err \str pos .
             getLetNames start body (cons str names)
 
-createSublets start binding body names cont =
-  isTokenString binding '.' (ifNotErr (createAst body names) cont)
+createSublets start binding body names =
+  isTokenString binding '.' (createAst body names)
     withCons body (parseErr "Let expected a body " (loc start)) \bodyH bodyT .
-      getNameAndDef (parensStart binding) (parensContent binding) names \name def .
-        createSublets start bodyH bodyT names \bodyAst .
-          cont (let (tokenString name) def bodyAst)
+      ifNotErr (getNameAndDef (parensStart binding) (parensContent binding) names) \res . res \name def .
+        ifNotErr (createSublets start bodyH bodyT names) \bodyAst .
+          let (tokenString name) def bodyAst
 
-getNameAndDef pos binding names cont =
+getNameAndDef pos binding names =
   withCons (tail binding) (parseErr "Let expected binding at " pos) \snd sndT .
-    isTokenString snd '=' (ifNotErr (createAst sndT names) \def . cont (head binding) def)
-      getLetLambda pos (tail binding) nil names \lamb . cont (head binding) lamb
+    isTokenString snd '=' (ifNotErr (createAst sndT names) \def . cons (head binding) def)
+      ifNotErr (getLetLambda pos (tail binding) nil names) \lamb . cons (head binding) lamb
 
-getLetLambda pos def args names cont =
+getLetLambda pos def args names =
   withCons def (parseErr "Let expected binding at " pos) \arg rest .
     not (isToken arg) (parseErr "Let expected binding at " pos)
       isTokenString arg '='
-        ifNotErr (createAst (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names) cont
-        getLetLambda pos rest (cons arg args) names cont
+        createAst (cons (token '\\' pos) (append (reverse args) (cons (token '.' (position arg)) rest))) names
+        getLetLambda pos rest (cons arg args) names
 
 #################
 ## Compiling
