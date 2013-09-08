@@ -499,18 +499,18 @@ cleanTokens start toks cont = isToken toks
 createLet start list names = withCons list
   parseErr "No variable or body for let " (loc start)
   \binding body . eq body nil (createAst binding name)
-    getLetNames start list names \newNames .
+    ifNotErr (getLetNames start list names) \newNames .
       createSublets start binding body newNames id
 
-getLetNames start list names cont = \\
+getLetNames start list names = \\
   err = parseErr "Let expected binding " (loc start)
   .
-  withCons list (cont names) \binding body .
-    isTokenString binding '.' (cont names)
+  withCons list names \binding body .
+    isTokenString binding '.' names
       withParens binding err \start end def .
         withCons def err \name rest .
           withToken name err \str pos .
-            getLetNames start body (cons str names) cont
+            getLetNames start body (cons str names)
 
 createSublets start binding body names cont =
   isTokenString binding '.' (ifNotErr (createAst body names) cont)

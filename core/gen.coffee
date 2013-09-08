@@ -212,17 +212,23 @@ curry = (func, args, pos)->
   if pos == func.length then func args.toArray(func.length - 1, [])...
   else (arg)-> curry func, simpyCons(arg, args), pos + 1
 
+# maybe hand-code this in JS to eliminate unnecessary creation of args array for the first case
 Function.prototype.leisureCall = (args...)->
+  #if args.length == 0 then  throw new Error "Attempt to chain with 0 arguments"
   if args.length == @length then @apply null, args
   else
     pos = 0
     f = @
     while pos < args.length
+      #if f.length == 0 then throw new Error "Attempt to pass arguments to zero-argument function"
       next = pos + f.length
       if next <= args.length then f = f.apply null, args[pos...next]
       else
         a = args[pos...]
-        return (newArgs...)-> f.leisureCall a.concat(newArgs)...
+        sub = ->
+          #if arguments.length == 0 then  throw new Error "Attempt to chain with 0 arguments"
+          a.push.apply a, arguments
+          if a.length >= f.length then f.leisureCall.apply f, a else sub
       pos = next
     f
 
