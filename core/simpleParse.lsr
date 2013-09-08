@@ -551,7 +551,7 @@ scanLineG str pat groups onDef onExpr = \\
         isTokenString (head (tail rest)) '\\'
           parseIt (setTypeAnno (tail rest) (tokenString name))
           parseIt (tail rest)
-        transformDef name rest \def .
+        ifNotErr (transformDef name rest) \def .
           parseIt (cons (token '\\' (- (position (head rest)) 1)) def)
     ifNotErr (parseToks toks groups) \list . onExpr list
 
@@ -560,12 +560,12 @@ parseLineG str pat names groups onDef onExpr = \\
   .
   scanLineG str pat groups (astCallback onDef) (astCallback onExpr)
 
-transformDef name toks cont = withCons toks (parseErr "Bad definition, expecting tokens" (loc name)) \h t .
+transformDef name toks = withCons toks (parseErr "Bad definition, expecting tokens" (loc name)) \h t .
   isTokenString h '='
     isTokenString (head t) '\\'
-      cont (cons (token '.' (position h)) (setTypeAnno t (tokenString name)))
-      cont (cons (token '.' (position h)) t)
-    transformDef name t \list . cont (cons h list)
+      cons (token '.' (position h)) (setTypeAnno t (tokenString name))
+      cons (token '.' (position h)) t
+    ifNotErr (transformDef name t) \list . cons h list
 
 setTypeAnno toks name = \\
   tok = \str . token str (position toks)
