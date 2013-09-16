@@ -309,11 +309,12 @@ define = (name, func, arity, src, method) ->
 #  name, data, body -- associates a name and data with a body of code
 #  You can nest them, so body could be another annotation
 
-L_lit = setDataType ((_x)->setType ((_f)-> rz(_f)(_x)), 'lit'), 'lit'
-L_ref = setDataType ((_x)->setType ((_f)-> rz(_f)(_x)), 'ref'), 'ref'
-L_lambda = setDataType ((_v)-> (_f)-> setType ((_g)-> rz(_g)(_v)(_f)), 'lambda'), 'lambda'
+# lit, ref, lambda, let each need a range
+L_lit = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'lit'), 'lit'
+L_ref = setDataType ((_x)-> (_r)-> setType ((_f)-> rz(_f)(_x)(_r)), 'ref'), 'ref'
+L_lambda = setDataType ((_v)-> (_f)-> (_r)-> setType ((_g)-> rz(_g)(_v)(_f)(_r)), 'lambda'), 'lambda'
+L_let = setDataType ((_n)-> (_v)-> (_b)-> (_r)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)(_r)), 'let'), 'let'
 L_apply = setDataType ((_func)-> (_arg)-> setType ((_f)-> rz(_f)(_func)(_arg)), 'apply'), 'apply'
-L_let = setDataType ((_n)-> (_v)-> (_b)-> setType ((_f)-> rz(_f)(_n)(_v)(_b)), 'let'), 'let'
 L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(_data)(_body)), 'anno'), 'anno'
 
 getType = (f)->
@@ -328,22 +329,27 @@ define 'getDataType', (lz (value)-> getDataType rz value), 1
 
 save = {}
 
-save.lit = lit = (l)-> L_lit(lz l)
-save.ref = ref = (r)-> L_ref(lz r)
-save.lambda = lambda = (v, body)->L_lambda(lz v)(lz body)
+# lit, ref, lambda, let each need a range
+save.lit = lit = (l, range)-> L_lit(lz l)(lz range)
+save.ref = ref = (r, range)-> L_ref(lz r)(lz range)
+save.lambda = lambda = (v, body, range)->L_lambda(lz v)(lz body)(lz range)
+save.llet = llet = (n, v, b, range)->L_let(lz n)(lz v)(lz b)(lz range)
 save.apply = apply = (f, a)->L_apply(lz f)(lz a)
-save.llet = llet = (n, v, b)->L_let(lz n)(lz v)(lz b)
 save.anno = anno = (name, data, body)-> L_anno(lz name)(lz data)(lz body)
 save.cons = cons
-getLitVal = (lt)-> lt lz (v)-> rz v
-getRefName = (rf)-> rf lz (v)-> rz v
-getLambdaVar = (lam)-> lam lz (v)->(b)-> rz v
-getLambdaBody = (lam)-> lam lz (v)->(b)-> rz b
+getLitVal = (lt)-> lt lz (v)-> (r)-> rz v
+getLitRange = (lt)-> lt lz (v)-> (r)-> rz r
+getRefName = (rf)-> rf lz (v)-> (r)-> rz v
+getRefRange = (rf)-> rf lz (v)-> (r)-> rz r
+getLambdaVar = (lam)-> lam lz (v)->(b)-> (r)->  rz v
+getLambdaBody = (lam)-> lam lz (v)->(b)-> (r)->  rz b
+getLambdaRange = (lam)-> lam lz (v)->(b)-> (r)->  rz r
+getLetName = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz n
+getLetValue = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz v
+getLetBody = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz b
+getLetRange = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz r
 getApplyFunc = (apl)-> apl lz (a)->(b)-> rz a
 getApplyArg = (apl)-> apl lz (a)->(b)-> rz b
-getLetName = (lt)-> lt lz (n)->(v)->(b)-> rz n
-getLetValue = (lt)-> lt lz (n)->(v)->(b)-> rz v
-getLetBody = (lt)-> lt lz (n)->(v)->(b)-> rz b
 getAnnoName = (anno)-> anno lz (name)->(data)->(body)-> rz name
 getAnnoData = (anno)-> anno lz (name)->(data)->(body)-> rz data
 getAnnoBody = (anno)-> anno lz (name)->(data)->(body)-> rz body
@@ -353,11 +359,11 @@ getAnnoBody = (anno)-> anno lz (name)->(data)->(body)-> rz body
 ######
 
 json2AstEncodings =
-  lit: (json)-> L_lit(lz  json.value)
-  ref: (json)-> L_ref(lz json.varName)
-  lambda: (json)-> L_lambda(lz json.varName)(lz json2Ast json.body)
+  lit: (json)-> L_lit(lz  json.value Nil)
+  ref: (json)-> L_ref(lz json.varName Nil)
+  lambda: (json)-> L_lambda(lz json.varName)(lz json2Ast json.body Nil)
+  let: (json)-> L_let(lz json.varName)(lz json2Ast(json.value))(lz json2Ast(json.body) Nil)
   apply: (json)-> L_apply(lz json2Ast(json.func))(lz json2Ast json.arg)
-  let: (json)-> L_let(lz json.varName)(lz json2Ast(json.value))(lz json2Ast(json.body))
   anno: (json)-> L_anno(lz json.name)(lz json2Ast json.data)(lz json2Ast json.body)
   cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
   nil: (json)-> Nil
@@ -377,22 +383,26 @@ ast2JsonEncodings =
   Leisure_lit: (ast)->
     _type: 'lit'
     value: getLitVal ast
+    range: getLitRange ast
   Leisure_ref: (ast)->
     _type: 'ref'
     varName: getRefName ast
+    range: getRefRange ast
   Leisure_lambda: (ast)->
     _type: 'lambda'
     varName: getLambdaVar ast
     body: ast2Json getLambdaBody ast
-  Leisure_apply: (ast)->
-    _type: 'apply'
-    func: ast2Json getApplyFunc ast
-    arg: ast2Json getApplyArg ast
+    range: getLambdaRange ast
   Leisure_let: (ast)->
     _type: 'let'
     varName: getLetName ast
     value: ast2Json getLetValue ast
     body: ast2Json getLetBody ast
+    range: getLetRange ast
+  Leisure_apply: (ast)->
+    _type: 'apply'
+    func: ast2Json getApplyFunc ast
+    arg: ast2Json getApplyArg ast
   Leisure_anno: (ast)->
     _type: 'anno'
     name: getAnnoName ast
