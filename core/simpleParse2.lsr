@@ -1,3 +1,5 @@
+newGen
+
 #################
 # Utilities
 #################
@@ -198,7 +200,6 @@ setValue 'infixRightAssociative' rightAssoc
 defTokenPack 'infix' [(flatten iprec) [] [infix]]
 
 useTokenPack 'infix'
-
 
 ################
 ## DO
