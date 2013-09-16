@@ -25,7 +25,12 @@ misrepresented as being the original software.
 require('source-map-support').install()
 #Error.stackTraceLimit = Infinity
 Error.stackTraceLimit = 50
-root = module.exports = require './base'
+{
+  resolve,
+  lazy,
+} = root = module.exports = require './base'
+rz = resolve
+lz = lazy
 _ = require './lodash.min'
 path = require 'path'
 fs = require 'fs'
@@ -89,7 +94,7 @@ getParseErr = (x)-> x ->(value)->value()
 evalInput = (text, cont)->
   if text
     try
-      result = L_newParseLine()(->Nil)(->text)
+      result = L_newParseLine()(0)(->Nil)(->text)
       runMonad result, replEnv, (ast)->
         try
           if getType(ast) == 'parseErr'
@@ -272,7 +277,7 @@ compile = (file, cont)->
     if verbose then console.log "Preparing to write code for #{file}"
     errors = []
     asts = _.map result.toArray(), (lineData)->
-      result = lineData.tail()(->(x)->x())(->(x)->x())
+      result = lineData.tail()(lz (x)->rz x)(lz (x)->rz x)
       if result instanceof Error
         result = replaceErr result, "Error compiling line: #{lines.head()}...\n#{ast.message}"
         errors.push[result]
@@ -377,8 +382,10 @@ processArg = (config, pos)->
       pos++
     when '-0'
       stage = 0
+      root.lockGen = true
     when '-1'
       stage = 1
+      root.lockGen = true
     when '-i'
       interactive = true
     when '-r'
@@ -393,6 +400,7 @@ processArg = (config, pos)->
         if !loadedParser
           #console.log "REQUIRING #{stages[stage]}"
           require stages[stage]
+          if stage == 1 then root.lockGen = false
           for f in requireList
             require f
         #console.log "PROCESSING #{process.argv[pos]} with #{action}"

@@ -64,7 +64,7 @@ lz = lazy
   getValue,
 } = require './runtime'
 
-runLsr = (str)-> (runMonad rz(L_runLine)(L_nil)(lz str)).tail()(lz (x)-> throw rz(x))(lz (x)-> rz(x))
+runLsr = (str)-> (runMonad rz(L_runLine)(0)(L_nil)(lz str)).tail()(lz (x)-> throw rz(x))(lz (x)-> rz(x))
 
 global.runMonad = runMonad
 global.setType = setType

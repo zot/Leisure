@@ -58,14 +58,14 @@ call = (args...)-> basicCall(args, defaultEnv, identity)
 callMonad = (args..., env, cont)-> basicCall(args, env, cont)
 
 basicCall = (args, env, cont)->
-  res = global["L_#{args[0]}"]()
+  res = rz global["L_#{args[0]}"]
   for arg in args[1..]
     res = do (arg)-> res(lz arg)
   runMonad res, env, cont
 
 consFrom = (array, i)->
   i = i || 0
-  if i < array.length then cons array[i], consFrom(array, i + 1) else L_nil()
+  if i < array.length then cons array[i], consFrom(array, i + 1) else rz L_nil
 
 ############
 # LOGIC
@@ -162,6 +162,7 @@ define '_strMatch', lz (str)->(pat)->
       groups.push m[pos++]
     if typeof m.index != 'undefined' then consFrom [m[0], consFrom(groups), m.index, m.input]
     else consFrom [m[0], consFrom(groups)]
+  else if L_nil then rz L_nil
   else Nil
 define '_strToList', lz (str)-> strToList rz str
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
@@ -552,8 +553,6 @@ define 'hamtWithout', lz (key)->(hamt)-> makeHamt amt.dissoc rz(hamt).hamt, rz(k
 #
 #define 'hamtDissocOpts', lz (hamt)->(key)->(opts)-> amt.dissoc(rz(hamt), rz(key), rz(opts))
 
-memo = (func)-> ->func.memo || (func.memo = func())
-
 define 'hamtPairs', lz (hamt)-> nextNode simpyCons rz(hamt).hamt, null
 
 nextNode = (stack)->
@@ -565,7 +564,7 @@ nextNode = (stack)->
       for k, child of node.children
         stack = simpyCons child, stack
       return nextNode stack
-    when 'value' then return rz(L_acons)(lz node.key)(lz node.value)(memo ->nextNode stack)
+    when 'value' then return rz(L_acons)(lz node.key)(lz node.value)(->nextNode stack)
     when 'hashmap'
       for key, value of node.values
         stack = simpyCons value, stack

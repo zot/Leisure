@@ -59,6 +59,7 @@ lz = lazy
 {
   makeSyncMonad,
   runMonad,
+  _true,
   _false,
   left,
   right,
@@ -67,6 +68,13 @@ _ = require './lodash.min'
 
 varNameSub = (n)-> "L_#{nameSub n}"
 
+newGen = false
+#newGen = true
+#root.lockGen = false
+root.lockGen = true
+masterLockGen = true
+#masterLockGen = false
+
 gen = (ast)-> genUniq ast, Nil, [Nil, 0]
 genUniq = (ast, names, uniq)->
   switch ast.constructor
@@ -74,8 +82,9 @@ genUniq = (ast, names, uniq)->
     #when Leisure_ref then "#{uniqName (getRefName ast), uniq}()"
     when Leisure_ref then "resolve(#{uniqName (getRefName ast), uniq})"
     when Leisure_lambda then genLambda ast, names, uniq, 0
-    when Leisure_apply then "#{genUniq (getApplyFunc ast), names, uniq}(#{genApplyArg (getApplyArg ast), names, uniq})"
-    #when Leisure_apply then genApply ast, names, uniq
+    when Leisure_apply
+      if !newGen then "#{genUniq (getApplyFunc ast), names, uniq}(#{genApplyArg (getApplyArg ast), names, uniq})"
+      else genApply ast, names, uniq
     when Leisure_let then "(function(){\n#{genLets ast, names, uniq}})()"
     when Leisure_anno
       name = getAnnoName ast
@@ -89,6 +98,10 @@ genUniq = (ast, names, uniq)->
           "define('#{funcName}', (function(){return #{genned}}), #{arity}, #{JSON.stringify src})"
         else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
+
+define 'newGen', lz makeSyncMonad (env, cont)->
+  newGen = !masterLockGen && !root.lockGen
+  cont _true
 
 genLambda = (ast, names, uniq, count)->
   name = getLambdaVar ast
@@ -224,11 +237,13 @@ Function.prototype.leisureCall = (args...)->
       next = pos + f.length
       if next <= args.length then f = f.apply null, args[pos...next]
       else
+        console.log "CURRY"
         a = args[pos...]
         sub = ->
           #if arguments.length == 0 then  throw new Error "Attempt to chain with 0 arguments"
           a.push.apply a, arguments
           if a.length >= f.length then f.leisureCall.apply f, a else sub
+        return sub
       pos = next
     f
 

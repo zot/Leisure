@@ -39,7 +39,11 @@ misrepresented as being the original software.
   llet,
   anno,
   ast2Json,
+  resolve,
+  lazy,
 } = root = module.exports = require './ast'
+rz = resolve
+lz = lazy
 {
   runMonad,
   defaultEnv,
@@ -92,43 +96,43 @@ makeDelimterPat()
 # TOKENS
 ############
 
-L_token = setDataType ((txt)->(pos)-> setType ((f)-> f()(txt)(pos)), 'token'), 'token'
+L_token = setDataType ((txt)->(pos)-> setType ((f)-> rz(f)(txt)(pos)), 'token'), 'token'
 #ensureLeisureClass 'token'
 #Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
 
-tokenString = (t)-> t(->(txt)->(pos)-> txt())
-tokenPos = (t)-> t(->(txt)->(pos)-> pos())
-token = (str, pos)-> L_token(->str)(->pos)
+tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
+tokenPos = (t)-> t(lz (txt)->(pos)-> lz pos)
+token = (str, pos)-> L_token(lz str)(lz pos)
 isToken = (t)-> t instanceof Leisure_token
 
-L_parens = setDataType ((left)->(right)->(content)-> setType ((f)-> f()(left)(right)(content)), 'parens'), 'parens'
+L_parens = setDataType ((left)->(right)->(content)-> setType ((f)-> rz(f)(left)(right)(content)), 'parens'), 'parens'
 #ensureLeisureClass 'parens'
 #Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
 
 parens = (start, end, content)->
   if content instanceof Leisure_cons && tail(content) == Nil then parens start, end, head(content)
   else if isToken content then content
-  else L_parens(->start)(->end)(->content)
+  else L_parens(lz start)(lz end)(lz content)
 
 parensFromToks = (left, right, content)->
   start = tokenPos left
   end = tokenPos(right) + tokenString(right).length
-  L_parens(->start)(->end)(->content)
+  L_parens(lz start)(lz end)(lz content)
 
-parensStart = (p)-> p(->(s)->(e)->(l)-> s())
-parensEnd = (p)-> p(->(s)->(e)->(l)-> e())
-parensContent = (p)-> p(->(s)->(e)->(l)-> l())
+parensStart = (p)-> p(lz (s)->(e)->(l)-> rz s)
+parensEnd = (p)-> p(lz (s)->(e)->(l)-> e)
+parensContent = (p)-> p(lz (s)->(e)->(l)-> rz l)
 isParens = (p)-> p instanceof Leisure_parens
 stripParens = (p)-> if isParens p then parensContent p else p
 
-L_parseErr = setDataType ((msg)-> setType ((f)-> f()(msg)), 'parseErr'), 'parseErr'
+L_parseErr = setDataType ((msg)-> setType ((f)-> rz(f)(msg)), 'parseErr'), 'parseErr'
 ensureLeisureClass 'parseErr'
 Leisure_parseErr.prototype.toString = -> "ParseErr(#{JSON.stringify(parseErrMsg(@))})"
 
 parseErr = (msg)->
-  #L_parseErr(->msg)
+  #L_parseErr(lz msg)
   throw new Error msg
-parseErrMsg = (e)-> e(->(msg)-> msg())
+parseErrMsg = (e)-> e(lz (msg)-> rz msg)
 
 makeTokens = (strings, start)->
   if strings == Nil then Nil
