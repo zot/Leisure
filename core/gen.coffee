@@ -193,7 +193,7 @@ genLets = (ast, names, uniq)->
       newU,
       (cons letName, letNames),
       (cons '\n' + letName + ' = ' + genApplyArg(getLetValue(l), n, u), code)]), [names, uniq, Nil, Nil]
-  "\nvar #{decs.join(', ')};\n#{assigns.join(';\n')};\nreturn #{genUniq (getLastLetBody ast), names, uniq}"
+  "\nvar #{decs.join(', ')};\n#{assigns.reverse().join(';\n')};\nreturn #{genUniq (getLastLetBody ast), names, uniq}"
 
 addUniq = (name, names, uniq)->
   #if (_.find names, (el)-> el == name)
