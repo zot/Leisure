@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2, _true,
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2, _true,
     __slice = [].slice;
 
   _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
@@ -227,11 +227,19 @@ misrepresented as being the original software.
     } else if (arg instanceof Leisure_ref) {
       return uniqName(getRefName(arg), uniq);
     } else if (arg instanceof Leisure_lit) {
-      return "" + (JSON.stringify(getLitVal(arg)));
+      return JSON.stringify(getLitVal(arg));
     } else if (arg instanceof Leisure_let) {
       return "function(){" + (genLets(arg, names, uniq)) + "}";
     } else if (dumpAnno(arg) instanceof Leisure_lambda) {
       return "lazy(" + (genUniq(arg, names, uniq)) + ")";
+    } else {
+      return "function(){return " + (genUniq(arg, names, uniq)) + "}";
+    }
+  };
+
+  genLetAssign = function(arg, names, uniq) {
+    if (dumpAnno(arg) instanceof Leisure_let) {
+      return "function(){" + (genLets(arg, names, uniq)) + "}";
     } else {
       return "function(){return " + (genUniq(arg, names, uniq)) + "}";
     }
@@ -246,7 +254,7 @@ misrepresented as being the original software.
       n = result[0], u = result[1], letNames = result[2], code = result[3];
       newU = addUniq(getLetName(l), n, u);
       letName = uniqName(getLetName(l), newU);
-      return [cons(getLetName(l), n), newU, cons(letName, letNames), cons('\n' + letName + ' = ' + genApplyArg(getLetValue(l), n, u), code)];
+      return [cons(getLetName(l), n), newU, cons(letName, letNames), cons('\n' + letName + ' = ' + genLetAssign(getLetValue(l), n, u), code)];
     }), [names, uniq, Nil, Nil]), names = _ref3[0], uniq = _ref3[1], decs = _ref3[2], assigns = _ref3[3];
     return "\nvar " + (decs.join(', ')) + ";\n" + (assigns.reverse().join(';\n')) + ";\nreturn " + (genUniq(getLastLetBody(ast), names, uniq));
   };
