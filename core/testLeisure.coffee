@@ -82,44 +82,56 @@ parseJson = (str)-> json2Ast JSON.parse str
 ltrueAst = json2Ast
   _type: "lambda"
   varName: "a"
+  range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   body:
     _type: "lambda"
     varName: "b"
+    range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
     body:
       _type: "ref"
       varName: "a"
+      range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
 
 lfalseAst = json2Ast
   _type: "lambda"
   varName: "a"
+  range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   body:
     _type: "lambda"
     varName: "b"
+    range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
     body:
       _type: "ref"
       varName: "b"
+      range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
 
 lidAst = json2Ast
   _type: "lambda"
   varName: "x"
+  range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   body:
     _type: "ref"
     varName: "x"
+    range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
 
 lapplyXY = json2Ast
   _type: "lambda"
   varName: "x"
+  range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   body:
     _type: "lambda"
     varName: "y"
+    range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
     body:
       _type: "apply"
       func:
         _type: "ref"
         varName: "x"
+        range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
       arg:
         _type: "ref"
         varName: "y"
+        range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
 
 let3Ast = json2Ast
   _type: 'let'
@@ -127,25 +139,31 @@ let3Ast = json2Ast
   value:
     _type: 'lit'
     value: 3
+  range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   body:
     _type: 'let'
     varName: 'y'
+    range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
     value:
       _type: 'apply'
       func:
         _type: 'apply'
         func:
           _type: 'ref'
+          range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
           varName: 'log'
         arg:
           _type: 'lit'
           value: "hello y"
+          range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
       arg:
         _type: 'lit'
         value: 4
+        range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
     body:
       _type: 'ref'
       varName: 'x'
+      range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
 
 setXTo3Ast = json2Ast
   _type: 'apply'
@@ -154,12 +172,15 @@ setXTo3Ast = json2Ast
     func:
       _type: 'ref'
       varName: 'setValue'
+      range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
     arg:
       _type: 'lit'
       value: 'x'
+      range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   arg:
     _type: 'lit'
     value: 3
+    range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
 
 setXTo3YTo4Ast = json2Ast
   _type: 'apply'
@@ -168,6 +189,7 @@ setXTo3YTo4Ast = json2Ast
     func:
       _type: 'ref'
       varName: 'bind'
+      range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
     arg:
       _type: 'apply'
       func:
@@ -175,15 +197,19 @@ setXTo3YTo4Ast = json2Ast
         func:
           _type: 'ref'
           varName: 'setValue'
+          range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
         arg:
           _type: 'lit'
           value: 'x'
+          range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
       arg:
         _type: 'lit'
         value: 3
+        range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   arg:
     _type: 'lambda'
     varName: 'bubba'
+    range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
     body:
       _type: 'apply'
       func:
@@ -191,12 +217,15 @@ setXTo3YTo4Ast = json2Ast
         func:
           _type: 'ref'
           varName: 'setValue'
+          range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
         arg:
           _type: 'lit'
           value: 'y'
+          range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
       arg:
         _type: 'lit'
         value: 4
+        range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
 
 text1 = """
   v1 = 3
@@ -262,12 +291,14 @@ readFile 'core/simpleParse.lsr', (err, code)->
           st = json2Ast
             _type: "lit"
             value: 3
+            range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
           assertEq getLitVal(st), 3
           assertEq getLitVal(json2Ast ast2Json st), 3
         basic9: ->
           st = json2Ast
             _type: "ref"
             varName: 3
+            range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
           assertEq getRefName(st), 3
           assertEq getRefName(json2Ast ast2Json st), 3
         basic10: ->
@@ -285,6 +316,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           st = json2Ast
             _type: "lit"
             value: 3
+            range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
           assertEq (gen st), '3'
         basic13: -> assertEq (gen lidAst), 'function(L_x){return resolve(L_x)}'
         basic14: -> assertEq (gen lapplyXY), 'function(L_x){return function(L_y){return resolve(L_x)(L_y)}}'

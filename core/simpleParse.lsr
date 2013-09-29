@@ -366,11 +366,19 @@ parseIndent indent toks gr groups =
 ## Creating ASTs
 #################
 
-lit value = \f . f value
-ref name = \f . f name
-lambda name body = \f . f name body
+# lit and ref are the easiest
+# maybe we should encode a range as [startLine startCol endLine endCol] and just add range args to things
+# lits and refs can have an extra range arg
+# actually, I think lambda and let only need one range, just for their vars/names because their bodies will have ranges
+# applies probably don't need a range at this point, since their func and arg have ranges
+# anno probably don't need ranges, since they don't directly gen code
+#nilRange = nil
+nilRange = cons 'file.lsr' (cons 1 (cons 0 nil))
+lit value range = \f . f value range
+ref name range = \f . f name range
+lambda name body range = \f . f name body range
 apply func arg = \f . f func arg
-let name value body = \f . f name value body
+let name value body range = \f . f name value body range
 anno name data body = \f . f name data body
 
 withParens p err cont = isParens p (p cont) err
@@ -452,14 +460,14 @@ parseString str cont =
 
 createLitOrRef tok names =
   contains names tok
-    ref tok
+    ref tok nilRange
     or (strStartsWith tok '\"') (strStartsWith tok "'")
-      parseString tok \str . lit str
+      parseString tok \str . lit str nilRange
       strStartsWith tok '.'
-        jsonParse (strCat (cons '0' (cons tok nil))) (\err . ref tok) (\item . lit item)
+        jsonParse (strCat (cons '0' (cons tok nil))) (\err . ref tok nilRange) (\item . lit item nilRange)
         or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
-          jsonParse tok (\err . ref tok) (\item . lit item)
-          ref tok
+          jsonParse tok (\err . ref tok nilRange) (\item . lit item nilRange)
+          ref tok nilRange
 
 createLambda start list names = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
@@ -469,8 +477,8 @@ createLambda start list names = \\
       withCons rest err \dot body .
         # are these partial applications too hard to read?
         isTokenString dot '.'
-          ifNotErr (createAst nil body (cons n names)) \bodyAst . lambda n bodyAst
-          ifNotErr (createLambda start rest (cons n names)) \bodyAst . lambda n bodyAst
+          ifNotErr (createAst nil body (cons n names)) \bodyAst . lambda n bodyAst nilRange
+          ifNotErr (createLambda start rest (cons n names)) \bodyAst . lambda n bodyAst nilRange
 
 createAnno start list names =
   withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
@@ -529,7 +537,7 @@ createSublets start binding body names =
     withCons body (parseErr "Let expected a body " (loc start)) \bodyH bodyT .
       ifNotErr (getNameAndDef (parensStart binding) (parensContent binding) names) \res . res \name def .
         ifNotErr (createSublets start bodyH bodyT names) \bodyAst .
-          let (tokenString name) def bodyAst
+          let (tokenString name) def bodyAst nilRange
 
 getNameAndDef pos binding names =
   withCons (tail binding) (parseErr "Let expected binding at " pos) \snd sndT .

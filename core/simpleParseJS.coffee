@@ -41,7 +41,9 @@ misrepresented as being the original software.
   ast2Json,
   resolve,
   lazy,
+  dummyPosition,
 } = root = module.exports = require './ast'
+
 rz = resolve
 lz = lazy
 {
@@ -228,14 +230,14 @@ createAst = (inList, names, cont)-> strip inList, (list)->
     else createApply list, names, cont
 
 createLitOrRef = (tok, names, cont)->
-  if names.find((el)-> el == tok) != Nil then cont ref tok
+  if names.find((el)-> el == tok) != Nil then cont ref tok, dummyPosition
   else
     try
-      if tok[0] in "\"'" then cont lit parseString tok.substring 1, tok.length - 1
-      else if (tok[0] >= '0' and tok[0] <= '9') or tok[0] == '-' then cont lit JSON.parse tok
-      else cont ref tok
+      if tok[0] in "\"'" then cont lit (parseString tok.substring 1, tok.length - 1), dummyPosition
+      else if (tok[0] >= '0' and tok[0] <= '9') or tok[0] == '-' then cont lit (JSON.parse tok), dummyPosition
+      else cont ref tok, dummyPosition
     catch err
-      cont ref tok
+      cont ref tok, dummyPosition
 
 charCodes =
   "b": '\b'
@@ -275,9 +277,9 @@ createLambda = (start, list, names, cont)->
     withCons rest, (-> parseErr "No body for lambda #{loc start}"), (dot, body)->
       withToken name, (-> parseErr "Expecting name for lambda #{loc start}"), (n)->
         if isTokenString dot, '.' then createAst body, cons(n, names), (bodyAst)->
-          cont lambda n, bodyAst
+          cont lambda n, bodyAst, dummyPosition
         else createLambda start, rest, cons(n, names), (bodyAst)->
-          cont lambda n, bodyAst
+          cont lambda n, bodyAst, dummyPosition
 
 createAnno = (start, list, names, cont)->
   withCons list, (-> parseErr "No annotation name or data in annotation #{loc start}"), (name, rest)->
@@ -285,7 +287,7 @@ createAnno = (start, list, names, cont)->
       finish = (data, body)-> createAst body, names, (bodyAst)->
         cleanTokens start, name, (name)->
           cleanTokens start, data, (data)->
-            cont anno(name, data, bodyAst)
+            cont anno(name, data, bodyAst, dummyPosition)
       if isTokenString data, '.' then finish Nil, rest
       else
         strip data, (data)->
@@ -307,10 +309,10 @@ createApply = (inList, names, cont)-> strip inList, (list)->
 chainApply = (func, list, names, cont)->
   withCons list, (-> cont func), (argItem, rest)->
     if isToken(argItem) and tokenString(argItem) in ['\\', '\\\\', '\\@'] then createAst list, names, (arg)->
-      cont apply(func, arg)
+      cont apply(func, arg, dummyPosition)
     else
       createAst argItem, names, (arg)->
-        chainApply apply(func, arg), rest, names, cont
+        chainApply apply(func, arg, dummyPosition), rest, names, cont
 
 # let structures allow mutual recursion
 # the syntax is similar to the top level
@@ -337,7 +339,7 @@ createSublets = (start, binding, body, names, cont)->
   else withCons body, (-> parseErr "Let expected a body"), (bodyH, bodyT)->
     getNameAndDef parensStart(binding), parensContent(binding), names, (name, def)->
       createSublets start, bodyH, bodyT, names, (bodyAst)->
-        cont llet (tokenString name), def, bodyAst
+        cont llet (tokenString name), def, bodyAst, dummyPosition
 
 getNameAndDef = (pos, binding, names, cont)->
   withCons tail(binding), (-> parseErr "Let expected binding at #{pos}"), (snd, sndT)->

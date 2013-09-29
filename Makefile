@@ -40,6 +40,7 @@ all: $(PRELUDE) $(NEW_LSR_JS) $(BROWSER_JS) $(WEB_JS) .tested .parserTested
 
 clean:
 	rm -f $(OUT_FILES) .tested .parserTested www/leisureJS-* www/leisureCSS-*
+	rm -f core/generatedPrelude.lsr
 
 $(BROWSER_JS): $(BROWSER_INPUT)
 	if [ ! -e node_modules/browserify ]; then npm install browserify; fi

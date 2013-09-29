@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoPos, getApplyArg, getApplyFunc, getApplyPos, getDataType, getLambdaBody, getLambdaPos, getLambdaVar, getLetBody, getLetName, getLetPos, getLetValue, getLitPos, getLitVal, getPos, getRefName, getRefPos, getType, head, jsType, json2Ast, json2AstEncodings, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
+  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, jsType, json2Ast, json2AstEncodings, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -595,24 +595,42 @@ misrepresented as being the original software.
   };
 
   L_lit = setDataType((function(_x) {
-    return setType((function(_f) {
-      return rz(_f)(_x);
-    }), 'lit');
+    return function(_r) {
+      return setType((function(_f) {
+        return rz(_f)(_x)(_r);
+      }), 'lit');
+    };
   }), 'lit');
 
   L_ref = setDataType((function(_x) {
-    return setType((function(_f) {
-      return rz(_f)(_x);
-    }), 'ref');
+    return function(_r) {
+      return setType((function(_f) {
+        return rz(_f)(_x)(_r);
+      }), 'ref');
+    };
   }), 'ref');
 
   L_lambda = setDataType((function(_v) {
     return function(_f) {
-      return setType((function(_g) {
-        return rz(_g)(_v)(_f);
-      }), 'lambda');
+      return function(_r) {
+        return setType((function(_g) {
+          return rz(_g)(_v)(_f)(_r);
+        }), 'lambda');
+      };
     };
   }), 'lambda');
+
+  L_let = setDataType((function(_n) {
+    return function(_v) {
+      return function(_b) {
+        return function(_r) {
+          return setType((function(_f) {
+            return rz(_f)(_n)(_v)(_b)(_r);
+          }), 'let');
+        };
+      };
+    };
+  }), 'let');
 
   L_apply = setDataType((function(_func) {
     return function(_arg) {
@@ -621,16 +639,6 @@ misrepresented as being the original software.
       }), 'apply');
     };
   }), 'apply');
-
-  L_let = setDataType((function(_n) {
-    return function(_v) {
-      return function(_b) {
-        return setType((function(_f) {
-          return rz(_f)(_n)(_v)(_b);
-        }), 'let');
-      };
-    };
-  }), 'let');
 
   L_anno = setDataType((function(_name) {
     return function(_data) {
@@ -663,24 +671,24 @@ misrepresented as being the original software.
 
   save = {};
 
-  save.lit = lit = function(l) {
-    return L_lit(lz(l));
+  save.lit = lit = function(l, range) {
+    return L_lit(lz(l))(lz(range));
   };
 
-  save.ref = ref = function(r) {
-    return L_ref(lz(r));
+  save.ref = ref = function(r, range) {
+    return L_ref(lz(r))(lz(range));
   };
 
-  save.lambda = lambda = function(v, body) {
-    return L_lambda(lz(v))(lz(body));
+  save.lambda = lambda = function(v, body, range) {
+    return L_lambda(lz(v))(lz(body))(lz(range));
+  };
+
+  save.llet = llet = function(n, v, b, range) {
+    return L_let(lz(n))(lz(v))(lz(b))(lz(range));
   };
 
   save.apply = apply = function(f, a) {
     return L_apply(lz(f))(lz(a));
-  };
-
-  save.llet = llet = function(n, v, b) {
-    return L_let(lz(n))(lz(v))(lz(b));
   };
 
   save.anno = anno = function(name, data, body) {
@@ -689,49 +697,84 @@ misrepresented as being the original software.
 
   save.cons = cons;
 
-  dummyPosition = cons("file.lsr", cons(1, cons(0, typeof L_nil !== "undefined" && L_nil !== null ? L_nil : Nil)));
+  dummyPosition = cons("file.lsr", cons(1, cons(0, Nil)));
 
   getPos = function(ast) {
     switch (getType(ast)) {
       case 'lit':
-        return getLitPos(ast);
+        return getLitRange(ast);
       case 'ref':
-        return getRefPos(ast);
+        return getRefRange(ast);
       case 'lambda':
-        return getLambdaPos(ast);
+        return getLambdaRange(ast);
       case 'apply':
-        return getApplyPos(ast);
+        return getApplyRange(ast);
       case 'let':
-        return getLetPos(ast);
+        return getLetRange(ast);
       case 'anno':
-        return getAnnoPos(ast);
+        return getAnnoRange(ast);
+    }
+  };
+
+  firstRange = function(a, b) {
+    var colA, colB, fileA, fileB, lineA, lineB, _ref4, _ref5;
+
+    if (!a || !b) {
+      console.log("NIL = " + Nil);
+    }
+    _ref4 = a.toArray(), fileA = _ref4[0], lineA = _ref4[1], colA = _ref4[2];
+    _ref5 = b.toArray(), fileB = _ref5[0], lineB = _ref5[1], colB = _ref5[2];
+    if ((lineA != null) && (lineB != null)) {
+      if (lineA < lineB || (lineA === lineB && colA < colB)) {
+        return a;
+      } else {
+        return b;
+      }
+    } else if (lineA) {
+      return a;
+    } else {
+      return b;
     }
   };
 
   getLitVal = function(lt) {
     return lt(lz(function(v) {
-      return rz(v);
+      return function(r) {
+        return rz(v);
+      };
     }));
   };
 
-  getLitPos = function(lt) {
-    return dummyPosition;
+  getLitRange = function(lt) {
+    return lt(lz(function(v) {
+      return function(r) {
+        return rz(r);
+      };
+    }));
   };
 
   getRefName = function(rf) {
     return rf(lz(function(v) {
-      return rz(v);
+      return function(r) {
+        return rz(v);
+      };
     }));
   };
 
-  getRefPos = function(rf) {
-    return dummyPosition;
+  getRefRange = function(rf) {
+    return rf(lz(function(v) {
+      return function(r) {
+        return rz(r);
+      };
+    }));
   };
 
   getLambdaVar = function(lam) {
     return lam(lz(function(v) {
       return function(b) {
-        return rz(v);
+        return function(r) {
+          return rz(v);
+        };
       };
     }));
   };
@@ -739,13 +782,69 @@ misrepresented as being the original software.
   getLambdaBody = function(lam) {
     return lam(lz(function(v) {
       return function(b) {
-        return rz(b);
+        return function(r) {
+          return rz(b);
+        };
       };
     }));
   };
 
-  getLambdaPos = function(lam) {
-    return dummyPosition;
+  getLambdaRange = function(lam) {
+    return lam(lz(function(v) {
+      return function(b) {
+        return function(r) {
+          return rz(r);
+        };
+      };
+    }));
+  };
+
+  getLetName = function(lt) {
+    return lt(lz(function(n) {
+      return function(v) {
+        return function(b) {
+          return function(r) {
+            return rz(n);
+          };
+        };
+      };
+    }));
+  };
+
+  getLetValue = function(lt) {
+    return lt(lz(function(n) {
+      return function(v) {
+        return function(b) {
+          return function(r) {
+            return rz(v);
+          };
+        };
+      };
+    }));
+  };
+
+  getLetBody = function(lt) {
+    return lt(lz(function(n) {
+      return function(v) {
+        return function(b) {
+          return function(r) {
+            return rz(b);
+          };
+        };
+      };
+    }));
+  };
+
+  getLetRange = function(lt) {
+    return lt(lz(function(n) {
+      return function(v) {
+        return function(b) {
+          return function(r) {
+            return rz(r);
+          };
+        };
+      };
+    }));
   };
 
   getApplyFunc = function(apl) {
@@ -764,42 +863,8 @@ misrepresented as being the original software.
     }));
   };
 
-  getApplyPos = function(apl) {
-    return dummyPosition;
-  };
-
-  getLetName = function(lt) {
-    return lt(lz(function(n) {
-      return function(v) {
-        return function(b) {
-          return rz(n);
-        };
-      };
-    }));
-  };
-
-  getLetValue = function(lt) {
-    return lt(lz(function(n) {
-      return function(v) {
-        return function(b) {
-          return rz(v);
-        };
-      };
-    }));
-  };
-
-  getLetBody = function(lt) {
-    return lt(lz(function(n) {
-      return function(v) {
-        return function(b) {
-          return rz(b);
-        };
-      };
-    }));
-  };
-
-  getLetPos = function(lt) {
-    return dummyPosition;
+  getApplyRange = function(apl) {
+    return firstRange(getPos(getApplyFunc(apl)), getPos(getApplyArg(apl)));
   };
 
   getAnnoName = function(anno) {
@@ -832,25 +897,25 @@ misrepresented as being the original software.
     }));
   };
 
-  getAnnoPos = function(lt) {
-    return dummyPosition;
+  getAnnoRange = function(anno) {
+    return getPos(getAnnoBody(anno));
   };
 
   json2AstEncodings = {
     lit: function(json) {
-      return L_lit(lz(json.value));
+      return L_lit(lz(json.value))(lz(json2Ast(json.range)));
     },
     ref: function(json) {
-      return L_ref(lz(json.varName));
+      return L_ref(lz(json.varName))(lz(json2Ast(json.range)));
     },
     lambda: function(json) {
-      return L_lambda(lz(json.varName))(lz(json2Ast(json.body)));
+      return L_lambda(lz(json.varName))(lz(json2Ast(json.body)))(lz(json2Ast(json.range)));
+    },
+    "let": function(json) {
+      return L_let(lz(json.varName))(lz(json2Ast(json.value)))(lz(json2Ast(json.body)))(lz(json2Ast(json.range)));
     },
     apply: function(json) {
       return L_apply(lz(json2Ast(json.func)))(lz(json2Ast(json.arg)));
-    },
-    "let": function(json) {
-      return L_let(lz(json.varName))(lz(json2Ast(json.value)))(lz(json2Ast(json.body)));
     },
     anno: function(json) {
       return L_anno(lz(json.name))(lz(json2Ast(json.data)))(lz(json2Ast(json.body)));
@@ -889,27 +954,23 @@ misrepresented as being the original software.
     Leisure_lit: function(ast) {
       return {
         _type: 'lit',
-        value: getLitVal(ast)
+        value: getLitVal(ast),
+        range: ast2Json(getLitRange(ast))
       };
     },
     Leisure_ref: function(ast) {
       return {
         _type: 'ref',
-        varName: getRefName(ast)
+        varName: getRefName(ast),
+        range: ast2Json(getRefRange(ast))
       };
     },
     Leisure_lambda: function(ast) {
       return {
         _type: 'lambda',
         varName: getLambdaVar(ast),
-        body: ast2Json(getLambdaBody(ast))
-      };
-    },
-    Leisure_apply: function(ast) {
-      return {
-        _type: 'apply',
-        func: ast2Json(getApplyFunc(ast)),
-        arg: ast2Json(getApplyArg(ast))
+        body: ast2Json(getLambdaBody(ast)),
+        range: ast2Json(getLambdaRange(ast))
       };
     },
     Leisure_let: function(ast) {
@@ -917,7 +978,15 @@ misrepresented as being the original software.
         _type: 'let',
         varName: getLetName(ast),
         value: ast2Json(getLetValue(ast)),
-        body: ast2Json(getLetBody(ast))
+        body: ast2Json(getLetBody(ast)),
+        range: ast2Json(getLetRange(ast))
+      };
+    },
+    Leisure_apply: function(ast) {
+      return {
+        _type: 'apply',
+        func: ast2Json(getApplyFunc(ast)),
+        arg: ast2Json(getApplyArg(ast))
       };
     },
     Leisure_anno: function(ast) {
@@ -1072,6 +1141,8 @@ misrepresented as being the original software.
   root.functionInfo = functionInfo;
 
   root.getPos = getPos;
+
+  root.dummyPosition = dummyPosition;
 
 }).call(this);
 
