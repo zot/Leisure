@@ -179,6 +179,7 @@ class Leisure_BaseCons extends LeisureObject
     else func @head(), @tail().foldr1(func)
   toArray: -> @foldl ((i, el)-> i.push(el); i), []
   join: (str)->@toArray().join(str)
+  intersperse: (item)-> cons @head(), @tail().foldr ((el, res)-> cons item, cons el, res), Nil
   reverse: -> @rev Nil
   rev: (result)-> @tail().rev cons(@head(), result)
   elementString: -> "#{if @head()?.constructor == @.constructor || @head() instanceof Leisure_nil then '[' + @head().elementString() + ']' else @head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
@@ -364,6 +365,7 @@ getLetPos = (lt)-> dummyPosition
 getAnnoName = (anno)-> anno lz (name)->(data)->(body)-> rz name
 getAnnoData = (anno)-> anno lz (name)->(data)->(body)-> rz data
 getAnnoBody = (anno)-> anno lz (name)->(data)->(body)-> rz body
+getAnnoPos = (lt)-> dummyPosition
 
 ######
 ###### JSON-to-AST

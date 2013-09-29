@@ -43,7 +43,14 @@ fs = require 'fs'
   json2Ast,
   Nil,
 } = require './ast'
-{gen} = require './gen'
+{
+  gen,
+  genNode,
+  sourceNode,
+} = require './gen'
+{
+  SourceNode,
+} = require 'source-map'
 {
   readFile,
   writeFile,
@@ -296,15 +303,43 @@ compile = (file, cont)->
           cont replaceErr err, "Error writing AST file: #{outputFile}...\n#{err.message}"
         else if !createJsFile then cont(asts)
     if createJsFile
-      outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
-      if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+      outputFileBase = (if ext == file then file else file.substring(0, file.length - ext.length))
+      outputFile = outputFileBase + ".js"
+      outputMap = outputFileBase + ".map"
+      bareFile = outputFileBase.replace /^.*\/([^/]*$)/, '$1'
+      bareJs = bareFile + ".js"
+      bareLsr = bareFile + ".lsr"
+      bareOutputMap = bareFile + ".map"
+      if outDir
+        outputFile = path.join(outDir, path.basename(outputFile))
+        outputMap = path.join(outDir, path.basename(outputMap))
       if verbose then console.log "JS FILE: #{outputFile}"
-      writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
-        if !err then cont(asts)
+      result = (new SourceNode 1, 0, bareLsr, [
+        "L_runMonads([\n  ",
+        intersperse(_(asts).map((item)-> sourceNode item, "function(){return ", (gen item), "}"), ',\n '),
+        "]);\n"
+      ]).toStringWithSourceMap(file: bareJs)
+      #writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
+      console.log "FILE: #{outputFile}, MAP: #{outputMap}"
+      writeFile outputFile, result.code, (err)->
+        if !err
+          writeFile outputMap, JSON.stringify(result.map, null, "  "), (err)->
+            if !err then cont(asts)
+            else
+              console.log "Error writing map file: #{outputMap}"
+              cont replaceErr err, "Error writing map file: #{outputMap}...\n#{err.message}"
         else
           console.log "Error writing JS file: #{outputFile}"
           cont replaceErr err, "Error writing JS file: #{outputFile}...\n#{err.message}"
     else cont []
+
+intersperse = (array, element)->
+  if array.length < 2 then array
+  else
+    result = [array[0]]
+    for i in array
+      result.push element, i
+    result
 
 primCompile = (file, cont)->
   {

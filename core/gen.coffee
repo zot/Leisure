@@ -67,7 +67,9 @@ lz = lazy
 } = require './runtime'
 _ = require './lodash.min'
 
-SourceNode = require("source-map").SourceNode
+{
+  SourceNode,
+} = require("source-map")
 
 varNameSub = (n)-> "L_#{nameSub n}"
 
@@ -78,12 +80,22 @@ root.lockGen = true
 masterLockGen = true
 #masterLockGen = false
 
-sn = (ast, str...)->
-  #[file, line, col] = getPos(ast).toArray()
-  #new SourceNode(line, col, file, str)
-  str.join('')
+collectArgs = (args, result)->
+  for i in args
+    if Array.isArray i then collectArgs i, result else result.push i
+  result
 
-gen = (ast)-> genUniq ast, Nil, [Nil, 0]
+sn = (ast, str...)->
+  #(collectArgs str, []).join('')
+  #[file, line, col] = getPos(ast).toArray()
+  new SourceNode(1, 0, "TEST.lsr", str)
+
+genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
+
+gen = (ast)->
+  file = getPos(ast).head().replace /\.lsr$/, '.js.map'
+  genNode(ast).toStringWithSourceMap(file: file).code
+
 genUniq = (ast, names, uniq)->
   switch ast.constructor
     when Leisure_lit then sn ast, JSON.stringify getLitVal ast
@@ -114,7 +126,7 @@ genLambda = (ast, names, uniq, count)->
   name = getLambdaVar ast
   u = addUniq name, names, uniq
   n = cons name, names
-  addLambdaProperties ast, "function(#{uniqName name, u}){return #{genUniq (getLambdaBody ast), n, u}}"
+  addLambdaProperties ast, sn ast, "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u), "}"
 
 specialAnnotations = ['type', 'dataType', 'define']
 
@@ -134,7 +146,7 @@ getLambdaProperties = (body, props)->
 addLambdaProperties = (ast, def)->
   props = getLambdaProperties getLambdaBody ast
   if props
-    "setLambdaProperties(#{def}, #{JSON.stringify props})"
+    sn ast, "setLambdaProperties(", def, ", ", (JSON.stringify props), ")"
   else def
 
 lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
@@ -167,29 +179,29 @@ global.setLambdaProperties = (def, props)->
   def.properties = p
   def
 
-memoize = (func)-> "function(){return #{func}}"
+memoize = (ast, func)-> sn ast, "function(){return ", func, "}"
 
 dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
 
 genApply = (ast, names, uniq)->
   args = []
   while dumpAnno(ast) instanceof Leisure_apply
-    args.push "(#{genApplyArg (getApplyArg dumpAnno ast), names, uniq})"
+    args.push sn ast, "(", (genApplyArg (getApplyArg dumpAnno ast), names, uniq), ")"
     ast = getApplyFunc dumpAnno ast
   args.reverse()
-  "#{genUniq ast, names, uniq}.leisureCall(#{args.join ', '})"
+  sn ast, (genUniq ast, names, uniq), ".leisureCall(", (args.join ', '), ")"
 
 genApplyArg = (arg, names, uniq)->
-  if dumpAnno(arg) instanceof Leisure_apply then memoize genUniq arg, names, uniq
+  if dumpAnno(arg) instanceof Leisure_apply then memoize arg, genUniq arg, names, uniq
   else if arg instanceof Leisure_ref then uniqName (getRefName arg), uniq
-  else if arg instanceof Leisure_lit then JSON.stringify getLitVal arg
-  else if arg instanceof Leisure_let then "function(){#{genLets arg, names, uniq}}"
-  else if dumpAnno(arg) instanceof Leisure_lambda then "lazy(#{genUniq arg, names, uniq})"
-  else "function(){return #{genUniq arg, names, uniq}}"
+  else if arg instanceof Leisure_lit then sn arg, JSON.stringify getLitVal arg
+  else if arg instanceof Leisure_let then sn arg, "function(){", (genLets arg, names, uniq), "}"
+  else if dumpAnno(arg) instanceof Leisure_lambda then sn arg, "lazy(", (genUniq arg, names, uniq), ")"
+  else sn ast, "function(){return ", (genUniq arg, names, uniq), "}"
 
 genLetAssign = (arg, names, uniq)->
-  if dumpAnno(arg) instanceof Leisure_let then "function(){#{genLets arg, names, uniq}}"
-  else "function(){return #{genUniq arg, names, uniq}}"
+  if dumpAnno(arg) instanceof Leisure_let then sn arg, "function(){", (genLets arg, names, uniq), "}"
+  else sn arg, "function(){return ", (genUniq arg, names, uniq), "}"
 
 genLets = (ast, names, uniq)->
   [names, uniq, decs, assigns] = _.foldl (letList ast, []), ((result, l)->
@@ -199,9 +211,8 @@ genLets = (ast, names, uniq)->
     [cons((getLetName l), n),
       newU,
       (cons letName, letNames),
-      #(cons '\n' + letName + ' = ' + genApplyArg(getLetValue(l), n, u), code)]), [names, uniq, Nil, Nil]
-      (cons '\n' + letName + ' = ' + genLetAssign(getLetValue(l), n, u), code)]), [names, uniq, Nil, Nil]
-  "\nvar #{decs.join(', ')};\n#{assigns.reverse().join(';\n')};\nreturn #{genUniq (getLastLetBody ast), names, uniq}"
+      (cons (sn ast, '\n' + letName + ' = ', genLetAssign(getLetValue(l), n, u)), code)]), [names, uniq, Nil, Nil]
+  sn ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", (genUniq (getLastLetBody ast), names, uniq)
 
 addUniq = (name, names, uniq)->
   if (names.find (el)-> el == name) != Nil
@@ -255,4 +266,6 @@ Function.prototype.leisureCall = (args...)->
     f
 
 root.gen = gen
+root.genNode = genNode
+root.sourceNode = sn
 root.curry = curry

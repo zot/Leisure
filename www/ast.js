@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getApplyPos, getDataType, getLambdaBody, getLambdaPos, getLambdaVar, getLetBody, getLetName, getLetPos, getLetValue, getLitPos, getLitVal, getPos, getRefName, getRefPos, getType, head, jsType, json2Ast, json2AstEncodings, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
+  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoPos, getApplyArg, getApplyFunc, getApplyPos, getDataType, getLambdaBody, getLambdaPos, getLambdaVar, getLetBody, getLetName, getLetPos, getLetValue, getLitPos, getLitVal, getPos, getRefName, getRefPos, getType, head, jsType, json2Ast, json2AstEncodings, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -305,6 +305,12 @@ misrepresented as being the original software.
 
     Leisure_BaseCons.prototype.join = function(str) {
       return this.toArray().join(str);
+    };
+
+    Leisure_BaseCons.prototype.intersperse = function(item) {
+      return cons(this.head(), this.tail().foldr((function(el, res) {
+        return cons(item, cons(el, res));
+      }), Nil));
     };
 
     Leisure_BaseCons.prototype.reverse = function() {
@@ -824,6 +830,10 @@ misrepresented as being the original software.
         };
       };
     }));
+  };
+
+  getAnnoPos = function(lt) {
+    return dummyPosition;
   };
 
   json2AstEncodings = {
