@@ -4,5 +4,6 @@ old
 *~
 /node_modules/node-inspector
 /node_modules/browserify
+/node_modules/source-map
 /repl-port
 /tmp/

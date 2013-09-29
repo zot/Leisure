@@ -29,7 +29,9 @@ defaultEnv =
   values: {}
   errorHandlers: []
 
-global.resolve = (value)-> if typeof value == 'function' then value.memo || (value.memo = value()) else value
+global.resolve = (value)-> if typeof value == 'function'
+  if typeof value.memo != 'undefined' then value.memo else value.memo = value()
+else value
 
 #global.lazy = (l)-> ->l
 #global.lazy = (l)-> if typeof l == 'function'
@@ -51,12 +53,13 @@ statFile = (fileName, cont)-> defaultEnv.statFile fileName, cont
 class SimpyCons
   constructor: (@head, @tail)->
   toArray: ->
-    h = @
-    array = []
-    while h != null
-      array.push h.head
-      h = h.tail
-    array
+    @_array ? (
+      h = @
+      array = []
+      while h != null
+        array.push h.head
+        h = h.tail
+      @_array = array)
 simpyCons = (a, b)-> new SimpyCons a, b
 
 root.defaultEnv = defaultEnv

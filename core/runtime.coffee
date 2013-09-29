@@ -118,7 +118,7 @@ define 'asin', lz (x)-> Math.asin(rz x)
 define 'atan', lz (x)-> Math.atan(rz x)
 define 'atan2', lz (x)->(y)-> Math.atan2(rz(x), rz(y))
 define 'cos', lz (x)-> Math.cos(rz x)
-define 'log', lz (x)-> Math.log(rz x)
+#define 'log', lz (x)-> Math.log(rz x)
 define 'sin', lz (x)-> Math.sin(rz x)
 define 'tan', lz (x)-> Math.tan(rz x)
 
@@ -197,6 +197,10 @@ define 'log', lz (str)->(res)->
   console.log String rz str
   rz res
 
+define 'logStack', lz (str)->(res)->
+  console.log new Error(rz str).stack
+  rz res
+
 ############
 # IO Monads
 ############
@@ -262,7 +266,8 @@ newRunMonad = (monad, env, cont, contStack)->
     while true
       if isMonad monad
         if monad.binding
-          contStack.push ((bnd)->(x)->bnd(lz x))(rz monad.binding)
+          #contStack.push ((bnd)->(x)->bnd(lz x))(rz monad.binding)
+          do (bnd = rz monad.binding)-> contStack.push (x)-> rz(bnd) lz x
           monad = rz monad.monad
           continue
         else if !monad.sync
@@ -276,7 +281,7 @@ newRunMonad = (monad, env, cont, contStack)->
         monadModeSync = true
         result = monad
       if !contStack.length then return result
-      monad = contStack.pop()(result)
+      monad = contStack.pop() result
   catch err
     err = replaceErr err, "\nERROR RUNNING MONAD, MONAD: #{monad}, ENV: #{env}...\n#{err.message}"
     console.log err.stack ? err
@@ -489,6 +494,7 @@ define 'altDef', lz (name)->(alt)->(arity)->(def)->
     alts = (info.alts[i] for i in info.altList)
     newDef = curry rz(arity), (args)->
       #console.log "CALLED #{rz name} with #{args.length} args #{_.map(args, (a)->rz a).join ', '}, #{alts.length} alts: #{alts.join ', '}"
+      #console.log "CALLED #{rz name}"
       for alt in alts
         #console.log "TRYING ALT: #{rz alt}"
         opt = alt
@@ -507,15 +513,13 @@ define 'altDef', lz (name)->(alt)->(arity)->(def)->
     global[nm] = global.leisureFuncNames[nm] = newDef
     cont def
 
-#curry = (arity, func)-> ->subcurry arity, func, []
-curry = (arity, func)-> -> (arg)-> (subcurry arity, func, []) arg
+curry = (arity, func)-> -> lz (arg)-> lz (subcurry arity, func, null) arg
 
 subcurry = (arity, func, args)->
-  (arg)->
+  lz (arg)->
     #console.log "Got arg # #{arity}: #{rz arg}"
-    args = args ? []
-    args.push arg
-    if arity == 1 then func(args) else subcurry arity - 1, func, args
+    args = simpyCons arg, args
+    if arity == 1 then func(args.toArray().reverse()) else subcurry arity - 1, func, args
 
 #######################
 # AMTs

@@ -39,7 +39,11 @@ misrepresented as being the original software.
 
   global.resolve = function(value) {
     if (typeof value === 'function') {
-      return value.memo || (value.memo = value());
+      if (typeof value.memo !== 'undefined') {
+        return value.memo;
+      } else {
+        return value.memo = value();
+      }
     } else {
       return value;
     }
@@ -76,15 +80,17 @@ misrepresented as being the original software.
     }
 
     SimpyCons.prototype.toArray = function() {
-      var array, h;
+      var array, h, _ref;
 
-      h = this;
-      array = [];
-      while (h !== null) {
-        array.push(h.head);
-        h = h.tail;
-      }
-      return array;
+      return (_ref = this._array) != null ? _ref : ((function() {
+        h = this;
+        array = [];
+        while (h !== null) {
+          array.push(h.head);
+          h = h.tail;
+        }
+        return this._array = array;
+      }).call(this));
     };
 
     return SimpyCons;

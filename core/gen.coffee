@@ -55,6 +55,7 @@ lz = lazy
   Nil,
   consFrom,
   define,
+  getPos,
 } = root = module.exports = require './ast'
 {
   makeSyncMonad,
@@ -66,6 +67,8 @@ lz = lazy
 } = require './runtime'
 _ = require './lodash.min'
 
+SourceNode = require("source-map").SourceNode
+
 varNameSub = (n)-> "L_#{nameSub n}"
 
 newGen = false
@@ -75,26 +78,31 @@ root.lockGen = true
 masterLockGen = true
 #masterLockGen = false
 
+sn = (ast, str...)->
+  #[file, line, col] = getPos(ast).toArray()
+  #new SourceNode(line, col, file, str)
+  str.join('')
+
 gen = (ast)-> genUniq ast, Nil, [Nil, 0]
 genUniq = (ast, names, uniq)->
   switch ast.constructor
-    when Leisure_lit then JSON.stringify getLitVal ast
-    when Leisure_ref then "resolve(#{uniqName (getRefName ast), uniq})"
+    when Leisure_lit then sn ast, JSON.stringify getLitVal ast
+    when Leisure_ref then sn ast, "resolve(", (uniqName (getRefName ast), uniq), ")"
     when Leisure_lambda then genLambda ast, names, uniq, 0
     when Leisure_apply
-      if !newGen then "#{genUniq (getApplyFunc ast), names, uniq}(#{genApplyArg (getApplyArg ast), names, uniq})"
+      if !newGen then sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
       else genApply ast, names, uniq
-    when Leisure_let then "(function(){\n#{genLets ast, names, uniq}})()"
+    when Leisure_let then sn ast, "(function(){\n", (genLets ast, names, uniq), "})()"
     when Leisure_anno
       name = getAnnoName ast
       data = getAnnoData ast
       genned = genUniq (getAnnoBody ast), names, uniq
       switch name
-        when 'type' then "setType(#{genned}, '#{data}')"
-        when 'dataType' then "setDataType(#{genned}, '#{data}')"
+        when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
+        when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
         when 'define'
           [funcName, arity, src] = data.toArray()
-          "define('#{funcName}', (function(){return #{genned}}), #{arity}, #{JSON.stringify src})"
+          sn ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")"
         else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
@@ -155,12 +163,10 @@ lacons = (key, value, list)->
 global.setLambdaProperties = (def, props)->
   p = rz L_nil
   for k, v of props
-    #p = lcons lcons(k, lconsFrom(v)), p
     p = lacons k, lconsFrom(v), p
   def.properties = p
   def
 
-#memoize = (func)-> "(function(){var $m; return function(){return $m || ($m = #{func})}})()"
 memoize = (func)-> "function(){return #{func}}"
 
 dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
@@ -198,7 +204,6 @@ genLets = (ast, names, uniq)->
   "\nvar #{decs.join(', ')};\n#{assigns.reverse().join(';\n')};\nreturn #{genUniq (getLastLetBody ast), names, uniq}"
 
 addUniq = (name, names, uniq)->
-  #if (_.find names, (el)-> el == name)
   if (names.find (el)-> el == name) != Nil
     [overrides, num] = uniq
     [(cons (cons name, "#{name}_#{num}"), overrides), num + 1]

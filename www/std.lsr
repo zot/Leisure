@@ -268,6 +268,7 @@ makeCaseCondition orig funcName altName args rest cond = rest
 # show
 defCase show.some obj | hasType obj some -> concat["Some(" (obj id false) ")"]
 
+#defCase show.some2 obj | hasType obj some2 -> concat["Some2(" (obj (\a b . concat[a ', ' b]) false) ")"]
 defCase show.some2 obj | hasType obj some2 -> concat["Some2(" (obj (\a b . [a ', ' b]) false) ")"]
 
 defCase show.none obj | hasType obj none -> "None"

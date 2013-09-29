@@ -89,19 +89,19 @@ replEnv =
     )
 replEnv.__proto__ = defaultEnv
 
-getParseErr = (x)-> x ->(value)->value()
+getParseErr = (x)-> x lz (value)->rz value
 
 evalInput = (text, cont)->
   if text
     try
-      result = L_newParseLine()(0)(->Nil)(->text)
+      result = rz(L_newParseLine)(0)(lz Nil)(lz text)
       runMonad result, replEnv, (ast)->
         try
           if getType(ast) == 'parseErr'
             cont "PARSE ERORR: #{getParseErr ast}"
           else
             if diag
-              if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad L_simplify() ->text}"
+              if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad rz(L_simplify) lz text}"
               console.log "\nAST: #{ast}"
               console.log "\nCODE: (#{gen ast})"
             result = eval "(#{gen ast})"
@@ -137,11 +137,11 @@ updateCompleter = (rl)->
     oldFunctionCount = root.functionCount
     leisureFunctions = global.leisureFuncNames.toArray()
 
-tokenString = (t)-> t(->(txt)->(pos)-> txt())
+tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
 rl = null
 
 leisureCompleter = (line)->
-  tokens = L_tokens()(->line)(->root.getValue 'tokenPat').toArray()
+  tokens = rz(L_tokens)(lz line)(lz root.getValue 'tokenPat').toArray()
   if tokens.length > 0
     origLast = tokenString(tokens[tokens.length - 1])
     last = origLast.toLowerCase()
@@ -202,12 +202,12 @@ repl = (config)->
         else
           try
             if line.substring(0,2) == ':s'
-              if L_simplify? then console.log "\n#{L_show()(->runMonad L_simplify() ->line.substring(2))}\n"
+              if L_simplify? then console.log "\n#{rz(L_show)(lz runMonad rz(L_simplify) lz line.substring(2))}\n"
               else console.log "No simplify function.  Load std.lsr"
             else if line.match /^!/ then console.log eval line.substring 1
             else
               evalInput line, (result)->
-                console.log "RESULT: " + L_show()(-> result)
+                console.log "RESULT: " + rz(L_show)(lz result)
                 prompt()
               return
           catch err
@@ -263,8 +263,8 @@ createJsFile = false
 runFile = (file, cont)->
   console.log "RUN FILE: #{file}"
   try
-    runMonad L_protect()(->L_require()(->file)), defaultEnv, (result)->
-    #runMonad L_require()(->file), defaultEnv, (result)->
+    runMonad rz(L_protect)(lz rz(L_require)(lz file)), defaultEnv, (result)->
+    #runMonad rz(L_require)(lz file), defaultEnv, (result)->
       #console.log "FILE LOADED: #{file}, result: #{result}"
       cont []
   catch err
@@ -273,11 +273,11 @@ runFile = (file, cont)->
 
 compile = (file, cont)->
   ext = path.extname file
-  runMonad L_baseLoad()(->file), defaultEnv, (result)->
+  runMonad rz(L_baseLoad)(lz file), defaultEnv, (result)->
     if verbose then console.log "Preparing to write code for #{file}"
     errors = []
     asts = _.map result.toArray(), (lineData)->
-      result = lineData.tail()(lz (x)->rz x)(lz (x)->rz x)
+      result = lineData.tail()(lz (x)->rz x)(lz (x)-> rz x)
       if result instanceof Error
         result = replaceErr result, "Error compiling line: #{lines.head()}...\n#{ast.message}"
         errors.push[result]

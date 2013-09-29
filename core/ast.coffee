@@ -257,7 +257,7 @@ root.evalFunc = evalFunc = eval
 
 root.functionCount = 0
 
-functionInfo = {}
+global.LeisureFunctionInfo = functionInfo = {}
 
 # name a function on the first access
 nameFunc = (func, name)->
@@ -335,15 +335,32 @@ save.apply = apply = (f, a)->L_apply(lz f)(lz a)
 save.llet = llet = (n, v, b)->L_let(lz n)(lz v)(lz b)
 save.anno = anno = (name, data, body)-> L_anno(lz name)(lz data)(lz body)
 save.cons = cons
+
+dummyPosition = cons "file.lsr", cons 1, cons 0, (L_nil ? Nil)
+
+getPos = (ast)->
+  switch getType(ast)
+    when 'lit' then getLitPos ast
+    when 'ref' then getRefPos ast
+    when 'lambda' then getLambdaPos ast
+    when 'apply' then getApplyPos ast
+    when 'let' then getLetPos ast
+    when 'anno' then getAnnoPos ast
+
 getLitVal = (lt)-> lt lz (v)-> rz v
+getLitPos = (lt)-> dummyPosition
 getRefName = (rf)-> rf lz (v)-> rz v
+getRefPos = (rf)-> dummyPosition
 getLambdaVar = (lam)-> lam lz (v)->(b)-> rz v
 getLambdaBody = (lam)-> lam lz (v)->(b)-> rz b
+getLambdaPos = (lam)-> dummyPosition
 getApplyFunc = (apl)-> apl lz (a)->(b)-> rz a
 getApplyArg = (apl)-> apl lz (a)->(b)-> rz b
+getApplyPos = (apl)-> dummyPosition
 getLetName = (lt)-> lt lz (n)->(v)->(b)-> rz n
 getLetValue = (lt)-> lt lz (n)->(v)->(b)-> rz v
 getLetBody = (lt)-> lt lz (n)->(v)->(b)-> rz b
+getLetPos = (lt)-> dummyPosition
 getAnnoName = (anno)-> anno lz (name)->(data)->(body)-> rz name
 getAnnoData = (anno)-> anno lz (name)->(data)->(body)-> rz data
 getAnnoBody = (anno)-> anno lz (name)->(data)->(body)-> rz body
@@ -467,3 +484,4 @@ root.ensureLeisureClass = ensureLeisureClass
 root.makeSuper = makeSuper
 root.supertypes = supertypes
 root.functionInfo = functionInfo
+root.getPos = getPos
