@@ -29,11 +29,18 @@ defaultEnv =
   values: {}
   errorHandlers: []
 
-global.resolve = (value)-> if typeof value == 'function' then value.memo || (value.memo = value()) else value
+global.resolve = (value)-> if typeof value == 'function'
+  if typeof value.memo != 'undefined' then value.memo else value.memo = value()
+else value
 
 #global.lazy = (l)-> ->l
-global.lazy = (l)-> if typeof l == 'function' then ->l else l
-#global.lazy = (l)-> if typeof l == 'function' then l.memo = l else l
+#global.lazy = (l)-> if typeof l == 'function'
+#  count=0
+#  ->
+#    if count++ > 0 then console.log "EXTRA EXECUTION OF #{l}, #{new Error('stack').stack}"
+#    l
+#else l
+global.lazy = (l)-> if typeof l == 'function' then l.memo = l else l
 
 readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
 
@@ -46,12 +53,13 @@ statFile = (fileName, cont)-> defaultEnv.statFile fileName, cont
 class SimpyCons
   constructor: (@head, @tail)->
   toArray: ->
-    h = @
-    array = []
-    while h != null
-      array.push h.head
-      h = h.tail
-    array
+    @_array ? (
+      h = @
+      array = []
+      while h != null
+        array.push h.head
+        h = h.tail
+      @_array = array)
 simpyCons = (a, b)-> new SimpyCons a, b
 
 root.defaultEnv = defaultEnv

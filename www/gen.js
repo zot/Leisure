@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, addLambdaProperties, addUniq, arrayify, assocListProps, cons, consFrom, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLets, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, lz, makeSyncMonad, memoize, nameSub, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2,
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, collectArgs, cons, consFrom, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genNode, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getPos, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2, _true,
     __slice = [].slice;
 
   _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
@@ -34,18 +34,56 @@ misrepresented as being the original software.
 
   lz = lazy;
 
-  _ref1 = root = module.exports = require('./ast'), nameSub = _ref1.nameSub, getLitVal = _ref1.getLitVal, getRefName = _ref1.getRefName, getLambdaVar = _ref1.getLambdaVar, getLambdaBody = _ref1.getLambdaBody, getApplyFunc = _ref1.getApplyFunc, getApplyArg = _ref1.getApplyArg, getAnnoName = _ref1.getAnnoName, getAnnoData = _ref1.getAnnoData, getAnnoBody = _ref1.getAnnoBody, getLetName = _ref1.getLetName, getLetValue = _ref1.getLetValue, getLetBody = _ref1.getLetBody, Leisure_lit = _ref1.Leisure_lit, Leisure_ref = _ref1.Leisure_ref, Leisure_lambda = _ref1.Leisure_lambda, Leisure_apply = _ref1.Leisure_apply, Leisure_let = _ref1.Leisure_let, Leisure_anno = _ref1.Leisure_anno, setType = _ref1.setType, setDataType = _ref1.setDataType, cons = _ref1.cons, Nil = _ref1.Nil, consFrom = _ref1.consFrom, define = _ref1.define;
+  _ref1 = root = module.exports = require('./ast'), nameSub = _ref1.nameSub, getLitVal = _ref1.getLitVal, getRefName = _ref1.getRefName, getLambdaVar = _ref1.getLambdaVar, getLambdaBody = _ref1.getLambdaBody, getApplyFunc = _ref1.getApplyFunc, getApplyArg = _ref1.getApplyArg, getAnnoName = _ref1.getAnnoName, getAnnoData = _ref1.getAnnoData, getAnnoBody = _ref1.getAnnoBody, getLetName = _ref1.getLetName, getLetValue = _ref1.getLetValue, getLetBody = _ref1.getLetBody, Leisure_lit = _ref1.Leisure_lit, Leisure_ref = _ref1.Leisure_ref, Leisure_lambda = _ref1.Leisure_lambda, Leisure_apply = _ref1.Leisure_apply, Leisure_let = _ref1.Leisure_let, Leisure_anno = _ref1.Leisure_anno, setType = _ref1.setType, setDataType = _ref1.setDataType, cons = _ref1.cons, Nil = _ref1.Nil, consFrom = _ref1.consFrom, define = _ref1.define, getPos = _ref1.getPos;
 
-  _ref2 = require('./runtime'), makeSyncMonad = _ref2.makeSyncMonad, runMonad = _ref2.runMonad, _false = _ref2._false, left = _ref2.left, right = _ref2.right;
+  _ref2 = require('./runtime'), makeSyncMonad = _ref2.makeSyncMonad, runMonad = _ref2.runMonad, _true = _ref2._true, _false = _ref2._false, left = _ref2.left, right = _ref2.right;
 
   _ = require('./lodash.min');
+
+  SourceNode = require("source-map").SourceNode;
 
   varNameSub = function(n) {
     return "L_" + (nameSub(n));
   };
 
-  gen = function(ast) {
+  newGen = false;
+
+  root.lockGen = true;
+
+  masterLockGen = true;
+
+  collectArgs = function(args, result) {
+    var i, _i, _len;
+
+    for (_i = 0, _len = args.length; _i < _len; _i++) {
+      i = args[_i];
+      if (Array.isArray(i)) {
+        collectArgs(i, result);
+      } else {
+        result.push(i);
+      }
+    }
+    return result;
+  };
+
+  sn = function() {
+    var ast, str;
+
+    ast = arguments[0], str = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+    return new SourceNode(1, 0, "TEST.lsr", str);
+  };
+
+  genNode = function(ast) {
     return genUniq(ast, Nil, [Nil, 0]);
+  };
+
+  gen = function(ast) {
+    var file;
+
+    file = getPos(ast).head().replace(/\.lsr$/, '.js.map');
+    return genNode(ast).toStringWithSourceMap({
+      file: file
+    }).code;
   };
 
   genUniq = function(ast, names, uniq) {
@@ -53,27 +91,32 @@ misrepresented as being the original software.
 
     switch (ast.constructor) {
       case Leisure_lit:
-        return JSON.stringify(getLitVal(ast));
+        return sn(ast, JSON.stringify(getLitVal(ast)));
       case Leisure_ref:
-        return "resolve(" + (uniqName(getRefName(ast), uniq)) + ")";
+        return sn(ast, "resolve(", uniqName(getRefName(ast), uniq), ")");
       case Leisure_lambda:
         return genLambda(ast, names, uniq, 0);
       case Leisure_apply:
-        return "" + (genUniq(getApplyFunc(ast), names, uniq)) + "(" + (genApplyArg(getApplyArg(ast), names, uniq)) + ")";
+        if (!newGen) {
+          return sn(ast, genUniq(getApplyFunc(ast), names, uniq), "(", genApplyArg(getApplyArg(ast), names, uniq), ")");
+        } else {
+          return genApply(ast, names, uniq);
+        }
+        break;
       case Leisure_let:
-        return "(function(){\n" + (genLets(ast, names, uniq)) + "})()";
+        return sn(ast, "(function(){\n", genLets(ast, names, uniq), "})()");
       case Leisure_anno:
         name = getAnnoName(ast);
         data = getAnnoData(ast);
         genned = genUniq(getAnnoBody(ast), names, uniq);
         switch (name) {
           case 'type':
-            return "setType(" + genned + ", '" + data + "')";
+            return sn(ast, "setType(", genned, ", '", data, "')");
           case 'dataType':
-            return "setDataType(" + genned + ", '" + data + "')";
+            return sn(ast, "setDataType(", genned, ", '", data, "')");
           case 'define':
             _ref3 = data.toArray(), funcName = _ref3[0], arity = _ref3[1], src = _ref3[2];
-            return "define('" + funcName + "', (function(){return " + genned + "}), " + arity + ", " + (JSON.stringify(src)) + ")";
+            return sn(ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")");
           default:
             return genned;
         }
@@ -83,13 +126,18 @@ misrepresented as being the original software.
     }
   };
 
+  define('newGen', lz(makeSyncMonad(function(env, cont) {
+    newGen = !masterLockGen && !root.lockGen;
+    return cont(_true);
+  })));
+
   genLambda = function(ast, names, uniq, count) {
     var n, name, u;
 
     name = getLambdaVar(ast);
     u = addUniq(name, names, uniq);
     n = cons(name, names);
-    return addLambdaProperties(ast, "function(" + (uniqName(name, u)) + "){return " + (genUniq(getLambdaBody(ast), n, u)) + "}");
+    return addLambdaProperties(ast, sn(ast, "function(", uniqName(name, u), "){return ", genUniq(getLambdaBody(ast), n, u), "}"));
   };
 
   specialAnnotations = ['type', 'dataType', 'define'];
@@ -125,7 +173,7 @@ misrepresented as being the original software.
 
     props = getLambdaProperties(getLambdaBody(ast));
     if (props) {
-      return "setLambdaProperties(" + def + ", " + (JSON.stringify(props)) + ")";
+      return sn(ast, "setLambdaProperties(", def, ", ", JSON.stringify(props), ")");
     } else {
       return def;
     }
@@ -181,8 +229,8 @@ misrepresented as being the original software.
     return def;
   };
 
-  memoize = function(func) {
-    return "function(){return " + func + "}";
+  memoize = function(ast, func) {
+    return sn(ast, "function(){return ", func, "}");
   };
 
   dumpAnno = function(ast) {
@@ -198,26 +246,34 @@ misrepresented as being the original software.
 
     args = [];
     while (dumpAnno(ast) instanceof Leisure_apply) {
-      args.push("(" + (genApplyArg(getApplyArg(dumpAnno(ast)), names, uniq)) + ")");
+      args.push(sn(ast, "(", genApplyArg(getApplyArg(dumpAnno(ast)), names, uniq), ")"));
       ast = getApplyFunc(dumpAnno(ast));
     }
     args.reverse();
-    return "" + (genUniq(ast, names, uniq)) + ".leisureCall(" + (args.join(', ')) + ")";
+    return sn(ast, genUniq(ast, names, uniq), ".leisureCall(", args.join(', '), ")");
   };
 
   genApplyArg = function(arg, names, uniq) {
     if (dumpAnno(arg) instanceof Leisure_apply) {
-      return memoize(genUniq(arg, names, uniq));
+      return memoize(arg, genUniq(arg, names, uniq));
     } else if (arg instanceof Leisure_ref) {
       return uniqName(getRefName(arg), uniq);
     } else if (arg instanceof Leisure_lit) {
-      return "" + (JSON.stringify(getLitVal(arg)));
+      return sn(arg, JSON.stringify(getLitVal(arg)));
     } else if (arg instanceof Leisure_let) {
-      return "function(){" + (genLets(arg, names, uniq)) + "}";
+      return sn(arg, "function(){", genLets(arg, names, uniq), "}");
     } else if (dumpAnno(arg) instanceof Leisure_lambda) {
-      return "lazy(" + (genUniq(arg, names, uniq)) + ")";
+      return sn(arg, "lazy(", genUniq(arg, names, uniq), ")");
     } else {
-      return "function(){return " + (genUniq(arg, names, uniq)) + "}";
+      return sn(ast, "function(){return ", genUniq(arg, names, uniq), "}");
+    }
+  };
+
+  genLetAssign = function(arg, names, uniq) {
+    if (dumpAnno(arg) instanceof Leisure_let) {
+      return sn(arg, "function(){", genLets(arg, names, uniq), "}");
+    } else {
+      return sn(arg, "function(){return ", genUniq(arg, names, uniq), "}");
     }
   };
 
@@ -230,9 +286,9 @@ misrepresented as being the original software.
       n = result[0], u = result[1], letNames = result[2], code = result[3];
       newU = addUniq(getLetName(l), n, u);
       letName = uniqName(getLetName(l), newU);
-      return [cons(getLetName(l), n), newU, cons(letName, letNames), cons('\n' + letName + ' = ' + genApplyArg(getLetValue(l), n, u), code)];
+      return [cons(getLetName(l), n), newU, cons(letName, letNames), cons(sn(ast, '\n' + letName + ' = ', genLetAssign(getLetValue(l), n, u)), code)];
     }), [names, uniq, Nil, Nil]), names = _ref3[0], uniq = _ref3[1], decs = _ref3[2], assigns = _ref3[3];
-    return "\nvar " + (decs.join(', ')) + ";\n" + (assigns.join(';\n')) + ";\nreturn " + (genUniq(getLastLetBody(ast), names, uniq));
+    return sn(ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", genUniq(getLastLetBody(ast), names, uniq));
   };
 
   addUniq = function(name, names, uniq) {
@@ -310,6 +366,7 @@ misrepresented as being the original software.
         if (next <= args.length) {
           f = f.apply(null, args.slice(pos, next));
         } else {
+          console.log("CURRY");
           a = args.slice(pos);
           sub = function() {
             a.push.apply(a, arguments);
@@ -319,6 +376,7 @@ misrepresented as being the original software.
               return sub;
             }
           };
+          return sub;
         }
         pos = next;
       }
@@ -327,6 +385,10 @@ misrepresented as being the original software.
   };
 
   root.gen = gen;
+
+  root.genNode = genNode;
+
+  root.sourceNode = sn;
 
   root.curry = curry;
 

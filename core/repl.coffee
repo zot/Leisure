@@ -25,7 +25,12 @@ misrepresented as being the original software.
 require('source-map-support').install()
 #Error.stackTraceLimit = Infinity
 Error.stackTraceLimit = 50
-root = module.exports = require './base'
+{
+  resolve,
+  lazy,
+} = root = module.exports = require './base'
+rz = resolve
+lz = lazy
 _ = require './lodash.min'
 path = require 'path'
 fs = require 'fs'
@@ -38,7 +43,14 @@ fs = require 'fs'
   json2Ast,
   Nil,
 } = require './ast'
-{gen} = require './gen'
+{
+  gen,
+  genNode,
+  sourceNode,
+} = require './gen'
+{
+  SourceNode,
+} = require 'source-map'
 {
   readFile,
   writeFile,
@@ -84,19 +96,19 @@ replEnv =
     )
 replEnv.__proto__ = defaultEnv
 
-getParseErr = (x)-> x ->(value)->value()
+getParseErr = (x)-> x lz (value)->rz value
 
 evalInput = (text, cont)->
   if text
     try
-      result = L_newParseLine()(->Nil)(->text)
+      result = rz(L_newParseLine)(0)(lz Nil)(lz text)
       runMonad result, replEnv, (ast)->
         try
           if getType(ast) == 'parseErr'
             cont "PARSE ERORR: #{getParseErr ast}"
           else
             if diag
-              if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad L_simplify() ->text}"
+              if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad rz(L_simplify) lz text}"
               console.log "\nAST: #{ast}"
               console.log "\nCODE: (#{gen ast})"
             result = eval "(#{gen ast})"
@@ -132,11 +144,11 @@ updateCompleter = (rl)->
     oldFunctionCount = root.functionCount
     leisureFunctions = global.leisureFuncNames.toArray()
 
-tokenString = (t)-> t(->(txt)->(pos)-> txt())
+tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
 rl = null
 
 leisureCompleter = (line)->
-  tokens = L_tokens()(->line)(->root.getValue 'tokenPat').toArray()
+  tokens = rz(L_tokens)(lz line)(lz root.getValue 'tokenPat').toArray()
   if tokens.length > 0
     origLast = tokenString(tokens[tokens.length - 1])
     last = origLast.toLowerCase()
@@ -197,12 +209,12 @@ repl = (config)->
         else
           try
             if line.substring(0,2) == ':s'
-              if L_simplify? then console.log "\n#{L_show()(->runMonad L_simplify() ->line.substring(2))}\n"
+              if L_simplify? then console.log "\n#{rz(L_show)(lz runMonad rz(L_simplify) lz line.substring(2))}\n"
               else console.log "No simplify function.  Load std.lsr"
             else if line.match /^!/ then console.log eval line.substring 1
             else
               evalInput line, (result)->
-                console.log "RESULT: " + L_show()(-> result)
+                console.log "RESULT: " + rz(L_show)(lz result)
                 prompt()
               return
           catch err
@@ -258,8 +270,8 @@ createJsFile = false
 runFile = (file, cont)->
   console.log "RUN FILE: #{file}"
   try
-    runMonad L_protect()(->L_require()(->file)), defaultEnv, (result)->
-    #runMonad L_require()(->file), defaultEnv, (result)->
+    runMonad rz(L_protect)(lz rz(L_require)(lz file)), defaultEnv, (result)->
+    #runMonad rz(L_require)(lz file), defaultEnv, (result)->
       #console.log "FILE LOADED: #{file}, result: #{result}"
       cont []
   catch err
@@ -268,11 +280,11 @@ runFile = (file, cont)->
 
 compile = (file, cont)->
   ext = path.extname file
-  runMonad L_baseLoad()(->file), defaultEnv, (result)->
+  runMonad rz(L_baseLoad)(lz file), defaultEnv, (result)->
     if verbose then console.log "Preparing to write code for #{file}"
     errors = []
     asts = _.map result.toArray(), (lineData)->
-      result = lineData.tail()(->(x)->x())(->(x)->x())
+      result = lineData.tail()(lz (x)->rz x)(lz (x)-> rz x)
       if result instanceof Error
         result = replaceErr result, "Error compiling line: #{lines.head()}...\n#{ast.message}"
         errors.push[result]
@@ -291,15 +303,43 @@ compile = (file, cont)->
           cont replaceErr err, "Error writing AST file: #{outputFile}...\n#{err.message}"
         else if !createJsFile then cont(asts)
     if createJsFile
-      outputFile = (if ext == file then file else file.substring(0, file.length - ext.length)) + ".js"
-      if outDir then outputFile = path.join(outDir, path.basename(outputFile))
+      outputFileBase = (if ext == file then file else file.substring(0, file.length - ext.length))
+      outputFile = outputFileBase + ".js"
+      outputMap = outputFileBase + ".map"
+      bareFile = outputFileBase.replace /^.*\/([^/]*$)/, '$1'
+      bareJs = bareFile + ".js"
+      bareLsr = bareFile + ".lsr"
+      bareOutputMap = bareFile + ".map"
+      if outDir
+        outputFile = path.join(outDir, path.basename(outputFile))
+        outputMap = path.join(outDir, path.basename(outputMap))
       if verbose then console.log "JS FILE: #{outputFile}"
-      writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
-        if !err then cont(asts)
+      result = (new SourceNode 1, 0, bareLsr, [
+        "L_runMonads([\n  ",
+        intersperse(_(asts).map((item)-> sourceNode item, "function(){return ", (gen item), "}"), ',\n '),
+        "]);\n"
+      ]).toStringWithSourceMap(file: bareJs)
+      #writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
+      console.log "FILE: #{outputFile}, MAP: #{outputMap}"
+      writeFile outputFile, result.code, (err)->
+        if !err
+          writeFile outputMap, JSON.stringify(result.map, null, "  "), (err)->
+            if !err then cont(asts)
+            else
+              console.log "Error writing map file: #{outputMap}"
+              cont replaceErr err, "Error writing map file: #{outputMap}...\n#{err.message}"
         else
           console.log "Error writing JS file: #{outputFile}"
           cont replaceErr err, "Error writing JS file: #{outputFile}...\n#{err.message}"
     else cont []
+
+intersperse = (array, element)->
+  if array.length < 2 then array
+  else
+    result = [array[0]]
+    for i in array
+      result.push element, i
+    result
 
 primCompile = (file, cont)->
   {
@@ -377,8 +417,10 @@ processArg = (config, pos)->
       pos++
     when '-0'
       stage = 0
+      root.lockGen = true
     when '-1'
       stage = 1
+      root.lockGen = true
     when '-i'
       interactive = true
     when '-r'
@@ -393,6 +435,7 @@ processArg = (config, pos)->
         if !loadedParser
           #console.log "REQUIRING #{stages[stage]}"
           require stages[stage]
+          if stage == 1 then root.lockGen = false
           for f in requireList
             require f
         #console.log "PROCESSING #{process.argv[pos]} with #{action}"

@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, ensureLeisureClass, evalFunc, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getDataType, getLambdaBody, getLambdaVar, getLetBody, getLetName, getLetValue, getLitVal, getRefName, getType, head, jsType, json2Ast, json2AstEncodings, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
+  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoPos, getApplyArg, getApplyFunc, getApplyPos, getDataType, getLambdaBody, getLambdaPos, getLambdaVar, getLetBody, getLetName, getLetPos, getLetValue, getLitPos, getLitVal, getPos, getRefName, getRefPos, getType, head, jsType, json2Ast, json2AstEncodings, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -307,6 +307,12 @@ misrepresented as being the original software.
       return this.toArray().join(str);
     };
 
+    Leisure_BaseCons.prototype.intersperse = function(item) {
+      return cons(this.head(), this.tail().foldr((function(el, res) {
+        return cons(item, cons(el, res));
+      }), Nil));
+    };
+
     Leisure_BaseCons.prototype.reverse = function() {
       return this.rev(Nil);
     };
@@ -549,7 +555,7 @@ misrepresented as being the original software.
 
   root.functionCount = 0;
 
-  functionInfo = {};
+  global.LeisureFunctionInfo = functionInfo = {};
 
   nameFunc = function(func, name) {
     var f;
@@ -683,16 +689,43 @@ misrepresented as being the original software.
 
   save.cons = cons;
 
+  dummyPosition = cons("file.lsr", cons(1, cons(0, typeof L_nil !== "undefined" && L_nil !== null ? L_nil : Nil)));
+
+  getPos = function(ast) {
+    switch (getType(ast)) {
+      case 'lit':
+        return getLitPos(ast);
+      case 'ref':
+        return getRefPos(ast);
+      case 'lambda':
+        return getLambdaPos(ast);
+      case 'apply':
+        return getApplyPos(ast);
+      case 'let':
+        return getLetPos(ast);
+      case 'anno':
+        return getAnnoPos(ast);
+    }
+  };
+
   getLitVal = function(lt) {
     return lt(lz(function(v) {
       return rz(v);
     }));
   };
 
+  getLitPos = function(lt) {
+    return dummyPosition;
+  };
+
   getRefName = function(rf) {
     return rf(lz(function(v) {
       return rz(v);
     }));
+  };
+
+  getRefPos = function(rf) {
+    return dummyPosition;
   };
 
   getLambdaVar = function(lam) {
@@ -711,6 +744,10 @@ misrepresented as being the original software.
     }));
   };
 
+  getLambdaPos = function(lam) {
+    return dummyPosition;
+  };
+
   getApplyFunc = function(apl) {
     return apl(lz(function(a) {
       return function(b) {
@@ -725,6 +762,10 @@ misrepresented as being the original software.
         return rz(b);
       };
     }));
+  };
+
+  getApplyPos = function(apl) {
+    return dummyPosition;
   };
 
   getLetName = function(lt) {
@@ -757,6 +798,10 @@ misrepresented as being the original software.
     }));
   };
 
+  getLetPos = function(lt) {
+    return dummyPosition;
+  };
+
   getAnnoName = function(anno) {
     return anno(lz(function(name) {
       return function(data) {
@@ -785,6 +830,10 @@ misrepresented as being the original software.
         };
       };
     }));
+  };
+
+  getAnnoPos = function(lt) {
+    return dummyPosition;
   };
 
   json2AstEncodings = {
@@ -1021,6 +1070,8 @@ misrepresented as being the original software.
   root.supertypes = supertypes;
 
   root.functionInfo = functionInfo;
+
+  root.getPos = getPos;
 
 }).call(this);
 

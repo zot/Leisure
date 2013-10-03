@@ -179,6 +179,7 @@ class Leisure_BaseCons extends LeisureObject
     else func @head(), @tail().foldr1(func)
   toArray: -> @foldl ((i, el)-> i.push(el); i), []
   join: (str)->@toArray().join(str)
+  intersperse: (item)-> cons @head(), @tail().foldr ((el, res)-> cons item, cons el, res), Nil
   reverse: -> @rev Nil
   rev: (result)-> @tail().rev cons(@head(), result)
   elementString: -> "#{if @head()?.constructor == @.constructor || @head() instanceof Leisure_nil then '[' + @head().elementString() + ']' else @head()}#{if @tail() instanceof Leisure_nil then '' else if @tail() instanceof Leisure_BaseCons then " #{@tail().elementString()}" else " | #{@tail()}"}"
@@ -257,7 +258,7 @@ root.evalFunc = evalFunc = eval
 
 root.functionCount = 0
 
-functionInfo = {}
+global.LeisureFunctionInfo = functionInfo = {}
 
 # name a function on the first access
 nameFunc = (func, name)->
@@ -337,22 +338,36 @@ save.llet = llet = (n, v, b, range)->L_let(lz n)(lz v)(lz b)(lz range)
 save.apply = apply = (f, a)->L_apply(lz f)(lz a)
 save.anno = anno = (name, data, body)-> L_anno(lz name)(lz data)(lz body)
 save.cons = cons
-getLitVal = (lt)-> lt lz (v)-> (r)-> rz v
-getLitRange = (lt)-> lt lz (v)-> (r)-> rz r
-getRefName = (rf)-> rf lz (v)-> (r)-> rz v
-getRefRange = (rf)-> rf lz (v)-> (r)-> rz r
-getLambdaVar = (lam)-> lam lz (v)->(b)-> (r)->  rz v
-getLambdaBody = (lam)-> lam lz (v)->(b)-> (r)->  rz b
-getLambdaRange = (lam)-> lam lz (v)->(b)-> (r)->  rz r
-getLetName = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz n
-getLetValue = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz v
-getLetBody = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz b
-getLetRange = (lt)-> lt lz (n)->(v)->(b)-> (r)->  rz r
+
+dummyPosition = cons "file.lsr", cons 1, cons 0, (L_nil ? Nil)
+
+getPos = (ast)->
+  switch getType(ast)
+    when 'lit' then getLitPos ast
+    when 'ref' then getRefPos ast
+    when 'lambda' then getLambdaPos ast
+    when 'apply' then getApplyPos ast
+    when 'let' then getLetPos ast
+    when 'anno' then getAnnoPos ast
+
+getLitVal = (lt)-> lt lz (v)-> rz v
+getLitPos = (lt)-> dummyPosition
+getRefName = (rf)-> rf lz (v)-> rz v
+getRefPos = (rf)-> dummyPosition
+getLambdaVar = (lam)-> lam lz (v)->(b)-> rz v
+getLambdaBody = (lam)-> lam lz (v)->(b)-> rz b
+getLambdaPos = (lam)-> dummyPosition
 getApplyFunc = (apl)-> apl lz (a)->(b)-> rz a
 getApplyArg = (apl)-> apl lz (a)->(b)-> rz b
+getApplyPos = (apl)-> dummyPosition
+getLetName = (lt)-> lt lz (n)->(v)->(b)-> rz n
+getLetValue = (lt)-> lt lz (n)->(v)->(b)-> rz v
+getLetBody = (lt)-> lt lz (n)->(v)->(b)-> rz b
+getLetPos = (lt)-> dummyPosition
 getAnnoName = (anno)-> anno lz (name)->(data)->(body)-> rz name
 getAnnoData = (anno)-> anno lz (name)->(data)->(body)-> rz data
 getAnnoBody = (anno)-> anno lz (name)->(data)->(body)-> rz body
+getAnnoPos = (lt)-> dummyPosition
 
 ######
 ###### JSON-to-AST
@@ -477,3 +492,4 @@ root.ensureLeisureClass = ensureLeisureClass
 root.makeSuper = makeSuper
 root.supertypes = supertypes
 root.functionInfo = functionInfo
+root.getPos = getPos

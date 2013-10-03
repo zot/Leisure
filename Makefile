@@ -6,6 +6,7 @@
 ## Note, the lua tests depend on lua5.1, luarocks, and these luarocks: underscore, luajson
 ## It uses lua5.1 to maintain compatibility with LuaJIT
 
+NODE=node --max-stack-size=3000
 SHARED_SRC=base ast gen runtime
 SRC=$(SHARED_SRC) node testing simpleParseJS repl
 TEST=testLeisure
@@ -71,25 +72,25 @@ $(NEW_COFFEE_JS): $(NEW_COFFEE)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)
 
 $(NEW_LSR_JS): $(NEW_LSR) $(NEW_COFFEE_JS)
-	node lib/repl -c -d lib $(@:lib/%.js=newCode/%.lsr)
+	$(NODE) lib/repl -c -d lib $(@:lib/%.js=newCode/%.lsr)
 
 $(PRELUDE): $(COFFEE_JS) $(PRELUDE_FILES)
 	rm -f core/generatedPrelude.lsr
 	for i in $(PRELUDE_FILES); do cat $$i >> core/generatedPrelude.lsr; echo >> core/generatedPrelude.lsr; done
-	node lib/repl -0 -c -d lib core/simpleParse.lsr
-	node lib/repl -v -1 -c -d lib core/generatedPrelude.lsr
+	$(NODE) lib/repl -0 -c -d lib core/simpleParse.lsr
+	$(NODE) lib/repl -v -1 -c -d lib core/generatedPrelude.lsr
 
 $(TEST:%=lib/%.js): $(TEST:%=core/%.coffee)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee
 
 .tested: $(TEST:%=lib/%.js) $(PRELUDE)
-	node $(LIB)/$(TEST) && touch $@
+	$(NODE) $(LIB)/$(TEST) && touch $@
 
 $(TEST_PARSER:%=lib/%.js): $(TEST_PARSER:%=core/%.coffee)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testParser.coffee
 
 .parserTested: $(TEST_PARSER:%=lib/%.js) $(PRELUDE)
-	node $(LIB)/$(TEST_PARSER) && touch $@
+	$(NODE) $(LIB)/$(TEST_PARSER) && touch $@
 
 lib/%.js: core/%.coffee
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?

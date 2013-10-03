@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, memo, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
     __slice = [].slice;
 
   _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
@@ -57,7 +57,7 @@ misrepresented as being the original software.
   basicCall = function(args, env, cont) {
     var arg, res, _i, _len, _ref2;
 
-    res = global["L_" + args[0]]();
+    res = rz(global["L_" + args[0]]);
     _ref2 = args.slice(1);
     for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
       arg = _ref2[_i];
@@ -73,7 +73,7 @@ misrepresented as being the original software.
     if (i < array.length) {
       return cons(array[i], consFrom(array, i + 1));
     } else {
-      return L_nil();
+      return rz(L_nil);
     }
   };
 
@@ -295,10 +295,6 @@ misrepresented as being the original software.
     return Math.cos(rz(x));
   }));
 
-  define('log', lz(function(x) {
-    return Math.log(rz(x));
-  }));
-
   define('sin', lz(function(x) {
     return Math.sin(rz(x));
   }));
@@ -442,6 +438,8 @@ misrepresented as being the original software.
         } else {
           return consFrom([m[0], consFrom(groups)]);
         }
+      } else if (L_nil) {
+        return rz(L_nil);
       } else {
         return Nil;
       }
@@ -527,6 +525,13 @@ misrepresented as being the original software.
   define('log', lz(function(str) {
     return function(res) {
       console.log(String(rz(str)));
+      return rz(res);
+    };
+  }));
+
+  define('logStack', lz(function(str) {
+    return function(res) {
+      console.log(new Error(rz(str)).stack);
       return rz(res);
     };
   }));
@@ -634,11 +639,11 @@ misrepresented as being the original software.
       while (true) {
         if (isMonad(monad)) {
           if (monad.binding) {
-            contStack.push((function(bnd) {
-              return function(x) {
-                return bnd(lz(x));
-              };
-            })(rz(monad.binding)));
+            (function(bnd) {
+              return contStack.push(function(x) {
+                return rz(bnd)(lz(x));
+              });
+            })(rz(monad.binding));
             monad = rz(monad.monad);
             continue;
           } else if (!monad.sync) {
@@ -1054,22 +1059,21 @@ misrepresented as being the original software.
 
   curry = function(arity, func) {
     return function() {
-      return function(arg) {
-        return (subcurry(arity, func, []))(arg);
-      };
+      return lz(function(arg) {
+        return lz((subcurry(arity, func, null))(arg));
+      });
     };
   };
 
   subcurry = function(arity, func, args) {
-    return function(arg) {
-      args = args != null ? args : [];
-      args.push(arg);
+    return lz(function(arg) {
+      args = simpyCons(arg, args);
       if (arity === 1) {
-        return func(args);
+        return func(args.toArray().reverse());
       } else {
         return subcurry(arity - 1, func, args);
       }
-    };
+    });
   };
 
   makeHamt = function(hamt) {
@@ -1118,12 +1122,6 @@ misrepresented as being the original software.
     };
   }));
 
-  memo = function(func) {
-    return function() {
-      return func.memo || (func.memo = func());
-    };
-  };
-
   define('hamtPairs', lz(function(hamt) {
     return nextNode(simpyCons(rz(hamt).hamt, null));
   }));
@@ -1145,9 +1143,9 @@ misrepresented as being the original software.
         }
         return nextNode(stack);
       case 'value':
-        return rz(L_acons)(lz(node.key))(lz(node.value))(memo(function() {
+        return rz(L_acons)(lz(node.key))(lz(node.value))(function() {
           return nextNode(stack);
-        }));
+        });
       case 'hashmap':
         _ref3 = node.values;
         for (key in _ref3) {
