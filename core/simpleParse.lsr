@@ -415,7 +415,7 @@ scrubList list = list
         cons h next
   nil
 
-createAst lineEnds inList names = withStripped inList \list .
+createAst lineStarts inList names = withStripped inList \list .
   isToken list (createLitOrRef (tokenString list) names)
     list
       \h t D .
@@ -638,8 +638,8 @@ countedLines offset str = \\
   eq str ''
     nil
     isNil m
-      cons (cons (findLines offset str) str) nil
-      cons (cons (findLines offset chunk) chunk)
+      cons (cons (cons offset (tail (findLines 0 str))) str) nil
+      cons (cons (cons offset (tail (findLines 0 chunk))) chunk)
         countedLines (+ offset next) (strSubstring str next 0)
 
 defPat = regexp '^[^ =]+.* =( |$)'
@@ -840,8 +840,19 @@ findLines offset line = \\
 newParseLine offset names line = bind (scanLineM line)
   \scanned . ifNotErr (createAst (findLines offset line) scanned names) \ast . ast
 
+countedParseLine names countedLine = bind (scanLineM (tail countedLine))
+  \scanned . ifNotErr (createAst (head countedLine) scanned names) \ast . ast
+
 runLine offset names line = bind (newParseLine offset names line)
-  \ast . bind (runAst ast)
+  \ast . bind (runAst nil ast)
+    \result . cons
+      ast
+      isParseErr result
+        left (parseErrMsg result)
+        right result
+
+countedRunLine names countedLine = bind (countedParseLine names countedLine)
+  \ast . bind (runAst (head countedLine) ast)
     \result . cons
       ast
       isParseErr result
@@ -849,8 +860,14 @@ runLine offset names line = bind (newParseLine offset names line)
         right result
 
 runLines names lines = lines
-  \h t D . bind (runLine 0 names (tail h))
+  \h t D . bind (runLine 0 names h)
     \line . bind (runLines names t)
+      \rest . cons line rest
+  nil
+
+countedRunLines names countedLines = countedLines
+  \h t D . bind (countedRunLine names h)
+    \line . bind (countedRunLines names t)
       \rest . cons line rest
   nil
 
@@ -859,7 +876,7 @@ runFile text = \\
   lines = map tail counted
   names = namesForLines lines
   .
-  runLines names counted
+  countedRunLines names counted
 
 baseLoad file = bind (readFile file)
   \result . result

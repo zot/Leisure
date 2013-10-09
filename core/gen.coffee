@@ -90,11 +90,15 @@ sn = (ast, str...)->
   #[file, line, col] = getPos(ast).toArray()
   new SourceNode(1, 0, "TEST.lsr", str)
 
-genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
+genNode = (lineStarts, ast)-> genUniq ast, Nil, [Nil, 0]
 
 gen = (ast)->
   file = getPos(ast).head().replace /\.lsr$/, '.js.map'
-  genNode(ast).toStringWithSourceMap(file: file).code
+  genNode(Nil, ast).toStringWithSourceMap(file: file).code
+
+sourceMapGen = (lineStarts, ast)->
+  file = getPos(ast).head().replace /\.lsr$/, '.js.map'
+  genNode(lineStarts, ast).toStringWithSourceMap(file: file).code
 
 genUniq = (ast, names, uniq)->
   switch ast.constructor
@@ -233,9 +237,10 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', lz (ast)->
+define 'runAst', lz (lineStarts)->(ast)->
   try
-    eval "(#{gen rz ast})"
+    #eval "(#{gen rz ast})"
+    eval "(#{sourceMapGen rz(lineStarts), rz(ast)})"
   catch err
     rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast)
 
