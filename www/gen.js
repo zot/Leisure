@@ -66,8 +66,6 @@ misrepresented as being the original software.
     return result;
   };
 
-  defaultLineStarts = Nil;
-
   sn = function() {
     var ast, lineStarts, str;
 
@@ -106,16 +104,16 @@ misrepresented as being the original software.
       case Leisure_ref:
         return sn(lineStarts, ast, "resolve(", uniqName(getRefName(ast), uniq), ")");
       case Leisure_lambda:
-        return genLambda(ast, names, uniq, 0);
+        return genLambda(lineStarts, ast, names, uniq, 0);
       case Leisure_apply:
         if (!newGen) {
-          return sn(lineStarts, ast, genUniq(lineStarts, getApplyFunc(ast), names, uniq), "(", genApplyArg(getApplyArg(ast), names, uniq), ")");
+          return sn(lineStarts, ast, genUniq(lineStarts, getApplyFunc(ast), names, uniq), "(", genApplyArg(lineStarts, getApplyArg(ast), names, uniq), ")");
         } else {
-          return genApply(ast, names, uniq);
+          return genApply(lineStarts, ast, names, uniq);
         }
         break;
       case Leisure_let:
-        return sn(lineStarts, ast, "(function(){\n", genLets(ast, names, uniq), "})()");
+        return sn(lineStarts, ast, "(function(){\n", genLets(lineStarts, ast, names, uniq), "})()");
       case Leisure_anno:
         name = getAnnoName(ast);
         data = getAnnoData(ast);
@@ -142,13 +140,13 @@ misrepresented as being the original software.
     return cont(_true);
   })));
 
-  genLambda = function(ast, names, uniq, count) {
+  genLambda = function(lineStarts, ast, names, uniq, count) {
     var n, name, u;
 
     name = getLambdaVar(ast);
     u = addUniq(name, names, uniq);
     n = cons(name, names);
-    return addLambdaProperties(ast, sn(defaultLineStarts, ast, "function(", uniqName(name, u), "){return ", genUniq(defaultLineStarts, getLambdaBody(ast), n, u), "}"));
+    return addLambdaProperties(lineStarts, ast, sn(lineStarts, ast, "function(", uniqName(name, u), "){return ", genUniq(lineStarts, getLambdaBody(ast), n, u), "}"));
   };
 
   specialAnnotations = ['type', 'dataType', 'define'];
@@ -179,12 +177,12 @@ misrepresented as being the original software.
     return props;
   };
 
-  addLambdaProperties = function(ast, def) {
+  addLambdaProperties = function(lineStarts, ast, def) {
     var props;
 
     props = getLambdaProperties(getLambdaBody(ast));
     if (props) {
-      return sn(defaultLineStarts, ast, "setLambdaProperties(", def, ", ", JSON.stringify(props), ")");
+      return sn(lineStarts, ast, "setLambdaProperties(", def, ", ", JSON.stringify(props), ")");
     } else {
       return def;
     }
@@ -240,8 +238,8 @@ misrepresented as being the original software.
     return def;
   };
 
-  memoize = function(ast, func) {
-    return sn(defaultLineStarts, ast, "function(){return ", func, "}");
+  memoize = function(lineStarts, ast, func) {
+    return sn(lineStarts, ast, "function(){return ", func, "}");
   };
 
   dumpAnno = function(ast) {
@@ -252,43 +250,43 @@ misrepresented as being the original software.
     }
   };
 
-  genApply = function(ast, names, uniq) {
+  genApply = function(lineStarts, ast, names, uniq) {
     var args;
 
     args = [];
     while (dumpAnno(ast) instanceof Leisure_apply) {
-      args.push(sn(defaultLineStarts, ast, "(", genApplyArg(getApplyArg(dumpAnno(ast)), names, uniq), ")"));
+      args.push(sn(lineStarts, ast, "(", genApplyArg(lineStarts, getApplyArg(dumpAnno(ast)), names, uniq), ")"));
       ast = getApplyFunc(dumpAnno(ast));
     }
     args.reverse();
-    return sn(defaultLineStarts, ast, genUniq(defaultLineStarts, ast, names, uniq), ".leisureCall(", args.join(', '), ")");
+    return sn(lineStarts, ast, genUniq(lineStarts, ast, names, uniq), ".leisureCall(", args.join(', '), ")");
   };
 
-  genApplyArg = function(arg, names, uniq) {
+  genApplyArg = function(lineStarts, arg, names, uniq) {
     if (dumpAnno(arg) instanceof Leisure_apply) {
-      return memoize(arg, genUniq(defaultLineStarts, arg, names, uniq));
+      return memoize(lineStarts, arg, genUniq(lineStarts, arg, names, uniq));
     } else if (arg instanceof Leisure_ref) {
       return uniqName(getRefName(arg), uniq);
     } else if (arg instanceof Leisure_lit) {
-      return sn(defaultLineStarts, arg, JSON.stringify(getLitVal(arg)));
+      return sn(lineStarts, arg, JSON.stringify(getLitVal(arg)));
     } else if (arg instanceof Leisure_let) {
-      return sn(defaultLineStarts, arg, "function(){", genLets(arg, names, uniq), "}");
+      return sn(lineStarts, arg, "function(){", genLets(lineStarts, arg, names, uniq), "}");
     } else if (dumpAnno(arg) instanceof Leisure_lambda) {
-      return sn(defaultLineStarts, arg, "lazy(", genUniq(defaultLineStarts, arg, names, uniq), ")");
+      return sn(lineStarts, arg, "lazy(", genUniq(lineStarts, arg, names, uniq), ")");
     } else {
-      return sn(defaultLineStarts, ast, "function(){return ", genUniq(defaultLineStarts, arg, names, uniq), "}");
+      return sn(lineStarts, ast, "function(){return ", genUniq(lineStarts, arg, names, uniq), "}");
     }
   };
 
-  genLetAssign = function(arg, names, uniq) {
+  genLetAssign = function(lineStarts, arg, names, uniq) {
     if (dumpAnno(arg) instanceof Leisure_let) {
-      return sn(defaultLineStarts, arg, "function(){", genLets(arg, names, uniq), "}");
+      return sn(lineStarts, arg, "function(){", genLets(lineStarts, arg, names, uniq), "}");
     } else {
-      return sn(defaultLineStarts, arg, "function(){return ", genUniq(defaultLineStarts, arg, names, uniq), "}");
+      return sn(lineStarts, arg, "function(){return ", genUniq(lineStarts, arg, names, uniq), "}");
     }
   };
 
-  genLets = function(ast, names, uniq) {
+  genLets = function(lineStarts, ast, names, uniq) {
     var assigns, decs, _ref3;
 
     _ref3 = _.foldl(letList(ast, []), (function(result, l) {
@@ -297,9 +295,9 @@ misrepresented as being the original software.
       n = result[0], u = result[1], letNames = result[2], code = result[3];
       newU = addUniq(getLetName(l), n, u);
       letName = uniqName(getLetName(l), newU);
-      return [cons(getLetName(l), n), newU, cons(letName, letNames), cons(sn(defaultLineStarts, ast, '\n' + letName + ' = ', genLetAssign(getLetValue(l), n, u)), code)];
+      return [cons(getLetName(l), n), newU, cons(letName, letNames), cons(sn(lineStarts, ast, '\n' + letName + ' = ', genLetAssign(lineStarts, getLetValue(l), n, u)), code)];
     }), [names, uniq, Nil, Nil]), names = _ref3[0], uniq = _ref3[1], decs = _ref3[2], assigns = _ref3[3];
-    return sn(defaultLineStarts, ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", genUniq(defaultLineStarts, getLastLetBody(ast), names, uniq));
+    return sn(lineStarts, ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", genUniq(lineStarts, getLastLetBody(ast), names, uniq));
   };
 
   addUniq = function(name, names, uniq) {
@@ -407,6 +405,8 @@ misrepresented as being the original software.
       return f;
     }
   };
+
+  defaultLineStarts = Nil;
 
   root.gen = gen;
 

@@ -85,8 +85,6 @@ collectArgs = (args, result)->
     if Array.isArray i then collectArgs i, result else result.push i
   result
 
-defaultLineStarts = Nil
-
 sn = (lineStarts, ast, str...)->
   #(collectArgs str, []).join('')
   #[file, line, col] = getPos(ast).toArray()
@@ -106,11 +104,11 @@ genUniq = (lineStarts, ast, names, uniq)->
   switch ast.constructor
     when Leisure_lit then sn lineStarts, ast, JSON.stringify getLitVal ast
     when Leisure_ref then sn lineStarts, ast, "resolve(", (uniqName (getRefName ast), uniq), ")"
-    when Leisure_lambda then genLambda ast, names, uniq, 0
+    when Leisure_lambda then genLambda lineStarts, ast, names, uniq, 0
     when Leisure_apply
-      if !newGen then sn lineStarts, ast, (genUniq lineStarts, (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
-      else genApply ast, names, uniq
-    when Leisure_let then sn lineStarts, ast, "(function(){\n", (genLets ast, names, uniq), "})()"
+      if !newGen then sn lineStarts, ast, (genUniq lineStarts, (getApplyFunc ast), names, uniq), "(", (genApplyArg lineStarts, (getApplyArg ast), names, uniq), ")"
+      else genApply lineStarts, ast, names, uniq
+    when Leisure_let then sn lineStarts, ast, "(function(){\n", (genLets lineStarts, ast, names, uniq), "})()"
     when Leisure_anno
       name = getAnnoName ast
       data = getAnnoData ast
@@ -128,11 +126,11 @@ define 'newGen', lz makeSyncMonad (env, cont)->
   newGen = !masterLockGen && !root.lockGen
   cont _true
 
-genLambda = (ast, names, uniq, count)->
+genLambda = (lineStarts, ast, names, uniq, count)->
   name = getLambdaVar ast
   u = addUniq name, names, uniq
   n = cons name, names
-  addLambdaProperties ast, sn defaultLineStarts, ast, "function(", (uniqName name, u), "){return ", (genUniq defaultLineStarts, (getLambdaBody ast), n, u), "}"
+  addLambdaProperties lineStarts, ast, sn lineStarts, ast, "function(", (uniqName name, u), "){return ", (genUniq lineStarts, (getLambdaBody ast), n, u), "}"
 
 specialAnnotations = ['type', 'dataType', 'define']
 
@@ -149,10 +147,10 @@ getLambdaProperties = (body, props)->
     getLambdaProperties getAnnoBody(body), props
   props
 
-addLambdaProperties = (ast, def)->
+addLambdaProperties = (lineStarts, ast, def)->
   props = getLambdaProperties getLambdaBody ast
   if props
-    sn defaultLineStarts, ast, "setLambdaProperties(", def, ", ", (JSON.stringify props), ")"
+    sn lineStarts, ast, "setLambdaProperties(", def, ", ", (JSON.stringify props), ")"
   else def
 
 lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
@@ -185,31 +183,31 @@ global.setLambdaProperties = (def, props)->
   def.properties = p
   def
 
-memoize = (ast, func)-> sn defaultLineStarts, ast, "function(){return ", func, "}"
+memoize = (lineStarts, ast, func)-> sn lineStarts, ast, "function(){return ", func, "}"
 
 dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
 
-genApply = (ast, names, uniq)->
+genApply = (lineStarts, ast, names, uniq)->
   args = []
   while dumpAnno(ast) instanceof Leisure_apply
-    args.push sn defaultLineStarts, ast, "(", (genApplyArg (getApplyArg dumpAnno ast), names, uniq), ")"
+    args.push sn lineStarts, ast, "(", (genApplyArg lineStarts, (getApplyArg dumpAnno ast), names, uniq), ")"
     ast = getApplyFunc dumpAnno ast
   args.reverse()
-  sn defaultLineStarts, ast, (genUniq defaultLineStarts, ast, names, uniq), ".leisureCall(", (args.join ', '), ")"
+  sn lineStarts, ast, (genUniq lineStarts, ast, names, uniq), ".leisureCall(", (args.join ', '), ")"
 
-genApplyArg = (arg, names, uniq)->
-  if dumpAnno(arg) instanceof Leisure_apply then memoize arg, genUniq defaultLineStarts, arg, names, uniq
+genApplyArg = (lineStarts, arg, names, uniq)->
+  if dumpAnno(arg) instanceof Leisure_apply then memoize lineStarts, arg, genUniq lineStarts, arg, names, uniq
   else if arg instanceof Leisure_ref then uniqName (getRefName arg), uniq
-  else if arg instanceof Leisure_lit then sn defaultLineStarts, arg, JSON.stringify getLitVal arg
-  else if arg instanceof Leisure_let then sn defaultLineStarts, arg, "function(){", (genLets arg, names, uniq), "}"
-  else if dumpAnno(arg) instanceof Leisure_lambda then sn defaultLineStarts, arg, "lazy(", (genUniq defaultLineStarts, arg, names, uniq), ")"
-  else sn defaultLineStarts, ast, "function(){return ", (genUniq defaultLineStarts, arg, names, uniq), "}"
+  else if arg instanceof Leisure_lit then sn lineStarts, arg, JSON.stringify getLitVal arg
+  else if arg instanceof Leisure_let then sn lineStarts, arg, "function(){", (genLets lineStarts, arg, names, uniq), "}"
+  else if dumpAnno(arg) instanceof Leisure_lambda then sn lineStarts, arg, "lazy(", (genUniq lineStarts, arg, names, uniq), ")"
+  else sn lineStarts, ast, "function(){return ", (genUniq lineStarts, arg, names, uniq), "}"
 
-genLetAssign = (arg, names, uniq)->
-  if dumpAnno(arg) instanceof Leisure_let then sn defaultLineStarts, arg, "function(){", (genLets arg, names, uniq), "}"
-  else sn defaultLineStarts, arg, "function(){return ", (genUniq defaultLineStarts, arg, names, uniq), "}"
+genLetAssign = (lineStarts, arg, names, uniq)->
+  if dumpAnno(arg) instanceof Leisure_let then sn lineStarts, arg, "function(){", (genLets lineStarts, arg, names, uniq), "}"
+  else sn lineStarts, arg, "function(){return ", (genUniq lineStarts, arg, names, uniq), "}"
 
-genLets = (ast, names, uniq)->
+genLets = (lineStarts, ast, names, uniq)->
   [names, uniq, decs, assigns] = _.foldl (letList ast, []), ((result, l)->
     [n, u, letNames, code] = result
     newU = addUniq (getLetName l), n, u
@@ -217,8 +215,8 @@ genLets = (ast, names, uniq)->
     [cons((getLetName l), n),
       newU,
       (cons letName, letNames),
-      (cons (sn defaultLineStarts, ast, '\n' + letName + ' = ', genLetAssign(getLetValue(l), n, u)), code)]), [names, uniq, Nil, Nil]
-  sn defaultLineStarts, ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", (genUniq defaultLineStarts, (getLastLetBody ast), names, uniq)
+      (cons (sn lineStarts, ast, '\n' + letName + ' = ', genLetAssign(lineStarts, getLetValue(l), n, u)), code)]), [names, uniq, Nil, Nil]
+  sn lineStarts, ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", (genUniq lineStarts, (getLastLetBody ast), names, uniq)
 
 addUniq = (name, names, uniq)->
   if (names.find (el)-> el == name) != Nil
@@ -276,6 +274,8 @@ Function.prototype.leisureCall = (args...)->
         return sub
       pos = next
     f
+
+defaultLineStarts = Nil
 
 root.gen = gen
 root.genNode = genNode
