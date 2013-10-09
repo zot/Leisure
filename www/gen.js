@@ -340,7 +340,18 @@ misrepresented as being the original software.
     }
   };
 
-  define('runAst', lz(function(lineStarts) {
+  define('runAst', lz(function(ast) {
+    var err;
+
+    try {
+      return eval("(" + (gen(rz(ast))) + ")");
+    } catch (_error) {
+      err = _error;
+      return rz(L_parseErr)(lz("\n\nParse error: " + err.toString() + "\nAST: "))(ast);
+    }
+  }));
+
+  define('runCountedAst', lz(function(lineStarts) {
     return function(ast) {
       var err;
 

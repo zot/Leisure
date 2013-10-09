@@ -844,7 +844,7 @@ countedParseLine names countedLine = bind (scanLineM (tail countedLine))
   \scanned . ifNotErr (createAst (head countedLine) scanned names) \ast . ast
 
 runLine offset names line = bind (newParseLine offset names line)
-  \ast . bind (runAst nil ast)
+  \ast . bind (runAst ast)
     \result . cons
       ast
       isParseErr result
@@ -852,7 +852,7 @@ runLine offset names line = bind (newParseLine offset names line)
         right result
 
 countedRunLine names countedLine = bind (countedParseLine names countedLine)
-  \ast . bind (runAst (head countedLine) ast)
+  \ast . bind (runCountedAst (head countedLine) ast)
     \result . cons
       ast
       isParseErr result

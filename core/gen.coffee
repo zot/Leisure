@@ -237,9 +237,14 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', lz (lineStarts)->(ast)->
+define 'runAst', lz (ast)->
   try
-    #eval "(#{gen rz ast})"
+    eval "(#{gen rz ast})"
+  catch err
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast)
+
+define 'runCountedAst', lz (lineStarts)->(ast)->
+  try
     eval "(#{sourceMapGen rz(lineStarts), rz(ast)})"
   catch err
     rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast)
