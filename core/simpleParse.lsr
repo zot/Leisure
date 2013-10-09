@@ -626,20 +626,20 @@ linesForFile text = map tail (countedLinesForFile text)
 
 countedLinesForFile text = filter
   \line . isNil (strMatch (tail line) emptyLinePat)
-  zip naturals (strSplit text linePat)
+  countedLines 0 text
 
+# 1-based offset for lines
 countedLines offset str = \\
   m = strMatch str linePat
   idx = head (tail (tail m))
   chunk = strSubstring str 0 idx
-  newlines = findLineEnds offset chunk
   next = + idx (strLen (head m))
   .
   eq str ''
     nil
     isNil m
-      cons (cons str (cons offset (cons nil nil))) nil
-      cons (cons chunk (cons offset (cons newlines nil)))
+      cons (cons (findLines offset str) str) nil
+      cons (cons (findLines offset chunk) chunk)
         countedLines (+ offset next) (strSubstring str next 0)
 
 defPat = regexp '^[^ =]+.* =( |$)'
@@ -828,16 +828,17 @@ scanLineM line = bind (getValue 'tokenPat')
 
 newline = regexp '\\r?\\n'
 
-findLineEnds offset line = \\
+# Find line ends in a chunk (overhanging line with indented lines under it)
+findLines offset line = \\
   m = strMatch line newline
-  idx = head (tail (tail m))
+  idx = + 1 (head (tail (tail m)))
   .
   eq m nil
-    nil
-    cons (+ offset idx) (findLineEnds offset (strSubstring line (+ 1 idx) 0))
+    cons offset nil
+    cons offset (findLines (+ offset idx) (strSubstring line idx 0))
 
 newParseLine offset names line = bind (scanLineM line)
-  \scanned . ifNotErr (createAst (findLineEnds offset line) scanned names) \ast . ast
+  \scanned . ifNotErr (createAst (findLines offset line) scanned names) \ast . ast
 
 runLine offset names line = bind (newParseLine offset names line)
   \ast . bind (runAst ast)
