@@ -89,10 +89,10 @@ visit func l = \\\\
 
 runTests 'Leisure Full Parser',
   fullParse1: ->
-    assertEq String(runLsr "scanLineM 'a +'"), 'Cons[[Token("+", 2) Token("a", 0)]]'
-    assertEq String(runLsr "scanLineM 'a + b'"), 'Cons[[Token("+", 2) Token("a", 0) Token("b", 4)]]'
+    assertEq String(runLsr "scanLineM 'a +'"), 'Cons[[Token("+", EMPTYFILE.lsr:1.2) Token("a", EMPTYFILE.lsr:1.0)]]'
+    assertEq String(runLsr "scanLineM 'a + b'"), 'Cons[[Token("+", EMPTYFILE.lsr:1.2) Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.4)]]'
   fullParse2: ->
-    assertEq String(runLsr "scanLineM 'a + b + c'"), 'Cons[[Token("+", 6) [Token("+", 2) Token("a", 0) Token("b", 4)] Token("c", 8)]]'
+    assertEq String(runLsr "scanLineM 'a + b + c'"), 'Cons[[Token("+", EMPTYFILE.lsr:1.6) [Token("+", EMPTYFILE.lsr:1.2) Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.4)] Token("c", EMPTYFILE.lsr:1.8)]]'
   fullParse3: ->
     assertEq runLsr("1+2*3 >= 7 == true"), rz L_true
   fullParse4: ->

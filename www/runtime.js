@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, readDir, readFile, replaceErr, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, posString, readDir, readFile, replaceErr, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
     __slice = [].slice;
 
   _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
@@ -1203,7 +1203,7 @@ misrepresented as being the original software.
   ensureLeisureClass('token');
 
   Leisure_token.prototype.toString = function() {
-    return "Token(" + (JSON.stringify(tokenString(this))) + ", " + (tokenPos(this)) + ")";
+    return "Token(" + (JSON.stringify(tokenString(this))) + ", " + (posString(tokenPos(this))) + ")";
   };
 
   tokenString = function(t) {
@@ -1222,10 +1222,26 @@ misrepresented as being the original software.
     }));
   };
 
+  ensureLeisureClass('filepos');
+
+  posString = function(p) {
+    if (p instanceof Leisure_filepos) {
+      return p(lz(function(file) {
+        return function(line) {
+          return function(offset) {
+            return "" + (rz(file)) + ":" + (rz(line)) + "." + (rz(offset));
+          };
+        };
+      }));
+    } else {
+      return p;
+    }
+  };
+
   ensureLeisureClass('parens');
 
   Leisure_parens.prototype.toString = function() {
-    return "Parens(" + (parensStart(this)) + ", " + (parensEnd(this)) + ", " + (parensContent(this)) + ")";
+    return "Parens(" + (posString(parensStart(this))) + ", " + (posString(parensEnd(this))) + ", " + (parensContent(this)) + ")";
   };
 
   parensStart = function(p) {

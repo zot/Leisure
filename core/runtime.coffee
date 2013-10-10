@@ -602,13 +602,17 @@ trampCurry = (func, arity)-> (arg)->
 #######################
 
 ensureLeisureClass 'token'
-Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{tokenPos(@)})"
+Leisure_token.prototype.toString = -> "Token(#{JSON.stringify(tokenString(@))}, #{posString tokenPos(@)})"
 
 tokenString = (t)-> t(lz (txt)->(pos)-> rz txt)
 tokenPos = (t)-> t(lz (txt)->(pos)-> rz pos)
+ensureLeisureClass 'filepos'
+posString = (p)->
+  if p instanceof Leisure_filepos then p(lz (file)->(line)->(offset)-> "#{rz file}:#{rz line}.#{rz offset}")
+  else p
 
 ensureLeisureClass 'parens'
-Leisure_parens.prototype.toString = -> "Parens(#{parensStart @}, #{parensEnd @}, #{parensContent @})"
+Leisure_parens.prototype.toString = -> "Parens(#{posString parensStart @}, #{posString parensEnd @}, #{parensContent @})"
 
 parensStart = (p)-> p(lz (s)->(e)->(l)-> rz s)
 parensEnd = (p)-> p(lz (s)->(e)->(l)-> rz e)

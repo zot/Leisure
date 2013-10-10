@@ -230,23 +230,26 @@ insertSorted sortFunc item list = list
 
 token txt pos = \f . f txt pos
 tokenString tok = tok \t p . t
-tokenFilePos tok = tok \t p . p
-tokenPos tok = tok \t p . p
-#tokenPos tok = tok \t p . fileposOffset p
+tokenFilepos tok = tok \t p . p
+#tokenPos tok = tok \t p . p
+# TODO -- remove the non-filepos condition
+tokenPos tok = tok \t p . isFilepos p
+  fileposOffset p
+  p
 isToken t = hasType t token
 
-emptyLineStarts = nil
+emptyLineStarts = cons 'EMPTYFILE.lsr' (cons 1 nil)
 
 filepos file line offset = \f . f file line offset
 fileposFile p = p \file line offset . file
 fileposLine p = p \file line offset . line
 fileposOffset p = p \file line offset . offset
 isFilepos p = hasType p filepos
-addFilepos pos change = isFilepos pos
-  pos \file line offset . filepos file line (+ offset change)
-  + pos change
-#emptyFilePos = filepos 'NOTHING.lsr' 1 0
-emptyFilePos = -1
+# TODO -- remove the non-filepos condition
+addFilepos pos change = isFilepos pos pos emptyFilePos
+  \file line offset . filepos file line (+ offset change)
+emptyFilePos = filepos 'NOTHING.lsr' 0 0
+startFilePos = emptyFilePos
 filePosFor lineStarts offset = countFilePos (head (tail lineStarts)) 0 (tail (tail lineStarts)) offset
   \line offset . filepos (head lineStarts) line offset
 countFilePos line lineOffset starts offset = or (isNil starts) (> (head starts) offset)
@@ -265,8 +268,8 @@ makeParens start end content =
       content
       parens start end content
 parensFromToks left right content = \\
-  start = tokenPos left
-  end = addFilepos (tokenPos right) (strLen (tokenString right))
+  start = tokenFilepos left
+  end = addFilepos (tokenFilepos right) (strLen (tokenString right))
   .
   parens start end content
 stripParens p = isParens p (parensContent p) p
@@ -279,19 +282,24 @@ emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
 
 makeTokens lineStarts strings start = strings (\h t D . makeMoreTokens lineStarts h t start) nil
 makeMoreTokens lineStarts h t start = \\
-  next = makeTokens lineStarts t (addFilepos start (strLen h))
+  next = makeTokens lineStarts t (+ start (strLen h))
   .
   and (strMatches h emptyToken) (or (isNil t) (or (strStartsWith (head t) '\n') (strStartsWith (head t) '\r\n')))
-  #and (strMatches h emptyToken) (or (isNil t) (strStartsWith (head t) '\n'))
-    makeTokens lineStarts t (addFilepos start (strLen h))
+    makeTokens lineStarts t (+ start (strLen h))
     or (strStartsWith h ' ') (strStartsWith h '#')
       next
       and (or (strStartsWith h '\n') (strStartsWith h '\r\n')) (strStartsWith (head t) '#')
-      #and (strStartsWith h '\n') (strStartsWith (head t) '#')
         makeTokens lineStarts (tail t) (+ start (+ (strLen h) (strLen (head t))))
-        cons (token h start) next
-        #cons (makeTokenAt lineStarts h start) next
+        #cons (token h start) next
+        cons (makeTokenAt lineStarts h start) next
+#makeTokenAt lineStarts txt offset = showToken (token txt (filePosFor lineStarts offset))
 makeTokenAt lineStarts txt offset = token txt (filePosFor lineStarts offset)
+
+showToken tok = log (strCat (cons 'token: ' (cons (tokenString tok) (cons ', ' (cons (showPos (tokenPos tok)) nil))))) tok
+
+showPos pos = isFilepos pos
+  strCat (cons 'position: ' (cons (fileposFile pos) (cons ', ' (cons (fileposLine pos) (cons '.' (cons (fileposOffset pos)))))))
+  pos
 
 splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
 
@@ -396,7 +404,7 @@ parseIndent indent toks gr groups =
 # actually, I think lambda and let only need one range, just for their vars/names because their bodies will have ranges
 # applies probably don't need a range at this point, since their func and arg have ranges
 # anno probably don't need ranges, since they don't directly gen code
-nilRange = cons 'TEST.lsr' (cons 1 (cons 0 nil))
+nilRange = cons 'NILRANGE.lsr' (cons 1 (cons 0 nil))
 lit value range = \f . f value range
 ref name range = \f . f name range
 lambda name body range = \f . f name body range
@@ -578,7 +586,7 @@ getLetLambda pos def args names =
 ## Compiling
 #################
 
-scanLineG str pat groups onDef onExpr = countedScanLineG emptyFilePos str pat groups onDef onExpr
+scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups onDef onExpr
 
 countedScanLineG lineStarts str pat groups onDef onExpr = \\
   toks = countedTokens lineStarts str pat
@@ -656,7 +664,7 @@ lineScrub = regexpFlags '\\r\\n' 'g'
 #  line 33 starts at position 17 in the string
 #  line 34 starts at position 83 in the string
 
-linesForFile text = map tail (countedLinesForFile "TEST.lsr" text)
+linesForFile text = map tail (countedLinesForFile "NOTHING.lsr" text)
 
 countedLinesForFile name text = filter
   \line . isNil (strMatch (tail line) emptyLinePat)
@@ -812,9 +820,9 @@ addTokenGroup open close = bind (addToken open)
 
 parenGroups = acons '(' ')' nil
 
-parse str pat = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil parenGroups) \list . list \h t . stripParens h
+parse str pat = ifNotErr (parseIndent (token '\n' startFilePos) (tokens str pat) nil parenGroups) \list . list \h t . stripParens h
 
-parseG str pat groups = ifNotErr (parseIndent (token '\n' 0) (tokens str pat) nil groups) \list . list \h t . stripParens h
+parseG str pat groups = ifNotErr (parseIndent (token '\n' startFilePos) (tokens str pat) nil groups) \list . list \h t . stripParens h
 
 parseToAst str pat = createAst nil (parse str pat) nil
 
@@ -875,7 +883,7 @@ findLines offset line = \\
     cons offset (findLines (+ offset idx) (strSubstring line idx 0))
 
 newParseLine offset names line = bind (scanLineM line)
-  \scanned . ifNotErr (createAst (cons "TEST.lsr" (findLines offset line)) scanned names) \ast . ast
+  \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . ast
 
 countedParseLine names countedLine = bind (scanLineM (tail countedLine))
   \scanned . ifNotErr (createAst (head countedLine) scanned names) \ast . ast
@@ -908,7 +916,7 @@ countedRunLines names countedLines = countedLines
       \rest . cons line rest
   nil
 
-runFile text = runNamedFile "test.lsr" text
+runFile text = runNamedFile "RUNFILE.lsr" text
 
 runNamedFile name text = \\
   counted = countedLinesForFile name text
