@@ -26,8 +26,6 @@ misrepresented as being the original software.
 Tests for Leisure
 ###
 
-Error.stackTraceLimit = Infinity
-
 require('source-map-support').install()
 {
   readFile,
@@ -72,6 +70,8 @@ require('source-map-support').install()
   setDelimiterInfo,
   addDelimiter,
 } = require './simpleParseJS'
+
+Error.stackTraceLimit = Infinity
 
 console.log 'Testing CoffeeScript'
 

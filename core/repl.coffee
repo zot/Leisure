@@ -23,8 +23,8 @@ misrepresented as being the original software.
 ###
 
 require('source-map-support').install()
-#Error.stackTraceLimit = Infinity
-Error.stackTraceLimit = 50
+Error.stackTraceLimit = Infinity
+#Error.stackTraceLimit = 50
 {
   resolve,
   lazy,

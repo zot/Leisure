@@ -230,8 +230,12 @@ insertSorted sortFunc item list = list
 
 token txt pos = \f . f txt pos
 tokenString tok = tok \t p . t
+tokenFilePos tok = tok \t p . p
 tokenPos tok = tok \t p . p
+#tokenPos tok = tok \t p . fileposOffset p
 isToken t = hasType t token
+
+emptyLineStarts = nil
 
 filepos file line offset = \f . f file line offset
 fileposFile p = p \file line offset . file
@@ -243,6 +247,11 @@ addFilepos pos change = isFilepos pos
   + pos change
 #emptyFilePos = filepos 'NOTHING.lsr' 1 0
 emptyFilePos = -1
+filePosFor lineStarts offset = countFilePos (head (tail lineStarts)) 0 (tail (tail lineStarts)) offset
+  \line offset . filepos (head lineStarts) line offset
+countFilePos line lineOffset starts offset = or (isNil starts) (> (head starts) offset)
+  \f . f line (- offset lineOffset)
+  countFilePos (+ line 1) (head starts) (tail starts) offset
 
 parens start end content = \f . f start end content
 parensStart p = p \s e c . s
@@ -257,7 +266,7 @@ makeParens start end content =
       parens start end content
 parensFromToks left right content = \\
   start = tokenPos left
-  end = + (tokenPos right) (strLen (tokenString right))
+  end = addFilepos (tokenPos right) (strLen (tokenString right))
   .
   parens start end content
 stripParens p = isParens p (parensContent p) p
@@ -268,19 +277,21 @@ isParseErr thing = hasType thing parseErr
 
 emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
 
-makeTokens strings start = strings (\h t D . makeMoreTokens h t start) nil
-makeMoreTokens h t start = \\
-  next = makeTokens t (addFilepos start (strLen h))
+makeTokens lineStarts strings start = strings (\h t D . makeMoreTokens lineStarts h t start) nil
+makeMoreTokens lineStarts h t start = \\
+  next = makeTokens lineStarts t (addFilepos start (strLen h))
   .
   and (strMatches h emptyToken) (or (isNil t) (or (strStartsWith (head t) '\n') (strStartsWith (head t) '\r\n')))
   #and (strMatches h emptyToken) (or (isNil t) (strStartsWith (head t) '\n'))
-    makeTokens t (addFilepos start (strLen h))
+    makeTokens lineStarts t (addFilepos start (strLen h))
     or (strStartsWith h ' ') (strStartsWith h '#')
       next
       and (or (strStartsWith h '\n') (strStartsWith h '\r\n')) (strStartsWith (head t) '#')
       #and (strStartsWith h '\n') (strStartsWith (head t) '#')
-        makeTokens (tail t) (addFilepos start (+ (strLen h) (strLen (head t))))
+        makeTokens lineStarts (tail t) (+ start (+ (strLen h) (strLen (head t))))
         cons (token h start) next
+        #cons (makeTokenAt lineStarts h start) next
+makeTokenAt lineStarts txt offset = token txt (filePosFor lineStarts offset)
 
 splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
 
@@ -311,7 +322,9 @@ basicSplitTokens str pat prevIsDel = == str ''
         pat
         select true false false
 
-tokens str pat = makeTokens (splitTokens str pat) 0
+tokens str pat = countedTokens emptyLineStarts str pat
+
+countedTokens lineStarts str pat = makeTokens lineStarts (splitTokens str pat) 0
 
 #############
 ## Parsing
@@ -327,7 +340,7 @@ isTokenStart tok str = or
   and (isString tok) (strStartsWith tok str)
 strTokenString tok = withToken tok nil \str pos . str
 withToken tok nonTokCase tokCase = isToken tok
-  tok tokCase
+  tokCase (tokenString tok) (tokenPos tok)
   isString tok
     tokCase tok emptyFilePos
     nonTokCase
@@ -565,8 +578,10 @@ getLetLambda pos def args names =
 ## Compiling
 #################
 
-scanLineG str pat groups onDef onExpr = \\
-  toks = tokens str pat
+scanLineG str pat groups onDef onExpr = countedScanLineG emptyFilePos str pat groups onDef onExpr
+
+countedScanLineG lineStarts str pat groups onDef onExpr = \\
+  toks = countedTokens lineStarts str pat
   groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
   .
   # check if it's a definition
@@ -632,25 +647,35 @@ emptyLinePat = regexp '(^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$)'
 
 lineScrub = regexpFlags '\\r\\n' 'g'
 
+####
+# line counting
+####
+# a lineStarts list is [filename lineNumber lineStartOffset...]
+# so ['file1.lsr' 32 17 83] means
+#  this string starts at line 32 in file1.lsr
+#  line 33 starts at position 17 in the string
+#  line 34 starts at position 83 in the string
+
 linesForFile text = map tail (countedLinesForFile "TEST.lsr" text)
 
 countedLinesForFile name text = filter
   \line . isNil (strMatch (tail line) emptyLinePat)
-  countedLines name 0 text
+  countedLines name 1 text
 
 # 1-based offset for lines
-countedLines filename offset str = \\
+countedLines filename lineOffset str = \\
   m = strMatch str linePat
   idx = head (tail (tail m))
   chunk = strSubstring str 0 idx
   next = + idx (strLen (head m))
+  chunkLines = findLines 0 chunk
   .
   eq str ''
     nil
     isNil m
-      cons (cons (cons filename (cons offset (tail (findLines 0 str)))) str) nil
-      cons (cons (cons filename (cons offset (tail (findLines 0 chunk)))) chunk)
-        countedLines filename (+ offset next) (strSubstring str next 0)
+      cons (cons (cons filename (cons lineOffset (tail (findLines 0 str)))) str) nil
+      cons (cons (cons filename (cons lineOffset (tail chunkLines))) chunk)
+        countedLines filename (+ lineOffset (length chunkLines)) (strSubstring str next 0)
 
 defPat = regexp '^[^ =]+.* =( |$)'
 
@@ -829,11 +854,13 @@ simpleScanLine line = bind (getValue 'tokenPat')
   \tokenPat . bind (getValue 'tokenGroups')
     \groups . scanLineG line tokenPat groups id id
 
-scanLineM line = bind (getValue 'tokenPat')
+scanLineM line = countedScanLineM emptyLineStarts line
+
+countedScanLineM lineStarts line = bind (getValue 'tokenPat')
   \tokenPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'parseFilters')
       \filters . bind (getValue 'macroDefs')
-        \macros . bind (runParseFilters filters (scanLineG line tokenPat groups id id))
+        \macros . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups id id))
           \scanned . macroSub macros scanned
 
 newline = regexp '\\r?\\n'
