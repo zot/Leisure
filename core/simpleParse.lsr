@@ -233,6 +233,17 @@ tokenString tok = tok \t p . t
 tokenPos tok = tok \t p . p
 isToken t = hasType t token
 
+filepos file line offset = \f . f file line offset
+fileposFile p = p \file line offset . file
+fileposLine p = p \file line offset . line
+fileposOffset p = p \file line offset . offset
+isFilepos p = hasType p filepos
+addFilepos pos change = isFilepos pos
+  pos \file line offset . filepos file line (+ offset change)
+  + pos change
+#emptyFilePos = filepos 'NOTHING.lsr' 1 0
+emptyFilePos = -1
+
 parens start end content = \f . f start end content
 parensStart p = p \s e c . s
 parensEnd p = p \s e c . e
@@ -259,16 +270,16 @@ emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
 
 makeTokens strings start = strings (\h t D . makeMoreTokens h t start) nil
 makeMoreTokens h t start = \\
-  next = makeTokens t (+ start (strLen h))
+  next = makeTokens t (addFilepos start (strLen h))
   .
   and (strMatches h emptyToken) (or (isNil t) (or (strStartsWith (head t) '\n') (strStartsWith (head t) '\r\n')))
   #and (strMatches h emptyToken) (or (isNil t) (strStartsWith (head t) '\n'))
-    makeTokens t (+ start (strLen h))
+    makeTokens t (addFilepos start (strLen h))
     or (strStartsWith h ' ') (strStartsWith h '#')
       next
       and (or (strStartsWith h '\n') (strStartsWith h '\r\n')) (strStartsWith (head t) '#')
       #and (strStartsWith h '\n') (strStartsWith (head t) '#')
-        makeTokens (tail t) (+ start (+ (strLen h) (strLen (head t))))
+        makeTokens (tail t) (addFilepos start (+ (strLen h) (strLen (head t))))
         cons (token h start) next
 
 splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
@@ -318,7 +329,7 @@ strTokenString tok = withToken tok nil \str pos . str
 withToken tok nonTokCase tokCase = isToken tok
   tok tokCase
   isString tok
-    tokCase tok -1
+    tokCase tok emptyFilePos
     nonTokCase
 
 ## withCons is like a safe version of a cons
@@ -390,16 +401,16 @@ withStripped list cont = withParens list (cont list) \start end content . withSt
 position thing = isToken thing (tokenPos thing)
   isParens thing (parensStart thing)
     isCons thing (position (head thing))
-      -1
+      emptyFilePos
 
-lexEnd thing = isToken thing (+ (tokenPos thing) (strLen (tokenString thing)))
+lexEnd thing = isToken thing (addFilepos (tokenPos thing) (strLen (tokenString thing)))
   isParens thing (parensEnd thing)
     isCons thing (lexEnd (last thing))
-      -1
+      emptyFilePos
 
 loc thing = \\
   p = position thing
-  l = eq p -1 'an unknown location' p
+  l = eq p emptyFilePos 'an unknown location' p
   .
   strCat (cons 'at ' (cons l nil))
 
@@ -673,7 +684,7 @@ isBlockStart tok = and
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
 # macros can be IO monads
-macroSub macs expr = postProcessMacro -1 -1 (baseMacroSub macs expr)
+macroSub macs expr = postProcessMacro emptyFilePos emptyFilePos (baseMacroSub macs expr)
 
 consifyMacroValue value = isCons value value (cons value nil)
 
@@ -716,24 +727,24 @@ macroSubBody char macs list = list
   nil
 
 postProcessMacro before after expr = isString expr
-  token expr (eq after -1 before after)
+  token expr (eq after emptyFilePos before after)
   isParens expr
     expr \start end contents . parens start end (postProcessMacro start end contents)
     isCons expr
       expr \h t .
         isToken h
-          cons h (postProcessMacro (+ 1 (+ (tokenPos h) (strLen (tokenString h)))) -1 t)
+          cons h (postProcessMacro (addFilepos (addFilepos (tokenPos h) (strLen (tokenString h))) 1) emptyFilePos t)
           \\
             posStart = position h
             posEnd = position t
-            t2 = postProcessMacro -1 after t
-            h2 = postProcessMacro before -1 h
+            t2 = postProcessMacro emptyFilePos after t
+            h2 = postProcessMacro before emptyFilePos h
             .
-            eq posStart -1
+            eq posStart emptyFilePos
               cons (postProcessMacro before (position t2) h) t2
-              cons h2 (postProcessMacro (+ 1 (lexEnd h2)) after t)
+              cons h2 (postProcessMacro (addFilepos (lexEnd h2) 1) after t)
       isNumber expr
-        token (strString expr) (eq after -1 before after)
+        token (strString expr) (eq after emptyFilePos before after)
         expr
 
 defMacro name def = bind (getValue 'macroDefs') \macs . setValue 'macroDefs' (acons name def macs)
