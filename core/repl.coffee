@@ -45,7 +45,6 @@ fs = require 'fs'
 } = require './ast'
 {
   gen,
-  genNode,
   sourceNode,
 } = require './gen'
 {

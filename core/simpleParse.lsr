@@ -851,7 +851,7 @@ runLine offset names line = bind (newParseLine offset names line)
         right result
 
 countedRunLine names countedLine = bind (countedParseLine names countedLine)
-  \ast . bind (runCountedAst (head countedLine) ast)
+  \ast . bind (runAst ast)
     \result . cons
       ast
       isParseErr result
