@@ -85,10 +85,15 @@ collectArgs = (args, result)->
     if Array.isArray i then collectArgs i, result else result.push i
   result
 
+locateAst = (lineStarts, ast)->
+  pos = getPos ast
+  [pos.head(), pos.tail().head(), pos.tail().tail().head()]
+
 sn = (lineStarts, ast, str...)->
   #(collectArgs str, []).join('')
   #[file, line, col] = getPos(ast).toArray()
-  new SourceNode(1, 0, "TEST.lsr", str)
+  [name, line, offset] = locateAst lineStarts, ast
+  new SourceNode(line, offset, name, str)
 
 genNode = (lineStarts, ast)-> genUniq lineStarts, ast, Nil, [Nil, 0]
 

@@ -136,10 +136,11 @@ lapplyXY = json2Ast
 let3Ast = json2Ast
   _type: 'let'
   varName: 'x'
+  range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   value:
     _type: 'lit'
     value: 3
-  range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
+    range: {_type: 'cons', head: 'file.lsr', tail: {_type: 'cons', head: 1, tail: {_type: 'cons', head: 0, tail: {_type: 'nil'}}}}
   body:
     _type: 'let'
     varName: 'y'

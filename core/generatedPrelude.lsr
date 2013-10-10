@@ -372,8 +372,7 @@ parseIndent indent toks gr groups =
 # actually, I think lambda and let only need one range, just for their vars/names because their bodies will have ranges
 # applies probably don't need a range at this point, since their func and arg have ranges
 # anno probably don't need ranges, since they don't directly gen code
-#nilRange = nil
-nilRange = cons 'file.lsr' (cons 1 (cons 0 nil))
+nilRange = cons 'TEST.lsr' (cons 1 (cons 0 nil))
 lit value range = \f . f value range
 ref name range = \f . f name range
 lambda name body range = \f . f name body range
@@ -622,14 +621,14 @@ emptyLinePat = regexp '(^[ \\i]*\\#.*|^[ \\i]*$|^\\r?\\n[ \\i]*$)'
 
 lineScrub = regexpFlags '\\r\\n' 'g'
 
-linesForFile text = map tail (countedLinesForFile text)
+linesForFile text = map tail (countedLinesForFile "TEST.lsr" text)
 
-countedLinesForFile text = filter
+countedLinesForFile name text = filter
   \line . isNil (strMatch (tail line) emptyLinePat)
-  countedLines 0 text
+  countedLines name 0 text
 
 # 1-based offset for lines
-countedLines offset str = \\
+countedLines filename offset str = \\
   m = strMatch str linePat
   idx = head (tail (tail m))
   chunk = strSubstring str 0 idx
@@ -638,9 +637,9 @@ countedLines offset str = \\
   eq str ''
     nil
     isNil m
-      cons (cons (cons offset (tail (findLines 0 str))) str) nil
-      cons (cons (cons offset (tail (findLines 0 chunk))) chunk)
-        countedLines (+ offset next) (strSubstring str next 0)
+      cons (cons (cons filename (cons offset (tail (findLines 0 str)))) str) nil
+      cons (cons (cons filename (cons offset (tail (findLines 0 chunk)))) chunk)
+        countedLines filename (+ offset next) (strSubstring str next 0)
 
 defPat = regexp '^[^ =]+.* =( |$)'
 
@@ -838,7 +837,7 @@ findLines offset line = \\
     cons offset (findLines (+ offset idx) (strSubstring line idx 0))
 
 newParseLine offset names line = bind (scanLineM line)
-  \scanned . ifNotErr (createAst (findLines offset line) scanned names) \ast . ast
+  \scanned . ifNotErr (createAst (cons "TEST.lsr" (findLines offset line)) scanned names) \ast . ast
 
 countedParseLine names countedLine = bind (scanLineM (tail countedLine))
   \scanned . ifNotErr (createAst (head countedLine) scanned names) \ast . ast
@@ -871,8 +870,10 @@ countedRunLines names countedLines = countedLines
       \rest . cons line rest
   nil
 
-runFile text = \\
-  counted = countedLinesForFile text
+runFile text = runNamedFile "test.lsr" text
+
+runNamedFile name text = \\
+  counted = countedLinesForFile name text
   lines = map tail counted
   names = namesForLines lines
   .
