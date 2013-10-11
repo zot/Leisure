@@ -257,6 +257,7 @@ filePosFor lineStarts offset = countFilePos (head (tail lineStarts)) 0 (tail (ta
 countFilePos line lineOffset starts offset = or (isNil starts) (> (head starts) offset)
   \f . f line (- offset lineOffset)
   countFilePos (+ line 1) (head starts) (tail starts) offset
+fileposList pos = pos \file line offset . cons file (cons line (cons offset nil))
 
 parens start end content = \f . f start end content
 parensStart p = p \s e c . s
@@ -438,7 +439,7 @@ lexEnd thing = isToken thing (addFilepos (tokenFilepos thing) (strLen (tokenStri
 
 loc thing = \\
   p = position thing
-  l = eq p emptyFilePos 'an unknown location' (showPos p)
+  l = isEmptyPos p 'an unknown location' (showPos p)
   .
   strCat (cons 'at ' (cons l nil))
 
@@ -497,18 +498,19 @@ parseString str cont =
     convertStringEscapes str (strSubstring str 1 -1) cont
 
 createLitOrRef token names = \\
-  #tok = d 'token: ' token tokenString token
   tok = tokenString token
+  tokRange = (fileposList (position token))
+  #tokRange = nilRange
   .
   contains names tok
-    ref tok nilRange #(tokenFilepos token)
+    ref tok tokRange
     or (strStartsWith tok '\"') (strStartsWith tok "'")
-      parseString tok \str . lit str nilRange
+      parseString tok \str . lit str tokRange
       strStartsWith tok '.'
-        jsonParse (strCat (cons '0' (cons tok nil))) (\err . ref tok nilRange) (\item . lit item nilRange)
+        jsonParse (strCat (cons '0' (cons tok nil))) (\err . ref tok tokRange) (\item . lit item tokRange)
         or (and (>= (strAt tok 0) '0') (<= (strAt tok 0) '9')) (strStartsWith tok '-')
-          jsonParse tok (\err . ref tok nilRange) (\item . lit item nilRange)
-          ref tok nilRange
+          jsonParse tok (\err . ref tok tokRange) (\item . lit item tokRange)
+          ref tok tokRange
 
 createLambda start list names = \\
   err = parseErr "Lambda needs a variable name, a dot, and a body " (loc start)
@@ -641,7 +643,8 @@ setDataTypeAnno toks name = \\
   cons (tok '\\@') (cons (tok 'dataType') (cons (tok (tokenString name)) (cons (tok '.') toks)))
 
 createDef def name arity src = \\
-  tok str = token str (position def)
+  #tok str = token str (position def)
+  tok str = token str (position name)
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .

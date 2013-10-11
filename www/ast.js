@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, jsType, json2Ast, json2AstEncodings, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
+  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, jsType, json2Ast, json2AstEncodings, jsonCons, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, primCons, primFoldLeft, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -901,6 +901,10 @@ misrepresented as being the original software.
     return getPos(getAnnoBody(anno));
   };
 
+  jsonCons = function(json) {
+    return lz(json2Ast(json));
+  };
+
   json2AstEncodings = {
     lit: function(json) {
       return L_lit(lz(json.value))(lz(json2Ast(json.range)));
@@ -1085,6 +1089,8 @@ misrepresented as being the original software.
   root.llet = llet;
 
   root.getRefName = getRefName;
+
+  root.getRefRange = getRefRange;
 
   root.getLitVal = getLitVal;
 

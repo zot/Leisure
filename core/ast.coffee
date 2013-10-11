@@ -381,6 +381,8 @@ getAnnoRange = (anno)-> getPos getAnnoBody anno
 ###### JSON-to-AST
 ######
 
+jsonCons = (json)-> lz json2Ast json
+
 json2AstEncodings =
   lit: (json)-> L_lit(lz json.value)(lz json2Ast(json.range))
   ref: (json)-> L_ref(lz json.varName)(lz json2Ast(json.range))
@@ -473,6 +475,7 @@ root.apply = apply
 root.anno = anno
 root.llet = llet
 root.getRefName = getRefName
+root.getRefRange = getRefRange
 root.getLitVal = getLitVal
 root.getLambdaBody = getLambdaBody
 root.getLambdaVar = getLambdaVar

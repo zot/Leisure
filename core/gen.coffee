@@ -69,6 +69,7 @@ _ = require './lodash.min'
 
 {
   SourceNode,
+  SourceMapConsumer,
 } = require("source-map")
 
 varNameSub = (n)-> "L_#{nameSub n}"
@@ -86,20 +87,48 @@ collectArgs = (args, result)->
   result
 
 locateAst = (ast)->
-  pos = getPos ast
-  [pos.head(), pos.tail().head(), pos.tail().tail().head()]
+  [file, line, col] = pos = getPos(ast).toArray()
+  #console.log "AST: #{ast}, POS: #{pos}"
+  #[pos.head(), pos.tail().head(), pos.tail().tail().head()]
+  #[file, (if line > 0 then line else 1), col]
+  pos
+
+check = (bool, arg)->
+  if !bool then console.log new Error("Bad sourcemap arg: #{arg}").stack
+
+checkChild = (child)->
+  if Array.isArray child
+    for c in child
+      checkChild c
+  else check (typeof child == 'string') || (child instanceof SourceNode), 'child'
 
 sn = (ast, str...)->
   #(collectArgs str, []).join('')
   #[file, line, col] = getPos(ast).toArray()
   [name, line, offset] = locateAst ast
+  check typeof name == 'string', 'name'
+  check typeof line == 'number', 'line'
+  check typeof offset == 'number', 'offset'
+  checkChild str
+  if line < 1 then line = 1
+  #console.log "SN #{name} #{line} #{offset} #{str}"
   new SourceNode(line, offset, name, str)
 
 genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
 
 gen = (ast)->
+  #console.log "GEN AST: #{ast}"
   file = getPos(ast).head().replace /\.lsr$/, '.js.map'
-  genNode(ast).toStringWithSourceMap(file: file).code
+  sourceMap = genNode(ast)
+  try
+    sourceMap.toStringWithSourceMap(file: file).code
+  catch err
+    console.log "ERROR IN SOURCE MAP: #{sourceMap}"
+    sourceMap.walk (source, node)->
+      console.log """
+        #{node.line}.#{node.column}: #{source}
+        """
+    throw err
 
 genUniq = (ast, names, uniq)->
   switch ast.constructor
@@ -242,6 +271,8 @@ define 'runAst', lz (ast)->
   try
     eval "(#{gen rz ast})"
   catch err
+    msg = "\n\nParse error: " + err.toString() + "\nAST: "
+    console.log msg + ast() + "\n" + err.stack
     rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast)
 
 curry = (func, args, pos)->
