@@ -249,6 +249,8 @@ isFilepos p = hasType p filepos
 addFilepos pos change = isFilepos pos pos emptyFilePos
   \file line offset . filepos file line (+ offset change)
 emptyFilePos = filepos 'NOTHING.lsr' 0 0
+isEmptyPos pos = and (isFilepos pos) (and (eq 0 (fileposLine pos)) (eq 0 (fileposOffset pos)))
+emptyFor thing = filepos (fileposFile (position thing)) 0 0
 startFilePos = emptyFilePos
 filePosFor lineStarts offset = countFilePos (head (tail lineStarts)) 0 (tail (tail lineStarts)) offset
   \line offset . filepos (head lineStarts) line offset
@@ -421,8 +423,13 @@ withStripped list cont = withParens list (cont list) \start end content . withSt
 
 position thing = isToken thing (tokenFilepos thing)
   isParens thing (parensStart thing)
-    isCons thing (position (head thing))
-      emptyFilePos
+    isCons thing
+      \\
+        pos = position (head thing)
+        .
+        isEmptyPos pos (position (tail thing)) pos
+      isFilepos thing thing
+        emptyFilePos
 
 lexEnd thing = isToken thing (addFilepos (tokenFilepos thing) (strLen (tokenString thing)))
   isParens thing (parensEnd thing)
@@ -720,7 +727,7 @@ isBlockStart tok = and
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
 # macros can be IO monads
-macroSub macs expr = postProcessMacro emptyFilePos emptyFilePos (baseMacroSub macs expr)
+macroSub macs expr = postProcessMacro (emptyFor expr) (emptyFor expr) (baseMacroSub macs expr)
 
 consifyMacroValue value = isCons value value (cons value nil)
 
@@ -763,24 +770,24 @@ macroSubBody char macs list = list
   nil
 
 postProcessMacro before after expr = isString expr
-  token expr (eq after emptyFilePos before after)
+  token expr (isEmptyPos after before after)
   isParens expr
     expr \start end contents . parens start end (postProcessMacro start end contents)
     isCons expr
       expr \h t .
         isToken h
-          cons h (postProcessMacro (addFilepos (addFilepos (tokenFilepos h) (strLen (tokenString h))) 1) emptyFilePos t)
+          cons h (postProcessMacro (addFilepos (addFilepos (tokenFilepos h) (strLen (tokenString h))) 1) (emptyFor h) t)
           \\
             posStart = position h
             posEnd = position t
-            t2 = postProcessMacro emptyFilePos after t
-            h2 = postProcessMacro before emptyFilePos h
+            t2 = postProcessMacro (emptyFor posStart) after t
+            h2 = postProcessMacro before (emptyFor posStart) h
             .
-            eq posStart emptyFilePos
+            isEmptyPos posStart
               cons (postProcessMacro before (position t2) h) t2
               cons h2 (postProcessMacro (addFilepos (lexEnd h2) 1) after t)
       isNumber expr
-        token (strString expr) (eq after emptyFilePos before after)
+        token (strString expr) (isEmptyPos after before after)
         expr
 
 defMacro name def = bind (getValue 'macroDefs') \macs . setValue 'macroDefs' (acons name def macs)
@@ -899,13 +906,22 @@ runLine offset names line = bind (newParseLine offset names line)
         left (parseErrMsg result)
         right result
 
-countedRunLine names countedLine = bind (countedParseLine names countedLine)
-  \ast . bind (runAst ast)
-    \result . cons
-      ast
-      isParseErr result
-        left (parseErrMsg result)
-        right result
+countedRunLine names countedLine = \\
+  parsed = countedParseLine names countedLine
+  .
+  bind parsed
+  \ast . \\
+    wrapped = astFileWrap parsed ast
+    .
+    bind (runAst wrapped)
+      \result . cons
+        wrapped
+        isParseErr result
+          left (parseErrMsg result)
+          right result
+
+#astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
+astFileWrap parsed ast = anno 'filename' (fileposFile (position parsed)) ast
 
 runLines names lines = lines
   \h t D . bind (runLine 0 names h)
@@ -926,14 +942,14 @@ runNamedFile name text = \\
   lines = map tail counted
   names = namesForLines lines
   .
-  countedRunLines names counted
+  d 'Running file: ' name countedRunLines names counted
 
 baseLoad file = bind (readFile file)
   \result . result
     \err . err
     \contents . bind (getValue 'activeTokenPacks')
       \activePacks . bind resetStdTokenPacks
-        \_ . bind (runFile contents)
+        \_ . bind (runNamedFile file contents)
           \result . isNil activePacks
             bind resetStdTokenPacks
               \_ . result
