@@ -298,7 +298,7 @@ makeTokenAt lineStarts txt offset = token txt (filePosFor lineStarts offset)
 showToken tok = log (strCat (cons 'token: ' (cons (tokenString tok) (cons ', ' (cons (showPos (tokenPos tok)) nil))))) tok
 
 showPos pos = isFilepos pos
-  strCat (cons 'position: ' (cons (fileposFile pos) (cons ', ' (cons (fileposLine pos) (cons '.' (cons (fileposOffset pos)))))))
+  strCat (cons 'position: ' (cons (fileposFile pos) (cons ', ' (cons (fileposLine pos) (cons '.' (cons (fileposOffset pos) nil))))))
   pos
 
 splitTokens str pat = filter (\s . not (eq s '')) (basicSplitTokens str pat true)
@@ -388,10 +388,10 @@ parseGroup left toks gr close groups = withCons toks (parseErr 'Unterminated gro
           ifNotErr (parseTok toks groups) \list . list \restH restT . parseGroup left restT (cons restH gr) close groups
 
 parseIndent indent toks gr groups =
-  withCons toks (cons (makeParens (tokenPos indent) (lexEnd (head gr)) (reverse gr)) nil)
+  withCons toks (cons (makeParens (tokenFilepos indent) (lexEnd (head gr)) (reverse gr)) nil)
     \h t . or (withToken h false (\txt pos . rassoc txt groups (\open . true) false))
       and (or (isTokenStart h '\n') (isTokenStart h '\r\n')) (<= (strLen (tokenString h)) (strLen (tokenString indent)))
-      cons (makeParens (tokenPos indent) (tokenPos h) (reverse gr)) toks
+      cons (makeParens (tokenFilepos indent) (tokenFilepos h) (reverse gr)) toks
       ifNotErr (parseTok toks groups) \list . list \restH restT . parseIndent indent restT (cons restH gr) groups
 
 #################
@@ -419,19 +419,19 @@ setParens p func = isParens p
 
 withStripped list cont = withParens list (cont list) \start end content . withStripped content cont
 
-position thing = isToken thing (tokenPos thing)
+position thing = isToken thing (tokenFilepos thing)
   isParens thing (parensStart thing)
     isCons thing (position (head thing))
       emptyFilePos
 
-lexEnd thing = isToken thing (addFilepos (tokenPos thing) (strLen (tokenString thing)))
+lexEnd thing = isToken thing (addFilepos (tokenFilepos thing) (strLen (tokenString thing)))
   isParens thing (parensEnd thing)
     isCons thing (lexEnd (last thing))
       emptyFilePos
 
 loc thing = \\
   p = position thing
-  l = eq p emptyFilePos 'an unknown location' p
+  l = eq p emptyFilePos 'an unknown location' (showPos p)
   .
   strCat (cons 'at ' (cons l nil))
 
@@ -447,7 +447,7 @@ scrubList list = list
   nil
 
 createAst lineStarts inList names = withStripped inList \list .
-  isToken list (createLitOrRef (tokenString list) names)
+  isToken list (createLitOrRef list names)
     list
       \h t D .
         isTokenString h '\\\\' (createLet h t names)
@@ -489,9 +489,12 @@ parseString str cont =
   neq (strAt str 0) (strAt str -1) (parseErr "Badly terminated string: " str)
     convertStringEscapes str (strSubstring str 1 -1) cont
 
-createLitOrRef tok names =
+createLitOrRef token names = \\
+  #tok = d 'token: ' token tokenString token
+  tok = tokenString token
+  .
   contains names tok
-    ref tok nilRange
+    ref tok nilRange #(tokenFilepos token)
     or (strStartsWith tok '\"') (strStartsWith tok "'")
       parseString tok \str . lit str nilRange
       strStartsWith tok '.'
@@ -766,7 +769,7 @@ postProcessMacro before after expr = isString expr
     isCons expr
       expr \h t .
         isToken h
-          cons h (postProcessMacro (addFilepos (addFilepos (tokenPos h) (strLen (tokenString h))) 1) emptyFilePos t)
+          cons h (postProcessMacro (addFilepos (addFilepos (tokenFilepos h) (strLen (tokenString h))) 1) emptyFilePos t)
           \\
             posStart = position h
             posEnd = position t
