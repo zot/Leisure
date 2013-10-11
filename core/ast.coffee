@@ -381,13 +381,16 @@ getAnnoRange = (anno)-> getPos getAnnoBody anno
 ###### JSON-to-AST
 ######
 
-jsonCons = (json)-> lz json2Ast json
+#jsonToRange = (json)-> lz json2Ast json
+#rangeToJson = (range)-> ast2Json range
+jsonToRange = (json)-> lz consFrom json
+rangeToJson = (range)-> range.toArray()
 
 json2AstEncodings =
-  lit: (json)-> L_lit(lz json.value)(lz json2Ast(json.range))
-  ref: (json)-> L_ref(lz json.varName)(lz json2Ast(json.range))
-  lambda: (json)-> L_lambda(lz json.varName)(lz json2Ast json.body)(lz json2Ast(json.range))
-  let: (json)-> L_let(lz json.varName)(lz json2Ast(json.value))(lz json2Ast(json.body))(lz json2Ast(json.range))
+  lit: (json)-> L_lit(lz json.value)(jsonToRange json.range)
+  ref: (json)-> L_ref(lz json.varName)(jsonToRange json.range)
+  lambda: (json)-> L_lambda(lz json.varName)(lz json2Ast json.body)(jsonToRange json.range)
+  let: (json)-> L_let(lz json.varName)(lz json2Ast(json.value))(lz json2Ast(json.body))(jsonToRange json.range)
   apply: (json)-> L_apply(lz json2Ast(json.func))(lz json2Ast json.arg)
   anno: (json)-> L_anno(lz json.name)(lz json2Ast json.data)(lz json2Ast json.body)
   cons: (json)-> save.cons json2Ast(json.head), json2Ast(json.tail)
@@ -408,22 +411,22 @@ ast2JsonEncodings =
   Leisure_lit: (ast)->
     _type: 'lit'
     value: getLitVal ast
-    range: ast2Json getLitRange ast
+    range: rangeToJson getLitRange ast
   Leisure_ref: (ast)->
     _type: 'ref'
     varName: getRefName ast
-    range: ast2Json getRefRange ast
+    range: rangeToJson getRefRange ast
   Leisure_lambda: (ast)->
     _type: 'lambda'
     varName: getLambdaVar ast
     body: ast2Json getLambdaBody ast
-    range: ast2Json getLambdaRange ast
+    range: rangeToJson getLambdaRange ast
   Leisure_let: (ast)->
     _type: 'let'
     varName: getLetName ast
     value: ast2Json getLetValue ast
     body: ast2Json getLetBody ast
-    range: ast2Json getLetRange ast
+    range: rangeToJson getLetRange ast
   Leisure_apply: (ast)->
     _type: 'apply'
     func: ast2Json getApplyFunc ast
