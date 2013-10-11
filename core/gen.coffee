@@ -103,6 +103,7 @@ checkChild = (child)->
   else check (typeof child == 'string') || (child instanceof SourceNode), 'child'
 
 currentFile = 'UNKNOWNFILE.lsr'
+currentFuncName = undefined
 
 sn = (ast, str...)->
   #(collectArgs str, []).join('')
@@ -113,7 +114,7 @@ sn = (ast, str...)->
   check typeof offset == 'number', 'offset'
   checkChild str
   if line < 1 then line = 1
-  new SourceNode(line, offset, currentFile, str)
+  if currentFuncName? then new SourceNode(line, offset, currentFile, str, currentFuncName) else new SourceNode(line, offset, currentFile, str)
 
 genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
 
@@ -121,7 +122,12 @@ gen = (ast)->
   #console.log "GEN AST: #{ast}"
   #file = getPos(ast).head().replace /\.lsr$/, '.js.map'
   oldFileName = currentFile
-  currentFile = if ast instanceof Leisure_anno && getAnnoName(ast) == 'filename' then getAnnoData ast else 'UNKNOWNFILE.lsr'
+  oldFuncName = currentFuncName
+  hasFile = ast instanceof Leisure_anno && getAnnoName(ast) == 'filename'
+  currentFile = if hasFile then getAnnoData ast else 'UNKNOWNFILE.lsr'
+  if hasFile
+    nameAst = getAnnoBody ast
+    if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then currentFuncName = getAnnoData nameAst
   sourceMap = genNode(ast)
   try
     sourceMap.toStringWithSourceMap(file: currentFile).code
@@ -134,6 +140,7 @@ gen = (ast)->
     throw err
   finally
     currentFile = oldFileName
+    currentFuncName = oldFuncName
 
 genUniq = (ast, names, uniq)->
   switch ast.constructor

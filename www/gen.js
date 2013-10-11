@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, check, checkChild, collectArgs, cons, consFrom, currentFile, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genNode, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getPos, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, locateAst, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2, _ref3, _true,
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genNode, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getPos, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, locateAst, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2, _ref3, _true,
     __slice = [].slice;
 
   _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
@@ -96,6 +96,8 @@ misrepresented as being the original software.
 
   currentFile = 'UNKNOWNFILE.lsr';
 
+  currentFuncName = void 0;
+
   sn = function() {
     var ast, line, offset, str, _ref4;
 
@@ -107,7 +109,11 @@ misrepresented as being the original software.
     if (line < 1) {
       line = 1;
     }
-    return new SourceNode(line, offset, currentFile, str);
+    if (currentFuncName != null) {
+      return new SourceNode(line, offset, currentFile, str, currentFuncName);
+    } else {
+      return new SourceNode(line, offset, currentFile, str);
+    }
   };
 
   genNode = function(ast) {
@@ -115,10 +121,18 @@ misrepresented as being the original software.
   };
 
   gen = function(ast) {
-    var err, oldFileName, sourceMap;
+    var err, hasFile, nameAst, oldFileName, oldFuncName, sourceMap;
 
     oldFileName = currentFile;
-    currentFile = ast instanceof Leisure_anno && getAnnoName(ast) === 'filename' ? getAnnoData(ast) : 'UNKNOWNFILE.lsr';
+    oldFuncName = currentFuncName;
+    hasFile = ast instanceof Leisure_anno && getAnnoName(ast) === 'filename';
+    currentFile = hasFile ? getAnnoData(ast) : 'UNKNOWNFILE.lsr';
+    if (hasFile) {
+      nameAst = getAnnoBody(ast);
+      if (nameAst instanceof Leisure_anno && getAnnoName(nameAst) === 'leisureName') {
+        currentFuncName = getAnnoData(nameAst);
+      }
+    }
     sourceMap = genNode(ast);
     try {
       return sourceMap.toStringWithSourceMap({
@@ -133,6 +147,7 @@ misrepresented as being the original software.
       throw err;
     } finally {
       currentFile = oldFileName;
+      currentFuncName = oldFuncName;
     }
   };
 

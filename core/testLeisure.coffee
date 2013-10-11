@@ -558,10 +558,10 @@ readFile 'core/simpleParse.lsr', (err, code)->
           assertEq String(parseLine 'id = \\x . x', Nil, id, id), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
           assertEq String(lsr("parseToAst #{s '\\x . x'} #{delimiterPatStr}")), 'lambda(\\x . x)'
           assertEq String(lsr("scanLine #{s 'id = \\x . x'} #{delimiterPatStr} id id")), """
-            Cons[Token("define", EMPTYFILE.lsr:1.0) Token("\\"id\\"", EMPTYFILE.lsr:1.0) Token("0", EMPTYFILE.lsr:1.0) Token("\\"id = \\\\\\\\x . x\\"", EMPTYFILE.lsr:1.0) [Token("\\\\@", EMPTYFILE.lsr:1.5) Token("dataType", EMPTYFILE.lsr:1.5) Token("id", EMPTYFILE.lsr:1.5) Token(".", EMPTYFILE.lsr:1.5) [Token("\\\\@", EMPTYFILE.lsr:1.5) Token("type", EMPTYFILE.lsr:1.5) Token("id", EMPTYFILE.lsr:1.5) Token(".", EMPTYFILE.lsr:1.5) [Token("\\\\", EMPTYFILE.lsr:1.5) Token("x", EMPTYFILE.lsr:1.6) Token(".", EMPTYFILE.lsr:1.8) Token("x", EMPTYFILE.lsr:1.10)]]]]
+           Cons[\\@ leisureName "id" . Token("define", EMPTYFILE.lsr:1.0) Token("\\"id\\"", EMPTYFILE.lsr:1.0) Token("0", EMPTYFILE.lsr:1.0) Token("\\"id = \\\\\\\\x . x\\"", EMPTYFILE.lsr:1.0) [Token("\\\\@", EMPTYFILE.lsr:1.5) Token("dataType", EMPTYFILE.lsr:1.5) Token("id", EMPTYFILE.lsr:1.5) Token(".", EMPTYFILE.lsr:1.5) [Token("\\\\@", EMPTYFILE.lsr:1.5) Token("type", EMPTYFILE.lsr:1.5) Token("id", EMPTYFILE.lsr:1.5) Token(".", EMPTYFILE.lsr:1.5) [Token("\\\\", EMPTYFILE.lsr:1.5) Token("x", EMPTYFILE.lsr:1.6) Token(".", EMPTYFILE.lsr:1.8) Token("x", EMPTYFILE.lsr:1.10)]]]]
             """
-          assertEq String(lsr("parseLine #{s 'id = \\x . x'} #{delimiterPatStr} nil id id")), 'apply(define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
-          assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'apply(define id 1 id x = x \\x . x)'
+          assertEq String(lsr("parseLine #{s 'id = \\x . x'} #{delimiterPatStr} nil id id")), 'anno(\\@leisureName "id" . define id 0 id = \\x . x \\@dataType id . \\@type id . \\x . x)'
+          assertEq String(lsr("parseLine 'id x = x' #{delimiterPatStr} nil id id")), 'anno(\\@leisureName "id" . define id 1 id x = x \\x . x)'
         leisureAst26: -> #ast14: ->
           lsrM("id2 = \\x . x")
           lsrComp("id2 = \\x . x")
