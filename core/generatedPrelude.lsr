@@ -500,7 +500,6 @@ parseString str cont =
 createLitOrRef token names = \\
   tok = tokenString token
   tokRange = (fileposList (position token))
-  #tokRange = nilRange
   .
   contains names tok
     ref tok tokRange
@@ -898,6 +897,7 @@ findLines offset line = \\
 newParseLine offset names line = bind (scanLineM line)
   \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . ast
 
+#countedParseLine names countedLine = d 'STARTS: ' (head countedLine) bind (countedScanLineM (head countedLine) (tail countedLine))
 countedParseLine names countedLine = bind (scanLineM (tail countedLine))
   \scanned . ifNotErr (createAst (head countedLine) scanned names) \ast . ast
 
@@ -975,6 +975,22 @@ require file = bind (getValue 'requiredFiles')
         \result . result
           \x . left x
           \_ . right true
+
+scanFile file = bind (readFile file)
+  \result . result
+    \err . err
+      \_ . bind (runNamedFile file contents)
+        counted = countedLinesForFile name text
+        lines = map tail counted
+        names = namesForLines lines
+        .
+        d 'Running file: ' name countedScanLines name names counted
+
+countedScanLines file names countedLines = countedLines
+  \h t D . bind (countedScanLineM (head h) (tail h))
+    \line . bind (countedScanLines file names t)
+      \rest . cons line rest
+  nil
 
 ################
 # Token Packs
