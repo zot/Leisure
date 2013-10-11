@@ -114,11 +114,16 @@ sn = (ast, str...)->
   check typeof offset == 'number', 'offset'
   checkChild str
   if line < 1 then line = 1
-  if currentFuncName? then new SourceNode(line, offset, currentFile, str, currentFuncName) else new SourceNode(line, offset, currentFile, str)
+  if currentFuncName?
+    #console.log "USING NAME: #{currentFuncName}"
+    new SourceNode(line, offset, currentFile, str, currentFuncName)
+  else new SourceNode(line, offset, currentFile, str)
 
 genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
 
-gen = (ast)->
+gen = (ast)-> genMap(ast).toStringWithSourceMap(file: currentFile).code
+
+genMap = (ast)->
   #console.log "GEN AST: #{ast}"
   #file = getPos(ast).head().replace /\.lsr$/, '.js.map'
   oldFileName = currentFile
@@ -127,15 +132,22 @@ gen = (ast)->
   currentFile = if hasFile then getAnnoData ast else 'UNKNOWNFILE.lsr'
   if hasFile
     nameAst = getAnnoBody ast
-    if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then currentFuncName = getAnnoData nameAst
+    if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName'
+      #console.log "Leisure name: #{getAnnoData nameAst}"
+      currentFuncName = getAnnoData nameAst
   sourceMap = genNode(ast)
   try
-    sourceMap.toStringWithSourceMap(file: currentFile).code
+    #sourceMap.walk (source, node)->
+    #  console.log """
+    #    #{node.name} #{node.line}.#{node.column}: #{source}
+    #    """
+    #sourceMap.toStringWithSourceMap(file: currentFile)
+    sourceMap
   catch err
     console.log "ERROR IN SOURCE MAP: #{sourceMap}"
     sourceMap.walk (source, node)->
       console.log """
-        #{node.line}.#{node.column}: #{source}
+        #{node.name} #{node.line}.#{node.column}: #{source}
         """
     throw err
   finally
@@ -314,6 +326,7 @@ Function.prototype.leisureCall = (args...)->
     f
 
 root.gen = gen
+root.genMap = genMap
 root.genNode = genNode
-root.sourceNode = (args...)-> sn args...
+root.sourceNode = sn
 root.curry = curry

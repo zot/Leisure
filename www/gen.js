@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genNode, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getPos, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, locateAst, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2, _ref3, _true,
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genMap, genNode, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getPos, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, locateAst, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, _, _false, _ref, _ref1, _ref2, _ref3, _true,
     __slice = [].slice;
 
   _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
@@ -121,6 +121,12 @@ misrepresented as being the original software.
   };
 
   gen = function(ast) {
+    return genMap(ast).toStringWithSourceMap({
+      file: currentFile
+    }).code;
+  };
+
+  genMap = function(ast) {
     var err, hasFile, nameAst, oldFileName, oldFuncName, sourceMap;
 
     oldFileName = currentFile;
@@ -135,14 +141,12 @@ misrepresented as being the original software.
     }
     sourceMap = genNode(ast);
     try {
-      return sourceMap.toStringWithSourceMap({
-        file: currentFile
-      }).code;
+      return sourceMap;
     } catch (_error) {
       err = _error;
       console.log("ERROR IN SOURCE MAP: " + sourceMap);
       sourceMap.walk(function(source, node) {
-        return console.log("" + node.line + "." + node.column + ": " + source);
+        return console.log("" + node.name + " " + node.line + "." + node.column + ": " + source);
       });
       throw err;
     } finally {
@@ -453,14 +457,11 @@ misrepresented as being the original software.
 
   root.gen = gen;
 
+  root.genMap = genMap;
+
   root.genNode = genNode;
 
-  root.sourceNode = function() {
-    var args;
-
-    args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-    return sn.apply(null, args);
-  };
+  root.sourceNode = sn;
 
   root.curry = curry;
 
