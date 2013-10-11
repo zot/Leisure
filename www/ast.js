@@ -697,7 +697,7 @@ misrepresented as being the original software.
 
   save.cons = cons;
 
-  dummyPosition = cons("file.lsr", cons(1, cons(0, Nil)));
+  dummyPosition = cons(1, cons(0, Nil));
 
   getPos = function(ast) {
     switch (getType(ast)) {

@@ -339,7 +339,7 @@ save.apply = apply = (f, a)->L_apply(lz f)(lz a)
 save.anno = anno = (name, data, body)-> L_anno(lz name)(lz data)(lz body)
 save.cons = cons
 
-dummyPosition = cons "file.lsr", cons 1, cons 0, Nil
+dummyPosition = cons 1, cons 0, Nil
 
 getPos = (ast)->
   switch getType(ast)
@@ -383,7 +383,7 @@ getAnnoRange = (anno)-> getPos getAnnoBody anno
 
 #jsonToRange = (json)-> lz json2Ast json
 #rangeToJson = (range)-> ast2Json range
-jsonToRange = (json)-> lz consFrom json
+jsonToRange = (json)-> lz consFrom(json)
 rangeToJson = (range)-> range.toArray()
 
 json2AstEncodings =

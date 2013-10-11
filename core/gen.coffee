@@ -87,11 +87,11 @@ collectArgs = (args, result)->
   result
 
 locateAst = (ast)->
-  [file, line, col] = pos = getPos(ast).toArray()
+  [line, col] = pos = getPos(ast).toArray()
   #console.log "AST: #{ast}, POS: #{pos}"
   #[pos.head(), pos.tail().head(), pos.tail().tail().head()]
   #[file, (if line > 0 then line else 1), col]
-  pos
+  [line,col]
 
 check = (bool, arg)->
   if !bool then console.log new Error("Bad sourcemap arg: #{arg}").stack
@@ -102,26 +102,29 @@ checkChild = (child)->
       checkChild c
   else check (typeof child == 'string') || (child instanceof SourceNode), 'child'
 
+currentFile = 'UNKNOWNFILE.lsr'
+
 sn = (ast, str...)->
   #(collectArgs str, []).join('')
   #[file, line, col] = getPos(ast).toArray()
-  [name, line, offset] = locateAst ast
-  check typeof name == 'string', 'name'
+  [line, offset] = locateAst ast
+  #console.log "SN #{line} #{offset}"
   check typeof line == 'number', 'line'
   check typeof offset == 'number', 'offset'
   checkChild str
   if line < 1 then line = 1
-  #console.log "SN #{name} #{line} #{offset} #{str}"
-  new SourceNode(line, offset, name, str)
+  new SourceNode(line, offset, currentFile, str)
 
 genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
 
 gen = (ast)->
   #console.log "GEN AST: #{ast}"
-  file = getPos(ast).head().replace /\.lsr$/, '.js.map'
+  #file = getPos(ast).head().replace /\.lsr$/, '.js.map'
+  oldFileName = currentFile
+  currentFile = if ast instanceof Leisure_anno && getAnnoName(ast) == 'filename' then getAnnoData ast else 'UNKNOWNFILE.lsr'
   sourceMap = genNode(ast)
   try
-    sourceMap.toStringWithSourceMap(file: file).code
+    sourceMap.toStringWithSourceMap(file: currentFile).code
   catch err
     console.log "ERROR IN SOURCE MAP: #{sourceMap}"
     sourceMap.walk (source, node)->
@@ -129,6 +132,8 @@ gen = (ast)->
         #{node.line}.#{node.column}: #{source}
         """
     throw err
+  finally
+    currentFile = oldFileName
 
 genUniq = (ast, names, uniq)->
   switch ast.constructor

@@ -257,7 +257,7 @@ filePosFor lineStarts offset = countFilePos (head (tail lineStarts)) 0 (tail (ta
 countFilePos line lineOffset starts offset = or (isNil starts) (> (head starts) offset)
   \f . f line (- offset lineOffset)
   countFilePos (+ line 1) (head starts) (tail starts) offset
-fileposList pos = pos \file line offset . cons file (cons line (cons offset nil))
+fileposList pos = pos \file line offset . cons line (cons offset nil)
 
 parens start end content = \f . f start end content
 parensStart p = p \s e c . s
@@ -407,7 +407,7 @@ parseIndent indent toks gr groups =
 # actually, I think lambda and let only need one range, just for their vars/names because their bodies will have ranges
 # applies probably don't need a range at this point, since their func and arg have ranges
 # anno probably don't need ranges, since they don't directly gen code
-nilRange = cons 'NILRANGE.lsr' (cons 1 (cons 0 nil))
+nilRange = cons 1 (cons 0 nil)
 lit value range = \f . f value range
 ref name range = \f . f name range
 lambda name body range = \f . f name body range
@@ -909,12 +909,12 @@ runLine offset names line = bind (newParseLine offset names line)
         left (parseErrMsg result)
         right result
 
-countedRunLine names countedLine = \\
+countedRunLine file names countedLine = \\
   parsed = countedParseLine names countedLine
   .
   bind parsed
   \ast . \\
-    wrapped = astFileWrap parsed ast
+    wrapped = astFileWrap file ast
     .
     bind (runAst wrapped)
       \result . cons
@@ -924,7 +924,7 @@ countedRunLine names countedLine = \\
           right result
 
 #astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
-astFileWrap parsed ast = anno 'filename' (fileposFile (position parsed)) ast
+astFileWrap file ast = anno 'filename' file ast
 
 runLines names lines = lines
   \h t D . bind (runLine 0 names h)
@@ -932,9 +932,9 @@ runLines names lines = lines
       \rest . cons line rest
   nil
 
-countedRunLines names countedLines = countedLines
-  \h t D . bind (countedRunLine names h)
-    \line . bind (countedRunLines names t)
+countedRunLines file names countedLines = countedLines
+  \h t D . bind (countedRunLine file names h)
+    \line . bind (countedRunLines file names t)
       \rest . cons line rest
   nil
 
@@ -945,7 +945,7 @@ runNamedFile name text = \\
   lines = map tail counted
   names = namesForLines lines
   .
-  d 'Running file: ' name countedRunLines names counted
+  d 'Running file: ' name countedRunLines name names counted
 
 baseLoad file = bind (readFile file)
   \result . result

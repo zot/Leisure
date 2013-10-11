@@ -82,89 +82,89 @@ parseJson = (str)-> json2Ast JSON.parse str
 ltrueAst = json2Ast
   _type: "lambda"
   varName: "a"
-  range: ['file.lsr',1,0]
+  range: [1,0]
   body:
     _type: "lambda"
     varName: "b"
-    range: ['file.lsr',1,0]
+    range: [1,0]
     body:
       _type: "ref"
       varName: "a"
-      range: ['file.lsr',1,0]
+      range: [1,0]
 
 lfalseAst = json2Ast
   _type: "lambda"
   varName: "a"
-  range: ['file.lsr',1,0]
+  range: [1,0]
   body:
     _type: "lambda"
     varName: "b"
-    range: ['file.lsr',1,0]
+    range: [1,0]
     body:
       _type: "ref"
       varName: "b"
-      range: ['file.lsr',1,0]
+      range: [1,0]
 
 lidAst = json2Ast
   _type: "lambda"
   varName: "x"
-  range: ['file.lsr',1,0]
+  range: [1,0]
   body:
     _type: "ref"
     varName: "x"
-    range: ['file.lsr',1,0]
+    range: [1,0]
 
 lapplyXY = json2Ast
   _type: "lambda"
   varName: "x"
-  range: ['file.lsr',1,0]
+  range: [1,0]
   body:
     _type: "lambda"
     varName: "y"
-    range: ['file.lsr',1,0]
+    range: [1,0]
     body:
       _type: "apply"
       func:
         _type: "ref"
         varName: "x"
-        range: ['file.lsr',1,0]
+        range: [1,0]
       arg:
         _type: "ref"
         varName: "y"
-        range: ['file.lsr',1,0]
+        range: [1,0]
 
 let3Ast = json2Ast
   _type: 'let'
   varName: 'x'
-  range: ['file.lsr',1,0]
+  range: [1,0]
   value:
     _type: 'lit'
     value: 3
-    range: ['file.lsr',1,0]
+    range: [1,0]
   body:
     _type: 'let'
     varName: 'y'
-    range: ['file.lsr',1,0]
+    range: [1,0]
     value:
       _type: 'apply'
       func:
         _type: 'apply'
         func:
           _type: 'ref'
-          range: ['file.lsr',1,0]
+          range: [1,0]
           varName: 'log'
         arg:
           _type: 'lit'
           value: "hello y"
-          range: ['file.lsr',1,0]
+          range: [1,0]
       arg:
         _type: 'lit'
         value: 4
-        range: ['file.lsr',1,0]
+        range: [1,0]
     body:
       _type: 'ref'
       varName: 'x'
-      range: ['file.lsr',1,0]
+      range: [1,0]
 
 setXTo3Ast = json2Ast
   _type: 'apply'
@@ -173,15 +173,15 @@ setXTo3Ast = json2Ast
     func:
       _type: 'ref'
       varName: 'setValue'
-      range: ['file.lsr',1,0]
+      range: [1,0]
     arg:
       _type: 'lit'
       value: 'x'
-      range: ['file.lsr',1,0]
+      range: [1,0]
   arg:
     _type: 'lit'
     value: 3
-    range: ['file.lsr',1,0]
+    range: [1,0]
 
 setXTo3YTo4Ast = json2Ast
   _type: 'apply'
@@ -190,7 +190,7 @@ setXTo3YTo4Ast = json2Ast
     func:
       _type: 'ref'
       varName: 'bind'
-      range: ['file.lsr',1,0]
+      range: [1,0]
     arg:
       _type: 'apply'
       func:
@@ -198,19 +198,19 @@ setXTo3YTo4Ast = json2Ast
         func:
           _type: 'ref'
           varName: 'setValue'
-          range: ['file.lsr',1,0]
+          range: [1,0]
         arg:
           _type: 'lit'
           value: 'x'
-          range: ['file.lsr',1,0]
+          range: [1,0]
       arg:
         _type: 'lit'
         value: 3
-        range: ['file.lsr',1,0]
+        range: [1,0]
   arg:
     _type: 'lambda'
     varName: 'bubba'
-    range: ['file.lsr',1,0]
+    range: [1,0]
     body:
       _type: 'apply'
       func:
@@ -218,15 +218,15 @@ setXTo3YTo4Ast = json2Ast
         func:
           _type: 'ref'
           varName: 'setValue'
-          range: ['file.lsr',1,0]
+          range: [1,0]
         arg:
           _type: 'lit'
           value: 'y'
-          range: ['file.lsr',1,0]
+          range: [1,0]
       arg:
         _type: 'lit'
         value: 4
-        range: ['file.lsr',1,0]
+        range: [1,0]
 
 text1 = """
   v1 = 3
@@ -292,14 +292,14 @@ readFile 'core/simpleParse.lsr', (err, code)->
           st = json2Ast
             _type: "lit"
             value: 3
-            range: ['file.lsr',1,0]
+            range: [1,0]
           assertEq getLitVal(st), 3
           assertEq getLitVal(json2Ast ast2Json st), 3
         basic9: ->
           st = json2Ast
             _type: "ref"
             varName: 3
-            range: ['file.lsr',1,0]
+            range: [1,0]
           assertEq getRefName(st), 3
           assertEq getRefName(json2Ast ast2Json st), 3
         basic10: ->
@@ -317,7 +317,7 @@ readFile 'core/simpleParse.lsr', (err, code)->
           st = json2Ast
             _type: "lit"
             value: 3
-            range: ['file.lsr',1,0]
+            range: [1,0]
           assertEq (gen st), '3'
         basic13: -> assertEq (gen lidAst), 'function(L_x){return resolve(L_x)}'
         basic14: -> assertEq (gen lapplyXY), 'function(L_x){return function(L_y){return resolve(L_x)(L_y)}}'
