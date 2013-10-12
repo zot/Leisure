@@ -94,7 +94,7 @@ misrepresented as being the original software.
     }
   };
 
-  currentFile = 'UNKNOWNFILE.lsr';
+  currentFile = 'NEVERGIVENFILE.lsr';
 
   currentFuncName = void 0;
 
@@ -103,6 +103,8 @@ misrepresented as being the original software.
 
     oldFileName = currentFile;
     oldFuncName = currentFuncName;
+    currentFile = file;
+    currentFuncName = name;
     try {
       return block();
     } finally {
@@ -121,6 +123,9 @@ misrepresented as being the original software.
     checkChild(str);
     if (line < 1) {
       line = 1;
+    }
+    if (currentFile === 'NEVERGIVENFILE.lsr') {
+      console.log(new Error("SN CALLED WITHOUT FILE").stack);
     }
     if (currentFuncName != null) {
       return new SourceNode(line, offset, currentFile, str, currentFuncName);
@@ -146,7 +151,7 @@ misrepresented as being the original software.
     if (hasFile) {
       nameAst = getAnnoBody(ast);
     }
-    filename = hasFile ? getAnnoData(ast) : 'UNKNOWNFILE.lsr';
+    filename = hasFile ? getAnnoData(ast) : 'GENFORUNKNOWNFILE.lsr';
     funcname = (nameAst != null) instanceof Leisure_anno && getAnnoName(nameAst) === 'leisureName' ? getAnnoData(nameAst) : currentFuncName;
     return withFile(filename, funcname, function() {
       return genNode(ast);

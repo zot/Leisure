@@ -352,8 +352,8 @@ getPos = (ast)->
 
 firstRange = (a, b)->
   if !a || !b then console.log "NIL = #{Nil}"
-  [fileA, lineA, colA] = a.toArray()
-  [fileB, lineB, colB] = b.toArray()
+  [lineA, colA] = a.toArray()
+  [lineB, colB] = b.toArray()
   if lineA? && lineB?
     if lineA < lineB || (lineA == lineB && colA < colB) then a else b
   else if lineA then a else b

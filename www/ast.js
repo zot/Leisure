@@ -717,13 +717,13 @@ misrepresented as being the original software.
   };
 
   firstRange = function(a, b) {
-    var colA, colB, fileA, fileB, lineA, lineB, _ref4, _ref5;
+    var colA, colB, lineA, lineB, _ref4, _ref5;
 
     if (!a || !b) {
       console.log("NIL = " + Nil);
     }
-    _ref4 = a.toArray(), fileA = _ref4[0], lineA = _ref4[1], colA = _ref4[2];
-    _ref5 = b.toArray(), fileB = _ref5[0], lineB = _ref5[1], colB = _ref5[2];
+    _ref4 = a.toArray(), lineA = _ref4[0], colA = _ref4[1];
+    _ref5 = b.toArray(), lineB = _ref5[0], colB = _ref5[1];
     if ((lineA != null) && (lineB != null)) {
       if (lineA < lineB || (lineA === lineB && colA < colB)) {
         return a;

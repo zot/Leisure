@@ -519,8 +519,8 @@ createLambda start list names = \\
       withCons rest err \dot body .
         # are these partial applications too hard to read?
         isTokenString dot '.'
-          ifNotErr (createAst nil body (cons n names)) \bodyAst . lambda n bodyAst nilRange
-          ifNotErr (createLambda start rest (cons n names)) \bodyAst . lambda n bodyAst nilRange
+          ifNotErr (createAst nil body (cons n names)) \bodyAst . lambda n bodyAst (fileposList (position name))
+          ifNotErr (createLambda start rest (cons n names)) \bodyAst . lambda n bodyAst (fileposList (position name))
 
 createAnno start list names =
   withCons list (parseErr "No annotation name or data in annotation " (loc start)) \name rest .
@@ -616,7 +616,7 @@ countedScanLineG lineStarts str pat groups onDef onExpr = \\
           parseIt (setTypeAnno (tail rest) (tokenString name))
           parseIt (tail rest)
         ifNotErr (transformDef name rest) \def .
-          parseIt (cons (token '\\' (- (position (head rest)) 1)) def)
+          parseIt (cons (token '\\' (addFilepos (position (head rest)) -1)) def)
     ifNotErr (parseToks toks groups) \list . onExpr list
 
 parseLineG str pat names groups onDef onExpr = \\

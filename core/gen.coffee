@@ -102,15 +102,19 @@ checkChild = (child)->
       checkChild c
   else check (typeof child == 'string') || (child instanceof SourceNode), 'child'
 
-currentFile = 'UNKNOWNFILE.lsr'
+currentFile = 'NEVERGIVENFILE.lsr'
 currentFuncName = undefined
 
 withFile = (file, name, block)->
   oldFileName = currentFile
   oldFuncName = currentFuncName
+  currentFile = file
+  currentFuncName = name
+  #console.log "FILE: #{file}"
   try
     block()
   finally
+    #console.log "FILE: #{oldFileName}"
     currentFile = oldFileName
     currentFuncName = oldFuncName
 
@@ -123,6 +127,7 @@ sn = (ast, str...)->
   check typeof offset == 'number', 'offset'
   checkChild str
   if line < 1 then line = 1
+  if currentFile == 'NEVERGIVENFILE.lsr' then console.log new Error("SN CALLED WITHOUT FILE").stack
   if currentFuncName?
     #console.log "USING NAME: #{currentFuncName}"
     new SourceNode(line, offset, currentFile, str, currentFuncName)
@@ -137,7 +142,7 @@ genMap = (ast)->
   #file = getPos(ast).head().replace /\.lsr$/, '.js.map'
   hasFile = ast instanceof Leisure_anno && getAnnoName(ast) == 'filename'
   if hasFile then nameAst = getAnnoBody ast
-  filename = if hasFile then getAnnoData ast else 'UNKNOWNFILE.lsr'
+  filename = if hasFile then getAnnoData ast else 'GENFORUNKNOWNFILE.lsr'
   funcname = if nameAst? instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else currentFuncName
   withFile filename, funcname, -> genNode(ast)
 

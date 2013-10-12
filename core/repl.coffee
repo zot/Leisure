@@ -46,6 +46,7 @@ fs = require 'fs'
 {
   gen,
   genMap,
+  withFile,
   sourceNode,
 } = require './gen'
 {
@@ -314,14 +315,14 @@ compile = (file, cont)->
         outputFile = path.join(outDir, path.basename(outputFile))
         outputMap = path.join(outDir, path.basename(outputMap))
       if verbose then console.log "JS FILE: #{outputFile}"
-      result = (new SourceNode 1, 0, bareLsr, [
+      result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
         "L_runMonads([\n  ",
         intersperse(_(asts).map((item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
         "]);\n"
       ]).toStringWithSourceMap(file: path.basename(bareJs))
       #writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
       console.log "FILE: #{outputFile}, MAP: #{outputMap}"
-      writeFile outputFile, result.code, (err)->
+      writeFile outputFile, result.code + "\n//# sourceMappingURL=#{path.basename bareOutputMap}\n", (err)->
         if !err
           writeFile outputMap, JSON.stringify(result.map, null, "  "), (err)->
             if !err then cont(asts)
