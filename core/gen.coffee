@@ -105,6 +105,15 @@ checkChild = (child)->
 currentFile = 'UNKNOWNFILE.lsr'
 currentFuncName = undefined
 
+withFile = (file, name, block)->
+  oldFileName = currentFile
+  oldFuncName = currentFuncName
+  try
+    block()
+  finally
+    currentFile = oldFileName
+    currentFuncName = oldFuncName
+
 sn = (ast, str...)->
   #(collectArgs str, []).join('')
   #[file, line, col] = getPos(ast).toArray()
@@ -126,33 +135,11 @@ gen = (ast)-> genMap(ast).toStringWithSourceMap(file: currentFile).code
 genMap = (ast)->
   #console.log "GEN AST: #{ast}"
   #file = getPos(ast).head().replace /\.lsr$/, '.js.map'
-  oldFileName = currentFile
-  oldFuncName = currentFuncName
   hasFile = ast instanceof Leisure_anno && getAnnoName(ast) == 'filename'
-  currentFile = if hasFile then getAnnoData ast else 'UNKNOWNFILE.lsr'
-  if hasFile
-    nameAst = getAnnoBody ast
-    if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName'
-      #console.log "Leisure name: #{getAnnoData nameAst}"
-      currentFuncName = getAnnoData nameAst
-  sourceMap = genNode(ast)
-  try
-    #sourceMap.walk (source, node)->
-    #  console.log """
-    #    #{node.name} #{node.line}.#{node.column}: #{source}
-    #    """
-    #sourceMap.toStringWithSourceMap(file: currentFile)
-    sourceMap
-  catch err
-    console.log "ERROR IN SOURCE MAP: #{sourceMap}"
-    sourceMap.walk (source, node)->
-      console.log """
-        #{node.name} #{node.line}.#{node.column}: #{source}
-        """
-    throw err
-  finally
-    currentFile = oldFileName
-    currentFuncName = oldFuncName
+  if hasFile then nameAst = getAnnoBody ast
+  filename = if hasFile then getAnnoData ast else 'UNKNOWNFILE.lsr'
+  funcname = if nameAst? instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else currentFuncName
+  withFile filename, funcname, -> genNode(ast)
 
 genUniq = (ast, names, uniq)->
   switch ast.constructor
@@ -330,3 +317,4 @@ root.genMap = genMap
 root.genNode = genNode
 root.sourceNode = sn
 root.curry = curry
+root.withFile = withFile
