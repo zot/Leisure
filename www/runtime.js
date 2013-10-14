@@ -538,6 +538,10 @@ misrepresented as being the original software.
     };
   }));
 
+  define('breakpoint', lz(function(x) {
+    return rz(x);
+  }));
+
   makeMonad = function(guts) {
     var m;
 

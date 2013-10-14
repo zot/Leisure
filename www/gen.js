@@ -149,15 +149,17 @@ misrepresented as being the original software.
 
     console.log("SOURCE: " + source + "\nAST: " + ast);
     funcname = ast instanceof Leisure_anno && getAnnoName(ast) === 'leisureName' ? getAnnoData(ast) : null;
-    return withFile("data:text/plain;base64," + (btoa(source)), funcname, function() {
-      var code, sm;
+    return withFile("dynamic code with source", funcname, function() {
+      var code, map, sm;
 
       sm = genNode(ast).prepend("\n").toStringWithSourceMap({
-        file: "dynamic code"
+        file: "dynamic code with source"
       });
-      code = ("//# sourceMappingURL=data:text/plain;base64," + (btoa(sm.map))) + sm.code;
+      map = JSON.parse(sm.map.toString());
+      map.sourcesContent = [source];
+      code = "(" + sm.code + ")\n//# sourceMappingURL=data:application/json;utf-8;base64," + (btoa(JSON.stringify(map))) + "\n";
       console.log("CODE: " + code);
-      console.log("MAP: " + sm.map);
+      console.log("MAP: " + (JSON.stringify(map)));
       return code;
     });
   };

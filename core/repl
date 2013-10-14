@@ -7,4 +7,4 @@ if [ -n "$NODE_PATH" ]; then
 else
     export NODE_PATH="$LEISURE_BASE"
 fi
-exec node --max-stack-size=1000 "$LEISURE_BASE/lib/repl" "$@"
+exec node --stack-size=3000 --debug "$LEISURE_BASE/lib/repl" "$@"

@@ -202,6 +202,10 @@ define 'logStack', lz (str)->(res)->
   console.log new Error(rz str).stack
   rz res
 
+# an identity function you can put a breakpoint on
+define 'breakpoint', lz (x)->
+  rz x
+
 ############
 # IO Monads
 ############
