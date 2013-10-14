@@ -316,7 +316,7 @@ compile = (file, cont)->
         outputMap = path.join(outDir, path.basename(outputMap))
       if verbose then console.log "JS FILE: #{outputFile}"
       result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
-        "L_runMonads([\n  ",
+        "module.exports = L_runMonads([\n  ",
         intersperse(_(asts).map((item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
         "]);\n"
       ]).toStringWithSourceMap(file: path.basename(bareJs))
@@ -381,16 +381,24 @@ interactive = false
 
 requireList = []
 
-doRequirements = ->
+doRequirements = (cont)->
   if verbose then console.log "DO REQUIREMENTS.  loaded: #{loadedParser}"
   if !loadedParser
     #console.log "REQUIRING #{stages[stage]}"
     require stages[stage]
     loadedParser = true
     if stage == 1 then root.lockGen = false
-    for f in requireList
-      if verbose then console.log "LOADING REQUIREMENT: #{f}"
-      require f
+  loadRequirements requireList, cont
+
+loadRequirements = (req, cont)->
+  if req.length
+    if verbose then console.log "LOADING REQUIREMENT: #{req[0]}"
+    contStack = require req.shift()
+    if Array.isArray(contStack) && contStack.length then contStack.unshift ->
+      loadRequirements req, cont
+    else loadRequirements req, cont
+  else
+    cont()
 
 processArg = (config, pos)->
   #console.log "Process args: #{process.argv.join ', '}, pos: #{pos}"
@@ -403,8 +411,8 @@ processArg = (config, pos)->
       #if !loadedParser
       #  #console.log "REQUIRING #{stages[stage]}"
       #  require stages[stage]
-      doRequirements()
-      repl config
+      doRequirements ->
+        repl config
       return
   #console.log "Processing arg: #{process.argv[pos]}"
   if process.argv[pos][0] == '-' and !newOptions
@@ -456,9 +464,9 @@ processArg = (config, pos)->
         #  if stage == 1 then root.lockGen = false
         #  for f in requireList
         #    require f
-        doRequirements()
-        #console.log "PROCESSING #{process.argv[pos]} with #{action}"
-        action process.argv[pos], -> processArg config, pos + 1
+        doRequirements ->
+          #console.log "PROCESSING #{process.argv[pos]} with #{action}"
+          action process.argv[pos], -> processArg config, pos + 1
       return
   processArg config, pos + 1
 

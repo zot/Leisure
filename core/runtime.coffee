@@ -295,6 +295,7 @@ global.L_runMonads = (monadArray)->
   #console.log "RUNNING MONADS"
   monadArray.reverse()
   newRunMonad 0, defaultEnv, null, monadArray
+  monadArray
 
 define 'define', lz (name)->(arity)->(src)->(def)->
   makeSyncMonad (env, cont)->

@@ -1,4 +1,4 @@
-L_runMonads([
+module.exports = L_runMonads([
   function(){return resolve(L_define)("if")(0)("if = id")(L_id)},
  function(){return resolve(L_define)("if")(0)("if = id")(L_id)},
  function(){return resolve(L_define)("afetch")(2)("afetch k alist  = alist (\\h t D . h \\key value . eq key k value (afetch k t)) nil")(lazy(function(L_k){return function(L_alist){return resolve(L_alist)(lazy(function(L_h){return function(L_t){return function(L_D){return resolve(L_h)(lazy(function(L_key){return function(L_value){return resolve(L_eq)(L_key)(L_k)(L_value)(function(){return resolve(L_afetch)(L_k)(L_t)})}}))}}}))(L_nil)}}))},

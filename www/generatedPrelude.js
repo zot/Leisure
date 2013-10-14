@@ -1,4 +1,4 @@
-L_runMonads([
+module.exports = L_runMonads([
   function(){return resolve(L_define)("true")(0)("true = \\a b . a")(lazy(setDataType(setType(function(L_a){return function(L_b){return resolve(L_a)}}, 'true'), 'true')))},
  function(){return resolve(L_define)("true")(0)("true = \\a b . a")(lazy(setDataType(setType(function(L_a){return function(L_b){return resolve(L_a)}}, 'true'), 'true')))},
  function(){return resolve(L_define)("false")(0)("false = \\a b . b")(lazy(setDataType(setType(function(L_a){return function(L_b){return resolve(L_b)}}, 'false'), 'false')))},
