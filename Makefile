@@ -72,13 +72,15 @@ $(NEW_COFFEE_JS): $(NEW_COFFEE)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)
 
 $(NEW_LSR_JS): $(NEW_LSR) $(NEW_COFFEE_JS)
-	$(NODE) lib/repl -c -d lib $(@:lib/%.js=newCode/%.lsr)
+	$(NODE) lib/repl -v -c -d lib $(@:lib/%.js=newCode/%.lsr)
+	cp $(@:lib/%.js=newCode/%.lsr) lib
 
 $(PRELUDE): $(COFFEE_JS) $(PRELUDE_FILES)
 	rm -f core/generatedPrelude.lsr
 	for i in $(PRELUDE_FILES); do cat $$i >> core/generatedPrelude.lsr; echo >> core/generatedPrelude.lsr; done
 	$(NODE) lib/repl -0 -c -d lib core/simpleParse.lsr
 	$(NODE) lib/repl -v -1 -c -d lib core/generatedPrelude.lsr
+	cp core/simpleParse.lsr core/generatedPrelude.lsr
 
 $(TEST:%=lib/%.js): $(TEST:%=core/%.coffee)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee

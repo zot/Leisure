@@ -24,6 +24,12 @@ misrepresented as being the original software.
 
 root = module.exports
 
+global.verbose = {}
+
+verboseMsg = (label, msg...)-> if global.verbose[label] then console.log msg...
+
+if !btoa? then global.btoa = require 'btoa'
+
 defaultEnv =
   presentValue: (x)-> x
   values: {}
@@ -71,3 +77,4 @@ root.SimpyCons = SimpyCons
 root.simpyCons = simpyCons
 root.resolve = global.resolve
 root.lazy = global.lazy
+root.verboseMsg = verboseMsg

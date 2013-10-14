@@ -46,6 +46,7 @@ fs = require 'fs'
 {
   gen,
   genMap,
+  genSource,
   withFile,
   sourceNode,
 } = require './gen'
@@ -112,13 +113,13 @@ evalInput = (text, cont)->
               if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad rz(L_simplify) lz text}"
               console.log "\nAST: #{ast}"
               console.log "\nCODE: (#{gen ast})"
-            result = eval "(#{gen ast})"
+            result = eval "(#{genSource text, ast})"
             if isMonad result then console.log "(processing IO monad)"
             runMonad result, replEnv, cont
         catch err
-          cont "ERROR: #{err.stack ? err}"
+          cont rz(L_err)(lz (err.stack ? err.toString()))
     catch err
-      cont "ERROR: #{err.stack ? err}"
+      cont rz(L_err)(lz (err.stack ? err.toString()))
   else cont ''
 
 help = ->
@@ -170,6 +171,8 @@ prompt = ->
   rl.setPrompt promptText
   rl.prompt()
 
+show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
+
 repl = (config)->
   lines = null
   leisureDir = path.join config.home, '.leisure'
@@ -210,12 +213,12 @@ repl = (config)->
         else
           try
             if line.substring(0,2) == ':s'
-              if L_simplify? then console.log "\n#{rz(L_show)(lz runMonad rz(L_simplify) lz line.substring(2))}\n"
+              if L_simplify? then console.log "\n#{show runMonad rz(L_simplify) lz line.substring(2)}\n"
               else console.log "No simplify function.  Load std.lsr"
             else if line.match /^!/ then console.log eval line.substring 1
             else
               evalInput line, (result)->
-                console.log "RESULT: " + rz(L_show)(lz result)
+                console.log "RESULT: " + show(result)
                 prompt()
               return
           catch err
@@ -389,6 +392,9 @@ processArg = (config, pos)->
       process.exit 0
     else
       console.log "STARTING REPL"
+      if !loadedParser
+        #console.log "REQUIRING #{stages[stage]}"
+        require stages[stage]
       repl config
       return
   #console.log "Processing arg: #{process.argv[pos]}"
@@ -402,6 +408,7 @@ processArg = (config, pos)->
       pos++
     when '-v'
       verbose = true
+      global.verbose.gen = true
       setWarnAsync true
     when '-a'
       action = compile

@@ -25,10 +25,10 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genMap, genNode, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getPos, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, locateAst, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, withFile, _, _false, _ref, _ref1, _ref2, _ref3, _true,
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genMap, genNode, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getPos, getRefName, lacons, lazy, lcons, lconsFrom, left, letList, locateAst, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, verboseMsg, withFile, _, _false, _ref, _ref1, _ref2, _ref3, _true,
     __slice = [].slice;
 
-  _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
+  _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy, verboseMsg = _ref.verboseMsg;
 
   rz = resolve;
 
@@ -144,15 +144,31 @@ misrepresented as being the original software.
     }).code;
   };
 
+  genSource = function(source, ast) {
+    var funcname;
+
+    console.log("SOURCE: " + source + "\nAST: " + ast);
+    funcname = ast instanceof Leisure_anno && getAnnoName(ast) === 'leisureName' ? getAnnoData(ast) : null;
+    return withFile("data:text/plain;base64," + (btoa(source)), funcname, function() {
+      var code, sm;
+
+      sm = genNode(ast).prepend("\n").toStringWithSourceMap({
+        file: "dynamic code"
+      });
+      code = ("//# sourceMappingURL=data:text/plain;base64," + (btoa(sm.map))) + sm.code;
+      console.log("CODE: " + code);
+      console.log("MAP: " + sm.map);
+      return code;
+    });
+  };
+
   genMap = function(ast) {
     var filename, funcname, hasFile, nameAst;
 
     hasFile = ast instanceof Leisure_anno && getAnnoName(ast) === 'filename';
-    if (hasFile) {
-      nameAst = getAnnoBody(ast);
-    }
     filename = hasFile ? getAnnoData(ast) : 'GENFORUNKNOWNFILE.lsr';
-    funcname = (nameAst != null) instanceof Leisure_anno && getAnnoName(nameAst) === 'leisureName' ? getAnnoData(nameAst) : currentFuncName;
+    nameAst = hasFile ? getAnnoBody(ast) : null;
+    funcname = nameAst instanceof Leisure_anno && getAnnoName(nameAst) === 'leisureName' ? getAnnoData(nameAst) : currentFuncName;
     return withFile(filename, funcname, function() {
       return genNode(ast);
     });
@@ -403,17 +419,19 @@ misrepresented as being the original software.
     }
   };
 
-  define('runAst', lz(function(ast) {
-    var err, msg;
+  define('runAst', lz(function(code) {
+    return function(ast) {
+      var err, msg;
 
-    try {
-      return eval("(" + (gen(rz(ast))) + ")");
-    } catch (_error) {
-      err = _error;
-      msg = "\n\nParse error: " + err.toString() + "\nAST: ";
-      console.log(msg + ast() + "\n" + err.stack);
-      return rz(L_parseErr)(lz("\n\nParse error: " + err.toString() + "\nAST: "))(ast);
-    }
+      try {
+        return eval("(" + (gen(rz(ast))) + ")");
+      } catch (_error) {
+        err = _error;
+        msg = "\n\nParse error: " + err.toString() + "\nAST: ";
+        console.log(msg + ast() + "\n" + err.stack);
+        return rz(L_parseErr)(lz("\n\nParse error: " + err.toString() + "\nAST: "))(ast);
+      }
+    };
   }));
 
   curry = function(func, args, pos) {
@@ -461,6 +479,8 @@ misrepresented as being the original software.
   root.gen = gen;
 
   root.genMap = genMap;
+
+  root.genSource = genSource;
 
   root.genNode = genNode;
 

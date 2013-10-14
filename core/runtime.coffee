@@ -134,6 +134,7 @@ define '^', lz (x)->(y)->Math.pow(rz(x), rz(y))
 
 define '_show', lz (data)->
   if typeof rz(data) in ['string', 'number', 'boolean'] then JSON.stringify rz data
+  else if getType(rz data) == 'err' then rz(L_errMsg)(data)
   else String rz data
 define 'strString', lz (data)-> String rz data
 define '_strAsc', lz (str)-> rz(str).charCodeAt(0)

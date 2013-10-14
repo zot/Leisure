@@ -111,3 +111,5 @@ return resolve(L_and)(function(){return resolve(L_isCons)(L_list)})(function(){r
  function(){return resolve(L_define)("html")(1)("html x = \\f . f x")(lazy(setDataType(function(L_x){return setType(function(L_f){return resolve(L_f)(L_x)}, 'html')}, 'html')))},
  function(){return resolve(L_defTokenPack)("util")(function(){return resolve(L_cons)(function(){return resolve(L_cons)("->")(function(){return resolve(L_cons)("--")(function(){return resolve(L_cons)("++")(L_nil)})})})(function(){return resolve(L_cons)(function(){return resolve(L_cons)(function(){return resolve(L_cons)("js[")("]")})(L_nil)})(function(){return resolve(L_cons)(L_nil)(L_nil)})})})},
  function(){return resolve(L_addStdTokenPacks)(function(){return resolve(L_cons)("util")(L_nil)})}]);
+
+//# sourceMappingURL=std.map

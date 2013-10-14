@@ -26,6 +26,7 @@ misrepresented as being the original software.
   simpyCons,
   resolve,
   lazy,
+  verboseMsg,
 } = require './base'
 rz = resolve
 lz = lazy
@@ -137,13 +138,25 @@ genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
 
 gen = (ast)-> genMap(ast).toStringWithSourceMap(file: currentFile).code
 
+genSource = (source, ast)->
+  console.log "SOURCE: #{source}\nAST: #{ast}"
+  funcname = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
+  withFile "data:text/plain;base64,#{btoa source}", funcname, ->
+    sm = genNode(ast).prepend("\n").toStringWithSourceMap(file: "dynamic code")
+    code = "//# sourceMappingURL=data:text/plain;base64,#{btoa sm.map}" + sm.code
+    console.log "CODE: #{code}"
+    console.log "MAP: #{sm.map}"
+    code
+
 genMap = (ast)->
   #console.log "GEN AST: #{ast}"
   #file = getPos(ast).head().replace /\.lsr$/, '.js.map'
   hasFile = ast instanceof Leisure_anno && getAnnoName(ast) == 'filename'
-  if hasFile then nameAst = getAnnoBody ast
   filename = if hasFile then getAnnoData ast else 'GENFORUNKNOWNFILE.lsr'
-  funcname = if nameAst? instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else currentFuncName
+  nameAst = if hasFile then getAnnoBody ast else null
+  funcname = if nameAst instanceof Leisure_anno && getAnnoName(nameAst) == 'leisureName' then getAnnoData nameAst else currentFuncName
+  #console.log "File: #{filename}, func: #{funcname}, nameast: #{nameAst instanceof Leisure_anno}"
+  #if funcname then verboseMsg 'gen', "compiling ast: #{funcname}"
   withFile filename, funcname, -> genNode(ast)
 
 genUniq = (ast, names, uniq)->
@@ -283,7 +296,7 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', lz (ast)->
+define 'runAst', lz (code)->(ast)->
   try
     eval "(#{gen rz ast})"
   catch err
@@ -319,6 +332,7 @@ Function.prototype.leisureCall = (args...)->
 
 root.gen = gen
 root.genMap = genMap
+root.genSource = genSource
 root.genNode = genNode
 root.sourceNode = sn
 root.curry = curry
