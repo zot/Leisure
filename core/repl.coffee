@@ -272,11 +272,8 @@ createAstFile = false
 createJsFile = false
 
 runFile = (file, cont)->
-  console.log "RUN FILE: #{file}"
   try
     runMonad rz(L_protect)(lz rz(L_require)(lz file)), defaultEnv, (result)->
-    #runMonad rz(L_require)(lz file), defaultEnv, (result)->
-      #console.log "FILE LOADED: #{file}, result: #{result}"
       cont []
   catch err
     console.log "ERROR LOADING FILE: #{file}...\n#{err.stack}"
@@ -324,7 +321,7 @@ compile = (file, cont)->
         "]);\n"
       ]).toStringWithSourceMap(file: path.basename(bareJs))
       #writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
-      console.log "FILE: #{outputFile}, MAP: #{outputMap}"
+      if verbose then console.log "FILE: #{outputFile}, MAP: #{outputMap}"
       writeFile outputFile, result.code + "\n//# sourceMappingURL=#{path.basename bareOutputMap}\n", (err)->
         if !err
           writeFile outputMap, JSON.stringify(result.map, null, "  "), (err)->
@@ -384,6 +381,17 @@ interactive = false
 
 requireList = []
 
+doRequirements = ->
+  if verbose then console.log "DO REQUIREMENTS.  loaded: #{loadedParser}"
+  if !loadedParser
+    #console.log "REQUIRING #{stages[stage]}"
+    require stages[stage]
+    loadedParser = true
+    if stage == 1 then root.lockGen = false
+    for f in requireList
+      if verbose then console.log "LOADING REQUIREMENT: #{f}"
+      require f
+
 processArg = (config, pos)->
   #console.log "Process args: #{process.argv.join ', '}, pos: #{pos}"
   if pos >= process.argv.length
@@ -391,10 +399,11 @@ processArg = (config, pos)->
       #console.log "EXITING 2"
       process.exit 0
     else
-      console.log "STARTING REPL"
-      if !loadedParser
-        #console.log "REQUIRING #{stages[stage]}"
-        require stages[stage]
+      if verbose then console.log "STARTING REPL"
+      #if !loadedParser
+      #  #console.log "REQUIRING #{stages[stage]}"
+      #  require stages[stage]
+      doRequirements()
       repl config
       return
   #console.log "Processing arg: #{process.argv[pos]}"
@@ -432,6 +441,7 @@ processArg = (config, pos)->
     when '-i'
       interactive = true
     when '-r'
+      if verbose then console.log "PUSHING REQUIREMENT: #{process.argv[pos + 1]}"
       requireList.push process.argv[pos + 1]
       pos++
     else
@@ -440,12 +450,13 @@ processArg = (config, pos)->
       if process.argv[pos][0] == '-' then usage()
       else
         processedFiles = true
-        if !loadedParser
-          #console.log "REQUIRING #{stages[stage]}"
-          require stages[stage]
-          if stage == 1 then root.lockGen = false
-          for f in requireList
-            require f
+        #if !loadedParser
+        #  #console.log "REQUIRING #{stages[stage]}"
+        #  require stages[stage]
+        #  if stage == 1 then root.lockGen = false
+        #  for f in requireList
+        #    require f
+        doRequirements()
         #console.log "PROCESSING #{process.argv[pos]} with #{action}"
         action process.argv[pos], -> processArg config, pos + 1
       return
@@ -461,12 +472,12 @@ run = (args, config)->
 
 root.runFile = runFile
 
-console.log "ARGS: #{JSON.stringify process.argv}"
+if verbose then console.log "ARGS: #{JSON.stringify process.argv}"
 
 prog = path.basename(process.argv[1])
 
 if prog == 'repl' || prog == 'leisure'
-  console.log "RUNNING REPL"
+  if verbose then console.log "RUNNING REPL"
   run process.argv,
     home: process.env.HOME
 else require stages[stage]
