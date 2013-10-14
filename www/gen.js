@@ -147,7 +147,6 @@ misrepresented as being the original software.
   genSource = function(source, ast) {
     var funcname;
 
-    console.log("SOURCE: " + source + "\nAST: " + ast);
     funcname = ast instanceof Leisure_anno && getAnnoName(ast) === 'leisureName' ? getAnnoData(ast) : null;
     return withFile("dynamic code with source", funcname, function() {
       var code, map, sm;
@@ -158,8 +157,6 @@ misrepresented as being the original software.
       map = JSON.parse(sm.map.toString());
       map.sourcesContent = [source];
       code = "(" + sm.code + ")\n//# sourceMappingURL=data:application/json;utf-8;base64," + (btoa(JSON.stringify(map))) + "\n";
-      console.log("CODE: " + code);
-      console.log("MAP: " + (JSON.stringify(map)));
       return code;
     });
   };

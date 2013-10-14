@@ -139,7 +139,7 @@ genNode = (ast)-> genUniq ast, Nil, [Nil, 0]
 gen = (ast)-> genMap(ast).toStringWithSourceMap(file: currentFile).code
 
 genSource = (source, ast)->
-  console.log "SOURCE: #{source}\nAST: #{ast}"
+  #console.log "SOURCE: #{source}\nAST: #{ast}"
   funcname = if ast instanceof Leisure_anno && getAnnoName(ast) == 'leisureName' then getAnnoData ast else null
   #withFile "data:text/plain;base64,#{btoa source}", funcname, ->
   withFile "dynamic code with source", funcname, ->
@@ -149,8 +149,8 @@ genSource = (source, ast)->
     map.sourcesContent =  [source]
     code = "(#{sm.code})\n//# sourceMappingURL=data:application/json;utf-8;base64,#{btoa JSON.stringify map}\n"
     #code = "(#{sm.code})\n//# sourceMappingURL=data:application/json;base64,#{btoa JSON.stringify map}\n"
-    console.log "CODE: #{code}"
-    console.log "MAP: #{JSON.stringify map}"
+    #console.log "CODE: #{code}"
+    #console.log "MAP: #{JSON.stringify map}"
     code
 
 genMap = (ast)->
