@@ -281,6 +281,10 @@ parseErr msg1 msg2 = \f . f (strCat (cons msg1 (cons msg2 nil)))
 parseErrMsg err = err \m . m
 isParseErr thing = hasType thing parseErr
 
+err msg = \f . f msg
+errMsg err = err \m . m
+isErr thing = hasType thing err
+
 emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
 
 makeTokens lineStarts strings start = strings (\h t D . makeMoreTokens lineStarts h t start) nil
@@ -903,7 +907,7 @@ countedParseLine names countedLine = bind (countedScanLineM (head countedLine) (
   \scanned . ifNotErr (createAst (head countedLine) scanned names) \ast . ast
 
 runLine offset names line = bind (newParseLine offset names line)
-  \ast . bind (runAst ast)
+  \ast . bind (runAst line ast)
     \result . cons
       ast
       isParseErr result
@@ -917,7 +921,7 @@ countedRunLine file names countedLine = \\
   \ast . \\
     wrapped = astFileWrap file ast
     .
-    bind (runAst wrapped)
+    bind (runAst (tail countedLine) wrapped)
       \result . cons
         wrapped
         isParseErr result

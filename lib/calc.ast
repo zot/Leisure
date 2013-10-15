@@ -1,0 +1,3 @@
+[
+  {"_type":"anno","name":"filename","data":"calc.lsr","body":{"_type":"apply","func":{"_type":"ref","varName":"print","range":[1,0]},"arg":{"_type":"lit","value":"calc","range":[1,6]}}}
+]

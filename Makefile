@@ -20,12 +20,14 @@ COFFEE_JS=$(SRC:%=lib/%.js)
 NEW_COFFEE_SRC=uri prims browserMain notebook md
 NEW_COFFEE=$(NEW_COFFEE_SRC:%=newCode/%.coffee)
 NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
-NEW_LSR_SRC=std svg
+NEW_LSR_SRC=std svg calc
 NEW_LSR=$(NEW_LSR_SRC:%=newCode/%.lsr)
 NEW_LSR_JS=$(NEW_LSR_SRC:%=lib/%.js)
 BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus
 BROWSER_INPUT=$(BROWSER_SRC:%=lib/%.js)
 BROWSER_JS=lib/browser.js
+WEB_LEISURE_SRC=generatedPrelude std svg calc
+WEB_LEISURE_FILES=$(WEB_LEISURE_SRC:%=lib/%.lsr) $(WEB_LEISURE_SRC:%=lib/%.js) $(WEB_LEISURE_SRC:%=lib/%.map)
 WEB_SRC=bootLeisure
 WEB_COFFEE=$(WEB_SRC:%=newCode/%.coffee)
 WEB_JS=$(WEB_SRC:%=www/%.js)
@@ -42,10 +44,10 @@ clean:
 	rm -f $(OUT_FILES) .tested .parserTested www/leisureJS-* www/leisureCSS-*
 	rm -f core/generatedPrelude.lsr
 
-$(BROWSER_JS): $(BROWSER_INPUT)
+$(BROWSER_JS): $(BROWSER_INPUT) $(PRELUDE) $(NEW_LSR_JS)
 	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
 	cp -f $(BROWSER_SRC:%=lib/%.js) $(SHARED_SRC:%=lib/%.map) $(NEW_COFFEE_SRC:%=lib/%.map) www
-	cp newCode/std.lsr www
+	cp $(WEB_LEISURE_FILES) www
 	node_modules/browserify/bin/cmd.js lib/browserMain.js -d -o $@.tmp
 	sed -e '/\/\/@.*=data/n;/\/\/@/d' $@.tmp > $@
 
@@ -76,11 +78,11 @@ $(NEW_LSR_JS): $(NEW_LSR) $(NEW_COFFEE_JS)
 	cp $(@:lib/%.js=newCode/%.lsr) lib
 
 $(PRELUDE): $(COFFEE_JS) $(PRELUDE_FILES)
-	rm -f core/generatedPrelude.lsr
+	rm -f core/generatedPrelude.lsr lib/generatedPrelude.lsr
 	for i in $(PRELUDE_FILES); do cat $$i >> core/generatedPrelude.lsr; echo >> core/generatedPrelude.lsr; done
 	$(NODE) lib/repl -0 -c -d lib core/simpleParse.lsr
 	$(NODE) lib/repl -1 -c -d lib core/generatedPrelude.lsr
-	cp core/simpleParse.lsr core/generatedPrelude.lsr
+	cp core/generatedPrelude.lsr lib
 
 $(TEST:%=lib/%.js): $(TEST:%=core/%.coffee)
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee

@@ -25,11 +25,17 @@ bootLeisure = ->
     if oldParams.state || !oldParams.uniq then document.location.href = uri.toString()
     else
       {load,state} = uri.getFragParams()
-      if state then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>"
-      else if load then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING #{load}... </h1>"
-      Boot.documentFragment = uri.fragment
-      document.location.hash = ''
-      bootLeisureCont load, state
+      if Leisure.calc then bootCalc(uri, load, state) else bootNotebook(uri, load, state)
+
+bootCalc = (uri, load, state)->
+  console.log "BOOT CALC"
+
+bootNotebook = (uri, load, state)->
+  if state then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>"
+  else if load then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING #{load}... </h1>"
+  Boot.documentFragment = uri.fragment
+  document.location.hash = ''
+  bootLeisureCont load, state
 
 uniquify = (str)-> "#{str}?uniq=#{new Date().getTime()}"
 
