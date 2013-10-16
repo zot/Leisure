@@ -54,10 +54,13 @@ evalDiv = (text, env, input, output, simplified, astDiv, code)->
             runMonad result, env, (res)-> output.append show res
         catch err
           output.addClass 'err'
-          output.html err.toString()
+          #output.html err.toString()
+          output.html err.stack
     catch err
       output.addClass 'err'
-      output.html rz(L_err)(lz (err.stack ? err.toString()))
+      output.addClass 'err'
+      #output.html err.toString()
+      output.html err.stack
   else output.html ''
 
 root.configureCalc = configureCalc
