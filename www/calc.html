@@ -14,13 +14,16 @@
                 }
                 #input,
                 #output,
-                #ast {
+                #simplified,
+                #ast,
+                #code {
                         padding: 0.5ex;
                         display: inline-block;
                         min-width: 50ex;
                         max-width: 90%;
                         min-height: 1em;
                         white-space: pre-wrap;
+                        word-wrap: break-word;
                 }
                 #input {
                         border: solid blue 2px;
@@ -28,11 +31,13 @@
                 #output {
                         border: solid black 2px;
                 }
+                #simplified,
+                #code,
                 #ast {
                         border: solid green 2px;
                 }
                 #output.err {
-                        border: solid red 2px;
+                        border: solid red 4px;
                 }
   	</style>
         <link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css'>
@@ -51,7 +56,7 @@
                     console.log("adding boot callback...");
                     Boot.onboot(function() {
                       console.log('BOOT CALLBACK');
-                      Leisure.configureCalc($('#input'), $('#output'), $('#ast'));
+                      Leisure.configureCalc($('#input'), $('#output'), $('#simplified'), $('#ast'), $('#code'));
                       $('#input').focus();
                     });
                   }
@@ -65,10 +70,15 @@
   <body>
     Input<br>
     <div id='input' contenteditable='true'></div><br>
-    Simplified<br>
-    <div id='ast'></div><br>
     Output<br>
     <div id='output'></div><br>
+    <br>
+    Simplified<br>
+    <div id='simplified'></div><br>
+    AST<br>
+    <div id='ast'><h2>Need to fix AST diagram code!</h2></div><br>
+    Code<br>
+    <div id='code'></div><br>
 <div maindoc><!--
 *** Basic defs
 -

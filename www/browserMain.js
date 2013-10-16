@@ -16,6 +16,8 @@
 
   require('./std');
 
+  require('./svg');
+
   require('./md');
 
   require('./calcSupport');

@@ -415,7 +415,9 @@ define 'funcs', lz makeSyncMonad (env, cont)->
   cont _true
 
 define 'funcSrc', lz (func)->
-  if typeof rz(func) == 'function' && rz(func).src then some rz(func).src else none
+  if typeof rz(func) == 'function'
+    info = functionInfo[rz(func).leisureName]
+    if info?.src then some info.src else none
 
 define 'ast2Json', lz (ast)-> JSON.stringify ast2Json rz ast
 

@@ -9,6 +9,7 @@ require './generatedPrelude'
 #URI = require './uri'
 #console.log "URI: #{URI}"
 require './std'
+require './svg'
 require './md'
 require './calcSupport'
 

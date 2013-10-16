@@ -304,6 +304,8 @@ defCase show.token obj | hasType obj token -> obj \str pos .
     pos \file line offset . concat['token ' str ' ' file ' ' line ' ' offset]
     concat['(token ' str ' ' pos ')']
 
+defCase show.html obj | hasType obj html -> obj id
+
 ## bind
 defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt
   \value . cont value

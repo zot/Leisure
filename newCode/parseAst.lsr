@@ -1,0 +1,140 @@
+require 'svg'
+
+#@auto
+do
+  forward 'notebookSelection'
+  forward 'notebookAst'
+
+makeNode svg width height rootX rootY = \f . f svg width height rootX rootY
+
+nodeSvg st = st \svg width height rootX rootY . svg
+nodeWidth st = st \svg width height rootX rootY . width
+nodeHeight st = st \svg width height rootX rootY . height
+nodeRootX st = st \svg width height rootX rootY . rootX
+nodeRootY st = st \svg width height rootX rootY . rootY
+
+nodeTranslate st x y = st \svg width height rootX rootY . makeNode
+  translate svg x y
+  width
+  height
+  rootX + x
+  rootY + y
+
+nodeLine n1 n2 = n1 \s1 w1 h1 x1 y1 . n2 \s2 w2 h2 x2 y2 .
+  line [['x1'|x1] ['y1'|y1] ['x2'|x2] ['y2'|y2] | defaultLineMap]
+
+astFor func = isFunc func
+  funcSrc func (\src . parse src) (right 'no source')
+  left (lit func emptyFilePos)
+
+treeForNotebook func = subTreeForNotebook func
+  \attrs ast .
+    [['onclick' | concat["Notebook.highlightNotebookFunction('" (funcName func id '') "', " (astStart ast) ", " (astEnd ast) ")"]] | attrs]
+
+subTreeForNotebook func attrFunc = do
+  s <- notebookSelection func
+  ast <- notebookAst func
+  ast
+    \ast . printValue (treeForWith ast \ast map . attrFunc (s (\start end . (shouldHighlight ast start end) (highlight map) map) map) ast)
+    \ignore . concat ['no source for ' func]
+
+#printValue
+#  astFor func
+#    \ast . treeForWith ast \ast map . s (\start end . (shouldHighlight ast start end) (highlight map) map) map
+#    \ignore . concat ['no source for ' func]
+
+rangeContainsRange start end innerStart innerEnd = and (lte start innerStart) (lte innerEnd end)
+
+shouldHighlight ast start end = do
+  aStart = astStart ast
+  aEnd = astEnd ast
+  or
+    rangeContainsRange start end aStart aEnd
+    or
+      and
+        or (eq 'lit' (getType ast id id)) (eq 'ref' (getType ast id id))
+        rangeContainsRange aStart aEnd start end
+      and
+        eq 'lambda' (getType ast id id)
+        rangeContainsRange aStart (aStart + (strlen (ast \v b . v))) start end
+
+highlight map = do
+  c = assocGetWithDefault 'fill' map nil
+  eq c '#fcc'
+    assocSet 'fill' 'red' map
+    eq c '#cfc'
+      assocSet 'fill' 'green' map
+      eq c '#ccf'
+        assocSet 'fill' 'blue' map
+        map
+
+treeForFunc func = treeFor (parse (funcSource func id false) id false)
+
+treeFor ast = treeForWith ast \ast map . map
+
+treeForWith ast mapFunc = nodeSvg (nodeFor ast mapFunc)
+
+nodeFor ast mapFunc = do
+  t = typeof ast
+  eq t 'lit'
+    createLitNode ast (pretty (ast id)) mapFunc
+    eq t 'ref'
+      createRefNode ast (pretty (ast id)) mapFunc
+      eq t 'lambda'
+        ast (\v b . createLambdaNode ast v b mapFunc)
+        eq t 'apply'
+          ast (\f a . createApplyNode ast f a mapFunc)
+          makeNode (svgNode '') 0 0 0 0
+
+redStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#fcc'] ['rx'|8] ['ry'|8]]
+greenStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#cfc'] ['rx'|8] ['ry'|8]]
+blueStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#ccf'] ['rx'|8] ['ry'|8]]
+
+createLambdaNode ast v b mapFunc = do
+  rootBox = textNode (mapFunc ast greenStyle) 'lambda'
+  varBox = textNode (mapFunc ast greenStyle) v
+  bodyTree = nodeFor b mapFunc
+  childWidth = (nodeWidth varBox) + 5 + (nodeWidth bodyTree)
+  totalWidth = max childWidth (nodeWidth rootBox)
+  pad = max 0 (totalWidth - childWidth) / 2
+  rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0
+  varBox = nodeTranslate varBox pad (nodeHeight rootBox) + 5
+  bodyTree = nodeTranslate bodyTree (pad + (nodeWidth varBox) + 5) ((nodeHeight rootBox) + 5)
+  makeNode
+    svgConcat [(nodeLine rootBox varBox) (nodeLine rootBox bodyTree) (nodeSvg varBox) (nodeSvg bodyTree) (nodeSvg rootBox)]
+    totalWidth
+    (nodeHeight rootBox) + 5 + (max (nodeHeight varBox) (nodeHeight bodyTree))
+    totalWidth / 2
+    (nodeHeight rootBox) / 2
+
+createApplyNode ast f a mapFunc = do
+  rootBox = textNode (mapFunc ast blueStyle) 'apply'
+  funcTree = nodeFor f mapFunc
+  argTree = nodeFor a mapFunc
+  childWidth = (nodeWidth argTree) + 5 + (nodeWidth funcTree)
+  totalWidth = max childWidth (nodeWidth rootBox)
+  pad = max 0 (totalWidth - childWidth) / 2
+  rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0
+  funcTree = nodeTranslate funcTree pad (nodeHeight rootBox) + 5
+  argTree = nodeTranslate argTree (pad + (nodeWidth funcTree) + 5) ((nodeHeight rootBox) + 5)
+  makeNode
+    svgConcat [(nodeLine rootBox funcTree) (nodeLine rootBox argTree) (nodeSvg rootBox) (nodeSvg funcTree) (nodeSvg argTree)]
+    totalWidth
+    (nodeHeight rootBox) + 5 + (max (nodeHeight argTree) (nodeHeight funcTree))
+    totalWidth / 2
+    (nodeHeight rootBox) / 2
+
+createRefNode ast ref mapFunc = textNode (mapFunc ast redStyle) ref
+createLitNode ast lit mapFunc = textNode (mapFunc ast greenStyle) lit
+
+textNode map txt = (svgMeasureText txt '') \w h . do
+  nodeW = w + 24
+  nodeH = h + 14
+  makeNode
+    (svgConcat [(rect [['x'|2] ['y'|2] ['width'|nodeW] ['height'|nodeH] | map]) (text txt [['pointer-events' | 'none'] ['text-anchor'|"middle"] ['dominant-baseline'|"mathematical"] ['x'| 14 + w / 2] ['y'| 5 + h / 2] ['font-weight'|'bold']])])
+    nodeW
+    nodeH
+    nodeW / 2
+    nodeH / 2
+
+typeof x = getType x id false
