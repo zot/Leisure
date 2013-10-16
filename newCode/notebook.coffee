@@ -1587,7 +1587,7 @@ define 'bindEvent', lz (selector)->(eventName)->(func)->
       runMonad rz(func)(lz e), envFor(e.target), ->
     cont rz L_false
 
-define 'quit', lz window.close()
+define 'quit', lz -> window.close()
 
 define 'config', lz (expr)->
   makeSyncMonad (env, cont)->

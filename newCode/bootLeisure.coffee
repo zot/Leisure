@@ -28,7 +28,12 @@ bootLeisure = ->
       if Leisure.calc then bootCalc(uri, load, state) else bootNotebook(uri, load, state)
 
 bootCalc = (uri, load, state)->
-  console.log "BOOT CALC"
+  console.log "BOOTING CALC"
+  loadThen Boot.jsFiles, ->
+    #window.GdriveStorage.initStorage()
+    #Repl.init()
+    console.log "LOADED: #{Boot.jsFiles}"
+    finishBoot()
 
 bootNotebook = (uri, load, state)->
   if state then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>"

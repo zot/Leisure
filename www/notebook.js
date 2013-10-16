@@ -2441,7 +2441,9 @@
     };
   }));
 
-  define('quit', lz(window.close()));
+  define('quit', lz(function() {
+    return window.close();
+  }));
 
   define('config', lz(function(expr) {
     return makeSyncMonad(function(env, cont) {

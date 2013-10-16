@@ -10,6 +10,7 @@ require './generatedPrelude'
 #console.log "URI: #{URI}"
 require './std'
 require './md'
+require './calcSupport'
 
 window.Notebook = nb = require './notebook'
 

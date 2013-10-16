@@ -17,7 +17,7 @@ PRELUDE_FILES=$(PRELUDE_INPUT:%=core/%.lsr)
 PRELUDE=lib/generatedPrelude.js
 COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 COFFEE_JS=$(SRC:%=lib/%.js)
-NEW_COFFEE_SRC=uri prims browserMain notebook md
+NEW_COFFEE_SRC=uri prims browserMain notebook md calcSupport
 NEW_COFFEE=$(NEW_COFFEE_SRC:%=newCode/%.coffee)
 NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
 NEW_LSR_SRC=std svg calc

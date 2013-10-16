@@ -8,6 +8,32 @@
   			padding: 10px;
   			position: relative;
   		}
+                hidden,
+                div[maindoc] {
+                        display: none;
+                }
+                #input,
+                #output,
+                #ast {
+                        padding: 0.5ex;
+                        display: inline-block;
+                        min-width: 50ex;
+                        max-width: 90%;
+                        min-height: 1em;
+                        white-space: pre-wrap;
+                }
+                #input {
+                        border: solid blue 2px;
+                }
+                #output {
+                        border: solid black 2px;
+                }
+                #ast {
+                        border: solid green 2px;
+                }
+                #output.err {
+                        border: solid red 2px;
+                }
   	</style>
         <link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css'>
         <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
@@ -21,6 +47,14 @@
               //if (navigator && navigator.appVersion && navigator.appVersion.match(/Chrome/)) {
                   var script = document.createElement('script');
                   script.src = "bootLeisure.js?uniq=" + Math.random();
+                  script.onload = function() {
+                    console.log("adding boot callback...");
+                    Boot.onboot(function() {
+                      console.log('BOOT CALLBACK');
+                      Leisure.configureCalc($('#input'), $('#output'), $('#ast'));
+                      $('#input').focus();
+                    });
+                  }
                   document.head.appendChild(script);
               //} else {
               //    document.body.innerHTML = '<h1>This version of Leisure only supports Chrome</h1>';
@@ -28,7 +62,13 @@
           }
         </script>
   </head>
-  <body class="thin scroll">
+  <body>
+    Input<br>
+    <div id='input' contenteditable='true'></div><br>
+    Simplified<br>
+    <div id='ast'></div><br>
+    Output<br>
+    <div id='output'></div><br>
 <div maindoc><!--
 *** Basic defs
 -
