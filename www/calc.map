@@ -4,6 +4,8 @@
   "sources": [
     "calc.lsr"
   ],
-  "names": [],
-  "mappings": "AAAA;qCAAM,MAAN"
+  "names": [
+    "ignore"
+  ],
+  "mappings": "AAAA;oBAAAA,+CAAOA,0BAAIA,YAAJA,EAAPA,CAAA"
 }

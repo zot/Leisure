@@ -20,13 +20,13 @@ COFFEE_JS=$(SRC:%=lib/%.js)
 NEW_COFFEE_SRC=uri prims browserMain notebook md calcSupport
 NEW_COFFEE=$(NEW_COFFEE_SRC:%=newCode/%.coffee)
 NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
-NEW_LSR_SRC=std svg calc
+NEW_LSR_SRC=std svg calc parseAst
 NEW_LSR=$(NEW_LSR_SRC:%=newCode/%.lsr)
 NEW_LSR_JS=$(NEW_LSR_SRC:%=lib/%.js)
 BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus
 BROWSER_INPUT=$(BROWSER_SRC:%=lib/%.js)
 BROWSER_JS=lib/browser.js
-WEB_LEISURE_SRC=generatedPrelude std svg calc
+WEB_LEISURE_SRC=generatedPrelude std svg calc parseAst
 WEB_LEISURE_FILES=$(WEB_LEISURE_SRC:%=lib/%.lsr) $(WEB_LEISURE_SRC:%=lib/%.js) $(WEB_LEISURE_SRC:%=lib/%.map)
 WEB_SRC=bootLeisure
 WEB_COFFEE=$(WEB_SRC:%=newCode/%.coffee)

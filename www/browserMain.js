@@ -22,6 +22,10 @@
 
   require('./calcSupport');
 
+  require('./parseAst');
+
+  require('./calc');
+
   window.Notebook = nb = require('./notebook');
 
   _ref = window.Leisure;

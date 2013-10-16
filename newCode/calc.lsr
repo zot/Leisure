@@ -1,1 +1,1 @@
-print 'calc'
+ignore x = x

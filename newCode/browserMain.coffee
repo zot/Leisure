@@ -12,6 +12,8 @@ require './std'
 require './svg'
 require './md'
 require './calcSupport'
+require './parseAst'
+require './calc'
 
 window.Notebook = nb = require './notebook'
 
