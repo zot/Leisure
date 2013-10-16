@@ -32,12 +32,13 @@ getParseErr = (x)-> x lz (value)->rz value
 show = (obj)-> if L_show? then rz(L_show)(lz obj) else String(obj)
 
 evalDiv = (text, env, input, output, astOut)->
+  output.html ''
+  astOut.html ''
   if text
     try
       result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
       runMonad result, env, (ast)->
         try
-
           if getType(ast) == 'parseErr'
             output.addClass 'err'
             output.html getParseErr ast
