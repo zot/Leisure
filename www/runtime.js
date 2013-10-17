@@ -889,6 +889,12 @@ misrepresented as being the original software.
     };
   }));
 
+  define('trace', lz(function(msg) {
+    return makeSyncMonad(function(env, cont) {
+      return cont((root.E = new Error(msg)).stack);
+    });
+  }));
+
   define('print', lz(function(msg) {
     return makeSyncMonad(function(env, cont) {
       var m;

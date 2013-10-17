@@ -56,9 +56,8 @@
                   script.onload = function() {
                     console.log("adding boot callback...");
                     Boot.onboot(function() {
-                      console.log('BOOT CALLBACK');
+                      $('#input').focus().attr('contenteditable', 'true').html('');
                       Leisure.configureCalc($('#input'), $('#output'), $('#simplified'), $('#ast'), $('#code'));
-                      $('#input').focus();
                     });
                   }
                   document.head.appendChild(script);
@@ -68,16 +67,16 @@
           }
         </script>
   </head>
-  <body>
+  <body style="position: relative">
     Input<br>
-    <div id='input' contenteditable='true'></div><br>
+    <div id='input'>LOADING...</div><br>
     Output<br>
     <div id='output'></div><br>
     <br>
     Simplified<br>
     <div id='simplified'></div><br>
     AST<br>
-    <div id='ast'><h2>Need to fix AST diagram code!</h2></div><br>
+    <div id='ast'></div><br>
     Code<br>
     <div id='code'></div><br>
 <div maindoc><!--

@@ -37,7 +37,7 @@ show = (obj)-> if L_show? then rz(L_show)(lz obj) else String(obj)
 evalDiv = (text, env, input, output, simplified, astDiv, code)->
   output.html ''
   simplified.html ''
-  #astDiv.html ''
+  astDiv.html ''
   code.html ''
   if text
     try

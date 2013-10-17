@@ -433,6 +433,10 @@ define 'override', lz (name)->(newFunc)->
 # IO
 #######################
 
+define 'trace', lz (msg)->
+  makeSyncMonad (env, cont)->
+    cont (root.E = new Error(msg)).stack
+
 define 'print', lz (msg)->
   makeSyncMonad (env, cont)->
     m = rz msg
