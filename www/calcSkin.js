@@ -77,10 +77,10 @@
     $('#inputLabel').css('display', 'none');
     $('#outputLabel').css('display', 'none');
     $('#output').css('top', 'calc(49px * 4.5)').css('height', 'calc(49px * 2)').css('left', '32px').css('padding', '0').css('padding-left', '2px').css('padding-right', '2px').css('width', '651px').css('position', 'fixed').css('margin', '0').css('border', 'none').css('outline', '1px solid green');
-    $('#astPanel').css('top', '444px').css('left', '32px').css('width', '655px').css('height', '655px').css('background', 'white').css('position', 'fixed').css('z-index', '1').css('padding', '0').css('margin', '0');
+    $('#astPanel').css('top', '444px').css('left', '32px').css('width', '655px').css('height', 'calc(800px - 444px)').css('background', 'white').css('position', 'fixed').css('z-index', '1').css('padding', '0').css('margin', '0');
     $('#astLabel').css('display', 'none');
     $('#ast').css('width', 'calc(100% - 4px)').css('height', '100%').css('border', 'none').css('padding', '2px');
-    $('#simplifiedPanel').css('top', '444px').css('left', '32px').css('width', '655px').css('height', '655px').css('background', 'white').css('position', 'fixed').css('z-index', '1').css('padding', '0').css('margin', '0');
+    $('#simplifiedPanel').css('top', '444px').css('left', '32px').css('width', '655px').css('height', 'calc(800px - 444px)').css('background', 'white').css('position', 'fixed').css('z-index', '1').css('padding', '0').css('margin', '0');
     $('#simplifiedLabel').css('display', 'none');
     return $('#simplified').css('width', 'calc(100% - 4px)').css('height', '100%').css('border', 'none').css('padding', '2px');
   };
