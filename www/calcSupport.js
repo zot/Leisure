@@ -164,6 +164,8 @@
 
   root.configureCalc = configureCalc;
 
+  root.showButton = showButton;
+
 }).call(this);
 
 /*

@@ -103,3 +103,4 @@ evalDiv = (text, env, input, output, simplified, astDiv, code)->
   else output.html ''
 
 root.configureCalc = configureCalc
+root.showButton = showButton

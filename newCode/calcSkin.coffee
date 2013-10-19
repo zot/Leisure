@@ -58,8 +58,15 @@ useSkin = ->
   setInput numberKeysInfo, 7, 0, 1
   setInput numberKeysInfo, 8, 0, 2
   setInput numberKeysInfo, 9, 0, 3
-  $('#input')
+  menuInfo.divs[0][0].click (evt)->
+    $('#simplifiedPanel').addClass 'hidden'
+    $('#astPanel').toggleClass 'hidden'
+  menuInfo.divs[0][1].click (evt)->
+    $('#astPanel').addClass 'hidden'
+    $('#simplifiedPanel').toggleClass 'hidden'
+  $(document.body)
     .css('font-size', '36px')
+  $('#input')
     .css('top', '0')
     .css('height', 'calc(49px * 4)')
     .css('left', '32px')
@@ -72,13 +79,10 @@ useSkin = ->
     .css('border', 'none')
     .css('outline', '1px solid black')
   $('#inputLabel').css('display', 'none')
-  $('#outputLabel')
-    .css('font-size', '36px')
-    .css('top', 'calc(49px * 4)')
-    .css('position', 'fixed')
+  $('#outputLabel').css('display', 'none')
   $('#output')
-    .css('font-size', '36px')
-    .css('top', 'calc(49px * 5)')
+    .css('top', 'calc(49px * 4.5)')
+    .css('height', 'calc(49px * 2)')
     .css('left', '32px')
     .css('padding', '0')
     .css('padding-left', '2px')
@@ -88,6 +92,38 @@ useSkin = ->
     .css('margin', '0')
     .css('border', 'none')
     .css('outline', '1px solid green')
+  $('#astPanel')
+    .css('top', '444px')
+    .css('left', '32px')
+    .css('width', '655px')
+    .css('height', '655px')
+    .css('background', 'white')
+    .css('position', 'fixed')
+    .css('z-index', '1')
+    .css('padding', '0')
+    .css('margin', '0')
+  $('#astLabel').css('display', 'none')
+  $('#ast')
+    .css('width', 'calc(100% - 4px)')
+    .css('height', '100%')
+    .css('border', 'none')
+    .css('padding', '2px')
+  $('#simplifiedPanel')
+    .css('top', '444px')
+    .css('left', '32px')
+    .css('width', '655px')
+    .css('height', '655px')
+    .css('background', 'white')
+    .css('position', 'fixed')
+    .css('z-index', '1')
+    .css('padding', '0')
+    .css('margin', '0')
+  $('#simplifiedLabel').css('display', 'none')
+  $('#simplified')
+    .css('width', 'calc(100% - 4px)')
+    .css('height', '100%')
+    .css('border', 'none')
+    .css('padding', '2px')
 
 setInput = (info, input, top, left)-> info.divs[top][left].click (evt)-> $('#input').append input
 
