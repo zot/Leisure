@@ -24,6 +24,8 @@
 
   require('./parseAst');
 
+  require('./calcSkin');
+
   require('./calc');
 
   window.Notebook = nb = require('./notebook');

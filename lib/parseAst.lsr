@@ -42,6 +42,9 @@ nodeHeight st = st \svg width height rootX rootY . height
 nodeRootX st = st \svg width height rootX rootY . rootX
 nodeRootY st = st \svg width height rootX rootY . rootY
 
+space = 10
+border = 5
+
 nodeTranslate st x y = st \svg width height rootX rootY . makeNode
   translate svg x y
   width
@@ -76,7 +79,7 @@ treeForWith ast mapFunc = nodeSvg (nodeFor ast mapFunc)
 
 wrappedTreeFor ast = do
   content = nodeFor ast \ast map . map
-  svg (nodeSvg content) {'width':(5 + (nodeWidth content)) 'height':(5 + (nodeHeight content))}
+  svg (nodeSvg content) {'width':(border + (nodeWidth content)) 'height':(border + (nodeHeight content))}
 
 nodeFor ast mapFunc = do
   t = getType ast
@@ -101,16 +104,16 @@ createLambdaNode ast v b mapFunc = do
   rootBox = textNode (mapFunc ast greenStyle) 'lambda'
   varBox = textNode (mapFunc ast greenStyle) v
   bodyTree = nodeFor b mapFunc
-  childWidth = (nodeWidth varBox) + 5 + (nodeWidth bodyTree)
+  childWidth = (nodeWidth varBox) + space + (nodeWidth bodyTree)
   totalWidth = max childWidth (nodeWidth rootBox)
   pad = max 0 (totalWidth - childWidth) / 2
   rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0
-  varBox = nodeTranslate varBox pad (nodeHeight rootBox) + 5
-  bodyTree = nodeTranslate bodyTree (pad + (nodeWidth varBox) + 5) ((nodeHeight rootBox) + 5)
+  varBox = nodeTranslate varBox pad (nodeHeight rootBox) + space
+  bodyTree = nodeTranslate bodyTree (pad + (nodeWidth varBox) + space) ((nodeHeight rootBox) + space)
   log 3 makeNode
     svgConcat [(nodeLine rootBox varBox) (nodeLine rootBox bodyTree) (nodeSvg varBox) (nodeSvg bodyTree) (nodeSvg rootBox)]
     totalWidth
-    (nodeHeight rootBox) + 5 + (max (nodeHeight varBox) (nodeHeight bodyTree))
+    (nodeHeight rootBox) + space + (max (nodeHeight varBox) (nodeHeight bodyTree))
     totalWidth / 2
     (nodeHeight rootBox) / 2
 
@@ -118,16 +121,16 @@ createApplyNode ast f a mapFunc = do
   rootBox = textNode (mapFunc ast blueStyle) 'apply'
   funcTree = nodeFor f mapFunc
   argTree = nodeFor a mapFunc
-  childWidth = (nodeWidth argTree) + 5 + (nodeWidth funcTree)
+  childWidth = (nodeWidth argTree) + space + (nodeWidth funcTree)
   totalWidth = max childWidth (nodeWidth rootBox)
   pad = max 0 (totalWidth - childWidth) / 2
   rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0
-  funcTree = nodeTranslate funcTree pad (nodeHeight rootBox) + 5
-  argTree = nodeTranslate argTree (pad + (nodeWidth funcTree) + 5) ((nodeHeight rootBox) + 5)
+  funcTree = nodeTranslate funcTree pad (nodeHeight rootBox) + space
+  argTree = nodeTranslate argTree (pad + (nodeWidth funcTree) + space) ((nodeHeight rootBox) + space)
   makeNode
     svgConcat [(nodeLine rootBox funcTree) (nodeLine rootBox argTree) (nodeSvg rootBox) (nodeSvg funcTree) (nodeSvg argTree)]
     totalWidth
-    (nodeHeight rootBox) + 5 + (max (nodeHeight argTree) (nodeHeight funcTree))
+    (nodeHeight rootBox) + space + (max (nodeHeight argTree) (nodeHeight funcTree))
     totalWidth / 2
     (nodeHeight rootBox) / 2
 
@@ -138,7 +141,7 @@ textNode map txt = (svgMeasureText txt '') \w h . do
   nodeW = w + 24
   nodeH = h + 14
   makeNode
-    (svgConcat [(rect [['x'|2] ['y'|2] ['width'|nodeW] ['height'|nodeH] | map]) (text txt [['pointer-events' | 'none'] ['text-anchor'|"middle"] ['dominant-baseline'|"mathematical"] ['x'| 14 + w / 2] ['y'| 5 + h / 2] ['font-weight'|'bold']])])
+    (svgConcat [(rect [['x'|2] ['y'|2] ['width'|nodeW] ['height'|nodeH] | map]) (text txt [['pointer-events' | 'none'] ['text-anchor'|"middle"] ['dominant-baseline'|"mathematical"] ['x'| 14 + w / 2] ['y'| border + h / 2] ['font-weight'|'bold']])])
     nodeW
     nodeH
     nodeW / 2

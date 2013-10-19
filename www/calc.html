@@ -1,16 +1,68 @@
 <!DOCTYPE html>
 <html>
   <head>
-  	<style>
-  		pre[leisureNode='code'] {
-  			outline: solid black 2px;
-  			display: inline-block;
-  			padding: 10px;
-  			position: relative;
-  		}
-                hidden,
+        <style>
+                /*
+                @media screen {
+                        html, body {
+                                font: 12px/15px sans-serif;
+                                font: 24px/32px sans-serif;
+                        }
+                }
+                @media handheld, screen and (max-width: 995px) {
+                        html, body, button {
+                                font: 100% sans-serif;
+                                line-height: 64px;
+                        }
+                }
+                */
+                /*
+                display: text: height 36px, (32, 0); 688x313
+                key: 27px
+                shift text: 17px
+
+                MENU ROW
+                size: 74x46
+                tops: 364
+                lefts: 23, 143, 263, 383, 503, 623
+                TOP AREA
+                size: 74x58
+                tops: 444, 505, 607
+                lefts: 23, 143, 263, 383, 503, 623
+                ENTER ROW
+                size: 194x58, 74x58
+                tops: 748
+                lefts: 23, 263, 383, 503, 623
+                NUMBER KEYS
+                size: 98x59
+                tops: 850, 952, 1053, 1155
+                lefts: 23, 167, 311, 455, 599
+                */
+                .loading #calc {
+                        display: none;
+                }
+                #loading {
+                        display: none;
+                }
+                .loading #loading {
+                        display: block;
+                }
+                pre[leisureNode='code'] {
+                        outline: solid black 2px;
+                        display: inline-block;
+                        padding: 10px;
+                        position: relative;
+                }
+                .hidden,
                 div[maindoc] {
                         display: none;
+                }
+                .selected {
+                        border: solid black 2px;
+                }
+                #calc {
+                        width: calc(100% - 10px);
+                        margin-left: 5px;
                 }
                 #input,
                 #output,
@@ -19,8 +71,11 @@
                 #code {
                         padding: 0.5ex;
                         display: inline-block;
+                        /*
                         min-width: 50ex;
                         max-width: 90%;
+                        */
+                        width: calc(100% - 1ex - 4px);
                         min-height: 1em;
                         white-space: pre-wrap;
                         word-wrap: break-word;
@@ -40,8 +95,8 @@
                 #output.err {
                         border: solid red 4px;
                 }
-  	</style>
-        <link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css'>
+        </style>
+        <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->
         <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
         <script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script>
         <script src="jquery-ui/js/jquery-1.8.2.js"></script>
@@ -49,36 +104,44 @@
         <script src="xus.js"></script>
         <script language="javascript">
           function start() {
-              window.Leisure = {calc: true}
-              //if (navigator && navigator.appVersion && navigator.appVersion.match(/Chrome/)) {
-                  var script = document.createElement('script');
-                  script.src = "bootLeisure.js?uniq=" + Math.random();
-                  script.onload = function() {
-                    console.log("adding boot callback...");
-                    Boot.onboot(function() {
-                      $('#input').focus().attr('contenteditable', 'true').html('');
-                      Leisure.configureCalc($('#input'), $('#output'), $('#simplified'), $('#ast'), $('#code'));
-                    });
-                  }
-                  document.head.appendChild(script);
-              //} else {
-              //    document.body.innerHTML = '<h1>This version of Leisure only supports Chrome</h1>';
-              //}
+                setTimeout(function() {
+                        window.Leisure = {calc: true}
+                        var script = document.createElement('script');
+                        script.src = "bootLeisure.js?uniq=" + Math.random();
+                        script.onload = function() {
+                                console.log("adding boot callback...");
+                                Boot.onboot(function() {
+                                        Leisure.configureCalc($('#input'), $('#output'), $('#simplified'), $('#ast'), $('#code'));
+                                        $('#input').attr('contenteditable', 'true').html('').focus();
+                                        Leisure.useSkin();
+                                });
+                        }
+                        document.head.appendChild(script);
+                }, 1);
           }
         </script>
   </head>
-  <body style="position: relative">
-    Input<br>
-    <div id='input'>LOADING...</div><br>
-    Output<br>
-    <div id='output'></div><br>
-    <br>
-    Simplified<br>
-    <div id='simplified'></div><br>
-    AST<br>
-    <div id='ast'></div><br>
-    Code<br>
-    <div id='code'></div><br>
+  <body style="position: relative; margin: 0" class="loading">
+    <div id="loading">LOADING CALC</div>
+    <div id="calc">
+      <div id='inputLabel'>Input</div>
+      <div id='input'>LOADING...</div><br>
+      <div id='outputLabel'>Output  <button id='simplifiedButton'>Simplified</button> <button id='astButton'>AST</button> <button id='codeButton'>Code</button> <button id='allButton'>All</button></div>
+      <div id='output'></div><br>
+      <br>
+      <div id="simplifiedPanel" class="hidden">
+        Simplified<br>
+        <div id='simplified'></div><br>
+      </div>
+      <div id="astPanel" class="hidden">
+        AST<br>
+        <div id='ast'></div><br>
+      </div>
+      <div id="codePanel" class="hidden">
+        Code<br>
+        <div id='code'></div><br>
+      </div>
+    </div>
 <div maindoc><!--
 *** Basic defs
 -
