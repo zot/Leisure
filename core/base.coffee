@@ -78,3 +78,5 @@ root.simpyCons = simpyCons
 root.resolve = global.resolve
 root.lazy = global.lazy
 root.verboseMsg = verboseMsg
+root.maxInt = 9007199254740992
+root.minInt = -root.maxInt

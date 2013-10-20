@@ -1,0 +1,47 @@
+.calcMain .calcButton {
+    position: fixed;
+    border: blue solid 2px;
+}
+.calcMain .mode {
+    width: 74px;
+    height: 46px;
+}
+.calcMain .function,
+.calcMain .enterRow {
+    width: 74px;
+    height: 58px;
+}
+.calcMain .enterButton {
+    width: 194px;
+    height: 58px;
+}
+.calcMain .numbers {
+    width: 98px;
+    height: 55px;
+}
+.calcMain .mode.top0 {top: 364px;}
+.calcMain .function.top0 {top: 444px;}
+.calcMain .function.top1 {top: 545px;}
+.calcMain .function.top2 {top: 647px;}
+.calcMain .function.left0, .calcMain .mode.left0 {left: 23px;}
+.calcMain .function.left1, .calcMain .mode.left1 {left: 143px;}
+.calcMain .function.left2, .calcMain .mode.left2 {left: 263px;}
+.calcMain .function.left3, .calcMain .mode.left3 {left: 383px;}
+.calcMain .function.left4, .calcMain .mode.left4 {left: 503px;}
+.calcMain .function.left5, .calcMain .mode.left5 {left: 623px;}
+.calcMain .enterButton.top0 {top: 748px;}
+.calcMain .enterButton.left0 {left: 23px;}
+.calcMain .enterRow.top0 {top: 748px;}
+.calcMain .enterRow.left0 {left: 263px;}
+.calcMain .enterRow.left1 {left: 383px;}
+.calcMain .enterRow.left2 {left: 503px;}
+.calcMain .enterRow.left3 {left: 623px;}
+.calcMain .numbers.left0 {left: 23px;}
+.calcMain .numbers.left1 {left: 167px;}
+.calcMain .numbers.left2 {left: 311px;}
+.calcMain .numbers.left3 {left: 455px;}
+.calcMain .numbers.left4 {left: 599px;}
+.calcMain .numbers.top0 {top: 850px;}
+.calcMain .numbers.top1 {top: 952px;}
+.calcMain .numbers.top2 {top: 1053px;}
+.calcMain .numbers.top3 {top: 1155px;}

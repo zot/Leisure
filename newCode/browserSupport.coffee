@@ -6,6 +6,12 @@
 rz = resolve
 lz = lazy
 
+BS = 8
+ENTER = 13
+DEL = 46
+
+textNode = (text)-> document.createTextNode(text)
+
 getSvgElement = (id)->
   if (el = document.getElementById id) then el
   else
@@ -73,3 +79,7 @@ createNode = (txt)->
 root.svgMeasure = svgMeasure
 root.svgMeasureText = svgMeasureText
 root.createNode = createNode
+root.ENTER = ENTER
+root.BS = BS
+root.DEL = DEL
+root.textNode = textNode

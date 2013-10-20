@@ -38,10 +38,13 @@ lz = lazy
   gen,
 } = require './gen'
 {
+  BS,
   ENTER,
+  DEL,
   svgMeasure,
   svgMeasureText,
   createNode,
+  textNode,
 } = require './browserSupport'
 
 URI = window.URI
@@ -53,9 +56,7 @@ window.global = window
 #debug = true
 debug = false
 
-BS = 8
 TAB = 9
-ENTER = 13
 ESC = 27
 PAGE_UP = 33
 PAGE_DOWN = 34
@@ -65,7 +66,6 @@ LEFT_ARROW = 37
 UP_ARROW = 38
 RIGHT_ARROW = 39
 DOWN_ARROW = 40
-DEL = 46
 arrows = [37..40]
 updatePat = /(^|\n)(#@update )([^\n]+)(?:^|\n)/
 peer = null
@@ -934,8 +934,6 @@ markPartialApplies = (bx, def)->
 #      s.appendChild c
 #      r.insertNode s
 
-textNode = (text)-> document.createTextNode(text)
-
 nodeFor = (text)-> if typeof text == 'string' then textNode(text) else text
 
 evalOutput = (exBox, nofocus, cont)->
@@ -1780,7 +1778,6 @@ root.toggleEdit = toggleEdit
 root.showSource = showSource
 root.bootNotebook = bootNotebook
 root.ENTER = ENTER
-root.textNode = textNode
 root.cleanEmptyNodes = cleanEmptyNodes
 root.isLeisureCode = isLeisureCode
 root.getElementCode = getElementCode
@@ -1791,7 +1788,6 @@ root.presentLeisureCode = presentLeisureCode
 root.mergeLeisureCode = mergeLeisureCode
 root.highlightNotebookFunction = highlightNotebookFunction
 root.ESC = ESC
-root.ENTER = ENTER
 root.HOME = HOME
 root.END = END
 root.PAGE_UP = PAGE_UP

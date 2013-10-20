@@ -135,6 +135,10 @@ misrepresented as being the original software.
 
   root.verboseMsg = verboseMsg;
 
+  root.maxInt = 9007199254740992;
+
+  root.minInt = -root.maxInt;
+
 }).call(this);
 
 /*

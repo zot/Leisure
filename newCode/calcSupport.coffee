@@ -2,6 +2,7 @@
   resolve,
   lazy,
   defaultEnv,
+  minInt,
 } = root = module.exports = require './base'
 rz = resolve
 lz = lazy
@@ -15,18 +16,84 @@ lz = lazy
 {
   getType,
   define,
+  BS,
+  ENTER,
+  DEL,
+  textNode,
 } = require './ast'
 require './browserSupport'
 
-delayedEval = (env, input, output, simplified, ast, code)-> setTimeout (-> evalDiv input.text(), env, input, output, simplified, ast, code), 1
+delayedEval = (env, input, output, simplified, ast, code, count)-> setTimeout (-> evalDiv input.text(), env, input, output, simplified, ast, code, count), 1
 
 buttons = ['simplified', 'ast', 'code']
+
+cleaning = false
+
+clean = (input)->
+  # this removes spurious BR nodes
+  burp input
+  resetText input
+
+burp = (input)-> console.log "Child nodes: ", input.childNodes
+
+resetText = (input)->
+  if !cleaning
+    if input.textContent == ''
+      cleaning = true
+      setTimeout (->
+        #if input.firstElementChild != null then input.removeChild input.firstElementChild
+        input.textContent = '\n'
+        s = window.getSelection()
+        r = document.createRange()
+        r.setStart input.firstChild, 0
+        s.removeAllRanges()
+        s.addRange(r)
+        setTimeout (-> cleaning = false), 1
+      ), 1
 
 configureCalc = (input, output, simplified, ast, code)->
   env = write: (str)-> output.append str
   env.__proto__ = defaultEnv
-  input[0].addEventListener 'DOMCharacterDataModified', ((evt)-> delayedEval env, input, output, simplified, ast, code)
-  input[0].addEventListener 'DOMSubtreeModified', ((evt)-> delayedEval env, input, output, simplified, ast, code)
+  inputCount = minInt
+  resetText input[0]
+  input[0].addEventListener 'keypress', (e)->
+    console.log "KEY: #{e.charCode || e.keyCode || e.which}"
+    par = e.target
+    s = window.getSelection()
+    r = s.getRangeAt(0)
+    burp par
+    inputCount++
+    #if (e.charCode || e.keyCode || e.which) in [BS, DEL] then clean e.target
+    if (e.charCode || e.keyCode || e.which) == ENTER
+      par = e.target
+      e.preventDefault()
+      console.log "ENTER"
+      br = textNode('\n')
+      r.insertNode br
+      r.setStartBefore par.firstChild
+      r.setEndAfter br
+      len = r.cloneContents().textContent.length
+      tc = par.textContent
+      console.log "len: #{len}, tc.len: #{tc.length}"
+      if $.browser.chrome && tc.length == len
+      #if br == br.parentNode.lastChild
+        if tc.length < 2 || tc.substring(tc.length - 2, tc.length) != '\n\n'
+          console.log 'ADDING NEWLINE'
+          len = tc.length + 1
+          br.nodeValue = '\n\n'
+      par.normalize()
+      r.setStart par.firstChild, len
+      r.collapse()
+      s.removeAllRanges()
+      s.addRange(r)
+  input[0].addEventListener 'DOMCharacterDataModified', (evt)->
+    if !cleaning
+      clean input[0]
+      delayedEval env, input, output, simplified, ast, code, inputCount
+  input[0].addEventListener 'DOMSubtreeModified', (evt)->
+    if !cleaning
+      clean input[0]
+      delayedEval env, input, output, simplified, ast, code, inputCount
   for button in buttons
     configurePanelToggle button
   $('#allButton').click (evt)-> toggleAll()
@@ -64,12 +131,16 @@ getParseErr = (x)-> x lz (value)->rz value
 
 show = (obj)-> rz(L_show)(lz obj)
 
-evalDiv = (text, env, input, output, simplified, astDiv, code)->
+evalCount = minInt
+
+evalDiv = (text, env, input, output, simplified, astDiv, code, count)->
+  if count < evalCount then return
+  evalCount = count
   output.html ''
   simplified.html ''
   astDiv.html ''
   code.html ''
-  if text
+  if text.trim()
     try
       result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
       runMonad result, env, (ast)->

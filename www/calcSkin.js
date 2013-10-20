@@ -11,6 +11,7 @@
   createNode = require('./browserSupport').createNode;
 
   menuInfo = {
+    "class": 'mode',
     width: 74,
     height: 46,
     tops: [364],
@@ -18,6 +19,7 @@
   };
 
   topInfo = {
+    "class": 'function',
     width: 74,
     height: 58,
     tops: [444, 545, 647],
@@ -25,6 +27,7 @@
   };
 
   enterButtonInfo = {
+    "class": 'enterButton',
     width: 194,
     height: 58,
     tops: [748],
@@ -32,6 +35,7 @@
   };
 
   enterRowInfo = {
+    "class": 'enterRow',
     width: 74,
     height: 58,
     tops: [748],
@@ -39,6 +43,7 @@
   };
 
   numberKeysInfo = {
+    "class": 'numbers',
     width: 98,
     height: 59,
     tops: [850, 952, 1053, 1155],
@@ -49,7 +54,8 @@
 
   useSkin = function() {
     var info, _i, _len;
-    $('body').css('background', 'url(droid48-blank-cropped.png) fixed no-repeat').css('line-height', '49px');
+    $('body').css('background', 'url(droid48-blank-cropped.png) fixed no-repeat').css('line-height', '49px').addClass('calcMain');
+    $(document.head).append("<link href='calcSkin.css' rel='stylesheet' type='text/css'>");
     for (_i = 0, _len = infos.length; _i < _len; _i++) {
       info = infos[_i];
       createInfoDivs(info);
@@ -94,19 +100,15 @@
   createInfoDivs = function(info) {
     var div, left, top;
     return info.divs = (function() {
-      var _i, _len, _ref1, _results;
-      _ref1 = info.tops;
+      var _i, _ref1, _results;
       _results = [];
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        top = _ref1[_i];
+      for (top = _i = 0, _ref1 = info.tops.length; 0 <= _ref1 ? _i < _ref1 : _i > _ref1; top = 0 <= _ref1 ? ++_i : --_i) {
         _results.push((function() {
-          var _j, _len1, _ref2, _results1;
-          _ref2 = info.lefts;
+          var _j, _ref2, _results1;
           _results1 = [];
-          for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-            left = _ref2[_j];
+          for (left = _j = 0, _ref2 = info.lefts.length; 0 <= _ref2 ? _j < _ref2 : _j > _ref2; left = 0 <= _ref2 ? ++_j : --_j) {
             div = $(document.createElement('DIV'));
-            div.css('width', info.width).css('height', info.height).css('top', "" + top + "px").css('left', "" + left + "px").css('position', 'fixed').css('border', 'blue solid 2px');
+            div.addClass('calcButton').addClass(info["class"]).addClass("top" + top).addClass("left" + left);
             $(document.body).append(div);
             _results1.push(div);
           }

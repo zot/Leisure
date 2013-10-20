@@ -24,7 +24,7 @@
 
   gen = require('./gen').gen;
 
-  _ref3 = require('./browserSupport'), ENTER = _ref3.ENTER, svgMeasure = _ref3.svgMeasure, svgMeasureText = _ref3.svgMeasureText, createNode = _ref3.createNode;
+  _ref3 = require('./browserSupport'), BS = _ref3.BS, ENTER = _ref3.ENTER, DEL = _ref3.DEL, svgMeasure = _ref3.svgMeasure, svgMeasureText = _ref3.svgMeasureText, createNode = _ref3.createNode, textNode = _ref3.textNode;
 
   URI = window.URI;
 
@@ -38,11 +38,7 @@
 
   debug = false;
 
-  BS = 8;
-
   TAB = 9;
-
-  ENTER = 13;
 
   ESC = 27;
 
@@ -61,8 +57,6 @@
   RIGHT_ARROW = 39;
 
   DOWN_ARROW = 40;
-
-  DEL = 46;
 
   arrows = [37, 38, 39, 40];
 
@@ -1368,10 +1362,6 @@
 
   markPartialApplies = function(bx, def) {};
 
-  textNode = function(text) {
-    return document.createTextNode(text);
-  };
-
   nodeFor = function(text) {
     if (typeof text === 'string') {
       return textNode(text);
@@ -2509,8 +2499,6 @@
 
   root.ENTER = ENTER;
 
-  root.textNode = textNode;
-
   root.cleanEmptyNodes = cleanEmptyNodes;
 
   root.isLeisureCode = isLeisureCode;
@@ -2530,8 +2518,6 @@
   root.highlightNotebookFunction = highlightNotebookFunction;
 
   root.ESC = ESC;
-
-  root.ENTER = ENTER;
 
   root.HOME = HOME;
 

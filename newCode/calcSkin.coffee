@@ -10,30 +10,35 @@ lz = lazy
 } = require './browserSupport'
 
 menuInfo =
+  class: 'mode'
   width: 74
   height: 46
   tops: [364]
   lefts: [23, 143, 263, 383, 503, 623]
 
 topInfo =
+  class: 'function'
   width: 74
   height: 58
   tops: [444, 545, 647]
   lefts: [23, 143, 263, 383, 503, 623]
 
 enterButtonInfo =
+  class: 'enterButton'
   width: 194
   height: 58
   tops: [748]
   lefts: [23]
 
 enterRowInfo =
+  class: 'enterRow'
   width: 74
   height: 58
   tops: [748]
   lefts: [263, 383, 503, 623]
 
 numberKeysInfo =
+  class: 'numbers'
   width: 98
   height: 59
   tops: [850, 952, 1053, 1155]
@@ -46,6 +51,8 @@ useSkin = ->
     .css('background', 'url(droid48-blank-cropped.png) fixed no-repeat')
     #.css('font', 'font: 100%/1.618 sans-serif')
     .css('line-height', '49px')
+    .addClass('calcMain')
+  $(document.head).append "<link href='calcSkin.css' rel='stylesheet' type='text/css'>"
   for info in infos
     createInfoDivs info
   setInput numberKeysInfo, 0, 3, 1
@@ -128,16 +135,20 @@ useSkin = ->
 setInput = (info, input, top, left)-> info.divs[top][left].click (evt)-> $('#input').append input
 
 createInfoDivs = (info)->
-  info.divs = for top in info.tops
-    for left in info.lefts
+  info.divs = for top in [0...info.tops.length]
+    for left in [0...info.lefts.length]
       div = $(document.createElement 'DIV')
       div
-        .css('width', info.width)
-        .css('height', info.height)
-        .css('top', "#{top}px")
-        .css('left', "#{left}px")
-        .css('position', 'fixed')
-        .css('border', 'blue solid 2px')
+        .addClass('calcButton')
+        .addClass(info.class)
+        .addClass("top#{top}")
+        .addClass("left#{left}")
+        #.css('width', info.width)
+        #.css('height', info.height)
+        #.css('top', "#{top}px")
+        #.css('left', "#{left}px")
+        #.css('position', 'fixed')
+        #.css('border', 'blue solid 2px')
       $(document.body).append div
       div
 
