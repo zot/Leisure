@@ -109,11 +109,14 @@ evalInput = (text, cont)->
           if getType(ast) == 'parseErr'
             cont "PARSE ERORR: #{getParseErr ast}"
           else
+            source = genSource text, ast
             if diag
               if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad rz(L_simplify) lz text}"
               console.log "\nAST: #{ast}"
-              console.log "\nCODE: (#{gen ast})"
-            result = eval genSource text, ast
+              #console.log "\nCODE: (#{gen ast})"
+              console.log "\nCODE: (#{source})"
+            #result = eval genSource text, ast
+            result = eval source
             if isMonad result then console.log "(processing IO monad)"
             runMonad result, replEnv, cont
         catch err

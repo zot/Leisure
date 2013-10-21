@@ -91,6 +91,10 @@ define 'assertLog', lz (bool)->(msg)->(expr)-> rz(bool)(expr)(->
   console.log new Error(rz msg).stack
   console.log "LOGGED ERROR -- RESUMING EXECUTION..."
   rz expr)
+define 'trace', lz (msg)->
+  e = new Error(rz msg)
+  setTimeout (-> throw e), 1
+  msg
 
 ############
 # MATH
@@ -433,9 +437,9 @@ define 'override', lz (name)->(newFunc)->
 # IO
 #######################
 
-define 'trace', lz (msg)->
-  makeSyncMonad (env, cont)->
-    cont (root.E = new Error(msg)).stack
+# define 'trace', lz (msg)->
+#   makeSyncMonad (env, cont)->
+#     cont (root.E = new Error(msg)).stack
 
 define 'print', lz (msg)->
   makeSyncMonad (env, cont)->
