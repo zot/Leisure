@@ -48,9 +48,6 @@ infos = [menuInfo, topInfo, enterButtonInfo, enterRowInfo, numberKeysInfo]
 
 useSkin = ->
   $('body')
-    .css('background', 'url(droid48-blank-cropped.png) fixed no-repeat')
-    #.css('font', 'font: 100%/1.618 sans-serif')
-    .css('line-height', '49px')
     .addClass('calcMain')
   $(document.head).append "<link href='calcSkin.css' rel='stylesheet' type='text/css'>"
   for info in infos
@@ -65,74 +62,29 @@ useSkin = ->
   setInput numberKeysInfo, 7, 0, 1
   setInput numberKeysInfo, 8, 0, 2
   setInput numberKeysInfo, 9, 0, 3
-  menuInfo.divs[0][0].click (evt)->
+  setInput numberKeysInfo, '/', 0, 4
+  setInput numberKeysInfo, '*', 1, 4
+  setInput numberKeysInfo, '-', 2, 4
+  setInput numberKeysInfo, '+', 3, 4
+  setInput numberKeysInfo, '.', 3, 2
+  setInput numberKeysInfo, ' ', 3, 3
+  enterRowInfo.divs[0][3].mousedown (evt)->
+    document.execCommand 'insertText', false, String(input)
+    evt.preventDefault()
+
+  menuInfo.divs[0][0].mousedown (evt)->
+    evt.preventDefault()
     $('#simplifiedPanel').addClass 'hidden'
     $('#astPanel').toggleClass 'hidden'
-  menuInfo.divs[0][1].click (evt)->
+  menuInfo.divs[0][1].mousedown (evt)->
+    evt.preventDefault()
     $('#astPanel').addClass 'hidden'
     $('#simplifiedPanel').toggleClass 'hidden'
-  $(document.body)
-    .css('font-size', '36px')
-  $('#input')
-    .css('top', '0')
-    .css('height', 'calc(49px * 4)')
-    .css('left', '32px')
-    .css('padding', '0')
-    .css('padding-left', '2px')
-    .css('padding-right', '2px')
-    .css('width', '651px')
-    .css('position', 'fixed')
-    .css('margin', '0')
-    .css('border', 'none')
-    .css('outline', '1px solid black')
-  $('#inputLabel').css('display', 'none')
-  $('#outputLabel').css('display', 'none')
-  $('#output')
-    .css('top', 'calc(49px * 4.5)')
-    .css('height', 'calc(49px * 2)')
-    .css('left', '32px')
-    .css('padding', '0')
-    .css('padding-left', '2px')
-    .css('padding-right', '2px')
-    .css('width', '651px')
-    .css('position', 'fixed')
-    .css('margin', '0')
-    .css('border', 'none')
-    .css('outline', '1px solid green')
-  $('#astPanel')
-    .css('top', '444px')
-    .css('left', '32px')
-    .css('width', '655px')
-    .css('height', 'calc(800px - 444px)')
-    .css('background', 'white')
-    .css('position', 'fixed')
-    .css('z-index', '1')
-    .css('padding', '0')
-    .css('margin', '0')
-  $('#astLabel').css('display', 'none')
-  $('#ast')
-    .css('width', 'calc(100% - 4px)')
-    .css('height', '100%')
-    .css('border', 'none')
-    .css('padding', '2px')
-  $('#simplifiedPanel')
-    .css('top', '444px')
-    .css('left', '32px')
-    .css('width', '655px')
-    .css('height', 'calc(800px - 444px)')
-    .css('background', 'white')
-    .css('position', 'fixed')
-    .css('z-index', '1')
-    .css('padding', '0')
-    .css('margin', '0')
-  $('#simplifiedLabel').css('display', 'none')
-  $('#simplified')
-    .css('width', 'calc(100% - 4px)')
-    .css('height', '100%')
-    .css('border', 'none')
-    .css('padding', '2px')
 
-setInput = (info, input, top, left)-> info.divs[top][left].click (evt)-> $('#input').append input
+setInput = (info, input, top, left)->
+  info.divs[top][left].mousedown (evt)->
+    document.execCommand 'insertText', false, String(input)
+    evt.preventDefault()
 
 createInfoDivs = (info)->
   info.divs = for top in [0...info.tops.length]
@@ -143,13 +95,7 @@ createInfoDivs = (info)->
         .addClass(info.class)
         .addClass("top#{top}")
         .addClass("left#{left}")
-        #.css('width', info.width)
-        #.css('height', info.height)
-        #.css('top', "#{top}px")
-        #.css('left', "#{left}px")
-        #.css('position', 'fixed')
-        #.css('border', 'blue solid 2px')
-      $(document.body).append div
+      $('#calc').append div
       div
 
 root.useSkin = useSkin

@@ -192,6 +192,7 @@
     }
     evalCount = count;
     output.html('');
+    output.removeClass('err');
     simplified.html('');
     astDiv.html('');
     code.html('');

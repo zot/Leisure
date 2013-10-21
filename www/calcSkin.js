@@ -54,7 +54,7 @@
 
   useSkin = function() {
     var info, _i, _len;
-    $('body').css('background', 'url(droid48-blank-cropped.png) fixed no-repeat').css('line-height', '49px').addClass('calcMain');
+    $('body').addClass('calcMain');
     $(document.head).append("<link href='calcSkin.css' rel='stylesheet' type='text/css'>");
     for (_i = 0, _len = infos.length; _i < _len; _i++) {
       info = infos[_i];
@@ -70,30 +70,32 @@
     setInput(numberKeysInfo, 7, 0, 1);
     setInput(numberKeysInfo, 8, 0, 2);
     setInput(numberKeysInfo, 9, 0, 3);
-    menuInfo.divs[0][0].click(function(evt) {
+    setInput(numberKeysInfo, '/', 0, 4);
+    setInput(numberKeysInfo, '*', 1, 4);
+    setInput(numberKeysInfo, '-', 2, 4);
+    setInput(numberKeysInfo, '+', 3, 4);
+    setInput(numberKeysInfo, '.', 3, 2);
+    setInput(numberKeysInfo, ' ', 3, 3);
+    enterRowInfo.divs[0][3].mousedown(function(evt) {
+      document.execCommand('insertText', false, String(input));
+      return evt.preventDefault();
+    });
+    menuInfo.divs[0][0].mousedown(function(evt) {
+      evt.preventDefault();
       $('#simplifiedPanel').addClass('hidden');
       return $('#astPanel').toggleClass('hidden');
     });
-    menuInfo.divs[0][1].click(function(evt) {
+    return menuInfo.divs[0][1].mousedown(function(evt) {
+      evt.preventDefault();
       $('#astPanel').addClass('hidden');
       return $('#simplifiedPanel').toggleClass('hidden');
     });
-    $(document.body).css('font-size', '36px');
-    $('#input').css('top', '0').css('height', 'calc(49px * 4)').css('left', '32px').css('padding', '0').css('padding-left', '2px').css('padding-right', '2px').css('width', '651px').css('position', 'fixed').css('margin', '0').css('border', 'none').css('outline', '1px solid black');
-    $('#inputLabel').css('display', 'none');
-    $('#outputLabel').css('display', 'none');
-    $('#output').css('top', 'calc(49px * 4.5)').css('height', 'calc(49px * 2)').css('left', '32px').css('padding', '0').css('padding-left', '2px').css('padding-right', '2px').css('width', '651px').css('position', 'fixed').css('margin', '0').css('border', 'none').css('outline', '1px solid green');
-    $('#astPanel').css('top', '444px').css('left', '32px').css('width', '655px').css('height', 'calc(800px - 444px)').css('background', 'white').css('position', 'fixed').css('z-index', '1').css('padding', '0').css('margin', '0');
-    $('#astLabel').css('display', 'none');
-    $('#ast').css('width', 'calc(100% - 4px)').css('height', '100%').css('border', 'none').css('padding', '2px');
-    $('#simplifiedPanel').css('top', '444px').css('left', '32px').css('width', '655px').css('height', 'calc(800px - 444px)').css('background', 'white').css('position', 'fixed').css('z-index', '1').css('padding', '0').css('margin', '0');
-    $('#simplifiedLabel').css('display', 'none');
-    return $('#simplified').css('width', 'calc(100% - 4px)').css('height', '100%').css('border', 'none').css('padding', '2px');
   };
 
   setInput = function(info, input, top, left) {
-    return info.divs[top][left].click(function(evt) {
-      return $('#input').append(input);
+    return info.divs[top][left].mousedown(function(evt) {
+      document.execCommand('insertText', false, String(input));
+      return evt.preventDefault();
     });
   };
 
@@ -109,7 +111,7 @@
           for (left = _j = 0, _ref2 = info.lefts.length; 0 <= _ref2 ? _j < _ref2 : _j > _ref2; left = 0 <= _ref2 ? ++_j : --_j) {
             div = $(document.createElement('DIV'));
             div.addClass('calcButton').addClass(info["class"]).addClass("top" + top).addClass("left" + left);
-            $(document.body).append(div);
+            $('#calc').append(div);
             _results1.push(div);
           }
           return _results1;

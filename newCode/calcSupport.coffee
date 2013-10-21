@@ -137,6 +137,7 @@ evalDiv = (text, env, input, output, simplified, astDiv, code, count)->
   if count < evalCount then return
   evalCount = count
   output.html ''
+  output.removeClass 'err'
   simplified.html ''
   astDiv.html ''
   code.html ''

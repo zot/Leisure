@@ -38,6 +38,10 @@
                 tops: 850, 952, 1053, 1155
                 lefts: 23, 167, 311, 455, 599
                 */
+                .body {
+                        position: relative;
+                        margin: 0;
+                }
                 .loading #calc {
                         display: none;
                 }
@@ -121,7 +125,7 @@
           }
         </script>
   </head>
-  <body style="position: relative; margin: 0" class="loading">
+  <body class="loading">
     <div id="loading">LOADING CALC</div>
     <div id="calc">
       <div id='inputLabel'>Input</div>
@@ -133,7 +137,7 @@
         <div id='simplifiedLabel'>Simplified</div>
         <div id='simplified'></div><br>
       </div>
-      <div id="astPanel" class="hidden" style="position: relative">
+      <div id="astPanel" class="hidden">
         <div id='astLabel'>AST</div>
         <div id='ast'></div><br>
       </div>
