@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, posString, readDir, readFile, replaceErr, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, posString, readDir, readFile, replaceErr, requireFiles, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
     __slice = [].slice;
 
   _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
@@ -185,11 +185,7 @@ misrepresented as being the original software.
   }));
 
   define('trace', lz(function(msg) {
-    var e;
-    e = new Error(rz(msg));
-    setTimeout((function() {
-      throw e;
-    }), 1);
+    console.log("STACKTRACE: ", new Error(rz(msg)).stack);
     return msg;
   }));
 
@@ -1282,6 +1278,27 @@ misrepresented as being the original software.
   Leisure_right.prototype.toString = function() {
     return "Right(" + (this(lz(_identity))(lz(_identity))) + ")";
   };
+
+  requireFiles = function(req, cont, verbose) {
+    var contStack;
+    if (req.length) {
+      if (verbose) {
+        console.log("REQUIRING FILE: " + req[0]);
+      }
+      contStack = require(req.shift());
+      if (Array.isArray(contStack) && contStack.length) {
+        return contStack.unshift(function() {
+          return requireFiles(req, cont, verbose);
+        });
+      } else {
+        return requireFiles(req, cont, verbose);
+      }
+    } else {
+      return cont();
+    }
+  };
+
+  root.requireFiles = requireFiles;
 
   root._true = _true;
 

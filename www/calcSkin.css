@@ -10,7 +10,7 @@ body {
     height: 1230px;
     margin: 0;
     padding: 0;
-    background: url(droid48-blank-cropped.png) fixed no-repeat;
+    background: url(droid48-blank-cropped.png) no-repeat;
     line-height: 49px;
 }
 
@@ -48,10 +48,11 @@ body {
 #astPanel, #simplifiedPanel {
     top: 430px;
     left: 4px;
-    width: 712px;
-    height: calc(810px - 430px);
+    width: 672px;
+    height: calc(780px - 430px);
     background: white;
-    border-image: url(panel.png) 5px;
+    border: 20px solid transparent;
+    border-image: url(panel.png) 4 4 repeat;
     position: absolute;
     z-index: 1;
     padding: 0;
@@ -116,7 +117,6 @@ body {
         position: absolute;
         width: 100%;
         height: 100%;
-        background: url(droid48-blank-cropped.png) fixed no-repeat;
         background-size: 100% 100%;
         /*line-height: 4vh;*/ /*calc(49/1230*100vh)*/
     }
