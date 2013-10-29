@@ -106,13 +106,18 @@
         <script src="jquery-ui/js/jquery-1.8.2.js"></script>
         <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
         <script language="javascript">
+          window.Boot = {extraJsFiles: [
+                'calcSupport',
+                'parseAst',
+                'calcSkin',
+                'calc'
+          ]};
           function start() {
                 setTimeout(function() {
                         window.Leisure = {calc: true}
                         var script = document.createElement('script');
                         script.src = "bootLeisure.js?uniq=" + Math.random();
                         script.onload = function() {
-                                console.log("adding boot callback...");
                                 Boot.onboot(function() {
                                         Leisure.configureCalc($('#input'), $('#output'), $('#simplified'), $('#ast'), $('#code'));
                                         $('#input').attr('contenteditable', 'true').html('').focus();

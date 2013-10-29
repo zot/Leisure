@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+        <style>
+                .body {
+                        position: relative;
+                        margin: 0;
+                }
+                [maindoc] {
+                        white-space: pre-wrap;
+                }
+                [data-org-type="headline"] > [data-org-type="text"] {
+                        color: orange;
+                        font-weight: bold;
+                }
+                .collapsed > [data-org-type="text"] {
+                        display: inline;
+                }
+                .collapsed > * {
+                        display: none;
+                }
+                .collapsed > [data-org-type="text"]:after {
+                        content: '...\000A';
+                }
+                [dirty] {
+                        font-style: oblique;
+                }
+        </style>
+        <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->
+        <!--script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script-->
+        <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
+        <script src="jquery-ui/js/jquery-1.8.2.js"></script>
+        <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
+        <script language="javascript">
+          window.Boot = {extraJsFiles: [
+                'orgSupport',
+          ]};
+          function start() {
+                setTimeout(function() {
+                        window.Leisure = {calc: true}
+                        var script = document.createElement('script');
+                        script.src = "bootLeisure.js?uniq=" + Math.random();
+                        script.onload = function() {
+                                var div = $('[maindoc]');
+
+                                window.ORG_TEXT = div.html().replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
+                                Boot.onboot(function() {
+                                        $('#loading').remove();
+                                        $('#panel').css('display', '');
+                                        div.html(Leisure.markupOrg(ORG_TEXT));
+                                        Leisure.bindContent(div[0], $('#source'));
+                                });
+                        }
+                        document.head.appendChild(script);
+                }, 1);
+          }
+        </script>
+  </head>
+  <body class="loading">
+    <div id="loading">LOADING ORG</div>
+<div id="panel" style="display: none">
+<div maindoc style='border: green solid 2px' contenteditable='true'><!--
+* code :duh:
+#+BEGIN_SRC leisure
+3 + 4
+#+END_SRC
+* one
+* two
+--></div>
+<br>Source...
+<div id='source' style="white-space: pre-wrap; border: blue solid 2px"></div>
+</div>
+<script>start()</script>
+  </body>
+</html>

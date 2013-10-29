@@ -9,6 +9,7 @@ lz = lazy
 BS = 8
 ENTER = 13
 DEL = 46
+TAB = 9
 
 textNode = (text)-> document.createTextNode(text)
 
@@ -82,4 +83,5 @@ root.createNode = createNode
 root.ENTER = ENTER
 root.BS = BS
 root.DEL = DEL
+root.TAB = TAB
 root.textNode = textNode

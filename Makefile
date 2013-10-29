@@ -20,7 +20,7 @@ COFFEE_JS=$(SRC:%=lib/%.js)
 BROWSER_MAIN_SRC=browserMain
 BROWSER_MAIN_COFFEE=$(BROWSER_MAIN_SRC:%=newCode/%.coffee)
 BROWSER_MAIN_JS=$(BROWSER_MAIN_SRC:%=lib/%.js)
-NEW_COFFEE_SRC=uri prims notebook md calcSupport browserSupport calcSkin
+NEW_COFFEE_SRC=uri prims notebook md calcSupport browserSupport calcSkin orgSupport
 NEW_COFFEE=$(NEW_COFFEE_SRC:%=newCode/%.coffee)
 NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
 NEW_LSR_SRC=std svg calc parseAst

@@ -5,7 +5,7 @@
 Leisure = window.Leisure ? (window.Leisure = {})
 Boot = window.Boot ? (window.Boot = {})
 
-extras = [
+baseJsFiles = [
 #  'marked',
   'base',
   'ast',
@@ -16,13 +16,16 @@ extras = [
   'browserSupport',
   'svg',
 #  'md',
-  'calcSupport',
-  'parseAst',
-  'calcSkin',
-  'calc',
+#  'calcSupport',
+#  'parseAst',
+#  'calcSkin',
+#  'calc',
 ]
 
-Boot.jsFiles.push ("#{f}.js" for f in extras)...
+Boot.jsFiles.push ("#{f}.js" for f in baseJsFiles)...
+if Boot.extraJsFiles? then Boot.jsFiles.push ("#{f}.js" for f in Boot.extraJsFiles)...
+
+console.log "Boot files: #{JSON.stringify Boot.jsFiles}"
 
 reqGuard = false
 window.require = (file)->

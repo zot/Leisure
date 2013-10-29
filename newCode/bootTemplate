@@ -1,5 +1,5 @@
 (function(){
-var Boot = window.Boot = {};
+var Boot = (window.Boot ? window.Boot : window.Boot = {});
 Boot.cssFiles = ['leisureCSS-CSSHASH.css'];
 Boot.jsFiles = ['leisureJS-JSHASH.js'];
 })();
