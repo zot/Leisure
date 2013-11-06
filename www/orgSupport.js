@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, ENTER, HL_TAGS, Headline, Keyword, Meat, Results, Source, TAB, backspace, bindContent, boundarySpan, checkExtraNewline, checkLast, checkSourceMod, checkStart, cleanHeadline, collapseNode, contentSpan, defaultEnv, displaySource, editDiv, executeSource, findDomPosition, findOrgNode, fixupNodes, followingSpan, getLeft, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, headlineRE, id, idCount, inCollapsible, isBoundary, isCollapsed, isCollapsible, isDocNode, isEmptyCollapsible, isSourceNode, lazy, lz, markupGuts, markupNode, markupOrg, modifying, newResults, nextOrgId, nodes, optionalBoundary, orgAttrs, orgEnv, parseOrgMode, parseTags, resolve, root, rz, setTags, show, sourceDiv, styleCache, trailingNL, _ref, _ref1, _ref2;
+  var BS, DEL, ENTER, HL_TAGS, Headline, Keyword, Meat, Results, Source, TAB, backspace, bindContent, boundarySpan, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, content, contentSpan, defaultEnv, displaySource, editDiv, executeSource, findDomPosition, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getOrgParent, getOrgType, getResultsForSource, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, headlineRE, id, idCount, isBoundary, isCollapsed, isCollapsible, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, lazy, lz, markupGuts, markupNode, markupOrg, modifying, nativeRange, needsReparse, newResults, nextOrgId, nodes, optionalBoundary, orgAttrs, orgEnv, parseOrgMode, parseTags, reparse, resolve, root, rz, setTags, show, sourceDiv, styleCache, trailingNL, _ref, _ref1, _ref2;
 
   getType = require('./ast').getType;
 
@@ -51,8 +51,14 @@ misrepresented as being the original software.
 
   nodes = {};
 
+  needsReparse = false;
+
   nextOrgId = function() {
     return 'org-node-' + idCount++;
+  };
+
+  getOrgType = function(node) {
+    return node != null ? node.getAttribute('data-org-type') : void 0;
   };
 
   getStyle = function(node) {
@@ -82,27 +88,33 @@ misrepresented as being the original software.
     org = parseOrgMode(text);
     console.log("ORG:\n" + (JSON.stringify(org.toJsonObject(), null, '  ')));
     window.ORG = org;
-    return markupNode(org, '', true);
+    return markupNode(org, true);
   };
 
   boundarySpan = "<span data-org-type='boundary'>\n</span>";
 
   orgAttrs = function(org) {
+    var extra;
     org.nodeId = nextOrgId();
     nodes[org.nodeId] = org;
-    return "id='" + org.nodeId + "' data-org-type='" + org.type + "'";
+    extra = isDynamic(org) ? ' data-org-dynamic="true"' : '';
+    return "id='" + org.nodeId + "' data-org-type='" + org.type + "'" + extra;
   };
 
-  markupNode = function(org, newline, start) {
-    var content, pos;
+  isDynamic = function(org) {
+    return org instanceof Source && org.info.match(/:results .*dynamic/i);
+  };
+
+  markupNode = function(org, start) {
+    var pos, text;
     if (org instanceof Source || org instanceof Results) {
       pos = org.contentPos - org.offset - 1;
-      content = org.text.substring(pos);
-      return "<span " + (orgAttrs(org)) + "><span data-org-type='text'>" + (org.text.substring(0, pos)) + "</span>" + (contentSpan(content)) + "</span>";
+      text = org.text.substring(pos);
+      return "<span " + (orgAttrs(org)) + "><span data-org-type='text'>" + (org.text.substring(0, pos)) + "</span>" + (contentSpan(text)) + "</span>";
     } else if (org instanceof Headline) {
       return "<span " + (orgAttrs(org)) + "'>" + (contentSpan(org.text, 'text')) + (markupGuts(org, checkStart(start, org.text))) + "</span>";
     } else {
-      return "<span " + (orgAttrs(org)) + "'>" + org.text + "</span>";
+      return "<span " + (orgAttrs(org)) + "'>" + (content(org.text)) + "</span>";
     }
   };
 
@@ -119,11 +131,10 @@ misrepresented as being the original software.
   };
 
   markupGuts = function(org, start) {
-    var c, newline, nl, p, prev, s;
+    var c, p, prev, s;
     if (!org.children.length) {
       return '';
     } else {
-      newline = '\n';
       prev = start ? null : org;
       return ((function() {
         var _i, _len, _ref3, _results;
@@ -131,13 +142,11 @@ misrepresented as being the original software.
         _results = [];
         for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
           c = _ref3[_i];
-          nl = newline;
-          newline = '';
           s = start;
           start = false;
           p = prev;
           prev = c;
-          _results.push(optionalBoundary(p, c) + markupNode(c, nl, s));
+          _results.push(optionalBoundary(p, c) + markupNode(c, s));
         }
         return _results;
       })()).join("");
@@ -153,11 +162,19 @@ misrepresented as being the original software.
   };
 
   contentSpan = function(str, type) {
-    str = str[str.length - 1] === '\n' ? str.substring(0, str.length - 1) : str;
+    str = content(str);
     if (str) {
       return "<span" + (type ? " data-org-type='" + type + "'" : '') + ">" + str + "</span>";
     } else {
       return '';
+    }
+  };
+
+  content = function(str) {
+    if (str[str.length - 1] === '\n') {
+      return str.substring(0, str.length - 1);
+    } else {
+      return str;
     }
   };
 
@@ -185,20 +202,23 @@ misrepresented as being the original software.
     sourceDiv = givenSourceDiv;
     fixupNodes(div);
     div.addEventListener('keydown', function(e) {
-      var br, c, el, inCollapsedText, n, par, r, s;
+      var br, c, canceled, el, inCollapsedText, n, par, r, s;
       c = e.charCode || e.keyCode || e.which;
-      s = window.getSelection();
+      s = getSelection();
       r = s.getRangeAt(0);
+      el = r.startContainer;
+      par = el.parentNode;
+      canceled = false;
       if (c === TAB) {
         e.preventDefault();
+        canceled = true;
         collapseNode();
       } else if (String.fromCharCode(c) === 'C' && e.altKey) {
         executeSource(div, getSelection().focusNode);
       } else if (c === ENTER) {
         e.preventDefault();
+        canceled = true;
         n = s.focusNode;
-        el = r.startContainer;
-        par = el.parentNode;
         inCollapsedText = r.collapsed && el.nodeType === 3 && par.getAttribute('data-org-type') === 'text' && par.parentElement.classList.contains('collapsed') && el.nextSibling === null;
         if (inCollapsedText && r.startOffset === el.length) {
           return;
@@ -215,12 +235,12 @@ misrepresented as being the original software.
         r.collapse();
         s.removeAllRanges();
         s.addRange(r);
+        checkEnterReparse(div, r);
       } else if (c === DEL || c === BS) {
-        el = r.startContainer;
-        par = el.parentNode;
         inCollapsedText = r.collapsed && el.nodeType === 3 && par.getAttribute('data-org-type') === 'text' && par.parentElement.classList.contains('collapsed') && el.nextSibling === null;
         if (inCollapsedText && ((c === DEL && r.startOffset === el.length - 1) || (c === BS && r.startOffset === el.length))) {
           e.preventDefault();
+          canceled = true;
           el.data = el.data.substring(0, el.data.length - 1);
           r.setStart(el, el.data.length);
           r.setEnd(el, el.data.length);
@@ -228,11 +248,24 @@ misrepresented as being the original software.
           s.addRange(r);
         } else if (c === DEL && inCollapsedText && r.startOffset >= el.length - 1) {
           e.preventDefault();
-        } else if (c === BS) {
-          backspace(e);
+          canceled = true;
+        } else if (c !== BS || !(backspace(div, e))) {
+          checkDeleteReparse(div, c === BS);
         }
       }
-      return checkSourceMod();
+      if ((getOrgType(getOrgParent(el))) === 'boundary') {
+        needsReparse = true;
+      }
+      if (canceled) {
+        return checkSourceMod(div);
+      } else {
+        return setTimeout((function() {
+          return checkSourceMod(div);
+        }), 1);
+      }
+    });
+    div.addEventListener('keypress', function(e) {
+      return checkSourceMod(div);
     });
     div.addEventListener('DOMCharacterDataModified', handleMutation, true);
     div.addEventListener('DOMSubtreeModified', handleMutation, true);
@@ -241,7 +274,7 @@ misrepresented as being the original software.
 
   collapseNode = function() {
     var node;
-    node = inCollapsible(getSelection().focusNode);
+    node = getCollapsible(getSelection().focusNode);
     if (node) {
       if (!isEmptyCollapsible(node)) {
         modifying = true;
@@ -258,7 +291,7 @@ misrepresented as being the original software.
     return (node.nodeType === 1 && node.getAttribute('data-org-type') === 'boundary' && node) || (node.nodeType === 3 && isBoundary(node.parentElement));
   };
 
-  backspace = function(e) {
+  backspace = function(parent, e) {
     var boundary, r, s;
     s = rangy.getSelection();
     r = s.getRangeAt(0);
@@ -269,47 +302,121 @@ misrepresented as being the original software.
         r.move('character', -1);
         if (isCollapsed(r.startContainer)) {
           console.log("PREVENTING BACKSPACE");
-          return e.preventDefault();
+          e.preventDefault();
+          return true;
         }
       }
     }
+    return false;
   };
 
-  checkSourceMod = function() {};
+  checkSourceMod = function(parent) {
+    var n, r, _ref3;
+    r = getSelection().getRangeAt(0);
+    if ((n = getOrgParent(r.startContainer)) && ((_ref3 = n.getAttribute('data-org-dynamic')) != null ? _ref3.toLowerCase() : void 0) === 'true') {
+      return executeSource(parent, r.startContainer);
+    }
+  };
 
   orgEnv = function(parent, node) {
-    var org, pos, r, results, src;
-    org = parseOrgMode(parent.textContent);
-    pos = getTextPosition(parent, node, 0);
-    src = org.findNodeAt(pos);
-    results = src.next;
-    if (!(results instanceof Results)) {
-      results = results instanceof Meat && results.text.match(/^[ \n]*$/) ? results.next : newResults(parent, src);
-    }
-    r = inCollapsible(findDomPosition(parent, results.offset).startContainer).lastChild;
+    var first, r;
+    r = getResultsForSource(parent, node);
     r.innerHTML = '\n';
+    first = true;
     return {
       write: function(str) {
         console.log("RESULT: " + str);
-        return r.textContent += ": " + (str.replace(/\n/, '\n: ')) + "\n";
+        r.textContent += "" + (first ? '' : '\n') + ": " + (str.replace(/\n/, '\n: '));
+        if (first) {
+          return first = false;
+        }
       }
     };
   };
 
   orgEnv.__proto__ = defaultEnv;
 
-  newResults = function(parent, src) {
-    var pos, r, sel, srcEnd, text;
-    text = src.top().allText();
-    srcEnd = src.end();
-    text = text.substring(0, srcEnd) + "#+RESULTS:\n\n" + text.substring(srcEnd);
+  getResultsForSource = function(parent, node) {
+    var org, pos, results, src;
+    checkReparse(parent);
+    while (getOrgType(node.nextSibling) === 'boundary' || (getOrgType(node.nextSibling) === 'meat' && node.textContent.match(/^[ \n]*$/))) {
+      node = node.nextSibling;
+    }
+    node = node.nextSibling;
+    if ((node != null ? node.getAttribute('data-org-type') : void 0) === 'results') {
+      return node.lastChild;
+    } else {
+      org = parseOrgMode(parent.textContent);
+      pos = getTextPosition(parent, node, 0);
+      src = org.findNodeAt(pos);
+      results = src.next;
+      if (!(results instanceof Results)) {
+        results = results instanceof Meat && results.text.match(/^[ \n]*$/) ? results.next : newResults(parent, src);
+      }
+      return getCollapsible(findDomPosition(parent, results.offset).startContainer).lastChild;
+    }
+  };
+
+  checkReparse = function(parent) {
+    if (needsReparse) {
+      return reparse(parent);
+    }
+  };
+
+  nativeRange = function(r) {
+    var r2;
+    if (r instanceof Range) {
+      return r;
+    } else {
+      r2 = document.createRange();
+      r2.setStart(r.startContainer, r.startOffset);
+      r2.setEnd(r.endContainer, r.endOffset);
+      return r2;
+    }
+  };
+
+  reparse = function(parent, text) {
+    var pos, r, sel;
+    console.log("reparsing");
+    text = text != null ? text : parent.textContent;
     sel = getSelection();
     r = sel.getRangeAt(0);
     pos = getTextPosition(parent, r.startContainer, r.startOffset);
     parent.innerHTML = markupOrg(text);
-    r = findDomPosition(parent, pos);
+    r = nativeRange(findDomPosition(parent, pos));
     sel.removeAllRanges();
     sel.addRange(r);
+    return needsReparse = false;
+  };
+
+  checkDeleteReparse = function(parent, backspace) {
+    var r;
+    r = rangy.getSelection().getRangeAt(0);
+    if (backspace) {
+      r.moveStart('character', -1);
+    } else {
+      r.moveEnd('character', 1);
+    }
+    if (r.text() === '\n') {
+      return setTimeout((function() {
+        return reparse(parent);
+      }), 1);
+    }
+  };
+
+  checkEnterReparse = function(parent, r) {
+    var result;
+    if ((result = getCollapsible(r.startContainer))) {
+      reparse(parent);
+    }
+    return result;
+  };
+
+  newResults = function(parent, src) {
+    var srcEnd, text;
+    text = src.top().allText();
+    srcEnd = src.end();
+    reparse(parent, text.substring(0, srcEnd) + "#+RESULTS:\n\n" + text.substring(srcEnd));
     return findOrgNode(parent, srcEnd + 1);
   };
 
@@ -407,7 +514,7 @@ misrepresented as being the original software.
     var node;
     if (!modifying) {
       modifying = true;
-      if ((node = inCollapsible(evt.srcElement)) && (node.getAttribute('data-org-type') === 'headline')) {
+      if ((node = getCollapsible(evt.srcElement)) && (node.getAttribute('data-org-type') === 'headline')) {
         node.setAttribute('dirty', 'true');
       }
       displaySource();
@@ -424,16 +531,20 @@ misrepresented as being the original software.
     return (_ref3 = node.getAttribute('data-org-type')) === 'headline' || _ref3 === 'source' || _ref3 === 'results';
   };
 
-  inCollapsible = function(node) {
+  getCollapsible = function(node) {
     if (node.nodeType === 1) {
       if (isCollapsible(node)) {
         return node;
       } else {
-        return (node.getAttribute('data-org-type') === 'text') && inCollapsible(node.parentElement);
+        return (node.getAttribute('data-org-type') === 'text') && getCollapsible(node.parentElement);
       }
     } else {
-      return node.nodeType === 3 && inCollapsible(node.parentElement);
+      return node.nodeType === 3 && getCollapsible(node.parentElement);
     }
+  };
+
+  getOrgParent = function(node) {
+    return node && ((node.nodeType === 1 && isCollapsible(node) && node) || getOrgParent(node.parentElement));
   };
 
   isEmptyCollapsible = function(node) {
@@ -463,7 +574,7 @@ misrepresented as being the original software.
     }
     r = rangy.createRangyRange();
     r.setStartBefore(parent, 0);
-    r.setEndBefore(node, offset);
+    r.setEnd(node, offset);
     return r.text().length;
   };
 
@@ -478,7 +589,7 @@ misrepresented as being the original software.
     r = rangy.createRangyRange();
     r.setStartBefore(parent, pos);
     r.setEndBefore(parent, pos);
-    r.move('character', pos + 1);
+    r.move('character', pos);
     return r;
   };
 

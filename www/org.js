@@ -409,10 +409,10 @@ misrepresented as being the original software.
     results = meat.match(resultsRE);
     if ((results != null ? results[RES_LEAD].length : void 0) === 0) {
       return parseResults(results[0], offset, meat.substring(results[0].length) + rest);
-    } else if ((keyword != null ? keyword[KW_LEAD].length : void 0) === 0) {
-      return parseKeyword(keyword[0], offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(keyword[0].length) + rest);
     } else if ((srcStart != null ? srcStart[SRC_LEAD].length : void 0) === 0) {
       return parseSrcBlock(srcStart[0], offset, srcStart[SRC_INFO], meat.substring(srcStart[0].length) + rest);
+    } else if ((keyword != null ? keyword[KW_LEAD].length : void 0) === 0) {
+      return parseKeyword(keyword[0], offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(keyword[0].length) + rest);
     } else {
       pat = keyword;
       if (srcStart && (!keyword || srcStart.index < keyword.index)) {
