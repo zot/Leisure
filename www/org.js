@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var END_LEAD, HL_LEAD, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, KW_INFO, KW_LEAD, KW_NAME, Keyword, Meat, Node, RES_LEAD, Results, SRC_INFO, SRC_LEAD, Source, buildHeadlineRE, headlineRE, keywordRE, parseHeadline, parseKeyword, parseMeat, parseOrgChunk, parseOrgMode, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
+  var END_LEAD, HL_LEAD, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, KW_INFO, KW_LEAD, KW_NAME, Keyword, Meat, Node, RES_LEAD, Results, SRC_INFO, SRC_LEAD, Source, buildHeadlineRE, checkMatch, headlineRE, keywordRE, matchLine, parseHeadline, parseKeyword, parseMeat, parseOrgChunk, parseOrgMode, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -78,6 +78,26 @@ misrepresented as being the original software.
   resultsRE = /(^|\n)#\+RESULTS: *(?:\n|$)/i;
 
   resultsLineRE = /^([:|] .*)(?:\n|$)/i;
+
+  matchLine = function(txt) {
+    return checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
+      return "headline-" + m[HL_LEVEL].length;
+    });
+  };
+
+  checkMatch = function(txt, pat, result) {
+    var m;
+    m = txt.match(pat);
+    if ((m != null ? m.index : void 0) === 0) {
+      if (typeof result === 'string') {
+        return result;
+      } else {
+        return result(m);
+      }
+    } else {
+      return false;
+    }
+  };
 
   Node = (function() {
     function Node() {}
@@ -470,5 +490,7 @@ misrepresented as being the original software.
   root.HL_TAGS = HL_TAGS;
 
   root.parseTags = parseTags;
+
+  root.matchLine = matchLine;
 
 }).call(this);

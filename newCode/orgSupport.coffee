@@ -48,6 +48,7 @@ lz = lazy
   headlineRE,
   HL_TAGS,
   parseTags,
+  matchLine,
 } = require './org'
 
 editDiv = null
@@ -84,7 +85,6 @@ markupOrg = (text)->
   # ensure trailing newline -- contenteditable doesn't like it, otherwise
   if text[text.length - 1] != '\n' then text = text + '\n'
   org = parseOrgMode text
-  console.log "ORG:\n#{JSON.stringify org.toJsonObject(), null, '  '}"
   window.ORG = org
   markupNode org, true
 
@@ -187,12 +187,31 @@ bindContent = (div, givenSourceDiv)->
         canceled = true
       else if c != BS || !(backspace div, e)
         checkDeleteReparse div, c == BS
-    if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
-    if canceled then checkSourceMod div else setTimeout (->checkSourceMod div), 1
-  #div.addEventListener 'keypress', (e)-> checkSourceMod div
+    changes = (c > 47 && c < 58)  || # number keys
+      c == 32 || c == ENTER       || # spacebar and enter
+      c == BS || c == DEL         || # backspace and delete
+      (c > 64 && c < 91)          || # letter keys
+      (c > 95 && c < 112)         || # numpad keys
+      (c > 185 && c < 193)        || # ;=,-./` (in order)
+      (c > 218 && c < 223);          # [\]' (in order)
+    if changes
+      if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
+      currentMatch = matchLine currentLine div
+      if canceled then checkSourceMod div, currentMatch else setTimeout (->checkSourceMod div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
+
+currentLine = (parent)->
+  r = rangy.getSelection().getRangeAt 0
+  r.findText '\n', direction: 'backward'
+  r2 = rangy.getSelection().getRangeAt 0
+  r2.findText '\n'
+  r.setEnd r2.endContainer, r2.endOffset
+  t = r.text()
+  if t[0] != '\n' then r.setStartBefore parent; t = r.text()
+  if t[t.length - 1] != '\n' then r.setEndAfter parent; t = r.text()
+  t
 
 collapseNode = ->
   node = getCollapsible getSelection().focusNode
@@ -216,19 +235,19 @@ backspace = (parent, e)->
       r.setStartBefore boundary, 0
       r.move 'character', -1
       if isCollapsed r.startContainer
-        console.log "PREVENTING BACKSPACE"
         e.preventDefault()
         return true
   false
 
-checkSourceMod = (parent)->
+checkSourceMod = (parent, oldMatch)->
   r = getSelection().getRangeAt 0
   if (n = getOrgParent r.startContainer) && n.getAttribute('data-org-dynamic')?.toLowerCase() == 'true' then executeSource parent, r.startContainer
+  else if (newMatch = matchLine(currentLine parent)) != oldMatch then reparse parent
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
   r.innerHTML = ''
-  write: (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"; console.log "WRITE: #{JSON.stringify str}"
+  write: (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"
 
 orgEnv.__proto__ = defaultEnv
 
@@ -258,7 +277,6 @@ nativeRange = (r)->
     r2
 
 reparse = (parent, text)->
-  console.log "reparsing"
   text = text ? parent.textContent
   sel = getSelection()
   r = sel.getRangeAt 0

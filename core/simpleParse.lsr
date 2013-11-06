@@ -952,7 +952,7 @@ runNamedFile name text = \\
   lines = map tail counted
   names = namesForLines lines
   .
-  d 'Running file: ' name countedRunLines name names counted
+  countedRunLines name names counted
 
 baseLoad file = bind (readFile file)
   \result . result
