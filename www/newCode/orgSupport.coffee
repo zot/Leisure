@@ -131,11 +131,10 @@ contentSpan = (str, type)->
 
 content = (str)-> if str[str.length - 1] == '\n' then str.substring(0, str.length - 1) else str
 
-trailingNL = (str)-> if str[str.length - 1] == '\n' then '\n' else ''
-
 fixupNodes = (node)->
   for n in $(node).find('[data-org-type="headline"]')
     setTags n
+
 bindContent = (div, givenSourceDiv)->
   editDiv = div
   sourceDiv = givenSourceDiv
@@ -190,7 +189,7 @@ bindContent = (div, givenSourceDiv)->
         checkDeleteReparse div, c == BS
     if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
     if canceled then checkSourceMod div else setTimeout (->checkSourceMod div), 1
-  div.addEventListener 'keypress', (e)-> checkSourceMod div
+  #div.addEventListener 'keypress', (e)-> checkSourceMod div
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
@@ -228,12 +227,8 @@ checkSourceMod = (parent)->
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
-  r.innerHTML = '\n'
-  first = true
-  write: (str)->
-    console.log "RESULT: #{str}"
-    r.textContent += "#{if first then '' else '\n'}: #{str.replace /\n/, '\n: '}"
-    if first then first = false
+  r.innerHTML = ''
+  write: (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"; console.log "WRITE: #{JSON.stringify str}"
 
 orgEnv.__proto__ = defaultEnv
 
