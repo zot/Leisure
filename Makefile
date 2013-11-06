@@ -20,17 +20,15 @@ COFFEE_JS=$(SRC:%=lib/%.js)
 BROWSER_MAIN_SRC=browserMain
 BROWSER_MAIN_COFFEE=$(BROWSER_MAIN_SRC:%=newCode/%.coffee)
 BROWSER_MAIN_JS=$(BROWSER_MAIN_SRC:%=lib/%.js)
-NEW_COFFEE_SRC=uri prims notebook md calcSupport browserSupport calcSkin orgSupport
+NEW_COFFEE_SRC=uri prims notebook md calcSupport browserSupport calcSkin
 NEW_COFFEE=$(NEW_COFFEE_SRC:%=newCode/%.coffee)
 NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
 NEW_LSR_SRC=std svg calc parseAst
 NEW_LSR=$(NEW_LSR_SRC:%=newCode/%.lsr)
 NEW_LSR_JS=$(NEW_LSR_SRC:%=lib/%.js)
-BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus
+BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus orgSupport org
 BROWSER_INPUT=$(BROWSER_SRC:%=lib/%.js)
 BROWSER_JS=lib/browser.js
-#BROWSERIFY_EXCLUDE=$(BROWSER_INPUT:lib/%.js=-x ./%)
-#BROWSERIFY_EXCLUDE=$(BROWSER_INPUT:lib/%.js=-x ./%)
 BROWSERIFY_EXCLUDE=
 WEB_LEISURE_SRC=generatedPrelude std svg calc parseAst
 WEB_LEISURE_FILES=$(WEB_LEISURE_SRC:%=lib/%.lsr) $(WEB_LEISURE_SRC:%=lib/%.js) $(WEB_LEISURE_SRC:%=lib/%.map)
@@ -52,7 +50,7 @@ clean:
 
 $(BROWSER_JS): $(BROWSER_INPUT) $(PRELUDE) $(NEW_LSR_JS) $(BROWSER_MAIN_JS)
 	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
-	cp -f $(BROWSER_SRC:%=lib/%.js) $(SHARED_SRC:%=lib/%.map) $(NEW_COFFEE_SRC:%=lib/%.map) www
+	cp -f $(BROWSER_SRC:%=lib/%.js) $(BROWSER_SRC:%=lib/%.map) www
 	cp $(WEB_LEISURE_FILES) www
 	rm -rf www/core www/newCode
 	mkdir www/core www/newCode
@@ -67,8 +65,6 @@ $(CSS_OUT): $(CSS_FILES)
 repl: all FRC
 	core/repl
 
-#cp lib/browser.map "www/leisureJS-$$(sha256sum lib/browser.js|awk '{print $$1}').map"
-
 $(WEB_JS): $(BROWSER_JS) $(WEB_COFFEE) $(CSS_OUT)
 	cp lib/xus.js www
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc newCode/bootLeisure.coffee
@@ -80,13 +76,10 @@ $(WEB_JS): $(BROWSER_JS) $(WEB_COFFEE) $(CSS_OUT)
 	cp lib/uri.* www
 	cp $(WEB_MAPS) www
 
-$(NEW_COFFEE_JS): $(NEW_COFFEE)
+lib/%.js: newCode/%.coffee
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)
 
-$(BROWSER_MAIN_JS): $(BROWSER_MAIN_COFFEE)
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)
-
-$(NEW_LSR_JS): $(NEW_LSR) $(NEW_COFFEE_JS)
+lib/%.js: newCode/%.lsr $(NEW_COFFEE_JS)
 	$(NODE) lib/repl -c -d lib $(@:lib/%.js=newCode/%.lsr)
 	cp $(@:lib/%.js=newCode/%.lsr) lib
 

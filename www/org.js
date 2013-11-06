@@ -25,62 +25,450 @@ misrepresented as being the original software.
 
 
 (function() {
-  var getInnerText, k, org, parseOrgmode, root,
-    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+  var END_LEAD, HL_LEAD, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TEXT, HL_TODO, Headline, KW_INFO, KW_LEAD, KW_NAME, Keyword, Meat, Node, RES_LEAD, Results, SRC_INFO, SRC_LEAD, Source, buildHeadlineRE, headlineRE, keywordRE, parseHeadline, parseKeyword, parseMeat, parseOrgChunk, parseOrgMode, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  root = module.exports = require('./base');
+  root = module.exports;
 
-  window.org = org = require('org-mode-parser');
+  todoKeywords = ['TODO', 'DONE'];
 
-  getInnerText = function(node) {
-    var newNode;
-    newNode = node.cloneNode(true);
-    $(newNode).find('[data-org!=""]').remove();
-    $(newNode).css('position', 'absolute').css('top', '-1000000');
-    document.body;
-    return newNode.innerText;
+  buildHeadlineRE = function() {
+    return new RegExp('(^|\\n)((\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?.*?(:.*:)? *(?:\\n|$))');
   };
 
-  console.log((function() {
-    var _results;
-    _results = [];
-    for (k in org) {
-      _results.push(k);
+  HL_LEAD = 1;
+
+  HL_TEXT = 2;
+
+  HL_LEVEL = 3;
+
+  HL_TODO = 4;
+
+  HL_PRIORITY = 5;
+
+  HL_TAGS = 6;
+
+  headlineRE = buildHeadlineRE();
+
+  todoRE = /(\*+) *(TODO|DONE)/;
+
+  tagsRE = /:[^:]*/;
+
+  KW_LEAD = 1;
+
+  KW_NAME = 2;
+
+  KW_INFO = 3;
+
+  keywordRE = /(^|\n)#\+([^:].*): *(.*)(?:\n|$)/i;
+
+  SRC_LEAD = 1;
+
+  SRC_INFO = 2;
+
+  srcStartRE = /(^|\n)#\+BEGIN_SRC *(.*)(?:\n|$)/i;
+
+  END_LEAD = 1;
+
+  srcEndRE = /(^|\n)#\+END_SRC( *)(?:\n|$)/i;
+
+  RES_LEAD = 1;
+
+  resultsRE = /(^|\n)#\+RESULTS: *(?:\n|$)/i;
+
+  resultsLineRE = /^([:|] .*)(?:\n|$)/i;
+
+  Node = (function() {
+    function Node() {}
+
+    Node.prototype.length = function() {
+      return this.text.length;
+    };
+
+    Node.prototype.end = function() {
+      return this.offset + this.text.length;
+    };
+
+    Node.prototype.toJson = function() {
+      return JSON.stringify(this.toJsonObject(), null, "  ");
+    };
+
+    Node.prototype.allText = function() {
+      return this.text;
+    };
+
+    Node.prototype.block = false;
+
+    Node.prototype.findNodeAt = function(pos) {
+      if (this.offset <= pos && pos < this.offset + this.text.length) {
+        return this;
+      } else {
+        return null;
+      }
+    };
+
+    Node.prototype.linkNodes = function() {
+      return this;
+    };
+
+    Node.prototype.next = null;
+
+    Node.prototype.prev = null;
+
+    Node.prototype.top = function() {
+      if (!this.parent) {
+        return this;
+      } else {
+        return this.parent.top();
+      }
+    };
+
+    return Node;
+
+  })();
+
+  Headline = (function(_super) {
+    __extends(Headline, _super);
+
+    function Headline(text, level, todo, priority, tags, children, offset) {
+      this.text = text;
+      this.level = level;
+      this.todo = todo;
+      this.priority = priority;
+      this.tags = tags;
+      this.children = children;
+      this.offset = offset;
     }
-    return _results;
-  })());
 
-  parseOrgmode = function(text, cont) {
-    var node;
-    return node = org.makelistFromStringWithPerformance(text, cont);
+    Headline.prototype.block = true;
+
+    Headline.prototype.lowerThan = function(l) {
+      return l < this.level;
+    };
+
+    Headline.prototype.length = function() {
+      return this.end() - this.offset;
+    };
+
+    Headline.prototype.end = function() {
+      var lastChild;
+      if (this.children.length) {
+        lastChild = this.children[this.children.length - 1];
+        return lastChild.offset + lastChild.length();
+      } else {
+        return Headline.__super__.end.call(this);
+      }
+    };
+
+    Headline.prototype.type = 'headline';
+
+    Headline.prototype.toJsonObject = function() {
+      var c;
+      return {
+        type: this.type,
+        text: this.text,
+        offset: this.offset,
+        level: this.level,
+        todo: this.todo,
+        priority: this.priority,
+        tags: this.tags,
+        children: (function() {
+          var _i, _len, _ref, _results;
+          _ref = this.children;
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            c = _ref[_i];
+            _results.push(c.toJsonObject());
+          }
+          return _results;
+        }).call(this)
+      };
+    };
+
+    Headline.prototype.allText = function() {
+      var c;
+      return this.text + ((function() {
+        var _i, _len, _ref, _results;
+        _ref = this.children;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          c = _ref[_i];
+          _results.push(c.allText());
+        }
+        return _results;
+      }).call(this)).join('');
+    };
+
+    Headline.prototype.findNodeAt = function(pos) {
+      var child, res, _i, _len, _ref;
+      if (pos < this.offset || this.offset + this.length() < pos) {
+        return null;
+      } else if (pos < this.offset + this.text.length) {
+        return this;
+      } else {
+        _ref = this.children;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          child = _ref[_i];
+          if (res = child.findNodeAt(pos)) {
+            return res;
+          }
+        }
+        return null;
+      }
+    };
+
+    Headline.prototype.linkNodes = function() {
+      var c, prev, _i, _len, _ref;
+      prev = null;
+      _ref = this.children;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        c = _ref[_i];
+        c.linkNodes();
+        c.parent = this;
+        c.prev = prev;
+        if (prev) {
+          prev.next = c;
+        }
+        prev = c;
+      }
+      return this;
+    };
+
+    return Headline;
+
+  })(Node);
+
+  Meat = (function(_super) {
+    __extends(Meat, _super);
+
+    function Meat(text, offset) {
+      this.text = text;
+      this.offset = offset;
+    }
+
+    Meat.prototype.lowerThan = function(l) {
+      return true;
+    };
+
+    Meat.prototype.type = 'meat';
+
+    Meat.prototype.toJsonObject = function() {
+      return {
+        type: this.type,
+        text: this.text,
+        offset: this.offset
+      };
+    };
+
+    return Meat;
+
+  })(Node);
+
+  Keyword = (function(_super) {
+    __extends(Keyword, _super);
+
+    function Keyword(text, offset, name, info) {
+      this.text = text;
+      this.offset = offset;
+      this.name = name;
+      this.info = info;
+    }
+
+    Keyword.prototype.block = true;
+
+    Keyword.prototype.type = 'keyword';
+
+    Keyword.prototype.toJsonObject = function() {
+      return {
+        type: this.type,
+        name: this.name,
+        info: this.info,
+        text: this.text,
+        offset: this.offset
+      };
+    };
+
+    return Keyword;
+
+  })(Meat);
+
+  Source = (function(_super) {
+    __extends(Source, _super);
+
+    function Source(text, offset, info, content, contentPos) {
+      this.text = text;
+      this.offset = offset;
+      this.info = info;
+      this.content = content;
+      this.contentPos = contentPos;
+    }
+
+    Source.prototype.type = 'source';
+
+    Source.prototype.toJsonObject = function() {
+      return {
+        type: this.type,
+        info: this.info,
+        content: this.content,
+        contentPos: this.contentPos,
+        text: this.text,
+        offset: this.offset
+      };
+    };
+
+    return Source;
+
+  })(Keyword);
+
+  Results = (function(_super) {
+    __extends(Results, _super);
+
+    function Results(text, offset, contentPos) {
+      this.text = text;
+      this.offset = offset;
+      this.contentPos = contentPos;
+    }
+
+    Results.prototype.type = 'results';
+
+    Results.prototype.toJsonObject = function() {
+      return {
+        type: this.type,
+        text: this.text,
+        offset: this.offset,
+        contentPos: this.contentPos
+      };
+    };
+
+    return Results;
+
+  })(Keyword);
+
+  parseOrgMode = function(text) {
+    var res, rest, _ref;
+    _ref = parseHeadline('', 0, 0, void 0, void 0, void 0, text, text.length), res = _ref[0], rest = _ref[1];
+    if (rest.length) {
+      throw new Error("Text left after parsing: " + rest);
+    }
+    return res.linkNodes();
   };
 
-  if ((!(__indexOf.call(document.createElement('a'), 'innerText') >= 0)) && (__indexOf.call(window, 'getSelection') >= 0)) {
-    HTMLElement.prototype.__defineGetter__("innerText", function() {
-      var i, ranges, selection, str, _i, _j, _ref, _ref1;
-      selection = window.getSelection();
-      ranges = [];
-      str = null;
-      for (i = _i = 0, _ref = selection.rangeCount; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-        ranges[i] = selection.getRangeAt(i);
+  parseHeadline = function(text, offset, level, todo, priority, tags, rest, totalLen) {
+    var child, children, tagArray, _ref;
+    children = [];
+    while (true) {
+      _ref = parseOrgChunk(rest, totalLen - rest.length, level), child = _ref[0], rest = _ref[1];
+      if (!child) {
+        break;
       }
-      selection.removeAllRanges();
-      selection.selectAllChildren(this);
-      str = selection.toString();
-      selection.removeAllRanges();
-      for (i = _j = 0, _ref1 = ranges.length; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
-        selection.addRange(ranges[i]);
+      if (child.lowerThan(level)) {
+        children.push(child);
       }
-      return str;
-    });
-  }
+    }
+    tagArray = parseTags(tags);
+    return [new Headline(text, level, todo, priority, (tags ? tagArray : void 0), children, offset), rest];
+  };
 
-  root.getInnerText = getInnerText;
+  parseTags = function(text) {
+    var t, tagArray, _i, _len, _ref;
+    tagArray = [];
+    _ref = (text ? text.split(':') : []);
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      t = _ref[_i];
+      if (t) {
+        tagArray.push(t);
+      }
+    }
+    return tagArray;
+  };
 
-  root.parseOrgmode = parseOrgmode;
+  parseOrgChunk = function(text, offset, level) {
+    var m, meat;
+    if (!text) {
+      return [null, text];
+    } else {
+      m = text.match(headlineRE);
+      if ((m != null ? m.index : void 0) === 0 && m[HL_LEAD].length === 0) {
+        if (m[HL_LEVEL].length <= level) {
+          return [null, text];
+        } else {
+          return parseHeadline(m[HL_TEXT], offset + m[HL_LEAD].length, m[HL_LEVEL].length, m[HL_TODO], m[HL_PRIORITY], m[HL_TAGS], text.substring(m[0].length), offset + text.length);
+        }
+      } else {
+        meat = text.substring(0, m ? m.index + m[HL_LEAD].length : text.length);
+        return parseMeat(meat, offset, text.substring(meat.length));
+      }
+    }
+  };
+
+  parseMeat = function(meat, offset, rest) {
+    var keyword, pat, results, srcStart;
+    srcStart = meat.match(srcStartRE);
+    keyword = meat.match(keywordRE);
+    results = meat.match(resultsRE);
+    if ((results != null ? results[RES_LEAD].length : void 0) === 0) {
+      return parseResults(results[0], offset, meat.substring(results[0].length) + rest);
+    } else if ((keyword != null ? keyword[KW_LEAD].length : void 0) === 0) {
+      return parseKeyword(keyword[0], offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(keyword[0].length) + rest);
+    } else if ((srcStart != null ? srcStart[SRC_LEAD].length : void 0) === 0) {
+      return parseSrcBlock(srcStart[0], offset, srcStart[SRC_INFO], meat.substring(srcStart[0].length) + rest);
+    } else {
+      pat = keyword;
+      if (srcStart && (!keyword || srcStart.index < keyword.index)) {
+        pat = srcStart;
+      }
+      if (pat) {
+        rest = meat.substring(pat.index + pat[1].length) + rest;
+        meat = meat.substring(0, pat.index + pat[1].length);
+      }
+      return [new Meat(meat, offset), rest];
+    }
+  };
+
+  parseResults = function(text, offset, rest) {
+    var lines, m, oldRest;
+    oldRest = rest;
+    while (m = rest.match(resultsLineRE)) {
+      rest = rest.substring(m[0].length);
+    }
+    lines = oldRest.substring(0, oldRest.length - rest.length);
+    return [new Results(text + lines, offset, offset + text.length), rest];
+  };
+
+  parseKeyword = function(text, offset, name, info, rest) {
+    return [new Keyword(text, offset, name, info), rest];
+  };
+
+  parseSrcBlock = function(text, offset, info, rest) {
+    var end, otherSrcStart;
+    end = rest.match(srcEndRE);
+    otherSrcStart = rest.match(srcStartRE);
+    if (!end) {
+      throw new Error("No end for source block at offset: " + offset + ", rest: " + rest);
+    } else if (otherSrcStart && otherSrcStart.index < end.index) {
+      throw new Error("No end for first sourcestart at offset: " + offset);
+    } else {
+      return [new Source(text + rest.substring(0, end.index + end[0].length), offset, info, rest.substring(0, end.index + end[END_LEAD].length), offset + text.length), rest.substring(end.index + end[0].length)];
+    }
+  };
+
+  root.parseOrgMode = parseOrgMode;
+
+  root.Headline = Headline;
+
+  root.Meat = Meat;
+
+  root.Keyword = Keyword;
+
+  root.Source = Source;
+
+  root.Results = Results;
+
+  root.headlineRE = headlineRE;
+
+  root.HL_TAGS = HL_TAGS;
+
+  root.parseTags = parseTags;
 
 }).call(this);
-
-/*
-//@ sourceMappingURL=org.map
-*/

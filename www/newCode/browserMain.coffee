@@ -5,7 +5,7 @@ Leisure.require = require
 require 'persistent-hash-trie'
 require './lodash.min'
 require 'source-map'
-window.org = require './org'
+require './org'
 
 #window.marked = require './marked'
 #Leisure = exports = module.exports = require './base'

@@ -44,6 +44,7 @@ lz = lazy
   Meat,
   Keyword,
   Source,
+  Results,
   headlineRE,
   HL_TAGS,
   parseTags,
@@ -52,68 +53,106 @@ lz = lazy
 editDiv = null
 sourceDiv = null
 modifying = false
+styleCache = {}
+idCount = 0
+nodes = {}
+
+nextOrgId = -> 'org-node-' + idCount++
+
+getStyle = (node)->
+  if !node.id then node.id = nextOrgId()
+  style = styleCache[node.orgModeId]
+  if !style then style = styleCache[node.orgModeId] = getComputedStyle node
+  style
+
+# Thanks to rangy for this: http://code.google.com/p/rangy/
+isCollapsed = (node)->
+  type = node.nodeType
+  type == 7 || # PROCESSING_INSTRUCTION
+  type == 8 || # COMMENT
+  (type == 3 && (node.data == '' || isCollapsed(node.parentNode))) ||
+  /^(script|style)$/i.test(node.nodeName) ||
+  (type == 1 && (node.classList.contains('collapsed') ||
+  (node.getAttribute('data-org-type') == 'text' && isCollapsed(node.parentNode)) ||
+  getStyle(node).display == 'none'))
 
 markupOrg = (text)->
+  nodes = {}
   # ensure trailing newline -- contenteditable doesn't like it, otherwise
   if text[text.length - 1] != '\n' then text = text + '\n'
   org = parseOrgMode text
-  markupNode org, ''
+  console.log "ORG:\n#{JSON.stringify org.toJsonObject(), null, '  '}"
+  window.ORG = org
+  markupNode org, '', true
 
-markupNode = (org, newline)->
-  if org instanceof Source
+boundarySpan = "<span data-org-type='boundary'>\n</span>"
+
+orgAttrs = (org)->
+  org.nodeId = nextOrgId()
+  nodes[org.nodeId] = org
+  "id='#{org.nodeId}' data-org-type='#{org.type}'"
+
+markupNode = (org, newline, start)->
+  if org instanceof Source || org instanceof Results
     pos = org.contentPos - org.offset - 1
     content = org.text.substring pos
-    "#{if newline then '<span>\n</span>' else ''}<span data-org-type='#{org.type}'><span data-org-type='text'>#{org.text.substring(0, pos)}</span><span>#{content}</span></span>"
-  else if org instanceof Headline then "<span data-org-type='#{org.type}'><span data-org-type='text'>#{removeTrailingNL org.text}</span>#{markupGuts org}</span>"
-  else "<span data-org-type='#{org.type}'>#{newline}#{org.text}</span>"
+    "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan content}</span>"
+  else if org instanceof Headline then "<span #{orgAttrs org}'>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
+  else "<span #{orgAttrs org}'>#{org.text}</span>"
+
+checkStart = (start, text)-> start && (!text || text == '\n')
 
 isSourceNode = (node)-> node?.getAttribute?('data-org-type') == 'source'
 
-isHeadlineNode = (node)-> node?.getAttribute?('data-org-type') == 'headline'
-
-isMeatNode = (node)-> node?.getAttribute?('data-org-type') == 'meat'
-
 isDocNode = (node)-> node?.hasAttribute?('maindoc')
 
-markupGuts = (org)->
-  if !org.children.length then '<span>\n</span>'
+markupGuts = (org, start)->
+  if !org.children.length then ''
   else
     newline = '\n'
+    prev = if start then null else org
     (for c in org.children
       nl = newline
       newline = ''
-      markupNode(c, nl)).join ""
+      s = start
+      start = false
+      p = prev
+      prev = c
+      optionalBoundary(p, c) + markupNode(c, nl, s)).join ""
 
-removeTrailingNL = (str)-> if str[str.length - 1] == '\n' then str.substring(0, str.length - 1) else str
+optionalBoundary = (prev, node)-> if prev && (prev.block || node.block) then boundarySpan else ''
+
+contentSpan = (str, type)->
+  str = if str[str.length - 1] == '\n' then str.substring(0, str.length - 1) else str
+  if str then "<span#{if type then " data-org-type='#{type}'" else ''}>#{str}</span>" else ''
 
 trailingNL = (str)-> if str[str.length - 1] == '\n' then '\n' else ''
 
 fixupNodes = (node)->
   for n in $(node).find('[data-org-type="headline"]')
     setTags n
-
 bindContent = (div, givenSourceDiv)->
   editDiv = div
   sourceDiv = givenSourceDiv
   fixupNodes div
   div.addEventListener 'keydown', (e)->
     c = (e.charCode || e.keyCode || e.which)
+    s = window.getSelection()
+    r = s.getRangeAt(0)
     if c == TAB
       e.preventDefault()
-      node = inCollapsible getSelection().focusNode
-      if node && !isEmptyCollapsible node
-        modifying = true
-        $(node).toggleClass 'collapsed'
-        modifying = false
+      collapseNode()
     else if String.fromCharCode(c) == 'C' && e.altKey
-      executeSource getSelection().focusNode
+      executeSource div, getSelection().focusNode
     else if c == ENTER
-      s = window.getSelection()
-      r = s.getRangeAt(0)
       e.preventDefault()
       n = s.focusNode
+      el = r.startContainer
+      par = el.parentNode
+      inCollapsedText = r.collapsed && el.nodeType == 3 && par.getAttribute('data-org-type') == 'text' && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
+      if inCollapsedText && r.startOffset == el.length then return
       # Make sure that newlines at the end of a 'text' span go after the span
-      if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
+      else if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
         br = document.createTextNode('\n')
         $(br).prependTo followingSpan n.parentNode
         r.setStart br, br.length
@@ -126,43 +165,97 @@ bindContent = (div, givenSourceDiv)->
       s.removeAllRanges()
       s.addRange(r)
     else if c in [DEL, BS]
-      s = window.getSelection()
-      r = s.getRangeAt(0)
       el = r.startContainer
-      if r.collapsed && el.nodeType == 3 && el.parentElement.getAttribute('data-org-type') == 'text' && r.startOffset == el.length && el.parentElement.parentElement.classList.contains('collapsed')
+      par = el.parentNode
+      inCollapsedText = r.collapsed && el.nodeType == 3 && par.getAttribute('data-org-type') == 'text' && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
+      if inCollapsedText && ((c == DEL && r.startOffset == el.length - 1) || (c == BS && r.startOffset == el.length))
         e.preventDefault()
-        if c == BS && el.length > 0
-          el.nodeValue = el.nodeValue.substring 0, el.nodeValue.length - 1
-          r.setStart el, el.length
-          r.collapse()
-          s.removeAllRanges()
-          s.addRange r
+        el.data = el.data.substring 0, el.data.length - 1
+        r.setStart el, el.data.length
+        r.setEnd el, el.data.length
+        s.removeAllRanges()
+        s.addRange r
+      else if c == DEL && inCollapsedText && r.startOffset >= el.length - 1 then e.preventDefault()
+      else if c == BS then backspace e
+    checkSourceMod()
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
 
-orgEnv = (node)->
-  write: (str)-> console.log str
+collapseNode = ->
+  node = inCollapsible getSelection().focusNode
+  if node
+    if !isEmptyCollapsible node
+      modifying = true
+      $(node).toggleClass 'collapsed'
+      styleCache = {}
+      modifying = false
+    else status "EMPTY ENTRY"
+
+isBoundary = (node)->
+  (node.nodeType == 1 && node.getAttribute('data-org-type') == 'boundary' && node) || (node.nodeType == 3 && isBoundary node.parentElement)
+
+backspace = (e)->
+  s = rangy.getSelection()
+  r = s.getRangeAt 0
+  if r.collapsed && r.startOffset == 0
+    r.moveStart 'character', -1
+    if boundary = isBoundary r.startContainer
+      r.setStartBefore boundary, 0
+      r.move 'character', -1
+      if isCollapsed r.startContainer
+        console.log "PREVENTING BACKSPACE"
+        e.preventDefault()
+
+checkSourceMod = ->
+
+
+orgEnv = (parent, node)->
+  org = parseOrgMode parent.textContent
+  pos = getTextPosition parent, node, 0
+  src = org.findNodeAt pos
+  results = src.next
+  if !(results instanceof Results)
+    results = if results instanceof Meat && results.text.match /^[ \n]*$/ then results.next else newResults parent, src
+  r = inCollapsible(findDomPosition(parent, results.offset).startContainer).lastChild
+  r.innerHTML = '\n'
+  write: (str)->
+    console.log "RESULT: #{str}"
+    r.textContent += ": #{str.replace /\n/, '\n: '}\n"
+
 orgEnv.__proto__ = defaultEnv
+
+newResults = (parent, src)->
+  text = src.top().allText()
+  srcEnd = src.end()
+  text = text.substring(0, srcEnd) + "#+RESULTS:\n\n" + text.substring(srcEnd)
+  sel = getSelection()
+  r = sel.getRangeAt 0
+  pos = getTextPosition parent, r.startContainer, r.startOffset
+  parent.innerHTML = markupOrg text
+  r = findDomPosition parent, pos
+  sel.removeAllRanges()
+  sel.addRange r
+  findOrgNode parent, srcEnd + 1
 
 id = lz (x)-> rz x
 getLeft = (x)-> x(id)(id)
 getRight = (x)-> x(id)(id)
 show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
-executeSource = (node)->
+executeSource = (parent, node)->
   if isSourceNode node
     txt = $(node).text().substring($(node).find('[data-org-type="text"]').text().length)
     m = txt.match /(^|\n)#\+end_src/i
     if m
       result = rz(L_baseLoadString)('notebook')(txt.substring(0, m.index))
-      env = orgEnv node
+      env = orgEnv parent, node
       runMonad result, env, (res)->
         res = res.head().tail()
         if getType(res) == 'left' then orgEnv.write "PARSE ERROR: #{getLeft res}"
         else env.write show getRight res
     else console.log "No end for src block"
-  else !isDocNode(node) && executeSource node.parentElement
+  else !isDocNode(node) && executeSource parent, node.parentElement
 
 followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(node.parentNode)[0]
 
@@ -206,7 +299,7 @@ handleMutation = (evt)->
 
 displaySource = -> $(sourceDiv).html('').text($(editDiv).text())
 
-isCollapsible = (node)-> node.getAttribute('data-org-type') in ['headline', 'source']
+isCollapsible = (node)-> node.getAttribute('data-org-type') in ['headline', 'source', 'results']
 
 inCollapsible = (node)->
   if node.nodeType == 1
@@ -216,8 +309,7 @@ inCollapsible = (node)->
 
 isEmptyCollapsible = (node)->
   firstLine = getTextLine node
-  isCollapsible(node) && firstLine.textContent + '\n' == node.textContent
-  #(node.firstChild == node.lastChild) || (node.firstChild && node.firstChild.nextSibling == node.lastChild && node.lastChild.nodeType == 3 && node.lastChild.textContent == '\n')
+  node.firstChild == node.lastChild
 
 getTextLine = (node)->
   c = node.firstElementChild
@@ -225,6 +317,30 @@ getTextLine = (node)->
     if c.getAttribute('data-org-type') == 'text' then return c
     c = c.nextElementSibling
   null
+
+#
+# inefficient location tools
+#
+getTextPosition = (parent, node, offset)->
+  if node == null
+    r = getSelection().getRangeAt 0
+    node = r.startContainer
+    offset = r.startOffset
+  r = rangy.createRangyRange()
+  r.setStartBefore parent, 0
+  r.setEndBefore node, offset
+  r.text().length
+
+findOrgNode = (parent, pos)->
+  org = parseOrgMode parent.textContent
+  orgNode = org.findNodeAt pos
+
+findDomPosition = (parent, pos)->
+  r = rangy.createRangyRange()
+  r.setStartBefore parent, pos
+  r.setEndBefore parent, pos
+  r.move 'character', pos + 1
+  r
 
 root.markupOrg = markupOrg
 root.bindContent = bindContent

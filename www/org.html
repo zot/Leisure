@@ -20,7 +20,10 @@
                         display: none;
                 }
                 .collapsed > [data-org-type="text"]:after {
-                        content: '...\000A';
+                        content: '...';
+                }
+                .collapsed > [data-org-type="text"]:last-child:after {
+                        content: '... (EMPTY)';
                 }
                 [dirty] {
                         font-style: oblique;
@@ -31,6 +34,8 @@
         <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
         <script src="jquery-ui/js/jquery-1.8.2.js"></script>
         <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
+        <script src="rangy-core.js"></script>
+        <script src="rangy-textrange.js"></script>
         <script language="javascript">
           window.Boot = {extraJsFiles: [
                 'orgSupport',
@@ -64,6 +69,8 @@
 #+BEGIN_SRC leisure
 3 + 4
 #+END_SRC
+#+RESULTS:
+: 7
 * one
 * two
 --></div>
