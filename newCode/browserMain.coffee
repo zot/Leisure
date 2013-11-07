@@ -28,7 +28,7 @@ require './org'
 #for k of window.Notebook
 #  console.log k
 
-for k, v of window.Leisure
-  Leisure[k] = v
-
-window.Leisure = Leisure
+# for k, v of window.Leisure
+#   Leisure[k] = v
+#
+# window.Leisure = Leisure

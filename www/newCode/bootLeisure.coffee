@@ -4,6 +4,7 @@
 
 Leisure = window.Leisure ? (window.Leisure = {})
 Boot = window.Boot ? (window.Boot = {})
+window.module = exports: Leisure
 
 baseJsFiles = [
 #  'marked',
@@ -28,14 +29,36 @@ if Boot.extraJsFiles? then Boot.jsFiles.push ("#{f}.js" for f in Boot.extraJsFil
 console.log "Boot files: #{JSON.stringify Boot.jsFiles}"
 
 reqGuard = false
-window.require = (file)->
-  if reqGuard then Leisure
-  else
-    reqGuard = true
-    try
-      Leisure.require file
-    finally
-      reqGuard = false
+
+if global?
+  Leisure = global.Leisure = window.Leisure = require './base'
+  Leisure.calc = true
+  window.realGlobal = global
+  oldRequire = global.require
+  window.require = (file)->
+    if reqGuard
+      console.log "@@   RETURNING Leisure FOR #{file}"
+      Leisure
+    else
+      try
+        console.log "@@   REQUIRE #{file}"
+        if name == 'nw.gui' then nwDispatcher.requireNwGui() else oldRequire file
+      catch err
+        try
+          reqGuard = true
+          console.log "@@   FALLING BACK TO BROWSERIFY FOR #{file}"
+          Leisure.require file
+        finally
+          reqGuard = false
+else
+  window.require = (file)->
+    if reqGuard then Leisure
+    else
+      reqGuard = true
+      try
+        Leisure.require file
+      finally
+        reqGuard = false
 
 window.global = window
 
@@ -105,18 +128,18 @@ bootLeisureCont = (load, state)->
     console.log "LOADING #{load}"
     window.Leisure.readFile load, (err, data)->
       if !err
-        window.Notebook.replaceContents load, data
+        window.Notebook?.replaceContents load, data
         cont()
       else if data then $('[maindoc]').html data
       else $('[maindoc]').html "<h1>ERROR LOADING #{load}: #{err}</h1>"
   else (cont)->
-    window.Notebook.replaceContents()
+    window.Notebook?.replaceContents()
     cont()
   loadThen Boot.jsFiles, ->
     #window.GdriveStorage.initStorage()
     #Repl.init()
     console.log "LOADED: #{Boot.jsFiles}"
-    window.Notebook.bootNotebook()
+    window.Notebook?.bootNotebook()
     f ->
       window.leisureFirst?()
       if window.leisurePrep? then callPrepCode window.leisurePrep, 0, finishBoot
@@ -150,7 +173,7 @@ loadThen = (files, cont, index)->
       err = new Error("NO FILE AT INDEX #{index} in #{JSON.stringify files}")
       console.log err.stack
       throw err
-    window.module = exports: Leisure
+    #window.module = exports: Leisure
     script = document.createElement('script')
     script.setAttribute 'src', files[index]
     script.addEventListener 'load', -> loadThen files, cont, index + 1

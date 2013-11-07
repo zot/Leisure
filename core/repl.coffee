@@ -75,7 +75,7 @@ global.setType = setType
 global.setDataType = setDataType
 global.defaultEnv = defaultEnv
 global.identity = identity
-global.Leisure = root
+#global.Leisure = root
 
 # compilation stage
 # 0: use CoffeeScript Leisure compiler

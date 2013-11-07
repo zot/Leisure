@@ -253,18 +253,20 @@ orgEnv.__proto__ = defaultEnv
 
 getResultsForSource = (parent, node)->
   checkReparse parent
-  while getOrgType(node.nextSibling) == 'boundary' || (getOrgType(node.nextSibling) == 'meat' && node.textContent.match /^[ \n]*$/)
-    node = node.nextSibling
-  node = node.nextSibling
-  if node?.getAttribute('data-org-type') == 'results' then node.lastChild
+  res = node
+  while getOrgType(res.nextSibling) == 'boundary' || (getOrgType(res.nextSibling) == 'meat' && res.textContent.match /^[ \n]*$/)
+    res = res.nextSibling
+  res = res.nextSibling
+  if res?.getAttribute('data-org-type') == 'results' then res.lastChild
   else
     org = parseOrgMode parent.textContent
     pos = getTextPosition parent, node, 0
     src = org.findNodeAt pos
     results = src.next
     if !(results instanceof Results)
-      results = if results instanceof Meat && results.text.match /^[ \n]*$/ then results.next else newResults parent, src
-    getCollapsible(findDomPosition(parent, results.offset).startContainer).lastChild
+      results = if results instanceof Meat && results.text.match /^[ \n]*$/ then results.next
+      if !(results instanceof Results) then results = newResults parent, src
+    getCollapsible(findDomPosition(parent, results.offset + 1).startContainer).lastChild
 
 checkReparse = (parent)-> if needsReparse then reparse parent
 
@@ -299,7 +301,7 @@ checkEnterReparse = (parent, r)->
 newResults = (parent, src)->
   text = src.top().allText()
   srcEnd = src.end()
-  reparse parent, text.substring(0, srcEnd) + "#+RESULTS:\n\n" + text.substring(srcEnd)
+  reparse parent, text.substring(0, srcEnd) + "#+RESULTS:\n: \n" + text.substring(srcEnd)
   findOrgNode parent, srcEnd + 1
 
 id = lz (x)-> rz x
