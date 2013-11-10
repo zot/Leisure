@@ -40,6 +40,7 @@
         <script language="javascript">
           window.Boot = {extraJsFiles: [
                 'orgSupport',
+                'storage',
           ]};
           function start() {
                 setTimeout(function() {
@@ -55,6 +56,7 @@
                                         $('#panel').css('display', '');
                                         div.html(Leisure.markupOrg(ORG_TEXT));
                                         Leisure.bindContent(div[0], $('#source'));
+                                        Leisure.initStorage('#login', '#panel');
                                 });
                         }
                         document.head.appendChild(script);
@@ -64,6 +66,13 @@
   </head>
   <body class="loading">
     <div id="loading">LOADING ORG</div>
+<div id="login" style="display: none">
+Github Login: <input id='name' type='text'><br>
+Password: <input id='password' type='password'><br>
+Repository: <input id='repository' type='text'><br>
+File: <input id='file' type='text'><br>
+<button onclick="Leisure.connectStorage()">Connect</button>
+</div>
 <div id="panel" style="display: none">
 <div maindoc style='border: green solid 2px' contenteditable='true'><!--
 * code :duh:

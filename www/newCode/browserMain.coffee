@@ -6,6 +6,7 @@ require 'persistent-hash-trie'
 require './lodash.min'
 require 'source-map'
 require './org'
+require './github'
 
 #window.marked = require './marked'
 #Leisure = exports = module.exports = require './base'

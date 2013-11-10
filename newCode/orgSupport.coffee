@@ -61,7 +61,7 @@ needsReparse = false
 
 nextOrgId = -> 'org-node-' + idCount++
 
-getOrgType = (node)-> node?.getAttribute 'data-org-type'
+getOrgType = (node)-> node?.getAttribute? 'data-org-type'
 
 getStyle = (node)->
   if !node.id then node.id = nextOrgId()
@@ -78,7 +78,9 @@ isCollapsed = (node)->
   /^(script|style)$/i.test(node.nodeName) ||
   (type == 1 && (node.classList.contains('collapsed') ||
   (node.getAttribute('data-org-type') == 'text' && isCollapsed(node.parentNode)) ||
-  getStyle(node).display == 'none'))
+  getStyle(node).display == 'none' ||
+  node.shadowRoot? ||
+  node.webkitShadowRoot?))
 
 markupOrg = (text)->
   nodes = {}
@@ -90,10 +92,13 @@ markupOrg = (text)->
 
 boundarySpan = "<span data-org-type='boundary'>\n</span>"
 
+sensitive = /^srcStart|^headline-/
+
 orgAttrs = (org)->
   org.nodeId = nextOrgId()
   nodes[org.nodeId] = org
   extra = if isDynamic org then ' data-org-dynamic="true"' else ''
+  if org instanceof Headline then extra += " data-org-tags='#{org.tags}'"
   "id='#{org.nodeId}' data-org-type='#{org.type}'#{extra}"
 
 isDynamic = (org)-> org instanceof Source && org.info.match /:results .*dynamic/i
@@ -103,8 +108,8 @@ markupNode = (org, start)->
     pos = org.contentPos - org.offset - 1
     text = org.text.substring pos
     "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}</span>"
-  else if org instanceof Headline then "<span #{orgAttrs org}'>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
-  else "<span #{orgAttrs org}'>#{content org.text}</span>"
+  else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
+  else "<span #{orgAttrs org}>#{content org.text}</span>"
 
 checkStart = (start, text)-> start && (!text || text == '\n')
 
@@ -145,16 +150,16 @@ bindContent = (div, givenSourceDiv)->
     r = s.getRangeAt(0)
     el = r.startContainer
     par = el.parentNode
-    canceled = false
+    cancelled = false
     if c == TAB
       e.preventDefault()
-      canceled = true
+      cancelled = true
       collapseNode()
     else if String.fromCharCode(c) == 'C' && e.altKey
       executeSource div, getSelection().focusNode
     else if c == ENTER
       e.preventDefault()
-      canceled = true
+      cancelled = true
       n = s.focusNode
       inCollapsedText = r.collapsed && el.nodeType == 3 && par.getAttribute('data-org-type') == 'text' && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
       if inCollapsedText && r.startOffset == el.length then return
@@ -176,7 +181,7 @@ bindContent = (div, givenSourceDiv)->
       inCollapsedText = r.collapsed && el.nodeType == 3 && par.getAttribute('data-org-type') == 'text' && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
       if inCollapsedText && ((c == DEL && r.startOffset == el.length - 1) || (c == BS && r.startOffset == el.length))
         e.preventDefault()
-        canceled = true
+        cancelled = true
         el.data = el.data.substring 0, el.data.length - 1
         r.setStart el, el.data.length
         r.setEnd el, el.data.length
@@ -184,20 +189,23 @@ bindContent = (div, givenSourceDiv)->
         s.addRange r
       else if c == DEL && inCollapsedText && r.startOffset >= el.length - 1
         e.preventDefault()
-        canceled = true
-      else if c != BS || !(backspace div, e)
+        cancelled = true
+      else if backspace div, e then cancelled = true
+      else if c != BS
         checkDeleteReparse div, c == BS
-    changes = (c > 47 && c < 58)  || # number keys
+    changes = !cancelled && (
+      (c > 47 && c < 58)          || # number keys
       c == 32 || c == ENTER       || # spacebar and enter
       c == BS || c == DEL         || # backspace and delete
       (c > 64 && c < 91)          || # letter keys
       (c > 95 && c < 112)         || # numpad keys
       (c > 185 && c < 193)        || # ;=,-./` (in order)
-      (c > 218 && c < 223);          # [\]' (in order)
+      (c > 218 && c < 223)          # [\]' (in order)
+      )
     if changes
       if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
       currentMatch = matchLine currentLine div
-      if canceled then checkSourceMod div, currentMatch else setTimeout (->checkSourceMod div, currentMatch), 1
+      if cancelled then checkSourceMod div, currentMatch else setTimeout (->checkSourceMod div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
@@ -233,16 +241,17 @@ backspace = (parent, e)->
     r.moveStart 'character', -1
     if boundary = isBoundary r.startContainer
       r.setStartBefore boundary, 0
-      r.move 'character', -1
-      if isCollapsed r.startContainer
-        e.preventDefault()
-        return true
+      r.moveStart 'character', -1
+      for n in r.getNodes()
+        if r.containsNode(n) && isCollapsed n
+          e.preventDefault()
+          return true
   false
 
 checkSourceMod = (parent, oldMatch)->
   r = getSelection().getRangeAt 0
-  if (n = getOrgParent r.startContainer) && n.getAttribute('data-org-dynamic')?.toLowerCase() == 'true' then executeSource parent, r.startContainer
-  else if (newMatch = matchLine(currentLine parent)) != oldMatch then reparse parent
+  if (newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive) then reparse parent
+  else if (n = getOrgParent r.startContainer) && n.getAttribute('data-org-dynamic')?.toLowerCase() == 'true' then executeSource parent, r.startContainer
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
@@ -281,12 +290,14 @@ nativeRange = (r)->
 reparse = (parent, text)->
   text = text ? parent.textContent
   sel = getSelection()
-  r = sel.getRangeAt 0
-  pos = getTextPosition parent, r.startContainer, r.startOffset
-  parent.innerHTML = markupOrg text
-  r = nativeRange findDomPosition parent, pos
-  sel.removeAllRanges()
-  sel.addRange r
+  if sel.rangeCount
+    r = sel.getRangeAt 0
+    pos = getTextPosition parent, r.startContainer, r.startOffset
+    parent.innerHTML = markupOrg text
+    r = nativeRange findDomPosition parent, pos
+    sel.removeAllRanges()
+    sel.addRange r
+  else parent.innerHTML = markupOrg text
   needsReparse = false
 
 checkDeleteReparse = (parent, backspace)->
@@ -311,6 +322,7 @@ show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
 executeSource = (parent, node)->
   if isSourceNode node
+    checkReparse parent
     txt = $(node).text().substring($(node).find('[data-org-type="text"]').text().length)
     m = txt.match /(^|\n)#\+end_src/i
     if m
@@ -321,6 +333,7 @@ executeSource = (parent, node)->
         if getType(res) == 'left' then orgEnv.write "PARSE ERROR: #{getLeft res}"
         else env.write show getRight res
     else console.log "No end for src block"
+  else if getOrgType(node) == 'text' then needsReparse = true
   else !isDocNode(node) && executeSource parent, node.parentElement
 
 followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(node.parentNode)[0]
@@ -414,3 +427,4 @@ root.markupOrg = markupOrg
 root.bindContent = bindContent
 root.cleanHeadline = cleanHeadline
 root.getTags = getTags
+root.reparse = reparse
