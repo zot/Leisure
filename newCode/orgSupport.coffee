@@ -58,6 +58,7 @@ styleCache = {}
 idCount = 0
 nodes = {}
 needsReparse = false
+reparseListeners = []
 
 nextOrgId = -> 'org-node-' + idCount++
 
@@ -83,12 +84,15 @@ isCollapsed = (node)->
   node.webkitShadowRoot?))
 
 markupOrg = (text)->
+  [node, text] = markupOrgWithNode text
+  text
+
+markupOrgWithNode = (text)->
   nodes = {}
   # ensure trailing newline -- contenteditable doesn't like it, otherwise
   if text[text.length - 1] != '\n' then text = text + '\n'
   org = parseOrgMode text
-  window.ORG = org
-  markupNode org, true
+  [org, markupNode(org, true)]
 
 boundarySpan = "<span data-org-type='boundary'>\n</span>"
 
@@ -290,15 +294,18 @@ nativeRange = (r)->
 reparse = (parent, text)->
   text = text ? parent.textContent
   sel = getSelection()
+  [orgNode, orgText] = markupOrgWithNode text
   if sel.rangeCount
     r = sel.getRangeAt 0
     pos = getTextPosition parent, r.startContainer, r.startOffset
-    parent.innerHTML = markupOrg text
+    parent.innerHTML = orgText
     r = nativeRange findDomPosition parent, pos
     sel.removeAllRanges()
     sel.addRange r
-  else parent.innerHTML = markupOrg text
+  else parent.innerHTML = orgText
   needsReparse = false
+  for l in reparseListeners
+    l parent, orgNode, orgText
 
 checkDeleteReparse = (parent, backspace)->
   r = rangy.getSelection().getRangeAt 0
@@ -428,3 +435,4 @@ root.bindContent = bindContent
 root.cleanHeadline = cleanHeadline
 root.getTags = getTags
 root.reparse = reparse
+root.reparseListeners = reparseListeners

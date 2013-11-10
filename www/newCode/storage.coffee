@@ -24,11 +24,18 @@ connectStorage = ->
   localStorage.setItem 'githubFile', file = $('#file').val()
   connection = new Github username: name, passwd: password
   repo = connection.getRepo name, repository
-  contents = repo.contents 'master', file, (err, data)->
-    if !err then root.reparse $('[maindoc]')[0], data
-    else alert "ERROR: #{err}"
-    $('#panel').css 'display', ''
-    $('#login').css 'display', 'none'
+  getAllIssuesAndComentsThen connection, repo, ->
+    if !(storageListener in root.reparseListeners) then root.reparseListeners.push storageListener
+    contents = repo.contents 'master', file, (err, data)->
+      if !err then root.reparse $('[maindoc]')[0], data
+      else alert "ERROR: #{err}"
+      $('#panel').css 'display', ''
+      $('#login').css 'display', 'none'
+
+getAllIssuesAndComentsThen = (con, repo, block)->
+  block()
+
+storageListener = (element, orgNode, orgText)->
 
 root.initStorage = initStorage
 root.connectStorage = connectStorage
