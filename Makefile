@@ -26,7 +26,7 @@ NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
 NEW_LSR_SRC=std svg calc parseAst
 NEW_LSR=$(NEW_LSR_SRC:%=newCode/%.lsr)
 NEW_LSR_JS=$(NEW_LSR_SRC:%=lib/%.js)
-BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus orgSupport org storage
+BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus org githubExtensions storage orgSupport fancyOrg
 BROWSER_INPUT=$(BROWSER_SRC:%=lib/%.js)
 BROWSER_JS=lib/browser.js
 BROWSERIFY_EXCLUDE=-i xmlhttprequest

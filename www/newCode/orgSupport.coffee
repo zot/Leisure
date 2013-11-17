@@ -65,9 +65,9 @@ nextOrgId = -> 'org-node-' + idCount++
 getOrgType = (node)-> node?.getAttribute? 'data-org-type'
 
 getStyle = (node)->
-  if !node.id then node.id = nextOrgId()
-  style = styleCache[node.orgModeId]
-  if !style then style = styleCache[node.orgModeId] = getComputedStyle node
+  if !node.orgId then node.orgId = nextOrgId()
+  style = styleCache[node.orgId]
+  if !style then style = styleCache[node.orgId] = getComputedStyle node
   style
 
 # Thanks to rangy for this: http://code.google.com/p/rangy/
@@ -80,12 +80,11 @@ isCollapsed = (node)->
   (type == 1 && (node.classList.contains('collapsed') ||
   (node.getAttribute('data-org-type') == 'text' && isCollapsed(node.parentNode)) ||
   getStyle(node).display == 'none' ||
-  node.shadowRoot? ||
-  node.webkitShadowRoot?))
+  node.shadowRoot?))
 
 markupOrg = (text)->
-  [node, text] = markupOrgWithNode text
-  text
+  [node, result] = markupOrgWithNode text
+  result
 
 markupOrgWithNode = (text)->
   nodes = {}
@@ -103,6 +102,7 @@ orgAttrs = (org)->
   nodes[org.nodeId] = org
   extra = if isDynamic org then ' data-org-dynamic="true"' else ''
   if org instanceof Headline then extra += " data-org-tags='#{org.tags}'"
+  else if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{org.info}'"
   "id='#{org.nodeId}' data-org-type='#{org.type}'#{extra}"
 
 isDynamic = (org)-> org instanceof Source && org.info.match /:results .*dynamic/i
@@ -144,9 +144,7 @@ fixupNodes = (node)->
   for n in $(node).find('[data-org-type="headline"]')
     setTags n
 
-bindContent = (div, givenSourceDiv)->
-  editDiv = div
-  sourceDiv = givenSourceDiv
+bindContent = (div)->
   fixupNodes div
   div.addEventListener 'keydown', (e)->
     c = (e.charCode || e.keyCode || e.which)
@@ -239,18 +237,27 @@ isBoundary = (node)->
   (node.nodeType == 1 && node.getAttribute('data-org-type') == 'boundary' && node) || (node.nodeType == 3 && isBoundary node.parentElement)
 
 backspace = (parent, e)->
+  if checkCollapsed -1
+    e.preventDefault()
+    true
+  else false
+
+checkCollapsed = (delta)->
   s = rangy.getSelection()
   r = s.getRangeAt 0
-  if r.collapsed && r.startOffset == 0
-    r.moveStart 'character', -1
-    if boundary = isBoundary r.startContainer
-      r.setStartBefore boundary, 0
+  if delta < 0 then r.moveStart 'character', delta else r.moveEnd 'character', delta
+  if r.startContainer == r.endContainer then false
+  else if boundary = isBoundary (if delta < 0 then r.startContainer else r.endContainer)
+    if delta < 0
+      r.setStartBefore boundary
       r.moveStart 'character', -1
-      for n in r.getNodes()
-        if r.containsNode(n) && isCollapsed n
-          e.preventDefault()
-          return true
-  false
+    else
+      r.setEndAfter boundary
+      r.moveEnd 'character', 1
+    for n in r.getNodes()
+      if r.containsNode(n) && isCollapsed n then return true
+    false
+  else false
 
 checkSourceMod = (parent, oldMatch)->
   r = getSelection().getRangeAt 0
@@ -272,14 +279,14 @@ getResultsForSource = (parent, node)->
   res = res.nextSibling
   if res?.getAttribute('data-org-type') == 'results' then res.lastChild
   else
-    org = parseOrgMode parent.textContent
+    org = parseOrgMode getNodeText parent
     pos = getTextPosition parent, node, 0
     src = org.findNodeAt pos
     results = src.next
     if !(results instanceof Results)
       results = if results instanceof Meat && results.text.match /^[ \n]*$/ then results.next
       if !(results instanceof Results) then results = newResults parent, src
-    getCollapsible(findDomPosition(parent, results.offset + 1).startContainer).lastChild
+    getCollapsible(findDomPosition(parent, results.offset + 1)[0]).lastChild
 
 checkReparse = (parent)-> if needsReparse then reparse parent
 
@@ -287,25 +294,34 @@ nativeRange = (r)->
   if r instanceof Range then r
   else
     r2 = document.createRange()
-    r2.setStart r.startContainer, r.startOffset
-    r2.setEnd r.endContainer, r.endOffset
+    container = if r instanceof Array then r[0] else r.startContainer
+    offset = if r instanceof Array then r[1] else r.startOffset
+    r2.setStart container, offset
+    r2.setEnd container, offset
     r2
 
-reparse = (parent, text)->
-  text = text ? parent.textContent
+restorePosition = (parent, block)->
   sel = getSelection()
-  [orgNode, orgText] = markupOrgWithNode text
   if sel.rangeCount
     r = sel.getRangeAt 0
     pos = getTextPosition parent, r.startContainer, r.startOffset
-    parent.innerHTML = orgText
+    block()
     r = nativeRange findDomPosition parent, pos
+    r.collapse true
     sel.removeAllRanges()
     sel.addRange r
-  else parent.innerHTML = orgText
+  else block()
+
+reparse = (parent, text)->
+  text = text ? getNodeText parent
+  sel = getSelection()
+  [orgNode, orgText] = root.orgApi.markupOrgWithNode text
+  restorePosition parent, -> parent.innerHTML = orgText
   needsReparse = false
-  for l in reparseListeners
-    l parent, orgNode, orgText
+  setTimeout (->
+    for l in reparseListeners
+      l parent, orgNode, orgText
+    ), 1
 
 checkDeleteReparse = (parent, backspace)->
   r = rangy.getSelection().getRangeAt 0
@@ -409,30 +425,144 @@ getTextLine = (node)->
 #
 # inefficient location tools
 #
-getTextPosition = (parent, node, offset)->
-  if node == null
-    r = getSelection().getRangeAt 0
-    node = r.startContainer
-    offset = r.startOffset
-  r = rangy.createRangyRange()
-  r.setStartBefore parent, 0
-  r.setEnd node, offset
-  r.text().length
+#getTextPosition = (parent, node, offset)->
+#  if node == null
+#    r = getSelection().getRangeAt 0
+#    node = r.startContainer
+#    offset = r.startOffset
+#  r = document.createRange()
+#  r.setStartBefore parent, 0
+#  r.setEnd node, offset
+#  r.cloneContents().textContent.length
 
 findOrgNode = (parent, pos)->
-  org = parseOrgMode parent.textContent
+  org = parseOrgMode getNodeText parent
   orgNode = org.findNodeAt pos
 
-findDomPosition = (parent, pos)->
-  r = rangy.createRangyRange()
-  r.setStartBefore parent, pos
-  r.setEndBefore parent, pos
-  r.move 'character', pos
-  r
+#findDomPosition = (parent, pos)->
+#  r = rangy.createRangyRange()
+#  r.selectNodeContents parent
+#  r.moveStart 'character', pos
+#  r
 
+getTextPosition = (node, target, pos)->
+  up = false
+  eat = false
+  count = 0
+  while node
+    if node.nodeType == 3
+      if node == target then return count + pos
+      count += node.length
+      eat = true
+    if node == target && pos == 0 then return count
+    while node && (eat || node.nodeType != 3)
+      eat = false
+      if !up && node.firstChild then node = node.firstChild
+      else if node.nextSibling
+        if node.parentNode == target then pos--
+        node = node.nextSibling
+        up = false
+      else
+        node = node.parentNode
+        up = true
+  -1
+
+findDomPosition = (node, pos)->
+  up = false
+  eat = false
+  while node
+    if node.nodeType == 3
+      if pos <= node.length then return [node, pos]
+      console.log "SKIPPED #{node.textContent}"
+      pos -= node.length
+      eat = true
+    while node && (eat || node.nodeType != 3)
+      eat = false
+      if !up && node.firstChild then node = node.firstChild
+      else if node.nextSibling
+        node = node.nextSibling
+        up = false
+      else
+        node = node.parentNode
+        up = true
+  [null, null]
+
+#
+# Shadow dom support
+#
+
+getNodeText = (node)-> node.textContent
+
+if Element.prototype.webkitCreateShadowRoot?
+  Element.prototype.createShadowRoot = Element.prototype.webkitCreateShadowRoot
+  Element.prototype.__defineGetter__ 'shadowRoot', -> @webkitShadowRoot
+  Element.prototype.__defineSetter__ 'shadowRoot', (val)-> @webkitShadowRoot = val
+else if !document.body.createShadowRoot?
+  hasShadow = false
+  Element.prototype.createShadowRoot = ->
+    hasShadow = true
+    @setAttribute 'data-org-shadow', 'true'
+  Element.prototype.__defineGetter__ 'shadowRoot', -> (@hasAttribute('data-org-shadow') && @) || null
+  getNodeText = (node)->
+    if hasShadow
+      copy = $(node).clone()
+      copy.find('[data-org-shadow]').remove()
+      copy.text()
+    else node.textContent
+  oldReparse = reparse
+  reparse = (parent, text)->
+    oldReparse parent, text
+    hasShadow = false
+
+emptyOutNode = (node)->
+  node.innerHTML = ''
+  newNode = node.cloneNode false
+  $(node).after newNode
+  $(node).remove()
+  newNode
+
+root.orgApi = null
+
+orgNotebook =
+  useNode: (node, source)->
+    root.orgApi = @
+    sourceDiv = source
+    oldContent = node.textContent
+    newNode = emptyOutNode node
+    editDiv = newNode
+    restorePosition newNode, => $(newNode).html @markupOrg oldContent
+    @bindContent newNode
+
+basicOrg =
+  __proto__: orgNotebook
+  markupOrg: markupOrg
+  markupOrgWithNode: markupOrgWithNode
+  bindContent: bindContent
+
+root.basicOrg = basicOrg
+root.orgNotebook = orgNotebook
 root.markupOrg = markupOrg
 root.bindContent = bindContent
 root.cleanHeadline = cleanHeadline
 root.getTags = getTags
 root.reparse = reparse
 root.reparseListeners = reparseListeners
+root.findDomPosition = findDomPosition
+root.getCollapsible = getCollapsible
+root.getNodeText = getNodeText
+root.parseOrgMode = parseOrgMode
+root.orgAttrs = orgAttrs
+root.content = content
+root.contentSpan = contentSpan
+root.checkStart = checkStart
+root.optionalBoundary = optionalBoundary
+root.boundarySpan = boundarySpan
+root.displaySource = displaySource
+root.checkEnterReparse = checkEnterReparse
+root.checkCollapsed = checkCollapsed
+root.checkExtraNewline = checkExtraNewline
+root.followingSpan = followingSpan
+root.currentLine = currentLine
+root.checkSourceMod = checkSourceMod
+root.getTextPosition = getTextPosition
+root.isCollapsed = isCollapsed

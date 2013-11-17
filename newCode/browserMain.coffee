@@ -7,6 +7,7 @@ require './lodash.min'
 require 'source-map'
 require './org'
 require './github'
+require './base64'
 
 #window.marked = require './marked'
 #Leisure = exports = module.exports = require './base'

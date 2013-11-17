@@ -29,6 +29,48 @@
                 [dirty] {
                         font-style: oblique;
                 }
+                .commentbox {
+                        position: relative;
+                }
+                .commentbox > img {
+                        position: absolute;
+                }
+                .commentbox > div {
+                        min-height: 50px;
+                        margin-left: 50px;
+                        padding: 5px;
+                        display: inline-block;
+                }
+                .commentbox > .main {
+                        border: solid green 1px;
+                }
+                .commentbox > .added {
+                        border: solid blue 1px;
+                }
+                /* fancy org mode stuff  */
+                .hidden {
+                        display: none;
+                }
+                .boundary {
+                        white-space: pre-wrap;
+                }
+                .codeblock {
+                        border: solid black 2px;
+                        border-radius: 10px;
+                        padding: 3px;
+                        background: lightgray;
+                        display: inline-block;
+                        min-width: 400px;
+                }
+                .codename {
+                        padding-left: 24px;
+                }
+                .codecontent {
+                        border: solid gray 2px;
+                        border-radius: 10px;
+                        padding: 3px;
+                        background: white;
+                }
         </style>
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->
         <!--script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script-->
@@ -40,7 +82,9 @@
         <script language="javascript">
           window.Boot = {extraJsFiles: [
                 'orgSupport',
+                'githubExtensions',
                 'storage',
+                'fancyOrg',
           ]};
           function start() {
                 setTimeout(function() {
@@ -54,9 +98,10 @@
                                 Boot.onboot(function() {
                                         $('#loading').remove();
                                         $('#panel').css('display', '');
-                                        div.html(Leisure.markupOrg(ORG_TEXT));
-                                        Leisure.bindContent(div[0], $('#source'));
-                                        Leisure.initStorage('#login', '#panel');
+                                        //Leisure.basicOrg.useNode(div[0], $('#source'));
+                                        //Leisure.initStorage('#login', '#panel', Leisure.basicOrg);
+                                        Leisure.fancyOrg.useNode(div[0], $('#source'));
+                                        Leisure.initStorage('#login', '#panel', Leisure.fancyOrg);
                                 });
                         }
                         document.head.appendChild(script);
@@ -67,8 +112,8 @@
   <body class="loading">
     <div id="loading">LOADING ORG</div>
 <div id="login" style="display: none">
-Github Login: <input id='name' type='text'><br>
-Password: <input id='password' type='password'><br>
+Github Login: <input id='name' type='text'> Password: <input id='password' type='password'><hr>
+User: <input id='user' type='text'><br>
 Repository: <input id='repository' type='text'><br>
 File: <input id='file' type='text'><br>
 <button onclick="Leisure.connectStorage()">Connect</button>

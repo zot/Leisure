@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, ENTER, HL_TAGS, Headline, Keyword, Meat, Results, Source, TAB, backspace, bindContent, boundarySpan, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, content, contentSpan, currentLine, defaultEnv, displaySource, editDiv, executeSource, findDomPosition, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getOrgParent, getOrgType, getResultsForSource, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, headlineRE, id, idCount, isBoundary, isCollapsed, isCollapsible, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, modifying, nativeRange, needsReparse, newResults, nextOrgId, nodes, optionalBoundary, orgAttrs, orgEnv, parseOrgMode, parseTags, reparse, reparseListeners, resolve, root, rz, sensitive, setTags, show, sourceDiv, styleCache, _ref, _ref1, _ref2;
+  var BS, DEL, ENTER, HL_TAGS, Headline, Keyword, Meat, Results, Source, TAB, backspace, basicOrg, bindContent, boundarySpan, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, content, contentSpan, currentLine, defaultEnv, displaySource, editDiv, emptyOutNode, executeSource, findDomPosition, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgType, getResultsForSource, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, hasShadow, headlineRE, id, idCount, isBoundary, isCollapsed, isCollapsible, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, modifying, nativeRange, needsReparse, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parseOrgMode, parseTags, reparse, reparseListeners, resolve, restorePosition, root, rz, sensitive, setTags, show, sourceDiv, styleCache, _ref, _ref1, _ref2;
 
   getType = require('./ast').getType;
 
@@ -65,12 +65,12 @@ misrepresented as being the original software.
 
   getStyle = function(node) {
     var style;
-    if (!node.id) {
-      node.id = nextOrgId();
+    if (!node.orgId) {
+      node.orgId = nextOrgId();
     }
-    style = styleCache[node.orgModeId];
+    style = styleCache[node.orgId];
     if (!style) {
-      style = styleCache[node.orgModeId] = getComputedStyle(node);
+      style = styleCache[node.orgId] = getComputedStyle(node);
     }
     return style;
   };
@@ -78,13 +78,13 @@ misrepresented as being the original software.
   isCollapsed = function(node) {
     var type;
     type = node.nodeType;
-    return type === 7 || type === 8 || (type === 3 && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === 1 && (node.classList.contains('collapsed') || (node.getAttribute('data-org-type') === 'text' && isCollapsed(node.parentNode)) || getStyle(node).display === 'none' || (node.shadowRoot != null) || (node.webkitShadowRoot != null)));
+    return type === 7 || type === 8 || (type === 3 && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === 1 && (node.classList.contains('collapsed') || (node.getAttribute('data-org-type') === 'text' && isCollapsed(node.parentNode)) || getStyle(node).display === 'none' || (node.shadowRoot != null)));
   };
 
   markupOrg = function(text) {
-    var node, _ref3;
-    _ref3 = markupOrgWithNode(text), node = _ref3[0], text = _ref3[1];
-    return text;
+    var node, result, _ref3;
+    _ref3 = markupOrgWithNode(text), node = _ref3[0], result = _ref3[1];
+    return result;
   };
 
   markupOrgWithNode = function(text) {
@@ -102,12 +102,14 @@ misrepresented as being the original software.
   sensitive = /^srcStart|^headline-/;
 
   orgAttrs = function(org) {
-    var extra;
+    var extra, _ref3;
     org.nodeId = nextOrgId();
     nodes[org.nodeId] = org;
     extra = isDynamic(org) ? ' data-org-dynamic="true"' : '';
     if (org instanceof Headline) {
       extra += " data-org-tags='" + org.tags + "'";
+    } else if (org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source && ((_ref3 = org.name) != null ? _ref3.toLowerCase() : void 0) === 'name') {
+      extra += " data-org-name='" + org.info + "'";
     }
     return "id='" + org.nodeId + "' data-org-type='" + org.type + "'" + extra;
   };
@@ -200,9 +202,7 @@ misrepresented as being the original software.
     return _results;
   };
 
-  bindContent = function(div, givenSourceDiv) {
-    editDiv = div;
-    sourceDiv = givenSourceDiv;
+  bindContent = function(div) {
     fixupNodes(div);
     div.addEventListener('keydown', function(e) {
       var br, c, cancelled, changes, currentMatch, el, inCollapsedText, n, par, r, s;
@@ -319,25 +319,44 @@ misrepresented as being the original software.
   };
 
   backspace = function(parent, e) {
+    if (checkCollapsed(-1)) {
+      e.preventDefault();
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  checkCollapsed = function(delta) {
     var boundary, n, r, s, _i, _len, _ref3;
     s = rangy.getSelection();
     r = s.getRangeAt(0);
-    if (r.collapsed && r.startOffset === 0) {
-      r.moveStart('character', -1);
-      if (boundary = isBoundary(r.startContainer)) {
-        r.setStartBefore(boundary, 0);
+    if (delta < 0) {
+      r.moveStart('character', delta);
+    } else {
+      r.moveEnd('character', delta);
+    }
+    if (r.startContainer === r.endContainer) {
+      return false;
+    } else if (boundary = isBoundary((delta < 0 ? r.startContainer : r.endContainer))) {
+      if (delta < 0) {
+        r.setStartBefore(boundary);
         r.moveStart('character', -1);
-        _ref3 = r.getNodes();
-        for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-          n = _ref3[_i];
-          if (r.containsNode(n) && isCollapsed(n)) {
-            e.preventDefault();
-            return true;
-          }
+      } else {
+        r.setEndAfter(boundary);
+        r.moveEnd('character', 1);
+      }
+      _ref3 = r.getNodes();
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        n = _ref3[_i];
+        if (r.containsNode(n) && isCollapsed(n)) {
+          return true;
         }
       }
+      return false;
+    } else {
+      return false;
     }
-    return false;
   };
 
   checkSourceMod = function(parent, oldMatch) {
@@ -374,7 +393,7 @@ misrepresented as being the original software.
     if ((res != null ? res.getAttribute('data-org-type') : void 0) === 'results') {
       return res.lastChild;
     } else {
-      org = parseOrgMode(parent.textContent);
+      org = parseOrgMode(getNodeText(parent));
       pos = getTextPosition(parent, node, 0);
       src = org.findNodeAt(pos);
       results = src.next;
@@ -384,7 +403,7 @@ misrepresented as being the original software.
           results = newResults(parent, src);
         }
       }
-      return getCollapsible(findDomPosition(parent, results.offset + 1).startContainer).lastChild;
+      return getCollapsible(findDomPosition(parent, results.offset + 1)[0]).lastChild;
     }
   };
 
@@ -395,39 +414,53 @@ misrepresented as being the original software.
   };
 
   nativeRange = function(r) {
-    var r2;
+    var container, offset, r2;
     if (r instanceof Range) {
       return r;
     } else {
       r2 = document.createRange();
-      r2.setStart(r.startContainer, r.startOffset);
-      r2.setEnd(r.endContainer, r.endOffset);
+      container = r instanceof Array ? r[0] : r.startContainer;
+      offset = r instanceof Array ? r[1] : r.startOffset;
+      r2.setStart(container, offset);
+      r2.setEnd(container, offset);
       return r2;
     }
   };
 
-  reparse = function(parent, text) {
-    var l, orgNode, orgText, pos, r, sel, _i, _len, _ref3, _results;
-    text = text != null ? text : parent.textContent;
+  restorePosition = function(parent, block) {
+    var pos, r, sel;
     sel = getSelection();
-    _ref3 = markupOrgWithNode(text), orgNode = _ref3[0], orgText = _ref3[1];
     if (sel.rangeCount) {
       r = sel.getRangeAt(0);
       pos = getTextPosition(parent, r.startContainer, r.startOffset);
-      parent.innerHTML = orgText;
+      block();
       r = nativeRange(findDomPosition(parent, pos));
+      r.collapse(true);
       sel.removeAllRanges();
-      sel.addRange(r);
+      return sel.addRange(r);
     } else {
-      parent.innerHTML = orgText;
+      return block();
     }
+  };
+
+  reparse = function(parent, text) {
+    var orgNode, orgText, sel, _ref3;
+    text = text != null ? text : getNodeText(parent);
+    sel = getSelection();
+    _ref3 = root.orgApi.markupOrgWithNode(text), orgNode = _ref3[0], orgText = _ref3[1];
+    restorePosition(parent, function() {
+      return parent.innerHTML = orgText;
+    });
     needsReparse = false;
-    _results = [];
-    for (_i = 0, _len = reparseListeners.length; _i < _len; _i++) {
-      l = reparseListeners[_i];
-      _results.push(l(parent, orgNode, orgText));
-    }
-    return _results;
+    return setTimeout((function() {
+      var l, _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = reparseListeners.length; _i < _len; _i++) {
+        l = reparseListeners[_i];
+        _results.push(l(parent, orgNode, orgText));
+      }
+      return _results;
+    }), 1);
   };
 
   checkDeleteReparse = function(parent, backspace) {
@@ -609,33 +642,151 @@ misrepresented as being the original software.
     return null;
   };
 
-  getTextPosition = function(parent, node, offset) {
-    var r;
-    if (node === null) {
-      r = getSelection().getRangeAt(0);
-      node = r.startContainer;
-      offset = r.startOffset;
-    }
-    r = rangy.createRangyRange();
-    r.setStartBefore(parent, 0);
-    r.setEnd(node, offset);
-    return r.text().length;
-  };
-
   findOrgNode = function(parent, pos) {
     var org, orgNode;
-    org = parseOrgMode(parent.textContent);
+    org = parseOrgMode(getNodeText(parent));
     return orgNode = org.findNodeAt(pos);
   };
 
-  findDomPosition = function(parent, pos) {
-    var r;
-    r = rangy.createRangyRange();
-    r.setStartBefore(parent, pos);
-    r.setEndBefore(parent, pos);
-    r.move('character', pos);
-    return r;
+  getTextPosition = function(node, target, pos) {
+    var count, eat, up;
+    up = false;
+    eat = false;
+    count = 0;
+    while (node) {
+      if (node.nodeType === 3) {
+        if (node === target) {
+          return count + pos;
+        }
+        count += node.length;
+        eat = true;
+      }
+      if (node === target && pos === 0) {
+        return count;
+      }
+      while (node && (eat || node.nodeType !== 3)) {
+        eat = false;
+        if (!up && node.firstChild) {
+          node = node.firstChild;
+        } else if (node.nextSibling) {
+          if (node.parentNode === target) {
+            pos--;
+          }
+          node = node.nextSibling;
+          up = false;
+        } else {
+          node = node.parentNode;
+          up = true;
+        }
+      }
+    }
+    return -1;
   };
+
+  findDomPosition = function(node, pos) {
+    var eat, up;
+    up = false;
+    eat = false;
+    while (node) {
+      if (node.nodeType === 3) {
+        if (pos <= node.length) {
+          return [node, pos];
+        }
+        console.log("SKIPPED " + node.textContent);
+        pos -= node.length;
+        eat = true;
+      }
+      while (node && (eat || node.nodeType !== 3)) {
+        eat = false;
+        if (!up && node.firstChild) {
+          node = node.firstChild;
+        } else if (node.nextSibling) {
+          node = node.nextSibling;
+          up = false;
+        } else {
+          node = node.parentNode;
+          up = true;
+        }
+      }
+    }
+    return [null, null];
+  };
+
+  getNodeText = function(node) {
+    return node.textContent;
+  };
+
+  if (Element.prototype.webkitCreateShadowRoot != null) {
+    Element.prototype.createShadowRoot = Element.prototype.webkitCreateShadowRoot;
+    Element.prototype.__defineGetter__('shadowRoot', function() {
+      return this.webkitShadowRoot;
+    });
+    Element.prototype.__defineSetter__('shadowRoot', function(val) {
+      return this.webkitShadowRoot = val;
+    });
+  } else if (document.body.createShadowRoot == null) {
+    hasShadow = false;
+    Element.prototype.createShadowRoot = function() {
+      hasShadow = true;
+      return this.setAttribute('data-org-shadow', 'true');
+    };
+    Element.prototype.__defineGetter__('shadowRoot', function() {
+      return (this.hasAttribute('data-org-shadow') && this) || null;
+    });
+    getNodeText = function(node) {
+      var copy;
+      if (hasShadow) {
+        copy = $(node).clone();
+        copy.find('[data-org-shadow]').remove();
+        return copy.text();
+      } else {
+        return node.textContent;
+      }
+    };
+    oldReparse = reparse;
+    reparse = function(parent, text) {
+      oldReparse(parent, text);
+      return hasShadow = false;
+    };
+  }
+
+  emptyOutNode = function(node) {
+    var newNode;
+    node.innerHTML = '';
+    newNode = node.cloneNode(false);
+    $(node).after(newNode);
+    $(node).remove();
+    return newNode;
+  };
+
+  root.orgApi = null;
+
+  orgNotebook = {
+    useNode: function(node, source) {
+      var newNode, oldContent,
+        _this = this;
+      root.orgApi = this;
+      sourceDiv = source;
+      oldContent = node.textContent;
+      newNode = emptyOutNode(node);
+      editDiv = newNode;
+      restorePosition(newNode, function() {
+        return $(newNode).html(_this.markupOrg(oldContent));
+      });
+      return this.bindContent(newNode);
+    }
+  };
+
+  basicOrg = {
+    __proto__: orgNotebook,
+    markupOrg: markupOrg,
+    markupOrgWithNode: markupOrgWithNode,
+    bindContent: bindContent
+  };
+
+  root.basicOrg = basicOrg;
+
+  root.orgNotebook = orgNotebook;
 
   root.markupOrg = markupOrg;
 
@@ -648,6 +799,44 @@ misrepresented as being the original software.
   root.reparse = reparse;
 
   root.reparseListeners = reparseListeners;
+
+  root.findDomPosition = findDomPosition;
+
+  root.getCollapsible = getCollapsible;
+
+  root.getNodeText = getNodeText;
+
+  root.parseOrgMode = parseOrgMode;
+
+  root.orgAttrs = orgAttrs;
+
+  root.content = content;
+
+  root.contentSpan = contentSpan;
+
+  root.checkStart = checkStart;
+
+  root.optionalBoundary = optionalBoundary;
+
+  root.boundarySpan = boundarySpan;
+
+  root.displaySource = displaySource;
+
+  root.checkEnterReparse = checkEnterReparse;
+
+  root.checkCollapsed = checkCollapsed;
+
+  root.checkExtraNewline = checkExtraNewline;
+
+  root.followingSpan = followingSpan;
+
+  root.currentLine = currentLine;
+
+  root.checkSourceMod = checkSourceMod;
+
+  root.getTextPosition = getTextPosition;
+
+  root.isCollapsed = isCollapsed;
 
 }).call(this);
 
