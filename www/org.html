@@ -59,17 +59,30 @@
                         border-radius: 10px;
                         padding: 3px;
                         background: lightgray;
-                        display: inline-block;
                         min-width: 400px;
+                        display: inline-block;
                 }
                 .codename {
                         padding-left: 24px;
                 }
-                .codecontent {
-                        border: solid gray 2px;
+                .codewrapper {
+                        position: relative;
+                        vertical-align: middle;
+                }
+                .codecontent, .coderesults, .results-indicator {
                         border-radius: 10px;
                         padding: 3px;
                         background: white;
+                        display: inline-block;
+                        vertical-align: middle;
+                }
+                .codecontent {
+                        border: solid gray 2px;
+                        min-width: 200px;
+                }
+                .coderesults {
+                        border: solid blue 2px;
+                        min-width: 100px;
                 }
         </style>
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->

@@ -45,9 +45,15 @@ lz = lazy
   currentLine,
   checkSourceMod,
   isCollapsed,
+  nextOrgId,
+  modifyingKey,
+  getOrgParent,
+  getOrgType,
+  orgEnv,
+  executeText,
 } = require './orgSupport'
 
-lastSrcOffset = -1
+lastOrgOffset = -1
 curPos = -1
 
 markupOrg = (text)->
@@ -59,18 +65,18 @@ markupOrgWithNode = (text)->
   # ensure trailing newline -- contenteditable doesn't like it, otherwise
   if text[text.length - 1] != '\n' then text = text + '\n'
   org = parseOrgMode text
-  lastSrcOffset = -1
+  lastOrgOffset = -1
   [org, markupNode org]
 
-defaultMarkup = (org)-> "<span #{orgAttrs org}>#{content org.text}</span>"
+defaultMarkup = (org)-> "<span #{orgAttrs org}>#{org.text}</span>"
 
 borderRE = /[\n]*$/
 makeBoundary = (node)->
   nls = node.text.match borderRE
-  if nls then "<span class='boundary'>#{nls[0]}</span>" else ""
+  if nls then "<div class='boundary'>#{nls[0]}</div>" else ""
 
 markupNode = (org)->
-  if org.offset <= lastSrcOffset
+  if org.offset <= lastOrgOffset
     ''
   else if org instanceof Results
     pos = org.contentPos - org.offset - 1
@@ -85,18 +91,28 @@ markupNode = (org)->
         intertext += src.text
         src = src.next
       if src instanceof Source
-        lastSrcOffset = src.offset
+        lastOrgOffset = src.offset
         nameM = name.text.match keywordRE
         srcM = src.text.match srcStartRE
         srcContent = src.content
         srcLead = src.text.substring 0, src.contentPos - src.offset
-        srcTrail = content src.text.substring src.contentPos - src.offset + src.content.length
-        """
-        <div class='codeblock'><div class='codename' #{orgAttrs src}><span class='hidden'>#{nameM[KW_BOILERPLATE]}</span>#{name.info}#{intertext}</div><div class='hidden'>#{srcLead}</div><div class='codecontent'>#{srcContent}</div><span class='hidden'>#{srcTrail}</span></div>#{makeBoundary org}"""
+        srcTrail = src.text.substring src.contentPos - src.offset + src.content.length
+        id = nextOrgId()
+        html = "<div class='codeblock' #{orgAttrs src}><div class='codename'><span class='hidden'>#{nameM[KW_BOILERPLATE]}</span>#{name.info}#{intertext}</div><div class='hidden'>#{srcLead}</div><div class='codewrapper'><div class='codecontent'>#{srcContent}</div><span class='hidden' data-org-type='boundary'>#{srcTrail}</span>"
+        res = src.next
+        intertext = ''
+        while res && !(res instanceof Results) && !(res instanceof Keyword)
+          intertext += res.text
+          res = res.next
+        if res instanceof Results
+          lastOrgOffset = res.offset
+          pos = res.contentPos - res.offset
+          html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{res.text.substring pos}</div></div>"
+        html + "</div></div>"
       else defaultMarkup org
     else defaultMarkup org
-  else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}</span>#{makeBoundary org}#{markupGuts org, checkStart start, org.text}"
-  else if content(org.text).length then "<span #{orgAttrs org}>#{content org.text}</span>#{makeBoundary org}"
+  else if org instanceof Headline then "<span #{orgAttrs org}><span data-org-type='text'>#{org.text}</span>#{markupGuts org, checkStart start, org.text}</span>"
+  else if content(org.text).length then "<span #{orgAttrs org}>#{org.text}</span>"
   else "#{makeBoundary org}"
 
 #
@@ -167,7 +183,6 @@ bindContent = (div)->
     par = el.parentNode
     if c == ENTER
       e.preventDefault()
-      cancelled = true
       n = s.focusNode
       if ! checkCollapsed n, 1
         if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
@@ -178,10 +193,11 @@ bindContent = (div)->
         else
           r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
           br.parentNode.normalize()
-      r.collapse()
-      s.removeAllRanges()
-      s.addRange(r)
-      setTimeout (->checkEnterReparse div, r), 1
+        r.collapse()
+        s.removeAllRanges()
+        s.addRange(r)
+        setTimeout (->checkEnterReparse div, r), 1
+      else cancelled = true
     else if c in [BS, DEL]
       if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
         e.preventDefault()
@@ -195,15 +211,33 @@ bindContent = (div)->
         currentMatch = matchLine currentLine div
         setTimeout (->checkSourceMod div, currentMatch), 1
     else cancelled = false
+    if !cancelled && modifyingKey c
+      if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
+      currentMatch = matchLine currentLine div
+      if cancelled then checkSourceMod div, currentMatch else setTimeout (->checkSourceMod div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
 
 handleMutation = (evt)-> displaySource()
+
+executeSource = (parent, node)->
+  while node && !node.classList?.contains 'codecontent'
+    node = node.parentNode
+  if node
+    txt = node.textContent
+    if txt.trim().length then executeText node.textContent, orgEnv parent, node
+    else orgEnv(parent, node).write 'Nothing'
 
 fancyOrg =
   __proto__: orgNotebook
   markupOrg: markupOrg
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
+  installOrgDOM: (parent, orgNode, orgText)->
+    orgNotebook.installOrgDOM parent, orgNode, orgText
+    for node in $('.results-indicator')
+      root = node.createShadowRoot()
+      root.innerHTML = "-->"
+  executeSource: executeSource
 
 root.fancyOrg = fancyOrg

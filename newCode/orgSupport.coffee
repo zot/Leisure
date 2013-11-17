@@ -65,7 +65,10 @@ nextOrgId = -> 'org-node-' + idCount++
 getOrgType = (node)-> node?.getAttribute? 'data-org-type'
 
 getStyle = (node)->
-  if !node.orgId then node.orgId = nextOrgId()
+  if !node.orgId
+    node.orgId = node.getAttribute 'data-org-id'
+    if !node.orgId
+      node.setAttribute 'data-org-id', (node.orgId = nextOrgId())
   style = styleCache[node.orgId]
   if !style then style = styleCache[node.orgId] = getComputedStyle node
   style
@@ -78,7 +81,7 @@ isCollapsed = (node)->
   (type == 3 && (node.data == '' || isCollapsed(node.parentNode))) ||
   /^(script|style)$/i.test(node.nodeName) ||
   (type == 1 && (node.classList.contains('collapsed') ||
-  (node.getAttribute('data-org-type') == 'text' && isCollapsed(node.parentNode)) ||
+  (node.getAttribute('data-org-type') in ['text' || 'meat'] && isCollapsed(node.parentNode)) ||
   getStyle(node).display == 'none' ||
   node.shadowRoot?))
 
@@ -103,6 +106,7 @@ orgAttrs = (org)->
   extra = if isDynamic org then ' data-org-dynamic="true"' else ''
   if org instanceof Headline then extra += " data-org-tags='#{org.tags}'"
   else if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{org.info}'"
+  if org.srcId then extra += " data-org-srcid='#{org.srcId}'"
   "id='#{org.nodeId}' data-org-type='#{org.type}'#{extra}"
 
 isDynamic = (org)-> org instanceof Source && org.info.match /:results .*dynamic/i
@@ -144,6 +148,8 @@ fixupNodes = (node)->
   for n in $(node).find('[data-org-type="headline"]')
     setTags n
 
+isCollapsibleText = (node)-> el.nodeType == 3 && par.getAttribute('data-org-type') in ['text', 'meat']
+
 bindContent = (div)->
   fixupNodes div
   div.addEventListener 'keydown', (e)->
@@ -158,15 +164,15 @@ bindContent = (div)->
       cancelled = true
       collapseNode()
     else if String.fromCharCode(c) == 'C' && e.altKey
-      executeSource div, getSelection().focusNode
+      root.orgApi.executeSource div, getSelection().focusNode
     else if c == ENTER
       e.preventDefault()
       cancelled = true
       n = s.focusNode
-      inCollapsedText = r.collapsed && el.nodeType == 3 && par.getAttribute('data-org-type') == 'text' && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
+      inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
       if inCollapsedText && r.startOffset == el.length then return
       # Make sure that newlines at the end of a 'text' span go after the span
-      else if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
+      else if r.collapsed && r.startOffset == n.length && isCollapsibleText n
         br = document.createTextNode('\n')
         $(br).prependTo followingSpan n.parentNode
         r.setStart br, br.length
@@ -180,7 +186,7 @@ bindContent = (div)->
       s.addRange(r)
       checkEnterReparse div, r
     else if c in [DEL, BS]
-      inCollapsedText = r.collapsed && el.nodeType == 3 && par.getAttribute('data-org-type') == 'text' && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
+      inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
       if inCollapsedText && ((c == DEL && r.startOffset == el.length - 1) || (c == BS && r.startOffset == el.length))
         e.preventDefault()
         cancelled = true
@@ -195,16 +201,7 @@ bindContent = (div)->
       else if backspace div, e then cancelled = true
       else if c != BS
         checkDeleteReparse div, c == BS
-    changes = !cancelled && (
-      (c > 47 && c < 58)          || # number keys
-      c == 32 || c == ENTER       || # spacebar and enter
-      c == BS || c == DEL         || # backspace and delete
-      (c > 64 && c < 91)          || # letter keys
-      (c > 95 && c < 112)         || # numpad keys
-      (c > 185 && c < 193)        || # ;=,-./` (in order)
-      (c > 218 && c < 223)          # [\]' (in order)
-      )
-    if changes
+    if !cancelled && modifyingKey c
       if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
       currentMatch = matchLine currentLine div
       if cancelled then checkSourceMod div, currentMatch else setTimeout (->checkSourceMod div, currentMatch), 1
@@ -212,9 +209,20 @@ bindContent = (div)->
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
 
+modifyingKey = (c)-> (
+  (c > 47 && c < 58)          || # number keys
+  c == 32 || c == ENTER       || # spacebar and enter
+  c == BS || c == DEL         || # backspace and delete
+  (c > 64 && c < 91)          || # letter keys
+  (c > 95 && c < 112)         || # numpad keys
+  (c > 185 && c < 193)        || # ;=,-./` (in order)
+  (c > 218 && c < 223)          # [\]' (in order)
+  )
+
 currentLine = (parent)->
   r = rangy.getSelection().getRangeAt 0
   r.findText '\n', direction: 'backward'
+  r.moveStart 'character', 1
   r2 = rangy.getSelection().getRangeAt 0
   r2.findText '\n'
   r.setEnd r2.endContainer, r2.endOffset
@@ -262,14 +270,13 @@ checkCollapsed = (delta)->
 checkSourceMod = (parent, oldMatch)->
   r = getSelection().getRangeAt 0
   if (newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive) then reparse parent
-  else if (n = getOrgParent r.startContainer) && n.getAttribute('data-org-dynamic')?.toLowerCase() == 'true' then executeSource parent, r.startContainer
+  else if (n = getOrgParent r.startContainer) && n.getAttribute('data-org-dynamic')?.toLowerCase() == 'true' then root.orgApi.executeSource parent, r.startContainer
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
   r.innerHTML = ''
-  write: (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"
-
-orgEnv.__proto__ = defaultEnv
+  write: (str)-> r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
+  __proto__: defaultEnv
 
 getResultsForSource = (parent, node)->
   checkReparse parent
@@ -313,15 +320,18 @@ restorePosition = (parent, block)->
   else block()
 
 reparse = (parent, text)->
+  styleCache = {}
   text = text ? getNodeText parent
   sel = getSelection()
   [orgNode, orgText] = root.orgApi.markupOrgWithNode text
-  restorePosition parent, -> parent.innerHTML = orgText
+  restorePosition parent, -> root.orgApi.installOrgDOM parent, orgNode, orgText
   needsReparse = false
   setTimeout (->
     for l in reparseListeners
       l parent, orgNode, orgText
     ), 1
+
+installOrgDOM = (parent, orgNode, orgText)-> parent.innerHTML = orgText
 
 checkDeleteReparse = (parent, backspace)->
   r = rangy.getSelection().getRangeAt 0
@@ -343,18 +353,19 @@ getLeft = (x)-> x(id)(id)
 getRight = (x)-> x(id)(id)
 show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
+executeText = (text, env)->
+  result = rz(L_baseLoadString)('notebook')(text)
+  runMonad result, env, (res)->
+    res = res.head().tail()
+    if getType(res) == 'left' then orgEnv.write "PARSE ERROR: #{getLeft res}"
+    else env.write show getRight res
+
 executeSource = (parent, node)->
   if isSourceNode node
     checkReparse parent
     txt = $(node).text().substring($(node).find('[data-org-type="text"]').text().length)
     m = txt.match /(^|\n)#\+end_src/i
-    if m
-      result = rz(L_baseLoadString)('notebook')(txt.substring(0, m.index))
-      env = orgEnv parent, node
-      runMonad result, env, (res)->
-        res = res.head().tail()
-        if getType(res) == 'left' then orgEnv.write "PARSE ERROR: #{getLeft res}"
-        else env.write show getRight res
+    if m then executeText txt.substring(0, m.index), orgEnv parent, node
     else console.log "No end for src block"
   else if getOrgType(node) == 'text' then needsReparse = true
   else !isDocNode(node) && executeSource parent, node.parentElement
@@ -406,7 +417,7 @@ isCollapsible = (node)-> node.getAttribute('data-org-type') in ['headline', 'sou
 getCollapsible = (node)->
   if node.nodeType == 1
     if isCollapsible node then node
-    else (node.getAttribute('data-org-type') == 'text') && getCollapsible node.parentElement
+    else (node.getAttribute('data-org-type') in ['text', 'meat']) && getCollapsible node.parentElement
   else node.nodeType == 3 && getCollapsible node.parentElement
 
 getOrgParent = (node)-> node && ((node.nodeType == 1 && isCollapsible(node) && node) || getOrgParent node.parentElement)
@@ -473,7 +484,6 @@ findDomPosition = (node, pos)->
   while node
     if node.nodeType == 3
       if pos <= node.length then return [node, pos]
-      console.log "SKIPPED #{node.textContent}"
       pos -= node.length
       eat = true
     while node && (eat || node.nodeType != 3)
@@ -532,12 +542,14 @@ orgNotebook =
     editDiv = newNode
     restorePosition newNode, => $(newNode).html @markupOrg oldContent
     @bindContent newNode
+  installOrgDOM: installOrgDOM
 
 basicOrg =
   __proto__: orgNotebook
   markupOrg: markupOrg
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
+  executeSource: executeSource
 
 root.basicOrg = basicOrg
 root.orgNotebook = orgNotebook
@@ -566,3 +578,9 @@ root.currentLine = currentLine
 root.checkSourceMod = checkSourceMod
 root.getTextPosition = getTextPosition
 root.isCollapsed = isCollapsed
+root.nextOrgId = nextOrgId
+root.modifyingKey = modifyingKey
+root.getOrgParent = getOrgParent
+root.getOrgType = getOrgType
+root.executeText = executeText
+root.orgEnv = orgEnv
