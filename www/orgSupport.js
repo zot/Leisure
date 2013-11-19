@@ -847,15 +847,16 @@ misrepresented as being the original software.
 
   orgNotebook = {
     useNode: function(node, source) {
-      var newNode, oldContent,
+      var newNode, oldContent, orgNode, orgText, _ref3,
         _this = this;
       root.orgApi = this;
       sourceDiv = source;
       oldContent = $(node).text();
       newNode = emptyOutNode(node);
       editDiv = newNode;
+      _ref3 = this.markupOrgWithNode(oldContent), orgNode = _ref3[0], orgText = _ref3[1];
       restorePosition(newNode, function() {
-        return $(newNode).html(_this.markupOrg(oldContent));
+        return _this.installOrgDOM(newNode, orgNode, orgText);
       });
       return this.bindContent(newNode);
     },
@@ -868,7 +869,21 @@ misrepresented as being the original software.
     markupOrgWithNode: markupOrgWithNode,
     bindContent: bindContent,
     executeSource: executeSource,
-    createResults: createResults
+    createResults: createResults,
+    installOrgDOM: function(parent, orgNode, orgText) {
+      var node, _i, _len, _ref3, _results,
+        _this = this;
+      orgNotebook.installOrgDOM(parent, orgNode, orgText);
+      _ref3 = $('[data-org-dynamic="true"]');
+      _results = [];
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        node = _ref3[_i];
+        _results.push(setTimeout((function() {
+          return _this.executeSource(parent, $(node).find('[data-org-type=text]')[0].nextElementSibling);
+        }), 1));
+      }
+      return _results;
+    }
   };
 
   root.basicOrg = basicOrg;

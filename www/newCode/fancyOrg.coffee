@@ -247,8 +247,7 @@ executeSource = (parent, node)->
     if txt.trim().length then executeText node.textContent, orgEnv parent, node
     else orgEnv(parent, node)
 
-reprocessResults = (str)->
-  str.replace /(^|\n): /g, '$1<span class="hidden">: </span>'
+reprocessResults = (str)-> str.replace /(^|\n): /g, '$1<span class="hidden">: </span>'
 
 processResults = (str)->
   if str

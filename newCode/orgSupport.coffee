@@ -569,7 +569,9 @@ orgNotebook =
     oldContent = $(node).text()
     newNode = emptyOutNode node
     editDiv = newNode
-    restorePosition newNode, => $(newNode).html @markupOrg oldContent
+    #restorePosition newNode, => $(newNode).html @markupOrg oldContent
+    [orgNode, orgText] = @markupOrgWithNode oldContent
+    restorePosition newNode, => @installOrgDOM newNode, orgNode, orgText
     @bindContent newNode
   installOrgDOM: installOrgDOM
 
@@ -580,6 +582,10 @@ basicOrg =
   bindContent: bindContent
   executeSource: executeSource
   createResults: createResults
+  installOrgDOM: (parent, orgNode, orgText)->
+    orgNotebook.installOrgDOM parent, orgNode, orgText
+    for node in $('[data-org-dynamic="true"]')
+      setTimeout (=>@executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling), 1
 
 root.basicOrg = basicOrg
 root.orgNotebook = orgNotebook
