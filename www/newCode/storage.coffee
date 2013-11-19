@@ -22,8 +22,8 @@ commentIssues = {}
 commentIssueURLs = {}
 
 initStorage = ->
-  $('#login').css 'display', ''
-  $('#panel').css 'display', 'none'
+  #$('#login').css 'display', ''
+  #$('#panel').css 'display', 'none'
   $('#name').val localStorage.getItem 'githubName'
   $('#password').val localStorage.getItem 'githubPassword'
   $('#user').val localStorage.getItem 'githubUser'
@@ -51,8 +51,10 @@ connectStorage = ->
         #if !err then root.reparse $('[maindoc]')[0], getContent data
         if !err then reparse $('[maindoc]')[0], data
         else alert "ERROR: #{err}"
-        $('#panel').css 'display', ''
-        $('#login').css 'display', 'none'
+        #$('#panel').css 'display', ''
+        #$('#panel').css 'display', ''
+        #$('#login').css 'display', 'none'
+        document.body.classList.remove 'not-logged-in'
         checkEvents lastUpdate, 1, []
 
 isIssueEvent = (event)-> event.type in ['IssueCommentEvent', 'IssuesEvent']

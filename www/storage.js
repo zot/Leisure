@@ -20,8 +20,6 @@
   commentIssueURLs = {};
 
   initStorage = function() {
-    $('#login').css('display', '');
-    $('#panel').css('display', 'none');
     $('#name').val(localStorage.getItem('githubName'));
     $('#password').val(localStorage.getItem('githubPassword'));
     $('#user').val(localStorage.getItem('githubUser'));
@@ -64,8 +62,7 @@
           } else {
             alert("ERROR: " + err);
           }
-          $('#panel').css('display', '');
-          $('#login').css('display', 'none');
+          document.body.classList.remove('not-logged-in');
           return checkEvents(lastUpdate, 1, []);
         });
       });

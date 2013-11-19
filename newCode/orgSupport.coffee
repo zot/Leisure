@@ -64,6 +64,17 @@ nextOrgId = -> 'org-node-' + idCount++
 
 getOrgType = (node)-> node?.getAttribute? 'data-org-type'
 
+currentMode = null
+
+initOrg = (parent, source)->
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'></div>")
+    .prependTo(document.body)
+    .click (e)->
+      currentMode = (if currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
+      currentMode.useNode $(parent)[0], source
+  (currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
+  Leisure.initStorage '#login', '#panel', currentMode
+
 getStyle = (node)->
   if !node.orgId
     node.orgId = node.getAttribute 'data-org-id'
@@ -138,7 +149,8 @@ markupGuts = (org, start)->
       prev = c
       optionalBoundary(p, c) + markupNode(c, s)).join ""
 
-optionalBoundary = (prev, node)-> if prev && (prev.block || node.block) then boundarySpan else ''
+#optionalBoundary = (prev, node)-> if prev && (prev.block || node.block) then boundarySpan else ''
+optionalBoundary = (prev, node)-> if prev then boundarySpan else ''
 
 contentSpan = (str, type)->
   str = content str
@@ -150,7 +162,7 @@ fixupNodes = (node)->
   for n in $(node).find('[data-org-type="headline"]')
     setTags n
 
-isCollapsibleText = (node)-> el.nodeType == 3 && par.getAttribute('data-org-type') in ['text', 'meat']
+isCollapsibleText = (node)-> node.nodeType == 3 && node.parentNode.getAttribute('data-org-type') in ['text', 'meat']
 
 bindContent = (div)->
   fixupNodes div
@@ -426,12 +438,12 @@ cleanHeadline = (node)->
   modifying = false
 
 handleMutation = (evt)->
-  #if !modifying
-  #  modifying = true
-  #  if (node = getCollapsible evt.srcElement) && (node.getAttribute('data-org-type') == 'headline')
-  #    node.setAttribute 'dirty', 'true'
-  #  displaySource()
-  #  modifying = false
+  if !modifying
+    modifying = true
+    if (node = getCollapsible evt.srcElement) && (node.getAttribute('data-org-type') == 'headline')
+      node.setAttribute 'dirty', 'true'
+    displaySource()
+    modifying = false
 
 displaySource = -> $(sourceDiv).html('').text($(editDiv).text())
 
@@ -542,7 +554,7 @@ else if !document.body.createShadowRoot?
 
 emptyOutNode = (node)->
   node.innerHTML = ''
-  newNode = node.cloneNode false
+  newNode = $(node)[0].cloneNode false
   $(node).after newNode
   $(node).remove()
   newNode
@@ -553,7 +565,7 @@ orgNotebook =
   useNode: (node, source)->
     root.orgApi = @
     sourceDiv = source
-    oldContent = node.textContent
+    oldContent = $(node).text()
     newNode = emptyOutNode node
     editDiv = newNode
     restorePosition newNode, => $(newNode).html @markupOrg oldContent
@@ -602,3 +614,4 @@ root.getOrgType = getOrgType
 root.executeText = executeText
 root.orgEnv = orgEnv
 root.getResultsForSource = getResultsForSource
+root.initOrg = initOrg

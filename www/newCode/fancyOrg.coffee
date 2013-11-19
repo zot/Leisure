@@ -69,7 +69,7 @@ markupOrgWithNode = (text)->
   lastOrgOffset = -1
   [org, markupNode org]
 
-borderRE = /[\n]*$/
+borderRE = /[\n]+$/
 makeBoundary = (node)->
   nls = node.text.match borderRE
   if nls then "<div class='boundary'>#{nls[0]}</div>" else ""
