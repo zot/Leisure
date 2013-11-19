@@ -105,7 +105,7 @@ markupNode = (org)->
         if res instanceof Results
           lastOrgOffset = res.offset
           pos = res.contentPos - res.offset
-          html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
+          html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'><span></span></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
         html + "</div></div>"
       else defaultMarkup org
     else defaultMarkup org
@@ -115,20 +115,14 @@ markupNode = (org)->
 
 defaultMarkup = (org)-> "<span #{orgAttrs org}>#{org.text}</span>"
 
-decorateResultsIndicators = (indicator)->
-  for node in $(indicator)
-    root = node.createShadowRoot()
-    root.innerHTML = "-->"
-
 createResults = (srcNode)->
   while srcNode && !srcNode.classList.contains 'codeblock'
     srcNode = srcNode.parentNode
   if created = srcNode && !$(srcNode).find('.coderesults').length
     $(srcNode).find('.codewrapper').append """
-      <div class="results-indicator" data-org-type="boundary"></div><div class="coderesults" data-org-type="results"><span class="hidden">#+RESULTS:
+      <div class="results-indicator" data-org-type="boundary"><span></span></div><div class="coderesults" data-org-type="results"><span class="hidden">#+RESULTS:
       </span><div>
       </div></div>"""
-    decorateResultsIndicators $(srcNode).find('.results-indicator')
   created
 
 #
@@ -233,6 +227,7 @@ bindContent = (div)->
       setTimeout (->checkSourceMod div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
+  displaySource()
 
 bsWillDestroyParent = (r)->
   if r.startContainer.nodeType == 3 && r.startOffset == 1 && r.startContainer.data.match /^.\n?$/
@@ -281,7 +276,6 @@ fancyOrg =
     orgNotebook.installOrgDOM parent, orgNode, orgText
     for node in $('[data-org-dynamic="true"]')
       setTimeout (=>@executeSource parent, $(node).find('.codecontent')[0].firstChild), 1
-    decorateResultsIndicators $('.results-indicator')
   executeSource: executeSource
   createResults: createResults
 

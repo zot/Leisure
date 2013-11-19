@@ -66,9 +66,12 @@ misrepresented as being the original software.
   currentMode = null;
 
   initOrg = function(parent, source) {
-    $("<div LeisureOutput contentEditable='false' id='leisure_bar'></div>").prependTo(document.body).click(function(e) {
+    $("<div LeisureOutput contentEditable='false' id='leisure_bar'></div>").prependTo(document.body).mousedown(function(e) {
+      e.preventDefault();
       currentMode = (currentMode === Leisure.fancyOrg ? Leisure.basicOrg : Leisure.fancyOrg);
-      return currentMode.useNode($(parent)[0], source);
+      return restorePosition(parent, function() {
+        return currentMode.useNode($(parent)[0], source);
+      });
     });
     (currentMode = Leisure.fancyOrg).useNode($(parent)[0], source);
     return Leisure.initStorage('#login', '#panel', currentMode);
@@ -426,7 +429,7 @@ misrepresented as being the original software.
       r.innerHTML = '';
       return {
         write: function(str) {
-          return r.textContent += ": " + (str.replace(/\n/g, '\n: ')) + "\n";
+          return r.textContent += "\n: " + (str.replace(/\n/g, '\n: '));
         },
         __proto__: defaultEnv
       };
@@ -494,10 +497,10 @@ misrepresented as being the original software.
     sel = getSelection();
     if (sel.rangeCount) {
       r = sel.getRangeAt(0);
-      pos = getTextPosition(parent, r.startContainer, r.startOffset);
+      pos = getTextPosition($(parent)[0], r.startContainer, r.startOffset);
       block();
       if (pos > -1) {
-        r = nativeRange(findDomPosition(parent, pos));
+        r = nativeRange(findDomPosition($(parent)[0], pos));
         r.collapse(true);
         sel.removeAllRanges();
         return sel.addRange(r);

@@ -76,6 +76,9 @@
                         display: inline-block;
                         vertical-align: middle;
                 }
+                .results-indicator *:before {
+                        content: '-->';
+                }
                 .codecontent {
                         border: solid gray 2px;
                         min-width: 200px;
@@ -95,6 +98,7 @@
                         right: 0;
                         /*width: 100%;*/
                         white-space: normal;
+                        user-select: none;
                 }
                 .not-logged-in #leisure_bar, .not-logged-in #panel {
                         display: none;

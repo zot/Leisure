@@ -69,9 +69,10 @@ currentMode = null
 initOrg = (parent, source)->
   $("<div LeisureOutput contentEditable='false' id='leisure_bar'></div>")
     .prependTo(document.body)
-    .click (e)->
+    .mousedown (e)->
+      e.preventDefault()
       currentMode = (if currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
-      currentMode.useNode $(parent)[0], source
+      restorePosition parent, -> currentMode.useNode $(parent)[0], source
   (currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
   Leisure.initStorage '#login', '#panel', currentMode
 
@@ -304,7 +305,7 @@ orgEnv = (parent, node)->
   r = getResultsForSource parent, node
   if r
     r.innerHTML = ''
-    write: (str)-> r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
+    write: (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"
     __proto__: defaultEnv
   else
     write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
@@ -345,10 +346,10 @@ restorePosition = (parent, block)->
   sel = getSelection()
   if sel.rangeCount
     r = sel.getRangeAt 0
-    pos = getTextPosition parent, r.startContainer, r.startOffset
+    pos = getTextPosition $(parent)[0], r.startContainer, r.startOffset
     block()
     if pos > -1
-      r = nativeRange findDomPosition parent, pos
+      r = nativeRange findDomPosition $(parent)[0], pos
       r.collapse true
       sel.removeAllRanges()
       sel.addRange r
