@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, ENTER, HL_TAGS, Headline, Keyword, Meat, Results, Source, TAB, backspace, basicOrg, bindContent, boundarySpan, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, content, contentSpan, currentLine, defaultEnv, displaySource, editDiv, emptyOutNode, executeSource, executeText, findDomPosition, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgType, getResultsForSource, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, hasShadow, headlineRE, id, idCount, installOrgDOM, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, modifying, modifyingKey, nativeRange, needsReparse, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parseOrgMode, parseTags, reparse, reparseListeners, resolve, restorePosition, root, rz, sensitive, setTags, show, sourceDiv, styleCache, _ref, _ref1, _ref2;
+  var BS, DEL, ENTER, HL_TAGS, Headline, Keyword, Meat, Results, Source, TAB, backspace, basicOrg, bindContent, boundarySpan, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, content, contentSpan, createResults, currentLine, defaultEnv, displaySource, editDiv, emptyOutNode, executeSource, executeText, findDomPosition, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgType, getResultsForSource, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, hasShadow, headlineRE, id, idCount, installOrgDOM, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, modifying, modifyingKey, nativeRange, needsReparse, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parseOrgMode, parseTags, reparse, reparseListeners, resolve, restorePosition, root, rz, sensitive, setTags, show, sourceDiv, styleCache, textNodeAfter, textNodeBefore, _ref, _ref1, _ref2;
 
   getType = require('./ast').getType;
 
@@ -106,7 +106,9 @@ misrepresented as being the original software.
 
   orgAttrs = function(org) {
     var extra, _ref3;
-    org.nodeId = nextOrgId();
+    if (!org.nodeId) {
+      org.nodeId = nextOrgId();
+    }
     nodes[org.nodeId] = org;
     extra = isDynamic(org) ? ' data-org-dynamic="true"' : '';
     if (org instanceof Headline) {
@@ -136,6 +138,8 @@ misrepresented as being the original software.
       return "<span " + (orgAttrs(org)) + ">" + (content(org.text)) + "</span>";
     }
   };
+
+  createResults = function(srcNode) {};
 
   checkStart = function(start, text) {
     return start && (!text || text === '\n');
@@ -293,25 +297,45 @@ misrepresented as being the original software.
   };
 
   currentLine = function(parent) {
-    var r, r2, t;
-    r = rangy.getSelection().getRangeAt(0);
-    r.findText('\n', {
-      direction: 'backward'
-    });
-    r.moveStart('character', 1);
-    r2 = rangy.getSelection().getRangeAt(0);
-    r2.findText('\n');
-    r.setEnd(r2.endContainer, r2.endOffset);
-    t = r.text();
-    if (t[0] !== '\n') {
-      r.setStartBefore(parent);
-      t = r.text();
+    var lineEnd, lineStart, lineText, nl, node, r;
+    r = getSelection().getRangeAt(0);
+    if (r.collapsed && r.startContainer.nodeType === 3) {
+      nl = r.startContainer.data.substring(0, r.startOffset).lastIndexOf('\n');
+      lineText = r.startContainer.data;
+      lineStart = -1;
+      lineEnd = -1;
+      if ((-1 < nl && nl < r.startOffset)) {
+        lineStart = nl;
+      } else {
+        node = r.startContainer;
+        while (node && lineStart === -1) {
+          if (node = textNodeBefore(node)) {
+            lineText = node.data + lineText;
+            lineStart = node.data.lastIndexOf('\n');
+          }
+        }
+      }
+      nl = r.startContainer.data.indexOf('\n', r.startOffset);
+      if (nl >= r.startOffset) {
+        lineEnd = nl + lineText.length - r.startContainer.data.length;
+      } else {
+        node = r.startContainer;
+        while (node && lineEnd === -1) {
+          if (node = textNodeAfter(node)) {
+            lineText += node.data;
+            if ((nl = node.data.indexOf('\n')) > -1) {
+              lineEnd = nl + lineText.length - r.startContainer.data.length;
+            }
+          }
+        }
+      }
+      if (lineEnd === -1) {
+        lineEnd = lineText.length;
+      }
+      return lineText.substring(lineStart + 1, lineEnd);
+    } else {
+      return '';
     }
-    if (t[t.length - 1] !== '\n') {
-      r.setEndAfter(parent);
-      t = r.text();
-    }
-    return t;
   };
 
   collapseNode = function() {
@@ -387,13 +411,22 @@ misrepresented as being the original software.
   orgEnv = function(parent, node) {
     var r;
     r = getResultsForSource(parent, node);
-    r.innerHTML = '';
-    return {
-      write: function(str) {
-        return r.textContent += ": " + (str.replace(/\n/g, '\n: ')) + "\n";
-      },
-      __proto__: defaultEnv
-    };
+    if (r) {
+      r.innerHTML = '';
+      return {
+        write: function(str) {
+          return r.textContent += ": " + (str.replace(/\n/g, '\n: ')) + "\n";
+        },
+        __proto__: defaultEnv
+      };
+    } else {
+      return {
+        write: function(str) {
+          return console.log(": " + (str.replace(/\n/g, '\n: ')) + "\n");
+        },
+        __proto__: defaultEnv
+      };
+    }
   };
 
   getResultsForSource = function(parent, node) {
@@ -410,14 +443,18 @@ misrepresented as being the original software.
       org = parseOrgMode(getNodeText(parent));
       pos = getTextPosition(parent, node, 0);
       src = org.findNodeAt(pos);
-      results = src.next;
-      if (!(results instanceof Results)) {
-        results = results instanceof Meat && results.text.match(/^[ \n]*$/) ? results.next : void 0;
+      if (pos > -1) {
+        results = src.next;
         if (!(results instanceof Results)) {
-          results = newResults(parent, src);
+          results = results instanceof Meat && results.text.match(/^[ \n]*$/) ? results.next : void 0;
+          if (!(results instanceof Results)) {
+            results = newResults(parent, src);
+          }
         }
+        return getCollapsible(findDomPosition(parent, results.offset + 1)[0]).lastChild;
+      } else {
+        return null;
       }
-      return getCollapsible(findDomPosition(parent, results.offset + 1)[0]).lastChild;
     }
   };
 
@@ -448,10 +485,12 @@ misrepresented as being the original software.
       r = sel.getRangeAt(0);
       pos = getTextPosition(parent, r.startContainer, r.startOffset);
       block();
-      r = nativeRange(findDomPosition(parent, pos));
-      r.collapse(true);
-      sel.removeAllRanges();
-      return sel.addRange(r);
+      if (pos > -1) {
+        r = nativeRange(findDomPosition(parent, pos));
+        r.collapse(true);
+        sel.removeAllRanges();
+        return sel.addRange(r);
+      }
     } else {
       return block();
     }
@@ -610,17 +649,7 @@ misrepresented as being the original software.
     return modifying = false;
   };
 
-  handleMutation = function(evt) {
-    var node;
-    if (!modifying) {
-      modifying = true;
-      if ((node = getCollapsible(evt.srcElement)) && (node.getAttribute('data-org-type') === 'headline')) {
-        node.setAttribute('dirty', 'true');
-      }
-      displaySource();
-      return modifying = false;
-    }
-  };
+  handleMutation = function(evt) {};
 
   displaySource = function() {
     return $(sourceDiv).html('').text($(editDiv).text());
@@ -674,65 +703,73 @@ misrepresented as being the original software.
 
   getTextPosition = function(node, target, pos) {
     var count, eat, up;
-    up = false;
-    eat = false;
-    count = 0;
-    while (node) {
-      if (node.nodeType === 3) {
-        if (node === target) {
-          return count + pos;
-        }
-        count += node.length;
-        eat = true;
-      }
-      if (node === target && pos === 0) {
-        return count;
-      }
-      while (node && (eat || node.nodeType !== 3)) {
-        eat = false;
-        if (!up && node.firstChild) {
-          node = node.firstChild;
-        } else if (node.nextSibling) {
-          if (node.parentNode === target) {
-            pos--;
+    if (target.nodeType === 3) {
+      up = false;
+      eat = false;
+      count = 0;
+      while (node) {
+        if (node.nodeType === 3) {
+          if (node === target) {
+            return count + pos;
           }
-          node = node.nextSibling;
-          up = false;
-        } else {
-          node = node.parentNode;
-          up = true;
+          count += node.length;
+          eat = true;
         }
+        node = textNodeAfter(node);
       }
     }
     return -1;
   };
 
   findDomPosition = function(node, pos) {
-    var eat, up;
-    up = false;
-    eat = false;
     while (node) {
       if (node.nodeType === 3) {
         if (pos <= node.length) {
           return [node, pos];
         }
         pos -= node.length;
-        eat = true;
       }
-      while (node && (eat || node.nodeType !== 3)) {
-        eat = false;
-        if (!up && node.firstChild) {
-          node = node.firstChild;
-        } else if (node.nextSibling) {
-          node = node.nextSibling;
-          up = false;
-        } else {
-          node = node.parentNode;
-          up = true;
-        }
-      }
+      node = textNodeAfter(node);
     }
     return [null, null];
+  };
+
+  textNodeAfter = function(node) {
+    var eat, up;
+    eat = true;
+    up = false;
+    while (node && (eat || node.nodeType !== 3)) {
+      eat = false;
+      if (!up && node.firstChild) {
+        node = node.firstChild;
+      } else if (node.nextSibling) {
+        node = node.nextSibling;
+        up = false;
+      } else {
+        node = node.parentNode;
+        up = true;
+      }
+    }
+    return node;
+  };
+
+  textNodeBefore = function(node) {
+    var eat, up;
+    eat = true;
+    up = false;
+    while (node && (eat || node.nodeType !== 3)) {
+      eat = false;
+      if (!up && node.lastChild) {
+        node = node.lastChild;
+      } else if (node.previousSibling) {
+        node = node.previousSibling;
+        up = false;
+      } else {
+        node = node.parentNode;
+        up = true;
+      }
+    }
+    return node;
   };
 
   getNodeText = function(node) {
@@ -806,7 +843,8 @@ misrepresented as being the original software.
     markupOrg: markupOrg,
     markupOrgWithNode: markupOrgWithNode,
     bindContent: bindContent,
-    executeSource: executeSource
+    executeSource: executeSource,
+    createResults: createResults
   };
 
   root.basicOrg = basicOrg;
@@ -874,6 +912,8 @@ misrepresented as being the original software.
   root.executeText = executeText;
 
   root.orgEnv = orgEnv;
+
+  root.getResultsForSource = getResultsForSource;
 
 }).call(this);
 

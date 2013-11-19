@@ -51,6 +51,7 @@ lz = lazy
   getOrgType,
   orgEnv,
   executeText,
+  getResultsForSource,
 } = require './orgSupport'
 
 lastOrgOffset = -1
@@ -68,8 +69,6 @@ markupOrgWithNode = (text)->
   lastOrgOffset = -1
   [org, markupNode org]
 
-defaultMarkup = (org)-> "<span #{orgAttrs org}>#{org.text}</span>"
-
 borderRE = /[\n]*$/
 makeBoundary = (node)->
   nls = node.text.match borderRE
@@ -79,9 +78,9 @@ markupNode = (org)->
   if org.offset <= lastOrgOffset
     ''
   else if org instanceof Results
-    pos = org.contentPos - org.offset - 1
+    pos = org.contentPos - org.offset
     text = org.text.substring pos
-    "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}</span>#{makeBoundary org}"
+    "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}"
   else if org instanceof Keyword
     if org.name.match /name/i
       intertext = '\n'
@@ -97,7 +96,6 @@ markupNode = (org)->
         srcContent = src.content
         srcLead = src.text.substring 0, src.contentPos - src.offset
         srcTrail = src.text.substring src.contentPos - src.offset + src.content.length
-        id = nextOrgId()
         html = "<div class='codeblock' #{orgAttrs src}><div class='codename'><span class='hidden'>#{nameM[KW_BOILERPLATE]}</span>#{name.info}#{intertext}</div><div class='hidden'>#{srcLead}</div><div class='codewrapper'><div class='codecontent'>#{srcContent}</div><span class='hidden' data-org-type='boundary'>#{srcTrail}</span>"
         res = src.next
         intertext = ''
@@ -107,13 +105,31 @@ markupNode = (org)->
         if res instanceof Results
           lastOrgOffset = res.offset
           pos = res.contentPos - res.offset
-          html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{res.text.substring pos}</div></div>"
+          html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
         html + "</div></div>"
       else defaultMarkup org
     else defaultMarkup org
   else if org instanceof Headline then "<span #{orgAttrs org}><span data-org-type='text'>#{org.text}</span>#{markupGuts org, checkStart start, org.text}</span>"
-  else if content(org.text).length then "<span #{orgAttrs org}>#{org.text}</span>"
-  else "#{makeBoundary org}"
+  else if content(org.text).length then defaultMarkup org
+  else "<div #{orgAttrs org}>#{org.text}</div>"
+
+defaultMarkup = (org)-> "<span #{orgAttrs org}>#{org.text}</span>"
+
+decorateResultsIndicators = (indicator)->
+  for node in $(indicator)
+    root = node.createShadowRoot()
+    root.innerHTML = "-->"
+
+createResults = (srcNode)->
+  while srcNode && !srcNode.classList.contains 'codeblock'
+    srcNode = srcNode.parentNode
+  if created = srcNode && !$(srcNode).find('.coderesults').length
+    $(srcNode).find('.codewrapper').append """
+      <div class="results-indicator" data-org-type="boundary"></div><div class="coderesults" data-org-type="results"><span class="hidden">#+RESULTS:
+      </span><div>
+      </div></div>"""
+    decorateResultsIndicators $(srcNode).find('.results-indicator')
+  created
 
 #
 # When to cancel line joins
@@ -122,24 +138,18 @@ markupNode = (org)->
 #
 shouldCancelBS = (parent, r)-> atTextStart(r) && crossesHidden -1
 
-atTextStart = (r)-> r.collapsed && r.startContainer.nodeType == 3 && r.startOffset == 0
+atTextStart = (r)-> r.collapsed && (r.startContainer.nodeType == 1 || (r.startContainer.nodeType == 3 && r.startOffset == 0))
 
 # returns:
 # false if not at the end
 # 1 if at the end
 # 2 at an ending \n
-atTextEnd = (r)-> r.collapsed && r.startContainer.nodeType == 3 &&
+atTextEnd = (r)-> r.collapsed && (r.startContainer.nodeType == 1 || (r.startContainer.nodeType == 3 &&
 ((r.startOffset == r.startContainer.length && 1) ||
   (r.startOffset == r.startContainer.length - 1 &&
-  r.startContainer.textContent[r.startOffset] == '\n' && 2))
+  r.startContainer.textContent[r.startOffset] == '\n' && 2))))
 
 shouldCancelDEL = (parent, r)-> (atEnd = atTextEnd r) && crossesHidden atEnd + 1
-
-shouldDeleteCharacter = (parent, r)-> false
-#  if (atEnd = atTextEnd r)
-#    pos =
-#    matchLineAt parent, checkCollapsed atEnd
-#  else false
 
 matchLineAt = (parent, pos)->
   text = parent.textContent
@@ -177,46 +187,59 @@ bindContent = (div)->
   div.addEventListener 'keydown', (e)->
     curPos = -1
     c = (e.charCode || e.keyCode || e.which)
-    s = getSelection()
-    r = s.getRangeAt(0)
-    el = r.startContainer
-    par = el.parentNode
-    if c == ENTER
-      e.preventDefault()
+    if modifyingKey c
+      s = getSelection()
+      r = s.getRangeAt(0)
+      el = r.startContainer
+      par = el.parentNode
       n = s.focusNode
-      if ! checkCollapsed n, 1
-        if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
-          br = document.createTextNode('\n')
-          $(br).prependTo followingSpan n.parentNode
-          r.setStart br, br.length
-          r.setEnd br, br.length
-        else
-          r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
-          br.parentNode.normalize()
-        r.collapse()
-        s.removeAllRanges()
-        s.addRange(r)
-        setTimeout (->checkEnterReparse div, r), 1
-      else cancelled = true
-    else if c in [BS, DEL]
-      if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
-        e.preventDefault()
-        cancelled = true
-      else if c == DEL && shouldDeleteCharacter div, r
-        e.preventDefault()
-        t = div.textContent
-        p = getTextPosition r.startContainer, r.startOffset
-        reparse div, t.substring(0, p) + t.substring p + 1
-      else
-        currentMatch = matchLine currentLine div
-        setTimeout (->checkSourceMod div, currentMatch), 1
-    else cancelled = false
-    if !cancelled && modifyingKey c
-      if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
       currentMatch = matchLine currentLine div
-      if cancelled then checkSourceMod div, currentMatch else setTimeout (->checkSourceMod div, currentMatch), 1
+      if c == ENTER
+        e.preventDefault()
+        if ! checkCollapsed n, 1
+          if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
+            br = document.createTextNode('\n')
+            $(br).prependTo followingSpan n.parentNode
+            r.setStart br, br.length
+            r.setEnd br, br.length
+          else
+            r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
+            br.parentNode.normalize()
+          r.collapse()
+          s.removeAllRanges()
+          s.addRange(r)
+          setTimeout (->checkEnterReparse div, r), 1
+        else return
+      else if c in [BS, DEL]
+        if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
+          e.preventDefault()
+          return
+        else if c == BS && bsWillDestroyParent r
+          e.preventDefault()
+          el.data = el.data.substring 1
+      else if el.nodeType == 3 && el.data == '\n'
+        setTimeout (->
+          if el.data[el.data.length - 1] != '\n'
+            el.data += '\n'
+            sel = getSelection()
+            r = sel.getRangeAt 0
+            r.setStart el, 1
+            r.setEnd el, 1
+            sel.removeAllRanges()
+            sel.addRange r
+          checkSourceMod div, currentMatch), 1
+        return
+      if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
+      setTimeout (->checkSourceMod div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
+
+bsWillDestroyParent = (r)->
+  if r.startContainer.nodeType == 3 && r.startOffset == 1 && r.startContainer.data.match /^.\n?$/
+    r2 = rangy.createRangyRange()
+    r2.selectNodeContents r.startContainer.parentNode
+    r2.text() == r.startContainer.data
+  else false
 
 handleMutation = (evt)-> displaySource()
 
@@ -224,9 +247,30 @@ executeSource = (parent, node)->
   while node && !node.classList?.contains 'codecontent'
     node = node.parentNode
   if node
+    createResults node
     txt = node.textContent
     if txt.trim().length then executeText node.textContent, orgEnv parent, node
-    else orgEnv(parent, node).write 'Nothing'
+    else orgEnv(parent, node)
+
+reprocessResults = (str)->
+  str.replace /(^|\n): /g, '$1<span class="hidden">: </span>'
+
+processResults = (str)->
+  if str
+    if str[str.length - 1] == '\n' then str = str.substring 0, str.length - 1
+    "<span class='hidden'>: </span>#{str.replace /\n/g, '\n<span class="hidden">: </span>'}\n"
+  else str
+
+# like orgSupport's orgEnv, but wrap the leading ': ' in hidden spans
+orgEnv = (parent, node)->
+  r = getResultsForSource parent, node
+  if r
+    r.innerHTML = ''
+    write: (str)-> r.innerHTML += processResults str
+    __proto__: defaultEnv
+  else
+    write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
+    __proto__: defaultEnv
 
 fancyOrg =
   __proto__: orgNotebook
@@ -235,9 +279,10 @@ fancyOrg =
   bindContent: bindContent
   installOrgDOM: (parent, orgNode, orgText)->
     orgNotebook.installOrgDOM parent, orgNode, orgText
-    for node in $('.results-indicator')
-      root = node.createShadowRoot()
-      root.innerHTML = "-->"
+    for node in $('[data-org-dynamic="true"]')
+      setTimeout (=>@executeSource parent, $(node).find('.codecontent')[0].firstChild), 1
+    decorateResultsIndicators $('.results-indicator')
   executeSource: executeSource
+  createResults: createResults
 
 root.fancyOrg = fancyOrg

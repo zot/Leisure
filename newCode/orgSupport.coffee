@@ -101,7 +101,7 @@ boundarySpan = "<span data-org-type='boundary'>\n</span>"
 sensitive = /^srcStart|^headline-/
 
 orgAttrs = (org)->
-  org.nodeId = nextOrgId()
+  if !org.nodeId then org.nodeId = nextOrgId()
   nodes[org.nodeId] = org
   extra = if isDynamic org then ' data-org-dynamic="true"' else ''
   if org instanceof Headline then extra += " data-org-tags='#{org.tags}'"
@@ -118,6 +118,8 @@ markupNode = (org, start)->
     "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}</span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else "<span #{orgAttrs org}>#{content org.text}</span>"
+
+createResults = (srcNode)->
 
 checkStart = (start, text)-> start && (!text || text == '\n')
 
@@ -220,16 +222,30 @@ modifyingKey = (c)-> (
   )
 
 currentLine = (parent)->
-  r = rangy.getSelection().getRangeAt 0
-  r.findText '\n', direction: 'backward'
-  r.moveStart 'character', 1
-  r2 = rangy.getSelection().getRangeAt 0
-  r2.findText '\n'
-  r.setEnd r2.endContainer, r2.endOffset
-  t = r.text()
-  if t[0] != '\n' then r.setStartBefore parent; t = r.text()
-  if t[t.length - 1] != '\n' then r.setEndAfter parent; t = r.text()
-  t
+  r = getSelection().getRangeAt(0)
+  if r.collapsed && r.startContainer.nodeType == 3
+    nl = r.startContainer.data.substring(0, r.startOffset).lastIndexOf '\n'
+    lineText = r.startContainer.data
+    lineStart = -1
+    lineEnd = -1
+    if -1 < nl < r.startOffset then lineStart = nl
+    else
+      node = r.startContainer
+      while node && lineStart == -1
+        if node = textNodeBefore node
+          lineText = node.data + lineText
+          lineStart = node.data.lastIndexOf '\n'
+    nl = r.startContainer.data.indexOf '\n', r.startOffset
+    if nl >= r.startOffset then lineEnd = nl + lineText.length - r.startContainer.data.length
+    else
+      node = r.startContainer
+      while node && lineEnd == -1
+        if node = textNodeAfter node
+          lineText += node.data
+          if (nl = node.data.indexOf '\n') > -1 then lineEnd = nl + lineText.length - r.startContainer.data.length
+    if lineEnd == -1 then lineEnd = lineText.length
+    lineText.substring lineStart + 1, lineEnd
+  else ''
 
 collapseNode = ->
   node = getCollapsible getSelection().focusNode
@@ -274,9 +290,13 @@ checkSourceMod = (parent, oldMatch)->
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
-  r.innerHTML = ''
-  write: (str)-> r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
-  __proto__: defaultEnv
+  if r
+    r.innerHTML = ''
+    write: (str)-> r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
+    __proto__: defaultEnv
+  else
+    write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
+    __proto__: defaultEnv
 
 getResultsForSource = (parent, node)->
   checkReparse parent
@@ -289,11 +309,13 @@ getResultsForSource = (parent, node)->
     org = parseOrgMode getNodeText parent
     pos = getTextPosition parent, node, 0
     src = org.findNodeAt pos
-    results = src.next
-    if !(results instanceof Results)
-      results = if results instanceof Meat && results.text.match /^[ \n]*$/ then results.next
-      if !(results instanceof Results) then results = newResults parent, src
-    getCollapsible(findDomPosition(parent, results.offset + 1)[0]).lastChild
+    if pos > -1
+      results = src.next
+      if !(results instanceof Results)
+        results = if results instanceof Meat && results.text.match /^[ \n]*$/ then results.next
+        if !(results instanceof Results) then results = newResults parent, src
+      getCollapsible(findDomPosition(parent, results.offset + 1)[0]).lastChild
+    else null
 
 checkReparse = (parent)-> if needsReparse then reparse parent
 
@@ -313,10 +335,11 @@ restorePosition = (parent, block)->
     r = sel.getRangeAt 0
     pos = getTextPosition parent, r.startContainer, r.startOffset
     block()
-    r = nativeRange findDomPosition parent, pos
-    r.collapse true
-    sel.removeAllRanges()
-    sel.addRange r
+    if pos > -1
+      r = nativeRange findDomPosition parent, pos
+      r.collapse true
+      sel.removeAllRanges()
+      sel.addRange r
   else block()
 
 reparse = (parent, text)->
@@ -403,12 +426,12 @@ cleanHeadline = (node)->
   modifying = false
 
 handleMutation = (evt)->
-  if !modifying
-    modifying = true
-    if (node = getCollapsible evt.srcElement) && (node.getAttribute('data-org-type') == 'headline')
-      node.setAttribute 'dirty', 'true'
-    displaySource()
-    modifying = false
+  #if !modifying
+  #  modifying = true
+  #  if (node = getCollapsible evt.srcElement) && (node.getAttribute('data-org-type') == 'headline')
+  #    node.setAttribute 'dirty', 'true'
+  #  displaySource()
+  #  modifying = false
 
 displaySource = -> $(sourceDiv).html('').text($(editDiv).text())
 
@@ -434,68 +457,61 @@ getTextLine = (node)->
   null
 
 #
-# inefficient location tools
+# location tools
 #
-#getTextPosition = (parent, node, offset)->
-#  if node == null
-#    r = getSelection().getRangeAt 0
-#    node = r.startContainer
-#    offset = r.startOffset
-#  r = document.createRange()
-#  r.setStartBefore parent, 0
-#  r.setEnd node, offset
-#  r.cloneContents().textContent.length
 
 findOrgNode = (parent, pos)->
   org = parseOrgMode getNodeText parent
   orgNode = org.findNodeAt pos
 
-#findDomPosition = (parent, pos)->
-#  r = rangy.createRangyRange()
-#  r.selectNodeContents parent
-#  r.moveStart 'character', pos
-#  r
-
 getTextPosition = (node, target, pos)->
-  up = false
-  eat = false
-  count = 0
-  while node
-    if node.nodeType == 3
-      if node == target then return count + pos
-      count += node.length
-      eat = true
-    if node == target && pos == 0 then return count
-    while node && (eat || node.nodeType != 3)
-      eat = false
-      if !up && node.firstChild then node = node.firstChild
-      else if node.nextSibling
-        if node.parentNode == target then pos--
-        node = node.nextSibling
-        up = false
-      else
-        node = node.parentNode
-        up = true
+  if target.nodeType == 3
+    up = false
+    eat = false
+    count = 0
+    while node
+      if node.nodeType == 3
+        if node == target then return count + pos
+        count += node.length
+        eat = true
+      node = textNodeAfter node
   -1
 
 findDomPosition = (node, pos)->
-  up = false
-  eat = false
   while node
     if node.nodeType == 3
       if pos <= node.length then return [node, pos]
       pos -= node.length
-      eat = true
-    while node && (eat || node.nodeType != 3)
-      eat = false
-      if !up && node.firstChild then node = node.firstChild
-      else if node.nextSibling
-        node = node.nextSibling
-        up = false
-      else
-        node = node.parentNode
-        up = true
+    node = textNodeAfter node
   [null, null]
+
+textNodeAfter = (node)->
+  eat = true
+  up = false
+  while node && (eat || node.nodeType != 3)
+    eat = false
+    if !up && node.firstChild then node = node.firstChild
+    else if node.nextSibling
+      node = node.nextSibling
+      up = false
+    else
+      node = node.parentNode
+      up = true
+  node
+
+textNodeBefore = (node)->
+  eat = true
+  up = false
+  while node && (eat || node.nodeType != 3)
+    eat = false
+    if !up && node.lastChild then node = node.lastChild
+    else if node.previousSibling
+      node = node.previousSibling
+      up = false
+    else
+      node = node.parentNode
+      up = true
+  node
 
 #
 # Shadow dom support
@@ -550,6 +566,7 @@ basicOrg =
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
   executeSource: executeSource
+  createResults: createResults
 
 root.basicOrg = basicOrg
 root.orgNotebook = orgNotebook
@@ -584,3 +601,4 @@ root.getOrgParent = getOrgParent
 root.getOrgType = getOrgType
 root.executeText = executeText
 root.orgEnv = orgEnv
+root.getResultsForSource = getResultsForSource
