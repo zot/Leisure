@@ -61,6 +61,8 @@
                         background: lightgray;
                         min-width: 400px;
                         display: inline-block;
+                        position: relative;
+                        padding-right: 32px;
                 }
                 .codename {
                         padding-left: 24px;
@@ -87,6 +89,35 @@
                         border: solid blue 2px;
                         min-width: 100px;
                 }
+                .comments {
+                        position: relative;
+                        overflow: visible;
+                        vertical-align: top;
+                        display: none;
+                }
+                .showcomments.comments {
+                        display: inline-block;
+                }
+                .comments > * {
+                        position: absolute;
+                        width: 300px;
+                        padding: 5px;
+                        background: white;
+                        border-radius: 10px;
+                        border: solid gray 2px;
+                        margin-left: 5px;
+                }
+                .comment-button {
+                        position: absolute;
+                        right: 0;
+                        top: 0;
+                        user-select: none;
+                        -moz-user-select: none;
+                        -webkit-user-select: none;
+                }
+                .comment-button img {
+                        max-width: 32px;
+                }
                 #leisure_bar {
                         min-height: 28px;
                         background-image: url(leisure_bar.gif);
@@ -99,6 +130,8 @@
                         /*width: 100%;*/
                         white-space: normal;
                         user-select: none;
+                        -moz-user-select: none;
+                        -webkit-user-select: none;
                 }
                 .not-logged-in #leisure_bar, .not-logged-in #panel {
                         display: none;

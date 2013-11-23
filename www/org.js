@@ -458,7 +458,7 @@ misrepresented as being the original software.
       return parseSrcBlock(line, offset, srcStart[SRC_INFO], meat.substring(line.length) + rest);
     } else if ((keyword != null ? keyword.index : void 0) === 0) {
       line = fullLine(keyword, meat);
-      return parseKeyword(line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest);
+      return parseKeyword(keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest);
     } else {
       first = meat.length + offset;
       first = Math.min(first, (_ref = srcStart != null ? srcStart.index : void 0) != null ? _ref : first, (_ref1 = keyword != null ? keyword.index : void 0) != null ? _ref1 : first, (_ref2 = results != null ? results.index : void 0) != null ? _ref2 : first);
@@ -476,8 +476,8 @@ misrepresented as being the original software.
     return [new Results(text + lines, offset + 1, text.match(resultsRE)[RES_NAME], text.length + offset + 1), rest];
   };
 
-  parseKeyword = function(text, offset, name, info, rest) {
-    return [new Keyword(text, offset, name, info), rest];
+  parseKeyword = function(match, text, offset, name, info, rest) {
+    return [new Keyword(text, offset, name, text.substring(match[KW_BOILERPLATE].length)), rest];
   };
 
   parseSrcBlock = function(text, offset, info, rest) {

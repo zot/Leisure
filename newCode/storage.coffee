@@ -48,12 +48,8 @@ connectStorage = ->
     getAllIssuesAndCommentsThen connection, user, repository, (issueList)->
       if !(storageListener in root.reparseListeners) then root.reparseListeners.push storageListener
       contents = repo.contents 'master', file, (err, data)->
-        #if !err then root.reparse $('[maindoc]')[0], getContent data
         if !err then reparse $('[maindoc]')[0], data
         else alert "ERROR: #{err}"
-        #$('#panel').css 'display', ''
-        #$('#panel').css 'display', ''
-        #$('#login').css 'display', 'none'
         document.body.classList.remove 'not-logged-in'
         checkEvents lastUpdate, 1, []
 
@@ -81,9 +77,13 @@ checkEvents = (lastUp, page, events)->
         redrawIssues i
       setTimeout (-> checkEvents lastUpdate, 1, []), 1000
 
+redrawAllIssues = ->
+  for name, issue of commentIssues
+    root.currentMode.redrawIssue issue
+
 redrawIssues = (issues)->
   for issue in issues
-    redrawIssue issue
+    root.currentMode.redrawIssue issue
 
 redrawIssue = (issue)->
   issueName = issue.title.trim()
@@ -163,10 +163,11 @@ storageListener = (parent, orgNode, orgText)->
   orgNode.scan (node)->
     if node instanceof Source
       name = node.prev
-      while name instanceof Meat && name.text.match /^[ \n]*$/
+      while name && !(name instanceof Keyword && name.name.match /name/i) && !(name instanceof Source) && !(name instanceof Headline)
         name = name.prev
       if name instanceof Keyword && name.name.match /name/i
-        if (issue = commentIssues[name.name.trim()]) then redrawIssue issue
+        if (issue = commentIssues[name.info.trim()]) then root.currentMode.redrawIssue issue
 
 root.initStorage = initStorage
 root.connectStorage = connectStorage
+root.redrawAllIssues = redrawAllIssues

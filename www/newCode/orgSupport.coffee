@@ -37,6 +37,10 @@ lz = lazy
   ENTER,
   BS,
   DEL,
+  LEFT,
+  RIGHT,
+  UP,
+  DOWN,
 } = require './browserSupport'
 {
   parseOrgMode,
@@ -50,6 +54,7 @@ lz = lazy
   parseTags,
   matchLine,
 } = require './org'
+_ = require './lodash.min'
 
 editDiv = null
 sourceDiv = null
@@ -64,23 +69,184 @@ nextOrgId = -> 'org-node-' + idCount++
 
 getOrgType = (node)-> node?.getAttribute? 'data-org-type'
 
-currentMode = null
+root.currentMode = null
+
+parentSpec = null
+sourceSpec = null
 
 initOrg = (parent, source)->
+  parentSpec = parent
+  sourceSpec = source
   $("<div LeisureOutput contentEditable='false' id='leisure_bar'></div>")
     .prependTo(document.body)
     .mousedown (e)->
       e.preventDefault()
-      currentMode = (if currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
-      restorePosition parent, -> currentMode.useNode $(parent)[0], source
-  (currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
-  Leisure.initStorage '#login', '#panel', currentMode
+      swapMarkup()
+  (root.currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
+  Leisure.initStorage '#login', '#panel', root.currentMode
+
+moveCaret = (r, node, offset)->
+  r.setStart node, offset
+  r.collapse true
+  selectRange r
+
+selectRange = (r)->
+  sel = getSelection()
+  sel.removeAllRanges()
+  sel.addRange r
+
+contains = (parent, child)-> child != null && (parent == child || (contains parent, child.parentNode))
+
+getRangeXY = (r)->
+  rects = r.getClientRects()
+  leftMost = rects[0]
+  for rect in rects
+    if rect.left < leftMost.left then leftMost = rect
+  leftMost
+
+findCharForColumn = (node, col, start, end)->
+  testRng = document.createRange()
+  testRng.setStart node, start
+  testRng.collapse true
+  for i in [end - 1 .. start] by -1
+    testRng.setStart node, i
+    testRct = getRangeXY testRng
+    if testRct.left <= col
+      moveCaret testRng, node, testRng.startOffset
+      return true
+  false
+
+#rectFor = (node)-> (if node.nodeType == 3 then node.parentNode else node).getBoundingClientRect()
+
+rectFor = (node)->
+  r = document.createRange()
+  if node.nodeType == 3 && node.data[node.length - 1] == '\n'
+    r.setStart node, 0
+    r.setEnd node, node.length - 1
+  else r.selectNode node
+  rect = r.getBoundingClientRect()
+  if rect.width == 0 then getRangeXY r else rect
+
+movementGoal = null
+
+moveSelectionUp = (parent, r, start)->
+  container = r.startContainer
+  startRect = getRangeXY r
+  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = startRect.left
+  elRect = rectFor container
+  if startRect.top > elRect.top
+    txt = r.startContainer.textContent
+    prevEnd = txt.substring(0, r.startOffset).lastIndexOf '\n'
+    prevStart = txt.substring(0, prevEnd).lastIndexOf('\n') + 1
+    if findCharForColumn r.startContainer, movementGoal, prevStart, prevEnd then return
+  first = textNodeAfter parent
+  prev = null
+  prevRect = null
+  while container != first
+    if !(isCollapsed container)
+      prev = container
+      prevRect = elRect
+    container = textNodeBefore container
+    if !isCollapsed container
+      elRect = rectFor container
+      if elRect.top < prevRect.top < startRect.top
+        if !findCharForColumn prev, movementGoal, 0, prev.length then moveCaret r, prev, 0
+        return
+      if elRect.left <= movementGoal < elRect.right && findCharForColumn container, movementGoal, 0, container.length then return
+
+moveSelectionDown = (parent, r, start)->
+  container = r.startContainer
+  startRect = getRangeXY r
+  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = startRect.left
+  elRect = rectFor container
+  if startRect.bottom < elRect.bottom
+    txt = r.startContainer.textContent
+    start = txt.indexOf '\n', r.startOffset + 1
+    if start > -1
+      end = txt.indexOf '\n', start + 1
+      if end == -1 then end = r.startContainer.length
+      if findCharForColumn r.startContainer, movementGoal, start, end then return
+  last = textNodeBefore parent
+  prev = null
+  prevRect = null
+  while container != last
+    if !(isCollapsed container)
+      prev = container
+      prevRect = elRect
+    container = textNodeAfter container
+    if !isCollapsed container
+      elRect = rectFor container
+      if startRect.bottom < prevRect.bottom < elRect.bottom
+        if !findCharForColumn prev, movementGoal, 0, prev.length then moveCaret r, prev, 0
+        return
+      if elRect.left <= movementGoal < elRect.right
+        end = container.data.indexOf '\n'
+        if end == -1 then end = container.length
+        if findCharForColumn container, movementGoal, 0, end then return
+
+moveSelectionFB = (parent, r, start, delta)->
+  r.collapse start
+  startContainer = r.startContainer
+  startOffset = r.startOffset + delta
+  #check for boundary crossing
+  if !(0 <= startOffset < startContainer.length)
+    move = (if delta < 0 then textNodeBefore else textNodeAfter)
+    startContainer = move startContainer
+    if isCollapsed startContainer
+      while isCollapsed startContainer
+        startContainer = move startContainer
+    if delta < 0 && startContainer != null then startOffset = startContainer.length - 1
+    else startOffset = 0
+  if startContainer != null && contains parent, startContainer
+    r.setStart startContainer, startOffset
+    r.collapse true
+    selectRange r
+
+# functions return whether to check for mods
+keyFuncs =
+  backwardChar: (e, parent, r)->
+    e.preventDefault()
+    moveSelectionFB parent, r, true, -1
+    false
+  forwardChar: (e, parent, r)->
+    e.preventDefault()
+    moveSelectionFB parent, r, false, 1
+    false
+  previousLine: (e, parent, r)->
+    e.preventDefault()
+    moveSelectionUp parent, r
+    false
+  nextLine: (e, parent, r)->
+    e.preventDefault()
+    moveSelectionDown parent, r
+    false
+  swapMarkup: (e, parent, r)->
+    e.preventDefault()
+    swapMarkup()
+    false
+
+defaultBindings =
+  'C-C C-C': keyFuncs.swapMarkup
+  'C-F': keyFuncs.forwardChar
+  'C-B': keyFuncs.backwardChar
+  'C-P': keyFuncs.previousLine
+  'C-N': keyFuncs.nextLine
+  'UP': keyFuncs.previousLine
+  'DOWN': keyFuncs.nextLine
+  'LEFT': keyFuncs.backwardChar
+  'RIGHT': keyFuncs.forwardChar
+
+swapMarkup = ->
+  root.currentMode = (if root.currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
+  restorePosition parentSpec, -> root.currentMode.useNode $(parentSpec)[0], sourceSpec
 
 getStyle = (node)->
   if !node.orgId
     node.orgId = node.getAttribute 'data-org-id'
     if !node.orgId
+      modifying = true
       node.setAttribute 'data-org-id', (node.orgId = nextOrgId())
+      modifying = false
   style = styleCache[node.orgId]
   if !style then style = styleCache[node.orgId] = getComputedStyle node
   style
@@ -165,73 +331,130 @@ fixupNodes = (node)->
 
 isCollapsibleText = (node)-> node.nodeType == 3 && node.parentNode.getAttribute('data-org-type') in ['text', 'meat']
 
+shiftKey = (c)-> 15 < c < 19
+
+specialKeys = {}
+specialKeys[TAB] = 'TAB'
+specialKeys[ENTER] = 'ENTER'
+specialKeys[BS] = 'BS'
+specialKeys[DEL] = 'DEL'
+specialKeys[LEFT] = 'LEFT'
+specialKeys[RIGHT] = 'RIGHT'
+specialKeys[UP] = 'UP'
+specialKeys[DOWN] = 'DOWN'
+
+modifiers = (e, c)->
+  res = specialKeys[c] || String.fromCharCode(c)
+  if e.altKey then res = "M-" + res
+  if e.ctrlKey then res = "C-" + res
+  if e.shiftKey then res = "S-" + res
+  res
+
+lastKeys = []
+maxLastKeys = 4
+keyCombos = []
+
+addKeyPress = (e, c)->
+  if notShift = !shiftKey c
+    lastKeys.push modifiers(e, c)
+    while lastKeys.length > maxLastKeys
+      lastKeys.shift()
+    keyCombos = new Array(maxLastKeys)
+    for i in [0...Math.min(lastKeys.length, maxLastKeys)]
+      keyCombos[i] = lastKeys[lastKeys.length - i - 1 ... lastKeys.length].join ' '
+    keyCombos.reverse()
+  notShift
+
+prevKeybinding = curKeyBinding = null
+
+setCurKeyBinding = (f)->
+  prevKeybinding = curKeyBinding
+  curKeyBinding = f
+
+findKeyBinding = (e, parent, r)->
+  for k in keyCombos
+    if f = root.currentMode.bindings[k]
+      lastKeys = []
+      keyCombos = []
+      setCurKeyBinding f
+      return [true, f e, parent, r]
+  setCurKeyBinding null
+  [false]
+
 bindContent = (div)->
   fixupNodes div
+  div.addEventListener 'mousedown', (e)-> setCurKeyBinding null
   div.addEventListener 'keydown', (e)->
     c = (e.charCode || e.keyCode || e.which)
+    if !addKeyPress e, c then return
     s = getSelection()
     r = s.getRangeAt(0)
     el = r.startContainer
     par = el.parentNode
-    cancelled = false
-    if c == TAB
-      e.preventDefault()
-      cancelled = true
-      collapseNode()
-    else if String.fromCharCode(c) == 'C' && e.altKey
-      root.orgApi.executeSource div, getSelection().focusNode
-    else if c == ENTER
-      e.preventDefault()
-      cancelled = true
-      n = s.focusNode
-      inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
-      if inCollapsedText && r.startOffset == el.length then return
-      # Make sure that newlines at the end of a 'text' span go after the span
-      else if r.collapsed && r.startOffset == n.length && isCollapsibleText n
-        br = document.createTextNode('\n')
-        $(br).prependTo followingSpan n.parentNode
-        r.setStart br, br.length
-        r.setEnd br, br.length
-      else
-        window.N = n
-        r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
-        br.parentNode.normalize()
-      r.collapse()
-      s.removeAllRanges()
-      s.addRange(r)
-      checkEnterReparse div, r
-    else if c in [DEL, BS]
-      inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
-      if inCollapsedText && ((c == DEL && r.startOffset == el.length - 1) || (c == BS && r.startOffset == el.length))
+    [bound, checkMod] = findKeyBinding e, div, r
+    if bound then cancelled = !checkMod
+    else
+      checkMod = modifyingKey c
+      cancelled = false
+    if !bound
+      if c == TAB
         e.preventDefault()
         cancelled = true
-        el.data = el.data.substring 0, el.data.length - 1
-        r.setStart el, el.data.length
-        r.setEnd el, el.data.length
+        collapseNode()
+      else if String.fromCharCode(c) == 'C' && e.altKey
+        root.orgApi.executeSource div, getSelection().focusNode
+      else if c == ENTER
+        e.preventDefault()
+        cancelled = true
+        n = s.focusNode
+        inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
+        if inCollapsedText && r.startOffset == el.length then return
+        # Make sure that newlines at the end of a 'text' span go after the span
+        else if r.collapsed && r.startOffset == n.length && isCollapsibleText n
+          br = document.createTextNode('\n')
+          $(br).prependTo followingSpan n.parentNode
+          r.setStart br, br.length
+          r.setEnd br, br.length
+        else
+          window.N = n
+          r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
+          br.parentNode.normalize()
+        r.collapse()
         s.removeAllRanges()
-        s.addRange r
-      else if c == DEL && inCollapsedText && r.startOffset >= el.length - 1
-        e.preventDefault()
-        cancelled = true
-      else if backspace div, e then cancelled = true
-      else if c != BS
-        checkDeleteReparse div, c == BS
-    if !cancelled && modifyingKey c
+        s.addRange(r)
+        checkEnterReparse div, r
+      else if c in [DEL, BS]
+        inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
+        if inCollapsedText && ((c == DEL && r.startOffset == el.length - 1) || (c == BS && r.startOffset == el.length))
+          e.preventDefault()
+          cancelled = true
+          el.data = el.data.substring 0, el.data.length - 1
+          r.setStart el, el.data.length
+          r.setEnd el, el.data.length
+          s.removeAllRanges()
+          s.addRange r
+        else if c == DEL && inCollapsedText && r.startOffset >= el.length - 1
+          e.preventDefault()
+          cancelled = true
+        else if backspace div, e then cancelled = true
+        else if c != BS
+          checkDeleteReparse div, c == BS
+    if !cancelled && checkMod
       if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
       currentMatch = matchLine currentLine div
-      if cancelled then checkSourceMod div, currentMatch else setTimeout (->checkSourceMod div, currentMatch), 1
+      setTimeout (->checkSourceMod div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
 
 modifyingKey = (c)-> (
-  (c > 47 && c < 58)          || # number keys
-  c == 32 || c == ENTER       || # spacebar and enter
-  c == BS || c == DEL         || # backspace and delete
-  (c > 64 && c < 91)          || # letter keys
-  (c > 95 && c < 112)         || # numpad keys
-  (c > 185 && c < 193)        || # ;=,-./` (in order)
-  (c > 218 && c < 223)          # [\]' (in order)
+  (47 < c < 58)          || # number keys
+  c == 32 || c == ENTER  || # spacebar and enter
+  c == BS || c == DEL    || # backspace and delete
+  (64 < c < 91)          || # letter keys
+  (95 < c < 112)         || # numpad keys
+  (185 < c < 193)        || # ;=,-./` (in order)
+  (218 < c < 223)          # [\]' (in order)
   )
 
 currentLine = (parent)->
@@ -346,11 +569,13 @@ restorePosition = (parent, block)->
   sel = getSelection()
   if sel.rangeCount
     r = sel.getRangeAt 0
-    pos = getTextPosition $(parent)[0], r.startContainer, r.startOffset
+    start = getTextPosition $(parent)[0], r.startContainer, r.startOffset
+    end = getTextPosition $(parent)[0], r.endContainer, r.endOffset
     block()
-    if pos > -1
-      r = nativeRange findDomPosition $(parent)[0], pos
-      r.collapse true
+    if start > -1
+      r = nativeRange findDomPosition $(parent)[0], start
+      [endContainer, endOffset] = findDomPosition $(parent)[0], end
+      r.setEnd endContainer, endOffset
       sel.removeAllRanges()
       sel.addRange r
   else block()
@@ -440,6 +665,8 @@ cleanHeadline = (node)->
 
 handleMutation = (evt)->
   if !modifying
+    invalidateOrgText()
+    console.log "MUTATE"
     modifying = true
     if (node = getCollapsible evt.srcElement) && (node.getAttribute('data-org-type') == 'headline')
       node.setAttribute 'dirty', 'true'
@@ -491,9 +718,14 @@ getTextPosition = (node, target, pos)->
   -1
 
 findDomPosition = (node, pos)->
+  parent = node
   while node
     if node.nodeType == 3
-      if pos <= node.length then return [node, pos]
+      if pos < node.length
+        n = node
+        while n != parent && n != null
+          n = n.parentNode
+        return if n == null then [null, null] else [node, pos]
       pos -= node.length
     node = textNodeAfter node
   [null, null]
@@ -562,6 +794,11 @@ emptyOutNode = (node)->
 
 root.orgApi = null
 
+cachedOrgText = null
+cachedOrgParent = null
+invalidateOrgText = -> cachedOrgParent = cachedOrgText = null
+getOrgText = (parent)-> (cachedOrgParent == parent && cachedOrgText) || (cachedOrgParent = parent; cachedOrgText = parent.textContent)
+
 orgNotebook =
   useNode: (node, source)->
     root.orgApi = @
@@ -570,10 +807,11 @@ orgNotebook =
     newNode = emptyOutNode node
     editDiv = newNode
     #restorePosition newNode, => $(newNode).html @markupOrg oldContent
-    [orgNode, orgText] = @markupOrgWithNode oldContent
-    restorePosition newNode, => @installOrgDOM newNode, orgNode, orgText
+    [orgNode, lastOrgText] = @markupOrgWithNode oldContent
+    restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
     @bindContent newNode
   installOrgDOM: installOrgDOM
+  redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
 
 basicOrg =
   __proto__: orgNotebook
@@ -586,6 +824,7 @@ basicOrg =
     orgNotebook.installOrgDOM parent, orgNode, orgText
     for node in $('[data-org-dynamic="true"]')
       setTimeout (=>@executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling), 1
+  bindings: defaultBindings
 
 root.basicOrg = basicOrg
 root.orgNotebook = orgNotebook
@@ -622,3 +861,11 @@ root.executeText = executeText
 root.orgEnv = orgEnv
 root.getResultsForSource = getResultsForSource
 root.initOrg = initOrg
+root.swapMarkup = swapMarkup
+root.modifiers = modifiers
+root.keyFuncs = keyFuncs
+root.defaultBindings = defaultBindings
+root.addKeyPress = addKeyPress
+root.findKeyBinding = findKeyBinding
+root.invalidateOrgText = invalidateOrgText
+root.setCurKeyBinding = setCurKeyBinding

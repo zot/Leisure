@@ -10,6 +10,10 @@ BS = 8
 ENTER = 13
 DEL = 46
 TAB = 9
+LEFT = 37
+UP = 38
+RIGHT = 39
+DOWN = 40
 
 textNode = (text)-> document.createTextNode(text)
 
@@ -84,4 +88,8 @@ root.ENTER = ENTER
 root.BS = BS
 root.DEL = DEL
 root.TAB = TAB
+root.LEFT = LEFT
+root.UP = UP
+root.RIGHT = RIGHT
+root.DOWN = DOWN
 root.textNode = textNode

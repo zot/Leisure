@@ -52,7 +52,19 @@ lz = lazy
   orgEnv,
   executeText,
   getResultsForSource,
+  swapMarkup,
+  modifiers,
+  keyFuncs,
+  defaultBindings,
+  addKeyPress,
+  findKeyBinding,
+  invalidateOrgText,
+  setCurKeyBinding,
 } = require './orgSupport'
+{
+  redrawAllIssues,
+} = require './storage'
+_ = require './lodash.min'
 
 lastOrgOffset = -1
 curPos = -1
@@ -83,7 +95,7 @@ markupNode = (org)->
     "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}"
   else if org instanceof Keyword
     if org.name.match /name/i
-      intertext = '\n'
+      intertext = ''
       name = org
       src = org.next
       while src instanceof Meat && !(src instanceof Source)
@@ -96,7 +108,7 @@ markupNode = (org)->
         srcContent = src.content
         srcLead = src.text.substring 0, src.contentPos - src.offset
         srcTrail = src.text.substring src.contentPos - src.offset + src.content.length
-        html = "<div class='codeblock' #{orgAttrs src}><div class='codename'><span class='hidden'>#{nameM[KW_BOILERPLATE]}</span>#{name.info}#{intertext}</div><div class='hidden'>#{srcLead}</div><div class='codewrapper'><div class='codecontent'>#{srcContent}</div><span class='hidden' data-org-type='boundary'>#{srcTrail}</span>"
+        html = "<div class='codeblock' #{orgAttrs src} data-org-codeblock='#{name.info.trim()}'><div class='codename'><span class='hidden'>#{nameM[KW_BOILERPLATE]}</span><div><larger><b>#{name.info}</b></larger></div>#{intertext}</div><div class='hidden'>#{srcLead}</div><div class='codewrapper'><div class='codecontent'>#{srcContent}<span class='hidden' data-org-type='boundary'>#{srcTrail}</span></div>"
         res = src.next
         intertext = ''
         while res && !(res instanceof Results) && !(res instanceof Keyword)
@@ -106,12 +118,17 @@ markupNode = (org)->
           lastOrgOffset = res.offset
           pos = res.contentPos - res.offset
           html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'><span></span></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
-        html + "</div></div>"
+        html + "</div><button class='comment-button' onclick='Leisure.toggleComment(\"#{name.info.trim()}\")'><img src='icons/monotone_talk_chat_speech.png'></button></div><div class='comments' data-org-comments='#{name.info.trim()}'><div></div></div>"
       else defaultMarkup org
     else defaultMarkup org
   else if org instanceof Headline then "<span #{orgAttrs org}><span data-org-type='text'>#{org.text}</span>#{markupGuts org, checkStart start, org.text}</span>"
   else if content(org.text).length then defaultMarkup org
   else "<div #{orgAttrs org}>#{org.text}</div>"
+
+toggleComment = (name)->
+  block = $("[data-org-comments=#{name}]")
+  if block.hasClass 'showcomments' then block.removeClass 'showcomments'
+  else block.addClass 'showcomments'
 
 defaultMarkup = (org)-> "<span #{orgAttrs org}>#{org.text}</span>"
 
@@ -178,51 +195,60 @@ crossesHidden = (delta)->
     false
 
 bindContent = (div)->
+  div.addEventListener 'mousedown', (e)-> setCurKeyBinding null
   div.addEventListener 'keydown', (e)->
     curPos = -1
     c = (e.charCode || e.keyCode || e.which)
-    if modifyingKey c
-      s = getSelection()
-      r = s.getRangeAt(0)
-      el = r.startContainer
-      par = el.parentNode
-      n = s.focusNode
-      currentMatch = matchLine currentLine div
-      if c == ENTER
-        e.preventDefault()
-        if ! checkCollapsed n, 1
-          if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
-            br = document.createTextNode('\n')
-            $(br).prependTo followingSpan n.parentNode
-            r.setStart br, br.length
-            r.setEnd br, br.length
-          else
-            r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
-            br.parentNode.normalize()
-          r.collapse()
-          s.removeAllRanges()
-          s.addRange(r)
-          setTimeout (->checkEnterReparse div, r), 1
-        else return
-      else if c in [BS, DEL]
-        if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
+    if !addKeyPress e, c then return
+    s = getSelection()
+    r = s.getRangeAt(0)
+    [bound, checkMod] = findKeyBinding e, div, r
+    if bound then cancelled = !checkMod
+    else
+      checkMod = modifyingKey c
+      cancelled = false
+    if !bound
+      if modifyingKey c
+        el = r.startContainer
+        par = el.parentNode
+        n = s.focusNode
+        currentMatch = matchLine currentLine div
+        if c == ENTER
           e.preventDefault()
+          if ! checkCollapsed n, 1
+            if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
+              br = document.createTextNode('\n')
+              $(br).prependTo followingSpan n.parentNode
+              r.setStart br, br.length
+              r.setEnd br, br.length
+            else
+              r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
+              br.parentNode.normalize()
+            r.collapse()
+            s.removeAllRanges()
+            s.addRange(r)
+            setTimeout (->checkEnterReparse div, r), 1
+          else return
+        else if c in [BS, DEL]
+          if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
+            e.preventDefault()
+            return
+          else if c == BS && bsWillDestroyParent r
+            e.preventDefault()
+            el.data = el.data.substring 1
+        else if el.nodeType == 3 && el.data == '\n'
+          setTimeout (->
+            if el.data[el.data.length - 1] != '\n'
+              el.data += '\n'
+              sel = getSelection()
+              r = sel.getRangeAt 0
+              r.setStart el, 1
+              r.setEnd el, 1
+              sel.removeAllRanges()
+              sel.addRange r
+            checkSourceMod div, currentMatch), 1
           return
-        else if c == BS && bsWillDestroyParent r
-          e.preventDefault()
-          el.data = el.data.substring 1
-      else if el.nodeType == 3 && el.data == '\n'
-        setTimeout (->
-          if el.data[el.data.length - 1] != '\n'
-            el.data += '\n'
-            sel = getSelection()
-            r = sel.getRangeAt 0
-            r.setStart el, 1
-            r.setEnd el, 1
-            sel.removeAllRanges()
-            sel.addRange r
-          checkSourceMod div, currentMatch), 1
-        return
+    if !cancelled && checkMod
       if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
       setTimeout (->checkSourceMod div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
@@ -236,7 +262,9 @@ bsWillDestroyParent = (r)->
     r2.text() == r.startContainer.data
   else false
 
-handleMutation = (evt)-> displaySource()
+handleMutation = (evt)->
+  invalidateOrgText()
+  displaySource()
 
 executeSource = (parent, node)->
   while node && !node.classList?.contains 'codecontent'
@@ -254,6 +282,19 @@ processResults = (str)->
     if str[str.length - 1] == '\n' then str = str.substring 0, str.length - 1
     "<span class='hidden'>: </span>#{str.replace /\n/g, '\n<span class="hidden">: </span>'}\n"
   else str
+
+redrawIssue = (issue)->
+  issueName = issue.title.trim()
+  if (name = $("[data-org-comments='#{issueName}']")).length
+    holder = name[0].firstChild
+    if !(nameEl = holder.shadowRoot)
+      nameEl = holder.createShadowRoot()
+      root.applyAuthorStyles=true
+    console.log "first gravatar: #{issue.comments[0].gravatar_id}"
+    nameEl.innerHTML = "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}"
+
+commentHtml = (comment, type)->
+  "<div class='commentbox'><img src='http://gravatar.com/avatar/#{comment.user.gravatar_id}?s=48'><div class='#{type}'>#{comment.body}</div></div>"
 
 # like orgSupport's orgEnv, but wrap the leading ': ' in hidden spans
 orgEnv = (parent, node)->
@@ -275,7 +316,11 @@ fancyOrg =
     orgNotebook.installOrgDOM parent, orgNode, orgText
     for node in $('[data-org-dynamic="true"]')
       setTimeout (=>@executeSource parent, $(node).find('.codecontent')[0].firstChild), 1
+    redrawAllIssues()
   executeSource: executeSource
   createResults: createResults
+  bindings: defaultBindings
+  redrawIssue: (i)-> redrawIssue i
 
 root.fancyOrg = fancyOrg
+root.toggleComment = toggleComment

@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, ENTER, HL_TAGS, Headline, Keyword, Meat, Results, Source, TAB, backspace, basicOrg, bindContent, boundarySpan, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, content, contentSpan, createResults, currentLine, currentMode, defaultEnv, displaySource, editDiv, emptyOutNode, executeSource, executeText, findDomPosition, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgType, getResultsForSource, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, modifying, modifyingKey, nativeRange, needsReparse, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parseOrgMode, parseTags, reparse, reparseListeners, resolve, restorePosition, root, rz, sensitive, setTags, show, sourceDiv, styleCache, textNodeAfter, textNodeBefore, _ref, _ref1, _ref2;
+  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, RIGHT, Results, Source, TAB, UP, addKeyPress, backspace, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, contains, content, contentSpan, createResults, curKeyBinding, currentLine, defaultBindings, defaultEnv, displaySource, editDiv, emptyOutNode, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parentSpec, parseOrgMode, parseTags, prevKeybinding, rectFor, reparse, reparseListeners, resolve, restorePosition, root, rz, selectRange, sensitive, setCurKeyBinding, setTags, shiftKey, show, sourceDiv, sourceSpec, specialKeys, styleCache, swapMarkup, textNodeAfter, textNodeBefore, _, _ref, _ref1, _ref2;
 
   getType = require('./ast').getType;
 
@@ -35,9 +35,11 @@ misrepresented as being the original software.
 
   lz = lazy;
 
-  _ref1 = require('./browserSupport'), TAB = _ref1.TAB, ENTER = _ref1.ENTER, BS = _ref1.BS, DEL = _ref1.DEL;
+  _ref1 = require('./browserSupport'), TAB = _ref1.TAB, ENTER = _ref1.ENTER, BS = _ref1.BS, DEL = _ref1.DEL, LEFT = _ref1.LEFT, RIGHT = _ref1.RIGHT, UP = _ref1.UP, DOWN = _ref1.DOWN;
 
   _ref2 = require('./org'), parseOrgMode = _ref2.parseOrgMode, Headline = _ref2.Headline, Meat = _ref2.Meat, Keyword = _ref2.Keyword, Source = _ref2.Source, Results = _ref2.Results, headlineRE = _ref2.headlineRE, HL_TAGS = _ref2.HL_TAGS, parseTags = _ref2.parseTags, matchLine = _ref2.matchLine;
+
+  _ = require('./lodash.min');
 
   editDiv = null;
 
@@ -63,18 +65,250 @@ misrepresented as being the original software.
     return node != null ? typeof node.getAttribute === "function" ? node.getAttribute('data-org-type') : void 0 : void 0;
   };
 
-  currentMode = null;
+  root.currentMode = null;
+
+  parentSpec = null;
+
+  sourceSpec = null;
 
   initOrg = function(parent, source) {
+    parentSpec = parent;
+    sourceSpec = source;
     $("<div LeisureOutput contentEditable='false' id='leisure_bar'></div>").prependTo(document.body).mousedown(function(e) {
       e.preventDefault();
-      currentMode = (currentMode === Leisure.fancyOrg ? Leisure.basicOrg : Leisure.fancyOrg);
-      return restorePosition(parent, function() {
-        return currentMode.useNode($(parent)[0], source);
-      });
+      return swapMarkup();
     });
-    (currentMode = Leisure.fancyOrg).useNode($(parent)[0], source);
-    return Leisure.initStorage('#login', '#panel', currentMode);
+    (root.currentMode = Leisure.fancyOrg).useNode($(parent)[0], source);
+    return Leisure.initStorage('#login', '#panel', root.currentMode);
+  };
+
+  moveCaret = function(r, node, offset) {
+    r.setStart(node, offset);
+    r.collapse(true);
+    return selectRange(r);
+  };
+
+  selectRange = function(r) {
+    var sel;
+    sel = getSelection();
+    sel.removeAllRanges();
+    return sel.addRange(r);
+  };
+
+  contains = function(parent, child) {
+    return child !== null && (parent === child || (contains(parent, child.parentNode)));
+  };
+
+  getRangeXY = function(r) {
+    var leftMost, rect, rects, _i, _len;
+    rects = r.getClientRects();
+    leftMost = rects[0];
+    for (_i = 0, _len = rects.length; _i < _len; _i++) {
+      rect = rects[_i];
+      if (rect.left < leftMost.left) {
+        leftMost = rect;
+      }
+    }
+    return leftMost;
+  };
+
+  findCharForColumn = function(node, col, start, end) {
+    var i, testRct, testRng, _i, _ref3;
+    testRng = document.createRange();
+    testRng.setStart(node, start);
+    testRng.collapse(true);
+    for (i = _i = _ref3 = end - 1; _i >= start; i = _i += -1) {
+      testRng.setStart(node, i);
+      testRct = getRangeXY(testRng);
+      if (testRct.left <= col) {
+        moveCaret(testRng, node, testRng.startOffset);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  rectFor = function(node) {
+    var r, rect;
+    r = document.createRange();
+    if (node.nodeType === 3 && node.data[node.length - 1] === '\n') {
+      r.setStart(node, 0);
+      r.setEnd(node, node.length - 1);
+    } else {
+      r.selectNode(node);
+    }
+    rect = r.getBoundingClientRect();
+    if (rect.width === 0) {
+      return getRangeXY(r);
+    } else {
+      return rect;
+    }
+  };
+
+  movementGoal = null;
+
+  moveSelectionUp = function(parent, r, start) {
+    var container, elRect, first, prev, prevEnd, prevRect, prevStart, startRect, txt, _ref3;
+    container = r.startContainer;
+    startRect = getRangeXY(r);
+    if (!(prevKeybinding === keyFuncs.nextLine || prevKeybinding === keyFuncs.previousLine)) {
+      movementGoal = startRect.left;
+    }
+    elRect = rectFor(container);
+    if (startRect.top > elRect.top) {
+      txt = r.startContainer.textContent;
+      prevEnd = txt.substring(0, r.startOffset).lastIndexOf('\n');
+      prevStart = txt.substring(0, prevEnd).lastIndexOf('\n') + 1;
+      if (findCharForColumn(r.startContainer, movementGoal, prevStart, prevEnd)) {
+        return;
+      }
+    }
+    first = textNodeAfter(parent);
+    prev = null;
+    prevRect = null;
+    while (container !== first) {
+      if (!(isCollapsed(container))) {
+        prev = container;
+        prevRect = elRect;
+      }
+      container = textNodeBefore(container);
+      if (!isCollapsed(container)) {
+        elRect = rectFor(container);
+        if ((elRect.top < (_ref3 = prevRect.top) && _ref3 < startRect.top)) {
+          if (!findCharForColumn(prev, movementGoal, 0, prev.length)) {
+            moveCaret(r, prev, 0);
+          }
+          return;
+        }
+        if ((elRect.left <= movementGoal && movementGoal < elRect.right) && findCharForColumn(container, movementGoal, 0, container.length)) {
+          return;
+        }
+      }
+    }
+  };
+
+  moveSelectionDown = function(parent, r, start) {
+    var container, elRect, end, last, prev, prevRect, startRect, txt, _ref3;
+    container = r.startContainer;
+    startRect = getRangeXY(r);
+    if (!(prevKeybinding === keyFuncs.nextLine || prevKeybinding === keyFuncs.previousLine)) {
+      movementGoal = startRect.left;
+    }
+    elRect = rectFor(container);
+    if (startRect.bottom < elRect.bottom) {
+      txt = r.startContainer.textContent;
+      start = txt.indexOf('\n', r.startOffset + 1);
+      if (start > -1) {
+        end = txt.indexOf('\n', start + 1);
+        if (end === -1) {
+          end = r.startContainer.length;
+        }
+        if (findCharForColumn(r.startContainer, movementGoal, start, end)) {
+          return;
+        }
+      }
+    }
+    last = textNodeBefore(parent);
+    prev = null;
+    prevRect = null;
+    while (container !== last) {
+      if (!(isCollapsed(container))) {
+        prev = container;
+        prevRect = elRect;
+      }
+      container = textNodeAfter(container);
+      if (!isCollapsed(container)) {
+        elRect = rectFor(container);
+        if ((startRect.bottom < (_ref3 = prevRect.bottom) && _ref3 < elRect.bottom)) {
+          if (!findCharForColumn(prev, movementGoal, 0, prev.length)) {
+            moveCaret(r, prev, 0);
+          }
+          return;
+        }
+        if ((elRect.left <= movementGoal && movementGoal < elRect.right)) {
+          end = container.data.indexOf('\n');
+          if (end === -1) {
+            end = container.length;
+          }
+          if (findCharForColumn(container, movementGoal, 0, end)) {
+            return;
+          }
+        }
+      }
+    }
+  };
+
+  moveSelectionFB = function(parent, r, start, delta) {
+    var move, startContainer, startOffset;
+    r.collapse(start);
+    startContainer = r.startContainer;
+    startOffset = r.startOffset + delta;
+    if (!((0 <= startOffset && startOffset < startContainer.length))) {
+      move = (delta < 0 ? textNodeBefore : textNodeAfter);
+      startContainer = move(startContainer);
+      if (isCollapsed(startContainer)) {
+        while (isCollapsed(startContainer)) {
+          startContainer = move(startContainer);
+        }
+      }
+      if (delta < 0 && startContainer !== null) {
+        startOffset = startContainer.length - 1;
+      } else {
+        startOffset = 0;
+      }
+    }
+    if (startContainer !== null && contains(parent, startContainer)) {
+      r.setStart(startContainer, startOffset);
+      r.collapse(true);
+      return selectRange(r);
+    }
+  };
+
+  keyFuncs = {
+    backwardChar: function(e, parent, r) {
+      e.preventDefault();
+      moveSelectionFB(parent, r, true, -1);
+      return false;
+    },
+    forwardChar: function(e, parent, r) {
+      e.preventDefault();
+      moveSelectionFB(parent, r, false, 1);
+      return false;
+    },
+    previousLine: function(e, parent, r) {
+      e.preventDefault();
+      moveSelectionUp(parent, r);
+      return false;
+    },
+    nextLine: function(e, parent, r) {
+      e.preventDefault();
+      moveSelectionDown(parent, r);
+      return false;
+    },
+    swapMarkup: function(e, parent, r) {
+      e.preventDefault();
+      swapMarkup();
+      return false;
+    }
+  };
+
+  defaultBindings = {
+    'C-C C-C': keyFuncs.swapMarkup,
+    'C-F': keyFuncs.forwardChar,
+    'C-B': keyFuncs.backwardChar,
+    'C-P': keyFuncs.previousLine,
+    'C-N': keyFuncs.nextLine,
+    'UP': keyFuncs.previousLine,
+    'DOWN': keyFuncs.nextLine,
+    'LEFT': keyFuncs.backwardChar,
+    'RIGHT': keyFuncs.forwardChar
+  };
+
+  swapMarkup = function() {
+    root.currentMode = (root.currentMode === Leisure.fancyOrg ? Leisure.basicOrg : Leisure.fancyOrg);
+    return restorePosition(parentSpec, function() {
+      return root.currentMode.useNode($(parentSpec)[0], sourceSpec);
+    });
   };
 
   getStyle = function(node) {
@@ -82,7 +316,9 @@ misrepresented as being the original software.
     if (!node.orgId) {
       node.orgId = node.getAttribute('data-org-id');
       if (!node.orgId) {
+        modifying = true;
         node.setAttribute('data-org-id', (node.orgId = nextOrgId()));
+        modifying = false;
       }
     }
     style = styleCache[node.orgId];
@@ -231,74 +467,165 @@ misrepresented as being the original software.
     return node.nodeType === 3 && ((_ref3 = node.parentNode.getAttribute('data-org-type')) === 'text' || _ref3 === 'meat');
   };
 
+  shiftKey = function(c) {
+    return (15 < c && c < 19);
+  };
+
+  specialKeys = {};
+
+  specialKeys[TAB] = 'TAB';
+
+  specialKeys[ENTER] = 'ENTER';
+
+  specialKeys[BS] = 'BS';
+
+  specialKeys[DEL] = 'DEL';
+
+  specialKeys[LEFT] = 'LEFT';
+
+  specialKeys[RIGHT] = 'RIGHT';
+
+  specialKeys[UP] = 'UP';
+
+  specialKeys[DOWN] = 'DOWN';
+
+  modifiers = function(e, c) {
+    var res;
+    res = specialKeys[c] || String.fromCharCode(c);
+    if (e.altKey) {
+      res = "M-" + res;
+    }
+    if (e.ctrlKey) {
+      res = "C-" + res;
+    }
+    if (e.shiftKey) {
+      res = "S-" + res;
+    }
+    return res;
+  };
+
+  lastKeys = [];
+
+  maxLastKeys = 4;
+
+  keyCombos = [];
+
+  addKeyPress = function(e, c) {
+    var i, notShift, _i, _ref3;
+    if (notShift = !shiftKey(c)) {
+      lastKeys.push(modifiers(e, c));
+      while (lastKeys.length > maxLastKeys) {
+        lastKeys.shift();
+      }
+      keyCombos = new Array(maxLastKeys);
+      for (i = _i = 0, _ref3 = Math.min(lastKeys.length, maxLastKeys); 0 <= _ref3 ? _i < _ref3 : _i > _ref3; i = 0 <= _ref3 ? ++_i : --_i) {
+        keyCombos[i] = lastKeys.slice(lastKeys.length - i - 1, lastKeys.length).join(' ');
+      }
+      keyCombos.reverse();
+    }
+    return notShift;
+  };
+
+  prevKeybinding = curKeyBinding = null;
+
+  setCurKeyBinding = function(f) {
+    prevKeybinding = curKeyBinding;
+    return curKeyBinding = f;
+  };
+
+  findKeyBinding = function(e, parent, r) {
+    var f, k, _i, _len;
+    for (_i = 0, _len = keyCombos.length; _i < _len; _i++) {
+      k = keyCombos[_i];
+      if (f = root.currentMode.bindings[k]) {
+        lastKeys = [];
+        keyCombos = [];
+        setCurKeyBinding(f);
+        return [true, f(e, parent, r)];
+      }
+    }
+    setCurKeyBinding(null);
+    return [false];
+  };
+
   bindContent = function(div) {
     fixupNodes(div);
+    div.addEventListener('mousedown', function(e) {
+      return setCurKeyBinding(null);
+    });
     div.addEventListener('keydown', function(e) {
-      var br, c, cancelled, currentMatch, el, inCollapsedText, n, par, r, s;
+      var bound, br, c, cancelled, checkMod, currentMatch, el, inCollapsedText, n, par, r, s, _ref3;
       c = e.charCode || e.keyCode || e.which;
+      if (!addKeyPress(e, c)) {
+        return;
+      }
       s = getSelection();
       r = s.getRangeAt(0);
       el = r.startContainer;
       par = el.parentNode;
-      cancelled = false;
-      if (c === TAB) {
-        e.preventDefault();
-        cancelled = true;
-        collapseNode();
-      } else if (String.fromCharCode(c) === 'C' && e.altKey) {
-        root.orgApi.executeSource(div, getSelection().focusNode);
-      } else if (c === ENTER) {
-        e.preventDefault();
-        cancelled = true;
-        n = s.focusNode;
-        inCollapsedText = r.collapsed && isCollapsibleText(el && par.parentElement.classList.contains('collapsed') && el.nextSibling === null);
-        if (inCollapsedText && r.startOffset === el.length) {
-          return;
-        } else if (r.collapsed && r.startOffset === n.length && isCollapsibleText(n)) {
-          br = document.createTextNode('\n');
-          $(br).prependTo(followingSpan(n.parentNode));
-          r.setStart(br, br.length);
-          r.setEnd(br, br.length);
-        } else {
-          window.N = n;
-          r.insertNode(br = document.createTextNode(checkExtraNewline(r, n, div)));
-          br.parentNode.normalize();
-        }
-        r.collapse();
-        s.removeAllRanges();
-        s.addRange(r);
-        checkEnterReparse(div, r);
-      } else if (c === DEL || c === BS) {
-        inCollapsedText = r.collapsed && isCollapsibleText(el && par.parentElement.classList.contains('collapsed') && el.nextSibling === null);
-        if (inCollapsedText && ((c === DEL && r.startOffset === el.length - 1) || (c === BS && r.startOffset === el.length))) {
+      _ref3 = findKeyBinding(e, div, r), bound = _ref3[0], checkMod = _ref3[1];
+      if (bound) {
+        cancelled = !checkMod;
+      } else {
+        checkMod = modifyingKey(c);
+        cancelled = false;
+      }
+      if (!bound) {
+        if (c === TAB) {
           e.preventDefault();
           cancelled = true;
-          el.data = el.data.substring(0, el.data.length - 1);
-          r.setStart(el, el.data.length);
-          r.setEnd(el, el.data.length);
+          collapseNode();
+        } else if (String.fromCharCode(c) === 'C' && e.altKey) {
+          root.orgApi.executeSource(div, getSelection().focusNode);
+        } else if (c === ENTER) {
+          e.preventDefault();
+          cancelled = true;
+          n = s.focusNode;
+          inCollapsedText = r.collapsed && isCollapsibleText(el && par.parentElement.classList.contains('collapsed') && el.nextSibling === null);
+          if (inCollapsedText && r.startOffset === el.length) {
+            return;
+          } else if (r.collapsed && r.startOffset === n.length && isCollapsibleText(n)) {
+            br = document.createTextNode('\n');
+            $(br).prependTo(followingSpan(n.parentNode));
+            r.setStart(br, br.length);
+            r.setEnd(br, br.length);
+          } else {
+            window.N = n;
+            r.insertNode(br = document.createTextNode(checkExtraNewline(r, n, div)));
+            br.parentNode.normalize();
+          }
+          r.collapse();
           s.removeAllRanges();
           s.addRange(r);
-        } else if (c === DEL && inCollapsedText && r.startOffset >= el.length - 1) {
-          e.preventDefault();
-          cancelled = true;
-        } else if (backspace(div, e)) {
-          cancelled = true;
-        } else if (c !== BS) {
-          checkDeleteReparse(div, c === BS);
+          checkEnterReparse(div, r);
+        } else if (c === DEL || c === BS) {
+          inCollapsedText = r.collapsed && isCollapsibleText(el && par.parentElement.classList.contains('collapsed') && el.nextSibling === null);
+          if (inCollapsedText && ((c === DEL && r.startOffset === el.length - 1) || (c === BS && r.startOffset === el.length))) {
+            e.preventDefault();
+            cancelled = true;
+            el.data = el.data.substring(0, el.data.length - 1);
+            r.setStart(el, el.data.length);
+            r.setEnd(el, el.data.length);
+            s.removeAllRanges();
+            s.addRange(r);
+          } else if (c === DEL && inCollapsedText && r.startOffset >= el.length - 1) {
+            e.preventDefault();
+            cancelled = true;
+          } else if (backspace(div, e)) {
+            cancelled = true;
+          } else if (c !== BS) {
+            checkDeleteReparse(div, c === BS);
+          }
         }
       }
-      if (!cancelled && modifyingKey(c)) {
+      if (!cancelled && checkMod) {
         if ((getOrgType(getOrgParent(el))) === 'boundary') {
           needsReparse = true;
         }
         currentMatch = matchLine(currentLine(div));
-        if (cancelled) {
+        return setTimeout((function() {
           return checkSourceMod(div, currentMatch);
-        } else {
-          return setTimeout((function() {
-            return checkSourceMod(div, currentMatch);
-          }), 1);
-        }
+        }), 1);
       }
     });
     div.addEventListener('DOMCharacterDataModified', handleMutation, true);
@@ -307,7 +634,7 @@ misrepresented as being the original software.
   };
 
   modifyingKey = function(c) {
-    return (c > 47 && c < 58) || c === 32 || c === ENTER || c === BS || c === DEL || (c > 64 && c < 91) || (c > 95 && c < 112) || (c > 185 && c < 193) || (c > 218 && c < 223);
+    return ((47 < c && c < 58)) || c === 32 || c === ENTER || c === BS || c === DEL || ((64 < c && c < 91)) || ((95 < c && c < 112)) || ((185 < c && c < 193)) || ((218 < c && c < 223));
   };
 
   currentLine = function(parent) {
@@ -493,15 +820,17 @@ misrepresented as being the original software.
   };
 
   restorePosition = function(parent, block) {
-    var pos, r, sel;
+    var end, endContainer, endOffset, r, sel, start, _ref3;
     sel = getSelection();
     if (sel.rangeCount) {
       r = sel.getRangeAt(0);
-      pos = getTextPosition($(parent)[0], r.startContainer, r.startOffset);
+      start = getTextPosition($(parent)[0], r.startContainer, r.startOffset);
+      end = getTextPosition($(parent)[0], r.endContainer, r.endOffset);
       block();
-      if (pos > -1) {
-        r = nativeRange(findDomPosition($(parent)[0], pos));
-        r.collapse(true);
+      if (start > -1) {
+        r = nativeRange(findDomPosition($(parent)[0], start));
+        _ref3 = findDomPosition($(parent)[0], end), endContainer = _ref3[0], endOffset = _ref3[1];
+        r.setEnd(endContainer, endOffset);
         sel.removeAllRanges();
         return sel.addRange(r);
       }
@@ -666,6 +995,8 @@ misrepresented as being the original software.
   handleMutation = function(evt) {
     var node;
     if (!modifying) {
+      invalidateOrgText();
+      console.log("MUTATE");
       modifying = true;
       if ((node = getCollapsible(evt.srcElement)) && (node.getAttribute('data-org-type') === 'headline')) {
         node.setAttribute('dirty', 'true');
@@ -746,10 +1077,20 @@ misrepresented as being the original software.
   };
 
   findDomPosition = function(node, pos) {
+    var n, parent;
+    parent = node;
     while (node) {
       if (node.nodeType === 3) {
-        if (pos <= node.length) {
-          return [node, pos];
+        if (pos < node.length) {
+          n = node;
+          while (n !== parent && n !== null) {
+            n = n.parentNode;
+          }
+          if (n === null) {
+            return [null, null];
+          } else {
+            return [node, pos];
+          }
         }
         pos -= node.length;
       }
@@ -845,22 +1186,37 @@ misrepresented as being the original software.
 
   root.orgApi = null;
 
+  cachedOrgText = null;
+
+  cachedOrgParent = null;
+
+  invalidateOrgText = function() {
+    return cachedOrgParent = cachedOrgText = null;
+  };
+
+  getOrgText = function(parent) {
+    return (cachedOrgParent === parent && cachedOrgText) || (cachedOrgParent = parent, cachedOrgText = parent.textContent);
+  };
+
   orgNotebook = {
     useNode: function(node, source) {
-      var newNode, oldContent, orgNode, orgText, _ref3,
+      var lastOrgText, newNode, oldContent, orgNode, _ref3,
         _this = this;
       root.orgApi = this;
       sourceDiv = source;
       oldContent = $(node).text();
       newNode = emptyOutNode(node);
       editDiv = newNode;
-      _ref3 = this.markupOrgWithNode(oldContent), orgNode = _ref3[0], orgText = _ref3[1];
+      _ref3 = this.markupOrgWithNode(oldContent), orgNode = _ref3[0], lastOrgText = _ref3[1];
       restorePosition(newNode, function() {
-        return _this.installOrgDOM(newNode, orgNode, orgText);
+        return _this.installOrgDOM(newNode, orgNode, lastOrgText);
       });
       return this.bindContent(newNode);
     },
-    installOrgDOM: installOrgDOM
+    installOrgDOM: installOrgDOM,
+    redrawIssue: function(i) {
+      return console.log("REDRAW ISSUE: " + i);
+    }
   };
 
   basicOrg = {
@@ -883,7 +1239,8 @@ misrepresented as being the original software.
         }), 1));
       }
       return _results;
-    }
+    },
+    bindings: defaultBindings
   };
 
   root.basicOrg = basicOrg;
@@ -955,6 +1312,22 @@ misrepresented as being the original software.
   root.getResultsForSource = getResultsForSource;
 
   root.initOrg = initOrg;
+
+  root.swapMarkup = swapMarkup;
+
+  root.modifiers = modifiers;
+
+  root.keyFuncs = keyFuncs;
+
+  root.defaultBindings = defaultBindings;
+
+  root.addKeyPress = addKeyPress;
+
+  root.findKeyBinding = findKeyBinding;
+
+  root.invalidateOrgText = invalidateOrgText;
+
+  root.setCurKeyBinding = setCurKeyBinding;
 
 }).call(this);
 

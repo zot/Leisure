@@ -215,7 +215,7 @@ parseMeat = (meat, offset, rest)->
     parseSrcBlock line, offset, srcStart[SRC_INFO], meat.substring(line.length) + rest
   else if keyword?.index == 0
     line = fullLine keyword, meat
-    parseKeyword line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest
+    parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest
   else
     first = meat.length + offset
     first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first)
@@ -228,7 +228,8 @@ parseResults = (text, offset, rest)->
   lines = oldRest.substring 0, oldRest.length - rest.length
   [new Results(text + lines, offset + 1, text.match(resultsRE)[RES_NAME], text.length + offset + 1), rest]
 
-parseKeyword = (text, offset, name, info, rest)-> [new Keyword(text, offset, name, info), rest]
+parseKeyword = (match, text, offset, name, info, rest)->
+  [new Keyword(text, offset, name, text.substring match[KW_BOILERPLATE].length), rest]
 
 parseSrcBlock = (text, offset, info, rest)->
   end = rest.match srcEndRE
