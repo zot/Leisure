@@ -614,6 +614,15 @@ trampCurry = (func, arity)-> (arg)->
     result
 
 #######################
+# NAME SPACES
+#######################
+
+define 'useNameSpace', lz (ns)->
+  makeSyncMonad (env, cont)->
+    root.setNameSpace rz(ns)
+    cont _true
+
+#######################
 # Classes for Printing
 #######################
 

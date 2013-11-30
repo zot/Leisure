@@ -25,8 +25,9 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, check, checkChild, collectArgs, cons, consFrom, currentFile, currentFuncName, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getPos, getRefName, isNil, lacons, lazy, lcons, lconsFrom, left, letList, locateAst, lz, makeSyncMonad, masterLockGen, memoize, nameSub, newGen, resolve, right, root, runMonad, rz, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, verboseMsg, withFile, _, _false, _ref, _ref1, _ref2, _ref3, _true,
-    __slice = [].slice;
+  var Leisure_anno, Leisure_apply, Leisure_lambda, Leisure_let, Leisure_lit, Leisure_ref, Nil, SourceMapConsumer, SourceNode, addLambdaProperties, addUniq, arrayify, assocListProps, booleanFor, check, checkChild, clearNameSpacePath, collectArgs, cons, consFrom, currentFile, currentFuncName, currentNameSpace, curry, define, dumpAnno, gen, genApply, genApplyArg, genLambda, genLetAssign, genLets, genMap, genNode, genRefName, genSource, genUniq, getAnnoBody, getAnnoData, getAnnoName, getApplyArg, getApplyFunc, getAssocListProps, getLambdaBody, getLambdaProperties, getLambdaVar, getLastLetBody, getLetBody, getLetName, getLetValue, getLitVal, getNameSpacePath, getPos, getRefName, isNil, lacons, lazy, lcons, lconsFrom, left, letList, locateAst, lz, makeSyncMonad, masterLockGen, memoize, nameSpacePath, nameSpaceStack, nameSpaces, nameSub, newConsFrom, newGen, resolve, restoreNameSpace, right, root, runMonad, rz, saveNameSpace, setDataType, setType, simpyCons, sn, specialAnnotations, uniqName, varNameSub, verboseMsg, withFile, _, _false, _ref, _ref1, _ref2, _ref3, _true,
+    __slice = [].slice,
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   _ref = require('./base'), simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy, verboseMsg = _ref.verboseMsg;
 
@@ -34,9 +35,9 @@ misrepresented as being the original software.
 
   lz = lazy;
 
-  _ref1 = root = module.exports = require('./ast'), nameSub = _ref1.nameSub, getLitVal = _ref1.getLitVal, getRefName = _ref1.getRefName, getLambdaVar = _ref1.getLambdaVar, getLambdaBody = _ref1.getLambdaBody, getApplyFunc = _ref1.getApplyFunc, getApplyArg = _ref1.getApplyArg, getAnnoName = _ref1.getAnnoName, getAnnoData = _ref1.getAnnoData, getAnnoBody = _ref1.getAnnoBody, getLetName = _ref1.getLetName, getLetValue = _ref1.getLetValue, getLetBody = _ref1.getLetBody, Leisure_lit = _ref1.Leisure_lit, Leisure_ref = _ref1.Leisure_ref, Leisure_lambda = _ref1.Leisure_lambda, Leisure_apply = _ref1.Leisure_apply, Leisure_let = _ref1.Leisure_let, Leisure_anno = _ref1.Leisure_anno, setType = _ref1.setType, setDataType = _ref1.setDataType, cons = _ref1.cons, Nil = _ref1.Nil, consFrom = _ref1.consFrom, define = _ref1.define, getPos = _ref1.getPos, isNil = _ref1.isNil;
+  _ref1 = root = module.exports = require('./ast'), nameSub = _ref1.nameSub, getLitVal = _ref1.getLitVal, getRefName = _ref1.getRefName, getLambdaVar = _ref1.getLambdaVar, getLambdaBody = _ref1.getLambdaBody, getApplyFunc = _ref1.getApplyFunc, getApplyArg = _ref1.getApplyArg, getAnnoName = _ref1.getAnnoName, getAnnoData = _ref1.getAnnoData, getAnnoBody = _ref1.getAnnoBody, getLetName = _ref1.getLetName, getLetValue = _ref1.getLetValue, getLetBody = _ref1.getLetBody, Leisure_lit = _ref1.Leisure_lit, Leisure_ref = _ref1.Leisure_ref, Leisure_lambda = _ref1.Leisure_lambda, Leisure_apply = _ref1.Leisure_apply, Leisure_let = _ref1.Leisure_let, Leisure_anno = _ref1.Leisure_anno, setType = _ref1.setType, setDataType = _ref1.setDataType, cons = _ref1.cons, consFrom = _ref1.consFrom, Nil = _ref1.Nil, define = _ref1.define, getPos = _ref1.getPos, isNil = _ref1.isNil;
 
-  _ref2 = require('./runtime'), makeSyncMonad = _ref2.makeSyncMonad, runMonad = _ref2.runMonad, _true = _ref2._true, _false = _ref2._false, left = _ref2.left, right = _ref2.right;
+  _ref2 = require('./runtime'), makeSyncMonad = _ref2.makeSyncMonad, runMonad = _ref2.runMonad, _true = _ref2._true, _false = _ref2._false, left = _ref2.left, right = _ref2.right, booleanFor = _ref2.booleanFor, newConsFrom = _ref2.newConsFrom;
 
   _ = require('./lodash.min');
 
@@ -171,10 +172,76 @@ misrepresented as being the original software.
     }
   };
 
+  nameSpaceStack = [];
+
+  nameSpaces = {};
+
+  nameSpacePath = [];
+
+  currentNameSpace = null;
+
+  define('useNameSpace', lz(function(name) {
+    return makeSyncMonad(function(env, cont) {
+      var newNameSpace;
+      if (name === null) {
+        currentNameSpace = null;
+        newNameSpace = false;
+      } else {
+        newNameSpace = !nameSpaces[name];
+        if (newNameSpace) {
+          nameSpaces[name] = {
+            name: name,
+            functions: {}
+          };
+        }
+        currentNameSpace = nameSpaces[name];
+      }
+      return cont(booleanFor(newNameSpace));
+    });
+  }));
+
+  define('pushNameSpace', lz(function(newNameSpace) {
+    return makeSyncMonad(function(env, cont) {
+      var pushed;
+      pushed = nameSpaces[newNameSpace] && !(__indexOf.call(nameSpacePath, newNameSpace) >= 0);
+      if (pushed) {
+        nameSpacePath.push(newNameSpace);
+      }
+      return cont(booleanFor(pushed));
+    });
+  }));
+
+  getNameSpacePath = lz(function() {
+    return makeSyncMonad(function(env, cont) {
+      return cont(consFrom(nameSpacePath));
+    });
+  });
+
+  clearNameSpacePath = function() {
+    return nameSpacePath = [];
+  };
+
+  saveNameSpace = function() {
+    nameSpaceStack.push([nameSpacePath, currentNameSpace]);
+    nameSpacePath = [];
+    return currentNameSpace = null;
+  };
+
+  restoreNameSpace = function() {
+    var _ref4;
+    return _ref4 = nameSpaceStack.pop(), nameSpacePath = _ref4[0], currentNameSpace = _ref4[1], _ref4;
+  };
+
   genRefName = function(ref, uniq, names) {
-    var name;
+    var name, val;
     name = getRefName(ref);
-    return uniqName(name, uniq);
+    if (isNil((val = names.find(function(el) {
+      return el === name;
+    })))) {
+      return varNameSub(name);
+    } else {
+      return uniqName(name, uniq);
+    }
   };
 
   genUniq = function(ast, names, uniq) {

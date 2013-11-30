@@ -53,8 +53,8 @@ lz = lazy
   setType,
   setDataType,
   cons,
-  Nil,
   consFrom,
+  Nil,
   define,
   getPos,
   isNil,
@@ -66,8 +66,12 @@ lz = lazy
   _false,
   left,
   right,
+  booleanFor,
+  newConsFrom,
 } = require './runtime'
 _ = require './lodash.min'
+
+#consFrom = newConsFrom
 
 {
   SourceNode,
@@ -171,11 +175,46 @@ genMap = (ast)->
   if funcname then new SourceNode line, offset, filename, sub, funcname
   else sub
 
+nameSpaceStack = []
+nameSpaces = {}
+nameSpacePath = []
+currentNameSpace = null
+
+define 'useNameSpace', lz (name)->
+  makeSyncMonad (env, cont)->
+    if name == null
+      currentNameSpace = null
+      newNameSpace = false
+    else
+      newNameSpace = !nameSpaces[name]
+      if newNameSpace then nameSpaces[name] =
+        name: name
+        functions: {}
+      currentNameSpace = nameSpaces[name]
+    cont booleanFor newNameSpace
+
+define 'pushNameSpace', lz (newNameSpace)->
+  makeSyncMonad (env, cont)->
+    pushed = nameSpaces[newNameSpace] && ! (newNameSpace in nameSpacePath)
+    if pushed then nameSpacePath.push newNameSpace
+    cont booleanFor pushed
+
+getNameSpacePath = lz ->
+  makeSyncMonad (env, cont)-> cont consFrom nameSpacePath
+clearNameSpacePath = -> nameSpacePath = []
+saveNameSpace = ->
+  nameSpaceStack.push [nameSpacePath, currentNameSpace]
+  nameSpacePath = []
+  currentNameSpace = null
+restoreNameSpace = -> [nameSpacePath, currentNameSpace] = nameSpaceStack.pop()
+
 genRefName = (ref, uniq, names)->
   name = getRefName ref
   #if isNil (val = names.find (el)-> el == name) then console.log("GLOBAL: #{name}, val = #{val}")
   #else console.log("LOCAL: #{name}, val = #{val}")
-  uniqName name, uniq
+  #if isNil (val = names.find (el)-> el == name) then "#{currentNameSpace}#{name}"
+  if isNil (val = names.find (el)-> el == name) then varNameSub name
+  else uniqName name, uniq
 
 genUniq = (ast, names, uniq)->
   switch ast.constructor
@@ -356,3 +395,9 @@ root.genNode = genNode
 root.sourceNode = sn
 root.curry = curry
 root.withFile = withFile
+#root.useNameSpace = useNameSpace
+#root.pushNameSpace = pushNameSpace
+#root.getNameSpacePath = getNameSpacePath
+#root.clearNameSpacePath = clearNameSpacePath
+#root.saveNameSpace = saveNameSpace
+#root.restoreNameSpace = restoreNameSpace
