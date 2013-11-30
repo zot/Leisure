@@ -118,12 +118,18 @@ markupNode = (org)->
           lastOrgOffset = res.offset
           pos = res.contentPos - res.offset
           html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'><span></span></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
-        html + "</div><button class='comment-button' onclick='Leisure.toggleComment(\"#{name.info.trim()}\")'><img src='icons/monotone_talk_chat_speech.png'></button></div><div class='comments' data-org-comments='#{name.info.trim()}'><div></div></div>"
+        html + "</div>#{commentButton name.info.trim()}</div><div class='comments' data-org-comments='#{name.info.trim()}'><div></div></div>"
       else defaultMarkup org
     else defaultMarkup org
   else if org instanceof Headline then "<span #{orgAttrs org}><span data-org-type='text'>#{org.text}</span>#{markupGuts org, checkStart start, org.text}</span>"
   else if content(org.text).length then defaultMarkup org
   else "<div #{orgAttrs org}>#{org.text}</div>"
+
+commentButton = (name)->
+  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{name}\")' contenteditable='false'><img src='icons/monotone_talk_chat_speech.png'></button>"
+
+astButton = (name)->
+  "<button class='ast-button' onclick='Leisure.toggleAst(\"#{name.info.trim()}\")' contenteditable='false'><img src='icons/monotone_groups.png'></button>"
 
 toggleComment = (name)->
   block = $("[data-org-comments=#{name}]")
@@ -275,6 +281,11 @@ executeSource = (parent, node)->
     if txt.trim().length then executeText node.textContent, orgEnv parent, node
     else orgEnv(parent, node)
 
+executeDef = (node)->
+  while node && !node.hasAttribute 'data-org-results'
+    node = node.parentNode
+  if node then executeText $(node).find('.codecontent')[0].firstChild.textContent, baseEnv
+
 reprocessResults = (str)-> str.replace /(^|\n): /g, '$1<span class="hidden">: </span>'
 
 processResults = (str)->
@@ -307,6 +318,10 @@ orgEnv = (parent, node)->
     write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
     __proto__: defaultEnv
 
+baseEnv =
+  write: (str)-> console.log processResults str
+  __proto__: defaultEnv
+
 fancyOrg =
   __proto__: orgNotebook
   markupOrg: markupOrg
@@ -314,10 +329,14 @@ fancyOrg =
   bindContent: bindContent
   installOrgDOM: (parent, orgNode, orgText)->
     orgNotebook.installOrgDOM parent, orgNode, orgText
-    for node in $('[data-org-dynamic="true"]')
-      setTimeout (=>@executeSource parent, $(node).find('.codecontent')[0].firstChild), 1
+    setTimeout (=>
+      for node in $('[data-org-results]')
+        switch $(node).attr('data-org-results').toLowerCase()
+          when 'dynamic' then @executeSource parent, $(node).find('.codecontent')[0].firstChild
+          when 'def' then @executeDef node), 1
     redrawAllIssues()
   executeSource: executeSource
+  executeDef: executeDef
   createResults: createResults
   bindings: defaultBindings
   redrawIssue: (i)-> redrawIssue i

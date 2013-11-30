@@ -109,14 +109,43 @@
                 }
                 .comment-button {
                         position: absolute;
-                        right: 0;
-                        top: 0;
+                        right: 2px;
+                        top: 2px;
                         user-select: none;
                         -moz-user-select: none;
                         -webkit-user-select: none;
                 }
                 .comment-button img {
                         max-width: 32px;
+                }
+                .ast-button {
+                        position: absolute;
+                        right: 2px;
+                        top: 2px;
+                        user-select: none;
+                        -moz-user-select: none;
+                        -webkit-user-select: none;
+                }
+                .ast-button img {
+                        max-width: 32px;
+                }
+                .ast {
+                        position: relative;
+                        overflow: visible;
+                        vertical-align: top;
+                        display: none;
+                }
+                .showcomments.ast {
+                        display: inline-block;
+                }
+                .ast > * {
+                        position: absolute;
+                        width: 300px;
+                        padding: 5px;
+                        background: white;
+                        border-radius: 10px;
+                        border: solid gray 2px;
+                        margin-left: 5px;
                 }
                 #leisure_bar {
                         min-height: 28px;

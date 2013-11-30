@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, RIGHT, Results, Source, TAB, UP, addKeyPress, backspace, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, contains, content, contentSpan, createResults, curKeyBinding, currentLine, defaultBindings, defaultEnv, displaySource, editDiv, emptyOutNode, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parentSpec, parseOrgMode, parseTags, prevKeybinding, rectFor, reparse, reparseListeners, resolve, restorePosition, root, rz, selectRange, sensitive, setCurKeyBinding, setTags, shiftKey, show, sourceDiv, sourceSpec, specialKeys, styleCache, swapMarkup, textNodeAfter, textNodeBefore, _, _ref, _ref1, _ref2;
+  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, RIGHT, Results, Source, TAB, UP, addKeyPress, backspace, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, collapseNode, contains, content, contentSpan, createResults, curKeyBinding, currentLine, defaultBindings, defaultEnv, displaySource, editDiv, emptyOutNode, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getType, handleMutation, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parentSpec, parseOrgMode, parseTags, prevKeybinding, rectFor, reparse, reparseListeners, resolve, restorePosition, root, rz, selectRange, sensitive, setCurKeyBinding, setTags, shiftKey, show, sourceDiv, sourceSpec, specialKeys, styleCache, swapMarkup, textNodeAfter, textNodeBefore, _, _ref, _ref1, _ref2;
 
   getType = require('./ast').getType;
 
@@ -360,7 +360,7 @@ misrepresented as being the original software.
       org.nodeId = nextOrgId();
     }
     nodes[org.nodeId] = org;
-    extra = isDynamic(org) ? ' data-org-dynamic="true"' : '';
+    extra = isDynamic(org) ? ' data-org-results="dynamic"' : isDef(org) ? ' data-org-results="def"' : '';
     if (org instanceof Headline) {
       extra += " data-org-tags='" + org.tags + "'";
     } else if (org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source && ((_ref3 = org.name) != null ? _ref3.toLowerCase() : void 0) === 'name') {
@@ -374,6 +374,10 @@ misrepresented as being the original software.
 
   isDynamic = function(org) {
     return org instanceof Source && org.info.match(/:results .*dynamic/i);
+  };
+
+  isDef = function(org) {
+    return org instanceof Source && org.info.match(/:results .*def/i);
   };
 
   markupNode = function(org, start) {
@@ -744,8 +748,13 @@ misrepresented as being the original software.
     r = getSelection().getRangeAt(0);
     if ((newMatch = matchLine(currentLine(parent))) !== oldMatch || (newMatch && newMatch.match(sensitive))) {
       return reparse(parent);
-    } else if ((n = getOrgParent(r.startContainer)) && ((_ref3 = n.getAttribute('data-org-dynamic')) != null ? _ref3.toLowerCase() : void 0) === 'true') {
-      return root.orgApi.executeSource(parent, r.startContainer);
+    } else if (n = getOrgParent(r.startContainer)) {
+      switch ((_ref3 = n.getAttribute('data-org-results')) != null ? _ref3.toLowerCase() : void 0) {
+        case 'dynamic':
+          return root.orgApi.executeSource(parent, r.startContainer);
+        case 'def':
+          return root.orgApi.executeSource(parent, r.startContainer);
+      }
     }
   };
 
@@ -918,24 +927,44 @@ misrepresented as being the original software.
   executeText = function(text, env) {
     var result;
     result = rz(L_baseLoadString)('notebook')(text);
-    return runMonad(result, env, function(res) {
-      res = res.head().tail();
-      if (getType(res) === 'left') {
-        return orgEnv.write("PARSE ERROR: " + (getLeft(res)));
-      } else {
-        return env.write(show(getRight(res)));
+    return runMonad(result, env, function(results) {
+      var res, _results;
+      _results = [];
+      while (results !== L_nil()) {
+        res = results.head().tail();
+        if (getType(res) === 'left') {
+          orgEnv.write("PARSE ERROR: " + (getLeft(res)));
+        } else {
+          env.write(show(getRight(res)));
+        }
+        _results.push(results = results.tail());
       }
+      return _results;
     });
   };
 
-  executeSource = function(parent, node) {
+  getSource = function(node) {
     var m, txt;
-    if (isSourceNode(node)) {
-      checkReparse(parent);
+    while (node && !isSourceNode(node)) {
+      node = node.parentNode;
+    }
+    if (node) {
       txt = $(node).text().substring($(node).find('[data-org-type="text"]').text().length);
       m = txt.match(/(^|\n)#\+end_src/i);
       if (m) {
-        return executeText(txt.substring(0, m.index), orgEnv(parent, node));
+        return txt.substring(0, m.index);
+      } else {
+        return null;
+      }
+    }
+  };
+
+  executeSource = function(parent, node) {
+    var txt;
+    if (isSourceNode(node)) {
+      checkReparse(parent);
+      if (txt = getSource(node)) {
+        return executeText(txt, orgEnv(parent, node));
       } else {
         return console.log("No end for src block");
       }
@@ -943,6 +972,13 @@ misrepresented as being the original software.
       return needsReparse = true;
     } else {
       return !isDocNode(node) && executeSource(parent, node.parentElement);
+    }
+  };
+
+  executeDef = function(node) {
+    var txt;
+    if (txt = getSource(node)) {
+      return executeText(txt, baseEnv);
     }
   };
 
@@ -1227,18 +1263,35 @@ misrepresented as being the original software.
     executeSource: executeSource,
     createResults: createResults,
     installOrgDOM: function(parent, orgNode, orgText) {
-      var node, _i, _len, _ref3, _results,
+      var node, _i, _len, _ref3,
         _this = this;
       orgNotebook.installOrgDOM(parent, orgNode, orgText);
       _ref3 = $('[data-org-dynamic="true"]');
-      _results = [];
       for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
         node = _ref3[_i];
-        _results.push(setTimeout((function() {
+        setTimeout((function() {
           return _this.executeSource(parent, $(node).find('[data-org-type=text]')[0].nextElementSibling);
-        }), 1));
+        }), 1);
       }
-      return _results;
+      return setTimeout((function() {
+        var _j, _len1, _ref4, _results;
+        _ref4 = $('[data-org-results]');
+        _results = [];
+        for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
+          node = _ref4[_j];
+          switch ($(node).attr('data-org-results').toLowerCase()) {
+            case 'dynamic':
+              _results.push(_this.executeSource(parent, $(node).find('[data-org-type=text]')[0].nextElementSibling));
+              break;
+            case 'def':
+              _results.push(executeText($(node).find('[data-org-type=text]')[0].nextElementSibling));
+              break;
+            default:
+              _results.push(void 0);
+          }
+        }
+        return _results;
+      }), 1);
     },
     bindings: defaultBindings
   };

@@ -57,6 +57,7 @@ lz = lazy
   consFrom,
   define,
   getPos,
+  isNil,
 } = root = module.exports = require './ast'
 {
   makeSyncMonad,
@@ -170,10 +171,16 @@ genMap = (ast)->
   if funcname then new SourceNode line, offset, filename, sub, funcname
   else sub
 
+genRefName = (ref, uniq, names)->
+  name = getRefName ref
+  #if isNil (val = names.find (el)-> el == name) then console.log("GLOBAL: #{name}, val = #{val}")
+  #else console.log("LOCAL: #{name}, val = #{val}")
+  uniqName name, uniq
+
 genUniq = (ast, names, uniq)->
   switch ast.constructor
     when Leisure_lit then sn ast, JSON.stringify getLitVal ast
-    when Leisure_ref then sn ast, "resolve(", (uniqName (getRefName ast), uniq), ")"
+    when Leisure_ref then sn ast, "resolve(", (genRefName ast, uniq, names), ")"
     when Leisure_lambda then genLambda ast, names, uniq, 0
     when Leisure_apply
       if !newGen then sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
@@ -267,7 +274,7 @@ genApply = (ast, names, uniq)->
 
 genApplyArg = (arg, names, uniq)->
   if dumpAnno(arg) instanceof Leisure_apply then memoize arg, genUniq arg, names, uniq
-  else if arg instanceof Leisure_ref then uniqName (getRefName arg), uniq
+  else if arg instanceof Leisure_ref then genRefName arg, uniq, names
   else if arg instanceof Leisure_lit then sn arg, JSON.stringify getLitVal arg
   else if arg instanceof Leisure_let then sn arg, "function(){", (genLets arg, names, uniq), "}"
   else if dumpAnno(arg) instanceof Leisure_lambda then sn arg, "lazy(", (genUniq arg, names, uniq), ")"
@@ -278,15 +285,16 @@ genLetAssign = (arg, names, uniq)->
   else sn arg, "function(){return ", (genUniq arg, names, uniq), "}"
 
 genLets = (ast, names, uniq)->
-  [names, uniq, decs, assigns] = _.foldl (letList ast, []), ((result, l)->
-    [n, u, letNames, code] = result
-    newU = addUniq (getLetName l), n, u
+  bindings = letList ast, []
+  letNames = _.foldl bindings, ((n, l)-> cons (getLetName l), n), names
+  [letUniq, decs, assigns] = _.foldl bindings, ((result, l)->
+    [u, code, assigns] = result
+    newU = addUniq (getLetName l), letNames, u
     letName = uniqName (getLetName l), newU
-    [cons((getLetName l), n),
-      newU,
-      (cons letName, letNames),
-      (cons (sn ast, '\n' + letName + ' = ', genLetAssign(getLetValue(l), n, u)), code)]), [names, uniq, Nil, Nil]
-  sn ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", (genUniq (getLastLetBody ast), names, uniq)
+    [newU,
+      (cons (sn ast, '\n' + letName + ' = ', genLetAssign(getLetValue(l), letNames, u)), code),
+      (cons letName, assigns)]), [uniq, Nil, Nil]
+  sn ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", (genUniq (getLastLetBody ast), letNames, letUniq)
 
 addUniq = (name, names, uniq)->
   if (names.find (el)-> el == name) != Nil

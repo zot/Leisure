@@ -281,13 +281,17 @@ sensitive = /^srcStart|^headline-/
 orgAttrs = (org)->
   if !org.nodeId then org.nodeId = nextOrgId()
   nodes[org.nodeId] = org
-  extra = if isDynamic org then ' data-org-dynamic="true"' else ''
+  extra = if isDynamic org then ' data-org-results="dynamic"'
+  else if isDef org then ' data-org-results="def"'
+  else ''
   if org instanceof Headline then extra += " data-org-tags='#{org.tags}'"
   else if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{org.info}'"
   if org.srcId then extra += " data-org-srcid='#{org.srcId}'"
   "id='#{org.nodeId}' data-org-type='#{org.type}'#{extra}"
 
 isDynamic = (org)-> org instanceof Source && org.info.match /:results .*dynamic/i
+
+isDef = (org)-> org instanceof Source && org.info.match /:results .*def/i
 
 markupNode = (org, start)->
   if org instanceof Source || org instanceof Results
@@ -522,7 +526,10 @@ checkCollapsed = (delta)->
 checkSourceMod = (parent, oldMatch)->
   r = getSelection().getRangeAt 0
   if (newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive) then reparse parent
-  else if (n = getOrgParent r.startContainer) && n.getAttribute('data-org-dynamic')?.toLowerCase() == 'true' then root.orgApi.executeSource parent, r.startContainer
+  else if n = getOrgParent r.startContainer
+    switch n.getAttribute('data-org-results')?.toLowerCase()
+      when 'dynamic' then root.orgApi.executeSource parent, r.startContainer
+      when 'def' then root.orgApi.executeSource parent, r.startContainer
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
@@ -616,20 +623,30 @@ show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
 executeText = (text, env)->
   result = rz(L_baseLoadString)('notebook')(text)
-  runMonad result, env, (res)->
-    res = res.head().tail()
-    if getType(res) == 'left' then orgEnv.write "PARSE ERROR: #{getLeft res}"
-    else env.write show getRight res
+  runMonad result, env, (results)->
+    while results != L_nil()
+      res = results.head().tail()
+      if getType(res) == 'left' then orgEnv.write "PARSE ERROR: #{getLeft res}"
+      else env.write show getRight res
+      results = results.tail()
+
+getSource = (node)->
+  while node && !isSourceNode node
+    node = node.parentNode
+  if node
+    txt = $(node).text().substring($(node).find('[data-org-type="text"]').text().length)
+    m = txt.match /(^|\n)#\+end_src/i
+    if m then txt.substring(0, m.index) else null
 
 executeSource = (parent, node)->
   if isSourceNode node
     checkReparse parent
-    txt = $(node).text().substring($(node).find('[data-org-type="text"]').text().length)
-    m = txt.match /(^|\n)#\+end_src/i
-    if m then executeText txt.substring(0, m.index), orgEnv parent, node
+    if txt = getSource node then executeText txt, orgEnv parent, node
     else console.log "No end for src block"
   else if getOrgType(node) == 'text' then needsReparse = true
   else !isDocNode(node) && executeSource parent, node.parentElement
+
+executeDef = (node)-> if txt = getSource node then executeText txt, baseEnv
 
 followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(node.parentNode)[0]
 
@@ -824,6 +841,11 @@ basicOrg =
     orgNotebook.installOrgDOM parent, orgNode, orgText
     for node in $('[data-org-dynamic="true"]')
       setTimeout (=>@executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling), 1
+    setTimeout (=>
+      for node in $('[data-org-results]')
+        switch $(node).attr('data-org-results').toLowerCase()
+          when 'dynamic' then @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
+          when 'def' then executeText $(node).find('[data-org-type=text]')[0].nextElementSibling), 1
   bindings: defaultBindings
 
 root.basicOrg = basicOrg

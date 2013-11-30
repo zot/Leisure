@@ -114,6 +114,8 @@ ensureLeisureClass 'nil'
 supertypes.Leisure_cons = 'Leisure_Object'
 supertypes.Leisure_nil = 'Leisure_Object'
 
+isNil = (obj)-> obj instanceof Leisure_nil
+
 ensureLeisureClass 'ast'
 ensureLeisureClass 'lit'
 Leisure_lit.prototype.toString = -> "lit(#{getLitVal @})"
@@ -508,3 +510,4 @@ root.supertypes = supertypes
 root.functionInfo = functionInfo
 root.getPos = getPos
 root.dummyPosition = dummyPosition
+root.isNil = isNil
