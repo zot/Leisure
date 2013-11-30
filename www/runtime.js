@@ -25,8 +25,9 @@ misrepresented as being the original software.
 
 
 (function() {
-  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, posString, readDir, readFile, replaceErr, requireFiles, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
-    __slice = [].slice;
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSpaceStack, nameSub, newRunMonad, nextMonad, nextNode, none, parensContent, parensEnd, parensStart, posString, readDir, readFile, replaceErr, requireFiles, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+    __slice = [].slice,
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   _ref = root = module.exports = require('./base'), readFile = _ref.readFile, statFile = _ref.statFile, readDir = _ref.readDir, writeFile = _ref.writeFile, defaultEnv = _ref.defaultEnv, SimpyCons = _ref.SimpyCons, simpyCons = _ref.simpyCons, resolve = _ref.resolve, lazy = _ref.lazy;
 
@@ -1181,9 +1182,63 @@ misrepresented as being the original software.
     };
   };
 
-  define('useNameSpace', lz(function(ns) {
+  nameSpaceStack = [];
+
+  define('setNameSpace', lz(function(name) {
     return makeSyncMonad(function(env, cont) {
-      root.setNameSpace(rz(ns));
+      var currentNameSpace, newNameSpace;
+      currentNameSpace = name;
+      if (name === null) {
+        newNameSpace = false;
+      } else {
+        newNameSpace = !LeisureNameSpaces[name];
+        if (newNameSpace) {
+          LeisureNameSpaces[name] = {};
+        }
+      }
+      return cont((newNameSpace ? _true : _false));
+    });
+  }));
+
+  define('pushNameSpace', lz(function(newNameSpace) {
+    return makeSyncMonad(function(env, cont) {
+      var pushed;
+      pushed = LeisureNameSpaces[newNameSpace] && !(__indexOf.call(nameSpacePath, newNameSpace) >= 0);
+      if (pushed) {
+        nameSpacePath.push(newNameSpace);
+      }
+      return cont((pushed ? _true : _false));
+    });
+  }));
+
+  define('getNameSpacePath', lz(function() {
+    return makeSyncMonad(function(env, cont) {
+      return cont(consFrom(nameSpacePath));
+    });
+  }));
+
+  define('clearNameSpacePath', lz(function() {
+    return makeSyncMonad(function(env, cont) {
+      var nameSpacePath;
+      nameSpacePath = [];
+      return cont(_true);
+    });
+  }));
+
+  define('resetNameSpaceInfo', lz(function() {
+    return makeSyncMonad(function(enf, cont) {
+      var currentNameSpace, nameSpacePath, old;
+      old = [nameSpacePath, currentNameSpace];
+      nameSpacePath = [];
+      currentNameSpace = null;
+      return cont(old);
+    });
+  }));
+
+  define('setNameSpaceInfo', lz(function(info) {
+    return makeSyncMonad(function(env, cont) {
+      var currentNameSpace, nameSpacePath, _ref2;
+      _ref2 = rz(info), nameSpacePath = _ref2[0], currentNameSpace = _ref2[1];
       return cont(_true);
     });
   }));

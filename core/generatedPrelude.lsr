@@ -1,3 +1,5 @@
+setNameSpace 'parser'
+
 ############
 # LOGIC
 ############
@@ -961,10 +963,12 @@ baseLoad file = bind (readFile file)
 
 baseLoadString file contents = bind (getValue 'activeTokenPacks')
   \activePacks . bind resetStdTokenPacks
-    \_ . bind (runNamedFile file contents)
-      \result . isNil activePacks
-        bind resetStdTokenPacks \_ . result
-        bind (resetTokenPacks activePacks) \_ . result
+    \_ . bind resetNameSpaceInfo
+      \nsInfo . bind (runNamedFile file contents)
+        \result . bind (setNameSpaceInfo nsInfo)
+          \_ . isNil activePacks
+            bind resetStdTokenPacks \_ . result
+            bind (resetTokenPacks activePacks) \_ . result
 
 load file = bind (baseLoad file)
   \result . \\

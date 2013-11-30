@@ -272,6 +272,12 @@ nameFunc = (func, name)->
       f
     else f
 
+global.LeisureNameSpaces = core: {}
+
+nameSpacePath = ['core']
+
+currentNameSpace = 'core'
+
 # use AST, instead of arity?
 define = (name, func, arity, src, method) ->
   #can't use func(), because it might do something or might fail
@@ -288,7 +294,8 @@ define = (name, func, arity, src, method) ->
     altList: []
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
-  functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
+  namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
+  if currentNameSpace then LeisureNameSpaces[currentNameSpace][nameSub(name)] = namedFunc
   leisureAddFunc name
   root.functionCount++
   func

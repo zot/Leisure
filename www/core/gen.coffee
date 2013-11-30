@@ -53,7 +53,6 @@ lz = lazy
   setType,
   setDataType,
   cons,
-  consFrom,
   Nil,
   define,
   getPos,
@@ -71,7 +70,7 @@ lz = lazy
 } = require './runtime'
 _ = require './lodash.min'
 
-#consFrom = newConsFrom
+consFrom = newConsFrom
 
 {
   SourceNode,
@@ -174,39 +173,6 @@ genMap = (ast)->
   [line, offset] = locateAst ast
   if funcname then new SourceNode line, offset, filename, sub, funcname
   else sub
-
-nameSpaceStack = []
-nameSpaces = {}
-nameSpacePath = []
-currentNameSpace = null
-
-define 'useNameSpace', lz (name)->
-  makeSyncMonad (env, cont)->
-    if name == null
-      currentNameSpace = null
-      newNameSpace = false
-    else
-      newNameSpace = !nameSpaces[name]
-      if newNameSpace then nameSpaces[name] =
-        name: name
-        functions: {}
-      currentNameSpace = nameSpaces[name]
-    cont booleanFor newNameSpace
-
-define 'pushNameSpace', lz (newNameSpace)->
-  makeSyncMonad (env, cont)->
-    pushed = nameSpaces[newNameSpace] && ! (newNameSpace in nameSpacePath)
-    if pushed then nameSpacePath.push newNameSpace
-    cont booleanFor pushed
-
-getNameSpacePath = lz ->
-  makeSyncMonad (env, cont)-> cont consFrom nameSpacePath
-clearNameSpacePath = -> nameSpacePath = []
-saveNameSpace = ->
-  nameSpaceStack.push [nameSpacePath, currentNameSpace]
-  nameSpacePath = []
-  currentNameSpace = null
-restoreNameSpace = -> [nameSpacePath, currentNameSpace] = nameSpaceStack.pop()
 
 genRefName = (ref, uniq, names)->
   name = getRefName ref

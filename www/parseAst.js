@@ -14,81 +14,81 @@ module.exports = L_runMonads([
  function(){return resolve(L_define)("rangeContainsRange")(4)("rangeContainsRange start end innerStart innerEnd = and (lte start innerStart) (lte innerEnd end)")(lazy(function(L_start){return function(L_end){return function(L_innerStart){return function(L_innerEnd){return resolve(L_and)(function(){return resolve(L_lte)(L_start)(L_innerStart)})(function(){return resolve(L_lte)(L_innerEnd)(L_end)})}}}}))},
  function(){return resolve(L_define)("highlight")(1)("highlight map = do\n  c = assocGetWithDefault 'fill' map nil\n  eq c '#fcc'\n    assocSet 'fill' 'red' map\n    eq c '#cfc'\n      assocSet 'fill' 'green' map\n      eq c '#ccf'\n        assocSet 'fill' 'blue' map\n        map")(lazy(function(L_map){return (function(){
 
-var L_c;
-
-L_c = function(){return resolve(L_assocGetWithDefault)("fill")(L_map)(L_nil)};
-return resolve(L_eq)(L_c)("#fcc")(function(){return resolve(L_assocSet)("fill")("red")(L_map)})(function(){return resolve(L_eq)(L_c)("#cfc")(function(){return resolve(L_assocSet)("fill")("green")(L_map)})(function(){return resolve(L_eq)(L_c)("#ccf")(function(){return resolve(L_assocSet)("fill")("blue")(L_map)})(L_map)})})})()}))},
+var 
+L_c_0 = function(){return resolve(L_assocGetWithDefault)("fill")(L_map)(L_nil)};
+L_c_0;
+return resolve(L_eq)(L_c_0)("#fcc")(function(){return resolve(L_assocSet)("fill")("red")(L_map)})(function(){return resolve(L_eq)(L_c_0)("#cfc")(function(){return resolve(L_assocSet)("fill")("green")(L_map)})(function(){return resolve(L_eq)(L_c_0)("#ccf")(function(){return resolve(L_assocSet)("fill")("blue")(L_map)})(L_map)})})})()}))},
  function(){return resolve(L_define)("treeForFunc")(1)("treeForFunc func = treeFor (parse (funcSource func id false) id false)")(lazy(function(L_func){return resolve(L_treeFor)(function(){return resolve(L_parse)(function(){return resolve(L_funcSource)(L_func)(L_id)(L_false)})(L_id)(L_false)})}))},
  function(){return resolve(L_define)("treeFor")(1)("treeFor ast = treeForWith ast \\ast map . map")(lazy(function(L_ast){return resolve(L_treeForWith)(L_ast)(lazy(function(L_ast_0){return function(L_map){return resolve(L_map)}}))}))},
  function(){return resolve(L_define)("treeForWith")(2)("treeForWith ast mapFunc = nodeSvg (nodeFor ast mapFunc)")(lazy(function(L_ast){return function(L_mapFunc){return resolve(L_nodeSvg)(function(){return resolve(L_nodeFor)(L_ast)(L_mapFunc)})}}))},
  function(){return resolve(L_define)("wrappedTreeFor")(1)("wrappedTreeFor ast = do\n  content = nodeFor ast \\ast map . map\n  svg (nodeSvg content) {'width':(border + (nodeWidth content)) 'height':(border + (nodeHeight content))}")(lazy(function(L_ast){return (function(){
 
-var L_content;
-
-L_content = function(){return resolve(L_nodeFor)(L_ast)(lazy(function(L_ast_0){return function(L_map){return resolve(L_map)}}))};
-return resolve(L_svg)(function(){return resolve(L_nodeSvg)(L_content)})(function(){return resolve(L_aconsPair)(function(){return resolve(L_cons)("width")(function(){return resolve(L_$o)(L_border)(function(){return resolve(L_nodeWidth)(L_content)})})})(function(){return resolve(L_aconsPair)(function(){return resolve(L_cons)("height")(function(){return resolve(L_$o)(L_border)(function(){return resolve(L_nodeHeight)(L_content)})})})(L_nil)})})})()}))},
+var 
+L_content_0 = function(){return resolve(L_nodeFor)(L_ast)(lazy(function(L_ast_0){return function(L_map){return resolve(L_map)}}))};
+L_content_0;
+return resolve(L_svg)(function(){return resolve(L_nodeSvg)(L_content_0)})(function(){return resolve(L_aconsPair)(function(){return resolve(L_cons)("width")(function(){return resolve(L_$o)(L_border)(function(){return resolve(L_nodeWidth)(L_content_0)})})})(function(){return resolve(L_aconsPair)(function(){return resolve(L_cons)("height")(function(){return resolve(L_$o)(L_border)(function(){return resolve(L_nodeHeight)(L_content_0)})})})(L_nil)})})})()}))},
  function(){return resolve(L_define)("nodeFor")(2)("nodeFor ast mapFunc = do\n  t = getType ast\n  eq t 'lit'\n    createLitNode ast (show (ast \\v p . v)) mapFunc\n    eq t 'ref'\n      createRefNode ast (show (ast \\n p . n)) mapFunc\n      eq t 'lambda'\n        ast (\\v b p . createLambdaNode ast v b mapFunc)\n        eq t 'apply'\n          ast (\\f a . createApplyNode ast f a mapFunc)\n          eq t 'anno'\n            #ast (\\n d b . createApplyNode ast f a mapFunc)\n            ast (\\n d b . nodeFor b mapFunc)\n            log 2 makeNode (svgNode '') 0 0 0 0")(lazy(function(L_ast){return function(L_mapFunc){return (function(){
 
-var L_t;
-
-L_t = function(){return resolve(L_getType)(L_ast)};
-return resolve(L_eq)(L_t)("lit")(function(){return resolve(L_createLitNode)(L_ast)(function(){return resolve(L_show)(function(){return resolve(L_ast)(lazy(function(L_v){return function(L_p){return resolve(L_v)}}))})})(L_mapFunc)})(function(){return resolve(L_eq)(L_t)("ref")(function(){return resolve(L_createRefNode)(L_ast)(function(){return resolve(L_show)(function(){return resolve(L_ast)(lazy(function(L_n){return function(L_p){return resolve(L_n)}}))})})(L_mapFunc)})(function(){return resolve(L_eq)(L_t)("lambda")(function(){return resolve(L_ast)(lazy(function(L_v){return function(L_b){return function(L_p){return resolve(L_createLambdaNode)(L_ast)(L_v)(L_b)(L_mapFunc)}}}))})(function(){return resolve(L_eq)(L_t)("apply")(function(){return resolve(L_ast)(lazy(function(L_f){return function(L_a){return resolve(L_createApplyNode)(L_ast)(L_f)(L_a)(L_mapFunc)}}))})(function(){return resolve(L_eq)(L_t)("anno")(function(){return resolve(L_ast)(lazy(function(L_n){return function(L_d){return function(L_b){return resolve(L_nodeFor)(L_b)(L_mapFunc)}}}))})(function(){return resolve(L_log)(2)(L_makeNode)(function(){return resolve(L_svgNode)("")})(0)(0)(0)(0)})})})})})})()}}))},
+var 
+L_t_0 = function(){return resolve(L_getType)(L_ast)};
+L_t_0;
+return resolve(L_eq)(L_t_0)("lit")(function(){return resolve(L_createLitNode)(L_ast)(function(){return resolve(L_show)(function(){return resolve(L_ast)(lazy(function(L_v){return function(L_p){return resolve(L_v)}}))})})(L_mapFunc)})(function(){return resolve(L_eq)(L_t_0)("ref")(function(){return resolve(L_createRefNode)(L_ast)(function(){return resolve(L_show)(function(){return resolve(L_ast)(lazy(function(L_n){return function(L_p){return resolve(L_n)}}))})})(L_mapFunc)})(function(){return resolve(L_eq)(L_t_0)("lambda")(function(){return resolve(L_ast)(lazy(function(L_v){return function(L_b){return function(L_p){return resolve(L_createLambdaNode)(L_ast)(L_v)(L_b)(L_mapFunc)}}}))})(function(){return resolve(L_eq)(L_t_0)("apply")(function(){return resolve(L_ast)(lazy(function(L_f){return function(L_a){return resolve(L_createApplyNode)(L_ast)(L_f)(L_a)(L_mapFunc)}}))})(function(){return resolve(L_eq)(L_t_0)("anno")(function(){return resolve(L_ast)(lazy(function(L_n){return function(L_d){return function(L_b){return resolve(L_nodeFor)(L_b)(L_mapFunc)}}}))})(function(){return resolve(L_log)(2)(L_makeNode)(function(){return resolve(L_svgNode)("")})(0)(0)(0)(0)})})})})})})()}}))},
  function(){return resolve(L_define)("redStyle")(0)("redStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#fcc'] ['rx'|8] ['ry'|8]]")(function(){return resolve(L_cons)(function(){return resolve(L_cons)("stroke")("black")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("stroke-width")(2)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("fill")("#fcc")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("rx")(8)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("ry")(8)})(L_nil)})})})})})},
  function(){return resolve(L_define)("greenStyle")(0)("greenStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#cfc'] ['rx'|8] ['ry'|8]]")(function(){return resolve(L_cons)(function(){return resolve(L_cons)("stroke")("black")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("stroke-width")(2)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("fill")("#cfc")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("rx")(8)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("ry")(8)})(L_nil)})})})})})},
  function(){return resolve(L_define)("blueStyle")(0)("blueStyle = [['stroke'|'black'] ['stroke-width'|2] ['fill'|'#ccf'] ['rx'|8] ['ry'|8]]")(function(){return resolve(L_cons)(function(){return resolve(L_cons)("stroke")("black")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("stroke-width")(2)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("fill")("#ccf")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("rx")(8)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("ry")(8)})(L_nil)})})})})})},
  function(){return resolve(L_define)("createLambdaNode")(4)("createLambdaNode ast v b mapFunc = do\n  rootBox = textNode (mapFunc ast greenStyle) 'lambda'\n  varBox = textNode (mapFunc ast greenStyle) v\n  bodyTree = nodeFor b mapFunc\n  childWidth = (nodeWidth varBox) + space + (nodeWidth bodyTree)\n  totalWidth = max childWidth (nodeWidth rootBox)\n  pad = max 0 (totalWidth - childWidth) / 2\n  rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0\n  varBox = nodeTranslate varBox pad (nodeHeight rootBox) + space\n  bodyTree = nodeTranslate bodyTree (pad + (nodeWidth varBox) + space) ((nodeHeight rootBox) + space)\n  log 3 makeNode\n    svgConcat [(nodeLine rootBox varBox) (nodeLine rootBox bodyTree) (nodeSvg varBox) (nodeSvg bodyTree) (nodeSvg rootBox)]\n    totalWidth\n    (nodeHeight rootBox) + space + (max (nodeHeight varBox) (nodeHeight bodyTree))\n    totalWidth / 2\n    (nodeHeight rootBox) / 2")(lazy(function(L_ast){return function(L_v){return function(L_b){return function(L_mapFunc){return (function(){
 
-var L_bodyTree_2, L_varBox_1, L_rootBox_0, L_pad, L_totalWidth, L_childWidth, L_bodyTree, L_varBox, L_rootBox;
-
-L_rootBox = function(){return resolve(L_textNode)(function(){return resolve(L_mapFunc)(L_ast)(L_greenStyle)})("lambda")};
-
-L_varBox = function(){return resolve(L_textNode)(function(){return resolve(L_mapFunc)(L_ast)(L_greenStyle)})(L_v)};
-
-L_bodyTree = function(){return resolve(L_nodeFor)(L_b)(L_mapFunc)};
-
-L_childWidth = function(){return resolve(L_$o)(function(){return resolve(L_$o)(function(){return resolve(L_nodeWidth)(L_varBox)})(L_space)})(function(){return resolve(L_nodeWidth)(L_bodyTree)})};
-
-L_totalWidth = function(){return resolve(L_max)(L_childWidth)(function(){return resolve(L_nodeWidth)(L_rootBox)})};
-
-L_pad = function(){return resolve(L_max)(0)(function(){return resolve(L_$f)(function(){return resolve(L_$_)(L_totalWidth)(L_childWidth)})(2)})};
-
-L_rootBox_0 = function(){return resolve(L_nodeTranslate)(L_rootBox)(function(){return resolve(L_$_)(function(){return resolve(L_$f)(L_totalWidth)(2)})(function(){return resolve(L_$f)(function(){return resolve(L_nodeWidth)(L_rootBox)})(2)})})(0)};
-
-L_varBox_1 = function(){return resolve(L_nodeTranslate)(L_varBox)(L_pad)(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_0)})(L_space)})};
-
-L_bodyTree_2 = function(){return resolve(L_nodeTranslate)(L_bodyTree)(function(){return resolve(L_$o)(function(){return resolve(L_$o)(L_pad)(function(){return resolve(L_nodeWidth)(L_varBox_1)})})(L_space)})(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_0)})(L_space)})};
-return resolve(L_log)(3)(L_makeNode)(function(){return resolve(L_svgConcat)(function(){return resolve(L_cons)(function(){return resolve(L_nodeLine)(L_rootBox_0)(L_varBox_1)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeLine)(L_rootBox_0)(L_bodyTree_2)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_varBox_1)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_bodyTree_2)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_rootBox_0)})(L_nil)})})})})})})(L_totalWidth)(function(){return resolve(L_$o)(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_0)})(L_space)})(function(){return resolve(L_max)(function(){return resolve(L_nodeHeight)(L_varBox_1)})(function(){return resolve(L_nodeHeight)(L_bodyTree_2)})})})(function(){return resolve(L_$f)(L_totalWidth)(2)})(function(){return resolve(L_$f)(function(){return resolve(L_nodeHeight)(L_rootBox_0)})(2)})})()}}}}))},
+var 
+L_bodyTree_8 = function(){return resolve(L_nodeTranslate)(L_bodyTree_2)(function(){return resolve(L_$o)(function(){return resolve(L_$o)(L_pad_5)(function(){return resolve(L_nodeWidth)(L_varBox_7)})})(L_space)})(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_6)})(L_space)})}, 
+L_varBox_7 = function(){return resolve(L_nodeTranslate)(L_varBox_1)(L_pad_5)(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_6)})(L_space)})}, 
+L_rootBox_6 = function(){return resolve(L_nodeTranslate)(L_rootBox_0)(function(){return resolve(L_$_)(function(){return resolve(L_$f)(L_totalWidth_4)(2)})(function(){return resolve(L_$f)(function(){return resolve(L_nodeWidth)(L_rootBox_0)})(2)})})(0)}, 
+L_pad_5 = function(){return resolve(L_max)(0)(function(){return resolve(L_$f)(function(){return resolve(L_$_)(L_totalWidth_4)(L_childWidth_3)})(2)})}, 
+L_totalWidth_4 = function(){return resolve(L_max)(L_childWidth_3)(function(){return resolve(L_nodeWidth)(L_rootBox_0)})}, 
+L_childWidth_3 = function(){return resolve(L_$o)(function(){return resolve(L_$o)(function(){return resolve(L_nodeWidth)(L_varBox_1)})(L_space)})(function(){return resolve(L_nodeWidth)(L_bodyTree_2)})}, 
+L_bodyTree_2 = function(){return resolve(L_nodeFor)(L_b)(L_mapFunc)}, 
+L_varBox_1 = function(){return resolve(L_textNode)(function(){return resolve(L_mapFunc)(L_ast)(L_greenStyle)})(L_v)}, 
+L_rootBox_0 = function(){return resolve(L_textNode)(function(){return resolve(L_mapFunc)(L_ast)(L_greenStyle)})("lambda")};
+L_rootBox_0;
+L_varBox_1;
+L_bodyTree_2;
+L_childWidth_3;
+L_totalWidth_4;
+L_pad_5;
+L_rootBox_6;
+L_varBox_7;
+L_bodyTree_8;
+return resolve(L_log)(3)(L_makeNode)(function(){return resolve(L_svgConcat)(function(){return resolve(L_cons)(function(){return resolve(L_nodeLine)(L_rootBox_6)(L_varBox_7)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeLine)(L_rootBox_6)(L_bodyTree_8)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_varBox_7)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_bodyTree_8)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_rootBox_6)})(L_nil)})})})})})})(L_totalWidth_4)(function(){return resolve(L_$o)(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_6)})(L_space)})(function(){return resolve(L_max)(function(){return resolve(L_nodeHeight)(L_varBox_7)})(function(){return resolve(L_nodeHeight)(L_bodyTree_8)})})})(function(){return resolve(L_$f)(L_totalWidth_4)(2)})(function(){return resolve(L_$f)(function(){return resolve(L_nodeHeight)(L_rootBox_6)})(2)})})()}}}}))},
  function(){return resolve(L_define)("createApplyNode")(4)("createApplyNode ast f a mapFunc = do\n  rootBox = textNode (mapFunc ast blueStyle) 'apply'\n  funcTree = nodeFor f mapFunc\n  argTree = nodeFor a mapFunc\n  childWidth = (nodeWidth argTree) + space + (nodeWidth funcTree)\n  totalWidth = max childWidth (nodeWidth rootBox)\n  pad = max 0 (totalWidth - childWidth) / 2\n  rootBox = nodeTranslate rootBox (totalWidth / 2 - (nodeWidth rootBox) / 2) 0\n  funcTree = nodeTranslate funcTree pad (nodeHeight rootBox) + space\n  argTree = nodeTranslate argTree (pad + (nodeWidth funcTree) + space) ((nodeHeight rootBox) + space)\n  makeNode\n    svgConcat [(nodeLine rootBox funcTree) (nodeLine rootBox argTree) (nodeSvg rootBox) (nodeSvg funcTree) (nodeSvg argTree)]\n    totalWidth\n    (nodeHeight rootBox) + space + (max (nodeHeight argTree) (nodeHeight funcTree))\n    totalWidth / 2\n    (nodeHeight rootBox) / 2")(lazy(function(L_ast){return function(L_f){return function(L_a){return function(L_mapFunc){return (function(){
 
-var L_argTree_2, L_funcTree_1, L_rootBox_0, L_pad, L_totalWidth, L_childWidth, L_argTree, L_funcTree, L_rootBox;
-
-L_rootBox = function(){return resolve(L_textNode)(function(){return resolve(L_mapFunc)(L_ast)(L_blueStyle)})("apply")};
-
-L_funcTree = function(){return resolve(L_nodeFor)(L_f)(L_mapFunc)};
-
-L_argTree = function(){return resolve(L_nodeFor)(L_a)(L_mapFunc)};
-
-L_childWidth = function(){return resolve(L_$o)(function(){return resolve(L_$o)(function(){return resolve(L_nodeWidth)(L_argTree)})(L_space)})(function(){return resolve(L_nodeWidth)(L_funcTree)})};
-
-L_totalWidth = function(){return resolve(L_max)(L_childWidth)(function(){return resolve(L_nodeWidth)(L_rootBox)})};
-
-L_pad = function(){return resolve(L_max)(0)(function(){return resolve(L_$f)(function(){return resolve(L_$_)(L_totalWidth)(L_childWidth)})(2)})};
-
-L_rootBox_0 = function(){return resolve(L_nodeTranslate)(L_rootBox)(function(){return resolve(L_$_)(function(){return resolve(L_$f)(L_totalWidth)(2)})(function(){return resolve(L_$f)(function(){return resolve(L_nodeWidth)(L_rootBox)})(2)})})(0)};
-
-L_funcTree_1 = function(){return resolve(L_nodeTranslate)(L_funcTree)(L_pad)(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_0)})(L_space)})};
-
-L_argTree_2 = function(){return resolve(L_nodeTranslate)(L_argTree)(function(){return resolve(L_$o)(function(){return resolve(L_$o)(L_pad)(function(){return resolve(L_nodeWidth)(L_funcTree_1)})})(L_space)})(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_0)})(L_space)})};
-return resolve(L_makeNode)(function(){return resolve(L_svgConcat)(function(){return resolve(L_cons)(function(){return resolve(L_nodeLine)(L_rootBox_0)(L_funcTree_1)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeLine)(L_rootBox_0)(L_argTree_2)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_rootBox_0)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_funcTree_1)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_argTree_2)})(L_nil)})})})})})})(L_totalWidth)(function(){return resolve(L_$o)(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_0)})(L_space)})(function(){return resolve(L_max)(function(){return resolve(L_nodeHeight)(L_argTree_2)})(function(){return resolve(L_nodeHeight)(L_funcTree_1)})})})(function(){return resolve(L_$f)(L_totalWidth)(2)})(function(){return resolve(L_$f)(function(){return resolve(L_nodeHeight)(L_rootBox_0)})(2)})})()}}}}))},
+var 
+L_argTree_8 = function(){return resolve(L_nodeTranslate)(L_argTree_2)(function(){return resolve(L_$o)(function(){return resolve(L_$o)(L_pad_5)(function(){return resolve(L_nodeWidth)(L_funcTree_7)})})(L_space)})(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_6)})(L_space)})}, 
+L_funcTree_7 = function(){return resolve(L_nodeTranslate)(L_funcTree_1)(L_pad_5)(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_6)})(L_space)})}, 
+L_rootBox_6 = function(){return resolve(L_nodeTranslate)(L_rootBox_0)(function(){return resolve(L_$_)(function(){return resolve(L_$f)(L_totalWidth_4)(2)})(function(){return resolve(L_$f)(function(){return resolve(L_nodeWidth)(L_rootBox_0)})(2)})})(0)}, 
+L_pad_5 = function(){return resolve(L_max)(0)(function(){return resolve(L_$f)(function(){return resolve(L_$_)(L_totalWidth_4)(L_childWidth_3)})(2)})}, 
+L_totalWidth_4 = function(){return resolve(L_max)(L_childWidth_3)(function(){return resolve(L_nodeWidth)(L_rootBox_0)})}, 
+L_childWidth_3 = function(){return resolve(L_$o)(function(){return resolve(L_$o)(function(){return resolve(L_nodeWidth)(L_argTree_2)})(L_space)})(function(){return resolve(L_nodeWidth)(L_funcTree_1)})}, 
+L_argTree_2 = function(){return resolve(L_nodeFor)(L_a)(L_mapFunc)}, 
+L_funcTree_1 = function(){return resolve(L_nodeFor)(L_f)(L_mapFunc)}, 
+L_rootBox_0 = function(){return resolve(L_textNode)(function(){return resolve(L_mapFunc)(L_ast)(L_blueStyle)})("apply")};
+L_rootBox_0;
+L_funcTree_1;
+L_argTree_2;
+L_childWidth_3;
+L_totalWidth_4;
+L_pad_5;
+L_rootBox_6;
+L_funcTree_7;
+L_argTree_8;
+return resolve(L_makeNode)(function(){return resolve(L_svgConcat)(function(){return resolve(L_cons)(function(){return resolve(L_nodeLine)(L_rootBox_6)(L_funcTree_7)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeLine)(L_rootBox_6)(L_argTree_8)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_rootBox_6)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_funcTree_7)})(function(){return resolve(L_cons)(function(){return resolve(L_nodeSvg)(L_argTree_8)})(L_nil)})})})})})})(L_totalWidth_4)(function(){return resolve(L_$o)(function(){return resolve(L_$o)(function(){return resolve(L_nodeHeight)(L_rootBox_6)})(L_space)})(function(){return resolve(L_max)(function(){return resolve(L_nodeHeight)(L_argTree_8)})(function(){return resolve(L_nodeHeight)(L_funcTree_7)})})})(function(){return resolve(L_$f)(L_totalWidth_4)(2)})(function(){return resolve(L_$f)(function(){return resolve(L_nodeHeight)(L_rootBox_6)})(2)})})()}}}}))},
  function(){return resolve(L_define)("createRefNode")(3)("createRefNode ast ref mapFunc = textNode (mapFunc ast redStyle) ref")(lazy(function(L_ast){return function(L_ref){return function(L_mapFunc){return resolve(L_textNode)(function(){return resolve(L_mapFunc)(L_ast)(L_redStyle)})(L_ref)}}}))},
  function(){return resolve(L_define)("createLitNode")(3)("createLitNode ast lit mapFunc = textNode (mapFunc ast greenStyle) lit")(lazy(function(L_ast){return function(L_lit){return function(L_mapFunc){return resolve(L_textNode)(function(){return resolve(L_mapFunc)(L_ast)(L_greenStyle)})(L_lit)}}}))},
  function(){return resolve(L_define)("textNode")(2)("textNode map txt = (svgMeasureText txt '') \\w h . do\n  nodeW = w + 24\n  nodeH = h + 14\n  makeNode\n    (svgConcat [(rect [['x'|2] ['y'|2] ['width'|nodeW] ['height'|nodeH] | map]) (text txt [['pointer-events' | 'none'] ['text-anchor'|\"middle\"] ['dominant-baseline'|\"mathematical\"] ['x'| 14 + w / 2] ['y'| border + h / 2] ['font-weight'|'bold']])])\n    nodeW\n    nodeH\n    nodeW / 2\n    nodeH / 2")(lazy(function(L_map){return function(L_txt){return resolve(L_svgMeasureText)(L_txt)("")(lazy(function(L_w){return function(L_h){return (function(){
 
-var L_nodeH, L_nodeW;
-
-L_nodeW = function(){return resolve(L_$o)(L_w)(24)};
-
-L_nodeH = function(){return resolve(L_$o)(L_h)(14)};
-return resolve(L_makeNode)(function(){return resolve(L_svgConcat)(function(){return resolve(L_cons)(function(){return resolve(L_rect)(function(){return resolve(L_cons)(function(){return resolve(L_cons)("x")(2)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("y")(2)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("width")(L_nodeW)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("height")(L_nodeH)})(L_map)})})})})})(function(){return resolve(L_cons)(function(){return resolve(L_text)(L_txt)(function(){return resolve(L_cons)(function(){return resolve(L_cons)("pointer-events")("none")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("text-anchor")("middle")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("dominant-baseline")("mathematical")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("x")(function(){return resolve(L_$o)(14)(function(){return resolve(L_$f)(L_w)(2)})})})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("y")(function(){return resolve(L_$o)(L_border)(function(){return resolve(L_$f)(L_h)(2)})})})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("font-weight")("bold")})(L_nil)})})})})})})})(L_nil)})})})(L_nodeW)(L_nodeH)(function(){return resolve(L_$f)(L_nodeW)(2)})(function(){return resolve(L_$f)(L_nodeH)(2)})})()}}))}}))}]);
+var 
+L_nodeH_1 = function(){return resolve(L_$o)(L_h)(14)}, 
+L_nodeW_0 = function(){return resolve(L_$o)(L_w)(24)};
+L_nodeW_0;
+L_nodeH_1;
+return resolve(L_makeNode)(function(){return resolve(L_svgConcat)(function(){return resolve(L_cons)(function(){return resolve(L_rect)(function(){return resolve(L_cons)(function(){return resolve(L_cons)("x")(2)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("y")(2)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("width")(L_nodeW_0)})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("height")(L_nodeH_1)})(L_map)})})})})})(function(){return resolve(L_cons)(function(){return resolve(L_text)(L_txt)(function(){return resolve(L_cons)(function(){return resolve(L_cons)("pointer-events")("none")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("text-anchor")("middle")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("dominant-baseline")("mathematical")})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("x")(function(){return resolve(L_$o)(14)(function(){return resolve(L_$f)(L_w)(2)})})})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("y")(function(){return resolve(L_$o)(L_border)(function(){return resolve(L_$f)(L_h)(2)})})})(function(){return resolve(L_cons)(function(){return resolve(L_cons)("font-weight")("bold")})(L_nil)})})})})})})})(L_nil)})})})(L_nodeW_0)(L_nodeH_1)(function(){return resolve(L_$f)(L_nodeW_0)(2)})(function(){return resolve(L_$f)(L_nodeH_1)(2)})})()}}))}}))}]);
 
 //# sourceMappingURL=parseAst.map

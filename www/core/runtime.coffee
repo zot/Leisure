@@ -617,9 +617,40 @@ trampCurry = (func, arity)-> (arg)->
 # NAME SPACES
 #######################
 
-define 'useNameSpace', lz (ns)->
+nameSpaceStack = []
+
+define 'setNameSpace', lz (name)->
   makeSyncMonad (env, cont)->
-    root.setNameSpace rz(ns)
+    currentNameSpace = name
+    if name == null then newNameSpace = false
+    else
+      newNameSpace = !LeisureNameSpaces[name]
+      if newNameSpace then LeisureNameSpaces[name] = {}
+    cont (if newNameSpace then _true else _false)
+
+define 'pushNameSpace', lz (newNameSpace)->
+  makeSyncMonad (env, cont)->
+    pushed = LeisureNameSpaces[newNameSpace] && ! (newNameSpace in nameSpacePath)
+    if pushed then nameSpacePath.push newNameSpace
+    cont (if pushed then _true else _false)
+
+define 'getNameSpacePath', lz -> makeSyncMonad (env, cont)-> cont consFrom nameSpacePath
+
+define 'clearNameSpacePath', lz ->
+  makeSyncMonad (env, cont)->
+    nameSpacePath = []
+    cont _true
+
+define 'resetNameSpaceInfo', lz ->
+  makeSyncMonad (enf, cont)->
+    old = [nameSpacePath, currentNameSpace]
+    nameSpacePath = []
+    currentNameSpace = null
+    cont old
+
+define 'setNameSpaceInfo', lz (info)->
+  makeSyncMonad (env, cont)->
+    [nameSpacePath, currentNameSpace] = rz info
     cont _true
 
 #######################
