@@ -70,6 +70,7 @@ addTokenGroup 'js[' ']'
 defMacro 'js[' \list . ['js' ['strCat' ['flatten' [(listify (head list))]]]]
 
 html x = \f . f x
+getHtml x = x \h . h
 
 # numerics
 

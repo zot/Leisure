@@ -31,7 +31,7 @@ root = module.exports
 todoKeywords = ['TODO', 'DONE']
 
 buildHeadlineRE = ->
-  new RegExp '^(\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?[^\n]*?(:[^:\n]*:)? *$', 'm'
+  new RegExp '^(\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?[^\\n]*?([\\w@%#]*:[\\w@%#:]*)? *$', 'm'
 HL_LEVEL = 1
 HL_TODO = 2
 HL_PRIORITY = 3
@@ -52,6 +52,10 @@ srcEndRE = /^#\+(END_SRC)( *)$/im
 RES_NAME = 1
 resultsRE = /^#\+(RESULTS): *$/im
 resultsLineRE = /^([:|] .*)(?:\n|$)/i
+DRAWER_BOILERPLATE = 1
+DRAWER_NAME = 2
+drawerRE = /^( *:)([^\n:]*): *$/im
+endRE = /^ *:END: *$/im
 
 matchLine = (txt)->
   checkMatch(txt, srcStartRE, 'srcStart') ||
@@ -78,6 +82,8 @@ class Node
   next: null
   prev: null
   top: -> if !@parent then this else @parent.top()
+  toString: -> @toJson()
+  allTags: -> @parent?.allTags() ? []
 
 class Headline extends Node
   constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)->
@@ -121,6 +127,12 @@ class Headline extends Node
       if prev then prev.next = c
       prev = c
     this
+  addTags: (set)->
+    for tag in parseTags @tags
+      set[tag] = true
+    set
+  addAllTags: -> @addTags @parent?.addAllTags() || {}
+  allTags: -> k for k of @addAllTags()
 
 class Meat extends Node
   constructor: (@text, @offset)->
@@ -179,8 +191,7 @@ parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->
     if !child then break
     if child.lowerThan level
       children.push child
-  tags = if tags then tags.substring 1, tags.length - 1 else ''
-  [new Headline(text, level, todo, priority, tags, children, offset), rest]
+  [new Headline(text, level, todo, priority, tags || '', children, offset), rest]
 
 parseTags = (text)->
   tagArray = []

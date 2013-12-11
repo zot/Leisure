@@ -60,6 +60,8 @@ lz = lazy
   findKeyBinding,
   invalidateOrgText,
   setCurKeyBinding,
+  presentValue,
+  propsFor,
 } = require './orgSupport'
 {
   redrawAllIssues,
@@ -87,6 +89,9 @@ makeBoundary = (node)->
   if nls then "<div class='boundary'>#{nls[0]}</div>" else ""
 
 markupNode = (org)->
+  if org instanceof Headline
+    #console.log "#\n# Headline\n# #{org.text}\n# ALL TAGS: #{org.allTags().join ', '}\n#\n#{org.toJson()}"
+    console.log "#\n# Headline\n# #{org.text}\n# ALL TAGS: #{org.allTags().join ', '}\n#\n"
   if org.offset <= lastOrgOffset
     ''
   else if org instanceof Results
@@ -94,39 +99,51 @@ markupNode = (org)->
     text = org.text.substring pos
     "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}"
   else if org instanceof Keyword
-    if org.name.match /name/i
+    if org.name.match /^name$/i
       intertext = ''
       name = org
       src = org.next
       while src instanceof Meat && !(src instanceof Source)
         intertext += src.text
         src = src.next
-      if src instanceof Source
-        lastOrgOffset = src.offset
-        nameM = name.text.match keywordRE
-        srcM = src.text.match srcStartRE
-        srcContent = src.content
-        srcLead = src.text.substring 0, src.contentPos - src.offset
-        srcTrail = src.text.substring src.contentPos - src.offset + src.content.length
-        html = "<div class='codeblock' #{orgAttrs src} data-org-codeblock='#{name.info.trim()}'><div class='codename'><span class='hidden'>#{nameM[KW_BOILERPLATE]}</span><div><larger><b>#{name.info}</b></larger></div>#{intertext}</div><div class='hidden'>#{srcLead}</div><div class='codewrapper'><div class='codecontent'>#{srcContent}<span class='hidden' data-org-type='boundary'>#{srcTrail}</span></div>"
-        res = src.next
-        intertext = ''
-        while res && !(res instanceof Results) && !(res instanceof Keyword)
-          intertext += res.text
-          res = res.next
-        if res instanceof Results
-          lastOrgOffset = res.offset
-          pos = res.contentPos - res.offset
-          html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'><span></span></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
-        html + "</div>#{commentButton name.info.trim()}</div><div class='comments' data-org-comments='#{name.info.trim()}'><div></div></div>"
+      if src instanceof Source then markupSource src, name, intertext
       else defaultMarkup org
+    else if org instanceof Source then markupSource org
     else defaultMarkup org
-  else if org instanceof Headline then "<span #{orgAttrs org}><span data-org-type='text'>#{org.text}</span>#{markupGuts org, checkStart start, org.text}</span>"
+  else if org instanceof Headline then markupHeadline org
   else if content(org.text).length then defaultMarkup org
   else "<div #{orgAttrs org}>#{org.text}</div>"
 
+markupHeadline = (org)-> "<div #{orgAttrs org} data-org-headline='#{org.level}'><span data-org-type='text'>#{org.text}</span>#{markupGuts org, checkStart start, org.text}</div>"
+
+markupSource = (org, name, intertext)->
+  console.log "MARKING UP SOURCE: #{org}"
+  lastOrgOffset = org.offset
+  if name
+    nameM = name.text.match keywordRE
+    codeBlock = " data-org-codeblock='#{name.info.trim()}'><div class='codename'><span class='hidden'>#{nameM[KW_BOILERPLATE]}</span><div><larger><b>#{name.info}</b></larger></div>#{intertext}</div>"
+  else codeBlock = ">"
+  srcM = org.text.match srcStartRE
+  srcContent = org.content
+  srcLead = org.text.substring 0, org.contentPos - org.offset
+  srcTrail = org.text.substring org.contentPos - org.offset + org.content.length
+  html = "<div class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{srcLead}</div><div class='codewrapper'><div class='codecontent'>#{srcContent}<span class='hidden' data-org-type='boundary'>#{srcTrail}</span></div>"
+  res = org.next
+  intertext = ''
+  while res && !(res instanceof Results) && !(res instanceof Keyword)
+    intertext += res.text
+    res = res.next
+  if res instanceof Results
+    lastOrgOffset = res.offset
+    pos = res.contentPos - res.offset
+    html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'><span></span></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
+  html + (if name then "</div>#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div></div>")
+
 commentButton = (name)->
-  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{name}\")' contenteditable='false'><img src='icons/monotone_talk_chat_speech.png'></button>"
+  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{name}\")' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
+
+commentBlock = (name)->
+  "<div class='comments' data-org-comments='#{name}'><div></div></div>"
 
 astButton = (name)->
   "<button class='ast-button' onclick='Leisure.toggleAst(\"#{name.info.trim()}\")' contenteditable='false'><img src='icons/monotone_groups.png'></button>"
@@ -134,7 +151,11 @@ astButton = (name)->
 toggleComment = (name)->
   block = $("[data-org-comments=#{name}]")
   if block.hasClass 'showcomments' then block.removeClass 'showcomments'
-  else block.addClass 'showcomments'
+  else
+    block.addClass 'showcomments'
+    $("[data-org-codeblock='#{name}'] button.comment-button").removeClass 'new-comments'
+
+addComment = (name)-> console.log "ADD A COMMENT FOR #{name}"
 
 defaultMarkup = (org)-> "<span #{orgAttrs org}>#{org.text}</span>"
 
@@ -221,20 +242,18 @@ bindContent = (div)->
         currentMatch = matchLine currentLine div
         if c == ENTER
           e.preventDefault()
-          if ! checkCollapsed n, 1
-            if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
-              br = document.createTextNode('\n')
-              $(br).prependTo followingSpan n.parentNode
-              r.setStart br, br.length
-              r.setEnd br, br.length
-            else
-              r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
-              br.parentNode.normalize()
-            r.collapse()
-            s.removeAllRanges()
-            s.addRange(r)
-            setTimeout (->checkEnterReparse div, r), 1
-          else return
+          if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
+            br = document.createTextNode('\n')
+            $(br).prependTo followingSpan n.parentNode
+            r.setStart br, br.length
+            r.setEnd br, br.length
+          else
+            r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
+            br.parentNode.normalize()
+          r.collapse()
+          s.removeAllRanges()
+          s.addRange(r)
+          setTimeout (->checkEnterReparse div, r), 1
         else if c in [BS, DEL]
           if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
             e.preventDefault()
@@ -278,34 +297,46 @@ executeSource = (parent, node)->
   if node
     createResults node
     txt = node.textContent
-    if txt.trim().length then executeText node.textContent, orgEnv parent, node
-    else orgEnv(parent, node)
+    if txt.trim().length then executeText node.textContent, propsFor(node), orgEnv parent, node
 
 executeDef = (node)->
   while node && !node.hasAttribute 'data-org-results'
     node = node.parentNode
-  if node then executeText $(node).find('.codecontent')[0].firstChild.textContent, baseEnv
+  if node then executeText $(node).find('.codecontent')[0].firstChild.textContent, propsFor(node), baseEnv
 
 reprocessResults = (str)-> str.replace /(^|\n): /g, '$1<span class="hidden">: </span>'
 
 processResults = (str)->
   if str
+    str = String str
     if str[str.length - 1] == '\n' then str = str.substring 0, str.length - 1
     "<span class='hidden'>: </span>#{str.replace /\n/g, '\n<span class="hidden">: </span>'}\n"
   else str
 
+setShadowHtml = (holder, html)->
+  if !(el = holder.shadowRoot)
+    el = holder.createShadowRoot()
+    el.applyAuthorStyles=true
+  el.innerHTML = html
+
 redrawIssue = (issue)->
   issueName = issue.title.trim()
   if (name = $("[data-org-comments='#{issueName}']")).length
-    holder = name[0].firstChild
-    if !(nameEl = holder.shadowRoot)
-      nameEl = holder.createShadowRoot()
-      root.applyAuthorStyles=true
+    console.log "Showing comment button for #{issueName}"
+    count = issue.comments.length + 1
+    button = $("[data-org-codeblock='#{issueName}'] button.comment-button")
+    if button.attr('data-org-commentcount') != count
+      button.attr 'data-org-commentcount', count
+      button.addClass 'new-comments'
+    setShadowHtml button.find('span')[0], count
     console.log "first gravatar: #{issue.comments[0].gravatar_id}"
-    nameEl.innerHTML = "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}"
+    setShadowHtml name[0].firstChild, "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}#{newCommentBox issueName}"
 
 commentHtml = (comment, type)->
   "<div class='commentbox'><img src='http://gravatar.com/avatar/#{comment.user.gravatar_id}?s=48'><div class='#{type}'>#{comment.body}</div></div>"
+
+newCommentBox = (name)->
+  "<textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"#{name}\")'>Add Comment</button>"
 
 # like orgSupport's orgEnv, but wrap the leading ': ' in hidden spans
 orgEnv = (parent, node)->
@@ -313,6 +344,7 @@ orgEnv = (parent, node)->
   if r
     r.innerHTML = ''
     write: (str)-> r.innerHTML += processResults str
+    presentValue: presentValue
     __proto__: defaultEnv
   else
     write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
@@ -333,8 +365,11 @@ fancyOrg =
       for node in $('[data-org-results]')
         switch $(node).attr('data-org-results').toLowerCase()
           when 'dynamic' then @executeSource parent, $(node).find('.codecontent')[0].firstChild
-          when 'def' then @executeDef node), 1
-    redrawAllIssues()
+          when 'def' then @executeDef node
+      for node in $('[data-org-comments]')
+        setShadowHtml node.firstElementChild, newCommentBox node.getAttribute 'data-org-comments'
+      redrawAllIssues()
+      ), 1
   executeSource: executeSource
   executeDef: executeDef
   createResults: createResults
@@ -343,3 +378,4 @@ fancyOrg =
 
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
+root.addComment = addComment

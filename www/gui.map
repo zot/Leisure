@@ -1,0 +1,9 @@
+{
+  "version": 3,
+  "file": "gui.js",
+  "sources": [
+    "gui.lsr"
+  ],
+  "names": [],
+  "mappings": "AAAA;oIAAiB,kCACf,4FACA,kDADA,IADe,EAAjB"
+}

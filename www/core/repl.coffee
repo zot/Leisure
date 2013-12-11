@@ -84,6 +84,7 @@ global.identity = identity
 #
 stage = 2
 stages = ['./simpleParseJS', './simpleParse', './generatedPrelude']
+shouldNsLog = false
 
 diag = false
 
@@ -347,6 +348,8 @@ intersperse = (array, element)->
     result
 
 primCompile = (file, cont)->
+  #if stage < 2 then root.shouldNsLog = false
+  root.shouldNsLog = shouldNsLog
   {
     parseLine,
     compileFile,
@@ -388,6 +391,8 @@ requireList = []
 doRequirements = (cont)->
   if verbose then console.log "DO REQUIREMENTS.  loaded: #{loadedParser}"
   if !loadedParser
+    #if stage < 2 then root.shouldNsLog = false
+    root.shouldNsLog = shouldNsLog
     #console.log "REQUIRING #{stages[stage]}"
     require stages[stage]
     loadedParser = true
@@ -453,6 +458,7 @@ processArg = (config, pos)->
       root.lockGen = true
     when '-i'
       interactive = true
+    when '--nslog' then shouldNsLog = true
     when '-r'
       if verbose then console.log "PUSHING REQUIREMENT: #{process.argv[pos + 1]}"
       requireList.push process.argv[pos + 1]
@@ -479,6 +485,8 @@ run = (args, config)->
   action = runFile
   #console.log "Run: #{args.join ', '}"
   if args.length == 2
+    #if stage < 2 then root.shouldNsLog = false
+    root.shouldNsLog = shouldNsLog
     require stages[stage]
     repl config
   else processArg config, 2
@@ -493,4 +501,7 @@ if prog == 'repl' || prog == 'leisure'
   if verbose then console.log "RUNNING REPL"
   run process.argv,
     home: process.env.HOME
-else require stages[stage]
+else
+  #if stage < 2 then root.shouldNsLog = false
+  root.shouldNsLog = shouldNsLog
+  require stages[stage]

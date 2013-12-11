@@ -25,6 +25,7 @@ misrepresented as being the original software.
 {
   resolve,
   lazy,
+  nsLog,
 } = root = module.exports = require './base'
 _ = require('./lodash.min')
 
@@ -272,14 +273,12 @@ nameFunc = (func, name)->
       f
     else f
 
-global.LeisureNameSpaces = core: {}
-
-nameSpacePath = ['core']
-
-currentNameSpace = 'core'
+global.LeisureNameSpaces =
+  core: {}
+  parser: {}
 
 # use AST, instead of arity?
-define = (name, func, arity, src, method) ->
+define = (name, func, arity, src, method, namespace) ->
   #can't use func(), because it might do something or might fail
   #if typeof func() == 'function'
   #  func().src = src
@@ -295,7 +294,9 @@ define = (name, func, arity, src, method) ->
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
   namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
-  if currentNameSpace then LeisureNameSpaces[currentNameSpace][nameSub(name)] = namedFunc
+  if root.currentNameSpace
+    LeisureNameSpaces[namespace ? root.currentNameSpace][nameSub(name)] = namedFunc
+    nsLog "DEFINING #{name} FOR #{root.currentNameSpace}"
   leisureAddFunc name
   root.functionCount++
   func
@@ -456,8 +457,8 @@ ast2Json = (ast)->
   if ast2JsonEncodings[ast.constructor?.name] then ast2JsonEncodings[ast.constructor.name] ast else ast
 
 # Leisure interface to the JSON AST codec
-define 'json2Ast', (lz (json)-> json2Ast JSON.parse rz json)
-define 'ast2Json', (lz (ast)-> JSON.stringify ast2Json rz ast)
+define 'json2Ast', (lz (json)-> json2Ast JSON.parse rz json), null, null, null, 'parser'
+define 'ast2Json', (lz (ast)-> JSON.stringify ast2Json rz ast), null, null, null, 'parser'
 
 consFrom = (array, i)->
   i = i || 0

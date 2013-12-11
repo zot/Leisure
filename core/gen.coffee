@@ -27,7 +27,8 @@ misrepresented as being the original software.
   resolve,
   lazy,
   verboseMsg,
-} = require './base'
+  nsLog,
+} = root = module.exports = require './base'
 rz = resolve
 lz = lazy
 {
@@ -57,7 +58,7 @@ lz = lazy
   define,
   getPos,
   isNil,
-} = root = module.exports = require './ast'
+} = require './ast'
 {
   makeSyncMonad,
   runMonad,
@@ -174,12 +175,26 @@ genMap = (ast)->
   if funcname then new SourceNode line, offset, filename, sub, funcname
   else sub
 
+findName = (name)->
+  for i in [root.nameSpacePath.length - 1 .. 0]
+    if LeisureNameSpaces[root.nameSpacePath[i]]?[name] then return root.nameSpacePath[i]
+  if root.currentNameSpace && LeisureNameSpaces[root.currentNameSpace][name] then root.currentNameSpace
+  else null
+
+location = (ast)->
+  [line, col] = locateAst ast
+  "#{line}:#{col}"
+
 genRefName = (ref, uniq, names)->
   name = getRefName ref
   #if isNil (val = names.find (el)-> el == name) then console.log("GLOBAL: #{name}, val = #{val}")
   #else console.log("LOCAL: #{name}, val = #{val}")
   #if isNil (val = names.find (el)-> el == name) then "#{currentNameSpace}#{name}"
-  if isNil (val = names.find (el)-> el == name) then varNameSub name
+  if isNil (val = names.find (el)-> el == name)
+    ns = findName nameSub name
+    if ns == root.currentNameSpace then nsLog "LOCAL NAME: #{name} FOR #{root.currentNameSpace} #{location ref}"
+    else if !ns then nsLog "GUESSING LOCAL NAME #{name} FOR #{root.currentNameSpace} #{location ref}"
+    varNameSub name
   else uniqName name, uniq
 
 genUniq = (ast, names, uniq)->
@@ -204,9 +219,9 @@ genUniq = (ast, names, uniq)->
         else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
-define 'newGen', lz makeSyncMonad (env, cont)->
+define 'newGen', (lz makeSyncMonad (env, cont)->
   newGen = !masterLockGen && !root.lockGen
-  cont _true
+  cont _true), null, null, null, 'parser'
 
 genLambda = (ast, names, uniq, count)->
   name = getLambdaVar ast
@@ -320,13 +335,13 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', lz (code)->(ast)->
+define 'runAst', (lz (code)->(ast)->
   try
     eval "(#{gen rz ast})"
   catch err
     msg = "\n\nParse error: " + err.toString() + "\nAST: "
     console.log msg + ast() + "\n" + err.stack
-    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast)
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast)), null, null, null, 'parser'
 
 curry = (func, args, pos)->
   if pos == func.length then func args.toArray(func.length - 1, [])...

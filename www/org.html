@@ -107,6 +107,9 @@
                         border: solid gray 2px;
                         margin-left: 5px;
                 }
+                *::x-new-comment {
+                        width: calc(100% - 8px);
+                }
                 .comment-button {
                         position: absolute;
                         right: 2px;
@@ -171,6 +174,22 @@
                 .not-logged-in #login {
                         display: block;
                 }
+                .comment-button[data-org-commentcount="0"] span:after {
+                        content: "0";
+                }
+                .comment-button {
+                        font-weight: bold;
+                        font-size: large;
+                }
+                .comment-button.new-comments {
+                        color: red;
+                }
+                [data-org-headline='1'] {
+                        border-radius: 10px;
+                        border: solid 2px black;
+                        margin-bottom: 8px;
+                        padding: 8px;
+                }
         </style>
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->
         <!--script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script-->
@@ -180,11 +199,13 @@
         <script src="rangy-core.js"></script>
         <script src="rangy-textrange.js"></script>
         <script language="javascript">
+          Error.stackTraceLimit = Infinity;
           window.Boot = {extraJsFiles: [
                 'orgSupport',
                 'githubExtensions',
                 'storage',
                 'fancyOrg',
+                'gui',
           ]};
           function start() {
                 setTimeout(function() {

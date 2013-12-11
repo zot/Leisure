@@ -1,4 +1,4 @@
-setNameSpace 'parser'
+setNameSpace 'core'
 
 ############
 # LOGIC
@@ -18,6 +18,13 @@ isSome2 obj = hasType obj some2
 neq a b = not (eq a b)
 left x = \lCase rCase . lCase x
 right x = \lCase rCase . rCase x
+
+######################
+# DATA
+######################
+
+isString s = == (getType s) '*string'
+isNumber s = == (getType s) '*number'
 
 ######################
 # STRING TYPE CHECKS
@@ -88,6 +95,9 @@ flip func = \x y . func y x
 ##############
 # CONS LISTS
 ##############
+
+## withCons is like a safe version of a cons
+withCons l nilCase cont = isCons l (l (\h t D . cont h t) nilCase) nilCase
 
 cons a b = \f . f a b
 isCons c = hasType c cons
@@ -227,6 +237,24 @@ insertSorted sortFunc item list = list
   cons item nil
 
 ############
+# ERRORS
+############
+
+err msg = \f . f msg
+errMsg err = err \m . m
+isErr thing = hasType thing err
+
+ifNotErr thing cont = hasType thing parseErr thing (cont thing)
+
+############
+############
+# PARSER
+############
+############
+
+setNameSpace 'parser'
+
+############
 # TOKENS
 ############
 
@@ -282,10 +310,6 @@ stripParens p = isParens p (parensContent p) p
 parseErr msg1 msg2 = \f . f (strCat (cons msg1 (cons msg2 nil)))
 parseErrMsg err = err \m . m
 isParseErr thing = hasType thing parseErr
-
-err msg = \f . f msg
-errMsg err = err \m . m
-isErr thing = hasType thing err
 
 emptyToken = regexp '^\\r?\\n[ \\i]*(#|$)'
 
@@ -347,8 +371,6 @@ countedTokens lineStarts str pat = makeTokens lineStarts (splitTokens str pat) 0
 ## Parsing
 #############
 
-isString s = == (getType s) '*string'
-isNumber s = == (getType s) '*number'
 isTokenString tok str = or
   and (isToken tok) (eq (tokenString tok) str)
   and (isString tok) (eq tok str)
@@ -361,11 +383,6 @@ withToken tok nonTokCase tokCase = isToken tok
   isString tok
     tokCase tok emptyFilePos
     nonTokCase
-
-## withCons is like a safe version of a cons
-withCons l nilCase cont = isCons l (l (\h t D . cont h t) nilCase) nilCase
-
-ifNotErr thing cont = hasType thing parseErr thing (cont thing)
 
 parseToks toks groups =
   isNil toks nil
@@ -566,7 +583,7 @@ cleanTokens start toks cont = isToken toks
 
 createLet start list names = withCons list
   parseErr "No variable or body for let " (loc start)
-  \binding body . eq body nil (createAst nil binding name)
+  \binding body . eq body nil (createAst nil binding names)
     ifNotErr (getLetNames start list names) \newNames .
       createSublets start binding body newNames
 
@@ -603,9 +620,9 @@ getLetLambda pos def args names =
 ## Compiling
 #################
 
-scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups onDef onExpr
+scanLineG str pat groups onDef onExpr = countedScanLineG emptyLineStarts str pat groups nil onDef onExpr
 
-countedScanLineG lineStarts str pat groups onDef onExpr = \\
+countedScanLineG lineStarts str pat groups props onDef onExpr = \\
   toks = countedTokens lineStarts str pat
   groupToks = foldr (\el value . el \h t . cons h (cons t value)) (cons '=' blockStarts) groups
   .
@@ -615,7 +632,7 @@ countedScanLineG lineStarts str pat groups onDef onExpr = \\
       parseIt func = \\
         parsed = parseToks (checkSetDataType func rest name) groups
         .
-        onDef (ifNotErr parsed \list . createDef list name (arity rest 0) str)
+        onDef (ifNotErr parsed \list . createDef list name (arity rest 0) str props)
       .
       isTokenString (head rest) '='
         isTokenString (head (tail rest)) '\\'
@@ -647,14 +664,41 @@ setDataTypeAnno toks name = \\
   .
   cons (tok '\\@') (cons (tok 'dataType') (cons (tok (tokenString name)) (cons (tok '.') toks)))
 
-createDef def name arity src = \\
+createDef def name arity src props = \\
   #tok str = token str (position def)
   tok str = token str (position name)
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
-      cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons def nil))))))))
-      #cons (tok '\\@') (cons (cons (tok 'definition') (cons (tok name) nil)) (cons (tok '.') (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons def nil)))))))
+      cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))
+
+spliceFuncProps arity props ast = or (isNil props) (== arity 0)
+  ast
+  subSpliceFuncProps props ast
+
+subSpliceFuncProps props ast = \\
+  slash = head ast
+  var = head (tail ast)
+  afterVar = tail (tail ast)
+  dot = head afterVar
+  body = tail afterVar
+  .
+  isTokenString slash '\\'
+    cons
+      slash
+      cons
+        var
+        isTokenString dot '.'
+          cons dot (addProps props body)
+          cons '.' (addProps props afterVar)
+    cons
+      head ast
+      subSpliceFuncProps props (tail ast)
+
+addProps props ast = foldr
+  \prop result . cons '\\@' (cons (head prop) (cons (tail prop) (cons '.' result)))
+  ast
+  props
 
 checkSetDataType toks curToks name = withCons curToks toks \h t .
   isTokenString h '='
@@ -886,8 +930,9 @@ countedScanLineM lineStarts line = bind (getValue 'tokenPat')
   \tokenPat . bind (getValue 'tokenGroups')
     \groups . bind (getValue 'parseFilters')
       \filters . bind (getValue 'macroDefs')
-        \macros . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups id id))
-          \scanned . macroSub macros scanned
+        \macros . bind (getValue 'parser_funcProps')
+          \props . bind (runParseFilters filters (countedScanLineG lineStarts line tokenPat groups props id id))
+            \scanned . macroSub macros scanned
 
 newline = regexp '\\r?\\n'
 
@@ -1066,6 +1111,7 @@ setValue 'requiredFiles' nil
 setValue 'tokenPacks' nil
 setValue 'activeTokenPacks' nil
 setValue 'stdTokenPacks' (cons 'std' nil)
+setValue 'parser_funcProps' nil
 
 defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
 

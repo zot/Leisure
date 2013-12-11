@@ -17,25 +17,32 @@ PRELUDE_FILES=$(PRELUDE_INPUT:%=core/%.lsr)
 PRELUDE=lib/generatedPrelude.js
 COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 COFFEE_JS=$(SRC:%=lib/%.js)
+
 BROWSER_MAIN_SRC=browserMain
 BROWSER_MAIN_COFFEE=$(BROWSER_MAIN_SRC:%=newCode/%.coffee)
 BROWSER_MAIN_JS=$(BROWSER_MAIN_SRC:%=lib/%.js)
+
 NEW_COFFEE_SRC=uri prims notebook md calcSupport browserSupport calcSkin
 NEW_COFFEE=$(NEW_COFFEE_SRC:%=newCode/%.coffee)
 NEW_COFFEE_JS=$(NEW_COFFEE_SRC:%=lib/%.js)
-NEW_LSR_SRC=std svg calc parseAst
+
+NEW_LSR_SRC=std svg calc parseAst gui
 NEW_LSR=$(NEW_LSR_SRC:%=newCode/%.lsr)
 NEW_LSR_JS=$(NEW_LSR_SRC:%=lib/%.js)
+
 BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus org githubExtensions storage orgSupport fancyOrg
 BROWSER_INPUT=$(BROWSER_SRC:%=lib/%.js)
 BROWSER_JS=lib/browser.js
 BROWSERIFY_EXCLUDE=-i xmlhttprequest
+
 WEB_LEISURE_SRC=generatedPrelude std svg calc parseAst
 WEB_LEISURE_FILES=$(WEB_LEISURE_SRC:%=lib/%.lsr) $(WEB_LEISURE_SRC:%=lib/%.js) $(WEB_LEISURE_SRC:%=lib/%.map)
+
 WEB_SRC=bootLeisure
 WEB_COFFEE=$(WEB_SRC:%=newCode/%.coffee)
 WEB_JS=$(WEB_SRC:%=www/%.js)
 WEB_MAPS=$(SHARED_SRC:%=lib/%.map) $(NEW_COFFEE_SRC:%=lib/%.map) $(WEB_SRC:%=lib/%.map)
+
 CSS_SRC=leisure gaudy thin cthulhu
 CSS_FILES=$(CSS_SRC:%=newCode/%.css)
 CSS_OUT=lib/all.css
@@ -106,6 +113,6 @@ lib/%.js: core/%.coffee
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
 
 lua-tests: FRC
-	(cd core; eval $(luarocks path) ; lua5.1 -lluarocks.loader testLeisure.lua)
+	(cd lua; eval $(luarocks path) ; lua5.1 -lluarocks.loader testLeisure.lua)
 
 FRC:

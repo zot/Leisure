@@ -32,6 +32,7 @@ misrepresented as being the original software.
   simpyCons,
   resolve,
   lazy,
+  nsLog,
 } = root = module.exports = require './base'
 {
   define,
@@ -617,40 +618,38 @@ trampCurry = (func, arity)-> (arg)->
 # NAME SPACES
 #######################
 
-nameSpaceStack = []
-
 define 'setNameSpace', lz (name)->
   makeSyncMonad (env, cont)->
-    currentNameSpace = name
-    if name == null then newNameSpace = false
-    else
+    root.currentNameSpace = rz name
+    newNameSpace = false
+    if name
       newNameSpace = !LeisureNameSpaces[name]
       if newNameSpace then LeisureNameSpaces[name] = {}
+      nsLog "SETTING NAME SPACE: #{name}"
     cont (if newNameSpace then _true else _false)
 
 define 'pushNameSpace', lz (newNameSpace)->
   makeSyncMonad (env, cont)->
-    pushed = LeisureNameSpaces[newNameSpace] && ! (newNameSpace in nameSpacePath)
-    if pushed then nameSpacePath.push newNameSpace
+    pushed = LeisureNameSpaces[newNameSpace] && ! (newNameSpace in root.nameSpacePath)
+    if pushed then root.nameSpacePath.push newNameSpace
     cont (if pushed then _true else _false)
 
-define 'getNameSpacePath', lz -> makeSyncMonad (env, cont)-> cont consFrom nameSpacePath
+define 'clearNameSpacePath', lz makeSyncMonad (env, cont)->
+  root.nameSpacePath = []
+  cont _true
 
-define 'clearNameSpacePath', lz ->
-  makeSyncMonad (env, cont)->
-    nameSpacePath = []
-    cont _true
-
-define 'resetNameSpaceInfo', lz ->
-  makeSyncMonad (enf, cont)->
-    old = [nameSpacePath, currentNameSpace]
-    nameSpacePath = []
-    currentNameSpace = null
-    cont old
+define 'resetNameSpaceInfo', lz makeSyncMonad (enf, cont)->
+  old = [root.nameSpacePath, root.currentNameSpace]
+  root.nameSpacePath = ['core']
+  root.currentNameSpace = null
+  nsLog "SETTING NAME SPACE: null"
+  cont old
 
 define 'setNameSpaceInfo', lz (info)->
   makeSyncMonad (env, cont)->
-    [nameSpacePath, currentNameSpace] = rz info
+    console.log "RESTORING NAME SPACE INFO: #{require('util').inspect rz info}"
+    [root.nameSpacePath, root.currentNameSpace] = rz info
+    nsLog "SETTING NAME SPACE: #{root.currentNameSpace}"
     cont _true
 
 #######################

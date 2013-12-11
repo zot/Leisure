@@ -8,6 +8,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_addTokenGroup)("js[")("]")},
  function(){return resolve(L_defMacro)("js[")(lazy(function(L_list){return resolve(L_cons)("js")(function(){return resolve(L_cons)(function(){return resolve(L_cons)("strCat")(function(){return resolve(L_cons)(function(){return resolve(L_cons)("flatten")(function(){return resolve(L_cons)(function(){return resolve(L_cons)(function(){return resolve(L_listify)(function(){return resolve(L_head)(L_list)})})(L_nil)})(L_nil)})})(L_nil)})})(L_nil)})}))},
  function(){return resolve(L_define)("html")(1)("html x = \\f . f x")(lazy(setDataType(function(L_x){return setType(function(L_f){return resolve(L_f)(L_x)}, 'html')}, 'html')))},
+ function(){return resolve(L_define)("getHtml")(1)("getHtml x = x \\h . h")(lazy(function(L_x){return resolve(L_x)(lazy(function(L_h){return resolve(L_h)}))}))},
  function(){return resolve(L_define)("iszero")(0)("iszero = eq 0")(function(){return resolve(L_eq)(0)})},
  function(){return resolve(L_define)("positive")(0)("positive = 0 <")(function(){return resolve(L_$y)(0)})},
  function(){return resolve(L_addToken)("--")},

@@ -24,6 +24,14 @@ misrepresented as being the original software.
 
 root = module.exports
 
+root.currentNameSpace = 'core'
+root.nameSpacePath = ['core']
+
+#root.shouldNsLog = true
+root.shouldNsLog = false
+
+root.nsLog = (args...)-> if root.shouldNsLog then console.log args...
+
 global.verbose = {}
 
 verboseMsg = (label, msg...)-> if global.verbose[label] then console.log msg...
@@ -31,7 +39,7 @@ verboseMsg = (label, msg...)-> if global.verbose[label] then console.log msg...
 if !btoa? then global.btoa = require 'btoa'
 
 defaultEnv =
-  presentValue: (x)-> x
+  presentValue: (x)-> String x
   values: {}
   errorHandlers: []
 

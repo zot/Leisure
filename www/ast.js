@@ -25,11 +25,11 @@ misrepresented as being the original software.
 
 
 (function() {
-  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, currentNameSpace, define, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSpacePath, nameSub, primCons, primFoldLeft, rangeToJson, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
+  var L_anno, L_apply, L_lambda, L_let, L_lit, L_ref, LeisureObject, Leisure_BaseCons, Leisure_cons, Leisure_nil, Nil, anno, apply, ast2Json, ast2JsonEncodings, astString, charCodes, checkType, cons, consEq, consFrom, define, dummyPosition, ensureLeisureClass, evalFunc, firstRange, foldLeft, functionInfo, getAnnoBody, getAnnoData, getAnnoName, getAnnoRange, getApplyArg, getApplyFunc, getApplyRange, getDataType, getLambdaBody, getLambdaRange, getLambdaVar, getLetBody, getLetName, getLetRange, getLetValue, getLitRange, getLitVal, getPos, getRefName, getRefRange, getType, head, isNil, jsType, json2Ast, json2AstEncodings, jsonToRange, lambda, lazy, leisureAddFunc, letStr, lit, llet, lz, makeSuper, mkProto, nameFunc, nameSub, nsLog, primCons, primFoldLeft, rangeToJson, ref, resolve, root, rz, save, setDataType, setType, supertypes, tail, throwError, _, _ref, _ref1, _ref2, _ref3,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  _ref = root = module.exports = require('./base'), resolve = _ref.resolve, lazy = _ref.lazy;
+  _ref = root = module.exports = require('./base'), resolve = _ref.resolve, lazy = _ref.lazy, nsLog = _ref.nsLog;
 
   _ = require('./lodash.min');
 
@@ -570,14 +570,11 @@ misrepresented as being the original software.
   };
 
   global.LeisureNameSpaces = {
-    core: {}
+    core: {},
+    parser: {}
   };
 
-  nameSpacePath = ['core'];
-
-  currentNameSpace = 'core';
-
-  define = function(name, func, arity, src, method) {
+  define = function(name, func, arity, src, method, namespace) {
     var namedFunc, nm;
     functionInfo[name] = {
       src: src,
@@ -591,8 +588,9 @@ misrepresented as being the original software.
       throwError("[DEF] Attempt to redefine definition: " + name);
     }
     namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name);
-    if (currentNameSpace) {
-      LeisureNameSpaces[currentNameSpace][nameSub(name)] = namedFunc;
+    if (root.currentNameSpace) {
+      LeisureNameSpaces[namespace != null ? namespace : root.currentNameSpace][nameSub(name)] = namedFunc;
+      nsLog("DEFINING " + name + " FOR " + root.currentNameSpace);
     }
     leisureAddFunc(name);
     root.functionCount++;
@@ -1033,11 +1031,11 @@ misrepresented as being the original software.
 
   define('json2Ast', lz(function(json) {
     return json2Ast(JSON.parse(rz(json)));
-  }));
+  }), null, null, null, 'parser');
 
   define('ast2Json', lz(function(ast) {
     return JSON.stringify(ast2Json(rz(ast)));
-  }));
+  }), null, null, null, 'parser');
 
   consFrom = function(array, i) {
     i = i || 0;

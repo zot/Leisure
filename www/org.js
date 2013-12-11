@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var END_NAME, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, Meat, Node, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, Source, buildHeadlineRE, checkMatch, fullLine, headlineRE, keywordRE, matchLine, parseHeadline, parseKeyword, parseMeat, parseOrgChunk, parseOrgMode, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
+  var DRAWER_BOILERPLATE, DRAWER_NAME, END_NAME, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, Meat, Node, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, Source, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, keywordRE, matchLine, parseHeadline, parseKeyword, parseMeat, parseOrgChunk, parseOrgMode, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -34,7 +34,7 @@ misrepresented as being the original software.
   todoKeywords = ['TODO', 'DONE'];
 
   buildHeadlineRE = function() {
-    return new RegExp('^(\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?[^\n]*?(:[^:\n]*:)? *$', 'm');
+    return new RegExp('^(\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?[^\\n]*?([\\w@%#]*:[\\w@%#:]*)? *$', 'm');
   };
 
   HL_LEVEL = 1;
@@ -76,6 +76,14 @@ misrepresented as being the original software.
   resultsRE = /^#\+(RESULTS): *$/im;
 
   resultsLineRE = /^([:|] .*)(?:\n|$)/i;
+
+  DRAWER_BOILERPLATE = 1;
+
+  DRAWER_NAME = 2;
+
+  drawerRE = /^( *:)([^\n:]*): *$/im;
+
+  endRE = /^ *:END: *$/im;
 
   matchLine = function(txt) {
     return checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
@@ -144,6 +152,15 @@ misrepresented as being the original software.
       } else {
         return this.parent.top();
       }
+    };
+
+    Node.prototype.toString = function() {
+      return this.toJson();
+    };
+
+    Node.prototype.allTags = function() {
+      var _ref, _ref1;
+      return (_ref = (_ref1 = this.parent) != null ? _ref1.allTags() : void 0) != null ? _ref : [];
     };
 
     return Node;
@@ -267,6 +284,30 @@ misrepresented as being the original software.
         prev = c;
       }
       return this;
+    };
+
+    Headline.prototype.addTags = function(set) {
+      var tag, _i, _len, _ref;
+      _ref = parseTags(this.tags);
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        tag = _ref[_i];
+        set[tag] = true;
+      }
+      return set;
+    };
+
+    Headline.prototype.addAllTags = function() {
+      var _ref;
+      return this.addTags(((_ref = this.parent) != null ? _ref.addAllTags() : void 0) || {});
+    };
+
+    Headline.prototype.allTags = function() {
+      var k, _results;
+      _results = [];
+      for (k in this.addAllTags()) {
+        _results.push(k);
+      }
+      return _results;
     };
 
     return Headline;
@@ -404,8 +445,7 @@ misrepresented as being the original software.
         children.push(child);
       }
     }
-    tags = tags ? tags.substring(1, tags.length - 1) : '';
-    return [new Headline(text, level, todo, priority, tags, children, offset), rest];
+    return [new Headline(text, level, todo, priority, tags || '', children, offset), rest];
   };
 
   parseTags = function(text) {

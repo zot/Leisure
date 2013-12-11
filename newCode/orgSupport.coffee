@@ -24,6 +24,7 @@ misrepresented as being the original software.
 
 {
   getType,
+  cons,
 } = require './ast'
 {
   resolve,
@@ -32,6 +33,15 @@ misrepresented as being the original software.
 } = root = module.exports = require './base'
 rz = resolve
 lz = lazy
+{
+  newConsFrom,
+  setValue,
+  getValue,
+} = require './runtime'
+
+consFrom = newConsFrom
+Nil = rz L_nil
+
 {
   TAB,
   ENTER,
@@ -276,7 +286,7 @@ markupOrgWithNode = (text)->
 
 boundarySpan = "<span data-org-type='boundary'>\n</span>"
 
-sensitive = /^srcStart|^headline-/
+sensitive = /^srcStart|^headline-|^keyword/
 
 orgAttrs = (org)->
   if !org.nodeId then org.nodeId = nextOrgId()
@@ -284,8 +294,9 @@ orgAttrs = (org)->
   extra = if isDynamic org then ' data-org-results="dynamic"'
   else if isDef org then ' data-org-results="def"'
   else ''
-  if org instanceof Headline then extra += " data-org-tags='#{org.tags}'"
-  else if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{org.info}'"
+  t = org.allTags()
+  if t.length then extra += " data-org-tags='#{t.join(' ')}'"; global.ORG=org
+  if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{org.info}'"
   if org.srcId then extra += " data-org-srcid='#{org.srcId}'"
   "id='#{org.nodeId}' data-org-type='#{org.type}'#{extra}"
 
@@ -297,9 +308,15 @@ markupNode = (org, start)->
   if org instanceof Source || org instanceof Results
     pos = org.contentPos - org.offset - 1
     text = org.text.substring pos
-    "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}</span>"
+    "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}</span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else "<span #{orgAttrs org}>#{content org.text}</span>"
+
+codeBlockAttrs = (org)->
+  while (org = org.prev) instanceof Meat
+    if org instanceof Keyword && org.name.match /^name$/i
+      return " data-org-codeblock='#{org.info.trim()}'"
+  ''
 
 createResults = (srcNode)->
 
@@ -506,22 +523,26 @@ backspace = (parent, e)->
     true
   else false
 
+#checkCollapsed = (delta)->
+#  s = rangy.getSelection()
+#  r = s.getRangeAt 0
+#  if delta < 0 then r.moveStart 'character', delta else r.moveEnd 'character', delta
+#  if r.startContainer == r.endContainer then false
+#  else if boundary = isBoundary (if delta < 0 then r.startContainer else r.endContainer)
+#    if delta < 0
+#      r.setStartBefore boundary
+#      r.moveStart 'character', -1
+#    else
+#      r.setEndAfter boundary
+#      r.moveEnd 'character', 1
+#    for n in r.getNodes()
+#      if r.containsNode(n) && isCollapsed n then return true
+#    false
+#  else false
+
 checkCollapsed = (delta)->
-  s = rangy.getSelection()
-  r = s.getRangeAt 0
-  if delta < 0 then r.moveStart 'character', delta else r.moveEnd 'character', delta
-  if r.startContainer == r.endContainer then false
-  else if boundary = isBoundary (if delta < 0 then r.startContainer else r.endContainer)
-    if delta < 0
-      r.setStartBefore boundary
-      r.moveStart 'character', -1
-    else
-      r.setEndAfter boundary
-      r.moveEnd 'character', 1
-    for n in r.getNodes()
-      if r.containsNode(n) && isCollapsed n then return true
-    false
-  else false
+  node = getSelection().focusNode
+  node && (isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) node)
 
 checkSourceMod = (parent, oldMatch)->
   r = getSelection().getRangeAt 0
@@ -529,13 +550,29 @@ checkSourceMod = (parent, oldMatch)->
   else if n = getOrgParent r.startContainer
     switch n.getAttribute('data-org-results')?.toLowerCase()
       when 'dynamic' then root.orgApi.executeSource parent, r.startContainer
-      when 'def' then root.orgApi.executeSource parent, r.startContainer
+      when 'def' then root.orgApi.executeDef n
+
+escapeHtml = (str)->
+  if typeof str == 'string' then str.replace /[<>]/g, (c)->
+    switch c
+      when '<' then '&lt;'
+      when '>' then '&gt;'
+  else str
+
+presentValue = (v)->
+  if (getType v) == 'svgNode'
+    content = v(-> id)
+    _svgPresent()(-> content)(-> id)
+  else if (getType v) == 'html' then rz(L_getHtml)(lz v)
+  else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
+  else escapeHtml show v
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
   if r
     r.innerHTML = ''
     write: (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"
+    presentValue: presentValue
     __proto__: defaultEnv
   else
     write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
@@ -621,14 +658,25 @@ getLeft = (x)-> x(id)(id)
 getRight = (x)-> x(id)(id)
 show = (obj)-> if L_show? then rz(L_show)(lz obj) else console.log obj
 
-executeText = (text, env)->
+propsFor = (node)->
+  props = Nil
+  tags = (node.getAttribute('data-org-tags') || '').trim()
+  if tags then props = cons cons('tags', consFrom (tags).trim().split ' '), props
+  name = (node.getAttribute('data-org-codeblock') || '').trim()
+  if name then props = cons cons('block', name), props
+  props
+
+executeText = (text, props, env)->
+  old = getValue 'parser_funcProps'
+  setValue 'parser_funcProps', props
   result = rz(L_baseLoadString)('notebook')(text)
   runMonad result, env, (results)->
     while results != L_nil()
       res = results.head().tail()
       if getType(res) == 'left' then orgEnv.write "PARSE ERROR: #{getLeft res}"
-      else env.write show getRight res
+      else env.write env.presentValue getRight res
       results = results.tail()
+    setValue 'parser_funcProps', old
 
 getSource = (node)->
   while node && !isSourceNode node
@@ -641,12 +689,12 @@ getSource = (node)->
 executeSource = (parent, node)->
   if isSourceNode node
     checkReparse parent
-    if txt = getSource node then executeText txt, orgEnv parent, node
+    if txt = getSource node then executeText txt, propsFor(node), orgEnv parent, node
     else console.log "No end for src block"
   else if getOrgType(node) == 'text' then needsReparse = true
   else !isDocNode(node) && executeSource parent, node.parentElement
 
-executeDef = (node)-> if txt = getSource node then executeText txt, baseEnv
+executeDef = (node)-> if txt = getSource node then executeText txt, propsFor(node), baseEnv
 
 followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(node.parentNode)[0]
 
@@ -839,13 +887,15 @@ basicOrg =
   createResults: createResults
   installOrgDOM: (parent, orgNode, orgText)->
     orgNotebook.installOrgDOM parent, orgNode, orgText
-    for node in $('[data-org-dynamic="true"]')
-      setTimeout (=>@executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling), 1
     setTimeout (=>
+      for node in $('[data-org-dynamic="true"]')
+        @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
       for node in $('[data-org-results]')
         switch $(node).attr('data-org-results').toLowerCase()
           when 'dynamic' then @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
-          when 'def' then executeText $(node).find('[data-org-type=text]')[0].nextElementSibling), 1
+          when 'def'
+            n = $(node).find('[data-org-type=text]')[0].nextElementSibling
+            executeText n.textContent, propsFor(node), orgEnv parent, n), 1
   bindings: defaultBindings
 
 root.basicOrg = basicOrg
@@ -880,6 +930,7 @@ root.modifyingKey = modifyingKey
 root.getOrgParent = getOrgParent
 root.getOrgType = getOrgType
 root.executeText = executeText
+root.propsFor = propsFor
 root.orgEnv = orgEnv
 root.getResultsForSource = getResultsForSource
 root.initOrg = initOrg
@@ -891,3 +942,4 @@ root.addKeyPress = addKeyPress
 root.findKeyBinding = findKeyBinding
 root.invalidateOrgText = invalidateOrgText
 root.setCurKeyBinding = setCurKeyBinding
+root.presentValue = presentValue
