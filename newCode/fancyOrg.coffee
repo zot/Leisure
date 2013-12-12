@@ -62,6 +62,8 @@ lz = lazy
   setCurKeyBinding,
   presentValue,
   propsFor,
+  escapeHtml,
+  escapeAttr,
 } = require './orgSupport'
 {
   redrawAllIssues,
@@ -83,21 +85,13 @@ markupOrgWithNode = (text)->
   lastOrgOffset = -1
   [org, markupNode org]
 
-borderRE = /[\n]+$/
-makeBoundary = (node)->
-  nls = node.text.match borderRE
-  if nls then "<div class='boundary'>#{nls[0]}</div>" else ""
-
 markupNode = (org)->
-  if org instanceof Headline
-    #console.log "#\n# Headline\n# #{org.text}\n# ALL TAGS: #{org.allTags().join ', '}\n#\n#{org.toJson()}"
-    console.log "#\n# Headline\n# #{org.text}\n# ALL TAGS: #{org.allTags().join ', '}\n#\n"
   if org.offset <= lastOrgOffset
     ''
   else if org instanceof Results
     pos = org.contentPos - org.offset
     text = org.text.substring pos
-    "<span #{orgAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}"
+    "<span #{orgAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span>#{contentSpan text}"
   else if org instanceof Keyword
     if org.name.match /^name$/i
       intertext = ''
@@ -112,22 +106,29 @@ markupNode = (org)->
     else defaultMarkup org
   else if org instanceof Headline then markupHeadline org
   else if content(org.text).length then defaultMarkup org
-  else "<div #{orgAttrs org}>#{org.text}</div>"
+  else "<div #{orgAttrs org}>#{escapeHtml org.text}</div>"
 
-markupHeadline = (org)-> "<div #{orgAttrs org} data-org-headline='#{org.level}'><span data-org-type='text'>#{org.text}</span>#{markupGuts org, checkStart start, org.text}</div>"
+markupHeadline = (org)->
+  "<div #{orgAttrs org} data-org-headline='#{escapeAttr org.level}'><span data-org-type='text'>#{escapeHtml org.text}</span>#{markupGuts org, checkStart start, org.text}</div>"
 
 markupSource = (org, name, intertext)->
-  console.log "MARKING UP SOURCE: #{org}"
+  srcContent = org.content
+  lead = org.text.substring 0, org.contentPos - org.offset
+  trail = org.text.substring org.contentPos - org.offset + org.content.length
+  (if isHtml org then markupHtml else markupLeisure) org, name, intertext, srcContent, lead, trail
+
+isHtml = (org)-> org.info.match /^ *html($| )/
+
+markupHtml = (org, name, intertext, content, lead, trail)->
+  "<span class='hidden'>#{escapeHtml (name?.text ? '') + (intertext ? '') + org.text}</span><span data-org-html='true'>#{content}</span>"
+
+markupLeisure = (org, name, intertext, content, lead, trail)->
   lastOrgOffset = org.offset
   if name
     nameM = name.text.match keywordRE
-    codeBlock = " data-org-codeblock='#{name.info.trim()}'><div class='codename'><span class='hidden'>#{nameM[KW_BOILERPLATE]}</span><div><larger><b>#{name.info}</b></larger></div>#{intertext}</div>"
+    codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
   else codeBlock = ">"
-  srcM = org.text.match srcStartRE
-  srcContent = org.content
-  srcLead = org.text.substring 0, org.contentPos - org.offset
-  srcTrail = org.text.substring org.contentPos - org.offset + org.content.length
-  html = "<div class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{srcLead}</div><div class='codewrapper'><div class='codecontent'>#{srcContent}<span class='hidden' data-org-type='boundary'>#{srcTrail}</span></div>"
+  html = "<div class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div><div class='codewrapper'><div class='codecontent'>#{escapeHtml content}<span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span></div>"
   res = org.next
   intertext = ''
   while res && !(res instanceof Results) && !(res instanceof Keyword)
@@ -136,28 +137,28 @@ markupSource = (org, name, intertext)->
   if res instanceof Results
     lastOrgOffset = res.offset
     pos = res.contentPos - res.offset
-    html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + intertext + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'><span></span></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
+    html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + escapeHtml(intertext) + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'><span></span></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{escapeHtml res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
   html + (if name then "</div>#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div></div>")
 
 commentButton = (name)->
-  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{name}\")' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
+  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\")' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
 
 commentBlock = (name)->
-  "<div class='comments' data-org-comments='#{name}'><div></div></div>"
+  "<div class='comments' data-org-comments='#{escapeAttr name}'><div></div></div>"
 
 astButton = (name)->
-  "<button class='ast-button' onclick='Leisure.toggleAst(\"#{name.info.trim()}\")' contenteditable='false'><img src='icons/monotone_groups.png'></button>"
+  "<button class='ast-button' onclick='Leisure.toggleAst(\"#{escapeAttr name.info.trim()}\")' contenteditable='false'><img src='icons/monotone_groups.png'></button>"
 
 toggleComment = (name)->
   block = $("[data-org-comments=#{name}]")
   if block.hasClass 'showcomments' then block.removeClass 'showcomments'
   else
     block.addClass 'showcomments'
-    $("[data-org-codeblock='#{name}'] button.comment-button").removeClass 'new-comments'
+    $("[data-org-codeblock='#{escapeAttr name}'] button.comment-button").removeClass 'new-comments'
 
 addComment = (name)-> console.log "ADD A COMMENT FOR #{name}"
 
-defaultMarkup = (org)-> "<span #{orgAttrs org}>#{org.text}</span>"
+defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 createResults = (srcNode)->
   while srcNode && !srcNode.classList.contains 'codeblock'
@@ -304,7 +305,7 @@ executeDef = (node)->
     node = node.parentNode
   if node then executeText $(node).find('.codecontent')[0].firstChild.textContent, propsFor(node), baseEnv
 
-reprocessResults = (str)-> str.replace /(^|\n): /g, '$1<span class="hidden">: </span>'
+reprocessResults = (str)-> escapeHtml(str).replace /(^|\n): /g, '$1<span class="hidden">: </span>'
 
 processResults = (str)->
   if str
@@ -361,6 +362,10 @@ fancyOrg =
   bindContent: bindContent
   installOrgDOM: (parent, orgNode, orgText)->
     orgNotebook.installOrgDOM parent, orgNode, orgText
+    for node in $('[data-org-html]')
+      console.log "HTML SRC: ", node, "TEXT: #{node.getAttribute 'data-org-html'}"
+      setShadowHtml node, node.innerHTML
+      node.innerHTML = ''
     setTimeout (=>
       for node in $('[data-org-results]')
         switch $(node).attr('data-org-results').toLowerCase()

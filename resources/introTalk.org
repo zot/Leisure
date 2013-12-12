@@ -1,0 +1,601 @@
+* Welcome to Leisure!                                                :hidden:
+Here's the [[https://github.com/zot/Leisure][project page]]
+
+** Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
+
+![Tiny Concepts](tinyconcepts.png)
+
+** Use the left arrow, right arrow, page up, page down, home, and end keys to navigate
+
+** To edit text, double click.  To exit editing, hit tab.
+
+** To view this as a regular notebook instead of slides, hit escape or click the slides button, below
+* Welcome to Leisure
+Here's the [[https://github.com/zot/Leisure][project page]]
+
+## Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
+
+![Tiny Concepts](tinyconcepts.png)
+* Welcome to Leisure                                                 :hidden:
+Here's the [[https://github.com/zot/Leisure][project page]]
+
+## Leisure is: a lazy dynamically typed functional language with a  notebook environment
+* Welcome to Leisure                                                 :hidden:
+Here's the [[https://github.com/zot/Leisure][project page]]
+
+## Leisure is: a **Toy**
+* Welcome to Leisure                                                 :hidden:
+Here's the [[https://github.com/zot/Leisure][project page]]
+
+## Leisure is: a **Toy**
+
+## Let's listen to Dr. Steel's definition of *toy...*
+
+<iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
+* Welcome to Leisure                                                 :hidden:
+Here's the [[https://github.com/zot/Leisure][project page]]
+
+## Leisure is: a **Toy**
+
+## We like to share our toys.
+## Leisure is **open source**.
+## Please play with it and change it!
+## Please use it to make cool stuff!
+* Welcome to Leisure
+# Programming should be:
+### Fun
+### Easy
+### Interesting
+## There should be cool stuff for you to play with
+## Leisure tries to make it that way
+***
+# Programming should be:
+### Fun
+### Easy
+### Interesting
+## There should be cool stuff for you to play with
+## Leisure tries to make it that way
+## Leisure is targeted at kids with no programming experience
+***
+# Programming should be:
+### Fun
+### Easy
+### Interesting
+## There should be cool stuff for you to play with
+## Leisure tries to make it that way
+## Leisure is targeted at kids with no programming experience
+## All you need is a web browser -- no install needed
+***
+# Programming should be:
+### Fun
+### Easy
+### Interesting
+## There should be cool stuff for you to play with
+## Leisure tries to make it that way
+## Leisure is targeted at kids with no programming experience
+## All you need is a web browser -- no install needed
+## Leisure is also targeted at experts with years of programming experience
+***
+-
+# Notebooks
+
+## All Leisure programs and libraries are (or will be) markdown documents
+***
+-
+# Notebooks
+
+## All Leisure programs and libraries are (or will be) markdown documents
+## They render as notebooks (ala Mathematica)
+***
+-
+# Notebooks
+
+## All Leisure programs and libraries are (or will be) markdown documents
+## They render as notebooks (ala Mathematica)
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
+***
+-
+# Notebooks
+
+## All Leisure programs and libraries are (or will be) markdown documents
+## They render as notebooks (ala Mathematica)
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
+## You can edit them
+***
+-
+# Notebooks
+
+## All Leisure programs and libraries are (or will be) markdown documents
+## They render as notebooks (ala Mathematica)
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
+## You can edit them
+## This presentation is a Leisure notebook
+***
+-
+# Notebooks
+
+## All Leisure programs and libraries are (or will be) markdown documents
+## They render as notebooks (ala Mathematica)
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
+## You can edit them
+## This presentation is a Leisure notebook (you are seeing Leisure source code)
+## (edit this)
+***
+# Notebooks
+
+## All Leisure programs and libraries are (or will be) markdown documents
+## They render as notebooks (ala Mathematica)
+## Notebooks are computing environments -- sort of a cross between an IDE and REPL
+## You can edit them
+## This presentation is a Leisure notebook (you are seeing Leisure source code)
+## (edit this)
+## (click the slide button)
+***
+# Notebooks
+
+## What if markdown code blocks were real, executable code?
+## (edit this and type a code block here)
+***
+-
+# Notebooks: Develop interactively
+***
+-
+# Notebooks: Develop interactively
+
+## Evaluate expressions in the document
+
+```
+3 + 4
+cons 1 (cons 2 nil)
+['a' 'b' 1 'c']
+```
+
+## Keep the expressions as live examples in documentation
+## Other people can use them to understand your code better
+***
+-
+# Notebooks: Develop interactively
+
+## Evaluate expressions in the document
+
+```
+3 + 4
+cons 1 (cons 2 nil)
+['a' 'b' 1 'c']
+```
+
+## Keep the expressions as live examples in documentation
+## Other people can use them to understand your code better
+
+## *Leisure doesn't normally execute expressions on load*
+***
+# Notebooks: Develop interactively
+
+## Evaluate expressions in the document
+
+```
+3 + 4
+cons 1 (cons 2 nil)
+['a' 'b' 1 'c']
+```
+
+## Keep the expressions as live examples in documentation
+## Other people can use them to understand your code better
+
+## *Leisure doesn't normally execute expressions on load*
+
+## But you can direct Leisure to
+***
+# Notebooks: they're Webby
+## HTML-y values display right in the document
+```
+html '<i><b>Hello</b></i>'
+rect nil
+polygon nil
+```
+***
+# Notebooks: Bret Victor-like sliders
+
+## [The Khan Academy](http://www.khanacademy.org) has these, too, BTW
+
+```
+xAmt = 10
+svgConcat [
+  translate
+    circle nil
+    xAmt
+    10
+  rect nil]
+rotate (polygon nil) 90
+```
+***
+# Notebooks: Develop interactively
+
+## Verify how your code parses, with AST buttons
+
+```
+add3 a b c = a + b + c
+```
+***
+# Notebooks: Develop interactively
+
+## Updating
+### Simplistic events
+***
+# Notebooks: Develop interactively
+
+## Updating
+### Simplistic events
+### Parse trees just hide their notebook expressions
+
+```
+add4 = 1 + 2 + 3
+```
+***
+# Notebooks: Develop interactively
+
+## Test cases run whenever you change your code
+```
+#@test "f1"
+#@expected "1"
+f1 = 1
+
+#@test "f2"
+#@expected "1"
+f2 = 2
+```
+***
+# Notebooks: Storage (in the works)
+## Import/export zip files
+## Google Drive (can already connect and create directories and files)
+## Dropbox
+## Eclipse Orion -- has simple CORS API for workspace and Git!
+## Local files (requires an install)
+
+```
+do
+  x <- read 'local-storage:///code'
+  x (\d . print d) id
+
+do
+  x <- read 'googledrive:///test'
+  print x
+```
+***
+-
+# Notebooks: Deploy your code...
+***
+-
+# Notebooks: Deploy your code...
+
+# ...as a Notebook, like this
+***
+-
+# Notebooks: Deploy your code...
+
+# ...as a Notebook, like this
+
+# ...or as a "regular" web page
+***
+# Notebooks: Deploy your code...
+
+# ...as a Notebook, like this
+
+# ...or as a "regular" web page
+
+# ...or in node.js
+***
+# Notebooks: Q&A
+***
+-
+# The Language
+***
+-
+# The Language
+
+## Leisure compiles to Javascript
+***
+-
+# The Language
+
+## Leisure compiles to Javascript
+
+## It's a naive compiler
+***
+# The Language
+
+## Leisure compiles to Javascript
+
+## It's a naive compiler
+
+## There's a lot of room for improvement!
+***
+-
+# The Language: Syntax minimizes parentheses
+***
+# The Language: Syntax minimizes parentheses
+
+## Each indented line adds a group to the overhanging expression
+<table><tr><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
+le x y = or
+  lt x y
+  eq x y
+</pre></td><td><span style="vertical-align: middle; margin: 30px; font-weight: bold; font-size: 150%">-&gt;</span></td><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
+le xy = or (lt x y) (eq x y)
+</pre></td></tr></table>
+
+```
+le x y = or
+  lt x y
+  eq x y
+```
+***
+# The Language: Syntax minimizes parentheses
+## Each indented line adds a group to the overhanging expression
+## Grouping still works, though
+<table><tr><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
+[
+  [1 2]
+  [3 4]]
+</pre></td><td><span style="vertical-align: middle; margin: 30px; font-weight: bold; font-size: 150%">---&gt;</span></td><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
+[ ([ 1 2 ]) ([ 3 4 ]) ]
+</pre></td></tr></table>
+
+##[ is a macro and '[' and ']' make groups
+
+```
+indentation = [
+  [1 2]
+  [3 4]]
+
+indentation
+```
+***
+# The Language: Syntax minimizes parentheses
+
+## macros rewrite their expressions at compile time, like in Clojure (LISP)
+## macros can do varargs, which isn't so easy in pure Lambda Calculus
+```
+f4 = concat[1 2 3]
+f4
+```
+***
+# The Language: Syntax minimizes parentheses
+
+## commas are optional in lists (because [ is a macro and it can strain them out)
+```
+[1 2 3 4]
+[1,2,3,4]
+```
+***
+# The Language: It's lazy
+```
+ignore2nd a b = a
+ignore2nd (error 'an error') 1
+ignore2nd 1 (error 'an error')
+ones = [1 | ones]
+take 5 ones
+dbl x = eq x 0
+  0
+  2 + (dbl x - 1)
+dbl (-1)
+f x y = do
+  a = x
+  b = dbl y
+  lt y 0
+    a
+    b
+
+f 2 (-1)
+(break f) 2 2
+```
+***
+-
+# The Language: Metaprogramming
+***
+# The Language: Metaprogramming
+
+## basic parsing can define tokens and groups
+```
+[1,2 3]
+```
+***
+# The Language: Metaprogramming
+
+## macros rewrite expressions, using cons/lcons (like cons, but with start and end positions)
+## Combining groups with macros can work like varargs
+### [
+```
+ex1 = [1 2 3]
+```
+### concat[
+```
+ex2 = concat[1 2 3]
+```
+#### making concat[ a separate macro makes it more convenient, because it eliminates parentheses
+***
+# The Language: Metaprogramming
+
+## parse filters are like macros, but they process **all** code, (also using cons/lcons)
+## a parse filter processes infix expressions
+```
+ex3 = 1 + (2 + 3) + 4
+```
+## Right now, Do (like in Haskell) is a parse filter
+## At this point, once you turn on a parse filter, it affects subsequent imported files
+## In the future, each file will be able to specify its own parse filters
+***
+# The Language: Metaprogramming
+![Compiler Flow](LeisureParsingFlow.svg)
+***
+# The Language: Functional support
+## Streams, etc.
+```
+increasing x = [x | (increasing x + 1)]
+naturals = increasing 1
+take 5 (filter even? (map (\x . x + 10) naturals))
+```
+***
+# The Language: Data Types
+## Any function which returns a lambda confers its name as the data type on the lambda
+```
+getType [1]
+person name addr = \f . f name addr
+getType (person 'bob' '123 Maple St')
+```
+***
+# The Language: Simple Pattern Matching
+```
+smop x = 'a smop'
+smop x::person = concat['a person smop (' (x \n a . a) ')']
+smop 3
+smop (person 'bob' '123 Maple St')
+```
+***
+## Fancier pattern matching later
+### Got some basic plans for structural patterns, like in Haskell (maybe more powerful -- not sure)
+<br>
+### last [x] = x
+### last [x | y] = last y
+<br>
+### find key [] = none
+### find key [key value | rest] = some value
+### find key [\_ \_ | rest] = find key rest
+<br>
+### getName (person {name: n}) = n
+***
+# The Language: Monads
+## Expression output box is part of monad's "environment"
+```
+do
+    x <- prompt "What is your name?"
+    print concat["Hello, " x]
+```
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+## parser directives are monads
+***
+# The Language: Monads
+
+## code that runs at load-time can use monads to affect the Leisure environment
+## import is a monad
+## parser directives are monads
+## monads can affect the notebook environment
+### Setting themes
+### Turning on auto test mode
+***
+# The Language: Debugging
+## Support specific to lazy evaluation is in the works
+## Some omniscient debugging techniques
+## Two stack traces for an error
+### Stack trace of where a value was created
+### Stack trace of where a value was requested
+***
+-
+# The Language Q&A
+***
+-
+# Xus: A Way to Communicate With Leisure
+
+## Why can't you use command line tools easily with most development environments?
+***
+-
+# Xus: A Way to Communicate With Leisure
+
+## Why can't you use command line tools easily with most development environments?
+## Why can't you just treat development environments like file systems, like in Plan9?
+***
+-
+# Xus: A Way to Communicate With Leisure
+
+## Why can't you use command line tools easily with most development environments?
+## Why can't you just treat development environments like file systems, like in Plan9?
+## Why are development environments so annoying to extend?
+***
+-
+# Xus: A Way to Communicate With Leisure
+
+## Why can't you use command line tools easily with most development environments?
+## Why can't you just treat development environments like file systems, like in Plan9?
+## Why are development environments so annoying to extend?
+## Why are other things so annoying to extend? (web browsers, app servers, word processors, IDSs)
+***
+-
+# Xus: A Way to Communicate With Leisure
+
+## Why can't you use command line tools easily with most development environments?
+## Why can't you just treat development environments like file systems, like in Plan9?
+## Why are development environments so annoying to extend?
+## Why are other things so annoying to extend? (web browsers, app servers, word processors, IDSs)
+## How come my toolbar has play/pause for native music players but not ones in web pages?
+***
+# Xus
+
+## leisure command (demonstrate)
+***
+# Xus
+
+## leisure command
+## extend notebooks in any language (show leisure script)
+***
+# Xus
+
+## leisure command
+## extend notebooks in any language
+## storage and other services will use Xus
+***
+# Xus: The Container Problem
+
+![Compiler Flow](ContainerProblem1.svg)
+***
+# Xus: The Container Problem
+
+![Compiler Flow](ContainerProblem2.svg)
+***
+# Xus: Uh... COM/OLE/CORBA/DCE/RCP/SOAP/RMI?
+## Key differences
+* REALLY easy to use, simple, and flexible
+   * This is very different from COM/OLE/CORBA/DCE/RCP/SOAP/RMI!
+   * Pub/sub (data exchange), not RPC (remote invocation)
+   * Protocol doesn't change with your app (no IDL)
+   * Key/value pairs (like SNMP, REDIS, Zookeeper -- much simpler to use)
+   * Commands are just JSON arrays: [["set", "a", 5],["set", "b/c", 6]]
+   * Only 6 commands: value, set, put, splice, removeFirst, removeAll
+   * Simple protocol makes it very, very easy to hook up any language
+      * No... REALLY! It does!
+      * All my current commands are in JavaScript and Bash
+   * Many ways to connect: socket, WebSocket, direct (same process), WebWorker (future)
+* Storage
+   * Each key can have its own storage mode
+   * Peers are up-to-date as soon as they connect
+* Metamodel
+   * Peer settings (subscriptions, peer name, etc)
+   * Can be used for service discovery/registration
+* "xus" command
+   * Does a lot of setup for you
+   * Sufficient for a lot of tasks just by itself
+***
+# Xus Q&A
+***
+# Contact
+
+[Github project](https://github.com/zot/Leisure)
+![Github URL](githubUrl.png)
+
+[This notebook](http://zot.github.com/Leisure/talk.html?slides=true)
+![This notebook](slidesUrl.png)
+
+Please help!
+If you want to get in touch, you can email me at bill dot burdick at gmail dot com.

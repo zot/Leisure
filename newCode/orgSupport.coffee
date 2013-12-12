@@ -295,10 +295,10 @@ orgAttrs = (org)->
   else if isDef org then ' data-org-results="def"'
   else ''
   t = org.allTags()
-  if t.length then extra += " data-org-tags='#{t.join(' ')}'"; global.ORG=org
-  if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{org.info}'"
-  if org.srcId then extra += " data-org-srcid='#{org.srcId}'"
-  "id='#{org.nodeId}' data-org-type='#{org.type}'#{extra}"
+  if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
+  if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{escapeAttr org.info}'"
+  if org.srcId then extra += " data-org-srcid='#{escapeAttr org.srcId}'"
+  "id='#{escapeAttr org.nodeId}' data-org-type='#{escapeAttr org.type}'#{extra}"
 
 isDynamic = (org)-> org instanceof Source && org.info.match /:results .*dynamic/i
 
@@ -308,14 +308,14 @@ markupNode = (org, start)->
   if org instanceof Source || org instanceof Results
     pos = org.contentPos - org.offset - 1
     text = org.text.substring pos
-    "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{org.text.substring(0, pos)}</span>#{contentSpan text}</span>"
+    "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span>#{contentSpan text}</span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else "<span #{orgAttrs org}>#{content org.text}</span>"
 
 codeBlockAttrs = (org)->
   while (org = org.prev) instanceof Meat
     if org instanceof Keyword && org.name.match /^name$/i
-      return " data-org-codeblock='#{org.info.trim()}'"
+      return " data-org-codeblock='#{escapeAttr org.info.trim()}'"
   ''
 
 createResults = (srcNode)->
@@ -342,9 +342,9 @@ optionalBoundary = (prev, node)-> if prev then boundarySpan else ''
 
 contentSpan = (str, type)->
   str = content str
-  if str then "<span#{if type then " data-org-type='#{type}'" else ''}>#{str}</span>" else ''
+  if str then "<span#{if type then " data-org-type='#{escapeAttr type}'" else ''}>#{escapeHtml str}</span>" else ''
 
-content = (str)-> if str[str.length - 1] == '\n' then str.substring(0, str.length - 1) else str
+content = (str)-> escapeHtml (if str[str.length - 1] == '\n' then str.substring(0, str.length - 1) else str)
 
 fixupNodes = (node)->
   for n in $(node).find('[data-org-type="headline"]')
@@ -559,10 +559,18 @@ escapeHtml = (str)->
       when '>' then '&gt;'
   else str
 
+escapeAttr = (str)->
+  if typeof str == 'string' then str.replace /['"&]/g, (c)->
+    switch c
+      when '"' then '&quot;'
+      when "'" then '&#39;'
+      when '&' then '&amp;'
+  else str
+
 presentValue = (v)->
   if (getType v) == 'svgNode'
-    content = v(-> id)
-    _svgPresent()(-> content)(-> id)
+    cnt = v(-> id)
+    _svgPresent()(-> cnt)(-> id)
   else if (getType v) == 'html' then rz(L_getHtml)(lz v)
   else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
   else escapeHtml show v
@@ -943,3 +951,5 @@ root.findKeyBinding = findKeyBinding
 root.invalidateOrgText = invalidateOrgText
 root.setCurKeyBinding = setCurKeyBinding
 root.presentValue = presentValue
+root.escapeHtml = escapeHtml
+root.escapeAttr = escapeAttr

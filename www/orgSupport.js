@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, Nil, RIGHT, Results, Source, TAB, UP, addKeyPress, backspace, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, createResults, curKeyBinding, currentLine, defaultBindings, defaultEnv, displaySource, editDiv, emptyOutNode, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getType, getValue, handleMutation, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, resolve, restorePosition, root, rz, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, styleCache, swapMarkup, textNodeAfter, textNodeBefore, _, _ref, _ref1, _ref2, _ref3, _ref4;
+  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, Nil, RIGHT, Results, Source, TAB, UP, addKeyPress, backspace, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, createResults, curKeyBinding, currentLine, defaultBindings, defaultEnv, displaySource, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getType, getValue, handleMutation, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, resolve, restorePosition, root, rz, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, styleCache, swapMarkup, textNodeAfter, textNodeBefore, _, _ref, _ref1, _ref2, _ref3, _ref4;
 
   _ref = require('./ast'), getType = _ref.getType, cons = _ref.cons;
 
@@ -369,16 +369,16 @@ misrepresented as being the original software.
     extra = isDynamic(org) ? ' data-org-results="dynamic"' : isDef(org) ? ' data-org-results="def"' : '';
     t = org.allTags();
     if (t.length) {
-      extra += " data-org-tags='" + (t.join(' ')) + "'";
+      extra += " data-org-tags='" + (escapeAttr(t.join(' '))) + "'";
       global.ORG = org;
     }
     if (org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source && ((_ref5 = org.name) != null ? _ref5.toLowerCase() : void 0) === 'name') {
-      extra += " data-org-name='" + org.info + "'";
+      extra += " data-org-name='" + (escapeAttr(org.info)) + "'";
     }
     if (org.srcId) {
-      extra += " data-org-srcid='" + org.srcId + "'";
+      extra += " data-org-srcid='" + (escapeAttr(org.srcId)) + "'";
     }
-    return "id='" + org.nodeId + "' data-org-type='" + org.type + "'" + extra;
+    return "id='" + (escapeAttr(org.nodeId)) + "' data-org-type='" + (escapeAttr(org.type)) + "'" + extra;
   };
 
   isDynamic = function(org) {
@@ -394,7 +394,7 @@ misrepresented as being the original software.
     if (org instanceof Source || org instanceof Results) {
       pos = org.contentPos - org.offset - 1;
       text = org.text.substring(pos);
-      return "<span " + (orgAttrs(org)) + (codeBlockAttrs(org)) + "><span data-org-type='text'>" + (org.text.substring(0, pos)) + "</span>" + (contentSpan(text)) + "</span>";
+      return "<span " + (orgAttrs(org)) + (codeBlockAttrs(org)) + "><span data-org-type='text'>" + (escapeHtml(org.text.substring(0, pos))) + "</span>" + (contentSpan(text)) + "</span>";
     } else if (org instanceof Headline) {
       return "<span " + (orgAttrs(org)) + ">" + (contentSpan(org.text, 'text')) + (markupGuts(org, checkStart(start, org.text))) + "</span>";
     } else {
@@ -405,7 +405,7 @@ misrepresented as being the original software.
   codeBlockAttrs = function(org) {
     while ((org = org.prev) instanceof Meat) {
       if (org instanceof Keyword && org.name.match(/^name$/i)) {
-        return " data-org-codeblock='" + (org.info.trim()) + "'";
+        return " data-org-codeblock='" + (escapeAttr(org.info.trim())) + "'";
       }
     }
     return '';
@@ -459,18 +459,14 @@ misrepresented as being the original software.
   contentSpan = function(str, type) {
     str = content(str);
     if (str) {
-      return "<span" + (type ? " data-org-type='" + type + "'" : '') + ">" + str + "</span>";
+      return "<span" + (type ? " data-org-type='" + (escapeAttr(type)) + "'" : '') + ">" + (escapeHtml(str)) + "</span>";
     } else {
       return '';
     }
   };
 
   content = function(str) {
-    if (str[str.length - 1] === '\n') {
-      return str.substring(0, str.length - 1);
-    } else {
-      return str;
-    }
+    return escapeHtml((str[str.length - 1] === '\n' ? str.substring(0, str.length - 1) : str));
   };
 
   fixupNodes = function(node) {
@@ -765,13 +761,31 @@ misrepresented as being the original software.
     }
   };
 
+  escapeAttr = function(str) {
+    if (typeof str === 'string') {
+      return str.replace(/['"&]/g, function(c) {
+        switch (c) {
+          case '"':
+            return '&quot;';
+          case "'":
+            return '&#39;';
+          case '&':
+            return '&amp;';
+        }
+      });
+    } else {
+      return str;
+    }
+  };
+
   presentValue = function(v) {
+    var cnt;
     if ((getType(v)) === 'svgNode') {
-      content = v(function() {
+      cnt = v(function() {
         return id;
       });
       return _svgPresent()(function() {
-        return content;
+        return cnt;
       })(function() {
         return id;
       });
@@ -1425,6 +1439,10 @@ misrepresented as being the original software.
   root.setCurKeyBinding = setCurKeyBinding;
 
   root.presentValue = presentValue;
+
+  root.escapeHtml = escapeHtml;
+
+  root.escapeAttr = escapeAttr;
 
 }).call(this);
 
