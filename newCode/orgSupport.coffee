@@ -570,21 +570,24 @@ escapeAttr = (str)->
 presentValue = (v)->
   if (getType v) == 'svgNode'
     cnt = v(-> id)
-    _svgPresent()(-> cnt)(-> id)
+    L_svgPresent()(-> cnt)(-> id)
   else if (getType v) == 'html' then rz(L_getHtml)(lz v)
   else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
   else escapeHtml show v
 
+
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
+  env =
+    presentValue: presentValue
+    readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
+    writeFile: ->
+    __proto__: defaultEnv
   if r
     r.innerHTML = ''
-    write: (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"
-    presentValue: presentValue
-    __proto__: defaultEnv
-  else
-    write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
-    __proto__: defaultEnv
+    env.write = (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"
+  else env.write = (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
+  env
 
 getResultsForSource = (parent, node)->
   checkReparse parent
@@ -953,3 +956,4 @@ root.setCurKeyBinding = setCurKeyBinding
 root.presentValue = presentValue
 root.escapeHtml = escapeHtml
 root.escapeAttr = escapeAttr
+root.restorePosition = restorePosition

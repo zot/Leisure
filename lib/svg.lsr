@@ -31,7 +31,7 @@ svgConcat nodeList = svgNode (strCat (svgNodes nodeList))
 
 svgElement name map = svgNode concat['<' name ' ' (insertFields map) '/>']
 
-svgMeasure content = primSvgMeasure content
+#svgMeasure content = primSvgMeasure content
 
 svgPresent content = svgMeasure content \x y w h .
   svgTemplate concat["width='" w "' height='" h "' viewbox='" x ' ' y ' ' w ' ' h "'"] content

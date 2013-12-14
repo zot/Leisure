@@ -456,22 +456,22 @@ define 'write', lz (msg)->
 
 define 'readFile', lz (name)->
   makeMonad (env, cont)->
-    readFile rz(name), (err, contents)->
+    env.readFile rz(name), (err, contents)->
       cont (if err then left err.stack ? err else right contents)
 
 define 'readDir', lz (dir)->
   makeMonad (env, cont)->
-    readDir rz(dir), (err, files)->
+    env.readDir rz(dir), (err, files)->
       cont (if err then left err.stack ? err else right files)
 
 define 'writeFile', lz (name)->(data)->
   makeMonad (env, cont)->
-    writeFile rz(name), rz(data), (err, contents)->
+    env.writeFile rz(name), rz(data), (err, contents)->
       cont (if err then left err.stack ? err else right contents)
 
 define 'statFile', lz (file)->
   makeMonad (env, cont)->
-    statFile rz(file), (err, stats)->
+    env.statFile rz(file), (err, stats)->
       cont (if err then left err.stack ? err else right stats)
 
 define 'prompt', lz (msg)->
@@ -647,7 +647,7 @@ define 'resetNameSpaceInfo', lz makeSyncMonad (enf, cont)->
 
 define 'setNameSpaceInfo', lz (info)->
   makeSyncMonad (env, cont)->
-    console.log "RESTORING NAME SPACE INFO: #{require('util').inspect rz info}"
+    #console.log "RESTORING NAME SPACE INFO: #{require('util').inspect rz info}"
     [root.nameSpacePath, root.currentNameSpace] = rz info
     nsLog "SETTING NAME SPACE: #{root.currentNameSpace}"
     cont _true

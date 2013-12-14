@@ -3,6 +3,10 @@
   lazy,
 } = root = module.exports = require './base'
 
+{
+  define,
+} = require './ast'
+
 rz = resolve
 lz = lazy
 
@@ -44,7 +48,7 @@ svgBetterMeasure = (content)-> primSvgMeasure content, transformStrokeWidth
 
 # try to take strokeWidth into account
 primSvgMeasure = (content, transformFunc)->(f)->
-  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000'><g>#{content()}</g></svg>"
+  svg = createNode "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='top: -100000'><g>#{content}</g></svg>"
   document.body.appendChild(svg)
   g = svg.firstChild
   bbox = g.getBBox()
@@ -53,6 +57,14 @@ primSvgMeasure = (content, transformFunc)->(f)->
   rz(f)(lz bbox.x - Math.ceil(pad/2))(lz bbox.y - Math.ceil(pad/2))(lz bbox.width + pad)(lz bbox.height + pad)
 
 baseElements = ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']
+
+foldLeft = (func, val, thing)->
+  if thing instanceof Leisure_cons then thing.foldl func, val
+  else primFoldLeft func, val, thing, 0
+
+primFoldLeft = (func, val, array, index)->
+  if index < array.length then primFoldLeft func, func(val, array[index]), array, index + 1
+  else val
 
 getMaxStrokeWidth = (el, base, svg, transformFunc)->
   if base.nodeName in baseElements
@@ -80,6 +92,10 @@ createNode = (txt)->
   scratch = document.createElement 'DIV'
   scratch.innerHTML = txt
   scratch.firstChild
+
+define 'svgMeasure', (lz (content)->svgMeasure(rz content)), 1
+
+define 'svgMeasureText', (lz (text)->svgMeasureText(rz text)), 1
 
 root.svgMeasure = svgMeasure
 root.svgMeasureText = svgMeasureText

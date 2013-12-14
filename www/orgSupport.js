@@ -784,7 +784,7 @@ misrepresented as being the original software.
       cnt = v(function() {
         return id;
       });
-      return _svgPresent()(function() {
+      return L_svgPresent()(function() {
         return cnt;
       })(function() {
         return id;
@@ -799,25 +799,31 @@ misrepresented as being the original software.
   };
 
   orgEnv = function(parent, node) {
-    var r;
+    var env, r;
     r = getResultsForSource(parent, node);
+    env = {
+      presentValue: presentValue,
+      readFile: function(filename, cont) {
+        return window.setTimeout((function() {
+          return $.get(filename, function(data) {
+            return cont(false, data);
+          });
+        }), 1);
+      },
+      writeFile: function() {},
+      __proto__: defaultEnv
+    };
     if (r) {
       r.innerHTML = '';
-      return {
-        write: function(str) {
-          return r.textContent += "\n: " + (str.replace(/\n/g, '\n: '));
-        },
-        presentValue: presentValue,
-        __proto__: defaultEnv
+      env.write = function(str) {
+        return r.textContent += "\n: " + (str.replace(/\n/g, '\n: '));
       };
     } else {
-      return {
-        write: function(str) {
-          return console.log(": " + (str.replace(/\n/g, '\n: ')) + "\n");
-        },
-        __proto__: defaultEnv
+      env.write = function(str) {
+        return console.log(": " + (str.replace(/\n/g, '\n: ')) + "\n");
       };
     }
+    return env;
   };
 
   getResultsForSource = function(parent, node) {
@@ -1443,6 +1449,8 @@ misrepresented as being the original software.
   root.escapeHtml = escapeHtml;
 
   root.escapeAttr = escapeAttr;
+
+  root.restorePosition = restorePosition;
 
 }).call(this);
 

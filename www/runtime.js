@@ -913,7 +913,7 @@ misrepresented as being the original software.
 
   define('readFile', lz(function(name) {
     return makeMonad(function(env, cont) {
-      return readFile(rz(name), function(err, contents) {
+      return env.readFile(rz(name), function(err, contents) {
         var _ref2;
         return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(contents)));
       });
@@ -922,7 +922,7 @@ misrepresented as being the original software.
 
   define('readDir', lz(function(dir) {
     return makeMonad(function(env, cont) {
-      return readDir(rz(dir), function(err, files) {
+      return env.readDir(rz(dir), function(err, files) {
         var _ref2;
         return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(files)));
       });
@@ -932,7 +932,7 @@ misrepresented as being the original software.
   define('writeFile', lz(function(name) {
     return function(data) {
       return makeMonad(function(env, cont) {
-        return writeFile(rz(name), rz(data), function(err, contents) {
+        return env.writeFile(rz(name), rz(data), function(err, contents) {
           var _ref2;
           return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(contents)));
         });
@@ -942,7 +942,7 @@ misrepresented as being the original software.
 
   define('statFile', lz(function(file) {
     return makeMonad(function(env, cont) {
-      return statFile(rz(file), function(err, stats) {
+      return env.statFile(rz(file), function(err, stats) {
         var _ref2;
         return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(stats)));
       });
@@ -1226,7 +1226,6 @@ misrepresented as being the original software.
   define('setNameSpaceInfo', lz(function(info) {
     return makeSyncMonad(function(env, cont) {
       var _ref2;
-      console.log("RESTORING NAME SPACE INFO: " + (require('util').inspect(rz(info))));
       _ref2 = rz(info), root.nameSpacePath = _ref2[0], root.currentNameSpace = _ref2[1];
       nsLog("SETTING NAME SPACE: " + root.currentNameSpace);
       return cont(_true);

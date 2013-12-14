@@ -30,6 +30,8 @@ initStorage = ->
   $('#repository').val localStorage.getItem 'githubRepository'
   $('#file').val localStorage.getItem 'githubFile'
 
+currentFile = null
+
 lastUpdate = 0
 
 getContent = (data)-> atob data.content
@@ -39,7 +41,7 @@ connectStorage = ->
   localStorage.setItem 'githubPassword', password = $('#password').val()
   localStorage.setItem 'githubUser', user = $('#user').val()
   localStorage.setItem 'githubRepository', repository = $('#repository').val()
-  localStorage.setItem 'githubFile', file = $('#file').val()
+  localStorage.setItem 'githubFile', currentFile = $('#file').val()
   connection = root.githubConnect username: name, password: password
   repo = connection.getRepo user, repository
   repo.getEvents null, (err, data)->
@@ -47,7 +49,7 @@ connectStorage = ->
     lastUpdate = new Date(data[0].created_at).getTime()
     getAllIssuesAndCommentsThen connection, user, repository, (issueList)->
       if !(storageListener in root.reparseListeners) then root.reparseListeners.push storageListener
-      contents = repo.contents 'master', file, (err, data)->
+      contents = repo.contents 'master', currentFile, (err, data)->
         if !err then reparse $('[maindoc]')[0], data
         else alert "ERROR: #{err}"
         document.body.classList.remove 'not-logged-in'
@@ -85,16 +87,21 @@ redrawIssues = (issues)->
   for issue in issues
     root.currentMode.redrawIssue issue
 
+getRelevantIssueName = (issue)->
+  if match = issue.title.trim().match new RegExp "^#{currentFile}:(.*)$"
+    issue.leisureName = match[1]
+  else null
+
 redrawIssue = (issue)->
-  issueName = issue.title.trim()
-  if !(name = $("[data-org-comments='#{issueName}']")).length
-    nameEl = $("[data-org-name='#{issueName}']")
-    if !nameEl.length then return
-    name = $(nameEl).after("<span data-org-comments='#{issueName}'></span>").next()
-    root = name[0].createShadowRoot()
-    root.applyAuthorStyles=true
-  console.log "first gravatar: #{issue.comments[0].gravatar_id}"
-  name[0]?.shadowRoot.innerHTML = "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}"
+  if issueName = getRelevantIssueName issue
+    if !(name = $("[data-org-comments='#{issueName}']")).length
+      nameEl = $("[data-org-name='#{issueName}']")
+      if !nameEl.length then return
+      name = $(nameEl).after("<span data-org-comments='#{issueName}'></span>").next()
+      root = name[0].createShadowRoot()
+      root.applyAuthorStyles=true
+    console.log "first gravatar: #{issue.comments[0].gravatar_id}"
+    name[0]?.shadowRoot.innerHTML = "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}"
 
 commentHtml = (comment, type)->
   "<div class='commentbox'><img src='http://gravatar.com/avatar/#{comment.user.gravatar_id}?s=48'><div class='#{type}'>#{comment.body}</div></div>"
@@ -108,13 +115,16 @@ addComment = (comment)->
     issue.comments.push comment
 
 addIssue = (issue)->
-  for label in issue.labels
-    if label.name == 'comment'
-      commentIssues[issue.title.trim()] = issue
-      commentIssueURLs[issue.url] = issue
-      return
-  delete commentIssues[issue.title.trim()]
-  delete commentIssueURLs[issue.url]
+  if name = getRelevantIssueName issue
+    for label in issue.labels
+      if label.name == 'comment'
+        commentIssues[name] = issue
+        commentIssueURLs[issue.url] = issue
+        return
+    # if this not a comment issue, but it used to be, remove the old data
+    if commentIssueURLs[issue.url]
+      delete commentIssues[name]
+      delete commentIssueURLs[issue.url]
 
 refreshIssueData = (index, urls, cont)->
   if index < urls.length then Github._request "GET", urls[index], null, (err, data)->
@@ -125,10 +135,10 @@ refreshIssueData = (index, urls, cont)->
     refreshIssueData index + 1, urls, cont
   else cont (commentIssueURLs[issue] for issue in urls)
 
-handleGithubEvent = (event)->
-  if event.type == 'IssueCommentEvent'
-    event.payload.comment.body
-  name = event.payload.issue.title
+# handleGithubEvent = (event)->
+#   if event.type == 'IssueCommentEvent'
+#     event.payload.comment.body
+#   name = event.payload.issue.title
 
 getAllIssuesAndCommentsThen = (con, userName, repoName, block)->
   issues = con.getIssues(userName, repoName)

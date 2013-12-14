@@ -78,12 +78,13 @@
                         display: inline-block;
                         vertical-align: middle;
                 }
-                .results-indicator *:before {
+                .results-indicator span:before {
                         content: '-->';
                 }
                 .codecontent {
                         border: solid gray 2px;
                         min-width: 200px;
+                        position: relative;
                 }
                 .coderesults {
                         border: solid blue 2px;
@@ -123,6 +124,14 @@
                 }
                 .ast-button {
                         position: absolute;
+                        right: 0;
+                        width: 16px;
+                        height: 16px;
+                        background-image: url(ast-small.png);
+                }
+                /*
+                .ast-button {
+                        position: absolute;
                         right: 2px;
                         top: 2px;
                         user-select: none;
@@ -132,6 +141,7 @@
                 .ast-button img {
                         max-width: 32px;
                 }
+                */
                 .ast {
                         position: relative;
                         overflow: visible;
@@ -205,11 +215,13 @@
         <script language="javascript">
           Error.stackTraceLimit = Infinity;
           window.Boot = {extraJsFiles: [
+                'browserSupport',
                 'orgSupport',
                 'githubExtensions',
                 'storage',
                 'fancyOrg',
                 'gui',
+                'parseAst',
           ]};
           function start() {
                 setTimeout(function() {

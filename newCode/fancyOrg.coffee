@@ -12,6 +12,13 @@ lz = lazy
   DEL,
 } = require './browserSupport'
 {
+  getType,
+} = require './ast'
+{
+  runMonad,
+  isMonad,
+} = require './runtime'
+{
   keywordRE,
   KW_BOILERPLATE,
   KW_NAME,
@@ -64,6 +71,7 @@ lz = lazy
   propsFor,
   escapeHtml,
   escapeAttr,
+  restorePosition,
 } = require './orgSupport'
 {
   redrawAllIssues,
@@ -128,7 +136,7 @@ markupLeisure = (org, name, intertext, content, lead, trail)->
     nameM = name.text.match keywordRE
     codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
   else codeBlock = ">"
-  html = "<div class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div><div class='codewrapper'><div class='codecontent'>#{escapeHtml content}<span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span></div>"
+  html = "<div class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div><div class='codewrapper'><div class='codecontent'>#{escapeHtml content}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   res = org.next
   intertext = ''
   while res && !(res instanceof Results) && !(res instanceof Keyword)
@@ -139,6 +147,43 @@ markupLeisure = (org, name, intertext, content, lead, trail)->
     pos = res.contentPos - res.offset
     html += "#{if intertext then "<div class='hidden' data-org-type='boundary'>" + escapeHtml(intertext) + "</div>" else ''}<div class='results-indicator' data-org-type='boundary'><span></span></div><div class='coderesults' #{orgAttrs res}><span class='hidden'>#{escapeHtml res.text.substring(0, pos)}</span><div>#{reprocessResults res.text.substring pos}</div></div>"
   html + (if name then "</div>#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div></div>")
+
+recreateAstButtons = (node)->
+  restorePosition node, ->
+    for button in $(node).find('.ast-button')
+      button.remove()
+    t = node.textContent
+    r = /^[^\n ]/gm
+    node.normalize()
+    cur = node.firstChild
+    prev = 0
+    while m = r.exec t
+      cur = cur.splitText m.index - prev
+      prev = m.index
+      div = document.createElement 'div'
+      div.setAttribute 'class', 'ast-button'
+      div.setAttribute 'contenteditable', 'false'
+      do (d = div, offset = m.index)-> div.onclick = (e)-> showAst d, offset
+      if prev == 0 then div.setAttribute 'style', 'top: 0'
+      node.insertBefore div, cur
+
+showAst = (astButton, offset)->
+  if !astButton.firstChild
+    astButton.innerHTML = "<div></div>"
+  console.log "Clicked ast button at offset #{offset}"
+  text = astButton.parentNode.textContent
+  nl = text.indexOf '\n', offset + 1
+  text = text.substring offset, (if nl < 0 then text.length else nl)
+  result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
+  runMonad result, baseEnv, (ast)->
+    if getType(ast) != 'parseErr'
+      console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
+      try
+        setShadowHtml astButton.firstChild, rz(L_wrappedTreeFor)(lz ast)(L_id)
+        ### --- replace current presenter with astButton
+      catch err
+
+show = (obj)-> rz(L_show)(lz obj)
 
 commentButton = (name)->
   "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\")' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
@@ -213,14 +258,8 @@ currentTextPosition = (parent, r)->
   else curPos = getTextPosition parent, r || getSelection().getRangeAt(0)
 
 crossesHidden = (delta)->
-  s = rangy.getSelection()
-  r = s.getRangeAt 0
-  if delta < 0 then r.moveStart 'character', delta else r.moveEnd 'character', delta
-  if r.startContainer == r.endContainer then false
-  else
-    for n in r.getNodes()
-      if r.containsNode(n) && isCollapsed n then return true
-    false
+  r = getSelection().getRangeAt 0
+  !(0 <= r.startOffset < r.startContainer.length) && isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) r.startContainer
 
 bindContent = (div)->
   div.addEventListener 'mousedown', (e)-> setCurKeyBinding null
@@ -237,11 +276,13 @@ bindContent = (div)->
       cancelled = false
     if !bound
       if modifyingKey c
+        n = s.focusNode
         el = r.startContainer
         par = el.parentNode
-        n = s.focusNode
         currentMatch = matchLine currentLine div
-        if c == ENTER
+        if String.fromCharCode(c) == 'C' && e.altKey
+          root.orgApi.executeSource div, getSelection().focusNode
+        else if c == ENTER
           e.preventDefault()
           if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
             br = document.createTextNode('\n')
@@ -262,30 +303,27 @@ bindContent = (div)->
           else if c == BS && bsWillDestroyParent r
             e.preventDefault()
             el.data = el.data.substring 1
-        else if el.nodeType == 3 && el.data == '\n'
+        else if el.nodeType == 3
           setTimeout (->
             if el.data[el.data.length - 1] != '\n'
-              el.data += '\n'
-              sel = getSelection()
-              r = sel.getRangeAt 0
-              r.setStart el, 1
-              r.setEnd el, 1
-              sel.removeAllRanges()
-              sel.addRange r
-            checkSourceMod div, currentMatch), 1
+              restorePosition el.parentNode, -> el.data += '\n'
+            fancyCheckSourceMod n, div, currentMatch), 1
           return
     if !cancelled && checkMod
       if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
-      setTimeout (->checkSourceMod div, currentMatch), 1
+      setTimeout (->fancyCheckSourceMod n, div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
 
+isCodeContainer = (node)-> node.classList.contains 'codecontent'
+
+fancyCheckSourceMod = (focus, div, currentMatch)->
+  if isCodeContainer focus.parentNode then recreateAstButtons focus.parentNode
+
 bsWillDestroyParent = (r)->
   if r.startContainer.nodeType == 3 && r.startOffset == 1 && r.startContainer.data.match /^.\n?$/
-    r2 = rangy.createRangyRange()
-    r2.selectNodeContents r.startContainer.parentNode
-    r2.text() == r.startContainer.data
+    r.startContainer.parentNode.textContent == r.startContainer.data
   else false
 
 handleMutation = (evt)->
@@ -321,7 +359,7 @@ setShadowHtml = (holder, html)->
   el.innerHTML = html
 
 redrawIssue = (issue)->
-  issueName = issue.title.trim()
+  issueName = issue.leisureName
   if (name = $("[data-org-comments='#{issueName}']")).length
     console.log "Showing comment button for #{issueName}"
     count = issue.comments.length + 1
@@ -344,16 +382,19 @@ orgEnv = (parent, node)->
   r = getResultsForSource parent, node
   if r
     r.innerHTML = ''
+    __proto__: defaultEnv
+    readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     write: (str)-> r.innerHTML += processResults str
     presentValue: presentValue
-    __proto__: defaultEnv
   else
-    write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
     __proto__: defaultEnv
+    readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
+    write: (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
 
 baseEnv =
-  write: (str)-> console.log processResults str
   __proto__: defaultEnv
+  readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
+  write: (str)-> console.log processResults str
 
 fancyOrg =
   __proto__: orgNotebook
@@ -366,6 +407,8 @@ fancyOrg =
       console.log "HTML SRC: ", node, "TEXT: #{node.getAttribute 'data-org-html'}"
       setShadowHtml node, node.innerHTML
       node.innerHTML = ''
+    for node in $('.codecontent')
+      recreateAstButtons node
     setTimeout (=>
       for node in $('[data-org-results]')
         switch $(node).attr('data-org-results').toLowerCase()
@@ -384,3 +427,4 @@ fancyOrg =
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
 root.addComment = addComment
+root.recreateAstButtons = recreateAstButtons
