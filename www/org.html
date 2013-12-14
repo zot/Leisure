@@ -129,6 +129,22 @@
                         height: 16px;
                         background-image: url(ast-small.png);
                 }
+                .ast-button.showing {
+                        right: auto;
+                        left: calc(100% - 16px);
+                }
+                .ast-button > * {
+                        position: absolute;
+                        left: 20px;
+                        z-index: 1000;
+                }
+                .ast svg {
+                        z-index: 1000;
+                        padding: 15px;
+                        background: white;
+                        border: solid black 2px;
+                        border-radius: 10px;
+                }
                 /*
                 .ast-button {
                         position: absolute;
@@ -141,15 +157,11 @@
                 .ast-button img {
                         max-width: 32px;
                 }
-                */
                 .ast {
                         position: relative;
                         overflow: visible;
                         vertical-align: top;
                         display: none;
-                }
-                .showcomments.ast {
-                        display: inline-block;
                 }
                 .ast > * {
                         position: absolute;
@@ -159,6 +171,10 @@
                         border-radius: 10px;
                         border: solid gray 2px;
                         margin-left: 5px;
+                }
+                */
+                .showcomments.ast {
+                        display: inline-block;
                 }
                 #leisure_bar {
                         min-height: 28px;

@@ -80,6 +80,12 @@ _ = require './lodash.min'
 
 lastOrgOffset = -1
 curPos = -1
+emptyPresenter = hide: ->
+presenter = emptyPresenter
+
+replacePresenter = (pres)->
+  presenter.hide()
+  presenter = pres
 
 markupOrg = (text)->
   [node, result] = markupOrgWithNode text
@@ -163,24 +169,31 @@ recreateAstButtons = (node)->
       div = document.createElement 'div'
       div.setAttribute 'class', 'ast-button'
       div.setAttribute 'contenteditable', 'false'
-      do (d = div, offset = m.index)-> div.onclick = (e)-> showAst d, offset
+      do (d = div, offset = m.index)-> div.onmousedown = (e)-> showAst e, d, offset
       if prev == 0 then div.setAttribute 'style', 'top: 0'
       node.insertBefore div, cur
 
-showAst = (astButton, offset)->
-  if !astButton.firstChild
-    astButton.innerHTML = "<div></div>"
-  console.log "Clicked ast button at offset #{offset}"
-  text = astButton.parentNode.textContent
-  nl = text.indexOf '\n', offset + 1
-  text = text.substring offset, (if nl < 0 then text.length else nl)
-  result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
-  runMonad result, baseEnv, (ast)->
-    if getType(ast) != 'parseErr'
-      console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
-      try
-        setShadowHtml astButton.firstChild, rz(L_wrappedTreeFor)(lz ast)(L_id)
-      catch err
+showAst = (evt, astButton, offset)->
+  evt.preventDefault()
+  evt.stopPropagation()
+  if presenter.button == astButton then replacePresenter emptyPresenter
+  else
+    if !astButton.firstChild then astButton.innerHTML = "<div></div>"
+    console.log "Clicked ast button at offset #{offset}"
+    text = astButton.parentNode.textContent
+    nl = text.indexOf '\n', offset + 1
+    text = text.substring offset, (if nl < 0 then text.length else nl)
+    result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
+    runMonad result, baseEnv, (ast)->
+      if getType(ast) != 'parseErr'
+        console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
+        try
+          setShadowHtml astButton.firstChild, "<div class='ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
+          #astButton.firstChild.innerHTML = "<div class='ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
+          replacePresenter
+            hide: -> astButton.firstChild.remove()
+            button: astButton
+        catch err
 
 show = (obj)-> rz(L_show)(lz obj)
 
@@ -189,9 +202,6 @@ commentButton = (name)->
 
 commentBlock = (name)->
   "<div class='comments' data-org-comments='#{escapeAttr name}'><div></div></div>"
-
-astButton = (name)->
-  "<button class='ast-button' onclick='Leisure.toggleAst(\"#{escapeAttr name.info.trim()}\")' contenteditable='false'><img src='icons/monotone_groups.png'></button>"
 
 toggleComment = (name)->
   block = $("[data-org-comments=#{name}]")
@@ -261,7 +271,9 @@ crossesHidden = (delta)->
   !(0 <= r.startOffset < r.startContainer.length) && isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) r.startContainer
 
 bindContent = (div)->
-  div.addEventListener 'mousedown', (e)-> setCurKeyBinding null
+  div.addEventListener 'mousedown', (e)->
+    replacePresenter emptyPresenter
+    setCurKeyBinding null
   div.addEventListener 'keydown', (e)->
     curPos = -1
     c = (e.charCode || e.keyCode || e.which)

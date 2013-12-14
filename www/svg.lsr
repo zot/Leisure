@@ -10,7 +10,7 @@ insertFields map = (isNil map) ''
 
 svgTemplate attrs contents = html concat['<svg xmlns="http://www.w3.org/2000/svg" version="1.1" ' attrs '>' contents '</svg>']
 
-svg o map = svgTemplate concat['style="width: ' (assocGetWithDefault 'width' 100 map) '; height: '  (assocGetWithDefault 'height' 100 map) '"'] (o id)
+svg o map = svgTemplate concat['style="width: ' (assocGetWithDefault 'width' 100 map) 'px; height: '  (assocGetWithDefault 'height' 100 map) 'px"'] (o id)
 
 svgFile map = html concat['<object xmlns="http://www.w3.org/2000/svg" version="1.1" ' (insertFields map) '</object>']
 
