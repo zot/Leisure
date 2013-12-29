@@ -11,7 +11,7 @@
   Results,
 } = require './org'
 {
-  reparse,
+  loadOrg,
 } = require './orgSupport'
 
 Github = require './github'
@@ -36,6 +36,13 @@ lastUpdate = 0
 
 getContent = (data)-> atob data.content
 
+useFile = (file)->
+  reader = new FileReader()
+  reader.onload = (e)-> loadOrg $('[maindoc]')[0], e.target.result
+  reader.readAsText file
+  document.body.classList.remove 'not-logged-in'
+  checkEvents lastUpdate, 1, []
+
 connectStorage = ->
   localStorage.setItem 'githubName', name = $('#name').val()
   localStorage.setItem 'githubPassword', password = $('#password').val()
@@ -50,7 +57,7 @@ connectStorage = ->
     getAllIssuesAndCommentsThen connection, user, repository, (issueList)->
       if !(storageListener in root.reparseListeners) then root.reparseListeners.push storageListener
       contents = repo.contents 'master', currentFile, (err, data)->
-        if !err then reparse $('[maindoc]')[0], data
+        if !err then loadOrg $('[maindoc]')[0], data
         else alert "ERROR: #{err}"
         document.body.classList.remove 'not-logged-in'
         checkEvents lastUpdate, 1, []
@@ -181,3 +188,4 @@ storageListener = (parent, orgNode, orgText)->
 root.initStorage = initStorage
 root.connectStorage = connectStorage
 root.redrawAllIssues = redrawAllIssues
+root.useFile = useFile

@@ -9,6 +9,7 @@
                 }
                 [maindoc] {
                         white-space: pre-wrap;
+                        outline: none;
                 }
                 [data-org-type="headline"] > [data-org-type="text"] {
                         color: orange;
@@ -49,7 +50,7 @@
                 }
                 /* fancy org mode stuff  */
                 .hidden {
-                        display: none;
+                        display: none !important;
                 }
                 .boundary {
                         white-space: pre-wrap;
@@ -68,10 +69,11 @@
                         padding-left: 24px;
                 }
                 .codewrapper {
+                        white-space: pre-wrap;
                         position: relative;
                         vertical-align: middle;
                 }
-                .codecontent, .coderesults, .results-indicator {
+                .org-fancy [data-org-src], .coderesults, .results-indicator {
                         border-radius: 10px;
                         padding: 3px;
                         background: white;
@@ -80,8 +82,13 @@
                 }
                 .results-indicator span:before {
                         content: '-->';
+                        white-space: pre;
                 }
-                .codecontent {
+                .org-num:hover {
+                        outline: solid gray 2px;
+                }
+                .org-fancy [data-org-src] {
+                        padding-right: 20px;
                         border: solid gray 2px;
                         min-width: 200px;
                         position: relative;
@@ -89,6 +96,14 @@
                 .coderesults {
                         border: solid blue 2px;
                         min-width: 100px;
+                        height: 100%;
+                }
+                [data-org-results="def"] .coderesults,
+                [data-org-results="def"] .results-indicator {
+                        display: none;
+                }
+                .resultscontent {
+                        white-space: pre;
                 }
                 .comments {
                         position: relative;
@@ -220,14 +235,31 @@
                         border-width: 13px 61px 29px 61px;
                         border-image: url(images/decorative-border-pages-book-hi.png) 13 61 29 61 stretch; /* top: 13 bottom: 29 left/right: 61*/
                 }
+                .slides [data-org-headline='1'] {
+                        display: none;
+                }
+                .slides [data-org-headline='1'].currentSlide {
+                        display: block;
+                        /*border: none;*/
+                        /*
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        */
+                }
+                .slides #sourceblock {
+                        display: none;
+                }
+                .slides .tags {
+                        display: none;
+                }
         </style>
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->
         <!--script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script-->
         <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
         <script src="jquery-ui/js/jquery-1.8.2.js"></script>
         <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
-        <script src="rangy-core.js"></script>
-        <script src="rangy-textrange.js"></script>
         <script language="javascript">
           Error.stackTraceLimit = Infinity;
           window.Boot = {extraJsFiles: [
@@ -266,14 +298,18 @@
   <body class="loading not-logged-in">
     <div id="loading">LOADING ORG</div>
 <div id="login">
+<h2>Github</h2>
 Github Login: <input id='name' type='text'> Password: <input id='password' type='password'><hr>
 User: <input id='user' type='text'><br>
 Repository: <input id='repository' type='text'><br>
 File: <input id='file' type='text'><br>
 <button onclick="Leisure.connectStorage()">Connect</button>
+<hr>
+<h2>Local</h2>
+File: <input type="file" onchange="Leisure.useFile(this.files[0])">
 </div>
 <div id="panel">
-<div maindoc style='border: green solid 2px' contenteditable='true'><!--
+  <div maindoc contenteditable='true'><!--
 * code :duh:
 #+BEGIN_SRC leisure :results dynamic
 3 + 4
@@ -287,8 +323,10 @@ File: <input id='file' type='text'><br>
 * two
 
 --></div>
-<br>Source...
-<div id='source' style="white-space: pre-wrap; border: blue solid 2px"></div>
+  <div id='sourceblock'>
+    <br>Source...
+    <div id='source' style="white-space: pre-wrap; border: blue solid 2px"></div>
+  </div>
 </div>
 <script>start()</script>
   </body>

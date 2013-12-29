@@ -31,7 +31,7 @@ root = module.exports
 todoKeywords = ['TODO', 'DONE']
 
 buildHeadlineRE = ->
-  new RegExp '^(\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?[^\\n]*?([\\w@%#]*:[\\w@%#:]*)? *$', 'm'
+  new RegExp '^(\\*+) *(' + todoKeywords.join('|') + ')?(?: *(?:\\[#(A|B|C)\\]))?[^\\n]*?((?:[\\w@%#]*:[\\w@%#:]*)? *)$', 'm'
 HL_LEVEL = 1
 HL_TODO = 2
 HL_PRIORITY = 3
@@ -56,13 +56,20 @@ DRAWER_BOILERPLATE = 1
 DRAWER_NAME = 2
 drawerRE = /^( *:)([^\n:]*): *$/im
 endRE = /^ *:END: *$/im
+LIST_LEVEL = 1
+LIST_BOILERPLATE = 2
+LIST_CHECK = 3
+LIST_CHECK_VALUE = 4
+LIST_INFO = 5
+listRE = /^( *)(- *)(\[( |X)\] +)?(.*)$/m
 
 matchLine = (txt)->
   checkMatch(txt, srcStartRE, 'srcStart') ||
   checkMatch(txt, srcEndRE, 'srcEnd') ||
   checkMatch(txt, resultsRE, 'results') ||
   checkMatch(txt, keywordRE, 'keyword') ||
-  checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].length}")
+  checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].length}") ||
+  checkMatch(txt, listRE, 'list')
 
 checkMatch = (txt, pat, result)->
   m = txt.match pat
@@ -71,6 +78,7 @@ checkMatch = (txt, pat, result)->
   else false
 
 class Node
+  constructor: -> @markup = markupText @text
   length: -> @text.length
   end: -> @offset + @text.length
   toJson: -> JSON.stringify @toJsonObject(), null, "  "
@@ -86,7 +94,7 @@ class Node
   allTags: -> @parent?.allTags() ? []
 
 class Headline extends Node
-  constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)->
+  constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)-> super()
   block: true
   lowerThan: (l)-> l < @level
   length: -> @end() - @offset
@@ -135,7 +143,7 @@ class Headline extends Node
   allTags: -> k for k of @addAllTags()
 
 class Meat extends Node
-  constructor: (@text, @offset)->
+  constructor: (@text, @offset)-> super()
   lowerThan: (l)-> true
   type: 'meat'
   toJsonObject: ->
@@ -143,8 +151,22 @@ class Meat extends Node
     text: @text
     offset: @offset
 
+class ListItem extends Meat
+  constructor: (@text, @offset, @contentOffset, @level, @checked, @info)-> super @text, @offset
+  type: 'list'
+  toJsonObject: ->
+    obj =
+      type: @type
+      text: @text
+      level: @level
+      offset: @offset
+      contentOffset: @contentOffset
+      info: @info
+    if @checked? then obj.checked = @checked
+    obj
+
 class Keyword extends Meat
-  constructor: (@text, @offset, @name, @info)->
+  constructor: (@text, @offset, @name, @info)-> super @text, @offset
   block: true
   type: 'keyword'
   toJsonObject: ->
@@ -155,7 +177,7 @@ class Keyword extends Meat
     info: @info
 
 class Source extends Keyword
-  constructor: (@text, @offset, @name, @info, @content, @contentPos)->
+  constructor: (@text, @offset, @name, @info, @content, @contentPos)-> super @text, @offset, @name, @info
   type: 'source'
   toJsonObject: ->
     type: @type
@@ -167,7 +189,7 @@ class Source extends Keyword
     contentPos: @contentPos
 
 class Results extends Keyword
-  constructor: (@text, @offset, @name, @contentPos)->
+  constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
   type: 'results'
   toJsonObject: ->
     type: @type
@@ -175,6 +197,15 @@ class Results extends Keyword
     offset: @offset
     name: @name
     contentPos: @contentPos
+
+# Marked up text, Spans and Links.  They have optional 'next' attributes pointing to the next item
+# attribute is one of: bold, italic, underline, verbatim, strike-through
+# content is a string or a span
+class Span
+  constructor: (@attribute, @content)->
+
+class Link
+  constructor: (@text, @target)->
 
 #
 # Parse the content of an orgmode file
@@ -218,6 +249,7 @@ parseMeat = (meat, offset, rest)->
   srcStart = meat.match srcStartRE
   keyword = meat.match keywordRE
   results = meat.match resultsRE
+  list = meat.match listRE
   if results?.index == 0
     line = fullLine results, meat
     parseResults line, offset, meat.substring(line.length) + rest
@@ -227,9 +259,13 @@ parseMeat = (meat, offset, rest)->
   else if keyword?.index == 0
     line = fullLine keyword, meat
     parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest
+  else if list?.index == 0
+    console.log "MATCHED LIST: #{JSON.stringify list}"
+    line = fullLine list, meat
+    parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest
   else
     first = meat.length + offset
-    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first)
+    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first)
     [new Meat(meat.substring(0, first), offset), meat.substring(first) + rest]
 
 parseResults = (text, offset, rest)->
@@ -253,12 +289,21 @@ parseSrcBlock = (text, offset, info, rest)->
     endLine = fullLine end, rest.substring end.index
     [new Source(text + rest.substring(0, end.index + endLine.length), offset, text.match(srcStartRE)[SRC_NAME], info, rest.substring(0, end.index), offset + text.length), rest.substring end.index + endLine.length]
 
+parseList = (match, text, offset, level, check, info, rest)->
+  [new ListItem(text, offset, listContentOffset(match), level, check == 'X' || (if check == ' ' then false else null), info), rest]
+
+listContentOffset = (match)->
+  match[LIST_LEVEL].length + match[LIST_BOILERPLATE].length + (match[LIST_CHECK]?.length ? 0)
+
+markupText = (text)->
+
 root.parseOrgMode = parseOrgMode
 root.Headline = Headline
 root.Meat = Meat
 root.Keyword = Keyword
 root.Source = Source
 root.Results = Results
+root.ListItem = ListItem
 root.headlineRE = headlineRE
 root.HL_TAGS = HL_TAGS
 root.parseTags = parseTags

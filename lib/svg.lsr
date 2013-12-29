@@ -36,6 +36,8 @@ svgElement name map = svgNode concat['<' name ' ' (insertFields map) '/>']
 svgPresent content = svgMeasure content \x y w h .
   svgTemplate concat["width='" w "' height='" h "' viewbox='" x ' ' y ' ' w ' ' h "'"] content
 
+defCase presentHtml.svgNode obj | hasType obj svgNode -> svgPresent (obj id) id
+
 circle map = svgElement 'circle' ((isNil map) defaultCircleMap map)
 rect map = svgElement 'rect' ((isNil map) defaultRectMap map)
 ellipse map = svgElement 'ellipse' ((isNil map) defaultEllipseMap map)

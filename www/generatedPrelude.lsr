@@ -968,12 +968,19 @@ countedRunLine file names countedLine = \\
   \ast . \\
     wrapped = astFileWrap file ast
     .
-    bind (runAst (tail countedLine) wrapped)
-      \result . cons
-        wrapped
-        isParseErr result
-          left (parseErrMsg result)
-          right result
+    \\
+      value = runAst (tail countedLine) wrapped
+      .
+      not (== (getType value) 'monad')
+        resultOfRun wrapped value
+        bind (runAst (tail countedLine) wrapped)
+          \result . resultOfRun wrapped result
+
+resultOfRun wrapped result = cons
+  wrapped
+  isParseErr result
+    left (parseErrMsg result)
+    right result
 
 #astFileWrap parsed ast = d "AST POSITION: " (showPos (position parsed)) ast
 astFileWrap file ast = anno 'filename' (basename file) ast

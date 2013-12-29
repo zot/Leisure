@@ -539,6 +539,33 @@ subcurry = (arity, func, args)->
     if arity == 1 then func(args.toArray().reverse()) else subcurry arity - 1, func, args
 
 #######################
+# Presentation
+#######################
+
+presentationReplacements =
+  '<': '&lt;'
+  '>': '&gt;'
+  '&': '&amp;'
+  '\n': '\\n'
+  '\\': '\\\\'
+
+escapePresentationHtml = (str)->
+  if typeof str == 'string' then str.replace /[<>&\n\\]/g, (c)-> presentationReplacements[c]
+  else str
+
+presentationToHtmlReplacements =
+  '&lt;': '<'
+  '&gt;': '>'
+  '&amp;': '&'
+  '\\n': '\n'
+  '\\\\': '\\'
+
+unescapePresentationHtml = (str)-> str.replace /&lt;|&gt;|&amp;|\\n|\\/g, (c)-> presentationToHtmlReplacements[c]
+
+define 'escapeHtml', lz (h)-> escapePresentationHtml rz(h)
+define 'unescapeHtml', lz (h)-> unescapePresentationHtml rz(h)
+
+#######################
 # AMTs
 #######################
 
@@ -726,6 +753,8 @@ root.callMonad = callMonad
 root.basicCall = basicCall
 root.booleanFor = booleanFor
 root.newConsFrom = consFrom
+root.escapePresentationHtml = escapePresentationHtml
+root.unescapePresentationHtml = unescapePresentationHtml
 
 if window?
   window.runMonad = runMonad

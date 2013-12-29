@@ -86,6 +86,10 @@ $(WEB_JS): $(BROWSER_JS) $(WEB_COFFEE) $(CSS_OUT)
 lib/%.js: newCode/%.coffee
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)
 
+lib/svg.js: newCode/svg.lsr
+	$(NODE) lib/repl -c -d lib -r './std' $(@:lib/%.js=newCode/%.lsr)
+	cp $(@:lib/%.js=newCode/%.lsr) lib
+
 lib/%.js: newCode/%.lsr $(NEW_COFFEE_JS)
 	$(NODE) lib/repl -c -d lib $(@:lib/%.js=newCode/%.lsr)
 	cp $(@:lib/%.js=newCode/%.lsr) lib

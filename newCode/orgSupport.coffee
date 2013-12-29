@@ -25,6 +25,8 @@ misrepresented as being the original software.
 {
   getType,
   cons,
+  define,
+  unescapePresentationHtml,
 } = require './ast'
 {
   resolve,
@@ -91,9 +93,22 @@ initOrg = (parent, source)->
     .prependTo(document.body)
     .mousedown (e)->
       e.preventDefault()
-      swapMarkup()
+      #swapMarkup()
+      root.currentMode.leisureButton()
   (root.currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
   Leisure.initStorage '#login', '#panel', root.currentMode
+
+splitLines = (str)->
+  result = []
+  pos = 0
+  while pos < str.length
+    nl = str.indexOf '\n', pos
+    if nl == -1
+      result.push (str.substring pos) + '\n'
+      break
+    else result.push str.substring pos, nl + 1
+    pos = nl + 1
+  result
 
 moveCaret = (r, node, offset)->
   r.setStart node, offset
@@ -125,8 +140,6 @@ findCharForColumn = (node, col, start, end)->
       moveCaret testRng, node, testRng.startOffset
       return true
   false
-
-#rectFor = (node)-> (if node.nodeType == 3 then node.parentNode else node).getBoundingClientRect()
 
 rectFor = (node)->
   r = document.createRange()
@@ -198,19 +211,28 @@ moveSelectionFB = (parent, r, start, delta)->
   r.collapse start
   startContainer = r.startContainer
   startOffset = r.startOffset + delta
-  #check for boundary crossing
-  if !(0 <= startOffset < startContainer.length)
-    move = (if delta < 0 then textNodeBefore else textNodeAfter)
-    startContainer = move startContainer
-    if isCollapsed startContainer
-      while isCollapsed startContainer
+  move = (if delta < 0 then textNodeBefore else textNodeAfter)
+  while true
+    if isCollapsed startContainer then startContainer = move startContainer
+    else
+      #check for boundary crossing
+      if !(0 <= startOffset <= startContainer.length)
         startContainer = move startContainer
-    if delta < 0 && startContainer != null then startOffset = startContainer.length - 1
-    else startOffset = 0
-  if startContainer != null && contains parent, startContainer
-    r.setStart startContainer, startOffset
-    r.collapse true
-    selectRange r
+        if isCollapsed startContainer
+          while isCollapsed startContainer
+            startContainer = move startContainer
+        if delta < 0 && startContainer != null then startOffset = startContainer.length - 1
+        else startOffset = 1
+      if startContainer != null && contains parent, startContainer
+        if startOffset < startContainer.length
+          r.setStart startContainer, startOffset
+          r.collapse true
+          selectRange r
+          return
+        else
+          startContainer = move startContainer
+          startOffset = 0
+      else return
 
 # functions return whether to check for mods
 keyFuncs =
@@ -274,6 +296,7 @@ isCollapsed = (node)->
   node.shadowRoot?))
 
 markupOrg = (text)->
+  console.log "MARKUP"
   [node, result] = markupOrgWithNode text
   result
 
@@ -304,11 +327,14 @@ isDynamic = (org)-> org instanceof Source && org.info.match /:results .*dynamic/
 
 isDef = (org)-> org instanceof Source && org.info.match /:results .*def/i
 
+orgSrcAttrs = (org)->
+  "data-org-src='#{if isDef org then 'def' else if isDynamic org then 'dynamic' else 'example'}'"
+
 markupNode = (org, start)->
   if org instanceof Source || org instanceof Results
     pos = org.contentPos - org.offset - 1
     text = org.text.substring pos
-    "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span>#{contentSpan text}</span>"
+    "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else "<span #{orgAttrs org}>#{content org.text}</span>"
 
@@ -552,11 +578,12 @@ checkSourceMod = (parent, oldMatch)->
       when 'dynamic' then root.orgApi.executeSource parent, r.startContainer
       when 'def' then root.orgApi.executeDef n
 
+replacements =
+  '<': '&lt;'
+  '>': '&gt;'
+
 escapeHtml = (str)->
-  if typeof str == 'string' then str.replace /[<>]/g, (c)->
-    switch c
-      when '<' then '&lt;'
-      when '>' then '&gt;'
+  if typeof str == 'string' then str.replace /[<>]/g, (c)-> replacements[c]
   else str
 
 escapeAttr = (str)->
@@ -567,13 +594,13 @@ escapeAttr = (str)->
       when '&' then '&amp;'
   else str
 
-presentValue = (v)->
-  if (getType v) == 'svgNode'
-    cnt = v(-> id)
-    L_svgPresent()(-> cnt)(-> id)
-  else if (getType v) == 'html' then rz(L_getHtml)(lz v)
-  else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
-  else escapeHtml show v
+presentValue = (v)-> rz(L_showHtml) lz v
+#  if (getType v) == 'svgNode'
+#    cnt = v(-> id)
+#    L_svgPresent()(-> cnt)(-> id)
+#  else if (getType v) == 'html' then rz(L_getHtml)(lz v)
+#  else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
+#  else escapeHtml show v
 
 
 orgEnv = (parent, node)->
@@ -582,12 +609,19 @@ orgEnv = (parent, node)->
     presentValue: presentValue
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     writeFile: ->
+    newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     __proto__: defaultEnv
   if r
     r.innerHTML = ''
     env.write = (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"
   else env.write = (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
   env
+
+baseEnv =
+  __proto__: defaultEnv
+  readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
+  write: (str)-> console.log unescapePresentationHtml str
+  newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
 
 getResultsForSource = (parent, node)->
   checkReparse parent
@@ -615,25 +649,37 @@ nativeRange = (r)->
   else
     r2 = document.createRange()
     container = if r instanceof Array then r[0] else r.startContainer
-    offset = if r instanceof Array then r[1] else r.startOffset
-    r2.setStart container, offset
-    r2.setEnd container, offset
-    r2
+    if !container then null
+    else
+      offset = if r instanceof Array then r[1] else r.startOffset
+      r2.setStart container, offset
+      r2.setEnd container, offset
+      r2
+
+hasParent = (node, ancestor)-> node == ancestor || (node && hasParent node.parent, ancestor)
 
 restorePosition = (parent, block)->
   sel = getSelection()
+  #if sel.rangeCount && hasParent sel.focusNode, $(parent)
   if sel.rangeCount
+    #if !(hasParent sel.focusNode, $(parent)[0]) then console.log parent, 'is not a parent of ', sel.focusNode
     r = sel.getRangeAt 0
     start = getTextPosition $(parent)[0], r.startContainer, r.startOffset
     end = getTextPosition $(parent)[0], r.endContainer, r.endOffset
     block()
     if start > -1
-      r = nativeRange findDomPosition $(parent)[0], start
-      [endContainer, endOffset] = findDomPosition $(parent)[0], end
-      r.setEnd endContainer, endOffset
-      sel.removeAllRanges()
-      sel.addRange r
+      if r = nativeRange findDomPosition $(parent)[0], start
+        [endContainer, endOffset] = findDomPosition $(parent)[0], end
+        r.setEnd endContainer, endOffset
+        sel.removeAllRanges()
+        sel.addRange r
   else block()
+
+loadOrg = (parent, text)->
+  reparse parent, text
+  setTimeout (->
+    for node in $(parent).find('[data-org-src="def"]')
+      executeDef node), 1
 
 reparse = (parent, text)->
   styleCache = {}
@@ -677,17 +723,18 @@ propsFor = (node)->
   if name then props = cons cons('block', name), props
   props
 
-executeText = (text, props, env)->
+executeText = (text, props, env, cont)->
   old = getValue 'parser_funcProps'
   setValue 'parser_funcProps', props
   result = rz(L_baseLoadString)('notebook')(text)
   runMonad result, env, (results)->
     while results != L_nil()
       res = results.head().tail()
-      if getType(res) == 'left' then orgEnv.write "PARSE ERROR: #{getLeft res}"
-      else env.write env.presentValue getRight res
+      if getType(res) == 'left' then env.write "PARSE ERROR: #{getLeft res}"
+      else env.write String(env.presentValue getRight res)
       results = results.tail()
     setValue 'parser_funcProps', old
+    cont?()
 
 getSource = (node)->
   while node && !isSourceNode node
@@ -697,15 +744,24 @@ getSource = (node)->
     m = txt.match /(^|\n)#\+end_src/i
     if m then txt.substring(0, m.index) else null
 
-executeSource = (parent, node)->
+executeSource = (parent, node, cont)->
   if isSourceNode node
     checkReparse parent
-    if txt = getSource node then executeText txt, propsFor(node), orgEnv parent, node
+    if txt = getSource node then executeText txt, propsFor(node), orgEnv(parent, node), cont
     else console.log "No end for src block"
   else if getOrgType(node) == 'text' then needsReparse = true
   else !isDocNode(node) && executeSource parent, node.parentElement
 
-executeDef = (node)-> if txt = getSource node then executeText txt, propsFor(node), baseEnv
+getNodeSource = (node)->
+  while !isSourceNode node
+    node = node.parentNode
+    if !node then return []
+  [node, $(node).find('[data-org-src]')[0].textContent]
+
+# given a node, find the enclosing source node and execute it's content as a definition
+executeDef = (node, cont)->
+  [srcNode, text] = getNodeSource node
+  if srcNode then executeText text, propsFor(srcNode), baseEnv, cont
 
 followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(node.parentNode)[0]
 
@@ -742,7 +798,6 @@ cleanHeadline = (node)->
 handleMutation = (evt)->
   if !modifying
     invalidateOrgText()
-    console.log "MUTATE"
     modifying = true
     if (node = getCollapsible evt.srcElement) && (node.getAttribute('data-org-type') == 'headline')
       node.setAttribute 'dirty', 'true'
@@ -897,17 +952,19 @@ basicOrg =
   executeSource: executeSource
   createResults: createResults
   installOrgDOM: (parent, orgNode, orgText)->
+    parent.setAttribute 'class', 'org-plain'
     orgNotebook.installOrgDOM parent, orgNode, orgText
-    setTimeout (=>
-      for node in $('[data-org-dynamic="true"]')
-        @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
-      for node in $('[data-org-results]')
-        switch $(node).attr('data-org-results').toLowerCase()
-          when 'dynamic' then @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
-          when 'def'
-            n = $(node).find('[data-org-type=text]')[0].nextElementSibling
-            executeText n.textContent, propsFor(node), orgEnv parent, n), 1
+    #setTimeout (=>
+    #  for node in $('[data-org-dynamic="true"]')
+    #    @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
+    #  for node in $('[data-org-results]')
+    #    switch $(node).attr('data-org-results').toLowerCase()
+    #      when 'dynamic' then @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
+    #      when 'def'
+    #        n = $(node).find('[data-org-type=text]')[0].nextElementSibling
+    #        executeText n.textContent, propsFor(node), orgEnv parent, n), 1
   bindings: defaultBindings
+  leisureButton: swapMarkup
 
 root.basicOrg = basicOrg
 root.orgNotebook = orgNotebook
@@ -941,8 +998,10 @@ root.modifyingKey = modifyingKey
 root.getOrgParent = getOrgParent
 root.getOrgType = getOrgType
 root.executeText = executeText
+root.executeDef = executeDef
 root.propsFor = propsFor
 root.orgEnv = orgEnv
+root.baseEnv = baseEnv
 root.getResultsForSource = getResultsForSource
 root.initOrg = initOrg
 root.swapMarkup = swapMarkup
@@ -957,3 +1016,9 @@ root.presentValue = presentValue
 root.escapeHtml = escapeHtml
 root.escapeAttr = escapeAttr
 root.restorePosition = restorePosition
+root.splitLines = splitLines
+root.orgSrcAttrs = orgSrcAttrs
+root.getNodeSource = getNodeSource
+root.loadOrg = loadOrg
+root.isDynamic = isDynamic
+root.isDef = isDef
