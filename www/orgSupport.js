@@ -343,7 +343,7 @@ misrepresented as being the original software.
 
   swapMarkup = function() {
     root.currentMode = (root.currentMode === Leisure.fancyOrg ? Leisure.basicOrg : Leisure.fancyOrg);
-    return restorePosition(parentSpec, function() {
+    return root.restorePosition(parentSpec, function() {
       return root.currentMode.useNode($(parentSpec)[0], sourceSpec);
     });
   };
@@ -406,6 +406,9 @@ misrepresented as being the original software.
     }
     if (org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source && ((_ref5 = org.name) != null ? _ref5.toLowerCase() : void 0) === 'name') {
       extra += " data-org-name='" + (escapeAttr(org.info)) + "'";
+    }
+    if (org instanceof Headline) {
+      extra += " data-org-headline='" + (escapeAttr(org.level)) + "'";
     }
     if (org.srcId) {
       extra += " data-org-srcid='" + (escapeAttr(org.srcId)) + "'";
@@ -926,18 +929,16 @@ misrepresented as being the original software.
   restorePosition = function(parent, block) {
     var end, endContainer, endOffset, r, sel, start, _ref5;
     sel = getSelection();
-    if (sel.rangeCount) {
+    if (sel != null ? sel.rangeCount : void 0) {
       r = sel.getRangeAt(0);
       start = getTextPosition($(parent)[0], r.startContainer, r.startOffset);
       end = getTextPosition($(parent)[0], r.endContainer, r.endOffset);
       block();
-      if (start > -1) {
-        if (r = nativeRange(findDomPosition($(parent)[0], start))) {
-          _ref5 = findDomPosition($(parent)[0], end), endContainer = _ref5[0], endOffset = _ref5[1];
-          r.setEnd(endContainer, endOffset);
-          sel.removeAllRanges();
-          return sel.addRange(r);
-        }
+      if (start > -1 && (r = nativeRange(findDomPosition($(parent)[0], start)))) {
+        _ref5 = findDomPosition($(parent)[0], end), endContainer = _ref5[0], endOffset = _ref5[1];
+        r.setEnd(endContainer, endOffset);
+        sel.removeAllRanges();
+        return sel.addRange(r);
       }
     } else {
       return block();
@@ -964,7 +965,7 @@ misrepresented as being the original software.
     text = text != null ? text : getNodeText(parent);
     sel = getSelection();
     _ref5 = root.orgApi.markupOrgWithNode(text), orgNode = _ref5[0], orgText = _ref5[1];
-    restorePosition(parent, function() {
+    root.restorePosition(parent, function() {
       return root.orgApi.installOrgDOM(parent, orgNode, orgText);
     });
     needsReparse = false;
@@ -1380,7 +1381,7 @@ misrepresented as being the original software.
       newNode = emptyOutNode(node);
       editDiv = newNode;
       _ref5 = this.markupOrgWithNode(oldContent), orgNode = _ref5[0], lastOrgText = _ref5[1];
-      restorePosition(newNode, function() {
+      root.restorePosition(newNode, function() {
         return _this.installOrgDOM(newNode, orgNode, lastOrgText);
       });
       return this.bindContent(newNode);
@@ -1517,6 +1518,8 @@ misrepresented as being the original software.
   root.isDynamic = isDynamic;
 
   root.isDef = isDef;
+
+  root.nativeRange = nativeRange;
 
 }).call(this);
 

@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-root = module.exports
+root = (global.Leisure ? module.exports)
 
 root.currentNameSpace = 'core'
 root.nameSpacePath = ['core']
@@ -43,9 +43,14 @@ defaultEnv =
   values: {}
   errorHandlers: []
 
-global.resolve = (value)-> if typeof value == 'function'
-  if typeof value.memo != 'undefined' then value.memo else value.memo = value()
-else value
+global.resolve = (value)->
+  if typeof value == 'function'
+    if typeof value.memo != 'undefined' then value.memo
+    else
+      if value.creationStack then value.creationStack = null
+      if value.args then value.args = null
+      value.memo = value()
+  else value
 
 #global.lazy = (l)-> ->l
 #global.lazy = (l)-> if typeof l == 'function'
@@ -63,6 +68,32 @@ writeFile = (fileName, data, cont)-> defaultEnv.writeFile fileName, data, cont
 readDir = (fileName, cont)-> defaultEnv.readDir fileName, cont
 
 statFile = (fileName, cont)-> defaultEnv.statFile fileName, cont
+
+root.trackCreation = false
+#root.trackVars = false
+#root.trackCreation = true
+root.trackVars = true
+
+global.$F = (args, func)->
+  if root.trackCreation then func.creationStack = new Error()
+  if root.trackVars
+    info = func.leisureInfo = arg: args[0]
+    parent = args.callee
+    if parent.leisureInfo then info.parent = parent.leisureInfo
+    else if parent.leisureName? then info.name = parent.leisureName
+  func
+
+funcInfo = (func)->
+  global.FUNC = func
+  info = []
+  callInfo = func.leisureInfo
+  while callInfo
+    info.push resolve callInfo.arg
+    if callInfo.name
+      info.push callInfo.name
+      break
+    callInfo = callInfo.parent
+  root.consFrom info.reverse()
 
 class SimpyCons
   constructor: (@head, @tail)->
@@ -88,3 +119,4 @@ root.lazy = global.lazy
 root.verboseMsg = verboseMsg
 root.maxInt = 9007199254740992
 root.minInt = -root.maxInt
+root.funcInfo = funcInfo

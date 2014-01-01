@@ -197,11 +197,11 @@ genRefName = (ref, uniq, names)->
     varNameSub name
   else uniqName name, uniq
 
-genUniq = (ast, names, uniq)->
+genUniq = (ast, names, uniq, count)->
   switch ast.constructor
     when Leisure_lit then sn ast, JSON.stringify getLitVal ast
     when Leisure_ref then sn ast, "resolve(", (genRefName ast, uniq, names), ")"
-    when Leisure_lambda then genLambda ast, names, uniq, 0
+    when Leisure_lambda then genLambda ast, names, uniq, count ? 0
     when Leisure_apply
       if !newGen then sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
       else genApply ast, names, uniq
@@ -227,7 +227,7 @@ genLambda = (ast, names, uniq, count)->
   name = getLambdaVar ast
   u = addUniq name, names, uniq
   n = cons name, names
-  addLambdaProperties ast, sn ast, "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u), "}"
+  addLambdaProperties ast, sn ast, (if count then "$F(arguments, " else ""), "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}", (if count then ")" else "")
 
 specialAnnotations = ['type', 'dataType', 'define']
 
@@ -335,13 +335,13 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', (lz (code)->(ast)->
+define 'runAst', (lz (code)->$F(arguments, (ast)->
   try
     eval "(#{gen rz ast})"
   catch err
     msg = "\n\nParse error: " + err.toString() + "\nAST: "
     console.log msg + ast() + "\n" + err.stack
-    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast)), null, null, null, 'parser'
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast))), null, null, null, 'parser'
 
 curry = (func, args, pos)->
   if pos == func.length then func args.toArray(func.length - 1, [])...

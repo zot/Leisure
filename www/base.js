@@ -25,10 +25,10 @@ misrepresented as being the original software.
 
 
 (function() {
-  var SimpyCons, defaultEnv, readDir, readFile, root, simpyCons, statFile, verboseMsg, writeFile,
+  var SimpyCons, defaultEnv, funcInfo, readDir, readFile, root, simpyCons, statFile, verboseMsg, writeFile, _ref,
     __slice = [].slice;
 
-  root = module.exports;
+  root = (_ref = global.Leisure) != null ? _ref : module.exports;
 
   root.currentNameSpace = 'core';
 
@@ -71,6 +71,12 @@ misrepresented as being the original software.
       if (typeof value.memo !== 'undefined') {
         return value.memo;
       } else {
+        if (value.creationStack) {
+          value.creationStack = null;
+        }
+        if (value.args) {
+          value.args = null;
+        }
         return value.memo = value();
       }
     } else {
@@ -102,6 +108,45 @@ misrepresented as being the original software.
     return defaultEnv.statFile(fileName, cont);
   };
 
+  root.trackCreation = false;
+
+  root.trackVars = true;
+
+  global.$F = function(args, func) {
+    var info, parent;
+    if (root.trackCreation) {
+      func.creationStack = new Error();
+    }
+    if (root.trackVars) {
+      info = func.leisureInfo = {
+        arg: args[0]
+      };
+      parent = args.callee;
+      if (parent.leisureInfo) {
+        info.parent = parent.leisureInfo;
+      } else if (parent.leisureName != null) {
+        info.name = parent.leisureName;
+      }
+    }
+    return func;
+  };
+
+  funcInfo = function(func) {
+    var callInfo, info;
+    global.FUNC = func;
+    info = [];
+    callInfo = func.leisureInfo;
+    while (callInfo) {
+      info.push(resolve(callInfo.arg));
+      if (callInfo.name) {
+        info.push(callInfo.name);
+        break;
+      }
+      callInfo = callInfo.parent;
+    }
+    return root.consFrom(info.reverse());
+  };
+
   SimpyCons = (function() {
     function SimpyCons(head, tail) {
       this.head = head;
@@ -109,8 +154,8 @@ misrepresented as being the original software.
     }
 
     SimpyCons.prototype.toArray = function() {
-      var array, h, _ref;
-      return (_ref = this._array) != null ? _ref : ((function() {
+      var array, h, _ref1;
+      return (_ref1 = this._array) != null ? _ref1 : ((function() {
         h = this;
         array = [];
         while (h !== null) {
@@ -152,6 +197,8 @@ misrepresented as being the original software.
   root.maxInt = 9007199254740992;
 
   root.minInt = -root.maxInt;
+
+  root.funcInfo = funcInfo;
 
 }).call(this);
 

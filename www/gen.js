@@ -211,7 +211,7 @@ misrepresented as being the original software.
     }
   };
 
-  genUniq = function(ast, names, uniq) {
+  genUniq = function(ast, names, uniq, count) {
     var arity, data, funcName, genned, name, src, _ref4;
     switch (ast.constructor) {
       case Leisure_lit:
@@ -219,7 +219,7 @@ misrepresented as being the original software.
       case Leisure_ref:
         return sn(ast, "resolve(", genRefName(ast, uniq, names), ")");
       case Leisure_lambda:
-        return genLambda(ast, names, uniq, 0);
+        return genLambda(ast, names, uniq, count != null ? count : 0);
       case Leisure_apply:
         if (!newGen) {
           return sn(ast, genUniq(getApplyFunc(ast), names, uniq), "(", genApplyArg(getApplyArg(ast), names, uniq), ")");
@@ -260,7 +260,7 @@ misrepresented as being the original software.
     name = getLambdaVar(ast);
     u = addUniq(name, names, uniq);
     n = cons(name, names);
-    return addLambdaProperties(ast, sn(ast, "function(", uniqName(name, u), "){return ", genUniq(getLambdaBody(ast), n, u), "}"));
+    return addLambdaProperties(ast, sn(ast, (count ? "$F(arguments, " : ""), "function(", uniqName(name, u), "){return ", genUniq(getLambdaBody(ast), n, u, 1), "}", (count ? ")" : "")));
   };
 
   specialAnnotations = ['type', 'dataType', 'define'];
@@ -449,7 +449,7 @@ misrepresented as being the original software.
   };
 
   define('runAst', lz(function(code) {
-    return function(ast) {
+    return $F(arguments, function(ast) {
       var err, msg;
       try {
         return eval("(" + (gen(rz(ast))) + ")");
@@ -459,7 +459,7 @@ misrepresented as being the original software.
         console.log(msg + ast() + "\n" + err.stack);
         return rz(L_parseErr)(lz("\n\nParse error: " + err.toString() + "\nAST: "))(ast);
       }
-    };
+    });
   }), null, null, null, 'parser');
 
   curry = function(func, args, pos) {

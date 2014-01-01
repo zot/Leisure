@@ -210,9 +210,7 @@ appendAlist a b = isNil a
   aconsPair (head a) (appendAlist (tail a) b)
 keys list = map (\l . head l) list
 
-getProperty func prop = getProperties func
-  \props . assoc prop props
-  none
+getProperty func prop = assoc prop (getProperties func)
 
 hasProperty func prop = getProperty func prop
   \_ . true
@@ -1132,6 +1130,13 @@ setNameSpace 'core'
 # Utilities
 #################
 
+doall = foldr1 (\el res . bind el \_ . res)
+aconsf key value list = acons key value (aremove key list)
+aremove key list = isNil list
+  nil
+  eq (head (head list)) key
+    aremove key (tail list)
+    aconsPair (head list) (aremove key (tail list))
 addTokenGroup '[' ']'
 addToken '|'
 
@@ -1323,7 +1328,15 @@ defMacro ':' \list . ['cons' | list]
 iprec = [['*' '/' '%'] ['+' '-'] [':'] ['<' '>' '<=' '>='] ['==' '!=']]
 rightAssoc = [':']
 
-setValue 'infixPrecedence' iprec
+setPrecedenceLevels levels = bind
+  setValue 'infixPrecedence' levels
+  \_ . doall (map addInfixProp (flatten levels))
+
+addInfixProp funcName = getFunction funcName
+  \func . setProperty func 'infix' true
+  nil
+
+setPrecedenceLevels iprec
 setValue 'infixRightAssociative' rightAssoc
 defTokenPack 'infix' [(flatten iprec) [] [infix]]
 

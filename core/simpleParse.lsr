@@ -210,9 +210,7 @@ appendAlist a b = isNil a
   aconsPair (head a) (appendAlist (tail a) b)
 keys list = map (\l . head l) list
 
-getProperty func prop = getProperties func
-  \props . assoc prop props
-  none
+getProperty func prop = assoc prop (getProperties func)
 
 hasProperty func prop = getProperty func prop
   \_ . true

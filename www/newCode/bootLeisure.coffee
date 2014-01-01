@@ -26,7 +26,7 @@ baseJsFiles = [
 Boot.jsFiles.push ("#{f}.js" for f in baseJsFiles)...
 if Boot.extraJsFiles? then Boot.jsFiles.push ("#{f}.js" for f in Boot.extraJsFiles)...
 
-console.log "Boot files: #{JSON.stringify Boot.jsFiles}"
+#console.log "Boot files: #{JSON.stringify Boot.jsFiles}"
 
 reqGuard = false
 
@@ -37,16 +37,16 @@ if global?
   oldRequire = global.require
   window.require = (file)->
     if reqGuard
-      console.log "@@   RETURNING Leisure FOR #{file}"
+      #console.log "@@   RETURNING Leisure FOR #{file}"
       Leisure
     else
       try
-        console.log "@@   REQUIRE #{file}"
+        #console.log "@@   REQUIRE #{file}"
         if name == 'nw.gui' then nwDispatcher.requireNwGui() else oldRequire file
       catch err
         try
           reqGuard = true
-          console.log "@@   FALLING BACK TO BROWSERIFY FOR #{file}"
+          #console.log "@@   FALLING BACK TO BROWSERIFY FOR #{file}"
           Leisure.require file
         finally
           reqGuard = false
@@ -125,7 +125,7 @@ bootLeisureCont = (load, state)->
   else if load then (cont)->
     addLoadToDocument load
     #load = new URI(document.location.href, load)
-    console.log "LOADING #{load}"
+    #console.log "LOADING #{load}"
     window.Leisure.readFile load, (err, data)->
       if !err
         window.Notebook?.replaceContents load, data
@@ -138,7 +138,7 @@ bootLeisureCont = (load, state)->
   loadThen Boot.jsFiles, ->
     #window.GdriveStorage.initStorage()
     #Repl.init()
-    console.log "LOADED: #{Boot.jsFiles}"
+    #console.log "LOADED: #{Boot.jsFiles}"
     window.Notebook?.bootNotebook()
     f ->
       window.leisureFirst?()
@@ -159,7 +159,7 @@ callPrepCode = (preps, index, finishBoot)->
     finishBoot()
 
 finishBoot = ->
-  console.log "Finished initializing storage"
+  #console.log "Finished initializing storage"
   if window.leisureBoot? then bootFuncs.push window.leisureBoot
   while bootFuncs.length
     bootFuncs.shift()()

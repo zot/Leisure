@@ -82,12 +82,16 @@ lz = lazy
   baseEnv,
   getNodeSource,
   isDef,
+  getTextPosition,
+  findDomPosition,
+  nativeRange,
 } = require './orgSupport'
 {
   redrawAllIssues,
 } = require './storage'
 _ = require './lodash.min'
 
+oldRestorePosition = restorePosition
 fancyOrg = null
 slideMode = false
 lastOrgOffset = -1
@@ -97,6 +101,28 @@ emptyPresenter =
   isRelated: -> false
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
+
+root.restorePosition = restorePosition = (parent, block)->
+  sel = getSelection()
+  if sel?.rangeCount
+    r = sel.getRangeAt 0
+    slide = slideParent sel.focusNode
+    slideIndex = slideOffset slide
+    if slideIndex > -1
+      start = getTextPosition slide, r.startContainer, r.startOffset
+      end = getTextPosition slide, r.endContainer, r.endOffset
+      offset = documentTop(r.startContainer) - window.pageYOffset
+      block()
+      newSlide = $('[data-org-headline="1"]')[slideIndex]
+      if slideMode then setCurrentSlide newSlide
+      if start > -1 && (r = nativeRange findDomPosition newSlide, start)
+        [endContainer, endOffset] = findDomPosition newSlide, end
+        r.setEnd endContainer, endOffset
+        sel.removeAllRanges()
+        sel.addRange r
+        window.scrollTo 0, documentTop(r.startContainer) - offset
+      return
+  block()
 
 replaceUnrelatedPresenter = (target, newPres)->
   if result = !presenter.isRelated target
@@ -121,7 +147,6 @@ markupOrgWithNode = (text)->
   # ensure trailing newline -- contenteditable doesn't like it, otherwise
   if text[text.length - 1] != '\n' then text = text + '\n'
   org = parseOrgMode text
-  console.log "ORG: #{org}"
   lastOrgOffset = -1
   [org, markupNode org]
 
@@ -149,16 +174,22 @@ markupNode = (org)->
   else if content(org.text).length then defaultMarkup org
   else "<div #{orgAttrs org}>#{escapeHtml org.text}</div>"
 
+hlStars = /^\*+ */
+
 markupHeadline = (org)->
   match = org.text.match headlineRE
-  start = "X#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length - 1}".trim().substring 1
+  start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length - 1}".trim()
   if org.text[org.text.length - 1] == '\n'
     tags = escapeHtml org.text.substring start.length, org.text.length - 1
     last = '\n'
   else
     tags = escapeHtml org.text.substring start.length
     last = ''
-  "<div #{orgAttrs org} data-org-headline='#{escapeAttr org.level}'><span data-org-type='text'>#{escapeHtml start}<span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
+  if starsM = start.match hlStars
+    stars = start.substring 0, starsM[0].length
+    start = start.substring stars.length
+  else stars = ''
+  "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><span data-org-type='text-content'>#{escapeHtml start}</span><span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
 
 markupSource = (org, name, intertext)->
   srcContent = org.content
@@ -204,16 +235,22 @@ markupListItem = (org)->
 #  }</span><span>#{escapeHtml org.text.substring org.contentOffset}</span></li>#{
 #    if !(org.next instanceof ListItem) || org.next.level < org.level then '</ul>' else ''
 #  }"""
-
-  """<li #{orgAttrs org} data-org-listlevel=#{
+  if org.level == 0
+    start = !org.getPreviousListItem()
+    end = !org.getNextListItem()
+  else
+    start = (parent = org.getParent()) && parent == org.getPreviousListItem()
+    next = org.getNextListItem()
+    end = !next || next.level < org.level
+  """#{if start then '<ul>' else ''}<li #{orgAttrs org} data-org-listlevel='#{
     org.level
-  }#{
-    if org.checked? then 'data-org-checked="' + org.checked + '"' else ''
+  }'#{
+    if org.checked? then ' data-org-checked="' + org.checked + '"' else ''
   }><span class='hidden'>#{
     escapeHtml org.text.substring 0, org.contentOffset
   }</span><span>#{escapeHtml org.text.substring org.contentOffset}</span></li>#{
     eatListItem org
-  }"""
+  }#{if end then '</ul>' else ''}"""
 
 eatListItem = (org)->
   item = org
@@ -230,13 +267,14 @@ unwrap = (node)->
       parent.insertBefore node.firstChild, node
     parent.removeChild node
 
-recreateAstButtons = (node)->
-  restorePosition node, ->
+recreateAstButtons = (parent, node)->
+  restorePosition parent, ->
     for button in $(node).find('.ast-button')
       button.remove()
     for num in $(node).find('.org-num')
       unwrap num
     t = node.textContent
+    if t && t[t.length - 1] != '\n' then node.textContent = t += '\n'
     chunk = /^[^ \n].*$/mg
     num = /(^|[^0-9.]+)([0-9][0-9.]*|\.[0-9.]+)/mg
     node.normalize()
@@ -266,6 +304,7 @@ recreateAstButtons = (node)->
         numberSpan.appendChild mid
         numberSpan.classList.add 'org-num'
         node.insertBefore numberSpan, cur
+        node.normalize()
         do (n = numberSpan)-> n.onmousedown = (e)->
           e.stopPropagation()
           e.preventDefault()
@@ -273,14 +312,15 @@ recreateAstButtons = (node)->
         mnum = num.exec t
 
 newCodeContent = (name, content)->
-  if node = $("[data-org-codeblock='#{name}']").find('[data-org-src]')[0]
+  parent = $("[data-org-codeblock='#{name}']")
+  if node = parent.find('[data-org-src]')[0]
     node.innerHTML = escapeHtml content
-    recreateAstButtons node
+    recreateAstButtons parent, node
 
-define 'newCodeContent', lz (name)->(content)->
+define 'newCodeContent', lz (name)->$F(arguments, (content)->
   makeSyncMonad (env, cont)->
     newCodeContent rz(name), rz(content)
-    cont rz L_true
+    cont rz L_true)
 
 isOrContains = (parent, node)->
   (n = parent.compareDocumentPosition(node) & DOCUMENT_POSITION_CONTAINED_BY) || n == 0
@@ -405,7 +445,7 @@ handleKey = (div)->(e)->
     cancelled = false
   if String.fromCharCode(c) == 'C' && e.altKey
     root.orgApi.executeSource div, getSelection().focusNode
-  else if !bound && !slideMode
+  else if !bound #&& !slideMode
     if modifyingKey c
       n = s.focusNode
       el = r.startContainer
@@ -434,9 +474,12 @@ handleKey = (div)->(e)->
           el.data = el.data.substring 1
       else if el.nodeType == 3
         setTimeout (->
-          if !el.nextSibling && el.data[el.data.length - 1] != '\n' && el.data.length == 1
-            restorePosition el.parentNode, -> el.data += '\n'
-          fancyCheckSourceMod n, div, currentMatch), 1
+          #if !el.nextSibling && el.data[el.data.length - 1] != '\n' #&& el.data.length == 1
+          #  restorePosition el.parentNode, ->
+          #    el.data += '\n'
+          #    el.parentNode.normalize()
+          fancyCheckSourceMod n, div, currentMatch, el
+        ), 1
         return
   if !cancelled && checkMod
     if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
@@ -445,8 +488,12 @@ handleKey = (div)->(e)->
 getCodeContainer = (node)->
   node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
 
-fancyCheckSourceMod = (focus, div, currentMatch)->
-  if code = getCodeContainer focus then recreateAstButtons code
+fancyCheckSourceMod = (focus, div, currentMatch, el)->
+  if code = getCodeContainer focus then recreateAstButtons div, code
+  else if el && !el.nextSibling && el.data[el.data.length - 1] != '\n' #&& el.data.length == 1
+    restorePosition el.parentNode, ->
+      el.data += '\n'
+      el.parentNode.normalize()
   checkSourceMod div, currentMatch
 
 bsWillDestroyParent = (r)->
@@ -465,18 +512,23 @@ executeSource = (parent, node, cont)->
   [srcNode, text] = getNodeSource node
   if srcNode
     createResults srcNode
-    if text.trim().length then executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), cont
+    if text.trim().length
+      executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), cont
 
 reprocessResults = (node)->
-  if node.firstChild.shadowRoot then node.firstChild.shadowRoot.innerHTML = ''
+  if node.firstChild.shadowRoot
+    node.firstChild.shadowRoot.innerHTML = ''
+    node.firstChild.shadowRoot.applyAuthorStyles = true
   processResults node.firstChild.nextElementSibling.textContent, node, true
 
 processResults = (str, node, skipText)->
-  if !node.firstChild.shadowRoot then node.firstChild.createShadowRoot()
+  if !node.firstChild.shadowRoot
+    node.firstChild.createShadowRoot()
+    node.firstChild.shadowRoot.applyAuthorStyles = true
   shadow = node.firstChild.shadowRoot
   if !skipText then node.firstChild.nextElementSibling.textContent += escapePresentationHtml(str.substring 0, str.length - 1) + str[str.length - 1]
   for line in splitLines str
-    if line.match /^: / then shadow.innerHTML += line.substring(2)
+    if line.match /^: / then shadow.innerHTML += "<div class='resultsline'>#{line.substring(2)}</div>"
 
 setShadowHtml = (holder, html)->
   if !(el = holder.shadowRoot)
@@ -532,7 +584,6 @@ orgEnv = (parent, node)->
 hideSlider = (numberSpan)-> replaceRelatedPresenter numberSpan, emptyPresenter
 
 showSliderButton = (parent, numberSpan)->
-  console.log "SHOW SLIDER"
   if hideSlider numberSpan then return
   inside = false
   sliding = false
@@ -577,7 +628,6 @@ showSliderButton = (parent, numberSpan)->
   replacePresenter
     numberSpan: numberSpan
     hide: ->
-      console.log "HIDING SLIDER"
       d.remove()
     isRelated: (node)-> (isOrContains d, node) || (isOrContains numberSpan, node)
   d.focus()
@@ -622,6 +672,20 @@ showSlides = ->
   setCurrentSlide $('[data-org-headline="1"]')[0]
   document.body.classList.add 'slides'
 
+slideParent = (node)->
+  while node && !$(node).is '[data-org-headline="1"]'
+    node = node.parentNode
+  node
+
+documentTop = (node)->
+  top = 0
+  while node
+    if node.tagName
+      top = top + node.offsetTop
+      node = node.offsetParent
+    else node = node.parentNode
+  top
+
 hideSlides = ->
   document.body.classList.remove 'slides'
 
@@ -639,14 +703,30 @@ toggleSlides = ->
   slideMode = !slideMode
   fancyOrg.bindings = (if slideMode then slideBindings else defaultBindings)
   if slideMode
-    $('body').addClass 'slides'
-    #setTimeout (->nextSlide()), 500
-    setTimeout (->nextSlide()), 1
+    restorePosition null, ->
+      $('body').addClass 'slides'
+      #setTimeout (->nextSlide()), 500
+      #setTimeout (->nextSlide()), 1
+      nextSlide()
   else $('body').removeClass 'slides'
 
 define 'toggleSlides', lz makeSyncMonad (env, cont)->
   toggleSlides()
   cont rz L_true
+
+slideOffset = (slide)->
+  a = []
+  a.push $("[data-org-headline='1']")...
+  a.indexOf slide ? $('.currentSlide')[0]
+
+setSlideAt = (index)-> setCurrentSlide $("[data-org-headline='1']")[index]
+
+restoreSlide = (block)->
+  if !slideMode then block()
+  else
+    offset = slideOffset()
+    block()
+    setSlideAt offset
 
 fancyOrg =
   __proto__: orgNotebook
@@ -654,32 +734,35 @@ fancyOrg =
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
   installOrgDOM: (parent, orgNode, orgText)->
-    parent.setAttribute 'class', 'org-fancy'
-    orgNotebook.installOrgDOM parent, orgNode, orgText
-    for node in $('[data-org-html]')
-      setShadowHtml node, node.innerHTML
-      node.innerHTML = ''
-    for node in $('[data-org-src]')
-      recreateAstButtons node
-    for node in $('.resultscontent')
-      reprocessResults node
-    setTimeout (=>
-      #for node in $('[data-org-results]')
-      #  switch $(node).attr('data-org-results').toLowerCase()
-      #    when 'def' then @executeDef node
-      for node in $('[data-org-comments]')
-        setShadowHtml node.firstElementChild, newCommentBox node.getAttribute 'data-org-comments'
-      redrawAllIssues()
-      ), 1
+    @parent = parent
+    restorePosition parent, ->
+      parent.setAttribute 'class', 'org-fancy'
+      orgNotebook.installOrgDOM parent, orgNode, orgText
+      for node in $('[data-org-html]')
+        setShadowHtml node, node.innerHTML
+        node.innerHTML = ''
+      for node in $('[data-org-src]')
+        recreateAstButtons parent, node
+      for node in $('.resultscontent')
+        reprocessResults node
+      setTimeout (=>
+        #for node in $('[data-org-results]')
+        #  switch $(node).attr('data-org-results').toLowerCase()
+        #    when 'def' then @executeDef node
+        for node in $('[data-org-comments]')
+          setShadowHtml node.firstElementChild, newCommentBox node.getAttribute 'data-org-comments'
+        redrawAllIssues()
+        ), 1
   executeSource: executeSource
   executeDef: executeDef
   createResults: createResults
   bindings: defaultBindings
   redrawIssue: (i)-> redrawIssue i
   leisureButton: ->
-    toggleSlides()
-    if slideMode then setTimeout (-> $('[maindoc]').focus()), 1
-    else swapMarkup()
+    restorePosition @parent, ->
+      toggleSlides()
+      if slideMode then setTimeout (-> $('[maindoc]').focus()), 1
+      else swapMarkup()
 
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment

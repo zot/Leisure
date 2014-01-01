@@ -270,7 +270,7 @@ defaultBindings =
 
 swapMarkup = ->
   root.currentMode = (if root.currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
-  restorePosition parentSpec, -> root.currentMode.useNode $(parentSpec)[0], sourceSpec
+  root.restorePosition parentSpec, -> root.currentMode.useNode $(parentSpec)[0], sourceSpec
 
 getStyle = (node)->
   if !node.orgId
@@ -320,6 +320,7 @@ orgAttrs = (org)->
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
   if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{escapeAttr org.info}'"
+  if org instanceof Headline then extra += " data-org-headline='#{escapeAttr org.level}'"
   if org.srcId then extra += " data-org-srcid='#{escapeAttr org.srcId}'"
   "id='#{escapeAttr org.nodeId}' data-org-type='#{escapeAttr org.type}'#{extra}"
 
@@ -661,18 +662,17 @@ hasParent = (node, ancestor)-> node == ancestor || (node && hasParent node.paren
 restorePosition = (parent, block)->
   sel = getSelection()
   #if sel.rangeCount && hasParent sel.focusNode, $(parent)
-  if sel.rangeCount
+  if sel?.rangeCount
     #if !(hasParent sel.focusNode, $(parent)[0]) then console.log parent, 'is not a parent of ', sel.focusNode
     r = sel.getRangeAt 0
     start = getTextPosition $(parent)[0], r.startContainer, r.startOffset
     end = getTextPosition $(parent)[0], r.endContainer, r.endOffset
     block()
-    if start > -1
-      if r = nativeRange findDomPosition $(parent)[0], start
-        [endContainer, endOffset] = findDomPosition $(parent)[0], end
-        r.setEnd endContainer, endOffset
-        sel.removeAllRanges()
-        sel.addRange r
+    if start > -1 && (r = nativeRange findDomPosition $(parent)[0], start)
+      [endContainer, endOffset] = findDomPosition $(parent)[0], end
+      r.setEnd endContainer, endOffset
+      sel.removeAllRanges()
+      sel.addRange r
   else block()
 
 loadOrg = (parent, text)->
@@ -686,7 +686,7 @@ reparse = (parent, text)->
   text = text ? getNodeText parent
   sel = getSelection()
   [orgNode, orgText] = root.orgApi.markupOrgWithNode text
-  restorePosition parent, -> root.orgApi.installOrgDOM parent, orgNode, orgText
+  root.restorePosition parent, -> root.orgApi.installOrgDOM parent, orgNode, orgText
   needsReparse = false
   setTimeout (->
     for l in reparseListeners
@@ -939,7 +939,7 @@ orgNotebook =
     editDiv = newNode
     #restorePosition newNode, => $(newNode).html @markupOrg oldContent
     [orgNode, lastOrgText] = @markupOrgWithNode oldContent
-    restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
+    root.restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
     @bindContent newNode
   installOrgDOM: installOrgDOM
   redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
@@ -1022,3 +1022,4 @@ root.getNodeSource = getNodeSource
 root.loadOrg = loadOrg
 root.isDynamic = isDynamic
 root.isDef = isDef
+root.nativeRange = nativeRange

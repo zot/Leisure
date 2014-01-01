@@ -90,51 +90,53 @@
   window.EVENTS = [];
 
   checkEvents = function(lastUp, page, events) {
-    return repo.getEvents({
-      page: page
-    }, function(err, data) {
-      var event, issues, time, url, _i, _len;
-      if (err) {
-        console.log("ERROR: " + (JSON.stringify(err, null, ' ')));
-        return;
-      }
-      if (data.length > 0 && data && (time = new Date(data[0].created_at).getTime()) > lastUp) {
-        window.EVENTS.push(data);
-        while (data.length > 0 && isIssueEvent(data[0]) && (time = new Date(data[0].created_at).getTime()) > lastUp) {
-          data[0].time = time;
-          if (time > lastUpdate) {
-            lastUpdate = time;
-          }
-          if (data[0].type === 'IssueCommentEvent') {
-            addComment(data[0].payload.comment);
-          }
-          events.push(data.shift());
+    if (repo != null) {
+      return repo.getEvents({
+        page: page
+      }, function(err, data) {
+        var event, issues, time, url, _i, _len;
+        if (err) {
+          console.log("ERROR: " + (JSON.stringify(err, null, ' ')));
+          return;
         }
-        return checkEvents(lastUp, page + 1, events);
-      } else {
-        events.sort(function(a, b) {
-          return a.time - b.time;
-        });
-        issues = {};
-        for (_i = 0, _len = events.length; _i < _len; _i++) {
-          event = events[_i];
-          issues[event.payload.issue.url] = true;
-        }
-        refreshIssueData(0, (function() {
-          var _results;
-          _results = [];
-          for (url in issues) {
-            _results.push(url);
+        if (data.length > 0 && data && (time = new Date(data[0].created_at).getTime()) > lastUp) {
+          window.EVENTS.push(data);
+          while (data.length > 0 && isIssueEvent(data[0]) && (time = new Date(data[0].created_at).getTime()) > lastUp) {
+            data[0].time = time;
+            if (time > lastUpdate) {
+              lastUpdate = time;
+            }
+            if (data[0].type === 'IssueCommentEvent') {
+              addComment(data[0].payload.comment);
+            }
+            events.push(data.shift());
           }
-          return _results;
-        })(), function(i) {
-          return redrawIssues(i);
-        });
-        return setTimeout((function() {
-          return checkEvents(lastUpdate, 1, []);
-        }), 1000);
-      }
-    });
+          return checkEvents(lastUp, page + 1, events);
+        } else {
+          events.sort(function(a, b) {
+            return a.time - b.time;
+          });
+          issues = {};
+          for (_i = 0, _len = events.length; _i < _len; _i++) {
+            event = events[_i];
+            issues[event.payload.issue.url] = true;
+          }
+          refreshIssueData(0, (function() {
+            var _results;
+            _results = [];
+            for (url in issues) {
+              _results.push(url);
+            }
+            return _results;
+          })(), function(i) {
+            return redrawIssues(i);
+          });
+          return setTimeout((function() {
+            return checkEvents(lastUpdate, 1, []);
+          }), 1000);
+        }
+      });
+    }
   };
 
   redrawAllIssues = function() {

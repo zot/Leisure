@@ -3,7 +3,7 @@
 # eq a b -> true if they are equal or false otherwise
 #
 # getType value -> an option containing the type
-# 
+#
 # is value type -> true if the value has type type, false otherwise
 #
 # eval ast -> evaluates ast and returns the result
@@ -56,12 +56,6 @@
 if = id
 
 afetch k alist  = alist (\h t D . h \key value . eq key k value (afetch k t)) nil
-aconsf key value list = acons key value (aremove key list)
-aremove key list = isNil list
-  nil
-  eq (head (head list)) key
-    aremove key (tail list)
-    aconsPair (head list) (aremove key (tail list))
 
 defMacro 'when' \line . line \cond rest . [cond 'do':rest 'nil']
 
@@ -99,8 +93,6 @@ simplify exprString = do
 #######################
 ## Monads
 #######################
-
-doall = foldr1 (\el res . bind el \_ . res)
 
 requireJS file = bind (getValue 'requiredFiles')
   \files . contains files file
@@ -262,7 +254,7 @@ makeCaseArgs orig funcName altName rest args = rest
 
 makeCaseCondition orig funcName altName args rest cond = rest
   \h t D . isTokenString h '->'
-    foldr1 append [['altDef' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]
+    foldr1 append [['advise' funcName altName (length args) '\\'] args ['.' (cond nil) ['some' t] 'none']]
     makeCaseCondition orig funcName altName args t (dlPush cond h)
  parseErr "Error in case definition -- expected func.name args | condition -> action, but got " orig
 
@@ -316,11 +308,23 @@ presentHtml x = escapeHtml (present x)
 
 defCase present.string obj | (getType obj) == '*string' -> jsonStringify obj id id
 
-defCase presentHtml.html obj | hasType obj html -> obj id
+defCase present.func obj | (getType obj) == '*function' ->
+  do
+    info = funcInfo obj
+    guts = isNil info
+      [(funcName obj
+        id
+        'unknown')]
+      and (> (length info) 1) (getFunction (head info) (\func . hasProperty func 'infix') false)
+        [(present (head (tail info))) (head info) | map present (tail (tail info))]
+        cons (head info) (map present (tail info))
+    concat["(" (join guts ' ') ")"]
 
 defCase present.nil obj | hasType obj nil -> 'nil'
 
 defCase present.none obj | hasType obj none -> "None"
+
+defCase presentHtml.html obj | hasType obj html -> obj id
 
 ## bind
 defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt

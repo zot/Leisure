@@ -127,7 +127,7 @@ showButton = (button, state)->
     $("##{button}Panel").addClass 'hidden'
   updateAllButton()
 
-#define 'svgMeasureText', (->(text)->Notebook?.svgMeasureText(text)), 2
+#define 'svgMeasureText', (lz (text)->Notebook?.svgMeasureText(text)), 2
 define 'svgMeasureText', (lz (text)->svgMeasureText(text)), 1
 
 getParseErr = (x)-> x lz (value)->rz value

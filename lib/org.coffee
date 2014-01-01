@@ -164,6 +164,21 @@ class ListItem extends Meat
       info: @info
     if @checked? then obj.checked = @checked
     obj
+  getParent: ->
+    if @level == 0 then null
+    li = @
+    while li = li.getPreviousListItem()
+      if li.level < @level then return li
+  getPreviousListItem: ->
+    prev = @prev
+    while prev && !(prev instanceof Headline) && !(prev instanceof ListItem)
+      prev = prev.prev
+    if prev instanceof ListItem then prev else null
+  getNextListItem: ->
+    next = @next
+    while next && !(next instanceof Headline) && !(next instanceof ListItem)
+      next = next.next
+    if next instanceof ListItem then next else null
 
 class Keyword extends Meat
   constructor: (@text, @offset, @name, @info)-> super @text, @offset
@@ -260,7 +275,6 @@ parseMeat = (meat, offset, rest)->
     line = fullLine keyword, meat
     parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest
   else if list?.index == 0
-    console.log "MATCHED LIST: #{JSON.stringify list}"
     line = fullLine list, meat
     parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest
   else

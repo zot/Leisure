@@ -387,6 +387,45 @@ misrepresented as being the original software.
       return obj;
     };
 
+    ListItem.prototype.getParent = function() {
+      var li;
+      if (this.level === 0) {
+        null;
+      }
+      li = this;
+      while (li = li.getPreviousListItem()) {
+        if (li.level < this.level) {
+          return li;
+        }
+      }
+    };
+
+    ListItem.prototype.getPreviousListItem = function() {
+      var prev;
+      prev = this.prev;
+      while (prev && !(prev instanceof Headline) && !(prev instanceof ListItem)) {
+        prev = prev.prev;
+      }
+      if (prev instanceof ListItem) {
+        return prev;
+      } else {
+        return null;
+      }
+    };
+
+    ListItem.prototype.getNextListItem = function() {
+      var next;
+      next = this.next;
+      while (next && !(next instanceof Headline) && !(next instanceof ListItem)) {
+        next = next.next;
+      }
+      if (next instanceof ListItem) {
+        return next;
+      } else {
+        return null;
+      }
+    };
+
     return ListItem;
 
   })(Meat);
@@ -575,7 +614,6 @@ misrepresented as being the original software.
       line = fullLine(keyword, meat);
       return parseKeyword(keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest);
     } else if ((list != null ? list.index : void 0) === 0) {
-      console.log("MATCHED LIST: " + (JSON.stringify(list)));
       line = fullLine(list, meat);
       return parseList(list, line, offset, (_ref = (_ref1 = list[LIST_LEVEL]) != null ? _ref1.length : void 0) != null ? _ref : 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest);
     } else {

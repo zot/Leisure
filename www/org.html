@@ -225,7 +225,7 @@
                 .comment-button.new-comments {
                         color: red;
                 }
-                [data-org-headline='1'] {
+                .org-fancy [data-org-headline='1'] {
                         /*
                         border-radius: 10px;
                         border: solid 2px black;
@@ -233,7 +233,38 @@
                         margin-bottom: 8px;
                         padding: 8px;
                         border-width: 13px 61px 29px 61px;
-                        border-image: url(images/decorative-border-pages-book-hi.png) 13 61 29 61 stretch; /* top: 13 bottom: 29 left/right: 61*/
+                        border-image: url(images/decorative-border-pages-book-hi.png) 13 61 29 61 stretch;
+                }
+                .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
+                        font-size: 2em;
+                        display: block;
+                        position: relative;
+                }
+                .slides .org-fancy [data-org-headline='1'] {
+                        padding-top: 2em;
+                }
+                .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
+                        position: absolute;
+                        left: 0;
+                        width: 100%;
+                        top: 0;
+                        text-align: center;
+                        z-index: 1;
+                }
+                .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        padding-left: 16px;
+                        padding-right: 16px;
+                        background: white;
+                        border: black solid 2px;
+                        border-radius: 10px;
+                }
+                .org-fancy [data-org-headline='2'] > [data-org-type='text'] {
+                        font-size: 1.5em;
+                }
+                .org-fancy [data-org-headline='3'] > [data-org-type='text'] {
+                        font-size: 1.17em;
+                }
+                .org-fancy [data-org-headline='4'] > [data-org-type='text'] {
                 }
                 .slides [data-org-headline='1'] {
                         display: none;
@@ -253,6 +284,15 @@
                 }
                 .slides .tags {
                         display: none;
+                }
+                .codewrapper > tbody > tr {
+                        vertical-align: top;
+                }
+                .resultsline > * {
+                        vertical-align: middle;
+                }
+                .org-fancy [data-org-html="true"] {
+                        white-space: normal;
                 }
         </style>
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->

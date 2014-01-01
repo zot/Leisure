@@ -67,24 +67,25 @@ isIssueEvent = (event)-> event.type in ['IssueCommentEvent', 'IssuesEvent']
 window.EVENTS = []
 
 checkEvents = (lastUp, page, events)->
-  repo.getEvents {page: page}, (err, data)->
-    if err then console.log "ERROR: #{JSON.stringify err, null, ' '}"; return
-    if data.length > 0 && data && (time = new Date(data[0].created_at).getTime()) > lastUp
-      window.EVENTS.push data
-      while data.length > 0 && isIssueEvent(data[0]) && (time = new Date(data[0].created_at).getTime()) > lastUp
-        data[0].time = time
-        if time > lastUpdate then lastUpdate = time
-        if data[0].type == 'IssueCommentEvent' then addComment data[0].payload.comment
-        events.push data.shift()
-      checkEvents lastUp, page + 1, events
-    else
-      events.sort (a, b)-> a.time - b.time
-      issues = {}
-      for event in events
-        issues[event.payload.issue.url] = true
-      refreshIssueData 0, (url for url of issues), (i)->
-        redrawIssues i
-      setTimeout (-> checkEvents lastUpdate, 1, []), 1000
+  if repo?
+    repo.getEvents {page: page}, (err, data)->
+      if err then console.log "ERROR: #{JSON.stringify err, null, ' '}"; return
+      if data.length > 0 && data && (time = new Date(data[0].created_at).getTime()) > lastUp
+        window.EVENTS.push data
+        while data.length > 0 && isIssueEvent(data[0]) && (time = new Date(data[0].created_at).getTime()) > lastUp
+          data[0].time = time
+          if time > lastUpdate then lastUpdate = time
+          if data[0].type == 'IssueCommentEvent' then addComment data[0].payload.comment
+          events.push data.shift()
+        checkEvents lastUp, page + 1, events
+      else
+        events.sort (a, b)-> a.time - b.time
+        issues = {}
+        for event in events
+          issues[event.payload.issue.url] = true
+        refreshIssueData 0, (url for url of issues), (i)->
+          redrawIssues i
+        setTimeout (-> checkEvents lastUpdate, 1, []), 1000
 
 redrawAllIssues = ->
   for name, issue of commentIssues
