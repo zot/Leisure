@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, Nil, RIGHT, Results, Source, TAB, UP, addKeyPress, backspace, baseEnv, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, createResults, curKeyBinding, currentLine, defaultBindings, defaultEnv, define, displaySource, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeSource, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getType, getValue, handleMutation, hasParent, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, loadOrg, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, orgSrcAttrs, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, replacements, resolve, restorePosition, root, rz, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, splitLines, styleCache, swapMarkup, textNodeAfter, textNodeBefore, unescapePresentationHtml, _, _ref, _ref1, _ref2, _ref3, _ref4;
+  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, Nil, RIGHT, Results, SimpleMarkup, Source, TAB, UP, addKeyPress, backspace, baseEnv, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, createResults, curKeyBinding, currentLine, defaultBindings, defaultEnv, define, displaySource, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, getCollapsible, getLeft, getNodeSource, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getType, getValue, handleMutation, hasParent, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, loadOrg, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, markupSimple, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, orgSrcAttrs, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, replacements, resolve, restorePosition, root, rz, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, splitLines, styleCache, swapMarkup, textNodeAfter, textNodeBefore, unescapePresentationHtml, _, _ref, _ref1, _ref2, _ref3, _ref4;
 
   _ref = require('./ast'), getType = _ref.getType, cons = _ref.cons, define = _ref.define, unescapePresentationHtml = _ref.unescapePresentationHtml;
 
@@ -43,7 +43,7 @@ misrepresented as being the original software.
 
   _ref3 = require('./browserSupport'), TAB = _ref3.TAB, ENTER = _ref3.ENTER, BS = _ref3.BS, DEL = _ref3.DEL, LEFT = _ref3.LEFT, RIGHT = _ref3.RIGHT, UP = _ref3.UP, DOWN = _ref3.DOWN;
 
-  _ref4 = require('./org'), parseOrgMode = _ref4.parseOrgMode, Headline = _ref4.Headline, Meat = _ref4.Meat, Keyword = _ref4.Keyword, Source = _ref4.Source, Results = _ref4.Results, headlineRE = _ref4.headlineRE, HL_TAGS = _ref4.HL_TAGS, parseTags = _ref4.parseTags, matchLine = _ref4.matchLine;
+  _ref4 = require('./org'), parseOrgMode = _ref4.parseOrgMode, Headline = _ref4.Headline, Meat = _ref4.Meat, Keyword = _ref4.Keyword, Source = _ref4.Source, Results = _ref4.Results, SimpleMarkup = _ref4.SimpleMarkup, headlineRE = _ref4.headlineRE, HL_TAGS = _ref4.HL_TAGS, parseTags = _ref4.parseTags, matchLine = _ref4.matchLine;
 
   _ = require('./lodash.min');
 
@@ -436,8 +436,35 @@ misrepresented as being the original software.
       return "<span " + (orgAttrs(org)) + (codeBlockAttrs(org)) + "><span data-org-type='text'>" + (escapeHtml(org.text.substring(0, pos))) + "</span><span " + (orgSrcAttrs(org)) + ">" + (contentSpan(text)) + "</span></span>";
     } else if (org instanceof Headline) {
       return "<span " + (orgAttrs(org)) + ">" + (contentSpan(org.text, 'text')) + (markupGuts(org, checkStart(start, org.text))) + "</span>";
+    } else if (org instanceof SimpleMarkup) {
+      return markupSimple(org);
     } else {
       return "<span " + (orgAttrs(org)) + ">" + (content(org.text)) + "</span>";
+    }
+  };
+
+  markupSimple = function(org) {
+    var c, guts, t, _i, _len, _ref5;
+    guts = '';
+    _ref5 = org.children;
+    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+      c = _ref5[_i];
+      guts += markupNode(c);
+    }
+    t = org.text[0];
+    switch (org.markupType) {
+      case 'bold':
+        return "<b>" + t + guts + t + "</b>";
+      case 'italic':
+        return "<i>" + t + guts + t + "</i>";
+      case 'underline':
+        return "<span style='text-decoration: underline'>" + t + guts + t + "</span>";
+      case 'strikethrough':
+        return "<span style='text-decoration: line-through'>" + t + guts + t + "</span>";
+      case 'code':
+        return "<code>" + t + guts + t + "</code>";
+      case 'verbatim':
+        return "<code>" + t + guts + t + "</code>";
     }
   };
 
@@ -488,7 +515,7 @@ misrepresented as being the original software.
   };
 
   optionalBoundary = function(prev, node) {
-    if (prev) {
+    if (prev && prev.text[prev.text.length - 1] === '\n') {
       return boundarySpan;
     } else {
       return '';

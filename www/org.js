@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var DRAWER_BOILERPLATE, DRAWER_NAME, END_NAME, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, Node, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, Source, Span, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, keywordRE, listContentOffset, listRE, markupText, matchLine, parseHeadline, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
+  var DRAWER_BOILERPLATE, DRAWER_NAME, END_NAME, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, ListItem, Meat, Node, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, keywordRE, listContentOffset, listRE, markupText, markupTypes, matchLine, parseHeadline, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -97,6 +97,8 @@ misrepresented as being the original software.
 
   listRE = /^( *)(- *)(\[( |X)\] +)?(.*)$/m;
 
+  simpleRE = /\B(\*\w(.*\w)?\*|\/\w(.*\w)?\/|\+\w(.*\w)?\+|=\w(.*\w)?=|~\w(.*\w)?~)(\B|$)|\b_[^_]*\B_(\b|$)/;
+
   matchLine = function(txt) {
     return checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
       return "headline-" + m[HL_LEVEL].length;
@@ -150,6 +152,18 @@ misrepresented as being the original software.
 
     Node.prototype.scan = function(func) {
       return func(this);
+    };
+
+    Node.prototype.scanWithChildren = function(func) {
+      var c, _i, _len, _ref, _results;
+      func(this);
+      _ref = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        c = _ref[_i];
+        _results.push(c.scan(func));
+      }
+      return _results;
     };
 
     Node.prototype.linkNodes = function() {
@@ -272,17 +286,7 @@ misrepresented as being the original software.
       }
     };
 
-    Headline.prototype.scan = function(func) {
-      var c, _i, _len, _ref, _results;
-      Headline.__super__.scan.call(this, func);
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        c = _ref[_i];
-        _results.push(c.scan(func));
-      }
-      return _results;
-    };
+    Headline.prototype.scan = Headline.scanWithChildren;
 
     Headline.prototype.linkNodes = function() {
       var c, prev, _i, _len, _ref;
@@ -355,6 +359,43 @@ misrepresented as being the original software.
     return Meat;
 
   })(Node);
+
+  markupTypes = {
+    "*": 'bold',
+    "/": 'italic',
+    "_": 'underline',
+    "=": 'verbatim',
+    "~": 'code',
+    "+": 'strikethrough'
+  };
+
+  SimpleMarkup = (function(_super) {
+    __extends(SimpleMarkup, _super);
+
+    function SimpleMarkup(text, offset, children) {
+      this.text = text;
+      this.offset = offset;
+      this.children = children;
+      this.markupType = markupTypes[this.text[0]];
+    }
+
+    SimpleMarkup.prototype.type = 'simple';
+
+    SimpleMarkup.prototype.toJsonObject = function() {
+      return {
+        type: this.type,
+        text: this.text,
+        offset: this.offset,
+        markupType: this.markupType,
+        children: this.children
+      };
+    };
+
+    SimpleMarkup.prototype.scan = SimpleMarkup.scanWithChildren;
+
+    return SimpleMarkup;
+
+  })(Meat);
 
   ListItem = (function(_super) {
     __extends(ListItem, _super);
@@ -517,26 +558,6 @@ misrepresented as being the original software.
 
   })(Keyword);
 
-  Span = (function() {
-    function Span(attribute, content) {
-      this.attribute = attribute;
-      this.content = content;
-    }
-
-    return Span;
-
-  })();
-
-  Link = (function() {
-    function Link(text, target) {
-      this.text = text;
-      this.target = target;
-    }
-
-    return Link;
-
-  })();
-
   parseOrgMode = function(text) {
     var res, rest, _ref;
     _ref = parseHeadline('', 0, 0, void 0, void 0, void 0, text, text.length), res = _ref[0], rest = _ref[1];
@@ -547,15 +568,21 @@ misrepresented as being the original software.
   };
 
   parseHeadline = function(text, offset, level, todo, priority, tags, rest, totalLen) {
-    var child, children, _ref;
+    var child, children, oldRest, _ref;
     children = [];
     while (true) {
+      oldRest = rest;
       _ref = parseOrgChunk(rest, totalLen - rest.length, level), child = _ref[0], rest = _ref[1];
       if (!child) {
         break;
       }
       if (child.lowerThan(level)) {
-        children.push(child);
+        while (child) {
+          children.push(child);
+          child = child.next;
+        }
+      } else {
+        rest = oldRest;
       }
     }
     return [new Headline(text, level, todo, priority, tags || '', children, offset), rest];
@@ -598,28 +625,55 @@ misrepresented as being the original software.
     }
   };
 
-  parseMeat = function(meat, offset, rest) {
-    var first, keyword, line, list, results, srcStart, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+  parseMeat = function(meat, offset, rest, middleOfLine) {
+    var child, children, first, inside, insideOffset, keyword, line, list, node, results, simple, srcStart, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
     srcStart = meat.match(srcStartRE);
     keyword = meat.match(keywordRE);
     results = meat.match(resultsRE);
     list = meat.match(listRE);
-    if ((results != null ? results.index : void 0) === 0) {
-      line = fullLine(results, meat);
-      return parseResults(line, offset, meat.substring(line.length) + rest);
-    } else if ((srcStart != null ? srcStart.index : void 0) === 0) {
-      line = fullLine(srcStart, meat);
-      return parseSrcBlock(line, offset, srcStart[SRC_INFO], meat.substring(line.length) + rest);
-    } else if ((keyword != null ? keyword.index : void 0) === 0) {
-      line = fullLine(keyword, meat);
-      return parseKeyword(keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest);
-    } else if ((list != null ? list.index : void 0) === 0) {
-      line = fullLine(list, meat);
-      return parseList(list, line, offset, (_ref = (_ref1 = list[LIST_LEVEL]) != null ? _ref1.length : void 0) != null ? _ref : 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest);
+    simple = meat.match(simpleRE);
+    if (!middleOfLine) {
+      if ((results != null ? results.index : void 0) === 0) {
+        line = fullLine(results, meat);
+        return parseResults(line, offset, meat.substring(line.length) + rest);
+      } else if ((srcStart != null ? srcStart.index : void 0) === 0) {
+        line = fullLine(srcStart, meat);
+        return parseSrcBlock(line, offset, srcStart[SRC_INFO], meat.substring(line.length) + rest);
+      } else if ((keyword != null ? keyword.index : void 0) === 0) {
+        line = fullLine(keyword, meat);
+        return parseKeyword(keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest);
+      } else if ((list != null ? list.index : void 0) === 0) {
+        line = fullLine(list, meat);
+        return parseList(list, line, offset, (_ref = (_ref1 = list[LIST_LEVEL]) != null ? _ref1.length : void 0) != null ? _ref : 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest);
+      }
+    }
+    if ((simple != null ? simple.index : void 0) === 0) {
+      inside = simple[0].substring(1, simple[0].length - 1);
+      insideOffset = offset + 1;
+      children = [];
+      while (inside) {
+        _ref2 = parseMeat(inside, insideOffset, '', true), child = _ref2[0], inside = _ref2[1];
+        children.push(child);
+        insideOffset = child.offset + child.text.length;
+      }
+      node = new SimpleMarkup(meat.substring(0, simple[0].length), offset, children);
     } else {
       first = meat.length + offset;
-      first = Math.min(first, (_ref2 = srcStart != null ? srcStart.index : void 0) != null ? _ref2 : first, (_ref3 = keyword != null ? keyword.index : void 0) != null ? _ref3 : first, (_ref4 = results != null ? results.index : void 0) != null ? _ref4 : first, (_ref5 = list != null ? list.index : void 0) != null ? _ref5 : first);
-      return [new Meat(meat.substring(0, first), offset), meat.substring(first) + rest];
+      first = Math.min(first, (_ref3 = srcStart != null ? srcStart.index : void 0) != null ? _ref3 : first, (_ref4 = keyword != null ? keyword.index : void 0) != null ? _ref4 : first, (_ref5 = results != null ? results.index : void 0) != null ? _ref5 : first, (_ref6 = list != null ? list.index : void 0) != null ? _ref6 : first, (_ref7 = simple != null ? simple.index : void 0) != null ? _ref7 : first);
+      node = new Meat(meat.substring(0, first), offset);
+    }
+    meat = meat.substring(node.text.length);
+    return parseRestOfMeat(node, meat, rest);
+  };
+
+  parseRestOfMeat = function(node, meat, rest) {
+    var node2, _ref;
+    if (meat && node.text[node.text.length - 1] !== '\n') {
+      _ref = parseMeat(meat, node.offset + node.text.length, rest, true), node2 = _ref[0], rest = _ref[1];
+      node.next = node2;
+      return [node, rest];
+    } else {
+      return [node, meat + rest];
     }
   };
 
@@ -677,6 +731,8 @@ misrepresented as being the original software.
   root.Results = Results;
 
   root.ListItem = ListItem;
+
+  root.SimpleMarkup = SimpleMarkup;
 
   root.headlineRE = headlineRE;
 

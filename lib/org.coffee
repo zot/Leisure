@@ -62,6 +62,7 @@ LIST_CHECK = 3
 LIST_CHECK_VALUE = 4
 LIST_INFO = 5
 listRE = /^( *)(- *)(\[( |X)\] +)?(.*)$/m
+simpleRE = /\B(\*\w(.*\w)?\*|\/\w(.*\w)?\/|\+\w(.*\w)?\+|=\w(.*\w)?=|~\w(.*\w)?~)(\B|$)|\b_[^_]*\B_(\b|$)/
 
 matchLine = (txt)->
   checkMatch(txt, srcStartRE, 'srcStart') ||
@@ -85,7 +86,11 @@ class Node
   allText: -> @text
   block: false
   findNodeAt: (pos)-> if @offset <= pos && pos < @offset + @text.length then this else null
-  scan: (func)-> func this
+  scan: (func)-> func @
+  scanWithChildren: (func)->
+    func @
+    for c in @children
+      c.scan func
   linkNodes: -> this
   next: null
   prev: null
@@ -122,10 +127,7 @@ class Headline extends Node
       for child in @children
         if res = child.findNodeAt pos then return res
       null
-  scan: (func)->
-    super func
-    for c in @children
-      c.scan func
+  scan: @scanWithChildren
   linkNodes: ->
     prev = null
     for c in @children
@@ -150,6 +152,26 @@ class Meat extends Node
     type: @type
     text: @text
     offset: @offset
+
+markupTypes =
+  "*": 'bold'
+  "/": 'italic'
+  "_": 'underline'
+  "=": 'verbatim'
+  "~": 'code'
+  "+": 'strikethrough'
+
+#* bold, / italic, _ underline, = verbatim, ~ code, + strikethrough
+class SimpleMarkup extends Meat
+  constructor: (@text, @offset, @children)-> @markupType = markupTypes[@text[0]]
+  type: 'simple'
+  toJsonObject: ->
+    type: @type
+    text: @text
+    offset: @offset
+    markupType: @markupType
+    children: @children
+  scan: @scanWithChildren
 
 class ListItem extends Meat
   constructor: (@text, @offset, @contentOffset, @level, @checked, @info)-> super @text, @offset
@@ -213,15 +235,6 @@ class Results extends Keyword
     name: @name
     contentPos: @contentPos
 
-# Marked up text, Spans and Links.  They have optional 'next' attributes pointing to the next item
-# attribute is one of: bold, italic, underline, verbatim, strike-through
-# content is a string or a span
-class Span
-  constructor: (@attribute, @content)->
-
-class Link
-  constructor: (@text, @target)->
-
 #
 # Parse the content of an orgmode file
 #
@@ -233,10 +246,14 @@ parseOrgMode = (text)->
 parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->
   children = []
   while true
+    oldRest = rest
     [child, rest] = parseOrgChunk rest, totalLen - rest.length, level
     if !child then break
     if child.lowerThan level
-      children.push child
+      while child
+        children.push child
+        child = child.next
+    else rest = oldRest
   [new Headline(text, level, todo, priority, tags || '', children, offset), rest]
 
 parseTags = (text)->
@@ -260,27 +277,47 @@ parseOrgChunk = (text, offset, level)->
       meat = text.substring 0, if m then m.index else text.length
       parseMeat meat, offset, text.substring meat.length
 
-parseMeat = (meat, offset, rest)->
+parseMeat = (meat, offset, rest, middleOfLine)->
   srcStart = meat.match srcStartRE
   keyword = meat.match keywordRE
   results = meat.match resultsRE
   list = meat.match listRE
-  if results?.index == 0
-    line = fullLine results, meat
-    parseResults line, offset, meat.substring(line.length) + rest
-  else if srcStart?.index == 0
-    line = fullLine srcStart, meat
-    parseSrcBlock line, offset, srcStart[SRC_INFO], meat.substring(line.length) + rest
-  else if keyword?.index == 0
-    line = fullLine keyword, meat
-    parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest
-  else if list?.index == 0
-    line = fullLine list, meat
-    parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest
+  simple = meat.match simpleRE
+  if !middleOfLine
+    if results?.index == 0
+      line = fullLine results, meat
+      return parseResults line, offset, meat.substring(line.length) + rest
+    else if srcStart?.index == 0
+      line = fullLine srcStart, meat
+      return parseSrcBlock line, offset, srcStart[SRC_INFO], meat.substring(line.length) + rest
+    else if keyword?.index == 0
+      line = fullLine keyword, meat
+      return parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest
+    else if list?.index == 0
+      line = fullLine list, meat
+      return parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest
+  if simple?.index == 0
+    inside = simple[0].substring 1, simple[0].length - 1
+    insideOffset = offset + 1
+    children = []
+    while inside
+      [child, inside] = parseMeat inside, insideOffset, '', true
+      children.push child
+      insideOffset = child.offset + child.text.length
+    node = new SimpleMarkup(meat.substring(0, simple[0].length), offset, children)
   else
     first = meat.length + offset
-    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first)
-    [new Meat(meat.substring(0, first), offset), meat.substring(first) + rest]
+    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first, simple?.index ? first)
+    node = new Meat(meat.substring(0, first), offset)
+  meat = meat.substring node.text.length
+  parseRestOfMeat node, meat, rest
+
+parseRestOfMeat = (node, meat, rest)->
+  if meat && node.text[node.text.length - 1] != '\n'
+    [node2, rest] = parseMeat meat, node.offset + node.text.length, rest, true
+    node.next = node2
+    [node, rest]
+  else [node, meat + rest]
 
 parseResults = (text, offset, rest)->
   oldRest = rest
@@ -318,6 +355,7 @@ root.Keyword = Keyword
 root.Source = Source
 root.Results = Results
 root.ListItem = ListItem
+root.SimpleMarkup = SimpleMarkup
 root.headlineRE = headlineRE
 root.HL_TAGS = HL_TAGS
 root.parseTags = parseTags

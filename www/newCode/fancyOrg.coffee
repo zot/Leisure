@@ -35,6 +35,7 @@ lz = lazy
   Source,
   Results,
   ListItem,
+  SimpleMarkup,
   headlineRE,
   HL_TAGS,
   parseTags,
@@ -171,10 +172,24 @@ markupNode = (org)->
     else defaultMarkup org
   else if org instanceof Headline then markupHeadline org
   else if org instanceof ListItem then markupListItem org
+  else if org instanceof SimpleMarkup then markupSimple org
   else if content(org.text).length then defaultMarkup org
   else "<div #{orgAttrs org}>#{escapeHtml org.text}</div>"
 
 hlStars = /^\*+ */
+
+markupSimple = (org)->
+  guts = ''
+  for c in org.children
+    guts += markupNode c
+  text = switch org.markupType
+    when 'bold' then "<b>#{guts}</b>"
+    when 'italic' then "<i>#{guts}</i>"
+    when 'underline' then "<span style='text-decoration: underline'>#{guts}</span>"
+    when 'strikethrough' then "<span style='text-decoration: line-through'>#{guts}</span>"
+    when 'code' then "<code>#{guts}</code>"
+    when 'verbatim' then "<code>#{guts}</code>"
+  "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{org.text[0]}</span>"
 
 markupHeadline = (org)->
   match = org.text.match headlineRE

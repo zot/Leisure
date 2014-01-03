@@ -61,6 +61,7 @@ Nil = rz L_nil
   Keyword,
   Source,
   Results,
+  SimpleMarkup,
   headlineRE,
   HL_TAGS,
   parseTags,
@@ -337,7 +338,21 @@ markupNode = (org, start)->
     text = org.text.substring pos
     "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
+  else if org instanceof SimpleMarkup then markupSimple org
   else "<span #{orgAttrs org}>#{content org.text}</span>"
+
+markupSimple = (org)->
+  guts = ''
+  for c in org.children
+    guts += markupNode c
+  t = org.text[0]
+  switch org.markupType
+    when 'bold' then "<b>#{t}#{guts}#{t}</b>"
+    when 'italic' then "<i>#{t}#{guts}#{t}</i>"
+    when 'underline' then "<span style='text-decoration: underline'>#{t}#{guts}#{t}</span>"
+    when 'strikethrough' then "<span style='text-decoration: line-through'>#{t}#{guts}#{t}</span>"
+    when 'code' then "<code>#{t}#{guts}#{t}</code>"
+    when 'verbatim' then "<code>#{t}#{guts}#{t}</code>"
 
 codeBlockAttrs = (org)->
   while (org = org.prev) instanceof Meat
@@ -365,7 +380,7 @@ markupGuts = (org, start)->
       optionalBoundary(p, c) + markupNode(c, s)).join ""
 
 #optionalBoundary = (prev, node)-> if prev && (prev.block || node.block) then boundarySpan else ''
-optionalBoundary = (prev, node)-> if prev then boundarySpan else ''
+optionalBoundary = (prev, node)-> if prev && prev.text[prev.text.length - 1] == '\n' then boundarySpan else ''
 
 contentSpan = (str, type)->
   str = content str
