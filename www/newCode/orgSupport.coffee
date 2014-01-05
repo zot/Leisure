@@ -257,6 +257,34 @@ keyFuncs =
     e.preventDefault()
     swapMarkup()
     false
+  expandTemplate: (e, parent, r)->
+    e.preventDefault()
+    txt = r.startContainer
+    if r.collapsed && txt.nodeType == 3 && ((r.startOffset > 2 && txt.data[r.startOffset - 3] == '\n') || (r.startOffset == 2 && followsNewline txt))
+      str = txt.data.substring r.startOffset - 2, r.startOffset
+      if exp = templateExpansions[str]
+        start = r.startOffset
+        [first, second] = exp
+        pos = (getTextPosition parent, txt, start) - 2
+        if start == txt.data.length
+          next = null
+          txt.data = txt.data.substring 0, txt.data.length - 2
+        else
+          next = (if start == 2 then txt else txt.splitText start - 2)
+          next.data = next.data.substring 2
+        txt.parentNode.insertBefore (document.createTextNode first + second), next
+        selectRange nativeRange findDomPosition parent, pos + first.length
+        reparse parent
+
+followsNewline = (txt)->
+  prev = textNodeBefore txt
+  !prev || prev.data[prev.data.length - 1] == '\n'
+
+templateExpansions =
+  '<s': ['#+BEGIN_SRC leisure\n', '\n#+END_SRC']
+  '<=': ['#+BEGIN_SRC leisure :results def\n', '\n#+END_SRC']
+  '<d': ['#+BEGIN_SRC leisure :results dynamic\n', '\n#+END_SRC']
+  '<h': ['#+BEGIN_HTML\n', '\n#+END_HTML']
 
 defaultBindings =
   'C-C C-C': keyFuncs.swapMarkup
@@ -268,6 +296,7 @@ defaultBindings =
   'DOWN': keyFuncs.nextLine
   'LEFT': keyFuncs.backwardChar
   'RIGHT': keyFuncs.forwardChar
+  'TAB': keyFuncs.expandTemplate
 
 swapMarkup = ->
   root.currentMode = (if root.currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
@@ -483,8 +512,7 @@ bindContent = (div)->
           r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
           br.parentNode.normalize()
         r.collapse()
-        s.removeAllRanges()
-        s.addRange(r)
+        selectRange r
         checkEnterReparse div, r
       else if c in [DEL, BS]
         inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
@@ -494,8 +522,7 @@ bindContent = (div)->
           el.data = el.data.substring 0, el.data.length - 1
           r.setStart el, el.data.length
           r.setEnd el, el.data.length
-          s.removeAllRanges()
-          s.addRange r
+          selectRange r
         else if c == DEL && inCollapsedText && r.startOffset >= el.length - 1
           e.preventDefault()
           cancelled = true
@@ -669,7 +696,7 @@ nativeRange = (r)->
     else
       offset = if r instanceof Array then r[1] else r.startOffset
       r2.setStart container, offset
-      r2.setEnd container, offset
+      r2.collapse true
       r2
 
 hasParent = (node, ancestor)-> node == ancestor || (node && hasParent node.parent, ancestor)
@@ -686,8 +713,7 @@ restorePosition = (parent, block)->
     if start > -1 && (r = nativeRange findDomPosition $(parent)[0], start)
       [endContainer, endOffset] = findDomPosition $(parent)[0], end
       r.setEnd endContainer, endOffset
-      sel.removeAllRanges()
-      sel.addRange r
+      selectRange r
   else block()
 
 loadOrg = (parent, text)->
@@ -710,10 +736,19 @@ reparse = (parent, text)->
 
 installOrgDOM = (parent, orgNode, orgText)-> parent.innerHTML = orgText
 
+#checkDeleteReparse = (parent, backspace)->
+#  r = rangy.getSelection().getRangeAt 0
+#  if backspace then r.moveStart 'character', -1 else r.moveEnd 'character', 1
+#  if r.text() == '\n' then setTimeout (->reparse parent), 1
+
 checkDeleteReparse = (parent, backspace)->
-  r = rangy.getSelection().getRangeAt 0
-  if backspace then r.moveStart 'character', -1 else r.moveEnd 'character', 1
-  if r.text() == '\n' then setTimeout (->reparse parent), 1
+  r = getSelection().getRangeAt 0
+  if backspace
+    if r.startOffset == 0 then (prev = textNodeBefore r.startContainer) && prev.data[prev.data.length - 1] == '\n'
+    else r.startContainer.data[r.startOffset - 1] == '\n'
+  else
+    if r.startOffset == r.startContainer.data.length then (next = textNodeAfter r.startContainer) && next.data[0] == '\n'
+    else r.startContainer.data[r.startOffset + 1] == '\n'
 
 checkEnterReparse = (parent, r)->
   if (result = getCollapsible r.startContainer) then reparse parent
@@ -1038,3 +1073,5 @@ root.loadOrg = loadOrg
 root.isDynamic = isDynamic
 root.isDef = isDef
 root.nativeRange = nativeRange
+root.textNodeBefore = textNodeBefore
+root.textNodeAfter = textNodeAfter

@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var DRAWER_BOILERPLATE, DRAWER_NAME, END_NAME, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, ListItem, Meat, Node, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, keywordRE, listContentOffset, listRE, markupText, markupTypes, matchLine, parseHeadline, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
+  var DRAWER_BOILERPLATE, DRAWER_NAME, END_NAME, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, HTML, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, Node, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, keywordRE, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, resultsLineRE, resultsRE, root, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -99,10 +99,24 @@ misrepresented as being the original software.
 
   simpleRE = /\B(\*\w(.*\w)?\*|\/\w(.*\w)?\/|\+\w(.*\w)?\+|=\w(.*\w)?=|~\w(.*\w)?~)(\B|$)|\b_[^_]*\B_(\b|$)/;
 
+  LINK_HEAD = 1;
+
+  LINK_INFO = 2;
+
+  LINK_DESCRIPTION = 3;
+
+  linkRE = /(\[\[([^\]]*)\])(?:\[([^\]]*)\])?\]/;
+
+  HTML_START_NAME = 1;
+
+  htmlStartRE = /^#\+(BEGIN_HTML) *$/im;
+
+  htmlEndRE = /^#\+END_HTML *$/im;
+
   matchLine = function(txt) {
     return checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
       return "headline-" + m[HL_LEVEL].length;
-    }) || checkMatch(txt, listRE, 'list');
+    }) || checkMatch(txt, listRE, 'list') || checkMatch(txt, htmlStartRE, 'htmlStart') || checkMatch(txt, htmlEndRE, 'htmlEnd');
   };
 
   checkMatch = function(txt, pat, result) {
@@ -382,18 +396,66 @@ misrepresented as being the original software.
     SimpleMarkup.prototype.type = 'simple';
 
     SimpleMarkup.prototype.toJsonObject = function() {
+      var c;
       return {
         type: this.type,
         text: this.text,
         offset: this.offset,
         markupType: this.markupType,
-        children: this.children
+        children: (function() {
+          var _i, _len, _ref, _results;
+          _ref = this.children;
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            c = _ref[_i];
+            _results.push(c.toJsonObject());
+          }
+          return _results;
+        }).call(this)
       };
     };
 
     SimpleMarkup.prototype.scan = SimpleMarkup.scanWithChildren;
 
     return SimpleMarkup;
+
+  })(Meat);
+
+  Link = (function(_super) {
+    __extends(Link, _super);
+
+    function Link(text, offset, path, children) {
+      this.text = text;
+      this.offset = offset;
+      this.path = path;
+      this.children = children;
+    }
+
+    Link.prototype.type = 'link';
+
+    Link.prototype.toJsonObject = function() {
+      var c;
+      return {
+        type: this.type,
+        text: this.text,
+        offset: this.offset,
+        path: this.path,
+        children: (function() {
+          var _i, _len, _ref, _results;
+          _ref = this.children;
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            c = _ref[_i];
+            _results.push(c.toJsonObject());
+          }
+          return _results;
+        }).call(this)
+      };
+    };
+
+    Link.prototype.scan = Link.scanWithChildren;
+
+    return Link;
 
   })(Meat);
 
@@ -531,6 +593,46 @@ misrepresented as being the original software.
 
   })(Keyword);
 
+  HTML = (function(_super) {
+    __extends(HTML, _super);
+
+    function HTML(text, offset, name, contentStart, contentLength) {
+      this.text = text;
+      this.offset = offset;
+      this.name = name;
+      this.contentStart = contentStart;
+      this.contentLength = contentLength;
+      HTML.__super__.constructor.call(this, this.text, this.offset, this.name);
+    }
+
+    HTML.prototype.type = 'html';
+
+    HTML.prototype.leading = function() {
+      return this.text.substring(0, this.contentStart);
+    };
+
+    HTML.prototype.trailing = function() {
+      return this.text.substring(this.contentStart + this.contentLength);
+    };
+
+    HTML.prototype.content = function() {
+      return this.text.substring(this.contentStart, this.contentStart + this.contentLength);
+    };
+
+    HTML.prototype.toJsonObject = function() {
+      return {
+        type: this.type,
+        text: this.text,
+        offset: this.offset,
+        contentStart: this.contentStart,
+        contentLength: this.contentLength
+      };
+    };
+
+    return HTML;
+
+  })(Keyword);
+
   Results = (function(_super) {
     __extends(Results, _super);
 
@@ -626,12 +728,14 @@ misrepresented as being the original software.
   };
 
   parseMeat = function(meat, offset, rest, middleOfLine) {
-    var child, children, first, inside, insideOffset, keyword, line, list, node, results, simple, srcStart, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+    var child, children, first, htmlStart, inside, insideOffset, keyword, line, link, list, node, results, simple, srcStart, _ref, _ref1, _ref10, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
     srcStart = meat.match(srcStartRE);
     keyword = meat.match(keywordRE);
     results = meat.match(resultsRE);
     list = meat.match(listRE);
     simple = meat.match(simpleRE);
+    link = meat.match(linkRE);
+    htmlStart = meat.match(htmlStartRE);
     if (!middleOfLine) {
       if ((results != null ? results.index : void 0) === 0) {
         line = fullLine(results, meat);
@@ -645,6 +749,9 @@ misrepresented as being the original software.
       } else if ((list != null ? list.index : void 0) === 0) {
         line = fullLine(list, meat);
         return parseList(list, line, offset, (_ref = (_ref1 = list[LIST_LEVEL]) != null ? _ref1.length : void 0) != null ? _ref : 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest);
+      } else if ((htmlStart != null ? htmlStart.index : void 0) === 0) {
+        line = fullLine(htmlStart, meat);
+        return parseHtmlBlock(line, offset, meat.substring(line.length) + rest);
       }
     }
     if ((simple != null ? simple.index : void 0) === 0) {
@@ -653,13 +760,29 @@ misrepresented as being the original software.
       children = [];
       while (inside) {
         _ref2 = parseMeat(inside, insideOffset, '', true), child = _ref2[0], inside = _ref2[1];
-        children.push(child);
-        insideOffset = child.offset + child.text.length;
+        while (child) {
+          children.push(child);
+          insideOffset = child.offset + child.text.length;
+          child = child.next;
+        }
       }
-      node = new SimpleMarkup(meat.substring(0, simple[0].length), offset, children);
+      node = new SimpleMarkup(simple[0], offset, children);
+    } else if ((link != null ? link.index : void 0) === 0) {
+      inside = link[LINK_DESCRIPTION];
+      insideOffset = offset + link[LINK_HEAD].length;
+      children = [];
+      while (inside) {
+        _ref3 = parseMeat(inside, insideOffset, '', true), child = _ref3[0], inside = _ref3[1];
+        while (child) {
+          children.push(child);
+          insideOffset = child.offset + child.text.length;
+          child = child.next;
+        }
+      }
+      node = new Link(link[0], offset, link[LINK_INFO], children);
     } else {
       first = meat.length + offset;
-      first = Math.min(first, (_ref3 = srcStart != null ? srcStart.index : void 0) != null ? _ref3 : first, (_ref4 = keyword != null ? keyword.index : void 0) != null ? _ref4 : first, (_ref5 = results != null ? results.index : void 0) != null ? _ref5 : first, (_ref6 = list != null ? list.index : void 0) != null ? _ref6 : first, (_ref7 = simple != null ? simple.index : void 0) != null ? _ref7 : first);
+      first = Math.min(first, (_ref4 = srcStart != null ? srcStart.index : void 0) != null ? _ref4 : first, (_ref5 = keyword != null ? keyword.index : void 0) != null ? _ref5 : first, (_ref6 = results != null ? results.index : void 0) != null ? _ref6 : first, (_ref7 = list != null ? list.index : void 0) != null ? _ref7 : first, (_ref8 = simple != null ? simple.index : void 0) != null ? _ref8 : first, (_ref9 = link != null ? link.index : void 0) != null ? _ref9 : first, (_ref10 = htmlStart != null ? htmlStart.index : void 0) != null ? _ref10 : first);
       node = new Meat(meat.substring(0, first), offset);
     }
     meat = meat.substring(node.text.length);
@@ -707,6 +830,22 @@ misrepresented as being the original software.
     }
   };
 
+  parseHtmlBlock = function(text, offset, rest) {
+    var end, endLine, line, otherHtmlStart;
+    end = rest.match(htmlEndRE);
+    otherHtmlStart = rest.match(htmlStartRE);
+    line = text.match(/^.*\n/);
+    if (!line) {
+      line = [text];
+    }
+    if (!end || (otherHtmlStart && otherHtmlStart.index < end.index)) {
+      return [new Meat(line[0]), text.substring(line[0].length) + rest];
+    } else {
+      endLine = fullLine(end, rest.substring(end.index));
+      return [new HTML(text + rest.substring(0, end.index + endLine.length), offset, text.match(htmlStartRE)[HTML_START_NAME], line[0].length, text.length + end.index - line[0].length), rest.substring(end.index + endLine.length)];
+    }
+  };
+
   parseList = function(match, text, offset, level, check, info, rest) {
     return [new ListItem(text, offset, listContentOffset(match), level, check === 'X' || (check === ' ' ? false : null), info), rest];
   };
@@ -728,11 +867,15 @@ misrepresented as being the original software.
 
   root.Source = Source;
 
+  root.HTML = HTML;
+
   root.Results = Results;
 
   root.ListItem = ListItem;
 
   root.SimpleMarkup = SimpleMarkup;
+
+  root.Link = Link;
 
   root.headlineRE = headlineRE;
 

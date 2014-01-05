@@ -63,6 +63,13 @@ LIST_CHECK_VALUE = 4
 LIST_INFO = 5
 listRE = /^( *)(- *)(\[( |X)\] +)?(.*)$/m
 simpleRE = /\B(\*\w(.*\w)?\*|\/\w(.*\w)?\/|\+\w(.*\w)?\+|=\w(.*\w)?=|~\w(.*\w)?~)(\B|$)|\b_[^_]*\B_(\b|$)/
+LINK_HEAD = 1
+LINK_INFO = 2
+LINK_DESCRIPTION = 3
+linkRE = /(\[\[([^\]]*)\])(?:\[([^\]]*)\])?\]/
+HTML_START_NAME = 1
+htmlStartRE = /^#\+(BEGIN_HTML) *$/im
+htmlEndRE = /^#\+END_HTML *$/im
 
 matchLine = (txt)->
   checkMatch(txt, srcStartRE, 'srcStart') ||
@@ -70,7 +77,9 @@ matchLine = (txt)->
   checkMatch(txt, resultsRE, 'results') ||
   checkMatch(txt, keywordRE, 'keyword') ||
   checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].length}") ||
-  checkMatch(txt, listRE, 'list')
+  checkMatch(txt, listRE, 'list') ||
+  checkMatch(txt, htmlStartRE, 'htmlStart') ||
+  checkMatch(txt, htmlEndRE, 'htmlEnd')
 
 checkMatch = (txt, pat, result)->
   m = txt.match pat
@@ -170,7 +179,18 @@ class SimpleMarkup extends Meat
     text: @text
     offset: @offset
     markupType: @markupType
-    children: @children
+    children: (c.toJsonObject() for c in @children)
+  scan: @scanWithChildren
+
+class Link extends Meat
+  constructor: (@text, @offset, @path, @children)->
+  type: 'link'
+  toJsonObject: ->
+    type: @type
+    text: @text
+    offset: @offset
+    path: @path
+    children: (c.toJsonObject() for c in @children)
   scan: @scanWithChildren
 
 class ListItem extends Meat
@@ -224,6 +244,19 @@ class Source extends Keyword
     info: @info
     content: @content
     contentPos: @contentPos
+
+class HTML extends Keyword
+  constructor: (@text, @offset, @name, @contentStart, @contentLength)-> super @text, @offset, @name
+  type: 'html'
+  leading: -> @text.substring 0, @contentStart
+  trailing: -> @text.substring @contentStart + @contentLength
+  content: -> @text.substring @contentStart, @contentStart + @contentLength
+  toJsonObject: ->
+    type: @type
+    text: @text
+    offset: @offset
+    contentStart: @contentStart
+    contentLength: @contentLength
 
 class Results extends Keyword
   constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
@@ -283,6 +316,8 @@ parseMeat = (meat, offset, rest, middleOfLine)->
   results = meat.match resultsRE
   list = meat.match listRE
   simple = meat.match simpleRE
+  link = meat.match linkRE
+  htmlStart = meat.match htmlStartRE
   if !middleOfLine
     if results?.index == 0
       line = fullLine results, meat
@@ -296,18 +331,34 @@ parseMeat = (meat, offset, rest, middleOfLine)->
     else if list?.index == 0
       line = fullLine list, meat
       return parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest
+    else if htmlStart?.index == 0
+      line = fullLine htmlStart, meat
+      return parseHtmlBlock line, offset, meat.substring(line.length) + rest
   if simple?.index == 0
     inside = simple[0].substring 1, simple[0].length - 1
     insideOffset = offset + 1
     children = []
     while inside
       [child, inside] = parseMeat inside, insideOffset, '', true
-      children.push child
-      insideOffset = child.offset + child.text.length
-    node = new SimpleMarkup(meat.substring(0, simple[0].length), offset, children)
+      while child
+        children.push child
+        insideOffset = child.offset + child.text.length
+        child = child.next
+    node = new SimpleMarkup simple[0], offset, children
+  else if link?.index == 0
+    inside = link[LINK_DESCRIPTION]
+    insideOffset = offset + link[LINK_HEAD].length
+    children = []
+    while inside
+      [child, inside] = parseMeat inside, insideOffset, '', true
+      while child
+        children.push child
+        insideOffset = child.offset + child.text.length
+        child = child.next
+    node = new Link link[0], offset, link[LINK_INFO], children
   else
     first = meat.length + offset
-    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first, simple?.index ? first)
+    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first, simple?.index ? first, link?.index ? first, htmlStart?.index ? first)
     node = new Meat(meat.substring(0, first), offset)
   meat = meat.substring node.text.length
   parseRestOfMeat node, meat, rest
@@ -340,6 +391,17 @@ parseSrcBlock = (text, offset, info, rest)->
     endLine = fullLine end, rest.substring end.index
     [new Source(text + rest.substring(0, end.index + endLine.length), offset, text.match(srcStartRE)[SRC_NAME], info, rest.substring(0, end.index), offset + text.length), rest.substring end.index + endLine.length]
 
+parseHtmlBlock = (text, offset, rest)->
+  end = rest.match htmlEndRE
+  otherHtmlStart = rest.match htmlStartRE
+  line = text.match /^.*\n/
+  if !line then line = [text]
+  if !end || (otherHtmlStart && otherHtmlStart.index < end.index)
+    [new Meat(line[0]), text.substring(line[0].length) + rest]
+  else
+    endLine = fullLine end, rest.substring end.index
+    [new HTML(text + rest.substring(0, end.index + endLine.length), offset, text.match(htmlStartRE)[HTML_START_NAME], line[0].length, text.length + end.index - line[0].length), rest.substring end.index + endLine.length]
+
 parseList = (match, text, offset, level, check, info, rest)->
   [new ListItem(text, offset, listContentOffset(match), level, check == 'X' || (if check == ' ' then false else null), info), rest]
 
@@ -353,9 +415,11 @@ root.Headline = Headline
 root.Meat = Meat
 root.Keyword = Keyword
 root.Source = Source
+root.HTML = HTML
 root.Results = Results
 root.ListItem = ListItem
 root.SimpleMarkup = SimpleMarkup
+root.Link = Link
 root.headlineRE = headlineRE
 root.HL_TAGS = HL_TAGS
 root.parseTags = parseTags

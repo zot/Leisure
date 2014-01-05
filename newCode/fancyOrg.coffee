@@ -33,9 +33,11 @@ lz = lazy
   Meat,
   Keyword,
   Source,
+  HTML,
   Results,
   ListItem,
   SimpleMarkup,
+  Link,
   headlineRE,
   HL_TAGS,
   parseTags,
@@ -86,6 +88,8 @@ lz = lazy
   getTextPosition,
   findDomPosition,
   nativeRange,
+  textNodeAfter,
+  textNodeBefore,
 } = require './orgSupport'
 {
   redrawAllIssues,
@@ -105,23 +109,31 @@ DOCUMENT_POSITION_CONTAINED_BY = 16
 
 root.restorePosition = restorePosition = (parent, block)->
   sel = getSelection()
-  if sel?.rangeCount
+  slide = slideParent sel.focusNode
+  slideIndex = slideOffset slide
+  if sel?.rangeCount && slideIndex > -1
     r = sel.getRangeAt 0
-    slide = slideParent sel.focusNode
-    slideIndex = slideOffset slide
-    if slideIndex > -1
-      start = getTextPosition slide, r.startContainer, r.startOffset
-      end = getTextPosition slide, r.endContainer, r.endOffset
-      offset = documentTop(r.startContainer) - window.pageYOffset
-      block()
-      newSlide = $('[data-org-headline="1"]')[slideIndex]
-      if slideMode then setCurrentSlide newSlide
-      if start > -1 && (r = nativeRange findDomPosition newSlide, start)
+    start = getTextPosition slide, r.startContainer, r.startOffset
+    end = getTextPosition slide, r.endContainer, r.endOffset
+    [container, sta] = findDomPosition slide, start
+    if (isCollapsed container) && sta == 0 then container = textNodeBefore container
+    offset = documentTop(container) - window.pageYOffset
+    block()
+    newSlide = $('[data-org-headline="1"]')[slideIndex]
+    if slideMode then setCurrentSlide newSlide
+    if start > -1 && (r = nativeRange findDomPosition newSlide, start)
+      if isCollapsed r.startContainer
+        c = r.startContainer
+        while isCollapsed c
+          c = textNodeBefore c
+        r.setStart c, 0
+        r.collapse true
+      else
         [endContainer, endOffset] = findDomPosition newSlide, end
         r.setEnd endContainer, endOffset
-        sel.removeAllRanges()
-        sel.addRange r
-        window.scrollTo 0, documentTop(r.startContainer) - offset
+      sel.removeAllRanges()
+      sel.addRange r
+      window.scrollTo 0, documentTop(r.startContainer) - offset
       return
   block()
 
@@ -158,6 +170,7 @@ markupNode = (org)->
     pos = org.contentPos - org.offset
     text = org.text.substring pos
     "<span #{orgAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span>#{contentSpan text}"
+  else if org instanceof HTML then markupHtml org
   else if org instanceof Keyword
     if org.name.match /^name$/i
       intertext = ''
@@ -173,10 +186,21 @@ markupNode = (org)->
   else if org instanceof Headline then markupHeadline org
   else if org instanceof ListItem then markupListItem org
   else if org instanceof SimpleMarkup then markupSimple org
+  else if org instanceof Link then markupLink org
   else if content(org.text).length then defaultMarkup org
   else "<div #{orgAttrs org}>#{escapeHtml org.text}</div>"
 
-hlStars = /^\*+ */
+imagePath = /\.(png|jpg|gif|svg|tiff|bmp)$/i
+
+markupLink = (org)->
+  if !org.children.length && org.path.match imagePath
+    "<span class='hidden'>#{org.text}</span><img src='#{org.path}'>"
+  else
+    guts = ''
+    for c in org.children
+      guts += markupNode c
+    if !guts then "<span class='hidden'>[[</span><a href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
+    else "<span class='hidden'>[[#{org.path}][</span><a href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
 
 markupSimple = (org)->
   guts = ''
@@ -190,6 +214,8 @@ markupSimple = (org)->
     when 'code' then "<code>#{guts}</code>"
     when 'verbatim' then "<code>#{guts}</code>"
   "<span class='hidden'>#{org.text[0]}</span>#{text}<span class='hidden'>#{org.text[0]}</span>"
+
+hlStars = /^\*+ */
 
 markupHeadline = (org)->
   match = org.text.match headlineRE
@@ -206,16 +232,14 @@ markupHeadline = (org)->
   else stars = ''
   "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><span data-org-type='text-content'>#{escapeHtml start}</span><span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
 
+markupHtml = (org)->
+  "<div #{orgAttrs org}><span data-org-html='true'>#{org.content()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
+
 markupSource = (org, name, intertext)->
   srcContent = org.content
   lead = org.text.substring 0, org.contentPos - org.offset
   trail = org.text.substring org.contentPos - org.offset + org.content.length
-  (if isHtml org then markupHtml else markupLeisure) org, name, intertext, srcContent, lead, trail
-
-isHtml = (org)-> org.info.match /^ *html($| )/
-
-markupHtml = (org, name, intertext, content, lead, trail)->
-  "<span class='hidden'>#{escapeHtml (name?.text ? '') + (intertext ? '') + org.text}</span><span data-org-html='true'>#{content}</span>"
+  markupLeisure org, name, intertext, srcContent, lead, trail
 
 markupLeisure = (org, name, intertext, content, lead, trail)->
   lastOrgOffset = org.offset
@@ -233,11 +257,11 @@ markupLeisure = (org, name, intertext, content, lead, trail)->
   if res instanceof Results
     lastOrgOffset = res.offset
     pos = res.contentPos - res.offset
-    if intertext then html += "<div class='hidden' data-org-type='boundary'>#{escapeHtml(intertext)}</div>"
+    #if intertext then html += "<div class='hidden' data-org-type='boundary'>#{escapeHtml(intertext)}</div>"
     wrapper += htmlForResults res.text.substring pos
   else wrapper += htmlForResults ''
   wrapper += "</td></tr></table>"
-  html + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>")
+  html + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>") + '\n'
 
 markupListItem = (org)->
 #  """#{if !(org.prev instanceof ListItem) || org.prev.level < org.level then '<ul>' else ''
@@ -381,9 +405,11 @@ addComment = (name)-> alert('Add comment not implemented, yet')
 
 defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
-htmlForResults = (text)-> """
-  </td><td><div class='results-indicator' data-org-type='boundary'><span></span></div></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:
-  </span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
+htmlForResults = (text)->
+  """
+  </td><td><div class='results-indicator' data-org-type='boundary'><span></span></div></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:</span><div class='resultscontent'><span></span><span class='hidden'>#{nonl escapeHtml '\n' + text}</span></div></div>"""
+
+nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt
 
 createResults = (srcNode)->
   while srcNode && !srcNode.classList?.contains 'codeblock'
@@ -505,11 +531,25 @@ getCodeContainer = (node)->
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
   if code = getCodeContainer focus then recreateAstButtons div, code
-  else if el && !el.nextSibling && el.data[el.data.length - 1] != '\n' #&& el.data.length == 1
+  else if needsNewline el
     restorePosition el.parentNode, ->
       el.data += '\n'
       el.parentNode.normalize()
   checkSourceMod div, currentMatch
+
+#needsNewline = (el)-> el && !el.nextSibling && el.data[el.data.length - 1] != '\n'
+
+needsNewline = (el)->
+  if el && !el.nextSibling && el.data[el.data.length - 1] != '\n'
+    next = textNodeAfter el
+    if next && el.parentNode != next.parentNode
+      r = document.createRange()
+      r.setStart el, 0
+      r.setEnd next, next.data.length
+      ance = r.commonAncestorContainer
+      while el && (el = el.parentNode) != ance
+        if getComputedStyle(el).display == 'block' then return true
+  return false
 
 bsWillDestroyParent = (r)->
   if r.startContainer.nodeType == 3 && r.startOffset == 1 && r.startContainer.data.match /^.\n?$/
@@ -730,9 +770,11 @@ define 'toggleSlides', lz makeSyncMonad (env, cont)->
   cont rz L_true
 
 slideOffset = (slide)->
-  a = []
-  a.push $("[data-org-headline='1']")...
-  a.indexOf slide ? $('.currentSlide')[0]
+  if slide
+    a = []
+    a.push $("[data-org-headline='1']")...
+    a.indexOf slide ? $('.currentSlide')[0]
+  else -1
 
 setSlideAt = (index)-> setCurrentSlide $("[data-org-headline='1']")[index]
 
