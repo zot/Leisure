@@ -1,6 +1,30 @@
 <!DOCTYPE html>
 <html>
   <head>
+		<style>
+			@font-face
+			{
+				font-family: SavilleRow;
+				src: url('SAVILLE1.woff'); format('woff');
+			}
+			.artdeco {
+				font-family: SavilleRow, Arial;
+			}
+			.artdeco [data-org-type="headline"] > [data-org-type='text']{
+				color: black;
+				text-shadow: 1px 1px teal;
+			}
+			.artdeco .codeblock {
+				font-family: Courier;
+			}
+			.artdeco .org-fancy [data-org-headline='1'] {
+							margin-bottom: 8px;
+							padding: 8px;
+							border-width: 193px 178px 193px 178px;
+							border-image: url(images/artdecoborder.jpg) 193 178 193 178;
+			}			
+		</style>
+		
         <style>
                 body {
                         position: relative;
@@ -336,7 +360,7 @@
           }
         </script>
   </head>
-  <body class="loading not-logged-in">
+  <body class="loading not-logged-in artdeco">
     <div id="loading">LOADING ORG</div>
 <div id="login">
 <h2>Github</h2>
