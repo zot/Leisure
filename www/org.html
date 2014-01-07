@@ -1,40 +1,41 @@
 <!DOCTYPE html>
 <html>
   <head>
-		<style>
-			@font-face
-			{
-				font-family: SavilleRow;
-				src: url('SAVILLE1.woff'); format('woff');
-			}
-			@font-face
-			{
-				font-family: MouseDeco;
-				src: url('Mouse_Deco.woff'); format('woff');
-			}
-			@font-face
-			{
-				font-family: Ciudad;
-				src: url('Ciudad Nueva CAPS Bold.woff'); format('woff');
-			}
-			.artdeco {
-				font-family: Ciudad, MouseDeco, SavilleRow, Arial;
-			}
-			.artdeco [data-org-type="headline"] > [data-org-type='text']{
-				color: #95a82d;
-				text-shadow: 2px 2px black;
-			}
-			.artdeco .codeblock {
-				font-family: Courier;
-			}
-			.artdeco .org-fancy [data-org-headline='1'] {
-							margin-bottom: 8px;
-							padding: 8px;
-							border-width: 193px 178px 193px 178px;
-							border-image: url(images/artdecoborder.jpg) 193 178 193 178;
-			}			
-		</style>
-		
+        <style>
+                @font-face
+                {
+                        font-family: SavilleRow;
+                        src: url('SAVILLE1.woff'); format('woff');
+                }
+                @font-face
+                {
+                        font-family: MouseDeco;
+                        src: url('Mouse_Deco.woff'); format('woff');
+                }
+                @font-face
+                {
+                        font-family: Ciudad;
+                        src: url('Ciudad Nueva CAPS Bold.woff'); format('woff');
+                }
+                .artdeco .org-fancy {
+                        font-family: Ciudad, MouseDeco, SavilleRow, Arial;
+                }
+                .artdeco [data-org-type="headline"] > [data-org-type='text']{
+                        color: #95a82d;
+                }
+                .artdeco .org-fancy [data-org-type="headline"] > [data-org-type='text']{
+                        text-shadow: 2px 2px black;
+                }
+                .artdeco .codeblock {
+                        font-family: Courier;
+                }
+                .artdeco .org-fancy [data-org-headline='1'] {
+                        margin-bottom: 8px;
+                        padding: 8px;
+                        border-width: 193px 178px 193px 178px;
+                        border-image: url(images/artdecoborder.jpg) 193 178 193 178;
+                }
+        </style>
         <style>
                 body {
                         position: relative;
