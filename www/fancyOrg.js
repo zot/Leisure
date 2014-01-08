@@ -179,10 +179,21 @@
         guts += markupNode(c);
       }
       if (!guts) {
-        return "<span class='hidden'>[[</span><a href='" + org.path + "'>" + org.path + "</a><span class='hidden'>]]</span>";
+        return "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='" + org.path + "'>" + org.path + "</a><span class='hidden'>]]</span>";
       } else {
-        return "<span class='hidden'>[[" + org.path + "][</span><a href='" + org.path + "'>" + guts + "</a><span class='hidden'>]]</span>";
+        return "<span class='hidden'>[[" + org.path + "][</span><a onclick='Leisure.followLink(event)' href='" + org.path + "'>" + guts + "</a><span class='hidden'>]]</span>";
       }
+    }
+  };
+
+  root.followLink = function(e) {
+    var t;
+    t = e.target;
+    while (t && t.nodeName !== 'A') {
+      t = t.parentNode;
+    }
+    if (t) {
+      return document.location = t.href;
     }
   };
 
@@ -236,7 +247,7 @@
   };
 
   markupHtml = function(org) {
-    return "<div " + (orgAttrs(org)) + "><span data-org-html='true'>" + (org.content()) + "</span><span class='hidden'>" + (escapeHtml(org.text)) + "</span></div>";
+    return "<div " + (orgAttrs(org)) + "><span data-org-html='true'>" + ($('<div>' + org.content() + '</div>').html()) + "</span><span class='hidden'>" + (escapeHtml(org.text)) + "</span></div>";
   };
 
   markupSource = function(org, name, intertext) {
@@ -290,13 +301,17 @@
 
   eatListItem = function(org) {
     var item, result;
-    item = org;
-    result = '';
-    while (((org = org.next) instanceof Meat) && !(org instanceof ListItem)) {
-      result += markupNode(org);
-      lastOrgOffset = org.offset;
+    if (org.next instanceof Meat && org.next.text[0] === '\n') {
+      return '';
+    } else {
+      item = org;
+      result = '';
+      while (((org = org.next) instanceof Meat) && !(org instanceof ListItem)) {
+        result += markupNode(org);
+        lastOrgOffset = org.offset;
+      }
+      return result;
     }
-    return result;
   };
 
   unwrap = function(node) {
@@ -1028,11 +1043,13 @@
     fancyOrg.bindings = (slideMode ? slideBindings : defaultBindings);
     if (slideMode) {
       return restorePosition(null, function() {
+        $('[data-org-html]').addClass('slideHtml');
         $('body').addClass('slides');
         return nextSlide();
       });
     } else {
-      return $('body').removeClass('slides');
+      $('body').removeClass('slides');
+      return $('[data-org-html]').addClass('slideHtml');
     }
   };
 
@@ -1075,7 +1092,7 @@
     installOrgDOM: function(parent, orgNode, orgText) {
       this.parent = parent;
       return restorePosition(parent, function() {
-        var node, _i, _j, _k, _len, _len1, _len2, _ref6, _ref7, _ref8,
+        var node, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref6, _ref7, _ref8, _ref9,
           _this = this;
         parent.setAttribute('class', 'org-fancy');
         orgNotebook.installOrgDOM(parent, orgNode, orgText);
@@ -1095,11 +1112,16 @@
           node = _ref8[_k];
           reprocessResults(node);
         }
+        _ref9 = $('[data-org-headline="1"]');
+        for (_l = 0, _len3 = _ref9.length; _l < _len3; _l++) {
+          node = _ref9[_l];
+          setShadowHtml(node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>");
+        }
         return setTimeout((function() {
-          var _l, _len3, _ref9;
-          _ref9 = $('[data-org-comments]');
-          for (_l = 0, _len3 = _ref9.length; _l < _len3; _l++) {
-            node = _ref9[_l];
+          var _len4, _m, _ref10;
+          _ref10 = $('[data-org-comments]');
+          for (_m = 0, _len4 = _ref10.length; _m < _len4; _m++) {
+            node = _ref10[_m];
             setShadowHtml(node.firstElementChild, newCommentBox(node.getAttribute('data-org-comments')));
           }
           return redrawAllIssues();

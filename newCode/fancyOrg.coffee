@@ -199,8 +199,14 @@ markupLink = (org)->
     guts = ''
     for c in org.children
       guts += markupNode c
-    if !guts then "<span class='hidden'>[[</span><a href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
-    else "<span class='hidden'>[[#{org.path}][</span><a href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
+    if !guts then "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
+    else "<span class='hidden'>[[#{org.path}][</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
+
+root.followLink = (e)->
+  t = e.target
+  while t && t.nodeName != 'A'
+    t = t.parentNode
+  if t then document.location = t.href
 
 markupSimple = (org)->
   guts = ''
@@ -233,7 +239,7 @@ markupHeadline = (org)->
   "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><span data-org-type='text-content'>#{escapeHtml start}</span><span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
 
 markupHtml = (org)->
-  "<div #{orgAttrs org}><span data-org-html='true'>#{org.content()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
+  "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
 
 markupSource = (org, name, intertext)->
   srcContent = org.content
@@ -264,16 +270,6 @@ markupLeisure = (org, name, intertext, content, lead, trail)->
   html + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>") + '\n'
 
 markupListItem = (org)->
-#  """#{if !(org.prev instanceof ListItem) || org.prev.level < org.level then '<ul>' else ''
-#  }<li #{orgAttrs org} data-org-listlevel=#{
-#    org.level
-#  }#{
-#    if org.checked? then 'data-org-checked="' + org.checked + '"' else ''
-#  }><span class='hidden'>#{
-#    escapeHtml org.text.substring 0, org.contentOffset
-#  }</span><span>#{escapeHtml org.text.substring org.contentOffset}</span></li>#{
-#    if !(org.next instanceof ListItem) || org.next.level < org.level then '</ul>' else ''
-#  }"""
   if org.level == 0
     start = !org.getPreviousListItem()
     end = !org.getNextListItem()
@@ -292,12 +288,14 @@ markupListItem = (org)->
   }#{if end then '</ul>' else ''}"""
 
 eatListItem = (org)->
-  item = org
-  result = ''
-  while ((org = org.next) instanceof Meat) && !(org instanceof ListItem)
-    result += markupNode org
-    lastOrgOffset = org.offset
-  result
+  if org.next instanceof Meat && org.next.text[0] == '\n' then ''
+  else
+    item = org
+    result = ''
+    while ((org = org.next) instanceof Meat) && !(org instanceof ListItem)
+      result += markupNode org
+      lastOrgOffset = org.offset
+    result
 
 unwrap = (node)->
   parent = node.parentNode
@@ -759,11 +757,14 @@ toggleSlides = ->
   fancyOrg.bindings = (if slideMode then slideBindings else defaultBindings)
   if slideMode
     restorePosition null, ->
+      $('[data-org-html]').addClass 'slideHtml'
       $('body').addClass 'slides'
       #setTimeout (->nextSlide()), 500
       #setTimeout (->nextSlide()), 1
       nextSlide()
-  else $('body').removeClass 'slides'
+  else
+    $('body').removeClass 'slides'
+    $('[data-org-html]').addClass 'slideHtml'
 
 define 'toggleSlides', lz makeSyncMonad (env, cont)->
   toggleSlides()
@@ -802,6 +803,8 @@ fancyOrg =
         recreateAstButtons parent, node
       for node in $('.resultscontent')
         reprocessResults node
+      for node in $('[data-org-headline="1"]')
+        setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
       setTimeout (=>
         #for node in $('[data-org-results]')
         #  switch $(node).attr('data-org-results').toLowerCase()
