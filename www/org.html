@@ -18,22 +18,37 @@
                         src: url('Ciudad Nueva CAPS Bold.woff'); format('woff');
                 }
                 .artdeco .org-fancy {
-                        font-family: Ciudad, MouseDeco, SavilleRow, Arial;
+                        /*font-family: Ciudad;*/
+                        font-family: MouseDeco;
+                        /*font-family: SavilleRow;*/
+                        /*font-family: Arial;*/
                 }
-                .artdeco [data-org-type="headline"] > [data-org-type='text']{
+                .artdeco [data-org-type="headline"] > [data-org-type='text'] {
                         color: #95a82d;
                 }
-                .artdeco .org-fancy [data-org-type="headline"] > [data-org-type='text']{
+                .artdeco .org-fancy [data-org-type="headline"] > [data-org-type='text'] {
                         text-shadow: 2px 2px black;
                 }
                 .artdeco .codeblock {
                         font-family: Courier;
                 }
                 .artdeco .org-fancy [data-org-headline='1'] {
-                        margin-bottom: 8px;
+                        border: none;
+                        position: relative;
+                }
+                .page > .border {
+                        position: absolute;
+                        top: 8px;
+                        bottom: 8px;
+                        left: 8px;
+                        right: 8px;
                         padding: 8px;
                         border-width: 193px 178px 193px 178px;
                         border-image: url(images/artdecoborder.jpg) 193 178 193 178;
+                        z-index: -1;
+                }
+                .pagecontent {
+                        padding: 120px 100px;
                 }
         </style>
         <style>
@@ -276,9 +291,20 @@
                         display: block;
                         position: relative;
                 }
+                body.slides {
+                        position: absolute;
+                        border: none;
+                        padding: 0;
+                        margin: 0;
+                        width: 100%;
+                        height: 100%;
+                }
                 .slides .org-fancy [data-org-headline='1'] {
-                        padding-top: 2em;
-                        min-height: 23em;
+                        position: absolute;
+                        top: 0;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
                 }
                 .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
                         position: absolute;
