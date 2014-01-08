@@ -22,19 +22,29 @@ commentIssues = {}
 commentIssueURLs = {}
 
 initStorage = ->
-  #$('#login').css 'display', ''
-  #$('#panel').css 'display', 'none'
-  $('#name').val localStorage.getItem 'githubName'
-  $('#password').val localStorage.getItem 'githubPassword'
-  $('#user').val localStorage.getItem 'githubUser'
-  $('#repository').val localStorage.getItem 'githubRepository'
-  $('#file').val localStorage.getItem 'githubFile'
+  uri = new URI document.location.toString()
+  if load = uri.getFragParams().load then useUrl load
+  else
+    #$('#login').css 'display', ''
+    #$('#panel').css 'display', 'none'
+    $('#name').val localStorage.getItem 'githubName'
+    $('#password').val localStorage.getItem 'githubPassword'
+    $('#user').val localStorage.getItem 'githubUser'
+    $('#repository').val localStorage.getItem 'githubRepository'
+    $('#file').val localStorage.getItem 'githubFile'
 
 currentFile = null
 
 lastUpdate = 0
 
 getContent = (data)-> atob data.content
+
+useUrl = (url)->
+  ($.get url, (data)->
+    loadOrg $('[maindoc]')[0], data
+    document.body.classList.remove 'not-logged-in'
+    checkEvents lastUpdate, 1, []
+  ).fail (err)-> alert("Couldn't load url: #{url}")
 
 useFile = (file)->
   reader = new FileReader()

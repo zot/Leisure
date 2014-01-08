@@ -17,16 +17,16 @@
                         font-family: Ciudad;
                         src: url('Ciudad Nueva CAPS Bold.woff'); format('woff');
                 }
-                .artdeco .org-fancy {
+                .artdeco .org-fancy, .artdeco #loading {
                         /*font-family: Ciudad;*/
                         font-family: MouseDeco;
                         /*font-family: SavilleRow;*/
                         /*font-family: Arial;*/
                 }
-                .artdeco [data-org-type="headline"] > [data-org-type='text'] {
+                .artdeco #loading, .artdeco [data-org-type="headline"] > [data-org-type='text'] {
                         color: #95a82d;
                 }
-                .artdeco .org-fancy [data-org-type="headline"] > [data-org-type='text'] {
+                .artdeco #loading, .artdeco .org-fancy [data-org-type="headline"] > [data-org-type='text'] {
                         text-shadow: 2px 2px black;
                 }
                 .artdeco .codeblock {
@@ -56,6 +56,16 @@
                         position: relative;
                         margin: 0;
                         font-size: large;
+                }
+                #loading {
+                        position: absolute;
+                        width: 100%;
+                        height: 100%;
+                        margin: 0;
+                        text-align: center;
+                }
+                #loading-message {
+                        vertical-align: middle;
                 }
                 [maindoc] {
                         white-space: pre-wrap;
@@ -257,10 +267,10 @@
                         -moz-user-select: none;
                         -webkit-user-select: none;
                 }
-                .not-logged-in #leisure_bar, .not-logged-in #panel {
-                        display: none;
-                }
-                #login {
+                .not-logged-in #leisure_bar,
+                .not-logged-in #panel,
+                #login,
+                .loading.not-logged-in #login {
                         display: none;
                 }
                 .not-logged-in #login {
@@ -286,12 +296,14 @@
                         border-width: 13px 61px 29px 61px;
                         border-image: url(images/decorative-border-pages-book-hi.png) 13 61 29 61 stretch;
                 }
-                .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
+                #loading, .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
                         font-size: 2em;
-                        display: block;
                         position: relative;
                 }
-                body.slides {
+                .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
+                        display: block;
+                }
+                body.loading, body.slides {
                         position: absolute;
                         border: none;
                         padding: 0;
@@ -310,11 +322,12 @@
                         position: absolute;
                         left: 0;
                         width: 100%;
-                        top: 0;
+                        top: 8px;
                         text-align: center;
                         z-index: 1;
                 }
-                .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                #loading-message, .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        padding-top: 6px;
                         padding-left: 16px;
                         padding-right: 16px;
                         background: white;
@@ -385,6 +398,7 @@
                                 window.ORG_TEXT = div.html().replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
                                 Boot.onboot(function() {
                                         $('#loading').remove();
+                                        $('body').removeClass('loading');
                                         $('#panel').css('display', '');
                                         Leisure.initOrg('[maindoc]', '#source');
                                         //Leisure.basicOrg.useNode(div[0], $('#source'));
@@ -392,14 +406,21 @@
                                         //Leisure.fancyOrg.useNode(div[0], $('#source'));
                                         //Leisure.initStorage('#login', '#panel', Leisure.fancyOrg);
                                 });
-                        }
+                      }
                         document.head.appendChild(script);
                 }, 1);
           }
         </script>
   </head>
   <body class="loading not-logged-in artdeco">
-    <div id="loading">LOADING ORG</div>
+    <table id="loading">
+      <tr>
+        <td style="vertical-align: middle">
+          <span id="loading-message" style="vertical-align: middle">LOADING LEISURE</span><br>
+          <img src="images/loading.gif">
+        </td>
+      </tr>
+    </table>
 <div id="login">
 <h2>Github</h2>
 Github Login: <input id='name' type='text'> Password: <input id='password' type='password'><hr>

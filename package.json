@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "Leisure environment",
   "window": {
-      "toolbar": true
+      "toolbar": true,
+      "Xtoolbar": false
   },
   "keywords": [
     "Leisure"

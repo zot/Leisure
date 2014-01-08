@@ -199,8 +199,14 @@ markupLink = (org)->
     guts = ''
     for c in org.children
       guts += markupNode c
-    if !guts then "<span class='hidden'>[[</span><a href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
-    else "<span class='hidden'>[[#{org.path}][</span><a href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
+    if !guts then "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
+    else "<span class='hidden'>[[#{org.path}][</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
+
+root.followLink = (e)->
+  t = e.target
+  while t && t.nodeName != 'A'
+    t = t.parentNode
+  if t then document.location = t.href
 
 markupSimple = (org)->
   guts = ''
