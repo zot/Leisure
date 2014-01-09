@@ -50,6 +50,9 @@
                 .pagecontent {
                         padding: 120px 100px;
                 }
+                body {
+                        /*background-image: url(images/steampunk_background.jpg);*/
+                }
         </style>
         <style>
                 body {
@@ -322,7 +325,8 @@
                         position: absolute;
                         left: 0;
                         width: 100%;
-                        top: 8px;
+                        /*top: 8px;*/
+                        top: 36px;
                         text-align: center;
                         z-index: 1;
                 }
@@ -364,11 +368,22 @@
                 .codewrapper > tbody > tr {
                         vertical-align: top;
                 }
-                .resultsline > * {
-                        vertical-align: middle;
-                }
                 .org-fancy [data-org-html="true"] {
                         white-space: normal;
+                }
+        </style>
+        <style>
+          /* styles for Leisure output */
+                .partial-application {
+                        display: inline-block;
+                        border-radius: 5px;
+                        border: black 2px solid;
+                        background: lightgray;
+                        font-weight: bold;
+                }
+                .resultsline > * {
+                        vertical-align: middle;
+                        margin-bottom: 0.25em;
                 }
         </style>
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->
