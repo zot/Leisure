@@ -17,22 +17,22 @@
                         font-family: Ciudad;
                         src: url('Ciudad Nueva CAPS Bold.woff'); format('woff');
                 }
-                .artdeco .org-fancy, .artdeco #loading {
+                .steampunk .org-fancy, .steampunk #loading {
                         /*font-family: Ciudad;*/
                         font-family: MouseDeco;
                         /*font-family: SavilleRow;*/
                         /*font-family: Arial;*/
                 }
-                .artdeco #loading, .artdeco [data-org-type="headline"] > [data-org-type='text'] {
+                .steampunk #loading, .steampunk [data-org-type="headline"] > [data-org-type='text'] {
                         color: #95a82d;
                 }
-                .artdeco #loading, .artdeco .org-fancy [data-org-type="headline"] > [data-org-type='text'] {
+                .steampunk #loading, .steampunk .org-fancy [data-org-type="headline"] > [data-org-type='text'] {
                         text-shadow: 2px 2px black;
                 }
-                .artdeco .codeblock {
+                .steampunk .codeblock {
                         font-family: Courier;
                 }
-                .artdeco .org-fancy [data-org-headline='1'] {
+                .steampunk .org-fancy [data-org-headline='1'] {
                         border: none;
                         position: relative;
                 }
@@ -46,7 +46,8 @@
                         border-width: 193px 178px 193px 178px;
                         border-image: url(images/steampunk_border.png) 193 178 193 178;
                         z-index: -1;
-                        background: url(images/steampunk_background.jpg) border-box no-repeat 0% 0% / 100% 100%;
+                        /*background: url(images/steampunk_background.jpg) border-box no-repeat 0% 0% / 100% 100%;*/
+                        background: url(images/steampunk_background-faded.jpg) border-box no-repeat 0% 0% / 100% 100%;
                 }
                 .page {
                 }
@@ -56,19 +57,19 @@
                 body {
                         /*background-image: url(images/steampunk_background.jpg);*/
                 }
-                .artdeco [org-test="unknown"] {
+                .steampunk [org-test="unknown"] {
                         display: inline-block;
-                        background: url(images/testCaseWhite.png);
-                        width: 37px;
-                        min-width: 37px;
-                        height: 37px;
+                        background: url(images/testCaseWhiteSteamPunk.png);
+                        width: 40px;
+                        min-width: 40px;
+                        height: 40px;
                         border: none;
                         padding: none;
                         padding: 0;
                         padding-left: 0;
                         padding-right: 0;
                 }
-                .artdeco [org-test="unknown"] > * {
+                .steampunk [org-test="unknown"] > * {
                         display: none;
                 }
         </style>
@@ -445,7 +446,7 @@
           }
         </script>
   </head>
-  <body class="loading not-logged-in artdeco">
+  <body class="loading not-logged-in steampunk">
     <table id="loading">
       <tr>
         <td style="vertical-align: middle">

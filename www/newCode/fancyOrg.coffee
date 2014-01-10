@@ -258,23 +258,23 @@ markupSource = (org, name, intertext)->
   intertext = ''
   while node
     if node instanceof Results
-      res = node
-      lastOrgOffset = res.offset
-      pos = res.srcContentPos - res.offset
+      lastOrgOffset = node.offset
+      resText = node.text.substring node.contentPos - node.offset
       break
     else if node instanceof Keyword
       if node.name.toLowerCase() == 'expected'
         expected = node
-        intertext += "<span org-test-expected='true'>#{escapeHtml node.text}</span>"
         lastOrgOffset = node.offset
+        # wrap this so we can remove it if the user clicks the test case
+        intertext += "<span org-test-expected='true'>#{escapeHtml node.text}</span>"
       else break
     else if node instanceof Headline then break
     else intertext += escapeHtml node.text
     node = node.next
-  wrapper += "<span class='hidden'>#{intertext}</span>" + (if res then htmlForResults res.text.substring pos else htmlForResults '')
+  wrapper += "<span class='hidden'>#{intertext}</span>" + (if resText then htmlForResults resText else htmlForResults '')
   wrapper += "</td></tr></table>"
   result = contHtml + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>") + '\n'
-  if resultsType(org) == 'test' then startHtml + "onclick='Leisure.toggleTestCase(event)' org-test='unknown' title='<b>Expected:</b> #{escapeAttr expected.info}' #{result}"
+  if resultsType(org) == 'test' && expected then startHtml + "onclick='Leisure.toggleTestCase(event)' org-test='unknown' title='<b>Expected:</b> #{escapeAttr expected.info}' #{result}"
   else startHtml + result
 
 root.toggleTestCase = (evt)->

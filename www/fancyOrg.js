@@ -251,7 +251,7 @@
   };
 
   markupSource = function(org, name, intertext) {
-    var codeBlock, contHtml, expected, lead, nameM, node, pos, res, result, srcContent, startHtml, trail, wrapper;
+    var codeBlock, contHtml, expected, lead, nameM, node, resText, result, srcContent, startHtml, trail, wrapper;
     srcContent = org.content;
     lead = org.text.substring(0, org.contentPos - org.offset);
     trail = org.text.substring(org.contentPos - org.offset + org.content.length);
@@ -269,15 +269,14 @@
     intertext = '';
     while (node) {
       if (node instanceof Results) {
-        res = node;
-        lastOrgOffset = res.offset;
-        pos = res.srcContentPos - res.offset;
+        lastOrgOffset = node.offset;
+        resText = node.text.substring(node.contentPos - node.offset);
         break;
       } else if (node instanceof Keyword) {
         if (node.name.toLowerCase() === 'expected') {
           expected = node;
-          intertext += "<span org-test-expected='true'>" + (escapeHtml(node.text)) + "</span>";
           lastOrgOffset = node.offset;
+          intertext += "<span org-test-expected='true'>" + (escapeHtml(node.text)) + "</span>";
         } else {
           break;
         }
@@ -288,10 +287,10 @@
       }
       node = node.next;
     }
-    wrapper += ("<span class='hidden'>" + intertext + "</span>") + (res ? htmlForResults(res.text.substring(pos)) : htmlForResults(''));
+    wrapper += ("<span class='hidden'>" + intertext + "</span>") + (resText ? htmlForResults(resText) : htmlForResults(''));
     wrapper += "</td></tr></table>";
     result = contHtml + wrapper + (name ? "" + (commentButton(name.info.trim())) + "</div>" + (commentBlock(name.info.trim())) : "</div>") + '\n';
-    if (resultsType(org) === 'test') {
+    if (resultsType(org) === 'test' && expected) {
       return startHtml + ("onclick='Leisure.toggleTestCase(event)' org-test='unknown' title='<b>Expected:</b> " + (escapeAttr(expected.info)) + "' " + result);
     } else {
       return startHtml + result;
