@@ -44,11 +44,32 @@
                         right: 8px;
                         padding: 8px;
                         border-width: 193px 178px 193px 178px;
-                        border-image: url(images/artdecoborder.jpg) 193 178 193 178;
+                        border-image: url(images/steampunk_border.png) 193 178 193 178;
                         z-index: -1;
+                        background: url(images/steampunk_background.jpg) border-box no-repeat 0% 0% / 100% 100%;
+                }
+                .page {
                 }
                 .pagecontent {
                         padding: 120px 100px;
+                }
+                body {
+                        /*background-image: url(images/steampunk_background.jpg);*/
+                }
+                .artdeco [org-test="unknown"] {
+                        display: inline-block;
+                        background: url(images/testCaseWhite.png);
+                        width: 37px;
+                        min-width: 37px;
+                        height: 37px;
+                        border: none;
+                        padding: none;
+                        padding: 0;
+                        padding-left: 0;
+                        padding-right: 0;
+                }
+                .artdeco [org-test="unknown"] > * {
+                        display: none;
                 }
         </style>
         <style>
@@ -322,9 +343,10 @@
                         position: absolute;
                         left: 0;
                         width: 100%;
-                        top: 8px;
+                        /*top: 8px;*/
+                        top: 36px;
                         text-align: center;
-                        z-index: 1;
+                        z-index: 101;
                 }
                 #loading-message, .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
                         padding-top: 6px;
@@ -364,11 +386,22 @@
                 .codewrapper > tbody > tr {
                         vertical-align: top;
                 }
-                .resultsline > * {
-                        vertical-align: middle;
-                }
                 .org-fancy [data-org-html="true"] {
                         white-space: normal;
+                }
+        </style>
+        <style>
+          /* styles for Leisure output */
+                .partial-application {
+                        display: inline-block;
+                        border-radius: 5px;
+                        border: black 2px solid;
+                        background: lightgray;
+                        font-weight: bold;
+                }
+                .resultsline > * {
+                        vertical-align: middle;
+                        margin-bottom: 0.25em;
                 }
         </style>
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->

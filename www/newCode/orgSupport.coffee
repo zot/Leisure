@@ -344,8 +344,9 @@ sensitive = /^srcStart|^headline-|^keyword/
 orgAttrs = (org)->
   if !org.nodeId then org.nodeId = nextOrgId()
   nodes[org.nodeId] = org
-  extra = if isDynamic org then ' data-org-results="dynamic"'
-  else if isDef org then ' data-org-results="def"'
+  extra = if rt = resultsType org then " data-org-results='#{rt}'"
+  #extra = if isDynamic org then ' data-org-results="dynamic"'
+  #else if isDef org then ' data-org-results="def"'
   else ''
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
@@ -354,9 +355,11 @@ orgAttrs = (org)->
   if org.srcId then extra += " data-org-srcid='#{escapeAttr org.srcId}'"
   "id='#{escapeAttr org.nodeId}' data-org-type='#{escapeAttr org.type}'#{extra}"
 
-isDynamic = (org)-> org instanceof Source && org.info.match /:results .*dynamic/i
+resultsType = (org)-> org instanceof Source && (org.info.match /:results *([^ ]*)/)?[1].toLowerCase()
 
-isDef = (org)-> org instanceof Source && org.info.match /:results .*def/i
+isDynamic = (org)-> resultsType(org) == 'dynamic'
+
+isDef = (org)-> resultsType(org) == 'def'
 
 orgSrcAttrs = (org)->
   "data-org-src='#{if isDef org then 'def' else if isDynamic org then 'dynamic' else 'example'}'"
@@ -1070,6 +1073,7 @@ root.splitLines = splitLines
 root.orgSrcAttrs = orgSrcAttrs
 root.getNodeSource = getNodeSource
 root.loadOrg = loadOrg
+root.resultsType = resultsType
 root.isDynamic = isDynamic
 root.isDef = isDef
 root.nativeRange = nativeRange

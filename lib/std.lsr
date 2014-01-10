@@ -308,17 +308,21 @@ presentHtml x = escapeHtml (present x)
 
 defCase present.string obj | (getType obj) == '*string' -> jsonStringify obj id id
 
-defCase present.func obj | (getType obj) == '*function' ->
-  do
-    info = funcInfo obj
-    guts = isNil info
-      [(funcName obj
-        id
-        'unknown')]
-      and (> (length info) 1) (getFunction (head info) (\func . hasProperty func 'infix') false)
-        [(present (head (tail info))) (head info) | map present (tail (tail info))]
-        cons (head info) (map present (tail info))
-    concat["(" (join guts ' ') ")"]
+defCase present.func obj | (getType obj) == '*function' -> presentFunction obj
+
+presentFunction obj = do
+  info = funcInfo obj
+  guts = isNil info
+    [(funcName obj
+      id
+      'unknown')]
+    and (> (length info) 1) (getFunction (head info) (\func . hasProperty func 'infix') false)
+      [(present (head (tail info))) (head info) | map present (tail (tail info))]
+      cons (head info) (map present (tail info))
+  concat["(" (join guts ' ') ")"]
+
+defCase presentHtml.func obj | (getType obj) == '*function' ->
+  concat['<span class="partial-application">' (presentFunction obj) '</span>']
 
 defCase present.nil obj | hasType obj nil -> 'nil'
 

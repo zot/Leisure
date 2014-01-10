@@ -84,6 +84,7 @@ lz = lazy
   orgSrcAttrs,
   baseEnv,
   getNodeSource,
+  resultsType,
   isDef,
   getTextPosition,
   findDomPosition,
@@ -245,29 +246,45 @@ markupSource = (org, name, intertext)->
   srcContent = org.content
   lead = org.text.substring 0, org.contentPos - org.offset
   trail = org.text.substring org.contentPos - org.offset + org.content.length
-  markupLeisure org, name, intertext, srcContent, lead, trail
-
-markupLeisure = (org, name, intertext, content, lead, trail)->
   lastOrgOffset = org.offset
   if name
     nameM = name.text.match keywordRE
     codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
   else codeBlock = ">"
-  html = "<div class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
-  wrapper = "<table class='codewrapper'><tr><td><div #{orgSrcAttrs org}>#{escapeHtml content}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
-  res = org.next
+  startHtml = "<div "
+  contHtml = "class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
+  wrapper = "<table class='codewrapper'><tr><td><div #{orgSrcAttrs org}>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
+  node = org.next
   intertext = ''
-  while res && !(res instanceof Results) && !(res instanceof Keyword)
-    intertext += res.text
-    res = res.next
-  if res instanceof Results
-    lastOrgOffset = res.offset
-    pos = res.contentPos - res.offset
-    #if intertext then html += "<div class='hidden' data-org-type='boundary'>#{escapeHtml(intertext)}</div>"
-    wrapper += htmlForResults res.text.substring pos
-  else wrapper += htmlForResults ''
+  while node
+    if node instanceof Results
+      res = node
+      lastOrgOffset = res.offset
+      pos = res.srcContentPos - res.offset
+      break
+    else if node instanceof Keyword
+      if node.name.toLowerCase() == 'expected'
+        expected = node
+        intertext += "<span org-test-expected='true'>#{escapeHtml node.text}</span>"
+        lastOrgOffset = node.offset
+      else break
+    else if node instanceof Headline then break
+    else intertext += escapeHtml node.text
+    node = node.next
+  wrapper += "<span class='hidden'>#{intertext}</span>" + (if res then htmlForResults res.text.substring pos else htmlForResults '')
   wrapper += "</td></tr></table>"
-  html + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>") + '\n'
+  result = contHtml + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>") + '\n'
+  if resultsType(org) == 'test' then startHtml + "onclick='Leisure.toggleTestCase(event)' org-test='unknown' title='<b>Expected:</b> #{escapeAttr expected.info}' #{result}"
+  else startHtml + result
+
+root.toggleTestCase = (evt)->
+  node = evt.target
+  while !node.hasAttribute?('org-test')
+    node = node.parentNode
+  if node
+    node.setAttribute 'org-test', 'edit'
+    node.setAttribute 'onclick', ''
+    $(node).find('[org-test-expected="true"]').remove()
 
 markupListItem = (org)->
   if org.level == 0
@@ -813,6 +830,7 @@ fancyOrg =
           setShadowHtml node.firstElementChild, newCommentBox node.getAttribute 'data-org-comments'
         redrawAllIssues()
         ), 1
+      $(document).tooltip()
   executeSource: executeSource
   executeDef: executeDef
   createResults: createResults
