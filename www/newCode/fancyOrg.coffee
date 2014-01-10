@@ -259,6 +259,8 @@ markupSource = (org, name, intertext)->
   while node
     if node instanceof Results
       res = node
+      lastOrgOffset = res.offset
+      pos = res.srcContentPos - res.offset
       break
     else if node instanceof Keyword
       if node.name.toLowerCase() == 'expected'
@@ -269,9 +271,6 @@ markupSource = (org, name, intertext)->
     else if node instanceof Headline then break
     else intertext += escapeHtml node.text
     node = node.next
-  if res
-    lastOrgOffset = res.offset
-    pos = res.srcContentPos - res.offset
   wrapper += "<span class='hidden'>#{intertext}</span>" + (if res then htmlForResults res.text.substring pos else htmlForResults '')
   wrapper += "</td></tr></table>"
   result = contHtml + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>") + '\n'

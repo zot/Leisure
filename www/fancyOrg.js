@@ -270,6 +270,8 @@
     while (node) {
       if (node instanceof Results) {
         res = node;
+        lastOrgOffset = res.offset;
+        pos = res.srcContentPos - res.offset;
         break;
       } else if (node instanceof Keyword) {
         if (node.name.toLowerCase() === 'expected') {
@@ -285,10 +287,6 @@
         intertext += escapeHtml(node.text);
       }
       node = node.next;
-    }
-    if (res) {
-      lastOrgOffset = res.offset;
-      pos = res.srcContentPos - res.offset;
     }
     wrapper += ("<span class='hidden'>" + intertext + "</span>") + (res ? htmlForResults(res.text.substring(pos)) : htmlForResults(''));
     wrapper += "</td></tr></table>";
