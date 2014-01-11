@@ -237,7 +237,9 @@ markupHeadline = (org)->
     stars = start.substring 0, starsM[0].length
     start = start.substring stars.length
   else stars = ''
-  "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><span data-org-type='text-content'>#{escapeHtml start}</span><span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
+  if org.text.trim() != ''
+    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><div class='textborder'></div></div><span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
+  else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span>#{last}</span></span>#{markupGuts org, checkStart start, org.text}</div>"
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
@@ -251,6 +253,7 @@ markupSource = (org, name, intertext)->
     nameM = name.text.match keywordRE
     codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
   else codeBlock = ">"
+  codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
   contHtml = "class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
   wrapper = "<table class='codewrapper'><tr><td><div #{orgSrcAttrs org}>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
@@ -717,8 +720,11 @@ setMinMax = (sl, value)->
   sl.slider "option", "step", step
 
 setCurrentSlide = (element)->
+  for node in $('.currentSlide')
+    $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
   $('.currentSlide').removeClass 'currentSlide'
   $(element).addClass 'currentSlide'
+  if element.shadowRoot then $(element.shadowRoot.firstElementChild).addClass 'currentSlide'
 
 nextSlide = ->
   ns = null
@@ -781,7 +787,7 @@ toggleSlides = ->
       nextSlide()
   else
     $('body').removeClass 'slides'
-    $('[data-org-html]').addClass 'slideHtml'
+    $('[data-org-html]').removeClass 'slideHtml'
 
 define 'toggleSlides', lz makeSyncMonad (env, cont)->
   toggleSlides()

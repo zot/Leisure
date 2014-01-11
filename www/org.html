@@ -17,6 +17,11 @@
                         font-family: Ciudad;
                         src: url('Ciudad Nueva CAPS Bold.woff'); format('woff');
                 }
+                .slides.steampunk .org-fancy [data-org-headline='1'] {
+                        margin-bottom: 0;
+                        padding: 0;
+                        padding-top: 0;
+                }
                 .steampunk .org-fancy, .steampunk #loading {
                         /*font-family: Ciudad;*/
                         font-family: MouseDeco;
@@ -36,6 +41,30 @@
                         border: none;
                         position: relative;
                 }
+                .steampunk.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
+                        top: 8px;
+                }
+                .steampunk #loading-message, .steampunk.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        min-height: 1em;
+                        padding-top: 40px;
+                        padding-bottom: 28px;
+                        padding-left: 46px;
+                        padding-right: 46px;
+                }
+                .steampunk #loading-message .textborder,
+                .steampunk.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
+                        background-color: transparent;
+                        background: url(images/steampunk_grunge_background.png) border-box no-repeat 0% 0% / 100% 100%;
+                        border-radius: 0;
+                        border-width: 46px;
+                        border-image: url(images/steampunk_grunge_border.png) 46 46;
+                }
+                .currentSlide.page > .border {
+                        top: 0;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                }
                 .page > .border {
                         position: absolute;
                         top: 8px;
@@ -49,22 +78,24 @@
                         /*background: url(images/steampunk_background.jpg) border-box no-repeat 0% 0% / 100% 100%;*/
                         background: url(images/steampunk_background-faded.jpg) border-box no-repeat 0% 0% / 100% 100%;
                 }
-                .page {
-                }
                 .pagecontent {
                         padding: 120px 100px;
                         overflow: visible;
                 }
-                body {
-                        /*background-image: url(images/steampunk_background.jpg);*/
+                .currentSlide .pagecontent {
+                        padding: 140px 100px 0px 100px;
                 }
-                .steampunk [org-test="unknown"] {
+                .steampunk .codeblock[org-test="unknown"] .codeborder {
+                        border-width: 0;
+                        border-image: none;
+                        border: none;
+                }
+                .steampunk .codeblock[org-test="unknown"] {
                         display: inline-block;
                         background: url(images/testCaseWhiteSteamPunk.png);
                         width: 40px;
                         min-width: 40px;
                         height: 40px;
-                        border: none;
                         padding: none;
                         padding: 0;
                         padding-left: 0;
@@ -72,6 +103,16 @@
                 }
                 .steampunk [org-test="unknown"] > * {
                         display: none;
+                }
+                .steampunk .codeborder {
+                        border: transparent;
+                        border-radius: 0;
+                        border-width: 29px;
+                        border-image: url(images/steampunk_code_border_one.png) 29 29 stretch;
+                }
+                .steampunk .codeblock {
+                        padding: calc(29px + 3px);
+                        padding-right: calc(29px + 32px);
                 }
         </style>
         <style>
@@ -139,14 +180,22 @@
                         white-space: pre-wrap;
                 }
                 .codeblock {
-                        border: solid black 2px;
-                        border-radius: 10px;
-                        padding: 3px;
-                        background: lightgray;
                         min-width: 400px;
                         display: inline-block;
                         position: relative;
+                        padding: 3px;
                         padding-right: 32px;
+                }
+                .codeborder {
+                        position: absolute;
+                        border: solid black 2px;
+                        border-radius: 10px;
+                        background: lightgray;
+                        top: 0;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        z-index: -1;
                 }
                 .codename {
                         padding-left: 24px;
@@ -334,29 +383,45 @@
                         width: 100%;
                         height: 100%;
                 }
-                .slides .org-fancy [data-org-headline='1'] {
+                .slides .org-fancy [data-org-headline='1'],
+                .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder,
+                #loading-message .textborder {
                         position: absolute;
                         top: 0;
                         bottom: 0;
                         left: 0;
                         right: 0;
                 }
+                #loading-message .textcontent,
+                .slides .textcontent {
+                        display: table-cell;
+                        vertical-align: middle;
+                }
+                .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        display: inline-block;
+                }
                 .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
                         position: absolute;
-                        left: 10;
-                        width: 90%;
+                        left: 10%;
+                        right: 10%;
                         /*top: 8px;*/
                         top: 36px;
                         text-align: center;
                         z-index: 101;
                 }
                 #loading-message, .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        display: table;
+                        margin: auto;
+                        position: relative;
                         padding-top: 6px;
                         padding-left: 16px;
                         padding-right: 16px;
+                }
+                #loading-message .textborder, .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
                         background: white;
                         border: black solid 2px;
                         border-radius: 10px;
+                        z-index: -1;
                 }
                 .org-fancy [data-org-headline='2'] > [data-org-type='text'] {
                         font-size: 1.5em;
@@ -431,6 +496,7 @@
                                 var div = $('[maindoc]');
 
                                 window.ORG_TEXT = div.html().replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
+/* */
                                 Boot.onboot(function() {
                                         $('#loading').remove();
                                         $('body').removeClass('loading');
@@ -441,7 +507,8 @@
                                         //Leisure.fancyOrg.useNode(div[0], $('#source'));
                                         //Leisure.initStorage('#login', '#panel', Leisure.fancyOrg);
                                 });
-                      }
+/* */
+                    }
                         document.head.appendChild(script);
                 }, 1);
           }
@@ -450,9 +517,8 @@
   <body class="loading not-logged-in steampunk">
     <table id="loading">
       <tr>
-        <td style="vertical-align: middle">
-          <span id="loading-message" style="vertical-align: middle">LOADING LEISURE</span><br>
-          <img src="images/loading.gif">
+        <td>
+          <div id="loading-message"><div class='textborder'></div><div class='textcontent'>LOADING LEISURE</div><div style="text-align: center; position: absolute; top: 100%; left: 0; width: 100%"><img src="images/loading.gif"></div>
         </td>
       </tr>
     </table>
