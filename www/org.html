@@ -64,14 +64,22 @@
                         border-image: url(images/steampunk_border.png) 193 178 193 178;
                         background: url(images/steampunk_background-faded.jpg) border-box no-repeat 0% 0% / 100% 100%;
                 }
-                .steampunk .codeblock[org-test="unknown"] .codeborder {
+                .steampunk .codeblock[org-test] .codeborder {
                         border-width: 0;
                         border-image: none;
                         border: none;
                 }
                 .steampunk .codeblock[org-test="unknown"] {
-                        display: inline-block;
                         background: url(images/testCaseWhiteSteamPunk.png);
+                }
+                .steampunk .codeblock[org-test="pass"] {
+                        background: url(images/testCaseGreenSteamPunk.png);
+                }
+                .steampunk .codeblock[org-test="fail"] {
+                        background: url(images/testCaseRedSteamPunk.png);
+                }
+                .steampunk .codeblock[org-test] {
+                        display: inline-block;
                         width: 40px;
                         min-width: 40px;
                         height: 40px;
@@ -80,7 +88,7 @@
                         padding-left: 0;
                         padding-right: 0;
                 }
-                .steampunk [org-test="unknown"] > * {
+                .steampunk [org-test] > * {
                         display: none;
                 }
                 .steampunk .codeborder {
@@ -237,13 +245,14 @@
                 *::x-new-comment {
                         width: calc(100% - 8px);
                 }
-                .comment-button {
+                .code-buttons {
                         position: absolute;
                         right: 2px;
                         top: 2px;
                         user-select: none;
                         -moz-user-select: none;
                         -webkit-user-select: none;
+                        text-align: right;
                 }
                 .comment-button img {
                         max-width: 32px;

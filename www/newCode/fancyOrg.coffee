@@ -38,6 +38,7 @@ lz = lazy
   ListItem,
   SimpleMarkup,
   Link,
+  Drawer,
   headlineRE,
   HL_TAGS,
   parseTags,
@@ -266,21 +267,28 @@ markupSource = (org, name, intertext)->
       lastOrgOffset = node.offset
       resText = node.text.substring node.contentPos - node.offset
       break
-    else if node instanceof Keyword
-      if node.name.toLowerCase() == 'expected'
+    else if node instanceof Drawer
+      if node.name().toLowerCase() == 'expected'
         expected = node
         lastOrgOffset = node.offset
         # wrap this so we can remove it if the user clicks the test case
         intertext += "<span org-test-expected='true'>#{escapeHtml node.text}</span>"
       else break
-    else if node instanceof Headline then break
+    else if node instanceof Headline || node instanceof Keyword then break
     else intertext += escapeHtml node.text
     node = node.next
   wrapper += "<span class='hidden'>#{intertext}</span>" + (if resText then htmlForResults resText else htmlForResults '')
   wrapper += "</td></tr></table>"
-  result = contHtml + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>") + '\n'
-  if resultsType(org) == 'test' && expected then startHtml + "onclick='Leisure.toggleTestCase(event)' org-test='unknown' title='<b>Expected:</b> #{escapeAttr expected.info}' #{result}"
-  else startHtml + result
+  if testCase = resultsType(org) == 'test' && expected && resText? then wrapper += '\n'
+  result = contHtml + wrapper + (if name then "<div class='code-buttons'>#{commentButton name.info.trim()}<br>#{toTestCaseButton(org)}</div></div>#{commentBlock name.info.trim()}" else "<div class='code-buttons'>#{toTestCaseButton(org)}</div></div>")
+  if testCase
+    startHtml + "onclick='Leisure.toggleTestCase(event)' org-test='#{testResult expected.content(), resText}' title='<b>Expected:</b> #{escapeAttr expected.content()}' expected='#{escapeAttr expected.content()}' #{result}"
+  else '<div>' + startHtml + result + '\n</div>'
+
+testResult = (expected, actual)->
+  if actual == '' then 'unknown'
+  else if expected == actual then 'pass'
+  else 'fail'
 
 root.toggleTestCase = (evt)->
   node = evt.target
@@ -412,6 +420,16 @@ show = (obj)-> rz(L_show)(lz obj)
 
 commentButton = (name)->
   "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\")' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
+
+toTestCaseButton = (org)->
+  if isDef org then ''
+  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><img style='width: auto; height: 32px' src='images/toTestCaseButton.png'><span></span></button>"
+
+createTestCase = (evt)->
+  console.log evt.target
+  node = evt.target
+  while node && node.getAttribute('data-org-type') != 'source'
+    node = node.parentNode
 
 commentBlock = (name)->
   "<div class='comments' data-org-comments='#{escapeAttr name}'><div></div></div>"
@@ -874,3 +892,4 @@ root.toggleComment = toggleComment
 root.addComment = addComment
 root.recreateAstButtons = recreateAstButtons
 root.setTheme = setTheme
+root.createTestCase = createTestCase
