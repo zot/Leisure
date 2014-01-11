@@ -164,7 +164,7 @@ markupOrgWithNode = (text)->
   lastOrgOffset = -1
   [org, markupNode org]
 
-markupNode = (org)->
+markupNode = (org, middleOfLine)->
   if org.offset <= lastOrgOffset
     ''
   else if org instanceof Results
@@ -189,7 +189,9 @@ markupNode = (org)->
   else if org instanceof SimpleMarkup then markupSimple org
   else if org instanceof Link then markupLink org
   else if content(org.text).length then defaultMarkup org
-  else "<div #{orgAttrs org}>#{escapeHtml org.text}</div>"
+  else
+    tag = (if middleOfLine then 'span' else 'div')
+    "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
 
 imagePath = /\.(png|jpg|gif|svg|tiff|bmp)$/i
 
@@ -199,7 +201,7 @@ markupLink = (org)->
   else
     guts = ''
     for c in org.children
-      guts += markupNode c
+      guts += markupNode c, true
     if !guts then "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
     else "<span class='hidden'>[[#{org.path}][</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
 
@@ -212,7 +214,7 @@ root.followLink = (e)->
 markupSimple = (org)->
   guts = ''
   for c in org.children
-    guts += markupNode c
+    guts += markupNode c, true
   text = switch org.markupType
     when 'bold' then "<b>#{guts}</b>"
     when 'italic' then "<i>#{guts}</i>"
@@ -303,9 +305,11 @@ markupListItem = (org)->
     if org.checked? then ' data-org-checked="' + org.checked + '"' else ''
   }><span class='hidden'>#{
     escapeHtml org.text.substring 0, org.contentOffset
-  }</span><span>#{escapeHtml org.text.substring org.contentOffset}</span></li>#{
+  }</span><span>#{markupListContents org.children}</span></li>#{
     eatListItem org
   }#{if end then '</ul>' else ''}"""
+
+markupListContents = (children)-> (markupNode child, true for child in children).join ''
 
 eatListItem = (org)->
   if org.next instanceof Meat && org.next.text[0] == '\n' then ''
@@ -724,6 +728,7 @@ setCurrentSlide = (element)->
     $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
   $('.currentSlide').removeClass 'currentSlide'
   $(element).addClass 'currentSlide'
+  # this is needed until there is support for :host (and/or ^ & ^^)
   if element.shadowRoot then $(element.shadowRoot.firstElementChild).addClass 'currentSlide'
 
 nextSlide = ->

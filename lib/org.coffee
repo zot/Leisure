@@ -62,7 +62,8 @@ LIST_CHECK = 3
 LIST_CHECK_VALUE = 4
 LIST_INFO = 5
 listRE = /^( *)(- *)(\[( |X)\] +)?(.*)$/m
-simpleRE = /\B(\*\w(.*\w)?\*|\/\w(.*\w)?\/|\+\w(.*\w)?\+|=\w(.*\w)?=|~\w(.*\w)?~)(\B|$)|\b_[^_]*\B_(\b|$)/
+# markup characters: * / + = ~ _
+simpleRE = /\B(\*[/+=~\w](.*?[/+=~\w])?\*|\/[*+=~\w](.*?[*+=~\w])?\/|\+[*/=~\w](.*?[*/=~\w])?\+|=[+*/~\w](.*?[+*/~\w])?=|~[=+*/\w](.*?[=+*/\w])?~)(\B|$)|\b_[^_]*\B_(\b|$)/
 LINK_HEAD = 1
 LINK_INFO = 2
 LINK_DESCRIPTION = 3
@@ -193,7 +194,7 @@ class Link extends Meat
     children: (c.toJsonObject() for c in @children)
   scan: @scanWithChildren
 
-class ListItem extends Meat
+class XListItem extends Meat
   constructor: (@text, @offset, @contentOffset, @level, @checked, @info)-> super @text, @offset
   type: 'list'
   toJsonObject: ->
@@ -221,6 +222,36 @@ class ListItem extends Meat
     while next && !(next instanceof Headline) && !(next instanceof ListItem)
       next = next.next
     if next instanceof ListItem then next else null
+
+class ListItem extends Meat
+  constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
+  type: 'list'
+  toJsonObject: ->
+    obj =
+      type: @type
+      text: @text
+      level: @level
+      offset: @offset
+      contentOffset: @contentOffset
+      children: child.toJsonObject() for child in @children
+    if @checked? then obj.checked = @checked
+    obj
+  getParent: ->
+    if @level == 0 then null
+    li = @
+    while li = li.getPreviousListItem()
+      if li.level < @level then return li
+  getPreviousListItem: ->
+    prev = @prev
+    while prev && !(prev instanceof Headline) && !(prev instanceof ListItem)
+      prev = prev.prev
+    if prev instanceof ListItem then prev else null
+  getNextListItem: ->
+    next = @next
+    while next && !(next instanceof Headline) && !(next instanceof ListItem)
+      next = next.next
+    if next instanceof ListItem then next else null
+  scan: @scanWithChildren
 
 class Keyword extends Meat
   constructor: (@text, @offset, @name, @info)-> super @text, @offset
@@ -402,8 +433,22 @@ parseHtmlBlock = (text, offset, rest)->
     endLine = fullLine end, rest.substring end.index
     [new HTML(text + rest.substring(0, end.index + endLine.length), offset, text.match(htmlStartRE)[HTML_START_NAME], line[0].length, text.length + end.index - line[0].length), rest.substring end.index + endLine.length]
 
-parseList = (match, text, offset, level, check, info, rest)->
+XparseList = (match, text, offset, level, check, info, rest)->
   [new ListItem(text, offset, listContentOffset(match), level, check == 'X' || (if check == ' ' then false else null), info), rest]
+
+parseList = (match, text, offset, level, check, info, rest)->
+  contentOffset = listContentOffset match
+  insideOffset = offset + contentOffset
+  inside = text.substring contentOffset
+  children = []
+  while inside
+    console.log "PARSING: #{inside}"
+    [node, inside] = parseMeat inside, insideOffset, '', true
+    while node
+      children.push node
+      insideOffset += node.allText().length
+      node = node.next
+  [new ListItem(text, offset, level, check == 'X' || (if check == ' ' then false else null), contentOffset, children), rest]
 
 listContentOffset = (match)->
   match[LIST_LEVEL].length + match[LIST_BOILERPLATE].length + (match[LIST_CHECK]?.length ? 0)
