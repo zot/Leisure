@@ -135,7 +135,7 @@ root.restorePosition = restorePosition = (parent, block)->
       sel.removeAllRanges()
       sel.addRange r
       window.scrollTo 0, documentTop(r.startContainer) - offset
-      return
+    return
   block()
 
 replaceUnrelatedPresenter = (target, newPres)->
@@ -789,6 +789,21 @@ toggleSlides = ->
     $('body').removeClass 'slides'
     $('[data-org-html]').removeClass 'slideHtml'
 
+theme = null
+
+setTheme = (str)->
+  el = $('body')
+  for node in $('[data-org-headline="1"]')
+    if node.shadowRoot then el = el.add($(node.shadowRoot.firstElementChild))
+  if theme && theme != str then el.removeClass theme
+  theme = str
+  if str then el.addClass str
+
+define 'setTheme', lz (str)->
+  makeSyncMonad (env, cont)->
+    setTheme rz str
+    cont rz L_true
+
 define 'toggleSlides', lz makeSyncMonad (env, cont)->
   toggleSlides()
   cont rz L_true
@@ -828,6 +843,7 @@ fancyOrg =
         reprocessResults node
       for node in $('[data-org-headline="1"]')
         setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+      setTheme theme
       setTimeout (=>
         #for node in $('[data-org-results]')
         #  switch $(node).attr('data-org-results').toLowerCase()
@@ -852,3 +868,4 @@ root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
 root.addComment = addComment
 root.recreateAstButtons = recreateAstButtons
+root.setTheme = setTheme

@@ -17,7 +17,7 @@
                         font-family: Ciudad;
                         src: url('Ciudad Nueva CAPS Bold.woff'); format('woff');
                 }
-                .slides.steampunk .org-fancy [data-org-headline='1'] {
+                .slides .org-fancy [data-org-headline='1'] {
                         margin-bottom: 0;
                         padding: 0;
                         padding-top: 0;
@@ -39,7 +39,6 @@
                 }
                 .steampunk .org-fancy [data-org-headline='1'] {
                         border: none;
-                        position: relative;
                 }
                 .steampunk.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
                         top: 8px;
@@ -59,31 +58,11 @@
                         border-width: 46px;
                         border-image: url(images/steampunk_grunge_border.png) 46 46;
                 }
-                .currentSlide.page > .border {
-                        top: 0;
-                        bottom: 0;
-                        left: 0;
-                        right: 0;
-                }
-                .page > .border {
-                        position: absolute;
-                        top: 8px;
-                        bottom: 8px;
-                        left: 8px;
-                        right: 8px;
-                        padding: 8px;
+                .steampunk.page > .border {
+                        border-radius: 0;
                         border-width: 193px 178px 193px 178px;
                         border-image: url(images/steampunk_border.png) 193 178 193 178;
-                        z-index: -1;
-                        /*background: url(images/steampunk_background.jpg) border-box no-repeat 0% 0% / 100% 100%;*/
                         background: url(images/steampunk_background-faded.jpg) border-box no-repeat 0% 0% / 100% 100%;
-                }
-                .pagecontent {
-                        padding: 120px 100px;
-                        overflow: visible;
-                }
-                .currentSlide .pagecontent {
-                        padding: 140px 100px 0px 100px;
                 }
                 .steampunk .codeblock[org-test="unknown"] .codeborder {
                         border-width: 0;
@@ -292,35 +271,6 @@
                         border: solid black 2px;
                         border-radius: 10px;
                 }
-                /*
-                .ast-button {
-                        position: absolute;
-                        right: 2px;
-                        top: 2px;
-                        user-select: none;
-                        -moz-user-select: none;
-                        -webkit-user-select: none;
-                }
-                .ast-button img {
-                        max-width: 32px;
-                }
-                .ast {
-                        position: relative;
-                        overflow: visible;
-                        vertical-align: top;
-                        display: none;
-                }
-                .ast > * {
-                        position: absolute;
-                        width: 300px;
-                        padding: 5px;
-                        background: white;
-                        border-radius: 10px;
-                        border: solid gray 2px;
-                        margin-left: 5px;
-                        min-left: 0;
-                }
-                */
                 .showcomments.ast {
                         display: inline-block;
                 }
@@ -333,7 +283,6 @@
                         z-index: 100;
                         width: 135px;
                         right: 0;
-                        /*width: 100%;*/
                         white-space: normal;
                         user-select: none;
                         -moz-user-select: none;
@@ -358,15 +307,33 @@
                 .comment-button.new-comments {
                         color: red;
                 }
-                .org-fancy [data-org-headline='1'] {
-                        /*
+                .currentSlide.page > .border {
+                        top: 0;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                }
+                .page > .border {
+                        position: absolute;
+                        top: 8px;
+                        bottom: 8px;
+                        left: 8px;
+                        right: 8px;
+                        border: solid black 2px;
                         border-radius: 10px;
-                        border: solid 2px black;
-                        */
+                        z-index: -1;
+                }
+                .pagecontent {
+                        padding: 120px 100px;
+                        overflow: visible;
+                }
+                .currentSlide .pagecontent {
+                        padding: 140px 100px 0px 100px;
+                }
+                .org-fancy [data-org-headline='1'] {
                         margin-bottom: 8px;
                         padding: 8px;
-                        border-width: 13px 61px 29px 61px;
-                        border-image: url(images/decorative-border-pages-book-hi.png) 13 61 29 61 stretch;
+                        position: relative;
                 }
                 #loading, .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
                         font-size: 2em;
@@ -404,10 +371,9 @@
                         position: absolute;
                         left: 10%;
                         right: 10%;
-                        /*top: 8px;*/
                         top: 36px;
                         text-align: center;
-                        z-index: 101;
+                        z-index: 99;
                 }
                 #loading-message, .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
                         display: table;
@@ -436,13 +402,6 @@
                 }
                 .slides [data-org-headline='1'].currentSlide {
                         display: block;
-                        /*border: none;*/
-                        /*
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        */
                 }
                 .slides #sourceblock {
                         display: none;
@@ -496,25 +455,24 @@
                                 var div = $('[maindoc]');
 
                                 window.ORG_TEXT = div.html().replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
-/* */
                                 Boot.onboot(function() {
                                         $('#loading').remove();
                                         $('body').removeClass('loading');
                                         $('#panel').css('display', '');
+                                        Leisure.setTheme('steampunk');
                                         Leisure.initOrg('[maindoc]', '#source');
                                         //Leisure.basicOrg.useNode(div[0], $('#source'));
                                         //Leisure.initStorage('#login', '#panel', Leisure.basicOrg);
                                         //Leisure.fancyOrg.useNode(div[0], $('#source'));
                                         //Leisure.initStorage('#login', '#panel', Leisure.fancyOrg);
                                 });
-/* */
                     }
                         document.head.appendChild(script);
                 }, 1);
           }
         </script>
   </head>
-  <body class="loading not-logged-in steampunk">
+  <body class="loading not-logged-in steampunkX">
     <table id="loading">
       <tr>
         <td>

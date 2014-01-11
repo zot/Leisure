@@ -326,7 +326,6 @@ isCollapsed = (node)->
   node.shadowRoot?))
 
 markupOrg = (text)->
-  console.log "MARKUP"
   [node, result] = markupOrgWithNode text
   result
 
