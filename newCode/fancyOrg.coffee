@@ -440,7 +440,7 @@ showAst = (evt, astButton, offset)->
       if getType(ast) != 'parseErr'
         console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
         try
-          setShadowHtml astButton.firstChild, "<div class='ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
+          setShadowHtml astButton.firstChild, "<div class='#{theme ? ''} ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
           #astButton.firstChild.innerHTML = "<div class='ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
           replacePresenter
             hide: -> astButton.firstChild.remove()
@@ -451,12 +451,13 @@ showAst = (evt, astButton, offset)->
 
 show = (obj)-> rz(L_show)(lz obj)
 
+
 commentButton = (name)->
-  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
+  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><div></div><span></span></button>"
 
 toTestCaseButton = (org)->
   if isDef org then ''
-  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><img style='width: auto; height: 32px' src='images/toTestCaseButton.png'><span></span></button>"
+  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><div></div><span></span></button>"
 
 codeBlockForNode = (node)->
   while node && node.getAttribute?('data-org-type') != 'source'
@@ -523,7 +524,7 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><img src='icons/monotone_arrow_right_next.png'></button><br><button onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
+  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><div></div></button><br><button onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
@@ -919,6 +920,7 @@ setTheme = (str)->
   el = $('body')
   for node in $('[data-org-headline="1"]')
     if node.shadowRoot then el = el.add($(node.shadowRoot.firstElementChild))
+  el.add('[data-org-html]')
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str
