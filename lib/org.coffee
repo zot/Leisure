@@ -281,7 +281,7 @@ class Keyword extends Meat
     info: @info
 
 class Source extends Keyword
-  constructor: (@text, @offset, @name, @info, @content, @contentPos)-> super @text, @offset, @name, @info
+  constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info
   type: 'source'
   toJsonObject: ->
     type: @type
@@ -289,6 +289,7 @@ class Source extends Keyword
     offset: @offset
     name: @name
     info: @info
+    infoPos: @infoPos
     content: @content
     contentPos: @contentPos
 
@@ -318,8 +319,8 @@ class Results extends Keyword
 #
 # Parse the content of an orgmode file
 #
-parseOrgMode = (text)->
-  [res, rest] = parseHeadline '', 0, 0, undefined, undefined, undefined, text, text.length
+parseOrgMode = (text, offset)->
+  [res, rest] = parseHeadline '', offset ? 0, 0, undefined, undefined, undefined, text, text.length
   if rest.length then throw new Error("Text left after parsing: #{rest}")
   res.linkNodes()
 
@@ -327,7 +328,7 @@ parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->
   children = []
   while true
     oldRest = rest
-    [child, rest] = parseOrgChunk rest, totalLen - rest.length, level
+    [child, rest] = parseOrgChunk rest, totalLen - rest.length + offset, level
     if !child then break
     if child.lowerThan level
       while child
@@ -342,7 +343,7 @@ parseTags = (text)->
     if t then tagArray.push t
   tagArray
 
-fullLine = (match, text)-> text.substring 0, match[0].length + (if text[match[0].length] == '\n' then 1 else 0)
+fullLine = (match, text)-> text.substring match.index, match.index + match[0].length + (if text[match.index + match[0].length] == '\n' then 1 else 0)
 
 parseOrgChunk = (text, offset, level)->
   if !text then [null, text]
@@ -372,7 +373,7 @@ parseMeat = (meat, offset, rest, middleOfLine)->
       return parseResults line, offset, meat.substring(line.length) + rest
     else if srcStart?.index == 0
       line = fullLine srcStart, meat
-      return parseSrcBlock line, offset, srcStart[SRC_INFO], meat.substring(line.length) + rest
+      return parseSrcBlock line, offset, srcStart[SRC_INFO], srcStart[SRC_BOILERPLATE].length, meat.substring(line.length) + rest
     else if keyword?.index == 0
       line = fullLine keyword, meat
       return parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest
@@ -427,16 +428,16 @@ parseResults = (text, offset, rest)->
   while m = rest.match resultsLineRE
     rest = rest.substring m[0].length
   lines = oldRest.substring 0, oldRest.length - rest.length
-  [new Results(text + lines, offset + 1, text.match(resultsRE)[RES_NAME], text.length + offset + 1), rest]
+  [new Results(text + lines, offset, text.match(resultsRE)[RES_NAME], text.length), rest]
 
 parseDrawer = (text, offset, end, rest)->
-  pos = end.index + end[0].length
+  pos = end.index + (fullLine end, rest).length
   [new Drawer(text + rest.substring(0, pos), offset, text.length, text.length + end.index), rest.substring pos]
 
 parseKeyword = (match, text, offset, name, info, rest)->
   [new Keyword(text, offset, name, text.substring match[KW_BOILERPLATE].length), rest]
 
-parseSrcBlock = (text, offset, info, rest)->
+parseSrcBlock = (text, offset, info, infoPos, rest)->
   end = rest.match srcEndRE
   otherSrcStart = rest.match srcStartRE
   if !end || (otherSrcStart && otherSrcStart.index < end.index)
@@ -444,8 +445,8 @@ parseSrcBlock = (text, offset, info, rest)->
     if !line then line = [text]
     [new Meat(line[0]), text.substring(line[0].length) + rest]
   else
-    endLine = fullLine end, rest.substring end.index
-    [new Source(text + rest.substring(0, end.index + endLine.length), offset, text.match(srcStartRE)[SRC_NAME], info, rest.substring(0, end.index), offset + text.length), rest.substring end.index + endLine.length]
+    endLine = fullLine end, rest
+    [new Source(text + rest.substring(0, end.index + endLine.length), offset, text.match(srcStartRE)[SRC_NAME], info, infoPos, rest.substring(0, end.index), offset + text.length), rest.substring end.index + endLine.length]
 
 parseHtmlBlock = (text, offset, rest)->
   end = rest.match htmlEndRE
@@ -455,7 +456,7 @@ parseHtmlBlock = (text, offset, rest)->
   if !end || (otherHtmlStart && otherHtmlStart.index < end.index)
     [new Meat(line[0]), text.substring(line[0].length) + rest]
   else
-    endLine = fullLine end, rest.substring end.index
+    endLine = fullLine end, rest
     [new HTML(text + rest.substring(0, end.index + endLine.length), offset, text.match(htmlStartRE)[HTML_START_NAME], line[0].length, text.length + end.index - line[0].length), rest.substring end.index + endLine.length]
 
 XparseList = (match, text, offset, level, check, info, rest)->
@@ -487,10 +488,12 @@ root.Keyword = Keyword
 root.Source = Source
 root.HTML = HTML
 root.Results = Results
+root.resultsRE = resultsRE
 root.ListItem = ListItem
 root.SimpleMarkup = SimpleMarkup
 root.Link = Link
 root.Drawer = Drawer
+root.drawerRE = drawerRE
 root.headlineRE = headlineRE
 root.HL_TAGS = HL_TAGS
 root.parseTags = parseTags

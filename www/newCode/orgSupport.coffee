@@ -344,8 +344,6 @@ orgAttrs = (org)->
   if !org.nodeId then org.nodeId = nextOrgId()
   nodes[org.nodeId] = org
   extra = if rt = resultsType org then " data-org-results='#{rt}'"
-  #extra = if isDynamic org then ' data-org-results="dynamic"'
-  #else if isDef org then ' data-org-results="def"'
   else ''
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
