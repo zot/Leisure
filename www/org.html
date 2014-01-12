@@ -22,6 +22,9 @@
                         padding: 0;
                         padding-top: 0;
                 }
+                .steampunk .org-fancy [data-org-headline='1'] {
+                        margin-bottom: 0;
+                }
                 .steampunk .org-fancy, .steampunk #loading {
                         /*font-family: Ciudad;*/
                         font-family: MouseDeco;
@@ -71,15 +74,15 @@
                 }
                 .steampunk .codeblock[data-org-test="unknown"] {
                         background: url(images/gauge_white.png);
-												background-size: 60px 60px;
+                        background-size: 60px 60px;
                 }
                 .steampunk .codeblock[data-org-test="pass"] {
                         background: url(images/gauge_green.png);
-												background-size: 60px 60px;
+                        background-size: 60px 60px;
                 }
                 .steampunk .codeblock[data-org-test="fail"] {
                         background: url(images/gauge_red.png);
-												background-size: 60px 60px;
+                        background-size: 60px 60px;
                 }
                 .steampunk .codeblock[data-org-test] {
                         display: inline-block;
@@ -99,24 +102,24 @@
                         border-radius: 0;
                         border-width: 29px;
                         border-image: url(images/code_border2.png) 32 32 stretch;
-												background-color: #ccb271;
+                        background-color: #ccb271;
                 }
                 .steampunk .codeblock {
                         padding: calc(29px + 3px);
                         padding-right: calc(29px + 32px);
                 }
-								.steampunk #leisure_bar {
-									min-height: 67px;
-									width: 177px;
-									background-image: url(images/steampunk_leisure_button.png);
-									background-repeat: no-repeat;
-									background-size: 177px 67px;
-								}
-								.steampunk .button.testcase-button {
-									background-image: url(images/finger_gauge.png);
-									background-repeat: no-repeat;
-									background-size: 90px 32px;
-								}
+                .steampunk #leisure_bar {
+                        min-height: 67px;
+                        width: 177px;
+                        background-image: url(images/steampunk_leisure_button.png);
+                        background-repeat: no-repeat;
+                        background-size: 177px 67px;
+                }
+                .steampunk .button.testcase-button {
+                        background-image: url(images/finger_gauge.png);
+                        background-repeat: no-repeat;
+                        background-size: 90px 32px;
+                }
         </style>
         <style>
                 body {
@@ -240,7 +243,7 @@
                         height: 100%;
                 }
                 [data-org-results="def"] .coderesults,
-                [data-org-results="def"] .results-indicator {
+                [data-org-results="def"] .results-buttons {
                         display: none;
                 }
                 .resultscontent {
@@ -339,7 +342,8 @@
                 .comment-button.new-comments {
                         color: red;
                 }
-                .currentSlide.page > .border {
+                /*.currentSlide.page > .border {*/
+                .page > .border {
                         top: 0;
                         bottom: 0;
                         left: 0;
@@ -347,10 +351,12 @@
                 }
                 .page > .border {
                         position: absolute;
+                        /*
                         top: 8px;
                         bottom: 8px;
                         left: 8px;
                         right: 8px;
+                        */
                         border: solid black 2px;
                         border-radius: 10px;
                         z-index: -1;
