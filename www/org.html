@@ -17,7 +17,9 @@
                         font-family: Ciudad;
                         src: url('Ciudad Nueva CAPS Bold.woff'); format('woff');
                 }
-                .slides .org-fancy [data-org-headline='1'] {
+                .steampunk .comment-button {
+                }
+                .steampunk.slides .org-fancy [data-org-headline='1'] {
                         margin-bottom: 0;
                         padding: 0;
                         padding-top: 0;
@@ -226,15 +228,21 @@
                         position: relative;
                         vertical-align: middle;
                 }
-                .org-fancy [data-org-src], .coderesults, .results-indicator {
+                .org-fancy [data-org-src], .coderesults {
                         border-radius: 10px;
                         padding: 3px;
                         background: white;
                         display: inline-block;
                         vertical-align: middle;
                 }
-                .results-indicator img {
-                        width: auto;
+                .testcase-button div {
+                        background: url(images/toTestCaseButton.png) no-repeat 0% 0% / 100% 100%;
+                        width: 64px;
+                        height: 32px;
+                }
+                .results-indicator div {
+                        background: url(icons/monotone_arrow_right_next.png) no-repeat 0% 0% / 100% 100%;
+                        width: 32px;
                         height: 32px;
                 }
                 .codeblock .dyntoggle:before {
@@ -296,8 +304,10 @@
                         text-align: right;
                         cursor: pointer;
                 }
-                .comment-button img {
-                        max-width: 32px;
+                .comment-button div {
+                        background: url(icons/monotone_talk_chat_speech.png) no-repeat 0% 0% / 100% 100%;
+                        width: 32px;
+                        height: 32px;
                 }
                 .ast-button {
                         position: absolute;
