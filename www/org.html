@@ -64,21 +64,21 @@
                         border-image: url(images/steampunk_border.png) 193 178 193 178;
                         background: url(images/steampunk_background-faded.jpg) border-box no-repeat 0% 0% / 100% 100%;
                 }
-                .steampunk .codeblock[org-test] .codeborder {
+                .steampunk .codeblock[data-org-test] .codeborder {
                         border-width: 0;
                         border-image: none;
                         border: none;
                 }
-                .steampunk .codeblock[org-test="unknown"] {
+                .steampunk .codeblock[data-org-test="unknown"] {
                         background: url(images/testCaseWhiteSteamPunk.png);
                 }
-                .steampunk .codeblock[org-test="pass"] {
+                .steampunk .codeblock[data-org-test="pass"] {
                         background: url(images/testCaseGreenSteamPunk.png);
                 }
-                .steampunk .codeblock[org-test="fail"] {
+                .steampunk .codeblock[data-org-test="fail"] {
                         background: url(images/testCaseRedSteamPunk.png);
                 }
-                .steampunk .codeblock[org-test] {
+                .steampunk .codeblock[data-org-test] {
                         display: inline-block;
                         width: 40px;
                         min-width: 40px;
@@ -88,7 +88,7 @@
                         padding-left: 0;
                         padding-right: 0;
                 }
-                .steampunk [org-test] > * {
+                .steampunk [data-org-test] > * {
                         display: none;
                 }
                 .steampunk .codeborder {

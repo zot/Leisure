@@ -124,7 +124,7 @@ root.restorePosition = restorePosition = (parent, block)->
     end = getTextPosition doc, r.endContainer, r.endOffset
     [container, sta] = findDomPosition doc, start
     if (isCollapsed container) && sta == 0 then container = textNodeBefore container
-    offset = documentTop(container) - window.pageYOffset
+    offset = documentTop(container.parentNode) - window.pageYOffset
     block() # block shouldn't remove doc
     if doc = parent.children[docPos]
       newSlide = $('[data-org-headline="1"]')[slideIndex]
@@ -144,7 +144,7 @@ root.restorePosition = restorePosition = (parent, block)->
           r.setEnd endContainer, endOffset
         sel.removeAllRanges()
         sel.addRange r
-        window.scrollTo 0, documentTop(r.startContainer) - offset
+        window.scrollTo 0, documentTop(r.startContainer.parentNode) - offset
     return
   block()
 
@@ -295,8 +295,7 @@ markupSource = (org, name, intertext)->
       if node.name().toLowerCase() == 'expected'
         expected = node
         lastOrgOffset = node.offset
-        # wrap this so we can remove it if the user clicks the test case
-        intertext += "<span org-test-expected='true'>#{escapeHtml node.text}</span>"
+        intertext += escapeHtml node.text
       else break
     else if node instanceof Headline || node instanceof Keyword then break
     else intertext += escapeHtml node.text
@@ -306,7 +305,7 @@ markupSource = (org, name, intertext)->
   testCase = resultsType(org) in ['test', 'autotest'] && expected && resText?
   result = contHtml + wrapper + (if name then "<div class='code-buttons'>#{commentButton name.info.trim()}<br>#{toTestCaseButton(org)}</div></div>#{commentBlock name.info.trim()}" else "<div class='code-buttons'>#{toTestCaseButton(org)}</div></div>")
   if testCase
-    startHtml + "onclick='Leisure.toggleTestCase(event)' org-test='#{testResult expected.content(), resText}' title='<b>Expected:</b> #{escapeAttr expected.content()}' expected='#{escapeAttr expected.content()}' #{result}"
+    startHtml + "onclick='Leisure.toggleTestCase(event)' data-org-test='#{testResult expected.content(), resText}' title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
   else '<div>' + startHtml + result + '</div>'
 
 testResult = (expected, actual)->
@@ -461,7 +460,7 @@ toTestCaseButton = (org)->
 codeBlockForNode = (node)->
   while node && node.getAttribute?('data-org-type') != 'source'
     node = node.parentNode
-  if node && !node.hasAttribute 'org-test' then node.parentNode else node
+  if node && !node.hasAttribute 'data-org-test' then node.parentNode else node
 
 createTestCase = (evt)->
   console.log evt.target
@@ -678,12 +677,30 @@ handleMutation = (evt)->
     invalidateOrgText()
     displaySource()
 
-executeSource = (parent, node, cont)->
+executeSource = (parent, node, cont, skipTests)->
+  doc = topNode node
   [srcNode, text] = getNodeSource node
   if srcNode
     createResults srcNode
     if text.trim().length
-      executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), cont
+      executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), ->
+        cont?()
+        if !skipTests then runAutotests doc
+
+fancyExecuteDef = (node, cont)->
+  doc = topNode node
+  executeDef node, ->
+    cont?()
+    runAutotests doc
+
+runAutotests = (doc)->
+  for n in $(doc).find("[data-org-results='autotest']")
+    runTest doc, n
+
+runTest = (doc, node)-> executeSource doc, node, (-> checkTestResults node), true
+
+checkTestResults = (node)->
+  node.setAttribute 'data-org-test', (if node.getAttribute('data-org-expected') == $(node).find('.resultscontent').text() then 'pass' else 'fail')
 
 reprocessResults = (node)->
   if node.firstChild.shadowRoot
@@ -944,16 +961,13 @@ fancyOrg =
         setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
       setTheme theme
       setTimeout (=>
-        #for node in $('[data-org-results]')
-        #  switch $(node).attr('data-org-results').toLowerCase()
-        #    when 'def' then @executeDef node
         for node in $('[data-org-comments]')
           setShadowHtml node.firstElementChild, newCommentBox node.getAttribute 'data-org-comments'
         redrawAllIssues()
         ), 1
       $(document).tooltip()
   executeSource: executeSource
-  executeDef: executeDef
+  executeDef: fancyExecuteDef
   createResults: createResults
   bindings: defaultBindings
   redrawIssue: (i)-> redrawIssue i
