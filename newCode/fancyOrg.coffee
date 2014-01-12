@@ -23,23 +23,26 @@ lz = lazy
   unescapePresentationHtml,
 } = require './runtime'
 {
+  parseOrgMode,
+  Headline,
+  headlineRE,
+  HL_TAGS,
+  Meat,
+  Keyword,
   keywordRE,
   KW_BOILERPLATE,
   KW_NAME,
   KW_INFO,
-  srcStartRE,
-  parseOrgMode,
-  Headline,
-  Meat,
-  Keyword,
   Source,
+  srcStartRE,
   HTML,
   Results,
+  resultsRE,
   ListItem,
   SimpleMarkup,
   Link,
-  headlineRE,
-  HL_TAGS,
+  Drawer,
+  drawerRE,
   parseTags,
   matchLine,
 } = require './org'
@@ -113,30 +116,49 @@ root.restorePosition = restorePosition = (parent, block)->
   slide = slideParent sel.focusNode
   slideIndex = slideOffset slide
   if sel?.rangeCount && slideIndex > -1
+    doc = topNode(slide).parentNode
+    parent = doc.parentNode
+    docPos = childIndex parent, doc
     r = sel.getRangeAt 0
-    start = getTextPosition slide, r.startContainer, r.startOffset
-    end = getTextPosition slide, r.endContainer, r.endOffset
-    [container, sta] = findDomPosition slide, start
+    start = getTextPosition doc, r.startContainer, r.startOffset
+    end = getTextPosition doc, r.endContainer, r.endOffset
+    [container, sta] = findDomPosition doc, start
     if (isCollapsed container) && sta == 0 then container = textNodeBefore container
     offset = documentTop(container) - window.pageYOffset
-    block()
-    newSlide = $('[data-org-headline="1"]')[slideIndex]
-    if slideMode then setCurrentSlide newSlide
-    if start > -1 && (r = nativeRange findDomPosition newSlide, start)
-      if isCollapsed r.startContainer
-        c = r.startContainer
-        while isCollapsed c
-          c = textNodeBefore c
-        r.setStart c, 0
-        r.collapse true
-      else
-        [endContainer, endOffset] = findDomPosition newSlide, end
-        r.setEnd endContainer, endOffset
-      sel.removeAllRanges()
-      sel.addRange r
-      window.scrollTo 0, documentTop(r.startContainer) - offset
-      return
+    block() # block shouldn't remove doc
+    if doc = parent.children[docPos]
+      newSlide = $('[data-org-headline="1"]')[slideIndex]
+      if slideMode then setCurrentSlide newSlide
+      if start > -1 && (r = nativeRange findDomPosition doc, start)
+        if isCollapsed r.startContainer
+          c = r.startContainer
+          while isCollapsed c
+            c = textNodeBefore c
+          r.setStart c, 0
+          r.collapse true
+        else
+          [endContainer, endOffset] = findDomPosition doc, end
+          if endOffset == 0
+            endContainer = textNodeBefore endContainer
+            endOffset = endContainer.data.length
+          r.setEnd endContainer, endOffset
+        sel.removeAllRanges()
+        sel.addRange r
+        window.scrollTo 0, documentTop(r.startContainer) - offset
+    return
   block()
+
+childIndex = (parent, child)->
+  for i in [0...parent.children.length]
+    if parent.children[i] == child then return i
+  return -1
+
+topNode = (node)->
+  top = node
+  while node
+    if node.hasAttribute? 'data-org-headline' then top = node
+    node = node.parentNode
+  return top
 
 replaceUnrelatedPresenter = (target, newPres)->
   if result = !presenter.isRelated target
@@ -161,14 +183,17 @@ markupOrgWithNode = (text)->
   # ensure trailing newline -- contenteditable doesn't like it, otherwise
   if text[text.length - 1] != '\n' then text = text + '\n'
   org = parseOrgMode text
-  lastOrgOffset = -1
-  [org, markupNode org]
+  [org, markupNewNode org]
 
-markupNode = (org)->
+markupNewNode = (org, middleOfLine)->
+  lastOrgOffset = -1
+  markupNode org, middleOfLine
+
+markupNode = (org, middleOfLine)->
   if org.offset <= lastOrgOffset
     ''
   else if org instanceof Results
-    pos = org.contentPos - org.offset
+    pos = org.contentPos
     text = org.text.substring pos
     "<span #{orgAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span>#{contentSpan text}"
   else if org instanceof HTML then markupHtml org
@@ -189,7 +214,9 @@ markupNode = (org)->
   else if org instanceof SimpleMarkup then markupSimple org
   else if org instanceof Link then markupLink org
   else if content(org.text).length then defaultMarkup org
-  else "<div #{orgAttrs org}>#{escapeHtml org.text}</div>"
+  else
+    tag = (if middleOfLine then 'span' else 'div')
+    "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
 
 imagePath = /\.(png|jpg|gif|svg|tiff|bmp)$/i
 
@@ -199,7 +226,7 @@ markupLink = (org)->
   else
     guts = ''
     for c in org.children
-      guts += markupNode c
+      guts += markupNode c, true
     if !guts then "<span class='hidden'>[[</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{org.path}</a><span class='hidden'>]]</span>"
     else "<span class='hidden'>[[#{org.path}][</span><a onclick='Leisure.followLink(event)' href='#{org.path}'>#{guts}</a><span class='hidden'>]]</span>"
 
@@ -212,7 +239,7 @@ root.followLink = (e)->
 markupSimple = (org)->
   guts = ''
   for c in org.children
-    guts += markupNode c
+    guts += markupNode c, true
   text = switch org.markupType
     when 'bold' then "<b>#{guts}</b>"
     when 'italic' then "<i>#{guts}</i>"
@@ -237,7 +264,9 @@ markupHeadline = (org)->
     stars = start.substring 0, starsM[0].length
     start = start.substring stars.length
   else stars = ''
-  "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><span data-org-type='text-content'>#{escapeHtml start}</span><span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
+  if org.text.trim() != ''
+    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><div class='textborder'></div></div><span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
+  else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span>#{last}</span></span>#{markupGuts org, checkStart start, org.text}</div>"
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
@@ -251,40 +280,56 @@ markupSource = (org, name, intertext)->
     nameM = name.text.match keywordRE
     codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
   else codeBlock = ">"
+  codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
-  contHtml = "class='codeblock' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
-  wrapper = "<table class='codewrapper'><tr><td><div #{orgSrcAttrs org}>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
+  contHtml = "class='codeblock' contenteditable='false' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
+  wrapper = "<table class='codewrapper'><tr><td><div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   node = org.next
   intertext = ''
   while node
     if node instanceof Results
-      res = node
-      lastOrgOffset = res.offset
-      pos = res.srcContentPos - res.offset
+      lastOrgOffset = node.offset
+      resText = node.text.substring node.contentPos
       break
-    else if node instanceof Keyword
-      if node.name.toLowerCase() == 'expected'
+    else if node instanceof Drawer
+      if node.name().toLowerCase() == 'expected'
         expected = node
-        intertext += "<span org-test-expected='true'>#{escapeHtml node.text}</span>"
         lastOrgOffset = node.offset
+        intertext += escapeHtml node.text
       else break
-    else if node instanceof Headline then break
+    else if node instanceof Headline || node instanceof Keyword then break
     else intertext += escapeHtml node.text
     node = node.next
-  wrapper += "<span class='hidden'>#{intertext}</span>" + (if res then htmlForResults res.text.substring pos else htmlForResults '')
+  wrapper += "<span class='hidden'>#{intertext}</span>" + (if resText then htmlForResults resText else htmlForResults '')
   wrapper += "</td></tr></table>"
-  result = contHtml + wrapper + (if name then "#{commentButton name.info.trim()}</div>#{commentBlock name.info.trim()}" else "</div>") + '\n'
-  if resultsType(org) == 'test' then startHtml + "onclick='Leisure.toggleTestCase(event)' org-test='unknown' title='<b>Expected:</b> #{escapeAttr expected.info}' #{result}"
-  else startHtml + result
+  testCase = resultsType(org) in ['test', 'autotest'] && expected && resText?
+  result = contHtml + wrapper + (if name then "<div class='code-buttons'>#{commentButton name.info.trim()}<br>#{toTestCaseButton(org)}</div></div>#{commentBlock name.info.trim()}" else "<div class='code-buttons'>#{toTestCaseButton(org)}</div></div>")
+  if testCase
+    startHtml + "onclick='Leisure.toggleTestCase(event)' data-org-test='#{testResult expected.content(), resText}' title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
+  else '<div>' + startHtml + result + '</div>'
+
+testResult = (expected, actual)->
+  if actual == '' then 'unknown'
+  else if expected == actual then 'pass'
+  else 'fail'
 
 root.toggleTestCase = (evt)->
-  node = evt.target
-  while !node.hasAttribute?('org-test')
-    node = node.parentNode
-  if node
-    node.setAttribute 'org-test', 'edit'
-    node.setAttribute 'onclick', ''
-    $(node).find('[org-test-expected="true"]').remove()
+  node = codeBlockForNode evt.target
+  if node then replaceCodeBlock node, changeResultType node.textContent, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
+
+replaceCodeBlock = (node, text)->
+  restorePosition null, ->
+    newNode = $(markupNewNode parseOrgMode(text).children[0])[0]
+    $(node).replaceWith(newNode)
+    for n in $(newNode).find('[data-org-src]')
+      recreateAstButtons parent, n
+    for n in $(newNode).find('.resultscontent')
+      reprocessResults n
+    setTimeout (=>
+       for n in $(newNode).find('[data-org-comments]')
+        setShadowHtml n.firstElementChild, newCommentBox n.getAttribute 'data-org-comments'
+      redrawAllIssues()
+    ), 1
 
 markupListItem = (org)->
   if org.level == 0
@@ -300,9 +345,11 @@ markupListItem = (org)->
     if org.checked? then ' data-org-checked="' + org.checked + '"' else ''
   }><span class='hidden'>#{
     escapeHtml org.text.substring 0, org.contentOffset
-  }</span><span>#{escapeHtml org.text.substring org.contentOffset}</span></li>#{
+  }</span><span>#{markupListContents org.children}</span></li>#{
     eatListItem org
   }#{if end then '</ul>' else ''}"""
+
+markupListContents = (children)-> (markupNode child, true for child in children).join ''
 
 eatListItem = (org)->
   if org.next instanceof Meat && org.next.text[0] == '\n' then ''
@@ -406,6 +453,51 @@ show = (obj)-> rz(L_show)(lz obj)
 commentButton = (name)->
   "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\")' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
 
+toTestCaseButton = (org)->
+  if isDef org then ''
+  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><img style='width: auto; height: 32px' src='images/toTestCaseButton.png'><span></span></button>"
+
+codeBlockForNode = (node)->
+  while node && node.getAttribute?('data-org-type') != 'source'
+    node = node.parentNode
+  if node && !node.hasAttribute 'data-org-test' then node.parentNode else node
+
+createTestCase = (evt)->
+  console.log evt.target
+  node = codeBlockForNode evt.target
+  text = node.textContent
+  rest = text
+  while match = rest.match drawerRE
+    if match[0].trim().toLowerCase() == ':expected:'
+      drawer = parseOrgMode(rest.substring(match.index), text.length - rest.length + match.index).children[0]
+      break
+    rest = rest.substring match.index + match[0].length
+  resultsText = (if drawer then text.substring drawer.offset + drawer.text.length else text)
+  if match = resultsRE.exec resultsText
+    results = parseOrgMode(resultsText.substring(match.index), (if drawer then drawer.offset + drawer.text.length else 0) + match.index).children[0]
+    if results.text.substring results.contentPos
+      newExpectation = ":EXPECTED:\n#{results.text.substring results.contentPos}:END:\n"
+      start = (if drawer then drawer else results).offset
+      end = (if drawer then drawer.offset + drawer.text.length else results.offset)
+      src = parseOrgMode(text).children[0]
+      pre = changeResultType text.substring(0, start), (if resultsType(src) == 'dynamic' then 'autotest' else 'test')
+      return replaceCodeBlock node, pre + newExpectation + text.substring end
+  alert('You have to have results in order to make a test case')
+
+changeResultType = (text, newType)->
+  src = parseOrgMode(text).children[0]
+  while src && !(src instanceof Source)
+    src = src.next
+  if src
+    if m = src.text.match /(:results *)([\w]*)/i
+      start = src.offset + m.index + m[1].length
+      end = start + m[2].length
+      text.substring(0, start) + newType + text.substring(end)
+    else
+      pos = src.offset + src.contentPos - 1
+      text.substring(0, pos) + " :results #{newType}" + text.substring pos
+  else text
+
 commentBlock = (name)->
   "<div class='comments' data-org-comments='#{escapeAttr name}'><div></div></div>"
 
@@ -422,7 +514,12 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td><div class='results-indicator' data-org-type='boundary'><span></span></div></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:</span><div class='resultscontent'><span></span><span class='hidden'>#{nonl escapeHtml '\n' + text}</span></div></div>"""
+  </td><td><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><img src='icons/monotone_arrow_right_next.png'></button><br><button onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
+
+toggleDynamic = (event)->
+  block = codeBlockForNode event.target
+  resType = (if !block.hasAttribute 'data-org-type' then block.firstChild else block).getAttribute 'data-org-results'
+  replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
 
 nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt
 
@@ -432,6 +529,8 @@ createResults = (srcNode)->
   if created = srcNode && !$(srcNode).find('.coderesults').length
     $(srcNode).find('.codewrapper').append htmlForResults ''
   created
+
+executeCode = (event)-> executeSource topNode(event.target), event.target, ->
 
 #
 # When to cancel line joins
@@ -493,7 +592,7 @@ handleKey = (div)->(e)->
   c = (e.charCode || e.keyCode || e.which)
   if !addKeyPress e, c then return
   s = getSelection()
-  r = s.getRangeAt(0)
+  r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
   [bound, checkMod] = findKeyBinding e, div, r
   if bound then cancelled = !checkMod
   else
@@ -578,12 +677,30 @@ handleMutation = (evt)->
     invalidateOrgText()
     displaySource()
 
-executeSource = (parent, node, cont)->
+executeSource = (parent, node, cont, skipTests)->
+  doc = topNode node
   [srcNode, text] = getNodeSource node
   if srcNode
     createResults srcNode
     if text.trim().length
-      executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), cont
+      executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), ->
+        cont?()
+        if !skipTests then runAutotests doc
+
+fancyExecuteDef = (node, cont)->
+  doc = topNode node
+  executeDef node, ->
+    cont?()
+    runAutotests doc
+
+runAutotests = (doc)->
+  for n in $(doc).find("[data-org-results='autotest']")
+    runTest doc, n
+
+runTest = (doc, node)-> executeSource doc, node, (-> checkTestResults node), true
+
+checkTestResults = (node)->
+  node.setAttribute 'data-org-test', (if node.getAttribute('data-org-expected') == $(node).find('.resultscontent').text() then 'pass' else 'fail')
 
 reprocessResults = (node)->
   if node.firstChild.shadowRoot
@@ -717,8 +834,12 @@ setMinMax = (sl, value)->
   sl.slider "option", "step", step
 
 setCurrentSlide = (element)->
+  for node in $('.currentSlide')
+    $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
   $('.currentSlide').removeClass 'currentSlide'
   $(element).addClass 'currentSlide'
+  # this is needed until there is support for :host (and/or ^ & ^^)
+  if element.shadowRoot then $(element.shadowRoot.firstElementChild).addClass 'currentSlide'
 
 nextSlide = ->
   ns = null
@@ -781,7 +902,22 @@ toggleSlides = ->
       nextSlide()
   else
     $('body').removeClass 'slides'
-    $('[data-org-html]').addClass 'slideHtml'
+    $('[data-org-html]').removeClass 'slideHtml'
+
+theme = null
+
+setTheme = (str)->
+  el = $('body')
+  for node in $('[data-org-headline="1"]')
+    if node.shadowRoot then el = el.add($(node.shadowRoot.firstElementChild))
+  if theme && theme != str then el.removeClass theme
+  theme = str
+  if str then el.addClass str
+
+define 'setTheme', lz (str)->
+  makeSyncMonad (env, cont)->
+    setTheme rz str
+    cont rz L_true
 
 define 'toggleSlides', lz makeSyncMonad (env, cont)->
   toggleSlides()
@@ -812,6 +948,7 @@ fancyOrg =
     @parent = parent
     restorePosition parent, ->
       parent.setAttribute 'class', 'org-fancy'
+      parent.setAttribute 'maindoc', ''
       orgNotebook.installOrgDOM parent, orgNode, orgText
       for node in $('[data-org-html]')
         setShadowHtml node, node.innerHTML
@@ -822,27 +959,29 @@ fancyOrg =
         reprocessResults node
       for node in $('[data-org-headline="1"]')
         setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+      setTheme theme
       setTimeout (=>
-        #for node in $('[data-org-results]')
-        #  switch $(node).attr('data-org-results').toLowerCase()
-        #    when 'def' then @executeDef node
         for node in $('[data-org-comments]')
           setShadowHtml node.firstElementChild, newCommentBox node.getAttribute 'data-org-comments'
         redrawAllIssues()
         ), 1
       $(document).tooltip()
   executeSource: executeSource
-  executeDef: executeDef
+  executeDef: fancyExecuteDef
   createResults: createResults
   bindings: defaultBindings
   redrawIssue: (i)-> redrawIssue i
   leisureButton: ->
     restorePosition @parent, ->
       toggleSlides()
-      if slideMode then setTimeout (-> $('[maindoc]').focus()), 1
+      if slideMode then setTimeout (-> if !getSelection().focusNode then $('[maindoc]').focus()), 1
       else swapMarkup()
 
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
 root.addComment = addComment
 root.recreateAstButtons = recreateAstButtons
+root.setTheme = setTheme
+root.createTestCase = createTestCase
+root.executeCode = executeCode
+root.toggleDynamic = toggleDynamic
