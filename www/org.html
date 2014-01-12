@@ -29,10 +29,10 @@
                         /*font-family: Arial;*/
                 }
                 .steampunk #loading, .steampunk [data-org-type="headline"] > [data-org-type='text'] {
-                        color: #95a82d;
+                        color: black;
                 }
                 .steampunk #loading, .steampunk .org-fancy [data-org-type="headline"] > [data-org-type='text'] {
-                        text-shadow: 2px 2px black;
+                        text-shadow: 2px 2px grey;
                 }
                 .steampunk .codeblock {
                         font-family: Courier;
@@ -70,19 +70,22 @@
                         border: none;
                 }
                 .steampunk .codeblock[data-org-test="unknown"] {
-                        background: url(images/testCaseWhiteSteamPunk.png);
+                        background: url(images/gauge_white.png);
+												background-size: 60px 60px;
                 }
                 .steampunk .codeblock[data-org-test="pass"] {
-                        background: url(images/testCaseGreenSteamPunk.png);
+                        background: url(images/gauge_green.png);
+												background-size: 60px 60px;
                 }
                 .steampunk .codeblock[data-org-test="fail"] {
-                        background: url(images/testCaseRedSteamPunk.png);
+                        background: url(images/gauge_red.png);
+												background-size: 60px 60px;
                 }
                 .steampunk .codeblock[data-org-test] {
                         display: inline-block;
-                        width: 40px;
-                        min-width: 40px;
-                        height: 40px;
+                        width: 60px;
+                        min-width: 60px;
+                        height: 60px;
                         padding: none;
                         padding: 0;
                         padding-left: 0;
@@ -95,12 +98,20 @@
                         border: transparent;
                         border-radius: 0;
                         border-width: 29px;
-                        border-image: url(images/steampunk_code_border_one.png) 29 29 stretch;
+                        border-image: url(images/code_border2.png) 32 32 stretch;
+												background-color: #C7BBA1;
                 }
                 .steampunk .codeblock {
                         padding: calc(29px + 3px);
                         padding-right: calc(29px + 32px);
                 }
+								.steampunk #leisure_bar {
+									min-height: 67px;
+									width: 177px;
+									background-image: url(images/steampunk_leisure_button.png);
+									background-repeat: no-repeat;
+									background-size: 177px 67px;
+								}
         </style>
         <style>
                 body {
