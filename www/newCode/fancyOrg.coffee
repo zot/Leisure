@@ -440,7 +440,7 @@ showAst = (evt, astButton, offset)->
       if getType(ast) != 'parseErr'
         console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
         try
-          setShadowHtml astButton.firstChild, "<div class='ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
+          setShadowHtml astButton.firstChild, "<div class='#{theme ? ''} ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
           #astButton.firstChild.innerHTML = "<div class='ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
           replacePresenter
             hide: -> astButton.firstChild.remove()
@@ -920,6 +920,7 @@ setTheme = (str)->
   el = $('body')
   for node in $('[data-org-headline="1"]')
     if node.shadowRoot then el = el.add($(node.shadowRoot.firstElementChild))
+  el.add('[data-org-html]')
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str
