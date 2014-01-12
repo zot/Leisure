@@ -116,35 +116,35 @@ root.restorePosition = restorePosition = (parent, block)->
   slide = slideParent sel.focusNode
   slideIndex = slideOffset slide
   if sel?.rangeCount && slideIndex > -1
-    top = topNode(slide).parentNode
-    parent = top.parentNode
-    topPos = childIndex parent, top
+    doc = topNode(slide).parentNode
+    parent = doc.parentNode
+    docPos = childIndex parent, doc
     r = sel.getRangeAt 0
-    start = getTextPosition slide, r.startContainer, r.startOffset
-    end = getTextPosition slide, r.endContainer, r.endOffset
-    [container, sta] = findDomPosition top, start
+    start = getTextPosition doc, r.startContainer, r.startOffset
+    end = getTextPosition doc, r.endContainer, r.endOffset
+    [container, sta] = findDomPosition doc, start
     if (isCollapsed container) && sta == 0 then container = textNodeBefore container
     offset = documentTop(container) - window.pageYOffset
-    block()
-    top = parent.children[topPos]
-    newSlide = $('[data-org-headline="1"]')[slideIndex]
-    if slideMode then setCurrentSlide newSlide
-    if start > -1 && (r = nativeRange findDomPosition top, start)
-      if isCollapsed r.startContainer
-        c = r.startContainer
-        while isCollapsed c
-          c = textNodeBefore c
-        r.setStart c, 0
-        r.collapse true
-      else
-        [endContainer, endOffset] = findDomPosition top, end
-        if endOffset == 0
-          endContainer = textNodeBefore endContainer
-          endOffset = endContainer.data.length
-        r.setEnd endContainer, endOffset
-      sel.removeAllRanges()
-      sel.addRange r
-      window.scrollTo 0, documentTop(r.startContainer) - offset
+    block() # block shouldn't remove doc
+    if doc = parent.children[docPos]
+      newSlide = $('[data-org-headline="1"]')[slideIndex]
+      if slideMode then setCurrentSlide newSlide
+      if start > -1 && (r = nativeRange findDomPosition doc, start)
+        if isCollapsed r.startContainer
+          c = r.startContainer
+          while isCollapsed c
+            c = textNodeBefore c
+          r.setStart c, 0
+          r.collapse true
+        else
+          [endContainer, endOffset] = findDomPosition doc, end
+          if endOffset == 0
+            endContainer = textNodeBefore endContainer
+            endOffset = endContainer.data.length
+          r.setEnd endContainer, endOffset
+        sel.removeAllRanges()
+        sel.addRange r
+        window.scrollTo 0, documentTop(r.startContainer) - offset
     return
   block()
 
@@ -303,11 +303,11 @@ markupSource = (org, name, intertext)->
     node = node.next
   wrapper += "<span class='hidden'>#{intertext}</span>" + (if resText then htmlForResults resText else htmlForResults '')
   wrapper += "</td></tr></table>"
-  if testCase = resultsType(org) == 'test' && expected && resText? then wrapper += '\n'
+  testCase = resultsType(org) in ['test', 'autotest'] && expected && resText?
   result = contHtml + wrapper + (if name then "<div class='code-buttons'>#{commentButton name.info.trim()}<br>#{toTestCaseButton(org)}</div></div>#{commentBlock name.info.trim()}" else "<div class='code-buttons'>#{toTestCaseButton(org)}</div></div>")
   if testCase
     startHtml + "onclick='Leisure.toggleTestCase(event)' org-test='#{testResult expected.content(), resText}' title='<b>Expected:</b> #{escapeAttr expected.content()}' expected='#{escapeAttr expected.content()}' #{result}"
-  else '<div>' + startHtml + result + '\n</div>'
+  else '<div>' + startHtml + result + '</div>'
 
 testResult = (expected, actual)->
   if actual == '' then 'unknown'
@@ -316,7 +316,7 @@ testResult = (expected, actual)->
 
 root.toggleTestCase = (evt)->
   node = codeBlockForNode evt.target
-  if node then replaceCodeBlock node, changeResultType node.textContent, 'dynamic'
+  if node then replaceCodeBlock node, changeResultType node.textContent, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
 
 replaceCodeBlock = (node, text)->
   restorePosition null, ->
@@ -480,7 +480,8 @@ createTestCase = (evt)->
       newExpectation = ":EXPECTED:\n#{results.text.substring results.contentPos}:END:\n"
       start = (if drawer then drawer else results).offset
       end = (if drawer then drawer.offset + drawer.text.length else results.offset)
-      pre = changeResultType text.substring(0, start), 'test'
+      src = parseOrgMode(text).children[0]
+      pre = changeResultType text.substring(0, start), (if resultsType(src) == 'dynamic' then 'autotest' else 'test')
       return replaceCodeBlock node, pre + newExpectation + text.substring end
   alert('You have to have results in order to make a test case')
 
@@ -494,8 +495,8 @@ changeResultType = (text, newType)->
       end = start + m[2].length
       text.substring(0, start) + newType + text.substring(end)
     else
-      pos = src.offset + src.infoPos
-      text.substring(0, pos) + ":results #{newType} " + text.substring pos
+      pos = src.offset + src.contentPos - 1
+      text.substring(0, pos) + " :results #{newType}" + text.substring pos
   else text
 
 commentBlock = (name)->
@@ -514,7 +515,12 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><img src='icons/monotone_arrow_right_next.png'></div></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
+  </td><td><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><img src='icons/monotone_arrow_right_next.png'></button><br><button onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
+
+toggleDynamic = (event)->
+  block = codeBlockForNode event.target
+  resType = (if !block.hasAttribute 'data-org-type' then block.firstChild else block).getAttribute 'data-org-results'
+  replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
 
 nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt
 
@@ -954,7 +960,7 @@ fancyOrg =
   leisureButton: ->
     restorePosition @parent, ->
       toggleSlides()
-      if slideMode then setTimeout (-> $('[maindoc]').focus()), 1
+      if slideMode then setTimeout (-> if !getSelection().focusNode then $('[maindoc]').focus()), 1
       else swapMarkup()
 
 root.fancyOrg = fancyOrg
@@ -964,3 +970,4 @@ root.recreateAstButtons = recreateAstButtons
 root.setTheme = setTheme
 root.createTestCase = createTestCase
 root.executeCode = executeCode
+root.toggleDynamic = toggleDynamic

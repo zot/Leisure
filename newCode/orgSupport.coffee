@@ -94,7 +94,6 @@ initOrg = (parent, source)->
     .prependTo(document.body)
     .mousedown (e)->
       e.preventDefault()
-      #swapMarkup()
       root.currentMode.leisureButton()
   (root.currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
   Leisure.initStorage '#login', '#panel', root.currentMode

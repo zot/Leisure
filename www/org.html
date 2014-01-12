@@ -203,6 +203,12 @@
                         width: auto;
                         height: 32px;
                 }
+                .codeblock .dyntoggle:before {
+                        content: 'link';
+                }
+                [data-org-results='dynamic'] .dyntoggle:before {
+                        content: 'unlink';
+                }
                 .org-num:hover {
                         outline: solid gray 2px;
                 }
@@ -470,10 +476,6 @@
                                         $('#panel').css('display', '');
                                         Leisure.setTheme('steampunk');
                                         Leisure.initOrg('[maindoc]', '#source');
-                                        //Leisure.basicOrg.useNode(div[0], $('#source'));
-                                        //Leisure.initStorage('#login', '#panel', Leisure.basicOrg);
-                                        //Leisure.fancyOrg.useNode(div[0], $('#source'));
-                                        //Leisure.initStorage('#login', '#panel', Leisure.fancyOrg);
                                 });
                     }
                         document.head.appendChild(script);
