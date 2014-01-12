@@ -97,6 +97,7 @@ lz = lazy
 } = require './orgSupport'
 {
   redrawAllIssues,
+  createComment,
 } = require './storage'
 _ = require './lodash.min'
 
@@ -124,7 +125,7 @@ root.restorePosition = restorePosition = (parent, block)->
     end = getTextPosition doc, r.endContainer, r.endOffset
     [container, sta] = findDomPosition doc, start
     if (isCollapsed container) && sta == 0 then container = textNodeBefore container
-    offset = documentTop(container.parentNode) - window.pageYOffset
+    offset = documentTop(container) - window.pageYOffset
     block() # block shouldn't remove doc
     if doc = parent.children[docPos]
       newSlide = $('[data-org-headline="1"]')[slideIndex]
@@ -144,7 +145,7 @@ root.restorePosition = restorePosition = (parent, block)->
           r.setEnd endContainer, endOffset
         sel.removeAllRanges()
         sel.addRange r
-        window.scrollTo 0, documentTop(r.startContainer.parentNode) - offset
+        window.scrollTo 0, documentTop(r.startContainer) - offset
     return
   block()
 
@@ -161,17 +162,17 @@ topNode = (node)->
   return top
 
 replaceUnrelatedPresenter = (target, newPres)->
-  if result = !presenter.isRelated target
+  if result = !presenter || !presenter.isRelated target
     replacePresenter newPres
   result
 
 replaceRelatedPresenter = (target, newPres)->
-  if result = presenter.isRelated target
+  if result = presenter && presenter.isRelated target
     replacePresenter newPres
   result
 
 replacePresenter = (pres)->
-  presenter.hide()
+  presenter?.hide()
   presenter = pres
 
 markupOrg = (text)->
@@ -326,8 +327,8 @@ replaceCodeBlock = (node, text)->
     for n in $(newNode).find('.resultscontent')
       reprocessResults n
     setTimeout (=>
-       for n in $(newNode).find('[data-org-comments]')
-        setShadowHtml n.firstElementChild, newCommentBox n.getAttribute 'data-org-comments'
+      for n in $(newNode).find('[data-org-comments]')
+        setShadowHtml n.firstElementChild, newCommentBox n.getAttribute('data-org-comments'), codeBlockForNode(n).id
       redrawAllIssues()
     ), 1
 
@@ -451,7 +452,7 @@ showAst = (evt, astButton, offset)->
 show = (obj)-> rz(L_show)(lz obj)
 
 commentButton = (name)->
-  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\")' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
+  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><img src='icons/monotone_talk_chat_speech.png'><span></span></button>"
 
 toTestCaseButton = (org)->
   if isDef org then ''
@@ -501,20 +502,28 @@ changeResultType = (text, newType)->
 commentBlock = (name)->
   "<div class='comments' data-org-comments='#{escapeAttr name}'><div></div></div>"
 
-toggleComment = (name)->
+toggleComment = (name, evt)->
+  button = $(evt.target).closest('button')[0]
   block = $("[data-org-comments=#{name}]")
-  if block.hasClass 'showcomments' then block.removeClass 'showcomments'
+  if block.hasClass 'showcomments'
+    if !replaceRelatedPresenter button, null then block.removeClass 'showcomments'
   else
     block.addClass 'showcomments'
     $("[data-org-codeblock='#{escapeAttr name}'] button.comment-button").removeClass 'new-comments'
+    replacePresenter
+      hide: -> block.removeClass 'showcomments'
+      isRelated: (target)-> button == $(target).closest('button')[0]
 
-addComment = (name)-> alert('Add comment not implemented, yet')
+addComment = (name, event)->
+  box = $(event.target.parentNode.querySelector('textarea'))
+  createComment name, box.val()
+  box.val ''
 
 defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><img src='icons/monotone_arrow_right_next.png'></button><br><button onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
+  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><img src='icons/monotone_arrow_right_next.png'></button><br><button onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
@@ -732,13 +741,13 @@ redrawIssue = (issue)->
       button.attr 'data-org-commentcount', count
       button.addClass 'new-comments'
     setShadowHtml button.find('span')[0], count
-    setShadowHtml name[0].firstChild, "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}#{newCommentBox issueName}"
+    setShadowHtml name[0].firstChild, "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}#{newCommentBox issueName, $(name[0].parentNode).find('.codeblock').attr 'id'}"
 
 commentHtml = (comment, type)->
   "<div class='commentbox'><img src='http://gravatar.com/avatar/#{comment.user.gravatar_id}?s=48'><div class='#{type}'>#{comment.body}</div></div>"
 
-newCommentBox = (name)->
-  "<textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"#{name}\")'>Add Comment</button>"
+newCommentBox = (name, codeId)->
+  "<textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"#{name}\", event)'>Add Comment</button>"
 
 colonify = (str)-> ': ' + (str.replace /[\n\\]/g, (c)-> if c == '\n' then '\\n' else '\\\\') + '\n'
 
@@ -962,7 +971,7 @@ fancyOrg =
       setTheme theme
       setTimeout (=>
         for node in $('[data-org-comments]')
-          setShadowHtml node.firstElementChild, newCommentBox node.getAttribute 'data-org-comments'
+          setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
         redrawAllIssues()
         ), 1
       $(document).tooltip()

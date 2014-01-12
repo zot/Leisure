@@ -137,7 +137,7 @@ class Headline extends Node
       for child in @children
         if res = child.findNodeAt pos then return res
       null
-  scan: @scanWithChildren
+  scan: Node.prototype.scanWithChildren
   linkNodes: ->
     prev = null
     for c in @children
@@ -181,7 +181,7 @@ class SimpleMarkup extends Meat
     offset: @offset
     markupType: @markupType
     children: (c.toJsonObject() for c in @children)
-  scan: @scanWithChildren
+  scan: Node.prototype.scanWithChildren
 
 class Link extends Meat
   constructor: (@text, @offset, @path, @children)->
@@ -192,7 +192,7 @@ class Link extends Meat
     offset: @offset
     path: @path
     children: (c.toJsonObject() for c in @children)
-  scan: @scanWithChildren
+  scan: Node.prototype.scanWithChildren
 
 class XListItem extends Meat
   constructor: (@text, @offset, @contentOffset, @level, @checked, @info)-> super @text, @offset
@@ -251,7 +251,7 @@ class ListItem extends Meat
     while next && !(next instanceof Headline) && !(next instanceof ListItem)
       next = next.next
     if next instanceof ListItem then next else null
-  scan: @scanWithChildren
+  scan: Node.prototype.scanWithChildren
 
 class Drawer extends Meat
   constructor: (@text, @offset, @contentPos, @endPos)-> super @text, @offset

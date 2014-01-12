@@ -53,12 +53,18 @@ useFile = (file)->
   document.body.classList.remove 'not-logged-in'
   checkEvents lastUpdate, 1, []
 
+githubParams = null
+
 connectStorage = ->
   localStorage.setItem 'githubName', name = $('#name').val()
   localStorage.setItem 'githubPassword', password = $('#password').val()
   localStorage.setItem 'githubUser', user = $('#user').val()
   localStorage.setItem 'githubRepository', repository = $('#repository').val()
   localStorage.setItem 'githubFile', currentFile = $('#file').val()
+  githubParams =
+    user: user
+    repository: repository
+    file: currentFile
   connection = root.githubConnect username: name, password: password
   repo = connection.getRepo user, repository
   repo.getEvents null, (err, data)->
@@ -103,7 +109,10 @@ redrawAllIssues = ->
 
 redrawIssues = (issues)->
   for issue in issues
-    root.currentMode.redrawIssue issue
+    if issue
+      for l in issue.labels
+        if l.name == 'comment' then root.currentMode.redrawIssue issue
+        break
 
 getRelevantIssueName = (issue)->
   if match = issue.title.trim().match new RegExp "^#{currentFile}:(.*)$"
@@ -148,10 +157,25 @@ refreshIssueData = (index, urls, cont)->
   if index < urls.length then Github._request "GET", urls[index], null, (err, data)->
     if err then console.log "ERROR: #{JSON.stringify err, null, ' '}"; return
     if data.comments_url?
-      data.comments = commentIssueURLs[data.url]?.comments ? []
-      addIssue data
+      for l in data.labels
+        if l.name == 'comment'
+          data.comments = commentIssueURLs[data.url]?.comments ? []
+          addIssue data
+          break
     refreshIssueData index + 1, urls, cont
   else cont (commentIssueURLs[issue] for issue in urls)
+
+createComment = (funcName, comment, user, repository, file)->
+  if issue = commentIssues[funcName]
+    Github._request "POST", "/repos/#{user ? githubParams.user}/#{repository ? githubParams.repository}/issues/#{issue.number}/comments", body: comment, (err, data)->
+      console.log "GITHUB #{if err then 'ERROR' else 'SUCCESS'}: #{JSON.stringify err ? data}"
+  else
+    data =
+      title: "#{file ? githubParams.file}:#{funcName}"
+      body: comment
+      labels: ['comment']
+    Github._request "POST", "/repos/#{user ? githubParams.user}/#{repository ? githubParams.repository}/issues", data, (err, data)->
+      console.log "GITHUB #{if err then 'ERROR' else 'SUCCESS'}: #{JSON.stringify err ? data}"
 
 # handleGithubEvent = (event)->
 #   if event.type == 'IssueCommentEvent'
@@ -200,3 +224,4 @@ root.initStorage = initStorage
 root.connectStorage = connectStorage
 root.redrawAllIssues = redrawAllIssues
 root.useFile = useFile
+root.createComment = createComment
