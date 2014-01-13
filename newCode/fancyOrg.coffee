@@ -145,9 +145,12 @@ root.restorePosition = restorePosition = (parent, block)->
           r.setEnd endContainer, endOffset
         sel.removeAllRanges()
         sel.addRange r
-        window.scrollTo 0, documentTop(r.startContainer) - offset
+        window.scrollTo window.pageXOffset, documentTop(r.startContainer) - offset
     return
   block()
+
+getDocumentOffset = (r)->
+  documentTop (if r.startOffset == 0 then (textNodeBefore r.startContainer) ? r.startContainer else r.startContainer)
 
 childIndex = (parent, child)->
   for i in [0...parent.children.length]
@@ -305,7 +308,8 @@ markupSource = (org, name, intertext)->
     node = node.next
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText
   wrapper += "</td></tr></table>"
-  testCase = resultsType(org) in ['test', 'autotest'] && expected && resText
+  #testCase = resultsType(org) in ['test', 'autotest'] && expected && resText
+  testCase = resultsType(org) in ['test', 'autotest'] && expected
   result = contHtml + wrapper + (if name then "<div class='code-buttons'>#{commentButton name.info.trim()}<br>#{toTestCaseButton(org)}</div></div>#{commentBlock name.info.trim()}" else "<div class='code-buttons'>#{toTestCaseButton(org)}</div></div>")
   if testCase
     startHtml + "onclick='Leisure.toggleTestCase(event)' data-org-test='#{testResult expected.content(), resText}' title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
@@ -526,7 +530,7 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><div></div></button><br><button onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
+  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><div></div></button><br><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
