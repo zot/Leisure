@@ -619,7 +619,7 @@
     }
     resultsText = (drawer ? text.substring(drawer.offset + drawer.text.length) : text);
     if (match = resultsRE.exec(resultsText)) {
-      results = parseOrgMode(resultsText.substring(match.index), (drawer ? drawer.offset + drawer.text.length : 0) + match.index).children[0];
+      results = parseOrgMode(resultsText.substring(match.index), text.length - resultsText.length + match.index).children[0];
       if (results.text.substring(results.contentPos)) {
         newExpectation = ":EXPECTED:\n" + (results.text.substring(results.contentPos)) + ":END:\n";
         start = (drawer ? drawer : results).offset;

@@ -328,7 +328,7 @@ parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->
   children = []
   while true
     oldRest = rest
-    [child, rest] = parseOrgChunk rest, totalLen - rest.length, level
+    [child, rest] = parseOrgChunk rest, totalLen - rest.length + offset, level
     if !child then break
     if child.lowerThan level
       while child

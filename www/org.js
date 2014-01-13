@@ -806,7 +806,7 @@ misrepresented as being the original software.
     children = [];
     while (true) {
       oldRest = rest;
-      _ref = parseOrgChunk(rest, totalLen - rest.length, level), child = _ref[0], rest = _ref[1];
+      _ref = parseOrgChunk(rest, totalLen - rest.length + offset, level), child = _ref[0], rest = _ref[1];
       if (!child) {
         break;
       }

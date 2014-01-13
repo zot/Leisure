@@ -482,7 +482,7 @@ createTestCase = (evt)->
     rest = rest.substring match.index + match[0].length
   resultsText = (if drawer then text.substring drawer.offset + drawer.text.length else text)
   if match = resultsRE.exec resultsText
-    results = parseOrgMode(resultsText.substring(match.index), (if drawer then drawer.offset + drawer.text.length else 0) + match.index).children[0]
+    results = parseOrgMode(resultsText.substring(match.index), text.length - resultsText.length + match.index).children[0]
     if results.text.substring results.contentPos
       newExpectation = ":EXPECTED:\n#{results.text.substring results.contentPos}:END:\n"
       start = (if drawer then drawer else results).offset
