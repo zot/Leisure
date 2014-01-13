@@ -122,10 +122,12 @@ root.restorePosition = restorePosition = (parent, block)->
     docPos = childIndex parent, doc
     r = sel.getRangeAt 0
     start = getTextPosition doc, r.startContainer, r.startOffset
-    end = getTextPosition doc, r.endContainer, r.endOffset
-    [container, sta] = findDomPosition doc, start
-    if (isCollapsed container) && sta == 0 then container = textNodeBefore container
-    offset = documentTop(container) - window.pageYOffset
+    if start > -1
+      end = getTextPosition doc, r.endContainer, r.endOffset
+      [container, sta] = findDomPosition doc, start
+      if (isCollapsed container) && sta == 0 then container = textNodeBefore container
+      #offset = documentTop(container) - window.pageYOffset
+      offset = getDocumentOffset(nativeRange [container, sta]) - window.pageYOffset
     block() # block shouldn't remove doc
     if doc = parent.children[docPos]
       newSlide = $('[data-org-headline="1"]')[slideIndex]
@@ -145,12 +147,16 @@ root.restorePosition = restorePosition = (parent, block)->
           r.setEnd endContainer, endOffset
         sel.removeAllRanges()
         sel.addRange r
-        window.scrollTo window.pageXOffset, documentTop(r.startContainer) - offset
+        #window.scrollTo window.pageXOffset, documentTop(r.startContainer) - offset
+        window.scrollTo window.pageXOffset, getDocumentOffset(r) - offset
     return
   block()
 
 getDocumentOffset = (r)->
-  documentTop (if r.startOffset == 0 then (textNodeBefore r.startContainer) ? r.startContainer else r.startContainer)
+  c = (if r.startOffset == 0 then (textNodeBefore r.startContainer) ? r.startContainer else r.startContainer)
+  while isCollapsed c
+    c = textNodeBefore c
+  documentTop c
 
 childIndex = (parent, child)->
   for i in [0...parent.children.length]
@@ -258,8 +264,10 @@ markupHeadline = (org, delay)->
   match = org.text.match headlineRE
   start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length - 1}".trim()
   if org.text[org.text.length - 1] == '\n'
-    tags = escapeHtml org.text.substring start.length, org.text.length - 1
-    last = '\n'
+    #tags = escapeHtml org.text.substring start.length, org.text.length - 1
+    #last = '\n'
+    tags = escapeHtml org.text.substring start.length, org.text.length
+    last = ''
   else
     tags = escapeHtml org.text.substring start.length
     last = ''
@@ -326,7 +334,16 @@ testResult = (expected, actual)->
 
 root.toggleTestCase = (evt)->
   node = codeBlockForNode evt.target
+  selectPrevious node
   if node then replaceCodeBlock node, changeResultType node.textContent, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
+
+selectPrevious = (node)->
+  top = topNode node
+  pos = getTextPosition top, node, 0
+  r = nativeRange findDomPosition top, Math.max 0, pos - 1
+  sel = getSelection()
+  sel.removeAllRanges()
+  sel.addRange r
 
 replaceCodeBlock = (node, text)->
   restorePosition null, ->
@@ -477,6 +494,7 @@ codeBlockForNode = (node)->
 createTestCase = (evt)->
   console.log evt.target
   node = codeBlockForNode evt.target
+  selectPrevious node
   text = node.textContent
   rest = text
   while match = rest.match drawerRE
