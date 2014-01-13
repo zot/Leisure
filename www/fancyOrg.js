@@ -392,8 +392,10 @@
   };
 
   replaceCodeBlock = function(node, text) {
-    return restorePosition(null, function() {
-      var n, newNode, _i, _j, _len, _len1, _ref7, _ref8,
+    var newNode;
+    newNode = null;
+    restorePosition(null, function() {
+      var n, _i, _j, _len, _len1, _ref7, _ref8,
         _this = this;
       newNode = $(markupNewNode(parseOrgMode(text).children[0], false, true))[0];
       $(node).replaceWith(newNode);
@@ -412,11 +414,12 @@
         _ref9 = $(newNode).find('[data-org-comments]');
         for (_k = 0, _len2 = _ref9.length; _k < _len2; _k++) {
           n = _ref9[_k];
-          setShadowHtml(n.firstElementChild, newCommentBox(n.getAttribute('data-org-comments'), codeBlockForNode(n).id));
+          setShadowHtml(n.firstElementChild, newCommentBox(n.getAttribute('data-org-comments'), codeBlockForNode(n.previousElementSibling).id));
         }
         return redrawAllIssues();
       }), 1);
     });
+    return newNode;
   };
 
   markupListItem = function(org, delay) {
@@ -715,14 +718,18 @@
   };
 
   htmlForResults = function(text) {
-    return "</td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><div></div></button><br><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>" + text + "</span></div></div>";
+    return "</td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><div></div></button><br><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>" + (escapeHtml(text)) + "</span></div></div>";
   };
 
   toggleDynamic = function(event) {
-    var block, resType;
+    var block, newNode, resType, top;
     block = codeBlockForNode(event.target);
     resType = (!block.hasAttribute('data-org-type') ? block.firstChild : block).getAttribute('data-org-results');
-    return replaceCodeBlock(block, changeResultType(block.textContent, (resType === 'dynamic' ? 'static' : 'dynamic')));
+    top = topNode(block);
+    newNode = replaceCodeBlock(block, changeResultType(block.textContent, (resType === 'dynamic' ? 'static' : 'dynamic')));
+    if (resType !== 'dynamic') {
+      return executeSource(top, $(newNode).find('[data-org-type="source"]')[0]);
+    }
   };
 
   nonl = function(txt) {

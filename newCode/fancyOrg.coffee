@@ -346,6 +346,7 @@ selectPrevious = (node)->
   sel.addRange r
 
 replaceCodeBlock = (node, text)->
+  newNode = null
   restorePosition null, ->
     newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
     $(node).replaceWith(newNode)
@@ -355,9 +356,10 @@ replaceCodeBlock = (node, text)->
       reprocessResults n
     setTimeout (=>
       for n in $(newNode).find('[data-org-comments]')
-        setShadowHtml n.firstElementChild, newCommentBox n.getAttribute('data-org-comments'), codeBlockForNode(n).id
+        setShadowHtml n.firstElementChild, newCommentBox n.getAttribute('data-org-comments'), codeBlockForNode(n.previousElementSibling).id
       redrawAllIssues()
     ), 1
+  newNode
 
 markupListItem = (org, delay)->
   if org.level == 0
@@ -552,12 +554,14 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><div></div></button><br><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{text}</span></div></div>"""
+  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><div></div></button><br><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
   resType = (if !block.hasAttribute 'data-org-type' then block.firstChild else block).getAttribute 'data-org-results'
-  replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
+  top = topNode block
+  newNode = replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
+  if resType != 'dynamic' then executeSource top, $(newNode).find('[data-org-type="source"]')[0]
 
 nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt
 
