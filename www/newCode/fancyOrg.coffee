@@ -191,8 +191,7 @@ markupNewNode = (org, middleOfLine)->
   markupNode org, middleOfLine
 
 markupNode = (org, middleOfLine)->
-  if org.offset <= lastOrgOffset
-    ''
+  if org.offset <= lastOrgOffset then ''
   else if org instanceof Results
     pos = org.contentPos
     text = org.text.substring pos
@@ -287,23 +286,26 @@ markupSource = (org, name, intertext)->
   wrapper = "<table class='codewrapper'><tr><td><div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   node = org.next
   intertext = ''
+  finalIntertext = ''
+  resText = ''
   while node
     if node instanceof Results
       lastOrgOffset = node.offset
       resText = node.text.substring node.contentPos
+      finalIntertext = intertext
       break
     else if node instanceof Drawer
       if node.name().toLowerCase() == 'expected'
         expected = node
         lastOrgOffset = node.offset
-        intertext += escapeHtml node.text
+        finalIntertext = intertext += escapeHtml node.text
       else break
     else if node instanceof Headline || node instanceof Keyword then break
     else intertext += escapeHtml node.text
     node = node.next
-  wrapper += "<span class='hidden'>#{intertext}</span>" + (if resText then htmlForResults resText else htmlForResults '')
+  wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText
   wrapper += "</td></tr></table>"
-  testCase = resultsType(org) in ['test', 'autotest'] && expected && resText?
+  testCase = resultsType(org) in ['test', 'autotest'] && expected && resText
   result = contHtml + wrapper + (if name then "<div class='code-buttons'>#{commentButton name.info.trim()}<br>#{toTestCaseButton(org)}</div></div>#{commentBlock name.info.trim()}" else "<div class='code-buttons'>#{toTestCaseButton(org)}</div></div>")
   if testCase
     startHtml + "onclick='Leisure.toggleTestCase(event)' data-org-test='#{testResult expected.content(), resText}' title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
@@ -359,7 +361,7 @@ eatListItem = (org)->
     result = ''
     while ((org = org.next) instanceof Meat) && !(org instanceof ListItem)
       result += markupNode org
-      lastOrgOffset = org.offset
+      lastOrgOffset = Math.max(lastOrgOffset, org.offset)
     result
 
 unwrap = (node)->
@@ -534,9 +536,8 @@ toggleDynamic = (event)->
 nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt
 
 createResults = (srcNode)->
-  while srcNode && !srcNode.classList?.contains 'codeblock'
-    srcNode = srcNode.parentNode
-  if created = srcNode && !$(srcNode).find('.coderesults').length
+  srcNode = $(srcNode).closest('.codeblock')
+  if created = (srcNode && !$(srcNode).find('.coderesults').length)
     $(srcNode).find('.codewrapper').append htmlForResults ''
   created
 

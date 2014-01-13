@@ -328,7 +328,7 @@ parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->
   children = []
   while true
     oldRest = rest
-    [child, rest] = parseOrgChunk rest, totalLen - rest.length + offset, level
+    [child, rest] = parseOrgChunk rest, totalLen - rest.length, level
     if !child then break
     if child.lowerThan level
       while child
@@ -418,7 +418,7 @@ parseMeat = (meat, offset, rest, middleOfLine)->
 
 parseRestOfMeat = (node, meat, rest)->
   if meat && node.text[node.text.length - 1] != '\n'
-    [node2, rest] = parseMeat meat, node.offset + node.text.length, rest, true
+    [node2, rest] = parseMeat meat, node.offset + node.allText().length, rest, true
     node.next = node2
     [node, rest]
   else [node, meat + rest]
@@ -458,9 +458,6 @@ parseHtmlBlock = (text, offset, rest)->
   else
     endLine = fullLine end, rest
     [new HTML(text + rest.substring(0, end.index + endLine.length), offset, text.match(htmlStartRE)[HTML_START_NAME], line[0].length, text.length + end.index - line[0].length), rest.substring end.index + endLine.length]
-
-XparseList = (match, text, offset, level, check, info, rest)->
-  [new ListItem(text, offset, listContentOffset(match), level, check == 'X' || (if check == ' ' then false else null), info), rest]
 
 parseList = (match, text, offset, level, check, info, rest)->
   contentOffset = listContentOffset match
