@@ -158,12 +158,12 @@
     return [org, markupNewNode(org)];
   };
 
-  markupNewNode = function(org, middleOfLine) {
+  markupNewNode = function(org, middleOfLine, delay) {
     lastOrgOffset = -1;
-    return markupNode(org, middleOfLine);
+    return markupNode(org, middleOfLine, delay);
   };
 
-  markupNode = function(org, middleOfLine) {
+  markupNode = function(org, middleOfLine, delay) {
     var intertext, name, pos, src, tag, text;
     if (org.offset <= lastOrgOffset) {
       return '';
@@ -183,19 +183,19 @@
           src = src.next;
         }
         if (src instanceof Source) {
-          return markupSource(src, name, intertext);
+          return markupSource(src, name, intertext, delay);
         } else {
           return defaultMarkup(org);
         }
       } else if (org instanceof Source) {
-        return markupSource(org);
+        return markupSource(org, null, null, delay);
       } else {
         return defaultMarkup(org);
       }
     } else if (org instanceof Headline) {
-      return markupHeadline(org);
+      return markupHeadline(org, delay);
     } else if (org instanceof ListItem) {
-      return markupListItem(org);
+      return markupListItem(org, delay);
     } else if (org instanceof SimpleMarkup) {
       return markupSimple(org);
     } else if (org instanceof Link) {
@@ -269,7 +269,7 @@
 
   hlStars = /^\*+ */;
 
-  markupHeadline = function(org) {
+  markupHeadline = function(org, delay) {
     var last, match, stars, starsM, start, tags, _ref7;
     match = org.text.match(headlineRE);
     start = ("" + (org.text.substring(0, org.text.length - ((_ref7 = match != null ? match[HL_TAGS] : void 0) != null ? _ref7 : '').length - 1))).trim();
@@ -297,8 +297,8 @@
     return "<div " + (orgAttrs(org)) + "><span data-org-html='true'>" + ($('<div>' + org.content() + '</div>').html()) + "</span><span class='hidden'>" + (escapeHtml(org.text)) + "</span></div>";
   };
 
-  markupSource = function(org, name, intertext) {
-    var codeBlock, contHtml, expected, finalIntertext, lead, nameM, node, resText, result, srcContent, startHtml, testCase, trail, wrapper, _ref7;
+  markupSource = function(org, name, intertext, delay) {
+    var codeBlock, contHtml, expected, finalIntertext, lead, nameM, node, resText, result, srcContent, startHtml, testAttr, testCase, testValue, trail, wrapper, _ref7;
     srcContent = org.content;
     lead = org.text.substring(0, org.contentPos - org.offset);
     trail = org.text.substring(org.contentPos - org.offset + org.content.length);
@@ -343,7 +343,14 @@
     testCase = ((_ref7 = resultsType(org)) === 'test' || _ref7 === 'autotest') && expected;
     result = contHtml + wrapper + (name ? "<div class='code-buttons'>" + (commentButton(name.info.trim())) + "<br>" + (toTestCaseButton(org)) + "</div></div>" + (commentBlock(name.info.trim())) : "<div class='code-buttons'>" + (toTestCaseButton(org)) + "</div></div>");
     if (testCase) {
-      return startHtml + ("onclick='Leisure.toggleTestCase(event)' data-org-test='" + (testResult(expected.content(), resText)) + "' title='<b>Expected:</b> " + (escapeAttr(expected.content())) + "' data-org-expected='" + (escapeAttr(expected.content())) + "' " + result);
+      testValue = testResult(expected.content(), resText);
+      testAttr = "data-org-test='" + testValue + "'";
+      if (delay) {
+        setTimeout((function() {
+          return $("#" + (escapeAttr(org.nodeId))).attr('data-org-test', testValue);
+        }), 1);
+      }
+      return startHtml + ("onclick='Leisure.toggleTestCase(event)' " + (!delay ? testAttr : '') + " title='<b>Expected:</b> " + (escapeAttr(expected.content())) + "' data-org-expected='" + (escapeAttr(expected.content())) + "' " + result);
     } else {
       return '<div>' + startHtml + result + '</div>';
     }
@@ -371,7 +378,7 @@
     return restorePosition(null, function() {
       var n, newNode, _i, _j, _len, _len1, _ref7, _ref8,
         _this = this;
-      newNode = $(markupNewNode(parseOrgMode(text).children[0]))[0];
+      newNode = $(markupNewNode(parseOrgMode(text).children[0], false, true))[0];
       $(node).replaceWith(newNode);
       _ref7 = $(newNode).find('[data-org-src]');
       for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
@@ -395,7 +402,7 @@
     });
   };
 
-  markupListItem = function(org) {
+  markupListItem = function(org, delay) {
     var end, next, parent, start;
     if (org.level === 0) {
       start = !org.getPreviousListItem();

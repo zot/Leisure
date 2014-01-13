@@ -189,11 +189,11 @@ markupOrgWithNode = (text)->
   org = parseOrgMode text
   [org, markupNewNode org]
 
-markupNewNode = (org, middleOfLine)->
+markupNewNode = (org, middleOfLine, delay)->
   lastOrgOffset = -1
-  markupNode org, middleOfLine
+  markupNode org, middleOfLine, delay
 
-markupNode = (org, middleOfLine)->
+markupNode = (org, middleOfLine, delay)->
   if org.offset <= lastOrgOffset then ''
   else if org instanceof Results
     pos = org.contentPos
@@ -208,12 +208,12 @@ markupNode = (org, middleOfLine)->
       while src instanceof Meat && !(src instanceof Source)
         intertext += src.text
         src = src.next
-      if src instanceof Source then markupSource src, name, intertext
+      if src instanceof Source then markupSource src, name, intertext, delay
       else defaultMarkup org
-    else if org instanceof Source then markupSource org
+    else if org instanceof Source then markupSource org, null, null, delay
     else defaultMarkup org
-  else if org instanceof Headline then markupHeadline org
-  else if org instanceof ListItem then markupListItem org
+  else if org instanceof Headline then markupHeadline org, delay
+  else if org instanceof ListItem then markupListItem org, delay
   else if org instanceof SimpleMarkup then markupSimple org
   else if org instanceof Link then markupLink org
   else if content(org.text).length then defaultMarkup org
@@ -254,7 +254,7 @@ markupSimple = (org)->
 
 hlStars = /^\*+ */
 
-markupHeadline = (org)->
+markupHeadline = (org, delay)->
   match = org.text.match headlineRE
   start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length - 1}".trim()
   if org.text[org.text.length - 1] == '\n'
@@ -274,7 +274,7 @@ markupHeadline = (org)->
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
 
-markupSource = (org, name, intertext)->
+markupSource = (org, name, intertext, delay)->
   srcContent = org.content
   lead = org.text.substring 0, org.contentPos - org.offset
   trail = org.text.substring org.contentPos - org.offset + org.content.length
@@ -312,7 +312,11 @@ markupSource = (org, name, intertext)->
   testCase = resultsType(org) in ['test', 'autotest'] && expected
   result = contHtml + wrapper + (if name then "<div class='code-buttons'>#{commentButton name.info.trim()}<br>#{toTestCaseButton(org)}</div></div>#{commentBlock name.info.trim()}" else "<div class='code-buttons'>#{toTestCaseButton(org)}</div></div>")
   if testCase
-    startHtml + "onclick='Leisure.toggleTestCase(event)' data-org-test='#{testResult expected.content(), resText}' title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
+    testValue = testResult expected.content(), resText
+    testAttr = "data-org-test='#{testValue}'"
+    if delay then setTimeout (->
+      $("##{escapeAttr org.nodeId}").attr 'data-org-test', testValue), 1
+    startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
   else '<div>' + startHtml + result + '</div>'
 
 testResult = (expected, actual)->
@@ -326,7 +330,7 @@ root.toggleTestCase = (evt)->
 
 replaceCodeBlock = (node, text)->
   restorePosition null, ->
-    newNode = $(markupNewNode parseOrgMode(text).children[0])[0]
+    newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
     $(node).replaceWith(newNode)
     for n in $(newNode).find('[data-org-src]')
       recreateAstButtons parent, n
@@ -338,7 +342,7 @@ replaceCodeBlock = (node, text)->
       redrawAllIssues()
     ), 1
 
-markupListItem = (org)->
+markupListItem = (org, delay)->
   if org.level == 0
     start = !org.getPreviousListItem()
     end = !org.getNextListItem()

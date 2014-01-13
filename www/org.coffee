@@ -326,9 +326,10 @@ parseOrgMode = (text, offset)->
 
 parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->
   children = []
+  originalRest = rest
   while true
     oldRest = rest
-    [child, rest] = parseOrgChunk rest, totalLen - rest.length + offset, level
+    [child, rest] = parseOrgChunk rest, originalRest.length - rest.length + offset, level
     if !child then break
     if child.lowerThan level
       while child
