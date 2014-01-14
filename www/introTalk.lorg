@@ -602,14 +602,20 @@ do
 * The Language Q&A
 ...
 * Contact
-[[https://github.com/zot/Leisure][Github project]]
-[[githubUrl.png]]
+#+BEGIN_HTML
+<table style="white-space: pre">
+<tr><td><div style="position: relative"><div style="float: left"><a href='https://github.com/zot/Leisure'>Github project</a>
+<img src='githubUrl.png'></div><div style="float: right"><a href='http://textcraft.org/calc/org.html#load=introTalk.lorg'>This notebook</a>
+<img src='slidesUrl.png'></div></div></td></tr>
+<tr><td>
 
-[[http://zot.github.com/Leisure/talk.html?slides=true][This notebook]]
-[[slidesUrl.png]]
+<div style="text-align: center">Note that Leisure only works in relatively recent Chrome browsers (not FF or Opera, yet)</div>
 
-Please help!
+<div style="text-align: center">Please help!</div>
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
+</td></tr></table>
+#+END_HTML
+
 * Presentation Code
 #+BEGIN_SRC leisure :results def
 toggleSlides
