@@ -190,6 +190,10 @@ misrepresented as being the original software.
     return msg;
   }));
 
+  define('error', lz(function(msg) {
+    throw new Error(rz(msg));
+  }));
+
   define('+', lz(function(x) {
     return $F(arguments, function(y) {
       return rz(x) + rz(y);

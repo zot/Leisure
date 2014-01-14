@@ -97,6 +97,8 @@ define 'trace', lz (msg)->
   console.log "STACKTRACE: ", new Error(rz msg).stack
   msg
 
+define 'error', lz (msg)-> throw new Error rz msg
+
 ############
 # MATH
 ############

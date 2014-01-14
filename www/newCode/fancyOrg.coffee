@@ -575,7 +575,9 @@ createResults = (srcNode)->
     $(srcNode).find('.codewrapper').append htmlForResults ''
   created
 
-executeCode = (event)-> executeSource topNode(event.target), event.target, ->
+executeCode = (event)->
+  selectPrevious codeBlockForNode event.target
+  executeSource topNode(event.target), event.target, ->
 
 #
 # When to cancel line joins
