@@ -805,11 +805,13 @@ orgEnv = (parent, node)->
     write: (str)-> processResults (colonify (String str)), r
     presentValue: presentValue
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
+    prompt: (msg, cont)-> cont prompt rz msg
   else
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     write: (str)-> console.log colonify str
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
+    prompt: (msg, cont)-> cont prompt rz msg
 
 #################
 # Value sliders

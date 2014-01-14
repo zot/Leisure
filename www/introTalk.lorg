@@ -8,295 +8,366 @@
 - To view this as a regular notebook instead of slides, hit escape or click the Leisure button
 * Welcome to Leisure!
 #+BEGIN_HTML
-<div style="text-align: center">Here's the <a href="https://github.com/zot/Leisure">project page</a></div>
-#+END_HTML
-- Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
-* Welcome to Leisure!
-#+BEGIN_HTML
-<div style="text-align: center">Here's the <a href="https://github.com/zot/Leisure">project page</a></div>
-#+END_HTML
-- Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
-  - I.e. something like Lambda Calculus
-* Welcome to Leisure!
-#+BEGIN_HTML
-<div style="text-align: center">Here's the <a href="https://github.com/zot/Leisure">project page</a></div>
-#+END_HTML
-- Leisure reveals arcane secrets so that you can write modern programs using the enlightened ways of the ancients!
-  - I.e. something like Lambda Calculus
-[[tinyconcepts.png]]
-* Welcome to Leisure!
-#+BEGIN_HTML
-<div style="text-align: center">Here's the <a href="https://github.com/zot/Leisure">project page</a></div>
-#+END_HTML
-- Leisure is: a lazy dynamically typed functional language with a notebook environment
-* Welcome to Leisure!
-#+BEGIN_HTML
-<div style="text-align: center">Here's the <a href="https://github.com/zot/Leisure">project page</a></div>
-#+END_HTML
-- Leisure is: a **Toy**
-* Welcome to Leisure!
-#+BEGIN_HTML
-<div style="text-align: center">Here's the <a href="https://github.com/zot/Leisure">project page</a></div>
-#+END_HTML
-- Leisure is: a **Toy**
-
-- Let's listen to Dr. Steel's definition of *toy...*
-* Welcome to Leisure!
-#+BEGIN_HTML
-<iframe width="640" height="480" src="http://www.youtube.com/embed/J48vuoO2PQY?start=78" frameborder="0" allowfullscreen></iframe>
+<style>
+        /* this works but should be changed to use :host, later */
+        .slideHtml {
+                z-index: 10000;
+                background: url(images/steampunk_background.jpg) border-box no-repeat 0% 0% / 100% 100%;
+                position: absolute;
+                /*top: -120px;
+                left: -100px;
+                bottom: -120px;
+                right: -100px;*/
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 0;
+        }
+</style>
+<table id="splash" style="width: 100%; height: 100%;">
+  <tr style="vertical-align: middle"><td style="text-align: center"><img src="images/steampunk_leisure_button.png"></td></tr>
+</table>
 #+END_HTML
 * Welcome to Leisure!
-#+BEGIN_HTML
-<div style="text-align: center">Here's the <a href="https://github.com/zot/Leisure">project page</a></div>
-#+END_HTML
-- Leisure is: a **Toy**
+- The Leisure project started around April, 2012
 
-- We like to share our toys.
+- It's a language and an environment
 
-- Leisure is **open source**.
+- Leisure is very much a work in progress
 
-- Please play with it and change it!
+  - It is very operational, but a lot of parts are rough or naively implemented
 
-- Please use it to make cool stuff!
-* Programming should be
-- Fun
+  - Some parts have already gone through several iterations
 
-- Easy
+  - it's slow (currently)
+* Project Hieroglyph
+  I have followed the dwindling of the space program with sadness, even bitterness.
+  Where’s my orbiting, donut-shaped space station? Where’s my fleet of colossal
+  Nova rockets? Where’s my ticket to Mars?...
 
-- Interesting
+  “You’re the ones who’ve been slacking off!” proclaimed Michael Crow, the President
+  of Arizona State University, when I ran all of this by him later. He was referring,
+  of course, to the science fiction writers. The scientists and engineers, he seemed
+  to be saying, were ready, and looking for things to do. Time for the SF writers to
+  start pulling their weight!
 
-- There should be cool stuff for you to play with
+  -- Neal Stephenson
 
-- Leisure tries to make it that way
-* Programming should be
-- Fun
+  Stephenson has put together a project to get write stories that are, "throwbacks, in
+  a manner of speaking, to 1950′s-style SF, in that they would depict futures in which
+  Big Stuff Got Done"
+* A Crisis in the Field
+- There's a crisis in the CS field
 
-- Easy
+  ...current incoming students have grown up with video games and use
+  iPhones daily.  Furthermore, they now arrive from high school with incredibly
+  weak backgrounds.  We used to require calculus before beginning CS.  But now
+  we don't require calculus at all! (Or we'd have no majors.)  When they see
+  programming, even in very high-level languages, many incoming students recoil.
+  They really enjoy *using* computers and may have even installed Windows, but
+  they don't like building things...
 
-- Interesting
+  -- private communication from a prominent CS professor
+* A Crisis in the Field
+  - And yet, Minecraft is so popular...
 
-- There should be cool stuff for you to play with
+  - People even build computers inside of Minecraft, like Nand To Tetris...
+* A Crisis in the Field
+    [[talk/minecraftComputer.png]]
+* A Crisis in the Field
+  - Programming for me is a lot like Minecraft
 
-- Leisure tries to make it that way
+  - Can we help it be more like Minecraft for other people?
+* Dynabook
+  - Alan Kay's concept from 1972
 
-- Leisure is targeted at kids with no programming experience
-* Programming should be
-- Fun
+    - This actually goes back to his research in the 60s
 
-- Easy
+  "A personal computer for children of all ages"
+  [[talk/dynabookPrototype.jpg]]
 
-- Interesting
+  - We already have machines powerful enough
 
-- There should be cool stuff for you to play with
+  - Maybe a special type of document can provide what's missing...
 
-- Leisure tries to make it that way
+  - It needs to be free and easy to use (no install, etc.)
+* Dynabook
+  - Neal Stephenson wrote a book called The Diamond Age: Or, a Young Lady's Illustrated Primer
 
-- Leisure is targeted at kids with no programming experience
+  - The primer is essentially a Dynabook
+* Welcome to Leisure!
+- Leisure is a */toy/* -- it's a bunch of stuff to play with
 
-- All you need is a web browser -- no install needed
-* Programming should be
-- Fun
+- A new environment (with some neat stuff)
 
-- Easy
+- For kids!
 
-- Interesting
+- For grownups!
 
-- There should be cool stuff for you to play with
+- Maybe even jaded, expert grownups...
+* Back to the Dynabook
+- We have the power to make the dynabook, but it's still not here...
 
-- Leisure tries to make it that way
+- What if we made special documents that were dynabooks?
 
-- Leisure is targeted at kids with no programming experience
+  - Documents don't have to cost money
 
-- All you need is a web browser -- no install needed
+- What if each document was like its own computer?
 
-- Leisure is also targeted at experts with years of programming experience
-* Notebooks
-- All Leisure programs and libraries are (or will be) org documents
-* Notebooks
-- All Leisure programs and libraries are (or will be) org documents
+  - Documents can contain media
 
-- They render as notebooks (ala Mathematica)
-* Notebooks
-- All Leisure programs and libraries are (or will be) org documents
+  - Versioning can provide state
 
-- They render as notebooks (ala Mathematica)
+- What if the document's source was part of the document itself
 
-- Notebooks are computing environments -- sort of a cross between an IDE and REPL
-* Notebooks
-- All Leisure programs and libraries are (or will be) org documents
+  - End-user multimedia document
 
-- They render as notebooks (ala Mathematica)
+  - Interactive
 
-- Notebooks are computing environments -- sort of a cross between an IDE and REPL
+  - Annotated source code (maybe hidden by default)
 
-- You can edit them
-* Notebooks
-- All Leisure programs and libraries are (or will be) org documents
+  - Editable at runtime
 
-- They render as notebooks (ala Mathematica)
+- These concepts aren't /that/ new, they just haven't been that accessible to people, lately
+* Document-centric computing
+- Smalltalk -- a smalltalk image is almost a document (not really linear)
 
-- Notebooks are computing environments -- sort of a cross between an IDE and REPL
+- Hypercard
 
-- You can edit them
+- EMACS (file-local variables, orgmode)
 
-- This presentation is a Leisure notebook
-* Notebooks
-- All Leisure programs and libraries are (or will be) org documents
+- Oberon (Acme, Wily, Ober)
 
-- They render as notebooks (ala Mathematica)
+- Tiddlywiki (almost a JavaScript/HTML version of hypercard)
+* Document-centric computing
+- Mathematica is probably the closest thing to Leisure out there
 
-- Notebooks are computing environments -- sort of a cross between an IDE and REPL
+- It's far from free
+* Document-centric computing
+- HTML5 really has a lot of promise for this!
 
-- You can edit them
+- HTML is made for documents (uh... duh?)
 
-- This presentation is a Leisure notebook
+- You can edit HTML in a browser
 
-- (click the Leisure button)
-* Notebooks
-- What if org code blocks could execute in your browser?
+- HTML documents can present a lot of different types of media
 
-- (edit this and type a code block here)
-* Notebooks: Develop interactively
-* Notebooks: Develop interactively
-- Evaluate expressions in the document
+- Web services can fill in the blanks (one in particular :) )
+* Computing education
+- Fun is important
 
-#+BEGIN_SRC leisure :results dynamic
-3 + 4
-cons 1 (cons 2 nil)
-['a' 'b' 1 'c']
-#+END_SRC
+- Promote building
 
-- Keep the expressions as live examples in documentation
+  - Documents are not just source files
 
-- Other people can use them to understand your code better
-* Notebooks: Develop interactively
-- Evaluate expressions in the document
-#+BEGIN_SRC leisure :results dynamic
-3 + 4
-cons 1 (cons 2 nil)
-['a' 'b' 1 'c']
-#+END_SRC
+  - Document can embed media
 
-- Keep the expressions as live examples in documentation
+  - Promote pride of ownership
 
-- Other people can use them to understand your code better
+  - Each document is like a tiny computer -- mod it!
+* Can we improve human and computer communication and understanding?
 
-- *Leisure doesn't normally execute expressions on load*
-* Notebooks: Develop interactively
-- Evaluate expressions in the document
-#+BEGIN_SRC leisure :results dynamic
-3 + 4
-cons 1 (cons 2 nil)
-['a' 'b' 1 'c']
-#+END_SRC
 
-- Keep the expressions as live examples in documentation
+  - REPLs are good, but they are mostly read-only
 
-- Other people can use them to understand your code better
+    - Except for the line at the bottom
 
-- *Leisure doesn't normally execute expressions on load*
+  - What if you could embed runnable examples directly in the source?
 
-- But you can direct Leisure to
-* Notebooks: they're Webby
-- HTML-y values display right in the document
+  - Interact with the program directly through the source code?
 
-- Just like the old days with Lisp Machines (and like Racket)
-#+BEGIN_SRC leisure :results dynamic
-html '<i><b>Hello</b></i>'
-rect nil
-polygon nil
-#+END_SRC
-* Notebooks: Bret Victor-ly sliders
-#+BEGIN_SRC leisure :results dynamic
-xAmt = 10
-svgConcat [
-  translate
-    circle nil
-    xAmt
-    10
-  rect nil]
-rotate (polygon nil) 90
-#+END_SRC
-* Notebooks: Develop interactively
-- Verify how your code parses, with AST buttons
-#+BEGIN_SRC leisure :results dynamic
-add3 a b c = a + b + c
-#+END_SRC
-* Notebooks: Develop interactively
-- Test cases can run whenever you change your code
-#+BEGIN_SRC leisure :results dynamic
-#@test "f1"
-#@expected "1"
-f1 = 1
+  - Watch expressions are good
 
-#@test "f2"
-#@expected "1"
-f2 = 2
-#+END_SRC
-* Notebooks: Social Coding
-- See comments on your code from other people
+    - But they usually work better in debuggers than in REPLs
 
-- Comment on other peoples' code
-* Notebooks: Storage (in the works)
-- Github
+    - In fact, they're very close to test cases, in a way...
 
-- Local files (requires an install -- currently turned off)
+  - Interact with the *author* directly through the source code?
+
+* Can we improve human and computer communication and understanding?
+
+
+  - REPLs are good, but they are mostly read-only
+
+    - Except for the line at the bottom
+
+  - What if you could embed runnable examples directly in the source?
 
 #+BEGIN_SRC leisure :results dynamic
-do
-  x <- read 'local-storage:///code'
-  x (\d . print d) id
-
-do
-  x <- read 'googledrive:///test'
-  print x
+print 'hello'
 #+END_SRC
-* Notebooks: Deploy your code...
-* Notebooks: Deploy your code...
-- ...as a Notebook, like this
-* Notebooks: Deploy your code...
-- ...as a Notebook, like this
+* Can we improve human and computer communication and understanding?
 
-- ...or as a "regular" web page
-* Notebooks: Deploy your code...
-- ...as a Notebook, like this
 
-- ...or as a "regular" web page
+  - Interact with the program directly through the source code?
 
-- ...or in node.js
-* Notebooks: Q&A
-* The Language
-* The Language
-- Leisure compiles to Javascript
-* The Language
-- Leisure compiles to Javascript
+#+BEGIN_SRC leisure :results static
+setTheme ''
+#+END_SRC
 
-- It's a naive compiler
+#+BEGIN_SRC leisure :results static
+setTheme 'steampunk'
+#+END_SRC
+* Can we improve human and computer communication and understanding?
+
+
+  - Watch expressions are good
+
+    - But they usually work better in debuggers than in REPLs
+
+#+BEGIN_SRC leisure :results def
+x = 5
+#+END_SRC
+
+#+BEGIN_SRC leisure :results dynamic :update any
+x
+#+END_SRC
+#+RESULTS:
+: 5
+
+    - In fact, they're very close to test cases, in a way...
+* Computing Education
+  - Interact with the *author* directly through the source code
+
+#+NAME: firstTwo
+#+BEGIN_SRC leisure :results def
+firstTwo = take 2
+#+END_SRC
+
+Try firstTwo out, below!
+#+BEGIN_SRC leisure :results dynamic
+firstTwo [1 2 3 4]
+#+END_SRC
+* Computing Education
+  - Leisure hooks up to Github
+
+    - Document storage
+
+    - Connects programmers together
+
+      - You see their comments
+
+      - You can comment on their code
+
+      - Check out my blog post for [[http://this-statement-is-false.blogspot.com/2011/12/code-google.html][more stuff]]
+* Computing Education
+  - With better understanding, people might actually reuse code when they see it
+
+    - Instead of throwing up their hands and rewriting it
+* Computing Education
+  - Promote exploration -- peeking under the hood
+
+    - View ASTs
+
+    - Dynamic expression results update as you type
+
+    - Dynamic test cases update as you type
+
+    - Partially applied functions can make sense
+* Computing Education
+  - Promote exploration -- peeking under the hood
+
+    - View ASTs
+
+#+BEGIN_SRC leisure :results def
+myLast l = isNil (tail l)
+  head l
+  myLast (tail l)
+#+END_SRC
+* Computing Education
+    Dynamic expression results update as you type (or slide)
+
+#+BEGIN_SRC leisure :results dynamic
+rotate (polygon nil) 0
+#+END_SRC
+#+RESULTS:
+: <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width='240' height='228' viewbox='230 74 240 228'><g transform="rotate(0)"><polygon points="350 75  379 161 469 161 397 215 423 301 350 250 277 301 303 215 231 161 321 161" stroke="black" stroke-width="2" fill="orange" /></g></svg>
+* Computing Education
+    Dynamic test cases update as you type
+#+BEGIN_SRC leisure :results def
+myLast2 l = isNil (tail l)
+  head l
+  myLast2 (tail l)
+#+END_SRC
+
+#+BEGIN_SRC leisure :results autotest
+myLast2 [1 2 3]
+#+END_SRC
+:EXPECTED:
+: 3
+:END:
+#+RESULTS:
+: 3
+* Computing Education
+Partially applied functions can make sense
+
+* Computing Education
+Partially applied functions can make sense
+
+#+BEGIN_SRC leisure :results dynamic
+[1 2 (cons 3) 4]
+#+END_SRC
+
+- They're completely first-class (parameters are accessable)
+
+- By the way, the display code for partially applied functions is just a Leisure function
+* Back to Documents
+- Orgmode is a fantastic EMACS tool
+
+- It's just */text/*, but it represents /very/ rich documents that are more than just nice looking
+
+  - Outline format, tags, properties, code, html, tables, data, ...
+
+- Leisure supports a growing subset: lorg files
+
+- JavaScript orgMode parser is a separate open source project
+* Lorg files
+- Tags for visibility, categories
+
+- Leisure functions inherit block name and tags
+
+** Subpoint :tag1:tag2:
+#+NAME: propertyExample
+#+BEGIN_SRC leisure :results dynamic
+propertyExampleFunc x = x
+
+getProperties propertyExampleFunc
+#+END_SRC
+* Lorg files
+- Lorg files can store data in their own documents
+
+  - A lorg file can act to some extent like a Smalltalk image
+
+  - Remote lorg files fit well with the web
+
+#+BEGIN_SRC leisure :results static
+newCodeContent 'dataBlock' concat['data = ' {'height':11 'weight':721 'temperature':63}]
+#+END_SRC
+
+#+NAME: dataBlock
+#+BEGIN_SRC leisure :results def
+data = {'height':5 'weight':6 'temperature':512}
+#+END_SRC
+
+- Docs can run code when loaded (old EMACS trick)
+* Of course
+This presentation is a lorg file
+* Of course
+Leisure can present a lorg file in different ways
+
+- Slides
+
+- Plain
+
+- Fancy
+* The Leisure Environment Q&A
+...
 * The Language
 - Leisure compiles to Javascript
 
 - It's a naive compiler
 
 - There's a lot of room for improvement!
-* The Language: Minimizes parentheses
-* The Language: Minimizes parentheses
-
-- Each indented line adds a group to the overhanging expression
-#+BEGIN_HTML
-<table><tr><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
-le x y = or
-  lt x y
-  eq x y
-</pre></td><td><span style="vertical-align: middle; margin: 30px; font-weight: bold; font-size: 150%">-&gt;</span></td><td style="border: solid black 2px; padding: 20px"><pre style="font-weight: bold; font-size: 150%">
-le xy = or (lt x y) (eq x y)
-</pre></td></tr></table>
-#+END_HTML
-
-#+BEGIN_SRC leisure :results dynamic
-le x y = or
-  lt x y
-  eq x y
-#+END_SRC
 * The Language: Minimizes parentheses
 - Each indented line adds a group to the overhanging expression
 
@@ -311,7 +382,7 @@ le x y = or
 </pre></td></tr></table>
 #+END_HTML
 
-**[ is a macro and '[' and ']' make groups
+- [ is a macro and '[' and ']' make groups
 #+BEGIN_SRC leisure :results dynamic
 indentation = [
   [1 2]
@@ -320,9 +391,10 @@ indentation = [
 indentation
 #+END_SRC
 * The Language: Minimizes parentheses
-- macros rewrite their expressions at compile time, like in Clojure (Lisp)
+- Macros rewrite their expressions at compile time, like in Clojure (Lisp)
 
-- macros can do varargs, which isn't so easy in pure Lambda Calculus
+- Macros can do varargs, which isn't so easy in pure Lambda Calculus
+
 #+BEGIN_SRC leisure :results dynamic
 f4 = concat[1 2 3]
 f4
@@ -337,81 +409,100 @@ take 5 ones
 dbl x = eq x 0
   0
   2 + (dbl x - 1)
-dbl (-1)
+dbl -1
 f x y = do
   a = x
   b = dbl y
-  lt y 0
+  y < 0
     a
     b
-
-f 2 (-1)
-(break f) 2 2
+f 2 -1
+f 2 2
 #+END_SRC
 * The Language: Partial application
 - It's like Lambda Calculus
+
+- And Haskell
+
+(Except that it's dynamically typed and it can display partial applications) :)
 * The Language: Partial application
-- It's like Lambda Calculus
-
-- and Haskell
-* The Language: Partial application
-- It's like Lambda Calculus
-
-- and Haskell
-
-- But it displays partial applications
-* The Language: Partial application
-- It's like Lambda Calculus
-
-- and Haskell
-
-- But it displays partial applications
 #+BEGIN_SRC leisure :results dynamic
 cons 1 nil
 cons 1
 3 + 2
 3 +
+[(3+) (cons 1) 57]
+#+END_SRC
+* The Language: Partial application
+You can access partially applied functions' parameters
+
+#+BEGIN_SRC leisure :results dynamic
+getType (cons 1)
+
+funcInfo (cons [1])
+head (head (tail (funcInfo (cons [1]))))
 #+END_SRC
 * The Language: Metaprogramming
-* The Language: Metaprogramming
-- basic parsing can define tokens and groups
+- Basic parsing can define tokens and groups
+
 #+BEGIN_SRC leisure :results dynamic
 [1 2 3]
 #+END_SRC
 * The Language: Metaprogramming
-- macros rewrite expressions (input and output is a list)
+- Macros rewrite expressions (input and output is a list)
+
+  - Not hygienic, yet
 
 - Combining groups with macros can work like varargs
+
 [ ... ]
+
 #+BEGIN_SRC leisure :results dynamic
 ex1 = [1 2 3]
 #+END_SRC
+
 concat[ ... ]
+
 #+BEGIN_SRC leisure :results dynamic
 ex2 = concat[1 2 3]
 #+END_SRC
 * The Language: Metaprogramming
 - Do (a lot like Haskell's do) is a macro
 
+#+BEGIN_SRC leisure :results dynamic
+do
+  x = 1
+  y = 2
+  x + y
+#+END_SRC
 * The Language: Metaprogramming
-- parse filters are like macros, but an active parse filter processes **all** code
+- Parse filters are like macros, but an active parse filter processes */all/* code
 
 - Infix is implemented in Leisure as a parse filter
+
 #+BEGIN_SRC leisure :results dynamic
-ex3 = 1 + (2 + 3) + 4
+[1 2 + 3 4]
 #+END_SRC
+
 - Parse filters are only active within a given file
 
 - Each file can specify which parse filters it uses
 
 - Parse filters can be activated/deactivated at any point in a file
-* The Language: Metaprogramming
+
+- This works because defining a term in Leisure is monadic
+* The Language: Homoiconic
 #+BEGIN_HTML
 <style>
-        .slideHtml:host #flow {
+        .slideHtml #flow {
                 position: absolute;
-                top: 52px;
-                left: calc(50% - 120px);
+                /*top: 52px;*/
+                /*top: 80px;*/
+                /*top: calc(40px + 28px + 1em);*/
+                top: 140px;
+                left: calc(50% - 180px);
+                height: calc(100% - 140px - 72px);
+                width: auto;
         }
 </style>
 <img id='flow' src='images/LeisureParsingFlow.svg'></img>
@@ -421,6 +512,7 @@ ex3 = 1 + (2 + 3) + 4
 #+BEGIN_SRC leisure :results dynamic
 increasing x = [x | (increasing x + 1)]
 naturals = increasing 1
+even? x = x % 2 == 0
 take 5 (filter even? (map (\x . x + 10) naturals))
 #+END_SRC
 * The Language: Data Types
@@ -431,12 +523,15 @@ person name addr = \f . f name addr
 getType (person 'bob' '123 Maple St')
 #+END_SRC
 * The Language: Function advice
+An easy way to handle defaults and extensions
+
 #+BEGIN_SRC leisure :results def
 person name addr = \f . f name addr
 
 defaultName x = 'Default'
 defCase defaultName.person p | hasType p person -> p \n a . n
 #+END_SRC
+
 #+BEGIN_SRC leisure :results dynamic
 defaultName 3
 defaultName (person 'bob' '123 Maple St')
@@ -444,39 +539,37 @@ defaultName (person 'bob' '123 Maple St')
 * The Language: Function properties
 - Functions can be declared with key-value properties
 
-- type assertions
+- Type assertions
 
-- alternate behavior for known types (like pretty-printing association lists)
+- Alternate behavior for known types (like pretty-printing association lists)
+
+#+BEGIN_SRC leisure :results dynamic
+{'a':1 'b':2}
+getType {'a':1 'b':2}
+getProperties {'a':1 'b':2}
+head {'a':1 'b':2}
+#+END_SRC
 * The Language: Monads
 - Expression output box is part of monad's "environment"
+
 #+BEGIN_SRC leisure :results dynamic
 do
     x <- prompt "What is your name?"
     print concat["Hello, " x]
 #+END_SRC
 * The Language: Monads
-- code that runs at load-time can use monads to affect the Leisure environment
-* The Language: Monads
-- code that runs at load-time can use monads to affect the Leisure environment
+- Code that runs at load-time can use monads to affect the Leisure environment
 
-- import is a monad
-* The Language: Monads
-- code that runs at load-time can use monads to affect the Leisure environment
+- Import is monadic
 
-- import is a monad
+- Parser directives are monadic
 
-- parser directives are monads
-* The Language: Monads
-- code that runs at load-time can use monads to affect the Leisure environment
+- Monads can affect the notebook environment
 
-- import is a monad
+- Setting themes
 
-- parser directives are monads
-
-- monads can affect the notebook environment
-*** Setting themes
-*** Turning on auto test mode
-* Planned: Pattern matching
+- Turning autotests on or off
+* Future: Pattern matching
 - Structural patterns, like in Haskell
 
   last [x] = x
@@ -496,17 +589,19 @@ do
 - Uses function advice
 
 - Can make a dispatch table based on data type
-* Planned: Debugging
+* Future: Debugging
 - Support specific to lazy evaluation is in the works
 
 - Some omniscient debugging techniques
 
 - Two stack traces for an error
-*** Stack trace of where a value was created
-*** Stack trace of where a value was requested
-* The Language Q&A
-* Contact
 
+  - Stack trace of where a value was created
+
+  - Stack trace of where a value was requested
+* The Language Q&A
+...
+* Contact
 [[https://github.com/zot/Leisure][Github project]]
 [[githubUrl.png]]
 
@@ -515,3 +610,7 @@ do
 
 Please help!
 If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
+* Presentation Code
+#+BEGIN_SRC leisure :results def
+toggleSlides
+#+END_SRC
