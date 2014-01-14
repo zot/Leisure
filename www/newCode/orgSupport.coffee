@@ -69,6 +69,9 @@ Nil = rz L_nil
 } = require './org'
 _ = require './lodash.min'
 
+PAGEUP = 33
+PAGEDOWN = 34
+
 editDiv = null
 sourceDiv = null
 modifying = false
@@ -433,6 +436,8 @@ specialKeys[LEFT] = 'LEFT'
 specialKeys[RIGHT] = 'RIGHT'
 specialKeys[UP] = 'UP'
 specialKeys[DOWN] = 'DOWN'
+specialKeys[PAGEUP] = 'PAGEUP'
+specialKeys[PAGEDOWN] = 'PAGEDOWN'
 
 modifiers = (e, c)->
   res = specialKeys[c] || String.fromCharCode(c)
@@ -1075,3 +1080,5 @@ root.isDef = isDef
 root.nativeRange = nativeRange
 root.textNodeBefore = textNodeBefore
 root.textNodeAfter = textNodeAfter
+root.PAGEUP = PAGEUP
+root.PAGEDOWN = PAGEDOWN

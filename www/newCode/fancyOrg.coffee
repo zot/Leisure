@@ -94,6 +94,8 @@ lz = lazy
   nativeRange,
   textNodeAfter,
   textNodeBefore,
+  PAGEUP,
+  PAGEDOWN,
 } = require './orgSupport'
 {
   redrawAllIssues,
@@ -459,14 +461,15 @@ define 'newCodeContent', lz (name)->$F(arguments, (content)->
 isOrContains = (parent, node)->
   (n = parent.compareDocumentPosition(node) & DOCUMENT_POSITION_CONTAINED_BY) || n == 0
 
+linePat = /\r?\n(?=[^ ]|$)/
+
 showAst = (evt, astButton, offset)->
   evt.preventDefault()
   evt.stopPropagation()
   if !replaceRelatedPresenter presenter.button, emptyPresenter
     if !astButton.firstChild then astButton.innerHTML = "<div></div>"
-    text = astButton.parentNode.textContent
-    nl = text.indexOf '\n', offset + 1
-    text = text.substring offset, (if nl < 0 then text.length else nl)
+    text = astButton.parentNode.textContent.substring offset
+    text = text.substring 0, (if m = text.match linePat then m.index else text.length)
     result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
     runMonad result, baseEnv, (ast)->
       if getType(ast) != 'parseErr'
@@ -930,11 +933,11 @@ hideSlides = ->
   document.body.classList.remove 'slides'
 
 slideBindings =
-  'LEFT': (e, parent, r)->
+  'PAGEUP': (e, parent, r)->
     e.preventDefault()
     prevSlide()
     false
-  'RIGHT': (e, parent, r)->
+  'PAGEDOWN': (e, parent, r)->
     e.preventDefault()
     nextSlide()
     false
