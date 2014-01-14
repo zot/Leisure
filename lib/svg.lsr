@@ -21,7 +21,7 @@ defaultRectMap = ['x':1 'y':1 'width':50 'height':50 'stroke':'black' 'stroke-wi
 defaultLineMap = ['x1':0 'y1':0 'x2':50 'y2':50 'stroke':'black' 'stroke-width':2]
 defaultEllipseMap = ['cx':50 'cy':50 'rx':40 'ry':40 'stroke':'black' 'stroke-width':2 'fill':'blue']
 defaultTextMap = ['x':0 'y':10 'stroke':'black' 'stroke-width':2 'fill':'black']
-defaultPolygonMap = ['points':'350 75  379 161 469 161 397 215 423 301 350 250 277 301 303 215 231 161 321 161' 'stroke':'black' 'stroke-width':2 'fill':'yellow']
+defaultPolygonMap = ['points':'350 75  379 161 469 161 397 215 423 301 350 250 277 301 303 215 231 161 321 161' 'stroke':'black' 'stroke-width':2 'fill':'orange']
 
 svgNode contents = \f . f contents
 

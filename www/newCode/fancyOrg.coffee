@@ -294,6 +294,7 @@ markupSource = (org, name, intertext, delay)->
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
   contHtml = "class='codeblock' contenteditable='false' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
+  if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
   wrapper = "<table class='codewrapper'><tr><td><div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   node = org.next
   intertext = ''
@@ -326,6 +327,8 @@ markupSource = (org, name, intertext, delay)->
       $("##{escapeAttr org.nodeId}").attr 'data-org-test', testValue), 1
     startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
   else '<div>' + startHtml + result + '</div>'
+
+updateChannels = (org)-> org instanceof Source && (org.info.match /:update *([^:]*)/)?[1]
 
 testResult = (expected, actual)->
   if actual == '' then 'unknown'
@@ -543,7 +546,8 @@ toggleComment = (name, evt)->
     $("[data-org-codeblock='#{escapeAttr name}'] button.comment-button").removeClass 'new-comments'
     replacePresenter
       hide: -> block.removeClass 'showcomments'
-      isRelated: (target)-> button == $(target).closest('button')[0]
+      isRelated: (target)->
+        button == $(target).closest('button')[0] || $(target).closest("[data-org-comments]").is(block)
 
 addComment = (name, event)->
   box = $(event.target.parentNode.querySelector('textarea'))
@@ -735,10 +739,10 @@ fancyExecuteDef = (node, cont)->
     runAutotests doc
 
 runAutotests = (doc)->
-  for n in $(doc).find("[data-org-results='autotest']")
+  for n in $(doc).find("[data-org-results='autotest']").add($(doc).find("[data-org-update~='any']"))
     runTest doc, n
 
-runTest = (doc, node)-> executeSource doc, node, (-> checkTestResults node), true
+runTest = (doc, node)-> executeSource doc, node, (if $(node).is("[data-org-results='autotest']") then (-> checkTestResults node)), true
 
 checkTestResults = (node)->
   node.setAttribute 'data-org-test', (if node.getAttribute('data-org-expected') == $(node).find('.resultscontent').text() then 'pass' else 'fail')
