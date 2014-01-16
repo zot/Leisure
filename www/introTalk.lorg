@@ -1,11 +1,13 @@
 * Welcome to Leisure!
-- Click the Leisure button to turn on slide mode
-
 - Use the page up, and page down keys to navigate
 
-- To edit text, double click.  To exit editing, hit tab.
+- Click the leisure button to cycle through these three viewing modes:
 
-- To view this as a regular notebook instead of slides, hit escape or click the Leisure button
+  - Orgfile text
+
+  - Notebook view
+
+  - Slide view
 * Welcome to Leisure!
 #+BEGIN_HTML
 <style>
@@ -141,10 +143,14 @@
 - Oberon (Acme, Wily, Ober)
 
 - Tiddlywiki (almost a JavaScript/HTML version of hypercard)
-* Document-centric computing
-- Mathematica is probably the closest thing to Leisure out there
 
-- It's far from free
+- Scala workspaces
+* Document-centric computing
+- The Mathematica and IPython Notebook environments are probably the closest things to the Leisure environment out there
+
+- Mathematica is far from free
+
+- [[http://ipython.org/notebook.html][IPython Notebook]] is a notebook for Python -- very cool project
 * Document-centric computing
 - HTML5 really has a lot of promise for this!
 
