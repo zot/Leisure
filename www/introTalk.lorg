@@ -73,7 +73,9 @@
 
   - People even build computers inside of Minecraft, like Nand To Tetris...
 * A Crisis in the Field
-    [[talk/minecraftComputer.png]]
+#+BEGIN_HTML
+<img src='talk/minecraftComputer.png' style='width: auto; height: 500px'>
+#+END_HTML
 * A Crisis in the Field
   - Programming for me is a lot like Minecraft
 
@@ -127,9 +129,9 @@
   - Annotated source code (maybe hidden by default)
 
   - Editable at runtime
-
-- These concepts aren't /that/ new, they just haven't been that accessible to people, lately
 * Document-centric computing
+- These concepts aren't /that/ new, they just haven't been that accessible to people, lately
+
 - Smalltalk -- a smalltalk image is almost a document (not really linear)
 
 - Hypercard
@@ -275,7 +277,7 @@ myLast l = isNil (tail l)
   myLast (tail l)
 #+END_SRC
 * Computing Education
-    Dynamic expression results update as you type (or slide)
+    Dynamic expression results update as you type (or use a Bret Victorly slider)
 
 #+BEGIN_SRC leisure :results dynamic
 rotate (polygon nil) 0
@@ -456,13 +458,11 @@ head (head (tail (funcInfo (cons [1]))))
 - Combining groups with macros can work like varargs
 
 [ ... ]
-
 #+BEGIN_SRC leisure :results dynamic
 ex1 = [1 2 3]
 #+END_SRC
 
 concat[ ... ]
-
 #+BEGIN_SRC leisure :results dynamic
 ex2 = concat[1 2 3]
 #+END_SRC

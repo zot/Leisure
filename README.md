@@ -3,9 +3,11 @@
 Leisure is a lazy, untyped, functional language that supports metaprogramming.  It aims to be comfortable,
 easy to customize, and fun to use.
 
-Here is a more complete [readme and demo](http://zot.github.com/Leisure/drive.html#load=http://tinyconcepts.com/LeisureStorage/intro.lmd).
+Here is a more complete [readme and demo](http://textcraft.org/calc/org.html#load=introTalk.lorg).  At this point, Leisure requires shadow DOM, so it runs in recent versions of Chrome, but may not work in other browsers.
 
-** *NOTE: Leisure is changing from the bottom up -- check out the ["core"](https://github.com/zot/Leisure/tree/master/core) directory* **
+I develop using [node-webkit](https://github.com/rogerwang/node-webkit).
+
+Leisure is heavy development, right now -- if you are interested in contributing, please contact me so I can help you get set up -- Leisure development is not very plug-and-play yet.  My email is bill dot burdick at gmail.
 
 ## Convenient
 Leisure provides a convenient syntax and powerful tools to help people try things out quickly, be productive, and customize the language to suit their needs.
@@ -29,9 +31,13 @@ changes to your code in real time?  Our goal is to show programmers there has to
 
 If you have [node.js](http://nodejs.org/) installed, you can run the command-line Leisure repl by cloning the git repo, changing directory into the top level, and running `node runRepl`.
 
-To create a notebook, just copy emptyNotebook.lmd to a new file (ending in .lmd).
+For the browser environment, you'll need to use node-webkit, at this point.  You can bring up the demo with:
 
-Launch a notebook named newFile.lmd like this: `./launch drive.html#load=newFile.lmd`
+nw --url=file:///[path-to-leisure-dir]/www/org.html#load=introTalk.lorg
+
+or you can browse one of your own documents with:
+
+nw .
 
 # Contact
-If you want to get in touch, you can email me at bill dot burdick at gmail dot com.
+If you want to get in touch, you can email me at bill dot burdick at gmail.

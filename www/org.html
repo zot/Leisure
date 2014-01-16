@@ -573,6 +573,11 @@
                 'parseAst',
           ]};
           function start() {
+                if (!Element.prototype.createShadowRoot && !Element.prototype.webkitCreateShadowRoot) {
+                        document.body.style = "background: url(images/steampunk_background-faded.jpg); background-size: 100%; text-align: center"
+                        document.body.innerHTML = "<h1 style='margin-top: 64px'>Leisure won't work in this browser :(</h1><br>The Leisure environment uses Shadow Dom and this browser doesn't support it, so Leisure won't work!<br><h2>Recent versions of Chrome should work.</h2><br><br><img src='images/steampunk_leisure_button.png'>"
+                        return;
+                }
                 setTimeout(function() {
                         window.Leisure = {calc: true}
                         var script = document.createElement('script');
