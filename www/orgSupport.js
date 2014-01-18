@@ -82,12 +82,27 @@ misrepresented as being the original software.
   sourceSpec = null;
 
   initOrg = function(parent, source) {
+    var b;
     parentSpec = parent;
     sourceSpec = source;
-    $("<div LeisureOutput contentEditable='false' id='leisure_bar'></div>").prependTo(document.body).mousedown(function(e) {
-      e.preventDefault();
-      return root.currentMode.leisureButton();
+    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><a id='saveButton' download='leisureFile.lorg'><button><span></span></button></a><input id='nwSaveButton' type='file' nwsaveas></input></div>").prependTo(document.body).mousedown(function(e) {
+      if (e.target.id === 'leisure_bar') {
+        e.preventDefault();
+        return root.currentMode.leisureButton();
+      }
     });
+    b = $('#saveButton');
+    if (typeof nwDispatcher !== "undefined" && nwDispatcher !== null) {
+      $(document.body).addClass('nw');
+      b.mousedown(function() {
+        return $('#nwSaveButton').click();
+      });
+    } else {
+      b.mousedown(function() {
+        console.log("SAVE: data:text/plain," + (encodeURIComponent($(parent).text())));
+        return b.attr('href', "data:text/plain," + (encodeURIComponent($(parent).text())));
+      });
+    }
     (root.currentMode = Leisure.fancyOrg).useNode($(parent)[0], source);
     return Leisure.initStorage('#login', '#panel', root.currentMode);
   };

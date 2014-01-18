@@ -139,6 +139,12 @@
 								.steampunk .testcase-button {
                   padding: 0px 0px;
                 }
+                .steampunk #leisure_bar #saveButton span:after {
+                        content: 'save';
+                }
+                .steampunk #leisure_bar:hover #saveButton {
+                        left: 100%;
+                }
 								.steampunk .testcase-button div {
 									background-image: url(images/finger_gauge.png);
                   background-color: #e6dcc3;
@@ -405,6 +411,16 @@
                         user-select: none;
                         -moz-user-select: none;
                         -webkit-user-select: none;
+                        overflow: visible;
+                }
+                #leisure_bar #saveButton,
+                #leisure_bar #nwSaveButton {
+                        display: none;
+                }
+                #leisure_bar:hover #saveButton {
+                        display: inline;
+                        position: absolute;
+                        right: 100%;
                 }
                 .not-logged-in #leisure_bar,
                 .not-logged-in #panel,

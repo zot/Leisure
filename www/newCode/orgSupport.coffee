@@ -93,11 +93,24 @@ sourceSpec = null
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><a id='saveButton' download='leisureFile.lorg'><button><span></span></button></a><input id='nwSaveButton' type='file' nwsaveas></input></div>")
     .prependTo(document.body)
     .mousedown (e)->
-      e.preventDefault()
-      root.currentMode.leisureButton()
+      if e.target.id == 'leisure_bar'
+        e.preventDefault()
+        root.currentMode.leisureButton()
+  b = $('#saveButton')
+  if nwDispatcher?
+    $(document.body).addClass 'nw'
+    b.mousedown -> $('#nwSaveButton').click()
+  else
+    b.mousedown ->
+      #console.log "SAVE"
+      #console.log encodeURIComponent $(parent)[0].textContent
+      #b.attr 'href', "data:text/plain;base64,#{encodeURIComponent btoa $(parent)[0].textContent}"
+      console.log "SAVE: data:text/plain,#{encodeURIComponent $(parent).text()}"
+      b.attr 'href', "data:text/plain,#{encodeURIComponent $(parent).text()}"
+      #b.attr 'href', "http://google.com"
   (root.currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
   Leisure.initStorage '#login', '#panel', root.currentMode
 
