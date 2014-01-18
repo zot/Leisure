@@ -41,14 +41,14 @@ getContent = (data)-> atob data.content
 
 useUrl = (url)->
   ($.get url, (data)->
-    loadOrg $('[maindoc]')[0], data
+    loadOrg $('[maindoc]')[0], data, (if url.match /^\w+:/ then new URI(url).path else url)
     document.body.classList.remove 'not-logged-in'
     checkEvents lastUpdate, 1, []
   ).fail (err)-> alert("Couldn't load url: #{url}")
 
 useFile = (file)->
   reader = new FileReader()
-  reader.onload = (e)-> loadOrg $('[maindoc]')[0], e.target.result
+  reader.onload = (e)-> loadOrg $('[maindoc]')[0], e.target.result, file.path ? file.name
   reader.readAsText file
   document.body.classList.remove 'not-logged-in'
   checkEvents lastUpdate, 1, []
@@ -73,7 +73,7 @@ connectStorage = ->
     getAllIssuesAndCommentsThen connection, user, repository, (issueList)->
       if !(storageListener in root.reparseListeners) then root.reparseListeners.push storageListener
       contents = repo.contents 'master', currentFile, (err, data)->
-        if !err then loadOrg $('[maindoc]')[0], data
+        if !err then loadOrg $('[maindoc]')[0], data, currentFile
         else alert "ERROR: #{err}"
         document.body.classList.remove 'not-logged-in'
         checkEvents lastUpdate, 1, []

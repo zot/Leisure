@@ -90,10 +90,12 @@ root.currentMode = null
 parentSpec = null
 sourceSpec = null
 
+fs = null
+
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><a id='saveButton' download='leisureFile.lorg'><button><span></span></button></a><input id='nwSaveButton' type='file' nwsaveas></input></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><a id='saveButton' download='leisureFile.lorg'><button><span></span></button></a><input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div>")
     .prependTo(document.body)
     .mousedown (e)->
       if e.target.id == 'leisure_bar'
@@ -102,7 +104,9 @@ initOrg = (parent, source)->
   b = $('#saveButton')
   if nwDispatcher?
     $(document.body).addClass 'nw'
+    $('#nwSaveButton')[0].parentSpec = parentSpec
     b.mousedown -> $('#nwSaveButton').click()
+    fs = require 'fs'
   else
     b.mousedown ->
       #console.log "SAVE"
@@ -113,6 +117,11 @@ initOrg = (parent, source)->
       #b.attr 'href', "http://google.com"
   (root.currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
   Leisure.initStorage '#login', '#panel', root.currentMode
+
+saveFile = (fileInput)->
+  file = fileInput.files[0]
+  fs.writeFile file.path, $(fileInput.parentSpec).text(), (err)->
+    alert("Error saving file #{file.path}: #{err}")
 
 splitLines = (str)->
   result = []
@@ -733,7 +742,11 @@ restorePosition = (parent, block)->
       selectRange r
   else block()
 
-loadOrg = (parent, text)->
+loadOrg = (parent, text, path)->
+  if nwDispatcher?
+    $('#nwSaveButton').attr 'nwsaveas', path
+  else
+    $('#saveButton').attr 'download', path
   reparse parent, text
   setTimeout (->
     for node in $(parent).find('[data-org-src="def"]')
@@ -1095,3 +1108,4 @@ root.textNodeBefore = textNodeBefore
 root.textNodeAfter = textNodeAfter
 root.PAGEUP = PAGEUP
 root.PAGEDOWN = PAGEDOWN
+root.saveFile = saveFile

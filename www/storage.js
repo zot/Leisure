@@ -43,7 +43,7 @@
 
   useUrl = function(url) {
     return ($.get(url, function(data) {
-      loadOrg($('[maindoc]')[0], data);
+      loadOrg($('[maindoc]')[0], data, (url.match(/^\w+:/) ? new URI(url).path : url));
       document.body.classList.remove('not-logged-in');
       return checkEvents(lastUpdate, 1, []);
     })).fail(function(err) {
@@ -55,7 +55,8 @@
     var reader;
     reader = new FileReader();
     reader.onload = function(e) {
-      return loadOrg($('[maindoc]')[0], e.target.result);
+      var _ref2;
+      return loadOrg($('[maindoc]')[0], e.target.result, (_ref2 = file.path) != null ? _ref2 : file.name);
     };
     reader.readAsText(file);
     document.body.classList.remove('not-logged-in');
@@ -94,7 +95,7 @@
         }
         return contents = repo.contents('master', currentFile, function(err, data) {
           if (!err) {
-            loadOrg($('[maindoc]')[0], data);
+            loadOrg($('[maindoc]')[0], data, currentFile);
           } else {
             alert("ERROR: " + err);
           }
