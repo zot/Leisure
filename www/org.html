@@ -608,11 +608,17 @@
                                         $('#panel').css('display', '');
                                         Leisure.setTheme('steampunk');
                                         Leisure.initOrg('[maindoc]', '#source');
+                                        $('#name').focus(); 
+                                        $('#loginForm').submit(function(e) { 
+                                          e.preventDefault();
+                                          Leisure.connectStorage(); 
+                                        });
                                 });
-                    }
+                        }
                         document.head.appendChild(script);
                 }, 1);
           }
+
         </script>
   </head>
   <body class="loading not-logged-in steampunkX">
@@ -624,12 +630,14 @@
       </tr>
     </table>
 <div id="login">
+<form id="loginForm">
 <h2>Github</h2>
 Github Login: <input id='name' type='text'> Password: <input id='password' type='password'><hr>
 User: <input id='user' type='text'><br>
 Repository: <input id='repository' type='text'><br>
 File: <input id='file' type='text'><br>
-<button onclick="Leisure.connectStorage()">Connect</button>
+<button>Connect</button>
+</form>
 <hr>
 <h2>Local</h2>
 File: <input type="file" onchange="Leisure.useFile(this.files[0])">
