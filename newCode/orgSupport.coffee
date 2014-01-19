@@ -105,10 +105,11 @@ initOrg = (parent, source)->
   if nwDispatcher?
     $(document.body).addClass 'nw'
     $('#nwSaveButton')[0].parentSpec = parentSpec
-    b.mousedown -> $('#nwSaveButton').click()
     fs = require 'fs'
-  else
-    b.mousedown ->
+  b.mousedown ->
+    if root.repo then root.storeInGit $(parent).text()
+    else if nwDispatcher? then $('#nwSaveButton').click()
+    else
       #console.log "SAVE"
       #console.log encodeURIComponent $(parent)[0].textContent
       #b.attr 'href', "data:text/plain;base64,#{encodeURIComponent btoa $(parent)[0].textContent}"

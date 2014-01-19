@@ -61,12 +61,17 @@ connectStorage = ->
   localStorage.setItem 'githubUser', user = $('#user').val()
   localStorage.setItem 'githubRepository', repository = $('#repository').val()
   localStorage.setItem 'githubFile', currentFile = $('#file').val()
-  githubParams =
+  root.githubParams = githubParams =
     user: user
+    name: repository
+    repo: repository
     repository: repository
     file: currentFile
+    username: user
+    password: password
   connection = root.githubConnect username: name, password: password
-  repo = connection.getRepo user, repository
+  #root.repo = repo = connection.getRepo user, repository
+  root.repo = repo = root.getRepo githubParams
   repo.getEvents null, (err, data)->
     if err then console.log "ERROR: #{JSON.stringify err, null, ' '}"; return
     lastUpdate = new Date(data[0].created_at).getTime()
@@ -77,6 +82,8 @@ connectStorage = ->
         else alert "ERROR: #{err}"
         document.body.classList.remove 'not-logged-in'
         checkEvents lastUpdate, 1, []
+
+storeInGit = (contents, path, branch, cb)-> repo.setContents branch ? 'master', path ? githubParams.file, contents, cb
 
 isIssueEvent = (event)-> event.type in ['IssueCommentEvent', 'IssuesEvent']
 
@@ -225,3 +232,5 @@ root.connectStorage = connectStorage
 root.redrawAllIssues = redrawAllIssues
 root.useFile = useFile
 root.createComment = createComment
+root.storeInGit = storeInGit
+root.repo = repo
