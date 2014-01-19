@@ -136,14 +136,36 @@
                   bottom: 15px;
                   cursor: pointer;
 								}
-								.steampunk .testcase-button {
+                .steampunk #leisure_bar #saveButton div:after {
+                  content: none;
+                }                   
+                .steampunk #leisure_popup #saveButton {
+                   left: 50px;
+                   top: 50px;
+                   position: absolute;
+                 }
+                .steampunk #leisure_popup #saveButton button {
                   padding: 0px 0px;
                 }
-                .steampunk #leisure_bar #saveButton span:after {
-                        content: 'save';
+                .steampunk #leisure_popup #saveButton button div {
+									background: url(images/steampunk_save_icon.png) no-repeat;
+									background-size: 100px 25px;
+                  background-color: #e6dcc3;
+                  width: 100px;
+                  height: 25px;
                 }
-                .steampunk #leisure_bar:hover #saveButton {
-                        left: 100%;
+                .steampunk #leisure_bar:hover #leisure_popup {
+                  left: 150px;
+                  bottom: 15px;
+                  width: 256px;
+                  height: 256px;
+                  top: auto;
+									background: url(images/steampunk_wood_panel.png) no-repeat 0% 0% / 100% 100%;
+									#background-repeat: no-repeat;
+									#background-size: 256px 256px;
+                }
+								.steampunk .testcase-button {
+                  padding: 0px 0px;
                 }
 								.steampunk .testcase-button div {
 									background-image: url(images/finger_gauge.png);
@@ -413,15 +435,27 @@
                         -webkit-user-select: none;
                         overflow: visible;
                 }
-                #leisure_bar #saveButton,
-                #leisure_bar #nwSaveButton {
-                        display: none;
+                #leisure_popup {
+                  right: 150px;
+                  width: 150px;
+                  background-color: white;
+                  border: none;
                 }
-                #leisure_bar:hover #saveButton {
-                        display: inline;
-                        position: absolute;
-                        right: 100%;
+                #leisure_bar #leisure_popup * {
+                   display: none;
                 }
+                #leisure_bar:hover #leisure_popup *:not(#nwSaveButton) {
+                  display: inline-block;
+                }
+                #leisure_bar:hover #leisure_popup {
+                  border: solid black 2px;
+                  position: absolute;
+                  right: 0%;
+                  top: 100%;
+                }
+                #leisure_bar #saveButton div:after {
+                  content: 'Save';
+                }                
                 .not-logged-in #leisure_bar,
                 .not-logged-in #panel,
                 #login,
