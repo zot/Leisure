@@ -640,8 +640,9 @@
                                         $('#loading').remove();
                                         $('body').removeClass('loading');
                                         $('#panel').css('display', '');
-                                        Leisure.setTheme('steampunk');
                                         Leisure.initOrg('[maindoc]', '#source');
+                                        Leisure.setTheme('steampunk');
+                                        $("#themeSelect option").filter(function() { return $(this).text() == "Steampunk"; }).attr('selected', true);
                                         $('#name').focus(); 
                                         $('#loginForm').submit(function(e) { 
                                           e.preventDefault();

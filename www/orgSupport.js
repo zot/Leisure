@@ -87,11 +87,14 @@ misrepresented as being the original software.
     var b;
     parentSpec = parent;
     sourceSpec = source;
-    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><div></div></button></a><input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div></div>").prependTo(document.body).mousedown(function(e) {
+    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><div></div></button></a><p><span class=\"leisure_theme\">Theme: </span>\n  <select id='themeSelect'>\n    <option value=''>Plain</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div></div>").prependTo(document.body).mousedown(function(e) {
       if (e.target.id === 'leisure_bar') {
         e.preventDefault();
         return root.currentMode.leisureButton();
       }
+    });
+    $("#themeSelect").change(function(e) {
+      return Leisure.setTheme(e.target.value);
     });
     b = $('#saveButton');
     if (typeof nwDispatcher !== "undefined" && nwDispatcher !== null) {
