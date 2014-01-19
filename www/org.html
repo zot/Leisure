@@ -203,6 +203,12 @@
                   width: 128px;
                   height: 64px;
                 }
+                .steampunk #nextSlide button div:after {
+                  content: none;
+                }
+                .steampunk #prevSlide button div:after {
+                  content: none;
+                }
 								.steampunk .testcase-button {
                   padding: 0px 0px;
                 }
@@ -646,6 +652,13 @@
                   bottom: 50px;
                   position: absolute;
                 }
+                #nextSlide button div:after {
+                  content: 'Prev';
+                }
+                #prevSlide button div:after {
+                  content: 'Next';
+                }
+                
         </style>
         <style>
           /* styles for Leisure output */
@@ -755,8 +768,8 @@ File: <input type="file" onchange="Leisure.useFile(this.files[0])">
 </div>
     
 <div class="paginators">
-  <div id="prevSlide"><button><div>Prev</div></button></div>
-  <div id="nextSlide"><button><div>Next</div></button></div>
+  <div id="prevSlide"><button><div></div></button></div>
+  <div id="nextSlide"><button><div></div></button></div>
 </div>
 
 <script>start()</script>
