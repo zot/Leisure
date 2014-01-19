@@ -173,6 +173,36 @@
                   top: 100px;
                   position: absolute;
                 }
+                .steampunk #nextSlide {
+                  right: 150px;
+                  bottom: 50px;
+                }
+                .steampunk #prevSlide {
+                  left: 150px;
+                  bottom: 50px;
+                }
+                .steampunk #nextSlide button {
+                  background: none;
+                  outline: none;
+                  border: none;
+                  padding: 0px 0px;
+                }
+                .steampunk #prevSlide button {
+                  background: none;
+                  outline: none;
+                  border: none;
+                  padding: 0px 0px;
+                }
+                .steampunk #nextSlide button div {
+									background: url(images/right_hand.png) no-repeat 0% 0% / 100% 100%;
+                  width: 128px;
+                  height: 64px;
+                }
+                .steampunk #prevSlide button div {                
+									background: url(images/left_hand.png) no-repeat 0% 0% / 100% 100%;
+                  width: 128px;
+                  height: 64px;
+                }
 								.steampunk .testcase-button {
                   padding: 0px 0px;
                 }
@@ -600,6 +630,22 @@
                 .org-fancy [data-org-html="true"] {
                         white-space: normal;
                 }
+                .paginators {
+                  display: none;
+                }
+                .slides .paginators {
+                  display: inline-block;
+                }
+                #nextSlide {
+                  right: 50px;
+                  bottom: 50px;
+                  position: absolute;
+                }
+                #prevSlide {
+                  left: 50px;
+                  bottom: 50px;
+                  position: absolute;
+                }
         </style>
         <style>
           /* styles for Leisure output */
@@ -673,6 +719,7 @@
         </td>
       </tr>
     </table>
+
 <div id="login">
 <form id="loginForm">
 <h2>Github</h2>
@@ -706,6 +753,12 @@ File: <input type="file" onchange="Leisure.useFile(this.files[0])">
     <div id='source' style="white-space: pre-wrap; border: blue solid 2px"></div>
   </div>
 </div>
+    
+<div class="paginators">
+  <div id="prevSlide"><button><div>Prev</div></button></div>
+  <div id="nextSlide"><button><div>Next</div></button></div>
+</div>
+
 <script>start()</script>
   </body>
 </html>
