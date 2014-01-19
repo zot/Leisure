@@ -4,8 +4,12 @@
   "version": "1.0.0",
   "description": "Leisure environment",
   "window": {
-      "toolbar": true,
-      "Xtoolbar": false
+    "title": "Leisure Notebook",
+    "toolbar": true,
+    "Xtoolbar": false,
+    "icon": "leisure.png",
+    "width": 1200,
+    "height": 800
   },
   "keywords": [
     "Leisure"

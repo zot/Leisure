@@ -650,10 +650,10 @@
                   position: absolute;
                 }
                 #nextSlide button div:after {
-                  content: 'Prev';
+                  content: 'Next';
                 }
                 #prevSlide button div:after {
-                  content: 'Next';
+                  content: 'Prev';
                 }
                 
         </style>
@@ -730,18 +730,26 @@
       </tr>
     </table>
 
-<div id="login">
-<form id="loginForm">
-<h2>Github</h2>
-Github Login: <input id='name' type='text'> Password: <input id='password' type='password'><hr>
-User: <input id='user' type='text'><br>
-Repository: <input id='repository' type='text'><br>
-File: <input id='file' type='text'><br>
-<button>Connect</button>
-</form>
-<hr>
-<h2>Local</h2>
-File: <input type="file" onchange="Leisure.useFile(this.files[0])">
+<div id="login" style="font-family: Arial">
+  <h1 style="text-align: center">Leisure Notebook Startup</h1>
+  <form id="loginForm">
+    <div style="position: relative; left: 25%; width: 50%; padding: 10px; border: solid black 1px; border-radius: 15px;">
+    <h2 style="margin-top: 10px">Load remote from Github</h2>
+    <b>Your Github Info</b><br>
+    Login: <input id='name' type='text'> Password: <input id='password' type='password'><hr>
+    <b>Repository Info:</b><br>
+    User: <input id='user' type='text'><br>
+    Repository: <input id='repository' type='text'><br>
+    File: <input id='file' type='text'><br>
+    <p>
+    <input type="submit" value="Connect to Github">
+    </div>
+  </form>
+  <p>
+  <div style="position: relative; left: 25%; width: 50%; padding: 10px; border: solid black 1px; border-radius: 15px;">
+  <h2 style="margin-top: 10px">Or a local file on your PC</h2>
+  File: <input type="file" onchange="Leisure.useFile(this.files[0])">
+  </div>
 </div>
 <div id="panel">
   <div maindoc contenteditable='true'><!--
