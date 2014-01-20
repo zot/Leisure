@@ -324,6 +324,7 @@
                 }
                 .codeblock {
                         min-width: 400px;
+                        min-height: 64px;
                         display: inline-block;
                         position: relative;
                         padding: 3px;
@@ -667,6 +668,52 @@
                         width: 100%;
                         z-index: 0;
                 }
+                .flat .codeblock {
+                        background: #666666;
+                        border-radius: 4px;
+                        color: white;
+                }
+                .flat .org-fancy [data-org-src], .flat .coderesults  {
+                        background: white;
+                        border-radius: 4px;
+                        color: black;
+                        border: none;
+                }
+                .flat .codeblock[data-org-test="unknown"] {
+                        background: url(images/untested.png) no-repeat 0% 0% / 100% 100%;
+                        background-position: center;
+                        height: 64px;
+                        width: 64px;
+                }
+                .flat .codeblock[data-org-test="pass"] {
+                        background: url(images/checkmark.png) no-repeat 0% 0% / 100% 100%;
+                        background-position: center;
+                        height: 64px;
+                        width: 64px;
+                }
+                .flat .codeblock[data-org-test="fail"] {
+                        background: url(images/failure.png) no-repeat 0% 0% / 100% 100%;
+                        background-position: center;
+                        height: 64px;
+                        width: 64px;
+                }  
+                .flat .codeblock[data-org-test] {
+                        display: inline-block;
+                        width: 60px;
+                        height: 60px;
+                        min-width: 60px;
+                        padding: 10px;
+                        margin: 4px;
+                        transition: width 1s, height 1s;
+                        -webkit-user-select: none;
+                        user-select: none;
+                }
+                .flat [data-org-test] > * {
+                        display: none;
+                }
+                .flat [data-org-test] {
+                        cursor: pointer;
+                }                
                 .flat #nextSlide {
                         right: 50px;
                         bottom: 50px;
