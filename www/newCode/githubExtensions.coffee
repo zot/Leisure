@@ -24,7 +24,8 @@ connect = (options)->
     @setContents = setContents options
     this
   #Github.Repository.prototype = oldRepository.prototype
-  Github.Repository.prototype.getEvents = (options, cb)-> Github._request "GET", "#{@path}/events#{if options?.page then '?page=' + options.page else ''}", options, cb
+  Github.Repository.prototype.getEvents = (options, cb)->
+    Github._request "GET", "#{@path}/events#{if options?.page then '?page=' + options.page else ''}", options, cb
   con
 
 getRepo = (params)->

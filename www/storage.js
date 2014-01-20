@@ -79,11 +79,11 @@
       repository: repository,
       file: currentFile,
       username: user,
-      password: encodeURIComponent(password)
+      password: password
     };
     connection = root.githubConnect({
       username: name,
-      password: encodeURIComponent(password)
+      password: password
     });
     root.repo = repo = root.getRepo(githubParams);
     return repo.getEvents(null, function(err, data) {

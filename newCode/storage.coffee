@@ -69,9 +69,8 @@ connectStorage = ->
     repository: repository
     file: currentFile
     username: user
-    password: encodeURIComponent(password)
-  connection = root.githubConnect username: name, password: encodeURIComponent(password)
-  #root.repo = repo = connection.getRepo user, repository
+    password: password
+  connection = root.githubConnect username: name, password: password
   root.repo = repo = root.getRepo githubParams
   repo.getEvents null, (err, data)->
     if err then console.log "ERROR: #{JSON.stringify err, null, ' '}"; return
