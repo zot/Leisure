@@ -703,7 +703,7 @@
             color: white;
           }
           .flat #local {
-            background: #44d859;
+            background: #2ecc71;
           }
           .flat h2 {
            margin-top: 10px;
@@ -865,14 +865,14 @@
   <h1 id="login_header">Leisure Notebook Startup</h1><p>
   <form id="loginForm">
     <div class="box">
-    <h2>Load remote from Github</h2>
-    <b>Your Github Info</b><br>
-    Login: <input id='name' type='text'> Password: <input id='password' type='password'><hr>
-    <b>Repository Info:</b><br>
+    <h2>Load remote notebook from Github</h2>
+    <b>Your Github account</b><br>
+    Login: <input id='name' type='text' placeholder="E-mail address"> Password: <input id='password' type='password' placeholder="Github Password"><hr>
+    <b>Github repository for notebook:</b><br>
     <table>
-    <tr><td>User:</td><td><input id='user' type='text'></td></tr>
-    <tr><td>Repo:</td><td><input id='repository' type='text'></td></tr>
-    <tr><td>File:</td><td><input id='file' type='text'></td></tr>
+    <tr><td>Owner:</td><td><input id='user' type='text' placeholder="Owner of the repo"></td></tr>
+    <tr><td>Repo:</td><td><input id='repository' type='text' placeholder="Name of the repo"></td></tr>
+    <tr><td>File:</td><td><input id='file' type='text' placeholder="Name of the file"></td></tr>
     </table><p>
     <input class="btn" id="github" type="submit" value="Connect to Github">
       <div class="loader" id="github_loader" style="display: none;">
@@ -884,7 +884,7 @@
   </form>
   <p>
   <div id="local" class="box">
-  <h2>Or a local file on your PC</h2>
+  <h2>Or a local notebook on your PC</h2>
   <input class="btn" type="file" onchange="Leisure.useFile(this.files[0])">
   </div>
 </div></div>
