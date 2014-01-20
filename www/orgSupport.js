@@ -122,10 +122,14 @@ misrepresented as being the original software.
 
   saveFile = function(fileInput) {
     var file;
-    file = fileInput.files[0];
-    return fs.writeFile(file.path, $(fileInput.parentSpec).text(), function(err) {
-      return alert("Error saving file " + file.path + ": " + err);
-    });
+    if (file = fileInput.files[0]) {
+      fileInput.files.clear();
+      return fs.writeFile(file.path, $(fileInput.parentSpec).text(), function(err) {
+        if (err) {
+          return alert("Error saving file " + file.path + ": " + err);
+        }
+      });
+    }
   };
 
   splitLines = function(str) {

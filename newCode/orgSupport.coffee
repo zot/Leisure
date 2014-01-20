@@ -123,9 +123,10 @@ initOrg = (parent, source)->
   Leisure.initStorage '#login', '#panel', root.currentMode
 
 saveFile = (fileInput)->
-  file = fileInput.files[0]
-  fs.writeFile file.path, $(fileInput.parentSpec).text(), (err)->
-    alert("Error saving file #{file.path}: #{err}")
+  if file = fileInput.files[0]
+    fileInput.files.clear()
+    fs.writeFile file.path, $(fileInput.parentSpec).text(), (err)->
+      if err then alert("Error saving file #{file.path}: #{err}")
 
 splitLines = (str)->
   result = []

@@ -946,8 +946,8 @@ toggleSlides = ->
   slideMode = !slideMode
   fancyOrg.bindings = (if slideMode then slideBindings else defaultBindings)
   if slideMode
-    $("#prevSlide button").click (e)-> prevSlide()
-    $("#nextSlide button").click (e)-> nextSlide()  
+    $("#prevSlide").click (e)-> prevSlide()
+    $("#nextSlide").click (e)-> nextSlide()  
     restorePosition null, ->
       $('[data-org-html]').addClass 'slideHtml'
       $('body').addClass 'slides'

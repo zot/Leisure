@@ -95,10 +95,10 @@ fs = null
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><div></div></button></a><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value=''>Plain</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><div></div></button></a><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div><div id='leisure_button'></div></div>")
     .prependTo(document.body)
     .mousedown (e)->
-      if e.target.id == 'leisure_bar'
+      if e.target.id == 'leisure_button'
         e.preventDefault()
         root.currentMode.leisureButton()
   $("#themeSelect").change (e) ->
@@ -123,9 +123,10 @@ initOrg = (parent, source)->
   Leisure.initStorage '#login', '#panel', root.currentMode
 
 saveFile = (fileInput)->
-  file = fileInput.files[0]
-  fs.writeFile file.path, $(fileInput.parentSpec).text(), (err)->
-    alert("Error saving file #{file.path}: #{err}")
+  if file = fileInput.files[0]
+    fileInput.files.clear()
+    fs.writeFile file.path, $(fileInput.parentSpec).text(), (err)->
+      if err then alert("Error saving file #{file.path}: #{err}")
 
 splitLines = (str)->
   result = []
