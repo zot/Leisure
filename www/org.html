@@ -182,41 +182,21 @@
                   position: absolute;
                 }
                 .steampunk #nextSlide {
+								  position: absolute;
                   right: 150px;
                   bottom: 50px;
-                }
-                .steampunk #prevSlide {
-                  left: 150px;
-                  bottom: 50px;
-                }
-                .steampunk #nextSlide button {
-                  background: none;
-                  outline: none;
-                  border: none;
-                  padding: 0px 0px;
-                }
-                .steampunk #prevSlide button {
-                  background: none;
-                  outline: none;
-                  border: none;
-                  padding: 0px 0px;
-                }
-                .steampunk #nextSlide button div {
 									background: url(images/right_hand.png) no-repeat 0% 0% / 100% 100%;
                   width: 128px;
                   height: 64px;
                 }
-                .steampunk #prevSlide button div {
+                .steampunk #prevSlide {
+								  position: absolute;
+                  left: 150px;
+                  bottom: 50px;
 									background: url(images/left_hand.png) no-repeat 0% 0% / 100% 100%;
                   width: 128px;
                   height: 64px;
-                }
-                .steampunk #nextSlide button div:after {
-                  content: none;
-                }
-                .steampunk #prevSlide button div:after {
-                  content: none;
-                }
+                }								
 								.steampunk .testcase-button {
                   padding: 0px 0px;
                 }
@@ -281,6 +261,9 @@
                         font-size: large;
                         background: #CCCCCC;
                 }
+								.org-fancy {
+								  font-family: Arial;
+								}
                 #loading {
                         position: absolute;
                         width: 100%;
@@ -601,31 +584,48 @@
                         display: inline-block;
                 }
                 .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] {
-                        position: absolute;
-                        left: 10%;
-                        right: 10%;
-                        top: 36px;
-                        text-align: center;
-                        z-index: 99;
+									position: absolute;
+									left: 0px;
+									right: 0px;
+									top: 0px;
+									text-align: center;
+									z-index: 10;
                 }
-                #loading-message, .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
-                        display: table;
-                        margin: auto;
-                        top: 40%;
-                        position: relative;
-                        padding-top: 20px;
-                        padding-bottom: 20px;
-                        padding-left: 40px;
-                        padding-right: 40px;
+                .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+									display: table;
+									margin: auto;
+									top: 40%;
+									position: relative;
+									padding-top: 40px;
+									padding-bottom: 40px;
+									padding-left: 40px;
+									padding-right: 40px;
                   color: white;
                 }
-                #loading-message .textborder, .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
-                  background: #368ee0;
+                #loading-message {
+									display: table;
+									margin: auto;
+									top: 40%;
+									position: relative;
+									padding-top: 20px;
+									padding-bottom: 20px;
+									padding-left: 40px;
+									padding-right: 40px;
+                  color: white;
+                }
+                .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
+                  background: #333333;
                   border: none;
                   border-radius: 2px;
                   z-index: -1;
                 }
-                .org-fancy [data-org-headline='2'] > [data-org-type='text'] {
+                #loading-message .textborder {
+                  background: #368ee0;
+                  border: none;
+                  border-radius: 2px;
+                  z-index: -1;
+                }                
+								.org-fancy [data-org-headline='2'] > [data-org-type='text'] {
                         font-size: 1.5em;
                 }
                 .org-fancy [data-org-headline='3'] > [data-org-type='text'] {
@@ -657,22 +657,48 @@
                 .slides .paginators {
                   display: inline-block;
                 }
-                #nextSlide {
+        </style>
+        <style>
+          /* styles for flat theme */
+                .flat .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+									width: 100%;
+								}					
+                .flat #nextSlide {
                   right: 50px;
                   bottom: 50px;
                   position: absolute;
                 }
-                #prevSlide {
+                .flat #prevSlide {
                   left: 50px;
                   bottom: 50px;
                   position: absolute;
                 }
-                #nextSlide button div:after {
+                .flat #nextSlide:after {
                   content: 'Next';
                 }
-                #prevSlide button div:after {
+                .flat #prevSlide:after {
                   content: 'Prev';
                 }
+								.flat #nextSlide, .flat #prevSlide {
+									display: block;
+									margin-left:auto;
+									margin-right:auto;
+									border: none;
+									outline: none;
+									border-radius: 5px;
+									font-family: Arial;
+									color: #ffffff;
+									font-size: 20px;
+									background: #368ee0;
+									padding: 10px 20px 10px 20px;
+									text-decoration: none;
+									transition: all 0.2s ease-in-out;
+								}
+								.flat #nextSlide:hover, .flat #prevSlide:hover {
+									outline: none;
+									background: #549cde;
+									text-decoration: none;
+								}
 
         </style>
         <style>
@@ -934,8 +960,8 @@
 </div>
 
 <div class="paginators">
-  <div id="prevSlide"><button><div></div></button></div>
-  <div id="nextSlide"><button><div></div></button></div>
+  <div id="prevSlide"></div>
+  <div id="nextSlide"></div>
 </div>
 
 <script>start()</script>

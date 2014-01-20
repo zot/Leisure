@@ -87,7 +87,7 @@ misrepresented as being the original software.
     var b;
     parentSpec = parent;
     sourceSpec = source;
-    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><div></div></button></a><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value=''>Plain</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div><div id='leisure_button'></div></div>").prependTo(document.body).mousedown(function(e) {
+    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><div></div></button></a><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div><div id='leisure_button'></div></div>").prependTo(document.body).mousedown(function(e) {
       if (e.target.id === 'leisure_button') {
         e.preventDefault();
         return root.currentMode.leisureButton();
