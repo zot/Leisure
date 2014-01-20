@@ -596,16 +596,19 @@
                 #loading-message, .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
                         display: table;
                         margin: auto;
+                        top: 40%;
                         position: relative;
-                        padding-top: 6px;
-                        padding-left: 16px;
-                        padding-right: 16px;
+                        padding-top: 20px;
+                        padding-bottom: 20px;
+                        padding-left: 40px;
+                        padding-right: 40px;
+                  color: white;
                 }
                 #loading-message .textborder, .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
-                        background: white;
-                        border: black solid 2px;
-                        border-radius: 10px;
-                        z-index: -1;
+                  background: #368ee0;
+                  border: none;
+                  border-radius: 2px;
+                  z-index: -1;
                 }
                 .org-fancy [data-org-headline='2'] > [data-org-type='text'] {
                         font-size: 1.5em;
@@ -703,6 +706,13 @@
           .flat h2 {
            margin-top: 10px;
           }
+          .flat #loading {
+            display: block;
+            margin-left:auto;
+            margin-right:auto;
+            background: #333333;
+            color: #ffffff;
+          }
           .btn {
             display: block;
             margin-left:auto;
@@ -775,14 +785,13 @@
         </script>
   </head>
   <body class="loading not-logged-in steampunkX">
-    <table id="loading">
-      <tr>
-        <td>
-          <div id="loading-message"><div class='textborder'></div><div class='textcontent'>LOADING LEISURE</div><div style="text-align: center; position: absolute; top: 100%; left: 0; width: 100%"><img src="images/loading.gif"></div>
-        </td>
-      </tr>
-    </table>
-
+    <div id="loading" class="flat">
+      <div id="loading-message">
+        <div class='textborder'></div><div class='textcontent'>LOADING LEISURE</div>
+        <div style="text-align: center; position: absolute; top: 100%; left: 0; width: 100%"><img src="images/loading.gif"></div>
+      </div>
+    </div>
+    
 <div id="login" class="flat"><div id="login_bg">
   <h1 id="login_header">Leisure Notebook Startup</h1><p>
   <form id="loginForm">
