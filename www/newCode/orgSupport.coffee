@@ -1037,6 +1037,7 @@ basicOrg =
   markupOrg: markupOrg
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
+  executeDef: executeDef
   executeSource: executeSource
   createResults: createResults
   installOrgDOM: (parent, orgNode, orgText)->
