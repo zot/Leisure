@@ -23,7 +23,7 @@ commentIssueURLs = {}
 
 initStorage = ->
   uri = new URI document.location.toString()
-  if load = uri.getFragParams().load then useUrl load
+  if load = uri.getFragParams().load then useUrl decodeURIComponent load
   else
     #$('#login').css 'display', ''
     #$('#panel').css 'display', 'none'
@@ -56,11 +56,11 @@ useFile = (file)->
 githubParams = null
 
 connectStorage = ->
-  localStorage.setItem 'githubName', name = $('#name').val()
-  localStorage.setItem 'githubPassword', password = $('#password').val()
-  localStorage.setItem 'githubUser', user = $('#user').val()
-  localStorage.setItem 'githubRepository', repository = $('#repository').val()
-  localStorage.setItem 'githubFile', currentFile = $('#file').val()
+  localStorage.setItem 'githubName', name = decodeURIComponent $('#name').val()
+  localStorage.setItem 'githubPassword', password = decodeURIComponent $('#password').val()
+  localStorage.setItem 'githubUser', user = decodeURIComponent $('#user').val()
+  localStorage.setItem 'githubRepository', repository = decodeURIComponent $('#repository').val()
+  localStorage.setItem 'githubFile', currentFile = decodeURIComponent $('#file').val()
   # github api lib seems to use both name and repo for the respository name
   root.githubParams = githubParams =
     user: user

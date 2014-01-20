@@ -23,7 +23,7 @@
     var load, uri;
     uri = new URI(document.location.toString());
     if (load = uri.getFragParams().load) {
-      return useUrl(load);
+      return useUrl(decodeURIComponent(load));
     } else {
       $('#name').val(localStorage.getItem('githubName'));
       $('#password').val(localStorage.getItem('githubPassword'));
@@ -67,11 +67,11 @@
 
   connectStorage = function() {
     var name, password, repository, user;
-    localStorage.setItem('githubName', name = $('#name').val());
-    localStorage.setItem('githubPassword', password = $('#password').val());
-    localStorage.setItem('githubUser', user = $('#user').val());
-    localStorage.setItem('githubRepository', repository = $('#repository').val());
-    localStorage.setItem('githubFile', currentFile = $('#file').val());
+    localStorage.setItem('githubName', name = decodeURIComponent($('#name').val()));
+    localStorage.setItem('githubPassword', password = decodeURIComponent($('#password').val()));
+    localStorage.setItem('githubUser', user = decodeURIComponent($('#user').val()));
+    localStorage.setItem('githubRepository', repository = decodeURIComponent($('#repository').val()));
+    localStorage.setItem('githubFile', currentFile = decodeURIComponent($('#file').val()));
     root.githubParams = githubParams = {
       user: user,
       name: repository,

@@ -137,7 +137,7 @@
 								}
                 .steampunk #leisure_bar #saveButton div:after {
                   content: none;
-                }                   
+                }
                 .steampunk #leisure_popup #saveButton {
                    left: 50px;
                    top: 50px;
@@ -195,7 +195,7 @@
                   width: 128px;
                   height: 64px;
                 }
-                .steampunk #prevSlide button div {                
+                .steampunk #prevSlide button div {
 									background: url(images/left_hand.png) no-repeat 0% 0% / 100% 100%;
                   width: 128px;
                   height: 64px;
@@ -498,7 +498,7 @@
                 }
                 #leisure_bar #saveButton div:after {
                   content: 'Save';
-                }                
+                }
                 .not-logged-in #leisure_bar,
                 .not-logged-in #panel,
                 #login,
@@ -659,7 +659,7 @@
                 #prevSlide button div:after {
                   content: 'Prev';
                 }
-                
+
         </style>
         <style>
           /* styles for Leisure output */
@@ -744,7 +744,7 @@
         </style>
         <style>
           .loader {
-              text-align: center; 
+              text-align: center;
           }
           .loader span {
               display: inline-block;
@@ -792,7 +792,7 @@
               opacity: 0.1;
               -moz-transform: translateY(-21px);
             }
-          }        
+          }
         </style>
         <!-- <link href="http://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css"> -->
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->
@@ -832,12 +832,12 @@
                                         Leisure.initOrg('[maindoc]', '#source');
                                         Leisure.setTheme('steampunk');
                                         $("#themeSelect option").filter(function() { return $(this).text() == "Steampunk"; }).attr('selected', true);
-                                        $('#name').focus(); 
-                                        $('#loginForm').submit(function(e) { 
+                                        $('#name').focus();
+                                        $('#loginForm').submit(function(e) {
                                           e.preventDefault();
                                           $("#github_loader").removeAttr('style');
                                           $("#github").prop('value', "Please hold...");
-                                          Leisure.connectStorage(); 
+                                          Leisure.connectStorage();
                                         });
                                 });
                         }
@@ -867,10 +867,10 @@
           <span></span>
           <span></span>
           <span></span>
-      </div>        
+      </div>
       </div>
     </div>
-    
+
 <div id="login" class="flat"><div id="login_bg">
   <h1 id="login_header">Leisure Notebook Startup</h1><p>
   <form id="loginForm">
@@ -889,7 +889,7 @@
           <span></span>
           <span></span>
           <span></span>
-      </div>        
+      </div>
     </div>
   </form>
   <p>
@@ -918,7 +918,7 @@
     <div id='source' style="white-space: pre-wrap; border: blue solid 2px"></div>
   </div>
 </div>
-    
+
 <div class="paginators">
   <div id="prevSlide"><button><div></div></button></div>
   <div id="nextSlide"><button><div></div></button></div>
