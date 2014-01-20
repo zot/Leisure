@@ -125,15 +125,17 @@
                         /*padding-right: calc(29px + 32px);*/
                         padding-right: calc(29px + 90px);
                 }
-								.steampunk #leisure_bar {
+								.steampunk #leisure_button {
 									min-height: 67px;
 									width: 177px;
+									top: auto;
 									background-image: url(images/steampunk_leisure_button.png);
 									background-repeat: no-repeat;
 									background-size: 177px 67px;
-                  left: 45%;
-                  bottom: 15px;
+                  left: calc(50% - 89px);
+                  bottom: 50px;
                   cursor: pointer;
+									z-index: 100;
 								}
                 .steampunk #leisure_bar #saveButton div:after {
                   content: none;
@@ -153,13 +155,22 @@
                   width: 100px;
                   height: 25px;
                 }
-                .steampunk #leisure_bar:hover #leisure_popup {
-                  left: 150px;
+                .steampunk #leisure_bar #leisure_popup {
+                  margin-left: auto;
+									margin-right: auto;
                   bottom: 15px;
-                  width: 256px;
-                  height: 256px;
+									z-index: 99;
+									position: fixed;
                   top: auto;
+									left: 0px;
+									right: 0px;
+                  width: 256px;
+									height: 0px;
 									background: url(images/steampunk_wood_panel.png) no-repeat 0% 0% / 100% 100%;
+								}
+                .steampunk #leisure_bar:hover #leisure_popup {
+                  height: 256px;
+									transition: all 0.2s ease-in-out;
                 }
                 .steampunk .leisure_theme * {
                   color: black;
@@ -463,7 +474,7 @@
                 .showcomments.ast {
                         display: inline-block;
                 }
-                #leisure_bar {
+                #leisure_button {
                         min-height: 28px;
                         background-image: url(leisure_bar.gif);
                         background-repeat: no-repeat;
@@ -471,7 +482,8 @@
                         position: fixed;
                         z-index: 100;
                         width: 135px;
-                        right: 0;
+                        right: 0px;
+												top: 0px;
                         white-space: normal;
                         user-select: none;
                         -moz-user-select: none;
@@ -479,10 +491,13 @@
                         overflow: visible;
                 }
                 #leisure_popup {
-                  right: 150px;
+                  right: 0px;
+									top: 30px;
                   width: 150px;
+									height: 0px;
                   background-color: white;
                   border: none;
+									position: fixed;
                 }
                 #leisure_bar #leisure_popup * {
                    display: none;
@@ -491,10 +506,9 @@
                   display: inline-block;
                 }
                 #leisure_bar:hover #leisure_popup {
+								  height: 200px;
                   border: solid black 2px;
-                  position: absolute;
-                  right: 0%;
-                  top: 100%;
+									transition: all 0.2s ease-in-out;
                 }
                 #leisure_bar #saveButton div:after {
                   content: 'Save';
