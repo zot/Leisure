@@ -69,8 +69,8 @@ connectStorage = ->
     repository: repository
     file: currentFile
     username: user
-    password: password
-  connection = root.githubConnect username: name, password: password
+    password: encodeURIComponent(password)
+  connection = root.githubConnect username: name, password: encodeURIComponent(password)
   #root.repo = repo = connection.getRepo user, repository
   root.repo = repo = root.getRepo githubParams
   repo.getEvents null, (err, data)->
