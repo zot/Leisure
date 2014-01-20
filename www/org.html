@@ -671,6 +671,59 @@
                         margin-bottom: 0.25em;
                 }
         </style>
+        <style>
+          /* styles for flat login look 'n feel */
+          .flat * {
+            font-family: Arial;
+          }
+          .flat #login_bg {
+            background: #CCCCCC;
+            padding-bottom: 75px;
+          }
+          .flat #login_header {
+            margin: 0px;
+            padding: 70px;
+            text-align: center;
+            background: #333333;
+            color: white;
+          }
+          .flat .box {
+            position: relative;
+            left: 25%;
+            width: 50%;
+            padding: 10px;
+            border: solid black 0px;
+            border-radius: 5px;
+            background: #368ee0;
+            color: white;
+          }
+          .flat #local {
+            background: #44d859;
+          }
+          .flat h2 {
+           margin-top: 10px;
+          }
+          .btn {
+            display: block;
+            margin-left:auto;
+            margin-right:auto;
+            border: none;
+            outline: none;
+            border-radius: 5px;
+            font-family: Arial;
+            color: #ffffff;
+            font-size: 20px;
+            background: #434647;
+            padding: 10px 20px 10px 20px;
+            text-decoration: none;
+          }
+          .btn:hover {
+            outline: none;
+            background: #616161;
+            text-decoration: none;
+          }
+        </style>
+        <!-- <link href="http://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css"> -->
         <!-- link href='http://fonts.googleapis.com/css?family=Oxygen:400,700' rel='stylesheet' type='text/css' -->
         <!--script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script-->
         <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
@@ -730,11 +783,11 @@
       </tr>
     </table>
 
-<div id="login" style="font-family: Arial">
-  <h1 style="text-align: center">Leisure Notebook Startup</h1>
+<div id="login" class="flat"><div id="login_bg">
+  <h1 id="login_header">Leisure Notebook Startup</h1><p>
   <form id="loginForm">
-    <div style="position: relative; left: 25%; width: 50%; padding: 10px; border: solid black 1px; border-radius: 15px;">
-    <h2 style="margin-top: 10px">Load remote from Github</h2>
+    <div class="box">
+    <h2>Load remote from Github</h2>
     <b>Your Github Info</b><br>
     Login: <input id='name' type='text'> Password: <input id='password' type='password'><hr>
     <b>Repository Info:</b><br>
@@ -742,15 +795,15 @@
     Repository: <input id='repository' type='text'><br>
     File: <input id='file' type='text'><br>
     <p>
-    <input type="submit" value="Connect to Github">
+    <input class="btn" type="submit" value="Connect to Github">
     </div>
   </form>
   <p>
-  <div style="position: relative; left: 25%; width: 50%; padding: 10px; border: solid black 1px; border-radius: 15px;">
-  <h2 style="margin-top: 10px">Or a local file on your PC</h2>
-  File: <input type="file" onchange="Leisure.useFile(this.files[0])">
+  <div id="local" class="box">
+  <h2>Or a local file on your PC</h2>
+  <input class="btn" type="file" onchange="Leisure.useFile(this.files[0])">
   </div>
-</div>
+</div></div>
 <div id="panel">
   <div maindoc contenteditable='true'><!--
 * code :duh:
