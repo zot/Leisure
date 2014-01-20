@@ -481,6 +481,7 @@
                   background-color: white;
                   border: none;
                   position: fixed;
+                  z-index: 50;
                 }
                 #leisure_bar #leisure_popup * {
                    display: none;
@@ -660,8 +661,9 @@
         </style>
         <style>
           /* styles for flat theme */
-                .flat .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                .flat.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
                   width: 100%;
+                  z-index: 0;
                 }
                 .flat #nextSlide {
                   right: 50px;
