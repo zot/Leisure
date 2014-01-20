@@ -746,7 +746,10 @@ restorePosition = (parent, block)->
       selectRange r
   else block()
 
+crnl = (data)-> data.replace /\r\n/g, '\n'
+
 loadOrg = (parent, text, path)->
+  text = crnl text
   if nwDispatcher?
     $('#nwSaveButton').attr 'nwsaveas', path
   else
