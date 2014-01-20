@@ -109,7 +109,8 @@ initOrg = (parent, source)->
     $('#nwSaveButton')[0].parentSpec = parentSpec
     fs = require 'fs'
   b.mousedown ->
-    if root.repo then root.storeInGit $(parent).text()
+    if root.repo then root.storeInGit $(parent).text(), null, null, (err)->
+      if err then alert "Conflict while attempting to save file to Git.\nPlease take recovery measures."
     else if nwDispatcher? then $('#nwSaveButton').click()
     else
       #console.log "SAVE"
