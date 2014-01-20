@@ -752,7 +752,7 @@
               width: 10px;
               height: 10px;
               margin: 50px auto;
-              background: black;
+              background: white;
               border-radius: 50px;
               -webkit-animation: loader 0.9s infinite alternate;
               -moz-animation: loader 0.9s infinite alternate;
@@ -824,7 +824,6 @@
                         script.src = "bootLeisure.js?uniq=" + Math.random();
                         script.onload = function() {
                                 var div = $('[maindoc]');
-
                                 window.ORG_TEXT = div.html().replace(/^\s*<!--*/, '').replace(/-->\s*\n*/m, '').trim();
                                 Boot.onboot(function() {
                                         $('#loading').remove();
@@ -850,15 +849,26 @@
   </head>
   <body class="loading not-logged-in steampunkX">
     <div id="loading" class="flat">
-      <div id="loading-message">
+     <div id="loading-message">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="200px" height="200px" viewBox="0 0 200 200" enable-background="new 0 0 200 200" xml:space="preserve">
+<rect fill="#368EE0" width="200" height="200"/>
+<g>
+	<path fill="#FFFFFF" d="M107.667,147.595c0,5.511,4.033,12.037,8.962,14.501l18.148,9.074c4.929,2.465,4.453,4.481-1.058,4.481
+		H72.597c-5.511,0-5.987-2.017-1.058-4.481l18.148-9.074c4.929-2.465,8.962-8.99,8.962-14.501v-29.559
+		c0-5.511-2.983-13.401-6.629-17.533L37.644,38.876c-3.646-4.132-2.12-7.513,3.391-7.513h124.248c5.511,0,7.037,3.381,3.391,7.513
+		l-54.377,61.626c-3.646,4.132-6.629,12.022-6.629,17.533V147.595z"/>
+</g>
+<ellipse transform="matrix(0.5533 0.833 -0.833 0.5533 112.6933 -59.8039)" fill="#368EE0" cx="112.109" cy="75.176" rx="8.859" ry="13.289"/>
+</svg>
         <div class='textborder'></div>
         <div class='textcontent'>LOADING LEISURE</div>
-      </div>
-      <div class="loader">
+      <div class="loader" style="position: absolute; left: 341px; top: 132px;">
           <span></span>
           <span></span>
           <span></span>
       </div>        
+      </div>
     </div>
     
 <div id="login" class="flat"><div id="login_bg">
