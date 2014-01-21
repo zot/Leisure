@@ -361,7 +361,7 @@ replaceCodeBlock = (node, text)->
       reprocessResults n
     setTimeout (=>
       for n in $(newNode).find('[data-org-comments]')
-        setShadowHtml n.firstElementChild, newCommentBox n.getAttribute('data-org-comments'), codeBlockForNode(n.previousElementSibling).id
+        setShadowHtml n.firstElementChild, "<div class='#{theme ? ''}'>" + newCommentBox n.getAttribute('data-org-comments') + '</div>', codeBlockForNode(n.previousElementSibling).id
       redrawAllIssues()
     ), 1
   newNode
@@ -780,7 +780,7 @@ redrawIssue = (issue)->
       button.attr 'data-org-commentcount', count
       button.addClass 'new-comments'
     setShadowHtml button.find('span')[0], count
-    setShadowHtml name[0].firstChild, "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}#{newCommentBox issueName, $(name[0].parentNode).find('.codeblock').attr 'id'}"
+    setShadowHtml name[0].firstChild, "<div class='#{theme ? ''}'>#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}#{newCommentBox issueName, $(name[0].parentNode).find('.codeblock').attr 'id'}</div>"
 
 commentHtml = (comment, type)->
   "<div class='commentbox'><img src='http://gravatar.com/avatar/#{comment.user.gravatar_id}?s=48'><div class='#{type}'>#{comment.body}</div></div>"
@@ -960,7 +960,7 @@ theme = null
 
 setTheme = (str)->
   el = $('body')
-  for node in $('[data-org-headline="1"]')
+  for node in $('[data-org-headline="1"]').add('[data-org-comments]')
     if node.shadowRoot then el = el.add($(node.shadowRoot.firstElementChild))
   el.add('[data-org-html]')
   if theme && theme != str then el.removeClass theme
