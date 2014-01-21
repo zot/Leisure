@@ -738,10 +738,12 @@
                 .flat #nextSlide {
                         right: 50px;
                         bottom: 50px;
+                        position: absolute;
                 }
                 .flat #prevSlide {
                         left: 50px;
                         bottom: 50px;
+                        position: absolute;
                 }
                 .flat #nextSlide:after {
                         content: 'Next';
@@ -749,9 +751,8 @@
                 .flat #prevSlide:after {
                         content: 'Prev';
                 }
-                .flat #nextSlide, .flat #prevSlide, .flat .comment-button, .flat .commentbox > button {
+                .flat #nextSlide, .flat #prevSlide, .flat .comment-button, .flat button {
                         display: block;
-                        position: absolute;
                         margin-left:auto;
                         margin-right:auto;
                         border: none;
@@ -766,7 +767,7 @@
                         transition: all 0.2s ease-in-out;
                         cursor: pointer;
                 }
-                .flat #nextSlide:hover, .flat #prevSlide:hover {
+                .flat #nextSlide:hover, .flat #prevSlide:hover, .flat button:hover {
                         outline: none;
                         background: #549cde;
                         text-decoration: none;
