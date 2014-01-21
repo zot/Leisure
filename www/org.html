@@ -168,7 +168,8 @@
                         height: 0px;
                         background: url(images/steampunk_wood_panel.png) no-repeat 0% 0% / 100% 100%;
                 }
-                .steampunk #leisure_bar:hover #leisure_popup {
+                .steampunk #leisure_bar:hover #leisure_popup,
+                .steampunk #leisure_bar:active #leisure_popup {
                         height: 256px;
                         transition: all 0.2s ease-in-out;
                 }
@@ -485,10 +486,12 @@
                         display: none;
                 }
                 /*#leisure_bar:hover #leisure_popup *:not(#nwSaveButton) {*/
-                #leisure_bar:hover *:not(#nwSaveButton) {
+                #leisure_bar:hover *:not(#nwSaveButton),
+                #leisure_bar:active *:not(#nwSaveButton) {
                         display: inline-block;
                 }
-                #leisure_bar:hover #leisure_popup {
+                #leisure_bar:hover #leisure_popup,
+                #leisure_bar:active #leisure_popup {
                         height: 200px;
                         border: solid black 2px;
                         transition: all 0.2s ease-in-out;
@@ -703,7 +706,7 @@
                         background-position: center;
                         height: 64px;
                         width: 64px;
-                }  
+                }
                 .flat .codeblock[data-org-test] {
                         display: inline-block;
                         width: 60px;
@@ -722,7 +725,7 @@
                         border: none;
                         border-radius: 5px;
                         background: #2c3e50;
-                 }                
+                 }
                 .flat .codename {
                         padding-left: 2px;
                 }
@@ -731,7 +734,7 @@
                 }
                 .flat [data-org-test] {
                         cursor: pointer;
-                }                
+                }
                 .flat #nextSlide {
                         right: 50px;
                         bottom: 50px;
@@ -774,7 +777,7 @@
                 }
                 .flat .comment-button div {
                         background: url(icons/monotone_talk_chat_speech_white.png) no-repeat 0% 0% / 100% 100%;
-                }    
+                }
                 .flat .comments div {
                         background: #2c3e50;
                         border: none;
