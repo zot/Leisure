@@ -960,8 +960,8 @@ theme = null
 
 setTheme = (str)->
   el = $('body')
-  for node in $('[data-org-headline="1"]').add('[data-org-comments]')
-    if node.shadowRoot then el = el.add($(node.shadowRoot.firstElementChild))
+  for node in $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child'))
+    if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
   el.add('[data-org-html]')
   if theme && theme != str then el.removeClass theme
   theme = str
