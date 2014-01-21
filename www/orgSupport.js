@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, Nil, PAGEDOWN, PAGEUP, RIGHT, Results, SimpleMarkup, Source, TAB, UP, addKeyPress, backspace, baseEnv, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, createResults, crnl, curKeyBinding, currentLine, defaultBindings, defaultEnv, define, displaySource, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, followsNewline, fs, getCollapsible, getLeft, getNodeSource, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getType, getValue, handleMutation, hasParent, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, loadOrg, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, markupSimple, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, orgSrcAttrs, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, replacements, resolve, restorePosition, resultsType, root, rz, saveFile, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, splitLines, styleCache, swapMarkup, templateExpansions, textNodeAfter, textNodeBefore, unescapePresentationHtml, _, _ref, _ref1, _ref2, _ref3, _ref4;
+  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, Nil, PAGEDOWN, PAGEUP, RIGHT, Results, SimpleMarkup, Source, TAB, UP, addKeyPress, backspace, baseEnv, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, createResults, crnl, curKeyBinding, currentLine, defaultBindings, defaultEnv, define, displaySource, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, followsNewline, fs, getCollapsible, getLeft, getNodeSource, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getTextPositionNew, getTextPositionOld, getType, getValue, handleMutation, hasParent, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsedOld, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, loadOrg, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, markupSimple, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nextVisibleNewline, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, orgSrcAttrs, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, replacements, resolve, restorePosition, resultsType, root, rz, saveFile, scanForward, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, splitLines, styleCache, swapMarkup, templateExpansions, textNodeAfter, textNodeBefore, unescapePresentationHtml, whenNotCollapsed, _, _ref, _ref1, _ref2, _ref3, _ref4;
 
   _ref = require('./ast'), getType = _ref.getType, cons = _ref.cons, define = _ref.define, unescapePresentationHtml = _ref.unescapePresentationHtml;
 
@@ -303,6 +303,40 @@ misrepresented as being the original software.
     }
   };
 
+  nextVisibleNewline = function(textNode, offset) {
+    return scanForward(textNode, -1, whenNotCollapsed(function(node) {
+      return node.data.indexOf('\n', offset + 1);
+    }), whenNotCollapsed(function(node) {
+      return node.data.indexOf('\n');
+    }));
+  };
+
+  whenNotCollapsed = function(block) {
+    return function(node) {
+      if (isCollapsed(node)) {
+        return -1;
+      } else {
+        return block(node);
+      }
+    };
+  };
+
+  scanForward = function(textNode, falseValue, firstBlock, block) {
+    var val;
+    if ((val = firstBlock(textNode)) !== falseValue) {
+      return [textNode, val];
+    } else {
+      while ((textNode = textNodeAfter(textNode)) && (val = block(textNode)) === falseValue) {
+        true;
+      }
+      if (textNode) {
+        return [textNode, val];
+      } else {
+        return [];
+      }
+    }
+  };
+
   moveSelectionFB = function(parent, r, start, delta) {
     var move, startContainer, startOffset;
     r.collapse(start);
@@ -444,10 +478,24 @@ misrepresented as being the original software.
     return style;
   };
 
+  isCollapsedOld = function(node) {
+    var type;
+    if (node) {
+      type = node.nodeType;
+      return type === 7 || type === 8 || (type === 3 && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === 1 && (node.classList.contains('collapsed') || getStyle(node).display === 'none' || isCollapsed(node.parentNode)));
+    } else {
+      return false;
+    }
+  };
+
   isCollapsed = function(node) {
-    var type, _ref5;
-    type = node.nodeType;
-    return type === 7 || type === 8 || (type === 3 && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === 1 && (node.classList.contains('collapsed') || (((_ref5 = node.getAttribute('data-org-type')) === ('text' || 'meat')) && isCollapsed(node.parentNode)) || getStyle(node).display === 'none' || (node.shadowRoot != null)));
+    var type;
+    if (node) {
+      type = node.nodeType;
+      return type === 7 || type === 8 || (type === 3 && (node.data === '' || isCollapsed(node.parentNode))) || /^(script|style)$/i.test(node.nodeName) || (type === 1 && (node.offsetWidth === 0 || node.offsetHeight === 0));
+    } else {
+      return false;
+    }
   };
 
   markupOrg = function(text) {
@@ -1354,6 +1402,16 @@ misrepresented as being the original software.
   };
 
   getTextPosition = function(node, target, pos) {
+    var n, o;
+    o = getTextPositionOld(node, target, pos);
+    n = getTextPositionNew(node, target, pos);
+    if (o !== n) {
+      console.log("OLD: " + o + ", NEW: " + n);
+    }
+    return n;
+  };
+
+  getTextPositionNew = function(node, target, pos) {
     var count, eat, up;
     if (target.nodeType === 3) {
       up = false;
@@ -1371,6 +1429,18 @@ misrepresented as being the original software.
       }
     }
     return -1;
+  };
+
+  getTextPositionOld = function(node, target, pos) {
+    var r;
+    if (node && target && pos) {
+      r = document.createRange();
+      r.setStart(node, 0);
+      r.setEnd(target, pos);
+      return r.cloneContents().textContent.length;
+    } else {
+      return -1;
+    }
   };
 
   findDomPosition = function(node, pos) {
@@ -1657,6 +1727,8 @@ misrepresented as being the original software.
   root.PAGEDOWN = PAGEDOWN;
 
   root.saveFile = saveFile;
+
+  root.nextVisibleNewline = nextVisibleNewline;
 
 }).call(this);
 
