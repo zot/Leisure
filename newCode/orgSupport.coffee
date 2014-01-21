@@ -236,6 +236,18 @@ moveSelectionDown = (parent, r, start)->
         if end == -1 then end = container.length
         if findCharForColumn container, movementGoal, 0, end then return
 
+nextVisibleNewline = (textNode, offset)->
+  scanForward textNode, -1, (whenNotCollapsed (node)-> node.data.indexOf '\n', offset + 1), whenNotCollapsed (node)-> node.data.indexOf '\n'
+
+whenNotCollapsed = (block)-> (node)-> if isCollapsed node then -1 else block node
+
+scanForward = (textNode, falseValue, firstBlock, block)->
+  if (val = firstBlock textNode) != falseValue then [textNode, val]
+  else
+    while (textNode = textNodeAfter textNode) && (val = block textNode) == falseValue
+      true
+    if textNode then [textNode, val] else []
+
 moveSelectionFB = (parent, r, start, delta)->
   r.collapse start
   startContainer = r.startContainer
@@ -342,16 +354,27 @@ getStyle = (node)->
   style
 
 # Thanks to rangy for this: http://code.google.com/p/rangy/
+isCollapsedOld = (node)->
+  if node
+    type = node.nodeType
+    type == 7 || # PROCESSING_INSTRUCTION
+    type == 8 || # COMMENT
+    (type == 3 && (node.data == '' || isCollapsed(node.parentNode))) ||
+    /^(script|style)$/i.test(node.nodeName) ||
+    (type == 1 && (node.classList.contains('collapsed') || getStyle(node).display == 'none' ||
+    isCollapsed(node.parentNode)))
+  else false
+
+# Thanks to rangy for this: http://code.google.com/p/rangy/
 isCollapsed = (node)->
-  type = node.nodeType
-  type == 7 || # PROCESSING_INSTRUCTION
-  type == 8 || # COMMENT
-  (type == 3 && (node.data == '' || isCollapsed(node.parentNode))) ||
-  /^(script|style)$/i.test(node.nodeName) ||
-  (type == 1 && (node.classList.contains('collapsed') ||
-  (node.getAttribute('data-org-type') in ['text' || 'meat'] && isCollapsed(node.parentNode)) ||
-  getStyle(node).display == 'none' ||
-  node.shadowRoot?))
+  if node
+    type = node.nodeType
+    type == 7 || # PROCESSING_INSTRUCTION
+    type == 8 || # COMMENT
+    (type == 3 && (node.data == '' || isCollapsed(node.parentNode))) ||
+    /^(script|style)$/i.test(node.nodeName) ||
+    (type == 1 && (node.offsetWidth == 0 || node.offsetHeight == 0))
+  else false
 
 markupOrg = (text)->
   [node, result] = markupOrgWithNode text
@@ -923,6 +946,12 @@ findOrgNode = (parent, pos)->
   orgNode = org.findNodeAt pos
 
 getTextPosition = (node, target, pos)->
+  o = getTextPositionOld node, target, pos
+  n = getTextPositionNew node, target, pos
+  if o != n then console.log "OLD: #{o}, NEW: #{n}"
+  n
+
+getTextPositionNew = (node, target, pos)->
   if target.nodeType == 3
     up = false
     eat = false
@@ -935,13 +964,13 @@ getTextPosition = (node, target, pos)->
       node = textNodeAfter node
   -1
 
-#getTextPosition = (node, target, pos)->
-#  if node && target && pos
-#    r = document.createRange()
-#    r.setStart node, 0
-#    r.setEnd target, pos
-#    r.cloneContents().textContent.length
-#  else -1
+getTextPositionOld = (node, target, pos)->
+  if node && target && pos
+    r = document.createRange()
+    r.setStart node, 0
+    r.setEnd target, pos
+    r.cloneContents().textContent.length
+  else -1
 
 findDomPosition = (node, pos)->
   parent = node
@@ -1125,3 +1154,4 @@ root.textNodeAfter = textNodeAfter
 root.PAGEUP = PAGEUP
 root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile
+root.nextVisibleNewline = nextVisibleNewline

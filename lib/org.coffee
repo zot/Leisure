@@ -466,7 +466,6 @@ parseList = (match, text, offset, level, check, info, rest)->
   inside = text.substring contentOffset
   children = []
   while inside
-    console.log "PARSING: #{inside}"
     [node, inside] = parseMeat inside, insideOffset, '', true
     while node
       children.push node
