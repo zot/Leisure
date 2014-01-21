@@ -140,6 +140,9 @@
                 .steampunk #leisure_bar #saveButton div:after {
                         content: none;
                 }
+                .steampunk #leisure_bar #saveButton i {
+                        display: none;
+                }
                 .steampunk #leisure_popup #saveButton {
                         left: 50px;
                         top: 50px;
@@ -216,6 +219,10 @@
                         background-color: #e6dcc3;
                         border: solid rgb(96, 57, 19) 2px;
                 }
+                .steampunk .commentbox > .main,  .steampunk .commentbox > .added {
+                        border: none;
+                        border-radius: 2px;
+                }              
                 .steampunk .page {
                         background-color: #A58C4D;
                 }
@@ -253,6 +260,9 @@
                         background-color: #e6dcc3;
                         color: brown;
                         font-family: MouseDeco;
+                }
+                .steampunk .fa *:not(.login) {
+                        display: none;
                 }
         </style>
         <style>
@@ -358,14 +368,10 @@
                         vertical-align: middle;
                 }
                 .testcase-button div {
-                        background: url(images/toTestCaseButton.png) no-repeat 0% 0% / 100% 100%;
-                        width: 64px;
-                        height: 32px;
+                        display: none;
                 }
                 .results-indicator div {
-                        background: url(icons/monotone_arrow_right_next.png) no-repeat 0% 0% / 100% 100%;
-                        width: 32px;
-                        height: 32px;
+                        display: none;
                 }
                 .codeblock .dyntoggle:before {
                         content: 'link';
@@ -518,15 +524,11 @@
                         width: 72px;
                 }
                 .comment-button div {
-                        background: url(icons/monotone_talk_chat_speech.png) no-repeat 0% 0% / 100% 100%;
-                        width: 32px;
-                        height: 32px;
+                        display: none;
                 }
                 .comment-button.new-comments span {
                         color: #e74c3c;
                         position: relative;
-                        top: -28px;
-                        left: 18px;
                 }
                 /*.currentSlide.page > .border {*/
                 .page > .border {
@@ -670,6 +672,9 @@
                 .slides .paginators {
                         display: inline-block;
                 }
+                .fa {
+                        padding-right: 10px;
+                }
         </style>
         <style>
           /* styles for flat theme */
@@ -777,7 +782,7 @@
                         padding: 2px 8px 2px 8px;
                 }
                 .flat .comment-button div {
-                        background: url(icons/monotone_talk_chat_speech_white.png) no-repeat 0% 0% / 100% 100%;
+                        display: none;
                 }
                 .flat .comments div {
                         background: #2c3e50;
@@ -840,6 +845,8 @@
           }
           .flat h2 {
                 margin-top: 10px;
+                text-align: center;
+                vertical-align: middle;                
           }
           .flat input:not(.btn) {
                 border: none;
@@ -933,6 +940,7 @@
         <!--script src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22picker%22%2C%22version%22%3A%221%22%7D%5D%7D"></script-->
         <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
          <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.8.2/jquery.min.js" type="text/javascript"></script>
+         <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
         <!--- <script src="jquery-ui/js/jquery-1.8.2.js"></script> --->
         <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
         <script language="javascript">
@@ -1005,11 +1013,11 @@
       </div>
     </div>
 
-<div id="login" class="flat"><div id="login_bg">
+<div id="login" class="flat login"><div id="login_bg">
   <h1 id="login_header">Leisure Notebook Startup</h1><p>
   <form id="loginForm">
     <div class="box">
-    <h2>Load remote notebook from Github</h2>
+    <h2><i class="fa fa-github fa-2x"></i>Load remote notebook from Github</h2>
     <b>Your Github account</b><br>
     Login: <input id='name' type='text' placeholder="E-mail address"> Password: <input id='password' type='password' placeholder="Github Password"><hr>
     <b>Github repository for notebook:</b><br>
@@ -1028,7 +1036,7 @@
   </form>
   <p>
   <div id="local" class="box">
-  <h2>Or a local notebook on your PC</h2>
+  <h2><i class="fa fa-file-o fa-2x"></i>Or a local notebook on your PC</h2>
   <input class="btn" type="file" onchange="Leisure.useFile(this.files[0])">
   </div>
 </div></div>
@@ -1054,8 +1062,8 @@
 </div>
 
 <div class="paginators">
-  <div id="prevSlide"></div>
-  <div id="nextSlide"></div>
+  <div id="prevSlide"><i class="fa fa-caret-left fa-1x"></i></div>
+  <div id="nextSlide"><i class="fa fa-caret-right fa-1x"></i></div>
 </div>
 
 <script>start()</script>

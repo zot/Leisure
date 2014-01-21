@@ -488,11 +488,11 @@ show = (obj)-> rz(L_show)(lz obj)
 
 
 commentButton = (name)->
-  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><div></div><span></span></button>"
+  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-comment'></i><div></div><span></span></button>"
 
 toTestCaseButton = (org)->
   if isDef org then ''
-  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><div></div><span></span></button>"
+  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-mail-forward'></i><i class='fa fa-bug'></i><div></div><span></span></button>"
 
 codeBlockForNode = (node)->
   while node && node.getAttribute?('data-org-type') != 'source'
@@ -561,7 +561,7 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><div></div></button><br><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
+  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button><br><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
