@@ -13,7 +13,7 @@ freely, subject to the following restrictions:
 
 1. The origin of this software must not be misrepresented; you must not
 claim that you wrote the original software. If you use this software
-in a product, an acknowledgment in the product documentation would be
+in a product, an acknowledgement in the product documentation would be
 appreciated but is not required.
 
 2. Altered source versions must be plainly marked as such, and must not be
@@ -929,12 +929,20 @@ getTextPosition = (node, target, pos)->
     eat = false
     count = 0
     while node
+      if node == target then return count + pos
       if node.nodeType == 3
-        if node == target then return count + pos
         count += node.length
         eat = true
       node = textNodeAfter node
   -1
+
+#getTextPosition = (node, target, pos)->
+#  if node && target && pos
+#    r = document.createRange()
+#    r.setStart node, 0
+#    r.setEnd target, pos
+#    r.cloneContents().textContent.length
+#  else -1
 
 findDomPosition = (node, pos)->
   parent = node

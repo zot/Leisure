@@ -291,7 +291,7 @@ markupSource = (org, name, intertext, delay)->
   lastOrgOffset = org.offset
   if name
     nameM = name.text.match keywordRE
-    codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
+    codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
   else codeBlock = ">"
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
@@ -661,14 +661,12 @@ handleKey = (div)->(e)->
         if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
           br = document.createTextNode('\n')
           $(br).prependTo followingSpan n.parentNode
-          r.setStart br, br.length
-          r.setEnd br, br.length
-        else
-          r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
-          br.parentNode.normalize()
-        r.collapse()
+        else r.insertNode br = document.createTextNode(checkExtraNewline r, n, div)
+        r.setStart br, br.length
+        r.setEnd br, br.length
         s.removeAllRanges()
         s.addRange(r)
+        restorePosition br.parentNode, -> br.parentNode.normalize()
         setTimeout (->checkEnterReparse div, r), 1
       else if c in [BS, DEL]
         if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
@@ -947,7 +945,7 @@ toggleSlides = ->
   fancyOrg.bindings = (if slideMode then slideBindings else defaultBindings)
   if slideMode
     $("#prevSlide").click (e)-> prevSlide()
-    $("#nextSlide").click (e)-> nextSlide()  
+    $("#nextSlide").click (e)-> nextSlide()
     restorePosition null, ->
       $('[data-org-html]').addClass 'slideHtml'
       $('body').addClass 'slides'

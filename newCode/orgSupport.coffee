@@ -929,12 +929,20 @@ getTextPosition = (node, target, pos)->
     eat = false
     count = 0
     while node
+      if node == target then return count + pos
       if node.nodeType == 3
-        if node == target then return count + pos
         count += node.length
         eat = true
       node = textNodeAfter node
   -1
+
+#getTextPosition = (node, target, pos)->
+#  if node && target && pos
+#    r = document.createRange()
+#    r.setStart node, 0
+#    r.setEnd target, pos
+#    r.cloneContents().textContent.length
+#  else -1
 
 findDomPosition = (node, pos)->
   parent = node
