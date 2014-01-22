@@ -297,7 +297,6 @@ markupSource = (org, name, intertext, delay)->
   startHtml = "<div "
   contHtml = "class='codeblock' contenteditable='false' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
   if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
-  wrapper = "<table class='codewrapper'><tr><td><div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   node = org.next
   intertext = ''
   finalIntertext = ''
@@ -317,11 +316,18 @@ markupSource = (org, name, intertext, delay)->
     else if node instanceof Headline || node instanceof Keyword then break
     else intertext += escapeHtml node.text
     node = node.next
+  wrapper = "<table class='codewrapper'><tr>"
+  wrapper += "<td class='code-buttons'><ul>"
+  if testCaseButton = toTestCaseButton org then wrapper += "<li>#{testCaseButton}"
+  if name then wrapper += "<li>#{commentButton name.info.trim()}"
+  wrapper += "<li><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button>"
+  wrapper += "<li><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button>"
+  wrapper += "</ul></td>"
+  wrapper += "<td><div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText
   wrapper += "</td></tr></table>"
-  #testCase = resultsType(org) in ['test', 'autotest'] && expected && resText
   testCase = resultsType(org) in ['test', 'autotest'] && expected
-  result = contHtml + wrapper + (if name then "<div class='code-buttons'>#{commentButton name.info.trim()}<br>#{toTestCaseButton(org)}</div></div>#{commentBlock name.info.trim()}" else "<div class='code-buttons'>#{toTestCaseButton(org)}</div></div>")
+  result = contHtml + wrapper + (if name then "</div>#{commentBlock name.info.trim()}" else "</div>")
   if testCase
     testValue = testResult expected.content(), resText
     testAttr = "data-org-test='#{testValue}'"
@@ -561,7 +567,7 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td class='results-buttons'><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button><br><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
+  </td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target

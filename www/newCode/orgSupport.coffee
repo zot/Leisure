@@ -95,7 +95,7 @@ fs = null
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><div></div></button></a><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div><div id='leisure_button'></div></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><i class=\"fa fa-save\"></i><div></div></button></a><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div><div id='leisure_button'></div></div>")
     .prependTo(document.body)
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
