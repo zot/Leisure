@@ -754,14 +754,18 @@ nativeRange = (r)->
 
 hasParent = (node, ancestor)-> node == ancestor || (node && hasParent node.parent, ancestor)
 
-restorePosition = (parent, block)->
+# offset defaults to 0
+restorePosition = (parent, offset, block)->
+  if !block
+    block = offset
+    offset = 0
   sel = getSelection()
   #if sel.rangeCount && hasParent sel.focusNode, $(parent)
   if sel?.rangeCount
     #if !(hasParent sel.focusNode, $(parent)[0]) then console.log parent, 'is not a parent of ', sel.focusNode
     r = sel.getRangeAt 0
-    start = getTextPosition $(parent)[0], r.startContainer, r.startOffset
-    end = getTextPosition $(parent)[0], r.endContainer, r.endOffset
+    start = offset + getTextPosition $(parent)[0], r.startContainer, r.startOffset
+    end = offset + getTextPosition $(parent)[0], r.endContainer, r.endOffset
     block()
     if start > -1 && (r = nativeRange findDomPosition $(parent)[0], start)
       [endContainer, endOffset] = findDomPosition $(parent)[0], end

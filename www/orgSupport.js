@@ -1086,13 +1086,17 @@ misrepresented as being the original software.
     return node === ancestor || (node && hasParent(node.parent, ancestor));
   };
 
-  restorePosition = function(parent, block) {
+  restorePosition = function(parent, offset, block) {
     var end, endContainer, endOffset, r, sel, start, _ref5;
+    if (!block) {
+      block = offset;
+      offset = 0;
+    }
     sel = getSelection();
     if (sel != null ? sel.rangeCount : void 0) {
       r = sel.getRangeAt(0);
-      start = getTextPosition($(parent)[0], r.startContainer, r.startOffset);
-      end = getTextPosition($(parent)[0], r.endContainer, r.endOffset);
+      start = offset + getTextPosition($(parent)[0], r.startContainer, r.startOffset);
+      end = offset + getTextPosition($(parent)[0], r.endContainer, r.endOffset);
       block();
       if (start > -1 && (r = nativeRange(findDomPosition($(parent)[0], start)))) {
         _ref5 = findDomPosition($(parent)[0], end), endContainer = _ref5[0], endOffset = _ref5[1];
