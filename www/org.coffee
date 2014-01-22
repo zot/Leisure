@@ -412,7 +412,7 @@ parseMeat = (meat, offset, rest, middleOfLine)->
     node = new Link link[0], offset, link[LINK_INFO], children
   else
     first = meat.length + offset
-    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first, simple?.index ? first, link?.index ? first, htmlStart?.index ? first)
+    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first, simple?.index ? first, link?.index ? first, htmlStart?.index ? first, drawer?.index ? first)
     node = new Meat(meat.substring(0, first), offset)
   meat = meat.substring node.text.length
   parseRestOfMeat node, meat, rest

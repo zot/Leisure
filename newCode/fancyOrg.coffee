@@ -284,7 +284,7 @@ markupHeadline = (org, delay)->
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
 
-markupSource = (org, name, intertext, delay)->
+markupSource = (org, name, doctext, delay)->
   srcContent = org.content
   lead = org.text.substring 0, org.contentPos - org.offset
   trail = org.text.substring org.contentPos - org.offset + org.content.length
@@ -294,7 +294,7 @@ markupSource = (org, name, intertext, delay)->
   else codeBlock = ">"
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
-  contHtml = "class='codeblock' contenteditable='false' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
+  contHtml = "class='codeblock' contenteditable='false' #{orgAttrs org}#{codeBlock}"
   if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
   node = org.next
   intertext = ''
@@ -317,7 +317,7 @@ markupSource = (org, name, intertext, delay)->
     node = node.next
   if name
     nameM = name.text.match keywordRE
-    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
+    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml doctext}</div>"
   else codeName = "<div class='codename' contenteditable='true'></div>"
   wrapper = "<table class='codewrapper'><tr>"
   wrapper += "<td class='code-buttons'><ul>"
@@ -328,6 +328,7 @@ markupSource = (org, name, intertext, delay)->
   if name then wrapper += "<li>#{commentButton name.info.trim()}"
   wrapper += "</ul></td><td class='code-content'>"
   wrapper += codeName
+  wrapper += "<div class='hidden'>#{escapeHtml lead}</div>"
   wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText
   wrapper += "</td></tr></table>"
@@ -338,7 +339,7 @@ markupSource = (org, name, intertext, delay)->
     testAttr = "data-org-test='#{testValue}'"
     if delay then setTimeout (->
       $("##{escapeAttr org.nodeId}").attr 'data-org-test', testValue), 1
-    startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
+    startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<div class=#{escapeAttr "'expected-hover'"}><b>Expected:</b> #{escapeAttr expected.content()}</div>' data-org-expected='#{escapeAttr expected.content()}' #{result}"
   else
     fluff = if org.prev instanceof Source || org.prev instanceof Results then "<div class='fluff'></div>" else ''
     '<div>' + fluff + startHtml + result + '</div>'
@@ -508,9 +509,8 @@ toTestCaseButton = (org)->
   else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-mail-reply'></i><div></div><span></span></button>"
 
 codeBlockForNode = (node)->
-  while node && node.getAttribute?('data-org-type') != 'source'
-    node = node.parentNode
-  if node && !node.hasAttribute 'data-org-test' then node.parentNode else node
+  node = $(node).closest '[data-org-type="source"]'
+  if node.is '[data-org-test]' then node[0] else node[0].parentNode
 
 createTestCase = (evt)->
   console.log evt.target
