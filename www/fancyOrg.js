@@ -304,7 +304,7 @@
   };
 
   markupSource = function(org, name, intertext, delay) {
-    var channels, codeBlock, contHtml, expected, finalIntertext, lead, nameM, node, resText, result, srcContent, startHtml, testAttr, testCase, testCaseButton, testValue, trail, wrapper, _ref7;
+    var channels, codeBlock, contHtml, expected, finalIntertext, fluff, lead, nameM, node, resText, result, srcContent, startHtml, testAttr, testCase, testCaseButton, testValue, trail, wrapper, _ref7;
     srcContent = org.content;
     lead = org.text.substring(0, org.contentPos - org.offset);
     trail = org.text.substring(org.contentPos - org.offset + org.content.length);
@@ -313,7 +313,7 @@
       nameM = name.text.match(keywordRE);
       codeBlock = " data-org-codeblock='" + (escapeAttr(name.info.trim())) + "'><div class='codename' contenteditable='true'><span class='hidden'>" + (escapeHtml(nameM[KW_BOILERPLATE])) + "</span><div><larger><b>" + (escapeHtml(name.info)) + "</b></larger></div>" + (escapeHtml(intertext)) + "</div>";
     } else {
-      codeBlock = ">";
+      codeBlock = "><div class='codename' contenteditable='true'></div>";
     }
     codeBlock += "<div class='codeborder'></div>";
     startHtml = "<div ";
@@ -372,7 +372,8 @@
       }
       return startHtml + ("onclick='Leisure.toggleTestCase(event)' " + (!delay ? testAttr : '') + " title='<b>Expected:</b> " + (escapeAttr(expected.content())) + "' data-org-expected='" + (escapeAttr(expected.content())) + "' " + result);
     } else {
-      return '<div>' + startHtml + result + '</div>';
+      fluff = org.prev instanceof Source || org.prev instanceof Results ? "<div class='fluff'></div>" : '';
+      return '<div>' + fluff + startHtml + result + '</div>';
     }
   };
 

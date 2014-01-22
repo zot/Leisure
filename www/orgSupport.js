@@ -935,7 +935,7 @@ misrepresented as being the original software.
     r = getSelection().getRangeAt(0);
     if ((newMatch = matchLine(currentLine(parent))) !== oldMatch || (newMatch && newMatch.match(sensitive))) {
       return reparse(parent);
-    } else if (n = getOrgParent(r.startContainer)) {
+    } else if ($(r.startContainer).closest('[data-org-src]').length && (n = getOrgParent(r.startContainer))) {
       switch ((_ref5 = n.getAttribute('data-org-results')) != null ? _ref5.toLowerCase() : void 0) {
         case 'dynamic':
           return root.orgApi.executeSource(parent, r.startContainer);

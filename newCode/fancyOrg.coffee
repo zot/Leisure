@@ -292,7 +292,7 @@ markupSource = (org, name, intertext, delay)->
   if name
     nameM = name.text.match keywordRE
     codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
-  else codeBlock = ">"
+  else codeBlock = "><div class='codename' contenteditable='true'></div>"
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
   contHtml = "class='codeblock' contenteditable='false' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
@@ -334,7 +334,9 @@ markupSource = (org, name, intertext, delay)->
     if delay then setTimeout (->
       $("##{escapeAttr org.nodeId}").attr 'data-org-test', testValue), 1
     startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<b>Expected:</b> #{escapeAttr expected.content()}' data-org-expected='#{escapeAttr expected.content()}' #{result}"
-  else '<div>' + startHtml + result + '</div>'
+  else
+    fluff = if org.prev instanceof Source || org.prev instanceof Results then "<div class='fluff'></div>" else ''
+    '<div>' + fluff + startHtml + result + '</div>'
 
 updateChannels = (org)-> org instanceof Source && (org.info.match /:update *([^:]*)/)?[1]
 

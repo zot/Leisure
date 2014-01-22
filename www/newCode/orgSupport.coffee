@@ -669,7 +669,7 @@ checkCollapsed = (delta)->
 checkSourceMod = (parent, oldMatch)->
   r = getSelection().getRangeAt 0
   if (newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive) then reparse parent
-  else if n = getOrgParent r.startContainer
+  else if $(r.startContainer).closest('[data-org-src]').length && n = getOrgParent r.startContainer
     switch n.getAttribute('data-org-results')?.toLowerCase()
       when 'dynamic' then root.orgApi.executeSource parent, r.startContainer
       when 'def' then root.orgApi.executeDef n
