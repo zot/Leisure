@@ -323,7 +323,7 @@ markupSource = (org, name, intertext, delay)->
   wrapper += "<td class='code-buttons'><ul>"
   if testCaseButton = toTestCaseButton org then wrapper += "<li>#{testCaseButton}"
   if testCaseButton
-    wrapper += "<li><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div>Evaluate</div></button>"
+    wrapper += "<li><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button>"
     wrapper += "<li><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button>"
   if name then wrapper += "<li>#{commentButton name.info.trim()}"
   wrapper += "</ul></td><td class='code-content'>"
@@ -501,11 +501,11 @@ show = (obj)-> rz(L_show)(lz obj)
 
 
 commentButton = (name)->
-  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-comment'></i><span></span><div> Comments</div></button>"
+  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-comment'></i><span></span><div></div></button>"
 
 toTestCaseButton = (org)->
   if isDef org then ''
-  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-mail-reply'></i><div>Collapse</div><span></span></button>"
+  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-mail-reply'></i><div></div><span></span></button>"
 
 codeBlockForNode = (node)->
   while node && node.getAttribute?('data-org-type') != 'source'
