@@ -290,9 +290,8 @@ markupSource = (org, name, intertext, delay)->
   trail = org.text.substring org.contentPos - org.offset + org.content.length
   lastOrgOffset = org.offset
   if name
-    nameM = name.text.match keywordRE
-    codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'><div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
-  else codeBlock = "><div class='codename' contenteditable='true'></div>"
+    codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'>"
+  else codeBlock = ">"
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
   contHtml = "class='codeblock' contenteditable='false' #{orgAttrs org}#{codeBlock}<div class='hidden'>#{escapeHtml lead}</div>"
@@ -316,14 +315,20 @@ markupSource = (org, name, intertext, delay)->
     else if node instanceof Headline || node instanceof Keyword then break
     else intertext += escapeHtml node.text
     node = node.next
+  if name
+    nameM = name.text.match keywordRE
+    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml intertext}</div>"
+  else codeName = "<div class='codename' contenteditable='true'></div>"
   wrapper = "<table class='codewrapper'><tr>"
   wrapper += "<td class='code-buttons'><ul>"
   if testCaseButton = toTestCaseButton org then wrapper += "<li>#{testCaseButton}"
+  if testCaseButton
+    wrapper += "<li><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div>Evaluate</div></button>"
+    wrapper += "<li><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button>"
   if name then wrapper += "<li>#{commentButton name.info.trim()}"
-  wrapper += "<li><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button>"
-  wrapper += "<li><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button>"
-  wrapper += "</ul></td>"
-  wrapper += "<td><div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
+  wrapper += "</ul></td><td class='code-content'>"
+  wrapper += codeName
+  wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText
   wrapper += "</td></tr></table>"
   testCase = resultsType(org) in ['test', 'autotest'] && expected
@@ -496,11 +501,11 @@ show = (obj)-> rz(L_show)(lz obj)
 
 
 commentButton = (name)->
-  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-comment'></i><div></div><span></span></button>"
+  "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-comment'></i><span></span><div> Comments</div></button>"
 
 toTestCaseButton = (org)->
   if isDef org then ''
-  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-mail-forward'></i><i class='fa fa-bug'></i><div></div><span></span></button>"
+  else "<button class='testcase-button' onclick='Leisure.createTestCase(event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-mail-reply'></i><div>Collapse</div><span></span></button>"
 
 codeBlockForNode = (node)->
   while node && node.getAttribute?('data-org-type') != 'source'
@@ -569,7 +574,7 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text)->
   """
-  </td><td><div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
+  <div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target

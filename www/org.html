@@ -33,6 +33,7 @@
                 .steampunk .coderesults {
                         border: solid rgb(156, 122, 71) 2px;
                         background-color: #e6dcc3;
+                        border-radius: 10px;
                 }
                 .steampunk .comments > * {
                         border: solid rgb(156, 122, 15) 2px;
@@ -107,6 +108,29 @@
                         -webkit-user-select: none;
                         user-select: none;
                 }
+                .steampunk .code-buttons ul {
+                        list-style: none;
+                }
+                .steampunk .code-buttons {
+                        background: none;
+                }
+                .steampunk .code-buttons button{
+                        background-color: #ccb271;
+                }
+                .steampunk .code-buttons button:hover {
+                        background-color: #e6dcc3;
+                }
+                .steampunk .results-indicator .fa, .steampunk .testcase-button .fa {
+                        display: none;
+                }
+                .steampunk .code-buttons button div {
+                        display: none;
+                }
+                .steampunk .comments-button, .steampunk .testcase-button, .steampunk .dyntoggle-button {
+                        height: 32px;
+                        width: 48px;
+                        background: none;
+                }
                 .steampunk [data-org-test] > * {
                         display: none;
                 }
@@ -140,7 +164,7 @@
                 .steampunk #leisure_bar #saveButton div:after {
                         content: none;
                 }
-                .steampunk #leisure_bar #saveButton i {
+                .steampunk #leisure_bar #saveButton .fa {
                         display: none;
                 }
                 .steampunk #leisure_popup #saveButton {
@@ -201,15 +225,19 @@
                         width: 128px;
                         height: 64px;
                 }
+                .steampunk #nextSlide .fa, .steampunk #prevSlide .fa {
+                        display: none;
+                }
                 .steampunk .testcase-button {
                         padding: 0px 0px;
                 }
-                .steampunk .testcase-button div {
+                .steampunk .testcase-button {
                         background-image: url(images/finger_gauge.png);
                         background-color: #e6dcc3;
                         background-repeat: no-repeat;
                         background-size: 90px 32px;
                         width: 90px;
+                        height: 32px;
                 }
                 .steampunk button {
                         border: solid rgb(96, 57, 19) 2px;
@@ -218,6 +246,7 @@
                 .steampunk .comment-button {
                         background-color: #e6dcc3;
                         border: solid rgb(96, 57, 19) 2px;
+                        height: 32px;
                 }
                 .steampunk .commentbox > .main,  .steampunk .commentbox > .added {
                         border: none;
@@ -226,13 +255,11 @@
                 .steampunk .page {
                         background-color: #A58C4D;
                 }
-                .steampunk .results-indicator div {
+                .steampunk .results-indicator {
                         background: url(images/lightbulb.png) no-repeat 0% 0% / 100% 100%;
                         background-color: #e6dcc3;
-                        width: 36px;
-                        height: 36px;
-                }
-                .steampunk .results-indicator {
+                        width: 48px;
+                        height: 48px;
                         padding: 0px;
                 }
                 .steampunk .codeblock .dyntoggle:before {
@@ -240,7 +267,6 @@
                 }
                 .steampunk .codeblock .dyntoggle {
                         background: url(images/unlink_icon.png) no-repeat 0% 0% / 100% 100%;
-                        background-color: #e6dcc3;
                         display: block;
                         width: 36px;
                         height: 13px;
@@ -338,7 +364,7 @@
                         min-height: 64px;
                         display: inline-block;
                         position: relative;
-                        padding: 3px;
+                        padding: 0px;
                         padding-right: 32px;
                 }
                 .codeborder {
@@ -355,23 +381,27 @@
                 .codename {
                         padding-left: 24px;
                 }
+                .code-content {
+                        padding: 10px;
+                }
                 .codewrapper {
                         white-space: pre-wrap;
                         position: relative;
                         vertical-align: middle;
+                        border-spacing: 0px;
                 }
-                .org-fancy [data-org-src], .coderesults {
+                .org-fancy [data-org-src] {
                         border-radius: 10px;
                         padding: 3px;
                         background: white;
-                        display: inline-block;
+                        display: block;
                         vertical-align: middle;
                 }
                 .testcase-button div {
-                        display: none;
+                        display: inline-block;
                 }
                 .results-indicator div {
-                        display: none;
+                        display: inline-block;
                 }
                 .codeblock .dyntoggle:before {
                         content: 'link';
@@ -391,7 +421,11 @@
                 .coderesults {
                         border: solid blue 2px;
                         min-width: 100px;
+                        min-height: 22px;
                         height: 100%;
+                        display: block;
+                        margin-top: 10px;
+                        padding: 3px;
                 }
                 [data-org-results="def"] .coderesults,
                 [data-org-results="def"] .results-buttons {
@@ -428,6 +462,8 @@
                 .code-buttons {
                         vertical-align: top;
                         white-space: nowrap;
+                        padding: 0px;
+                        background: #666666;
                 }
                 .code-buttons ul {
                         margin-top: 0;
@@ -440,10 +476,16 @@
                         cursor: pointer;
                 }
                 .code-buttons button {
+                        border-radius: 0px;
+                        background: #333333;
+                        height: 80px;
                         width: 100%;
                         margin-bottom: 0;
                         margin-top: 2px;
                         margin-bottom: 0;
+                }
+                .code-buttons button:hover {
+                        background-color: #666666;
                 }
                 .code-buttons li:first-child button {
                         margin-top: 0;
@@ -546,7 +588,8 @@
                         width: 72px;
                 }
                 .comment-button div {
-                        display: none;
+                        display: inline-block;
+                        padding-left: 6px;
                 }
                 .comment-button.new-comments span {
                         color: #e74c3c;
@@ -708,7 +751,6 @@
                         background: #666666;
                         border-radius: 4px;
                         color: white;
-                        padding: 10px;
                 }
                 .flat .org-fancy [data-org-src], .flat .coderesults  {
                         background: white;
@@ -799,13 +841,6 @@
                         background: #549cde;
                         text-decoration: none;
                 }
-                .flat .comment-button {
-                        /*position: relative;*/
-                        padding: 2px 8px 2px 8px;
-                }
-                .flat .comment-button div {
-                        display: none;
-                }
                 .flat .comments div {
                         background: #2c3e50;
                         border: none;
@@ -819,6 +854,13 @@
                         border: none;
                         color: white;
                         border-radius: 2px;
+                }
+                .flat .code-buttons button {
+                        border-radius: 0px;
+                        background: #333333;
+                }
+                .flat .code-buttons button:hover {
+                        background: #666666;
                 }
         </style>
         <style>
