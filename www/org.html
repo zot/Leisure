@@ -836,10 +836,19 @@
                         transition: all 0.2s ease-in-out;
                         cursor: pointer;
                 }
+                .flat #nextSlide, .flat #prevSlide {
+                        background: none;
+                        border: solid rgb(54, 142, 224) 4px;
+                        color: #368ee0;
+                }
                 .flat #nextSlide:hover, .flat #prevSlide:hover, .flat button:hover {
                         outline: none;
                         background: #549cde;
                         text-decoration: none;
+                }
+                .flat #nextSlide:hover, .flat #prevSlide:hover {
+                        color: white;
+                        background: #368ee0
                 }
                 .flat .comments div {
                         background: #2c3e50;
