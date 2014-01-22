@@ -114,7 +114,10 @@ emptyPresenter =
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
 
-root.restorePosition = restorePosition = (parent, block)->
+root.restorePosition = restorePosition = (parent, delta, block)->
+  if !block
+    block = delta
+    delta = 0
   sel = getSelection()
   slide = slideParent sel.focusNode
   slideIndex = slideOffset slide
@@ -123,9 +126,9 @@ root.restorePosition = restorePosition = (parent, block)->
     parent = doc.parentNode
     docPos = childIndex parent, doc
     r = sel.getRangeAt 0
-    start = getTextPosition doc, r.startContainer, r.startOffset
+    start = delta + getTextPosition doc, r.startContainer, r.startOffset
     if start > -1
-      end = getTextPosition doc, r.endContainer, r.endOffset
+      end = delta + getTextPosition doc, r.endContainer, r.endOffset
       [container, sta] = findDomPosition doc, start
       if (isCollapsed container) && sta == 0 then container = textNodeBefore container
       #offset = documentTop(container) - window.pageYOffset
@@ -285,6 +288,7 @@ markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
 
 markupSource = (org, name, doctext, delay)->
+  top = name ? org
   srcContent = org.content
   lead = org.text.substring 0, org.contentPos - org.offset
   trail = org.text.substring org.contentPos - org.offset + org.content.length
@@ -341,7 +345,7 @@ markupSource = (org, name, doctext, delay)->
       $("##{escapeAttr org.nodeId}").attr 'data-org-test', testValue), 1
     startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<div class=#{escapeAttr "'expected-hover'"}><b>Expected:</b> #{escapeAttr expected.content()}</div>' data-org-expected='#{escapeAttr expected.content()}' #{result}"
   else
-    fluff = if org.prev instanceof Source || org.prev instanceof Results then "<div class='fluff'></div>" else ''
+    fluff = if top.prev instanceof Source || top.prev instanceof Results then "<div class='fluff' data-newline></div>" else ''
     '<div>' + fluff + startHtml + result + '</div>'
 
 updateChannels = (org)-> org instanceof Source && (org.info.match /:update *([^:]*)/)?[1]
@@ -699,13 +703,18 @@ handleKey = (div)->(e)->
         return
   if !cancelled && checkMod
     if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
-    setTimeout (->fancyCheckSourceMod n, div, currentMatch), 1
+    setTimeout (->fancyCheckSourceMod n, div, currentMatch, (if el.nodeType == 1 then el.firstChild else el)), 1
 
 getCodeContainer = (node)->
   node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
   if code = getCodeContainer focus then recreateAstButtons div, code
+  #else if $(el.parentNode).is('.codename') && !el.parentNode.textContent.match /#+NAME:/
+  #  prefix = "#+NAME: "
+  #  restorePosition el.parentNode.parentNode, prefix.length, ->
+  #    txt = el.parentNode.textContent
+  #    el.parentNode.textContent = "#{prefix}#{txt}#{if !txt.match /\n/ then '\n' else ''}"
   else if needsNewline el
     restorePosition el.parentNode, ->
       el.data += '\n'
@@ -714,17 +723,22 @@ fancyCheckSourceMod = (focus, div, currentMatch, el)->
 
 #needsNewline = (el)-> el && !el.nextSibling && el.data[el.data.length - 1] != '\n'
 
+#needsNewline = (el)->
+#  if el && !el.nextSibling && el.data[el.data.length - 1] != '\n'
+#    next = textNodeAfter el
+#    if next && el.parentNode != next.parentNode
+#      r = document.createRange()
+#      r.setStart el, 0
+#      r.setEnd next, next.data.length
+#      ance = r.commonAncestorContainer
+#      while el && (el = el.parentNode) != ance
+#        if getComputedStyle(el).display == 'block' then return true
+#  return false
+
 needsNewline = (el)->
-  if el && !el.nextSibling && el.data[el.data.length - 1] != '\n'
-    next = textNodeAfter el
-    if next && el.parentNode != next.parentNode
-      r = document.createRange()
-      r.setStart el, 0
-      r.setEnd next, next.data.length
-      ance = r.commonAncestorContainer
-      while el && (el = el.parentNode) != ance
-        if getComputedStyle(el).display == 'block' then return true
-  return false
+  if !el then false
+  else if el.nodeType == 3 then needsNewline el.parentNode
+  else el.nodeType == 1 && $(el).is('[data-newline]')
 
 bsWillDestroyParent = (r)->
   if r.startContainer.nodeType == 3 && r.startOffset == 1 && r.startContainer.data.match /^.\n?$/
