@@ -43,8 +43,12 @@
 
   DOCUMENT_POSITION_CONTAINED_BY = 16;
 
-  root.restorePosition = restorePosition = function(parent, block) {
+  root.restorePosition = restorePosition = function(parent, delta, block) {
     var c, container, doc, docPos, end, endContainer, endOffset, newSlide, offset, r, sel, slide, slideIndex, sta, start, _ref7, _ref8;
+    if (!block) {
+      block = delta;
+      delta = 0;
+    }
     sel = getSelection();
     slide = slideParent(sel.focusNode);
     slideIndex = slideOffset(slide);
@@ -53,9 +57,9 @@
       parent = doc.parentNode;
       docPos = childIndex(parent, doc);
       r = sel.getRangeAt(0);
-      start = getTextPosition(doc, r.startContainer, r.startOffset);
+      start = delta + getTextPosition(doc, r.startContainer, r.startOffset);
       if (start > -1) {
-        end = getTextPosition(doc, r.endContainer, r.endOffset);
+        end = delta + getTextPosition(doc, r.endContainer, r.endOffset);
         _ref7 = findDomPosition(doc, start), container = _ref7[0], sta = _ref7[1];
         if ((isCollapsed(container)) && sta === 0) {
           container = textNodeBefore(container);
@@ -242,7 +246,7 @@
       t = t.parentNode;
     }
     if (t) {
-      return document.location = t.href;
+      return window.open(t.href, "links");
     }
   };
 
@@ -304,7 +308,8 @@
   };
 
   markupSource = function(org, name, doctext, delay) {
-    var channels, codeBlock, codeName, contHtml, expected, finalIntertext, fluff, intertext, lead, nameM, node, resText, result, srcContent, startHtml, testAttr, testCase, testCaseButton, testValue, trail, wrapper, _ref7;
+    var channels, codeBlock, codeName, contHtml, expected, finalIntertext, fluff, intertext, lead, nameM, node, resText, result, srcContent, startHtml, testAttr, testCase, testCaseButton, testValue, top, trail, wrapper, _ref7;
+    top = name != null ? name : org;
     srcContent = org.content;
     lead = org.text.substring(0, org.contentPos - org.offset);
     trail = org.text.substring(org.contentPos - org.offset + org.content.length);
@@ -381,7 +386,7 @@
       }
       return startHtml + ("onclick='Leisure.toggleTestCase(event)' " + (!delay ? testAttr : '') + " title='<div class=" + (escapeAttr("'expected-hover'")) + "><b>Expected:</b> " + (escapeAttr(expected.content())) + "</div>' data-org-expected='" + (escapeAttr(expected.content())) + "' " + result);
     } else {
-      fluff = org.prev instanceof Source || org.prev instanceof Results ? "<div class='fluff'></div>" : '';
+      fluff = top.prev instanceof Source || top.prev instanceof Results ? "<div class='fluff' data-newline></div>" : '';
       return '<div>' + fluff + startHtml + result + '</div>';
     }
   };
@@ -923,7 +928,7 @@
           needsReparse = true;
         }
         return setTimeout((function() {
-          return fancyCheckSourceMod(n, div, currentMatch);
+          return fancyCheckSourceMod(n, div, currentMatch, (el.nodeType === 1 ? el.firstChild : el));
         }), 1);
       }
     };
@@ -947,22 +952,13 @@
   };
 
   needsNewline = function(el) {
-    var ance, next, r;
-    if (el && !el.nextSibling && el.data[el.data.length - 1] !== '\n') {
-      next = textNodeAfter(el);
-      if (next && el.parentNode !== next.parentNode) {
-        r = document.createRange();
-        r.setStart(el, 0);
-        r.setEnd(next, next.data.length);
-        ance = r.commonAncestorContainer;
-        while (el && (el = el.parentNode) !== ance) {
-          if (getComputedStyle(el).display === 'block') {
-            return true;
-          }
-        }
-      }
+    if (!el) {
+      return false;
+    } else if (el.nodeType === 3) {
+      return needsNewline(el.parentNode);
+    } else {
+      return el.nodeType === 1 && $(el).is('[data-newline]');
     }
-    return false;
   };
 
   bsWillDestroyParent = function(r) {
@@ -1102,7 +1098,7 @@
   };
 
   newCommentBox = function(name, codeId) {
-    return "<textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"" + name + "\", event)'>Add Comment</button>";
+    return "<div class='" + (typeof theme !== "undefined" && theme !== null ? theme : '') + "'><textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"" + name + "\", event)'>Add Comment</button></div>";
   };
 
   colonify = function(str) {
