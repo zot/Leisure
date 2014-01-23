@@ -324,13 +324,13 @@ markupSource = (org, name, doctext, delay)->
     codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml doctext}</div>"
   else codeName = "<div class='codename' contenteditable='true'></div>"
   wrapper = "<table class='codewrapper'><tr>"
-  wrapper += "<td class='code-buttons'><ul>"
-  if testCaseButton = toTestCaseButton org then wrapper += "<li>#{testCaseButton}"
+  wrapper += "<td class='code-buttons'>"
+  if testCaseButton = toTestCaseButton org then wrapper += "<div>#{testCaseButton}</div>"
   if testCaseButton
-    wrapper += "<li><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button>"
-    wrapper += "<li><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button>"
-  if name then wrapper += "<li>#{commentButton name.info.trim()}"
-  wrapper += "</ul></td><td class='code-content'>"
+    wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button></div>"
+    wrapper += "<div><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></div>"
+  if name then wrapper += "<div>#{commentButton name.info.trim()}</div>"
+  wrapper += "</td><td class='code-content'>"
   wrapper += codeName
   wrapper += "<div class='hidden'>#{escapeHtml lead}</div>"
   wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
@@ -995,7 +995,7 @@ setTheme = (str)->
   if str then el.addClass str
   dd = $("#themeSelect")
   if dd then dd.val theme
-  
+
 define 'setTheme', lz (str)->
   makeSyncMonad (env, cont)->
     if str != theme then setTheme rz str

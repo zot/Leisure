@@ -357,18 +357,18 @@
       codeName = "<div class='codename' contenteditable='true'></div>";
     }
     wrapper = "<table class='codewrapper'><tr>";
-    wrapper += "<td class='code-buttons'><ul>";
+    wrapper += "<td class='code-buttons'>";
     if (testCaseButton = toTestCaseButton(org)) {
-      wrapper += "<li>" + testCaseButton;
+      wrapper += "<div>" + testCaseButton + "</div>";
     }
     if (testCaseButton) {
-      wrapper += "<li><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button>";
-      wrapper += "<li><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button>";
+      wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button></div>";
+      wrapper += "<div><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></div>";
     }
     if (name) {
-      wrapper += "<li>" + (commentButton(name.info.trim()));
+      wrapper += "<div>" + (commentButton(name.info.trim())) + "</div>";
     }
-    wrapper += "</ul></td><td class='code-content'>";
+    wrapper += "</td><td class='code-content'>";
     wrapper += codeName;
     wrapper += "<div class='hidden'>" + (escapeHtml(lead)) + "</div>";
     wrapper += "<div " + (orgSrcAttrs(org)) + " contenteditable='true'>" + (escapeHtml(srcContent)) + "</div><span class='hidden' data-org-type='boundary'>" + (escapeHtml(trail)) + "</span>";

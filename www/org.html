@@ -108,9 +108,11 @@
                         -webkit-user-select: none;
                         user-select: none;
                 }
+                /*
                 .steampunk .code-buttons ul {
                         list-style: none;
                 }
+                */
                 .steampunk .code-buttons {
                         background: none;
                 }
@@ -325,7 +327,7 @@
                         top: 0px;
                         overflow: visible;
                         cursor: pointer;
-                }       
+                }
                 [maindoc] {
                         white-space: pre-wrap;
                         outline: none;
@@ -500,7 +502,7 @@
                 .code-buttons button:hover {
                         background-color: #666666;
                 }
-                .code-buttons li:first-child button {
+                .code-buttons > div:first-child button {
                         margin-top: 0;
                 }
                 .fluff {
@@ -795,7 +797,7 @@
                         background-color: #27ae60;
                         color: #f1c40f;
                         bottom: 20px;
-                        position: absolute;                        
+                        position: absolute;
                 }
                 .flat .team_cthulhu button:hover {
                         background-color: #1c7d45;
@@ -924,7 +926,7 @@
                 }
                 .flat .comments div {
                         background: #2c3e50;
-                        background: linear-gradient(#34495e, #2c3e50);                        
+                        background: linear-gradient(#34495e, #2c3e50);
                         border: none;
                         border-radius: 5px;
                 }
