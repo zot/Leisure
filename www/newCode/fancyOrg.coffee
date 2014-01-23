@@ -248,7 +248,7 @@ root.followLink = (e)->
   t = e.target
   while t && t.nodeName != 'A'
     t = t.parentNode
-  if t then document.location = t.href
+  if t then window.open t.href, "links"
 
 markupSimple = (org)->
   guts = ''
