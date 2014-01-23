@@ -87,9 +87,18 @@ misrepresented as being the original software.
     var b;
     parentSpec = parent;
     sourceSpec = source;
-    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_grip'><i class='fa fa-angle-right fa-2x'></i></div><div id='leisure_popup'><a id='saveButton' download='leisureFile.lorg'><button><i class=\"fa fa-save\"></i><div></div></button></a><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input></div><div id='leisure_button'><i class='fa fa-glass'></i><div></div></div></div>").prependTo(document.body).find('#leisure_button').mousedown(function(e) {
+    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><a href='#'><div id='leisure_grip'><i class='fa fa-angle-left fa-2x'></i></div></a><div id='leisure_button'><i class='fa fa-glass'></i><div></div></div><div><a id='saveButton' download='leisureFile.lorg'><button><i class=\"fa fa-save\"></i><div></div></button></a></div><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><div class='team_cthulhu'><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button><div>TEAM CTHULHU</div></button></a><div>").prependTo(document.body).find('#leisure_button').mousedown(function(e) {
       e.preventDefault();
       return root.currentMode.leisureButton();
+    });
+    $("#leisure_grip").click(function(e) {
+      var g;
+      g = $("#leisure_bar");
+      if (g.hasClass('bar_collapse')) {
+        return g.removeClass('bar_collapse');
+      } else {
+        return g.addClass('bar_collapse');
+      }
     });
     $("#themeSelect").change(function(e) {
       return Leisure.setTheme(e.target.value);

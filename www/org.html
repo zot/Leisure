@@ -725,17 +725,17 @@
                         position: fixed;
                         background: none;
                         background-color: #666666;
-                        left: -230px;
+                        left: 0px;
+                        opacity: 1;
                         width: 250px;
                         height: 100%;
                         z-index: 9999;
-                        opacity: 0.25;
                         /* border-right: 2px solid #aaaaaa; */
                         transition: left 0.2s, opacity 0.2s;
                 }
-                .flat #leisure_bar:hover {
-                        left: 0px;
-                        opacity: 1;
+                .flat #leisure_bar.bar_collapse {
+                        left: -230px;
+                        opacity: 0.25;
                 }
                 .flat #leisure_button {
                         position: relative;
@@ -761,26 +761,27 @@
                         content: 'Leisure';
                 }
                 .flat #leisure_grip {
-                        color: black;
+                        font-weight: bolder;
+                        color: white;
                         display: inline;
                         position: fixed;
-                        left: 0px;
+                        left: 230px;
                         top: 50%;
                         transition: left 0.2s;
                 }
-                .flat #leisure_grip .fa {
-                        font-weight: bolder;
+                .flat #leisure_grip:hover {
+                        color: black;
                 }
-                .flat #leisure_bar:hover #leisure_grip {
-                        left: 230px;
+                .flat .bar_collapse #leisure_grip {
+                        left: 0px;
                 }
                 .flat #saveButton button div {
                         display: inline-block;
                 }
-                .flat .leisure_theme, .flat #saveButton button {
+                .flat .leisure_theme, .flat #saveButton button, .flat .team_cthulhu button {
                         margin: 0px;
                         width: 230px;
-                        height: 60px;
+                        height: 80px;
                         color: white;
                         background-color: #999999;
                         font-weight: bold;
@@ -789,6 +790,15 @@
                         border-radius: 0px;
                         margin-top: 2px;
                         transition: all 0.2s ease-in-out;
+                }
+                .flat .team_cthulhu button {
+                        background-color: #27ae60;
+                        color: #f1c40f;
+                        bottom: 20px;
+                        position: absolute;                        
+                }
+                .flat .team_cthulhu button:hover {
+                        background-color: #1c7d45;
                 }
                 .flat .leisure_theme {
                         padding-top: 24px;
