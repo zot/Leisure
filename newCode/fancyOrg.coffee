@@ -813,7 +813,7 @@ commentHtml = (comment, type)->
   "<div class='commentbox'><img src='http://gravatar.com/avatar/#{comment.user.gravatar_id}?s=48'><div class='#{type}'>#{comment.body}</div></div>"
 
 newCommentBox = (name, codeId)->
-  "<textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"#{name}\", event)'>Add Comment</button>"
+  "<div class='#{theme ? ''}'><textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"#{name}\", event)'>Add Comment</button></div>"
 
 colonify = (str)-> ': ' + (str.replace /[\n\\]/g, (c)-> if c == '\n' then '\\n' else '\\\\') + '\n'
 
