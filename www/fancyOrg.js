@@ -1387,7 +1387,7 @@
   theme = null;
 
   setTheme = function(str) {
-    var el, node, _i, _len, _ref7;
+    var dd, el, node, _i, _len, _ref7;
     el = $('body');
     _ref7 = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child'));
     for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
@@ -1402,13 +1402,19 @@
     }
     theme = str;
     if (str) {
-      return el.addClass(str);
+      el.addClass(str);
+    }
+    dd = $("#themeSelect");
+    if (dd) {
+      return dd.val(theme);
     }
   };
 
   define('setTheme', lz(function(str) {
     return makeSyncMonad(function(env, cont) {
-      setTheme(rz(str));
+      if (str !== theme) {
+        setTheme(rz(str));
+      }
       return cont(rz(L_true));
     });
   }));

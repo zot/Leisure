@@ -993,10 +993,12 @@ setTheme = (str)->
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str
-
+  dd = $("#themeSelect")
+  if dd then dd.val theme
+  
 define 'setTheme', lz (str)->
   makeSyncMonad (env, cont)->
-    setTheme rz str
+    if str != theme then setTheme rz str
     cont rz L_true
 
 define 'toggleSlides', lz makeSyncMonad (env, cont)->

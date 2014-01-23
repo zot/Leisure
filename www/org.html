@@ -959,6 +959,9 @@
                 .flat .dyntoggle {
                         font-weight: bold;
                 }
+                .flat :focus {
+                        outline: none;
+                }
         </style>
         <style>
           /* styles for Leisure output */
@@ -1142,7 +1145,6 @@
                                         $('#panel').css('display', '');
                                         Leisure.initOrg('[maindoc]', '#source');
                                         Leisure.setTheme('steampunk');
-                                        $("#themeSelect option").filter(function() { return $(this).text() == "Steampunk"; }).attr('selected', true);
                                         $('#name').focus();
                                         $('#loginForm').submit(function(e) {
                                           e.preventDefault();
