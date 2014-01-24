@@ -87,13 +87,13 @@ misrepresented as being the original software.
     var b;
     parentSpec = parent;
     sourceSpec = source;
-    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><div id='leisure_button'><i class='fa fa-glass'></i><div></div></div>\n<div id='leisure_grip'><i class='fa fa-angle-down fa-2x'></i><i class='fa fa-angle-up fa-2x'></i></div>\n<div class='leisure_rollup'><div><a id='saveButton' download='leisureFile.lorg'><button><i class=\"fa fa-save\"></i><div></div></button></a></div><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><div class='team_cthulhu'><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button><div><img src='images/eldersign.png'>TEAM CTHULHU</div></button></a><div></div>").prependTo(document.body).find('#leisure_button').mousedown(function(e) {
+    $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' download='leisureFile.lorg'><i class=\"fa fa-save\"></i><div></div></button><div id=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div>").prependTo(document.body).find('#leisure_button').mousedown(function(e) {
       e.preventDefault();
       return root.currentMode.leisureButton();
     });
     $("#leisure_grip").click(function(e) {
       var g;
-      g = $("#leisure_bar");
+      g = $("body");
       if (g.hasClass('bar_collapse')) {
         return g.removeClass('bar_collapse');
       } else {

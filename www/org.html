@@ -116,7 +116,7 @@
                 .steampunk .code-buttons {
                         background: none;
                 }
-                .steampunk .code-buttons button{
+                .steampunk .code-buttons buttonv{
                         background-color: #ccb271;
                 }
                 .steampunk .code-buttons button:hover {
@@ -151,69 +151,6 @@
                         /*padding-right: calc(29px + 32px);*/
                         padding-right: calc(29px + 90px);
                 }
-                .steampunk #leisure_button {
-                        min-height: 67px;
-                        width: 177px;
-                        top: auto;
-                        background-image: url(images/steampunk_leisure_button.png);
-                        background-repeat: no-repeat;
-                        background-size: 177px 67px;
-                        left: calc(50% - 89px);
-                        bottom: 50px;
-                        cursor: pointer;
-                        z-index: 100;
-                }
-                .steampunk #leisure_bar #saveButton div:after {
-                        content: none;
-                }
-                .steampunk #leisure_bar #saveButton .fa {
-                        display: none;
-                }
-                .steampunk #leisure_popup #saveButton {
-                        left: 50px;
-                        top: 50px;
-                        position: absolute;
-                 }
-                .steampunk #leisure_popup #saveButton button {
-                        padding: 0px 0px;
-                }
-                .steampunk #leisure_popup #saveButton button div {
-                        background: url(images/steampunk_save_icon.png) no-repeat;
-                        background-size: 100px 25px;
-                        background-color: #e6dcc3;
-                        width: 100px;
-                        height: 25px;
-                }
-                .steampunk #leisure_bar #leisure_popup {
-                        margin-left: auto;
-                        margin-right: auto;
-                        bottom: 15px;
-                        z-index: 99;
-                        position: fixed;
-                        top: auto;
-                        left: 0px;
-                        right: 0px;
-                        width: 256px;
-                        height: 0px;
-                        background: url(images/steampunk_wood_panel.png) no-repeat 0% 0% / 100% 100%;
-                }
-                .steampunk #leisure_bar:hover #leisure_popup,
-                .steampunk #leisure_bar:active #leisure_popup {
-                        height: 256px;
-                        transition: all 0.2s ease-in-out;
-                }
-                .steampunk .leisure_theme * {
-                        color: black;
-                        font-family: MouseDeco;
-                }
-                .steampunk .leisure_theme {
-                        left: 40px;
-                        top: 100px;
-                        position: absolute;
-                }
-                .steampunk #leisure_grip {
-                        display: none;
-                }
                 .steampunk #nextSlide {
                         position: absolute;
                         right: 150px;
@@ -221,6 +158,7 @@
                         background: url(images/right_hand.png) no-repeat 0% 0% / 100% 100%;
                         width: 128px;
                         height: 64px;
+                        border: none;
                 }
                 .steampunk #prevSlide {
                         position: absolute;
@@ -229,6 +167,7 @@
                         background: url(images/left_hand.png) no-repeat 0% 0% / 100% 100%;
                         width: 128px;
                         height: 64px;
+                        border: none;
                 }
                 .steampunk #nextSlide .fa, .steampunk #prevSlide .fa {
                         display: none;
@@ -247,6 +186,13 @@
                 .steampunk button {
                         border: solid rgb(96, 57, 19) 2px;
                         cursor: pointer;
+                        color: black;
+                }
+                .steampunk buttons button {
+                        background-color: #ccb271;
+                }
+                .steampunk button:hover {
+                        background-color: #e6dcc3;
                 }
                 .steampunk .comment-button {
                         background-color: #e6dcc3;
@@ -295,9 +241,7 @@
                 .steampunk .fa *:not(.login) {
                         display: none;
                 }
-                .steampunk #leisure_button .fa {
-                        display: none;
-                }
+
         </style>
         <style>
                 body {
@@ -305,6 +249,128 @@
                         margin: 0;
                         font-size: large;
                         background: #CCCCCC;
+                }
+                #leisure_bar {
+                        font-size: 0px;
+                        display: block;
+                        width: 100%;
+                        height: 45px;
+                        background-color: #666666;
+                        position: fixed;
+                        z-index: 9999;                        
+                }
+                #leisure_rollup {
+                        vertical-align: top;
+                        display: inline-block;
+                        top: 0px;
+                        height: 60px;
+                }
+                #leisure_bar button, #leisure_theme {
+                        vertical-align: top;
+                        display: inline-block;
+                        top: 0px;
+                        height: 45px;
+                        background-color: #111111;
+                        border-radius: 0px;
+                        text-align: center;
+                        color: white;
+                        font-family: Arial;
+                        font-size: x-large;
+                        font-weight: bold;                        
+                        border: none;
+                        outline: none;
+                        margin: 0px;
+                        margin-left: 2px;
+                        transition: background-color 0.2s;
+                }
+                #leisure_bar button:hover, #leisure_theme:hover {
+                        background-color: #333333;
+                }
+                #leisure_bar button#leisure_grip {
+                        margin: 0px;
+                }
+                #leisure_theme {
+                        margin-left: 2px;
+                        padding-left: 20px;
+                        padding-right: 20px;
+                        padding-top: 6px;
+                        height: 39px;
+                }
+                #themeSelect {
+                        font-size: large;
+                        outline: none;
+                }
+                #leisure_bar button:not(#leisure_grip) i {
+                        padding-left: 20px;
+                }
+                #leisure_bar button div {
+                        padding-right: 20px;
+                        display: inline-block;
+                }
+                #leisure_button div {
+                        font-style: italic;
+                }
+                #leisure_button div:after {
+                        content: 'LEISURE';
+                }
+                #leisure_grip i.fa-angle-left, .bar_collapse #leisure_grip i.fa-angle-right {
+                        color: #ccc;
+                        display: inline;
+                }
+                .bar_collapse #leisure_grip i.fa-angle-left, #leisure_grip i.fa-angle-right {
+                        display: none;
+                }
+                .bar_collapse #leisure_button, .bar_collapse #leisure_rollup {
+                        display: none;
+                }
+                .bar_collapse #leisure_grip {
+                        opacity: 0.25;
+                        border-bottom-right-radius: 10px;
+                        border-top-right-radius: 10px;
+                }
+                .bar_collapse #leisure_bar {
+                        width: 0px;
+                }
+                .bar_collapse #panel {
+                        top: 0px;
+                }
+                #saveButton div:after {
+                        content: 'Save';
+                }
+                button#team_cthulhu  {
+                        right: 0%;
+                        position: absolute;
+                        background-color: #27ae60;
+                        color: #f1c40f;
+                        text-decoration: none;
+                        padding-left: 20px;
+                        padding-right: 20px;
+                }
+                #team_cthulhu img {
+                        width: 24px;
+                        height: 24px;
+                        padding-right: 4px;
+                }
+                button#team_cthulhu:hover {
+                        background-color: #1c7d45;
+                }                
+                #panel {
+                        padding-top: 2px;
+                        top: 45px;
+                        position: relative;
+                }
+                #nextSlide, #prevSlide {
+                        top: 80px;
+                        z-index: 999;
+                }
+                #nextSlide {
+                        right: 50px;
+                }
+                #prevSlide {
+                        left: 50px;
+                }                
+                .bar_collapse #nextSlide, .bar_collapse #prevSlide {
+                        top: 35px;
                 }
                 .org-fancy {
                         font-family: Arial;
@@ -319,18 +385,19 @@
                 #loading-message {
                         vertical-align: middle;
                 }
-                #leisure_button {
-                        position: fixed;
-                        z-index: 100;
-                        width: 135px;
-                        right: 0px;
-                        top: 0px;
-                        overflow: visible;
-                        cursor: pointer;
-                }
+
                 [maindoc] {
                         white-space: pre-wrap;
                         outline: none;
+                }
+                .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        width: 100%;
+                        z-index: 0;
+                        position: fixed;
+                        top: 45px;
+                }
+                .bar_collapse .slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        top: 0px;
                 }
                 [data-org-type="headline"] > [data-org-type="text"] {
                         color: white;
@@ -425,6 +492,9 @@
                 [data-org-results='dynamic'] .dyntoggle:after {
                         content: 'Linked';
                 }
+                .dyntoggle .fa {
+                        padding-right: 10px;
+                }
                 .org-num:hover {
                         outline: solid gray 2px;
                 }
@@ -511,6 +581,19 @@
                 .fluff {
                         min-height: 1.5em;
                 }
+                button {
+                        cursor: pointer;
+                        border: none;
+                        outline: none;
+                        font-size: 20px;
+                        font-weight: bold;
+                        color: #fff;
+                        background-color: #2980b9;
+                        transition: background-color 0.2s ease-in-out;
+                }
+                button:hover {
+                        background-color: #3498db;
+                }
                 .ast-button {
                         position: absolute;
                         margin-top: 5px;
@@ -542,9 +625,7 @@
                 .showcomments.ast {
                         display: inline-block;
                 }
-                #leisure_bar #saveButton div:after {
-                        content: 'Save';
-                }
+
                 #nwSaveButton {
                         display: none;
                 }
@@ -594,11 +675,11 @@
                         z-index: -1;
                 }
                 .pagecontent {
-                        padding: 120px 300px;
+                        padding: 120px 10px;
                         overflow: visible;
                 }
                 .currentSlide .pagecontent {
-                        padding: 140px 100px 0px 300px;
+                        padding: 140px 100px 0px 10px;
                 }
                 .slides .org-fancy [data-org-headline='1'] {
                         margin-bottom: 0;
@@ -674,6 +755,7 @@
                 }
                 #nextSlide, #prevSlide {
                         cursor: pointer;
+                        position: fixed;
                 }
                 .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
                         background: #2c3e50;
@@ -707,7 +789,6 @@
                 }
                 #sourceblock, .org-plain {
                         position: relative;
-                        left: 250px;
                         padding-left: 10px;
                 }
                 #source {
@@ -728,108 +809,12 @@
                 .slides .paginators {
                         display: inline-block;
                 }
-                .fa {
-                        padding-right: 10px;
+                i.fa + div, i.fa + span {
+                        padding-left: 10px;
                 }
         </style>
         <style>
           /* styles for flat theme */
-                .flat #leisure_bar {
-                        position: fixed;
-                        background: none;
-                        background-color: #666666;
-                        left: 0px;
-                        opacity: 1;
-                        width: 250px;
-                        height: 100%;
-                        z-index: 9999;
-                        /* border-right: 2px solid #aaaaaa; */
-                        transition: height 0.2s;
-                }
-                .flat #leisure_bar.bar_collapse {
-                        height: 105px;
-                }
-                .flat #leisure_button {
-                        position: relative;
-                        left: 0px;
-                        top: 0px;
-                        width: 250px;
-                        height: 65px;
-                        color: white;
-                        padding-top: 25px;
-                        background-color: #111111;
-                        text-align: center;
-                        font-size: x-large;
-                        font-weight: bold;
-                }
-                .flat #leisure_button div {
-                        display: inline;
-                }
-                .flat #leisure_button:hover {
-                        background-color: #333333;
-                }
-                .flat #leisure_button div:after {
-                        content: 'Leisure';
-                }
-                .bar_collapse .leisure_rollup * {
-                        display: none;
-                }
-                .flat #saveButton button div {
-                        display: inline-block;
-                }
-                .flat #leisure_grip, .flat .leisure_theme, .flat #saveButton button, .flat .team_cthulhu button {
-                        margin: 0px;
-                        width: 250px;
-                        height: 80px;
-                        color: white;
-                        background-color: #111111;
-                        font-weight: bold;
-                        font-size: 20px;
-                        text-align: center;
-                        border-radius: 0px;
-                        margin-top: 2px;
-                        transition: all 0.2s ease-in-out;
-                }
-                .flat #leisure_grip {
-                        height: 20px;
-                        line-height: 16px;
-                        cursor: pointer;
-                }
-                .flat #leisure_grip i.fa-angle-up, .flat .bar_collapse #leisure_grip i.fa-angle-down {
-                        display: inline;
-                        font-size: 20px;
-                }
-                .flat .bar_collapse #leisure_grip i.fa-angle-up, .flat #leisure_grip i.fa-angle-down {
-                        display: none;
-                }                
-                .flat .team_cthulhu button {
-                        background-color: #27ae60;
-                        color: #f1c40f;
-                        bottom: 30px;
-                        position: absolute;
-                }
-                .flat .team_cthulhu button img {
-                        width: 24px;
-                        height: 24px;
-                        padding-right: 4px;
-                }
-                .flat .team_cthulhu button:hover {
-                        background-color: #1c7d45;
-                }
-                .flat .leisure_theme {
-                        padding-top: 24px;
-                }
-                .flat #themeSelect {
-                        font-size: large;
-                        outline: none;
-                }
-                .flat .leisure_theme:hover, .flat #saveButton button:hover, .flat #leisure_grip:hover {
-                        background-color: #333333;
-                }
-                .flat.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
-                        width: calc(100% - 80px);
-                        z-index: 0;
-                }
                 .flat .codeblock {
                         background: #666666;
                         border-radius: 4px;
@@ -892,23 +877,13 @@
                 .flat [data-org-test] {
                         cursor: pointer;
                 }
-                .flat #nextSlide {
-                        right: 50px;
-                        bottom: 10px;
-                        position: absolute;
-                }
-                .flat #prevSlide {
-                        left: 50px;
-                        bottom: 10px;
-                        position: absolute;
-                }
-                .flat #nextSlide:after {
+                .flat #nextSlide span:after {
                         content: 'Next';
                 }
-                .flat #prevSlide:after {
+                .flat #prevSlide span:after {
                         content: 'Prev';
                 }
-                .flat #nextSlide, .flat #prevSlide, .flat .comment-button, .flat button {
+                .flat #nextSlide, .flat #prevSlide {
                         display: block;
                         margin-left:auto;
                         margin-right:auto;
@@ -916,23 +891,21 @@
                         outline: none;
                         border-radius: 5px;
                         font-family: Arial;
-                        color: #ffffff;
                         font-size: 20px;
                         background: #368ee0;
                         padding: 10px 20px 10px 20px;
                         text-decoration: none;
-                        transition: all 0.2s ease-in-out;
+                        transition: background-color 0.2s ease-in-out, border 0.2s ease-in-out;
                         cursor: pointer;
-                }
-                .flat #nextSlide, .flat #prevSlide {
                         background: none;
-                        border: solid rgb(54, 142, 224) 4px;
-                        color: #368ee0;
-                }
-                .flat #nextSlide:hover, .flat #prevSlide:hover, .flat button:hover {
+                        border: solid rgb(255, 255, 255) 2px;
+                        color: #fff;
                         outline: none;
-                        background: #549cde;
                         text-decoration: none;
+                }
+                .flat #nextSlide:hover, .flat #prevSlide:hover {
+                        background-color: #549cde;
+                        border: solid rgb(54, 142, 224) 2px;
                 }
                 .flat #nextSlide:hover, .flat #prevSlide:hover {
                         color: white;
@@ -1258,8 +1231,8 @@
 </div>
 
 <div class="paginators">
-  <div id="prevSlide"><i class="fa fa-caret-left fa-1x"></i></div>
-  <div id="nextSlide"><i class="fa fa-caret-right fa-1x"></i></div>
+  <button id="prevSlide"><i class="fa fa-caret-left fa-1x"></i><span></span></button>
+  <button id="nextSlide"><i class="fa fa-caret-right fa-1x"></i><span></span></button>
 </div>
 
 <script>start()</script>
