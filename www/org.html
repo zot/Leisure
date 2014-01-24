@@ -419,11 +419,11 @@
                 .results-indicator div {
                         display: inline-block;
                 }
-                .codeblock .dyntoggle:before {
-                        content: 'link';
+                .codeblock .dyntoggle:after {
+                        content: 'Unlinked';
                 }
-                [data-org-results='dynamic'] .dyntoggle:before {
-                        content: 'unlink';
+                [data-org-results='dynamic'] .dyntoggle:after {
+                        content: 'Linked';
                 }
                 .org-num:hover {
                         outline: solid gray 2px;
@@ -473,6 +473,7 @@
                 }
                 *::x-new-comment {
                         width: calc(100% - 8px);
+                        min-width: 400px;
                 }
                 [data-org-src] {
                         height: 100%;
@@ -706,7 +707,10 @@
                 }
                 #sourceblock, .org-plain {
                         position: relative;
-                        left: 260px;
+                        left: 250px;
+                }
+                #source {
+                        padding-left: 10px;
                 }
                 .slides .tags {
                         display: none;
@@ -969,6 +973,12 @@
                 .flat .dyntoggle {
                         font-weight: bold;
                 }
+                .flat [data-org-results='static'] .dyntoggle .fa-link {
+                        display: none;
+                }
+                .flat [data-org-results='dynamic'] .dyntoggle .fa-unlink {
+                        display: none;
+                }                        
                 .flat #source {
                         background-color: #eeeeee;
                 }

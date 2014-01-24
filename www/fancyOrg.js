@@ -363,7 +363,7 @@
     }
     if (testCaseButton) {
       wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button></div>";
-      wrapper += "<div><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></div>";
+      wrapper += "<div><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'><i class='fa fa-link'></i><i class='fa fa-unlink'></i></span></button></div>";
     }
     if (name) {
       wrapper += "<div>" + (commentButton(name.info.trim())) + "</div>";
