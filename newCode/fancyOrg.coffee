@@ -343,7 +343,7 @@ markupSource = (org, name, doctext, delay)->
     testAttr = "data-org-test='#{testValue}'"
     if delay then setTimeout (->
       $("##{escapeAttr org.nodeId}").attr 'data-org-test', testValue), 1
-    startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<div class=#{escapeAttr "'expected-hover'"}><b>Expected:</b> #{escapeAttr expected.content()}</div>' data-org-expected='#{escapeAttr expected.content()}' #{result}"
+    startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<div class=#{escapeAttr "'expected-hover'"}><b>Expr:</b> #{escapeHtml srcContent}<br><b>Expected:</b> #{escapeAttr expected.content()}</div>' data-org-expected='#{escapeAttr expected.content()}' #{result}"
   else
     fluff = if top.prev instanceof Source || top.prev instanceof Results then "<div class='fluff' data-newline></div>" else ''
     '<div>' + fluff + startHtml + result + '</div>'

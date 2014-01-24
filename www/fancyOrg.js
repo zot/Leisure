@@ -384,7 +384,7 @@
           return $("#" + (escapeAttr(org.nodeId))).attr('data-org-test', testValue);
         }), 1);
       }
-      return startHtml + ("onclick='Leisure.toggleTestCase(event)' " + (!delay ? testAttr : '') + " title='<div class=" + (escapeAttr("'expected-hover'")) + "><b>Expected:</b> " + (escapeAttr(expected.content())) + "</div>' data-org-expected='" + (escapeAttr(expected.content())) + "' " + result);
+      return startHtml + ("onclick='Leisure.toggleTestCase(event)' " + (!delay ? testAttr : '') + " title='<div class=" + (escapeAttr("'expected-hover'")) + "><b>Expr:</b> " + (escapeHtml(srcContent)) + "<br><b>Expected:</b> " + (escapeAttr(expected.content())) + "</div>' data-org-expected='" + (escapeAttr(expected.content())) + "' " + result);
     } else {
       fluff = top.prev instanceof Source || top.prev instanceof Results ? "<div class='fluff' data-newline></div>" : '';
       return '<div>' + fluff + startHtml + result + '</div>';
