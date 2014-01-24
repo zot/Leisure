@@ -704,6 +704,10 @@
                 .slides #sourceblock {
                         display: none;
                 }
+                #sourceblock, .org-plain {
+                        position: relative;
+                        left: 260px;
+                }
                 .slides .tags {
                         display: none;
                 }
@@ -964,6 +968,9 @@
                 }
                 .flat .dyntoggle {
                         font-weight: bold;
+                }
+                .flat #source {
+                        background-color: #eeeeee;
                 }
                 .flat :focus {
                         outline: none;
@@ -1234,7 +1241,7 @@
 --></div>
   <div id='sourceblock'>
     <br>Source...
-    <div id='source' style="white-space: pre-wrap; border: blue solid 2px"></div>
+    <div id='source' style="white-space: pre-wrap;"></div>
   </div>
 </div>
 
