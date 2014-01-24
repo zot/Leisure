@@ -733,17 +733,16 @@
                         height: 100%;
                         z-index: 9999;
                         /* border-right: 2px solid #aaaaaa; */
-                        transition: left 0.2s, opacity 0.2s;
+                        transition: height 0.2s;
                 }
                 .flat #leisure_bar.bar_collapse {
-                        left: -230px;
-                        opacity: 0.25;
+                        height: 105px;
                 }
                 .flat #leisure_button {
                         position: relative;
                         left: 0px;
                         top: 0px;
-                        width: 230px;
+                        width: 250px;
                         height: 65px;
                         color: white;
                         padding-top: 25px;
@@ -751,41 +750,28 @@
                         text-align: center;
                         font-size: x-large;
                         font-weight: bold;
-                        transition: all 0.2s ease-in-out;
                 }
                 .flat #leisure_button div {
                         display: inline;
                 }
                 .flat #leisure_button:hover {
-                        background-color: #2c3e50;
+                        background-color: #333333;
                 }
                 .flat #leisure_button div:after {
                         content: 'Leisure';
                 }
-                .flat #leisure_grip {
-                        font-weight: bolder;
-                        color: white;
-                        display: inline;
-                        position: fixed;
-                        left: 230px;
-                        top: 50%;
-                        transition: left 0.2s;
-                }
-                .flat #leisure_grip:hover {
-                        color: black;
-                }
-                .flat .bar_collapse #leisure_grip {
-                        left: 0px;
+                .bar_collapse .leisure_rollup * {
+                        display: none;
                 }
                 .flat #saveButton button div {
                         display: inline-block;
                 }
-                .flat .leisure_theme, .flat #saveButton button, .flat .team_cthulhu button {
+                .flat #leisure_grip, .flat .leisure_theme, .flat #saveButton button, .flat .team_cthulhu button {
                         margin: 0px;
-                        width: 230px;
+                        width: 250px;
                         height: 80px;
                         color: white;
-                        background-color: #999999;
+                        background-color: #111111;
                         font-weight: bold;
                         font-size: 20px;
                         text-align: center;
@@ -793,11 +779,27 @@
                         margin-top: 2px;
                         transition: all 0.2s ease-in-out;
                 }
+                .flat #leisure_grip {
+                        height: 20px;
+                        line-height: 16px;
+                }
+                .flat #leisure_grip i.fa-angle-up, .flat .bar_collapse #leisure_grip i.fa-angle-down {
+                        display: inline;
+                        font-size: 20px;
+                }
+                .flat .bar_collapse #leisure_grip i.fa-angle-up, .flat #leisure_grip i.fa-angle-down {
+                        display: none;
+                }                
                 .flat .team_cthulhu button {
                         background-color: #27ae60;
                         color: #f1c40f;
-                        bottom: 20px;
+                        bottom: 30px;
                         position: absolute;
+                }
+                .flat .team_cthulhu button img {
+                        width: 24px;
+                        height: 24px;
+                        padding-right: 4px;
                 }
                 .flat .team_cthulhu button:hover {
                         background-color: #1c7d45;
@@ -809,7 +811,7 @@
                         font-size: large;
                         outline: none;
                 }
-                .flat .leisure_theme:hover, .flat #saveButton button:hover {
+                .flat .leisure_theme:hover, .flat #saveButton button:hover, .flat #leisure_grip:hover {
                         background-color: #333333;
                 }
                 .flat.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
