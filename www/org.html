@@ -708,6 +708,7 @@
                 #sourceblock, .org-plain {
                         position: relative;
                         left: 250px;
+                        padding-left: 10px;
                 }
                 #source {
                         padding-left: 10px;
@@ -792,6 +793,7 @@
                 .flat #leisure_grip {
                         height: 20px;
                         line-height: 16px;
+                        cursor: pointer;
                 }
                 .flat #leisure_grip i.fa-angle-up, .flat .bar_collapse #leisure_grip i.fa-angle-down {
                         display: inline;
@@ -825,7 +827,7 @@
                         background-color: #333333;
                 }
                 .flat.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
-                        width: 100%;
+                        width: calc(100% - 80px);
                         z-index: 0;
                 }
                 .flat .codeblock {
