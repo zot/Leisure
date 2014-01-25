@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, Nil, PAGEDOWN, PAGEUP, RIGHT, Results, SimpleMarkup, Source, TAB, UP, addKeyPress, backspace, baseEnv, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, createResults, crnl, curKeyBinding, currentLine, defaultBindings, defaultEnv, define, displaySource, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, followsNewline, fs, getCollapsible, getLeft, getNodeSource, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getTextPositionNew, getTextPositionOld, getType, getValue, handleMutation, hasParent, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsedOld, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, loadOrg, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, markupSimple, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nextVisibleNewline, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, orgSrcAttrs, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, replacements, resolve, restorePosition, resultsType, root, rz, saveFile, scanForward, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, splitLines, styleCache, swapMarkup, templateExpansions, textNodeAfter, textNodeBefore, unescapePresentationHtml, whenNotCollapsed, _, _ref, _ref1, _ref2, _ref3, _ref4;
+  var BS, DEL, DOWN, ENTER, HL_TAGS, Headline, Keyword, LEFT, Meat, Nil, PAGEDOWN, PAGEUP, RIGHT, Results, SimpleMarkup, Source, TAB, UP, addKeyPress, backspace, baseEnv, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, createMarkNode, createResults, crnl, curKeyBinding, currentLine, defaultBindings, defaultEnv, define, displaySource, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, followsNewline, fs, getCollapsible, getLeft, getMarkPositions, getNodeSource, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getTextPositionNew, getTextPositionOld, getType, getValue, handleMutation, hasParent, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsedOld, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, loadOrg, lz, markId, markupGuts, markupNode, markupOrg, markupOrgWithNode, markupSimple, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nextVisibleNewline, nodeAfter, nodeAfterNoChildren, nodeBefore, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, orgSrcAttrs, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, replacements, resolve, restoreMarkPositions, restorePosition, resultsType, root, rz, saveFile, scanForward, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, splitLines, styleCache, swapMarkup, templateExpansions, textNodeAfter, textNodeBefore, unescapePresentationHtml, whenNotCollapsed, _, _ref, _ref1, _ref2, _ref3, _ref4;
 
   _ref = require('./ast'), getType = _ref.getType, cons = _ref.cons, define = _ref.define, unescapePresentationHtml = _ref.unescapePresentationHtml;
 
@@ -1163,7 +1163,61 @@ misrepresented as being the original software.
   };
 
   installOrgDOM = function(parent, orgNode, orgText) {
-    return parent.innerHTML = orgText;
+    var markPositions;
+    markPositions = getMarkPositions(parent);
+    parent.innerHTML = orgText;
+    return restoreMarkPositions(parent, markPositions);
+  };
+
+  getMarkPositions = function(node) {
+    var cur, offset, positions, _i, _len, _ref5;
+    positions = [];
+    offset = 0;
+    cur = node;
+    _ref5 = $('[data-mark]');
+    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+      node = _ref5[_i];
+      while ((cur = nodeAfter(cur)) && cur !== node) {
+        if (cur.nodeType === 3) {
+          offset += cur.data.length;
+        }
+      }
+      positions.push(offset, node.getAttribute('data-mark'));
+    }
+    return positions;
+  };
+
+  markId = 0;
+
+  createMarkNode = function() {
+    return $("<span data-mark=" + (markId++) + "></span>");
+  };
+
+  restoreMarkPositions = function(node, positions) {
+    var count, limit, newMark, next, offset, oldOffset, _results;
+    offset = 0;
+    count = 0;
+    limit = nodeAfterNoChildren(node);
+    _results = [];
+    while (count < positions.length && node !== limit) {
+      next = positions[count];
+      while (node && node !== limit && offset < next) {
+        node = nodeAfter(node);
+        if (node.nodeType === 3) {
+          oldOffset = offset;
+          offset += node.data.length;
+          if (offset >= next) {
+            newMark = createMarkNode();
+            if (offset > next) {
+              node.splitText(next - oldOffset);
+            }
+            node.parentNode.insertBefore(newMark, node.nextSibling);
+          }
+        }
+      }
+      _results.push(count++);
+    }
+    return _results;
   };
 
   checkDeleteReparse = function(parent, backspace) {
@@ -1425,23 +1479,39 @@ misrepresented as being the original software.
   };
 
   getTextPositionNew = function(node, target, pos) {
-    var count, eat, up;
-    if (target.nodeType === 3) {
-      up = false;
-      eat = false;
-      count = 0;
-      while (node) {
-        if (node === target) {
-          return count + pos;
+    var childPos, limit, offset;
+    if (node) {
+      offset = 0;
+      childPos = 0;
+      limit = (function() {
+        switch (target.nodeType) {
+          case 1:
+            if (pos < node.childNodes.length) {
+              return node.childNodes[pos];
+            } else {
+              return nodeAfter(node);
+            }
+            break;
+          case 3:
+            return target;
+          default:
+            return nodeAfter(node);
         }
+      })();
+      while (node && node !== limit) {
         if (node.nodeType === 3) {
-          count += node.length;
-          eat = true;
+          offset += node.data.length;
         }
-        node = textNodeAfter(node);
+        node = nodeAfter(node);
       }
+      if (target.nodeType === 3) {
+        return offset + pos;
+      } else {
+        return offset;
+      }
+    } else {
+      return -1;
     }
-    return -1;
   };
 
   getTextPositionOld = function(node, target, pos) {
@@ -1479,42 +1549,56 @@ misrepresented as being the original software.
     return [null, null];
   };
 
-  textNodeAfter = function(node) {
-    var eat, up;
-    eat = true;
+  nodeAfterNoChildren = function(node) {
+    return nodeAfter(nodeBefore(node));
+  };
+
+  nodeAfter = function(node) {
+    var up;
     up = false;
-    while (node && (eat || node.nodeType !== 3)) {
-      eat = false;
-      if (!up && node.firstChild) {
-        node = node.firstChild;
+    while (node) {
+      if (node.nodeType === 1 && !up && node.childNodes.length) {
+        return node.childNodes[0];
       } else if (node.nextSibling) {
-        node = node.nextSibling;
-        up = false;
+        return node.nextSibling;
       } else {
-        node = node.parentNode;
         up = true;
+        node = node.parentNode;
       }
     }
-    return node;
+    return null;
+  };
+
+  textNodeAfter = function(node) {
+    while (node = nodeAfter(node)) {
+      if (node.nodeType === 3) {
+        return node;
+      }
+    }
+  };
+
+  nodeBefore = function(node) {
+    var up;
+    up = false;
+    while (node) {
+      if (node.nodeType === 1 && !up && node.childNodes.length) {
+        return node.childNodes[node.childNodes.length - 1];
+      } else if (node.previousSibling) {
+        return node.previousSibling;
+      } else {
+        up = true;
+        node = node.parentNode;
+      }
+    }
+    return null;
   };
 
   textNodeBefore = function(node) {
-    var eat, up;
-    eat = true;
-    up = false;
-    while (node && (eat || node.nodeType !== 3)) {
-      eat = false;
-      if (!up && node.lastChild) {
-        node = node.lastChild;
-      } else if (node.previousSibling) {
-        node = node.previousSibling;
-        up = false;
-      } else {
-        node = node.parentNode;
-        up = true;
+    while (node = nodeBefore(node)) {
+      if (node.nodeType === 3) {
+        return node;
       }
     }
-    return node;
   };
 
   getNodeText = function(node) {
