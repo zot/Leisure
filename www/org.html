@@ -134,7 +134,7 @@
                 .steampunk .code-buttons {
                         background: none;
                 }
-                .steampunk .code-buttons buttonv{
+                .steampunk .code-buttons button {
                         background-color: #ccb271;
                 }
                 .steampunk .code-buttons button:hover {
@@ -150,6 +150,9 @@
                         height: 32px;
                         width: 48px;
                         background: none;
+                }
+                .steampunk .dyntoggle .fa {
+                        display: none;
                 }
                 .steampunk [data-org-test] > * {
                         display: none;
@@ -210,7 +213,7 @@
                         cursor: pointer;
                         color: black;
                 }
-                .steampunk buttons button {
+                .steampunk button {
                         background-color: #ccb271;
                 }
                 .steampunk button:hover {
@@ -220,6 +223,7 @@
                         background-color: #e6dcc3;
                         border: solid rgb(96, 57, 19) 2px;
                         height: 32px;
+                        padding: 4px 8px;
                 }
                 .steampunk .commentbox > .main,  .steampunk .commentbox > .added {
                         border: none;
@@ -235,7 +239,7 @@
                         height: 48px;
                         padding: 0px;
                 }
-                .steampunk .codeblock .dyntoggle:before {
+                .steampunk .codeblock .dyntoggle:after {
                         content: none;
                 }
                 .steampunk .codeblock .dyntoggle {
@@ -243,12 +247,20 @@
                         display: block;
                         width: 36px;
                         height: 13px;
+                        padding: 0px;
+                }
+                .steampunk #source {
+                        background-color: #e6dcc3;
+                }
+                .steampunk #sourceblock, .steampunk .org-plain {
+                        font-family: MouseDeco;
                 }
                 .steampunk [data-org-results='dynamic'] .dyntoggle {
                         background: url(images/link_icon.png) no-repeat 0% 0% / 100% 100%;
                 }
                 .steampunk .dyntoggle-button {
-                        padding: 0px;
+                        width: 56px;
+                        padding: 0px 8px;
                 }
                 .steampunk .ui-tooltip {
                         border: solid rgb(48, 36, 71) 2px;
@@ -614,6 +626,7 @@
                         cursor: pointer;
                         border: none;
                         outline: none;
+                        padding: 10px 20px;
                         font-size: 20px;
                         font-weight: bold;
                         color: #fff;
@@ -823,10 +836,10 @@
                 }
                 #sourceblock, .org-plain {
                         position: relative;
-                        padding-left: 10px;
+                        padding: 10px 10px;
                 }
                 #source {
-                        padding-left: 10px;
+                        padding: 5px 5px;
                 }
                 .slides .tags {
                         display: none;
@@ -985,9 +998,6 @@
                 }
                 .flat :focus {
                         outline: none;
-                }
-                .flat button {
-                        padding: 10px 20px;
                 }
         </style>
         <style>
@@ -1214,7 +1224,7 @@
   <h1 id="login_header">Leisure Notebook Startup</h1><p>
   <form id="loginForm">
     <div class="box">
-    <h2><i class="fa fa-github fa-2x"></i>Load remote notebook from Github</h2>
+    <h2><i class="fa fa-github fa-2x"></i><span>Load remote notebook from Github</span></h2>
     <b>Your Github account</b><br>
     Login: <input id='name' type='text' placeholder="E-mail address"> Password: <input id='password' type='password' placeholder="Github Password"><hr>
     <b>Github repository for notebook:</b><br>
@@ -1233,7 +1243,7 @@
   </form>
   <p>
   <div id="local" class="box">
-  <h2><i class="fa fa-file-o fa-2x"></i>Or a local notebook on your PC</h2>
+  <h2><i class="fa fa-file-o fa-2x"></i><span>Or a local notebook on your PC</span></h2>
   <input class="btn" type="file" onchange="Leisure.useFile(this.files[0])">
   </div>
 </div></div>
@@ -1254,7 +1264,7 @@
 
 --></div>
   <div id='sourceblock'>
-    <br>Source...
+    <br>Leisure Source...
     <div id='source' style="white-space: pre-wrap;"></div>
   </div>
 </div>
