@@ -1366,13 +1366,13 @@
   toggleSlides = function() {
     slideMode = !slideMode;
     fancyOrg.bindings = (slideMode ? slideBindings : defaultBindings);
+    $("#prevSlide").click(function(e) {
+      return prevSlide();
+    });
+    $("#nextSlide").click(function(e) {
+      return nextSlide();
+    });
     if (slideMode) {
-      $("#prevSlide").click(function(e) {
-        return prevSlide();
-      });
-      $("#nextSlide").click(function(e) {
-        return nextSlide();
-      });
       return restorePosition(null, function() {
         $('[data-org-html]').addClass('slideHtml');
         $('body').addClass('slides');
