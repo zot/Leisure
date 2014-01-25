@@ -17,6 +17,94 @@
                         font-family: Ciudad;
                         src: url('Ciudad Nueva CAPS Bold.woff') format('woff');
                 }
+                .steampunk #leisure_bar  {
+                        width: 0px;
+                        height: 0px;
+                }
+                .steampunk #leisure_rollup {
+                        padding: 50px 50px;
+                }
+                .steampunk #leisure_rollup button {
+                        background-color: #ccb271;
+                        border: solid black 3px;
+                }
+                .steampunk #leisure_rollup button:hover {
+                        background-color: #e6dcc3;
+                }                
+                .steampunk #leisure_rollup button, .steampunk #leisure_theme, .steampunk #leisure_theme #themeSelect {
+                        display: block;
+                        position: relative;
+                        font-family: MouseDeco;
+                        font-weight: bold;
+                        font-size: 16px;
+                        margin: 10px;
+                        color: black;
+                }
+                .steampunk #leisure_theme {
+                        background-color: transparent;
+                }
+                .steampunk #leisure_theme #themeSelect {
+                        display: inline-block;
+                }
+                .steampunk #leisure_grip {
+                        display: none;
+                }
+                .steampunk #leisure_button {
+                        position: fixed;
+                        min-height: 67px;
+                        height: 0px;
+                        width: 177px;
+                        top: auto;
+                        background-image: url(images/steampunk_leisure_button.png);
+                        background-repeat: no-repeat;
+                        background-size: 177px 67px;
+                        background-color: transparent;
+                        left: calc(50% - 89px);
+                        bottom: 50px;
+                        cursor: pointer;
+                        z-index: 100;
+                }
+                .steampunk #leisure_bar > button:hover, .steampunk #leisure_theme:hover {
+                        background-color: transparent;
+                }
+                .steampunk #leisure_button div:after {
+                        content: none;
+                }
+                .steampunk #leisure_bar:hover,
+                .steampunk #leisure_bar:active {
+                        height: 350px;
+                        transition: all 0.2s ease-in-out;
+                }                
+                .steampunk #leisure_button .fa {
+                        display: none;
+                }
+                .steampunk #leisure_dummy {
+                        height: 0px;
+                }     
+                .steampunk #leisure_bar {
+                        margin-left: auto;
+                        margin-right: auto;
+                        bottom: 15px;
+                        z-index: 99;
+                        position: fixed;
+                        top: auto;
+                        left: 0px;
+                        right: 0px;
+                        width: 400px;
+                        height: 0px;
+                        background: url(images/steampunk_wood_panel.png) no-repeat 0% 0% / 100% 100%;
+                } 
+                .steampunk button#team_cthulhu {
+                        background-color: #27ae60;
+                        color: #f1c40f;
+                        text-decoration: none;
+                }
+                .steampunk button#team_cthulhu:hover {
+                        background-color: #1c7d45;
+                }                
+                .steampunk .slides #dummy_headline {
+                        height: 0px;
+                }                
                 .steampunk .pagecontent {
                         margin-left: 100px;
                 }
@@ -89,7 +177,7 @@
                 }
                 .steampunk.currentSlide.page > .border {
                         position: fixed;
-                        top: 45px;
+                        top: 0px;
                 }
                 body.bar_collapse .steampunk.currentSlide.page > .border {
                         top: 0px;
@@ -943,7 +1031,6 @@
                         border: solid rgb(255, 255, 255) 2px;
                         color: #fff;
                         outline: none;
-                        text-decoration: none;
                 }
                 .flat #nextSlide:hover, .flat #prevSlide:hover {
                         background-color: #549cde;
