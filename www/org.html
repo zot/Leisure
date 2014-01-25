@@ -326,6 +326,7 @@
                 }
                 #leisure_bar button#leisure_grip {
                         margin: 0px;
+                        padding: 8px 4px;
                 }
                 #leisure_theme {
                         margin-left: 2px;
@@ -338,11 +339,7 @@
                         font-size: large;
                         outline: none;
                 }
-                #leisure_bar button:not(#leisure_grip) i {
-                        padding-left: 20px;
-                }
                 #leisure_bar button div {
-                        padding-right: 20px;
                         display: inline-block;
                 }
                 #leisure_button div {
@@ -989,6 +986,9 @@
                 .flat :focus {
                         outline: none;
                 }
+                .flat button {
+                        padding: 10px 20px;
+                }
         </style>
         <style>
           /* styles for Leisure output */
@@ -1171,7 +1171,6 @@
                                         $('body').removeClass('loading');
                                         $('#panel').css('display', '');
                                         Leisure.initOrg('[maindoc]', '#source');
-                                        Leisure.setTheme('steampunk');
                                         $('#name').focus();
                                         $('#loginForm').submit(function(e) {
                                           e.preventDefault();
