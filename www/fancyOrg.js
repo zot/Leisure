@@ -444,7 +444,11 @@
         reprocessResults(n);
       }
       return setTimeout((function() {
-        var _k, _len2, _ref9;
+        var nn, _k, _len2, _ref9;
+        nn = $(newNode);
+        setTimeout(function() {
+          return (nn.is('.codeblock') ? nn : nn.find('.codeblock')).addClass('ready');
+        });
         _ref9 = $(newNode).find('[data-org-comments]');
         for (_k = 0, _len2 = _ref9.length; _k < _len2; _k++) {
           n = _ref9[_k];

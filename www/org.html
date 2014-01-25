@@ -96,7 +96,7 @@
                 }
                 .steampunk.bar_collapse #nextSlide, .steampunk.bar_collapse #prevSlide {
                         top: inherit;
-                }                
+                }
                 .steampunk .codeblock[data-org-test] .codeborder {
                         border-width: 0;
                         border-image: none;
@@ -116,10 +116,19 @@
                 }
                 .steampunk .codeblock[data-org-test] {
                         display: inline-block;
+                        width: 0;
+                        height: 0;
+                        min-width: 0;
+                        min-height: 0;
+                }
+                .steampunk .codeblock.ready[data-org-test] {
+                        display: inline-block;
                         width: 60px;
                         height: 60px;
                         padding: 0;
-                        transition: width 1s, height 1s;
+                        padding-left: 0;
+                        padding-right: 0;
+                        transition: width 1s, height 1s, min-width 1s, min-height 1s;
                         -webkit-user-select: none;
                         user-select: none;
                 }
@@ -197,7 +206,7 @@
                 }
                 .steampunk #prevSlide span:after {
                         content: none;
-                }                
+                }
                 .steampunk .testcase-button {
                         background-image: url(images/finger_gauge.png);
                         background-color: #e6dcc3;
@@ -287,7 +296,7 @@
                         height: 45px;
                         background-color: #666666;
                         position: fixed;
-                        z-index: 9999;                        
+                        z-index: 9999;
                 }
                 #leisure_dummy {
                         position: static;
@@ -322,7 +331,7 @@
                         color: white;
                         font-family: Arial;
                         font-size: x-large;
-                        font-weight: bold;                        
+                        font-weight: bold;
                         border: none;
                         outline: none;
                         margin: 0px;
@@ -397,7 +406,7 @@
                 }
                 button#team_cthulhu:hover {
                         background-color: #1c7d45;
-                }                
+                }
                 #panel {
                         padding-top: 2px;
                         /* top: 45px; */
@@ -412,7 +421,7 @@
                 }
                 #prevSlide {
                         left: 50px;
-                }                
+                }
                 .bar_collapse #nextSlide, .bar_collapse #prevSlide {
                         top: 35px;
                 }
@@ -798,7 +807,7 @@
                 }
                 #prevSlide span:after {
                         content: 'Prev';
-                }                
+                }
                 .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
                         background: #2c3e50;
                         border: none;
@@ -984,7 +993,7 @@
                 }
                 .flat [data-org-results='dynamic'] .dyntoggle .fa-unlink {
                         display: none;
-                }                        
+                }
                 .flat #source {
                         background-color: #eeeeee;
                 }

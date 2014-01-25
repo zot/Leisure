@@ -324,18 +324,12 @@ markupSource = (org, name, doctext, delay)->
     codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml doctext}</div>"
   else codeName = "<div class='codename' contenteditable='true'></div>"
   wrapper = "<table class='codewrapper'><tr>"
-  #wrapper += "<td class='code-buttons'><ul>"
   wrapper += "<td class='code-buttons'>"
-  #if testCaseButton = toTestCaseButton org then wrapper += "<li>#{testCaseButton}"
   if testCaseButton = toTestCaseButton org then wrapper += "<div>#{testCaseButton}</div>"
   if testCaseButton
-    #wrapper += "<li><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button>"
     wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-search'></i><div></div></button></div>"
-    #wrapper += "<li><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button>"
-    wrapper += "<div><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'></span></button></div>"
-  #if name then wrapper += "<li>#{commentButton name.info.trim()}"
+    wrapper += "<div><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'><i class='fa fa-link'></i><i class='fa fa-unlink'></i></span></button></div>"
   if name then wrapper += "<div>#{commentButton name.info.trim()}</div>"
-  #wrapper += "</ul></td><td class='code-content'>"
   wrapper += "</td><td class='code-content'>"
   wrapper += codeName
   wrapper += "<div class='hidden'>#{escapeHtml lead}</div>"
@@ -349,7 +343,7 @@ markupSource = (org, name, doctext, delay)->
     testAttr = "data-org-test='#{testValue}'"
     if delay then setTimeout (->
       $("##{escapeAttr org.nodeId}").attr 'data-org-test', testValue), 1
-    startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<div class=#{escapeAttr "'expected-hover'"}><b>Expected:</b> #{escapeAttr expected.content()}</div>' data-org-expected='#{escapeAttr expected.content()}' #{result}"
+    startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<div class=#{escapeAttr "'expected-hover'"}><b>Expr:</b> #{escapeHtml srcContent}<br><b>Expected:</b> #{escapeAttr expected.content()}</div>' data-org-expected='#{escapeAttr expected.content()}' #{result}"
   else
     fluff = if top.prev instanceof Source || top.prev instanceof Results then "<div class='fluff' data-newline></div>" else ''
     '<div>' + fluff + startHtml + result + '</div>'
@@ -384,6 +378,8 @@ replaceCodeBlock = (node, text)->
     for n in $(newNode).find('.resultscontent')
       reprocessResults n
     setTimeout (=>
+      nn = $(newNode)
+      setTimeout -> (if nn.is('.codeblock') then nn else nn.find('.codeblock')).addClass 'ready'
       for n in $(newNode).find('[data-org-comments]')
         setShadowHtml n.firstElementChild, "<div class='#{theme ? ''}'>" + newCommentBox n.getAttribute('data-org-comments') + '</div>', codeBlockForNode(n.previousElementSibling).id
       redrawAllIssues()
@@ -976,9 +972,9 @@ slideBindings =
 toggleSlides = ->
   slideMode = !slideMode
   fancyOrg.bindings = (if slideMode then slideBindings else defaultBindings)
+  $("#prevSlide").click (e)-> prevSlide()
+  $("#nextSlide").click (e)-> nextSlide()
   if slideMode
-    $("#prevSlide").click (e)-> prevSlide()
-    $("#nextSlide").click (e)-> nextSlide()
     restorePosition null, ->
       $('[data-org-html]').addClass 'slideHtml'
       $('body').addClass 'slides'

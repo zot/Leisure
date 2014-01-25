@@ -95,13 +95,13 @@ fs = null
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><a href='#'><div id='leisure_grip'><i class='fa fa-angle-left fa-2x'></i></div></a><div id='leisure_button'><i class='fa fa-glass'></i><div></div></div><div><a id='saveButton' download='leisureFile.lorg'><button><i class=\"fa fa-save\"></i><div></div></button></a></div><div class=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><div class='team_cthulhu'><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button><div>TEAM CTHULHU</div></button></a><div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' download='leisureFile.lorg'><i class=\"fa fa-save\"></i><div></div></button><div id=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
     .prependTo(document.body)
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
       root.currentMode.leisureButton()
   $("#leisure_grip").click (e) ->
-    g = $("#leisure_bar")
+    g = $("body")
     if g.hasClass 'bar_collapse' then g.removeClass 'bar_collapse' else g.addClass 'bar_collapse'
   $("#themeSelect").change (e) ->
      return Leisure.setTheme(e.target.value)
@@ -801,7 +801,42 @@ reparse = (parent, text)->
       l parent, orgNode, orgText
     ), 1
 
-installOrgDOM = (parent, orgNode, orgText)-> parent.innerHTML = orgText
+installOrgDOM = (parent, orgNode, orgText)->
+  markPositions = getMarkPositions parent
+  parent.innerHTML = orgText
+  restoreMarkPositions parent, markPositions
+
+# returns a list of [position, mark-id]
+getMarkPositions = (node)->
+  positions = []
+  offset = 0
+  cur = node
+  for node in $('[data-mark]')
+    while (cur = nodeAfter cur) && cur != node
+      if cur.nodeType == 3 then offset += cur.data.length
+    positions.push offset, node.getAttribute 'data-mark'
+  positions
+
+markId = 0
+
+createMarkNode = -> $("<span data-mark=#{markId++}></span>")
+
+restoreMarkPositions = (node, positions)->
+  offset = 0
+  count = 0
+  limit = nodeAfterNoChildren node
+  while count < positions.length && node != limit
+    next = positions[count]
+    while node && node != limit && offset < next
+      node = nodeAfter node
+      if node.nodeType == 3
+        oldOffset = offset
+        offset += node.data.length
+        if offset >= next
+          newMark = createMarkNode()
+          if offset > next then node.splitText next - oldOffset
+          node.parentNode.insertBefore newMark, node.nextSibling
+    count++
 
 #checkDeleteReparse = (parent, backspace)->
 #  r = rangy.getSelection().getRangeAt 0
@@ -959,17 +994,19 @@ getTextPosition = (node, target, pos)->
   n
 
 getTextPositionNew = (node, target, pos)->
-  if target.nodeType == 3
-    up = false
-    eat = false
-    count = 0
-    while node
-      if node == target then return count + pos
-      if node.nodeType == 3
-        count += node.length
-        eat = true
-      node = textNodeAfter node
-  -1
+  if node
+    offset = 0
+    childPos = 0
+    limit = switch target.nodeType
+      when 1
+        if pos < node.childNodes.length then node.childNodes[pos] else nodeAfter node
+      when 3 then target
+      else nodeAfter node
+    while node && node != limit
+      if node.nodeType == 3 then offset += node.data.length
+      node = nodeAfter node
+    if target.nodeType == 3 then offset + pos else offset
+  else -1
 
 getTextPositionOld = (node, target, pos)->
   if node && target && pos
@@ -992,33 +1029,38 @@ findDomPosition = (node, pos)->
     node = textNodeAfter node
   [null, null]
 
-textNodeAfter = (node)->
-  eat = true
+# get the next node in the preorder traversal, disregarding the node's children
+nodeAfterNoChildren = (node)-> nodeAfter nodeBefore node
+
+# get the next node in the preorder traversal, starting with the node's children
+nodeAfter = (node)->
   up = false
-  while node && (eat || node.nodeType != 3)
-    eat = false
-    if !up && node.firstChild then node = node.firstChild
-    else if node.nextSibling
-      node = node.nextSibling
-      up = false
+  while node
+    if node.nodeType == 1 && !up && node.childNodes.length then return node.childNodes[0]
+    else if node.nextSibling then return node.nextSibling
     else
-      node = node.parentNode
       up = true
-  node
+      node = node.parentNode
+  null
+
+textNodeAfter = (node)->
+  while node = nodeAfter node
+    if node.nodeType == 3 then return node
+
+# get the next node in the reverse preorder traversal, starting with the node's children
+nodeBefore = (node)->
+  up = false
+  while node
+    if node.nodeType == 1 && !up && node.childNodes.length then return node.childNodes[node.childNodes.length - 1]
+    else if node.previousSibling then return node.previousSibling
+    else
+      up = true
+      node = node.parentNode
+  null
 
 textNodeBefore = (node)->
-  eat = true
-  up = false
-  while node && (eat || node.nodeType != 3)
-    eat = false
-    if !up && node.lastChild then node = node.lastChild
-    else if node.previousSibling
-      node = node.previousSibling
-      up = false
-    else
-      node = node.parentNode
-      up = true
-  node
+  while node = nodeBefore node
+    if node.nodeType == 3 then return node
 
 #
 # Shadow dom support
