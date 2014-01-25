@@ -17,6 +17,9 @@
                         font-family: Ciudad;
                         src: url('Ciudad Nueva CAPS Bold.woff') format('woff');
                 }
+                .steampunk .pagecontent {
+                        margin-left: 100px;
+                }
                 .steampunk .org-fancy [data-org-headline='1'] {
                         margin-bottom: 0;
                 }
@@ -62,11 +65,13 @@
                         top: 8px;
                 }
                 .steampunk #loading-message, .steampunk.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        width: auto;
+                        top: 40px;
                         min-height: 1em;
                         padding-top: 40px;
                         padding-bottom: 40px;
-                        padding-left: 46px;
-                        padding-right: 46px;
+                        padding-left: 66px;
+                        padding-right: 66px;
                 }
                 .steampunk #loading-message .textborder,
                 .steampunk.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
@@ -81,6 +86,13 @@
                         border-width: 193px 178px 193px 178px;
                         border-image: url(images/steampunk_border.png) 193 178 193 178;
                         background: url(images/steampunk_background-faded.jpg) border-box no-repeat 0% 0% / 100% 100%;
+                }
+                .steampunk.currentSlide.page > .border {
+                        position: fixed;
+                        top: 45px;
+                }
+                body.bar_collapse .steampunk.currentSlide.page > .border {
+                        top: 0px;
                 }
                 .steampunk.bar_collapse #nextSlide, .steampunk.bar_collapse #prevSlide {
                         top: inherit;
