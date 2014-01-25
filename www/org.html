@@ -118,10 +118,7 @@
                         display: inline-block;
                         width: 60px;
                         height: 60px;
-                        min-width: 60px;
                         padding: 0;
-                        padding-left: 0;
-                        padding-right: 0;
                         transition: width 1s, height 1s;
                         -webkit-user-select: none;
                         user-select: none;
@@ -169,8 +166,9 @@
                 }
                 .steampunk .codeblock {
                         padding: calc(29px + 3px);
-                        /*padding-right: calc(29px + 32px);*/
-                        padding-right: calc(29px + 90px);
+                }
+                .steampunk .code-content {
+                        padding-top: 0px;
                 }
                 .steampunk #nextSlide,  .steampunk #prevSlide {
                         position: absolute;
@@ -209,12 +207,10 @@
                         height: 32px;
                 }
                 .steampunk button {
+                        background-color: #ccb271;
                         border: solid rgb(96, 57, 19) 2px;
                         cursor: pointer;
                         color: black;
-                }
-                .steampunk button {
-                        background-color: #ccb271;
                 }
                 .steampunk button:hover {
                         background-color: #e6dcc3;
@@ -485,7 +481,6 @@
                         white-space: pre-wrap;
                 }
                 .codeblock {
-                        min-width: 400px;
                         min-height: 64px;
                         display: inline-block;
                         position: relative;
@@ -503,10 +498,10 @@
                         z-index: -1;
                 }
                 .codename {
-                        padding-left: 24px;
+                        padding-left: 2px;
                 }
                 .code-content {
-                        padding: 20px;
+                        padding: 10px 20px;
                 }
                 .codewrapper {
                         white-space: pre-wrap;
@@ -915,9 +910,6 @@
                         background: #2c3e50;
                         background: linear-gradient(#34495e, #2c3e50);
                  }
-                .flat .codename {
-                        padding-left: 2px;
-                }
                 .flat [data-org-test] > * {
                         display: none;
                 }
