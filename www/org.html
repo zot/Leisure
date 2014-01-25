@@ -151,23 +151,21 @@
                         /*padding-right: calc(29px + 32px);*/
                         padding-right: calc(29px + 90px);
                 }
-                .steampunk #nextSlide {
+                .steampunk #nextSlide,  .steampunk #prevSlide {
                         position: absolute;
-                        right: 150px;
                         bottom: 50px;
-                        background: url(images/right_hand.png) no-repeat 0% 0% / 100% 100%;
+                        top: auto;
                         width: 128px;
                         height: 64px;
                         border: none;
                 }
+                .steampunk #nextSlide {
+                        right: 150px;
+                        background: url(images/right_hand.png) no-repeat 0% 0% / 100% 100%;
+                }
                 .steampunk #prevSlide {
-                        position: absolute;
                         left: 150px;
-                        bottom: 50px;
                         background: url(images/left_hand.png) no-repeat 0% 0% / 100% 100%;
-                        width: 128px;
-                        height: 64px;
-                        border: none;
                 }
                 .steampunk #nextSlide .fa, .steampunk #prevSlide .fa {
                         display: none;
@@ -175,6 +173,12 @@
                 .steampunk .testcase-button {
                         padding: 0px 0px;
                 }
+                .steampunk #nextSlide span:after {
+                        content: none;
+                }
+                .steampunk #prevSlide span:after {
+                        content: none;
+                }                
                 .steampunk .testcase-button {
                         background-image: url(images/finger_gauge.png);
                         background-color: #e6dcc3;
@@ -259,6 +263,22 @@
                         position: fixed;
                         z-index: 9999;                        
                 }
+                #leisure_dummy {
+                        position: static;
+                        width: 0px;
+                        height: 45px;
+                }
+                .bar_collapse #leisure_dummy {
+                        height: 0px;
+                }
+                #dummy_headline {
+                        position: static;
+                        width: 0px;
+                        height: 0px;
+                }
+                .slides #dummy_headline {
+                        height: 122px;
+                }
                 #leisure_rollup {
                         vertical-align: top;
                         display: inline-block;
@@ -330,6 +350,7 @@
                 }
                 .bar_collapse #leisure_bar {
                         width: 0px;
+                        height: 0px;
                 }
                 .bar_collapse #panel {
                         top: 0px;
@@ -356,7 +377,7 @@
                 }                
                 #panel {
                         padding-top: 2px;
-                        top: 45px;
+                        /* top: 45px; */
                         position: relative;
                 }
                 #nextSlide, #prevSlide {
@@ -617,6 +638,7 @@
                         display: none;
                 }
                 .not-logged-in #leisure_bar,
+                .not-logged-in #leisure_dummy,
                 .not-logged-in #panel,
                 #login,
                 .loading.not-logged-in #login {
@@ -748,6 +770,12 @@
                         cursor: pointer;
                         position: fixed;
                 }
+                #nextSlide span:after {
+                        content: 'Next';
+                }
+                #prevSlide span:after {
+                        content: 'Prev';
+                }                
                 .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
                         background: #2c3e50;
                         border: none;
@@ -868,12 +896,6 @@
                 .flat [data-org-test] {
                         cursor: pointer;
                 }
-                .flat #nextSlide span:after {
-                        content: 'Next';
-                }
-                .flat #prevSlide span:after {
-                        content: 'Prev';
-                }
                 .flat #nextSlide, .flat #prevSlide {
                         display: block;
                         margin-left:auto;
@@ -897,8 +919,6 @@
                 .flat #nextSlide:hover, .flat #prevSlide:hover {
                         background-color: #549cde;
                         border: solid rgb(54, 142, 224) 2px;
-                }
-                .flat #nextSlide:hover, .flat #prevSlide:hover {
                         color: white;
                         background: #368ee0
                 }
@@ -1201,6 +1221,7 @@
   </div>
 </div></div>
 <div id="panel">
+  <div id="dummy_headline"></div>
   <div maindoc contenteditable='true'><!--
 * code :duh:
 #+BEGIN_SRC leisure :results dynamic
