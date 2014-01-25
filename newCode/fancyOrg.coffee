@@ -379,7 +379,7 @@ replaceCodeBlock = (node, text)->
       reprocessResults n
     setTimeout (=>
       nn = $(newNode)
-      setTimeout -> (if nn.is('.codeblock') then nn else nn.find('.codeblock')).addClass 'ready'
+      if nn.is('.codeblock') then nn else nn.find('.codeblock')).addClass 'ready'
       for n in $(newNode).find('[data-org-comments]')
         setShadowHtml n.firstElementChild, "<div class='#{theme ? ''}'>" + newCommentBox n.getAttribute('data-org-comments') + '</div>', codeBlockForNode(n.previousElementSibling).id
       redrawAllIssues()
