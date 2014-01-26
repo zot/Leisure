@@ -1148,6 +1148,8 @@
           .flat h2 {
                 margin-top: 10px;
                 text-align: center;
+          }
+          .flat h2 i, .flat h2 span {
                 vertical-align: middle;
           }
           .flat input:not(.btn) {
@@ -1269,6 +1271,7 @@
                         document.body.innerHTML = "<h1 style='margin-top: 64px'>Leisure won't work in this browser :(</h1><br>The Leisure environment uses Shadow Dom and this browser doesn't support it, so Leisure won't work!<br><h2>Recent versions of Chrome should work.</h2><br><br><img src='images/steampunk_leisure_button.png'>"
                         return;
                 }
+                $("#load_file").click(function() { $("#internal_load_file").click(); });
                 setTimeout(function() {
                         window.Leisure = {calc: true}
                         var script = document.createElement('script');
@@ -1326,7 +1329,8 @@
     <div class="box">
     <h2><i class="fa fa-github fa-2x"></i><span>Load remote notebook from Github</span></h2>
     <b>Your Github account</b><br>
-    Login: <input id='name' type='text' placeholder="E-mail address"> Password: <input id='password' type='password' placeholder="Github Password"><hr>
+    <table><tr><td>Login:</td><td><input id='name' type='text' placeholder="E-mail address"></td></tr><tr><td>Password:</td><td><input id='password' type='password' placeholder="Github Password"></td></tr></table>
+    <hr>
     <b>Github repository for notebook:</b><br>
     <table>
     <tr><td>Owner:</td><td><input id='user' type='text' placeholder="Owner of the repo"></td></tr>
@@ -1344,7 +1348,8 @@
   <p>
   <div id="local" class="box">
   <h2><i class="fa fa-file-o fa-2x"></i><span>Or a local notebook on your PC</span></h2>
-  <input class="btn" type="file" onchange="Leisure.useFile(this.files[0])">
+    <input class="btn" id="load_file" type="submit" value="Load from disk">
+    <input class="btn" id="internal_load_file" type="file" onchange="Leisure.useFile(this.files[0])" style="display: none">
   </div>
 </div></div>
 <div id="panel">
