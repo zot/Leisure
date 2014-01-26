@@ -1122,6 +1122,7 @@
           .flat #login_bg {
                 background: #CCCCCC;
                 padding-bottom: 75px;
+                text-align: center;
           }
           .flat #login_header {
                 margin: 0px;
@@ -1134,29 +1135,42 @@
           }
           .flat .box {
                 position: relative;
-                left: 25%;
+                /* left: 25%; */
                 width: 50%;
                 padding: 10px;
                 border: solid black 0px;
                 border-radius: 5px;
                 background: #368ee0;
                 color: white;
+                display: inline-table;
+                max-width: 600px;
           }
           .flat #local {
                 background: #2ecc71;
+                min-width: 308px;
           }
-          .flat h2 {
+          .flat.login h2 {
                 margin-top: 10px;
+                margin-bottom: 0px;
                 text-align: center;
           }
-          .flat h2 i, .flat h2 span {
+          .flat.login h2 i, .flat.login h2 span {
                 vertical-align: middle;
+          }
+          .flat.login h3 {
+                  margin: 15px 10px 10px 10px;
+          }
+          .flat.login form h3 {
+                  margin-top: 0px;
           }
           .flat input:not(.btn) {
                 border: none;
                 padding: 5px;
                 border-radius: 4px;
                 font-size: 18px;
+          }
+          .flat.login table {
+                text-align: right;
           }
           .flat #loading {
                 display: block;
@@ -1328,10 +1342,10 @@
   <form id="loginForm">
     <div class="box">
     <h2><i class="fa fa-github fa-2x"></i><span>Load remote notebook from Github</span></h2>
-    <b>Your Github account</b><br>
+    <h3>Your Github account</h3>
     <table><tr><td>Login:</td><td><input id='name' type='text' placeholder="E-mail address"></td></tr><tr><td>Password:</td><td><input id='password' type='password' placeholder="Github Password"></td></tr></table>
     <hr>
-    <b>Github repository for notebook:</b><br>
+    <h3>Github repository for notebook:</h3>
     <table>
     <tr><td>Owner:</td><td><input id='user' type='text' placeholder="Owner of the repo"></td></tr>
     <tr><td>Repo:</td><td><input id='repository' type='text' placeholder="Name of the repo"></td></tr>
