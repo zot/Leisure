@@ -1121,7 +1121,7 @@
           }
           .flat #login_bg {
                 background: #CCCCCC;
-                padding-bottom: 75px;
+                padding-bottom: 20px;
                 text-align: center;
           }
           .flat #login_header {
@@ -1158,10 +1158,7 @@
                 vertical-align: middle;
           }
           .flat.login h3 {
-                  margin: 15px 10px 10px 10px;
-          }
-          .flat.login form h3 {
-                  margin-top: 0px;
+                  margin: 15px 10px 5px 10px;
           }
           .flat input:not(.btn) {
                 border: none;
@@ -1171,6 +1168,12 @@
           }
           .flat.login table {
                 text-align: right;
+          }
+          .flat.login table td {
+                width: 110px;
+          }
+          .flat.login p {
+                margin: 10px;
           }
           .flat #loading {
                 display: block;
@@ -1342,8 +1345,7 @@
   <form id="loginForm">
     <div class="box">
     <h2><i class="fa fa-github fa-2x"></i><span>Load remote notebook from Github</span></h2>
-    <h3>Your Github account</h3>
-    <table><tr><td>Login:</td><td><input id='name' type='text' placeholder="E-mail address"></td></tr><tr><td>Password:</td><td><input id='password' type='password' placeholder="Github Password"></td></tr></table>
+    <table><tr><td>Github Login:</td><td><input id='name' type='text' placeholder="E-mail address"></td></tr><tr><td>Password:</td><td><input id='password' type='password' placeholder="Github Password"></td></tr></table>
     <hr>
     <h3>Github repository for notebook:</h3>
     <table>
