@@ -1304,6 +1304,7 @@
                                         $('#name').focus();
                                         $('#loginForm').submit(function(e) {
                                           e.preventDefault();
+                                          $("#local").hide();
                                           $("#github_loader").removeAttr('style');
                                           $("#github").prop('value', "Please hold...");
                                           Leisure.connectStorage();
