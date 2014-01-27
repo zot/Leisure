@@ -145,10 +145,10 @@
                 .steampunk.slides [data-org-type="headline"].currentSlide {
                         margin-left: 0%;
                 }
-                .steampunk #loading, .steampunk [data-org-type="headline"] > [data-org-type='text'] {
+                .steampunk [data-org-type="headline"] > [data-org-type='text'] {
                         color: black;
                 }
-                .steampunk #loading, .steampunk .org-fancy [data-org-type="headline"] > [data-org-type='text'] {
+                .steampunk .org-fancy [data-org-type="headline"] > [data-org-type='text'] {
                         text-shadow: 2px 2px grey;
                 }
                 .steampunk .codeblock {
@@ -890,13 +890,15 @@
                 #loading-message {
                         display: table;
                         margin: auto;
-                        top: 40%;
+                        top: 35%;
                         position: relative;
                         padding-top: 20px;
                         padding-bottom: 20px;
                         padding-left: 40px;
                         padding-right: 40px;
                         color: white;
+                        border-radius: 5px;
+                        background-color: #368ee0;
                 }
                 #nextSlide, #prevSlide {
                         cursor: pointer;
@@ -915,12 +917,6 @@
                         border-radius: 2px;
                         z-index: -1;
                         background: linear-gradient(#34495e, #2c3e50);
-                }
-                #loading-message .textborder {
-                        background: #368ee0;
-                        border: none;
-                        border-radius: 2px;
-                        z-index: -1;
                 }
                 .org-fancy [data-org-headline='2'] > [data-org-type='text'] {
                         font-size: 1.5em;
