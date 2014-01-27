@@ -73,6 +73,49 @@
                 }
         </style>
         <style>
+                body.console {
+                        background-color: black;
+                        color: #0f0;
+                }
+                .console .org-fancy, .console button {
+                        font-family: Inconsolata;
+                        font-size: 28px;
+                }   
+                .console .org-fancy [data-org-src], .console .coderesults, .console #sourceblock, .console .ui-tooltip-content, .console .org-plain {
+                        font-family: Inconsolata;
+                        font-size: 22px;
+                }
+                .console .org-fancy [data-org-src], .console .coderesults {
+                        background-color: black;
+                        border: none;
+                        border-radius: 0px;
+                }
+                .console .code-buttons button, .console #nextSlide, .console #prevSlide {
+                        background: #030;
+                        border: solid #0f0 1px;
+                        color: #0f0;
+                }
+                .console .code-buttons button:hover, .console #nextSlide:hover, .console #prevSlide:hover {
+                        color: black;
+                        background-color: #0f0;
+                }    
+                .console.slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
+                        background: linear-gradient(#010, #030);
+                        color: #0f0;
+                }                
+                .console td.code-buttons {
+                        background: #030;
+                }                
+                .console .code-content {
+                        background-color: #030;
+                        border: none;
+                        border-radius: 0px;
+                }
+                .console :focus {
+                        outline: none;
+                }
+        </style>
+        <style>
                 @font-face
                 {
                         font-family: MouseDeco;
@@ -956,7 +999,7 @@
                         padding-bottom: 40px;
                         padding-left: 40px;
                         padding-right: 40px;
-                        color: white;
+                        /* color: white; */
                 }
                 #loading-message {
                         display: table;
@@ -1054,6 +1097,9 @@
                 }
                 .flat .code-buttons {
                         background: linear-gradient(#666666, #333333);
+                }
+                .flat.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        color: white;
                 }
                 .flat .org-fancy [data-org-src], .flat .coderesults  {
                         background: white;
