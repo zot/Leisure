@@ -508,7 +508,7 @@
                         z-index: 9999;
                 }
                 #leisure_dummy {
-                        position: static;
+                        position: relative;
                         width: 0px;
                         height: 45px;
                 }
@@ -516,7 +516,7 @@
                         height: 0px;
                 }
                 #dummy_headline {
-                        position: static;
+                        position: relative;
                         width: 0px;
                         height: 0px;
                 }
@@ -524,7 +524,7 @@
                         height: 122px;
                 }
                 .slides #panel {
-                        position: absolute;
+                        position: relative;
                         top: 0;
                         bottom: 0;
                         left: 0;
@@ -624,6 +624,10 @@
                 button#team_cthulhu:hover {
                         background-color: #27ae60;
                 }
+                .slides [data-org-type="headline"].currentSlide {
+                        margin-left: 0%;
+                        padding-top: 167px;
+                }                
                 #panel {
                         padding-top: 2px;
                         /* top: 45px; */
