@@ -279,7 +279,7 @@
                         padding-top: 0px;
                 }
                 .steampunk #nextSlide,  .steampunk #prevSlide {
-                        position: absolute;
+                        position: fixed;
                         bottom: 50px;
                         top: auto;
                         width: 128px;
@@ -820,7 +820,7 @@
                         overflow: visible;
                 }
                 .currentSlide .pagecontent {
-                        padding: 140px 100px 0px 10px;
+                        padding: 10px 100px 0px 10px;
                 }
                 .slides .org-fancy [data-org-headline='1'] {
                         margin-bottom: 0;
@@ -850,7 +850,7 @@
                 .slides .org-fancy [data-org-headline='1'],
                 .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder,
                 #loading-message .textborder {
-                        position: absolute;
+                        position: static;
                         top: 0;
                         bottom: 0;
                         left: 0;
@@ -909,6 +909,7 @@
                         content: 'Prev';
                 }
                 .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
+                        position: absolute;
                         background: #2c3e50;
                         border: none;
                         border-radius: 2px;
