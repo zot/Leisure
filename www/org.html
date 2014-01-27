@@ -4,9 +4,75 @@
         <style>
                 @font-face
                 {
-                        font-family: SavilleRow;
-                        src: url('SAVILLE1.woff') format('woff');
+                        font-family: SpaceshipBullet;
+                        src: url('Spaceship Bullet.woff') format('woff');
                 }
+                @font-face
+                {
+                        font-family: Inconsolata;
+                        src: url('Inconsolata.woff') format('woff');
+                }
+                @font-face
+                {
+                        font-family: SpacePatrol;
+                        src: url('SpacePatrol.woff') format('woff');
+                }
+                body.googie {
+                        background-color: #ecf0f1;
+                }
+                .googie .org-fancy, .googie button {
+                        /* font-family: SpacePatrol, SpaceshipBullet; */
+                        font-family: SpaceshipBullet;
+                        font-size: 28px;
+                }
+                .googie .code-buttons button {
+                        -webkit-filter: drop-shadow(5px 5px 5px #222);
+                        filter: drop-shadow(5px 5px 5px #222);
+                        background: url(images/googie_button.png) no-repeat 0% 0% / 100% 100%;
+                        margin: 0px 5px 5px 0px;
+                        color: #bacbe5;
+                }
+                .googie .code-buttons button:hover {
+                        -webkit-filter: drop-shadow(1px 1px 1px #222);
+                        filter: drop-shadow(1px 1px 1px #222);
+                        background-color: transparent;
+                        color: white;
+                        margin: 5px 0px 0px 5px;
+                }
+                .googie td.code-buttons {
+                        background: transparent;
+                        padding: 10px;
+                }
+                .googie .org-fancy [data-org-src] {
+                        border: solid black 2px;
+                }
+                .googie .org-fancy [data-org-src], .googie .coderesults, .googie #sourceblock, .googie .ui-tooltip-content, .googie .org-plain {
+                        font-family: Inconsolata;
+                        font-size: 22px;
+                }
+                .googie .coderesults {
+                        background-color: white;
+                        border: solid black 2px;
+                        border-radius: 10px;
+                }
+                .googie.slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
+                        background: linear-gradient(#ca1c1c, #ac2828);
+                }
+                .googie #nextSlide, .googie #prevSlide {
+                        -webkit-filter: drop-shadow(5px 5px 5px #222);
+                        filter: drop-shadow(5px 5px 5px #222);
+                        background: url(images/googie_button.png) no-repeat 0% 0% / 100% 100%;
+                }
+                .googie #nextSlide:hover, .googie #prevSlide:hover {
+                        -webkit-filter: drop-shadow(1px 1px 1px #222);
+                        filter: drop-shadow(1px 1px 1px #222);
+                        margin: 5px;
+                }
+                .googie :focus {
+                        outline: none;
+                }                
+        </style>
+        <style>
                 @font-face
                 {
                         font-family: MouseDeco;
@@ -720,9 +786,6 @@
                 .code-buttons button:hover {
                         background-color: #666666;
                 }
-                .code-buttons > div:first-child button {
-                        margin-top: 0;
-                }
                 .fluff {
                         min-height: 1.5em;
                 }
@@ -951,6 +1014,18 @@
                 .org-fancy [data-org-html="true"] {
                         white-space: normal;
                 }
+                .code-buttons .testcase-button div:before {
+                        content: 'Collapse';
+                        font-weight: bold;
+                }
+                .code-buttons .comment-button div:before {
+                        content: ' Comments';
+                        font-weight: bold;
+                }
+                .code-buttons .results-indicator div:before {
+                        content: 'Evaluate';
+                        font-weight: bold;
+                }                
                 .paginators {
                         display: none;
                 }
@@ -1069,17 +1144,8 @@
                 .flat .code-buttons button:hover {
                         background: #333333;
                 }
-                .flat .code-buttons .testcase-button div:before {
-                        content: 'Collapse';
-                        font-weight: bold;
-                }
-                .flat .code-buttons .comment-button div:before {
-                        content: ' Comments';
-                        font-weight: bold;
-                }
-                .flat .code-buttons .results-indicator div:before {
-                        content: 'Evaluate';
-                        font-weight: bold;
+                .flat .code-buttons > div:first-child button {
+                        margin-top: 0;
                 }
                 .flat .dyntoggle {
                         font-weight: bold;
