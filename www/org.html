@@ -20,6 +20,9 @@
                 body.googie {
                         background-color: #ecf0f1;
                 }
+                .googie.slides #dummy_headline {
+                        height: 140px;
+                }                
                 .googie .org-fancy, .googie button {
                         /* font-family: SpacePatrol, SpaceshipBullet; */
                         font-family: SpaceshipBullet;
@@ -55,6 +58,37 @@
                         border: solid black 2px;
                         border-radius: 10px;
                 }
+                .googie .codeblock[data-org-test="unknown"] {
+                        background: url(images/googie_test_white.png);
+                        background-size: 64px 64px;
+                }
+                .googie .codeblock[data-org-test="pass"] {
+                        background: url(images/googie_test_green.png);
+                        background-size: 64px 64px;
+                }
+                .googie .codeblock[data-org-test="fail"] {
+                        background: url(images/googie_test_red.png);
+                        background-size: 64px 64px;
+                }
+                .googie .codeblock[data-org-test] {
+                        border: none;
+                        background-color: transparent;
+                        display: inline-block;
+                        width: 64px;
+                        height: 64px;
+                }
+                .googie .codeblock.ready[data-org-test] {
+                        display: inline-block;
+                        width: 64px;
+                        height: 64px;
+                        padding: 0;
+                }                
+                .googie [data-org-test] > * {
+                        display: none;
+                }
+                .googie [data-org-test] {
+                        cursor: pointer;
+                }                
                 .googie.slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
                         background: linear-gradient(#ca1c1c, #ac2828);
                 }
@@ -68,6 +102,10 @@
                         filter: drop-shadow(1px 1px 1px #222);
                         margin: 5px;
                 }
+                .googie.page > .border {
+                        border-radius: 0;
+                        background: url(images/googie_background.png) repeat-y;
+                }                
                 .googie :focus {
                         outline: none;
                 }
