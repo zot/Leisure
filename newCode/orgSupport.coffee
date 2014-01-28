@@ -806,7 +806,7 @@ installOrgDOM = (parent, orgNode, orgText)->
   parent.innerHTML = orgText
   restoreMarkPositions parent, markPositions
 
-# returns a list of [position, mark-id]
+# returns a list of [markId, start, end]
 getMarkPositions = (node)->
   positions = []
   offset = 0
@@ -814,29 +814,57 @@ getMarkPositions = (node)->
   for node in $('[data-mark]')
     while (cur = nodeAfter cur) && cur != node
       if cur.nodeType == 3 then offset += cur.data.length
-    positions.push offset, node.getAttribute 'data-mark'
+    positions.push node.getAttribute('data-mark'), offset, countCharactersIn node
   positions
 
 markId = 0
 
-createMarkNode = -> $("<span data-mark=#{markId++}></span>")
+createMarkNode = (id)-> $("<span data-mark=#{id ? markId++}></span>")
 
+# restore the marks [markId, start, end]
 restoreMarkPositions = (node, positions)->
   offset = 0
-  count = 0
   limit = nodeAfterNoChildren node
   while count < positions.length && node != limit
-    next = positions[count]
-    while node && node != limit && offset < next
-      node = nodeAfter node
-      if node.nodeType == 3
-        oldOffset = offset
-        offset += node.data.length
-        if offset >= next
-          newMark = createMarkNode()
-          if offset > next then node.splitText next - oldOffset
-          node.parentNode.insertBefore newMark, node.nextSibling
-    count++
+    [markId, start, end] = positions[count]
+    startNode = getStartTextNodeAtOffset node, start - offset
+    endNode = getEndTextNodeAtOffset startNode, end - start - offset
+    surroundNodes startNode, endNode, createMarkNode markId
+    offset = end
+    node = nodeAfter endNode
+
+getStartTextNodeAtOffset = (node, pos)->
+  offset = 0
+  while node && offset <= pos
+    if node.nodeType == 3
+      if offset == pos then return node
+      offset += node.data.length
+      if offset > pos
+        node.splitText pos - offset + node.data.length
+        return node
+    node = nodeAfter node
+
+getEndTextNodeAtOffset = (node, pos)->
+  offset = 0
+  while node && offset < pos
+    if node.nodeType == 3
+      offset += node.data.length
+      if offset == pos then return node
+      if offset > pos then return node.splitText pos - offset + node.data.length
+    node = nodeAfter node
+
+getTextRange = (parent, start, end)->
+  startNode = getStartTextNodeAtOffset parent, start
+  r = document.createRange()
+  r.setStartBefore startNode
+  r.setEndAfter getEndTextNodeAtOffset startNode, end - start
+  r
+
+surroundNodes = (start, end, outerNode)->
+  r = document.createRange()
+  r.setStartBefore start
+  r.setEndAfter end
+  r.surroundContents outerNode
 
 #checkDeleteReparse = (parent, backspace)->
 #  r = rangy.getSelection().getRangeAt 0
@@ -999,7 +1027,7 @@ getTextPositionNew = (node, target, pos)->
     childPos = 0
     limit = switch target.nodeType
       when 1
-        if pos + 1 < node.childNodes.length then node.childNodes[pos + 1] else nodeAfterNoChildren node
+        if pos + 1 < target.childNodes.length then target.childNodes[pos + 1] else nodeAfterNoChildren target
       when 3 then target
       else nodeAfter node
     while node && node != limit
@@ -1015,6 +1043,8 @@ getTextPositionOld = (node, target, pos)->
     r.setEnd target, pos
     r.cloneContents().textContent.length
   else -1
+
+countCharactersIn = (node)-> countCharactersFrom node, nodeAfterNoChildren node
 
 countCharactersFrom = (start, end)->
   total = 0
@@ -1212,6 +1242,9 @@ root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile
 root.nextVisibleNewline = nextVisibleNewline
 root.countCharactersFrom = countCharactersFrom
+root.countCharactersIn = countCharactersIn
 root.nodeAfter = nodeAfter
 root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
+root.getStartTextNodeAtOffset = getStartTextNodeAtOffset
+root.getEndTextNodeAtOffset = getEndTextNodeAtOffset

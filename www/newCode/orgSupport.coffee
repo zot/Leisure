@@ -95,7 +95,7 @@ fs = null
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' download='leisureFile.lorg'><i class=\"fa fa-save\"></i><div></div></button><div id=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' download='leisureFile.lorg'><i class=\"fa fa-save\"></i><div></div></button><div id=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
     .prependTo(document.body)
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
@@ -814,29 +814,49 @@ getMarkPositions = (node)->
   for node in $('[data-mark]')
     while (cur = nodeAfter cur) && cur != node
       if cur.nodeType == 3 then offset += cur.data.length
-    positions.push offset, node.getAttribute 'data-mark'
+    positions.push node.getAttribute('data-mark'), offset, countCharactersIn node
   positions
 
 markId = 0
 
-createMarkNode = -> $("<span data-mark=#{markId++}></span>")
+createMarkNode = (id)-> $("<span data-mark=#{id ? markId++}></span>")
 
 restoreMarkPositions = (node, positions)->
   offset = 0
   count = 0
   limit = nodeAfterNoChildren node
   while count < positions.length && node != limit
-    next = positions[count]
-    while node && node != limit && offset < next
+    [markId, start, end] = positions[count]
+    while node && node != limit && offset < start
       node = nodeAfter node
       if node.nodeType == 3
         oldOffset = offset
         offset += node.data.length
-        if offset >= next
-          newMark = createMarkNode()
-          if offset > next then node.splitText next - oldOffset
-          node.parentNode.insertBefore newMark, node.nextSibling
+        if offset >= start
+          newMark = createMarkNode markId
+          if offset > start then node.splitText start - oldOffset
+          newMark.insertAfter node
     count++
+
+getStartTextNodeAtOffset = (node, pos)->
+  offset = 0
+  while node && offset <= pos
+    if node.nodeType == 3
+      if offset == pos then return node
+      offset += node.data.length
+      if offset > pos
+        node.splitText pos - offset + node.data.length
+        return node
+    node = nodeAfter node
+
+getEndTextNodeAtOffset = (node, pos)->
+  offset = 0
+  while node && offset < pos
+    if node.nodeType == 3
+      offset += node.data.length
+      if offset == pos then return node
+      if offset > pos then return node.splitText pos - offset + node.data.length
+    node = nodeAfter node
 
 #checkDeleteReparse = (parent, backspace)->
 #  r = rangy.getSelection().getRangeAt 0
@@ -999,7 +1019,7 @@ getTextPositionNew = (node, target, pos)->
     childPos = 0
     limit = switch target.nodeType
       when 1
-        if pos + 1 < node.childNodes.length then node.childNodes[pos + 1] else nodeAfterNoChildren node
+        if pos + 1 < target.childNodes.length then target.childNodes[pos + 1] else nodeAfterNoChildren target
       when 3 then target
       else nodeAfter node
     while node && node != limit
@@ -1015,6 +1035,8 @@ getTextPositionOld = (node, target, pos)->
     r.setEnd target, pos
     r.cloneContents().textContent.length
   else -1
+
+countCharactersIn = (node)-> countCharactersFrom node, nodeAfterNoChildren node
 
 countCharactersFrom = (start, end)->
   total = 0
@@ -1212,6 +1234,9 @@ root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile
 root.nextVisibleNewline = nextVisibleNewline
 root.countCharactersFrom = countCharactersFrom
+root.countCharactersIn = countCharactersIn
 root.nodeAfter = nodeAfter
 root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
+root.getStartTextNodeAtOffset = getStartTextNodeAtOffset
+root.getEndTextNodeAtOffset = getEndTextNodeAtOffset
