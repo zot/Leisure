@@ -999,7 +999,7 @@ getTextPositionNew = (node, target, pos)->
     childPos = 0
     limit = switch target.nodeType
       when 1
-        if pos < node.childNodes.length then node.childNodes[pos] else nodeAfter node
+        if pos + 1 < node.childNodes.length then node.childNodes[pos + 1] else nodeAfterNoChildren node
       when 3 then target
       else nodeAfter node
     while node && node != limit
@@ -1015,6 +1015,13 @@ getTextPositionOld = (node, target, pos)->
     r.setEnd target, pos
     r.cloneContents().textContent.length
   else -1
+
+countCharactersFrom = (start, end)->
+  total = 0
+  while start && start != end
+    if start.nodeType == 3 then total += start.data.length
+    start = nodeAfter start
+  if start == end then total else -1
 
 findDomPosition = (node, pos)->
   parent = node
@@ -1204,3 +1211,7 @@ root.PAGEUP = PAGEUP
 root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile
 root.nextVisibleNewline = nextVisibleNewline
+root.countCharactersFrom = countCharactersFrom
+root.nodeAfter = nodeAfter
+root.nodeAfterNoChildren = nodeAfterNoChildren
+root.nodeBefore = nodeBefore
