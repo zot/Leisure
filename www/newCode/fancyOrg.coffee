@@ -96,6 +96,8 @@ lz = lazy
   textNodeBefore,
   PAGEUP,
   PAGEDOWN,
+  HOME,
+  END,
 } = require './orgSupport'
 {
   redrawAllIssues,
@@ -926,23 +928,21 @@ setCurrentSlide = (element)->
   # this is needed until there is support for :host (and/or ^ & ^^)
   if element.shadowRoot then $(element.shadowRoot.firstElementChild).addClass 'currentSlide'
 
+firstSlide = -> setCurrentSlide $('[data-org-headline="1"]')[0]
+
+lastSlide = ->
+  slides = $('[data-org-headline="1"]')
+  setCurrentSlide slides[slides.length - 1]
+
 nextSlide = ->
-  ns = null
   if slide = $('.currentSlide')[0]
-    if $(slide.nextElementSibling).has('[data-org-headline="1"]')
-      ns = slide.nextElementSibling
-  if !ns then ns = $('[data-org-headline="1"]')[0]
-  setCurrentSlide ns
+    while slide = slide.nextElementSibling
+      if $(slide).is('[data-org-headline="1"]') then return setCurrentSlide slide
 
 prevSlide = ->
-  ps = null
   if slide = $('.currentSlide')[0]
-    if $(slide.previousElementSibling).has('[data-org-headline="1"]')
-      ps = slide.previousElementSibling
-  if !$(ps).is('[data-org-headline="1"]')
-    s = $('[data-org-headline="1"]')
-    ps = s[s.length - 1]
-  if ps then setCurrentSlide ps
+    while slide = slide.previousElementSibling
+      if $(slide).is('[data-org-headline="1"]') then return setCurrentSlide slide
 
 showSlides = ->
   setCurrentSlide $('[data-org-headline="1"]')[0]
@@ -974,6 +974,14 @@ slideBindings =
     e.preventDefault()
     nextSlide()
     false
+  'HOME': (e, parent, r)->
+    e.preventDefault()
+    firstSlide()
+    false
+  'END': (e, parent, r)->
+    e.preventDefault()
+    lastSlide()
+    false
 
 toggleSlides = ->
   slideMode = !slideMode
@@ -986,7 +994,8 @@ toggleSlides = ->
       $('body').addClass 'slides'
       #setTimeout (->nextSlide()), 500
       #setTimeout (->nextSlide()), 1
-      nextSlide()
+      #nextSlide()
+      firstSlide()
   else
     $('body').removeClass 'slides'
     $('[data-org-html]').removeClass 'slideHtml'

@@ -18,6 +18,8 @@ LEFT = 37
 UP = 38
 RIGHT = 39
 DOWN = 40
+HOME = 36
+END = 35
 
 textNode = (text)-> document.createTextNode(text)
 
@@ -108,4 +110,6 @@ root.LEFT = LEFT
 root.UP = UP
 root.RIGHT = RIGHT
 root.DOWN = DOWN
+root.HOME = HOME
+root.END = END
 root.textNode = textNode

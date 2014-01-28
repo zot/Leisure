@@ -53,6 +53,8 @@ Nil = rz L_nil
   RIGHT,
   UP,
   DOWN,
+  HOME,
+  END,
 } = require './browserSupport'
 {
   parseOrgMode,
@@ -490,6 +492,8 @@ specialKeys[UP] = 'UP'
 specialKeys[DOWN] = 'DOWN'
 specialKeys[PAGEUP] = 'PAGEUP'
 specialKeys[PAGEDOWN] = 'PAGEDOWN'
+specialKeys[HOME] = 'HOME'
+specialKeys[END] = 'END'
 
 modifiers = (e, c)->
   res = specialKeys[c] || String.fromCharCode(c)
