@@ -28,7 +28,7 @@
                         font-family: SpaceshipBullet;
                         font-size: 28px;
                 }
-                .googie .code-buttons button, .googie button.add_comment {
+                .googie .code-buttons button, .googie button.add_comment, .googie .paginators button {
                         -webkit-filter: drop-shadow(5px 5px 5px #222);
                         filter: drop-shadow(5px 5px 5px #222);
                         background: url(images/googie_button.png) no-repeat 0% 0% / 100% 100%;
@@ -36,13 +36,17 @@
                         color: #e4efff;
                         padding: 10px 35px;
                 }
-                .googie .code-buttons button:hover, .googie button.add_comment:hover {
-                        -webkit-filter: drop-shadow(1px 1px 1px #222);
-                        filter: drop-shadow(1px 1px 1px #222);
-                        background-color: transparent;
+                .googie .code-buttons button:hover, .googie button.add_comment:hover, .googie .paginators button:hover {
+                        -webkit-filter: drop-shadow(5px 5px 5px #4c8efb);
+                        filter: drop-shadow(5px 5px 5px #4c8efb);
                         color: white;
-                        margin: 5px 0px 0px 5px;
+                        background-color: transparent;
                 }
+                 .googie .code-buttons button:active, .googie button.add_comment:active, .googie .paginators button:active {
+                        filter: drop-shadow(1px 1px 1px #4c8efb);
+                        -webkit-filter: drop-shadow(1px 1px 1px #4c8efb);
+                        margin: 5px 0px 0px 5px;
+                 }
                 .googie button.add_comment {
                         height: 60px;
                 }
@@ -85,8 +89,12 @@
                         margin: 0px 3px 3px 0px;
                 }
                 .googie .codeblock[data-org-test]:hover {
-                        -webkit-filter: drop-shadow(1px 1px 1px #222);
-                        filter: drop-shadow(1px 1px 1px #222);
+                        -webkit-filter: drop-shadow(5px 5px 5px #4c8efb);
+                        filter: drop-shadow(3px 3px 3px #4c8efb);
+                }
+                .googie .codeblock[data-org-test]:active {
+                        -webkit-filter: drop-shadow(1px 1px 1px #4c8efb);
+                        filter: drop-shadow(1px 1px 1px #4c8efb);
                         margin: 3px 0px 0px 3px;
                 }
                 .googie .codeblock.ready[data-org-test] {
@@ -126,16 +134,6 @@
                         background-size: 100% 224px;
                         -webkit-filter: drop-shadow(5px 5px 5px #222);
                         filter: drop-shadow(5px 5px 5px #222);                        
-                }
-                .googie #nextSlide, .googie #prevSlide {
-                        -webkit-filter: drop-shadow(5px 5px 5px #222);
-                        filter: drop-shadow(5px 5px 5px #222);
-                        background: url(images/googie_button.png) no-repeat 0% 0% / 100% 100%;
-                }
-                .googie #nextSlide:hover, .googie #prevSlide:hover {
-                        -webkit-filter: drop-shadow(1px 1px 1px #222);
-                        filter: drop-shadow(1px 1px 1px #222);
-                        margin: 5px;
                 }
                 .googie #prevSlide {
                         left: 100px;
