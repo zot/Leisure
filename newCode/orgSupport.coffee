@@ -853,13 +853,6 @@ getEndTextNodeAtOffset = (node, pos)->
       if offset > pos then return node.splitText pos - offset + node.data.length
     node = nodeAfter node
 
-getTextRange = (parent, start, end)->
-  startNode = getStartTextNodeAtOffset parent, start
-  r = document.createRange()
-  r.setStartBefore startNode
-  r.setEndAfter getEndTextNodeAtOffset startNode, end - start
-  r
-
 surroundNodes = (start, end, outerNode)->
   r = document.createRange()
   r.setStartBefore start
