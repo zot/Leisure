@@ -21,7 +21,7 @@
                         background-color: #ecf0f1;
                 }
                 .googie.slides #dummy_headline {
-                        height: 140px;
+                        height: 240px;
                 }                
                 .googie .org-fancy, .googie button {
                         /* font-family: SpacePatrol, SpaceshipBullet; */
@@ -89,8 +89,18 @@
                 .googie [data-org-test] {
                         cursor: pointer;
                 }                
-                .googie.slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
-                        background: linear-gradient(#ca1c1c, #ac2828);
+                .googie.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        width: inherit;
+                        min-width: 600px;
+                        padding: 80px 40px;
+                        color: white;
+                        text-transform: uppercase;
+                }
+                .googie.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
+                        background: url(images/googie_headline.png) no-repeat;
+                        background-size: 100% 224px;
+                        -webkit-filter: drop-shadow(5px 5px 5px #222);
+                        filter: drop-shadow(5px 5px 5px #222);                        
                 }
                 .googie #nextSlide, .googie #prevSlide {
                         -webkit-filter: drop-shadow(5px 5px 5px #222);
@@ -102,6 +112,17 @@
                         filter: drop-shadow(1px 1px 1px #222);
                         margin: 5px;
                 }
+                .googie #prevSlide {
+                        left: 140px;
+                        top: 120px;
+                }
+                .googie #nextSlide {
+                        right: 140px;
+                        top: 120px;
+                }
+                .googie.bar_collapse #nextSlide, .googie.bar_collapse #prevSlide {
+                        top: 75px;
+                }                
                 .googie.page > .border {
                         border-radius: 0;
                         background: url(images/googie_background.png) repeat-y;
