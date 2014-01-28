@@ -155,6 +155,9 @@
                         border-radius: 0;
                         background: url(images/googie_background.png) repeat-y;
                 }
+                .googie hr {
+                        display: none;
+                }
                 .googie textarea {
                         font-family: Inconsolata;
                         font-size: large;
@@ -258,6 +261,14 @@
                 }
                 .console :focus {
                         outline: none;
+                }
+                .console.slides hr {
+                        display: none;
+                }
+                .console hr {
+                        background: #0f0;
+                        height: 2px;
+                        border: none;
                 }
                 .console ::selection {
                         background: #0d0; /* Safari */
@@ -646,6 +657,9 @@
                         font-family: MouseDeco;
                 }
                 .steampunk .fa *:not(.login) {
+                        display: none;
+                }
+                .steampunk hr {
                         display: none;
                 }
                 .steampunk ::selection {
@@ -1377,6 +1391,9 @@
                 }
                 .flat .code-buttons > div:first-child button {
                         margin-top: 0;
+                }
+                .flat.slides hr {
+                        display: none;
                 }
                 .flat .dyntoggle {
                         font-weight: bold;
