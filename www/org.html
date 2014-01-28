@@ -135,6 +135,9 @@
                         -webkit-filter: drop-shadow(5px 5px 5px #222);
                         filter: drop-shadow(5px 5px 5px #222);                        
                 }
+                .googie .commentbox > .added, .googie .commentbox > .main {
+                        border: none;
+                }                
                 .googie #prevSlide {
                         left: 100px;
                         top: 120px;
@@ -151,6 +154,10 @@
                 .googie.page > .border {
                         border-radius: 0;
                         background: url(images/googie_background.png) repeat-y;
+                } 
+                .googie textarea {
+                        font-family: Inconsolata;
+                        font-size: large;
                 }                
                 .googie :focus {
                         outline: none;
@@ -160,6 +167,35 @@
                 body.console {
                         background-color: black;
                         color: #0f0;
+                }
+                .console .codeblock[data-org-test="unknown"] {
+                        background-color: #030;
+                }
+                .console .codeblock[data-org-test="pass"] {
+                        background-color: #0d0;
+                }
+                .console .codeblock[data-org-test="fail"] {
+                        background-color: #d00;
+                }
+                .console .codeblock[data-org-test] {
+                        border: solid black 2px;
+                        display: inline-block;
+                        width: 64px;
+                        height: 64px;
+                        cursor: pointer;
+                }
+                .console .codeblock[data-org-test]:hover {
+                        border: solid #0f0 2px;
+                }
+                .console .codeblock[data-org-test]:active {
+                        border: solid black 2px;
+                }
+                .console [data-org-test] > * {
+                        display: none;
+                }
+                .console .commentbox > .added, .console .commentbox > .main {
+                        background-color: black;
+                        border: solid #0f0 1px;
                 }
                 .console .org-fancy, .console button {
                         font-family: Inconsolata;
@@ -174,15 +210,19 @@
                         border: none;
                         border-radius: 0px;
                 }
-                .console .code-buttons button, .console #nextSlide, .console #prevSlide {
+                .console .code-buttons button, .console button.add_comment, .console .paginators button {
                         background: #030;
                         border: solid #0f0 1px;
                         color: #0f0;
                 }
-                .console .code-buttons button:hover, .console #nextSlide:hover, .console #prevSlide:hover {
+                .console .code-buttons button:hover, .console button.add_comment:hover, .console .paginators button:hover {
                         color: black;
                         background-color: #0f0;
-                }    
+                }
+                .console .code-buttons button:active, .console button.add_comment:active, .console .paginators button:active {
+                        color: #0f0;
+                        background-color: black;
+                }                
                 .console.slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
                         background: linear-gradient(#010, #030);
                         color: #0f0;
@@ -195,9 +235,36 @@
                         border: none;
                         border-radius: 0px;
                 }
+                .console .showcomments.comments div, .console.ast svg, .console .ui-tooltip {
+                        border: solid #0f0 1px;
+                        border-radius:0px;
+                        background: linear-gradient(#010, #030);
+                        color: #0f0;
+                }
+                .console .ui-slider {
+                        border: solid #0f0 1px !important;
+                        background: black !important;
+                }
+                .console .ui-slider-handle {
+                        background: #0f0 !important;
+                        border: solid #0f0 1px !important;
+                }
+                .console textarea {
+                        border: solid #0f0 1px !important;
+                        background: black !important;
+                        color: #0f0;
+                        font-family: Inconsolata;
+                        font-size: large;
+                }
                 .console :focus {
                         outline: none;
                 }
+                .console ::selection {
+                        background: #0d0; /* Safari */
+                }
+                .console ::-moz-selection {
+                        background: #0d0; /* Firefox */
+                }                
         </style>
         <style>
                 @font-face
@@ -450,6 +517,14 @@
                         width: 48px;
                         background: none;
                 }
+                .steampunk .ui-slider {
+                        border: solid rgb(96, 57, 19) 1px !important;
+                        background: #e6dcc3 !important;
+                }
+                .steampunk .ui-slider-handle {
+                        background: #603913 !important;
+                        border: solid rgb(96, 57, 19) 1px !important;
+                }                
                 .steampunk .dyntoggle .fa {
                         display: none;
                 }
@@ -573,7 +648,12 @@
                 .steampunk .fa *:not(.login) {
                         display: none;
                 }
-
+                .steampunk ::selection {
+                        background: #a2572e; /* Safari */
+                }
+                .steampunk ::-moz-selection {
+                        background: #a2572e; /* Firefox */
+                }                
         </style>
         <style>
                 body {
