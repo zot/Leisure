@@ -631,12 +631,19 @@ markupGuts = (org, start)->
   if !org.children.length then ''
   else
     prev = if start then null else org
-    (for c in org.children
+    hline = 'first'
+    ((for c in org.children
       s = start
       start = false
       p = prev
       prev = c
-      markupNode(c, s)).join ""
+      h = hline
+      if c instanceof Headline then hline = 'inner'
+      (hlineFor c, h) + markupNode(c, s)).join "") + (if org.level == 0 then "<hr class='last'>" else '')
+
+hlineFor = (headline, hline)->
+  if !(headline instanceof Headline) || headline.level != 1 then ''
+  else "<hr class='#{hline}'>"
 
 currentTextPosition = (parent, r)->
   if curPos > -1 then curPos
@@ -814,7 +821,7 @@ commentHtml = (comment, type)->
   "<div class='commentbox'><img src='http://gravatar.com/avatar/#{comment.user.gravatar_id}?s=48'><div class='#{type}'>#{comment.body}</div></div>"
 
 newCommentBox = (name, codeId)->
-  "<div class='#{theme ? ''}'><textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"#{name}\", event)'>Add Comment</button></div>"
+  "<div class='#{theme ? ''}'><textarea pseudo='x-new-comment'></textarea><br><button class='add_comment' onclick='Leisure.addComment(\"#{name}\", event)'>Add Comment</button></div>"
 
 colonify = (str)-> ': ' + (str.replace /[\n\\]/g, (c)-> if c == '\n' then '\\n' else '\\\\') + '\n'
 

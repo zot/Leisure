@@ -825,8 +825,9 @@ createMarkNode = (id)-> $("<span data-mark=#{id ? markId++}></span>")
 restoreMarkPositions = (node, positions)->
   offset = 0
   limit = nodeAfterNoChildren node
-  while count < positions.length && node != limit
-    [markId, start, end] = positions[count]
+  for p in positions
+    if node == limit then break
+    [markId, start, end] = p
     startNode = getStartTextNodeAtOffset node, start - offset
     endNode = getEndTextNodeAtOffset startNode, end - start - offset
     surroundNodes startNode, endNode, createMarkNode markId

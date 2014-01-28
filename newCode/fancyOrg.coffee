@@ -631,12 +631,19 @@ markupGuts = (org, start)->
   if !org.children.length then ''
   else
     prev = if start then null else org
-    (for c in org.children
+    hline = 'first'
+    ((for c in org.children
       s = start
       start = false
       p = prev
       prev = c
-      markupNode(c, s)).join ""
+      h = hline
+      if c instanceof Headline then hline = 'inner'
+      (hlineFor c, h) + markupNode(c, s)).join "") + (if org.level == 0 then "<hr class='last'>" else '')
+
+hlineFor = (headline, hline)->
+  if !(headline instanceof Headline) || headline.level != 1 then ''
+  else "<hr class='#{hline}'>"
 
 currentTextPosition = (parent, r)->
   if curPos > -1 then curPos

@@ -806,7 +806,7 @@ installOrgDOM = (parent, orgNode, orgText)->
   parent.innerHTML = orgText
   restoreMarkPositions parent, markPositions
 
-# returns a list of [position, mark-id]
+# returns a list of [markId, start, end]
 getMarkPositions = (node)->
   positions = []
   offset = 0
@@ -821,22 +821,18 @@ markId = 0
 
 createMarkNode = (id)-> $("<span data-mark=#{id ? markId++}></span>")
 
+# restore the marks [markId, start, end]
 restoreMarkPositions = (node, positions)->
   offset = 0
-  count = 0
   limit = nodeAfterNoChildren node
-  while count < positions.length && node != limit
-    [markId, start, end] = positions[count]
-    while node && node != limit && offset < start
-      node = nodeAfter node
-      if node.nodeType == 3
-        oldOffset = offset
-        offset += node.data.length
-        if offset >= start
-          newMark = createMarkNode markId
-          if offset > start then node.splitText start - oldOffset
-          newMark.insertAfter node
-    count++
+  for p in positions
+    if node == limit then break
+    [markId, start, end] = p
+    startNode = getStartTextNodeAtOffset node, start - offset
+    endNode = getEndTextNodeAtOffset startNode, end - start - offset
+    surroundNodes startNode, endNode, createMarkNode markId
+    offset = end
+    node = nodeAfter endNode
 
 getStartTextNodeAtOffset = (node, pos)->
   offset = 0
@@ -857,6 +853,12 @@ getEndTextNodeAtOffset = (node, pos)->
       if offset == pos then return node
       if offset > pos then return node.splitText pos - offset + node.data.length
     node = nodeAfter node
+
+surroundNodes = (start, end, outerNode)->
+  r = document.createRange()
+  r.setStartBefore start
+  r.setEndAfter end
+  r.surroundContents outerNode
 
 #checkDeleteReparse = (parent, backspace)->
 #  r = rangy.getSelection().getRangeAt 0
