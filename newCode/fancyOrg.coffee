@@ -974,11 +974,19 @@ slideBindings =
     e.preventDefault()
     nextSlide()
     false
-  'HOME': (e, parent, r)->
+  'S-PAGEUP': (e, parent, r)->
     e.preventDefault()
     firstSlide()
     false
-  'END': (e, parent, r)->
+  'S-PAGEDOWN': (e, parent, r)->
+    e.preventDefault()
+    lastSlide()
+    false
+  'C-PAGEUP': (e, parent, r)->
+    e.preventDefault()
+    firstSlide()
+    false
+  'C-PAGEDOWN': (e, parent, r)->
     e.preventDefault()
     lastSlide()
     false
