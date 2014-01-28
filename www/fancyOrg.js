@@ -1100,7 +1100,7 @@
   };
 
   newCommentBox = function(name, codeId) {
-    return "<div class='" + (typeof theme !== "undefined" && theme !== null ? theme : '') + "'><textarea pseudo='x-new-comment'></textarea><br><button onclick='Leisure.addComment(\"" + name + "\", event)'>Add Comment</button></div>";
+    return "<div class='" + (typeof theme !== "undefined" && theme !== null ? theme : '') + "'><textarea pseudo='x-new-comment'></textarea><br><button class='add_comment' onclick='Leisure.addComment(\"" + name + "\", event)'>Add Comment</button></div>";
   };
 
   colonify = function(str) {

@@ -28,7 +28,7 @@
                         font-family: SpaceshipBullet;
                         font-size: 28px;
                 }
-                .googie .code-buttons button {
+                .googie .code-buttons button, .googie button.add_comment {
                         -webkit-filter: drop-shadow(5px 5px 5px #222);
                         filter: drop-shadow(5px 5px 5px #222);
                         background: url(images/googie_button.png) no-repeat 0% 0% / 100% 100%;
@@ -36,12 +36,15 @@
                         color: #e4efff;
                         padding: 10px 35px;
                 }
-                .googie .code-buttons button:hover {
+                .googie .code-buttons button:hover, .googie button.add_comment:hover {
                         -webkit-filter: drop-shadow(1px 1px 1px #222);
                         filter: drop-shadow(1px 1px 1px #222);
                         background-color: transparent;
                         color: white;
                         margin: 5px 0px 0px 5px;
+                }
+                .googie button.add_comment {
+                        height: 60px;
                 }
                 .googie td.code-buttons {
                         background: transparent;
@@ -77,6 +80,14 @@
                         display: inline-block;
                         width: 64px;
                         height: 64px;
+                        -webkit-filter: drop-shadow(5px 5px 5px #222);
+                        filter: drop-shadow(3px 3px 3px #222);
+                        margin: 0px 3px 3px 0px;
+                }
+                .googie .codeblock[data-org-test]:hover {
+                        -webkit-filter: drop-shadow(1px 1px 1px #222);
+                        filter: drop-shadow(1px 1px 1px #222);
+                        margin: 3px 0px 0px 3px;
                 }
                 .googie .codeblock.ready[data-org-test] {
                         display: inline-block;
@@ -87,6 +98,16 @@
                 .googie .codeborder {
                         border: solid #666 8px;
                 }
+                .googie .showcomments.comments div, .googie.ast svg {
+                        border: solid #666 8px;
+                        border-radius: 10px;
+                        background: lightgray;
+                }
+                .googie .ui-tooltip {
+                        border: solid rgb(56, 104, 194) 10px;
+                        border-radius: 10px;
+                        background: #4c8efb;
+                }
                 .googie [data-org-test] > * {
                         display: none;
                 }
@@ -95,8 +116,8 @@
                 }                
                 .googie.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
                         width: inherit;
-                        min-width: 600px;
-                        padding: 80px 40px;
+                        min-width: 250px;
+                        padding: 80px 180px;
                         color: white;
                         text-transform: uppercase;
                 }
