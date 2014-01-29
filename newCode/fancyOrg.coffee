@@ -1000,9 +1000,6 @@ toggleSlides = ->
     restorePosition null, ->
       $('[data-org-html]').addClass 'slideHtml'
       $('body').addClass 'slides'
-      #setTimeout (->nextSlide()), 500
-      #setTimeout (->nextSlide()), 1
-      #nextSlide()
       firstSlide()
   else
     $('body').removeClass 'slides'
