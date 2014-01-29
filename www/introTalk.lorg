@@ -624,5 +624,6 @@ If you want to get in touch, you can email me at bill dot burdick at gmail dot c
 
 * Presentation Code
 #+BEGIN_SRC leisure :results def
+setTheme 'steampunk'
 toggleSlides
 #+END_SRC
