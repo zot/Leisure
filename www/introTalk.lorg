@@ -15,7 +15,7 @@
         .slideHtml {
                 z-index: 10000;
                 background: url(images/steampunk_background.jpg) border-box no-repeat 0% 0% / 100% 100%;
-                position: absolute;
+                position: fixed;
                 /*top: -120px;
                 left: -100px;
                 bottom: -120px;
