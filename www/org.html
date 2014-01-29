@@ -2,6 +2,158 @@
 <html>
   <head>
         <style>
+                body.cthulhu {
+                        background-color: #032500;
+                        color: #ffcc33;
+                        text-shadow: 3px 3px #000000;
+                }
+                .cthulhu.slides #dummy_headline {
+                        height: 240px;
+                }
+                .cthulhu .org-fancy, .cthulhu button {
+                        font-family: Inconsolata;
+                        font-size: 28px;
+                }
+                .cthulhu .code-buttons button, .cthulhu button.add_comment, .cthulhu .paginators button {
+                        -webkit-filter: drop-shadow(5px 5px 5px #222);
+                        filter: drop-shadow(5px 5px 5px #222);
+                        background: url(images/googie_button.png) no-repeat 0% 0% / 100% 100%;
+                        margin: 0px 5px 5px 0px;
+                        color: #f1c40f;
+                        padding: 10px 35px;
+                        transition: color 0.2s ease-in-out, filter 0.2s ease-in-out;
+                }
+                .cthulhu .code-buttons button:hover, .cthulhu button.add_comment:hover, .cthulhu .paginators button:hover {
+                        -webkit-filter: drop-shadow(5px 5px 5px #4c8efb);
+                        filter: drop-shadow(5px 5px 5px #4c8efb);
+                        color: #f1c40f;
+                        background-color: transparent;
+                }
+                 .cthulhu .code-buttons button:active, .cthulhu button.add_comment:active, .cthulhu .paginators button:active {
+                        filter: drop-shadow(1px 1px 1px #4c8efb);
+                        -webkit-filter: drop-shadow(1px 1px 1px #4c8efb);
+                        margin: 5px 0px 0px 5px;
+                 }
+                .cthulhu button.add_comment {
+                        height: 60px;
+                }
+                .cthulhu td.code-buttons {
+                        background: transparent;
+                        padding: 10px;
+                }
+                .cthulhu .org-fancy [data-org-src] {
+                        border: solid black 2px;
+                }
+                .cthulhu .org-fancy [data-org-src], .cthulhu .coderesults, .cthulhu #sourceblock, .cthulhu .ui-tooltip-content, .cthulhu .org-plain {
+                        font-family: Inconsolata;
+                        font-size: 22px;
+                }
+                .cthulhu .coderesults {
+                        background-color: white;
+                        border: solid black 2px;
+                        border-radius: 10px;
+                }
+                .cthulhu .codeblock[data-org-test="unknown"] {
+                        background: url(images/googie_test_white.png);
+                        background-size: 64px 64px;
+                }
+                .cthulhu .codeblock[data-org-test="pass"] {
+                        background: url(images/googie_test_green.png);
+                        background-size: 64px 64px;
+                }
+                .cthulhu .codeblock[data-org-test="fail"] {
+                        background: url(images/googie_test_red.png);
+                        background-size: 64px 64px;
+                }
+                .cthulhu .codeblock[data-org-test] {
+                        border: none;
+                        background-color: transparent;
+                        display: inline-block;
+                        width: 64px;
+                        height: 64px;
+                        -webkit-filter: drop-shadow(5px 5px 5px #222);
+                        filter: drop-shadow(3px 3px 3px #222);
+                        margin: 0px 3px 3px 0px;
+                }
+                .cthulhu .codeblock[data-org-test]:hover {
+                        -webkit-filter: drop-shadow(5px 5px 5px #4c8efb);
+                        filter: drop-shadow(3px 3px 3px #4c8efb);
+                }
+                .cthulhu .codeblock[data-org-test]:active {
+                        -webkit-filter: drop-shadow(1px 1px 1px #4c8efb);
+                        filter: drop-shadow(1px 1px 1px #4c8efb);
+                        margin: 3px 0px 0px 3px;
+                }
+                .cthulhu .codeblock.ready[data-org-test] {
+                        display: inline-block;
+                        width: 64px;
+                        height: 64px;
+                        padding: 0;
+                }
+                .cthulhu .codeborder {
+                        border: solid #666 8px;
+                }
+                .cthulhu .showcomments.comments div, .cthulhu.ast svg {
+                        border: solid #666 8px;
+                        border-radius: 10px;
+                        background: lightgray;
+                }
+                .cthulhu .ui-tooltip {
+                        border: solid rgb(56, 104, 194) 10px;
+                        border-radius: 10px;
+                        background: #4c8efb;
+                }
+                .cthulhu [data-org-test] > * {
+                        display: none;
+                }
+                .cthulhu [data-org-test] {
+                        cursor: pointer;
+                }
+                .cthulhu.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
+                        width: inherit;
+                        min-width: 250px;
+                        padding: 80px 180px;
+                        color: white;
+                        text-transform: uppercase;
+                }
+                .cthulhu.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
+                        background: url(images/googie_headline.png) no-repeat;
+                        background-size: 100% 224px;
+                        -webkit-filter: drop-shadow(5px 5px 5px #222);
+                        filter: drop-shadow(5px 5px 5px #222);
+                }
+                .cthulhu .commentbox > .added, .cthulhu .commentbox > .main {
+                        border: none;
+                }
+                .cthulhu #prevSlide {
+                        left: 100px;
+                        top: 120px;
+                        padding: 20px 35px;
+                }
+                .cthulhu #nextSlide {
+                        right: 100px;
+                        top: 120px;
+                        padding: 20px 35px;
+                }
+                .cthulhu.bar_collapse #nextSlide, .cthulhu.bar_collapse #prevSlide {
+                        top: 75px;
+                }
+                .cthulhu.page > .border {
+                        border-radius: 0;
+                        background: url(images/cthulhu_rising.jpg) repeat-y;
+                }
+                .cthulhu hr {
+                        display: none;
+                }
+                .cthulhu textarea {
+                        font-family: Inconsolata;
+                        font-size: large;
+                }
+                .cthulhu :focus {
+                        outline: none;
+                }
+        </style>
+        <style>
                 @font-face
                 {
                         font-family: SpaceshipBullet;
@@ -35,7 +187,7 @@
                         margin: 0px 5px 5px 0px;
                         color: #e4efff;
                         padding: 10px 35px;
-                        transition: color filter 0.2s ease-in-out
+                        transition: color 0.2s ease-in-out, filter 0.2s ease-in-out;
                 }
                 .googie .code-buttons button:hover, .googie button.add_comment:hover, .googie .paginators button:hover {
                         -webkit-filter: drop-shadow(5px 5px 5px #4c8efb);
