@@ -284,7 +284,7 @@ markupHeadline = (org, delay)->
   properties = []
   for k, v of org.properties
     properties.push "#{k} = #{v}"
-  properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'></span>" else ''
+  properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
   sidebar = if org.level == 1 then "<div class='sidebar'></div>" else ''
   if org.text.trim() != ''
     "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"

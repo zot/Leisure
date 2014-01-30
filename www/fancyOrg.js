@@ -306,7 +306,7 @@
       v = _ref8[k];
       properties.push("" + k + " = " + v);
     }
-    properties = properties.length ? "<span class='headline-properties' title='" + (escapeAttr(properties.join('<br>'))) + "'></span>" : '';
+    properties = properties.length ? "<span class='headline-properties' title='" + (escapeAttr(properties.join('<br>'))) + "'><i class='fa fa-wrench'></i></span>" : '';
     sidebar = org.level === 1 ? "<div class='sidebar'></div>" : '';
     if (org.text.trim() !== '') {
       return "<div " + (orgAttrs(org)) + "><span class='hidden'>" + stars + "</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>" + (escapeHtml(start)) + "</div><span class='tags'>" + properties + tags + "</span><div class='textborder'></div></div></span>" + sidebar + (markupGuts(org, checkStart(start, org.text))) + "</div>";
