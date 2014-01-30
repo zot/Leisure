@@ -286,7 +286,7 @@
   hlStars = /^\*+ */;
 
   markupHeadline = function(org, delay) {
-    var k, match, properties, stars, starsM, start, tags, v, _ref7, _ref8;
+    var k, match, properties, sidebar, stars, starsM, start, tags, v, _ref7, _ref8;
     match = org.text.match(headlineRE);
     start = ("" + (org.text.substring(0, org.text.length - ((_ref7 = match != null ? match[HL_TAGS] : void 0) != null ? _ref7 : '').length - 1))).trim();
     if (org.text[org.text.length - 1] === '\n') {
@@ -307,10 +307,11 @@
       properties.push("" + k + " = " + v);
     }
     properties = properties.length ? "<span class='headline-properties' title='" + (escapeAttr(properties.join('<br>'))) + "'></span>" : '';
+    sidebar = org.level === 1 ? "<div class='sidebar'></div>" : '';
     if (org.text.trim() !== '') {
-      return "<div " + (orgAttrs(org)) + "><span class='hidden'>" + stars + "</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>" + (escapeHtml(start)) + "</div><span class='tags'>" + properties + tags + "</span><div class='textborder'></div></div></span><div class='sidebar'></div>" + (markupGuts(org, checkStart(start, org.text))) + "</div>";
+      return "<div " + (orgAttrs(org)) + "><span class='hidden'>" + stars + "</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>" + (escapeHtml(start)) + "</div><span class='tags'>" + properties + tags + "</span><div class='textborder'></div></div></span>" + sidebar + (markupGuts(org, checkStart(start, org.text))) + "</div>";
     } else {
-      return "<div " + (orgAttrs(org)) + "><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>" + org.text + "</span></span></span><div class='sidebar'></div>" + (markupGuts(org, checkStart(start, org.text))) + "</div>";
+      return "<div " + (orgAttrs(org)) + "><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>" + org.text + "</span></span></span>" + sidebar + (markupGuts(org, checkStart(start, org.text))) + "</div>";
     }
   };
 
