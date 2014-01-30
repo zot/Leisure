@@ -274,13 +274,9 @@ markupHeadline = (org, delay)->
   match = org.text.match headlineRE
   start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length - 1}".trim()
   if org.text[org.text.length - 1] == '\n'
-    #tags = escapeHtml org.text.substring start.length, org.text.length - 1
-    #last = '\n'
     tags = escapeHtml org.text.substring start.length, org.text.length
-    last = ''
   else
     tags = escapeHtml org.text.substring start.length
-    last = ''
   if starsM = start.match hlStars
     stars = start.substring 0, starsM[0].length
     start = start.substring stars.length
@@ -290,8 +286,8 @@ markupHeadline = (org, delay)->
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'></span>" else ''
   if org.text.trim() != ''
-    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
-  else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span>#{last}</span></span>#{markupGuts org, checkStart start, org.text}</div>"
+    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span><div class='sidebar'></div>#{markupGuts org, checkStart start, org.text}</div>"
+  else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span><div class='sidebar'></div>#{markupGuts org, checkStart start, org.text}</div>"
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
@@ -1075,6 +1071,9 @@ fancyOrg =
         reprocessResults node
       for node in $('[data-org-headline="1"]')
         setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+      for node in $('[data-org-properties]')
+        props = JSON.parse node.getAttribute 'data-org-properties'
+        if props['note-attachment'] then console.log "NOTE: #{node.getAttribute 'data-org-properties'}"
       setTheme theme
       setTimeout (=>
         for node in $('[data-org-comments]')
