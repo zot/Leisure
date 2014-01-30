@@ -1468,6 +1468,9 @@
                 .flat .code-buttons {
                         background: linear-gradient(#666666, #333333);
                 }
+                .flat .org-fancy [data-org-src], .flat .coderesults, .flat #sourceblock, .flat .ui-tooltip-content, .flat .org-plain {
+                        font-family: Arial;
+                }
                 .flat.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
                         color: white;
                 }
@@ -1600,7 +1603,7 @@
         </style>
         <style id="flat_login">
           /* styles for flat login look and feel */
-          #login.flat * {
+          #login.flat, #loading.flat  {
                 font-family: Arial;
           }
           .flat #login_bg {

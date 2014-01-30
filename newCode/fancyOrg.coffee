@@ -1030,6 +1030,9 @@ setTheme = (str)->
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str
+  for t in $("style.theme")
+    $(t).prop 'disabled', true
+  $("style#" + theme).removeProp 'disabled'
   dd = $("#themeSelect")
   if dd then dd.val theme
 

@@ -1455,7 +1455,7 @@
   theme = null;
 
   setTheme = function(str) {
-    var dd, el, node, _i, _len, _ref7;
+    var dd, el, node, t, _i, _j, _len, _len1, _ref7, _ref8;
     el = $('body');
     _ref7 = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child'));
     for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
@@ -1472,6 +1472,12 @@
     if (str) {
       el.addClass(str);
     }
+    _ref8 = $("style.theme");
+    for (_j = 0, _len1 = _ref8.length; _j < _len1; _j++) {
+      t = _ref8[_j];
+      $(t).prop('disabled', true);
+    }
+    $("style#" + theme).removeProp('disabled');
     dd = $("#themeSelect");
     if (dd) {
       return dd.val(theme);
