@@ -52,10 +52,12 @@ srcEndRE = /^#\+(END_SRC)( *)$/im
 RES_NAME = 1
 resultsRE = /^#\+(RESULTS): *$/im
 resultsLineRE = /^([:|] .*)(?:\n|$)/i
-DRAWER_BOILERPLATE = 1
-DRAWER_NAME = 2
+DRAWER_NAME = 1
 drawerRE = /^:([^\n:]*): *$/im
 endRE = /^:END: *$/im
+PROPERTY_KEY = 1
+PROPERTY_VALUE = 2
+propertyRE = /^:([^\n:]+): *([^\n]*)$/img
 LIST_LEVEL = 1
 LIST_BOILERPLATE = 2
 LIST_CHECK = 3
@@ -107,9 +109,13 @@ class Node
   top: -> if !@parent then this else @parent.top()
   toString: -> @toJson()
   allTags: -> @parent?.allTags() ? []
+  allProperties: -> @parent?.allProperties() ? {}
+  linkTo: (@parent)->
 
 class Headline extends Node
-  constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)-> super()
+  constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)->
+    super()
+    @properties = {}
   block: true
   lowerThan: (l)-> l < @level
   length: -> @end() - @offset
@@ -128,6 +134,7 @@ class Headline extends Node
     priority: @priority
     tags: @tags
     children: (c.toJsonObject() for c in @children)
+    properties: @properties
   allText: -> @text + (c.allText() for c in @children).join ''
   findNodeAt: (pos)->
     if pos < @offset  || @offset + @length() < pos then null
@@ -142,16 +149,21 @@ class Headline extends Node
     prev = null
     for c in @children
       c.linkNodes()
-      c.parent = this
       c.prev = prev
       if prev then prev.next = c
       prev = c
+      c.linkTo this
     this
   addTags: (set)->
     for tag in parseTags @tags
       set[tag] = true
     set
+  addProperties: (props)->
+    for k, v of @properties
+      props[k] = v
+    props
   addAllTags: -> @addTags @parent?.addAllTags() || {}
+  allProperties: -> @addProperties @parent?.allProperties() || {}
   allTags: -> k for k of @addAllTags()
 
 class Meat extends Node
@@ -194,35 +206,6 @@ class Link extends Meat
     children: (c.toJsonObject() for c in @children)
   scan: Node.prototype.scanWithChildren
 
-class XListItem extends Meat
-  constructor: (@text, @offset, @contentOffset, @level, @checked, @info)-> super @text, @offset
-  type: 'list'
-  toJsonObject: ->
-    obj =
-      type: @type
-      text: @text
-      level: @level
-      offset: @offset
-      contentOffset: @contentOffset
-      info: @info
-    if @checked? then obj.checked = @checked
-    obj
-  getParent: ->
-    if @level == 0 then null
-    li = @
-    while li = li.getPreviousListItem()
-      if li.level < @level then return li
-  getPreviousListItem: ->
-    prev = @prev
-    while prev && !(prev instanceof Headline) && !(prev instanceof ListItem)
-      prev = prev.prev
-    if prev instanceof ListItem then prev else null
-  getNextListItem: ->
-    next = @next
-    while next && !(next instanceof Headline) && !(next instanceof ListItem)
-      next = next.next
-    if next instanceof ListItem then next else null
-
 class ListItem extends Meat
   constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
   type: 'list'
@@ -254,10 +237,11 @@ class ListItem extends Meat
   scan: Node.prototype.scanWithChildren
 
 class Drawer extends Meat
-  constructor: (@text, @offset, @contentPos, @endPos)-> super @text, @offset
+  constructor: (@text, @offset, @name, @contentPos, @endPos)-> super @text, @offset
   type: 'drawer'
   toJsonObject: ->
     type: @type
+    name: @name
     text: @text
     offset: @offset
     contentPos: @contentPos
@@ -265,9 +249,17 @@ class Drawer extends Meat
   leading: -> @text.substring 0, @contentPos
   content: -> @text.substring @contentPos, @endPos
   trailing: -> @text.substring @endPos
-  name: ->
-    n = @leading().trim()
-    n.substring 1, n.length - 1
+  #name: ->
+  #  n = @leading().trim()
+  #  n.substring 1, n.length - 1
+  linkTo: (node)->
+    super node
+    if @name.toLowerCase() == 'properties'
+      if !(node instanceof Headline) then console.log "WARNING: Drawer's parent is not a Headline'"
+      else
+        t = @text.substring @contentPos, @endPos
+        while m = propertyRE.exec t
+          node.properties[m[PROPERTY_KEY]] = (m[PROPERTY_VALUE] ? '').trim()
 
 class Keyword extends Meat
   constructor: (@text, @offset, @name, @info)-> super @text, @offset
@@ -315,6 +307,16 @@ class Results extends Keyword
     offset: @offset
     name: @name
     contentPos: @contentPos
+
+nextOrgNode = (node)->
+  up = false
+  while node
+    if node.children && !up && node.children.length then return node.children[0]
+    else if node.next then return node.next
+    else
+      up = true
+      node = node.parent
+  null
 
 #
 # Parse the content of an orgmode file
@@ -387,7 +389,7 @@ parseMeat = (meat, offset, rest, middleOfLine)->
     else if drawer?.index == 0
       line = fullLine drawer, meat
       newRest = meat.substring(line.length) + rest
-      if end = newRest.match endRE then return parseDrawer line, offset, end, newRest
+      if end = newRest.match endRE then return parseDrawer line, drawer[DRAWER_NAME], offset, end, newRest
   if simple?.index == 0
     inside = simple[0].substring 1, simple[0].length - 1
     insideOffset = offset + 1
@@ -431,9 +433,9 @@ parseResults = (text, offset, rest)->
   lines = oldRest.substring 0, oldRest.length - rest.length
   [new Results(text + lines, offset, text.match(resultsRE)[RES_NAME], text.length), rest]
 
-parseDrawer = (text, offset, end, rest)->
+parseDrawer = (text, name, offset, end, rest)->
   pos = end.index + (fullLine end, rest).length
-  [new Drawer(text + rest.substring(0, pos), offset, text.length, text.length + end.index), rest.substring pos]
+  [new Drawer(text + rest.substring(0, pos), offset, name, text.length, text.length + end.index), rest.substring pos]
 
 parseKeyword = (match, text, offset, name, info, rest)->
   [new Keyword(text, offset, name, text.substring match[KW_BOILERPLATE].length), rest]
@@ -501,3 +503,4 @@ root.KW_NAME = KW_NAME
 root.srcStartRE = srcStartRE
 root.SRC_BOILERPLATE = SRC_BOILERPLATE
 root.SRC_INFO = SRC_INFO
+root.nextOrgNode = nextOrgNode

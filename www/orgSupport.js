@@ -530,7 +530,7 @@ misrepresented as being the original software.
   sensitive = /^srcStart|^headline-|^keyword/;
 
   orgAttrs = function(org) {
-    var extra, rt, t, _ref6;
+    var extra, k, rt, t, _ref6;
     if (!org.nodeId) {
       org.nodeId = nextOrgId();
     }
@@ -546,6 +546,10 @@ misrepresented as being the original software.
     }
     if (org instanceof Headline) {
       extra += " data-org-headline='" + (escapeAttr(org.level)) + "'";
+      for (k in org.properties) {
+        extra += " data-org-properties='" + (escapeAttr(JSON.stringify(org.properties))) + "'";
+        break;
+      }
     }
     if (org.srcId) {
       extra += " data-org-srcid='" + (escapeAttr(org.srcId)) + "'";
@@ -1169,10 +1173,8 @@ misrepresented as being the original software.
   };
 
   installOrgDOM = function(parent, orgNode, orgText) {
-    var markPositions;
-    markPositions = getMarkPositions(parent);
-    parent.innerHTML = orgText;
-    return restoreMarkPositions(parent, markPositions);
+    dumpTextWatchers();
+    return parent.innerHTML = orgText;
   };
 
   getMarkPositions = function(node) {

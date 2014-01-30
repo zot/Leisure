@@ -407,7 +407,11 @@ orgAttrs = (org)->
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
   if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{escapeAttr org.info}'"
-  if org instanceof Headline then extra += " data-org-headline='#{escapeAttr org.level}'"
+  if org instanceof Headline
+    extra += " data-org-headline='#{escapeAttr org.level}'"
+    for k of org.properties
+      extra += " data-org-properties='#{escapeAttr JSON.stringify org.properties}'"
+      break
   if org.srcId then extra += " data-org-srcid='#{escapeAttr org.srcId}'"
   "id='#{escapeAttr org.nodeId}' data-org-type='#{escapeAttr org.type}'#{extra}"
 
@@ -809,9 +813,8 @@ reparse = (parent, text)->
     ), 1
 
 installOrgDOM = (parent, orgNode, orgText)->
-  markPositions = getMarkPositions parent
+  dumpTextWatchers()
   parent.innerHTML = orgText
-  restoreMarkPositions parent, markPositions
 
 # returns a list of [markId, start, end]
 getMarkPositions = (node)->
