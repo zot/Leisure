@@ -285,9 +285,10 @@ markupHeadline = (org, delay)->
   for k, v of org.properties
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'></span>" else ''
+  sidebar = if org.level == 1 then "<div class='sidebar'></div>" else ''
   if org.text.trim() != ''
-    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span><div class='sidebar'></div>#{markupGuts org, checkStart start, org.text}</div>"
-  else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span><div class='sidebar'></div>#{markupGuts org, checkStart start, org.text}</div>"
+    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
+  else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
