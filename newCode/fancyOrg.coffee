@@ -1002,8 +1002,8 @@ slideBindings =
 toggleSlides = ->
   slideMode = !slideMode
   fancyOrg.bindings = (if slideMode then slideBindings else defaultBindings)
-  $("#prevSlide").click (e)-> prevSlide()
-  $("#nextSlide").click (e)-> nextSlide()
+  $('#prevSlide:not(.bound)').addClass('bound').bind('click',  prevSlide);
+  $('#nextSlide:not(.bound)').addClass('bound').bind('click',  nextSlide);
   if slideMode
     s = $('[data-org-headline="1"]')
     s.first().addClass 'firstSlide'

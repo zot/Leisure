@@ -1427,12 +1427,8 @@
     var s;
     slideMode = !slideMode;
     fancyOrg.bindings = (slideMode ? slideBindings : defaultBindings);
-    $("#prevSlide").click(function(e) {
-      return prevSlide();
-    });
-    $("#nextSlide").click(function(e) {
-      return nextSlide();
-    });
+    $('#prevSlide:not(.bound)').addClass('bound').bind('click', prevSlide);
+    $('#nextSlide:not(.bound)').addClass('bound').bind('click', nextSlide);
     if (slideMode) {
       s = $('[data-org-headline="1"]');
       s.first().addClass('firstSlide');
