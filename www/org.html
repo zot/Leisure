@@ -1325,6 +1325,10 @@
                         display: table-cell;
                         vertical-align: middle;
                 }
+                .textcontent,
+                [data-org-type="text-content"] {
+                        display: inline;
+                }
                 .slides [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
                         display: inline-block;
                 }
@@ -1435,6 +1439,9 @@
                 }
                 i.fa + div, i.fa + span {
                         padding-left: 10px;
+                }
+                .headline-properties:before {
+                        content: ' <PROPS> ';
                 }
         </style>
         <style>

@@ -70,6 +70,9 @@ Nil = rz L_nil
   matchLine,
 } = require './org'
 _ = require './lodash.min'
+mutations = {
+  MutationSummary,
+} = require './mutation-summary'
 
 PAGEUP = 33
 PAGEDOWN = 34
@@ -404,7 +407,11 @@ orgAttrs = (org)->
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
   if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{escapeAttr org.info}'"
-  if org instanceof Headline then extra += " data-org-headline='#{escapeAttr org.level}'"
+  if org instanceof Headline
+    extra += " data-org-headline='#{escapeAttr org.level}'"
+    for k of org.properties
+      extra += " data-org-properties='#{escapeAttr JSON.stringify org.properties}'"
+      break
   if org.srcId then extra += " data-org-srcid='#{escapeAttr org.srcId}'"
   "id='#{escapeAttr org.nodeId}' data-org-type='#{escapeAttr org.type}'#{extra}"
 
@@ -806,9 +813,8 @@ reparse = (parent, text)->
     ), 1
 
 installOrgDOM = (parent, orgNode, orgText)->
-  markPositions = getMarkPositions parent
+  dumpTextWatchers()
   parent.innerHTML = orgText
-  restoreMarkPositions parent, markPositions
 
 # returns a list of [markId, start, end]
 getMarkPositions = (node)->
@@ -1082,6 +1088,20 @@ textNodeAfter = (node)->
   while node = nodeAfter node
     if node.nodeType == 3 then return node
 
+textWatchers = []
+
+watchNodeText = (node, callback)->
+  textWatchers.push new MutationSummary
+    callback: callback
+    rootNode: node
+    observeOwnChanges: true
+    queries: [characterData: true]
+
+dumpTextWatchers = ->
+  for watcher in textWatchers
+    watcher.disconnect()
+  textWatchers = []
+
 # get the next node in the reverse preorder traversal, starting with the node's children
 nodeBefore = (node)->
   up = false
@@ -1246,3 +1266,5 @@ root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
 root.getStartTextNodeAtOffset = getStartTextNodeAtOffset
 root.getEndTextNodeAtOffset = getEndTextNodeAtOffset
+root.watchNodeText = watchNodeText
+root.dumpTextWatchers = dumpTextWatchers

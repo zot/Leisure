@@ -73,7 +73,7 @@ repl: all FRC
 	core/repl
 
 $(WEB_JS): $(BROWSER_JS) $(WEB_COFFEE) $(CSS_OUT)
-	cp lib/xus.js www
+	cp lib/xus.js lib/github.js lib/mutation-summary.js www
 	node_modules/coffee-script/bin/coffee -o $(LIB) -mc newCode/bootLeisure.coffee
 	rm -f www/leisureJS-* www/leisureCSS-*
 	cp lib/browser.js "www/leisureJS-$$(sha256sum lib/browser.js|awk '{print $$1}').js"

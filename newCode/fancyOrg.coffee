@@ -226,6 +226,7 @@ markupNode = (org, middleOfLine, delay)->
     else if org instanceof Source then markupSource org, null, null, delay
     else defaultMarkup org
   else if org instanceof Headline then markupHeadline org, delay
+  else if org instanceof Drawer && org.name.toLowerCase() == 'properties' then markupProperties org, delay
   else if org instanceof ListItem then markupListItem org, delay
   else if org instanceof SimpleMarkup then markupSimple org
   else if org instanceof Link then markupLink org
@@ -233,6 +234,8 @@ markupNode = (org, middleOfLine, delay)->
   else
     tag = (if middleOfLine then 'span' else 'div')
     "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
+
+markupProperties = (org, delay)->"<span class='hidden'>#{escapeHtml org.text}</span>"
 
 imagePath = /\.(png|jpg|gif|svg|tiff|bmp)$/i
 
@@ -282,8 +285,12 @@ markupHeadline = (org, delay)->
     stars = start.substring 0, starsM[0].length
     start = start.substring stars.length
   else stars = ''
+  properties = []
+  for k, v of org.properties
+    properties.push "#{k} = #{v}"
+  properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'></span>" else ''
   if org.text.trim() != ''
-    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><div class='textborder'></div></div><span class='tags'>#{tags}</span>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
+    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div>#{last}</span>#{markupGuts org, checkStart start, org.text}</div>"
   else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span>#{last}</span></span>#{markupGuts org, checkStart start, org.text}</div>"
 
 markupHtml = (org)->
@@ -313,7 +320,7 @@ markupSource = (org, name, doctext, delay)->
       finalIntertext = intertext
       break
     else if node instanceof Drawer
-      if node.name().toLowerCase() == 'expected'
+      if node.name.toLowerCase() == 'expected'
         expected = node
         lastOrgOffset = node.offset
         finalIntertext = intertext += escapeHtml node.text
@@ -997,11 +1004,16 @@ toggleSlides = ->
   $("#prevSlide").click (e)-> prevSlide()
   $("#nextSlide").click (e)-> nextSlide()
   if slideMode
+    s = $('[data-org-headline="1"]')
+    s.first().addClass 'firstSlide'
+    s.last().addClass 'lastSlide'
     restorePosition null, ->
       $('[data-org-html]').addClass 'slideHtml'
       $('body').addClass 'slides'
       firstSlide()
   else
+    $('[data-org-headline="1"]').first().removeClass 'firstSlide'
+    $('[data-org-headline="1"]').last().removeClass 'lastSlide'
     $('body').removeClass 'slides'
     $('[data-org-html]').removeClass 'slideHtml'
 
