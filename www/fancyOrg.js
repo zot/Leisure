@@ -1311,6 +1311,16 @@
     }
     $('.currentSlide').removeClass('currentSlide');
     $(element).addClass('currentSlide');
+    if ($(element).hasClass('firstSlide')) {
+      $("body").addClass('firstSlide');
+    } else {
+      $("body").removeClass('firstSlide');
+    }
+    if ($(element).hasClass('lastSlide')) {
+      $("body").addClass('lastSlide');
+    } else {
+      $("body").removeClass('lastSlide');
+    }
     if (element.shadowRoot) {
       return $(element.shadowRoot.firstElementChild).addClass('currentSlide');
     }

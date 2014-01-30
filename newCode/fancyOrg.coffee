@@ -929,6 +929,8 @@ setCurrentSlide = (element)->
     $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
   $('.currentSlide').removeClass 'currentSlide'
   $(element).addClass 'currentSlide'
+  if $(element).hasClass 'firstSlide' then $("body").addClass 'firstSlide' else $("body").removeClass 'firstSlide'
+  if $(element).hasClass 'lastSlide' then $("body").addClass 'lastSlide' else $("body").removeClass 'lastSlide'
   # this is needed until there is support for :host (and/or ^ & ^^)
   if element.shadowRoot then $(element.shadowRoot.firstElementChild).addClass 'currentSlide'
 
