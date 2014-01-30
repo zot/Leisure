@@ -1385,7 +1385,9 @@
   };
 
   hideSlides = function() {
-    return document.body.classList.remove('slides');
+    document.body.classList.remove('slides');
+    $('body').removeClass('firstSlide');
+    return $('body').removeClass('lastSlide');
   };
 
   slideBindings = {
@@ -1444,6 +1446,8 @@
       $('[data-org-headline="1"]').first().removeClass('firstSlide');
       $('[data-org-headline="1"]').last().removeClass('lastSlide');
       $('body').removeClass('slides');
+      $('body').removeClass('firstSlide');
+      $('body').removeClass('lastSlide');
       return $('[data-org-html]').removeClass('slideHtml');
     }
   };

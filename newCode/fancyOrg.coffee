@@ -970,6 +970,8 @@ documentTop = (node)->
 
 hideSlides = ->
   document.body.classList.remove 'slides'
+  $('body').removeClass 'firstSlide'
+  $('body').removeClass 'lastSlide'
 
 slideBindings =
   'PAGEUP': (e, parent, r)->
@@ -1014,6 +1016,8 @@ toggleSlides = ->
     $('[data-org-headline="1"]').first().removeClass 'firstSlide'
     $('[data-org-headline="1"]').last().removeClass 'lastSlide'
     $('body').removeClass 'slides'
+    $('body').removeClass 'firstSlide'
+    $('body').removeClass 'lastSlide'
     $('[data-org-html]').removeClass 'slideHtml'
 
 theme = null
