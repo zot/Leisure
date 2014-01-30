@@ -70,6 +70,9 @@ Nil = rz L_nil
   matchLine,
 } = require './org'
 _ = require './lodash.min'
+mutations = {
+  MutationSummary,
+} = require './mutation-summary'
 
 PAGEUP = 33
 PAGEDOWN = 34
@@ -1082,6 +1085,20 @@ textNodeAfter = (node)->
   while node = nodeAfter node
     if node.nodeType == 3 then return node
 
+textWatchers = []
+
+watchNodeText = (node, callback)->
+  textWatchers.push new MutationSummary
+    callback: callback
+    rootNode: node
+    observeOwnChanges: true
+    queries: [characterData: true]
+
+dumpTextWatchers = ->
+  for watcher in textWatchers
+    watcher.disconnect()
+  textWatchers = []
+
 # get the next node in the reverse preorder traversal, starting with the node's children
 nodeBefore = (node)->
   up = false
@@ -1246,3 +1263,5 @@ root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
 root.getStartTextNodeAtOffset = getStartTextNodeAtOffset
 root.getEndTextNodeAtOffset = getEndTextNodeAtOffset
+root.watchNodeText = watchNodeText
+root.dumpTextWatchers = dumpTextWatchers

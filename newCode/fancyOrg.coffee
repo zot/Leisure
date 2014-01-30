@@ -997,11 +997,16 @@ toggleSlides = ->
   $("#prevSlide").click (e)-> prevSlide()
   $("#nextSlide").click (e)-> nextSlide()
   if slideMode
+    s = $('[data-org-headline="1"]')
+    s.first().addClass 'firstSlide'
+    s.last().addClass 'lastSlide'
     restorePosition null, ->
       $('[data-org-html]').addClass 'slideHtml'
       $('body').addClass 'slides'
       firstSlide()
   else
+    $('[data-org-headline="1"]').first().removeClass 'firstSlide'
+    $('[data-org-headline="1"]').last().removeClass 'lastSlide'
     $('body').removeClass 'slides'
     $('[data-org-html]').removeClass 'slideHtml'
 
