@@ -1,5 +1,10 @@
 ###
 # New code generation example
+#
+# explicitly create argument structure
+# for printing partial application
+# and for dual stack traces
+# instead of reflectively retrieving arguments array
 ###
 
 root = module.exports
@@ -13,8 +18,10 @@ rz = global.resolve = (value)->
       value.memo = value()
   else value
 
-# Leisure functions are objects: {"__parent__": p, arg: value}
+# Leisure functions are objects: {arg: value, "__parent__": parent}
 # They understand the method call(arg)
+#
+# Test with arrays, too: [a, parent]
 class LeisureFunc
   call: (arg)-> @
 
