@@ -17,9 +17,15 @@
                   src: url('franklinm54-webfont.woff'); format('woff');
                 }
                 body.cthulhu {
-                        background-color: #032500;
+                        background-color: #1c3d34;
                         color: #ffcc33;
                         text-shadow: 3px 3px #000000;
+                }
+                .cthulhu ::selection {
+                        background: #1c3d34; /* Safari */
+                }
+                .cthulhu ::-moz-selection {
+                        background: #1c3d34; /* Firefox */
                 }
                 .cthulhu.slides #dummy_headline {
                         height: 240px;
@@ -140,9 +146,9 @@
                         text-shadow: 4px 4px #000000;
                 }
                 .cthulhu.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
-                        background: url(images/cthulhu_heading.jpg) no-repeat;
+                        background: url(images/cthulhu_heading_dark.jpg) no-repeat;
                         background-size: 100% 224px;
-                        border: solid black 8px;
+                        border: solid #f1c40f 8px;
                 }
                 .cthulhu .commentbox > .added, .cthulhu .commentbox > .main {
                         border: none;
@@ -162,7 +168,7 @@
                 }
                 .cthulhu.page > .border {
                         border-radius: 0;
-                        background: url(images/cthulhu_rising.jpg) repeat-y;
+                        background: url(images/cthulhu_rising_dark.jpg) repeat-y;
                 }
                 .cthulhu hr {
                         display: none;
