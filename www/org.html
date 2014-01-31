@@ -223,13 +223,14 @@
                         padding: 10px 35px;
                         transition: color 0.2s ease-in-out, filter 0.2s ease-in-out;
                 }
-                .googie .code-buttons button:hover, .googie button.add_comment:hover, .googie .paginators button:hover {
+                .googie .code-buttons button:hover, .googie button.add_comment:hover, .googie .paginators button:hover,
+                .googie .code-buttons button:active, .googie button.add_comment:active, .googie .paginators button:active {
                         -webkit-filter: drop-shadow(5px 5px 5px #4c8efb);
                         filter: drop-shadow(5px 5px 5px #4c8efb);
                         color: white;
                         background-color: transparent;
                 }
-                 .googie .code-buttons button:active, .googie button.add_comment:active, .googie .paginators button:active {
+                .googie .code-buttons button:active:hover, .googie button.add_comment:active:hover, .googie .paginators button:active:hover {
                         filter: drop-shadow(1px 1px 1px #4c8efb);
                         -webkit-filter: drop-shadow(1px 1px 1px #4c8efb);
                         margin: 5px 0px 0px 5px;
@@ -275,11 +276,11 @@
                         filter: drop-shadow(3px 3px 3px #222);
                         margin: 0px 3px 3px 0px;
                 }
-                .googie .codeblock[data-org-test]:hover {
+                .googie .codeblock[data-org-test]:hover, .googie .codeblock[data-org-test]:active {
                         -webkit-filter: drop-shadow(5px 5px 5px #4c8efb);
                         filter: drop-shadow(3px 3px 3px #4c8efb);
                 }
-                .googie .codeblock[data-org-test]:active {
+                .googie .codeblock[data-org-test]:active:hover {
                         -webkit-filter: drop-shadow(1px 1px 1px #4c8efb);
                         filter: drop-shadow(1px 1px 1px #4c8efb);
                         margin: 3px 0px 0px 3px;
