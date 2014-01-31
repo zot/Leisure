@@ -37,13 +37,19 @@
                         padding: 10px 35px;
                         transition: color 0.2s ease-in-out, filter 0.2s ease-in-out;
                 }
-                .cthulhu .code-buttons button:hover, .cthulhu button.add_comment:hover, .cthulhu .paginators button:hover {
+                .cthulhu .code-buttons button:hover,
+                .cthulhu button.add_comment:hover,
+                .cthulhu .paginators button:hover,
+                .cthulhu .code-buttons button:active,
+                .cthulhu button.add_comment:active,
+                .cthulhu .paginators button:active
+                {
                         -webkit-filter: drop-shadow(5px 5px 5px #f1c40f);
                         filter: drop-shadow(5px 5px 5px #f1c40f);
                         color: #f1c40f;
                         background-color: transparent;
                 }
-                 .cthulhu .code-buttons button:active, .cthulhu button.add_comment:active, .cthulhu .paginators button:active {
+                 .cthulhu .code-buttons button:active:hover, .cthulhu button.add_comment:active:hover, .cthulhu .paginators button:active:hover {
                         filter: drop-shadow(1px 1px 1px #f1c40f);
                         -webkit-filter: drop-shadow(1px 1px 1px #f1c40f);
                         margin: 5px 0px 0px 5px;
