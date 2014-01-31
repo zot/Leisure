@@ -11,6 +11,11 @@
         <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
 
         <style id="cthulhu" class="theme">
+                @font-face
+                {
+                  font-family: FranklinM54;
+                  src: url('franklinm54-webfont.woff'); format('woff');
+                }
                 body.cthulhu {
                         background-color: #032500;
                         color: #ffcc33;
@@ -121,15 +126,17 @@
                 .cthulhu.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] {
                         width: inherit;
                         min-width: 250px;
-                        padding: 80px 180px;
-                        color: white;
+                        padding: 80px 80px;
+                        color: #f1c40f;
+                        font-family: FranklinM54, Impact;
+                        font-style: italic;
                         text-transform: uppercase;
+                        text-shadow: 4px 4px #000000;
                 }
                 .cthulhu.slides .org-fancy [data-org-headline='1'] > [data-org-type='text'] > [data-org-type='text-content'] > .textborder {
-                        background: url(images/googie_headline.png) no-repeat;
+                        background: url(images/cthulhu_heading.jpg) no-repeat;
                         background-size: 100% 224px;
-                        -webkit-filter: drop-shadow(5px 5px 5px #f1c40f);
-                        filter: drop-shadow(5px 5px 5px #f1c40f);
+                        border: solid black 8px;
                 }
                 .cthulhu .commentbox > .added, .cthulhu .commentbox > .main {
                         border: none;
