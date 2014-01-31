@@ -284,7 +284,7 @@ markupHeadline = (org, delay)->
   properties = []
   for k, v of org.properties
     properties.push "#{k} = #{v}"
-  properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'></span>" else ''
+  properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
   sidebar = if org.level == 1 then "<div class='sidebar'></div>" else ''
   if org.text.trim() != ''
     "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
@@ -929,6 +929,8 @@ setCurrentSlide = (element)->
     $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
   $('.currentSlide').removeClass 'currentSlide'
   $(element).addClass 'currentSlide'
+  if $(element).hasClass 'firstSlide' then $("body").addClass 'firstSlide' else $("body").removeClass 'firstSlide'
+  if $(element).hasClass 'lastSlide' then $("body").addClass 'lastSlide' else $("body").removeClass 'lastSlide'
   # this is needed until there is support for :host (and/or ^ & ^^)
   if element.shadowRoot then $(element.shadowRoot.firstElementChild).addClass 'currentSlide'
 
@@ -968,6 +970,8 @@ documentTop = (node)->
 
 hideSlides = ->
   document.body.classList.remove 'slides'
+  $('body').removeClass 'firstSlide'
+  $('body').removeClass 'lastSlide'
 
 slideBindings =
   'PAGEUP': (e, parent, r)->
@@ -998,8 +1002,8 @@ slideBindings =
 toggleSlides = ->
   slideMode = !slideMode
   fancyOrg.bindings = (if slideMode then slideBindings else defaultBindings)
-  $("#prevSlide").click (e)-> prevSlide()
-  $("#nextSlide").click (e)-> nextSlide()
+  $('#prevSlide:not(.bound)').addClass('bound').bind('click',  prevSlide);
+  $('#nextSlide:not(.bound)').addClass('bound').bind('click',  nextSlide);
   if slideMode
     s = $('[data-org-headline="1"]')
     s.first().addClass 'firstSlide'
@@ -1012,6 +1016,8 @@ toggleSlides = ->
     $('[data-org-headline="1"]').first().removeClass 'firstSlide'
     $('[data-org-headline="1"]').last().removeClass 'lastSlide'
     $('body').removeClass 'slides'
+    $('body').removeClass 'firstSlide'
+    $('body').removeClass 'lastSlide'
     $('[data-org-html]').removeClass 'slideHtml'
 
 theme = null
@@ -1024,6 +1030,9 @@ setTheme = (str)->
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str
+  for t in $("style.theme")
+    $(t).prop 'disabled', true
+  $("style#" + theme).removeProp 'disabled'
   dd = $("#themeSelect")
   if dd then dd.val theme
 

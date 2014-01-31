@@ -18,6 +18,10 @@ PRELUDE=lib/generatedPrelude.js
 COFFEE_FILES=$(SRC:%=core/%.coffee) $(TEST:%=core/%.coffee)
 COFFEE_JS=$(SRC:%=lib/%.js)
 
+NEWGEN_SRC=gen2
+NEWGEN_COFFEE=$(NEWGEN_SRC:%=core/%.coffee)
+NEWGEN_JS=$(NEWGEN_SRC:%=lib/%.js)
+
 BROWSER_MAIN_SRC=browserMain
 BROWSER_MAIN_COFFEE=$(BROWSER_MAIN_SRC:%=newCode/%.coffee)
 BROWSER_MAIN_JS=$(BROWSER_MAIN_SRC:%=lib/%.js)
@@ -49,7 +53,7 @@ CSS_OUT=lib/all.css
 ALL=$(SRC) $(TEST) $(TEST_PARSER) generatedPrelude simpleParse $(NEW_LSR) $(NEW_COFFEE_SRC) $(WEB_SRC)
 OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast) $(CSS_OUT) $(WEB_JS) $(ALL:%=www/*.js) $(ALL:%=www/*.map)
 
-all: $(PRELUDE) $(NEW_LSR_JS) $(BROWSER_JS) $(WEB_JS) .tested .parserTested
+all: $(PRELUDE) $(NEW_LSR_JS) $(BROWSER_JS) $(WEB_JS) $(NEWGEN_JS) .tested .parserTested
 
 clean:
 	rm -f $(OUT_FILES) .tested .parserTested www/leisureJS-* www/leisureCSS-*
