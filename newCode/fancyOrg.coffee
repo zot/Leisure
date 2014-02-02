@@ -189,7 +189,7 @@ replaceRelatedPresenter = (target, newPres)->
 
 replacePresenter = (pres)->
   presenter?.hide()
-  presenter = pres
+  if pres != null then presenter = pres else presenter = emptyPresenter
 
 markupOrg = (text)->
   [node, result] = markupOrgWithNode text
@@ -566,6 +566,7 @@ commentBlock = (name)->
 toggleComment = (name, evt)->
   button = $(evt.target).closest('button')[0]
   block = $("[data-org-comments=#{name}]")
+  console.log "comments clicked!"
   if block.hasClass 'showcomments'
     if !replaceRelatedPresenter button, null then block.removeClass 'showcomments'
   else

@@ -149,7 +149,11 @@
     if (presenter != null) {
       presenter.hide();
     }
-    return presenter = pres;
+    if (pres !== null) {
+      return presenter = pres;
+    } else {
+      return presenter = emptyPresenter;
+    }
   };
 
   markupOrg = function(text) {
@@ -735,6 +739,7 @@
     var block, button;
     button = $(evt.target).closest('button')[0];
     block = $("[data-org-comments=" + name + "]");
+    console.log("comments clicked!");
     if (block.hasClass('showcomments')) {
       if (!replaceRelatedPresenter(button, null)) {
         return block.removeClass('showcomments');
