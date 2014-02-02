@@ -83,17 +83,28 @@ global.$F = (args, func)->
     else if parent.leisureName? then info.name = parent.leisureName
   func
 
+global.$G = (info, func)->
+  func.leisureInfoNew = info
+  func
+
 funcInfo = (func)->
-  global.FUNC = func
-  info = []
-  callInfo = func.leisureInfo
-  while callInfo
-    info.push resolve callInfo.arg
-    if callInfo.name
-      info.push callInfo.name
-      break
-    callInfo = callInfo.parent
-  root.consFrom info.reverse()
+  if func.leisureInfoNew then primConsFrom func.leisureInfoNew, 0
+  else if func.leisureInfo
+    global.FUNC = func
+    info = []
+    callInfo = func.leisureInfo
+    while callInfo
+      info.push resolve callInfo.arg
+      if callInfo.name
+        info.push callInfo.name
+        break
+      callInfo = callInfo.parent
+    root.consFrom info.reverse()
+  else rz L_nil
+
+primConsFrom = (array, index)->
+  if index >= array.length then rz L_nil
+  else root.primCons array[index], primConsFrom array, index + 1
 
 class SimpyCons
   constructor: (@head, @tail)->
