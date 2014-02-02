@@ -93,6 +93,7 @@ misrepresented as being the original software.
       e.preventDefault();
       return root.currentMode.leisureButton();
     });
+    $("<div class='paginators'><button id='prevSlide'><i class='fa fa-caret-left fa-1x'></i><span></span></button><button id='nextSlide'><i class='fa fa-caret-right fa-1x'></i><span></span></button></div>").appendTo(document.body);
     $("#leisure_grip").click(function(e) {
       var g;
       g = $("body");

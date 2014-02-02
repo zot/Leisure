@@ -105,6 +105,7 @@ initOrg = (parent, source)->
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
       root.currentMode.leisureButton()
+  $("<div class='paginators'><button id='prevSlide'><i class='fa fa-caret-left fa-1x'></i><span></span></button><button id='nextSlide'><i class='fa fa-caret-right fa-1x'></i><span></span></button></div>").appendTo(document.body)    
   $("#leisure_grip").click (e) ->
     g = $("body")
     if g.hasClass 'bar_collapse' then g.removeClass 'bar_collapse' else g.addClass 'bar_collapse'
