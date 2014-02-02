@@ -98,6 +98,7 @@ lz = lazy
   PAGEDOWN,
   HOME,
   END,
+  watchNodeText,
 } = require './orgSupport'
 {
   redrawAllIssues,
@@ -287,8 +288,21 @@ markupHeadline = (org, delay)->
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
   sidebar = if org.level == 1 then "<div class='sidebar'></div>" else ''
   if org.text.trim() != ''
-    "<div #{orgAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
+    "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
   else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
+
+noteAttrs = (org)->
+  if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
+  else ''
+
+createNotes = (node)->
+  watchNodeText node, editedNote node.id, node.id
+  for noteSpec in node.getAttribute('data-org-notes').split ','
+    console.log "NOTE FOR #{node.id}: #{noteSpec}"
+    *** create note
+
+editedNote = (mainId, editedId)-> ->
+  console.log "EDITED NODE: #{mainId} from #{editedId}"
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
@@ -1081,9 +1095,8 @@ fancyOrg =
         reprocessResults node
       for node in $('[data-org-headline="1"]')
         setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
-      for node in $('[data-org-properties]')
-        props = JSON.parse node.getAttribute 'data-org-properties'
-        if props['note-attachment'] then console.log "NOTE: #{node.getAttribute 'data-org-properties'}"
+      for node in $('[data-org-notes]')
+        createNotes node
       setTheme theme
       setTimeout (=>
         for node in $('[data-org-comments]')

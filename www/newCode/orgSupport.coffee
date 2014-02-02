@@ -70,9 +70,6 @@ Nil = rz L_nil
   matchLine,
 } = require './org'
 _ = require './lodash.min'
-mutations = {
-  MutationSummary,
-} = require './mutation-summary'
 
 PAGEUP = 33
 PAGEDOWN = 34
@@ -816,60 +813,6 @@ installOrgDOM = (parent, orgNode, orgText)->
   dumpTextWatchers()
   parent.innerHTML = orgText
 
-# returns a list of [markId, start, end]
-getMarkPositions = (node)->
-  positions = []
-  offset = 0
-  cur = node
-  for node in $('[data-mark]')
-    while (cur = nodeAfter cur) && cur != node
-      if cur.nodeType == 3 then offset += cur.data.length
-    positions.push node.getAttribute('data-mark'), offset, countCharactersIn node
-  positions
-
-markId = 0
-
-createMarkNode = (id)-> $("<span data-mark=#{id ? markId++}></span>")
-
-# restore the marks [markId, start, end]
-restoreMarkPositions = (node, positions)->
-  offset = 0
-  limit = nodeAfterNoChildren node
-  for p in positions
-    if node == limit then break
-    [markId, start, end] = p
-    startNode = getStartTextNodeAtOffset node, start - offset
-    endNode = getEndTextNodeAtOffset startNode, end - start - offset
-    surroundNodes startNode, endNode, createMarkNode markId
-    offset = end
-    node = nodeAfter endNode
-
-getStartTextNodeAtOffset = (node, pos)->
-  offset = 0
-  while node && offset <= pos
-    if node.nodeType == 3
-      if offset == pos then return node
-      offset += node.data.length
-      if offset > pos
-        node.splitText pos - offset + node.data.length
-        return node
-    node = nodeAfter node
-
-getEndTextNodeAtOffset = (node, pos)->
-  offset = 0
-  while node && offset < pos
-    if node.nodeType == 3
-      offset += node.data.length
-      if offset == pos then return node
-      if offset > pos then return node.splitText pos - offset + node.data.length
-    node = nodeAfter node
-
-surroundNodes = (start, end, outerNode)->
-  r = document.createRange()
-  r.setStartBefore start
-  r.setEndAfter end
-  r.surroundContents outerNode
-
 #checkDeleteReparse = (parent, backspace)->
 #  r = rangy.getSelection().getRangeAt 0
 #  if backspace then r.moveStart 'character', -1 else r.moveEnd 'character', 1
@@ -1264,7 +1207,5 @@ root.countCharactersIn = countCharactersIn
 root.nodeAfter = nodeAfter
 root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
-root.getStartTextNodeAtOffset = getStartTextNodeAtOffset
-root.getEndTextNodeAtOffset = getEndTextNodeAtOffset
 root.watchNodeText = watchNodeText
 root.dumpTextWatchers = dumpTextWatchers
