@@ -1110,6 +1110,9 @@
     if (theme !== null) {
       classes = theme + ' ' + classes;
     }
+    if ($("body").hasClass('bar_collapse')) {
+      classes += ' bar_collapse';
+    }
     _ref7 = splitLines(str);
     _results = [];
     for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
@@ -1131,7 +1134,10 @@
     }
     el.innerHTML = html;
     if (theme !== null) {
-      return $(el).addClass(theme);
+      $(el).addClass(theme);
+    }
+    if ($("body").hasClass('bar_collapse')) {
+      return $(el).addClass('bar_collapse');
     }
   };
 

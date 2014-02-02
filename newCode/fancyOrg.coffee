@@ -820,6 +820,7 @@ processResults = (str, node, skipText)->
   if !skipText then node.firstChild.nextElementSibling.textContent += escapePresentationHtml(str.substring 0, str.length - 1) + str[str.length - 1]
   classes = 'resultsline'
   if theme != null then classes = theme + ' ' + classes
+  if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
   for line in splitLines str
     if line.match /^: / then shadow.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
 
@@ -829,6 +830,7 @@ setShadowHtml = (holder, html)->
     el.applyAuthorStyles=true
   el.innerHTML = html
   if theme != null then $(el).addClass(theme)
+  if $("body").hasClass 'bar_collapse' then $(el).addClass('bar_collapse')
 
 redrawIssue = (issue)->
   issueName = issue.leisureName
