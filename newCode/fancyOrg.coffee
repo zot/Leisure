@@ -299,7 +299,7 @@ createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
   for noteSpec in node.getAttribute('data-org-notes').split ','
     console.log "NOTE FOR #{node.id}: #{noteSpec}"
-    *** create note
+    # *** create note
 
 editedNote = (mainId, editedId)-> ->
   console.log "EDITED NODE: #{mainId} from #{editedId}"
@@ -818,14 +818,17 @@ processResults = (str, node, skipText)->
     node.firstChild.shadowRoot.applyAuthorStyles = true
   shadow = node.firstChild.shadowRoot
   if !skipText then node.firstChild.nextElementSibling.textContent += escapePresentationHtml(str.substring 0, str.length - 1) + str[str.length - 1]
+  classes = 'resultsline'
+  if theme != null then classes = theme + ' ' + classes
   for line in splitLines str
-    if line.match /^: / then shadow.innerHTML += "<div class='resultsline'>#{line.substring(2)}</div>"
+    if line.match /^: / then shadow.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
 
 setShadowHtml = (holder, html)->
   if !(el = holder.shadowRoot)
     el = holder.createShadowRoot()
     el.applyAuthorStyles=true
   el.innerHTML = html
+  if theme != null then $(el).addClass(theme)
 
 redrawIssue = (issue)->
   issueName = issue.leisureName
