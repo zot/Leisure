@@ -310,7 +310,7 @@ createNotes = (node)->
             addWord dest, 'data-org-note-content', node.id
             noteId = "note-#{noteId++}"
             addWord dest, 'data-org-note-instances', noteId
-            dest.shadowRoot.firstChild.innerHTML += "<div data-note-origin='#{node.id}' id='#{noteId}'>#{html}</div>"
+            dest.shadowRoot.firstChild.innerHTML += "<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}'>#{html}</div>"
 
 addWord = (node, attr, value)->
   vals = (node.getAttribute(attr) ? '').split ' '
@@ -844,14 +844,16 @@ processResults = (str, node, skipText)->
   if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
   for line in splitLines str
     if line.match /^: / then shadow.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
+  $(shadow.firstChild).attr 'data-shadowdom', 'true'
 
 setShadowHtml = (holder, html)->
   if !(el = holder.shadowRoot)
     el = holder.createShadowRoot()
     el.applyAuthorStyles=true
   el.innerHTML = html
-  if theme != null then $(el).addClass(theme)
-  if $("body").hasClass 'bar_collapse' then $(el).addClass('bar_collapse')
+  $(el.firstChild).attr 'data-shadowdom', 'true'
+  if theme != null then $(el.firstChild).addClass(theme)
+  if $("body").hasClass 'bar_collapse' then $(el.firstChild).addClass('bar_collapse')
 
 redrawIssue = (issue)->
   issueName = issue.leisureName
@@ -1065,9 +1067,10 @@ theme = null
 
 setTheme = (str)->
   el = $('body')
-  for node in $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child'))
+  all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child'))
+  for node in all
     if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
-  el.add('[data-org-html]')
+  el
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str

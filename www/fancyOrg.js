@@ -355,7 +355,7 @@
                 addWord(dest, 'data-org-note-content', node.id);
                 noteId = "note-" + (noteId++);
                 addWord(dest, 'data-org-note-instances', noteId);
-                _results1.push(dest.shadowRoot.firstChild.innerHTML += "<div data-note-origin='" + node.id + "' id='" + noteId + "'>" + html + "</div>");
+                _results1.push(dest.shadowRoot.firstChild.innerHTML += "<div class='sidebar_notes' data-note-origin='" + node.id + "' id='" + noteId + "'>" + html + "</div>");
               } else {
                 _results1.push(void 0);
               }
@@ -1145,7 +1145,7 @@
   };
 
   processResults = function(str, node, skipText) {
-    var classes, line, shadow, _i, _len, _ref7, _results;
+    var classes, line, shadow, _i, _len, _ref7;
     if (!node.firstChild.shadowRoot) {
       node.firstChild.createShadowRoot();
       node.firstChild.shadowRoot.applyAuthorStyles = true;
@@ -1162,16 +1162,13 @@
       classes += ' bar_collapse';
     }
     _ref7 = splitLines(str);
-    _results = [];
     for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
       line = _ref7[_i];
       if (line.match(/^: /)) {
-        _results.push(shadow.innerHTML += "<div class='" + classes + "'>" + (line.substring(2)) + "</div>");
-      } else {
-        _results.push(void 0);
+        shadow.innerHTML += "<div class='" + classes + "'>" + (line.substring(2)) + "</div>";
       }
     }
-    return _results;
+    return $(shadow.firstChild).attr('data-shadowdom', 'true');
   };
 
   setShadowHtml = function(holder, html) {
@@ -1181,11 +1178,12 @@
       el.applyAuthorStyles = true;
     }
     el.innerHTML = html;
+    $(el.firstChild).attr('data-shadowdom', 'true');
     if (theme !== null) {
-      $(el).addClass(theme);
+      $(el.firstChild).addClass(theme);
     }
     if ($("body").hasClass('bar_collapse')) {
-      return $(el).addClass('bar_collapse');
+      return $(el.firstChild).addClass('bar_collapse');
     }
   };
 
@@ -1544,16 +1542,16 @@
   theme = null;
 
   setTheme = function(str) {
-    var dd, el, node, t, _i, _j, _k, _len, _len1, _len2, _ref7, _ref8, _ref9, _results;
+    var all, dd, el, node, t, _i, _j, _k, _len, _len1, _len2, _ref7, _ref8, _results;
     el = $('body');
-    _ref7 = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child'));
-    for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
-      node = _ref7[_i];
+    all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child'));
+    for (_i = 0, _len = all.length; _i < _len; _i++) {
+      node = all[_i];
       if (node.shadowRoot) {
         el = el.add(node.shadowRoot.firstElementChild);
       }
     }
-    el.add('[data-org-html]');
+    el;
     if (theme && theme !== str) {
       el.removeClass(theme);
     }
@@ -1561,9 +1559,9 @@
     if (str) {
       el.addClass(str);
     }
-    _ref8 = $("style.theme");
-    for (_j = 0, _len1 = _ref8.length; _j < _len1; _j++) {
-      t = _ref8[_j];
+    _ref7 = $("style.theme");
+    for (_j = 0, _len1 = _ref7.length; _j < _len1; _j++) {
+      t = _ref7[_j];
       $(t).prop('disabled', true);
     }
     $("style#" + theme).removeProp('disabled');
@@ -1571,10 +1569,10 @@
     if (dd) {
       dd.val(theme);
     }
-    _ref9 = $('[data-org-note-content]');
+    _ref8 = $('[data-org-note-content]');
     _results = [];
-    for (_k = 0, _len2 = _ref9.length; _k < _len2; _k++) {
-      node = _ref9[_k];
+    for (_k = 0, _len2 = _ref8.length; _k < _len2; _k++) {
+      node = _ref8[_k];
       if (node.shadowRoot) {
         _results.push($(node.shadowRoot.firstChild).addClass(str));
       } else {
