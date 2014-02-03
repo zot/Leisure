@@ -295,35 +295,52 @@ noteAttrs = (org)->
   if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
   else ''
 
-noteId = 0
+nextNoteId = 0
 
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
-  for noteSpec in node.getAttribute('data-org-notes').split ','
+  for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
     console.log "NOTE FOR #{node.id}: #{noteSpec}"
-    for spec in noteSpec.split /,/
-      switch (splitSpec = spec.split(/\ +/))[0]
-        when 'sidebar'
-          if dest = $("[data-org-headline-text='#{splitSpec[1]}'] div.sidebar")[0]
-            if !dest.shadowRoot then setShadowHtml dest, "<div contenteditable='true'></div>"
-            [org, html] = markupOrgWithNode node.textContent, true
-            addWord dest, 'data-org-note-content', node.id
-            noteId = "note-#{noteId++}"
-            addWord dest, 'data-org-note-instances', noteId
-            dest.shadowRoot.firstChild.innerHTML += "<div data-note-origin='#{node.id}' id='#{noteId}'>#{html}</div>"
+    noteId = "note-#{nextNoteId++}"
+    [org, html] = markupOrgWithNode node.textContent, true
+    newNote = $("<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}'>#{html}</div>")[0]
+    switch (splitSpec = noteSpec.split(/\s+/))[0]
+      when 'sidebar'
+        if dest = $("[data-org-headline-text='#{splitSpec[1]}'] div.sidebar")[0]
+          if !dest.shadowRoot then setShadowHtml dest, "<div contenteditable='true'></div>"
+          dest.shadowRoot.firstChild.appendChild newNote
+      when 'float'
+        [coords, x, y] = noteSpec.split /\s+/
+        parent = topNode node
+        dest = $(parent).find('[data-org-floats]')[0]
+        if !dest then $(parent).append dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
+        dest.appendChild newNote
+        $(newNote).dialog [x, y]
+      else continue
+    if dest
+      addWord dest, 'data-org-note-content', node.id
+      addWord dest, 'data-org-note-instances', noteId
+      watchNodeText newNote, editedNote node.id, noteId
 
 addWord = (node, attr, value)->
   vals = (node.getAttribute(attr) ? '').split ' '
   if !(value in vals) then vals.push value
   node.setAttribute attr, vals.join ' '
 
+editing = false
+
 editedNote = (mainId, editedId)-> ->
-  console.log "EDITED NODE: #{mainId} from #{editedId}"
-  targets = $("##{mainId}")
-  for node in $("[data-org-note-content~='#{mainId}']")
-    targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
-  origin = targets.filter "##{editedId}"
-  targets.not("##{editedId}").html origin.html()
+  if !editing
+    console.log "EDITED NODE: #{mainId} from #{editedId}"
+    targets = $("##{mainId}")
+    for node in $("[data-org-note-content~='#{mainId}']")
+      targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
+    origin = targets.filter "##{editedId}"
+    editing = true
+    try
+      targets.not("##{editedId}").html origin.html()
+    finally
+      setTimeout (-> editing = false), 1
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
@@ -844,14 +861,16 @@ processResults = (str, node, skipText)->
   if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
   for line in splitLines str
     if line.match /^: / then shadow.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
+  $(shadow.firstChild).attr 'data-shadowdom', 'true'
 
 setShadowHtml = (holder, html)->
   if !(el = holder.shadowRoot)
     el = holder.createShadowRoot()
     el.applyAuthorStyles=true
   el.innerHTML = html
-  if theme != null then $(el).addClass(theme)
-  if $("body").hasClass 'bar_collapse' then $(el).addClass('bar_collapse')
+  $(el.firstChild).attr 'data-shadowdom', 'true'
+  if theme != null then $(el.firstChild).addClass(theme)
+  if $("body").hasClass 'bar_collapse' then $(el.firstChild).addClass('bar_collapse')
 
 redrawIssue = (issue)->
   issueName = issue.leisureName
@@ -1065,9 +1084,9 @@ theme = null
 
 setTheme = (str)->
   el = $('body')
-  for node in $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child'))
+  all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]'))
+  for node in all
     if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
-  el.add('[data-org-html]')
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str
@@ -1076,8 +1095,6 @@ setTheme = (str)->
   $("style#" + theme).removeProp 'disabled'
   dd = $("#themeSelect")
   if dd then dd.val theme
-  for node in $('[data-org-note-content]')
-    if node.shadowRoot then $(node.shadowRoot.firstChild).addClass str
 
 define 'setTheme', lz (str)->
   makeSyncMonad (env, cont)->
@@ -1144,6 +1161,9 @@ fixupHtml = (parent)->
     reprocessResults node
   for node in $(parent).find('[data-org-headline="1"]')
     setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+    $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click (e)->
+      e.preventDefault()
+      root.currentMode.createNote()
   setTimeout (=>
     for node in $(parent).find('[data-org-comments]')
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'

@@ -295,35 +295,52 @@ noteAttrs = (org)->
   if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
   else ''
 
-noteId = 0
+nextNoteId = 0
 
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
-  for noteSpec in node.getAttribute('data-org-notes').split ','
+  for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
     console.log "NOTE FOR #{node.id}: #{noteSpec}"
-    for spec in noteSpec.split /,/
-      switch (splitSpec = spec.split(/\ +/))[0]
-        when 'sidebar'
-          if dest = $("[data-org-headline-text='#{splitSpec[1]}'] div.sidebar")[0]
-            if !dest.shadowRoot then setShadowHtml dest, "<div contenteditable='true'></div>"
-            [org, html] = markupOrgWithNode node.textContent, true
-            addWord dest, 'data-org-note-content', node.id
-            noteId = "note-#{noteId++}"
-            addWord dest, 'data-org-note-instances', noteId
-            dest.shadowRoot.firstChild.innerHTML += "<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}'>#{html}</div>"
+    noteId = "note-#{nextNoteId++}"
+    [org, html] = markupOrgWithNode node.textContent, true
+    newNote = $("<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}'>#{html}</div>")[0]
+    switch (splitSpec = noteSpec.split(/\s+/))[0]
+      when 'sidebar'
+        if dest = $("[data-org-headline-text='#{splitSpec[1]}'] div.sidebar")[0]
+          if !dest.shadowRoot then setShadowHtml dest, "<div contenteditable='true'></div>"
+          dest.shadowRoot.firstChild.appendChild newNote
+      when 'float'
+        [coords, x, y] = noteSpec.split /\s+/
+        parent = topNode node
+        dest = $(parent).find('[data-org-floats]')[0]
+        if !dest then $(parent).append dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
+        dest.appendChild newNote
+        $(newNote).dialog [x, y]
+      else continue
+    if dest
+      addWord dest, 'data-org-note-content', node.id
+      addWord dest, 'data-org-note-instances', noteId
+      watchNodeText newNote, editedNote node.id, noteId
 
 addWord = (node, attr, value)->
   vals = (node.getAttribute(attr) ? '').split ' '
   if !(value in vals) then vals.push value
   node.setAttribute attr, vals.join ' '
 
+editing = false
+
 editedNote = (mainId, editedId)-> ->
-  console.log "EDITED NODE: #{mainId} from #{editedId}"
-  targets = $("##{mainId}")
-  for node in $("[data-org-note-content~='#{mainId}']")
-    targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
-  origin = targets.filter "##{editedId}"
-  targets.not("##{editedId}").html origin.html()
+  if !editing
+    console.log "EDITED NODE: #{mainId} from #{editedId}"
+    targets = $("##{mainId}")
+    for node in $("[data-org-note-content~='#{mainId}']")
+      targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
+    origin = targets.filter "##{editedId}"
+    editing = true
+    try
+      targets.not("##{editedId}").html origin.html()
+    finally
+      setTimeout (-> editing = false), 1
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
