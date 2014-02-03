@@ -1542,16 +1542,15 @@
   theme = null;
 
   setTheme = function(str) {
-    var all, dd, el, node, t, _i, _j, _k, _len, _len1, _len2, _ref7, _ref8, _results;
+    var all, dd, el, node, t, _i, _j, _len, _len1, _ref7;
     el = $('body');
-    all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child'));
+    all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]'));
     for (_i = 0, _len = all.length; _i < _len; _i++) {
       node = all[_i];
       if (node.shadowRoot) {
         el = el.add(node.shadowRoot.firstElementChild);
       }
     }
-    el;
     if (theme && theme !== str) {
       el.removeClass(theme);
     }
@@ -1567,19 +1566,8 @@
     $("style#" + theme).removeProp('disabled');
     dd = $("#themeSelect");
     if (dd) {
-      dd.val(theme);
+      return dd.val(theme);
     }
-    _ref8 = $('[data-org-note-content]');
-    _results = [];
-    for (_k = 0, _len2 = _ref8.length; _k < _len2; _k++) {
-      node = _ref8[_k];
-      if (node.shadowRoot) {
-        _results.push($(node.shadowRoot.firstChild).addClass(str));
-      } else {
-        _results.push(void 0);
-      }
-    }
-    return _results;
   };
 
   define('setTheme', lz(function(str) {

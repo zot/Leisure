@@ -1067,10 +1067,9 @@ theme = null
 
 setTheme = (str)->
   el = $('body')
-  all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child'))
+  all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]'))
   for node in all
     if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
-  el
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str
@@ -1079,8 +1078,6 @@ setTheme = (str)->
   $("style#" + theme).removeProp 'disabled'
   dd = $("#themeSelect")
   if dd then dd.val theme
-  for node in $('[data-org-note-content]')
-    if node.shadowRoot then $(node.shadowRoot.firstChild).addClass str
 
 define 'setTheme', lz (str)->
   makeSyncMonad (env, cont)->
