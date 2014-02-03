@@ -1696,6 +1696,10 @@
     for (_l = 0, _len3 = _ref10.length; _l < _len3; _l++) {
       node = _ref10[_l];
       setShadowHtml(node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>");
+      $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click(function(e) {
+        e.preventDefault();
+        return root.currentMode.createNote();
+      });
     }
     return setTimeout((function() {
       var _len4, _m, _ref11, _results;

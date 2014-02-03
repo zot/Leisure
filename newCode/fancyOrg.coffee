@@ -1144,6 +1144,9 @@ fixupHtml = (parent)->
     reprocessResults node
   for node in $(parent).find('[data-org-headline="1"]')
     setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+    $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click (e)->
+      e.preventDefault()
+      root.currentMode.createNote()
   setTimeout (=>
     for node in $(parent).find('[data-org-comments]')
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
