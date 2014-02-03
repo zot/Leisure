@@ -341,7 +341,7 @@ markupSource = (org, name, doctext, delay)->
     node = node.next
   if name
     nameM = name.text.match keywordRE
-    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div><larger><b>#{escapeHtml name.info}</b></larger></div>#{escapeHtml doctext}</div>"
+    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div>#{escapeHtml name.info}</div>#{escapeHtml doctext}</div>"
   else codeName = "<div class='codename' contenteditable='true'></div>"
   wrapper = "<table class='codewrapper'><tr>"
   wrapper += "<td class='code-buttons'>"
