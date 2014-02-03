@@ -196,18 +196,18 @@ markupOrg = (text)->
   [node, result] = markupOrgWithNode text
   result
 
-markupOrgWithNode = (text)->
+markupOrgWithNode = (text, note)->
   nodes = {}
   # ensure trailing newline -- contenteditable doesn't like it, otherwise
   if text[text.length - 1] != '\n' then text = text + '\n'
   org = parseOrgMode text
-  [org, markupNewNode org]
+  [org, markupNewNode org, null, null, note]
 
-markupNewNode = (org, middleOfLine, delay)->
+markupNewNode = (org, middleOfLine, delay, note)->
   lastOrgOffset = -1
-  markupNode org, middleOfLine, delay
+  markupNode org, middleOfLine, delay, note
 
-markupNode = (org, middleOfLine, delay)->
+markupNode = (org, middleOfLine, delay, note)->
   if org.offset <= lastOrgOffset then ''
   else if org instanceof Results
     pos = org.contentPos
@@ -226,7 +226,7 @@ markupNode = (org, middleOfLine, delay)->
       else defaultMarkup org
     else if org instanceof Source then markupSource org, null, null, delay
     else defaultMarkup org
-  else if org instanceof Headline then markupHeadline org, delay
+  else if org instanceof Headline then markupHeadline org, delay, note
   else if org instanceof Drawer && org.name.toLowerCase() == 'properties' then markupProperties org, delay
   else if org instanceof ListItem then markupListItem org, delay
   else if org instanceof SimpleMarkup then markupSimple org
@@ -271,7 +271,7 @@ markupSimple = (org)->
 
 hlStars = /^\*+ */
 
-markupHeadline = (org, delay)->
+markupHeadline = (org, delay, note)->
   match = org.text.match headlineRE
   start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length - 1}".trim()
   if org.text[org.text.length - 1] == '\n'
@@ -286,7 +286,7 @@ markupHeadline = (org, delay)->
   for k, v of org.properties
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
-  sidebar = if org.level == 1 then "<div class='sidebar'></div>" else ''
+  sidebar = if org.level == 1 && !note then "<div class='sidebar'></div>" else ''
   if org.text.trim() != ''
     "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
   else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
@@ -295,14 +295,35 @@ noteAttrs = (org)->
   if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
   else ''
 
+noteId = 0
+
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
   for noteSpec in node.getAttribute('data-org-notes').split ','
     console.log "NOTE FOR #{node.id}: #{noteSpec}"
-    # *** create note
+    for spec in noteSpec.split /,/
+      switch (splitSpec = spec.split(/\ +/))[0]
+        when 'sidebar'
+          if dest = $("[data-org-headline-text='#{splitSpec[1]}'] div.sidebar")[0]
+            if !dest.shadowRoot then setShadowHtml dest, "<div contenteditable='true'></div>"
+            [org, html] = markupOrgWithNode node.textContent, true
+            addWord dest, 'data-org-note-content', node.id
+            noteId = "note-#{noteId++}"
+            addWord dest, 'data-org-note-instances', noteId
+            dest.shadowRoot.firstChild.innerHTML += "<div data-note-origin='#{node.id}' id='#{noteId}'>#{html}</div>"
+
+addWord = (node, attr, value)->
+  vals = (node.getAttribute(attr) ? '').split ' '
+  if !(value in vals) then vals.push value
+  node.setAttribute attr, vals.join ' '
 
 editedNote = (mainId, editedId)-> ->
   console.log "EDITED NODE: #{mainId} from #{editedId}"
+  targets = $("##{mainId}")
+  for node in $("[data-org-note-content~='#{mainId}']")
+    targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
+  origin = targets.filter "##{editedId}"
+  targets.not("##{editedId}").html origin.html()
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
@@ -1055,6 +1076,8 @@ setTheme = (str)->
   $("style#" + theme).removeProp 'disabled'
   dd = $("#themeSelect")
   if dd then dd.val theme
+  for node in $('[data-org-note-content]')
+    if node.shadowRoot then $(node.shadowRoot.firstChild).addClass str
 
 define 'setTheme', lz (str)->
   makeSyncMonad (env, cont)->
@@ -1092,21 +1115,11 @@ fancyOrg =
       parent.setAttribute 'class', 'org-fancy'
       parent.setAttribute 'maindoc', ''
       orgNotebook.installOrgDOM parent, orgNode, orgText
-      for node in $('[data-org-html]')
-        setShadowHtml node, node.innerHTML
-        node.innerHTML = ''
-      for node in $('[data-org-src]')
-        recreateAstButtons parent, node
-      for node in $('.resultscontent')
-        reprocessResults node
-      for node in $('[data-org-headline="1"]')
-        setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
-      for node in $('[data-org-notes]')
-        createNotes node
+      fixupHtml parent
       setTheme theme
+      for node in $(parent).find('[data-org-notes]')
+        createNotes node
       setTimeout (=>
-        for node in $('[data-org-comments]')
-          setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
         redrawAllIssues()
         ), 1
       $(document).tooltip()
@@ -1120,6 +1133,21 @@ fancyOrg =
       toggleSlides()
       if slideMode then setTimeout (-> if !getSelection().focusNode then $('[maindoc]').focus()), 1
       else swapMarkup()
+
+fixupHtml = (parent)->
+  for node in $(parent).find('[data-org-html]')
+    setShadowHtml node, node.innerHTML
+    node.innerHTML = ''
+  for node in $(parent).find('[data-org-src]')
+    recreateAstButtons parent, node
+  for node in $(parent).find('.resultscontent')
+    reprocessResults node
+  for node in $(parent).find('[data-org-headline="1"]')
+    setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+  setTimeout (=>
+    for node in $(parent).find('[data-org-comments]')
+      setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
+    ), 1
 
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
