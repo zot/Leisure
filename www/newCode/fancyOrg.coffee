@@ -327,6 +327,8 @@ createNotes = (node)->
         inside.resizable()
       else continue
     if dest
+      for node in $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]')
+        setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
       addWord dest, 'data-org-note-content', node.id
       addWord dest, 'data-org-note-instances', noteId
       watchNodeText newNote, editedNote node.id, noteId
