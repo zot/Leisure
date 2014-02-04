@@ -319,6 +319,8 @@ createNotes = (node)->
         setShadowHtml holder[0], "<div contenteditable='true'></div>"
         holder[0].shadowRoot.firstChild.appendChild newNote
         holder.dialog [x, y]
+        holder.prev().addClass 'float_title'
+        holder.parent().addClass 'float_note'
         dest = holder[0]
       else continue
     if dest

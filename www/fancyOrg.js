@@ -363,6 +363,8 @@
           setShadowHtml(holder[0], "<div contenteditable='true'></div>");
           holder[0].shadowRoot.firstChild.appendChild(newNote);
           holder.dialog([x, y]);
+          holder.prev().addClass('float_title');
+          holder.parent().addClass('float_note');
           dest = holder[0];
           break;
         default:
@@ -394,7 +396,6 @@
     return function() {
       var node, origin, targets, _i, _len, _ref7;
       if (!editing) {
-        console.log("EDITED NODE: " + mainId + " from " + editedId);
         targets = $("#" + mainId);
         _ref7 = $("[data-org-note-content~='" + mainId + "']");
         for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
