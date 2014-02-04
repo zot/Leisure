@@ -314,9 +314,9 @@
     properties = properties.length ? "<span class='headline-properties' title='" + (escapeAttr(properties.join('<br>'))) + "'><i class='fa fa-wrench'></i></span>" : '';
     sidebar = org.level === 1 && !note ? "<div class='sidebar'></div>" : '';
     if (org.text.trim() !== '') {
-      return "<div " + (orgAttrs(org)) + " data-org-headline-text='" + (escapeAttr(start)) + "'" + (noteAttrs(org)) + "><span class='hidden'>" + stars + "</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>" + (escapeHtml(start)) + "</div><span class='tags'>" + properties + tags + "</span><div class='textborder'></div></div></span>" + sidebar + (markupGuts(org, checkStart(start, org.text))) + "</div>";
+      return "<div " + (orgAttrs(org)) + " data-org-headline-text='" + (escapeAttr(start)) + "'" + (noteAttrs(org)) + ">" + sidebar + "<span class='hidden'>" + stars + "</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>" + (escapeHtml(start)) + "</div><span class='tags'>" + properties + tags + "</span><div class='textborder'></div></div></span>" + (markupGuts(org, checkStart(start, org.text))) + "</div>";
     } else {
-      return "<div " + (orgAttrs(org)) + "><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>" + org.text + "</span></span></span>" + sidebar + (markupGuts(org, checkStart(start, org.text))) + "</div>";
+      return "<div " + (orgAttrs(org)) + ">" + sidebar + "<span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>" + org.text + "</span></span></span>" + (markupGuts(org, checkStart(start, org.text))) + "</div>";
     }
   };
 
@@ -332,7 +332,7 @@
   nextNoteId = 0;
 
   createNotes = function(node) {
-    var coords, dest, holder, html, newNote, noteId, noteSpec, org, parent, splitSpec, x, y, _i, _len, _ref7, _ref8, _ref9, _results;
+    var coords, dest, holder, html, inside, newNote, noteId, noteSpec, org, parent, splitSpec, x, y, _i, _len, _ref7, _ref8, _ref9, _results;
     watchNodeText(node, editedNote(node.id, node.id));
     _ref7 = node.getAttribute('data-org-notes').split(/\s*,\s*/);
     _results = [];
@@ -354,18 +354,19 @@
         case 'float':
           _ref9 = noteSpec.split(/\s+/), coords = _ref9[0], x = _ref9[1], y = _ref9[2];
           parent = topNode(node);
-          dest = $(parent).find('[data-org-floats]')[0];
+          dest = $(document.body).find('[data-org-floats]')[0];
           if (!dest) {
-            $(parent).append(dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]);
+            $(document.body).prepend(dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]);
           }
-          holder = $('<div></div>');
+          inside = $('<div data-resizable></div>');
+          holder = $('<div data-draggable></div>');
+          holder.append(inside);
           dest.appendChild(holder[0]);
-          setShadowHtml(holder[0], "<div contenteditable='true'></div>");
-          holder[0].shadowRoot.firstChild.appendChild(newNote);
-          holder.dialog([x, y]);
-          holder.prev().addClass('float_title');
-          holder.parent().addClass('float_note');
-          dest = holder[0];
+          setShadowHtml(inside[0], "<div contenteditable='true' class='float_note'></div>");
+          inside[0].shadowRoot.firstChild.appendChild(newNote);
+          dest = inside[0];
+          holder.draggable();
+          inside.resizable();
           break;
         default:
           continue;
@@ -373,7 +374,8 @@
       if (dest) {
         addWord(dest, 'data-org-note-content', node.id);
         addWord(dest, 'data-org-note-instances', noteId);
-        _results.push(watchNodeText(newNote, editedNote(node.id, noteId)));
+        watchNodeText(newNote, editedNote(node.id, noteId));
+        _results.push(fixupHtml(newNote));
       } else {
         _results.push(void 0);
       }
@@ -394,9 +396,10 @@
 
   editedNote = function(mainId, editedId) {
     return function() {
-      var node, origin, targets, _i, _len, _ref7;
+      var main, node, origin, t, targets, _i, _j, _len, _len1, _ref7, _results;
       if (!editing) {
         targets = $("#" + mainId);
+        main = targets[0];
         _ref7 = $("[data-org-note-content~='" + mainId + "']");
         for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
           node = _ref7[_i];
@@ -405,7 +408,14 @@
         origin = targets.filter("#" + editedId);
         editing = true;
         try {
-          return targets.not("#" + editedId).html(origin.html());
+          t = targets.not("#" + editedId);
+          t.html(origin.html());
+          _results = [];
+          for (_j = 0, _len1 = t.length; _j < _len1; _j++) {
+            node = t[_j];
+            _results.push(fixupHtml(node, node !== main));
+          }
+          return _results;
         } finally {
           setTimeout((function() {
             return editing = false;
@@ -1687,8 +1697,8 @@
     }
   };
 
-  fixupHtml = function(parent) {
-    var node, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref10, _ref7, _ref8, _ref9,
+  fixupHtml = function(parent, note) {
+    var node, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref10, _ref11, _ref7, _ref8, _ref9,
       _this = this;
     _ref7 = $(parent).find('[data-org-html]');
     for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
@@ -1710,17 +1720,23 @@
     for (_l = 0, _len3 = _ref10.length; _l < _len3; _l++) {
       node = _ref10[_l];
       setShadowHtml(node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>");
-      $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click(function(e) {
-        e.preventDefault();
-        return root.currentMode.createNote();
-      });
     }
-    return setTimeout((function() {
-      var _len4, _m, _ref11, _results;
-      _ref11 = $(parent).find('[data-org-comments]');
-      _results = [];
+    if (!note) {
+      _ref11 = $(parent).find('[data-org-headline="1"]');
       for (_m = 0, _len4 = _ref11.length; _m < _len4; _m++) {
         node = _ref11[_m];
+        $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click(function(e) {
+          e.preventDefault();
+          return root.currentMode.createNote();
+        });
+      }
+    }
+    return setTimeout((function() {
+      var _len5, _n, _ref12, _results;
+      _ref12 = $(parent).find('[data-org-comments]');
+      _results = [];
+      for (_n = 0, _len5 = _ref12.length; _n < _len5; _n++) {
+        node = _ref12[_n];
         _results.push(setShadowHtml(node.firstElementChild, newCommentBox(node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr('id'))));
       }
       return _results;

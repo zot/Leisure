@@ -288,8 +288,8 @@ markupHeadline = (org, delay, note)->
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
   sidebar = if org.level == 1 && !note then "<div class='sidebar'></div>" else ''
   if org.text.trim() != ''
-    "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
-  else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{sidebar}#{markupGuts org, checkStart start, org.text}</div>"
+    "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}>#{sidebar}<span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
+  else "<div #{orgAttrs org}>#{sidebar}<span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
 
 noteAttrs = (org)->
   if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
@@ -312,21 +312,25 @@ createNotes = (node)->
       when 'float'
         [coords, x, y] = noteSpec.split /\s+/
         parent = topNode node
-        dest = $(parent).find('[data-org-floats]')[0]
-        if !dest then $(parent).append dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
-        holder = $('<div></div>')
+        dest = $(document.body).find('[data-org-floats]')[0]
+        if !dest then $(document.body).prepend dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
+        inside = $('<div data-resizable></div>')
+        holder = $('<div data-draggable></div>')
+        holder.append inside
         dest.appendChild holder[0]
-        setShadowHtml holder[0], "<div contenteditable='true'></div>"
-        holder[0].shadowRoot.firstChild.appendChild newNote
-        holder.dialog [x, y]
-        holder.prev().addClass 'float_title'
-        holder.parent().addClass 'float_note'
-        dest = holder[0]
+        setShadowHtml inside[0], "<div contenteditable='true' class='float_note'></div>"
+        inside[0].shadowRoot.firstChild.appendChild newNote
+        dest = inside[0]
+        # locate at x, y
+        # listen so we can update the doc when the user releases mouse after a drag
+        holder.draggable()
+        inside.resizable()
       else continue
     if dest
       addWord dest, 'data-org-note-content', node.id
       addWord dest, 'data-org-note-instances', noteId
       watchNodeText newNote, editedNote node.id, noteId
+      fixupHtml newNote
 
 addWord = (node, attr, value)->
   vals = (node.getAttribute(attr) ? '').split ' '
@@ -338,12 +342,16 @@ editing = false
 editedNote = (mainId, editedId)-> ->
   if !editing
     targets = $("##{mainId}")
+    main = targets[0]
     for node in $("[data-org-note-content~='#{mainId}']")
       targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
     origin = targets.filter "##{editedId}"
     editing = true
     try
-      targets.not("##{editedId}").html origin.html()
+      t = targets.not("##{editedId}")
+      t.html origin.html()
+      for node in t
+        fixupHtml node, node != main
     finally
       setTimeout (-> editing = false), 1
 
@@ -1161,7 +1169,8 @@ fancyOrg =
       if slideMode then setTimeout (-> if !getSelection().focusNode then $('[maindoc]').focus()), 1
       else swapMarkup()
 
-fixupHtml = (parent)->
+# called on installing DOM and also on new notes
+fixupHtml = (parent, note)->
   for node in $(parent).find('[data-org-html]')
     setShadowHtml node, node.innerHTML
     node.innerHTML = ''
@@ -1171,9 +1180,11 @@ fixupHtml = (parent)->
     reprocessResults node
   for node in $(parent).find('[data-org-headline="1"]')
     setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
-    $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click (e)->
-      e.preventDefault()
-      root.currentMode.createNote()
+  if !note
+    for node in $(parent).find('[data-org-headline="1"]')
+      $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click (e)->
+        e.preventDefault()
+        root.currentMode.createNote()
   setTimeout (=>
     for node in $(parent).find('[data-org-comments]')
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
