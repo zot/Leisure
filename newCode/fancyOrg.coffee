@@ -398,6 +398,7 @@ markupSource = (org, name, doctext, delay)->
   wrapper += "<div class='hidden'>#{escapeHtml lead}</div>"
   wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText
+  if expected then wrapper += htmlForExpected expected.content()
   wrapper += "</td></tr></table>"
   testCase = resultsType(org) in ['test', 'autotest'] && expected
   result = contHtml + wrapper + (if name then "</div>#{commentBlock name.info.trim()}" else "</div>")
@@ -644,6 +645,10 @@ defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 htmlForResults = (text)->
   """
   <div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
+
+htmlForExpected = (text)->
+  """
+  <div class='codeexpected' data-org-type='expected'><div class='expectedcontent'><span>#{escapeHtml text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
