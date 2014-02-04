@@ -332,7 +332,7 @@
   nextNoteId = 0;
 
   createNotes = function(node) {
-    var coords, dest, html, newNote, noteId, noteSpec, org, parent, splitSpec, x, y, _i, _len, _ref7, _ref8, _ref9, _results;
+    var coords, dest, holder, html, newNote, noteId, noteSpec, org, parent, splitSpec, x, y, _i, _len, _ref7, _ref8, _ref9, _results;
     watchNodeText(node, editedNote(node.id, node.id));
     _ref7 = node.getAttribute('data-org-notes').split(/\s*,\s*/);
     _results = [];
@@ -358,8 +358,12 @@
           if (!dest) {
             $(parent).append(dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]);
           }
-          dest.appendChild(newNote);
-          $(newNote).dialog([x, y]);
+          holder = $('<div></div>');
+          dest.appendChild(holder[0]);
+          setShadowHtml(holder[0], "<div contenteditable='true'></div>");
+          holder[0].shadowRoot.firstChild.appendChild(newNote);
+          holder.dialog([x, y]);
+          dest = holder[0];
           break;
         default:
           continue;

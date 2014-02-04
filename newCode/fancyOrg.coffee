@@ -314,8 +314,12 @@ createNotes = (node)->
         parent = topNode node
         dest = $(parent).find('[data-org-floats]')[0]
         if !dest then $(parent).append dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
-        dest.appendChild newNote
-        $(newNote).dialog [x, y]
+        holder = $('<div></div>')
+        dest.appendChild holder[0]
+        setShadowHtml holder[0], "<div contenteditable='true'></div>"
+        holder[0].shadowRoot.firstChild.appendChild newNote
+        holder.dialog [x, y]
+        dest = holder[0]
       else continue
     if dest
       addWord dest, 'data-org-note-content', node.id
@@ -331,7 +335,6 @@ editing = false
 
 editedNote = (mainId, editedId)-> ->
   if !editing
-    console.log "EDITED NODE: #{mainId} from #{editedId}"
     targets = $("##{mainId}")
     for node in $("[data-org-note-content~='#{mainId}']")
       targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
