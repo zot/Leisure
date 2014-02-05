@@ -301,6 +301,12 @@ noteAttrs = (org)->
 
 nextNoteId = 0
 
+saveNoteLocation = (target) ->
+  drag = $(target.closest("[data-draggable]")[0])
+  resize = $(drag.children()[0])
+  span = resize.find("[data-note-location]")[0]
+  span.textContent = "#LOCATION: top: #{drag.position().top} left: #{drag.position().left} width: #{resize.width()} height: #{resize.height()}\n"
+
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
   for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
@@ -318,18 +324,16 @@ createNotes = (node)->
         parent = topNode node
         dest = $(document.body).find('[data-org-floats]')[0]
         if !dest then $(document.body).prepend dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
-        inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div></div></div>')
+        inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div><span data-note-location class="hidden"></span></div></div>')
         holder = $('<div data-draggable></div>')
         holder.append inside
         dest.appendChild holder[0]
         holder.draggable()
         inside.resizable()
-        holder.bind 'dragstop', ->
-          console.log holder.position().top
-          console.log holder.position().left
+        holder.bind 'dragstop', (event) ->
+          saveNoteLocation $(event.target)
         inside.bind 'resizestop', ->
-          console.log inside.width()
-          console.log inside.height()
+          saveNoteLocation $(event.target)
         setShadowHtml inside[0].firstChild, "<div contenteditable='true' class='float_note'></div>"
         inside[0].firstChild.shadowRoot.firstChild.appendChild newNote
         dest = inside[0].firstChild
