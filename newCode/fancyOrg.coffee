@@ -311,6 +311,7 @@ saveNoteLocation = (target) ->
 
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
+  $(node).addClass 'herpderp'
   for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
     console.log "NOTE FOR #{node.id}: #{noteSpec}"
     noteId = "note-#{nextNoteId++}"
@@ -322,7 +323,6 @@ createNotes = (node)->
           if !dest.shadowRoot then setShadowHtml dest, "<div contenteditable='true'></div>"
           dest.shadowRoot.firstChild.appendChild newNote
       when 'float'
-        [coords, x, y] = noteSpec.split /\s+/
         parent = topNode node
         dest = $(document.body).find('[data-org-floats]')[0]
         if !dest then $(document.body).prepend dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
@@ -343,9 +343,9 @@ createNotes = (node)->
         dest = child
         orig = $("#" + node.id)[0]
         $("<span data-note-location  class='hidden'></span>").appendTo orig
-        # locate at x, y
-        holder.css({top: '250px', left: '350px'})
-        inside.css({width: '450px', height: '550px'})
+        [skip, top, left, width, height] = noteSpec.split /\s+/
+        holder.css({top: top, left: left})
+        inside.css({width: width, height: height})
         saveNoteLocation holder
       else continue
     if dest

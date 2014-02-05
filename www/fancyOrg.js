@@ -349,8 +349,9 @@
   };
 
   createNotes = function(node) {
-    var child, coords, dest, holder, html, inside, n, newNote, noteId, noteSpec, org, orig, parent, splitSpec, x, y, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
+    var child, dest, height, holder, html, inside, left, n, newNote, noteId, noteSpec, org, orig, parent, skip, splitSpec, top, width, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
     watchNodeText(node, editedNote(node.id, node.id));
+    $(node).addClass('herpderp');
     _ref7 = node.getAttribute('data-org-notes').split(/\s*,\s*/);
     _results = [];
     for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
@@ -369,7 +370,6 @@
           }
           break;
         case 'float':
-          _ref9 = noteSpec.split(/\s+/), coords = _ref9[0], x = _ref9[1], y = _ref9[2];
           parent = topNode(node);
           dest = $(document.body).find('[data-org-floats]')[0];
           if (!dest) {
@@ -395,13 +395,14 @@
           dest = child;
           orig = $("#" + node.id)[0];
           $("<span data-note-location  class='hidden'></span>").appendTo(orig);
+          _ref9 = noteSpec.split(/\s+/), skip = _ref9[0], top = _ref9[1], left = _ref9[2], width = _ref9[3], height = _ref9[4];
           holder.css({
-            top: '250px',
-            left: '350px'
+            top: top,
+            left: left
           });
           inside.css({
-            width: '450px',
-            height: '550px'
+            width: width,
+            height: height
           });
           saveNoteLocation(holder);
           break;
