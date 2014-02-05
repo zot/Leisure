@@ -371,6 +371,14 @@
           dest.appendChild(holder[0]);
           holder.draggable();
           inside.resizable();
+          holder.bind('dragstop', function() {
+            console.log(holder.position().top);
+            return console.log(holder.position().left);
+          });
+          inside.resize(function() {
+            console.log(inside.width());
+            return console.log(inside.height());
+          });
           setShadowHtml(inside[0].firstChild, "<div contenteditable='true' class='float_note'></div>");
           inside[0].firstChild.shadowRoot.firstChild.appendChild(newNote);
           dest = inside[0].firstChild;
