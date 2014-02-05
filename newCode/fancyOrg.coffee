@@ -307,7 +307,7 @@ saveNoteLocation = (target) ->
   orig_id = drag.attr 'data-note-origin'
   orig = $("#" + orig_id)
   span = orig.find("[data-note-location]")[0]
-  span.textContent = "#LOCATION: top: #{drag.position().top} left: #{drag.position().left} width: #{resize.width()} height: #{resize.height()}\n"
+  span.textContent = "#LOCATION: top: #{drag.css('top')} left: #{drag.css('left')} width: #{resize.width()}px height: #{resize.height()}px\n"
 
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
@@ -341,9 +341,11 @@ createNotes = (node)->
         inside[0].firstChild.shadowRoot.firstChild.appendChild newNote
         dest = inside[0].firstChild
         orig = $("#" + node.id)[0]
-        $("<span data-note-location  class='hidden'>AKSJD:AKLJSD:LAKJSD:LAJD:LASJD:ALKSJD</span>").appendTo orig
+        $("<span data-note-location  class='hidden'></span>").appendTo orig
         # locate at x, y
-        # listen so we can update the doc when the user releases mouse after a drag
+        holder.css({top: '250px', left: '350px'})
+        inside.css({width: '450px', height: '550px'})
+        saveNoteLocation holder
       else continue
     if dest
       for n in $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]')

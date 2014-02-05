@@ -345,7 +345,7 @@
     orig_id = drag.attr('data-note-origin');
     orig = $("#" + orig_id);
     span = orig.find("[data-note-location]")[0];
-    return span.textContent = "#LOCATION: top: " + (drag.position().top) + " left: " + (drag.position().left) + " width: " + (resize.width()) + " height: " + (resize.height()) + "\n";
+    return span.textContent = "#LOCATION: top: " + (drag.css('top')) + " left: " + (drag.css('left')) + " width: " + (resize.width()) + "px height: " + (resize.height()) + "px\n";
   };
 
   createNotes = function(node) {
@@ -391,7 +391,16 @@
           inside[0].firstChild.shadowRoot.firstChild.appendChild(newNote);
           dest = inside[0].firstChild;
           orig = $("#" + node.id)[0];
-          $("<span data-note-location  class='hidden'>AKSJD:AKLJSD:LAKJSD:LAJD:LASJD:ALKSJD</span>").appendTo(orig);
+          $("<span data-note-location  class='hidden'></span>").appendTo(orig);
+          holder.css({
+            top: '250px',
+            left: '350px'
+          });
+          inside.css({
+            width: '450px',
+            height: '550px'
+          });
+          saveNoteLocation(holder);
           break;
         default:
           continue;
