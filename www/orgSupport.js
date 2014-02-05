@@ -1526,12 +1526,10 @@ misrepresented as being the original software.
   };
 
   nodeAfterNoChildren = function(node) {
-    return nodeAfter(nodeBefore(node));
+    return nodeAfter(node, true);
   };
 
-  nodeAfter = function(node) {
-    var up;
-    up = false;
+  nodeAfter = function(node, up) {
     while (node) {
       if (node.nodeType === 1 && !up && node.childNodes.length) {
         return node.childNodes[0];
@@ -1577,9 +1575,7 @@ misrepresented as being the original software.
     return textWatchers = [];
   };
 
-  nodeBefore = function(node) {
-    var up;
-    up = false;
+  nodeBefore = function(node, up) {
     while (node) {
       if (node.nodeType === 1 && !up && node.childNodes.length) {
         return node.childNodes[node.childNodes.length - 1];

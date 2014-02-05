@@ -102,7 +102,7 @@ initOrg = (parent, source)->
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
       root.currentMode.leisureButton()
-  $("<div class='paginators'><button id='prevSlide'><i class='fa fa-caret-left fa-1x'></i><span></span></button><button id='nextSlide'><i class='fa fa-caret-right fa-1x'></i><span></span></button></div>").appendTo(document.body)    
+  $("<div class='paginators'><button id='prevSlide'><i class='fa fa-caret-left fa-1x'></i><span></span></button><button id='nextSlide'><i class='fa fa-caret-right fa-1x'></i><span></span></button></div>").appendTo(document.body)
   $("#leisure_grip").click (e) ->
     g = $("body")
     if g.hasClass 'bar_collapse' then g.removeClass 'bar_collapse' else g.addClass 'bar_collapse'
@@ -1015,11 +1015,12 @@ findDomPosition = (node, pos)->
   [null, null]
 
 # get the next node in the preorder traversal, disregarding the node's children
-nodeAfterNoChildren = (node)-> nodeAfter nodeBefore node
+#nodeAfterNoChildren = (node)-> nodeAfter nodeBefore node
+nodeAfterNoChildren = (node)-> nodeAfter node, true
 
 # get the next node in the preorder traversal, starting with the node's children
-nodeAfter = (node)->
-  up = false
+nodeAfter = (node, up)->
+  #up = false
   while node
     if node.nodeType == 1 && !up && node.childNodes.length then return node.childNodes[0]
     else if node.nextSibling then return node.nextSibling
@@ -1047,8 +1048,8 @@ dumpTextWatchers = ->
   textWatchers = []
 
 # get the next node in the reverse preorder traversal, starting with the node's children
-nodeBefore = (node)->
-  up = false
+nodeBefore = (node, up)->
+  #up = false
   while node
     if node.nodeType == 1 && !up && node.childNodes.length then return node.childNodes[node.childNodes.length - 1]
     else if node.previousSibling then return node.previousSibling
