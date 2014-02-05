@@ -339,15 +339,17 @@
   nextNoteId = 0;
 
   saveNoteLocation = function(target) {
-    var drag, resize, span;
-    drag = $(target.closest("[data-draggable]")[0]);
+    var drag, orig, orig_id, resize, span;
+    drag = target.closest("[data-draggable]");
     resize = $(drag.children()[0]);
-    span = resize.find("[data-note-location]")[0];
+    orig_id = drag.attr('data-note-origin');
+    orig = $("#" + orig_id);
+    span = orig.find("[data-note-location]")[0];
     return span.textContent = "#LOCATION: top: " + (drag.position().top) + " left: " + (drag.position().left) + " width: " + (resize.width()) + " height: " + (resize.height()) + "\n";
   };
 
   createNotes = function(node) {
-    var coords, dest, holder, html, inside, n, newNote, noteId, noteSpec, org, parent, splitSpec, x, y, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
+    var coords, dest, holder, html, inside, n, newNote, noteId, noteSpec, org, orig, parent, splitSpec, x, y, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
     watchNodeText(node, editedNote(node.id, node.id));
     _ref7 = node.getAttribute('data-org-notes').split(/\s*,\s*/);
     _results = [];
@@ -373,8 +375,9 @@
           if (!dest) {
             $(document.body).prepend(dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]);
           }
-          inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div><span data-note-location class="hidden"></span></div></div>');
-          holder = $('<div data-draggable></div>');
+          inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div></div></div>');
+          holder = $("<div data-draggable data-note-origin='" + node.id + "'></div>");
+          console.log(node);
           holder.append(inside);
           dest.appendChild(holder[0]);
           holder.draggable();
@@ -388,6 +391,8 @@
           setShadowHtml(inside[0].firstChild, "<div contenteditable='true' class='float_note'></div>");
           inside[0].firstChild.shadowRoot.firstChild.appendChild(newNote);
           dest = inside[0].firstChild;
+          orig = $("#" + node.id)[0];
+          $("<span data-note-location  class='hidden'>AKSJD:AKLJSD:LAKJSD:LAJD:LASJD:ALKSJD</span>").appendTo(orig);
           break;
         default:
           continue;
