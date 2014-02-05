@@ -349,7 +349,7 @@
   };
 
   createNotes = function(node) {
-    var coords, dest, holder, html, inside, n, newNote, noteId, noteSpec, org, orig, parent, splitSpec, x, y, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
+    var child, coords, dest, holder, html, inside, n, newNote, noteId, noteSpec, org, orig, parent, splitSpec, x, y, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
     watchNodeText(node, editedNote(node.id, node.id));
     _ref7 = node.getAttribute('data-org-notes').split(/\s*,\s*/);
     _results = [];
@@ -375,11 +375,13 @@
           if (!dest) {
             $(document.body).prepend(dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]);
           }
-          inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div></div></div>');
+          inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><h2 class="note_drag_handle" contenteditable="false">YOUR NOTE</h2><div></div></div>');
           holder = $("<div data-draggable data-note-origin='" + node.id + "'></div>");
           holder.append(inside);
           dest.appendChild(holder[0]);
-          holder.draggable();
+          holder.draggable({
+            handle: 'h2'
+          });
           inside.resizable();
           holder.bind('dragstop', function(event) {
             return saveNoteLocation($(event.target));
@@ -387,9 +389,10 @@
           inside.bind('resizestop', function() {
             return saveNoteLocation($(event.target));
           });
-          setShadowHtml(inside[0].firstChild, "<div contenteditable='true' class='float_note'></div>");
-          inside[0].firstChild.shadowRoot.firstChild.appendChild(newNote);
-          dest = inside[0].firstChild;
+          child = inside[0].children[1];
+          setShadowHtml(child, "<div contenteditable='true' class='float_note'></div>");
+          child.shadowRoot.firstChild.appendChild(newNote);
+          dest = child;
           orig = $("#" + node.id)[0];
           $("<span data-note-location  class='hidden'></span>").appendTo(orig);
           holder.css({

@@ -326,20 +326,21 @@ createNotes = (node)->
         parent = topNode node
         dest = $(document.body).find('[data-org-floats]')[0]
         if !dest then $(document.body).prepend dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
-        inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div></div></div>')
+        inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><h2 class="note_drag_handle" contenteditable="false">YOUR NOTE</h2><div></div></div>')
         holder = $("<div data-draggable data-note-origin='#{node.id}'></div>")
         #console.log node
         holder.append inside
         dest.appendChild holder[0]
-        holder.draggable()
+        holder.draggable({handle: 'h2'})
         inside.resizable()
         holder.bind 'dragstop', (event) ->
           saveNoteLocation $(event.target)
         inside.bind 'resizestop', ->
           saveNoteLocation $(event.target)
-        setShadowHtml inside[0].firstChild, "<div contenteditable='true' class='float_note'></div>"
-        inside[0].firstChild.shadowRoot.firstChild.appendChild newNote
-        dest = inside[0].firstChild
+        child = inside[0].children[1]
+        setShadowHtml child, "<div contenteditable='true' class='float_note'></div>"
+        child.shadowRoot.firstChild.appendChild newNote
+        dest = child
         orig = $("#" + node.id)[0]
         $("<span data-note-location  class='hidden'></span>").appendTo orig
         # locate at x, y
