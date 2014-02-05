@@ -291,7 +291,7 @@
   hlStars = /^\*+ */;
 
   markupHeadline = function(org, delay, note) {
-    var k, match, properties, sidebar, stars, starsM, start, tags, v, _ref7, _ref8;
+    var k, match, properties, stars, starsM, start, tags, v, _ref7, _ref8;
     match = org.text.match(headlineRE);
     start = ("" + (org.text.substring(0, org.text.length - ((_ref7 = match != null ? match[HL_TAGS] : void 0) != null ? _ref7 : '').length - 1))).trim();
     if (org.text[org.text.length - 1] === '\n') {
@@ -312,11 +312,18 @@
       properties.push("" + k + " = " + v);
     }
     properties = properties.length ? "<span class='headline-properties' title='" + (escapeAttr(properties.join('<br>'))) + "'><i class='fa fa-wrench'></i></span>" : '';
-    sidebar = org.level === 1 && !note ? "<div class='sidebar'></div>" : '';
-    if (org.text.trim() !== '') {
-      return "<div " + (orgAttrs(org)) + " data-org-headline-text='" + (escapeAttr(start)) + "'" + (noteAttrs(org)) + ">" + sidebar + "<span class='hidden'>" + stars + "</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>" + (escapeHtml(start)) + "</div><span class='tags'>" + properties + tags + "</span><div class='textborder'></div></div></span>" + (markupGuts(org, checkStart(start, org.text))) + "</div>";
+    if (org.level === 1 && !note) {
+      if (org.text.trim() !== '') {
+        return "<div " + (orgAttrs(org)) + " data-org-headline-text='" + (escapeAttr(start)) + "'" + (noteAttrs(org)) + "><table><tr><td class='maincontent'><span class='hidden'>" + stars + "</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>" + (escapeHtml(start)) + "</div><span class='tags'>" + properties + tags + "</span><div class='textborder'></div></div></span>" + (markupGuts(org, checkStart(start, org.text))) + "</td><td class='sidebarholder'><div class='sidebar'></div></td></tr></table></div>";
+      } else {
+        return "<div " + (orgAttrs(org)) + "><table><tr><td><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>" + org.text + "</span></span></span>" + (markupGuts(org, checkStart(start, org.text))) + "</td><td class='sidebarholder'><div class='sidebar'></div></td></tr></table></div>";
+      }
     } else {
-      return "<div " + (orgAttrs(org)) + ">" + sidebar + "<span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>" + org.text + "</span></span></span>" + (markupGuts(org, checkStart(start, org.text))) + "</div>";
+      if (org.text.trim() !== '') {
+        return "<div " + (orgAttrs(org)) + " data-org-headline-text='" + (escapeAttr(start)) + "'" + (noteAttrs(org)) + "><span class='hidden'>" + stars + "</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>" + (escapeHtml(start)) + "</div><span class='tags'>" + properties + tags + "</span><div class='textborder'></div></div></span>" + (markupGuts(org, checkStart(start, org.text))) + "</div>";
+      } else {
+        return "<div " + (orgAttrs(org)) + "><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>" + org.text + "</span></span></span>" + (markupGuts(org, checkStart(start, org.text))) + "</div>";
+      }
     }
   };
 
@@ -332,7 +339,7 @@
   nextNoteId = 0;
 
   createNotes = function(node) {
-    var coords, dest, holder, html, inside, newNote, noteId, noteSpec, org, parent, splitSpec, x, y, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
+    var coords, dest, holder, html, inside, n, newNote, noteId, noteSpec, org, parent, splitSpec, x, y, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
     watchNodeText(node, editedNote(node.id, node.id));
     _ref7 = node.getAttribute('data-org-notes').split(/\s*,\s*/);
     _results = [];
@@ -341,7 +348,7 @@
       console.log("NOTE FOR " + node.id + ": " + noteSpec);
       noteId = "note-" + (nextNoteId++);
       _ref8 = markupOrgWithNode(node.textContent, true), org = _ref8[0], html = _ref8[1];
-      newNote = $("<div class='sidebar_notes' data-note-origin='" + node.id + "' id='" + noteId + "'>" + html + "</div>")[0];
+      newNote = $("<div class='sidebar_notes' data-note-origin='" + node.id + "' id='" + noteId + "' contenteditable='true'>" + html + "</div>")[0];
       switch ((splitSpec = noteSpec.split(/\s+/))[0]) {
         case 'sidebar':
           if (dest = $("[data-org-headline-text='" + splitSpec[1] + "'] div.sidebar")[0]) {
@@ -374,8 +381,8 @@
       if (dest) {
         _ref10 = $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]');
         for (_j = 0, _len1 = _ref10.length; _j < _len1; _j++) {
-          node = _ref10[_j];
-          setShadowHtml(node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>");
+          n = _ref10[_j];
+          setShadowHtml(n, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>");
         }
         addWord(dest, 'data-org-note-content', node.id);
         addWord(dest, 'data-org-note-instances', noteId);
@@ -401,31 +408,33 @@
 
   editedNote = function(mainId, editedId) {
     return function() {
-      var main, node, origin, t, targets, _i, _j, _len, _len1, _ref7, _results;
       if (!editing) {
-        targets = $("#" + mainId);
-        main = targets[0];
-        _ref7 = $("[data-org-note-content~='" + mainId + "']");
-        for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
-          node = _ref7[_i];
-          targets = targets.add($(node.shadowRoot.firstChild).find("[data-note-origin='" + mainId + "']"));
-        }
-        origin = targets.filter("#" + editedId);
-        editing = true;
-        try {
-          t = targets.not("#" + editedId);
-          t.html(origin.html());
-          _results = [];
-          for (_j = 0, _len1 = t.length; _j < _len1; _j++) {
-            node = t[_j];
-            _results.push(fixupHtml(node, node !== main));
+        return restorePosition($("#" + editedId)[0], function() {
+          var main, node, origin, t, targets, _i, _j, _len, _len1, _ref7, _results;
+          targets = $("#" + mainId);
+          main = targets[0];
+          _ref7 = $("[data-org-note-content~='" + mainId + "']");
+          for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
+            node = _ref7[_i];
+            targets = targets.add($(node.shadowRoot.firstChild).find("[data-note-origin='" + mainId + "']"));
           }
-          return _results;
-        } finally {
-          setTimeout((function() {
-            return editing = false;
-          }), 1);
-        }
+          origin = targets.filter("#" + editedId);
+          editing = true;
+          try {
+            t = targets.not("#" + editedId);
+            t.html(origin.html());
+            _results = [];
+            for (_j = 0, _len1 = t.length; _j < _len1; _j++) {
+              node = t[_j];
+              _results.push(fixupHtml(node, node !== main));
+            }
+            return _results;
+          } finally {
+            setTimeout((function() {
+              return editing = false;
+            }), 1);
+          }
+        });
       }
     };
   };
@@ -1727,7 +1736,7 @@
       setShadowHtml(node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>");
     }
     if (!note) {
-      _ref11 = $(parent).find('[data-org-headline="1"]');
+      _ref11 = $(parent).find('[data-org-headline="1"] .maincontent');
       for (_m = 0, _len4 = _ref11.length; _m < _len4; _m++) {
         node = _ref11[_m];
         $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click(function(e) {

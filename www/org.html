@@ -593,6 +593,8 @@
                 }
                 .steampunk .pagecontent {
                         margin-left: 100px;
+                        padding: 120px 10px;
+                        overflow: visible;
                 }
                 .steampunk .org-fancy [data-org-headline='1'] {
                         margin-bottom: 0;
@@ -1343,7 +1345,7 @@
                         border: none;
                 }
                 .pagecontent {
-                        padding: 120px 10px;
+                        padding: 10px 10px;
                         overflow: visible;
                 }
                 .currentSlide .pagecontent {
@@ -1498,6 +1500,14 @@
                         outline: none;
                 }
                 .sidebar {
+/*
+                        float: right;
+*/
+                }
+                .sidebarholder {
+                        vertical-align: top;
+                }
+                .sidebar.float {
                         float: right;
                 }
                 [data-org-note-content] {
@@ -1776,6 +1786,9 @@
                 width:auto;
                 height:auto;
                 z-index: 10000;
+          }
+          table[data-org-headline='1'] {
+                width: 100%;
           }
         </style>
         <style id="loader_style">

@@ -286,10 +286,14 @@ markupHeadline = (org, delay, note)->
   for k, v of org.properties
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
-  sidebar = if org.level == 1 && !note then "<div class='sidebar'></div>" else ''
-  if org.text.trim() != ''
-    "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}>#{sidebar}<span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
-  else "<div #{orgAttrs org}>#{sidebar}<span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
+  if org.level == 1 && !note
+    if org.text.trim() != ''
+      "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><table><tr><td class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</td><td class='sidebarholder'><div class='sidebar'></div></td></tr></table></div>"
+    else "<div #{orgAttrs org}><table><tr><td><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</td><td class='sidebarholder'><div class='sidebar'></div></td></tr></table></div>"
+  else
+    if org.text.trim() != ''
+      "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
+    else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
 
 noteAttrs = (org)->
   if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
@@ -303,7 +307,7 @@ createNotes = (node)->
     console.log "NOTE FOR #{node.id}: #{noteSpec}"
     noteId = "note-#{nextNoteId++}"
     [org, html] = markupOrgWithNode node.textContent, true
-    newNote = $("<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}'>#{html}</div>")[0]
+    newNote = $("<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}' contenteditable='true'>#{html}</div>")[0]
     switch (splitSpec = noteSpec.split(/\s+/))[0]
       when 'sidebar'
         if dest = $("[data-org-headline-text='#{splitSpec[1]}'] div.sidebar")[0]
@@ -327,8 +331,8 @@ createNotes = (node)->
         # listen so we can update the doc when the user releases mouse after a drag
       else continue
     if dest
-      for node in $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]')
-        setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+      for n in $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]')
+        setShadowHtml n, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
       addWord dest, 'data-org-note-content', node.id
       addWord dest, 'data-org-note-instances', noteId
       watchNodeText newNote, editedNote node.id, noteId
@@ -343,19 +347,20 @@ editing = false
 
 editedNote = (mainId, editedId)-> ->
   if !editing
-    targets = $("##{mainId}")
-    main = targets[0]
-    for node in $("[data-org-note-content~='#{mainId}']")
-      targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
-    origin = targets.filter "##{editedId}"
-    editing = true
-    try
-      t = targets.not("##{editedId}")
-      t.html origin.html()
-      for node in t
-        fixupHtml node, node != main
-    finally
-      setTimeout (-> editing = false), 1
+    restorePosition $("##{editedId}")[0], ->
+      targets = $("##{mainId}")
+      main = targets[0]
+      for node in $("[data-org-note-content~='#{mainId}']")
+        targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
+      origin = targets.filter "##{editedId}"
+      editing = true
+      try
+        t = targets.not("##{editedId}")
+        t.html origin.html()
+        for node in t
+          fixupHtml node, node != main
+      finally
+        setTimeout (-> editing = false), 1
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
@@ -1183,7 +1188,8 @@ fixupHtml = (parent, note)->
   for node in $(parent).find('[data-org-headline="1"]')
     setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
   if !note
-    for node in $(parent).find('[data-org-headline="1"]')
+    #for node in $(parent).find('[data-org-headline="1"]')
+    for node in $(parent).find('[data-org-headline="1"] .maincontent')
       $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click (e)->
         e.preventDefault()
         root.currentMode.createNote()
