@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var SimpyCons, defaultEnv, funcInfo, readDir, readFile, root, simpyCons, statFile, verboseMsg, writeFile, _ref,
+  var SimpyCons, defaultEnv, funcInfo, primConsFrom, readDir, readFile, root, simpyCons, statFile, verboseMsg, writeFile, _ref,
     __slice = [].slice;
 
   root = (_ref = global.Leisure) != null ? _ref : module.exports;
@@ -131,20 +131,39 @@ misrepresented as being the original software.
     return func;
   };
 
+  global.$G = function(info, func) {
+    func.leisureInfoNew = info;
+    return func;
+  };
+
   funcInfo = function(func) {
     var callInfo, info;
-    global.FUNC = func;
-    info = [];
-    callInfo = func.leisureInfo;
-    while (callInfo) {
-      info.push(resolve(callInfo.arg));
-      if (callInfo.name) {
-        info.push(callInfo.name);
-        break;
+    if (func.leisureInfoNew) {
+      return primConsFrom(func.leisureInfoNew, 0);
+    } else if (func.leisureInfo) {
+      global.FUNC = func;
+      info = [];
+      callInfo = func.leisureInfo;
+      while (callInfo) {
+        info.push(resolve(callInfo.arg));
+        if (callInfo.name) {
+          info.push(callInfo.name);
+          break;
+        }
+        callInfo = callInfo.parent;
       }
-      callInfo = callInfo.parent;
+      return root.consFrom(info.reverse());
+    } else {
+      return rz(L_nil);
     }
-    return root.consFrom(info.reverse());
+  };
+
+  primConsFrom = function(array, index) {
+    if (index >= array.length) {
+      return rz(L_nil);
+    } else {
+      return root.primCons(array[index], primConsFrom(array, index + 1));
+    }
   };
 
   SimpyCons = (function() {

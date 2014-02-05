@@ -82,7 +82,6 @@ lz = lazy
   propsFor,
   escapeHtml,
   escapeAttr,
-  restorePosition,
   splitLines,
   orgSrcAttrs,
   baseEnv,
@@ -106,7 +105,6 @@ lz = lazy
 } = require './storage'
 _ = require './lodash.min'
 
-oldRestorePosition = restorePosition
 fancyOrg = null
 slideMode = false
 lastOrgOffset = -1
@@ -117,6 +115,49 @@ emptyPresenter =
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
 
+#root.restorePosition = restorePosition = (parent, delta, block)->
+#  if !block
+#    block = delta
+#    delta = 0
+#  sel = getSelection()
+#  slide = slideParent sel.focusNode
+#  slideIndex = slideOffset slide
+#  if sel?.rangeCount && slideIndex > -1
+#    doc = topNode(slide).parentNode
+#    parent = doc.parentNode
+#    docPos = childIndex parent, doc
+#    r = sel.getRangeAt 0
+#    start = delta + getTextPosition doc, r.startContainer, r.startOffset
+#    if start > -1
+#      end = delta + getTextPosition doc, r.endContainer, r.endOffset
+#      [container, sta] = findDomPosition doc, start
+#      if (isCollapsed container) && sta == 0 then container = textNodeBefore container
+#      #offset = documentTop(container) - window.pageYOffset
+#      offset = getDocumentOffset(nativeRange [container, sta]) - window.pageYOffset
+#    block() # block shouldn't remove doc
+#    if doc = parent.children[docPos]
+#      newSlide = $('[data-org-headline="1"]')[slideIndex]
+#      if slideMode then setCurrentSlide newSlide
+#      if start > -1 && (r = nativeRange findDomPosition doc, start)
+#        if isCollapsed r.startContainer
+#          c = r.startContainer
+#          while isCollapsed c
+#            c = textNodeBefore c
+#          r.setStart c, 0
+#          r.collapse true
+#        else
+#          [endContainer, endOffset] = findDomPosition doc, end
+#          if endOffset == 0
+#            endContainer = textNodeBefore endContainer
+#            endOffset = endContainer.data.length
+#          r.setEnd endContainer, endOffset
+#        sel.removeAllRanges()
+#        sel.addRange r
+#        #window.scrollTo window.pageXOffset, documentTop(r.startContainer) - offset
+#        window.scrollTo window.pageXOffset, getDocumentOffset(r) - offset
+#    return
+#  block()
+
 root.restorePosition = restorePosition = (parent, delta, block)->
   if !block
     block = delta
@@ -126,39 +167,57 @@ root.restorePosition = restorePosition = (parent, delta, block)->
   slideIndex = slideOffset slide
   if sel?.rangeCount && slideIndex > -1
     doc = topNode(slide).parentNode
+    docRange = getDocRange()
+    [start, end, offset, note] = docRange
+    docRange = [start + delta, end + delta, offset, note]
     parent = doc.parentNode
     docPos = childIndex parent, doc
     r = sel.getRangeAt 0
-    start = delta + getTextPosition doc, r.startContainer, r.startOffset
-    if start > -1
-      end = delta + getTextPosition doc, r.endContainer, r.endOffset
-      [container, sta] = findDomPosition doc, start
-      if (isCollapsed container) && sta == 0 then container = textNodeBefore container
-      #offset = documentTop(container) - window.pageYOffset
-      offset = getDocumentOffset(nativeRange [container, sta]) - window.pageYOffset
     block() # block shouldn't remove doc
     if doc = parent.children[docPos]
       newSlide = $('[data-org-headline="1"]')[slideIndex]
       if slideMode then setCurrentSlide newSlide
-      if start > -1 && (r = nativeRange findDomPosition doc, start)
-        if isCollapsed r.startContainer
-          c = r.startContainer
-          while isCollapsed c
-            c = textNodeBefore c
-          r.setStart c, 0
-          r.collapse true
-        else
-          [endContainer, endOffset] = findDomPosition doc, end
-          if endOffset == 0
-            endContainer = textNodeBefore endContainer
-            endOffset = endContainer.data.length
-          r.setEnd endContainer, endOffset
-        sel.removeAllRanges()
-        sel.addRange r
-        #window.scrollTo window.pageXOffset, documentTop(r.startContainer) - offset
-        window.scrollTo window.pageXOffset, getDocumentOffset(r) - offset
-    return
-  block()
+      restoreDocRange doc, docRange
+  else block()
+
+# get a logical document range with an optional note
+# [startPos, endPos, scrollOffset, noteId]
+# if note is null, the positions are in the main doc
+# otherwise, note is the id of a note
+#
+# Assumes the document has only two levels -- the main doc and notes
+getDocRange = ->
+  s = getSelection()
+  r = s.getRangeAt 0
+  offset = getDocumentOffset r
+  if s.focusNode?.nodeType == 1 && s.rangeCount == 1 && r.collapsed && shadow = r.startContainer.children[r.startOffset].shadowRoot
+    s = shadow.getSelection()
+    note = $(s.focusNode).closest('[data-note-origin]')?[0]
+    if note then [getTextPosition(note, s.anchorNode, s.anchorOffset), getTextPosition(note, s.extentNode, s.extentOffset), window.pageYOffset - offset, note.id]
+    else [null, null, null]
+  else
+    doc = topNode s.focusNode
+    [getTextPosition(doc, r.startContainer, r.startOffset), getTextPosition(doc, r.endContainer, r.endOffset), window.pageYOffset - offset]
+
+restoreDocRange = (parent, [start, end, offset, noteId])->
+  if noteId
+    noteNode = $("[data-org-note-instances~='#{noteId}']")[0]
+    parent = $(noteNode.shadowRoot.firstChild).find("##{noteId}")[0]
+  [startContainer, startOffset] = findDomPosition parent, start
+  [endContainer, endOffset] = findDomPosition parent, end
+  r = document.createRange()
+  r.setStart startContainer, startOffset
+  r.setEnd endContainer, endOffset
+  if noteId
+    offR = document.createRange()
+    offR.selectNode noteNode
+    window.scrollTo window.pageXOffset, offset + getDocumentOffset(offR)
+    s = noteNode.shadowRoot.getSelection()
+  else
+    window.scrollTo window.pageXOffset, offset + getDocumentOffset(r)
+    s = getSelection()
+  s.removeAllRanges()
+  s.addRange r
 
 getDocumentOffset = (r)->
   c = (if r.startOffset == 0 then (textNodeBefore r.startContainer) ? r.startContainer else r.startContainer)
@@ -201,6 +260,7 @@ markupOrgWithNode = (text, note)->
   # ensure trailing newline -- contenteditable doesn't like it, otherwise
   if text[text.length - 1] != '\n' then text = text + '\n'
   org = parseOrgMode text
+  #if note then org = org.children[0]
   [org, markupNewNode org, null, null, note]
 
 markupNewNode = (org, middleOfLine, delay, note)->
@@ -301,6 +361,14 @@ noteAttrs = (org)->
 
 nextNoteId = 0
 
+saveNoteLocation = (target) ->
+  drag = target.closest("[data-draggable]")
+  resize = $(drag.children()[0])
+  orig_id = drag.attr 'data-note-origin'
+  orig = $("#" + orig_id)
+  span = orig.find("[data-note-location]")[0]
+  span.textContent = "#LOCATION: top: #{drag.css('top')} left: #{drag.css('left')} width: #{resize.width()}px height: #{resize.height()}px\n"
+
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
   for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
@@ -318,17 +386,27 @@ createNotes = (node)->
         parent = topNode node
         dest = $(document.body).find('[data-org-floats]')[0]
         if !dest then $(document.body).prepend dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
-        inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div></div></div>')
-        holder = $('<div data-draggable></div>')
+        inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><h2 class="note_drag_handle" contenteditable="false">YOUR NOTE</h2><div></div></div>')
+        holder = $("<div data-draggable data-note-origin='#{node.id}'></div>")
+        #console.log node
         holder.append inside
         dest.appendChild holder[0]
-        holder.draggable()
+        holder.draggable({handle: 'h2'})
         inside.resizable()
-        setShadowHtml inside[0].firstChild, "<div contenteditable='true' class='float_note'></div>"
-        inside[0].firstChild.shadowRoot.firstChild.appendChild newNote
-        dest = inside[0].firstChild
+        holder.bind 'dragstop', (event) ->
+          saveNoteLocation $(event.target)
+        inside.bind 'resizestop', ->
+          saveNoteLocation $(event.target)
+        child = inside[0].children[1]
+        setShadowHtml child, "<div contenteditable='true' class='float_note'></div>"
+        child.shadowRoot.firstChild.appendChild newNote
+        dest = child
+        orig = $("#" + node.id)[0]
+        $("<span data-note-location  class='hidden'></span>").appendTo orig
         # locate at x, y
-        # listen so we can update the doc when the user releases mouse after a drag
+        holder.css({top: '250px', left: '350px'})
+        inside.css({width: '450px', height: '550px'})
+        saveNoteLocation holder
       else continue
     if dest
       for n in $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]')
@@ -340,6 +418,8 @@ createNotes = (node)->
 
 addWord = (node, attr, value)->
   vals = (node.getAttribute(attr) ? '').split ' '
+  vals = vals.filter (el) ->
+    el.length != 0
   if !(value in vals) then vals.push value
   node.setAttribute attr, vals.join ' '
 
@@ -347,20 +427,21 @@ editing = false
 
 editedNote = (mainId, editedId)-> ->
   if !editing
-    restorePosition $("##{editedId}")[0], ->
-      targets = $("##{mainId}")
-      main = targets[0]
-      for node in $("[data-org-note-content~='#{mainId}']")
-        targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
-      origin = targets.filter "##{editedId}"
-      editing = true
-      try
-        t = targets.not("##{editedId}")
-        t.html origin.html()
-        for node in t
-          fixupHtml node, node != main
-      finally
-        setTimeout (-> editing = false), 1
+    setTimeout (->
+      restorePosition $("##{editedId}")[0], ->
+        targets = $("##{mainId}")
+        main = targets[0]
+        for node in $("[data-org-note-content~='#{mainId}']")
+          targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
+        origin = targets.filter "##{editedId}"
+        editing = true
+        try
+          t = targets.not("##{editedId}")
+          t.html origin.html()
+          for node in t
+            fixupHtml node, node != main
+        finally
+          setTimeout (-> editing = false), 1), 1
 
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
@@ -786,10 +867,6 @@ handleKey = (div)->(e)->
           el.data = el.data.substring 1
       else if el.nodeType == 3
         setTimeout (->
-          #if !el.nextSibling && el.data[el.data.length - 1] != '\n' #&& el.data.length == 1
-          #  restorePosition el.parentNode, ->
-          #    el.data += '\n'
-          #    el.parentNode.normalize()
           fancyCheckSourceMod n, div, currentMatch, el
         ), 1
         return
@@ -802,30 +879,11 @@ getCodeContainer = (node)->
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
   if code = getCodeContainer focus then recreateAstButtons div, code
-  #else if $(el.parentNode).is('.codename') && !el.parentNode.textContent.match /#+NAME:/
-  #  prefix = "#+NAME: "
-  #  restorePosition el.parentNode.parentNode, prefix.length, ->
-  #    txt = el.parentNode.textContent
-  #    el.parentNode.textContent = "#{prefix}#{txt}#{if !txt.match /\n/ then '\n' else ''}"
   else if needsNewline el
     restorePosition el.parentNode, ->
       el.data += '\n'
       el.parentNode.normalize()
   checkSourceMod div, currentMatch
-
-#needsNewline = (el)-> el && !el.nextSibling && el.data[el.data.length - 1] != '\n'
-
-#needsNewline = (el)->
-#  if el && !el.nextSibling && el.data[el.data.length - 1] != '\n'
-#    next = textNodeAfter el
-#    if next && el.parentNode != next.parentNode
-#      r = document.createRange()
-#      r.setStart el, 0
-#      r.setEnd next, next.data.length
-#      ance = r.commonAncestorContainer
-#      while el && (el = el.parentNode) != ance
-#        if getComputedStyle(el).display == 'block' then return true
-#  return false
 
 needsNewline = (el)->
   if !el then false
@@ -1159,6 +1217,7 @@ fancyOrg =
       orgNotebook.installOrgDOM parent, orgNode, orgText
       fixupHtml parent
       setTheme theme
+      nextNoteId = 0
       for node in $(parent).find('[data-org-notes]')
         createNotes node
       setTimeout (=>
@@ -1206,3 +1265,6 @@ root.setTheme = setTheme
 root.createTestCase = createTestCase
 root.executeCode = executeCode
 root.toggleDynamic = toggleDynamic
+root.getDocRange = getDocRange
+root.restoreDocRange = restoreDocRange
+root.getDocumentOffset = getDocumentOffset
