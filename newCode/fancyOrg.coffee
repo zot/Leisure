@@ -327,7 +327,7 @@ createNotes = (node)->
         holder.bind 'dragstop', ->
           console.log holder.position().top
           console.log holder.position().left
-        inside.resize ->
+        inside.bind 'resizestop', ->
           console.log inside.width()
           console.log inside.height()
         setShadowHtml inside[0].firstChild, "<div contenteditable='true' class='float_note'></div>"

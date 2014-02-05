@@ -375,7 +375,7 @@
             console.log(holder.position().top);
             return console.log(holder.position().left);
           });
-          inside.resize(function() {
+          inside.bind('resizestop', function() {
             console.log(inside.width());
             return console.log(inside.height());
           });
