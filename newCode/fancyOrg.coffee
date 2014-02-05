@@ -328,7 +328,7 @@ createNotes = (node)->
         if !dest then $(document.body).prepend dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
         inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div></div></div>')
         holder = $("<div data-draggable data-note-origin='#{node.id}'></div>")
-        console.log node
+        #console.log node
         holder.append inside
         dest.appendChild holder[0]
         holder.draggable()
@@ -355,6 +355,8 @@ createNotes = (node)->
 
 addWord = (node, attr, value)->
   vals = (node.getAttribute(attr) ? '').split ' '
+  vals = vals.filter (el) ->
+    el.length != 0
   if !(value in vals) then vals.push value
   node.setAttribute attr, vals.join ' '
 

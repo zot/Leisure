@@ -377,7 +377,6 @@
           }
           inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div></div></div>');
           holder = $("<div data-draggable data-note-origin='" + node.id + "'></div>");
-          console.log(node);
           holder.append(inside);
           dest.appendChild(holder[0]);
           holder.draggable();
@@ -417,6 +416,9 @@
   addWord = function(node, attr, value) {
     var vals, _ref7;
     vals = ((_ref7 = node.getAttribute(attr)) != null ? _ref7 : '').split(' ');
+    vals = vals.filter(function(el) {
+      return el.length !== 0;
+    });
     if (!(__indexOf.call(vals, value) >= 0)) {
       vals.push(value);
     }
