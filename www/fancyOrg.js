@@ -358,15 +358,15 @@
           if (!dest) {
             $(document.body).prepend(dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]);
           }
-          inside = $('<div data-resizable></div>');
+          inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><div></div></div>');
           holder = $('<div data-draggable></div>');
           holder.append(inside);
           dest.appendChild(holder[0]);
-          setShadowHtml(inside[0], "<div contenteditable='true' class='float_note'></div>");
-          inside[0].shadowRoot.firstChild.appendChild(newNote);
-          dest = inside[0];
           holder.draggable();
           inside.resizable();
+          setShadowHtml(inside[0].firstChild, "<div contenteditable='true' class='float_note'></div>");
+          inside[0].firstChild.shadowRoot.firstChild.appendChild(newNote);
+          dest = inside[0].firstChild;
           break;
         default:
           continue;
