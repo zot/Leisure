@@ -296,7 +296,7 @@ markupNode = (org, middleOfLine, delay, note)->
     tag = (if middleOfLine then 'span' else 'div')
     "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
 
-markupProperties = (org, delay)->"<span class='hidden'>#{escapeHtml org.text}</span>"
+markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
 imagePath = /\.(png|jpg|gif|svg|tiff|bmp)$/i
 
@@ -361,19 +361,30 @@ noteAttrs = (org)->
 
 nextNoteId = 0
 
+updateNoteProperties = (span, index, txt) ->
+  old = span.textContent
+  lines = old.split /\n/
+  s = lines[1].split /\s*,\s*/
+  if index != 0 then s[index] = txt else s[index] = ":notes: " + txt
+  lines[1] = s.join ', '
+  span.textContent = lines.join '\n'
+
 saveNoteLocation = (target) ->
   drag = target.closest("[data-draggable]")
   resize = $(drag.children()[0])
   orig_id = drag.attr 'data-note-origin'
   orig = $("#" + orig_id)
   span = orig.find("[data-note-location]")[0]
-  span.textContent = "#LOCATION: top: #{drag.css('top')} left: #{drag.css('left')} width: #{resize.width()}px height: #{resize.height()}px\n"
+  if span
+    index = drag.attr 'data-note-index'
+    #console.log "span: " + span + " => " + index
+    updateNoteProperties span, index, "float #{drag.css('top')} #{drag.css('left')} #{resize.width()}px #{resize.height()}px"
 
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
   $(node).addClass 'herpderp'
   for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
-    console.log "NOTE FOR #{node.id}: #{noteSpec}"
+    #console.log "NOTE FOR #{node.id}: #{noteSpec}"
     noteId = "note-#{nextNoteId++}"
     [org, html] = markupOrgWithNode node.textContent, true
     newNote = $("<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}' contenteditable='true'>#{html}</div>")[0]
@@ -387,7 +398,7 @@ createNotes = (node)->
         dest = $(document.body).find('[data-org-floats]')[0]
         if !dest then $(document.body).prepend dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
         inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><h2 class="note_drag_handle" contenteditable="false">YOUR NOTE</h2><div></div></div>')
-        holder = $("<div data-draggable data-note-origin='#{node.id}'></div>")
+        holder = $("<div data-draggable data-note-origin='#{node.id}' data-note-index='#{nextNoteId - 1}'></div>")
         #console.log node
         holder.append inside
         dest.appendChild holder[0]
@@ -402,7 +413,7 @@ createNotes = (node)->
         child.shadowRoot.firstChild.appendChild newNote
         dest = child
         orig = $("#" + node.id)[0]
-        $("<span data-note-location  class='hidden'></span>").appendTo orig
+        #$("<span data-note-location  class='hidden'></span>").appendTo orig
         [skip, top, left, width, height] = noteSpec.split /\s+/
         holder.css({top: top, left: left})
         inside.css({width: width, height: height})
