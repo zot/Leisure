@@ -346,17 +346,23 @@ markupHeadline = (org, delay, note)->
   for k, v of org.properties
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
-  if org.level == 1 && !note
+  if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><table><tr><td class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</td><td class='sidebarholder'><div class='sidebar'></div></td></tr></table></div>"
-    else "<div #{orgAttrs org}><table><tr><td><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</td><td class='sidebarholder'><div class='sidebar'></div></td></tr></table></div>"
+      "#{startNewSlide()}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
+    else "#{startNewSlide()}<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     if org.text.trim() != ''
       "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
     else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
 
+#noteAttrs = (org)->
+#  if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
+#  else ''
+
 noteAttrs = (org)->
-  if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
+  if org.properties?.note == 'sidebar' then " data-org-note='sidebar'"
+  else if org.properties?.note?.match /^float / then " data-org-note='float'"
+  else if org.level == 1 then " data-org-note='main'"
   else ''
 
 nextNoteId = 0
@@ -803,12 +809,29 @@ matchLineAt = (parent, pos)->
   if end == -1 then end = text.length
   matchLine text.substring start + 1, end
 
+slideStart = -> "<div class='slideholder'>"
+
+slideEnd = -> "</div>"
+
+firstSlide = false
+
+startNewSlide = ->
+  if firstSlide
+    firstSlide = false
+    ''
+  else "#{slideEnd()}#{slideStart()}"
+
+createNoteShadows = ->
+  for node in $('.slideholder')
+    setShadowHtml node, "<table class='slideshadow'><tr class='slideshadowrow'><td><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note]'></content></div></div></td></tr></table>"
+
 markupGuts = (org, start)->
   if !org.children.length then ''
   else
     prev = if start then null else org
     hline = 'first'
-    ((for c in org.children
+    if org.level == 0 then firstSlide = true
+    guts = ((for c in org.children
       s = start
       start = false
       p = prev
@@ -816,6 +839,9 @@ markupGuts = (org, start)->
       h = hline
       if c instanceof Headline then hline = 'inner'
       (hlineFor c, h) + markupNode(c, s)).join "") + (if org.level == 0 then "<hr class='last'>" else '')
+    if org.level == 0
+      "#{slideStart()}#{guts}#{slideEnd()}"
+    else guts
 
 hlineFor = (headline, hline)->
   if !(headline instanceof Headline) || headline.level != 1 then ''
@@ -1229,8 +1255,9 @@ fancyOrg =
       fixupHtml parent
       setTheme theme
       nextNoteId = 0
-      for node in $(parent).find('[data-org-notes]')
-        createNotes node
+      #for node in $(parent).find('[data-org-notes]')
+      #  createNotes node
+      createNoteShadows()
       setTimeout (=>
         redrawAllIssues()
         ), 1

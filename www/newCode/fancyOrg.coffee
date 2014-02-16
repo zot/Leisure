@@ -296,7 +296,7 @@ markupNode = (org, middleOfLine, delay, note)->
     tag = (if middleOfLine then 'span' else 'div')
     "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
 
-markupProperties = (org, delay)->"<span class='hidden'>#{escapeHtml org.text}</span>"
+markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
 imagePath = /\.(png|jpg|gif|svg|tiff|bmp)$/i
 
@@ -346,20 +346,34 @@ markupHeadline = (org, delay, note)->
   for k, v of org.properties
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
-  if org.level == 1 && !note
+  if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><table><tr><td class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</td><td class='sidebarholder'><div class='sidebar'></div></td></tr></table></div>"
-    else "<div #{orgAttrs org}><table><tr><td><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</td><td class='sidebarholder'><div class='sidebar'></div></td></tr></table></div>"
+      "#{startNewSlide()}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
+    else "#{startNewSlide()}<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     if org.text.trim() != ''
       "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
     else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
 
+#noteAttrs = (org)->
+#  if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
+#  else ''
+
 noteAttrs = (org)->
-  if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
+  if org.properties?.note == 'sidebar' then " data-org-note='sidebar'"
+  else if org.properties?.note?.match /^float / then " data-org-note='float'"
+  else if org.level == 1 then " data-org-note='main'"
   else ''
 
 nextNoteId = 0
+
+updateNoteProperties = (span, index, txt) ->
+  old = span.textContent
+  lines = old.split /\n/
+  s = lines[1].split /\s*,\s*/
+  if index != 0 then s[index] = txt else s[index] = ":notes: " + txt
+  lines[1] = s.join ', '
+  span.textContent = lines.join '\n'
 
 saveNoteLocation = (target) ->
   drag = target.closest("[data-draggable]")
@@ -367,12 +381,16 @@ saveNoteLocation = (target) ->
   orig_id = drag.attr 'data-note-origin'
   orig = $("#" + orig_id)
   span = orig.find("[data-note-location]")[0]
-  span.textContent = "#LOCATION: top: #{drag.css('top')} left: #{drag.css('left')} width: #{resize.width()}px height: #{resize.height()}px\n"
+  if span
+    index = drag.attr 'data-note-index'
+    #console.log "span: " + span + " => " + index
+    updateNoteProperties span, index, "float #{drag.css('top')} #{drag.css('left')} #{resize.width()}px #{resize.height()}px"
 
 createNotes = (node)->
   watchNodeText node, editedNote node.id, node.id
+  $(node).addClass 'herpderp'
   for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
-    console.log "NOTE FOR #{node.id}: #{noteSpec}"
+    #console.log "NOTE FOR #{node.id}: #{noteSpec}"
     noteId = "note-#{nextNoteId++}"
     [org, html] = markupOrgWithNode node.textContent, true
     newNote = $("<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}' contenteditable='true'>#{html}</div>")[0]
@@ -382,12 +400,11 @@ createNotes = (node)->
           if !dest.shadowRoot then setShadowHtml dest, "<div contenteditable='true'></div>"
           dest.shadowRoot.firstChild.appendChild newNote
       when 'float'
-        [coords, x, y] = noteSpec.split /\s+/
         parent = topNode node
         dest = $(document.body).find('[data-org-floats]')[0]
         if !dest then $(document.body).prepend dest = $("<div data-org-floats='true' contenteditable='true'></div>")[0]
         inside = $('<div data-resizable style="width: 600px; height: 600px; background: black;"><h2 class="note_drag_handle" contenteditable="false">YOUR NOTE</h2><div></div></div>')
-        holder = $("<div data-draggable data-note-origin='#{node.id}'></div>")
+        holder = $("<div data-draggable data-note-origin='#{node.id}' data-note-index='#{nextNoteId - 1}'></div>")
         #console.log node
         holder.append inside
         dest.appendChild holder[0]
@@ -402,10 +419,10 @@ createNotes = (node)->
         child.shadowRoot.firstChild.appendChild newNote
         dest = child
         orig = $("#" + node.id)[0]
-        $("<span data-note-location  class='hidden'></span>").appendTo orig
-        # locate at x, y
-        holder.css({top: '250px', left: '350px'})
-        inside.css({width: '450px', height: '550px'})
+        #$("<span data-note-location  class='hidden'></span>").appendTo orig
+        [skip, top, left, width, height] = noteSpec.split /\s+/
+        holder.css({top: top, left: left})
+        inside.css({width: width, height: height})
         saveNoteLocation holder
       else continue
     if dest
@@ -792,12 +809,29 @@ matchLineAt = (parent, pos)->
   if end == -1 then end = text.length
   matchLine text.substring start + 1, end
 
+slideStart = -> "<div class='slideholder'>"
+
+slideEnd = -> "</div>"
+
+firstSlide = false
+
+startNewSlide = ->
+  if firstSlide
+    firstSlide = false
+    ''
+  else "#{slideEnd()}#{slideStart()}"
+
+createNoteShadows = ->
+  for node in $('.slideholder')
+    setShadowHtml node, "<table class='slideshadow'><tr class='slideshadowrow'><td><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note]'></content></div></div></td></tr></table>"
+
 markupGuts = (org, start)->
   if !org.children.length then ''
   else
     prev = if start then null else org
     hline = 'first'
-    ((for c in org.children
+    if org.level == 0 then firstSlide = true
+    guts = ((for c in org.children
       s = start
       start = false
       p = prev
@@ -805,6 +839,9 @@ markupGuts = (org, start)->
       h = hline
       if c instanceof Headline then hline = 'inner'
       (hlineFor c, h) + markupNode(c, s)).join "") + (if org.level == 0 then "<hr class='last'>" else '')
+    if org.level == 0
+      "#{slideStart()}#{guts}#{slideEnd()}"
+    else guts
 
 hlineFor = (headline, hline)->
   if !(headline instanceof Headline) || headline.level != 1 then ''
@@ -1218,8 +1255,9 @@ fancyOrg =
       fixupHtml parent
       setTheme theme
       nextNoteId = 0
-      for node in $(parent).find('[data-org-notes]')
-        createNotes node
+      #for node in $(parent).find('[data-org-notes]')
+      #  createNotes node
+      createNoteShadows()
       setTimeout (=>
         redrawAllIssues()
         ), 1
