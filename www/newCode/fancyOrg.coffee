@@ -426,8 +426,8 @@ createNotes = (node)->
         saveNoteLocation holder
       else continue
     if dest
-      for n in $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]')
-        setShadowHtml n, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+      #for n in $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]')
+      #  setShadowHtml n, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
       addWord dest, 'data-org-note-content', node.id
       addWord dest, 'data-org-note-instances', noteId
       watchNodeText newNote, editedNote node.id, noteId
@@ -823,7 +823,8 @@ startNewSlide = ->
 
 createNoteShadows = ->
   for node in $('.slideholder')
-    setShadowHtml node, "<table class='slideshadow'><tr class='slideshadowrow'><td><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note]'></content></div></div></td></tr></table>"
+    #setShadowHtml node, "<table class='slideshadow'><tr class='slideshadowrow'><td><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note]'></content></div></div></td></tr></table>"
+    setShadowHtml node, "<div class='page'><div class='border'></div><table class='pagecontent slideshadow'><tr class='slideshadowrow'><td class='slidemain'><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note=\"sidebar\"]'></content></div></div></td></tr></table></div><content select='[data-org-note=\"skip\"],[data-org-note=\"float\"]'></content>"
 
 markupGuts = (org, start)->
   if !org.children.length then ''
@@ -1204,7 +1205,8 @@ theme = null
 
 setTheme = (str)->
   el = $('body')
-  all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]'))
+  #all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
+  all = $('[data-org-comments]').find(':first-child').add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
   for node in all
     if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
   if theme && theme != str then el.removeClass theme
@@ -1282,8 +1284,9 @@ fixupHtml = (parent, note)->
     recreateAstButtons parent, node
   for node in $(parent).find('.resultscontent')
     reprocessResults node
-  for node in $(parent).find('[data-org-headline="1"]')
-    setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+  #for node in $(parent).find('[data-org-headline="1"]')
+  #  setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
+  createNoteShadows()
   if !note
     #for node in $(parent).find('[data-org-headline="1"]')
     for node in $(parent).find('[data-org-headline="1"] .maincontent')

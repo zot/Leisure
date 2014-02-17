@@ -387,7 +387,7 @@
   };
 
   createNotes = function(node) {
-    var child, dest, height, holder, html, inside, left, n, newNote, noteId, noteSpec, org, orig, parent, skip, splitSpec, top, width, _i, _j, _len, _len1, _ref10, _ref7, _ref8, _ref9, _results;
+    var child, dest, height, holder, html, inside, left, newNote, noteId, noteSpec, org, orig, parent, skip, splitSpec, top, width, _i, _len, _ref7, _ref8, _ref9, _results;
     watchNodeText(node, editedNote(node.id, node.id));
     $(node).addClass('herpderp');
     _ref7 = node.getAttribute('data-org-notes').split(/\s*,\s*/);
@@ -446,11 +446,6 @@
           continue;
       }
       if (dest) {
-        _ref10 = $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]');
-        for (_j = 0, _len1 = _ref10.length; _j < _len1; _j++) {
-          n = _ref10[_j];
-          setShadowHtml(n, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>");
-        }
         addWord(dest, 'data-org-note-content', node.id);
         addWord(dest, 'data-org-note-instances', noteId);
         watchNodeText(newNote, editedNote(node.id, noteId));
@@ -1058,7 +1053,7 @@
     _results = [];
     for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
       node = _ref7[_i];
-      _results.push(setShadowHtml(node, "<table class='slideshadow'><tr class='slideshadowrow'><td><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note]'></content></div></div></td></tr></table>"));
+      _results.push(setShadowHtml(node, "<div class='page'><div class='border'></div><table class='pagecontent slideshadow'><tr class='slideshadowrow'><td class='slidemain'><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note=\"sidebar\"]'></content></div></div></td></tr></table></div><content select='[data-org-note=\"skip\"],[data-org-note=\"float\"]'></content>"));
     }
     return _results;
   };
@@ -1706,7 +1701,7 @@
   setTheme = function(str) {
     var all, dd, el, node, t, _i, _j, _len, _len1, _ref7;
     el = $('body');
-    all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]'));
+    all = $('[data-org-comments]').find(':first-child').add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder');
     for (_i = 0, _len = all.length; _i < _len; _i++) {
       node = all[_i];
       if (node.shadowRoot) {
@@ -1818,7 +1813,7 @@
   };
 
   fixupHtml = function(parent, note) {
-    var node, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref10, _ref11, _ref7, _ref8, _ref9,
+    var node, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref10, _ref7, _ref8, _ref9,
       _this = this;
     _ref7 = $(parent).find('[data-org-html]');
     for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
@@ -1836,15 +1831,11 @@
       node = _ref9[_k];
       reprocessResults(node);
     }
-    _ref10 = $(parent).find('[data-org-headline="1"]');
-    for (_l = 0, _len3 = _ref10.length; _l < _len3; _l++) {
-      node = _ref10[_l];
-      setShadowHtml(node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>");
-    }
+    createNoteShadows();
     if (!note) {
-      _ref11 = $(parent).find('[data-org-headline="1"] .maincontent');
-      for (_m = 0, _len4 = _ref11.length; _m < _len4; _m++) {
-        node = _ref11[_m];
+      _ref10 = $(parent).find('[data-org-headline="1"] .maincontent');
+      for (_l = 0, _len3 = _ref10.length; _l < _len3; _l++) {
+        node = _ref10[_l];
         $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click(function(e) {
           e.preventDefault();
           return root.currentMode.createNote();
@@ -1852,11 +1843,11 @@
       }
     }
     return setTimeout((function() {
-      var _len5, _n, _ref12, _results;
-      _ref12 = $(parent).find('[data-org-comments]');
+      var _len4, _m, _ref11, _results;
+      _ref11 = $(parent).find('[data-org-comments]');
       _results = [];
-      for (_n = 0, _len5 = _ref12.length; _n < _len5; _n++) {
-        node = _ref12[_n];
+      for (_m = 0, _len4 = _ref11.length; _m < _len4; _m++) {
+        node = _ref11[_m];
         _results.push(setShadowHtml(node.firstElementChild, newCommentBox(node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr('id'))));
       }
       return _results;
