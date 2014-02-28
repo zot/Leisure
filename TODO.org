@@ -1,0 +1,769 @@
+* Short list
+- Floaty notes
+* Milestone features
+- notes
+- code scopes
+* Short-term Leisure-org plan
+- notes
+  - Types of slides (value of "note" property)
+    - open slide -- can contain sidebar notes (this is the default value of the note property)
+    - closed slide -- cannot contain sidebar notes
+    - sidebar
+    - float
+  - note property changes slide presentation into floating note or sidebar note
+  - each slide could have a control to turn it into a note
+  - like a Smalltalk workspace, but a full sub-document
+- event framework -- use script tag to bind events on parent when it is displayed
+- local things -- only exist in your browser, not part of the shared doc, but logically part of it
+  - treated as part of doc for local user; code scopes index them, etc.
+  - local slides
+  - local-on-write -- local slide created on editing that overrides slide
+    - notify user if original changes (use SHA)
+    - allow revert
+  - local properties -- useful for private notes, etc
+  - defs in local notes should be loud
+  - some local slides could be shared across documents
+    - import shared local notes by tag
+- cloned slides
+- take HTML markup out of name block and put it in CSS
+- make code-names auto-create
+  - generate empty div for people to type a name in
+- code scope -- set of code boxes retrieved from doc
+  - as many code scopes as you want
+  - block/function search
+  - filter by tag -- useful for DSL help, etc
+  - list of blocks/functions
+  - caller/callee functions
+    - hovering over a function should pop up a panel with a button for callers/callees
+  - block edit history (list of function names which can expand to editable contents)
+    - sort history chronologically or alphabetically
+    - expand this to a search box, callers, callees
+  - contents should be editable
+  - clone
+  - attach to
+    - document
+    - slide
+- use unlabelled issues for comments, since other people can't add labels
+- fix test cases
+- bug: expanded test cases will sometimes get double comment blocks added in the DOM
+- bug: headline tags don't render properly
+- bug: links don't parse right at the beginning of a section
+- bug: test cases don't preserve the expected value
+- bug: sometimes the click() functions are ignored on the next/prev slide buttons
+- bug: doesn't handle empty expressions in a test case
+- allow easier creation of code boxes
+- allow retroactively adding code name and doc strings to existing code boxes
+- doc strings (text after name) -- pop up on mouse over (if mouse stays on word for a while)
+- parse lorg files from command line
+- list parsing: items are only under a list if they are indented past the dash
+- on github save conflict, create temp branch and merge it
+- hide comments button when editing a local file
+- tutorial
+  - use private COW notes for exercises
+- key bindings
+- link selections in AST display and source text
+- toggle button for plain/fancy on boxes?  This would allow editing output
+- straighten out root.currentMode and root.orgApi
+- session persistence for each Leisure doc
+  - save selection and scroll offset of doc
+  - save contents and locations open code scopes
+  - svae contents and locations of private notes
+- collaboration service
+  - Leisure could run on a server or in one of the browsers (in a WebWorker for sandboxing)
+  - use a switchboard web service, like from p2pmud, with file-patching commands
+  - notebook monadic environment
+    - print can patch the notebook
+  - some monads can remotely to all notebooks or just the current notebook
+  - notebook commands
+    - patch notebook
+  - Leisure commands
+    - broadcast notebook patch
+    - eval
+- libraries
+  - copied into the document, not externally referenced
+  - should contain their own version and location info so you can update
+  - probably copied as a child of a "libraries" slide
+- pluggable page elements
+  - "#+BEGIN_SRC css :id steampunk" could redefine the steampunk style
+  - an HTML block with an id can replace the whole Leisure bar (rebind events afterwards)
+- undo tree, like in emacs
+- name spaces
+- background Leisure execution
+  - run monads in a web worker
+  - useful for intensive Leisure code that analyzes documents, etc
+- Java code generation
+- Alternate code generation should speed up execution
+ use array values instead of function values -- already getting arguments array, anyway
+
+ [value] or [null, func]
+
+ if length == 2, then it has not been memoized, yet.
+- precompiled docs
+  - load the doc -- don't run code in the doc
+  - load the JS file
+- [ ] full-screen app mode (for Leisure button?)
+- [ ] recursive let defs don't work
+- [ ] forward references in let don't work
+- [ ] fix headline tag fancy markup; check property example
+- [ ] support Ast display for let blocks
+- [ ] scrub ': ' out of expected value tooltips
+- [ ] put code into tooltips, above expected value
+- [ ] make test case creation run the code?
+- [ ] doc comments -> function properties / usage hover help
+- [ ] Simple pattern matching
+- [ ] Make repl parse org format
+- [ ] Make arrow buttons show for non-dynamic code blocks
+- [ ] Simplified exprs, like in calc
+- [ ] Source maps
+- [ ] Make Leisure button show controls
+** Environment
+*** Cheap to use
+- Runs in a browser
+- You don't need to own a computer
+- No install needed
+- Can use Github for storage
+*** You can open the hood
+- ASTs
+- Dynamic expressions (value sliders help)
+- Test cases run when code changes
+- Display partially applied functions in a way that makes sense!
+*** Document interface
+- Good for books and tutorials
+  - code and examples all work
+- better than a REPL
+  - REPLs are mostly read-only (except for the bottom line)
+- better communication
+  - modify/run test cases and example code
+  - [ ] (DEMO) HTML in the doc can be accessible to the program
+  - maybe actual code reuse, because people can understand how to use your code!
+  - pride of ownership -- you can make your source code fun to look at (imagine...)
+- Reproducible research
+  - programs can contain their own examples and example data
+  - data is in the document itself
+    - programs can modify the document
+*** Social coding
+- Get feedback from other people directly on your code
+** Document-based concepts
+*** The whole project
+*** Storage
+*** Access to source document as it runs -- it can edit its own code
+*** Leisure structure for document (and editing monads)
+** Art deco links
+http://lindacee.hubpages.com/hub/Toasters-of-the-1920s
+https://www.pinterest.com/esmellaca/art-deco/
+* Finished for Talk
+- [X] save to file & github
+- [X] Saving to github/restfulgit -- restfulgit not done
+  - [[https://github.com/hulu/restfulgit]]
+  - [[http://gitlab.org/]]
+- [X] update qr-codes
+- [X] change slide controls to page up/down
+- [X] ast for myLast leaves out lines after first
+- [X] Convert old slide presentation
+- [X] Art deco look
+- [X] Get "add comment" working
+- [X] Test cases (create test case button, etc.)
+- [X] Theme switch monad (in case steampunk theme doesn't work with projector)
+- [X] markup (images, links)
+- [X] markup (bold, italic, underline)
+- [X] markup (make bullets look nicer)
+- [X] vertically center displayed HTML
+- [X] parse list items
+- [X] Slide view
+- [X] Value sliders
+- [X] Make reparsing just reshow the results, not reexecute the exprs
+- [X] only execute defs on load or keypress -- don't execute dynamics except on kepress
+- [X] ASTs
+- [X] make results HTML-friendly
+- [X] fix problem with left-right arrows when in number spans
+- [X] Talk: Disclaimer
+  - work in progress
+  - some rough-cuts have already been polished (to some extent)
+- Talk: Stuff to play with
+  - A new language (with some neat stuff)
+  - A new environment (with some neat stuff)
+  - For kids!
+  - For grownups!
+  - Maybe even jaded, expert grownups...
+- [X] Talk: Crisis in the field
+
+...current incoming students have grown up with video games and use
+iPhones daily.  Furthermore, they now arrive from high school with incredibly
+weak backgrounds.  We used to require calculus before beginning CS.  But now
+we don't require calculus at all! (Or we'd have no majors.)  When they see
+programming, even in very high-level languages, many incoming students recoil.
+They really enjoy *using* computers and may have even installed Windows, but
+they don't like building things...
+
+-- private communication from a prominent CS professor
+
+  - And yet, Minecraft is so popular...
+  - People even build computers inside of Minecraft, like NandToTetris...
+    [[http://i1.ytimg.com/vi/zxcpWS-lKDw/mqdefault.jpg]]
+  - Programming for me is a lot like Minecraft
+  - Can help it be more like Minecraft for other people?
+
+  - Talk: Project Hieroglyph
+
+    I have followed the dwindling of the space program with sadness, even bitterness.
+    Where’s my orbiting, donut-shaped space station? Where’s my fleet of colossal
+    Nova rockets? Where’s my ticket to Mars?...
+
+    “You’re the ones who’ve been slacking off!” proclaimed Michael Crow, the President
+    of Arizona State University, when I ran all of this by him later. He was referring,
+    of course, to the science fiction writers. The scientists and engineers, he seemed
+    to be saying, were ready, and looking for things to do. Time for the SF writers to
+    start pulling their weight!
+
+    -- Neal Stephenson
+
+    Stephenson has put together a project to get write stories that are, "throwbacks, in
+    a manner of speaking, to 1950′s-style SF, in that they would depict futures in which
+    Big Stuff Got Done"
+
+  - Talk: Dynabook
+    - Alan Kay's concept from 1972
+      - goes back to his research in the 60s
+    - We already have machines powerful enough
+    - Maybe a special type of document can provide what's missing...
+    - It needs to be free and easy to use (no install, etc.)
+    - What if each document was like its own computer?
+      - documents can contain media
+      - versioning can provide state
+    - What the document's source was meant to be part of the document itself
+      - End-user multimedia document
+      - Interactive
+      - Annotated source code (maybe hidden by default)
+      - Editable at runtime
+    - These concepts aren't /that/ new, they just hasn't been that accessible to people, lately
+      - Smalltalk -- a smalltalk image is almost a document (not really linear)
+      - Hypercard
+      - EMACS, with file-local variables
+      - Oberon (Acme, Wily, Ober)
+      - Tiddlywiki
+    - Mathematica is probably the closest thing to Leisure out there
+      - It's far from free
+    - HTML5 really has a lot of promise for this!
+      - HTML is made for documents (uh... duh?)
+      - You can edit HTML in a browser
+      - HTML documents can present a lot of different types of media
+      - web services can fill in the blanks
+    - In Stephenson's book Diamond Age: Or, a Young Lady's Illustrated Primer, the primer is essentially a dynabook
+  - [X] Talk: computing education
+    - fun is important
+    - promote building
+      - promote pride of ownership
+      - documents, not just source fies
+      - media embedded in documents
+      - each document can be like a tiny computer
+    - improve communication and understanding (human-human and human-computer)
+      - REPLs are good, but they are mostly read-only, except for the line at the bottom
+      - Watch expressions are good
+        - why can't you have some that run */all the time/*
+        - watch expressions are almost test cases...
+      - Interactive examples directly in the source
+      - Interact with the program directly through the source code
+      - Interact with the author directly through the source code
+      - With better understanding, people might actually reuse code
+        - instead of rewriting it
+    - promote exploration -- peeking under the hood
+      - view ASTs
+      - dynamic expression results update as you type (or slide)
+      - dynamic test cases update as you type
+      - partially applied functions are completely first-class (parameters are visible and usable)
+
+  - [X] Talk: orgMode -- a document-centric view of computing
+    - /very/ rich */text/* documents that produce more than just nice looking text
+    - Leisure functions inherit block name & tags
+    - data storage in document
+      - a document can act to some extent like a Smalltalk image
+      - remote documents fit well with the web
+    - tags for code visibility, categorization
+    - docs can run code when loaded (def blocks -- old EMACS trick)
+    - JavaScript orgMode parser is a separate open source project
+  - [ ] Talk: HTML5, contenteditable, DOM/text conversion
+  - [X] Talk: Github hookup
+    - storage
+    - you see other peoples' comments in your code (Github lets you ban them, too)
+    - you can comment on other peoples' code
+  - [X] Talk: partial application
+  - [ ] Talk: function advice (talk about advice names), defCase
+  - [ ] Talk: document storage
+  - [ ] Talk: future: code scopes view document as a code database
+    - search box lets you edit in-place
+    - names and tags for code blocks
+  - [ ] Talk: future: code google
+    - static inclusion (updatable subdocuments)
+* Resources
+[Org Syntax](http://orgmode.org/worg/dev/org-syntax.html)
+* Todo Items
+  :PROPERTIES:
+  :ID:       41b927b5-242d-4552-b7ac-5ef44eccf79e
+  :END:
+** TODO Connect with Floobits
+** TODO Make markup regular, so every headline has textborder, etc.
+** TODO Stream fusion                                               :leisure:
+** TODO use script elements and document.currentScript for interactive HTML :leisure:org:
+   :PROPERTIES:
+   :ID:       839f3a8c-bfdb-49d4-b5cc-b22f47607966
+   :END:
+** TODO simple pattern matching                                     :leisure:
+  :PROPERTIES:
+  :ID:       fa9ddb5e-20bc-4b5c-beef-348f21864136
+  :END:
+
+namespace for pattern match macros
+
+match obj
+  left l -> print concat['left ' l]
+  right r -> print concat['right ' r]
+  -> print concat['bad type: ' either]
+
+left and right are pattern-match macros, defined with defPattern, stored in a pattern alist
+
+defPattern left obj | hasType obj left -> [(obj id id)]
+defPattern right obj | hasType obj right -> [(obj id id)]
+
+match uses continuation pattern to build up expr:
+\\
+  l = obj id id
+  r = obj id id
+  hasType obj left
+    print concat['left ' l]
+    hasType obj right
+      print concat['left ' l]
+      print concat['bad type: ' obj]
+
+*** Matching lists (lists/vectors)
+[]
+
+[x y | z]
+x is the first item
+y is the second item
+z is the rest of the list
+
+[|z]
+z is the entire list, but it must be a list (or vector, etc.)
+
+*** Matching maps (alists/hamts)
+{key:pattern key:pattern ...}
+like
+{"hello": h}
+keys can be any expression and are evaluated in order:
+{"hello":h h:x x:y}
+
+{x y z}
+same as
+{"x":x "y":y "z":z}
+** TODO partially parse the doc, parsing collapsed regions on demand? :leisure:org:
+   :PROPERTIES:
+   :ID:       1edff1e9-8588-4c80-bc1c-c6e11064c909
+   :END:
+** TODO save viewed comment counts in webstorage                :leisure:org:
+   :PROPERTIES:
+   :ID:       3efa560e-4c5b-437a-955c-d52976e511fa
+   :END:
+Add "mark as unread" button
+** TODO handle comment issue deletion update                    :leisure:org:
+   :PROPERTIES:
+   :ID:       cd8513db-fbc6-4a9c-aac4-8002c0d9baa3
+   :END:
+** TODO make group close tokens ignore indentation rules            :leisure:
+   :PROPERTIES:
+   :ID:       9ef043e3-9443-49f9-92e0-5e905d287120
+   :END:
+** TODO Recompute all dynamic blocks when a dynamic or def changes :leisure:org:
+   :PROPERTIES:
+   :ID:       37b775c1-9659-41fe-9f8e-0b8fe9253cac
+   :END:
+** TODO Special issue with node-webkit -- need to rebuild stuff   :leisure:
+   :PROPERTIES:
+   :ID:       9e4930df-7b48-41ec-a464-15dcf6542d6b
+   :END:
+https://github.com/rogerwang/node-webkit/wiki/Using-Node-modules
+** TODO Source maps                                             :leisure:org:
+   :PROPERTIES:
+   :ID:       a143abd2-a6f9-45e1-a1e7-ac63f2455940
+   :END:
+** TODO make ESC toggle SRC node?                               :leisure:org:
+   :PROPERTIES:
+   :ID:       acafa8a3-cf9e-4180-b4ea-4b227a285628
+   :END:
+** TODO handle HTML pastes properly (get textContent from them) :leisure:org:
+   :PROPERTIES:
+   :ID:       30c4394a-5b0b-4889-a954-075f8c95db80
+   :END:
+** TODO run dynamic exprs if a results node is added            :leisure:org:
+   :PROPERTIES:
+   :ID:       bf43c0ac-8b91-4f90-801a-5fca716764e6
+   :END:
+** TODO make bs/del reach across hidden content                 :leisure:org:
+   :PROPERTIES:
+   :ID:       3d47fde6-0484-455a-b903-403ac8692025
+   :END:
+Should delete empty markup, like *bold* and /italic/
+** TODO properties (and drawers) -- indicate the leisure property page :leisure:org:
+   :PROPERTIES:
+   :ID:       5bc5b050-ee0d-4e36-ac1b-d26325a5a7fd
+   :END:
+** TODO checkbox list items                                     :leisure:org:
+   :PROPERTIES:
+   :ID:       7d356f62-4b31-4ac4-b607-baa58fa6b479
+   :END:
+** TODO reparse immediately on lines with variable markup       :leisure:org:
+   :PROPERTIES:
+   :ID:       0488f243-1cf6-43e5-b4e5-cd08691c5587
+   :END:
+** TODO Ascii to svg converter                                  :leisure:org:
+   :PROPERTIES:
+   :ID:       362dad3f-6003-4266-8ca3-16cabffc16ea
+   :END:
+*** TODO  asciitosvg [[https://bitbucket.org/dhobsd/asciitosvg]]    :leisure:
+    :PROPERTIES:
+    :ID:       5a382d67-9852-435c-b42d-1244343f8029
+    :END:
+*** TODO  ditaa does bitmaps                                        :leisure:
+    :PROPERTIES:
+    :ID:       0e0f185d-77b9-40c7-8b02-9fe71ba9461b
+    :END:
+*** TODO JointJS library [[http://www.jointjs.com/]]                :leisure:
+    :PROPERTIES:
+    :ID:       34aba2e0-b286-446f-b634-1f54ddb65a23
+    :END:
+*** TODO Graphdracula [[http://www.graphdracula.net/]]              :leisure:
+    :PROPERTIES:
+    :ID:       63712e9d-fbe5-418d-ab6d-c13d76e76048
+    :END:
+*** TODO D3 [[http://www.graphdracula.net/]]                        :leisure:
+    :PROPERTIES:
+    :ID:       4ba65c21-905e-4ce3-a0fc-dddfbdb077f5
+    :END:
+*** TODO Snap [[http://snapsvg.io/]]                                :leisure:
+    :PROPERTIES:
+    :ID:       a56c53ad-f06f-4001-9b86-f946d007a2ae
+    :END:
+** TODO make calc a view that can move around                  :leisure:calc:
+   :PROPERTIES:
+   :ID:       a74d5340-11a6-43df-b70a-2b07c4a38695
+   :END:
+** TODO tie input selection to AST selection                   :leisure:calc:
+   :PROPERTIES:
+   :ID:       36163e54-d9d4-4c27-8fe0-dbea645f0868
+   :END:
+** TODO Make require check dependencies and write the JS out        :leisure:
+   :PROPERTIES:
+   :ID:       15c7a41f-6920-40f7-afda-5011823395da
+   :END:
+** TODO repl restart command                                        :leisure:
+   :PROPERTIES:
+   :ID:       f13167df-b7c8-45c2-b750-dad97db8fa40
+   :END:
+** TODO partial application doesn't work with case defs             :leisure:
+  :PROPERTIES:
+  :ID:       d8b41a2f-d094-4637-8ce0-7d6b81dcdabf
+  :END:
+equal a b = eq a b
+defCase equal.list a b | and (isCons a) (isCons b) -> and (equal (head a) (head b)) (equal (tail a) (tail b))
+
+e=equal [1]
+
+e [1] -> true
+
+e 1 -> function (L_b){return resolve(L_b)} -- looks like it applied the false to something
+** TODO optimizations                                               :leisure:
+   :PROPERTIES:
+   :ID:       d2dfc14c-c287-4b2e-b091-85b03e158e5a
+   :END:
+*** strict annotation to generate strict code
+*** fully-applied functions -- change generated function to prefer all args and curry on-demand
+*** rework case defs to just chain booleans
+make altDef take two functions, a boolean and the definition
+*** strict cons
+** TODO redo typechecking                                           :leisure:
+  :PROPERTIES:
+  :ID:       1334e119-c0cb-4c60-88bc-de9c8b07e51d
+  :END:
+
+replace string typechecks with wrappers
+move typecheck wrappers into a correctness.lsr file
+
+** TODO error on function redefinition if not in REPL               :leisure:
+   :PROPERTIES:
+   :ID:       049a4a83-7ac8-4dbd-84a3-fa289285ce70
+   :END:
+** TODO make macro substitution monadic                             :leisure:
+   :PROPERTIES:
+   :ID:       f1fc0131-cd1b-4776-84de-f6f2f69dc465
+   :END:
+   Filters are monadic, but macros are not
+** TODO withProperties func props                                   :leisure:
+  :PROPERTIES:
+  :ID:       8c066b67-4038-420d-81f9-b735d0fe2ef3
+  :END:
+
+create a forwarding func that uses the given properties and reuses the old func's type
+
+Mark it as a forwarder so if you copy it again, you refer to the original, not the forwarder
+
+** TODO remove continuations from code generator                    :leisure:
+   :PROPERTIES:
+   :ID:       ac44c564-0728-4ec3-9686-bdf100bffcde
+   :END:
+   So far, increasing the stack is OK for this
+* Roadmap
+** org features and Leisure
+*** social networking -- comment, like, comment acknowledgement, usage
+*** function tags -- tabular view
+*** issue tracking
+*** test cases -- autorun, disableable
+* Done
+  :PROPERTIES:
+  :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
+  :END:
+** DONE bug: this TODO.org should be moved to Leisure Project
+** DONE categories                                              :leisure:org:
+   CLOSED: [2014-01-23 Thu 00:08]
+   :PROPERTIES:
+   :ID:       0a75f5a4-7643-402d-9d95-60ee71dc17d5
+   :END:
+** DONE intelligent printing of partially-applied functions         :leisure:
+   CLOSED: [2014-01-23 Thu 00:08]
+  :PROPERTIES:
+  :ID:       9e88ee51-3023-486f-aae4-2390628dfeea
+  :END:
+
+(< 1) should print out as < 1, instead of
+
+#+begin_src javascript
+  function (y) {
+   return booleanFor(rz(x) < rz(y));
+  }
+#+end_src
+
+Probably have to change function model to use objects instead of
+closures (maybe possible with debugging api?)
+
+** DONE change "wrapper" to "advice"                                :leisure:
+   CLOSED: [2014-01-23 Thu 00:06]
+   :PROPERTIES:
+   :ID:       909a23fa-3fb0-45e6-ac07-49ad95365c89
+   :END:
+   change caseDefs to use advice instead of options -- i.e. continuation pattern
+** DONE parse empty RESULTS: blocks properly                    :leisure:org:
+   CLOSED: [2014-01-23 Thu 00:05]
+   :PROPERTIES:
+   :ID:       1dec25b3-12ae-4777-a319-cb7704780ad5
+   :END:
+** DONE buttons to control dynamic results, etc                 :leisure:org:
+   CLOSED: [2014-01-23 Thu 00:05]
+   :PROPERTIES:
+   :ID:       f90580ea-7c58-41a2-b339-0a0dc07902c9
+   :END:
+** DONE Put source block name in property of functions declared in block :leisure:org:
+   CLOSED: [2014-01-23 Thu 00:04]
+   :PROPERTIES:
+   :ID:       fb875314-7a3d-4ed9-bba1-b1deee6fe746
+   :END:
+** DONE Test cases                                              :leisure:org:
+   CLOSED: [2014-01-23 Thu 00:03]
+   :PROPERTIES:
+   :ID:       b7bfc2ee-287a-4d60-9a21-bfa237d6b8de
+   :END:
+** DONE Save/load                                               :leisure:org:
+   CLOSED: [2014-01-23 Thu 00:03]
+   :PROPERTIES:
+   :ID:       4b7c73d0-dd87-466b-94b6-536e8633cc6f
+   :END:
+*** Convenient way to open a file
+** DONE convert slides to org format                            :leisure:org:
+   CLOSED: [2014-01-22 Wed 23:56]
+   :PROPERTIES:
+   :ID:       a77ca4ee-8f96-4769-9925-f7ababfbc6cd
+   :END:
+** DONE slide view                                              :leisure:org:
+   CLOSED: [2014-01-22 Wed 23:56]
+   :PROPERTIES:
+   :ID:       5d1e1a38-0d2c-4d28-bf46-8577f23ce37f
+   :END:
+** DONE Art-deco look for fancy mode                            :leisure:org:
+   CLOSED: [2014-01-22 Wed 23:56]
+   :PROPERTIES:
+   :ID:       b47976d6-8513-4748-b29a-e577d576ffe7
+   :END:
+** DONE notebook should only run IO monads, not all monads      :leisure:org:
+   CLOSED: [2014-01-22 Wed 23:56]
+   :PROPERTIES:
+   :ID:       114f4a55-70c6-4eaf-b390-594969c7b902
+   :END:
+uses L_baseLoadString and that calls countedRunLine
+countedRunLine binds each line as moandic value
+this strips off options, etc.
+** DONE implement fancyOrg.addComment                           :leisure:org:
+   CLOSED: [2014-01-22 Wed 23:56]
+   :PROPERTIES:
+   :ID:       4590fb43-2c73-4991-bcbe-f81cfecb7212
+   :END:
+** DONE change how backspace and delete disabling works         :leisure:org:
+   CLOSED: [2013-11-17 Sun 23:02]
+use the new code that checks for invisible content
+** DONE make Leisure-org run out of node-webkit for local access :leisure:org:
+   CLOSED: [2013-11-07 Thu 20:51]
+   :PROPERTIES:
+   :ID:       cae867a3-f9ed-474a-8d02-6acfdb423242
+   :END:
+** DONE trigger reparse when src header changes                 :leisure:org:
+   CLOSED: [2013-11-07 Thu 20:51]
+** DONE handle backspace at the start of a headline             :org:leisure:
+   CLOSED: [2013-11-06 Wed 14:34]
+   :PROPERTIES:
+   :ID:       cf01c348-d804-49f1-98d3-ddf652649383
+   :END:
+** DONE when a text span is joined with other text, merge test into span :leisure:org:
+   CLOSED: [2013-11-06 Wed 14:34]
+   :PROPERTIES:
+   :ID:       927504f7-2457-4470-a153-8a3ef1850c1d
+   :END:
+** DONE newline at the start of a headline should go outside the span :org:leisure:
+   CLOSED: [2013-11-06 Wed 14:34]
+   :PROPERTIES:
+   :ID:       8c89abab-8521-4642-a990-48bfaf5974af
+   :END:
+** DONE "dynamic" result type that updates as you type          :org:leisure:
+   CLOSED: [2013-11-06 Wed 14:33]
+   :PROPERTIES:
+   :ID:       717c4887-a18a-41f1-b18f-4eff60a10539
+   :END:
+** DONE output src block into results area                      :org:leisure:
+  CLOSED: [2013-11-06 Wed 14:33]
+
+Results go after #+RESULTS:, with : at the start of each line
+evaluation clears out the previous : lines right underneath RESULTS, like this...
+
+#+begin_src js
+console.log('hello\nthere\n')
+return 3
+#+end_src
+
+#+RESULTS:
+: hello
+: there
+:
+: 3
+
+  :PROPERTIES:
+  :ID:       19ccacf7-e234-43a5-82a2-fd8facbab0f1
+  :END:
+** DONE keep a newline span between outline entries so cursor motion works properly :org:leisure:
+   CLOSED: [2013-11-05 Tue 19:12]
+   :PROPERTIES:
+   :ID:       0d5d8e91-cb1c-42d1-a269-38cdaa88a850
+   :END:
+** DONE newline at start of hidden text should be ignored       :org:leisure:
+   CLOSED: [2013-11-05 Tue 19:11]
+** DONE backspace at the end of a collapsed line deletes the contents   :org:
+   CLOSED: [2013-10-29 Tue 18:46]
+   :PROPERTIES:
+   :ID:       c7ec6626-7f3c-4df7-a286-11add3ea82f8
+   :END:
+** DONE Add handler for #+BEGIN_SRC, #+END_SRC to org-mode-parser   :leisure:
+   CLOSED: [2013-10-28 Mon 12:56]
+   :PROPERTIES:
+   :ID:       78fef2aa-b926-4579-8cb5-1a812dc3ea36
+   :END:
+** DONE source map files                                            :leisure:
+  CLOSED: [2013-10-23 Wed 10:35]
+
+[HTML5 Rocks article](http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/)
+** DONE calc: skin                                                  :leisure:
+   CLOSED: [2013-10-23 Wed 10:14]
+** DONE calc: buttons to toggle diag views                          :leisure:
+    CLOSED: [2013-10-21 Mon 15:34]
+** DONE pre/post condition monads                                   :leisure:
+   CLOSED: [2013-10-21 Mon 15:08]
+
+replace type checking with preconditions
+
+handle monads (bind the post condition check)
+
+** DONE JS AMT/HAMT                                                 :leisure:
+    CLOSED: [2013-10-21 Mon 15:09]
+
+** DONE web interface                                               :leisure:
+    CLOSED: [2013-10-21 Mon 15:09]
+
+** DONE optimizations                                               :leisure:
+    CLOSED: [2013-10-21 Mon 15:09]
+
+*** Change laziness model
+**** make a resolve() function that resolves a lazy arg
+**** data is already resolved
+**** embedded exprs and variable defs would have a closure -- resolve() can tack a property on the closure, containing the result
+** DONE memoized lambdas                                            :leisure:
+   CLOSED: [2013-10-21 Mon 15:09]
+
+for the funciton wrapper, set the memo to the lambda and stick a console.log in there to see if something's still calling the func
+
+** DONE BUG: reverse order of generated let assignments so that this works: :leisure:
+   CLOSED: [2013-10-21 Mon 15:09]
+
+do (x = 1) (y = x) (print concat[x y])
+
+** DONE stack traces                                                :leisure:
+   CLOSED: [2013-10-21 Mon 15:09]
+
+add text positions to ast nodes
+
+** DONE Leisure-based calculator (base calc works)                  :leisure:
+   CLOSED: [2013-10-21 Mon 15:09]
+
+make world-dominating calculator unlike any ever seen!
+
+[calc image](https://mail-attachment.googleusercontent.com/attachment/u/0/?ui=2&ik=5a36943e69&view=att&th=1417bbef9c10e224&attid=0.1&disp=inline&realattid=1447832052796751872-local0&safe=1&zw&saduie=AG9B_P_1TGDzI7APFAcWIRyPxv8G&sadet=1380765919695&sads=1M9HZRBtQyV4cPAsLIV3wn9fnuM)
+** DONE button to switch between fancy/simple                   :leisure:org:
+   CLOSED: [2013-11-28 Thu 11:03]
+   :PROPERTIES:
+   :ID:       27a2e51c-0ce7-4a39-880c-260b86c3b6fb
+   :END:
+** DONE comment issues                                          :leisure:org:
+  CLOSED: [2013-11-28 Thu 11:04]
+   :PROPERTIES:
+   :ID:       ef0d404e-7019-4e6c-9832-79632beb6724
+   :END:
+A comment issue holds the developer comment and shows up in the source file.
+Any comments on the comment issue show up in the source file as well.
+
+Issues which reference a function will also show up in the source.
+** DONE mark up Leisure-org like notebook                       :leisure:org:
+   CLOSED: [2013-11-28 Thu 11:05]
+   :PROPERTIES:
+   :ID:       53fa8c88-89fe-4dfd-8e72-cb79f2d6e4e3
+   :END:
+** DONE handle backspace after and delete before hidden content :leisure:org:
+   CLOSED: [2013-11-29 Fri 09:22]
+   :PROPERTIES:
+   :ID:       3e4e6a86-dc0d-42db-afae-e169e923356c
+   :END:
+need a way to verify that there are no collapsed nodes between the current
+position and position +/- 1
+
+nextNode() & prevNode() should do the trick, I think -- see if nextNode(el).prevNode(el) is
+el or an ancestor of it
+
+if node.previousSibling/node.nextSibling exists and is visible, then backspace/del is OK
+** DONE inherited function properties                           :leisure:org:
+   CLOSED: [2013-12-11 Wed 13:20]
+- code block name
+- headline tags
+** DONE tags                                                    :leisure:org:
+   CLOSED: [2013-12-11 Wed 13:56]
+   :PROPERTIES:
+   :ID:       289fff0a-ec3b-4c14-a245-b062730f63ac
+   :END:
+** DONE ASTs                                                    :leisure:org:
+   CLOSED: [2013-12-14 Sat 17:04]
+   :PROPERTIES:
+   :ID:       30f23918-ec3d-4f88-ad54-74f6360dddf7
+   :END:
+** DONE make results HTML-friendly                              :leisure:org:
+   CLOSED: [2013-12-15 Sun 23:03]
+output should be HTML-escaped
