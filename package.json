@@ -25,7 +25,10 @@
     "npm": ">= 1.0.0"
   },
   "dependencies": {
-    "underscore": "*"
+    "underscore": "*",
+    "btoa": "*",
+    "browserify": "*",
+    "xmlhttprequest": "*"
   },
   "devDependencies": {},
   "bundleDependencies": []

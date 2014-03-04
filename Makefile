@@ -51,13 +51,19 @@ CSS_SRC=leisure gaudy thin cthulhu
 CSS_FILES=$(CSS_SRC:%=newCode/%.css)
 CSS_OUT=lib/all.css
 ALL=$(SRC) $(TEST) $(TEST_PARSER) generatedPrelude simpleParse $(NEW_LSR) $(NEW_COFFEE_SRC) $(WEB_SRC)
-OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast) $(CSS_OUT) $(WEB_JS) $(ALL:%=www/*.js) $(ALL:%=www/*.map)
+OUT_FILES=$(ALL:%=lib/%.js) $(ALL:%=lib/%.map) $(ALL:%=lib/%.ast) $(CSS_OUT) $(WEB_JS) $(ALL:%=www/%.js) $(ALL:%=www/%.map)
 
 all: $(PRELUDE) $(NEW_LSR_JS) $(BROWSER_JS) $(WEB_JS) $(NEWGEN_JS) .tested .parserTested
 
+test:
+	echo SHELL: $(SHELL)
+
 clean:
+	touch www/leisureJS- www/leisureCSS-
 	rm -f $(OUT_FILES) .tested .parserTested www/leisureJS-* www/leisureCSS-*
 	rm -f core/generatedPrelude.lsr
+
+#node_modules/.bin/browserify -d $(BROWSERIFY_EXCLUDE) lib/browserMain.js -o $@.tmp
 
 $(BROWSER_JS): $(BROWSER_INPUT) $(PRELUDE) $(NEW_LSR_JS) $(BROWSER_MAIN_JS)
 	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
@@ -67,7 +73,7 @@ $(BROWSER_JS): $(BROWSER_INPUT) $(PRELUDE) $(NEW_LSR_JS) $(BROWSER_MAIN_JS)
 	mkdir www/core www/newCode
 	cp -r core/*.coffee www/core
 	cp -r newCode/*.coffee www/newCode
-	node_modules/.bin/browserify -d $(BROWSERIFY_EXCLUDE) lib/browserMain.js -o $@.tmp
+	node node_modules/browserify/bin/cmd.js lib/browserMain.js $(BROWSERIFY_EXCLUDE) -o $@.tmp -d
 	sed -e '/\/\/@.*=data/n;/\/\/@/d' $@.tmp > $@
 
 $(CSS_OUT): $(CSS_FILES)
@@ -78,7 +84,8 @@ repl: all FRC
 
 $(WEB_JS): $(BROWSER_JS) $(WEB_COFFEE) $(CSS_OUT)
 	cp lib/xus.js lib/github.js lib/mutation-summary.js www
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc newCode/bootLeisure.coffee
+	./node_modules/coffee-script/bin/coffee -o $(LIB) -mc newCode/bootLeisure.coffee
+	touch www/leisureJS- www/leisureCSS-
 	rm -f www/leisureJS-* www/leisureCSS-*
 	cp lib/browser.js "www/leisureJS-$$(sha256sum lib/browser.js|awk '{print $$1}').js"
 	cp lib/all.css "www/leisureCSS-$$(sha256sum lib/all.css|awk '{print $$1}').css"
@@ -88,7 +95,7 @@ $(WEB_JS): $(BROWSER_JS) $(WEB_COFFEE) $(CSS_OUT)
 	cp $(WEB_MAPS) www
 
 lib/%.js: newCode/%.coffee
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)
+	./node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)
 
 lib/svg.js: newCode/svg.lsr
 	$(NODE) lib/repl -c -d lib -r './std' $(@:lib/%.js=newCode/%.lsr)
@@ -106,19 +113,19 @@ $(PRELUDE): $(COFFEE_JS) $(PRELUDE_FILES)
 	cp core/generatedPrelude.lsr lib
 
 $(TEST:%=lib/%.js): $(TEST:%=core/%.coffee)
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee
+	./node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testLeisure.coffee
 
 .tested: $(TEST:%=lib/%.js) $(PRELUDE)
 	$(NODE) $(LIB)/$(TEST) && touch $@
 
 $(TEST_PARSER:%=lib/%.js): $(TEST_PARSER:%=core/%.coffee)
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testParser.coffee
+	./node_modules/coffee-script/bin/coffee -o $(LIB) -mc core/testParser.coffee
 
 .parserTested: $(TEST_PARSER:%=lib/%.js) $(PRELUDE)
 	$(NODE) $(LIB)/$(TEST_PARSER) && touch $@
 
 lib/%.js: core/%.coffee
-	node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
+	./node_modules/coffee-script/bin/coffee -o $(LIB) -mc $?
 
 lua-tests: FRC
 	(cd lua; eval $(luarocks path) ; lua5.1 -lluarocks.loader testLeisure.lua)

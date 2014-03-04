@@ -359,13 +359,13 @@ markupHeadline = (org, delay, note)->
 #  if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
 #  else ''
 
-noteAttrs = (org)->
-  if org.properties?.note == 'sidebar' then " data-org-note='sidebar'"
-  else if org.properties?.note?.match /^float / then " data-org-note='float'"
-  else if org.level == 1 then " data-org-note='main'"
-  else ''
-
 nextNoteId = 0
+
+noteAttrs = (org)->
+  if org.level != 1 then ''
+  else if org.properties?.note == 'sidebar' then " data-org-note='sidebar' data-org-noteid='#{nextNoteId++}'"
+  else if org.properties?.note?.match /^float / then " data-org-note='float' data-org-noteid='#{nextNoteId++}'"
+  else " data-org-note='main'"
 
 updateNoteProperties = (span, index, txt) ->
   old = span.textContent

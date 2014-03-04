@@ -344,20 +344,20 @@
     }
   };
 
+  nextNoteId = 0;
+
   noteAttrs = function(org) {
     var _ref7, _ref8, _ref9;
-    if (((_ref7 = org.properties) != null ? _ref7.note : void 0) === 'sidebar') {
-      return " data-org-note='sidebar'";
-    } else if ((_ref8 = org.properties) != null ? (_ref9 = _ref8.note) != null ? _ref9.match(/^float /) : void 0 : void 0) {
-      return " data-org-note='float'";
-    } else if (org.level === 1) {
-      return " data-org-note='main'";
-    } else {
+    if (org.level !== 1) {
       return '';
+    } else if (((_ref7 = org.properties) != null ? _ref7.note : void 0) === 'sidebar') {
+      return " data-org-note='sidebar' data-org-noteid='" + (nextNoteId++) + "'";
+    } else if ((_ref8 = org.properties) != null ? (_ref9 = _ref8.note) != null ? _ref9.match(/^float /) : void 0 : void 0) {
+      return " data-org-note='float' data-org-noteid='" + (nextNoteId++) + "'";
+    } else {
+      return " data-org-note='main'";
     }
   };
-
-  nextNoteId = 0;
 
   updateNoteProperties = function(span, index, txt) {
     var lines, old, s;

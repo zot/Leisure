@@ -419,7 +419,7 @@ arity = (toks, n)-> if isTokenString head(toks), '=' then n else arity tail(toks
 
 tokListStr = (toks)-> JSON.stringify toks.map((t)->tokenString t).join(' ')
 
-linesForFile = (text)-> _.filter text.split(/\n(?=[^ ]|$)/), (line)-> not line.match /^[ \i]*\#.*|^[ \i]*$|^\n[ \i]*$/
+linesForFile = (text)-> _.filter text.replace(/\r/g, '').split(/\n(?=[^ ]|$)/), (line)-> not line.match /^[ \i]*\#.*|^[ \i]*$|^\n[ \i]*$/
 
 namesForLines = (lines)-> _.foldl lines,
   ((result, line)-> if m = line.match defPat then cons m[1], result else result),

@@ -328,6 +328,7 @@ match uses continuation pattern to build up expr:
 \\
   l = obj id id
   r = obj id id
+  .
   hasType obj left
     print concat['left ' l]
     hasType obj right
