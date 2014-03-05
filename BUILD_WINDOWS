@@ -1,1 +1,2 @@
-make SHELL=bash.exe test
+#!/bin/bash
+make SHELL=bash.exe
