@@ -1,3 +1,5 @@
+console.log 'FANCY MODE!'
+
 {
   resolve,
   lazy,
@@ -351,9 +353,11 @@ markupHeadline = (org, delay, note)->
       "#{startNewSlide()}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
     else "#{startNewSlide()}<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
-    if org.text.trim() != ''
+    slide = if org.text.trim() != ''
       "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
     else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
+    floatize org, slide
+    #slide
 
 #noteAttrs = (org)->
 #  if org.properties?.notes then "data-org-notes='#{org.properties.notes}'"
@@ -364,8 +368,13 @@ nextNoteId = 0
 noteAttrs = (org)->
   if org.level != 1 then ''
   else if org.properties?.note == 'sidebar' then " data-org-note='sidebar' data-org-noteid='#{nextNoteId++}'"
-  else if org.properties?.note?.match /^float / then " data-org-note='float' data-org-noteid='#{nextNoteId++}'"
+  else if org.properties?.note?.match /^float / then " data-org-note='float' data-org-noteid='#{nextNoteId++}' data-org-floatval='#{org.properties.note}'"
   else " data-org-note='main'"
+
+floatize = (org, slide)->
+  if org.properties?.note?.match /^float /
+    "<div data-draggable data-float-holder='#{nextNoteId - 1}'><div data-resizable style='width: 600px; height: 600px; background: lightgray;'><h2 class='note_drag_handle' contenteditable='false'>YOUR NOTE</h2><div contenteditable='true'>#{slide}</div></div></div>"
+  else slide
 
 updateNoteProperties = (span, index, txt) ->
   old = span.textContent
@@ -824,7 +833,19 @@ startNewSlide = ->
 createNoteShadows = ->
   for node in $('.slideholder')
     #setShadowHtml node, "<table class='slideshadow'><tr class='slideshadowrow'><td><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note]'></content></div></div></td></tr></table>"
-    setShadowHtml node, "<div class='page'><div class='border'></div><table class='pagecontent slideshadow'><tr class='slideshadowrow'><td class='slidemain'><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note=\"sidebar\"]'></content></div></div></td></tr></table></div><content select='[data-org-note=\"skip\"],[data-org-note=\"float\"]'></content>"
+    setShadowHtml node, "<div class='page'><div class='border'></div><table class='pagecontent slideshadow'><tr class='slideshadowrow'><td class='slidemain'><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note=\"sidebar\"]'></content></div></div></td></tr></table></div><content select='[data-org-note=\"skip\"],[data-float-holder]'></content>"
+  for node in $('[data-float-holder]')
+    holder = $(node)
+    inside = $(node.firstChild)
+    noteSpec = $(node).find('[data-org-floatval]').attr 'data-org-floatval'
+    holder.draggable handle: 'h2'
+    inside.resizable()
+    holder.bind 'dragstop', (event) -> saveNoteLocation $(event.target)
+    inside.bind 'resizestop', -> saveNoteLocation $(event.target)
+    [skip, top, left, width, height] = noteSpec.split /\s+/
+    window.setTimeout (->
+      holder.css  top: top, left: left
+      inside.css width: width, height: height), 1
 
 markupGuts = (org, start)->
   if !org.children.length then ''
