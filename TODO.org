@@ -2,17 +2,19 @@
 - Floaty notes
 * Milestone features
 - notes
+- slide clones
 - code scopes
 * Short-term Leisure-org plan
 - notes
   - Types of slides (value of "note" property)
     - open slide -- can contain sidebar notes (this is the default value of the note property)
-    - closed slide -- cannot contain sidebar notes
     - sidebar
     - float
   - note property changes slide presentation into floating note or sidebar note
   - each slide could have a control to turn it into a note
   - like a Smalltalk workspace, but a full sub-document
+- slide clones
+  - cannot contain sidebar notes
 - event framework -- use script tag to bind events on parent when it is displayed
 - local things -- only exist in your browser, not part of the shared doc, but logically part of it
   - treated as part of doc for local user; code scopes index them, etc.
@@ -24,7 +26,6 @@
   - defs in local notes should be loud
   - some local slides could be shared across documents
     - import shared local notes by tag
-- cloned slides
 - take HTML markup out of name block and put it in CSS
 - make code-names auto-create
   - generate empty div for people to type a name in
@@ -39,7 +40,6 @@
     - sort history chronologically or alphabetically
     - expand this to a search box, callers, callees
   - contents should be editable
-  - clone
   - attach to
     - document
     - slide

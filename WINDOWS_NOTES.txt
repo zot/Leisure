@@ -1,0 +1,7 @@
+* To build
+make SHELL=bash.exe
+* To run
+** basic
+/c/Apps/nw-0-9-2/nw .
+** with a file
+/c/Apps/nw-0-9-2/nw . --url=file:///www/org.html#load=file:///c:/Users/bill/work/lc/TestLeisure/note.lorg
