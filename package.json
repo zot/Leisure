@@ -28,7 +28,8 @@
     "underscore": "*",
     "btoa": "*",
     "browserify": "*",
-    "xmlhttprequest": "*"
+    "xmlhttprequest": "*",
+    "socket.io": "*"
   },
   "devDependencies": {},
   "bundleDependencies": []

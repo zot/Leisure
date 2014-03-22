@@ -1,5 +1,9 @@
 * Short list
 - Floaty notes
+- Image dragging
+- Collaboration engine
+  - https://code.google.com/p/google-diff-match-patch/
+  - https://github.com/cemerick/jsdifflib
 * Milestone features
 - notes
 - slide clones

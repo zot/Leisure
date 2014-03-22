@@ -6,6 +6,7 @@
 ## Note, the lua tests depend on lua5.1, luarocks, and these luarocks: underscore, luajson
 ## It uses lua5.1 to maintain compatibility with LuaJIT
 
+SHA=$(shell basename $$(which  2>/dev/null sha256sum || which 2>/dev/null sha1sum))
 NODE=node --max-stack-size=3000
 SHARED_SRC=base ast gen runtime
 SRC=$(SHARED_SRC) node testing simpleParseJS repl
@@ -34,7 +35,7 @@ NEW_LSR_SRC=std svg calc parseAst gui
 NEW_LSR=$(NEW_LSR_SRC:%=newCode/%.lsr)
 NEW_LSR_JS=$(NEW_LSR_SRC:%=lib/%.js)
 
-BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus org githubExtensions storage orgSupport fancyOrg
+BROWSER_SRC=$(SHARED_SRC) $(NEW_LSR_SRC) $(NEW_COFFEE_SRC) generatedPrelude xus org githubExtensions storage orgSupport fancyOrg collaborate
 BROWSER_INPUT=$(BROWSER_SRC:%=lib/%.js)
 BROWSER_JS=lib/browser.js
 BROWSERIFY_EXCLUDE=-i xmlhttprequest
@@ -87,15 +88,18 @@ $(WEB_JS): $(BROWSER_JS) $(WEB_COFFEE) $(CSS_OUT)
 	./node_modules/coffee-script/bin/coffee -o $(LIB) -mc newCode/bootLeisure.coffee
 	touch www/leisureJS- www/leisureCSS-
 	rm -f www/leisureJS-* www/leisureCSS-*
-	cp lib/browser.js "www/leisureJS-$$(sha256sum lib/browser.js|awk '{print $$1}').js"
-	cp lib/all.css "www/leisureCSS-$$(sha256sum lib/all.css|awk '{print $$1}').css"
-	sed -e "s/JSHASH/$$(sha256sum lib/browser.js|awk '{print $$1}')/;s/CSSHASH/$$(sha256sum lib/all.css|awk '{print $$1}')/" newCode/bootTemplate > www/bootLeisure.js
+	cp lib/browser.js "www/leisureJS-$$($(SHA) lib/browser.js|awk '{print $$1}').js"
+	cp lib/all.css "www/leisureCSS-$$($(SHA) lib/all.css|awk '{print $$1}').css"
+	sed -e "s/JSHASH/$$($(SHA) lib/browser.js|awk '{print $$1}')/;s/CSSHASH/$$($(SHA) lib/all.css|awk '{print $$1}')/" newCode/bootTemplate > www/bootLeisure.js
 	cat lib/bootLeisure.js >> www/bootLeisure.js
 	cp lib/uri.* www
 	cp $(WEB_MAPS) www
 
 lib/%.js: newCode/%.coffee
 	./node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.coffee)
+
+lib/%.js: newCode/%.litcoffee
+	./node_modules/coffee-script/bin/coffee -o $(LIB) -mc $(@:lib/%.js=newCode/%.litcoffee)
 
 lib/svg.js: newCode/svg.lsr
 	$(NODE) lib/repl -c -d lib -r './std' $(@:lib/%.js=newCode/%.lsr)
