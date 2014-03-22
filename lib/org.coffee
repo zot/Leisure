@@ -73,11 +73,16 @@ linkRE = /(\[\[([^\]]*)\])(?:\[([^\]]*)\])?\]/
 HTML_START_NAME = 1
 htmlStartRE = /^#\+(BEGIN_HTML) *$/im
 htmlEndRE = /^#\+END_HTML *$/im
+ATTR_NAME = 1
+attrHtmlRE = /^#\+(ATTR_HTML): *$/im
+attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i
+imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i
 
 matchLine = (txt)->
   checkMatch(txt, srcStartRE, 'srcStart') ||
   checkMatch(txt, srcEndRE, 'srcEnd') ||
   checkMatch(txt, resultsRE, 'results') ||
+  checkMatch(txt, attrHtmlRE, 'attr') ||
   checkMatch(txt, keywordRE, 'keyword') ||
   checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].length}") ||
   checkMatch(txt, listRE, 'list') ||
@@ -205,7 +210,8 @@ class Link extends Meat
     path: @path
     children: (c.toJsonObject() for c in @children)
   scan: Node.prototype.scanWithChildren
-
+  isImage: -> !@children.length && @path.match imagePathRE
+  
 class ListItem extends Meat
   constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
   type: 'list'
@@ -308,6 +314,16 @@ class Results extends Keyword
     name: @name
     contentPos: @contentPos
 
+class AttrHtml extends Keyword
+  constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
+  type: 'attr'
+  toJsonObject: ->
+    type: @type
+    text: @text
+    offset: @offset
+    name: @name
+    contentPos: @contentPos
+
 nextOrgNode = (node)->
   up = false
   while node
@@ -371,9 +387,13 @@ parseMeat = (meat, offset, rest, middleOfLine)->
     list = meat.match listRE
     htmlStart = meat.match htmlStartRE
     drawer = meat.match drawerRE
+    attr = meat.match attrHtmlRE
     if results?.index == 0
       line = fullLine results, meat
       return parseResults line, offset, meat.substring(line.length) + rest
+    else if attr?.index == 0
+      line = fullLine attr, meat
+      return parseAttr line, offset, meat.substring(line.length) + rest
     else if srcStart?.index == 0
       line = fullLine srcStart, meat
       return parseSrcBlock line, offset, srcStart[SRC_INFO], srcStart[SRC_BOILERPLATE].length, meat.substring(line.length) + rest
@@ -414,7 +434,7 @@ parseMeat = (meat, offset, rest, middleOfLine)->
     node = new Link link[0], offset, link[LINK_INFO], children
   else
     first = meat.length + offset
-    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first, simple?.index ? first, link?.index ? first, htmlStart?.index ? first, drawer?.index ? first)
+    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first, simple?.index ? first, link?.index ? first, htmlStart?.index ? first, drawer?.index ? first, attr?.index ? first)
     node = new Meat(meat.substring(0, first), offset)
   meat = meat.substring node.text.length
   parseRestOfMeat node, meat, rest
@@ -432,6 +452,13 @@ parseResults = (text, offset, rest)->
     rest = rest.substring m[0].length
   lines = oldRest.substring 0, oldRest.length - rest.length
   [new Results(text + lines, offset, text.match(resultsRE)[RES_NAME], text.length), rest]
+
+parseAttr = (text, offset, rest)->
+  oldRest = rest
+  while m = rest.match attrHrmlLineRE
+    rest = rest.substring m[0].length
+  lines = oldRest.substring 0, oldRest.length - rest.length
+  [new AttrHtml(text + lines, offset, text.match(attrHtmlRE)[ATTR_NAME], text.length), rest]
 
 parseDrawer = (text, name, offset, end, rest)->
   pos = end.index + (fullLine end, rest).length
@@ -504,3 +531,4 @@ root.srcStartRE = srcStartRE
 root.SRC_BOILERPLATE = SRC_BOILERPLATE
 root.SRC_INFO = SRC_INFO
 root.nextOrgNode = nextOrgNode
+root.AttrHtml = AttrHtml

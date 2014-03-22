@@ -25,7 +25,7 @@ misrepresented as being the original software.
 
 
 (function() {
-  var DRAWER_NAME, Drawer, END_NAME, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, HTML, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, keywordRE, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, nextOrgNode, parseDrawer, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, propertyRE, resultsLineRE, resultsRE, root, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
+  var ATTR_NAME, AttrHtml, DRAWER_NAME, Drawer, END_NAME, HL_LEVEL, HL_PRIORITY, HL_TAGS, HL_TODO, HTML, HTML_START_NAME, Headline, KW_BOILERPLATE, KW_INFO, KW_NAME, Keyword, LINK_DESCRIPTION, LINK_HEAD, LINK_INFO, LIST_BOILERPLATE, LIST_CHECK, LIST_CHECK_VALUE, LIST_INFO, LIST_LEVEL, Link, ListItem, Meat, Node, PROPERTY_KEY, PROPERTY_VALUE, RES_NAME, Results, SRC_BOILERPLATE, SRC_INFO, SRC_NAME, SimpleMarkup, Source, attrHtmlLineRE, attrHtmlRE, buildHeadlineRE, checkMatch, drawerRE, endRE, fullLine, headlineRE, htmlEndRE, htmlStartRE, imagePathRE, keywordRE, linkRE, listContentOffset, listRE, markupText, markupTypes, matchLine, nextOrgNode, parseAttr, parseDrawer, parseHeadline, parseHtmlBlock, parseKeyword, parseList, parseMeat, parseOrgChunk, parseOrgMode, parseRestOfMeat, parseResults, parseSrcBlock, parseTags, propertyRE, resultsLineRE, resultsRE, root, simpleRE, srcEndRE, srcStartRE, tagsRE, todoKeywords, todoRE,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -117,8 +117,16 @@ misrepresented as being the original software.
 
   htmlEndRE = /^#\+END_HTML *$/im;
 
+  ATTR_NAME = 1;
+
+  attrHtmlRE = /^#\+(ATTR_HTML): *$/im;
+
+  attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i;
+
+  imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i;
+
   matchLine = function(txt) {
-    return checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
+    return checkMatch(txt, srcStartRE, 'srcStart') || checkMatch(txt, srcEndRE, 'srcEnd') || checkMatch(txt, resultsRE, 'results') || checkMatch(txt, attrHtmlRE, 'attr') || checkMatch(txt, keywordRE, 'keyword') || checkMatch(txt, headlineRE, function(m) {
       return "headline-" + m[HL_LEVEL].length;
     }) || checkMatch(txt, listRE, 'list') || checkMatch(txt, htmlStartRE, 'htmlStart') || checkMatch(txt, htmlEndRE, 'htmlEnd');
   };
@@ -485,6 +493,10 @@ misrepresented as being the original software.
 
     Link.prototype.scan = Node.prototype.scanWithChildren;
 
+    Link.prototype.isImage = function() {
+      return !this.children.length && this.path.match(imagePathRE);
+    };
+
     return Link;
 
   })(Meat);
@@ -761,6 +773,33 @@ misrepresented as being the original software.
 
   })(Keyword);
 
+  AttrHtml = (function(_super) {
+    __extends(AttrHtml, _super);
+
+    function AttrHtml(text, offset, name, contentPos) {
+      this.text = text;
+      this.offset = offset;
+      this.name = name;
+      this.contentPos = contentPos;
+      AttrHtml.__super__.constructor.call(this, this.text, this.offset, this.name);
+    }
+
+    AttrHtml.prototype.type = 'attr';
+
+    AttrHtml.prototype.toJsonObject = function() {
+      return {
+        type: this.type,
+        text: this.text,
+        offset: this.offset,
+        name: this.name,
+        contentPos: this.contentPos
+      };
+    };
+
+    return AttrHtml;
+
+  })(Keyword);
+
   nextOrgNode = function(node) {
     var up;
     up = false;
@@ -846,7 +885,7 @@ misrepresented as being the original software.
   };
 
   parseMeat = function(meat, offset, rest, middleOfLine) {
-    var child, children, drawer, end, first, htmlStart, inside, insideOffset, keyword, line, link, list, newRest, node, results, simple, srcStart, _ref, _ref1, _ref10, _ref11, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
+    var attr, child, children, drawer, end, first, htmlStart, inside, insideOffset, keyword, line, link, list, newRest, node, results, simple, srcStart, _ref, _ref1, _ref10, _ref11, _ref12, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
     simple = meat.match(simpleRE);
     link = meat.match(linkRE);
     if (!middleOfLine) {
@@ -856,9 +895,13 @@ misrepresented as being the original software.
       list = meat.match(listRE);
       htmlStart = meat.match(htmlStartRE);
       drawer = meat.match(drawerRE);
+      attr = meat.match(attrHtmlRE);
       if ((results != null ? results.index : void 0) === 0) {
         line = fullLine(results, meat);
         return parseResults(line, offset, meat.substring(line.length) + rest);
+      } else if ((attr != null ? attr.index : void 0) === 0) {
+        line = fullLine(attr, meat);
+        return parseAttr(line, offset, meat.substring(line.length) + rest);
       } else if ((srcStart != null ? srcStart.index : void 0) === 0) {
         line = fullLine(srcStart, meat);
         return parseSrcBlock(line, offset, srcStart[SRC_INFO], srcStart[SRC_BOILERPLATE].length, meat.substring(line.length) + rest);
@@ -907,7 +950,7 @@ misrepresented as being the original software.
       node = new Link(link[0], offset, link[LINK_INFO], children);
     } else {
       first = meat.length + offset;
-      first = Math.min(first, (_ref4 = srcStart != null ? srcStart.index : void 0) != null ? _ref4 : first, (_ref5 = keyword != null ? keyword.index : void 0) != null ? _ref5 : first, (_ref6 = results != null ? results.index : void 0) != null ? _ref6 : first, (_ref7 = list != null ? list.index : void 0) != null ? _ref7 : first, (_ref8 = simple != null ? simple.index : void 0) != null ? _ref8 : first, (_ref9 = link != null ? link.index : void 0) != null ? _ref9 : first, (_ref10 = htmlStart != null ? htmlStart.index : void 0) != null ? _ref10 : first, (_ref11 = drawer != null ? drawer.index : void 0) != null ? _ref11 : first);
+      first = Math.min(first, (_ref4 = srcStart != null ? srcStart.index : void 0) != null ? _ref4 : first, (_ref5 = keyword != null ? keyword.index : void 0) != null ? _ref5 : first, (_ref6 = results != null ? results.index : void 0) != null ? _ref6 : first, (_ref7 = list != null ? list.index : void 0) != null ? _ref7 : first, (_ref8 = simple != null ? simple.index : void 0) != null ? _ref8 : first, (_ref9 = link != null ? link.index : void 0) != null ? _ref9 : first, (_ref10 = htmlStart != null ? htmlStart.index : void 0) != null ? _ref10 : first, (_ref11 = drawer != null ? drawer.index : void 0) != null ? _ref11 : first, (_ref12 = attr != null ? attr.index : void 0) != null ? _ref12 : first);
       node = new Meat(meat.substring(0, first), offset);
     }
     meat = meat.substring(node.text.length);
@@ -933,6 +976,16 @@ misrepresented as being the original software.
     }
     lines = oldRest.substring(0, oldRest.length - rest.length);
     return [new Results(text + lines, offset, text.match(resultsRE)[RES_NAME], text.length), rest];
+  };
+
+  parseAttr = function(text, offset, rest) {
+    var lines, m, oldRest;
+    oldRest = rest;
+    while (m = rest.match(attrHrmlLineRE)) {
+      rest = rest.substring(m[0].length);
+    }
+    lines = oldRest.substring(0, oldRest.length - rest.length);
+    return [new AttrHtml(text + lines, offset, text.match(attrHtmlRE)[ATTR_NAME], text.length), rest];
   };
 
   parseDrawer = function(text, name, offset, end, rest) {
@@ -1048,6 +1101,8 @@ misrepresented as being the original software.
   root.SRC_INFO = SRC_INFO;
 
   root.nextOrgNode = nextOrgNode;
+
+  root.AttrHtml = AttrHtml;
 
 }).call(this);
 
