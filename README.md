@@ -29,7 +29,11 @@ changes to your code in real time?  Our goal is to show programmers there has to
 
 # Getting Started
 
-If you have [node.js](http://nodejs.org/) installed, you can run the command-line Leisure repl by cloning the git repo, changing directory into the top level, and running `node runRepl`.
+If you have [node.js](http://nodejs.org/) installed, you can run the command-line Leisure repl by cloning the git repo, changing directory into the top level, and running
+```
+npm install
+node lib/repl
+```
 
 For the browser environment, you'll need to use node-webkit, at this point.  You can bring up the demo with:
 
