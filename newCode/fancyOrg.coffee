@@ -39,6 +39,7 @@ lz = lazy
   srcStartRE,
   HTML,
   Results,
+  AttrHtml,
   resultsRE,
   ListItem,
   SimpleMarkup,

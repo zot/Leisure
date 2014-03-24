@@ -29,6 +29,7 @@
     "btoa": "*",
     "browserify": "*",
     "xmlhttprequest": "*",
+    "socket.io": "*",
     "source-map": "*"
   },
   "devDependencies": {},
