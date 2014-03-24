@@ -39,6 +39,7 @@ lz = lazy
   srcStartRE,
   HTML,
   Results,
+  AttrHtml,
   resultsRE,
   ListItem,
   SimpleMarkup,
@@ -276,6 +277,7 @@ markupNode = (org, middleOfLine, delay, note)->
     text = org.text.substring pos
     "<span #{orgAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span>#{contentSpan text}"
   else if org instanceof HTML then markupHtml org
+  else if org instanceof AttrHtml then markupAttr org
   else if org instanceof Keyword
     if org.name.match /^name$/i
       intertext = ''
@@ -300,10 +302,12 @@ markupNode = (org, middleOfLine, delay, note)->
 
 markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
-imagePath = /\.(png|jpg|gif|svg|tiff|bmp)$/i
-
+markupAttr = (org)->
+  "<span class='hidden'>TEST #{org.text}</span>"
+  
 markupLink = (org)->
-  if !org.children.length && org.path.match imagePath
+  if org.isImage()
+    prev = org.prev
     "<span class='hidden'>#{org.text}</span><img src='#{org.path}'>"
   else
     guts = ''
