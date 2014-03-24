@@ -1,6 +1,5 @@
     root = module.exports = require './base'
     _ = require './lazy'
-
     sha = require './sha256'
     diff = require './diff'
 
@@ -53,11 +52,12 @@
         set[ancestor] = true
         null
 
+sendDiff
 parentHash: hash of parentText
 parentText: text of parent
 hash: has of text
 txt: txt
-keepPrivate: don't propagate to other connections
+keepPrivate: do not propagate to other connections
 merge: hash of merge parent
 
     sendDiff = (parentHash, parentText, hash, txt, keepPrivate, merge)->

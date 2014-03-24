@@ -3,6 +3,8 @@ doc.local
 old
 *~
 /node_modules/node-inspector
+/node_modules/coffee-script
+/node_modules/coffeeify
 /node_modules/browserify
 /node_modules/xmlhttprequest
 /node_modules/source-map
