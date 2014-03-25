@@ -253,18 +253,21 @@
   lastAttr = null;
 
   markupAttr = function(org) {
-    console.log("2props: " + org.props);
     lastAttr = org;
     return "<span class='hidden'>" + org.text + "</span>";
   };
 
   markupLink = function(org) {
-    var c, guts, _i, _len, _ref7;
+    var c, guts, post, pre, _i, _len, _ref7;
     if (org.isImage()) {
-      if (lastAttr.type === 'attr') {
-        "<span class='hidden'>HEERP DERP</span>";
+      pre = '';
+      post = "";
+      if (lastAttr && lastAttr.type === 'attr') {
+        pre = "<div class='ui-draggable'>";
+        post = "</div>";
       }
-      return "<span class='hidden'>" + org.text + "</span><img src='" + org.path + "'>";
+      lastAttr = null;
+      return pre + ("<span class='hidden'>" + org.text + "</span><img src='" + org.path + "'>") + post;
     } else {
       guts = '';
       _ref7 = org.children;

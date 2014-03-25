@@ -305,14 +305,19 @@ markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{esca
 lastAttr = null
 
 markupAttr = (org)->
-  console.log "2props: " + org.props
   lastAttr = org
   "<span class='hidden'>#{org.text}</span>"
   
 markupLink = (org)->
   if org.isImage()
-    if lastAttr.type == 'attr' then "<span class='hidden'>HEERP DERP</span>"
-    "<span class='hidden'>#{org.text}</span><img src='#{org.path}'>"
+    #console.log "last: " + lastAttr
+    pre = ''
+    post = ""
+    if lastAttr && lastAttr.type == 'attr'
+      pre = "<div class='ui-draggable'>"
+      post = "</div>"
+    lastAttr = null
+    pre + "<span class='hidden'>#{org.text}</span><img src='#{org.path}'>" + post
   else
     guts = ''
     for c in org.children
