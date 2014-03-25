@@ -302,12 +302,16 @@ markupNode = (org, middleOfLine, delay, note)->
 
 markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
+lastAttr = null
+
 markupAttr = (org)->
-  "<span class='hidden'>TEST #{org.text}</span>"
+  console.log "2props: " + org.props
+  lastAttr = org
+  "<span class='hidden'>#{org.text}</span>"
   
 markupLink = (org)->
   if org.isImage()
-    prev = org.prev
+    if lastAttr.type == 'attr' then "<span class='hidden'>HEERP DERP</span>"
     "<span class='hidden'>#{org.text}</span><img src='#{org.path}'>"
   else
     guts = ''
@@ -826,11 +830,11 @@ slideStart = -> "<div class='slideholder'>"
 
 slideEnd = -> "</div>"
 
-firstSlide = false
+firstSlideFlag = false
 
 startNewSlide = ->
-  if firstSlide
-    firstSlide = false
+  if firstSlideFlag
+    firstSlideFlag = false
     ''
   else "#{slideEnd()}#{slideStart()}"
 
@@ -856,7 +860,7 @@ markupGuts = (org, start)->
   else
     prev = if start then null else org
     hline = 'first'
-    if org.level == 0 then firstSlide = true
+    if org.level == 0 then firstSlideFlag = true
     guts = ((for c in org.children
       s = start
       start = false
@@ -1132,7 +1136,7 @@ setMinMax = (sl, value)->
 
 setCurrentSlide = (element)->
   for node in $('.currentSlide')
-    $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
+    if node.shadowRoot then $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
   $('.currentSlide').removeClass 'currentSlide'
   $(element).addClass 'currentSlide'
   if $(element).hasClass 'firstSlide' then $("body").addClass 'firstSlide' else $("body").removeClass 'firstSlide'
