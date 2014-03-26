@@ -263,7 +263,7 @@
       pre = '';
       post = "";
       if (lastAttr && lastAttr.type === 'attr') {
-        pre = "<div class='ui-draggable'>";
+        pre = "<div class='image-draggable'>";
         post = "</div>";
       }
       lastAttr = null;
@@ -1834,6 +1834,7 @@
         fixupHtml(parent);
         setTheme(theme);
         nextNoteId = 0;
+        $(".image-draggable").draggable();
         createNoteShadows();
         setTimeout(((function(_this) {
           return function() {

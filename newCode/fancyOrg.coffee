@@ -314,7 +314,7 @@ markupLink = (org)->
     pre = ''
     post = ""
     if lastAttr && lastAttr.type == 'attr'
-      pre = "<div class='ui-draggable'>"
+      pre = "<div class='image-draggable'>"
       post = "</div>"
     lastAttr = null
     pre + "<span class='hidden'>#{org.text}</span><img src='#{org.path}'>" + post
@@ -1293,6 +1293,7 @@ fancyOrg =
       nextNoteId = 0
       #for node in $(parent).find('[data-org-notes]')
       #  createNotes node
+      $(".image-draggable").draggable()
       createNoteShadows()
       setTimeout (=>
         redrawAllIssues()
