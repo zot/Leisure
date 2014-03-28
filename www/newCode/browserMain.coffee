@@ -10,6 +10,7 @@ require './github'
 require './base64'
 require './diff'
 require './sha256'
+require 'utf8'
 
 #window.marked = require './marked'
 #Leisure = exports = module.exports = require './base'

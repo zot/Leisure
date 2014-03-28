@@ -344,6 +344,10 @@ defaultBindings =
   'RIGHT': keyFuncs.forwardChar
   'TAB': keyFuncs.expandTemplate
 
+useText = (text)->
+  $(parentSpec)[0].textContent = text
+  root.restorePosition parentSpec, -> root.currentMode.useNode $(parentSpec)[0], sourceSpec
+
 swapMarkup = ->
   root.currentMode = (if root.currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
   root.restorePosition parentSpec, -> root.currentMode.useNode $(parentSpec)[0], sourceSpec
@@ -1211,3 +1215,4 @@ root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
 root.watchNodeText = watchNodeText
 root.dumpTextWatchers = dumpTextWatchers
+root.useText = useText

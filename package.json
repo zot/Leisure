@@ -30,7 +30,8 @@
         "browserify": "*",
         "xmlhttprequest": "*",
         "socket.io": "*",
-        "source-map": "*"
+        "source-map": "*",
+        "utf8": "*"
     },
     "devDependencies": {
         "coffee-script": "*",

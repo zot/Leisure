@@ -8,6 +8,8 @@
 - notes
 - slide clones
 - code scopes
+- JavaScript/CoffeeScript source blocks
+- Compilable notebooks
 * Short-term Leisure-org plan
 - notes
   - Types of slides (value of "note" property)
@@ -30,6 +32,8 @@
   - defs in local notes should be loud
   - some local slides could be shared across documents
     - import shared local notes by tag
+- JavaScript and CoffeeScript src blocks
+- Compilable notebooks
 - take HTML markup out of name block and put it in CSS
 - make code-names auto-create
   - generate empty div for people to type a name in

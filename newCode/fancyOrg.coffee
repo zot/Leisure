@@ -106,6 +106,9 @@ lz = lazy
   redrawAllIssues,
   createComment,
 } = require './storage'
+{
+  sendText,
+} = require './collaborate'
 _ = require './lodash.min'
 
 fancyOrg = null
@@ -307,7 +310,7 @@ lastAttr = null
 markupAttr = (org)->
   lastAttr = org
   "<span class='hidden'>#{org.text}</span>"
-  
+
 markupLink = (org)->
   if org.isImage()
     #console.log "last: " + lastAttr
@@ -914,6 +917,7 @@ handleKey = (div)->(e)->
     root.orgApi.executeSource div, getSelection().focusNode
   else if !bound #&& !slideMode
     if modifyingKey c
+      sendText div
       n = s.focusNode
       el = r.startContainer
       par = el.parentNode
