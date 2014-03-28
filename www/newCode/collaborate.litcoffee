@@ -97,7 +97,7 @@ merge: hash of merge parent
     setListener = (l)-> listener = l
 
     attemptCollaboration = (docUrl, res)->
-      u = new URI docUrl
+      u = new URI document.location.href, docUrl
       m = u.path.match /^\/file(\/.*)$/
       if m
         u.path = "/collab#{m[1]}"
