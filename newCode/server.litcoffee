@@ -103,7 +103,7 @@ Leisure server -- supports collaboration on documents
       dir = opts.dir
       app = require('http').createServer handler
       io = require('socket.io').listen app
-      app.listen 80
+      app.listen opts.port ? 80
       io.sockets.on 'connection', (socket)-> console.log "GLOBAL CONNECTION"
 
     root.createServer = createServer
