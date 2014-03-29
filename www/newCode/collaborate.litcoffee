@@ -109,6 +109,7 @@ merge: hash of merge parent
       console.log "\n\n*\n*\n* COLLABORATE #{uri.path}\n*\n*\n"
       attemptCollaboration url, (success, path)->
         if success
+          console.log "CONNECTING TO: #{path}"
           socket = io.connect path, 'force new connection': true
           setText doc
           setListener (txt)-> root.useText txt
