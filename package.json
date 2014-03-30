@@ -29,7 +29,7 @@
         "btoa": "*",
         "browserify": "*",
         "xmlhttprequest": "*",
-        "socket.io": "*",
+        "socket.io": "0.9.16",
         "source-map": "*",
         "utf8": "*"
     },
