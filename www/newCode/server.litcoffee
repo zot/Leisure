@@ -76,7 +76,8 @@ Leisure server -- supports collaboration on documents
       console.log "CREATED NAMESPACE: #{file}"
       ns = io.of("/#{file}")
       ns.on 'connection', (socket)->
-        console.log "CONNECTION TO NAMESPACE: #{file}"
+        console.log "CONNECTION TO NAMESPACE: #{file}\n#{util.inspect socket}"
+        #console.log "CONNECTION TO NAMESPACE: #{file}"
         socket.file = file
         socket.on 'init', (data)->
           console.log "INIT: #{data}"
@@ -92,7 +93,7 @@ Leisure server -- supports collaboration on documents
       trunks[socket.file] = hash
       socket.hash = hash
       if !keepPrivate
-        for sock in socket.nsp.sockets
+        for sockName, sock of socket.namespace.sockets
           if sock.hash && sock.hash != hash
             sock.emit 'patch',
               hash: sock.hash

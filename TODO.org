@@ -2,15 +2,30 @@
 - Floaty notes
 - Image dragging
 - Collaboration engine
-  - https://code.google.com/p/google-diff-match-patch/
-  - https://github.com/cemerick/jsdifflib
+  - show users' cursors/selections
+  - persistence: git
 * Milestone features
+- collaboration
+- draggable images
 - notes
 - slide clones
 - code scopes
 - JavaScript/CoffeeScript source blocks
 - Compilable notebooks
 * Short-term Leisure-org plan
+- collaboration service
+  - show users' cursors/selections
+  - persistence: git
+  - use a switchboard web service, like from p2pmud, with file-patching commands
+  - Leisure could run on a server or in one of the browsers (in a WebWorker for sandboxing)
+  - notebook monadic environment
+    - print can patch the notebook
+  - some monads can remotely to all notebooks or just the current notebook
+  - notebook commands
+    - patch notebook
+  - Leisure commands
+    - broadcast notebook patch
+    - eval
 - notes
   - Types of slides (value of "note" property)
     - open slide -- can contain sidebar notes (this is the default value of the note property)
@@ -76,17 +91,6 @@
   - save selection and scroll offset of doc
   - save contents and locations open code scopes
   - svae contents and locations of private notes
-- collaboration service
-  - Leisure could run on a server or in one of the browsers (in a WebWorker for sandboxing)
-  - use a switchboard web service, like from p2pmud, with file-patching commands
-  - notebook monadic environment
-    - print can patch the notebook
-  - some monads can remotely to all notebooks or just the current notebook
-  - notebook commands
-    - patch notebook
-  - Leisure commands
-    - broadcast notebook patch
-    - eval
 - libraries
   - copied into the document, not externally referenced
   - should contain their own version and location info so you can update

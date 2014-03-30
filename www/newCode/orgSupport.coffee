@@ -345,8 +345,9 @@ defaultBindings =
   'TAB': keyFuncs.expandTemplate
 
 useText = (text)->
-  $(parentSpec)[0].textContent = text
-  root.restorePosition parentSpec, -> root.currentMode.useNode $(parentSpec)[0], sourceSpec
+  root.restorePosition parentSpec, ->
+    $(parentSpec)[0].textContent = text
+    root.currentMode.useNode $(parentSpec)[0], sourceSpec
 
 swapMarkup = ->
   root.currentMode = (if root.currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
