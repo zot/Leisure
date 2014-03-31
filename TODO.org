@@ -4,6 +4,7 @@
 - Collaboration engine
   - show users' cursors/selections
   - persistence: git
+- data
 * Milestone features
 - collaboration
 - draggable images
@@ -12,6 +13,7 @@
 - code scopes
 - JavaScript/CoffeeScript source blocks
 - Compilable notebooks
+- data
 * Short-term Leisure-org plan
 - collaboration service
   - show users' cursors/selections
@@ -26,6 +28,19 @@
   - Leisure commands
     - broadcast notebook patch
     - eval
+- data
+  - text representation
+    - first line is ID
+    - rest of lines are YAML
+  - internal representation
+    - manipulated by monads
+    - stored by ID in a hamt for easy functional manipulation
+    - JSON properties are converted to Leisure values
+      - arrays become lists (until good vector support)
+      - objects become hamts
+    - query
+      - use datalog, like datomic?
+    - listener fires when data changes
 - notes
   - Types of slides (value of "note" property)
     - open slide -- can contain sidebar notes (this is the default value of the note property)
@@ -49,6 +64,8 @@
     - import shared local notes by tag
 - JavaScript and CoffeeScript src blocks
 - Compilable notebooks
+  - into JavaScript module
+  - export data sets
 - take HTML markup out of name block and put it in CSS
 - make code-names auto-create
   - generate empty div for people to type a name in
