@@ -4,6 +4,7 @@
 - Collaboration engine
   - show users' cursors/selections
   - persistence: git
+  - toggle synchronizing
 - data
 * Milestone features
 - collaboration
@@ -29,18 +30,33 @@
     - broadcast notebook patch
     - eval
 - data
+  - toggle synchronizing
   - text representation
+    - :DATA: drawer
     - first line is ID
     - rest of lines are YAML
   - internal representation
     - manipulated by monads
-    - stored by ID in a hamt for easy functional manipulation
+    - stored by ID in a hamt
+      - easy functional manipulation
+      - handles versioning well
+        - functional code can manipulate internal hamt
+        - accumulate changes
+        - merge them with current data
     - JSON properties are converted to Leisure values
       - arrays become lists (until good vector support)
       - objects become hamts
     - query
       - use datalog, like datomic?
     - listener fires when data changes
+- partial parsing/syncing
+  - fancy/basic mode for each slide
+  - only reprocess changed parts
+  - unreparsed can remain as-is
+  - store each slide separately in JS object storage
+    - compile JS code
+    - each slide gets an object id -- for text and data
+    - each slide can be individually parsed
 - notes
   - Types of slides (value of "note" property)
     - open slide -- can contain sidebar notes (this is the default value of the note property)
