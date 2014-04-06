@@ -1456,6 +1456,9 @@
                         z-index: -1;
                         background: linear-gradient(#34495e, #2c3e50);
                 }
+                .org-fancy [data-leisure-data] {
+                        display: none;
+                }
                 .org-fancy [data-org-headline='2'] > [data-org-type='text'] {
                         font-size: 1.5em;
                 }
@@ -1879,8 +1882,8 @@
           Error.stackTraceLimit = Infinity;
           window.Boot = {extraJsFiles: [
                 'browserSupport',
-                'orgSupport',
                 'collaborate',
+                'orgSupport',
                 'githubExtensions',
                 'storage',
                 'fancyOrg',

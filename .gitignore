@@ -11,6 +11,7 @@ old
 /node_modules/underscore
 /node_modules/socket.io
 /node_modules/utf8
+/node_modules/js-yaml
 /repl-port
 /tmp/
 /local

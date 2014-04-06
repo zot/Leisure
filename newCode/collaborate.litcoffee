@@ -53,21 +53,28 @@ Trunk comes from the server and represents the picture of the file on the server
           setText el.textContent
           watching = false), watchPeriod
 
+    sendData = (el, key, oldValue, newValue)->
+      if socket
+        socket.emit 'storeData',
+          parent: hash
+          key: key
+          patch: diff.diff_patch oldValue, newValue
+      storeText el.textContent
+
     commonAncestor = (h1, h2)->
-      if !h1 || !h2 then return h1 || h2
-      anc = {}
-      while h1 || h2
-        if r = checkAncestor h1, anc then return r
-        if r = checkAncestor h2, anc then return r
-        h1 = h1 && parents[h1]
-        h2 = h2 && parents[h2]
-      null
+      if h1 && h2
+        anc = {}
+        while h1 || h2
+          if r = checkAncestor h1, anc then return r
+          if r = checkAncestor h2, anc then return r
+          h1 = h1 && parents[h1]
+          h2 = h2 && parents[h2]
+        null
+      else h1 || h2
 
     checkAncestor = (ancestor, set)->
-      if ancestor && set[ancestor] then set[ancestor]
-      else
-        set[ancestor] = true
-        null
+      if ancestor && set[ancestor] then ancestor
+      else ancestor && (set[ancestor] = true)
 
 sendDiff
 parentHash: hash of parentText
@@ -126,3 +133,4 @@ merge: hash of merge parent
     root.setCollaborationListener = setListener
     root.initCollaboration = initCollaboration
     root.sendText = sendText
+    root.sendDataDiff = sendDataDiff

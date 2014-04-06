@@ -25,7 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
-  var BS, DEL, DOWN, END, ENTER, HL_TAGS, HOME, Headline, Keyword, LEFT, Meat, Nil, PAGEDOWN, PAGEUP, RIGHT, Results, SimpleMarkup, Source, TAB, UP, addKeyPress, backspace, baseEnv, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, countCharactersFrom, countCharactersIn, createResults, crnl, curKeyBinding, currentLine, defaultBindings, defaultEnv, define, displaySource, dumpTextWatchers, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, followsNewline, fs, getCollapsible, getLeft, getNodeSource, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getTextPositionNew, getTextPositionOld, getType, getValue, handleMutation, hasParent, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsedOld, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, keyCombos, keyFuncs, lastKeys, lazy, loadOrg, lz, markupGuts, markupNode, markupOrg, markupOrgWithNode, markupSimple, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nextVisibleNewline, nodeAfter, nodeAfterNoChildren, nodeBefore, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, orgSrcAttrs, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, replacements, resolve, restorePosition, resultsType, root, rz, saveFile, scanForward, selectRange, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, splitLines, styleCache, swapMarkup, templateExpansions, textNodeAfter, textNodeBefore, textWatchers, unescapePresentationHtml, useText, watchNodeText, whenNotCollapsed, _, _ref, _ref1, _ref2, _ref3, _ref4;
+  var BS, DEL, DOWN, Drawer, END, ENTER, HL_TAGS, HOME, Headline, Keyword, LEFT, Meat, Nil, PAGEDOWN, PAGEUP, RIGHT, Results, SimpleMarkup, Source, TAB, UP, addData, addKeyPress, amt, backspace, baseEnv, basicOrg, bindContent, boundarySpan, cachedOrgParent, cachedOrgText, checkCollapsed, checkDeleteReparse, checkEnterReparse, checkExtraNewline, checkLast, checkReparse, checkSourceMod, checkStart, cleanHeadline, codeBlockAttrs, collapseNode, cons, consFrom, contains, content, contentSpan, countCharactersFrom, countCharactersIn, createResults, crnl, curKeyBinding, currentLine, data, defaultBindings, defaultEnv, define, displaySource, dump, dumpTextWatchers, editDiv, emptyOutNode, escapeAttr, escapeHtml, executeDef, executeSource, executeText, findCharForColumn, findDomPosition, findKeyBinding, findOrgNode, fixupNodes, followingSpan, followsNewline, fs, getCollapsible, getLeft, getNodeSource, getNodeText, getOrgParent, getOrgText, getOrgType, getRangeXY, getResultsForSource, getRight, getSource, getStyle, getTags, getTextLine, getTextPosition, getTextPositionNew, getTextPositionOld, getType, getValue, handleMutation, hasParent, hasShadow, headlineRE, id, idCount, initOrg, installOrgDOM, invalidateOrgText, isBoundary, isCollapsed, isCollapsedOld, isCollapsible, isCollapsibleText, isDef, isDocNode, isDynamic, isEmptyCollapsible, isSourceNode, jsonConvert, keyCombos, keyFuncs, lastKeys, lazy, loadOrg, lz, makeDataSpan, makeHamt, makeSyncMonad, markupData, markupGuts, markupNode, markupOrg, markupOrgWithNode, markupSimple, matchLine, maxLastKeys, modifiers, modifying, modifyingKey, moveCaret, moveSelectionDown, moveSelectionFB, moveSelectionUp, movementGoal, nativeRange, needsReparse, newConsFrom, newResults, nextOrgId, nextVisibleNewline, nodeAfter, nodeAfterNoChildren, nodeBefore, nodes, oldReparse, optionalBoundary, orgAttrs, orgEnv, orgNotebook, orgSrcAttrs, parentSpec, parseOrgMode, parseTags, presentValue, prevKeybinding, propsFor, rectFor, reparse, reparseListeners, replacements, resolve, restorePosition, resultsType, root, rz, safeLoad, saveFile, scanForward, selectRange, sendText, sensitive, setCurKeyBinding, setTags, setValue, shiftKey, show, sourceDiv, sourceSpec, specialKeys, splitLines, styleCache, swapMarkup, templateExpansions, textNodeAfter, textNodeBefore, textWatchers, unescapePresentationHtml, useText, watchNodeText, whenNotCollapsed, _, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _true;
 
   _ref = require('./ast'), getType = _ref.getType, cons = _ref.cons, define = _ref.define, unescapePresentationHtml = _ref.unescapePresentationHtml;
 
@@ -35,7 +35,11 @@ misrepresented as being the original software.
 
   lz = lazy;
 
-  _ref2 = require('./runtime'), newConsFrom = _ref2.newConsFrom, setValue = _ref2.setValue, getValue = _ref2.getValue;
+  _ref2 = require('./runtime'), newConsFrom = _ref2.newConsFrom, setValue = _ref2.setValue, getValue = _ref2.getValue, makeSyncMonad = _ref2.makeSyncMonad, makeHamt = _ref2.makeHamt, _true = _ref2._true, jsonConvert = _ref2.jsonConvert;
+
+  sendText = require('./collaborate').sendText;
+
+  amt = require('persistent-hash-trie');
 
   consFrom = newConsFrom;
 
@@ -43,9 +47,11 @@ misrepresented as being the original software.
 
   _ref3 = require('./browserSupport'), TAB = _ref3.TAB, ENTER = _ref3.ENTER, BS = _ref3.BS, DEL = _ref3.DEL, LEFT = _ref3.LEFT, RIGHT = _ref3.RIGHT, UP = _ref3.UP, DOWN = _ref3.DOWN, HOME = _ref3.HOME, END = _ref3.END;
 
-  _ref4 = require('./org'), parseOrgMode = _ref4.parseOrgMode, Headline = _ref4.Headline, Meat = _ref4.Meat, Keyword = _ref4.Keyword, Source = _ref4.Source, Results = _ref4.Results, SimpleMarkup = _ref4.SimpleMarkup, headlineRE = _ref4.headlineRE, HL_TAGS = _ref4.HL_TAGS, parseTags = _ref4.parseTags, matchLine = _ref4.matchLine;
+  _ref4 = require('./org'), parseOrgMode = _ref4.parseOrgMode, Headline = _ref4.Headline, Meat = _ref4.Meat, Keyword = _ref4.Keyword, Source = _ref4.Source, Results = _ref4.Results, Drawer = _ref4.Drawer, SimpleMarkup = _ref4.SimpleMarkup, headlineRE = _ref4.headlineRE, HL_TAGS = _ref4.HL_TAGS, parseTags = _ref4.parseTags, matchLine = _ref4.matchLine;
 
   _ = require('./lodash.min');
+
+  _ref5 = require('js-yaml'), safeLoad = _ref5.safeLoad, dump = _ref5.dump;
 
   PAGEUP = 33;
 
@@ -188,11 +194,11 @@ misrepresented as being the original software.
   };
 
   findCharForColumn = function(node, col, start, end) {
-    var i, testRct, testRng, _i, _ref5;
+    var i, testRct, testRng, _i, _ref6;
     testRng = document.createRange();
     testRng.setStart(node, start);
     testRng.collapse(true);
-    for (i = _i = _ref5 = end - 1; _i >= start; i = _i += -1) {
+    for (i = _i = _ref6 = end - 1; _i >= start; i = _i += -1) {
       testRng.setStart(node, i);
       testRct = getRangeXY(testRng);
       if (testRct.left <= col) {
@@ -223,7 +229,7 @@ misrepresented as being the original software.
   movementGoal = null;
 
   moveSelectionUp = function(parent, r, start) {
-    var container, elRect, first, prev, prevEnd, prevRect, prevStart, startRect, txt, _ref5;
+    var container, elRect, first, prev, prevEnd, prevRect, prevStart, startRect, txt, _ref6;
     container = r.startContainer;
     startRect = getRangeXY(r);
     if (!(prevKeybinding === keyFuncs.nextLine || prevKeybinding === keyFuncs.previousLine)) {
@@ -249,7 +255,7 @@ misrepresented as being the original software.
       container = textNodeBefore(container);
       if (!isCollapsed(container)) {
         elRect = rectFor(container);
-        if ((elRect.top < (_ref5 = prevRect.top) && _ref5 < startRect.top)) {
+        if ((elRect.top < (_ref6 = prevRect.top) && _ref6 < startRect.top)) {
           if (!findCharForColumn(prev, movementGoal, 0, prev.length)) {
             moveCaret(r, prev, 0);
           }
@@ -263,7 +269,7 @@ misrepresented as being the original software.
   };
 
   moveSelectionDown = function(parent, r, start) {
-    var container, elRect, end, last, prev, prevRect, startRect, txt, _ref5;
+    var container, elRect, end, last, prev, prevRect, startRect, txt, _ref6;
     container = r.startContainer;
     startRect = getRangeXY(r);
     if (!(prevKeybinding === keyFuncs.nextLine || prevKeybinding === keyFuncs.previousLine)) {
@@ -294,7 +300,7 @@ misrepresented as being the original software.
       container = textNodeAfter(container);
       if (!isCollapsed(container)) {
         elRect = rectFor(container);
-        if ((startRect.bottom < (_ref5 = prevRect.bottom) && _ref5 < elRect.bottom)) {
+        if ((startRect.bottom < (_ref6 = prevRect.bottom) && _ref6 < elRect.bottom)) {
           if (!findCharForColumn(prev, movementGoal, 0, prev.length)) {
             moveCaret(r, prev, 0);
           }
@@ -516,8 +522,8 @@ misrepresented as being the original software.
   };
 
   markupOrg = function(text) {
-    var node, result, _ref5;
-    _ref5 = markupOrgWithNode(text), node = _ref5[0], result = _ref5[1];
+    var node, result, _ref6;
+    _ref6 = markupOrgWithNode(text), node = _ref6[0], result = _ref6[1];
     return result;
   };
 
@@ -536,7 +542,7 @@ misrepresented as being the original software.
   sensitive = /^srcStart|^headline-|^keyword/;
 
   orgAttrs = function(org) {
-    var extra, k, rt, t, _ref5;
+    var extra, k, rt, t, _ref6;
     if (!org.nodeId) {
       org.nodeId = nextOrgId();
     }
@@ -547,7 +553,7 @@ misrepresented as being the original software.
       extra += " data-org-tags='" + (escapeAttr(t.join(' '))) + "'";
       global.ORG = org;
     }
-    if (org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source && ((_ref5 = org.name) != null ? _ref5.toLowerCase() : void 0) === 'name') {
+    if (org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source && ((_ref6 = org.name) != null ? _ref6.toLowerCase() : void 0) === 'name') {
       extra += " data-org-name='" + (escapeAttr(org.info)) + "'";
     }
     if (org instanceof Headline) {
@@ -564,8 +570,8 @@ misrepresented as being the original software.
   };
 
   resultsType = function(org) {
-    var _ref5;
-    return org instanceof Source && ((_ref5 = org.info.match(/:results *([^ ]*)/)) != null ? _ref5[1].toLowerCase() : void 0);
+    var _ref6;
+    return org instanceof Source && ((_ref6 = org.info.match(/:results *([^ ]*)/)) != null ? _ref6[1].toLowerCase() : void 0);
   };
 
   isDynamic = function(org) {
@@ -590,17 +596,63 @@ misrepresented as being the original software.
       return "<span " + (orgAttrs(org)) + ">" + (contentSpan(org.text, 'text')) + (markupGuts(org, checkStart(start, org.text))) + "</span>";
     } else if (org instanceof SimpleMarkup) {
       return markupSimple(org);
+    } else if (org instanceof Drawer && org.name.toLowerCase() === 'data') {
+      return markupData(org);
     } else {
       return "<span " + (orgAttrs(org)) + ">" + (content(org.text)) + "</span>";
     }
   };
 
+  markupData = function(org) {
+    var m;
+    m = org.text.match(/^[^\n]*\n([^\n]*)\n/);
+    return makeDataSpan((m != null ? m[1].trim() : void 0) || '', org.text);
+  };
+
+  makeDataSpan = function(id, text) {
+    return "<span data-leisure-data='" + id + "'>" + (escapeHtml(text)) + "</span>";
+  };
+
+  data = amt.Trie();
+
+  addData = function(el) {
+    var m;
+    if (m = el.textContent.match(/^[^\n]*\n[^\n]*\n((.|\n)*):END:\n/)) {
+      return data = amt.assoc(data, el.getAttribute('data-leisure-data'), jsonConvert(safeLoad(m[1])));
+    }
+  };
+
+  define('getOrgData', lz(function(key) {
+    return makeSyncMonad(function(env, cont) {
+      return cont(amt.get(data, rz(key)));
+    });
+  }));
+
+  define('setOrgData', lz(function(key) {
+    return $F(arguments, function(value) {
+      return makeSyncMonad(function(env, cont) {
+        var oldEl, oldText, text;
+        data = amt.assoc(data, rz(key), rz(value));
+        oldEl = $("[data-leisure-data=" + (rz(key)) + "]");
+        oldText = oldEl.text();
+        text = ":DATA:\n" + (rz(key)) + "\n" + (rz(L_toYaml)(value)(rz(L_id))(rz(L_id))) + ":END\n";
+        if (oldEl.length) {
+          oldEl.text(text);
+        } else {
+          $(parentSpec).append("\n" + (makeDataSpan(rz(key), text)));
+        }
+        sendDataDiff($(parentSpec)[0], rz(key), oldText, text);
+        return cont(_true);
+      });
+    });
+  }));
+
   markupSimple = function(org) {
-    var c, guts, t, _i, _len, _ref5;
+    var c, guts, t, _i, _len, _ref6;
     guts = '';
-    _ref5 = org.children;
-    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-      c = _ref5[_i];
+    _ref6 = org.children;
+    for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+      c = _ref6[_i];
       guts += markupNode(c);
     }
     t = org.text[0];
@@ -650,11 +702,11 @@ misrepresented as being the original software.
     } else {
       prev = start ? null : org;
       return ((function() {
-        var _i, _len, _ref5, _results;
-        _ref5 = org.children;
+        var _i, _len, _ref6, _results;
+        _ref6 = org.children;
         _results = [];
-        for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-          c = _ref5[_i];
+        for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+          c = _ref6[_i];
           s = start;
           start = false;
           p = prev;
@@ -688,19 +740,19 @@ misrepresented as being the original software.
   };
 
   fixupNodes = function(node) {
-    var n, _i, _len, _ref5, _results;
-    _ref5 = $(node).find('[data-org-type="headline"]');
+    var n, _i, _len, _ref6, _results;
+    _ref6 = $(node).find('[data-org-type="headline"]');
     _results = [];
-    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-      n = _ref5[_i];
+    for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+      n = _ref6[_i];
       _results.push(setTags(n));
     }
     return _results;
   };
 
   isCollapsibleText = function(node) {
-    var _ref5;
-    return node.nodeType === 3 && ((_ref5 = node.parentNode.getAttribute('data-org-type')) === 'text' || _ref5 === 'meat');
+    var _ref6;
+    return node.nodeType === 3 && ((_ref6 = node.parentNode.getAttribute('data-org-type')) === 'text' || _ref6 === 'meat');
   };
 
   shiftKey = function(c) {
@@ -755,14 +807,14 @@ misrepresented as being the original software.
   keyCombos = [];
 
   addKeyPress = function(e, c) {
-    var i, notShift, _i, _ref5;
+    var i, notShift, _i, _ref6;
     if (notShift = !shiftKey(c)) {
       lastKeys.push(modifiers(e, c));
       while (lastKeys.length > maxLastKeys) {
         lastKeys.shift();
       }
       keyCombos = new Array(maxLastKeys);
-      for (i = _i = 0, _ref5 = Math.min(lastKeys.length, maxLastKeys); 0 <= _ref5 ? _i < _ref5 : _i > _ref5; i = 0 <= _ref5 ? ++_i : --_i) {
+      for (i = _i = 0, _ref6 = Math.min(lastKeys.length, maxLastKeys); 0 <= _ref6 ? _i < _ref6 : _i > _ref6; i = 0 <= _ref6 ? ++_i : --_i) {
         keyCombos[i] = lastKeys.slice(lastKeys.length - i - 1, lastKeys.length).join(' ');
       }
       keyCombos.reverse();
@@ -798,7 +850,7 @@ misrepresented as being the original software.
       return setCurKeyBinding(null);
     });
     div.addEventListener('keydown', function(e) {
-      var bound, br, c, cancelled, checkMod, currentMatch, el, inCollapsedText, n, par, r, s, _ref5;
+      var bound, br, c, cancelled, checkMod, currentMatch, el, inCollapsedText, n, par, r, s, _ref6;
       c = e.charCode || e.keyCode || e.which;
       if (!addKeyPress(e, c)) {
         return;
@@ -807,7 +859,7 @@ misrepresented as being the original software.
       r = s.getRangeAt(0);
       el = r.startContainer;
       par = el.parentNode;
-      _ref5 = findKeyBinding(e, div, r), bound = _ref5[0], checkMod = _ref5[1];
+      _ref6 = findKeyBinding(e, div, r), bound = _ref6[0], checkMod = _ref6[1];
       if (bound) {
         cancelled = !checkMod;
       } else {
@@ -956,12 +1008,12 @@ misrepresented as being the original software.
   };
 
   checkSourceMod = function(parent, oldMatch) {
-    var n, newMatch, r, _ref5;
+    var n, newMatch, r, _ref6;
     r = getSelection().getRangeAt(0);
     if ((newMatch = matchLine(currentLine(parent))) !== oldMatch || (newMatch && newMatch.match(sensitive))) {
       return reparse(parent);
     } else if ($(r.startContainer).closest('[data-org-src]').length && (n = getOrgParent(r.startContainer))) {
-      switch ((_ref5 = n.getAttribute('data-org-results')) != null ? _ref5.toLowerCase() : void 0) {
+      switch ((_ref6 = n.getAttribute('data-org-results')) != null ? _ref6.toLowerCase() : void 0) {
         case 'dynamic':
           return root.orgApi.executeSource(parent, r.startContainer);
         case 'def':
@@ -1112,7 +1164,7 @@ misrepresented as being the original software.
   };
 
   restorePosition = function(parent, offset, block) {
-    var end, endContainer, endOffset, r, sel, start, _ref5;
+    var end, endContainer, endOffset, r, sel, start, _ref6;
     if (!block) {
       block = offset;
       offset = 0;
@@ -1124,7 +1176,7 @@ misrepresented as being the original software.
       end = offset + getTextPosition($(parent)[0], r.endContainer, r.endOffset);
       block();
       if (start > -1 && (r = nativeRange(findDomPosition($(parent)[0], start)))) {
-        _ref5 = findDomPosition($(parent)[0], end), endContainer = _ref5[0], endOffset = _ref5[1];
+        _ref6 = findDomPosition($(parent)[0], end), endContainer = _ref6[0], endOffset = _ref6[1];
         r.setEnd(endContainer, endOffset);
         return selectRange(r);
       }
@@ -1146,11 +1198,11 @@ misrepresented as being the original software.
     }
     reparse(parent, text);
     return setTimeout((function() {
-      var node, _i, _len, _ref5, _results;
-      _ref5 = $(parent).find('[data-org-src="def"]');
+      var node, _i, _len, _ref6, _results;
+      _ref6 = $(parent).find('[data-org-src="def"]');
       _results = [];
-      for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-        node = _ref5[_i];
+      for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+        node = _ref6[_i];
         _results.push(executeDef(node));
       }
       return _results;
@@ -1158,11 +1210,11 @@ misrepresented as being the original software.
   };
 
   reparse = function(parent, text) {
-    var orgNode, orgText, sel, _ref5;
+    var orgNode, orgText, sel, _ref6;
     styleCache = {};
     text = text != null ? text : getNodeText(parent);
     sel = getSelection();
-    _ref5 = root.orgApi.markupOrgWithNode(text), orgNode = _ref5[0], orgText = _ref5[1];
+    _ref6 = root.orgApi.markupOrgWithNode(text), orgNode = _ref6[0], orgText = _ref6[1];
     root.restorePosition(parent, function() {
       return root.orgApi.installOrgDOM(parent, orgNode, orgText);
     });
@@ -1179,8 +1231,18 @@ misrepresented as being the original software.
   };
 
   installOrgDOM = function(parent, orgNode, orgText) {
+    var node, _i, _len, _ref6, _results;
     dumpTextWatchers();
-    return parent.innerHTML = orgText;
+    parent.innerHTML = orgText;
+    console.log("ADDING DATA");
+    data = amt.Trie();
+    _ref6 = $('[data-leisure-data]');
+    _results = [];
+    for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+      node = _ref6[_i];
+      _results.push(addData(node));
+    }
+    return _results;
   };
 
   checkDeleteReparse = function(parent, backspace) {
@@ -1315,16 +1377,16 @@ misrepresented as being the original software.
   };
 
   executeDef = function(node, cont) {
-    var srcNode, text, _ref5;
-    _ref5 = getNodeSource(node), srcNode = _ref5[0], text = _ref5[1];
+    var srcNode, text, _ref6;
+    _ref6 = getNodeSource(node), srcNode = _ref6[0], text = _ref6[1];
     if (srcNode) {
       return executeText(text, propsFor(srcNode), baseEnv, cont);
     }
   };
 
   followingSpan = function(node) {
-    var _ref5;
-    return (_ref5 = node.nextElementSibling) != null ? _ref5 : $('<span></span>').appendTo(node.parentNode)[0];
+    var _ref6;
+    return (_ref6 = node.nextElementSibling) != null ? _ref6 : $('<span></span>').appendTo(node.parentNode)[0];
   };
 
   checkExtraNewline = function(range, n, parent) {
@@ -1386,17 +1448,17 @@ misrepresented as being the original software.
   };
 
   isCollapsible = function(node) {
-    var _ref5;
-    return (_ref5 = node.getAttribute('data-org-type')) === 'headline' || _ref5 === 'source' || _ref5 === 'results';
+    var _ref6;
+    return (_ref6 = node.getAttribute('data-org-type')) === 'headline' || _ref6 === 'source' || _ref6 === 'results';
   };
 
   getCollapsible = function(node) {
-    var _ref5;
+    var _ref6;
     if (node.nodeType === 1) {
       if (isCollapsible(node)) {
         return node;
       } else {
-        return ((_ref5 = node.getAttribute('data-org-type')) === 'text' || _ref5 === 'meat') && getCollapsible(node.parentElement);
+        return ((_ref6 = node.getAttribute('data-org-type')) === 'text' || _ref6 === 'meat') && getCollapsible(node.parentElement);
       }
     } else {
       return node.nodeType === 3 && getCollapsible(node.parentElement);
@@ -1667,13 +1729,13 @@ misrepresented as being the original software.
 
   orgNotebook = {
     useNode: function(node, source) {
-      var lastOrgText, newNode, oldContent, orgNode, _ref5;
-      root.orgApi = this;
+      var lastOrgText, newNode, oldContent, orgData, orgNode, _ref6;
+      orgData = root.orgApi = this;
       sourceDiv = source;
       oldContent = $(node).text();
       newNode = emptyOutNode(node);
       editDiv = newNode;
-      _ref5 = this.markupOrgWithNode(oldContent), orgNode = _ref5[0], lastOrgText = _ref5[1];
+      _ref6 = this.markupOrgWithNode(oldContent), orgNode = _ref6[0], lastOrgText = _ref6[1];
       root.restorePosition(newNode, (function(_this) {
         return function() {
           return _this.installOrgDOM(newNode, orgNode, lastOrgText);
@@ -1846,6 +1908,8 @@ misrepresented as being the original software.
   root.dumpTextWatchers = dumpTextWatchers;
 
   root.useText = useText;
+
+  root.markupData = markupData;
 
 }).call(this);
 

@@ -52,6 +52,11 @@ misrepresented as being the original software.
 } = require './ast'
 _ = require './lodash.min'
 amt = require('persistent-hash-trie')
+{
+  safeLoad,
+  dump,
+} = require('js-yaml')
+
 rz = resolve
 lz = lazy
 
@@ -583,13 +588,13 @@ hamt = makeHamt amt.Trie()
 
 define 'hamt', lz  hamt
 
-define 'hamtWith', lz (key)->(value)->(hamt)-> makeHamt amt.assoc rz(hamt).hamt, rz(key), rz(value)
+define 'hamtWith', lz (key)->$F(arguments, (value)->$F(arguments, (hamt)-> makeHamt amt.assoc rz(hamt).hamt, rz(key), rz(value)))
 
-define 'hamtFetch', lz (key)->(hamt)-> amt.get rz(hamt).hamt, rz(key)
+define 'hamtFetch', lz (key)->$F(arguments, (hamt)-> amt.get rz(hamt).hamt, rz(key))
 
-define 'hamtGet', lz (key)->(hamt)->
+define 'hamtGet', lz (key)->$F(arguments, (hamt)->
   v = amt.get rz(hamt).hamt, rz(key)
-  if v != undefined then some v else none
+  if v != undefined then some v else none)
 
 define 'hamtWithout', lz (key)->(hamt)-> makeHamt amt.dissoc rz(hamt).hamt, rz(key)
 
@@ -622,6 +627,45 @@ nextNode = (stack)->
         stack = simpyCons value, stack
       return nextNode stack
     else console.log "UNKNOWN HAMT NODE TYPE: #{node.type}"
+
+#################
+# YAML and JSON
+#################
+
+lacons = (k, v, list)-> rz(L_acons)(lz k)(lz v)(lz list)
+
+jsonConvert = (obj)->
+  if obj instanceof Array
+    consFrom (jsonConvert i for i in obj)
+  else if typeof obj == 'object'
+    t = rz L_nil
+    for k, v of obj
+      t = lacons k, jsonConvert(v), t
+    t
+  else obj
+
+define 'toJsonArray', lz (list)->
+  list = rz list
+  array = []
+  while !list.isNil()
+    array.push list.head()
+    list = list.tail()
+  array
+
+define 'toJsonObject', lz (list)->
+  list = rz list
+  obj = {}
+  while !list.isNil()
+    head = list.head()
+    obj[head.head()] = head.tail()
+    list = list.tail()
+  obj
+
+define 'jsonToYaml', lz (json)->
+  try
+    right dump rz json
+  catch err
+    left err.stack
 
 #######################
 # Trampolines
@@ -781,6 +825,8 @@ root.booleanFor = booleanFor
 root.newConsFrom = consFrom
 root.escapePresentationHtml = escapePresentationHtml
 root.unescapePresentationHtml = unescapePresentationHtml
+root.makeHamt = makeHamt
+root.jsonConvert = jsonConvert
 
 if window?
   window.runMonad = runMonad

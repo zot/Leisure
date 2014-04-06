@@ -31,7 +31,8 @@
         "xmlhttprequest": "*",
         "socket.io": "0.9.16",
         "source-map": "*",
-        "utf8": "*"
+        "utf8": "*",
+        "js-yaml": "3.x"
     },
     "devDependencies": {
         "coffee-script": "*",

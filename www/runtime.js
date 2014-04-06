@@ -25,7 +25,7 @@ misrepresented as being the original software.
  */
 
 (function() {
-  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, nsLog, parensContent, parensEnd, parensStart, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, replaceErr, requireFiles, resolve, right, root, runMonad, rz, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _true,
+  var Monad, Nil, SimpyCons, actors, amt, ast2Json, asyncMonad, basicCall, booleanFor, call, callMonad, cons, consFrom, continueMonads, curry, defaultEnv, define, dump, ensureLeisureClass, escapePresentationHtml, funcInfo, functionInfo, getDataType, getMonadSyncMode, getType, getValue, hamt, head, identity, isMonad, jsonConvert, lacons, lazy, left, lz, makeHamt, makeMonad, makeSyncMonad, monadModeSync, nameSub, newRunMonad, nextMonad, nextNode, none, nsLog, parensContent, parensEnd, parensStart, posString, presentationReplacements, presentationToHtmlReplacements, readDir, readFile, replaceErr, requireFiles, resolve, right, root, runMonad, rz, safeLoad, setDataType, setType, setValue, setWarnAsync, simpyCons, some, statFile, strCoord, strFromList, strToList, subcurry, tail, tokenPos, tokenString, trampCurry, unescapePresentationHtml, values, warnAsync, withSyncModeDo, writeFile, _, _false, _identity, _ref, _ref1, _ref2, _true,
     __slice = [].slice,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -36,6 +36,8 @@ misrepresented as being the original software.
   _ = require('./lodash.min');
 
   amt = require('persistent-hash-trie');
+
+  _ref2 = require('js-yaml'), safeLoad = _ref2.safeLoad, dump = _ref2.dump;
 
   rz = resolve;
 
@@ -54,11 +56,11 @@ misrepresented as being the original software.
   };
 
   basicCall = function(args, env, cont) {
-    var arg, res, _i, _len, _ref2;
+    var arg, res, _i, _len, _ref3;
     res = rz(global["L_" + args[0]]);
-    _ref2 = args.slice(1);
-    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-      arg = _ref2[_i];
+    _ref3 = args.slice(1);
+    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+      arg = _ref3[_i];
       res = (function(arg) {
         return res(lz(arg));
       })(arg);
@@ -331,8 +333,8 @@ misrepresented as being the original software.
   }));
 
   define('_show', lz(function(data) {
-    var _ref2;
-    if ((_ref2 = typeof rz(data)) === 'string' || _ref2 === 'number' || _ref2 === 'boolean') {
+    var _ref3;
+    if ((_ref3 = typeof rz(data)) === 'string' || _ref3 === 'number' || _ref3 === 'boolean') {
       return JSON.stringify(rz(data));
     } else if (getType(rz(data)) === 'err') {
       return rz(L_errMsg)(data);
@@ -517,8 +519,8 @@ misrepresented as being the original software.
   }));
 
   define('getProperties', lz(function(func) {
-    var _ref2;
-    if ((_ref2 = rz(func)) != null ? _ref2.properties : void 0) {
+    var _ref3;
+    if ((_ref3 = rz(func)) != null ? _ref3.properties : void 0) {
       return rz(func).properties;
     } else {
       return rz(L_nil);
@@ -529,9 +531,9 @@ misrepresented as being the original software.
     return $F(arguments, lz(function(name) {
       return $F(arguments, lz(function(value) {
         return makeSyncMonad(function(env, cont) {
-          var f, _ref2;
+          var f, _ref3;
           f = rz(func);
-          f.properties = rz(L_aconsf)(name)(value)(lz((_ref2 = f.properties) != null ? _ref2 : rz(L_nil)));
+          f.properties = rz(L_aconsf)(name)(value)(lz((_ref3 = f.properties) != null ? _ref3 : rz(L_nil)));
           return cont(f.properties);
         });
       }));
@@ -586,8 +588,8 @@ misrepresented as being the original software.
   };
 
   defaultEnv.err = function(err) {
-    var _ref2;
-    return this.write("ENV Error: " + ((_ref2 = err.stack) != null ? _ref2 : err));
+    var _ref3;
+    return this.write("ENV Error: " + ((_ref3 = err.stack) != null ? _ref3 : err));
   };
 
   defaultEnv.prompt = function() {
@@ -601,14 +603,14 @@ misrepresented as being the original software.
   };
 
   withSyncModeDo = function(newMode, block) {
-    var err, oldMode, _ref2;
+    var err, oldMode, _ref3;
     oldMode = monadModeSync;
     monadModeSync = newMode;
     try {
       return block();
     } catch (_error) {
       err = _error;
-      return console.log("ERR: " + ((_ref2 = err.stack) != null ? _ref2 : err));
+      return console.log("ERR: " + ((_ref3 = err.stack) != null ? _ref3 : err));
     } finally {
 
     }
@@ -646,7 +648,7 @@ misrepresented as being the original software.
   };
 
   newRunMonad = function(monad, env, cont, contStack) {
-    var err, result, _ref2;
+    var err, result, _ref3;
     if (cont) {
       contStack.push(cont);
     }
@@ -682,7 +684,7 @@ misrepresented as being the original software.
     } catch (_error) {
       err = _error;
       err = replaceErr(err, "\nERROR RUNNING MONAD, MONAD: " + monad + ", ENV: " + env + "...\n" + err.message);
-      console.log((_ref2 = err.stack) != null ? _ref2 : err);
+      console.log((_ref3 = err.stack) != null ? _ref3 : err);
       if (env.errorHandlers.length) {
         return env.errorHandlers.pop()(err);
       }
@@ -735,9 +737,9 @@ misrepresented as being the original software.
     return makeMonad(function(env, cont) {
       var hnd;
       hnd = function(err) {
-        var _ref2, _ref3;
-        console.log("PROTECTED ERROR: " + ((_ref2 = err.stack) != null ? _ref2 : err));
-        return cont(left((_ref3 = err.stack) != null ? _ref3 : err));
+        var _ref3, _ref4;
+        console.log("PROTECTED ERROR: " + ((_ref3 = err.stack) != null ? _ref3 : err));
+        return cont(left((_ref4 = err.stack) != null ? _ref4 : err));
       };
       env.errorHandlers.push(hnd);
       return runMonad(rz(value), env, (function(result) {
@@ -784,8 +786,8 @@ misrepresented as being the original software.
   define('getValueOr', lz(function(name) {
     return function(defaultValue) {
       return makeSyncMonad(function(env, cont) {
-        var _ref2;
-        return cont((_ref2 = values[rz(name)]) != null ? _ref2 : rz(defaultValue));
+        var _ref3;
+        return cont((_ref3 = values[rz(name)]) != null ? _ref3 : rz(defaultValue));
       });
     };
   }));
@@ -832,8 +834,8 @@ misrepresented as being the original software.
   define('envGetOr', lz(function(name) {
     return function(defaultValue) {
       return makeSyncMonad(function(env, cont) {
-        var _ref2;
-        return cont((_ref2 = env.values[rz(name)]) != null ? _ref2 : rz(defaultValue));
+        var _ref3;
+        return cont((_ref3 = env.values[rz(name)]) != null ? _ref3 : rz(defaultValue));
       });
     };
   }));
@@ -931,8 +933,8 @@ misrepresented as being the original software.
   define('readFile', lz(function(name) {
     return makeMonad(function(env, cont) {
       return env.readFile(rz(name), function(err, contents) {
-        var _ref2;
-        return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(contents)));
+        var _ref3;
+        return cont((err ? left((_ref3 = err.stack) != null ? _ref3 : err) : right(contents)));
       });
     });
   }));
@@ -940,8 +942,8 @@ misrepresented as being the original software.
   define('readDir', lz(function(dir) {
     return makeMonad(function(env, cont) {
       return env.readDir(rz(dir), function(err, files) {
-        var _ref2;
-        return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(files)));
+        var _ref3;
+        return cont((err ? left((_ref3 = err.stack) != null ? _ref3 : err) : right(files)));
       });
     });
   }));
@@ -950,8 +952,8 @@ misrepresented as being the original software.
     return function(data) {
       return makeMonad(function(env, cont) {
         return env.writeFile(rz(name), rz(data), function(err, contents) {
-          var _ref2;
-          return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(contents)));
+          var _ref3;
+          return cont((err ? left((_ref3 = err.stack) != null ? _ref3 : err) : right(contents)));
         });
       });
     };
@@ -960,8 +962,8 @@ misrepresented as being the original software.
   define('statFile', lz(function(file) {
     return makeMonad(function(env, cont) {
       return env.statFile(rz(file), function(err, stats) {
-        var _ref2;
-        return cont((err ? left((_ref2 = err.stack) != null ? _ref2 : err) : right(stats)));
+        var _ref3;
+        return cont((err ? left((_ref3 = err.stack) != null ? _ref3 : err) : right(stats)));
       });
     });
   }));
@@ -1019,11 +1021,11 @@ misrepresented as being the original software.
             }
             info.alts[rz(alt)] = rz(def);
             alts = (function() {
-              var _i, _len, _ref2, _results;
-              _ref2 = info.altList;
+              var _i, _len, _ref3, _results;
+              _ref3 = info.altList;
               _results = [];
-              for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-                i = _ref2[_i];
+              for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+                i = _ref3[_i];
                 _results.push(info.alts[i]);
               }
               return _results;
@@ -1135,21 +1137,21 @@ misrepresented as being the original software.
   define('hamt', lz(hamt));
 
   define('hamtWith', lz(function(key) {
-    return function(value) {
-      return function(hamt) {
+    return $F(arguments, function(value) {
+      return $F(arguments, function(hamt) {
         return makeHamt(amt.assoc(rz(hamt).hamt, rz(key), rz(value)));
-      };
-    };
+      });
+    });
   }));
 
   define('hamtFetch', lz(function(key) {
-    return function(hamt) {
+    return $F(arguments, function(hamt) {
       return amt.get(rz(hamt).hamt, rz(key));
-    };
+    });
   }));
 
   define('hamtGet', lz(function(key) {
-    return function(hamt) {
+    return $F(arguments, function(hamt) {
       var v;
       v = amt.get(rz(hamt).hamt, rz(key));
       if (v !== void 0) {
@@ -1157,7 +1159,7 @@ misrepresented as being the original software.
       } else {
         return none;
       }
-    };
+    });
   }));
 
   define('hamtWithout', lz(function(key) {
@@ -1171,7 +1173,7 @@ misrepresented as being the original software.
   }));
 
   nextNode = function(stack) {
-    var child, k, key, node, value, _ref2, _ref3;
+    var child, k, key, node, value, _ref3, _ref4;
     if (stack === null) {
       return rz(L_nil);
     }
@@ -1179,9 +1181,9 @@ misrepresented as being the original software.
     stack = stack.tail;
     switch (node.type) {
       case 'trie':
-        _ref2 = node.children;
-        for (k in _ref2) {
-          child = _ref2[k];
+        _ref3 = node.children;
+        for (k in _ref3) {
+          child = _ref3[k];
           stack = simpyCons(child, stack);
         }
         return nextNode(stack);
@@ -1190,9 +1192,9 @@ misrepresented as being the original software.
           return nextNode(stack);
         });
       case 'hashmap':
-        _ref3 = node.values;
-        for (key in _ref3) {
-          value = _ref3[key];
+        _ref4 = node.values;
+        for (key in _ref4) {
+          value = _ref4[key];
           stack = simpyCons(value, stack);
         }
         return nextNode(stack);
@@ -1200,6 +1202,67 @@ misrepresented as being the original software.
         return console.log("UNKNOWN HAMT NODE TYPE: " + node.type);
     }
   };
+
+  lacons = function(k, v, list) {
+    return rz(L_acons)(lz(k))(lz(v))(lz(list));
+  };
+
+  jsonConvert = function(obj) {
+    var i, k, t, v;
+    if (obj instanceof Array) {
+      return consFrom((function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = obj.length; _i < _len; _i++) {
+          i = obj[_i];
+          _results.push(jsonConvert(i));
+        }
+        return _results;
+      })());
+    } else if (typeof obj === 'object') {
+      t = rz(L_nil);
+      for (k in obj) {
+        v = obj[k];
+        t = lacons(k, jsonConvert(v), t);
+      }
+      return t;
+    } else {
+      return obj;
+    }
+  };
+
+  define('toJsonArray', lz(function(list) {
+    var array;
+    list = rz(list);
+    array = [];
+    while (!list.isNil()) {
+      array.push(list.head());
+      list = list.tail();
+    }
+    return array;
+  }));
+
+  define('toJsonObject', lz(function(list) {
+    var obj;
+    list = rz(list);
+    obj = {};
+    while (!list.isNil()) {
+      head = list.head();
+      obj[head.head()] = head.tail();
+      list = list.tail();
+    }
+    return obj;
+  }));
+
+  define('jsonToYaml', lz(function(json) {
+    var err;
+    try {
+      return right(dump(rz(json)));
+    } catch (_error) {
+      err = _error;
+      return left(err.stack);
+    }
+  }));
 
   define('trampolineCall', lz(function(func) {
     var ret;
@@ -1283,8 +1346,8 @@ misrepresented as being the original software.
 
   define('setNameSpaceInfo', lz(function(info) {
     return makeSyncMonad(function(env, cont) {
-      var _ref2;
-      _ref2 = rz(info), root.nameSpacePath = _ref2[0], root.currentNameSpace = _ref2[1];
+      var _ref3;
+      _ref3 = rz(info), root.nameSpacePath = _ref3[0], root.currentNameSpace = _ref3[1];
       nsLog("SETTING NAME SPACE: " + root.currentNameSpace);
       return cont(_true);
     });
@@ -1492,6 +1555,10 @@ misrepresented as being the original software.
   root.escapePresentationHtml = escapePresentationHtml;
 
   root.unescapePresentationHtml = unescapePresentationHtml;
+
+  root.makeHamt = makeHamt;
+
+  root.jsonConvert = jsonConvert;
 
   if (typeof window !== "undefined" && window !== null) {
     window.runMonad = runMonad;

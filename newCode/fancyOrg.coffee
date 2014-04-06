@@ -101,6 +101,7 @@ lz = lazy
   HOME,
   END,
   watchNodeText,
+  markupData,
 } = require './orgSupport'
 {
   redrawAllIssues,
@@ -196,7 +197,7 @@ getDocRange = ->
   s = getSelection()
   r = s.getRangeAt 0
   offset = getDocumentOffset r
-  if s.focusNode?.nodeType == 1 && s.rangeCount == 1 && r.collapsed && shadow = r.startContainer.children[r.startOffset].shadowRoot
+  if s.focusNode?.nodeType == 1 && s.rangeCount == 1 && r.collapsed && shadow = r.startContainer.children[r.startOffset]?.shadowRoot
     s = shadow.getSelection()
     note = $(s.focusNode).closest('[data-note-origin]')?[0]
     if note then [getTextPosition(note, s.anchorNode, s.anchorOffset), getTextPosition(note, s.extentNode, s.extentOffset), window.pageYOffset - offset, note.id]
@@ -295,6 +296,7 @@ markupNode = (org, middleOfLine, delay, note)->
     else defaultMarkup org
   else if org instanceof Headline then markupHeadline org, delay, note
   else if org instanceof Drawer && org.name.toLowerCase() == 'properties' then markupProperties org, delay
+  else if org instanceof Drawer && org.name.toLowerCase() == 'data' then markupData org
   else if org instanceof ListItem then markupListItem org, delay
   else if org instanceof SimpleMarkup then markupSimple org
   else if org instanceof Link then markupLink org

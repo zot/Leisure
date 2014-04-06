@@ -11,6 +11,7 @@ require './base64'
 require './diff'
 require './sha256'
 require 'utf8'
+require 'js-yaml'
 
 #window.marked = require './marked'
 #Leisure = exports = module.exports = require './base'

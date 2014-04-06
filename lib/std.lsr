@@ -222,6 +222,18 @@ mergeSort cmp l = l
 sort l = sortBy (<=) l
 sortBy cmp l = mergeSort cmp l
 
+#################
+# YAML and JSON
+#################
+
+toJson obj = isAlist obj
+  toJsonObject (map (\pair . cons (head pair) (toJson (tail pair))) (reverse obj))
+  isCons obj
+    toJsonArray (map (\item . toJson item) obj)
+    obj
+
+toYaml jsonStuff = jsonToYaml (toJson jsonStuff)
+
 #######################
 ## Cases
 #######################

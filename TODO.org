@@ -2,6 +2,7 @@
 - Floaty notes
 - Image dragging
 - Collaboration engine
+  - detect where changes are, to avoid rerendering/recomputing data
   - show users' cursors/selections
   - persistence: git
   - toggle synchronizing
@@ -17,6 +18,9 @@
 - data
 * Short-term Leisure-org plan
 - collaboration service
+  - detect changes to avoid unnecessary computation
+    - only recompute data which has changed
+    - only rerender elements which have changed
   - show users' cursors/selections
   - persistence: git
   - use a switchboard web service, like from p2pmud, with file-patching commands

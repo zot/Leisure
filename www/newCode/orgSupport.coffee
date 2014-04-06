@@ -39,7 +39,15 @@ lz = lazy
   newConsFrom,
   setValue,
   getValue,
+  makeSyncMonad,
+  makeHamt,
+  _true,
+  jsonConvert,
 } = require './runtime'
+{
+  sendText,
+} = require './collaborate'
+amt = require('persistent-hash-trie')
 
 consFrom = newConsFrom
 Nil = rz L_nil
@@ -63,6 +71,7 @@ Nil = rz L_nil
   Keyword,
   Source,
   Results,
+  Drawer,
   SimpleMarkup,
   headlineRE,
   HL_TAGS,
@@ -70,6 +79,10 @@ Nil = rz L_nil
   matchLine,
 } = require './org'
 _ = require './lodash.min'
+{
+  safeLoad,
+  dump,
+} = require('js-yaml')
 
 PAGEUP = 33
 PAGEDOWN = 34
@@ -434,7 +447,35 @@ markupNode = (org, start)->
     "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else if org instanceof SimpleMarkup then markupSimple org
+  else if org instanceof Drawer && org.name.toLowerCase() == 'data' then markupData org
   else "<span #{orgAttrs org}>#{content org.text}</span>"
+
+markupData = (org)->
+  m = org.text.match /^[^\n]*\n([^\n]*)\n/
+  makeDataSpan m?[1].trim() || '', org.text
+
+makeDataSpan = (id, text)-> "<span data-leisure-data='#{id}'>#{escapeHtml text}</span>"
+
+data = amt.Trie()
+
+addData = (el)->
+  if m = el.textContent.match /^[^\n]*\n[^\n]*\n((.|\n)*):END:\n/
+    data = amt.assoc data, el.getAttribute('data-leisure-data'), jsonConvert(safeLoad m[1])
+
+define 'getOrgData', lz (key)->
+  makeSyncMonad (env, cont)->
+    cont amt.get data, rz key
+
+define 'setOrgData', lz (key)->$F(arguments, (value)->
+  makeSyncMonad (env, cont)->
+    data = amt.assoc data, rz(key), rz(value)
+    oldEl = $("[data-leisure-data=#{rz key}]")
+    oldText = oldEl.text()
+    text = ":DATA:\n#{rz key}\n#{rz(L_toYaml)(value)(rz L_id)(rz L_id)}:END\n"
+    if oldEl.length then oldEl.text text
+    else $(parentSpec).append "\n" + (makeDataSpan rz(key), text)
+    sendDataDiff $(parentSpec)[0], rz(key), oldText, text
+    cont _true)
 
 markupSimple = (org)->
   guts = ''
@@ -818,6 +859,10 @@ reparse = (parent, text)->
 installOrgDOM = (parent, orgNode, orgText)->
   dumpTextWatchers()
   parent.innerHTML = orgText
+  console.log "ADDING DATA"
+  data = amt.Trie()
+  for node in $ '[data-leisure-data]'
+    addData node
 
 #checkDeleteReparse = (parent, backspace)->
 #  r = rangy.getSelection().getRangeAt 0
@@ -1110,6 +1155,7 @@ getOrgText = (parent)-> (cachedOrgParent == parent && cachedOrgText) || (cachedO
 
 orgNotebook =
   useNode: (node, source)->
+    orgData =
     root.orgApi = @
     sourceDiv = source
     oldContent = $(node).text()
@@ -1217,3 +1263,4 @@ root.nodeBefore = nodeBefore
 root.watchNodeText = watchNodeText
 root.dumpTextWatchers = dumpTextWatchers
 root.useText = useText
+root.markupData = markupData
