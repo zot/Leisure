@@ -37,8 +37,8 @@ Trunk comes from the server and represents the picture of the file on the server
               trunkText = texts[trunk]
               ancestor = commonAncestor oldHash, trunk
               storeText _(diff.diff3_merge txt, texts[ancestor], texts[trunk], true).reduce(((str, result)->
-                if result.ok then result.ok.join('')
-                else result.conflict.a + result.conflict.b),
+                if result.ok then str + result.ok.join('')
+                else str + result.conflict.a + result.conflict.b),
               '')
               mergeHash = oldHash
               oldHash = trunk
