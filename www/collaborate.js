@@ -116,7 +116,7 @@
     if (ancestor && set[ancestor]) {
       return ancestor;
     } else {
-      return ancestor && (set[ancestor] = true);
+      return ancestor && (set[ancestor] = true) && ancestor;
     }
   };
 

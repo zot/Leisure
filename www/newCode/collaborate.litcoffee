@@ -74,7 +74,7 @@ Trunk comes from the server and represents the picture of the file on the server
 
     checkAncestor = (ancestor, set)->
       if ancestor && set[ancestor] then ancestor
-      else ancestor && (set[ancestor] = true)
+      else ancestor && (set[ancestor] = true) && ancestor
 
 sendDiff
 parentHash: hash of parentText
