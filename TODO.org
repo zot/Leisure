@@ -7,6 +7,8 @@
   - persistence: git
   - toggle synchronizing
 - data
+- HTML/image data binding
+  - make image dragging and collaboration use data binding -- maybe backbone
 * Milestone features
 - collaboration
 - draggable images
@@ -53,6 +55,11 @@
     - query
       - use datalog, like datomic?
     - listener fires when data changes
+- HTML/image data binding
+  - make image dragging and collaboration use data binding -- maybe backbone
+  - check observe.js, backbone, knockout, angularjs, ...
+- security
+  - run privileged code only in a web worker
 - partial parsing/syncing
   - fancy/basic mode for each slide
   - only reprocess changed parts
@@ -350,8 +357,17 @@ they don't like building things...
   :ID:       41b927b5-242d-4552-b7ac-5ef44eccf79e
   :END:
 ** TODO Connect with Floobits
+   :PROPERTIES:
+   :ID:       07ec1b14-aa7a-4879-845f-64deac6638cf
+   :END:
 ** TODO Make markup regular, so every headline has textborder, etc.
+   :PROPERTIES:
+   :ID:       3a564b52-b404-415d-b5a7-8eec1715a149
+   :END:
 ** TODO Stream fusion                                               :leisure:
+   :PROPERTIES:
+   :ID:       5c9ce52c-dce2-4d93-b578-8034bcdb3973
+   :END:
 ** TODO use script elements and document.currentScript for interactive HTML :leisure:org:
    :PROPERTIES:
    :ID:       839f3a8c-bfdb-49d4-b5cc-b22f47607966

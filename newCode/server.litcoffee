@@ -20,6 +20,7 @@ Leisure server -- supports collaboration on documents
       uri = new URI req.url
       console.log "PATH: #{uri.path}"
       if m = uri.path.match /^file\/(.*)$/ then getFile uri, req, res, m
+      else if m = uri.path.match /^((newCode\/|core\/).*)$/ then getFile uri, req, res, m
       else if m = uri.path.match /^collab\/(.*)$/ then attemptCollab uri, req, res, m
       else
         console.log "BAD REQUEST: #{uri.path}"
