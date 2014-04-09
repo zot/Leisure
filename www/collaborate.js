@@ -81,15 +81,15 @@
     }
   };
 
-  sendData = function(el, key, oldValue, newValue) {
+  sendData = function(key, value) {
+    var textDirty;
     if (socket) {
       socket.emit('storeData', {
-        parent: hash,
         key: key,
-        patch: diff.diff_patch(oldValue, newValue)
+        value: value
       });
+      return textDirty = true;
     }
-    return storeText(el.textContent);
   };
 
   commonAncestor = function(h1, h2) {
@@ -180,11 +180,15 @@
           console.log("CONNECTED");
           return socket.emit('init', hash);
         });
-        return socket.on('patch', function(_arg) {
+        socket.on('patch', function(_arg) {
           var hash, patch;
           hash = _arg.hash, patch = _arg.patch;
           console.log("RECEIVED hash: " + hash + ", patch " + (JSON.stringify(patch)));
           return receivePatch(hash, patch);
+        });
+        return socket.on('receiveData', function(_arg) {
+          var key, value, yaml;
+          key = _arg.key, value = _arg.value, yaml = _arg.yaml;
         });
       } else {
         return console.log("NOT COLLABORATING");
@@ -201,8 +205,6 @@
   root.initCollaboration = initCollaboration;
 
   root.sendText = sendText;
-
-  root.sendDataDiff = sendDataDiff;
 
 }).call(this);
 

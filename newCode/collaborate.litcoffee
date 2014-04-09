@@ -53,13 +53,12 @@ Trunk comes from the server and represents the picture of the file on the server
           setText el.textContent
           watching = false), watchPeriod
 
-    sendData = (el, key, oldValue, newValue)->
+    sendData = (key, value)->
       if socket
         socket.emit 'storeData',
-          parent: hash
           key: key
-          patch: diff.diff_patch oldValue, newValue
-      storeText el.textContent
+          value: value
+        textDirty = true
 
     commonAncestor = (h1, h2)->
       if h1 && h2
@@ -126,6 +125,8 @@ merge: hash of merge parent
           socket.on 'patch', ({hash, patch})->
             console.log "RECEIVED hash: #{hash}, patch #{JSON.stringify patch}"
             receivePatch hash, patch
+          socket.on 'receiveData', ({key, value, yaml})->
+
         else console.log "NOT COLLABORATING"
 
     root.setText = setText
@@ -133,4 +134,4 @@ merge: hash of merge parent
     root.setCollaborationListener = setListener
     root.initCollaboration = initCollaboration
     root.sendText = sendText
-    root.sendDataDiff = sendDataDiff
+    #root.sendDataDiff = sendDataDiff
