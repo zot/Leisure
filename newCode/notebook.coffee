@@ -50,7 +50,7 @@ lz = lazy
 URI = window.URI
 Xus = window.Xus
 $ = window.$
-_ = require './lodash.min'
+_ = require 'lodash.min'
 window.global = window
 
 #debug = true

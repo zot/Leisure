@@ -9,7 +9,7 @@
   Keyword,
   Source,
   Results,
-} = require './org'
+} = require 'org'
 {
   loadOrg,
 } = require './orgSupport'
@@ -17,7 +17,7 @@
   initCollaboration,
 } = require './collaborate'
 
-Github = require './github'
+Github = require 'github'
 
 connection = null
 repo = null

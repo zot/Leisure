@@ -48,7 +48,7 @@ lz = lazy
   drawerRE,
   parseTags,
   matchLine,
-} = require './org'
+} = require 'org'
 {
   orgNotebook,
   parseOrgMode,
@@ -110,7 +110,7 @@ lz = lazy
 {
   sendText,
 } = require './collaborate'
-_ = require './lodash.min'
+_ = require 'lodash.min'
 
 fancyOrg = null
 slideMode = false

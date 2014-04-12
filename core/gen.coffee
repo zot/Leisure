@@ -69,7 +69,7 @@ lz = lazy
   booleanFor,
   newConsFrom,
 } = require './runtime'
-_ = require './lodash.min'
+_ = require 'lodash.min'
 
 consFrom = newConsFrom
 

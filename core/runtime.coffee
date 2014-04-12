@@ -50,7 +50,7 @@ misrepresented as being the original software.
   functionInfo,
   nameSub,
 } = require './ast'
-_ = require './lodash.min'
+_ = require 'lodash.min'
 amt = require('persistent-hash-trie')
 {
   safeLoad,

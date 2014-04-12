@@ -69,7 +69,7 @@ require('source-map-support').install()
   getDelimiterInfo,
   setDelimiterInfo,
   addDelimiter,
-} = require './simpleParseJS'
+} = require 'simpleParseJS'
 
 Error.stackTraceLimit = Infinity
 
@@ -276,7 +276,7 @@ delimiterPatStr = JSON.stringify LZ.delimiterPat.source
 
 s = (str)-> JSON.stringify str
 
-readFile 'core/simpleParse.lsr', (err, code)->
+readFile 'src/simpleParse.lsr', (err, code)->
   if err then throw new Error err
   else
     writeFile '/tmp/simpleParse.js', (compileFile code, "simpleParse.js"), (err)->

@@ -1,6 +1,6 @@
 root = module.exports = require './base'
-Base64 = require './base64'
-Github = require './github'
+Base64 = require 'base64'
+Github = require 'github'
 
 Ext = {}
 

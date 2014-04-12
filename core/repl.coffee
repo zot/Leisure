@@ -31,7 +31,7 @@ Error.stackTraceLimit = Infinity
 } = root = module.exports = require './base'
 rz = resolve
 lz = lazy
-_ = require './lodash.min'
+_ = require 'lodash.min'
 path = require 'path'
 fs = require 'fs'
 
@@ -83,7 +83,7 @@ global.identity = identity
 # 2: use generatedPrelude.lsr
 #
 stage = 2
-stages = ['./simpleParseJS', './simpleParse', './generatedPrelude']
+stages = ['simpleParseJS', 'simpleParse', 'generatedPrelude']
 shouldNsLog = false
 
 diag = false
@@ -497,7 +497,7 @@ if verbose then console.log "ARGS: #{JSON.stringify process.argv}"
 
 prog = path.basename(process.argv[1])
 
-if prog == 'repl' || prog == 'leisure'
+if prog.toLowerCase() in ['repl', 'runrepl', 'leisure']
   if verbose then console.log "RUNNING REPL"
   run process.argv,
     home: process.env.HOME

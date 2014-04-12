@@ -27,7 +27,7 @@ misrepresented as being the original software.
   lazy,
   nsLog,
 } = root = module.exports = require './base'
-_ = require('./lodash.min')
+_ = require('lodash.min')
 
 rz = resolve
 lz = lazy

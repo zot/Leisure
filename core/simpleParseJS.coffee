@@ -52,7 +52,7 @@ lz = lazy
   identity,
 } = require './runtime'
 {gen} = require './gen'
-_ = require('./lodash.min')
+_ = require('lodash.min')
 
 delimiterListPrefix = /"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|\n *|#.*/.source
 

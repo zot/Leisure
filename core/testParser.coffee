@@ -71,7 +71,7 @@ global.setType = setType
 global.setDataType = setDataType
 global.defaultEnv = defaultEnv
 global.identity = identity
-require './generatedPrelude'
+require 'generatedPrelude'
 runLsr """
 simplify exprString = do
   list <- scanLineM exprString

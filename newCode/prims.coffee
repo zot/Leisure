@@ -6,7 +6,7 @@
 rz = resolve
 lz = lazy
 
-URI = require './uri'
+URI = require 'uri'
 
 define 'read', lz (uri)->
   makeMonad (env, cont)->
