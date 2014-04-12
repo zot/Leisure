@@ -1,0 +1,6 @@
+* slide
+#+BEGIN_SRC JavaScript :results dynamic
+3+4
+#+END_SRC
+#+RESULTS:
+: 7

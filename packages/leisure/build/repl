@@ -1,0 +1,3 @@
+#!/bin/sh
+dir=$(dirname $(cygpath -a -d $0))
+NODE_PATH="$dir\\lib;$dir\\node_modules" node --stack-size=3000 $dir\\src\\runRepl "$@"

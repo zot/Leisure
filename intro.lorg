@@ -1,6 +1,0 @@
-* Welcome to Leisure
-
-This is a code block
-#+BEGIN_SRC leisure :results dynamic
-3 + 4
-#+END_SRC

@@ -1,0 +1,116 @@
+* code                                                                  :duh:
+- one
+
+- two
+
+#+NAME: zeb
+#+BEGIN_SRC leisure :results def
+zeb x = x * 2
+#+END_SRC
+
+#+NAME: bubba
+This is the bubba code
+#+BEGIN_SRC leisure :results dynamic
+30 + 40
+[1 2 (rotate (polygon nil) 0) 3 (polygon nil) 4]
+#+END_SRC
+
+#+RESULTS:
+: 70
+: [1 2 &lt;svg xmlns="http://www.w3.org/2000/svg" version="1.1" width='240' height='228' viewbox='230 74 240 228'&gt;&lt;polygon points="350 75  379 161 469 161 397 215 423 301 350 250 277 301 303 215 231 161 321 161" stroke="black" stroke-width="2" fill="yellow" /&gt;&lt;/svg&gt; 3 &lt;svg xmlns="http://www.w3.org/2000/svg" version="1.1" width='240' height='228' viewbox='230 74 240 228'&gt;&lt;polygon points="350 75  379 161 469 161 397 215 423 301 350 250 277 301 303 215 231 161 321 161" stroke="black" stroke-width="2" fill="yellow" /&gt;&lt;/svg&gt; 4]
+* test
+#+BEGIN_SRC leisure :results test
+3 + 4
+#+END_SRC
+:EXPECTED:
+: 6
+:END:
+#+RESULTS:
+#+BEGIN_SRC leisure :results test
+3 + 4
+#+END_SRC
+:EXPECTED:
+: 7
+:END:
+#+RESULTS:
+: 7
+#+BEGIN_SRC leisure :results test
+3 + 4
+#+END_SRC
+:EXPECTED:
+: 6
+:END:
+#+RESULTS:
+: 7
+#+BEGIN_SRC leisure :results dynamic
+3 + 4
+#+END_SRC
+:EXPECTED:
+: 7
+:END:
+#+BEGIN_SRC leisure :results dynamic
+3 + 4
+#+END_SRC
+#+RESULTS:
+: 7
+#+BEGIN_SRC leisure
+3 + 4
+#+END_SRC
+:EXPECTED:
+: 7
+:END:
+* autotest
+#+BEGIN_SRC leisure :results def
+x = 5
+#+END_SRC
+#+BEGIN_SRC leisure :results autotest
+x
+#+END_SRC
+:EXPECTED:
+: 5
+:END:
+#+RESULTS:
+: 5
+* list
+- duh
+- normal [[http:maluba.com][fred *bold* */bold italic/*]]
+- dur
+* HTML slide
+#+BEGIN_HTML
+<style>
+        .slideHtml #flow {
+                position: absolute;
+                /*top: 52px;*/
+                /*top: 80px;*/
+                /*top: calc(40px + 28px + 1em);*/
+                top: 140px;
+                left: calc(50% - 180px);
+                height: calc(100% - 140px - 72px);
+                width: auto;
+        }
+</style>
+<img id='flow' src='images/LeisureParsingFlow.svg'></img>
+#+END_HTML
+
+* one
+
+#+BEGIN_HTML
+<i><b>Hello</b> <button onclick='alert("ouch!")'>Click me!</button></i>
+<h1>h1</h1>
+<h2>h2</h2>
+<h3>h3</h3>
+<h4>h4</h4>
+#+END_HTML
+
+#+NAME: fred
+#+BEGIN_SRC leisure
+5 + 6
+#+END_SR
+
+- [X] one
+  - [ ] two
+  - three
+- four
+* two
+test markup *bold* word /italic/ fred _underline_
+[[tinyconcepts.png]]

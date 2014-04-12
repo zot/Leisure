@@ -1,3 +1,0 @@
-[
-  {"_type":"anno","name":"filename","data":"calc.lsr","body":{"_type":"anno","name":"leisureName","data":"ignore","body":{"_type":"apply","func":{"_type":"apply","func":{"_type":"apply","func":{"_type":"apply","func":{"_type":"ref","varName":"define","range":[1,0]},"arg":{"_type":"lit","value":"ignore","range":[1,0]}},"arg":{"_type":"lit","value":1,"range":[1,0]}},"arg":{"_type":"lit","value":"ignore x = x","range":[1,0]}},"arg":{"_type":"lambda","varName":"x","body":{"_type":"ref","varName":"x","range":[1,11]},"range":[1,7]}}}}
-]

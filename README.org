@@ -1,0 +1,60 @@
+# Leisure
+
+Leisure is a lazy, untyped, functional language that supports metaprogramming.
+It aims to be comfortable, easy to customize, and fun to use.
+
+Here is a more complete [[http://textcraft.org/calc/org.html#load=introTalk.lorg][readme and demo]].  At this point, Leisure requires shadow DOM,
+so it runs in recent versions of Chrome, but may not work in other browsers.
+
+I develop using [[https://github.com/rogerwang/node-webkit][node-webkit]].
+
+Leisure is heavy development, right now -- if you are interested in contributing,
+please contact me so I can help you get set up -- Leisure development is not very
+plug-and-play yet.  My email is bill dot burdick at gmail.
+
+## Convenient
+Leisure provides a convenient syntax and powerful tools to help people
+try things out quickly, be productive, and customize the language to
+suit their needs.  Leisure's syntax is based on Lambda Calculus and
+borrows things from Haskell and other languages while still remaining
+very small.  It also includes metaprogramming facilities to allow
+powerful customization.
+
+## Notebook Style Interactive Development
+
+For decades, programming has been done primarily in glorified text
+editors.  Some great strides have been made in various IDEs, but
+typically the programmer is still burdened with a neverending "write,
+compile, debug, test, repeat" development cycle.  Why do you keep
+settling for this when clearly we can do better?
+
+LISP programmers know the REPL -- the command line interactive
+programming interface.  While still heavily under development, Leisure
+is meant to push this envelope and provide a fully interactive,
+document-based development environment where your code is executed,
+errors show when you make them, tests execute as you write your code,
+and documentation is rich and interactive, as well.  Functional
+programming is quite foreign to newcomers, but what if you could
+instantly view the parse tree of the code you wrote? Or specify test
+arguments to your function and see the results live as you make
+changes to your code in real time?  Our goal is to show programmers
+there has to be a better way, and we've settled for the status quo for
+far too long.
+
+# Getting Started
+
+We use a posix environemnt amd [[https://www.meteor.com/][Meteor]] to develop Leisure, so you can use Linux, OS X,
+or cygwin to run or modify Leisure.  If you want to run Leisure on your computer,
+make sure you have Meteor installed.
+
+To run the Leisure server, switch to the top-level project diretory and run meteor:
+
+#+BEGIN_SRC shell
+meteor run
+#+END_SRC
+
+To run the command-line Leisure repl, switch to packages/leisure/build and run the
+repl command, located there.
+
+# Contact
+If you want to get in touch, you can email me at bill dot burdick at gmail.

@@ -1,0 +1,3 @@
+* Windows setup
+
+Ssh config on cygwin: make sure $HOME is the same as the home directory in /etc/passwd

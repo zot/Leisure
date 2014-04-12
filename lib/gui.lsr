@@ -1,3 +1,0 @@
-stdOrgControls = html concat[
-  "<h1>this is a test"
-  "</h1>"]

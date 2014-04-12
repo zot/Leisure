@@ -1,0 +1,9 @@
+* slide
+#+BEGIN_SRC leisure :results dynamic
+3+4
+#+END_SRC
+#+RESULTS:
+: 7
+#+BEGIN_SRC leisure :results def
+setTheme 'flat'
+#+END_SRC

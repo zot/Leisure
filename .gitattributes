@@ -23,3 +23,5 @@
 
 *.xml text
 *.js text
+.meteor/packages eol=lf
+.meteor/release eol=lf

@@ -1,3 +1,0 @@
-#!/bin/sh
-
-./launch -w -d www leisure.html#load=output.lmd
