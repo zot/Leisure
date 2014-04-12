@@ -471,7 +471,7 @@ define 'setOrgData', lz (key)->$F(arguments, (value)->
     data = amt.assoc data, rz(key), rz(value)
     oldEl = $("[data-leisure-data=#{rz key}]")
     oldText = oldEl.text()
-    text = ":DATA:\n#{rz key}\n#{rz(L_toYaml)(value)(rz L_id)(rz L_id)}:END\n"
+    text = ":DATA:\n#{rz key}\n#{rz(L_toJson)(value)(rz L_id)(rz L_id)}:END\n"
     if oldEl.length then oldEl.text text
     else $(parentSpec).append "\n" + (makeDataSpan rz(key), text)
     sendDataDiff $(parentSpec)[0], rz(key), oldText, text

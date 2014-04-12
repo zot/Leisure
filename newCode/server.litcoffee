@@ -8,6 +8,7 @@ Leisure server -- supports collaboration on documents
     diff = require './diff'
     fs = require 'fs'
     util = require 'util'
+    yaml = require 'js-yaml'
     dir = null
     ns = {}
     io = null
@@ -85,6 +86,11 @@ Leisure server -- supports collaboration on documents
           socket.hash = data
         socket.on 'store', ({hash, parent, patch, keepPrivate, mergeHash})->
           storeVersion socket, hash, parent, patch, keepPrivate, mergeHash
+        socket.on 'storeData', ({key, value, yamlValue})->
+          ns.broadcase 'receiveData',
+            key: key
+            value: value
+            yaml: yamlValue
 
     storeVersion = (socket, hash, parent, patch, keepPrivate, mergeHash)->
       console.log "STORE hash: #{hash}, parent: #{parent}, patch length: #{patch.length}"

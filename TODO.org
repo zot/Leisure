@@ -2,6 +2,9 @@
 - Floaty notes
 - Image dragging
 - Collaboration engine
+  - use meteor for collaboration
+    - put org data structure into mongo
+    - make data live in src blocks with language yaml or json
   - detect where changes are, to avoid rerendering/recomputing data
   - show users' cursors/selections
   - persistence: git
@@ -20,6 +23,11 @@
 - data
 * Short-term Leisure-org plan
 - collaboration service
+  - use meteor for collaboration
+    - put org data structure into mongo
+    - make data live in src blocks with language yaml or json
+    - nested chunks: {"_id": id, "topline": text, "children": [...]}
+      - a child can be a newline-terminated string or a chunk
   - detect changes to avoid unnecessary computation
     - only recompute data which has changed
     - only rerender elements which have changed

@@ -1,7 +1,7 @@
 {
   "version": 3,
   "file": "orgSupport.js",
-  "sourceRoot": "..",
+  "sourceRoot": ".",
   "sources": [
     "newCode\\orgSupport.coffee"
   ],

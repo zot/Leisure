@@ -1,7 +1,7 @@
 {
   "version": 3,
   "file": "runtime.js",
-  "sourceRoot": ".",
+  "sourceRoot": "..",
   "sources": [
     "core\\runtime.coffee"
   ],
