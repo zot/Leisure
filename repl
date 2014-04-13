@@ -1,0 +1,5 @@
+#!/bin/sh
+dir=$(dirname $(cygpath -a -d $0))
+inst=$dir\\packages\\leisure\\build
+export NODE_PATH="$inst\\lib;$inst\\node_modules"
+node --stack-size=3000 $inst\\src\\runRepl "$@"
