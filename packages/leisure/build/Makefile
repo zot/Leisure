@@ -14,9 +14,9 @@ clean: FRC
 
 FRC:
 
-lib/browser.js: node_modules $(BROWSERIFY_SRC=:%=lib/%.js)
+lib/browser.js: node_modules $(BROWSERIFY_SRC:%=lib/%.js)
 	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
-	$(NODE) node_modules/browserify/bin/cmd.js src/browserMain.js -o $@ -d
+	$(NODE) node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@ -d
 
 node_modules:
 	npm install
@@ -46,5 +46,5 @@ lib/%.js: src/%.lsr
 #sleep 1
 
 lib/%.js: src/%.coffee
-	./node_modules/coffee-script/bin/coffee -mc -d lib $(@:lib/%.js=src/%.coffee)
+	./node_modules/coffee-script/bin/coffee -o lib -mc $(@:lib/%.js=src/%.coffee)
 	sleep 1

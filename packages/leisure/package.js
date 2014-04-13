@@ -19,6 +19,7 @@ var files = [
     'build/src/browserSupport',
     'build/lib/svg.js',
     'build/src/collaborate.litcoffee',
+    'build/src/org',
     'build/src/orgSupport',
     'build/src/githubExtensions',
     'build/src/storage',

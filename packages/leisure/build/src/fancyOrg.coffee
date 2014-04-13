@@ -48,7 +48,7 @@ lz = lazy
   drawerRE,
   parseTags,
   matchLine,
-} = require 'org'
+} = require './org'
 {
   orgNotebook,
   parseOrgMode,

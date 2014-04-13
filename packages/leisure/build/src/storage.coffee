@@ -9,7 +9,7 @@
   Keyword,
   Source,
   Results,
-} = require 'org'
+} = require './org'
 {
   loadOrg,
 } = require './orgSupport'

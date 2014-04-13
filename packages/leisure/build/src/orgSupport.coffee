@@ -77,7 +77,7 @@ Nil = rz L_nil
   HL_TAGS,
   parseTags,
   matchLine,
-} = require 'org'
+} = require './org'
 _ = require 'lodash.min'
 {
   safeLoad,
