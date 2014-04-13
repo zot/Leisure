@@ -1,7 +1,4 @@
-SRC=browser generatedPrelude std svg gui parseAst
-GENERATED=$(SRC:%=lib/%.js)
+all: FRC
+	cd build && $(MAKE)
 
-all: $(GENERATED)
-
-$(GENERATED):
-	cd lib; $(MAKE)
+FRC:

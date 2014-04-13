@@ -13,9 +13,6 @@
 {
   loadOrg,
 } = require './orgSupport'
-{
-  initCollaboration,
-} = require './collaborate'
 
 Github = require 'github'
 
@@ -43,12 +40,14 @@ lastUpdate = 0
 getContent = (data)-> atob data.content
 
 useUrl = (url)->
-  ($.get url, (data)->
-    loadOrg $('[maindoc]')[0], data, (if url.match /^\w+:/ then new URI(url).path else url)
-    initCollaboration url, data
-    document.body.classList.remove 'not-logged-in'
-    checkEvents lastUpdate, 1, []
-  ).fail (err)-> alert("Couldn't load url: #{url}")
+  u = new URI url
+  if !u.scheme then root.observeDocument u.path
+  else
+    ($.get url, (data)->
+      loadOrg $('[maindoc]')[0], data, (if url.match /^\w+:/ then new URI(url).path else url)
+      document.body.classList.remove 'not-logged-in'
+      checkEvents lastUpdate, 1, []
+    ).fail (err)-> alert("Couldn't load url: #{url}")
 
 useFile = (file)->
   reader = new FileReader()

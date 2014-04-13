@@ -1,4 +1,4 @@
-Leisure = window.Leisure ? (window.Leisure = {})
+if !Leisure? then Leisure = window.Leisure ? (window.Leisure = {})
 reqGuard = false
 
 window.require = (file)->
@@ -9,3 +9,6 @@ window.require = (file)->
       Leisure.require(file)
     finally
       reqGuard = false
+
+for k,v of Org
+  Leisure[k] = v

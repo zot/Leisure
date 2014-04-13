@@ -4,7 +4,16 @@ Package.describe({
     summary: "Leisure"
 })
 
-var files = [
+var both = [
+    'build/src/org',
+    'build/src/namespace.litcoffee',
+];
+
+var server = [
+    'build/src/server.litcoffee',
+];
+
+var client = [
     'build/lib/jquery-1-8-2.min.js',
     'build/src/start.js',
     'build/lib/browser.js',
@@ -19,7 +28,6 @@ var files = [
     'build/src/browserSupport',
     'build/lib/svg.js',
     'build/src/collaborate.litcoffee',
-    'build/src/org',
     'build/src/orgSupport',
     'build/src/githubExtensions',
     'build/src/storage',
@@ -29,14 +37,22 @@ var files = [
     'build/lib/mutation-summary.js',
 ];
 
-Package.on_use(function (api) {
-    api.use('coffeescript');
+function sendFiles(api, files, where) {
     for (var i = 0; i < files.length; i++) {
         var file = files[i];
 
         if (!file.match(/\./)) {
             file += '.coffee';
         }
-        api.add_files(file, 'client');
+        api.add_files(file, where);
     }
+}
+
+Package.on_use(function (api) {
+    api.use('coffeescript');
+    api.export('Org');
+    api.export('Leisure');
+    sendFiles(api, both, ['client', 'server']);
+    sendFiles(api, server, 'server');
+    sendFiles(api, client, 'client');
 });

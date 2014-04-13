@@ -44,9 +44,6 @@ lz = lazy
   _true,
   jsonConvert,
 } = require './runtime'
-{
-  sendText,
-} = require './collaborate'
 amt = require('persistent-hash-trie')
 
 consFrom = newConsFrom

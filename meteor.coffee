@@ -25,7 +25,19 @@ start = ->
       $("#github").prop 'value', "Please hold..."
       Leisure.connectStorage()
 
+#Bubba = new Meteor.Collection 'bubba'
+
+#processChanges = (items)-> console.log "Bubba added: #{JSON.stringify items, ' '}"
+
+if Meteor.isServer
+  global.GlobalAssets = Assets
+
 if Meteor.isClient
+  #window.Bubba = Bubba
+  #Bubba.find().observe
+  #  added: (el)-> addBatch 'changes', {added: el}, processChanges
+  #  removed: (el)-> addBatch 'changes', {removed: el}, processChanges
+  #  changed: (el)-> addBatch 'changes', {changed: el}, processChanges
   Meteor.startup ->
     window.setTimeout (->
       uri = new window.URI(document.location.href)

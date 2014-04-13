@@ -26,7 +26,7 @@ misrepresented as being the original software.
 # Parse orgmode files
 #
 
-root = module.exports
+Org = root = module?.exports ? {}
 
 todoKeywords = ['TODO', 'DONE']
 
@@ -211,7 +211,7 @@ class Link extends Meat
     children: (c.toJsonObject() for c in @children)
   scan: Node.prototype.scanWithChildren
   isImage: -> !@children.length && @path.match imagePathRE
-  
+
 class ListItem extends Meat
   constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
   type: 'list'
