@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ -n "$(expr '$OS' : 'Windows*')" ]; then
+if [ -n "$(expr '$(uname -s)' : 'CYGWIN.*\|WIN.*')" ]; then
     dir=$(dirname $(cygpath -a -d $0))
     inst=$dir\\packages\\leisure\\build
     export NODE_PATH="$inst\\lib;$inst\\node_modules"

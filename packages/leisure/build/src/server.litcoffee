@@ -28,6 +28,7 @@ Document model that ties orgmode parse trees to HTML DOM
       doc = (if org instanceof Org.Headline
         text: org.text
         children: createDocFromOrg child, collection for child in org.children
+      else if org instanceof Org.Results then text: org.text
       else text: org.allText())
       if root then doc.root = true
       collection.insert doc

@@ -44,6 +44,9 @@ lz = lazy
   _true,
   jsonConvert,
 } = require './runtime'
+{
+  crnl,
+} = require './collaborate'
 amt = require('persistent-hash-trie')
 
 consFrom = newConsFrom
@@ -403,9 +406,11 @@ markupOrg = (text)->
 
 markupOrgWithNode = (text)->
   nodes = {}
-  # ensure trailing newline -- contenteditable doesn't like it, otherwise
-  if text[text.length - 1] != '\n' then text = text + '\n'
-  org = parseOrgMode text
+  if typeof text == 'string'
+    # ensure trailing newline -- contenteditable doesn't like it, otherwise
+    if text[text.length - 1] != '\n' then text = text + '\n'
+    org = parseOrgMode text
+  else org = text
   [org, markupNode(org, true)]
 
 boundarySpan = "<span data-org-type='boundary'>\n</span>"
@@ -417,6 +422,7 @@ orgAttrs = (org)->
   nodes[org.nodeId] = org
   extra = if rt = resultsType org then " data-org-results='#{rt}'"
   else ''
+  if org.shared then extra += " data-shared='true'"
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
   if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{escapeAttr org.info}'"
@@ -828,8 +834,6 @@ restorePosition = (parent, offset, block)->
       selectRange r
   else block()
 
-crnl = (data)-> data.replace /\r\n/g, '\n'
-
 loadOrg = (parent, text, path)->
   text = crnl text
   if nwDispatcher?
@@ -1076,6 +1080,35 @@ nodeAfter = (node, up)->
       node = node.parentNode
   null
 
+filteredNodeAfter = (node, director)->
+  rejecting = false
+  while node
+    if !rejecting && node.nodeType == 1 && !up && node.childNodes.length
+      switch director node = node.childNodes[0]
+        when 'quit' then return null
+        when 'reject' then rejecting = true
+        else return node
+    else if node.nextSibling
+      rejecting = false
+      node = node.nextSibling
+      if node then switch director node
+        when 'quit' then return null
+        when 'reject' then rejecting = true
+        else return node
+    else
+      up = true
+      node = node.parentNode
+      if director(node) == 'quit' then return null
+  null
+
+# return the block text for a node -- just the text that's in its mongo block
+blockText = (node)->
+  start = node
+  text = ''
+  while node = filteredNodeAfter node, ((n)-> if n == start then 'quit' else if n.nodeType == 1 && n.hasAttribute 'data-shared' then 'reject')
+    if node.nodeType == 3 then text += node.data
+  text
+
 textNodeAfter = (node)->
   while node = nodeAfter node
     if node.nodeType == 3 then return node
@@ -1261,3 +1294,4 @@ root.watchNodeText = watchNodeText
 root.dumpTextWatchers = dumpTextWatchers
 root.useText = useText
 root.markupData = markupData
+root.blockText = blockText

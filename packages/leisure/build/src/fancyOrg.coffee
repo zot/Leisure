@@ -107,6 +107,9 @@ lz = lazy
   redrawAllIssues,
   createComment,
 } = require './storage'
+{
+  edited,
+} = require './collaborate'
 _ = require 'lodash.min'
 
 fancyOrg = null
@@ -261,9 +264,11 @@ markupOrg = (text)->
 
 markupOrgWithNode = (text, note)->
   nodes = {}
-  # ensure trailing newline -- contenteditable doesn't like it, otherwise
-  if text[text.length - 1] != '\n' then text = text + '\n'
-  org = parseOrgMode text
+  if typeof text == 'string'
+    # ensure trailing newline -- contenteditable doesn't like it, otherwise
+    if text[text.length - 1] != '\n' then text = text + '\n'
+    org = parseOrgMode text
+  else org = text
   #if note then org = org.children[0]
   [org, markupNewNode org, null, null, note]
 
@@ -504,10 +509,12 @@ markupSource = (org, name, doctext, delay)->
   intertext = ''
   finalIntertext = ''
   resText = ''
+  resOrg = null
   while node
     if node instanceof Results
       lastOrgOffset = node.offset
       resText = node.text.substring node.contentPos
+      resOrg = node
       finalIntertext = intertext
       break
     else if node instanceof Drawer
@@ -534,7 +541,7 @@ markupSource = (org, name, doctext, delay)->
   wrapper += codeName
   wrapper += "<div class='hidden'>#{escapeHtml lead}</div>"
   wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
-  wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText
+  wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText, resOrg
   if expected then wrapper += htmlForExpected expected.content()
   wrapper += "</td></tr></table>"
   testCase = resultsType(org) in ['test', 'autotest'] && expected
@@ -779,9 +786,10 @@ addComment = (name, event)->
 
 defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
-htmlForResults = (text)->
+htmlForResults = (text, org)->
+  attr = if org?.shared then " id='#{org.nodeId}' data-shared='true'" else ''
   """
-  <div class='coderesults' data-org-type='results'><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
+  <div class='coderesults' data-org-type='results'#{attr}><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
 
 htmlForExpected = (text)->
   """
@@ -920,6 +928,7 @@ handleKey = (div)->(e)->
       el = r.startContainer
       par = el.parentNode
       currentMatch = matchLine currentLine div
+      edited n
       if c == ENTER
         e.preventDefault()
         if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'

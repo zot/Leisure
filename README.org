@@ -53,8 +53,14 @@ To run the Leisure server, switch to the top-level project diretory and run mete
 meteor run
 #+END_SRC
 
-To run the command-line Leisure repl, switch to packages/leisure/build and run the
-repl command, located there.
+To run the command-line Leisure repl, switch to packages/leisure/build and run
+
+#+BEGIN_SRC shell
+npm install
+#+END_SRC
+
+then you can switch back to the top level directory and the repl command will work,
+located there.
 
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail.
