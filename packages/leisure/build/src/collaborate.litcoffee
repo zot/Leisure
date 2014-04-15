@@ -32,11 +32,13 @@ Handle changes to the doc nodes
 
     processChanges = (doc, batch)->
       for item in batch
-        if item.id == Meteor.connection._lastSessionId then console.log "IGNORING LOCAL CHANGE: #{JSON.stringify item}"
-        else if item.added then null
-        else if item.removed then null
-        else if item.changed
+        if isLocal item then console.log "IGNORING LOCAL CHANGE: #{JSON.stringify item}"
+        else if item.type == 'changed'
+          console.log "CHANGED:\n#{JSON.stringify item}\nORG ROOT:\n#{docOrg currentDocument, 0, item.data}"
           null
+
+    isLocal = (item)->
+      Meteor.connection._lastSessionId == item.data.session
 
     observing = {}
 
@@ -52,9 +54,9 @@ Handle changes to the doc nodes
             console.log "OBSERVING DOCUMENT WITH #{cursor.count()} nodes"
             sub = cursor.observe
               _suppress_initial: true
-              added: (el)-> addBatch 'changes', added: el, id: Meteor.connection._lastSessionId, (items)-> processChanges docCol, items
-              removed: (el)-> addBatch 'changes', removed: el, id: Meteor.connection._lastSessionId, (items)-> processChanges docCol, items
-              changed: (el)-> addBatch 'changes', changed: el, id: Meteor.connection._lastSessionId, (items)-> processChanges docCol, items
+              added: (el)-> addBatch 'changes', type: 'added', data: el, (items)-> processChanges docCol, items
+              removed: (el)-> addBatch 'changes', type: 'removed', data: el, (items)-> processChanges docCol, items
+              changed: (el)-> addBatch 'changes', type: 'changed', data: el, (items)-> processChanges docCol, items
             org = docOrg docCol, 0
             org.linkNodes()
             root.loadOrg $('[maindoc]')[0], org, name
@@ -101,7 +103,7 @@ Handle changes to the doc nodes
       edits = {}
       pendingPush = false
       for id of currentEdits
-        currentDocument.update id, $set: {text: textForId id}
+        currentDocument.update id, $set: {text: textForId(id), session: Meteor.connection._lastSessionId}
 
     textForId = (id)-> root.blockText $("##{id}")[0]
 
