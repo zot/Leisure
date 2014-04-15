@@ -1,18 +1,25 @@
 # Leisure
 
-Leisure is a lazy, untyped, functional language that supports metaprogramming.
-It aims to be comfortable, easy to customize, and fun to use.
+* Welcome to Leisure,
 
-Here is a more complete [[http://textcraft.org/calc/org.html#load=introTalk.lorg][readme and demo]].  At this point, Leisure requires shadow DOM,
-so it runs in recent versions of Chrome, but may not work in other browsers.
+Lsisure is a purely functional, lazy, dynamically typed homoiconic
+language with a persistent, live, literate, document-based programming
+environment running on the web.
 
-I develop using [[https://github.com/rogerwang/node-webkit][node-webkit]].
+Leisure is for novices and experts and explores
 
-Leisure is heavy development, right now -- if you are interested in contributing,
-please contact me so I can help you get set up -- Leisure development is not very
-plug-and-play yet.  My email is bill dot burdick at gmail.
+- document-based computing: each document acts like a virtual machine image
+- ways to reveal internals to users, like pop-up, interactive AST diagrams
+- using social media techniques within a document to connect authors with users
 
-## Convenient
+Leisure's environment is a virtual machine where the machine is a live document:
+
+- self-contained and made of human-readable text (you can email them to other people)
+- contains content, code, and persistent data (they act like a webpage, program, and database)
+- combines development and runtime
+- allows collaboration (but can be private)
+
+## Convenient language
 Leisure provides a convenient syntax and powerful tools to help people
 try things out quickly, be productive, and customize the language to
 suit their needs.  Leisure's syntax is based on Lambda Calculus and
@@ -23,10 +30,11 @@ powerful customization.
 ## Notebook Style Interactive Development
 
 For decades, programming has been done primarily in glorified text
-editors.  Some great strides have been made in various IDEs, but
-typically the programmer is still burdened with a neverending "write,
-compile, debug, test, repeat" development cycle.  Why do you keep
-settling for this when clearly we can do better?
+editors, completely ignoring *major* advances from the *seventies*, in
+Smalltalk and LISP machines.  Some great strides have been made in
+various IDEs, but typically the programmer is still burdened with a
+neverending "write, compile, debug, test, repeat" development cycle.
+Why do you keep settling for this when clearly we can do better?
 
 LISP programmers know the REPL -- the command line interactive
 programming interface.  While still heavily under development, Leisure
