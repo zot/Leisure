@@ -9,18 +9,6 @@ REPL=./repl
 TESTED=$(DIR)/.tested
 NODE_PATH=lib;client;$(DIR)/lib;$(DIR)/src;$(DIR)/node_modules
 
-LIB_SRC=src/namespace.litcoffee src/org.coffee
-CLIENT_LIB=lib/browser.js lib/generatedPrelude.js lib/std.js src/browserSupport.coffee lib/svg.js src/collaborate.litcoffee src/orgSupport.coffee src/githubExtensions.coffee src/storage.coffee src/notebook.coffee src/fancyOrg.coffee lib/parseAst.js lib/mutation-summary.js
-SRV_SRC=src/server.litcoffee
-LIB_FILES=$(LIB_SRC:%=$(DIR)/%)
-CLIENT_FILES=$(CLIENT_SRC:%=$(DIR)/%)
-SRV_FILES=$(SRV_SRC:%=$(DIR)/%)
-LIB_DEST=lib
-CLIENT_DEST=client
-SRV_DEST=server
-DEPS=$(DIR)/src/browserMain.coffee
-STAMP=$(DIR)/.stamp
-
 all: $(BUILT) $(TESTED)
 
 test: $(TESTED)
@@ -34,11 +22,6 @@ retest: invalidateTests $(TESTED)
 
 invalidateTests: FRC
 	rm -f $(TESTED)
-
-$(STAMP): $(BUILT)
-	cd $(DIR);$(MAKE)
-	cp $(DIR)/lib/
-	touch $(STAMP)
 
 $(BROWSER): $(BROWSER_SRC)
 	cd $(DIR);$(MAKE) lib/browser.js
