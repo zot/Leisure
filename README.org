@@ -67,8 +67,8 @@ To run the command-line Leisure repl, switch to packages/leisure/build and run
 npm install
 #+END_SRC
 
-then you can switch back to the top level directory and the repl command will work,
-located there.
+then you can switch back to the top level directory and the repl
+command, located there, should work.
 
 # Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail.
