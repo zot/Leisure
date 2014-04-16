@@ -28,7 +28,7 @@ Error.stackTraceLimit = Infinity
 {
   resolve,
   lazy,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 rz = resolve
 lz = lazy
 _ = require 'lodash.min'
@@ -42,14 +42,14 @@ fs = require 'fs'
   ast2Json,
   json2Ast,
   Nil,
-} = require './ast'
+} = require '16-ast'
 {
   gen,
   genMap,
   genSource,
   withFile,
   sourceNode,
-} = require './gen'
+} = require '18-gen'
 {
   SourceNode,
 } = require 'source-map'
@@ -68,7 +68,7 @@ fs = require 'fs'
   getMonadSyncMode,
   setWarnAsync,
   requireFiles,
-} = require './runtime'
+} = require '17-runtime'
 
 global.runMonad = runMonad
 global.setType = setType

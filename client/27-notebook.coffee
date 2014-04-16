@@ -8,7 +8,7 @@ console.log "LOADING NOTEBOOK"
 {
   resolve,
   lazy,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 
 rz = resolve
 lz = lazy
@@ -24,7 +24,7 @@ lz = lazy
   getAnnoData,
   getAnnoBody,
   Leisure_anno,
-} = root = module.exports = require './ast'
+} = root = module.exports = require '16-ast'
 {
   isMonad,
   runMonad,
@@ -33,10 +33,10 @@ lz = lazy
   identity,
   defaultEnv,
   basicCall,
-} = require './runtime'
+} = require '17-runtime'
 {
   gen,
-} = require './gen'
+} = require '18-gen'
 {
   BS,
   ENTER,
@@ -45,7 +45,7 @@ lz = lazy
   svgMeasureText,
   createNode,
   textNode,
-} = require './browserSupport'
+} = require '21-browserSupport'
 
 URI = window.URI
 Xus = window.Xus

@@ -27,12 +27,12 @@ misrepresented as being the original software.
   cons,
   define,
   unescapePresentationHtml,
-} = require './ast'
+} = require '16-ast'
 {
   resolve,
   lazy,
   defaultEnv,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 rz = resolve
 lz = lazy
 {
@@ -43,10 +43,10 @@ lz = lazy
   makeHamt,
   _true,
   jsonConvert,
-} = require './runtime'
+} = require '17-runtime'
 {
   crnl,
-} = require './collaborate'
+} = require '23-collaborate'
 amt = require('persistent-hash-trie')
 
 consFrom = newConsFrom
@@ -63,7 +63,7 @@ Nil = rz L_nil
   DOWN,
   HOME,
   END,
-} = require './browserSupport'
+} = require '21-browserSupport'
 {
   parseOrgMode,
   Headline,
@@ -77,7 +77,7 @@ Nil = rz L_nil
   HL_TAGS,
   parseTags,
   matchLine,
-} = require './org'
+} = require '11-org'
 _ = require 'lodash.min'
 {
   safeLoad,

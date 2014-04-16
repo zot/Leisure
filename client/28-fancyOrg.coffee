@@ -4,7 +4,7 @@ console.log 'FANCY MODE!'
   resolve,
   lazy,
   defaultEnv,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 rz = resolve
 lz = lazy
 {
@@ -12,18 +12,18 @@ lz = lazy
   ENTER,
   BS,
   DEL,
-} = require './browserSupport'
+} = require '21-browserSupport'
 {
   getType,
   define,
   makeSyncMonad,
-} = require './ast'
+} = require '16-ast'
 {
   runMonad,
   isMonad,
   escapePresentationHtml,
   unescapePresentationHtml,
-} = require './runtime'
+} = require '17-runtime'
 {
   parseOrgMode,
   Headline,
@@ -48,7 +48,7 @@ lz = lazy
   drawerRE,
   parseTags,
   matchLine,
-} = require './org'
+} = require '11-org'
 {
   orgNotebook,
   parseOrgMode,
@@ -102,14 +102,14 @@ lz = lazy
   END,
   watchNodeText,
   markupData,
-} = require './orgSupport'
+} = require '24-orgSupport'
 {
   redrawAllIssues,
   createComment,
-} = require './storage'
+} = require '26-storage'
 {
   edited,
-} = require './collaborate'
+} = require '23-collaborate'
 _ = require 'lodash.min'
 
 fancyOrg = null

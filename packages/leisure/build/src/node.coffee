@@ -1,14 +1,14 @@
 {
   defaultEnv,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 {
   consFrom,
   Nil,
   cons
-} = require './ast'
+} = require '16-ast'
 {
   booleanFor,
-} = require './runtime'
+} = require '17-runtime'
 
 fs = require 'fs'
 

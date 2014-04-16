@@ -480,4 +480,4 @@ runMonad(resolve(L_setValue)("parser_funcProps")(L_nil));
 runMonad(resolve(L_defTokenPack)("std")(function(){return resolve(L_cons)(function(){return resolve(L_cons)(".")(function(){return resolve(L_cons)("\\")(function(){return resolve(L_cons)("\\\\")(function(){return resolve(L_cons)("\\@")(L_nil)})})})})(function(){return resolve(L_cons)(function(){return resolve(L_acons)("(")(")")(L_nil)})(function(){return resolve(L_cons)(L_nil)(L_nil)})})}));
 runMonad(resolve(L_resetStdTokenPacks));
 
-//@ sourceURL=src/simpleParse.lsr
+//@ sourceURL=packages/leisure/build/src/simpleParse.lsr

@@ -1,11 +1,11 @@
 {
   resolve,
   lazy,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 
 {
   define,
-} = require './ast'
+} = require '16-ast'
 
 rz = resolve
 lz = lazy

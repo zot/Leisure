@@ -1,4 +1,4 @@
-root = module.exports = require './base'
+root = module.exports = require '15-base'
 Base64 = require 'base64'
 Github = require 'github'
 

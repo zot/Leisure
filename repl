@@ -2,7 +2,8 @@
 if [ -n "$(expr '$(uname -s)' : 'CYGWIN.*\|WIN.*')" ]; then
     dir=$(dirname $(cygpath -a -d $0))
     inst=$dir\\packages\\leisure\\build
-    export NODE_PATH="$inst\\lib;$inst\\node_modules"
+    export NODE_PATH="$dir\\lib;$dir\\client;$inst\\lib;$inst\\src;$inst\\node_modules"
+    #echo NODE_PATH: $NODE_PATH
     node --stack-size=3000 $inst\\src\\runRepl "$@"
 else
     dir=$(dirname $0)

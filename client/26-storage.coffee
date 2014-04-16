@@ -2,17 +2,17 @@
   resolve,
   lazy,
   defaultEnv,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 {
   Headline,
   Meat,
   Keyword,
   Source,
   Results,
-} = require './org'
+} = require '11-org'
 {
   loadOrg,
-} = require './orgSupport'
+} = require '24-orgSupport'
 
 Github = require 'github'
 

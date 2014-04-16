@@ -28,7 +28,7 @@ misrepresented as being the original software.
   lazy,
   verboseMsg,
   nsLog,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 rz = resolve
 lz = lazy
 {
@@ -58,7 +58,7 @@ lz = lazy
   define,
   getPos,
   isNil,
-} = require './ast'
+} = require '16-ast'
 {
   makeSyncMonad,
   runMonad,
@@ -68,7 +68,7 @@ lz = lazy
   right,
   booleanFor,
   newConsFrom,
-} = require './runtime'
+} = require '17-runtime'
 _ = require 'lodash.min'
 
 consFrom = newConsFrom

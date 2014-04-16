@@ -42,7 +42,7 @@ misrepresented as being the original software.
   resolve,
   lazy,
   dummyPosition,
-} = root = module.exports = require './ast'
+} = root = module.exports = require '16-ast'
 
 rz = resolve
 lz = lazy
@@ -50,8 +50,8 @@ lz = lazy
   runMonad,
   defaultEnv,
   identity,
-} = require './runtime'
-{gen} = require './gen'
+} = require '17-runtime'
+{gen} = require '18-gen'
 _ = require('lodash.min')
 
 delimiterListPrefix = /"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|\n *|#.*/.source

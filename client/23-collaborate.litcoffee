@@ -2,12 +2,12 @@ Meteor-based collaboration -- client side
 
     {
       loadOrg,
-    } = require './orgSupport'
+    } = require '24-orgSupport'
     {
       parseOrgMode,
       Headline,
-    } = require './org'
-    root = require './base'
+    } = require '11-org'
+    root = require '15-base'
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,

@@ -34,7 +34,7 @@ misrepresented as being the original software.
   lazy,
   nsLog,
   funcInfo,
-} = root = module.exports = require './base'
+} = root = module.exports = require '15-base'
 {
   define,
   cons,
@@ -49,7 +49,7 @@ misrepresented as being the original software.
   setDataType,
   functionInfo,
   nameSub,
-} = require './ast'
+} = require '16-ast'
 _ = require 'lodash.min'
 amt = require('persistent-hash-trie')
 {

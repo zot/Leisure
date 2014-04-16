@@ -1,6 +1,12 @@
 DIR=packages/leisure/build
+BROWSER_SRC=$(DIR)/src/browserMain.coffee
+BROWSER=client/12-browser.js
+BUILT=$(BROWSER) client/19-generatedPrelude.js client/20-std.js client/22-svg.js client/29-parseAst.js
+ALL_BUILT=$(BUILT) $(DIR)/lib/generatedPrelude.js $(DIR)/lib/std.js $(DIR)/lib/svg.js $(DIR)/lib/parseAst.js
+REPL=./repl
+
 LIB_SRC=src/namespace.litcoffee src/org.coffee
-CLIENT_SRC=lib/jquery-1-8-2.min.js src/start.js lib/browser.js src/uri.coffee src/shim.coffee src/base.coffee src/ast.coffee src/runtime.coffee src/gen.coffee lib/generatedPrelude.js lib/std.js src/browserSupport.coffee lib/svg.js src/collaborate.litcoffee src/orgSupport.coffee src/githubExtensions.coffee src/storage.coffee src/notebook.coffee src/fancyOrg.coffee lib/parseAst.js lib/mutation-summary.js
+CLIENT_LIB=lib/browser.js lib/generatedPrelude.js lib/std.js src/browserSupport.coffee lib/svg.js src/collaborate.litcoffee src/orgSupport.coffee src/githubExtensions.coffee src/storage.coffee src/notebook.coffee src/fancyOrg.coffee lib/parseAst.js lib/mutation-summary.js
 SRV_SRC=src/server.litcoffee
 LIB_FILES=$(LIB_SRC:%=$(DIR)/%)
 CLIENT_FILES=$(CLIENT_SRC:%=$(DIR)/%)
@@ -11,26 +17,51 @@ SRV_DEST=server
 DEPS=$(DIR)/src/browserMain.coffee
 STAMP=$(DIR)/.stamp
 
-$(STAMP): $(CLIENT_FILES) $(DEPS) $(SRV_FILES)
+all: $(BUILT)
+
+$(STAMP): $(BUILT)
 	cd $(DIR);$(MAKE)
-	c=10;for file in $(LIB_FILES);do cp $$file $(LIB_DEST)/$$c-$$(basename $$file);c=$$(($$c + 1));done
-	c=10;for file in $(CLIENT_FILES);do cp $$file $(CLIENT_DEST)/$$c-$$(basename $$file);c=$$(($$c + 1));done
-	c=10;for file in $(SRV_FILES);do cp $$file $(SRV_DEST)/$$c-$$(basename $$file);c=$$(($$c + 1));done
+	cp $(DIR)/lib/
 	touch $(STAMP)
 
-$(DIR)/lib/browser.js:
+$(BROWSER): $(BROWSER_SRC)
+	cd $(DIR);$(MAKE) lib/browser.js
+	cp $(DIR)/lib/browser.js $(BROWSER)
 
-$(DIR)/lib/generatedPrelude.js:
+client/19-generatedPrelude.js: $(DIR)/lib/generatedPrelude.js
+	cp $(DIR)/lib/generatedPrelude.js $@
 
-$(DIR)/lib/std.js:
+$(DIR)/lib/generatedPrelude.js: $(DIR)/lib/simpleParse.js $(DIR)/lib/generatedPrelude.lsr
+	$(REPL) -d $(DIR)/lib -1 -c $(DIR)/lib/generatedPrelude.lsr
 
-$(DIR)/lib/svg.js:
+$(DIR)/lib/simpleParse.js: $(DIR)/src/simpleParse.lsr
+	$(REPL) -d $(DIR)/lib -0 -c $(DIR)/src/simpleParse.lsr
 
-$(DIR)/lib/parseAst.js:
+$(DIR)/lib/generatedPrelude.lsr:
+	cat $(DIR)/src/simpleParse.lsr $(DIR)/src/simpleParse2.lsr > $@
 
-$(DIR)/lib/:
+client/20-std.js: $(DIR)/lib/std.js
+	cp $^ $@
+
+client/22-svg.js: $(DIR)/lib/svg.js
+	cp $^ $@
+
+client/29-parseAst.js: $(DIR)/lib/parseAst.js
+	cp $^ $@
+
+$(DIR)/lib/svg.js: client/20-std.js $(DIR)/src/svg.lsr
+	$(REPL) -d $(DIR)/lib -c -r '20-std' $(@:$(DIR)/lib/%.js=$(DIR)/src/%.lsr)
+	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > tmp
+	sleep 1
+	mv tmp $(@:%.js=%.map)
+
+$(DIR)/lib/%.js: src/%.lsr
+	$(REPL) -d $(DIR)/lib -c $(@:$(DIR)/lib/%.js=$(DIR)/src/%.lsr)
+	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > tmp
+	sleep 1
+	mv tmp $(@:%.js=%.map)
 
 clean: FRC
-	rm -f $(LIB_DEST)/[0-9][0-9]-* $(CLIENT_DEST)/[0-9][0-9]-* $(SRV_DEST)/[0-9][0-9]-* $(STAMP)
+	rm -f $(ALL_BUILT)
 
 FRC:
