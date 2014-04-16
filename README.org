@@ -30,8 +30,8 @@ powerful customization.
 ## Notebook Style Interactive Development
 
 For decades, programming has been done primarily in glorified text
-editors, completely ignoring *major* advances from the *seventies*, in
-Smalltalk and LISP machines.  Some great strides have been made in
+editors, completely ignoring *major* advances from the /*seventies*/, in
+Smalltalk and LISP machines!  Some great strides have been made in
 various IDEs, but typically the programmer is still burdened with a
 neverending "write, compile, debug, test, repeat" development cycle.
 Why do you keep settling for this when clearly we can do better?

@@ -1,6 +1,7 @@
 This text should be visible
 * slide
 test 1
+#+NAME: bubba
 #+BEGIN_SRC leisure :results dynamic
 3+4
 #+END_SRC

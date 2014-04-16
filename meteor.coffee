@@ -30,6 +30,7 @@ start = ->
 #processChanges = (items)-> console.log "Bubba added: #{JSON.stringify items, ' '}"
 
 if Meteor.isServer
+  console.log "MAIN"
   global.GlobalAssets = Assets
 
 if Meteor.isClient
