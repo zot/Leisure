@@ -29,6 +29,7 @@ lz = lazy
   Headline,
   headlineRE,
   HL_TAGS,
+  Fragment,
   Meat,
   Keyword,
   keywordRE,
@@ -102,6 +103,7 @@ lz = lazy
   END,
   watchNodeText,
   markupData,
+  orgForNode,
 } = require '24-orgSupport'
 {
   redrawAllIssues,
@@ -262,41 +264,31 @@ markupOrg = (text)->
   [node, result] = markupOrgWithNode text
   result
 
-markupOrgWithNode = (text, note)->
+markupOrgWithNode = (text, note, replace)->
   nodes = {}
   if typeof text == 'string'
     # ensure trailing newline -- contenteditable doesn't like it, otherwise
     if text[text.length - 1] != '\n' then text = text + '\n'
     org = parseOrgMode text
   if text instanceof Org.Node then org = text
-  if org instanceof Org.Node
+  if org
     #if note then org = org.children[0]
-    [org, markupNewNode org, null, null, note]
-  else markupDoc text
+    [org, markupNewNode org, null, null, note, replace]
+  else
+    console.log "Attempt to display uknown object type: ", text
+    throw new Error "Attempt to display unknown type of object: #{text}"
 
-markupNewNode = (org, middleOfLine, delay, note)->
+markupNewNode = (org, middleOfLine, delay, note, replace)->
   lastOrgOffset = -1
-  markupNode org, middleOfLine, delay, note
+  markupNode org, middleOfLine, delay, note, replace
 
-markupDoc = (doc)->
-  org = parseOrgMode doc.text
-  if org instanceof Headline && org.children.length == 1 then org = org.children[0]
-  text = markupNode org
-  if doc.children
-    for child in doc.children
-      [childOrg, childText] = markupDoc root.currentDocument.findOne(child)
-      text += childText
-      if childOrg instanceof Org.Headline && childOrg.level == 0
-        org.children.push childOrg.children...
-      else org.children.push childOrg
-  [org, "<div id='#{doc._id}' data-collab='true'>#{text}</div>"]
-
-markupNode = (org, middleOfLine, delay, note)->
+markupNode = (org, middleOfLine, delay, note, replace)->
   if org.offset <= lastOrgOffset then ''
   else if org instanceof Results
     pos = org.contentPos
     text = org.text.substring pos
     "<span #{orgAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span>#{contentSpan text}"
+  else if org instanceof Fragment then markupFragment org, delay, note
   else if org instanceof HTML then markupHtml org
   else if org instanceof AttrHtml then markupAttr org
   else if org instanceof Keyword
@@ -311,7 +303,7 @@ markupNode = (org, middleOfLine, delay, note)->
       else defaultMarkup org
     else if org instanceof Source then markupSource org, null, null, delay
     else defaultMarkup org
-  else if org instanceof Headline then markupHeadline org, delay, note
+  else if org instanceof Headline then markupHeadline org, delay, note, replace
   else if org instanceof Drawer && org.name.toLowerCase() == 'properties' then markupProperties org, delay
   else if org instanceof Drawer && org.name.toLowerCase() == 'data' then markupData org
   else if org instanceof ListItem then markupListItem org, delay
@@ -321,6 +313,9 @@ markupNode = (org, middleOfLine, delay, note)->
   else
     tag = (if middleOfLine then 'span' else 'div')
     "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
+
+markupFragment = (org, delay, note)->
+  "<div #{orgAttrs org}>#{(markupNode child, false, delay, note for child in org.children).join ''}</div>"
 
 markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
@@ -368,7 +363,7 @@ markupSimple = (org)->
 
 hlStars = /^\*+ */
 
-markupHeadline = (org, delay, note)->
+markupHeadline = (org, delay, note, replace)->
   match = org.text.match headlineRE
   start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length - 1}".trim()
   if org.text[org.text.length - 1] == '\n'
@@ -385,7 +380,7 @@ markupHeadline = (org, delay, note)->
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide()}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
+      "#{startNewSlide replace}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
     else "#{startNewSlide()}<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
@@ -581,7 +576,12 @@ testResult = (expected, actual)->
 root.toggleTestCase = (evt)->
   node = codeBlockForNode evt.target
   selectPrevious node
-  if node then replaceCodeBlock node, changeResultType node.textContent, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
+  #if node then replaceCodeBlock node, changeResultType node.textContent, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
+  if node
+    holder = codeBlockHolder node
+    replaceCodeBlock holder, newChangeResultType holder, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
+
+codeBlockHolder = (node)-> $(node).closest('[data-shared]')[0] ? node
 
 selectPrevious = (node)->
   top = topNode node
@@ -591,10 +591,12 @@ selectPrevious = (node)->
   sel.removeAllRanges()
   sel.addRange r
 
-replaceCodeBlock = (node, text)->
+#replaceCodeBlock = (node, text)->
+replaceCodeBlock = (node, org)->
   newNode = null
   restorePosition null, ->
-    newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
+    #newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
+    newNode = $(markupNewNode org, false, true)[0]
     $(node).replaceWith(newNode)
     for n in $(newNode).find('[data-org-src]')
       recreateAstButtons parent, n
@@ -741,6 +743,7 @@ codeBlockForNode = (node)->
   if node.is '[data-org-test]' then node[0] else node[0].parentNode
 
 createTestCase = (evt)->
+  alert 'Not converted to new model, yet...'; return
   console.log evt.target
   node = codeBlockForNode evt.target
   selectPrevious node
@@ -762,6 +765,20 @@ createTestCase = (evt)->
       pre = changeResultType text.substring(0, start), (if resultsType(src) == 'dynamic' then 'autotest' else 'test')
       return replaceCodeBlock node, pre + newExpectation + text.substring end
   alert('You have to have results in order to make a test case')
+
+newChangeResultType = (node, newType)->
+  org = src = orgForNode node
+  while src && !(src instanceof Source)
+    src = src.next
+  if src
+    if m = src.text.match /(:results *)([\w]*)/i
+      start = m.index + m[1].length
+      end = start + m[2].length
+      src.text = src.text.substring(0, start) + newType + src.text.substring(end)
+    else
+      pos = src.contentPos - 1
+      src.text = src.text.substring(0, pos) + " :results #{newType}" + src.text.substring pos
+  org
 
 changeResultType = (text, newType)->
   src = parseOrgMode(text).children[0]
@@ -814,7 +831,9 @@ toggleDynamic = (event)->
   block = codeBlockForNode event.target
   resType = (if !block.hasAttribute 'data-org-type' then block.firstChild else block).getAttribute 'data-org-results'
   top = topNode block
-  newNode = replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
+  #newNode = replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
+  holder = codeBlockHolder block
+  newNode = replaceCodeBlock holder, newChangeResultType holder, (if resType == 'dynamic' then 'static' else 'dynamic')
   if resType != 'dynamic' then executeSource top, $(newNode).find('[data-org-type="source"]')[0]
 
 nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt
@@ -862,8 +881,9 @@ slideEnd = -> "</div>"
 
 firstSlideFlag = false
 
-startNewSlide = ->
-  if firstSlideFlag
+startNewSlide = (replace)->
+  if replace then ''
+  else if firstSlideFlag
     firstSlideFlag = false
     ''
   else "#{slideEnd()}#{slideStart()}"

@@ -13,6 +13,10 @@
 - data
 - HTML/image data binding
   - make image dragging and collaboration use data binding -- maybe backbone
+** TODO Bug when collaborating with fancy & plain
+- change linked source expr in fancy page
+- plain page doesn't show newline after results block
+- when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
 - collaboration
 - draggable images

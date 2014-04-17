@@ -46,6 +46,7 @@ lz = lazy
 } = require '17-runtime'
 {
   crnl,
+  docOrg,
 } = require '23-collaborate'
 amt = require('persistent-hash-trie')
 
@@ -67,6 +68,7 @@ Nil = rz L_nil
 {
   parseOrgMode,
   Headline,
+  Fragment,
   Meat,
   Keyword,
   Source,
@@ -364,7 +366,9 @@ useText = (text)->
 
 swapMarkup = ->
   root.currentMode = (if root.currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
-  root.restorePosition parentSpec, -> root.currentMode.useNode $(parentSpec)[0], sourceSpec
+  root.restorePosition parentSpec, ->
+    if root.currentDocument then root.currentMode.useNode $(parentSpec)[0], sourceSpec, docOrg()
+    else root.currentMode.useNode $(parentSpec)[0], sourceSpec
 
 getStyle = (node)->
   if !node.orgId
@@ -410,8 +414,11 @@ markupOrgWithNode = (text)->
     # ensure trailing newline -- contenteditable doesn't like it, otherwise
     if text[text.length - 1] != '\n' then text = text + '\n'
     org = parseOrgMode text
-  else org = text
-  [org, markupNode(org, true)]
+  else if text instanceof Org.Node then org = text
+  if org then [org, markupNode(org, true)]
+  else
+    console.log "Attempt to display uknown object type: ", text
+    throw new Error "Attempt to display unknown type of object: #{text}"
 
 boundarySpan = "<span data-org-type='boundary'>\n</span>"
 
@@ -849,7 +856,7 @@ reparse = (parent, text, target)->
   styleCache = {}
   text = text ? getNodeText parent
   sel = getSelection()
-  [orgNode, orgText] = root.orgApi.markupOrgWithNode text
+  [orgNode, orgText] = root.orgApi.markupOrgWithNode text, null, target?
   root.restorePosition parent, -> root.orgApi.installOrgDOM parent, orgNode, orgText, target
   needsReparse = false
   setTimeout (->
@@ -1082,33 +1089,54 @@ nodeAfter = (node, up)->
   null
 
 filteredNodeAfter = (node, director)->
-  rejecting = false
+  rejected = false
   while node
-    if !rejecting && node.nodeType == 1 && !up && node.childNodes.length
-      switch director node = node.childNodes[0]
-        when 'quit' then return null
-        when 'reject' then rejecting = true
-        else return node
+    if !rejected && !up && node.nodeType == 1 && node.childNodes.length
+      node = node.childNodes[0]
     else if node.nextSibling
-      rejecting = false
+      up = false
       node = node.nextSibling
-      if node then switch director node
-        when 'quit' then return null
-        when 'reject' then rejecting = true
-        else return node
     else
       up = true
       node = node.parentNode
-      if director(node) == 'quit' then return null
+    first = false
+    if !up
+      switch director node
+        when 'quit' then return null
+        when 'reject' then rejected = true
+        else
+          if !up then return node
+          rejected = false
   null
 
 # return the block text for a node -- just the text that's in its mongo block
 blockText = (node)->
-  start = node
+  end = nodeAfter node, true
   text = ''
-  while node = filteredNodeAfter node, ((n)-> if n == start then 'quit' else if n.nodeType == 1 && n.hasAttribute 'data-shared' then 'reject')
+  while node = filteredNodeAfter node, ((n)-> if n == end then 'quit' else if n.nodeType == 1 && n.hasAttribute 'data-shared' then 'reject')
     if node.nodeType == 3 then text += node.data
   text
+
+orgForNode = (node)->
+  org = parseOrgMode blockText node
+  if !$(node).is('[data-org-headline="0"]')
+    if org.children.length == 1 then org = org.children[0]
+    else org = new Fragment org.offset, org.children
+  if $(node).is('[data-shared]') then org.nodeId = node.id
+  for child in orgChildrenForNode node
+    org.children.push orgForNode child
+  org.linkNodes()
+  org
+
+orgChildrenForNode = (node)->
+  children = []
+  end = nodeAfter node, true
+  while node = filteredNodeAfter node, ((n)->
+    if n == end then 'quit'
+    else if n.nodeType == 1 && n.hasAttribute 'data-shared'
+      children.push n
+      'reject') then
+  children
 
 textNodeAfter = (node)->
   while node = nodeAfter node
@@ -1147,7 +1175,14 @@ textNodeBefore = (node)->
 # Shadow dom support
 #
 
-getNodeText = (node)-> node.textContent
+getNodeText = (node)->
+  if $(node).is('[data-shared]')
+    #docOrg root.currentDocument, 0, root.currentDocument.findOne(node.id)
+    orgForNode node
+  else if root.currentDocument && $(node).is('[maindoc]')
+    #docOrg root.currentDocument, 0, root.currentDocument.findOne root: true
+    orgForNode node
+  else node.textContent
 
 if Element.prototype.webkitCreateShadowRoot?
   Element.prototype.createShadowRoot = Element.prototype.webkitCreateShadowRoot
@@ -1185,15 +1220,14 @@ invalidateOrgText = -> cachedOrgParent = cachedOrgText = null
 getOrgText = (parent)-> (cachedOrgParent == parent && cachedOrgText) || (cachedOrgParent = parent; cachedOrgText = parent.textContent)
 
 orgNotebook =
-  useNode: (node, source)->
-    orgData =
-    root.orgApi = @
+  useNode: (node, source, content)->
     sourceDiv = source
-    oldContent = $(node).text()
+    root.orgApi = @
+    if !content then content = $(node).text()
     newNode = emptyOutNode node
     editDiv = newNode
-    #restorePosition newNode, => $(newNode).html @markupOrg oldContent
-    [orgNode, lastOrgText] = @markupOrgWithNode oldContent
+    #restorePosition newNode, => $(newNode).html @markupOrg content
+    [orgNode, lastOrgText] = @markupOrgWithNode content
     root.restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
     @bindContent newNode
   installOrgDOM: installOrgDOM
@@ -1296,3 +1330,5 @@ root.dumpTextWatchers = dumpTextWatchers
 root.useText = useText
 root.markupData = markupData
 root.blockText = blockText
+root.orgForNode = orgForNode
+root.orgChildrenForNode = orgChildrenForNode

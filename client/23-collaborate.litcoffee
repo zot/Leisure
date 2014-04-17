@@ -6,8 +6,10 @@ Meteor-based collaboration -- client side
     {
       parseOrgMode,
       Headline,
+      Fragment,
     } = require '11-org'
     root = require '15-base'
+    _ = require 'lazy'
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -35,8 +37,16 @@ Handle changes to the doc nodes
         if isLocal item then console.log "IGNORING LOCAL CHANGE: #{JSON.stringify item}"
         else if item.type == 'changed'
           console.log "CHANGED:\n#{JSON.stringify item}\nORG ROOT:\n#{docOrg root.currentDocument, 0, item.data}\n#{}\nNODE: #{$ "##{item.data._id}"}"
-          #root.loadOrg $('[maindoc]')[0], docOrg(root.currentDocument, 0, item.data), name, $("##{item.data._id}")[0]
-          root.loadOrg $('[maindoc]')[0], item.data, name, $("##{item.data._id}")[0]
+          if item.data.children && item.oldData.children
+            if _(item.data.children).intersection(item.oldData.children).size() == item.data.children.length
+              console.log "SAME CHILDREN"
+            else console.log "DIFFERENT CHILDREN"
+          if $("##{item.data._id}").is "[data-org-headline='0']"
+            org = docOrg root.currentDocument, 0, item.data
+          else
+            org = dataOrg root.currentDocument, 0, item.data
+            org.linkNodes()
+          root.loadOrg $('[maindoc]')[0], org, name, $("##{item.data._id}")[0]
 
     isLocal = (item)->
       Meteor.connection._lastSessionId == item.data.session
@@ -57,30 +67,38 @@ Handle changes to the doc nodes
               _suppress_initial: true
               added: (el)-> addBatch 'changes', type: 'added', data: el, (items)-> processChanges docCol, items
               removed: (el)-> addBatch 'changes', type: 'removed', data: el, (items)-> processChanges docCol, items
-              changed: (el)-> addBatch 'changes', type: 'changed', data: el, (items)-> processChanges docCol, items
-            #org = docOrg docCol, 0
-            #org.linkNodes()
-            #root.loadOrg $('[maindoc]')[0], org, name
-            root.loadOrg $('[maindoc]')[0], docCol.findOne(root: true), name
+              changed: (el, oldEl)-> addBatch 'changes', type: 'changed', data: el, oldData: oldEl, (items)-> processChanges docCol, items
+            org = docOrg()
+            root.loadOrg $('[maindoc]')[0], org, name
           document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}"
 
     docOrg = (col, offset, doc)->
-      if !doc then docOrg col, offset, col.findOne root: true
+      if !col then docOrg root.currentDocument, 0, root.currentDocument.findOne root: true
+      else if !doc then docOrg col, offset, col.findOne root: true
       else
-        org = if !doc.text then new Headline '', 0, null, null, null, [], 0
-        else parseOrgMode crnl(doc.text), offset
-        if org instanceof Headline && org.level == 0
-          if org.children?.length == 1 then org = org.children[0]
-          else org = new Fragment org.offset, org.children
-          org.nodeId = doc._id
-          org.shared = true
-        if doc.children?
-          for child in doc.children
-            childOrg = docOrg col, offset, col.findOne child
-            addChild org, childOrg
-            offset += childOrg.length()
+        org = dataOrg col, 0, doc
+        if org instanceof Fragment
+          frag = org
+          org = new Headline '', 0, null, null, null, org.children, 0
+          org.nodeId = frag.nodeId
+        org.linkNodes()
         org
+
+    dataOrg = (col, offset, doc)->
+      org = if !doc.text then new Headline '', 0, null, null, null, [], 0
+      else parseOrgMode crnl(doc.text), offset
+      if org instanceof Headline && org.level == 0
+        if org.children?.length == 1 then org = org.children[0]
+        else org = new Fragment org.offset, org.children
+      org.nodeId = doc._id
+      org.shared = true
+      if doc.children?
+        for child in doc.children
+          childOrg = dataOrg col, offset, col.findOne child
+          addChild org, childOrg
+          offset += childOrg.length()
+      org
 
     docJson = (col, node)->
       if !col then return docJson root.currentDocument
@@ -94,7 +112,12 @@ Handle changes to the doc nodes
           addChild org, c
       else org.children.push child
 
-    crnl = (data)-> if typeof data == 'string' then data.replace /\r\n/g, '\n' else data
+    crnl = (data)->
+      if typeof data == 'string' then data.replace /\r\n/g, '\n'
+      else if data.text
+        data.text = crnl data.text
+        data
+      else data
 
     edits = {}
     pendingPush = false

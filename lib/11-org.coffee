@@ -105,6 +105,10 @@ class Node
   length: -> @text.length
   end: -> @offset + @text.length
   toJson: -> JSON.stringify @toJsonObject(), null, "  "
+  toJsonObject: ->
+    obj = @jsonDef()
+    obj.nodeId = @nodeId
+    obj
   allText: -> @text
   block: false
   findNodeAt: (pos)-> if @offset <= pos && pos < @offset + @text.length then this else null
@@ -135,7 +139,7 @@ class Headline extends Node
       lastChild.offset + lastChild.length()
     else super()
   type: 'headline'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
@@ -186,7 +190,7 @@ class Fragment extends Node
   block: true
   length: -> @end() - @offset
   type: 'fragment'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     offset: @offset
     children: (c.toJsonObject() for c in @children)
@@ -208,16 +212,17 @@ class Fragment extends Node
       prev = c
     this
   linkTo: (parent)->
-    @children[0].prev = @prev
-    @children[@children.length - 1].next = @next
-    for c in @children
-      c.linkTo parent
+    if @children.length
+      @children[0].prev = @prev
+      @children[@children.length - 1].next = @next
+      for c in @children
+        c.linkTo parent
 
 class Meat extends Node
   constructor: (@text, @offset)-> super()
   lowerThan: (l)-> true
   type: 'meat'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
@@ -234,7 +239,7 @@ markupTypes =
 class SimpleMarkup extends Meat
   constructor: (@text, @offset, @children)-> @markupType = markupTypes[@text[0]]
   type: 'simple'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
@@ -245,7 +250,7 @@ class SimpleMarkup extends Meat
 class Link extends Meat
   constructor: (@text, @offset, @path, @children)->
   type: 'link'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
@@ -257,7 +262,7 @@ class Link extends Meat
 class ListItem extends Meat
   constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
   type: 'list'
-  toJsonObject: ->
+  jsonDef: ->
     obj =
       type: @type
       text: @text
@@ -287,7 +292,7 @@ class ListItem extends Meat
 class Drawer extends Meat
   constructor: (@text, @offset, @name, @contentPos, @endPos)-> super @text, @offset
   type: 'drawer'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     name: @name
     text: @text
@@ -313,7 +318,7 @@ class Keyword extends Meat
   constructor: (@text, @offset, @name, @info)-> super @text, @offset
   block: true
   type: 'keyword'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
@@ -323,7 +328,7 @@ class Keyword extends Meat
 class Source extends Keyword
   constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info
   type: 'source'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
@@ -339,7 +344,7 @@ class HTML extends Keyword
   leading: -> @text.substring 0, @contentStart
   trailing: -> @text.substring @contentStart + @contentLength
   content: -> @text.substring @contentStart, @contentStart + @contentLength
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
@@ -349,7 +354,7 @@ class HTML extends Keyword
 class Results extends Keyword
   constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
   type: 'results'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
@@ -359,7 +364,7 @@ class Results extends Keyword
 class AttrHtml extends Keyword
   constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
   type: 'attr'
-  toJsonObject: ->
+  jsonDef: ->
     type: @type
     text: @text
     offset: @offset
