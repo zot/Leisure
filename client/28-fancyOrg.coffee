@@ -51,6 +51,10 @@ lz = lazy
   matchLine,
 } = require '11-org'
 {
+  getCodeItems,
+  isCodeBlock,
+} = require '12-docOrg'
+{
   orgNotebook,
   parseOrgMode,
   orgAttrs,
@@ -315,6 +319,15 @@ markupNode = (org, middleOfLine, delay, note, replace)->
     "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
 
 markupFragment = (org, delay, note)->
+  if isCodeBlock org.children[0]
+    {first, name, source, last} = getCodeItems org.children[0]
+    if first == org.children[0] && !last
+      prelude = ''
+      first = name.next
+      while first != source
+        prelude += first.allText()
+        first = first.next
+      return "<div #{orgAttrs org}>#{markupSource source, name, prelude, delay, true}</div>"
   "<div #{orgAttrs org}>#{(markupNode child, false, delay, note for child in org.children).join ''}</div>"
 
 markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
@@ -502,7 +515,7 @@ editedNote = (mainId, editedId)-> ->
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
 
-markupSource = (org, name, doctext, delay)->
+markupSource = (org, name, doctext, delay, inFragment)->
   top = name ? org
   srcContent = org.content
   lead = org.text.substring 0, org.contentPos - org.offset
@@ -564,7 +577,9 @@ markupSource = (org, name, doctext, delay)->
     startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<div class=#{escapeAttr "'expected-hover'"}><b>Expr:</b> #{escapeHtml srcContent}<br><b>Expected:</b> #{escapeAttr expected.content()}</div>' data-org-expected='#{escapeAttr expected.content()}' #{result}"
   else
     fluff = if top.prev instanceof Source || top.prev instanceof Results then "<div class='fluff' data-newline></div>" else ''
-    '<div>' + fluff + startHtml + result + '</div>'
+    inner = fluff + startHtml + result
+    if inFragment then inner
+    else '<div>' + inner + '</div>'
 
 updateChannels = (org)-> org instanceof Source && (org.info.match /:update *([^:]*)/)?[1]
 
@@ -576,12 +591,7 @@ testResult = (expected, actual)->
 root.toggleTestCase = (evt)->
   node = codeBlockForNode evt.target
   selectPrevious node
-  #if node then replaceCodeBlock node, changeResultType node.textContent, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
-  if node
-    holder = codeBlockHolder node
-    replaceCodeBlock holder, newChangeResultType holder, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
-
-codeBlockHolder = (node)-> $(node).closest('[data-shared]')[0] ? node
+  if node then replaceCodeBlock node, changeResultType node.textContent, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
 
 selectPrevious = (node)->
   top = topNode node
@@ -591,12 +601,10 @@ selectPrevious = (node)->
   sel.removeAllRanges()
   sel.addRange r
 
-#replaceCodeBlock = (node, text)->
-replaceCodeBlock = (node, org)->
+replaceCodeBlock = (node, text)->
   newNode = null
   restorePosition null, ->
-    #newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
-    newNode = $(markupNewNode org, false, true)[0]
+    newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
     $(node).replaceWith(newNode)
     for n in $(newNode).find('[data-org-src]')
       recreateAstButtons parent, n
@@ -831,9 +839,7 @@ toggleDynamic = (event)->
   block = codeBlockForNode event.target
   resType = (if !block.hasAttribute 'data-org-type' then block.firstChild else block).getAttribute 'data-org-results'
   top = topNode block
-  #newNode = replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
-  holder = codeBlockHolder block
-  newNode = replaceCodeBlock holder, newChangeResultType holder, (if resType == 'dynamic' then 'static' else 'dynamic')
+  newNode = replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
   if resType != 'dynamic' then executeSource top, $(newNode).find('[data-org-type="source"]')[0]
 
 nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt

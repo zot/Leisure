@@ -26,8 +26,6 @@ misrepresented as being the original software.
 # Parse orgmode files
 #
 
-console.log "ORG"
-
 root = module?.exports ? {}
 
 if Meteor?
@@ -424,67 +422,62 @@ parseOrgChunk = (text, offset, level)->
       meat = text.substring 0, if m then m.index else text.length
       parseMeat meat, offset, text.substring meat.length
 
-parseMeat = (meat, offset, rest, middleOfLine)->
-  simple = meat.match simpleRE
-  link = meat.match linkRE
-  if !middleOfLine
-    results = meat.match resultsRE
-    srcStart = meat.match srcStartRE
-    keyword = meat.match keywordRE
-    list = meat.match listRE
-    htmlStart = meat.match htmlStartRE
-    drawer = meat.match drawerRE
-    attr = meat.match attrHtmlRE
-    if results?.index == 0
-      line = fullLine results, meat
-      return parseResults line, offset, meat.substring(line.length) + rest
-    else if attr?.index == 0
-      line = fullLine attr, meat
-      return parseAttr line, offset, meat.substring(line.length) + rest
-    else if srcStart?.index == 0
-      line = fullLine srcStart, meat
-      return parseSrcBlock line, offset, srcStart[SRC_INFO], srcStart[SRC_BOILERPLATE].length, meat.substring(line.length) + rest
-    else if keyword?.index == 0
-      line = fullLine keyword, meat
-      return parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], meat.substring(line.length) + rest
-    else if list?.index == 0
-      line = fullLine list, meat
-      return parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], meat.substring(line.length) + rest
-    else if htmlStart?.index == 0
-      line = fullLine htmlStart, meat
-      return parseHtmlBlock line, offset, meat.substring(line.length) + rest
-    else if drawer?.index == 0
-      line = fullLine drawer, meat
-      newRest = meat.substring(line.length) + rest
-      if end = newRest.match endRE then return parseDrawer line, drawer[DRAWER_NAME], offset, end, newRest
-  if simple?.index == 0
-    inside = simple[0].substring 1, simple[0].length - 1
-    insideOffset = offset + 1
-    children = []
-    while inside
-      [child, inside] = parseMeat inside, insideOffset, '', true
-      while child
-        children.push child
-        insideOffset = child.offset + child.text.length
-        child = child.next
-    node = new SimpleMarkup simple[0], offset, children
-  else if link?.index == 0
-    inside = link[LINK_DESCRIPTION]
-    insideOffset = offset + link[LINK_HEAD].length
-    children = []
-    while inside
-      [child, inside] = parseMeat inside, insideOffset, '', true
-      while child
-        children.push child
-        insideOffset = child.offset + child.text.length
-        child = child.next
-    node = new Link link[0], offset, link[LINK_INFO], children
-  else
-    first = meat.length + offset
-    first = Math.min(first, srcStart?.index ? first, keyword?.index ? first, results?.index ? first, list?.index ? first, simple?.index ? first, link?.index ? first, htmlStart?.index ? first, drawer?.index ? first, attr?.index ? first)
-    node = new Meat(meat.substring(0, first), offset)
-  meat = meat.substring node.text.length
-  parseRestOfMeat node, meat, rest
+class MeatParser
+  constructor: ->
+  checkPat: (pattern, cont)->
+    if !@result && match = @meat.match pattern
+      if match.index == 0
+        line = fullLine match, @meat
+        @result = cont line, @meat.substring(line.length) + @rest, match
+      else @maxLen = Math.min @maxLen, match.index
+  parse: (meat, offset, rest, singleLine)->
+    @meat = meat
+    @rest = rest
+    @maxLen = meat.length + offset
+    @result = null
+    if !@singleLine
+      @checkPat resultsRE, (line, newRest)-> parseResults line, offset, newRest
+      @checkPat attrHtmlRE, (line, newRest)-> parseAttr line, offset, newRest
+      @checkPat srcStartRE, (line, newRest, srcStart)->
+        parseSrcBlock line, offset, srcStart[SRC_INFO], srcStart[SRC_BOILERPLATE].length, newRest
+      @checkPat keywordRE, (line, newRest, keyword)->
+        parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], newRest
+      @checkPat listRE, (line, newRest, list)->
+        parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], newRest
+      @checkPat htmlStartRE, (line, newRest, list)-> parseHtmlBlock line, offset, newRest
+      @checkPat drawerRE, (line, newRest, list)->
+        if end = newRest.match endRE
+          parseDrawer line, drawer[DRAWER_NAME], offset, end, newRest
+    if @result then @result
+    else
+      @checkPat simpleRE, (line, newRest, simple)->
+        inside = simple[0].substring 1, simple[0].length - 1
+        insideOffset = offset + 1
+        children = []
+        while inside
+          [child, inside] = parseMeat inside, insideOffset, '', true
+          while child
+            children.push child
+            insideOffset = child.offset + child.text.length
+            child = child.next
+        new SimpleMarkup simple[0], offset, children
+      @checkPat linkRE, (line, newRest, link)->
+        inside = link[LINK_DESCRIPTION]
+        insideOffset = offset + link[LINK_HEAD].length
+        children = []
+        while inside
+          [child, inside] = parseMeat inside, insideOffset, '', true
+          while child
+            children.push child
+            insideOffset = child.offset + child.text.length
+            child = child.next
+        new Link link[0], offset, link[LINK_INFO], children
+      if !@result
+        @result = new Meat(meat.substring(0, @maxLen), offset)
+      parseRestOfMeat @result, meat.substring(@result.text.length), rest
+
+parseMeat = (meat, offset, rest, singleLine)->
+  new MeatParser().parse(meat, offset, rest, singleLine)
 
 parseRestOfMeat = (node, meat, rest)->
   if meat && node.text[node.text.length - 1] != '\n'

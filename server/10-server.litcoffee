@@ -1,6 +1,8 @@
 Meteor-based collaboration -- server side
 
     docs = {}
+    getCodeItems = Leisure.getCodeItems
+    isCodeBlock = Leisure.isCodeBlock
 
     Meteor.methods
       hasDocument: (name)->
@@ -54,30 +56,13 @@ Document model that ties orgmode parse trees to HTML DOM
         children.push childDoc
       children
 
-    isCodeBlock = (org)->
-      if org instanceof Org.Keyword && org.name.match /^name$/i
-        while org instanceof Org.Meat
-          if org instanceof Org.Source then return true
-          org = org.next
-        false
-      else org instanceof Org.Source
-
     createDocFromCodeBlock = (org, collection)->
       text = ''
-      cur = org
-      last = org.next
-      while !isSourceEnd(cur)
-        if isSourceNode cur then last = cur.next
-        cur = cur.next
-      cur = org
-      while cur != last
-        text += cur.allText()
-        cur = cur.next
+      {first, last} = getCodeItems org
+      while first != last
+        text += first.allText()
+        first = first.next
       [{text: text}, last]
-
-    isSourceNode = (org)-> org instanceof Org.Results || (org instanceof Org.Drawer && node.name.toLowerCase() == 'expected') || (org instanceof Org.Keyword && org.name.match /^name$/i)
-
-    isSourceEnd = (org)-> !org || org instanceof Org.Headline
 
     Leisure.loadDoc = loadDoc
 
