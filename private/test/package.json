@@ -1,0 +1,12 @@
+{
+  "name": "Leisure testing",
+  "version": "1",
+  "main": "index.html",
+  "window": {
+    "frame": true,
+    "width": 500,
+    "height": 400,
+    "toolbar": true,
+    "resizable": true
+  }
+}
