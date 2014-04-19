@@ -7,7 +7,12 @@
       Drawer,
       Meat,
       Results,
+      parseOrgMode,
     } = Org
+
+    _ = Lazy
+
+    console.log Lazy
 
     getCodeItems = (org)->
       result = {}
@@ -15,18 +20,17 @@
         if type = getSourceNodeType org
           if !result.first then result.first = org
           result.last = org.next
+          if result[type]? then return {}
           result[type] = org
           if type == 'results' then break
         else if org instanceof Drawer || org instanceof Keyword then break
         org = org.next
-      result
+      if result.source then result else {}
 
     isCodeBlock = (org)->
       if org instanceof Keyword && org.name.match /^name$/i
-        while org instanceof Meat
-          if org instanceof Source then return true
-          org = org.next
-        false
+        {first} = getCodeItems org
+        first
       else org instanceof Source
 
     getSourceNodeType = (org)->
@@ -38,47 +42,72 @@
 
     isSourceEnd = (org)-> !org || org instanceof Headline
 
-    createDocFromOrg = (org, collection)->
-      result = {}
-      [id] = orgDoc org, result
-      for k, v of result
-        if k != 'root' then collection.insert v
-      id
+    createDocFromOrg = (org, collection, parent)->
+      [doc] = orgDoc org
+      console.log "INSERTING DOC: #{JSON.stringify doc, null, '  '}"
+      insertOrgDoc doc, collection
+      doc._id
 
-    orgDoc = (org, result, parent)->
-      id = new Meteor.Collection.ObjectID().toJSONValue()
+    insertOrgDoc = (doc, collection, parent)->
+      if parent? then doc.parent = parent else doc.root = true
+      doc._id = new Meteor.Collection.ObjectID().toJSONValue()
+      if doc.children?
+        newChildren = []
+        for child in doc.children
+          insertOrgDoc child, collection, doc._id
+          newChildren.push child._id
+        doc.children = newChildren
+      collection.insert doc
+
+    orgDoc = (org)->
       next = org.next
       if org instanceof Org.Headline
-        children = childrenDocs org, result, id
-        doc =
-          text: org.text
-          children: children
-          _id: id
-      else if isCodeBlock org then [doc, next] = codeBlockDoc org, id
-      else doc = text: org.allText(), _id: id
-      if parent then doc.parent = parent
-      else
-        doc.root = true
-        result.root = doc
-      result[id] = doc
-      [id, next]
+        doc = text: org.text
+        doc.children = childrenDocs org
+        if doc.text == '' && doc.children.length == 1 then doc = doc.children[0]
+      else if isCodeBlock org then [doc, next] = codeBlockDoc org
+      else doc = text: org.allText()
+      [doc, next]
 
-    childrenDocs = (org, result, parent)->
+    childrenDocs = (org)->
       children = []
       child = org.children[0]
+      mergedText = ''
       while child
-        [childDoc, child] = orgDoc child, result, parent
-        children.push childDoc
+        if isMergeable child
+          mergedText += child.allText()
+          child = child.next
+        else
+          mergedText = checkMerged mergedText, children
+          [childDoc, child] = orgDoc child
+          children.push childDoc
+      mergedText = checkMerged mergedText, children
       children
 
-    codeBlockDoc = (org, id)->
+    isMergeable = (org)-> !(org instanceof Headline || isCodeBlock org)
+
+    checkMerged = (mergedText, children)->
+      if mergedText != '' then children.push text: mergedText
+      ''
+
+    codeBlockDoc = (org)->
       text = ''
       {first, last} = getCodeItems org
-      while first != last
-        text += first.allText()
-        first = first.next
-      [{text: text, _id: id}, last]
+      if !first then [text: org.allText(), org.next]
+      else
+        while first != last
+          text += first.allText()
+          first = first.next
+        [text: text, last]
+
+    checkSingleNode = (text)->
+      docs = {}
+      org = parseOrgMode text
+      [docJson] = if org.children.length > 1 then orgDoc org
+      else orgDoc org.children[0]
+      if docJson.children? then console.log "NEW NODE\n#{JSON.stringify docJson}"
 
     root.getCodeItems = getCodeItems
     root.isCodeBlock = isCodeBlock
     root.createDocFromOrg = createDocFromOrg
+    root.checkSingleNode = checkSingleNode

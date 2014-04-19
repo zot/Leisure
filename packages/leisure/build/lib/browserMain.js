@@ -20,8 +20,6 @@
 
   require('sha256');
 
-  require('lazy');
-
 }).call(this);
 
 //# sourceMappingURL=browserMain.map

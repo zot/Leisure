@@ -1,6 +1,9 @@
 Meteor-based collaboration -- client side
 
     {
+      delay,
+    } = require '10-namespace'
+    {
       loadOrg,
     } = require '24-orgSupport'
     {
@@ -9,7 +12,7 @@ Meteor-based collaboration -- client side
       Fragment,
     } = require '11-org'
     root = require '15-base'
-    _ = require 'lazy'
+    _ = Lazy
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -125,10 +128,12 @@ Handle changes to the doc nodes
     edited = (node)->
       node = $(node).closest('[data-shared]')[0]
       if node
-        edits[node.id] = true
-        if !pendingPush
-          pendingPush = true
-          setTimeout doPush, 200
+        delay ->
+          root.checkSingleNode root.blockText node
+          edits[node.id] = true
+          if !pendingPush
+            pendingPush = true
+            setTimeout doPush, 200
 
     doPush = ->
       currentEdits = edits

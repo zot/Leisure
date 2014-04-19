@@ -1,5 +1,6 @@
 DIR=packages/leisure/build
 BROWSER_SRC=$(DIR)/src/browserMain.coffee
+BROWSER_JS=$(DIR)/lib/browser.js
 BROWSER=client/12-browser.js
 LSR_MAIN=client/19-generatedPrelude.js client/20-std.js
 LSR_AUX=client/22-svg.js client/29-parseAst.js
@@ -23,7 +24,7 @@ retest: invalidateTests $(TESTED)
 invalidateTests: FRC
 	rm -f $(TESTED)
 
-$(BROWSER): $(BROWSER_SRC)
+$(BROWSER): $(BROWSER_SRC) $(BROWSER_JS)
 	cd $(DIR);$(MAKE) lib/browser.js
 	cp $(DIR)/lib/browser.js $(BROWSER)
 
