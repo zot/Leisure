@@ -47,6 +47,7 @@ lz = lazy
 {
   crnl,
   docOrg,
+  edited,
 } = require '23-collaborate'
 amt = require('persistent-hash-trie')
 
@@ -457,8 +458,12 @@ markupNode = (org, start)->
     "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else if org instanceof SimpleMarkup then markupSimple org
+  else if org instanceof Fragment then markupFragment org
   else if org instanceof Drawer && org.name.toLowerCase() == 'data' then markupData org
   else "<span #{orgAttrs org}>#{content org.text}</span>"
+
+markupFragment = (org)->
+  "<div #{orgAttrs org}>#{(markupNode child for child in org.children).join ''}</div>"
 
 markupData = (org)->
   m = org.text.match /^[^\n]*\n([^\n]*)\n/
@@ -610,6 +615,7 @@ bindContent = (div)->
       checkMod = modifyingKey c
       cancelled = false
     if !bound
+      if checkMod then edited s.focusNode
       if c == TAB
         e.preventDefault()
         cancelled = true
@@ -1113,8 +1119,10 @@ filteredNodeAfter = (node, director)->
 blockText = (node)->
   end = nodeAfter node, true
   text = ''
-  while node = filteredNodeAfter node, ((n)-> if n == end then 'quit' else if n.nodeType == 1 && n.hasAttribute 'data-shared' then 'reject')
+  while node != end
     if node.nodeType == 3 then text += node.data
+    node = nodeAfter node
+    if node?.nodeType == 1 && node.hasAttribute 'data-shared' then break
   text
 
 orgForNode = (node)->

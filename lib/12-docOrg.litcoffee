@@ -38,5 +38,47 @@
 
     isSourceEnd = (org)-> !org || org instanceof Headline
 
+    createDocFromOrg = (org, collection)->
+      result = {}
+      [id] = orgDoc org, result
+      for k, v of result
+        if k != 'root' then collection.insert v
+      id
+
+    orgDoc = (org, result, parent)->
+      id = new Meteor.Collection.ObjectID().toJSONValue()
+      next = org.next
+      if org instanceof Org.Headline
+        children = childrenDocs org, result, id
+        doc =
+          text: org.text
+          children: children
+          _id: id
+      else if isCodeBlock org then [doc, next] = codeBlockDoc org, id
+      else doc = text: org.allText(), _id: id
+      if parent then doc.parent = parent
+      else
+        doc.root = true
+        result.root = doc
+      result[id] = doc
+      [id, next]
+
+    childrenDocs = (org, result, parent)->
+      children = []
+      child = org.children[0]
+      while child
+        [childDoc, child] = orgDoc child, result, parent
+        children.push childDoc
+      children
+
+    codeBlockDoc = (org, id)->
+      text = ''
+      {first, last} = getCodeItems org
+      while first != last
+        text += first.allText()
+        first = first.next
+      [{text: text, _id: id}, last]
+
     root.getCodeItems = getCodeItems
     root.isCodeBlock = isCodeBlock
+    root.createDocFromOrg = createDocFromOrg

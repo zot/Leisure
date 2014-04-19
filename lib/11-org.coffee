@@ -429,11 +429,11 @@ class MeatParser
       if match.index == 0
         line = fullLine match, @meat
         @result = cont line, @meat.substring(line.length) + @rest, match
-      else @maxLen = Math.min @maxLen, match.index
+      else @minLen = Math.min @minLen, match.index
   parse: (meat, offset, rest, singleLine)->
     @meat = meat
     @rest = rest
-    @maxLen = meat.length + offset
+    @minLen = meat.length + offset
     @result = null
     if !@singleLine
       @checkPat resultsRE, (line, newRest)-> parseResults line, offset, newRest
@@ -473,7 +473,7 @@ class MeatParser
             child = child.next
         new Link link[0], offset, link[LINK_INFO], children
       if !@result
-        @result = new Meat(meat.substring(0, @maxLen), offset)
+        @result = new Meat(meat.substring(0, @minLen), offset)
       parseRestOfMeat @result, meat.substring(@result.text.length), rest
 
 parseMeat = (meat, offset, rest, singleLine)->
