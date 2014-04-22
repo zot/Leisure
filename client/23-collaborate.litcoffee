@@ -51,7 +51,7 @@ Handle changes to the doc nodes
           if $("##{item.data._id}").is "[data-org-headline='0']"
             org = docOrg root.currentDocument
           else
-            org = subDoc root.currentDocument, item, 0, 0
+            org = subDoc(root.currentDocument, item.data, 0, 0)[0]
           root.loadOrg $('[maindoc]')[0], org, name, $("##{item.data._id}")[0]
 
     isLocal = (item)->
@@ -94,7 +94,7 @@ Handle changes to the doc nodes
       if !itemId then []
       else
         if !col then col = root.currentDocument
-        item = col.findOne itemId
+        item = if typeof itemId == 'string' then col.findOne itemId else itemId
         org = parseOrgMode item.text, offset
         org = if org.children.length == 1 then org.children[0]
         else new Fragment org.offset, org.children
