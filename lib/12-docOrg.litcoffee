@@ -8,11 +8,9 @@
       Meat,
       Results,
       parseOrgMode,
-    } = Org
+    } = (Org ? window?.Org ? global?.Org)
 
-    _ = Lazy
-
-    console.log Lazy
+    _ = (Lazy ? window?.Lazy ? global?.Lazy)
 
     getCodeItems = (org)->
       result = {}
@@ -42,35 +40,55 @@
 
     isSourceEnd = (org)-> !org || org instanceof Headline
 
-    createDocFromOrg = (org, collection, parent)->
-      [doc] = orgDoc org
-      console.log "INSERTING DOC: #{JSON.stringify doc, null, '  '}"
-      insertOrgDoc doc, collection
+    createDocFromOrg = (org, collection)->
+      doc = orgDoc org
+      replaceOrgDoc doc, collection
       doc._id
 
-    insertOrgDoc = (doc, collection, parent)->
-      if parent? then doc.parent = parent else doc.root = true
-      doc._id = new Meteor.Collection.ObjectID().toJSONValue()
-      if doc.children?
-        newChildren = []
-        for child in doc.children
-          insertOrgDoc child, collection, doc._id
-          newChildren.push child._id
-        doc.children = newChildren
-      collection.insert doc
+    docDo = (collection, func)->
+      next = collection.findOne docRoot(collection).head
+      while next
+        node = collection.findOne next
+        func node
+        next = node.next
 
-    orgDoc = (org)->
+    docRoot = (collection)-> collection.orgInfo ? (collection.orgInfo = collection.findOne info: true)
+
+    replaceOrgDoc = (docArray, collection)->
+      collection.remove()
+      linkDocs docArray
+      console.log "DOCS: #{JSON.stringify docArray, null, '  '}"
+      collection.orgInfo = info =
+        info: true
+        head: if docArray.length > 0 then docArray[0]._id else null
+        _id: new Meteor.Collection.ObjectID().toJSONValue()
+      collection.insert info
+      for doc in docArray
+        collection.insert doc
+
+    linkDocs = (docs)->
+      prev = null
+      for doc in docs
+        doc._id = new Meteor.Collection.ObjectID().toJSONValue()
+        if prev
+          prev.next = doc._id
+          doc.prev = prev._id
+        prev = doc
+
+    orgDoc = (org)-> createOrgDoc(org)[0].toArray()
+
+    createOrgDoc = (org)->
       next = org.next
-      if org instanceof Org.Headline
-        doc = text: org.text
-        doc.children = childrenDocs org
-        if doc.text == '' && doc.children.length == 1 then doc = doc.children[0]
-      else if isCodeBlock org then [doc, next] = codeBlockDoc org
-      else doc = text: org.allText()
-      [doc, next]
+      if org instanceof Headline
+        children = createChildrenDocs org
+        result = if org.level == 0 then children
+        else _([text: org.text, type: 'headline', level: org.level]).concat children
+      else if isCodeBlock org then [result, next] = createCodeBlockDoc org
+      else result = _([text: org.allText(), type: 'chunk'])
+      [result, next]
 
-    childrenDocs = (org)->
-      children = []
+    createChildrenDocs = (org)->
+      children = _()
       child = org.children[0]
       mergedText = ''
       while child
@@ -78,27 +96,27 @@
           mergedText += child.allText()
           child = child.next
         else
-          mergedText = checkMerged mergedText, children
-          [childDoc, child] = orgDoc child
-          children.push childDoc
-      mergedText = checkMerged mergedText, children
+          [mergedText, children] = checkMerged mergedText, children
+          [childDoc, child] = createOrgDoc child
+          children = children.concat [childDoc]
+      [mergedText, children] = checkMerged mergedText, children
       children
 
     isMergeable = (org)-> !(org instanceof Headline || isCodeBlock org)
 
     checkMerged = (mergedText, children)->
-      if mergedText != '' then children.push text: mergedText
-      ''
+      if mergedText != '' then children = children.concat [text: mergedText, type: 'chunk']
+      ['', children]
 
-    codeBlockDoc = (org)->
+    createCodeBlockDoc = (org)->
       text = ''
       {first, last} = getCodeItems org
-      if !first then [text: org.allText(), org.next]
+      if !first then [_([text: org.allText(), type: 'chunk']), org.next]
       else
         while first != last
           text += first.allText()
           first = first.next
-        [text: text, last]
+        [_([text: text, type: 'code']), last]
 
     checkSingleNode = (text)->
       docs = {}
@@ -106,8 +124,13 @@
       [docJson] = if org.children.length > 1 then orgDoc org
       else orgDoc org.children[0]
       if docJson.children? then console.log "NEW NODE\n#{JSON.stringify docJson}"
+      docJson
 
     root.getCodeItems = getCodeItems
     root.isCodeBlock = isCodeBlock
     root.createDocFromOrg = createDocFromOrg
     root.checkSingleNode = checkSingleNode
+    root.orgDoc = orgDoc
+    root.docDo = docDo
+    root.docRoot = docRoot
+    root.linkDocs = linkDocs

@@ -11,6 +11,10 @@ Meteor-based collaboration -- client side
       Headline,
       Fragment,
     } = require '11-org'
+    {
+      docDo,
+      docRoot,
+    } = require '12-docOrg'
     root = require '15-base'
     _ = Lazy
 
@@ -45,10 +49,9 @@ Handle changes to the doc nodes
               console.log "SAME CHILDREN"
             else console.log "DIFFERENT CHILDREN"
           if $("##{item.data._id}").is "[data-org-headline='0']"
-            org = docOrg root.currentDocument, 0, item.data
+            org = docOrg root.currentDocument
           else
-            org = dataOrg root.currentDocument, 0, item.data
-            org.linkNodes()
+            org = subDoc root.currentDocument, item, 0, 0
           root.loadOrg $('[maindoc]')[0], org, name, $("##{item.data._id}")[0]
 
     isLocal = (item)->
@@ -76,32 +79,40 @@ Handle changes to the doc nodes
           document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}"
 
-    docOrg = (col, offset, doc)->
-      if !col then docOrg root.currentDocument, 0, root.currentDocument.findOne root: true
-      else if !doc then docOrg col, offset, col.findOne root: true
-      else
-        org = dataOrg col, 0, doc
-        if org instanceof Fragment
-          frag = org
-          org = new Headline '', 0, null, null, null, org.children, 0
-          org.nodeId = frag.nodeId
-        org.linkNodes()
-        org
+    docOrg = (col)->
+      if !col then col = root.currentDocument
+      children = []
+      next = docRoot(col).head
+      offset = 0
+      while next
+        [org, next] = subDoc col, next, offset, 0
+        offset += org.length()
+        children.push org
+      new Headline '', 0, null, null, null, children, 0
 
-    dataOrg = (col, offset, doc)->
-      org = if !doc.text then new Headline '', 0, null, null, null, [], 0
-      else parseOrgMode crnl(doc.text), offset
-      if org instanceof Headline && org.level == 0
-        if org.children?.length == 1 then org = org.children[0]
-        else org = new Fragment org.offset, org.children
-      org.nodeId = doc._id
-      org.shared = true
-      if doc.children?
-        for child in doc.children
-          childOrg = dataOrg col, offset, col.findOne child
-          addChild org, childOrg
-          offset += childOrg.length()
-      org
+    subDoc = (col, itemId, offset, level)->
+      if !itemId then []
+      else
+        if !col then col = root.currentDocument
+        item = col.findOne itemId
+        org = parseOrgMode item.text, offset
+        org = if org.children.length == 1 then org.children[0]
+        else new Fragment org.offset, org.children
+        org.nodeId = item._id
+        org.shared = item.type
+        if item.type == 'headline'
+          offset += item.text.length
+          if item.level <= level then [null, item._id]
+          else
+            next = item.next
+            while next
+              [child, next] = subDoc col, next, offset, item.level
+              if child
+                org.children.push child
+                offset += child.length()
+              else break
+            [org, next]
+        else [org, item.next]
 
     docJson = (col, node)->
       if !col then return docJson root.currentDocument

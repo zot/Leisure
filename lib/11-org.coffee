@@ -100,6 +100,7 @@ checkMatch = (txt, pat, result)->
 
 class Node
   constructor: -> @markup = markupText @text
+  count: -> 1
   length: -> @text.length
   end: -> @offset + @text.length
   toJson: -> JSON.stringify @toJsonObject(), null, "  "
@@ -128,6 +129,11 @@ class Headline extends Node
   constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)->
     super()
     @properties = {}
+  count: ->
+    count = 1
+    for node in @children
+      count += node.count()
+    count
   block: true
   lowerThan: (l)-> l < @level
   length: -> @end() - @offset
@@ -180,6 +186,11 @@ class Headline extends Node
 
 class Fragment extends Node
   constructor: (@offset, @children)-> @text = ''
+  count: ->
+    count = 1
+    for node in @children
+      count += node.count()
+    count
   end: ->
     if @children.length
       lastChild = @children[@children.length - 1]
@@ -236,6 +247,11 @@ markupTypes =
 #* bold, / italic, _ underline, = verbatim, ~ code, + strikethrough
 class SimpleMarkup extends Meat
   constructor: (@text, @offset, @children)-> @markupType = markupTypes[@text[0]]
+  count: ->
+    count = 1
+    for node in @children
+      count += node.count()
+    count
   type: 'simple'
   jsonDef: ->
     type: @type
@@ -247,6 +263,11 @@ class SimpleMarkup extends Meat
 
 class Link extends Meat
   constructor: (@text, @offset, @path, @children)->
+  count: ->
+    count = 1
+    for node in @children
+      count += node.count()
+    count
   type: 'link'
   jsonDef: ->
     type: @type
@@ -259,6 +280,11 @@ class Link extends Meat
 
 class ListItem extends Meat
   constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
+  count: ->
+    count = 1
+    for node in @children
+      count += node.count()
+    count
   type: 'list'
   jsonDef: ->
     obj =

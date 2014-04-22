@@ -23,6 +23,9 @@ misrepresented as being the original software.
 ###
 
 {
+  delay,
+} = require '10-namespace'
+{
   getType,
   cons,
   define,
@@ -49,6 +52,9 @@ lz = lazy
   docOrg,
   edited,
 } = require '23-collaborate'
+{
+  orgDoc,
+} = require '12-docOrg'
 amt = require('persistent-hash-trie')
 
 consFrom = newConsFrom
@@ -430,7 +436,7 @@ orgAttrs = (org)->
   nodes[org.nodeId] = org
   extra = if rt = resultsType org then " data-org-results='#{rt}'"
   else ''
-  if org.shared then extra += " data-shared='true'"
+  if org.shared then extra += " data-shared='#{org.shared}' data-nodecount='#{org.nodeCount}'"
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
   if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{escapeAttr org.info}'"
@@ -615,7 +621,9 @@ bindContent = (div)->
       checkMod = modifyingKey c
       cancelled = false
     if !bound
-      if checkMod then edited s.focusNode
+      if checkMod
+        edited s.focusNode
+        reparseBlock s.focusNode
       if c == TAB
         e.preventDefault()
         cancelled = true
@@ -1125,12 +1133,51 @@ blockText = (node)->
     if node?.nodeType == 1 && node.hasAttribute 'data-shared' then break
   text
 
+# reparse block of text contained in a DOM node
+# first, parse it into org and doc nodes
+# if the top doc node has children, it means the user
+# has inserted an doc node and the tree must react
+reparseBlock = (node, next)->
+  #node = $(node).closest('[data-shared]')[0]
+  #if node then delay ->
+  #  text = blockText node
+  #  org = parseOrgMode text
+  #  if org.level == 0 && org.children.length == 1 then org = org.children[0]
+  #  [doc] = orgDoc org
+  #  oldType = $(node).attr 'data-shared'
+  #  newType = doc.type
+  #  oldLevel = if oldType == 'headline' then Number $(node).attr 'data-org-headline'
+  #  skip = false
+  #  if doc.children? # should only be a headline level 0
+  #    children = _ doc.children
+  #    if oldType == 'headline'
+  #    while !children.isEmpty() && children.first().type != 'headline'
+  #      mergeChildUp children.first()
+  #      children = children.shift()
+  #    if children.size() == 1 then doc = children[0]
+  #    else
+  #      console.log "EXTRA CHILDREN AFTER MERGE"
+  #      skip = true
+  #  else if Number($(node).attr('data-nodecount')) != org.count()
+  #    console.log "REPARSE BLOCK: REPARSE FOUND NEW NODE COUNT -- NEEDS RERENDER"
+  #  if !skip
+  #    block = getBlock node.id
+  #    doc.children = block.children
+  #    putBlock node.id, doc
+  #    if oldType == 'headline' && doc.type == 'headline'
+  #      if doc.level < oldLevel
+  #        mergeHeadlineUp node.id, doc
+  #      #else if oldLevel < doc.level
+  #  next?()
+
 orgForNode = (node)->
   org = parseOrgMode blockText node
   if !$(node).is('[data-org-headline="0"]')
     if org.children.length == 1 then org = org.children[0]
     else org = new Fragment org.offset, org.children
-  if $(node).is('[data-shared]') then org.nodeId = node.id
+  if $(node).is('[data-shared]')
+    org.nodeId = node.id
+    org.shared = $(node).attr 'data-shared'
   for child in orgChildrenForNode node
     org.children.push orgForNode child
   org.linkNodes()
@@ -1340,3 +1387,4 @@ root.markupData = markupData
 root.blockText = blockText
 root.orgForNode = orgForNode
 root.orgChildrenForNode = orgChildrenForNode
+root.reparseBlock = reparseBlock

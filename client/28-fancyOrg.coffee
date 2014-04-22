@@ -108,6 +108,7 @@ lz = lazy
   watchNodeText,
   markupData,
   orgForNode,
+  reparseBlock,
 } = require '24-orgSupport'
 {
   redrawAllIssues,
@@ -323,7 +324,6 @@ markupFragment = (org, delay, note)->
     {first, name, source, last} = getCodeItems org.children[0]
     if first == org.children[0] && !last
       prelude = ''
-      first = name.next
       while first != source
         prelude += first.allText()
         first = first.next
@@ -378,7 +378,7 @@ hlStars = /^\*+ */
 
 markupHeadline = (org, delay, note, replace)->
   match = org.text.match headlineRE
-  start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length - 1}".trim()
+  start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length}".trim()
   if org.text[org.text.length - 1] == '\n'
     tags = escapeHtml org.text.substring start.length, org.text.length
   else
@@ -827,7 +827,7 @@ addComment = (name, event)->
 defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
 
 htmlForResults = (text, org)->
-  attr = if org?.shared then " id='#{org.nodeId}' data-shared='true'" else ''
+  attr = if org?.shared then " id='#{org.nodeId}' data-shared='#{org.shared}'" else ''
   """
   <div class='coderesults' data-org-type='results'#{attr}><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
 
@@ -970,6 +970,7 @@ handleKey = (div)->(e)->
       par = el.parentNode
       currentMatch = matchLine currentLine div
       edited n
+      reparseBlock n
       if c == ENTER
         e.preventDefault()
         if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'

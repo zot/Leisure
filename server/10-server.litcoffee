@@ -4,10 +4,10 @@ Meteor-based collaboration -- server side
     getCodeItems = Leisure.getCodeItems
     isCodeBlock = Leisure.isCodeBlock
     createDocFromOrg = Leisure.createDocFromOrg
+    docDo = Leisure.docDo
 
     Meteor.methods
       hasDocument: (name)->
-        console.log "CHECKING DOCUMENT: #{name}"
         try
           if docs[name] then console.log "#{name} exists"; true
           else
@@ -26,18 +26,15 @@ Document model that ties orgmode parse trees to HTML DOM
       createDocFromText doc, docs[name]
       Meteor.publish name, -> docs[name].find()
 
-    docJson = (collection, id)->
-      d = collection.findOne id
-      if d.children then d.children = (docJson collection, child for child in d.children)
-      d
+    docJson = (collection)->
+      nodes = []
+      docDo collection, (node)-> nodes.push node
+      nodes
 
     createDocFromText = (text, collection)->
-      console.log "CREATE DCC FROM #{collection.find().count()} nodes"
       id = createDocFromOrg Org.parseOrgMode(text), collection
-      console.log "DOC JSON: #{JSON.stringify docJson(collection, id), null, '  '}"
+      console.log "CREATED DOC FROM #{collection.find().count()} nodes"
 
     Leisure.loadDoc = loadDoc
-
-    console.log "SERVER"
 
     Meteor.setTimeout (-> Leisure.loadDoc 'largerTest.lorg'), 1
