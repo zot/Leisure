@@ -14,6 +14,7 @@ Meteor-based collaboration -- client side
     {
       docDo,
       docRoot,
+      orgDoc,
     } = require '12-docOrg'
     root = require '15-base'
     _ = Lazy
@@ -41,18 +42,47 @@ Handle changes to the doc nodes
 
     processChanges = (doc, batch)->
       for item in batch
-        if isLocal item then console.log "IGNORING LOCAL CHANGE: #{JSON.stringify item}"
-        else if item.type == 'changed'
-          console.log "CHANGED:\n#{JSON.stringify item}\nORG ROOT:\n#{docOrg root.currentDocument, 0, item.data}\n#{}\nNODE: #{$ "##{item.data._id}"}"
-          if item.data.children && item.oldData.children
-            if _(item.data.children).intersection(item.oldData.children).size() == item.data.children.length
-              console.log "SAME CHILDREN"
-            else console.log "DIFFERENT CHILDREN"
-          if $("##{item.data._id}").is "[data-org-headline='0']"
-            org = docOrg root.currentDocument
-          else
-            org = subDoc(root.currentDocument, item.data, 0, 0)[0]
-          root.loadOrg $('[maindoc]')[0], org, name, $("##{item.data._id}")[0]
+        # delay here because each item will alter DOM in a delayed function
+        # and successive items depend on current DOM content
+        do (item)-> delay ->
+          if isLocal item then console.log "IGNORING LOCAL CHANGE: #{JSON.stringify item}"
+          else if item.type == 'changed'
+            console.log "CHANGED:\n#{JSON.stringify item}\nORG ROOT:\n#{docOrg root.currentDocument, 0, item.data}\n#{}\nNODE: #{$ "##{item.data._id}"}"
+            if item.data.type != item.oldData.type
+              if item.data.type == 'headline' && item.data.level == 1
+                prev = item.data.prev
+                rendered = false
+                while prev
+                  prevItem = root.currentDocument.findOne prev
+                  if prevItem.type == 'headline'
+                    if !rendered
+                      renderBlock prevItem
+                      rendered = true
+                    if prevItem.level == 1 then break
+                if prev then $("##{prevItem._id}").after("<div id='#{item.data._id}'></div>")
+                else $('[maindoc]').prepend("<div id='#{item.data._id}'></div>")
+                renderBlock item.data
+              else
+                level = Number.MAX_SAFE_INTEGER
+                redraw = item
+                if item.data.type == 'headline' then level = item.data.level
+                else if item.oldData.type == 'headline' then level = item.oldData.level
+                prev = item.data.prev
+                while prev
+                  prevItem = root.currentDocument.findOne prev
+                  if prevItem.type == 'headline' && prevItem.level < level
+                    redraw = prevItem
+                    break
+                  prev = prevItem.prev
+                renderBlock item.data
+            else renderBlock item.data
+
+    renderBlock = (item)->
+      if $("##{item._id}").is "[data-org-headline='0']"
+        org = docOrg root.currentDocument
+      else
+        org = subDoc(root.currentDocument, item, 0, 0)[0]
+      root.loadOrg $('[maindoc]')[0], org, name, $("##{item._id}")[0]
 
     isLocal = (item)->
       Meteor.connection._lastSessionId == item.data.session
@@ -71,13 +101,19 @@ Handle changes to the doc nodes
             console.log "OBSERVING DOCUMENT WITH #{cursor.count()} nodes"
             sub = cursor.observe
               _suppress_initial: true
-              added: (el)-> addBatch 'changes', type: 'added', data: el, (items)-> processChanges docCol, items
-              removed: (el)-> addBatch 'changes', type: 'removed', data: el, (items)-> processChanges docCol, items
-              changed: (el, oldEl)-> addBatch 'changes', type: 'changed', data: el, oldData: oldEl, (items)-> processChanges docCol, items
+              added: (el)-> addBatch 'changes', type: 'added', data: copy(el), (items)-> processChanges docCol, items
+              removed: (el)-> addBatch 'changes', type: 'removed', data: copy(el), (items)-> processChanges docCol, items
+              changed: (el, oldEl)-> addBatch 'changes', type: 'changed', data: copy(el), oldData: copy(oldEl), (items)-> processChanges docCol, items
             org = docOrg()
             root.loadOrg $('[maindoc]')[0], org, name
           document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}"
+
+    copy = (obj)->
+      newObj = {}
+      for k, v of obj
+        newObj[k] = v
+      newObj
 
     docOrg = (col)->
       if !col then col = root.currentDocument
@@ -151,7 +187,19 @@ Handle changes to the doc nodes
       edits = {}
       pendingPush = false
       for id of currentEdits
-        root.currentDocument.update id, $set: {text: textForId(id), session: Meteor.connection._lastSessionId}
+        #root.currentDocument.update id, $set: {text: textForId(id), session: Meteor.connection._lastSessionId}
+        newDoc = orgDoc parseOrgMode textForId(id)
+        if newDoc.length > 1 then console.log "WARNING, SPLIT NODE: #{JSON.stringify newDoc, null, '  '}"
+        else if newDoc.length == 0 then console.log "WARNING, COULDN'T PARSE NODE: #{textForId id}"
+        else
+          oldItem = root.currentDocument.findOne id
+          newItem = newDoc[0]
+          newItem.session = Meteor.connection._lastSessionId
+          newItem.prev = oldItem.prev
+          newItem.next = oldItem.next
+          if !newItem.level? && oldItem.level? then change = {$set: newItem, $unset: {level: ''}}
+          else change = newItem
+        root.currentDocument.update id, change
 
     textForId = (id)-> root.blockText $("##{id}")[0]
 

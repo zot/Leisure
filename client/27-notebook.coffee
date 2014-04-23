@@ -6,9 +6,12 @@
 console.log "LOADING NOTEBOOK"
 
 {
+  delay,
+} = root = module.exports = require '10-namespace'
+{
   resolve,
   lazy,
-} = root = module.exports = require '15-base'
+} = require '15-base'
 
 rz = resolve
 lz = lazy
@@ -87,8 +90,6 @@ defaultEnv.writeFile = (fileName, data, cont)->
 snapshot = (el, pgm)->
 
 setSnapper = (snapFunc)-> snapshot = snapFunc
-
-delay = (func)-> window.setTimeout func, 1
 
 getParseErr = getHtml = (x)-> x lz (value)-> rz value
 
@@ -1803,7 +1804,6 @@ root.markupButton = markupButton
 root.markupButtons = markupButtons
 root.getAst = getAst
 root.insertControls = insertControls
-root.delay = delay
 root.setFilename = setFilename
 root.unwrap = unwrap
 root.remove = remove

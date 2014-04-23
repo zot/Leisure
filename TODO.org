@@ -2,7 +2,7 @@
 - Collaboration engine
   - use meteor for collaboration
     - X put org data structure into mongo
-    - Use mongo instead of textContent to switch modes
+    - X Use mongo instead of textContent to switch modes
     - make data live in src blocks with language yaml or json
   - detect where changes are, to avoid rerendering/recomputing data
   - show users' cursors/selections
@@ -604,6 +604,7 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
 - Collaboration engine
   - use meteor for collaboration
     - put org data structure into mongo
+    - Use mongo instead of textContent to switch modes
    CLOSED: [2014-04-14 Mon 09:26]
 ** DONE bug: this TODO.org should be moved to Leisure Project
 ** DONE categories                                              :leisure:org:

@@ -8,7 +8,7 @@ BUILT=$(BROWSER) $(LSR_MAIN) $(LSR_AUX)
 ALL_BUILT=$(BUILT) $(DIR)/lib/browser.js $(DIR)/lib/generatedPrelude.js $(DIR)/lib/std.js $(DIR)/lib/svg.js $(DIR)/lib/parseAst.js
 REPL=./repl
 TESTED=$(DIR)/.tested
-NODE_PATH=lib;client;$(DIR)/lib;$(DIR)/src;$(DIR)/node_modules
+NODE_PATH=$(shell ./joinPath lib client $(DIR)/lib $(DIR)/src $(DIR)/node_modules)
 
 all: $(BUILT) $(TESTED)
 

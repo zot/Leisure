@@ -322,6 +322,7 @@ markupNode = (org, middleOfLine, delay, note, replace)->
 markupFragment = (org, delay, note)->
   if isCodeBlock org.children[0]
     {first, name, source, last} = getCodeItems org.children[0]
+    if first == name then first = first.next
     if first == org.children[0] && !last
       prelude = ''
       while first != source
