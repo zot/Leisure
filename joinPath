@@ -1,5 +1,5 @@
 #!/bin/sh
-if expr $OS : '[wW]indows' > /dev/null; then
+if expr "$OS" : '[wW]indows' > /dev/null; then
         delimiter=';'
 else
         delimiter=:

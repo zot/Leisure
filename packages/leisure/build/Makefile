@@ -3,8 +3,7 @@ MODULES=persistent-hash-trie source-map utf8 js-yaml
 LEISURE_SRC=generatedPrelude std svg parseAst simpleParse
 LEISURE_FILES=$(LEISURE_SRC:%=lib/%.js)
 LEISURE_GEN=$(LEISURE_FILES) $(LEISURE_SRC:%=lib/%.ast) $(LEISURE_SRC:%=lib/%.map) lib/generatedPrelude.lsr
-#NODE=NODE_PATH=$$(cygpath -d $$PWD)/lib node --stack-size=3000 --debug
-NODE=NODE_PATH=$$(cygpath -d $$PWD)/lib node --stack-size=3000
+NODE=NODE_PATH="$(shell ./getDir lib)" node --stack-size=3000
 REPL=$(NODE) src/runRepl
 
 all: lib/generatedPrelude.js $(LEISURE_FILES) lib/browser.js

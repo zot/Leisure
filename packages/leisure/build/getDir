@@ -1,0 +1,6 @@
+#!/bin/sh
+if expr "$OS" : '[wW]indows' > /dev/null; then
+        echo "$(cygpath -d "$PWD")\\lib"
+else
+        echo $PWD/lib
+fi
