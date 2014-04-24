@@ -3,6 +3,7 @@
   - use meteor for collaboration
     - X put org data structure into mongo
     - X Use mongo instead of textContent to switch modes
+    - Use change processing to handle local structural changes
     - make data live in src blocks with language yaml or json
   - detect where changes are, to avoid rerendering/recomputing data
   - show users' cursors/selections

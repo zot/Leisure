@@ -40,49 +40,60 @@ every time, because func is ignored after the first call in a batch
 
 Handle changes to the doc nodes
 
+    textLevel = Number.MAX_SAFE_INTEGER
+
     processChanges = (doc, batch)->
       for item in batch
         # delay here because each item will alter DOM in a delayed function
         # and successive items depend on current DOM content
         do (item)-> delay ->
-          if isLocal item then console.log "IGNORING LOCAL CHANGE: #{JSON.stringify item}"
-          else if item.type == 'changed'
-            console.log "CHANGED:\n#{JSON.stringify item}\nORG ROOT:\n#{docOrg root.currentDocument, 0, item.data}\n#{}\nNODE: #{$ "##{item.data._id}"}"
-            if item.data.type != item.oldData.type
-              if item.data.type == 'headline' && item.data.level == 1
-                prev = item.data.prev
-                rendered = false
-                while prev
-                  prevItem = root.currentDocument.findOne prev
-                  if prevItem.type == 'headline'
-                    if !rendered
-                      renderBlock prevItem
-                      rendered = true
-                    if prevItem.level == 1 then break
-                if prev then $("##{prevItem._id}").after("<div id='#{item.data._id}'></div>")
-                else $('[maindoc]').prepend("<div id='#{item.data._id}'></div>")
-                renderBlock item.data
-              else
-                level = Number.MAX_SAFE_INTEGER
-                redraw = item
-                if item.data.type == 'headline' then level = item.data.level
-                else if item.oldData.type == 'headline' then level = item.oldData.level
-                prev = item.data.prev
-                while prev
-                  prevItem = root.currentDocument.findOne prev
-                  if prevItem.type == 'headline' && prevItem.level < level
-                    redraw = prevItem
-                    break
-                  prev = prevItem.prev
-                renderBlock item.data
-            else renderBlock item.data
+          if item.type == 'changed'
+            processChange item,
+              text: -> renderBlock item.data
+              indent: (oldLevel, newLevel)->
+                if oldLevel == 1
+                  $("##{item.data._id}").remove()
+                  renderParent item.data
+                else renderParent item.oldData
+              outdent: (oldLevel, newLevel)->
+                renderParent item.oldData
+                renderParent item.data
+              none: ->
+
+    renderParent = (data)->
+      prev = data.prev
+      dataLevel = if data.type == 'headline' then data.level else textLevel
+      while prev
+        prevItem = root.currentDocument.findOne prev
+        if prevItem.type == 'headline'
+          if prevItem.level < dataLevel then return renderBlock prevItem
+          else if dataLevel == 1 && prevItem.level == 1
+            break
+        prev = prev.prev
+      if prev then $("##{prevItem._id}").after("<div id='#{data._id}'></div>")
+      else $('[data-org-headline="0"]').prepend root.emptySlide data._id
+      renderBlock data
+
+    processChange = (item, processor)->
+      data = item.data
+      old = item.oldData
+      if data.type == 'headline'
+        if old.type != 'headline' then processor.outdent textLevel, data.level
+        else
+          if data.level < old.level then processor.outdent old.level, data.level
+          else if data.level > old.level then processor.indent old.level, data.level
+          else if data.text != old.text then processor.text()
+          else processor.none()
+      else if old.type == 'headline' then processor.indent old.level, textLevel
+      else if data.text != old.text then processor.text()
+      else processor.none()
 
     renderBlock = (item)->
       if $("##{item._id}").is "[data-org-headline='0']"
         org = docOrg root.currentDocument
       else
         org = subDoc(root.currentDocument, item, 0, 0)[0]
-      root.loadOrg $('[maindoc]')[0], org, name, $("##{item._id}")[0]
+      if org then root.loadOrg $('[maindoc]')[0], org, name, $("##{item._id}")[0]
 
     isLocal = (item)->
       Meteor.connection._lastSessionId == item.data.session
@@ -122,6 +133,7 @@ Handle changes to the doc nodes
       offset = 0
       while next
         [org, next] = subDoc col, next, offset, 0
+        if !org then break
         offset += org.length()
         children.push org
       new Headline '', 0, null, null, null, children, 0
@@ -131,24 +143,26 @@ Handle changes to the doc nodes
       else
         if !col then col = root.currentDocument
         item = if typeof itemId == 'string' then col.findOne itemId else itemId
-        org = parseOrgMode item.text, offset
-        org = if org.children.length == 1 then org.children[0]
-        else new Fragment org.offset, org.children
-        org.nodeId = item._id
-        org.shared = item.type
-        if item.type == 'headline'
-          offset += item.text.length
-          if item.level <= level then [null, item._id]
-          else
-            next = item.next
-            while next
-              [child, next] = subDoc col, next, offset, item.level
-              if child
-                org.children.push child
-                offset += child.length()
-              else break
-            [org, next]
-        else [org, item.next]
+        if item
+          org = parseOrgMode item.text, offset
+          org = if org.children.length == 1 then org.children[0]
+          else new Fragment org.offset, org.children
+          org.nodeId = item._id
+          org.shared = item.type
+          if item.type == 'headline'
+            offset += item.text.length
+            if item.level <= level then [null, item._id]
+            else
+              next = item.next
+              while next
+                [child, next] = subDoc col, next, offset, item.level
+                if child
+                  org.children.push child
+                  offset += child.length()
+                else break
+              [org, next]
+          else [org, item.next]
+        else []
 
     docJson = (col, node)->
       if !col then return docJson root.currentDocument
@@ -173,6 +187,7 @@ Handle changes to the doc nodes
     pendingPush = false
 
     edited = (node)->
+      console.log "edited", node
       node = $(node).closest('[data-shared]')[0]
       if node
         delay ->
@@ -187,7 +202,6 @@ Handle changes to the doc nodes
       edits = {}
       pendingPush = false
       for id of currentEdits
-        #root.currentDocument.update id, $set: {text: textForId(id), session: Meteor.connection._lastSessionId}
         newDoc = orgDoc parseOrgMode textForId(id)
         if newDoc.length > 1 then console.log "WARNING, SPLIT NODE: #{JSON.stringify newDoc, null, '  '}"
         else if newDoc.length == 0 then console.log "WARNING, COULDN'T PARSE NODE: #{textForId id}"

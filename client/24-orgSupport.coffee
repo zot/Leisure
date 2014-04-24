@@ -389,18 +389,6 @@ getStyle = (node)->
   style
 
 # Thanks to rangy for this: http://code.google.com/p/rangy/
-isCollapsedOld = (node)->
-  if node
-    type = node.nodeType
-    type == 7 || # PROCESSING_INSTRUCTION
-    type == 8 || # COMMENT
-    (type == 3 && (node.data == '' || isCollapsed(node.parentNode))) ||
-    /^(script|style)$/i.test(node.nodeName) ||
-    (type == 1 && (node.classList.contains('collapsed') || getStyle(node).display == 'none' ||
-    isCollapsed(node.parentNode)))
-  else false
-
-# Thanks to rangy for this: http://code.google.com/p/rangy/
 isCollapsed = (node)->
   if node
     type = node.nodeType
@@ -415,14 +403,17 @@ markupOrg = (text)->
   [node, result] = markupOrgWithNode text
   result
 
-markupOrgWithNode = (text)->
+markupOrgWithNode = (text, note, replace)->
   nodes = {}
   if typeof text == 'string'
     # ensure trailing newline -- contenteditable doesn't like it, otherwise
     if text[text.length - 1] != '\n' then text = text + '\n'
     org = parseOrgMode text
   else if text instanceof Org.Node then org = text
-  if org then [org, markupNode(org, true)]
+  if org
+    markup = markupNode(org, true)
+    if replace then markup += boundarySpan
+    [org, markup]
   else
     console.log "Attempt to display uknown object type: ", text
     throw new Error "Attempt to display unknown type of object: #{text}"
@@ -536,7 +527,6 @@ markupGuts = (org, start)->
       prev = c
       optionalBoundary(p, c) + markupNode(c, s)).join ""
 
-#optionalBoundary = (prev, node)-> if prev && (prev.block || node.block) then boundarySpan else ''
 optionalBoundary = (prev, node)-> if prev && prev.text[prev.text.length - 1] == '\n' then boundarySpan else ''
 
 contentSpan = (str, type)->
@@ -621,9 +611,6 @@ bindContent = (div)->
       checkMod = modifyingKey c
       cancelled = false
     if !bound
-      if checkMod
-        edited s.focusNode
-        reparseBlock s.focusNode
       if c == TAB
         e.preventDefault()
         cancelled = true
@@ -632,7 +619,6 @@ bindContent = (div)->
         root.orgApi.executeSource div, getSelection().focusNode
       else if c == ENTER
         e.preventDefault()
-        cancelled = true
         n = s.focusNode
         inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
         if inCollapsedText && r.startOffset == el.length then return
@@ -648,7 +634,6 @@ bindContent = (div)->
           br.parentNode.normalize()
         r.collapse()
         selectRange r
-        checkEnterReparse div, r
       else if c in [DEL, BS]
         inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
         if inCollapsedText && ((c == DEL && r.startOffset == el.length - 1) || (c == BS && r.startOffset == el.length))
@@ -749,12 +734,16 @@ checkCollapsed = (delta)->
   node && (isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) node)
 
 checkSourceMod = (parent, oldMatch)->
-  r = getSelection().getRangeAt 0
-  if (newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive) then reparse parent
-  else if $(r.startContainer).closest('[data-org-src]').length && n = getOrgParent r.startContainer
+  focus = getSelection().focusNode
+  #r = getSelection().getRangeAt 0
+  #n = getOrgParent r.startContainer
+  #if (newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive) then reparse parent
+  #else if $(r.startContainer).closest('[data-org-src]').length && n = getOrgParent r.startContainer
+  if !((newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive)) && $(focus).closest('[data-org-src]').length && n = getOrgParent focus
     switch n.getAttribute('data-org-results')?.toLowerCase()
-      when 'dynamic' then root.orgApi.executeSource parent, r.startContainer
+      when 'dynamic' then root.orgApi.executeSource parent, focus
       when 'def' then root.orgApi.executeDef n
+  edited focus
 
 replacements =
   '<': '&lt;'
@@ -842,9 +831,8 @@ restorePosition = (parent, offset, block)->
     block = offset
     offset = 0
   sel = getSelection()
-  #if sel.rangeCount && hasParent sel.focusNode, $(parent)
+  if !sel.focusNode then $('[maindoc]')[0].focus()
   if sel?.rangeCount
-    #if !(hasParent sel.focusNode, $(parent)[0]) then console.log parent, 'is not a parent of ', sel.focusNode
     r = sel.getRangeAt 0
     start = offset + getTextPosition $(parent)[0], r.startContainer, r.startOffset
     end = offset + getTextPosition $(parent)[0], r.endContainer, r.endOffset
@@ -878,6 +866,8 @@ reparse = (parent, text, target)->
       l parent, orgNode, orgText
     ), 1
 
+emptySlide = (id, slidePosition)-> root.orgApi.emptySlide id, slidePosition
+
 installOrgDOM = (parent, orgNode, orgText, target)->
   dumpTextWatchers()
   if target then $(target).replaceWith orgText
@@ -886,11 +876,6 @@ installOrgDOM = (parent, orgNode, orgText, target)->
   data = amt.Trie()
   for node in (if target? then $(target).find '[data-leisure-data]' else $ '[data-leisure-data]')
     addData node
-
-#checkDeleteReparse = (parent, backspace)->
-#  r = rangy.getSelection().getRangeAt 0
-#  if backspace then r.moveStart 'character', -1 else r.moveEnd 'character', 1
-#  if r.text() == '\n' then setTimeout (->reparse parent), 1
 
 checkDeleteReparse = (parent, backspace)->
   r = getSelection().getRangeAt 0
@@ -1088,12 +1073,10 @@ findDomPosition = (node, pos)->
   [null, null]
 
 # get the next node in the preorder traversal, disregarding the node's children
-#nodeAfterNoChildren = (node)-> nodeAfter nodeBefore node
 nodeAfterNoChildren = (node)-> nodeAfter node, true
 
 # get the next node in the preorder traversal, starting with the node's children
 nodeAfter = (node, up)->
-  #up = false
   while node
     if node.nodeType == 1 && !up && node.childNodes.length then return node.childNodes[0]
     else if node.nextSibling then return node.nextSibling
@@ -1132,43 +1115,6 @@ blockText = (node)->
     node = nodeAfter node
     if node?.nodeType == 1 && node.hasAttribute 'data-shared' then break
   text
-
-# reparse block of text contained in a DOM node
-# first, parse it into org and doc nodes
-# if the top doc node has children, it means the user
-# has inserted an doc node and the tree must react
-reparseBlock = (node, next)->
-  #node = $(node).closest('[data-shared]')[0]
-  #if node then delay ->
-  #  text = blockText node
-  #  org = parseOrgMode text
-  #  if org.level == 0 && org.children.length == 1 then org = org.children[0]
-  #  [doc] = orgDoc org
-  #  oldType = $(node).attr 'data-shared'
-  #  newType = doc.type
-  #  oldLevel = if oldType == 'headline' then Number $(node).attr 'data-org-headline'
-  #  skip = false
-  #  if doc.children? # should only be a headline level 0
-  #    children = _ doc.children
-  #    if oldType == 'headline'
-  #    while !children.isEmpty() && children.first().type != 'headline'
-  #      mergeChildUp children.first()
-  #      children = children.shift()
-  #    if children.size() == 1 then doc = children[0]
-  #    else
-  #      console.log "EXTRA CHILDREN AFTER MERGE"
-  #      skip = true
-  #  else if Number($(node).attr('data-nodecount')) != org.count()
-  #    console.log "REPARSE BLOCK: REPARSE FOUND NEW NODE COUNT -- NEEDS RERENDER"
-  #  if !skip
-  #    block = getBlock node.id
-  #    doc.children = block.children
-  #    putBlock node.id, doc
-  #    if oldType == 'headline' && doc.type == 'headline'
-  #      if doc.level < oldLevel
-  #        mergeHeadlineUp node.id, doc
-  #      #else if oldLevel < doc.level
-  #  next?()
 
 orgForNode = (node)->
   org = parseOrgMode blockText node
@@ -1213,7 +1159,6 @@ dumpTextWatchers = ->
 
 # get the next node in the reverse preorder traversal, starting with the node's children
 nodeBefore = (node, up)->
-  #up = false
   while node
     if node.nodeType == 1 && !up && node.childNodes.length then return node.childNodes[node.childNodes.length - 1]
     else if node.previousSibling then return node.previousSibling
@@ -1231,12 +1176,8 @@ textNodeBefore = (node)->
 #
 
 getNodeText = (node)->
-  if $(node).is('[data-shared]')
-    #docOrg root.currentDocument, 0, root.currentDocument.findOne(node.id)
-    orgForNode node
-  else if root.currentDocument && $(node).is('[maindoc]')
-    #docOrg root.currentDocument, 0, root.currentDocument.findOne root: true
-    orgForNode node
+  if $(node).is('[data-shared]') then orgForNode node
+  else if root.currentDocument && $(node).is('[maindoc]') then orgForNode node
   else node.textContent
 
 if Element.prototype.webkitCreateShadowRoot?
@@ -1281,7 +1222,6 @@ orgNotebook =
     if !content then content = $(node).text()
     newNode = emptyOutNode node
     editDiv = newNode
-    #restorePosition newNode, => $(newNode).html @markupOrg content
     [orgNode, lastOrgText] = @markupOrgWithNode content
     root.restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
     @bindContent newNode
@@ -1299,17 +1239,9 @@ basicOrg =
   installOrgDOM: (parent, orgNode, orgText, target)->
     parent.setAttribute 'class', 'org-plain'
     orgNotebook.installOrgDOM parent, orgNode, orgText, target
-    #setTimeout (=>
-    #  for node in $('[data-org-dynamic="true"]')
-    #    @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
-    #  for node in $('[data-org-results]')
-    #    switch $(node).attr('data-org-results').toLowerCase()
-    #      when 'dynamic' then @executeSource parent, $(node).find('[data-org-type=text]')[0].nextElementSibling
-    #      when 'def'
-    #        n = $(node).find('[data-org-type=text]')[0].nextElementSibling
-    #        executeText n.textContent, propsFor(node), orgEnv parent, n), 1
   bindings: defaultBindings
   leisureButton: swapMarkup
+  emptySlide: (id)-> "<span id='#{id}'></span>#{boundarySpan}"
 
 root.basicOrg = basicOrg
 root.orgNotebook = orgNotebook
@@ -1387,4 +1319,4 @@ root.markupData = markupData
 root.blockText = blockText
 root.orgForNode = orgForNode
 root.orgChildrenForNode = orgChildrenForNode
-root.reparseBlock = reparseBlock
+root.emptySlide = emptySlide

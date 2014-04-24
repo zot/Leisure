@@ -1,0 +1,6 @@
+* Document change flow
+
+user makes change -> event handlers -> selective reparse -> selective render
+
+
+Event handlers may modify document further

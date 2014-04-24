@@ -108,7 +108,6 @@ lz = lazy
   watchNodeText,
   markupData,
   orgForNode,
-  reparseBlock,
 } = require '24-orgSupport'
 {
   redrawAllIssues,
@@ -128,49 +127,6 @@ emptyPresenter =
   isRelated: -> false
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
-
-#root.restorePosition = restorePosition = (parent, delta, block)->
-#  if !block
-#    block = delta
-#    delta = 0
-#  sel = getSelection()
-#  slide = slideParent sel.focusNode
-#  slideIndex = slideOffset slide
-#  if sel?.rangeCount && slideIndex > -1
-#    doc = topNode(slide).parentNode
-#    parent = doc.parentNode
-#    docPos = childIndex parent, doc
-#    r = sel.getRangeAt 0
-#    start = delta + getTextPosition doc, r.startContainer, r.startOffset
-#    if start > -1
-#      end = delta + getTextPosition doc, r.endContainer, r.endOffset
-#      [container, sta] = findDomPosition doc, start
-#      if (isCollapsed container) && sta == 0 then container = textNodeBefore container
-#      #offset = documentTop(container) - window.pageYOffset
-#      offset = getDocumentOffset(nativeRange [container, sta]) - window.pageYOffset
-#    block() # block shouldn't remove doc
-#    if doc = parent.children[docPos]
-#      newSlide = $('[data-org-headline="1"]')[slideIndex]
-#      if slideMode then setCurrentSlide newSlide
-#      if start > -1 && (r = nativeRange findDomPosition doc, start)
-#        if isCollapsed r.startContainer
-#          c = r.startContainer
-#          while isCollapsed c
-#            c = textNodeBefore c
-#          r.setStart c, 0
-#          r.collapse true
-#        else
-#          [endContainer, endOffset] = findDomPosition doc, end
-#          if endOffset == 0
-#            endContainer = textNodeBefore endContainer
-#            endOffset = endContainer.data.length
-#          r.setEnd endContainer, endOffset
-#        sel.removeAllRanges()
-#        sel.addRange r
-#        #window.scrollTo window.pageXOffset, documentTop(r.startContainer) - offset
-#        window.scrollTo window.pageXOffset, getDocumentOffset(r) - offset
-#    return
-#  block()
 
 root.restorePosition = restorePosition = (parent, delta, block)->
   if !block
@@ -277,7 +233,6 @@ markupOrgWithNode = (text, note, replace)->
     org = parseOrgMode text
   if text instanceof Org.Node then org = text
   if org
-    #if note then org = org.children[0]
     [org, markupNewNode org, null, null, note, replace]
   else
     console.log "Attempt to display uknown object type: ", text
@@ -341,7 +296,6 @@ markupAttr = (org)->
 
 markupLink = (org)->
   if org.isImage()
-    #console.log "last: " + lastAttr
     pre = ''
     post = ""
     if lastAttr && lastAttr.type == 'attr'
@@ -472,15 +426,12 @@ createNotes = (node)->
         child.shadowRoot.firstChild.appendChild newNote
         dest = child
         orig = $("#" + node.id)[0]
-        #$("<span data-note-location  class='hidden'></span>").appendTo orig
         [skip, top, left, width, height] = noteSpec.split /\s+/
         holder.css({top: top, left: left})
         inside.css({width: width, height: height})
         saveNoteLocation holder
       else continue
     if dest
-      #for n in $(dest.shadowRoot.firstChild).find('[data-org-headline="1"]')
-      #  setShadowHtml n, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
       addWord dest, 'data-org-note-content', node.id
       addWord dest, 'data-org-note-instances', noteId
       watchNodeText newNote, editedNote node.id, noteId
@@ -729,7 +680,6 @@ showAst = (evt, astButton, offset)->
         console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
         try
           setShadowHtml astButton.firstChild, "<div class='#{theme ? ''} ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
-          #astButton.firstChild.innerHTML = "<div class='ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
           replacePresenter
             hide: -> astButton.firstChild.remove()
             isRelated: (node)-> isOrContains astButton, node
@@ -897,7 +847,6 @@ startNewSlide = (replace)->
 
 createNoteShadows = ->
   for node in $('.slideholder')
-    #setShadowHtml node, "<table class='slideshadow'><tr class='slideshadowrow'><td><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note]'></content></div></div></td></tr></table>"
     setShadowHtml node, "<div class='page'><div class='border'></div><table class='pagecontent slideshadow'><tr class='slideshadowrow'><td class='slidemain'><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note=\"sidebar\"]'></content></div></div></td></tr></table></div><content select='[data-org-note=\"skip\"],[data-float-holder]'></content>"
   for node in $('[data-float-holder]')
     holder = $(node)
@@ -964,14 +913,12 @@ handleKey = (div)->(e)->
     cancelled = false
   if String.fromCharCode(c) == 'C' && e.altKey
     root.orgApi.executeSource div, getSelection().focusNode
-  else if !bound #&& !slideMode
+  else if !bound
     if modifyingKey c
       n = s.focusNode
       el = r.startContainer
       par = el.parentNode
       currentMatch = matchLine currentLine div
-      edited n
-      reparseBlock n
       if c == ENTER
         e.preventDefault()
         if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
@@ -1108,7 +1055,6 @@ clearResults = (node)->
 
 # like orgSupport's orgEnv, but wrap the leading ': ' in hidden spans
 orgEnv = (parent, node)->
-  #r = getResultsForSource parent, node
   r = node
   if !$(r).is('.resultscontent') then r = $(r).find('.resultscontent')[0]
   if r
@@ -1295,7 +1241,6 @@ theme = null
 
 setTheme = (str)->
   el = $('body')
-  #all = $('[data-org-headline="1"]').add($('[data-org-comments]').find(':first-child')).add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
   all = $('[data-org-comments]').find(':first-child').add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
   for node in all
     if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
@@ -1347,8 +1292,6 @@ fancyOrg =
       fixupHtml parent
       setTheme theme
       nextNoteId = 0
-      #for node in $(parent).find('[data-org-notes]')
-      #  createNotes node
       $(".image-draggable").draggable()
       createNoteShadows()
       setTimeout (=>
@@ -1365,6 +1308,8 @@ fancyOrg =
       toggleSlides()
       if slideMode then setTimeout (-> if !getSelection().focusNode then $('[maindoc]').focus()), 1
       else swapMarkup()
+  emptySlide: (id, slidePosition)->
+    "#{slideStart()}<hr class='#{if slidePosition == 'only' then 'first' else slidePosition}'><div id='#{id}'></div>#{slideEnd()}"
 
 # called on installing DOM and also on new notes
 fixupHtml = (parent, note)->
@@ -1375,11 +1320,8 @@ fixupHtml = (parent, note)->
     recreateAstButtons parent, node
   for node in $(parent).find('.resultscontent')
     reprocessResults node
-  #for node in $(parent).find('[data-org-headline="1"]')
-  #  setShadowHtml node, "<div class='page'><div class='border'></div><div class='pagecontent'><content></content></div></div>"
   createNoteShadows()
   if !note
-    #for node in $(parent).find('[data-org-headline="1"]')
     for node in $(parent).find('[data-org-headline="1"] .maincontent')
       $("button.create_note").remove()
       $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click (e)->
