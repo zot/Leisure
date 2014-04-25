@@ -102,7 +102,7 @@ modifying = false
 styleCache = {}
 idCount = 0
 nodes = {}
-needsReparse = false
+#needsReparse = false
 reparseListeners = []
 
 nextOrgId = -> 'org-node-' + idCount++
@@ -278,30 +278,26 @@ scanForward = (textNode, falseValue, firstBlock, block)->
 
 moveSelectionFB = (parent, r, start, delta)->
   r.collapse start
-  startContainer = r.startContainer
-  startOffset = r.startOffset + delta
-  move = (if delta < 0 then textNodeBefore else textNodeAfter)
-  while true
-    if isCollapsed startContainer then startContainer = move startContainer
-    else
-      #check for boundary crossing
-      if !(0 <= startOffset <= startContainer.length)
-        startContainer = move startContainer
-        if isCollapsed startContainer
-          while isCollapsed startContainer
-            startContainer = move startContainer
-        if delta < 0 && startContainer != null then startOffset = startContainer.length - 1
-        else startOffset = 1
-      if startContainer != null && contains parent, startContainer
-        if startOffset < startContainer.length
-          r.setStart startContainer, startOffset
-          r.collapse true
-          selectRange r
-          return
-        else
-          startContainer = move startContainer
-          startOffset = 0
-      else return
+  node = r.startContainer
+  if delta > 0 && (r.startOffset < node.length - 1 || (r.startOffset == node.length - 1 && node.data[node.length - 1] == '\n' && !isCollapsed textNodeAfter node)) then r.setStart node, r.startOffset + 1
+  else if delta < 0 && r.startOffset > 0 then r.setStart node, r.startOffset - 1
+  else if delta < 0 && r.startOffset == 0 && !isCollapsed (b = textNodeBefore node)
+    r.setStart b, b.length - 1
+  else
+    move = (if delta < 0 then textNodeBefore else textNodeAfter)
+    eatFirst = delta > 0 && node.length == r.startOffset
+    while node
+      node = move node
+      if eatFirst && !isCollapsed(node) && node.data[0] == '\n' && node.length == 1
+        eatFirst = false
+      else if !isCollapsed node then break
+    if !node then return
+    newOffset = (if eatFirst then 1 else if delta > 0 then 0 else node.length - 1)
+    r.setStart node, newOffset
+  r.collapse true
+  if parent.compareDocumentPosition(r.startContainer) & Node.DOCUMENT_POSITION_CONTAINED_BY
+    selectRange r
+    r.startContainer.parentNode.scrollIntoViewIfNeeded()
 
 # functions return whether to check for mods
 keyFuncs =
@@ -412,13 +408,13 @@ markupOrgWithNode = (text, note, replace)->
   else if text instanceof Org.Node then org = text
   if org
     markup = markupNode(org, true)
-    if replace then markup += boundarySpan
+    #if replace then markup += boundarySpan
     [org, markup]
   else
     console.log "Attempt to display uknown object type: ", text
     throw new Error "Attempt to display unknown type of object: #{text}"
 
-boundarySpan = "<span data-org-type='boundary'>\n</span>"
+#boundarySpan = "<span data-org-type='boundary'>\n</span>"
 
 sensitive = /^srcStart|^headline-|^keyword/
 
@@ -460,7 +456,7 @@ markupNode = (org, start)->
   else "<span #{orgAttrs org}>#{content org.text}</span>"
 
 markupFragment = (org)->
-  "<div #{orgAttrs org}>#{(markupNode child for child in org.children).join ''}</div>"
+  "<span #{orgAttrs org}>#{(markupNode child for child in org.children).join ''}</span>"
 
 markupData = (org)->
   m = org.text.match /^[^\n]*\n([^\n]*)\n/
@@ -525,15 +521,17 @@ markupGuts = (org, start)->
       start = false
       p = prev
       prev = c
-      optionalBoundary(p, c) + markupNode(c, s)).join ""
+      #optionalBoundary(p, c) + markupNode(c, s)).join ""
+      markupNode(c, s)).join ""
 
-optionalBoundary = (prev, node)-> if prev && prev.text[prev.text.length - 1] == '\n' then boundarySpan else ''
+#optionalBoundary = (prev, node)-> if prev && prev.text[prev.text.length - 1] == '\n' then boundarySpan else ''
 
 contentSpan = (str, type)->
   str = content str
   if str then "<span#{if type then " data-org-type='#{escapeAttr type}'" else ''}>#{escapeHtml str}</span>" else ''
 
-content = (str)-> escapeHtml (if str[str.length - 1] == '\n' then str.substring(0, str.length - 1) else str)
+#content = (str)-> escapeHtml (if str[str.length - 1] == '\n' then str.substring(0, str.length - 1) else str)
+content = (str)-> escapeHtml str
 
 fixupNodes = (node)->
   for n in $(node).find('[data-org-type="headline"]')
@@ -650,7 +648,7 @@ bindContent = (div)->
         else if c != BS
           checkDeleteReparse div, c == BS
     if !cancelled && checkMod
-      if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
+      #if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
       currentMatch = matchLine currentLine div
       setTimeout (->checkSourceMod div, currentMatch), 1
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
@@ -703,8 +701,8 @@ collapseNode = ->
       modifying = false
     else status "EMPTY ENTRY"
 
-isBoundary = (node)->
-  (node.nodeType == 1 && node.getAttribute('data-org-type') == 'boundary' && node) || (node.nodeType == 3 && isBoundary node.parentElement)
+#isBoundary = (node)->
+#  (node.nodeType == 1 && node.getAttribute('data-org-type') == 'boundary' && node) || (node.nodeType == 3 && isBoundary node.parentElement)
 
 backspace = (parent, e)->
   if checkCollapsed -1
@@ -791,9 +789,10 @@ baseEnv =
   newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
 
 getResultsForSource = (parent, node)->
-  checkReparse parent
+  #checkReparse parent
   res = node
-  while getOrgType(res.nextSibling) == 'boundary' || (getOrgType(res.nextSibling) == 'meat' && res.textContent.match /^[ \n]*$/)
+  #while getOrgType(res.nextSibling) == 'boundary' || (getOrgType(res.nextSibling) == 'meat' && res.textContent.match /^[ \n]*$/)
+  while getOrgType(res.nextSibling) == 'meat' && res.textContent.match /^[ \n]*$/
     res = res.nextSibling
   res = res.nextSibling
   if res?.getAttribute('data-org-type') == 'results' then res.lastChild
@@ -809,7 +808,7 @@ getResultsForSource = (parent, node)->
       getCollapsible(findDomPosition(parent, results.offset + 1)[0]).lastChild
     else null
 
-checkReparse = (parent)-> if needsReparse then reparse parent
+#checkReparse = (parent)-> if needsReparse then reparse parent
 
 nativeRange = (r)->
   if r instanceof Range then r
@@ -860,7 +859,7 @@ reparse = (parent, text, target)->
   sel = getSelection()
   [orgNode, orgText] = root.orgApi.markupOrgWithNode text, null, target?
   root.restorePosition parent, -> root.orgApi.installOrgDOM parent, orgNode, orgText, target
-  needsReparse = false
+  #needsReparse = false
   setTimeout (->
     for l in reparseListeners
       l parent, orgNode, orgText
@@ -932,11 +931,12 @@ getSource = (node)->
 
 executeSource = (parent, node, cont)->
   if isSourceNode node
-    checkReparse parent
+    #checkReparse parent
     if txt = getSource node then executeText txt, propsFor(node), orgEnv(parent, node), cont
     else console.log "No end for src block"
-  else if getOrgType(node) == 'text' then needsReparse = true
-  else !isDocNode(node) && executeSource parent, node.parentElement
+  #else if getOrgType(node) == 'text' then needsReparse = true
+  #else !isDocNode(node) && executeSource parent, node.parentElement
+  else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement
 
 getNodeSource = (node)->
   while !isSourceNode node
@@ -1241,7 +1241,8 @@ basicOrg =
     orgNotebook.installOrgDOM parent, orgNode, orgText, target
   bindings: defaultBindings
   leisureButton: swapMarkup
-  emptySlide: (id)-> "<span id='#{id}'></span>#{boundarySpan}"
+  #emptySlide: (id)-> "<span id='#{id}'></span>#{boundarySpan}"
+  emptySlide: (id)-> "<span id='#{id}'></span>"
 
 root.basicOrg = basicOrg
 root.orgNotebook = orgNotebook
@@ -1259,8 +1260,8 @@ root.orgAttrs = orgAttrs
 root.content = content
 root.contentSpan = contentSpan
 root.checkStart = checkStart
-root.optionalBoundary = optionalBoundary
-root.boundarySpan = boundarySpan
+#root.optionalBoundary = optionalBoundary
+#root.boundarySpan = boundarySpan
 root.displaySource = displaySource
 root.checkEnterReparse = checkEnterReparse
 root.checkCollapsed = checkCollapsed

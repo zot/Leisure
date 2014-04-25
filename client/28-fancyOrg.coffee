@@ -61,8 +61,8 @@ lz = lazy
   content,
   contentSpan,
   checkStart,
-  optionalBoundary,
-  boundarySpan,
+  #optionalBoundary,
+  #boundarySpan,
   displaySource,
   checkEnterReparse,
   checkCollapsed,
@@ -335,9 +335,9 @@ markupHeadline = (org, delay, note, replace)->
   match = org.text.match headlineRE
   start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length}".trim()
   if org.text[org.text.length - 1] == '\n'
-    tags = escapeHtml org.text.substring start.length, org.text.length
+    tags = escapeHtml org.text.substring start.length, org.text.length - 1
   else
-    tags = escapeHtml org.text.substring start.length
+    tags = escapeHtml org.text.substring start.length - 1
   if starsM = start.match hlStars
     stars = start.substring 0, starsM[0].length
     start = start.substring stars.length
@@ -348,7 +348,7 @@ markupHeadline = (org, delay, note, replace)->
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide replace}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
+      "#{startNewSlide replace}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span>\n</div><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
     else "#{startNewSlide()}<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
@@ -509,13 +509,15 @@ markupSource = (org, name, doctext, delay, inFragment)->
   wrapper += "<td class='code-buttons'>"
   if testCaseButton = toTestCaseButton org then wrapper += "<div>#{testCaseButton}</div>"
   if testCaseButton
-    wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-gear'></i><div></div></button></div>"
+    #wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)' data-org-type='boundary'><i class='fa fa-gear'></i><div></div></button></div>"
+    wrapper += "<div><button class='results-indicator' onclick='Leisure.executeCode(event)'><i class='fa fa-gear'></i><div></div></button></div>"
     wrapper += "<div><button class='dyntoggle-button' onclick='Leisure.toggleDynamic(event)'><span class='dyntoggle'><i class='fa fa-link'></i><i class='fa fa-unlink'></i></span></button></div>"
   if name then wrapper += "<div>#{commentButton name.info.trim()}</div>"
   wrapper += "</td><td class='code-content'>"
   wrapper += codeName
   wrapper += "<div class='hidden'>#{escapeHtml lead}</div>"
-  wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
+  #wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
+  wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText, resOrg
   if expected then wrapper += htmlForExpected expected.content()
   wrapper += "</td></tr></table>"
@@ -944,7 +946,7 @@ handleKey = (div)->(e)->
         ), 1
         return
   if !cancelled && checkMod
-    if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
+    #if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
     setTimeout (->fancyCheckSourceMod n, div, currentMatch, (if el.nodeType == 1 then el.firstChild else el)), 1
 
 getCodeContainer = (node)->
