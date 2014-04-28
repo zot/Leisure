@@ -299,7 +299,7 @@ markupLink = (org)->
   if org.isImage()
     pre = ''
     post = ""
-    if lastAttr && lastAttr.type == 'attr'
+    if org.prev instanceof Org.Keyword && org.prev.name.toLowerCase() == 'attr_html'
       pre = "<div class='image-draggable'>"
       post = "</div>"
     lastAttr = null
