@@ -1,6 +1,6 @@
 * Document change flow
 
-user makes change -> event handlers -> selective reparse -> selective render
+user change -> event handlers -> data storage -> data update -> small parse -> small render
 
 
 Event handlers may modify document further
