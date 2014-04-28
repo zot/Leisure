@@ -2,7 +2,7 @@ Meteor-based collaboration -- client side
 
     {
       delay,
-    } = require '10-namespace'
+    } = Leisure = require '10-namespace'
     {
       loadOrg,
     } = require '24-orgSupport'
@@ -16,6 +16,11 @@ Meteor-based collaboration -- client side
       docRoot,
       orgDoc,
     } = require '12-docOrg'
+    {
+      safeLoad,
+      dump,
+    } = Leisure.yaml
+
     root = require '15-base'
     _ = Lazy
 
@@ -109,6 +114,13 @@ Handle changes to the doc nodes
       else
         org = subDoc(root.currentDocument, item, 0, 0)[0]
       if org then root.loadOrg $('[maindoc]')[0], org, name, $("##{item._id}")[0]
+
+    setData = (id, value)->
+      cur = root.currentDocument.findOne id
+      if !cur?.yaml? then throw new Error "Attempt to set data using invalid id"
+      else
+        newText = cur.text.substring(0, cur.yamlPrelen) + dump(value) + cur.text.substring cur.text.length - cur.yamlPostlen
+        root.currentDocument.update id, $set: {text: newText, yaml: value}
 
     observing = {}
 
@@ -354,3 +366,4 @@ Handle changes to the doc nodes
     root.crnl = crnl
     root.edited = edited
     root.textForId = textForId
+    root.setData = setData

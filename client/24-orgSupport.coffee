@@ -91,7 +91,7 @@ _ = require 'lodash.min'
 {
   safeLoad,
   dump,
-} = require('js-yaml')
+} = root.yaml
 
 PAGEUP = 33
 PAGEDOWN = 34

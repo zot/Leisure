@@ -13,7 +13,7 @@
     {
       safeLoad,
       dump,
-    } = root
+    } = root.yaml
 
     _ = (Lazy ? window?.Lazy ? global?.Lazy)
 
@@ -116,13 +116,17 @@
     createCodeBlockDoc = (org)->
       text = ''
       {first, source, last} = getCodeItems org
+      firstOffset = first.offset
       if !first then [_([text: org.allText(), type: 'chunk']), org.next]
       else
         while first != last
           text += first.allText()
           first = first.next
         obj = text: text, type: 'code'
-        if isYaml source then obj.yaml = safeLoad source.content
+        if isYaml source
+          obj.yaml = safeLoad source.content
+          obj.yamlPrelen = source.contentPos - firstOffset
+          obj.yamlPostlen = text.length - obj.yamlPrelen - source.content.length
         [_([obj]), last]
 
     isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/

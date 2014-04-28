@@ -55,7 +55,7 @@ amt = require('persistent-hash-trie')
 {
   safeLoad,
   dump,
-} = require('js-yaml')
+} = root.yaml
 
 rz = resolve
 lz = lazy

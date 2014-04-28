@@ -17,8 +17,9 @@ FRC:
 lib/browser.js: node_modules $(BROWSERIFY_SRC:%=lib/%.js)
 	$(NODE) node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@ -d
 
+#	$(NODE) node_modules/browserify/bin/cmd.js src/yamlBundle.js --bare -o $@ -u buffer
 lib/yaml.js: node_modules $(YAML_SRC)
-	$(NODE) node_modules/browserify/bin/cmd.js src/yamlBundle.js -o $@ --bare
+	$(NODE) node_modules/browserify/bin/cmd.js src/yamlBundle.js -o $@ -s
 
 node_modules:
 	npm install
