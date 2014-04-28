@@ -26,3 +26,10 @@
 .meteor/packages eol=lf
 .meteor/release eol=lf
 joinPath eol=lf
+client/12-browser.js binary
+lib/12-yaml.js binary
+packages/leisure/build/lib/browser.js binary
+packages/leisure/build/lib/browserMain.js binary
+packages/leisure/build/lib/browserMain.map binary
+packages/leisure/build/lib/yaml.js binary
+*.lorg text

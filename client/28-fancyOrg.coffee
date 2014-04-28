@@ -53,6 +53,7 @@ lz = lazy
 {
   getCodeItems,
   isCodeBlock,
+  isYaml,
 } = require '12-docOrg'
 {
   orgNotebook,
@@ -468,13 +469,31 @@ markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
 
 markupSource = (org, name, doctext, delay, inFragment)->
+  (if isYaml org then markupYaml else markupLeisure) org, name, doctext, delay, inFragment
+
+markupYaml = (org, name, doctext, delay, inFragment)->
+  {first, name, source, results, expected, last} = getCodeItems org
+  pos = source.contentPos - source.offset
+  src = source.text
+  pre = ''
+  while first != source
+    pre += first.text
+    first = first.next
+  post = ''
+  cur = source.next
+  while cur != last
+    post += cur.text
+    cur = cur.next
+  lastOrgOffset = Math.max (last?.offset ? 0), source.offset, (results?.offset ? 0), (expected?.offset ? 0)
+  "<div #{orgAttrs source}><span class='hidden'>#{escapeHtml pre + src.substring 0, pos}</span><span>#{escapeHtml source.content}</span><span class='hidden'>#{escapeHtml src.substring(pos + source.content.length) + post}</span></div>"
+
+markupLeisure = (org, name, doctext, delay, inFragment)->
   top = name ? org
   srcContent = org.content
   lead = org.text.substring 0, org.contentPos - org.offset
   trail = org.text.substring org.contentPos - org.offset + org.content.length
   lastOrgOffset = org.offset
-  if name
-    codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'>"
+  if name then codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'>"
   else codeBlock = ">"
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "

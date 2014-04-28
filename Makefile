@@ -2,9 +2,12 @@ DIR=packages/leisure/build
 BROWSER_SRC=$(DIR)/src/browserMain.coffee
 BROWSER_JS=$(DIR)/lib/browser.js
 BROWSER=client/12-browser.js
+YAML_SRC=$(DIR)/src/yamlBundle.js
+YAML_JS=$(DIR)/lib/yaml.js
+YAML=lib/12-yaml.js
 LSR_MAIN=client/19-generatedPrelude.js client/20-std.js
 LSR_AUX=client/22-svg.js client/29-parseAst.js
-BUILT=$(BROWSER) $(LSR_MAIN) $(LSR_AUX)
+BUILT=$(BROWSER) $(YAML) $(LSR_MAIN) $(LSR_AUX)
 ALL_BUILT=$(BUILT) $(DIR)/lib/browser.js $(DIR)/lib/generatedPrelude.js $(DIR)/lib/std.js $(DIR)/lib/svg.js $(DIR)/lib/parseAst.js
 REPL=./repl
 TESTED=$(DIR)/.tested
@@ -27,6 +30,10 @@ invalidateTests: FRC
 $(BROWSER): $(BROWSER_SRC) $(BROWSER_JS)
 	cd $(DIR);$(MAKE) lib/browser.js
 	cp $(DIR)/lib/browser.js $(BROWSER)
+
+$(YAML): $(YAML_SRC) $(YAML_JS)
+	cd $(DIR);$(MAKE) lib/yaml.js
+	cp $(DIR)/lib/yaml.js $(YAML)
 
 client/19-generatedPrelude.js: $(DIR)/lib/generatedPrelude.js
 	cp $(DIR)/lib/generatedPrelude.js $@

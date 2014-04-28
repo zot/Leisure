@@ -8,8 +8,6 @@
 
   require('utf8');
 
-  require('js-yaml');
-
   require('lodash.min');
 
   require('github');

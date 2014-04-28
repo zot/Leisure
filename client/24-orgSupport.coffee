@@ -1022,12 +1022,6 @@ findOrgNode = (parent, pos)->
   orgNode = org.findNodeAt pos
 
 getTextPosition = (node, target, pos)->
-  o = getTextPositionOld node, target, pos
-  n = getTextPositionNew node, target, pos
-  if o != n then console.log "OLD: #{o}, NEW: #{n}"
-  n
-
-getTextPositionNew = (node, target, pos)->
   if node
     offset = 0
     childPos = 0
@@ -1040,14 +1034,6 @@ getTextPositionNew = (node, target, pos)->
       if node.nodeType == 3 then offset += node.data.length
       node = nodeAfter node
     if target.nodeType == 3 then offset + pos else offset
-  else -1
-
-getTextPositionOld = (node, target, pos)->
-  if node && target && pos
-    r = document.createRange()
-    r.setStart node, 0
-    r.setEnd target, pos
-    r.cloneContents().textContent.length
   else -1
 
 countCharactersIn = (node)-> countCharactersFrom node, nodeAfterNoChildren node

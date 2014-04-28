@@ -10,6 +10,11 @@
       parseOrgMode,
     } = (Org ? window?.Org ? global?.Org)
 
+    {
+      safeLoad,
+      dump,
+    } = root
+
     _ = (Lazy ? window?.Lazy ? global?.Lazy)
 
     getCodeItems = (org)->
@@ -110,13 +115,17 @@
 
     createCodeBlockDoc = (org)->
       text = ''
-      {first, last} = getCodeItems org
+      {first, source, last} = getCodeItems org
       if !first then [_([text: org.allText(), type: 'chunk']), org.next]
       else
         while first != last
           text += first.allText()
           first = first.next
-        [_([text: text, type: 'code']), last]
+        obj = text: text, type: 'code'
+        if isYaml source then obj.yaml = safeLoad source.content
+        [_([obj]), last]
+
+    isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/
 
     checkSingleNode = (text)->
       docs = {}
@@ -134,3 +143,4 @@
     root.docDo = docDo
     root.docRoot = docRoot
     root.linkDocs = linkDocs
+    root.isYaml = isYaml

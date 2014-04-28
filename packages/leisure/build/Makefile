@@ -1,4 +1,5 @@
 BROWSERIFY_SRC=browserMain
+YAML_SRC=src/yamlBundle.js
 MODULES=persistent-hash-trie source-map utf8 js-yaml
 LEISURE_SRC=generatedPrelude std svg parseAst simpleParse
 LEISURE_FILES=$(LEISURE_SRC:%=lib/%.js)
@@ -14,8 +15,10 @@ clean: FRC
 FRC:
 
 lib/browser.js: node_modules $(BROWSERIFY_SRC:%=lib/%.js)
-	if [ ! -e node_modules/browserify ]; then npm install browserify; fi
 	$(NODE) node_modules/browserify/bin/cmd.js lib/browserMain.js -o $@ -d
+
+lib/yaml.js: node_modules $(YAML_SRC)
+	$(NODE) node_modules/browserify/bin/cmd.js src/yamlBundle.js -o $@ --bare
 
 node_modules:
 	npm install
