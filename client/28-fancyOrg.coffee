@@ -50,6 +50,7 @@ lz = lazy
   parseTags,
   matchLine,
 } = require '11-org'
+yaml = root.yaml
 {
   getCodeItems,
   isCodeBlock,
@@ -116,6 +117,8 @@ lz = lazy
 } = require '26-storage'
 {
   edited,
+  pretty,
+  setData,
 } = require '23-collaborate'
 _ = require 'lodash.min'
 
@@ -296,7 +299,8 @@ markupAttr = (org)->
   "<span class='hidden'>#{org.text}</span>"
 
 markupLink = (org)->
-  if org.isImage()
+  if orgMatch = org.isOrg() then "<span data-widget-link='#{orgMatch[1]}'></span>"
+  else if org.isImage()
     pre = ''
     post = ""
     if org.prev instanceof Org.Keyword && org.prev.name.toLowerCase() == 'attr_html'
@@ -336,9 +340,9 @@ markupHeadline = (org, delay, note, replace)->
   match = org.text.match headlineRE
   start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length}".trim()
   if org.text[org.text.length - 1] == '\n'
-    tags = escapeHtml org.text.substring start.length, org.text.length - 1
+    tags = escapeHtml org.text.substring start.length, org.text.length
   else
-    tags = escapeHtml org.text.substring start.length - 1
+    tags = escapeHtml org.text.substring start.length
   if starsM = start.match hlStars
     stars = start.substring 0, starsM[0].length
     start = start.substring stars.length
@@ -468,8 +472,12 @@ editedNote = (mainId, editedId)-> ->
 markupHtml = (org)->
   "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
 
+chooseSourceMarkup = (org)->
+  if isYaml org then markupYaml
+  else markupLeisure
+
 markupSource = (org, name, doctext, delay, inFragment)->
-  (if isYaml org then markupYaml else markupLeisure) org, name, doctext, delay, inFragment
+  (chooseSourceMarkup org) org, name, doctext, delay, inFragment
 
 markupYaml = (org, name, doctext, delay, inFragment)->
   {first, name, source, results, expected, last} = getCodeItems org
@@ -479,13 +487,70 @@ markupYaml = (org, name, doctext, delay, inFragment)->
   while first != source
     pre += first.text
     first = first.next
+  pre += src.substring 0, pos
   post = ''
   cur = source.next
   while cur != last
     post += cur.text
     cur = cur.next
+  post = src.substring(pos + source.content.length) + post
   lastOrgOffset = Math.max (last?.offset ? 0), source.offset, (results?.offset ? 0), (expected?.offset ? 0)
-  "<div #{orgAttrs source}><span class='hidden'>#{escapeHtml pre + src.substring 0, pos}</span><span>#{escapeHtml source.content}</span><span class='hidden'>#{escapeHtml src.substring(pos + source.content.length) + post}</span></div>"
+  if widgetId = org.attributes()?.widget
+    if !org.nodeId then return markupError org, "No data for widget: #{prett org}"
+    else
+      data = root.currentDocument.findOne org.nodeId
+      if !data then return markupError org, "No data for nodeId: #{org.nodeId}"
+      else if !widgetMarkup[data.yaml?.type] then return markupError org, "No value widget type for data nodeId: #{org.nodeId}"
+  widgetAttr = if widgetId = org.attributes()?.widget then " data-widget-state='#{widgetId}'" else ''
+  "<div #{orgAttrs source}#{widgetAttr}><span class='hidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='hidden'>#{escapeHtml post}</span></div>"
+
+createTemplateRenderer = (template, cont)->
+  comp = Handlebars.compile template
+  (data, target)->
+    result = comp data
+    target.html comp(data)
+    cont? data, target
+
+dragging = false
+
+markupError = (org, str)->
+  "<div class='error'><span class='hidden'>#{escapeHtml org.text}</span>#{escapeHtml str}</div>"
+
+errorDiv = (str)->
+  "<div class='error'>#{escapeHtml str}</div>"
+
+widgetMarkup =
+  image: createTemplateRenderer "<img src={{src}} class='image-draggable'>", (data, target)->
+    if target.length
+      pos = target.position()
+      offset = target.offset()
+      target
+        .offset
+          left: data.drag[0] + offset.left - pos.left
+          top: data.drag[1] + offset.top - pos.top
+        .draggable
+          start: -> dragging = true
+          drag: (event, ui)-> updateDragData target
+          stop: ->
+            dragging = false
+            true
+
+updating = false
+
+updateDragData = (image)->
+  #console.log "DRAG #{$(image).attr 'data-widget-id'}"
+  if !updating
+    updating = true
+    setTimeout (->
+      id = $(image).attr 'data-widget-id'
+      data = root.currentDocument.findOne id
+      if !data then console.log "NO DATA FOR DRAGGING IMAGE: #{id}"
+      else
+        position = image.position()
+        #console.log "UPDATE DRAG: ", pretty position
+        data.yaml.drag = [position.left, position.top]
+        setData id, data.yaml
+        updating = false), 200
 
 markupLeisure = (org, name, doctext, delay, inFragment)->
   top = name ? org
@@ -930,12 +995,12 @@ handleKey = (div)->(e)->
   [bound, checkMod] = findKeyBinding e, div, r
   if bound then cancelled = !checkMod
   else
-    checkMod = modifyingKey c
+    checkMod = modifyingKey c, e
     cancelled = false
   if String.fromCharCode(c) == 'C' && e.altKey
     root.orgApi.executeSource div, getSelection().focusNode
   else if !bound
-    if modifyingKey c
+    if modifyingKey c, e
       n = s.focusNode
       el = r.startContainer
       par = el.parentNode
@@ -1299,6 +1364,24 @@ restoreSlide = (block)->
     block()
     setSlideAt offset
 
+root.addBatchFilter 'dragFilter', (name, value)-> root.orgApi != fancyOrg || !dragging
+
+fixupWidgets = ->
+  if dragging then return
+  for dataEl in $("[data-widget-state]")
+    data = root.currentDocument.findOne dataEl.id
+    if data?
+      linkName = $(dataEl).attr 'data-widget-state'
+      if !(w = widgetMarkup[data.yaml?.type]) then return console.log new Error "Invalid widget type for data #{dataEl.id}: #{pretty data}"
+      links = $("[data-widget-link='#{linkName}']")
+      links.attr 'data-widget-id', dataEl.id
+      w data.yaml, links
+    else $(dataEl).html errorDiv "No data for widget name: #{dataEl.id}"
+
+setYamlData = (id, value)->
+  $(id).find('[data-org-yaml]').text yaml.dump value
+  setData id, value
+
 fancyOrg =
   __proto__: orgNotebook
   markupOrg: markupOrg
@@ -1313,7 +1396,7 @@ fancyOrg =
       fixupHtml parent
       setTheme theme
       nextNoteId = 0
-      $(".image-draggable").draggable()
+      fixupWidgets()
       createNoteShadows()
       setTimeout (=>
         redrawAllIssues()

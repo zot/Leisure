@@ -31,11 +31,21 @@ every time, because func is ignored after the first call in a batch
     batchers = null
 
     addBatch = (name, value, func)->
-      if !batchers
-        batchers = []
-        setTimeout runBatches, 1
-      if batchers[name] then batchers[name][0].push value
-      else batchers[name] = [[value], func]
+      if !committing || passesFilters name, value
+        if !batchers
+          batchers = []
+          setTimeout runBatches, 1
+        if batchers[name] then batchers[name][0].push value
+        else batchers[name] = [[value], func]
+
+    passesFilters = (name, value)->
+      for name, filter of batchFilters
+        if !filter name, value then return false
+      true
+
+    batchFilters = {}
+
+    addBatchFilter = (name, filter)-> batchFilters[name] = filter
 
     runBatches = ->
       b = batchers
@@ -52,12 +62,11 @@ Handle changes to the doc nodes
         # delay here because each item will alter DOM in a delayed function
         # and successive items depend on current DOM content
         do (item)-> delay ->
+          #console.log "#{item.type.toUpperCase()}: #{pretty item.data}"
           switch item.type
             when 'added'
-              console.log "ADDED: #{pretty item.data}"
               renderParent item.data
             when 'removed'
-              console.log "REMOVED: #{pretty item.data}"
               [headline, parent] = getParent item.data
               if headline then renderBlock parent
               else $("##{item.data._id}").remove()
@@ -249,7 +258,10 @@ Handle changes to the doc nodes
         next.prev = item.prev
         addItem overrides, next
 
+    committing = false
+
     commitOverrides = (overrides)->
+      committing = true
       for id of overrides.removes
         root.currentDocument.remove id
       for id, item of overrides.contents
@@ -265,6 +277,7 @@ Handle changes to the doc nodes
           console.log "UPDATE SET: #{pretty item}, UNSET: #{pretty removes}"
           root.currentDocument.update id, $set: item, $unset: removes
         else root.currentDocument.upsert id, item
+      committing = false
 
     sourceStart = /(^|\n)(#\+name|#\+begin_src)/i
 
@@ -367,3 +380,5 @@ Handle changes to the doc nodes
     root.edited = edited
     root.textForId = textForId
     root.setData = setData
+    root.pretty = pretty
+    root.addBatchFilter = addBatchFilter

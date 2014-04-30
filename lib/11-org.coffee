@@ -28,6 +28,8 @@ misrepresented as being the original software.
 
 root = module?.exports ? {}
 
+_ = Lazy
+
 if Meteor?
   if window? then window.Org = root else global.Org = root
 
@@ -80,6 +82,8 @@ ATTR_NAME = 1
 attrHtmlRE = /^#\+(ATTR_HTML): *$/im
 attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i
 imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i
+orgPathRE = /^org:(.*)$/
+keywordPropertyRE = /:([^ ]+)/
 
 matchLine = (txt)->
   checkMatch(txt, srcStartRE, 'srcStart') ||
@@ -277,6 +281,7 @@ class Link extends Meat
     children: (c.toJsonObject() for c in @children)
   scan: Node.prototype.scanWithChildren
   isImage: -> !@children.length && @path.match imagePathRE
+  isOrg: -> @path.match orgPathRE
 
 class ListItem extends Meat
   constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset
@@ -348,6 +353,7 @@ class Keyword extends Meat
     offset: @offset
     name: @name
     info: @info
+  attributes: -> _(@info.split(keywordPropertyRE)).drop(1).map((str)-> str.trim()).chunk(2).toObject()
 
 class Source extends Keyword
   constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info

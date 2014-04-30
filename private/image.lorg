@@ -1,3 +1,7 @@
 * test image
-#+ATTR_HTML: :alt cat/spider image :title Action! :align right :leisure-drag "100 100"
-[[http://textcraft.org/textcraft_logo_small.png]]
+[[org:one]]
+#+BEGIN_SRC yaml :widget one
+type: image
+src: tinyconcepts.png
+drag: [100, 100]
+#+END_SRC

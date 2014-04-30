@@ -606,7 +606,7 @@ bindContent = (div)->
     [bound, checkMod] = findKeyBinding e, div, r
     if bound then cancelled = !checkMod
     else
-      checkMod = modifyingKey c
+      checkMod = modifyingKey c, e
       cancelled = false
     if !bound
       if c == TAB
@@ -655,7 +655,7 @@ bindContent = (div)->
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
 
-modifyingKey = (c)-> (
+modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
   (47 < c < 58)          || # number keys
   c == 32 || c == ENTER  || # spacebar and enter
   c == BS || c == DEL    || # backspace and delete
@@ -871,8 +871,6 @@ installOrgDOM = (parent, orgNode, orgText, target)->
   dumpTextWatchers()
   if target then $(target).replaceWith orgText
   else parent.innerHTML = orgText
-  console.log "ADDING DATA"
-  data = amt.Trie()
   for node in (if target? then $(target).find '[data-leisure-data]' else $ '[data-leisure-data]')
     addData node
 
