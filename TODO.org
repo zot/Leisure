@@ -21,12 +21,14 @@
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
 - collaboration
+- multiple documents per session (each document can function as a data channel)
+- server-side code can transfer data into a document -- inbox documents
 - draggable images
 - notes
 - slide clones
 - code scopes
 - JavaScript/CoffeeScript source blocks
-- Compilable notebooks
+- Compilable notebooks (all Leisure source code in viewable/editable *.lorg format)
 - data
 * Short-term Leisure-org plan
 - collaboration service

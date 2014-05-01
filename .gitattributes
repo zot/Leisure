@@ -32,4 +32,5 @@ packages/leisure/build/lib/browser.js binary
 packages/leisure/build/lib/browserMain.js binary
 packages/leisure/build/lib/browserMain.map binary
 packages/leisure/build/lib/yaml.js binary
+
 *.lorg text
