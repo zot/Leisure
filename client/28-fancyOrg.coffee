@@ -299,7 +299,7 @@ markupAttr = (org)->
   "<span class='hidden'>#{org.text}</span>"
 
 markupLink = (org)->
-  if orgMatch = org.isOrg() then "<span data-widget-link='#{orgMatch[1]}'></span>"
+  if orgMatch = org.isOrg() then "<span data-widget-link='#{orgMatch[1]}'><span class='hidden'>#{org.allText()}</span></span>"
   else if org.isImage()
     pre = ''
     post = ""
@@ -353,7 +353,7 @@ markupHeadline = (org, delay, note, replace)->
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide replace}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span>\n</div><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
+      "#{startNewSlide replace}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
     else "#{startNewSlide()}<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
@@ -508,7 +508,7 @@ createTemplateRenderer = (template, cont)->
   comp = Handlebars.compile template
   (data, target)->
     result = comp data
-    target.html comp(data)
+    target.html "<span class='hidden'>#{escapeHtml target.text()}</span>#{comp(data)}"
     cont? data, target
 
 dragging = false

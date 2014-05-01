@@ -5,6 +5,7 @@ Meteor-based collaboration -- server side
     isCodeBlock = Leisure.isCodeBlock
     createDocFromOrg = Leisure.createDocFromOrg
     docDo = Leisure.docDo
+    crnl = Leisure.crnl
 
     Meteor.methods
       hasDocument: (name)->
@@ -22,7 +23,7 @@ Document model that ties orgmode parse trees to HTML DOM
     loadDoc = (name)->
       docs[name] = new Meteor.Collection name
       docs[name].remove {}
-      doc = GlobalAssets.getText name
+      doc = crnl GlobalAssets.getText name
       createDocFromText doc, docs[name]
       Meteor.publish name, -> docs[name].find()
 

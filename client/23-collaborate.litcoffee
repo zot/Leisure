@@ -15,6 +15,7 @@ Meteor-based collaboration -- client side
       docDo,
       docRoot,
       orgDoc,
+      crnl,
     } = require '12-docOrg'
     {
       safeLoad,
@@ -31,6 +32,7 @@ every time, because func is ignored after the first call in a batch
     batchers = null
 
     addBatch = (name, value, func)->
+      #console.log "BATCH (COMMITTING: #{committing}): #{pretty value}"
       if !committing || passesFilters name, value
         if !batchers
           batchers = []
@@ -188,7 +190,7 @@ Handle changes to the doc nodes
             else
               next = item.next
               while next
-                [child, next] = subDoc col, next, offset, item.level
+                [child, next, isCode] = subDoc col, next, offset, item.level
                 if child
                   org.children.push child
                   offset += child.length()
@@ -208,13 +210,6 @@ Handle changes to the doc nodes
         for c in child.children ? []
           addChild org, c
       else org.children.push child
-
-    crnl = (data)->
-      if typeof data == 'string' then data.replace /\r\n/g, '\n'
-      else if data.text
-        data.text = crnl data.text
-        data
-      else data
 
     edits = {}
     pendingPush = false
@@ -239,24 +234,29 @@ Handle changes to the doc nodes
         changeDocText id, textForId(id), overrides
       commitOverrides overrides
 
-    getItem = (overrides, id)-> id && (overrides.contents[id] || root.currentDocument.findOne id)
+    getItem = (overrides, id)-> id && (overrides.adds[id] || overrides.updates[id] || root.currentDocument.findOne id)
 
     addItem = (overrides, item)->
-      overrides.contents[item._id] = item
+      overrides.adds[item._id] = item
+      delete overrides.removes[item._id]
+
+    updateItem = (overrides, item)->
+      (if overrides.adds[item._id]? then overrides.adds else overrides.updates)[item._id] = item
       delete overrides.removes[item._id]
 
     removeId = (overrides, id)->
       item = getItem overrides, id
       prev = getItem overrides, item.prev
       next = getItem overrides, item.next
-      delete overrides.contents[id]
+      delete overrides.adds[id]
+      delete overrides.updates[id]
       overrides.removes[id] = true
       if prev
         prev.next = item.next
-        addItem overrides, prev
+        updateItem overrides, prev
       if next
         next.prev = item.prev
-        addItem overrides, next
+        updateItem overrides, next
 
     committing = false
 
@@ -264,7 +264,9 @@ Handle changes to the doc nodes
       committing = true
       for id of overrides.removes
         root.currentDocument.remove id
-      for id, item of overrides.contents
+      for id, item of overrides.adds
+        root.currentDocument.insert id, item
+      for id, item of overrides.updates
         removes = {}
         removed = false
         old = root.currentDocument.findOne id
@@ -272,11 +274,10 @@ Handle changes to the doc nodes
           if !item[k]?
             removes[k] = ''
             removed = true
-        delete item._id
         if removed
           console.log "UPDATE SET: #{pretty item}, UNSET: #{pretty removes}"
           root.currentDocument.update id, $set: item, $unset: removes
-        else root.currentDocument.upsert id, item
+        else root.currentDocument.update id, item
       committing = false
 
     sourceStart = /(^|\n)(#\+name|#\+begin_src)/i
@@ -287,14 +288,14 @@ Handle changes to the doc nodes
         line = match?[0] ? item.text
         if match
           item.text = item.text.substring match[0].length
-          addItem overrides, item
+          updateItem overrides, item
         else removeId overrides, item._id
         line
       else ''
 
     pretty = (obj)-> JSON.stringify obj, null, '  '
 
-    newOverrides = -> contents: {}, removes: {}
+    newOverrides = -> adds: {}, updates: {}, removes: {}
 
     changeDocText = (id, newText, overrides)->
       cur = getItem overrides, id
@@ -314,43 +315,43 @@ Handle changes to the doc nodes
         item.prev = cur._id
         item.next = cur.next
         cur.next = item._id
-        addItem overrides, cur
+        updateItem overrides, cur
         addItem overrides, item
         cur = item
 
     mergeFirstChunk = (overrides, prev, newDoc)->
       if prev?.type == 'chunk' && newDoc[0]?.type == 'chunk'
         prev.text += newDoc.shift().text
-        addItem overrides, prev
+        updateItem overrides, prev
 
     mergeFirstCode = (overrides, prev, cur, newDoc)->
       if prev?.type == 'chunk' && newDoc[0]?.type == 'code'
         if simpleCheckCodeMerge overrides, prev, newDoc[0]
           if !prev.text then removeId overrides, prev._id
-          else addItem overrides, prev
+          else updateItem overrides, prev
 
     mergeLastChunk = (overrides, next, newDoc)->
       if newDoc.length > 0 && newDoc[newDoc.length - 1]?.type == 'chunk' && next?.type == 'chunk'
         next.text = newDoc.pop().text + next.text
-        addItem overrides, next
+        updateItem overrides, next
 
     mergeLastCode = (overrides, next, newDoc)->
       if newDoc.length > 0 && simpleCheckCodeMerge newDoc[newDoc.length - 1], next
         if !newDoc[newDoc.length - 1].text then newDoc.pop()
-        addItem overrides, next
+        updateItem overrides, next
 
     updateDoc = (overrides, newBlock, oldBlock)->
       newBlock._id = oldBlock._id
-      newBlock.prev = oldBlock.prev
-      newBlock.next = oldBlock.next
-      addItem overrides, newBlock
+      if oldBlock.prev then newBlock.prev = oldBlock.prev
+      if oldBlock.next then newBlock.next = oldBlock.next
+      updateItem overrides, newBlock
       newBlock
 
     checkCodeMerge = (overrides, prev, code)->
       if simpleCheckCodeMerge prev, code
         if !prev.text? then removeId overrides, prev._id
-        else addItem overrides, prev
-        addItem overrides, code
+        else updateItem overrides, prev
+        updateItem overrides, code
 
     simpleCheckCodeMerge = (prev, code)->
       if prev?.type == 'chunk' && code?.type == 'code' && prev.text.match sourceStart

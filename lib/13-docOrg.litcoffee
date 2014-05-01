@@ -139,6 +139,13 @@
       if docJson.children? then console.log "NEW NODE\n#{JSON.stringify docJson}"
       docJson
 
+    crnl = (data)->
+      if typeof data == 'string' then data.replace /\r\n/g, '\n'
+      else if data.text
+        data.text = crnl data.text
+        data
+      else data
+
     root.getCodeItems = getCodeItems
     root.isCodeBlock = isCodeBlock
     root.createDocFromOrg = createDocFromOrg
@@ -148,3 +155,4 @@
     root.docRoot = docRoot
     root.linkDocs = linkDocs
     root.isYaml = isYaml
+    root.crnl = crnl
