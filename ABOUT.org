@@ -2,5 +2,4 @@
 
 user change -> event handlers -> data storage -> data update -> small parse -> small render
 
-
 Event handlers may modify document further
