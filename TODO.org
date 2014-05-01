@@ -1,49 +1,34 @@
 * Short list
-- Collaboration engine
-  - use meteor for collaboration
-    - X put org data structure into mongo
-    - X Use mongo instead of textContent to switch modes
-    - X Use change processing to handle local structural changes
-    - Handle node addition/removal
-    - make data live in src blocks with language yaml or json
-  - X detect where changes are, to avoid rerendering/recomputing data
+- collaboration
   - show users' cursors/selections
-  - persistence: git
-  - toggle synchronizing
+- JavaScript/CoffeeScript source blocks
+- GUI templates -- HTML source block defines a new widget type
+  - define handlebars helpers for input, views, etc
 - Floaty notes
-- Image dragging
-- data
-- HTML/image data binding
-  - make image dragging and collaboration use data binding -- maybe backbone
 ** TODO Bug when collaborating with fancy & plain
 - change linked source expr in fancy page
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- JavaScript/CoffeeScript source blocks
+- GUI templates -- HTML source block defines a new widget type
+  - define handlebars helpers for input, views, etc
 - collaboration
+  - show users' cursors/selections
+  - persistence: git
+  - toggle synchronizing
 - multiple documents per session (each document can function as a data channel)
 - server-side code can transfer data into a document -- inbox documents
-- draggable images
+- X draggable images
 - notes
 - slide clones
 - code scopes
-- JavaScript/CoffeeScript source blocks
 - Compilable notebooks (all Leisure source code in viewable/editable *.lorg format)
-- data
+- X data
 * Short-term Leisure-org plan
 - collaboration service
-  - use meteor for collaboration
-    - X put org data structure into mongo
-    - Use mongo instead of textContent to switch modes
-    - make data live in src blocks with language yaml or json
-    - X nested chunks: {"_id": id, "topline": text, "children": [...]}
-      - X a child can be a newline-terminated string or a chunk
-  - detect changes to avoid unnecessary computation
-    - only recompute data which has changed
-    - only rerender elements which have changed
   - show users' cursors/selections
   - persistence: git
-  - use a switchboard web service, like from p2pmud, with file-patching commands
   - Leisure could run on a server or in one of the browsers (in a WebWorker for sandboxing)
   - notebook monadic environment
     - print can patch the notebook
@@ -53,39 +38,17 @@
   - Leisure commands
     - broadcast notebook patch
     - eval
-- data
   - toggle synchronizing
-  - text representation
-    - :DATA: drawer
-    - first line is ID
-    - rest of lines are YAML
-  - internal representation
-    - manipulated by monads
-    - stored by ID in a hamt
-      - easy functional manipulation
-      - handles versioning well
-        - functional code can manipulate internal hamt
-        - accumulate changes
-        - merge them with current data
-    - JSON properties are converted to Leisure values
-      - arrays become lists (until good vector support)
-      - objects become hamts
+- JavaScript and CoffeeScript src blocks
+- Compilable notebooks
+  - into JavaScript module
+  - export data sets
+- data
     - query
       - use datalog, like datomic?
-    - listener fires when data changes
-- HTML/image data binding
-  - make image dragging and collaboration use data binding -- maybe backbone
-  - check observe.js, backbone, knockout, angularjs, ...
 - security
   - run privileged code only in a web worker
-- partial parsing/syncing
-  - fancy/basic mode for each slide
-  - only reprocess changed parts
-  - unreparsed can remain as-is
-  - store each slide separately in JS object storage
-    - compile JS code
-    - each slide gets an object id -- for text and data
-    - each slide can be individually parsed
+- fancy/basic mode for each slide
 - notes
   - Types of slides (value of "note" property)
     - open slide -- can contain sidebar notes (this is the default value of the note property)
@@ -107,10 +70,6 @@
   - defs in local notes should be loud
   - some local slides could be shared across documents
     - import shared local notes by tag
-- JavaScript and CoffeeScript src blocks
-- Compilable notebooks
-  - into JavaScript module
-  - export data sets
 - take HTML markup out of name block and put it in CSS
 - make code-names auto-create
   - generate empty div for people to type a name in
@@ -604,13 +563,38 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE HTML/image data binding
+  - make image dragging and collaboration use data binding -- maybe backbone
+** DONE Image dragging
+** DONE partial parsing/syncing
+  - only reprocess changed parts
+  - unreparsed can remain as-is
+  - store each slide separately in JS object storage
+    - compile JS code
+    - each slide gets an object id -- for text and data
+    - each slide can be individually parsed
+** DONE data
+  - text representation
+    - :DATA: drawer
+    - first line is ID
+    - rest of lines are YAML
+    - [rejected] stored by ID in a hamt
+      - easy functional manipulation
+      - handles versioning well
+        - functional code can manipulate internal hamt
+        - accumulate changes
+        - merge them with current data
+    - listener fires when data changes
 ** DONE use meteor for collaboration
 - Collaboration engine
   - use meteor for collaboration
     - put org data structure into mongo
     - Use mongo instead of textContent to switch modes
     - Use change processing to handle local structural changes
-  - X detect where changes are, to avoid rerendering/recomputing data
+    - Handle node addition/removal
+    - make data live in src blocks with language yaml or json
+  - detect where changes are, to avoid rerendering/recomputing data
+  - use a switchboard web service, like from p2pmud, with file-patching commands
    CLOSED: [2014-04-14 Mon 09:26]
 ** DONE bug: this TODO.org should be moved to Leisure Project
 ** DONE categories                                              :leisure:org:
