@@ -509,7 +509,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
       err = if !widgetMarkup[type] then "<div clas='error'>No value widget type for data nodeId: #{org.nodeId}</div>" else ''
       err = ''
   widgetAttr = if widgetId = org.attributes()?.widget then " data-widget-state='#{widgetId}' data-widget-type='#{type}'" else ''
-  "<div #{orgAttrs source}#{widgetAttr}>#{err}<span class='hidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='hidden'>#{escapeHtml post}</span></div>"
+  "<div #{orgAttrs source}#{widgetAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
 
 createTemplateRenderer = (type, template, cont)->
   comp = Handlebars.compile template

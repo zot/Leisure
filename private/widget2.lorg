@@ -1,4 +1,4 @@
-* slide 1
+* Widgets
 
 [[org:a]] [[org:b]] [[org:c]] [[org:a]]
 
@@ -25,4 +25,15 @@ number: 72
 type: gump
 name: mary
 number: 89
+#+END_SRC
+* Image
+
+[[org:image1]]
+
+#+BEGIN_SRC yaml :widget image1
+type: image
+src: tinyconcepts.png
+drag:
+ - 100
+ - 175
 #+END_SRC
