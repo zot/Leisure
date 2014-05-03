@@ -25,8 +25,8 @@ Meteor-based collaboration -- client side
     root = require '15-base'
     _ = Lazy
 
-    widgetTypes = {}
-    widgetIds = {}
+    widgetTypeData = {}
+    widgetIdTypes = {}
 
     ignore = ->
 
@@ -92,22 +92,18 @@ Handle changes to the doc nodes
                 none: ->
 
     processDataChange = ({type, data})->
-      if type in ['changed', 'removed'] && widgetIds[data._id]
+      if type in ['changed', 'removed'] && widgetIdTypes[data._id]
         console.log "DELETING OLD DEF: #{data.text}"
-        delete widgetTypes[widgetIds[data._id]]
-        delete widgetIds[data._id]
+        delete widgetTypeData[widgetIdTypes[data._id]]
+        delete widgetIdTypes[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
         lang = data.language.toLowerCase()
         attr = data.attributes
         if lang == 'html' && attr.defwidget
           console.log "ADDING DEF: #{data.text}"
-          if type == 'removed'
-            if t = widgetIds[data._id]
-              delete widgetIds[data._id]
-              delete widgetTypes[t]
-          else
-            widgetTypes[data.attributes.defwidget] = data.text.substring data.codePrelen, data.text.length - data.codePostLen
-            widgetIds[data._id] = data.attributes.defwidget
+          widgetTypeData[data.attributes.defwidget] = data.text.substring data.codePrelen, data.text.length - data.codePostlen
+          widgetIdTypes[data._id] = data.attributes.defwidget
+          delay -> root.orgApi.defineWidget data._id
         else if attr.results?.toLowerCase() == 'def' && lang in ['leisure', 'js', 'javascript', 'coffeescript', 'clojurescript']
           console.log "ADDING DEF: #{data.text}"
 
@@ -405,3 +401,5 @@ Handle changes to the doc nodes
     root.setData = setData
     root.pretty = pretty
     root.addBatchFilter = addBatchFilter
+    root.widgetTypeData = widgetTypeData
+    root.widgetIdTypes = widgetIdTypes

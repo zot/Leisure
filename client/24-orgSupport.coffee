@@ -1211,6 +1211,7 @@ orgNotebook =
     @bindContent newNode
   installOrgDOM: installOrgDOM
   redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
+  defineWidget: (id)->
 
 basicOrg =
   __proto__: orgNotebook

@@ -1,8 +1,10 @@
-* Short list
-- script screencast
+* Short list -- screencast
+- script screencast -- screencast.lorg
+- fix test cases
 - collaboration
   - show users' cursors/selections
   - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
+  - hooks for programs to react to data changes (subscriptions)
 - JavaScript/CoffeeScript source blocks
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc
@@ -20,6 +22,8 @@
   - show users' cursors/selections
   - persistence: git
   - toggle synchronizing
+  - document history/branches?  This would require a merge tool...
+- Use GUI templates for slides
 - multiple documents per session (each document can function as a data channel)
 - server-side code can transfer data into a document -- inbox documents
 - X draggable images

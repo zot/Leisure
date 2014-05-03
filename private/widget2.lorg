@@ -1,10 +1,10 @@
 * slide 1
 
-[[org:a]] [[org:b]] [[org:c]]
+[[org:a]] [[org:b]] [[org:c]] [[org:a]]
 
 #+BEGIN_SRC html :defwidget gump
 <div style='display: inline-block; border: solid blue 2px; padding: 5px'>
-  Name: {{name}}<br>
+   Name: {{name}}<br>
   Number: {{number}}
 </div>
 #+END_SRC
