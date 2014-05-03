@@ -38,4 +38,4 @@ Document model that ties orgmode parse trees to HTML DOM
 
     Leisure.loadDoc = loadDoc
 
-    Meteor.setTimeout (-> Leisure.loadDoc 'image.lorg'), 1
+    Meteor.setTimeout (-> Leisure.loadDoc 'widget.lorg'), 1

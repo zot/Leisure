@@ -25,6 +25,11 @@ Meteor-based collaboration -- client side
     root = require '15-base'
     _ = Lazy
 
+    widgetTypes = {}
+    widgetIds = {}
+
+    ignore = ->
+
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
 every time, because func is ignored after the first call in a batch
@@ -61,6 +66,7 @@ Handle changes to the doc nodes
 
     processChanges = (doc, batch)->
       for item in batch
+        processDataChange item
         # delay here because each item will alter DOM in a delayed function
         # and successive items depend on current DOM content
         do (item)-> delay ->
@@ -84,6 +90,26 @@ Handle changes to the doc nodes
                   renderParent item.oldData
                   renderParent item.data
                 none: ->
+
+    processDataChange = ({type, data})->
+      if type in ['changed', 'removed'] && widgetIds[data._id]
+        console.log "DELETING OLD DEF: #{data.text}"
+        delete widgetTypes[widgetIds[data._id]]
+        delete widgetIds[data._id]
+      if type in ['changed', 'added'] && data.type == 'code'
+        lang = data.language.toLowerCase()
+        attr = data.attributes
+        if lang == 'html' && attr.defwidget
+          console.log "ADDING DEF: #{data.text}"
+          if type == 'removed'
+            if t = widgetIds[data._id]
+              delete widgetIds[data._id]
+              delete widgetTypes[t]
+          else
+            widgetTypes[data.attributes.defwidget] = data.text.substring data.codePrelen, data.text.length - data.codePostLen
+            widgetIds[data._id] = data.attributes.defwidget
+        else if attr.results?.toLowerCase() == 'def' && lang in ['leisure', 'js', 'javascript', 'coffeescript', 'clojurescript']
+          console.log "ADDING DEF: #{data.text}"
 
     renderParent = (data)->
       [headline, parentId] = getParent data
@@ -123,14 +149,14 @@ Handle changes to the doc nodes
       if $("##{item._id}").is "[data-org-headline='0']"
         org = docOrg root.currentDocument
       else
-        org = subDoc(root.currentDocument, item, 0, 0)[0]
+        org = subDoc(root.currentDocument, item, 0, 0, ignore)[0]
       if org then root.loadOrg $('[maindoc]')[0], org, name, $("##{item._id}")[0]
 
     setData = (id, value)->
       cur = root.currentDocument.findOne id
       if !cur?.yaml? then throw new Error "Attempt to set data using invalid id"
       else
-        newText = cur.text.substring(0, cur.yamlPrelen) + dump(value) + cur.text.substring cur.text.length - cur.yamlPostlen
+        newText = cur.text.substring(0, cur.codePrelen) + dump(value) + cur.text.substring cur.text.length - cur.codePostlen
         root.currentDocument.update id, $set: {text: newText, yaml: value}
 
     observing = {}
@@ -150,7 +176,7 @@ Handle changes to the doc nodes
               added: (el)-> addBatch 'changes', type: 'added', data: copy(el), (items)-> processChanges docCol, items
               removed: (el)-> addBatch 'changes', type: 'removed', data: copy(el), (items)-> processChanges docCol, items
               changed: (el, oldEl)-> addBatch 'changes', type: 'changed', data: copy(el), oldData: copy(oldEl), (items)-> processChanges docCol, items
-            org = docOrg()
+            org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
             root.loadOrg $('[maindoc]')[0], org, name
           document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}"
@@ -161,24 +187,26 @@ Handle changes to the doc nodes
         newObj[k] = v
       newObj
 
-    docOrg = (col)->
+    docOrg = (col, each)->
       if !col then col = root.currentDocument
+      if !each then each = ignore
       children = []
       next = docRoot(col).head
       offset = 0
       while next
-        [org, next] = subDoc col, next, offset, 0
+        [org, next] = subDoc col, next, offset, 0, each
         if !org then break
         offset += org.length()
         children.push org
       new Headline '', 0, null, null, null, children, 0
 
-    subDoc = (col, itemId, offset, level)->
+    subDoc = (col, itemId, offset, level, each)->
       if !itemId then []
       else
         if !col then col = root.currentDocument
         item = if typeof itemId == 'string' then col.findOne itemId else itemId
         if item
+          each item
           org = parseOrgMode item.text, offset
           org = if org.children.length == 1 then org.children[0]
           else new Fragment org.offset, org.children
@@ -190,7 +218,7 @@ Handle changes to the doc nodes
             else
               next = item.next
               while next
-                [child, next, isCode] = subDoc col, next, offset, item.level
+                [child, next, isCode] = subDoc col, next, offset, item.level, each
                 if child
                   org.children.push child
                   offset += child.length()
@@ -204,12 +232,6 @@ Handle changes to the doc nodes
       if !node then return docJson col, col.findOne root: true
       if node.children then node.children = (docJson col, col.findOne child for child in node.children)
       node
-
-    addChild = (org, child)->
-      if child instanceof Headline && child.level == 0
-        for c in child.children ? []
-          addChild org, c
-      else org.children.push child
 
     edits = {}
     pendingPush = false

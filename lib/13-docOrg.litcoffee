@@ -3,6 +3,7 @@
     {
       Headline,
       Source,
+      HTML,
       Keyword,
       Drawer,
       Meat,
@@ -22,9 +23,9 @@
       while !isSourceEnd org
         if type = getSourceNodeType org
           if !result.first then result.first = org
-          result.last = org.next
-          if result[type]? then return {}
+          if result[type]? then return result
           result[type] = org
+          result.last = org.next
           if type == 'results' then break
         else if org instanceof Drawer || org instanceof Keyword then break
         org = org.next
@@ -88,6 +89,7 @@
         children = createChildrenDocs org
         result = if org.level == 0 then children
         else _([text: org.text, type: 'headline', level: org.level]).concat children
+      else if org instanceof HTML then [result, next] = createHtmlBlockDoc org
       else if isCodeBlock org then [result, next] = createCodeBlockDoc org
       else result = _([text: org.allText(), type: 'chunk'])
       [result, next]
@@ -107,7 +109,7 @@
       [mergedText, children] = checkMerged mergedText, children
       children
 
-    isMergeable = (org)-> !(org instanceof Headline || isCodeBlock org)
+    isMergeable = (org)-> !(org instanceof Headline || org instanceof HTML || isCodeBlock org)
 
     checkMerged = (mergedText, children)->
       if mergedText != '' then children = children.concat [text: mergedText, type: 'chunk']
@@ -123,11 +125,21 @@
           text += first.allText()
           first = first.next
         obj = text: text, type: 'code'
-        if isYaml source
-          obj.yaml = safeLoad source.content
-          obj.yamlPrelen = source.contentPos - firstOffset
-          obj.yamlPostlen = text.length - obj.yamlPrelen - source.content.length
+        obj.codePrelen = source.contentPos - firstOffset
+        obj.codePostlen = text.length - obj.codePrelen - source.content.length
+        if a = org.attributes() then obj.attributes = a
+        if l = org.lead() then obj.language = l.trim()
+        if isYaml source then obj.yaml = safeLoad source.content
         [_([obj]), last]
+
+    createHtmlBlockDoc = (org)->
+        text = org.allText()
+        obj = text: text, type: 'code'
+        obj.codePrelen = org.contentPos - org.offset
+        obj.codePostlen = text.length - obj.codePrelen - org.contentLength
+        obj.language = 'html'
+        if a = org.attributes() then obj.attributes = a
+        [_([obj]), org.next]
 
     isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/
 

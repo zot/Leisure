@@ -1,6 +1,8 @@
 * Short list
+- script screencast
 - collaboration
   - show users' cursors/selections
+  - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
 - JavaScript/CoffeeScript source blocks
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc
@@ -10,6 +12,7 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- script screencast
 - JavaScript/CoffeeScript source blocks
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc

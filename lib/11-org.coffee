@@ -75,8 +75,9 @@ LINK_HEAD = 1
 LINK_INFO = 2
 LINK_DESCRIPTION = 3
 linkRE = /(\[\[([^\]]*)\])(?:\[([^\]]*)\])?\]/
+htmlStartRE = /^#\+(BEGIN_HTML\b)(.*)$/im
 HTML_START_NAME = 1
-htmlStartRE = /^#\+(BEGIN_HTML) *$/im
+HTML_INFO = 2
 htmlEndRE = /^#\+END_HTML *$/im
 ATTR_NAME = 1
 attrHtmlRE = /^#\+(ATTR_HTML): *$/im
@@ -353,7 +354,10 @@ class Keyword extends Meat
     offset: @offset
     name: @name
     info: @info
-  attributes: -> _(@info.split(keywordPropertyRE)).drop(1).map((str)-> str.trim()).chunk(2).toObject()
+  attributes: ->
+    o = _(@info.split(keywordPropertyRE)).drop(1).map((str)-> str.trim()).chunk(2)
+    if o.isEmpty() then null else o.toObject()
+  lead: -> _(@info.split(keywordPropertyRE)).first()
 
 class Source extends Keyword
   constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info
@@ -369,16 +373,17 @@ class Source extends Keyword
     contentPos: @contentPos
 
 class HTML extends Keyword
-  constructor: (@text, @offset, @name, @contentStart, @contentLength)-> super @text, @offset, @name
+  constructor: (@text, @offset, @name, @contentPos, @contentLength, @info)-> super @text, @offset, @name, @info
   type: 'html'
   leading: -> @text.substring 0, @contentStart
   trailing: -> @text.substring @contentStart + @contentLength
   content: -> @text.substring @contentStart, @contentStart + @contentLength
   jsonDef: ->
     type: @type
+    info: @info || ''
     text: @text
     offset: @offset
-    contentStart: @contentStart
+    contentPos: @contentPos
     contentLength: @contentLength
 
 class Results extends Keyword
@@ -472,11 +477,11 @@ class MeatParser
       @checkPat attrHtmlRE, (line, newRest)-> parseAttr line, offset, newRest
       @checkPat srcStartRE, (line, newRest, srcStart)->
         parseSrcBlock line, offset, srcStart[SRC_INFO], srcStart[SRC_BOILERPLATE].length, newRest
+      @checkPat htmlStartRE, (line, newRest, html)-> parseHtmlBlock line, offset, newRest, html
       @checkPat keywordRE, (line, newRest, keyword)->
         parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], newRest
       @checkPat listRE, (line, newRest, list)->
         parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], newRest
-      @checkPat htmlStartRE, (line, newRest, list)-> parseHtmlBlock line, offset, newRest
       @checkPat drawerRE, (line, newRest, list)->
         if end = newRest.match endRE
           parseDrawer line, drawer[DRAWER_NAME], offset, end, newRest
@@ -550,7 +555,7 @@ parseSrcBlock = (text, offset, info, infoPos, rest)->
     endLine = fullLine end, rest
     [new Source(text + rest.substring(0, end.index + endLine.length), offset, text.match(srcStartRE)[SRC_NAME], info, infoPos, rest.substring(0, end.index), offset + text.length), rest.substring end.index + endLine.length]
 
-parseHtmlBlock = (text, offset, rest)->
+parseHtmlBlock = (text, offset, rest, match)->
   end = rest.match htmlEndRE
   otherHtmlStart = rest.match htmlStartRE
   line = text.match /^.*\n/
@@ -559,7 +564,7 @@ parseHtmlBlock = (text, offset, rest)->
     [new Meat(line[0]), text.substring(line[0].length) + rest]
   else
     endLine = fullLine end, rest
-    [new HTML(text + rest.substring(0, end.index + endLine.length), offset, text.match(htmlStartRE)[HTML_START_NAME], line[0].length, text.length + end.index - line[0].length), rest.substring end.index + endLine.length]
+    [new HTML(text + rest.substring(0, end.index + endLine.length), offset, match[HTML_START_NAME], line[0].length, offset + text.length + end.index - line[0].length, match[HTML_INFO]), rest.substring end.index + endLine.length]
 
 parseList = (match, text, offset, level, check, info, rest)->
   contentOffset = listContentOffset match
