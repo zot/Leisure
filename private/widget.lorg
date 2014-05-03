@@ -1,0 +1,12 @@
+* slide 1
+#+BEGIN_HTML :defwidget bubba
+Bubba's real name is: {{name}}
+#+END_HTML
+
+#+BEGIN_SRC html :defwidget gump
+Gump's number is: {{number}}
+#+END_SRC
+
+#+BEGIN_SRC leisure :results def
+bubbaDef = true
+#+END_SRC
