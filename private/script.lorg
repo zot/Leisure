@@ -1,0 +1,75 @@
+* script view
+
+[[org:b]]
+
+[[org:a]]
+
+#+BEGIN_SRC yaml :view b
+type: image2
+src: tinyconcepts.png
+drag:
+  - 100
+  - 100
+#+END_SRC
+
+#+BEGIN_SRC yaml :view a
+type: gump
+name: fred
+number: 35
+#+END_SRC
+
+#+BEGIN_SRC html :defview image2
+<img src={{src}} class='image-draggable'>
+<script>
+  Leisure.hookupImage(document.currentScript.previousElementSibling);
+</script>
+#+END_SRC
+
+#+BEGIN_SRC javascript :results def
+Leisure.hookupImage = function(image) {
+  var target = $(image);
+  var pos = target.position();
+  var offset = target.offset();
+  var viewLink = Leisure.currentViewLink;
+  $(viewLink).
+  //target.
+    offset({left: Leisure.currentViewData.drag[0] + offset.left - pos.left, top: Leisure.currentViewData.drag[1] + offset.top - pos.top}).
+    draggable({
+      start: function() {Leisure.noViewUpdate = true;},
+      drag: function(event, ui) {updateDragData(viewLink, $(viewLink));},
+      stop: function() {
+       setTimeout(function() {Leisure.noViewUpdate = false;}, 200);
+       return true;
+      },
+    });
+}
+
+var updating = false;
+
+function updateDragData(link, image) {
+  //console.log "DRAG #{$(link).attr 'data-view-id'}"
+  if (!updating) {
+    updating = true;
+    var position = image.position();
+    setTimeout(function() {
+      var id = $(link).attr('data-view-id');
+      var data = root.currentDocument.findOne(id);
+      if (!data) console.log("NO DATA FOR DRAGGING IMAGE: " + id);
+      else {
+        //console.log "UPDATE DRAG: ", pretty position
+        data.yaml.drag = [position.left, position.top];
+        Leisure.setData(id, data.yaml);
+      }
+      updating = false
+    }, 200);
+  }
+}
+#+END_SRC
+
+#+BEGIN_SRC html :defview gump
+<div style='display: inline-block; border: solid blue 2px; padding: 5px'>
+   Name: {{name}}<br>
+  Number: {{number}}
+</div>
+<script>console.log("Current script: ", document.currentScript);</script>
+#+END_SRC

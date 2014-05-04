@@ -25,9 +25,9 @@ Meteor-based collaboration -- client side
     root = require '15-base'
     _ = Lazy
 
-    widgetTypeData = {}
-    widgetIdTypes = {}
-
+    viewTypeData = {}
+    viewIdTypes = {}
+    committing = false
     ignore = ->
 
 Batching code -- addBatch batches items and calls the given function
@@ -92,20 +92,24 @@ Handle changes to the doc nodes
                 none: ->
 
     processDataChange = ({type, data})->
-      if type in ['changed', 'removed'] && widgetIdTypes[data._id]
+      if type in ['changed', 'removed'] && viewIdTypes[data._id]
         console.log "DELETING OLD DEF: #{data.text}"
-        delete widgetTypeData[widgetIdTypes[data._id]]
-        delete widgetIdTypes[data._id]
+        delete viewTypeData[viewIdTypes[data._id]]
+        delete viewIdTypes[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
         lang = data.language.toLowerCase()
         attr = data.attributes
-        if lang == 'html' && attr.defwidget
+        if lang == 'html' && attr.defview
           console.log "ADDING DEF: #{data.text}"
-          widgetTypeData[data.attributes.defwidget] = data.text.substring data.codePrelen, data.text.length - data.codePostlen
-          widgetIdTypes[data._id] = data.attributes.defwidget
-          delay -> root.orgApi.defineWidget data._id
-        else if attr.results?.toLowerCase() == 'def' && lang in ['leisure', 'js', 'javascript', 'coffeescript', 'clojurescript']
+          viewTypeData[data.attributes.defview] = codeString data
+          viewIdTypes[data._id] = data.attributes.defview
+          delay -> root.orgApi.defineView data._id
+        else if attr.results?.toLowerCase() == 'def' && lang in ['js', 'javascript']
+          eval codeString data
+        else if attr.results?.toLowerCase() == 'def' && lang in ['leisure', 'coffeescript', 'clojurescript']
           console.log "ADDING DEF: #{data.text}"
+
+    codeString = (data)-> data.text.substring data.codePrelen, data.text.length - data.codePostlen
 
     renderParent = (data)->
       [headline, parentId] = getParent data
@@ -153,7 +157,12 @@ Handle changes to the doc nodes
       if !cur?.yaml? then throw new Error "Attempt to set data using invalid id"
       else
         newText = cur.text.substring(0, cur.codePrelen) + dump(value) + cur.text.substring cur.text.length - cur.codePostlen
-        root.currentDocument.update id, $set: {text: newText, yaml: value}
+        oldCommitting = committing
+        committing = true
+        try
+          root.currentDocument.update id, $set: {text: newText, yaml: value}
+        finally
+          committing = oldCommitting
 
     observing = {}
 
@@ -275,8 +284,6 @@ Handle changes to the doc nodes
       if next
         next.prev = item.prev
         updateItem overrides, next
-
-    committing = false
 
     commitOverrides = (overrides)->
       committing = true
@@ -400,6 +407,6 @@ Handle changes to the doc nodes
     root.textForId = textForId
     root.setData = setData
     root.pretty = pretty
-    root.addBatchFilter = addBatchFilter
-    root.widgetTypeData = widgetTypeData
-    root.widgetIdTypes = widgetIdTypes
+    root.viewTypeData = viewTypeData
+    root.viewIdTypes = viewIdTypes
+    root.codeString = codeString

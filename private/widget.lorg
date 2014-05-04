@@ -2,26 +2,26 @@
 
 [[org:a]] [[org:b]] [[org:c]]
 
-#+BEGIN_SRC html :defwidget gump
+#+BEGIN_SRC html :defview gump
 <div style='display: inline-block; border: solid blue 2px; padding: 5px'>
   Name: {{name}}<br>
   Number: {{number}}
 </div>
 #+END_SRC
 
-#+BEGIN_SRC yaml :widget a
+#+BEGIN_SRC yaml :view a
 type: gump
 name: fred
 number: 35
 #+END_SRC
 
-#+BEGIN_SRC yaml :widget b
+#+BEGIN_SRC yaml :view b
 type: gump
 name: george
 number: 72
 #+END_SRC
 
-#+BEGIN_SRC yaml :widget c
+#+BEGIN_SRC yaml :view c
 type: gump
 name: mary
 number: 89

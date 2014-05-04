@@ -131,7 +131,7 @@ emptyPresenter =
   isRelated: -> false
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
-widgetMarkup = {}
+viewMarkup = {}
 
 
 root.restorePosition = restorePosition = (parent, delta, block)->
@@ -303,7 +303,7 @@ markupAttr = (org)->
   "<span class='hidden'>#{org.text}</span>"
 
 markupLink = (org)->
-  if orgMatch = org.isOrg() then "<span data-widget-link='#{orgMatch[1]}'><span class='hidden'>#{org.allText()}</span></span>"
+  if orgMatch = org.isOrg() then "<span data-view-link='#{orgMatch[1]}'><span class='hidden'>#{org.allText()}</span></span>"
   else if org.isImage()
     pre = ''
     post = ""
@@ -500,25 +500,33 @@ markupYaml = (org, name, doctext, delay, inFragment)->
     cur = cur.next
   post = src.substring(pos + source.content.length) + post
   lastOrgOffset = Math.max (last?.offset ? 0), source.offset, (results?.offset ? 0), (expected?.offset ? 0)
-  if widgetId = org.attributes()?.widget
-    if !org.nodeId then return markupError org, "No data for widget: #{prett org}"
+  if viewId = org.attributes()?.view
+    if !org.nodeId then return markupError org, "No data for view: #{prett org}"
     else
       data = root.currentDocument.findOne org.nodeId
       if !data then return markupError org, "No data for nodeId: #{org.nodeId}"
       type = data.yaml?.type
-      err = if !widgetMarkup[type] then "<div clas='error'>No value widget type for data nodeId: #{org.nodeId}</div>" else ''
+      err = if !viewMarkup[type] then "<div clas='error'>No value view type for data nodeId: #{org.nodeId}</div>" else ''
       err = ''
-  widgetAttr = if widgetId = org.attributes()?.widget then " data-widget-state='#{widgetId}' data-widget-type='#{type}'" else ''
-  "<div #{orgAttrs source}#{widgetAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
+  viewAttr = if viewId = org.attributes()?.view then " data-view-state='#{viewId}' data-view-type='#{type}'" else ''
+  "<div #{orgAttrs source}#{viewAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
 
 createTemplateRenderer = (type, template, cont)->
   comp = Handlebars.compile template
-  widgetMarkup[type] = (data, target)->
+  viewMarkup[type] = (data, target)->
     result = comp(data)
     for node in target
       n = $(node)
       n.html("<span class='hidden'>#{escapeHtml n.text()}</span>")
-      setShadowHtml(node, "<span class='widget'>#{comp data}</span>")
+      try
+        oldData = Leisure.currentViewData
+        oldViewLink = Leisure.currentViewLink
+        Leisure.currentViewData = data
+        Leisure.currentViewLink = node
+        setShadowHtml(node, "<span class='view'>#{comp data}</span>")
+      finally
+        Leisure.currentViewData = oldData
+        Leisure.currentViewLink = oldViewLink
     if cont then cont(data, target)
 
 dragging = false
@@ -528,38 +536,6 @@ markupError = (org, str)->
 
 errorDiv = (str)->
   "<div class='error'>#{escapeHtml str}</div>"
-
-createTemplateRenderer 'image', "<img src={{src}} class='image-draggable'>", (data, target)->
-  if target.length
-    pos = target.position()
-    offset = target.offset()
-    target
-      .offset
-        left: data.drag[0] + offset.left - pos.left
-        top: data.drag[1] + offset.top - pos.top
-      .draggable
-        start: -> dragging = true
-        drag: (event, ui)-> updateDragData target
-        stop: ->
-          dragging = false
-          true
-
-updating = false
-
-updateDragData = (image)->
-  #console.log "DRAG #{$(image).attr 'data-widget-id'}"
-  if !updating
-    updating = true
-    setTimeout (->
-      id = $(image).attr 'data-widget-id'
-      data = root.currentDocument.findOne id
-      if !data then console.log "NO DATA FOR DRAGGING IMAGE: #{id}"
-      else
-        position = image.position()
-        #console.log "UPDATE DRAG: ", pretty position
-        data.yaml.drag = [position.left, position.top]
-        setData id, data.yaml
-        updating = false), 200
 
 markupLeisure = (org, name, doctext, delay, inFragment)->
   top = name ? org
@@ -1120,10 +1096,17 @@ setShadowHtml = (holder, html)->
   if !(el = holder.shadowRoot)
     el = holder.createShadowRoot()
     el.applyAuthorStyles=true
-  el.innerHTML = html
+  el.innerHTML = "<span></span>"
+  el.firstChild.innerHTML = html
   $(el.firstChild).attr 'data-shadowdom', 'true'
   if theme != null then $(el.firstChild).addClass(theme)
   if $("body").hasClass 'bar_collapse' then $(el.firstChild).addClass('bar_collapse')
+  for script in $(el.firstChild).find('script')
+    newScript = document.createElement 'script'
+    newScript.type = 'text/javascript'
+    newScript.textContent = script.textContent
+    script.parentNode.insertBefore newScript, script
+    script.parentNode.removeChild script
 
 redrawIssue = (issue)->
   issueName = issue.leisureName
@@ -1373,22 +1356,20 @@ restoreSlide = (block)->
     block()
     setSlideAt offset
 
-root.addBatchFilter 'dragFilter', (name, value)-> root.orgApi != fancyOrg || !dragging
+fixupViews = ->
+  if Leisure.noViewUpdate then return
+  for dataEl in $("[data-view-state]")
+    renderView dataEl
 
-fixupWidgets = ->
-  if dragging then return
-  for dataEl in $("[data-widget-state]")
-    renderWidget dataEl
-
-renderWidget = (dataEl)->
+renderView = (dataEl)->
   data = root.currentDocument.findOne dataEl.id
   if data?
-    linkName = $(dataEl).attr 'data-widget-state'
-    if !(w = widgetMarkup[data.yaml?.type]) then return console.log new Error "Invalid widget type for data #{dataEl.id}: #{pretty data}"
-    links = $("[data-widget-link='#{linkName}']")
-    links.attr 'data-widget-id', dataEl.id
+    linkName = $(dataEl).attr 'data-view-state'
+    if !(w = viewMarkup[data.yaml?.type]) then return console.log new Error "Invalid view type for data #{dataEl.id}: #{pretty data}"
+    links = $("[data-view-link='#{linkName}']")
+    links.attr 'data-view-id', dataEl.id
     w data.yaml, links
-  else $(dataEl).html errorDiv "No data for widget name: #{dataEl.id}"
+  else $(dataEl).html errorDiv "No data for view name: #{dataEl.id}"
 
 setYamlData = (id, value)->
   $(id).find('[data-org-yaml]').text yaml.dump value
@@ -1408,7 +1389,7 @@ fancyOrg =
       fixupHtml parent
       setTheme theme
       nextNoteId = 0
-      fixupWidgets()
+      fixupViews()
       createNoteShadows()
       setTimeout (=>
         redrawAllIssues()
@@ -1426,11 +1407,11 @@ fancyOrg =
       else swapMarkup()
   emptySlide: (id, slidePosition)->
     "#{slideStart()}<hr class='#{if slidePosition == 'only' then 'first' else slidePosition}'><div id='#{id}'></div>#{slideEnd()}"
-  defineWidget: (id)-> # define a widget from a data block
-    if type = root.widgetIdTypes[id]
-      createTemplateRenderer type, root.widgetTypeData[type]
-      for node in $("[data-widget-type='#{type}']")
-        renderWidget node
+  defineView: (id)-> # define a view from a data block
+    if type = root.viewIdTypes[id]
+      createTemplateRenderer type, root.viewTypeData[type]
+      for node in $("[data-view-type='#{type}']")
+        renderView node
 
 # called on installing DOM and also on new notes
 fixupHtml = (parent, note)->
@@ -1464,4 +1445,7 @@ root.toggleDynamic = toggleDynamic
 root.getDocRange = getDocRange
 root.restoreDocRange = restoreDocRange
 root.getDocumentOffset = getDocumentOffset
-root.widgetMarkup = widgetMarkup
+root.viewMarkup = viewMarkup
+root.currentViewData = null
+root.currentViewLink = null
+root.newViewUpdate = false
