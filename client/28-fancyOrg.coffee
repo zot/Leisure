@@ -280,7 +280,7 @@ markupNode = (org, middleOfLine, delay, note, replace)->
     tag = (if middleOfLine then 'span' else 'div')
     "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
 
-isLeisure = (org)-> org instanceof Source && org.lead()?.toLowerCase() == 'leisure'
+isLeisure = (org)-> org instanceof Source && org.lead()?.trim().toLowerCase() == 'leisure'
 
 markupFragment = (org, delay, note)->
   if isCodeBlock org.children[0]
