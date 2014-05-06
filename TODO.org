@@ -10,6 +10,9 @@
   - define handlebars helpers for input, views, etc
 - Floaty notes
 ** TODO Bug when collaborating with fancy & plain
+   :PROPERTIES:
+   :ID:       0c9902c5-d885-4d99-8e9b-8d8830152c4f
+   :END:
 - change linked source expr in fancy page
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
@@ -18,6 +21,8 @@
 - JavaScript/CoffeeScript source blocks
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc
+  - church encoded widget results (like html or svg results)
+  - widget code blocks (like test cases)
 - collaboration
   - show users' cursors/selections
   - persistence: git

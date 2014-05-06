@@ -1,5 +1,17 @@
 * Document change flow
 
-user change -> event handlers -> data storage -> data update -> small parse -> small render
-
-Event handlers may modify document further
+(LOCAL)
+     |
+user change
+     |
+event handlers
+     |
+data storage
+     |
+(LOCAL AND REMOTE)
+     |
+data update
+     |
+run update handlers
+     |
+render data
