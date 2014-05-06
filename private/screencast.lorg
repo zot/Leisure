@@ -3,15 +3,18 @@
 - slide mode/fancy mode/plain mode
 - for development and deployment
 - properties/tags inherited by functions in slides
+
 * collaboration at development and runtime
 - each document is a collaborative virtual machine
 - human-readable data (yaml)
 - data blocks (mud, etc)
+
 * virtual text file architecture (data blocks)
 - data blocks allow scalability
 - blocks can contain metadata about their text (parsed objects, etc.)
 - browser doesn't have to render the entire file, only what's visible
 - efficient, in-place updating
+
 * specially interpreted data blocks
 - widget defs
 - code
@@ -19,11 +22,13 @@
 - linked widget data
   - GUI elements
   - draggable images
+
 * language features
 - metaprogramming
 - functional
 - monadic i/o interface
 - access partially applied data
+
 * development features
 - test cases
 - repository comments
