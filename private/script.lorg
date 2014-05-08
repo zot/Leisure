@@ -1,15 +1,14 @@
 * script view
 
-[[org:b]]
+[[org:i]]
 
-[[org:a]]
+[[org:a]] [[org:b]] [[org:c]] [[org:a]]
 
-#+BEGIN_SRC yaml :view b
-type: image2
+#+BEGIN_SRC yaml :view i
+type: image
 src: tinyconcepts.png
-drag:
-  - 100
-  - 100
+left: 120
+top: -10
 #+END_SRC
 
 #+BEGIN_SRC yaml :view a
@@ -18,58 +17,64 @@ name: fred
 number: 35
 #+END_SRC
 
-#+BEGIN_SRC html :defview image2
-<img src={{src}} class='image-draggable'>
+#+BEGIN_SRC yaml :view b
+type: gump
+name: george
+number: 72
+#+END_SRC
+
+#+BEGIN_SRC yaml :view c
+type: gump
+name: mary
+number: 89
+#+END_SRC
+
+#+BEGIN_SRC html :defview image
+<img src={{src}}>
 <script>
-  Leisure.hookupImage(document.currentScript.previousElementSibling);
+  Leisure.hookupImage($(Templating.currentViewLink), Templating.currentViewData);
 </script>
 #+END_SRC
 
+#+BEGIN_SRC html :defview gump
+<div style='display: inline-block; border: solid blue 2px; padding: 5px'>
+   Name: {{{inputText 'name'}}}<br>
+  Number: {{number}}
+</div>
+<script>console.log("Current script: ", document.currentScript);</script>
+#+END_SRC
+
 #+BEGIN_SRC javascript :results def
-Leisure.hookupImage = function(image) {
-  var target = $(image);
-  var pos = target.position();
-  var offset = target.offset();
-  var viewLink = Leisure.currentViewLink;
-  $(viewLink).
-  //target.
-    offset({left: Leisure.currentViewData.drag[0] + offset.left - pos.left, top: Leisure.currentViewData.drag[1] + offset.top - pos.top}).
+Leisure.hookupImage = function(viewLink, data) {
+  var pos = viewLink.position();
+  var offset = viewLink.offset();
+
+  viewLink[0].style.position = 'absolute';
+  viewLink.
+    offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top}).
     draggable({
       start: function() {Leisure.noViewUpdate = true;},
-      drag: function(event, ui) {updateDragData(viewLink, $(viewLink));},
+      drag: function(event, ui) {queueDragUpdate(viewLink);},
       stop: function() {
-       setTimeout(function() {Leisure.noViewUpdate = false;}, 200);
+       queueDragUpdate(viewLink);
+       setTimeout(function() {Leisure.noViewUpdate = false;}, 300);
        return true;
       },
     });
 }
 
-var updating = false;
+function queueDragUpdate(image) {
+  Templating.interactiveBatch(image.attr('data-view-id'), function(id) {
+    var data = root.currentDocument.findOne(id);
 
-function updateDragData(link, image) {
-  //console.log "DRAG #{$(link).attr 'data-view-id'}"
-  if (!updating) {
-    updating = true;
-    var position = image.position();
-    setTimeout(function() {
-      var id = $(link).attr('data-view-id');
-      var data = root.currentDocument.findOne(id);
-      if (!data) console.log("NO DATA FOR DRAGGING IMAGE: " + id);
-      else {
-        //console.log "UPDATE DRAG: ", pretty position
-        data.yaml.drag = [position.left, position.top];
-        Leisure.setData(id, data.yaml);
-      }
-      updating = false
-    }, 200);
-  }
+    if (!data) console.log("NO DATA FOR DRAGGING IMAGE: " + id);
+    else {
+      var position = image.position();
+
+      data.yaml.left = position.left;
+      data.yaml.top = position.top;
+      Leisure.setData(id, data.yaml);
+    }
+  });
 }
-#+END_SRC
-
-#+BEGIN_SRC html :defview gump
-<div style='display: inline-block; border: solid blue 2px; padding: 5px'>
-   Name: {{name}}<br>
-  Number: {{number}}
-</div>
-<script>console.log("Current script: ", document.currentScript);</script>
 #+END_SRC

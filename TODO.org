@@ -1,6 +1,6 @@
 * Short list -- screencast
+- go through old slides
 - script screencast -- screencast.lorg
-- fix test cases
 - collaboration
   - show users' cursors/selections
   - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
@@ -9,6 +9,7 @@
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc
 - Floaty notes
+- fix test cases
 ** TODO Bug when collaborating with fancy & plain
    :PROPERTIES:
    :ID:       0c9902c5-d885-4d99-8e9b-8d8830152c4f

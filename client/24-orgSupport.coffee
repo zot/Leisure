@@ -55,6 +55,9 @@ lz = lazy
 {
   orgDoc,
 } = require '12-docOrg'
+{
+  escapeHtml,
+} = Templating
 amt = require('persistent-hash-trie')
 
 consFrom = newConsFrom
@@ -743,14 +746,6 @@ checkSourceMod = (parent, oldMatch)->
       when 'def' then root.orgApi.executeDef n
   edited focus
 
-replacements =
-  '<': '&lt;'
-  '>': '&gt;'
-
-escapeHtml = (str)->
-  if typeof str == 'string' then str.replace /[<>]/g, (c)-> replacements[c]
-  else str
-
 escapeAttr = (str)->
   if typeof str == 'string' then str.replace /['"&]/g, (c)->
     switch c
@@ -1276,7 +1271,6 @@ root.findKeyBinding = findKeyBinding
 root.invalidateOrgText = invalidateOrgText
 root.setCurKeyBinding = setCurKeyBinding
 root.presentValue = presentValue
-root.escapeHtml = escapeHtml
 root.escapeAttr = escapeAttr
 root.restorePosition = restorePosition
 root.splitLines = splitLines

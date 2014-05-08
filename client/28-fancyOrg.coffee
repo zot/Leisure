@@ -1,5 +1,3 @@
-console.log 'FANCY MODE!'
-
 {
   resolve,
   lazy,
@@ -90,7 +88,6 @@ yaml = root.yaml
   setCurKeyBinding,
   presentValue,
   propsFor,
-  escapeHtml,
   escapeAttr,
   splitLines,
   orgSrcAttrs,
@@ -120,6 +117,13 @@ yaml = root.yaml
   pretty,
   setData,
 } = require '23-collaborate'
+{
+  createTemplateRenderer,
+  escapeHtml,
+  getDeepestActiveElement,
+  setShadowHtml,
+  viewMarkup,
+} = Templating # require '27-templating'
 _ = require 'lodash.min'
 
 fancyOrg = null
@@ -131,29 +135,45 @@ emptyPresenter =
   isRelated: -> false
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
-viewMarkup = {}
 
+getSelectionDescriptor = ->
+  sel = getSelection()
+  el = getDeepestActiveElement()
+  if el.nodeType == Node.ELEMENT_NODE && sid = el.getAttribute('data-shadow-id')
+    id = rootNode(el).firstChild.getAttribute 'data-view-id'
+    if el.nodeName.match(/input/i) && el.type.match(/text/i)
+      start = el.selectionStart
+      end = el.selectionEnd
+      console.log "shadow field"
+      return focusNode: sel.focusNode, restore: (delta, doc)->
+        newEl = $($(doc).find("[data-view-id='#{id}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]
+        newEl.setSelectionRange start, end
+  if sel?.rangeCount
+    [start, end, offset, note] = getDocRange()
+    console.log "text range"
+    restore: (delta, doc)-> restoreDocRange doc, [start + delta, end + delta, offset, note]
+    focusNode: sel.focusNode
+  else
+    console.log "no selection"
+    restore: ->
+    focusNode: sel.focusNode
 
 root.restorePosition = restorePosition = (parent, delta, block)->
   if !block
     block = delta
     delta = 0
-  sel = getSelection()
-  slide = slideParent sel.focusNode
+  selection = getSelectionDescriptor()
+  slide = slideParent selection.focusNode
   slideIndex = slideOffset slide
-  if sel?.rangeCount && slideIndex > -1
+  if selection.focusNode && slideIndex > -1
     doc = topNode(slide).parentNode
-    docRange = getDocRange()
-    [start, end, offset, note] = docRange
-    docRange = [start + delta, end + delta, offset, note]
     parent = doc.parentNode
     docPos = childIndex parent, doc
-    r = sel.getRangeAt 0
     block() # block shouldn't remove doc
     if doc = parent.children[docPos]
       newSlide = $('[data-org-headline="1"]')[slideIndex]
       if slideMode then setCurrentSlide newSlide
-      restoreDocRange doc, docRange
+      selection.restore delta, doc
   else block()
 
 # get a logical document range with an optional note
@@ -205,6 +225,11 @@ childIndex = (parent, child)->
   for i in [0...parent.children.length]
     if parent.children[i] == child then return i
   return -1
+
+rootNode = (node)->
+  while node.parentNode
+    node = node.parentNode
+  node
 
 topNode = (node)->
   top = node
@@ -510,24 +535,6 @@ markupYaml = (org, name, doctext, delay, inFragment)->
       err = ''
   viewAttr = if viewId = org.attributes()?.view then " data-view-state='#{viewId}' data-view-type='#{type}'" else ''
   "<div #{orgAttrs source}#{viewAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
-
-createTemplateRenderer = (type, template, cont)->
-  comp = Handlebars.compile template
-  viewMarkup[type] = (data, target)->
-    result = comp(data)
-    for node in target
-      n = $(node)
-      n.html("<span class='hidden'>#{escapeHtml n.text()}</span>")
-      try
-        oldData = Leisure.currentViewData
-        oldViewLink = Leisure.currentViewLink
-        Leisure.currentViewData = data
-        Leisure.currentViewLink = node
-        setShadowHtml(node, "<span class='view'>#{comp data}</span>")
-      finally
-        Leisure.currentViewData = oldData
-        Leisure.currentViewLink = oldViewLink
-    if cont then cont(data, target)
 
 dragging = false
 
@@ -1092,22 +1099,6 @@ processResults = (str, node, skipText)->
     if line.match /^: / then shadow.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
   $(shadow.firstChild).attr 'data-shadowdom', 'true'
 
-setShadowHtml = (holder, html)->
-  if !(el = holder.shadowRoot)
-    el = holder.createShadowRoot()
-    el.applyAuthorStyles=true
-  el.innerHTML = "<span></span>"
-  el.firstChild.innerHTML = html
-  $(el.firstChild).attr 'data-shadowdom', 'true'
-  if theme != null then $(el.firstChild).addClass(theme)
-  if $("body").hasClass 'bar_collapse' then $(el.firstChild).addClass('bar_collapse')
-  for script in $(el.firstChild).find('script')
-    newScript = document.createElement 'script'
-    newScript.type = 'text/javascript'
-    newScript.textContent = script.textContent
-    script.parentNode.insertBefore newScript, script
-    script.parentNode.removeChild script
-
 redrawIssue = (issue)->
   issueName = issue.leisureName
   if (name = $("[data-org-comments='#{issueName}']")).length
@@ -1368,12 +1359,43 @@ renderView = (dataEl)->
     if !(w = viewMarkup[data.yaml?.type]) then return console.log new Error "Invalid view type for data #{dataEl.id}: #{pretty data}"
     links = $("[data-view-link='#{linkName}']")
     links.attr 'data-view-id', dataEl.id
-    w data.yaml, links
+    try
+      oldChunk = Leisure.currentViewChunk
+      Leisure.currentViewChunk = data
+      resetShadowCounter()
+      w data.yaml, links
+      for node in links
+        node.shadowRoot.firstChild.setAttribute 'data-view-id', dataEl.id
+    finally
+      Leisure.currentViewChunk = oldChunk
   else $(dataEl).html errorDiv "No data for view name: #{dataEl.id}"
 
 setYamlData = (id, value)->
   $(id).find('[data-org-yaml]').text yaml.dump value
   setData id, value
+
+Handlebars.registerHelper 'inputText', (name, options)->
+  if id = Leisure.currentViewChunk._id
+    console.log "inputText"
+    if options.fn then console.log "block"
+    "<input type='text'>#{bindText name}"
+  else "???"
+
+bindText = (field)-> "<script>Leisure.bindPreviousText('#{Leisure.currentViewChunk._id}', '#{field}')</script>"
+
+Leisure.bindPreviousText = (id, field)->
+  input = document.currentScript.previousElementSibling
+  input.setAttribute 'data-shadow-id', nextShadowCount()
+  input.value = Templating.currentViewData[field]
+  #input.onchange = ->
+  input.onkeypress = ->
+    setTimeout (->
+      data = root.currentDocument.findOne(id).yaml
+      data[field] = input.value
+      setYamlData id, data), 1
+
+changeInputText = (field, id)->
+  console.log "CHANGE DATA"
 
 fancyOrg =
   __proto__: orgNotebook
@@ -1409,9 +1431,20 @@ fancyOrg =
     "#{slideStart()}<hr class='#{if slidePosition == 'only' then 'first' else slidePosition}'><div id='#{id}'></div>#{slideEnd()}"
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]
-      createTemplateRenderer type, root.viewTypeData[type]
+      createTemplateRenderer type, root.viewTypeData[type], true, (data, target)->
+        for node in target
+          shadow = node.shadowRoot.firstChild
+          $(shadow).css('user-select', 'none').css('-webkit-user-select', 'none')
+          if theme != null then $(shadow).addClass(theme)
+          if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
       for node in $("[data-view-type='#{type}']")
         renderView node
+
+shadowCounter = 0
+
+resetShadowCounter = -> shadowCounter = 0
+
+nextShadowCount = -> shadowCounter++
 
 # called on installing DOM and also on new notes
 fixupHtml = (parent, note)->
@@ -1446,6 +1479,6 @@ root.getDocRange = getDocRange
 root.restoreDocRange = restoreDocRange
 root.getDocumentOffset = getDocumentOffset
 root.viewMarkup = viewMarkup
-root.currentViewData = null
-root.currentViewLink = null
-root.newViewUpdate = false
+root.noViewUpdate = false
+root.topNode = topNode
+root.rootNode = rootNode
