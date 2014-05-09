@@ -10,19 +10,16 @@ src: tinyconcepts.png
 left: 120
 top: -10
 #+END_SRC
-
 #+BEGIN_SRC yaml :view a
 type: gump
 name: fred
 number: 35
 #+END_SRC
-
 #+BEGIN_SRC yaml :view b
 type: gump
 name: george
 number: 72
 #+END_SRC
-
 #+BEGIN_SRC yaml :view c
 type: gump
 name: mary
@@ -32,7 +29,7 @@ number: 89
 #+BEGIN_SRC html :defview image
 <img src={{src}}>
 <script>
-  Leisure.hookupImage($(Templating.currentViewLink), Templating.currentViewData);
+  Leisure.hookupImage(Templating.currentViewLink, Templating.currentViewData);
 </script>
 #+END_SRC
 
@@ -46,6 +43,7 @@ number: 89
 
 #+BEGIN_SRC javascript :results def
 Leisure.hookupImage = function(viewLink, data) {
+  viewLink = $(viewLink);
   var pos = viewLink.position();
   var offset = viewLink.offset();
 

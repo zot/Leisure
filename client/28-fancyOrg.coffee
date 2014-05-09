@@ -504,7 +504,7 @@ markupHtml = (org)->
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
   else if isLeisure org then markupLeisure
-  else defaultMarkup
+  else (org)-> defaultMarkup org, 'div', 'class', 'default-lang'
 
 markupSource = (org, name, doctext, delay, inFragment)->
   (chooseSourceMarkup org) org, name, doctext, delay, inFragment
@@ -853,7 +853,11 @@ addComment = (name, event)->
   createComment name, box.val()
   box.val ''
 
-defaultMarkup = (org)-> "<span #{orgAttrs org}>#{escapeHtml org.text}</span>"
+defaultMarkup = (org, tag, attrs...)->
+  tag = tag || 'span'
+  attrs = if attrs.length then " " + Lazy(attrs).chunk(2).map(([k, v])-> "#{k}='#{v}'").join(' ')
+  else ''
+  "<#{tag} #{orgAttrs org}#{attrs}>#{escapeHtml org.text}</#{tag}>"
 
 htmlForResults = (text, org)->
   attr = if org?.shared then " id='#{org.nodeId}' data-shared='#{org.shared}'" else ''
@@ -1387,8 +1391,7 @@ Leisure.bindPreviousText = (id, field)->
   input = document.currentScript.previousElementSibling
   input.setAttribute 'data-shadow-id', nextShadowCount()
   input.value = Templating.currentViewData[field]
-  #input.onchange = ->
-  input.onkeypress = ->
+  input.onkeydown = ->
     setTimeout (->
       data = root.currentDocument.findOne(id).yaml
       data[field] = input.value
@@ -1434,7 +1437,10 @@ fancyOrg =
       createTemplateRenderer type, root.viewTypeData[type], true, (data, target)->
         for node in target
           shadow = node.shadowRoot.firstChild
-          $(shadow).css('user-select', 'none').css('-webkit-user-select', 'none')
+          $(shadow).
+            css('user-select', 'none').
+            css('-webkit-user-select', 'none').
+            css('-moz-user-select', 'none')
           if theme != null then $(shadow).addClass(theme)
           if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
       for node in $("[data-view-type='#{type}']")

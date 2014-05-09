@@ -899,6 +899,23 @@
                         -webkit-user-select: none;
                         user-select: none;
                 }
+                .org-fancy [data-lang='yaml'] {
+                        box-shadow: 3px 3px 2px 3px darkblue !important;
+                        -moz-box-shadow: 3px 3px 2px 3px darkblue !important;
+                        -webkit-box-shadow: 3px 3px 2px 3px darkblue !important;
+                        display: inline-block;
+                        margin-right: 15px;
+                        margin-bottom: 15px;
+                        padding: 10px;
+                }
+                .org-fancy .default-lang[data-lang] {
+                        box-shadow: 3px 3px 2px 3px darkgreen;
+                        -moz-box-shadow: 3px 3px 2px 3px darkgreen;
+                        -webkit-box-shadow: 3px 3px 2px 3px darkgreen;
+                        margin-right: 15px;
+                        margin-bottom: 15px;
+                        padding: 10px;
+                }
                 .error {
                         color: red;
                         font-weight: bold;
@@ -1955,7 +1972,7 @@
 * two
 
 --></div>
-    <div id='sourceblock'>
+    <div id='sourceblock' style='display: none'>
       <br>Leisure Source...
       <div id='source' style="white-space: pre-wrap;"></div>
     </div>
