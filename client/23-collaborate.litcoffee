@@ -182,9 +182,13 @@ Handle changes to the doc nodes
               removed: (el)-> addBatch 'changes', type: 'removed', data: copy(el), (items)-> processChanges docCol, items
               changed: (el, oldEl)-> addBatch 'changes', type: 'changed', data: copy(el), oldData: copy(oldEl), (items)-> processChanges docCol, items
             org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
+            initPrivate name
             root.loadOrg $('[maindoc]')[0], org, name
           document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}"
+
+    initPrivate = (name)->
+      #root.currentDocument.privateStorage =
 
     copy = (obj)->
       newObj = {}

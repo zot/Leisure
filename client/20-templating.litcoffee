@@ -19,13 +19,16 @@
           try
             oldData = Templating.currentViewData
             oldViewLink = Templating.currentViewLink
+            oldView = Templating.currentView
             Templating.currentViewData = data
             Templating.currentViewLink = node
+            Templating.currentView = viewMarkup[type]
             if shadow then setShadowHtml node, "<span class='view'>#{comp data}</span>"
             else setHtml node, "<span class='view'>#{comp data}</span>"
           finally
             Templating.currentViewData = oldData
             Templating.currentViewLink = oldViewLink
+            Templating.currentView = oldView
         if cont then cont(data, target)
 
     activateScripts = (el)->

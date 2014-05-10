@@ -1,6 +1,8 @@
 * script view
-
 [[org:i]]
+
+
+
 
 [[org:a]] [[org:b]] [[org:c]] [[org:a]]
 
@@ -25,9 +27,16 @@ type: gump
 name: mary
 number: 89
 #+END_SRC
-
+* Views
 #+BEGIN_SRC html :defview image
-<img src={{src}}>
+<div style='display: inline-block'>
+  <table>
+    <tr>
+      <td><img src={{src}}></td>
+      <td><h1>DRAG ME</h1>({{left}},{{top}})</td>
+    </tr>
+  </table>
+</div>
 <script>
   Leisure.hookupImage(Templating.currentViewLink, Templating.currentViewData);
 </script>
@@ -40,25 +49,27 @@ number: 89
 </div>
 <script>console.log("Current script: ", document.currentScript);</script>
 #+END_SRC
-
+* Support code
 #+BEGIN_SRC javascript :results def
 Leisure.hookupImage = function(viewLink, data) {
-  viewLink = $(viewLink);
-  var pos = viewLink.position();
-  var offset = viewLink.offset();
+  if (!viewLink.isDraggable) {
+    viewLink.isDraggable = true;
+    viewLink = $(viewLink);
+    var pos = viewLink.position();
+    var offset = viewLink.offset();
 
-  viewLink[0].style.position = 'absolute';
-  viewLink.
-    offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top}).
-    draggable({
-      start: function() {Leisure.noViewUpdate = true;},
-      drag: function(event, ui) {queueDragUpdate(viewLink);},
-      stop: function() {
-       queueDragUpdate(viewLink);
-       setTimeout(function() {Leisure.noViewUpdate = false;}, 300);
-       return true;
-      },
-    });
+    viewLink[0].style.position = 'absolute';
+    viewLink[0].style.zIndex = '100';
+    viewLink.
+      offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top}).
+      draggable({
+        drag: function(event, ui) {queueDragUpdate(viewLink);},
+        stop: function() {
+         queueDragUpdate(viewLink);
+         return true;
+        },
+      });
+  }
 }
 
 function queueDragUpdate(image) {

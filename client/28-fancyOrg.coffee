@@ -139,22 +139,14 @@ DOCUMENT_POSITION_CONTAINED_BY = 16
 getSelectionDescriptor = ->
   sel = getSelection()
   el = getDeepestActiveElement()
-  if el.nodeType == Node.ELEMENT_NODE && sid = el.getAttribute('data-shadow-id')
-    id = rootNode(el).firstChild.getAttribute 'data-view-id'
-    if el.nodeName.match(/input/i) && el.type.match(/text/i)
-      start = el.selectionStart
-      end = el.selectionEnd
-      console.log "shadow field"
-      return focusNode: sel.focusNode, restore: (delta, doc)->
-        newEl = $($(doc).find("[data-view-id='#{id}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]
-        newEl.setSelectionRange start, end
-  if sel?.rangeCount
+  if sel?.rangeCount && !(el.nodeType == Node.ELEMENT_NODE && $(el).attr 'data-shadow-id')
+    startNode = sel.getRangeAt(0).startContainer
     [start, end, offset, note] = getDocRange()
-    console.log "text range"
-    restore: (delta, doc)-> restoreDocRange doc, [start + delta, end + delta, offset, note]
+    restore: (delta, doc)->
+      if getSelection()?.getRangeAt(0).startContainer != startNode
+        restoreDocRange doc, [start + delta, end + delta, offset, note]
     focusNode: sel.focusNode
   else
-    console.log "no selection"
     restore: ->
     focusNode: sel.focusNode
 
@@ -200,7 +192,7 @@ restoreDocRange = (parent, [start, end, offset, noteId])->
     noteNode = $("[data-org-note-instances~='#{noteId}']")[0]
     parent = $(noteNode.shadowRoot.firstChild).find("##{noteId}")[0]
   [startContainer, startOffset] = findDomPosition parent, start
-  [endContainer, endOffset] = findDomPosition parent, end
+  [endContainer, endOffset] = findDomPosition parent, Math.min(end, parent.textContent.length - 1)
   r = document.createRange()
   r.setStart startContainer, startOffset
   r.setEnd endContainer, endOffset
@@ -983,6 +975,7 @@ bindContent = (div)->
   displaySource()
 
 handleKey = (div)->(e)->
+  if e.target.getAttribute 'data-view-id' then return
   curPos = -1
   c = (e.charCode || e.keyCode || e.which)
   if !addKeyPress e, c then return
@@ -1463,11 +1456,14 @@ fixupHtml = (parent, note)->
     reprocessResults node
   createNoteShadows()
   if !note
-    for node in $(parent).find('[data-org-headline="1"] .maincontent')
-      $("button.create_note").remove()
-      $("<button class='create_note'><i class='fa fa-file-text-o'></i></button>").prependTo(node).click (e)->
+    $("button.create_note").remove()
+    $(parent)
+      .find('[data-org-headline="1"] .maincontent')
+      .prepend("<button class='create_note'><i class='fa fa-file-text-o'></i></button>")
+      .children().find(':first-child')
+      .click (e)->
         e.preventDefault()
-        root.currentMode.createNote()
+        #root.currentMode.createNotes()
   setTimeout (=>
     for node in $(parent).find('[data-org-comments]')
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'

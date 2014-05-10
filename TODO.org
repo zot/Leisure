@@ -2,6 +2,12 @@
 - go through old slides
 - script screencast -- screencast.lorg
 - collaboration
+  - each document gets local storage for user-local and user-private data
+    - ":storage local" blocks are in the document, initialized for everyone, but stored locally
+    - ":storage private" blocks are not in the document but are overlayed for the current user
+    - createRef(item, parent) should make a reference and verify it's not public->private
+  - head record contains unique ID
+    - reinitializes private document when it changes
   - show users' cursors/selections
   - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)
@@ -38,6 +44,7 @@
 - code scopes
 - Compilable notebooks (all Leisure source code in viewable/editable *.lorg format)
 - X data
+- make fancyOrg:getSelectionDescriptor line-based for better selection preservation
 * Short-term Leisure-org plan
 - collaboration service
   - show users' cursors/selections
