@@ -52,23 +52,28 @@ number: 89
 * Support code
 #+BEGIN_SRC javascript :results def
 Leisure.hookupImage = function(viewLink, data) {
+  var vl = $(viewLink);
+
+  var pos = vl.position();
+  var offset = vl.offset();
   if (!viewLink.isDraggable) {
     viewLink.isDraggable = true;
-    viewLink = $(viewLink);
-    var pos = viewLink.position();
-    var offset = viewLink.offset();
+    viewLink.style.position = 'absolute';
+    viewLink.style.zIndex = '100';
 
-    viewLink[0].style.position = 'absolute';
-    viewLink[0].style.zIndex = '100';
-    viewLink.
+    vl.
       offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top}).
       draggable({
-        drag: function(event, ui) {queueDragUpdate(viewLink);},
+        start: function() {viewLink.isDragging = true},
+        drag: function(event, ui) {queueDragUpdate(vl);},
         stop: function() {
-         queueDragUpdate(viewLink);
+         queueDragUpdate(vl);
+         setTimeout(function(){viewLink.isDragging = false}, 300)
          return true;
         },
       });
+  } else if (!viewLink.isDragging) {
+    vl.offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top});
   }
 }
 
