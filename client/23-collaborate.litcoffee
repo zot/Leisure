@@ -12,7 +12,6 @@ Meteor-based collaboration -- client side
       Fragment,
     } = require '11-org'
     {
-      docDo,
       docRoot,
       orgDoc,
       crnl,
@@ -29,6 +28,8 @@ Meteor-based collaboration -- client side
     viewIdTypes = {}
     committing = false
     ignore = ->
+    localStoreName = 'storage'
+    nullHandlers = onsuccess: (->), onerror: ((e)-> console.log("ERROR:", e))
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -64,32 +65,36 @@ Handle changes to the doc nodes
 
     textLevel = Number.MAX_SAFE_INTEGER
 
-    processChanges = (doc, batch)->
+    processChanges = (doc, batch, local)->
       for item in batch
-        processDataChange item
-        # delay here because each item will alter DOM in a delayed function
-        # and successive items depend on current DOM content
-        do (item)-> delay ->
-          #console.log "#{item.type.toUpperCase()}: #{pretty item.data}"
-          switch item.type
-            when 'added'
-              renderParent item.data
-            when 'removed'
-              [headline, parent] = getParent item.data
-              if headline then renderBlock parent
-              else $("##{item.data._id}").remove()
-            when 'changed'
-              processChange item,
-                text: -> renderBlock item.data
-                indent: (oldLevel, newLevel)->
-                  if oldLevel == 1
-                    $("##{item.data._id}").remove()
+        if !!item.data.local == local
+          if item.data.local && item.type == 'added' && (old = root.currentDocument.findOne item.data._id)
+            item.type = 'changed'
+            item.oldData = old
+          processDataChange item
+          # delay here because each item will alter DOM in a delayed function
+          # and successive items depend on current DOM content
+          do (item)-> delay ->
+            #console.log "#{item.type.toUpperCase()}: #{pretty item.data}"
+            switch item.type
+              when 'added'
+                renderParent item.data
+              when 'removed'
+                [headline, parent] = getParent item.data
+                if headline then renderBlock parent
+                else $("##{item.data._id}").remove()
+              when 'changed'
+                processChange item,
+                  text: -> renderBlock item.data
+                  indent: (oldLevel, newLevel)->
+                    if oldLevel == 1
+                      $("##{item.data._id}").remove()
+                      renderParent item.data
+                    else renderParent item.oldData
+                  outdent: (oldLevel, newLevel)->
+                    renderParent item.oldData
                     renderParent item.data
-                  else renderParent item.oldData
-                outdent: (oldLevel, newLevel)->
-                  renderParent item.oldData
-                  renderParent item.data
-                none: ->
+                  none: ->
 
     processDataChange = ({type, data})->
       if type in ['changed', 'removed'] && viewIdTypes[data._id]
@@ -119,11 +124,15 @@ Handle changes to the doc nodes
         else $('[data-org-headline="0"]').prepend root.emptySlide data._id
         renderBlock data
 
+    getBlock = (id)->
+      doc = root.currentDocument
+      doc.leisure.localCollection.findOne(id) ? doc.findOne id
+
     getParent = (data)->
       prev = data.prev
       dataLevel = if data.type == 'headline' then data.level else textLevel
       while prev
-        prevItem = root.currentDocument.findOne prev
+        prevItem = getBlock prev
         if prevItem.type == 'headline'
           if prevItem.level < dataLevel then return [true, renderBlock prevItem]
           else if dataLevel == 1 && prevItem.level == 1
@@ -153,42 +162,149 @@ Handle changes to the doc nodes
       if org then root.loadOrg $('[maindoc]')[0], org, name, $("##{item._id}")[0]
 
     setData = (id, value)->
-      cur = root.currentDocument.findOne id
+      doc = root.currentDocument
+      cur = getBlock id
       if !cur?.yaml? then throw new Error "Attempt to set data using invalid id"
       else
         newText = cur.text.substring(0, cur.codePrelen) + dump(value) + cur.text.substring cur.text.length - cur.codePostlen
-        oldCommitting = committing
-        committing = true
-        try
-          root.currentDocument.update id, $set: {text: newText, yaml: value}
-        finally
-          committing = oldCommitting
+        cur.text = newText
+        cur.yaml = value
+        #oldCommitting = committing
+        #committing = true
+        #try
+        #  doc.update id, $set: {text: newText, yaml: value}
+        #finally
+        #  committing = oldCommitting
+        updateItem overrides = newOverrides(), cur
+        commitOverrides overrides
 
     observing = {}
 
     root.currentDocument = null
 
     observeDocument = (name)->
+      login()
       obs = Meteor.call 'hasDocument', name, (err, result)->
         if !err
           observing[name] = true
           Meteor.subscribe name, ->
             root.currentDocument = observing[name] = docCol = new Meteor.Collection name
-            cursor = docCol.find()
-            console.log "OBSERVING DOCUMENT WITH #{cursor.count()} nodes"
-            sub = cursor.observe
-              _suppress_initial: true
-              added: (el)-> addBatch 'changes', type: 'added', data: copy(el), (items)-> processChanges docCol, items
-              removed: (el)-> addBatch 'changes', type: 'removed', data: copy(el), (items)-> processChanges docCol, items
-              changed: (el, oldEl)-> addBatch 'changes', type: 'changed', data: copy(el), oldData: copy(oldEl), (items)-> processChanges docCol, items
-            org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
-            initPrivate name
-            root.loadOrg $('[maindoc]')[0], org, name
+            docCol.leisure = {name: name}
+            res = null
+            res = Meteor.subscribe name, ->
+              res.stop()
+              docCol.leisure.info = docCol.findOne info: true
+              initLocal root.currentDocument, ->
+                cursor = docCol.find()
+                console.log "OBSERVING DOCUMENT WITH #{cursor.count()} nodes"
+                sub = cursor.observe observer docCol, false
+                org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
+                root.loadOrg $('[maindoc]')[0], org, name
           document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}"
 
-    initPrivate = (name)->
-      #root.currentDocument.privateStorage =
+    login = ->
+
+
+    observer = (docCol, local)->
+      _suppress_initial: true
+      added: (el)-> addBatch "changes-#{local}", type: 'added', here: committing, data: copy(el), (items)-> processChanges docCol, items, local
+      removed: (el)-> addBatch "changes-#{local}", type: 'removed', here: committing, data: copy(el), (items)-> processChanges docCol, items, local
+      changed: (el, oldEl)-> addBatch "changes-#{local}", type: 'changed', here: committing, data: copy(el), oldData: copy(oldEl), (items)-> processChanges docCol, items, local
+
+Handling local content.
+
+Leisure initially uses local content from the document.
+Any changes to local data stay on the client and override the data in the document.
+
+Users can mark any slide as local by setting a "local" property to true in the slide.  You can make data nonlocal by changing the local property so that it is no longer true (change its name, change its value, etc)
+
+    initLocal = (col, cont)->
+      localCol = col.leisure.localCollection = new Meteor.Collection(null)
+      req = indexedDB.open col.leisure.name, 1
+      req.onupgradeneeded = (e)->
+        db = col.leisure.localDb = req.result
+        if db.objectStoreNames.contains localStoreName then db.deleteObjectStore localStoreName
+        store = db.createObjectStore localStoreName, keyPath: '_id'
+        putToLocalStore col, {_id: 'info', collectionId: col.leisure.info._id}, handlers ? nullHandlers, e.target.transaction
+      req.onsuccess = (e)->
+        db = col.leisure.localDb = req.result
+        getFromLocalStore col, 'info', (
+          onsuccess: (e)->
+            info = e.target.result
+            if info.collectionId == col.leisure.info._id
+              loadRecords localCol, cont, e.target.transaction
+            else
+              clearLocal col, nullHandlers, e.target.transaction
+              cont()
+          onerror: (e)->
+            console.log "Initializing local storage..."
+            clearLocal col, nullHandlers, e.target.result
+            cont()), db.transaction [localStoreName], 'readwrite'
+      req.onerror = (e)->
+        console.log "Couldn't open database for #{col.leisure.name}", e
+        cont()
+
+    loadRecords = (localCol, cont, trans)->
+      req = trans.objectStore(localStoreName).openCursor()
+      req.onerror = (e)->
+        console.log "Error creating cursor", e
+        cont()
+      req.onsuccess = (e)->
+        cursor = req.result
+        req.onsuccess = advance = (e)->
+          if e.target.result
+            #console.log "LOAD RECORD: #{JSON.stringify cursor.value}"
+            if e.target.result.key != 'info' then localCol.insert cursor.value
+            cursor.continue()
+          else
+            localCol.find().observe observer localCol, true
+            cont()
+        req.onerror = (e)->
+          console.log "Error reading in local records", e
+          cont()
+        advance target: result: cursor
+
+    hasLocalStore = (col)-> col.leisure.localDb.objectStoreNames.contains localStoreName
+
+    localTransaction = (col, type)->
+      db = col.leisure.localDb
+      if db.objectStoreNames.contains localStoreName then db.transaction [localStoreName], type || 'readwrite' else null
+
+    localStore = (doc, trans, transType)->
+      (trans || localTransaction doc, transType || 'readwrite').objectStore localStoreName
+
+    clearLocal = (col, handlers, trans)->
+      if trans = trans || localTransaction col
+        store = localStore col, trans
+        req = store.clear()
+        req.onsuccess = (e)->
+          putToLocalStore col, {_id: 'info', collectionId: col.leisure.info._id}, handlers ? nullHandlers, trans
+        req.onerror = handlers.onerror
+      else handlers.onerror()
+
+    addLocalData = (doc, item)-> doc.leisure.localCollection.upsert item
+
+    getFromLocalStore = (doc, key, {onsuccess, onerror}, trans)->
+      if store = localStore doc, trans, 'readonly'
+        req = store.get key
+        req.onsuccess = onsuccess
+        req.onerror = onerror
+      else onerror {}
+
+    putToLocalStore = (doc, value, {onsuccess, onerror}, trans)->
+      if store = localStore doc, trans
+        req = store.put value
+        req.onsuccess = onsuccess
+        req.onerror = onerror
+      else onerror {}
+
+    removeFromLocalStore = (doc, key, {onsuccess, onerror}, trans)->
+      if store = localStore doc, trans
+        req = store.remove key
+        req.onsuccess = onsuccess
+        req.onerror = onerror
+      else onerror {}
 
     copy = (obj)->
       newObj = {}
@@ -213,7 +329,7 @@ Handle changes to the doc nodes
       if !itemId then []
       else
         if !col then col = root.currentDocument
-        item = if typeof itemId == 'string' then col.findOne itemId else itemId
+        item = if typeof itemId == 'string' then getBlock itemId else itemId
         if item
           each item
           org = parseOrgMode item.text, offset
@@ -221,6 +337,7 @@ Handle changes to the doc nodes
           else new Fragment org.offset, org.children
           org.nodeId = item._id
           org.shared = item.type
+          if item.local then org.local = true
           if item.type == 'headline'
             offset += item.text.length
             if item.level <= level then [null, item._id]
@@ -239,7 +356,7 @@ Handle changes to the doc nodes
     docJson = (col, node)->
       if !col then return docJson root.currentDocument
       if !node then return docJson col, col.findOne root: true
-      if node.children then node.children = (docJson col, col.findOne child for child in node.children)
+      if node.children then node.children = (docJson col, getBlock child for child in node.children)
       node
 
     edits = {}
@@ -265,7 +382,7 @@ Handle changes to the doc nodes
         changeDocText id, textForId(id), overrides
       commitOverrides overrides
 
-    getItem = (overrides, id)-> id && (overrides.adds[id] || overrides.updates[id] || root.currentDocument.findOne id)
+    getItem = (overrides, id)-> id && (overrides.adds[id] || overrides.updates[id] || getBlock id)
 
     addItem = (overrides, item)->
       overrides.adds[item._id] = item
@@ -290,23 +407,32 @@ Handle changes to the doc nodes
         updateItem overrides, next
 
     commitOverrides = (overrides)->
+      doc = root.currentDocument
+      localDoc = doc.leisure.localCollection
       committing = true
+      trans = doc.leisure.localDb.transaction [localStoreName], 'readwrite'
       for id of overrides.removes
-        root.currentDocument.remove id
+        (if local = localDoc.findOne id then localDoc else doc).remove id
+        if local then removeFromLocalStore doc, id, nullHandlers, trans
       for id, item of overrides.adds
-        root.currentDocument.insert id, item
+        (if item.local then localDoc else doc).insert item
+        if item.local then putToLocalStore doc, item, nullHandlers, trans
       for id, item of overrides.updates
         removes = {}
         removed = false
-        old = root.currentDocument.findOne id
-        for k of old
-          if !item[k]?
-            removes[k] = ''
-            removed = true
-        if removed
-          console.log "UPDATE SET: #{pretty item}, UNSET: #{pretty removes}"
-          root.currentDocument.update id, $set: item, $unset: removes
-        else root.currentDocument.update id, item
+        modDoc = if local = item.local then localDoc else doc
+        old = modDoc.findOne id
+        if local && !old then modDoc.insert item
+        else
+          for k of old
+            if !item[k]?
+              removes[k] = ''
+              removed = true
+          if removed
+            console.log "UPDATE SET: #{pretty item}, UNSET: #{pretty removes}"
+            modDoc.update id, $set: item, $unset: removes
+          else modDoc.update id, item
+        if local then putToLocalStore doc, item, nullHandlers, trans
       committing = false
 
     sourceStart = /(^|\n)(#\+name|#\+begin_src)/i
@@ -414,3 +540,4 @@ Handle changes to the doc nodes
     root.viewTypeData = viewTypeData
     root.viewIdTypes = viewIdTypes
     root.codeString = codeString
+    root.getBlock = getBlock

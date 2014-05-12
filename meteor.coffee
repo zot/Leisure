@@ -1,10 +1,3 @@
-addLoadToDocument = (uri)->
-  u = new URI(document.location.href)
-  p = u.getFragParams()
-  p.load = uri.toString()
-  u.setFragParams p
-  document.location.href = u.toString()
-
 start = ->
   if !Element.prototype.createShadowRoot && !Element.prototype.webkitCreateShadowRoot
     document.body.style = "background: url(images/steampunk_background-faded.jpg); background-size: 100%; text-align: center"
@@ -51,7 +44,6 @@ if Meteor.isClient
       {load,state} = uri.getFragParams()
       if state then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING Google Drive file... </h1>"
       else if load then document.querySelector('[maindoc]').innerHTML = "<h1>LOADING #{load}... </h1>"
-      document.location.hash = ''
       body = document.body
       # Gotta be able to stuff extra hidden things in the body
       # so if it's a code container, copy it into a child
@@ -69,7 +61,6 @@ if Meteor.isClient
       else if load
         console.log "LOAD: load"
         setTimeout (->
-          addLoadToDocument load
           window.Leisure.readFile load, (err, data)->
             if err
               if data then $('[maindoc]').html data

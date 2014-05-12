@@ -1,11 +1,36 @@
 * GO THROUGH OLD SLIDES
 
+* Textcraft: The Document Is the Machine!
+- environment
+  - for both development and deployment
+  - persistent
+  - collaborative
+  - live
+  - literate
+  - document-based
+  - runs on the web
+  - ployglot: JS, Leisure, ... (CoffeeScript, ClojureScript soon)
+- Leisure language
+  - purely functional
+  - lazy
+  - dynamically typed
+  - homoiconic
+
+* Collaborative connect 4 game
+  - Leisure code that monadically changes data blocks
+  - HTML templates in the doc
+    - one for the board
+    - one for a square (nested in board)
+
 * notebook presentation
+- for development and deployment
+- Start with data slides hidden (toggle button in leisure bar)
+- what slides are
 - sidebar/floating notes
 - slide/fancy/plain mode
-- for development and deployment
 - properties/tags inherited by functions in slides
 - themes
+- local slides
 
 * collaboration at both development and runtime
 - each document is a collaborative virtual machine

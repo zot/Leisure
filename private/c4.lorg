@@ -1,0 +1,13 @@
+* Connect 4
+
+[[org:board]]
+
+#+BEGIN_SRC html :defview c4board
+<table style='background-image: url(/connect4/board.svg); width: 570px; height: 460px'>
+<tr><td></td></tr>
+</table>
+#+END_SRC
+
+#+BEGIN_SRC yaml :view board
+type: c4board
+#+END_SRC

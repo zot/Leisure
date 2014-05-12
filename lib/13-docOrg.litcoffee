@@ -51,20 +51,14 @@
       replaceOrgDoc doc, collection
       doc._id
 
-    docDo = (collection, func)->
-      next = collection.findOne docRoot(collection).head
-      while next
-        node = collection.findOne next
-        func node
-        next = node.next
-
-    docRoot = (collection)-> collection.orgInfo ? (collection.orgInfo = collection.findOne info: true)
+    docRoot = (collection)->
+      (collection.leisure ? collection.leisure = {}).info ? (collection.leisure.info = collection.findOne info: true)
 
     replaceOrgDoc = (docArray, collection)->
       collection.remove()
       linkDocs docArray
       console.log "DOCS: #{JSON.stringify docArray, null, '  '}"
-      collection.orgInfo = info =
+      info = collection.leisure.info =
         info: true
         head: if docArray.length > 0 then docArray[0]._id else null
         _id: new Meteor.Collection.ObjectID().toJSONValue()
@@ -81,20 +75,22 @@
           doc.prev = prev._id
         prev = doc
 
-    orgDoc = (org)-> createOrgDoc(org)[0].toArray()
+    orgDoc = (org)-> createOrgDoc(org, false)[0].toArray()
 
-    createOrgDoc = (org)->
+    createOrgDoc = (org, local)->
       next = org.next
       if org instanceof Headline
-        children = createChildrenDocs org
+        local = local || (org.level == 1 && org.properties.local)
+        children = createChildrenDocs org, local
         result = if org.level == 0 then children
         else _([text: org.text, type: 'headline', level: org.level]).concat children
       else if org instanceof HTML then [result, next] = createHtmlBlockDoc org
       else if isCodeBlock org then [result, next] = createCodeBlockDoc org
       else result = _([text: org.allText(), type: 'chunk'])
+      if local then result.each (item)-> item.local = true
       [result, next]
 
-    createChildrenDocs = (org)->
+    createChildrenDocs = (org, local)->
       children = _()
       child = org.children[0]
       mergedText = ''
@@ -104,7 +100,7 @@
           child = child.next
         else
           [mergedText, children] = checkMerged mergedText, children
-          [childDoc, child] = createOrgDoc child
+          [childDoc, child] = createOrgDoc child, local
           children = children.concat [childDoc]
       [mergedText, children] = checkMerged mergedText, children
       children
@@ -163,7 +159,6 @@
     root.createDocFromOrg = createDocFromOrg
     root.checkSingleNode = checkSingleNode
     root.orgDoc = orgDoc
-    root.docDo = docDo
     root.docRoot = docRoot
     root.linkDocs = linkDocs
     root.isYaml = isYaml

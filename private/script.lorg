@@ -47,7 +47,6 @@ number: 89
    Name: {{{inputText 'name'}}}<br>
   Number: {{number}}
 </div>
-<script>console.log("Current script: ", document.currentScript);</script>
 #+END_SRC
 * Support code
 #+BEGIN_SRC javascript :results def

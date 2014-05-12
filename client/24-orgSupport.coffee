@@ -427,6 +427,7 @@ orgAttrs = (org)->
   extra = if rt = resultsType org then " data-org-results='#{rt}'"
   else ''
   if org.shared then extra += " data-shared='#{org.shared}' data-nodecount='#{org.nodeCount}'"
+  if org.local then extra += " data-local=true"
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
   if org instanceof Keyword && !(org instanceof Source) && org.next instanceof Source  && org.name?.toLowerCase() == 'name' then extra += " data-org-name='#{escapeAttr org.info}'"

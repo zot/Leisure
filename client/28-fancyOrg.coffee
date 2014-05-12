@@ -116,6 +116,7 @@ yaml = root.yaml
   edited,
   pretty,
   setData,
+  getBlock,
 } = require '23-collaborate'
 {
   createTemplateRenderer,
@@ -139,7 +140,15 @@ DOCUMENT_POSITION_CONTAINED_BY = 16
 getSelectionDescriptor = ->
   sel = getSelection()
   el = getDeepestActiveElement()
-  if sel?.rangeCount && !(el.nodeType == Node.ELEMENT_NODE && $(el).attr 'data-shadow-id')
+  if el.nodeType == Node.ELEMENT_NODE && sid = el.getAttribute('data-shadow-id')
+    id = rootNode(el).firstChild.getAttribute 'data-view-id'
+    if el.nodeName.match(/input/i) && el.type.match(/text/i)
+      start = el.selectionStart
+      end = el.selectionEnd
+      return focusNode: sel.focusNode, restore: (delta, doc)->
+        newEl = $($(doc).find("[data-view-id='#{id}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]
+        newEl.setSelectionRange start, end
+  else if sel?.rangeCount
     startNode = sel.getRangeAt(0).startContainer
     [start, end, offset, note] = getDocRange()
     restore: (delta, doc)->
@@ -520,7 +529,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
   if viewId = org.attributes()?.view
     if !org.nodeId then return markupError org, "No data for view: #{prett org}"
     else
-      data = root.currentDocument.findOne org.nodeId
+      data = getBlock org.nodeId
       if !data then return markupError org, "No data for nodeId: #{org.nodeId}"
       type = data.yaml?.type
       err = if !viewMarkup[type] then "<div clas='error'>No value view type for data nodeId: #{org.nodeId}</div>" else ''
@@ -1344,13 +1353,13 @@ restoreSlide = (block)->
     block()
     setSlideAt offset
 
-fixupViews = ->
+fixupViews = (target)->
   if Leisure.noViewUpdate then return
-  for dataEl in $("[data-view-state]")
+  for dataEl in (if target then $(target).filter("[data-view-state]") else $("[data-view-state]"))
     renderView dataEl
 
 renderView = (dataEl)->
-  data = root.currentDocument.findOne dataEl.id
+  data = getBlock dataEl.id
   if data?
     linkName = $(dataEl).attr 'data-view-state'
     if !(w = viewMarkup[data.yaml?.type]) then return console.log new Error "Invalid view type for data #{dataEl.id}: #{pretty data}"
@@ -1373,7 +1382,6 @@ setYamlData = (id, value)->
 
 Handlebars.registerHelper 'inputText', (name, options)->
   if id = Leisure.currentViewChunk._id
-    console.log "inputText"
     if options.fn then console.log "block"
     "<input type='text'>#{bindText name}"
   else "???"
@@ -1386,7 +1394,7 @@ Leisure.bindPreviousText = (id, field)->
   input.value = Templating.currentViewData[field]
   input.onkeydown = ->
     setTimeout (->
-      data = root.currentDocument.findOne(id).yaml
+      data = getBlock(id).yaml
       data[field] = input.value
       setYamlData id, data), 1
 
@@ -1407,7 +1415,7 @@ fancyOrg =
       fixupHtml parent
       setTheme theme
       nextNoteId = 0
-      fixupViews()
+      fixupViews target
       createNoteShadows()
       setTimeout (=>
         redrawAllIssues()

@@ -482,7 +482,7 @@ class MeatParser
         parseKeyword keyword, line, offset, keyword[KW_NAME], keyword[KW_INFO], newRest
       @checkPat listRE, (line, newRest, list)->
         parseList list, line, offset, list[LIST_LEVEL]?.length ? 0, list[LIST_CHECK_VALUE], list[LIST_INFO], newRest
-      @checkPat drawerRE, (line, newRest, list)->
+      @checkPat drawerRE, (line, newRest, drawer)->
         if end = newRest.match endRE
           parseDrawer line, drawer[DRAWER_NAME], offset, end, newRest
     if @result then @result

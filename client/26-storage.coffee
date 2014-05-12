@@ -22,7 +22,7 @@ commentIssues = {}
 commentIssueURLs = {}
 
 initStorage = ->
-  uri = new URI document.location.toString()
+  uri = root.currentUri = new URI document.location.toString()
   if load = uri.getFragParams().load then useUrl decodeURIComponent load
   else
     #$('#login').css 'display', ''

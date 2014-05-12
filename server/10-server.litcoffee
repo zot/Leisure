@@ -6,9 +6,20 @@ Meteor-based collaboration -- server side
     createDocFromOrg = Leisure.createDocFromOrg
     docDo = Leisure.docDo
     crnl = Leisure.crnl
+    connections = new Meteor.Collection ' connections ', connection: null
+
+    createAccount = (name, passwd)->
+      if !(Meteor.users.find username: name)
+        Accounts.createUser
+          username: 'bubba'
+          password: 'bubba'
+
+    createAccount 'bubba', 'bubba'
 
     Meteor.methods
       hasDocument: (name)->
+        console.log "CONNECTION: #{this.connection}"
+        this.connection.onClose -> console.log "CLOSED"
         try
           if docs[name] then console.log "#{name} exists"; true
           else
@@ -21,11 +32,15 @@ Meteor-based collaboration -- server side
 Document model that ties orgmode parse trees to HTML DOM
 
     loadDoc = (name)->
-      docs[name] = new Meteor.Collection name
-      docs[name].remove {}
-      doc = crnl GlobalAssets.getText name
-      createDocFromText doc, docs[name]
-      Meteor.publish name, -> docs[name].find()
+      doc = docs[name] = new Meteor.Collection name
+      doc.leisure = {}
+      doc.remove {}
+      if info = doc.findOne(info: true)
+        doc.leisure.info = info
+      else
+        text = crnl GlobalAssets.getText name
+        createDocFromText text, doc
+      Meteor.publish name, -> doc.find()
 
     docJson = (collection)->
       nodes = []
