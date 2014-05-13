@@ -9,19 +9,22 @@
 </div>
 #+END_SRC
 
-#+BEGIN_SRC yaml :view a
+#+NAME: a
+#+BEGIN_SRC yaml
 type: gump
 name: fred
 number: 35
 #+END_SRC
 
-#+BEGIN_SRC yaml :view b
+#+NAME: b
+#+BEGIN_SRC yaml
 type: gump
 name: george
 number: 72
 #+END_SRC
 
-#+BEGIN_SRC yaml :view c
+#+NAME: c
+#+BEGIN_SRC yaml
 type: gump
 name: mary
 number: 89
@@ -30,7 +33,8 @@ number: 89
 
 [[org:image1]]
 
-#+BEGIN_SRC yaml :view image1
+#+NAME: image1
+#+BEGIN_SRC yaml
 type: image
 src: tinyconcepts.png
 drag:

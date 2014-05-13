@@ -16,15 +16,16 @@
         for node in target
           n = $(node)
           n.html("<span class='hidden'>#{escapeHtml n.text()}</span>")
+          el = if shadow then setShadowHtml node, "<span class='view'>#{comp data}</span>", true
+          else setHtml node, "<span class='view'>#{comp data}</span>", true
           try
             oldData = Templating.currentViewData
             oldViewLink = Templating.currentViewLink
             oldView = Templating.currentView
             Templating.currentViewData = data
             Templating.currentViewLink = node
-            Templating.currentView = viewMarkup[type]
-            if shadow then setShadowHtml node, "<span class='view'>#{comp data}</span>"
-            else setHtml node, "<span class='view'>#{comp data}</span>"
+            Templating.currentView = el
+            activateScripts el
           finally
             Templating.currentViewData = oldData
             Templating.currentViewLink = oldViewLink
@@ -33,25 +34,30 @@
 
     activateScripts = (el)->
         for script in $(el).find('script')
-          newScript = document.createElement 'script'
-          newScript.type = 'text/javascript'
-          newScript.textContent = script.textContent
-          script.parentNode.insertBefore newScript, script
-          script.parentNode.removeChild script
+          if !script.type || script.type == 'text/javascript'
+            newScript = document.createElement 'script'
+            newScript.type = 'text/javascript'
+            newScript.textContent = script.textContent
+            script.parentNode.insertBefore newScript, script
+            script.parentNode.removeChild script
+        for script in $(el).find('script[type="text/coffeescript"]').add($(el).find 'script[type="text/literate-coffeescript"]')
+          CoffeeScript.run script.innerHTML
 
-    setHtml = (holder, html)->
+    setHtml = (holder, html, noactivate)->
       el.innerHTML = html
       if $("body").hasClass 'bar_collapse' then $(el.firstChild).addClass('bar_collapse')
-      activateScripts el.firstChild
+      if !noactivate then activateScripts el
+      el
 
-    setShadowHtml = (holder, html)->
+    setShadowHtml = (holder, html, noactivate)->
       if !(el = holder.shadowRoot)
         el = holder.createShadowRoot()
         el.applyAuthorStyles=true
       el.innerHTML = "<span></span>"
       el.firstChild.innerHTML = html
       $(el.firstChild).attr 'data-shadowdom', 'true'
-      activateScripts el.firstChild
+      if !noactivate then activateScripts el.firstChild
+      el.firstChild
 
     getDeepestActiveElement = ->
       el = document.activeElement

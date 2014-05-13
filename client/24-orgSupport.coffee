@@ -436,8 +436,8 @@ orgAttrs = (org)->
     for k of org.properties
       extra += " data-org-properties='#{escapeAttr JSON.stringify org.properties}'"
       break
-  if org instanceof Source && lang = org.lead()?.trim().toLowerCase()
-    extra += " data-lang='#{lang}'"
+  #if org instanceof Source && lang = org.lead()?.trim().toLowerCase()
+  #  extra += " data-lang='#{lang}'"
   if org.srcId then extra += " data-org-srcid='#{escapeAttr org.srcId}'"
   "id='#{escapeAttr org.nodeId}' data-org-type='#{escapeAttr org.type}'#{extra}"
 

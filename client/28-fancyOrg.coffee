@@ -274,7 +274,7 @@ markupNewNode = (org, middleOfLine, delay, note, replace)->
   lastOrgOffset = -1
   markupNode org, middleOfLine, delay, note, replace
 
-markupNode = (org, middleOfLine, delay, note, replace)->
+markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
   if org.offset <= lastOrgOffset then ''
   else if org instanceof Results
     pos = org.contentPos
@@ -291,9 +291,9 @@ markupNode = (org, middleOfLine, delay, note, replace)->
       while src instanceof Meat && !(src instanceof Source)
         intertext += src.text
         src = src.next
-      if src instanceof Source then markupSource src, name, intertext, delay
+      if src instanceof Source then markupSource src, name, intertext, delay, inFragment
       else defaultMarkup org
-    else if org instanceof Source then markupSource org, null, null, delay
+    else if org instanceof Source then markupSource org, null, null, delay, inFragment
     else defaultMarkup org
   else if org instanceof Headline then markupHeadline org, delay, note, replace
   else if org instanceof Drawer && org.name.toLowerCase() == 'properties' then markupProperties org, delay
@@ -311,14 +311,15 @@ isLeisure = (org)-> org instanceof Source && org.lead()?.trim().toLowerCase() ==
 markupFragment = (org, delay, note)->
   if isCodeBlock org.children[0]
     {first, name, source, last} = getCodeItems org.children[0]
+    lang = (if l = source.lead()?.trim() then " data-lang='#{l}'" else '')
     if first == name then first = first.next
     if first == org.children[0] && !last
       prelude = ''
       while first != source
         prelude += first.allText()
         first = first.next
-      return "<div #{orgAttrs org}>#{markupSource source, name, prelude, delay, true}</div>"
-  "<div #{orgAttrs org}>#{(markupNode child, false, delay, note for child in org.children).join ''}</div>"
+      return "<div #{orgAttrs org}#{lang}>#{markupSource source, name, prelude, delay, true}</div>"
+  "<div #{orgAttrs org}#{lang}>#{(markupNode child, false, delay, note, false, true for child in org.children).join ''}</div>"
 
 markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
@@ -505,13 +506,17 @@ markupHtml = (org)->
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
   else if isLeisure org then markupLeisure
-  else (org)-> defaultMarkup org, 'div', 'class', 'default-lang'
+  else (org)-> defaultMarkup org, 'div', 'class', 'default-lang', 'data-lang', org.lead()?.trim()
 
 markupSource = (org, name, doctext, delay, inFragment)->
   (chooseSourceMarkup org) org, name, doctext, delay, inFragment
 
+getBlockNamed = (name)->
+  holder = yamlHolder $("[data-yaml-name='#{name}']")[0]
+  if holder then getBlock holder.id else null
+
 markupYaml = (org, name, doctext, delay, inFragment)->
-  {first, name, source, results, expected, last} = getCodeItems org
+  {first, name, source, results, expected, last} = getCodeItems(name || org)
   pos = source.contentPos - source.offset
   src = source.text
   pre = ''
@@ -526,16 +531,19 @@ markupYaml = (org, name, doctext, delay, inFragment)->
     cur = cur.next
   post = src.substring(pos + source.content.length) + post
   lastOrgOffset = Math.max (last?.offset ? 0), source.offset, (results?.offset ? 0), (expected?.offset ? 0)
-  if viewId = org.attributes()?.view
-    if !org.nodeId then return markupError org, "No data for view: #{prett org}"
-    else
-      data = getBlock org.nodeId
-      if !data then return markupError org, "No data for nodeId: #{org.nodeId}"
-      type = data.yaml?.type
-      err = if !viewMarkup[type] then "<div clas='error'>No value view type for data nodeId: #{org.nodeId}</div>" else ''
-      err = ''
-  viewAttr = if viewId = org.attributes()?.view then " data-view-state='#{viewId}' data-view-type='#{type}'" else ''
-  "<div #{orgAttrs source}#{viewAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
+  shared = (if org.shared then org else org.fragment)
+  yamlAttr = ''
+  if shared
+    data = getBlock shared.nodeId
+    type = data.yaml?.type
+    if type
+      err = if !viewMarkup[type] then "<div clas='error'>No value view type for data nodeId: #{shared.nodeId}</div>" else ''
+      yamlAttr += " data-yaml-type='#{type}'"
+  err = ''
+  if name
+    n = escapeAttr name.info.trim()
+    yamlAttr += " data-org-codeblock='#{n}' data-yaml-name='#{n}'"
+  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
 
 dragging = false
 
@@ -1355,30 +1363,38 @@ restoreSlide = (block)->
 
 fixupViews = (target)->
   if Leisure.noViewUpdate then return
-  for dataEl in (if target then $(target).filter("[data-view-state]") else $("[data-view-state]"))
+  #for dataEl in (if target then $(target).filter("[data-view-state]") else $("[data-view-state]"))
+  cb = "[data-yaml-name]"
+  for dataEl in (if target then $(target).add($(target).find(cb)).filter(cb) else $(cb))
     renderView dataEl
 
-renderView = (dataEl)->
-  data = getBlock dataEl.id
+yamlHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentElement
+
+viewBlock = (el)->
+  if id = $(el).closest('[data-view-id]').attr('data-view-id')
+    getBlock id
+
+# el could be a parent fragment, a shared source block, or a source block in a fragment
+renderView = (el)->
+  yn = 'data-yaml-name'
+  holder = yamlHolder el
+  id = holder.id
+  linkName = $(holder).add($(holder).find("[#{yn}]")).filter("[#{yn}]").attr yn
+  data = getBlock id
   if data?
-    linkName = $(dataEl).attr 'data-view-state'
-    if !(w = viewMarkup[data.yaml?.type]) then return console.log new Error "Invalid view type for data #{dataEl.id}: #{pretty data}"
+    if !(w = viewMarkup[data.yaml?.type]) then return console.log new Error "Invalid view type for data #{id}: #{pretty data}"
     links = $("[data-view-link='#{linkName}']")
-    links.attr 'data-view-id', dataEl.id
+    links.attr 'data-view-id', id
     try
       oldChunk = Leisure.currentViewChunk
       Leisure.currentViewChunk = data
       resetShadowCounter()
       w data.yaml, links
       for node in links
-        node.shadowRoot.firstChild.setAttribute 'data-view-id', dataEl.id
+        node.shadowRoot.firstChild.setAttribute 'data-view-id', id
     finally
       Leisure.currentViewChunk = oldChunk
-  else $(dataEl).html errorDiv "No data for view name: #{dataEl.id}"
-
-setYamlData = (id, value)->
-  $(id).find('[data-org-yaml]').text yaml.dump value
-  setData id, value
+  else $(el).html errorDiv "No data for view name: #{id}"
 
 Handlebars.registerHelper 'inputText', (name, options)->
   if id = Leisure.currentViewChunk._id
@@ -1396,7 +1412,7 @@ Leisure.bindPreviousText = (id, field)->
     setTimeout (->
       data = getBlock(id).yaml
       data[field] = input.value
-      setYamlData id, data), 1
+      setData id, data), 1
 
 changeInputText = (field, id)->
   console.log "CHANGE DATA"
@@ -1444,7 +1460,7 @@ fancyOrg =
             css('-moz-user-select', 'none')
           if theme != null then $(shadow).addClass(theme)
           if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
-      for node in $("[data-view-type='#{type}']")
+      for node in $("[data-yaml-type='#{type}']")
         renderView node
 
 shadowCounter = 0
@@ -1492,3 +1508,6 @@ root.viewMarkup = viewMarkup
 root.noViewUpdate = false
 root.topNode = topNode
 root.rootNode = rootNode
+root.yamlHolder = yamlHolder
+root.getBlockNamed = getBlockNamed
+root.viewBlock = viewBlock

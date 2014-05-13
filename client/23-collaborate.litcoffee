@@ -103,15 +103,16 @@ Handle changes to the doc nodes
         delete viewIdTypes[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
         lang = data.language.toLowerCase()
-        attr = data.attributes
+        attr = data.attributes ? {}
         if lang == 'html' && attr.defview
-          console.log "ADDING DEF: #{data.text}"
           viewTypeData[data.attributes.defview] = codeString data
           viewIdTypes[data._id] = data.attributes.defview
           delay -> root.orgApi.defineView data._id
         else if attr.results?.toLowerCase() == 'def' && lang in ['js', 'javascript']
           eval codeString data
-        else if attr.results?.toLowerCase() == 'def' && lang in ['leisure', 'coffeescript', 'clojurescript']
+        else if attr.results?.toLowerCase() == 'def' && lang == 'coffeescript'
+          CoffeeScript.run codeString data
+        else if attr.results?.toLowerCase() == 'def' && lang in ['leisure', 'clojurescript']
           console.log "ADDING DEF: #{data.text}"
 
     codeString = (data)-> data.text.substring data.codePrelen, data.text.length - data.codePostlen
@@ -166,7 +167,7 @@ Handle changes to the doc nodes
       cur = getBlock id
       if !cur?.yaml? then throw new Error "Attempt to set data using invalid id"
       else
-        newText = cur.text.substring(0, cur.codePrelen) + dump(value) + cur.text.substring cur.text.length - cur.codePostlen
+        newText = cur.text.substring(0, cur.codePrelen) + dump(value, cur.codeAttributes ? {}) + cur.text.substring cur.text.length - cur.codePostlen
         cur.text = newText
         cur.yaml = value
         #oldCommitting = committing
@@ -323,7 +324,9 @@ Users can mark any slide as local by setting a "local" property to true in the s
         if !org then break
         offset += org.length()
         children.push org
-      new Headline '', 0, null, null, null, children, 0
+      org = new Headline '', 0, null, null, null, children, 0
+      org.linkNodes()
+      org
 
     subDoc = (col, itemId, offset, level, each)->
       if !itemId then []
@@ -334,7 +337,10 @@ Users can mark any slide as local by setting a "local" property to true in the s
           each item
           org = parseOrgMode item.text, offset
           org = if org.children.length == 1 then org.children[0]
-          else new Fragment org.offset, org.children
+          else
+            frag = new Fragment org.offset, org.children
+            frag.linkNodes()
+            frag
           org.nodeId = item._id
           org.shared = item.type
           if item.local then org.local = true
@@ -430,7 +436,10 @@ Users can mark any slide as local by setting a "local" property to true in the s
               removed = true
           if removed
             console.log "UPDATE SET: #{pretty item}, UNSET: #{pretty removes}"
-            modDoc.update id, $set: item, $unset: removes
+            i = {}
+            for k, v of item
+              if k != '_id' && !removes[k]? then i[k] = v
+            modDoc.update id, $set: i, $unset: removes
           else modDoc.update id, item
         if local then putToLocalStore doc, item, nullHandlers, trans
       committing = false

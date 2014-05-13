@@ -2,12 +2,52 @@
 
 [[org:board]]
 
-#+BEGIN_SRC html :defview c4board
-<table style='background-image: url(/connect4/board.svg); width: 570px; height: 460px'>
-<tr><td></td></tr>
-</table>
+* Data
+:properties:
+:note: sidebar
+:end:
+#+NAME: board
+#+BEGIN_SRC yaml :flowLevel 2
+type: c4board
+pieces:
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
 #+END_SRC
 
-#+BEGIN_SRC yaml :view board
-type: c4board
+#+BEGIN_SRC html :defview c4board
+<div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px; display: inline-block'>
+  <table style='width: 570px; height: 460px; text-align: center'>
+    {{#each pieces}}
+    <tr>
+      {{#each this}}
+        <td>
+          <img src='/connect4/{{this}}Piece.svg' onerror='this.src="/connect4/gPiece.svg"' style='vertical-align: middle'>
+        </td>
+      {{/each}}
+    </tr>
+    {{/each}}
+  </table>
+</div>
+<script>Leisure.hookupTable()</script>
 #+END_SRC
+
+#+BEGIN_SRC coffeescript :results def
+Leisure.hookupTable = ->
+  $(Templating.currentView).bind 'click', (e)->
+    if block = Leisure.viewBlock e.target
+      data = block.yaml
+      td = e.target.parentElement
+      column = td.cellIndex
+      row = td.parentElement.rowIndex
+      data.pieces[row][column] = (if data.pieces[row][column] == 'r' then 'w' else 'r')
+      Leisure.setData block._id, data
+#+END_SRC
+
+* Local data
+:PROPERTIES:
+:local: true
+:END:

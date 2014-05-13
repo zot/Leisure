@@ -1,10 +1,11 @@
 * Short list -- screencast
+- change "block.yaml" to "block.data"
 - go through old slides
 - script screencast -- screencast.lorg
 - collaboration
-  - spawn document copies
+  - spawn document copy with URL param
     - temporary or permanent
-  - multple documents on a session
+  - multple documents in a session
   - show users' cursors/selections
   - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)

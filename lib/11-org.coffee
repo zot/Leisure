@@ -221,6 +221,7 @@ class Fragment extends Node
     prev = null
     for c in @children
       c.linkNodes()
+      c.fragment = @
       c.prev = prev
       if prev then prev.next = c
       prev = c

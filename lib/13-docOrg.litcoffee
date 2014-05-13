@@ -23,6 +23,7 @@
       while !isSourceEnd org
         if type = getSourceNodeType org
           if !result.first then result.first = org
+          else if type == 'name' then return result
           if result[type]? then return result
           result[type] = org
           result.last = org.next
@@ -121,6 +122,7 @@
           text += first.allText()
           first = first.next
         obj = text: text, type: 'code'
+        obj.codeAttributes = source.attributes()
         obj.codePrelen = source.contentPos - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
         if a = org.attributes() then obj.attributes = a
