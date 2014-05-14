@@ -877,6 +877,12 @@
                         font-size: large;
                         background: #CCCCCC;
                 }
+                [data-property-hidden='true'] {
+                        display: none;
+                }
+                .show-hidden [data-property-hidden='true'] {
+                        display: inherit;
+                }
                 #leisure_bar {
                         font-size: 0px;
                         display: block;

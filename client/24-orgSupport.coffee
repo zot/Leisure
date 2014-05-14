@@ -122,7 +122,7 @@ fs = null
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' download='leisureFile.lorg'><i class=\"fa fa-save\"></i><div></div></button><div id=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' download='leisureFile.lorg'><i class=\"fa fa-save\"></i><div></div></button><div id=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><button onclick='Leisure.toggleShowHidden()'><i id='hide-show-button' class='fa fa-eye-slash' title='Click to show hidden slides'></i></button><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
     .prependTo(document.body)
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
@@ -151,6 +151,20 @@ initOrg = (parent, source)->
       #b.attr 'href', "http://google.com"
   (root.currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
   Leisure.initStorage '#login', '#panel', root.currentMode
+
+toggleShowHidden = ->
+  body = $(document.body)
+  body.toggleClass 'show-hidden'
+  applyShowHidden()
+
+applyShowHidden = ->
+  if $(document.body).hasClass 'show-hidden'
+    $('#hide-show-button').tooltip().tooltip('option', 'content', 'Click to top showing hidden slides')
+    $('#hide-show-button').addClass('fa-eye').removeClass('fa-eye-slash')
+  else
+    $('#hide-show-button').tooltip().tooltip('option', 'content', 'Click to show hidden slides')
+    $('#hide-show-button').addClass('fa-eye-slash').removeClass('fa-eye')
+  root.orgApi.applyShowHidden()
 
 saveFile = (fileInput)->
   if file = fileInput.files[0]
@@ -436,6 +450,8 @@ orgAttrs = (org)->
     for k of org.properties
       extra += " data-org-properties='#{escapeAttr JSON.stringify org.properties}'"
       break
+    for k, v of org.properties
+      extra += " data-property-#{k}='#{escapeAttr v.trim()}'"
   #if org instanceof Source && lang = org.lead()?.trim().toLowerCase()
   #  extra += " data-lang='#{lang}'"
   if org.srcId then extra += " data-org-srcid='#{escapeAttr org.srcId}'"
@@ -1210,6 +1226,7 @@ orgNotebook =
   installOrgDOM: installOrgDOM
   redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
   defineWidget: (id)->
+  applyShowHidden: ->
 
 basicOrg =
   __proto__: orgNotebook
@@ -1303,3 +1320,5 @@ root.blockText = blockText
 root.orgForNode = orgForNode
 root.orgChildrenForNode = orgChildrenForNode
 root.emptySlide = emptySlide
+root.toggleShowHidden = toggleShowHidden
+root.applyShowHidden = applyShowHidden

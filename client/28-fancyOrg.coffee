@@ -938,7 +938,7 @@ startNewSlide = (replace)->
 
 createNoteShadows = ->
   for node in $('.slideholder')
-    setShadowHtml node, "<div class='page'><div class='border'></div><table class='pagecontent slideshadow'><tr class='slideshadowrow'><td class='slidemain'><content select='[data-org-note=\"main\"]'></content></td><td class='sidebar'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note=\"sidebar\"]'></content></div></div></td></tr></table></div><content select='[data-org-note=\"skip\"],[data-float-holder]'></content>"
+    setShadowHtml node, "<div class='page'><div class='border'></div><table class='pagecontent slideshadow'><tr class='slideshadowrow'><td class='slidemain'><content select='[data-org-note=\"main\"]'></content></td><td class='sidebarholder'><div class='sidebar'><div class='sidebarcontent'><content select='[data-org-note=\"sidebar\"]'></content></div></div></td></tr></table></div><content select='[data-org-note=\"skip\"],[data-float-holder]'></content>"
   for node in $('[data-float-holder]')
     holder = $(node)
     inside = $(node.firstChild)
@@ -1424,7 +1424,7 @@ fancyOrg =
   bindContent: bindContent
   installOrgDOM: (parent, orgNode, orgText, target)->
     @parent = parent
-    restorePosition parent, ->
+    restorePosition parent, =>
       parent.setAttribute 'class', 'org-fancy'
       parent.setAttribute 'maindoc', ''
       orgNotebook.installOrgDOM parent, orgNode, orgText, target
@@ -1433,6 +1433,7 @@ fancyOrg =
       nextNoteId = 0
       fixupViews target
       createNoteShadows()
+      if !target then @applyShowHidden()
       setTimeout (=>
         redrawAllIssues()
         ), 1
@@ -1462,6 +1463,13 @@ fancyOrg =
           if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
       for node in $("[data-yaml-type='#{type}']")
         renderView node
+  applyShowHidden: ->
+    if $(document.body).hasClass 'show-hidden'
+      $('.slideholder').removeClass('hidden')
+    else
+      for node in $('.slideholder')
+        if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
+          $(node).addClass('hidden')
 
 shadowCounter = 0
 

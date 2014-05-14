@@ -1,11 +1,8 @@
-* Connect 4
-
-[[org:board]]
-
 * Data
 :properties:
-:note: sidebar
+:hidden: true
 :end:
+
 #+NAME: board
 #+BEGIN_SRC yaml :flowLevel 2
 type: c4board
@@ -47,7 +44,14 @@ Leisure.hookupTable = ->
       Leisure.setData block._id, data
 #+END_SRC
 
+* Connect 4
+:properties:
+:note: sidebar
+:end:
+
+[[org:board]]
 * Local data
 :PROPERTIES:
 :local: true
+:hidden: true
 :END:
