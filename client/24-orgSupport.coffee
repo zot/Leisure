@@ -477,7 +477,7 @@ orgSrcAttrs = (org)->
 
 markupNode = (org, start)->
   if org instanceof Source || org instanceof Results
-    pos = org.contentPos - org.offset - 1
+    pos = org.contentPos - 1
     text = org.text.substring pos
     if org instanceof Source && org.lead().trim().toLowerCase() == 'yaml'
       data = getBlock (if org.shared then org else org.fragment).nodeId

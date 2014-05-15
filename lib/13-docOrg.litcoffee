@@ -25,8 +25,7 @@
           if !result.first then result.first = org
           else if type == 'name' then return result
           if result[type]? then return result
-          result[type] = org
-          result.last = org.next
+          result.last = result[type] = org
           if type == 'results' then break
         else if org instanceof Drawer || org instanceof Keyword then break
         org = org.next
@@ -118,22 +117,22 @@
       firstOffset = first.offset
       if !first then [_([text: org.allText(), type: 'chunk']), org.next]
       else
-        while first != last
+        while first != last.next
           text += first.allText()
           first = first.next
         obj = text: text, type: 'code'
         obj.codeAttributes = source.attributes()
-        obj.codePrelen = source.contentPos - firstOffset
+        obj.codePrelen = source.contentPos + source.offset - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
         if a = org.attributes() then obj.attributes = a
         if l = org.lead() then obj.language = l.trim()
         if isYaml source then obj.yaml = safeLoad source.content
-        [_([obj]), last]
+        [_([obj]), last.next]
 
     createHtmlBlockDoc = (org)->
         text = org.allText()
         obj = text: text, type: 'code'
-        obj.codePrelen = org.contentPos - org.offset
+        obj.codePrelen = org.contentPos
         obj.codePostlen = text.length - obj.codePrelen - org.contentLength
         obj.language = 'html'
         if a = org.attributes() then obj.attributes = a

@@ -315,7 +315,7 @@ markupFragment = (org, delay, note)->
     {first, name, source, last} = getCodeItems org.children[0]
     lang = (if l = source.lead()?.trim() then " data-lang='#{l}'" else '')
     if first == name then first = first.next
-    if first == org.children[0] && !last
+    if first == org.children[0] && !last.next
       prelude = ''
       while first != source
         prelude += first.allText()
@@ -513,25 +513,24 @@ getBlockNamed = (name)->
 
 getSourceSegments = (name, org)->
   {first, name, source, results, expected, last} = getCodeItems(name || org)
-  pos = source.contentPos - source.offset
-  src = source.text
+  pos = source.contentPos
   pre = ''
   while first != source
-    pre += first.text
+    pre += first.allText()
     first = first.next
-  pre += src.substring 0, pos
+  pre += source.text.substring 0, pos
   post = ''
   cur = source.next
-  while cur != last
-    post += cur.text
+  while cur != last.next
+    post += cur.allText()
     cur = cur.next
-  post = src.substring(pos + source.content.length) + post
-  [pre, src, post]
+  post = source.text.substring(pos + source.content.length) + post
+  [pre, source.content, post]
 
 markupYaml = (org, name, doctext, delay, inFragment)->
   [pre, src, post] = getSourceSegments name, org
   {name, source, results, expected, last} = getCodeItems(name || org)
-  lastOrgOffset = Math.max (last?.offset ? 0), source.offset, (results?.offset ? 0), (expected?.offset ? 0)
+  lastOrgOffset = last.offset
   shared = (if org.shared then org else org.fragment)
   yamlAttr = ''
   if shared
@@ -549,8 +548,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
 markupCode = (org, name, doctext, delay, inFragment)->
   [pre, src, post] = getSourceSegments name, org
   {name, source, results, expected, last} = getCodeItems(name || org)
-  lastOrgOffset = Math.max (last?.offset ? 0), source.offset, (results?.offset ? 0), (expected?.offset ? 0)
-  data =
+  lastOrgOffset = last.offset
   lang = org.lead()?.trim() || ''
   if name
     n = escapeAttr name.info.trim()
@@ -569,8 +567,8 @@ errorDiv = (str)->
 markupLeisure = (org, name, doctext, delay, inFragment)->
   top = name ? org
   srcContent = org.content
-  lead = org.text.substring 0, org.contentPos - org.offset
-  trail = org.text.substring org.contentPos - org.offset + org.content.length
+  lead = org.text.substring 0, org.contentPos
+  trail = org.text.substring org.contentPos + org.content.length
   lastOrgOffset = org.offset
   if name then codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'>"
   else codeBlock = ">"

@@ -1,11 +1,12 @@
 Meteor-based collaboration -- server side
 
     docs = {}
-    getCodeItems = Leisure.getCodeItems
-    isCodeBlock = Leisure.isCodeBlock
-    createDocFromOrg = Leisure.createDocFromOrg
-    docDo = Leisure.docDo
-    crnl = Leisure.crnl
+    {
+      isCodeBlock,
+      createDocFromOrg,
+      docDo,
+      crnl,
+    } = Leisure
     connections = new Meteor.Collection ' connections ', connection: null
 
     createAccount = (name, passwd)->

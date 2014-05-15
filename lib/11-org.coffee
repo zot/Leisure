@@ -564,7 +564,7 @@ parseSrcBlock = (text, offset, info, infoPos, rest)->
     [new Meat(line[0]), text.substring(line[0].length) + rest]
   else
     endLine = fullLine end, rest
-    [new Source(text + rest.substring(0, end.index + endLine.length), offset, text.match(srcStartRE)[SRC_NAME], info, infoPos, rest.substring(0, end.index), offset + text.length), rest.substring end.index + endLine.length]
+    [new Source(text + rest.substring(0, end.index + endLine.length), offset, text.match(srcStartRE)[SRC_NAME], info, infoPos, rest.substring(0, end.index), text.length), rest.substring end.index + endLine.length]
 
 parseHtmlBlock = (text, offset, rest, match)->
   end = rest.match htmlEndRE
