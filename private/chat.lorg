@@ -11,7 +11,7 @@
 #+BEGIN_SRC yaml :flowLevel 2
 type: chatbox
 chat:
-  - [MOD, Hello, Ryan]
+  - [MOD, Hello, [0, Ryan, "rgb(10,250,10)"]]
 users:
   - [0,MOD,"rgb(10,250,10)"]
 #+END_SRC
@@ -57,7 +57,7 @@ Leisure.hookInput = ->
   $(Templating.currentView).find('input').css 'width', '70%'
 
   Leisure.sendInput = ->
-    Leisure.userName = $($("[data-view-link='chat']")[0].shadowRoot.firstChild).find('input').val()
+    name = Leisure.userName = $($("[data-view-link='chat']")[0].shadowRoot.firstChild).find('input').val()
     messageBlock = Leisure.getBlock(inputId)
     messageData = messageBlock.yaml
     message = messageData.chatLine
@@ -72,7 +72,7 @@ Leisure.hookInput = ->
       unregistered = false
     else
       user = block.yaml.users[id] = [id,name,gen_color id]
-    data.chat.push([date.toTimeString(), message, Leisure.userName])
+    data.chat.push([date.toTimeString(), message, user])
     Leisure.setData messageBlock._id, messageData
     Leisure.setData block._id, data
 
