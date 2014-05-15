@@ -501,16 +501,17 @@ markupHtml = (org)->
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
   else if isLeisure org then markupLeisure
-  else (org)-> defaultMarkup org, 'div', 'class', 'default-lang', 'data-lang', org.lead()?.trim()
+  #else if org.lead()?.trim().toLowerCase() == 'html' then (org)-> defaultMarkup org, 'div', 'class', 'default-lang', 'data-lang', org.lead()?.trim()
+  else markupCode
 
 markupSource = (org, name, doctext, delay, inFragment)->
   (chooseSourceMarkup org) org, name, doctext, delay, inFragment
 
 getBlockNamed = (name)->
-  holder = yamlHolder $("[data-yaml-name='#{name}']")[0]
+  holder = codeHolder $("[data-yaml-name='#{name}']")[0]
   if holder then getBlock holder.id else null
 
-markupYaml = (org, name, doctext, delay, inFragment)->
+getSourceSegments = (name, org)->
   {first, name, source, results, expected, last} = getCodeItems(name || org)
   pos = source.contentPos - source.offset
   src = source.text
@@ -525,6 +526,11 @@ markupYaml = (org, name, doctext, delay, inFragment)->
     post += cur.text
     cur = cur.next
   post = src.substring(pos + source.content.length) + post
+  [pre, src, post]
+
+markupYaml = (org, name, doctext, delay, inFragment)->
+  [pre, src, post] = getSourceSegments name, org
+  {name, source, results, expected, last} = getCodeItems(name || org)
   lastOrgOffset = Math.max (last?.offset ? 0), source.offset, (results?.offset ? 0), (expected?.offset ? 0)
   shared = (if org.shared then org else org.fragment)
   yamlAttr = ''
@@ -538,7 +544,19 @@ markupYaml = (org, name, doctext, delay, inFragment)->
   if name
     n = escapeAttr name.info.trim()
     yamlAttr += " data-org-codeblock='#{n}' data-yaml-name='#{n}'"
-    "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'></span>#{Highlighting.highlight 'yaml',  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
+  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span>#{Highlighting.highlight 'yaml',  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
+
+markupCode = (org, name, doctext, delay, inFragment)->
+  [pre, src, post] = getSourceSegments name, org
+  {name, source, results, expected, last} = getCodeItems(name || org)
+  lastOrgOffset = Math.max (last?.offset ? 0), source.offset, (results?.offset ? 0), (expected?.offset ? 0)
+  data =
+  lang = org.lead()?.trim() || ''
+  if name
+    n = escapeAttr name.info.trim()
+    addAttr = " data-org-codeblock='#{n}'"
+  else addAttr = ''
+  "<div #{orgAttrs source}#{addAttr}><span>#{escapeHtml pre}</span>#{Highlighting.highlight lang,  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
 
 dragging = false
 
@@ -1357,7 +1375,7 @@ restoreSlide = (block)->
     block()
     setSlideAt offset
 
-yamlHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentElement
+codeHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentElement
 
 fixupViews = (target)->
   if Leisure.noViewUpdate then return
@@ -1369,7 +1387,7 @@ fixupViews = (target)->
 # el could be a parent fragment, a shared source block, or a source block in a fragment
 renderView = (el)->
   yn = 'data-yaml-name'
-  holder = yamlHolder el
+  holder = codeHolder el
   id = holder.id
   linkName = $(holder).add($(holder).find("[#{yn}]")).filter("[#{yn}]").attr yn
   data = getBlock id
@@ -1542,7 +1560,7 @@ root.viewMarkup = viewMarkup
 root.noViewUpdate = false
 root.topNode = topNode
 root.rootNode = rootNode
-root.yamlHolder = yamlHolder
+root.codeHolder = codeHolder
 root.getBlockNamed = getBlockNamed
 root.viewBlock = viewBlock
 root.toggleEdit = toggleEdit

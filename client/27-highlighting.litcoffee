@@ -1,6 +1,9 @@
     root = if window? then window.Highlighting = {} else global.Highlighting = {}
     _ = Lazy
 
+
+Using [SyntaxHighlighter](http://alexgorbatchev.com/SyntaxHighlighter/) in an unsupported way
+
     highlight = (brushName, text)->
       for name, br of SyntaxHighlighter.brushes
         if brushName in br.aliases
