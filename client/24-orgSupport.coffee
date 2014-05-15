@@ -51,9 +51,11 @@ lz = lazy
   crnl,
   docOrg,
   edited,
+  getBlock,
 } = require '23-collaborate'
 {
   orgDoc,
+  getCodeItems,
 } = require '12-docOrg'
 {
   escapeHtml,
@@ -477,6 +479,13 @@ markupNode = (org, start)->
   if org instanceof Source || org instanceof Results
     pos = org.contentPos - org.offset - 1
     text = org.text.substring pos
+    if org instanceof Source && org.lead().trim().toLowerCase() == 'yaml'
+      data = getBlock (if org.shared then org else org.fragment).nodeId
+      yaml = " data-yaml-type='#{escapeAttr data.yaml.type}'"
+      if org.fragment
+        {name} = getCodeItems org.fragment.children[0]
+        if name then yaml += " data-yaml-name='#{escapeAttr name.info.trim()}'"
+    else yaml = ''
     "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else if org instanceof SimpleMarkup then markupSimple org

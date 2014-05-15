@@ -2,6 +2,7 @@
 :properties:
 :hidden: true
 :end:
+/*Click the martini glass to switch between fancy and plain text*/
 
 #+NAME: board
 #+BEGIN_SRC yaml :flowLevel 2
@@ -50,9 +51,10 @@ Leisure.hookupTable = ->
 :note: sidebar
 :end:
 
+/*Click the eye button in the Leisure panel to reveal the code*/
+
 [[org:board]]
 
-/*Click the eye button in the Leisure panel to reveal the code*/
 * Local data
 :PROPERTIES:
 :local: true
