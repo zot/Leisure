@@ -12,10 +12,19 @@
 type: chatbox
 chat:
   - [MOD, Hello, Ryan]
+users:
+  - [0,MOD,"rgb(10,250,10)"]
 #+END_SRC
 
 #+BEGIN_SRC html :defview chatbox
 <h3>Chat</h3>
+<div>
+{{#each users}}
+<div style="color:{{this.[2]}}">
+{{this.[1]}}
+</div>
+{{/each}}
+</div>
 <label> Name:</label><input placeholder="Name" id='nameinput'>
 
 <div style="height:20em; overflow:scroll; background-color:white">
@@ -23,7 +32,7 @@ chat:
     <div>
     <span style="color:gray">{{this.[0]}}:</span>
     <span>{{this.[1]}}</span>
-    <span style='float:right; color:green'>-{{this.[2]}}</span>
+    <span style='float:right; color:{{this.[2].[2]}}'>-{{this.[2].[1]}}</span>
     </div>
     {{/each}}
 </div>
@@ -38,6 +47,8 @@ chat:
 #+BEGIN_SRC coffeescript :results def
 
 Leisure.userName = 'Anon'
+id = 0
+unregistered = true
 
 Leisure.hookInput = ->
   # Bit of a cheat here
@@ -54,9 +65,19 @@ Leisure.hookInput = ->
     block = Leisure.getBlock chatId
     data = block.yaml
     date = new Date()
+    if unregistered
+      id = block.yaml.users.length
+      user = [id,name,gen_color id]
+      block.yaml.users.push(user)
+      unregistered = false
+    else
+      user = block.yaml.users[id] = [id,name,gen_color id]
     data.chat.push([date.toTimeString(), message, Leisure.userName])
     Leisure.setData messageBlock._id, messageData
     Leisure.setData block._id, data
+
+  gen_color = (id)->
+    "rgb("+(id*25)*(id%2)+","+id*25*(id%3)+","+id*25*(id%5)+")"
 #+END_SRC
 
 * Local data
