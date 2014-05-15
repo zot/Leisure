@@ -160,7 +160,7 @@ Handle changes to the doc nodes
         org = docOrg root.currentDocument
       else
         org = subDoc(root.currentDocument, item, 0, 0, ignore)[0]
-      if org then root.loadOrg $('[maindoc]')[0], org, name, $("##{item._id}")[0]
+      if org then root.loadOrg root.parentForBlockId(item._id), org, name, $("##{item._id}")[0]
 
     setData = (id, value)->
       doc = root.currentDocument
@@ -200,7 +200,7 @@ Handle changes to the doc nodes
                 console.log "OBSERVING DOCUMENT WITH #{cursor.count()} nodes"
                 sub = cursor.observe observer docCol, false
                 org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
-                root.loadOrg $('[maindoc]')[0], org, name
+                root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, name
           document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}"
 

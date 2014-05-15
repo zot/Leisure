@@ -40,7 +40,8 @@ Leisure.hookupTable = ->
       td = e.target.parentElement
       column = td.cellIndex
       row = td.parentElement.rowIndex
-      data.pieces[row][column] = (if data.pieces[row][column] == 'r' then 'w' else 'r')
+      if row? && column?
+        data.pieces[row][column] = (if data.pieces[row][column] == 'r' then 'w' else 'r')
       Leisure.setData block._id, data
 #+END_SRC
 
@@ -50,6 +51,8 @@ Leisure.hookupTable = ->
 :end:
 
 [[org:board]]
+
+/*Click the eye button in the Leisure panel to reveal the code*/
 * Local data
 :PROPERTIES:
 :local: true

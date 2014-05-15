@@ -108,6 +108,13 @@ nodes = {}
 #needsReparse = false
 reparseListeners = []
 
+# parentForX is needed for slide editing modes and for multple document editing
+parentForElement = (el)-> $(el).closest('[maindoc]')[0]
+
+parentForBlockId = (id)-> $('[maindoc]')[0]
+
+parentForDocId = (id)-> $('[maindoc]')[0]
+
 nextOrgId = -> 'org-node-' + idCount++
 
 getOrgType = (node)-> node?.getAttribute? 'data-org-type'
@@ -844,7 +851,7 @@ restorePosition = (parent, offset, block)->
     block = offset
     offset = 0
   sel = getSelection()
-  if !sel.focusNode then $('[maindoc]')[0].focus()
+  if !sel.focusNode then parentForElement(parent).focus()
   if sel?.rangeCount
     r = sel.getRangeAt 0
     start = offset + getTextPosition $(parent)[0], r.startContainer, r.startOffset
@@ -867,26 +874,21 @@ loadOrg = (parent, text, path, target)->
     for node in $(parent).find('[data-org-src="def"]')
       executeDef node), 1
 
-reparse = (parent, text, target)->
-  styleCache = {}
-  text = text ? getNodeText parent
-  sel = getSelection()
-  [orgNode, orgText] = root.orgApi.markupOrgWithNode text, null, target?
-  root.restorePosition parent, -> root.orgApi.installOrgDOM parent, orgNode, orgText, target
-  #needsReparse = false
-  setTimeout (->
-    for l in reparseListeners
-      l parent, orgNode, orgText
-    ), 1
+reparse = (parent, text, target)-> root.orgApi.reparse parent, text, target
 
 emptySlide = (id, slidePosition)-> root.orgApi.emptySlide id, slidePosition
 
 installOrgDOM = (parent, orgNode, orgText, target)->
   dumpTextWatchers()
-  if target then $(target).replaceWith orgText
-  else parent.innerHTML = orgText
-  for node in (if target? then $(target).find '[data-leisure-data]' else $ '[data-leisure-data]')
+  if target
+    result = $(orgText)
+    $(target).replaceWith result
+  else
+    parent.innerHTML = orgText
+    result = parent.firstElementChild
+  for node in (if target? then findOrIs $(target), '[data-leisure-data]' else $ '[data-leisure-data]')
     addData node
+  result
 
 checkDeleteReparse = (parent, backspace)->
   r = getSelection().getRangeAt 0
@@ -1173,9 +1175,13 @@ textNodeBefore = (node)->
 # Shadow dom support
 #
 
+fixOffsets = (org)->
+  org.fixOffsets()
+  org
+
 getNodeText = (node)->
-  if $(node).is('[data-shared]') then orgForNode node
-  else if root.currentDocument && $(node).is('[maindoc]') then orgForNode node
+  if $(node).is('[data-shared]') then fixOffsets orgForNode(node)
+  else if root.currentDocument && $(node).is('[maindoc]') then fixOffsets orgForNode(node)
   else node.textContent
 
 if Element.prototype.webkitCreateShadowRoot?
@@ -1223,13 +1229,27 @@ orgNotebook =
     [orgNode, lastOrgText] = @markupOrgWithNode content
     root.restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
     @bindContent newNode
-  installOrgDOM: installOrgDOM
+  installOrgDOM: (parent, orgNode, orgText, target)-> installOrgDOM parent, orgNode, orgText, target
   redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
   defineWidget: (id)->
   applyShowHidden: ->
+  inMode: (el)->
+    (mode = $(el).closest("[data-edit-mode]")).length == 0 || $(mode).attr('data-edit-mode') == @name
+  reparse: (parent, text, target)->
+    styleCache = {}
+    text = text || (getNodeText target || parent)
+    sel = getSelection()
+    [orgNode, orgText] = @markupOrgWithNode text, null, target?
+    root.restorePosition parent, => @installOrgDOM parent, orgNode, orgText, target
+    #needsReparse = false
+    setTimeout (->
+      for l in reparseListeners
+        l parent, orgNode, orgText
+      ), 1
 
 basicOrg =
   __proto__: orgNotebook
+  name: 'plain'
   markupOrg: markupOrg
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
@@ -1237,14 +1257,22 @@ basicOrg =
   executeSource: executeSource
   createResults: createResults
   installOrgDOM: (parent, orgNode, orgText, target)->
-    parent.setAttribute 'class', 'org-plain'
+    if !target then parent.setAttribute 'class', 'org-plain'
     orgNotebook.installOrgDOM parent, orgNode, orgText, target
   bindings: defaultBindings
   leisureButton: swapMarkup
   #emptySlide: (id)-> "<span id='#{id}'></span>#{boundarySpan}"
   emptySlide: (id)-> "<span id='#{id}'></span>"
+  inMode: -> true
 
+findOrIs = (set, selector)-> if set.is selector then set else set.find selector
+
+root.findOrIs = findOrIs
+root.parentForElement = parentForElement
+root.parentForBlockId = parentForBlockId
+root.parentForDocId = parentForDocId
 root.basicOrg = basicOrg
+root.plainOrg = basicOrg
 root.orgNotebook = orgNotebook
 root.markupOrg = markupOrg
 root.bindContent = bindContent

@@ -129,6 +129,16 @@ class Node
   allTags: -> @parent?.allTags() ? []
   allProperties: -> @parent?.allProperties() ? {}
   linkTo: (@parent)->
+  fixOffsets: (newOff)->
+    if @children then @fixChildrenOffsets newOff
+    else
+      @offset = newOff
+      newOff + @text.length
+  fixChildrenOffsets: (newOffset)->
+    offset = @offset + @text.length
+    for child in @children
+      offset = child.fixOffsets offset
+    offset
 
 class Headline extends Node
   constructor: (@text, @level, @todo, @priority, @tags, @children, @offset)->

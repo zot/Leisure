@@ -55,6 +55,7 @@ yaml = root.yaml
   isYaml,
 } = require '12-docOrg'
 {
+  findOrIs,
   orgNotebook,
   parseOrgMode,
   orgAttrs,
@@ -107,6 +108,7 @@ yaml = root.yaml
   watchNodeText,
   markupData,
   orgForNode,
+  plainOrg,
 } = require '24-orgSupport'
 {
   redrawAllIssues,
@@ -331,14 +333,6 @@ markupAttr = (org)->
 
 markupLink = (org)->
   if orgMatch = org.isOrg() then "<span data-view-link='#{orgMatch[1]}'><span class='hidden'>#{org.allText()}</span></span>"
-  else if org.isImage()
-    pre = ''
-    post = ""
-    if org.prev instanceof Org.Keyword && org.prev.name.toLowerCase() == 'attr_html'
-      pre = "<div class='image-draggable'>"
-      post = "</div>"
-    lastAttr = null
-    pre + "<span class='hidden'>#{org.text}</span><img src='#{org.path}'>" + post
   else
     guts = ''
     for c in org.children
@@ -382,14 +376,15 @@ markupHeadline = (org, delay, note, replace)->
   for k, v of org.properties
     properties.push "#{k} = #{v}"
   properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
+  editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide replace}<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
-    else "#{startNewSlide()}<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
+      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
+    else "#{startNewSlide()}<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
-      "<div #{orgAttrs org} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
-    else "<div #{orgAttrs org}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
+      "<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
+    else "<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
     floatize org, slide
     #slide
 
@@ -645,7 +640,7 @@ replaceCodeBlock = (node, text)->
   restorePosition null, ->
     newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
     $(node).replaceWith(newNode)
-    for n in $(newNode).find('[data-org-src]')
+    for n in findOrIs findOrIs($(newNode), "[data-lang='leisure']"), '[data-org-src]'
       recreateAstButtons parent, n
     for n in $(newNode).find('.resultscontent')
       reprocessResults n
@@ -695,6 +690,7 @@ unwrap = (node)->
     parent.removeChild node
 
 recreateAstButtons = (parent, node)->
+  if $(node).closest('.codeblock').length == 0 then return
   restorePosition parent, ->
     for button in $(node).find('.ast-button')
       button.remove()
@@ -1234,24 +1230,24 @@ setCurrentSlide = (element)->
   # this is needed until there is support for :host (and/or ^ & ^^)
   if element.shadowRoot then $(element.shadowRoot.firstElementChild).addClass 'currentSlide'
 
-firstSlide = -> setCurrentSlide $('[data-org-headline="1"]')[0]
+firstSlide = -> setCurrentSlide $('[data-org-headline="1"]').not('[data-property-hidden="true"]')[0]
 
 lastSlide = ->
-  slides = $('[data-org-headline="1"]')
+  slides = $('[data-org-headline="1"]').not('[data-property-hidden="true"]')
   setCurrentSlide slides[slides.length - 1]
 
 nextSlide = ->
   if slide = $('.currentSlide')[0]
     while slide = slide.nextElementSibling
-      if $(slide).is('[data-org-headline="1"]') then return setCurrentSlide slide
+      if $(slide).not('[data-property-hidden="true"]').is('[data-org-headline="1"]') then return setCurrentSlide slide
 
 prevSlide = ->
   if slide = $('.currentSlide')[0]
     while slide = slide.previousElementSibling
-      if $(slide).is('[data-org-headline="1"]') then return setCurrentSlide slide
+      if $(slide).not('[data-property-hidden="true"]').is('[data-org-headline="1"]') then return setCurrentSlide slide
 
 showSlides = ->
-  setCurrentSlide $('[data-org-headline="1"]')[0]
+  setCurrentSlide $('[data-org-headline="1"]').not('[data-property-hidden="true"]')[0]
   document.body.classList.add 'slides'
 
 slideParent = (node)->
@@ -1361,18 +1357,14 @@ restoreSlide = (block)->
     block()
     setSlideAt offset
 
+yamlHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentElement
+
 fixupViews = (target)->
   if Leisure.noViewUpdate then return
   #for dataEl in (if target then $(target).filter("[data-view-state]") else $("[data-view-state]"))
   cb = "[data-yaml-name]"
   for dataEl in (if target then $(target).add($(target).find(cb)).filter(cb) else $(cb))
     renderView dataEl
-
-yamlHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentElement
-
-viewBlock = (el)->
-  if id = $(el).closest('[data-view-id]').attr('data-view-id')
-    getBlock id
 
 # el could be a parent fragment, a shared source block, or a source block in a fragment
 renderView = (el)->
@@ -1395,6 +1387,10 @@ renderView = (el)->
     finally
       Leisure.currentViewChunk = oldChunk
   else $(el).html errorDiv "No data for view name: #{id}"
+
+viewBlock = (el)->
+  if id = $(el).closest('[data-view-id]').attr('data-view-id')
+    getBlock id
 
 Handlebars.registerHelper 'inputText', (name, options)->
   if id = Leisure.currentViewChunk._id
@@ -1419,16 +1415,19 @@ changeInputText = (field, id)->
 
 fancyOrg =
   __proto__: orgNotebook
+  name: 'fancy'
+  opposite: plainOrg
   markupOrg: markupOrg
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
   installOrgDOM: (parent, orgNode, orgText, target)->
     @parent = parent
     restorePosition parent, =>
-      parent.setAttribute 'class', 'org-fancy'
-      parent.setAttribute 'maindoc', ''
-      orgNotebook.installOrgDOM parent, orgNode, orgText, target
-      fixupHtml parent
+      if !target
+        parent.setAttribute 'class', 'org-fancy'
+        parent.setAttribute 'maindoc', ''
+      target = orgNotebook.installOrgDOM parent, orgNode, orgText, target
+      fixupHtml target || parent
       setTheme theme
       nextNoteId = 0
       fixupViews target
@@ -1464,12 +1463,11 @@ fancyOrg =
       for node in $("[data-yaml-type='#{type}']")
         renderView node
   applyShowHidden: ->
-    if $(document.body).hasClass 'show-hidden'
-      $('.slideholder').removeClass('hidden')
-    else
-      for node in $('.slideholder')
-        if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
-          $(node).addClass('hidden')
+    for node in $('.slideholder')
+      if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
+        $(node).addClass('hidden-slide')
+
+plainOrg.opposite = fancyOrg
 
 shadowCounter = 0
 
@@ -1479,27 +1477,55 @@ nextShadowCount = -> shadowCounter++
 
 # called on installing DOM and also on new notes
 fixupHtml = (parent, note)->
-  for node in $(parent).find('[data-org-html]')
+  for node in findOrIs $(parent), '[data-org-html]'
     setShadowHtml node, node.innerHTML
     node.innerHTML = ''
-  for node in $(parent).find('[data-org-src]')
+  for n in findOrIs findOrIs($(parent), "[data-lang='leisure']"), '[data-org-src]'
     recreateAstButtons parent, node
-  for node in $(parent).find('.resultscontent')
+  for node in findOrIs $(parent), '.resultscontent'
     reprocessResults node
   createNoteShadows()
   if !note
-    $("button.create_note").remove()
-    $(parent)
-      .find('[data-org-headline="1"] .maincontent')
+    createEditToggleButton parent
+    $(parent).find("button.create_note").remove()
+    findOrIs($(parent), '[data-org-headline="1"] .maincontent')
       .prepend("<button class='create_note'><i class='fa fa-file-text-o'></i></button>")
       .children().find(':first-child')
       .click (e)->
         e.preventDefault()
         #root.currentMode.createNotes()
   setTimeout (=>
-    for node in $(parent).find('[data-org-comments]')
+    for node in findOrIs $(parent), '[data-org-comments]'
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
     ), 1
+
+getMainContent = (headline)->
+  headline = findOrIs headline, '[data-org-headline="1"]'
+  c = headline.children '.maincontent'
+  if c.length > 0 then c else headline
+
+createEditToggleButton = (doc)->
+  for node in getMainContent $(doc)
+    id = if $(node).is '.maincontent' then node.parentElement.id else node.id
+    setShadowHtml node, "<button onclick='Leisure.toggleEdit(\"#{id}\")'><i class='fa fa-glass'></i></button><content></content>"
+
+toggleEdit = (id)->
+  console.log "toggle edit", id
+  node = $("##{id}").closest("[data-org-headline='1']")
+  id = node[0].id
+  parent = root.parentForElement(node)
+  if node.attr('data-edit-mode') == 'plain'
+    node.attr 'data-edit-mode', 'fancy'
+    mode = fancyOrg
+  else
+    node.attr 'data-edit-mode', 'plain'
+    mode = plainOrg
+  mode.reparse parent, null, node[0]
+  node = $("##{id}")
+  node.attr 'data-edit-mode', mode.name
+  if mode == plainOrg
+    node.attr 'data-org-note', 'main'
+  createEditToggleButton node
 
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
@@ -1519,3 +1545,4 @@ root.rootNode = rootNode
 root.yamlHolder = yamlHolder
 root.getBlockNamed = getBlockNamed
 root.viewBlock = viewBlock
+root.toggleEdit = toggleEdit

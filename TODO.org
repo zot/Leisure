@@ -1,4 +1,5 @@
 * Short list -- screencast
+- text button on each slide
 - change "block.yaml" to "block.data"
 - go through old slides
 - script screencast -- screencast.lorg
