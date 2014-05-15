@@ -34,6 +34,8 @@ pieces:
 #+END_SRC
 
 #+BEGIN_SRC coffeescript :results def
+pieceTypes = "wrb"
+
 Leisure.hookupTable = ->
   $(Templating.currentView).bind 'click', (e)->
     if block = Leisure.viewBlock e.target
@@ -42,7 +44,7 @@ Leisure.hookupTable = ->
       column = td.cellIndex
       row = td.parentElement.rowIndex
       if row? && column?
-        data.pieces[row][column] = (if data.pieces[row][column] == 'r' then 'w' else 'r')
+        data.pieces[row][column] = pieceTypes[(1 + pieceTypes.indexOf data.pieces[row][column]) % pieceTypes.length]
       Leisure.setData block._id, data
 #+END_SRC
 

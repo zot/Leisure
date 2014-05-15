@@ -38,7 +38,6 @@ every time, because func is ignored after the first call in a batch
     batchers = null
 
     addBatch = (name, value, func)->
-      #console.log "BATCH (COMMITTING: #{committing}): #{pretty value}"
       if !committing || passesFilters name, value
         if !batchers
           batchers = []
@@ -75,7 +74,6 @@ Handle changes to the doc nodes
           # delay here because each item will alter DOM in a delayed function
           # and successive items depend on current DOM content
           do (item)-> delay ->
-            #console.log "#{item.type.toUpperCase()}: #{pretty item.data}"
             switch item.type
               when 'added'
                 renderParent item.data
@@ -98,7 +96,6 @@ Handle changes to the doc nodes
 
     processDataChange = ({type, data})->
       if type in ['changed', 'removed'] && viewIdTypes[data._id]
-        console.log "DELETING OLD DEF: #{data.text}"
         delete viewTypeData[viewIdTypes[data._id]]
         delete viewIdTypes[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
@@ -197,7 +194,6 @@ Handle changes to the doc nodes
               docCol.leisure.info = docCol.findOne info: true
               initLocal root.currentDocument, ->
                 cursor = docCol.find()
-                console.log "OBSERVING DOCUMENT WITH #{cursor.count()} nodes"
                 sub = cursor.observe observer docCol, false
                 org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
                 root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, name
@@ -205,7 +201,6 @@ Handle changes to the doc nodes
         else console.log "ERROR: #{err}"
 
     login = ->
-
 
     observer = (docCol, local)->
       _suppress_initial: true
@@ -236,11 +231,10 @@ Users can mark any slide as local by setting a "local" property to true in the s
             if info.collectionId == col.leisure.info._id
               loadRecords localCol, cont, e.target.transaction
             else
-              clearLocal col, nullHandlers, e.target.transaction
+              clearLocal col, localCol, nullHandlers, e.target.transaction
               cont()
           onerror: (e)->
-            console.log "Initializing local storage..."
-            clearLocal col, nullHandlers, e.target.result
+            clearLocal col, localCol, nullHandlers, e.target.result
             cont()), db.transaction [localStoreName], 'readwrite'
       req.onerror = (e)->
         console.log "Couldn't open database for #{col.leisure.name}", e
@@ -275,12 +269,13 @@ Users can mark any slide as local by setting a "local" property to true in the s
     localStore = (doc, trans, transType)->
       (trans || localTransaction doc, transType || 'readwrite').objectStore localStoreName
 
-    clearLocal = (col, handlers, trans)->
+    clearLocal = (col, localCol, handlers, trans)->
       if trans = trans || localTransaction col
         store = localStore col, trans
         req = store.clear()
         req.onsuccess = (e)->
           putToLocalStore col, {_id: 'info', collectionId: col.leisure.info._id}, handlers ? nullHandlers, trans
+          localCol.find().observe observer localCol, true
         req.onerror = handlers.onerror
       else handlers.onerror()
 
@@ -369,7 +364,6 @@ Users can mark any slide as local by setting a "local" property to true in the s
     pendingPush = false
 
     edited = (node)->
-      console.log "edited", node
       node = $(node).closest('[data-shared]')[0]
       if node
         delay ->
@@ -435,7 +429,6 @@ Users can mark any slide as local by setting a "local" property to true in the s
               removes[k] = ''
               removed = true
           if removed
-            console.log "UPDATE SET: #{pretty item}, UNSET: #{pretty removes}"
             i = {}
             for k, v of item
               if k != '_id' && !removes[k]? then i[k] = v

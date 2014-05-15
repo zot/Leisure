@@ -1,21 +1,19 @@
 * Short list -- screencast
-- dropping an image should insert a link + data block
-  - hovering a drop over the page should track the position with a big cursor
-- syntax highligthing (yaml, etc)
-- change "block.yaml" to "block.data"
-- go through old slides
 - script screencast -- screencast.lorg
 - collaboration
+  - presence
+    - show connected users
+    - show users' cursors/selections
   - spawn document copy with URL param
     - temporary or permanent
   - multple documents in a session
-  - show users' cursors/selections
-  - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
+  - react to adds/changes/removes of widget types (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)
-- JavaScript/CoffeeScript source blocks
-- GUI templates -- HTML source block defines a new widget type
-  - define handlebars helpers for input, views, etc
-- fix notes (sidebar and floaty)
+- dropping an image should insert a link + data block
+  - hovering a drop over the page should track the position with a big cursor
+- change "block.yaml" to "block.data"
+- go through old slides
+- fix floaty notes
 - fix test cases
 ** TODO Bug when collaborating with fancy & plain
    :PROPERTIES:
@@ -26,11 +24,15 @@
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
 - script screencast
+- X syntax highligthing (yaml, etc)
 - JavaScript/CoffeeScript source blocks
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc
   - church encoded widget results (like html or svg results)
   - widget code blocks (like test cases)
+- load a version from Git
+  - static linking (use dynamic for development and static for deployment)
+  - forking (with collaboration)
 - collaboration
   - show users' cursors/selections
   - persistence: git
@@ -65,7 +67,8 @@
     - X ":local: true" blocks are in the document, initialized for everyone, but stored locally
   - X head record contains unique ID
     - X reinitializes private document when it changes
-- JavaScript and CoffeeScript src blocks
+- X JavaScript and CoffeeScript src blocks
+  - Make headline properties/tags available to code blocks
 - Compilable notebooks
   - into JavaScript module
   - export data sets

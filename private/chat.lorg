@@ -1,0 +1,71 @@
+* Chat
+
+[[org:chat]][[org:input]]
+
+* Data
+:properties:
+:note: sidebar
+:end:
+
+#+NAME: chat
+#+BEGIN_SRC yaml :flowLevel 2
+type: chatbox
+chat:
+  - [MOD, Hello, Ryan]
+#+END_SRC
+
+#+BEGIN_SRC html :defview chatbox
+<h3>Chat</h3>
+<label> Name:</label><input placeholder="Name" id='nameinput'>
+
+<div style="height:20em; overflow:scroll; background-color:white">
+    {{#each chat}}
+    <div>
+    <span style="color:gray">{{this.[0]}}:</span>
+    <span>{{this.[1]}}</span>
+    <span style='float:right; color:green'>-{{this.[2]}}</span>
+    </div>
+    {{/each}}
+</div>
+<script>$(document.currentScript.parentNode).find('input').val(Leisure.userName)</script>
+#+END_SRC
+
+#+BEGIN_SRC html :defview chatInput
+{{{inputText 'chatLine'}}} <button id='chatbutton' onclick='Leisure.sendInput()'>Chat</button>
+<script>Leisure.hookInput()</script>
+#+END_SRC
+
+#+BEGIN_SRC coffeescript :results def
+
+Leisure.userName = 'Anon'
+
+Leisure.hookInput = ->
+  # Bit of a cheat here
+  chatId = $("[data-view-link='chat']").attr 'data-view-id'
+  inputId = $("[data-view-link='input']").attr 'data-view-id'
+  $(Templating.currentView).find('input').css 'width', '70%'
+
+  Leisure.sendInput = ->
+    Leisure.userName = $($("[data-view-link='chat']")[0].shadowRoot.firstChild).find('input').val()
+    messageBlock = Leisure.getBlock(inputId)
+    messageData = messageBlock.yaml
+    message = messageData.chatLine
+    messageData.chatLine = ''
+    block = Leisure.getBlock chatId
+    data = block.yaml
+    date = new Date()
+    data.chat.push([date.toTimeString(), message, Leisure.userName])
+    Leisure.setData messageBlock._id, messageData
+    Leisure.setData block._id, data
+#+END_SRC
+
+* Local data
+:PROPERTIES:
+:local: true
+:END:
+
+#+NAME: input
+#+BEGIN_SRC yaml
+type: chatInput
+chatLine: ''
+#+END_SRC

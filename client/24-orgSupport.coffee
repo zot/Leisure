@@ -168,7 +168,7 @@ toggleShowHidden = ->
 
 applyShowHidden = ->
   if $(document.body).hasClass 'show-hidden'
-    $('#hide-show-button').tooltip().tooltip('option', 'content', 'Click to top showing hidden slides')
+    $('#hide-show-button').tooltip().tooltip('option', 'content', 'Click to stop showing hidden slides')
     $('#hide-show-button').addClass('fa-eye').removeClass('fa-eye-slash')
   else
     $('#hide-show-button').tooltip().tooltip('option', 'content', 'Click to show hidden slides')
