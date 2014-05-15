@@ -1,5 +1,7 @@
 * Short list -- screencast
-- text button on each slide
+- dropping an image should insert a link + data block
+  - hovering a drop over the page should track the position with a big cursor
+- syntax highligthing (yaml, etc)
 - change "block.yaml" to "block.data"
 - go through old slides
 - script screencast -- screencast.lorg
@@ -587,6 +589,8 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE - text button on each slide
+   CLOSED: [2014-05-15 Thu 11:14]
 ** DONE collaboration stuff
 - collaboration
   - each document gets local storage for user-local and user-private data

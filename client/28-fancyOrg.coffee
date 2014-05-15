@@ -538,7 +538,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
   if name
     n = escapeAttr name.info.trim()
     yamlAttr += " data-org-codeblock='#{n}' data-yaml-name='#{n}'"
-  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'>#{escapeHtml source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
+    "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-yaml='true'></span>#{Highlighting.highlight 'yaml',  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
 
 dragging = false
 

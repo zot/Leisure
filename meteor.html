@@ -1,6 +1,10 @@
 <head>
   <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
   <link href='jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/syntaxhighlighter_3.0.83/styles/shCore.css">
+  <link rel="stylesheet" href="/syntaxhighlighter_3.0.83/styles/shThemeDefault.css">
+  <script src="/syntaxhighlighter_3.0.83/scripts/shCore.js"></script>
+  <script src="/syntaxhighlighter/shBrushYaml.js"></script>
   <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
         <style id="cthulhu" class="theme">
                 @font-face
@@ -878,6 +882,9 @@
                         margin: 0;
                         font-size: large;
                         background: #CCCCCC;
+                }
+                .org-fancy .syntaxhighlighter {
+                        overflow: hidden !important;
                 }
                 .slides [data-org-headline='1'][data-property-hidden='true'].currentSlide,
                 .org-fancy [data-property-hidden='true'],
