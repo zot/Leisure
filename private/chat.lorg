@@ -1,12 +1,13 @@
 * Chat
-
-[[org:chat]][[org:input]]
+[[org:chat/users]][[org:input/userName]][[org:chat]][[org:input/chatLine]]
 
 * Data
+(C) 2014 by Ryan Swart, MIT License
+
 :properties:
 :note: sidebar
+:hidden: true
 :end:
-
 #+NAME: chat
 #+BEGIN_SRC yaml :flowLevel 2
 type: chatbox
@@ -17,12 +18,12 @@ users:
 #+END_SRC
 #+NAME: input
 #+BEGIN_SRC yaml :local
-type: chatInput
+type: localState
 chatLine: ''
+userName: Anon
 #+END_SRC
 
-
-#+BEGIN_SRC html :defview chatbox
+#+BEGIN_SRC html :defview chatbox/users
 <h3>Chat</h3>
 <div>
 {{#each users}}
@@ -31,8 +32,9 @@ chatLine: ''
 </div>
 {{/each}}
 </div>
-<label> Name:</label><input placeholder="Name" id='nameinput'>
+#+END_SRC
 
+#+BEGIN_SRC html :defview chatbox
 <div style="height:20em; overflow:scroll; background-color:white">
     {{#each chat}}
     <div>
@@ -42,12 +44,16 @@ chatLine: ''
     </div>
     {{/each}}
 </div>
-<script>$(document.currentScript.parentNode).find('input').val(Leisure.userName)</script>
 #+END_SRC
 
-#+BEGIN_SRC html :defview chatInput
-{{{inputText 'chatLine'}}} <button id='chatbutton' onclick='Leisure.sendInput()'>Chat</button>
-<script>Leisure.hookInput()</script>
+#+BEGIN_SRC html :defview localState/userName
+<label> Name:</label><input placeholder="Name" data='userName'>{{{bind}}}
+#+END_SRC
+
+#+BEGIN_SRC html :defview localState/chatLine
+<input type='text' style='width: 70%' data='chatLine' button='chatbutton'>{{{bind}}}
+<button id='chatbutton' onclick='Leisure.sendInput()'>Chat</button>
+{{{init 'Leisure.hookInput()'}}}
 #+END_SRC
 
 #+BEGIN_SRC coffeescript :results def
@@ -60,14 +66,13 @@ Leisure.hookInput = ->
   # Bit of a cheat here
   chatId = $("[data-view-link='chat']").attr 'data-view-id'
   inputId = $("[data-view-link='input']").attr 'data-view-id'
-  $(Templating.currentView).find('input').css 'width', '70%'
 
   Leisure.sendInput = ->
-    name = Leisure.userName = $($("[data-view-link='chat']")[0].shadowRoot.firstChild).find('input').val()
-    messageBlock = Leisure.getBlock(inputId)
-    messageData = messageBlock.yaml
-    message = messageData.chatLine
-    messageData.chatLine = ''
+    stateBlock = Leisure.getBlock(inputId)
+    stateData = stateBlock.yaml
+    message = stateData.chatLine
+    name = stateData.userName
+    stateData.chatLine = ''
     block = Leisure.getBlock chatId
     data = block.yaml
     date = new Date()
@@ -79,7 +84,7 @@ Leisure.hookInput = ->
     else
       user = block.yaml.users[id] = [id,name,gen_color id]
     data.chat.push([date.toTimeString(), message, user])
-    Leisure.setData messageBlock._id, messageData
+    Leisure.setData stateBlock._id, stateData
     Leisure.setData block._id, data
 
   gen_color = (id)->

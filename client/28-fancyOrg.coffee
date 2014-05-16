@@ -143,12 +143,12 @@ getSelectionDescriptor = ->
   sel = getSelection()
   el = getDeepestActiveElement()
   if el.nodeType == Node.ELEMENT_NODE && sid = el.getAttribute('data-shadow-id')
-    id = rootNode(el).firstChild.getAttribute 'data-view-id'
+    descriptor = rootNode(el).firstChild.getAttribute 'data-view-descriptor'
     if el.nodeName.match(/input/i) && el.type.match(/text/i)
       start = el.selectionStart
       end = el.selectionEnd
       return focusNode: sel.focusNode, restore: (delta, doc)->
-        newEl = $($(doc).find("[data-view-id='#{id}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]
+        newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]
         newEl.setSelectionRange start, end
   else if sel?.rangeCount
     startNode = sel.getRangeAt(0).startContainer
@@ -332,7 +332,9 @@ markupAttr = (org)->
   "<span class='hidden'>#{org.text}</span>"
 
 markupLink = (org)->
-  if orgMatch = org.isOrg() then "<span data-view-link='#{orgMatch[1]}'><span class='hidden'>#{org.allText()}</span></span>"
+  if orgMatch = org.isOrg()
+    viewName = if orgMatch[2] then " data-view-name='#{orgMatch[2]}'" else ''
+    "<span data-view-link='#{orgMatch[1]}'#{viewName}><span class='hidden'>#{org.allText()}</span></span>"
   else
     guts = ''
     for c in org.children
@@ -1383,23 +1385,28 @@ fixupViews = (target)->
     renderView dataEl
 
 # el could be a parent fragment, a shared source block, or a source block in a fragment
-renderView = (el)->
+renderView = (el, name)->
   yn = 'data-yaml-name'
   holder = codeHolder el
   id = holder.id
   linkName = $(holder).add($(holder).find("[#{yn}]")).filter("[#{yn}]").attr yn
   data = getBlock id
-  if data?
-    if !(w = viewMarkup[data.yaml?.type]) then return console.log new Error "Invalid view type for data #{id}: #{pretty data}"
-    links = $("[data-view-link='#{linkName}']")
+  if type = data?.yaml?.type
+    links = if name then $("[data-view-link='#{linkName}'][data-view-name='#{name}']") else $("[data-view-link='#{linkName}']")
     links.attr 'data-view-id', id
     try
       oldChunk = Leisure.currentViewChunk
       Leisure.currentViewChunk = data
-      resetShadowCounter()
-      w data.yaml, links
       for node in links
-        node.shadowRoot.firstChild.setAttribute 'data-view-id', id
+        if name = node.getAttribute 'data-view-name'
+          viewMarkup["#{type}/#{name}"]? data.yaml, $(node)
+          descriptor = "#{id}/#{name}"
+        else
+          viewMarkup[type]? data.yaml, $(node)
+          descriptor = id
+        node.shadowRoot?.firstChild.setAttribute 'data-view-id', id
+        node.setAttribute 'data-view-descriptor', descriptor
+        node.shadowRoot?.firstChild.setAttribute 'data-view-descriptor', descriptor
     finally
       Leisure.currentViewChunk = oldChunk
   else $(el).html errorDiv "No data for view name: #{id}"
@@ -1410,21 +1417,31 @@ viewBlock = (el)->
 
 Handlebars.registerHelper 'inputText', (name, options)->
   if id = Leisure.currentViewChunk._id
-    if options.fn then console.log "block"
-    "<input type='text'>#{bindText name}"
+    if options.fn then "#{options.fn @}#{bindText name}"
+    else "<input type='text'>#{bindText name}"
   else "???"
 
 bindText = (field)-> "<script>Leisure.bindPreviousText('#{Leisure.currentViewChunk._id}', '#{field}')</script>"
 
-Leisure.bindPreviousText = (id, field)->
+Handlebars.registerHelper 'bind', (name, options)-> bindText name
+
+Handlebars.registerHelper 'init', (string, options)-> "<script>#{string}</script>"
+
+Leisure.bindPreviousText = (id)->
   input = document.currentScript.previousElementSibling
-  input.setAttribute 'data-shadow-id', nextShadowCount()
-  input.value = Templating.currentViewData[field]
-  input.onkeydown = ->
-    setTimeout (->
+  while input && input.nodeName.toLowerCase() != 'input'
+    input = input.previousElementSibling
+  if input && field = input.getAttribute 'data'
+    input.value = Templating.currentViewData[field]
+    nextButton = input.getAttribute 'button'
+    input.onkeyup = (e)->
+      console.log input.value
       data = getBlock(id).yaml
       data[field] = input.value
-      setData id, data), 1
+      setData id, data
+      if nextButton && e.keyCode == 13
+        e.preventDefault()
+        $(rootNode(input).firstChild).find("##{nextButton}").click()
 
 changeInputText = (field, id)->
   console.log "CHANGE DATA"
@@ -1476,20 +1493,15 @@ fancyOrg =
             css('-moz-user-select', 'none')
           if theme != null then $(shadow).addClass(theme)
           if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
-      for node in $("[data-yaml-type='#{type}']")
-        renderView node
+      dataType = type.match /([^/]*)\/?(.*)?/
+      for node in $("[data-yaml-type='#{dataType[1]}']")
+        renderView node, dataType[2]
   applyShowHidden: ->
     for node in $('.slideholder')
       if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
         $(node).addClass('hidden-slide')
 
 plainOrg.opposite = fancyOrg
-
-shadowCounter = 0
-
-resetShadowCounter = -> shadowCounter = 0
-
-nextShadowCount = -> shadowCounter++
 
 # called on installing DOM and also on new notes
 fixupHtml = (parent, note)->
@@ -1562,3 +1574,4 @@ root.codeHolder = codeHolder
 root.getBlockNamed = getBlockNamed
 root.viewBlock = viewBlock
 root.toggleEdit = toggleEdit
+root.getDeepestActiveElement = getDeepestActiveElement

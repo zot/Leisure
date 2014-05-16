@@ -16,7 +16,12 @@
         for node in target
           n = $(node)
           n.html("<span class='hidden'>#{escapeHtml n.text()}</span>")
-          el = if shadow then setShadowHtml node, "<span class='view'>#{comp data}</span>", true
+          el = if shadow
+            el = setShadowHtml node, "<span class='view'>#{comp data}</span>", true
+            shadowCount = 0
+            for input in $(el).find('input')
+              input.setAttribute 'data-shadow-id', shadowCount++
+            el
           else setHtml node, "<span class='view'>#{comp data}</span>", true
           try
             oldData = Templating.currentViewData

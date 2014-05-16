@@ -83,7 +83,7 @@ ATTR_NAME = 1
 attrHtmlRE = /^#\+(ATTR_HTML): *$/im
 attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i
 imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i
-orgPathRE = /^org:(.*)$/
+orgPathRE = /^org:([^/]*)\/?(.*)$/
 keywordPropertyRE = /:([^ ]+)/
 
 matchLine = (txt)->
