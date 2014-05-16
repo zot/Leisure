@@ -1,11 +1,15 @@
 * Short list -- screencast
+- named views org:bubbaObj/fredView
+  - if bubbaObj's type is btype, view's name is btype/fredView
+- nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
 - script screencast -- screencast.lorg
 - collaboration
   - presence
     - show connected users
     - show users' cursors/selections
-  - spawn document copy with URL param
+  - spawn document copy
     - temporary or permanent
+    - temporary ones disappear when the last user disconnects
   - multple documents in a session
   - react to adds/changes/removes of widget types (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)
@@ -23,9 +27,11 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- alternate views org:bubbaObj/fredView
+- nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
 - script screencast
 - X syntax highligthing (yaml, etc)
-- JavaScript/CoffeeScript source blocks
+- X JavaScript/CoffeeScript source blocks
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc
   - church encoded widget results (like html or svg results)

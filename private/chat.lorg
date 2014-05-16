@@ -36,9 +36,9 @@ chatLine: ''
 <div style="height:20em; overflow:scroll; background-color:white">
     {{#each chat}}
     <div>
+    <span style='float:right; color:{{this.[2].[2]}}'>-{{this.[2].[1]}}</span>
     <span style="color:gray">{{this.[0]}}:</span>
     <span>{{this.[1]}}</span>
-    <span style='float:right; color:{{this.[2].[2]}}'>-{{this.[2].[1]}}</span>
     </div>
     {{/each}}
 </div>
