@@ -36,9 +36,10 @@ with the batch You should send the same function for each batch name,
 every time, because func is ignored after the first call in a batch
 
     batchers = null
+    disableUpdates = false
 
     addBatch = (name, value, func)->
-      if !committing || passesFilters name, value
+      if !disableUpdates && (!committing || passesFilters name, value)
         if !batchers
           batchers = []
           setTimeout runBatches, 1
@@ -70,6 +71,7 @@ Handle changes to the doc nodes
           if item.data.local && item.type == 'added' && (old = root.currentDocument.findOne item.data._id)
             item.type = 'changed'
             item.oldData = old
+          if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
           processDataChange item
           # delay here because each item will alter DOM in a delayed function
           # and successive items depend on current DOM content
@@ -188,6 +190,7 @@ Handle changes to the doc nodes
           Meteor.subscribe name, ->
             root.currentDocument = observing[name] = docCol = new Meteor.Collection name
             docCol.leisure = {name: name}
+            docCol.leisure.master = docCol
             res = null
             res = Meteor.subscribe name, ->
               res.stop()
@@ -203,10 +206,11 @@ Handle changes to the doc nodes
     login = ->
 
     observer = (docCol, local)->
+      changeName = "changes-#{local}"
       _suppress_initial: true
-      added: (el)-> addBatch "changes-#{local}", type: 'added', here: committing, data: copy(el), (items)-> processChanges docCol, items, local
-      removed: (el)-> addBatch "changes-#{local}", type: 'removed', here: committing, data: copy(el), (items)-> processChanges docCol, items, local
-      changed: (el, oldEl)-> addBatch "changes-#{local}", type: 'changed', here: committing, data: copy(el), oldData: copy(oldEl), (items)-> processChanges docCol, items, local
+      added: (el)-> addBatch changeName, type: 'added', here: committing, data: copy(el), (items)-> processChanges docCol, items, local
+      removed: (el)-> addBatch changeName, type: 'removed', here: committing, data: copy(el), (items)-> processChanges docCol, items, local
+      changed: (el, oldEl)-> addBatch changeName, type: 'changed', here: committing, data: copy(el), oldData: copy(oldEl), (items)-> processChanges docCol, items, local
 
 Handling local content.
 
@@ -217,6 +221,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
 
     initLocal = (col, cont)->
       localCol = col.leisure.localCollection = new Meteor.Collection(null)
+      localCol.leisure = master: col
       req = indexedDB.open col.leisure.name, 1
       req.onupgradeneeded = (e)->
         db = col.leisure.localDb = req.result
@@ -297,7 +302,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
 
     removeFromLocalStore = (doc, key, {onsuccess, onerror}, trans)->
       if store = localStore doc, trans
-        req = store.remove key
+        req = store.delete key
         req.onsuccess = onsuccess
         req.onerror = onerror
       else onerror {}
@@ -420,9 +425,14 @@ Users can mark any slide as local by setting a "local" property to true in the s
       for id, item of overrides.updates
         removes = {}
         removed = false
-        modDoc = if local = item.local then localDoc else doc
+        modDoc = doc
+        if !(item.local && !doc.findOne(id)?.local) # item is not newly local
+          if item.local
+            modDoc = localDoc
+            putToLocalStore doc, item, nullHandlers, trans
+          else expungeLocalData doc, id # remove extraneous local data
         old = modDoc.findOne id
-        if local && !old then modDoc.insert item
+        if !old then modDoc.insert item
         else
           for k of old
             if !item[k]?
@@ -434,8 +444,16 @@ Users can mark any slide as local by setting a "local" property to true in the s
               if k != '_id' && !removes[k]? then i[k] = v
             modDoc.update id, $set: i, $unset: removes
           else modDoc.update id, item
-        if local then putToLocalStore doc, item, nullHandlers, trans
       committing = false
+
+    expungeLocalData = (doc, id)->
+      if (localDoc = doc.leisure.localCollection).findOne id
+        disableUpdates = true
+        try
+          localDoc.remove id
+          removeFromLocalStore doc, id, nullHandlers
+        finally
+          disableUpdates = false
 
     sourceStart = /(^|\n)(#\+name|#\+begin_src)/i
 

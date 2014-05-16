@@ -57,7 +57,7 @@
     replaceOrgDoc = (docArray, collection)->
       collection.remove()
       linkDocs docArray
-      console.log "DOCS: #{JSON.stringify docArray, null, '  '}"
+      #console.log "DOCS: #{JSON.stringify docArray, null, '  '}"
       info = collection.leisure.info =
         info: true
         head: if docArray.length > 0 then docArray[0]._id else null
@@ -124,7 +124,7 @@
         obj.codeAttributes = source.attributes()
         obj.codePrelen = source.contentPos + source.offset - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
-        if obj.codeAttributes.local? then obj.local = true
+        if obj.codeAttributes?.local? then obj.local = true
         if l = org.lead() then obj.language = l.trim()
         if isYaml source then obj.yaml = safeLoad source.content
         [_([obj]), last.next]
@@ -145,7 +145,7 @@
       org = parseOrgMode text
       [docJson] = if org.children.length > 1 then orgDoc org
       else orgDoc org.children[0]
-      if docJson.children? then console.log "NEW NODE\n#{JSON.stringify docJson}"
+      #if docJson.children? then console.log "NEW NODE\n#{JSON.stringify docJson}"
       docJson
 
     crnl = (data)->
