@@ -100,10 +100,10 @@ Handle changes to the doc nodes
         delete viewIdTypes[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
         lang = data.language.toLowerCase()
-        attr = data.attributes ? {}
+        attr = data.codeAttributes ? {}
         if lang == 'html' && attr.defview
-          viewTypeData[data.attributes.defview] = codeString data
-          viewIdTypes[data._id] = data.attributes.defview
+          viewTypeData[data.codeAttributes.defview] = codeString data
+          viewIdTypes[data._id] = data.codeAttributes.defview
           delay -> root.orgApi.defineView data._id
         else if attr.results?.toLowerCase() == 'def' && lang in ['js', 'javascript']
           eval codeString data

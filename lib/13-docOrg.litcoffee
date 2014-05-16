@@ -124,7 +124,7 @@
         obj.codeAttributes = source.attributes()
         obj.codePrelen = source.contentPos + source.offset - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
-        if a = org.attributes() then obj.attributes = a
+        if obj.codeAttributes.local? then obj.local = true
         if l = org.lead() then obj.language = l.trim()
         if isYaml source then obj.yaml = safeLoad source.content
         [_([obj]), last.next]
@@ -135,7 +135,7 @@
         obj.codePrelen = org.contentPos
         obj.codePostlen = text.length - obj.codePrelen - org.contentLength
         obj.language = 'html'
-        if a = org.attributes() then obj.attributes = a
+        if a = org.attributes() then obj.codeAttributes = a
         [_([obj]), org.next]
 
     isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/

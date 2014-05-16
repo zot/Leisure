@@ -15,6 +15,12 @@ chat:
 users:
   - [0,MOD,"rgb(10,250,10)"]
 #+END_SRC
+#+NAME: input
+#+BEGIN_SRC yaml :local
+type: chatInput
+chatLine: ''
+#+END_SRC
+
 
 #+BEGIN_SRC html :defview chatbox
 <h3>Chat</h3>
@@ -78,15 +84,4 @@ Leisure.hookInput = ->
 
   gen_color = (id)->
     "rgb("+(id*25)*(id%2)+","+id*25*(id%3)+","+id*25*(id%5)+")"
-#+END_SRC
-
-* Local data
-:PROPERTIES:
-:local: true
-:END:
-
-#+NAME: input
-#+BEGIN_SRC yaml
-type: chatInput
-chatLine: ''
 #+END_SRC
