@@ -1443,6 +1443,27 @@ Leisure.bindPreviousText = (id)->
         e.preventDefault()
         $(rootNode(input).firstChild).find("##{nextButton}").click()
 
+Handlebars.registerHelper 'view', (item, name, options)->
+  if !options
+    options = name
+    name = null
+  data = if typeof item == 'string' then getBlock(item).yaml else item
+  descriptor = if name then "#{item.type}/#{name}" else "#{item.type}"
+  if output = viewMarkup[descriptor]?(data) || ''
+    output += "<script>Leisure.addViewId()</script>"
+  output
+
+addViewId = ->
+  if Templating.currentViewData._id?
+    ids = {}
+    for id in Templating.currentViewLink.getAttribute('data-view-id').split ' '
+      ids[id] = true
+    ids[Templating.currentViewData._id] = true
+    result = []
+    for k of ids
+      result.push k
+    Templating.currentViewLink.setAttribute 'data-view-id', result.join ' '
+
 changeInputText = (field, id)->
   console.log "CHANGE DATA"
 
@@ -1485,14 +1506,15 @@ fancyOrg =
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]
       createTemplateRenderer type, root.viewTypeData[type], true, (data, target)->
-        for node in target
-          shadow = node.shadowRoot.firstChild
-          $(shadow).
-            css('user-select', 'none').
-            css('-webkit-user-select', 'none').
-            css('-moz-user-select', 'none')
-          if theme != null then $(shadow).addClass(theme)
-          if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
+        if target
+          for node in target
+            shadow = node.shadowRoot.firstChild
+            $(shadow).
+              css('user-select', 'none').
+              css('-webkit-user-select', 'none').
+              css('-moz-user-select', 'none')
+            if theme != null then $(shadow).addClass(theme)
+            if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
       dataType = type.match /([^/]*)\/?(.*)?/
       for node in $("[data-yaml-type='#{dataType[1]}']")
         renderView node, dataType[2]
@@ -1575,3 +1597,4 @@ root.getBlockNamed = getBlockNamed
 root.viewBlock = viewBlock
 root.toggleEdit = toggleEdit
 root.getDeepestActiveElement = getDeepestActiveElement
+root.addViewId = addViewId

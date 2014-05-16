@@ -8,13 +8,14 @@
 :note: sidebar
 :hidden: true
 :end:
+
 #+NAME: chat
 #+BEGIN_SRC yaml :flowLevel 2
 type: chatbox
 chat:
-  - [MOD, Hello, [0, Ryan, "rgb(10,250,10)"]]
+  - {type: chatline, time: MOD, message: Hello, user: {id: 0, name: Ryan, color: "rgb(10,250,10)"}}
 users:
-  - [0,MOD,"rgb(10,250,10)"]
+  - {id: 0, name: MOD, color: "rgb(10,250,10)"}
 #+END_SRC
 #+NAME: input
 #+BEGIN_SRC yaml :local
@@ -27,22 +28,24 @@ userName: Anon
 <h3>Chat</h3>
 <div>
 {{#each users}}
-<div style="color:{{this.[2]}}">
-{{this.[1]}}
+<div style="color:{{color}}">
+{{name}}
 </div>
 {{/each}}
 </div>
 #+END_SRC
 
+#+BEGIN_SRC html :defview chatline
+<div>
+  <span style='float:right; color:{{user.color}}'>-{{user.name}}</span>
+  <span style="color:gray">{{time}}:</span>
+  <span>{{message}}</span>
+</div>
+#+END_SRC
+
 #+BEGIN_SRC html :defview chatbox
 <div style="height:20em; overflow:scroll; background-color:white">
-    {{#each chat}}
-    <div>
-    <span style='float:right; color:{{this.[2].[2]}}'>-{{this.[2].[1]}}</span>
-    <span style="color:gray">{{this.[0]}}:</span>
-    <span>{{this.[1]}}</span>
-    </div>
-    {{/each}}
+    {{#each chat}}{{{view this}}}{{/each}}
 </div>
 #+END_SRC
 
@@ -75,15 +78,21 @@ Leisure.hookInput = ->
     stateData.chatLine = ''
     block = Leisure.getBlock chatId
     data = block.yaml
-    date = new Date()
     if unregistered
-      id = block.yaml.users.length
-      user = [id,name,gen_color id]
-      block.yaml.users.push(user)
+      user =
+        id: id = block.yaml.users.length
+        name: name
+        color: gen_color id
+      block.yaml.users.push user
       unregistered = false
     else
-      user = block.yaml.users[id] = [id,name,gen_color id]
-    data.chat.push([date.toTimeString(), message, user])
+      user = block.yaml.users[id]
+      user.name = name
+    data.chat.push
+      type: 'chatline'
+      user: user
+      time: new Date()
+      message: message
     Leisure.setData stateBlock._id, stateData
     Leisure.setData block._id, data
 
