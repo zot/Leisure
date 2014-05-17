@@ -1422,7 +1422,6 @@ renderView = (el, name)->
         node.shadowRoot?.firstChild.setAttribute 'data-view-descriptor', descriptor
     finally
       Leisure.currentViewChunk = oldChunk
-  else $(el).html errorDiv "No data for view name: #{id}"
 
 viewBlock = (el)->
   if id = $(el).closest('[data-view-id]').attr('data-view-id')

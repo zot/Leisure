@@ -4,6 +4,7 @@
 [[org:canvas]]
 [[org:state/controlbox]]
 [[org:game]]
+[[org:ticking]]
 
 * Data
 :properties:
@@ -31,6 +32,12 @@ world:
       }
 #+END_SRC
 
+#+NAME: tickState
+#+BEGIN_SRC yaml :flowLevel 2
+type: ticking
+ticking: false
+#+END_SRC
+
 #+NAME: state
 #+BEGIN_SRC yaml :local
 type: state
@@ -43,6 +50,11 @@ userName: Anon
 type: canvas
 #+END_SRC
 
+This is a kluge to react to a ticking update
+#+BEGIN_SRC html :defview ticking
+<script>Leisure.renderCanvas()</script>
+#+END_SRC
+
 #+BEGIN_SRC html :defview lazyworld
 <div>
   <div>
@@ -53,6 +65,7 @@ type: canvas
     {{/each}}
   </div>
 </div>
+<script>Leisure.renderCanvas()</script>
 #+END_SRC
 
 #+BEGIN_SRC html :defview state/userName
@@ -86,7 +99,6 @@ speed = 5
 spacing = 150
 gravity = -0.91
 tickspeed = 50
-ticking = false
 
 {
   getDataNamed,
@@ -130,24 +142,34 @@ Leisure.flap = ->
   setDataNamed 'game', game
 
 Leisure.tick = ->
-  data = getDataNamed 'game'
+  data = getDataNamed 'tickState'
   if data.ticking
     data.ticking = false
-    setDataNamed 'game', data
+    setDataNamed 'tickState', data
   else
     data.ticking = true
-    setDataNamed 'game', data
+    setDataNamed 'tickState', data
     doTick()
 
 doTick = (data)->
-  data = getDataNamed 'game'
-  if data.ticking
+  tick = getDataNamed 'tickState'
+  if tick.ticking
+    data = getDataNamed 'game'
     gamecanvas = findViews('canvas').find('#gamecanvas')[0]
     data.world = simulate_world(gamecanvas, data.world)
-    render_world(gamecanvas, data.world)
+    #render_world(gamecanvas, data.world)
     #window.setTimeout (-> setDataNamed 'game', data), 55
     setDataNamed 'game', data
     window.setTimeout doTick, tickspeed
+
+Leisure.renderCanvas = ->
+  gamecanvas = findViews('canvas').find('#gamecanvas')[0]
+  if getDataNamed('tickState').ticking
+    data = getDataNamed 'game'
+    render_world gamecanvas, data.world
+  else
+    ctx = gamecanvas.getContext '2d'
+    ctx.clearRect(0,0,gamecanvas.width,gamecanvas.height)
 
 render_world = (gamecanvas, world)->
   ctx = gamecanvas.getContext '2d'
