@@ -10,12 +10,13 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   height="460.81"
-   width="569.17"
+   height="50"
+   width="50"
    version="1.1"
    id="svg5084"
    inkscape:version="0.48.4 r9939"
-   sodipodi:docname="board.svg">
+   sodipodi:docname="board.svg"
+   preserveAspectRatio="none">
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -25,26 +26,30 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1920"
-     inkscape:window-height="1003"
+     inkscape:window-width="2048"
+     inkscape:window-height="1075"
      id="namedview5404"
      showgrid="false"
      inkscape:zoom="0.51214167"
-     inkscape:cx="284.58499"
-     inkscape:cy="152.30161"
-     inkscape:window-x="2039"
-     inkscape:window-y="63"
+     inkscape:cx="-553.07371"
+     inkscape:cy="152.30114"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg5084" />
+     inkscape:current-layer="svg5084"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
   <defs
      id="defs5086">
     <linearGradient
        id="linearGradient6130"
-       y2="477.36"
+       y2="477.35999"
        gradientUnits="userSpaceOnUse"
        x2="-100"
        y1="1031.1"
-       x1="537.96">
+       x1="537.96002">
       <stop
          stop-color="#0000ed"
          offset="0"
@@ -76,7 +81,7 @@
        id="linearGradient14010"
        x1="1531.2"
        gradientUnits="userSpaceOnUse"
-       y1="-710.26"
+       y1="-710.26001"
        gradientTransform="matrix(0.995461,0,0,0.995461,3.833802,3.912899)"
        x2="514.25"
        y2="1775.3">
@@ -124,7 +129,7 @@
        gradientUnits="userSpaceOnUse"
        gradientTransform="matrix(0.995461,0,0,0.995461,3.833802,3.912899)"
        x1="1531.2"
-       y1="-710.26"
+       y1="-710.26001"
        x2="514.25"
        y2="1775.3" />
     <linearGradient
@@ -141,20 +146,20 @@
        xlink:href="#linearGradient6130"
        id="linearGradient5412"
        gradientUnits="userSpaceOnUse"
-       x1="537.96"
+       x1="537.96002"
        y1="1031.1"
        x2="-100"
-       y2="477.36" />
+       y2="477.35999" />
     <linearGradient
        inkscape:collect="always"
        xlink:href="#linearGradient6130"
        id="linearGradient5416"
        gradientUnits="userSpaceOnUse"
-       x1="537.96"
+       x1="537.96002"
        y1="1031.1"
        x2="-100"
-       y2="477.36"
-       gradientTransform="translate(-10.949611,-583.43518)" />
+       y2="477.35999"
+       gradientTransform="matrix(0.08784751,0,0,0.10850443,-0.96188373,-63.305181)" />
   </defs>
   <metadata
      id="metadata5108">
@@ -172,5 +177,5 @@
      inkscape:connector-curvature="0"
      style="fill:url(#linearGradient5416)"
      id="path5400"
-     d="m 26.504389,0.34482 c -22.473,-1.0634 -28.362,22.206 -26.03,39.972 v 396.26 c 0.28596,22.362 24.774,25.459 42.115,23.887 H 542.68939 c 22.471,1.0616 28.33,-22.216 26.005,-39.972 v -396.26 c -0.27342,-22.361 -24.754,-25.46 -42.091,-23.887 H 26.503389 z" />
+     d="M 2.328357,0.03753899 C 0.35415987,-0.07784101 -0.16317415,2.446989 0.04168626,4.374679 v 42.99597 c 0.02512087,2.42637 2.17633434,2.76241 3.69969804,2.59184 H 47.673925 c 1.974022,0.11519 2.48872,-2.41053 2.284475,-4.33714 V 2.629389 C 49.93438,0.20311899 47.783823,-0.13314101 46.26081,0.03753899 H 2.3282692 z" />
 </svg>

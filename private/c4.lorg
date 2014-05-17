@@ -17,8 +17,8 @@ pieces:
 #+END_SRC
 
 #+BEGIN_SRC html :defview c4board
-<div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px; display: inline-block'>
-  <table style='width: 570px; height: 460px; text-align: center'>
+<div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px; display: inline-block;'>
+  <table style='text-align: center'>
     {{#each pieces}}
     <tr>
       {{#each this}}
@@ -56,9 +56,3 @@ Leisure.hookupTable = ->
 /*Click the eye button in the Leisure panel to reveal the code*/
 
 [[org:board]]
-
-* Local data
-:PROPERTIES:
-:local: true
-:hidden: true
-:END:

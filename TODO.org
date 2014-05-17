@@ -1,12 +1,14 @@
 * Short list -- screencast
+- put Leisure code in connect 4
+  - fix ast, etc
 - nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
 - script screencast -- screencast.lorg
 - collaboration
   - presence
     - show connected users
     - show users' cursors/selections
-  - spawn document copy
-    - temporary or permanent
+  - *spawn document copy*
+    - *temporary* or permanent
     - temporary ones disappear when the last user disconnects
   - multple documents in a session
   - react to adds/changes/removes of widget types (preparse attributes)

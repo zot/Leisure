@@ -513,6 +513,19 @@ getBlockNamed = (name)->
   holder = codeHolder $("[data-yaml-name='#{name}']")[0]
   if holder then getBlock holder.id else null
 
+getDataNamed = (name)->
+  holder = codeHolder $("[data-yaml-name='#{name}']")[0]
+  if holder then getBlock(holder.id).yaml else null
+
+setDataNamed = (name, value)->
+  holder = codeHolder $("[data-yaml-name='#{name}']")[0]
+  if holder then setData holder.id, value
+
+findLinks = (name)->
+  if m = name.match /^([^/]*)\/(.*)$/ then $("[data-view-link='#{m[1]}'][data-view-name='#{m[2]}']") else $("[data-view-link='#{name}']")
+
+findViews = (name)-> $(link.shadowRoot.firstChild for link in findLinks name)
+
 getSourceSegments = (name, org)->
   {first, name, source, results, expected, last} = getCodeItems(name || org)
   pos = source.contentPos
@@ -1598,3 +1611,7 @@ root.viewBlock = viewBlock
 root.toggleEdit = toggleEdit
 root.getDeepestActiveElement = getDeepestActiveElement
 root.addViewId = addViewId
+root.getDataNamed = getDataNamed
+root.setDataNamed = setDataNamed
+root.findLinks = findLinks
+root.findViews = findViews
