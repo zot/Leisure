@@ -778,7 +778,7 @@ checkSourceMod = (parent, oldMatch)->
   if !((newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive)) && $(focus).closest('[data-org-src]').length && n = getOrgParent focus
     switch n.getAttribute('data-org-results')?.toLowerCase()
       when 'dynamic' then root.orgApi.executeSource parent, focus
-      when 'def' then root.orgApi.executeDef n
+      #when 'def' then root.orgApi.executeDef n
   edited focus
 
 escapeAttr = (str)->
@@ -879,9 +879,10 @@ loadOrg = (parent, text, path, target)->
   else
     $('#saveButton').attr 'download', path
   reparse parent, text, target
-  setTimeout (->
-    for node in $(parent).find('[data-org-src="def"]')
-      executeDef node), 1
+  if !target
+    setTimeout (->
+      for node in $(parent).find('[data-org-src="def"]')
+        executeDef node), 1
 
 reparse = (parent, text, target)-> root.orgApi.reparse parent, text, target
 
@@ -1238,6 +1239,7 @@ orgNotebook =
     [orgNode, lastOrgText] = @markupOrgWithNode content
     root.restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
     @bindContent newNode
+  executeText: (text, props, env, cont)-> executeText text, Nil, env ? baseEnv, cont
   installOrgDOM: (parent, orgNode, orgText, target)-> installOrgDOM parent, orgNode, orgText, target
   redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
   defineWidget: (id)->

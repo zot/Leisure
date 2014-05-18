@@ -1521,11 +1521,12 @@ fancyOrg =
       nextNoteId = 0
       fixupViews target
       createNoteShadows()
-      if !target then @applyShowHidden()
-      setTimeout (=>
-        redrawAllIssues()
-        ), 1
-      $(document).tooltip()
+      if !target
+        @applyShowHidden()
+        setTimeout (=>
+          redrawAllIssues()
+          ), 1
+        $(document).tooltip()
   executeSource: executeSource
   executeDef: fancyExecuteDef
   createResults: createResults

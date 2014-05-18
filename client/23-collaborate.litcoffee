@@ -27,6 +27,7 @@ Meteor-based collaboration -- client side
     viewTypeData = {}
     viewIdTypes = {}
     committing = false
+    editing = false
     ignore = ->
     localStoreName = 'storage'
     nullHandlers = onsuccess: (->), onerror: ((e)-> console.log("ERROR:", e))
@@ -75,7 +76,7 @@ Handle changes to the doc nodes
           processDataChange item
           # delay here because each item will alter DOM in a delayed function
           # and successive items depend on current DOM content
-          do (item)-> delay ->
+          if !item.editing then do (item)-> delay ->
             switch item.type
               when 'added'
                 renderParent item.data
@@ -96,6 +97,8 @@ Handle changes to the doc nodes
                     renderParent item.data
                   none: ->
 
+    leisureBlocks = []
+
     processDataChange = ({type, data})->
       if type in ['changed', 'removed'] && viewIdTypes[data._id]
         delete viewTypeData[viewIdTypes[data._id]]
@@ -111,8 +114,23 @@ Handle changes to the doc nodes
           eval codeString data
         else if attr.results?.toLowerCase() == 'def' && lang == 'coffeescript'
           CoffeeScript.run codeString data
-        else if attr.results?.toLowerCase() == 'def' && lang in ['leisure', 'clojurescript']
-          console.log "ADDING DEF: #{data.text}"
+        else if attr.results?.toLowerCase() == 'def' && lang == 'leisure'
+          #root.orgApi.executeText codeString(data), {}, null, (->)
+          processLeisureBlock data
+
+    processingLeisure = false
+
+    processLeisureBlock = (data)->
+      leisureBlocks.push data
+      if !processingLeisure
+        processingLeisure = true
+        processNextLeisureBlock()
+
+    processNextLeisureBlock = ->
+      if leisureBlocks.length == 0 then processingLeisure = false
+      else
+        data = leisureBlocks.shift()
+        root.orgApi.executeText codeString(data), {}, null, processNextLeisureBlock
 
     codeString = (data)-> data.text.substring data.codePrelen, data.text.length - data.codePostlen
 
@@ -216,9 +234,15 @@ Handle changes to the doc nodes
     observer = (docCol, local)->
       changeName = "changes-#{local}"
       _suppress_initial: true
-      added: (el)-> addBatch changeName, type: 'added', here: committing, data: copy(el), (items)-> processChanges docCol, items, local
-      removed: (el)-> addBatch changeName, type: 'removed', here: committing, data: copy(el), (items)-> processChanges docCol, items, local
-      changed: (el, oldEl)-> addBatch changeName, type: 'changed', here: committing, data: copy(el), oldData: copy(oldEl), (items)-> processChanges docCol, items, local
+      added: (el)-> addChange changeName, 'added', copy(el), (items)-> processChanges docCol, items, local
+      removed: (el)-> addChange changeName, 'removed', copy(el), (items)-> processChanges docCol, items, local
+      changed: (el, oldEl)-> addChange changeName, 'changed', copy(el), copy(oldEl), (items)-> processChanges docCol, items, local
+
+    addChange = (name, type, data, oldData, cont)->
+      change = type: type, here: committing, editing: editing, data: data
+      if !cont then cont = oldData
+      else change.oldData = oldData
+      addBatch name, change, cont
 
 Handling local content.
 
@@ -393,7 +417,11 @@ Users can mark any slide as local by setting a "local" property to true in the s
       overrides = newOverrides()
       for id of currentEdits
         changeDocText id, textForId(id), overrides
-      commitOverrides overrides
+      editing = true
+      try
+        commitOverrides overrides
+      finally
+        editing = false
 
     getItem = (overrides, id)-> id && (overrides.adds[id] || overrides.updates[id] || getBlock id)
 
@@ -482,6 +510,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
 
     changeDocText = (id, newText, overrides)->
       cur = getItem overrides, id
+      if cur?.text == newText then return
       prev = getItem overrides, cur.prev
       next = getItem overrides, cur.next
       if newText[newText.length - 1] != '\n' then newText += stealFirstLine overrides, next
