@@ -498,7 +498,12 @@ editedNote = (mainId, editedId)-> ->
           setTimeout (-> editing = false), 1), 1
 
 markupHtml = (org)->
-  "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
+  if v = org.attributes()?.view
+    pre = org.text.substring 0, org.contentPos
+    post = org.text.substring org.contentPos + org.contentLength
+    "<div #{orgAttrs org} data-html-view='#{v}'><span data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span></div>"
+  else
+    "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
 
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
@@ -1396,6 +1401,21 @@ fixupViews = (target)->
   cb = "[data-yaml-name]"
   for dataEl in (if target then $(target).add($(target).find(cb)).filter(cb) else $(cb))
     renderView dataEl
+  if !target
+    for html in $('[data-html-view]')
+      renderHtmlView html
+
+renderHtmlView = (html, data)->
+  if !html.leisureRendered && (txt = $(html).find("[data-content]").text()) && output = $(html).find('[data-org-html]')[0]
+    if !data && name = html.getAttribute 'data-html-view' then data = getDataNamed name
+    if data && txt
+      try
+        comp = Handlebars.compile txt
+        html.leisureRendered = true
+      catch err
+        console.log err.stack
+        return
+      setShadowHtml output, comp data.yaml
 
 # el could be a parent fragment, a shared source block, or a source block in a fragment
 renderView = (el, name)->
@@ -1422,6 +1442,9 @@ renderView = (el, name)->
         node.shadowRoot?.firstChild.setAttribute 'data-view-descriptor', descriptor
     finally
       Leisure.currentViewChunk = oldChunk
+  else if name = name || el.getAttribute "data-yaml-name"
+    for html in $("[data-html-view='#{name}']")
+      renderHtmlView html, data
 
 viewBlock = (el)->
   if id = $(el).closest('[data-view-id]').attr('data-view-id')

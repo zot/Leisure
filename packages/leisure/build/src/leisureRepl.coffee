@@ -369,7 +369,7 @@ genJsFromAst = (file, cont)->
 
 usage = ->
   console.log """
-  Usage repl [-v | -a | -0 | -1 | -c | -d DIR] [FILE ...]
+  Usage repl [-v | -a | -0 | -1 | -c | -coffee | -j | -d DIR] [FILE ...]
 
   -v            verbose
   -a            only parse to AST
@@ -379,8 +379,10 @@ usage = ->
                 for -1, or normal case, create AST and JS file
   -r FILE       require JS FILE
   -d DIR        specify output directory for .ast and .js files
+  -j            run JavaScript interactively after requiring Leisure files
+  -coffee       run CoffeeScript interactively after requiring Leisure files
 
-  Without no FILE arguments, runs interactive REPL
+  With no FILE arguments, runs interactive REPL
   """
   process.exit 0
 
@@ -465,6 +467,16 @@ processArg = (config, pos)->
       pos++
     else
       newOptions = true
+      if process.argv[pos] == '-coffee'
+        processedFiles = true
+        requireUtils()
+        require('coffee-script/lib/coffee-script/repl').start useGlobal: true
+        return
+      if process.argv[pos] == '-j'
+        processedFiles = true
+        requireUtils()
+        doRequirements -> require('repl').start useGlobal: true
+        return
       #console.log "Process #{process.argv.join ', '}"
       if process.argv[pos][0] == '-' then usage()
       else
@@ -480,6 +492,11 @@ processArg = (config, pos)->
           action process.argv[pos], -> processArg config, pos + 1
       return
   processArg config, pos + 1
+
+requireUtils = ->
+  global.Leisure = root
+  global.Lazy = require '10-lazy'
+  global.Org = require '11-org'
 
 run = (args, config)->
   action = runFile
@@ -499,8 +516,7 @@ prog = path.basename(process.argv[1])
 
 if prog.toLowerCase() in ['repl', 'runrepl', 'leisure']
   if verbose then console.log "RUNNING REPL"
-  run process.argv,
-    home: process.env.HOME
+  run process.argv, home: process.env.HOME
 else
   #if stage < 2 then root.shouldNsLog = false
   root.shouldNsLog = shouldNsLog

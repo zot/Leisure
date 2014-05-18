@@ -386,9 +386,9 @@ class Source extends Keyword
 class HTML extends Keyword
   constructor: (@text, @offset, @name, @contentPos, @contentLength, @info)-> super @text, @offset, @name, @info
   type: 'html'
-  leading: -> @text.substring 0, @contentStart
-  trailing: -> @text.substring @contentStart + @contentLength
-  content: -> @text.substring @contentStart, @contentStart + @contentLength
+  leading: -> @text.substring 0, @contentPos
+  trailing: -> @text.substring @contentPos + @contentLength
+  content: -> @text.substring @contentPos, @contentPos + @contentLength
   jsonDef: ->
     type: @type
     info: @info || ''
@@ -575,7 +575,7 @@ parseHtmlBlock = (text, offset, rest, match)->
     [new Meat(line[0]), text.substring(line[0].length) + rest]
   else
     endLine = fullLine end, rest
-    [new HTML(text + rest.substring(0, end.index + endLine.length), offset, match[HTML_START_NAME], line[0].length, offset + text.length + end.index - line[0].length, match[HTML_INFO]), rest.substring end.index + endLine.length]
+    [new HTML(text + rest.substring(0, end.index + endLine.length), offset, match[HTML_START_NAME], line[0].length, text.length + end.index - line[0].length, match[HTML_INFO]), rest.substring end.index + endLine.length]
 
 parseList = (match, text, offset, level, check, info, rest)->
   contentOffset = listContentOffset match

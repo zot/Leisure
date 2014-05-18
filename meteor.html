@@ -9,6 +9,23 @@
   <script src="/syntaxhighlighter/shBrushYaml.js"></script>
   <script src="/syntaxhighlighter/shBrushCoffeeScript.js"></script>
   <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
+        <style>
+          body.leisureError > #login,
+          body.leisureError > #leisure_bar,
+          body.leisureError > * {
+                display: none;
+          }
+          body.leisureError > #error {
+                display: inherit !important;
+          }
+          #error {
+                display: none;
+                text-align: center;
+                vertical-align: middle;
+                margin: auto;
+                height: 100%;
+          }
+        </style>
         <style id="cthulhu" class="theme">
                 @font-face
                 {
@@ -16,7 +33,7 @@
                   src: url('franklinm54-webfont.woff') format('woff');
                 }
                 body.cthulhu {
-                        background-color: #1c3d34;
+                        background-color: #1doc3d34;
                         color: #f1c40f;
                         text-shadow: 3px 3px #000000;
                 }
@@ -1918,6 +1935,7 @@
         </style>
 </head>
 <body>
+  <div id='error'></div>
   <div id="loading" class="flat">
     <div id="loading-message">
       <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"

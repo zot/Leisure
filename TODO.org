@@ -7,9 +7,9 @@
   - presence
     - show connected users
     - show users' cursors/selections
-  - *spawn document copy*
-    - *temporary* or permanent
-    - temporary ones disappear when the last user disconnects
+  - spawn document copy
+    - X temporary ones which disappear when the last user disconnects
+    - permanent copies, for private groups
   - multple documents in a session
   - react to adds/changes/removes of widget types (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)

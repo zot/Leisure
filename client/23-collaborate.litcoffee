@@ -184,24 +184,32 @@ Handle changes to the doc nodes
 
     observeDocument = (name)->
       login()
-      obs = Meteor.call 'hasDocument', name, (err, result)->
+      obs = Meteor.call 'hasDocument', name, (err, docName)->
         if !err
-          observing[name] = true
-          Meteor.subscribe name, ->
-            root.currentDocument = observing[name] = docCol = new Meteor.Collection name
-            docCol.leisure = {name: name}
-            docCol.leisure.master = docCol
-            res = null
-            res = Meteor.subscribe name, ->
-              res.stop()
-              docCol.leisure.info = docCol.findOne info: true
-              initLocal root.currentDocument, ->
-                cursor = docCol.find()
-                sub = cursor.observe observer docCol, false
-                org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
-                root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, name
-          document.body.classList.remove 'not-logged-in'
-        else console.log "ERROR: #{err}"
+          if typeof docName == 'object'
+            $("#error").html "Error: #{docName.error}"
+            $(document.body).addClass 'leisureError'
+          else
+            console.log "OBSERVING #{docName}"
+            observing[docName] = true
+            Meteor.subscribe docName, ->
+              if name.match /^demo\/(.*)$/
+                document.location.hash = "#load=/tmp/#{docName}"
+                alert "Give the temporary URL in the location bar to other people to collaborate"
+              root.currentDocument = observing[docName] = docCol = new Meteor.Collection docName
+              docCol.leisure = {name: docName}
+              docCol.leisure.master = docCol
+              res = null
+              res = Meteor.subscribe docName, ->
+                res.stop()
+                docCol.leisure.info = docCol.findOne info: true
+                initLocal root.currentDocument, ->
+                  cursor = docCol.find()
+                  sub = cursor.observe observer docCol, false
+                  org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
+                  root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, docName
+            document.body.classList.remove 'not-logged-in'
+        else console.log "ERROR: #{err}\n#{err.stack}", err
 
     login = ->
 
