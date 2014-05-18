@@ -1,0 +1,208 @@
+* Data
+:properties:
+:hidden: true
+:end:
+/*Click the martini glass to switch between fancy and plain text*/
+
+#+NAME: board
+#+BEGIN_SRC yaml :flowLevel 2
+type: c4board
+pieces:
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+  - [w, w, w, w, w, w, w]
+#+END_SRC
+
+#+BEGIN_SRC html :defview c4board
+<div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px; display: inline-block;'>
+  <table style='text-align: center'>
+    {{#each pieces}}
+    <tr>
+      {{#each this}}
+        <td>
+          <img src='/connect4/{{this}}Piece.svg' onerror='this.src="/connect4/gPiece.svg"' style='vertical-align: middle'>
+        </td>
+      {{/each}}
+    </tr>
+    {{/each}}
+  </table>
+</div>
+<script>Leisure.hookupTable()</script>
+#+END_SRC
+
+#+BEGIN_SRC coffeescript :results def
+pieceTypes = "wrb"
+
+Leisure.hookupTable = ->
+  $(Templating.currentView).bind 'click', (e)->
+    if block = Leisure.viewBlock e.target
+      data = block.yaml
+      td = e.target.parentElement
+      column = td.cellIndex
+      row = td.parentElement.rowIndex
+      if row? && column?
+        data.pieces[row][column] = pieceTypes[(1 + pieceTypes.indexOf data.pieces[row][column]) % pieceTypes.length]
+      Leisure.setData block._id, data
+#+END_SRC
+
+* Connect 4
+:properties:
+:note: sidebar
+:end:
+
+/*Click the eye button in the Leisure panel to reveal the code*/
+
+[[org:board]]
+
+* Code
+:properties:
+:hidden: true
+:end:
+
+sum basic list functions & digits handling
+
+#+BEGIN_SRC leisure :results def
+print 'hello'
+make_list e c = if (eq c 0) nil (cons e (make_list e (-- c) ) )
+count_down c = if (eq c -1) nil (cons c (count_down (-- c)))
+count_up c = reverse (count_down c)
+
+digits = ['0' '1' '2' '3' '4' '5' '6' '7' '8' '9']
+#+END_SRC
+
+connect four 'variables'
+
+#+BEGIN_SRC leisure :results def
+player1 = 'R'
+player2 = 'B'
+empty = ' '
+NUM_COLS = 7
+NUM_ROWS = 6
+ALL_COLS_UP = count_up (-- NUM_COLS)
+ALL_ROWS_UP = count_up (-- NUM_ROWS)
+#+END_SRC
+
+connect four funcs
+
+#+BEGIN_SRC leisure :results def
+rc2spot r c = + r (* NUM_ROWS c)
+spot b r c = at b (rc2spot r c)
+
+fill_spot p b spot = (append (take spot b) (append [ p ] (drop (++ spot) b) ) )
+base_find_empty_spot b c r = if (or (lt r 0) (gte r NUM_ROWS))
+  nil
+  if (eq empty (spot b r c))
+    rc2spot r c
+    base_find_empty_spot b c (-- r)
+
+find_empty_spot b c = base_find_empty_spot b c (-- NUM_ROWS)
+playMove p b c = fill_spot p b (find_empty_spot b c)
+
+playMoves p b l = if (eq l nil)
+  b
+  let
+    new_b = playMove p b (head l)
+    playMoves p new_b (tail l)
+#+END_SRC
+
+draw the board out on the screen
+#+BEGIN_SRC leisure :results def
+div = "+---+---+---+---+---+---+---+"
+ending = "| 0 | 1 | 2 | 3 | 4 | 5 | 6 |\n"
+
+showR b r l = if (eq l nil) ''
+  concat ["| " (spot b r (head l)) " " (showR b r (tail l))]
+
+showRow b r = + (showR b r ALL_COLS_UP) "|"
+showRows b l = if (eq l nil) (print div)
+  do
+    print (showRow b (head l))
+    showRows b (tail l)
+
+showBoard b = do
+  print (concat ["\n" div])
+  showRows b ALL_ROWS_UP
+  print ending
+#+END_SRC
+
+brute force check for win conditions. this is so not pretty
+
+the board is a series of vertical rows, here is an example of 3 columns
+and 4 rows, with the 'spot' given for each position
+
+#+BEGIN_HTML
+<style>
+  td,th {
+    padding: 2px;
+  }
+  td {border: solid black 2px;}
+  table {
+    border-collapse: collapse;
+    text-align: center;
+  }
+</style>
+<table>
+<tr><th></th><th colspan='7'>Columns</th></tr>
+<tr><th></th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+<tr><th>Row 0</th><td>0</td><td>6</td><td>12</td><td>18</td><td>24</td><td>30</td><td>36</td></tr>
+<tr><th>Row 1</th><td>1</td><td>7</td><td>13</td><td>19</td><td>25</td><td>31</td><td>37</td></tr>
+<tr><th>Row 2</th><td>2</td><td>8</td><td>14</td><td>20</td><td>26</td><td>32</td><td>38</td></tr>
+<tr><th>Row 3</th><td>3</td><td>9</td><td>15</td><td>21</td><td>27</td><td>33</td><td>39</td></tr>
+<tr><th>Row 4</th><td>4</td><td>10</td><td>16</td><td>22</td><td>28</td><td>34</td><td>40</td></tr>
+<tr><th>Row 5</th><td>5</td><td>11</td><td>17</td><td>23</td><td>29</td><td>35</td><td>41</td></tr>
+<tr><th></th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+</table>
+#+END_HTML
+
+#+BEGIN_SRC leisure :results def
+horzWinSpots = [[0 6 12 18] [6 12 18 24] [12 18 24 30] [18 24 30 36] [1 7 13 19] [7 13 19 25] [13 19 25 31] [19 25 31 37] [2 8 14 20]  [8 14 20 26] [14 20 26 32] [20 26 32 38] [3 9 15 21] [9 15 21 27] [15 21 27 33] [21 27 33 39] [4 10 16 22] [10 16 22 28] [16 22 28 34] [22 28 34 40] [5 11 17 23] [11 17 23 29] [17 23 29 35] [23 29 35 41]]
+vertWinSpots = [[0 1 2 3] [1 2 3 4] [2 3 4 5] [6 7 8 9] [7 8 9 10] [8 9 10 11] [12 13 14 15] [13 14 15 16] [14 15 16 17] [18 19 20 21] [19 20 21 22] [20 21 22 23] [24 25 26 27] [25 26 27 28] [26 27 28 29] [30 31 32 33] [31 32 33 34] [32 33 34 35] [36 37 38 39] [37 38 39 40] [38 39 40 41] ]
+lDiagWinSpots = [[2 9 16 23] [1 8 15 22] [8 15 22 29] [0 7 14 21] [7 14 21 28] [14 21 28 35] [6 13 20 27] [13 20 27 34] [20 27 34 41] [12 19 26 33] [19 26 33 40] [18 25 32 39] ]
+rDiagWinSpots = [[3 8 13 18] [4 9 14 19] [9 14 19 24] [5 10 15 20] [10 15 20 25] [15 20 25 30] [11 16 21 26] [16 21 26 31] [21 26 31 36] [17 22 27 32] [22 27 32 37] [23 28 33 38] ]
+#+END_SRC
+
+Print out the win condition arrays for visual verfication
+
+#+BEGIN_SRC leisure :results def
+testMoves p b l = if (eq l nil) b
+  let
+    new_b = fill_spot p b (head l)
+    testMoves p new_b (tail l)
+testWins2 b grp = showBoard (testMoves 'W' b grp)
+testWins b spots = if (eq spots nil) nil
+  do
+    testWins2 b (head spots)
+    testWins b (tail spots)
+
+testHorz = testWins startBoard horzWinSpots
+testVert = testWins startBoard vertWinSpots
+#+END_SRC
+
+ *check for a winner using the predefined spots*
+
+check the four spots in this list to see if they all match one player
+#+BEGIN_SRC leisure :results def
+check_group b l = let
+  check = concat [(at b (at l 0)) (at b (at l 1)) (at b (at l 2)) (at b (at l 3))]
+  if (eq check player1Win) player1
+    if (eq check player2Win) player2
+      empty
+#+END_SRC
+
+#+BEGIN_SRC leisure :results def
+#+END_SRC
+
+#+BEGIN_SRC leisure :results def
+#+END_SRC
+
+#+BEGIN_SRC leisure :results def
+#+END_SRC
+
+#+BEGIN_SRC leisure :results def
+#+END_SRC
+
+#+BEGIN_SRC leisure :results def
+#+END_SRC
