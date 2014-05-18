@@ -365,6 +365,9 @@ keyFuncs =
         txt.parentNode.insertBefore (document.createTextNode first + second), next
         selectRange nativeRange findDomPosition parent, pos + first.length
         reparse parent
+  save: (e, parent, r)->
+    e.preventDefault()
+    alert('checkpoint not implemented, yet')
 
 followsNewline = (txt)->
   prev = textNodeBefore txt
@@ -377,16 +380,18 @@ templateExpansions =
   '<h': ['#+BEGIN_HTML\n', '\n#+END_HTML']
 
 defaultBindings =
-  'C-C C-C': keyFuncs.swapMarkup
-  'C-F': keyFuncs.forwardChar
-  'C-B': keyFuncs.backwardChar
-  'C-P': keyFuncs.previousLine
-  'C-N': keyFuncs.nextLine
+  'C-S': keyFuncs.save
   'UP': keyFuncs.previousLine
   'DOWN': keyFuncs.nextLine
   'LEFT': keyFuncs.backwardChar
   'RIGHT': keyFuncs.forwardChar
   'TAB': keyFuncs.expandTemplate
+  'C-C C-C': keyFuncs.swapMarkup
+  #'C-F': keyFuncs.forwardChar
+  #'C-B': keyFuncs.backwardChar
+  #'C-P': keyFuncs.previousLine
+  #'C-N': keyFuncs.nextLine
+  #'C-X C-F': keyFuncs.save
 
 useText = (text)->
   root.restorePosition parentSpec, ->
