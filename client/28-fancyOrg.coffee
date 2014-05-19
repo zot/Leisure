@@ -1448,8 +1448,8 @@ viewBlock = (el)->
     getBlock id
 
 Leisure.bindWidgets = bindWidgets = (parent)->
-  for input in $(parent).find 'input[data]'
-    field = input.getAttribute 'data'
+  for input in $(parent).find 'input[data-value]'
+    field = input.getAttribute 'data-value'
     input.value = Templating.currentViewData[field]
     nextButton = input.getAttribute 'button'
     input.onkeyup = (e)->
