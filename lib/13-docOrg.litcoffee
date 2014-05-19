@@ -113,7 +113,7 @@
 
     createCodeBlockDoc = (org)->
       text = ''
-      {first, source, last} = getCodeItems org
+      {first, name, source, last} = getCodeItems org
       firstOffset = first.offset
       if !first then [_([text: org.allText(), type: 'chunk']), org.next]
       else
@@ -124,8 +124,9 @@
         obj.codeAttributes = source.attributes()
         obj.codePrelen = source.contentPos + source.offset - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
+        if name then obj.codeName = name.info.trim()
         if obj.codeAttributes?.local? then obj.local = true
-        if l = org.lead() then obj.language = l.trim()
+        if l = source.lead() then obj.language = l.trim()
         if isYaml source then obj.yaml = safeLoad source.content
         [_([obj]), last.next]
 

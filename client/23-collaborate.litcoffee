@@ -110,6 +110,8 @@ Handle changes to the doc nodes
           viewTypeData[data.codeAttributes.defview] = codeString data
           viewIdTypes[data._id] = data.codeAttributes.defview
           delay -> root.orgApi.defineView data._id
+        else if lang == 'yaml'
+          root.orgApi.updateBlock data
         else if attr.results?.toLowerCase() == 'def' && lang in ['js', 'javascript']
           eval codeString data
         else if attr.results?.toLowerCase() == 'def' && lang == 'coffeescript'

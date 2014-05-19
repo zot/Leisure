@@ -50,11 +50,11 @@ userName: Anon
 #+END_SRC
 
 #+BEGIN_SRC html :defview localState/userName
-<label> Name:</label><input placeholder="Name" data='userName'>{{{bind}}}
+<label> Name:</label><input placeholder="Name" data='userName'>
 #+END_SRC
 
 #+BEGIN_SRC html :defview localState/chatLine
-<input type='text' style='width: 70%' data='chatLine' button='chatbutton'>{{{bind}}}
+<input type='text' style='width: 70%' data='chatLine' button='chatbutton'>
 <button id='chatbutton' onclick='Leisure.sendInput()'>Chat</button>
 {{{init 'Leisure.hookInput()'}}}
 #+END_SRC

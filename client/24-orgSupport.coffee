@@ -1294,6 +1294,7 @@ basicOrg =
   #emptySlide: (id)-> "<span id='#{id}'></span>#{boundarySpan}"
   emptySlide: (id)-> "<span id='#{id}'></span>"
   inMode: -> true
+  updateBlock: ->
 
 findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 

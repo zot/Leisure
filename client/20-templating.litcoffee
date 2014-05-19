@@ -32,11 +32,11 @@
               Templating.currentViewLink = node
               Templating.currentView = el
               activateScripts el
+              if cont then cont(data, target)
             finally
               Templating.currentViewData = oldData
               Templating.currentViewLink = oldViewLink
               Templating.currentView = oldView
-          if cont then cont(data, target)
         else comp data
 
     activateScripts = (el)->

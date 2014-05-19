@@ -1447,30 +1447,18 @@ viewBlock = (el)->
   if id = $(el).closest('[data-view-id]').attr('data-view-id')
     getBlock id
 
-Handlebars.registerHelper 'inputText', (name, options)->
-  if id = Leisure.currentViewChunk._id
-    if options.fn then "#{options.fn @}#{bindText name}"
-    else "<input type='text'>#{bindText name}"
-  else "???"
-
-bindText = (field)-> "<script>Leisure.bindPreviousText('#{Leisure.currentViewChunk._id}', '#{field}')</script>"
-
-Handlebars.registerHelper 'bind', (name, options)-> bindText name
-
-Handlebars.registerHelper 'init', (string, options)-> "<script>#{string}</script>"
-
-Leisure.bindPreviousText = (id)->
-  input = document.currentScript.previousElementSibling
-  while input && input.nodeName.toLowerCase() != 'input'
-    input = input.previousElementSibling
-  if input && field = input.getAttribute 'data'
+Leisure.bindWidgets = bindWidgets = (parent)->
+  for input in $(parent).find 'input[data]'
+    field = input.getAttribute 'data'
     input.value = Templating.currentViewData[field]
     nextButton = input.getAttribute 'button'
     input.onkeyup = (e)->
       console.log input.value
-      data = getBlock(id).yaml
+      block = viewBlock(input)
+      data = block.yaml
+      #data = getBlock(id).yaml
       data[field] = input.value
-      setData id, data
+      setData block._id, data
       if nextButton && e.keyCode == 13
         e.preventDefault()
         $(rootNode(input).firstChild).find("##{nextButton}").click()
@@ -1548,6 +1536,7 @@ fancyOrg =
               css('-moz-user-select', 'none')
             if theme != null then $(shadow).addClass(theme)
             if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
+            bindWidgets shadow
       dataType = type.match /([^/]*)\/?(.*)?/
       for node in $("[data-yaml-type='#{dataType[1]}']")
         renderView node, dataType[2]
@@ -1558,6 +1547,9 @@ fancyOrg =
   checkSourceMod: (div, currentMatch)->
     focus = getSelection().focusNode
     fancyCheckSourceMod focus, div, currentMatch, (if focus.nodeType == 1 then focus.firstChild else focus)
+  updateBlock: (block)->
+    el = $("##{block._id}")[0]
+    if el then restorePosition null, -> renderView el
 
 plainOrg.opposite = fancyOrg
 

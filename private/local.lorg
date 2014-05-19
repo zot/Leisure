@@ -2,7 +2,8 @@
 hello
 [[org:a]] [[org:b]]
 
-#+BEGIN_SRC yaml :view a
+#+NAME: a
+#+BEGIN_SRC yaml
 type: gump
 name: fred
 number: 35
@@ -10,7 +11,7 @@ number: 35
 
 #+BEGIN_SRC html :defview gump
 <div style='display: inline-block; border: solid blue 2px; padding: 5px'>
-   Name: {{{inputText 'name'}}}<br>
+   Name: <input data='name'><br>
   Number: {{number}}
 </div>
 #+END_SRC
@@ -20,7 +21,8 @@ number: 35
 :local: true
 :END:
 
-#+BEGIN_SRC yaml :view b
+#+NAME: b
+#+BEGIN_SRC yaml
 type: gump
 name: joe
 number: 22

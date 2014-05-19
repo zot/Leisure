@@ -27,6 +27,7 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- show local version of local slide content in additional div in pain view
 - X alternate views org:bubbaObj/fredView
 - nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
 - script screencast

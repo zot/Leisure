@@ -48,7 +48,7 @@ number: 89
 
 #+BEGIN_SRC html :defview gump
 <div style='display: inline-block; border: solid blue 2px; padding: 5px'>
-   Name: {{{inputText 'name'}}}<br>
+  Name: <input data='name'><br>
   Number: {{number}}
 </div>
 #+END_SRC
