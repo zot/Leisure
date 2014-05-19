@@ -213,7 +213,6 @@ Handle changes to the doc nodes
             Meteor.subscribe docName, ->
               if name.match /^demo\/(.*)$/
                 document.location.hash = "#load=/tmp/#{docName}"
-                alert "Give the temporary URL in the location bar to other people to collaborate"
               root.currentDocument = observing[docName] = docCol = new Meteor.Collection docName
               docCol.leisure = {name: docName}
               docCol.leisure.master = docCol
@@ -226,6 +225,14 @@ Handle changes to the doc nodes
                   sub = cursor.observe observer docCol, false
                   org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
                   root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, docName
+                  if name.match /^demo\/(.*)$/
+                    $("#hide-show-button")
+                      .tooltip()
+                      .tooltip('option', 'content', 'Give the temporary URL in the location bar to other people to collaborate')
+                      .tooltip('open')
+                    setTimeout (->
+                      $('#hide-show-button').tooltip 'close'
+                      setTimeout (->Leisure.applyShowHidden()), 2000), 3000
             document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}\n#{err.stack}", err
 

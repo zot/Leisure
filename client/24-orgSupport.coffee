@@ -611,6 +611,7 @@ keyCombos = []
 
 addKeyPress = (e, c)->
   if notShift = !shiftKey c
+    e.leisureShiftkey = true
     lastKeys.push modifiers(e, c)
     while lastKeys.length > maxLastKeys
       lastKeys.shift()
@@ -636,10 +637,16 @@ findKeyBinding = (e, parent, r)->
   setCurKeyBinding null
   [false]
 
+root.modCancelled = false
+root.currentMatch = null
+
 bindContent = (div)->
   fixupNodes div
   div.addEventListener 'mousedown', (e)-> setCurKeyBinding null
+  div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'keydown', (e)->
+    root.modCancelled = false
+    root.currentMatch = null
     c = (e.charCode || e.keyCode || e.which)
     if !addKeyPress e, c then return
     s = getSelection()
@@ -647,14 +654,14 @@ bindContent = (div)->
     el = r.startContainer
     par = el.parentNode
     [bound, checkMod] = findKeyBinding e, div, r
-    if bound then cancelled = !checkMod
+    if bound then root.modCancelled = !checkMod
     else
       checkMod = modifyingKey c, e
-      cancelled = false
+      root.modCancelled = false
     if !bound
       if c == TAB
         e.preventDefault()
-        cancelled = true
+        root.modCancelled = true
         collapseNode()
       else if String.fromCharCode(c) == 'C' && e.altKey
         root.orgApi.executeSource div, getSelection().focusNode
@@ -679,24 +686,27 @@ bindContent = (div)->
         inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
         if inCollapsedText && ((c == DEL && r.startOffset == el.length - 1) || (c == BS && r.startOffset == el.length))
           e.preventDefault()
-          cancelled = true
+          root.modCancelled = true
           el.data = el.data.substring 0, el.data.length - 1
           r.setStart el, el.data.length
           r.setEnd el, el.data.length
           selectRange r
         else if c == DEL && inCollapsedText && r.startOffset >= el.length - 1
           e.preventDefault()
-          cancelled = true
-        else if backspace div, e then cancelled = true
+          root.modCancelled = true
+        else if backspace div, e then root.modCancelled = true
         else if c != BS
           checkDeleteReparse div, c == BS
-    if !cancelled && checkMod
-      #if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
-      currentMatch = matchLine currentLine div
-      setTimeout (->checkSourceMod div, currentMatch), 1
+    if !root.modCancelled && checkMod
+      root.currentMatch = matchLine currentLine div
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
+
+handleKeyup = (div)-> (e)->
+  if !e.leisureShiftkey && !root.modCancelled
+    if modifyingKey (e.charCode || e.keyCode || e.which), e
+      root.orgApi.checkSourceMod div, root.currentMatch
 
 modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
   (47 < c < 58)          || # number keys
@@ -784,7 +794,10 @@ checkSourceMod = (parent, oldMatch)->
     switch n.getAttribute('data-org-results')?.toLowerCase()
       when 'dynamic' then root.orgApi.executeSource parent, focus
       #when 'def' then root.orgApi.executeDef n
-  edited focus
+  checkStructure focus
+
+checkStructure = (node)->
+  edited node
 
 escapeAttr = (str)->
   if typeof str == 'string' then str.replace /['"&]/g, (c)->
@@ -1262,6 +1275,7 @@ orgNotebook =
       for l in reparseListeners
         l parent, orgNode, orgText
       ), 1
+  checkSourceMod: checkSourceMod
 
 basicOrg =
   __proto__: orgNotebook
@@ -1317,6 +1331,7 @@ root.getTextPosition = getTextPosition
 root.isCollapsed = isCollapsed
 root.nextOrgId = nextOrgId
 root.modifyingKey = modifyingKey
+root.handleKeyup = handleKeyup
 root.getOrgParent = getOrgParent
 root.getOrgType = getOrgType
 root.executeText = executeText

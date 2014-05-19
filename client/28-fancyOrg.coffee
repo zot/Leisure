@@ -74,6 +74,7 @@ yaml = root.yaml
   isCollapsed,
   nextOrgId,
   modifyingKey,
+  handleKeyup,
   getOrgParent,
   getOrgType,
   executeText,
@@ -1019,11 +1020,14 @@ bindContent = (div)->
     if replaceUnrelatedPresenter e.target, emptyPresenter
       setCurKeyBinding null
   div.addEventListener 'keydown', handleKey div
+  div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
 
 handleKey = (div)->(e)->
+  root.modCancelled = false
+  root.currentMatch = null
   if e.target.getAttribute 'data-view-id' then return
   curPos = -1
   c = (e.charCode || e.keyCode || e.which)
@@ -1031,10 +1035,10 @@ handleKey = (div)->(e)->
   s = getSelection()
   r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
   [bound, checkMod] = findKeyBinding e, div, r
-  if bound then cancelled = !checkMod
+  if bound then root.modCancelled = !checkMod
   else
     checkMod = modifyingKey c, e
-    cancelled = false
+    root.modCancelled = false
   if String.fromCharCode(c) == 'C' && e.altKey
     root.orgApi.executeSource div, getSelection().focusNode
   else if !bound
@@ -1042,7 +1046,7 @@ handleKey = (div)->(e)->
       n = s.focusNode
       el = r.startContainer
       par = el.parentNode
-      currentMatch = matchLine currentLine div
+      root.currentMatch = matchLine currentLine div
       if c == ENTER
         e.preventDefault()
         if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
@@ -1058,18 +1062,11 @@ handleKey = (div)->(e)->
       else if c in [BS, DEL]
         if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
           e.preventDefault()
+          root.modCancelled = true
           return
         else if c == BS && bsWillDestroyParent r
           e.preventDefault()
           el.data = el.data.substring 1
-      else if el.nodeType == 3
-        setTimeout (->
-          fancyCheckSourceMod n, div, currentMatch, el
-        ), 1
-        return
-  if !cancelled && checkMod
-    #if (getOrgType getOrgParent el) == 'boundary' then needsReparse = true
-    setTimeout (->fancyCheckSourceMod n, div, currentMatch, (if el.nodeType == 1 then el.firstChild else el)), 1
 
 getCodeContainer = (node)->
   node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
@@ -1558,6 +1555,9 @@ fancyOrg =
     for node in $('.slideholder')
       if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
         $(node).addClass('hidden-slide')
+  checkSourceMod: (div, currentMatch)->
+    focus = getSelection().focusNode
+    fancyCheckSourceMod focus, div, currentMatch, (if focus.nodeType == 1 then focus.firstChild else focus)
 
 plainOrg.opposite = fancyOrg
 

@@ -87,15 +87,17 @@ orgPathRE = /^org:([^/]*)\/?(.*)$/
 keywordPropertyRE = /:([^ ]+)/
 
 matchLine = (txt)->
-  checkMatch(txt, srcStartRE, 'srcStart') ||
-  checkMatch(txt, srcEndRE, 'srcEnd') ||
-  checkMatch(txt, resultsRE, 'results') ||
-  checkMatch(txt, attrHtmlRE, 'attr') ||
-  checkMatch(txt, keywordRE, 'keyword') ||
-  checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].length}") ||
-  checkMatch(txt, listRE, 'list') ||
-  checkMatch(txt, htmlStartRE, 'htmlStart') ||
-  checkMatch(txt, htmlEndRE, 'htmlEnd')
+  if txt.match(simpleRE)?.index == 0 then false
+  else
+    checkMatch(txt, srcStartRE, 'srcStart') ||
+    checkMatch(txt, srcEndRE, 'srcEnd') ||
+    checkMatch(txt, resultsRE, 'results') ||
+    checkMatch(txt, attrHtmlRE, 'attr') ||
+    checkMatch(txt, keywordRE, 'keyword') ||
+    checkMatch(txt, headlineRE, (m)-> "headline-#{m[HL_LEVEL].length}") ||
+    checkMatch(txt, listRE, 'list') ||
+    checkMatch(txt, htmlStartRE, 'htmlStart') ||
+    checkMatch(txt, htmlEndRE, 'htmlEnd')
 
 checkMatch = (txt, pat, result)->
   m = txt.match pat
@@ -461,13 +463,14 @@ parseOrgChunk = (text, offset, level)->
   if !text then [null, text]
   else
     m = text.match headlineRE
-    if m?.index == 0
+    simple = text.match(simpleRE)?.index == 0
+    if m?.index == 0 && !simple
       if m[HL_LEVEL].length <= level then [null, text]
       else
         line = fullLine m, text
         parseHeadline line, offset, m[HL_LEVEL].length, m[HL_TODO], m[HL_PRIORITY], m[HL_TAGS], text.substring(line.length), offset + text.length
     else
-      meat = text.substring 0, if m then m.index else text.length
+      meat = text.substring 0, if m && !simple then m.index else text.length
       parseMeat meat, offset, text.substring meat.length
 
 class MeatParser
