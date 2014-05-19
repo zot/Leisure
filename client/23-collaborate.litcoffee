@@ -114,7 +114,7 @@ Handle changes to the doc nodes
           root.orgApi.updateBlock data
         else if attr.results?.toLowerCase() == 'def' && lang in ['js', 'javascript']
           eval codeString data
-        else if attr.results?.toLowerCase() == 'def' && lang == 'coffeescript'
+        else if attr.results?.toLowerCase() == 'def' && lang in ['coffeescript', 'coffee']
           CoffeeScript.run codeString data
         else if attr.results?.toLowerCase() == 'def' && lang == 'leisure'
           #root.orgApi.executeText codeString(data), {}, null, (->)

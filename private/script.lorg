@@ -54,44 +54,44 @@ number: 89
 #+END_SRC
 * Support code
 #+BEGIN_SRC javascript :results def
-Leisure.hookupImage = function(viewLink, data) {
-  var vl = $(viewLink);
+  Leisure.hookupImage = function(viewLink, data) {
+    var vl = $(viewLink);
 
-  var pos = vl.position();
-  var offset = vl.offset();
-  if (!viewLink.isDraggable) {
-    viewLink.isDraggable = true;
-    viewLink.style.position = 'absolute';
-    viewLink.style.zIndex = '100';
+    var pos = vl.position();
+    var offset = vl.offset();
+    if (!viewLink.isDraggable) {
+      viewLink.isDraggable = true;
+      viewLink.style.position = 'absolute';
+      viewLink.style.zIndex = '100';
 
-    vl.
-      offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top}).
-      draggable({
-        start: function() {viewLink.isDragging = true},
-        drag: function(event, ui) {queueDragUpdate(vl);},
-        stop: function() {
-         queueDragUpdate(vl);
-         setTimeout(function(){viewLink.isDragging = false}, 300)
-         return true;
-        },
-      });
-  } else if (!viewLink.isDragging) {
-    vl.offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top});
-  }
-}
-
-function queueDragUpdate(image) {
-  Templating.interactiveBatch(image.attr('data-view-id'), function(id) {
-    var data = root.currentDocument.findOne(id);
-
-    if (!data) console.log("NO DATA FOR DRAGGING IMAGE: " + id);
-    else {
-      var position = image.position();
-
-      data.yaml.left = position.left;
-      data.yaml.top = position.top;
-      Leisure.setData(id, data.yaml);
+      vl.
+        offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top}).
+        draggable({
+          start: function() {viewLink.isDragging = true},
+          drag: function(event, ui) {queueDragUpdate(vl);},
+          stop: function() {
+           queueDragUpdate(vl);
+           setTimeout(function(){viewLink.isDragging = false}, 300)
+           return true;
+          },
+        });
+    } else if (!viewLink.isDragging) {
+      vl.offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top});
     }
-  });
-}
+  }
+
+  function queueDragUpdate(image) {
+    Templating.interactiveBatch(image.attr('data-view-id'), function(id) {
+      var data = root.currentDocument.findOne(id);
+
+      if (!data) console.log("NO DATA FOR DRAGGING IMAGE: " + id);
+      else {
+        var position = image.position();
+
+        data.yaml.left = position.left;
+        data.yaml.top = position.top;
+        Leisure.setData(id, data.yaml);
+      }
+    });
+  }
 #+END_SRC

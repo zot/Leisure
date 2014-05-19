@@ -1558,7 +1558,7 @@ fixupHtml = (parent, note)->
   for node in findOrIs $(parent), '[data-org-html]'
     setShadowHtml node, node.innerHTML
     node.innerHTML = ''
-  for n in findOrIs findOrIs($(parent), "[data-lang='leisure']"), '[data-org-src]'
+  for node in findOrIs findOrIs($(parent), "[data-lang='leisure']"), '[data-org-src]'
     recreateAstButtons parent, node
   for node in findOrIs $(parent), '.resultscontent'
     reprocessResults node
