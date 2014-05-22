@@ -1,10 +1,13 @@
 * Short list -- screencast
+- allow total-reparse as an option
+- handle structural changes
+  - handle typing boilerplate in fancy mode
+- fix test cases
 - put value sliders in all code blocks
   - demo ability to make simple examples
   - data, template, and link that shows values changing
     - slide values in the data and the template
-- custom caret
-- menu bubble on selection/caret
+- kill box for source blocks
 - handle structural document changes
 - put Leisure code in connect 4
   - fix ast, etc
@@ -26,11 +29,9 @@
 - change "block.yaml" to "block.data"
 - go through old slides
 - fix floaty notes
-- fix test cases
 - use strict mode where possible
 - nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
 - error message for view or data not found (default contents of link)
-- kill box for source blocks
 ** TODO Bug when collaborating with fancy & plain
    :PROPERTIES:
    :ID:       0c9902c5-d885-4d99-8e9b-8d8830152c4f
@@ -39,6 +40,7 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- X menu bubble on selection/caret
 - show local version of local slide content in additional div in pain view
 - X alternate views org:bubbaObj/fredView
 - nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
@@ -86,6 +88,7 @@
     - X ":local: true" blocks are in the document, initialized for everyone, but stored locally
   - X head record contains unique ID
     - X reinitializes private document when it changes
+- custom caret -- this would require a total rework of text editing
 - investigate tail call optimization
   - [[https://github.com/glathoud/js.metaret]] [[http://glat.info/js.metaret/]]
   - https://github.com/dai-shi/continuation.js

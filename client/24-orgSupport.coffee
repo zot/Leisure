@@ -24,7 +24,7 @@ misrepresented as being the original software.
 
 #
 # editing principle:
-# You should only edit text which is visible
+# You should only be able to edit text you can see
 # i.e. backspace/delete/cut/replace should not delete any hidden text
 #
 
@@ -576,19 +576,19 @@ isDef = (org)-> resultsType(org) == 'def'
 orgSrcAttrs = (org)->
   "data-org-src='#{if isDef org then 'def' else if isDynamic org then 'dynamic' else 'example'}'"
 
-markupNode = (org, start)->
+markupNode = (org, start, inFragment)->
   if org instanceof Source || org instanceof Results
     #pos = org.contentPos - 1
     pos = org.contentPos
     text = org.text.substring pos
-    if org instanceof Source && org.lead().trim().toLowerCase() == 'yaml'
+    if org instanceof Source && org.getLanguage().toLowerCase() == 'yaml'
       data = getBlock (if org.shared then org else org.fragment).nodeId
       yaml = " data-yaml-type='#{escapeAttr data.yaml.type}'"
       if org.fragment
         {name} = getCodeItems org.fragment.children[0]
         if name then yaml += " data-yaml-name='#{escapeAttr name.info.trim()}'"
     else yaml = ''
-    "<span #{orgAttrs org}#{codeBlockAttrs org}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
+    "<span #{orgAttrs org}#{codeBlockAttrs org, inFragment}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else if org instanceof SimpleMarkup then markupSimple org
   else if org instanceof Fragment then markupFragment org
@@ -596,7 +596,11 @@ markupNode = (org, start)->
   else "<span #{orgAttrs org}>#{content org.text}</span>"
 
 markupFragment = (org)->
-  "<span #{orgAttrs org}>#{(markupNode child for child in org.children).join ''}</span>"
+  if org.shared == 'code'
+    {source} = getCodeItems org.children[0]
+    if lang = source.getLanguage() then fragAttr = " data-lang='#{lang}'"
+  else fragAttr = ''
+  "<span #{orgAttrs org}#{fragAttr}>#{(markupNode child, null, true for child in org.children).join ''}</span>"
 
 markupData = (org)->
   m = org.text.match /^[^\n]*\n([^\n]*)\n/
@@ -638,11 +642,13 @@ markupSimple = (org)->
     when 'code' then "<code>#{t}#{guts}#{t}</code>"
     when 'verbatim' then "<code>#{t}#{guts}#{t}</code>"
 
-codeBlockAttrs = (org)->
+codeBlockAttrs = (org, inFragment)->
+  if !inFragment && lang = org.getLanguage() then attrs = " data-lang='#{lang}'"
+  else attrs = ''
   while (org = org.prev) instanceof Meat
     if org instanceof Keyword && org.name.match /^name$/i
-      return " data-org-codeblock='#{escapeAttr org.info.trim()}'"
-  ''
+      return attrs + " data-org-codeblock='#{escapeAttr org.info.trim()}'"
+  attrs
 
 createResults = (srcNode)->
 
@@ -1161,7 +1167,7 @@ emptySlide = (id, slidePosition)-> root.orgApi.emptySlide id, slidePosition
 installOrgDOM = (parent, orgNode, orgText, target)->
   dumpTextWatchers()
   if target
-    result = $(orgText)
+    result = $(orgText)[0]
     $(target).replaceWith result
   else
     parent.innerHTML = orgText
@@ -1416,6 +1422,12 @@ blockText = (node)->
   text
 
 orgForNode = (node)->
+  org = suborgForNode node
+  org.linkNodes()
+  org.fixOffsets 0
+  org
+
+suborgForNode = (node)->
   org = parseOrgMode blockText node
   if !$(node).is('[data-org-headline="0"]')
     if org.children.length == 1 then org = org.children[0]
@@ -1424,8 +1436,7 @@ orgForNode = (node)->
     org.nodeId = node.id
     org.shared = $(node).attr 'data-shared'
   for child in orgChildrenForNode node
-    org.children.push orgForNode child
-  org.linkNodes()
+    org.children.push suborgForNode child
   org
 
 orgChildrenForNode = (node)->
@@ -1661,6 +1672,8 @@ root.dumpTextWatchers = dumpTextWatchers
 root.useText = useText
 root.markupData = markupData
 root.blockText = blockText
+root.blockElementForSelection = blockElementForSelection
+root.blockElementForNode = blockElementForNode
 root.orgForNode = orgForNode
 root.orgChildrenForNode = orgChildrenForNode
 root.emptySlide = emptySlide

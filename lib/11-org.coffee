@@ -136,11 +136,11 @@ class Node
   allProperties: -> @parent?.allProperties() ? {}
   linkTo: (@parent)->
   fixOffsets: (newOff)->
-    if @children then @fixChildrenOffsets newOff
+    @offset = newOff
+    if @children then @fixChildrenOffsets()
     else
-      @offset = newOff
       newOff + @text.length
-  fixChildrenOffsets: (newOffset)->
+  fixChildrenOffsets: ()->
     offset = @offset + @text.length
     for child in @children
       offset = child.fixOffsets offset
@@ -379,6 +379,7 @@ class Keyword extends Meat
 class Source extends Keyword
   constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info
   type: 'source'
+  getLanguage: -> @lead()?.trim()
   jsonDef: ->
     type: @type
     text: @text

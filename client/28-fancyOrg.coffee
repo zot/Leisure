@@ -107,6 +107,7 @@ yaml = root.yaml
   textNodeBefore,
   visibleTextNodeBefore,
   visibleTextNodeAfter,
+  blockElementForNode,
   PAGEUP,
   PAGEDOWN,
   HOME,
@@ -314,12 +315,12 @@ markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
     tag = (if middleOfLine then 'span' else 'div')
     "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
 
-isLeisure = (org)-> org instanceof Source && org.lead()?.trim().toLowerCase() == 'leisure'
+isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 'leisure'
 
 markupFragment = (org, delay, note)->
   if isCodeBlock org.children[0]
     {first, name, source, last} = getCodeItems org.children[0]
-    lang = (if l = source.lead()?.trim() then " data-lang='#{l}'" else '')
+    lang = (if l = source.getLanguage() then " data-lang='#{l}'" else '')
     if first == name then first = first.next
     if first == org.children[0] && !last.next
       prelude = ''
@@ -577,12 +578,12 @@ markupCode = (org, name, doctext, delay, inFragment)->
   [pre, src, post] = getSourceSegments name, org
   {name, source, results, expected, last} = getCodeItems(name || org)
   lastOrgOffset = last.offset
-  lang = org.lead()?.trim() || ''
+  lang = org.getLanguage() || ''
   if name
     n = escapeAttr name.info.trim()
     addAttr = " data-org-codeblock='#{n}'"
   else addAttr = ''
-  if !inFragment && (l = source.lead()?.trim())
+  if !inFragment && (l = source.getLanguage())
     addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
   "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span>#{escapeHtml pre}</span>#{Highlighting.highlight lang,  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
 
@@ -1590,7 +1591,7 @@ fixupHtml = (parent, note)->
     createEditToggleButton parent
     $(parent).find("button.create_note").remove()
     $("<button class='create_note' contenteditable='false'><i class='fa fa-file-text-o'></i></button>")
-      .insertBefore(findOrIs($(parent), '[data-org-headline="1"] .maincontent'))
+      .insertBefore(findOrIs($(parent), '[data-org-headline="1"]').find('.maincontent'))
       .children().find(':first-child')
       .click (e)->
         e.preventDefault()
@@ -1608,7 +1609,6 @@ getMainContent = (headline)->
 createEditToggleButton = (doc)->
   for node in getMainContent $(doc)
     id = if $(node).is '.maincontent' then node.parentElement.id else node.id
-    #setShadowHtml node, "<button onclick='Leisure.toggleEdit(\"#{id}\")'><i class='fa fa-glass'></i></button><content></content>"
     button = $("<button class='toggle_edit' contenteditable='false' onclick='Leisure.toggleEdit(\"#{id}\")'><i class='fa fa-glass'></i></button>")
     if $(node).is '.maincontent' then button.insertBefore(node)
     else $(node).prepend button
@@ -1624,12 +1624,12 @@ toggleEdit = (id)->
   else
     node.attr 'data-edit-mode', 'plain'
     mode = plainOrg
-  mode.reparse parent, null, node[0]
+  mode.reparse parent, orgForNode(node[0]), node[0]
   node = $("##{id}")
   node.attr 'data-edit-mode', mode.name
   if mode == plainOrg
     node.attr 'data-org-note', 'main'
-  createEditToggleButton node
+  if mode == root.plainOrg then createEditToggleButton node
 
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
