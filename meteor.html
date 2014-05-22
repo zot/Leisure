@@ -25,6 +25,9 @@
                 margin: auto;
                 height: 100%;
           }
+          .debug [data-shared] {
+                outline: solid green 2px;
+          }
         </style>
         <style id="cthulhu" class="theme">
                 @font-face
@@ -136,7 +139,7 @@
                         border: solid #f1c40f 2px;
                         background: #20451c;
                 }
-                .cthulhu .showcomments.comments div, .cthulhu.ast svg {
+                .cthulhu .showcomments.comments div, * /deep/ .cthulhu.ast svg {
                         border: solid #f1c40f 2px;
                         border-radius: 10px;
                         background: #20451c;
@@ -186,7 +189,7 @@
                 .cthulhu.bar_collapse #nextSlide, .cthulhu.bar_collapse #prevSlide {
                         top: 75px;
                 }
-                .cthulhu.page > .border {
+                * /deep/ .cthulhu.page > .border {
                         border-radius: 0;
                         background: url(images/cthulhu_rising_dark.jpg) repeat-y;
                 }
@@ -312,7 +315,7 @@
                 .googie .codeborder {
                         border: solid #666 8px;
                 }
-                .googie .showcomments.comments div, .googie.ast svg {
+                .googie .showcomments.comments div, * /deep/ .googie.ast svg {
                         border: solid rgb(56, 104, 194) 8px;
                         border-radius: 10px;
                         background: #4c8efb;
@@ -367,7 +370,7 @@
                 .googie.bar_collapse #nextSlide, .googie.bar_collapse #prevSlide {
                         top: 75px;
                 }
-                .googie.page > .border {
+                .googie /deep/ .page > .border {
                         border-radius: 0;
                         background: url(images/googie_background.png) repeat-y;
                 }
@@ -454,7 +457,7 @@
                         border: none;
                         border-radius: 0px;
                 }
-                .console .showcomments.comments div, .console.ast svg, .console .ui-tooltip {
+                .console .showcomments.comments div, * /deep/ .console.ast svg, .console .ui-tooltip {
                         border: solid #0f0 1px;
                         border-radius:0px;
                         background: linear-gradient(#010, #030);
@@ -475,11 +478,11 @@
                         font-family: Inconsolata;
                         font-size: large;
                 }
-                .console .partial-application {
+                .console /deep/ .partial-application {
                         background: #0c0;
                         color: black;
                 }
-                .console .sidebar_notes {
+                .console /deep/ .sidebar_notes {
                         background: #090;
                 }
                 .console :focus {
@@ -607,10 +610,11 @@
                 .steampunk.slides #dummy_headline {
                         height: 0px;
                 }
-                .steampunk .pagecontent {
+                .steampunk /deep/ .pagecontent {
                         margin-left: 100px;
                         padding: 120px 10px;
                         overflow: visible;
+                        width: calc(100% - 240px);
                 }
                 .steampunk [data-edit-mode='fancy'][data-org-headline='1'] {
                         margin-bottom: 0;
@@ -634,7 +638,7 @@
                         border: solid rgb(156, 122, 15) 2px;
                         background-color: #e6dcc3;
                 }
-                .steampunk.ast svg {
+                * /deep/ .steampunk.ast svg {
                         border: solid rgb(48, 36, 71) 2px;
                         background-color: #e6dcc3;
                  }
@@ -678,17 +682,18 @@
                         border-width: 46px;
                         border-image: url(images/clean_rivets_bkgnd.png) 46 46;
                 }
-                .steampunk .page > .border {
+                .steampunk /deep/ .page > .border {
                         border-radius: 0;
                         border-width: 193px 178px 193px 178px;
                         border-image: url(images/steampunk_border.png) 193 178 193 178;
                         background: url(images/steampunk_background-faded.jpg) border-box no-repeat 0% 0% / 100% 100%;
+                        background-color: #A58C4D;
                 }
-                .steampunk.currentSlide.page > .border {
+                .steampunk.currentSlide /deep/ .page > .border {
                         position: fixed;
                         top: 0px;
                 }
-                body.bar_collapse .steampunk.currentSlide.page > .border {
+                body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
                         top: 0px;
                 }
                 .steampunk.bar_collapse #nextSlide, .steampunk.bar_collapse #prevSlide {
@@ -839,8 +844,8 @@
                         border: none;
                         border-radius: 2px;
                 }
-                .steampunk .page {
-                        background-color: #A58C4D;
+                .steampunk /deep/ .page {
+                        /*background-color: #A58C4D;*/
                 }
                 .steampunk .results-indicator {
                         background: url(images/lightbulb.png) no-repeat 0% 0% / 100% 100%;
@@ -902,6 +907,41 @@
                         margin: 0;
                         font-size: large;
                         background: #CCCCCC;
+                }
+                #selectionBubble {
+                        display: none;
+                        -webkit-user-select: none;
+                        user-select: none;
+                        position: fixed;
+                        border-top-left-radius: 5px;
+                        border-bottom-right-radius: 5px;
+                        border: solid blue 2px;
+                        width: 5px;
+                        height: 5px;
+                        overflow: visible;
+                        background-color: yellow;
+                }
+                #selectionBubble > div {
+                        display: none;
+                        white-space: nowrap;
+                }
+                .selection #selectionBubble {
+                        display: inherit;
+                }
+                .selection #selectionBubble:hover > div {
+                        display: inline-block;
+                }
+                #selectionBubble a span {
+                        white-space: pre;
+                }
+                #selectionBubble a[aria-haspopup='true'] span::after {
+                        content: '    ';
+                }
+                #topCaretBox {
+                        display: inline-block;
+                        vertical-align: top;
+                        width: 0;
+                        height: 5px;
                 }
                 .org-fancy .syntaxhighlighter {
                         overflow: hidden !important;
@@ -1341,7 +1381,7 @@
                         left: 20px;
                         z-index: 1000;
                 }
-                .ast svg {
+                * /deep/ .ast svg {
                         position: relative;
                         top: 24px;
                         left: -300px;
@@ -1351,7 +1391,7 @@
                         border: solid black 2px;
                         border-radius: 10px;
                 }
-                .showcomments.ast {
+                * /deep/ .showcomments.ast {
                         display: inline-block;
                 }
 
@@ -1385,7 +1425,7 @@
                         color: #e74c3c;
                         position: relative;
                 }
-                .page > .border {
+                * /deep/ .page > .border {
                         top: 0;
                         bottom: 0;
                         left: 0;
@@ -1395,17 +1435,17 @@
                         border-radius: 10px;
                         z-index: -1;
                 }
-                .currentSlide.page > .border {
+                .currentSlide /deep/ .page > .border {
                         position: fixed;
                 }
-                .currentSlide > .border {
+                * /deep/ .currentSlide > .border {
                         border: none;
                 }
-                .pagecontent {
+                * /deep/ .pagecontent {
                         padding: 10px 10px;
                         overflow: visible;
                 }
-                .currentSlide .pagecontent {
+                .currentSlide /deep/ .pagecontent {
                         padding: 10px 100px 0px 10px;
                 }
                 .slides [data-edit-mode='fancy'][data-org-headline='1'] {
@@ -1562,7 +1602,7 @@
                 :focus {
                         outline: none;
                 }
-                .sidebar {
+                * /deep/ .sidebar {
 /*
                         float: right;
 */
@@ -1570,10 +1610,10 @@
                 [data-org-floats="true"] {
                         height: 0px;
                 }
-                .sidebarholder {
+                * /deep/ .sidebarholder {
                         vertical-align: top;
                 }
-                .sidebar.float {
+                * /deep/ .sidebar.float {
                         float: right;
                 }
                 [data-org-note-content] {
@@ -1589,12 +1629,18 @@
                         background: #FFFF66;
                         border: solid black 1px;
                 }
-                .sidebar_notes {
+                * /deep/ .sidebar_notes {
                         background: #FFFF66;
                         border: none;
                         padding: 10px;
                 }
-                .slides .create_note, .sidebar_notes .maincontent .create_note {
+                .toggle_edit,
+                .create_note {
+                        user-select: none;
+                }
+                .slides .toggle_edit,
+                .slides .create_note,
+                * /deep/ .sidebar_notes .maincontent .create_note {
                         display: none;
                 }
                 h2.note_drag_handle {
@@ -1610,20 +1656,20 @@
                 i.fa + div, i.fa + span {
                         padding-left: 10px;
                 }
-                .slideshadow {
+                * /deep/ .slideshadow {
                         width: 100%;
                 }
                 .slideholder {
                         position: relative;
                 }
-                .slidemain {
+                * /deep/ .slidemain {
                         vertical-align: top;
                 }
 /*
-                .slideshadowrow > td > * {
+                * /deep/ .slideshadowrow > td > * {
                         height: 100%;
                 }
-                .sidebar {
+                * /deep/ .sidebar {
                         position: relative;
                         width: 200px;
                 }
@@ -1640,15 +1686,15 @@
                 .flat .code-buttons {
                         background: linear-gradient(#666666, #333333);
                 }
-                .flat [data-edit-mode='fancy'] [data-org-src], .flat .coderesults, .flat #sourceblock, .flat .ui-tooltip-content, .flat .org-plain {
+                .flat [data-edit-mode='fancy'] [data-org-src], .flat .coderesults /deep/, .flat #sourceblock, .flat .ui-tooltip-content, .flat .org-plain {
                         font-family: Arial;
                 }
                 .flat.slides [data-edit-mode='fancy'][data-org-headline='1'] td > [data-org-type='text'] > [data-org-type='text-content'] {
                         color: white;
                 }
-                .flat [data-edit-mode='fancy'] [data-org-src], .flat .coderesults  {
+                .flat [data-edit-mode='fancy'] [data-org-src], .flat .coderesults /deep/ {
                         background: white;
-                        border-radius: 4px;
+                        border-radius: 4px1;
                         color: black;
                         border: none;
                 }
@@ -1681,10 +1727,10 @@
                         -webkit-user-select: none;
                         user-select: none;
                 }
-                .flat.page > .border {
+                .flat /deep/ .page > .border {
                         border: none;
                 }
-                .flat.ast svg {
+                * /deep/ .flat.ast svg {
                         border: none;
                         border-radius: 5px;
                         background: #2c3e50;
@@ -1761,14 +1807,14 @@
         </style>
         <style id="partial_application">
           /* styles for Leisure output */
-                .partial-application {
+                body /deep/ .partial-application {
                         display: inline-block;
                         border-radius: 5px;
                         border: black 2px solid;
                         background: lightgray;
                         font-weight: bold;
                 }
-                .resultsline > * {
+                body /deep/ .resultsline > * {
                         vertical-align: middle;
                         margin-bottom: 0.25em;
                 }
@@ -2014,4 +2060,6 @@
       <div id='source' style="white-space: pre-wrap;"></div>
     </div>
   </div>
+  <div id="selectionBubble" contenteditable='false'></div>
+  <div id="topCaretBox" contenteditable='false'></div>
 </body>

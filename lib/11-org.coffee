@@ -25,6 +25,10 @@ misrepresented as being the original software.
 #
 # Parse orgmode files
 #
+#
+# every node has a text property that contains only its text (including newline)
+# alText() gets its text, plus its childrens'
+#
 
 root = module?.exports ? {}
 

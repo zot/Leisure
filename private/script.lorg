@@ -53,45 +53,35 @@ number: 89
 </div>
 #+END_SRC
 * Support code
-#+BEGIN_SRC javascript :results def
-  Leisure.hookupImage = function(viewLink, data) {
-    var vl = $(viewLink);
+#+BEGIN_SRC coffee :results def
+Leisure.hookupImage = (viewLink, data)->
+  vl = $(viewLink)
+  pos = vl.position()
+  offset = vl.offset()
 
-    var pos = vl.position();
-    var offset = vl.offset();
-    if (!viewLink.isDraggable) {
-      viewLink.isDraggable = true;
-      viewLink.style.position = 'absolute';
-      viewLink.style.zIndex = '100';
+  if !viewLink.isDraggable
+    viewLink.isDraggable = true
+    viewLink.style.position = 'absolute'
+    viewLink.style.zIndex = '100'
+    vl
+      .offset left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top
+      .draggable
+        start: -> viewLink.isDragging = true
+        drag: (event, ui)-> dragUpdate vl; true
+        stop: ->
+         dragUpdate vl
+         setTimeout (-> viewLink.isDragging = false), 300
+         true
+  else if !viewLink.isDragging
+    vl.offset left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top
 
-      vl.
-        offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top}).
-        draggable({
-          start: function() {viewLink.isDragging = true},
-          drag: function(event, ui) {queueDragUpdate(vl);},
-          stop: function() {
-           queueDragUpdate(vl);
-           setTimeout(function(){viewLink.isDragging = false}, 300)
-           return true;
-          },
-        });
-    } else if (!viewLink.isDragging) {
-      vl.offset({left: data.left + offset.left - pos.left, top: data.top + offset.top - pos.top});
-    }
-  }
-
-  function queueDragUpdate(image) {
-    Templating.interactiveBatch(image.attr('data-view-id'), function(id) {
-      var data = root.currentDocument.findOne(id);
-
-      if (!data) console.log("NO DATA FOR DRAGGING IMAGE: " + id);
-      else {
-        var position = image.position();
-
-        data.yaml.left = position.left;
-        data.yaml.top = position.top;
-        Leisure.setData(id, data.yaml);
-      }
-    });
-  }
+dragUpdate = Lodash.throttle ((image)->
+  id = image.attr 'data-view-id'
+  data = Leisure.currentDocument.findOne id
+  if !data then console.log "NO DATA FOR DRAGGING IMAGE: " + id
+  else
+    position = image.position()
+    data.yaml.left = position.left
+    data.yaml.top = position.top
+    Leisure.setData id, data.yaml), 200
 #+END_SRC

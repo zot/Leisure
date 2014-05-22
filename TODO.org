@@ -1,8 +1,16 @@
 * Short list -- screencast
+- put value sliders in all code blocks
+  - demo ability to make simple examples
+  - data, template, and link that shows values changing
+    - slide values in the data and the template
+- custom caret
+- menu bubble on selection/caret
+- handle structural document changes
 - put Leisure code in connect 4
   - fix ast, etc
-- nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
+- check out [[http://prismjs.com/]] syntax highlighting
 - script screencast -- screencast.lorg
+- post to blog and give link to orgmode people
 - collaboration
   - presence
     - show connected users
@@ -10,7 +18,7 @@
   - spawn document copy
     - X temporary ones which disappear when the last user disconnects
     - permanent copies, for private groups
-  - multple documents in a session
+  - multiple documents in a session
   - react to adds/changes/removes of widget types (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)
 - dropping an image should insert a link + data block
@@ -19,6 +27,10 @@
 - go through old slides
 - fix floaty notes
 - fix test cases
+- use strict mode where possible
+- nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
+- error message for view or data not found (default contents of link)
+- kill box for source blocks
 ** TODO Bug when collaborating with fancy & plain
    :PROPERTIES:
    :ID:       0c9902c5-d885-4d99-8e9b-8d8830152c4f
@@ -74,6 +86,9 @@
     - X ":local: true" blocks are in the document, initialized for everyone, but stored locally
   - X head record contains unique ID
     - X reinitializes private document when it changes
+- investigate tail call optimization
+  - [[https://github.com/glathoud/js.metaret]] [[http://glat.info/js.metaret/]]
+  - https://github.com/dai-shi/continuation.js
 - X JavaScript and CoffeeScript src blocks
   - Make headline properties/tags available to code blocks
 - Compilable notebooks

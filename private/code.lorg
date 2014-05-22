@@ -1,0 +1,25 @@
+* slide
+Simple test
+#+BEGIN_SRC leisure :results dynamic
+3+4
+#+END_SRC
+#+RESULTS:
+: 7
+
+Some fun with infinite streams
+#+BEGIN_SRC leisure :results dynamic
+take 5 ones
+take 5 naturals
+take 5 (filter even naturals)
+#+END_SRC
+#+RESULTS:
+: [1 1 1 1 1]
+: [1 2 3 4 5]
+: [2 4 6 8 10]
+
+#+BEGIN_SRC leisure :results def
+ones = [1 | ones]
+increasing x = [x | increasing x + 1]
+naturals = increasing 1
+even x = (x % 2) == 0
+#+END_SRC

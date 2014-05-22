@@ -22,6 +22,12 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
+#
+# editing principle:
+# You should only edit text which is visible
+# i.e. backspace/delete/cut/replace should not delete any hidden text
+#
+
 {
   delay,
 } = require '10-namespace'
@@ -56,6 +62,7 @@ lz = lazy
 {
   orgDoc,
   getCodeItems,
+  lineCodeBlockType,
 } = require '12-docOrg'
 {
   escapeHtml,
@@ -160,6 +167,93 @@ initOrg = (parent, source)->
       #b.attr 'href', "http://google.com"
   (root.currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
   Leisure.initStorage '#login', '#panel', root.currentMode
+  installSelectionMenu()
+  monitorSelectionChange()
+
+selectionActive = true
+topCaretBox = null
+
+updateSelection = Lodash.throttle (-> actualSelectionUpdate()), 30,
+  leading: true
+  trailing: true
+
+actualSelectionUpdate = ->
+  if selectionActive
+    s = getSelection()
+    if s.rangeCount == 1
+      range = s.getRangeAt(0)
+      rects = range.getClientRects()
+      if rects.length > 0
+        right = 0
+        top = Number.MAX_SAFE_INTEGER
+        for r in rects
+          right = Math.max r.right, right
+          top = Math.min r.top, top
+        if b = detectActualLineHeight range
+          top = Math.min b.top, top
+        bubble = $("#selectionBubble")[0]
+        bubble.style.left = "#{right}px"
+        bubble.style.top = "#{top - bubble.offsetHeight}px"
+        $(document.body).addClass 'selection'
+        return
+    $(document.body).removeClass 'selection'
+  else $(document.body).removeClass 'selection'
+
+detectActualLineHeight = (range)->
+  if range.startContainer != topCaretBox
+    el = range.startContainer
+    if range.startOffset == 0
+      $(el).before topCaretBox
+    else
+      if range.startOffset < range.startContainer.length
+        el.splitText range.startOffset
+      $(el).after topCaretBox
+      range.setStart textNodeAfter(el.nextSibling), 0
+      range.collapse true
+      s = getSelection()
+      s.removeAllRanges()
+      s.addRange range
+  r = topCaretBox.getClientRects()[0]
+  $(topCaretBox).remove()
+  r
+
+installSelectionMenu = ->
+  $("#selectionBubble")
+    .html selectionMenu
+    .on 'mouseenter', -> root.orgApi.configureMenu $("#selectionBubble ul")
+  $("#selectionBubble ul").menu select: (event, ui)-> console.log "MENU SELECT"; false
+
+selectionMenu = """
+<div>
+<ul>
+  <li name='insert'><a href='javascript:void(0)'><span>Insert</span></a>
+    <ul>
+      <li><a href='javascript:void(0)'><span>Leisure</span></a></li>
+      <li><a href='javascript:void(0)'><span>YAML</span></a></li>
+      <li><a href='javascript:void(0)'><span>HTML</span></a></li>
+      <li><a href='javascript:void(0)'><span>CoffeeScript</span></a></li>
+      <li><a href='javascript:void(0)'><span>JavaScript</span></a></li>
+    </ul>
+  </li>
+</ul>
+</div>
+"""
+
+configureMenu = (menu)->
+  console.log "configure menu"
+  bl = if el = blockElementForSelection() then getBlock el.id
+  if bl?.type != 'chunk'
+    menu.find("[name='insert']").addClass 'ui-state-disabled'
+  else
+    menu.find("[name='insert']").removeClass 'ui-state-disabled'
+
+monitorSelectionChange = ->
+  $(document).on 'selectionchange', updateSelection
+  $(window).on 'scroll', updateSelection
+  $(window).on 'blur focus', (e)->
+    selectionActive = (e.type == 'focus')
+    updateSelection()
+  root.topCaretBox = topCaretBox = $('#topCaretBox')[0]
 
 toggleShowHidden = ->
   body = $(document.body)
@@ -174,6 +268,7 @@ applyShowHidden = ->
     $('#hide-show-button').tooltip().tooltip('option', 'content', 'Click to show hidden slides')
     $('#hide-show-button').addClass('fa-eye-slash').removeClass('fa-eye')
   root.orgApi.applyShowHidden()
+  actualSelectionUpdate()
 
 saveFile = (fileInput)->
   if file = fileInput.files[0]
@@ -226,7 +321,7 @@ findCharForColumn = (node, col, start, end)->
 
 rectFor = (node)->
   r = document.createRange()
-  if node.nodeType == 3 && node.data[node.length - 1] == '\n'
+  if node.nodeType == Node.TEXT_NODE && node.data[node.length - 1] == '\n'
     r.setStart node, 0
     r.setEnd node, node.length - 1
   else r.selectNode node
@@ -289,6 +384,7 @@ moveSelectionDown = (parent, r, start)->
         end = container.data.indexOf '\n'
         if end == -1 then end = container.length
         if findCharForColumn container, movementGoal, 0, end then return
+  actualSelectionUpdate()
 
 nextVisibleNewline = (textNode, offset)->
   scanForward textNode, -1, (whenNotCollapsed (node)-> node.data.indexOf '\n', offset + 1), whenNotCollapsed (node)-> node.data.indexOf '\n'
@@ -303,27 +399,26 @@ scanForward = (textNode, falseValue, firstBlock, block)->
     if textNode then [textNode, val] else []
 
 moveSelectionFB = (parent, r, start, delta)->
-  r.collapse start
+  r.collapse delta < 0
   node = r.startContainer
-  if delta > 0 && (r.startOffset < node.length - 1 || (r.startOffset == node.length - 1 && node.data[node.length - 1] == '\n' && !isCollapsed textNodeAfter node)) then r.setStart node, r.startOffset + 1
-  else if delta < 0 && r.startOffset > 0 then r.setStart node, r.startOffset - 1
-  else if delta < 0 && r.startOffset == 0 && !isCollapsed (b = textNodeBefore node)
-    r.setStart b, b.length - 1
-  else
-    move = (if delta < 0 then textNodeBefore else textNodeAfter)
-    eatFirst = delta > 0 && node.length == r.startOffset
-    while node
-      node = move node
-      if eatFirst && !isCollapsed(node) && node.data[0] == '\n' && node.length == 1
-        eatFirst = false
-      else if !isCollapsed node then break
-    if !node then return
-    newOffset = (if eatFirst then 1 else if delta > 0 then 0 else node.length - 1)
-    r.setStart node, newOffset
+  newOffset = r.startOffset + delta
+  if newOffset < 0
+    while node = textNodeBefore node
+      if !isCollapsed node then break
+    if node then r.setStart node, node.length - 1
+  else if newOffset >= r.startContainer.length
+    while node = textNodeAfter node
+      if !isCollapsed node then break
+    if node then r.setStart node, 0
+  else r.setStart node, newOffset
+  if r.startOffset > 0
+    el = r.startContainer.splitText r.startOffset
+    r.setStart el, 0
   r.collapse true
   if parent.compareDocumentPosition(r.startContainer) & Node.DOCUMENT_POSITION_CONTAINED_BY
     selectRange r
     r.startContainer.parentNode.scrollIntoViewIfNeeded()
+  actualSelectionUpdate()
 
 # functions return whether to check for mods
 keyFuncs =
@@ -350,7 +445,7 @@ keyFuncs =
   expandTemplate: (e, parent, r)->
     e.preventDefault()
     txt = r.startContainer
-    if r.collapsed && txt.nodeType == 3 && ((r.startOffset > 2 && txt.data[r.startOffset - 3] == '\n') || (r.startOffset == 2 && followsNewline txt))
+    if r.collapsed && txt.nodeType == Node.TEXT_NODE && ((r.startOffset > 2 && txt.data[r.startOffset - 3] == '\n') || (r.startOffset == 2 && followsNewline txt))
       str = txt.data.substring r.startOffset - 2, r.startOffset
       if exp = templateExpansions[str]
         start = r.startOffset
@@ -421,9 +516,10 @@ isCollapsed = (node)->
     type = node.nodeType
     type == 7 || # PROCESSING_INSTRUCTION
     type == 8 || # COMMENT
-    (type == 3 && (node.data == '' || isCollapsed(node.parentNode))) ||
+    (type == Node.TEXT_NODE && (node.data == '' || isCollapsed(node.parentNode))) ||
     /^(script|style)$/i.test(node.nodeName) ||
-    (type == 1 && (node.offsetWidth == 0 || node.offsetHeight == 0))
+    #(type == Node.ELEMENT_NODE && (node.offsetWidth == 0 || node.offsetHeight == 0))
+    (type == Node.ELEMENT_NODE && node.offsetHeight == 0)
   else false
 
 markupOrg = (text)->
@@ -482,7 +578,8 @@ orgSrcAttrs = (org)->
 
 markupNode = (org, start)->
   if org instanceof Source || org instanceof Results
-    pos = org.contentPos - 1
+    #pos = org.contentPos - 1
+    pos = org.contentPos
     text = org.text.substring pos
     if org instanceof Source && org.lead().trim().toLowerCase() == 'yaml'
       data = getBlock (if org.shared then org else org.fragment).nodeId
@@ -580,7 +677,7 @@ fixupNodes = (node)->
   for n in $(node).find('[data-org-type="headline"]')
     setTags n
 
-isCollapsibleText = (node)-> node.nodeType == 3 && node.parentNode.getAttribute('data-org-type') in ['text', 'meat']
+isCollapsibleText = (node)-> node.nodeType == Node.TEXT_NODE && node.parentNode.getAttribute('data-org-type') in ['text', 'meat']
 
 shiftKey = (c)-> 15 < c < 19
 
@@ -650,8 +747,10 @@ bindContent = (div)->
     c = (e.charCode || e.keyCode || e.which)
     if !addKeyPress e, c then return
     s = getSelection()
-    r = s.getRangeAt(0)
+    r = s.rangeCount > 0 && s.getRangeAt(0)
+    root.currentBlock = blockElementForSelection s, r
     el = r.startContainer
+    root.modified = el
     par = el.parentNode
     [bound, checkMod] = findKeyBinding e, div, r
     if bound then root.modCancelled = !checkMod
@@ -682,31 +781,125 @@ bindContent = (div)->
           br.parentNode.normalize()
         r.collapse()
         selectRange r
-      else if c in [DEL, BS]
-        inCollapsedText = r.collapsed && isCollapsibleText el && par.parentElement.classList.contains('collapsed') && el.nextSibling == null
-        if inCollapsedText && ((c == DEL && r.startOffset == el.length - 1) || (c == BS && r.startOffset == el.length))
-          e.preventDefault()
-          root.modCancelled = true
-          el.data = el.data.substring 0, el.data.length - 1
-          r.setStart el, el.data.length
-          r.setEnd el, el.data.length
-          selectRange r
-        else if c == DEL && inCollapsedText && r.startOffset >= el.length - 1
-          e.preventDefault()
-          root.modCancelled = true
-        else if backspace div, e then root.modCancelled = true
-        else if c != BS
-          checkDeleteReparse div, c == BS
+      else if c == BS then backspace div, e, s, r
+      else if c == DEL then del div, e, s, r
     if !root.modCancelled && checkMod
-      root.currentMatch = matchLine currentLine div
+      #root.currentMatch = matchLine currentLine div
+      root.currentMatch = lineCodeBlockType currentLine div
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true
   div.addEventListener 'DOMSubtreeModified', handleMutation, true
   displaySource()
 
+backspace = (parent, event, sel, r)->
+  event.preventDefault()
+  if sel.type == 'Caret'
+    r.startContainer.parentNode.normalize()
+    # get new range in case normalization changed it
+    r = sel.getRangeAt 0
+    if r.startOffset == 0
+      if t = textNodeBefore r.startContainer
+        if isCollapsed(t) || afterBlockBorder r then return
+        if t && parent.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_CONTAINED_BY
+          root.currentMatch = lineCodeBlockType lineForRange t, t.length - 1
+          if t.length == 1
+            root.modified = r.startContainer
+            $(t).remove()
+          else
+            root.modified = t
+            t.data = t.data.substring 0, t.length - 1
+            r.startOffset = r.startOffset - 1
+            setCaret r
+    else # currently, this should never happen
+      console.log "deleting in the middle of a text node?"
+      t = r.startContainer
+      txt = t.data.substring(0, r.startOffset - 1)
+      if r.startOffset < t.length then txt += t.data.substring r.startOffset
+      t.data = txt
+      r.setStart t, r.startOffset - 1
+      if t.data == ''
+        n = visibleTextNodeAfter t, 0
+        r.setStart n, 0
+        root.modified = n
+        $(t).remove()
+      else root.modified = r.startContainer
+      setCaret r
+
+del = (parent, event, sel, r)->
+  event.preventDefault()
+  if sel.type == 'Caret'
+    if r.startContainer.nodeType != Node.TEXT_NODE
+      console.log "NOT A TEXT NODE"
+    r.startContainer.parentNode.normalize()
+    # get new range in case normalization changed it
+    r = sel.getRangeAt 0
+    root.modified = t = r.startContainer
+    next = textNodeAfter t
+    chooseNext = false
+    if r.startOffset == t.length - 1
+      if t.data[r.startOffset] == '\n'
+        console.log 'newline'
+      if t.data[r.startOffset] == '\n' && (isCollapsed(next) || beforeBlockBorder r)
+        return root.modCancelled = true
+    if r.startOffset == 0
+      if t.length == 1
+        $(t).remove()
+        root.modified = next
+        r.setStart next, 0
+      else t.data = t.data.substring 1
+    else # currently, this should never happen
+      t.data = t.data.substring(0, r.startOffset) + t.data.substring r.startOffset + 1
+    if r.startOffset == t.length
+      if isCollapsed next then next = visibleTextNodeAfter next
+      r.setStart next, 0
+    setCaret r
+
+beforeBlockBorder = (r)->
+  t = r.startContainer
+  next = textNodeAfter t
+  r.collapsed &&
+  t.nodeType == Node.TEXT_NODE &&
+  r.startOffset == t.length - 1 &&
+  next &&
+  blockElementForNode(t) != blockElementForNode(next)
+
+afterBlockBorder = (r)->
+  t = r.startContainer
+  prev = textNodeBefore t
+  r.collapsed &&
+  t.nodeType == Node.TEXT_NODE &&
+  r.startOffset == 0 &&
+  prev &&
+  blockElementForNode(t) != blockElementForNode(prev)
+
+setCaret = (r)->
+  sel = getSelection()
+  r.collapse true
+  sel.removeAllRanges()
+  sel.addRange r
+  actualSelectionUpdate()
+
+blockElementForSelection = (sel, r)->
+  if !sel then sel = getSelection()
+  if !r then r = sel.rangeCount == 1 && sel.getRangeAt 0
+  else if sel.rangeCount != 1 then return null
+  r?.collapsed && $(r.startContainer).closest('[data-shared]')[0]
+
+blockElementForNode = (node)-> $(node).closest('[data-shared]')[0]
+
 handleKeyup = (div)-> (e)->
   if !e.leisureShiftkey && !root.modCancelled
     if modifyingKey (e.charCode || e.keyCode || e.which), e
-      root.orgApi.checkSourceMod div, root.currentMatch
+      if (t = root.checkNewline) && t.data[t.length - 1] != '\n' && noFollowingText t
+        t.data += '\n'
+        r = document.createRange()
+        r.setStart t, t.length - 1
+        setCaret r
+      root.orgApi.checkSourceMod div
+
+noFollowingText = (t)->
+  next = t.nextSibling
+  if next == topCaretBox then next = next.nextSibling
+  !(next && next.nodeType == Node.TEXT_NODE)
 
 modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
   (47 < c < 58)          || # number keys
@@ -718,30 +911,30 @@ modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
   (218 < c < 223)          # [\]' (in order)
   )
 
-currentLine = (parent)->
-  r = getSelection().getRangeAt(0)
-  if r.collapsed && r.startContainer.nodeType == 3
-    nl = r.startContainer.data.substring(0, r.startOffset).lastIndexOf '\n'
-    lineText = r.startContainer.data
-    lineStart = -1
-    lineEnd = -1
-    if -1 < nl < r.startOffset then lineStart = nl
+lineForRange = (node, offset)->
+  lineText = node.data
+  lineEnd = -1
+  if (lineStart = node.data.substring(0, offset).lastIndexOf '\n') == -1
+    while node && lineStart == -1
+      if node = textNodeBefore node
+        lineText = node.data + lineText
+        lineStart = node.data.lastIndexOf '\n'
+  if node
+    nl = node.data.indexOf '\n', offset
+    if nl >= offset then lineEnd = nl + lineText.length - node.data.length
     else
-      node = r.startContainer
-      while node && lineStart == -1
-        if node = textNodeBefore node
-          lineText = node.data + lineText
-          lineStart = node.data.lastIndexOf '\n'
-    nl = r.startContainer.data.indexOf '\n', r.startOffset
-    if nl >= r.startOffset then lineEnd = nl + lineText.length - r.startContainer.data.length
-    else
-      node = r.startContainer
       while node && lineEnd == -1
         if node = textNodeAfter node
           lineText += node.data
-          if (nl = node.data.indexOf '\n') > -1 then lineEnd = nl + lineText.length - r.startContainer.data.length
+          if (nl = node.data.indexOf '\n') > -1 then lineEnd = nl + lineText.length - node.data.length
     if lineEnd == -1 then lineEnd = lineText.length
     lineText.substring lineStart + 1, lineEnd
+  else ''
+
+currentLine = (parent)->
+  s = getSelection()
+  if s.type = "Caret" && (r = s.getRangeAt(0)) && r.startContainer.nodeType == Node.TEXT_NODE
+    lineForRange r.startContainer, r.startOffset
   else ''
 
 collapseNode = ->
@@ -755,13 +948,7 @@ collapseNode = ->
     else status "EMPTY ENTRY"
 
 #isBoundary = (node)->
-#  (node.nodeType == 1 && node.getAttribute('data-org-type') == 'boundary' && node) || (node.nodeType == 3 && isBoundary node.parentElement)
-
-backspace = (parent, e)->
-  if checkCollapsed -1
-    e.preventDefault()
-    true
-  else false
+#  (node.nodeType == Node.ELEMENT_NODE && node.getAttribute('data-org-type') == 'boundary' && node) || (node.nodeType == Node.TEXT_NODE && isBoundary node.parentElement)
 
 #checkCollapsed = (delta)->
 #  s = rangy.getSelection()
@@ -784,20 +971,85 @@ checkCollapsed = (delta)->
   node = getSelection().focusNode
   node && (isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) node)
 
-checkSourceMod = (parent, oldMatch)->
-  focus = getSelection().focusNode
-  #r = getSelection().getRangeAt 0
-  #n = getOrgParent r.startContainer
-  #if (newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive) then reparse parent
-  #else if $(r.startContainer).closest('[data-org-src]').length && n = getOrgParent r.startContainer
-  if !((newMatch = matchLine(currentLine parent)) != oldMatch || (newMatch && newMatch.match sensitive)) && $(focus).closest('[data-org-src]').length && n = getOrgParent focus
-    switch n.getAttribute('data-org-results')?.toLowerCase()
-      when 'dynamic' then root.orgApi.executeSource parent, focus
-      #when 'def' then root.orgApi.executeDef n
-  checkStructure focus
+checkSourceMod = ->
+  if (s = getSelection()).type == 'Caret' && mod = s.getRangeAt(0).startContainer
+    bl = root.currentBlock
+    if bl.attr('data-lang') == 'leisure' && isParentOf(bl[0], mod) && bl.find '[data-org-src="dynamic"]'
+      root.orgApi.executeSource bl[0], mod
+    checkStructure mod
+
+isParentOf = (parent, child)-> parent.compareDocumentPosition(child) & Node.DOCUMENT_POSITION_CONTAINED_BY
+
+isSensitive = (type)-> typeof type == 'string' && type.match(sensitive)
 
 checkStructure = (node)->
-  edited node
+  if node
+    #sel = getSelection()
+    #r = sel.rangeCount == 1 && sel.getRangeAt(0)
+    #if root.currentBlock && r.collapsed
+    #  els = [root.currentBlock]
+    #  blocks = [getBlock root.currentBlock.id]
+    #  checkBlockShift els, blocks, blockElementForSelection sel, r
+    #  text = (blockText el for el in els).join ''
+    #  newBlocks = orgDoc parseOrgMode text
+    #  if attemptMerge blocks[0].prev, newBlocks[0], true then newBlocks.shift()
+    #  if newBlocks.length && attemptMerge newBlocks[newBlocks.length - 1], blocks[blocks.length - 1].next then newBlocks.pop()
+    #  if same = (newBlocks.length == blocks.length)
+    #    for i in [0..blocks.length]
+    #      if blocks[i] != newBlocks[i]
+    #        same = false
+    #        break
+    #  if !same
+    #    console.log "DIFFERENT BLOCK TYPES -- REMAPPING"
+    #    remapBlocks blocks, newBlocks
+    edited node
+
+checkBlockShift = (els, blocks, newBlockElement)->
+  if newBlockElement != root.currentBlock
+    newBlock = getBlock newBlockElement.id
+    if newBlock.prev = blocks[0]._id
+      blocks.push newBlock
+      els.push newBlockElement
+    else
+      blocks.unshift newBlock
+      els.unshift newBlockElement
+
+attemptMerge = (a, b, mergeToA)->
+  if a && b
+    if mergeToA then a = getBlock a else b = getBlock b
+    if (newBlock = orgDoc parseOrgMode a.text + b.text).length == 1
+      console.log "MERGE INTO #{(if mergeToA then a else b)._id}"
+      return true
+  false
+
+#
+# scan top to bottom and bottom to top
+# try to find the best fit for the new blocks
+#
+remapBlocks = (oldBlocks, newBlocks)->
+  if !newBlocks.length then console.log "BLOCKS ALL MERGED AWAY"
+  else
+    if newBlocks.length < oldBlocks.length then console.log "SOME BLOCKS MERGED AWAY"
+    else if newBlocks.length > oldBlocks.length then console.log "ADDITIONAL BLOCKS"
+    topToBottom = 0
+    bottomToTop = 0
+    pos = 0
+    for block in oldBlocks
+      if pos >= newBlocks.length then break
+      if block.type != 'chunk' && newBlocks[pos].type == 'chunk'
+        if ++pos >= newBlocks.length then break
+      if block.type == newBlocks[pos].type then topToBottom++
+      pos++
+    pos = newBlocks.length - 1
+    for blockPos in [oldBlocks.length - 1 .. 0] by -1
+      block = oldBlocks[blockPos]
+      if pos < 0 then break
+      if block.type != 'chunk' && newBlocks[pos].type == 'chunk'
+        if --pos < 0 then break
+      if block.type == newBlocks[pos].type then bottomToTop++
+      pos--
+    if topToBottom >= bottomToTop then console.log "CHOOSING TOP TO BOTTOM MAPPING"
+    else console.log "CHOOSING BOTTOM TO TOP MAPPING"
 
 escapeAttr = (str)->
   if typeof str == 'string' then str.replace /['"&]/g, (c)->
@@ -999,7 +1251,7 @@ followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(n
 # 3) the text node does not end in a newline
 # 4) the text node is at the end of the editable container
 checkExtraNewline = (range, n, parent)->
-  if range.collapsed && n.nodeType == 3 && range.startOffset == n.length && n.textContent[n.length - 1] != '\n' then checkLast n, parent
+  if range.collapsed && n.nodeType == Node.TEXT_NODE && range.startOffset == n.length && n.textContent[n.length - 1] != '\n' then checkLast n, parent
   else '\n'
 
 checkLast = (n, parent)->
@@ -1037,12 +1289,12 @@ displaySource = -> $(sourceDiv).html('').text($(editDiv).text())
 isCollapsible = (node)-> node.getAttribute('data-org-type') in ['headline', 'source', 'results']
 
 getCollapsible = (node)->
-  if node.nodeType == 1
+  if node.nodeType == Node.ELEMENT_NODE
     if isCollapsible node then node
     else (node.getAttribute('data-org-type') in ['text', 'meat']) && getCollapsible node.parentElement
-  else node.nodeType == 3 && getCollapsible node.parentElement
+  else node.nodeType == Node.TEXT_NODE && getCollapsible node.parentElement
 
-getOrgParent = (node)-> node && ((node.nodeType == 1 && isCollapsible(node) && node) || getOrgParent node.parentElement)
+getOrgParent = (node)-> node && ((node.nodeType == Node.ELEMENT_NODE && isCollapsible(node) && node) || getOrgParent node.parentElement)
 
 isEmptyCollapsible = (node)->
   firstLine = getTextLine node
@@ -1068,14 +1320,14 @@ getTextPosition = (node, target, pos)->
     offset = 0
     childPos = 0
     limit = switch target.nodeType
-      when 1
+      when Node.ELEMENT_NODE
         if pos + 1 < target.childNodes.length then target.childNodes[pos + 1] else nodeAfterNoChildren target
-      when 3 then target
+      when Node.TEXT_NODE then target
       else nodeAfter node
     while node && node != limit
-      if node.nodeType == 3 then offset += node.data.length
+      if node.nodeType == Node.TEXT_NODE then offset += node.data.length
       node = nodeAfter node
-    if target.nodeType == 3 then offset + pos else offset
+    if target.nodeType == Node.TEXT_NODE then offset + pos else offset
   else -1
 
 countCharactersIn = (node)-> countCharactersFrom node, nodeAfterNoChildren node
@@ -1083,30 +1335,49 @@ countCharactersIn = (node)-> countCharactersFrom node, nodeAfterNoChildren node
 countCharactersFrom = (start, end)->
   total = 0
   while start && start != end
-    if start.nodeType == 3 then total += start.data.length
+    if start.nodeType == Node.TEXT_NODE then total += start.data.length
     start = nodeAfter start
   if start == end then total else -1
 
-findDomPosition = (node, pos)->
+findDomPosition = (node, pos, contain)->
   parent = node
   while node
-    if node.nodeType == 3
+    if node.nodeType == Node.TEXT_NODE
       if pos < node.length
         n = node
         while n != parent && n != null
           n = n.parentNode
-        return if n == null then [null, null] else [node, pos]
+        return if n == null then noDomPosition parent, contain else [node, pos]
       pos -= node.length
     node = textNodeAfter node
-  [null, null]
+  noDomPosition parent, contain
+
+noDomPosition = (parent, contain)->
+  if contain
+    n = lastTextChild parent
+    [n, n && n.data.length]
+  else [null, null]
 
 # get the next node in the preorder traversal, disregarding the node's children
 nodeAfterNoChildren = (node)-> nodeAfter node, true
 
+# get the last child of a node
+lastChild = (node)->
+  if child = node.lastChild
+    while child.nodeType == Node.ELEMENT_NODE && child.lastChild
+      child = child.lastChild
+  child
+
+lastTextChild = (node)->
+  if (ch = node.lastChild) && ch.nodeType != Node.TEXT_NODE
+    ch = textNodeBefore ch
+    if !(node.compareDocumentPosition(ch) & Node.DOCUMENT_POSITION_CONTAINED_BY) then ch = null
+  ch
+
 # get the next node in the preorder traversal, starting with the node's children
 nodeAfter = (node, up)->
   while node
-    if node.nodeType == 1 && !up && node.childNodes.length then return node.childNodes[0]
+    if node.nodeType == Node.ELEMENT_NODE && !up && node.childNodes.length then return node.childNodes[0]
     else if node.nextSibling then return node.nextSibling
     else
       up = true
@@ -1116,7 +1387,7 @@ nodeAfter = (node, up)->
 filteredNodeAfter = (node, director)->
   rejected = false
   while node
-    if !rejected && !up && node.nodeType == 1 && node.childNodes.length
+    if !rejected && !up && node.nodeType == Node.ELEMENT_NODE && node.childNodes.length
       node = node.childNodes[0]
     else if node.nextSibling
       up = false
@@ -1139,9 +1410,9 @@ blockText = (node)->
   end = nodeAfter node, true
   text = ''
   while node != end
-    if node.nodeType == 3 then text += node.data
+    if node.nodeType == Node.TEXT_NODE then text += node.data
     node = nodeAfter node
-    if node?.nodeType == 1 && node.hasAttribute 'data-shared' then break
+    if node?.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-shared' then break
   text
 
 orgForNode = (node)->
@@ -1162,14 +1433,10 @@ orgChildrenForNode = (node)->
   end = nodeAfter node, true
   while node = filteredNodeAfter node, ((n)->
     if n == end then 'quit'
-    else if n.nodeType == 1 && n.hasAttribute 'data-shared'
+    else if n.nodeType == Node.ELEMENT_NODE && n.hasAttribute 'data-shared'
       children.push n
       'reject') then
   children
-
-textNodeAfter = (node)->
-  while node = nodeAfter node
-    if node.nodeType == 3 then return node
 
 textWatchers = []
 
@@ -1188,7 +1455,7 @@ dumpTextWatchers = ->
 # get the next node in the reverse preorder traversal, starting with the node's children
 nodeBefore = (node, up)->
   while node
-    if node.nodeType == 1 && !up && node.childNodes.length then return node.childNodes[node.childNodes.length - 1]
+    if node.nodeType == Node.ELEMENT_NODE && !up && node.childNodes.length then return node.childNodes[node.childNodes.length - 1]
     else if node.previousSibling then return node.previousSibling
     else
       up = true
@@ -1197,7 +1464,19 @@ nodeBefore = (node, up)->
 
 textNodeBefore = (node)->
   while node = nodeBefore node
-    if node.nodeType == 3 then return node
+    if node.nodeType == Node.TEXT_NODE then return node
+
+textNodeAfter = (node)->
+  while node = nodeAfter node
+    if node.nodeType == Node.TEXT_NODE then return node
+
+visibleTextNodeBefore = (node)->
+  while node = nodeBefore node
+    if node.nodeType == Node.TEXT_NODE && !isCollapsed node then return node
+
+visibleTextNodeAfter = (node)->
+  while node = nodeAfter node
+    if node.nodeType == Node.TEXT_NODE && !isCollapsed node then return node
 
 #
 # Shadow dom support
@@ -1276,6 +1555,7 @@ orgNotebook =
         l parent, orgNode, orgText
       ), 1
   checkSourceMod: checkSourceMod
+  configureMenu: configureMenu
 
 basicOrg =
   __proto__: orgNotebook
@@ -1333,6 +1613,8 @@ root.isCollapsed = isCollapsed
 root.nextOrgId = nextOrgId
 root.modifyingKey = modifyingKey
 root.handleKeyup = handleKeyup
+root.backspace = backspace
+root.del = del
 root.getOrgParent = getOrgParent
 root.getOrgType = getOrgType
 root.executeText = executeText
@@ -1363,6 +1645,8 @@ root.isDef = isDef
 root.nativeRange = nativeRange
 root.textNodeBefore = textNodeBefore
 root.textNodeAfter = textNodeAfter
+root.visibleTextNodeBefore = visibleTextNodeBefore
+root.visibleTextNodeAfter = visibleTextNodeAfter
 root.PAGEUP = PAGEUP
 root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile
@@ -1382,3 +1666,4 @@ root.orgChildrenForNode = orgChildrenForNode
 root.emptySlide = emptySlide
 root.toggleShowHidden = toggleShowHidden
 root.applyShowHidden = applyShowHidden
+root.actualSelectionUpdate = actualSelectionUpdate

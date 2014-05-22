@@ -153,11 +153,11 @@ Handle changes to the doc nodes
       dataLevel = if data.type == 'headline' then data.level else textLevel
       while prev
         prevItem = getBlock prev
-        if prevItem.type == 'headline'
+        if prevItem?.type == 'headline'
           if prevItem.level < dataLevel then return [true, renderBlock prevItem]
           else if dataLevel == 1 && prevItem.level == 1
             break
-        prev = prev.prev
+        prev = prevItem?.prev
       [false, prev && prevItem._id]
 
     processChange = (item, processor)->
@@ -520,8 +520,8 @@ Users can mark any slide as local by setting a "local" property to true in the s
     changeDocText = (id, newText, overrides)->
       cur = getItem overrides, id
       if cur?.text == newText then return
-      prev = getItem overrides, cur.prev
-      next = getItem overrides, cur.next
+      prev = getItem overrides, cur?.prev
+      next = getItem overrides, cur?.next
       if newText[newText.length - 1] != '\n' then newText += stealFirstLine overrides, next
       newDoc = orgDoc parseOrgMode newText
       mergeFirstChunk overrides, prev, newDoc

@@ -56,7 +56,6 @@ userName: Anon
 #+BEGIN_SRC html :defview localState/chatLine
 <input type='text' style='width: 70%' data-value='chatLine' button='chatbutton'>
 <button id='chatbutton' onclick='Leisure.sendInput()'>Chat</button>
-{{{init 'Leisure.hookInput()'}}}
 #+END_SRC
 
 #+BEGIN_SRC coffeescript :results def
@@ -65,37 +64,35 @@ Leisure.userName = 'Anon'
 id = 0
 unregistered = true
 
-Leisure.hookInput = ->
+Leisure.sendInput = ->
   # Bit of a cheat here
-  chatId = $("[data-view-link='chat']").attr 'data-view-id'
   inputId = $("[data-view-link='input']").attr 'data-view-id'
+  chatId = $("[data-view-link='chat']").attr 'data-view-id'
+  stateBlock = Leisure.getBlock(inputId)
+  stateData = stateBlock.yaml
+  message = stateData.chatLine
+  name = stateData.userName
+  stateData.chatLine = ''
+  block = Leisure.getBlock chatId
+  data = block.yaml
+  if unregistered
+    user =
+      id: id = block.yaml.users.length
+      name: name
+      color: gen_color id
+    block.yaml.users.push user
+    unregistered = false
+  else
+    user = block.yaml.users[id]
+    user.name = name
+  data.chat.push
+    type: 'chatline'
+    user: user
+    time: new Date()
+    message: message
+  Leisure.setData stateBlock._id, stateData
+  Leisure.setData block._id, data
 
-  Leisure.sendInput = ->
-    stateBlock = Leisure.getBlock(inputId)
-    stateData = stateBlock.yaml
-    message = stateData.chatLine
-    name = stateData.userName
-    stateData.chatLine = ''
-    block = Leisure.getBlock chatId
-    data = block.yaml
-    if unregistered
-      user =
-        id: id = block.yaml.users.length
-        name: name
-        color: gen_color id
-      block.yaml.users.push user
-      unregistered = false
-    else
-      user = block.yaml.users[id]
-      user.name = name
-    data.chat.push
-      type: 'chatline'
-      user: user
-      time: new Date()
-      message: message
-    Leisure.setData stateBlock._id, stateData
-    Leisure.setData block._id, data
-
-  gen_color = (id)->
-    "rgb("+(id*25)*(id%2)+","+id*25*(id%3)+","+id*25*(id%5)+")"
+gen_color = (id)->
+  "rgb("+(id*25)*(id%2)+","+id*25*(id%3)+","+id*25*(id%5)+")"
 #+END_SRC

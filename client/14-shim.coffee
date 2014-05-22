@@ -12,3 +12,5 @@ window.require = (file)->
 
 for k,v of Org
   Leisure[k] = v
+
+window.Lodash = require 'lodash.min'

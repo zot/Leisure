@@ -77,6 +77,13 @@
 
     orgDoc = (org)-> createOrgDoc(org, false)[0].toArray()
 
+    lineCodeBlockType = (line)->
+      type = line && root.matchLine line
+      if type in ['srcStart', 'srcEnd', 'htmlStart', 'htmlEnd'] then 'code'
+      else if line.match /^#+name:/i then 'code'
+      else if type == 'headline-1' then 'headline'
+      else 'chunk'
+
     createOrgDoc = (org, local)->
       next = org.next
       if org instanceof Headline
@@ -165,3 +172,4 @@
     root.linkDocs = linkDocs
     root.isYaml = isYaml
     root.crnl = crnl
+    root.lineCodeBlockType = lineCodeBlockType

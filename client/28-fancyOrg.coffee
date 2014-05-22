@@ -53,6 +53,7 @@ yaml = root.yaml
   getCodeItems,
   isCodeBlock,
   isYaml,
+  lineCodeBlockType,
 } = require '12-docOrg'
 {
   findOrIs,
@@ -75,6 +76,8 @@ yaml = root.yaml
   nextOrgId,
   modifyingKey,
   handleKeyup,
+  backspace,
+  del,
   getOrgParent,
   getOrgType,
   executeText,
@@ -102,6 +105,8 @@ yaml = root.yaml
   nativeRange,
   textNodeAfter,
   textNodeBefore,
+  visibleTextNodeBefore,
+  visibleTextNodeAfter,
   PAGEUP,
   PAGEDOWN,
   HOME,
@@ -190,7 +195,7 @@ getDocRange = ->
   s = getSelection()
   r = s.getRangeAt 0
   offset = getDocumentOffset r
-  if s.focusNode?.nodeType == 1 && s.rangeCount == 1 && r.collapsed && shadow = r.startContainer.children[r.startOffset]?.shadowRoot
+  if s.rangeCount == 1 && r.collapsed && r.startContainer.nodeTYpe == 1 && shadow = r.startContainer.children[r.startOffset]?.shadowRoot
     s = shadow.getSelection()
     note = $(s.focusNode).closest('[data-note-origin]')?[0]
     if note then [getTextPosition(note, s.anchorNode, s.anchorOffset), getTextPosition(note, s.extentNode, s.extentOffset), window.pageYOffset - offset, note.id]
@@ -203,8 +208,8 @@ restoreDocRange = (parent, [start, end, offset, noteId])->
   if noteId
     noteNode = $("[data-org-note-instances~='#{noteId}']")[0]
     parent = $(noteNode.shadowRoot.firstChild).find("##{noteId}")[0]
-  [startContainer, startOffset] = findDomPosition parent, start
-  [endContainer, endOffset] = findDomPosition parent, Math.min(end, parent.textContent.length - 1)
+  [startContainer, startOffset] = findDomPosition parent, start, true
+  [endContainer, endOffset] = findDomPosition parent, Math.min(end, parent.textContent.length - 1), true
   r = document.createRange()
   r.setStart startContainer, startOffset
   r.setEnd endContainer, endOffset
@@ -336,6 +341,8 @@ markupLink = (org)->
   if orgMatch = org.isOrg()
     viewName = if orgMatch[2] then " data-view-name='#{orgMatch[2]}'" else ''
     "<span data-view-link='#{orgMatch[1]}'#{viewName}><span class='hidden'>#{org.allText()}</span></span>"
+  else if org.isImage
+    "<span><img src='#{escapeAttr org.path}'><span class='hidden'>#{escapeHtml org.allText()}</span></span>"
   else
     guts = ''
     for c in org.children
@@ -368,9 +375,9 @@ markupHeadline = (org, delay, note, replace)->
   match = org.text.match headlineRE
   start = "#{org.text.substring 0, org.text.length - (match?[HL_TAGS] ? '').length}".trim()
   if org.text[org.text.length - 1] == '\n'
-    tags = escapeHtml org.text.substring start.length, org.text.length
+    tags = escapeHtml org.text.substring start.length, org.text.length - 1
   else
-    tags = escapeHtml org.text.substring start.length
+    tags = escapeHtml org.text.substring start.length - 1
   if starsM = start.match hlStars
     stars = start.substring 0, starsM[0].length
     start = start.substring stars.length
@@ -382,11 +389,11 @@ markupHeadline = (org, delay, note, replace)->
   editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><div class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span></div><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div></div>"
+      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span>\n</div></div></span>#{markupGuts org, checkStart start, org.text}</span></div>"
     else "#{startNewSlide()}<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
-      "<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span><div class='textborder'></div></div></span>#{markupGuts org, checkStart start, org.text}</div>"
+      "<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}</div><span class='tags'>#{properties}#{tags}</span>\n</div></span>#{markupGuts org, checkStart start, org.text}</div>"
     else "<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
     floatize org, slide
     #slide
@@ -575,7 +582,9 @@ markupCode = (org, name, doctext, delay, inFragment)->
     n = escapeAttr name.info.trim()
     addAttr = " data-org-codeblock='#{n}'"
   else addAttr = ''
-  "<div #{orgAttrs source}#{addAttr}><span>#{escapeHtml pre}</span>#{Highlighting.highlight lang,  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
+  if !inFragment && (l = source.lead()?.trim())
+    addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
+  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span>#{escapeHtml pre}</span>#{Highlighting.highlight lang,  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
 
 dragging = false
 
@@ -678,7 +687,7 @@ replaceCodeBlock = (node, text)->
     newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
     $(node).replaceWith(newNode)
     for n in findOrIs findOrIs($(newNode), "[data-lang='leisure']"), '[data-org-src]'
-      recreateAstButtons parent, n
+      recreateAstButtons n
     for n in $(newNode).find('.resultscontent')
       reprocessResults n
     setTimeout (=>
@@ -726,15 +735,17 @@ unwrap = (node)->
       parent.insertBefore node.firstChild, node
     parent.removeChild node
 
-recreateAstButtons = (parent, node)->
-  if $(node).closest('.codeblock').length == 0 then return
-  restorePosition parent, ->
-    for button in $(node).find('.ast-button')
-      button.remove()
+recreateAstButtons = (node)->
+  if !(top = $(node).closest('.codeblock')[0]) then return
+  restorePosition top, ->
+    #for button in $(node).find('.ast-button')
+    #  button.remove()
+    #$("#topCaretBox").remove()
+    $(node).find('div').remove()
     for num in $(node).find('.org-num')
       unwrap num
     t = node.textContent
-    if t && t[t.length - 1] != '\n' then node.textContent = t += '\n'
+    #if t && t[t.length - 1] != '\n' then node.textContent = t += '\n'
     chunk = /^[^ \n].*$/mg
     num = /(^|[^0-9.]+)([0-9][0-9.]*|\.[0-9.]+)/mg
     node.normalize()
@@ -775,7 +786,7 @@ newCodeContent = (name, content)->
   parent = $("[data-org-codeblock='#{name}']")
   if node = parent.find('[data-org-src]')[0]
     node.innerHTML = escapeHtml content
-    recreateAstButtons parent, node
+    recreateAstButtons node
 
 define 'newCodeContent', lz (name)->$F(arguments, (content)->
   makeSyncMonad (env, cont)->
@@ -1034,6 +1045,7 @@ handleKey = (div)->(e)->
   if !addKeyPress e, c then return
   s = getSelection()
   r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
+  root.currentBlock = if r?.collapsed then $(r.startContainer).closest '[data-shared]' else null
   [bound, checkMod] = findKeyBinding e, div, r
   if bound then root.modCancelled = !checkMod
   else
@@ -1045,8 +1057,11 @@ handleKey = (div)->(e)->
     if modifyingKey c, e
       n = s.focusNode
       el = r.startContainer
+      root.checkNewline = null
+      root.modified = el
       par = el.parentNode
-      root.currentMatch = matchLine currentLine div
+      #root.currentMatch = matchLine currentLine div
+      root.currentMatch = lineCodeBlockType currentLine div
       if c == ENTER
         e.preventDefault()
         if n.nodeType == 3 && r.collapsed && r.startOffset == n.length && n.parentNode.getAttribute('data-org-type') == 'text'
@@ -1059,25 +1074,30 @@ handleKey = (div)->(e)->
         s.addRange(r)
         restorePosition br.parentNode, -> br.parentNode.normalize()
         setTimeout (->checkEnterReparse div, r), 1
-      else if c in [BS, DEL]
-        if (c == BS && shouldCancelBS div, r) || (c == DEL && shouldCancelDEL div, r)
-          e.preventDefault()
-          root.modCancelled = true
-          return
-        else if c == BS && bsWillDestroyParent r
-          e.preventDefault()
-          el.data = el.data.substring 1
+      else if c == BS then backspace div, e, s, r
+      else if c == DEL then del div, e, s, r
+      else if el.nodeType == Node.TEXT_NODE && el.data[el.length - 1] == '\n'
+        root.checkNewline = el
+
+
+cancelAndReselect = (event, selection, oldRange, currentRange)->
+  e.preventDefault()
+  root.modCancelled = true
+  if oldRange != currentRange
+    selection.removeAllRanges()
+    selection.addRange oldRange
+  null
 
 getCodeContainer = (node)->
   node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
-  if code = getCodeContainer focus then recreateAstButtons div, code
-  else if needsNewline el
-    restorePosition el.parentNode, ->
-      el.data += '\n'
-      el.parentNode.normalize()
-  checkSourceMod div, currentMatch
+  if code = getCodeContainer focus then recreateAstButtons code
+  #else if needsNewline el
+  #  restorePosition el.parentNode, ->
+  #    el.data += '\n'
+  #    el.parentNode.normalize()
+  checkSourceMod()
 
 needsNewline = (el)->
   if !el then false
@@ -1093,7 +1113,7 @@ allowEvents = true
 
 handleMutation = (evt)->
   if allowEvents
-    invalidateOrgText()
+    #invalidateOrgText()
     displaySource()
 
 executeSource = (parent, node, cont, skipTests)->
@@ -1105,6 +1125,7 @@ executeSource = (parent, node, cont, skipTests)->
       executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), ->
         cont?()
         if !skipTests then runAutotests doc
+    else if r = $(srcNode).find('.resultscontent')[0] then clearResults r
 
 fancyExecuteDef = (node, cont)->
   doc = topNode node
@@ -1531,12 +1552,14 @@ fancyOrg =
           for node in target
             shadow = node.shadowRoot.firstChild
             $(shadow).
+              css('white-space', 'normal').
               css('user-select', 'none').
               css('-webkit-user-select', 'none').
               css('-moz-user-select', 'none')
             if theme != null then $(shadow).addClass(theme)
             if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
             bindWidgets shadow
+            $(shadow).find('button').button()
       dataType = type.match /([^/]*)\/?(.*)?/
       for node in $("[data-yaml-type='#{dataType[1]}']")
         renderView node, dataType[2]
@@ -1559,15 +1582,15 @@ fixupHtml = (parent, note)->
     setShadowHtml node, node.innerHTML
     node.innerHTML = ''
   for node in findOrIs findOrIs($(parent), "[data-lang='leisure']"), '[data-org-src]'
-    recreateAstButtons parent, node
+    recreateAstButtons node
   for node in findOrIs $(parent), '.resultscontent'
     reprocessResults node
   createNoteShadows()
   if !note
     createEditToggleButton parent
     $(parent).find("button.create_note").remove()
-    findOrIs($(parent), '[data-org-headline="1"] .maincontent')
-      .prepend("<button class='create_note'><i class='fa fa-file-text-o'></i></button>")
+    $("<button class='create_note' contenteditable='false'><i class='fa fa-file-text-o'></i></button>")
+      .insertBefore(findOrIs($(parent), '[data-org-headline="1"] .maincontent'))
       .children().find(':first-child')
       .click (e)->
         e.preventDefault()
@@ -1585,7 +1608,10 @@ getMainContent = (headline)->
 createEditToggleButton = (doc)->
   for node in getMainContent $(doc)
     id = if $(node).is '.maincontent' then node.parentElement.id else node.id
-    setShadowHtml node, "<button onclick='Leisure.toggleEdit(\"#{id}\")'><i class='fa fa-glass'></i></button><content></content>"
+    #setShadowHtml node, "<button onclick='Leisure.toggleEdit(\"#{id}\")'><i class='fa fa-glass'></i></button><content></content>"
+    button = $("<button class='toggle_edit' contenteditable='false' onclick='Leisure.toggleEdit(\"#{id}\")'><i class='fa fa-glass'></i></button>")
+    if $(node).is '.maincontent' then button.insertBefore(node)
+    else $(node).prepend button
 
 toggleEdit = (id)->
   console.log "toggle edit", id

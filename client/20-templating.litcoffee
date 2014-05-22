@@ -72,25 +72,8 @@
         el = next
       el
 
-    queued = {}
-    pending = {}
-
-    interactiveBatch = (id, func)->
-      if queued[id] then pending[id] = true;
-      else doInteractiveBatch id, func
-
-    doInteractiveBatch = (id, func)->
-      queued[id] = true
-      pending[id] = false
-      func id
-      setTimeout (->
-        if pending[id] then doInteractiveBatch id, func
-        else queued[id] = false;
-      ), 200
-
     root.createTemplateRenderer = createTemplateRenderer
     root.setShadowHtml = setShadowHtml
     root.viewMarkup = viewMarkup
     root.escapeHtml = escapeHtml
-    root.interactiveBatch = interactiveBatch
     root.getDeepestActiveElement = getDeepestActiveElement

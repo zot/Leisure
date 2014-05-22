@@ -4,6 +4,14 @@
 :end:
 /*Click the martini glass to switch between fancy and plain text*/
 
+/*watch the data below change as you click on pieces*/
+
+/*edit the data to see the pieces change*/
+- w = white
+- b = black
+- r = red
+- other = gray
+
 #+NAME: board
 #+BEGIN_SRC yaml :flowLevel 2
 type: c4board
@@ -16,6 +24,8 @@ pieces:
   - [w, w, w, w, w, w, w]
 #+END_SRC
 
+Acual connect four:
+[[http://www.abstractstrategy.com/connect-four.jpg]]
 #+BEGIN_SRC html :defview c4board
 <div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px; display: inline-block;'>
   <table style='text-align: center'>
@@ -33,7 +43,7 @@ pieces:
 <script>Leisure.hookupTable()</script>
 #+END_SRC
 
-#+BEGIN_SRC coffeescript :results def
+#+BEGIN_SRC coffee :results def
 pieceTypes = "wrb"
 
 Leisure.hookupTable = ->
@@ -54,5 +64,7 @@ Leisure.hookupTable = ->
 :end:
 
 /*Click the eye button in the Leisure panel to reveal the code*/
+/*If the document gets messed up, try clicking the Leisure button a few times*/
+/*otherwise, try reloading*/
 
 [[org:board]]
