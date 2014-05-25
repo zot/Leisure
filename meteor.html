@@ -8,6 +8,10 @@
   <script src="/syntaxhighlighter_3.0.83/scripts/shBrushXml.js"></script>
   <script src="/syntaxhighlighter/shBrushYaml.js"></script>
   <script src="/syntaxhighlighter/shBrushCoffeeScript.js"></script>
+  <link rel="stylesheet" href="/prism/prism.css">
+  <script src="/prism/prism.js"></script>
+  <script src="/prism/prism-yaml.js"></script>
+  <link rel="stylesheet" href="/prism/spinner.css">
   <script src="jquery-ui/js/jquery-ui-1.9.1.custom.js"></script>
         <style>
           body.leisureError > #login,
@@ -36,7 +40,7 @@
                   src: url('franklinm54-webfont.woff') format('woff');
                 }
                 body.cthulhu {
-                        background-color: #1doc3d34;
+                        background-color: #1c3d34;
                         color: #f1c40f;
                         text-shadow: 3px 3px #000000;
                 }
@@ -908,6 +912,12 @@
                         font-size: large;
                         background: #CCCCCC;
                 }
+                .syntaxhighlighter .ui-slider {
+                        left: inherit !important;
+                        right: inherit !important;
+                        top: inherit !important;
+                        bottom: inherit !important;
+                }
                 #selectionBubble {
                         display: none;
                         -webkit-user-select: none;
@@ -946,8 +956,8 @@
                 .org-fancy .syntaxhighlighter {
                         overflow: hidden !important;
                         margin: 0 0 0 0 !important;
+                        background-color: rgba(255,255,255,0.66) !important;
                 }
-                .slides [data-org-headline='1'][data-property-hidden='true'].currentSlide,
                 .org-fancy [data-property-hidden='true'],
                 .org-fancy .hidden-slide,
                 .slides .hidden-slide {

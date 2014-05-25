@@ -607,3 +607,8 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.viewIdTypes = viewIdTypes
     root.codeString = codeString
     root.getBlock = getBlock
+    root.newOverrides = newOverrides
+    root.getItem = getItem
+    root.addItem = addItem
+    root.updateItem = updateItem
+    root.removeId = removeId

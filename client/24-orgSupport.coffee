@@ -58,6 +58,11 @@ lz = lazy
   docOrg,
   edited,
   getBlock,
+  newOverrides,
+  getItem,
+  addItem,
+  updateItem,
+  removeId,
 } = require '23-collaborate'
 {
   orgDoc,
@@ -815,19 +820,20 @@ backspace = (parent, event, sel, r)->
             t.data = t.data.substring 0, t.length - 1
             r.startOffset = r.startOffset - 1
             setCaret r
-    else # currently, this should never happen
-      console.log "deleting in the middle of a text node?"
+    else
       t = r.startContainer
-      txt = t.data.substring(0, r.startOffset - 1)
-      if r.startOffset < t.length then txt += t.data.substring r.startOffset
+      offset = r.startOffset
+      txt = t.data.substring(0, offset - 1)
+      if offset < t.length then txt += t.data.substring offset
       t.data = txt
-      r.setStart t, r.startOffset - 1
       if t.data == ''
         n = visibleTextNodeAfter t, 0
         r.setStart n, 0
         root.modified = n
         $(t).remove()
-      else root.modified = r.startContainer
+      else
+        root.modified = r.startContainer
+        r.setStart t, offset - 1
       setCaret r
 
 del = (parent, event, sel, r)->
@@ -979,7 +985,7 @@ checkCollapsed = (delta)->
 
 checkSourceMod = ->
   if (s = getSelection()).type == 'Caret' && mod = s.getRangeAt(0).startContainer
-    bl = root.currentBlock
+    bl = $(root.currentBlock)
     if bl.attr('data-lang') == 'leisure' && isParentOf(bl[0], mod) && bl.find '[data-org-src="dynamic"]'
       root.orgApi.executeSource bl[0], mod
     checkStructure mod
@@ -991,15 +997,19 @@ isSensitive = (type)-> typeof type == 'string' && type.match(sensitive)
 checkStructure = (node)->
   if node
     #sel = getSelection()
-    #r = sel.rangeCount == 1 && sel.getRangeAt(0)
-    #if root.currentBlock && r.collapsed
+    #if root.currentBlock && sel.type = 'Caret'
+    #  r = sel.getRangeAt(0)
     #  els = [root.currentBlock]
-    #  blocks = [getBlock root.currentBlock.id]
+    #  oldBlock = getBlock root.currentBlock.id
+    #  #
+    #  # change "blocks" to "oldBlock" -- just look at the old version of the node
+    #  #
     #  checkBlockShift els, blocks, blockElementForSelection sel, r
     #  text = (blockText el for el in els).join ''
     #  newBlocks = orgDoc parseOrgMode text
-    #  if attemptMerge blocks[0].prev, newBlocks[0], true then newBlocks.shift()
-    #  if newBlocks.length && attemptMerge newBlocks[newBlocks.length - 1], blocks[blocks.length - 1].next then newBlocks.pop()
+    #  overrides = newOverrides()
+    #  if attemptMerge blocks[0].prev, newBlocks, changes, true then newBlocks.shift()
+    #  if newBlocks.length && attemptMerge blocks[blocks.length - 1].next, newBlocks, changes then newBlocks.pop()
     #  if same = (newBlocks.length == blocks.length)
     #    for i in [0..blocks.length]
     #      if blocks[i] != newBlocks[i]
@@ -1020,12 +1030,15 @@ checkBlockShift = (els, blocks, newBlockElement)->
       blocks.unshift newBlock
       els.unshift newBlockElement
 
-attemptMerge = (a, b, mergeToA)->
+attemptMerge = (a, b, overrides, mergeToA)->
   if a && b
-    if mergeToA then a = getBlock a else b = getBlock b
-    if (newBlock = orgDoc parseOrgMode a.text + b.text).length == 1
-      console.log "MERGE INTO #{(if mergeToA then a else b)._id}"
+    oldBlock = if mergeToA then a = getItem overrides, a else b = getItem overrides, b
+    if (newBlocks = orgDoc parseOrgMode a.text + b.text).length == 1
+      updateItem overrides, oldBlock
+      console.log "MERGE INTO #{oldBlock._id}"
       return true
+    else if newBlocks[if mergeToA then 0 else newBlocks.length - 1].text != oldBlock.text
+      console.log "PARTIAL MERGE INTO #{oldBlock._id} WITH #{newBlocks.length - 1} LEFT OVER NODES"
   false
 
 #
@@ -1658,6 +1671,7 @@ root.textNodeBefore = textNodeBefore
 root.textNodeAfter = textNodeAfter
 root.visibleTextNodeBefore = visibleTextNodeBefore
 root.visibleTextNodeAfter = visibleTextNodeAfter
+root.isParentOf = isParentOf
 root.PAGEUP = PAGEUP
 root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile

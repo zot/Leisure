@@ -107,6 +107,7 @@ yaml = root.yaml
   textNodeBefore,
   visibleTextNodeBefore,
   visibleTextNodeAfter,
+  isParentOf,
   blockElementForNode,
   PAGEUP,
   PAGEDOWN,
@@ -342,7 +343,7 @@ markupLink = (org)->
   if orgMatch = org.isOrg()
     viewName = if orgMatch[2] then " data-view-name='#{orgMatch[2]}'" else ''
     "<span data-view-link='#{orgMatch[1]}'#{viewName}><span class='hidden'>#{org.allText()}</span></span>"
-  else if org.isImage
+  else if org.isImage()
     "<span><img src='#{escapeAttr org.path}'><span class='hidden'>#{escapeHtml org.allText()}</span></span>"
   else
     guts = ''
@@ -572,7 +573,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
   if name
     n = escapeAttr name.info.trim()
     yamlAttr += " data-org-codeblock='#{n}' data-yaml-name='#{n}'"
-  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span>#{Highlighting.highlight 'yaml',  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
+  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight 'yaml',  source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
 
 markupCode = (org, name, doctext, delay, inFragment)->
   [pre, src, post] = getSourceSegments name, org
@@ -585,7 +586,7 @@ markupCode = (org, name, doctext, delay, inFragment)->
   else addAttr = ''
   if !inFragment && (l = source.getLanguage())
     addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
-  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span>#{escapeHtml pre}</span>#{Highlighting.highlight lang,  source.content}<span class='Xhidden'>#{escapeHtml post}</span></div>"
+  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
 
 dragging = false
 
@@ -689,6 +690,7 @@ replaceCodeBlock = (node, text)->
     $(node).replaceWith(newNode)
     for n in findOrIs findOrIs($(newNode), "[data-lang='leisure']"), '[data-org-src]'
       recreateAstButtons n
+      createValueSliders n, leisureNumberSlider
     for n in $(newNode).find('.resultscontent')
       reprocessResults n
     setTimeout (=>
@@ -736,6 +738,72 @@ unwrap = (node)->
       parent.insertBefore node.firstChild, node
     parent.removeChild node
 
+spinnerKiller = null
+spinnerCount = 0
+
+createSpinner = ->
+  ++spinnerCount
+  if !spinnerKiller
+    spinner = $ "<div class='large spinner' style='position: fixed; top: 0; left: 0; bottom: 0; right: 0; margin: auto'></div>"
+    $(document.body).prepend spinner
+    console.log "CREATED SPINNER"
+    spinnerKiller = Lodash.debounce (->
+      if spinnerCount == 0
+        spinnerKiller = null
+        spinner.remove()), 50
+
+hideSpinner = -> if --spinnerCount == 0 then spinnerKiller()
+
+createValueSliders = (node, slideFunc)->
+  #if !(top = $(node).closest('.codeblock')[0]) then return
+  if !(top = $(node).closest('[data-org-src]')[0]) then return
+  $(node).find('.org-num').children().unwrap()
+  node.normalize()
+  cur = node
+  createSpinner()
+  createNextValueSlider node, slideFunc, cur, Lodash.debounce hideSpinner, 50
+
+createNextValueSlider = (node, slideFunc, cur, removeSpinner)->
+  if (cur = visibleTextNodeAfter cur) && isParentOf(node, cur)
+    setTimeout (->
+      num = /[0-9][0-9.]*|\.[0-9.]+/
+      done = false
+      while !done && cur && cur.length && mnum = cur.data.match num
+        restorePosition top, ->
+          orig = cur
+          mid = cur.splitText mnum.index
+          cur = (if mid.length > mnum[0].length then mid.splitText mnum[0].length
+          else
+            done = true
+            mid)
+          numberSpan = $(mid).wrap("<span class='org-num'></span>").parent()[0]
+          do (n = numberSpan)-> n.onmousedown = (e)->
+            e.stopPropagation()
+            e.preventDefault()
+            showSliderButton node, n, slideFunc
+      createNextValueSlider node, slideFunc, cur, removeSpinner), 1
+  else removeSpinner()
+
+leisureNumberSlider = (numberSpan)->
+  orgParent = getOrgParent numberSpan
+  orgType = orgParent.getAttribute 'data-org-results'
+  computing = false
+  (event, ui)->
+    numberSpan.innerHTML = String(ui.value)
+    if !computing && orgType in ['dynamic', 'def']
+      computing = true
+      done = -> computing = false
+      setTimeout (->
+        if orgType == 'dynamic' then root.orgApi.executeSource parent, numberSpan.parentNode, done
+        else if orgType == 'def' then root.orgApi.executeDef orgParent, done), 1
+
+regularNumberSlider = (numberSpan)->
+  Lodash.throttle ((event, ui)->
+    numberSpan.innerHTML = String(ui.value)
+    edited numberSpan), 20,
+      leading: true
+      trailing: true
+
 recreateAstButtons = (node)->
   if !(top = $(node).closest('.codeblock')[0]) then return
   restorePosition top, ->
@@ -752,42 +820,25 @@ recreateAstButtons = (node)->
     node.normalize()
     rest = t
     mchunk = chunk.exec t
-    mnum = num.exec t
     cur = node.firstChild
     curStart = 0
-    while cur && (mchunk || mnum)
-      if mchunk && (!mnum || mchunk.index <= mnum.index + mnum[1].length)
-        cur = (if mchunk.index > curStart then cur.splitText mchunk.index - curStart else cur)
-        curStart = mchunk.index
-        div = document.createElement 'div'
-        div.setAttribute 'class', 'ast-button'
-        div.setAttribute 'contenteditable', 'false'
-        do (d = div, offset = mchunk.index)-> div.onmousedown = (e)-> showAst e, d, offset
-        if curStart == 0 then div.setAttribute 'style', 'top: 0'
-        node.insertBefore div, cur
-        mchunk = chunk.exec t
-        continue
-      if mnum && (!mchunk || mnum.index + mnum[1].length <= mchunk.index)
-        numStart = mnum.index + mnum[1].length
-        mid = (if numStart > curStart then cur.splitText numStart - curStart else cur)
-        cur = mid.splitText mnum[2].length
-        curStart = mnum.index + mnum[0].length
-        numberSpan = document.createElement 'span'
-        numberSpan.appendChild mid
-        numberSpan.classList.add 'org-num'
-        node.insertBefore numberSpan, cur
-        node.normalize()
-        do (n = numberSpan)-> n.onmousedown = (e)->
-          e.stopPropagation()
-          e.preventDefault()
-          showSliderButton node, n
-        mnum = num.exec t
+    while cur && mchunk
+      cur = (if mchunk.index > curStart then cur.splitText mchunk.index - curStart else cur)
+      curStart = mchunk.index
+      div = document.createElement 'div'
+      div.setAttribute 'class', 'ast-button'
+      div.setAttribute 'contenteditable', 'false'
+      do (d = div, offset = mchunk.index)-> div.onmousedown = (e)-> showAst e, d, offset
+      if curStart == 0 then div.setAttribute 'style', 'top: 0'
+      node.insertBefore div, cur
+      mchunk = chunk.exec t
 
 newCodeContent = (name, content)->
   parent = $("[data-org-codeblock='#{name}']")
   if node = parent.find('[data-org-src]')[0]
     node.innerHTML = escapeHtml content
     recreateAstButtons node
+    createValueSliders node, leisureNumberSlider
 
 define 'newCodeContent', lz (name)->$F(arguments, (content)->
   makeSyncMonad (env, cont)->
@@ -1046,7 +1097,7 @@ handleKey = (div)->(e)->
   if !addKeyPress e, c then return
   s = getSelection()
   r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
-  root.currentBlock = if r?.collapsed then $(r.startContainer).closest '[data-shared]' else null
+  root.currentBlock = if r?.collapsed then $(r.startContainer).closest('[data-shared]')[0] else null
   [bound, checkMod] = findKeyBinding e, div, r
   if bound then root.modCancelled = !checkMod
   else
@@ -1093,7 +1144,9 @@ getCodeContainer = (node)->
   node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
-  if code = getCodeContainer focus then recreateAstButtons code
+  if code = getCodeContainer focus
+    recreateAstButtons code
+    createValueSliders code, leisureNumberSlider
   #else if needsNewline el
   #  restorePosition el.parentNode, ->
   #    el.data += '\n'
@@ -1212,7 +1265,7 @@ orgEnv = (parent, node)->
 
 hideSlider = (numberSpan)-> replaceRelatedPresenter numberSpan, emptyPresenter
 
-showSliderButton = (parent, numberSpan)->
+showSliderButton = (parent, numberSpan, slideFunc)->
   if hideSlider numberSpan then return
   inside = false
   sliding = false
@@ -1229,9 +1282,6 @@ showSliderButton = (parent, numberSpan)->
   value = Number numberSpan.textContent
   min = if value < 0 then value * 2 else value / 2
   max = if value == 0 then 10 else value * 2
-  orgParent = getOrgParent numberSpan
-  orgType = orgParent.getAttribute 'data-org-results'
-  computing = false
   sl = $(d).slider
     animate: 'fast'
     start: ->
@@ -1243,16 +1293,9 @@ showSliderButton = (parent, numberSpan)->
       allowEvents = true
       sliding = false
       if !inside then hideSlider numberSpan
-    slide: (event, ui)->
-      numberSpan.innerHTML = String(ui.value)
-      if !computing && orgType in ['dynamic', 'def']
-        computing = true
-        done = -> computing = false
-        setTimeout (->
-          if orgType == 'dynamic' then root.orgApi.executeSource parent, numberSpan.parentNode, done
-          else if orgType == 'def' then root.orgApi.executeDef orgParent, done), 1
+    slide: slideFunc numberSpan
     value: value
-  parent.insertBefore d, numberSpan
+  numberSpan.parentNode.insertBefore d, numberSpan
   setMinMax sl, value
   replacePresenter
     numberSpan: numberSpan
@@ -1374,18 +1417,19 @@ toggleSlides = ->
 theme = null
 
 setTheme = (str)->
-  el = $('body')
-  all = $('[data-org-comments]').find(':first-child').add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
-  for node in all
-    if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
-  if theme && theme != str then el.removeClass theme
-  theme = str
-  if str then el.addClass str
-  for t in $("style.theme")
-    $(t).prop 'disabled', true
-  $("style#" + theme).removeProp 'disabled'
-  dd = $("#themeSelect")
-  if dd then dd.val theme
+  if $("style#" + str).length
+    el = $('body')
+    all = $('[data-org-comments]').find(':first-child').add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
+    for node in all
+      if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
+    if theme && theme != str then el.removeClass theme
+    theme = str
+    if str then el.addClass str
+    for t in $("style.theme")
+      $(t).prop 'disabled', true
+    $("style#" + theme).removeProp 'disabled'
+    dd = $("#themeSelect")
+    if dd then dd.val theme
 
 define 'setTheme', lz (str)->
   makeSyncMonad (env, cont)->
@@ -1584,6 +1628,9 @@ fixupHtml = (parent, note)->
     node.innerHTML = ''
   for node in findOrIs findOrIs($(parent), "[data-lang='leisure']"), '[data-org-src]'
     recreateAstButtons node
+    createValueSliders node, leisureNumberSlider
+  for node in findOrIs findOrIs($(parent), "[data-lang]:not([data-lang='leisure'])"), '[data-org-src]'
+    createValueSliders node, regularNumberSlider
   for node in findOrIs $(parent), '.resultscontent'
     reprocessResults node
   createNoteShadows()
@@ -1656,3 +1703,4 @@ root.getDataNamed = getDataNamed
 root.setDataNamed = setDataNamed
 root.findLinks = findLinks
 root.findViews = findViews
+root.createSpinner = createSpinner

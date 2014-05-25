@@ -1,12 +1,19 @@
 * Short list -- screencast
-- allow total-reparse as an option
-- handle structural changes
-  - handle typing boilerplate in fancy mode
-- fix test cases
 - put value sliders in all code blocks
+  - fix new slider creation bug -- skips some numbers
   - demo ability to make simple examples
   - data, template, and link that shows values changing
     - slide values in the data and the template
+- changes with non-collapsed ranges
+  - reject if they include hidden text
+- make save button work
+- local files
+  - create two unmanaged collection
+  - save the original text to allow file reverting
+- handle structural changes
+  - handle typing boilerplate in fancy mode
+- allow total-reparse as an option
+- fix test cases
 - kill box for source blocks
 - handle structural document changes
 - put Leisure code in connect 4

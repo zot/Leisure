@@ -23,3 +23,11 @@ increasing x = [x | increasing x + 1]
 naturals = increasing 1
 even x = (x % 2) == 0
 #+END_SRC
+
+#+BEGIN_SRC leisure :results def
+setTheme 'steampunk'
+#setTheme 'googie'
+#setTheme 'flat'
+#setTheme 'console'
+#setTheme 'cthulhu'
+#+END_SRC
