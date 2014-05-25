@@ -738,51 +738,40 @@ unwrap = (node)->
       parent.insertBefore node.firstChild, node
     parent.removeChild node
 
-spinnerKiller = null
-spinnerCount = 0
-
-createSpinner = ->
-  ++spinnerCount
-  if !spinnerKiller
-    spinner = $ "<div class='large spinner' style='position: fixed; top: 0; left: 0; bottom: 0; right: 0; margin: auto'></div>"
-    $(document.body).prepend spinner
-    console.log "CREATED SPINNER"
-    spinnerKiller = Lodash.debounce (->
-      if spinnerCount == 0
-        spinnerKiller = null
-        spinner.remove()), 50
-
-hideSpinner = -> if --spinnerCount == 0 then spinnerKiller()
-
 createValueSliders = (node, slideFunc)->
-  #if !(top = $(node).closest('.codeblock')[0]) then return
   if !(top = $(node).closest('[data-org-src]')[0]) then return
   $(node).find('.org-num').children().unwrap()
   node.normalize()
-  cur = node
-  createSpinner()
-  createNextValueSlider node, slideFunc, cur, Lodash.debounce hideSpinner, 50
+  createNextValueSliders node, slideFunc, node
 
-createNextValueSlider = (node, slideFunc, cur, removeSpinner)->
+chunkSize = 30
+chunkDelay = 1000
+
+createNextValueSliders = (node, slideFunc, cur)->
   if (cur = visibleTextNodeAfter cur) && isParentOf(node, cur)
-    setTimeout (->
-      num = /[0-9][0-9.]*|\.[0-9.]+/
-      done = false
-      while !done && cur && cur.length && mnum = cur.data.match num
-        restorePosition top, ->
-          orig = cur
-          mid = cur.splitText mnum.index
-          cur = (if mid.length > mnum[0].length then mid.splitText mnum[0].length
-          else
-            done = true
-            mid)
-          numberSpan = $(mid).wrap("<span class='org-num'></span>").parent()[0]
-          do (n = numberSpan)-> n.onmousedown = (e)->
-            e.stopPropagation()
-            e.preventDefault()
-            showSliderButton node, n, slideFunc
-      createNextValueSlider node, slideFunc, cur, removeSpinner), 1
-  else removeSpinner()
+    createNextValueSlider node, slideFunc, cur
+
+numPat = /[0-9][0-9.]*|\.[0-9.]+/
+
+createNextValueSlider = (node, slideFunc, cur)->
+  setTimeout (->
+    done = false
+    if mnum = cur.data.match numPat
+      restorePosition top, ->
+        orig = cur
+        mid = cur.splitText mnum.index
+        cur = (if mid.length > mnum[0].length then mid.splitText mnum[0].length
+        else
+          done = true
+          mid)
+        numberSpan = $(mid).wrap("<span class='org-num'></span>").parent()[0]
+        do (n = numberSpan)-> n.onmousedown = (e)->
+          e.stopPropagation()
+          e.preventDefault()
+          showSliderButton node, n, slideFunc
+      if !done
+        return createNextValueSlider node, slideFunc, cur
+    createNextValueSliders node, slideFunc, cur), 1
 
 leisureNumberSlider = (numberSpan)->
   orgParent = getOrgParent numberSpan
@@ -1460,11 +1449,22 @@ codeHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentEle
 
 fixupViews = (target)->
   if Leisure.noViewUpdate then return
-  #for dataEl in (if target then $(target).filter("[data-view-state]") else $("[data-view-state]"))
-  cb = "[data-yaml-name]"
-  for dataEl in (if target then $(target).add($(target).find(cb)).filter(cb) else $(cb))
-    renderView dataEl
-  if !target
+  if target
+    yn = 'data-yaml-name'
+    ynA = "[#{yn}]"
+    vl = 'data-view-link'
+    vlA =  "[#{vl}]"
+    rendered = {}
+    for dataEl in $(target).add($(target).find(ynA)).filter(ynA)
+      rendered[$(dataEl).attr yn] = true
+      renderView dataEl
+    for link in $(target).add($(target).find(vlA)).filter(vlA)
+      dataName = $(link).attr vl
+      if !rendered[dataName] && data = getBlockNamed dataName
+        renderLink link, data
+  else
+    for dataEl in $(cb)
+      renderView dataEl
     for html in $('[data-html-view]')
       renderHtmlView html
 
@@ -1482,32 +1482,39 @@ renderHtmlView = (html, data)->
 
 # el could be a parent fragment, a shared source block, or a source block in a fragment
 renderView = (el, name)->
-  yn = 'data-yaml-name'
   holder = codeHolder el
   id = holder.id
-  linkName = $(holder).add($(holder).find("[#{yn}]")).filter("[#{yn}]").attr yn
   data = getBlock id
+  if data?.yaml?.type
+    yn = 'data-yaml-name'
+    renderData data, $(holder).add($(holder).find("[#{yn}]")).filter("[#{yn}]").attr yn
+  else if name = name || el.getAttribute "data-yaml-name"
+    for html in $("[data-html-view='#{name}']")
+      renderHtmlView html, data
+
+renderData = (data, linkName)->
   if type = data?.yaml?.type
     links = if name then $("[data-view-link='#{linkName}'][data-view-name='#{name}']") else $("[data-view-link='#{linkName}']")
+    id = data._id
     links.attr 'data-view-id', id
     try
       oldChunk = Leisure.currentViewChunk
       Leisure.currentViewChunk = data
       for node in links
-        if name = node.getAttribute 'data-view-name'
-          viewMarkup["#{type}/#{name}"]? data.yaml, $(node)
-          descriptor = "#{id}/#{name}"
-        else
-          viewMarkup[type]? data.yaml, $(node)
-          descriptor = id
-        node.shadowRoot?.firstChild.setAttribute 'data-view-id', id
-        node.setAttribute 'data-view-descriptor', descriptor
-        node.shadowRoot?.firstChild.setAttribute 'data-view-descriptor', descriptor
+        renderLink node, data
     finally
       Leisure.currentViewChunk = oldChunk
-  else if name = name || el.getAttribute "data-yaml-name"
-    for html in $("[data-html-view='#{name}']")
-      renderHtmlView html, data
+
+renderLink = (node, data)->
+  if name = node.getAttribute 'data-view-name'
+    viewMarkup["#{data.yaml.type}/#{name}"]? data.yaml, $(node)
+    descriptor = "#{data._id}/#{name}"
+  else
+    viewMarkup[data.yaml.type]? data.yaml, $(node)
+    descriptor = data._id
+  node.shadowRoot?.firstChild.setAttribute 'data-view-id', data._id
+  node.setAttribute 'data-view-descriptor', descriptor
+  node.shadowRoot?.firstChild.setAttribute 'data-view-descriptor', descriptor
 
 viewBlock = (el)->
   if id = $(el).closest('[data-view-id]').attr('data-view-id')
@@ -1703,4 +1710,3 @@ root.getDataNamed = getDataNamed
 root.setDataNamed = setDataNamed
 root.findLinks = findLinks
 root.findViews = findViews
-root.createSpinner = createSpinner
