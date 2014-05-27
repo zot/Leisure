@@ -108,7 +108,7 @@ yaml = root.yaml
   visibleTextNodeBefore,
   visibleTextNodeAfter,
   isParentOf,
-  blockElementForNode,
+  blockIdsForSelection,
   PAGEUP,
   PAGEDOWN,
   HOME,
@@ -1086,7 +1086,7 @@ handleKey = (div)->(e)->
   if !addKeyPress e, c then return
   s = getSelection()
   r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
-  root.currentBlock = if r?.collapsed then $(r.startContainer).closest('[data-shared]')[0] else null
+  root.currentBlock = blockIdsForSelection s, r
   [bound, checkMod] = findKeyBinding e, div, r
   if bound then root.modCancelled = !checkMod
   else

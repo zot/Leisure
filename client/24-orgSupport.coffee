@@ -56,6 +56,7 @@ lz = lazy
 {
   crnl,
   docOrg,
+  subDoc,
   edited,
   getBlock,
   newOverrides,
@@ -63,6 +64,9 @@ lz = lazy
   addItem,
   updateItem,
   removeId,
+  isRemoved,
+  commitEdits,
+  createRenderingComputer,
 } = require '23-collaborate'
 {
   orgDoc,
@@ -246,11 +250,12 @@ selectionMenu = """
 
 configureMenu = (menu)->
   console.log "configure menu"
-  bl = if el = blockElementForSelection() then getBlock el.id
-  if bl?.type != 'chunk'
-    menu.find("[name='insert']").addClass 'ui-state-disabled'
-  else
-    menu.find("[name='insert']").removeClass 'ui-state-disabled'
+  if getSelection().type == 'Caret'
+    [el] = blockElementsForSelection()
+    bl = getBlock el.id
+    if bl?.type == 'chunk'
+      return menu.find("[name='insert']").removeClass 'ui-state-disabled'
+  menu.find("[name='insert']").addClass 'ui-state-disabled'
 
 monitorSelectionChange = ->
   $(document).on 'selectionchange', updateSelection
@@ -759,7 +764,7 @@ bindContent = (div)->
     if !addKeyPress e, c then return
     s = getSelection()
     r = s.rangeCount > 0 && s.getRangeAt(0)
-    root.currentBlock = blockElementForSelection s, r
+    root.currentBlockIds = blockIdsForSelection s, r
     el = r.startContainer
     root.modified = el
     par = el.parentNode
@@ -890,11 +895,21 @@ setCaret = (r)->
   sel.addRange r
   actualSelectionUpdate()
 
-blockElementForSelection = (sel, r)->
+blockElementsForSelection = (sel, r)->
+  $("[id='#{id}']") for id in blockIdsForSelection sel, r
+
+blockIdsForSelection = (sel, r)->
   if !sel then sel = getSelection()
   if !r then r = sel.rangeCount == 1 && sel.getRangeAt 0
   else if sel.rangeCount != 1 then return null
-  r?.collapsed && $(r.startContainer).closest('[data-shared]')[0]
+  blocks = [$(r.startContainer).closest('[data-shared]')[0].id]
+  if !r?.collapsed
+    cur = blocks[0].id
+    end = $(r.endContainer).closest('[data-shared]')[0].id
+    while cur != end
+      cur = (getBlock cur).next
+      blocks.push cur._id
+  blocks
 
 blockElementForNode = (node)-> $(node).closest('[data-shared]')[0]
 
@@ -985,90 +1000,133 @@ checkCollapsed = (delta)->
 
 checkSourceMod = ->
   if (s = getSelection()).type == 'Caret' && mod = s.getRangeAt(0).startContainer
-    bl = $(root.currentBlock)
+    bl = $()
+    for id in root.currentBlockIds
+      bl = bl.add $("##{id}")
     if bl.attr('data-lang') == 'leisure' && isParentOf(bl[0], mod) && bl.find '[data-org-src="dynamic"]'
       root.orgApi.executeSource bl[0], mod
-    checkStructure mod
+    if mod then checkStructure mod
 
 isParentOf = (parent, child)-> parent.compareDocumentPosition(child) & Node.DOCUMENT_POSITION_CONTAINED_BY
 
 isSensitive = (type)-> typeof type == 'string' && type.match(sensitive)
 
+# Selection should be type Caret, because this should only be called
+# after a textual modification (from typing), which should never preserve a selection
 checkStructure = (node)->
-  if node
-    #sel = getSelection()
-    #if root.currentBlock && sel.type = 'Caret'
-    #  r = sel.getRangeAt(0)
-    #  els = [root.currentBlock]
-    #  oldBlock = getBlock root.currentBlock.id
-    #  #
-    #  # change "blocks" to "oldBlock" -- just look at the old version of the node
-    #  #
-    #  checkBlockShift els, blocks, blockElementForSelection sel, r
-    #  text = (blockText el for el in els).join ''
-    #  newBlocks = orgDoc parseOrgMode text
-    #  overrides = newOverrides()
-    #  if attemptMerge blocks[0].prev, newBlocks, changes, true then newBlocks.shift()
-    #  if newBlocks.length && attemptMerge blocks[blocks.length - 1].next, newBlocks, changes then newBlocks.pop()
-    #  if same = (newBlocks.length == blocks.length)
-    #    for i in [0..blocks.length]
-    #      if blocks[i] != newBlocks[i]
-    #        same = false
-    #        break
-    #  if !same
-    #    console.log "DIFFERENT BLOCK TYPES -- REMAPPING"
-    #    remapBlocks blocks, newBlocks
-    edited node
+  sel = getSelection()
+  if sel.type == 'Caret'
+    blockIds = root.currentBlockIds
+    currentBlockId = blockElementForNode(sel.focusNode).id
+    if !(currentBlockId in [blockIds[0], blockIds[blockIds.length - 1]])
+      if blockIds[0].prev == currentBlockId then blockIds.unshift currentBlockId
+      else if blockIds[blockIds.length - 1].next == currentBlockId then blockIds.push currentBlockId
+      else return console.log "Can't locate current block"
+    # blockIds now contains the changed nodes
+    oldBlocks = (getBlock(id) for id in blockIds)
+    newBlocks = orgDoc parseOrgMode (blockText($("##{id}")[0]) for id in blockIds).join ''
+    overrides = newOverrides()
+    first = checkMerge(overrides, fo = oldBlocks[0], newBlocks[0], getBlock(fo.prev), (aux)->
+        aux + newBlocks.shift().text)
+    if _(newBlocks).isEmpty() then last = first
+    else last = checkMerge(overrides, lo = _(oldBlocks).last(), _(newBlocks).last(), getBlock(lo.next), (aux)->
+      newBlocks.pop().text + aux)
+    oldPrev = getBlock(blockIds[0]).prev
+    oldNext = getBlock(_(blockIds).last()).next
+    remapBlocks overrides, oldBlocks, newBlocks
+    firstBlockId = if isRemoved overrides, f = blockIds[0]
+      oldPrev || docRoot(root.currentDocument).head
+    else f
+    lastBlockId = if isRemoved overrides, l = _(blockIds).last() then oldNext else l
+    rc = createRenderingComputer()
+    rc.add item for id, item of overrides.adds
+    rc.remove getBlock(id) for id of overrides.removes
+    rc.change getBlock(id), item for id, item of overrides.updates
+    commitEdits overrides
+    #reparseBlockRange firstBlockId, lastBlockId
+    rc.render()
 
-checkBlockShift = (els, blocks, newBlockElement)->
-  if newBlockElement != root.currentBlock
-    newBlock = getBlock newBlockElement.id
-    if newBlock.prev = blocks[0]._id
-      blocks.push newBlock
-      els.push newBlockElement
-    else
-      blocks.unshift newBlock
-      els.unshift newBlockElement
-
-attemptMerge = (a, b, overrides, mergeToA)->
-  if a && b
-    oldBlock = if mergeToA then a = getItem overrides, a else b = getItem overrides, b
-    if (newBlocks = orgDoc parseOrgMode a.text + b.text).length == 1
-      updateItem overrides, oldBlock
-      console.log "MERGE INTO #{oldBlock._id}"
-      return true
-    else if newBlocks[if mergeToA then 0 else newBlocks.length - 1].text != oldBlock.text
-      console.log "PARTIAL MERGE INTO #{oldBlock._id} WITH #{newBlocks.length - 1} LEFT OVER NODES"
-  false
+# check whether to merge the new text with the preceding/following old text
+# returns the id of the old block if merge, otherwise the id of the new block
+checkMerge = (overrides, oldBlock, newBlock, auxBlock, func)->
+  if newBlock.type == 'chunk' && oldBlock.type != 'chunk' && auxBlock.type == 'chunk'
+    auxBlock.text = func auxBlock.text
+    updateItem overrides, auxBlock
+    auxBlock._id
+  else oldBlock._id
 
 #
-# scan top to bottom and bottom to top
 # try to find the best fit for the new blocks
 #
-remapBlocks = (oldBlocks, newBlocks)->
-  if !newBlocks.length then console.log "BLOCKS ALL MERGED AWAY"
-  else
-    if newBlocks.length < oldBlocks.length then console.log "SOME BLOCKS MERGED AWAY"
-    else if newBlocks.length > oldBlocks.length then console.log "ADDITIONAL BLOCKS"
-    topToBottom = 0
-    bottomToTop = 0
-    pos = 0
-    for block in oldBlocks
-      if pos >= newBlocks.length then break
-      if block.type != 'chunk' && newBlocks[pos].type == 'chunk'
-        if ++pos >= newBlocks.length then break
-      if block.type == newBlocks[pos].type then topToBottom++
-      pos++
-    pos = newBlocks.length - 1
-    for blockPos in [oldBlocks.length - 1 .. 0] by -1
-      block = oldBlocks[blockPos]
-      if pos < 0 then break
-      if block.type != 'chunk' && newBlocks[pos].type == 'chunk'
-        if --pos < 0 then break
-      if block.type == newBlocks[pos].type then bottomToTop++
-      pos--
-    if topToBottom >= bottomToTop then console.log "CHOOSING TOP TO BOTTOM MAPPING"
-    else console.log "CHOOSING BOTTOM TO TOP MAPPING"
+remapBlocks = (overrides, oldBlocks, newBlocks)->
+  oldTypes = (block.type for block in oldBlocks)
+  newTypes = (block.type for block in newBlocks)
+  prevId = oldBlocks[0].prev
+  oldBlocks.reverse()
+  newBlocks.reverse()
+  offset = 0
+  for diff in (Adiff.diff oldTypes, newTypes)
+    if diff[0] > offset
+      prevId = updateBlocks diff[0] - offset, overrides, oldBlocks, newBlocks, prevId
+      console.log "Update #{diff[0] - offset} items"
+    offset = diff[0] + diff[1]
+    insertCount = diff.length - 2
+    deleteCount = diff[1]
+    updateCount = Math.min deleteCount, insertCount
+    insertCount -= updateCount
+    deleteCount -= updateCount
+    if updateCount > 0
+      console.log "Update #{updateCount} items"
+      prevId = updateBlocks updateCount, overrides, oldBlocks, newBlocks, prevId
+    if deleteCount > 0 then console.log "Delete #{deleteCount} items: #{(block._id for block in Lazy(oldBlocks).reverse().take(deleteCount).toArray()).join ', '}"
+    while deleteCount > 0
+      removeId overrides, oldBlocks.pop()._id
+      deleteCount--
+    if insertCount > 0 then console.log "Insert #{insertCount} items: #{(block._id for block in Lazy(newBlocks).reverse().take(insertCount).toArray()).join ', '}"
+    while insertCount > 0
+      prevId = insertBlock overrides, newBlocks.pop(), prevId
+      insertCount--
+  if (num = oldBlocks.length - offset) > 0
+    prevId = updateBlocks num, overrides, oldBlocks, newBlocks, prevId
+    console.log "Update #{num} items: #{(block.id for block in Lazy(oldBlocks).reverse().take(num).toArray()).join ', '}"
+  while newBlocks.length > 0
+    prevId = insertBlock overrides, newBlocks.pop(), prevId
+
+updateBlocks = (num, overrides, oldBlocks, newBlocks, prevId)->
+  for i in [0 ... num]
+    b = oldBlocks.pop()
+    n = newBlocks.pop()
+    prevId = n._id = b._id
+    updateItem overrides, n, true
+  prevId
+
+insertBlock = (overrides, newBlock, prevId)->
+  addItem overrides, newBlock, prevId
+  newBlock._id
+
+reparseBlockRange = (firstBlockId, lastBlockId)->
+  slides = [findSlideForId firstBlockId]
+  if firstBlockId != lastBlockId
+    cur = getBlock(firstBlockId).next
+    while cur && cur != lastBlockId
+      if (block = getBlock cur) && isSlideBlock block then slides.push block._id
+  if slides.length > 0
+    console.log "Reparse slides: #{(slide._id for slide in slides).join ', '}"
+    for slide in slides
+      if !(el = $("##{slide._id}")[0])
+        el = $(root.orgApi.emptySlide slide._id)[0]
+        $("[data-org-headline='0']").prepend el
+      [doc] = subDoc null, slide._id, 0, 0, (->)
+      reparse el, doc, el
+  else console.log "No reparse necessary; nothing changed"
+
+isSlideBlock = (block)-> block.type = 'headline' && block.level == 1
+
+findSlideForId = (id)->
+  while id && block = getBlock id
+    if isSlideBlock block then return block
+    id = block.prev
+  null
 
 escapeAttr = (str)->
   if typeof str == 'string' then str.replace /['"&]/g, (c)->
@@ -1097,7 +1155,7 @@ orgEnv = (parent, node)->
     __proto__: defaultEnv
   if r
     r.innerHTML = ''
-    env.write = (str)-> r.textContent += "\n: #{str.replace /\n/g, '\n: '}"
+    env.write = (str)-> r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
   else env.write = (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
   env
 
@@ -1686,8 +1744,9 @@ root.dumpTextWatchers = dumpTextWatchers
 root.useText = useText
 root.markupData = markupData
 root.blockText = blockText
-root.blockElementForSelection = blockElementForSelection
+root.blockElementsForSelection = blockElementsForSelection
 root.blockElementForNode = blockElementForNode
+root.blockIdsForSelection = blockIdsForSelection
 root.orgForNode = orgForNode
 root.orgChildrenForNode = orgChildrenForNode
 root.emptySlide = emptySlide

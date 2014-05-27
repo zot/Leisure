@@ -43,7 +43,7 @@ every time, because func is ignored after the first call in a batch
       if !disableUpdates && (!committing || passesFilters name, value)
         if !batchers
           batchers = []
-          setTimeout runBatches, 1
+          setTimeout runBatches, 100
         if batchers[name] then batchers[name][0].push value
         else batchers[name] = [[value], func]
 
@@ -67,6 +67,7 @@ Handle changes to the doc nodes
     textLevel = Number.MAX_SAFE_INTEGER
 
     processChanges = (doc, batch, local)->
+      rc = createRenderingComputer()
       for item in batch
         if !!item.data.local == local
           if item.data.local && item.type == 'added' && (old = root.currentDocument.findOne item.data._id)
@@ -74,30 +75,88 @@ Handle changes to the doc nodes
             item.oldData = old
           if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
           processDataChange item
-          # delay here because each item will alter DOM in a delayed function
-          # and successive items depend on current DOM content
-          if !item.editing then do (item)-> delay ->
+          if !item.editing
+            console.log "ITEM: #{item.type} #{item.data._id}"
             switch item.type
-              when 'added'
-                renderParent item.data
-              when 'removed'
-                [headline, parent] = getParent item.data
-                if headline then renderBlock parent
-                else $("##{item.data._id}").remove()
-              when 'changed'
-                processChange item,
-                  text: -> renderBlock item.data
-                  indent: (oldLevel, newLevel)->
-                    if oldLevel == 1
-                      $("##{item.data._id}").remove()
-                      renderParent item.data
-                    else renderParent item.oldData
-                  outdent: (oldLevel, newLevel)->
-                    renderParent item.oldData
-                    renderParent item.data
-                  none: ->
+              when 'added' then rc.add item.data
+              when 'removed' then rc.remove item.data
+              when 'changed' then rc.change item.oldData, item.data
+      rc.render()
 
-    leisureBlocks = []
+    createRenderingComputer = ->
+      rerender = {}
+      removeElements = {}
+      rerender: rerender
+      removeElements: removeElements
+      add: (data)->
+        [headline, id, block] = getParent data
+        if id then rerender[id] = block else rerender[data._id] = data
+      remove: (data)->
+        [headline, id, block] = getParent data
+        rerender[id] = block
+        removeElements[data._id] = true
+      change: (oldData, newData)->
+        change = classifyChange oldData, newData
+        switch change.type
+          when 'text' then rerender[newData._id] = newData
+          when 'indent'
+            if change.newLevel == 1 then rerender[newData._id] = newData
+            else
+              block = newData
+              while ([headline, id, block] = getParent block) && headline && id && block.level >= change.oldLevel
+                targetId = id
+                targetBlock = block
+              rerender[targetId] = targetBlock
+          when 'outdent'
+            if change.newLevel == 1 then rerender[newData._id] = newData
+            else
+              [headline, id, block] = getParent newData
+              if headline && id then rerender[id] = block
+              else rerender[newData._id] = newData
+          when 'none' then
+      render: ->
+        for item of @removeElements
+          $("##{item}").remove()
+        pruneBlocks @rerender
+        for id, block of @rerender
+          console.log "RENDER #{block._id}"
+          renderBlock block
+
+    classifyChange = (old, data)->
+      if data.type == 'headline'
+        newLevel: data.level
+        oldLevel: if old.type == 'headline' then old.level else textLevel
+        type: if old.type != 'headline' || data.level < old.level then 'outdent'
+        else if data.level > old.level then 'indent'
+        else if data.text != old.text then 'text'
+        else 'none'
+      else if old.type == 'headline'
+        type: 'indent', oldLevel: old.level, newLevel: textLevel
+      else if data.text != old.text then type: 'text'
+      else type: 'none'
+
+    pruneBlocks = (blocks)->
+      result = {}
+      considered = {}
+      for id, block of blocks
+        if block.type == 'headline' && block.level == 1 then result[id] = block
+        else
+          considering = {}
+          newer = true
+          while ([headline, pid, pblock] = getParent block) && headline
+            switch considered[pid]
+              when true then result[id] = block
+              when false then # just here for clarity
+              when null
+                if pblock.level != 1
+                  if blocks[id] then newer = false
+                  else
+                    considering[id] = true
+                    continue
+            break
+          for cid of considering
+            considered[cid] = newer
+      result
 
     processDataChange = ({type, data})->
       if type in ['changed', 'removed'] && viewIdTypes[data._id]
@@ -120,6 +179,8 @@ Handle changes to the doc nodes
           #root.orgApi.executeText codeString(data), {}, null, (->)
           processLeisureBlock data
 
+    leisureBlocks = []
+
     processingLeisure = false
 
     processLeisureBlock = (data)->
@@ -136,17 +197,11 @@ Handle changes to the doc nodes
 
     codeString = (data)-> data.text.substring data.codePrelen, data.text.length - data.codePostlen
 
-    renderParent = (data)->
-      [headline, parentId] = getParent data
-      if headline then renderBlock parentId
-      else
-        if parentId then $("##{parentId}").after("<div id='#{data._id}'></div>")
-        else $('[data-org-headline="0"]').prepend root.emptySlide data._id
-        renderBlock data
-
     getBlock = (id)->
-      doc = root.currentDocument
-      doc.leisure.localCollection.findOne(id) ? doc.findOne id
+      if id
+        doc = root.currentDocument
+        doc.leisure.localCollection.findOne(id) ? doc.findOne id
+      else null
 
     getParent = (data)->
       prev = data.prev
@@ -154,32 +209,27 @@ Handle changes to the doc nodes
       while prev
         prevItem = getBlock prev
         if prevItem?.type == 'headline'
-          if prevItem.level < dataLevel then return [true, renderBlock prevItem]
+          if prevItem.level < dataLevel then return [true, prevItem._id, prevItem]
           else if dataLevel == 1 && prevItem.level == 1
             break
         prev = prevItem?.prev
-      [false, prev && prevItem._id]
-
-    processChange = (item, processor)->
-      data = item.data
-      old = item.oldData
-      if data.type == 'headline'
-        if old.type != 'headline' then processor.outdent textLevel, data.level
-        else
-          if data.level < old.level then processor.outdent old.level, data.level
-          else if data.level > old.level then processor.indent old.level, data.level
-          else if data.text != old.text then processor.text()
-          else processor.none()
-      else if old.type == 'headline' then processor.indent old.level, textLevel
-      else if data.text != old.text then processor.text()
-      else processor.none()
+      [false, prev && prevItem._id, prev && prevItem]
 
     renderBlock = (item)->
       if $("##{item._id}").is "[data-org-headline='0']"
         org = docOrg root.currentDocument
       else
         org = subDoc(root.currentDocument, item, 0, 0, ignore)[0]
-      if org then root.loadOrg root.parentForBlockId(item._id), org, name, $("##{item._id}")[0]
+      if org
+        if !(node = $("##{item._id}")[0])
+          node = $(root.orgApi.emptySlide item._id)[0]
+          prev = getBlock item.prev
+          if !prev || prev.level == 0 then $("[data-org-headline='0']").prepend node
+          else
+            prevSlide = $("##{prev._id}").closest "[data-org-headline='1']"
+            prevSlide.after node
+            if !$(node).is('[id]') then node = node.find('[id]')
+        root.loadOrg root.parentForBlockId(item._id), org, name, node
 
     setData = (id, value)->
       doc = root.currentDocument
@@ -235,6 +285,16 @@ Handle changes to the doc nodes
                     setTimeout (->
                       $('#hide-show-button').tooltip 'close'
                       setTimeout (->Leisure.applyShowHidden()), 2000), 3000
+                    setTimeout (->
+                      if document.location.hash.match /^#load=\/tmp\//
+                        $('#hide-show-button')
+                          .tooltip('option', 'content', 'Restored URL; press the forward history buttom to see the collaboration URL, again')
+                          .tooltip('open')
+                        history.back()
+                        setTimeout (->
+                          $('#hide-show-button').tooltip 'close'
+                          setTimeout (->Leisure.applyShowHidden()), 2000), 3000
+                      ), 10000
             document.body.classList.remove 'not-logged-in'
         else console.log "ERROR: #{err}\n#{err.stack}", err
 
@@ -426,19 +486,39 @@ Users can mark any slide as local by setting a "local" property to true in the s
       overrides = newOverrides()
       for id of currentEdits
         changeDocText id, textForId(id), overrides
+      commitEdits overrides
+
+    commitEdits = (overrides)->
       editing = true
       try
         commitOverrides overrides
       finally
         editing = false
 
+    isRemoved = (overrides, id)-> overrides.removes[id]
+
     getItem = (overrides, id)-> id && (overrides.adds[id] || overrides.updates[id] || getBlock id)
 
-    addItem = (overrides, item)->
+    addItem = (overrides, item, prevId)->
+      if prevId
+        item.prev = prevId
+        if !item._id
+          item._id = new Meteor.Collection.ObjectID().toJSONValue()
+        if prev = getItem overrides, prevId
+          item.next = prev.next
+          if next = getItem overrides, prev.next
+            next.prev = item._id
+            updateItem overrides, next
+          prev.next = item._id
+          updateItem overrides, prev
       overrides.adds[item._id] = item
       delete overrides.removes[item._id]
 
-    updateItem = (overrides, item)->
+    updateItem = (overrides, item, updateLinks)->
+      if updateLinks
+        old = getBlock item._id
+        item.prev = old.prev
+        item.next = old.next
       (if overrides.adds[item._id]? then overrides.adds else overrides.updates)[item._id] = item
       delete overrides.removes[item._id]
 
@@ -449,10 +529,10 @@ Users can mark any slide as local by setting a "local" property to true in the s
       delete overrides.adds[id]
       delete overrides.updates[id]
       overrides.removes[id] = true
-      if prev
+      if prev && prev.next == item._id
         prev.next = item.next
         updateItem overrides, prev
-      if next
+      if next && next.prev == item._id
         next.prev = item.prev
         updateItem overrides, next
 
@@ -533,11 +613,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
       else cur = updateDoc overrides, newDoc.shift(), cur
       for item in newDoc
         item._id = new Meteor.Collection.ObjectID().toJSONValue()
-        item.prev = cur._id
-        item.next = cur.next
-        cur.next = item._id
-        updateItem overrides, cur
-        addItem overrides, item
+        addItem overrides, item, cur._id
         cur = item
 
     mergeFirstChunk = (overrides, prev, newDoc)->
@@ -596,6 +672,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
 
     root.observeDocument = observeDocument
     root.docOrg = docOrg
+    root.subDoc = subDoc
     root.docJson = docJson
     root.observing = observing
     root.crnl = crnl
@@ -612,3 +689,6 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.addItem = addItem
     root.updateItem = updateItem
     root.removeId = removeId
+    root.isRemoved = isRemoved
+    root.commitEdits = commitEdits
+    root.createRenderingComputer = createRenderingComputer

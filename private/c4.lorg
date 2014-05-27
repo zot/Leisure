@@ -24,7 +24,7 @@ pieces:
   - [w, w, w, w, w, w, w]
 #+END_SRC
 
-Acual connect four:
+Actual connect four:
 [[http://www.abstractstrategy.com/connect-four.jpg]]
 #+BEGIN_SRC html :defview c4board
 <div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px; display: inline-block;'>
