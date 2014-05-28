@@ -85,21 +85,26 @@ Handle changes to the doc nodes
 
     # at this point, fully rerender all changed slides
     createRenderingComputer = (overrides)->
+      changedStructure: false
       rerender: {}
       add: (data)->
+        @changedStructure = true
         @rerender[data._id] = data
         if data.type == 'headline' && data.level == 1 && prev = getItem overrides, data.prev
           @rerender[prev._id] = prev
       remove: (data)->
+        @changedStructure = true
         @removeElement data._id
         if data.type == 'headline' && data.level == 1 && prev = getItem overrides, data.prev
           @rerender[prev._id] = prev
       change: (oldData, newData)->
         change = classifyChange oldData, newData
+        if oldData.type != newData.type || (oldData.type == 'headline' && oldData.level != newData.level)
+          @changedStructure = true
         switch change.type
           when 'text'
             @rerender[newData._id] = newData
-            if oldData.type != 'text'
+            if oldData.type != newData.type
               prev = getItem overrides, newData.prev
               @rerender[prev._id] = prev
               if oldData.type == 'headline' && oldData.level == 1
@@ -115,18 +120,21 @@ Handle changes to the doc nodes
         else if el.length then root.restorePosition el[0].parentNode, => el.remove()
       render: ->
         root.restorePosition '[maindoc]', =>
-          slides = findSlides overrides, @rerender
-          #console.log "RENDER SLIDES: #{(slide for slide of slides).join ', '}"
-          for id, block of slides
-            el = $("##{block._id}")
-            if block.type == 'headline' && block.level == 1
-              if !el.is("[data-org-headline='1']")
-                if (parent = el.closest("[data-org-headline='1']")[0]) && !slides[parent.id]
-                   renderBlock getBlock parent.id
-                removeNewChildren block.next
-            else if el.is("[data-org-headline='1']")
-              if block = getBlock block.prev && !slides[block.prev]
-                renderBlock block
+          if @changedStructure
+            slides = findSlides overrides, @rerender
+            #console.log "RENDER SLIDES: #{(slide for slide of slides).join ', '}"
+            for id, block of slides
+              el = $("##{block._id}")
+              if block.type == 'headline' && block.level == 1
+                if !el.is("[data-org-headline='1']")
+                  if (parent = el.closest("[data-org-headline='1']")[0]) && !slides[parent.id]
+                     renderBlock getBlock parent.id
+                  removeNewChildren block.next
+              else if el.is("[data-org-headline='1']")
+                if block = getBlock block.prev && !slides[block.prev]
+                  renderBlock block
+              renderBlock block
+          else for id, block of @rerender
             renderBlock block
 
     removeNewChildren = (id)->
@@ -227,6 +235,7 @@ Handle changes to the doc nodes
         org = docOrg root.currentDocument
       else
         org = subDoc(root.currentDocument, item, 0, 0, ignore)[0]
+        org.linkNodes()
       if org
         if !(node = $("##{item._id}")[0])
           if prev = getBlock item.prev

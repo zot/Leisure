@@ -19,17 +19,19 @@
     _ = (Lazy ? window?.Lazy ? global?.Lazy)
 
     getCodeItems = (org)->
-      result = {}
-      while !isSourceEnd org
-        if type = getSourceNodeType org
-          if !result.first then result.first = org
-          else if type == 'name' then return result
-          if result[type]? then return result
-          result.last = result[type] = org
-          if type == 'results' then break
-        else if org instanceof Drawer || org instanceof Keyword then break
-        org = org.next
-      if result.source then result else {}
+      if !getSourceNodeType org then {}
+      else
+        result = {}
+        while !isSourceEnd org
+          if type = getSourceNodeType org
+            if !result.first then result.first = org
+            else if type == 'name' then return result
+            if result[type]? then return result
+            result.last = result[type] = org
+            if type == 'results' then break
+          else if org instanceof Drawer || org instanceof Keyword then break
+          org = org.next
+        if result.source then result else {}
 
     isCodeBlock = (org)->
       if org instanceof Keyword && org.name.match /^name$/i

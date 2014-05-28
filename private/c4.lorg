@@ -26,6 +26,20 @@ pieces:
 
 Actual connect four:
 [[http://www.abstractstrategy.com/connect-four.jpg]]
+* Connect 4
+:properties:
+:note: sidebar
+:end:
+
+/*Click the eye button in the Leisure panel to reveal the code*/
+/*If the document gets messed up, try clicking the Leisure button a few times*/
+/*otherwise, try reloading*/
+
+[[org:board]]
+* Code
+:properties:
+:hidden: true
+:end:
 #+BEGIN_SRC html :defview c4board
 <div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px; display: inline-block;'>
   <table style='text-align: center'>
@@ -58,13 +72,6 @@ Leisure.hookupTable = ->
       Leisure.setData block._id, data
 #+END_SRC
 
-* Connect 4
-:properties:
-:note: sidebar
-:end:
-
-/*Click the eye button in the Leisure panel to reveal the code*/
-/*If the document gets messed up, try clicking the Leisure button a few times*/
-/*otherwise, try reloading*/
-
-[[org:board]]
+#+BEGIN_SRC leisure :results def
+setTheme 'googie'
+#+END_SRC

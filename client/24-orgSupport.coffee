@@ -75,6 +75,7 @@ lz = lazy
 } = require '12-docOrg'
 {
   escapeHtml,
+  getDeepestActiveElement,
 } = Templating
 amt = require('persistent-hash-trie')
 
@@ -597,7 +598,7 @@ markupNode = (org, start, inFragment)->
         {name} = getCodeItems org.fragment.children[0]
         if name then yaml += " data-yaml-name='#{escapeAttr name.info.trim()}'"
     else yaml = ''
-    "<span #{orgAttrs org}#{codeBlockAttrs org, inFragment}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
+    "<span #{orgAttrs org}#{codeBlockAttrs org, inFragment}#{yaml}><span data-org-type='text'>#{escapeHtml org.text.substring(0, pos)}</span><span #{orgSrcAttrs org}>#{contentSpan text}</span></span>"
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else if org instanceof SimpleMarkup then markupSimple org
   else if org instanceof Fragment then markupFragment org
@@ -998,6 +999,7 @@ checkCollapsed = (delta)->
   node && (isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) node)
 
 checkSourceMod = ->
+  if (el = getDeepestActiveElement()) && el.nodeName.match /input/i then return
   if (s = getSelection()).type == 'Caret' && mod = s.getRangeAt(0).startContainer
     bl = $()
     for id in root.currentBlockIds
@@ -1597,6 +1599,7 @@ orgNotebook =
     @bindContent newNode
   executeText: (text, props, env, cont)-> executeText text, Nil, env ? baseEnv, cont
   installOrgDOM: (parent, orgNode, orgText, target)-> installOrgDOM parent, orgNode, orgText, target
+  newNode: ->
   redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
   defineWidget: (id)->
   applyShowHidden: ->
@@ -1607,12 +1610,14 @@ orgNotebook =
     text = text || (getNodeText target || parent)
     sel = getSelection()
     [orgNode, orgText] = @markupOrgWithNode text, null, target
-    root.restorePosition parent, => @installOrgDOM parent, orgNode, orgText, target
+    node = null
+    root.restorePosition parent, => node = @installOrgDOM parent, orgNode, orgText, target
     #needsReparse = false
     setTimeout (->
       for l in reparseListeners
         l parent, orgNode, orgText
       ), 1
+    node
   checkSourceMod: checkSourceMod
   configureMenu: configureMenu
   removeSlide: (id)-> $("##{id}").remove()
@@ -1628,7 +1633,9 @@ basicOrg =
   createResults: createResults
   installOrgDOM: (parent, orgNode, orgText, target)->
     if !target then parent.setAttribute 'class', 'org-plain'
-    orgNotebook.installOrgDOM parent, orgNode, orgText, target
+    node = orgNotebook.installOrgDOM parent, orgNode, orgText, target
+    if target && this != root.orgApi then root.orgApi.newNode target
+    node
   bindings: defaultBindings
   leisureButton: swapMarkup
   #emptySlide: (id)-> "<span id='#{id}'></span>#{boundarySpan}"
@@ -1735,3 +1742,4 @@ root.emptySlide = emptySlide
 root.toggleShowHidden = toggleShowHidden
 root.applyShowHidden = applyShowHidden
 root.actualSelectionUpdate = actualSelectionUpdate
+root.currentBlockIds = []

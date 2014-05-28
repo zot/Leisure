@@ -153,7 +153,7 @@ class SelectionDescriptor
     el = getDeepestActiveElement()
     @parent = $(parent)[0] ? (slideParent sel.focusNode)
     @focusNode = sel.focusNode
-    if el.nodeType == Node.ELEMENT_NODE && sid = el.getAttribute('data-shadow-id') && el.nodeName.match(/input/i) && el.type.match(/text/i)
+    if el.nodeType == Node.ELEMENT_NODE && (sid = el.getAttribute('data-shadow-id')) && el.nodeName.match(/input/i) && el.type.match(/text/i)
       descriptor = rootNode(el).firstChild.getAttribute 'data-view-descriptor'
       start = el.selectionStart
       end = el.selectionEnd
@@ -404,7 +404,7 @@ markupHeadline = (org, delay, note, replace)->
   editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
-      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span>\n</div></div></span>#{markupGuts org, checkStart start, org.text}</span></div>"
+      "#{startNewSlide replace}<div #{orgAttrs org}#{editMode} data-org-headline-text='#{escapeAttr start}'#{noteAttrs org}><span class='maincontent'><span class='hidden'>#{stars}</span><span data-org-type='text'><div data-org-type='text-content'><div class='textborder' contenteditable='false'></div><div class='textcontent'>#{escapeHtml start}<span class='tags'>#{properties}#{tags}</span>\n</div></div></span>#{markupGuts org, checkStart start, org.text}</span></div>"
     else "#{startNewSlide()}<div #{orgAttrs org}#{editMode}><span data-org-type='text'><span data-org-type='text-content'><span class='hidden'>#{org.text}</span></span></span>#{markupGuts org, checkStart start, org.text}</div>"
   else
     slide = if org.text.trim() != ''
@@ -1321,8 +1321,11 @@ setMinMax = (sl, value)->
   sl.slider "option", "step", step
 
 getSlides = (parent)->
+  showHidden = $(document.body).is('.show-hidden')
   $(parent ? '[maindoc]').find('.slideholder').filter (i, el)->
-    $(el).find("[data-org-headline='1']").not('[data-property-hidden="true"]').length > 0
+    slides = $(el).find("[data-org-headline='1']")
+    if !showHidden then slides = slides.not('[data-property-hidden="true"]')
+    slides.length > 0
 
 setCurrentSlide = (element)->
   element = $(element).closest '.slideholder'
@@ -1455,6 +1458,14 @@ restoreSlide = (block)->
 
 codeHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentElement
 
+noViewUpdatesWhile = (block)->
+  noV = noViewUpdate
+  noViewUpdate = true
+  try
+    block()
+  finally
+    noViewUpdate = noV
+
 fixupViews = (target)->
   if Leisure.noViewUpdate then return
   if target
@@ -1514,6 +1525,7 @@ renderData = (data, linkName)->
       Leisure.currentViewChunk = oldChunk
 
 renderLink = (node, data)->
+  if isPlainEditing node then return
   if name = node.getAttribute 'data-view-name'
     viewMarkup["#{data.yaml.type}/#{name}"]? data.yaml, $(node)
     descriptor = "#{data._id}/#{name}"
@@ -1576,7 +1588,13 @@ fancyOrg =
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
   reparse: (parent, text, target)->
-    if isPlainEditing target then plainOrg.reparse parent, text, target
+    if isPlainEditing target
+      t = $(plainOrg.reparse parent, text, target)
+      t.attr 'data-edit-mode', 'plain'
+      t.attr 'data-org-note', 'main'
+      createEditToggleButton t
+      @newNode t
+      fixupHtml t
     else orgNotebook.reparse.apply this, arguments
   installOrgDOM: (parent, orgNode, orgText, target)->
     @parent = parent
@@ -1584,19 +1602,24 @@ fancyOrg =
       if !target
         parent.setAttribute 'class', 'org-fancy'
         parent.setAttribute 'maindoc', ''
+      hadTarget = target
       target = orgNotebook.installOrgDOM parent, orgNode, orgText, target
       fixupHtml target || parent
-      setTheme theme
-      nextNoteId = 0
-      fixupViews target
-      createNoteShadows()
-      if !target
+      @newNode target
+      if !hadTarget
         @applyShowHidden()
         setTimeout (=>
           redrawAllIssues()
           ), 1
         $(document).tooltip()
-  executeSource: executeSource
+  newNode: (target)->
+    setTheme theme
+    nextNoteId = 0
+    fixupViews target
+    createNoteShadows()
+  executeSource: (parent, node)->
+    if isPlainEditing node then plainOrg.executeSource arguments...
+    else executeSource arguments...
   executeDef: fancyExecuteDef
   createResults: createResults
   bindings: defaultBindings
@@ -1721,6 +1744,7 @@ root.restoreDocRange = restoreDocRange
 root.getDocumentOffset = getDocumentOffset
 root.viewMarkup = viewMarkup
 root.noViewUpdate = false
+root.noViewUpdatesWhile = noViewUpdatesWhile
 root.topNode = topNode
 root.rootNode = rootNode
 root.codeHolder = codeHolder

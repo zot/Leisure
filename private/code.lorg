@@ -5,8 +5,7 @@ Simple test
 #+END_SRC
 #+RESULTS:
 : 7
-
-Some fun with infinite streams
+*Some fun with infinite streams
 #+BEGIN_SRC leisure :results dynamic
 take 5 ones
 take 5 naturals
@@ -23,7 +22,7 @@ increasing x = [x | increasing x + 1]
 naturals = increasing 1
 even x = (x % 2) == 0
 #+END_SRC
-
+* Theme settings
 #+BEGIN_SRC leisure :results def
 setTheme 'steampunk'
 #setTheme 'googie'
