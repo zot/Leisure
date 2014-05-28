@@ -646,7 +646,7 @@
                         border: solid rgb(48, 36, 71) 2px;
                         background-color: #e6dcc3;
                  }
-                .steampunk.slides [data-org-type="headline"].currentSlide {
+                .steampunk.slides .currentSlide {
                         margin-left: 0%;
                         padding-top: 128px;
                 }
@@ -1127,7 +1127,7 @@
                 button#team_cthulhu:hover {
                         background-color: #27ae60;
                 }
-                .slides [data-org-type="headline"].currentSlide {
+                .slides .currentSlide {
                         margin-left: 0%;
                         padding-top: 167px;
                 }
@@ -1158,7 +1158,7 @@
                 .slides [data-org-headline="0"] > div:first-child > .codeblock {
                         display: none;
                 }
-                .slides [data-org-type="headline"].currentSlide {
+                .slides .currentSlide {
                         margin-left: 20%;
                 }
                 [data-edit-mode='fancy'] {
@@ -1190,9 +1190,6 @@
                 }
                 .collapsed > [data-org-type="text"]:last-child:after {
                         content: '... (EMPTY)';
-                }
-                [dirty] {
-                        font-style: oblique;
                 }
                 .commentbox {
                         position: relative;
@@ -1572,10 +1569,10 @@
                 }
                 [data-edit-mode='fancy'] [data-org-headline='4'] > [data-org-type='text'] {
                 }
-                .slides [data-org-headline='1'] {
+                .slides .slideholder {
                         display: none;
                 }
-                .slides [data-org-headline='1'].currentSlide {
+                .slides .currentSlide.slideholder {
                         display: block;
                 }
                 .slides #sourceblock {
@@ -1692,6 +1689,9 @@
                         border-radius: 4px;
                         color: white;
                         background: linear-gradient(#666666, #333333);
+                }
+                .flat .code-content {
+                        color: black;
                 }
                 .flat .code-buttons {
                         background: linear-gradient(#666666, #333333);

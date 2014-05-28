@@ -4,6 +4,7 @@
   - plain mode
   - delete # in #+BEGIN_SRC
   - html block disappears
+  - caret loses position when demoting a slide
 - backspace with nl places caret at end of previous line instead of start of current
 - fix problem adding headlines
 - blog about document structure

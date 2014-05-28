@@ -32,6 +32,7 @@ initStorage = ->
     $('#user').val localStorage.getItem 'githubUser'
     $('#repository').val localStorage.getItem 'githubRepository'
     $('#file').val localStorage.getItem 'githubFile'
+  Leisure.setTheme 'flat'
 
 currentFile = null
 

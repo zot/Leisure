@@ -83,44 +83,57 @@ Handle changes to the doc nodes
               when 'changed' then rc.change item.oldData, item.data
       rc.render()
 
-    createRenderingComputer = ->
-      rerender = {}
-      removeElements = {}
-      rerender: rerender
-      removeElements: removeElements
+    # at this point, fully rerender all changed slides
+    createRenderingComputer = (overrides)->
+      rerender: {}
       add: (data)->
-        [headline, id, block] = getParent data
-        if id then rerender[id] = block else rerender[data._id] = data
+        @rerender[data._id] = data
+        if data.type == 'headline' && data.level == 1 && prev = getItem overrides, data.prev
+          @rerender[prev._id] = prev
       remove: (data)->
-        [headline, id, block] = getParent data
-        rerender[id] = block
-        removeElements[data._id] = true
+        @removeElement data._id
+        if data.type == 'headline' && data.level == 1 && prev = getItem overrides, data.prev
+          @rerender[prev._id] = prev
       change: (oldData, newData)->
         change = classifyChange oldData, newData
         switch change.type
-          when 'text' then rerender[newData._id] = newData
-          when 'indent'
-            if change.newLevel == 1 then rerender[newData._id] = newData
-            else
-              block = newData
-              while ([headline, id, block] = getParent block) && headline && id && block.level >= change.oldLevel
-                targetId = id
-                targetBlock = block
-              rerender[targetId] = targetBlock
-          when 'outdent'
-            if change.newLevel == 1 then rerender[newData._id] = newData
-            else
-              [headline, id, block] = getParent newData
-              if headline && id then rerender[id] = block
-              else rerender[newData._id] = newData
+          when 'text'
+            @rerender[newData._id] = newData
+            if oldData.type != 'text'
+              prev = getItem overrides, newData.prev
+              @rerender[prev._id] = prev
+              if oldData.type == 'headline' && oldData.level == 1
+                @removeElement newData._id
+          when 'indent' | 'outdent'
+            @rerender[newData._id] = newData
+            prev = getItem overrides, newData.prev
+            @rerender[prev._id] = prev
           when 'none' then
+      removeElement: (id)->
+        el = $("##{id}")
+        if el.is "[data-org-headline='1']" then root.orgApi.removeSlide id
+        else if el.length then root.restorePosition el[0].parentNode, => el.remove()
       render: ->
-        for item of @removeElements
-          $("##{item}").remove()
-        pruneBlocks @rerender
-        for id, block of @rerender
-          console.log "RENDER #{block._id}"
-          renderBlock block
+        root.restorePosition '[maindoc]', =>
+          slides = findSlides overrides, @rerender
+          #console.log "RENDER SLIDES: #{(slide for slide of slides).join ', '}"
+          for id, block of slides
+            el = $("##{block._id}")
+            if block.type == 'headline' && block.level == 1
+              if !el.is("[data-org-headline='1']")
+                if (parent = el.closest("[data-org-headline='1']")[0]) && !slides[parent.id]
+                   renderBlock getBlock parent.id
+                removeNewChildren block.next
+            else if el.is("[data-org-headline='1']")
+              if block = getBlock block.prev && !slides[block.prev]
+                renderBlock block
+            renderBlock block
+
+    removeNewChildren = (id)->
+      root.restorePosition "[maindoc]", =>
+        while (block = getBlock id) && !(block.type == 'headline' && block.level == 1)
+          $("##{block.id}").remove()
+          id = block.next
 
     classifyChange = (old, data)->
       if data.type == 'headline'
@@ -135,27 +148,20 @@ Handle changes to the doc nodes
       else if data.text != old.text then type: 'text'
       else type: 'none'
 
-    pruneBlocks = (blocks)->
+    # return an object containing only the slides containing a list of blocks
+    findSlides = (overrides, blocks)->
       result = {}
       considered = {}
       for id, block of blocks
+        considered[id] = true
         if block.type == 'headline' && block.level == 1 then result[id] = block
         else
-          considering = {}
-          newer = true
-          while ([headline, pid, pblock] = getParent block) && headline
-            switch considered[pid]
-              when true then result[id] = block
-              when false then # just here for clarity
-              when null
-                if pblock.level != 1
-                  if blocks[id] then newer = false
-                  else
-                    considering[id] = true
-                    continue
+          while ([headline, pid, block] = getParent overrides, block) && headline
+            if !considered[pid]
+              considered[pid] = true
+              if block.level > 1 then continue
+              result[pid] = block
             break
-          for cid of considering
-            considered[cid] = newer
       result
 
     processDataChange = ({type, data})->
@@ -203,11 +209,11 @@ Handle changes to the doc nodes
         doc.leisure.localCollection.findOne(id) ? doc.findOne id
       else null
 
-    getParent = (data)->
+    getParent = (overrides, data)->
       prev = data.prev
       dataLevel = if data.type == 'headline' then data.level else textLevel
       while prev
-        prevItem = getBlock prev
+        prevItem = getItem overrides, prev
         if prevItem?.type == 'headline'
           if prevItem.level < dataLevel then return [true, prevItem._id, prevItem]
           else if dataLevel == 1 && prevItem.level == 1
@@ -216,19 +222,18 @@ Handle changes to the doc nodes
       [false, prev && prevItem._id, prev && prevItem]
 
     renderBlock = (item)->
+      #console.log "RENDER #{item._id}"
       if $("##{item._id}").is "[data-org-headline='0']"
         org = docOrg root.currentDocument
       else
         org = subDoc(root.currentDocument, item, 0, 0, ignore)[0]
       if org
         if !(node = $("##{item._id}")[0])
-          node = $(root.orgApi.emptySlide item._id)[0]
-          prev = getBlock item.prev
-          if !prev || prev.level == 0 then $("[data-org-headline='0']").prepend node
-          else
-            prevSlide = $("##{prev._id}").closest "[data-org-headline='1']"
-            prevSlide.after node
-            if !$(node).is('[id]') then node = node.find('[id]')
+          if prev = getBlock item.prev
+            while prev && !(prev.type == 'headline' && prev.level == 1)
+              [headline, prevId, prev] = getParent null, prev
+              if !headline then prev == null
+          node = root.orgApi.insertEmptySlide item._id, prev?._id
         root.loadOrg root.parentForBlockId(item._id), org, name, node
 
     setData = (id, value)->
@@ -245,7 +250,7 @@ Handle changes to the doc nodes
         #  doc.update id, $set: {text: newText, yaml: value}
         #finally
         #  committing = oldCommitting
-        updateItem overrides = newOverrides(), cur
+        updateItem overrides = new Overrides(), cur
         commitOverrides overrides
 
     observing = {}
@@ -483,7 +488,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
       currentEdits = edits
       edits = {}
       pendingPush = false
-      overrides = newOverrides()
+      overrides = new Overrides()
       for id of currentEdits
         changeDocText id, textForId(id), overrides
       commitEdits overrides
@@ -497,50 +502,84 @@ Users can mark any slide as local by setting a "local" property to true in the s
 
     isRemoved = (overrides, id)-> overrides.removes[id]
 
-    getItem = (overrides, id)-> id && (overrides.adds[id] || overrides.updates[id] || getBlock id)
+    getItem = (overrides, id)-> id && !overrides?.removes[id] && (overrides?.adds[id] || overrides?.updates[id] || getBlock id)
 
     addItem = (overrides, item, prevId)->
-      if prevId
+      if !item._id then item._id = new Meteor.Collection.ObjectID().toJSONValue()
+      if !prevId
+        next = getItem overrides, overrides.head
+        item.next = overrides.head
+        overrides.head = item._id
+      else
         item.prev = prevId
-        if !item._id
-          item._id = new Meteor.Collection.ObjectID().toJSONValue()
         if prev = getItem overrides, prevId
-          item.next = prev.next
-          if next = getItem overrides, prev.next
-            next.prev = item._id
-            updateItem overrides, next
+          next = getItem overrides, prev.next
           prev.next = item._id
-          updateItem overrides, prev
+          updateItem overrides, prev, null, true
+      if item.next = next?._id
+        next.prev = item._id
+        updateItem overrides, next, null, true
       overrides.adds[item._id] = item
       delete overrides.removes[item._id]
+      checkOverrides overrides, item._id
 
-    updateItem = (overrides, item, updateLinks)->
+    updateItem = (overrides, item, updateLinks, ignoreCheck)->
       if updateLinks
-        old = getBlock item._id
+        old = getItem overrides, item._id
         item.prev = old.prev
         item.next = old.next
       (if overrides.adds[item._id]? then overrides.adds else overrides.updates)[item._id] = item
       delete overrides.removes[item._id]
+      if !ignoreCheck then checkOverrides overrides, item._id
 
     removeId = (overrides, id)->
       item = getItem overrides, id
       prev = getItem overrides, item.prev
       next = getItem overrides, item.next
+      if !prev
+        if overrides.head != id then console.log "Error, removing item with non prev, but it is not the head"
+        else overrides.head = item.next
       delete overrides.adds[id]
       delete overrides.updates[id]
       overrides.removes[id] = true
-      if prev && prev.next == item._id
+      if prev && prev.next == id
         prev.next = item.next
-        updateItem overrides, prev
-      if next && next.prev == item._id
+        updateItem overrides, prev, null, true
+      if next && next.prev == id
         next.prev = item.prev
-        updateItem overrides, next
+        updateItem overrides, next, null, true
+      checkOverrides overrides, prev?._id, next?._id
+
+    assert = -> console.assert.apply console, arguments
+
+    checkOverrides = (overrides, keys...)->
+      checkedPrev = {}
+      checkedNext = {}
+      for id in (if keys.length > 0 then keys else overrides.keys().toArray())
+        if id
+          block = getItem overrides, id
+          if !checkedPrev[id]
+            checkedPrev[id] = true
+            if block.prev && !checkedNext[block.prev]
+              checkedNext[block.prev] = true
+              assert prev = (getItem overrides, block.prev), "Missing prev for", id
+              assert prev.next == id, "Bad prev/next for", id, ' / ', block.prev
+          if !checkedNext[id]
+            checkedNext[id] = true
+            if block.next && !checkedNext[block.next]
+              checkedNext[block.next] = true
+              assert next = (getItem overrides, block.next), "Missing next for", id
+              assert next.prev == id, "Bad prev/next for", block.next, " / ", id
+      assert getItem(overrides, overrides.head), "Missing head: ", overrides.head
 
     commitOverrides = (overrides)->
-      doc = root.currentDocument
+      doc = overrides.doc
       localDoc = doc.leisure.localCollection
       committing = true
       trans = doc.leisure.localDb.transaction [localStoreName], 'readwrite'
+      if doc.leisure.info.head != overrides.head
+        doc.leisure.info.head = overrides.head
+        doc.update doc.leisure.info._id, doc.leisure.info
       for id of overrides.removes
         (if local = localDoc.findOne id then localDoc else doc).remove id
         if local then removeFromLocalStore doc, id, nullHandlers, trans
@@ -595,7 +634,18 @@ Users can mark any slide as local by setting a "local" property to true in the s
 
     pretty = (obj)-> JSON.stringify obj, null, '  '
 
-    newOverrides = -> adds: {}, updates: {}, removes: {}
+    class Overrides
+      constructor: (@doc)->
+        if !@doc then @doc = root.currentDocument
+        @head = @originalHead = @doc?.leisure.info.head
+        @adds = {}
+        @updates = {}
+        @removes = {}
+      keys: ->
+        L(@)
+          .pick('adds','removes','updates')
+          .map (o)-> L(o).keys()
+          .flatten()
 
     changeDocText = (id, newText, overrides)->
       cur = getItem overrides, id
@@ -684,7 +734,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.viewIdTypes = viewIdTypes
     root.codeString = codeString
     root.getBlock = getBlock
-    root.newOverrides = newOverrides
+    root.Overrides = Overrides
     root.getItem = getItem
     root.addItem = addItem
     root.updateItem = updateItem

@@ -147,44 +147,57 @@ emptyPresenter =
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
 
-getSelectionDescriptor = ->
-  sel = getSelection()
-  el = getDeepestActiveElement()
-  if el.nodeType == Node.ELEMENT_NODE && sid = el.getAttribute('data-shadow-id')
-    descriptor = rootNode(el).firstChild.getAttribute 'data-view-descriptor'
-    if el.nodeName.match(/input/i) && el.type.match(/text/i)
+class SelectionDescriptor
+  constructor: (parent)->
+    sel = getSelection()
+    el = getDeepestActiveElement()
+    @parent = $(parent)[0] ? (slideParent sel.focusNode)
+    @focusNode = sel.focusNode
+    if el.nodeType == Node.ELEMENT_NODE && sid = el.getAttribute('data-shadow-id') && el.nodeName.match(/input/i) && el.type.match(/text/i)
+      descriptor = rootNode(el).firstChild.getAttribute 'data-view-descriptor'
       start = el.selectionStart
       end = el.selectionEnd
-      return focusNode: sel.focusNode, restore: (delta, doc)->
+      @toString = -> "Selection(input: #{$($('[maindoc]').find("[data-view-descriptor='#{descriptor}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]})"
+      @restore = (delta, doc)->
         newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]
         newEl.setSelectionRange start, end
-  else if sel?.rangeCount
-    startNode = sel.getRangeAt(0).startContainer
-    [start, end, offset, note] = getDocRange()
-    restore: (delta, doc)->
-      if getSelection()?.getRangeAt(0).startContainer != startNode
-        restoreDocRange doc, [start + delta, end + delta, offset, note]
-    focusNode: sel.focusNode
-  else
-    restore: ->
-    focusNode: sel.focusNode
+    else if sel.type != 'None'
+      startNode = sel.getRangeAt(0).startContainer
+      [start, end, offset, note] = getDocRange()
+      @toString = -> "Selection(doc: #{start}, #{end})"
+      @restore = (delta, doc)->
+        sel = getSelection()
+        if (sel.type != 'None' && sel.getRangeAt(0))?.startContainer != startNode
+          restoreDocRange doc, [start + delta, end + delta, offset, note]
+  restore: ->
+  toString: -> "Selection(none)"
+
+isParentSelectionOf = (parent, child)-> isParentOf parent?.parent, child.parent
+
+restoreStack = []
 
 root.restorePosition = restorePosition = (parent, delta, block)->
   if !block
     block = delta
     delta = 0
-  selection = getSelectionDescriptor()
+  selection = new SelectionDescriptor parent
   slide = slideParent selection.focusNode
   slideIndex = slideOffset slide
-  if selection.focusNode && slideIndex > -1
-    doc = topNode(slide).parentNode
-    parent = doc.parentNode
-    docPos = childIndex parent, doc
-    block() # block shouldn't remove doc
-    if doc = parent.children[docPos]
-      newSlide = $('[data-org-headline="1"]')[slideIndex]
-      if slideMode then setCurrentSlide newSlide
-      selection.restore delta, doc
+  if selection.focusNode && slideIndex > -1 && !isParentSelectionOf(_(restoreStack).last(), selection)
+    try
+      restoreStack.push selection
+      #console.log "SAVED: #{selection}"
+      doc = topNode(slide).parentNode
+      parent = doc.parentNode
+      docPos = childIndex parent, doc
+      block() # block shouldn't remove doc
+      if doc = parent.children[docPos]
+        newSlide = $('[data-org-headline="1"]')[slideIndex]
+        if slideMode then setCurrentSlide newSlide
+        selection.restore delta, doc
+    finally
+      sel = restoreStack.pop()
+      #console.log "RESTORED: #{selection}"
   else block()
 
 # get a logical document range with an optional note
@@ -1086,7 +1099,7 @@ handleKey = (div)->(e)->
   if !addKeyPress e, c then return
   s = getSelection()
   r = (if s.rangeCount > 0 then s.getRangeAt(0) else null)
-  root.currentBlock = blockIdsForSelection s, r
+  root.currentBlockIds = blockIdsForSelection s, r
   [bound, checkMod] = findKeyBinding e, div, r
   if bound then root.modCancelled = !checkMod
   else
@@ -1133,7 +1146,7 @@ getCodeContainer = (node)->
   node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
-  if code = getCodeContainer focus
+  if !isPlainEditing(focus) && code = getCodeContainer focus
     recreateAstButtons code
     createValueSliders code, leisureNumberSlider
   #else if needsNewline el
@@ -1307,40 +1320,37 @@ setMinMax = (sl, value)->
   sl.slider "option", "max", max
   sl.slider "option", "step", step
 
+getSlides = (parent)->
+  $(parent ? '[maindoc]').find('.slideholder').filter (i, el)->
+    $(el).find("[data-org-headline='1']").not('[data-property-hidden="true"]').length > 0
+
 setCurrentSlide = (element)->
+  element = $(element).closest '.slideholder'
   for node in $('.currentSlide')
     if node.shadowRoot then $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
   $('.currentSlide').removeClass 'currentSlide'
-  $(element).addClass 'currentSlide'
-  if $(element).hasClass 'firstSlide' then $("body").addClass 'firstSlide' else $("body").removeClass 'firstSlide'
-  if $(element).hasClass 'lastSlide' then $("body").addClass 'lastSlide' else $("body").removeClass 'lastSlide'
+  element.addClass 'currentSlide'
+  if element.is('.firstSlide') then $("body").addClass 'firstSlide' else $("body").removeClass 'firstSlide'
+  if element.is('.lastSlide') then $("body").addClass 'lastSlide' else $("body").removeClass 'lastSlide'
   # this is needed until there is support for :host (and/or ^ & ^^)
-  if element.shadowRoot then $(element.shadowRoot.firstElementChild).addClass 'currentSlide'
+  if element[0].shadowRoot then $(element[0].shadowRoot.firstElementChild).addClass 'currentSlide'
+  Leisure.actualSelectionUpdate()
 
-firstSlide = -> setCurrentSlide $('[data-org-headline="1"]').not('[data-property-hidden="true"]')[0]
+firstSlide = -> setCurrentSlide getSlides().first()
 
-lastSlide = ->
-  slides = $('[data-org-headline="1"]').not('[data-property-hidden="true"]')
-  setCurrentSlide slides[slides.length - 1]
+lastSlide = -> setCurrentSlide getSlides().last()
 
 nextSlide = ->
-  if slide = $('.currentSlide')[0]
-    while slide = slide.nextElementSibling
-      if $(slide).not('[data-property-hidden="true"]').is('[data-org-headline="1"]') then return setCurrentSlide slide
+  slides = getSlides()
+  if (i = slides.index(slides.filter('.currentSlide').first())) > -1
+    setCurrentSlide slides[Math.min(i + 1, slides.length - 1)]
 
 prevSlide = ->
-  if slide = $('.currentSlide')[0]
-    while slide = slide.previousElementSibling
-      if $(slide).not('[data-property-hidden="true"]').is('[data-org-headline="1"]') then return setCurrentSlide slide
+  slides = getSlides()
+  i = slides.index(slides.filter('.currentSlide').first())
+  setCurrentSlide slides[Math.max(i - 1, 0)]
 
-showSlides = ->
-  setCurrentSlide $('[data-org-headline="1"]').not('[data-property-hidden="true"]')[0]
-  document.body.classList.add 'slides'
-
-slideParent = (node)->
-  while node && !$(node).is '[data-org-headline="1"]'
-    node = node.parentNode
-  node
+slideParent = (node)-> $(node).closest("[data-org-headline='1']")[0]
 
 documentTop = (node)->
   top = 0
@@ -1350,11 +1360,6 @@ documentTop = (node)->
       node = node.offsetParent
     else node = node.parentNode
   top
-
-hideSlides = ->
-  document.body.classList.remove 'slides'
-  $('body').removeClass 'firstSlide'
-  $('body').removeClass 'lastSlide'
 
 slideBindings =
   'PAGEUP': (e, parent, r)->
@@ -1382,20 +1387,23 @@ slideBindings =
     lastSlide()
     false
 
+slideBindings.__proto__ = defaultBindings
+
 toggleSlides = ->
   slideMode = !slideMode
-  fancyOrg.bindings = (if slideMode then slideBindings else defaultBindings)
   $('#prevSlide:not(.bound)').addClass('bound').bind('click',  prevSlide);
   $('#nextSlide:not(.bound)').addClass('bound').bind('click',  nextSlide);
   if slideMode
-    s = $('[data-org-headline="1"]')
+    fancyOrg.bindings = slideBindings
+    s = getSlides()
     s.first().addClass 'firstSlide'
     s.last().addClass 'lastSlide'
-    restorePosition null, ->
-      $('[data-org-html]').addClass 'slideHtml'
-      $('body').addClass 'slides'
-      firstSlide()
+    #restorePosition null, ->
+    $('[data-org-html]').addClass 'slideHtml'
+    $('body').addClass 'slides'
+    firstSlide()
   else
+    fancyOrg.bindings = defaultBindings
     $('[data-org-headline="1"]').first().removeClass 'firstSlide'
     $('[data-org-headline="1"]').last().removeClass 'lastSlide'
     $('body').removeClass 'slides'
@@ -1567,6 +1575,9 @@ fancyOrg =
   markupOrg: markupOrg
   markupOrgWithNode: markupOrgWithNode
   bindContent: bindContent
+  reparse: (parent, text, target)->
+    if isPlainEditing target then plainOrg.reparse parent, text, target
+    else orgNotebook.reparse.apply this, arguments
   installOrgDOM: (parent, orgNode, orgText, target)->
     @parent = parent
     restorePosition parent, =>
@@ -1597,6 +1608,11 @@ fancyOrg =
       else swapMarkup()
   emptySlide: (id, slidePosition)->
     "#{slideStart()}<hr class='#{if slidePosition == 'only' then 'first' else slidePosition}'><div id='#{id}'></div>#{slideEnd()}"
+  insertEmptySlide: (id, prevId)->
+    slide = $(@emptySlide id)
+    if prev = $("##{prevId}").closest('.slideholder') then prev.after slide
+    else $("[maindoc]").prepend slide
+    slide.find("##{id}")[0]
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]
       createTemplateRenderer type, root.viewTypeData[type], true, (data, target)->
@@ -1625,6 +1641,11 @@ fancyOrg =
   updateBlock: (block)->
     el = $("##{block._id}")[0]
     if el then restorePosition null, -> renderView el
+  removeSlide: (id)->
+    el = $("##{id}")
+    holder = el.closest ".slideholder"
+    el.remove()
+    if holder.children().not('hr').length == 0 then holder.remove()
 
 plainOrg.opposite = fancyOrg
 
@@ -1666,6 +1687,8 @@ createEditToggleButton = (doc)->
     button = $("<button class='toggle_edit' contenteditable='false' onclick='Leisure.toggleEdit(\"#{id}\")'><i class='fa fa-glass'></i></button>")
     if $(node).is '.maincontent' then button.insertBefore(node)
     else $(node).prepend button
+
+isPlainEditing = (node)-> $(slideParent(node)).is "[data-edit-mode='plain']"
 
 toggleEdit = (id)->
   console.log "toggle edit", id
