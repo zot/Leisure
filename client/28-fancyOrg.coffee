@@ -1458,14 +1458,6 @@ restoreSlide = (block)->
 
 codeHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentElement
 
-noViewUpdatesWhile = (block)->
-  noV = noViewUpdate
-  noViewUpdate = true
-  try
-    block()
-  finally
-    noViewUpdate = noV
-
 fixupViews = (target)->
   if Leisure.noViewUpdate then return
   if target
@@ -1744,7 +1736,6 @@ root.restoreDocRange = restoreDocRange
 root.getDocumentOffset = getDocumentOffset
 root.viewMarkup = viewMarkup
 root.noViewUpdate = false
-root.noViewUpdatesWhile = noViewUpdatesWhile
 root.topNode = topNode
 root.rootNode = rootNode
 root.codeHolder = codeHolder
