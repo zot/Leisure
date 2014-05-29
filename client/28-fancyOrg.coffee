@@ -127,6 +127,7 @@ yaml = root.yaml
   pretty,
   setData,
   getBlock,
+  addChangeContextWhile,
 } = require '23-collaborate'
 {
   createTemplateRenderer,
@@ -160,7 +161,7 @@ class SelectionDescriptor
       @toString = -> "Selection(input: #{$($('[maindoc]').find("[data-view-descriptor='#{descriptor}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]})"
       @restore = (delta, doc)->
         newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]
-        newEl.setSelectionRange start, end
+        if newEl != el then newEl.setSelectionRange start, end
     else if sel.type != 'None'
       startNode = sel.getRangeAt(0).startContainer
       [start, end, offset, note] = getDocRange()
@@ -1516,8 +1517,11 @@ renderData = (data, linkName)->
     finally
       Leisure.currentViewChunk = oldChunk
 
+blockViewUpdatesWhile = (links, func)->
+  addChangeContextWhile blockViews: links, func
+
 renderLink = (node, data)->
-  if isPlainEditing node then return
+  if isPlainEditing(node) || root.changeContext.blockViews?.is(node) then return
   if name = node.getAttribute 'data-view-name'
     viewMarkup["#{data.yaml.type}/#{name}"]? data.yaml, $(node)
     descriptor = "#{data._id}/#{name}"
@@ -1533,17 +1537,18 @@ viewBlock = (el)->
     getBlock id
 
 Leisure.bindWidgets = bindWidgets = (parent)->
+  link = Templating.currentViewLink
   for input in $(parent).find 'input[data-value]'
     field = input.getAttribute 'data-value'
     input.value = Templating.currentViewData[field]
     nextButton = input.getAttribute 'button'
     input.onkeyup = (e)->
-      console.log input.value
+      #console.log input.value
       block = viewBlock(input)
       data = block.yaml
       #data = getBlock(id).yaml
       data[field] = input.value
-      setData block._id, data
+      blockViewUpdatesWhile $(link), -> setData block._id, data
       if nextButton && e.keyCode == 13
         e.preventDefault()
         $(rootNode(input).firstChild).find("##{nextButton}").click()
@@ -1582,9 +1587,10 @@ fancyOrg =
   reparse: (parent, text, target)->
     if isPlainEditing target
       t = $(plainOrg.reparse parent, text, target)
-      t.attr 'data-edit-mode', 'plain'
-      t.attr 'data-org-note', 'main'
-      createEditToggleButton t
+      if t.is("[data-org-headline='1']")
+        t.attr 'data-edit-mode', 'plain'
+        t.attr 'data-org-note', t.attr('data-property-note') || 'main'
+        createEditToggleButton t
       @newNode t
       fixupHtml t
     else orgNotebook.reparse.apply this, arguments
@@ -1677,8 +1683,9 @@ fixupHtml = (parent, note)->
   for node in findOrIs $(parent), '.resultscontent'
     reprocessResults node
   createNoteShadows()
+  createEditToggleButton parent
   if !note
-    createEditToggleButton parent
+    #createEditToggleButton parent
     $(parent).find("button.create_note").remove()
     $("<button class='create_note' contenteditable='false'><i class='fa fa-file-text-o'></i></button>")
       .insertBefore(findOrIs($(parent), '[data-org-headline="1"]').find('.maincontent'))
@@ -1694,7 +1701,9 @@ fixupHtml = (parent, note)->
 getMainContent = (headline)->
   headline = findOrIs headline, '[data-org-headline="1"]'
   c = headline.children '.maincontent'
-  if c.length > 0 then c else headline
+  if c.length > 0
+    headline.not(c.parent()).add(c)
+  else headline
 
 createEditToggleButton = (doc)->
   for node in getMainContent $(doc)
@@ -1720,7 +1729,7 @@ toggleEdit = (id)->
   node = $("##{id}")
   node.attr 'data-edit-mode', mode.name
   if mode == plainOrg
-    node.attr 'data-org-note', 'main'
+    node.attr 'data-org-note', node.attr('data-property-note') || 'main'
   if mode == root.plainOrg then createEditToggleButton node
 
 root.fancyOrg = fancyOrg

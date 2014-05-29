@@ -23,7 +23,7 @@ Using [SyntaxHighlighter](http://alexgorbatchev.com/SyntaxHighlighter/) in an un
     prismHighlight = (lang, text)->
       if l = aliases[lang] then lang = l
       if Prism.languages[lang]
-        console.log "PRISM: " + lang
+        #console.log "PRISM: " + lang
         Prism.highlight text, Prism.languages[lang], lang
       else escapeHtml text
 

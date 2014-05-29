@@ -2,7 +2,7 @@
 
 * Welcome to Leisure,
 
-Lsisure is a purely functional, lazy, dynamically typed homoiconic
+Leisure is a purely functional, lazy, dynamically typed homoiconic
 language with a persistent, live, literate, document-based programming
 environment running on the web.
 
@@ -49,9 +49,9 @@ changes to your code in real time?  Our goal is to show programmers
 there has to be a better way, and we've settled for the status quo for
 far too long.
 
-# Getting Started
+* Getting Started
 
-We use a posix environemnt amd [[https://www.meteor.com/][Meteor]] to develop Leisure, so you can use Linux, OS X,
+We use a posix environment amd [[https://www.meteor.com/][Meteor]] to develop Leisure, so you can use Linux, OS X,
 or cygwin to run or modify Leisure.  If you want to run Leisure on your computer,
 make sure you have Meteor installed.
 
@@ -70,5 +70,24 @@ npm install
 then you can switch back to the top level directory and the repl
 command, located there, should work.
 
-# Contact
+* Packages we use
+- Prism
+- Lazy.js
+- Lodash
+- Meteor
+- Handlebars
+- jQuery
+- jQueryUI
+- js-yaml
+- CoffeeScript
+- source-map
+- persistent-hash-trie
+- utf8
+- github
+- base64
+- sha256
+- adiff
+- diff
+
+* Contact
 If you want to get in touch, you can email me at bill dot burdick at gmail.

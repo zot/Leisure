@@ -10,8 +10,8 @@
 #+BEGIN_SRC yaml
 type: image
 src: tinyconcepts.png
-left: 120
-top: -10
+left: 150
+top: 30
 #+END_SRC
 #+NAME: a
 #+BEGIN_SRC yaml
@@ -32,6 +32,10 @@ name: mary
 number: 89
 #+END_SRC
 * Views
+:PROPERTIES:
+:note: sidebar
+:hidden: true
+:END:
 #+BEGIN_SRC html :defview image
 <div style='display: inline-block'>
   <table>
@@ -42,7 +46,7 @@ number: 89
   </table>
 </div>
 <script>
-  Leisure.hookupImage(Templating.currentViewLink, Templating.currentViewData);
+  Leisure.hookupImage();
 </script>
 #+END_SRC
 
@@ -53,8 +57,13 @@ number: 89
 </div>
 #+END_SRC
 * Support code
+:PROPERTIES:
+:hidden: true
+:END:
 #+BEGIN_SRC coffee :results def
-Leisure.hookupImage = (viewLink, data)->
+Leisure.hookupImage = ->
+  viewLink = Templating.currentViewLink
+  data = Templating.currentViewData
   vl = $(viewLink)
   pos = vl.position()
   offset = vl.offset()

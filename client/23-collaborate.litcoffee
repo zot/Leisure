@@ -70,13 +70,14 @@ Handle changes to the doc nodes
       rc = createRenderingComputer()
       for item in batch
         if !!item.data.local == local
+          root.changeContext = item.context
           if item.data.local && item.type == 'added' && (old = root.currentDocument.findOne item.data._id)
             item.type = 'changed'
             item.oldData = old
           if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
           processDataChange item
           if !item.editing
-            console.log "ITEM: #{item.type} #{item.data._id}"
+            #console.log "ITEM: #{item.type} #{item.data._id}"
             switch item.type
               when 'added' then rc.add item.data
               when 'removed' then rc.remove item.data
@@ -321,8 +322,18 @@ Handle changes to the doc nodes
       removed: (el)-> addChange changeName, 'removed', copy(el), (items)-> processChanges docCol, items, local
       changed: (el, oldEl)-> addChange changeName, 'changed', copy(el), copy(oldEl), (items)-> processChanges docCol, items, local
 
+    context = L()
+
+    addChangeContextWhile = (obj, func)->
+      oldc = context
+      try
+        context = context.merge(obj).memoize()
+        func()
+      finally
+        context = oldc
+
     addChange = (name, type, data, oldData, cont)->
-      change = type: type, here: committing, editing: editing, data: data
+      change = type: type, here: committing, editing: editing, data: data, context: context.toObject()
       if !cont then cont = oldData
       else change.oldData = oldData
       addBatch name, change, cont
@@ -751,3 +762,5 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.isRemoved = isRemoved
     root.commitEdits = commitEdits
     root.createRenderingComputer = createRenderingComputer
+    root.addChangeContextWhile = addChangeContextWhile
+    root.changeContext = {}
