@@ -175,6 +175,7 @@ Handle changes to the doc nodes
 
     processDataChange = ({type, data})->
       if type in ['changed', 'removed'] && viewIdTypes[data._id]
+        root.orgApi.deleteView viewIdTypes[data._id]
         delete viewTypeData[viewIdTypes[data._id]]
         delete viewIdTypes[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
@@ -216,7 +217,6 @@ Handle changes to the doc nodes
       if id
         doc = root.currentDocument
         doc.leisure.localCollection.findOne(id) ? doc.findOne id
-      else null
 
     getParent = (overrides, data)->
       prev = data.prev
@@ -491,34 +491,21 @@ Users can mark any slide as local by setting a "local" property to true in the s
       if node.children then node.children = (docJson col, getBlock child for child in node.children)
       node
 
-    edits = {}
-    pendingPush = false
-
-    edited = (node)->
-      node = $(node).closest('[data-shared]')[0]
-      if node
-        delay ->
-          root.checkSingleNode root.blockText node
-          edits[node.id] = true
-          if !pendingPush
-            pendingPush = true
-            setTimeout doPush, 200
-
-    doPush = ->
-      currentEdits = edits
-      edits = {}
-      pendingPush = false
-      overrides = new Overrides()
-      for id of currentEdits
+    edited = (node, render)->
+      if node = $(node).closest('[data-shared]')[0]
+        id = node.id
+        root.checkSingleNode root.blockText node
+        overrides = new Overrides()
         changeDocText id, textForId(id), overrides
-      commitEdits overrides
+        commitEdits overrides
+        if render then renderBlock getBlock id
 
     commitEdits = (overrides)->
-      editing = true
-      try
-        commitOverrides overrides
-      finally
-        editing = false
+        editing = true
+        try
+          commitOverrides overrides
+        finally
+          editing = false
 
     isRemoved = (overrides, id)-> overrides.removes[id]
 
@@ -760,7 +747,8 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.updateItem = updateItem
     root.removeId = removeId
     root.isRemoved = isRemoved
-    root.commitEdits = commitEdits
     root.createRenderingComputer = createRenderingComputer
     root.addChangeContextWhile = addChangeContextWhile
     root.changeContext = {}
+    root.renderBlock = renderBlock
+    root.commitEdits = commitEdits

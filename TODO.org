@@ -1,4 +1,17 @@
 * Short list -- screencast
+- dragging image URL turns into dragging image
+- bind view and data to code blocks
+  - currentData() -- accesses the current data
+    - current data block which changed
+    - JS data tied to the view
+  - updateViews(name, data) -- renders views tied to name
+  - Leisure monads for these things
+- structure bugs
+  - removing # from #+BEGIN_SRC in a view definition doesn't delete the shown view
+  - X adding a slide at the end of c4.lorg doesn't work
+  - X didn't merge name into following source block
+    - X reproduce: delete and restore # in #+NAME above source block
+    - X proposed fix: always merge preceding and following blocks in structure check
 - make save button work
 - backspace with nl places caret at end of previous line instead of start of current
 - blog about document structure
@@ -26,17 +39,18 @@
   - spawn document copy
     - X temporary ones which disappear when the last user disconnects
     - permanent copies, for private groups
-  - multiple documents in a session
   - react to adds/changes/removes of widget types (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)
-- dropping an image should insert a link + data block
-  - hovering a drop over the page should track the position with a big cursor
+- multiple documents in a session
 - change "block.yaml" to "block.data"
 - go through old slides
 - fix floaty notes
+- X dropping an image should insert a link + data block
+  - X hovering a drop over the page should track the position with a big cursor
 - use strict mode where possible
 - nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
 - error message for view or data not found (default contents of link)
+- code boxes for JavaScript, CoffeeScript, and HTML (render into output box)
 ** TODO Bug when collaborating with fancy & plain
    :PROPERTIES:
    :ID:       0c9902c5-d885-4d99-8e9b-8d8830152c4f
@@ -57,20 +71,24 @@
 - script screencast
 - X syntax highligthing (yaml, etc)
 - X JavaScript/CoffeeScript source blocks
+- multiple documents per session (each document can function as a data channel)
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc
   - church encoded widget results (like html or svg results)
   - widget code blocks (like test cases)
-- load a version from Git
-  - static linking (use dynamic for development and static for deployment)
-  - forking (with collaboration)
+- Git hookup
+  - save a version to Git
+    - copy collecion to a new one with a unique name
+    - fork process to save to Git
+  - load a version from Git
+    - static linking (use dynamic for development and static for deployment)
+    - forking (with collaboration)
 - collaboration
   - show users' cursors/selections
   - persistence: git
   - toggle synchronizing
   - document history/branches?  This would require a merge tool...
 - Use GUI templates for slides
-- multiple documents per session (each document can function as a data channel)
 - server-side code can transfer data into a document -- inbox documents
 - X draggable images
 - notes
@@ -80,6 +98,27 @@
 - X data
 - make fancyOrg:getSelectionDescriptor line-based for better selection preservation
 * Short-term Leisure-org plan
+- document metadata
+  - used by the server
+  - stored in a second document
+    - not necessarily visible to other than the owner
+    - may have its own metadata
+  - user records
+    - user info
+      - may import a user's document into the "userdocs" namespace
+      - this can have comments on parts of the current document
+      - multi-doc sessions can allow displaying comments
+- document versions
+  - name of document ends appended with [XXX] (XXX is the version hash)
+  - check out TokuMX https://github.com/Tokutek/mongo
+    - fractal tree indexes may provide versioning
+- import a document
+  - use #+INCLUDE: for it
+  - namespace for code (if allowed) and data
+  - fancy mode should assist with importing a version rather than the head, by default
+  - import specifies privileges
+    - may add comments to main doc
+    - may execute code
 - collaboration service
   - handle local adds/removes
   - show users' cursors/selections
@@ -626,6 +665,9 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE dropping an image should insert a link + data block
+   CLOSED: [2014-05-31 Sat 16:48]
+  - hovering a drop over the page should track the position with a big cursor
 ** DONE fix rerendering problem
    CLOSED: [2014-05-29 Thu 00:04]
 - http://localhost:3000/#load=/demo/smallTest.lorg

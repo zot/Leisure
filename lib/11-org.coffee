@@ -438,9 +438,11 @@ nextOrgNode = (node)->
 # Parse the content of an orgmode file
 #
 parseOrgMode = (text, offset)->
-  [res, rest] = parseHeadline '', offset ? 0, 0, undefined, undefined, undefined, text, text.length
-  if rest.length then throw new Error("Text left after parsing: #{rest}")
-  res.linkNodes()
+  if text instanceof Node then text
+  else
+    [res, rest] = parseHeadline '', offset ? 0, 0, undefined, undefined, undefined, text, text.length
+    if rest.length then throw new Error("Text left after parsing: #{rest}")
+    res.linkNodes()
 
 parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->
   children = []

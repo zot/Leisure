@@ -1082,6 +1082,7 @@ crossesHidden = (delta)->
   !(0 <= r.startOffset < r.startContainer.length) && isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) r.startContainer
 
 bindContent = (div)->
+  div.addEventListener 'drop', (e)-> root.orgApi.handleDrop e
   div.addEventListener 'mousedown', (e)->
     if replaceUnrelatedPresenter e.target, emptyPresenter
       setCurKeyBinding null
@@ -1523,13 +1524,17 @@ blockViewUpdatesWhile = (links, func)->
 renderLink = (node, data)->
   if isPlainEditing(node) || root.changeContext.blockViews?.is(node) then return
   if name = node.getAttribute 'data-view-name'
-    viewMarkup["#{data.yaml.type}/#{name}"]? data.yaml, $(node)
+    viewKey = "#{data.yaml.type}/#{name}"
     descriptor = "#{data._id}/#{name}"
   else
-    viewMarkup[data.yaml.type]? data.yaml, $(node)
+    viewKey  = data.yaml.type
     descriptor = data._id
+  if root.viewTypeData[viewKey] && markup = viewMarkup[viewKey]
+    markup data.yaml, $(node)
+  else $(node.shadowRoot?.firstChild).remove()
   node.shadowRoot?.firstChild.setAttribute 'data-view-id', data._id
   node.setAttribute 'data-view-descriptor', descriptor
+  node.setAttribute 'data-view-key', viewKey
   node.shadowRoot?.firstChild.setAttribute 'data-view-descriptor', descriptor
 
 viewBlock = (el)->
@@ -1652,6 +1657,10 @@ fancyOrg =
       dataType = type.match /([^/]*)\/?(.*)?/
       for node in $("[data-yaml-type='#{dataType[1]}']")
         renderView node, dataType[2]
+  deleteView: (type)->
+    delete viewMarkup[type]
+    for node in $("[data-view-key='#{type}']")
+      $(node.shadowRoot?.firstChild).remove()
   applyShowHidden: ->
     for node in $('.slideholder')
       if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0

@@ -755,6 +755,7 @@ root.currentMatch = null
 
 bindContent = (div)->
   fixupNodes div
+  div.addEventListener 'drop', (e)-> root.orgApi.handleDrop e
   div.addEventListener 'mousedown', (e)-> setCurKeyBinding null
   div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'keydown', (e)->
@@ -797,14 +798,31 @@ bindContent = (div)->
           br.parentNode.normalize()
         r.collapse()
         selectRange r
-      else if c == BS then backspace div, e, s, r
-      else if c == DEL then del div, e, s, r
+      else if c == BS then backspace div, e, s, r, true
+      else if c == DEL then del div, e, s, r, true
     if !root.modCancelled && checkMod
       #root.currentMatch = matchLine currentLine div
       root.currentMatch = lineCodeBlockType currentLine div
   displaySource()
 
-backspace = (parent, event, sel, r)->
+handleDrop = (e)->
+  e.preventDefault()
+  t = e.dataTransfer
+  s = getSelection()
+  s.removeAllRanges()
+  r = document.caretRangeFromPoint(e.clientX,e.clientY)
+  if 'text/html' in t.types
+    item = $(t.getData('text/html'))
+    if item.length == 1
+      txt = if item.is 'img' then "[[#{item[0].src}]]" else item.text()
+      node = document.createTextNode txt
+      r.insertNode node
+      r.selectNode node
+      edited node, true
+  s.addRange r
+  actualSelectionUpdate()
+
+backspace = (parent, event, sel, r, allowBlockCrossing)->
   event.preventDefault()
   if sel.type == 'Caret'
     r.startContainer.parentNode.normalize()
@@ -812,7 +830,7 @@ backspace = (parent, event, sel, r)->
     r = sel.getRangeAt 0
     if r.startOffset == 0
       if t = textNodeBefore r.startContainer
-        if isCollapsed(t) || afterBlockBorder r then return
+        if isCollapsed(t) || (!allowBlockCrossing && afterBlockBorder r) then return
         if t && parent.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_CONTAINED_BY
           root.currentMatch = lineCodeBlockType lineForRange t, t.length - 1
           if t.length == 1
@@ -839,7 +857,7 @@ backspace = (parent, event, sel, r)->
         r.setStart t, offset - 1
       setCaret r
 
-del = (parent, event, sel, r)->
+del = (parent, event, sel, r, allowBlockCrossing)->
   event.preventDefault()
   if sel.type == 'Caret'
     if r.startContainer.nodeType != Node.TEXT_NODE
@@ -853,7 +871,7 @@ del = (parent, event, sel, r)->
     if r.startOffset == t.length - 1
       if t.data[r.startOffset] == '\n'
         console.log 'newline'
-      if t.data[r.startOffset] == '\n' && (isCollapsed(next) || beforeBlockBorder r)
+      if t.data[r.startOffset] == '\n' && (isCollapsed(next) || (!allowBlockCrossing && beforeBlockBorder r))
         return root.modCancelled = true
     if r.startOffset == 0
       if t.length == 1
@@ -1021,10 +1039,12 @@ checkStructure = (node)->
       blockIds = root.currentBlockIds
       currentBlockId = blockElementForNode(sel.focusNode).id
       if !(currentBlockId in [blockIds[0], blockIds[blockIds.length - 1]])
-        if blockIds[0].prev == currentBlockId then blockIds.unshift currentBlockId
-        else if blockIds[blockIds.length - 1].next == currentBlockId then blockIds.push currentBlockId
+        if getBlock(blockIds[0])?.prev == currentBlockId then blockIds.unshift currentBlockId
+        else if getBlock(L(blockIds).last())?.next == currentBlockId then blockIds.push currentBlockId
         else return console.log "Can't locate current block"
       # blockIds now contains the changed nodes
+      if prev = getBlock(blockIds[0]).prev then blockIds.unshift prev
+      if next = getBlock(L(blockIds).last()).next then blockIds.push next
       oldBlocks = (getBlock(id) for id in blockIds)
       newBlocks = orgDoc parseOrgMode (blockText($("##{id}")[0]) for id in blockIds).join ''
       for bl in newBlocks
@@ -1621,6 +1641,9 @@ orgNotebook =
   checkSourceMod: checkSourceMod
   configureMenu: configureMenu
   removeSlide: (id)-> $("##{id}").remove()
+  defineView: ->
+  deleteView: (type)->
+  handleDrop: handleDrop
 
 basicOrg =
   __proto__: orgNotebook
