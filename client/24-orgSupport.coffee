@@ -148,7 +148,7 @@ fs = null
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip' title='x'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button' title='x'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' download='leisureFile.lorg'><i class=\"fa fa-save\"></i><div></div></button><div id=\"leisure_theme\"><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><button  id='hide-show-button' onclick='Leisure.toggleShowHidden()' title='x'><i class='fa fa-eye-slash'></i><div class='hidden'></div><span></span></button><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip' title='x'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button' title='x'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' title='x' download='leisureFile.lorg'><i class='fa fa-save'></i><div></div></button><div id='leisure_theme' title='x'><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><button id='hide-show-button' onclick='Leisure.toggleShowHidden()' title='x'><i class='fa fa-eye-slash'></i><div class='hidden'></div><span></span></button><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu' title='x'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
     .prependTo(document.body)
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
@@ -277,6 +277,9 @@ applyLeisureTooltips = ->
   $('#leisure_grip').tooltip().tooltip('option', 'content', 'Toggle the Leisure bar on/off')
   $('#leisure_button').tooltip().tooltip('option', 'content', 'Cycle through different display modes')
   $('#saveButton').tooltip().tooltip('option', 'content', 'Download and save a local copy')
+  $('#leisure_theme').tooltip().tooltip('option', 'content', 'Select a visual theme')
+  $('#team_cthulhu').tooltip().tooltip('option', 'content', 'Homepage for the Leisure development team')
+  $('#hide-show-button').tooltip().tooltip('option', 'content', 'Click to show hidden slides')
 
 applyShowHidden = ->
   if $(document.body).hasClass 'show-hidden'
