@@ -19,6 +19,7 @@ Using [SyntaxHighlighter](http://alexgorbatchev.com/SyntaxHighlighter/) in an un
 
     aliases =
       html: 'markup'
+      coffee: 'coffeescript'
 
     prismHighlight = (lang, text)->
       if l = aliases[lang] then lang = l

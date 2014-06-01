@@ -1,56 +1,18 @@
 * Short list -- screencast
-- bind view and data to code blocks
-  - currentData() -- accesses the current data
-    - current data block which changed
-    - JS data tied to the view
-  - updateViews(name, data) -- renders views tied to name
-  - Leisure monads for these things
-- structure bugs
-  - removing # from #+BEGIN_SRC in a view definition doesn't delete the shown view
-  - X adding a slide at the end of c4.lorg doesn't work
-  - X didn't merge name into following source block
-    - X reproduce: delete and restore # in #+NAME above source block
-    - X proposed fix: always merge preceding and following blocks in structure check
-- dragging image URL turns into dragging image
-- make save button work
-- backspace with nl places caret at end of previous line instead of start of current
-- blog about document structure
-  - scalable collaboration on large structured text files
-  - allowing free-form modification
-  - near minimal, in-place updating and rendering
-- make tab flash when page changes while inactive
-- allow some replacements of non-empty selections
-  - reject if they include hidden text
-- local files
-  - create two unmanaged collections
-  - save the original text to allow file reverting
-- fix test cases
-- kill box for source blocks
-- handle structural document changes
-- put Leisure code in connect 4
-  - fix ast, etc
-- check out [[http://prismjs.com/]] syntax highlighting
-- script screencast -- screencast.lorg
-- post to blog and give link to orgmode people
-- collaboration
-  - presence
-    - show connected users
-    - show users' cursors/selections
-  - spawn document copy
-    - X temporary ones which disappear when the last user disconnects
-    - permanent copies, for private groups
-  - react to adds/changes/removes of widget types (preparse attributes)
-  - hooks for programs to react to data changes (subscriptions)
-- multiple documents in a session
-- change "block.yaml" to "block.data"
 - go through old slides
-- fix floaty notes
-- X dropping an image should insert a link + data block
-  - X hovering a drop over the page should track the position with a big cursor
-- use strict mode where possible
-- nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
-- error message for view or data not found (default contents of link)
-- code boxes for JavaScript, CoffeeScript, and HTML (render into output box)
+- script screencast -- screencast.lorg
+- collaboration
+  - spawn document copies
+    - temporary or permanent
+  - multple documents on a session
+  - show users' cursors/selections
+  - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
+  - hooks for programs to react to data changes (subscriptions)
+- JavaScript/CoffeeScript source blocks
+- GUI templates -- HTML source block defines a new widget type
+  - define handlebars helpers for input, views, etc
+- fix notes (sidebar and floaty)
+- fix test cases
 ** TODO Bug when collaborating with fancy & plain
    :PROPERTIES:
    :ID:       0c9902c5-d885-4d99-8e9b-8d8830152c4f
@@ -59,37 +21,19 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
-- seems like there's a but in the "once" monad
-- platform options
-  - meteor
-  - derby
-  - pouchdb
-- consider server-side rendering for inital fancy page, to comply with search engines
-- X menu bubble on selection/caret
-- show local version of local slide content in additional div in pain view
-- X alternate views org:bubbaObj/fredView
-- nested views {{view bubbaObj}}  {{view bubbaObj 'fredView'}}
 - script screencast
-- X syntax highligthing (yaml, etc)
-- X JavaScript/CoffeeScript source blocks
-- multiple documents per session (each document can function as a data channel)
+- JavaScript/CoffeeScript source blocks
 - GUI templates -- HTML source block defines a new widget type
   - define handlebars helpers for input, views, etc
   - church encoded widget results (like html or svg results)
   - widget code blocks (like test cases)
-- Git hookup
-  - save a version to Git
-    - copy collecion to a new one with a unique name
-    - fork process to save to Git
-  - load a version from Git
-    - static linking (use dynamic for development and static for deployment)
-    - forking (with collaboration)
 - collaboration
   - show users' cursors/selections
   - persistence: git
   - toggle synchronizing
   - document history/branches?  This would require a merge tool...
 - Use GUI templates for slides
+- multiple documents per session (each document can function as a data channel)
 - server-side code can transfer data into a document -- inbox documents
 - X draggable images
 - notes
@@ -99,27 +43,6 @@
 - X data
 - make fancyOrg:getSelectionDescriptor line-based for better selection preservation
 * Short-term Leisure-org plan
-- document metadata
-  - used by the server
-  - stored in a second document
-    - not necessarily visible to other than the owner
-    - may have its own metadata
-  - user records
-    - user info
-      - may import a user's document into the "userdocs" namespace
-      - this can have comments on parts of the current document
-      - multi-doc sessions can allow displaying comments
-- document versions
-  - name of document ends appended with [XXX] (XXX is the version hash)
-  - check out TokuMX https://github.com/Tokutek/mongo
-    - fractal tree indexes may provide versioning
-- import a document
-  - use #+INCLUDE: for it
-  - namespace for code (if allowed) and data
-  - fancy mode should assist with importing a version rather than the head, by default
-  - import specifies privileges
-    - may add comments to main doc
-    - may execute code
 - collaboration service
   - handle local adds/removes
   - show users' cursors/selections
@@ -138,12 +61,7 @@
     - X ":local: true" blocks are in the document, initialized for everyone, but stored locally
   - X head record contains unique ID
     - X reinitializes private document when it changes
-- custom caret -- this would require a total rework of text editing
-- investigate tail call optimization
-  - [[https://github.com/glathoud/js.metaret]] [[http://glat.info/js.metaret/]]
-  - https://github.com/dai-shi/continuation.js
-- X JavaScript and CoffeeScript src blocks
-  - Make headline properties/tags available to code blocks
+- JavaScript and CoffeeScript src blocks
 - Compilable notebooks
   - into JavaScript module
   - export data sets
@@ -210,6 +128,7 @@
   - use private COW notes for exercises
 - key bindings
 - link selections in AST display and source text
+- toggle button for plain/fancy on boxes?  This would allow editing output
 - straighten out root.currentMode and root.orgApi
 - session persistence for each Leisure doc
   - save selection and scroll offset of doc
@@ -666,30 +585,6 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
-** DONE dropping an image should insert a link + data block
-   CLOSED: [2014-05-31 Sat 16:48]
-  - hovering a drop over the page should track the position with a big cursor
-** DONE fix rerendering problem
-   CLOSED: [2014-05-29 Thu 00:04]
-- http://localhost:3000/#load=/demo/smallTest.lorg
-- plain mode
-- delete # in #+BEGIN_SRC
-- html block disappears
-- caret loses position when demoting a slide
-- fix problem adding headlines
-- handle structural changes
-  - handle typing boilerplate in fancy mode
-  - use large reparse after change
-** DONE toggle button for plain/fancy on boxes?  This would allow editing output
-   CLOSED: [2014-05-25 Sun 17:36]
-** DONE put value sliders in all code blocks
-   CLOSED: [2014-05-25 Sun 16:47]
-  - fix new slider creation bug -- skips some numbers
-  - demo ability to make simple examples
-  - data, template, and link that shows values changing
-    - slide values in the data and the template
-** DONE - text button on each slide
-   CLOSED: [2014-05-15 Thu 11:14]
 ** DONE collaboration stuff
 - collaboration
   - each document gets local storage for user-local and user-private data

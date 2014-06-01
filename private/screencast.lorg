@@ -1,6 +1,15 @@
 * GO THROUGH OLD SLIDES
-
-* Textcraft: The Document Is the Machine!
+** This is Leisure, a web-based computing environment.
+** Use Leisure to make and deploy multiuser web applications, like this game.
+** Reveal hidden code and data using the Leisure bar
+** Data changing and updating
+*** See data change when you change your name and click pieces on the board
+*** See the board change when you edit the data
+*** See the board change when you edit the user data
+*** See the board change when you edit the view definition
+** Code evaulation
+** Leisure provides its own language and also supports other languages, such as JavaScript and CoffeeScript.
+* Leisure: The Document Is the Machine!
 - environment
   - for both development and deployment
   - persistent
