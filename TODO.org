@@ -1,5 +1,4 @@
 * Short list -- screencast
-- dragging image URL turns into dragging image
 - bind view and data to code blocks
   - currentData() -- accesses the current data
     - current data block which changed
@@ -12,6 +11,7 @@
   - X didn't merge name into following source block
     - X reproduce: delete and restore # in #+NAME above source block
     - X proposed fix: always merge preceding and following blocks in structure check
+- dragging image URL turns into dragging image
 - make save button work
 - backspace with nl places caret at end of previous line instead of start of current
 - blog about document structure
@@ -59,6 +59,7 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- seems like there's a but in the "once" monad
 - platform options
   - meteor
   - derby

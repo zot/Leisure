@@ -127,6 +127,9 @@ yaml = root.yaml
   pretty,
   setData,
   getBlock,
+  getBlockNamed,
+  getDataNamed,
+  setDataNamed,
   addChangeContextWhile,
 } = require '23-collaborate'
 {
@@ -537,18 +540,6 @@ chooseSourceMarkup = (org)->
 
 markupSource = (org, name, doctext, delay, inFragment)->
   (chooseSourceMarkup org) org, name, doctext, delay, inFragment
-
-getBlockNamed = (name)->
-  holder = codeHolder $("[data-yaml-name='#{name}']")[0]
-  if holder then getBlock holder.id else null
-
-getDataNamed = (name)->
-  holder = codeHolder $("[data-yaml-name='#{name}']")[0]
-  if holder then getBlock(holder.id).yaml else null
-
-setDataNamed = (name, value)->
-  holder = codeHolder $("[data-yaml-name='#{name}']")[0]
-  if holder then setData holder.id, value
 
 findLinks = (name)->
   if m = name.match /^([^/]*)\/(.*)$/ then $("[data-view-link='#{m[1]}'][data-view-name='#{m[2]}']") else $("[data-view-link='#{name}']")
@@ -1419,24 +1410,28 @@ toggleSlides = ->
 theme = null
 
 setTheme = (str)->
-  if $("style#" + str).length
-    el = $('body')
-    all = $('[data-org-comments]').find(':first-child').add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
-    for node in all
-      if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
-    if theme && theme != str then el.removeClass theme
-    theme = str
-    if str then el.addClass str
-    for t in $("style.theme")
-      $(t).prop 'disabled', true
-    $("style#" + theme).removeProp 'disabled'
-    dd = $("#themeSelect")
-    if dd then dd.val theme
+  el = $('body')
+  all = $('[data-org-comments]').find(':first-child').add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
+  for node in all
+    if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
+  if theme && theme != str then el.removeClass theme
+  theme = str
+  if str then el.addClass str
+  for t in $("style.theme")
+    $(t).prop 'disabled', true
+  $("style#" + theme).removeProp 'disabled'
+  dd = $("#themeSelect")
+  if dd then dd.val theme
 
 define 'setTheme', lz (str)->
   makeSyncMonad (env, cont)->
     if str != theme then setTheme rz str
     cont rz L_true
+
+define 'toggleLeisureBar', lz makeSyncMonad (env, cont)->
+  console.log new Error "TOGGLE LEISURE BAR"
+  root.toggleLeisureBar()
+  cont rz L_true
 
 define 'toggleSlides', lz makeSyncMonad (env, cont)->
   toggleSlides()
@@ -1646,6 +1641,7 @@ fancyOrg =
           for node in target
             shadow = node.shadowRoot.firstChild
             $(shadow).
+              prepend("<style>@import 'jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css';</style>").
               css('white-space', 'normal').
               css('user-select', 'none').
               css('-webkit-user-select', 'none').

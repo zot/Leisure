@@ -507,6 +507,15 @@ define 'delay', lz (timeout)->
   makeMonad (env, cont)->
     setTimeout (-> cont _true), rz(timeout)
 
+define 'once', lz makeSyncMonad (->
+  ran = false
+  (env, cont)->
+    if !ran
+      console.log "RUNNING"
+      ran = true
+      cont _true
+    else console.log "ALREADY RAN")()
+
 ##################
 # Function advice
 ##################

@@ -31,6 +31,9 @@ Meteor-based collaboration -- client side
     ignore = ->
     localStoreName = 'storage'
     nullHandlers = onsuccess: (->), onerror: ((e)-> console.log("ERROR:", e))
+    codeContexts = {}
+    observers = {}
+    namedBlocks = {}
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -68,6 +71,7 @@ Handle changes to the doc nodes
 
     processChanges = (doc, batch, local)->
       rc = createRenderingComputer()
+      updated = {}
       for item in batch
         if !!item.data.local == local
           root.changeContext = item.context
@@ -75,13 +79,14 @@ Handle changes to the doc nodes
             item.type = 'changed'
             item.oldData = old
           if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
-          processDataChange item
+          processDataChange item, updated
           if !item.editing
             #console.log "ITEM: #{item.type} #{item.data._id}"
             switch item.type
               when 'added' then rc.add item.data
               when 'removed' then rc.remove item.data
               when 'changed' then rc.change item.oldData, item.data
+        else updateObservers item.data, item.type, updated
       rc.render()
 
     # at this point, fully rerender all changed slides
@@ -173,7 +178,7 @@ Handle changes to the doc nodes
             break
       result
 
-    processDataChange = ({type, data})->
+    processDataChange = ({type, data}, updated)->
       if type in ['changed', 'removed'] && viewIdTypes[data._id]
         root.orgApi.deleteView viewIdTypes[data._id]
         delete viewTypeData[viewIdTypes[data._id]]
@@ -186,14 +191,34 @@ Handle changes to the doc nodes
           viewIdTypes[data._id] = data.codeAttributes.defview
           delay -> root.orgApi.defineView data._id
         else if lang == 'yaml'
+          if data.codeName then namedBlocks[data.codeName] = data._id
           root.orgApi.updateBlock data
+          updateObservers data, type, updated
         else if attr.results?.toLowerCase() == 'def' && lang in ['js', 'javascript']
-          eval codeString data
+          try
+            eval codeString data
+          catch err
+            console.log err.stack
         else if attr.results?.toLowerCase() == 'def' && lang in ['coffeescript', 'coffee']
-          CoffeeScript.run codeString data
+          try
+            if data.codeName
+              if data.codeAttributes.observe
+                if !(l = observers[data.codeAttributes.observe])
+                  l = observers[data.codeAttributes.observe] = []
+                l.push data.codeName
+              codeContexts[data.codeName] = new -> eval CoffeeScript.compile codeString data
+            else CoffeeScript.run codeString data
+          catch err
+            console.log err.stack
         else if attr.results?.toLowerCase() == 'def' && lang == 'leisure'
           #root.orgApi.executeText codeString(data), {}, null, (->)
           processLeisureBlock data
+
+    updateObservers = (data, type, updated)->
+      if data.codeName && data.yaml && observers[data.codeName] && !updated[data.codeName]
+        updated[data.codeName] = true
+        for o in observers[data.codeName]
+          codeContexts[o]?.update?(data.yaml, type)
 
     leisureBlocks = []
 
@@ -217,6 +242,12 @@ Handle changes to the doc nodes
       if id
         doc = root.currentDocument
         doc.leisure.localCollection.findOne(id) ? doc.findOne id
+
+    getBlockNamed = (name)-> if id = namedBlocks[name] then getBlock id
+
+    getDataNamed = (name)-> getBlockNamed(name)?.yaml
+
+    setDataNamed = (name, value)-> if id = namedBlocks[name] then setData id, value
 
     getParent = (overrides, data)->
       prev = data.prev
@@ -290,7 +321,11 @@ Handle changes to the doc nodes
                 initLocal root.currentDocument, ->
                   cursor = docCol.find()
                   sub = cursor.observe observer docCol, false
-                  org = docOrg root.currentDocument, (item)-> processDataChange type: 'added', data: item
+                  blockId = getBlock docCol.leisure.info.head
+                  while blockId && block = getBlock blockId
+                    processDataChange type: 'added', data: block
+                    blockId = block.next
+                  org = docOrg root.currentDocument, -> #(item)-> processDataChange type: 'added', data: item
                   root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, docName
                   if name.match /^demo\/(.*)$/
                     $("#hide-show-button")
@@ -752,3 +787,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.changeContext = {}
     root.renderBlock = renderBlock
     root.commitEdits = commitEdits
+    root.codeContexts = codeContexts
+    root.getBlockNamed = getBlockNamed
+    root.getDataNamed = getDataNamed
+    root.setDataNamed = setDataNamed

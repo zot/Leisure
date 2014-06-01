@@ -1,6 +1,11 @@
 Namespace definition
 
-    root = if window? then window.Leisure = {} else global.Leisure = {}
+    if window?
+      window.App = {}
+      root = window.Leisure = {}
+    else
+      global.App = {}
+      root = global.Leisure = {}
 
     delay = (time, func)->
       if typeof time == 'function'

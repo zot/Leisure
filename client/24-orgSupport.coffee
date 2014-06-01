@@ -154,9 +154,7 @@ initOrg = (parent, source)->
       e.preventDefault()
       root.currentMode.leisureButton()
   $("<div class='paginators'><button id='prevSlide'><i class='fa fa-caret-left fa-1x'></i><span></span></button><button id='nextSlide'><i class='fa fa-caret-right fa-1x'></i><span></span></button></div>").appendTo(document.body)
-  $("#leisure_grip").click (e) ->
-    g = $("body")
-    if g.hasClass 'bar_collapse' then g.removeClass 'bar_collapse' else g.addClass 'bar_collapse'
+  $("#leisure_grip").click (e) -> toggleLeisureBar()
   $("#themeSelect").change (e) ->
      return Leisure.setTheme(e.target.value)
   b = $('#saveButton')
@@ -179,6 +177,10 @@ initOrg = (parent, source)->
   Leisure.initStorage '#login', '#panel', root.currentMode
   installSelectionMenu()
   monitorSelectionChange()
+
+toggleLeisureBar = ->
+  g = $("body")
+  if g.hasClass 'bar_collapse' then g.removeClass 'bar_collapse' else g.addClass 'bar_collapse'
 
 selectionActive = true
 topCaretBox = null
@@ -1766,3 +1768,4 @@ root.toggleShowHidden = toggleShowHidden
 root.applyShowHidden = applyShowHidden
 root.actualSelectionUpdate = actualSelectionUpdate
 root.currentBlockIds = []
+root.toggleLeisureBar = toggleLeisureBar
