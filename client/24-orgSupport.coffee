@@ -294,7 +294,6 @@ applyShowHidden = ->
     $('#hide-show-button span').removeClass('hidden')
   root.orgApi.applyShowHidden()
   actualSelectionUpdate()
-  applyLeisureTooltips()
 
 saveFile = (fileInput)->
   if file = fileInput.files[0]
