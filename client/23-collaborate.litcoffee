@@ -201,12 +201,11 @@ Handle changes to the doc nodes
             console.log err.stack
         else if attr.results?.toLowerCase() == 'def' && lang in ['coffeescript', 'coffee']
           try
-            if data.codeName
-              if data.codeAttributes.observe
-                if !(o = observers[data.codeAttributes.observe])
-                  o = observers[data.codeAttributes.observe] = []
-                if !(data.codeName in o) then o.push data.codeName
-              codeContexts[data.codeName] = new -> eval CoffeeScript.compile codeString data
+            if data.codeAttributes.observe
+              if !(o = observers[data.codeAttributes.observe])
+                o = observers[data.codeAttributes.observe] = []
+              if !(data._id in o) then o.push data._id
+              codeContexts[data._id] = new -> eval CoffeeScript.compile codeString data
             else CoffeeScript.run codeString data
           catch err
             console.log err.stack

@@ -51,7 +51,6 @@ name: Anonymous
 :properties:
 :hidden: true
 :end:
-#+NAME: updateNames
 #+BEGIN_SRC coffee :results def :observe user
 App.updateUser = (user)->
   console.log "updating from change to user data"

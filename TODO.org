@@ -24,6 +24,7 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- cleanup observers[] and codeContexts[] when a code block disappears
 - script screencast
 - JavaScript/CoffeeScript source blocks
 - GUI templates -- HTML source block defines a new widget type
