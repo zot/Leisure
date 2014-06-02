@@ -1,6 +1,9 @@
 * Short list -- screencast
-- go through old slides
+- try to fix test cases!!!
 - script screencast -- screencast.lorg
+- go through old slides
+- reactivate note button
+- reactivete selection bubble
 - collaboration
   - spawn document copies
     - temporary or permanent

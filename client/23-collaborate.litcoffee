@@ -215,8 +215,8 @@ Handle changes to the doc nodes
           processLeisureBlock data
 
     updateObservers = (data, type, updated)->
-      if data.codeName && data.yaml && observers[data.codeName]
-        for context in observers[data.codeName]
+      if data.codeName && data.yaml?.type && observers[data.yaml.type]
+        for context in observers[data.yaml.type]
           if !updated[context]
             updated[context] = true
             codeContexts[context]?.update?(data.yaml, type)

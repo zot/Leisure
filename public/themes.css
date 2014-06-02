@@ -971,11 +971,13 @@ body {
 .bar_collapse #leisure_dummy {
     height: 0px;
 }
+[data-edit-mode='fancy'] [data-shared='code'] {
+    display: inline-block;
+}
 [data-edit-mode='fancy'] [data-lang='yaml'] {
     box-shadow: 3px 3px 2px 3px darkblue !important;
     -moz-box-shadow: 3px 3px 2px 3px darkblue !important;
     -webkit-box-shadow: 3px 3px 2px 3px darkblue !important;
-    display: inline-block;
     margin-right: 15px;
     margin-bottom: 15px;
     padding: 10px;

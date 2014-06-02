@@ -338,15 +338,14 @@ isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 
 markupFragment = (org, delay, note)->
   if isCodeBlock org.children[0]
     {first, name, source, last} = getCodeItems org.children[0]
-    lang = (if l = source.getLanguage() then " data-lang='#{l}'" else '')
     if first == name then first = first.next
     if first == org.children[0] && !last.next
       prelude = ''
       while first != source
         prelude += first.allText()
         first = first.next
-      return "<div #{orgAttrs org}#{lang}>#{markupSource source, name, prelude, delay, true}</div>"
-  "<div #{orgAttrs org}#{lang}>#{(markupNode child, false, delay, note, false, true for child in org.children).join ''}</div>"
+      return "<div #{orgAttrs org}>#{markupSource source, name, prelude, delay, true}</div>"
+  "<div #{orgAttrs org}>#{(markupNode child, false, delay, note, false, true for child in org.children).join ''}</div>"
 
 markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
@@ -567,7 +566,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
   {name, source, results, expected, last} = getCodeItems(name || org)
   lastOrgOffset = last.offset
   shared = (if org.shared then org else org.fragment)
-  yamlAttr = ''
+  yamlAttr = "data-lang='yaml'"
   if shared
     data = getBlock shared.nodeId
     type = data.yaml?.type
@@ -589,7 +588,7 @@ markupCode = (org, name, doctext, delay, inFragment)->
     n = escapeAttr name.info.trim()
     addAttr = " data-org-codeblock='#{n}'"
   else addAttr = ''
-  if !inFragment && (l = source.getLanguage())
+  if (l = source.getLanguage()) #&& !inFragment
     addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
   "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
 
@@ -611,7 +610,7 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   else codeBlock = ">"
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
-  contHtml = "class='codeblock' contenteditable='false' #{orgAttrs org}#{codeBlock}"
+  contHtml = "class='codeblock' contenteditable='false' data-lang='leisure' #{orgAttrs org}#{codeBlock}"
   if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
   node = org.next
   intertext = ''
@@ -753,7 +752,7 @@ chunkSize = 30
 chunkDelay = 1000
 
 createNextValueSliders = (node, slideFunc, cur)->
-  if (cur = visibleTextNodeAfter cur) && isParentOf(node, cur)
+  if (cur = textNodeAfter cur) && isParentOf(node, cur)
     createNextValueSlider node, slideFunc, cur
 
 numPat = /[0-9][0-9.]*|\.[0-9.]+/
@@ -1387,8 +1386,15 @@ slideBindings.__proto__ = defaultBindings
 
 toggleSlides = ->
   slideMode = !slideMode
+  applySlides()
+
+applySlides = ->
   $('#prevSlide:not(.bound)').addClass('bound').bind('click',  prevSlide);
   $('#nextSlide:not(.bound)').addClass('bound').bind('click',  nextSlide);
+  $('body').removeClass 'firstSlide'
+  $('body').removeClass 'lastSlide'
+  $('.firstSlide').removeClass 'firstSlide'
+  $('.lastSlide').removeClass 'lastSlide'
   if slideMode
     fancyOrg.bindings = slideBindings
     s = getSlides()
@@ -1400,11 +1406,7 @@ toggleSlides = ->
     firstSlide()
   else
     fancyOrg.bindings = defaultBindings
-    $('[data-org-headline="1"]').first().removeClass 'firstSlide'
-    $('[data-org-headline="1"]').last().removeClass 'lastSlide'
     $('body').removeClass 'slides'
-    $('body').removeClass 'firstSlide'
-    $('body').removeClass 'lastSlide'
     $('[data-org-html]').removeClass 'slideHtml'
 
 theme = null
@@ -1661,6 +1663,7 @@ fancyOrg =
     for node in $('.slideholder')
       if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
         $(node).addClass('hidden-slide')
+    applySlides()
   checkSourceMod: (div, currentMatch)->
     focus = getSelection().focusNode
     fancyCheckSourceMod focus, div, currentMatch, (if focus.nodeType == 1 then focus.firstChild else focus)
@@ -1689,15 +1692,15 @@ fixupHtml = (parent, note)->
     reprocessResults node
   createNoteShadows()
   createEditToggleButton parent
-  if !note
-    #createEditToggleButton parent
-    $(parent).find("button.create_note").remove()
-    $("<button class='create_note' contenteditable='false'><i class='fa fa-file-text-o'></i></button>")
-      .insertBefore(findOrIs($(parent), '[data-org-headline="1"]').find('.maincontent'))
-      .children().find(':first-child')
-      .click (e)->
-        e.preventDefault()
-        #root.currentMode.createNotes()
+  #if !note
+  #  #createEditToggleButton parent
+  #  $(parent).find("button.create_note").remove()
+  #  $("<button class='create_note' contenteditable='false'><i class='fa fa-file-text-o'></i></button>")
+  #    .insertBefore(findOrIs($(parent), '[data-org-headline="1"]').find('.maincontent'))
+  #    .children().find(':first-child')
+  #    .click (e)->
+  #      e.preventDefault()
+  #      #root.currentMode.createNotes()
   setTimeout (=>
     for node in findOrIs $(parent), '[data-org-comments]'
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'

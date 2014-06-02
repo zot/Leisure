@@ -191,6 +191,7 @@ updateSelection = Lodash.throttle (-> actualSelectionUpdate()), 30,
   trailing: true
 
 actualSelectionUpdate = ->
+  return
   if selectionActive
     s = getSelection()
     if s.type != 'None' && !isCollapsed(s.focusNode)
@@ -1037,9 +1038,11 @@ checkSourceMod = ->
     bl = $()
     for id in root.currentBlockIds
       bl = bl.add $("##{id}")
-    if bl.attr('data-lang') == 'leisure' && isParentOf(bl[0], mod) && bl.find '[data-org-src="dynamic"]'
+    if isLeisureBlock(bl) && isParentOf(bl[0], mod) && bl.find '[data-org-src="dynamic"]'
       root.orgApi.executeSource bl[0], mod
     if mod then checkStructure mod
+
+isLeisureBlock = (bl)-> bl.is("[data-lang='leisure']") || bl.find("[data-lang='leisure']").length > 0
 
 isParentOf = (parent, child)-> parent && parent.compareDocumentPosition(child) & Node.DOCUMENT_POSITION_CONTAINED_BY
 
@@ -1500,7 +1503,7 @@ filteredNodeAfter = (node, director)->
 blockText = (node)->
   end = nodeAfter node, true
   text = ''
-  while node != end
+  while node && node != end
     if node.nodeType == Node.TEXT_NODE then text += node.data
     node = nodeAfter node
     if node?.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-shared' then break

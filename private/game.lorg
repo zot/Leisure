@@ -1,3 +1,21 @@
+* Intro
+Leisure documents can contain classic games, like Connect Four...
+
+[[http://www.abstractstrategy.com/connect-four.jpg]]
+
+
+
+
+
+
+
+
+* Game
+:properties:
+:note: sidebar
+:end:
+[[org:user1/userName]]
+[[org:board1]]
 * Data
 :properties:
 :hidden: true
@@ -7,7 +25,7 @@ This is the board data and the user data...
 - b = black
 - r = red
 - other = gray
-#+NAME: board
+#+NAME: board1
 #+BEGIN_SRC yaml :flowLevel 2
 type: board
 pieces:
@@ -21,35 +39,33 @@ playerCount: 0
 colors: rbg
 playerNames: []
 #+END_SRC
-#+NAME: user
-#+BEGIN_SRC yaml :local :flowLevel 2
-type: local
+#+NAME: user1
+#+BEGIN_SRC yaml :local
+type: user
 color: r
 number: -1
 name: Anonymous
 #+END_SRC
 
-* Game
-:properties:
-:note: sidebar
-:end:
-[[org:user/userName]]
-[[org:board]]
-* Code
+* Bindings
 :properties:
 :hidden: true
 :end:
 #+NAME: updateNames
 #+BEGIN_SRC coffee :results def :observe user
-@update = App.updateUser = (user)->
-  console.log "updating from change to user"
-  board = getDataNamed 'board'
+App.updateUser = (user)->
+  console.log "updating from change to user data"
+  board = getDataNamed 'board1'
   board.playerNames[user.number] = user.name
-  setDataNamed 'board', board
+  setDataNamed 'board1', board
+
+@update = App.updateUser
 #+END_SRC
-#+BEGIN_SRC html :defview local/userName
+
+#+BEGIN_SRC html :defview user/userName
 Name: <input type='text' data-value='name'></input>
 #+END_SRC
+
 #+BEGIN_SRC html :defview board
 <style>@import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";</style>
 <div style='float: left'>
@@ -65,8 +81,7 @@ Name: <input type='text' data-value='name'></input>
       </tr>
       {{/each}}
     </table>
-  </div
-  <br><button onclick="App.toggleFixed(this)">Pin</button>
+  </div>
 </div>
 <div style='float: left; margin-left: 10px; width: 15ex'>
   <h2 style='margin-top: 0'>Players</h2>
@@ -76,7 +91,10 @@ Name: <input type='text' data-value='name'></input>
 </div>
 <script>App.hookupTable()</script>
 #+END_SRC
-
+* Support code
+:properties:
+:hidden: true
+:end:
 #+BEGIN_SRC coffee :results def
 {
   viewBlock,
@@ -86,11 +104,10 @@ Name: <input type='text' data-value='name'></input>
 } = Leisure
 pieceTypes = "wrb"
 
-fixed = false
-link = null
-
 App.hookupTable = ->
-  link = Templating.currentViewLink
+  $(Templating.currentViewLink)
+    .closest("[data-org-headline='1']")
+    .attr 'game', ''
   $(Templating.currentView).bind 'click', (e)->
     if block = viewBlock e.target
       data = block.yaml
@@ -100,27 +117,34 @@ App.hookupTable = ->
       if row? && col?
         data.pieces[row][col] = pieceTypes[(1 + pieceTypes.indexOf data.pieces[row][col]) % pieceTypes.length]
       setData block._id, data
-      App.doFixed()
 
-App.toggleFixed = ->
-  fixed = !fixed
-  App.doFixed()
+$(document.head).prepend $("""
+<style>
+[game] {
+  position: fixed !important;
+  top: 50px !important;
+  right: 10px !important;
+  z-index: 1 !important;
+}
+.slides [game] { left: auto !important; }
+.googie.slides [game] { top: 300px !important; }
+.cthulhu.slides [game] { top: 300px !important; }
+.steampunk.slides [game] { top: 150px !important; }
+.flat.slides [game] { top: 182px !important; }
+.console.slides [game] { top: 182px !important; }
+.slides [game] [data-org-type='text'] { display: none; }
+</style>
+""")
 
-App.doFixed = ->
-  node = $(link).closest("[data-org-headline='1']")
-  console.log "link:", link, "node:", node
-  if fixed then node.attr 'style', 'position: fixed; top: 50px; right: 10px; z-index: 1'
-  else node.removeAttr 'style'
-
-user = getDataNamed 'user'
+user = getDataNamed 'user1'
 if user.number == -1
-  board = getDataNamed 'board'
+  board = getDataNamed 'board1'
   console.log JSON.stringify board
   user.number = board.playerCount++
-  setDataNamed 'board', board
-  setDataNamed 'user', user
+  setDataNamed 'board1', board
+  setDataNamed 'user1', user
   App.updateUser user
 
-Leisure.setTheme 'googie'
 Leisure.toggleLeisureBar()
+Leisure.setTheme 'googie'
 #+END_SRC

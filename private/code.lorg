@@ -5,7 +5,13 @@ Simple test
 #+END_SRC
 #+RESULTS:
 : 7
-*Some fun with infinite streams
+* Graphical values
+#+BEGIN_SRC leisure :results dynamic
+rotate (polygon nil) 0
+#+END_SRC
+#+RESULTS:
+: <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width='240' height='228' viewbox='230 74 240 228'><g transform="rotate(0)"><polygon points="350 75  379 161 469 161 397 215 423 301 350 250 277 301 303 215 231 161 321 161" stroke="black" stroke-width="2" fill="orange" /></g></svg>
+* Some fun with infinite streams
 #+BEGIN_SRC leisure :results dynamic
 take 5 ones
 take 5 naturals
