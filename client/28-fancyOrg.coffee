@@ -577,7 +577,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
   if name
     n = escapeAttr name.info.trim()
     yamlAttr += " data-org-codeblock='#{n}' data-yaml-name='#{n}'"
-  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight 'yaml',  source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
+  "<div #{orgAttrs source}#{yamlAttr}>#{err}<span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight 'yaml',  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span></div>"
 
 markupCode = (org, name, doctext, delay, inFragment)->
   [pre, src, post] = getSourceSegments name, org
@@ -590,7 +590,7 @@ markupCode = (org, name, doctext, delay, inFragment)->
   else addAttr = ''
   if (l = source.getLanguage()) #&& !inFragment
     addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
-  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden'>#{escapeHtml post}</span></div>"
+  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span></div>"
 
 dragging = false
 
