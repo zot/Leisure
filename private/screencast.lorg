@@ -2,13 +2,23 @@
 ** This is Leisure, a web-based computing environment.
 ** Use Leisure to make and deploy multiuser web applications, like this game.
 ** Reveal hidden code and data using the Leisure bar
-** Data changing and updating
-*** See data change when you change your name and click pieces on the board
-*** See the board change when you edit the data
-*** See the board change when you edit the user data
-*** See the board change when you edit the view definition
-** Code evaulation
-** Leisure provides its own language and also supports other languages, such as JavaScript and CoffeeScript.
+*** Show the document source for any slide or for the whole document
+** Data binding
+*** Data/view binding
+**** the board data changes when you click pieces in the board view
+**** the board view contents changes when you edit the board data
+**** the board view layout changes when you edit the view definition
+*** Data/code binding
+**** the playerNames in board changes when you edit the user data or change the name
+** Documents are automatically collaborative
+*** Development time
+***
+** Besides standard languages like JavaScript and CoffeeScript, Leisure provides its own language
+*** See results in the document (planned for other languages)
+*** Dynamically typed, lazy, functional language
+**** Infinite streams
+**** Display partial application
+**** show ASTs
 * Leisure: The Document Is the Machine!
 - environment
   - for both development and deployment

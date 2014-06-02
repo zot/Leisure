@@ -203,9 +203,9 @@ Handle changes to the doc nodes
           try
             if data.codeName
               if data.codeAttributes.observe
-                if !(l = observers[data.codeAttributes.observe])
-                  l = observers[data.codeAttributes.observe] = []
-                l.push data.codeName
+                if !(o = observers[data.codeAttributes.observe])
+                  o = observers[data.codeAttributes.observe] = []
+                if !(data.codeName in o) then o.push data.codeName
               codeContexts[data.codeName] = new -> eval CoffeeScript.compile codeString data
             else CoffeeScript.run codeString data
           catch err
@@ -215,10 +215,11 @@ Handle changes to the doc nodes
           processLeisureBlock data
 
     updateObservers = (data, type, updated)->
-      if data.codeName && data.yaml && observers[data.codeName] && !updated[data.codeName]
-        updated[data.codeName] = true
-        for o in observers[data.codeName]
-          codeContexts[o]?.update?(data.yaml, type)
+      if data.codeName && data.yaml && observers[data.codeName]
+        for context in observers[data.codeName]
+          if !updated[context]
+            updated[context] = true
+            codeContexts[context]?.update?(data.yaml, type)
 
     leisureBlocks = []
 

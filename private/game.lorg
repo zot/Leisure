@@ -39,6 +39,14 @@ name: Anonymous
 :properties:
 :hidden: true
 :end:
+#+NAME: updateNames
+#+BEGIN_SRC coffee :results def :observe user
+@update = App.updateUser = (user)->
+  console.log "updating from change to user"
+  board = getDataNamed 'board'
+  board.playerNames[user.number] = user.name
+  setDataNamed 'board', board
+#+END_SRC
 #+BEGIN_SRC html :defview local/userName
 Name: <input type='text' data-value='name'></input>
 #+END_SRC
@@ -60,7 +68,7 @@ Name: <input type='text' data-value='name'></input>
   </div
   <br><button onclick="App.toggleFixed(this)">Pin</button>
 </div>
-<div style='float: left; margin-left: 10px'>
+<div style='float: left; margin-left: 10px; width: 15ex'>
   <h2 style='margin-top: 0'>Players</h2>
   {{#each playerNames}}
     <div>{{this}}</div>
@@ -73,6 +81,8 @@ Name: <input type='text' data-value='name'></input>
 {
   viewBlock,
   setData,
+  getDataNamed,
+  setDataNamed,
 } = Leisure
 pieceTypes = "wrb"
 
@@ -101,21 +111,6 @@ App.doFixed = ->
   console.log "link:", link, "node:", node
   if fixed then node.attr 'style', 'position: fixed; top: 50px; right: 10px; z-index: 1'
   else node.removeAttr 'style'
-#+END_SRC
-
-#+NAME: updateNames
-#+BEGIN_SRC coffee :results def :observe user
-{
-
-  getDataNamed,
-  setDataNamed,
-} = Leisure
-
-App.updateUser = (user)->
-  console.log "updating from change to user"
-  board = getDataNamed 'board'
-  board.playerNames[user.number] = user.name
-  setDataNamed 'board', board
 
 user = getDataNamed 'user'
 if user.number == -1
@@ -125,8 +120,6 @@ if user.number == -1
   setDataNamed 'board', board
   setDataNamed 'user', user
   App.updateUser user
-
-@update = App.updateUser
 
 Leisure.setTheme 'googie'
 Leisure.toggleLeisureBar()
