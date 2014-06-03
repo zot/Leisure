@@ -33,6 +33,7 @@ Meteor-based collaboration -- client side
     nullHandlers = onsuccess: (->), onerror: ((e)-> console.log("ERROR:", e))
     codeContexts = {}
     observers = {}
+    universalObservers = {}
     namedBlocks = {}
 
 Batching code -- addBatch batches items and calls the given function
@@ -193,7 +194,6 @@ Handle changes to the doc nodes
         else if lang == 'yaml'
           if data.codeName then namedBlocks[data.codeName] = data._id
           root.orgApi.updateBlock data
-          updateObservers data, type, updated
         else if attr.results?.toLowerCase() == 'def' && lang in ['js', 'javascript']
           try
             eval codeString data
@@ -202,23 +202,46 @@ Handle changes to the doc nodes
         else if attr.results?.toLowerCase() == 'def' && lang in ['coffeescript', 'coffee']
           try
             if data.codeAttributes.observe
-              if !(o = observers[data.codeAttributes.observe])
-                o = observers[data.codeAttributes.observe] = []
-              if !(data._id in o) then o.push data._id
-              codeContexts[data._id] = new -> eval CoffeeScript.compile codeString data
+              if data.codeAttributes.observe == '*' then universalObservers[data._id] = true
+              else
+                if !(o = observers[data.codeAttributes.observe])
+                  o = observers[data.codeAttributes.observe] = []
+                if !(data._id in o) then o.push data._id
+              compileContext data._id, data
             else CoffeeScript.run codeString data
           catch err
             console.log err.stack
-        else if attr.results?.toLowerCase() == 'def' && lang == 'leisure'
-          #root.orgApi.executeText codeString(data), {}, null, (->)
-          processLeisureBlock data
+        else if lang == 'leisure'
+          if data.codeAttributes.observe
+            if data.codeAttributes.observe == '*' then universalObservers[data._id] = true
+            else
+              if !(o = observers[data.codeAttributes.observe])
+                o = observers[data.codeAttributes.observe] = []
+              if !(data._id in o) then o.push data._id
+            codeContexts[data._id] =
+              update: -> processLeisureBlock data
+              block: data
+          if attr.results?.toLowerCase() == 'def' then processLeisureBlock data
+        updateObservers data, type, updated
+
+    compileContext = (id, data)->
+      data = data || getBlock id
+      con = codeContexts[id] = new -> @result = eval CoffeeScript.compile codeString data
+      con.data = data
+      if !con.update
+        if data.codeAttributes?.results?.toLowerCase == 'dynamic'
+          console.log "plug in results"
+        con.update = -> compileContext id
 
     updateObservers = (data, type, updated)->
-      if data.codeName && data.yaml?.type && observers[data.yaml.type]
-        for context in observers[data.yaml.type]
-          if !updated[context]
-            updated[context] = true
-            codeContexts[context]?.update?(data.yaml, data, type)
+      if data.type == 'code'
+        if data.yaml?.type && observers[data.yaml.type]
+          for id in observers[data.yaml.type]
+            if !updated[id]
+              updated[id] = true
+              root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
+        for id of universalObservers
+          root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
 
     leisureBlocks = []
 
@@ -529,11 +552,13 @@ Users can mark any slide as local by setting a "local" property to true in the s
     edited = (node, render)->
       if node = $(node).closest('[data-shared]')[0]
         id = node.id
-        root.checkSingleNode root.blockText node
-        overrides = new Overrides()
-        changeDocText id, textForId(id), overrides
-        commitEdits overrides
-        if render then renderBlock getBlock id
+        text = root.blockText node
+        if getBlock(id).text != text
+          root.checkSingleNode text
+          overrides = new Overrides()
+          changeDocText id, textForId(id), overrides
+          commitEdits overrides
+          if render then renderBlock getBlock id
 
     commitEdits = (overrides)->
         editing = true

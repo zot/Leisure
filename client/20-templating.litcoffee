@@ -12,11 +12,12 @@
 
     createTemplateRenderer = (type, template, shadow, cont)->
       comp = Handlebars.compile template
-      viewMarkup[type] = (data, target)->
+      viewMarkup[type] = (data, target, preserveContents)->
         if target
           for node in target
             n = $(node)
-            n.html("<span class='hidden'>#{escapeHtml n.text()}</span>")
+            if !preserveContents
+              n.html("<span class='hidden'>#{escapeHtml n.text()}</span>")
             el = if shadow
               el = setShadowHtml node, "<span class='view'>#{comp data}</span>", true
               shadowCount = 0

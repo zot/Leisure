@@ -407,6 +407,7 @@ class HTML extends Keyword
 class Results extends Keyword
   constructor: (@text, @offset, @name, @contentPos)->  super @text, @offset, @name
   type: 'results'
+  content: -> @text.substring @contentPos
   jsonDef: ->
     type: @type
     text: @text

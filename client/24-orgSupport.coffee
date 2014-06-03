@@ -669,7 +669,7 @@ markupSimple = (org)->
     when 'verbatim' then "<code>#{t}#{guts}#{t}</code>"
 
 codeBlockAttrs = (org, inFragment)->
-  if !inFragment && lang = org.getLanguage() then attrs = " data-lang='#{lang}'"
+  if !inFragment && lang = org.getLanguage?() then attrs = " data-lang='#{lang}'"
   else attrs = ''
   while (org = org.prev) instanceof Meat
     if org instanceof Keyword && org.name.match /^name$/i
@@ -1183,6 +1183,7 @@ presentValue = (v)-> rz(L_showHtml) lz v
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
   env =
+    changed: false
     presentValue: presentValue
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     writeFile: ->
@@ -1190,7 +1191,9 @@ orgEnv = (parent, node)->
     __proto__: defaultEnv
   if r
     r.innerHTML = ''
-    env.write = (str)-> r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
+    env.write = (str)->
+      @changed = true
+      r.textContent += ": #{str.replace /\n/g, '\n: '}\n"
   else env.write = (str)-> console.log ": #{str.replace /\n/g, '\n: '}\n"
   env
 
@@ -1201,26 +1204,14 @@ baseEnv =
   newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
 
 getResultsForSource = (parent, node)->
-  #checkReparse parent
-  res = node
-  #while getOrgType(res.nextSibling) == 'boundary' || (getOrgType(res.nextSibling) == 'meat' && res.textContent.match /^[ \n]*$/)
-  while getOrgType(res.nextSibling) == 'meat' && res.textContent.match /^[ \n]*$/
-    res = res.nextSibling
-  res = res.nextSibling
-  if res?.getAttribute('data-org-type') == 'results' then res.lastChild
-  else
-    org = parseOrgMode getNodeText parent
-    pos = getTextPosition parent, node, 0
-    src = org.findNodeAt pos
-    if pos > -1
-      results = src.next
-      if !(results instanceof Results)
-        results = if results instanceof Meat && results.text.match /^[ \n]*$/ then results.next
-        if !(results instanceof Results) then results = newResults parent, src
-      getCollapsible(findDomPosition(parent, results.offset + 1)[0]).lastChild
-    else null
+  r = getExistingResultsForSource node
+  if !r
+    newResults parent, parseOrgMode parent.textContent
+    getExistingResultsForSource node
+  else r
 
-#checkReparse = (parent)-> if needsReparse then reparse parent
+getExistingResultsForSource = (node)->
+  $(blockElementForNode(node)).find("[data-org-type='results'] [data-org-src='example']")[0]
 
 nativeRange = (r)->
   if r instanceof Range then r
@@ -1338,7 +1329,11 @@ getSource = (node)->
 executeSource = (parent, node, cont)->
   if isSourceNode node
     #checkReparse parent
-    if txt = getSource node then executeText txt, propsFor(node), orgEnv(parent, node), cont
+    if txt = getSource node
+      env = orgEnv(parent, node)
+      executeText txt, propsFor(node), env, ->
+        if env.changed then edited node
+        cont?()
     else console.log "No end for src block"
   #else if getOrgType(node) == 'text' then needsReparse = true
   #else !isDocNode(node) && executeSource parent, node.parentElement
@@ -1663,6 +1658,14 @@ orgNotebook =
   defineView: ->
   deleteView: (type)->
   handleDrop: handleDrop
+  updateObserver: (observerId, observerContext, yaml, block, type)->
+    if observerContext.block.language.toLowerCase() == 'leisure'
+      parent = $("##{observerId}")
+      if parent[0]
+        if parent.is("[data-org-type='source']") then node = parent[0]
+        else node = parent.find("[data-org-type='source']")[0]
+        if node then return @executeSource parent[0], node
+    observerContext?.update? data.yaml, data, type
 
 basicOrg =
   __proto__: orgNotebook
@@ -1735,7 +1738,6 @@ root.executeDef = executeDef
 root.propsFor = propsFor
 root.orgEnv = orgEnv
 root.baseEnv = baseEnv
-root.getResultsForSource = getResultsForSource
 root.initOrg = initOrg
 root.swapMarkup = swapMarkup
 root.modifiers = modifiers

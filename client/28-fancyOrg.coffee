@@ -82,7 +82,6 @@ yaml = root.yaml
   getOrgType,
   executeText,
   executeDef,
-  getResultsForSource,
   swapMarkup,
   modifiers,
   keyFuncs,
@@ -612,7 +611,7 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   startHtml = "<div "
   contHtml = "class='codeblock' contenteditable='false' data-lang='leisure' #{orgAttrs org}#{codeBlock}"
   if view = org.attributes()?.view
-    contHtml = "data-code-view='#{view}' #{contHtml}"
+    contHtml = "data-code-view='#{escapeAttr view.trim()}' " + contHtml
   if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
   node = org.next
   intertext = ''
@@ -653,21 +652,12 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   #wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText, resOrg
-  if expected then wrapper += htmlForExpected expected.content()
   wrapper += "</td></tr></table>"
-  testCase = resultsType(org) in ['test', 'autotest'] && expected
   result = contHtml + wrapper + (if name then "</div>#{commentBlock name.info.trim()}" else "</div>")
-  if testCase
-    testValue = testResult expected.content(), resText
-    testAttr = "data-org-test='#{testValue}'"
-    if delay then setTimeout (->
-      $("##{escapeAttr org.nodeId}").attr 'data-org-test', testValue), 1
-    startHtml + "onclick='Leisure.toggleTestCase(event)' #{if !delay then testAttr else ''} title='<div class=#{escapeAttr "'expected-hover'"}><b>Expr:</b> #{escapeHtml srcContent}<br><b>Expected:</b> #{escapeAttr expected.content()}</div>' data-org-expected='#{escapeAttr expected.content()}' #{result}"
-  else
-    fluff = if top.prev instanceof Source || top.prev instanceof Results then "<div class='fluff' data-newline></div>" else ''
-    inner = fluff + startHtml + result
-    if inFragment then inner
-    else '<div>' + inner + '</div>'
+  fluff = if top.prev instanceof Source || top.prev instanceof Results then "<div class='fluff' data-newline></div>" else ''
+  inner = fluff + startHtml + result
+  if inFragment then inner
+  else '<div>' + inner + '</div>'
 
 updateChannels = (org)-> org instanceof Source && (org.info.match /:update *([^:]*)/)?[1]
 
@@ -963,10 +953,6 @@ htmlForResults = (text, org)->
   attr = if org?.shared then " id='#{org.nodeId}' data-shared='#{org.shared}'" else ''
   """
   <div class='coderesults' data-org-type='results'#{attr}><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
-
-htmlForExpected = (text)->
-  """
-  <div class='codeexpected' data-org-type='expected'><div class='expectedcontent'><span>#{escapeHtml text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
@@ -1672,6 +1658,10 @@ fancyOrg =
   updateBlock: (block)->
     el = $("##{block._id}")[0]
     if el then restorePosition null, -> renderView el
+  updateObserver: (observerId, observerContext, yaml, block, type)->
+    orgNotebook.updateObserver.apply this, arguments
+    if observerContext.block.codeAttributes.view
+      displayCodeView $("##{observerContext.block._id}").find('[data-code-view]')[0]
   removeSlide: (id)->
     el = $("##{id}")
     holder = el.closest ".slideholder"
@@ -1692,12 +1682,9 @@ fixupHtml = (parent, note)->
     createValueSliders node, regularNumberSlider
   for node in findOrIs $(parent), '.resultscontent'
     reprocessResults node
-  for node in $("[data-code-view]")
-    displayCodeView node
   createNoteShadows()
   createEditToggleButton parent
   #if !note
-  #  #createEditToggleButton parent
   #  $(parent).find("button.create_note").remove()
   #  $("<button class='create_note' contenteditable='false'><i class='fa fa-file-text-o'></i></button>")
   #    .insertBefore(findOrIs($(parent), '[data-org-headline="1"]').find('.maincontent'))
@@ -1706,12 +1693,17 @@ fixupHtml = (parent, note)->
   #      e.preventDefault()
   #      #root.currentMode.createNotes()
   setTimeout (=>
+    for node in $("[data-code-view]")
+      displayCodeView node
     for node in findOrIs $(parent), '[data-org-comments]'
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
     ), 1
 
 displayCodeView = (node)->
-  console.log "Display code", node
+  if node
+    console.log "Display code", node
+    if block = getBlock $(node).closest('[data-shared]')[0]?.id
+      viewMarkup[node.getAttribute 'data-code-view']? block, $(node), true
 
 getMainContent = (headline)->
   headline = findOrIs headline, '[data-org-headline="1"]'

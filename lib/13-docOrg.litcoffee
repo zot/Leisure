@@ -122,7 +122,7 @@
 
     createCodeBlockDoc = (org)->
       text = ''
-      {first, name, source, last, expected, result} = getCodeItems org
+      {first, name, source, last, expected, results} = getCodeItems org
       firstOffset = first.offset
       if !first then [_([text: org.allText(), type: 'chunk']), org.next]
       else
@@ -134,8 +134,8 @@
         obj.codePrelen = source.contentPos + source.offset - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
         if expected
-          obj.testResult = if !result then 'unknown'
-          else if expected.text == result.text then 'pass'
+          obj.codeTestResult = if !results then 'unknown'
+          else if expected.content() == results.content() then 'pass'
           else 'fail'
         if name then obj.codeName = name.info.trim()
         if obj.codeAttributes?.local? then obj.local = true

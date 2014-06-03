@@ -5,21 +5,21 @@
 #+RESULTS:
 : 7
 * Test case
+#+BEGIN_SRC leisure :results def
+x = 17
+#+END_SRC
+
 #+BEGIN_SRC leisure :observe * :view testcase
-3+4
+x
 #+END_SRC
 :EXPECTED:
-: 7
+: 17
 :END:
 #+RESULTS:
-: 7
+: 17
 
-#+BEGIN_SRC html :defview testcase :showTest
-{{#if attributes.showTest}}
-<div class="{{testResult}}"></div>
-{{else}}
-<content></content>
-{{/if}}
+#+BEGIN_SRC html :defview testcase
+<div class="{{codeTestResult}}">test {{codeTestResult}}</div>
 #+END_SRC
 * Graphical values
 #+BEGIN_SRC leisure :results dynamic
@@ -46,8 +46,8 @@ even x = (x % 2) == 0
 #+END_SRC
 * Theme settings
 #+BEGIN_SRC leisure :results def
-setTheme 'steampunk'
-#setTheme 'googie'
+#setTheme 'steampunk'
+setTheme 'googie'
 #setTheme 'flat'
 #setTheme 'console'
 #setTheme 'cthulhu'
