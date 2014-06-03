@@ -611,6 +611,8 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
   contHtml = "class='codeblock' contenteditable='false' data-lang='leisure' #{orgAttrs org}#{codeBlock}"
+  if view = org.attributes()?.view
+    contHtml = "data-code-view='#{view}' #{contHtml}"
   if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
   node = org.next
   intertext = ''
@@ -1690,6 +1692,8 @@ fixupHtml = (parent, note)->
     createValueSliders node, regularNumberSlider
   for node in findOrIs $(parent), '.resultscontent'
     reprocessResults node
+  for node in $("[data-code-view]")
+    displayCodeView node
   createNoteShadows()
   createEditToggleButton parent
   #if !note
@@ -1705,6 +1709,9 @@ fixupHtml = (parent, note)->
     for node in findOrIs $(parent), '[data-org-comments]'
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
     ), 1
+
+displayCodeView = (node)->
+  console.log "Display code", node
 
 getMainContent = (headline)->
   headline = findOrIs headline, '[data-org-headline="1"]'

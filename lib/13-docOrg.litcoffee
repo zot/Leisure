@@ -42,7 +42,7 @@
     getSourceNodeType = (org)->
       if org instanceof Source then 'source'
       else if org instanceof Results then 'results'
-      else if org instanceof Drawer && node.name.toLowerCase() == 'expected' then 'expected'
+      else if org instanceof Drawer && org.name.toLowerCase() == 'expected' then 'expected'
       else if org instanceof Keyword && org.name.match /^name$/i then 'name'
       else false
 
@@ -122,7 +122,7 @@
 
     createCodeBlockDoc = (org)->
       text = ''
-      {first, name, source, last} = getCodeItems org
+      {first, name, source, last, expected, result} = getCodeItems org
       firstOffset = first.offset
       if !first then [_([text: org.allText(), type: 'chunk']), org.next]
       else
@@ -133,6 +133,10 @@
         obj.codeAttributes = source.attributes()
         obj.codePrelen = source.contentPos + source.offset - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
+        if expected
+          obj.testResult = if !result then 'unknown'
+          else if expected.text == result.text then 'pass'
+          else 'fail'
         if name then obj.codeName = name.info.trim()
         if obj.codeAttributes?.local? then obj.local = true
         if l = source.lead() then obj.language = l.trim()

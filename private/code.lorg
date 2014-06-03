@@ -1,10 +1,26 @@
-* slide
-Simple test
+* Simple expression
 #+BEGIN_SRC leisure :results dynamic
 3+4
 #+END_SRC
 #+RESULTS:
 : 7
+* Test case
+#+BEGIN_SRC leisure :observe * :view testcase
+3+4
+#+END_SRC
+:EXPECTED:
+: 7
+:END:
+#+RESULTS:
+: 7
+
+#+BEGIN_SRC html :defview testcase :showTest
+{{#if attributes.showTest}}
+<div class="{{testResult}}"></div>
+{{else}}
+<content></content>
+{{/if}}
+#+END_SRC
 * Graphical values
 #+BEGIN_SRC leisure :results dynamic
 rotate (polygon nil) 0
