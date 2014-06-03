@@ -881,28 +881,29 @@ codeBlockForNode = (node)->
   if node.is '[data-org-test]' then node[0] else node[0].parentNode
 
 createTestCase = (evt)->
-  console.log evt.target
-  node = codeBlockForNode evt.target
-  selectPrevious node
-  text = node.textContent
-  rest = text
-  while match = rest.match drawerRE
-    if match[0].trim().toLowerCase() == ':expected:'
-      drawer = parseOrgMode(rest.substring(match.index), text.length - rest.length + match.index).children[0]
-      break
-    rest = rest.substring match.index + match[0].length
-  resultsText = (if drawer then text.substring drawer.offset + drawer.text.length else text)
-  if match = resultsRE.exec resultsText
-    results = parseOrgMode(resultsText.substring(match.index), text.length - resultsText.length + match.index).children[0]
-    if results.text.substring results.contentPos
-      newExpectation = ":EXPECTED:\n#{results.text.substring results.contentPos}:END:\n"
-      start = (if drawer then drawer else results).offset
-      end = (if drawer then drawer.offset + drawer.text.length else results.offset)
-      src = parseOrgMode(text).children[0]
-      pre = changeResultType text.substring(0, start), (if resultsType(src) == 'dynamic' then 'autotest' else 'test')
-      setCodeView evt.target, 'testcase'
-      return replaceCodeBlock node, pre + newExpectation + text.substring end
-  alert('You have to have results in order to make a test case')
+  restorePosition null, ->
+    console.log evt.target
+    node = codeBlockForNode evt.target
+    selectPrevious node
+    text = node.textContent
+    rest = text
+    while match = rest.match drawerRE
+      if match[0].trim().toLowerCase() == ':expected:'
+        drawer = parseOrgMode(rest.substring(match.index), text.length - rest.length + match.index).children[0]
+        break
+      rest = rest.substring match.index + match[0].length
+    resultsText = (if drawer then text.substring drawer.offset + drawer.text.length else text)
+    if match = resultsRE.exec resultsText
+      results = parseOrgMode(resultsText.substring(match.index), text.length - resultsText.length + match.index).children[0]
+      if results.text.substring results.contentPos
+        newExpectation = ":EXPECTED:\n#{results.text.substring results.contentPos}:END:\n"
+        start = (if drawer then drawer else results).offset
+        end = (if drawer then drawer.offset + drawer.text.length else results.offset)
+        src = parseOrgMode(text).children[0]
+        pre = changeResultType text.substring(0, start), (if resultsType(src) == 'dynamic' then 'autotest' else 'test')
+        setCodeView evt.target, 'testcase'
+        return replaceCodeBlock node, pre + newExpectation + text.substring end
+    alert('You have to have results in order to make a test case')
 
 newChangeResultType = (node, newType)->
   org = src = orgForNode node
