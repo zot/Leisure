@@ -1643,7 +1643,7 @@ fancyOrg =
           for node in target
             shadow = node.shadowRoot.firstChild
             $(shadow).
-              prepend("<style>@import 'jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css';</style>").
+              prepend("<style>@import 'shadow.css';</style>").
               css('white-space', 'normal').
               css('user-select', 'none').
               css('-webkit-user-select', 'none').

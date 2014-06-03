@@ -90,19 +90,19 @@ body.cthulhu {
     font-family: Inconsolata;
     font-size: 22px;
 }
-.cthulhu .codeblock[data-org-test="unknown"] {
+.cthulhu [data-org-test="unknown"] {
     background: url(images/cthulhu_test_white.png);
     background-size: 64px 64px;
 }
-.cthulhu .codeblock[data-org-test="pass"] {
+.cthulhu [data-org-test="pass"] {
     background: url(images/cthulhu_test_green.png);
     background-size: 64px 64px;
 }
-.cthulhu .codeblock[data-org-test="fail"] {
+.cthulhu [data-org-test="fail"] {
     background: url(images/cthulhu_test_red.png);
     background-size: 64px 64px;
 }
-.cthulhu .codeblock[data-org-test] {
+.cthulhu [data-org-test] {
     border: none;
     background-color: transparent;
     display: inline-block;
@@ -113,16 +113,16 @@ body.cthulhu {
     margin: 0px 3px 3px 0px;
     transition: filter 0.2s ease-in-out, -webkit-filter 0.2s ease-in-out;
 }
-.cthulhu .codeblock[data-org-test]:hover, .cthulhu .codeblock[data-org-test]:active  {
+.cthulhu [data-org-test]:hover, .cthulhu [data-org-test]:active  {
     -webkit-filter: drop-shadow(5px 5px 5px #f1c40f);
     filter: drop-shadow(3px 3px 3px #f1c40f);
 }
-.cthulhu .codeblock[data-org-test]:active:hover {
+.cthulhu [data-org-test]:active:hover {
     -webkit-filter: drop-shadow(1px 1px 1px #f1c40f);
     filter: drop-shadow(1px 1px 1px #f1c40f);
     margin: 3px 0px 0px 3px;
 }
-.cthulhu .codeblock.ready[data-org-test] {
+.cthulhu .ready[data-org-test] {
     display: inline-block;
     width: 64px;
     height: 64px;
@@ -278,19 +278,19 @@ body.googie {
     border: solid black 2px;
     border-radius: 10px;
 }
-.googie .codeblock[data-org-test="unknown"] {
+.googie [data-org-test="unknown"] {
     background: url(images/googie_test_white.png);
     background-size: 64px 64px;
 }
-.googie .codeblock[data-org-test="pass"] {
+.googie [data-org-test="pass"] {
     background: url(images/googie_test_green.png);
     background-size: 64px 64px;
 }
-.googie .codeblock[data-org-test="fail"] {
+.googie [data-org-test="fail"] {
     background: url(images/googie_test_red.png);
     background-size: 64px 64px;
 }
-.googie .codeblock[data-org-test] {
+.googie [data-org-test] {
     border: none;
     background-color: transparent;
     display: inline-block;
@@ -301,16 +301,16 @@ body.googie {
     margin: 0px 3px 3px 0px;
     transition: filter 0.2s ease-in-out, -webkit-filter 0.2s ease-in-out;
 }
-.googie .codeblock[data-org-test]:hover, .googie .codeblock[data-org-test]:active {
+.googie [data-org-test]:hover, .googie [data-org-test]:active {
     -webkit-filter: drop-shadow(5px 5px 5px #4c8efb);
     filter: drop-shadow(3px 3px 3px #4c8efb);
 }
-.googie .codeblock[data-org-test]:active:hover {
+.googie [data-org-test]:active:hover {
     -webkit-filter: drop-shadow(1px 1px 1px #4c8efb);
     filter: drop-shadow(1px 1px 1px #4c8efb);
     margin: 3px 0px 0px 3px;
 }
-.googie .codeblock.ready[data-org-test] {
+.googie .ready[data-org-test] {
     display: inline-block;
     width: 64px;
     height: 64px;
@@ -392,26 +392,26 @@ body.console {
     background-color: black;
     color: #0f0;
 }
-.console .codeblock[data-org-test="unknown"] {
+.console [data-org-test="unknown"] {
     background-color: #030;
 }
-.console .codeblock[data-org-test="pass"] {
+.console [data-org-test="pass"] {
     background-color: #0d0;
 }
-.console .codeblock[data-org-test="fail"] {
+.console [data-org-test="fail"] {
     background-color: #d00;
 }
-.console .codeblock[data-org-test] {
+.console [data-org-test] {
     border: solid black 2px;
     display: inline-block;
     width: 64px;
     height: 64px;
     cursor: pointer;
 }
-.console .codeblock[data-org-test]:hover {
+.console [data-org-test]:hover {
     border: solid #0f0 2px;
 }
-.console .codeblock[data-org-test]:active {
+.console [data-org-test]:active {
     border: solid black 2px;
 }
 .console [data-org-test] > * {
@@ -719,31 +719,31 @@ body.bar_collapse .steampunk.currentSlide /deep/ .page > .border {
 .steampunk.bar_collapse #nextSlide, .steampunk.bar_collapse #prevSlide {
     top: inherit;
 }
-.steampunk .codeblock[data-org-test] .codeborder {
+.steampunk [data-org-test] .codeborder {
     border-width: 0;
     border-image: none;
     border: none;
 }
-.steampunk .codeblock[data-org-test="unknown"] {
+.steampunk [data-org-test="unknown"] {
     background: url(images/gauge_white.png);
     background-size: 60px 60px;
 }
-.steampunk .codeblock[data-org-test="pass"] {
+.steampunk [data-org-test="pass"] {
     background: url(images/gauge_green.png);
     background-size: 60px 60px;
 }
-.steampunk .codeblock[data-org-test="fail"] {
+.steampunk [data-org-test="fail"] {
     background: url(images/gauge_red.png);
     background-size: 60px 60px;
 }
-.steampunk .codeblock[data-org-test] {
+.steampunk [data-org-test] {
     display: inline-block;
     width: 0;
     height: 0;
     min-width: 0;
     min-height: 0;
 }
-.steampunk .codeblock.ready[data-org-test] {
+.steampunk .ready[data-org-test] {
     display: inline-block;
     width: 60px;
     height: 60px;
@@ -1750,25 +1750,25 @@ i.fa + div, i.fa + span, i.fa + div + span {
     color: black;
     border: none;
 }
-.flat .codeblock[data-org-test="unknown"] {
+.flat [data-org-test="unknown"] {
     background: url(images/untested.png) no-repeat 0% 0% / 100% 100%;
     background-position: center;
     height: 64px;
     width: 64px;
 }
-.flat .codeblock[data-org-test="pass"] {
+.flat [data-org-test="pass"] {
     background: url(images/checkmark.png) no-repeat 0% 0% / 100% 100%;
     background-position: center;
     height: 64px;
     width: 64px;
 }
-.flat .codeblock[data-org-test="fail"] {
+.flat [data-org-test="fail"] {
     background: url(images/failure.png) no-repeat 0% 0% / 100% 100%;
     background-position: center;
     height: 64px;
     width: 64px;
 }
-.flat .codeblock[data-org-test] {
+.flat [data-org-test] {
     display: inline-block;
     width: 60px;
     height: 60px;

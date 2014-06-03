@@ -35,7 +35,6 @@ pieces:
   - [w, w, w, w, w, w, w]
   - [w, w, w, w, w, w, w]
   - [w, w, w, w, w, w, w]
-playerCount: 0
 max_col: 7
 max_row: 6
 players: []
@@ -77,9 +76,7 @@ Let's validate the board, here, stubbornly fixing things...
     while r.length > board.max_col then (changed = r).pop()
     for col in [0 ... board.max_col]
       if !(board.pieces[row][col] in 'wrb') then (changed = board).pieces[row][col] = 'w'
-  if changed
-    setData block._id, board
-    App.board = board
+  if changed then setData block._id, board
 #+END_SRC
 
 #+BEGIN_SRC html :defview user/userName
@@ -88,6 +85,7 @@ Name: <input type='text' data-value='name'></input>
 
 #+BEGIN_SRC html :defview board
 <style>@import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";</style>
+<style>@import "http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css";</style>
 <div style='float: left'>
   <div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px'>
     <table style='text-align: center'>
@@ -106,7 +104,7 @@ Name: <input type='text' data-value='name'></input>
 <div style='float: left; margin-left: 10px; width: 15ex'>
   <h2 style='margin-top: 0'>Players</h2>
   {{#each players}}
-    <div style="color: {{userColor @index}};">{{turn @index}}{{this.name}}</div>
+    <div style="color: {{userColor @index}};">{{{turn @index}}}{{this.name}}</div>
   {{/each}}
 </div>
 <div><button onclick="App.newGame(this)">New Game</button></div>
@@ -129,7 +127,9 @@ Handlebars.registerHelper 'userColor', (index)->
   if index % 2 == 0 then 'black' else 'red'
 
 Handlebars.registerHelper 'turn', (index)->
-  if App.board.turn % App.board.players.length == index then '<i class="fa fa-arrow-right"></i>' else ''
+  board = getDataNamed 'board1'
+  html = if board.turn % board.players.length == index then "<i class='fa fa-arrow-right'></i>" else '<i class="icon-fixed-width"></i>'
+  new Handlebars.SafeString html
 
 App.newGame = (node)->
   block = Leisure.getBlock($(node).closest("[data-view-id]").attr 'data-view-id')
@@ -187,9 +187,8 @@ user = getDataNamed 'user1'
 if user.number == -1
   board = getDataNamed 'board1'
   console.log JSON.stringify board
-  user.number = board.playerCount++
+  user.number = board.players.length
   user.color = if 0 == user.number % 2 then 'b' else 'r'
-  setDataNamed 'board1', board
   setDataNamed 'user1', user
   App.updateUser user
 

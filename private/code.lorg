@@ -19,7 +19,7 @@ x
 : 17
 
 #+BEGIN_SRC html :defview testcase
-<div onclick='Leisure.setCodeView(Leisure.viewFor(this))' class="{{codeTestResult}}">test {{codeTestResult}}</div>
+<div onclick='Leisure.setCodeView(Leisure.viewFor(this))' class="ready" data-org-test="{{codeTestResult}}"></div>
 #+END_SRC
 * Graphical values
 #+BEGIN_SRC leisure :results dynamic
