@@ -36,7 +36,8 @@ pieces:
   - [w, w, w, w, w, w, w]
   - [w, w, w, w, w, w, w]
 playerCount: 0
-colors: rbg
+max_col: 7
+max_row: 6
 playerNames: []
 #+END_SRC
 #+NAME: user1
@@ -52,13 +53,30 @@ name: Anonymous
 :hidden: true
 :end:
 #+BEGIN_SRC coffee :results def :observe user
-App.updateUser = (user)->
+@update = App.updateUser = (user)->
   console.log "updating from change to user data"
   board = getDataNamed 'board1'
   board.playerNames[user.number] = user.name
   setDataNamed 'board1', board
+#+END_SRC
 
-@update = App.updateUser
+Let's validate the board, here, stubbornly fixing things...
+#+BEGIN_SRC coffee :results def :observe board
+@update = (board, block)->
+  if user.number > 1 then return
+  changed = false
+  if !(board.pieces instanceof Array) then (changed = board).pieces = []
+  if typeof board.max_row != 'number' then (changed = board).max_row = 6
+  if typeof board.max_col != 'number' then (changed = board).max_col = 7
+  while board.pieces.length < board.max_row then (changed = board).pieces.unshift []
+  while board.pieces.length > board.max_row then (changed = board).pieces.shift()
+  for row in [0 ... board.max_row]
+    if !(r = board.pieces[row]) instanceof Array then r = (changed = board).pieces[row] = []
+    while r.length < board.max_col then (changed = r).push 'w'
+    while r.length > board.max_col then (changed = r).pop()
+    for col in [0 ... board.max_col]
+      if !(board.pieces[row][col] in 'wrb') then (changed = board).pieces[row][col] = 'w'
+  if changed then setData block._id, board
 #+END_SRC
 
 #+BEGIN_SRC html :defview user/userName
@@ -88,6 +106,7 @@ Name: <input type='text' data-value='name'></input>
     <div>{{this}}</div>
   {{/each}}
 </div>
+<div><button onclick="App.newGame(this)">New Game</button></div>
 <script>App.hookupTable()</script>
 #+END_SRC
 * Support code
@@ -103,19 +122,37 @@ Name: <input type='text' data-value='name'></input>
 } = Leisure
 pieceTypes = "wrb"
 
+App.newGame = (node)->
+  block = Leisure.getBlock($(node).closest("[data-view-id]").attr 'data-view-id')
+  data = block.yaml
+  col = 0
+  while col < data.max_col
+    row = 0
+    while row < data.max_row
+      data.pieces[row][col] = 'w'
+      ++row
+    ++col
+  setData block._id, data
+
 App.hookupTable = ->
   $(Templating.currentViewLink)
     .closest("[data-org-headline='1']")
     .attr 'game', ''
   $(Templating.currentView).bind 'click', (e)->
+    user = getDataNamed 'user1'
+    if user.number > 1 then return
     if block = viewBlock e.target
       data = block.yaml
       td = e.target.parentElement
       col = td.cellIndex
       row = td.parentElement.rowIndex
-      if row? && col?
-        data.pieces[row][col] = pieceTypes[(1 + pieceTypes.indexOf data.pieces[row][col]) % pieceTypes.length]
-      setData block._id, data
+      if col?
+        row = data.max_row - 1
+        while data.pieces[row][col] != 'w'
+          if -1 == --row then break
+        if row > -1
+          data.pieces[row][col] = user.color
+          setData block._id, data
 
 $(document.head).prepend $("""
 <style>
@@ -140,6 +177,7 @@ if user.number == -1
   board = getDataNamed 'board1'
   console.log JSON.stringify board
   user.number = board.playerCount++
+  user.color = if 0 == user.number % 2 then 'b' else 'r'
   setDataNamed 'board1', board
   setDataNamed 'user1', user
   App.updateUser user

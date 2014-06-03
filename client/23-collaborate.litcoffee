@@ -218,7 +218,7 @@ Handle changes to the doc nodes
         for context in observers[data.yaml.type]
           if !updated[context]
             updated[context] = true
-            codeContexts[context]?.update?(data.yaml, type)
+            codeContexts[context]?.update?(data.yaml, data, type)
 
     leisureBlocks = []
 
