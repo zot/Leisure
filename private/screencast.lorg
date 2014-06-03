@@ -1,4 +1,6 @@
 * NOTE: TRY TO GET TEST CASES WORKING
+* TRY TO PUT SCRIPT INTO game.lorg -- maybe put pin button back on game
+* ALLOW VIEWS TO RENDER EITHER IN RESULTS OR ENTIRE BLOCK
 
 * This is Leisure, a document-based computing environment that runs on the web
 * Leisure documents can contain rich, interactive content, code, and data

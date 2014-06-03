@@ -130,6 +130,8 @@ yaml = root.yaml
   getDataNamed,
   setDataNamed,
   addChangeContextWhile,
+  getSourceAttribute,
+  setSourceAttribute,
 } = require '23-collaborate'
 {
   createTemplateRenderer,
@@ -299,6 +301,15 @@ markupOrgWithNode = (text, note, replace)->
 markupNewNode = (org, middleOfLine, delay, note, replace)->
   lastOrgOffset = -1
   markupNode org, middleOfLine, delay, note, replace
+
+setCodeView = (node, name)->
+  if (top = $(node).closest('[data-shared]'))[0]
+    lead = top.find('[data-source-lead]')
+    txt = lead.text()
+    newTxt = setSourceAttribute txt, 'view', name
+    if txt != newTxt
+      lead.text escapeHtml newTxt
+      edited top[0], true
 
 markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
   if org.offset <= lastOrgOffset then ''
@@ -648,7 +659,7 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   if name then wrapper += "<div>#{commentButton name.info.trim()}</div>"
   wrapper += "</td><td class='code-content'>"
   wrapper += codeName
-  wrapper += "<div class='hidden'>#{escapeHtml lead}</div>"
+  wrapper += "<div class='hidden' data-source-lead>#{escapeHtml lead}</div>"
   #wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden' data-org-type='boundary'>#{escapeHtml trail}</span>"
   wrapper += "<div #{orgSrcAttrs org} contenteditable='true'>#{escapeHtml srcContent}</div><span class='hidden'>#{escapeHtml trail}</span>"
   wrapper += "<span class='hidden'>#{finalIntertext}</span>" + htmlForResults resText, resOrg
@@ -870,7 +881,6 @@ codeBlockForNode = (node)->
   if node.is '[data-org-test]' then node[0] else node[0].parentNode
 
 createTestCase = (evt)->
-  alert 'Not converted to new model, yet...'; return
   console.log evt.target
   node = codeBlockForNode evt.target
   selectPrevious node
@@ -890,6 +900,7 @@ createTestCase = (evt)->
       end = (if drawer then drawer.offset + drawer.text.length else results.offset)
       src = parseOrgMode(text).children[0]
       pre = changeResultType text.substring(0, start), (if resultsType(src) == 'dynamic' then 'autotest' else 'test')
+      setCodeView evt.target, 'testcase'
       return replaceCodeBlock node, pre + newExpectation + text.substring end
   alert('You have to have results in order to make a test case')
 
@@ -1704,6 +1715,9 @@ displayCodeView = (node)->
     console.log "Display code", node
     if block = getBlock $(node).closest('[data-shared]')[0]?.id
       viewMarkup[node.getAttribute 'data-code-view']? block, $(node), true
+      $(node.shadowRoot.firstChild).attr 'data-view-id', block._id
+
+viewFor = (node)-> $("##{$(node).closest('[data-view-id]').attr 'data-view-id'}")
 
 getMainContent = (headline)->
   headline = findOrIs headline, '[data-org-headline="1"]'
@@ -1764,3 +1778,5 @@ root.getDataNamed = getDataNamed
 root.setDataNamed = setDataNamed
 root.findLinks = findLinks
 root.findViews = findViews
+root.viewFor = viewFor
+root.setCodeView = setCodeView

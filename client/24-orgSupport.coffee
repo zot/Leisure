@@ -1054,7 +1054,7 @@ checkStructure = (node)->
   root.restorePosition null, ->
     sel = getSelection()
     if sel.type == 'Caret'
-      blockIds = root.currentBlockIds
+      blockIds = L(root.currentBlockIds).filter((v)-> v).toArray()
       currentBlockId = blockElementForNode(sel.focusNode).id
       if !(currentBlockId in [blockIds[0], blockIds[blockIds.length - 1]])
         if getBlock(blockIds[0])?.prev == currentBlockId then blockIds.unshift currentBlockId
@@ -1665,7 +1665,7 @@ orgNotebook =
         if parent.is("[data-org-type='source']") then node = parent[0]
         else node = parent.find("[data-org-type='source']")[0]
         if node then return @executeSource parent[0], node
-    observerContext?.update? data.yaml, data, type
+    observerContext?.update? block.yaml, block, type
 
 basicOrg =
   __proto__: orgNotebook

@@ -227,7 +227,7 @@ Handle changes to the doc nodes
     compileContext = (id, data)->
       data = data || getBlock id
       con = codeContexts[id] = new -> @result = eval CoffeeScript.compile codeString data
-      con.data = data
+      con.block = data
       if !con.update
         if data.codeAttributes?.results?.toLowerCase == 'dynamic'
           console.log "plug in results"
@@ -316,6 +316,21 @@ Handle changes to the doc nodes
         #  committing = oldCommitting
         updateItem overrides = new Overrides(), cur
         commitOverrides overrides
+
+    getSourceAttribute = (text, attr)->
+      text.match(new RegExp "#\\+BEGIN_SRC.*:#{attr}\\b([^:]*)", 'i')?[1]?.trim()
+
+    setSourceAttribute = (text, attr, value)->
+      attrText = if value? then ":#{attr} #{value.trim()}" else ""
+      if old = text.match(new RegExp "(#\\+BEGIN_SRC.*):#{attr}\\b[^:\\n]*", 'i')
+        start = old.index + old[1].length
+        end = old.index + old[0].length
+        text.substring(0, start) + attrText + text.substring end
+      else if value? && line = text.match(new RegExp "#\\+BEGIN_SRC[^\\n]*", 'i')
+        nl = line.index + line[0].length
+        if text[nl - 2] != ' ' then attrText = ' ' + attrText
+        text.substring(0, nl) + attrText + text.substring nl
+      else text
 
     observing = {}
 
@@ -816,3 +831,5 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.getBlockNamed = getBlockNamed
     root.getDataNamed = getDataNamed
     root.setDataNamed = setDataNamed
+    root.getSourceAttribute = getSourceAttribute
+    root.setSourceAttribute = setSourceAttribute
