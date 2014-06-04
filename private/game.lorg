@@ -1,7 +1,10 @@
 * Intro
-Leisure documents can contain classic games, like Connect Four...
+Leisure documents can contain classic games,
+like Connect Four...
 
 [[http://www.abstractstrategy.com/connect-four.jpg]]
+
+
 
 
 
@@ -14,8 +17,7 @@ Leisure documents can contain classic games, like Connect Four...
 :properties:
 :note: sidebar
 :end:
-[[org:user1/userName]]
-[[org:board1]]
+[[org:user1/userName]][[org:board1]][[org:board1/playerList]]
 * Data
 :properties:
 :hidden: true
@@ -81,35 +83,59 @@ Let's validate the board, here, stubbornly fixing things...
 #+END_SRC
 
 #+BEGIN_SRC html :defview user/userName
-Name: <input type='text' data-value='name'></input>
+<table style='width: 100%; white-space: nowrap'>
+  <tr>
+    <td style='width: 1px'>Name:</td>
+    <td><input style='width: 100%; margin-left: 5px; margin-right: 5px' type='text' data-value='name'></input></td>
+    <td style='width: 1px'>
+      <button onclick="App.newGame(this)">New Game</button>
+    </td>
+  </tr>
+</table>
 #+END_SRC
 
 #+BEGIN_SRC html :defview board
-<style>@import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";</style>
-<style>@import "http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css";</style>
-<div style='float: left'>
-  <div style='background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat; padding: 10px'>
-    <table style='text-align: center'>
-      {{#each pieces}}
-      <tr>
-        {{#each this}}
-          <td>
-            <img src='/connect4/{{this}}Piece.svg' onerror='this.src="/connect4/gPiece.svg"' style='vertical-align: middle'>
-          </td>
-        {{/each}}
-      </tr>
+<style>
+  @import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";
+  @import "http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css";
+  #boardDiv {
+    background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat;
+    padding: 10px;
+    display: inline-block;
+  }
+  #boardDiv table {
+    text-align: center;
+  }
+  #boardDiv img {
+    vertical-align: middle;
+  }
+  h2 {
+    margin-top: 0;
+  }
+</style>
+<div id='boardDiv'>
+  <table>
+    {{#each pieces}}
+    <tr>
+      {{#each this}}
+        <td>
+          <img src='/connect4/{{this}}Piece.svg' onerror='this.src="/connect4/gPiece.svg"'>
+        </td>
       {{/each}}
-    </table>
-  </div>
+    </tr>
+    {{/each}}
+  </table>
 </div>
-<div style='float: left; margin-left: 10px; width: 15ex'>
-  <h2 style='margin-top: 0'>Players</h2>
+<script>App.hookupTable()</script>
+#+END_SRC
+
+#+BEGIN_SRC html :defview board/playerList
+<h2>Players</h2>
+<div>
   {{#each players}}
-    <div style="{{userStyle @index}}">{{{turn @index}}}{{this.name}}</div>
+    <span style="{{userStyle @index}}">{{{turn @index}}}{{this.name}}</span>
   {{/each}}
 </div>
-<div><button onclick="App.newGame(this)">New Game</button></div>
-<script>App.hookupTable()</script>
 #+END_SRC
 
 #+BEGIN_HTML
@@ -121,6 +147,7 @@ Name: <input type='text' data-value='name'></input>
 :properties:
 :hidden: true
 :end:
+
 #+BEGIN_SRC coffee :results def
 {
   viewBlock,
