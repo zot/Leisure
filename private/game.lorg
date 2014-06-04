@@ -113,9 +113,6 @@ Let's validate the board, here, stubbornly fixing things...
     margin-top: 0;
   }
 </style>
-#+END_SRC
-
-#+BEGIN_SRC html :defview board/playerList
 <div id='boardDiv'>
   <table>
     {{#each pieces}}
@@ -129,13 +126,16 @@ Let's validate the board, here, stubbornly fixing things...
     {{/each}}
   </table>
 </div>
+<script>App.hookupTable()</script>
+#+END_SRC
+
+#+BEGIN_SRC html :defview board/playerList
 <h2>Players</h2>
 <div>
   {{#each players}}
     <span style="{{userStyle @index}}">{{{turn @index}}}{{this.name}}</span>
   {{/each}}
 </div>
-<script>App.hookupTable()</script>
 #+END_SRC
 
 #+BEGIN_HTML
