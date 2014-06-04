@@ -63,6 +63,7 @@ name: Anonymous
 Let's validate the board, here, stubbornly fixing things...
 #+BEGIN_SRC coffee :results def :observe board
 @update = (board, block)->
+  user = getDataNamed 'user1'
   if user.number > 1 then return
   changed = false
   if !(board.pieces instanceof Array) then (changed = board).pieces = []

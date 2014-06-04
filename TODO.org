@@ -24,6 +24,11 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- switch to object.observe() for change monitoring
+- flip editable content into shadow dom
+  - keep HTML/etc in regular dom
+  - use content elements to sprinkle decorations
+  - easier to use jquery for HTML/views/etc
 - add flag to prevent local data from persisting, for testing
 - cleanup observers[] and codeContexts[] when a code block disappears
 - script screencast

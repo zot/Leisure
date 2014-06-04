@@ -14,3 +14,8 @@ for k,v of Org
   Leisure[k] = v
 
 window.Lodash = require 'lodash.min'
+
+jQuery.prototype.shadow = ->
+  @
+    .map (i, el)-> el.shadowRoot?.firstChild
+    .filter (el)-> el?

@@ -162,9 +162,9 @@ class SelectionDescriptor
       descriptor = rootNode(el).firstChild.getAttribute 'data-view-descriptor'
       start = el.selectionStart
       end = el.selectionEnd
-      @toString = -> "Selection(input: #{$($('[maindoc]').find("[data-view-descriptor='#{descriptor}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]})"
+      @toString = -> "Selection(input: #{$('[maindoc]').find("[data-view-descriptor='#{descriptor}']").shadow().find("[data-shadow-id='#{sid}']")[0]})"
       @restore = (delta, doc)->
-        newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[0]?.shadowRoot.firstChild).find("[data-shadow-id='#{sid}']")[0]
+        newEl = $(doc).find("[data-view-descriptor='#{descriptor}']").shadow().find("[data-shadow-id='#{sid}']")[0]
         if newEl != el then newEl.setSelectionRange start, end
     else if sel.type != 'None'
       startNode = sel.getRangeAt(0).startContainer
@@ -474,7 +474,7 @@ createNotes = (node)->
       when 'sidebar'
         if dest = $("[data-org-headline-text='#{splitSpec[1]}'] div.sidebar")[0]
           if !dest.shadowRoot then setShadowHtml dest, "<div contenteditable='true'></div>"
-          dest.shadowRoot.firstChild.appendChild newNote
+          $(dest).shadow().append newNote
       when 'float'
         parent = topNode node
         dest = $(document.body).find('[data-org-floats]')[0]
@@ -492,7 +492,7 @@ createNotes = (node)->
           saveNoteLocation $(event.target)
         child = inside[0].children[1]
         setShadowHtml child, "<div contenteditable='true' class='float_note'></div>"
-        child.shadowRoot.firstChild.appendChild newNote
+        $(child).shadow().append newNote
         dest = child
         orig = $("#" + node.id)[0]
         [skip, top, left, width, height] = noteSpec.split /\s+/
@@ -522,7 +522,7 @@ editedNote = (mainId, editedId)-> ->
         targets = $("##{mainId}")
         main = targets[0]
         for node in $("[data-org-note-content~='#{mainId}']")
-          targets = targets.add($(node.shadowRoot.firstChild).find "[data-note-origin='#{mainId}']")
+          targets = targets.add($(node).shadow().find "[data-note-origin='#{mainId}']")
         origin = targets.filter "##{editedId}"
         editing = true
         try
@@ -553,7 +553,7 @@ markupSource = (org, name, doctext, delay, inFragment)->
 findLinks = (name)->
   if m = name.match /^([^/]*)\/(.*)$/ then $("[data-view-link='#{m[1]}'][data-view-name='#{m[2]}']") else $("[data-view-link='#{name}']")
 
-findViews = (name)-> $(link.shadowRoot.firstChild for link in findLinks name)
+findViews = (name)-> findLinks(name).shadow()
 
 getSourceSegments = (name, org)->
   {first, name, source, results, expected, last} = getCodeItems(name || org)
@@ -695,6 +695,7 @@ replaceCodeBlock = (node, text)->
   restorePosition null, ->
     newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
     $(node).replaceWith(newNode)
+    edited newNode
     for n in findOrIs findOrIs($(newNode), "[data-lang='leisure']"), '[data-org-src]'
       recreateAstButtons n
       createValueSliders n, leisureNumberSlider
@@ -902,7 +903,8 @@ createTestCase = (evt)->
         src = parseOrgMode(text).children[0]
         pre = changeResultType text.substring(0, start), (if resultsType(src) == 'dynamic' then 'autotest' else 'test')
         setCodeView evt.target, 'testcase'
-        return replaceCodeBlock node, pre + newExpectation + text.substring end
+        #return replaceCodeBlock node, pre + newExpectation + text.substring end
+        return replaceCodeBlock $("##{node.id}"), pre + newExpectation + text.substring end
     alert('You have to have results in order to make a test case')
 
 newChangeResultType = (node, newType)->
@@ -1639,19 +1641,17 @@ fancyOrg =
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]
       createTemplateRenderer type, root.viewTypeData[type], true, (data, target)->
-        if target
-          for node in target
-            shadow = node.shadowRoot.firstChild
-            $(shadow).
-              prepend("<style>@import 'shadow.css';</style>").
-              css('white-space', 'normal').
-              css('user-select', 'none').
-              css('-webkit-user-select', 'none').
-              css('-moz-user-select', 'none')
-            if theme != null then $(shadow).addClass(theme)
-            if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
-            bindWidgets shadow
-            $(shadow).find('button').button()
+        for shadow in target.shadow()
+          $(shadow).
+            prepend("<style>@import 'shadow.css';</style>").
+            css('white-space', 'normal').
+            css('user-select', 'none').
+            css('-webkit-user-select', 'none').
+            css('-moz-user-select', 'none')
+          if theme != null then $(shadow).addClass(theme)
+          if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
+          bindWidgets shadow
+          $(shadow).find('button').button()
       dataType = type.match /([^/]*)\/?(.*)?/
       for node in $("[data-yaml-type='#{dataType[1]}']")
         renderView node, dataType[2]
@@ -1713,7 +1713,6 @@ fixupHtml = (parent, note)->
 
 displayCodeView = (node)->
   if node
-    console.log "Display code", node
     if block = getBlock $(node).closest('[data-shared]')[0]?.id
       viewMarkup[node.getAttribute 'data-code-view']? block, $(node), true
       $(node.shadowRoot.firstChild).attr 'data-view-id', block._id
