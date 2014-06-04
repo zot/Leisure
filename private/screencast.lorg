@@ -3,23 +3,26 @@
 * ALLOW VIEWS TO RENDER EITHER IN RESULTS OR ENTIRE BLOCK
 
 * This is Leisure, a document-based computing environment that runs on the web
-* Leisure documents can contain rich, interactive content, code, and data
+1 minute
+** Leisure documents can contain rich, interactive content as well as code and data
 ** They're also persistent -- they remember changes you make
-** That makes each Leisure document like its own tiny virtual machine
-* Leisure is a computing environment that supports creativity
-** You can change a document's theme (steampunk/flat/googie)
-** You can use Leisure documents for multiuser web applications, like this game
-* Code and data can be accessable to the user
+** So each Leisure document acts like its own tiny virtual machine
+** Leisure documents can be multiuser web applications, like this game
+** Each user can use the Leisure bar to change Leisure's theme (leisure bar)
+** And documents can set their own default theme
+* You can expose code and data to the user
+** This is the Leisure bar that controls the internals of the document
+** This button shows hidden code and data
 ** (Use the Leisure bar to Reveal hidden code and data)
 *** (hover over the wrench to show the hidden attribute)
 ** Small overview of code block types (pin board)
-*** board data in YAML format
+*** this is the data behind the game board
 **** Data is human readable (YAML format)
 **** It's easy to see what's going on
 **** It's editable and tied dynamically to the content
-***** (change w to r)
-***** (add w to end of row)
 ***** (Click a piece on the board)
+***** (change b to r)
+***** (inc max_col)
 *** observer code that updates when user data changes
 **** plugs the user name into the playerNames list
 **** (change name)

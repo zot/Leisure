@@ -54,6 +54,7 @@ name: Anonymous
 :properties:
 :hidden: true
 :end:
+This observer code updates the board when the user changes their name.
 #+BEGIN_SRC coffee :results def :observe user
 @update = App.updateUser = (user)->
   console.log "updating from change to user data"
@@ -62,7 +63,7 @@ name: Anonymous
   setDataNamed 'board1', board
 #+END_SRC
 
-Let's validate the board, here, stubbornly fixing things...
+Let's keep the board validated, here, stubbornly fixing things...
 #+BEGIN_SRC coffee :results def :observe board
 @update = (board, block)->
   user = getDataNamed 'user1'
@@ -82,6 +83,7 @@ Let's validate the board, here, stubbornly fixing things...
   if changed then setData block._id, board
 #+END_SRC
 
+
 #+BEGIN_SRC html :defview user/userName
 <table style='width: 100%; white-space: nowrap'>
   <tr>
@@ -96,8 +98,6 @@ Let's validate the board, here, stubbornly fixing things...
 
 #+BEGIN_SRC html :defview board
 <style>
-  @import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";
-  @import "http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css";
   #boardDiv {
     background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat;
     padding: 10px;
@@ -108,6 +108,9 @@ Let's validate the board, here, stubbornly fixing things...
   }
   #boardDiv img {
     vertical-align: middle;
+  }
+  h2 {
+    margin-top: 0;
   }
   h2 {
     margin-top: 0;
@@ -127,16 +130,6 @@ Let's validate the board, here, stubbornly fixing things...
   </table>
 </div>
 <script>App.hookupTable()</script>
-#+END_SRC
-
-#+BEGIN_SRC html :defview board/playerList
-<style>
-  @import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";
-  @import "http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css";
-  h2 {
-    margin-top: 0;
-  }
-</style>
 <h2>Players</h2>
 <div>
   {{#each players}}

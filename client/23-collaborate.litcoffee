@@ -423,7 +423,9 @@ Users can mark any slide as local by setting a "local" property to true in the s
     initLocal = (col, cont)->
       localCol = col.leisure.localCollection = new Meteor.Collection(null)
       localCol.leisure = master: col
-      if col.demo then cont()
+      if col.demo
+        localCol.find().observe observer localCol, true
+        cont()
       else
         req = indexedDB.open col.leisure.name, 1
         req.onupgradeneeded = (e)->

@@ -1671,9 +1671,11 @@ fancyOrg =
     el = $("##{block._id}")[0]
     if el then restorePosition null, -> renderView el
   updateObserver: (observerId, observerContext, yaml, block, type)->
-    orgNotebook.updateObserver.apply this, arguments
-    if observerContext.block.codeAttributes.view
-      displayCodeView $("##{observerContext.block._id}").find('[data-code-view]')[0]
+    args = arguments
+    restorePosition null, =>
+      orgNotebook.updateObserver.apply this, args
+      if observerContext.block.codeAttributes.view
+        displayCodeView $("##{observerContext.block._id}").find('[data-code-view]')[0]
   removeSlide: (id)->
     el = $("##{id}")
     holder = el.closest ".slideholder"
