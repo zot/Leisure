@@ -159,9 +159,8 @@ App.newGame = (node)->
 
 App.handleClick = (e)->
   turn = App.takeTurn e
-  sound = if turn then $('[data-org-html]').shadow().find('#clickSound')[0] else $('[data-org-html]').shadow().find('#buzzerSound')[0]
-  console.log sound
-  sound.play()
+  sound = if turn then '#clickSound' else '#buzzerSound'
+  $('[data-org-html]').shadow().find(sound)[0].play()
   if turn then console.log "click" else console.log "buzzer"
 
 App.takeTurn = (e)->
