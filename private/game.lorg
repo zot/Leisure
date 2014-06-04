@@ -113,8 +113,8 @@ Name: <input type='text' data-value='name'></input>
 #+END_SRC
 
 #+BEGIN_HTML
-<audio id="clickSound" src="click.wav"></audio>
-<audio id="buzzerSound" src="buzz.wav"></audio>
+<audio id="clickSound" src="sounds/click.wav"></audio>
+<audio id="buzzerSound" src="sounds/buzz.wav"></audio>
 #+END_HTML
 
 * Support code
@@ -159,7 +159,9 @@ App.newGame = (node)->
 
 App.handleClick = (e)->
   turn = App.takeTurn e
-  if turn then $("#clickSound").play else $("#buzzerSound").play
+  sound = if turn then $('[data-org-html]').shadow().find('#clickSound')[0] else $('[data-org-html]').shadow().find('#buzzerSound')[0]
+  console.log sound
+  sound.play()
   if turn then console.log "click" else console.log "buzzer"
 
 App.takeTurn = (e)->
@@ -210,12 +212,13 @@ $(document.head).prepend $("""
 
 user = getDataNamed 'user1'
 if user.number == -1
-  board = getDataNamed 'board1'
-  console.log JSON.stringify board
-  user.number = board.players.length
-  user.color = if 0 == user.number % 2 then 'b' else 'r'
-  setDataNamed 'user1', user
-  App.updateUser user
+  setTimeout (->
+    board = getDataNamed 'board1'
+    console.log JSON.stringify board
+    user.number = board.players.length
+    user.color = if 0 == user.number % 2 then 'b' else 'r'
+    setDataNamed 'user1', user
+    App.updateUser user), Math.random() * 500
 
 Leisure.toggleLeisureBar()
 Leisure.setTheme 'googie'

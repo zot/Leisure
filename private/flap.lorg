@@ -84,12 +84,13 @@ This is a kluge to react to a ticking update
 <canvas id="gamecanvas" style="background-color:rgb(150,150,255); width:250px; height:400px"></canvas>
 <!-- Adapted from http://jsfiddle.net/gbarnett/VG44a/ -->
 <div id='resources' style="display:none">
-    <audio id="sfx_flap1"  controls="controls"> <source src="/flappy/flappy-wavs/SFX_FlapWing_01.WAV" type="audio/wav"></audio>
-    <audio id="sfx_flap2" src="/flappy/flappy-wavs/SFX_FlapWing_02.WAV"></audio>
-    <audio id="sfx_flap3" src="/flappy/flappy-wavs/SFX_FlapWing_03.WAV"></audio>
-    <audio id="sfx_flap4" src="/flappy/flappy-wavs/SFX_FlapWing_04.WAV"></audio>
-    <audio id="sfx_crash1" src="/flappy/flappy-wavs/SFX_HitGround_01.WAV"></audio>
-    <audio id="sfx_score1" src="/flappy/flappy-wavs/SFX_Score_01.WAV"></audio>
+    <audio id="sfx_flap1"  src="/flappy/flappy_wavs/SFX_FlapWing_01.WAV"></audio>
+    <audio id="sfx_flap2" src="/flappy/flappy_wavs/SFX_FlapWing_02.WAV"></audio>
+    <audio id="sfx_flap3" src="/flappy/flappy_wavs/SFX_FlapWing_03.WAV"></audio>
+    <audio id="sfx_flap4" src="/flappy/flappy_wavs/SFX_FlapWing_04.WAV"></audio>
+    <audio id="sfx_crashGnd" src="/flappy/flappy_wavs/SFX_HitGround_01.WAV"></audio>
+    <audio id="sfx_crashWall" src="/flappy/flappy_wavs/SFX_HitObstacle_01.WAV"></audio>
+    <audio id="sfx_score1" src="/flappy/flappy_wavs/SFX_Score_01.WAV"></audio>
     <img id="body" src="/flappy/flappy-sprite/leisure_bird_body.png" />
     <img id="eyes" src="/flappy/flappy-sprite/leisure_bird_eyes.png" />
 </div>
@@ -110,6 +111,8 @@ This is a kluge to react to a ticking update
 </div>
 #+END_SRC
 
+
+
 #+BEGIN_SRC coffeescript :results def
 flap_power = 10
 gap_size = 80
@@ -118,6 +121,7 @@ spacing = 150
 gravity = -0.91
 tickspeed = 50
 gameheight = 400
+gamefloor = 25   #thickness of green floor at the bottom of the screen
 {
   getDataNamed,
   setDataNamed,
@@ -135,18 +139,19 @@ make_user = (id,y,yv,name,color, alive, score, immortality) ->
 
 canvas = undefined
 gamecanvas = undefined
-gameaudio = {}
+window.gameaudio = {}
 
 Leisure.initWorld = ->
   canvas = findViews('canvas')
   gamecanvas = canvas.find('#gamecanvas')[0]
-  gameaudio.flap1 = canvas.find("#sfx_flap1")[0]
-  gameaudio.flap2 = canvas.find("#sfx_flap2")[0]
-  gameaudio.flap3 = canvas.find("#sfx_flap3")[0]
-  gameaudio.flap4 = canvas.find("#sfx_flap4")[0]
-  gameaudio.crash1 = canvas.find("#sfx_crash1")[0]
-  #gameaudio.coll2 = canvas.find("#sfx_flap1")[0]
-  gameaudio.score1 = canvas.find("#sfx_score1")[0]
+  window.gameaudio.flap1 = canvas.find("#sfx_flap1")[0]
+  window.gameaudio.flap2 = canvas.find("#sfx_flap2")[0]
+  window.gameaudio.flap3 = canvas.find("#sfx_flap3")[0]
+  window.gameaudio.flap4 = canvas.find("#sfx_flap4")[0]
+  window.gameaudio.crashG = canvas.find("#sfx_crashGnd")[0]
+  window.gameaudio.crashW = canvas.find("#sfx_crashWall")[0]
+  #window.gameaudio.coll2 = canvas.find("#sfx_flap1")[0]
+  window.gameaudio.score1 = canvas.find("#sfx_score1")[0]
   gamecanvas.width = 250;
   gamecanvas.height = gameheight;
 
@@ -168,8 +173,11 @@ Leisure.flap = ->
     user = positions.playerpositions[userId]
     user[1] = -flap_power
     positions.playerpositions[userId] = user
-    console.log(gameaudio.flap1)
-    gameaudio.flap1.play() #['flap'+game.world.x%4+1].play()
+    #console.log(window.gameaudio.flap1)
+    rnd = Math.floor( 1 + 4 * Math.random())
+    #console.log rnd
+    canvas.find("#sfx_flap#{rnd}")[0].play()
+    #window.gameaudio.flap1.play() #['flap'+game.world.x%4+1].play()
 
   setDataNamed 'positions', positions
 
@@ -231,7 +239,7 @@ render_world = (gamecanvas, world)->
   players = world.players
   ctx.clearRect(0,0,gamecanvas.width,gamecanvas.height)
   ctx.fillStyle ='rgba(100,255,100,1)'
-  ctx.fillRect(0,gamecanvas.height-50,gamecanvas.width,50)
+  ctx.fillRect(0,gamecanvas.height-gamefloor,gamecanvas.width,gamefloor)
 
   ctx.fillStyle ='rgba(200,255,200,1)'
   pipes.forEach (pipe)->
@@ -255,6 +263,7 @@ render_world = (gamecanvas, world)->
       else
         ctx.drawImage(playersprite,32,0,32,32,50,pl_y,30,30)
 
+      #console.log pl_y
       if player.immortality > 0
         ctx.fillText('shield',50,pl_y+30)
     else
@@ -262,6 +271,7 @@ render_world = (gamecanvas, world)->
       ctx.fillText(player.name,currentpipe_x,pl_y-15)
       ctx.drawImage(playersprite,32*3,0,32,32,currentpipe_x,pl_y,30,30)
       #ctx.fillRect(pipes[0].x,positions.playerpositions[player.id][0],15,15)
+      ctx.fillText('SPLAT',50,pl_y+30)
 
 simulate_world = (world)->
   positions = getDataNamed 'positions'
@@ -273,11 +283,17 @@ simulate_world = (world)->
       positions.playerpositions[player.id][1] = yv - gravity
       y = positions.playerpositions[player.id][0] += positions.playerpositions[player.id][1]
       player.immortality -= tickspeed/1000
-      if (world.pipes[0].x < 65 && world.pipes[0].x > 0) &&
+      groundCrash = y + 15 > gamecanvas.height-gamefloor
+      if groundCrash ||
+      (world.pipes[0].x < 65 && world.pipes[0].x > 0) &&
       (y + 15 > world.pipes[0].y + gap_size || y < world.pipes[0].y)
 
         if player.immortality < 0
           player.alive = false
+          #console.log window.gameaudio
+          window.gameaudio.score1.pause()
+          window.gameaudio.score1.currentTime = 0
+          if groundCrash then window.gameaudio.crashG.play() else window.gameaudio.crashW.play()
     else
       positions.playerpositions[player.id][1] = 0
 
@@ -293,6 +309,9 @@ simulate_world = (world)->
           positions.playerpositions[player.id][0] = 200
           player.score = 0
           player.immortality = 2
+        else
+          #console.log window.gameaudio.score1
+          window.gameaudio.score1.play()
   world.pipes.forEach (pipe)->
     pipe.x -= speed
 

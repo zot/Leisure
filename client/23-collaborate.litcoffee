@@ -347,11 +347,13 @@ Handle changes to the doc nodes
             console.log "OBSERVING #{docName}"
             observing[docName] = true
             Meteor.subscribe docName, ->
-              if name.match /^demo\/(.*)$/
-                document.location.hash = "#load=/tmp/#{docName}"
               root.currentDocument = observing[docName] = docCol = new Meteor.Collection docName
               docCol.leisure = {name: docName}
               docCol.leisure.master = docCol
+              if name.match /^demo\/(.*)$/
+                document.location.hash = "#load=/tmp/#{docName}"
+                docCol.demo = true
+              if name.match /^tmp\/(.*)$/ then docCol.demo = true
               res = null
               res = Meteor.subscribe docName, ->
                 res.stop()
@@ -421,28 +423,30 @@ Users can mark any slide as local by setting a "local" property to true in the s
     initLocal = (col, cont)->
       localCol = col.leisure.localCollection = new Meteor.Collection(null)
       localCol.leisure = master: col
-      req = indexedDB.open col.leisure.name, 1
-      req.onupgradeneeded = (e)->
-        db = col.leisure.localDb = req.result
-        if db.objectStoreNames.contains localStoreName then db.deleteObjectStore localStoreName
-        store = db.createObjectStore localStoreName, keyPath: '_id'
-        putToLocalStore col, {_id: 'info', collectionId: col.leisure.info._id}, handlers ? nullHandlers, e.target.transaction
-      req.onsuccess = (e)->
-        db = col.leisure.localDb = req.result
-        getFromLocalStore col, 'info', (
-          onsuccess: (e)->
-            info = e.target.result
-            if info.collectionId == col.leisure.info._id
-              loadRecords localCol, cont, e.target.transaction
-            else
-              clearLocal col, localCol, nullHandlers, e.target.transaction
-              cont()
-          onerror: (e)->
-            clearLocal col, localCol, nullHandlers, e.target.result
-            cont()), db.transaction [localStoreName], 'readwrite'
-      req.onerror = (e)->
-        console.log "Couldn't open database for #{col.leisure.name}", e
-        cont()
+      if col.demo then cont()
+      else
+        req = indexedDB.open col.leisure.name, 1
+        req.onupgradeneeded = (e)->
+          db = col.leisure.localDb = req.result
+          if db.objectStoreNames.contains localStoreName then db.deleteObjectStore localStoreName
+          store = db.createObjectStore localStoreName, keyPath: '_id'
+          putToLocalStore col, {_id: 'info', collectionId: col.leisure.info._id}, handlers ? nullHandlers, e.target.transaction
+        req.onsuccess = (e)->
+          db = col.leisure.localDb = req.result
+          getFromLocalStore col, 'info', (
+            onsuccess: (e)->
+              info = e.target.result
+              if info.collectionId == col.leisure.info._id
+                loadRecords localCol, cont, e.target.transaction
+              else
+                clearLocal col, localCol, nullHandlers, e.target.transaction
+                cont()
+            onerror: (e)->
+              clearLocal col, localCol, nullHandlers, e.target.result
+              cont()), db.transaction [localStoreName], 'readwrite'
+        req.onerror = (e)->
+          console.log "Couldn't open database for #{col.leisure.name}", e
+          cont()
 
     loadRecords = (localCol, cont, trans)->
       req = trans.objectStore(localStoreName).openCursor()
@@ -464,11 +468,10 @@ Users can mark any slide as local by setting a "local" property to true in the s
           cont()
         advance target: result: cursor
 
-    hasLocalStore = (col)-> col.leisure.localDb.objectStoreNames.contains localStoreName
-
     localTransaction = (col, type)->
-      db = col.leisure.localDb
-      if db.objectStoreNames.contains localStoreName then db.transaction [localStoreName], type || 'readwrite' else null
+      if !col.demo
+        db = col.leisure.localDb
+        if db.objectStoreNames.contains localStoreName then db.transaction [localStoreName], type || 'readwrite' else null
 
     localStore = (doc, trans, transType)->
       (trans || localTransaction doc, transType || 'readwrite').objectStore localStoreName
@@ -486,21 +489,24 @@ Users can mark any slide as local by setting a "local" property to true in the s
     addLocalData = (doc, item)-> doc.leisure.localCollection.upsert item
 
     getFromLocalStore = (doc, key, {onsuccess, onerror}, trans)->
-      if store = localStore doc, trans, 'readonly'
+      if doc.demo then onsuccess()
+      else if store = localStore doc, trans, 'readonly'
         req = store.get key
         req.onsuccess = onsuccess
         req.onerror = onerror
       else onerror {}
 
     putToLocalStore = (doc, value, {onsuccess, onerror}, trans)->
-      if store = localStore doc, trans
+      if doc.demo then onsuccess()
+      else if store = localStore doc, trans
         req = store.put value
         req.onsuccess = onsuccess
         req.onerror = onerror
       else onerror {}
 
     removeFromLocalStore = (doc, key, {onsuccess, onerror}, trans)->
-      if store = localStore doc, trans
+      if doc.demo then onsuccess()
+      else if store = localStore doc, trans
         req = store.delete key
         req.onsuccess = onsuccess
         req.onerror = onerror
@@ -658,7 +664,7 @@ Users can mark any slide as local by setting a "local" property to true in the s
       doc = overrides.doc
       localDoc = doc.leisure.localCollection
       committing = true
-      trans = doc.leisure.localDb.transaction [localStoreName], 'readwrite'
+      trans = localTransaction doc, 'readwrite'
       if doc.leisure.info.head != overrides.head
         doc.leisure.info.head = overrides.head
         doc.update doc.leisure.info._id, doc.leisure.info
