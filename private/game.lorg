@@ -113,6 +113,9 @@ Let's validate the board, here, stubbornly fixing things...
     margin-top: 0;
   }
 </style>
+#+END_SRC
+
+#+BEGIN_SRC html :defview board/playerList
 <div id='boardDiv'>
   <table>
     {{#each pieces}}
@@ -126,16 +129,13 @@ Let's validate the board, here, stubbornly fixing things...
     {{/each}}
   </table>
 </div>
-<script>App.hookupTable()</script>
-#+END_SRC
-
-#+BEGIN_SRC html :defview board/playerList
 <h2>Players</h2>
 <div>
   {{#each players}}
     <span style="{{userStyle @index}}">{{{turn @index}}}{{this.name}}</span>
   {{/each}}
 </div>
+<script>App.hookupTable()</script>
 #+END_SRC
 
 #+BEGIN_HTML
@@ -149,6 +149,20 @@ Let's validate the board, here, stubbornly fixing things...
 :end:
 
 #+BEGIN_SRC coffee :results def
+/* Handlbar helper to compute style for each player */
+Handlebars.registerHelper 'userStyle', (index)->
+  baseColor = if index % 2 == 0 then 'black' else 'red'
+  rest = if App.isPlayersTurn index then "background-color: #{baseColor}; color: white;" else "background-color: white; color: #{baseColor};"
+  "padding: 10px; #{rest}"
+
+/* Handlebar helper to create an arrow icon for the active player */
+Handlebars.registerHelper 'turn', (index)->
+  return ''
+  html = if !App.isPlayersTurn index then "<i class='fa fa-arrow-right' style='margin-right: 10px;'></i>" else '<i style="margin-right: 30px;"></i>'
+  new Handlebars.SafeString html
+#+END_SRC
+
+#+BEGIN_SRC coffee :results def
 {
   viewBlock,
   setData,
@@ -157,20 +171,12 @@ Let's validate the board, here, stubbornly fixing things...
 } = Leisure
 pieceTypes = "wrb"
 
-Handlebars.registerHelper 'userStyle', (index)->
-  baseColor = if index % 2 == 0 then 'black' else 'red'
-  rest = if App.isPlayersTurn index then "background-color: #{baseColor}; color: white;" else "background-color: white; color: #{baseColor};"
-  "padding: 10px; #{rest}"
-
-Handlebars.registerHelper 'turn', (index)->
-  return ''
-  html = if !App.isPlayersTurn index then "<i class='fa fa-arrow-right' style='margin-right: 10px;'></i>" else '<i style="margin-right: 30px;"></i>'
-  new Handlebars.SafeString html
-
+/* Return boolean for whether it's the given player's turn currently */
 App.isPlayersTurn = (index)->
   board = getDataNamed 'board1'
   return board.turn % board.players.length == index
 
+/* Reset the game board for a new game */
 App.newGame = (node)->
   block = Leisure.getBlock($(node).closest("[data-view-id]").attr 'data-view-id')
   data = block.yaml
@@ -184,12 +190,14 @@ App.newGame = (node)->
   data.turn = 0
   setData block._id, data
 
+/* Process a player clicking the board and provide audio feedback */
 App.handleClick = (e)->
   turn = App.takeTurn e
   sound = if turn then '#clickSound' else '#buzzerSound'
   $('[data-org-html]').shadow().find(sound)[0].play()
   if turn then console.log "click" else console.log "buzzer"
 
+/* Add a piece to the board on the column clicked (if there's room for it) Return success or failure */
 App.takeTurn = (e)->
     user = getDataNamed 'user1'
     if user.number < 0 then return false
@@ -211,6 +219,7 @@ App.takeTurn = (e)->
         return false
     return false
 
+/* Create a click handler function for the playing board */
 App.hookupTable = ->
   $(Templating.currentViewLink)
     .closest("[data-org-headline='1']")
@@ -218,6 +227,7 @@ App.hookupTable = ->
   $(Templating.currentView).bind 'click', (e)->
     App.handleClick e
 
+/* Splice in some css for styling the game board */
 $(document.head).prepend $("""
 <style>
 [game] {
@@ -236,6 +246,7 @@ $(document.head).prepend $("""
 </style>
 """)
 
+/* Each time a new player connects, we need to initialize them and add them into the game */
 user = getDataNamed 'user1'
 if user.number == -1
   setTimeout (->
@@ -246,6 +257,7 @@ if user.number == -1
     setDataNamed 'user1', user
     App.updateUser user), Math.random() * 500
 
+/* Adjust the Leisure settings on startup */
 Leisure.toggleLeisureBar()
 Leisure.setTheme 'googie'
 #+END_SRC
