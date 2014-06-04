@@ -130,6 +130,13 @@ Let's validate the board, here, stubbornly fixing things...
 #+END_SRC
 
 #+BEGIN_SRC html :defview board/playerList
+<style>
+  @import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";
+  @import "http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css";
+  h2 {
+    margin-top: 0;
+  }
+</style>
 <h2>Players</h2>
 <div>
   {{#each players}}
