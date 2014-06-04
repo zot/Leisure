@@ -105,12 +105,18 @@ Name: <input type='text' data-value='name'></input>
 <div style='float: left; margin-left: 10px; width: 15ex'>
   <h2 style='margin-top: 0'>Players</h2>
   {{#each players}}
-    <div style="color: {{userColor @index}};">{{{turn @index}}}{{this.name}}</div>
+    <div style="{{userStyle @index}}">{{{turn @index}}}{{this.name}}</div>
   {{/each}}
 </div>
 <div><button onclick="App.newGame(this)">New Game</button></div>
 <script>App.hookupTable()</script>
 #+END_SRC
+
+#+BEGIN_HTML
+<audio id="clickSound" src="click.wav"></audio>
+<audio id="buzzerSound" src="buzz.wav"></audio>
+#+END_HTML
+
 * Support code
 :properties:
 :hidden: true
@@ -124,13 +130,19 @@ Name: <input type='text' data-value='name'></input>
 } = Leisure
 pieceTypes = "wrb"
 
-Handlebars.registerHelper 'userColor', (index)->
-  if index % 2 == 0 then 'black' else 'red'
+Handlebars.registerHelper 'userStyle', (index)->
+  baseColor = if index % 2 == 0 then 'black' else 'red'
+  rest = if App.isPlayersTurn index then "background-color: #{baseColor}; color: white;" else "background-color: white; color: #{baseColor};"
+  "padding: 10px; #{rest}"
 
 Handlebars.registerHelper 'turn', (index)->
-  board = getDataNamed 'board1'
-  html = if board.turn % board.players.length == index then "<i class='fa fa-arrow-right'></i>" else '<i class="icon-fixed-width"></i>'
+  return ''
+  html = if !App.isPlayersTurn index then "<i class='fa fa-arrow-right' style='margin-right: 10px;'></i>" else '<i style="margin-right: 30px;"></i>'
   new Handlebars.SafeString html
+
+App.isPlayersTurn = (index)->
+  board = getDataNamed 'board1'
+  return board.turn % board.players.length == index
 
 App.newGame = (node)->
   block = Leisure.getBlock($(node).closest("[data-view-id]").attr 'data-view-id')
@@ -145,13 +157,15 @@ App.newGame = (node)->
   data.turn = 0
   setData block._id, data
 
-App.hookupTable = ->
-  $(Templating.currentViewLink)
-    .closest("[data-org-headline='1']")
-    .attr 'game', ''
-  $(Templating.currentView).bind 'click', (e)->
+App.handleClick = (e)->
+  turn = App.takeTurn e
+  if turn then $("#clickSound").play else $("#buzzerSound").play
+  if turn then console.log "click" else console.log "buzzer"
+
+App.takeTurn = (e)->
     user = getDataNamed 'user1'
-    if user.number > 1 then return
+    if user.number < 0 then return false
+    if !App.isPlayersTurn user.number then return false
     if block = viewBlock e.target
       data = block.yaml
       td = e.target.parentElement
@@ -165,6 +179,16 @@ App.hookupTable = ->
           data.pieces[row][col] = user.color
           ++data.turn
           setData block._id, data
+          return true
+        return false
+    return false
+
+App.hookupTable = ->
+  $(Templating.currentViewLink)
+    .closest("[data-org-headline='1']")
+    .attr 'game', ''
+  $(Templating.currentView).bind 'click', (e)->
+    App.handleClick e
 
 $(document.head).prepend $("""
 <style>
