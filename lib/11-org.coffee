@@ -298,8 +298,9 @@ class Link extends Meat
     path: @path
     children: (c.toJsonObject() for c in @children)
   scan: Node.prototype.scanWithChildren
-  isImage: -> !@children.length && @path.match imagePathRE
+  isImage: -> @path.match imagePathRE
   isOrg: -> @path.match orgPathRE
+  descriptionText: -> (child.allText() for child in @children).join ' '
 
 class ListItem extends Meat
   constructor: (@text, @offset, @level, @checked, @contentOffset, @children)-> super @text, @offset

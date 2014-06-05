@@ -23,6 +23,7 @@ body.leisureError > #error {
     font-family: FranklinM54;
     src: url('/font/franklinm54-webfont.woff') format('woff');
 }
+.cthulhu [data-edit-mode='plain'],
 body.cthulhu {
     background-color: #1c3d34;
     color: #f1c40f;
@@ -215,6 +216,8 @@ body.cthulhu {
     font-family: Inconsolata;
     src: url('/font/Inconsolata.woff') format('woff');
 }
+
+.googie [data-edit-mode='plain'],
 body.googie {
     background-color: #ecf0f1;
 }
@@ -389,6 +392,7 @@ body.googie {
 .googie :focus {
     outline: none;
 }
+.console [data-edit-mode='plain'],
 body.console {
     background-color: black;
     color: #0f0;
@@ -978,6 +982,9 @@ body {
 .org-fancy .hidden-slide,
 .slides .hidden-slide {
     display: none;
+}
+[data-edit-mode='plain'] {
+    display: block;
 }
 .org-fancy [data-edit-mode='plain'] [data-property-hidden='true'],
 .show-hidden [data-property-hidden='true'],

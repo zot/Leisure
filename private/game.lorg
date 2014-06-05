@@ -1,6 +1,6 @@
 * Intro
-Leisure documents can contain classic games,
-like Connect Four...
+Leisure documents can contain any sort of web application,
+say a classic game like Connect Four...
 
 [[http://www.abstractstrategy.com/connect-four.jpg]]
 
@@ -26,7 +26,6 @@ This is the board data and the user data...
 - w = white
 - b = black
 - r = red
-- other = gray
 #+NAME: board1
 #+BEGIN_SRC yaml :flowLevel 2
 type: board
@@ -50,23 +49,24 @@ number: -1
 name: Anonymous
 #+END_SRC
 
-* Bindings
+* Data Observers
 :properties:
 :hidden: true
 :end:
-This observer code updates the board when the user changes their name.
+
+This observer updates the board when the user changes their name.
 #+BEGIN_SRC coffee :results def :observe user
 @update = App.updateUser = (user)->
   console.log "updating from change to user data"
-  board = getDataNamed 'board1'
+  board = Leisure.getDataNamed 'board1'
   board.players[user.number] = user
-  setDataNamed 'board1', board
+  Leisure.setDataNamed 'board1', board
 #+END_SRC
 
-Let's keep the board validated, here, stubbornly fixing things...
+This observer keeps the board valid, stubbornly fixing things...
 #+BEGIN_SRC coffee :results def :observe board
 @update = (board, block)->
-  user = getDataNamed 'user1'
+  user = Leisure.getDataNamed 'user1'
   if user.number > 1 then return
   changed = false
   if !(board.pieces instanceof Array) then (changed = board).pieces = []
@@ -80,10 +80,15 @@ Let's keep the board validated, here, stubbornly fixing things...
     while r.length > board.max_col then (changed = r).pop()
     for col in [0 ... board.max_col]
       if !(board.pieces[row][col] in 'wrb') then (changed = board).pieces[row][col] = 'w'
-  if changed then setData block._id, board
+  if changed then Leisure.setData block._id, board
 #+END_SRC
 
+* Views
+:properties:
+:hidden: true
+:end:
 
+Create a view for letting players pick a name and start a new game
 #+BEGIN_SRC html :defview user/userName
 <table style='width: 100%; white-space: nowrap'>
   <tr>
@@ -96,6 +101,7 @@ Let's keep the board validated, here, stubbornly fixing things...
 </table>
 #+END_SRC
 
+Create a view to display the game board
 #+BEGIN_SRC html :defview board
 <style>
   #boardDiv {
@@ -112,71 +118,63 @@ Let's keep the board validated, here, stubbornly fixing things...
   h2 {
     margin-top: 0;
   }
-  h2 {
-    margin-top: 0;
+  .user {
+    padding: 10px;
   }
 </style>
-<div id='boardDiv' onclick='App.handleClick(event)'>
-  <table>
-    {{#each pieces}}
-    <tr>
-      {{#each this}}
-        <td>
-          <img src='/connect4/{{this}}Piece.svg' onerror='this.src="/connect4/gPiece.svg"'>
-        </td>
+<div onmousedown='App.handleClick(event)'>
+  <div id='boardDiv'>
+    <table>
+      {{#each pieces}}
+      <tr>
+        {{#each this}}
+          <td>
+            <img src='/connect4/{{this}}Piece.svg' onerror='this.src="/connect4/gPiece.svg"'>
+          </td>
+        {{/each}}
+      </tr>
       {{/each}}
-    </tr>
+    </table>
+  </div>
+  <h2>Players</h2>
+  <div>
+    {{#each players}}
+      <span class='user' style='{{userStyle @index}}'>{{this.name}}</span>
     {{/each}}
-  </table>
+  </div>
 </div>
 <script>App.hookupTable()</script>
-<h2>Players</h2>
-<div>
-  {{#each players}}
-    <span style="{{userStyle @index}}">{{{turn @index}}}{{this.name}}</span>
-  {{/each}}
-</div>
 #+END_SRC
 
+Add some audio controls for sound effects
 #+BEGIN_HTML
+<span style='margin-left: 5ex; color: orange'><i>HIDDEN AUDIO ELEMENTS HERE</i></span>
 <audio id="clickSound" src="sounds/click.wav"></audio>
 <audio id="buzzerSound" src="sounds/buzz.wav"></audio>
 #+END_HTML
 
-* Support code
+
+Handlebars helper to compute the active player
+#+BEGIN_SRC coffee :results def
+Handlebars.registerHelper 'userStyle', (index)->
+  color = if index % 2 == 0 then 'black' else 'red'
+  if App.isPlayersTurn index then "color: white; background-color: #{color}"
+  else "color: #{color}; background-color: white"
+#+END_SRC
+* Game play
 :properties:
 :hidden: true
 :end:
 
+Determine whether it's a player's turn
 #+BEGIN_SRC coffee :results def
-# Handlbar helper to compute style for each player
-Handlebars.registerHelper 'userStyle', (index)->
-  baseColor = if index % 2 == 0 then 'black' else 'red'
-  rest = if App.isPlayersTurn index then "background-color: #{baseColor}; color: white;" else "background-color: white; color: #{baseColor};"
-  "padding: 10px; #{rest}"
-
-# Handlebar helper to create an arrow icon for the active player
-Handlebars.registerHelper 'turn', (index)->
-  return ''
-  html = if !App.isPlayersTurn index then "<i class='fa fa-arrow-right' style='margin-right: 10px;'></i>" else '<i style="margin-right: 30px;"></i>'
-  new Handlebars.SafeString html
+App.isPlayersTurn = (index)->
+  board = Leisure.getDataNamed 'board1'
+  return board.turn % board.players.length == index
 #+END_SRC
 
+Reset the game board for a new game
 #+BEGIN_SRC coffee :results def
-{
-  viewBlock,
-  setData,
-  getDataNamed,
-  setDataNamed,
-} = Leisure
-pieceTypes = "wrb"
-
-# Return boolean for whether it's the given player's turn currently
-App.isPlayersTurn = (index)->
-  board = getDataNamed 'board1'
-  return board.turn % board.players.length == index
-
-# Reset the game board for a new game
 App.newGame = (node)->
   block = Leisure.getBlock($(node).closest("[data-view-id]").attr 'data-view-id')
   data = block.yaml
@@ -188,21 +186,26 @@ App.newGame = (node)->
       ++row
     ++col
   data.turn = 0
-  setData block._id, data
+  Leisure.setData block._id, data
+#+END_SRC
 
-# Process a player clicking the board and provide audio feedback
+Process a player clicking the board and provide audio feedback
+          [[http://imgs.xkcd.com/comics/incision.png][At one point, by force of childhood habit, the doctor accidentally removed three or four organs.]]
+#+BEGIN_SRC coffee :results def
 App.handleClick = (e)->
   turn = App.takeTurn e
   sound = if turn then '#clickSound' else '#buzzerSound'
   $('[data-org-html]').shadow().find(sound)[0].play()
   if turn then console.log "click" else console.log "buzzer"
+#+END_SRC
 
-# Add a piece to the board on the column clicked (if there's room for it) Return success or failure
+Add a piece to the board on the column clicked (if there's room for it) Return success or failure
+#+BEGIN_SRC coffee :results def
 App.takeTurn = (e)->
-    user = getDataNamed 'user1'
+    user = Leisure.getDataNamed 'user1'
     if user.number < 0 then return false
     if !App.isPlayersTurn user.number then return false
-    if block = viewBlock e.target
+    if block = Leisure.viewBlock e.target
       data = block.yaml
       td = e.target.parentElement
       col = td.cellIndex
@@ -214,20 +217,43 @@ App.takeTurn = (e)->
         if row > -1
           data.pieces[row][col] = user.color
           ++data.turn
-          setData block._id, data
+          Leisure.setData block._id, data
           return true
         return false
     return false
+#+END_SRC
+* Initialization
+:properties:
+:hidden: true
+:end:
 
-# Create a click handler function for the playing board
+Set the game attribute so we can float the board
+#+BEGIN_SRC coffee :results def
 App.hookupTable = ->
   $(Templating.currentViewLink)
     .closest("[data-org-headline='1']")
     .attr 'game', ''
-  #$(Templating.currentView).bind 'click', (e)->
-  #  App.handleClick e
+#+END_SRC
 
-# Splice in some css for styling the game board
+Each time a new player connects, we need to initialize them and add them into the game
+#+BEGIN_SRC coffee :results def
+user = Leisure.getDataNamed 'user1'
+if user.number == -1
+  setTimeout (->
+    board = Leisure.getDataNamed 'board1'
+    console.log JSON.stringify board
+    user.number = board.players.length
+    user.color = if 0 == user.number % 2 then 'b' else 'r'
+    Leisure.setDataNamed 'user1', user
+    App.updateUser user), Math.random() * 500
+#+END_SRC
+* Appearance
+:properties:
+:hidden: true
+:end:
+
+Splice in some special CSS for the board so it floats and looks nice with diff themes
+#+BEGIN_SRC coffee :results def
 $(document.head).prepend $("""
 <style>
 [game] {
@@ -243,21 +269,25 @@ $(document.head).prepend $("""
 .flat.slides [game] { top: 182px !important; }
 .console.slides [game] { top: 182px !important; }
 .slides [game] [data-org-type='text'] { display: none; }
+.slides .slideholder.firstSlide {
+  display: inherit;
+}
+.slides .slideholder.firstSlide:not(.currentSlide) > * {
+  display: none;
+}
+.slides .slideholder.firstSlide:not(.currentSlide) /deep/ .border {
+  border: none;
+}
+.slides .slideholder.firstSlide:not(.currentSlide) > [game] {
+  display: inherit;
+}
 </style>
 """)
+#+END_SRC
 
-# Each time a new player connects, we need to initialize them and add them into the game
-user = getDataNamed 'user1'
-if user.number == -1
-  setTimeout (->
-    board = getDataNamed 'board1'
-    console.log JSON.stringify board
-    user.number = board.players.length
-    user.color = if 0 == user.number % 2 then 'b' else 'r'
-    setDataNamed 'user1', user
-    App.updateUser user), Math.random() * 500
-
-# Adjust the Leisure settings on startup
+Adjust Leisure settings on startup
+#+BEGIN_SRC coffee :results def
 Leisure.toggleLeisureBar()
 Leisure.setTheme 'googie'
+Leisure.toggleSlides()
 #+END_SRC

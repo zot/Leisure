@@ -354,8 +354,8 @@ markupFragment = (org, delay, note)->
       while first != source
         prelude += first.allText()
         first = first.next
-      return "<div #{orgAttrs org}>#{markupSource source, name, prelude, delay, true}</div>"
-  "<div #{orgAttrs org}>#{(markupNode child, false, delay, note, false, true for child in org.children).join ''}</div>"
+      return "<span #{orgAttrs org}>#{markupSource source, name, prelude, delay, true}</span>"
+  "<span #{orgAttrs org}>#{(markupNode child, false, delay, note, false, true for child in org.children).join ''}</span>"
 
 markupProperties = (org, delay)->"<span data-note-location class='hidden'>#{escapeHtml org.text}</span>"
 
@@ -370,7 +370,8 @@ markupLink = (org)->
     viewName = if orgMatch[2] then " data-view-name='#{orgMatch[2]}'" else ''
     "<span data-view-link='#{orgMatch[1]}'#{viewName}><span class='hidden'>#{org.allText()}</span></span>"
   else if org.isImage()
-    "<span><img src='#{escapeAttr org.path}'><span class='hidden'>#{escapeHtml org.allText()}</span></span>"
+    title = (if desc = org.descriptionText() then " title='#{escapeAttr desc}'" else "")
+    "<span><img src='#{escapeAttr org.path}'#{title}><span class='hidden'>#{escapeHtml org.allText()}</span></span>"
   else
     guts = ''
     for c in org.children
@@ -537,9 +538,9 @@ markupHtml = (org)->
   if v = org.attributes()?.view
     pre = org.text.substring 0, org.contentPos
     post = org.text.substring org.contentPos + org.contentLength
-    "<div #{orgAttrs org} data-html-view='#{v}'><span data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span></div>"
+    "<span #{orgAttrs org} data-html-view='#{v}'><span data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span></span>"
   else
-    "<div #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></div>"
+    "<span #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></span>"
 
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
@@ -1738,22 +1739,23 @@ createEditToggleButton = (doc)->
 isPlainEditing = (node)-> $(slideParent(node)).is "[data-edit-mode='plain']"
 
 toggleEdit = (id)->
-  console.log "toggle edit", id
-  node = $("##{id}").closest("[data-org-headline='1']")
-  id = node[0].id
-  parent = root.parentForElement(node)
-  if node.attr('data-edit-mode') == 'plain'
-    node.attr 'data-edit-mode', 'fancy'
-    mode = fancyOrg
-  else
-    node.attr 'data-edit-mode', 'plain'
-    mode = plainOrg
-  mode.reparse parent, orgForNode(node[0]), node[0]
-  node = $("##{id}")
-  node.attr 'data-edit-mode', mode.name
-  if mode == plainOrg
-    node.attr 'data-org-note', node.attr('data-property-note') || 'main'
-  if mode == root.plainOrg then createEditToggleButton node
+  restorePosition null, ->
+    console.log "toggle edit", id
+    node = $("##{id}").closest("[data-org-headline='1']")
+    id = node[0].id
+    parent = root.parentForElement(node)
+    if node.attr('data-edit-mode') == 'plain'
+      node.attr 'data-edit-mode', 'fancy'
+      mode = fancyOrg
+    else
+      node.attr 'data-edit-mode', 'plain'
+      mode = plainOrg
+    mode.reparse parent, orgForNode(node[0]), node[0]
+    node = $("##{id}")
+    node.attr 'data-edit-mode', mode.name
+    if mode == plainOrg
+      node.attr 'data-org-note', node.attr('data-property-note') || 'main'
+    if mode == root.plainOrg then createEditToggleButton node
 
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
@@ -1774,6 +1776,7 @@ root.codeHolder = codeHolder
 root.getBlockNamed = getBlockNamed
 root.viewBlock = viewBlock
 root.toggleEdit = toggleEdit
+root.toggleSlides = toggleSlides
 root.getDeepestActiveElement = getDeepestActiveElement
 root.addViewId = addViewId
 root.getDataNamed = getDataNamed
