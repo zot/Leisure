@@ -138,7 +138,7 @@ Add some audio controls for sound effects
 #+END_HTML
 
 
-Handlebars helper to compute the active player
+Handlebars helper to compute styling the active player
 #+BEGIN_SRC coffee :results def
 Handlebars.registerHelper 'userStyle', (index)->
   color = if index % 2 == 0 then 'black' else 'red'
@@ -286,5 +286,6 @@ Delay so it happens after the page draws
 setTimeout (->
   Leisure.toggleLeisureBar()
   Leisure.setTheme 'googie'
-  Leisure.toggleSlides()), 1
+  Leisure.toggleSlides()
+  Leisure.toggleShowHidden()), 1
 #+END_SRC

@@ -1334,6 +1334,7 @@ setCurrentSlide = (element)->
   # this is needed until there is support for :host (and/or ^ & ^^)
   if element[0].shadowRoot then $(element[0].shadowRoot.firstElementChild).addClass 'currentSlide'
   Leisure.actualSelectionUpdate()
+  window.scrollTo 0, 0
 
 firstSlide = -> setCurrentSlide getSlides().first()
 
