@@ -89,13 +89,6 @@ This observer keeps the board valid, stubbornly fixing things...
 
 Create a view for letting players pick a name and start a new game
 #+BEGIN_SRC html :defview user/userName
-<style>
-input[data-value='name'] {
-  width: 100%;
-  margin-left: 5px;
-  margin-right: 5px;
-}
-</style>
 <table style='width: 100%; white-space: nowrap'>
   <tr>
     <td style='width: 1px'>Name:</td>
@@ -109,26 +102,7 @@ input[data-value='name'] {
 
 Create a view to display the game board
 #+BEGIN_SRC html :defview board
-<style>
-  #boardDiv {
-    background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat;
-    padding: 10px;
-    display: inline-block;
-  }
-  #boardDiv table {
-    text-align: center;
-  }
-  #boardDiv img {
-    vertical-align: middle;
-  }
-  h2 {
-    margin-top: 0;
-  }
-  .user {
-    padding: 10px;
-  }
-</style>
-<div onmousedown='App.handleClick(event)'>
+<div board onmousedown='App.handleClick(event)'>
   <div id='boardDiv'>
     <table>
       {{#each pieces}}
@@ -244,7 +218,7 @@ if user.number == -1
 
 Splice in some special CSS for the board so it floats and looks nice with diff themes
 #+BEGIN_SRC coffee :results def
-$(document.head).prepend $("""
+$(document.head).prepend """
 <style>
 [game] {
   position: fixed !important;
@@ -272,7 +246,38 @@ $(document.head).prepend $("""
   display: inherit;
 }
 </style>
-""")
+"""
+#+END_SRC
+
+
+Styles for views
+#+BEGIN_SRC coffee :results def
+$(document.head).prepend """
+<style>
+  * /deep/ input[data-value='name'] {
+    width: 100%;
+    margin-left: 5px;
+    margin-right: 5px;
+  }
+  * /deep/ #boardDiv {
+    background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat;
+    padding: 10px;
+    display: inline-block;
+  }
+  * /deep/ #boardDiv table {
+    text-align: center;
+  }
+  * /deep/ #boardDiv img {
+    vertical-align: middle;
+  }
+  * /deep/ [board] h2 {
+    margin-top: 0;
+  }
+  * /deep/ .user {
+    padding: 10px;
+  }
+</style>
+"""
 #+END_SRC
 
 Adjust Leisure settings on startup
