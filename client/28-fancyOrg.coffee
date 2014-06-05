@@ -1141,14 +1141,15 @@ getCodeContainer = (node)->
   node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
-  if !isPlainEditing(focus) && code = getCodeContainer focus
-    recreateAstButtons code
-    createValueSliders code, leisureNumberSlider
-  #else if needsNewline el
-  #  restorePosition el.parentNode, ->
-  #    el.data += '\n'
-  #    el.parentNode.normalize()
-  checkSourceMod()
+  restorePosition null, ->
+    if !isPlainEditing(focus) && code = getCodeContainer focus
+      recreateAstButtons code
+      createValueSliders code, leisureNumberSlider
+    #else if needsNewline el
+    #  restorePosition el.parentNode, ->
+    #    el.data += '\n'
+    #    el.parentNode.normalize()
+    checkSourceMod()
 
 needsNewline = (el)->
   if !el then false
@@ -1654,8 +1655,9 @@ fancyOrg =
           bindWidgets shadow
           $(shadow).find('button').button()
       dataType = type.match /([^/]*)\/?(.*)?/
-      for node in $("[data-yaml-type='#{dataType[1]}']")
-        renderView node, dataType[2]
+      restorePosition null, ->
+        for node in $("[data-yaml-type='#{dataType[1]}']")
+          renderView node, dataType[2]
   deleteView: (type)->
     delete viewMarkup[type]
     for node in $("[data-view-key='#{type}']")

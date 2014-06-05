@@ -148,7 +148,11 @@ Create a view to display the game board
 
 Add some audio controls for sound effects
 #+BEGIN_HTML
-<span style='margin-left: 5ex; color: orange'><i>HIDDEN AUDIO ELEMENTS HERE</i></span>
+<div style='padding-left: 5ex; color: orange'>
+  <i>HIDDEN AUDIO ELEMENTS HERE</i><br>
+  &lt;audio id="clickSound" src="sounds/click.wav">&lt;/audio><br>
+  &lt;audio id="buzzerSound" src="sounds/buzz.wav">&lt;/audio>
+</div>
 <audio id="clickSound" src="sounds/click.wav"></audio>
 <audio id="buzzerSound" src="sounds/buzz.wav"></audio>
 #+END_HTML
