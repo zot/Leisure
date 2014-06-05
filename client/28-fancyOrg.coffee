@@ -187,18 +187,18 @@ root.restorePosition = restorePosition = (parent, delta, block)->
     delta = 0
   selection = new SelectionDescriptor parent
   slide = slideParent selection.focusNode
-  slideIndex = slideOffset slide
-  if selection.focusNode && slideIndex > -1 && !isParentSelectionOf(_(restoreStack).last(), selection)
+  activeSlideIndex = slideOffset slide
+  if selection.focusNode && activeSlideIndex > -1 && !isParentSelectionOf(_(restoreStack).last(), selection)
     try
       restoreStack.push selection
       #console.log "SAVED: #{selection}"
       doc = topNode(slide).parentNode
       parent = doc.parentNode
       docPos = childIndex parent, doc
+      currentSlide = slideIndex()
       block() # block shouldn't remove doc
       if doc = parent.children[docPos]
-        newSlide = $('[data-org-headline="1"]')[slideIndex]
-        if slideMode then setCurrentSlide newSlide
+        if slideMode then setCurrentSlide getSlides()[currentSlide]
         selection.restore delta, doc
     finally
       sel = restoreStack.pop()
@@ -1339,14 +1339,18 @@ firstSlide = -> setCurrentSlide getSlides().first()
 
 lastSlide = -> setCurrentSlide getSlides().last()
 
+slideIndex = (slides)->
+  slides = slides || getSlides()
+  slides.index slides.filter('.currentSlide').first()
+
 nextSlide = ->
   slides = getSlides()
-  if (i = slides.index(slides.filter('.currentSlide').first())) > -1
+  if (i = slideIndex slides) > -1
     setCurrentSlide slides[Math.min(i + 1, slides.length - 1)]
 
 prevSlide = ->
   slides = getSlides()
-  i = slides.index(slides.filter('.currentSlide').first())
+  i = slideIndex slides
   setCurrentSlide slides[Math.max(i - 1, 0)]
 
 slideParent = (node)-> $(node).closest("[data-org-headline='1']")[0]

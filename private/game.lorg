@@ -36,8 +36,8 @@ pieces:
   - [w, w, w, w, w, w, w]
   - [w, w, w, w, w, w, w]
   - [w, w, w, w, w, w, w]
-max_col: 7
-max_row: 6
+cols: 7
+rows: 6
 players: []
 turn: 0
 #+END_SRC
@@ -57,7 +57,6 @@ name: Anonymous
 This observer updates the board when the user changes their name.
 #+BEGIN_SRC coffee :results def :observe user
 @update = App.updateUser = (user)->
-  console.log "updating from change to user data"
   board = Leisure.getDataNamed 'board1'
   board.players[user.number] = user
   Leisure.setDataNamed 'board1', board
@@ -70,17 +69,17 @@ This observer keeps the board valid, stubbornly fixing things...
   if user.number > 1 then return
   changed = false
   if !(board.pieces instanceof Array) then (changed = board).pieces = []
-  if typeof board.max_row != 'number' then (changed = board).max_row = 6
-  if typeof board.max_col != 'number' then (changed = board).max_col = 7
-  while board.pieces.length < board.max_row then (changed = board).pieces.unshift []
-  while board.pieces.length > board.max_row then (changed = board).pieces.shift()
-  for row in [0 ... board.max_row]
+  if typeof board.rows != 'number' then (changed = board).rows = 6
+  if typeof board.cols != 'number' then (changed = board).cols = 7
+  while board.pieces.length < board.rows then (changed = board).pieces.unshift []
+  while board.pieces.length > board.rows then (changed = board).pieces.shift()
+  for row in [0 ... board.rows]
     if !(r = board.pieces[row]) instanceof Array then r = (changed = board).pieces[row] = []
-    while r.length < board.max_col then (changed = r).push 'w'
-    while r.length > board.max_col then (changed = r).pop()
-    for col in [0 ... board.max_col]
+    while r.length < board.cols then (changed = r).push 'w'
+    while r.length > board.cols then (changed = r).pop()
+    for col in [0 ... board.cols]
       if !(board.pieces[row][col] in 'wrb') then (changed = board).pieces[row][col] = 'w'
-  if changed then Leisure.setData block._id, board
+  if changed then Leisure.setDataNamed 'board1', board
 #+END_SRC
 
 * Views
@@ -180,51 +179,33 @@ App.isPlayersTurn = (index)->
 Reset the game board for a new game
 #+BEGIN_SRC coffee :results def
 App.newGame = (node)->
-  block = Leisure.getBlock($(node).closest("[data-view-id]").attr 'data-view-id')
-  data = block.yaml
-  col = 0
-  while col < data.max_col
-    row = 0
-    while row < data.max_row
-      data.pieces[row][col] = 'w'
-      ++row
-    ++col
+  data = Leisure.getDataNamed 'board1'
+  data.pieces = for row in [0 ... data.rows]
+    'w' for col in [0 ... data.cols]
   data.turn = 0
-  Leisure.setData block._id, data
+  Leisure.setDataNamed 'board1', data
 #+END_SRC
 
 Process a player clicking the board and provide audio feedback
           [[http://imgs.xkcd.com/comics/incision.png][At one point, by force of childhood habit, the doctor accidentally removed three or four organs.]]
 #+BEGIN_SRC coffee :results def
 App.handleClick = (e)->
-  turn = App.takeTurn e
-  sound = if turn then '#clickSound' else '#buzzerSound'
+  sound = if App.takeTurn e then '#clickSound' else '#buzzerSound'
   $('[data-org-html]').shadow().find(sound)[0].play()
-  if turn then console.log "click" else console.log "buzzer"
 #+END_SRC
 
 Add a piece to the board on the column clicked (if there's room for it) Return success or failure
 #+BEGIN_SRC coffee :results def
 App.takeTurn = (e)->
-    user = Leisure.getDataNamed 'user1'
-    if user.number < 0 then return false
-    if !App.isPlayersTurn user.number then return false
-    if block = Leisure.viewBlock e.target
-      data = block.yaml
-      td = e.target.parentElement
-      col = td.cellIndex
-      row = td.parentElement.rowIndex
-      if col?
-        row = data.max_row - 1
-        while data.pieces[row][col] != 'w'
-          if -1 == --row then break
-        if row > -1
-          data.pieces[row][col] = user.color
-          ++data.turn
-          Leisure.setData block._id, data
-          return true
-        return false
-    return false
+  user = Leisure.getDataNamed 'user1'
+  if user.number >= 0 && App.isPlayersTurn user.number
+    data = Leisure.getDataNamed 'board1'
+    col = e.target.parentElement.cellIndex
+    if col? && empties = L(data.pieces).takeWhile((row)-> row[col] == 'w').size()
+      data.pieces[empties - 1][col] = user.color
+      ++data.turn
+      Leisure.setDataNamed 'board1', data
+      true
 #+END_SRC
 * Initialization
 :properties:
@@ -234,18 +215,16 @@ App.takeTurn = (e)->
 Set the game attribute so we can float the board
 #+BEGIN_SRC coffee :results def
 App.hookupTable = ->
-  $(Templating.currentViewLink)
-    .closest("[data-org-headline='1']")
-    .attr 'game', ''
+  $(Templating.currentViewLink).closest("[data-org-headline='1']").attr 'game', ''
 #+END_SRC
 
 Each time a new player connects, we need to initialize them and add them into the game
+Just use a random delay to prevent contention, for now
 #+BEGIN_SRC coffee :results def
 user = Leisure.getDataNamed 'user1'
 if user.number == -1
   setTimeout (->
     board = Leisure.getDataNamed 'board1'
-    console.log JSON.stringify board
     user.number = board.players.length
     user.color = if 0 == user.number % 2 then 'b' else 'r'
     Leisure.setDataNamed 'user1', user
