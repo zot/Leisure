@@ -198,7 +198,7 @@ root.restorePosition = restorePosition = (parent, delta, block)->
       currentSlide = slideIndex()
       block() # block shouldn't remove doc
       if doc = parent.children[docPos]
-        if slideMode then setCurrentSlide getSlides()[currentSlide]
+        if slideMode && currentSlide > -1 then setCurrentSlide getSlides()[currentSlide]
         selection.restore delta, doc
     finally
       sel = restoreStack.pop()
