@@ -1,5 +1,6 @@
 * Intro
-Leisure documents can contain any sort of web application,
+Leisure documents are a combination of runtime, development, and debug environments
+all rolled into one.  A Leisure doc can contain any sort of web application,
 say a classic game like Connect Four...
 
 [[http://www.abstractstrategy.com/connect-four.jpg]]
@@ -22,7 +23,9 @@ say a classic game like Connect Four...
 :properties:
 :hidden: true
 :end:
-This is the board data and the user data...
+This is the global Connect Four board data. This block is a YAML data block
+which means you can define any data types easily in plain text.  Since it's
+a global block, any changes are automagically synced up to all players.
 - w = white
 - b = black
 - r = red
@@ -41,6 +44,9 @@ rows: 6
 players: []
 turn: 0
 #+END_SRC
+
+This data block is for the current user, so it's flagged as a local data
+element and is not shared between players.
 #+NAME: user1
 #+BEGIN_SRC yaml :local
 type: user
@@ -49,45 +55,19 @@ number: -1
 name: Anonymous
 #+END_SRC
 
-* Data Observers
-:properties:
-:hidden: true
-:end:
-
-This observer updates the board when the user changes their name.
-#+BEGIN_SRC coffee :results def :observe user
-@update = App.updateUser = (user)->
-  board = Leisure.getDataNamed 'board1'
-  board.players[user.number] = user
-  Leisure.setDataNamed 'board1', board
-#+END_SRC
-
-This observer keeps the board valid, stubbornly fixing things...
-#+BEGIN_SRC coffee :results def :observe board
-@update = (board, block)->
-  user = Leisure.getDataNamed 'user1'
-  if user.number > 1 then return
-  changed = false
-  if !(board.pieces instanceof Array) then (changed = board).pieces = []
-  if typeof board.rows != 'number' then (changed = board).rows = 6
-  if typeof board.cols != 'number' then (changed = board).cols = 7
-  while board.pieces.length < board.rows then (changed = board).pieces.unshift []
-  while board.pieces.length > board.rows then (changed = board).pieces.shift()
-  for row in [0 ... board.rows]
-    if !(r = board.pieces[row]) instanceof Array then r = (changed = board).pieces[row] = []
-    while r.length < board.cols then (changed = r).push 'w'
-    while r.length > board.cols then (changed = r).pop()
-    for col in [0 ... board.cols]
-      if !(board.pieces[row][col] in 'wrb') then (changed = board).pieces[row][col] = 'w'
-  if changed then Leisure.setDataNamed 'board1', board
-#+END_SRC
-
 * Views
 :properties:
 :hidden: true
 :end:
 
-Create a view for letting players pick a name and start a new game
+Views aka Widgets let you build a templated UI for various components of your
+application. They use the Handlebars library for powerful semantic templates.
+
+Leisure supports HTML blocks where you can insert any HTML you need to create
+your application.  But since it's also templated, you can define a view that
+takes an object and using templating, dynamically alter the HTML as needed.
+
+Here we create a simple view for letting players type in their name and start a new game.
 #+BEGIN_SRC html :defview user/userName
 <table style='width: 100%; white-space: nowrap'>
   <tr>
@@ -100,7 +80,9 @@ Create a view for letting players pick a name and start a new game
 </table>
 #+END_SRC
 
-Create a view to display the game board
+Create a view to display the game board.  The templating is powerful enough
+to loop over multiple dimensional arrays, and even call out to custom functions
+you can define on your own if required.
 #+BEGIN_SRC html :defview board
 <div board onmousedown='App.handleClick(event)'>
   <div id='boardDiv'>
@@ -126,7 +108,26 @@ Create a view to display the game board
 <script>App.hookupTable()</script>
 #+END_SRC
 
-Add some audio controls for sound effects
+* View Helpers
+:properties:
+:hidden: true
+:end:
+
+Leisure supports multiple web languages, Javascript, Coffeescript, and of course,
+our name sake functional language called Leisure.  This demo is using Coffeescript.
+
+As we just mentioned on the previous slide, we can create a custom Handlebars
+helper to compute the style to be used for displaying each player's name.
+At last, we get to do some actual coding!
+#+BEGIN_SRC coffee :results def
+Handlebars.registerHelper 'userStyle', (index)->
+  color = if index % 2 == 0 then 'black' else 'red'
+  if App.isPlayersTurn index then "color: white; background-color: #{color}"
+  else "color: #{color}; background-color: white"
+#+END_SRC
+
+Finally, we need to add some audio controls for sound effects by inserting some
+HTML for the audio controls required.
 #+BEGIN_HTML
 <div style='padding-left: 5ex; color: orange'>
   <i>HIDDEN AUDIO ELEMENTS HERE</i><br>
@@ -137,20 +138,55 @@ Add some audio controls for sound effects
 <audio id="buzzerSound" src="sounds/buzz.wav"></audio>
 #+END_HTML
 
+* Data Observers
+:properties:
+:hidden: true
+:end:
 
-Handlebars helper to compute styling the active player
-#+BEGIN_SRC coffee :results def
-Handlebars.registerHelper 'userStyle', (index)->
-  color = if index % 2 == 0 then 'black' else 'red'
-  if App.isPlayersTurn index then "color: white; background-color: #{color}"
-  else "color: #{color}; background-color: white"
+Data Observers are special code blocks meant to be triggered whenever an object
+changes.
+
+This code block is flagged as an observer, that means it will be triggered when the
+local user object has been modified.  We need to update the player's data in the
+global board's list of players.  It will then propagate out to all other players.
+#+BEGIN_SRC coffee :results def :observe user
+@update = App.updateUser = (user)->
+  board = Leisure.getDataNamed 'board1'
+  board.players[user.number] = user
+  Leisure.setDataNamed 'board1', board
 #+END_SRC
+
+This observer code block keeps global the board valid, making sure the board is a proper
+size and each element has a proper default value.
+#+BEGIN_SRC coffee :results def :observe board
+@update = (board, block)->
+  user = Leisure.getDataNamed 'user1'
+  if user.number > 1 then return
+  changed = false
+  if !(board.pieces instanceof Array) then (changed = board).pieces = []
+  if typeof board.rows != 'number' then (changed = board).rows = 6
+  if typeof board.cols != 'number' then (changed = board).cols = 7
+  while board.pieces.length < board.rows then (changed = board).pieces.unshift []
+  while board.pieces.length > board.rows then (changed = board).pieces.shift()
+  for row in [0 ... board.rows]
+    if !(r = board.pieces[row]) instanceof Array then r = (changed = board).pieces[row] = []
+    while r.length < board.cols then (changed = r).push 'w'
+    while r.length > board.cols then (changed = r).pop()
+    for col in [0 ... board.cols]
+      if !(board.pieces[row][col] in 'wrb') then (changed = board).pieces[row][col] = 'w'
+  if changed then Leisure.setDataNamed 'board1', board
+#+END_SRC
+
+
 * Game play
 :properties:
 :hidden: true
 :end:
 
-Determine whether it's a player's turn
+Now that the data and views are squared away, we need to write the actual code
+for our application.
+
+As a turn based game, we need to track whose turn it is at any point in time.
 #+BEGIN_SRC coffee :results def
 App.isPlayersTurn = (index)->
   board = Leisure.getDataNamed 'board1'
