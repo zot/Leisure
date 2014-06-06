@@ -1172,10 +1172,6 @@ button#team_cthulhu  {
 button#team_cthulhu:hover {
     background-color: #27ae60;
 }
-.slides .currentSlide {
-    margin-left: 0%;
-/*padding-top: 167px;*/
-}
 #panel {
     padding-top: 2px;
     /* top: 45px; */
@@ -1204,7 +1200,9 @@ body.slides.firstSlide #prevSlide {
     display: none;
 }
 .slides .currentSlide {
-    margin-left: 20%;
+/*    margin-left: 20%;*/
+    margin-left: 100px;
+/*padding-top: 167px;*/
 }
 [data-edit-mode='fancy'] {
     font-family: Arial;

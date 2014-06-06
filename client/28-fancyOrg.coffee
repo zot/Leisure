@@ -198,7 +198,7 @@ root.restorePosition = restorePosition = (parent, delta, block)->
       currentSlide = slideIndex()
       block() # block shouldn't remove doc
       if doc = parent.children[docPos]
-        if slideMode && currentSlide > -1 then setCurrentSlide getSlides()[currentSlide]
+        if slideMode && currentSlide > -1 then setCurrentSlide getSlides()[currentSlide], true
         selection.restore delta, doc
     finally
       sel = restoreStack.pop()
@@ -1323,7 +1323,7 @@ getSlides = (parent)->
     if !showHidden then slides = slides.not('[data-property-hidden="true"]')
     slides.length > 0
 
-setCurrentSlide = (element)->
+setCurrentSlide = (element, noscroll)->
   element = $(element).closest '.slideholder'
   for node in $('.currentSlide')
     if node.shadowRoot then $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
@@ -1334,7 +1334,7 @@ setCurrentSlide = (element)->
   # this is needed until there is support for :host (and/or ^ & ^^)
   if element[0].shadowRoot then $(element[0].shadowRoot.firstElementChild).addClass 'currentSlide'
   Leisure.actualSelectionUpdate()
-  window.scrollTo 0, 0
+  if !noscroll then window.scrollTo 0, 0
 
 firstSlide = -> setCurrentSlide getSlides().first()
 
@@ -1454,15 +1454,6 @@ slideOffset = (slide)->
     a.push $("[data-org-headline='1']")...
     a.indexOf slide ? $('.currentSlide')[0]
   else -1
-
-setSlideAt = (index)-> setCurrentSlide $("[data-org-headline='1']")[index]
-
-restoreSlide = (block)->
-  if !slideMode then block()
-  else
-    offset = slideOffset()
-    block()
-    setSlideAt offset
 
 codeHolder = (el)-> if el?.getAttribute 'data-shared' then el else el?.parentElement
 
@@ -1764,6 +1755,11 @@ toggleEdit = (id)->
       node.attr 'data-org-note', node.attr('data-property-note') || 'main'
     if mode == root.plainOrg then createEditToggleButton node
 
+addStyles = (name, string)->
+  styles = $ "<style id='styles-#{name}'>\n#{string}\n</style>"
+  if (old = $("#styles-#{name}")).length then old.replaceWith styles
+  else $('head').prepend styles
+
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment
 root.addComment = addComment
@@ -1792,3 +1788,4 @@ root.findLinks = findLinks
 root.findViews = findViews
 root.viewFor = viewFor
 root.setCodeView = setCodeView
+root.addStyles = addStyles

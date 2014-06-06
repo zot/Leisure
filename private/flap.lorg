@@ -1,4 +1,4 @@
-* Chat
+* Leisurely Bird
 
 [[org:state/userName]]
 [[org:canvas]]
@@ -6,11 +6,30 @@
 [[org:game]]
 [[org:ticking]]
 
+* Description
+:properties:
+:note: sidebar
+:end:
+This is a simple, multiplayer Flappy Bird-like game
+
+The aim is to fly through the gaps in the tree trunks,
+by flapping your wings at the right time
+
+Enter your name, and hit start; if the game is already
+running, just hit flap, and you will join the game.
+
+
 * Data
 :properties:
 :note: sidebar
 :hidden: true
 :end:
+
+
+These values represent the initial state of the world,
+as well as the pipe locations.
+
+Try changing the values to see what they do!
 
 #+NAME: game
 #+BEGIN_SRC yaml :flowLevel 2
@@ -22,15 +41,17 @@ world:
     - {y: 150,x: 400}
     - {y: 250,x: 550}
   players:
-    - {
-        id: 0,
-        y: 200,
-        yv: 0,
-        name: 'Zombie',
-        color: 'rgb(255,0,0)',
-        alive: true,
-        immortality : 2
-      }
+
+  constants:
+     flap_power : 10  #delta y vector every time bird flaps
+     gap_size : 80    #space for bird to fly through & width of pipes
+     speed : 5        #speed x advances with
+     spacing : 150    #space between pipes
+     gravity : -0.91  #y vector every tick
+     tickspeed : 50   #tick speed in milliseconds
+     gameheight : 400
+     gamefloor : 25   #thickness of green floor at the bottom of the screen
+
 #+END_SRC
 
 #+NAME: positions
@@ -58,10 +79,25 @@ userName: Anon
 type: canvas
 #+END_SRC
 
+* Views
+:properties:
+:hidden: true
+:end:
+
 This is a kluge to react to a ticking update
+Essentially, all html views get re-rendered every time
+a change is made to the data, so, this calls the render
+function every time the data updates by way of the update
+mechanism.
+
+** TODO move into controller code, in an update event callback
+
 #+BEGIN_SRC html :defview ticking
 <script>Leisure.renderCanvas()</script>
 #+END_SRC
+
+Draw a score list of current players.
+** TODO make this a high-score list, instead of/as well as displaying current scores
 
 #+BEGIN_SRC html :defview lazyworld
 <div>
@@ -76,246 +112,298 @@ This is a kluge to react to a ticking update
 <script>Leisure.renderCanvas()</script>
 #+END_SRC
 
+Player name inputs. These are bound to a locally persistent data storage variable
+
 #+BEGIN_SRC html :defview localState/userName
   <label> Name:</label><input placeholder="Name" data-value='userName'>{{{bind}}}
 #+END_SRC
 
-#+BEGIN_SRC html :defview canvas
-<canvas id="gamecanvas" style="background-color:rgb(150,150,255); width:250px; height:400px"></canvas>
-<!-- Adapted from http://jsfiddle.net/gbarnett/VG44a/ -->
-<div id='resources' style="display:none">
-    <audio id="sfx_flap1"  src="/flappy/flappy_wavs/SFX_FlapWing_01.WAV"></audio>
-    <audio id="sfx_flap2" src="/flappy/flappy_wavs/SFX_FlapWing_02.WAV"></audio>
-    <audio id="sfx_flap3" src="/flappy/flappy_wavs/SFX_FlapWing_03.WAV"></audio>
-    <audio id="sfx_flap4" src="/flappy/flappy_wavs/SFX_FlapWing_04.WAV"></audio>
-    <audio id="sfx_crashGnd" src="/flappy/flappy_wavs/SFX_HitGround_01.WAV"></audio>
-    <audio id="sfx_crashWall" src="/flappy/flappy_wavs/SFX_HitObstacle_01.WAV"></audio>
-    <audio id="sfx_score1" src="/flappy/flappy_wavs/SFX_Score_01.WAV"></audio>
-    <img id="body" src="/flappy/flappy-sprite/leisure_bird_body.png" />
-    <img id="eyes" src="/flappy/flappy-sprite/leisure_bird_eyes.png" />
-</div>
+The HTML5 canvas element, that stores all of the binary game assets we are going to use
+Check out http://jsfiddle.net/gbarnett/VG44a/ to see how we are doing sprite colorization
 
-<script>
-  Leisure.initWorld();
-  Leisure.findViews('canvas')
-    .find('#gamecanvas')
-    .attr("contentEditable", "true")
-    .prop('contentEditable', true);
-</script>
+#+BEGIN_SRC html :defview canvas
+  <canvas id="gamecanvas" style="background-color:rgb(150,150,255); width:256px; height:400px"></canvas>
+  <!-- Adapted from http://jsfiddle.net/gbarnett/VG44a/ -->
+  <div id='resources' style="display:none">
+      <audio id="sfx_flap1"  src="/flappy/flappy_wavs/SFX_FlapWing_01.WAV"></audio>
+      <audio id="sfx_flap2" src="/flappy/flappy_wavs/SFX_FlapWing_02.WAV"></audio>
+      <audio id="sfx_flap3" src="/flappy/flappy_wavs/SFX_FlapWing_03.WAV"></audio>
+      <audio id="sfx_flap4" src="/flappy/flappy_wavs/SFX_FlapWing_04.WAV"></audio>
+      <audio id="sfx_crashGnd" src="/flappy/flappy_wavs/SFX_HitGround_01.WAV"></audio>
+      <audio id="sfx_crashWall" src="/flappy/flappy_wavs/SFX_HitObstacle_01.WAV"></audio>
+      <audio id="sfx_score1" src="/flappy/flappy_wavs/SFX_Score_01.WAV"></audio>
+      <img id="body" src="/flappy/flappy-sprite/leisure_bird_body.png" />
+      <img id="eyes" src="/flappy/flappy-sprite/leisure_bird_eyes.png" />
+      <img id="nearclouds" src="/flappy/flappy-sprite/clouds_near.png" />
+      <img id="farclouds" src="/flappy/flappy-sprite/clouds_far.png" />
+      <img id="bottompipe" src="/flappy/flappy-sprite/pipe_bottom.png" />
+      <img id="toppipe" src="/flappy/flappy-sprite/pipe_top.png" />
+      <img id="ground" src="/flappy/flappy-sprite/ground.png" />
+  </div>
+
+  <script>
+    Leisure.initWorld();
+    //This bit is to capture keyboard input, not yet implemented
+    Leisure.findViews('canvas')
+      .find('#gamecanvas')
+      .attr("contentEditable", "true")
+      .prop('contentEditable', true);
+  </script>
 #+END_SRC
+
+Game controls
+
+** TODO make pretty image buttons
+** TODO implement keyboard input
 
 #+BEGIN_SRC html :defview localState/controlbox
 <div>
-  <button id='chatbutton' onclick='Leisure.flap()'>Flap</button>
+  <button id='flapbutton' onclick='Leisure.flap()'>Flap</button>
   <button id='tickbutton' onclick='Leisure.tick()'>Start</button>
 </div>
 #+END_SRC
 
 
+* Source
+:properties:
+:hidden: true
+:end:
 
-#+BEGIN_SRC coffeescript :results def
-flap_power = 10
-gap_size = 80
-speed = 5
-spacing = 150
-gravity = -0.91
-tickspeed = 50
-gameheight = 400
-gamefloor = 25   #thickness of green floor at the bottom of the screen
-{
-  getDataNamed,
-  setDataNamed,
-  findViews,
-} = Leisure
+Coffeescript source file for the game.
 
-gen_color = (id)->
-  console.log(id)
-  "rgb("+(id*25)*(id%2)+","+id*25*(id%3)+","+id*25*(id%5)+")"
+Game is split into a simulation loop, that does collision detection,
+applies gravity to players, and moves pipes forward
 
-make_user = (id,y,yv,name,color, alive, score, immortality) ->
-  if not color
-    color = 'rgb(255,0,0)'
-  {id:id ,y:y ,yv:yv ,name:name ,color:color,alive:alive,score:score,immortality:immortality}
+** TODO make pipes be dependent on global x state, to enable "reversing" of time
+** TODO store high-scores
+** TODO disallow duplicate player names (bind with leisure users?)
+** TODO allow custom colors?
 
-canvas = undefined
-gamecanvas = undefined
-window.gameaudio = {}
+#+BEGIN_SRC coffee :results def
+  ## Constants
+  {
+    getDataNamed,
+    setDataNamed,
+    findViews,
+  } = Leisure #Leisure bindings
 
-Leisure.initWorld = ->
-  canvas = findViews('canvas')
-  gamecanvas = canvas.find('#gamecanvas')[0]
-  window.gameaudio.flap1 = canvas.find("#sfx_flap1")[0]
-  window.gameaudio.flap2 = canvas.find("#sfx_flap2")[0]
-  window.gameaudio.flap3 = canvas.find("#sfx_flap3")[0]
-  window.gameaudio.flap4 = canvas.find("#sfx_flap4")[0]
-  window.gameaudio.crashG = canvas.find("#sfx_crashGnd")[0]
-  window.gameaudio.crashW = canvas.find("#sfx_crashWall")[0]
-  #window.gameaudio.coll2 = canvas.find("#sfx_flap1")[0]
-  window.gameaudio.score1 = canvas.find("#sfx_score1")[0]
-  gamecanvas.width = 250;
-  gamecanvas.height = gameheight;
+  #Create a semi-random color based on an incremental number
+  # TODO: Can actually just make it random instead of deterministic
+  gen_color = (id)->
+    console.log(id)
+    "rgb("+(id*25)*(id%2)+","+id*25*(id%3)+","+id*25*(id%5)+")"
 
-Leisure.flap = ->
-  {userName, userId} = state = getDataNamed 'state'
-  changedState = false
-  game = getDataNamed 'game'
-  positions = getDataNamed 'positions'
-  if !userId
-    userId = game.world.players.length
-    user = make_user userId,200,0,userName,gen_color(userId), true, 0, 1
-    game.world.players.push(user)
-    make_sprite(user.color, userId)
-    state.userId = userId
-    positions.playerpositions.push [user.y,user.yv]
-    setDataNamed 'state', state
-    setDataNamed 'game', game
-  else
-    user = positions.playerpositions[userId]
-    user[1] = -flap_power
-    positions.playerpositions[userId] = user
-    #console.log(window.gameaudio.flap1)
-    rnd = Math.floor( 1 + 4 * Math.random())
-    #console.log rnd
-    canvas.find("#sfx_flap#{rnd}")[0].play()
-    #window.gameaudio.flap1.play() #['flap'+game.world.x%4+1].play()
+  #constructor for a player
+  make_user = (id,y,yv,name,color, alive, score, immortality) ->
+    if not color
+      color = 'rgb(255,0,0)'
+    {id:id ,y:y ,yv:yv ,name:name ,color:color,alive:alive,score:score,immortality:immortality}
 
-  setDataNamed 'positions', positions
+  canvas = undefined
+  gamecanvas = undefined
+  window.gameaudio = {}
+  window.gameimages = {}
+  Leisure.initWorld = ->
+    canvas = findViews('canvas')
+    gamecanvas = canvas.find('#gamecanvas')[0]
+    window.gameaudio.flap1 = canvas.find("#sfx_flap1")[0]
+    window.gameaudio.flap2 = canvas.find("#sfx_flap2")[0]
+    window.gameaudio.flap3 = canvas.find("#sfx_flap3")[0]
+    window.gameaudio.flap4 = canvas.find("#sfx_flap4")[0]
+    window.gameaudio.crashG = canvas.find("#sfx_crashGnd")[0]
+    window.gameaudio.crashW = canvas.find("#sfx_crashWall")[0]
+    #window.gameaudio.coll2 = canvas.find("#sfx_flap1")[0]
+    window.gameaudio.score1 = canvas.find("#sfx_score1")[0]
+    window.gameimages.ground = canvas.find("#ground")[0]
+    window.gameimages.nearclouds = canvas.find("#nearclouds")[0]
+    window.gameimages.farclouds = canvas.find("#farclouds")[0]
+    window.gameimages.bottompipe = canvas.find("#bottompipe")[0]
+    window.gameimages.toppipe = canvas.find("#toppipe")[0]
+    gamecanvas.width = 250;
+    game =getDataNamed 'game'
+    gamecanvas.height = game.world.constants.gameheight;
 
-Leisure.tick = ->
-  data = getDataNamed 'tickState'
-  if data.ticking
-    data.ticking = false
-    setDataNamed 'tickState', data
-  else
-    data.ticking = true
-    setDataNamed 'tickState', data
-    doTick()
-
-doTick = (data)->
-  tick = getDataNamed 'tickState'
-  if tick.ticking
-    data = getDataNamed 'game'
-    #gamecanvas = findViews('canvas').find('#gamecanvas')[0]
-    data.world = simulate_world(data.world)
-    setDataNamed 'game', data
-    window.setTimeout doTick, tickspeed
-
-
-Leisure.renderCanvas = ->
-  #gamecanvas = findViews('canvas').find('#gamecanvas')[0]
-  if getDataNamed('tickState').ticking
-    data = getDataNamed 'game'
-    render_world gamecanvas, data.world
-  else
-    ctx = gamecanvas.getContext '2d'
-    ctx.clearRect(0,0,gamecanvas.width,gamecanvas.height)
-
-make_sprite = (color,uid)->
-  bodysprite = findViews('canvas').find('#body')[0]
-  eyessprite = findViews('canvas').find('#eyes')[0]
-  canvas = $(findViews('canvas').find('#resources')[0])
-  canvas.append('<canvas id="ps'+uid+'"></canvas>')
-  playersprite = canvas.find('#ps'+uid)[0]
-  ctx = playersprite.getContext '2d'
-
-  canvas.append('<canvas id="temp'+uid+'"></canvas>')
-  tempcanvas = canvas.find('#temp'+uid)[0]
-  tempctx = tempcanvas.getContext '2d'
-
-  tempctx.drawImage(bodysprite,0,0)
-  tempctx.globalCompositeOperation = "source-atop";
-  tempctx.fillStyle = 'rgba'+ color.substring(3,color.length-1)+',0.5)';
-  tempctx.fillRect(0,0,tempcanvas.width,tempcanvas.height);
-
-  ctx.drawImage(tempcanvas,0,0)
-  ctx.drawImage(eyessprite,0,0)
-
-render_world = (gamecanvas, world)->
-  positions = getDataNamed 'positions'
-
-  ctx = gamecanvas.getContext '2d'
-  x = world.x
-  pipes = world.pipes
-  players = world.players
-  ctx.clearRect(0,0,gamecanvas.width,gamecanvas.height)
-  ctx.fillStyle ='rgba(100,255,100,1)'
-  ctx.fillRect(0,gamecanvas.height-gamefloor,gamecanvas.width,gamefloor)
-
-  ctx.fillStyle ='rgba(200,255,200,1)'
-  pipes.forEach (pipe)->
-    ctx.fillRect(pipe.x,0,50,pipe.y)
-    ctx.fillRect(pipe.x,pipe.y+gap_size,50,gamecanvas.height-(pipe.y+gap_size))
-
-  currentpipe_x = pipes[0].x
-  players.forEach (player)->
-    pl_y = positions.playerpositions[player.id][0]
-    pl_yv = positions.playerpositions[player.id][1]
-    if not playersprite = canvas.find('#ps'+player.id)[0]
-      make_sprite(player.color, player.id)
-    #console.log(playersprite)
-    if player.alive
-      ctx.fillStyle = player.color
-      ctx.fillText(player.name + ' ' + player.score,50,pl_y-15)
-      if pl_yv < -5
-        ctx.drawImage(playersprite,32*2,0,32,32,50,pl_y,30,30)
-      else if pl_yv < 1
-        ctx.drawImage(playersprite,0,0,32,32,50,pl_y,30,30)
+  ##Action on "flap" button press
+  Leisure.flap = ->
+    {userName, userId} = state = getDataNamed 'state'
+    changedState = false
+    game = getDataNamed 'game'
+    positions = getDataNamed 'positions'
+    #Register the user if they do not yet exist
+    if !userId
+      if game.world.players
+        userId = game.world.players.length
       else
-        ctx.drawImage(playersprite,32,0,32,32,50,pl_y,30,30)
+        game.world.players = []
+        userId = 1
+      user = make_user userId,200,0,userName,gen_color(userId), true, 0, 1
+      game.world.players.push user
+      make_sprite user.color, userId
+      state.userId = userId
+      positions.playerpositions.push [user.y,user.yv]
+      setDataNamed 'state', state
+      setDataNamed 'game', game
+    else #Update the player's y velocity
+      user = positions.playerpositions[userId]
+      user[1] = -game.world.constants.flap_power
+      positions.playerpositions[userId] = user
 
-      #console.log pl_y
-      if player.immortality > 0
-        ctx.fillText('shield',50,pl_y+30)
+      rnd = Math.floor( 1 + 4 * Math.random())
+
+      canvas.find("#sfx_flap#{rnd}")[0].play()
+
+
+    setDataNamed 'positions', positions
+
+  Leisure.tick = ->
+    data = getDataNamed 'tickState'
+    if data.ticking
+      data.ticking = false
+      setDataNamed 'tickState', data
     else
-      ctx.fillStyle = player.color
-      ctx.fillText(player.name,currentpipe_x,pl_y-15)
-      ctx.drawImage(playersprite,32*3,0,32,32,currentpipe_x,pl_y,30,30)
-      #ctx.fillRect(pipes[0].x,positions.playerpositions[player.id][0],15,15)
-      ctx.fillText('SPLAT',50,pl_y+30)
+      data.ticking = true
+      setDataNamed 'tickState', data
+      doTick()
 
-simulate_world = (world)->
-  positions = getDataNamed 'positions'
-  world.x += speed
-  world.players.forEach (player)->
-    if player.alive
-      y = positions.playerpositions[player.id][0]
-      yv = positions.playerpositions[player.id][1]
-      positions.playerpositions[player.id][1] = yv - gravity
-      y = positions.playerpositions[player.id][0] += positions.playerpositions[player.id][1]
-      player.immortality -= tickspeed/1000
-      groundCrash = y + 15 > gamecanvas.height-gamefloor
-      if groundCrash ||
-      (world.pipes[0].x < 65 && world.pipes[0].x > 0) &&
-      (y + 15 > world.pipes[0].y + gap_size || y < world.pipes[0].y)
+  # "Server" code that manages running the main game loop
+  doTick = (data)->
+    tick = getDataNamed 'tickState'
+    if tick.ticking
+      data = getDataNamed 'game'
+      #gamecanvas = findViews('canvas').find('#gamecanvas')[0]
+      data.world = simulate_world(data.world)
+      setDataNamed 'game', data
+      window.setTimeout doTick, data.world.constants.tickspeed
 
-        if player.immortality < 0
-          player.alive = false
-          #console.log window.gameaudio
-          window.gameaudio.score1.pause()
-          window.gameaudio.score1.currentTime = 0
-          if groundCrash then window.gameaudio.crashG.play() else window.gameaudio.crashW.play()
-    else
-      positions.playerpositions[player.id][1] = 0
+  # "Client" code that draws the state of the game onto the canvas
+  Leisure.renderCanvas = ->
+      data = getDataNamed 'game'
+      render_world gamecanvas, data.world
+
+  make_sprite = (color,uid)->
+    bodysprite = findViews('canvas').find('#body')[0]
+    eyessprite = findViews('canvas').find('#eyes')[0]
+    canvas = $(findViews('canvas').find('#resources')[0])
+    canvas.append('<canvas id="ps'+uid+'"></canvas>')
+    playersprite = canvas.find('#ps'+uid)[0]
+    ctx = playersprite.getContext '2d'
+
+    canvas.append('<canvas id="temp'+uid+'"></canvas>')
+    tempcanvas = canvas.find('#temp'+uid)[0]
+    tempctx = tempcanvas.getContext '2d'
+
+    tempctx.drawImage(bodysprite,0,0)
+    tempctx.globalCompositeOperation = "source-atop";
+    tempctx.fillStyle = 'rgba'+ color.substring(3,color.length-1)+',0.5)';
+    tempctx.fillRect(0,0,tempcanvas.width,tempcanvas.height);
+
+    ctx.drawImage(tempcanvas,0,0)
+    ctx.drawImage(eyessprite,0,0)
+
+  calc_offset = (x,multiples,speed) ->
+    (Math.floor((x*speed)/(gamecanvas.width*multiples))*gamecanvas.width*multiples)-(x*speed)
+
+  render_world = (gamecanvas, world)->
+    positions = getDataNamed 'positions'
+
+    ctx = gamecanvas.getContext '2d'
+    x = world.x
+    frontoffset = calc_offset(x,1,1)
+    doublefrontoffset = calc_offset(x,3,0.75)
+    pipes = world.pipes
+    players = world.players
+    ctx.clearRect(0,0,gamecanvas.width,gamecanvas.height)
+    #ctx.fillStyle ='rgba(100,255,100,1)'
+    #ctx.fillRect(0,gamecanvas.height-gamefloor,gamecanvas.width,gamefloor)
+    ctx.drawImage(window.gameimages.ground,frontoffset,gamecanvas.height-world.constants.gamefloor)
 
 
-  if world.pipes[0].x < 0 - gap_size
-      world.pipes.shift()
-      world.pipes.push({x:world.pipes[world.pipes.length-1].x+spacing,y:Math.random()*(gameheight-150)+50})
-      world.players.forEach (player)->
-        player.score += 1
-        #Respawn the player
-        if not player.alive
-          player.alive = true
-          positions.playerpositions[player.id][0] = 200
-          player.score = 0
-          player.immortality = 2
+    ctx.drawImage(window.gameimages.farclouds,256+calc_offset(x,3,0.5),105)
+    ctx.drawImage(window.gameimages.nearclouds,256+doublefrontoffset,75)
+
+    ctx.fillStyle ='rgba(200,255,200,1)'
+    pipes.forEach (pipe)->
+      #ctx.fillRect(pipe.x,0,50,pipe.y)
+      ctx.drawImage(window.gameimages.toppipe,pipe.x,pipe.y - window.gameimages.toppipe.height)
+      ctx.drawImage(window.gameimages.bottompipe,pipe.x,pipe.y+world.constants.gap_size)
+        #ctx.fillRect(pipe.x,pipe.y+gap_size,50,gamecanvas.height-(pipe.y+gap_size))
+
+    currentpipe_x = pipes[0].x
+    if players
+      players.forEach (player)->
+        pl_y = positions.playerpositions[player.id][0]
+        pl_yv = positions.playerpositions[player.id][1]
+        if not playersprite = canvas.find('#ps'+player.id)[0]
+          make_sprite(player.color, player.id)
+        #console.log(playersprite)
+        if player.alive
+          ctx.fillStyle = player.color
+          ctx.fillText(player.name + ' ' + player.score,50,pl_y-15)
+          if pl_yv < -5
+            ctx.drawImage(playersprite,32*2,0,32,32,50,pl_y,30,30)
+          else if pl_yv < 1
+            ctx.drawImage(playersprite,0,0,32,32,50,pl_y,30,30)
+          else
+            ctx.drawImage(playersprite,32,0,32,32,50,pl_y,30,30)
+
+          #console.log pl_y
+          if player.immortality > 0
+            ctx.fillText('shield',50,pl_y+30)
         else
-          #console.log window.gameaudio.score1
-          window.gameaudio.score1.play()
-  world.pipes.forEach (pipe)->
-    pipe.x -= speed
+          ctx.fillStyle = player.color
+          ctx.fillText(player.name,currentpipe_x,pl_y-15)
+          ctx.drawImage(playersprite,32*3,0,32,32,currentpipe_x,pl_y,30,30)
+          #ctx.fillRect(pipes[0].x,positions.playerpositions[player.id][0],15,15)
+          ctx.fillText('SPLAT',50,pl_y+30)
 
-  setDataNamed 'positions', positions
-  world
+  #Apply gravity to birds and check if they are colliding
+  # Also move world forward by speed and generate new pipes
+  # if they are off screen
+  simulate_world = (world)->
+    positions = getDataNamed 'positions'
+    world.x += world.constants.speed
+    if world.players
+      world.players.forEach (player)->
+        if player.alive
+          y = positions.playerpositions[player.id][0]
+          yv = positions.playerpositions[player.id][1]
+          positions.playerpositions[player.id][1] = yv - world.constants.gravity
+          y = positions.playerpositions[player.id][0] += positions.playerpositions[player.id][1]
+          player.immortality -= world.constants.tickspeed/1000
+          groundCrash = y + 15 > gamecanvas.height-world.constants.gamefloor
+          if groundCrash ||
+          (world.pipes[0].x < 65 && world.pipes[0].x > 0) &&
+          (y + 15 > world.pipes[0].y + world.constants.gap_size || y < world.pipes[0].y)
+
+            if player.immortality < 0
+              player.alive = false
+              #console.log window.gameaudio
+              window.gameaudio.score1.pause()
+              window.gameaudio.score1.currentTime = 0
+              if groundCrash then window.gameaudio.crashG.play() else window.gameaudio.crashW.play()
+        else
+          positions.playerpositions[player.id][1] = 0
+
+
+    if world.pipes[0].x < 0 - world.constants.gap_size
+        world.pipes.shift()
+        world.pipes.push({x:world.pipes[world.pipes.length-1].x+world.constants.spacing,y:Math.random()*(world.constants.gameheight-250)+75})
+        if world.players
+          world.players.forEach (player)->
+            player.score += 1
+            #Respawn the player
+            if not player.alive
+              player.alive = true
+              positions.playerpositions[player.id][0] = 200
+              player.score = 0
+              player.immortality = 2
+            else
+              #console.log window.gameaudio.score1
+              window.gameaudio.score1.play()
+    world.pipes.forEach (pipe)->
+      pipe.x -= world.constants.speed
+
+    setDataNamed 'positions', positions
+    world
 
 #+END_SRC

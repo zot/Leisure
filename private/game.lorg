@@ -1,4 +1,4 @@
-* Intro
+* Leisure Intro
 Leisure documents are a combination of runtime, development, and debug environments
 all rolled into one.  A Leisure doc can contain any sort of web application,
 say a classic game like Connect Four...
@@ -19,16 +19,15 @@ say a classic game like Connect Four...
 :note: sidebar
 :end:
 [[org:user1/userName]][[org:board1]][[org:board1/playerList]]
-* Data
+* Shared Data
 :properties:
 :hidden: true
 :end:
-This is the shared Connect Four board data. This block is a YAML data block
-which means you can define any data types easily in plain text.  Since it's
-a shared block, any changes are automagically synced up to all players.
-- w = white
-- b = black
-- r = red
+The larger block is the shared Connect Four board data. This block is a YAML data block which means you can define any
+data types easily in plain text.  Since it's a shared block, any changes are automagically synced up to all players.
+
+w = white, b = black, r = red
+
 #+NAME: board1
 #+BEGIN_SRC yaml :flowLevel 2
 type: board
@@ -44,9 +43,6 @@ rows: 6
 players: []
 turn: 0
 #+END_SRC
-
-This data block is for the current user, so it's flagged as a local data
-element and is not shared between players.
 #+NAME: user1
 #+BEGIN_SRC yaml :local
 type: user
@@ -55,19 +51,23 @@ number: -1
 name: Anonymous
 #+END_SRC
 
+The smaller data block is for the current user, so it's flagged as a local data element and is not shared between players.
+
+The code ties these together; type in a name above the board to see them both update, as well as the "Players" list under the board.
+
 * Views
 :properties:
 :hidden: true
 :end:
 
-Views aka Widgets let you build a templated UI for various components of your
-application. They use the Handlebars library for powerful semantic templates.
+Views aka Widgets let you build a templated UI for various components of your application. They use the
+Handlebars library for powerful semantic templates.
 
-Leisure supports HTML blocks where you can insert any HTML you need to create
-your application.  But since it's also templated, you can define a view that
-takes an object and using templating, dynamically alter the HTML as needed.
+Leisure supports HTML blocks where you can insert any HTML you need to create your application.  But since it's also
+templated, you can define a view that takes an object and using templating, dynamically alter the HTML as needed.
 
 Here we create a simple view for letting players type in their name and start a new game.
+
 #+BEGIN_SRC html :defview user/userName
 <table style='width: 100%; white-space: nowrap'>
   <tr>
@@ -80,9 +80,14 @@ Here we create a simple view for letting players type in their name and start a 
 </table>
 #+END_SRC
 
-Create a view to display the game board.  The templating is powerful enough
-to loop over multiple dimensional arrays, and even call out to custom functions
-you can define on your own if required.
+* Templates
+:properties:
+:hidden: true
+:end:
+
+Create a view to display the game board.  The templating is powerful enough to loop over multi-dimensional
+arrays and even call out to custom functions you can define on your own if required.
+
 #+BEGIN_SRC html :defview board
 <div board onmousedown='App.handleClick(event)'>
   <div id='boardDiv'>
@@ -113,12 +118,12 @@ you can define on your own if required.
 :hidden: true
 :end:
 
-Leisure supports multiple web languages, Javascript, CoffeeSript, and of course,
-our namesake functional language called Leisure.  This demo is using CoffeeScript.
+Leisure supports multiple web languages, Javascript, CoffeeSript, and of course, our namesake functional language
+called Leisure.  This demo is using CoffeeScript.
 
-As we just mentioned on the previous slide, we can create a custom Handlebars
-helper to compute the style to be used for displaying each player's name.
-At last, we get to do some actual coding!
+As we just mentioned on the previous slide, we can create a custom Handlebars helper to compute the style to be
+used for displaying each player's name.  At last, we get to do some actual coding!
+
 #+BEGIN_SRC coffee :results def
 Handlebars.registerHelper 'userStyle', (index)->
   color = if index % 2 == 0 then 'black' else 'red'
@@ -126,8 +131,8 @@ Handlebars.registerHelper 'userStyle', (index)->
   else "color: #{color}; background-color: white"
 #+END_SRC
 
-Finally, we need to add some audio controls for sound effects by inserting some
-HTML for the audio controls required.
+Finally, we need to add some audio controls for sound effects by inserting some HTML for the audio controls required.
+
 #+BEGIN_HTML
 <div style='padding-left: 5ex; color: orange'>
   <i>HIDDEN AUDIO ELEMENTS HERE THAT LOOK LIKE THESE</i><br>
@@ -142,12 +147,12 @@ HTML for the audio controls required.
 :properties:
 :hidden: true
 :end:
-
 Data Observers are special code blocks that trigger whenever an object changes.
 
-This code block is flagged as an observer, that means it will be triggered when the
-local user object has been modified.  We need to update the player's data in the
-shared board's list of players.  It will then propagate out to all other players.
+This code block is flagged as an observer, that means it will be triggered when the local user object has been modified.
+We need to update the player's data in the shared board's list of players.  It will then propagate out to all other
+players.
+
 #+BEGIN_SRC coffee :results def :observe user
 @update = App.updateUser = (user)->
   board = Leisure.getDataNamed 'board1'
@@ -155,8 +160,9 @@ shared board's list of players.  It will then propagate out to all other players
   Leisure.setDataNamed 'board1', board
 #+END_SRC
 
-This observer code block keeps the shared board valid, making sure the board is a proper
-size and each element has a legal value.
+This observer code block keeps the shared board valid, making sure the board is a proper size and each element has a
+legal value.
+
 #+BEGIN_SRC coffee :results def :observe board
 @update = (board, block)->
   user = Leisure.getDataNamed 'user1'
@@ -175,17 +181,15 @@ size and each element has a legal value.
       if !(board.pieces[row][col] in 'wrb') then (changed = board).pieces[row][col] = 'w'
   if changed then Leisure.setDataNamed 'board1', board
 #+END_SRC
-
-
 * Game play
 :properties:
 :hidden: true
 :end:
 
-Now that the data and views are squared away, we need to write the actual code
-for our application.
+Now that the data and views are squared away, we need to write the actual code for our application.
 
 As a turn-based game, we need to track whose turn it is at any point in time.
+
 #+BEGIN_SRC coffee :results def
 App.isPlayersTurn = (index)->
   board = Leisure.getDataNamed 'board1'
@@ -193,6 +197,7 @@ App.isPlayersTurn = (index)->
 #+END_SRC
 
 Reset the game board for a new game
+
 #+BEGIN_SRC coffee :results def
 App.newGame = (node)->
   data = Leisure.getDataNamed 'board1'
@@ -203,7 +208,9 @@ App.newGame = (node)->
 #+END_SRC
 
 Process a player clicking the board and provide audio feedback
+
           [[http://imgs.xkcd.com/comics/incision.png][At one point, by force of childhood habit, the doctor accidentally removed three or four organs.]]
+
 #+BEGIN_SRC coffee :results def
 App.handleClick = (e)->
   sound = if App.takeTurn e then '#clickSound' else '#buzzerSound'
@@ -211,6 +218,7 @@ App.handleClick = (e)->
 #+END_SRC
 
 Add a piece to the board on the column clicked (if there's room for it) Return success or failure
+
 #+BEGIN_SRC coffee :results def
 App.takeTurn = (e)->
   user = Leisure.getDataNamed 'user1'
@@ -227,15 +235,16 @@ App.takeTurn = (e)->
 :properties:
 :hidden: true
 :end:
-
 Set the game attribute so we can float the board
+
 #+BEGIN_SRC coffee :results def
 App.hookupTable = ->
   $(Templating.currentViewLink).closest("[data-org-headline='1']").attr 'game', ''
 #+END_SRC
 
-Each time a new player connects, we need to initialize them and add them into the game
-Just use a random delay to prevent contention, for now
+Each time a new player connects, we need to initialize them and add them into the game Just use a random delay to
+prevent contention, for now.
+
 #+BEGIN_SRC coffee :results def
 user = Leisure.getDataNamed 'user1'
 if user.number == -1
@@ -250,11 +259,10 @@ if user.number == -1
 :properties:
 :hidden: true
 :end:
-
 Splice in some special CSS for the board so it floats and looks nice with diff themes
+
 #+BEGIN_SRC coffee :results def
-$(document.head).prepend """
-<style>
+Leisure.addStyles 'gameBoard', """
 [game] {
   position: fixed !important;
   top: 50px !important;
@@ -280,15 +288,13 @@ $(document.head).prepend """
 .slides .slideholder.firstSlide:not(.currentSlide) > [game] {
   display: inherit;
 }
-</style>
 """
 #+END_SRC
 
 
 Styles for views
 #+BEGIN_SRC coffee :results def
-$(document.head).prepend """
-<style>
+Leisure.addStyles 'viewStyles', """
   * /deep/ input[data-value='name'] {
     width: 100%;
     margin-left: 5px;
@@ -296,11 +302,14 @@ $(document.head).prepend """
   }
   * /deep/ #boardDiv {
     background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat;
-    padding: 10px;
+    padding: 8px;
     display: inline-block;
   }
   * /deep/ #boardDiv table {
     text-align: center;
+  }
+  * /deep/ #boardDiv td {
+    padding: 5px;
   }
   * /deep/ #boardDiv img {
     vertical-align: middle;
@@ -311,12 +320,10 @@ $(document.head).prepend """
   * /deep/ .user {
     padding: 10px;
   }
-</style>
 """
 #+END_SRC
 
-Adjust Leisure settings on startup
-Delay so it happens after the page draws
+Adjust Leisure settings on startup.  Delay so it happens after the page draws
 
 #+BEGIN_SRC coffee :results def
 setTimeout (->
