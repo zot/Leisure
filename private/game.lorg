@@ -23,9 +23,9 @@ say a classic game like Connect Four...
 :properties:
 :hidden: true
 :end:
-This is the global Connect Four board data. This block is a YAML data block
+This is the shared Connect Four board data. This block is a YAML data block
 which means you can define any data types easily in plain text.  Since it's
-a global block, any changes are automagically synced up to all players.
+a shared block, any changes are automagically synced up to all players.
 - w = white
 - b = black
 - r = red
@@ -113,8 +113,8 @@ you can define on your own if required.
 :hidden: true
 :end:
 
-Leisure supports multiple web languages, Javascript, Coffeescript, and of course,
-our name sake functional language called Leisure.  This demo is using Coffeescript.
+Leisure supports multiple web languages, Javascript, CoffeeSript, and of course,
+our namesake functional language called Leisure.  This demo is using CoffeeScript.
 
 As we just mentioned on the previous slide, we can create a custom Handlebars
 helper to compute the style to be used for displaying each player's name.
@@ -130,7 +130,7 @@ Finally, we need to add some audio controls for sound effects by inserting some
 HTML for the audio controls required.
 #+BEGIN_HTML
 <div style='padding-left: 5ex; color: orange'>
-  <i>HIDDEN AUDIO ELEMENTS HERE</i><br>
+  <i>HIDDEN AUDIO ELEMENTS HERE THAT LOOK LIKE THESE</i><br>
   &lt;audio id="clickSound" src="sounds/click.wav">&lt;/audio><br>
   &lt;audio id="buzzerSound" src="sounds/buzz.wav">&lt;/audio>
 </div>
@@ -143,12 +143,11 @@ HTML for the audio controls required.
 :hidden: true
 :end:
 
-Data Observers are special code blocks meant to be triggered whenever an object
-changes.
+Data Observers are special code blocks that trigger whenever an object changes.
 
 This code block is flagged as an observer, that means it will be triggered when the
 local user object has been modified.  We need to update the player's data in the
-global board's list of players.  It will then propagate out to all other players.
+shared board's list of players.  It will then propagate out to all other players.
 #+BEGIN_SRC coffee :results def :observe user
 @update = App.updateUser = (user)->
   board = Leisure.getDataNamed 'board1'
@@ -156,8 +155,8 @@ global board's list of players.  It will then propagate out to all other players
   Leisure.setDataNamed 'board1', board
 #+END_SRC
 
-This observer code block keeps global the board valid, making sure the board is a proper
-size and each element has a proper default value.
+This observer code block keeps the shared board valid, making sure the board is a proper
+size and each element has a legal value.
 #+BEGIN_SRC coffee :results def :observe board
 @update = (board, block)->
   user = Leisure.getDataNamed 'user1'
@@ -186,7 +185,7 @@ size and each element has a proper default value.
 Now that the data and views are squared away, we need to write the actual code
 for our application.
 
-As a turn based game, we need to track whose turn it is at any point in time.
+As a turn-based game, we need to track whose turn it is at any point in time.
 #+BEGIN_SRC coffee :results def
 App.isPlayersTurn = (index)->
   board = Leisure.getDataNamed 'board1'
@@ -318,6 +317,7 @@ $(document.head).prepend """
 
 Adjust Leisure settings on startup
 Delay so it happens after the page draws
+
 #+BEGIN_SRC coffee :results def
 setTimeout (->
   Leisure.toggleLeisureBar()
