@@ -87,7 +87,7 @@ ATTR_NAME = 1
 attrHtmlRE = /^#\+(ATTR_HTML): *$/im
 attrHtmlLineRE = /^([:|] .*)(?:\n|$)/i
 imagePathRE = /\.(png|jpg|jpeg|gif|svg|tiff|bmp)$/i
-orgPathRE = /^org:([^/]*)\/?(.*)$/
+leisurePathRE = /^leisure:([^/]*)\/?(.*)$/
 keywordPropertyRE = /:([^ ]+)/
 
 matchLine = (txt)->
@@ -299,7 +299,7 @@ class Link extends Meat
     children: (c.toJsonObject() for c in @children)
   scan: Node.prototype.scanWithChildren
   isImage: -> @path.match imagePathRE
-  isOrg: -> @path.match orgPathRE
+  isLeisure: -> @path.match leisurePathRE
   descriptionText: -> (child.allText() for child in @children).join ' '
 
 class ListItem extends Meat

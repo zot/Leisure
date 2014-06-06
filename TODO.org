@@ -1,4 +1,5 @@
 * Short list -- screencast
+- add CSS language support
 - try to fix test cases!!!
 - script screencast -- screencast.lorg
 - go through old slides
@@ -24,6 +25,10 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- switch to cuetom elements for markup?
+  - x-tags for polyfills
+  - make org-based widgets
+  - use switch for plain/fancy
 - switch to object.observe() for change monitoring
 - flip editable content into shadow dom
   - keep HTML/etc in regular dom

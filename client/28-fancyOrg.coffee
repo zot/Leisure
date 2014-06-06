@@ -366,9 +366,9 @@ markupAttr = (org)->
   "<span class='hidden'>#{org.text}</span>"
 
 markupLink = (org)->
-  if orgMatch = org.isOrg()
-    viewName = if orgMatch[2] then " data-view-name='#{orgMatch[2]}'" else ''
-    "<span data-view-link='#{orgMatch[1]}'#{viewName}><span class='hidden'>#{org.allText()}</span></span>"
+  if leisureMatch = org.isLeisure()
+    viewName = if leisureMatch[2] then " data-view-name='#{leisureMatch[2]}'" else ''
+    "<span data-view-link='#{leisureMatch[1]}'#{viewName}><span class='hidden'>#{org.allText()}</span></span>"
   else if org.isImage()
     title = (if desc = org.descriptionText() then " title='#{escapeAttr desc}'" else "")
     "<span><img src='#{escapeAttr org.path}'#{title}><span class='hidden'>#{escapeHtml org.allText()}</span></span>"
@@ -1639,17 +1639,18 @@ fancyOrg =
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]
       createTemplateRenderer type, root.viewTypeData[type], true, (data, target)->
+        target.shadow()
+          .addClass(theme)
+          .addClass($('body').hasClass('bar_collapse') && 'bar_collapse')
+          .prepend("<style>@import 'shadow.css';</style>")
+          .css('white-space', 'normal')
+          .css('user-select', 'none')
+          .css('-webkit-user-select', 'none')
+          .css('-moz-user-select', 'none')
+          .find('button')
+          .button()
         for shadow in target.shadow()
-          $(shadow).
-            prepend("<style>@import 'shadow.css';</style>").
-            css('white-space', 'normal').
-            css('user-select', 'none').
-            css('-webkit-user-select', 'none').
-            css('-moz-user-select', 'none')
-          if theme != null then $(shadow).addClass(theme)
-          if $("body").hasClass 'bar_collapse' then $(shadow).addClass('bar_collapse')
           bindWidgets shadow
-          $(shadow).find('button').button()
       dataType = type.match /([^/]*)\/?(.*)?/
       restorePosition null, ->
         for node in $("[data-yaml-type='#{dataType[1]}']")

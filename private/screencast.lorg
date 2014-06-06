@@ -2,20 +2,30 @@
 * TRY TO PUT SCRIPT INTO game.lorg -- maybe put pin button back on game
 * ALLOW VIEWS TO RENDER EITHER IN RESULTS OR ENTIRE BLOCK
 
-* This is Leisure, a document-based computing environment that runs on the web
-1 minute
+REDO THIS SECTION
+* When I was a kid, computers were toys
+** I got to program in Smalltalk for about 14 years and comptures were fun, again
+** Then, for various important reasons, I couldn't use Smalltalk at work anymore
+** Now, I want the fun back
+** This is Leisure, a document-based computing environment that runs on the web
+** Inspired by Dynabook, Symoblics Lisp Machine, Smalltalk, Oberon, Mathematica...
+** Trying to produce documents that function as virtual machines
+** We want to awaken a sense of wonder and potential in kids
 ** Leisure documents can contain rich, interactive content as well as code and data
 ** They're also persistent -- they remember changes you make
-** So each Leisure document acts like its own tiny virtual machine
 ** Leisure documents can be multiuser web applications, like this game
 ** Each user can use the Leisure bar to change Leisure's theme (leisure bar)
 ** And documents can set their own default theme
-* You can expose code and data to the user
-** This is the Leisure bar that controls the internals of the document
-** This button shows hidden code and data
-** (Use the Leisure bar to Reveal hidden code and data)
-*** (hover over the wrench to show the hidden attribute)
+* DONE Leisure can expose code and data to the user
+  CLOSED: [2014-06-06 Fri 19:43]
 ** Small overview of code block types (pin board)
+*** Player name view
+**** data updates when the user types in the input field
+**** field updates when the data changes
+**** View layouts dynamically update, as well
+**** (Put "Player" in front of "Name")
+**** Bret Victor value sliders
+***** (change view padding)
 *** this is the data behind the game board
 **** Data is human readable (YAML format)
 **** It's easy to see what's going on
@@ -26,20 +36,18 @@
 *** observer code that updates when user data changes
 **** plugs the user name into the playerNames list
 **** (change name)
-*** two views which update when local or board data change
-**** View layouts dynamically update, as well
-**** (Put "Aweseome" in front of "Name")
-**** Bret Victor value sliders
-***** (change view padding)
-* Leisure documents are automatically collaborative
+* DONE Leisure documents are automatically collaborative
+  CLOSED: [2014-06-06 Fri 19:43]
 ** There's normally no difference between development and runtime
 ** So you can collaboratively use and develop Leisure documents
 ** Here is some local data
 *** it's initialized from the document
 *** it persists in browser storage
 *** changes aren't sent to the server
-* Clicking the Leisure button once presents the documents as slides
-* Leisure uses Org file format
+* DONE Clicking the Leisure button once presents the documents as slides
+  CLOSED: [2014-06-06 Fri 19:43]
+* DONE Leisure uses Org file format
+  CLOSED: [2014-06-06 Fri 19:43]
 ** Clicking the Leisure button another time shows the org file source of the whole document
 ** Clicking the Leisure button a third time cycles back to fancy mode
 ** In fancy mode, you can show source for a single slide
@@ -49,7 +57,8 @@
 *** (Show Data slide source)
 **** mention 'hidden' property
 *** You can edit the document in either type of view
-** You can drop images
+** DONE You can drop images
+   CLOSED: [2014-06-06 Fri 19:42]
 *** Show intro slide source in another page
 *** Show third page with another picture connect 4
 *** Dropping an image into the fancy page updates the source
@@ -69,6 +78,14 @@
 ** show ASTs
 ** code can change the Leisure environment (uncomment theme setting)
 
+
+
+* Times
+- intro: 1:13
+- views and data: 3:53
+- collaboration: 2:17
+- source: 0:39
+- hiddenAndImageDrop: 1:37
 
 
 
