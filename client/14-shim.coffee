@@ -16,6 +16,6 @@ for k,v of Org
 window.Lodash = require 'lodash.min'
 
 jQuery.prototype.shadow = ->
-  @
-    .map (i, el)-> el.shadowRoot?.firstChild
-    .filter (el)-> el?
+  res = $()
+  @.each (i, el)-> if el.shadowRoot? then res = res.add el.shadowRoot.children
+  res
