@@ -59,6 +59,7 @@
 
     setShadowHtml = (holder, html, noactivate)->
       if !(el = holder.shadowRoot)
+        holder.setAttribute 'data-shadowholder', 'true'
         el = holder.createShadowRoot()
         el.applyAuthorStyles=true
       el.innerHTML = "<span></span>"
@@ -66,6 +67,10 @@
       $(el.firstChild).attr 'data-shadowdom', 'true'
       if !noactivate then activateScripts el.firstChild
       el.firstChild
+
+    clearShadow = (holder)->
+      #if holder.shadowRoot then holder.shadowRoot.innerHTML = ''
+      setShadowHtml holder, ''
 
     getDeepestActiveElement = ->
       el = document.activeElement
@@ -75,6 +80,7 @@
 
     root.createTemplateRenderer = createTemplateRenderer
     root.setShadowHtml = setShadowHtml
+    root.clearShadow = clearShadow
     root.viewMarkup = viewMarkup
     root.escapeHtml = escapeHtml
     root.getDeepestActiveElement = getDeepestActiveElement

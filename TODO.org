@@ -25,7 +25,8 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
-- switch to cuetom elements for markup?
+- hide/show code blocks/block comments
+- switch to custom elements for markup?
   - x-tags for polyfills
   - make org-based widgets
   - use switch for plain/fancy

@@ -2,23 +2,29 @@
 * TRY TO PUT SCRIPT INTO game.lorg -- maybe put pin button back on game
 * ALLOW VIEWS TO RENDER EITHER IN RESULTS OR ENTIRE BLOCK
 
-REDO THIS SECTION
-* When I was a kid, computers were toys
-** I got to program in Smalltalk for about 14 years and comptures were fun, again
-** Then, for various important reasons, I couldn't use Smalltalk at work anymore
-** Now, I want the fun back
-** This is Leisure, a document-based computing environment that runs on the web
-** Inspired by Dynabook, Symoblics Lisp Machine, Smalltalk, Oberon, Mathematica...
-** Trying to produce documents that function as virtual machines
+* DONE When I was a kid, I thought computers were toys
+  CLOSED: [2014-06-07 Sat 13:54]
+** A lot has changed, since then
+** We want to make computing fun, again
 ** We want to awaken a sense of wonder and potential in kids
+** You might say that we want to make a personal computer for children of all ages
+** A free computer that doesn't require any setup, where it's easy to see what's going on
+** So we created Leisure, a document-based computing environment that runs on the web
+** Inspired by Dynabook, Symoblics Lisp Machine, Smalltalk, Oberon, Mathematica, and other systems
+** Leisure allows people to produce and host documents that are like tiny virtual machines
 ** Leisure documents can contain rich, interactive content as well as code and data
 ** They're also persistent -- they remember changes you make
+** Leisure lets people peek under the hood and watch the data as it changes, right in the document
+** They can fiddle with things or add to them
+** But Leisure isn't just about functionality, it's also about form
+** We want people to be able to make nice things with it; things they can be proud of
+* DONE So, what does Leisure actually do?
+  CLOSED: [2014-06-07 Sat 17:53]
 ** Leisure documents can be multiuser web applications, like this game
 ** Each user can use the Leisure bar to change Leisure's theme (leisure bar)
+** (show leisure bar)
 ** And documents can set their own default theme
-* DONE Leisure can expose code and data to the user
-  CLOSED: [2014-06-06 Fri 19:43]
-** Small overview of code block types (pin board)
+** Let's look at how Leisure lets people peek under the hood with little tour of the parts of a document
 *** Player name view
 **** data updates when the user types in the input field
 **** field updates when the data changes
@@ -37,17 +43,18 @@ REDO THIS SECTION
 **** plugs the user name into the playerNames list
 **** (change name)
 * DONE Leisure documents are automatically collaborative
-  CLOSED: [2014-06-06 Fri 19:43]
+  CLOSED: [2014-06-07 Sat 19:07]
 ** There's normally no difference between development and runtime
 ** So you can collaboratively use and develop Leisure documents
 ** Here is some local data
 *** it's initialized from the document
 *** it persists in browser storage
 *** changes aren't sent to the server
+*** you need this for personalized behavior
 * DONE Clicking the Leisure button once presents the documents as slides
   CLOSED: [2014-06-06 Fri 19:43]
 * DONE Leisure uses Org file format
-  CLOSED: [2014-06-06 Fri 19:43]
+  CLOSED: [2014-06-07 Sat 13:35]
 ** Clicking the Leisure button another time shows the org file source of the whole document
 ** Clicking the Leisure button a third time cycles back to fancy mode
 ** In fancy mode, you can show source for a single slide
@@ -57,36 +64,44 @@ REDO THIS SECTION
 *** (Show Data slide source)
 **** mention 'hidden' property
 *** You can edit the document in either type of view
-** DONE You can drop images
-   CLOSED: [2014-06-06 Fri 19:42]
+** You can drop images
 *** Show intro slide source in another page
 *** Show third page with another picture connect 4
 *** Dropping an image into the fancy page updates the source
-** documents are actually virtual
-*** broken into chunks called "data blocks"
-*** stored in a database and shared
-*** allow efficient in-place updating
-*** data that's not in view doesn't have to be rendered to the user
-*** scalable
-*** data blocks can contain metedata, like preparsed information
-* Besides standard languages like JavaScript and CoffeeScript, Leisure provides its own language
+* DONE documents are actually virtual
+  CLOSED: [2014-06-07 Sat 19:16]
+** broken into chunks called "data blocks"
+** stored in a database and shared collaboratively
+** Here's an illustration
+*** show source
+*** open second window
+*** change source, see fancy page update
+** allow efficient in-place updating
+** data that's not in view doesn't have to be rendered to the user
+** scalable
+** data blocks can contain metadata, like preparsed information
+* TODO Besides standard languages like JavaScript and CoffeeScript, Leisure provides its own language
 ** Dynamically typed, lazy, pure, functional, homoiconic language with metaprogramming
+** metaprogramming includes macros and modular syntax packs
+*** infix notation is implemented as a syntax pack
 ** See results in the document (with JavaScript and CoffeeScript available soon)
+** Display partial application
+** show AST -- update with edits?
+** Test cases
 ** graphical values
 ** Infinite streams
-** Display partial application
-** show ASTs
 ** code can change the Leisure environment (uncomment theme setting)
 
 
 
 * Times
-- intro: 1:13
-- views and data: 3:53
-- collaboration: 2:17
+- intro: 1:14
+- views and data: 6:16
+- collaboration: 2:35
 - source: 0:39
 - hiddenAndImageDrop: 1:37
-
+- virtual files 2:18
+- transition 0:37
 
 
 * development features

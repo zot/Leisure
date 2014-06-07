@@ -266,7 +266,7 @@ Leisure.addStyles 'gameBoard', """
   position: fixed !important;
   top: 50px !important;
   right: 10px !important;
-  z-index: 1 !important;
+  z-index: 10000 !important;
 }
 .slides [game] { left: auto !important; }
 .googie.slides [game] { top: 200px !important; }
@@ -329,5 +329,6 @@ setTimeout (->
   Leisure.toggleLeisureBar()
   Leisure.setTheme 'googie'
   Leisure.toggleSlides()
-  Leisure.toggleShowHidden()), 1
+  #Leisure.toggleShowHidden()
+  ), 1
 #+END_SRC

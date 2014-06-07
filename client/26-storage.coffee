@@ -139,7 +139,7 @@ redrawIssue = (issue)->
       root = name[0].createShadowRoot()
       root.applyAuthorStyles=true
     console.log "first gravatar: #{issue.comments[0].gravatar_id}"
-    name[0]?.shadowRoot.innerHTML = "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}"
+    setShadowHtml name[0], "#{commentHtml issue, 'main'}#{(commentHtml c, 'added' for c in issue.comments).join ''}"
 
 commentHtml = (comment, type)->
   "<div class='commentbox'><img src='http://gravatar.com/avatar/#{comment.user.gravatar_id}?s=48'><div class='#{type}'>#{comment.body}</div></div>"

@@ -439,11 +439,14 @@ nextOrgNode = (node)->
 #
 # Parse the content of an orgmode file
 #
-parseOrgMode = (text, offset)->
+parseOrgMode = (text, offset, useFragment)->
   if text instanceof Node then text
   else
     [res, rest] = parseHeadline '', offset ? 0, 0, undefined, undefined, undefined, text, text.length
     if rest.length then throw new Error("Text left after parsing: #{rest}")
+    if useFragment
+      if res.children.length == 1 then res = res.children[0]
+      else if res.children.length > 1 then res = new Fragment res.offset, res.children
     res.linkNodes()
 
 parseHeadline = (text, offset, level, todo, priority, tags, rest, totalLen)->

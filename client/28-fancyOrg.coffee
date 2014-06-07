@@ -116,6 +116,7 @@ yaml = root.yaml
   markupData,
   orgForNode,
   plainOrg,
+  blockElementForNode,
 } = require '24-orgSupport'
 {
   redrawAllIssues,
@@ -138,6 +139,7 @@ yaml = root.yaml
   escapeHtml,
   getDeepestActiveElement,
   setShadowHtml,
+  clearShadow,
   viewMarkup,
 } = Templating # require '27-templating'
 _ = require 'lodash.min'
@@ -227,7 +229,7 @@ getDocRange = ->
 restoreDocRange = (parent, [start, end, offset, noteId])->
   if noteId
     noteNode = $("[data-org-note-instances~='#{noteId}']")[0]
-    parent = $(noteNode.shadowRoot.firstChild).find("##{noteId}")[0]
+    parent = $(noteNode).shadow().find("##{noteId}")[0]
   [startContainer, startOffset] = findDomPosition parent, start, true
   [endContainer, endOffset] = findDomPosition parent, Math.min(end, parent.textContent.length - 1), true
   r = document.createRange()
@@ -694,14 +696,15 @@ selectPrevious = (node)->
 replaceCodeBlock = (node, text)->
   newNode = null
   restorePosition null, ->
-    newNode = $(markupNewNode parseOrgMode(text).children[0], false, true)[0]
+    org = parseOrgMode text, 0, true
+    org.nodeId = $(node)[0].id
+    org.shared = 'code'
+    newNode = $(markupNewNode org, false, true)[0]
     $(node).replaceWith(newNode)
     edited newNode
-    for n in findOrIs findOrIs($(newNode), "[data-lang='leisure']"), '[data-org-src]'
-      recreateAstButtons n
-      createValueSliders n, leisureNumberSlider
     for n in $(newNode).find('.resultscontent')
       reprocessResults n
+    fixupHtml blockElementForNode newNode
     setTimeout (=>
       nn = $(newNode)
       (if nn.is('.codeblock') then nn else nn.find('.codeblock')).addClass 'ready'
@@ -884,9 +887,9 @@ codeBlockForNode = (node)->
 
 createTestCase = (evt)->
   restorePosition null, ->
-    console.log evt.target
     node = codeBlockForNode evt.target
     selectPrevious node
+    setCodeView evt.target, 'testcase'
     text = node.textContent
     rest = text
     while match = rest.match drawerRE
@@ -902,8 +905,7 @@ createTestCase = (evt)->
         start = (if drawer then drawer else results).offset
         end = (if drawer then drawer.offset + drawer.text.length else results.offset)
         src = parseOrgMode(text).children[0]
-        pre = changeResultType text.substring(0, start), (if resultsType(src) == 'dynamic' then 'autotest' else 'test')
-        setCodeView evt.target, 'testcase'
+        pre = text.substring 0, start
         #return replaceCodeBlock node, pre + newExpectation + text.substring end
         return replaceCodeBlock $("##{node.id}"), pre + newExpectation + text.substring end
     alert('You have to have results in order to make a test case')
@@ -1196,15 +1198,13 @@ checkTestResults = (node)->
 
 reprocessResults = (node)->
   if node.firstChild.shadowRoot
-    node.firstChild.shadowRoot.innerHTML = ''
-    node.firstChild.shadowRoot.applyAuthorStyles = true
+    clearShadow node.firstChild
   processResults node.firstChild.nextElementSibling.textContent, node, true
 
 processResults = (str, node, skipText)->
   if !node.firstChild.shadowRoot
-    node.firstChild.createShadowRoot()
-    node.firstChild.shadowRoot.applyAuthorStyles = true
-  shadow = node.firstChild.shadowRoot
+    setShadowHtml node.firstChild, ''
+  shadow = $(node.firstChild).shadow()[0]
   if !skipText
     node.firstChild.nextElementSibling.textContent += escapePresentationHtml(str.substring 0, str.length - 1) + str[str.length - 1]
     edited node
@@ -1213,7 +1213,6 @@ processResults = (str, node, skipText)->
   if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
   for line in splitLines str
     if line.match /^: / then shadow.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
-  $(shadow.firstChild).attr 'data-shadowdom', 'true'
 
 redrawIssue = (issue)->
   issueName = issue.leisureName
@@ -1235,7 +1234,7 @@ newCommentBox = (name, codeId)->
 colonify = (str)-> ': ' + (str.replace /[\n\\]/g, (c)-> if c == '\n' then '\\n' else '\\\\') + '\n'
 
 clearResults = (node)->
-  if (r = node.firstChild.shadowRoot) then r.innerHTML = ''
+  clearShadow node.firstChild
   node.firstChild.nextElementSibling.innerHTML = ''
 
 # like orgSupport's orgEnv, but wrap the leading ': ' in hidden spans
@@ -1326,13 +1325,13 @@ getSlides = (parent)->
 setCurrentSlide = (element, noscroll)->
   element = $(element).closest '.slideholder'
   for node in $('.currentSlide')
-    if node.shadowRoot then $(node.shadowRoot.firstElementChild).removeClass 'currentSlide'
+    if node.shadowRoot then $(node).shadow().removeClass 'currentSlide'
   $('.currentSlide').removeClass 'currentSlide'
   element.addClass 'currentSlide'
   if element.is('.firstSlide') then $("body").addClass 'firstSlide' else $("body").removeClass 'firstSlide'
   if element.is('.lastSlide') then $("body").addClass 'lastSlide' else $("body").removeClass 'lastSlide'
   # this is needed until there is support for :host (and/or ^ & ^^)
-  if element[0].shadowRoot then $(element[0].shadowRoot.firstElementChild).addClass 'currentSlide'
+  $(element).shadow().addClass 'currentSlide'
   Leisure.actualSelectionUpdate()
   if !noscroll then window.scrollTo 0, 0
 
@@ -1421,10 +1420,7 @@ applySlides = ->
 theme = null
 
 setTheme = (str)->
-  el = $('body')
-  all = $('[data-org-comments]').find(':first-child').add($('.resultscontent').find(':first-child')).add($('[data-org-html]').find(':first-child')).add($('[data-org-note-content]')).add('.slideholder')
-  for node in all
-    if node.shadowRoot then el = el.add(node.shadowRoot.firstElementChild)
+  el = $('[data-shadowholder]').shadow().add('body')
   if theme && theme != str then el.removeClass theme
   theme = str
   if str then el.addClass str
@@ -1528,11 +1524,13 @@ renderLink = (node, data)->
     descriptor = data._id
   if root.viewTypeData[viewKey] && markup = viewMarkup[viewKey]
     markup data.yaml, $(node)
-  else $(node.shadowRoot?.firstChild).remove()
-  node.shadowRoot?.firstChild.setAttribute 'data-view-id', data._id
-  node.setAttribute 'data-view-descriptor', descriptor
-  node.setAttribute 'data-view-key', viewKey
-  node.shadowRoot?.firstChild.setAttribute 'data-view-descriptor', descriptor
+  else clearShadow node
+  $(node)
+    .attr 'data-view-descriptor', descriptor
+    .attr 'data-view-key', viewKey
+    .shadow()
+      .attr 'data-view-id', data._id
+      .attr 'data-view-descriptor', descriptor
 
 viewBlock = (el)->
   if id = $(el).closest('[data-view-id]').attr('data-view-id')
@@ -1658,7 +1656,7 @@ fancyOrg =
   deleteView: (type)->
     delete viewMarkup[type]
     for node in $("[data-view-key='#{type}']")
-      $(node.shadowRoot?.firstChild).remove()
+      clearShadow node
   applyShowHidden: ->
     for node in $('.slideholder')
       if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
@@ -1707,7 +1705,7 @@ fixupHtml = (parent, note)->
   #      e.preventDefault()
   #      #root.currentMode.createNotes()
   setTimeout (=>
-    for node in $("[data-code-view]")
+    for node in $(parent).find("[data-code-view]")
       displayCodeView node
     for node in findOrIs $(parent), '[data-org-comments]'
       setShadowHtml node.firstElementChild, newCommentBox node.getAttribute('data-org-comments'), $(node.parentNode).find('.codeblock').attr 'id'
@@ -1717,7 +1715,7 @@ displayCodeView = (node)->
   if node
     if block = getBlock $(node).closest('[data-shared]')[0]?.id
       viewMarkup[node.getAttribute 'data-code-view']? block, $(node), true
-      $(node.shadowRoot.firstChild).attr 'data-view-id', block._id
+      $(node).shadow().attr 'data-view-id', block._id
 
 viewFor = (node)-> $("##{$(node).closest('[data-view-id]').attr 'data-view-id'}")
 
