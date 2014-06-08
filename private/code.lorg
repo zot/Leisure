@@ -54,7 +54,7 @@ setTheme 'googie'
 :hidden: true
 :end:
 #+BEGIN_SRC html :defview testcase
-<div onclick='Leisure.setCodeView(Leisure.viewFor(this))' class="ready" data-org-test="{{codeTestResult}}"></div>
+<div onclick='App.uncollapseTestCase(Leisure.viewFor(this))' class="ready" data-org-test="{{codeTestResult}}"></div>
 <script>
   Templating.currentViewLink.setAttribute('title', "<span>code = {{{result codeContent}}}<br>expected = {{{result codeTextExpected}}}<br>actual = {{{result codeTestActual}}}</span>");
   $(Templating.currentViewLink).tooltip();
@@ -67,4 +67,7 @@ Handlebars.registerHelper 'result', (string)->
   if string[string.length - 1] == '\n' then string = string.substring 0, string.length - 1
   if string.indexOf('\n') > -1 then '<br>  ' + string.replace /\n(: )?/, '<br>  '
   else string
+
+App.uncollapseTestCase = (div)->
+  Leisure.clearCodeAttributes div, 'view', 'observe'
 #+END_SRC

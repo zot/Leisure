@@ -33,6 +33,7 @@ Meteor-based collaboration -- client side
     nullHandlers = onsuccess: (->), onerror: ((e)-> console.log("ERROR:", e))
     codeContexts = {}
     observers = {}
+    observing = {}
     universalObservers = {}
     namedBlocks = {}
 
@@ -189,7 +190,7 @@ Handle changes to the doc nodes
         attr = data.codeAttributes ? {}
         if lang == 'html' && attr.defview
           viewTypeData[data.codeAttributes.defview] = codeString data
-          viewIdTypes[data._id] = data.codeAttributes.defview
+          viewIdTypes[data._id] = attr.defview
           delay -> root.orgApi.defineView data._id
         else if lang == 'yaml'
           if data.codeName then namedBlocks[data.codeName] = data._id
@@ -201,22 +202,25 @@ Handle changes to the doc nodes
             console.log err.stack
         else if attr.results?.toLowerCase() == 'def' && lang in ['coffeescript', 'coffee']
           try
-            if data.codeAttributes.observe
-              if data.codeAttributes.observe == '*' then universalObservers[data._id] = true
+            if universalObservers[data._id] then universalObservers[data._id] = null
+            for id in observing[data._id] || []
+              observers[id] = L(observers[id]).without(data._id).toArray()
+            if attr.observe?
+              if attr.observe == '*' then universalObservers[data._id] = true
               else
-                if !(o = observers[data.codeAttributes.observe])
-                  o = observers[data.codeAttributes.observe] = []
+                if !(o = observers[attr.observe])
+                  o = observers[attr.observe] = []
                 if !(data._id in o) then o.push data._id
               compileContext data._id, data
             else CoffeeScript.run codeString data
           catch err
             console.log err.stack
         else if lang == 'leisure'
-          if data.codeAttributes.observe
-            if data.codeAttributes.observe == '*' then universalObservers[data._id] = true
+          if attr.observe
+            if attr.observe == '*' then universalObservers[data._id] = true
             else
-              if !(o = observers[data.codeAttributes.observe])
-                o = observers[data.codeAttributes.observe] = []
+              if !(o = observers[attr.observe])
+                o = observers[attr.observe] = []
               if !(data._id in o) then o.push data._id
             codeContexts[data._id] =
               update: -> processLeisureBlock data

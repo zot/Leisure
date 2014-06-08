@@ -309,13 +309,28 @@ markupNewNode = (org, middleOfLine, delay, note, replace)->
   lastOrgOffset = -1
   markupNode org, middleOfLine, delay, note, replace
 
-setCodeView = (node, name)->
+getCodeAttribute = (node, attr)->
+  if (top = $(node).closest('[data-shared]'))[0]
+    getSourceAttribute top.find('[data-source-lead]').text(), attr
+
+setCodeAttributes = (node, attrs...)->
   if (top = $(node).closest('[data-shared]'))[0]
     lead = top.find('[data-source-lead]')
-    txt = lead.text()
-    newTxt = setSourceAttribute txt, 'view', name
-    if txt != newTxt
-      lead.text escapeHtml newTxt
+    oldTxt = txt = lead.text()
+    for [k, v] in L(attrs).chunk(2).toArray()
+      txt = setSourceAttribute txt, k, v
+    if txt != oldTxt
+      lead.text escapeHtml txt
+      edited top[0], true
+
+clearCodeAttributes = (node, attrs...)->
+  if (top = $(node).closest('[data-shared]'))[0]
+    lead = top.find('[data-source-lead]')
+    oldTxt = txt = lead.text()
+    for attr in attrs
+      txt = setSourceAttribute txt, attr
+    if txt != oldTxt
+      lead.text escapeHtml txt
       edited top[0], true
 
 markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
@@ -900,7 +915,9 @@ createTestCase = (evt)->
   restorePosition null, ->
     node = codeBlockForNode evt.target
     selectPrevious node
-    setCodeView evt.target, 'testcase'
+    attrs = ['view', 'testcase']
+    if !getCodeAttribute evt.target, 'observe' then attrs.push 'observe', '*'
+    setCodeAttributes evt.target, attrs...
     text = node.textContent
     rest = text
     while match = rest.match drawerRE
@@ -1151,7 +1168,6 @@ cancelAndReselect = (event, selection, oldRange, currentRange)->
   null
 
 getCodeContainer = (node)->
-  #node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
   $(node).closest("[data-org-src]")[0] || $(node).find("[data-org-src]")[0]
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
@@ -1632,7 +1648,6 @@ fancyOrg =
           presenter = emptyPresenter
         executeSource.call this, parent, node, ->
           recreateAstButtons code
-          #createValueSliders code, leisureNumberSlider
           if shouldRedrawAst then redrawAst code, pos
           if cont then cont()
   executeDef: fancyExecuteDef
@@ -1807,5 +1822,6 @@ root.setDataNamed = setDataNamed
 root.findLinks = findLinks
 root.findViews = findViews
 root.viewFor = viewFor
-root.setCodeView = setCodeView
+root.setCodeAttributes = setCodeAttributes
+root.clearCodeAttributes = clearCodeAttributes
 root.addStyles = addStyles
