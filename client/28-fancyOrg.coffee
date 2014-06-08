@@ -813,14 +813,11 @@ regularNumberSlider = (numberSpan)->
 recreateAstButtons = (node)->
   if !(top = $(node).closest('.codeblock')[0]) then return
   restorePosition top, ->
-    $(node).find('div').remove()
-    for num in $(node).find('.org-num')
-      unwrap num
+    $(node).find('[data-ast-offset]').remove()
     t = node.textContent
     chunk = /^[^ \n].*$/mg
     num = /(^|[^0-9.]+)([0-9][0-9.]*|\.[0-9.]+)/mg
     node.normalize()
-    rest = t
     mchunk = chunk.exec t
     cur = node.firstChild
     curStart = 0
@@ -1154,7 +1151,8 @@ cancelAndReselect = (event, selection, oldRange, currentRange)->
   null
 
 getCodeContainer = (node)->
-  node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
+  #node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
+  $(node).closest("[data-org-src]")[0] || $(node).find("[data-org-src]")[0]
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
   restorePosition null, -> checkSourceMod()
@@ -1634,7 +1632,7 @@ fancyOrg =
           presenter = emptyPresenter
         executeSource.call this, parent, node, ->
           recreateAstButtons code
-          createValueSliders code, leisureNumberSlider
+          #createValueSliders code, leisureNumberSlider
           if shouldRedrawAst then redrawAst code, pos
           if cont then cont()
   executeDef: fancyExecuteDef

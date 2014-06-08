@@ -80,8 +80,9 @@
 ** data that's not in view doesn't have to be rendered to the user
 ** scalable
 ** data blocks can contain metadata, like preparsed information
-* TODO Besides standard languages like JavaScript and CoffeeScript, Leisure provides its own language
-** Dynamically typed, lazy, pure, functional, homoiconic language with metaprogramming
+* TODO Leisure has its own languge, besides languages like JavaScript and CoffeeScript
+** Lazy, pure, functional, dynamically typed, homoiconic language with metaprogramming
+** It provides tools to help with in-document development
 ** metaprogramming includes macros and modular syntax packs
 *** infix notation is implemented as a syntax pack
 ** See results in the document (with JavaScript and CoffeeScript available soon)
