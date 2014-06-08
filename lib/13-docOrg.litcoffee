@@ -134,6 +134,7 @@
         obj.codePrelen = source.contentPos + source.offset - firstOffset
         obj.codePostlen = text.length - obj.codePrelen - source.content.length
         if expected
+          obj.codeContent = source.content
           obj.codeTestActual = results.content()
           obj.codeTextExpected = expected.content()
           obj.codeTestResult = if !results then 'unknown'

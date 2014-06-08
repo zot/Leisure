@@ -1222,6 +1222,9 @@ body.slides.firstSlide #prevSlide {
     white-space: pre-wrap;
     outline: none;
 }
+.ui-tooltip {
+    white-space: pre-wrap;
+}
 .collapsed > [data-org-type="text"] {
     display: inline;
 }
