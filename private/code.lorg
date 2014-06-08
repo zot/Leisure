@@ -55,4 +55,16 @@ setTheme 'googie'
 :end:
 #+BEGIN_SRC html :defview testcase
 <div onclick='Leisure.setCodeView(Leisure.viewFor(this))' class="ready" data-org-test="{{codeTestResult}}"></div>
+<script>
+  Templating.currentViewLink.setAttribute('title', "expected = {{{result codeTextExpected}}}<br>actual = {{{result codeTestActual}}}");
+  $(Templating.currentViewLink).tooltip();
+</script>
+#+END_SRC
+
+#+BEGIN_SRC coffee :results def
+Handlebars.registerHelper 'result', (string)->
+  string = (string || '').replace /^(: )/, ''
+  if string[string.length - 1] == '\n' then string = string.substring 0, string.length - 1
+  if string.indexOf('\n') > -1 then '<br>' + string.replace /\n(: )?/, '<br>'
+  else string
 #+END_SRC

@@ -241,7 +241,8 @@ Handle changes to the doc nodes
               updated[id] = true
               root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
         for id of universalObservers
-          root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
+          if id != data._id
+            root.orgApi.updateObserver id, codeContexts[id], data.yaml, data, type
 
     leisureBlocks = []
 

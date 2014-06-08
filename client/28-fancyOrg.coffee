@@ -102,6 +102,7 @@ yaml = root.yaml
   getTextPosition,
   findDomPosition,
   nativeRange,
+  nodeBefore,
   textNodeAfter,
   textNodeBefore,
   visibleTextNodeBefore,
@@ -160,6 +161,8 @@ class SelectionDescriptor
     el = getDeepestActiveElement()
     @parent = $(parent)[0] ? (slideParent sel.focusNode)
     @focusNode = sel.focusNode
+    @x = window.scrollX
+    @y = window.scrollY
     if el.nodeType == Node.ELEMENT_NODE && (sid = el.getAttribute('data-shadow-id')) && el.nodeName.match(/input/i) && el.type.match(/text/i)
       descriptor = rootNode(el).firstChild.getAttribute 'data-view-descriptor'
       start = el.selectionStart
@@ -168,6 +171,7 @@ class SelectionDescriptor
       @restore = (delta, doc)->
         newEl = $(doc).find("[data-view-descriptor='#{descriptor}']").shadow().find("[data-shadow-id='#{sid}']")[0]
         if newEl != el then newEl.setSelectionRange start, end
+        window.scrollTo @x, @y
     else if sel.type != 'None'
       startNode = sel.getRangeAt(0).startContainer
       [start, end, offset, note] = getDocRange()
@@ -176,6 +180,7 @@ class SelectionDescriptor
         sel = getSelection()
         if (sel.type != 'None' && sel.getRangeAt(0))?.startContainer != startNode
           restoreDocRange doc, [start + delta, end + delta, offset, note]
+        window.scrollTo @x, @y
   restore: ->
   toString: -> "Selection(none)"
 
@@ -275,13 +280,13 @@ replaceUnrelatedPresenter = (target, newPres)->
   result
 
 replaceRelatedPresenter = (target, newPres)->
-  if result = presenter && presenter.isRelated target
+  if result = (presenter && presenter.isRelated target)
     replacePresenter newPres
   result
 
 replacePresenter = (pres)->
   presenter?.hide()
-  if pres != null then presenter = pres else presenter = emptyPresenter
+  presenter = pres || emptyPresenter
 
 markupOrg = (text)->
   [node, result] = markupOrgWithNode text
@@ -808,14 +813,10 @@ regularNumberSlider = (numberSpan)->
 recreateAstButtons = (node)->
   if !(top = $(node).closest('.codeblock')[0]) then return
   restorePosition top, ->
-    #for button in $(node).find('.ast-button')
-    #  button.remove()
-    #$("#topCaretBox").remove()
     $(node).find('div').remove()
     for num in $(node).find('.org-num')
       unwrap num
     t = node.textContent
-    #if t && t[t.length - 1] != '\n' then node.textContent = t += '\n'
     chunk = /^[^ \n].*$/mg
     num = /(^|[^0-9.]+)([0-9][0-9.]*|\.[0-9.]+)/mg
     node.normalize()
@@ -829,7 +830,11 @@ recreateAstButtons = (node)->
       div = document.createElement 'div'
       div.setAttribute 'class', 'ast-button'
       div.setAttribute 'contenteditable', 'false'
-      do (d = div, offset = mchunk.index)-> div.onmousedown = (e)-> showAst e, d, offset
+      div.setAttribute 'data-ast-offset', mchunk.index
+      do (d = div, offset = mchunk.index)-> div.onmousedown = (e)->
+        e.preventDefault()
+        e.stopPropagation()
+        showAst d
       if curStart == 0 then div.setAttribute 'style', 'top: 0'
       node.insertBefore div, cur
       mchunk = chunk.exec t
@@ -847,14 +852,21 @@ define 'newCodeContent', lz (name)->$F(arguments, (content)->
     cont rz L_true)
 
 isOrContains = (parent, node)->
-  (n = parent.compareDocumentPosition(node) & DOCUMENT_POSITION_CONTAINED_BY) || n == 0
+  n = parent.compareDocumentPosition(node)
+  (n & DOCUMENT_POSITION_CONTAINED_BY) || n == 0
 
 linePat = /\r?\n(?=[^ ]|$)/
 
-showAst = (evt, astButton, offset)->
-  evt.preventDefault()
-  evt.stopPropagation()
-  if !replaceRelatedPresenter presenter.button, emptyPresenter
+redrawAst = (code, pos)->
+  [button] = findDomPosition code, pos
+  while (button = nodeBefore button) != code && !$(button).is '.ast-button' then
+  console.log "redraw ast", button
+  showAst button, true
+
+showAst = (astButton, force)->
+  offset = Number(astButton.getAttribute 'data-ast-offset')
+  #if force || !replaceRelatedPresenter presenter.button, emptyPresenter
+  if force || !replaceRelatedPresenter astButton, emptyPresenter
     if !astButton.firstChild then astButton.innerHTML = "<div></div>"
     text = astButton.parentNode.textContent.substring offset
     text = text.substring 0, (if m = text.match linePat then m.index else text.length)
@@ -865,9 +877,11 @@ showAst = (evt, astButton, offset)->
         try
           setShadowHtml astButton.firstChild, "<div class='#{theme ? ''} ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
           replacePresenter
-            hide: -> astButton.firstChild.remove()
+            hide: -> astButton.firstChild?.remove()
             isRelated: (node)-> isOrContains astButton, node
             button: astButton
+            astCodeContains: (pos)-> 0 <= pos - offset < text.length
+            astCode: getCodeContainer astButton
         catch err
           console.log "Error showing AST: #{err.stack}"
 
@@ -1143,15 +1157,7 @@ getCodeContainer = (node)->
   node && ((node.getAttribute?('data-org-src') && node) || (!node.getAttribute?('data-org-type') && getCodeContainer node.parentNode))
 
 fancyCheckSourceMod = (focus, div, currentMatch, el)->
-  restorePosition null, ->
-    if !isPlainEditing(focus) && code = getCodeContainer focus
-      recreateAstButtons code
-      createValueSliders code, leisureNumberSlider
-    #else if needsNewline el
-    #  restorePosition el.parentNode, ->
-    #    el.data += '\n'
-    #    el.parentNode.normalize()
-    checkSourceMod()
+  restorePosition null, -> checkSourceMod()
 
 needsNewline = (el)->
   if !el then false
@@ -1615,9 +1621,22 @@ fancyOrg =
     nextNoteId = 0
     fixupViews target
     createNoteShadows()
-  executeSource: (parent, node)->
+  executeSource: (parent, node, cont)->
     if isPlainEditing node then plainOrg.executeSource arguments...
-    else executeSource arguments...
+    else
+      restorePosition null, ->
+        code = getCodeContainer node
+        shouldRedrawAst = false
+        if presenter?.astCode == code
+          pos = getTextPosition code, node, 0
+          if presenter.astCodeContains? pos
+            shouldRedrawAst = true
+          presenter = emptyPresenter
+        executeSource.call this, parent, node, ->
+          recreateAstButtons code
+          createValueSliders code, leisureNumberSlider
+          if shouldRedrawAst then redrawAst code, pos
+          if cont then cont()
   executeDef: fancyExecuteDef
   createResults: createResults
   bindings: defaultBindings
@@ -1645,8 +1664,12 @@ fancyOrg =
           .css('user-select', 'none')
           .css('-webkit-user-select', 'none')
           .css('-moz-user-select', 'none')
+        target.shadow()
           .find('button')
           .button()
+        target.shadow()
+          .find('[title]')
+          .tooltip()
         for shadow in target.shadow()
           bindWidgets shadow
       dataType = type.match /([^/]*)\/?(.*)?/
