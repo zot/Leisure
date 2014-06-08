@@ -25,6 +25,10 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- chuck shadow and use tagged elements for file content
+- switch to views for everything
+  - slides
+  - code blocks
 - hide/show code blocks/block comments
 - switch to custom elements for markup?
   - x-tags for polyfills

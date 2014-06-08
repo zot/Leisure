@@ -329,6 +329,6 @@ setTimeout (->
   Leisure.toggleLeisureBar()
   Leisure.setTheme 'googie'
   Leisure.toggleSlides()
-  #Leisure.toggleShowHidden()
+  Leisure.toggleShowHidden()
   ), 1
 #+END_SRC

@@ -17,5 +17,7 @@ window.Lodash = require 'lodash.min'
 
 jQuery.prototype.shadow = ->
   res = $()
-  @.each (i, el)-> if el.shadowRoot? then res = res.add el.shadowRoot.children
+  @.each (i, el)->
+    if el.shadowRoot?
+      res = res.add el.shadowRoot.children
   res

@@ -181,6 +181,11 @@ class SelectionDescriptor
         if (sel.type != 'None' && sel.getRangeAt(0))?.startContainer != startNode
           restoreDocRange doc, [start + delta, end + delta, offset, note]
         window.scrollTo @x, @y
+      #[id, start, end, left, top] = pos = getSlidePosition sel.focusNode
+      #if id
+      #  @toString = -> "Selection(doc: #{id}, start: #{start}, end: #{end}, left: #{left}, top: #{top})"
+      #  @restore = -> setSlidePosition pos
+    #console.log "NEW SELECTION: #{this}"
   restore: ->
   toString: -> "Selection(none)"
 
@@ -211,6 +216,30 @@ root.restorePosition = restorePosition = (parent, delta, block)->
       sel = restoreStack.pop()
       #console.log "RESTORED: #{selection}"
   else block()
+
+getSlidePosition = (node)->
+  if block = blockElementForNode node
+    {top, left} = block.getBoundingClientRect()
+    r = getSelection().getRangeAt 0
+    start = getTextPosition block, r.startContainer, r.startOffset
+    end = getTextPosition block, r.endContainer, r.endOffset
+    [block.id, start, end, left, top]
+  else []
+
+setSlidePosition = ([id, start, end, left, top])->
+  block = $("##{id}")[0]
+  {curTop, curLeft} = block.getBoundingClientRect()
+  window.scrollBy curLeft - left, curTop - top
+  r1 = findDomPosition block, start, true
+  r2 = findDomPosition block, end, true
+  s = getSelection()
+  r = document.createRange()
+  r.startContainer = r1[0]
+  r.startOffset = r1[1]
+  r.endContainer = r2[0]
+  r.endOffset = r2[1]
+  s.removeAllRanges()
+  s.addRange r
 
 # get a logical document range with an optional note
 # [startPos, endPos, scrollOffset, noteId]
@@ -813,7 +842,11 @@ leisureNumberSlider = (numberSpan)->
     numberSpan.innerHTML = String(ui.value)
     if !computing && orgType in ['dynamic', 'def']
       computing = true
-      done = -> computing = false
+      doc = topNode orgParent
+      selection = new SelectionDescriptor doc
+      done = ->
+        setTimeout (->selection.restore 0, doc), 1
+        computing = false
       setTimeout (->
         if orgType == 'dynamic' then root.orgApi.executeSource parent, numberSpan.parentNode, done
         else if orgType == 'def' then root.orgApi.executeDef orgParent, done), 1
@@ -837,6 +870,10 @@ recreateAstButtons = (node)->
     cur = node.firstChild
     curStart = 0
     while cur && mchunk
+      if mchunk.index - curStart > cur.length
+        curStart += cur.length
+        cur = textNodeAfter cur
+        continue
       cur = (if mchunk.index > curStart then cur.splitText mchunk.index - curStart else cur)
       curStart = mchunk.index
       div = document.createElement 'div'
