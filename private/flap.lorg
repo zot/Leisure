@@ -1,10 +1,10 @@
 * Leisurely Bird
 
-[[org:state/userName]]
-[[org:canvas]]
-[[org:state/controlbox]]
-[[org:game]]
-[[org:ticking]]
+[[leisure:state/userName]]
+[[leisure:canvas]]
+[[leisure:state/controlbox]]
+[[leisure:game]]
+[[leisure:ticking]]
 
 * Description
 :properties:
