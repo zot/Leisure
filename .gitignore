@@ -1,4 +1,5 @@
 *~
 /packages/leisure/build/node_modules
+/packages/leisure/build/tmp
 /test
 Thumbs.db

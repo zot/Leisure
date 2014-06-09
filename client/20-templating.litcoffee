@@ -1,4 +1,4 @@
-    root = if window? then window.Templating = {} else global.Templating = {}
+    root = (window ? global).Templating = {}
 
     viewMarkup = {}
 

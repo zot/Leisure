@@ -1,5 +1,5 @@
 if (!window.Leisure) window.Leisure = {};
-window.global = window;
+if (typeof global == 'undefined') window.global = window;
 window.module = {exports: window.Leisure}
 Error.stackTraceLimit = Infinity;
 window.setTimeout(function() {

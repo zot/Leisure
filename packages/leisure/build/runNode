@@ -1,0 +1,7 @@
+#!/bin/sh
+dir=$(dirname $(realpath $0))
+getDir() {
+    cygpath -d $dir/$1
+}
+export NODE_PATH="$(getDir lib);$(getDir src);$(getDir node_modules);$(getDir ../../../client);$(getDir ../../../lib)"
+exec node --stack-size=3000 "$@"

@@ -85,6 +85,7 @@ global.identity = identity
 stage = 2
 stages = ['simpleParseJS', 'simpleParse', 'generatedPrelude']
 shouldNsLog = false
+pargs = null
 
 diag = false
 
@@ -413,8 +414,8 @@ doRequirements = (cont)->
 #    cont()
 
 processArg = (config, pos)->
-  #console.log "Process args: #{process.argv.join ', '}, pos: #{pos}"
-  if pos >= process.argv.length
+  #console.log "Process args: #{pargs.join ', '}, pos: #{pos}"
+  if pos >= pargs.length
     if processedFiles && !interactive
       #console.log "EXITING 2"
       process.exit 0
@@ -426,14 +427,14 @@ processArg = (config, pos)->
       doRequirements ->
         repl config
       return
-  #console.log "Processing arg: #{process.argv[pos]}"
-  if process.argv[pos][0] == '-' and !newOptions
+  #console.log "Processing arg: #{pargs[pos]}"
+  if pargs[pos][0] == '-' and !newOptions
     actions = []
     newOptions = true
     gennedAst = gennedJs = false
-  switch process.argv[pos]
+  switch pargs[pos]
     when '-p'
-      promptText = process.argv[pos + 1]
+      promptText = pargs[pos + 1]
       pos++
     when '-v'
       verbose = true
@@ -450,7 +451,7 @@ processArg = (config, pos)->
         action = compile
         createAstFile = createJsFile = true
     when '-d'
-      outDir = process.argv[pos + 1]
+      outDir = pargs[pos + 1]
       pos++
     when '-0'
       stage = 0
@@ -462,23 +463,23 @@ processArg = (config, pos)->
       interactive = true
     when '--nslog' then shouldNsLog = true
     when '-r'
-      if verbose then console.log "PUSHING REQUIREMENT: #{process.argv[pos + 1]}"
-      requireList.push process.argv[pos + 1]
+      if verbose then console.log "PUSHING REQUIREMENT: #{pargs[pos + 1]}"
+      requireList.push pargs[pos + 1]
       pos++
     else
       newOptions = true
-      if process.argv[pos] == '-coffee'
+      if pargs[pos] == '-coffee'
         processedFiles = true
         requireUtils()
         require('coffee-script/lib/coffee-script/repl').start useGlobal: true
         return
-      if process.argv[pos] == '-j'
+      if pargs[pos] == '-j'
         processedFiles = true
         requireUtils()
         doRequirements -> require('repl').start useGlobal: true
         return
-      #console.log "Process #{process.argv.join ', '}"
-      if process.argv[pos][0] == '-' then usage()
+      #console.log "Process #{pargs.join ', '}"
+      if pargs[pos][0] == '-' then usage()
       else
         processedFiles = true
         #if !loadedParser
@@ -488,8 +489,8 @@ processArg = (config, pos)->
         #  for f in requireList
         #    require f
         doRequirements ->
-          #console.log "PROCESSING #{process.argv[pos]} with #{action}"
-          action process.argv[pos], -> processArg config, pos + 1
+          #console.log "PROCESSING #{pargs[pos]} with #{action}"
+          action pargs[pos], -> processArg config, pos + 1
       return
   processArg config, pos + 1
 
@@ -499,6 +500,7 @@ requireUtils = ->
   global.Org = require '11-org'
 
 run = (args, config)->
+  pargs = args
   action = runFile
   #console.log "Run: #{args.join ', '}"
   if args.length == 2
@@ -509,15 +511,19 @@ run = (args, config)->
   else processArg config, 2
 
 root.runFile = runFile
+root.run = run
+root.nwrun = (line)-> run line.split(' '), home: process.env.HOME
 
-if verbose then console.log "ARGS: #{JSON.stringify process.argv}"
+if verbose then console.log "ARGS: #{JSON.stringify pargs}"
 
-prog = path.basename(process.argv[1])
-
-if prog.toLowerCase() in ['repl', 'runrepl', 'leisure']
-  if verbose then console.log "RUNNING REPL"
-  run process.argv, home: process.env.HOME
+if process.versions['node-webkit']? then console.log "HELLO"
 else
-  #if stage < 2 then root.shouldNsLog = false
-  root.shouldNsLog = shouldNsLog
-  require stages[stage]
+  prog = path.basename(process.argv[1])
+  switch prog.toLowerCase()
+    when 'repl' | 'runrepl' | 'leisure'
+      if verbose then console.log "RUNNING REPL"
+      run process.argv, home: process.env.HOME
+    else
+      #if stage < 2 then root.shouldNsLog = false
+      root.shouldNsLog = shouldNsLog
+      require stages[stage]

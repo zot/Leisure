@@ -54,7 +54,7 @@ URI = window.URI
 Xus = window.Xus
 $ = window.$
 _ = require 'lodash.min'
-window.global = window
+if !global? then window.global = window
 
 #debug = true
 debug = false

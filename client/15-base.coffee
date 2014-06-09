@@ -36,7 +36,7 @@ global.verbose = {}
 
 verboseMsg = (label, msg...)-> if global.verbose[label] then console.log msg...
 
-if !btoa? then global.btoa = require 'btoa'
+if !btoa? then (window ? global).btoa = require 'btoa'
 
 defaultEnv =
   presentValue: (x)-> String x

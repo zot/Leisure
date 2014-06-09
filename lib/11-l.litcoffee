@@ -43,5 +43,4 @@
 
     patch L, L_ArrayWrapper
 
-    if Meteor
-      if window? then window.L = L else global.L = L
+    (window ? global).L = L

@@ -1,9 +1,16 @@
 Namespace definition
 
+    if process?.versions['node-webkit']?
+      global.NW = window.NW = true
     if window?
+      if !window.NW? then window.NW = false
+      window.ENV = 'browser'
+      window.NW = false
       window.App = {}
       root = window.Leisure = {}
     else
+      if !global.NW? then global.NW = false
+      global.ENV = 'node'
       global.App = {}
       root = global.Leisure = {}
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+dir=$(dirname $(realpath $0))
+getDir() {
+    cygpath -d $dir/$1
+}
+export NODE_PATH="$(getDir lib);$(getDir src);$(getDir node_modules);$(getDir ../../../client);$(getDir ../../../lib)"
+echo -E $NODE_PATH
+#exec /cygdrive/c/Apps/nw-0-9-2/nw --stack-size=3000 $dir/nwRepl
+cd $dir
+exec /cygdrive/c/Apps/nw-0-9-2/nw nwRepl

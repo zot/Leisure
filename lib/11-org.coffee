@@ -34,8 +34,7 @@ root = module?.exports ? {}
 
 _ = Lazy
 
-if Meteor?
-  if window? then window.Org = root else global.Org = root
+(window ? global).Org = root
 
 todoKeywords = ['TODO', 'DONE']
 

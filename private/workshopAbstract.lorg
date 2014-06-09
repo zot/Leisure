@@ -1,0 +1,20 @@
+* Abstract
+This is Leisure, a document-based computing environment that runs on the web,
+so it doesn't require any installation or even your own computer.
+
+Leisure tries to make programming fun and let kids (and grownups) open the hood
+to see what's giong on inside.  Data, code, and views are all editable and update
+dynamically as you make changes.
+
+Each document is a multiuser virtual machine, containing live content as
+well as editable code, and data.  Leisure automitically shares changes to code
+and data and provides structures to supoprt multiuser apps.  Code can be in any
+of several supported languages (and mixed within a document).
+
+Although Leisure presents documents as if they are files, but they are actually
+databases, so they can potentially scale up to very large amounts of data.
+Leisure also explores new programming tools, like AST viewers and embedded test
+cases, as well as a new, dynamically typed, pure functional language.
+
+The video ends a little abruptly but I wanted to cram as much in theree bout
+the environment as I could.

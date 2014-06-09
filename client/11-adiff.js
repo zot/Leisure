@@ -309,11 +309,7 @@
     }
     return exports
   }
-  var ret = exports(null, exports)
-  if (typeof window != 'undefined') {
-      window.Adiff = ret;
-  } else {
-      global.Adiff = ret;
-  }
-  ret;
+  var ret = exports(null, exports);
+  (typeof window != 'undefined' ? window : global).Adiff = ret;
+  return ret;
 })()

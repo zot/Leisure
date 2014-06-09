@@ -1,2 +1,3 @@
 require('coffee-script/register');
-require('./leisureRepl');
+(window || global).Lazy = require('10-lazy');
+module.exports = require('./leisureRepl');

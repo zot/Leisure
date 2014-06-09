@@ -1,6 +1,6 @@
 #!/bin/sh
 if expr "$OS" : '[wW]indows' > /dev/null; then
-        echo "$(cygpath -d "$PWD")\\lib"
+        cygpath -d "$PWD/$1"
 else
-        echo $PWD/lib
+        echo $PWD/$1
 fi
