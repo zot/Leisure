@@ -1717,14 +1717,15 @@ fancyOrg =
     if type = root.viewIdTypes[id]
       createTemplateRenderer type, root.viewTypeData[type], true, (data, target, block, update)->
         el = if update then target else target.shadow()
-        el
-          .addClass(theme)
-          .addClass($('body').hasClass('bar_collapse') && 'bar_collapse')
-          .prepend("<style>@import 'shadow.css';</style>")
-          .css('white-space', 'normal')
-          .css('user-select', 'none')
-          .css('-webkit-user-select', 'none')
-          .css('-moz-user-select', 'none')
+        if target
+          el
+            .addClass(theme)
+            .addClass($('body').hasClass('bar_collapse') && 'bar_collapse')
+            .prepend("<style>@import 'shadow.css';</style>")
+            .css('white-space', 'normal')
+            .css('user-select', 'none')
+            .css('-webkit-user-select', 'none')
+            .css('-moz-user-select', 'none')
         el
           .find('button')
           .button()
