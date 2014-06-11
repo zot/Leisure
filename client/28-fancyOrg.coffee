@@ -1580,7 +1580,7 @@ renderLink = (node, data)->
     viewKey  = data.yaml.type
     descriptor = data._id
   if root.viewTypeData[viewKey] && markup = viewMarkup[viewKey]
-    markup data.yaml, $(node)
+    markup data.yaml, $(node), false, data
   else clearShadow node
   $(node)
     .attr 'data-view-descriptor', descriptor
@@ -1588,6 +1588,13 @@ renderLink = (node, data)->
     .shadow()
       .attr 'data-view-id', data._id
       .attr 'data-view-descriptor', descriptor
+
+updateViews = (id)->
+  if block = getBlock id
+    for link in $("[data-view-ids~=#{id}]")
+      for view in $(link).shadow().find("[data-view-block='#{id}']")
+        type = $(view).attr 'data-view-type'
+        viewMarkup[type] block.yaml, $(view), false, block, true, link
 
 viewBlock = (el)->
   if id = $(el).closest('[data-view-id]').attr('data-view-id')
@@ -1614,11 +1621,14 @@ Handlebars.registerHelper 'view', (item, name, options)->
   if !options
     options = name
     name = null
-  data = if typeof item == 'string' then getBlock(item).yaml else item
-  descriptor = if name then "#{item.type}/#{name}" else "#{item.type}"
-  if output = viewMarkup[descriptor]?(data) || ''
-    output += "<script>Leisure.addViewId()</script>"
-  output
+  data = if typeof item == 'string'
+    block = getBlockNamed item
+    block.yaml
+  else
+    block = null
+    item
+  descriptor = if name then "#{data.type}/#{name}" else "#{data.type}"
+  viewMarkup[descriptor]?(data, null, false, block) || ''
 
 addViewId = ->
   if Templating.currentViewData._id?
@@ -1705,8 +1715,9 @@ fancyOrg =
     slide.find("##{id}")[0]
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]
-      createTemplateRenderer type, root.viewTypeData[type], true, (data, target)->
-        target.shadow()
+      createTemplateRenderer type, root.viewTypeData[type], true, (data, target, block, update)->
+        el = if update then target else target.shadow()
+        el
           .addClass(theme)
           .addClass($('body').hasClass('bar_collapse') && 'bar_collapse')
           .prepend("<style>@import 'shadow.css';</style>")
@@ -1714,14 +1725,13 @@ fancyOrg =
           .css('user-select', 'none')
           .css('-webkit-user-select', 'none')
           .css('-moz-user-select', 'none')
-        target.shadow()
+        el
           .find('button')
           .button()
-        target.shadow()
+        el
           .find('[title]')
           .tooltip()
-        for shadow in target.shadow()
-          bindWidgets shadow
+        bindAllWidgets el
       dataType = type.match /([^/]*)\/?(.*)?/
       restorePosition null, ->
         for node in $("[data-yaml-type='#{dataType[1]}']")
@@ -1739,8 +1749,7 @@ fancyOrg =
     focus = getSelection().focusNode
     fancyCheckSourceMod focus, div, currentMatch, (if focus.nodeType == 1 then focus.firstChild else focus)
   updateBlock: (block)->
-    el = $("##{block._id}")[0]
-    if el then restorePosition null, -> renderView el
+    restorePosition null, -> updateViews block._id
   updateObserver: (observerId, observerContext, yaml, block, type)->
     args = arguments
     restorePosition null, =>
@@ -1752,6 +1761,17 @@ fancyOrg =
     holder = el.closest ".slideholder"
     el.remove()
     if holder.children().not('hr').length == 0 then holder.remove()
+
+binding = false
+
+bindAllWidgets = (els)->
+  if !binding
+    binding = true
+    try
+      for node in els
+        bindWidgets node
+    finally
+      binding = false
 
 plainOrg.opposite = fancyOrg
 
@@ -1787,7 +1807,7 @@ fixupHtml = (parent, note)->
 displayCodeView = (node)->
   if node
     if block = getBlock $(node).closest('[data-shared]')[0]?.id
-      viewMarkup[node.getAttribute 'data-code-view']? block, $(node), true
+      viewMarkup[node.getAttribute 'data-code-view']? block, $(node), true, block
       $(node).shadow().attr 'data-view-id', block._id
 
 viewFor = (node)-> $("##{$(node).closest('[data-view-id]').attr 'data-view-id'}")
@@ -1862,3 +1882,4 @@ root.viewFor = viewFor
 root.setCodeAttributes = setCodeAttributes
 root.clearCodeAttributes = clearCodeAttributes
 root.addStyles = addStyles
+root.blockViewUpdatesWhile = blockViewUpdatesWhile

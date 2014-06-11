@@ -1,10 +1,10 @@
 * script view
-[[org:i]]
+[[leisure:i]]
 
 
 
 
-[[org:a]] [[org:b]] [[org:c]] [[org:a]]
+[[leisure:a]] [[leisure:b]] [[leisure:c]] [[leisure:a]]
 
 #+NAME: i
 #+BEGIN_SRC yaml
