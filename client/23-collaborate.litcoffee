@@ -117,7 +117,7 @@ Handle changes to the doc nodes
               @rerender[prev._id] = prev
               if oldData.type == 'headline' && oldData.level == 1
                 @removeElement newData._id
-          when 'indent' | 'outdent'
+          when 'indent' , 'outdent'
             @rerender[newData._id] = newData
             prev = getItem overrides, newData.prev
             @rerender[prev._id] = prev

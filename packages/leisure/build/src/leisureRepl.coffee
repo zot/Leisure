@@ -502,7 +502,7 @@ requireUtils = ->
 run = (args, config)->
   pargs = args
   action = runFile
-  #console.log "Run: #{args.join ', '}"
+  console.log "Run: #{args.join ', '}"
   if args.length == 2
     #if stage < 2 then root.shouldNsLog = false
     root.shouldNsLog = shouldNsLog
@@ -520,10 +520,12 @@ if process.versions['node-webkit']? then console.log "HELLO"
 else
   prog = path.basename(process.argv[1])
   switch prog.toLowerCase()
-    when 'repl' | 'runrepl' | 'leisure'
+    when 'repl' , 'runrepl' , 'leisure'
+      console.log "a"
       if verbose then console.log "RUNNING REPL"
       run process.argv, home: process.env.HOME
     else
+      console.log "b"
       #if stage < 2 then root.shouldNsLog = false
       root.shouldNsLog = shouldNsLog
       require stages[stage]
