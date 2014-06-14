@@ -1,4 +1,8 @@
 ###
+# WARNING
+# WARNING THIS IS OLD CODE AND WILL SOON DISAPPEAR
+# WARNING
+#
 # use an element as a Leisure notebook
 # Only runs in the context of a browser
 ###
@@ -49,6 +53,9 @@ lz = lazy
   createNode,
   textNode,
 } = require '21-browserSupport'
+{
+  getOrgText,
+} = require '24-orgSupport'
 
 URI = window.URI
 Xus = window.Xus
@@ -286,7 +293,7 @@ checkDeleteExpr = (node)->
   if isOutput node && node.output
     out = node.output
     window.setTimeout (->
-      if !node.textContent.trim() then node.parentNode.removeChild node
+      if !getOrgText(node).trim() then node.parentNode.removeChild node
       if !node.parentNode? && out?.parentNode? then out.parentNode.removeChild out
     ), 1
 
@@ -359,7 +366,7 @@ cleanEmptyNodes = (el)->
   else
     prev = el.previousSibling
     next = el.nextSibling
-    if el.nodeType == 1 && el.textContent.trim() == '' && el.parentNode?.hasAttribute 'doc'
+    if el.nodeType == 1 && getOrgText(el).trim() == '' && el.parentNode?.hasAttribute 'doc'
       el.parentNode.removeChild el
     if next == nextSibling prev then mergeLeisureCode prev, next
 
@@ -442,7 +449,7 @@ showSliderButton = (parent, pos, e)->
     hideSlider()
     false
   else
-    text = parent.textContent
+    text = getOrgText parent
     oldPos = pos
     changed = 0
     if m = text.substring(0, pos).match(numberEnd) then pos -= m[1].length
@@ -637,7 +644,7 @@ highlightNotebookFunction = (funcName, start, stop)->
   sel.addRange makeRange box, start + offset, stop + offset
 
 isDef = (box)->
-  txt = box.textContent
+  txt = getOrgText box
   # MARK CHECK
   #if (m = txt.match Leisure.linePat)
   if (m = txt.match L_defPat())
@@ -778,7 +785,7 @@ getElementCode = (el)->
   r.selectNode(el)
   c = r.cloneContents().firstChild
   removeOldDefs c
-  c.textContent
+  getOrgText c
 
 runTests = (el)->
   passed = 0
@@ -879,7 +886,7 @@ getAst = (bx, def)->
     bx.setAttribute 'leisureFunc', (bx.ast.leisureName ? '')
     bx.ast
   else
-    def = def || bx.textContent
+    def = def || getOrgText(bx)
     # MARK CHECK
     # setAst bx, (Leisure.compileNext def, Parse.Nil, true, null)[0]
     defName = getDefName runMonad rz(L_newParseLine)(lz Nil)(lz def)
@@ -959,14 +966,14 @@ evalOutput = (exBox, nofocus, cont)->
 findUpdateSelector = (box)->
   # MARK CHECK
   #if def = box.textContent.match Leisure.linePat
-  if def = box.textContent.match rz(L_defPat)
+  if def = getOrgText(box).match rz(L_defPat)
     [matched, leading, name, defType] = def
     if u = leading.match updatePat then u[3]
 
 getExprSource = (box)->
   s = window.getSelection()
   b = getBox s.focusNode
-  if b != box or !s.rangeCount or s.getRangeAt(0).collapsed then box.textContent
+  if b != box or !s.rangeCount or s.getRangeAt(0).collapsed then getOrgText box
   else getRangeText s.getRangeAt(0)
 
 setUpdate = (el, channel, preserveSource)->
@@ -974,7 +981,7 @@ setUpdate = (el, channel, preserveSource)->
   if channel then el.classList.add 'ui-state-highlight'
   else el.classList.remove 'ui-state-highlight'
   ast = getAst el.source
-  txt = el.source.textContent
+  txt = getOrgText el.source
   # MARK CHECK
   #if !preserveSource and def = txt.match Leisure.linePat
   if !preserveSource and def = txt.match rz(L_defPat)
@@ -1059,7 +1066,7 @@ makeTestCase = (exBox)->
   output = getBox exBox
   source = output.source
   test =
-    expr: source.textContent.trim()
+    expr: getOrgText(source).trim()
     expected: escapeHtml(Parse.print(output.result))
   box = makeTestBox test, owner(exBox)
   source.parentNode.insertBefore box, source
@@ -1244,7 +1251,7 @@ linePat = new RegExp "(#{rz(L_linePat).source})"
 #  ranges
 
 findDefs = (el)->
-  txt = el.textContent
+  txt = getOrgText el
   #console.log "LINE EXP: #{linePat.source}"
   #console.log "LINES: [#{txt.split(linePat).join ']\n['}]"
   rest = txt
@@ -1430,12 +1437,12 @@ hiddenPat = /(^|\n)#@hidden *(\n|$)/
 
 evalBox = (box, envBox, cont)->
   env = if envBox? then envFor(envBox) else null
-  processLine box.textContent, env, (result)->
+  processLine getOrgText(box), env, (result)->
     env?.cleanup?()
     (cont ? (x)->x) result
   getAst box
-  if box.output && hasMonadOutput(box.output) && box.textContent.match hiddenPat then hideOutputSource box.output
-  else if box.textContent.match hiddenPat then console.log "NO MONAD, BUT MATCHES HIDDEN"
+  if box.output && hasMonadOutput(box.output) && getOrgText(box).match hiddenPat then hideOutputSource box.output
+  else if getOrgText(box).match hiddenPat then console.log "NO MONAD, BUT MATCHES HIDDEN"
 
 acceptCode = (box)->
   if (box.getAttribute 'codemain')?
@@ -1610,9 +1617,9 @@ define 'notebookSelection', lz (func)->
       r2 = document.createRange()
       r2.setStart bx, 0
       r2.setEnd r.startContainer, r.startOffset
-      p1 = r2.cloneContents().textContent.length - offset
+      p1 = getOrgText(r2.cloneContents()).length - offset
       if !r.collapsed then r2.setEnd r.endContainer, r.endOffset
-      p2 = r2.cloneContents().textContent.length - offset
+      p2 = getOrgText(r2.cloneContents()).length - offset
       cont(rz(_some2)(lz p1)(lz p2))
     else cont(rz _none)
 

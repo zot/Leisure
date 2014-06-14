@@ -157,7 +157,7 @@ initOrg = (parent, source)->
   $("<div class='paginators'><button id='prevSlide'><i class='fa fa-caret-left fa-1x'></i><span></span></button><button id='nextSlide'><i class='fa fa-caret-right fa-1x'></i><span></span></button></div>").appendTo(document.body)
   $("#leisure_grip").click (e) -> toggleLeisureBar()
   $("#themeSelect").change (e) ->
-     return Leisure.setTheme(e.target.value)
+    Leisure.setTheme(e.target.value)
   b = $('#saveButton')
   if nwDispatcher?
     $(document.body).addClass 'nw'
@@ -514,11 +514,6 @@ defaultBindings =
   #'C-N': keyFuncs.nextLine
   #'C-X C-F': keyFuncs.save
 
-useText = (text)->
-  root.restorePosition parentSpec, ->
-    $(parentSpec)[0].textContent = text
-    root.currentMode.useNode $(parentSpec)[0], sourceSpec
-
 swapMarkup = ->
   root.currentMode = (if root.currentMode == Leisure.fancyOrg then Leisure.basicOrg else Leisure.fancyOrg)
   root.restorePosition parentSpec, ->
@@ -618,7 +613,6 @@ markupNode = (org, start, inFragment)->
   else if org instanceof Headline then "<span #{orgAttrs org}>#{contentSpan org.text, 'text'}#{markupGuts org, checkStart start, org.text}</span>"
   else if org instanceof SimpleMarkup then markupSimple org
   else if org instanceof Fragment then markupFragment org
-  else if org instanceof Drawer && org.name.toLowerCase() == 'data' then markupData org
   else "<span #{orgAttrs org}>#{content org.text}</span>"
 
 markupFragment = (org)->
@@ -627,33 +621,6 @@ markupFragment = (org)->
     if lang = source.getLanguage() then fragAttr = " data-lang='#{lang}'"
   else fragAttr = ''
   "<span #{orgAttrs org}#{fragAttr}>#{(markupNode child, null, true for child in org.children).join ''}</span>"
-
-markupData = (org)->
-  m = org.text.match /^[^\n]*\n([^\n]*)\n/
-  makeDataSpan m?[1].trim() || '', org.text
-
-makeDataSpan = (id, text)-> "<span data-leisure-data='#{id}'>#{escapeHtml text}</span>"
-
-data = amt.Trie()
-
-addData = (el)->
-  if m = el.textContent.match /^[^\n]*\n[^\n]*\n((.|\n)*):END:\n/
-    data = amt.assoc data, el.getAttribute('data-leisure-data'), jsonConvert(safeLoad m[1])
-
-define 'getOrgData', lz (key)->
-  makeSyncMonad (env, cont)->
-    cont amt.get data, rz key
-
-define 'setOrgData', lz (key)->$F(arguments, (value)->
-  makeSyncMonad (env, cont)->
-    data = amt.assoc data, rz(key), rz(value)
-    oldEl = $("[data-leisure-data=#{rz key}]")
-    oldText = oldEl.text()
-    text = ":DATA:\n#{rz key}\n#{rz(L_toJson)(value)(rz L_id)(rz L_id)}:END\n"
-    if oldEl.length then oldEl.text text
-    else $(parentSpec).append "\n" + (makeDataSpan rz(key), text)
-    sendDataDiff $(parentSpec)[0], rz(key), oldText, text
-    cont _true)
 
 markupSimple = (org)->
   guts = ''
@@ -1069,7 +1036,7 @@ checkStructure = (node)->
         bl._id = new Meteor.Collection.ObjectID().toJSONValue()
       overrides = new Overrides()
       checkMerge(overrides, fo = oldBlocks[0], newBlocks[0], getBlock(fo.prev), (aux)->
-          aux + newBlocks.shift().text)
+        aux + newBlocks.shift().text)
       if !_(newBlocks).isEmpty()
         checkMerge(overrides, lo = _(oldBlocks).last(), _(newBlocks).last(), getBlock(lo.next), (aux)->
           newBlocks.pop().text + aux)
@@ -1206,7 +1173,7 @@ baseEnv =
 getResultsForSource = (parent, node)->
   r = getExistingResultsForSource node
   if !r
-    newResults parent, parseOrgMode parent.textContent
+    newResults parent, parseOrgMode getOrgText parent
     getExistingResultsForSource node
   else r
 
@@ -1269,8 +1236,6 @@ installOrgDOM = (parent, orgNode, orgText, target)->
   else
     parent.innerHTML = orgText
     result = parent.firstElementChild
-  for node in (if target? then findOrIs $(target), '[data-leisure-data]' else $ '[data-leisure-data]')
-    addData node
   result
 
 checkDeleteReparse = (parent, backspace)->
@@ -1343,7 +1308,7 @@ getNodeSource = (node)->
   while !isSourceNode node
     node = node.parentNode
     if !node then return []
-  [node, $(node).find('[data-org-src]')[0].textContent]
+  [node, getOrgText $(node).find('[data-org-src]')[0]]
 
 # given a node, find the enclosing source node and execute it's content as a definition
 executeDef = (node, cont)->
@@ -1369,7 +1334,7 @@ checkLast = (n, parent)->
 getTags = (headline)-> headline.getAttribute 'data-org-tags'
 
 setTags = (headline)->
-  m = headline.firstChild.textContent.match headlineRE
+  m = getOrgText(headline.firstChild).match headlineRE
   tags = ((m && parseTags m[HL_TAGS]) || []).join ' '
   if headline.getAttribute('data-org-tags') != tags then headline.setAttribute 'data-org-tags', tags
 
@@ -1494,11 +1459,13 @@ filteredNodeAfter = (node, director)->
   null
 
 getOrgText = (node)->
-  text = ''
-  end = nodeAfterNoChildren node
-  while (node = nodeAfterSkipNonOrg node) && isBefore node, end
-    if node.nodeType == Node.TEXT_NODE then text += node.data
-  text
+  if node.nodeType == Node.TEXT_NODE then node.data
+  else
+    text = ''
+    end = nodeAfterNoChildren node
+    while (node = nodeAfterSkipNonOrg node) && isBefore node, end
+      if node.nodeType == Node.TEXT_NODE then text += node.data
+    text
 
 isBefore = (nodeA, nodeB)->
   nodeA.compareDocumentPosition(nodeB) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -1598,7 +1565,7 @@ fixOffsets = (org)->
 getNodeText = (node)->
   if $(node).is('[data-shared]') then fixOffsets orgForNode(node)
   else if root.currentDocument && $(node).is('[maindoc]') then fixOffsets orgForNode(node)
-  else node.textContent
+  else getOrgText node
 
 if Element.prototype.webkitCreateShadowRoot?
   Element.prototype.createShadowRoot = Element.prototype.webkitCreateShadowRoot
@@ -1615,7 +1582,7 @@ else if !document.body.createShadowRoot?
       copy = $(node).clone()
       copy.find('[data-org-shadow]').remove()
       copy.text()
-    else node.textContent
+    else getOrgText node
   oldReparse = reparse
   reparse = (parent, text)->
     oldReparse parent, text
@@ -1786,8 +1753,6 @@ root.nodeBefore = nodeBefore
 root.getOrgText = getOrgText
 root.watchNodeText = watchNodeText
 root.dumpTextWatchers = dumpTextWatchers
-root.useText = useText
-root.markupData = markupData
 root.blockText = blockText
 root.blockElementsForSelection = blockElementsForSelection
 root.blockElementForNode = blockElementForNode

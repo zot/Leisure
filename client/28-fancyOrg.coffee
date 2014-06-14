@@ -104,6 +104,7 @@ yaml = root.yaml
   nodeBefore,
   textNodeAfter,
   textNodeBefore,
+  getOrgText,
   visibleTextNodeBefore,
   visibleTextNodeAfter,
   isParentOf,
@@ -265,7 +266,7 @@ restoreDocRange = (parent, [start, end, offset, noteId])->
     noteNode = $("[data-org-note-instances~='#{noteId}']")[0]
     parent = $(noteNode).shadow().find("##{noteId}")[0]
   [startContainer, startOffset] = findDomPosition parent, start, true
-  [endContainer, endOffset] = findDomPosition parent, Math.min(end, parent.textContent.length - 1), true
+  [endContainer, endOffset] = findDomPosition parent, Math.min(end, getOrgText(parent).length - 1), true
   r = document.createRange()
   r.setStart startContainer, startOffset
   r.setEnd endContainer, endOffset
@@ -496,7 +497,7 @@ floatize = (org, slide)->
   else slide
 
 updateNoteProperties = (span, index, txt) ->
-  old = span.textContent
+  old = getOrgText span
   lines = old.split /\n/
   s = lines[1].split /\s*,\s*/
   if index != 0 then s[index] = txt else s[index] = ":notes: " + txt
@@ -520,7 +521,7 @@ createNotes = (node)->
   for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
     #console.log "NOTE FOR #{node.id}: #{noteSpec}"
     noteId = "note-#{nextNoteId++}"
-    [org, html] = markupOrgWithNode node.textContent, true
+    [org, html] = markupOrgWithNode getOrgText(node), true
     newNote = $("<div class='sidebar_notes' data-note-origin='#{node.id}' id='#{noteId}' contenteditable='true'>#{html}</div>")[0]
     switch (splitSpec = noteSpec.split(/\s+/))[0]
       when 'sidebar'
@@ -732,7 +733,7 @@ testResult = (expected, actual)->
 root.toggleTestCase = (evt)->
   node = codeBlockForNode evt.target
   selectPrevious node
-  if node then replaceCodeBlock node, changeResultType node.textContent, (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
+  if node then replaceCodeBlock node, changeResultType getOrgText(node), (if node.getAttribute('data-org-results') == 'autotest' then 'dynamic' else 'static')
 
 selectPrevious = (node)->
   top = topNode node
@@ -862,7 +863,7 @@ recreateAstButtons = (node)->
   if !(top = $(node).closest('.codeblock')[0]) then return
   restorePosition top, ->
     $(node).find('[data-ast-offset]').remove()
-    t = node.textContent
+    t = getOrgText node
     chunk = /^[^ \n].*$/mg
     num = /(^|[^0-9.]+)([0-9][0-9.]*|\.[0-9.]+)/mg
     node.normalize()
@@ -917,7 +918,7 @@ showAst = (astButton, force)->
   #if force || !replaceRelatedPresenter presenter.button, emptyPresenter
   if force || !replaceRelatedPresenter astButton, emptyPresenter
     if !astButton.firstChild then astButton.innerHTML = "<div></div>"
-    text = astButton.parentNode.textContent.substring offset
+    text = getOrgText(astButton.parentNode).substring offset
     text = text.substring 0, (if m = text.match linePat then m.index else text.length)
     result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
     runMonad result, baseEnv, (ast)->

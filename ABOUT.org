@@ -1,5 +1,4 @@
 * Document change flow
-
 (LOCAL)
      |
 user change
@@ -15,3 +14,9 @@ data update
 run update handlers
      |
 render data
+
+* Developing on windows
+** EMACS
+*** Coffeescript
+flycheck: Get libxml2 from http://sourceforge.net/projects/ezwinports/files/ unzip the
+libxml2 archive and make sure the *.dll files are in your path
