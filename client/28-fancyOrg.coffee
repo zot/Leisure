@@ -165,11 +165,12 @@ class SelectionDescriptor
     @y = window.scrollY
     if el.nodeType == Node.ELEMENT_NODE && (sid = el.getAttribute('data-shadow-id')) && el.nodeName.match(/input/i) && el.type.match(/text/i)
       descriptor = rootNode(el).firstChild.getAttribute 'data-view-descriptor'
+      index = $("[data-view-descriptor='#{descriptor}']").index document.activeElement
       start = el.selectionStart
       end = el.selectionEnd
       @toString = -> "Selection(input: #{$('[maindoc]').find("[data-view-descriptor='#{descriptor}']").shadow().find("[data-shadow-id='#{sid}']")[0]})"
       @restore = (delta, doc)->
-        newEl = $(doc).find("[data-view-descriptor='#{descriptor}']").shadow().find("[data-shadow-id='#{sid}']")[0]
+        newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[index]).shadow().find("[data-shadow-id='#{sid}']")[0]
         if newEl != el then newEl.setSelectionRange start, end
         window.scrollTo @x, @y
     else if sel.type != 'None'
