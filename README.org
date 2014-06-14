@@ -19,6 +19,10 @@ Leisure's environment is a virtual machine where the machine is a live document:
 - combines development and runtime
 - allows collaboration (but can be private)
 
+By the way, Leisure is in active development and not ready for normal use.  It is
+janky, slow, and buggy.  If you demand smooth, fast, and robust, Leisure will get
+there, but right now, it's *definitely* not for you.
+
 ** Convenient language
 Leisure provides a convenient syntax and powerful tools to help people
 try things out quickly, be productive, and customize the language to
