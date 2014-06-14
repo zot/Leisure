@@ -12,7 +12,7 @@
 
     shadowCount = 0
 
-Important: this does not remove old ids from data-view-ids on updates
+Important: this does not remove old ids, yet, from data-view-ids on updates
 
     createTemplateRenderer = (type, template, shadow, cont)->
       comp = Handlebars.compile template

@@ -1474,9 +1474,9 @@ nodeAfter = (node, up)->
   null
 
 filteredNodeAfter = (node, director)->
-  rejected = false
+  skipped = false
   while node
-    if !rejected && !up && node.nodeType == Node.ELEMENT_NODE && node.childNodes.length
+    if !skipped && !up && node.nodeType == Node.ELEMENT_NODE && node.childNodes.length
       node = node.childNodes[0]
     else if node.nextSibling
       up = false
@@ -1484,15 +1484,30 @@ filteredNodeAfter = (node, director)->
     else
       up = true
       node = node.parentNode
-    first = false
     if !up
       switch director node
         when 'quit' then return null
-        when 'reject' then rejected = true
+        when 'skip' then skipped = true
         else
           if !up then return node
-          rejected = false
+          skipped = false
   null
+
+getOrgText = (node)->
+  text = ''
+  end = nodeAfterNoChildren node
+  while (node = nodeAfterSkipNonOrg node) && isBefore node, end
+    if node.nodeType == Node.TEXT_NODE then text += node.data
+  text
+
+isBefore = (nodeA, nodeB)->
+  nodeA.compareDocumentPosition(nodeB) & Node.DOCUMENT_POSITION_FOLLOWING
+
+nodeAfterSkipNonOrg = (node)->
+  node = nodeAfter node
+  while node.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-nonorg'
+    node = nodeAfterNoChildren node
+  node
 
 # return the block text for a node -- just the text that's in its mongo block
 blockText = (node)->
@@ -1524,12 +1539,12 @@ suborgForNode = (node)->
 
 orgChildrenForNode = (node)->
   children = []
-  end = nodeAfter node, true
+  end = nodeAfterNoChildren node
   while node = filteredNodeAfter node, ((n)->
     if n == end then 'quit'
     else if n.nodeType == Node.ELEMENT_NODE && n.hasAttribute 'data-shared'
       children.push n
-      'reject') then
+      'skip') then
   children
 
 textWatchers = []
@@ -1614,11 +1629,6 @@ emptyOutNode = (node)->
   newNode
 
 root.orgApi = null
-
-cachedOrgText = null
-cachedOrgParent = null
-invalidateOrgText = -> cachedOrgParent = cachedOrgText = null
-getOrgText = (parent)-> (cachedOrgParent == parent && cachedOrgText) || (cachedOrgParent = parent; cachedOrgText = parent.textContent)
 
 orgNotebook =
   useNode: (node, source, content)->
@@ -1745,7 +1755,6 @@ root.keyFuncs = keyFuncs
 root.defaultBindings = defaultBindings
 root.addKeyPress = addKeyPress
 root.findKeyBinding = findKeyBinding
-root.invalidateOrgText = invalidateOrgText
 root.setCurKeyBinding = setCurKeyBinding
 root.presentValue = presentValue
 root.escapeAttr = escapeAttr
@@ -1770,8 +1779,11 @@ root.nextVisibleNewline = nextVisibleNewline
 root.countCharactersFrom = countCharactersFrom
 root.countCharactersIn = countCharactersIn
 root.nodeAfter = nodeAfter
+root.nodeAfterSkipNonOrg = nodeAfterSkipNonOrg
+root.filteredNodeAfter = filteredNodeAfter
 root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
+root.getOrgText = getOrgText
 root.watchNodeText = watchNodeText
 root.dumpTextWatchers = dumpTextWatchers
 root.useText = useText

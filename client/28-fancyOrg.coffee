@@ -88,7 +88,6 @@ yaml = root.yaml
   defaultBindings,
   addKeyPress,
   findKeyBinding,
-  invalidateOrgText,
   setCurKeyBinding,
   presentValue,
   propsFor,
@@ -1225,7 +1224,6 @@ allowEvents = true
 
 handleMutation = (evt)->
   if allowEvents
-    #invalidateOrgText()
     displaySource()
 
 executeSource = (parent, node, cont, skipTests)->

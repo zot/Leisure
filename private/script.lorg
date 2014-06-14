@@ -22,28 +22,7 @@ top: 40
 #+END_SRC
 
 [[leisure:il]]
-* Records
-[[leisure:a]] [[leisure:b]] [[leisure:c]] [[leisure:a]]
-
-#+NAME: a
-#+BEGIN_SRC yaml
-type: gump
-name: fred
-number: 35
-#+END_SRC
-#+NAME: b
-#+BEGIN_SRC yaml
-type: gump
-name: george
-number: 72
-#+END_SRC
-#+NAME: c
-#+BEGIN_SRC yaml
-type: gump
-name: mary
-number: 89
-#+END_SRC
-* Views
+* Image Views
 :PROPERTIES:
 :note: sidebar
 :hidden: true
@@ -72,6 +51,32 @@ number: 89
 </div>
 #+END_SRC
 
+* Records
+[[leisure:a]] [[leisure:b]] [[leisure:c]] [[leisure:a]]
+
+#+NAME: a
+#+BEGIN_SRC yaml
+type: gump
+name: fred
+number: 35
+#+END_SRC
+#+NAME: b
+#+BEGIN_SRC yaml
+type: gump
+name: george
+number: 72
+#+END_SRC
+#+NAME: c
+#+BEGIN_SRC yaml
+type: gump
+name: mary
+number: 89
+#+END_SRC
+* Views
+:PROPERTIES:
+:note: sidebar
+:hidden: true
+:END:
 #+BEGIN_SRC html :defview gump
 <div style='display: inline-block; border: solid blue 2px; padding: 5px'>
   Name: <input data-value='name'><br>
