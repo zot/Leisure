@@ -561,7 +561,7 @@ replaceRange = (range, node)->
   range.deleteContents()
   range.insertNode node
 
-getRangeText = (r)-> r.cloneContents().textContent
+getRangeText = (r)-> getOrgText r.cloneContents()
 
 getBox = (node)->
   while node? and !(node.getAttribute?('LeisureBox'))?
@@ -835,7 +835,7 @@ removeOldDefs = (el)->
     unwrap node
   for node in extracted
     if node.parentNode? and !addsLine(node) and node.previousSibling? and !addsLine(node.previousSibling) then node.parentNode.insertBefore text('\n'), node
-  el.textContent = el.textContent.replace /\uFEFF/g, ''
+  el.textContent = getOrgText(el).replace /\uFEFF/g, ''
   txt = el.lastChild
   if txt?.nodeType == 3 and (m = txt.data.match /(^|[^\n])(\n+)$/)
     txt.data = txt.data.substring(0, txt.data.length - m[2].length)

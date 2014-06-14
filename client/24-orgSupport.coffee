@@ -362,7 +362,7 @@ moveSelectionUp = (parent, r, start)->
   if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = startRect.left
   elRect = rectFor container
   if startRect.top > elRect.top
-    txt = r.startContainer.textContent
+    txt = getOrgText r.startContainer
     prevEnd = txt.substring(0, r.startOffset).lastIndexOf '\n'
     prevStart = txt.substring(0, prevEnd).lastIndexOf('\n') + 1
     if findCharForColumn r.startContainer, movementGoal, prevStart, prevEnd then return
@@ -387,7 +387,7 @@ moveSelectionDown = (parent, r, start)->
   if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = startRect.left
   elRect = rectFor container
   if startRect.bottom < elRect.bottom
-    txt = r.startContainer.textContent
+    txt = getOrgText r.startContainer
     start = txt.indexOf '\n', r.startOffset + 1
     if start > -1
       end = txt.indexOf '\n', start + 1
@@ -1323,7 +1323,7 @@ followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(n
 # 3) the text node does not end in a newline
 # 4) the text node is at the end of the editable container
 checkExtraNewline = (range, n, parent)->
-  if range.collapsed && n.nodeType == Node.TEXT_NODE && range.startOffset == n.length && n.textContent[n.length - 1] != '\n' then checkLast n, parent
+  if range.collapsed && n.nodeType == Node.TEXT_NODE && range.startOffset == n.length && getOrgText(n)[n.length - 1] != '\n' then checkLast n, parent
   else '\n'
 
 checkLast = (n, parent)->

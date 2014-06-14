@@ -956,7 +956,7 @@ createTestCase = (evt)->
     attrs = ['view', 'testcase']
     if !getCodeAttribute evt.target, 'observe' then attrs.push 'observe', '*'
     setCodeAttributes evt.target, attrs...
-    text = node.textContent
+    text = getOrgText node
     rest = text
     while match = rest.match drawerRE
       if match[0].trim().toLowerCase() == ':expected:'
@@ -1041,7 +1041,7 @@ toggleDynamic = (event)->
   block = codeBlockForNode event.target
   resType = (if !block.hasAttribute 'data-org-type' then block.firstChild else block).getAttribute 'data-org-results'
   top = topNode block
-  newNode = replaceCodeBlock block, changeResultType block.textContent, (if resType == 'dynamic' then 'static' else 'dynamic')
+  newNode = replaceCodeBlock block, changeResultType getOrgText(block), (if resType == 'dynamic' then 'static' else 'dynamic')
   if resType != 'dynamic' then executeSource top, $(newNode).find('[data-org-type="source"]')[0]
 
 nonl = (txt)-> if txt[txt.length - 1] == '\n' then txt.substring 0, txt.length - 1 else txt
@@ -1072,12 +1072,12 @@ atTextStart = (r)-> r.collapsed && (r.startContainer.nodeType == 1 || (r.startCo
 atTextEnd = (r)-> r.collapsed && (r.startContainer.nodeType == 1 || (r.startContainer.nodeType == 3 &&
 ((r.startOffset == r.startContainer.length && 1) ||
   (r.startOffset == r.startContainer.length - 1 &&
-  r.startContainer.textContent[r.startOffset] == '\n' && 2))))
+  getOrgText(r.startContainer)[r.startOffset] == '\n' && 2))))
 
 shouldCancelDEL = (parent, r)-> (atEnd = atTextEnd r) && crossesHidden atEnd + 1
 
 matchLineAt = (parent, pos)->
-  text = parent.textContent
+  text = getOrgText parent
   start = text.substring(0, pos).lastIndexOf('\n')
   end = text.indexOf '\n', start + 1
   if end == -1 then end = text.length
@@ -1218,7 +1218,7 @@ needsNewline = (el)->
 
 bsWillDestroyParent = (r)->
   if r.startContainer.nodeType == 3 && r.startOffset == 1 && r.startContainer.data.match /^.\n?$/
-    r.startContainer.parentNode.textContent == r.startContainer.data
+    getOrgText(r.startContainer.parentNode) == r.startContainer.data
   else false
 
 allowEvents = true
@@ -1256,7 +1256,7 @@ checkTestResults = (node)->
 reprocessResults = (node)->
   if node.firstChild.shadowRoot
     clearShadow node.firstChild
-  processResults node.firstChild.nextElementSibling.textContent, node, true
+  processResults getOrgText(node.firstChild.nextElementSibling), node, true
 
 processResults = (str, node, skipText)->
   if !node.firstChild.shadowRoot
@@ -1333,7 +1333,7 @@ showSliderButton = (parent, numberSpan, slideFunc)->
     if e.toElement != d && !d.contains e.toElement
       inside = false
       if !sliding then hideSlider numberSpan
-  value = Number numberSpan.textContent
+  value = Number getOrgText numberSpan
   min = if value < 0 then value * 2 else value / 2
   max = if value == 0 then 10 else value * 2
   sl = $(d).slider
