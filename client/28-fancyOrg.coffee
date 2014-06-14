@@ -1623,12 +1623,14 @@ Handlebars.registerHelper 'view', (item, name, options)->
     name = null
   data = if typeof item == 'string'
     block = getBlockNamed item
-    block.yaml
+    block?.yaml
   else
     block = null
     item
-  descriptor = if name then "#{data.type}/#{name}" else "#{data.type}"
-  viewMarkup[descriptor]?(data, null, false, block) || ''
+  if data?.type
+    descriptor = if name then "#{data.type}/#{name}" else "#{data.type}"
+    viewMarkup[descriptor]?(data, null, false, block) || ''
+  else ''
 
 addViewId = ->
   if Templating.currentViewData._id?

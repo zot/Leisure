@@ -1,93 +1,172 @@
-* Images
-#+NAME: il
+* Cards
+
+#+NAME: proto1
 #+BEGIN_SRC yaml
-type: imageList
-images:
-- i1
-- i2
+type: card-proto
+image: /images/cthulhu_test_green.png
+name: Card 1
+text: Some <large><b>text</b></large> for<br>card 1
 #+END_SRC
-#+NAME: i1
+#+NAME: proto2
 #+BEGIN_SRC yaml
-type: image
-src: tinyconcepts.png
+type: card-proto
+image: /images/cthulhu_test_white.png
+name: Card 2
+text: Some <large><b>text</b></large> for<br>card 2
+#+END_SRC
+
+#+NAME: player1
+#+BEGIN_SRC yaml
+type: player
+name: Fred
+#+END_SRC
+#+NAME: player2
+#+BEGIN_SRC yaml
+type: player
+name: George
+#+END_SRC
+
+#+NAME: card1
+#+BEGIN_SRC yaml
+type: card
+proto: proto1
+player: player1
+#+END_SRC
+#+NAME: card2
+#+BEGIN_SRC yaml
+type: card
+proto: proto2
+player: player1
+#+END_SRC
+#+NAME: card3
+#+BEGIN_SRC yaml
+type: card
+proto: proto1
+player: player2
+#+END_SRC
+
+#+NAME: d1
+#+BEGIN_SRC yaml
+type: dragger
+item: card1
 left: 150
 top: 30
 #+END_SRC
-#+NAME: i2
+#+NAME: d2
 #+BEGIN_SRC yaml
-type: image
-src: tinyconcepts.png
+type: dragger
+item: card2
 left: 250
-top: 40
+top: 60
+#+END_SRC
+#+NAME: d3
+#+BEGIN_SRC yaml
+type: dragger
+item: card3
+left: 350
+top: 90
 #+END_SRC
 
-[[leisure:il]]
-* Records
-[[leisure:a]] [[leisure:b]] [[leisure:c]] [[leisure:a]]
+#+NAME: dl
+#+BEGIN_SRC yaml
+type: draggerList
+draggers:
+- d1
+- d2
+- d3
+#+END_SRC
 
-#+NAME: a
-#+BEGIN_SRC yaml
-type: gump
-name: fred
-number: 35
-#+END_SRC
-#+NAME: b
-#+BEGIN_SRC yaml
-type: gump
-name: george
-number: 72
-#+END_SRC
-#+NAME: c
-#+BEGIN_SRC yaml
-type: gump
-name: mary
-number: 89
-#+END_SRC
+[[leisure:dl]]
 * Views
-:PROPERTIES:
-:note: sidebar
-:hidden: true
-:END:
-#+BEGIN_SRC html :defview image
-<div style='display: inline-block'>
-  <table>
-    <tr>
-      <td><img src={{src}}></td>
-      <td><h1>DRAG ME</h1>({{left}},{{top}})</td>
-    </tr>
-  </table>
+
+#+BEGIN_SRC html :defview card-proto
+<div class='card-frame'>
+  <div><b>{{name}}</b></div>
+  <table class='card-image'><tr><td><img src="{{image}}"></td></tr></table>
+  {{{text}}}
 </div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview player/cardLabel
+<div class='owner-label'>{{name}}</div>
+#+END_SRC
+
+#+BEGIN_SRC html :defview card
+{{{view player "cardLabel"}}}
+{{{view proto}}}
+#+END_SRC
+
+#+BEGIN_SRC html :defview dragger
+{{{view item}}}
 <script>
-  App.hookupImage();
+  App.hookupDragger();
 </script>
 #+END_SRC
 
-#+BEGIN_SRC html :defview imageList
-<div style='border: solid red 1px; display: inline-block'>
-  <div style='display: inline-block; width: 800px; height: 800px; position: relative'>
-    {{#each images}}
+#+BEGIN_SRC html :defview draggerList
+<div class='card-shared'>
+  <div class='card-shared-contents'>
+    {{#each draggers}}
     {{{view this}}}
     {{/each}}
   </div>
+  <script>App.handleDrop(document.currentScript.previousElementSibling)</script>
 </div>
 #+END_SRC
-
-#+BEGIN_SRC html :defview gump
-<div style='display: inline-block; border: solid blue 2px; padding: 5px'>
-  Name: <input data-value='name'><br>
-  Number: {{number}}
-</div>
-#+END_SRC
-* Support code
-:PROPERTIES:
-:hidden: true
-:END:
-We can indicate movement, here, with another view that's a line connected
-to the original center that disappears on mouse up.  Each player could get
-their own view.
+* Styles
 
 #+BEGIN_SRC coffee :results def
-App.hookupImage = ->
+Leisure.addStyles 'viewStyles', """
+  * /deep/ .card-shared {
+    position: fixed;
+    top: 50px;
+    right: 10px;
+    border: solid red 1px;
+    display: inline-block;
+    z-index: 100000;
+  }
+  * /deep/ .card-shared-contents {
+    display: inline-block;
+    width: 800px;
+    height: 800px;
+    position: relative;
+  }
+  * /deep/ .owner-label {
+    text-align: center;
+    border: solid green 3px;
+    border-radius: 10px;
+    background: lightgray;
+  }
+  * /deep/ .card-frame {
+    display: inline-block;
+    border-radius: 10px;
+    border: solid blue 3px;
+    padding: 5px;
+    width: 300px;
+    height: 400px;
+    background: white;
+  }
+  * /deep/ .card-image {
+    min-height: 100px;
+    width: 100%;
+  }
+  * /deep/ .card-image td {
+    text-align: center;
+    vertical-align: middle;
+  }
+"""
+##+END_SRC
+#* Support code
+#:PROPERTIES:
+#:hidden: true
+#:END:
+#
+#We can indicate movement, here, with another view that's a line connected
+#to the original center that disappears on mouse up.  Each player could get
+#their own view.
+#
+##+BEGIN_SRC coffee :results def
+App.hookupDragger = ->
   if Templating.currentScript
     view = $(Templating.currentScript).closest('[data-view-block]')
     id = view.attr 'data-view-block'
@@ -101,15 +180,15 @@ App.hookupImage = ->
           .css 'top', "#{data.top}px"
           .css 'left', "#{data.left}px"
       constrain: 'container'
-      update: (image, id, data)->
-        data.left = image.offsetLeft
-        data.top = image.offsetTop
+      update: (card, id, data)->
+        data.left = card.offsetLeft
+        data.top = card.offsetTop
         Leisure.setData id, data
-#+END_SRC
-
-View dragging -- jQueryUI's dragging seems to have trouble with shadow
-
-#+BEGIN_SRC coffee :results def
+##+END_SRC
+#
+#View dragging -- jQueryUI's dragging seems to have trouble with shadow
+#
+##+BEGIN_SRC coffee :results def
 dragUpdate = Lodash.throttle ((view, func)->
   id = view.getAttribute 'data-view-block'
   data = Leisure.getBlock(id).yaml
@@ -150,6 +229,20 @@ App.drag = (el, options)->
     if getComputedStyle(el).position != 'absolute'
       $(el).css 'position', 'absolute'
   if !el.drag.dragging then options?.init? el
+
+App.handleDrop = (el)->
+  el.addEventListener 'dragover', (e)-> e.dataTransfer.dropEffect = 'copy'
+  el.addEventListener 'drop', ((e)->
+    debuggerBreak()
+    t = e.dataTransfer
+    if 'text/html' in t.types
+      item = $(t.getData('text/html'))
+      if item.length == 1 && item.is 'img'
+        e.preventDefault()
+        console.log "dropped: ", item), true
+
+debuggerBreak = ->
+  console.assert false
 
 setOffsets = (el, newLeft, newTop)->
   {left, top} = el.getBoundingClientRect()

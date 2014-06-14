@@ -25,6 +25,17 @@
 - plain page doesn't show newline after results block
 - when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
+- add "index" attribute to yaml blocks
+  - :index names[name] numbers[number]
+  - format: indexName[attrName]
+    - indices[indexName][attrName] = [data...]
+- "index" helper
+  - {{#each (index 'cards' player)}} ... {{/each}}
+  - using index on cards: :index cards[player]
+- fix Leisure build process
+- optimize fully applied function calls
+  - create main func anc call that instead of partial funcs
+  - don't use reflection to record args)
 - chuck shadow and use tagged elements for file content
 - switch to views for everything
   - slides
