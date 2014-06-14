@@ -61,6 +61,10 @@ To run the Leisure server, switch to the top-level project diretory and run mete
 meteor run
 #+END_SRC
 
+Once meteor is running, you can use [[localhost:3000/game.lorg]] to test it.  *.lorg files
+are stored in the /private/ directory.  [[localhost:3000/code.lorg]] and
+[[localhost:3000/cards.lorg]] are some other ones to try.
+
 To run the command-line Leisure repl, switch to packages/leisure/build and run
 
 #+BEGIN_SRC shell
