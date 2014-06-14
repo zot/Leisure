@@ -22,6 +22,7 @@ Important: this does not remove old ids from data-view-ids on updates
         if target
           for node in target
             try
+              shadowCount = 0
               oldData = Templating.currentViewData
               oldViewLink = Templating.currentViewLink
               oldView = Templating.currentView

@@ -19,7 +19,7 @@ Leisure's environment is a virtual machine where the machine is a live document:
 - combines development and runtime
 - allows collaboration (but can be private)
 
-## Convenient language
+** Convenient language
 Leisure provides a convenient syntax and powerful tools to help people
 try things out quickly, be productive, and customize the language to
 suit their needs.  Leisure's syntax is based on Lambda Calculus and
@@ -27,7 +27,7 @@ borrows things from Haskell and other languages while still remaining
 very small.  It also includes metaprogramming facilities to allow
 powerful customization.
 
-## Notebook Style Interactive Development
+** Notebook Style Interactive Development
 
 For decades, programming has been done primarily in glorified text
 editors, completely ignoring *major* advances from the /*seventies*/, in
@@ -50,6 +50,14 @@ there has to be a better way, and we've settled for the status quo for
 far too long.
 
 * Getting Started
+
+Here are a few demo links you can try.  game.lorg is heavy-weight and may
+not behave well.  For now, Leisure only works in Chrome.
+
+http://textcraft.org:3333/#load=/demo/code.lorg
+http://textcraft.org:3333/#load=/demo/script.lorg
+http://textcraft.org:3333/#load=/demo/cards.lorg
+http://textcraft.org:3333/#load=/demo/game.lorg
 
 We use a posix environment amd [[https://www.meteor.com/][Meteor]] to develop Leisure, so you can use Linux, OS X,
 or cygwin to run or modify Leisure.  If you want to run Leisure on your computer,
