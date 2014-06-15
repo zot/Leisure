@@ -11,6 +11,7 @@
       else str
 
     shadowCount = 0
+    rendering = false
 
 Important: this does not remove old ids, yet, from data-view-ids on updates
 
@@ -18,11 +19,15 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
       comp = Handlebars.compile template
       viewMarkup[type] = (data, target, preserveContents, block, update, link)->
         updateAttr = if block then " data-view-type='#{type}'" else ""
+        updateAttr += " data-view='true'"
         if block then updateAttr = "#{updateAttr} data-view-block='#{block._id}'"
         if target
           for node in target
             try
-              shadowCount = 0
+              oldRendering = rendering
+              if !rendering
+                rendering = true
+                shadowCount = 0
               oldData = Templating.currentViewData
               oldViewLink = Templating.currentViewLink
               oldView = Templating.currentView
@@ -33,28 +38,42 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
                 node.innerHTML = comp data
                 Templating.currentViewLink = link
                 numberInputs node
-                node
+                el = node
+                node = node.parentNode
+                el
               else if shadow
                 n = $(node)
                 if !preserveContents
-                  n.html("<span class='hidden'>#{escapeHtml n.text()}</span>")
+                  n.append "<span class='hidden'>#{escapeHtml n.text()}</span>"
                 el = setShadowHtml node, html, true
                 numberInputs el
                 el
               else
-                setHtml node, html, true
+                clearView node
+                content = createFragment(html).firstChild
+                root.nonOrg content
+                node.appendChild content
               Templating.currentView = el
               if block then addId Templating.currentViewLink, block._id
-              activateScripts el
+              activateScripts viewRoots node
               if cont then cont(data, target, block, update)
             finally
               Templating.currentViewData = oldData
               Templating.currentViewLink = oldViewLink
               Templating.currentView = oldView
+              rendering = oldRendering
         else if block
           addId Templating.currentViewLink, block._id
           "<span#{updateAttr}>#{comp data}</span>"
         else comp data
+
+    createFragment = (txt)->
+      scratch = document.createElement 'DIV'
+      scratch.innerHTML = txt
+      frag = document.createDocumentFragment()
+      while scratch.firstChild
+        frag.appendChild scratch.firstChild
+      frag
 
     addId = (el, id)->
       for node in $(el).not("[data-view-ids~=#{id}]")
@@ -66,6 +85,8 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
         input.setAttribute 'data-shadow-id', shadowCount++
 
     activating = false
+
+    viewRoots = (el)-> $(el).children().filter('[data-view]')
 
     activateScripts = (el)->
       if !activating
@@ -86,12 +107,6 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
           Templating.currentScript = null
           activating = false
 
-    setHtml = (el, html, noactivate)->
-      el.innerHTML = html
-      if $("body").hasClass 'bar_collapse' then $(el.firstChild).addClass('bar_collapse')
-      if !noactivate then activateScripts el
-      el
-
     setShadowHtml = (holder, html, noactivate)->
       if !(el = holder.shadowRoot)
         holder.setAttribute 'data-shadowholder', 'true'
@@ -103,9 +118,14 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
       if !noactivate then activateScripts el.firstChild
       el.firstChild
 
-    clearShadow = (holder)->
-      #if holder.shadowRoot then holder.shadowRoot.innerHTML = ''
-      setShadowHtml holder, ''
+    appendAndActivate = (holder, html)->
+      n = $(html)
+      n.attr 'data-rendered', true
+      holder.children().filter("[data-rendered]").remove()
+      holder.append n
+      activateScripts n
+
+    clearView = (holder)-> viewRoots(holder).remove()
 
     getDeepestActiveElement = ->
       el = document.activeElement
@@ -115,7 +135,9 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
 
     root.createTemplateRenderer = createTemplateRenderer
     root.setShadowHtml = setShadowHtml
-    root.clearShadow = clearShadow
+    root.activateScripts = activateScripts
+    root.clearView = clearView
+    root.viewRoots = viewRoots
     root.viewMarkup = viewMarkup
     root.escapeHtml = escapeHtml
     root.getDeepestActiveElement = getDeepestActiveElement

@@ -105,6 +105,7 @@ yaml = root.yaml
   textNodeAfter,
   textNodeBefore,
   getOrgText,
+  nonOrg,
   visibleTextNodeBefore,
   visibleTextNodeAfter,
   isParentOf,
@@ -140,8 +141,10 @@ yaml = root.yaml
   escapeHtml,
   getDeepestActiveElement,
   setShadowHtml,
-  clearShadow,
+  clearView,
   viewMarkup,
+  appendAndActivate,
+  viewRoots,
 } = Templating # require '27-templating'
 _ = require 'lodash.min'
 
@@ -164,14 +167,18 @@ class SelectionDescriptor
     @x = window.scrollX
     @y = window.scrollY
     if el.nodeType == Node.ELEMENT_NODE && (sid = el.getAttribute('data-shadow-id')) && el.nodeName.match(/input/i) && el.type.match(/text/i)
-      descriptor = rootNode(el).firstChild.getAttribute 'data-view-descriptor'
-      index = $("[data-view-descriptor='#{descriptor}']").index document.activeElement
+      view = $(el).closest('[data-view-link]')
+      descriptor = view.attr('data-view-descriptor')
+      index = $("[data-view-descriptor='#{descriptor}']").index view
       start = el.selectionStart
       end = el.selectionEnd
-      @toString = -> "Selection(input: #{$('[maindoc]').find("[data-view-descriptor='#{descriptor}']").shadow().find("[data-shadow-id='#{sid}']")[0]})"
+      #@toString = -> "Selection(input: #{$('[maindoc]').find("[data-view-descriptor='#{descriptor}']").shadow().find("[data-shadow-id='#{sid}']")[0]})"
+      @toString = -> "Selection(input: #{$('[maindoc]').find("[data-view-descriptor='#{descriptor}']").find("[data-shadow-id='#{sid}']")[0]})"
       @restore = (delta, doc)->
-        newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[index]).shadow().find("[data-shadow-id='#{sid}']")[0]
-        if newEl != el then newEl.setSelectionRange start, end
+        #newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[index]).shadow().find("[data-shadow-id='#{sid}']")[0]
+        newEl = $($(doc).find("[data-view-descriptor='#{descriptor}']")[index]).find("[data-shadow-id='#{sid}']")[0]
+        #if newEl != el then newEl.setSelectionRange start, end
+        if newEl != document.activeElement then newEl.setSelectionRange start, end
         window.scrollTo @x, @y
     else if sel.type != 'None'
       startNode = sel.getRangeAt(0).startContainer
@@ -592,7 +599,7 @@ markupHtml = (org)->
     post = org.text.substring org.contentPos + org.contentLength
     "<span #{orgAttrs org} data-html-view='#{v}'><span data-org-html='true'></span><span class='hidden'>#{escapeHtml pre}</span><span class='hidden' data-content>#{escapeHtml org.content()}</span><span class='hidden'>#{escapeHtml post}</span></span>"
   else
-    "<span #{orgAttrs org}><span data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></span>"
+    "<span #{orgAttrs org}><span contenteditable='false' data-nonorg='true' data-org-html='true'>#{$('<div>' + org.content() + '</div>').html()}</span><span class='hidden'>#{escapeHtml org.text}</span></span>"
 
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
@@ -606,7 +613,7 @@ markupSource = (org, name, doctext, delay, inFragment)->
 findLinks = (name)->
   if m = name.match /^([^/]*)\/(.*)$/ then $("[data-view-link='#{m[1]}'][data-view-name='#{m[2]}']") else $("[data-view-link='#{name}']")
 
-findViews = (name)-> findLinks(name).shadow()
+findViews = (name)-> findLinks(name)
 
 getSourceSegments = (name, org)->
   {first, name, source, results, expected, last} = getCodeItems(name || org)
@@ -917,7 +924,7 @@ showAst = (astButton, force)->
   offset = Number(astButton.getAttribute 'data-ast-offset')
   #if force || !replaceRelatedPresenter presenter.button, emptyPresenter
   if force || !replaceRelatedPresenter astButton, emptyPresenter
-    if !astButton.firstChild then astButton.innerHTML = "<div></div>"
+    $(astButton).children().remove()
     text = getOrgText(astButton.parentNode).substring offset
     text = text.substring 0, (if m = text.match linePat then m.index else text.length)
     result = rz(L_newParseLine)(lz 0)(L_nil)(lz text)
@@ -925,7 +932,9 @@ showAst = (astButton, force)->
       if getType(ast) != 'parseErr'
         console.log "SIMPLIFIED: #{show lz(runMonad rz(L_simplify) lz text)}"
         try
-          setShadowHtml astButton.firstChild, "<div class='#{theme ? ''} ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
+          astContent = nonOrg "<div class='#{theme ? ''} ast'>#{rz(L_wrappedTreeFor)(lz ast)(L_id)}</div>"
+          if theme then astContent.addClass theme
+          $(astButton).append astContent
           replacePresenter
             hide: -> astButton.firstChild?.remove()
             isRelated: (node)-> isOrContains astButton, node
@@ -1154,9 +1163,10 @@ bindContent = (div)->
   displaySource()
 
 handleKey = (div)->(e)->
+  if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
+    return
   root.modCancelled = false
   root.currentMatch = null
-  if e.target.getAttribute 'data-view-id' then return
   curPos = -1
   c = (e.charCode || e.keyCode || e.which)
   if !addKeyPress e, c then return
@@ -1254,14 +1264,12 @@ checkTestResults = (node)->
   node.setAttribute 'data-org-test', (if node.getAttribute('data-org-expected') == $(node).find('.resultscontent').text() then 'pass' else 'fail')
 
 reprocessResults = (node)->
-  if node.firstChild.shadowRoot
-    clearShadow node.firstChild
   processResults getOrgText(node.firstChild.nextElementSibling), node, true
 
 processResults = (str, node, skipText)->
-  if !node.firstChild.shadowRoot
-    setShadowHtml node.firstChild, ''
-  shadow = $(node.firstChild).shadow()[0]
+  $(node.firstChild).children().remove()
+  resultsNode = nonOrg("<div></div>")[0]
+  $(node.firstChild).append resultsNode
   if !skipText
     node.firstChild.nextElementSibling.textContent += escapePresentationHtml(str.substring 0, str.length - 1) + str[str.length - 1]
     edited node
@@ -1269,7 +1277,7 @@ processResults = (str, node, skipText)->
   if theme != null then classes = theme + ' ' + classes
   if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
   for line in splitLines str
-    if line.match /^: / then shadow.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
+    if line.match /^: / then resultsNode.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
 
 redrawIssue = (issue)->
   issueName = issue.leisureName
@@ -1291,7 +1299,7 @@ newCommentBox = (name, codeId)->
 colonify = (str)-> ': ' + (str.replace /[\n\\]/g, (c)-> if c == '\n' then '\\n' else '\\\\') + '\n'
 
 clearResults = (node)->
-  clearShadow node.firstChild
+  node.firstChild.innerHTML = ''
   node.firstChild.nextElementSibling.innerHTML = ''
 
 # like orgSupport's orgEnv, but wrap the leading ': ' in hidden spans
@@ -1532,7 +1540,7 @@ fixupViews = (target)->
       renderHtmlView html
 
 renderHtmlView = (html, data)->
-  if !html.leisureRendered && (txt = $(html).find("[data-content]").text()) && output = $(html).find('[data-org-html]')[0]
+  if !html.leisureRendered && (txt = $(html).find("[data-content]").text()) && output = $(html).find('[data-org-html]')
     if !data && name = html.getAttribute 'data-html-view' then data = getDataNamed name
     if data && txt
       try
@@ -1541,7 +1549,7 @@ renderHtmlView = (html, data)->
       catch err
         console.log err.stack
         return
-      setShadowHtml output, comp data.yaml
+      appendAndActivate output, nonOrg comp data.yaml
 
 # el could be a parent fragment, a shared source block, or a source block in a fragment
 renderView = (el, name)->
@@ -1581,18 +1589,20 @@ renderLink = (node, data)->
     descriptor = data._id
   if root.viewTypeData[viewKey] && markup = viewMarkup[viewKey]
     markup data.yaml, $(node), false, data
-  else clearShadow node
+  else clearView node
   $(node)
     .attr 'data-view-descriptor', descriptor
     .attr 'data-view-key', viewKey
-    .shadow()
-      .attr 'data-view-id', data._id
-      .attr 'data-view-descriptor', descriptor
+    .attr 'data-view-id', data._id
+    #.shadow()
+    #  .attr 'data-view-id', data._id
+    #  .attr 'data-view-descriptor', descriptor
 
 updateViews = (id)->
   if block = getBlock id
     for link in $("[data-view-ids~=#{id}]")
-      for view in $(link).shadow().find("[data-view-block='#{id}']")
+      #for view in $(link).shadow().find("[data-view-block='#{id}']")
+      for view in $(link).find("[data-view-block='#{id}']")
         type = $(view).attr 'data-view-type'
         viewMarkup[type] block.yaml, $(view), false, block, true, link
 
@@ -1717,13 +1727,15 @@ fancyOrg =
     slide.find("##{id}")[0]
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]
-      createTemplateRenderer type, root.viewTypeData[type], true, (data, target, block, update)->
-        el = if update then target else target.shadow()
+      #createTemplateRenderer type, root.viewTypeData[type], true, (data, target, block, update)->
+      createTemplateRenderer type, root.viewTypeData[type], false, (data, target, block, update)->
+        #el = if update then target else target.shadow()
+        el = if update then target else viewRoots(target)
         if target
           el
             .addClass(theme)
             .addClass($('body').hasClass('bar_collapse') && 'bar_collapse')
-            .prepend("<style>@import 'shadow.css';</style>")
+            #.prepend("<style>@import 'shadow.css';</style>")
             .css('white-space', 'normal')
             .css('user-select', 'none')
             .css('-webkit-user-select', 'none')
@@ -1742,7 +1754,7 @@ fancyOrg =
   deleteView: (type)->
     delete viewMarkup[type]
     for node in $("[data-view-key='#{type}']")
-      clearShadow node
+      clearView node
   applyShowHidden: ->
     for node in $('.slideholder')
       if $(node).find("[data-org-headline='1']").not("[data-property-hidden='true']").length == 0
@@ -1780,9 +1792,6 @@ plainOrg.opposite = fancyOrg
 
 # called on installing DOM and also on new notes
 fixupHtml = (parent, note)->
-  for node in findOrIs $(parent), '[data-org-html]'
-    setShadowHtml node, node.innerHTML
-    node.innerHTML = ''
   for node in findOrIs findOrIs($(parent), "[data-lang='leisure']"), '[data-org-src]'
     recreateAstButtons node
     createValueSliders node, leisureNumberSlider
@@ -1810,8 +1819,8 @@ fixupHtml = (parent, note)->
 displayCodeView = (node)->
   if node
     if block = getBlock $(node).closest('[data-shared]')[0]?.id
-      viewMarkup[node.getAttribute 'data-code-view']? block, $(node), true, block
-      $(node).shadow().attr 'data-view-id', block._id
+      viewMarkup[node.getAttribute 'data-code-view']? block, $(node), false, block
+      #$(node).shadow().attr 'data-view-id', block._id
 
 viewFor = (node)-> $("##{$(node).closest('[data-view-id]').attr 'data-view-id'}")
 

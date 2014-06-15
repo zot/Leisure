@@ -1458,6 +1458,11 @@ filteredNodeAfter = (node, director)->
           skipped = false
   null
 
+nonOrg = (node)->
+  $(node)
+    .attr 'data-nonorg', 'true'
+    .attr 'contenteditable', 'false'
+
 getOrgText = (node)->
   if node.nodeType == Node.TEXT_NODE then node.data
   else
@@ -1482,7 +1487,7 @@ blockText = (node)->
   text = ''
   while node && node != end
     if node.nodeType == Node.TEXT_NODE then text += node.data
-    node = nodeAfter node
+    node = nodeAfterSkipNonOrg node
     if node?.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-shared' then break
   text
 
@@ -1509,7 +1514,7 @@ orgChildrenForNode = (node)->
   end = nodeAfterNoChildren node
   while node = filteredNodeAfter node, ((n)->
     if n == end then 'quit'
-    else if n.nodeType == Node.ELEMENT_NODE && n.hasAttribute 'data-shared'
+    else if n.nodeType == Node.ELEMENT_NODE && n.hasAttribute('data-shared')
       children.push n
       'skip') then
   children
@@ -1751,6 +1756,7 @@ root.filteredNodeAfter = filteredNodeAfter
 root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
 root.getOrgText = getOrgText
+root.nonOrg = nonOrg
 root.watchNodeText = watchNodeText
 root.dumpTextWatchers = dumpTextWatchers
 root.blockText = blockText
@@ -1766,3 +1772,6 @@ root.applyShowHidden = applyShowHidden
 root.actualSelectionUpdate = actualSelectionUpdate
 root.currentBlockIds = []
 root.toggleLeisureBar = toggleLeisureBar
+
+# evil mod of Templating
+Templating.nonOrg = nonOrg
