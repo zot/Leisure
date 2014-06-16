@@ -1,22 +1,22 @@
 * Short list -- screencast
-- add CSS language support
-- try to fix test cases!!!
-- script screencast -- screencast.lorg
-- go through old slides
+- X add CSS language support
+- X try to fix test cases!!!
+- X script screencast -- screencast.lorg
+- X go through old slides
 - reactivate note button
 - reactivete selection bubble
 - collaboration
-  - spawn document copies
-    - temporary or permanent
+  - git persistence
+  - X spawn document copies
+    - X temporary or permanent
   - multple documents on a session
   - show users' cursors/selections
   - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)
 - JavaScript/CoffeeScript source blocks
-- GUI templates -- HTML source block defines a new widget type
-  - define handlebars helpers for input, views, etc
-- fix notes (sidebar and floaty)
-- fix test cases
+- X GUI templates -- HTML source block defines a new widget type
+  - X define handlebars helpers for input, views, etc
+- fix floaty notes
 ** TODO Bug when collaborating with fancy & plain
    :PROPERTIES:
    :ID:       0c9902c5-d885-4d99-8e9b-8d8830152c4f
