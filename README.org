@@ -57,10 +57,10 @@ far too long.
 
 Here are a few demo links you can try.  For now, Leisure only works in Chrome.
 
-http://textcraft.org:3333/#load=/demo/game.lorg
-http://textcraft.org:3333/#load=/demo/code.lorg
-http://textcraft.org:3333/#load=/demo/script.lorg
-http://textcraft.org:3333/#load=/demo/cards.lorg
+- http://textcraft.org:3333/#load=/demo/game.lorg
+- http://textcraft.org:3333/#load=/demo/code.lorg
+- http://textcraft.org:3333/#load=/demo/script.lorg
+- http://textcraft.org:3333/#load=/demo/cards.lorg
 
 We use a posix environment amd [[https://www.meteor.com/][Meteor]] to develop Leisure, so you can use Linux, OS X,
 or cygwin to run or modify Leisure.  If you want to run Leisure on your computer,
