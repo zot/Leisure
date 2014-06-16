@@ -174,14 +174,15 @@ App.hookupDragger = ->
     App.drag view[0],
       init: ->
         view
-          .css 'zIndex', '100'
           .css 'top', "#{data.top}px"
           .css 'left', "#{data.left}px"
-      constrain: view.closest "[name='container']"
+      containment: view.closest "[name='container']"
+      scroll: false
       update: (image, id, data)->
         data.left = image.offsetLeft
         data.top = image.offsetTop
         Leisure.setData id, data
+    $(view).on 'mousedown', -> view.parent().append view
 #+END_SRC
 
 View dragging -- sliding views around.
@@ -199,17 +200,20 @@ App.drag = (el, options)->
     offset = $(el).offset()
     el.isDraggable = true
     el.style.position = 'absolute'
-    el.style.zIndex = '100'
     options.init()
-    $(el)
-      .draggable
-        containment: options?.constrain
-        start: -> el.isDragging = true
-        drag: (event, ui)-> if options?.update? then dragUpdate el, options.update; true
-        stop: ->
-         if options?.update? then dragUpdate el, options.update
-         setTimeout (-> el.isDragging = false), 300
-         true
+    options = options ? {}
+    oldStart = options.start
+    options.start = ->
+      el.isDragging = true
+      oldStart?()
+    options.drag = (event, ui)-> if options.update? then dragUpdate el, options.update; true
+    oldStop = options.stop
+    options.stop = ->
+      if options.update? then dragUpdate el, options.update
+      setTimeout (-> el.isDragging = false), 300
+      oldStop?()
+      true
+    $(el).draggable options
   else if !el.isDragging then options.init()
 #+END_SRC
 

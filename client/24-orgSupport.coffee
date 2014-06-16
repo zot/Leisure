@@ -789,7 +789,6 @@ bindContent = (div)->
   displaySource()
 
 handleDrop = (e)->
-  console.log 'bubba'
   e.preventDefault()
   t = e.dataTransfer
   s = getSelection()
