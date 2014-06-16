@@ -115,8 +115,7 @@ draggers:
 #+END_SRC
 * Styles
 
-#+BEGIN_SRC coffee :results def
-Leisure.addStyles 'viewStyles', """
+#+BEGIN_SRC css
   * /deep/ .card-shared {
     position: fixed;
     top: 50px;
@@ -154,7 +153,6 @@ Leisure.addStyles 'viewStyles', """
     text-align: center;
     vertical-align: middle;
   }
-"""
 #+END_SRC
 * Support code
 :PROPERTIES:

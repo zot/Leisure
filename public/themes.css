@@ -261,6 +261,7 @@ body.googie {
     border-radius: 20px;
     border: 15px solid #3868b8;
 }
+.googie [data-edit-mode='fancy'] .default-lang[data-lang='css'],
 .googie [data-edit-mode='fancy'] .default-lang[data-lang='html'] {
     border-radius: 20px;
     border: 15px solid #ff9346;
@@ -656,6 +657,7 @@ body.console {
     background-color: #603913;
     color: #e6dcc3;
 }
+.steampunk [data-edit-mode='fancy'] .default-lang[data-lang='css'],
 .steampunk [data-edit-mode='fancy'] .default-lang[data-lang='html'] {
     background-color: #e6dcc3;
     color: black;
@@ -1751,6 +1753,7 @@ i.fa + div, i.fa + span, i.fa + div + span {
 .flat [data-edit-mode='fancy'] .default-lang[data-lang], .flat [data-edit-mode='fancy'] [data-lang='yaml'] {
     padding: 0;
 }
+.flat [data-edit-mode='fancy'] .default-lang[data-lang='css'],
 .flat [data-edit-mode='fancy'] .default-lang[data-lang='html'] {
     padding: 0;
     background-color: #ffa768;

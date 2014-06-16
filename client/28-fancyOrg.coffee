@@ -135,6 +135,7 @@ yaml = root.yaml
   addChangeContextWhile,
   getSourceAttribute,
   setSourceAttribute,
+  codeString,
 } = require '23-collaborate'
 {
   createTemplateRenderer,
@@ -605,6 +606,7 @@ chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
   else if isLeisure org then markupLeisure
   #else if org.lead()?.trim().toLowerCase() == 'html' then (org)-> defaultMarkup org, 'div', 'class', 'default-lang', 'data-lang', org.lead()?.trim()
+  else if org.info.match /^ *css\b/i then markupCSS
   else markupCode
 
 markupSource = (org, name, doctext, delay, inFragment)->
@@ -661,6 +663,23 @@ markupCode = (org, name, doctext, delay, inFragment)->
   if (l = source.getLanguage()) #&& !inFragment
     addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
   "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span></div>"
+
+markupCSS = (org, name, doctext, delay, inFragment)->
+  [pre, src, post] = getSourceSegments name, org
+  {name, source, results, expected, last} = getCodeItems(name || org)
+  lastOrgOffset = last.offset
+  lang = org.getLanguage() || ''
+  if name
+    n = escapeAttr name.info.trim()
+    addAttr = " data-org-codeblock='#{n}'"
+    styleName = " name='#{escapeAttr n}'"
+  else
+    addAttr = ''
+    styleName = ''
+  if (l = source.getLanguage()) #&& !inFragment
+    addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
+  cssBlock = $("<style name='css'#{styleName}>#{src}</style>")[0].outerHTML
+  "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span>#{cssBlock}</div>"
 
 dragging = false
 
@@ -1605,6 +1624,8 @@ updateViews = (id)->
       for view in $(link).find("[data-view-block='#{id}']")
         type = $(view).attr 'data-view-type'
         viewMarkup[type] block.yaml, $(view), false, block, true, link
+    if block.language?.toLowerCase() == 'css'
+      $("##{id} [name=css]").html codeString block
 
 viewBlock = (el)->
   if id = $(el).closest('[data-view-id]').attr('data-view-id')
@@ -1862,7 +1883,7 @@ toggleEdit = (id)->
 addStyles = (name, string)->
   styles = $ "<style id='styles-#{name}'>\n#{string}\n</style>"
   if (old = $("#styles-#{name}")).length then old.replaceWith styles
-  else $('head').prepend styles
+  else $('body').append styles
 
 root.fancyOrg = fancyOrg
 root.toggleComment = toggleComment

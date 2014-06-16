@@ -155,7 +155,7 @@
         if a = org.attributes() then obj.codeAttributes = a
         [_([obj]), org.next]
 
-    isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/
+    isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/i
 
     checkSingleNode = (text)->
       docs = {}

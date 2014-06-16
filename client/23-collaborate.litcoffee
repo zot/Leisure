@@ -194,6 +194,8 @@ Handle changes to the doc nodes
           viewTypeData[data.codeAttributes.defview] = codeString data
           viewIdTypes[data._id] = attr.defview
           delay -> root.orgApi.defineView data._id
+        else if lang == 'css'
+          root.orgApi.updateBlock data
         else if lang == 'yaml'
           if data.codeName then namedBlocks[data.codeName] = data._id
           root.orgApi.updateBlock data
