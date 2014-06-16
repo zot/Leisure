@@ -180,6 +180,8 @@ Handle changes to the doc nodes
             break
       result
 
+    scriptCounter = 0
+
     processDataChange = ({type, data}, updated)->
       if type in ['changed', 'removed'] && viewIdTypes[data._id]
         root.orgApi.deleteView viewIdTypes[data._id]
@@ -212,7 +214,9 @@ Handle changes to the doc nodes
                   o = observers[attr.observe] = []
                 if !(data._id in o) then o.push data._id
               compileContext data._id, data
-            else CoffeeScript.run codeString data
+            else
+              filename = "coffeescript-#{++scriptCounter}"
+              CoffeeScript.eval codeString(data), filename: filename, sourceMap: true, sourceFiles: [filename]
           catch err
             console.log err.stack
         else if lang == 'leisure'

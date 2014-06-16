@@ -105,7 +105,7 @@ draggers:
 
 #+BEGIN_SRC html :defview draggerList
 <div class='card-shared'>
-  <div class='card-shared-contents'>
+  <div name='container' class='card-shared-contents'>
     {{#each draggers}}
     {{{view this}}}
     {{/each}}
@@ -155,40 +155,38 @@ Leisure.addStyles 'viewStyles', """
     vertical-align: middle;
   }
 """
-##+END_SRC
-#* Support code
-#:PROPERTIES:
-#:hidden: true
-#:END:
-#
-#We can indicate movement, here, with another view that's a line connected
-#to the original center that disappears on mouse up.  Each player could get
-#their own view.
-#
-##+BEGIN_SRC coffee :results def
+#+END_SRC
+* Support code
+:PROPERTIES:
+:hidden: true
+:END:
+
+We can indicate movement, here, with another view that's a line connected
+to the original center that disappears on mouse up.  Each player could get
+their own view.
+
+#+BEGIN_SRC coffee :results def
 App.hookupDragger = ->
-  if Templating.currentScript
-    view = $(Templating.currentScript).closest('[data-view-block]')
+  if script = (Templating.currentScript || document.currentScript)
+    view = $(script).closest('[data-view-block]')
     id = view.attr 'data-view-block'
     data = Leisure.getBlock(id).yaml
-    v = view[0]
-
-    App.drag v,
+    App.drag view[0],
       init: ->
         view
           .css 'zIndex', '100'
           .css 'top', "#{data.top}px"
           .css 'left', "#{data.left}px"
-      constrain: 'container'
-      update: (card, id, data)->
-        data.left = card.offsetLeft
-        data.top = card.offsetTop
+      constrain: view.closest "[name='container']"
+      update: (image, id, data)->
+        data.left = image.offsetLeft
+        data.top = image.offsetTop
         Leisure.setData id, data
-##+END_SRC
-#
-#View dragging -- jQueryUI's dragging seems to have trouble with shadow
-#
-##+BEGIN_SRC coffee :results def
+#+END_SRC
+
+View dragging -- sliding views around.
+
+#+BEGIN_SRC coffee :results def
 dragUpdate = Lodash.throttle ((view, func)->
   id = view.getAttribute 'data-view-block'
   data = Leisure.getBlock(id).yaml
@@ -196,85 +194,38 @@ dragUpdate = Lodash.throttle ((view, func)->
   ), 200, leading: true, trailing: true
 
 App.drag = (el, options)->
-  if !el.drag
-    el.drag = {}
-    el.drag.move = if !options?.constrain then setOffsets
-    else if options.constrain == 'container'
-      constrainToElement App.getContainer el
-    else if options.constrain instanceof Element
-      constrainToElement options.constrain
-    else setOffsets
+  if !el.isDraggable
+    pos = $(el).position()
+    offset = $(el).offset()
+    el.isDraggable = true
+    el.style.position = 'absolute'
+    el.style.zIndex = '100'
+    options.init()
     $(el)
-      .css '-webkit-user-select', 'none'
-      .css 'user-select', 'none'
-    $(el).on 'mousedown', el.drag.downFunc = (e)->
-      e.preventDefault()
-      el.drag.dragging = true
-      {top, left} = el.getBoundingClientRect()
-      offsetX = left - e.clientX
-      offsetY = top - e.clientY
-      move = (e)->
-        if el.drag.move(el, e.clientX + offsetX, e.clientY + offsetY) && options?.update
-          dragUpdate el, options.update
-        options?.drag? el
-      up = (e)->
-        if el.drag.move(el, e.clientX + offsetX, e.clientY + offsetY) && options?.update
-          dragUpdate el, options.update
-        el.drag.dragging = false
-        $(document).off 'mouseup', up
-        $(document).off 'mousemove', move
-        options?.end? el
-      $(document).on 'mouseup', up
-      $(document).on 'mousemove', move
-    if getComputedStyle(el).position != 'absolute'
-      $(el).css 'position', 'absolute'
-  if !el.drag.dragging then options?.init? el
+      .draggable
+        containment: options?.constrain
+        start: -> el.isDragging = true
+        drag: (event, ui)-> if options?.update? then dragUpdate el, options.update; true
+        stop: ->
+         if options?.update? then dragUpdate el, options.update
+         setTimeout (-> el.isDragging = false), 300
+         true
+  else if !el.isDragging then options.init()
+#+END_SRC
 
+#+BEGIN_SRC coffee :results def
 App.handleDrop = (el)->
-  el.addEventListener 'dragover', (e)-> e.dataTransfer.dropEffect = 'copy'
-  el.addEventListener 'drop', ((e)->
-    debuggerBreak()
+  el.addEventListener 'dragover', (e)->
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  el.addEventListener 'drop', (e)->
+    e.preventDefault()
+    e.stopPropagation()
+    console.log "DROPPING..."
     t = e.dataTransfer
     if 'text/html' in t.types
       item = $(t.getData('text/html'))
       if item.length == 1 && item.is 'img'
         e.preventDefault()
-        console.log "dropped: ", item), true
-
-debuggerBreak = ->
-  console.assert false
-
-setOffsets = (el, newLeft, newTop)->
-  {left, top} = el.getBoundingClientRect()
-  newLeft = Math.round newLeft
-  newTop = Math.round newTop
-  left = Math.round left
-  top = Math.round top
-  changed = false
-  if newLeft != left then changed = el.style.left = "#{el.offsetLeft + newLeft - left}px"
-  if newTop != top then changed = el.style.top = "#{el.offsetTop + newTop - top}px"
-  changed
-
-constrainToElement = (constraintElement)-> (el, newLeft, newTop)->
-  constrainToClientRect el, constraintElement.getBoundingClientRect(), newLeft, newTop
-
-constrainToClientRect = (el, rect, newLeft, newTop)->
-  r = el.getBoundingClientRect()
-  offLeft = newLeft - r.left
-  offTop = newTop - r.top
-  if r.bottom + offTop > rect.bottom then newTop -= r.bottom + offTop - rect.bottom
-  if r.right + offLeft > rect.right then newLeft -= r.right + offLeft - rect.right
-  setOffsets el, Math.max(newLeft, rect.left), Math.max(newTop, rect.top)
-
-App.nodrag = (el)->
-  if el.drag.downFunc
-    $(el).off 'mousedown', el.drag.downFunc
-    delete el.drag
-
-App.getContainer = (el)->
-  parent = el
-  while parent = parent.parentNode
-    if getComputedStyle(parent).position in ['absolute', 'relative', 'fixed']
-      return parent
-  document.body
+        console.log "dropped: ", item
 #+END_SRC

@@ -93,7 +93,6 @@ their own view.
 
 #+BEGIN_SRC coffee :results def
 App.hookupImage = ->
-  console.log "HOOKUP"
   if script = (Templating.currentScript || document.currentScript)
     view = $(script).closest('[data-view-block]')
     id = view.attr 'data-view-block'
