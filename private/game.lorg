@@ -294,6 +294,9 @@ Leisure.addStyles 'gameBoard', """
 Styles for views
 #+BEGIN_SRC coffee :results def
 Leisure.addStyles 'viewStyles', """
+  [data-org-note='main'] {
+    width: 60%;
+  }
   * /deep/ input[data-value='name'] {
     width: 100%;
     margin-left: 5px;

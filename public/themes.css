@@ -201,7 +201,7 @@ body.cthulhu {
 }
 .cthulhu textarea {
     font-family: Inconsolata;
-    font-size: large;
+    /*font-size: large;*/
 }
 .cthulhu :focus {
     outline: none;
@@ -394,7 +394,7 @@ body.googie {
 }
 .googie textarea {
     font-family: Inconsolata;
-    font-size: large;
+    /*font-size: large;*/
 }
 .googie :focus {
     outline: none;
@@ -501,7 +501,7 @@ body.console {
     background: black !important;
     color: #0f0;
     font-family: Inconsolata;
-    font-size: large;
+    /*font-size: large;*/
 }
 .console /deep/ .partial-application {
     background: #0c0;
@@ -941,7 +941,7 @@ body {
     position: relative;
     margin: 0;
     font-family: Inconsolata;
-    font-size: large;
+    /*font-size: large;*/
     background: #CCCCCC;
 }
 .syntaxhighlighter .ui-slider {
@@ -1031,6 +1031,13 @@ body {
     margin-bottom: 15px;
     padding: 10px;
 }
+[data-edit-mode='fancy'] [data-org-type='meat'] {
+    white-space: normal;
+}
+[data-edit-mode='fancy'] .meat-break {
+    display: block;
+    height: 1em;
+}
 [data-edit-mode='fancy'] .default-lang[data-lang] {
     border: 0px;
     background-color: #368ee0;
@@ -1038,6 +1045,7 @@ body {
     margin-right: 15px;
     margin-bottom: 15px;
     padding: 10px;
+    vertical-align: top;
 }
 [data-edit-mode='fancy'] [data-org-src]
 {
@@ -1087,7 +1095,8 @@ body {
     text-align: center;
     color: white;
     font-family: Arial;
-    font-size: x-large;
+    /*font-size: x-large;*/
+    font-size: large;
     font-weight: bold;
     border: none;
     outline: none;
@@ -1110,7 +1119,7 @@ body {
     height: 35px;
 }
 #themeSelect {
-    font-size: large;
+    /*font-size: large;*/
     outline: none;
 }
 #leisure_bar button div {
@@ -1468,7 +1477,7 @@ button:hover {
 }
 .comment-button {
     font-weight: bold;
-    font-size: large;
+    /*font-size: large;*/
     height: 36px;
     width: 72px;
 }

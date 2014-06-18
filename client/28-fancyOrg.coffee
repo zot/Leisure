@@ -136,6 +136,8 @@ yaml = root.yaml
   getSourceAttribute,
   setSourceAttribute,
   codeString,
+  controllerDescriptorIds,
+  codeContexts,
 } = require '23-collaborate'
 {
   createTemplateRenderer,
@@ -401,7 +403,10 @@ markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
   else if content(org.text).length then defaultMarkup org
   else
     tag = (if middleOfLine then 'span' else 'div')
-    "<#{tag} #{orgAttrs org}>#{escapeHtml org.text}</#{tag}>"
+    "<#{tag} #{orgAttrs org}>#{meatText org.text}</#{tag}>"
+
+meatText = (meat)->
+  paras = escapeHtml(meat).replace /\n\n/g, "<span class='meat-break'><span class='hidden'>\n</span>\n</span>"
 
 isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 'leisure'
 
@@ -678,7 +683,7 @@ markupCSS = (org, name, doctext, delay, inFragment)->
     styleName = ''
   if (l = source.getLanguage()) #&& !inFragment
     addAttr += " data-lang='#{l}' id='#{org.nodeId}'"
-  cssBlock = $("<style name='css'#{styleName}>#{src}</style>")[0].outerHTML
+  cssBlock = nonOrg("<style name='css'#{styleName}>#{src}</style>")[0].outerHTML
   "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span>#{cssBlock}</div>"
 
 dragging = false
@@ -697,12 +702,14 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   lastOrgOffset = org.offset
   if name then codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'>"
   else codeBlock = ">"
-  codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
-  contHtml = "class='codeblock' contenteditable='false' data-lang='leisure' #{orgAttrs org}#{codeBlock}"
+  contHtml = "class='codeblock' contenteditable='false' data-lang='leisure' #{orgAttrs org}"
+  if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
   if view = org.attributes()?.view
     contHtml = "data-code-view='#{escapeAttr view.trim()}' " + contHtml
-  if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
+    codeBlock = "#{codeBlock}<span class='hidden'>"
+  codeBlock += "<div class='codeborder'></div>"
+  contHtml += codeBlock
   node = org.next
   intertext = ''
   finalIntertext = ''
@@ -726,7 +733,7 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
     node = node.next
   if name
     nameM = name.text.match keywordRE
-    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div>#{escapeHtml name.info}</div>#{escapeHtml doctext}</div>"
+    codeName = "<div class='codename' contenteditable='true'><span class='hidden'>#{escapeHtml nameM[KW_BOILERPLATE]}</span><div>#{escapeHtml name.info}</div>#{meatText doctext}</div>"
   else codeName = "<div class='codename' contenteditable='true'></div>"
   wrapper = "<table class='codewrapper'><tr>"
   wrapper += "<td class='code-buttons'>"
@@ -746,6 +753,7 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   result = contHtml + wrapper + (if name then "</div>#{commentBlock name.info.trim()}" else "</div>")
   fluff = if top.prev instanceof Source || top.prev instanceof Results then "<div class='fluff' data-newline></div>" else ''
   inner = fluff + startHtml + result
+  if view then inner += "</span>"
   if inFragment then inner
   else '<div>' + inner + '</div>'
 
@@ -984,6 +992,7 @@ createTestCase = (evt)->
     attrs = ['view', 'testcase']
     if !getCodeAttribute evt.target, 'observe' then attrs.push 'observe', '*'
     setCodeAttributes evt.target, attrs...
+    node = $("##{node.id}")[0]
     text = getOrgText node
     rest = text
     while match = rest.match drawerRE
@@ -1058,7 +1067,7 @@ defaultMarkup = (org, tag, attrs...)->
   tag = tag || 'span'
   attrs = if attrs.length then " " + Lazy(attrs).chunk(2).map(([k, v])-> "#{k}='#{v}'").join(' ')
   else ''
-  "<#{tag} #{orgAttrs org}#{attrs}>#{escapeHtml org.text}</#{tag}>"
+  "<#{tag} #{orgAttrs org}#{attrs}>#{meatText org.text}</#{tag}>"
 
 htmlForResults = (text, org)->
   attr = if org?.shared then " id='#{org.nodeId}' data-shared='#{org.shared}'" else ''
@@ -1595,11 +1604,11 @@ renderData = (data, linkName)->
     finally
       Leisure.currentViewChunk = oldChunk
 
-blockViewUpdatesWhile = (links, func)->
-  addChangeContextWhile blockViews: links, func
+noRenderWhile = (links, func)->
+  addChangeContextWhile _.merge({}, root.changeContext.blockViews ? {}, blockViews: links), func
 
 renderLink = (node, data)->
-  if isPlainEditing(node) || root.changeContext.blockViews?.is(node) then return
+  if isPlainEditing(node) || root.changeContext.blockViews?.is(node) || root.changeContext.blockViews?.is($(node).children().filter('[data-view]')) then return
   if name = node.getAttribute 'data-view-name'
     viewKey = "#{data.yaml.type}/#{name}"
     descriptor = "#{data._id}/#{name}"
@@ -1613,17 +1622,15 @@ renderLink = (node, data)->
     .attr 'data-view-descriptor', descriptor
     .attr 'data-view-key', viewKey
     .attr 'data-view-id', data._id
-    #.shadow()
-    #  .attr 'data-view-id', data._id
-    #  .attr 'data-view-descriptor', descriptor
 
 updateViews = (id)->
   if block = getBlock id
     for link in $("[data-view-ids~=#{id}]")
-      #for view in $(link).shadow().find("[data-view-block='#{id}']")
-      for view in $(link).find("[data-view-block='#{id}']")
-        type = $(view).attr 'data-view-type'
-        viewMarkup[type] block.yaml, $(view), false, block, true, link
+      if !root.changeContext.blockViews?.is(link)
+        for view in $(link).find("[data-view-block='#{id}']")
+          if !root.changeContext.blockViews?.is(view)
+            type = $(view).attr 'data-view-type'
+            viewMarkup[type] block.yaml, $(view), false, block, true, link
     if block.language?.toLowerCase() == 'css'
       $("##{id} [name=css]").html codeString block
 
@@ -1643,7 +1650,7 @@ Leisure.bindWidgets = bindWidgets = (parent)->
       data = block.yaml
       #data = getBlock(id).yaml
       data[field] = input.value
-      blockViewUpdatesWhile $(link), -> setData block._id, data
+      noRenderWhile $(link), -> setData block._id, data
       if nextButton && e.keyCode == 13
         e.preventDefault()
         $(rootNode(input).firstChild).find("##{nextButton}").click()
@@ -1748,15 +1755,12 @@ fancyOrg =
     slide.find("##{id}")[0]
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]
-      #createTemplateRenderer type, root.viewTypeData[type], true, (data, target, block, update)->
       createTemplateRenderer type, root.viewTypeData[type], false, (data, target, block, update)->
-        #el = if update then target else target.shadow()
         el = if update then target else viewRoots(target)
         if target
           el
             .addClass(theme)
             .addClass($('body').hasClass('bar_collapse') && 'bar_collapse')
-            #.prepend("<style>@import 'shadow.css';</style>")
             .css('white-space', 'normal')
             .css('user-select', 'none')
             .css('-webkit-user-select', 'none')
@@ -1768,6 +1772,10 @@ fancyOrg =
           .find('[title]')
           .tooltip()
         bindAllWidgets el
+        for view in el.add el.find '[data-view-type]'
+          type = view.getAttribute 'data-view-type'
+          for id in controllerDescriptorIds[type] ? []
+            codeContexts[id]?.initializeView? view, data, block._id
       dataType = type.match /([^/]*)\/?(.*)?/
       restorePosition null, ->
         for node in $("[data-yaml-type='#{dataType[1]}']")
@@ -1840,10 +1848,11 @@ fixupHtml = (parent, note)->
 displayCodeView = (node)->
   if node
     if block = getBlock $(node).closest('[data-shared]')[0]?.id
+      clearView node
       viewMarkup[node.getAttribute 'data-code-view']? block, $(node), false, block
       #$(node).shadow().attr 'data-view-id', block._id
 
-viewFor = (node)-> $("##{$(node).closest('[data-view-id]').attr 'data-view-id'}")
+viewFor = (node)-> $("##{$(node).closest('[data-view-block]').attr 'data-view-block'}")
 
 getMainContent = (headline)->
   headline = findOrIs headline, '[data-org-headline="1"]'
@@ -1915,4 +1924,4 @@ root.viewFor = viewFor
 root.setCodeAttributes = setCodeAttributes
 root.clearCodeAttributes = clearCodeAttributes
 root.addStyles = addStyles
-root.blockViewUpdatesWhile = blockViewUpdatesWhile
+root.noRenderWhile = noRenderWhile

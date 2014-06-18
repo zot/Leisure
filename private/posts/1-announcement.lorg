@@ -1,0 +1,101 @@
+* Announcing Leisure, alpha
+This is Leisure, a document-based computing environment that runs on the web,
+so it doesn't require any installation or even your own computer.
+
+Leisure tries to make programming fun and let kids (and grownups) open the hood
+to see what's going on inside.  Data, code, and views are all editable and update
+dynamically as you make changes.
+
+(Click the gray arrow in the upper-left corner if you want to change the theme)
+
+[[leisure:square1]]
+[[leisure:square1/slider]]
+- Edit the */angle/* value, below, or click on it and slide its value
+- Change the */text/*
+#+NAME: square1
+#+BEGIN_SRC yaml
+type: square
+angle: 45
+text: <b>Hello</b>
+#+END_SRC
+* Views
+:properties:
+:note: sidebar
+:end:
+Change the view and click on the width and height to slide the values.
+
+#+BEGIN_SRC html :defview square
+<table
+  class='square'
+  style="-webkit-transform: rotate({{angle}}deg)"
+>
+  <tr><td>{{{text}}}</td></tr>
+</table>
+#+END_SRC
+#+BEGIN_SRC css
+  .square {
+    background: red;
+    border: solid gray 3px;
+    width: 200px;
+    height: 200px;
+    margin-bottom: 32px;
+  }
+  .square td {
+    text-align: center;
+    vertical-align: middle;
+  }
+#+END_SRC
+
+#+BEGIN_SRC html :defview square/slider
+<div id='squareSlider'></div>
+#+END_SRC
+#+BEGIN_SRC coffee :control square/slider
+noRender = Leisure.noRenderWhile
+@initializeView = (el, data, id)->
+  $(el).find("#squareSlider")
+    .slider(min: 0, max: 360, value: data.angle)
+    .on 'slide', (e, ui)->
+      newData = Leisure.getData id
+      newData.angle = ui.value
+      noRender $("[data-view-type='square/slider']"), ->
+        Leisure.setData id, newData
+      true
+#+END_SRC
+* Leisure is ready for developers
+** Leisure is not yet ready for end users
+...but developers interested in helping are
+welcome to contact Bill Burdick to help out (bill dot burdick at gmail dot com).
+ *Some technical details*
+- Each document is a multiuser virtual machine
+- With live content
+- And editable code, and data
+- Leisure automatically shares changes to code and data
+- And provides structures to support multiuser apps
+- Code can be in any of several supported languages (and mixed within a document).
+
+Although Leisure presents documents as if they are files, they are actually
+/*databases*/, so they can potentially scale up to very large amounts of data.
+
+Leisure also explores new programming tools, like AST viewers and embedded test
+cases, as well as containing a new, dynamically typed, pure functional language.
+
+* Caveats
+
+:properties:
+:note: sidebar
+:end:
+Leisure is still quite buggy and missing some basic features.  Here are some of them, but
+[[https://github.com/zot/Leisure/blob/master/TODO.org][todo.org]] will give you a better idea:
+- buggy: delete/backspace/arrow keys
+- buggy: responding to document structure changes
+- missing: save/checkpoint (git on the server)
+* Init
+:properties:
+:hidden: true
+:end:
+
+#+BEGIN_SRC coffee :results def
+setTimeout (->
+  Leisure.setTheme 'googie'
+  ), 1
+#+END_SRC

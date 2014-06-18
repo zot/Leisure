@@ -1,8 +1,13 @@
-* Short list -- screencast
-- X add CSS language support
-- X try to fix test cases!!!
-- X script screencast -- screencast.lorg
-- X go through old slides
+* Short list -- announcement
+- warning for controllers that don't define initializeView
+- fix parsing bug that makes * Caveats not be parsed as a slide
+- user accounts
+  - prevent spam on announcement
+    - protected files (only demo mode allows anonymous editing)
+    - metadocuments
+      - contain protection info
+      - user permissions
+      - only owners can directly edit metadocument
 - reactivate note button
 - reactivete selection bubble
 - collaboration
@@ -14,64 +19,49 @@
   - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
   - hooks for programs to react to data changes (subscriptions)
 - JavaScript/CoffeeScript source blocks
-- X GUI templates -- HTML source block defines a new widget type
-  - X define handlebars helpers for input, views, etc
 - fix floaty notes
-** TODO Bug when collaborating with fancy & plain
-   :PROPERTIES:
-   :ID:       0c9902c5-d885-4d99-8e9b-8d8830152c4f
-   :END:
-- change linked source expr in fancy page
-- plain page doesn't show newline after results block
-- when clicking Leisure button cycles back to plain, plain is more messed up
 * Milestone features
 - add "index" attribute to yaml blocks
   - :index names[name] numbers[number]
   - format: indexName[attrName]
     - indices[indexName][attrName] = [data...]
-- "index" helper
-  - {{#each (index 'cards' player)}} ... {{/each}}
-  - using index on cards: :index cards[player]
+  - "index" helper {{#each (index 'cards' player)}} ... {{/each}}
+    - uses index on cards: :index cards[player]
+    - iterates over a player's cards
+- time-travel slider
+  - go back in time to any point in the session
+  - go back to checkpoints that are earlier than the session
+  - keep all changes on server? -- could trim by checkpoint at need
 - fix Leisure build process
 - optimize fully applied function calls
   - create main func anc call that instead of partial funcs
   - don't use reflection to record args)
-- chuck shadow and use tagged elements for file content
-- switch to views for everything
+- use views for everything
   - slides
   - code blocks
+  - Use GUI templates for slides
 - hide/show code blocks/block comments
-- switch to custom elements for markup?
-  - x-tags for polyfills
-  - make org-based widgets
-  - use switch for plain/fancy
 - switch to object.observe() for change monitoring
-- flip editable content into shadow dom
-  - keep HTML/etc in regular dom
-  - use content elements to sprinkle decorations
-  - easier to use jquery for HTML/views/etc
-- add flag to prevent local data from persisting, for testing
 - cleanup observers[] and codeContexts[] when a code block disappears
-- script screencast
 - JavaScript/CoffeeScript source blocks
-- GUI templates -- HTML source block defines a new widget type
-  - define handlebars helpers for input, views, etc
-  - church encoded widget results (like html or svg results)
-  - widget code blocks (like test cases)
+- Leisure "model" type (like html or svg results)
+  - useful in code views
 - collaboration
   - show users' cursors/selections
   - persistence: git
   - toggle synchronizing
   - document history/branches?  This would require a merge tool...
-- Use GUI templates for slides
 - multiple documents per session (each document can function as a data channel)
 - server-side code can transfer data into a document -- inbox documents
+- X GUI templates -- HTML source block defines a new widget type
+  - X define handlebars helpers for input, views, etc
+  - X widget code blocks (like test cases)
 - X draggable images
+- X data
 - notes
 - slide clones
 - code scopes
 - Compilable notebooks (all Leisure source code in viewable/editable *.lorg format)
-- X data
 - make fancyOrg:getSelectionDescriptor line-based for better selection preservation
 * Short-term Leisure-org plan
 - collaboration service
@@ -616,6 +606,32 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE switch to custom elements for markup?
+- x-tags for polyfills
+- make org-based widgets
+- use switch for plain/fancy
+** DONE add flag to prevent local data from persisting, for testing
+   CLOSED: [2014-06-17 Tue 00:01]
+** DONE obsolete shadow/light changes
+   CLOSED: [2014-06-17 Tue 00:01]
+- chuck shadow and use tagged elements for file content
+- flip editable content into shadow dom
+  - keep HTML/etc in regular dom
+  - use content elements to sprinkle decorations
+  - easier to use jquery for HTML/views/etc
+** DONE script screencast
+   CLOSED: [2014-06-17 Tue 00:02]
+** DONE add CSS language support
+   CLOSED: [2014-06-16 Mon 22:11]
+** DONE try to fix test cases!!!
+   CLOSED: [2014-06-16 Mon 22:12]
+** DONE script screencast -- screencast.lorg
+   CLOSED: [2014-06-16 Mon 22:12]
+** DONE go through old slides
+   CLOSED: [2014-06-16 Mon 22:12]
+** DONE GUI templates -- HTML source block defines a new widget type
+   CLOSED: [2014-06-16 Mon 22:12]
+- X define handlebars helpers for input, views, etc
 ** DONE collaboration stuff
 - collaboration
   - each document gets local storage for user-local and user-private data

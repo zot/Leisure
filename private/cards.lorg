@@ -15,6 +15,7 @@ name: Card 2
 text: Some <large><b>text</b></large> for<br>card 2
 #+END_SRC
 
+
 #+NAME: player1
 #+BEGIN_SRC yaml
 type: player
@@ -25,6 +26,7 @@ name: Fred
 type: player
 name: George
 #+END_SRC
+
 
 #+NAME: card1
 #+BEGIN_SRC yaml
@@ -44,6 +46,7 @@ type: card
 proto: proto1
 player: player2
 #+END_SRC
+
 
 #+NAME: d1
 #+BEGIN_SRC yaml
@@ -67,6 +70,7 @@ left: 350
 top: 90
 #+END_SRC
 
+
 #+NAME: dl
 #+BEGIN_SRC yaml
 type: draggerList
@@ -75,6 +79,7 @@ draggers:
 - d2
 - d3
 #+END_SRC
+
 
 [[leisure:dl]]
 * Views
@@ -86,22 +91,19 @@ draggers:
   {{{text}}}
 </div>
 #+END_SRC
-
 #+BEGIN_SRC html :defview player/cardLabel
 <div class='owner-label'>{{name}}</div>
 #+END_SRC
+
 
 #+BEGIN_SRC html :defview card
 {{{view player "cardLabel"}}}
 {{{view proto}}}
 #+END_SRC
-
 #+BEGIN_SRC html :defview dragger
 {{{view item}}}
-<script>
-  App.hookupDragger();
-</script>
 #+END_SRC
+
 
 #+BEGIN_SRC html :defview draggerList
 <div class='card-shared'>
@@ -110,13 +112,12 @@ draggers:
     {{{view this}}}
     {{/each}}
   </div>
-  <script>App.handleDrop(document.currentScript.previousElementSibling)</script>
 </div>
 #+END_SRC
 * Styles
 
 #+BEGIN_SRC css
-  * /deep/ .card-shared {
+  * .card-shared {
     position: fixed;
     top: 50px;
     right: 10px;
@@ -124,19 +125,19 @@ draggers:
     display: inline-block;
     z-index: 100000;
   }
-  * /deep/ .card-shared-contents {
+  * .card-shared-contents {
     display: inline-block;
     width: 800px;
     height: 800px;
     position: relative;
   }
-  * /deep/ .owner-label {
+  * .owner-label {
     text-align: center;
     border: solid green 3px;
     border-radius: 10px;
     background: lightgray;
   }
-  * /deep/ .card-frame {
+  * .card-frame {
     display: inline-block;
     border-radius: 10px;
     border: solid blue 3px;
@@ -145,11 +146,11 @@ draggers:
     height: 400px;
     background: white;
   }
-  * /deep/ .card-image {
+  * .card-image {
     min-height: 100px;
     width: 100%;
   }
-  * /deep/ .card-image td {
+  * .card-image td {
     text-align: center;
     vertical-align: middle;
   }
@@ -163,25 +164,47 @@ We can indicate movement, here, with another view that's a line connected
 to the original center that disappears on mouse up.  Each player could get
 their own view.
 
-#+BEGIN_SRC coffee :results def
-App.hookupDragger = ->
-  if script = (Templating.currentScript || document.currentScript)
-    view = $(script).closest('[data-view-block]')
-    id = view.attr 'data-view-block'
-    data = Leisure.getBlock(id).yaml
-    App.drag view[0],
-      init: ->
-        view
-          .css 'top', "#{data.top}px"
-          .css 'left', "#{data.left}px"
-      containment: view.closest "[name='container']"
-      scroll: false
-      update: (image, id, data)->
-        data.left = image.offsetLeft
-        data.top = image.offsetTop
+#+BEGIN_SRC coffee :control dragger
+@initializeView = (view)->
+  id = view.getAttribute 'data-view-block'
+  data = Leisure.getBlock(id).yaml
+  #link = $(view).closest '[data-view-link]'
+  link = $(Templating.currentViewLink)
+  App.drag view,
+    init: ->
+      $(view)
+        .css 'top', "#{data.top}px"
+        .css 'left', "#{data.left}px"
+    containment: $(view).closest "[name='container']"
+    scroll: false
+    update: (image, id, data)->
+      data.left = image.offsetLeft
+      data.top = image.offsetTop
+      # block updates because dragging a view doesn't change its contents
+      Leisure.noRenderWhile $("[data-view-block~='#{id}']"), ->
         Leisure.setData id, data
-    $(view).on 'mousedown', -> view.parent().append view
+  $(view).on 'mousedown', -> $(view).parent().append $(view)
 #+END_SRC
+
+
+#+BEGIN_SRC coffee :control draggerList
+@initializeView = (el)->
+  el = $(el).find("[name='container']")[0]
+  el.addEventListener 'dragover', (e)->
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  el.addEventListener 'drop', (e)->
+    e.preventDefault()
+    e.stopPropagation()
+    console.log "DROPPING..."
+    t = e.dataTransfer
+    if 'text/html' in t.types
+      item = $(t.getData('text/html'))
+      if item.length == 1 && item.is 'img'
+        e.preventDefault()
+        console.log "dropped: ", item
+#+END_SRC
+
 
 View dragging -- sliding views around.
 
@@ -189,8 +212,8 @@ View dragging -- sliding views around.
 dragUpdate = Lodash.throttle ((view, func)->
   id = view.getAttribute 'data-view-block'
   data = Leisure.getBlock(id).yaml
-  Leisure.blockViewUpdatesWhile $("[data-view-ids~='#{id}']"), -> func view, id, data
-  ), 200, leading: true, trailing: true
+  func view, id, data
+  ), 250, leading: true, trailing: true
 
 App.drag = (el, options)->
   if !el.isDraggable
@@ -213,21 +236,4 @@ App.drag = (el, options)->
       true
     $(el).draggable options
   else if !el.isDragging then options.init()
-#+END_SRC
-
-#+BEGIN_SRC coffee :results def
-App.handleDrop = (el)->
-  el.addEventListener 'dragover', (e)->
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'copy'
-  el.addEventListener 'drop', (e)->
-    e.preventDefault()
-    e.stopPropagation()
-    console.log "DROPPING..."
-    t = e.dataTransfer
-    if 'text/html' in t.types
-      item = $(t.getData('text/html'))
-      if item.length == 1 && item.is 'img'
-        e.preventDefault()
-        console.log "dropped: ", item
 #+END_SRC

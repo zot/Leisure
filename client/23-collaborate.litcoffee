@@ -26,6 +26,8 @@ Meteor-based collaboration -- client side
 
     viewTypeData = {}
     viewIdTypes = {}
+    controllerIdDescriptor = {}
+    controllerDescriptorIds = {}
     committing = false
     editing = false
     ignore = ->
@@ -34,6 +36,7 @@ Meteor-based collaboration -- client side
     codeContexts = {}
     observers = {}
     observing = {}
+    observingDoc = {}
     universalObservers = {}
     namedBlocks = {}
 
@@ -183,13 +186,36 @@ Handle changes to the doc nodes
     scriptCounter = 0
 
     processDataChange = ({type, data}, updated)->
-      if type in ['changed', 'removed'] && viewIdTypes[data._id]
-        root.orgApi.deleteView viewIdTypes[data._id]
-        delete viewTypeData[viewIdTypes[data._id]]
-        delete viewIdTypes[data._id]
+      if type in ['changed', 'removed']
+        if viewIdTypes[data._id]
+          root.orgApi.deleteView viewIdTypes[data._id]
+          delete viewTypeData[viewIdTypes[data._id]]
+          delete viewIdTypes[data._id]
+        if descriptor = controllerIdDescriptor[data._id]
+          old = controllerDescriptorIds[descriptor]
+          if old.length == 1 then delete controllerDescriptorIds[descriptor]
+          else _.remove old, (i)-> i == data._id
+          delete controllerIdDescriptor[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
         lang = data.language.toLowerCase()
         attr = data.codeAttributes ? {}
+        if descriptor = attr.control
+          if !(ids = controllerDescriptorIds[descriptor])
+            ids = controllerDescriptorIds[descriptor] = []
+          ids.push data._id
+          controllerIdDescriptor[data._id] = descriptor
+        for dataType in observing[data._id] || []
+          observers[dataType] = L(observers[dataType]).without(data._id).toArray()
+        delete observing[data._id]
+        if attr.observe?
+          if attr.observe == '*' then universalObservers[data._id] = true
+          else
+            if !(o = observers[attr.observe])
+              o = observers[attr.observe] = []
+            o.push data._id
+            if !(a = observing[data._id]) then a = observing[data._id] = []
+            a.push attr.observe
+        else delete universalObservers[data._id]
         if lang == 'html' && attr.defview
           viewTypeData[data.codeAttributes.defview] = codeString data
           viewIdTypes[data._id] = attr.defview
@@ -199,49 +225,50 @@ Handle changes to the doc nodes
         else if lang == 'yaml'
           if data.codeName then namedBlocks[data.codeName] = data._id
           root.orgApi.updateBlock data
-        else if attr.results?.toLowerCase() == 'def' && lang in ['js', 'javascript']
+        else if isDef(data) && lang in ['js', 'javascript']
           try
             eval codeString data
           catch err
             console.log err.stack
-        else if attr.results?.toLowerCase() == 'def' && lang in ['coffeescript', 'coffee']
+        else if isDef(data) && lang in ['coffeescript', 'coffee']
           try
-            if universalObservers[data._id] then universalObservers[data._id] = null
-            for id in observing[data._id] || []
-              observers[id] = L(observers[id]).without(data._id).toArray()
-            if attr.observe?
-              if attr.observe == '*' then universalObservers[data._id] = true
-              else
-                if !(o = observers[attr.observe])
-                  o = observers[attr.observe] = []
-                if !(data._id in o) then o.push data._id
-              compileContext data._id, data
+            if needsContext data then compileCoffeeContext data._id, data
             else
-              filename = "coffeescript-#{++scriptCounter}"
-              CoffeeScript.eval codeString(data), filename: filename, sourceMap: true, sourceFiles: [filename]
+              CoffeeScript.eval codeString(data), coffeeOpts()
           catch err
             console.log err.stack
         else if lang == 'leisure'
-          if attr.observe
-            if attr.observe == '*' then universalObservers[data._id] = true
-            else
-              if !(o = observers[attr.observe])
-                o = observers[attr.observe] = []
-              if !(data._id in o) then o.push data._id
+          if needsContext data
             codeContexts[data._id] =
               update: -> processLeisureBlock data
+              initializeView: -> processLeisureBlock data
               block: data
-          if attr.results?.toLowerCase() == 'def' then processLeisureBlock data
+          if isDef(data) == 'def' then processLeisureBlock data
         updateObservers data, type, updated
 
-    compileContext = (id, data)->
+    coffeeOpts = ->
+      filename = "coffeescript-#{++scriptCounter}"
+      filename: filename, sourceMap: true, sourceFiles: [filename]
+
+    isDef = (data)->
+      (attr = data.codeAttributes) &&
+        (attr.results?.toLowerCase() == 'def' ||
+        attr.observe ||
+        attr.control)
+
+    needsContext = (data)->
+      (attr = data.codeAttributes) && (attr.observe || attr.control)
+
+    compileCoffeeContext = (id, data)->
       data = data || getBlock id
-      con = codeContexts[id] = new -> @result = eval CoffeeScript.compile codeString data
+      con = codeContexts[id] = new ->
+        @result = eval CoffeeScript.compile(codeString(data), coffeeOpts()).js
+        this
       con.block = data
       if !con.update
         if data.codeAttributes?.results?.toLowerCase == 'dynamic'
           console.log "plug in results"
-        con.update = -> compileContext id
+        con.update = -> compileCoffeeContext id
 
     updateObservers = (data, type, updated)->
       if data.type == 'code'
@@ -311,6 +338,8 @@ Handle changes to the doc nodes
           node = root.orgApi.insertEmptySlide item._id, prev?._id
         root.loadOrg root.parentForBlockId(item._id), org, name, node
 
+    getData = (id, value)-> getBlock(id)?.yaml
+
     setData = (id, value)->
       doc = root.currentDocument
       cur = getBlock id
@@ -343,8 +372,6 @@ Handle changes to the doc nodes
         text.substring(0, nl) + attrText + text.substring nl
       else text
 
-    observing = {}
-
     root.currentDocument = null
 
     observeDocument = (name)->
@@ -356,9 +383,9 @@ Handle changes to the doc nodes
             $(document.body).addClass 'leisureError'
           else
             console.log "OBSERVING #{docName}"
-            observing[docName] = true
+            observingDoc[docName] = true
             Meteor.subscribe docName, ->
-              root.currentDocument = observing[docName] = docCol = new Meteor.Collection docName
+              root.currentDocument = observingDoc[docName] = docCol = new Meteor.Collection docName
               docCol.leisure = {name: docName}
               docCol.leisure.master = docCol
               if name.match /^demo\/(.*)$/
@@ -413,7 +440,7 @@ Handle changes to the doc nodes
     addChangeContextWhile = (obj, func)->
       oldc = context
       try
-        context = context.merge(obj).memoize()
+        context = context.merge(obj)
         func()
       finally
         context = oldc
@@ -829,10 +856,12 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.crnl = crnl
     root.edited = edited
     root.textForId = textForId
+    root.getData = getData
     root.setData = setData
     root.pretty = pretty
     root.viewTypeData = viewTypeData
     root.viewIdTypes = viewIdTypes
+    root.controllerDescriptorIds = controllerDescriptorIds
     root.codeString = codeString
     root.getBlock = getBlock
     root.Overrides = Overrides

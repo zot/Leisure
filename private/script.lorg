@@ -36,9 +36,6 @@ top: 40
     </tr>
   </table>
 </div>
-<script>
-  App.hookupImage();
-</script>
 #+END_SRC
 
 #+BEGIN_SRC html :defview imageList
@@ -91,23 +88,21 @@ We can indicate movement, here, with another view that's a line connected
 to the original center that disappears on mouse up.  Each player could get
 their own view.
 
-#+BEGIN_SRC coffee :results def
-App.hookupImage = ->
-  if script = (Templating.currentScript || document.currentScript)
-    view = $(script).closest('[data-view-block]')
-    id = view.attr 'data-view-block'
-    data = Leisure.getBlock(id).yaml
-    App.drag view[0],
-      init: ->
-        view
-          .css 'zIndex', '100'
-          .css 'top', "#{data.top}px"
-          .css 'left', "#{data.left}px"
-      constrain: view.closest "[name='container']"
-      update: (image, id, data)->
-        data.left = image.offsetLeft
-        data.top = image.offsetTop
-        Leisure.setData id, data
+#+BEGIN_SRC coffee :control image
+@initializeView = (view)->
+  id = view.getAttribute 'data-view-block'
+  data = Leisure.getBlock(id).yaml
+  App.drag view,
+    init: ->
+      $(view)
+        .css 'zIndex', '100'
+        .css 'top', "#{data.top}px"
+        .css 'left', "#{data.left}px"
+    constrain: $(view).closest "[name='container']"
+    update: (image, id, data)->
+      data.left = image.offsetLeft
+      data.top = image.offsetTop
+      Leisure.setData id, data
 #+END_SRC
 
 View dragging -- jQueryUI's dragging seems to have trouble with shadow
@@ -116,7 +111,7 @@ View dragging -- jQueryUI's dragging seems to have trouble with shadow
 dragUpdate = Lodash.throttle ((view, func)->
   id = view.getAttribute 'data-view-block'
   data = Leisure.getBlock(id).yaml
-  Leisure.blockViewUpdatesWhile $("[data-view-ids~='#{id}']"), -> func view, id, data
+  func view, id, data
   ), 200, leading: true, trailing: true
 
 App.drag = (el, options)->
@@ -127,14 +122,13 @@ App.drag = (el, options)->
     el.style.position = 'absolute'
     el.style.zIndex = '100'
     options.init()
-    $(el)
-      .draggable
-        containment: options?.constrain
-        start: -> el.isDragging = true
-        drag: (event, ui)-> if options?.update? then dragUpdate el, options.update; true
-        stop: ->
-         if options?.update? then dragUpdate el, options.update
-         setTimeout (-> el.isDragging = false), 300
-         true
+    $(el).draggable
+      containment: options?.constrain
+      start: -> el.isDragging = true
+      drag: (event, ui)-> if options?.update? then dragUpdate el, options.update; true
+      stop: ->
+       if options?.update? then dragUpdate el, options.update
+       setTimeout (-> el.isDragging = false), 300
+       true
   else if !el.isDragging then options.init()
 #+END_SRC
