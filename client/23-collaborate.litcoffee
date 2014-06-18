@@ -268,7 +268,7 @@ Handle changes to the doc nodes
       if leisureBlocks.length == 0 then processingLeisure = false
       else
         data = leisureBlocks.shift()
-        delay -> root.orgApi.executeText codeString(data), {}, null, processNextLeisureBlock
+        delay -> root.orgApi.executeText codeString(data), data.language.toLowerCase(), {}, null, processNextLeisureBlock
 
     codeString = (data)-> data.text.substring data.codePrelen, data.text.length - data.codePostlen
 

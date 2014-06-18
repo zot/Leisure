@@ -95,6 +95,7 @@ yaml = root.yaml
   splitLines,
   orgSrcAttrs,
   baseEnv,
+  getNodeLang,
   getNodeSource,
   resultsType,
   isDef,
@@ -405,6 +406,12 @@ markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
 
 isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 'leisure'
 
+isExecutable = (org)->
+  org instanceof Source && switch org.getLanguage().toLowerCase()
+    when 'javascript' then true
+    #when 'coffee' then true
+    when 'leisure' then true
+
 markupFragment = (org, delay, note)->
   if isCodeBlock org.children[0]
     {first, name, source, last} = getCodeItems org.children[0]
@@ -604,7 +611,7 @@ markupHtml = (org)->
 
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
-  else if isLeisure org then markupLeisure
+  else if isExecutable org then markupLeisure
   #else if org.lead()?.trim().toLowerCase() == 'html' then (org)-> defaultMarkup org, 'div', 'class', 'default-lang', 'data-lang', org.lead()?.trim()
   else if org.info.match /^ *css\b/i then markupCSS
   else markupCode
@@ -626,10 +633,10 @@ getSourceSegments = (name, org)->
     first = first.next
   pre += source.text.substring 0, pos
   post = ''
-  cur = source.next
-  while cur != last.next
-    post += cur.allText()
-    cur = cur.next
+#  cur = source.next
+#  while cur != last.next
+#    post += cur.allText()
+#    cur = cur.next
   post = source.text.substring(pos + source.content.length) + post
   [pre, source.content, post]
 
@@ -699,7 +706,9 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   else codeBlock = ">"
   codeBlock += "<div class='codeborder'></div>"
   startHtml = "<div "
-  contHtml = "class='codeblock' contenteditable='false' data-lang='leisure' #{orgAttrs org}#{codeBlock}"
+  lang = org.getLanguage() || ''
+
+  contHtml = "class='codeblock' contenteditable='false' data-lang='#{lang}' #{orgAttrs org}#{codeBlock}"
   if view = org.attributes()?.view
     contHtml = "data-code-view='#{escapeAttr view.trim()}' " + contHtml
   if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
@@ -1262,7 +1271,8 @@ executeSource = (parent, node, cont, skipTests)->
   if srcNode
     createResults srcNode
     if text.trim().length
-      executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), ->
+      lang = getNodeLang node
+      executeText text.trim(), lang, propsFor(srcNode), orgEnv(parent, srcNode), ->
         cont?()
         if !skipTests then runAutotests doc
     else if r = $(srcNode).find('.resultscontent')[0] then clearResults r

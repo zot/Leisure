@@ -1,0 +1,12 @@
+* slide
+#+BEGIN_SRC javascript :results dynamic
+3+4
+#+END_SRC
+#+RESULTS:
+: 7
+
+
+#+BEGIN_HTML
+test
+#+END_HTML
+
