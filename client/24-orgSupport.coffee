@@ -1270,18 +1270,22 @@ propsFor = (node)->
   if name then props = cons cons('block', name), props
   props
 
-executeText = (text, props, env, cont)->
-  old = getValue 'parser_funcProps'
-  setValue 'parser_funcProps', props
-  result = rz(L_baseLoadString)('notebook')(text)
-  runMonad result, env, (results)->
-    while results != L_nil()
-      res = results.head().tail()
-      if getType(res) == 'left' then env.write "PARSE ERROR: #{getLeft res}"
-      else env.write String(env.presentValue getRight res)
-      results = results.tail()
-    setValue 'parser_funcProps', old
-    cont?()
+executeText = (text, lang, props, env, cont)->
+  if lang == 'javascript'
+    result = eval(text)
+    env.write(result)
+  else
+    old = getValue 'parser_funcProps'
+    setValue 'parser_funcProps', props
+    result = rz(L_baseLoadString)('notebook')(text)
+    runMonad result, env, (results)->
+      while results != L_nil()
+        res = results.head().tail()
+        if getType(res) == 'left' then env.write "PARSE ERROR: #{getLeft res}"
+        else env.write String(env.presentValue getRight res)
+        results = results.tail()
+      setValue 'parser_funcProps', old
+      cont?()
 
 getSource = (node)->
   while node && !isSourceNode node
@@ -1296,13 +1300,20 @@ executeSource = (parent, node, cont)->
     #checkReparse parent
     if txt = getSource node
       env = orgEnv(parent, node)
-      executeText txt, propsFor(node), env, ->
+      lang = getNodeLang node
+      executeText txt, lang, propsFor(node), env, ->
         if env.changed then edited node
         cont?()
     else console.log "No end for src block"
   #else if getOrgType(node) == 'text' then needsReparse = true
   #else !isDocNode(node) && executeSource parent, node.parentElement
   else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement
+
+getNodeLang = (node) ->
+  while !isSourceNode node
+    node = node.parentNode
+    if !node then return []
+  (node.getAttribute('data-lang') || '').trim()
 
 getNodeSource = (node)->
   while !isSourceNode node
@@ -1313,7 +1324,8 @@ getNodeSource = (node)->
 # given a node, find the enclosing source node and execute it's content as a definition
 executeDef = (node, cont)->
   [srcNode, text] = getNodeSource node
-  if srcNode then executeText text, propsFor(srcNode), baseEnv, cont
+  lang = getNodeLang
+  if srcNode then executeText text, lang, propsFor(srcNode), baseEnv, cont
 
 followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(node.parentNode)[0]
 
@@ -1612,7 +1624,7 @@ orgNotebook =
     [orgNode, lastOrgText] = @markupOrgWithNode content
     root.restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
     @bindContent newNode
-  executeText: (text, props, env, cont)-> executeText text, Nil, env ? baseEnv, cont
+  executeText: (text, lang, props, env, cont)-> executeText text, lang, Nil, env ? baseEnv, cont
   installOrgDOM: (parent, orgNode, orgText, target)-> installOrgDOM parent, orgNode, orgText, target
   newNode: ->
   redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
@@ -1733,6 +1745,7 @@ root.escapeAttr = escapeAttr
 root.restorePosition = restorePosition
 root.splitLines = splitLines
 root.orgSrcAttrs = orgSrcAttrs
+root.getNodeLang = getNodeLang
 root.getNodeSource = getNodeSource
 root.loadOrg = loadOrg
 root.resultsType = resultsType

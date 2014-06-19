@@ -95,6 +95,7 @@ yaml = root.yaml
   splitLines,
   orgSrcAttrs,
   baseEnv,
+  getNodeLang,
   getNodeSource,
   resultsType,
   isDef,
@@ -410,6 +411,12 @@ meatText = (meat)->
 
 isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 'leisure'
 
+isExecutable = (org)->
+  org instanceof Source && switch org.getLanguage().toLowerCase()
+    when 'javascript' then true
+    #when 'coffee' then true
+    when 'leisure' then true
+
 markupFragment = (org, delay, note)->
   if isCodeBlock org.children[0]
     {first, name, source, last} = getCodeItems org.children[0]
@@ -609,7 +616,7 @@ markupHtml = (org)->
 
 chooseSourceMarkup = (org)->
   if isYaml org then markupYaml
-  else if isLeisure org then markupLeisure
+  else if isExecutable org then markupLeisure
   #else if org.lead()?.trim().toLowerCase() == 'html' then (org)-> defaultMarkup org, 'div', 'class', 'default-lang', 'data-lang', org.lead()?.trim()
   else if org.info.match /^ *css\b/i then markupCSS
   else markupCode
@@ -695,6 +702,7 @@ errorDiv = (str)->
   "<div class='error'>#{escapeHtml str}</div>"
 
 markupLeisure = (org, name, doctext, delay, inFragment)->
+  lang = org.getLanguage() || ''
   top = name ? org
   srcContent = org.content
   lead = org.text.substring 0, org.contentPos
@@ -703,13 +711,11 @@ markupLeisure = (org, name, doctext, delay, inFragment)->
   if name then codeBlock = " data-org-codeblock='#{escapeAttr name.info.trim()}'>"
   else codeBlock = ">"
   startHtml = "<div "
-  contHtml = "class='codeblock' contenteditable='false' data-lang='leisure' #{orgAttrs org}"
-  if channels = updateChannels org then contHtml = "data-org-update='#{channels}' #{contHtml}"
+  contHtml = "class='codeblock' contenteditable='false' data-lang='#{lang}' #{orgAttrs org}"
   if view = org.attributes()?.view
     contHtml = "data-code-view='#{escapeAttr view.trim()}' " + contHtml
     codeBlock = "#{codeBlock}<span class='hidden'>"
-  codeBlock += "<div class='codeborder'></div>"
-  contHtml += codeBlock
+  contHtml += codeBlock + "<div class='codeborder'></div>"
   node = org.next
   intertext = ''
   finalIntertext = ''
@@ -1271,7 +1277,8 @@ executeSource = (parent, node, cont, skipTests)->
   if srcNode
     createResults srcNode
     if text.trim().length
-      executeText text.trim(), propsFor(srcNode), orgEnv(parent, srcNode), ->
+      lang = getNodeLang node
+      executeText text.trim(), lang, propsFor(srcNode), orgEnv(parent, srcNode), ->
         cont?()
         if !skipTests then runAutotests doc
     else if r = $(srcNode).find('.resultscontent')[0] then clearResults r
