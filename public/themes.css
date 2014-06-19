@@ -1054,6 +1054,7 @@ body {
 .error {
     color: red;
     font-weight: bold;
+    white-space: pre;
 }
 .view {
     white-space: normal;

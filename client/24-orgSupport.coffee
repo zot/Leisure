@@ -661,7 +661,7 @@ markupGuts = (org, start)->
 
 contentSpan = (str, type)->
   str = content str
-  if str then "<span#{if type then " data-org-type='#{escapeAttr type}'" else ''}>#{escapeHtml str}</span>" else ''
+  if str then "<span#{if type then " data-org-type='#{escapeAttr type}'" else ''}>#{str}</span>" else ''
 
 content = (str)-> escapeHtml str
 
@@ -1127,10 +1127,19 @@ leisureEnv = (env)->
       cont?()
 
 jsEnv = (env)->
-  env.presentValue = (v)-> escapeHtml v
+  env.presentValue = (v)-> if v instanceof Html then v.content else escapeHtml v
   env.executeText = (text, props, cont)->
-    result = eval(text)
-    @write(result)
+    try
+      @write @presentValue eval text
+    catch err
+      @write errorDiv err.stack
+
+class Html
+  constructor: (@content)->
+
+Leisure.html = (content)-> new Html content
+
+errorDiv = (err, orgText)-> "<div class='error' contenteditable='false'><span class='hidden'>#{orgText || ''}</span><span data-nonorg='true'>#{escapeHtml err}</span></div>"
 
 installEnvLang = (nodeOrLang, env)->
   switch (if typeof nodeOrLang == 'string' then nodeOrLang else getNodeLang nodeOrLang)
@@ -1288,7 +1297,7 @@ executeSource = (parent, node, cont)->
   else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement
 
 getNodeLang = (node) ->
-  ($(node).closest("[data-org-type='source']").attr('data-lang') || '')
+  ($(node).closest("[data-lang]").attr('data-lang') || '')
 
 getNodeSource = (node)->
   if (src = $(node).closest("[data-org-type='source']")).length == 0 then []
@@ -1753,6 +1762,7 @@ root.applyShowHidden = applyShowHidden
 root.actualSelectionUpdate = actualSelectionUpdate
 root.currentBlockIds = []
 root.toggleLeisureBar = toggleLeisureBar
+root.errorDiv = errorDiv
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

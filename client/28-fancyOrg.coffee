@@ -63,8 +63,6 @@ yaml = root.yaml
   content,
   contentSpan,
   checkStart,
-  #optionalBoundary,
-  #boundarySpan,
   displaySource,
   checkEnterReparse,
   checkCollapsed,
@@ -106,6 +104,7 @@ yaml = root.yaml
   textNodeBefore,
   getOrgText,
   nonOrg,
+  errorDiv,
   visibleTextNodeBefore,
   visibleTextNodeAfter,
   isParentOf,
@@ -651,7 +650,7 @@ markupYaml = (org, name, doctext, delay, inFragment)->
     data = getBlock shared.nodeId
     type = data.yaml?.type
     if type
-      err = if !viewMarkup[type] then "<div clas='error'>No value view type for data nodeId: #{shared.nodeId}</div>" else ''
+      err = if !viewMarkup[type] then errorDiv "No value view type for data nodeId: #{shared.nodeId}" else ''
       yamlAttr += " data-yaml-type='#{type}'"
   err = ''
   if name
@@ -690,12 +689,6 @@ markupCSS = (org, name, doctext, delay, inFragment)->
   "<div class='default-lang' data-#{orgAttrs source}#{addAttr}><span class='Xhidden codeHeading'>#{escapeHtml pre}</span><span data-org-src>#{Highlighting.highlight lang,  source.content}</span><span class='Xhidden codeHeading'>#{escapeHtml post}</span>#{cssBlock}</div>"
 
 dragging = false
-
-markupError = (org, str)->
-  "<div class='error'><span class='hidden'>#{escapeHtml org.text}</span>#{escapeHtml str}</div>"
-
-errorDiv = (str)->
-  "<div class='error'>#{escapeHtml str}</div>"
 
 markupLeisure = (org, name, doctext, delay, inFragment)->
   lang = org.getLanguage() || ''
@@ -1302,13 +1295,26 @@ processResults = (str, node, skipText)->
   resultsNode = nonOrg("<div></div>")[0]
   $(node.firstChild).append resultsNode
   if !skipText
-    node.firstChild.nextElementSibling.textContent += escapePresentationHtml(str.substring 0, str.length - 1) + str[str.length - 1]
+    node.firstChild.nextElementSibling.textContent += str
     edited node
   classes = 'resultsline'
   if theme != null then classes = theme + ' ' + classes
   if $("body").hasClass 'bar_collapse' then classes += ' bar_collapse'
   for line in splitLines str
-    if line.match /^: / then resultsNode.innerHTML += "<div class='#{classes}'>#{line.substring(2)}</div>"
+    if line.match /^: / then resultsNode.innerHTML += "<div class='#{classes}'>#{unescapeString line.substring(2)}</div>"
+
+charCodes =
+  "b": '\b'
+  "f": '\f'
+  "n": '\n'
+  "r": '\r'
+  "t": '\t'
+  "v": '\v'
+  "'": '\''
+  "\"": '\"'
+  "\\": '\\'
+
+unescapeString = (str)-> str.replace /\\./g, (str)-> charCodes[str[1]] || str
 
 redrawIssue = (issue)->
   issueName = issue.leisureName

@@ -5,9 +5,10 @@
     replacements =
       '<': '&lt;'
       '>': '&gt;'
+      '&': '&amp;'
 
     escapeHtml = (str)->
-      if typeof str == 'string' then str.replace /[<>]/g, (c)-> replacements[c]
+      if typeof str == 'string' then str.replace /[<>&]/g, (c)-> replacements[c]
       else str
 
     shadowCount = 0

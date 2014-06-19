@@ -2,11 +2,18 @@
 #+BEGIN_SRC javascript :results dynamic
 3+4
 #+END_SRC
-#+RESULTS:
-: 7
+
+
+#+BEGIN_SRC javascript :results dynamic
+'<b>not bold</b>'
+#+END_SRC
+
+
+#+BEGIN_SRC javascript :results dynamic
+Leisure.html('<b>bold</b>')
+#+END_SRC
 
 
 #+BEGIN_HTML
 test
 #+END_HTML
-
