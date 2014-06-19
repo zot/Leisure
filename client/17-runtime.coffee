@@ -458,9 +458,7 @@ define 'override', lz (name)->(newFunc)->
 
 define 'print', lz (msg)->
   makeSyncMonad (env, cont)->
-    m = rz msg
-    #env.write("#{if typeof m == 'string' then m else Parse.print(m)}\n")
-    env.write ("#{env.presentValue m}\n")
+    env.write ("#{env.presentValue rz msg}\n")
     cont _true
 
 define 'write', lz (msg)->

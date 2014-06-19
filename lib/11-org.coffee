@@ -379,7 +379,7 @@ class Keyword extends Meat
 class Source extends Keyword
   constructor: (@text, @offset, @name, @info, @infoPos, @content, @contentPos)-> super @text, @offset, @name, @info
   type: 'source'
-  getLanguage: -> @lead()?.trim()
+  getLanguage: -> @lead()?.trim().toLowerCase()
   jsonDef: ->
     type: @type
     text: @text

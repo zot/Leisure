@@ -80,7 +80,6 @@ yaml = root.yaml
   del,
   getOrgParent,
   getOrgType,
-  executeText,
   executeDef,
   swapMarkup,
   modifiers,
@@ -89,7 +88,7 @@ yaml = root.yaml
   addKeyPress,
   findKeyBinding,
   setCurKeyBinding,
-  presentValue,
+  installEnvLang,
   propsFor,
   escapeAttr,
   splitLines,
@@ -412,10 +411,7 @@ meatText = (meat)->
 isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 'leisure'
 
 isExecutable = (org)->
-  org instanceof Source && switch org.getLanguage().toLowerCase()
-    when 'javascript' then true
-    #when 'coffee' then true
-    when 'leisure' then true
+  org instanceof Source && (org.getLanguage() in ['javascript', 'leisure'])
 
 markupFragment = (org, delay, note)->
   if isCodeBlock org.children[0]
@@ -1278,7 +1274,7 @@ executeSource = (parent, node, cont, skipTests)->
     createResults srcNode
     if text.trim().length
       lang = getNodeLang node
-      executeText text.trim(), lang, propsFor(srcNode), orgEnv(parent, srcNode), ->
+      orgEnv(parent, srcNode).executeText text.trim(), propsFor(srcNode), ->
         cont?()
         if !skipTests then runAutotests doc
     else if r = $(srcNode).find('.resultscontent')[0] then clearResults r
@@ -1341,12 +1337,11 @@ clearResults = (node)->
 orgEnv = (parent, node)->
   r = node
   if !$(r).is('.resultscontent') then r = $(r).find('.resultscontent')[0]
-  if r
+  env = if r
     clearResults r
     __proto__: defaultEnv
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     write: (str)-> processResults (colonify (String str)), r
-    presentValue: presentValue
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     prompt: (msg, cont)-> cont prompt rz msg
   else
@@ -1355,6 +1350,8 @@ orgEnv = (parent, node)->
     write: (str)-> console.log colonify str
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     prompt: (msg, cont)-> cont prompt rz msg
+  installEnvLang node, env
+  env
 
 #################
 # Value sliders

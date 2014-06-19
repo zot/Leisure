@@ -556,13 +556,10 @@ markupOrgWithNode = (text, note, replace)->
   else if text instanceof Org.Node then org = text
   if org
     markup = markupNode(org, true)
-    #if replace then markup += boundarySpan
     [org, markup]
   else
     console.log "Attempt to display uknown object type: ", text
     throw new Error "Attempt to display unknown type of object: #{text}"
-
-#boundarySpan = "<span data-org-type='boundary'>\n</span>"
 
 sensitive = /^srcStart|^headline-|^keyword/
 
@@ -660,16 +657,12 @@ markupGuts = (org, start)->
       start = false
       p = prev
       prev = c
-      #optionalBoundary(p, c) + markupNode(c, s)).join ""
       markupNode(c, s)).join ""
-
-#optionalBoundary = (prev, node)-> if prev && prev.text[prev.text.length - 1] == '\n' then boundarySpan else ''
 
 contentSpan = (str, type)->
   str = content str
   if str then "<span#{if type then " data-org-type='#{escapeAttr type}'" else ''}>#{escapeHtml str}</span>" else ''
 
-#content = (str)-> escapeHtml (if str[str.length - 1] == '\n' then str.substring(0, str.length - 1) else str)
 content = (str)-> escapeHtml str
 
 fixupNodes = (node)->
@@ -975,26 +968,6 @@ collapseNode = ->
       modifying = false
     else status "EMPTY ENTRY"
 
-#isBoundary = (node)->
-#  (node.nodeType == Node.ELEMENT_NODE && node.getAttribute('data-org-type') == 'boundary' && node) || (node.nodeType == Node.TEXT_NODE && isBoundary node.parentElement)
-
-#checkCollapsed = (delta)->
-#  s = rangy.getSelection()
-#  r = s.getRangeAt 0
-#  if delta < 0 then r.moveStart 'character', delta else r.moveEnd 'character', delta
-#  if r.startContainer == r.endContainer then false
-#  else if boundary = isBoundary (if delta < 0 then r.startContainer else r.endContainer)
-#    if delta < 0
-#      r.setStartBefore boundary
-#      r.moveStart 'character', -1
-#    else
-#      r.setEndAfter boundary
-#      r.moveEnd 'character', 1
-#    for n in r.getNodes()
-#      if r.containsNode(n) && isCollapsed n then return true
-#    false
-#  else false
-
 checkCollapsed = (delta)->
   node = getSelection().focusNode
   node && (isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) node)
@@ -1138,24 +1111,42 @@ escapeAttr = (str)->
       when '&' then '&amp;'
   else str
 
-presentValue = (v)-> rz(L_showHtml) lz v
-#  if (getType v) == 'svgNode'
-#    cnt = v(-> id)
-#    L_svgPresent()(-> cnt)(-> id)
-#  else if (getType v) == 'html' then rz(L_getHtml)(lz v)
-#  else if (getType v) == 'parseErr' then "PARSE ERROR: #{getParseErr v}"
-#  else escapeHtml show v
+leisureEnv = (env)->
+  env.presentValue = (v)-> rz(L_showHtml) lz v
+  env.executeText = (text, props, cont)->
+    old = getValue 'parser_funcProps'
+    setValue 'parser_funcProps', props
+    result = rz(L_baseLoadString)('notebook')(text)
+    runMonad result, env, (results)->
+      while results != L_nil()
+        res = results.head().tail()
+        if getType(res) == 'left' then env.write "PARSE ERROR: #{getLeft res}"
+        else env.write String(env.presentValue getRight res)
+        results = results.tail()
+      setValue 'parser_funcProps', old
+      cont?()
 
+jsEnv = (env)->
+  env.presentValue = (v)-> escapeHtml v
+  env.executeText = (text, props, cont)->
+    result = eval(text)
+    @write(result)
+
+installEnvLang = (nodeOrLang, env)->
+  switch (if typeof nodeOrLang == 'string' then nodeOrLang else getNodeLang nodeOrLang)
+    when 'leisure' then leisureEnv env
+    when 'javascript' then jsEnv env
+    else unknownLanguageEnv env
 
 orgEnv = (parent, node)->
   r = getResultsForSource parent, node
   env =
     changed: false
-    presentValue: presentValue
     readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
     writeFile: ->
     newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
     __proto__: defaultEnv
+  installEnvLang node, env
   if r
     r.innerHTML = ''
     env.write = (str)->
@@ -1169,6 +1160,11 @@ baseEnv =
   readFile: (filename, cont)-> window.setTimeout (->$.get filename, (data)-> cont false, data), 1
   write: (str)-> console.log unescapePresentationHtml str
   newCodeContent: (name, con)-> console.log "NEW CODE CONTENT: #{name}, #{con}"
+
+textEnv = (lang)->
+  env = __proto__: baseEnv
+  installEnvLang lang, env
+  env
 
 getResultsForSource = (parent, node)->
   r = getExistingResultsForSource node
@@ -1270,23 +1266,6 @@ propsFor = (node)->
   if name then props = cons cons('block', name), props
   props
 
-executeText = (text, lang, props, env, cont)->
-  if lang == 'javascript'
-    result = eval(text)
-    env.write(result)
-  else
-    old = getValue 'parser_funcProps'
-    setValue 'parser_funcProps', props
-    result = rz(L_baseLoadString)('notebook')(text)
-    runMonad result, env, (results)->
-      while results != L_nil()
-        res = results.head().tail()
-        if getType(res) == 'left' then env.write "PARSE ERROR: #{getLeft res}"
-        else env.write String(env.presentValue getRight res)
-        results = results.tail()
-      setValue 'parser_funcProps', old
-      cont?()
-
 getSource = (node)->
   while node && !isSourceNode node
     node = node.parentNode
@@ -1300,8 +1279,7 @@ executeSource = (parent, node, cont)->
     #checkReparse parent
     if txt = getSource node
       env = orgEnv(parent, node)
-      lang = getNodeLang node
-      executeText txt, lang, propsFor(node), env, ->
+      env.executeText txt, propsFor(node), ->
         if env.changed then edited node
         cont?()
     else console.log "No end for src block"
@@ -1310,22 +1288,16 @@ executeSource = (parent, node, cont)->
   else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement
 
 getNodeLang = (node) ->
-  while !isSourceNode node
-    node = node.parentNode
-    if !node then return []
-  (node.getAttribute('data-lang') || '').trim()
+  ($(node).closest("[data-org-type='source']").attr('data-lang') || '')
 
 getNodeSource = (node)->
-  while !isSourceNode node
-    node = node.parentNode
-    if !node then return []
-  [node, getOrgText $(node).find('[data-org-src]')[0]]
+  if (src = $(node).closest("[data-org-type='source']")).length == 0 then []
+  else [src[0], getOrgText src.find('[data-org-src]')[0]]
 
 # given a node, find the enclosing source node and execute it's content as a definition
 executeDef = (node, cont)->
   [srcNode, text] = getNodeSource node
-  lang = getNodeLang
-  if srcNode then executeText text, lang, propsFor(srcNode), baseEnv, cont
+  if srcNode then textEnv(getNodeLang node).executeText text, propsFor(srcNode), cont
 
 followingSpan = (node)-> node.nextElementSibling ? $('<span></span>').appendTo(node.parentNode)[0]
 
@@ -1624,7 +1596,6 @@ orgNotebook =
     [orgNode, lastOrgText] = @markupOrgWithNode content
     root.restorePosition newNode, => @installOrgDOM newNode, orgNode, lastOrgText
     @bindContent newNode
-  executeText: (text, lang, props, env, cont)-> executeText text, lang, Nil, env ? baseEnv, cont
   installOrgDOM: (parent, orgNode, orgText, target)-> installOrgDOM parent, orgNode, orgText, target
   newNode: ->
   redrawIssue: (i)-> console.log "REDRAW ISSUE: #{i}"
@@ -1677,7 +1648,6 @@ basicOrg =
     node
   bindings: defaultBindings
   leisureButton: swapMarkup
-  #emptySlide: (id)-> "<span id='#{id}'></span>#{boundarySpan}"
   emptySlide: (id)-> "<span id='#{id}'></span>"
   insertEmptySlide: (id, prev)->
     slide = $(@emptySlide id)
@@ -1709,8 +1679,6 @@ root.orgAttrs = orgAttrs
 root.content = content
 root.contentSpan = contentSpan
 root.checkStart = checkStart
-#root.optionalBoundary = optionalBoundary
-#root.boundarySpan = boundarySpan
 root.displaySource = displaySource
 root.checkEnterReparse = checkEnterReparse
 root.checkCollapsed = checkCollapsed
@@ -1727,7 +1695,6 @@ root.backspace = backspace
 root.del = del
 root.getOrgParent = getOrgParent
 root.getOrgType = getOrgType
-root.executeText = executeText
 root.executeDef = executeDef
 root.propsFor = propsFor
 root.orgEnv = orgEnv
@@ -1740,7 +1707,8 @@ root.defaultBindings = defaultBindings
 root.addKeyPress = addKeyPress
 root.findKeyBinding = findKeyBinding
 root.setCurKeyBinding = setCurKeyBinding
-root.presentValue = presentValue
+root.installEnvLang = installEnvLang
+root.textEnv = textEnv
 root.escapeAttr = escapeAttr
 root.restorePosition = restorePosition
 root.splitLines = splitLines
