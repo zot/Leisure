@@ -25,12 +25,13 @@ text: <b>Hello</b>
 Change the view and click on the width and height to slide the values.
 
 #+BEGIN_SRC html :defview square
-<table
+<span>Hello</span>
+<span><table
   class='square'
   style="-webkit-transform: rotate({{angle}}deg)"
 >
   <tr><td>{{{text}}}</td></tr>
-</table>
+</table></span>
 #+END_SRC
 #+BEGIN_SRC css
   .square {

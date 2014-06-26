@@ -1,13 +1,9 @@
 * Short list -- announcement
-- warning for controllers that don't define initializeView
+- some way to control access to the root documents
+  - maybe just a random URL, for now
+- warning for controllers that don't define @initializeView
+- warning for observers that don't define @update
 - fix parsing bug that makes * Caveats not be parsed as a slide
-- user accounts
-  - prevent spam on announcement
-    - protected files (only demo mode allows anonymous editing)
-    - metadocuments
-      - contain protection info
-      - user permissions
-      - only owners can directly edit metadocument
 - reactivate note button
 - reactivete selection bubble
 - collaboration
@@ -21,6 +17,14 @@
 - JavaScript/CoffeeScript source blocks
 - fix floaty notes
 * Milestone features
+- user accounts
+  - prevent spam on announcement
+    - protected files (only demo mode allows anonymous editing)
+    - metadocuments
+      - contain protection info
+      - user permissions
+      - only owners can directly edit metadocument
+- make trivial code block headers/footers hidden and slide out when you focus in the code
 - add "index" attribute to yaml blocks
   - :index names[name] numbers[number]
   - format: indexName[attrName]

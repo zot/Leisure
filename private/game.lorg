@@ -292,37 +292,36 @@ Leisure.addStyles 'gameBoard', """
 
 
 Styles for views
-#+BEGIN_SRC coffee :results def
-Leisure.addStyles 'viewStyles', """
-  [data-org-note='main'] {
-    width: 60%;
-  }
-  * /deep/ input[data-value='name'] {
-    width: 100%;
-    margin-left: 5px;
-    margin-right: 5px;
-  }
-  * /deep/ #boardDiv {
-    background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat;
-    padding: 8px;
-    display: inline-block;
-  }
-  * /deep/ #boardDiv table {
-    text-align: center;
-  }
-  * /deep/ #boardDiv td {
-    padding: 5px;
-  }
-  * /deep/ #boardDiv img {
-    vertical-align: middle;
-  }
-  * /deep/ [board] h2 {
-    margin-top: 0;
-  }
-  * /deep/ .player {
-    padding: 10px;
-  }
-"""
+#+BEGIN_SRC css
+[data-edit-mode='fancy'][data-org-headline='1'][data-org-note='main'],
+.slides [data-edit-mode='fancy'][data-org-headline='1'][data-org-note='main'] {
+  padding-right: 600px;
+}
+* /deep/ input[data-value='name'] {
+  width: 100%;
+  margin-left: 5px;
+  margin-right: 5px;
+}
+* /deep/ #boardDiv {
+  background: url(/connect4/board.svg) 0 0 / 100% 100% no-repeat;
+  padding: 8px;
+  display: inline-block;
+}
+* /deep/ #boardDiv table {
+  text-align: center;
+}
+* /deep/ #boardDiv td {
+  padding: 5px;
+}
+* /deep/ #boardDiv img {
+  vertical-align: middle;
+}
+* /deep/ [board] h2 {
+  margin-top: 0;
+}
+* /deep/ .player {
+  padding: 10px;
+}
 #+END_SRC
 
 Adjust Leisure settings on startup.  Delay so it happens after the page draws

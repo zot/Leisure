@@ -185,6 +185,7 @@ toggleLeisureBar = ->
 
 selectionActive = true
 topCaretBox = null
+bottomCaretBox = null
 
 updateSelection = Lodash.throttle (-> actualSelectionUpdate()), 30,
   leading: true
@@ -268,6 +269,7 @@ monitorSelectionChange = ->
     selectionActive = (e.type == 'focus')
     updateSelection()
   root.topCaretBox = topCaretBox = $('#topCaretBox')[0]
+  root.bottomCaretBox = bottomCaretBox = $('#bottomCaretBox')[0]
 
 toggleShowHidden = ->
   body = $(document.body)
@@ -333,18 +335,6 @@ getRangeXY = (r)->
     if rect.left < leftMost.left then leftMost = rect
   leftMost
 
-findCharForColumn = (node, col, start, end)->
-  testRng = document.createRange()
-  testRng.setStart node, start
-  testRng.collapse true
-  for i in [end - 1 .. start] by -1
-    testRng.setStart node, i
-    testRct = getRangeXY testRng
-    if testRct.left <= col
-      moveCaret testRng, node, testRng.startOffset
-      return true
-  false
-
 rectFor = (node)->
   r = document.createRange()
   if node.nodeType == Node.TEXT_NODE && node.data[node.length - 1] == '\n'
@@ -356,105 +346,47 @@ rectFor = (node)->
 
 movementGoal = null
 
-moveSelectionUp = (parent, r, start)->
-  container = r.startContainer
-  startRect = getRangeXY r
-  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = startRect.left
-  elRect = rectFor container
-  if startRect.top > elRect.top
-    txt = getOrgText r.startContainer
-    prevEnd = txt.substring(0, r.startOffset).lastIndexOf '\n'
-    prevStart = txt.substring(0, prevEnd).lastIndexOf('\n') + 1
-    if findCharForColumn r.startContainer, movementGoal, prevStart, prevEnd then return
-  first = textNodeAfter parent
-  prev = null
-  prevRect = null
-  while container != first
-    if !(isCollapsed container)
-      prev = container
-      prevRect = elRect
-    container = textNodeBefore container
-    if !isCollapsed container
-      elRect = rectFor container
-      if elRect.top < prevRect.top < startRect.top
-        if !findCharForColumn prev, movementGoal, 0, prev.length then moveCaret r, prev, 0
-        return
-      if elRect.left <= movementGoal < elRect.right && findCharForColumn container, movementGoal, 0, container.length then return
+moveSelectionUp = (parent, r)->
+  pos = nodePosForCaret()
+    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
+  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = pos.getMovementGoal()
+  pos
+    .backwardLine(movementGoal)
+    .moveCaret()
+    .show()
 
-moveSelectionDown = (parent, r, start)->
-  container = r.startContainer
-  startRect = getRangeXY r
-  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = startRect.left
-  elRect = rectFor container
-  if startRect.bottom < elRect.bottom
-    txt = getOrgText r.startContainer
-    start = txt.indexOf '\n', r.startOffset + 1
-    if start > -1
-      end = txt.indexOf '\n', start + 1
-      if end == -1 then end = r.startContainer.length
-      if findCharForColumn r.startContainer, movementGoal, start, end then return
-  last = textNodeBefore parent
-  prev = null
-  prevRect = null
-  while container != last
-    if !(isCollapsed container)
-      prev = container
-      prevRect = elRect
-    container = textNodeAfter container
-    if !isCollapsed container
-      elRect = rectFor container
-      if startRect.bottom < prevRect.bottom < elRect.bottom
-        if !findCharForColumn prev, movementGoal, 0, prev.length then moveCaret r, prev, 0
-        return
-      if elRect.left <= movementGoal < elRect.right
-        end = container.data.indexOf '\n'
-        if end == -1 then end = container.length
-        if findCharForColumn container, movementGoal, 0, end then return
-  actualSelectionUpdate()
+moveSelectionDown = (parent, r)->
+  pos = nodePosForCaret()
+    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
+  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = pos.getMovementGoal()
+  pos
+    .forwardLine(movementGoal)
+    .moveCaret()
+    .show()
 
-nextVisibleNewline = (textNode, offset)->
-  scanForward textNode, -1, (whenNotCollapsed (node)-> node.data.indexOf '\n', offset + 1), whenNotCollapsed (node)-> node.data.indexOf '\n'
+moveSelectionForward = (parent, r)->
+  pos = nodePosForCaret()
+    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
+    .forwardChar()
+    .moveCaret()
+    .show()
 
-whenNotCollapsed = (block)-> (node)-> if isCollapsed node then -1 else block node
-
-scanForward = (textNode, falseValue, firstBlock, block)->
-  if (val = firstBlock textNode) != falseValue then [textNode, val]
-  else
-    while (textNode = textNodeAfter textNode) && (val = block textNode) == falseValue
-      true
-    if textNode then [textNode, val] else []
-
-moveSelectionFB = (parent, r, start, delta)->
-  r.collapse delta < 0
-  node = r.startContainer
-  newOffset = r.startOffset + delta
-  if newOffset < 0
-    while node = textNodeBefore node
-      if !isCollapsed node then break
-    if node then r.setStart node, node.length - 1
-  else if newOffset >= r.startContainer.length
-    while node = textNodeAfter node
-      if !isCollapsed node then break
-    if node then r.setStart node, 0
-  else r.setStart node, newOffset
-  if r.startOffset > 0
-    el = r.startContainer.splitText r.startOffset
-    r.setStart el, 0
-  r.collapse true
-  if parent.compareDocumentPosition(r.startContainer) & Node.DOCUMENT_POSITION_CONTAINED_BY
-    selectRange r
-    r.startContainer.parentNode.scrollIntoViewIfNeeded()
-  actualSelectionUpdate()
+moveSelectionBackward = (parent, r)->
+  nodePosForCaret()
+    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
+    .backwardChar()
+    .moveCaret()
+    .show()
 
 # functions return whether to check for mods
 keyFuncs =
   backwardChar: (e, parent, r)->
     e.preventDefault()
-    moveSelectionFB parent, r, true, -1
+    moveSelectionBackward parent, r
     false
   forwardChar: (e, parent, r)->
     e.preventDefault()
-    moveSelectionFB parent, r, false, 1
+    moveSelectionForward parent, r
     false
   previousLine: (e, parent, r)->
     e.preventDefault()
@@ -1362,19 +1294,16 @@ findOrgNode = (parent, pos)->
   org = parseOrgMode getNodeText parent
   orgNode = org.findNodeAt pos
 
-getTextPosition = (node, target, pos)->
-  if node
+getTextPosition = (parent, target, pos)->
+  if parent
     offset = 0
-    childPos = 0
-    limit = switch target.nodeType
-      when Node.ELEMENT_NODE
-        if pos + 1 < target.childNodes.length then target.childNodes[pos + 1] else nodeAfterNoChildren target
-      when Node.TEXT_NODE then target
-      else nodeAfter node
-    while node && node != limit
-      if node.nodeType == Node.TEXT_NODE then offset += node.data.length
-      node = nodeAfter node
-    if target.nodeType == Node.TEXT_NODE then offset + pos else offset
+    n = new NodePos parent, 0
+      .setFilter (n)-> (!parent.contains(n.node) && 'exit') || textNodeFilter n
+    limit = if target.nodeType == Node.TEXT_NODE then target
+    else n.newPos(target).next(true).node
+    while !(n = n.next()).isEmpty() && n.node != limit
+      offset += n.node.length
+    offset + (if target.nodeType == Node.TEXT_NODE then pos else 0)
   else -1
 
 countCharactersIn = (node)-> countCharactersFrom node, nodeAfterNoChildren node
@@ -1386,23 +1315,15 @@ countCharactersFrom = (start, end)->
     start = nodeAfter start
   if start == end then total else -1
 
-findDomPosition = (node, pos, contain)->
-  parent = node
-  while node
-    if node.nodeType == Node.TEXT_NODE
-      if pos < node.length
-        n = node
-        while n != parent && n != null
-          n = n.parentNode
-        return if n == null then noDomPosition parent, contain else [node, pos]
-      pos -= node.length
-    node = textNodeAfter node
-  noDomPosition parent, contain
-
-noDomPosition = (parent, contain)->
+findDomPosition = (parent, pos, contain)->
+  orig = n = new NodePos parent, 0
+    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || textNodeFilter n
+  while !(n = n.next()).isEmpty()
+    if pos < n.node.length then return [n.node, pos]
+    pos -= n.node.length
   if contain
-    n = lastTextChild parent
-    [n, n && n.data.length]
+    n = orig.prev().node
+    [n, n && n.length]
   else [null, null]
 
 # get the next node in the preorder traversal, disregarding the node's children
@@ -1472,6 +1393,12 @@ nodeAfterSkipNonOrg = (node)->
   node = nodeAfter node
   while node.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-nonorg'
     node = nodeAfterNoChildren node
+  node
+
+nodeBeforeSkipNonOrg = (node)->
+  node = nodeBefore node
+  while node.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-nonorg'
+    node = nodeBeforeNoChildren node
   node
 
 # return the block text for a node -- just the text that's in its mongo block
@@ -1545,11 +1472,11 @@ textNodeAfter = (node)->
     if node.nodeType == Node.TEXT_NODE then return node
 
 visibleTextNodeBefore = (node)->
-  while node = nodeBefore node
+  while node = nodeBeforeSkipNonOrg node
     if node.nodeType == Node.TEXT_NODE && !isCollapsed node then return node
 
 visibleTextNodeAfter = (node)->
-  while node = nodeAfter node
+  while node = nodeAfterSkipNonOrg node
     if node.nodeType == Node.TEXT_NODE && !isCollapsed node then return node
 
 #
@@ -1668,6 +1595,213 @@ basicOrg =
 
 findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 
+emptyNodePos = null
+
+nodePosForRange = (r)->
+  new NodePos r.startContainer, r.startOffset
+    .filterVisibleTextNodes()
+
+nodePosForCaret = -> nodePosForRange getSelection().getRangeAt(0)
+
+emptyNodePos = null
+
+textNodeFilter = (n)->
+  n.type == 'text' || (n.hasAttribute('data-nonorg') && 'skip')
+
+visibleTextNodeFilter = (n)->
+  (n.type == 'text' && !isCollapsed n.node) || (n.hasAttribute('data-nonorg') && 'skip')
+
+class NodePos
+  constructor: (@node, @pos, filter)->
+    @filter = filter || -> true
+    @type = if !node then 'empty'
+    else if node.nodeType == Node.TEXT_NODE then 'text'
+    else 'element'
+  setFilter: (f)->
+    @filter = f
+    this
+  hasAttribute: (a)->
+    @node && @node.nodeType == Node.ELEMENT_NODE && @node.hasAttribute a
+  getAttribute: (a)->
+    @node && @node.nodeType == Node.ELEMENT_NODE && @node.getAttribute a
+  newPos: (node, pos)-> new NodePos node, pos, @filter
+  filterTextNodes: ->
+    @filter = textNodeFilter
+    this
+  filterVisibleTextNodes: ->
+    @filter = visibleTextNodeFilter
+    this
+  isEmpty: -> @type == 'empty'
+  isNL: -> @type == 'text' && @node.data[@pos] == '\n'
+  endsInNL: -> @type == 'text' && @node.data[@node.length - 1] == '\n'
+  moveToStart: -> @newPos @node, 0
+  moveToNextStart: -> @next().moveToStart()
+  moveToEnd: ->
+    end = @node.length - (if @endsInNL() then 1 else 0)
+    @newPos @node, end
+  moveToPrevEnd: -> @prev().moveToEnd()
+  nodeAfter: (up)->
+    node = @node
+    nonOrg = @nonOrg
+    while node
+      if node.nodeType == Node.ELEMENT_NODE && !up && node.childNodes.length
+        return @newPos node.childNodes[0], 0
+      else if node.nextSibling
+        return @newPos node.nextSibling, 0
+      else
+        up = true
+        node = node.parentNode
+        nonOrg = node != nonOrg && nonOrg
+    @emptyNext()
+  emptyNext: ->
+    # return an empty next node where
+    #   prev returns this node
+    #   next returns the same empty node
+    __proto__: emptyNodePos
+    filter: @filter
+    prev: (up)=> if up then this.prev up else this
+    nodeBefore: (up)=> if up then this.nodeBefore up else this
+  nodeBefore: (up)->
+    node = @node
+    while node
+      if node.nodeType == Node.ELEMENT_NODE && !up && node.childNodes.length
+        newNode = node.childNodes[node.childNodes.length - 1]
+      else if node.previousSibling then newNode = node.previousSibling
+      else
+        up = true
+        node = node.parentNode
+        continue
+      return @newPos newNode, newNode.length
+    @emptyPrev()
+  emptyPrev: ->
+    # return an empty prev node where
+    #   next returns this node
+    #   prev returns the same empty node
+    __proto__: emptyNodePos
+    filter: @filter
+    next: (up)=> if up then this.next up else this
+    nodeAfter: (up)=> if up then this.nodeAfter up else this
+  next: (up)->
+    n = @nodeAfter up
+    while n.node
+      switch res = @filter n
+        when 'skip'
+          n = n.nodeAfter true
+          continue
+        when 'exit' then break
+        else
+          if res then return n
+      n = n.nodeAfter()
+    @emptyNext()
+  prev: (up)->
+    n = @nodeBefore up
+    while n.node
+      switch res = @filter n
+        when 'skip'
+          n = n.nodeBefore true
+          continue
+        when 'exit' then break
+        else
+          if res then return n
+      n = n.nodeBefore()
+    @emptyPrev()
+  headlineOffset: (col)->
+    if !@hlOff
+      @hlOff = $(@node).closest("[data-org-headline='1']")[0].getClientRects()[0].left
+    col - @hlOff
+  getMovementGoal: -> @headlineOffset @charRect().left
+  forwardLine: (goalColumn)->
+    r = @charRect()
+    bottom = r.bottom
+    line = 0
+    n = this
+    while (prev = n) && (n = n.forwardChar())
+      if n.isEmpty() then return prev
+      r = n.charRect()
+      if r.bottom != bottom
+        bottom = r.bottom
+        line++
+      if line == 1 && n.headlineOffset(r.left) >= goalColumn then return n
+      if line == 2 then return prev
+  backwardLine: (goalColumn)->
+    r = @charRect()
+    prevTop = top = r.top
+    line = 0
+    n = this
+    while (prev = n) && (n = n.backwardChar())
+      if n.isEmpty() then return prev
+      r = n.charRect()
+      if r.top != top
+        top = r.top
+        line++
+      if line == 1
+        if (l = n.headlineOffset(r.left)) == goalColumn then return n
+        if l < goalColumn then return (if prevTop == top then prev else n)
+      if line == 2 then return prev
+      prevTop = top
+  forwardChar: ->
+    r = stubbornCharRectNext(@node, @pos)
+    left = r?.left
+    bottom = r?.bottom
+    n = this
+    while n = (if n.pos + 1 < n.node.length then n.newPos n.node, n.pos + 1 else n.next())
+      r = stubbornCharRectNext(n.node, n.pos)
+      if n.isEmpty() || (r && (left != r?.left || bottom != r?.bottom)) then return n
+  backwardChar: ->
+    r = stubbornCharRectPrev(@node, @pos)
+    n = this
+    while n = (if n.pos > 0 then n.newPos n.node, n.pos  - 1 else n.prev())
+      if n.isEmpty() || n.moved(r) then return n
+  moved: (rec, r)->
+    if @node.length > @pos
+      r = r || document.createRange()
+      r.setStart @node, @pos
+      r.setEnd @node, @pos + 1
+      rec2 = r.getClientRects()[0]
+      rec.top != rec2.top || (rec2.width > 1 && rec2.left != rec.left)
+    else false
+  moveCaret: (r)->
+    moveCaret (r || document.createRange()), @node, @pos
+    this
+  charRect: (r, prev)->
+    if prev
+      stubbornCharRectPrev(@node, @pos, r) || stubbornCharRectNext(@node, @pos, r)
+    else stubbornCharRect @node, @pos, r
+  show: ->
+    posRect = @charRect()
+    barRect = $("#leisure_bar")[0].getClientRects()[0]
+    top = if barRect.width && barRect.top == 0 then barRect.bottom else 0
+    if posRect.bottom > window.innerHeight then window.scrollBy 0, posRect.bottom - window.innerHeight
+    else if posRect.top < top then window.scrollBy 0, posRect.top - top
+    this
+
+stubbornCharRect = (node, pos, r)->
+  stubbornCharRectNext(node, pos, r) || stubbornCharRectPrev(node, pos, r)
+
+stubbornCharRectNext = (node, pos, r)->
+  r = r || document.createRange()
+  # charRect returns null for newlines when not using pre
+  for i in [pos ... node.length] by 1
+    if rec = charRect node, i, r then return rec
+  null
+
+stubbornCharRectPrev = (node, pos, r)->
+  r = r || document.createRange()
+  # charRect returns null for newlines when not using pre
+  for i in [pos .. 0] by -1
+    if rec = charRect node, i, r then return rec
+  null
+
+charRect = (node, pos, r)->
+  r = r || document.createRange()
+  r.setStart node, pos
+  r.collapse true
+  _(r.getClientRects()).last()
+
+emptyNodePos = new NodePos()
+for stub in ['moveCaret', 'show', 'nodeAfter', 'nodeBefore', 'next', 'prev']
+  emptyNodePos[stub] = -> this
+
 root.findOrIs = findOrIs
 root.parentForElement = parentForElement
 root.parentForBlockId = parentForBlockId
@@ -1737,7 +1871,6 @@ root.isParentOf = isParentOf
 root.PAGEUP = PAGEUP
 root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile
-root.nextVisibleNewline = nextVisibleNewline
 root.countCharactersFrom = countCharactersFrom
 root.countCharactersIn = countCharactersIn
 root.nodeAfter = nodeAfter
@@ -1763,6 +1896,9 @@ root.actualSelectionUpdate = actualSelectionUpdate
 root.currentBlockIds = []
 root.toggleLeisureBar = toggleLeisureBar
 root.errorDiv = errorDiv
+root.NodePos = NodePos
+root.nodePosForRange = nodePosForRange
+root.nodePosForCaret = nodePosForCaret
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

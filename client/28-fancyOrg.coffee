@@ -261,7 +261,7 @@ getDocRange = ->
   s = getSelection()
   r = s.getRangeAt 0
   offset = getDocumentOffset r
-  if s.rangeCount == 1 && r.collapsed && r.startContainer.nodeTYpe == 1 && shadow = r.startContainer.children[r.startOffset]?.shadowRoot
+  if s.rangeCount == 1 && r.collapsed && r.startContainer.nodeType == 1 && shadow = r.startContainer.children[r.startOffset]?.shadowRoot
     s = shadow.getSelection()
     note = $(s.focusNode).closest('[data-note-origin]')?[0]
     if note then [getTextPosition(note, s.anchorNode, s.anchorOffset), getTextPosition(note, s.extentNode, s.extentOffset), window.pageYOffset - offset, note.id]
@@ -405,7 +405,7 @@ markupNode = (org, middleOfLine, delay, note, replace, inFragment)->
     "<#{tag} #{orgAttrs org}>#{meatText org.text}</#{tag}>"
 
 meatText = (meat)->
-  paras = escapeHtml(meat).replace /\n\n/g, "<span class='meat-break'><span class='hidden'>\n</span>\n</span>"
+  paras = escapeHtml(meat).replace /(\n)\n|^\n/g, "$1<span class='meat-break'>\n</span>"
 
 isLeisure = (org)-> org instanceof Source && org.getLanguage().toLowerCase() == 'leisure'
 
@@ -481,7 +481,7 @@ markupHeadline = (org, delay, note, replace)->
   properties = []
   for k, v of org.properties
     properties.push "#{k} = #{v}"
-  properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}'><i class='fa fa-wrench'></i></span>" else ''
+  properties = if properties.length then "<span class='headline-properties' title='#{escapeAttr properties.join '<br>'}' data-nonorg='true'><i class='fa fa-wrench'></i></span>" else ''
   editMode = if org.level == 1 then " data-edit-mode='fancy'" else ""
   if org.level == 1 && !note && !org.properties?.note
     if org.text.trim() != ''
