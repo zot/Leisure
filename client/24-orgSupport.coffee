@@ -183,52 +183,26 @@ toggleLeisureBar = ->
   if g.hasClass 'bar_collapse' then g.removeClass 'bar_collapse' else g.addClass 'bar_collapse'
 
 selectionActive = true
-topCaretBox = null
-bottomCaretBox = null
 
 updateSelection = Lodash.throttle (-> actualSelectionUpdate()), 30,
   leading: true
   trailing: true
 
 actualSelectionUpdate = ->
-  return
   if selectionActive
     s = getSelection()
     if s.type != 'None' && !isCollapsed(s.focusNode)
       range = s.getRangeAt(0)
       rects = range.getClientRects()
       if rects.length > 0
-        right = 0
-        top = Number.MAX_SAFE_INTEGER
-        for r in rects
-          right = Math.max r.right, right
-          top = Math.min r.top, top
-        if b = detectActualLineHeight range
-          top = Math.min b.top, top
+        right = _(rects).last().right
+        top = _(rects).last().top
         bubble = $("#selectionBubble")[0]
         bubble.style.left = "#{right}px"
         bubble.style.top = "#{top - bubble.offsetHeight}px"
         $(document.body).addClass 'selection'
         return
   $(document.body).removeClass 'selection'
-
-detectActualLineHeight = (range)->
-  if range.startContainer != topCaretBox
-    el = range.startContainer
-    if range.startOffset == 0
-      $(el).before topCaretBox
-    else
-      if range.startOffset < range.startContainer.length
-        el.splitText range.startOffset
-      $(el).after topCaretBox
-      range.setStart textNodeAfter(el.nextSibling), 0
-      range.collapse true
-      s = getSelection()
-      s.removeAllRanges()
-      s.addRange range
-  r = topCaretBox.getClientRects()[0]
-  $(topCaretBox).remove()
-  r
 
 installSelectionMenu = ->
   $("#selectionBubble")
@@ -267,8 +241,6 @@ monitorSelectionChange = ->
   $(window).on 'blur focus', (e)->
     selectionActive = (e.type == 'focus')
     updateSelection()
-  root.topCaretBox = topCaretBox = $('#topCaretBox')[0]
-  root.bottomCaretBox = bottomCaretBox = $('#bottomCaretBox')[0]
 
 toggleShowHidden = ->
   body = $(document.body)
@@ -334,7 +306,6 @@ moveSelectionUp = (parent, r)->
     .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
   if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = pos.getMovementGoal()
   pos
-    .mutable()
     .backwardLine(movementGoal)
     .moveCaret()
     .show()
@@ -344,7 +315,6 @@ moveSelectionDown = (parent, r)->
     .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
   if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = pos.getMovementGoal()
   pos
-    .mutable()
     .forwardLine(movementGoal)
     .moveCaret()
     .show()
@@ -352,7 +322,6 @@ moveSelectionDown = (parent, r)->
 moveSelectionForward = (parent, r)->
   pos = nodePosForCaret()
     .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
-    .mutable()
     .forwardChar()
     .moveCaret()
     .show()
@@ -360,7 +329,6 @@ moveSelectionForward = (parent, r)->
 moveSelectionBackward = (parent, r)->
   nodePosForCaret()
     .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
-    .mutable()
     .backwardChar()
     .moveCaret()
     .show()
@@ -641,6 +609,7 @@ bindContent = (div)->
   fixupNodes div
   div.addEventListener 'drop', (e)-> root.orgApi.handleDrop e
   div.addEventListener 'mousedown', (e)-> setCurKeyBinding null
+  div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'keydown', (e)->
     root.modCancelled = false
@@ -688,6 +657,23 @@ bindContent = (div)->
       #root.currentMatch = matchLine currentLine div
       root.currentMatch = lineCodeBlockType currentLine div
   displaySource()
+
+adjustSelection = (e)->
+  if e.detail == 1 then return
+  s = getSelection()
+  if s.type == 'Range'
+    r = s.getRangeAt 0
+    pos = new NodePos r.endContainer, r.endOffset
+      .mutable()
+      .filterVisibleTextNodes()
+    while pos.node != r.startContainer && pos.node.data.trim() == ''
+      pos == pos.prev()
+    while pos.pos > 0 && pos.node.data[pos.pos - 1] == ' '
+      pos.pos--
+    if (pos.node != r.startContainer || pos.pos > r.startOffset) && (pos.node != r.endContainer || pos.pos < r.endOffset)
+      r.setEnd pos.node, pos.pos
+      s.removeAllRanges()
+      s.addRange r
 
 handleDrop = (e)->
   e.preventDefault()
@@ -827,7 +813,6 @@ handleKeyup = (div)-> (e)->
 
 noFollowingText = (t)->
   next = t.nextSibling
-  if next == topCaretBox then next = next.nextSibling
   !(next && next.nodeType == Node.TEXT_NODE)
 
 modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
@@ -843,19 +828,20 @@ modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
 lineForRange = (node, offset)->
   lineText = node.data
   lineEnd = -1
+  pos = new NodePos(node).mutable().filterTextNodes()
   if (lineStart = node.data.substring(0, offset).lastIndexOf '\n') == -1
-    while node && lineStart == -1
-      if node = textNodeBefore node
-        lineText = node.data + lineText
-        lineStart = node.data.lastIndexOf '\n'
-  if node
-    nl = node.data.indexOf '\n', offset
-    if nl >= offset then lineEnd = nl + lineText.length - node.data.length
+    while !pos.isEmpty() && lineStart == -1
+      if pos = pos.prev()
+        lineText = pos.node.data + lineText
+        lineStart = pos.node.data.lastIndexOf '\n'
+  if !pos.isEmpty()
+    nl = pos.node.data.indexOf '\n', offset
+    if nl >= offset then lineEnd = nl + lineText.length - pos.node.data.length
     else
-      while node && lineEnd == -1
-        if node = textNodeAfter node
-          lineText += node.data
-          if (nl = node.data.indexOf '\n') > -1 then lineEnd = nl + lineText.length - node.data.length
+      while !pos.isEmpty() && lineEnd == -1
+        if pos = pos.next()
+          lineText += pos.node.data
+          if (nl = pos.node.data.indexOf '\n') > -1 then lineEnd = nl + lineText.length - pos.node.data.length
     if lineEnd == -1 then lineEnd = lineText.length
     lineText.substring lineStart + 1, lineEnd
   else ''
@@ -1549,6 +1535,7 @@ findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 
 nodePosForRange = (r)->
   new NodePos r.startContainer, r.startOffset
+    .mutable()
     .filterVisibleTextNodes()
 
 nodePosForCaret = -> nodePosForRange getSelection().getRangeAt(0)
@@ -1563,6 +1550,7 @@ visibleTextNodeFilter = (n)->
 
 class NodePos
   constructor: (@node, @pos, filter)->
+    @pos = @pos ? 0
     @filter = filter || -> true
     @computeType()
   computeType: ->
@@ -1803,6 +1791,7 @@ root.modifiers = modifiers
 root.keyFuncs = keyFuncs
 root.defaultBindings = defaultBindings
 root.addKeyPress = addKeyPress
+root.adjustSelection = adjustSelection
 root.findKeyBinding = findKeyBinding
 root.setCurKeyBinding = setCurKeyBinding
 root.installEnvLang = installEnvLang

@@ -1,9 +1,12 @@
 * Short list -- announcement
+- switch to NodePos for all positioning (use mutable)
 - some way to control access to the root documents
   - maybe just a random URL, for now
 - warning for controllers that don't define @initializeView
 - warning for observers that don't define @update
-- fix parsing bug that makes * Caveats not be parsed as a slide
+- fix parsing bugs
+  - * Caveats slide is not parsed as a slide
+  - newline at end of list double NL after it is not properly rendered in fancy
 - reactivate note button
 - reactivete selection bubble
 - collaboration

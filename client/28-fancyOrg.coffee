@@ -84,6 +84,7 @@ yaml = root.yaml
   keyFuncs,
   defaultBindings,
   addKeyPress,
+  adjustSelection,
   findKeyBinding,
   setCurKeyBinding,
   installEnvLang,
@@ -1179,6 +1180,7 @@ bindContent = (div)->
   div.addEventListener 'mousedown', (e)->
     if replaceUnrelatedPresenter e.target, emptyPresenter
       setCurKeyBinding null
+  div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keydown', handleKey div
   div.addEventListener 'keyup', handleKeyup div
   div.addEventListener 'DOMCharacterDataModified', handleMutation, true

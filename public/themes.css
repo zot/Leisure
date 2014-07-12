@@ -984,14 +984,14 @@ body {
     vertical-align: top;
     width: 0;
     height: 5px;
-    outline: solid red 3px;
+    /*outline: solid red 3px;*/
 }
 #bottomCaretBox {
     display: inline-block;
     vertical-align: bottom;
     width: 0;
     height: 5px;
-    outline: solid red 3px;
+    /*outline: solid red 3px;*/
 }
 .org-fancy .syntaxhighlighter {
     overflow: hidden !important;

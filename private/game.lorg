@@ -109,7 +109,6 @@ arrays and even call out to custom functions you can define on your own if requi
     {{/each}}
   </div>
 </div>
-<script>App.hookupTable()</script>
 #+END_SRC
 
 * View Helpers
@@ -213,7 +212,7 @@ Process a player clicking the board and provide audio feedback
 #+BEGIN_SRC coffee :results def
 App.handleClick = (e)->
   sound = if App.takeTurn e then '#clickSound' else '#buzzerSound'
-  $('[data-org-html]').shadow().find(sound)[0].play()
+  $('[data-org-html]').find(sound)[0].play()
 #+END_SRC
 
 Add a piece to the board on the column clicked (if there's room for it) Return success or failure
@@ -234,11 +233,12 @@ App.takeTurn = (e)->
 :properties:
 :hidden: true
 :end:
-Set the game attribute so we can float the board
+Set the game attribute so we can float the board.  The controller gets called
+right after the view is created
 
-#+BEGIN_SRC coffee :results def
-App.hookupTable = ->
-  $(Templating.currentViewLink).closest("[data-org-headline='1']").attr 'game', ''
+#+BEGIN_SRC coffee :control board
+@initializeView = (view)->
+  $(view).closest("[data-org-headline='1']").attr 'game', ''
 #+END_SRC
 
 Each time a new player connects, we need to initialize them and add them into the game Just use a random delay to

@@ -66,6 +66,7 @@ noRender = Leisure.noRenderWhile
 ** Leisure is not yet ready for end users
 ...but developers interested in helping are
 welcome to contact Bill Burdick to help out (bill dot burdick at gmail dot com).
+
  *Some technical details*
 - Each document is a multiuser virtual machine
 - With live content
