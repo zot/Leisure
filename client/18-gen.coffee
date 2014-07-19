@@ -209,14 +209,20 @@ genUniq = (ast, names, uniq, count)->
     when Leisure_anno
       name = getAnnoName ast
       data = getAnnoData ast
-      genned = genUniq (getAnnoBody ast), names, uniq
-      switch name
-        when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
-        when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
-        when 'define'
-          [funcName, arity, src] = data.toArray()
-          sn ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")"
-        else genned
+      if name == 'arity'
+        genArifiedLambda (getAnnoBody ast), names, uniq, data
+      else
+        genned = genUniq (getAnnoBody ast), names, uniq
+        switch name
+          when 'type' then sn ast, "setType(", (genned), ", '", data, "')"
+          when 'dataType' then sn ast, "setDataType(", genned, ", '", data, "')"
+          when 'define'
+            [funcName, arity, src] = data.toArray()
+            sn ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")"
+          when 'leisureName'
+            console.log "DEFINE #{getAnnoData ast} = #{getApplyArg getAnnoBody ast}"
+            genned
+          else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
 define 'newGen', (lz makeSyncMonad (env, cont)->
@@ -228,6 +234,29 @@ genLambda = (ast, names, uniq, count)->
   u = addUniq name, names, uniq
   n = cons name, names
   addLambdaProperties ast, sn ast, (if count then "$F(arguments, " else ""), "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}", (if count then ")" else "")
+
+genArifiedLambda = (ast, names, uniq, arity)->
+  def = genLambda ast, names, uniq, 0
+  if arity > 1
+    args = getNArgs(arity, ast).toArray()
+    console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
+    console.log """
+      function (#{_.map(args, ((x)-> 'L_' + x)).join ', '}, more) {
+        if (L_#{_.last args} && !more) {
+        } else if (!L_#{args[1]}) {
+          return #{def};
+        } else {
+          return Leisure.curryCall(arguments, arguments.callee);
+        }
+      }
+      """
+  def
+
+curryCall = (args, func)->
+  Nil
+
+getNArgs = (n, ast)->
+  if !n then Nil else cons (getLambdaVar ast), getNArgs n - 1, getLambdaBody ast
 
 specialAnnotations = ['type', 'dataType', 'define']
 
@@ -298,7 +327,7 @@ genApplyArg = (arg, names, uniq)->
   else if arg instanceof Leisure_lit then sn arg, JSON.stringify getLitVal arg
   else if arg instanceof Leisure_let then sn arg, "function(){", (genLets arg, names, uniq), "}"
   else if dumpAnno(arg) instanceof Leisure_lambda then sn arg, "lazy(", (genUniq arg, names, uniq), ")"
-  else sn ast, "function(){return ", (genUniq arg, names, uniq), "}"
+  else sn arg, "function(){return ", (genUniq arg, names, uniq), "}"
 
 genLetAssign = (arg, names, uniq)->
   if dumpAnno(arg) instanceof Leisure_let then sn arg, "function(){", (genLets arg, names, uniq), "}"
@@ -376,6 +405,7 @@ root.genNode = genNode
 root.sourceNode = sn
 root.curry = curry
 root.withFile = withFile
+root.curryCall = curryCall
 #root.useNameSpace = useNameSpace
 #root.pushNameSpace = pushNameSpace
 #root.getNameSpacePath = getNameSpacePath

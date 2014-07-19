@@ -321,6 +321,7 @@ compile = (file, cont)->
         outputFile = path.join(outDir, path.basename(outputFile))
         outputMap = path.join(outDir, path.basename(outputMap))
       if verbose then console.log "JS FILE: #{outputFile}"
+      console.log "FIRST AST: #{asts[0]}"
       result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
         "module.exports = L_runMonads([\n  ",
         intersperse(_(asts).map((item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),

@@ -1,0 +1,12 @@
+-/.git
+-/.meteor
+-/packages/leisure/build/node_modules
+-/packages/leisure/build/lib
+-/private/test
+-/client/10-jquery-1-8-2.min.js
+-/client/12-browser.js
+-/client/12-coffee-script.js
+-/client/19-generatedPrelude.js
+-/client/20-handlebars-v1.3.0.js
+-/client/22-svg.js
+-/client/29-parseAst.js

@@ -43,7 +43,7 @@ defaultEnv =
   values: {}
   errorHandlers: []
 
-global.resolve = (value)->
+rz = global.resolve = (value)->
   if typeof value == 'function'
     if typeof value.memo != 'undefined' then value.memo
     else

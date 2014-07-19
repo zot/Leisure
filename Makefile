@@ -12,8 +12,14 @@ ALL_BUILT=$(BUILT) $(DIR)/lib/browser.js $(DIR)/lib/generatedPrelude.js $(DIR)/l
 REPL=./repl
 TESTED=$(DIR)/.tested
 NODE_PATH=$(shell ./joinPath lib client $(DIR)/lib $(DIR)/src $(DIR)/node_modules)
+TAGGED=$(shell find client lib|grep -vi 'handlebars\|mutation\|yaml\|jquery\|browser.js\|lazy\|coffee-script.js'|grep 'js\|coffee')
 
-all: $(BUILT) $(TESTED)
+all: $(BUILT) $(TESTED) TAGS
+
+tags: TAGS
+
+TAGS: FRC
+	@./buildTags TAGS $(TAGGED)
 
 test: $(TESTED)
 

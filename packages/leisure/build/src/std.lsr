@@ -397,3 +397,32 @@ html x = \f . f x
 
 defTokenPack 'util' [['->' '--' '++'] ['js[':']'] []]
 addStdTokenPacks ['util']
+
+#####
+# AST funcs
+#####
+_1of2 s = s \a b . a
+_2of2 s = s \a b . b
+_1of3 s = s \a b c . a
+_2of3 s = s \a b c . b
+_3of3 s = s \a b c . c
+_1of4 s = s \a b c d . a
+_2of4 s = s \a b c d . b
+_3of4 s = s \a b c d . c
+_4of4 s = s \a b c d . d
+getLitValue ast = _1of2 ast
+getLitRange ast = _2of2 ast
+getRefName ast = _1of2 ast
+getRefRange ast = _2of2 ast
+getLambdaName ast = _1of3 ast
+getLambdaBody ast = _2of3 ast
+getLambdaRange ast = _3of3 ast
+getApplyFunc ast = _1of2 ast
+getApplyArg ast = _2of2 ast
+getLetName ast = _1of4 ast
+getLetValue ast = _2of4 ast
+getLetBody ast = _3of4 ast
+getLetRange ast = _4of4 ast
+getAnnoName ast = _1of3 ast
+getAnnoData ast = _2of3 ast
+getAnnoBody ast = _3of3 ast
