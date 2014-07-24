@@ -1431,26 +1431,27 @@ getNodeText = (node)->
   else if root.currentDocument && $(node).is('[maindoc]') then fixOffsets orgForNode(node)
   else getOrgText node
 
-if Element.prototype.webkitCreateShadowRoot?
-  Element.prototype.createShadowRoot = Element.prototype.webkitCreateShadowRoot
-  Element.prototype.__defineGetter__ 'shadowRoot', -> @webkitShadowRoot
-  Element.prototype.__defineSetter__ 'shadowRoot', (val)-> @webkitShadowRoot = val
-else if !document.body.createShadowRoot?
-  hasShadow = false
-  Element.prototype.createShadowRoot = ->
-    hasShadow = true
-    @setAttribute 'data-org-shadow', 'true'
-  Element.prototype.__defineGetter__ 'shadowRoot', -> (@hasAttribute('data-org-shadow') && @) || null
-  getNodeText = (node)->
-    if hasShadow
-      copy = $(node).clone()
-      copy.find('[data-org-shadow]').remove()
-      copy.text()
-    else getOrgText node
-  oldReparse = reparse
-  reparse = (parent, text)->
-    oldReparse parent, text
+if !Element.prototype.createShadowRoot
+  if Element.prototype.webkitCreateShadowRoot?
+    Element.prototype.createShadowRoot = Element.prototype.webkitCreateShadowRoot
+    Element.prototype.__defineGetter__ 'shadowRoot', -> @webkitShadowRoot
+    Element.prototype.__defineSetter__ 'shadowRoot', (val)-> @webkitShadowRoot = val
+  else if !document.body.createShadowRoot?
     hasShadow = false
+    Element.prototype.createShadowRoot = ->
+      hasShadow = true
+      @setAttribute 'data-org-shadow', 'true'
+    Element.prototype.__defineGetter__ 'shadowRoot', -> (@hasAttribute('data-org-shadow') && @) || null
+    getNodeText = (node)->
+      if hasShadow
+        copy = $(node).clone()
+        copy.find('[data-org-shadow]').remove()
+        copy.text()
+      else getOrgText node
+    oldReparse = reparse
+    reparse = (parent, text)->
+      oldReparse parent, text
+      hasShadow = false
 
 emptyOutNode = (node)->
   node.innerHTML = ''
