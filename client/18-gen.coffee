@@ -86,6 +86,7 @@ newGen = false
 root.lockGen = true
 masterLockGen = true
 #masterLockGen = false
+useArifiedLambda = false
 
 collectArgs = (args, result)->
   for i in args
@@ -209,7 +210,7 @@ genUniq = (ast, names, uniq, count)->
     when Leisure_anno
       name = getAnnoName ast
       data = getAnnoData ast
-      if name == 'arity'
+      if name == 'arity' && useArifiedLambda
         genArifiedLambda (getAnnoBody ast), names, uniq, data
       else
         genned = genUniq (getAnnoBody ast), names, uniq
@@ -236,21 +237,50 @@ genLambda = (ast, names, uniq, count)->
   addLambdaProperties ast, sn ast, (if count then "$F(arguments, " else ""), "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}", (if count then ")" else "")
 
 genArifiedLambda = (ast, names, uniq, arity)->
-  def = genLambda ast, names, uniq, 0
-  if arity > 1
+  if arity == 1 then genLambda ast, names, uniq, 0
+  else
     args = getNArgs(arity, ast).toArray()
     console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
+    argList = _.map(args, ((x)-> 'L_' + x)).join ', '
     console.log """
-      function (#{_.map(args, ((x)-> 'L_' + x)).join ', '}, more) {
-        if (L_#{_.last args} && !more) {
-        } else if (!L_#{args[1]}) {
-          return #{def};
-        } else {
-          return Leisure.curryCall(arguments, arguments.callee);
+      (function () {
+        var full = function (#{argList}) {
+          return #{genUniq getNthLambdaBody(ast, arity), names, uniq};
+        };
+        var partial = function(#{args[0]}) {
+          #{genPartialCalls args, 1}
+        };
+        var main = function(#{argList}, more) {
+          if (L_#{_.last args} && !more) {
+            return full(#{argList});
+          } else if (!L_#{args[1]}) {
+            return partial(#{args[0]});
+          } else {
+            return Leisure.curryCall(arguments, partial);
+          }
         }
-      }
+      })()
       """
   def
+
+getNthLambdaBody = (ast, n)->
+  if n == 0 then ast
+  else if ast instanceof Leisure_lambda then getNthLambdaBody getLambdaBody(ast), n - 1
+  else throw new Error "Expected lambda but got #{ast}"
+
+genPartialCalls = (args, n)->
+  if n == args.length then "return full(#{args.join ', '});"
+  else
+    pad = strRepeat '  ', 4 + n
+    """return $F(arguments, function(#{args[n]}){
+#{pad + 1}#{genPartialCalls args, n + 1}
+#{pad}});"""
+
+strRepeat = (string, n)->
+  result = string
+  for i in [1...n]
+    result += string
+  result
 
 curryCall = (args, func)->
   Nil
