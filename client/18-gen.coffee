@@ -59,6 +59,8 @@ lz = lazy
   functionInfo,
   getPos,
   isNil,
+  genCodeWrapper,
+  wrapFunc,
 } = require '16-ast'
 {
   makeSyncMonad,
@@ -263,31 +265,11 @@ genArifiedLambda = (ast, names, uniq, arity)->
   if arity < 2 then genLambda ast, names, uniq, 0
   else
     args = getNArgs(arity, ast).toArray()
-    #console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
     argList = _.map(args, ((x)-> 'L_' + x)).join ', '
-    mainFunc = """
-      function(#{argList}, more) {
-          if (L_#{_.last args} && (typeof more == "undefined" || more == null)) {
-            return full(#{argList});
-          } else if (typeof L_#{args[1]} == "undefined" || L_#{args[1]} == null) {
-            return partial(L_#{args[0]});
-          } else {
-            return Leisure.curryCall(arguments, partial);
-          }
-        }"""
-    result = """
-      (function () {
-        var main;
-        var full = function (#{argList}) {
-          return #{genUniq getNthLambdaBody(ast, arity), names, uniq};
-        };
-        var partial = function(L_#{args[0]}) {
-          #{genPartialCalls args, argList, 1}
-        };
-        main = #{addLambdaProperties ast, (sn ast, mainFunc)};
-        return main;
-      })()
-      """
+    result = genCodeWrapper args, ((code)-> addLambdaProperties ast, (sn ast, code)), true, """
+      function (#{argList}) {
+        return #{genUniq getNthLambdaBody(ast, arity), names, uniq};
+      };"""
     annoAst = ast
     while annoAst instanceof Leisure_anno
       name = getAnnoName annoAst
@@ -298,36 +280,62 @@ genArifiedLambda = (ast, names, uniq, arity)->
       annoAst = getAnnoBody annoAst
     sn ast, result
 
+#wrapFunc = (args, func)-> (eval genCodeWrapper args, (code)-> code) func
+#
+#genCodeWrapper = (args, mainFilter, useDef, fullDef)->
+#  argList = _.map(args, ((x)-> 'L_' + x)).join ', '
+#  mainFunc = """
+#    function(#{argList}, more) {
+#        if (L_#{_.last args} && (typeof more == "undefined" || more == null)) {
+#          return full(#{argList});
+#        } else if (typeof L_#{args[1]} == "undefined" || L_#{args[1]} == null) {
+#          return partial(L_#{args[0]});
+#        } else {
+#          return Leisure.curryCall(arguments, partial);
+#        }
+#      }"""
+#  result = """
+#    (function (#{if useDef then '' else 'full'}) {
+#      var main;
+#      #{if useDef then "var full = #{fullDef}" else ''}
+#      var partial = function(L_#{args[0]}) {
+#        #{genPartialCalls args, argList, 1}
+#      };
+#      main = #{mainFilter mainFunc};
+#      return main;
+#    })#{if useDef then '()' else ''}
+#    """
+#
+#genPartialCalls = (args, argList, n)->
+#  if n == args.length then "return full(#{argList});"
+#  else
+#    pad = strRepeat '  ', 4 + n
+#    #"""return $F(arguments, function(L_#{args[n]}){
+#    ##{pad + '  '}#{genPartialCalls args, argList, n + 1}
+#    ##{pad}});"""
+#    """
+#var _#{n} = function(L_#{args[n]}) {
+##{pad + '  '}#{genPartialCalls args, argList, n + 1}
+##{pad}};
+##{pad}_#{n}.leisureInfo = {arg: L_#{args[n - 1]}, #{if n == 1 then "name: main.leisureName" else "parent: _#{n - 1}.leisureInfo"}};
+##{pad}return _#{n};"""
+#
+#strRepeat = (string, n)->
+#  result = string
+#  for i in [1...n]
+#    result += string
+#  result
+#
+#curryCall = (args, func)->
+#  f = func args[0]
+#  for i in [1...args.length]
+#    f = f args[i]
+#  f
+
 getNthLambdaBody = (ast, n)->
   if n == 0 then ast
   else if (d = dumpAnno ast) instanceof Leisure_lambda then getNthLambdaBody getLambdaBody(d), n - 1
   else throw new Error "Expected lambda but got #{ast}"
-
-genPartialCalls = (args, argList, n)->
-  if n == args.length then "return full(#{argList});"
-  else
-    pad = strRepeat '  ', 4 + n
-    #"""return $F(arguments, function(L_#{args[n]}){
-    ##{pad + '  '}#{genPartialCalls args, argList, n + 1}
-    ##{pad}});"""
-    """
-var _#{n} = function(L_#{args[n]}) {
-#{pad + '  '}#{genPartialCalls args, argList, n + 1}
-#{pad}};
-#{pad}_#{n}.leisureInfo = {arg: L_#{args[n - 1]}, #{if n == 1 then "name: main.leisureName" else "parent: _#{n - 1}.leisureInfo"}};
-#{pad}return _#{n};"""
-
-strRepeat = (string, n)->
-  result = string
-  for i in [1...n]
-    result += string
-  result
-
-curryCall = (args, func)->
-  f = func args[0]
-  for i in [1...args.length]
-    f = f args[i]
-  f
 
 getNArgs = (n, ast)->
   d = dumpAnno ast
@@ -435,7 +443,7 @@ letList = (ast, buf)->
 
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
-define 'runAst', (lz (code)->$F(arguments, (ast)->
+define 'runAst', (lz wrapFunc ['code', 'ast'], (code, ast)->
   jsCode = null
   try
     jsCode = gen rz ast
@@ -444,7 +452,7 @@ define 'runAst', (lz (code)->$F(arguments, (ast)->
     codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
     msg = "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "
     console.log msg + ast() + "\n" + err.stack
-    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast))), null, null, null, 'parser'
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast)), null, null, null, 'parser'
 
 root.gen = gen
 root.genMap = genMap
@@ -452,7 +460,6 @@ root.genSource = genSource
 root.genNode = genNode
 root.sourceNode = sn
 root.withFile = withFile
-root.curryCall = curryCall
 #root.useNameSpace = useNameSpace
 #root.pushNameSpace = pushNameSpace
 #root.getNameSpacePath = getNameSpacePath

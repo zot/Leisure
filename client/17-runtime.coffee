@@ -49,6 +49,7 @@ misrepresented as being the original software.
   setDataType,
   functionInfo,
   nameSub,
+  wrapFunc,
 } = require '16-ast'
 _ = require 'lodash.min'
 amt = require('persistent-hash-trie')
@@ -88,17 +89,17 @@ right = (x)-> setType ((lCase)->(rCase)-> rz(rCase)(lz x)), 'right'
 some = (x)-> setType ((someCase)->(noneCase)-> rz(someCase)(lz x)), 'some'
 none = setType ((someCase)->(noneCase)-> rz(noneCase)), 'none'
 booleanFor = (bool)-> if bool then rz L_true else rz L_false
-define 'eq', lz (a)->$F(arguments, (b)-> booleanFor rz(a) == rz(b))
-define '==', lz (a)->$F(arguments, (b)-> booleanFor rz(a) == rz(b))
-define 'hasType', lz (data)->$F(arguments, (func)->
+define 'eq', lz wrapFunc ['a', 'b'], (a, b)-> booleanFor rz(a) == rz(b)
+define '==', lz wrapFunc ['a', 'b'], (a, b)-> booleanFor rz(a) == rz(b)
+define 'hasType', lz wrapFunc ['data', 'func'], (data, func)->
   if typeof rz(func) == 'string' then booleanFor getType(rz(data)) == rz(func)
-  else booleanFor getType(rz data) == getDataType(rz func))
+  else booleanFor getType(rz data) == getDataType(rz func)
 define 'getDataType', lz (func)-> if typeof rz(func) == 'string' then rz(func) else getDataType(rz(func))
-define 'assert', lz (bool)->$F(arguments, (msg)-> $F(arguments, (expr)-> rz(bool)(expr)(-> throw new Error(rz msg))))
-define 'assertLog', lz (bool)->$F(arguments, (msg)-> $F(arguments, (expr)-> rz(bool)(expr)(->
+define 'assert', lz wrapFunc ['bool', 'msg', 'expr'], (bool, msg, expr)-> rz(bool)(expr)(-> throw new Error(rz msg))
+define 'assertLog', lz wrapFunc ['bool', 'msg', 'expr'], (bool, msg, expr)-> rz(bool)(expr)(->
   console.log new Error(rz msg).stack
   console.log "LOGGED ERROR -- RESUMING EXECUTION..."
-  rz expr)))
+  rz expr)
 define 'trace', lz (msg)->
   console.log "STACKTRACE: ", new Error(rz msg).stack
   msg
@@ -109,19 +110,19 @@ define 'error', lz (msg)-> throw new Error rz msg
 # MATH
 ############
 
-define '+', lz (x)->$F(arguments, (y)->rz(x) + rz(y))
-define '-', lz (x)->$F(arguments, (y)->rz(x) - rz(y))
-define '*', lz (x)->$F(arguments, (y)->rz(x) * rz(y))
-define '/', lz (x)->$F(arguments, (y)->rz(x) / rz(y))
-define '%', lz (x)->$F(arguments, (y)->rz(x) % rz(y))
-define '<', lz (x)->$F(arguments, (y)->booleanFor rz(x) < rz(y))
-define '<=', lz (x)->$F(arguments, (y)->booleanFor rz(x) <= rz(y))
-define '>', lz (x)->$F(arguments, (y)->booleanFor rz(x) > rz(y))
-define '>=', lz (x)->$F(arguments, (y)->booleanFor rz(x) >= rz(y))
+define '+', lz wrapFunc ['x', 'y'], (x, y)->rz(x) + rz(y)
+define '-', lz wrapFunc ['x', 'y'], (x, y)->rz(x) - rz(y)
+define '*', lz wrapFunc ['x', 'y'], (x, y)->rz(x) * rz(y)
+define '/', lz wrapFunc ['x', 'y'], (x, y)->rz(x) / rz(y)
+define '%', lz wrapFunc ['x', 'y'], (x, y)->rz(x) % rz(y)
+define '<', lz wrapFunc ['x', 'y'], (x, y)->booleanFor rz(x) < rz(y)
+define '<=', lz wrapFunc ['x', 'y'], (x, y)->booleanFor rz(x) <= rz(y)
+define '>', lz wrapFunc ['x', 'y'], (x, y)->booleanFor rz(x) > rz(y)
+define '>=', lz wrapFunc ['x', 'y'], (x, y)->booleanFor rz(x) >= rz(y)
 define 'floor', lz (x)-> Math.floor(rz x)
 define 'ceil', lz (x)-> Math.ceil(rz x)
-define 'min', lz (x)->$F(arguments, (y)-> Math.min rz(x), rz(y))
-define 'max', lz (x)->$F(arguments, (y)-> Math.max rz(x), rz(y))
+define 'min', lz wrapFunc ['x', 'y'], (x, y)-> Math.min rz(x), rz(y)
+define 'max', lz wrapFunc ['x', 'y'], (x, y)-> Math.max rz(x), rz(y)
 define 'round', lz (x)-> Math.round(rz x)
 define 'abs', lz (x)-> Math.abs(rz x)
 define 'sqrt', lz (x)-> Math.sqrt(rz x)
@@ -137,9 +138,9 @@ define 'tan', lz (x)-> Math.tan(rz x)
 
 define 'rand', -> makeSyncMonad (env, cont)->
   cont (Math.random())
-define 'randInt', lz (low)->$F(arguments, (high)->makeSyncMonad (env, cont)->
-  cont (Math.floor(rz(low) + Math.random() * rz(high))))
-define '^', lz (x)->$F(arguments, (y)->Math.pow(rz(x), rz(y)))
+define 'randInt', lz wrapFunc ['low', 'high'], (low, high)->makeSyncMonad (env, cont)->
+  cont (Math.floor(rz(low) + Math.random() * rz(high)))
+define '^', lz wrapFunc ['x', 'y'], (x, y)->Math.pow(rz(x), rz(y))
 
 ############
 # STRINGS
@@ -152,22 +153,22 @@ define '_show', lz (data)->
 define 'strString', lz (data)-> String rz data
 define '_strAsc', lz (str)-> rz(str).charCodeAt(0)
 define '_strChr', lz (i)-> String.fromCharCode(rz i)
-define '_strAt', lz (str)->$F(arguments, (index)-> rz(str)[strCoord(rz(str), rz(index))])
-define '_strStartsWith', lz (str)->$F(arguments, (prefix)-> booleanFor rz(str).substring(0, rz(prefix).length) == rz(prefix))
+define '_strAt', lz wrapFunc ['str', 'index'], (str, index)-> rz(str)[strCoord(rz(str), rz(index))]
+define '_strStartsWith', lz wrapFunc ['str', 'prefix'], (str, prefix)-> booleanFor rz(str).substring(0, rz(prefix).length) == rz(prefix)
 define '_strLen', lz (str)-> rz(str).length
 define '_strToLowerCase', lz (str)-> rz(str).toLowerCase()
 define '_strToUpperCase', lz (str)-> rz(str).toUpperCase()
-define '_strReplace', lz (str)->$F(arguments, (pat)->$F(arguments, (repl)-> rz(str).replace rz(pat), rz(repl)))
+define '_strReplace', lz wrapFunc ['str', 'pat', 'repl'], (str, pat, repl)-> rz(str).replace rz(pat), rz(repl)
 strCoord = (str, coord)-> if coord < 0 then str.length + coord else coord
 define '_strSubstring', lz (str)->(start)->(end)->
   a = strCoord(rz(str), rz(start))
   b = strCoord(rz(str), rz(end))
   if b < a && rz(end) == 0 then b = rz(str).length
   rz(str).substring a, b
-define '_strSplit', lz (str)->$F(arguments, (pat)-> consFrom rz(str).split if rz(pat) instanceof RegExp then rz(pat) else new RegExp rz(pat))
+define '_strSplit', lz wrapFunc ['str', 'pat'], (str, pat)-> consFrom rz(str).split if rz(pat) instanceof RegExp then rz(pat) else new RegExp rz(pat)
 define '_strCat', lz (list)-> _.map(rz(list).toArray(), (el)-> if typeof el == 'string' then el else rz(L_show)(lz el)).join('')
-define '_strAdd', lz (s1)->$F(arguments, (s2)-> rz(s1) + rz(s2))
-define '_strMatch', lz (str)->$F(arguments, (pat)->
+define '_strAdd', lz wrapFunc ['s1', 's2'], (s1, s2)-> rz(s1) + rz(s2)
+define '_strMatch', lz wrapFunc ['str', 'pat'], (str, pat)->
   m = rz(str).match (if rz(pat) instanceof RegExp then rz pat else new RegExp rz pat)
   if m
     groups = []
@@ -177,25 +178,25 @@ define '_strMatch', lz (str)->$F(arguments, (pat)->
     if typeof m.index != 'undefined' then consFrom [m[0], consFrom(groups), m.index, m.input]
     else consFrom [m[0], consFrom(groups)]
   else if L_nil then rz L_nil
-  else Nil)
+  else Nil
 define '_strToList', lz (str)-> strToList rz str
 strToList = (str)-> if str == '' then Nil else cons str[0], strToList str.substring 1
 define '_strFromList', lz (list)-> strFromList rz list
 strFromList = (list)-> if list instanceof Leisure_nil then '' else head(list) + strFromList(tail list)
 define '_regexp', lz (str)-> new RegExp rz str
-define '_regexpFlags', lz (str)->$F(arguments, (flags)-> new RegExp rz(str), rz(flags))
-define '_jsonParse', lz (str)->$F(arguments, (failCont)->$F(arguments, (successCont)->
+define '_regexpFlags', lz wrapFunc ['str', 'flags'], (str, flags)-> new RegExp rz(str), rz(flags)
+define '_jsonParse', lz wrapFunc ['str', 'failCont', 'successCont'], (str, failCont, successCont)->
   try
     p = JSON.parse rz str
     rz(successCont) lz p
   catch err
-    rz(failCont) lz err))
-define 'jsonStringify', lz (obj)->$F(arguments, (failCont)->$F(arguments, (successCont)->
+    rz(failCont) lz err
+define 'jsonStringify', lz wrapFunc ['obj', 'failCont', 'successCont'], (obj, failCont, successCont)->
   try
     s = JSON.stringify rz obj
     rz(successCont) lz s
   catch err
-    rz(failCont) lz err))
+    rz(failCont) lz err
 
 ############
 # properties
@@ -203,11 +204,11 @@ define 'jsonStringify', lz (obj)->$F(arguments, (failCont)->$F(arguments, (succe
 
 define 'getProperties', lz (func)-> if rz(func)?.properties then rz(func).properties else rz L_nil
 
-define 'setProperty', lz (func)-> $F(arguments, lz (name)-> $F(arguments, lz (value)->
+define 'setProperty', lz wrapFunc ['func', 'name', 'value'], (func, name, value)->
   makeSyncMonad (env, cont)->
     f = rz func
     f.properties = rz(L_aconsf)(name)(value)(lz f.properties ? rz(L_nil))
-    cont f.properties))
+    cont f.properties
 
 ############
 # Diagnostics
@@ -604,13 +605,13 @@ hamt = makeHamt amt.Trie()
 
 define 'hamt', lz  hamt
 
-define 'hamtWith', lz (key)->$F(arguments, (value)->$F(arguments, (hamt)-> makeHamt amt.assoc rz(hamt).hamt, rz(key), rz(value)))
+define 'hamtWith', lz wrapFunc ['key', 'value', 'hamt'], (key, value, hamt)-> makeHamt amt.assoc rz(hamt).hamt, rz(key), rz(value)
 
-define 'hamtFetch', lz (key)->$F(arguments, (hamt)-> amt.get rz(hamt).hamt, rz(key))
+define 'hamtFetch', lz wrapFunc ['key', 'hamt'], (key, hamt)-> amt.get rz(hamt).hamt, rz(key)
 
-define 'hamtGet', lz (key)->$F(arguments, (hamt)->
+define 'hamtGet', lz wrapFunc ['key', 'hamt'], (key, hamt)->
   v = amt.get rz(hamt).hamt, rz(key)
-  if v != undefined then some v else none)
+  if v != undefined then some v else none
 
 define 'hamtWithout', lz (key)->(hamt)-> makeHamt amt.dissoc rz(hamt).hamt, rz(key)
 

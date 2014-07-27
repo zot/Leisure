@@ -291,7 +291,7 @@ define = (name, func, arity, src, method, namespace, isNew) ->
     leisureName: name
     alts: {}
     altList: []
-  if isNew then functionInfo[name].newArity = true
+  if isNew || func.isNew then functionInfo[name].newArity = true
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
   namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)
@@ -332,6 +332,61 @@ L_anno = setDataType ((_name)->(_data)->(_body)-> setType ((_f)-> rz(_f)(_name)(
 getType = (f)->
   t = typeof f
   (t == 'function' and f?.type) or "*#{(t == 'object' && f.constructor?.name) || t}"
+
+wrapFunc = (args, func)->
+  f = (eval genCodeWrapper args, (code)-> code) func
+  f.isNew = true
+  f
+
+genCodeWrapper = (args, mainFilter, useDef, fullDef)->
+  argList = _.map(args, ((x)-> 'L_' + x)).join ', '
+  mainFunc = """
+    function(#{argList}, more) {
+        if (L_#{_.last args} && (typeof more == "undefined" || more == null)) {
+          return full(#{argList});
+        } else if (typeof L_#{args[1]} == "undefined" || L_#{args[1]} == null) {
+          return partial(L_#{args[0]});
+        } else {
+          return Leisure.curryCall(arguments, partial);
+        }
+      }"""
+  result = """
+    (function (#{if useDef then '' else 'full'}) {
+      var main;
+      #{if useDef then "var full = #{fullDef}" else ''}
+      var partial = function(L_#{args[0]}) {
+        #{genPartialCalls args, argList, 1}
+      };
+      main = #{mainFilter mainFunc};
+      return main;
+    })#{if useDef then '()' else ''}
+    """
+
+genPartialCalls = (args, argList, n)->
+  if n == args.length then "return full(#{argList});"
+  else
+    pad = strRepeat '  ', 4 + n
+    #"""return $F(arguments, function(L_#{args[n]}){
+    ##{pad + '  '}#{genPartialCalls args, argList, n + 1}
+    ##{pad}});"""
+    """
+var _#{n} = function(L_#{args[n]}) {
+#{pad + '  '}#{genPartialCalls args, argList, n + 1}
+#{pad}};
+#{pad}_#{n}.leisureInfo = {arg: L_#{args[n - 1]}, #{if n == 1 then "name: main.leisureName" else "parent: _#{n - 1}.leisureInfo"}};
+#{pad}return _#{n};"""
+
+strRepeat = (string, n)->
+  result = string
+  for i in [1...n]
+    result += string
+  result
+
+curryCall = (args, func)->
+  f = func args[0]
+  for i in [1...args.length]
+    f = f args[i]
+  f
 
 define 'getType', (lz (value)-> getType rz value), 1
 
@@ -520,3 +575,6 @@ root.functionInfo = functionInfo
 root.getPos = getPos
 root.dummyPosition = dummyPosition
 root.isNil = isNil
+root.genCodeWrapper = genCodeWrapper
+root.wrapFunc = wrapFunc
+root.curryCall = curryCall
