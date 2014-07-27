@@ -1,4 +1,3 @@
-require('source-map-support').install()
 ###
 Copyright (C) 2013, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
 
@@ -83,7 +82,7 @@ consFrom = newConsFrom
 varNameSub = (n)-> "L_#{nameSub n}"
 
 useArity = true
-useArity = false
+#useArity = false
 
 collectArgs = (args, result)->
   for i in args
@@ -381,7 +380,7 @@ lacons = (key, value, list)->
   alist.properties = getAssocListProps()
   alist
 
-global.setLambdaProperties = (def, props)->
+(window ? global).setLambdaProperties = (def, props)->
   p = rz L_nil
   for k, v of props
     p = lacons k, lconsFrom(v), p
@@ -447,16 +446,11 @@ define 'runAst', (lz (code)->$F(arguments, (ast)->
     console.log msg + ast() + "\n" + err.stack
     rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast))), null, null, null, 'parser'
 
-curry = (func, args, pos)->
-  if pos == func.length then func args.toArray(func.length - 1, [])...
-  else (arg)-> curry func, simpyCons(arg, args), pos + 1
-
 root.gen = gen
 root.genMap = genMap
 root.genSource = genSource
 root.genNode = genNode
 root.sourceNode = sn
-root.curry = curry
 root.withFile = withFile
 root.curryCall = curryCall
 #root.useNameSpace = useNameSpace

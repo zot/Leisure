@@ -552,6 +552,7 @@ define 'advise', lz (name)->(alt)->(arity)->(def)->
       throw new Error "No default definition for #{rz name}"
     nm = "L_#{nameSub rz name}"
     global[nm] = global.leisureFuncNames[nm] = newDef
+    functionInfo[name].newArity = false
     cont def
 
 curry = (arity, func)-> -> lz (arg)-> lz (subcurry arity, func, null) arg

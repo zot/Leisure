@@ -22,7 +22,7 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ###
 
-global.Leisure = root = (global.Leisure ? module.exports)
+(window ? global).Leisure = root = (global.Leisure ? module.exports)
 
 root.currentNameSpace = 'core'
 root.nameSpacePath = ['core']
@@ -32,9 +32,9 @@ root.shouldNsLog = false
 
 root.nsLog = (args...)-> if root.shouldNsLog then console.log args...
 
-global.verbose = {}
+(window ? global).verbose = {}
 
-verboseMsg = (label, msg...)-> if global.verbose[label] then console.log msg...
+verboseMsg = (label, msg...)-> if (window ? global).verbose[label] then console.log msg...
 
 if !btoa? then (window ? global).btoa = require 'btoa'
 
@@ -43,7 +43,7 @@ defaultEnv =
   values: {}
   errorHandlers: []
 
-rz = global.resolve = (value)->
+rz = (window ? global).resolve = (value)->
   if typeof value == 'function'
     if typeof value.memo != 'undefined' then value.memo
     else
@@ -59,7 +59,7 @@ rz = global.resolve = (value)->
 #    if count++ > 0 then console.log "EXTRA EXECUTION OF #{l}, #{new Error('stack').stack}"
 #    l
 #else l
-global.lazy = (l)-> if typeof l == 'function' then l.memo = l else l
+(window ? global).lazy = (l)-> if typeof l == 'function' then l.memo = l else l
 
 readFile = (fileName, cont)-> defaultEnv.readFile fileName, cont
 
@@ -74,7 +74,7 @@ root.trackCreation = false
 #root.trackCreation = true
 root.trackVars = true
 
-global.$F = (args, func)->
+(window ? global).$F = (args, func)->
   if root.trackCreation then func.creationStack = new Error()
   if root.trackVars
     info = func.leisureInfo = arg: args[0]
@@ -83,14 +83,14 @@ global.$F = (args, func)->
     else if parent.leisureName? then info.name = parent.leisureName
   func
 
-global.$G = (info, func)->
+(window ? global).$G = (info, func)->
   func.leisureInfoNew = info
   func
 
 funcInfo = (func)->
   if func.leisureInfoNew then primConsFrom func.leisureInfoNew, 0
   else if func.leisureInfo
-    global.FUNC = func
+    (window ? global).FUNC = func
     info = []
     callInfo = func.leisureInfo
     while callInfo
@@ -125,8 +125,8 @@ root.writeFile = writeFile
 root.statFile = statFile
 root.SimpyCons = SimpyCons
 root.simpyCons = simpyCons
-root.resolve = global.resolve
-root.lazy = global.lazy
+root.resolve = resolve
+root.lazy = lazy
 root.verboseMsg = verboseMsg
 root.maxInt = 9007199254740992
 root.minInt = -root.maxInt

@@ -1139,8 +1139,6 @@ setValue 'parser_funcProps' nil
 defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
 
 resetStdTokenPacks
-#newGen
-
 setNameSpace 'core'
 
 #################
