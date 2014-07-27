@@ -112,10 +112,11 @@ evalInput = (text, cont)->
           if getType(ast) == 'parseErr'
             cont "PARSE ERORR: #{getParseErr ast}"
           else
-            source = genSource text, ast
             if diag
               if L_simplify? then console.log "\nSIMPLIFIED: #{runMonad rz(L_simplify) lz text}"
               console.log "\nAST: #{ast}"
+            source = genSource text, ast
+            if diag
               #console.log "\nCODE: (#{gen ast})"
               console.log "\nCODE: (#{source})"
             #result = eval genSource text, ast
@@ -345,8 +346,8 @@ intersperse = (array, element)->
   if array.length < 2 then array
   else
     result = [array[0]]
-    for i in array
-      result.push element, i
+    for i in [1...array.length]
+      result.push element, array[i]
     result
 
 primCompile = (file, cont)->

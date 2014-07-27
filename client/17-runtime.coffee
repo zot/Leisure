@@ -321,8 +321,15 @@ global.L_runMonads = (monadArray)->
   monadArray
 
 define 'define', lz (name)->(arity)->(src)->(def)->
+  #console.log "DEFINE: #{name}"
   makeSyncMonad (env, cont)->
     define rz(name), def, rz(arity), rz(src)
+    cont (if L_true? then rz L_true else _true)
+
+define 'newDefine', lz (name)->(arity)->(src)->(def)->
+  #console.log "NEW DEFINE: #{name}"
+  makeSyncMonad (env, cont)->
+    define rz(name), def, rz(arity), rz(src), null, null, true
     cont (if L_true? then rz L_true else _true)
 
 define 'bind', lz (m)->(binding)->

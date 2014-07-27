@@ -668,7 +668,8 @@ createDef def name arity src props = \\
   .
   jsonStringify (tokenString name) (\err . parseErr (strCat (cons "Bad function name " (cons (loc name) nil))) err) \nameStr .
     jsonStringify src (\err . parseErr (strCat (cons "Bad source " (cons (loc name) nil))) err) \srcStr .
-      cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))
+      #cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'define') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons (spliceFuncProps arity props def) nil))))))))
+      cons '\\@' (cons 'leisureName' (cons (tokenString name) (cons '.' (cons (tok 'newDefine') (cons (tok nameStr) (cons (tok (strString arity)) (cons (tok srcStr) (cons '\\@' (cons 'arity' (cons arity (cons '.' (cons (spliceFuncProps arity props def) nil))))))))))))
 
 spliceFuncProps arity props ast = or (isNil props) (== arity 0)
   ast
@@ -946,7 +947,6 @@ findLines offset line = \\
 newParseLine offset names line = bind (scanLineM line)
   \scanned . ifNotErr (createAst (cons "NEWPARSE.lsr" (findLines offset line)) scanned names) \ast . ast
 
-#countedParseLine names countedLine = d 'STARTS: ' (head countedLine) bind (countedScanLineM (head countedLine) (tail countedLine))
 #countedParseLine names countedLine = bind (scanLineM (tail countedLine))
 countedParseLine names countedLine = bind (countedScanLineM (head countedLine) (tail countedLine))
   \scanned . ifNotErr (createAst (head countedLine) scanned names) \ast . ast
@@ -959,20 +959,38 @@ runLine offset names line = bind (newParseLine offset names line)
         left (parseErrMsg result)
         right result
 
-countedRunLine file names countedLine = \\
-  parsed = countedParseLine names countedLine
-  .
-  bind parsed
+#countedRunLine file names countedLine = \\
+#  parsed = countedParseLine names countedLine
+#  .
+#  bind parsed
+#  \ast . \\
+#    wrapped = astFileWrap file ast
+#    .
+#    \\
+#      value = runAst (tail countedLine) wrapped
+#      .
+#      not (== (getType value) 'monad')
+#        resultOfRun wrapped value
+#        bind (runAst (tail countedLine) wrapped)
+#          \result . resultOfRun wrapped result
+
+#countedRunLine file names countedLine = \\
+#  bind (countedParseLine names countedLine)
+#    \ast . \\
+#      wrapped = astFileWrap file ast
+#      .
+#      bind (runAst (tail countedLine) wrapped)
+#        \result . resultOfRun wrapped result
+
+countedRunLine file names countedLine = bind (countedParseLine names countedLine)
   \ast . \\
     wrapped = astFileWrap file ast
+    value = runAst (tail countedLine) wrapped
     .
-    \\
-      value = runAst (tail countedLine) wrapped
-      .
-      not (== (getType value) 'monad')
-        resultOfRun wrapped value
-        bind (runAst (tail countedLine) wrapped)
-          \result . resultOfRun wrapped result
+    not (== (getType value) 'monad')
+      resultOfRun wrapped value
+      bind (runAst (tail countedLine) wrapped)
+        \result . resultOfRun wrapped result
 
 resultOfRun wrapped result = cons
   wrapped
@@ -1045,7 +1063,7 @@ scanFile file = bind (readFile file)
         lines = map tail counted
         names = namesForLines lines
         .
-        d 'Running file: ' name countedScanLines name names counted
+        countedScanLines name names counted
 
 countedScanLines file names countedLines = countedLines
   \h t D . bind (countedScanLineM (head h) (tail h))
@@ -1121,7 +1139,7 @@ setValue 'parser_funcProps' nil
 defTokenPack 'std' (cons (cons '.' (cons '\\' (cons '\\\\' (cons '\\@' nil)))) (cons (acons '(' ')' nil) (cons nil nil)))
 
 resetStdTokenPacks
-newGen
+#newGen
 
 setNameSpace 'core'
 

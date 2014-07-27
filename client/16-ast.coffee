@@ -278,7 +278,7 @@ global.LeisureNameSpaces =
   parser: {}
 
 # use AST, instead of arity?
-define = (name, func, arity, src, method, namespace) ->
+define = (name, func, arity, src, method, namespace, isNew) ->
   #can't use func(), because it might do something or might fail
   #if typeof func() == 'function'
   #  func().src = src
@@ -291,6 +291,7 @@ define = (name, func, arity, src, method, namespace) ->
     leisureName: name
     alts: {}
     altList: []
+  if isNew then functionInfo[name].newArity = true
   nm = 'L_' + nameSub(name)
   if !method and global.noredefs and global[nm]? then throwError("[DEF] Attempt to redefine definition: #{name}")
   namedFunc = functionInfo[name].mainDef = global[nm] = global.leisureFuncs[nm] = nameFunc(func, name)

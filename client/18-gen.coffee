@@ -1,3 +1,4 @@
+require('source-map-support').install()
 ###
 Copyright (C) 2013, Bill Burdick, Tiny Concepts: https://github.com/zot/Leisure
 
@@ -56,6 +57,7 @@ lz = lazy
   cons,
   Nil,
   define,
+  functionInfo,
   getPos,
   isNil,
 } = require '16-ast'
@@ -80,13 +82,8 @@ consFrom = newConsFrom
 
 varNameSub = (n)-> "L_#{nameSub n}"
 
-newGen = false
-#newGen = true
-#root.lockGen = false
-root.lockGen = true
-masterLockGen = true
-#masterLockGen = false
-useArifiedLambda = false
+useArity = true
+useArity = false
 
 collectArgs = (args, result)->
   for i in args
@@ -107,7 +104,8 @@ checkChild = (child)->
   if Array.isArray child
     for c in child
       checkChild c
-  else check (typeof child == 'string') || (child instanceof SourceNode), 'child'
+  #else check (typeof child == 'string') || (child instanceof SourceNode), 'child'
+  else check (typeof child == 'string') || (child instanceof SourceNode), c
 
 currentFile = 'NEVERGIVENFILE.lsr'
 currentFuncName = undefined
@@ -204,13 +202,14 @@ genUniq = (ast, names, uniq, count)->
     when Leisure_ref then sn ast, "resolve(", (genRefName ast, uniq, names), ")"
     when Leisure_lambda then genLambda ast, names, uniq, count ? 0
     when Leisure_apply
-      if !newGen then sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
-      else genApply ast, names, uniq
+      if useArity then genArifiedApply ast, names, uniq, arity
+      else sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
     when Leisure_let then sn ast, "(function(){\n", (genLets ast, names, uniq), "})()"
     when Leisure_anno
       name = getAnnoName ast
       data = getAnnoData ast
-      if name == 'arity' && useArifiedLambda
+      if name == 'arity' && useArity && data > 1
+        #if !(typeof data in ['number', 'string']) then throw new Error "Annotation value is not numeric (#{typeof data}) in AST #{ast}: #{data}"
         genArifiedLambda (getAnnoBody ast), names, uniq, data
       else
         genned = genUniq (getAnnoBody ast), names, uniq
@@ -221,14 +220,39 @@ genUniq = (ast, names, uniq, count)->
             [funcName, arity, src] = data.toArray()
             sn ast, "define('", funcName, "', (function(){return ", genned, "}), ", arity, ", ", JSON.stringify(src), ")"
           when 'leisureName'
-            console.log "DEFINE #{getAnnoData ast} = #{getApplyArg getAnnoBody ast}"
+            #console.log "DEFINE #{getAnnoData ast} = #{getApplyArg getAnnoBody ast}"
             genned
           else genned
     else "DUR? #{ast}, #{ast.constructor} #{Leisure_lambda}"
 
+# this is a no-op, now
 define 'newGen', (lz makeSyncMonad (env, cont)->
-  newGen = !masterLockGen && !root.lockGen
+  console.log "CALL TO OBSOLETE NEWGEN"
   cont _true), null, null, null, 'parser'
+
+genArifiedApply = (ast, names, uniq)->
+  args = []
+  func = ast
+  while dumpAnno(func) instanceof Leisure_apply
+    args.push getApplyArg dumpAnno func
+    func = getApplyFunc dumpAnno func
+  args.reverse()
+  info = functionInfo[getRefName func]
+  if dumpAnno(func) instanceof Leisure_ref && info?.newArity && (arity = info?.arity) && arity <= args.length
+    argCode = []
+    argCode.push ast
+    argCode.push genUniq func, names, uniq
+    argCode.push '('
+    for i in [0...arity]
+      if i > 0 then argCode.push ', '
+      argCode.push sn args[i], genApplyArg args[i], names, uniq
+    argCode.push ')'
+    for i in [arity...args.length] by 1
+      argCode.push '(', (sn args[i], genApplyArg args[i], names, uniq), ')'
+    sn argCode...
+  else
+    ast = dumpAnno ast
+    sn ast, (genUniq (getApplyFunc ast), names, uniq), "(", (genApplyArg (getApplyArg ast), names, uniq), ")"
 
 genLambda = (ast, names, uniq, count)->
   name = getLambdaVar ast
@@ -237,44 +261,62 @@ genLambda = (ast, names, uniq, count)->
   addLambdaProperties ast, sn ast, (if count then "$F(arguments, " else ""), "function(", (uniqName name, u), "){return ", (genUniq (getLambdaBody ast), n, u, 1), "}", (if count then ")" else "")
 
 genArifiedLambda = (ast, names, uniq, arity)->
-  if arity == 1 then genLambda ast, names, uniq, 0
+  if arity < 2 then genLambda ast, names, uniq, 0
   else
     args = getNArgs(arity, ast).toArray()
-    console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
+    #console.log "FUNCTION ARITY #{arity} [#{args.join ', '}] #{ast}"
     argList = _.map(args, ((x)-> 'L_' + x)).join ', '
-    console.log """
-      (function () {
-        var full = function (#{argList}) {
-          return #{genUniq getNthLambdaBody(ast, arity), names, uniq};
-        };
-        var partial = function(#{args[0]}) {
-          #{genPartialCalls args, 1}
-        };
-        var main = function(#{argList}, more) {
-          if (L_#{_.last args} && !more) {
+    mainFunc = """
+      function(#{argList}, more) {
+          if (L_#{_.last args} && (typeof more == "undefined" || more == null)) {
             return full(#{argList});
-          } else if (!L_#{args[1]}) {
-            return partial(#{args[0]});
+          } else if (typeof L_#{args[1]} == "undefined" || L_#{args[1]} == null) {
+            return partial(L_#{args[0]});
           } else {
             return Leisure.curryCall(arguments, partial);
           }
-        }
+        }"""
+    result = """
+      (function () {
+        var main;
+        var full = function (#{argList}) {
+          return #{genUniq getNthLambdaBody(ast, arity), names, uniq};
+        };
+        var partial = function(L_#{args[0]}) {
+          #{genPartialCalls args, argList, 1}
+        };
+        main = #{addLambdaProperties ast, (sn ast, mainFunc)};
+        return main;
       })()
       """
-  def
+    annoAst = ast
+    while annoAst instanceof Leisure_anno
+      name = getAnnoName annoAst
+      data = getAnnoData annoAst
+      switch name
+        when 'type' then result = "setType(#{result}, '#{data}')"
+        when 'dataType' then result = "setDataType(#{result}, '#{data}')"
+      annoAst = getAnnoBody annoAst
+    sn ast, result
 
 getNthLambdaBody = (ast, n)->
   if n == 0 then ast
-  else if ast instanceof Leisure_lambda then getNthLambdaBody getLambdaBody(ast), n - 1
+  else if (d = dumpAnno ast) instanceof Leisure_lambda then getNthLambdaBody getLambdaBody(d), n - 1
   else throw new Error "Expected lambda but got #{ast}"
 
-genPartialCalls = (args, n)->
-  if n == args.length then "return full(#{args.join ', '});"
+genPartialCalls = (args, argList, n)->
+  if n == args.length then "return full(#{argList});"
   else
     pad = strRepeat '  ', 4 + n
-    """return $F(arguments, function(#{args[n]}){
-#{pad + 1}#{genPartialCalls args, n + 1}
-#{pad}});"""
+    #"""return $F(arguments, function(L_#{args[n]}){
+    ##{pad + '  '}#{genPartialCalls args, argList, n + 1}
+    ##{pad}});"""
+    """
+var _#{n} = function(L_#{args[n]}) {
+#{pad + '  '}#{genPartialCalls args, argList, n + 1}
+#{pad}};
+#{pad}_#{n}.leisureInfo = {arg: L_#{args[n - 1]}, #{if n == 1 then "name: main.leisureName" else "parent: _#{n - 1}.leisureInfo"}};
+#{pad}return _#{n};"""
 
 strRepeat = (string, n)->
   result = string
@@ -283,10 +325,14 @@ strRepeat = (string, n)->
   result
 
 curryCall = (args, func)->
-  Nil
+  f = func args[0]
+  for i in [1...args.length]
+    f = f args[i]
+  f
 
 getNArgs = (n, ast)->
-  if !n then Nil else cons (getLambdaVar ast), getNArgs n - 1, getLambdaBody ast
+  d = dumpAnno ast
+  if !n then Nil else cons (getLambdaVar d), getNArgs n - 1, getLambdaBody d
 
 specialAnnotations = ['type', 'dataType', 'define']
 
@@ -303,10 +349,13 @@ getLambdaProperties = (body, props)->
     getLambdaProperties getAnnoBody(body), props
   props
 
-addLambdaProperties = (ast, def)->
+addLambdaProperties = (ast, def, extras)->
   props = getLambdaProperties getLambdaBody ast
-  if props
-    sn ast, "setLambdaProperties(", def, ", ", (JSON.stringify props), ")"
+  if props || extras
+    p = {}
+    if props then _.merge p, props
+    if extras then _.merge p, extras
+    sn ast, "setLambdaProperties(", def, ", ", (JSON.stringify p), ")"
   else def
 
 lcons = (a, b)-> rz(L_cons)(lz a)(lz b)
@@ -343,20 +392,13 @@ memoize = (ast, func)-> sn ast, "function(){return ", func, "}"
 
 dumpAnno = (ast)-> if ast instanceof Leisure_anno then dumpAnno getAnnoBody ast else ast
 
-genApply = (ast, names, uniq)->
-  args = []
-  while dumpAnno(ast) instanceof Leisure_apply
-    args.push sn ast, "(", (genApplyArg (getApplyArg dumpAnno ast), names, uniq), ")"
-    ast = getApplyFunc dumpAnno ast
-  args.reverse()
-  sn ast, (genUniq ast, names, uniq), ".leisureCall(", (args.join ', '), ")"
-
 genApplyArg = (arg, names, uniq)->
-  if dumpAnno(arg) instanceof Leisure_apply then memoize arg, genUniq arg, names, uniq
-  else if arg instanceof Leisure_ref then genRefName arg, uniq, names
-  else if arg instanceof Leisure_lit then sn arg, JSON.stringify getLitVal arg
-  else if arg instanceof Leisure_let then sn arg, "function(){", (genLets arg, names, uniq), "}"
-  else if dumpAnno(arg) instanceof Leisure_lambda then sn arg, "lazy(", (genUniq arg, names, uniq), ")"
+  d = dumpAnno arg
+  if d instanceof Leisure_apply then memoize d, genUniq arg, names, uniq
+  else if d instanceof Leisure_ref then genRefName d, uniq, names
+  else if d instanceof Leisure_lit then sn arg, JSON.stringify getLitVal d
+  else if d instanceof Leisure_let then sn arg, "function(){return", (genUniq arg, names, uniq), ";}"
+  else if d instanceof Leisure_lambda then sn arg, "lazy(", (genUniq arg, names, uniq), ")"
   else sn arg, "function(){return ", (genUniq arg, names, uniq), "}"
 
 genLetAssign = (arg, names, uniq)->
@@ -371,9 +413,9 @@ genLets = (ast, names, uniq)->
     newU = addUniq (getLetName l), letNames, u
     letName = uniqName (getLetName l), newU
     [newU,
-      (cons (sn ast, '\n' + letName + ' = ', genLetAssign(getLetValue(l), letNames, u)), code),
+      (cons (sn ast, letName + ' = ', genLetAssign(getLetValue(l), letNames, u)), code),
       (cons letName, assigns)]), [uniq, Nil, Nil]
-  sn ast, "\nvar ", decs.join(', '), ";\n", assigns.reverse().intersperse(';\n').toArray(), ";\nreturn ", (genUniq (getLastLetBody ast), letNames, letUniq)
+  sn ast, "  var ", assigns.reverse().join(', '), ";\n  ", decs.reverse().intersperse(';\n  ').toArray(), ";\n\n  return ", (genUniq (getLastLetBody ast), letNames, letUniq)
 
 addUniq = (name, names, uniq)->
   if (names.find (el)-> el == name) != Nil
@@ -395,38 +437,19 @@ letList = (ast, buf)->
 getLastLetBody = (ast)-> if ast instanceof Leisure_let then getLastLetBody getLetBody ast else ast
 
 define 'runAst', (lz (code)->$F(arguments, (ast)->
+  jsCode = null
   try
-    eval "(#{gen rz ast})"
+    jsCode = gen rz ast
+    eval "(#{jsCode})"
   catch err
-    msg = "\n\nParse error: " + err.toString() + "\nAST: "
+    codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
+    msg = "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: "
     console.log msg + ast() + "\n" + err.stack
-    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\nAST: ")(ast))), null, null, null, 'parser'
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast))), null, null, null, 'parser'
 
 curry = (func, args, pos)->
   if pos == func.length then func args.toArray(func.length - 1, [])...
   else (arg)-> curry func, simpyCons(arg, args), pos + 1
-
-# maybe hand-code this in JS to eliminate unnecessary creation of args array for the first case
-Function.prototype.leisureCall = (args...)->
-  #if args.length == 0 then  throw new Error "Attempt to chain with 0 arguments"
-  if args.length == @length then @apply null, args
-  else
-    pos = 0
-    f = @
-    while pos < args.length
-      #if f.length == 0 then throw new Error "Attempt to pass arguments to zero-argument function"
-      next = pos + f.length
-      if next <= args.length then f = f.apply null, args[pos...next]
-      else
-        console.log "CURRY"
-        a = args[pos...]
-        sub = ->
-          #if arguments.length == 0 then  throw new Error "Attempt to chain with 0 arguments"
-          a.push.apply a, arguments
-          if a.length >= f.length then f.leisureCall.apply f, a else sub
-        return sub
-      pos = next
-    f
 
 root.gen = gen
 root.genMap = genMap
