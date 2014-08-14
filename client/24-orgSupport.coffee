@@ -927,6 +927,9 @@ checkMerge = (overrides, oldBlock, newBlock, auxBlock, func)->
 #
 # try to find the best fit for the new blocks
 #
+# Using Adiff, a diff implementation for arrays
+# results are like splice calls [offset, count, item, item, item]
+#
 remapBlocks = (overrides, oldBlocks, newBlocks)->
   oldTypes = (block.type for block in oldBlocks)
   newTypes = (block.type for block in newBlocks)
@@ -934,9 +937,11 @@ remapBlocks = (overrides, oldBlocks, newBlocks)->
   oldBlocks.reverse()
   newBlocks.reverse()
   offset = 0
-  for diff in (Adiff.diff oldTypes, newTypes)
+  diffs = Adiff.diff oldTypes, newTypes
+  #if diffs.length then console.log "Old Structure: [#{oldTypes.join ', '}], new: [#{newTypes.join ', '}]"
+  for diff in diffs
     if diff[0] > offset
-      #console.log "Update #{diff[0] - offset} items: #{(bl._id for bl in oldBlocks).join ', '}"
+      #console.log "Update-1 #{diff[0] - offset} items: #{(bl._id for bl in oldBlocks).join ', '}"
       prevId = updateBlocks diff[0] - offset, overrides, oldBlocks, newBlocks, prevId
     offset = diff[0] + diff[1]
     insertCount = diff.length - 2
@@ -945,27 +950,27 @@ remapBlocks = (overrides, oldBlocks, newBlocks)->
     insertCount -= updateCount
     deleteCount -= updateCount
     if updateCount > 0
-      #console.log "Update #{updateCount} items: #{(bl._id for bl in oldBlocks).join ', '}"
+      #console.log "Update-2 #{updateCount} items: #{(bl._id for bl in oldBlocks).join ', '}"
       prevId = updateBlocks updateCount, overrides, oldBlocks, newBlocks, prevId
-    if deleteCount > 0 then console.log "Delete #{deleteCount} items: #{(block._id for block in Lazy(oldBlocks).reverse().take(deleteCount).toArray()).join ', '}"
+    #if deleteCount > 0 then console.log "Delete #{deleteCount} items: #{("#{block._id}: #{block.text}" for block in Lazy(oldBlocks).reverse().take(deleteCount).toArray()).join ', '}"
     for i in [0 ... deleteCount]
       removeId overrides, oldBlocks.pop()._id
-    #if insertCount > 0 then console.log "Insert #{insertCount} items: #{(bl._id for bl in Lazy(newBlocks).reverse().take(insertCount).toArray()).join ', '}"
+    #if insertCount > 0 then console.log "Insert-1 #{insertCount} items: #{("#{bl._id}: #{bl.text}" for bl in Lazy(newBlocks).reverse().take(insertCount).toArray()).join ', '}"
     for i in [0 ... insertCount]
       prevId = insertBlock overrides, newBlocks.pop(), prevId
-  if (num = oldBlocks.length - offset) > 0
-    #console.log "Update #{num} items: #{(bl._id for bl in Lazy(oldBlocks).reverse().take(num).toArray()).join ', '}"
-    prevId = updateBlocks num, overrides, oldBlocks, newBlocks, prevId
-  #if newBlocks.length then console.log "Insert #{newBlocks.length} items: #{(bl._id for bl in Lazy(newBlocks).reverse().toArray()).join ', '}"
-  while newBlocks.length > 0
-    prevId = insertBlock overrides, newBlocks.pop(), prevId
+  #
+  # should just be a list of new/old items to update now
+  # new/old lists should be the same size
+  #
+  if oldBlocks.length != newBlocks.length then console.log "WARNING -- inconsistent block count after diff processing"
+  prevId = updateBlocks newBlocks.length, overrides, oldBlocks, newBlocks, prevId
 
 updateBlocks = (num, overrides, oldBlocks, newBlocks, prevId)->
   for i in [0 ... num]
     b = oldBlocks.pop()
     n = newBlocks.pop()
     prevId = n._id = b._id
-    updateItem overrides, n, true
+    if n.text != b.text then updateItem overrides, n, true
   prevId
 
 insertBlock = (overrides, newBlock, prevId)->
