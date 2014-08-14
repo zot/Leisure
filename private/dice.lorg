@@ -1,0 +1,84 @@
+* Dice roller
+:properties:
+:note: sidbar
+:end:
+[[leisure:dicelog-1]]
+
+** Problems
+- Player names don't show until a data refresh (like editing the dicelog)
+
+* Shared Data
+:properties:
+:hidden: false
+:end:
+
+#+NAME: player-1
+#+BEGIN_SRC yaml :flowLevel 2
+type: player
+name: Bob
+#+END_SRC
+
+The dice log is a list of rolls.
+Each roll is a list of values: {sides: S angle: A value: V}.
+
+#+NAME: dicelog-1
+#+BEGIN_SRC yaml :flowLevel 2
+type: dicelog
+entries:
+  -
+    player: player-1
+    roll: [{sides: 6, value: 5, angle: 3}, {sides: 6, value: 2, angle: 1}]
+#+END_SRC
+* Views and Data
+:properties:
+:hidden: false
+:end:
+
+This is template that defines how the dice log displays.  See the dice log for more info.
+
+#+BEGIN_SRC html :defview dicelog
+<div class='results-box'>
+  <div class='results'>
+    <table>
+      {{#each entries}}
+        <tr>
+          <td>{{{view player}}}:</td>
+          <td>
+            {{#each roll}}
+              <img src="/dice/d{{sides}}-{{value}}-{{angle}}.jpg">
+            {{/each}}
+          </td>
+        </tr>
+      {{/each}}
+    </table>
+  </div>
+</div>
+#+END_SRC
+
+#+BEGIN_SRC coffee :control dicelog
+@initializeView = (view)->
+  $(view).closest("[data-org-headline='1']").attr 'game', ''
+#+END_SRC
+
+#+BEGIN_SRC html :defview player
+{{name}}
+#+END_SRC
+
+#+BEGIN_SRC css
+.results-box {
+  display: inline-box;
+  min-width: 1000px;
+}
+.results {
+  background: white;
+  display: inline-block;
+  padding: 10px;
+  border: solid black 2px;
+}
+[game] {
+  position: fixed !important;
+  top: 50px !important;
+  right: 10px !important;
+  z-index: 10000 !important;
+}
+#+END_SRC

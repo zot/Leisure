@@ -217,7 +217,7 @@ Handle changes to the doc nodes
             a.push attr.observe
         else delete universalObservers[data._id]
         if lang == 'html' && attr.defview
-          viewTypeData[data.codeAttributes.defview] = codeString data
+          viewTypeData[data.codeAttributes.defview] = codeString(data).trim()
           viewIdTypes[data._id] = attr.defview
           delay -> root.orgApi.defineView data._id
         else if lang == 'css'

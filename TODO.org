@@ -1,4 +1,7 @@
 * Short list -- announcement
+- attach block documentation/properties to JS/CS functions
+  - parse code to find function names
+  - add properties to funcs after eval
 - switch to NodePos for all positioning (use mutable)
 - some way to control access to the root documents
   - maybe just a random URL, for now

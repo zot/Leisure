@@ -1,0 +1,38 @@
+Arified function def
+#+BEGIN_SRC javascript
+(function() {
+  var L_maluba;
+  var L_maluba_full = function (L_a, L_b, L_c, L_d) {
+    return blah blah;
+  };
+  var L_maluba_partial = function (L_a) {
+    var _1 = function(L_b) {
+      var _2 =  function(L_c) {
+        var _3 = function(L_d) {
+          return L_maluba_full(L_a, L_b, L_c, L_d);
+        };
+        _3.leisureInfo = {arg: L_c, parent: _2.leisureInfo};
+        return _3;
+      };
+      _2.leisureInfo = {arg: L_b, parent: _1.leisureInfo};
+      return _2;
+    };
+    _1.leisureInfo = {arg: L_a, name: L_maluba.name};
+    return _1;
+  };
+  L_maluba = function (L_a, L_b, L_c, L_d, more) {
+    if (L_d && !more){
+      return L_maluba_full(L_a, L_b, L_c, L_d);
+    } else if (!L_b) {
+      return L_maluba_partial(L_a);
+    } else {
+      var r = L_maluba_partial(arguments[0]);
+      for (var i = 1; i < arguments.length; i++) {
+         r = r(arguments[i]);
+      }
+      return r;
+    }
+  };
+  return L_maluba;
+})()
+#+END_SRC
