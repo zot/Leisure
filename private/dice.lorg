@@ -22,12 +22,17 @@ The dice log is a list of rolls.
 Each roll is a list of values: {sides: S angle: A value: V}.
 
 #+NAME: dicelog-1
-#+BEGIN_SRC yaml :flowLevel 2
+#+BEGIN_SRC yaml :flowLevel 3
 type: dicelog
+players:
+  - player-1
 entries:
   -
     player: player-1
-    roll: [{sides: 6, value: 5, angle: 3}, {sides: 6, value: 2, angle: 1}]
+    roll: [{sides: 6, value: 5, angle: 3}, {sides: 6, value: 2, angle: 1}, {sides: 4, value: 2, angle: 1}, {sides: 4, value: 4, angle: 7}]
+  -
+    player: player-1
+    roll: [{sides: 6, value: 4, angle: 1}, {sides: 4, value: 1, angle: 3}]
 #+END_SRC
 * Views and Data
 :properties:
@@ -38,6 +43,7 @@ This is template that defines how the dice log displays.  See the dice log for m
 
 #+BEGIN_SRC html :defview dicelog
 <div class='results-box'>
+  <div>Players: {{#each players}}{{{view this}}}{{/each}}</div>
   <div class='results'>
     <table>
       {{#each entries}}
@@ -45,7 +51,7 @@ This is template that defines how the dice log displays.  See the dice log for m
           <td>{{{view player}}}:</td>
           <td>
             {{#each roll}}
-              <img src="/dice/d{{sides}}-{{value}}-{{angle}}.jpg">
+              <img src="/dice/d{{sides}}/{{value}}/{{angle}}.jpg">
             {{/each}}
           </td>
         </tr>
@@ -61,7 +67,7 @@ This is template that defines how the dice log displays.  See the dice log for m
 #+END_SRC
 
 #+BEGIN_SRC html :defview player
-{{name}}
+<b>{{name}}</b>
 #+END_SRC
 
 #+BEGIN_SRC css
