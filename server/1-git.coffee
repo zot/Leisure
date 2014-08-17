@@ -1,0 +1,97 @@
+root = global.Leisure
+
+git = Meteor.require 'nodegit'
+fs = Meteor.require 'fs'
+Fiber = Meteor.require 'fibers'
+Future = Meteor.require 'fibers/future'
+path = Meteor.require 'path'
+
+docsDir = path.resolve '../../../../../../docs'
+currentIndex = null
+
+fReadFile = Future.wrap (name, cb)-> fs.readFile name, cb
+fWriteFile = Future.wrap (name, contents, cb)-> fs.writeFile name, contents, cb
+fRepo = Future.wrap (dir, cb)-> git.Repo.open dir, cb
+
+readFile = (name)-> fReadFile(name).wait()
+writeFile = (name, contents)-> fWriteFile(name, contents).wait()
+git.Repo.fibers = open: (dir, owner, ownerEmail)->addRepoFibers fRepo(dir).wait(), owner, ownerEmail
+
+addRepoFibers = (r, owner, ownerEmail)->
+  console.log "OWNER: #{owner}, email: #{ownerEmail}"
+  r.fibers =
+    owner: owner
+    ownerEmail: ownerEmail
+    openIndex: -> addIndexFibers r, Future.wrap((cb)-> r.openIndex cb)().wait()
+    openAndReadIndex: ->
+      ind = r.fibers.openIndex()
+      ind.fibers.read()
+      ind
+    referenceOidForName: (name)-> Future.wrap((cb)-> git.Reference.oidForName r, name, cb)().wait()
+    getCommit: (oid)-> Future.wrap((cb)-> r.getCommit oid, cb)().wait()
+    getBlob: (oid)-> Future.wrap((cb)-> r.getBlob oid, cb)().wait()
+    createCommit: (ref, author, committer, msg, treeOid, parents)->
+      Future.wrap((cb)-> r.createCommit ref, author, committer, msg, treeOid, parents, cb)().wait()
+  r
+
+addIndexFibers = (r, ind)->
+  ind.fibers =
+    repo: r
+    read: -> Future.wrap((cb)-> ind.read cb)().wait()
+    addByPath: (path)-> Future.wrap((cb)-> ind.addByPath path, cb)().wait()
+    write: -> Future.wrap((cb)-> ind.write cb)().wait()
+    writeTree: -> Future.wrap((cb)-> ind.writeTree cb)().wait()
+    commit: (ref, msg, author, authorEmail, committer, committerEmail)->
+      ind.fibers.write()
+      treeOid = ind.fibers.writeTree()
+      headOid = r.fibers.referenceOidForName ref
+      parent = r.fibers.getCommit headOid
+      d = new Date()
+      time = Math.round(d.getTime() / 1000)
+      zone = d.getTimezoneOffset()
+      author = git.Signature.create (author ? r.fibers.owner), (authorEmail ? r.fibers.ownerEmail), time, zone
+      committer = git.Signature.create (committer ? r.fibers.owner), (committerEmail ? r.fibers.ownerEmail), time, zone
+      r.fibers.createCommit ref, author, committer, msg, treeOid, [parent]
+    getByPath: (path)->
+      i = ind.find path
+      if i > -1 then r.fibers.getBlob(ind.entry(i).oid())
+  ind
+
+snapshot = (name)->
+  if (doc = Leisure.docs[name]) && !tempDocs[name]
+    objs = {}
+    text = ''
+    for obj in doc.find().fetch()
+      objs[obj._id] = obj
+      if obj.info then objs.info = obj
+    cur = objs.info.head
+    while cur
+      text += objs[cur].text
+      cur = objs[cur].next
+    storeFile name, text
+    true
+
+storeFile = (name, contents)->
+  if ind = currentIndex
+    console.log "SNAPSHOT #{name}\n\n#{contents}"
+    writeFile path.resolve(docsDir, name), contents
+    ind.fibers.addByPath name
+    commitOid = ind.fibers.commit 'HEAD', 'snapshot'
+    console.log "COMMITED SNAPSHOT:", commitOid
+    true
+
+loadFile = (name)-> currentIndex?.fibers.getByPath(name).content()
+
+hasFile = (name)-> currentIndex?.find(name)?
+
+if (process.env.LEISURE_NO_GIT?.length ? 0) == 0
+  try
+    currentIndex = git.Repo.fibers.open(docsDir, 'leisure', 'leisure@textcraft.org').fibers.openAndReadIndex()
+  catch err
+    console.log err.stack
+
+root.git =
+  snapshot: snapshot
+  hasFile: hasFile
+  readFile: loadFile
+  currentIndex: currentIndex

@@ -1,5 +1,5 @@
 @import "jquery-ui/css/leisure/jquery-ui-1.9.2.custom.min.css";
-@import "http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css";
+@import "http://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.css";
 body.leisureError > #login,
 body.leisureError > #leisure_bar,
 body.leisureError > * {

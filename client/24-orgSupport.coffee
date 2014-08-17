@@ -144,10 +144,12 @@ sourceSpec = null
 
 fs = null
 
+hideSaveButton = true
+
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip' title='x'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button' title='x'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='saveButton' title='x' download='leisureFile.lorg'><i class='fa fa-save'></i><div></div></button><div id='leisure_theme' title='x'><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='nwSaveButton' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><button id='hide-show-button' onclick='Leisure.toggleShowHidden()' title='x'><i class='fa fa-eye-slash'></i><div class='hidden'></div><span></span></button><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu' title='x'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip' title='x'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button' title='x'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='checkpoint' title='x'><i class='fa fa-cloud-upload'></i> Checkpoint</button><button id='edit' title='x'><i class='fa fa-edit'></i> Edit<input id='file' class='hidden' type='file'></input></button><button id='saveButton' title='x' download='leisureFile.lorg'><i class='fa fa-save'></i><div></div><a id='saveLink' class='hidden'></a></button><div id='leisure_theme' title='x'><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='saveFile' class='hidden' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><button id='hide-show-button' onclick='Leisure.toggleShowHidden()' title='x'><i class='fa fa-eye-slash'></i><div class='hidden'></div><span></span></button><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu' title='x'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
     .prependTo(document.body)
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
@@ -160,19 +162,29 @@ initOrg = (parent, source)->
   b = $('#saveButton')
   if nwDispatcher?
     $(document.body).addClass 'nw'
-    $('#nwSaveButton')[0].parentSpec = parentSpec
+    $('#saveFile')[0].parentSpec = parentSpec
     fs = require 'fs'
-  b.mousedown ->
-    if root.repo then root.storeInGit $(parent).text(), null, null, (err)->
-      if err then alert "Conflict while attempting to save file to Git.\nPlease take recovery measures."
-    else if nwDispatcher? then $('#nwSaveButton').click()
+  b.click ->
+    if nwDispatcher? then $('#saveFile').click()
     else
       #console.log "SAVE"
       #console.log encodeURIComponent $(parent)[0].textContent
       #b.attr 'href', "data:text/plain;base64,#{encodeURIComponent btoa $(parent)[0].textContent}"
-      console.log "SAVE: data:text/plain,#{encodeURIComponent $(parent).text()}"
-      b.attr 'href', "data:text/plain,#{encodeURIComponent $(parent).text()}"
-      #b.attr 'href', "http://google.com"
+      console.log "SAVE: data:text/plain,#{encodeURIComponent getNodeText $('[maindoc]').children().first()[0]}"
+      ($('#saveLink')
+        #.attr 'download', root.currentDocument.leisure.name
+        .attr 'href', "data:text/plain,#{encodeURIComponent getNodeText $('[maindoc]').children().first()[0]}")[0].click()
+  $('#checkpoint')[0].style.display = 'none'
+  $('#checkpoint').click -> Leisure.snapshot()
+  $('#edit').click -> $('#file')[0].click()
+  $('#file').change (evt)->
+    files = evt.target.files
+    for f in files
+      reader = new FileReader()
+      reader.onload = (e)-> Meteor.call 'edit', f.name, e.target.result, (err, id)->
+        location.hash = "#load=/local/#{f.name}/#{id}"
+        location.reload()
+      reader.readAsText f
   (root.currentMode = Leisure.fancyOrg).useNode $(parent)[0], source
   Leisure.initStorage '#login', '#panel', root.currentMode
   installSelectionMenu()
@@ -248,12 +260,14 @@ toggleShowHidden = ->
   applyShowHidden()
 
 applyLeisureTooltips = ->
-  $('#leisure_grip').tooltip().tooltip('option', 'content', 'Toggle the Leisure bar on/off')
-  $('#leisure_button').tooltip().tooltip('option', 'content', 'Cycle through different display modes')
-  $('#saveButton').tooltip().tooltip('option', 'content', 'Download and save a local copy')
-  $('#leisure_theme').tooltip().tooltip('option', 'content', 'Select a visual theme')
-  $('#team_cthulhu').tooltip().tooltip('option', 'content', 'Homepage for the Leisure development team')
-  $('#hide-show-button').tooltip().tooltip('option', 'content', 'Click to show hidden slides')
+  $('#leisure_grip').tooltip(content: 'Toggle the Leisure bar on/off')
+  $('#leisure_button').tooltip(content: 'Cycle through different display modes')
+  $('#checkpoint').tooltip(content: 'Checkpoint on server')
+  $('#edit').tooltip(content: 'Edit a local file')
+  $('#saveButton').tooltip(content: 'Download and save a local copy')
+  $('#leisure_theme').tooltip(content: 'Select a visual theme')
+  $('#team_cthulhu').tooltip(content: 'Homepage for the Leisure development team')
+  $('#hide-show-button').tooltip(content: 'Click to show hidden slides')
 
 applyShowHidden = ->
   if $(document.body).hasClass 'show-hidden'
@@ -1115,12 +1129,11 @@ restorePosition = (parent, offset, block)->
       selectRange r
   else block()
 
-loadOrg = (parent, text, path, target)->
+loadOrg = (parent, text, downloadPath, target)->
   text = crnl text
-  if nwDispatcher?
-    $('#nwSaveButton').attr 'nwsaveas', path
-  else
-    $('#saveButton').attr 'download', path
+  if !target
+    if nwDispatcher? then $('#saveFile').attr 'nwsaveas', downloadPath
+    else $('#saveLink').attr 'download', downloadPath
   reparse parent, text, target
   if !target
     setTimeout (->

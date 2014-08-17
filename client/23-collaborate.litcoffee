@@ -376,24 +376,30 @@ Handle changes to the doc nodes
 
     observeDocument = (name)->
       login()
-      obs = Meteor.call 'hasDocument', name, (err, docName)->
+      obs = Meteor.call 'hasDocument', name, (err, result)->
         if !err
-          if typeof docName == 'object'
-            $("#error").html "Error: #{docName.error}"
+          if result.error
+            $("#error").html "Error: #{result.error}"
             $(document.body).addClass 'leisureError'
           else
-            console.log "OBSERVING #{docName}"
-            observingDoc[docName] = true
-            Meteor.subscribe docName, ->
-              root.currentDocument = observingDoc[docName] = docCol = new Meteor.Collection docName
-              docCol.leisure = {name: docName}
+            root.hasGit = result.hasGit
+            if root.hasGit
+              $('#checkpoint')[0].style.display = ''
+            console.log "OBSERVING #{result.id}, #{if result.hasGit then 'HAS' else 'NO'} GIT"
+            observingDoc[result.id] = true
+            Meteor.subscribe result.id, ->
+              root.currentDocument = observingDoc[result.id] = docCol = new Meteor.Collection result.id
+              docCol.leisure = {name: result.id}
               docCol.leisure.master = docCol
+              downloadPath = result.id
               if name.match /^demo\/(.*)$/
-                document.location.hash = "#load=/tmp/#{docName}"
+                document.location.hash = "#load=/tmp/#{result.id}"
                 docCol.demo = true
-              if name.match /^tmp\/(.*)$/ then docCol.demo = true
+              else docCol.demo = (name.match(/^tmp\//) || name.match(/^local\//))
+              if m = name.match(/^local\/([^\/]*)\//)
+                downloadPath = m[1]
               res = null
-              res = Meteor.subscribe docName, ->
+              res = Meteor.subscribe result.id, ->
                 res.stop()
                 docCol.leisure.info = docCol.findOne info: true
                 initLocal root.currentDocument, ->
@@ -404,7 +410,7 @@ Handle changes to the doc nodes
                     processDataChange type: 'added', data: block
                     blockId = block.next
                   org = docOrg root.currentDocument, -> #(item)-> processDataChange type: 'added', data: item
-                  root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, docName
+                  root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, downloadPath
                   if name.match /^demo\/(.*)$/
                     $("#hide-show-button")
                       .tooltip()
@@ -844,6 +850,12 @@ Users can mark any slide as local by setting a "local" property to true in the s
         else false
       else false
 
+    snapshot = (name)->
+      name = name ? root.currentDocument.leisure.name
+      console.log "CALLING SNAPSHOT..."
+      Meteor.call 'snapshot', name, (err, result)->
+        console.log "SNAPSHOT RESULT: #{result}"
+
     addDocsAfter = (overrides, id, prev)->
 
     textForId = (id)-> root.blockText $("##{id}")[0]
@@ -881,3 +893,4 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.setDataNamed = setDataNamed
     root.getSourceAttribute = getSourceAttribute
     root.setSourceAttribute = setSourceAttribute
+    root.snapshot = snapshot

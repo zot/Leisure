@@ -7,6 +7,9 @@ Meteor-based collaboration -- server side
       docDo,
       crnl,
     } = Leisure
+    gitReadFile = Leisure.git.readFile
+    gitSnapshot = Leisure.git.snapshot
+    gitHasFile = Leisure.git.hasFile
     connections = new Meteor.Collection ' connections ', connection: null
     tempDocs = {}
 
@@ -20,27 +23,29 @@ Meteor-based collaboration -- server side
 
     Meteor.methods
       hasDocument: (name)->
-        console.log "CONNECTION: #{this.connection}, #{name}"
+        console.log "CONNECTION: #{this.connection.clientAddress}: #{name}"
         this.connection.onClose -> console.log "CLOSED"
         if m = name.match /^demo\/(.*)$/
           id = loadDoc m[1], true
           connectedToTemp id
           this.connection.onClose -> disconnectedFromTemp id
-          id
-        else if m = name.match /^tmp\/(.*)$/
-          id = m[1]
+          id: id, hasGit: false
+        else if m = name.match /^(tmp|local\/[^\/]*)\/(.*)$/
+          id = m[2]
           if tempDocs[id]
             connectedToTemp id, this.connection
             this.connection.onClose -> disconnectedFromTemp id, this.connection
-            id
-          else error: "No temporary document #{m[1]}"
+            id: id, hasGit: false
+          else error: "No temporary document #{m[2]}"
         else
           try
             if docs[name] then console.log "#{name} exists" else loadDoc name
-            name
+            id: name, hasGit: Leisure.git.currentIndex?
           catch err
             console.log "EXCEPTION CHECKING #{name}: #{err.stack}"
             erorr: "Error retrieving #{name}"
+      snapshot: (name)-> gitSnapshot name
+      edit: (name, contents)-> loadDoc name, true, contents
 
     connectedToTemp = (id, connection)->
       if cur = tempDocs[id] then cur.count++
@@ -56,7 +61,13 @@ Meteor-based collaboration -- server side
 
 Document model that ties orgmode parse trees to HTML DOM
 
-    loadDoc = (name, temp)->
+    loadDoc = (name, temp, text)->
+      try
+        text = crnl text ? (if gitHasFile name then gitReadFile(name).toString() else GlobalAssets.getText name)
+      catch err
+        delete docs[id]
+        if temp then delete tempDocs[id]
+        throw err
       if temp
         id = new Meteor.Collection.ObjectID().toJSONValue()
         # this doesn't seem to accept changes from the clients
@@ -70,11 +81,7 @@ Document model that ties orgmode parse trees to HTML DOM
         doc = docs[id] = new Meteor.Collection id
       doc.leisure = {}
       doc.remove {}
-      if info = doc.findOne(info: true)
-        doc.leisure.info = info
-      else
-        text = crnl GlobalAssets.getText name
-        createDocFromText text, doc
+      createDocFromText text, doc
       Meteor.publish id, -> doc.find()
       id
 
@@ -88,5 +95,6 @@ Document model that ties orgmode parse trees to HTML DOM
       console.log "CREATED DOC FROM #{collection.find().count()} nodes"
 
     Leisure.loadDoc = loadDoc
+    Leisure.docs = docs
 
     Meteor.setTimeout (-> Leisure.loadDoc 'widget.lorg'), 1
