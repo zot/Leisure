@@ -149,7 +149,7 @@ hideSaveButton = true
 initOrg = (parent, source)->
   parentSpec = parent
   sourceSpec = source
-  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip' title='x'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button' title='x'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='checkpoint' title='x'><i class='fa fa-cloud-upload'></i> Checkpoint</button><button id='edit' title='x'><i class='fa fa-edit'></i> Edit<input id='file' class='hidden' type='file'></input></button><button id='saveButton' title='x' download='leisureFile.lorg'><i class='fa fa-save'></i><div></div><a id='saveLink' class='hidden'></a></button><div id='leisure_theme' title='x'><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='saveFile' class='hidden' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><button id='hide-show-button' onclick='Leisure.toggleShowHidden()' title='x'><i class='fa fa-eye-slash'></i><div class='hidden'></div><span></span></button><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu' title='x'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
+  $("<div LeisureOutput contentEditable='false' id='leisure_bar'><button id='leisure_grip' title='x'><i class='fa fa-angle-left'></i><i class='fa fa-angle-right'></i></button>\n<button id='leisure_button' title='x'><i class='fa fa-glass'></i><div></div></button>\n<div id='leisure_rollup'><button id='checkpoint' title='x'><i class='fa fa-cloud-upload'></i> Checkpoint</button><button id='revert' title='x'><i class='fa fa-reply'></i> Revert</button><button id='edit' title='x'><i class='fa fa-edit'></i> Edit</button><button id='saveButton' title='x' download='leisureFile.lorg'><i class='fa fa-save'></i><div></div><a id='saveLink' class='hidden'></a></button><div id='leisure_theme' title='x'><span>Theme: </span>\n  <select id='themeSelect'>\n    <option value='flat'>Flat</option>\n    <option value=steampunk>Steampunk</option>\n   <option value=googie>Googie</option>\n   <option value=cthulhu>Cthulhu</option>\n  <option value=console>Console</option>\n  </select></div>\n<input id='saveFile' class='hidden' type='file' nwsaveas onchange='Leisure.saveFile(this)'></input><button id='hide-show-button' onclick='Leisure.toggleShowHidden()' title='x'><i class='fa fa-eye-slash'></i><div class='hidden'></div><span></span></button><a id='tc' target='_blank' href='http://www.teamcthulhu.com'><button id='team_cthulhu' title='x'><span><img src='images/eldersign.png'>TEAM CTHULHU</span></button></a></div></div><div id='leisure_dummy'></div>")
     .prependTo(document.body)
     .find('#leisure_button').mousedown (e)->
       e.preventDefault()
@@ -174,9 +174,11 @@ initOrg = (parent, source)->
       ($('#saveLink')
         #.attr 'download', root.currentDocument.leisure.name
         .attr 'href', "data:text/plain,#{encodeURIComponent getNodeText $('[maindoc]').children().first()[0]}")[0].click()
-  $('#checkpoint')[0].style.display = 'none'
+  $('#checkpoint').css 'display', 'none'
   $('#checkpoint').click -> Leisure.snapshot()
-  $('#edit').click -> $('#file')[0].click()
+  $('#revert').css 'display', 'none'
+  $('#revert').click -> root.restorePosition null, -> Leisure.revert()
+  $('#edit').click -> editFile()
   $('#file').change (evt)->
     files = evt.target.files
     for f in files
@@ -189,6 +191,8 @@ initOrg = (parent, source)->
   Leisure.initStorage '#login', '#panel', root.currentMode
   installSelectionMenu()
   monitorSelectionChange()
+
+editFile = -> $('#file')[0].click()
 
 toggleLeisureBar = ->
   g = $("body")
@@ -263,7 +267,8 @@ applyLeisureTooltips = ->
   $('#leisure_grip').tooltip(content: 'Toggle the Leisure bar on/off')
   $('#leisure_button').tooltip(content: 'Cycle through different display modes')
   $('#checkpoint').tooltip(content: 'Checkpoint on server')
-  $('#edit').tooltip(content: 'Edit a local file')
+  $('#revert').tooltip(content: 'Revert document to last checkpoint on server')
+  $('#edit').tooltip(content: 'Collaboratively edit a local file (just send someone the URL)')
   $('#saveButton').tooltip(content: 'Download and save a local copy')
   $('#leisure_theme').tooltip(content: 'Select a visual theme')
   $('#team_cthulhu').tooltip(content: 'Homepage for the Leisure development team')
@@ -389,7 +394,7 @@ keyFuncs =
         reparse parent
   save: (e, parent, r)->
     e.preventDefault()
-    alert('checkpoint not implemented, yet')
+    Leisure.snapshot()
 
 followsNewline = (txt)->
   prev = textNodeBefore txt
@@ -458,7 +463,7 @@ orgAttrs = (org)->
   nodes[org.nodeId] = org
   extra = if rt = resultsType org then " data-org-results='#{rt}'"
   else ''
-  if org.shared then extra += " data-shared='#{org.shared}' data-nodecount='#{org.nodeCount}'"
+  if org.shared then extra += " data-shared='#{org.shared}' data-nodecount='#{org.nodeCount}' contenteditable='true'"
   if org.local then extra += " data-local=true"
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
@@ -1557,7 +1562,15 @@ nodePosForRange = (r)->
     .mutable()
     .filterVisibleTextNodes()
 
-nodePosForCaret = -> nodePosForRange getSelection().getRangeAt(0)
+#nodePosForCaret = -> nodePosForRange getSelection().getRangeAt(0)
+nodePosForCaret = ->
+  sel = getSelection()
+  parent = parentForElement sel.focusNode
+  n = new NodePos sel.focusNode, sel.focusOffset
+    .mutable()
+    .filterVisibleTextNodes()
+    .filterParent parent
+  if sel.type == 'Caret' then n else n.next()
 
 emptyNodePos = null
 
@@ -1583,8 +1596,12 @@ class NodePos
   getAttribute: (a)->
     @node && @node.nodeType == Node.ELEMENT_NODE && @node.getAttribute a
   newPos: (node, pos)-> new NodePos node, pos, @filter
-  filterTextNodes: -> @setFilter textNodeFilter
-  filterVisibleTextNodes: -> @setFilter visibleTextNodeFilter
+  addFilter: (filt)->
+    oldFilt = @filter
+    @setFilter (n)-> if (r = oldFilt(n)) in ['skip', 'exit'] then r else r && filt(n)
+  filterTextNodes: -> @addFilter textNodeFilter
+  filterVisibleTextNodes: -> @addFilter visibleTextNodeFilter
+  filterParent: (parent)-> @addFilter (n)-> parent.contains(n.node) || 'exit'
   isEmpty: -> @type == 'empty'
   isNL: -> @type == 'text' && @node.data[@pos] == '\n'
   endsInNL: -> @type == 'text' && @node.data[@node.length - 1] == '\n'
@@ -1636,6 +1653,7 @@ class NodePos
     next: (up)=> if up then @next up else this
     nodeAfter: (up)=> if up then @nodeAfter up else this
   next: (up)->
+    saved = @save()
     n = @nodeAfter up
     while !n.isEmpty()
       switch res = @filter n
@@ -1646,8 +1664,9 @@ class NodePos
         else
           if res then return n
       n = n.nodeAfter()
-    @emptyNext()
+    @restore(saved).emptyNext()
   prev: (up)->
+    saved = @save()
     n = @nodeBefore up
     while !n.isEmpty()
       switch res = @filter n
@@ -1658,7 +1677,7 @@ class NodePos
         else
           if res then return n
       n = n.nodeBefore()
-    @emptyPrev()
+    @restore(saved).emptyPrev()
   headlineOffset: (col)->
     if !@hlOff
       @hlOff = $(@node).closest("[data-org-headline='1']")[0].getClientRects()[0].left
@@ -1699,17 +1718,15 @@ class NodePos
     bottom = r?.bottom
     n = this
     while n = (if n.pos + 1 < n.node.length then n.newPos n.node, n.pos + 1 else n.next())
-      r = stubbornCharRectNext(n.node, n.pos)
-      if n.isEmpty() || (r && (left != r?.left || bottom != r?.bottom)) then return n
+      if n.isEmpty() || ((r = stubbornCharRectNext(n.node, n.pos)) && (left != r?.left || bottom != r?.bottom)) then return n
   backwardChar: ->
     r = stubbornCharRectPrev @node, @pos
     n = this
-    while n = (if n.pos > 0 then n.newPos n.node, n.pos  - 1 else n.prev())
+    while r && n = (if n.pos > 0 then n.newPos n.node, n.pos  - 1 else n.prev())
       if n.isEmpty() || n.moved(r) then return n
+    n
   moved: (rec)->
-    if @node.length <= @pos then false
-    else
-      (r2 = stubbornCharRectPrev @node, @pos) && (rec.top != r2.top || rec.left != r2.left)
+    (@node.length > @pos) && (r2 = stubbornCharRectPrev @node, @pos) && (rec.top != r2.top || rec.left != r2.left)
   moveCaret: (r)->
     moveCaret (r || document.createRange()), @node, @pos
     this
@@ -1725,6 +1742,8 @@ class NodePos
     else if posRect.top < top then window.scrollBy 0, posRect.top - top
     this
   immutable: -> this
+  save: -> this
+  restore: (n)-> n.immutable()
   mutable: -> new MutableNodePos @node, @pos, @filter
   copy: -> this
 
@@ -1735,8 +1754,36 @@ class MutableNodePos extends NodePos
     this
   newPos: (@node, @pos)-> @computeType()
   copy: -> new MutableNodePos @node, @pos, @filter
-  immutable: -> new NodePos @node, @pos, @filter
   mutable: -> this
+  immutable: -> new NodePos @node, @pos, @filter
+  save: -> new NodePos @node, @pos, @filter
+  restore: (np)->
+    @node = np.node
+    @pos = np.pos
+    @filter = np.filter
+    this
+  emptyPrev: ->
+    @type = 'empty'
+    @next = (up)->
+      @computeType()
+      if up then @next up else this
+    @nodeAfter = (up)->
+      @computeType()
+      if up then @nodeAfter up else this
+    @prev = -> this
+    @nodeBefore = -> this
+    this
+  emptyNext: ->
+    @type = 'empty'
+    @prev = (up)->
+      @computeType()
+      if up then @prev up else this
+    @nodeBefore = (up)->
+      @computeType()
+      if up then @nodeBefore up else this
+    @next = -> this
+    @nodeAfter = -> this
+    this
 
 # charRect returns null for newlines when not using pre
 stubbornCharRect = (node, pos, r)->
@@ -1860,6 +1907,7 @@ root.errorDiv = errorDiv
 root.NodePos = NodePos
 root.nodePosForRange = nodePosForRange
 root.nodePosForCaret = nodePosForCaret
+root.editFile = editFile
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

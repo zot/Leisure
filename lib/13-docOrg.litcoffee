@@ -48,23 +48,29 @@
 
     isSourceEnd = (org)-> !org || org instanceof Headline
 
-    createDocFromOrg = (org, collection)->
+    createDocFromOrg = (org, collection, reloading)->
       doc = orgDoc org
-      replaceOrgDoc doc, collection
+      replaceOrgDoc doc, collection, reloading
       doc._id
 
     docRoot = (collection)->
       (collection.leisure ? collection.leisure = {}).info ? (collection.leisure.info = collection.findOne info: true)
 
-    replaceOrgDoc = (docArray, collection)->
-      collection.remove()
+    replaceOrgDoc = (docArray, collection, reloading)->
+      if reloading then collection.remove info: ('$exists': false)
+      else collection.remove()
       linkDocs docArray
       #console.log "DOCS: #{JSON.stringify docArray, null, '  '}"
-      info = collection.leisure.info =
-        info: true
-        head: if docArray.length > 0 then docArray[0]._id else null
-        _id: new Meteor.Collection.ObjectID().toJSONValue()
-      collection.insert info
+      if reloading
+        info = collection.leisure.info
+        info.head = if docArray.length > 0 then docArray[0]._id else null
+        collection.update info._id, info
+      else
+        info = collection.leisure.info =
+          info: true
+          head: if docArray.length > 0 then docArray[0]._id else null
+          _id: new Meteor.Collection.ObjectID().toJSONValue()
+        collection.insert info
       for doc in docArray
         collection.insert doc
 
@@ -91,7 +97,7 @@
       if org instanceof Headline
         local = local || (org.level == 1 && org.properties.local)
         children = createChildrenDocs org, local
-        result = if org.level == 0 then children
+        result = if org.level == 0 then (org.children.length && children) || _([text: '\n', type: 'chunk'])
         else _([text: org.text, type: 'headline', level: org.level]).concat children
       else if org instanceof HTML then [result, next] = createHtmlBlockDoc org
       else if isCodeBlock org then [result, next] = createCodeBlockDoc org

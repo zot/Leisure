@@ -78,6 +78,9 @@ Handle changes to the doc nodes
       rc = createRenderingComputer()
       updated = {}
       for item in batch
+        if item.data.info? && !item.removed
+          doc.leisure.info = item.data
+          continue
         if !!item.data.local == local
           root.changeContext = item.context
           if item.data.local && item.type == 'added' && (old = root.currentDocument.findOne item.data._id)
@@ -384,7 +387,8 @@ Handle changes to the doc nodes
           else
             root.hasGit = result.hasGit
             if root.hasGit
-              $('#checkpoint')[0].style.display = ''
+              $('#checkpoint').css 'display', ''
+              $('#revert').css 'display', ''
             console.log "OBSERVING #{result.id}, #{if result.hasGit then 'HAS' else 'NO'} GIT"
             observingDoc[result.id] = true
             Meteor.subscribe result.id, ->
@@ -856,6 +860,11 @@ Users can mark any slide as local by setting a "local" property to true in the s
       Meteor.call 'snapshot', name, (err, result)->
         console.log "SNAPSHOT RESULT: #{result}"
 
+    revert = (name)->
+      name = name ? root.currentDocument.leisure.name
+      Meteor.call 'revert', name, (err, result)->
+        console.log "REVERT RESULT: #{result}"
+
     addDocsAfter = (overrides, id, prev)->
 
     textForId = (id)-> root.blockText $("##{id}")[0]
@@ -894,3 +903,4 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.getSourceAttribute = getSourceAttribute
     root.setSourceAttribute = setSourceAttribute
     root.snapshot = snapshot
+    root.revert = revert

@@ -45,6 +45,7 @@ Meteor-based collaboration -- server side
             console.log "EXCEPTION CHECKING #{name}: #{err.stack}"
             erorr: "Error retrieving #{name}"
       snapshot: (name)-> gitSnapshot name
+      revert: (name)-> loadDoc name, false, null, true
       edit: (name, contents)-> loadDoc name, true, contents
 
     connectedToTemp = (id, connection)->
@@ -61,7 +62,8 @@ Meteor-based collaboration -- server side
 
 Document model that ties orgmode parse trees to HTML DOM
 
-    loadDoc = (name, temp, text)->
+    loadDoc = (name, temp, text, reload)->
+      if reload && (temp || tempDocs[name]) then throw new Error "Attempt to reload temporary document, #{name}"
       try
         text = crnl text ? (if gitHasFile name then gitReadFile(name).toString() else GlobalAssets.getText name)
       catch err
@@ -78,11 +80,13 @@ Document model that ties orgmode parse trees to HTML DOM
         console.log "CREATED TEMP DOCUMENT #{tempDocs[id].name} #{id}"
       else
         id = name
-        doc = docs[id] = new Meteor.Collection id
-      doc.leisure = {}
-      doc.remove {}
-      createDocFromText text, doc
-      Meteor.publish id, -> doc.find()
+        doc = if reload then docs[id] else docs[id] = new Meteor.Collection id
+        if !doc then throw new Error "Attempt to reload unloaded document, #{name}"
+      if !reload
+        doc.leisure = {}
+        doc.remove {}
+      createDocFromText text, doc, reload
+      if !reload then Meteor.publish id, -> doc.find()
       id
 
     docJson = (collection)->
@@ -90,8 +94,8 @@ Document model that ties orgmode parse trees to HTML DOM
       docDo collection, (node)-> nodes.push node
       nodes
 
-    createDocFromText = (text, collection)->
-      id = createDocFromOrg Org.parseOrgMode(text), collection
+    createDocFromText = (text, collection, reloading)->
+      id = createDocFromOrg Org.parseOrgMode(text), collection, reloading
       console.log "CREATED DOC FROM #{collection.find().count()} nodes"
 
     Leisure.loadDoc = loadDoc

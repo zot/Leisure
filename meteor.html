@@ -17,6 +17,7 @@
 </head>
 <body>
   <div id='error'></div>
+  <input id='file' class='hidden' type='file'>
   <div id="loading" class="flat">
     <div id="loading-message">
       <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -42,7 +43,7 @@
   <div id="login" class="flat login">
     <div id="login_bg">
       <h1 id="login_header">Leisure Notebook Startup</h1>
-      <p>
+      <!--p>
         <form id="loginForm">
           <div class="box">
             <h2><i class="fa fa-github fa-2x"></i><span>Remote notebook from Github</span></h2>
@@ -64,19 +65,19 @@
             </p>
           </div>
         </form>
-      </p>
+      </p-->
       <p>
         <div id="local" class="box">
-          <h2><i class="fa fa-file-o fa-2x"></i><span>Or a local notebook on your PC</span></h2>
-          <input class="btn" id="load_file" type="submit" value="Load from disk">
-          <input class="btn" id="internal_load_file" type="file" onchange="Leisure.useFile(this.files[0])" style="display: none">
+          <h2><i class="fa fa-file-o fa-2x"></i><span>Collaboratively edit a file<br>(just send someone the URL)</span></h2>
+          <button id="load_file" onclick='Leisure.editFile()'>Edit</button>
         </div>
       </p>
     </div>
   </div>
+  <script>$('#load_file').button()</script>
   <div id="panel">
     <div id="dummy_headline"></div>
-    <div maindoc contenteditable='true'><!--
+    <div maindoc Xcontenteditable='true'><!--
 * code :duh:
 #+BEGIN_SRC leisure :results dynamic
 3 + 4

@@ -1762,8 +1762,8 @@ fancyOrg =
     "#{slideStart()}<hr class='#{if slidePosition == 'only' then 'first' else slidePosition}'><div id='#{id}'></div>#{slideEnd()}"
   insertEmptySlide: (id, prevId)->
     slide = $(@emptySlide id)
-    if prev = $("##{prevId}").closest('.slideholder') then prev.after slide
-    else $("[maindoc]").prepend slide
+    if (prev = $("##{prevId}").closest('.slideholder')).length then prev.after slide
+    else $("[maindoc] [data-org-headline='0']").append slide
     slide.find("##{id}")[0]
   defineView: (id)-> # define a view from a data block
     if type = root.viewIdTypes[id]

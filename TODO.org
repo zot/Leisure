@@ -13,9 +13,6 @@
 - reactivate note button
 - reactivete selection bubble
 - collaboration
-  - git persistence
-  - X spawn document copies
-    - X temporary or permanent
   - multple documents on a session
   - show users' cursors/selections
   - react to adds/changes/removes of widget types in HTML blocks (preparse attributes)
@@ -616,6 +613,16 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE git persistence
+   CLOSED: [2014-08-17 Sun 16:00]
+** DONE spawn document copies
+   CLOSED: [2014-08-17 Sun 16:00]
+*** DONE temporary or permanent
+    CLOSED: [2014-08-17 Sun 16:00]
+** DONE save to local file
+   CLOSED: [2014-08-17 Sun 16:01]
+** DONE collaboratively edit local file
+   CLOSED: [2014-08-17 Sun 16:01]
 ** DONE switch to custom elements for markup?
 - x-tags for polyfills
 - make org-based widgets
