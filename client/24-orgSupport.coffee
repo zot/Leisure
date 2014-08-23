@@ -322,7 +322,6 @@ movementGoal = null
 
 moveSelectionUp = (parent, r)->
   pos = nodePosForCaret()
-    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
   if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = pos.getMovementGoal()
   pos
     .backwardLine(movementGoal)
@@ -331,7 +330,6 @@ moveSelectionUp = (parent, r)->
 
 moveSelectionDown = (parent, r)->
   pos = nodePosForCaret()
-    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
   if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = pos.getMovementGoal()
   pos
     .forwardLine(movementGoal)
@@ -340,14 +338,12 @@ moveSelectionDown = (parent, r)->
 
 moveSelectionForward = (parent, r)->
   pos = nodePosForCaret()
-    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
     .forwardChar()
     .moveCaret()
     .show()
 
 moveSelectionBackward = (parent, r)->
   nodePosForCaret()
-    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || visibleTextNodeFilter n
     .backwardChar()
     .moveCaret()
     .show()
@@ -685,6 +681,7 @@ adjustSelection = (e)->
     pos = new NodePos r.endContainer, r.endOffset
       .mutable()
       .filterVisibleTextNodes()
+      .firstText()
     while pos.node != r.startContainer && pos.node.data.trim() == ''
       pos == pos.prev()
     while pos.pos > 0 && pos.node.data[pos.pos - 1] == ' '
@@ -1282,7 +1279,10 @@ getTextPosition = (parent, target, pos)->
   if parent
     offset = 0
     n = new NodePos parent, 0
-      .setFilter (n)-> (!parent.contains(n.node) && 'exit') || textNodeFilter n
+      .mutable()
+      .filterVisibleTextNodes()
+      .filterParent parent
+      .firstText()
     limit = if target.nodeType == Node.TEXT_NODE then target
     else n.newPos(target).next(true).node
     while !(n = n.next()).isEmpty() && n.node != limit
@@ -1292,7 +1292,10 @@ getTextPosition = (parent, target, pos)->
 
 findDomPosition = (parent, pos, contain)->
   orig = n = new NodePos parent, 0
-    .setFilter (n)-> (!parent.contains(n.node) && 'exit') || textNodeFilter n
+    .mutable()
+    .filterVisibleTextNodes()
+    .filterParent parent
+    .firstText()
   while !(n = n.next()).isEmpty()
     if pos < n.node.length then return [n.node, pos]
     pos -= n.node.length
@@ -1561,6 +1564,7 @@ nodePosForRange = (r)->
   new NodePos r.startContainer, r.startOffset
     .mutable()
     .filterVisibleTextNodes()
+    .firstText()
 
 #nodePosForCaret = -> nodePosForRange getSelection().getRangeAt(0)
 nodePosForCaret = ->
@@ -1570,7 +1574,7 @@ nodePosForCaret = ->
     .mutable()
     .filterVisibleTextNodes()
     .filterParent parent
-  if sel.type == 'Caret' then n else n.next()
+    .firstText()
 
 emptyNodePos = null
 
@@ -1585,6 +1589,11 @@ class NodePos
     @pos = @pos ? 0
     @filter = filter || -> true
     @computeType()
+  firstText: (backwards)->
+    n = this
+    while n.type != 'text'
+      n = (if backwards then n.prev() else n.next())
+    n
   computeType: ->
     @type = if !@node then 'empty'
     else if @node.nodeType == Node.TEXT_NODE then 'text'
