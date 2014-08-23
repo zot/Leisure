@@ -1,3 +1,22 @@
+* What Leisure is
+Leisure is a new programming language, along with its online, collborative,
+document-based, multilingual environment.
+
+Each collaborative Leisure document is like its own virtual machine.  You can
+interact with it and even change it as it runs.
+
+Leisure harkens back to many earlier environments:
+- Smalltalk: 1972
+- The Lisp Machine: 1981 (or earlier)
+- Hypercard: 1987
+- Mathematica: 1991
+
+Of these systems, Leisure is probably most similar to Hypercard and Mathematica, but it
+differs in several important ways:
+- Online
+- Collaborative
+- Multilingual
+- Free
 * Document change flow
 (LOCAL)
      |
@@ -15,8 +34,22 @@ run update handlers
      |
 render data
 
-* Developing on windows
+* Developing
+** Git
+make sure Git is installed
+** Repository
+Clone the repository: https://github.com/zot/Leisure
+** Node
+Make sure node is installed
+** Meteor
+Make sure meteor is installed
+make sure meteor-npm is installed https://meteorhacks.com/complete-npm-integration-for-meteor.html
+- on Linux/OS X
+  - mrt add npm
+- on Windows
+  - npm install -g meteor-npm #single time operation
+  - meteor-npm #type inside the Leisure project
 ** EMACS
-*** Coffeescript
+*** Coffeescript on Windows
 flycheck: Get libxml2 from http://sourceforge.net/projects/ezwinports/files/ unzip the
 libxml2 archive and make sure the *.dll files are in your path

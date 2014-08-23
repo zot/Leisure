@@ -36,6 +36,7 @@ Meteor-based collaboration -- client side
     observingDoc = {}
     universalObservers = {}
     namedBlocks = {}
+    context = L()
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -85,28 +86,37 @@ Handle changes to the doc nodes
 
     textLevel = Number.MAX_SAFE_INTEGER
 
-    processChanges = (doc, batch, local)->
-      rc = createRenderingComputer()
+    processChanges = (doc, batch, local, norender)->
+      if !norender then rc = createRenderingComputer()
       updated = {}
       for item in batch
         if item.data.info? && !item.removed
           doc.leisure.info = item.data
           continue
-        if !!item.data.local == local
+        if !!item.data.local == !!local
           root.changeContext = item.context
-          if item.data.local && item.type == 'added' && (old = root.currentDocument.findOne item.data._id)
+          if item.data.local && item.type == 'added' && (old = doc.findOne item.data._id)
             item.type = 'changed'
             item.oldData = old
           if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
+          if item.oldData?.codeName? && (item.type == 'removed' || item.oldData.codeName != item.data.codeName)
+            delete namedBlocks[item.oldData.codeName]
+          if item.type in ['changed', 'added'] && item.data.codeName?
+            namedBlocks[item.data.codeName] = item.data._id
+      for item in batch
+        if item.data.info? && !item.removed
+          doc.leisure.info = item.data
+          continue
+        if !!item.data.local == !!local
           processDataChange item, updated
-          if !item.editing
+          if !item.editing && !norender
             #console.log "ITEM: #{item.type} #{item.data._id}"
             switch item.type
               when 'added' then rc.add item.data
               when 'removed' then rc.remove item.data
               when 'changed' then rc.change item.oldData, item.data
         else updateObservers item.data, item.type, updated
-      rc.render()
+      if !norender then rc.render()
 
     # at this point, fully rerender all changed slides
     createRenderingComputer = (overrides)->
@@ -238,7 +248,6 @@ Handle changes to the doc nodes
         else if lang == 'css'
           root.orgApi.updateBlock data
         else if lang == 'yaml'
-          if data.codeName then namedBlocks[data.codeName] = data._id
           root.orgApi.updateBlock data
         else if isDef(data) && lang in ['js', 'javascript']
           try
@@ -422,9 +431,13 @@ Handle changes to the doc nodes
                   cursor = docCol.find()
                   sub = cursor.observe observer docCol, false
                   blockId = getBlock docCol.leisure.info.head
-                  while blockId && block = getBlock blockId
-                    processDataChange type: 'added', data: block
+                  #while blockId && block = getBlock blockId
+                  #  processDataChange type: 'added', data: block
+                  #  blockId = block.next
+                  b = while blockId && block = getBlock blockId
                     blockId = block.next
+                    type: 'added', data: block, editing: false, context: context
+                  processChanges docCol, b, false, true
                   org = docOrg root.currentDocument, -> #(item)-> processDataChange type: 'added', data: item
                   root.loadOrg root.parentForDocId(docCol.leisure.info._id), org, downloadPath
                   if name.match /^demo\/(.*)$/
@@ -456,8 +469,6 @@ Handle changes to the doc nodes
       added: (el)-> addChange changeName, 'added', copy(el), (items)-> processChanges docCol, items, local
       removed: (el)-> addChange changeName, 'removed', copy(el), (items)-> processChanges docCol, items, local
       changed: (el, oldEl)-> addChange changeName, 'changed', copy(el), copy(oldEl), (items)-> processChanges docCol, items, local
-
-    context = L()
 
     addChangeContextWhile = (obj, func)->
       oldc = context
