@@ -1745,6 +1745,10 @@ class NodePos
   save: -> this
   restore: (n)-> n.immutable()
   mutable: -> new MutableNodePos @node, @pos, @filter
+  withMutations: (func)->
+    m = @mutable()
+    func m
+    m.immutable()
   copy: -> this
 
 class MutableNodePos extends NodePos

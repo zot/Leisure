@@ -1,9 +1,6 @@
 Meteor-based collaboration -- client side
 
     {
-      delay,
-    } = Leisure = require '10-namespace'
-    {
       loadOrg,
     } = require '24-orgSupport'
     {
@@ -46,6 +43,20 @@ every time, because func is ignored after the first call in a batch
 
     batchers = null
     disableUpdates = false
+    funcBatch = []
+    funcBatchQueued = false
+
+    delay = (func)->
+      funcBatch.push func
+      if !funcBatchQueued
+        funcBatchQueued = true
+        setTimeout (->
+          console.log "Running batch of #{funcBatch.length} funcs"
+          b = funcBatch
+          funcBatch = []
+          funcBatchQueued = false
+          for f in b
+            f()), 1
 
     addBatch = (name, value, func)->
       if !disableUpdates && (!committing || passesFilters name, value)
@@ -189,8 +200,9 @@ Handle changes to the doc nodes
     scriptCounter = 0
 
     processDataChange = ({type, data}, updated)->
+      lang = data.language?.toLowerCase()
       if type in ['changed', 'removed']
-        if viewIdTypes[data._id]
+        if viewIdTypes[data._id] && (type == 'removed' || lang != 'html')
           root.orgApi.deleteView viewIdTypes[data._id]
           delete viewTypeData[viewIdTypes[data._id]]
           delete viewIdTypes[data._id]
@@ -200,7 +212,6 @@ Handle changes to the doc nodes
           else _.remove old, (i)-> i == data._id
           delete controllerIdDescriptor[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
-        lang = data.language.toLowerCase()
         attr = data.codeAttributes ? {}
         if descriptor = attr.control
           if !(ids = controllerDescriptorIds[descriptor])
@@ -220,9 +231,10 @@ Handle changes to the doc nodes
             a.push attr.observe
         else delete universalObservers[data._id]
         if lang == 'html' && attr.defview
-          viewTypeData[data.codeAttributes.defview] = codeString(data).trim()
-          viewIdTypes[data._id] = attr.defview
-          delay -> root.orgApi.defineView data._id
+          delay ->
+            viewTypeData[data.codeAttributes.defview] = codeString(data).trim()
+            viewIdTypes[data._id] = attr.defview
+            root.orgApi.defineView data._id
         else if lang == 'css'
           root.orgApi.updateBlock data
         else if lang == 'yaml'

@@ -1,4 +1,7 @@
 * Short list -- announcement
+- batch changes to reduce flickering
+- switch from persistent-hash-trie to [[https://github.com/facebook/immutable-js][immutable-js]]
+  - it's already located in 5-immutable.js
 - attach block documentation/properties to JS/CS functions
   - parse code to find function names
   - add properties to funcs after eval
