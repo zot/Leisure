@@ -125,6 +125,8 @@ idCount = 0
 nodes = {}
 #needsReparse = false
 reparseListeners = []
+savingPosition = false
+savedPositionOverride = null
 
 # parentForX is needed for slide editing modes and for multple document editing
 parentForElement = (el)-> $(el).closest('[maindoc]')[0]
@@ -191,12 +193,26 @@ initOrg = (parent, source)->
   Leisure.initStorage '#login', '#panel', root.currentMode
   installSelectionMenu()
   monitorSelectionChange()
+  document.addEventListener('cut', cutListener)
   document.addEventListener('copy', copyListener)
   document.addEventListener('paste', pasteListener)
 
+clipboardKey = null
+
 copyListener = (e)->
+  clipboardKey = 'copy'
+  sel = getSelection()
+  if sel.type == 'Range' then replaceClipboardWithSelection e, sel
+
+cutListener = (e)->
+  clipboardKey = 'cut'
   sel = getSelection()
   if sel.type == 'Range'
+    replaceClipboardWithSelection e, sel
+    sel.getRangeAt(0).deleteContents()
+    root.orgApi.checkSourceMod()
+
+replaceClipboardWithSelection = (e, sel)->
     e.preventDefault()
     n = document.createElement('div')
     n.appendChild sel.getRangeAt(0).cloneContents()
@@ -204,8 +220,21 @@ copyListener = (e)->
     e.clipboardData.setData 'text/plain', nodePosForSelectedText().getText()
 
 pasteListener = (e)->
+  clipboardKey = 'paste'
   e.preventDefault()
-  console.log "paste", e.clipboardData.getData('text/plain')
+  sel = getSelection()
+  if sel.type != 'None'
+    text = e.clipboardData.getData('text/plain')
+    r = sel.getRangeAt 0
+    r.deleteContents()
+    savedSel = new SelectionDescriptor parentForElement(sel.focusNode), r
+    r.insertNode document.createTextNode text
+    r2 = document.createRange()
+    r2.setStart r.endContainer, r.endOffset
+    r2.setEnd r.endContainer, r.endOffset
+    root.orgApi.checkSourceMod()
+    savedSel.offset = text.length
+    savedSel.restore()
 
 editFile = -> $('#file')[0].click()
 
@@ -725,7 +754,9 @@ handleDrop = (e)->
 
 backspace = (parent, event, sel, r, allowBlockCrossing)->
   event.preventDefault()
-  if sel.type == 'Caret'
+  if sel.type == 'Range'
+    sel.getRangeAt(0).deleteContents()
+  else if sel.type == 'Caret'
     r.startContainer.parentNode.normalize()
     # get new range in case normalization changed it
     r = sel.getRangeAt 0
@@ -760,7 +791,9 @@ backspace = (parent, event, sel, r, allowBlockCrossing)->
 
 del = (parent, event, sel, r, allowBlockCrossing)->
   event.preventDefault()
-  if sel.type == 'Caret'
+  if sel.type == 'Range'
+    sel.getRangeAt(0).deleteContents()
+  else if sel.type == 'Caret'
     if r.startContainer.nodeType != Node.TEXT_NODE
       console.log "NOT A TEXT NODE"
     r.startContainer.parentNode.normalize()
@@ -817,30 +850,30 @@ blockElementsForSelection = (sel, r)->
 
 blockIdsForSelection = (sel, r)->
   if !sel then sel = getSelection()
-  if !r then r = sel.rangeCount == 1 && sel.getRangeAt 0
-  else if sel.rangeCount != 1 then return null
-  blocks = if shared = $(r.startContainer).closest('[data-shared]')[0]
-    [shared.id]
-  else []
-  if !r?.collapsed
-    cur = blocks[0]
-    end = $(r.endContainer).closest('[data-shared]')[0].id
-    while cur && cur != end
-      if cur = (getBlock cur).next
-        blocks.push cur._id
-  blocks
+  if sel.rangeCount == 1
+    if !r then r = sel.getRangeAt 0
+    blocks = if shared = $(r.startContainer).closest('[data-shared]')[0]
+      [shared.id]
+    else []
+    if !r?.collapsed
+      cur = blocks[0]
+      end = $(r.endContainer).closest('[data-shared]')[0].id
+      while cur && cur != end
+        if cur = (getBlock cur).next
+          blocks.push cur
+    blocks
 
 blockElementForNode = (node)-> $(node).closest('[data-shared]')[0]
 
 handleKeyup = (div)-> (e)->
-  if !e.leisureShiftkey && !root.modCancelled
-    if modifyingKey (e.charCode || e.keyCode || e.which), e
-      if (t = root.checkNewline) && t.data[t.length - 1] != '\n' && noFollowingText t
-        t.data += '\n'
-        r = document.createRange()
-        r.setStart t, t.length - 1
-        setCaret r
-      root.orgApi.checkSourceMod div
+  if clipboardKey || (!e.leisureShiftkey && !root.modCancelled && modifyingKey((e.charCode || e.keyCode || e.which), e))
+    if (t = root.checkNewline) && t.data[t.length - 1] != '\n' && noFollowingText t
+      t.data += '\n'
+      r = document.createRange()
+      r.setStart t, t.length - 1
+      setCaret r
+    root.orgApi.checkSourceMod div
+    clipboardKey = null
 
 noFollowingText = (t)->
   next = t.nextSibling
@@ -1128,23 +1161,54 @@ nativeRange = (r)->
 
 hasParent = (node, ancestor)-> node == ancestor || (node && hasParent node.parent, ancestor)
 
-# offset defaults to 0
-restorePosition = (parent, offset, block)->
-  if !block
-    block = offset
-    offset = 0
+class SelectionDescriptor
+  constructor: (@parent, range)->
+    if range
+      @offset = 0
+      @start = getTextPosition(parent, range.startContainer, range.startOffset)
+      @end = getTextPosition(parent, range.endContainer, range.endOffset)
+    else
+      @restore = ->
+      @toString = "Selection(none)"
+  currentRange: ->
+    if document.body.compareDocumentPosition(@parent) & Node.DOCUMENT_POSITION_DISCONNECTED
+      @parent = $('[maindoc]')[0]
+    [startContainer, startOffset] = findDomPosition @parent, @start + @offset
+    if startContainer
+      r = document.createRange()
+      r.setStart startContainer, startOffset
+      if startOffset == endOffset then r.collapse true
+      else
+        [endContainer, endOffset] = findDomPosition @parent, @end + @offset
+        if !endContainer then r.collapse true
+        else r.setEnd endContainer, endOffset
+      r
+  restore: -> selectRange @currentRange()
+  toString: -> "Selection(#{@start}, #{@end})"
+
+saveSelection = ->
   sel = getSelection()
-  if !sel.focusNode then parentForElement(parent).focus()
-  if sel?.rangeCount
-    r = sel.getRangeAt 0
-    start = offset + getTextPosition $(parent)[0], r.startContainer, r.startOffset
-    end = offset + getTextPosition $(parent)[0], r.endContainer, r.endOffset
-    block()
-    if start > -1 && (r = nativeRange findDomPosition $(parent)[0], start)
-      [endContainer, endOffset] = findDomPosition $(parent)[0], end
-      r.setEnd endContainer, endOffset
-      selectRange r
-  else block()
+  if sel.type == 'None' then new SelectionDescriptor()
+  else new SelectionDescriptor parentForElement(sel.focusNode), sel.getRangeAt 0
+
+savePosition = (saveFunc, block)->
+  if savingPosition then block()
+  else
+    savingPosition = true
+    pos = saveFunc()
+    try
+      block()
+    finally
+      if savedPositionOverride
+        savedPositionOverride.restore()
+        savedPositionOverride = null
+      else pos()
+      savingPosition = false
+
+overrideSavedPosition = (parent, range)->
+  if savingPosition then savedPositionOverride = new SelectionDescriptor parent, range
+
+restorePosition = (parent, block)-> savePosition saveSelection, block
 
 loadOrg = (parent, text, downloadPath, target)->
   text = crnl text
@@ -1294,7 +1358,7 @@ getTextPosition = (parent, target, pos)->
     offset = 0
     n = new NodePos parent, 0
       .mutable()
-      .filterVisibleTextNodes()
+      .filterTextNodes()
       .filterParent parent
       .firstText()
     limit = if target.nodeType == Node.TEXT_NODE then target
@@ -1307,7 +1371,7 @@ getTextPosition = (parent, target, pos)->
 findDomPosition = (parent, pos, contain)->
   orig = n = new NodePos parent, 0
     .mutable()
-    .filterVisibleTextNodes()
+    .filterTextNodes()
     .filterParent parent
     .firstText()
   while !(n = n.next()).isEmpty()
@@ -1938,6 +2002,8 @@ root.installEnvLang = installEnvLang
 root.textEnv = textEnv
 root.escapeAttr = escapeAttr
 root.restorePosition = restorePosition
+root.savePosition = savePosition
+root.overrideSavedPosition = overrideSavedPosition
 root.splitLines = splitLines
 root.orgSrcAttrs = orgSrcAttrs
 root.getNodeLang = getNodeLang

@@ -56,6 +56,7 @@ yaml = root.yaml
   lineCodeBlockType,
 } = require '12-docOrg'
 {
+  savePosition,
   findOrIs,
   orgNotebook,
   parseOrgMode,
@@ -161,7 +162,7 @@ emptyPresenter =
 presenter = emptyPresenter
 DOCUMENT_POSITION_CONTAINED_BY = 16
 
-class SelectionDescriptor
+class FancySelectionDescriptor
   constructor: (parent)->
     sel = getSelection()
     el = getDeepestActiveElement()
@@ -204,29 +205,23 @@ isParentSelectionOf = (parent, child)-> isParentOf parent?.parent, child.parent
 
 restoreStack = []
 
-root.restorePosition = restorePosition = (parent, delta, block)->
-  if !block
-    block = delta
-    delta = 0
-  selection = new SelectionDescriptor parent
+fancySaveSelection = (parent)->
+  selection = new FancySelectionDescriptor parent
   slide = slideParent selection.focusNode
   activeSlideIndex = slideOffset slide
   if selection.focusNode && activeSlideIndex > -1 && !isParentSelectionOf(_(restoreStack).last(), selection)
-    try
-      restoreStack.push selection
-      #console.log "SAVED: #{selection}"
-      doc = topNode(slide).parentNode
-      parent = doc.parentNode
-      docPos = childIndex parent, doc
-      currentSlide = slideIndex()
-      block() # block shouldn't remove doc
+    doc = topNode(slide).parentNode
+    parent = doc.parentNode
+    docPos = childIndex parent, doc
+    currentSlide = slideIndex()
+    ->
       if doc = parent.children[docPos]
         if slideMode && currentSlide > -1 then setCurrentSlide getSlides()[currentSlide], true
-        selection.restore delta, doc
-    finally
-      sel = restoreStack.pop()
-      #console.log "RESTORED: #{selection}"
-  else block()
+        selection.restore 0, doc
+  else ->
+
+root.restorePosition = restorePosition = (parent, block)->
+  savePosition fancySaveSelection, block
 
 getSlidePosition = (node)->
   if block = blockElementForNode node
@@ -874,7 +869,7 @@ leisureNumberSlider = (numberSpan)->
     if !computing && orgType in ['dynamic', 'def']
       computing = true
       doc = topNode orgParent
-      selection = new SelectionDescriptor doc
+      selection = new FancySelectionDescriptor doc
       done = ->
         setTimeout (->selection.restore 0, doc), 1
         computing = false
