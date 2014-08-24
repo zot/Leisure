@@ -191,6 +191,21 @@ initOrg = (parent, source)->
   Leisure.initStorage '#login', '#panel', root.currentMode
   installSelectionMenu()
   monitorSelectionChange()
+  document.addEventListener('copy', copyListener)
+  document.addEventListener('paste', pasteListener)
+
+copyListener = (e)->
+  sel = getSelection()
+  if sel.type == 'Range'
+    e.preventDefault()
+    n = document.createElement('div')
+    n.appendChild sel.getRangeAt(0).cloneContents()
+    e.clipboardData.setData 'text/html', n.innerHTML
+    e.clipboardData.setData 'text/plain', nodePosForSelectedText().getText()
+
+pasteListener = (e)->
+  e.preventDefault()
+  console.log "paste", e.clipboardData.getData('text/plain')
 
 editFile = -> $('#file')[0].click()
 
@@ -459,7 +474,7 @@ orgAttrs = (org)->
   nodes[org.nodeId] = org
   extra = if rt = resultsType org then " data-org-results='#{rt}'"
   else ''
-  if org.shared then extra += " data-shared='#{org.shared}' data-nodecount='#{org.nodeCount}' contenteditable='true'"
+  if org.shared then extra += " data-shared='#{org.shared}' data-nodecount='#{org.nodeCount}'"
   if org.local then extra += " data-local=true"
   t = org.allTags()
   if t.length then extra += " data-org-tags='#{escapeAttr t.join(' ')}'"; global.ORG=org
@@ -1147,7 +1162,6 @@ reparse = (parent, text, target)-> root.orgApi.reparse parent, text, target
 emptySlide = (id, slidePosition)-> root.orgApi.emptySlide id, slidePosition
 
 installOrgDOM = (parent, orgNode, orgText, target)->
-  dumpTextWatchers()
   if target
     result = $(orgText)[0]
     $(target).replaceWith result
@@ -1561,10 +1575,12 @@ basicOrg =
 findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 
 nodePosForRange = (r)->
-  new NodePos r.startContainer, r.startOffset
+  n = new NodePos r.startContainer, r.startOffset
     .mutable()
     .filterVisibleTextNodes()
+    .filterRange r
     .firstText()
+  if n.pos < n.node.length then n else n.next()
 
 #nodePosForCaret = -> nodePosForRange getSelection().getRangeAt(0)
 nodePosForCaret = ->
@@ -1575,14 +1591,21 @@ nodePosForCaret = ->
     .filterVisibleTextNodes()
     .filterParent parent
     .firstText()
+  if n.pos < n.node.length then n else n.next()
+
+nodePosForSelectedText = ->
+  sel = getSelection()
+  if sel.type != 'Range' then emptyNodePos
+  else
+    r = sel.getRangeAt 0
+    n = new NodePos r.startContainer, r.startOffset
+      .mutable()
+      .filterTextNodes()
+      .filterRange r
+      .firstText()
+    if n.pos < n.node.length then n else n.next()
 
 emptyNodePos = null
-
-textNodeFilter = (n)->
-  n.type == 'text' || (n.hasAttribute('data-nonorg') && 'skip')
-
-visibleTextNodeFilter = (n)->
-  (n.type == 'text' && !isCollapsed n.node) || (n.hasAttribute('data-nonorg') && 'skip')
 
 class NodePos
   constructor: (@node, @pos, filter)->
@@ -1591,7 +1614,7 @@ class NodePos
     @computeType()
   firstText: (backwards)->
     n = this
-    while n.type != 'text'
+    while !n.isEmpty() && n.type != 'text'
       n = (if backwards then n.prev() else n.next())
     n
   computeType: ->
@@ -1607,10 +1630,39 @@ class NodePos
   newPos: (node, pos)-> new NodePos node, pos, @filter
   addFilter: (filt)->
     oldFilt = @filter
-    @setFilter (n)-> if (r = oldFilt(n)) in ['skip', 'exit'] then r else r && filt(n)
-  filterTextNodes: -> @addFilter textNodeFilter
-  filterVisibleTextNodes: -> @addFilter visibleTextNodeFilter
-  filterParent: (parent)-> @addFilter (n)-> parent.contains(n.node) || 'exit'
+    @setFilter (n)-> if reject (r = oldFilt(n)) then r else filt(n)
+  filterTextNodes: ->
+    @addFilter (n)-> n.type == 'text' || (n.hasAttribute('data-nonorg') && 'skip')
+  filterVisibleTextNodes: -> @filterTextNodes().addFilter (n)-> !isCollapsed n.node
+  filterParent: (parent)-> @addFilter (n)-> parent.contains(n.node) || 'quit'
+  filterRange: (startContainer, startOffset, endContainer, endOffset)->
+    if !startOffset?
+      if startContainer instanceof Range
+        r = startContainer
+        startContainer = r.startContainer
+        startOffset = r.startOffset
+        endContainer = r.endContainer
+        endOffset = r.endOffset
+      else return this
+    @addFilter (n)->
+      startPos = startContainer.compareDocumentPosition n.node
+      (if startPos == 0 then startOffset <= n.pos <= endOffset
+      else if startPos & Node.DOCUMENT_POSITION_FOLLOWING
+        endPos = endContainer.compareDocumentPosition n.node
+        if endPos == 0 then n.pos <= endOffset
+        else endPos & Node.DOCUMENT_POSITION_PRECEDING) || 'quit'
+  getText: ->
+    n = @mutable().filterTextNodes().firstText()
+    if n.isEmpty() then ''
+    else
+      t = n.node.data.substring n.pos
+      while !n.next().isEmpty()
+        t += n.node.data.substring n.pos
+      n.prev()
+      n.pos = n.node.data.length - 1
+      while n.pos > 0 && reject n.filter n
+        n.pos--
+      t.substring 0, t.length - n.node.data.length + n.pos
   isEmpty: -> @type == 'empty'
   isNL: -> @type == 'text' && @node.data[@pos] == '\n'
   endsInNL: -> @type == 'text' && @node.data[@node.length - 1] == '\n'
@@ -1669,7 +1721,7 @@ class NodePos
         when 'skip'
           n = n.nodeAfter true
           continue
-        when 'exit' then break
+        when 'quit' then break
         else
           if res then return n
       n = n.nodeAfter()
@@ -1682,7 +1734,7 @@ class NodePos
         when 'skip'
           n = n.nodeBefore true
           continue
-        when 'exit' then break
+        when 'quit' then break
         else
           if res then return n
       n = n.nodeBefore()
@@ -1760,6 +1812,8 @@ class NodePos
     m.immutable()
   copy: -> this
 
+reject = (filterResult)-> !filterResult || (filterResult in ['quit', 'skip'])
+
 class MutableNodePos extends NodePos
   constructor: (@node, @pos, @filter)-> super node, pos, filter
   setFilter: (f)->
@@ -1778,7 +1832,7 @@ class MutableNodePos extends NodePos
   emptyPrev: ->
     @type = 'empty'
     @next = (up)->
-      @computeType()
+      @revertEmpty()
       if up then @next up else this
     @nodeAfter = (up)->
       @computeType()
@@ -1786,10 +1840,17 @@ class MutableNodePos extends NodePos
     @prev = -> this
     @nodeBefore = -> this
     this
+  revertEmpty: ->
+    @computeType()
+    delete @next
+    delete @prev
+    delete @nodeAfter
+    delete @nodeBefore
+    this
   emptyNext: ->
     @type = 'empty'
     @prev = (up)->
-      @computeType()
+      @revertEmpty()
       if up then @prev up else this
     @nodeBefore = (up)->
       @computeType()
@@ -1920,6 +1981,7 @@ root.errorDiv = errorDiv
 root.NodePos = NodePos
 root.nodePosForRange = nodePosForRange
 root.nodePosForCaret = nodePosForCaret
+root.nodePosForSelectedText = nodePosForSelectedText
 root.editFile = editFile
 
 # evil mod of Templating

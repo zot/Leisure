@@ -1663,3 +1663,5 @@ var MutationSummary = (function () {
     };
     return MutationSummary;
 })();
+
+global.MutationSummary = MutationSummary;
