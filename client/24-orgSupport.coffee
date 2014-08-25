@@ -117,7 +117,6 @@ _ = require 'lodash.min'
 
 PAGEUP = 33
 PAGEDOWN = 34
-
 editDiv = null
 sourceDiv = null
 modifying = false
@@ -132,6 +131,27 @@ parentSpec = null
 sourceSpec = null
 fs = null
 hideSaveButton = true
+selectionActive = true
+movementGoal = null
+specialKeys = {}
+specialKeys[TAB] = 'TAB'
+specialKeys[ENTER] = 'ENTER'
+specialKeys[BS] = 'BS'
+specialKeys[DEL] = 'DEL'
+specialKeys[LEFT] = 'LEFT'
+specialKeys[RIGHT] = 'RIGHT'
+specialKeys[UP] = 'UP'
+specialKeys[DOWN] = 'DOWN'
+specialKeys[PAGEUP] = 'PAGEUP'
+specialKeys[PAGEDOWN] = 'PAGEDOWN'
+specialKeys[HOME] = 'HOME'
+specialKeys[END] = 'END'
+lastKeys = []
+maxLastKeys = 4
+keyCombos = []
+prevKeybinding = curKeyBinding = null
+root.modCancelled = false
+root.currentMatch = null
 
 # parentForX is needed for slide editing modes and for multple document editing
 parentForNode = (el)-> $(el).closest('[maindoc]')[0]
@@ -235,8 +255,6 @@ editFile = -> $('#file')[0].click()
 toggleLeisureBar = ->
   g = $("body")
   if g.hasClass 'bar_collapse' then g.removeClass 'bar_collapse' else g.addClass 'bar_collapse'
-
-selectionActive = true
 
 updateSelection = Lodash.throttle (-> actualSelectionUpdate()), 30,
   leading: true
@@ -344,19 +362,10 @@ splitLines = (str)->
     pos = nl + 1
   result
 
-moveCaret = (r, node, offset)->
-  r.setStart node, offset
-  r.collapse true
-  selectRange r
-
 selectRange = (r)->
   sel = getSelection()
   sel.removeAllRanges()
   sel.addRange r
-
-contains = (parent, child)-> child != null && (parent == child || (contains parent, child.parentNode))
-
-movementGoal = null
 
 moveSelectionUp = (parent, r)->
   pos = nodePosForCaret()
@@ -490,8 +499,6 @@ markupOrgWithNode = (text, note, replace)->
     console.log "Attempt to display uknown object type: ", text
     throw new Error "Attempt to display unknown type of object: #{text}"
 
-sensitive = /^srcStart|^headline-|^keyword/
-
 orgAttrs = (org)->
   if !org.nodeId then org.nodeId = nextOrgId()
   nodes[org.nodeId] = org
@@ -569,8 +576,6 @@ codeBlockAttrs = (org, inFragment)->
       return attrs + " data-org-codeblock='#{escapeAttr org.info.trim()}'"
   attrs
 
-createResults = (srcNode)->
-
 checkStart = (start, text)-> start && (!text || text == '\n')
 
 isSourceNode = (node)-> node?.getAttribute?('data-org-type') == 'source'
@@ -602,30 +607,12 @@ isCollapsibleText = (node)-> node.nodeType == Node.TEXT_NODE && node.parentNode.
 
 shiftKey = (c)-> 15 < c < 19
 
-specialKeys = {}
-specialKeys[TAB] = 'TAB'
-specialKeys[ENTER] = 'ENTER'
-specialKeys[BS] = 'BS'
-specialKeys[DEL] = 'DEL'
-specialKeys[LEFT] = 'LEFT'
-specialKeys[RIGHT] = 'RIGHT'
-specialKeys[UP] = 'UP'
-specialKeys[DOWN] = 'DOWN'
-specialKeys[PAGEUP] = 'PAGEUP'
-specialKeys[PAGEDOWN] = 'PAGEDOWN'
-specialKeys[HOME] = 'HOME'
-specialKeys[END] = 'END'
-
 modifiers = (e, c)->
   res = specialKeys[c] || String.fromCharCode(c)
   if e.altKey then res = "M-" + res
   if e.ctrlKey then res = "C-" + res
   if e.shiftKey then res = "S-" + res
   res
-
-lastKeys = []
-maxLastKeys = 4
-keyCombos = []
 
 addKeyPress = (e, c)->
   if notShift = !shiftKey c
@@ -638,8 +625,6 @@ addKeyPress = (e, c)->
       keyCombos[i] = lastKeys[lastKeys.length - i - 1 ... lastKeys.length].join ' '
     keyCombos.reverse()
   notShift
-
-prevKeybinding = curKeyBinding = null
 
 setCurKeyBinding = (f)->
   prevKeybinding = curKeyBinding
@@ -654,9 +639,6 @@ findKeyBinding = (e, parent, r)->
       return [true, f e, parent, r]
   setCurKeyBinding null
   [false]
-
-root.modCancelled = false
-root.currentMatch = null
 
 bindContent = (div)->
   fixupNodes div
@@ -709,7 +691,6 @@ bindContent = (div)->
     if !root.modCancelled && checkMod
       #root.currentMatch = matchLine currentLine div
       root.currentMatch = lineCodeBlockType currentLine div
-  displaySource()
 
 adjustSelection = (e)->
   if e.detail == 1 then return
@@ -926,15 +907,11 @@ checkSourceMod = ->
     bl = $()
     for id in root.currentBlockIds
       bl = bl.add $("##{id}")
-    if isLeisureBlock(bl) && isParentOf(bl[0], mod) && bl.find '[data-org-src="dynamic"]'
+    if isLeisureBlock(bl) && bl[0]?.contains(mod) && bl.find '[data-org-src="dynamic"]'
       root.orgApi.executeSource bl[0], mod
     if mod then checkStructure mod
 
 isLeisureBlock = (bl)-> bl.is("[data-lang='leisure']") || bl.find("[data-lang='leisure']").length > 0
-
-isParentOf = (parent, child)-> parent && parent.compareDocumentPosition(child) & Node.DOCUMENT_POSITION_CONTAINED_BY
-
-isSensitive = (type)-> typeof type == 'string' && type.match(sensitive)
 
 # Selection should be type Caret, because this should only be called
 # after a textual modification (from typing), which should never preserve a selection
@@ -1032,30 +1009,6 @@ insertBlock = (overrides, newBlock, prevId)->
   addItem overrides, newBlock, prevId
   newBlock._id
 
-reparseBlockRange = (firstBlockId, lastBlockId)->
-  slides = [findSlideForId firstBlockId]
-  if firstBlockId != lastBlockId
-    cur = getBlock(firstBlockId).next
-    while cur && cur != lastBlockId
-      if (block = getBlock cur) && isSlideBlock block then slides.push block._id
-  if slides.length > 0
-    #console.log "Reparse slides: #{(slide._id for slide in slides).join ', '}"
-    for slide in slides
-      if !(el = $("##{slide._id}")[0])
-        el = $(root.orgApi.emptySlide slide._id)[0]
-        $("[data-org-headline='0']").prepend el
-      [doc] = subDoc null, slide._id, 0, 0, (->)
-      reparse el, doc, el
-  #else console.log "No reparse necessary; nothing changed"
-
-isSlideBlock = (block)-> block.type = 'headline' && block.level == 1
-
-findSlideForId = (id)->
-  while id && block = getBlock id
-    if isSlideBlock block then return block
-    id = block.prev
-  null
-
 escapeAttr = (str)->
   if typeof str == 'string' then str.replace /['"&]/g, (c)->
     switch c
@@ -1150,8 +1103,6 @@ nativeRange = (r)->
       r2.collapse true
       r2
 
-hasParent = (node, ancestor)-> node == ancestor || (node && hasParent node.parent, ancestor)
-
 class SelectionDescriptor
   constructor: (@parent, range)->
     if range
@@ -1215,8 +1166,6 @@ loadOrg = (parent, text, downloadPath, target)->
         executeDef node), 1
 
 reparse = (parent, text, target)-> root.orgApi.reparse parent, text, target
-
-emptySlide = (id, slidePosition)-> root.orgApi.emptySlide id, slidePosition
 
 installOrgDOM = (parent, orgNode, orgText, target)->
   if target
@@ -1297,14 +1246,10 @@ checkLast = (n, parent)->
   else if n.nextSibling then '\n'
   else checkLast n.parentNode, parent
 
-getTags = (headline)-> headline.getAttribute 'data-org-tags'
-
 setTags = (headline)->
   m = getOrgText(headline.firstChild).match headlineRE
   tags = ((m && parseTags m[HL_TAGS]) || []).join ' '
   if headline.getAttribute('data-org-tags') != tags then headline.setAttribute 'data-org-tags', tags
-
-displaySource = -> $(sourceDiv).html('').text($(editDiv).text())
 
 isCollapsible = (node)-> node.getAttribute('data-org-type') in ['headline', 'source', 'results']
 
@@ -1353,7 +1298,9 @@ findDomPosition = (parent, pos, contain)->
   if n.isEmpty() then [null, null] else [n.node, n.pos]
 
 # get the next node in the preorder traversal, disregarding the node's children
-nodeAfterNoChildren = (node)-> nodeAfter node, true
+nodeAfterNoChildren = (node)->
+  n = new NodePos(node, 0).next true
+  !n.isEmpty() && n.node
 
 # get the next node in the preorder traversal, starting with the node's children
 nodeAfter = (node, up)->
@@ -1593,7 +1540,7 @@ basicOrg =
   bindContent: bindContent
   executeDef: executeDef
   executeSource: executeSource
-  createResults: createResults
+  createResults: (srcNode)->
   installOrgDOM: (parent, orgNode, orgText, target)->
     if !target then parent.setAttribute 'class', 'org-plain'
     node = orgNotebook.installOrgDOM parent, orgNode, orgText, target
@@ -1849,7 +1796,10 @@ class NodePos
   moved: (rec)->
     (@node.length > @pos) && (r2 = stubbornCharRectPrev @node, @pos) && (rec.top != r2.top || rec.left != r2.left)
   moveCaret: (r)->
-    moveCaret (r || document.createRange()), @node, @pos
+    if !r then r = document.createRange()
+    r.setStart @node, @pos
+    r.collapse true
+    selectRange r
     this
   charRect: (r, prev)->
     if prev
@@ -1954,7 +1904,6 @@ root.plainOrg = basicOrg
 root.orgNotebook = orgNotebook
 root.markupOrg = markupOrg
 root.bindContent = bindContent
-root.getTags = getTags
 root.reparse = reparse
 root.reparseListeners = reparseListeners
 root.findDomPosition = findDomPosition
@@ -1965,7 +1914,6 @@ root.orgAttrs = orgAttrs
 root.content = content
 root.contentSpan = contentSpan
 root.checkStart = checkStart
-root.displaySource = displaySource
 root.checkEnterReparse = checkEnterReparse
 root.checkExtraNewline = checkExtraNewline
 root.followingSpan = followingSpan
@@ -2012,7 +1960,6 @@ root.nativeRange = nativeRange
 root.textNodeBefore = textNodeBefore
 root.textNodeAfter = textNodeAfter
 root.visibleTextNodeAfter = visibleTextNodeAfter
-root.isParentOf = isParentOf
 root.PAGEUP = PAGEUP
 root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile
@@ -2031,7 +1978,6 @@ root.blockElementForNode = blockElementForNode
 root.blockIdsForSelection = blockIdsForSelection
 root.orgForNode = orgForNode
 root.orgChildrenForNode = orgChildrenForNode
-root.emptySlide = emptySlide
 root.toggleShowHidden = toggleShowHidden
 root.applyLeisureTooltips = applyLeisureTooltips
 root.applyShowHidden = applyShowHidden

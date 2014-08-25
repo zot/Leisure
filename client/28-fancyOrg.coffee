@@ -65,7 +65,6 @@ yaml = root.yaml
   content,
   contentSpan,
   checkStart,
-  displaySource,
   checkEnterReparse,
   checkExtraNewline,
   followingSpan,
@@ -108,7 +107,6 @@ yaml = root.yaml
   getOrgText,
   nonOrg,
   errorDiv,
-  isParentOf,
   blockIdsForSelection,
   PAGEUP,
   PAGEDOWN,
@@ -200,7 +198,7 @@ class FancySelectionDescriptor
   restore: ->
   toString: -> "Selection(none)"
 
-isParentSelectionOf = (parent, child)-> isParentOf parent?.parent, child.parent
+isParentSelectionOf = (parent, child)-> parent?.parent?.contains child.parent
 
 restoreStack = []
 
@@ -835,7 +833,7 @@ chunkSize = 30
 chunkDelay = 1000
 
 createNextValueSliders = (node, slideFunc, cur)->
-  if (cur = visibleTextNodeAfter parentForNode(cur), cur) && isParentOf(node, cur)
+  if (cur = visibleTextNodeAfter parentForNode(cur), cur) && node?.contains cur
     createNextValueSlider node, slideFunc, cur
 
 numPat = /[0-9][0-9.]*|\.[0-9.]+/
@@ -1178,9 +1176,6 @@ bindContent = (div)->
   div.addEventListener 'mouseup', (e)-> adjustSelection e
   div.addEventListener 'keydown', handleKey div
   div.addEventListener 'keyup', handleKeyup div
-  div.addEventListener 'DOMCharacterDataModified', handleMutation, true
-  div.addEventListener 'DOMSubtreeModified', handleMutation, true
-  displaySource()
 
 handleKey = (div)->(e)->
   if e.target instanceof HTMLInputElement || e.target.getAttribute 'data-view-id'
@@ -1252,10 +1247,6 @@ bsWillDestroyParent = (r)->
   else false
 
 allowEvents = true
-
-handleMutation = (evt)->
-  if allowEvents
-    displaySource()
 
 executeSource = (parent, node, cont, skipTests)->
   doc = topNode node
