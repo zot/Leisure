@@ -54,11 +54,10 @@ lz = lazy
   jsonConvert,
 } = require '17-runtime'
 {
-  DOMCursor,
   emptyDOMCursor,
   isCollapsed,
   selectRange,
-} = require '22-domCursor'
+} = DOMCursor = root.DOMCursor = window.DOMCursor
 {
   crnl,
   docOrg,
@@ -389,7 +388,7 @@ moveSelectionUp = (parent, r)->
   pos
     .backwardLine(goalFunc)
     .moveCaret()
-    .show()
+    .show $("#leisure_bar")[0].getClientRects()[0]
 
 moveSelectionDown = (parent, r)->
   pos = domCursorForCaret()
@@ -398,19 +397,19 @@ moveSelectionDown = (parent, r)->
   pos
     .forwardLine(goalFunc)
     .moveCaret()
-    .show()
+    .show $("#leisure_bar")[0].getClientRects()[0]
 
 moveSelectionForward = (parent, r)->
   pos = domCursorForCaret()
     .forwardChar()
     .moveCaret()
-    .show()
+    .show $("#leisure_bar")[0].getClientRects()[0]
 
 moveSelectionBackward = (parent, r)->
   domCursorForCaret()
     .backwardChar()
     .moveCaret()
-    .show()
+    .show $("#leisure_bar")[0].getClientRects()[0]
 
 # functions return whether to check for mods
 keyFuncs =

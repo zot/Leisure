@@ -3,9 +3,6 @@ DOMCursor
 
 Filtered cursoring on DOM documents.  DOMCursors can move forwards or backwards, by node or by character, with settable filters that can seamlessly skip over parts of the DOM.
 
-    root = module.exports = require '15-base'
-
-    emptyDOMCursor = null
 
 The DOMCursor class
 -------------------
@@ -18,7 +15,7 @@ A DOMCursor has a node, a position, a filter, and a type.
 
 - node: like with ranges, a DOM node
 - position: like with ranges, either the index of a child, for elements, or the index of a character, for text nodes.
-- filter: a function used by @next() and @prev() to skip over portions of DOM.  It returns
+- filter: a function used by @next() and @prev() to skip over portions of DOM. It returns
   - truthy: to accept a node but its children are still filtered
   - falsey: to reject a node but its children are still filtered
   - 'skip': to skip a node and its children
@@ -362,8 +359,9 @@ the previous text node (node, node.length)
       r.collapse true
       _(r.getClientRects()).last()
 
-    root.DOMCursor = DOMCursor
-    root.MutableDOMCursor = MutableDOMCursor
-    root.emptyDOMCursor = emptyDOMCursor
-    root.isCollapsed = isCollapsed
-    root.selectRange = selectRange
+    DOMCursor.MutableDOMCursor = MutableDOMCursor
+    DOMCursor.emptyDOMCursor = emptyDOMCursor
+    DOMCursor.isCollapsed = isCollapsed
+    DOMCursor.selectRange = selectRange
+
+    @DOMCursor = DOMCursor

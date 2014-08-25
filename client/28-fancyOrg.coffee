@@ -56,6 +56,9 @@ yaml = root.yaml
   lineCodeBlockType,
 } = require '12-docOrg'
 {
+  isCollapsed,
+} = window.DOMCursor
+{
   parentForNode,
   savePosition,
   findOrIs,
@@ -70,7 +73,6 @@ yaml = root.yaml
   followingSpan,
   currentLine,
   checkSourceMod,
-  isCollapsed,
   nextOrgId,
   modifyingKey,
   handleKeyup,
