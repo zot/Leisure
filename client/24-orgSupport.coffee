@@ -54,11 +54,11 @@ lz = lazy
   jsonConvert,
 } = require '17-runtime'
 {
-  NodeCursor,
-  emptyNodeCursor,
+  DOMCursor,
+  emptyDOMCursor,
   isCollapsed,
   selectRange,
-} = require '22-nodeCursor'
+} = require '22-domCursor'
 {
   crnl,
   docOrg,
@@ -158,9 +158,8 @@ keyCombos = []
 prevKeybinding = curKeyBinding = null
 root.modCancelled = false
 root.currentMatch = null
-#emptyNodeCursor = null
 
-NodeCursor.prototype.filterOrg = -> @addFilter (n)-> !n.hasAttribute('data-nonorg') || 'skip'
+DOMCursor.prototype.filterOrg = -> @addFilter (n)-> !n.hasAttribute('data-nonorg') || 'skip'
 
 # parentForX is needed for slide editing modes and for multple document editing
 parentForNode = (el)-> $(el).closest('[maindoc]')[0]
@@ -240,7 +239,7 @@ replaceClipboardWithSelection = (e, sel)->
     n = document.createElement('div')
     n.appendChild sel.getRangeAt(0).cloneContents()
     e.clipboardData.setData 'text/html', n.innerHTML
-    e.clipboardData.setData 'text/plain', nodeCursorForSelectedText().getText()
+    e.clipboardData.setData 'text/plain', domCursorForSelectedText().getText()
 
 pasteListener = (e)->
   clipboardKey = 'paste'
@@ -371,20 +370,20 @@ splitLines = (str)->
     pos = nl + 1
   result
 
-makeGoalFunc = (nodeCur, goal)->
+makeGoalFunc = (domCur, goal)->
   (col)->
-    o = headlineOffset(nodeCur, col)
+    o = headlineOffset(domCur, col)
     if o < goal then -1 else if o == goal then 0 else 1
 
-headlineOffset = (nodeCur, col)->
-  if !nodeCur.hlOff
-    nodeCur.hlOff = $(nodeCur.node).closest("[data-org-headline='1']")[0].getClientRects()[0].left
-  col - nodeCur.hlOff
+headlineOffset = (domCur, col)->
+  if !domCur.hlOff
+    domCur.hlOff = $(domCur.node).closest("[data-org-headline='1']")[0].getClientRects()[0].left
+  col - domCur.hlOff
 
-getMovementGoal = (nodeCur)-> headlineOffset nodeCur, nodeCur.charRect().left
+getMovementGoal = (domCur)-> headlineOffset domCur, domCur.charRect().left
 
 moveSelectionUp = (parent, r)->
-  pos = nodeCursorForCaret()
+  pos = domCursorForCaret()
   if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = getMovementGoal pos
   goalFunc = makeGoalFunc pos, movementGoal
   pos
@@ -393,7 +392,7 @@ moveSelectionUp = (parent, r)->
     .show()
 
 moveSelectionDown = (parent, r)->
-  pos = nodeCursorForCaret()
+  pos = domCursorForCaret()
   if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = getMovementGoal pos
   goalFunc = makeGoalFunc pos, movementGoal
   pos
@@ -402,13 +401,13 @@ moveSelectionDown = (parent, r)->
     .show()
 
 moveSelectionForward = (parent, r)->
-  pos = nodeCursorForCaret()
+  pos = domCursorForCaret()
     .forwardChar()
     .moveCaret()
     .show()
 
 moveSelectionBackward = (parent, r)->
-  nodeCursorForCaret()
+  domCursorForCaret()
     .backwardChar()
     .moveCaret()
     .show()
@@ -698,14 +697,14 @@ bindContent = (div)->
       #root.currentMatch = matchLine currentLine div
       root.currentMatch = lineCodeBlockType currentLine div
 
-nodeCursor = (node, pos)-> new NodeCursor(node, pos).filterOrg()
+domCursor = (node, pos)-> new DOMCursor(node, pos).filterOrg()
 
 adjustSelection = (e)->
   if e.detail == 1 then return
   s = getSelection()
   if s.type == 'Range'
     r = s.getRangeAt 0
-    pos = nodeCursor r.endContainer, r.endOffset
+    pos = domCursor r.endContainer, r.endOffset
       .mutable()
       .filterVisibleTextNodes()
       .firstText()
@@ -876,7 +875,7 @@ modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
 lineForRange = (node, offset)->
   lineText = node.data
   lineEnd = -1
-  pos = nodeCursor(node).mutable().filterTextNodes()
+  pos = domCursor(node).mutable().filterTextNodes()
   if (lineStart = node.data.substring(0, offset).lastIndexOf '\n') == -1
     while !pos.isEmpty() && lineStart == -1
       if pos = pos.prev()
@@ -1290,7 +1289,7 @@ findOrgNode = (parent, pos)->
 
 getTextPosition = (parent, target, pos)->
   if parent
-    nodeCursor parent, 0
+    domCursor parent, 0
       .mutable()
       .filterTextNodes()
       .filterParent parent
@@ -1298,7 +1297,7 @@ getTextPosition = (parent, target, pos)->
   else -1
 
 findDomPosition = (parent, pos, contain)->
-  n = nodeCursor parent, 0
+  n = domCursor parent, 0
     .mutable()
     .filterTextNodes()
     .filterParent parent
@@ -1312,7 +1311,7 @@ nonOrg = (node)->
 
 # full text for node
 getOrgText = (node)->
-  nodeCursor node.firstChild, 0
+  domCursor node.firstChild, 0
     .mutable()
     .filterTextNodes()
     .filterParent node
@@ -1322,17 +1321,17 @@ orgForNode = (node)-> parseOrgMode getOrgText node
 
 # return the block text for a node -- just the text that's in its mongo block
 blockText = (node)->
-  nodeCursor node.firstChild, 0
+  domCursor node.firstChild, 0
     .mutable()
     .addFilter (n)-> !n.hasAttribute('data-shared') || 'skip'
     .filterParent node
     .filterTextNodes()
     .getText()
 
-nodeBefore = (node)-> nodeCursor(node, 0).prev().node
+nodeBefore = (node)-> domCursor(node, 0).prev().node
 
 textNodeBefore = (parent, node)->
-  n = nodeCursor node, 0
+  n = domCursor node, 0
     .mutable()
     .filterTextNodes()
     .filterParent parent
@@ -1340,7 +1339,7 @@ textNodeBefore = (parent, node)->
   !n.isEmpty() && n.node
 
 textNodeAfter = (parent, node)->
-  n = nodeCursor node, 0
+  n = domCursor node, 0
     .mutable()
     .filterTextNodes()
     .filterParent parent
@@ -1348,7 +1347,7 @@ textNodeAfter = (parent, node)->
   !n.isEmpty() && n.node
 
 visibleTextNodeAfter = (parent, node)->
-  n = nodeCursor node, 0
+  n = domCursor node, 0
     .mutable()
     .filterVisibleTextNodes()
     .filterParent parent
@@ -1441,31 +1440,31 @@ basicOrg =
 
 findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 
-nodeCursorForRange = (r)->
-  n = nodeCursor r.startContainer, r.startOffset
+domCursorForRange = (r)->
+  n = domCursor r.startContainer, r.startOffset
     .mutable()
     .filterVisibleTextNodes()
     .filterRange r
     .firstText()
   if n.pos < n.node.length then n else n.next()
 
-#nodeCursorForCaret = -> nodeCursorForRange getSelection().getRangeAt(0)
-nodeCursorForCaret = ->
+#domCursorForCaret = -> domCursorForRange getSelection().getRangeAt(0)
+domCursorForCaret = ->
   sel = getSelection()
   parent = parentForNode sel.focusNode
-  n = nodeCursor sel.focusNode, sel.focusOffset
+  n = domCursor sel.focusNode, sel.focusOffset
     .mutable()
     .filterVisibleTextNodes()
     .filterParent parent
     .firstText()
   if n.pos < n.node.length then n else n.next()
 
-nodeCursorForSelectedText = ->
+domCursorForSelectedText = ->
   sel = getSelection()
-  if sel.type != 'Range' then emptyNodeCursor
+  if sel.type != 'Range' then emptyDOMCursor
   else
     r = sel.getRangeAt 0
-    n = nodeCursor r.startContainer, r.startOffset
+    n = domCursor r.startContainer, r.startOffset
       .mutable()
       .filterTextNodes()
       .filterRange r
@@ -1553,12 +1552,11 @@ root.actualSelectionUpdate = actualSelectionUpdate
 root.currentBlockIds = []
 root.toggleLeisureBar = toggleLeisureBar
 root.errorDiv = errorDiv
-root.NodeCursor = NodeCursor
-root.nodeCursorForRange = nodeCursorForRange
-root.nodeCursorForCaret = nodeCursorForCaret
-root.nodeCursorForSelectedText = nodeCursorForSelectedText
+root.domCursorForRange = domCursorForRange
+root.domCursorForCaret = domCursorForCaret
+root.domCursorForSelectedText = domCursorForSelectedText
 root.editFile = editFile
-root.nodeCursor = nodeCursor
+root.domCursor = domCursor
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

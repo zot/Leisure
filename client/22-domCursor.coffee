@@ -1,8 +1,8 @@
 root = module.exports = require '15-base'
 
-emptyNodeCursor = null
+emptyDOMCursor = null
 
-class NodeCursor
+class DOMCursor
   constructor: (@node, @pos, filter)->
     @pos = @pos ? 0
     @filter = filter || -> true
@@ -12,12 +12,12 @@ class NodeCursor
     else if @node.nodeType == Node.TEXT_NODE then 'text'
     else 'element'
     this
-  newPos: (node, pos)-> new NodeCursor node, pos, @filter
+  newPos: (node, pos)-> new DOMCursor node, pos, @filter
   addFilter: (filt)->
     oldFilt = @filter
     @setFilter (n)->
       (((r1 = oldFilt n) in ['quit', 'skip']) && r1) || (((r2 = filt n) in ['quit', 'skip']) && r2) || (r1 && r2)
-  setFilter: (f)-> new NodeCursor @node, @pos, f
+  setFilter: (f)-> new DOMCursor @node, @pos, f
   firstText: (backwards)->
     n = this
     while !n.isEmpty() && n.type != 'text'
@@ -107,7 +107,7 @@ class NodeCursor
     # return an empty next node where
     #   prev returns this node
     #   next returns the same empty node
-    __proto__: emptyNodeCursor
+    __proto__: emptyDOMCursor
     filter: @filter
     prev: (up)=> if up then @prev up else this
     nodeBefore: (up)=> if up then @nodeBefore up else this
@@ -127,7 +127,7 @@ class NodeCursor
     # return an empty prev node where
     #   next returns this node
     #   prev returns the same empty node
-    __proto__: emptyNodeCursor
+    __proto__: emptyDOMCursor
     filter: @filter
     next: (up)=> if up then @next up else this
     nodeAfter: (up)=> if up then @nodeAfter up else this
@@ -224,14 +224,14 @@ class NodeCursor
   immutable: -> this
   save: -> this
   restore: (n)-> n.immutable()
-  mutable: -> new MutableNodeCursor @node, @pos, @filter
+  mutable: -> new MutableDOMCursor @node, @pos, @filter
   withMutations: (func)->
     m = @mutable()
     func m
     m.immutable()
   copy: -> this
 
-class EmptyNodeCursor extends NodeCursor
+class EmptyDOMCursor extends DOMCursor
   moveCaret: -> this
   show: -> this
   nodeAfter: -> this
@@ -240,18 +240,18 @@ class EmptyNodeCursor extends NodeCursor
   prev: -> this
 
 #singleton empty node cursor
-emptyNodeCursor = new EmptyNodeCursor()
+emptyDOMCursor = new EmptyDOMCursor()
 
-class MutableNodeCursor extends NodeCursor
+class MutableDOMCursor extends DOMCursor
   constructor: (@node, @pos, @filter)-> super node, pos, filter
   setFilter: (f)->
     @filter = f
     this
   newPos: (@node, @pos)-> @computeType()
-  copy: -> new MutableNodeCursor @node, @pos, @filter
+  copy: -> new MutableDOMCursor @node, @pos, @filter
   mutable: -> this
-  immutable: -> new NodeCursor @node, @pos, @filter
-  save: -> new NodeCursor @node, @pos, @filter
+  immutable: -> new DOMCursor @node, @pos, @filter
+  save: -> new DOMCursor @node, @pos, @filter
   restore: (np)->
     @node = np.node
     @pos = np.pos
@@ -328,8 +328,8 @@ charRect = (node, pos, r)->
   r.collapse true
   _(r.getClientRects()).last()
 
-root.NodeCursor = NodeCursor
-root.MutableNodeCursor = MutableNodeCursor
-root.emptyNodeCursor = emptyNodeCursor
+root.DOMCursor = DOMCursor
+root.MutableDOMCursor = MutableDOMCursor
+root.emptyDOMCursor = emptyDOMCursor
 root.isCollapsed = isCollapsed
 root.selectRange = selectRange
