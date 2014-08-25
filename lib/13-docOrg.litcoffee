@@ -16,7 +16,7 @@
       dump,
     } = root.yaml
 
-    _ = (Lazy ? window?.Lazy ? global?.Lazy)
+    _L = (Lazy ? window?.Lazy ? global?.Lazy)
 
     getCodeItems = (org)->
       if !getSourceNodeType org then {}
@@ -97,16 +97,16 @@
       if org instanceof Headline
         local = local || (org.level == 1 && org.properties.local)
         children = createChildrenDocs org, local
-        result = if org.level == 0 then (org.children.length && children) || _([text: '\n', type: 'chunk'])
-        else _([text: org.text, type: 'headline', level: org.level]).concat children
+        result = if org.level == 0 then (org.children.length && children) || _L([text: '\n', type: 'chunk'])
+        else _L([text: org.text, type: 'headline', level: org.level]).concat children
       else if org instanceof HTML then [result, next] = createHtmlBlockDoc org
       else if isCodeBlock org then [result, next] = createCodeBlockDoc org
-      else result = _([text: org.allText(), type: 'chunk'])
+      else result = _L([text: org.allText(), type: 'chunk'])
       if local then result.each (item)-> item.local = true
       [result, next]
 
     createChildrenDocs = (org, local)->
-      children = _()
+      children = _L()
       child = org.children[0]
       mergedText = ''
       while child
@@ -130,7 +130,7 @@
       text = ''
       {first, name, source, last, expected, results} = getCodeItems org
       firstOffset = first.offset
-      if !first then [_([text: org.allText(), type: 'chunk']), org.next]
+      if !first then [_L([text: org.allText(), type: 'chunk']), org.next]
       else
         while first != last.next
           text += first.allText()
@@ -150,7 +150,7 @@
         if obj.codeAttributes?.local? then obj.local = true
         if l = source.lead() then obj.language = l.trim()
         if isYaml source then obj.yaml = safeLoad source.content
-        [_([obj]), last.next]
+        [_L([obj]), last.next]
 
     createHtmlBlockDoc = (org)->
         text = org.allText()
@@ -159,7 +159,7 @@
         obj.codePostlen = text.length - obj.codePrelen - org.contentLength
         obj.language = 'html'
         if a = org.attributes() then obj.codeAttributes = a
-        [_([obj]), org.next]
+        [_L([obj]), org.next]
 
     isYaml = (org)-> org instanceof Source && org.info.match /^ *yaml\b/i
 

@@ -1,6 +1,4 @@
     root = if window? then window.Highlighting = {} else global.Highlighting = {}
-    _ = Lazy
-
 
     {
       escapeHtml,

@@ -123,13 +123,18 @@ sourceDiv = null
 modifying = false
 idCount = 0
 nodes = {}
-#needsReparse = false
 reparseListeners = []
 savingPosition = false
 savedPositionOverride = null
+clipboardKey = null
+root.currentMode = null
+parentSpec = null
+sourceSpec = null
+fs = null
+hideSaveButton = true
 
 # parentForX is needed for slide editing modes and for multple document editing
-parentForElement = (el)-> $(el).closest('[maindoc]')[0]
+parentForNode = (el)-> $(el).closest('[maindoc]')[0]
 
 parentForBlockId = (id)-> $('[maindoc]')[0]
 
@@ -138,15 +143,6 @@ parentForDocId = (id)-> $('[maindoc]')[0]
 nextOrgId = -> 'org-node-' + idCount++
 
 getOrgType = (node)-> node?.getAttribute? 'data-org-type'
-
-root.currentMode = null
-
-parentSpec = null
-sourceSpec = null
-
-fs = null
-
-hideSaveButton = true
 
 initOrg = (parent, source)->
   parentSpec = parent
@@ -197,8 +193,6 @@ initOrg = (parent, source)->
   document.addEventListener('copy', copyListener)
   document.addEventListener('paste', pasteListener)
 
-clipboardKey = null
-
 copyListener = (e)->
   clipboardKey = 'copy'
   sel = getSelection()
@@ -227,7 +221,7 @@ pasteListener = (e)->
     text = e.clipboardData.getData('text/plain')
     r = sel.getRangeAt 0
     r.deleteContents()
-    savedSel = new SelectionDescriptor parentForElement(sel.focusNode), r
+    savedSel = new SelectionDescriptor parentForNode(sel.focusNode), r
     r.insertNode document.createTextNode text
     r2 = document.createRange()
     r2.setStart r.endContainer, r.endOffset
@@ -437,7 +431,7 @@ keyFuncs =
     Leisure.snapshot()
 
 followsNewline = (txt)->
-  prev = textNodeBefore txt
+  prev = textNodeBefore parentForNode(txt), txt
   !prev || prev.data[prev.data.length - 1] == '\n'
 
 templateExpansions =
@@ -761,7 +755,7 @@ backspace = (parent, event, sel, r, allowBlockCrossing)->
     # get new range in case normalization changed it
     r = sel.getRangeAt 0
     if r.startOffset == 0
-      if t = textNodeBefore r.startContainer
+      if t = textNodeBefore parent, r.startContainer
         if isCollapsed(t) || (!allowBlockCrossing && afterBlockBorder r) then return
         if t && parent.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_CONTAINED_BY
           root.currentMatch = lineCodeBlockType lineForRange t, t.length - 1
@@ -780,9 +774,10 @@ backspace = (parent, event, sel, r, allowBlockCrossing)->
       if offset < t.length then txt += t.data.substring offset
       t.data = txt
       if t.data == ''
-        n = visibleTextNodeAfter t, 0
-        r.setStart n, 0
-        root.modified = n
+        n = visibleTextNodeAfter parent, t
+        if n
+          r.setStart n.node, 0
+          root.modified = n.node
         $(t).remove()
       else
         root.modified = r.startContainer
@@ -800,12 +795,12 @@ del = (parent, event, sel, r, allowBlockCrossing)->
     # get new range in case normalization changed it
     r = sel.getRangeAt 0
     root.modified = t = r.startContainer
-    next = textNodeAfter t
+    next = textNodeAfter parent, t
     chooseNext = false
     if r.startOffset == t.length - 1
       if t.data[r.startOffset] == '\n'
         console.log 'newline'
-      if t.data[r.startOffset] == '\n' && (isCollapsed(next) || (!allowBlockCrossing && beforeBlockBorder r))
+      if t.data[r.startOffset] == '\n' && (isCollapsed(next) || (!allowBlockCrossing && beforeBlockBorder parent, r))
         return root.modCancelled = true
     if r.startOffset == 0
       if t.length == 1
@@ -816,13 +811,13 @@ del = (parent, event, sel, r, allowBlockCrossing)->
     else # currently, this should never happen
       t.data = t.data.substring(0, r.startOffset) + t.data.substring r.startOffset + 1
     if r.startOffset == t.length
-      if isCollapsed next then next = visibleTextNodeAfter next
+      if isCollapsed next then next = visibleTextNodeAfter parent, next
       r.setStart next, 0
     setCaret r
 
-beforeBlockBorder = (r)->
+beforeBlockBorder = (parent, r)->
   t = r.startContainer
-  next = textNodeAfter t
+  next = textNodeAfter parent, t
   r.collapsed &&
   t.nodeType == Node.TEXT_NODE &&
   r.startOffset == t.length - 1 &&
@@ -831,7 +826,7 @@ beforeBlockBorder = (r)->
 
 afterBlockBorder = (r)->
   t = r.startContainer
-  prev = textNodeBefore t
+  prev = textNodeBefore parentForNode(t), t
   r.collapsed &&
   t.nodeType == Node.TEXT_NODE &&
   r.startOffset == 0 &&
@@ -924,10 +919,6 @@ collapseNode = ->
       $(node).toggleClass 'collapsed'
       modifying = false
     else status "EMPTY ENTRY"
-
-checkCollapsed = (delta)->
-  node = getSelection().focusNode
-  node && (isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) node)
 
 checkSourceMod = ->
   if (el = getDeepestActiveElement()) && el.nodeName.match /input/i then return
@@ -1165,8 +1156,8 @@ class SelectionDescriptor
   constructor: (@parent, range)->
     if range
       @offset = 0
-      @start = getTextPosition(parent, range.startContainer, range.startOffset)
-      @end = getTextPosition(parent, range.endContainer, range.endOffset)
+      @start = getTextPosition parent, range.startContainer, range.startOffset
+      @end = getTextPosition parent, range.endContainer, range.endOffset
     else
       @restore = ->
       @toString = "Selection(none)"
@@ -1179,9 +1170,11 @@ class SelectionDescriptor
       r.setStart startContainer, startOffset
       if startOffset == endOffset then r.collapse true
       else
-        [endContainer, endOffset] = findDomPosition @parent, @end + @offset
+        [endContainer, endOffset] = findDomPosition @parent, @end + @offset, true
         if !endContainer then r.collapse true
-        else r.setEnd endContainer, endOffset
+        else
+          if startContainer.compareDocumentPosition(endContainer) & Node.DOCUMENT_POSITION_PRECEDING then r.setEnd startContainer, startOffset
+          else r.setEnd endContainer, endOffset
       r
   restore: -> selectRange @currentRange()
   toString: -> "Selection(#{@start}, #{@end})"
@@ -1189,7 +1182,7 @@ class SelectionDescriptor
 saveSelection = ->
   sel = getSelection()
   if sel.type == 'None' then new SelectionDescriptor()
-  else new SelectionDescriptor parentForElement(sel.focusNode), sel.getRangeAt 0
+  else new SelectionDescriptor parentForNode(sel.focusNode), sel.getRangeAt 0
 
 savePosition = (saveFunc, block)->
   if savingPosition then block()
@@ -1234,15 +1227,6 @@ installOrgDOM = (parent, orgNode, orgText, target)->
     result = parent.firstElementChild
   result
 
-checkDeleteReparse = (parent, backspace)->
-  r = getSelection().getRangeAt 0
-  if backspace
-    if r.startOffset == 0 then (prev = textNodeBefore r.startContainer) && prev.data[prev.data.length - 1] == '\n'
-    else r.startContainer.data[r.startOffset - 1] == '\n'
-  else
-    if r.startOffset == r.startContainer.data.length then (next = textNodeAfter r.startContainer) && next.data[0] == '\n'
-    else r.startContainer.data[r.startOffset + 1] == '\n'
-
 checkEnterReparse = (parent, r)->
   if (result = getCollapsible r.startContainer) then reparse parent
   result
@@ -1283,8 +1267,6 @@ executeSource = (parent, node, cont)->
         if env.changed then edited node
         cont?()
     else console.log "No end for src block"
-  #else if getOrgType(node) == 'text' then needsReparse = true
-  #else !isDocNode(node) && executeSource parent, node.parentElement
   else getOrgType(node) != 'text' && !isDocNode(node) && executeSource parent, node.parentElement
 
 getNodeLang = (node) ->
@@ -1355,32 +1337,20 @@ findOrgNode = (parent, pos)->
 
 getTextPosition = (parent, target, pos)->
   if parent
-    offset = 0
-    n = new NodePos parent, 0
+    new NodePos parent, 0
       .mutable()
       .filterTextNodes()
       .filterParent parent
-      .firstText()
-    limit = if target.nodeType == Node.TEXT_NODE then target
-    else n.newPos(target).next(true).node
-    while !(n = n.next()).isEmpty() && n.node != limit
-      offset += n.node.length
-    offset + (if target.nodeType == Node.TEXT_NODE then pos else 0)
+      .countChars target, pos
   else -1
 
 findDomPosition = (parent, pos, contain)->
-  orig = n = new NodePos parent, 0
+  n = new NodePos parent, 0
     .mutable()
     .filterTextNodes()
     .filterParent parent
-    .firstText()
-  while !(n = n.next()).isEmpty()
-    if pos < n.node.length then return [n.node, pos]
-    pos -= n.node.length
-  if contain
-    n = orig.prev().node
-    [n, n && n.length]
-  else [null, null]
+    .forwardChars pos, contain
+  if n.isEmpty() then [null, null] else [n.node, n.pos]
 
 # get the next node in the preorder traversal, disregarding the node's children
 nodeAfterNoChildren = (node)-> nodeAfter node, true
@@ -1506,21 +1476,26 @@ nodeBefore = (node, up)->
       node = node.parentNode
   null
 
-textNodeBefore = (node)->
-  while node = nodeBefore node
-    if node.nodeType == Node.TEXT_NODE then return node
+textNodeBefore = (parent, node)->
+  n = new NodePos node, 0
+    .filterTextNodes()
+    .filterParent parent
+    .prev()
+  !n.isEmpty() && n.node
 
-textNodeAfter = (node)->
-  while node = nodeAfter node
-    if node.nodeType == Node.TEXT_NODE then return node
+textNodeAfter = (parent, node)->
+  n = new NodePos node, 0
+    .filterTextNodes()
+    .filterParent parent
+    .next()
+  !n.isEmpty() && n.node
 
-visibleTextNodeBefore = (node)->
-  while node = nodeBeforeSkipNonOrg node
-    if node.nodeType == Node.TEXT_NODE && !isCollapsed node then return node
-
-visibleTextNodeAfter = (node)->
-  while node = nodeAfterSkipNonOrg node
-    if node.nodeType == Node.TEXT_NODE && !isCollapsed node then return node
+visibleTextNodeAfter = (parent, node)->
+  n = new NodePos node, 0
+    .filterVisibleTextNodes()
+    .filterParent parent
+    .next()
+  !n.isEmpty() && n.node
 
 #
 # Shadow dom support
@@ -1590,7 +1565,6 @@ orgNotebook =
     [orgNode, orgText] = @markupOrgWithNode text, null, target
     node = null
     root.restorePosition parent, => node = @installOrgDOM parent, orgNode, orgText, target
-    #needsReparse = false
     setTimeout (->
       for l in reparseListeners
         l parent, orgNode, orgText
@@ -1649,7 +1623,7 @@ nodePosForRange = (r)->
 #nodePosForCaret = -> nodePosForRange getSelection().getRangeAt(0)
 nodePosForCaret = ->
   sel = getSelection()
-  parent = parentForElement sel.focusNode
+  parent = parentForNode sel.focusNode
   n = new NodePos sel.focusNode, sel.focusOffset
     .mutable()
     .filterVisibleTextNodes()
@@ -1676,25 +1650,47 @@ class NodePos
     @pos = @pos ? 0
     @filter = filter || -> true
     @computeType()
-  firstText: (backwards)->
-    n = this
-    while !n.isEmpty() && n.type != 'text'
-      n = (if backwards then n.prev() else n.next())
-    n
   computeType: ->
     @type = if !@node then 'empty'
     else if @node.nodeType == Node.TEXT_NODE then 'text'
     else 'element'
     this
-  setFilter: (f)-> new NodePos @node, @pos, f
-  hasAttribute: (a)->
-    @node && @node.nodeType == Node.ELEMENT_NODE && @node.hasAttribute a
-  getAttribute: (a)->
-    @node && @node.nodeType == Node.ELEMENT_NODE && @node.getAttribute a
   newPos: (node, pos)-> new NodePos node, pos, @filter
   addFilter: (filt)->
     oldFilt = @filter
     @setFilter (n)-> if reject (r = oldFilt(n)) then r else filt(n)
+  setFilter: (f)-> new NodePos @node, @pos, f
+  firstText: (backwards)->
+    n = this
+    while !n.isEmpty() && n.type != 'text'
+      n = (if backwards then n.prev() else n.next())
+    n
+  countChars: (node, pos)->
+    n = this
+    tot = 0
+    while !n.isEmpty() && n.node != node
+      if n.type == 'text' then tot += n.node.length
+      n = n.next()
+    if n.isEmpty() || n.node != node then -1
+    else if n.type == 'text' then tot + pos
+    else tot
+  forwardChars: (count, contain)->
+    n = this
+    while !n.isEmpty() && 0 <= count
+      if n.type == 'text'
+        if count < n.node.length
+          if count == 0 && contain
+            n = n.prev()
+            while n.type != 'text' then n = n.prev()
+            return n.newPos n.node, n.node.length
+          else return n.newPos n.node, count
+        count -= n.node.length
+      n = n.next()
+    n.emptyNext()
+  hasAttribute: (a)->
+    @node && @node.nodeType == Node.ELEMENT_NODE && @node.hasAttribute a
+  getAttribute: (a)->
+    @node && @node.nodeType == Node.ELEMENT_NODE && @node.getAttribute a
   filterTextNodes: ->
     @addFilter (n)-> n.type == 'text' || (n.hasAttribute('data-nonorg') && 'skip')
   filterVisibleTextNodes: -> @filterTextNodes().addFilter (n)-> !isCollapsed n.node
@@ -1950,7 +1946,7 @@ for stub in ['moveCaret', 'show', 'nodeAfter', 'nodeBefore', 'next', 'prev']
   emptyNodePos[stub] = -> this
 
 root.findOrIs = findOrIs
-root.parentForElement = parentForElement
+root.parentForNode = parentForNode
 root.parentForBlockId = parentForBlockId
 root.parentForDocId = parentForDocId
 root.basicOrg = basicOrg
@@ -1971,7 +1967,6 @@ root.contentSpan = contentSpan
 root.checkStart = checkStart
 root.displaySource = displaySource
 root.checkEnterReparse = checkEnterReparse
-root.checkCollapsed = checkCollapsed
 root.checkExtraNewline = checkExtraNewline
 root.followingSpan = followingSpan
 root.currentLine = currentLine
@@ -2004,6 +1999,7 @@ root.escapeAttr = escapeAttr
 root.restorePosition = restorePosition
 root.savePosition = savePosition
 root.overrideSavedPosition = overrideSavedPosition
+root.saveSelection = saveSelection
 root.splitLines = splitLines
 root.orgSrcAttrs = orgSrcAttrs
 root.getNodeLang = getNodeLang
@@ -2015,7 +2011,6 @@ root.isDef = isDef
 root.nativeRange = nativeRange
 root.textNodeBefore = textNodeBefore
 root.textNodeAfter = textNodeAfter
-root.visibleTextNodeBefore = visibleTextNodeBefore
 root.visibleTextNodeAfter = visibleTextNodeAfter
 root.isParentOf = isParentOf
 root.PAGEUP = PAGEUP

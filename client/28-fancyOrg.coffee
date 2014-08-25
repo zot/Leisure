@@ -56,6 +56,7 @@ yaml = root.yaml
   lineCodeBlockType,
 } = require '12-docOrg'
 {
+  parentForNode,
   savePosition,
   findOrIs,
   orgNotebook,
@@ -66,7 +67,6 @@ yaml = root.yaml
   checkStart,
   displaySource,
   checkEnterReparse,
-  checkCollapsed,
   checkExtraNewline,
   followingSpan,
   currentLine,
@@ -104,11 +104,10 @@ yaml = root.yaml
   nodeBefore,
   textNodeAfter,
   textNodeBefore,
+  visibleTextNodeAfter,
   getOrgText,
   nonOrg,
   errorDiv,
-  visibleTextNodeBefore,
-  visibleTextNodeAfter,
   isParentOf,
   blockIdsForSelection,
   PAGEUP,
@@ -287,9 +286,10 @@ restoreDocRange = (parent, [start, end, offset, noteId])->
   s.addRange r
 
 getDocumentOffset = (r)->
-  c = (if r.startOffset == 0 then (textNodeBefore r.startContainer) ? r.startContainer else r.startContainer)
+  parent = parentForNode r.startContainer
+  c = (if r.startOffset == 0 then (textNodeBefore parent, r.startContainer) ? r.startContainer else r.startContainer)
   while isCollapsed c
-    c = textNodeBefore c
+    c = textNodeBefore parent, c
   documentTop c
 
 childIndex = (parent, child)->
@@ -835,7 +835,7 @@ chunkSize = 30
 chunkDelay = 1000
 
 createNextValueSliders = (node, slideFunc, cur)->
-  if (cur = textNodeAfter cur) && isParentOf(node, cur)
+  if (cur = visibleTextNodeAfter parentForNode(cur), cur) && isParentOf(node, cur)
     createNextValueSlider node, slideFunc, cur
 
 numPat = /[0-9][0-9.]*|\.[0-9.]+/
@@ -898,7 +898,7 @@ recreateAstButtons = (node)->
     while cur && mchunk
       if mchunk.index - curStart > cur.length
         curStart += cur.length
-        cur = textNodeAfter cur
+        cur = visibleTextNodeAfter parentForNode(cur), cur
         continue
       cur = (if mchunk.index > curStart then cur.splitText mchunk.index - curStart else cur)
       curStart = mchunk.index
@@ -1168,7 +1168,7 @@ currentTextPosition = (parent, r)->
 
 crossesHidden = (delta)->
   r = getSelection().getRangeAt 0
-  !(0 <= r.startOffset < r.startContainer.length) && isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) r.startContainer
+  !(0 <= r.startOffset < r.startContainer.length) && isCollapsed (if delta < 0 then textNodeBefore else textNodeAfter) parentForNode(r.startContainer), r.startContainer
 
 bindContent = (div)->
   div.addEventListener 'drop', (e)-> root.orgApi.handleDrop e
@@ -1882,7 +1882,7 @@ toggleEdit = (id)->
     console.log "toggle edit", id
     node = $("##{id}").closest("[data-org-headline='1']")
     id = node[0].id
-    parent = root.parentForElement(node)
+    parent = parentForNode node
     if node.attr('data-edit-mode') == 'plain'
       node.attr 'data-edit-mode', 'fancy'
       mode = fancyOrg

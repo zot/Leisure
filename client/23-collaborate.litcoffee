@@ -19,7 +19,7 @@ Meteor-based collaboration -- client side
     } = Leisure.yaml
 
     root = require '15-base'
-    _ = Lazy
+    _ = require 'lodash.min'
 
     viewTypeData = {}
     viewIdTypes = {}
@@ -219,7 +219,7 @@ Handle changes to the doc nodes
         if descriptor = controllerIdDescriptor[data._id]
           old = controllerDescriptorIds[descriptor]
           if old.length == 1 then delete controllerDescriptorIds[descriptor]
-          else _.remove old, (i)-> i == data._id
+          else controllerDescriptorIds[descriptor] = _.remove old, (i)-> i == data._id
           delete controllerIdDescriptor[data._id]
       if type in ['changed', 'added'] && data.type == 'code'
         attr = data.codeAttributes ? {}
