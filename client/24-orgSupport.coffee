@@ -152,6 +152,7 @@ keyCombos = []
 prevKeybinding = curKeyBinding = null
 root.modCancelled = false
 root.currentMatch = null
+emptyNodeCursor = null
 
 # parentForX is needed for slide editing modes and for multple document editing
 parentForNode = (el)-> $(el).closest('[maindoc]')[0]
@@ -426,9 +427,9 @@ keyFuncs =
         start = r.startOffset
         [first, second] = exp
         pos = (getTextPosition parent, txt, start) - 2
-        if start == txt.data.length
+        if start == txt.length
           next = null
-          txt.data = txt.data.substring 0, txt.data.length - 2
+          txt.data = txt.data.substring 0, txt.length - 2
         else
           next = (if start == 2 then txt else txt.splitText start - 2)
           next.data = next.data.substring 2
@@ -441,7 +442,7 @@ keyFuncs =
 
 followsNewline = (txt)->
   prev = textNodeBefore parentForNode(txt), txt
-  !prev || prev.data[prev.data.length - 1] == '\n'
+  !prev || prev.data[prev.length - 1] == '\n'
 
 templateExpansions =
   '<s': ['#+BEGIN_SRC leisure\n', '\n#+END_SRC']
@@ -697,7 +698,7 @@ adjustSelection = (e)->
   s = getSelection()
   if s.type == 'Range'
     r = s.getRangeAt 0
-    pos = new NodePos r.endContainer, r.endOffset
+    pos = new NodeCursor r.endContainer, r.endOffset
       .mutable()
       .filterVisibleTextNodes()
       .firstText()
@@ -868,7 +869,7 @@ modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
 lineForRange = (node, offset)->
   lineText = node.data
   lineEnd = -1
-  pos = new NodePos(node).mutable().filterTextNodes()
+  pos = new NodeCursor(node).mutable().filterTextNodes()
   if (lineStart = node.data.substring(0, offset).lastIndexOf '\n') == -1
     while !pos.isEmpty() && lineStart == -1
       if pos = pos.prev()
@@ -876,12 +877,12 @@ lineForRange = (node, offset)->
         lineStart = pos.node.data.lastIndexOf '\n'
   if !pos.isEmpty()
     nl = pos.node.data.indexOf '\n', offset
-    if nl >= offset then lineEnd = nl + lineText.length - pos.node.data.length
+    if nl >= offset then lineEnd = nl + lineText.length - pos.node.length
     else
       while !pos.isEmpty() && lineEnd == -1
         if pos = pos.next()
           lineText += pos.node.data
-          if (nl = pos.node.data.indexOf '\n') > -1 then lineEnd = nl + lineText.length - pos.node.data.length
+          if (nl = pos.node.data.indexOf '\n') > -1 then lineEnd = nl + lineText.length - pos.node.length
     if lineEnd == -1 then lineEnd = lineText.length
     lineText.substring lineStart + 1, lineEnd
   else ''
@@ -1282,7 +1283,7 @@ findOrgNode = (parent, pos)->
 
 getTextPosition = (parent, target, pos)->
   if parent
-    new NodePos parent, 0
+    new NodeCursor parent, 0
       .mutable()
       .filterTextNodes()
       .filterParent parent
@@ -1290,7 +1291,7 @@ getTextPosition = (parent, target, pos)->
   else -1
 
 findDomPosition = (parent, pos, contain)->
-  n = new NodePos parent, 0
+  n = new NodeCursor parent, 0
     .mutable()
     .filterTextNodes()
     .filterParent parent
@@ -1299,7 +1300,7 @@ findDomPosition = (parent, pos, contain)->
 
 # get the next node in the preorder traversal, disregarding the node's children
 nodeAfterNoChildren = (node)->
-  n = new NodePos(node, 0).next true
+  n = new NodeCursor(node, 0).mutable().next true
   !n.isEmpty() && n.node
 
 # get the next node in the preorder traversal, starting with the node's children
@@ -1337,14 +1338,13 @@ nonOrg = (node)->
     .attr 'data-nonorg', 'true'
     .attr 'contenteditable', 'false'
 
+# full text for node
 getOrgText = (node)->
-  if node.nodeType == Node.TEXT_NODE then node.data
-  else
-    text = ''
-    end = nodeAfterNoChildren node
-    while (node = nodeAfterSkipNonOrg node) && isBefore node, end
-      if node.nodeType == Node.TEXT_NODE then text += node.data
-    text
+  new NodeCursor node.firstChild, 0
+    .mutable()
+    .filterTextNodes()
+    .filterParent node
+    .getText()
 
 isBefore = (nodeA, nodeB)->
   nodeA.compareDocumentPosition(nodeB) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -1363,13 +1363,12 @@ nodeBeforeSkipNonOrg = (node)->
 
 # return the block text for a node -- just the text that's in its mongo block
 blockText = (node)->
-  end = nodeAfter node, true
-  text = ''
-  while node && node != end
-    if node.nodeType == Node.TEXT_NODE then text += node.data
-    node = nodeAfterSkipNonOrg node
-    if node?.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-shared' then break
-  text
+  new NodeCursor node.firstChild, 0
+    .mutable()
+    .addFilter (n)-> !n.hasAttribute('data-shared') || 'skip'
+    .filterParent node
+    .filterTextNodes()
+    .getText()
 
 orgForNode = (node)->
   org = suborgForNode node
@@ -1424,21 +1423,24 @@ nodeBefore = (node, up)->
   null
 
 textNodeBefore = (parent, node)->
-  n = new NodePos node, 0
+  n = new NodeCursor node, 0
+    .mutable()
     .filterTextNodes()
     .filterParent parent
     .prev()
   !n.isEmpty() && n.node
 
 textNodeAfter = (parent, node)->
-  n = new NodePos node, 0
+  n = new NodeCursor node, 0
+    .mutable()
     .filterTextNodes()
     .filterParent parent
     .next()
   !n.isEmpty() && n.node
 
 visibleTextNodeAfter = (parent, node)->
-  n = new NodePos node, 0
+  n = new NodeCursor node, 0
+    .mutable()
     .filterVisibleTextNodes()
     .filterParent parent
     .next()
@@ -1452,6 +1454,7 @@ fixOffsets = (org)->
   org.fixOffsets()
   org
 
+# full text for node
 getNodeText = (node)->
   if $(node).is('[data-shared]') then fixOffsets orgForNode(node)
   else if root.currentDocument && $(node).is('[maindoc]') then fixOffsets orgForNode(node)
@@ -1560,7 +1563,7 @@ basicOrg =
 findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 
 nodePosForRange = (r)->
-  n = new NodePos r.startContainer, r.startOffset
+  n = new NodeCursor r.startContainer, r.startOffset
     .mutable()
     .filterVisibleTextNodes()
     .filterRange r
@@ -1571,7 +1574,7 @@ nodePosForRange = (r)->
 nodePosForCaret = ->
   sel = getSelection()
   parent = parentForNode sel.focusNode
-  n = new NodePos sel.focusNode, sel.focusOffset
+  n = new NodeCursor sel.focusNode, sel.focusOffset
     .mutable()
     .filterVisibleTextNodes()
     .filterParent parent
@@ -1580,19 +1583,17 @@ nodePosForCaret = ->
 
 nodePosForSelectedText = ->
   sel = getSelection()
-  if sel.type != 'Range' then emptyNodePos
+  if sel.type != 'Range' then emptyNodeCursor
   else
     r = sel.getRangeAt 0
-    n = new NodePos r.startContainer, r.startOffset
+    n = new NodeCursor r.startContainer, r.startOffset
       .mutable()
       .filterTextNodes()
       .filterRange r
       .firstText()
     if n.pos < n.node.length then n else n.next()
 
-emptyNodePos = null
-
-class NodePos
+class NodeCursor
   constructor: (@node, @pos, filter)->
     @pos = @pos ? 0
     @filter = filter || -> true
@@ -1602,11 +1603,12 @@ class NodePos
     else if @node.nodeType == Node.TEXT_NODE then 'text'
     else 'element'
     this
-  newPos: (node, pos)-> new NodePos node, pos, @filter
+  newPos: (node, pos)-> new NodeCursor node, pos, @filter
   addFilter: (filt)->
     oldFilt = @filter
-    @setFilter (n)-> if reject (r = oldFilt(n)) then r else filt(n)
-  setFilter: (f)-> new NodePos @node, @pos, f
+    @setFilter (n)->
+      (((r1 = oldFilt n) in ['quit', 'skip']) && r1) || (((r2 = filt n) in ['quit', 'skip']) && r2) || (r1 && r2)
+  setFilter: (f)-> new NodeCursor @node, @pos, f
   firstText: (backwards)->
     n = this
     while !n.isEmpty() && n.type != 'text'
@@ -1634,14 +1636,14 @@ class NodePos
         count -= n.node.length
       n = n.next()
     n.emptyNext()
-  hasAttribute: (a)->
-    @node && @node.nodeType == Node.ELEMENT_NODE && @node.hasAttribute a
-  getAttribute: (a)->
-    @node && @node.nodeType == Node.ELEMENT_NODE && @node.getAttribute a
+  hasAttribute: (a)-> @node?.nodeType == Node.ELEMENT_NODE && @node.hasAttribute a
+  getAttribute: (a)-> @node?.nodeType == Node.ELEMENT_NODE && @node.getAttribute a
   filterTextNodes: ->
     @addFilter (n)-> n.type == 'text' || (n.hasAttribute('data-nonorg') && 'skip')
   filterVisibleTextNodes: -> @filterTextNodes().addFilter (n)-> !isCollapsed n.node
-  filterParent: (parent)-> @addFilter (n)-> parent.contains(n.node) || 'quit'
+  filterParent: (parent)->
+    if !parent then @setFilter -> 'quit'
+    else @addFilter (n)-> parent.contains(n.node) || 'quit'
   filterRange: (startContainer, startOffset, endContainer, endOffset)->
     if !startOffset?
       if startContainer instanceof Range
@@ -1659,17 +1661,20 @@ class NodePos
         if endPos == 0 then n.pos <= endOffset
         else endPos & Node.DOCUMENT_POSITION_PRECEDING) || 'quit'
   getText: ->
-    n = @mutable().filterTextNodes().firstText()
+    n = @mutable().firstText()
     if n.isEmpty() then ''
     else
       t = n.node.data.substring n.pos
       while !n.next().isEmpty()
-        t += n.node.data.substring n.pos
-      n.prev()
-      n.pos = n.node.data.length - 1
-      while n.pos > 0 && reject n.filter n
-        n.pos--
-      t.substring 0, t.length - n.node.data.length + n.pos
+        if n.type == 'text' then t += n.node.data.substring n.pos
+      if t.length
+        while n.type != 'text'
+          n.prev()
+        n.pos = n.node.length
+        while n.pos > 0 && reject n.filter n
+          n.pos--
+        t.substring 0, t.length - n.node.length + n.pos
+      else ''
   isEmpty: -> @type == 'empty'
   isNL: -> @type == 'text' && @node.data[@pos] == '\n'
   endsInNL: -> @type == 'text' && @node.data[@node.length - 1] == '\n'
@@ -1696,7 +1701,7 @@ class NodePos
     # return an empty next node where
     #   prev returns this node
     #   next returns the same empty node
-    __proto__: emptyNodePos
+    __proto__: emptyNodeCursor
     filter: @filter
     prev: (up)=> if up then @prev up else this
     nodeBefore: (up)=> if up then @nodeBefore up else this
@@ -1716,7 +1721,7 @@ class NodePos
     # return an empty prev node where
     #   next returns this node
     #   prev returns the same empty node
-    __proto__: emptyNodePos
+    __proto__: emptyNodeCursor
     filter: @filter
     next: (up)=> if up then @next up else this
     nodeAfter: (up)=> if up then @nodeAfter up else this
@@ -1815,7 +1820,7 @@ class NodePos
   immutable: -> this
   save: -> this
   restore: (n)-> n.immutable()
-  mutable: -> new MutableNodePos @node, @pos, @filter
+  mutable: -> new MutableNodeCursor @node, @pos, @filter
   withMutations: (func)->
     m = @mutable()
     func m
@@ -1824,16 +1829,16 @@ class NodePos
 
 reject = (filterResult)-> !filterResult || (filterResult in ['quit', 'skip'])
 
-class MutableNodePos extends NodePos
+class MutableNodeCursor extends NodeCursor
   constructor: (@node, @pos, @filter)-> super node, pos, filter
   setFilter: (f)->
     @filter = f
     this
   newPos: (@node, @pos)-> @computeType()
-  copy: -> new MutableNodePos @node, @pos, @filter
+  copy: -> new MutableNodeCursor @node, @pos, @filter
   mutable: -> this
-  immutable: -> new NodePos @node, @pos, @filter
-  save: -> new NodePos @node, @pos, @filter
+  immutable: -> new NodeCursor @node, @pos, @filter
+  save: -> new NodeCursor @node, @pos, @filter
   restore: (np)->
     @node = np.node
     @pos = np.pos
@@ -1891,9 +1896,15 @@ charRect = (node, pos, r)->
   r.collapse true
   _(r.getClientRects()).last()
 
-emptyNodePos = new NodePos()
-for stub in ['moveCaret', 'show', 'nodeAfter', 'nodeBefore', 'next', 'prev']
-  emptyNodePos[stub] = -> this
+class EmptyNodeCursor extends NodeCursor
+  moveCaret: -> this
+  show: -> this
+  nodeAfter: -> this
+  nodeBefore: -> this
+  next: -> this
+  prev: -> this
+
+emptyNodeCursor = new EmptyNodeCursor()
 
 root.findOrIs = findOrIs
 root.parentForNode = parentForNode
@@ -1985,7 +1996,7 @@ root.actualSelectionUpdate = actualSelectionUpdate
 root.currentBlockIds = []
 root.toggleLeisureBar = toggleLeisureBar
 root.errorDiv = errorDiv
-root.NodePos = NodePos
+root.NodeCursor = NodeCursor
 root.nodePosForRange = nodePosForRange
 root.nodePosForCaret = nodePosForCaret
 root.nodePosForSelectedText = nodePosForSelectedText
