@@ -54,6 +54,12 @@ lz = lazy
   jsonConvert,
 } = require '17-runtime'
 {
+  NodeCursor,
+  emptyNodeCursor,
+  isCollapsed,
+  selectRange,
+} = require '22-nodeCursor'
+{
   crnl,
   docOrg,
   subDoc,
@@ -152,7 +158,9 @@ keyCombos = []
 prevKeybinding = curKeyBinding = null
 root.modCancelled = false
 root.currentMatch = null
-emptyNodeCursor = null
+#emptyNodeCursor = null
+
+NodeCursor.prototype.filterOrg = -> @addFilter (n)-> !n.hasAttribute('data-nonorg') || 'skip'
 
 # parentForX is needed for slide editing modes and for multple document editing
 parentForNode = (el)-> $(el).closest('[maindoc]')[0]
@@ -189,10 +197,10 @@ initOrg = (parent, source)->
       #console.log "SAVE"
       #console.log encodeURIComponent $(parent)[0].textContent
       #b.attr 'href', "data:text/plain;base64,#{encodeURIComponent btoa $(parent)[0].textContent}"
-      console.log "SAVE: data:text/plain,#{encodeURIComponent getNodeText $('[maindoc]').children().first()[0]}"
+      console.log "SAVE: data:text/plain,#{encodeURIComponent getOrgText $('[maindoc]').children().first()[0]}"
       ($('#saveLink')
         #.attr 'download', root.currentDocument.leisure.name
-        .attr 'href', "data:text/plain,#{encodeURIComponent getNodeText $('[maindoc]').children().first()[0]}")[0].click()
+        .attr 'href', "data:text/plain,#{encodeURIComponent getOrgText $('[maindoc]').children().first()[0]}")[0].click()
   $('#checkpoint').css 'display', 'none'
   $('#checkpoint').click -> Leisure.snapshot()
   $('#revert').css 'display', 'none'
@@ -232,7 +240,7 @@ replaceClipboardWithSelection = (e, sel)->
     n = document.createElement('div')
     n.appendChild sel.getRangeAt(0).cloneContents()
     e.clipboardData.setData 'text/html', n.innerHTML
-    e.clipboardData.setData 'text/plain', nodePosForSelectedText().getText()
+    e.clipboardData.setData 'text/plain', nodeCursorForSelectedText().getText()
 
 pasteListener = (e)->
   clipboardKey = 'paste'
@@ -363,35 +371,44 @@ splitLines = (str)->
     pos = nl + 1
   result
 
-selectRange = (r)->
-  sel = getSelection()
-  sel.removeAllRanges()
-  sel.addRange r
+makeGoalFunc = (nodeCur, goal)->
+  (col)->
+    o = headlineOffset(nodeCur, col)
+    if o < goal then -1 else if o == goal then 0 else 1
+
+headlineOffset = (nodeCur, col)->
+  if !nodeCur.hlOff
+    nodeCur.hlOff = $(nodeCur.node).closest("[data-org-headline='1']")[0].getClientRects()[0].left
+  col - nodeCur.hlOff
+
+getMovementGoal = (nodeCur)-> headlineOffset nodeCur, nodeCur.charRect().left
 
 moveSelectionUp = (parent, r)->
-  pos = nodePosForCaret()
-  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = pos.getMovementGoal()
+  pos = nodeCursorForCaret()
+  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = getMovementGoal pos
+  goalFunc = makeGoalFunc pos, movementGoal
   pos
-    .backwardLine(movementGoal)
+    .backwardLine(goalFunc)
     .moveCaret()
     .show()
 
 moveSelectionDown = (parent, r)->
-  pos = nodePosForCaret()
-  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = pos.getMovementGoal()
+  pos = nodeCursorForCaret()
+  if !(prevKeybinding in [keyFuncs.nextLine, keyFuncs.previousLine]) then movementGoal = getMovementGoal pos
+  goalFunc = makeGoalFunc pos, movementGoal
   pos
-    .forwardLine(movementGoal)
+    .forwardLine(goalFunc)
     .moveCaret()
     .show()
 
 moveSelectionForward = (parent, r)->
-  pos = nodePosForCaret()
+  pos = nodeCursorForCaret()
     .forwardChar()
     .moveCaret()
     .show()
 
 moveSelectionBackward = (parent, r)->
-  nodePosForCaret()
+  nodeCursorForCaret()
     .backwardChar()
     .moveCaret()
     .show()
@@ -469,18 +486,6 @@ swapMarkup = ->
   root.restorePosition parentSpec, ->
     if root.currentDocument then root.currentMode.useNode $(parentSpec)[0], sourceSpec, docOrg()
     else root.currentMode.useNode $(parentSpec)[0], sourceSpec
-
-# Thanks to rangy for this: http://code.google.com/p/rangy/
-isCollapsed = (node)->
-  if node
-    type = node.nodeType
-    type == 7 || # PROCESSING_INSTRUCTION
-    type == 8 || # COMMENT
-    (type == Node.TEXT_NODE && (node.data == '' || isCollapsed(node.parentNode))) ||
-    /^(script|style)$/i.test(node.nodeName) ||
-    #(type == Node.ELEMENT_NODE && (node.offsetWidth == 0 || node.offsetHeight == 0))
-    (type == Node.ELEMENT_NODE && node.offsetHeight == 0)
-  else false
 
 markupOrg = (text)->
   [node, result] = markupOrgWithNode text
@@ -693,12 +698,14 @@ bindContent = (div)->
       #root.currentMatch = matchLine currentLine div
       root.currentMatch = lineCodeBlockType currentLine div
 
+nodeCursor = (node, pos)-> new NodeCursor(node, pos).filterOrg()
+
 adjustSelection = (e)->
   if e.detail == 1 then return
   s = getSelection()
   if s.type == 'Range'
     r = s.getRangeAt 0
-    pos = new NodeCursor r.endContainer, r.endOffset
+    pos = nodeCursor r.endContainer, r.endOffset
       .mutable()
       .filterVisibleTextNodes()
       .firstText()
@@ -869,7 +876,7 @@ modifyingKey = (c, e)-> !e.altKey && !e.ctrlKey && (
 lineForRange = (node, offset)->
   lineText = node.data
   lineEnd = -1
-  pos = new NodeCursor(node).mutable().filterTextNodes()
+  pos = nodeCursor(node).mutable().filterTextNodes()
   if (lineStart = node.data.substring(0, offset).lastIndexOf '\n') == -1
     while !pos.isEmpty() && lineStart == -1
       if pos = pos.prev()
@@ -1278,12 +1285,12 @@ getTextLine = (node)->
 #
 
 findOrgNode = (parent, pos)->
-  org = parseOrgMode getNodeText parent
+  org = parseOrgMode getOrgText parent
   orgNode = org.findNodeAt pos
 
 getTextPosition = (parent, target, pos)->
   if parent
-    new NodeCursor parent, 0
+    nodeCursor parent, 0
       .mutable()
       .filterTextNodes()
       .filterParent parent
@@ -1291,47 +1298,12 @@ getTextPosition = (parent, target, pos)->
   else -1
 
 findDomPosition = (parent, pos, contain)->
-  n = new NodeCursor parent, 0
+  n = nodeCursor parent, 0
     .mutable()
     .filterTextNodes()
     .filterParent parent
     .forwardChars pos, contain
   if n.isEmpty() then [null, null] else [n.node, n.pos]
-
-# get the next node in the preorder traversal, disregarding the node's children
-nodeAfterNoChildren = (node)->
-  n = new NodeCursor(node, 0).mutable().next true
-  !n.isEmpty() && n.node
-
-# get the next node in the preorder traversal, starting with the node's children
-nodeAfter = (node, up)->
-  while node
-    if node.nodeType == Node.ELEMENT_NODE && !up && node.childNodes.length then return node.childNodes[0]
-    else if node.nextSibling then return node.nextSibling
-    else
-      up = true
-      node = node.parentNode
-  null
-
-filteredNodeAfter = (node, director)->
-  skipped = false
-  while node
-    if !skipped && !up && node.nodeType == Node.ELEMENT_NODE && node.childNodes.length
-      node = node.childNodes[0]
-    else if node.nextSibling
-      up = false
-      node = node.nextSibling
-    else
-      up = true
-      node = node.parentNode
-    if !up
-      switch director node
-        when 'quit' then return null
-        when 'skip' then skipped = true
-        else
-          if !up then return node
-          skipped = false
-  null
 
 nonOrg = (node)->
   $(node)
@@ -1340,90 +1312,27 @@ nonOrg = (node)->
 
 # full text for node
 getOrgText = (node)->
-  new NodeCursor node.firstChild, 0
+  nodeCursor node.firstChild, 0
     .mutable()
     .filterTextNodes()
     .filterParent node
     .getText()
 
-isBefore = (nodeA, nodeB)->
-  nodeA.compareDocumentPosition(nodeB) & Node.DOCUMENT_POSITION_FOLLOWING
-
-nodeAfterSkipNonOrg = (node)->
-  node = nodeAfter node
-  while node.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-nonorg'
-    node = nodeAfterNoChildren node
-  node
-
-nodeBeforeSkipNonOrg = (node)->
-  node = nodeBefore node
-  while node.nodeType == Node.ELEMENT_NODE && node.hasAttribute 'data-nonorg'
-    node = nodeBeforeNoChildren node
-  node
+orgForNode = (node)-> parseOrgMode getOrgText node
 
 # return the block text for a node -- just the text that's in its mongo block
 blockText = (node)->
-  new NodeCursor node.firstChild, 0
+  nodeCursor node.firstChild, 0
     .mutable()
     .addFilter (n)-> !n.hasAttribute('data-shared') || 'skip'
     .filterParent node
     .filterTextNodes()
     .getText()
 
-orgForNode = (node)->
-  org = suborgForNode node
-  org.linkNodes()
-  org.fixOffsets 0
-  org
-
-suborgForNode = (node)->
-  org = parseOrgMode blockText node
-  if !$(node).is('[data-org-headline="0"]')
-    if org.children.length == 1 then org = org.children[0]
-    else org = new Fragment org.offset, org.children
-  if $(node).is('[data-shared]')
-    org.nodeId = node.id
-    org.shared = $(node).attr 'data-shared'
-  for child in orgChildrenForNode node
-    org.children.push suborgForNode child
-  org
-
-orgChildrenForNode = (node)->
-  children = []
-  end = nodeAfterNoChildren node
-  while node = filteredNodeAfter node, ((n)->
-    if n == end then 'quit'
-    else if n.nodeType == Node.ELEMENT_NODE && n.hasAttribute('data-shared')
-      children.push n
-      'skip') then
-  children
-
-textWatchers = []
-
-watchNodeText = (node, callback)->
-  textWatchers.push new MutationSummary
-    callback: callback
-    rootNode: node
-    observeOwnChanges: true
-    queries: [characterData: true]
-
-dumpTextWatchers = ->
-  for watcher in textWatchers
-    watcher.disconnect()
-  textWatchers = []
-
-# get the next node in the reverse preorder traversal, starting with the node's children
-nodeBefore = (node, up)->
-  while node
-    if node.nodeType == Node.ELEMENT_NODE && !up && node.childNodes.length then return node.childNodes[node.childNodes.length - 1]
-    else if node.previousSibling then return node.previousSibling
-    else
-      up = true
-      node = node.parentNode
-  null
+nodeBefore = (node)-> nodeCursor(node, 0).prev().node
 
 textNodeBefore = (parent, node)->
-  n = new NodeCursor node, 0
+  n = nodeCursor node, 0
     .mutable()
     .filterTextNodes()
     .filterParent parent
@@ -1431,7 +1340,7 @@ textNodeBefore = (parent, node)->
   !n.isEmpty() && n.node
 
 textNodeAfter = (parent, node)->
-  n = new NodeCursor node, 0
+  n = nodeCursor node, 0
     .mutable()
     .filterTextNodes()
     .filterParent parent
@@ -1439,48 +1348,18 @@ textNodeAfter = (parent, node)->
   !n.isEmpty() && n.node
 
 visibleTextNodeAfter = (parent, node)->
-  n = new NodeCursor node, 0
+  n = nodeCursor node, 0
     .mutable()
     .filterVisibleTextNodes()
     .filterParent parent
     .next()
   !n.isEmpty() && n.node
 
-#
-# Shadow dom support
-#
-
-fixOffsets = (org)->
-  org.fixOffsets()
-  org
-
 # full text for node
 getNodeText = (node)->
-  if $(node).is('[data-shared]') then fixOffsets orgForNode(node)
-  else if root.currentDocument && $(node).is('[maindoc]') then fixOffsets orgForNode(node)
+  if $(node).is('[data-shared]') then orgForNode(node)
+  else if root.currentDocument && $(node).is('[maindoc]') then orgForNode(node)
   else getOrgText node
-
-if !Element.prototype.createShadowRoot
-  if Element.prototype.webkitCreateShadowRoot?
-    Element.prototype.createShadowRoot = Element.prototype.webkitCreateShadowRoot
-    Element.prototype.__defineGetter__ 'shadowRoot', -> @webkitShadowRoot
-    Element.prototype.__defineSetter__ 'shadowRoot', (val)-> @webkitShadowRoot = val
-  else if !document.body.createShadowRoot?
-    hasShadow = false
-    Element.prototype.createShadowRoot = ->
-      hasShadow = true
-      @setAttribute 'data-org-shadow', 'true'
-    Element.prototype.__defineGetter__ 'shadowRoot', -> (@hasAttribute('data-org-shadow') && @) || null
-    getNodeText = (node)->
-      if hasShadow
-        copy = $(node).clone()
-        copy.find('[data-org-shadow]').remove()
-        copy.text()
-      else getOrgText node
-    oldReparse = reparse
-    reparse = (parent, text)->
-      oldReparse parent, text
-      hasShadow = false
 
 emptyOutNode = (node)->
   node.innerHTML = ''
@@ -1510,7 +1389,7 @@ orgNotebook =
   inMode: (el)->
     (mode = $(el).closest("[data-edit-mode]")).length == 0 || $(mode).attr('data-edit-mode') == @name
   reparse: (parent, text, target)->
-    text = text || (getNodeText target || parent)
+    text = text || (getOrgText target || parent)
     sel = getSelection()
     [orgNode, orgText] = @markupOrgWithNode text, null, target
     node = null
@@ -1562,349 +1441,36 @@ basicOrg =
 
 findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 
-nodePosForRange = (r)->
-  n = new NodeCursor r.startContainer, r.startOffset
+nodeCursorForRange = (r)->
+  n = nodeCursor r.startContainer, r.startOffset
     .mutable()
     .filterVisibleTextNodes()
     .filterRange r
     .firstText()
   if n.pos < n.node.length then n else n.next()
 
-#nodePosForCaret = -> nodePosForRange getSelection().getRangeAt(0)
-nodePosForCaret = ->
+#nodeCursorForCaret = -> nodeCursorForRange getSelection().getRangeAt(0)
+nodeCursorForCaret = ->
   sel = getSelection()
   parent = parentForNode sel.focusNode
-  n = new NodeCursor sel.focusNode, sel.focusOffset
+  n = nodeCursor sel.focusNode, sel.focusOffset
     .mutable()
     .filterVisibleTextNodes()
     .filterParent parent
     .firstText()
   if n.pos < n.node.length then n else n.next()
 
-nodePosForSelectedText = ->
+nodeCursorForSelectedText = ->
   sel = getSelection()
   if sel.type != 'Range' then emptyNodeCursor
   else
     r = sel.getRangeAt 0
-    n = new NodeCursor r.startContainer, r.startOffset
+    n = nodeCursor r.startContainer, r.startOffset
       .mutable()
       .filterTextNodes()
       .filterRange r
       .firstText()
     if n.pos < n.node.length then n else n.next()
-
-class NodeCursor
-  constructor: (@node, @pos, filter)->
-    @pos = @pos ? 0
-    @filter = filter || -> true
-    @computeType()
-  computeType: ->
-    @type = if !@node then 'empty'
-    else if @node.nodeType == Node.TEXT_NODE then 'text'
-    else 'element'
-    this
-  newPos: (node, pos)-> new NodeCursor node, pos, @filter
-  addFilter: (filt)->
-    oldFilt = @filter
-    @setFilter (n)->
-      (((r1 = oldFilt n) in ['quit', 'skip']) && r1) || (((r2 = filt n) in ['quit', 'skip']) && r2) || (r1 && r2)
-  setFilter: (f)-> new NodeCursor @node, @pos, f
-  firstText: (backwards)->
-    n = this
-    while !n.isEmpty() && n.type != 'text'
-      n = (if backwards then n.prev() else n.next())
-    n
-  countChars: (node, pos)->
-    n = this
-    tot = 0
-    while !n.isEmpty() && n.node != node
-      if n.type == 'text' then tot += n.node.length
-      n = n.next()
-    if n.isEmpty() || n.node != node then -1
-    else if n.type == 'text' then tot + pos
-    else tot
-  forwardChars: (count, contain)->
-    n = this
-    while !n.isEmpty() && 0 <= count
-      if n.type == 'text'
-        if count < n.node.length
-          if count == 0 && contain
-            n = n.prev()
-            while n.type != 'text' then n = n.prev()
-            return n.newPos n.node, n.node.length
-          else return n.newPos n.node, count
-        count -= n.node.length
-      n = n.next()
-    n.emptyNext()
-  hasAttribute: (a)-> @node?.nodeType == Node.ELEMENT_NODE && @node.hasAttribute a
-  getAttribute: (a)-> @node?.nodeType == Node.ELEMENT_NODE && @node.getAttribute a
-  filterTextNodes: ->
-    @addFilter (n)-> n.type == 'text' || (n.hasAttribute('data-nonorg') && 'skip')
-  filterVisibleTextNodes: -> @filterTextNodes().addFilter (n)-> !isCollapsed n.node
-  filterParent: (parent)->
-    if !parent then @setFilter -> 'quit'
-    else @addFilter (n)-> parent.contains(n.node) || 'quit'
-  filterRange: (startContainer, startOffset, endContainer, endOffset)->
-    if !startOffset?
-      if startContainer instanceof Range
-        r = startContainer
-        startContainer = r.startContainer
-        startOffset = r.startOffset
-        endContainer = r.endContainer
-        endOffset = r.endOffset
-      else return this
-    @addFilter (n)->
-      startPos = startContainer.compareDocumentPosition n.node
-      (if startPos == 0 then startOffset <= n.pos <= endOffset
-      else if startPos & Node.DOCUMENT_POSITION_FOLLOWING
-        endPos = endContainer.compareDocumentPosition n.node
-        if endPos == 0 then n.pos <= endOffset
-        else endPos & Node.DOCUMENT_POSITION_PRECEDING) || 'quit'
-  getText: ->
-    n = @mutable().firstText()
-    if n.isEmpty() then ''
-    else
-      t = n.node.data.substring n.pos
-      while !n.next().isEmpty()
-        if n.type == 'text' then t += n.node.data.substring n.pos
-      if t.length
-        while n.type != 'text'
-          n.prev()
-        n.pos = n.node.length
-        while n.pos > 0 && reject n.filter n
-          n.pos--
-        t.substring 0, t.length - n.node.length + n.pos
-      else ''
-  isEmpty: -> @type == 'empty'
-  isNL: -> @type == 'text' && @node.data[@pos] == '\n'
-  endsInNL: -> @type == 'text' && @node.data[@node.length - 1] == '\n'
-  moveToStart: -> @newPos @node, 0
-  moveToNextStart: -> @next().moveToStart()
-  moveToEnd: ->
-    end = @node.length - (if @endsInNL() then 1 else 0)
-    @newPos @node, end
-  moveToPrevEnd: -> @prev().moveToEnd()
-  nodeAfter: (up)->
-    node = @node
-    nonOrg = @nonOrg
-    while node
-      if node.nodeType == Node.ELEMENT_NODE && !up && node.childNodes.length
-        return @newPos node.childNodes[0], 0
-      else if node.nextSibling
-        return @newPos node.nextSibling, 0
-      else
-        up = true
-        node = node.parentNode
-        nonOrg = node != nonOrg && nonOrg
-    @emptyNext()
-  emptyNext: ->
-    # return an empty next node where
-    #   prev returns this node
-    #   next returns the same empty node
-    __proto__: emptyNodeCursor
-    filter: @filter
-    prev: (up)=> if up then @prev up else this
-    nodeBefore: (up)=> if up then @nodeBefore up else this
-  nodeBefore: (up)->
-    node = @node
-    while node
-      if node.nodeType == Node.ELEMENT_NODE && !up && node.childNodes.length
-        newNode = node.childNodes[node.childNodes.length - 1]
-      else if node.previousSibling then newNode = node.previousSibling
-      else
-        up = true
-        node = node.parentNode
-        continue
-      return @newPos newNode, newNode.length
-    @emptyPrev()
-  emptyPrev: ->
-    # return an empty prev node where
-    #   next returns this node
-    #   prev returns the same empty node
-    __proto__: emptyNodeCursor
-    filter: @filter
-    next: (up)=> if up then @next up else this
-    nodeAfter: (up)=> if up then @nodeAfter up else this
-  next: (up)->
-    saved = @save()
-    n = @nodeAfter up
-    while !n.isEmpty()
-      switch res = @filter n
-        when 'skip'
-          n = n.nodeAfter true
-          continue
-        when 'quit' then break
-        else
-          if res then return n
-      n = n.nodeAfter()
-    @restore(saved).emptyNext()
-  prev: (up)->
-    saved = @save()
-    n = @nodeBefore up
-    while !n.isEmpty()
-      switch res = @filter n
-        when 'skip'
-          n = n.nodeBefore true
-          continue
-        when 'quit' then break
-        else
-          if res then return n
-      n = n.nodeBefore()
-    @restore(saved).emptyPrev()
-  headlineOffset: (col)->
-    if !@hlOff
-      @hlOff = $(@node).closest("[data-org-headline='1']")[0].getClientRects()[0].left
-    col - @hlOff
-  getMovementGoal: -> @headlineOffset @charRect().left
-  forwardLine: (goalColumn)->
-    r = @charRect()
-    bottom = r.bottom
-    line = 0
-    n = this
-    while n = n.forwardChar()
-      if n.isEmpty() then return n.backwardChar()
-      r = n.charRect()
-      if r.bottom != bottom
-        bottom = r.bottom
-        line++
-      if line == 1 && n.headlineOffset(r.left) >= goalColumn then return n
-      if line == 2 then return n.backwardChar()
-  backwardLine: (goalColumn)->
-    r = @charRect()
-    prevTop = top = r.top
-    line = 0
-    n = this
-    while n = n.backwardChar()
-      if n.isEmpty() then return n.forwardChar()
-      r = n.charRect()
-      if r.top != top
-        top = r.top
-        line++
-      if line == 1
-        if (l = n.headlineOffset(r.left)) == goalColumn then return n
-        if l < goalColumn then return (if prevTop == top then n.forwardChar() else n)
-      if line == 2 then return n.forwardChar()
-      prevTop = top
-  forwardChar: ->
-    r = stubbornCharRectNext(@node, @pos)
-    left = r?.left
-    bottom = r?.bottom
-    n = this
-    while n = (if n.pos + 1 < n.node.length then n.newPos n.node, n.pos + 1 else n.next())
-      if n.isEmpty() || ((r = stubbornCharRectNext(n.node, n.pos)) && (left != r?.left || bottom != r?.bottom)) then return n
-  backwardChar: ->
-    r = stubbornCharRectPrev @node, @pos
-    n = this
-    while r && n = (if n.pos > 0 then n.newPos n.node, n.pos  - 1 else n.prev())
-      if n.isEmpty() || n.moved(r) then return n
-    n
-  moved: (rec)->
-    (@node.length > @pos) && (r2 = stubbornCharRectPrev @node, @pos) && (rec.top != r2.top || rec.left != r2.left)
-  moveCaret: (r)->
-    if !r then r = document.createRange()
-    r.setStart @node, @pos
-    r.collapse true
-    selectRange r
-    this
-  charRect: (r, prev)->
-    if prev
-      stubbornCharRectPrev(@node, @pos, r) || stubbornCharRectNext(@node, @pos, r)
-    else stubbornCharRect @node, @pos, r
-  show: ->
-    posRect = @charRect()
-    barRect = $("#leisure_bar")[0].getClientRects()[0]
-    top = if barRect.width && barRect.top == 0 then barRect.bottom else 0
-    if posRect.bottom > window.innerHeight then window.scrollBy 0, posRect.bottom - window.innerHeight
-    else if posRect.top < top then window.scrollBy 0, posRect.top - top
-    this
-  immutable: -> this
-  save: -> this
-  restore: (n)-> n.immutable()
-  mutable: -> new MutableNodeCursor @node, @pos, @filter
-  withMutations: (func)->
-    m = @mutable()
-    func m
-    m.immutable()
-  copy: -> this
-
-reject = (filterResult)-> !filterResult || (filterResult in ['quit', 'skip'])
-
-class MutableNodeCursor extends NodeCursor
-  constructor: (@node, @pos, @filter)-> super node, pos, filter
-  setFilter: (f)->
-    @filter = f
-    this
-  newPos: (@node, @pos)-> @computeType()
-  copy: -> new MutableNodeCursor @node, @pos, @filter
-  mutable: -> this
-  immutable: -> new NodeCursor @node, @pos, @filter
-  save: -> new NodeCursor @node, @pos, @filter
-  restore: (np)->
-    @node = np.node
-    @pos = np.pos
-    @filter = np.filter
-    this
-  emptyPrev: ->
-    @type = 'empty'
-    @next = (up)->
-      @revertEmpty()
-      if up then @next up else this
-    @nodeAfter = (up)->
-      @computeType()
-      if up then @nodeAfter up else this
-    @prev = -> this
-    @nodeBefore = -> this
-    this
-  revertEmpty: ->
-    @computeType()
-    delete @next
-    delete @prev
-    delete @nodeAfter
-    delete @nodeBefore
-    this
-  emptyNext: ->
-    @type = 'empty'
-    @prev = (up)->
-      @revertEmpty()
-      if up then @prev up else this
-    @nodeBefore = (up)->
-      @computeType()
-      if up then @nodeBefore up else this
-    @next = -> this
-    @nodeAfter = -> this
-    this
-
-# charRect returns null for newlines when not using pre
-stubbornCharRect = (node, pos, r)->
-  stubbornCharRectNext(node, pos, r) || stubbornCharRectPrev(node, pos, r)
-
-stubbornCharRectNext = (node, pos, r)->
-  r = r || document.createRange()
-  for i in [pos ... node.length] by 1
-    if rec = charRect node, i, r then return rec
-  null
-
-stubbornCharRectPrev = (node, pos, r)->
-  r = r || document.createRange()
-  for i in [pos .. 0] by -1
-    if rec = charRect node, i, r then return rec
-  null
-
-charRect = (node, pos, r)->
-  r = r || document.createRange()
-  r.setStart node, pos
-  r.collapse true
-  _(r.getClientRects()).last()
-
-class EmptyNodeCursor extends NodeCursor
-  moveCaret: -> this
-  show: -> this
-  nodeAfter: -> this
-  nodeBefore: -> this
-  next: -> this
-  prev: -> this
-
-emptyNodeCursor = new EmptyNodeCursor()
 
 root.findOrIs = findOrIs
 root.parentForNode = parentForNode
@@ -1919,7 +1485,6 @@ root.reparse = reparse
 root.reparseListeners = reparseListeners
 root.findDomPosition = findDomPosition
 root.getCollapsible = getCollapsible
-root.getNodeText = getNodeText
 root.parseOrgMode = parseOrgMode
 root.orgAttrs = orgAttrs
 root.content = content
@@ -1931,7 +1496,6 @@ root.followingSpan = followingSpan
 root.currentLine = currentLine
 root.checkSourceMod = checkSourceMod
 root.getTextPosition = getTextPosition
-root.isCollapsed = isCollapsed
 root.nextOrgId = nextOrgId
 root.modifyingKey = modifyingKey
 root.handleKeyup = handleKeyup
@@ -1974,21 +1538,14 @@ root.visibleTextNodeAfter = visibleTextNodeAfter
 root.PAGEUP = PAGEUP
 root.PAGEDOWN = PAGEDOWN
 root.saveFile = saveFile
-root.nodeAfter = nodeAfter
-root.nodeAfterSkipNonOrg = nodeAfterSkipNonOrg
-root.filteredNodeAfter = filteredNodeAfter
-root.nodeAfterNoChildren = nodeAfterNoChildren
 root.nodeBefore = nodeBefore
 root.getOrgText = getOrgText
 root.nonOrg = nonOrg
-root.watchNodeText = watchNodeText
-root.dumpTextWatchers = dumpTextWatchers
 root.blockText = blockText
 root.blockElementsForSelection = blockElementsForSelection
 root.blockElementForNode = blockElementForNode
 root.blockIdsForSelection = blockIdsForSelection
 root.orgForNode = orgForNode
-root.orgChildrenForNode = orgChildrenForNode
 root.toggleShowHidden = toggleShowHidden
 root.applyLeisureTooltips = applyLeisureTooltips
 root.applyShowHidden = applyShowHidden
@@ -1997,10 +1554,11 @@ root.currentBlockIds = []
 root.toggleLeisureBar = toggleLeisureBar
 root.errorDiv = errorDiv
 root.NodeCursor = NodeCursor
-root.nodePosForRange = nodePosForRange
-root.nodePosForCaret = nodePosForCaret
-root.nodePosForSelectedText = nodePosForSelectedText
+root.nodeCursorForRange = nodeCursorForRange
+root.nodeCursorForCaret = nodeCursorForCaret
+root.nodeCursorForSelectedText = nodeCursorForSelectedText
 root.editFile = editFile
+root.nodeCursor = nodeCursor
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg

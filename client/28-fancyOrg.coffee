@@ -112,7 +112,6 @@ yaml = root.yaml
   PAGEDOWN,
   HOME,
   END,
-  watchNodeText,
   markupData,
   orgForNode,
   plainOrg,
@@ -525,7 +524,6 @@ saveNoteLocation = (target) ->
     updateNoteProperties span, index, "float #{drag.css('top')} #{drag.css('left')} #{resize.width()}px #{resize.height()}px"
 
 createNotes = (node)->
-  watchNodeText node, editedNote node.id, node.id
   $(node).addClass 'herpderp'
   for noteSpec in node.getAttribute('data-org-notes').split /\s*,\s*/
     #console.log "NOTE FOR #{node.id}: #{noteSpec}"
@@ -565,7 +563,6 @@ createNotes = (node)->
     if dest
       addWord dest, 'data-org-note-content', node.id
       addWord dest, 'data-org-note-instances', noteId
-      watchNodeText newNote, editedNote node.id, noteId
       fixupHtml newNote
 
 addWord = (node, attr, value)->
