@@ -1447,7 +1447,6 @@ domCursorForRange = (r)->
     .firstText()
   if n.pos < n.node.length then n else n.next()
 
-#domCursorForCaret = -> domCursorForRange getSelection().getRangeAt(0)
 domCursorForCaret = ->
   sel = getSelection()
   parent = parentForNode sel.focusNode
