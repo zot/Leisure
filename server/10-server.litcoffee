@@ -12,6 +12,7 @@ Meteor-based collaboration -- server side
     gitHasFile = Leisure.git.hasFile
     connections = new Meteor.Collection ' connections ', connection: null
     tempDocs = {}
+    counters = {}
 
     createAccount = (name, passwd)->
       if !(Meteor.users.find username: name)
@@ -44,9 +45,13 @@ Meteor-based collaboration -- server side
           catch err
             console.log "EXCEPTION CHECKING #{name}: #{err.stack}"
             erorr: "Error retrieving #{name}"
-      snapshot: (name)-> gitSnapshot name
+      snapshot: (name)->
+        if !tempDocs[name] && (doc = Leisure.docs[name])
+          gitSnapshot doc
       revert: (name)-> loadDoc name, false, null, true
       edit: (name, contents)-> loadDoc name, true, contents
+      useCounter: (name)-> if !counters[name] then counters[name] = 0
+      counter: (name)-> counters[name]++
 
     connectedToTemp = (id, connection)->
       if cur = tempDocs[id] then cur.count++
@@ -83,7 +88,8 @@ Document model that ties orgmode parse trees to HTML DOM
         doc = if reload then docs[id] else docs[id] = new Meteor.Collection id
         if !doc then throw new Error "Attempt to reload unloaded document, #{name}"
       if !reload
-        doc.leisure = {}
+        doc.leisure = name: id
+        if temp then doc.leisure.temp = true
         doc.remove {}
       createDocFromText text, doc, reload
       if !reload then Meteor.publish id, -> doc.find()

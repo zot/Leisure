@@ -1201,7 +1201,6 @@ handleKey = (div)->(e)->
       root.checkNewline = null
       root.modified = el
       par = el.parentNode
-      #root.currentMatch = matchLine currentLine div
       root.currentMatch = lineCodeBlockType currentLine div
       if c == ENTER
         e.preventDefault()
@@ -1214,7 +1213,6 @@ handleKey = (div)->(e)->
         s.removeAllRanges()
         s.addRange(r)
         restorePosition br.parentNode, -> br.parentNode.normalize()
-        setTimeout (->checkEnterReparse div, r), 1
       else if c == BS then backspace div, e, s, r
       else if c == DEL then del div, e, s, r
       else if el.nodeType == Node.TEXT_NODE && el.data[el.length - 1] == '\n'

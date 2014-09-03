@@ -57,19 +57,18 @@ addIndexFibers = (r, ind)->
       if i > -1 then r.fibers.getBlob(ind.entry(i).oid())
   ind
 
-snapshot = (name)->
-  if (doc = Leisure.docs[name]) && !tempDocs[name]
-    objs = {}
-    text = ''
-    for obj in doc.find().fetch()
-      objs[obj._id] = obj
-      if obj.info then objs.info = obj
-    cur = objs.info.head
-    while cur
-      text += objs[cur].text
-      cur = objs[cur].next
-    storeFile name, text
-    true
+snapshot = (doc)->
+  objs = {}
+  text = ''
+  for obj in doc.find().fetch()
+    objs[obj._id] = obj
+    if obj.info then objs.info = obj
+  cur = objs.info.head
+  while cur
+    text += objs[cur].text
+    cur = objs[cur].next
+  storeFile doc.leisure.name, text
+  true
 
 storeFile = (name, contents)->
   if ind = currentIndex

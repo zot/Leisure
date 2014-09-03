@@ -149,7 +149,11 @@
         if name then obj.codeName = name.info.trim()
         if obj.codeAttributes?.local? then obj.local = true
         if l = source.lead() then obj.language = l.trim()
-        if isYaml source then obj.yaml = safeLoad source.content
+        if isYaml source
+          try
+            obj.yaml = safeLoad source.content
+          catch err
+            obj.yaml = null
         [_L([obj]), last.next]
 
     createHtmlBlockDoc = (org)->

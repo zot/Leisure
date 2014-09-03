@@ -1,11 +1,11 @@
 * Short list -- announcement
-- batch changes to reduce flickering
+- disable checkpoint and revert if there are no changes
+  - use the info record to report changes
 - switch from persistent-hash-trie to [[https://github.com/facebook/immutable-js][immutable-js]]
   - it's already located in 5-immutable.js
 - attach block documentation/properties to JS/CS functions
   - parse code to find function names
   - add properties to funcs after eval
-- switch to NodePos for all positioning (use mutable)
 - some way to control access to the root documents
   - maybe just a random URL, for now
 - warning for controllers that don't define @initializeView
@@ -616,6 +616,10 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE switch to NodePos for all positioning (use mutable)
+   CLOSED: [2014-08-27 Wed 16:04]
+** DONE batch changes to reduce flickering
+   CLOSED: [2014-08-27 Wed 16:03]
 ** DONE git persistence
    CLOSED: [2014-08-17 Sun 16:00]
 ** DONE spawn document copies

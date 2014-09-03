@@ -160,6 +160,8 @@ root.currentMatch = null
 
 DOMCursor.prototype.filterOrg = -> @addFilter (n)-> !n.hasAttribute('data-nonorg') || 'skip'
 
+DOMCursor.prototype.filterShared = -> @addFilter (n)-> n.hasAttribute('data-shared')
+
 # parentForX is needed for slide editing modes and for multple document editing
 parentForNode = (el)-> $(el).closest('[maindoc]')[0]
 
@@ -439,6 +441,7 @@ keyFuncs =
     if r.collapsed && txt.nodeType == Node.TEXT_NODE && ((r.startOffset > 2 && txt.data[r.startOffset - 3] == '\n') || (r.startOffset == 2 && followsNewline txt))
       str = txt.data.substring r.startOffset - 2, r.startOffset
       if exp = templateExpansions[str]
+        seld = new SelectionDescriptor parent, r.startContainer, r.startOffset - str.length
         start = r.startOffset
         [first, second] = exp
         pos = (getTextPosition parent, txt, start) - 2
@@ -448,9 +451,11 @@ keyFuncs =
         else
           next = (if start == 2 then txt else txt.splitText start - 2)
           next.data = next.data.substring 2
-        txt.parentNode.insertBefore (document.createTextNode first + second), next
-        selectRange nativeRange findDomPosition parent, pos + first.length
-        reparse parent
+        templateText = document.createTextNode first + second
+        txt.parentNode.insertBefore templateText, next
+        seld.offset = templateText.length
+        root.orgApi.checkSourceMod()
+        seld.restore()
   save: (e, parent, r)->
     e.preventDefault()
     Leisure.snapshot()
@@ -541,7 +546,8 @@ markupNode = (org, start, inFragment)->
     text = org.text.substring pos
     if org instanceof Source && org.getLanguage().toLowerCase() == 'yaml'
       data = getBlock (if org.shared then org else org.fragment).nodeId
-      yaml = " data-yaml-type='#{escapeAttr data.yaml.type}'"
+      if data.yaml?.type then yaml = " data-yaml-type='#{escapeAttr data.yaml.type}'"
+      else yaml = ' '
       if org.fragment
         {name} = getCodeItems org.fragment.children[0]
         if name then yaml += " data-yaml-name='#{escapeAttr name.info.trim()}'"
@@ -784,6 +790,7 @@ del = (parent, event, sel, r, allowBlockCrossing)->
     root.modified = t = r.startContainer
     next = textNodeAfter parent, t
     chooseNext = false
+    offset = r.startOffset
     if r.startOffset == t.length - 1
       if t.data[r.startOffset] == '\n'
         console.log 'newline'
@@ -795,8 +802,9 @@ del = (parent, event, sel, r, allowBlockCrossing)->
         root.modified = next
         r.setStart next, 0
       else t.data = t.data.substring 1
-    else # currently, this should never happen
+    else
       t.data = t.data.substring(0, r.startOffset) + t.data.substring r.startOffset + 1
+      r.setStart t, offset
     if r.startOffset == t.length
       if isCollapsed next then next = visibleTextNodeAfter parent, next
       r.setStart next, 0
@@ -1090,7 +1098,7 @@ textEnv = (lang)->
 getResultsForSource = (parent, node)->
   r = getExistingResultsForSource node
   if !r
-    newResults parent, parseOrgMode getOrgText parent
+    newResults parent, parseOrgMode getNodeText parent
     getExistingResultsForSource node
   else r
 
@@ -1110,11 +1118,17 @@ nativeRange = (r)->
       r2
 
 class SelectionDescriptor
-  constructor: (@parent, range)->
+  constructor: (@parent, range, optStartOffset, optEndContainer, optEndOffset)->
     if range
       @offset = 0
-      @start = getTextPosition parent, range.startContainer, range.startOffset
-      @end = getTextPosition parent, range.endContainer, range.endOffset
+      if range instanceof Range
+        @start = getTextPosition parent, range.startContainer, range.startOffset
+        @end = getTextPosition parent, range.endContainer, range.endOffset
+      else
+        @start = getTextPosition parent, range, optStartOffset
+        if optEndContainer
+          @end = getTextPosition parent, optEndContainer, optEndOffset
+        else @end = @start
     else
       @restore = ->
       @toString = "Selection(none)"
@@ -1156,7 +1170,9 @@ savePosition = (saveFunc, block)->
       savingPosition = false
 
 overrideSavedPosition = (parent, range)->
-  if savingPosition then savedPositionOverride = new SelectionDescriptor parent, range
+  if savingPosition
+    if range instanceof SelectionDescriptor then savedPositionOverride = range
+    else savedPositionOverride = new SelectionDescriptor parent, range
 
 restorePosition = (parent, block)-> savePosition saveSelection, block
 
@@ -1316,7 +1332,32 @@ getOrgText = (node)->
     .filterParent node
     .getText()
 
-orgForNode = (node)-> parseOrgMode getOrgText node
+orgForNode = (node)->
+  org = suborgForNode node
+  org.linkNodes()
+  org.fixOffsets 0
+  org
+
+suborgForNode = (node)->
+  org = parseOrgMode blockText node
+  if !$(node).is('[data-org-headline="0"]')
+    if org.children.length == 1 then org = org.children[0]
+    else org = new Fragment org.offset, org.children
+  if $(node).is('[data-shared]')
+    org.nodeId = node.id
+    org.shared = $(node).attr 'data-shared'
+  for child in orgChildrenForNode node
+    org.children.push suborgForNode child
+  org
+
+orgChildrenForNode = (node)->
+  domCur = domCursor node, 0
+    .mutable()
+    .filterParent node
+    .filterShared()
+    .nodes()
+
+root.orgChildrenForNode = orgChildrenForNode
 
 # return the block text for a node -- just the text that's in its mongo block
 blockText = (node)->
@@ -1387,7 +1428,7 @@ orgNotebook =
   inMode: (el)->
     (mode = $(el).closest("[data-edit-mode]")).length == 0 || $(mode).attr('data-edit-mode') == @name
   reparse: (parent, text, target)->
-    text = text || (getOrgText target || parent)
+    text = text || (getNodeText target || parent)
     sel = getSelection()
     [orgNode, orgText] = @markupOrgWithNode text, null, target
     node = null

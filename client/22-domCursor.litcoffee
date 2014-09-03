@@ -115,6 +115,12 @@ The class...
           n = n.nodeBefore()
         @restore(saved).emptyPrev()
 
+**nodes** returns all of the nodes this cursor finds
+
+      nodes: ->
+        n = this
+        n.node while !(n = n.next()).isEmpty()
+
 **moveCaret** move the document selection to the current position
 
       moveCaret: (r)->
