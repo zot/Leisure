@@ -18,6 +18,8 @@
 
   require('sha256');
 
+  require('collections/sorted-map');
+
 }).call(this);
 
 //# sourceMappingURL=browserMain.map

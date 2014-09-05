@@ -616,6 +616,10 @@ Mark it as a forwarder so if you copy it again, you refer to the original, not t
   :PROPERTIES:
   :ID:       55e59f7f-174a-44fc-934c-8bae8a910f82
   :END:
+** DONE server-based data add -- returns new value
+   CLOSED: [2014-09-05 Fri 09:17]
+- takes path and delta
+- add currentDocument, 'person1.hands.left.fingerCount', -1
 ** DONE switch to NodePos for all positioning (use mutable)
    CLOSED: [2014-08-27 Wed 16:04]
 ** DONE batch changes to reduce flickering

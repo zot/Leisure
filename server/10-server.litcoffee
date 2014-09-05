@@ -7,12 +7,15 @@ Meteor-based collaboration -- server side
       docDo,
       crnl,
     } = Leisure
+    {
+      safeLoad,
+      dump,
+    } = Leisure.yaml
     gitReadFile = Leisure.git.readFile
     gitSnapshot = Leisure.git.snapshot
     gitHasFile = Leisure.git.hasFile
     connections = new Meteor.Collection ' connections ', connection: null
     tempDocs = {}
-    counters = {}
 
     createAccount = (name, passwd)->
       if !(Meteor.users.find username: name)
@@ -50,8 +53,32 @@ Meteor-based collaboration -- server side
           gitSnapshot doc
       revert: (name)-> loadDoc name, false, null, true
       edit: (name, contents)-> loadDoc name, true, contents
-      useCounter: (name)-> if !counters[name] then counters[name] = 0
-      counter: (name)-> counters[name]++
+      incrementField: (docId, path, amount)->
+        components = path.split /\./
+        if components.length < 2 then error: "No fields in path"
+        else if !(doc = docs[docId]) then error: "No document named #{docId}"
+        else if isNaN(Number(amount)) then error: "Increment is not a number: #{amount}"
+        else if !(dataId = doc.namedBlocks[components[0]]) then error: "No data named #{components[0]}"
+        else
+          orig = doc.findOne dataId
+          if !orig then error: "Block does not exist: #{dataId}"
+          else if !orig.yaml? then error: "Block is not yaml data: #{dataId}"
+          else
+            data = orig.yaml
+            i = 1
+            while i < components.length - 1 && data
+              data = data[components[i]]
+            if data && !data[components[i]]
+              i++
+              data = null
+            if !data
+              console.log "Path not found: #{components[0...i].join '.'}\n#{dump orig}"
+              error: "Path not found: #{components[0...i].join '.'}"
+            else
+              data[components[i]] += amount
+              orig.text = orig.text.substring(0, orig.codePrelen) + dump(orig.yaml, orig.codeAttributes ? {}) + orig.text.substring orig.text.length - orig.codePostlen
+              console.log "UPDATING: #{dataId}, #{dump orig}"
+              doc.update dataId, orig
 
     connectedToTemp = (id, connection)->
       if cur = tempDocs[id] then cur.count++
@@ -92,8 +119,23 @@ Document model that ties orgmode parse trees to HTML DOM
         if temp then doc.leisure.temp = true
         doc.remove {}
       createDocFromText text, doc, reload
-      if !reload then Meteor.publish id, -> doc.find()
+      doc.namedBlocks = {}
+      if !reload
+        doc.find().observe
+          added: (data)-> indexData doc, data
+          removed: (data)-> removeDataIndex doc, data
+          changed: (data, oldData)->
+            if !(data.codeName? && doc.namedBlocks[data.codeName] == data._id)
+              removeDataIndex doc, oldData
+              indexData doc, data
+        Meteor.publish id, -> doc.find()
       id
+
+    indexData = (doc, data)->
+      if n = data.codeName then doc.namedBlocks[data.codeName] = data._id
+
+    removeDataIndex = (doc, data)->
+      if n = data.codeName then delete doc.namedBlocks[data.codeName]
 
     docJson = (collection)->
       nodes = []

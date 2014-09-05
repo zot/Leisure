@@ -137,6 +137,8 @@ yaml = root.yaml
   codeString,
   controllerDescriptorIds,
   codeContexts,
+  indexedCursor,
+  getRenderCount,
 } = require '23-collaborate'
 {
   createTemplateRenderer,
@@ -1603,6 +1605,8 @@ noRenderWhile = (links, func)->
   addChangeContextWhile _.merge({}, root.changeContext.blockViews ? {}, blockViews: links), func
 
 renderLink = (node, data)->
+  if node.lastRendered == getRenderCount() then return
+  node.lastRendered = getRenderCount()
   if isPlainEditing(node) || root.changeContext.blockViews?.is(node) || root.changeContext.blockViews?.is($(node).children().filter('[data-view]')) then return
   if name = node.getAttribute 'data-view-name'
     viewKey = "#{data.yaml.type}/#{name}"
@@ -1664,6 +1668,11 @@ Handlebars.registerHelper 'view', (item, name, options)->
     descriptor = if name then "#{data.type}/#{name}" else "#{data.type}"
     viewMarkup[descriptor]?(data, null, false, block) || ''
   else ''
+
+Handlebars.registerHelper 'find', (index, options)->
+  ret = ''
+  indexedCursor(root.currentDocument, index)?.forEach (data)-> if data then ret += options.fn data.yaml
+  ret
 
 addViewId = ->
   if Templating.currentViewData._id?
@@ -1789,6 +1798,10 @@ fancyOrg =
     fancyCheckSourceMod focus, div, currentMatch, (if focus.nodeType == 1 then focus.firstChild else focus)
   updateBlock: (block)->
     restorePosition null, -> updateViews block._id
+  updateAllBlocks: ->
+    restorePosition null, ->
+      console.log "UPDATE ALL"
+      fixupViews '[maindoc]'
   updateObserver: (observerId, observerContext, yaml, block, type)->
     args = arguments
     restorePosition null, =>

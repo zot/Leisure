@@ -1477,6 +1477,7 @@ basicOrg =
     slide[0]
   inMode: -> true
   updateBlock: ->
+  updateAllBlocks: ->
 
 findOrIs = (set, selector)-> if set.is selector then set else set.find selector
 

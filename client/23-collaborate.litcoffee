@@ -1,6 +1,9 @@
 Meteor-based collaboration -- client side
 
     {
+      SortedMap
+    } = require 'collections/sorted-map'
+    {
       loadOrg,
     } = require '24-orgSupport'
     {
@@ -37,6 +40,8 @@ Meteor-based collaboration -- client side
     universalObservers = {}
     namedBlocks = {}
     context = L()
+    allIndexes = {}
+    updateAll = false
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -46,6 +51,7 @@ every time, because func is ignored after the first call in a batch
     disableUpdates = false
     funcBatch = []
     funcBatchQueued = false
+    renderCount = 1
 
     delay = (func)->
       funcBatch.push func
@@ -87,6 +93,7 @@ Handle changes to the doc nodes
     textLevel = Number.MAX_SAFE_INTEGER
 
     processChanges = (doc, batch, local, norender)->
+      renderCount++
       if !norender then rc = createRenderingComputer()
       updated = {}
       for item in batch
@@ -99,10 +106,16 @@ Handle changes to the doc nodes
             item.type = 'changed'
             item.oldData = old
           if !item.data.local then expungeLocalData doc.leisure.master, item.data._id
-          if item.oldData?.codeName? && (item.type == 'removed' || item.oldData.codeName != item.data.codeName)
-            delete namedBlocks[item.oldData.codeName]
-          if item.type in ['changed', 'added'] && item.data.codeName?
-            namedBlocks[item.data.codeName] = item.data._id
+          switch item.type
+            when 'added' then addIndex doc, item.data
+            when 'changed' then changeIndex doc, item.data, item.oldData
+            when 'removeed' then removeIndex doc, item.data
+          if item.type in ['changed', 'removed']
+            d = if item.type == 'changed' then item.oldData else item.data
+            if d.codeName? && (item.type == 'removed' || d.codeName != item.data.codeName)
+              delete namedBlocks[d.codeName]
+          if item.type in ['changed', 'added']
+            if item.data.codeName? then namedBlocks[item.data.codeName] = item.data._id
       for item in batch
         if item.data.info? && !item.removed
           doc.leisure.info = item.data
@@ -117,6 +130,11 @@ Handle changes to the doc nodes
               when 'changed' then rc.change item.oldData, item.data
         else updateObservers item.data, item.type, updated
       if !norender then rc.render()
+      if updateAll
+        updateAll = false
+        root.orgApi.updateAllBlocks()
+
+    getRenderCount = -> renderCount
 
     # at this point, fully rerender all changed slides
     createRenderingComputer = (overrides)->
@@ -242,6 +260,7 @@ Handle changes to the doc nodes
         else delete universalObservers[data._id]
         if lang == 'html' && attr.defview
           delay ->
+            renderCount++
             viewTypeData[data.codeAttributes.defview] = codeString(data).trim()
             viewIdTypes[data._id] = attr.defview
             root.orgApi.defineView data._id
@@ -321,7 +340,7 @@ Handle changes to the doc nodes
         data = leisureBlocks.shift()
         delay -> root.textEnv('leisure').executeText codeString(data), {}, processNextLeisureBlock
 
-    codeString = (data)-> data.text.substring data.codePrelen, data.text.length - data.codePostlen
+    codeString = (data)-> (data.codePrelen? && data.codePostlen? && data.text.substring data.codePrelen, data.text.length - data.codePostlen) ? ''
 
     getBlock = (id)->
       if id
@@ -372,12 +391,6 @@ Handle changes to the doc nodes
         newText = cur.text.substring(0, cur.codePrelen) + dump(value, cur.codeAttributes ? {}) + cur.text.substring cur.text.length - cur.codePostlen
         cur.text = newText
         cur.yaml = value
-        #oldCommitting = committing
-        #committing = true
-        #try
-        #  doc.update id, $set: {text: newText, yaml: value}
-        #finally
-        #  committing = oldCommitting
         updateItem overrides = new Overrides(), cur
         commitOverrides overrides
 
@@ -398,6 +411,8 @@ Handle changes to the doc nodes
 
     root.currentDocument = null
 
+Private function to observe a document
+
     observeDocument = (name)->
       login()
       obs = Meteor.call 'hasDocument', name, (err, result)->
@@ -414,8 +429,7 @@ Handle changes to the doc nodes
             observingDoc[result.id] = true
             Meteor.subscribe result.id, ->
               root.currentDocument = observingDoc[result.id] = docCol = new Meteor.Collection result.id
-              docCol.leisure = {name: result.id}
-              docCol.leisure.master = docCol
+              docCol.leisure = {name: result.id, indexes: {}, master: docCol}
               downloadPath = result.id
               if name.match /^demo\/(.*)$/
                 document.location.hash = "#load=/tmp/#{result.id}"
@@ -431,9 +445,6 @@ Handle changes to the doc nodes
                   cursor = docCol.find()
                   sub = cursor.observe observer docCol, false
                   blockId = getBlock docCol.leisure.info.head
-                  #while blockId && block = getBlock blockId
-                  #  processDataChange type: 'added', data: block
-                  #  blockId = block.next
                   b = while blockId && block = getBlock blockId
                     blockId = block.next
                     type: 'added', data: block, editing: false, context: context
@@ -469,6 +480,134 @@ Handle changes to the doc nodes
       added: (el)-> addChange changeName, 'added', copy(el), (items)-> processChanges docCol, items, local
       removed: (el)-> addChange changeName, 'removed', copy(el), (items)-> processChanges docCol, items, local
       changed: (el, oldEl)-> addChange changeName, 'changed', copy(el), copy(oldEl), (items)-> processChanges docCol, items, local
+
+Indexer is a private helper class for indexed data.  Indexes store
+value -> id pairs and are in-memory until we switch to IndexedDB.
+Indexers manage adding and removing data from these indexes.
+
+Data index attributes specify an indexer and have the form
+
+:index name1 field1, name field2, ...
+
+    addIndex = (doc, data, info)->
+      if key = data.codeAttributes?.index
+        new Indexer(doc, key).add data._id, data.yaml
+      else if data.language?.toLowerCase() == 'index'
+        try
+          info = info ? safeLoad codeString data
+          compare = if info.order.toLowerCase() == 'desc' then (a, b)-> -Object.compare(a,b)
+          replaceIndexDef doc, info.name, compare
+        catch err then
+
+    changeIndex = (doc, data, oldData)->
+      oldIndexDef = oldData.language?.toLowerCase() == 'index' && safeLoad codeString oldData
+      newIndexDef = data.language?.toLowerCase() == 'index' && safeLoad codeString data
+      removeIndex doc, oldData, oldIndexDef?.name == newIndexDef?.name
+      addIndex doc, data, newIndexDef
+
+    removeIndex = (doc, data, replaceIndex)->
+      if key = data.codeAttributes?.index
+        new Indexer(doc, key).remove data._id, data.yaml
+      else if !replaceIndex && data.language?.toLowerCase() == 'index'
+        try
+          info = safeLoad codeString data
+          replaceIndexDef doc, info.name
+        catch err then
+
+    replaceIndexDef = (doc, name, compare)->
+      if name
+        console.log "Redefining index #{name}"
+        oldIndex = doc.leisure.indexes[name]
+        newIndex = doc.leisure.indexes[name] = new SortedMap null, null, compare
+        oldIndex?.forEach (value, key)-> newIndex.set key, value
+        updateAll = true
+
+    class Indexer
+      constructor: (@doc, key)->
+        @indexes = []
+        for indexPair in key.split ','
+          desc = indexPair.trim().split /[ ]+/
+          if desc.length < 2 then throw new Error "Bad data index: #{desc} in #{key}"
+          @indexes.push desc
+        @indexes.sort (a,b)-> if a[0] < b[0] then -1 else if a[0] == b[0] then 0 else 1
+      sameIndexer: (i)-> _.isEqual @indexes, i.indexes
+      sameValues: (a, b)->
+        for desc in @indexes
+          vA = a
+          vB = b
+          for i in [1...desc.length]
+            vA = vA && vA[desc[i]]
+            vB = vB && vB[desc[i]]
+          if !_.isEqual vA, vB then return false
+        true
+      add: (id, data)->
+        for desc in @indexes
+          v = data
+          for i in [1...desc.length]
+            v = v && v[desc[i]]
+          if v?
+            index = (@doc.leisure.indexes[desc[0]] ? (@doc.leisure.indexes[desc[0]] = new SortedMap()))
+            if !(a = index.get v) then index.set v, a = []
+            a.push id
+      remove: (id, data)->
+        for desc in @indexes
+          v = data
+          for i in [1...desc.length]
+            v = v && v[desc[i]]
+          if v? && (index = @doc.leisure.indexes[desc[0]]) && a = index.get v
+            _.remove a, (el)-> el == id
+            if a.length == 0
+              if index.length == 1 then delete @doc.leisure.indexes[desc[0]]
+              else index.delete v
+
+    class IndexedCursor
+      constructor: (@doc, @name, node, getFirst, limit)->
+        if @index = @doc.leisure.indexes[@name]
+          if getFirst then @_getFirst = getFirst
+          if node then @node = node else @rewind()
+          @limit = limit ? -> true
+        else
+          @forEach = ->
+          @rewind = ->
+      forEach: (f)->
+        while @node && @limit @node.value.key
+          for id in @node.value.value
+            f @doc.findOne id
+          @node = @index.store.findLeastGreaterThan @node.value
+      _getFirst: -> @index.store.findLeast()
+      rewind: -> @node = @_getFirst()
+      map: (f)->
+        result = []
+        @forEach (item)-> result.push f item
+        result
+      fetch: ->
+        result = []
+        @forEach (item)-> result.push item
+        result
+      count: ->
+        oldNode = @node
+        tot = 0
+        forEach -> tot++
+        @node = oldNode
+        tot
+      greaterThan: (key)->
+        getFirst = @index.store.findLeastGreaterThanOrEqual key: key
+        node = if @node.value.compare(@node.value, key: key) > 0 then @node else getFirst()
+        new IndexedCursor @doc, @name, node, getFirst, @limit
+      greaterThanOrEqual: (key)->
+        getFirst = @index.store.findLeastGreaterThanOrEqual key: key
+        node = if @node.value.compare(@node.value, key: key) > -1 then @node else getFirst()
+        new IndexedCursor @doc, @name, node, getFirst, @limit
+      lessThan: (key)->
+        ind = null
+        cmp = (k)-> ind.node.value.compare((key: k), (key: key)) < 0
+        ind = new IndexedCursor @doc, @name, @node, @_getFirst, cmp
+      lessThanOrEqual: (key)->
+        ind = null
+        cmp = (k)-> ind.node.value.compare((key: k), (key: key)) < 1
+        ind = new IndexedCursor @doc, @name, @node, @_getFirst, cmp
+
+    indexedCursor = (doc, name)-> new IndexedCursor doc, name
 
     addChangeContextWhile = (obj, func)->
       oldc = context
@@ -927,3 +1066,5 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.setSourceAttribute = setSourceAttribute
     root.snapshot = snapshot
     root.revert = revert
+    root.indexedCursor = indexedCursor
+    root.getRenderCount = getRenderCount
