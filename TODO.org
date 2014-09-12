@@ -1,4 +1,8 @@
 * Short list -- announcement
+- *update jqueryui to get selectmenu widget*
+- warning for potentially misspelled index names
+  - index defs that refer to empty indexes
+  - data index names for indexes that only contain one piece of data
 - disable checkpoint and revert if there are no changes
   - use the info record to report changes
 - switch from persistent-hash-trie to [[https://github.com/facebook/immutable-js][immutable-js]]

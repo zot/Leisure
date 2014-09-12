@@ -79,7 +79,7 @@ Important: this does not remove old ids, yet, from data-view-ids on updates
     addId = (el, id)->
       for node in $(el).not("[data-view-ids~=#{id}]")
         old = node.getAttribute('data-view-ids')
-        node.setAttribute 'data-view-ids', "#{old} #{id}"
+        node.setAttribute 'data-view-ids', "#{if old then old + ' ' else ''}#{id}"
 
     numberInputs = (el)->
       for input in $(el).find('input')

@@ -26,7 +26,6 @@ addRepoFibers = (r, owner, ownerEmail)->
     openAndReadIndex: ->
       ind = r.fibers.openIndex()
       ind.fibers.read()
-      ind
     referenceOidForName: (name)-> Future.wrap((cb)-> git.Reference.oidForName r, name, cb)().wait()
     getCommit: (oid)-> Future.wrap((cb)-> r.getCommit oid, cb)().wait()
     getBlob: (oid)-> Future.wrap((cb)-> r.getBlob oid, cb)().wait()
@@ -37,9 +36,15 @@ addRepoFibers = (r, owner, ownerEmail)->
 addIndexFibers = (r, ind)->
   ind.fibers =
     repo: r
-    read: -> Future.wrap((cb)-> ind.read cb)().wait()
-    addByPath: (path)-> Future.wrap((cb)-> ind.addByPath path, cb)().wait()
-    write: -> Future.wrap((cb)-> ind.write cb)().wait()
+    read: ->
+      Future.wrap((cb)-> ind.read cb)().wait()
+      ind
+    addByPath: (path)->
+      Future.wrap((cb)-> ind.addByPath path, cb)().wait()
+      ind
+    write: ->
+      Future.wrap((cb)-> ind.write cb)().wait()
+      ind
     writeTree: -> Future.wrap((cb)-> ind.writeTree cb)().wait()
     commit: (ref, msg, author, authorEmail, committer, committerEmail)->
       ind.fibers.write()
@@ -79,7 +84,7 @@ storeFile = (name, contents)->
     console.log "COMMITED SNAPSHOT:", commitOid
     true
 
-loadFile = (name)-> currentIndex?.fibers.getByPath(name).content()
+loadFile = (name)-> currentIndex?.fibers.read().fibers.getByPath(name).content()
 
 hasFile = (name)-> currentIndex?.find(name)?
 
@@ -92,5 +97,6 @@ if (process.env.LEISURE_NO_GIT?.length ? 0) == 0
 root.git =
   snapshot: snapshot
   hasFile: hasFile
-  readFile: loadFile
+  #readFile: loadFile
+  readFile: (name)-> readFile path.resolve(docsDir, name)
   currentIndex: currentIndex

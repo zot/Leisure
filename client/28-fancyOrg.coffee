@@ -1654,6 +1654,8 @@ Leisure.bindWidgets = bindWidgets = (parent)->
         e.preventDefault()
         $(rootNode(input).firstChild).find("##{nextButton}").click()
 
+Handlebars.registerHelper 'values', (items..., options)-> items
+
 Handlebars.registerHelper 'view', (item, name, options)->
   if !options
     options = name
@@ -1661,6 +1663,9 @@ Handlebars.registerHelper 'view', (item, name, options)->
   data = if typeof item == 'string'
     block = getBlockNamed item
     block?.yaml
+  else if item.yaml && item._id
+    block = item
+    item.yaml
   else
     block = null
     item
@@ -1671,7 +1676,7 @@ Handlebars.registerHelper 'view', (item, name, options)->
 
 Handlebars.registerHelper 'find', (index, options)->
   ret = ''
-  indexedCursor(root.currentDocument, index)?.forEach (data)-> if data then ret += options.fn data.yaml
+  indexedCursor(root.currentDocument, index)?.forEach (data)-> if data then ret += options.fn data
   ret
 
 addViewId = ->
