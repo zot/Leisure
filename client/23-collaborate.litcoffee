@@ -42,6 +42,7 @@ Meteor-based collaboration -- client side
     context = L()
     allIndexes = {}
     updateAll = false
+    renderCount = 1
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -51,7 +52,6 @@ every time, because func is ignored after the first call in a batch
     disableUpdates = false
     funcBatch = []
     funcBatchQueued = false
-    renderCount = 1
 
     delay = (func)->
       funcBatch.push func
@@ -93,7 +93,7 @@ Handle changes to the doc nodes
     textLevel = Number.MAX_SAFE_INTEGER
 
     processChanges = (doc, batch, local, norender)->
-      renderCount++
+      incRenderCount()
       if !norender then rc = createRenderingComputer()
       updated = {}
       for item in batch
@@ -135,6 +135,7 @@ Handle changes to the doc nodes
         root.orgApi.updateAllBlocks()
 
     getRenderCount = -> renderCount
+    incRenderCount = -> renderCount++
 
     # at this point, fully rerender all changed slides
     createRenderingComputer = (overrides)->
@@ -258,15 +259,7 @@ Handle changes to the doc nodes
             if !(a = observing[data._id]) then a = observing[data._id] = []
             a.push attr.observe
         else delete universalObservers[data._id]
-        if lang == 'html' && attr.defview
-          delay ->
-            renderCount++
-            viewTypeData[data.codeAttributes.defview] = codeString(data).trim()
-            viewIdTypes[data._id] = attr.defview
-            root.orgApi.defineView data._id
-        else if lang == 'css'
-          root.orgApi.updateBlock data
-        else if lang == 'yaml'
+        if lang in ['css', 'yaml', 'html']
           root.orgApi.updateBlock data
         else if isDef(data) && lang in ['js', 'javascript']
           try
@@ -1068,3 +1061,4 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.revert = revert
     root.indexedCursor = indexedCursor
     root.getRenderCount = getRenderCount
+    root.incRenderCount = incRenderCount

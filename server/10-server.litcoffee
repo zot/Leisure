@@ -55,7 +55,7 @@ Meteor-based collaboration -- server side
       edit: (name, contents)-> loadDoc name, true, contents
       incrementField: (docId, path, amount)->
         components = path.split /\./
-        if components.length < 2 then error: "No fields in path"
+        r = if components.length < 2 then error: "No fields in path"
         else if !(doc = docs[docId]) then error: "No document named #{docId}"
         else if isNaN(Number(amount)) then error: "Increment is not a number: #{amount}"
         else if !(dataId = doc.namedBlocks[components[0]]) then error: "No data named #{components[0]}"
@@ -68,17 +68,20 @@ Meteor-based collaboration -- server side
             i = 1
             while i < components.length - 1 && data
               data = data[components[i]]
-            if data && !data[components[i]]
+              i++
+            if data && typeof data[components[i]] != 'number'
               i++
               data = null
             if !data
               console.log "Path not found: #{components[0...i].join '.'}\n#{dump orig}"
               error: "Path not found: #{components[0...i].join '.'}"
             else
-              data[components[i]] += amount
+              result = data[components[i]] += amount
               orig.text = orig.text.substring(0, orig.codePrelen) + dump(orig.yaml, orig.codeAttributes ? {}) + orig.text.substring orig.text.length - orig.codePostlen
               console.log "UPDATING: #{dataId}, #{dump orig}"
               doc.update dataId, orig
+              result
+        r
 
     connectedToTemp = (id, connection)->
       if cur = tempDocs[id] then cur.count++
@@ -120,14 +123,14 @@ Document model that ties orgmode parse trees to HTML DOM
         doc.remove {}
       createDocFromText text, doc, reload
       doc.namedBlocks = {}
+      doc.find().observe
+        added: (data)-> indexData doc, data
+        removed: (data)-> removeDataIndex doc, data
+        changed: (data, oldData)->
+          if !(data.codeName? && doc.namedBlocks[data.codeName] == data._id)
+            removeDataIndex doc, oldData
+            indexData doc, data
       if !reload
-        doc.find().observe
-          added: (data)-> indexData doc, data
-          removed: (data)-> removeDataIndex doc, data
-          changed: (data, oldData)->
-            if !(data.codeName? && doc.namedBlocks[data.codeName] == data._id)
-              removeDataIndex doc, oldData
-              indexData doc, data
         Meteor.publish id, -> doc.find()
       id
 

@@ -56,7 +56,7 @@ yaml = require '12-yaml'
 {
   safeLoad,
   dump,
-} = (yaml ? root.yaml ? global.Yaml)
+} = Leisure.yaml
 
 rz = resolve
 lz = lazy

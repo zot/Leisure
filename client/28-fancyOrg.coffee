@@ -139,6 +139,9 @@ yaml = root.yaml
   codeContexts,
   indexedCursor,
   getRenderCount,
+  incRenderCount,
+  viewTypeData,
+  viewIdTypes,
 } = require '23-collaborate'
 {
   createTemplateRenderer,
@@ -963,7 +966,6 @@ showAst = (astButton, force)->
 
 show = (obj)-> rz(L_show)(lz obj)
 
-
 commentButton = (name)->
   "<button class='comment-button' onclick='Leisure.toggleComment(\"#{escapeAttr name}\", event)' contenteditable='false' data-org-commentcount='0'><i class='fa fa-comment'></i><span></span><div></div></button>"
 
@@ -1062,7 +1064,7 @@ defaultMarkup = (org, tag, attrs...)->
 htmlForResults = (text, org)->
   attr = if org?.shared then " id='#{org.nodeId}' data-shared='#{org.shared}'" else ''
   """
-  <div class='coderesults' data-org-type='results'#{attr}><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><span></span><span class='hidden'>#{escapeHtml text}</span></div></div>"""
+  <div class='coderesults' data-org-type='results'#{attr}><span class='hidden'>#+RESULTS:\n</span><div class='resultscontent'><div data-nonorg></div><span class='hidden'>#{escapeHtml text}</span></div></div>"""
 
 toggleDynamic = (event)->
   block = codeBlockForNode event.target
@@ -1278,9 +1280,7 @@ reprocessResults = (node)->
   processResults getOrgText(node.firstChild.nextElementSibling), node, true
 
 processResults = (str, node, skipText)->
-  $(node.firstChild).children().remove()
-  resultsNode = nonOrg("<div></div>")[0]
-  $(node.firstChild).append resultsNode
+  resultsNode = node.firstChild
   if !skipText
     node.firstChild.nextElementSibling.textContent += str
     edited node
@@ -1763,7 +1763,7 @@ fancyOrg =
     else $("[maindoc] [data-org-headline='0']").append slide
     slide.find("##{id}")[0]
   defineView: (id)-> # define a view from a data block
-    if type = root.viewIdTypes[id]
+    if type = viewIdTypes[id]
       createTemplateRenderer type, root.viewTypeData[type], false, (data, target, block, update)->
         el = if update then target else viewRoots(target)
         if target
@@ -1787,8 +1787,13 @@ fancyOrg =
             codeContexts[id]?.initializeView? view, data, block._id
       dataType = type.match /([^/]*)\/?(.*)?/
       restorePosition null, ->
-        for node in $("[data-yaml-type='#{dataType[1]}']")
-          renderView node, dataType[2]
+        rerenderIds = {}
+        for node in $("[data-view-type='#{dataType[1]}']")
+          for parent in $("[data-view-ids~='#{node.getAttribute 'data-view-block'}']")
+            rerenderIds[parent.getAttribute 'data-view-id'] = true
+        for id of rerenderIds
+          for node in $("[data-view-id='#{id}']")
+            renderLink node, getBlock id
   deleteView: (type)->
     delete viewMarkup[type]
     for node in $("[data-view-key='#{type}']")
@@ -1802,7 +1807,15 @@ fancyOrg =
     focus = getSelection().focusNode
     fancyCheckSourceMod focus, div, currentMatch, (if focus.nodeType == 1 then focus.firstChild else focus)
   updateBlock: (block)->
-    restorePosition null, -> updateViews block._id
+    lang = block.language?.toLowerCase()
+    attr = block.codeAttributes
+    restorePosition null, ->
+      if lang in ['css', 'yaml'] then updateViews block._id
+      else if lang == 'html' && attr?.defview
+        incRenderCount()
+        viewTypeData[block.codeAttributes.defview] = codeString(block).trim()
+        viewIdTypes[block._id] = attr.defview
+        root.orgApi.defineView block._id
   updateAllBlocks: ->
     restorePosition null, ->
       console.log "UPDATE ALL"

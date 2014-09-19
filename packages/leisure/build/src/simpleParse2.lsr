@@ -4,6 +4,7 @@ setNameSpace 'core'
 # Utilities
 #################
 
+# change this to return a list of results
 doall = foldr1 (\el res . bind el \_ . res)
 aconsf key value list = acons key value (aremove key list)
 aremove key list = isNil list
