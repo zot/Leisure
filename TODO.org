@@ -3,13 +3,23 @@
 - warning for potentially misspelled index names
   - index defs that refer to empty indexes
   - data index names for indexes that only contain one piece of data
-- disable checkpoint and revert if there are no changes
+- disable checkpoint and revert buttons if there are no changes
   - use the info record to report changes
 - switch from persistent-hash-trie to [[https://github.com/facebook/immutable-js][immutable-js]]
   - it's already located in 5-immutable.js
 - attach block documentation/properties to JS/CS functions
   - parse code to find function names
   - add properties to funcs after eval
+- use JIT technique for global names?  Maybe V8 will dynamically inline, anyway?
+  - when a symbol is *redefined*, increment a version counter
+  - mark top-level functions with the version counter value at compile time
+  - when a function runs, check the version number
+  - if the function is out of date, recompile it
+  - use new name space for evaluated defs
+    - L_x is a function
+    - L$_ is the result
+  - this allows funcs to resolve global names in advance
+  - this trades off one verrsion check for all of the global name function calls
 - some way to control access to the root documents
   - maybe just a random URL, for now
 - warning for controllers that don't define @initializeView

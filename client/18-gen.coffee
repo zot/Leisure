@@ -446,6 +446,14 @@ define 'runAst', (lz (code)->$F(arguments, (ast)->
     console.log msg + ast() + "\n" + err.stack
     rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast))), null, null, null, 'parser'
 
+define 'genAst', (lz (ast)->
+  jsCode = null
+  try
+    gen rz ast
+  catch err
+    codeMsg = (if jsCode then "CODE: \n#{jsCode}\n" else "")
+    rz(L_parseErr)(lz "\n\nParse error: " + err.toString() + "\n#{codeMsg}AST: ")(ast)), null, null, null, 'parser'
+
 root.gen = gen
 root.genMap = genMap
 root.genSource = genSource
@@ -459,3 +467,5 @@ root.curryCall = curryCall
 #root.clearNameSpacePath = clearNameSpacePath
 #root.saveNameSpace = saveNameSpace
 #root.restoreNameSpace = restoreNameSpace
+root.SourceNode = SourceNode
+root.SourceMapConsumer = SourceMapConsumer

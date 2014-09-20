@@ -159,9 +159,9 @@ mapSave func l = isNil l
 
 # foldl (\prev el . ...) list
 # foldr (\el prev . ...) list
-# call func on list items and previous result of fold
-# foldl uses the head of the list for the previous results
-# foldr uses the tail of the list for the previous results
+# call func on list items and previous result of the fold
+# foldl is left-recursive, starting at the beginning of the list and proceding forward
+# foldr is right-recursive, starting at the end of the list and processing backward
 # foldr can work on infinite lists, but foldl cannot
 foldl func initialValue l = l (\h t D . foldl func (func initialValue h) t) initialValue
 foldl1 func l = l \h t . foldl func h t
@@ -777,7 +777,7 @@ isBlockStart tok = and
 
 # macs is an assoc-list (list of (name . definition))
 # expr is the tail of the macro expression
-# macros can be IO monads
+# macros can use the IO monad
 macroSub macs expr = postProcessMacro (emptyFor expr) (emptyFor expr) (baseMacroSub macs expr)
 
 consifyMacroValue value = isCons value value (cons value nil)
@@ -881,11 +881,11 @@ addTokenGroup open close = bind (addToken open)
 
 parenGroups = acons '(' ')' nil
 
-parse str pat = ifNotErr (parseIndent (token '\n' startFilePos) (tokens str pat) nil parenGroups) \list . list \h t . stripParens h
+testParse str pat = ifNotErr (parseIndent (token '\n' startFilePos) (tokens str pat) nil parenGroups) \list . list \h t . stripParens h
 
 parseG str pat groups = ifNotErr (parseIndent (token '\n' startFilePos) (tokens str pat) nil groups) \list . list \h t . stripParens h
 
-parseToAst str pat = createAst nil (parse str pat) nil
+parseToAst str pat = createAst nil (testParse str pat) nil
 
 parseM str =
   bind (getValue 'tokenPat')

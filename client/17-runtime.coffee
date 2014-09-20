@@ -60,6 +60,7 @@ yaml = require '12-yaml'
 
 rz = resolve
 lz = lazy
+gensymCounter = 0
 
 call = (args...)-> basicCall(args, defaultEnv, identity)
 
@@ -104,6 +105,14 @@ define 'trace', lz (msg)->
   msg
 
 define 'error', lz (msg)-> throw new Error rz msg
+
+############
+# UTILITIES
+############
+
+define 'strict', lz (x)->$F(arguments, (f)->
+  console.log "STRICT #{rz x}"
+  rz(f)(lz rz x))
 
 ############
 # MATH
@@ -463,6 +472,8 @@ define 'override', lz (name)->(newFunc)->
 #   makeSyncMonad (env, cont)->
 #     cont (root.E = new Error(msg)).stack
 
+define 'gensym', lz makeSyncMonad (env, cont)-> cont "G#{gensymCounter++}"
+
 define 'print', lz (msg)->
   makeSyncMonad (env, cont)->
     env.write ("#{env.presentValue rz msg}\n")
@@ -470,7 +481,7 @@ define 'print', lz (msg)->
 
 define 'write', lz (msg)->
   makeSyncMonad (env, cont)->
-    env.write env.presentValue rz msg
+    env.write String(rz msg)
     cont _true
 
 define 'readFile', lz (name)->
@@ -526,7 +537,7 @@ define 'once', lz makeSyncMonad (->
 ##################
 
 # later advice overrides earlier advice
-define 'advise', lz (name)->(alt)->(arity)->(def)->
+define 'advise', lz (name)->$F(arguments, (alt)->$F(arguments, (arity)->$F(arguments, (def)->
   makeMonad (env, cont)->
     info = functionInfo[rz name]
     if !info then info = functionInfo[rz name] =
@@ -553,7 +564,7 @@ define 'advise', lz (name)->(alt)->(arity)->(def)->
     nm = "L_#{nameSub rz name}"
     global[nm] = global.leisureFuncNames[nm] = newDef
     functionInfo[name].newArity = false
-    cont def
+    cont def)))
 
 curry = (arity, func)-> -> lz (arg)-> lz (subcurry arity, func, null) arg
 

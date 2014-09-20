@@ -37,18 +37,18 @@ lib/simpleParse.js: src/simpleParse.lsr
 	$(REPL) -d lib -0 -c src/simpleParse.lsr
 
 lib/svg.js:
-	$(REPL) -d lib -c -r '../lib/std' $(@:lib/%.js=src/%.lsr)
-	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > tmp
+	$(REPL) -d lib -c -r 'std' $(@:lib/%.js=src/%.lsr)
+	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
-	mv tmp $(@:%.js=%.map)
+	mv temp $(@:%.js=%.map)
 
 lib/%.js: src/%.lsr
 	$(REPL) -d lib -c $(@:lib/%.js=src/%.lsr)
-	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > tmp
+	sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > temp
 	sleep 1
-	mv tmp $(@:%.js=%.map)
+	mv temp $(@:%.js=%.map)
 
-#sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > $(LIB)/tmp
+#sed -e 's/"sourceRoot": "\.\."/"sourceRoot": "."/' $(@:%.js=%.map) > $(LIB)/temp
 #sleep 1
 
 lib/%.js: src/%.coffee

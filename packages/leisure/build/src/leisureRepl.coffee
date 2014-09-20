@@ -49,10 +49,8 @@ fs = require 'fs'
   genSource,
   withFile,
   sourceNode,
-} = require '18-gen'
-{
   SourceNode,
-} = require 'source-map'
+} = require '18-gen'
 {
   readFile,
   writeFile,
@@ -323,11 +321,17 @@ compile = (file, cont)->
         outputMap = path.join(outDir, path.basename(outputMap))
       if verbose then console.log "JS FILE: #{outputFile}"
       console.log "FIRST AST: #{asts[0]}"
-      result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
-        "module.exports = L_runMonads([\n  ",
-        intersperse(_(asts).map((item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
-        "]);\n"
-      ]).toStringWithSourceMap(file: path.basename(bareJs))
+      try
+        lastArgs = null
+        result = withFile path.basename(bareLsr), null, -> (new SourceNode 1, 0, bareLsr, [
+          "module.exports = L_runMonads([\n  ",
+          intersperse(lastArgs = _.map(asts, (item)-> sourceNode item, "function(){return ", (genMap item), "}"), ',\n '),
+          "]);\n"
+        ]).toStringWithSourceMap(file: path.basename(bareJs))
+      catch err
+        inspect = require?('util').inspect ? (x)-> x
+        console.log "Error in source node,\nargs: #{inspect lastArgs, depth: 128}\nError: #{err.stack}"
+        throw err
       #writeFile outputFile, "L_runMonads([\n  " + _(asts).map((item)-> "function(){return #{gen item}}").join(',\n  ') + "]);\n", (err)->
       if verbose then console.log "FILE: #{outputFile}, MAP: #{outputMap}"
       writeFile outputFile, result.code + "\n//# sourceMappingURL=#{path.basename bareOutputMap}\n", (err)->

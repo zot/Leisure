@@ -3213,7 +3213,7 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("parenGroups")(0)("parenGroups = acons '(' ')' nil")(function(){return resolve(L_acons)("(", ")", L_nil)})},
- function(){return resolve(L_newDefine)("parse")(2)("parse str pat = ifNotErr (parseIndent (token '\\n' startFilePos) (tokens str pat) nil parenGroups) \\list . list \\h t . stripParens h")(lazy((function () {
+ function(){return resolve(L_newDefine)("testParse")(2)("testParse str pat = ifNotErr (parseIndent (token '\\n' startFilePos) (tokens str pat) nil parenGroups) \\list . list \\h t . stripParens h")(lazy((function () {
   var main;
   var full = function (L_str, L_pat) {
     return resolve(L_ifNotErr)(function(){return resolve(L_parseIndent)(function(){return resolve(L_token)("\n", L_startFilePos)}, function(){return resolve(L_tokens)(L_str, L_pat)}, L_nil, L_parenGroups)}, lazy(function(L_list){return resolve(L_list)(lazy(function(L_h){return $F(arguments, function(L_t){return resolve(L_stripParens)(L_h)})}))}));
@@ -3263,10 +3263,10 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("parseToAst")(2)("parseToAst str pat = createAst nil (parse str pat) nil")(lazy((function () {
+ function(){return resolve(L_newDefine)("parseToAst")(2)("parseToAst str pat = createAst nil (testParse str pat) nil")(lazy((function () {
   var main;
   var full = function (L_str, L_pat) {
-    return resolve(L_createAst)(L_nil, function(){return resolve(L_parse)(L_str, L_pat)}, L_nil);
+    return resolve(L_createAst)(L_nil, function(){return resolve(L_testParse)(L_str, L_pat)}, L_nil);
   };
   var partial = function(L_str) {
     var _1 = function(L_pat) {

@@ -42,7 +42,6 @@ Meteor-based collaboration -- client side
     context = L()
     allIndexes = {}
     updateAll = false
-    renderCount = 1
 
 Batching code -- addBatch batches items and calls the given function
 with the batch You should send the same function for each batch name,
@@ -52,6 +51,7 @@ every time, because func is ignored after the first call in a batch
     disableUpdates = false
     funcBatch = []
     funcBatchQueued = false
+    renderCount = 1
 
     delay = (func)->
       funcBatch.push func

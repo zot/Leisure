@@ -252,7 +252,7 @@ lsrComp = (str, diag)->
   if diag
     console.log "COMPILE: #{str}: " + "parseLine #{s str} #{s LZ.delimiterPat.source} nil id id"
     console.log "TOKENS: " + (lsrD "tokens #{s str}")
-    console.log "LIST: " + (lsrD "parse #{s str}")
+    console.log "LIST: " + (lsrD "testParse #{s str}")
     console.log "AST: " + (lsr "parseLine #{s str} #{s LZ.delimiterPat.source} nil id id")
     console.log "JS: (" + gen(lsr "parseLine #{s str} #{s LZ.delimiterPat.source} nil id id") + ")"
     console.log "done"
@@ -445,14 +445,14 @@ readFile 'packages/leisure/build/src/simpleParse.lsr', (err, code)->
         leisureParse4: -> assertEq lsr('getType (cons 1 nil)'), 'cons'
         leisureParse5: -> assertEq lsr('getDataType cons'), 'cons'
         leisureParse6: -> assertEq lsr('hasType (cons 1 nil) cons 1 0'), 1
-        leisureParse7: -> assertEq strLsrD("parse 'a\n b'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.3)]'
-        leisureParse8: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.6, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5)])]'
-        leisureParse9: -> assertEq strLsrD("parse 'a\n b c'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.6, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5)])]'
-        leisureParse10: -> assertEq strLsrD("parse 'a\nb'"), 'Token("a", EMPTYFILE.lsr:1.0)'
-        leisureParse11: -> assertEq strLsrD("parse 'a\n b c\n d e'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.6, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5)]) Parens(EMPTYFILE.lsr:1.6, EMPTYFILE.lsr:1.11, Cons[Token("d", EMPTYFILE.lsr:1.8) Token("e", EMPTYFILE.lsr:1.10)])]'
-        leisureParse12: -> assertEq strLsrD("parse 'a\n b c\n d e\nf'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.6, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5)]) Parens(EMPTYFILE.lsr:1.6, EMPTYFILE.lsr:1.11, Cons[Token("d", EMPTYFILE.lsr:1.8) Token("e", EMPTYFILE.lsr:1.10)])]'
-        leisureParse13: -> assertEq strLsrD("parse 'a\n b c\n  d e'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.12, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5) Parens(EMPTYFILE.lsr:1.6, EMPTYFILE.lsr:1.12, Cons[Token("d", EMPTYFILE.lsr:1.9) Token("e", EMPTYFILE.lsr:1.11)])])]'
-        leisureParse14: -> assertEq strLsrD("parse 'a\n b c\n  d e\n f'"),
+        leisureParse7: -> assertEq strLsrD("testParse 'a\n b'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.3)]'
+        leisureParse8: -> assertEq strLsrD("testParse 'a\n b c'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.6, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5)])]'
+        leisureParse9: -> assertEq strLsrD("testParse 'a\n b c'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.6, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5)])]'
+        leisureParse10: -> assertEq strLsrD("testParse 'a\nb'"), 'Token("a", EMPTYFILE.lsr:1.0)'
+        leisureParse11: -> assertEq strLsrD("testParse 'a\n b c\n d e'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.6, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5)]) Parens(EMPTYFILE.lsr:1.6, EMPTYFILE.lsr:1.11, Cons[Token("d", EMPTYFILE.lsr:1.8) Token("e", EMPTYFILE.lsr:1.10)])]'
+        leisureParse12: -> assertEq strLsrD("testParse 'a\n b c\n d e\nf'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.6, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5)]) Parens(EMPTYFILE.lsr:1.6, EMPTYFILE.lsr:1.11, Cons[Token("d", EMPTYFILE.lsr:1.8) Token("e", EMPTYFILE.lsr:1.10)])]'
+        leisureParse13: -> assertEq strLsrD("testParse 'a\n b c\n  d e'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.12, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5) Parens(EMPTYFILE.lsr:1.6, EMPTYFILE.lsr:1.12, Cons[Token("d", EMPTYFILE.lsr:1.9) Token("e", EMPTYFILE.lsr:1.11)])])]'
+        leisureParse14: -> assertEq strLsrD("testParse 'a\n b c\n  d e\n f'"),
           'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.1, EMPTYFILE.lsr:1.12, Cons[Token("b", EMPTYFILE.lsr:1.3) Token("c", EMPTYFILE.lsr:1.5) Parens(EMPTYFILE.lsr:1.6, EMPTYFILE.lsr:1.12, Cons[Token("d", EMPTYFILE.lsr:1.9) Token("e", EMPTYFILE.lsr:1.11)])]) Token("f", EMPTYFILE.lsr:1.14)]'
         leisureParse15: -> assertEq lsr('\\\\(a = 1) (b x = x) . (b a)'), 1
         leisureParse16: ->
@@ -467,22 +467,22 @@ readFile 'packages/leisure/build/src/simpleParse.lsr', (err, code)->
         leisureParse18: -> assertEq strLsrD("tokens 'a b  c'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.2) Token("c", EMPTYFILE.lsr:1.5)]'
         leisureParse19: -> assertEq lsr("'\\n'"), '\n'
         leisureParse20: -> assertEq String(lsr("reverse (cons 1 (cons 2 nil))")), 'Cons[2 1]'
-        leisureParse21: -> assertEq strLsrD("parse 'a'"), 'Token("a", EMPTYFILE.lsr:1.0)'
-        leisureParse22: -> assertEq strLsrD("parse 'a b  c'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.2) Token("c", EMPTYFILE.lsr:1.5)]'
+        leisureParse21: -> assertEq strLsrD("testParse 'a'"), 'Token("a", EMPTYFILE.lsr:1.0)'
+        leisureParse22: -> assertEq strLsrD("testParse 'a b  c'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.2) Token("c", EMPTYFILE.lsr:1.5)]'
         leisureParse23: -> assertEq lsrD("splitTokens 'a (b)'").toArray(), ['a', ' ', '(', 'b', ')']
-        leisureParse24: -> assertEq strLsrD("parse 'a (b)'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.2, EMPTYFILE.lsr:1.5, Cons[Token("b", EMPTYFILE.lsr:1.3)])]'
+        leisureParse24: -> assertEq strLsrD("testParse 'a (b)'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.2, EMPTYFILE.lsr:1.5, Cons[Token("b", EMPTYFILE.lsr:1.3)])]'
         leisureParse25: ->
           assertEq strLsrD("tokens 'a ( (b  )   c) '"),
             'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("(", EMPTYFILE.lsr:1.2) Token("(", EMPTYFILE.lsr:1.4) Token("b", EMPTYFILE.lsr:1.5) Token(")", EMPTYFILE.lsr:1.8) Token("c", EMPTYFILE.lsr:1.12) Token(")", EMPTYFILE.lsr:1.13)]'
         leisureParse26: ->
-          assertEq strLsrD("parse 'a ( (b  )   c) '"),
+          assertEq strLsrD("testParse 'a ( (b  )   c) '"),
             'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.2, EMPTYFILE.lsr:1.14, Cons[Parens(EMPTYFILE.lsr:1.4, EMPTYFILE.lsr:1.9, Cons[Token("b", EMPTYFILE.lsr:1.5)]) Token("c", EMPTYFILE.lsr:1.12)])]'
         leisureParse27: ->
-          assertEq strLsrD("parse 'a.b'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token(".", EMPTYFILE.lsr:1.1) Token("b", EMPTYFILE.lsr:1.2)]'
-          assertEq strLsrD("parse 'a.b#blorfl'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token(".", EMPTYFILE.lsr:1.1) Token("b", EMPTYFILE.lsr:1.2)]'
+          assertEq strLsrD("testParse 'a.b'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token(".", EMPTYFILE.lsr:1.1) Token("b", EMPTYFILE.lsr:1.2)]'
+          assertEq strLsrD("testParse 'a.b#blorfl'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token(".", EMPTYFILE.lsr:1.1) Token("b", EMPTYFILE.lsr:1.2)]'
           assertEq strLsrD("tokens 'a (\\\\b . c d (e f)) g'"),
             'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("(", EMPTYFILE.lsr:1.2) Token("\\\\", EMPTYFILE.lsr:1.3) Token("b", EMPTYFILE.lsr:1.4) Token(".", EMPTYFILE.lsr:1.6) Token("c", EMPTYFILE.lsr:1.8) Token("d", EMPTYFILE.lsr:1.10) Token("(", EMPTYFILE.lsr:1.12) Token("e", EMPTYFILE.lsr:1.13) Token("f", EMPTYFILE.lsr:1.15) Token(")", EMPTYFILE.lsr:1.16) Token(")", EMPTYFILE.lsr:1.17) Token("g", EMPTYFILE.lsr:1.19)]'
-          assertEq strLsrD("parse 'a (\\\\b . c d (e f)) g'"),
+          assertEq strLsrD("testParse 'a (\\\\b . c d (e f)) g'"),
             'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.2, EMPTYFILE.lsr:1.18, Cons[Token("\\\\", EMPTYFILE.lsr:1.3) Token("b", EMPTYFILE.lsr:1.4) Token(".", EMPTYFILE.lsr:1.6) Token("c", EMPTYFILE.lsr:1.8) Token("d", EMPTYFILE.lsr:1.10) Parens(EMPTYFILE.lsr:1.12, EMPTYFILE.lsr:1.17, Cons[Token("e", EMPTYFILE.lsr:1.13) Token("f", EMPTYFILE.lsr:1.15)])]) Token("g", EMPTYFILE.lsr:1.19)]'
           assertEq strLsrD("tokens #{s """
             a (\\b .
@@ -490,13 +490,13 @@ readFile 'packages/leisure/build/src/simpleParse.lsr', (err, code)->
               d (e f)) g
             """}"),
             'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("(", EMPTYFILE.lsr:1.2) Token("\\\\", EMPTYFILE.lsr:1.3) Token("b", EMPTYFILE.lsr:1.4) Token(".", EMPTYFILE.lsr:1.6) Token("\\n  ", EMPTYFILE.lsr:1.7) Token("c", EMPTYFILE.lsr:1.10) Token("\\n  ", EMPTYFILE.lsr:1.11) Token("d", EMPTYFILE.lsr:1.14) Token("(", EMPTYFILE.lsr:1.16) Token("e", EMPTYFILE.lsr:1.17) Token("f", EMPTYFILE.lsr:1.19) Token(")", EMPTYFILE.lsr:1.20) Token(")", EMPTYFILE.lsr:1.21) Token("g", EMPTYFILE.lsr:1.23)]'
-          assertEq strLsrD("parse #{s """
+          assertEq strLsrD("testParse #{s """
             a (\\b .
               c
               d (e f)) g
             """}"),
             'Cons[Token("a", EMPTYFILE.lsr:1.0) Parens(EMPTYFILE.lsr:1.2, EMPTYFILE.lsr:1.22, Cons[Token("\\\\", EMPTYFILE.lsr:1.3) Token("b", EMPTYFILE.lsr:1.4) Token(".", EMPTYFILE.lsr:1.6) Token("c", EMPTYFILE.lsr:1.10) Parens(EMPTYFILE.lsr:1.11, EMPTYFILE.lsr:1.21, Cons[Token("d", EMPTYFILE.lsr:1.14) Parens(EMPTYFILE.lsr:1.16, EMPTYFILE.lsr:1.21, Cons[Token("e", EMPTYFILE.lsr:1.17) Token("f", EMPTYFILE.lsr:1.19)])])]) Token("g", EMPTYFILE.lsr:1.23)]'
-        leisureParse28: -> assertEq strLsrD("parse #{s '"a b"'}"), 'Token("\\"a b\\"", EMPTYFILE.lsr:1.0)'
+        leisureParse28: -> assertEq strLsrD("testParse #{s '"a b"'}"), 'Token("\\"a b\\"", EMPTYFILE.lsr:1.0)'
       runTests 'Leisure AST',
         leisureAst1: -> assertEq lsr("scrub '\"'"), "\\\""
         leisureAst2: -> assertEq strLsrD("parseToAst 'a'"), 'ref(a)'
@@ -507,10 +507,10 @@ readFile 'packages/leisure/build/src/simpleParse.lsr', (err, code)->
           assertEq String(lsr("hasType (strMatch 'a' 'b') nil 1 2")), "1"
           assertEq lsr("strMatches 'a' 'b' 1 2"), 2
         leisureAst4: -> #ast1
-          assertEq strLsrD("parse 'a b'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.2)]'
+          assertEq strLsrD("testParse 'a b'"), 'Cons[Token("a", EMPTYFILE.lsr:1.0) Token("b", EMPTYFILE.lsr:1.2)]'
           assertEq strLsrD("parseToAst 'a b'"), 'apply(a b)'
         leisureAst5: -> #ast3
-          assertEq strLsrD("parse #{s '\\a . a'}"), 'Cons[Token("\\\\", EMPTYFILE.lsr:1.0) Token("a", EMPTYFILE.lsr:1.1) Token(".", EMPTYFILE.lsr:1.3) Token("a", EMPTYFILE.lsr:1.5)]'
+          assertEq strLsrD("testParse #{s '\\a . a'}"), 'Cons[Token("\\\\", EMPTYFILE.lsr:1.0) Token("a", EMPTYFILE.lsr:1.1) Token(".", EMPTYFILE.lsr:1.3) Token("a", EMPTYFILE.lsr:1.5)]'
           assertEq strLsrD("parseToAst #{s '\\a . a'}"), 'lambda(\\a . a)'
         leisureAst6: ->
           lsr("\\@define (duh 1 'duh x = x') . \\x . x")

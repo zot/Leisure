@@ -44,7 +44,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("nodeTranslate")(3)("nodeTranslate st x y = st \\svg width height rootX rootY . makeNode\n  translate svg x y\n  width\n  height\n  rootX + x\n  rootY + y")(lazy((function () {
   var main;
   var full = function (L_st, L_x, L_y) {
-    return resolve(L_st)(lazy(function(L_svg){return $F(arguments, function(L_width){return $F(arguments, function(L_height){return $F(arguments, function(L_rootX){return $F(arguments, function(L_rootY){return resolve(L_makeNode)(function(){return resolve(L_translate)(L_svg, L_x, L_y)}, L_width, L_height, function(){return resolve(L_$o)(L_rootX)(L_x)}, function(){return resolve(L_$o)(L_rootY)(L_y)})})})})})}));
+    return resolve(L_st)(lazy(function(L_svg){return $F(arguments, function(L_width){return $F(arguments, function(L_height){return $F(arguments, function(L_rootX){return $F(arguments, function(L_rootY){return resolve(L_makeNode)(function(){return resolve(L_translate)(L_svg)(L_x)(L_y)}, L_width, L_height, function(){return resolve(L_$o)(L_rootX)(L_x)}, function(){return resolve(L_$o)(L_rootY)(L_y)})})})})})}));
   };
   var partial = function(L_st) {
     var _1 = function(L_x) {
@@ -91,7 +91,6 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
- function(){return resolve(L_newDefine)("astFor")(1)("astFor func = isFunc func\n  funcSrc func (\\src . parse src) (right 'no source')\n  left (lit func emptyFilePos)")(lazy(function(L_func){return resolve(L_isFunc)(L_func)(function(){return resolve(L_funcSrc)(L_func)(lazy(function(L_src){return resolve(L_parse)(L_src)}))(function(){return resolve(L_right)("no source")})})(function(){return resolve(L_left)(function(){return resolve(L_lit)(L_func, L_emptyFilePos)})})}))},
  function(){return resolve(L_newDefine)("rangeContainsRange")(4)("rangeContainsRange start end innerStart innerEnd = and (lte start innerStart) (lte innerEnd end)")(lazy((function () {
   var main;
   var full = function (L_start, L_end, L_innerStart, L_innerEnd) {
@@ -125,10 +124,9 @@ module.exports = L_runMonads([
 })()))},
  function(){return resolve(L_newDefine)("highlight")(1)("highlight map = do\n  c = assocGetWithDefault 'fill' map nil\n  eq c '#fcc'\n    assocSet 'fill' 'red' map\n    eq c '#cfc'\n      assocSet 'fill' 'green' map\n      eq c '#ccf'\n        assocSet 'fill' 'blue' map\n        map")(lazy(function(L_map){return (function(){
   var L_c_0;
-  L_c_0 = function(){return resolve(L_assocGetWithDefault)("fill", L_map, L_nil)};
+  L_c_0 = function(){return resolve(L_assocGetWithDefault)("fill")(L_map)(L_nil)};
 
   return resolve(L_eq)(L_c_0)("#fcc")(function(){return resolve(L_assocSet)("fill")("red")(L_map)})(function(){return resolve(L_eq)(L_c_0)("#cfc")(function(){return resolve(L_assocSet)("fill")("green")(L_map)})(function(){return resolve(L_eq)(L_c_0)("#ccf")(function(){return resolve(L_assocSet)("fill")("blue")(L_map)})(L_map)})})})()}))},
- function(){return resolve(L_newDefine)("treeForFunc")(1)("treeForFunc func = treeFor (parse (funcSource func id false) id false)")(lazy(function(L_func){return resolve(L_treeFor)(function(){return resolve(L_parse)(function(){return resolve(L_funcSource)(L_func)(L_id)(L_false)}, L_id)(L_false)})}))},
  function(){return resolve(L_newDefine)("treeFor")(1)("treeFor ast = treeForWith ast \\ast map . map")(lazy(function(L_ast){return resolve(L_treeForWith)(L_ast, lazy(function(L_ast_0){return $F(arguments, function(L_map){return resolve(L_map)})}))}))},
  function(){return resolve(L_newDefine)("treeForWith")(2)("treeForWith ast mapFunc = nodeSvg (nodeFor ast mapFunc)")(lazy((function () {
   var main;
@@ -157,7 +155,7 @@ module.exports = L_runMonads([
   var L_content_0;
   L_content_0 = function(){return resolve(L_nodeFor)(L_ast, lazy(function(L_ast_0){return $F(arguments, function(L_map){return resolve(L_map)})}))};
 
-  return resolve(L_svg)(function(){return resolve(L_nodeSvg)(L_content_0)}, function(){return resolve(L_aconsPair)(function(){return resolve(L_cons)("width", function(){return resolve(L_$o)(L_border)(function(){return resolve(L_nodeWidth)(L_content_0)})})}, function(){return resolve(L_aconsPair)(function(){return resolve(L_cons)("height", function(){return resolve(L_$o)(L_border)(function(){return resolve(L_nodeHeight)(L_content_0)})})}, L_nil)})})})()}))},
+  return resolve(L_svg)(function(){return resolve(L_nodeSvg)(L_content_0)})(function(){return resolve(L_aconsPair)(function(){return resolve(L_cons)("width", function(){return resolve(L_$o)(L_border)(function(){return resolve(L_nodeWidth)(L_content_0)})})}, function(){return resolve(L_aconsPair)(function(){return resolve(L_cons)("height", function(){return resolve(L_$o)(L_border)(function(){return resolve(L_nodeHeight)(L_content_0)})})}, L_nil)})})})()}))},
  function(){return resolve(L_newDefine)("nodeFor")(2)("nodeFor ast mapFunc = do\n  t = getType ast\n  eq t 'lit'\n    createLitNode ast (show (ast \\v p . v)) mapFunc\n    eq t 'ref'\n      createRefNode ast (show (ast \\n p . n)) mapFunc\n      eq t 'lambda'\n        ast (\\v b p . createLambdaNode ast v b mapFunc)\n        eq t 'apply'\n          ast (\\f a . createApplyNode ast f a mapFunc)\n          eq t 'anno'\n            #ast (\\n d b . createApplyNode ast f a mapFunc)\n            ast (\\n d b . nodeFor b mapFunc)\n            log 2 makeNode (svgNode '') 0 0 0 0")(lazy((function () {
   var main;
   var full = function (L_ast, L_mapFunc) {
@@ -336,7 +334,7 @@ module.exports = L_runMonads([
   L_nodeW_0 = function(){return resolve(L_$o)(L_w)(24)};
   L_nodeH_1 = function(){return resolve(L_$o)(L_h)(14)};
 
-  return resolve(L_makeNode)(function(){return resolve(L_svgConcat)(function(){return resolve(L_cons)(function(){return resolve(L_rect)(function(){return resolve(L_cons)(function(){return resolve(L_cons)("x", 2)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("y", 2)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("width", L_nodeW_0)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("height", L_nodeH_1)}, L_map)})})})})}, function(){return resolve(L_cons)(function(){return resolve(L_text)(L_txt, function(){return resolve(L_cons)(function(){return resolve(L_cons)("pointer-events", "none")}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("text-anchor", "middle")}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("dominant-baseline", "mathematical")}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("x", function(){return resolve(L_$o)(14)(function(){return resolve(L_$f)(L_w)(2)})})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("y", function(){return resolve(L_$o)(L_border)(function(){return resolve(L_$f)(L_h)(2)})})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("font-weight", "bold")}, L_nil)})})})})})})}, L_nil)})})}, L_nodeW_0, L_nodeH_1, function(){return resolve(L_$f)(L_nodeW_0)(2)}, function(){return resolve(L_$f)(L_nodeH_1)(2)})})()})}));
+  return resolve(L_makeNode)(function(){return resolve(L_svgConcat)(function(){return resolve(L_cons)(function(){return resolve(L_rect)(function(){return resolve(L_cons)(function(){return resolve(L_cons)("x", 2)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("y", 2)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("width", L_nodeW_0)}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("height", L_nodeH_1)}, L_map)})})})})}, function(){return resolve(L_cons)(function(){return resolve(L_text)(L_txt)(function(){return resolve(L_cons)(function(){return resolve(L_cons)("pointer-events", "none")}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("text-anchor", "middle")}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("dominant-baseline", "mathematical")}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("x", function(){return resolve(L_$o)(14)(function(){return resolve(L_$f)(L_w)(2)})})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("y", function(){return resolve(L_$o)(L_border)(function(){return resolve(L_$f)(L_h)(2)})})}, function(){return resolve(L_cons)(function(){return resolve(L_cons)("font-weight", "bold")}, L_nil)})})})})})})}, L_nil)})})}, L_nodeW_0, L_nodeH_1, function(){return resolve(L_$f)(L_nodeW_0)(2)}, function(){return resolve(L_$f)(L_nodeH_1)(2)})})()})}));
   };
   var partial = function(L_map) {
     var _1 = function(L_txt) {

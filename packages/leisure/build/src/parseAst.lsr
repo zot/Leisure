@@ -55,10 +55,6 @@ nodeTranslate st x y = st \svg width height rootX rootY . makeNode
 nodeLine n1 n2 = n1 \s1 w1 h1 x1 y1 . n2 \s2 w2 h2 x2 y2 .
   line [['x1'|x1] ['y1'|y1] ['x2'|x2] ['y2'|y2] ['stroke-width'|3] | defaultLineMap]
 
-astFor func = isFunc func
-  funcSrc func (\src . parse src) (right 'no source')
-  left (lit func emptyFilePos)
-
 rangeContainsRange start end innerStart innerEnd = and (lte start innerStart) (lte innerEnd end)
 
 highlight map = do
@@ -70,8 +66,6 @@ highlight map = do
       eq c '#ccf'
         assocSet 'fill' 'blue' map
         map
-
-treeForFunc func = treeFor (parse (funcSource func id false) id false)
 
 treeFor ast = treeForWith ast \ast map . map
 
