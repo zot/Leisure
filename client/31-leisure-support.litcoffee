@@ -37,10 +37,10 @@ Leisure integration for environment
         addDataAfter (rz id), (rz value), (rz attrLine)
         cont _true))
 
-    define 'getDataNamed', lz (name)->
+    define 'getBaseDataNamed', lz (name)->
       makeMonad (env, cont)-> cont getDataNamed rz name
 
-    define 'setDataNamed', lz (name)-> $F(arguments, lz (value)->
+    define 'setBaseDataNamed', lz (name)-> $F(arguments, lz (value)->
       makeMonad (env, cont)->
         setDataNamed rz(name), rz(value)
         cont _true)

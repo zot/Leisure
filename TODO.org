@@ -1,4 +1,6 @@
 * Short list -- announcement
+- make revert redefine funcs
+- define showHtml.parseError to show a small error symbol that hover-expands to the message
 - *update jqueryui to get selectmenu widget*
 - warning for potentially misspelled index names
   - index defs that refer to empty indexes
