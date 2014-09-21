@@ -107,14 +107,6 @@ define 'trace', lz (msg)->
 define 'error', lz (msg)-> throw new Error rz msg
 
 ############
-# UTILITIES
-############
-
-define 'strict', lz (x)->$F(arguments, (f)->
-  console.log "STRICT #{rz x}"
-  rz(f)(lz rz x))
-
-############
 # MATH
 ############
 

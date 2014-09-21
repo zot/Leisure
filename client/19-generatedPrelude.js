@@ -77,6 +77,7 @@ module.exports = L_runMonads([
  function(){return resolve(L_newDefine)("isNone")(1)("isNone obj = hasType obj none")(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_none)}))},
  function(){return resolve(L_newDefine)("isSome")(1)("isSome obj = hasType obj some")(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_some)}))},
  function(){return resolve(L_newDefine)("isSome2")(1)("isSome2 obj = hasType obj some2")(lazy(function(L_obj){return resolve(L_hasType)(L_obj)(L_some2)}))},
+ function(){return resolve(L_newDefine)("isOption")(1)("isOption obj = or (isSome obj) (isNone obj)")(lazy(function(L_obj){return resolve(L_or)(function(){return resolve(L_isSome)(L_obj)}, function(){return resolve(L_isNone)(L_obj)})}))},
  function(){return resolve(L_newDefine)("neq")(2)("neq a b = not (eq a b)")(lazy((function () {
   var main;
   var full = function (L_a, L_b) {
@@ -102,6 +103,7 @@ module.exports = L_runMonads([
 })()))},
  function(){return resolve(L_newDefine)("left")(1)("left x = \\lCase rCase . lCase x")(lazy(setDataType(function(L_x){return setType(function(L_lCase){return $F(arguments, function(L_rCase){return resolve(L_lCase)(L_x)})}, 'left')}, 'left')))},
  function(){return resolve(L_newDefine)("right")(1)("right x = \\lCase rCase . rCase x")(lazy(setDataType(function(L_x){return setType(function(L_lCase){return $F(arguments, function(L_rCase){return resolve(L_rCase)(L_x)})}, 'right')}, 'right')))},
+ function(){return resolve(L_newDefine)("isEither")(1)("isEither obj = or (hasType obj left) (hasType obj right)")(lazy(function(L_obj){return resolve(L_or)(function(){return resolve(L_hasType)(L_obj)(L_left)}, function(){return resolve(L_hasType)(L_obj)(L_right)})}))},
  function(){return resolve(L_newDefine)("isString")(1)("isString s = == (getType s) '*string'")(lazy(function(L_s){return resolve(L_$p$p)(function(){return resolve(L_getType)(L_s)})("*string")}))},
  function(){return resolve(L_newDefine)("isNumber")(1)("isNumber s = == (getType s) '*number'")(lazy(function(L_s){return resolve(L_$p$p)(function(){return resolve(L_getType)(L_s)})("*number")}))},
  function(){return resolve(L_newDefine)("strAsc")(1)("strAsc string = _strAsc (assertType 'strAsc string' '*string' string)")(lazy(function(L_string){return resolve(L__strAsc)(function(){return resolve(L_assertType)("strAsc string", "*string", L_string)})}))},

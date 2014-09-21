@@ -275,9 +275,9 @@ makeCaseCondition orig funcName altName args rest cond = rest
 
 showBase func obj = func obj
 
-defCase showBase.some func obj | hasType obj some -> concat["Some(" (showBase func (obj id false)) ")"]
+defCase showBase.some func obj | hasType obj some -> concat["(some " (showBase func (obj id false)) ")"]
 
-defCase showBase.some2 func obj | hasType obj some2 -> concat["Some2(" (obj (\a b . showBase func [a ', ' b]) false) ")"]
+defCase showBase.some2 func obj | hasType obj some2 -> concat["(some2 " (obj (\a b . showBase func [a ', ' b]) false) ")"]
 
 defCase showBase.token func obj | hasType obj token -> obj \str pos .
   isFilepos pos
@@ -304,9 +304,9 @@ defCase showBase.assoc func obj | isAlist obj -> concatFlat[
   intersperse (map (\item . [(showBase func (head item)) ':' (showBase func (tail item))]) obj) ' '
   '}']
 
-defCase showBase.left func obj | hasType obj left -> concat["Left(" (showBase func (obj id id)) ")"]
+defCase showBase.left func obj | hasType obj left -> concat["(left " (showBase func (obj id id)) ")"]
 
-defCase showBase.right func obj | hasType obj right -> concat["Right(" (showBase func (obj id id)) ")"]
+defCase showBase.right func obj | hasType obj right -> concat["(right " (showBase func (obj id id)) ")"]
 
 ## presentation
 
@@ -338,19 +338,26 @@ defCase presentHtml.func obj | (getType obj) == '*function' ->
 
 defCase present.nil obj | hasType obj nil -> 'nil'
 
-defCase present.none obj | hasType obj none -> "None"
+defCase present.none obj | hasType obj none -> "none"
 
 defCase presentHtml.html obj | hasType obj html -> obj id
 
 ## bind
+# If the cont result is not the same type as the monad, we call unit
+# We could raise an error but for now we'll just auto-convert
 defCase bind.option opt cont | or (hasType opt some) (hasType opt none) -> opt
-  \value . cont value
+  \value . bind (cont value) \res . isOption res res (some res)
   none
 
-defCase bind.either either cont | or (hasType either left) (hasType either right) -> either
+defCase bind.either either cont | isEither either -> either
   \_ . either
-  \value . cont value
+  \value . bind (cont value) \res . isEither res res (right res)
 
+defCase bind.cons list cont | hasType list cons -> bindCons list cont nil
+
+bindCons list cont res = list
+  \h t D . bind (cont h) \result . bindCons t cont [result | res]
+  foldr (\el prev . isList el append cons el prev) nil (reverse res)
 #######################
 ## pre/postconditions
 #######################

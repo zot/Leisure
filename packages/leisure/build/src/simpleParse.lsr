@@ -15,9 +15,11 @@ none = \someCase noneCase . noneCase
 isNone obj = hasType obj none
 isSome obj = hasType obj some
 isSome2 obj = hasType obj some2
+isOption obj = or (isSome obj) (isNone obj)
 neq a b = not (eq a b)
 left x = \lCase rCase . lCase x
 right x = \lCase rCase . rCase x
+isEither obj = or (hasType obj left) (hasType obj right)
 
 ######################
 # DATA
