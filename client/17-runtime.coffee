@@ -664,6 +664,8 @@ jsonConvert = (obj)->
     t
   else obj
 
+define 'fromJson', lz (obj)-> jsonConvert rz obj
+
 define 'toJsonArray', lz (list)->
   list = rz list
   array = []

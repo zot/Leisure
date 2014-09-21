@@ -34,10 +34,10 @@ module.exports = L_runMonads([
  function(){return resolve(L_addToken)("++")},
  function(){return resolve(L_newDefine)("--")(0)("-- = (flip (-)) 1")(function(){return resolve(L_flip)(L_$_)(1)})},
  function(){return resolve(L_newDefine)("++")(0)("++ = (1 +)")(function(){return resolve(L_$o)(1)})},
- function(){return resolve(L_newDefine)("intercalate")(2)("intercalate x l = concat (intersperse x l)")(lazy((function () {
+ function(){return resolve(L_newDefine)("intercalate")(2)("intercalate x l = strCat (intersperse x l)")(lazy((function () {
   var main;
   var full = function (L_x, L_l) {
-    return resolve(L_concat)(function(){return resolve(L_intersperse)(L_x, L_l)});
+    return resolve(L_strCat)(function(){return resolve(L_intersperse)(L_x, L_l)});
   };
   var partial = function(L_x) {
     var _1 = function(L_l) {

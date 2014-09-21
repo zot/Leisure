@@ -1674,6 +1674,17 @@ Handlebars.registerHelper 'view', (item, name, options)->
     viewMarkup[descriptor]?(data, null, false, block) || ''
   else ''
 
+Handlebars.registerHelper 'deref', (item)->
+  if typeof item == 'string'
+    block = getBlockNamed item
+    block?.yaml
+  else if item.yaml && item._id
+    block = item
+    item.yaml
+  else
+    block = null
+    item
+
 Handlebars.registerHelper 'find', (index, options)->
   ret = ''
   indexedCursor(root.currentDocument, index)?.forEach (data)-> if data then ret += options.fn data

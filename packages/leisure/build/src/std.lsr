@@ -78,7 +78,7 @@ addToken '++'
 ++ = (1 +)
 
 # Strings
-intercalate x l = concat (intersperse x l)
+intercalate x l = strCat (intersperse x l)
 string = show
 
 # Simplification

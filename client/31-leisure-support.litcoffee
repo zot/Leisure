@@ -17,6 +17,8 @@ Leisure integration for environment
     } = require '17-runtime'
     {
       addDataAfter,
+      getDataNamed,
+      setDataNamed,
     } = require '23-collaborate'
     _ = require 'lodash.min'
 
@@ -34,3 +36,11 @@ Leisure integration for environment
       makeMonad (env, cont)->
         addDataAfter (rz id), (rz value), (rz attrLine)
         cont _true))
+
+    define 'getDataNamed', lz (name)->
+      makeMonad (env, cont)-> cont getDataNamed rz name
+
+    define 'setDataNamed', lz (name)-> $F(arguments, lz (value)->
+      makeMonad (env, cont)->
+        setDataNamed rz(name), rz(value)
+        cont _true)
