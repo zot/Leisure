@@ -13,7 +13,11 @@ Leisure integration for environment
     } = require '16-ast'
     {
       makeMonad,
+      _true,
     } = require '17-runtime'
+    {
+      addDataAfter,
+    } = require '23-collaborate'
     _ = require 'lodash.min'
 
     lz = lazy
@@ -25,3 +29,8 @@ Leisure integration for environment
           cont res?.error ? res
     #), 2, null, null, null, true
     )), 2
+
+    define 'addDataAfter', lz (id)->$F(arguments, lz (value)-> $F(arguments, lz (attrLine)->
+      makeMonad (env, cont)->
+        addDataAfter (rz id), (rz value), (rz attrLine)
+        cont _true))

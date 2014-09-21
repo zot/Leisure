@@ -141,6 +141,7 @@ define 'rand', -> makeSyncMonad (env, cont)->
 define 'randInt', lz (low)->$F(arguments, (high)->makeSyncMonad (env, cont)->
   cont (Math.floor(rz(low) + Math.random() * rz(high))))
 define '^', lz (x)->$F(arguments, (y)->Math.pow(rz(x), rz(y)))
+define 'number', lz (n)-> Number n
 
 ############
 # STRINGS
@@ -468,7 +469,7 @@ define 'gensym', lz makeSyncMonad (env, cont)-> cont "G#{gensymCounter++}"
 
 define 'print', lz (msg)->
   makeSyncMonad (env, cont)->
-    env.write ("#{env.presentValue rz msg}\n")
+    env.write env.presentValue rz msg
     cont _true
 
 define 'write', lz (msg)->

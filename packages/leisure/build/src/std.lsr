@@ -77,8 +77,11 @@ addToken '++'
 -- = (flip (-)) 1
 ++ = (1 +)
 
+# Strings
 intercalate x l = concat (intersperse x l)
+string = show
 
+# Simplification
 visit func l = \\
   result = func func l
   .
@@ -93,6 +96,12 @@ simplify exprString = do
 #######################
 ## Monads
 #######################
+
+repeat n = \f . runRepeat 0 n f
+
+runRepeat count limit f = count < limit
+  [(f count) | runRepeat (count + 1) limit f]
+  []
 
 requireJS file = bind (getValue 'requiredFiles')
   \files . contains files file
@@ -357,6 +366,12 @@ defCase bind.cons list cont | hasType list cons -> bindCons list cont nil
 
 bindCons list cont res = list
   \h t D . bind (cont h) \result . bindCons t cont [result | res]
+  foldr (\el prev . isList el append cons el prev) nil (reverse res)
+
+defCase bind.repeat r cont | hasType r repeat -> bindRepeat (r id) cont nil
+
+bindRepeat nums cont res = nums
+  \n t D . bind (cont n) \result . bindRepeat t cont [result | res]
   foldr (\el prev . isList el append cons el prev) nil (reverse res)
 #######################
 ## pre/postconditions

@@ -387,6 +387,31 @@ Handle changes to the doc nodes
         updateItem overrides = new Overrides(), cur
         commitOverrides overrides
 
+Add some data to the document -- for now, it is unnamed
+
+doc and attrLine are optional
+
+    addDataAfter = (id, value, attrLine, doc)->
+      if !doc
+        if !attrLine || typeof attrLine == 'string' then doc = root.currentDocument
+        else
+          doc = attrLine
+          attrLine = null
+      parent = getBlock id
+      block = (orgDoc parseOrgMode """
+      #+BEGIN_SRC yaml#{if attrLine then ' ' + attrLine else ''}
+      #{dump value}
+      #+END_SRC
+      """)[0]
+      overrides = new Overrides()
+      addItem overrides, block, parent._id
+      updateItem overrides, parent, true
+      rc = createRenderingComputer overrides
+      rc.change getBlock(id), parent
+      rc.add block
+      commitOverrides overrides
+      rc.render()
+
     getSourceAttribute = (text, attr)->
       text.match(new RegExp "#\\+BEGIN_SRC.*:#{attr}\\b([^:]*)", 'i')?[1]?.trim()
 
@@ -1062,3 +1087,4 @@ Users can mark any slide as local by setting a "local" property to true in the s
     root.indexedCursor = indexedCursor
     root.getRenderCount = getRenderCount
     root.incRenderCount = incRenderCount
+    root.addDataAfter = addDataAfter

@@ -57,6 +57,7 @@ module.exports = L_runMonads([
   };
   return main;
 })()))},
+ function(){return resolve(L_newDefine)("string")(0)("string = show")(L_show)},
  function(){return resolve(L_newDefine)("visit")(2)("visit func l = \\\\\n  result = func func l\n  .\n  isCons result\n    result \\h t . cons (visit func h) (visit func t)\n    result")(lazy((function () {
   var main;
   var full = function (L_func, L_l) {
@@ -85,6 +86,34 @@ module.exports = L_runMonads([
   return main;
 })()))},
  function(){return resolve(L_newDefine)("simplify")(1)("simplify exprString = do\n  list <- scanLineM exprString\n  visit (\\func x . isToken x (tokenString x) ((isParens x) (visit func (parensContent x)) x)) list")(lazy(function(L_exprString){return resolve(L_bind)(function(){return resolve(L_scanLineM)(L_exprString)})(lazy(function(L_list){return resolve(L_visit)(lazy(function(L_func){return $F(arguments, function(L_x){return resolve(L_isToken)(L_x)(function(){return resolve(L_tokenString)(L_x)})(function(){return resolve(L_isParens)(L_x)(function(){return resolve(L_visit)(L_func, function(){return resolve(L_parensContent)(L_x)})})(L_x)})})}), L_list)}))}))},
+ function(){return resolve(L_newDefine)("repeat")(1)("repeat n = \\f . runRepeat 0 n f")(lazy(setDataType(function(L_n){return setType(function(L_f){return resolve(L_runRepeat)(0, L_n, L_f)}, 'repeat')}, 'repeat')))},
+ function(){return resolve(L_newDefine)("runRepeat")(3)("runRepeat count limit f = count < limit\n  [(f count) | runRepeat (count + 1) limit f]\n  []")(lazy((function () {
+  var main;
+  var full = function (L_count, L_limit, L_f) {
+    return resolve(L_$y)(L_count)(L_limit)(function(){return resolve(L_cons)(function(){return resolve(L_f)(L_count)}, function(){return resolve(L_runRepeat)(function(){return resolve(L_$o)(L_count)(1)}, L_limit, L_f)})})(L_nil);
+  };
+  var partial = function(L_count) {
+    var _1 = function(L_limit) {
+            var _2 = function(L_f) {
+              return full(L_count, L_limit, L_f);
+            };
+            _2.leisureInfo = {arg: L_limit, parent: _1.leisureInfo};
+            return _2;
+          };
+          _1.leisureInfo = {arg: L_count, name: main.leisureName};
+          return _1;
+  };
+  main = function(L_count, L_limit, L_f, more) {
+    if (L_f && (typeof more == "undefined" || more == null)) {
+      return full(L_count, L_limit, L_f);
+    } else if (typeof L_limit == "undefined" || L_limit == null) {
+      return partial(L_count);
+    } else {
+      return Leisure.curryCall(arguments, partial);
+    }
+  };
+  return main;
+})()))},
  function(){return resolve(L_newDefine)("requireJS")(1)("requireJS file = bind (getValue 'requiredFiles')\n  \\files . contains files file\n    false\n    bind (loadJS file)\n      \\result . result\n        \\x . left x\n        \\_ . bind (setValue 'requiredFiles' (cons file files))\n          \\_ . right true")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_getValue)("requiredFiles")})(lazy(function(L_files){return resolve(L_contains)(L_files, L_file)(L_false)(function(){return resolve(L_bind)(function(){return resolve(L_loadJS)(L_file)})(lazy(function(L_result){return resolve(L_result)(lazy(function(L_x){return resolve(L_left)(L_x)}))(lazy(function(L__){return resolve(L_bind)(function(){return resolve(L_setValue)("requiredFiles")(function(){return resolve(L_cons)(L_file, L_files)})})(lazy(function(L___0){return resolve(L_right)(L_true)}))}))}))})}))}))},
  function(){return resolve(L_newDefine)("loadJS")(1)("loadJS file = bind (readFile file)\n  \\result . result\n    \\err . err\n    \\contents . js contents")(lazy(function(L_file){return resolve(L_bind)(function(){return resolve(L_readFile)(L_file)})(lazy(function(L_result){return resolve(L_result)(lazy(function(L_err){return resolve(L_err)}))(lazy(function(L_contents){return resolve(L_js)(L_contents)}))}))}))},
  function(){return resolve(L_newDefine)("findOption")(2)("findOption func list = do\n  result = func (head list)\n  isNil list\n    none\n    isNone result\n      findOption func (tail list)\n      result")(lazy((function () {
@@ -847,6 +876,34 @@ module.exports = L_runMonads([
       return full(L_list, L_cont, L_res);
     } else if (typeof L_cont == "undefined" || L_cont == null) {
       return partial(L_list);
+    } else {
+      return Leisure.curryCall(arguments, partial);
+    }
+  };
+  return main;
+})()))},
+ function(){return resolve(L_advise)("bind")("repeat")(2)(lazy(function(L_r){return $F(arguments, function(L_cont){return resolve(L_hasType)(L_r)(L_repeat)(function(){return resolve(L_some)(function(){return resolve(L_bindRepeat)(function(){return resolve(L_r)(L_id)}, L_cont, L_nil)})})(L_none)})}))},
+ function(){return resolve(L_newDefine)("bindRepeat")(3)("bindRepeat nums cont res = nums\n  \\n t D . bind (cont n) \\result . bindRepeat t cont [result | res]\n  foldr (\\el prev . isList el append cons el prev) nil (reverse res)")(lazy((function () {
+  var main;
+  var full = function (L_nums, L_cont, L_res) {
+    return resolve(L_nums)(lazy(function(L_n){return $F(arguments, function(L_t){return $F(arguments, function(L_D){return resolve(L_bind)(function(){return resolve(L_cont)(L_n)})(lazy(function(L_result){return resolve(L_bindRepeat)(L_t, L_cont, function(){return resolve(L_cons)(L_result, L_res)})}))})})}))(function(){return resolve(L_foldr)(lazy(function(L_el){return $F(arguments, function(L_prev){return resolve(L_isList)(L_el)(L_append)(L_cons)(L_el)(L_prev)})}), L_nil, function(){return resolve(L_reverse)(L_res)})});
+  };
+  var partial = function(L_nums) {
+    var _1 = function(L_cont) {
+            var _2 = function(L_res) {
+              return full(L_nums, L_cont, L_res);
+            };
+            _2.leisureInfo = {arg: L_cont, parent: _1.leisureInfo};
+            return _2;
+          };
+          _1.leisureInfo = {arg: L_nums, name: main.leisureName};
+          return _1;
+  };
+  main = function(L_nums, L_cont, L_res, more) {
+    if (L_res && (typeof more == "undefined" || more == null)) {
+      return full(L_nums, L_cont, L_res);
+    } else if (typeof L_cont == "undefined" || L_cont == null) {
+      return partial(L_nums);
     } else {
       return Leisure.curryCall(arguments, partial);
     }
