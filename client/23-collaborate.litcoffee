@@ -405,11 +405,10 @@ doc and attrLine are optional
       """)[0]
       overrides = new Overrides()
       addItem overrides, block, parent._id
-      updateItem overrides, parent, true
       rc = createRenderingComputer overrides
-      rc.change getBlock(id), parent
-      rc.add block
       commitOverrides overrides
+      rc.change getBlock(id), getBlock parent._id
+      rc.add block
       rc.render()
 
     getSourceAttribute = (text, attr)->

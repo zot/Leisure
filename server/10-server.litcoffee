@@ -117,7 +117,13 @@ Document model that ties orgmode parse trees to HTML DOM
         id = name
         doc = if reload then docs[id] else docs[id] = new Meteor.Collection id
         if !doc then throw new Error "Attempt to reload unloaded document, #{name}"
-      if !reload
+      if reload
+        # Ensure that reloaded docs have new document ids
+        oldId = doc.leisure.info._id
+        doc.leisure.info._id = new Meteor.Collection.ObjectID().toJSONValue()
+        doc.remove oldId
+        doc.insert doc.leisure.info
+      else
         doc.leisure = name: id
         if temp then doc.leisure.temp = true
         doc.remove {}

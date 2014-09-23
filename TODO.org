@@ -1,4 +1,5 @@
 * Short list -- announcement
+- make checkpoint ask for commmit message
 - make revert redefine funcs
 - define showHtml.parseError to show a small error symbol that hover-expands to the message
 - *update jqueryui to get selectmenu widget*
