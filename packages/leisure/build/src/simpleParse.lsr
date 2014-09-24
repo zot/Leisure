@@ -83,6 +83,7 @@ show x = _show x
 ############
 
 id x = x
+unit = \x . x
 compose f g = \x . f (g x)
 
 # make a new function that takes two args in opposite order than the original function

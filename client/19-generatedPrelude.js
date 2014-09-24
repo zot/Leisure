@@ -336,6 +336,7 @@ module.exports = L_runMonads([
 })()))},
  function(){return resolve(L_newDefine)("show")(1)("show x = _show x")(lazy(function(L_x){return resolve(L__show)(L_x)}))},
  function(){return resolve(L_newDefine)("id")(1)("id x = x")(lazy(function(L_x){return resolve(L_x)}))},
+ function(){return resolve(L_newDefine)("unit")(0)("unit = \\x . x")(lazy(setDataType(setType(function(L_x){return resolve(L_x)}, 'unit'), 'unit')))},
  function(){return resolve(L_newDefine)("compose")(2)("compose f g = \\x . f (g x)")(lazy(setDataType((function () {
   var main;
   var full = function (L_f, L_g) {

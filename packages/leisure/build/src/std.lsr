@@ -284,6 +284,8 @@ makeCaseCondition orig funcName altName args rest cond = rest
 
 showBase func obj = func obj
 
+defCase showBase.unit func obj | hasType obj unit -> ''
+
 defCase showBase.some func obj | hasType obj some -> concat["(some " (showBase func (obj id false)) ")"]
 
 defCase showBase.some2 func obj | hasType obj some2 -> concat["(some2 " (obj (\a b . showBase func [a ', ' b]) false) ")"]

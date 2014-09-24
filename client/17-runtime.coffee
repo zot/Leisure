@@ -45,6 +45,8 @@ misrepresented as being the original software.
   getDataType,
   ast2Json,
   ensureLeisureClass,
+  LeisureObject,
+  mkProto,
   setType,
   setDataType,
   functionInfo,
@@ -322,17 +324,24 @@ global.L_runMonads = (monadArray)->
   newRunMonad 0, defaultEnv, null, monadArray
   monadArray
 
+ensureLeisureClass 'unit'
+
+class Leisure_unit extends LeisureObject
+  toString: -> 'unit'
+
+_unit = mkProto Leisure_unit, setType ((_x)-> rz(_x)), 'unit'
+
 define 'define', lz (name)->(arity)->(src)->(def)->
   #console.log "DEFINE: #{name}"
   makeSyncMonad (env, cont)->
     define rz(name), def, rz(arity), rz(src)
-    cont (if L_true? then rz L_true else _true)
+    cont _unit
 
 define 'newDefine', lz (name)->(arity)->(src)->(def)->
   #console.log "NEW DEFINE: #{name}"
   makeSyncMonad (env, cont)->
     define rz(name), def, rz(arity), rz(src), null, null, true
-    cont (if L_true? then rz L_true else _true)
+    cont _unit
 
 define 'bind', lz (m)->(binding)->
   bindMonad = makeMonad (env, cont)->
