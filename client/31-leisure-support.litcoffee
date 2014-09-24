@@ -20,6 +20,9 @@ Leisure integration for environment
       getDataNamed,
       setDataNamed,
     } = require '23-collaborate'
+    {
+      toggleLeisureBar,
+    } = require '24-orgSupport'
     _ = require 'lodash.min'
 
     lz = lazy
@@ -44,3 +47,7 @@ Leisure integration for environment
       makeMonad (env, cont)->
         setDataNamed rz(name), rz(value)
         cont _true)
+
+    define 'toggleLeisureBar', lz (makeMonad (env, cont)->
+      toggleLeisureBar()
+      cont _true)

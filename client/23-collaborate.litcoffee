@@ -114,8 +114,8 @@ Handle changes to the doc nodes
             d = if item.type == 'changed' then item.oldData else item.data
             if d.codeName? && (item.type == 'removed' || d.codeName != item.data.codeName)
               delete namedBlocks[d.codeName]
-          if item.type in ['changed', 'added']
-            if item.data.codeName? then namedBlocks[item.data.codeName] = item.data._id
+        if item.type in ['changed', 'added']
+          if item.data.codeName? then namedBlocks[item.data.codeName] = item.data._id
       for item in batch
         if item.data.info? && !item.removed
           doc.leisure.info = item.data

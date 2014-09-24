@@ -1962,3 +1962,4 @@ root.setCodeAttributes = setCodeAttributes
 root.clearCodeAttributes = clearCodeAttributes
 root.addStyles = addStyles
 root.noRenderWhile = noRenderWhile
+root.fancyEnv = orgEnv

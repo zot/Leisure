@@ -1054,6 +1054,8 @@ jsEnv = (env)->
     catch err
       @write errorDiv err.stack
 
+unknownLanguageEnv = leisureEnv
+
 class Html
   constructor: (@content)->
 
@@ -1597,6 +1599,7 @@ root.domCursorForCaret = domCursorForCaret
 root.domCursorForSelectedText = domCursorForSelectedText
 root.editFile = editFile
 root.domCursor = domCursor
+root.plainEnv = orgEnv
 
 # evil mod of Templating
 Templating.nonOrg = nonOrg
